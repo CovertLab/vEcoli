@@ -37,6 +37,9 @@ class Ecoli(Generator):
 
         complexation = self.initialize_complexation(sim_data)
 
+        return {
+            'complexation': complexation}
+
     def generate_topology(self, config):
         return {
             'complexation': {

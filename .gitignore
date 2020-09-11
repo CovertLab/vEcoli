@@ -20,6 +20,7 @@ user/*
 ###################
 *.pyc
 __pycache__
+*.so
 
 # OS generated files #
 ######################
