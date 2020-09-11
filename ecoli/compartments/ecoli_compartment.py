@@ -1,6 +1,8 @@
+from six.moves import cPickle
 import numpy as np
 
 from vivarium.core.process import Generator
+from vivarium.core.composition import simulate_compartment_in_experiment
 
 from ecoli.processes.complexation import Complexation
 
@@ -30,7 +32,8 @@ class Ecoli(Generator):
 
     def generate_processes(self, config):
         sim_data_path = config['sim_data_path']
-        sim_data = cPickle.load(sim_data_path)
+        with open(sim_data_path, 'rb') as sim_data_file:
+            sim_data = cPickle.load(sim_data_file)
 
         complexation = self.initialize_complexation(sim_data)
 
@@ -54,6 +57,7 @@ def test_ecoli():
     data = simulate_compartment_in_experiment(ecoli, settings)
 
     print(data)
+
 
 if __name__ == '__main__':
     test_ecoli()
