@@ -5,6 +5,7 @@ from vivarium.core.process import Generator
 from vivarium.core.composition import simulate_compartment_in_experiment
 
 from ecoli.processes.complexation import Complexation
+from ecoli.processes.protein_degradation import ProteinDegradation
 
 RAND_MAX = 2**31
 
@@ -30,15 +31,30 @@ class Ecoli(Generator):
         complexation = Complexation(complexation_config)
         return complexation
 
+    def initialize_protein_degradation(self, sim_data):
+        protein_degradation_config = {
+            'raw_degradation_rate': sim_data.process.translation.monomerData['degRate'].asNumber(1 / units.s),
+            'shuffle_indexes': sim_data.process.translation.monomerDegRateShuffleIdxs,
+            'water_id': sim_data.moleculeIds.water,
+            'amino_acid_ids': sim_data.moleculeGroups.amino_acids,
+            'amino_acid_counts': sim_data.process.translation.monomerData["aaCounts"].asNumber(),
+            'protein_ids': sim_data.process.translation.monomerData['id'],
+            'protein_lengths': sim_data.process.translation.monomerData['length'].asNumber()}
+
+        protein_degradation = ProteinDegradation(protein_degradation_config)
+        return protein_degradation
+
     def generate_processes(self, config):
         sim_data_path = config['sim_data_path']
         with open(sim_data_path, 'rb') as sim_data_file:
             sim_data = cPickle.load(sim_data_file)
 
         complexation = self.initialize_complexation(sim_data)
+        protein_degradation = self.initialize_protein_degradation(sim_data)
 
         return {
-            'complexation': complexation}
+            'complexation': complexation,
+            'protein_degradation': protein_degradation}
 
     def generate_topology(self, config):
         return {
