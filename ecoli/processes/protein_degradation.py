@@ -55,11 +55,6 @@ class ProteinDegradation(Process):
         self.degradation_matrix[self.water_index, :]  = -(np.sum(
             self.degradation_matrix[self.amino_acid_indexes, :], axis = 0) - 1)
 
-        # Build Views
-        self.metabolites = self.bulkMoleculesView(metaboliteIds)
-        self.h2o = self.bulkMoleculeView(sim_data.moleculeIds.water)
-        self.proteins = self.bulkMoleculesView(proteinIds)
-
     def ports_schema(self):
         return {
             'metabolites': {
@@ -76,7 +71,6 @@ class ProteinDegradation(Process):
                     '_default': 0,
                     '_emit': True}
                 for protein in self.protein_ids}}
-
 
     def next_update(self, timestep, states):
         proteins = states['proteins']
