@@ -105,7 +105,9 @@ def test_ecoli():
     initial_state = {
         'environment': {
             'media_id': 'minimal'},
-        'bulk': {}}
+        'listeners': {},
+        'bulk': {},
+        'unique': {}}
 
     settings = {
         'timestep': 1,
