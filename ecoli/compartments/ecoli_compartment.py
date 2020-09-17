@@ -6,9 +6,10 @@ from vivarium.core.composition import simulate_compartment_in_experiment
 
 from ecoli.processes.complexation import Complexation
 from ecoli.processes.protein_degradation import ProteinDegradation
+from ecoli.processes.polypeptide_initiation import PolypeptideInitiation
 
 from wholecell.utils import units
-
+from wholecell.utils.fitting import normalize
 
 RAND_MAX = 2**31
 
@@ -49,6 +50,26 @@ class Ecoli(Generator):
         protein_degradation = ProteinDegradation(protein_degradation_config)
         return protein_degradation
 
+    def initialize_polypeptide_initiation(self, sim_data):
+        polypeptide_initiation_config = {
+            'protein_lengths': sim_data.process.translation.monomerData["length"].asNumber(),
+            'translation_efficiencies': normalize(sim_data.process.translation.translationEfficienciesByMonomer),
+            'active_ribosome_fraction': sim_data.process.translation.ribosomeFractionActiveDict,
+            'elongation_rates': sim_data.process.translation.ribosomeElongationRateDict,
+            'variable_elongation': False,
+            'make_elongation_rates': sim_data.process.translation.make_elongation_rates,
+            'protein_index_to_TU_index': sim_data.relation.rnaIndexToMonomerMapping,
+            'all_TU_ids': sim_data.process.transcription.rnaData['id'],
+            'all_mRNA_ids': sim_data.process.translation.monomerData['rnaId'],
+            'ribosome30S': sim_data.moleculeIds.s30_fullComplex,
+            'ribosome50S': sim_data.moleculeIds.s50_fullComplex,
+            'seed': self.random_state.randint(RAND_MAX),
+            'shuffle_indexes': sim_data.process.translation.monomerDegRateShuffleIdxs if hasattr(
+                sim_data.process.translation, "monomerDegRateShuffleIdxs") else None}
+
+        polypeptide_initiation = PolypeptideInitiation(polypeptide_initiation_config)
+        return polypeptide_initiation
+
     def generate_processes(self, config):
         sim_data_path = config['sim_data_path']
         with open(sim_data_path, 'rb') as sim_data_file:
@@ -56,10 +77,12 @@ class Ecoli(Generator):
 
         complexation = self.initialize_complexation(sim_data)
         protein_degradation = self.initialize_protein_degradation(sim_data)
+        polypeptide_initiation = self.initialize_polypeptide_initiation(sim_data)
 
         return {
             'complexation': complexation,
-            'protein_degradation': protein_degradation}
+            'protein_degradation': protein_degradation,
+            'polypeptide_initiation': polypeptide_initiation}
 
     def generate_topology(self, config):
         return {
@@ -67,13 +90,21 @@ class Ecoli(Generator):
                 'molecules': ('bulk',)},
             'protein_degradation': {
                 'metabolites': ('bulk',),
-                'proteins': ('bulk',)}}
+                'proteins': ('bulk',)},
+            'polypeptide_initiation': {
+                'environment': ('environment',),
+                'listeners': ('listeners',),
+                'active_ribosomes': ('unique',),
+                'RNAs': ('unique',),
+                'subunits': ('bulk',)}}
 
 
 def test_ecoli():
     ecoli = Ecoli({})
 
     initial_state = {
+        'environment': {
+            'media_id': 'minimal'},
         'bulk': {}}
 
     settings = {
