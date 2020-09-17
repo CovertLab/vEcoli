@@ -5,7 +5,6 @@ import numpy as np
 from vivarium.core.process import Process
 from vivarium.core.composition import simulate_process_in_experiment
 
-import wholecell.processes.process
 from wholecell.utils.constants import REQUEST_PRIORITY_DEGRADATION
 from wholecell.utils import units
 
@@ -20,10 +19,11 @@ class ProteinDegradation(Process):
         'amino_acid_ids': [],
         'amino_acid_counts': [],
         'protein_ids': [],
-        'protein_lengths': []}
+        'protein_lengths': [],
+        'seed': 0}
 
     # Constructor
-    def __init__(self):
+    def __init__(self, initial_parameters):
         if not initial_parameters:
             initial_parameters = {}
 
@@ -46,6 +46,9 @@ class ProteinDegradation(Process):
         self.protein_ids = self.parameters['protein_ids']
         self.protein_lengths = self.parameters['protein_lengths']
 
+        self.seed = self.parameters['seed']
+        self.random_state = np.random.RandomState(seed = self.seed)
+
         # Build S matrix
         self.degradation_matrix = np.zeros((
             len(self.metabolite_ids),
@@ -62,10 +65,6 @@ class ProteinDegradation(Process):
                     '_default': 0,
                     '_emit': True}
                 for metabolite in self.metabolite_ids},
-            'water': {
-                self.water_id: {
-                    '_default': 0,
-                    '_emit': True}},
             'proteins': {
                 protein: {
                     '_default': 0,
@@ -74,11 +73,11 @@ class ProteinDegradation(Process):
 
     def next_update(self, timestep, states):
         proteins = states['proteins']
-        protein_counts = np.array(proteins.values())
+        protein_counts = np.array(list(proteins.values()))
         rates = self.raw_degradation_rate * timestep
 
         degrade = np.fmin(
-            self.randomState.poisson(rates * protein_counts),
+            self.random_state.poisson(rates * protein_counts),
             protein_counts)
 
         # Determine the number of hydrolysis reactions
@@ -99,75 +98,48 @@ class ProteinDegradation(Process):
         return {
             'metabolites': {
                 metabolite: metabolites_delta[index]
-                for index, metabolite in enumerate(self.metabolites.keys())},
+                for index, metabolite in enumerate(self.metabolite_ids)},
             'proteins': {
                 protein: -degrade[index]
                 for index, protein in enumerate(proteins.keys())}}
 
 
+def test_protein_degradation():
+    test_config = {
+        'raw_degradation_rate': np.array([0.05, 0.08, 0.13, 0.21]),
+        'water_id': 'H2O',
+        'amino_acid_ids': ['A', 'B', 'C'],
+        'amino_acid_counts': np.array([
+            [5, 7, 13],
+            [1, 3, 5],
+            [4, 4, 4],
+            [13, 11, 5]]),
+        'protein_ids': ['w', 'x', 'y', 'z'],
+        'protein_lengths': np.array([
+            25, 9, 12, 29])}
 
-    # # Construct object graph
-    # def initialize(self, sim, sim_data):
-    #     super(ProteinDegradation, self).initialize(sim, sim_data)
+    protein_degradation = ProteinDegradation(test_config)
 
-    #     # Load protein degradation rates (based on N-end rule)
-    #     self.rawDegRate = sim_data.process.translation.monomerData['degRate'].asNumber(1 / units.s)
+    state = {
+        'metabolites': {
+            'A': 10,
+            'B': 20,
+            'C': 30,
+            'H2O': 1000},
+        'proteins': {
+            'w': 5,
+            'x': 6,
+            'y': 7,
+            'z': 8}}
 
-    #     shuffleIdxs = None
-    #     if hasattr(sim_data.process.translation, "monomerDegRateShuffleIdxs") and sim_data.process.translation.monomerDegRateShuffleIdxs is not None:
-    #         shuffleIdxs = sim_data.process.translation.monomerDegRateShuffleIdxs
-    #         self.rawDegRate = self.rawDegRate[shuffleIdxs]
+    settings = {
+        'total_time': 10,
+        'initial_state': state}
 
-    #     # Build metabolite IDs for S matrix
-    #     h2oId = [sim_data.moleculeIds.water]
-    #     metaboliteIds = sim_data.moleculeGroups.amino_acids + h2oId
-    #     aaIdxs = np.arange(0, len(sim_data.moleculeGroups.amino_acids))
-    #     h2oIdx = metaboliteIds.index(sim_data.moleculeIds.water)
+    data = simulate_process_in_experiment(protein_degradation, settings)
 
-    #     # Build protein IDs for S matrix
-    #     proteinIds = sim_data.process.translation.monomerData['id']
-
-    #     # Load protein length
-    #     self.proteinLengths = sim_data.process.translation.monomerData['length']
-
-    #     # Build S matrix
-    #     self.proteinDegSMatrix = np.zeros((len(metaboliteIds), len(proteinIds)), np.int64)
-    #     self.proteinDegSMatrix[aaIdxs, :] = np.transpose(sim_data.process.translation.monomerData["aaCounts"].asNumber())
-    #     self.proteinDegSMatrix[h2oIdx, :]  = -(np.sum(self.proteinDegSMatrix[aaIdxs, :], axis = 0) - 1)
-
-    #     # Build Views
-    #     self.metabolites = self.bulkMoleculesView(metaboliteIds)
-    #     self.h2o = self.bulkMoleculeView(sim_data.moleculeIds.water)
-    #     self.proteins = self.bulkMoleculesView(proteinIds)
-
-    #     self.bulkMoleculesRequestPriorityIs(REQUEST_PRIORITY_DEGRADATION)
-
-    # def calculateRequest(self):
-
-    #     # Determine how many proteins to degrade based on the degradation rates and counts of each protein
-    #     nProteinsToDegrade = np.fmin(
-    #         self.randomState.poisson(self._proteinDegRates() * self.proteins.total_counts()),
-    #         self.proteins.total_counts()
-    #         )
-
-    #     # Determine the number of hydrolysis reactions
-    #     nReactions = np.dot(self.proteinLengths.asNumber(), nProteinsToDegrade)
-
-    #     # Determine the amount of water required to degrade the selected proteins
-    #     # Assuming one N-1 H2O is required per peptide chain length N
-    #     self.h2o.requestIs(nReactions - np.sum(nProteinsToDegrade))
-    #     self.proteins.requestIs(nProteinsToDegrade)
+    print(data)
 
 
-    # def evolveState(self):
-
-    #     # Degrade selected proteins, release amino acids from those proteins back into the cell, 
-    #     # and consume H_2O that is required for the degradation process
-    #     self.metabolites.countsInc(np.dot(
-    #         self.proteinDegSMatrix,
-    #         self.proteins.counts()
-    #         ))
-    #     self.proteins.countsIs(0)
-
-    # def _proteinDegRates(self):
-    #     return self.rawDegRate * self.timeStepSec()
+if __name__ == "__main__":
+    test_protein_degradation()

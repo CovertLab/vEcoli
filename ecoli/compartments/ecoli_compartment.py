@@ -7,6 +7,9 @@ from vivarium.core.composition import simulate_compartment_in_experiment
 from ecoli.processes.complexation import Complexation
 from ecoli.processes.protein_degradation import ProteinDegradation
 
+from wholecell.utils import units
+
+
 RAND_MAX = 2**31
 
 class Ecoli(Generator):
@@ -34,12 +37,14 @@ class Ecoli(Generator):
     def initialize_protein_degradation(self, sim_data):
         protein_degradation_config = {
             'raw_degradation_rate': sim_data.process.translation.monomerData['degRate'].asNumber(1 / units.s),
-            'shuffle_indexes': sim_data.process.translation.monomerDegRateShuffleIdxs,
+            'shuffle_indexes': sim_data.process.translation.monomerDegRateShuffleIdxs if hasattr(
+                sim_data.process.translation, "monomerDegRateShuffleIdxs") else None,
             'water_id': sim_data.moleculeIds.water,
             'amino_acid_ids': sim_data.moleculeGroups.amino_acids,
             'amino_acid_counts': sim_data.process.translation.monomerData["aaCounts"].asNumber(),
             'protein_ids': sim_data.process.translation.monomerData['id'],
-            'protein_lengths': sim_data.process.translation.monomerData['length'].asNumber()}
+            'protein_lengths': sim_data.process.translation.monomerData['length'].asNumber(),
+            'seed': self.random_state.randint(RAND_MAX)}
 
         protein_degradation = ProteinDegradation(protein_degradation_config)
         return protein_degradation
@@ -59,7 +64,10 @@ class Ecoli(Generator):
     def generate_topology(self, config):
         return {
             'complexation': {
-                'molecules': ('bulk',)}}
+                'molecules': ('bulk',)},
+            'protein_degradation': {
+                'metabolites': ('bulk',),
+                'proteins': ('bulk',)}}
 
 
 def test_ecoli():
