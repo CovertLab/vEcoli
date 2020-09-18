@@ -70,6 +70,30 @@ class Ecoli(Generator):
         polypeptide_initiation = PolypeptideInitiation(polypeptide_initiation_config)
         return polypeptide_initiation
 
+    def initialize_metabolism(self, sim_data):
+        metabolism_config = {
+            'get_import_constraints': sim_data.external_state.get_import_constraints,
+            'nutrientToDoublingTime': sim_data.nutrientToDoublingTime,
+            'use_trna_charging': sim._trna_charging,
+            'include_ppgpp': not sim._ppgpp_regulation or not self.use_trna_charging,
+            'aa_names': sim_data.moleculeGroups.amino_acids,
+            'current_timeline': X,
+            'media_id': X,
+            'condition': sim_data.condition,
+            'nutrients': sim_data.conditions[sim_data.condition]['nutrients'],
+            'metabolism': sim_data.process.metabolism,
+            'constants': sim_data.constants,
+            'mass': sim_data.mass,
+            'ppgpp_id': sim_data.moleculeIds.ppGpp,
+            'getppGppConc': sim_data.growthRateParameters.getppGppConc,
+            'exchange_data_from_media': sim_data.external_state.exchange_data_from_media,
+            'getMass': sim_data.getter.getMass,
+            'doubling_time': sim_data.conditionToDoublingTime[sim_data.condition],
+            'amino_acid_ids': sorted(sim_data.amino_acid_code_to_id_ordered.values())}
+
+        metabolism = Metabolism(metabolism_config)
+        return metabolism
+
     def generate_processes(self, config):
         sim_data_path = config['sim_data_path']
         with open(sim_data_path, 'rb') as sim_data_file:
@@ -78,25 +102,39 @@ class Ecoli(Generator):
         complexation = self.initialize_complexation(sim_data)
         protein_degradation = self.initialize_protein_degradation(sim_data)
         polypeptide_initiation = self.initialize_polypeptide_initiation(sim_data)
+        metabolism = self.initialize_metabolism(sim_data)
 
         return {
             'complexation': complexation,
             'protein_degradation': protein_degradation,
-            'polypeptide_initiation': polypeptide_initiation}
+            'polypeptide_initiation': polypeptide_initiation,
+            'metabolism': metabolism}
 
     def generate_topology(self, config):
         return {
             'complexation': {
                 'molecules': ('bulk',)},
+
             'protein_degradation': {
                 'metabolites': ('bulk',),
                 'proteins': ('bulk',)},
+
             'polypeptide_initiation': {
                 'environment': ('environment',),
                 'listeners': ('listeners',),
                 'active_ribosomes': ('unique',),
                 'RNAs': ('unique',),
-                'subunits': ('bulk',)}}
+                'subunits': ('bulk',)},
+
+            'metabolism': {
+                'metabolites': ('bulk',),
+                'catalysts': ('bulk',),
+                'kinetics_enzymes': ('bulk',),
+                'kinetics_substrates': ('bulk',),
+                'amino_acids': ('bulk',),
+                'listeners': ('listeners',),
+                'environment': ('environment',),
+                'polypeptide_elongation': ('process_state', 'polypeptide_elongation')}}
 
 
 def test_ecoli():
@@ -105,9 +143,14 @@ def test_ecoli():
     initial_state = {
         'environment': {
             'media_id': 'minimal'},
-        'listeners': {},
+        'listeners': {
+            'mass': {
+                'cell_mass': 1.0,
+                'dry_mass': 1.0}},
         'bulk': {},
-        'unique': {}}
+        'unique': {},
+        'process_state': {
+            'polypeptide_elongation': {}}}
 
     settings = {
         'timestep': 1,

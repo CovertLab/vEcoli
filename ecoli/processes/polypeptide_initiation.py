@@ -7,34 +7,11 @@ import numpy as np
 from vivarium.core.process import Process
 from vivarium.core.composition import simulate_process_in_experiment
 
+from ecoli.library.schema import arrays_from, arrays_to
+
 from wholecell.utils import units
 from wholecell.utils.fitting import normalize
 from six.moves import zip
-
-
-def arrays_from(ds, keys):
-    arrays = {
-        key: []
-        for key in keys}
-
-    for d in ds:
-        for key, value in d.items():
-            arrays[key].append(value)
-
-    return tuple([
-        np.array(array)
-        for array in arrays.values()])
-
-
-def arrays_to(n, attrs):
-    ds = []
-    for index in np.arange(n):
-        d = {}
-        for attr in attrs.keys():
-            d[attr] = attrs[attr][index]
-        ds.append(d)
-
-    return ds
 
 
 class PolypeptideInitiation(Process):
@@ -97,6 +74,12 @@ class PolypeptideInitiation(Process):
         self.random_state = np.random.RandomState(seed = self.seed)
         self.ribosome_index = 0
 
+        self.empty_update = {
+            'listeners': {
+                'ribosome_data': {
+                    'ribosomes_initialized': 0,
+                    'prob_translation_per_transcript': 0.0}}}
+
     def ports_schema(self):
         return {
             'environment': {
@@ -104,18 +87,19 @@ class PolypeptideInitiation(Process):
                     '_default': '',
                     '_updater': 'set'}},
             'listeners': {
-                'ribosomes_initialized': {
-                    '_default': 0,
-                    '_updater': 'set',
-                    '_emit': True},
-                'prob_translation_per_transcript': {
-                    '_default': [],
-                    '_updater': 'set',
-                    '_emit': True},
-                'effective_elongation_rate': {
-                    '_default': 0.0,
-                    '_updater': 'set',
-                    '_emit': True}},
+                'ribosome_data': {
+                    'ribosomes_initialized': {
+                        '_default': 0,
+                        '_updater': 'set',
+                        '_emit': True},
+                    'prob_translation_per_transcript': {
+                        '_default': [],
+                        '_updater': 'set',
+                        '_emit': True},
+                    'effective_elongation_rate': {
+                        '_default': 0.0,
+                        '_updater': 'set',
+                        '_emit': True}}},
             'active_ribosomes': {
                 '*': {
                     'id': {'_default': 0},
@@ -137,9 +121,12 @@ class PolypeptideInitiation(Process):
                     '_emit': True}}}
 
     def next_update(self, timestep, states):
+        if not states['RNAs']:
+            return self.empty_update
+
         media_id = states['environment']['media_id']
         active_ribosome_fraction = self.active_ribosome_fraction[media_id]
-        ribosome_elongation_rate = states['listeners']['effective_elongation_rate']
+        ribosome_elongation_rate = states['listeners']['ribosome_data']['effective_elongation_rate']
 
         # If the ribosome elongation rate is zero (which is always the case for
         # the first timestep), set ribosome elongation rate to the one in
@@ -189,7 +176,7 @@ class PolypeptideInitiation(Process):
         n_ribosomes_to_activate = np.int64(activation_prob * inactive_ribosome_count)
 
         if n_ribosomes_to_activate == 0:
-            return {}
+            return self.empty_update
 
         # Sample multinomial distribution to determine which mRNAs have full
         # 70S ribosomes initialized on them
@@ -248,8 +235,9 @@ class PolypeptideInitiation(Process):
                     'state': ribosome}
                     for ribosome in new_ribosomes]},
             'listeners': {
-                'ribosomes_initialized': n_new_proteins.sum(),
-                'prob_translation_per_transcript': protein_init_prob}}
+                'ribosome_data': {
+                    'ribosomes_initialized': n_new_proteins.sum(),
+                    'prob_translation_per_transcript': protein_init_prob}}}
 
         return update
 
@@ -306,6 +294,7 @@ class PolypeptideInitiation(Process):
 
         return activationProb
 
+
 def test_polypeptide_initiation():
     def make_elongation_rates(
             self,
@@ -333,9 +322,10 @@ def test_polypeptide_initiation():
 
     state = {
         'environment': {
-            'media_id': 'open'},
+            'media_id': 'minimal'},
         'listeners': {
-            'effective_elongation_rate': 11},
+            'ribosome_data': {
+                'effective_elongation_rate': 11}},
         'subunits': {
             '30S': 2000,
             '50S': 3000},
@@ -368,6 +358,7 @@ def test_polypeptide_initiation():
     data = simulate_process_in_experiment(polypeptide_initiation, settings)
 
     print(data)
+
 
 if __name__ == "__main__":
     test_polypeptide_initiation()
