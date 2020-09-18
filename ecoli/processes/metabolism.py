@@ -52,7 +52,8 @@ class Metabolism(Process):
         'exchange_data_from_media': lambda media: [],
         'getMass': lambda exchanges: [],
         'doubling_time': 44.0 * units.min,
-        'amino_acid_ids': []}
+        'amino_acid_ids': [],
+        'seed': 0}
 
     def __init__(self, initial_parameters):
         if not initial_parameters:
@@ -93,6 +94,9 @@ class Metabolism(Process):
         if self.include_ppgpp:
             update_molecules += [self.model.ppgpp_id]
         self.conc_update_molecules = sorted(update_molecules)
+
+        self.seed = self.parameters['seed']
+        self.random_state = np.random.RandomState(seed = self.seed)
 
     def ports_schema(self):
         return {
@@ -217,7 +221,7 @@ class Metabolism(Process):
         ## Internal molecule changes
         delta_metabolites = (1 / counts_to_molar) * (CONC_UNITS * fba.getOutputMoleculeLevelsChange())
         delta_metabolites_final = np.fmax(stochasticRound(
-            self.randomState,
+            self.random_state,
             delta_metabolites.asNumber()
             ), 0).astype(np.int64)
 
@@ -250,7 +254,7 @@ class Metabolism(Process):
                     'unconstrained_molecules': unconstrained,
                     'constrained_molecules': constrained,
                     'uptake_constraints': uptake_constraints,
-                    'deltaMetabolites': metabolite_counts_final - metabolite_counts_init,
+                    'deltaMetabolites': delta_metabolites_final,
                     'reactionFluxes': fba.getReactionFluxes() / timestep,
                     'externalExchangeFluxes': converted_exchange_fluxes,
                     'objectiveValue': fba.getObjectiveValue(),
@@ -264,7 +268,7 @@ class Metabolism(Process):
 
                 'enzyme_kinetics': {
                     'metaboliteCountsInit': metabolite_counts_init,
-                    'metaboliteCountsFinal': metabolite_counts_final,
+                    'metaboliteCountsFinal': metabolite_counts_init + delta_metabolites_final,
                     'enzymeCountsInit': kinetic_enzyme_counts,
                     'countsToMolar': counts_to_molar.asNumber(CONC_UNITS),
                     'actualFluxes': fba.getReactionFluxes(self.model.kinetics_constrained_reactions) / timestep,

@@ -1,5 +1,7 @@
-from six.moves import cPickle
+import json
 import numpy as np
+
+from six.moves import cPickle
 
 from vivarium.core.process import Generator
 from vivarium.core.composition import simulate_compartment_in_experiment
@@ -75,11 +77,16 @@ class Ecoli(Generator):
         metabolism_config = {
             'get_import_constraints': sim_data.external_state.get_import_constraints,
             'nutrientToDoublingTime': sim_data.nutrientToDoublingTime,
+            'aa_names': sim_data.moleculeGroups.amino_acids,
+
+            # these are options given to the wholecell.sim.simulation
             'use_trna_charging': False,
             'include_ppgpp': False,
-            'aa_names': sim_data.moleculeGroups.amino_acids,
+
+            # these values came from the initialized environment state
             'current_timeline': None,
             'media_id': 'minimal',
+
             'condition': sim_data.condition,
             'nutrients': sim_data.conditions[sim_data.condition]['nutrients'],
             'metabolism': sim_data.process.metabolism,
@@ -94,7 +101,8 @@ class Ecoli(Generator):
             'exchange_data_from_media': sim_data.external_state.exchange_data_from_media,
             'getMass': sim_data.getter.getMass,
             'doubling_time': sim_data.conditionToDoublingTime[sim_data.condition],
-            'amino_acid_ids': sorted(sim_data.amino_acid_code_to_id_ordered.values())}
+            'amino_acid_ids': sorted(sim_data.amino_acid_code_to_id_ordered.values()),
+            'seed': self.random_state.randint(RAND_MAX)}
 
         metabolism = Metabolism(metabolism_config)
         return metabolism
@@ -142,17 +150,47 @@ class Ecoli(Generator):
                 'polypeptide_elongation': ('process_state', 'polypeptide_elongation')}}
 
 
+def load_states(path):
+    with open(path, 'r') as states_file:
+        states = json.load(states_file)
+
+    return states
+
 def test_ecoli():
     ecoli = Ecoli({})
 
+    states_path = 'data/states.json'
+    states = load_states(states_path)
+
     initial_state = {
         'environment': {
-            'media_id': 'minimal'},
+            'media_id': 'minimal',
+            'exchange_data': {
+                'unconstrained': {
+                    'CL-[p]',
+                    'FE+2[p]',
+                    'CO+2[p]',
+                    'MG+2[p]',
+                    'NA+[p]',
+                    'CARBON-DIOXIDE[p]',
+                    'OXYGEN-MOLECULE[p]',
+                    'MN+2[p]',
+                    'L-SELENOCYSTEINE[c]',
+                    'K+[p]',
+                    'SULFATE[p]',
+                    'ZN+2[p]',
+                    'CA+2[p]',
+                    'PI[p]',
+                    'NI+2[p]',
+                    'WATER[p]',
+                    'AMMONIUM[c]'},
+                'constrained': {
+                    'GLC[p]': 20.0 * units.mmol / (units.g * units.h)}}},
         'listeners': {
             'mass': {
                 'cell_mass': 1.0,
                 'dry_mass': 1.0}},
-        'bulk': {},
+        'bulk': states['bulk'],
         'unique': {},
         'process_state': {
             'polypeptide_elongation': {}}}
