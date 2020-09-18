@@ -7,6 +7,7 @@ from vivarium.core.composition import simulate_compartment_in_experiment
 from ecoli.processes.complexation import Complexation
 from ecoli.processes.protein_degradation import ProteinDegradation
 from ecoli.processes.polypeptide_initiation import PolypeptideInitiation
+from ecoli.processes.metabolism import Metabolism
 
 from wholecell.utils import units
 from wholecell.utils.fitting import normalize
@@ -74,16 +75,20 @@ class Ecoli(Generator):
         metabolism_config = {
             'get_import_constraints': sim_data.external_state.get_import_constraints,
             'nutrientToDoublingTime': sim_data.nutrientToDoublingTime,
-            'use_trna_charging': sim._trna_charging,
-            'include_ppgpp': not sim._ppgpp_regulation or not self.use_trna_charging,
+            'use_trna_charging': False,
+            'include_ppgpp': False,
             'aa_names': sim_data.moleculeGroups.amino_acids,
-            'current_timeline': X,
-            'media_id': X,
+            'current_timeline': None,
+            'media_id': 'minimal',
             'condition': sim_data.condition,
             'nutrients': sim_data.conditions[sim_data.condition]['nutrients'],
             'metabolism': sim_data.process.metabolism,
-            'constants': sim_data.constants,
-            'mass': sim_data.mass,
+            'non_growth_associated_maintenance': sim_data.constants.nonGrowthAssociatedMaintenance,
+            'avogadro': sim_data.constants.nAvogadro,
+            'cell_density': sim_data.constants.cellDensity,
+            'dark_atp': sim_data.constants.darkATP,
+            'cell_dry_mass_fraction': sim_data.mass.cellDryMassFraction,
+            'get_biomass_as_concentrations': sim_data.mass.getBiomassAsConcentrations,
             'ppgpp_id': sim_data.moleculeIds.ppGpp,
             'getppGppConc': sim_data.growthRateParameters.getppGppConc,
             'exchange_data_from_media': sim_data.external_state.exchange_data_from_media,
