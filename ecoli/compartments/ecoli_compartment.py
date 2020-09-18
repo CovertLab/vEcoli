@@ -187,6 +187,7 @@ def test_ecoli():
                 'constrained': {
                     'GLC[p]': 20.0 * units.mmol / (units.g * units.h)}}},
         'listeners': {
+            # TODO(Ryan): deal with mass
             'mass': {
                 'cell_mass': 1.0,
                 'dry_mass': 1.0}},
