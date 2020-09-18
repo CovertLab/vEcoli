@@ -307,7 +307,7 @@ def test_polypeptide_initiation():
     test_config = {
         'protein_lengths': np.array([25, 9, 12, 29]),
         'translation_efficiencies': normalize(np.array([0.1, 0.2, 0.3, 0.4])),
-        'active_ribosome_fraction': {'open': 0.1},
+        'active_ribosome_fraction': {'minimal': 0.1},
         'elongation_rates': {'open': 10},
         'variable_elongation': False,
         'make_elongation_rates': make_elongation_rates,
