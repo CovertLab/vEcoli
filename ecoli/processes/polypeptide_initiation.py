@@ -72,7 +72,7 @@ class PolypeptideInitiation(Process):
 
         self.seed = self.parameters['seed']
         self.random_state = np.random.RandomState(seed = self.seed)
-        self.ribosome_index = 0
+        self.ribosome_index = 30000
 
         self.empty_update = {
             'listeners': {
@@ -100,14 +100,14 @@ class PolypeptideInitiation(Process):
                         '_default': 0.0,
                         '_updater': 'set',
                         '_emit': True}}},
-            'active_ribosomes': {
+            'active_ribosome': {
                 '*': {
-                    'id': {'_default': 0},
+                    'unique_index': {'_default': 0},
                     'protein_index': {'_default': 0, '_emit': True},
                     'peptide_length': {'_default': 0},
                     'mRNA_index': {'_default': 0, '_emit': True},
                     'pos_on_mRNA': {'_default': 0}}},
-            'RNAs': {
+            'RNA': {
                 '*': {
                     'TU_index': {'_default': 0},
                     'can_translate': {'_default': False},
@@ -121,7 +121,7 @@ class PolypeptideInitiation(Process):
                     '_emit': True}}}
 
     def next_update(self, timestep, states):
-        if not states['RNAs']:
+        if not states['RNA']:
             return self.empty_update
 
         media_id = states['environment']['media_id']
@@ -150,7 +150,7 @@ class PolypeptideInitiation(Process):
 
         # Get attributes of active (translatable) mRNAs
         TU_index_RNAs, can_translate, unique_index_RNAs = arrays_from(
-            states['RNAs'].values(),
+            states['RNA'].values(),
             ['TU_index', 'can_translate', 'unique_index'])
         TU_index_active_mRNAs = TU_index_RNAs[can_translate]
         unique_index_active_mRNAs = unique_index_RNAs[can_translate]
@@ -217,7 +217,7 @@ class PolypeptideInitiation(Process):
         # Create active 70S ribosomes and assign their attributes
         new_ribosomes = arrays_to(
             n_ribosomes_to_activate, {
-                'id': np.arange(self.ribosome_index, self.ribosome_index + n_ribosomes_to_activate),
+                'unique_index': np.arange(self.ribosome_index, self.ribosome_index + n_ribosomes_to_activate),
                 'protein_index': protein_indexes,
                 'peptide_length': np.zeros(cast(int, n_ribosomes_to_activate), dtype=np.int64),
                 'mRNA_index': mRNA_indexes,
@@ -229,9 +229,9 @@ class PolypeptideInitiation(Process):
             'subunits': {
                 self.ribosome30S: -n_new_proteins.sum(),
                 self.ribosome50S: -n_new_proteins.sum()},
-            'active_ribosomes': {
+            'active_ribosome': {
                 '_add': [{
-                    'path': (ribosome['id'],),
+                    'path': (ribosome['unique_index'],),
                     'state': ribosome}
                     for ribosome in new_ribosomes]},
             'listeners': {
@@ -329,7 +329,7 @@ def test_polypeptide_initiation():
         'subunits': {
             '30S': 2000,
             '50S': 3000},
-        'RNAs': {
+        'RNA': {
             0: {
                 'TU_index': 0,
                 'can_translate': True,

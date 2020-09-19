@@ -135,8 +135,8 @@ class Ecoli(Generator):
             'polypeptide_initiation': {
                 'environment': ('environment',),
                 'listeners': ('listeners',),
-                'active_ribosomes': ('unique',),
-                'RNAs': ('unique',),
+                'active_ribosome': ('unique', 'active_ribosomes'),
+                'RNA': ('unique', 'RNA'),
                 'subunits': ('bulk',)},
 
             'metabolism': {
@@ -150,9 +150,19 @@ class Ecoli(Generator):
                 'polypeptide_elongation': ('process_state', 'polypeptide_elongation')}}
 
 
+def infinitize(value):
+    if value == '__INFINITY__':
+        return float('inf')
+    else:
+        return value
+
 def load_states(path):
     with open(path, 'r') as states_file:
         states = json.load(states_file)
+
+    states['environment'] = {
+        key: infinitize(value)
+        for key, value in states['environment'].items()}
 
     return states
 
@@ -185,14 +195,15 @@ def test_ecoli():
                     'WATER[p]',
                     'AMMONIUM[c]'},
                 'constrained': {
-                    'GLC[p]': 20.0 * units.mmol / (units.g * units.h)}}},
+                    'GLC[p]': 20.0 * units.mmol / (units.g * units.h)}},
+            'external_concentrations': states['environment']},
         'listeners': {
             # TODO(Ryan): deal with mass
             'mass': {
                 'cell_mass': 1.0,
                 'dry_mass': 1.0}},
         'bulk': states['bulk'],
-        'unique': {},
+        'unique': states['unique'],
         'process_state': {
             'polypeptide_elongation': {}}}
 
