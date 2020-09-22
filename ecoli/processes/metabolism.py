@@ -344,7 +344,7 @@ class FluxBalanceAnalysisModel(object):
         self.ngam = parameters['non_growth_associated_maintenance']
         gam = parameters['dark_atp'] * parameters['cell_dry_mass_fraction']
 
-        self.exchange_constraints = metabolism.exchangeConstraints
+        self.exchange_constraints = metabolism.exchange_constraints
 
         self._biomass_concentrations = {}  # type: dict
         self._getBiomassAsConcentrations = parameters['get_biomass_as_concentrations']
@@ -360,7 +360,7 @@ class FluxBalanceAnalysisModel(object):
             metaboliteNamesFromNutrients.add(self.ppgpp_id)
         for time, media_id in timeline:
             metaboliteNamesFromNutrients.update(
-                metabolism.concentrationUpdates.concentrationsBasedOnNutrients(media_id))
+                metabolism.concentration_updates.concentrations_based_on_nutrients(media_id))
             exchanges = parameters['exchange_data_from_media'](media_id)
             exchange_molecules.update(exchanges['externalExchangeMolecules'])
         self.metaboliteNamesFromNutrients = list(sorted(metaboliteNamesFromNutrients))
@@ -370,7 +370,7 @@ class FluxBalanceAnalysisModel(object):
 
         # Setup homeostatic objective concentration targets
         ## Determine concentrations based on starting environment
-        conc_dict = metabolism.concentrationUpdates.concentrationsBasedOnNutrients(nutrients)
+        conc_dict = metabolism.concentration_updates.concentrations_based_on_nutrients(nutrients)
         doubling_time = parameters['doubling_time']
         conc_dict.update(self.getBiomassAsConcentrations(doubling_time))
         if include_ppgpp:
@@ -386,18 +386,18 @@ class FluxBalanceAnalysisModel(object):
         self.catalyst_ids = metabolism.catalyst_ids
         self.reactions_with_catalyst = metabolism.reactions_with_catalyst
 
-        i = metabolism.catalysisMatrixI
-        j = metabolism.catalysisMatrixJ
-        v = metabolism.catalysisMatrixV
+        i = metabolism.catalysis_matrix_I
+        j = metabolism.catalysis_matrix_J
+        v = metabolism.catalysis_matrix_V
         shape = (i.max() + 1, j.max() + 1)
         self.catalysis_matrix = csr_matrix((v, (i, j)), shape=shape)
 
         # Function to compute reaction targets based on kinetic parameters and molecule concentrations
-        self.get_kinetic_constraints = metabolism.getKineticConstraints
+        self.get_kinetic_constraints = metabolism.get_kinetic_constraints
 
         # Remove disabled reactions so they don't get included in the FBA problem setup
         kinetic_constraint_reactions = metabolism.kinetic_constraint_reactions
-        constraintsToDisable = metabolism.constraintsToDisable
+        constraintsToDisable = metabolism.constraints_to_disable
         self.active_constraints_mask = np.array([(rxn not in constraintsToDisable) for rxn in kinetic_constraint_reactions])
         self.kinetics_constrained_reactions = list(np.array(kinetic_constraint_reactions)[self.active_constraints_mask])
 
@@ -421,7 +421,7 @@ class FluxBalanceAnalysisModel(object):
         # Set up FBA solver
         # reactionRateTargets value is just for initialization, it gets reset each timestep during evolveState
         fba_options = {
-            "reactionStoich": metabolism.reactionStoich,
+            "reactionStoich": metabolism.reaction_stoich,
             "externalExchangedMolecules": exchange_molecules,
             "objective": self.homeostatic_objective,
             "objectiveType": objective_type,
@@ -435,7 +435,7 @@ class FluxBalanceAnalysisModel(object):
             "secretionPenaltyCoeff": metabolism.secretion_penalty_coeff, # The "inconvenient constant"--limit secretion (e.g., of CO2)
             "solver": solver,
             "maintenanceCostGAM": gam.asNumber(COUNTS_UNITS / MASS_UNITS),
-            "maintenanceReaction": metabolism.maintenanceReaction,
+            "maintenanceReaction": metabolism.maintenance_reaction,
         }
         self.fba = FluxBalanceAnalysis(**fba_options)
 

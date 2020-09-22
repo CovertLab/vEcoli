@@ -20,7 +20,8 @@ class Ecoli(Generator):
 
     defaults = {
         'seed': 0,
-        'sim_data_path': '../wcEcoli/out/manual/kb/simData.cPickle'}
+        'sim_data_path': '../wcEcoli/out/underscore/kb/simData.cPickle'}
+        # 'sim_data_path': '../wcEcoli/out/manual/kb/simData.cPickle'}
 
     def __init__(self, config):
         super(Ecoli, self).__init__(config)
@@ -30,9 +31,9 @@ class Ecoli(Generator):
 
     def initialize_complexation(self, sim_data):
         complexation_config = {
-            'stoichiometry': sim_data.process.complexation.stoichMatrix().astype(np.int64).T,
+            'stoichiometry': sim_data.process.complexation.stoich_matrix().astype(np.int64).T,
             'rates': sim_data.process.complexation.rates,
-            'molecule_names': sim_data.process.complexation.moleculeNames,
+            'molecule_names': sim_data.process.complexation.molecule_names,
             'seed': self.random_state.randint(RAND_MAX)}
 
         complexation = Complexation(complexation_config)
@@ -40,14 +41,14 @@ class Ecoli(Generator):
 
     def initialize_protein_degradation(self, sim_data):
         protein_degradation_config = {
-            'raw_degradation_rate': sim_data.process.translation.monomerData['degRate'].asNumber(1 / units.s),
-            'shuffle_indexes': sim_data.process.translation.monomerDegRateShuffleIdxs if hasattr(
-                sim_data.process.translation, "monomerDegRateShuffleIdxs") else None,
-            'water_id': sim_data.moleculeIds.water,
-            'amino_acid_ids': sim_data.moleculeGroups.amino_acids,
-            'amino_acid_counts': sim_data.process.translation.monomerData["aaCounts"].asNumber(),
-            'protein_ids': sim_data.process.translation.monomerData['id'],
-            'protein_lengths': sim_data.process.translation.monomerData['length'].asNumber(),
+            'raw_degradation_rate': sim_data.process.translation.monomer_data['deg_rate'].asNumber(1 / units.s),
+            'shuffle_indexes': sim_data.process.translation.monomer_deg_rate_shuffle_idxs if hasattr(
+                sim_data.process.translation, "monomer_deg_rate_shuffle_idxs") else None,
+            'water_id': sim_data.molecule_ids.water,
+            'amino_acid_ids': sim_data.molecule_groups.amino_acids,
+            'amino_acid_counts': sim_data.process.translation.monomer_data["aa_counts"].asNumber(),
+            'protein_ids': sim_data.process.translation.monomer_data['id'],
+            'protein_lengths': sim_data.process.translation.monomer_data['length'].asNumber(),
             'seed': self.random_state.randint(RAND_MAX)}
 
         protein_degradation = ProteinDegradation(protein_degradation_config)
@@ -55,20 +56,20 @@ class Ecoli(Generator):
 
     def initialize_polypeptide_initiation(self, sim_data):
         polypeptide_initiation_config = {
-            'protein_lengths': sim_data.process.translation.monomerData["length"].asNumber(),
-            'translation_efficiencies': normalize(sim_data.process.translation.translationEfficienciesByMonomer),
+            'protein_lengths': sim_data.process.translation.monomer_data["length"].asNumber(),
+            'translation_efficiencies': normalize(sim_data.process.translation.translation_efficiencies_by_monomer),
             'active_ribosome_fraction': sim_data.process.translation.ribosomeFractionActiveDict,
             'elongation_rates': sim_data.process.translation.ribosomeElongationRateDict,
             'variable_elongation': False,
             'make_elongation_rates': sim_data.process.translation.make_elongation_rates,
-            'protein_index_to_TU_index': sim_data.relation.rnaIndexToMonomerMapping,
-            'all_TU_ids': sim_data.process.transcription.rnaData['id'],
-            'all_mRNA_ids': sim_data.process.translation.monomerData['rnaId'],
-            'ribosome30S': sim_data.moleculeIds.s30_fullComplex,
-            'ribosome50S': sim_data.moleculeIds.s50_fullComplex,
+            'protein_index_to_TU_index': sim_data.relation.rna_index_to_monomer_mapping,
+            'all_TU_ids': sim_data.process.transcription.rna_data['id'],
+            'all_mRNA_ids': sim_data.process.translation.monomer_data['rna_id'],
+            'ribosome30S': sim_data.molecule_ids.s30_full_complex,
+            'ribosome50S': sim_data.molecule_ids.s50_full_complex,
             'seed': self.random_state.randint(RAND_MAX),
-            'shuffle_indexes': sim_data.process.translation.monomerDegRateShuffleIdxs if hasattr(
-                sim_data.process.translation, "monomerDegRateShuffleIdxs") else None}
+            'shuffle_indexes': sim_data.process.translation.monomer_deg_rate_shuffle_idxs if hasattr(
+                sim_data.process.translation, "monomer_deg_rate_shuffle_idxs") else None}
 
         polypeptide_initiation = PolypeptideInitiation(polypeptide_initiation_config)
         return polypeptide_initiation
@@ -76,8 +77,8 @@ class Ecoli(Generator):
     def initialize_metabolism(self, sim_data):
         metabolism_config = {
             'get_import_constraints': sim_data.external_state.get_import_constraints,
-            'nutrientToDoublingTime': sim_data.nutrientToDoublingTime,
-            'aa_names': sim_data.moleculeGroups.amino_acids,
+            'nutrientToDoublingTime': sim_data.nutrient_to_doubling_time,
+            'aa_names': sim_data.molecule_groups.amino_acids,
 
             # these are options given to the wholecell.sim.simulation
             'use_trna_charging': False,
@@ -90,17 +91,17 @@ class Ecoli(Generator):
             'condition': sim_data.condition,
             'nutrients': sim_data.conditions[sim_data.condition]['nutrients'],
             'metabolism': sim_data.process.metabolism,
-            'non_growth_associated_maintenance': sim_data.constants.nonGrowthAssociatedMaintenance,
-            'avogadro': sim_data.constants.nAvogadro,
-            'cell_density': sim_data.constants.cellDensity,
+            'non_growth_associated_maintenance': sim_data.constants.non_growth_associated_maintenance,
+            'avogadro': sim_data.constants.n_avogadro,
+            'cell_density': sim_data.constants.cell_density,
             'dark_atp': sim_data.constants.darkATP,
-            'cell_dry_mass_fraction': sim_data.mass.cellDryMassFraction,
+            'cell_dry_mass_fraction': sim_data.mass.cell_dry_mass_fraction,
             'get_biomass_as_concentrations': sim_data.mass.getBiomassAsConcentrations,
-            'ppgpp_id': sim_data.moleculeIds.ppGpp,
-            'getppGppConc': sim_data.growthRateParameters.getppGppConc,
+            'ppgpp_id': sim_data.molecule_ids.ppGpp,
+            'getppGppConc': sim_data.growth_rate_parameters.get_ppGpp_conc,
             'exchange_data_from_media': sim_data.external_state.exchange_data_from_media,
-            'getMass': sim_data.getter.getMass,
-            'doubling_time': sim_data.conditionToDoublingTime[sim_data.condition],
+            'getMass': sim_data.getter.get_mass,
+            'doubling_time': sim_data.condition_to_doubling_time[sim_data.condition],
             'amino_acid_ids': sorted(sim_data.amino_acid_code_to_id_ordered.values()),
             'seed': self.random_state.randint(RAND_MAX)}
 
@@ -200,8 +201,8 @@ def test_ecoli():
         'listeners': {
             # TODO(Ryan): deal with mass
             'mass': {
-                'cell_mass': 1.0,
-                'dry_mass': 1.0}},
+                'cell_mass': 1172.2152594471481,
+                'dry_mass': 351.8184693073905}},
         'bulk': states['bulk'],
         'unique': states['unique'],
         'process_state': {
