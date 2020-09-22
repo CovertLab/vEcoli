@@ -15,7 +15,8 @@ def arrays_from(ds, keys):
 
     for d in ds:
         for key, value in d.items():
-            arrays[key].append(value)
+            if key in arrays:
+                arrays[key].append(value)
 
     return tuple([
         np.array(array)

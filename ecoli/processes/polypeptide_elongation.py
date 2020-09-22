@@ -6,6 +6,7 @@ from scipy.integrate import odeint
 from six.moves import range, zip
 
 from vivarium.core.process import Process
+from vivarium.library.dict_utils import deep_merge
 from vivarium.core.composition import simulate_process_in_experiment
 
 from ecoli.library.schema import bulk_schema, listener_schema, arrays_from, array_from, array_to
@@ -37,6 +38,7 @@ class PolypeptideElongation(Process):
         'gtpPerElongation': 4.2,
         'ppgpp_regulation': False,
         'trna_charging': False,
+        'translation_supply': False,
         'ribosome30S': 'ribosome30S',
         'ribosome50S': 'ribosome50S',
         'amino_acids': [],
@@ -75,7 +77,7 @@ class PolypeptideElongation(Process):
         'aa_supply_scaling': lambda aa_conc, aa_in_media: 0,
         'seed': 0}
 
-    def __init__(self):
+    def __init__(self, initial_parameters):
         if not initial_parameters:
             initial_parameters = {}
 
@@ -114,7 +116,7 @@ class PolypeptideElongation(Process):
         # Set modeling method
         if self.parameters['trna_charging']:
             self.elongation_model = SteadyStateElongationModel(self.parameters, self)
-        elif sim._translationSupply:
+        elif self.parameters['translation_supply']:
             self.elongation_model = TranslationSupplyElongationModel(self.parameters, self)
         else:
             self.elongation_model = BaseElongationModel(self.parameters, self)
@@ -160,29 +162,27 @@ class PolypeptideElongation(Process):
                     'cell_mass': {'_default': 0.0},
                     'dry_mass': {'_default': 0.0}},
 
-                'growth_limits': {
-                    listener_schema({
-                        'fraction_trna_charged': 0,
-                        'aa_pool_size': 0,
-                        'aa_request_size': 0,
-                        'aa_allocated': 0,
-                        'active_ribosomes_allocated': 0,
-                        'net_charged': 0,
-                        'aasUsed': 0})},
+                'growth_limits': listener_schema({
+                    'fraction_trna_charged': 0,
+                    'aa_pool_size': 0,
+                    'aa_request_size': 0,
+                    'aa_allocated': 0,
+                    'active_ribosomes_allocated': 0,
+                    'net_charged': 0,
+                    'aasUsed': 0}),
 
-                'ribosome_data': {
-                    listener_schema({
-                        'translation_supply': 0,
-                        'effective_elongation_rate': 0,
-                        'aaCountInSequence': 0,
-                        'aaCounts': 0,
-                        'actualElongations': 0,
-                        'actualElongationHist': 0, 
-                        'elongationsNonTerminatingHist': 0,
-                        'didTerminate': 0,
-                        'terminationLoss': 0,
-                        'numTrpATerminated': 0,
-                        'processElongationRate': 0})}},
+                'ribosome_data': listener_schema({
+                    'translation_supply': 0,
+                    'effective_elongation_rate': 0,
+                    'aaCountInSequence': 0,
+                    'aaCounts': 0,
+                    'actualElongations': 0,
+                    'actualElongationHist': 0, 
+                    'elongationsNonTerminatingHist': 0,
+                    'didTerminate': 0,
+                    'terminationLoss': 0,
+                    'numTrpATerminated': 0,
+                    'processElongationRate': 0})},
 
             'molecules': bulk_schema([
                 self.proton,
@@ -202,7 +202,7 @@ class PolypeptideElongation(Process):
             'active_ribosomes': {
                 '*': {
                     'unique_index': {'_default': 0, '_updater': 'set'},
-                    'protein_index': {'_default': 0, '_emit': True},
+                    'protein_index': {'_default': 0, '_updater': 'set', '_emit': True},
                     'peptide_length': {'_default': 0, '_updater': 'set', '_emit': True},
                     'pos_on_mRNA': {'_default': 0, '_updater': 'set', '_emit': True},
                     'submass': {
@@ -358,13 +358,12 @@ class PolypeptideElongation(Process):
             protein_indexes[didTerminate],
             minlength = self.proteinSequences.shape[0])
 
-        termination = np.where(didTerminate)[0]
         # self.active_ribosomes.delByIndexes(termination)
 
         update['active_ribosomes'] = {'_delete': []}
         for index, ribosome in enumerate(states['active_ribosomes'].values()):
-            if termination[index]:
-                update['active_ribosomes']['_delete'].append(ribosome['unique_index'])
+            if didTerminate[index]:
+                update['active_ribosomes']['_delete'].append((ribosome['unique_index'],))
             else:
                 update['active_ribosomes'][ribosome['unique_index']] = {
                     'peptide_length': updated_lengths[index],
@@ -373,7 +372,7 @@ class PolypeptideElongation(Process):
                         'protein': added_protein_mass[index]}}
 
         update['monomers'] = {}
-        for index, count in terminatedProteins.items():
+        for index, count in enumerate(terminatedProteins):
             update['monomers'][self.proteinIds[index]] = count
 
         # self.bulkMonomers.countsInc(terminatedProteins)
@@ -426,6 +425,10 @@ class PolypeptideElongation(Process):
         update['listeners']['ribosome_data']['numTrpATerminated'] = terminatedProteins[self.trpAIndex]
         update['listeners']['ribosome_data']['processElongationRate'] = self.ribosomeElongationRate / timestep
 
+        print('terminated: {}'.format(nTerminated))
+
+        return update
+
     def isTimeStepShortEnough(self, inputTimeStep, timeStepSafetyFraction):
         return inputTimeStep <= self.max_time_step
 
@@ -465,12 +468,10 @@ class BaseElongationModel(object):
 
     def evolve(self, timestep, states, requests, total_aa_counts, aas_used, nElongations, nInitialized):
         # Update counts of amino acids and water to reflect polymerization reactions
-        self.process.aas.countsDec(aas_used)
-        self.water.countInc(nElongations - nInitialized)
         net_charged = np.zeros(len(self.parameters['uncharged_trna_names']))
 
         return net_charged, {}, {
-            'amino_acids': array_to(states['amino_acids'], aas_used),
+            'amino_acids': array_to(states['amino_acids'], -aas_used),
             'molecules': {
                 'water': nElongations - nInitialized}}
 
