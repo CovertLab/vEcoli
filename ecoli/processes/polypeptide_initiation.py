@@ -27,8 +27,8 @@ class PolypeptideInitiation(Process):
         'protein_index_to_TU_index': [],
         'all_TU_ids': [],
         'all_mRNA_ids': [],
-        'ribosome30S': '30S',
-        'ribosome50S': '50S',
+        'ribosome30S': 'ribosome30S',
+        'ribosome50S': 'ribosome50S',
         'seed': 0,
         'shuffle_indexes': None}
 
@@ -100,7 +100,7 @@ class PolypeptideInitiation(Process):
                         '_default': 0.0,
                         '_updater': 'set',
                         '_emit': True}}},
-            'active_ribosome': {
+            'active_ribosomes': {
                 '*': {
                     'unique_index': {'_default': 0},
                     'protein_index': {'_default': 0, '_emit': True},
@@ -229,7 +229,7 @@ class PolypeptideInitiation(Process):
             'subunits': {
                 self.ribosome30S: -n_new_proteins.sum(),
                 self.ribosome50S: -n_new_proteins.sum()},
-            'active_ribosome': {
+            'active_ribosomes': {
                 '_add': [{
                     'path': (ribosome['unique_index'],),
                     'state': ribosome}

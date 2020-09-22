@@ -38,3 +38,11 @@ def bulk_schema(elements):
             '_emit': True}
         for element in elements}
 
+def listener_schema(elements):
+    return {
+        element: {
+            '_default': default,
+            '_updater': 'set',
+            '_emit': True}
+        for element, default in elements.items()}
+

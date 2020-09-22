@@ -8,7 +8,7 @@ from six.moves import range, zip
 from vivarium.core.process import Process
 from vivarium.core.composition import simulate_process_in_experiment
 
-from ecoli.library.schema import bulk_schema, arrays_from, array_from, array_to
+from ecoli.library.schema import bulk_schema, listener_schema, arrays_from, array_from, array_to
 
 from wholecell.utils.polymerize import buildSequences, polymerize, computeMassIncrease
 from wholecell.utils.random import stochasticRound
@@ -21,58 +21,58 @@ class PolypeptideElongation(Process):
     name = "polypeptide-elongation-ecoli"
 
     defaults = {
-        'max_time_step': translation.max_time_step,
-        'n_avogadro': constants.n_avogadro,
-        'proteinIds': translation.monomer_data['id'],
-        'proteinLengths': translation.monomer_data["length"].asNumber(),
-        'proteinSequences': translation.translation_sequences,
-        'aaWeightsIncorporated': translation.translation_monomer_weights,
-        'endWeight': translation.translation_end_weight,
-        'variable_elongation': sim._variable_elongation_translation,
-        'make_elongation_rates': translation.make_elongation_rates,
-        'ribosomeElongationRate': float(sim_data.growth_rate_parameters.ribosomeElongationRate.asNumber(units.aa / units.s)),
-        'translation_aa_supply': sim_data.translation_supply_rate,
-        'import_threshold': sim_data.external_state.import_constraint_threshold,
-        'aa_from_trna': transcription.aa_from_trna,
-        'ppgpp_regulation': sim._ppgpp_regulation,
-        'gtpPerElongation': constants.gtp_per_translation,
-        'trna_charging': sim._trna_charging,
-        'ribosome30S': sim_data.molecule_ids.s30_full_complex,
-        'ribosome50S': sim_data.molecule_ids.s50_full_complex,
-        'amino_acids': sim_data.molecule_groups.amino_acids,
+        'max_time_step': 2.0,
+        'n_avogadro': 6.02214076e+23 / units.mol,
+        'proteinIds': [],
+        'proteinLengths': np.array([]),
+        'proteinSequences': np.array([[]]),
+        'aaWeightsIncorporated': np.array([]),
+        'endWeight': np.array([2.99146113e-08]),
+        'variable_elongation': False,
+        'make_elongation_rates': lambda random, rate, timestep, variable: np.array([]),
+        'ribosomeElongationRate': 17.388824902723737,
+        'translation_aa_supply': {'minimal': np.array([])},
+        'import_threshold': 1e-05,
+        'aa_from_trna': np.array([[]]),
+        'gtpPerElongation': 4.2,
+        'ppgpp_regulation': False,
+        'trna_charging': False,
+        'ribosome30S': 'ribosome30S',
+        'ribosome50S': 'ribosome50S',
+        'amino_acids': [],
 
-        'basal_elongation_rate': sim_data.constants.ribosome_elongation_rate_basal.asNumber(units.aa / units.s),
-        'ribosomeElongationRateDict': sim_data.process.translation.ribosomeElongationRateDict,
-        'uncharged_trna_names': sim_data.process.transcription.rna_data['id'][sim_data.process.transcription.rna_data['is_tRNA']],
-        'aaNames': sim_data.molecule_groups.amino_acids,
-        'proton': sim_data.molecule_ids.proton,
-        'water': sim_data.molecule_ids.water,
-        'cellDensity': constants.cell_density,
-        'elongation_max': constants.ribosome_elongation_rate_max if self.process.variable_elongation else constants.ribosome_elongation_rate_basal,
-        'aa_from_synthetase': transcription.aa_from_synthetase,
-        'charging_stoich_matrix': transcription.charging_stoich_matrix(),
-        'charged_trna_names': transcription.charged_trna_names,
-        'charging_molecule_names': transcription.charging_molecules,
-        'synthetase_names': transcription.synthetase_names,
-        'ppgpp_reaction_names': metabolism.ppgpp_reaction_names,
-        'ppgpp_reaction_metabolites': metabolism.ppgpp_reaction_metabolites,
-        'ppgpp_reaction_stoich': metabolism.ppgpp_reaction_stoich,
-        'ppgpp_synthesis_reaction' = metabolism.ppgpp_synthesis_reaction,
-        'ppgpp_degradation_reaction' = metabolism.ppgpp_degradation_reaction,
-        'rela': molecule_ids.RelA,
-        'spot': molecule_ids.SpoT,
-        'ppgpp': molecule_ids.ppGpp,
-        'kS': constants.synthetase_charging_rate.asNumber(1 / units.s),
-        'KMtf': constants.Km_synthetase_uncharged_trna.asNumber(MICROMOLAR_UNITS),
-        'KMaa': constants.Km_synthetase_amino_acid.asNumber(MICROMOLAR_UNITS),
-        'krta': constants.Kdissociation_charged_trna_ribosome.asNumber(MICROMOLAR_UNITS),
-        'krtf': constants.Kdissociation_uncharged_trna_ribosome.asNumber(MICROMOLAR_UNITS),
-        'KD_RelA': constants.KD_RelA_ribosome.asNumber(MICROMOLAR_UNITS),
-        'k_RelA': constants.k_RelA_ppGpp_synthesis.asNumber(1 / units.s),
-        'k_SpoT_syn': constants.k_SpoT_ppGpp_synthesis.asNumber(1 / units.s),
-        'k_SpoT_deg': constants.k_SpoT_ppGpp_degradation.asNumber(1 / (MICROMOLAR_UNITS * units.s)),
-        'KI_SpoT': constants.KI_SpoT_ppGpp_degradation.asNumber(MICROMOLAR_UNITS),
-        'aa_supply_scaling': metabolism.aa_supply_scaling,
+        'basal_elongation_rate': 22.0,
+        'ribosomeElongationRateDict': {},
+        'uncharged_trna_names': np.array([]),
+        'aaNames': [],
+        'proton': 'PROTON',
+        'water': 'H2O',
+        'cellDensity': 1100 * units.g / units.L,
+        'elongation_max': 22 * units.aa / units.s,
+        'aa_from_synthetase': np.array([[]]),
+        'charging_stoich_matrix': np.array([[]]),
+        'charged_trna_names': [],
+        'charging_molecule_names': [],
+        'synthetase_names': [],
+        'ppgpp_reaction_names': [],
+        'ppgpp_reaction_metabolites': [],
+        'ppgpp_reaction_stoich': np.array([[]]),
+        'ppgpp_synthesis_reaction': 'GDPPYPHOSKIN-RXN',
+        'ppgpp_degradation_reaction': 'PPGPPSYN-RXN',
+        'rela': 'RELA',
+        'spot': 'SPOT',
+        'ppgpp': 'ppGpp',
+        'kS': 100.0,
+        'KMtf': 1.0,
+        'KMaa': 100.0,
+        'krta': 1.0,
+        'krtf': 500.0,
+        'KD_RelA': 0.26,
+        'k_RelA': 75.0,
+        'k_SpoT_syn': 2.6,
+        'k_SpoT_deg': 0.23,
+        'KI_SpoT': 20.0,
+        'aa_supply_scaling': lambda aa_conc, aa_in_media: 0,
         'seed': 0}
 
     def __init__(self):
@@ -160,25 +160,29 @@ class PolypeptideElongation(Process):
                     'cell_mass': {'_default': 0.0},
                     'dry_mass': {'_default': 0.0}},
 
-                'ribosome_data': {
-                    'translation_supply': {
-                        '_default': 0,
-                        '_updater': 'set',
-                        '_emit': True}},
-
                 'growth_limits': {
-                    'fraction_trna_charged': {
-                        '_default': 0,
-                        '_updater': 'set',
-                        '_emit': True},
-                    'aa_pool_size': {
-                        '_default': 0,
-                        '_updater': 'set',
-                        '_emit': True},
-                    'aa_request_size': {
-                        '_default': 0,
-                        '_updater': 'set',
-                        '_emit': True}}},
+                    listener_schema({
+                        'fraction_trna_charged': 0,
+                        'aa_pool_size': 0,
+                        'aa_request_size': 0,
+                        'aa_allocated': 0,
+                        'active_ribosomes_allocated': 0,
+                        'net_charged': 0,
+                        'aasUsed': 0})},
+
+                'ribosome_data': {
+                    listener_schema({
+                        'translation_supply': 0,
+                        'effective_elongation_rate': 0,
+                        'aaCountInSequence': 0,
+                        'aaCounts': 0,
+                        'actualElongations': 0,
+                        'actualElongationHist': 0, 
+                        'elongationsNonTerminatingHist': 0,
+                        'didTerminate': 0,
+                        'terminationLoss': 0,
+                        'numTrpATerminated': 0,
+                        'processElongationRate': 0})}},
 
             'molecules': bulk_schema([
                 self.proton,
@@ -189,7 +193,7 @@ class PolypeptideElongation(Process):
 
             'monomers': bulk_schema(self.proteinIds),
             'amino_acids': bulk_schema(self.amino_acids),
-            'ppgpp_reaction_metabolites': bulk_schema(self.ppgpp_reaction_metabolites)
+            'ppgpp_reaction_metabolites': bulk_schema(self.ppgpp_reaction_metabolites),
             'uncharged_trna': bulk_schema(self.uncharged_trna_names),
             'charged_trna': bulk_schema(self.charged_trna_names),
             'charging_molecules': bulk_schema(self.charging_molecule_names),
@@ -277,25 +281,25 @@ class PolypeptideElongation(Process):
             timestep, states, aasInSequences)
 
         # Write to listeners
-        update['listeners']["growth_limits"]["fraction_trna_charged"] = np.dot(fraction_charged, self.aa_from_trna)
-        update['listeners']["growth_limits"]["aa_pool_size"] = array_from(states['amino_acids'])
-        update['listeners']["growth_limits"]["aa_request_size"] = aa_counts_for_translation
+        update['listeners']['growth_limits']['fraction_trna_charged'] = np.dot(fraction_charged, self.aa_from_trna)
+        update['listeners']['growth_limits']['aa_pool_size'] = array_from(states['amino_acids'])
+        update['listeners']['growth_limits']['aa_request_size'] = aa_counts_for_translation
 
         # Set value to 0 for metabolism in case of early return
         self.gtp_to_hydrolyze = 0
 
         # Write allocation data to listener
-        update['listeners']["growth_limits"]["aa_allocated"] = aa_counts_for_translation
+        update['listeners']['growth_limits']['aa_allocated'] = aa_counts_for_translation
 
         # Get number of active ribosomes
-        n_active_ribosomes = len(states['active_ribosomes'.total_count()
-        update['listeners']["growth_limits"]["active_ribosomes_allocated"] = n_active_ribosomes
+        n_active_ribosomes = len(states['active_ribosomes'])
+        update['listeners']['growth_limits']['active_ribosomes_allocated'] = n_active_ribosomes
 
         if n_active_ribosomes == 0:
             return update
 
         if sequences.size == 0:
-            return
+            return update
 
         # Calculate elongation resource capacity
         aaCountInSequence = np.bincount(sequences[(sequences != polymerize.PAD_VALUE)])
@@ -335,7 +339,7 @@ class PolypeptideElongation(Process):
 
         # Write current average elongation to listener
         currElongRate = (sequence_elongations.sum() / n_active_ribosomes) / timestep
-        update['listeners']["ribosome_data"]["effective_elongation_rate"] = currElongRate
+        update['listeners']['ribosome_data']['effective_elongation_rate'] = currElongRate
 
         # Update active ribosomes, terminating if necessary
         # self.active_ribosomes.attrIs(
@@ -407,8 +411,8 @@ class PolypeptideElongation(Process):
 
         # Write data to listeners
         update['listeners']['growth_limits']['net_charged'] = net_charged
-        update['listeners']['growth_limits']['aasUsed'] = aas_used
 
+        update['listeners']["ribosome_data"]["effective_elongation_rate"] = currElongRate
         update['listeners']['ribosome_data']['aaCountInSequence'] = aaCountInSequence
         update['listeners']['ribosome_data']['aaCounts'] = aa_counts_for_translation
         update['listeners']['ribosome_data']['actualElongations'] = sequence_elongations.sum()
@@ -584,7 +588,7 @@ class SteadyStateElongationModel(TranslationSupplyElongationModel):
         # Adjust aa_supply higher if amino acid concentrations are low
         # Improves stability of charging and mimics amino acid synthesis
         # inhibition and export
-        aa_in_media = self.aa_environment.import_present()
+        aa_in_media = array_from(states['environment']['amino_acids']) # self.aa_environment.import_present()
         # TODO (Travis): add to listener?
         self.process.aa_supply *= self.aa_supply_scaling(aa_conc, aa_in_media)
 

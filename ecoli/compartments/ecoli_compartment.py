@@ -9,6 +9,7 @@ from vivarium.core.composition import simulate_compartment_in_experiment
 from ecoli.processes.complexation import Complexation
 from ecoli.processes.protein_degradation import ProteinDegradation
 from ecoli.processes.polypeptide_initiation import PolypeptideInitiation
+from ecoli.processes.polypeptide_elongation import PolypeptideElongation, MICROMOLAR_UNITS
 from ecoli.processes.metabolism import Metabolism
 
 from wholecell.utils import units
@@ -81,6 +82,8 @@ class Ecoli(Generator):
         transcription = sim_data.process.transcription
         metabolism = sim_data.process.metabolism
 
+        variable_elongation = False
+
         polypeptide_elongation_config = {
             # base parameters
             'max_time_step': translation.max_time_step,
@@ -90,15 +93,15 @@ class Ecoli(Generator):
             'proteinSequences': translation.translation_sequences,
             'aaWeightsIncorporated': translation.translation_monomer_weights,
             'endWeight': translation.translation_end_weight,
-            'variable_elongation': sim._variable_elongation_translation,
+            'variable_elongation': variable_elongation,
             'make_elongation_rates': translation.make_elongation_rates,
             'ribosomeElongationRate': float(sim_data.growth_rate_parameters.ribosomeElongationRate.asNumber(units.aa / units.s)),
             'translation_aa_supply': sim_data.translation_supply_rate,
             'import_threshold': sim_data.external_state.import_constraint_threshold,
             'aa_from_trna': transcription.aa_from_trna,
-            'ppgpp_regulation': sim._ppgpp_regulation,
+            'ppgpp_regulation': False,
             'gtpPerElongation': constants.gtp_per_translation,
-            'trna_charging': sim._trna_charging,
+            'trna_charging': False,
             'ribosome30S': sim_data.molecule_ids.s30_full_complex,
             'ribosome50S': sim_data.molecule_ids.s50_full_complex,
             'amino_acids': sim_data.molecule_groups.amino_acids,
@@ -111,7 +114,7 @@ class Ecoli(Generator):
             'proton': sim_data.molecule_ids.proton,
             'water': sim_data.molecule_ids.water,
             'cellDensity': constants.cell_density,
-            'elongation_max': constants.ribosome_elongation_rate_max if self.process.variable_elongation else constants.ribosome_elongation_rate_basal,
+            'elongation_max': constants.ribosome_elongation_rate_max if variable_elongation else constants.ribosome_elongation_rate_basal,
             'aa_from_synthetase': transcription.aa_from_synthetase,
             'charging_stoich_matrix': transcription.charging_stoich_matrix(),
             'charged_trna_names': transcription.charged_trna_names,
@@ -120,8 +123,8 @@ class Ecoli(Generator):
             'ppgpp_reaction_names': metabolism.ppgpp_reaction_names,
             'ppgpp_reaction_metabolites': metabolism.ppgpp_reaction_metabolites,
             'ppgpp_reaction_stoich': metabolism.ppgpp_reaction_stoich,
-            'ppgpp_synthesis_reaction' = metabolism.ppgpp_synthesis_reaction,
-            'ppgpp_degradation_reaction' = metabolism.ppgpp_degradation_reaction,
+            'ppgpp_synthesis_reaction': metabolism.ppgpp_synthesis_reaction,
+            'ppgpp_degradation_reaction': metabolism.ppgpp_degradation_reaction,
             'rela': molecule_ids.RelA,
             'spot': molecule_ids.SpoT,
             'ppgpp': molecule_ids.ppGpp,
@@ -183,12 +186,14 @@ class Ecoli(Generator):
         complexation = self.initialize_complexation(sim_data)
         protein_degradation = self.initialize_protein_degradation(sim_data)
         polypeptide_initiation = self.initialize_polypeptide_initiation(sim_data)
+        polypeptide_elongation = self.initialize_polypeptide_elongation(sim_data)
         metabolism = self.initialize_metabolism(sim_data)
 
         return {
             'complexation': complexation,
             'protein_degradation': protein_degradation,
             'polypeptide_initiation': polypeptide_initiation,
+            'polypeptide_elongation': polypeptide_elongation,
             'metabolism': metabolism}
 
     def generate_topology(self, config):
@@ -203,9 +208,24 @@ class Ecoli(Generator):
             'polypeptide_initiation': {
                 'environment': ('environment',),
                 'listeners': ('listeners',),
-                'active_ribosome': ('unique', 'active_ribosomes'),
+                'active_ribosomes': ('unique', 'active_ribosomes'),
                 'RNA': ('unique', 'RNA'),
                 'subunits': ('bulk',)},
+
+            'polypeptide_elongation': {
+                'environment': ('environment',),
+                'listeners': ('listeners',),
+                'active_ribosomes': ('unique', 'active_ribosomes'),
+                'molecules': ('bulk',),
+                'monomers': ('bulk',),
+                'amino_acids': ('bulk',),
+                'ppgpp_reaction_metabolites': ('bulk',),
+                'uncharged_trna': ('bulk',),
+                'charged_trna': ('bulk',),
+                'charging_molecules': ('bulk',),
+                'synthetases': ('bulk',),
+                'subunits': ('bulk',),
+                'polypeptide_elongation': ('process_state', 'polypeptide_elongation')},
 
             'metabolism': {
                 'metabolites': ('bulk',),
@@ -243,6 +263,8 @@ def test_ecoli():
     initial_state = {
         'environment': {
             'media_id': 'minimal',
+            # TODO(Ryan): pull in environmental amino acid levels
+            'amino_acids': {},
             'exchange_data': {
                 'unconstrained': {
                     'CL-[p]',
