@@ -135,7 +135,8 @@ class Ecoli(Generator):
             'k_SpoT_syn': constants.k_SpoT_ppGpp_synthesis.asNumber(1 / units.s),
             'k_SpoT_deg': constants.k_SpoT_ppGpp_degradation.asNumber(1 / (MICROMOLAR_UNITS * units.s)),
             'KI_SpoT': constants.KI_SpoT_ppGpp_degradation.asNumber(MICROMOLAR_UNITS),
-            'aa_supply_scaling': metabolism.aa_supply_scaling}
+            'aa_supply_scaling': metabolism.aa_supply_scaling,
+            'seed': self.random_state.randint(RAND_MAX)}
 
         polypeptide_elongation = PolypeptideElongation(polypeptide_elongation_config)
         return polypeptide_elongation

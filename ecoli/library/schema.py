@@ -3,6 +3,11 @@ import numpy as np
 def array_from(d):
     return np.array(list(d.values()))
 
+def array_to(d, array):
+    return {
+        key: array[index]
+        for index, key in enumerate(d.keys())}
+
 def arrays_from(ds, keys):
     arrays = {
         key: []
