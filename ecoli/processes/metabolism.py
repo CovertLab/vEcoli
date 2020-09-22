@@ -48,9 +48,9 @@ class Metabolism(Process):
         'cell_dry_mass_fraction': 0.3,
         'get_biomass_as_concentrations': lambda doubling_time: {},
         'ppgpp_id': 'ppgpp',
-        'getppGppConc': lambda media: 0.0,
+        'get_ppGpp_conc': lambda media: 0.0,
         'exchange_data_from_media': lambda media: [],
-        'getMass': lambda exchanges: [],
+        'get_mass': lambda exchanges: [],
         'doubling_time': 44.0 * units.min,
         'amino_acid_ids': [],
         'seed': 0}
@@ -351,7 +351,7 @@ class FluxBalanceAnalysisModel(object):
 
         # Include ppGpp concentration target in objective if not handled kinetically in other processes
         self.ppgpp_id = parameters['ppgpp_id']
-        self.getppGppConc = parameters['getppGppConc']
+        self.getppGppConc = parameters['get_ppGpp_conc']
 
         # go through all media in the timeline and add to metaboliteNames
         metaboliteNamesFromNutrients = set()
@@ -366,7 +366,7 @@ class FluxBalanceAnalysisModel(object):
         self.metaboliteNamesFromNutrients = list(sorted(metaboliteNamesFromNutrients))
         exchange_molecules = list(sorted(exchange_molecules))
         molecule_masses = dict(zip(exchange_molecules,
-            parameters['getMass'](exchange_molecules).asNumber(MASS_UNITS / COUNTS_UNITS)))
+            parameters['get_mass'](exchange_molecules).asNumber(MASS_UNITS / COUNTS_UNITS)))
 
         # Setup homeostatic objective concentration targets
         ## Determine concentrations based on starting environment

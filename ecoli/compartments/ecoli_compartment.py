@@ -74,6 +74,72 @@ class Ecoli(Generator):
         polypeptide_initiation = PolypeptideInitiation(polypeptide_initiation_config)
         return polypeptide_initiation
 
+    def initialize_polypeptide_elongation(self, sim_data):
+        constants = sim_data.constants
+        molecule_ids = sim_data.molecule_ids
+        translation = sim_data.process.translation
+        transcription = sim_data.process.transcription
+        metabolism = sim_data.process.metabolism
+
+        polypeptide_elongation_config = {
+            # base parameters
+            'max_time_step': translation.max_time_step,
+            'n_avogadro': constants.n_avogadro,
+            'proteinIds': translation.monomer_data['id'],
+            'proteinLengths': translation.monomer_data["length"].asNumber(),
+            'proteinSequences': translation.translation_sequences,
+            'aaWeightsIncorporated': translation.translation_monomer_weights,
+            'endWeight': translation.translation_end_weight,
+            'variable_elongation': sim._variable_elongation_translation,
+            'make_elongation_rates': translation.make_elongation_rates,
+            'ribosomeElongationRate': float(sim_data.growth_rate_parameters.ribosomeElongationRate.asNumber(units.aa / units.s)),
+            'translation_aa_supply': sim_data.translation_supply_rate,
+            'import_threshold': sim_data.external_state.import_constraint_threshold,
+            'aa_from_trna': transcription.aa_from_trna,
+            'ppgpp_regulation': sim._ppgpp_regulation,
+            'gtpPerElongation': constants.gtp_per_translation,
+            'trna_charging': sim._trna_charging,
+            'ribosome30S': sim_data.molecule_ids.s30_full_complex,
+            'ribosome50S': sim_data.molecule_ids.s50_full_complex,
+            'amino_acids': sim_data.molecule_groups.amino_acids,
+
+            # parameters for specific elongation models
+            'basal_elongation_rate': sim_data.constants.ribosome_elongation_rate_basal.asNumber(units.aa / units.s),
+            'ribosomeElongationRateDict': sim_data.process.translation.ribosomeElongationRateDict,
+            'uncharged_trna_names': sim_data.process.transcription.rna_data['id'][sim_data.process.transcription.rna_data['is_tRNA']],
+            'aaNames': sim_data.molecule_groups.amino_acids,
+            'proton': sim_data.molecule_ids.proton,
+            'water': sim_data.molecule_ids.water,
+            'cellDensity': constants.cell_density,
+            'elongation_max': constants.ribosome_elongation_rate_max if self.process.variable_elongation else constants.ribosome_elongation_rate_basal,
+            'aa_from_synthetase': transcription.aa_from_synthetase,
+            'charging_stoich_matrix': transcription.charging_stoich_matrix(),
+            'charged_trna_names': transcription.charged_trna_names,
+            'charging_molecule_names': transcription.charging_molecules,
+            'synthetase_names': transcription.synthetase_names,
+            'ppgpp_reaction_names': metabolism.ppgpp_reaction_names,
+            'ppgpp_reaction_metabolites': metabolism.ppgpp_reaction_metabolites,
+            'ppgpp_reaction_stoich': metabolism.ppgpp_reaction_stoich,
+            'ppgpp_synthesis_reaction' = metabolism.ppgpp_synthesis_reaction,
+            'ppgpp_degradation_reaction' = metabolism.ppgpp_degradation_reaction,
+            'rela': molecule_ids.RelA,
+            'spot': molecule_ids.SpoT,
+            'ppgpp': molecule_ids.ppGpp,
+            'kS': constants.synthetase_charging_rate.asNumber(1 / units.s),
+            'KMtf': constants.Km_synthetase_uncharged_trna.asNumber(MICROMOLAR_UNITS),
+            'KMaa': constants.Km_synthetase_amino_acid.asNumber(MICROMOLAR_UNITS),
+            'krta': constants.Kdissociation_charged_trna_ribosome.asNumber(MICROMOLAR_UNITS),
+            'krtf': constants.Kdissociation_uncharged_trna_ribosome.asNumber(MICROMOLAR_UNITS),
+            'KD_RelA': constants.KD_RelA_ribosome.asNumber(MICROMOLAR_UNITS),
+            'k_RelA': constants.k_RelA_ppGpp_synthesis.asNumber(1 / units.s),
+            'k_SpoT_syn': constants.k_SpoT_ppGpp_synthesis.asNumber(1 / units.s),
+            'k_SpoT_deg': constants.k_SpoT_ppGpp_degradation.asNumber(1 / (MICROMOLAR_UNITS * units.s)),
+            'KI_SpoT': constants.KI_SpoT_ppGpp_degradation.asNumber(MICROMOLAR_UNITS),
+            'aa_supply_scaling': metabolism.aa_supply_scaling}
+
+        polypeptide_elongation = PolypeptideElongation(polypeptide_elongation_config)
+        return polypeptide_elongation
+
     def initialize_metabolism(self, sim_data):
         metabolism_config = {
             'get_import_constraints': sim_data.external_state.get_import_constraints,
@@ -98,9 +164,9 @@ class Ecoli(Generator):
             'cell_dry_mass_fraction': sim_data.mass.cell_dry_mass_fraction,
             'get_biomass_as_concentrations': sim_data.mass.getBiomassAsConcentrations,
             'ppgpp_id': sim_data.molecule_ids.ppGpp,
-            'getppGppConc': sim_data.growth_rate_parameters.get_ppGpp_conc,
+            'get_ppGpp_conc': sim_data.growth_rate_parameters.get_ppGpp_conc,
             'exchange_data_from_media': sim_data.external_state.exchange_data_from_media,
-            'getMass': sim_data.getter.get_mass,
+            'get_mass': sim_data.getter.get_mass,
             'doubling_time': sim_data.condition_to_doubling_time[sim_data.condition],
             'amino_acid_ids': sorted(sim_data.amino_acid_code_to_id_ordered.values()),
             'seed': self.random_state.randint(RAND_MAX)}
