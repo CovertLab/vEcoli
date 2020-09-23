@@ -7,7 +7,7 @@ import numpy as np
 from vivarium.core.process import Process
 from vivarium.core.composition import simulate_process_in_experiment
 
-from ecoli.library.schema import arrays_from, arrays_to
+from ecoli.library.schema import arrays_from, arrays_to, add_elements
 
 from wholecell.utils import units
 from wholecell.utils.fitting import normalize
@@ -226,11 +226,11 @@ class PolypeptideInitiation(Process):
             'subunits': {
                 self.ribosome30S: -n_new_proteins.sum(),
                 self.ribosome50S: -n_new_proteins.sum()},
-            'active_ribosomes': {
-                '_add': [{
-                    'path': (ribosome['unique_index'],),
-                    'state': ribosome}
-                    for ribosome in new_ribosomes]},
+            'active_ribosomes': add_elements(new_ribosomes, 'unique_index'), # {
+                # '_add': [{
+                #     'path': (ribosome['unique_index'],),
+                #     'state': ribosome}
+                #     for ribosome in new_ribosomes]},
             'listeners': {
                 'ribosome_data': {
                     'ribosomes_initialized': n_new_proteins.sum(),

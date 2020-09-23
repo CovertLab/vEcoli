@@ -155,6 +155,9 @@ class TfBinding(Process):
             # so need to add freed TFs to the total active
             # active_tf_counts = active_tf_view.total_counts() + bound_tf_counts
             # n_available_active_tfs = active_tf_view.count()
+
+            # TODO(Ryan): figure out the difference between .total_counts() and .count() above
+            #   and why they would be different (otherwise these two variables are always the same)
             active_tf_counts = np.array([tf_count + bound_tf_counts])
             n_available_active_tfs = tf_count + bound_tf_counts
 

@@ -7,6 +7,7 @@ from vivarium.core.process import Generator
 from vivarium.core.composition import simulate_compartment_in_experiment
 
 from ecoli.processes.tf_binding import TfBinding
+from ecoli.processes.transcript_initiation import TranscriptInitiation
 from ecoli.processes.polypeptide_initiation import PolypeptideInitiation
 from ecoli.processes.polypeptide_elongation import PolypeptideElongation, MICROMOLAR_UNITS
 from ecoli.processes.complexation import Complexation
@@ -47,6 +48,43 @@ class Ecoli(Generator):
 
         tf_binding = TfBinding(tf_binding_config)
         return tf_binding
+
+    def initialize_transcript_initiation(self, sim_data):
+        transcript_initiation_config = {
+            'fracActiveRnapDict': sim_data.process.transcription.rnapFractionActiveDict,
+            'rnaLengths': sim_data.process.transcription.rna_data["length"],
+            'rnaPolymeraseElongationRateDict': sim_data.process.transcription.rnaPolymeraseElongationRateDict,
+            'variable_elongation': False,
+            'make_elongation_rates': sim_data.process.transcription.make_elongation_rates,
+            'basal_prob': sim_data.process.transcription_regulation.basal_prob,
+            'delta_prob': sim_data.process.transcription_regulation.delta_prob,
+            'perturbations': getattr(sim_data, "genetic_perturbations", {}),
+            'rna_data': sim_data.process.transcription.rna_data,
+            'shuffleIdxs': getattr(sim_data.process.transcription, "initiationShuffleIdxs", None),
+
+            'idx_16SrRNA': np.where(sim_data.process.transcription.rna_data['is_16S_rRNA'])[0],
+            'idx_23SrRNA': np.where(sim_data.process.transcription.rna_data['is_23S_rRNA'])[0],
+            'idx_5SrRNA': np.where(sim_data.process.transcription.rna_data['is_5S_rRNA'])[0],
+            'idx_rRNA': np.where(sim_data.process.transcription.rna_data['is_rRNA'])[0],
+            'idx_mRNA': np.where(sim_data.process.transcription.rna_data['is_mRNA'])[0],
+            'idx_tRNA': np.where(sim_data.process.transcription.rna_data['is_tRNA'])[0],
+            'idx_rprotein': np.where(sim_data.process.transcription.rna_data['is_ribosomal_protein'])[0],
+            'idx_rnap': np.where(sim_data.process.transcription.rna_data['is_RNAP'])[0],
+            'rnaSynthProbFractions': sim_data.process.transcription.rnaSynthProbFraction,
+            'rnaSynthProbRProtein': sim_data.process.transcription.rnaSynthProbRProtein,
+            'rnaSynthProbRnaPolymerase': sim_data.process.transcription.rnaSynthProbRnaPolymerase,
+            'replication_coordinate': sim_data.process.transcription.rna_data["replication_coordinate"],
+            'transcription_direction': sim_data.process.transcription.rna_data["direction"],
+            'n_avogadro': sim_data.constants.n_avogadro,
+            'cell_density': sim_data.constants.cell_density,
+            'inactive_RNAP': 'APORNAP-CPLX[c]',
+            'ppgpp': sim_data.molecule_ids.ppGpp,
+            'synth_prob': sim_data.process.transcription.synth_prob_from_ppgpp,
+            'copy_number': sim_data.process.replication.get_average_copy_number,
+            'ppgpp_regulation': False}
+
+        transcript_initiation = TranscriptInitiation(transcript_initiation_config)
+        return transcript_initiation
 
     def initialize_polypeptide_initiation(self, sim_data):
         polypeptide_initiation_config = {
@@ -203,6 +241,7 @@ class Ecoli(Generator):
             sim_data = cPickle.load(sim_data_file)
 
         tf_binding = self.initialize_tf_binding(sim_data)
+        transcript_initiation = self.initialize_transcript_initiation(sim_data)
         polypeptide_initiation = self.initialize_polypeptide_initiation(sim_data)
         polypeptide_elongation = self.initialize_polypeptide_elongation(sim_data)
         complexation = self.initialize_complexation(sim_data)
@@ -211,6 +250,7 @@ class Ecoli(Generator):
 
         return {
             'tf_binding': tf_binding,
+            'transcript_initiation': transcript_initiation,
             'polypeptide_initiation': polypeptide_initiation,
             'polypeptide_elongation': polypeptide_elongation,
             'complexation': complexation,
@@ -223,6 +263,15 @@ class Ecoli(Generator):
                 'promoters': ('unique', 'promoter'),
                 'active_tfs': ('bulk',),
                 'inactive_tfs': ('bulk',),
+                'listeners': ('listeners',)},
+
+            'transcript_initiation': {
+                'environment': ('environment',),
+                'full_chromosomes': ('unique', 'full_chromosome'),
+                'RNAs': ('unique', 'RNA'),
+                'active_RNAPs': ('unique', 'active_RNAP'),
+                'promoters': ('unique', 'promoter'),
+                'molecules': ('bulk',),
                 'listeners': ('listeners',)},
 
             'polypeptide_initiation': {

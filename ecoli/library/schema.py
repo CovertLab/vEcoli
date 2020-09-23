@@ -47,3 +47,9 @@ def listener_schema(elements):
             '_emit': True}
         for element, default in elements.items()}
 
+def add_elements(elements, id):
+    return {
+        '_add': [{
+            'path': (element[id],),
+            'state': element}
+            for element in elements]}
