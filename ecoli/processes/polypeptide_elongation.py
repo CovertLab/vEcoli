@@ -78,9 +78,6 @@ class PolypeptideElongation(Process):
         'seed': 0}
 
     def __init__(self, initial_parameters):
-        if not initial_parameters:
-            initial_parameters = {}
-
         super(PolypeptideElongation, self).__init__(initial_parameters)
 
         self.max_time_step = self.parameters['max_time_step']

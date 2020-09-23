@@ -33,9 +33,6 @@ class PolypeptideInitiation(Process):
         'shuffle_indexes': None}
 
     def __init__(self, initial_parameters):
-        if not initial_parameters:
-            initial_parameters = {}
-
         super(PolypeptideInitiation, self).__init__(initial_parameters)
 
         # Load parameters

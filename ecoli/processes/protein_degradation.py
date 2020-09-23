@@ -24,9 +24,6 @@ class ProteinDegradation(Process):
 
     # Constructor
     def __init__(self, initial_parameters):
-        if not initial_parameters:
-            initial_parameters = {}
-
         super(ProteinDegradation, self).__init__(initial_parameters)
 
         self.raw_degradation_rate = self.parameters['raw_degradation_rate']

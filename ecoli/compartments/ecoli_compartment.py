@@ -6,10 +6,11 @@ from six.moves import cPickle
 from vivarium.core.process import Generator
 from vivarium.core.composition import simulate_compartment_in_experiment
 
-from ecoli.processes.complexation import Complexation
-from ecoli.processes.protein_degradation import ProteinDegradation
+from ecoli.processes.tf_binding import TfBinding
 from ecoli.processes.polypeptide_initiation import PolypeptideInitiation
 from ecoli.processes.polypeptide_elongation import PolypeptideElongation, MICROMOLAR_UNITS
+from ecoli.processes.complexation import Complexation
+from ecoli.processes.protein_degradation import ProteinDegradation
 from ecoli.processes.metabolism import Metabolism
 
 from wholecell.utils import units
@@ -30,30 +31,22 @@ class Ecoli(Generator):
         self.seed = np.uint32(self.config['seed'] % np.iinfo(np.uint32).max)
         self.random_state = np.random.RandomState(seed = self.seed)
 
-    def initialize_complexation(self, sim_data):
-        complexation_config = {
-            'stoichiometry': sim_data.process.complexation.stoich_matrix().astype(np.int64).T,
-            'rates': sim_data.process.complexation.rates,
-            'molecule_names': sim_data.process.complexation.molecule_names,
-            'seed': self.random_state.randint(RAND_MAX)}
+    def initialize_tf_binding(self, sim_data):
+        tf_binding_config = {
+            'tf_ids': sim_data.process.transcription_regulation.tf_ids,
+            'delta_prob': sim_data.process.transcription_regulation.delta_prob,
+            'n_avogadro': sim_data.constants.n_avogadro,
+            'cell_density': sim_data.constants.cell_density,
+            'pPromoter_bound_tf': sim_data.process.transcription_regulation.p_promoter_bound_tf,
+            'tf_to_tf_type': sim_data.process.transcription_regulation.tf_to_tf_type,
+            'active_to_bound': sim_data.process.transcription_regulation.active_to_bound,
+            'get_unbound': sim_data.process.equilibrium.get_unbound,
+            'active_to_inactive_tf': sim_data.process.two_component_system.active_to_inactive_tf,
+            'bulk_molecule_ids': sim_data.internal_state.bulk_molecules.bulk_data["id"],
+            'bulk_mass_data': sim_data.internal_state.bulk_molecules.bulk_data["mass"]}
 
-        complexation = Complexation(complexation_config)
-        return complexation
-
-    def initialize_protein_degradation(self, sim_data):
-        protein_degradation_config = {
-            'raw_degradation_rate': sim_data.process.translation.monomer_data['deg_rate'].asNumber(1 / units.s),
-            'shuffle_indexes': sim_data.process.translation.monomer_deg_rate_shuffle_idxs if hasattr(
-                sim_data.process.translation, "monomer_deg_rate_shuffle_idxs") else None,
-            'water_id': sim_data.molecule_ids.water,
-            'amino_acid_ids': sim_data.molecule_groups.amino_acids,
-            'amino_acid_counts': sim_data.process.translation.monomer_data["aa_counts"].asNumber(),
-            'protein_ids': sim_data.process.translation.monomer_data['id'],
-            'protein_lengths': sim_data.process.translation.monomer_data['length'].asNumber(),
-            'seed': self.random_state.randint(RAND_MAX)}
-
-        protein_degradation = ProteinDegradation(protein_degradation_config)
-        return protein_degradation
+        tf_binding = TfBinding(tf_binding_config)
+        return tf_binding
 
     def initialize_polypeptide_initiation(self, sim_data):
         polypeptide_initiation_config = {
@@ -145,6 +138,31 @@ class Ecoli(Generator):
         polypeptide_elongation = PolypeptideElongation(polypeptide_elongation_config)
         return polypeptide_elongation
 
+    def initialize_complexation(self, sim_data):
+        complexation_config = {
+            'stoichiometry': sim_data.process.complexation.stoich_matrix().astype(np.int64).T,
+            'rates': sim_data.process.complexation.rates,
+            'molecule_names': sim_data.process.complexation.molecule_names,
+            'seed': self.random_state.randint(RAND_MAX)}
+
+        complexation = Complexation(complexation_config)
+        return complexation
+
+    def initialize_protein_degradation(self, sim_data):
+        protein_degradation_config = {
+            'raw_degradation_rate': sim_data.process.translation.monomer_data['deg_rate'].asNumber(1 / units.s),
+            'shuffle_indexes': sim_data.process.translation.monomer_deg_rate_shuffle_idxs if hasattr(
+                sim_data.process.translation, "monomer_deg_rate_shuffle_idxs") else None,
+            'water_id': sim_data.molecule_ids.water,
+            'amino_acid_ids': sim_data.molecule_groups.amino_acids,
+            'amino_acid_counts': sim_data.process.translation.monomer_data["aa_counts"].asNumber(),
+            'protein_ids': sim_data.process.translation.monomer_data['id'],
+            'protein_lengths': sim_data.process.translation.monomer_data['length'].asNumber(),
+            'seed': self.random_state.randint(RAND_MAX)}
+
+        protein_degradation = ProteinDegradation(protein_degradation_config)
+        return protein_degradation
+
     def initialize_metabolism(self, sim_data):
         metabolism_config = {
             'get_import_constraints': sim_data.external_state.get_import_constraints,
@@ -184,27 +202,28 @@ class Ecoli(Generator):
         with open(sim_data_path, 'rb') as sim_data_file:
             sim_data = cPickle.load(sim_data_file)
 
-        complexation = self.initialize_complexation(sim_data)
-        protein_degradation = self.initialize_protein_degradation(sim_data)
+        tf_binding = self.initialize_tf_binding(sim_data)
         polypeptide_initiation = self.initialize_polypeptide_initiation(sim_data)
         polypeptide_elongation = self.initialize_polypeptide_elongation(sim_data)
+        complexation = self.initialize_complexation(sim_data)
+        protein_degradation = self.initialize_protein_degradation(sim_data)
         metabolism = self.initialize_metabolism(sim_data)
 
         return {
-            'complexation': complexation,
-            'protein_degradation': protein_degradation,
+            'tf_binding': tf_binding,
             'polypeptide_initiation': polypeptide_initiation,
             'polypeptide_elongation': polypeptide_elongation,
+            'complexation': complexation,
+            'protein_degradation': protein_degradation,
             'metabolism': metabolism}
 
     def generate_topology(self, config):
         return {
-            'complexation': {
-                'molecules': ('bulk',)},
-
-            'protein_degradation': {
-                'metabolites': ('bulk',),
-                'proteins': ('bulk',)},
+            'tf_binding': {
+                'promoters': ('unique', 'promoter'),
+                'active_tfs': ('bulk',),
+                'inactive_tfs': ('bulk',),
+                'listeners': ('listeners',)},
 
             'polypeptide_initiation': {
                 'environment': ('environment',),
@@ -227,6 +246,13 @@ class Ecoli(Generator):
                 'synthetases': ('bulk',),
                 'subunits': ('bulk',),
                 'polypeptide_elongation': ('process_state', 'polypeptide_elongation')},
+
+            'complexation': {
+                'molecules': ('bulk',)},
+
+            'protein_degradation': {
+                'metabolites': ('bulk',),
+                'proteins': ('bulk',)},
 
             'metabolism': {
                 'metabolites': ('bulk',),
