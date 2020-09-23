@@ -232,8 +232,6 @@ class TfBinding(Process):
                 'nActualBound': nActualBound,
                 'n_bound_TF_per_TU': n_bound_TF_per_TU}}
 
-        import ipdb; ipdb.set_trace()
-
         return update
 
 
