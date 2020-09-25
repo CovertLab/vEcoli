@@ -15,7 +15,7 @@ import numpy as np
 from vivarium.core.process import Process
 from vivarium.core.composition import simulate_process_in_experiment
 
-from ecoli.library.schema import array_from, arrays_from, arrays_to, listener_schema, bulk_schema
+from ecoli.library.schema import array_from, array_to, arrays_from, arrays_to, listener_schema, bulk_schema
 
 from wholecell.utils.polymerize import buildSequences, polymerize, computeMassIncrease
 from wholecell.utils import units
@@ -305,7 +305,7 @@ class TranscriptElongation(Process):
             len(states['active_RNAPs']), {
                 'coordinates': updated_coordinates})
 
-        delete_rnaps = np.where(did_terminate_mask[partial_RNA_to_RNAP_mapping])
+        delete_rnaps = np.where(did_terminate_mask[partial_RNA_to_RNAP_mapping])[0]
 
         update['active_RNAPs'] = {
             rnap_indexes[index]: rnap
