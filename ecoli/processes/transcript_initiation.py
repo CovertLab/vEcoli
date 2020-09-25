@@ -376,8 +376,6 @@ class TranscriptInitiation(Process):
             'didInitialize': n_RNAPs_to_activate,
             'rnaInitEvent': TU_to_promoter.dot(n_initiations)}
 
-        import ipdb; ipdb.set_trace()
-
         return update
 
     def _calculateActivationProb(self, timestep, fracActiveRnap, rnaLengths, rnaPolymeraseElongationRates, synthProb):

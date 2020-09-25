@@ -1,3 +1,12 @@
+"""
+PolypeptideElongation
+
+Translation elongation sub-model.
+
+TODO:
+- see the initiation process for more TODOs
+"""
+
 from __future__ import absolute_import, division, print_function
 
 
@@ -468,7 +477,7 @@ class BaseElongationModel(object):
         net_charged = np.zeros(len(self.parameters['uncharged_trna_names']))
 
         return net_charged, {}, {
-            'amino_acids': array_to(states['amino_acids'], -aas_used),
+            'amino_acids': array_to(states['amino_acids'].keys(), -aas_used),
             'molecules': {
                 'water': nElongations - nInitialized}}
 
@@ -649,12 +658,12 @@ class SteadyStateElongationModel(TranslationSupplyElongationModel):
         charged_and_elongated = self.distribution_from_aa(aas_used, total_trna)
         total_charging_reactions = charged_and_elongated + net_charged
         update['charging_molecules'] = array_to(
-            states['charging_molecules'],
+            states['charging_molecules'].keys(),
             np.dot(self.charging_stoich_matrix, total_charging_reactions))
 
         ## Account for uncharging of tRNA during elongation
-        update['charged_trna'] = array_to(states['charged_trna'], -charged_and_elongated)
-        update['uncharged_trna'] = array_to(states['uncharged_trna'], charged_and_elongated)
+        update['charged_trna'] = array_to(states['charged_trna'].keys(), -charged_and_elongated)
+        update['uncharged_trna'] = array_to(states['uncharged_trna'].keys(), charged_and_elongated)
 
         # Create ppGpp
         ## Concentrations of interest

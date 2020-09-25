@@ -1,3 +1,13 @@
+"""
+Metabolism
+
+Metabolism sub-model. Encodes molecular simulation of microbial metabolism using flux-balance analysis.
+
+TODO:
+- option to call a reduced form of metabolism (assume optimal)
+- handle oneSidedReaction constraints
+"""
+
 from __future__ import absolute_import, division, print_function
 
 import numpy as np

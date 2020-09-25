@@ -1,3 +1,13 @@
+"""
+Complexation
+
+Macromolecular complexation sub-model. Encodes molecular simulation of macromolecular complexation
+
+TODO:
+- allow for shuffling when appropriate (maybe in another process)
+- handle protein complex dissociation
+"""
+
 from __future__ import absolute_import, division, print_function
 
 import numpy as np

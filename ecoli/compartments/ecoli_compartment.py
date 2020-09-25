@@ -8,6 +8,7 @@ from vivarium.core.composition import simulate_compartment_in_experiment
 
 from ecoli.processes.tf_binding import TfBinding
 from ecoli.processes.transcript_initiation import TranscriptInitiation
+from ecoli.processes.transcript_elongation import TranscriptElongation
 from ecoli.processes.polypeptide_initiation import PolypeptideInitiation
 from ecoli.processes.polypeptide_elongation import PolypeptideElongation, MICROMOLAR_UNITS
 from ecoli.processes.complexation import Complexation
@@ -44,7 +45,8 @@ class Ecoli(Generator):
             'get_unbound': sim_data.process.equilibrium.get_unbound,
             'active_to_inactive_tf': sim_data.process.two_component_system.active_to_inactive_tf,
             'bulk_molecule_ids': sim_data.internal_state.bulk_molecules.bulk_data["id"],
-            'bulk_mass_data': sim_data.internal_state.bulk_molecules.bulk_data["mass"]}
+            'bulk_mass_data': sim_data.internal_state.bulk_molecules.bulk_data["mass"],
+            'seed': self.random_state.randint(RAND_MAX)}
 
         tf_binding = TfBinding(tf_binding_config)
         return tf_binding
@@ -81,10 +83,35 @@ class Ecoli(Generator):
             'ppgpp': sim_data.molecule_ids.ppGpp,
             'synth_prob': sim_data.process.transcription.synth_prob_from_ppgpp,
             'copy_number': sim_data.process.replication.get_average_copy_number,
-            'ppgpp_regulation': False}
+            'ppgpp_regulation': False,
+            'seed': self.random_state.randint(RAND_MAX)}
 
         transcript_initiation = TranscriptInitiation(transcript_initiation_config)
         return transcript_initiation
+
+    def initialize_transcript_elongation(self, sim_data):
+        transcript_elongation_config = {
+            'max_time_step': sim_data.process.transcription.max_time_step,
+            'rnaPolymeraseElongationRateDict': sim_data.process.transcription.rnaPolymeraseElongationRateDict,
+            'rnaIds': sim_data.process.transcription.rna_data['id'],
+            'rnaLengths': sim_data.process.transcription.rna_data["length"].asNumber(),
+            'rnaSequences': sim_data.process.transcription.transcription_sequences,
+            'ntWeights': sim_data.process.transcription.transcription_monomer_weights,
+            'endWeight': sim_data.process.transcription.transcription_end_weight,
+            'replichore_lengths': sim_data.process.replication.replichore_lengths,
+            'idx_16S_rRNA': np.where(sim_data.process.transcription.rna_data['is_16S_rRNA'])[0],
+            'idx_23S_rRNA': np.where(sim_data.process.transcription.rna_data['is_23S_rRNA'])[0],
+            'idx_5S_rRNA': np.where(sim_data.process.transcription.rna_data['is_5S_rRNA'])[0],
+            'is_mRNA': sim_data.process.transcription.rna_data['is_mRNA'],
+            'ppi': sim_data.molecule_ids.ppi,
+            'inactive_RNAP': "APORNAP-CPLX[c]",
+            'ntp_ids': ["ATP[c]", "CTP[c]", "GTP[c]", "UTP[c]"],
+            'variable_elongation': False,
+            'make_elongation_rates': sim_data.process.transcription.make_elongation_rates,
+            'seed': self.random_state.randint(RAND_MAX)}
+
+        transcript_elongation = TranscriptElongation(transcript_elongation_config)
+        return transcript_elongation
 
     def initialize_polypeptide_initiation(self, sim_data):
         polypeptide_initiation_config = {
@@ -101,7 +128,8 @@ class Ecoli(Generator):
             'ribosome50S': sim_data.molecule_ids.s50_full_complex,
             'seed': self.random_state.randint(RAND_MAX),
             'shuffle_indexes': sim_data.process.translation.monomer_deg_rate_shuffle_idxs if hasattr(
-                sim_data.process.translation, "monomer_deg_rate_shuffle_idxs") else None}
+                sim_data.process.translation, "monomer_deg_rate_shuffle_idxs") else None,
+            'seed': self.random_state.randint(RAND_MAX)}
 
         polypeptide_initiation = PolypeptideInitiation(polypeptide_initiation_config)
         return polypeptide_initiation
@@ -242,6 +270,7 @@ class Ecoli(Generator):
 
         tf_binding = self.initialize_tf_binding(sim_data)
         transcript_initiation = self.initialize_transcript_initiation(sim_data)
+        transcript_elongation = self.initialize_transcript_elongation(sim_data)
         polypeptide_initiation = self.initialize_polypeptide_initiation(sim_data)
         polypeptide_elongation = self.initialize_polypeptide_elongation(sim_data)
         complexation = self.initialize_complexation(sim_data)
@@ -251,6 +280,7 @@ class Ecoli(Generator):
         return {
             'tf_binding': tf_binding,
             'transcript_initiation': transcript_initiation,
+            'transcript_elongation': transcript_elongation,
             'polypeptide_initiation': polypeptide_initiation,
             'polypeptide_elongation': polypeptide_elongation,
             'complexation': complexation,
@@ -272,6 +302,15 @@ class Ecoli(Generator):
                 'active_RNAPs': ('unique', 'active_RNAP'),
                 'promoters': ('unique', 'promoter'),
                 'molecules': ('bulk',),
+                'listeners': ('listeners',)},
+
+            'transcript_elongation': {
+                'environment': ('environment',),
+                'RNAs': ('unique', 'RNA'),
+                'active_RNAPs': ('unique', 'active_RNAP'),
+                'molecules': ('bulk',),
+                'bulk_rnas': ('bulk',),
+                'ntps': ('bulk',),
                 'listeners': ('listeners',)},
 
             'polypeptide_initiation': {

@@ -1,3 +1,13 @@
+"""
+ProteinDegradation
+
+Protein degradation sub-model. Encodes molecular simulation of protein degradation as a Poisson process
+
+TODO:
+- protein complexes
+- add protease functionality
+"""
+
 from __future__ import absolute_import, division, print_function
 
 import numpy as np
