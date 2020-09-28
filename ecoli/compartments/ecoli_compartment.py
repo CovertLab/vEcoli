@@ -404,6 +404,8 @@ def test_ecoli():
             'external_concentrations': states['environment']},
         'listeners': {
             # TODO(Ryan): deal with mass
+            # add mw property to bulk and unique molecules
+            # and include any "submass" attributes from unique molecules
             'mass': {
                 'cell_mass': 1172.2152594471481,
                 'dry_mass': 351.8184693073905}},
