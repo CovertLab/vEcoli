@@ -20,10 +20,11 @@ class TwoComponentSystem(Process):
 
     defaults = {
         'jit': False,
-        'n_avogadro': -1,
-        'cell_density': -1,
-        'moleculesToNextTimeStep': -1,
-        'moleculeNames': -1,
+        'n_avogadro': 0.0,
+        'cell_density': 0.0,
+        'moleculesToNextTimeStep': lambda counts, volume, avogadro, timestep, random, method, min_step, jit: (
+            [], []),
+        'moleculeNames': [],
         'seed': 0}
 
     # Constructor

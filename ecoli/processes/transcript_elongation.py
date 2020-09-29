@@ -24,23 +24,23 @@ class TranscriptElongation(Process):
     name = "TranscriptElongation"
 
     defaults = {
-        'max_time_step': -1,
-        'rnaPolymeraseElongationRateDict': -1,
-        'rnaIds': -1,
-        'rnaLengths': -1,
-        'rnaSequences': -1,
-        'ntWeights': -1,
-        'endWeight': -1,
-        'replichore_lengths': -1,
-        'idx_16S_rRNA': -1,
-        'idx_23S_rRNA': -1,
-        'idx_5S_rRNA': -1,
-        'is_mRNA': -1,
-        'ppi': -1,
-        'inactive_RNAP': "",
+        'max_time_step': 0.0,
+        'rnaPolymeraseElongationRateDict': {},
+        'rnaIds': [],
+        'rnaLengths': np.array([]),
+        'rnaSequences': np.array([[]]),
+        'ntWeights': np.array([]),
+        'endWeight': np.array([]),
+        'replichore_lengths': np.array([]),
+        'idx_16S_rRNA': np.array([]),
+        'idx_23S_rRNA': np.array([]),
+        'idx_5S_rRNA': np.array([]),
+        'is_mRNA': np.array([]),
+        'ppi': '',
+        'inactive_RNAP': '',
         'ntp_ids': [],
         'variable_elongation': False,
-        'make_elongation_rates': -1,
+        'make_elongation_rates': lambda random, rates, timestep, variable: rates,
         'seed': 0}
 
     def __init__(self, initial_parameters):

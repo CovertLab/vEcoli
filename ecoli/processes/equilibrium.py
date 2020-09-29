@@ -25,7 +25,7 @@ class Equilibrium(Process):
         'n_avogadro': 0.0,
         'cell_density': 0.0,
         'stoichMatrix': [[]],
-        'fluxesAndMoleculesToSS': lambda x: x,
+        'fluxesAndMoleculesToSS': lambda counts, volume, avogadro, random, jit: ([], []),
         'moleculeNames': [],
         'seed': 0}
 
