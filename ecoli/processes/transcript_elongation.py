@@ -86,9 +86,9 @@ class TranscriptElongation(Process):
                     'unique_index': {'_default': 0, '_updater': 'set', '_emit': True},
                     'TU_index': {'_default': 0, '_updater': 'set', '_emit': True},
                     'transcript_length': {'_default': 0, '_updater': 'set', '_emit': True},
-                    'is_mRNA': {'_default': 0, '_updater': 'set', '_emit': True},
-                    'is_full_transcript': {'_default': 0, '_updater': 'set', '_emit': True},
-                    'can_translate': {'_default': 0, '_updater': 'set', '_emit': True},
+                    'is_mRNA': {'_default': False, '_updater': 'set', '_emit': True},
+                    'is_full_transcript': {'_default': False, '_updater': 'set', '_emit': True},
+                    'can_translate': {'_default': False, '_updater': 'set', '_emit': True},
                     'RNAP_index': {'_default': 0, '_updater': 'set', '_emit': True}}},
 
             'active_RNAPs': {
@@ -352,8 +352,6 @@ class TranscriptElongation(Process):
             "actualElongations": sequence_elongations.sum(),
             "didTerminate": did_terminate_mask.sum(),
             "terminationLoss": (terminal_lengths - length_partial_RNAs)[did_terminate_mask].sum()}
-
-        import ipdb; ipdb.set_trace()
 
         return update
 

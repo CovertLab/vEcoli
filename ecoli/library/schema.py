@@ -8,7 +8,20 @@ def array_to(keys, array):
         key: array[index]
         for index, key in enumerate(keys)}
 
+def type_of(array):
+    if len(array) == 0:
+        return None
+
+    head = array[0]
+    if isinstance(head, (list, np.ndarray)):
+        return type_of(head)
+    else:
+        return type(head)
+
 def arrays_from(ds, keys):
+    if not ds:
+        return array([])
+
     arrays = {
         key: []
         for key in keys}
@@ -19,7 +32,7 @@ def arrays_from(ds, keys):
                 arrays[key].append(value)
 
     return tuple([
-        np.array(array)
+        np.array(array, dtype=type_of(array))
         for array in arrays.values()])
 
 def arrays_to(n, attrs):
