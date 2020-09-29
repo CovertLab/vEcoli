@@ -312,8 +312,6 @@ class RnaDegradation(Process):
         self.n_unique_RNAs_to_deactivate = n_RNAs_to_degrade.copy()
         self.n_unique_RNAs_to_deactivate[np.logical_not(self.is_mRNA)] = 0
 
-        # self.bulk_RNAs.requestIs(n_bulk_RNAs_to_degrade)
-
         # Calculate the amount of water required for total RNA hydrolysis by
         # endo and exonucleases. We first calculate the number of unique RNAs
         # that should be degraded at this timestep.
@@ -331,18 +329,12 @@ class RnaDegradation(Process):
         fragmentBases = array_from(states['fragmentBases'])
         waterForLeftOverFragments = fragmentBases.sum()
 
-        # self.h2o.requestIs(waterForNewRnas + waterForLeftOverFragments)
         water_request = waterForNewRnas + waterForLeftOverFragments
 
-    # def evolveState(self):
         # Get vector of numbers of RNAs to degrade for each RNA species
-        # n_degraded_bulk_RNA = self.bulk_RNAs.counts()
         n_degraded_bulk_RNA = n_bulk_RNAs_to_degrade
         n_degraded_unique_RNA = self.n_unique_RNAs_to_degrade
         n_degraded_RNA = n_degraded_bulk_RNA + n_degraded_unique_RNA
-
-        # # Degrade bulk RNAs
-        # self.bulk_RNAs.countsIs(0)
 
         n_deactivated_unique_RNA = self.n_unique_RNAs_to_deactivate
 
@@ -372,6 +364,8 @@ class RnaDegradation(Process):
                     'fract_endo_rrna_counts': endornase_per_rna,
                     'count_rna_degraded': n_degraded_RNA,
                     'nucleotides_from_degradation': np.dot(n_degraded_RNA, self.rna_lengths)}},
+
+            # Degrade bulk RNAs
             'bulk_RNAs': array_to(
                 self.rnaIds,
                 -n_degraded_bulk_RNA),
@@ -379,15 +373,10 @@ class RnaDegradation(Process):
                 rna_index: rnas_update[index]
                 for index, rna_index in enumerate(states['RNAs'].keys())}}
 
+        # Degrade full mRNAs that are inactive
         update['RNAs']['_delete'] = [
             (rnas_indexes[delete_index],)
             for delete_index in np.where(self.unique_mRNAs_to_degrade)[0]]
-
-        # self.unique_RNAs.attrIs(can_translate=can_translate)
-
-        # # Degrade full mRNAs that are inactive
-        # self.unique_RNAs.delByIndexes(
-        #     np.where(self.unique_mRNAs_to_degrade)[0])
 
         # Modeling assumption: Once a RNA is cleaved by an endonuclease its
         # resulting nucleotides are lumped together as "polymerized fragments".
@@ -404,17 +393,12 @@ class RnaDegradation(Process):
         metabolitesEndoCleavage = np.dot(
             self.endoDegradationSMatrix, n_degraded_RNA)
 
-        # # Increase polymerized fragment counts
-        # self.fragmentMetabolites.countsInc(metabolitesEndoCleavage)
-
+        # Increase polymerized fragment counts
         update['fragmentMetabolites'] = array_to(
             self.endCleavageMetaboliteIds,
             metabolitesEndoCleavage)
 
-        # # Check if exonucleolytic digestion can happen 
-        # if self.fragmentBases.counts().sum() == 0:
-        #     return
-
+        # Check if exonucleolytic digestion can happen 
         fragmentBases = array_from(states['fragmentBases'])
         if fragmentBases.sum() == 0:
             return update
@@ -432,8 +416,6 @@ class RnaDegradation(Process):
         # 3 NMP + 3 H(+)
         # Note: Lack of -OH on 3' end of chain
 
-        # n_exoRNases = self.exoRnases.counts()
-        # n_fragment_bases = self.fragmentBases.counts()
         n_exoRNases = array_from(states['exoRnases'])
         n_fragment_bases = array_from(states['fragmentBases'])
         n_fragment_bases_sum = n_fragment_bases.sum()
