@@ -9,6 +9,7 @@ from vivarium.core.composition import simulate_compartment_in_experiment
 from ecoli.processes.tf_binding import TfBinding
 from ecoli.processes.transcript_initiation import TranscriptInitiation
 from ecoli.processes.transcript_elongation import TranscriptElongation
+from ecoli.processes.rna_degradation import RnaDegradation
 from ecoli.processes.polypeptide_initiation import PolypeptideInitiation
 from ecoli.processes.polypeptide_elongation import PolypeptideElongation, MICROMOLAR_UNITS
 from ecoli.processes.complexation import Complexation
@@ -112,6 +113,41 @@ class Ecoli(Generator):
 
         transcript_elongation = TranscriptElongation(transcript_elongation_config)
         return transcript_elongation
+
+    def initialize_rna_degradation(self, sim_data):
+        rna_degradation_config = {
+            'rnaIds': sim_data.process.transcription.rna_data['id'],
+            'n_avogadro': sim_data.constants.n_avogadro,
+            'cell_density': sim_data.constants.cell_density,
+            'endoRnaseIds': sim_data.process.rna_decay.endoRNase_ids,
+            'exoRnaseIds': sim_data.molecule_groups.exoRNases,
+            'KcatExoRNase': sim_data.constants.kcat_exoRNase,
+            'KcatEndoRNases': sim_data.process.rna_decay.kcats,
+            'charged_trna_names': sim_data.process.transcription.charged_trna_names,
+            'rnaDegRates': sim_data.process.transcription.rna_data['deg_rate'],
+            'shuffle_indexes': sim_data.process.transcription.rnaDegRateShuffleIdxs if hasattr(sim_data.process.transcription, "rnaDegRateShuffleIdxs") and sim_data.process.transcription.rnaDegRateShuffleIdxs is not None else None,
+            'is_mRNA': sim_data.process.transcription.rna_data['is_mRNA'].astype(np.int64),
+            'is_rRNA': sim_data.process.transcription.rna_data['is_rRNA'].astype(np.int64),
+            'is_tRNA': sim_data.process.transcription.rna_data['is_tRNA'].astype(np.int64),
+            'rna_lengths': sim_data.process.transcription.rna_data['length'].asNumber(),
+            'polymerized_ntp_ids': sim_data.molecule_groups.polymerized_ntps,
+            'water_id': sim_data.molecule_ids.water,
+            'ppi_id': sim_data.molecule_ids.ppi,
+            'proton_id': sim_data.molecule_ids.proton,
+            'counts_ACGU': units.transpose(sim_data.process.transcription.rna_data['counts_ACGU']).asNumber(),
+            'nmp_ids': ["AMP[c]", "CMP[c]", "GMP[c]", "UMP[c]"],
+            'rrfaIdx': sim_data.process.transcription.rna_data["id"].tolist().index("RRFA-RRNA[c]"),
+            'rrlaIdx': sim_data.process.transcription.rna_data["id"].tolist().index("RRLA-RRNA[c]"),
+            'rrsaIdx': sim_data.process.transcription.rna_data["id"].tolist().index("RRSA-RRNA[c]"),
+            'Km': sim_data.process.transcription.rna_data['Km_endoRNase'],
+            'EndoRNaseCoop': sim_data.constants.endoRNase_cooperation,
+            'EndoRNaseFunc': sim_data.constants.endoRNase_function,
+            'ribosome30S': sim_data.molecule_ids.s30_full_complex,
+            'ribosome50S': sim_data.molecule_ids.s50_full_complex,
+            'seed': self.random_state.randint(RAND_MAX)}
+
+        rna_degradation = RnaDegradation(rna_degradation_config)
+        return rna_degradation
 
     def initialize_polypeptide_initiation(self, sim_data):
         polypeptide_initiation_config = {
@@ -271,6 +307,7 @@ class Ecoli(Generator):
         tf_binding = self.initialize_tf_binding(sim_data)
         transcript_initiation = self.initialize_transcript_initiation(sim_data)
         transcript_elongation = self.initialize_transcript_elongation(sim_data)
+        rna_degradation = self.initialize_rna_degradation(sim_data)
         polypeptide_initiation = self.initialize_polypeptide_initiation(sim_data)
         polypeptide_elongation = self.initialize_polypeptide_elongation(sim_data)
         complexation = self.initialize_complexation(sim_data)
@@ -281,6 +318,7 @@ class Ecoli(Generator):
             'tf_binding': tf_binding,
             'transcript_initiation': transcript_initiation,
             'transcript_elongation': transcript_elongation,
+            'rna_degradation': rna_degradation,
             'polypeptide_initiation': polypeptide_initiation,
             'polypeptide_elongation': polypeptide_elongation,
             'complexation': complexation,
@@ -311,6 +349,20 @@ class Ecoli(Generator):
                 'molecules': ('bulk',),
                 'bulk_rnas': ('bulk',),
                 'ntps': ('bulk',),
+                'listeners': ('listeners',)},
+
+            'rna_degradation': {
+                'charged_trna': ('bulk',),
+                'bulk_RNAs': ('bulk',),
+                'nmps': ('bulk',),
+                'fragmentMetabolites': ('bulk',),
+                'fragmentBases': ('bulk',),
+                'endoRnases': ('bulk',),
+                'exoRnases': ('bulk',),
+                'subunits': ('bulk',),
+                'molecules': ('bulk',),
+                'RNAs': ('unique', 'RNA'),
+                'active_ribosomes': ('unique', 'active_ribosomes'),
                 'listeners': ('listeners',)},
 
             'polypeptide_initiation': {
