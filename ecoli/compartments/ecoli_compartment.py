@@ -14,6 +14,7 @@ from ecoli.processes.polypeptide_initiation import PolypeptideInitiation
 from ecoli.processes.polypeptide_elongation import PolypeptideElongation, MICROMOLAR_UNITS
 from ecoli.processes.complexation import Complexation
 from ecoli.processes.two_component_system import TwoComponentSystem
+from ecoli.processes.equilibrium import Equilibrium
 from ecoli.processes.protein_degradation import ProteinDegradation
 from ecoli.processes.metabolism import Metabolism
 
@@ -263,6 +264,19 @@ class Ecoli(Generator):
         two_component_system = TwoComponentSystem(two_component_system_config)
         return two_component_system
 
+    def initialize_equilibrium(self, sim_data):
+        equilibrium_config = {
+            'jit': False,
+            'n_avogadro': sim_data.constants.n_avogadro.asNumber(1 / units.mmol),
+            'cell_density': sim_data.constants.cell_density.asNumber(units.g / units.L),
+            'stoichMatrix': sim_data.process.equilibrium.stoich_matrix().astype(np.int64),
+            'fluxesAndMoleculesToSS': sim_data.process.equilibrium.fluxes_and_molecules_to_SS,
+            'moleculeNames': sim_data.process.equilibrium.molecule_names,
+            'seed': self.random_state.randint(RAND_MAX)}
+
+        equilibrium = Equilibrium(equilibrium_config)
+        return equilibrium
+
     def initialize_protein_degradation(self, sim_data):
         protein_degradation_config = {
             'raw_degradation_rate': sim_data.process.translation.monomer_data['deg_rate'].asNumber(1 / units.s),
@@ -325,6 +339,7 @@ class Ecoli(Generator):
         polypeptide_elongation = self.initialize_polypeptide_elongation(sim_data)
         complexation = self.initialize_complexation(sim_data)
         two_component_system = self.initialize_two_component_system(sim_data)
+        equilibrium = self.initialize_equilibrium(sim_data)
         protein_degradation = self.initialize_protein_degradation(sim_data)
         metabolism = self.initialize_metabolism(sim_data)
 
@@ -337,6 +352,7 @@ class Ecoli(Generator):
             'polypeptide_elongation': polypeptide_elongation,
             'complexation': complexation,
             'two_component_system': two_component_system,
+            'equilibrium': equilibrium,
             'protein_degradation': protein_degradation,
             'metabolism': metabolism}
 
@@ -406,6 +422,10 @@ class Ecoli(Generator):
                 'molecules': ('bulk',)},
 
             'two_component_system': {
+                'listeners': ('listeners',),
+                'molecules': ('bulk',)},
+
+            'equilibrium': {
                 'listeners': ('listeners',),
                 'molecules': ('bulk',)},
 
