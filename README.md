@@ -64,4 +64,13 @@ in `__init__` refer to these new parameters instead.
 * Create an `update` dictionary to hold state updates. Anywhere the view is mutated, construct an entry in the `update` dictionary instead.
 * Anywhere a listener is referred to, create an entry in `ports_schema` instead and add that value to the growing `update` dictionary.
 * At the end, return the `update` dictionary.
-* Put a trace right before return `update` from `next_update` and compare it to the values you expect from wcEcoli. 
+* Put a trace right before return `update` from `next_update` and compare it to the values you expect from wcEcoli.
+
+## remaining considerations
+
+A few things remain:
+
+* Calculating mass - some effort went into ensuring all the unique molecules that track submass still do so, but the overall calculation of mass was done in a listener and will need to be replicated as a process here. Also, the masses will have to be added as attributes to all the values in the `bulk` and `unique` stores to correspond to the mass for each molecule. 
+* The collapse of `calculateRequest` and `evolveState` means partitioning no longer occurs. This may create a deviation in behavior and may need to be addressed.
+* The processes were migrated but not entirely validated. Overall model behavior remains to be validated.
+* In order to get analyses to run again, an adapter for the previous `TableReader` will have to read from the database instead. I made the (possibly misguided) decision to convert the CamelCase listener names to under_score, so either they need to be switched back or updated in the analyses, or simpler the conversion made in the new `TableDBReader` interface. 
