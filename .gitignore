@@ -21,6 +21,7 @@ user/*
 *.pyc
 __pycache__
 *.so
+/wholecell/utils/*.c
 
 # OS generated files #
 ######################

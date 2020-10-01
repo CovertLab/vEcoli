@@ -26,3 +26,26 @@ There are three main aspects to the migration:
 
 The way Vivarium state updates work all states are provided as they appear at the beginning of each process's update timestep, and then are applied at the end of that timestep. This ensures all state is synchronized between processes.
 
+All effort has been made to translate these processes as faithfully as possible. This means previous behavior is intact, and even ports are kept the same (`cell_mass` is still under a `listeners/mass` port instead of something more suitable like a `global` port). All listener output is still emitted, though listeners have been renamed from CamelCase to under_score, which will need to be addressed to get the existing analyses working. 
+
+## current state
+
+As of today, 11 of the 14 wcEcoli processes are migrated.
+
+* complexation.py
+* equilibrium.py
+* metabolism.py
+* polypeptide_elongation.py
+* polypeptide_initiation.py
+* protein_degradation.py
+* rna_degradation.py
+* tf_binding.py
+* transcript_elongation.py
+* transcript_initiation.py
+* two_component_system.py
+
+Remaining are:
+
+* CellDivision - there is a branch (`division`) with a WIP on this. That said, cell division works differently in Vivarium from wcEcoli, so this will need to be a more substantial change. In wcEcoli, the simulation is ended on division and two files with daughter states are written to the filesystem, which need to be started again separately. In Vivarium, the simulation can continue running on division, simulating each daughter in a new compartment in a shared environment. This will need to be addressed.
+
+* Chromosome
