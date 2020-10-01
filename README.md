@@ -8,7 +8,11 @@ The scope of this project is to migrate the simulation processes, and therefore 
 
 The only aspects of the wcEcoli project beyond those required to load `sim_data` required for `vivarium-ecoli` are the simulation's process classes. All state handling (previously handled by Bulk- and UniqueMolecules states/containers/views) and the actual running of the simulation (previously `wholecell.sim.Simulation`) are now handled entirely by Vivarium's core engine and process interface. 
 
-The new process classes can be found in `ecoli/processes/*` and a compartment that links them together using a Vivarium topology lives in `ecoli/compartments/ecoli_compartment`. To run the simulation simply invoke
+The new process classes can be found in `ecoli/processes/*` and a compartment that links them together using a Vivarium topology lives in `ecoli/compartments/ecoli_compartment`. To run the simulation first compile the `wholecell/utils` cython files:
+
+    > make clean compile
+
+then simply invoke
 
     > python ecoli/compartments/ecoli_compartment.py
 
