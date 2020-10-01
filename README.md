@@ -48,4 +48,20 @@ Remaining are:
 
 * CellDivision - there is a branch (`division`) with a WIP on this. That said, cell division works differently in Vivarium from wcEcoli, so this will need to be a more substantial change. In wcEcoli, the simulation is ended on division and two files with daughter states are written to the filesystem, which need to be started again separately. In Vivarium, the simulation can continue running on division, simulating each daughter in a new compartment in a shared environment. This will need to be addressed.
 
-* Chromosome
+* ChromosomeReplication/ChromosomeStructure - These are substantial and deal mostly with the chromosome, but don't present any challenge that the other processes already provided. They use UniqueMolecules extensively so other processes like `transcript_initiation.py` may act as a good reference for migration.
+
+In order to finish this migration, here are a few tips for migrating a process from wcEcoli to Vivarium:
+
+* Copy the process file over from `wcEcoli/model/ecoli/processes/*` into `vivarium-ecoli/ecoli/processes/*` and convert all the tabs to spaces, also importing `from vivarium.core.process import Process` instead of the `wholecell.processes.process` version.
+* In `ecoli/compartments/ecoli_compartment.py`, create an `initialize_*` function taking `sim_data` to create the configuration for the process. 
+* In the process file, extract from `initialize` any reference to `sim_data` or `sim._*` and create an entry in the config dictionary for it pointing to this path in `sim_data` (or a default for the `sim._*` option).
+* Collapse `__init__` and `initialize`, then convert `calculateRequest` and `evolveState` into a single function `next_update(self, timestep, states)`.  
+* In the process file, declare the `defaults` parameters dictionary an dmake each place that refers to `sim_data`
+in `__init__` refer to these new parameters instead.
+* Anywhere that creates a `BulkMoleculesView` or `UniqueMoleculesView` add an entry in the new process's `ports_schema()` instead. If they are a `UniqueMoleculesView`, declare any attributes that are referred to in the process's `next_update`.
+* Go through `next_update` and fix any references to views to read from the `states` dictionary passed to `next_update`.
+* Anywhere that a "request" is made, note this value to use instead of the value from `states` (the request is the state `evolveState` expected to see).
+* Create an `update` dictionary to hold state updates. Anywhere the view is mutated, construct an entry in the `update` dictionary instead.
+* Anywhere a listener is referred to, create an entry in `ports_schema` instead and add that value to the growing `update` dictionary.
+* At the end, return the `update` dictionary.
+* Put a trace right before return `update` from `next_update` and compare it to the values you expect from wcEcoli. 
