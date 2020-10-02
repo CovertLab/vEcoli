@@ -13,6 +13,7 @@ from __future__ import absolute_import, division, print_function
 import numpy as np
 from scipy.integrate import odeint
 from six.moves import range, zip
+import logging as log
 
 from vivarium.core.process import Process
 from vivarium.library.dict_utils import deep_merge
@@ -431,7 +432,7 @@ class PolypeptideElongation(Process):
         update['listeners']['ribosome_data']['numTrpATerminated'] = terminatedProteins[self.trpAIndex]
         update['listeners']['ribosome_data']['processElongationRate'] = self.ribosomeElongationRate / timestep
 
-        print('terminated: {}'.format(nTerminated))
+        log.info('polypeptide elongation terminated: {}'.format(nTerminated))
 
         return update
 

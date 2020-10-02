@@ -512,7 +512,15 @@ def test_ecoli():
 
     data = simulate_compartment_in_experiment(ecoli, settings)
 
-    print(data)
+    # separate data by port
+    bulk = data['bulk']
+    unique = data['unique']
+    listeners = data['listeners']
+    process_state = data['process_state']
+    environment = data['environment']
+
+    print(bulk)
+    print(unique.keys())
 
 
 if __name__ == '__main__':
