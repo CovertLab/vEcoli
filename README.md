@@ -34,7 +34,8 @@ All effort has been made to translate these processes as faithfully as possible.
 
 ## current state
 
-As of today, 11 of the 14 wcEcoli processes are migrated.
+As of 9/30/2020, 11 of the 14 wcEcoli processes are migrated.
+The sim_data is generated with wcEcoli commit# 695031deac0a51b4225641c1f79cdbd2d878cd57
 
 * complexation.py
 * equilibrium.py
