@@ -8,13 +8,13 @@ The scope of this project is to migrate the simulation processes, and therefore 
 
 The only aspects of the wcEcoli project beyond those required to load `sim_data` required for `vivarium-ecoli` are the simulation's process classes. All state handling (previously handled by Bulk- and UniqueMolecules states/containers/views) and the actual running of the simulation (previously `wholecell.sim.Simulation`) are now handled entirely by Vivarium's core engine and process interface. 
 
-The new process classes can be found in `ecoli/processes/*` and a compartment that links them together using a Vivarium topology lives in `ecoli/compartments/ecoli_compartment`. To run the simulation first compile the `wholecell/utils` cython files:
+The new process classes can be found in `ecoli/processes/*` and a composites that links them together using a Vivarium topology lives in `ecoli/composites/ecoli_compartment`. To run the simulation first compile the `wholecell/utils` cython files:
 
     > make clean compile
 
 then simply invoke
 
-    > python ecoli/compartments/ecoli_compartment.py
+    > python ecoli/composites/ecoli_compartment.py
 
 ## migration
 
@@ -58,7 +58,7 @@ Remaining are:
 In order to finish this migration, here are a few tips for migrating a process from wcEcoli to Vivarium:
 
 * Copy the process file over from `wcEcoli/model/ecoli/processes/*` into `vivarium-ecoli/ecoli/processes/*` and convert all the tabs to spaces, also importing `from vivarium.core.process import Process` instead of the `wholecell.processes.process` version.
-* In `ecoli/compartments/ecoli_compartment.py`, create an `initialize_*` function taking `sim_data` to create the configuration for the process. 
+* In `ecoli/composites/ecoli_compartment.py`, create an `initialize_*` function taking `sim_data` to create the configuration for the process. 
 * In the process file, extract from `initialize` any reference to `sim_data` or `sim._*` and create an entry in the config dictionary for it pointing to this path in `sim_data` (or a default for the `sim._*` option).
 * Collapse `__init__` and `initialize`, then convert `calculateRequest` and `evolveState` into a single function `next_update(self, timestep, states)`.  
 * In the process file, declare the `defaults` parameters dictionary and make each place that refers to `sim_data`
