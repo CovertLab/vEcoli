@@ -52,6 +52,13 @@ def bulk_schema(elements):
             '_emit': True}
         for element in elements}
 
+def mw_schema(mass_dict):
+    return {
+        element: {
+            '_properties': {
+                'mw': mw}}
+        for element, mw in mass_dict.items()}
+
 def listener_schema(elements):
     return {
         element: {

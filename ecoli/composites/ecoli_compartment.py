@@ -5,6 +5,7 @@ from six.moves import cPickle
 
 from vivarium.core.process import Generator
 from vivarium.core.composition import simulate_compartment_in_experiment
+from vivarium.core.experiment import pp
 
 from ecoli.processes.tf_binding import TfBinding
 from ecoli.processes.transcript_initiation import TranscriptInitiation
@@ -17,6 +18,7 @@ from ecoli.processes.two_component_system import TwoComponentSystem
 from ecoli.processes.equilibrium import Equilibrium
 from ecoli.processes.protein_degradation import ProteinDegradation
 from ecoli.processes.metabolism import Metabolism
+from ecoli.processes.mass import Mass
 
 from wholecell.utils import units
 from wholecell.utils.fitting import normalize
@@ -326,6 +328,18 @@ class Ecoli(Generator):
         metabolism = Metabolism(metabolism_config)
         return metabolism
 
+    def initialize_mass(self, sim_data):
+        moleculeIDs = sim_data.internal_state.bulk_molecules.bulk_data['id']
+        mass_config = {
+            'molecular_weights': {
+                molecule_id: sim_data.getter.get_mass([molecule_id]).asNumber(units.g / units.mol)[0]
+                for molecule_id in moleculeIDs},
+            'cellDensity': sim_data.constants.cell_density.asNumber(units.g / units.L),
+            'water_key': 'WATER[c]'
+        }
+        mass = Mass(mass_config)
+        return mass
+
     def generate_processes(self, config):
         sim_data_path = config['sim_data_path']
         with open(sim_data_path, 'rb') as sim_data_file:
@@ -342,6 +356,7 @@ class Ecoli(Generator):
         equilibrium = self.initialize_equilibrium(sim_data)
         protein_degradation = self.initialize_protein_degradation(sim_data)
         metabolism = self.initialize_metabolism(sim_data)
+        mass = self.initialize_mass(sim_data)
 
         return {
             'tf_binding': tf_binding,
@@ -354,7 +369,9 @@ class Ecoli(Generator):
             'two_component_system': two_component_system,
             'equilibrium': equilibrium,
             'protein_degradation': protein_degradation,
-            'metabolism': metabolism}
+            'metabolism': metabolism,
+            'mass': mass,
+        }
 
     def generate_topology(self, config):
         return {
@@ -441,7 +458,12 @@ class Ecoli(Generator):
                 'amino_acids': ('bulk',),
                 'listeners': ('listeners',),
                 'environment': ('environment',),
-                'polypeptide_elongation': ('process_state', 'polypeptide_elongation')}}
+                'polypeptide_elongation': ('process_state', 'polypeptide_elongation')},
+
+            'mass': {
+                'bulk': ('bulk',),
+                'listeners': ('listeners',)},
+        }
 
 
 def infinitize(value):
@@ -519,8 +541,9 @@ def test_ecoli():
     process_state = data['process_state']
     environment = data['environment']
 
-    print(bulk)
-    print(unique.keys())
+    # print(bulk)
+    # print(unique.keys())
+    pp('MASS: {}'.format(listeners['mass']))
 
 
 if __name__ == '__main__':
