@@ -27,8 +27,8 @@ def calculate_mass(value, path, node):
     if 'mw' in node.properties:
         count = node.value
         mw = node.properties['mw']
-        added_mass = mass_from_count(count, mw)
-        return value + added_mass
+        node_mass = mass_from_count(count, mw)
+        return value + node_mass
     else:
         return value
 
@@ -61,9 +61,11 @@ class Mass(Deriver):
                 'mass': {
                     'cell_mass': {
                         '_default': 0.0,
+                        '_updater': 'set',
                         '_emit': True},
                     'water_mass': {
                         '_default': 0.0,
+                        '_updater': 'set',
                         '_emit': True},
                     'dry_mass': {
                         '_default': 0.0,

@@ -548,7 +548,7 @@ def test_ecoli():
 
     # print(bulk)
     # print(unique.keys())
-    pp('MASS: {}'.format(listeners['mass']))
+    pp(listeners['mass'])
 
     import ipdb;
     ipdb.set_trace()
