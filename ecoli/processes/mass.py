@@ -4,14 +4,20 @@ Mass
 ====
 """
 
+import os
+
 from scipy import constants
 
 from vivarium.core.process import Deriver
 from ecoli.library.schema import mw_schema
 # from wholecell.utils import units
 
+from vivarium.core.experiment import pp
+from vivarium.core.composition import process_in_experiment
+from vivarium.library.units import units
 
-AVOGADRO = constants.N_A  #* 1 / units.mol
+
+AVOGADRO = constants.N_A * 1 / units.mol
 
 
 def calculate_mass(value, path, node):
@@ -32,7 +38,7 @@ def mass_from_count(count, mw):
 
 
 class Mass(Deriver):
-    name = 'mass-ecoli'
+    name = 'mass'
     defaults = {
         'molecular_weights': {},
         'cellDensity': 1100.0,
@@ -86,3 +92,59 @@ class Mass(Deriver):
                 },
             }
         }
+
+
+# test functions
+def test_mass():
+
+    water_mw = 1.0 * units.g / units.mol
+    biomass_mw = 1.0 * units.g / units.mol
+
+    # declare schema override to get mw properties
+    parameters = {
+        'initial_mass': 0 * units.g,  # in grams
+        '_schema': {
+            'bulk': {
+                'water': {
+                    '_emit': True,
+                    '_properties': {'mw': water_mw}},
+                'biomass': {
+                    '_emit': True,
+                    '_properties': {'mw': biomass_mw}},
+            },
+        }
+    }
+    mass_process = Mass(parameters)
+
+    # declare initial state
+    state = {
+        'bulk': {
+            'water': 0.7 * AVOGADRO.magnitude,
+            'biomass': 0.3 * AVOGADRO.magnitude,
+        },
+        'global': {
+            'initial_mass': 0.0,
+            'mass': 0.0,
+        }
+    }
+
+    # make the experiment with initial state
+    settings = {'initial_state': state}
+    experiment = process_in_experiment(mass_process, settings)
+
+    # run experiment and get output
+    experiment.update(1)
+    output = experiment.emitter.get_data()
+    experiment.end()
+
+    # assert output[0.0]['global']['mass']  == 4
+    return output
+
+
+def run_mass():
+    output = test_mass()
+    pp(output)
+
+
+if __name__ == '__main__':
+    run_mass()
