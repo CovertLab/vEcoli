@@ -17,7 +17,7 @@ from vivarium.core.composition import process_in_experiment
 from vivarium.library.units import units
 
 
-AVOGADRO = constants.N_A * 1 / units.mol
+AVOGADRO = constants.N_A #* 1 / units.mol
 
 
 def calculate_mass(value, path, node):
@@ -43,15 +43,15 @@ class Mass(Deriver):
         'molecular_weights': {},
         'cellDensity': 1100.0,
         'bulk_path': ('..', '..', '..', 'bulk'),
-        'water_key': 'WATER[c]'
+        'water_path': ('..', '..', '..', 'bulk', 'water')
     }
 
     def __init__(self, initial_parameters=None):
         super(Mass, self).__init__(initial_parameters)
         self.molecular_weights = self.parameters['molecular_weights']
         self.bulk_path = self.parameters['bulk_path']
-        self.water_key = self.parameters.get('water_key')
-        self.water_mw = self.parameters['molecular_weights'].get(self.water_key, 18.015)
+        self.water_path = self.parameters.get('water_path')
+        # self.water_mw = self.parameters['molecular_weights'].get(self.water_key, 18.015)
         # TODO -- molecular_weights to units.g / units.mol
 
     def ports_schema(self):
@@ -60,6 +60,9 @@ class Mass(Deriver):
             'listeners': {
                 'mass': {
                     'cell_mass': {
+                        '_default': 0.0,
+                        '_emit': True},
+                    'water_mass': {
                         '_default': 0.0,
                         '_emit': True},
                     'dry_mass': {
@@ -71,12 +74,9 @@ class Mass(Deriver):
         }
 
     def next_update(self, timestep, states):
-        # TODO -- dry_mass will be 1 ts delayed from cell_mass
         cell_mass = states['listeners']['mass']['cell_mass']
-        bulk = states['bulk']
-        water_count = bulk.get(self.water_key, 0.0)
-        water_mass = mass_from_count(water_count, self.water_mw) * 1e+15  # convert g to fg
-        dry_mass = cell_mass - water_mass
+        water_mass = states['listeners']['mass']['water_mass']
+        dry_mass = cell_mass - water_mass  # dry mass will be 1 ts delayed from cell and water mass
 
         return {
             'listeners': {
@@ -85,7 +85,14 @@ class Mass(Deriver):
                         '_reduce': {
                             'reducer': calculate_mass,
                             'from': self.bulk_path,
-                            'initial': 0.0
+                            'initial': 0.0,
+                        }
+                    },
+                    'water_mass': {
+                        '_reduce': {
+                            'reducer': calculate_mass,
+                            'from': self.water_path,
+                            'initial': 0.0,
                         }
                     },
                     'dry_mass': dry_mass

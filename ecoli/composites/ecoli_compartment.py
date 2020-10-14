@@ -330,12 +330,17 @@ class Ecoli(Generator):
 
     def initialize_mass(self, sim_data):
         moleculeIDs = sim_data.internal_state.bulk_molecules.bulk_data['id']
+
+        # NOTE: molecule weight is converted to femtograms/mol
+        molecular_weights = {
+                molecule_id: sim_data.getter.get_mass([molecule_id]).asNumber(units.fg / units.mol)[0]
+                for molecule_id in moleculeIDs}
+
         mass_config = {
-            'molecular_weights': {
-                molecule_id: sim_data.getter.get_mass([molecule_id]).asNumber(units.g / units.mol)[0]
-                for molecule_id in moleculeIDs},
+            'molecular_weights': molecular_weights,
             'cellDensity': sim_data.constants.cell_density.asNumber(units.g / units.L),
-            'water_key': 'WATER[c]'
+            'bulk_path': ('..', '..', '..', 'bulk'),
+            'water_path': ('..', '..', '..', 'bulk', 'WATER[c]'),
         }
         mass = Mass(mass_config)
         return mass
@@ -545,6 +550,8 @@ def test_ecoli():
     # print(unique.keys())
     pp('MASS: {}'.format(listeners['mass']))
 
+    import ipdb;
+    ipdb.set_trace()
 
 if __name__ == '__main__':
     test_ecoli()
