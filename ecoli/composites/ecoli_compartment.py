@@ -539,19 +539,24 @@ def test_ecoli():
 
     data = simulate_compartment_in_experiment(ecoli, settings)
 
+    return data
+
+
+
+def run_ecoli():
+    output = test_ecoli()
+
     # separate data by port
-    bulk = data['bulk']
-    unique = data['unique']
-    listeners = data['listeners']
-    process_state = data['process_state']
-    environment = data['environment']
+    bulk = output['bulk']
+    unique = output['unique']
+    listeners = output['listeners']
+    process_state = output['process_state']
+    environment = output['environment']
 
     # print(bulk)
     # print(unique.keys())
     pp(listeners['mass'])
 
-    import ipdb;
-    ipdb.set_trace()
 
 if __name__ == '__main__':
-    test_ecoli()
+    run_ecoli()

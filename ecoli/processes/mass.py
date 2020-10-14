@@ -106,8 +106,8 @@ class Mass(Deriver):
 # test functions
 def test_mass():
 
-    water_mw = 1.0 * units.g / units.mol
-    biomass_mw = 1.0 * units.g / units.mol
+    water_mw = 1.0  #* units.g / units.mol
+    biomass_mw = 1.0  #* units.g / units.mol
 
     # declare schema override to get mw properties
     parameters = {
@@ -128,8 +128,8 @@ def test_mass():
     # declare initial state
     state = {
         'bulk': {
-            'water': 0.7 * AVOGADRO.magnitude,
-            'biomass': 0.3 * AVOGADRO.magnitude,
+            'water': 0.7 * AVOGADRO,  # .magnitude,
+            'biomass': 0.3 * AVOGADRO,  # .magnitude,
         },
         'global': {
             'initial_mass': 0.0,
@@ -146,7 +146,7 @@ def test_mass():
     output = experiment.emitter.get_data()
     experiment.end()
 
-    # assert output[0.0]['global']['mass']  == 4
+    assert output[0.0]['listeners']['mass']['cell_mass'] == 1.0
     return output
 
 
