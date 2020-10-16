@@ -29,12 +29,14 @@ from wholecell.utils import units
 from wholecell.utils.fitting import normalize
 
 RAND_MAX = 2**31
+SIM_DATA_PATH = '../wcEcoli/out/underscore/kb/simData.cPickle'
+
 
 class Ecoli(Generator):
 
     defaults = {
         'seed': 0,
-        'sim_data_path': '../wcEcoli/out/underscore/kb/simData.cPickle',
+        'sim_data_path': SIM_DATA_PATH,
         'daughter_path': tuple(),
     }
 
