@@ -101,7 +101,7 @@ class Equilibrium(Process):
                 ' allocated molecules.')
 
         # Increment changes in molecule counts
-        deltaMolecules = np.dot(self.stoichMatrix, rxnFluxes)
+        deltaMolecules = np.dot(self.stoichMatrix, rxnFluxes).astype(int)
 
         update = {
             'molecules': array_to(self.moleculeNames, deltaMolecules),

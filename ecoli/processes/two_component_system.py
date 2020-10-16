@@ -80,6 +80,6 @@ class TwoComponentSystem(Process):
 
         # Increment changes in molecule counts
         update = {
-            'molecules': array_to(self.moleculeNames, self.all_molecule_changes)}
+            'molecules': array_to(self.moleculeNames, self.all_molecule_changes.astype(int))}
 
         return update

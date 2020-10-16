@@ -100,7 +100,7 @@ class ProteinDegradation(Process):
         # and consume H_2O that is required for the degradation process
         metabolites_delta = np.dot(
             self.degradation_matrix,
-            degrade)
+            degrade).astype(int)
 
         return {
             'metabolites': {

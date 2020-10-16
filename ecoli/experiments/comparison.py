@@ -28,6 +28,8 @@ from ecoli.plots.comparison import (
     fluxome_scatter_comparison,
     protein_counts_scatter_comparison,
     production_rate_plot,
+    mass_fractions,
+    mass_fractions_summary,
 )
 
 
@@ -45,9 +47,9 @@ def run_experiment():
         'experiment_name': 'run-ecoli',
         'description': 'testing vivarium-ecoli',
         'time_step': 1,
-        'total_time': 10,
+        'total_time': 30,
         'initial_state': initial_state,
-        'emitter': {'type': 'database'}
+        # 'emitter': {'type': 'database'}
         }
     return simulate_compartment_in_experiment(ecoli, settings)
 
@@ -73,6 +75,14 @@ plots_library = {
         'plot': production_rate_plot,
         'config': sim_data_config,
     },
+    'mass_fractions': {
+        'plot': mass_fractions,
+        'config': sim_data_config,
+    },
+    'mass_fractions_summary': {
+        'plot': mass_fractions_summary,
+        'config': sim_data_config,
+    }
 }
 workflow_library = {
     '1': {
@@ -82,7 +92,10 @@ workflow_library = {
             'mrna',
             'fluxome',
             'protein_count',
-            'production_rate'],
+            'production_rate',
+            'mass_fractions',
+            'mass_fractions_summary',
+        ],
     }
 }
 
