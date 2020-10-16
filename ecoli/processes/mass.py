@@ -6,6 +6,7 @@ Mass
 
 import os
 
+import numpy as np
 from scipy import constants
 
 from vivarium.core.process import Deriver
@@ -41,6 +42,7 @@ class Mass(Deriver):
     name = 'mass'
     defaults = {
         'molecular_weights': {},
+        'unique_masses': {},
         'cellDensity': 1100.0,
         'bulk_path': ('..', '..', '..', 'bulk'),
         'water_path': ('..', '..', '..', 'bulk', 'water')
@@ -50,11 +52,16 @@ class Mass(Deriver):
         super(Mass, self).__init__(initial_parameters)
         self.molecular_weights = self.parameters['molecular_weights']
         self.bulk_path = self.parameters['bulk_path']
-        self.water_path = self.parameters.get('water_path')
+        self.water_path = self.parameters['water_path']
+        self.unique_masses = self.parameters['unique_masses']
 
     def ports_schema(self):
         return {
             'bulk': mw_schema(self.molecular_weights),
+            'unique': {
+                mol_id: {'*': {}}
+                for mol_id in self.unique_masses.keys()
+            },
             'listeners': {
                 'mass': {
                     'cell_mass': {
@@ -68,6 +75,10 @@ class Mass(Deriver):
                     'dry_mass': {
                         '_default': 0.0,
                         '_updater': 'set',
+                        '_emit': True},
+                    'unique_mass': {
+                        '_default': 0.0,
+                        '_updater': 'set',
                         '_emit': True}
                 }
             }
@@ -77,6 +88,53 @@ class Mass(Deriver):
         cell_mass = states['listeners']['mass']['cell_mass']
         water_mass = states['listeners']['mass']['water_mass']
         dry_mass = cell_mass - water_mass  # dry mass will be 1 ts delayed from cell and water mass
+
+
+        # TODO -- get bulk mass in a loop
+        # import ipdb; ipdb.set_trace()
+
+        # calculate unique molecule mass
+        unique_masses = np.array([])
+        for molecule_id, molecules in states['unique'].items():
+            n_molecules = len(molecules)
+            if unique_masses.any():
+                unique_masses += self.unique_masses[molecule_id] * n_molecules
+            else:
+                unique_masses = self.unique_masses[molecule_id] * n_molecules
+        unique_mass = np.sum(unique_masses)
+
+
+
+        # self.waterMass = all_submasses[self.waterIndex]
+        # self.dryMass = self.cellMass - self.waterMass
+        # self.rnaMass = all_submasses[self.rnaIndexes].sum()
+        # self.rRnaMass = all_submasses[self.rRnaIndex]
+        # self.tRnaMass = all_submasses[self.tRnaIndex]
+        # self.mRnaMass = all_submasses[self.mRnaIndex]
+        # self.dnaMass = all_submasses[self.dnaIndex]
+        # self.proteinMass = all_submasses[self.proteinIndex]
+        # self.smallMoleculeMass = all_submasses[self.smallMoleculeIndex]
+
+        # self.instantaniousGrowthRate = self.growth / self.timeStepSec() / self.dryMass
+        # self.proteinMassFraction = self.proteinMass / self.dryMass
+        # self.rnaMassFraction = self.rnaMass / self.dryMass
+        #
+        # if not self.setInitial:
+        #     self.setInitial = True
+        #
+        #     self.timeInitial = self.time()
+        #
+        #     self.dryMassInitial = self.dryMass
+        #     self.proteinMassInitial = self.proteinMass
+        #     self.rnaMassInitial = self.rnaMass
+        #     self.smallMoleculeMassInitial = self.smallMoleculeMass
+        #
+        # self.dryMassFoldChange = self.dryMass / self.dryMassInitial
+        # self.proteinMassFoldChange = self.proteinMass / self.proteinMassInitial
+        # self.rnaMassFoldChange = self.rnaMass / self.rnaMassInitial
+        # self.smallMoleculeFoldChange = self.smallMoleculeMass / self.smallMoleculeMassInitial
+        #
+        # self.expectedMassFoldChange = np.exp(np.log(2) * (self.time() - self.timeInitial) / self.cellCycleLen)
 
         return {
             'listeners': {
@@ -95,7 +153,8 @@ class Mass(Deriver):
                             'initial': 0.0,
                         }
                     },
-                    'dry_mass': dry_mass
+                    'dry_mass': dry_mass,
+                    'unique_mass': unique_mass,
                 },
             }
         }

@@ -333,15 +333,22 @@ class Ecoli(Generator):
         return metabolism
 
     def initialize_mass(self, sim_data):
-        moleculeIDs = sim_data.internal_state.bulk_molecules.bulk_data['id']
+        bulk_ids = sim_data.internal_state.bulk_molecules.bulk_data['id']
 
         # NOTE: molecule weight is converted to femtograms/mol
         molecular_weights = {
                 molecule_id: sim_data.getter.get_mass([molecule_id]).asNumber(units.fg / units.mol)[0]
-                for molecule_id in moleculeIDs}
+                for molecule_id in bulk_ids}
+
+        # unique molecule masses
+        unique_masses = {}
+        uniqueMoleculeMasses = sim_data.internal_state.unique_molecule.unique_molecule_masses
+        for (id_, mass) in zip(uniqueMoleculeMasses["id"], uniqueMoleculeMasses["mass"]):
+            unique_masses[id_] = (mass / sim_data.constants.n_avogadro).asNumber(units.fg)
 
         mass_config = {
             'molecular_weights': molecular_weights,
+            'unique_masses': unique_masses,
             'cellDensity': sim_data.constants.cell_density.asNumber(units.g / units.L),
             'bulk_path': ('..', '..', '..', 'bulk'),
             'water_path': ('..', '..', '..', 'bulk', 'WATER[c]'),
@@ -351,6 +358,7 @@ class Ecoli(Generator):
 
     def initialize_division(self, sim_data):
         # TODO -- get mass for division from sim_data
+        # TODO -- set divider, binomial division
         divide_config = {
             'threshold': 2220  # fg
         }
@@ -481,6 +489,7 @@ class Ecoli(Generator):
 
             'mass': {
                 'bulk': ('bulk',),
+                'unique': ('unique',),
                 'listeners': ('listeners',)},
 
             'divide_condition': {
