@@ -42,9 +42,13 @@ def run_experiment():
     ecoli = Ecoli({'agent_id': agent_id})
     initial_state = get_initial_state()
     settings = {
-        'timestep': 1,
+        'experiment_name': 'run-ecoli',
+        'description': 'testing vivarium-ecoli',
+        'time_step': 1,
         'total_time': 30,
-        'initial_state': initial_state}
+        'initial_state': initial_state,
+        'emitter': {'type': 'database'}
+        }
     return simulate_compartment_in_experiment(ecoli, settings)
 
 

@@ -156,20 +156,20 @@ class TranscriptInitiation(Process):
 
             'RNAs': {
                 '*': {
-                    'unique_index': {'_default': 0, '_updater': 'set', '_emit': True},
-                    'TU_index': {'_default': 0, '_updater': 'set', '_emit': True},
+                    'unique_index': {'_default': 0, '_updater': 'set'},
+                    'TU_index': {'_default': 0, '_updater': 'set'},
                     'transcript_length': {'_default': 0, '_updater': 'set', '_emit': True},
-                    'is_mRNA': {'_default': 0, '_updater': 'set', '_emit': True},
-                    'is_full_transcript': {'_default': 0, '_updater': 'set', '_emit': True},
-                    'can_translate': {'_default': 0, '_updater': 'set', '_emit': True},
-                    'RNAP_index': {'_default': 0, '_updater': 'set', '_emit': True}}},
+                    'is_mRNA': {'_default': 0, '_updater': 'set'},
+                    'is_full_transcript': {'_default': 0, '_updater': 'set'},
+                    'can_translate': {'_default': 0, '_updater': 'set'},
+                    'RNAP_index': {'_default': 0, '_updater': 'set'}}},
 
             'active_RNAPs': {
                 '*': {
-                    'unique_index': {'_default': 0, '_updater': 'set', '_emit': True},
-                    'domain_index': {'_default': 0, '_updater': 'set', '_emit': True},
+                    'unique_index': {'_default': 0, '_updater': 'set'},
+                    'domain_index': {'_default': 0, '_updater': 'set'},
                     'coordinates': {'_default': 0, '_updater': 'set', '_emit': True},
-                    'direction': {'_default': 0, '_updater': 'set', '_emit': True}}},
+                    'direction': {'_default': 0, '_updater': 'set'}}},
 
             'listeners': {
                 'mass': {

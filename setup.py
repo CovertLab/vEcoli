@@ -70,6 +70,7 @@ setup(
     install_requires=[
         'Cython',
         'vivarium-cell>=0.0.17',
+        'vivarium-scripts'
         'biopython==1.77',
         'Unum==4.1.4',
         'numba==0.50.1',

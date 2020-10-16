@@ -173,10 +173,10 @@ class RnaDegradation(Process):
                     'unique_index': {'_default': 0}}},
             'RNAs': {
                 '*': {
-                    'unique_index': {'_default': 0, '_updater': 'set', '_emit': True},
-                    'TU_index': {'_default': 0, '_updater': 'set', '_emit': True},
-                    'is_full_transcript': {'_default': 0, '_updater': 'set', '_emit': True},
-                    'can_translate': {'_default': 0, '_updater': 'set', '_emit': True}}},
+                    'unique_index': {'_default': 0, '_updater': 'set'},
+                    'TU_index': {'_default': 0, '_updater': 'set'},
+                    'is_full_transcript': {'_default': 0, '_updater': 'set'},
+                    'can_translate': {'_default': 0, '_updater': 'set'}}},
             'listeners': {
                 'mass': {
                     'cell_mass': {'_default': 0.0},

@@ -106,10 +106,10 @@ class PolypeptideInitiation(Process):
             'active_ribosome': {
                 '*': {
                     'unique_index': {'_default': 0},
-                    'protein_index': {'_default': 0, '_emit': True},
-                    'peptide_length': {'_default': 0},
-                    'mRNA_index': {'_default': 0, '_emit': True},
-                    'pos_on_mRNA': {'_default': 0}}},
+                    'protein_index': {'_default': 0},
+                    'peptide_length': {'_default': 0, '_emit': True},
+                    'mRNA_index': {'_default': 0},
+                    'pos_on_mRNA': {'_default': 0, '_emit': True}}},
             'RNA': {
                 '*': {
                     'TU_index': {'_default': 0},

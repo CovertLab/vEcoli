@@ -1,5 +1,12 @@
+"""
+========================
+E. coli master composite
+========================
+"""
+
 import json
 import numpy as np
+import uuid
 
 from six.moves import cPickle
 
@@ -35,6 +42,8 @@ SIM_DATA_PATH = '../wcEcoli/out/underscore/kb/simData.cPickle'
 class Ecoli(Generator):
 
     defaults = {
+        'time_step': 1.0,
+        'parallel': False,
         'seed': 0,
         'sim_data_path': SIM_DATA_PATH,
         'daughter_path': tuple(),
@@ -46,8 +55,11 @@ class Ecoli(Generator):
         self.seed = np.uint32(self.config['seed'] % np.iinfo(np.uint32).max)
         self.random_state = np.random.RandomState(seed = self.seed)
 
-    def initialize_tf_binding(self, sim_data):
+    def initialize_tf_binding(self, sim_data, time_step=1, parallel=False):
         tf_binding_config = {
+            'time_step': time_step,
+            '_parallel': parallel,
+
             'tf_ids': sim_data.process.transcription_regulation.tf_ids,
             'delta_prob': sim_data.process.transcription_regulation.delta_prob,
             'n_avogadro': sim_data.constants.n_avogadro,
@@ -64,8 +76,11 @@ class Ecoli(Generator):
         tf_binding = TfBinding(tf_binding_config)
         return tf_binding
 
-    def initialize_transcript_initiation(self, sim_data):
+    def initialize_transcript_initiation(self, sim_data, time_step=1, parallel=False):
         transcript_initiation_config = {
+            'time_step': time_step,
+            '_parallel': parallel,
+
             'fracActiveRnapDict': sim_data.process.transcription.rnapFractionActiveDict,
             'rnaLengths': sim_data.process.transcription.rna_data["length"],
             'rnaPolymeraseElongationRateDict': sim_data.process.transcription.rnaPolymeraseElongationRateDict,
@@ -102,8 +117,11 @@ class Ecoli(Generator):
         transcript_initiation = TranscriptInitiation(transcript_initiation_config)
         return transcript_initiation
 
-    def initialize_transcript_elongation(self, sim_data):
+    def initialize_transcript_elongation(self, sim_data, time_step=1, parallel=False):
         transcript_elongation_config = {
+            'time_step': time_step,
+            '_parallel': parallel,
+
             'max_time_step': sim_data.process.transcription.max_time_step,
             'rnaPolymeraseElongationRateDict': sim_data.process.transcription.rnaPolymeraseElongationRateDict,
             'rnaIds': sim_data.process.transcription.rna_data['id'],
@@ -126,8 +144,11 @@ class Ecoli(Generator):
         transcript_elongation = TranscriptElongation(transcript_elongation_config)
         return transcript_elongation
 
-    def initialize_rna_degradation(self, sim_data):
+    def initialize_rna_degradation(self, sim_data, time_step=1, parallel=False):
         rna_degradation_config = {
+            'time_step': time_step,
+            '_parallel': parallel,
+
             'rnaIds': sim_data.process.transcription.rna_data['id'],
             'n_avogadro': sim_data.constants.n_avogadro,
             'cell_density': sim_data.constants.cell_density,
@@ -161,8 +182,11 @@ class Ecoli(Generator):
         rna_degradation = RnaDegradation(rna_degradation_config)
         return rna_degradation
 
-    def initialize_polypeptide_initiation(self, sim_data):
+    def initialize_polypeptide_initiation(self, sim_data, time_step=1, parallel=False):
         polypeptide_initiation_config = {
+            'time_step': time_step,
+            '_parallel': parallel,
+
             'protein_lengths': sim_data.process.translation.monomer_data["length"].asNumber(),
             'translation_efficiencies': normalize(sim_data.process.translation.translation_efficiencies_by_monomer),
             'active_ribosome_fraction': sim_data.process.translation.ribosomeFractionActiveDict,
@@ -182,7 +206,7 @@ class Ecoli(Generator):
         polypeptide_initiation = PolypeptideInitiation(polypeptide_initiation_config)
         return polypeptide_initiation
 
-    def initialize_polypeptide_elongation(self, sim_data):
+    def initialize_polypeptide_elongation(self, sim_data, time_step=1, parallel=False):
         constants = sim_data.constants
         molecule_ids = sim_data.molecule_ids
         translation = sim_data.process.translation
@@ -192,6 +216,9 @@ class Ecoli(Generator):
         variable_elongation = False
 
         polypeptide_elongation_config = {
+            'time_step': time_step,
+            '_parallel': parallel,
+
             # base parameters
             'max_time_step': translation.max_time_step,
             'n_avogadro': constants.n_avogadro,
@@ -252,8 +279,11 @@ class Ecoli(Generator):
         polypeptide_elongation = PolypeptideElongation(polypeptide_elongation_config)
         return polypeptide_elongation
 
-    def initialize_complexation(self, sim_data):
+    def initialize_complexation(self, sim_data, time_step=1, parallel=False):
         complexation_config = {
+            'time_step': time_step,
+            '_parallel': parallel,
+
             'stoichiometry': sim_data.process.complexation.stoich_matrix().astype(np.int64).T,
             'rates': sim_data.process.complexation.rates,
             'molecule_names': sim_data.process.complexation.molecule_names,
@@ -262,8 +292,11 @@ class Ecoli(Generator):
         complexation = Complexation(complexation_config)
         return complexation
 
-    def initialize_two_component_system(self, sim_data):
+    def initialize_two_component_system(self, sim_data, time_step=1, parallel=False):
         two_component_system_config = {
+            'time_step': time_step,
+            '_parallel': parallel,
+
             'jit': False,
             'n_avogadro': sim_data.constants.n_avogadro.asNumber(1 / units.mmol),
             'cell_density': sim_data.constants.cell_density.asNumber(units.g / units.L),
@@ -274,8 +307,11 @@ class Ecoli(Generator):
         two_component_system = TwoComponentSystem(two_component_system_config)
         return two_component_system
 
-    def initialize_equilibrium(self, sim_data):
+    def initialize_equilibrium(self, sim_data, time_step=1, parallel=False):
         equilibrium_config = {
+            'time_step': time_step,
+            '_parallel': parallel,
+
             'jit': False,
             'n_avogadro': sim_data.constants.n_avogadro.asNumber(1 / units.mmol),
             'cell_density': sim_data.constants.cell_density.asNumber(units.g / units.L),
@@ -287,8 +323,11 @@ class Ecoli(Generator):
         equilibrium = Equilibrium(equilibrium_config)
         return equilibrium
 
-    def initialize_protein_degradation(self, sim_data):
+    def initialize_protein_degradation(self, sim_data, time_step=1, parallel=False):
         protein_degradation_config = {
+            'time_step': time_step,
+            '_parallel': parallel,
+
             'raw_degradation_rate': sim_data.process.translation.monomer_data['deg_rate'].asNumber(1 / units.s),
             'shuffle_indexes': sim_data.process.translation.monomer_deg_rate_shuffle_idxs if hasattr(
                 sim_data.process.translation, "monomer_deg_rate_shuffle_idxs") else None,
@@ -302,8 +341,11 @@ class Ecoli(Generator):
         protein_degradation = ProteinDegradation(protein_degradation_config)
         return protein_degradation
 
-    def initialize_metabolism(self, sim_data):
+    def initialize_metabolism(self, sim_data, time_step=1, parallel=False):
         metabolism_config = {
+            'time_step': time_step,
+            '_parallel': parallel,
+
             'get_import_constraints': sim_data.external_state.get_import_constraints,
             'nutrientToDoublingTime': sim_data.nutrient_to_doubling_time,
             'aa_names': sim_data.molecule_groups.amino_acids,
@@ -336,7 +378,7 @@ class Ecoli(Generator):
         metabolism = Metabolism(metabolism_config)
         return metabolism
 
-    def initialize_mass(self, sim_data):
+    def initialize_mass(self, sim_data, time_step=1, parallel=False):
         bulk_ids = sim_data.internal_state.bulk_molecules.bulk_data['id']
 
         # molecule weight is converted to femtograms/mol
@@ -359,18 +401,18 @@ class Ecoli(Generator):
         mass = Mass(mass_config)
         return mass
 
-    def initialize_division(self, sim_data):
+    def initialize_division(self, sim_data, time_step=1, parallel=False):
         # TODO -- get mass for division from sim_data
-        # TODO -- set divider, binomial division
+        # TODO -- set divider to binomial division
         divide_config = {
             'threshold': 2220  # fg
         }
         divide_condition = DivideCondition(divide_config)
         return divide_condition
 
-    def initialize_meta_division(self, config):
+    def initialize_meta_division(self, config, time_step=1, parallel=False):
         daughter_path = config['daughter_path']
-        agent_id = config['agent_id']
+        agent_id = config.get('agent_id', str(uuid.uuid1()))
         division_config = dict(
             config.get('division', {}),
             daughter_path=daughter_path,
@@ -380,23 +422,28 @@ class Ecoli(Generator):
         return meta_division
 
     def generate_processes(self, config):
+        time_step = config['time_step']
+        parallel = config['parallel']  # TODO (Eran) -- which processes can be parallelized?
         sim_data_path = config['sim_data_path']
+
+        # load sim_data
         with open(sim_data_path, 'rb') as sim_data_file:
             sim_data = cPickle.load(sim_data_file)
 
-        tf_binding = self.initialize_tf_binding(sim_data)
-        transcript_initiation = self.initialize_transcript_initiation(sim_data)
-        transcript_elongation = self.initialize_transcript_elongation(sim_data)
-        rna_degradation = self.initialize_rna_degradation(sim_data)
-        polypeptide_initiation = self.initialize_polypeptide_initiation(sim_data)
-        polypeptide_elongation = self.initialize_polypeptide_elongation(sim_data)
-        complexation = self.initialize_complexation(sim_data)
-        two_component_system = self.initialize_two_component_system(sim_data)
-        equilibrium = self.initialize_equilibrium(sim_data)
-        protein_degradation = self.initialize_protein_degradation(sim_data)
-        metabolism = self.initialize_metabolism(sim_data)
-        mass = self.initialize_mass(sim_data)
-        divide_condition = self.initialize_division(sim_data)
+        # initialize processes
+        tf_binding = self.initialize_tf_binding(sim_data, time_step, )
+        transcript_initiation = self.initialize_transcript_initiation(sim_data, time_step)
+        transcript_elongation = self.initialize_transcript_elongation(sim_data, time_step)
+        rna_degradation = self.initialize_rna_degradation(sim_data, time_step)
+        polypeptide_initiation = self.initialize_polypeptide_initiation(sim_data, time_step)
+        polypeptide_elongation = self.initialize_polypeptide_elongation(sim_data, time_step)
+        complexation = self.initialize_complexation(sim_data, time_step)
+        two_component_system = self.initialize_two_component_system(sim_data, time_step)
+        equilibrium = self.initialize_equilibrium(sim_data, time_step)
+        protein_degradation = self.initialize_protein_degradation(sim_data, time_step)
+        metabolism = self.initialize_metabolism(sim_data, time_step)
+        mass = self.initialize_mass(sim_data, time_step)
+        divide_condition = self.initialize_division(sim_data, time_step)
         # meta_division = self.initialize_meta_division(config)
 
         return {
