@@ -7,6 +7,10 @@ from vivarium.core.process import Generator
 from vivarium.core.composition import simulate_compartment_in_experiment
 from vivarium.core.experiment import pp
 
+# vivarium processes
+from vivarium.processes.divide_condition import DivideCondition
+
+# vivarium-ecoli processes
 from ecoli.processes.tf_binding import TfBinding
 from ecoli.processes.transcript_initiation import TranscriptInitiation
 from ecoli.processes.transcript_elongation import TranscriptElongation
@@ -345,6 +349,14 @@ class Ecoli(Generator):
         mass = Mass(mass_config)
         return mass
 
+    def initialize_division(self, sim_data):
+        # TODO -- get mass for division from sim_data
+        divide_config = {
+            'threshold': 2220  # fg
+        }
+        divide_condition = DivideCondition(divide_config)
+        return divide_condition
+
     def generate_processes(self, config):
         sim_data_path = config['sim_data_path']
         with open(sim_data_path, 'rb') as sim_data_file:
@@ -362,6 +374,7 @@ class Ecoli(Generator):
         protein_degradation = self.initialize_protein_degradation(sim_data)
         metabolism = self.initialize_metabolism(sim_data)
         mass = self.initialize_mass(sim_data)
+        divide_condition = self.initialize_division(sim_data)
 
         return {
             'tf_binding': tf_binding,
@@ -376,6 +389,7 @@ class Ecoli(Generator):
             'protein_degradation': protein_degradation,
             'metabolism': metabolism,
             'mass': mass,
+            'divide_condition': divide_condition,
         }
 
     def generate_topology(self, config):
@@ -468,6 +482,11 @@ class Ecoli(Generator):
             'mass': {
                 'bulk': ('bulk',),
                 'listeners': ('listeners',)},
+
+            'divide_condition': {
+                'variable': ('listeners', 'mass', 'cell_mass'),
+                'divide': ('globals', 'divide',),
+            },
         }
 
 
