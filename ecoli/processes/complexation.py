@@ -20,7 +20,7 @@ from vivarium.core.composition import simulate_process_in_experiment
 RAND_MAX = 2**31
 
 class Complexation(Process):
-    name = "complexation-ecoli"
+    name = 'ecoli-complexation'
 
     defaults = {
         'stoichiometry': np.array([[]]),

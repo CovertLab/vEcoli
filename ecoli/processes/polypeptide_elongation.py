@@ -29,7 +29,7 @@ MICROMOLAR_UNITS = units.umol / units.L
 
 
 class PolypeptideElongation(Process):
-    name = "polypeptide-elongation-ecoli"
+    name = 'ecoli-polypeptide-elongation'
 
     defaults = {
         'max_time_step': 2.0,

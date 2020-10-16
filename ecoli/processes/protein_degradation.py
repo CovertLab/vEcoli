@@ -20,7 +20,7 @@ from wholecell.utils import units
 
 
 class ProteinDegradation(Process):
-    name = "protein-degradation"
+    name = 'ecoli-protein-degradation'
 
     defaults = {
         'raw_degradation_rate': [],

@@ -21,7 +21,7 @@ from wholecell.utils.polymerize import buildSequences, polymerize, computeMassIn
 from wholecell.utils import units
 
 class TranscriptElongation(Process):
-    name = "TranscriptElongation"
+    name = 'ecoli-transcript-elongation'
 
     defaults = {
         'max_time_step': 0.0,

@@ -54,7 +54,7 @@ from wholecell.utils import units
 from six.moves import range, zip
 
 class RnaDegradation(Process):
-    name = "rna-degradation"
+    name = 'ecoli-rna-degradation'
 
     defaults = {
         'rnaIds': [],

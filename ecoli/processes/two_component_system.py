@@ -16,7 +16,7 @@ from ecoli.library.schema import array_from, array_to, arrays_from, arrays_to, l
 from wholecell.utils import units
 
 class TwoComponentSystem(Process):
-    name = "two-component-system"
+    name = 'ecoli-two-component-system'
 
     defaults = {
         'jit': False,

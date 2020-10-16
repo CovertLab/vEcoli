@@ -27,7 +27,7 @@ def mass_from_count(count, mw):
 
 
 class Mass(Deriver):
-    name = 'mass'
+    name = 'ecoli-mass'
     defaults = {
         'molecular_weights': {},
         'unique_masses': {},

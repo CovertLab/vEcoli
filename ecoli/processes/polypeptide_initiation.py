@@ -21,7 +21,7 @@ from six.moves import zip
 
 
 class PolypeptideInitiation(Process):
-    name = "polypeptide-initiation"
+    name = 'ecoli-polypeptide-initiation'
 
     defaults = {
         'protein_lengths': [],

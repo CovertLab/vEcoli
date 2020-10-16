@@ -25,7 +25,7 @@ from wholecell.utils import units
 
 
 class TranscriptInitiation(Process):
-    name = 'transcript-initiation'
+    name = 'ecoli-transcript-initiation'
 
     defaults = {
         'fracActiveRnapDict': {},

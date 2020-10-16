@@ -20,7 +20,7 @@ import six
 
 
 class TfBinding(Process):
-    name = 'TfBinding'
+    name = 'ecoli-tf-binding'
 
     defaults = {
         'tf_ids': [],

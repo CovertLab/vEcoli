@@ -18,7 +18,7 @@ from six.moves import range
 
 
 class Equilibrium(Process):
-    name = "equilibrium"
+    name = 'ecoli-equilibrium'
 
     defaults = {
         'jit': False,

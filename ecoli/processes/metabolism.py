@@ -38,7 +38,7 @@ USE_KINETICS = True
 
 
 class Metabolism(Process):
-    name = 'metabolism-ecoli'
+    name = 'ecoli-metabolism'
 
     defaults = {
         'get_import_constraints': lambda u, c, p: (u, c, []),

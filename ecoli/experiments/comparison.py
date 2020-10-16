@@ -45,7 +45,7 @@ def run_experiment():
         'experiment_name': 'run-ecoli',
         'description': 'testing vivarium-ecoli',
         'time_step': 1,
-        'total_time': 30,
+        'total_time': 10,
         'initial_state': initial_state,
         'emitter': {'type': 'database'}
         }
