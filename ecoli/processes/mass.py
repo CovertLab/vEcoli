@@ -51,8 +51,6 @@ class Mass(Deriver):
         self.molecular_weights = self.parameters['molecular_weights']
         self.bulk_path = self.parameters['bulk_path']
         self.water_path = self.parameters.get('water_path')
-        # self.water_mw = self.parameters['molecular_weights'].get(self.water_key, 18.015)
-        # TODO -- molecular_weights to units.g / units.mol
 
     def ports_schema(self):
         return {
