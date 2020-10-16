@@ -18,7 +18,6 @@ from vivarium.core.control import Control
 # composites
 from ecoli.composites.ecoli_master import (
     Ecoli,
-    get_initial_state,
     SIM_DATA_PATH,
 )
 
@@ -42,7 +41,7 @@ sim_data_config = {'sim_data': sim_data}
 def run_experiment():
     agent_id = '1'
     ecoli = Ecoli({'agent_id': agent_id})
-    initial_state = get_initial_state()
+    initial_state = ecoli.initial_state()
     settings = {
         'experiment_name': 'run-ecoli',
         'description': 'testing vivarium-ecoli',

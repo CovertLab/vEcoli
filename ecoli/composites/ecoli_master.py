@@ -421,6 +421,9 @@ class Ecoli(Generator):
         meta_division = MetaDivision(division_config)
         return meta_division
 
+    def initial_state(self, config=None):
+        return get_initial_state()
+
     def generate_processes(self, config):
         time_step = config['time_step']
         parallel = config['parallel']  # TODO (Eran) -- which processes can be parallelized?
