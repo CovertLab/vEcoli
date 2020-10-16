@@ -89,20 +89,23 @@ class Mass(Deriver):
         water_mass = states['listeners']['mass']['water_mass']
         dry_mass = cell_mass - water_mass  # dry mass will be 1 ts delayed from cell and water mass
 
-
         # TODO -- get bulk mass in a loop
-        # import ipdb; ipdb.set_trace()
 
         # calculate unique molecule mass
         unique_masses = np.array([])
         for molecule_id, molecules in states['unique'].items():
             n_molecules = len(molecules)
+            print('unique mol {}: {}'.format(molecule_id, n_molecules))
+
             if unique_masses.any():
                 unique_masses += self.unique_masses[molecule_id] * n_molecules
             else:
                 unique_masses = self.unique_masses[molecule_id] * n_molecules
         unique_mass = np.sum(unique_masses)
 
+
+        import ipdb;
+        ipdb.set_trace()
 
 
         # self.waterMass = all_submasses[self.waterIndex]

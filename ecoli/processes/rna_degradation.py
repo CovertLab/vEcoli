@@ -168,7 +168,7 @@ class RnaDegradation(Process):
             'exoRnases': bulk_schema(self.exoRnaseIds),
             'subunits': bulk_schema([self.ribosome30S, self.ribosome50S]),
             'molecules': bulk_schema([self.water_id, self.proton_id]),
-            'active_ribosomes': {
+            'active_ribosome': {
                 '*': {
                     'unique_index': {'_default': 0}}},
             'RNAs': {
@@ -200,7 +200,7 @@ class RnaDegradation(Process):
         bulk_RNA_counts = array_from(states['bulk_RNAs'])
         bulk_RNA_counts[self.rrsaIdx] += states['subunits'][self.ribosome30S]
         bulk_RNA_counts[[self.rrlaIdx, self.rrfaIdx]] += states['subunits'][self.ribosome50S]
-        bulk_RNA_counts[[self.rrlaIdx, self.rrfaIdx, self.rrsaIdx]] += len(states['active_ribosomes'])
+        bulk_RNA_counts[[self.rrlaIdx, self.rrfaIdx, self.rrsaIdx]] += len(states['active_ribosome'])
         bulk_RNA_counts[self.is_tRNA.astype(np.bool)] += array_from(states['charged_trna'])
 
         TU_index, can_translate, is_full_transcript = arrays_from(

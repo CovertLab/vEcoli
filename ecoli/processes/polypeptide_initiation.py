@@ -103,7 +103,7 @@ class PolypeptideInitiation(Process):
                         '_default': 0.0,
                         '_updater': 'set',
                         '_emit': True}}},
-            'active_ribosomes': {
+            'active_ribosome': {
                 '*': {
                     'unique_index': {'_default': 0},
                     'protein_index': {'_default': 0, '_emit': True},
@@ -232,7 +232,7 @@ class PolypeptideInitiation(Process):
             'subunits': {
                 self.ribosome30S: -n_new_proteins.sum(),
                 self.ribosome50S: -n_new_proteins.sum()},
-            'active_ribosomes': add_elements(new_ribosomes, 'unique_index'), # {
+            'active_ribosome': add_elements(new_ribosomes, 'unique_index'), # {
                 # '_add': [{
                 #     'path': (ribosome['unique_index'],),
                 #     'state': ribosome}

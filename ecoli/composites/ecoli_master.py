@@ -437,20 +437,20 @@ class Ecoli(Generator):
                 'subunits': ('bulk',),
                 'molecules': ('bulk',),
                 'RNAs': ('unique', 'RNA'),
-                'active_ribosomes': ('unique', 'active_ribosomes'),
+                'active_ribosome': ('unique', 'active_ribosome'),
                 'listeners': ('listeners',)},
 
             'polypeptide_initiation': {
                 'environment': ('environment',),
                 'listeners': ('listeners',),
-                'active_ribosomes': ('unique', 'active_ribosomes'),
+                'active_ribosome': ('unique', 'active_ribosome'),
                 'RNA': ('unique', 'RNA'),
                 'subunits': ('bulk',)},
 
             'polypeptide_elongation': {
                 'environment': ('environment',),
                 'listeners': ('listeners',),
-                'active_ribosomes': ('unique', 'active_ribosomes'),
+                'active_ribosome': ('unique', 'active_ribosome'),
                 'molecules': ('bulk',),
                 'monomers': ('bulk',),
                 'amino_acids': ('bulk',),

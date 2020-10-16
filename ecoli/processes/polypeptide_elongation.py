@@ -206,7 +206,7 @@ class PolypeptideElongation(Process):
             'charging_molecules': bulk_schema(self.charging_molecule_names),
             'synthetases': bulk_schema(self.synthetase_names),
 
-            'active_ribosomes': {
+            'active_ribosome': {
                 '*': {
                     'unique_index': {'_default': 0, '_updater': 'set'},
                     'protein_index': {'_default': 0, '_updater': 'set', '_emit': True},
@@ -251,13 +251,13 @@ class PolypeptideElongation(Process):
         self.ribosomeElongationRate = self.elongation_model.elongation_rate(current_media_id)
 
         # If there are no active ribosomes, return immediately
-        if len(states['active_ribosomes']) == 0:
+        if len(states['active_ribosome']) == 0:
             return {}
 
         # Build sequences to request appropriate amount of amino acids to
         # polymerize for next timestep
         protein_indexes, peptide_lengths, positions_on_mRNA = arrays_from(
-            states['active_ribosomes'].values(),
+            states['active_ribosome'].values(),
             ['protein_index', 'peptide_length', 'pos_on_mRNA'])
 
         self.elongation_rates = self.make_elongation_rates(
@@ -299,7 +299,7 @@ class PolypeptideElongation(Process):
         update['listeners']['growth_limits']['aa_allocated'] = aa_counts_for_translation
 
         # Get number of active ribosomes
-        n_active_ribosomes = len(states['active_ribosomes'])
+        n_active_ribosomes = len(states['active_ribosome'])
         update['listeners']['growth_limits']['active_ribosomes_allocated'] = n_active_ribosomes
 
         if n_active_ribosomes == 0:
@@ -367,12 +367,12 @@ class PolypeptideElongation(Process):
 
         # self.active_ribosomes.delByIndexes(termination)
 
-        update['active_ribosomes'] = {'_delete': []}
-        for index, ribosome in enumerate(states['active_ribosomes'].values()):
+        update['active_ribosome'] = {'_delete': []}
+        for index, ribosome in enumerate(states['active_ribosome'].values()):
             if didTerminate[index]:
-                update['active_ribosomes']['_delete'].append((ribosome['unique_index'],))
+                update['active_ribosome']['_delete'].append((ribosome['unique_index'],))
             else:
-                update['active_ribosomes'][ribosome['unique_index']] = {
+                update['active_ribosome'][ribosome['unique_index']] = {
                     'peptide_length': updated_lengths[index],
                     'pos_on_mRNA': updated_positions_on_mRNA[index],
                     'submass': {
@@ -556,7 +556,7 @@ class SteadyStateElongationModel(TranslationSupplyElongationModel):
         aa_counts = array_from(states['amino_acids'])
         uncharged_trna_counts = np.dot(self.process.aa_from_trna, array_from(states['uncharged_trna']))
         charged_trna_counts = np.dot(self.process.aa_from_trna, array_from(states['charged_trna']))
-        ribosome_counts = len(states['active_ribosomes'])
+        ribosome_counts = len(states['active_ribosome'])
 
         # Get concentration
         f = aasInSequences / aasInSequences.sum()
@@ -670,7 +670,7 @@ class SteadyStateElongationModel(TranslationSupplyElongationModel):
         ## Concentrations of interest
         if self.process.ppgpp_regulation:
             v_rib = (nElongations * self.counts_to_molar).asNumber(MICROMOLAR_UNITS) / timestep
-            ribosome_conc = self.counts_to_molar * len(states['active_ribosomes'])
+            ribosome_conc = self.counts_to_molar * len(states['active_ribosome'])
             updated_uncharged_trna_counts = array_from(
                 requests['uncharged_trna'] + charged_and_elongated) - net_charged
             updated_charged_trna_counts = array_from(
