@@ -515,8 +515,7 @@ def load_states(path):
 
     return states
 
-def test_ecoli():
-    ecoli = Ecoli({})
+def get_initial_state():
 
     states_path = 'data/states.json'
     states = load_states(states_path)
@@ -560,6 +559,12 @@ def test_ecoli():
         'process_state': {
             'polypeptide_elongation': {}}}
 
+    return initial_state
+
+
+def test_ecoli():
+    ecoli = Ecoli({})
+    initial_state = get_initial_state()
     settings = {
         'timestep': 1,
         'total_time': 10,
