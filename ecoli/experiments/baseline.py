@@ -17,7 +17,8 @@ from ecoli.composites.ecoli_master import (
 from ecoli.plots.mRNA_comparison import mrna_comparison_plot
 
 def run_experiment():
-    ecoli = Ecoli({})
+    agent_id = '1'
+    ecoli = Ecoli({'agent_id': agent_id})
     initial_state = get_initial_state()
     settings = {
         'timestep': 1,

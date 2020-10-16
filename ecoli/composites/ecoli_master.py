@@ -9,6 +9,7 @@ from vivarium.core.experiment import pp
 
 # vivarium processes
 from vivarium.processes.divide_condition import DivideCondition
+from vivarium.processes.meta_division import MetaDivision
 
 # vivarium-ecoli processes
 from ecoli.processes.tf_binding import TfBinding
@@ -33,8 +34,9 @@ class Ecoli(Generator):
 
     defaults = {
         'seed': 0,
-        'sim_data_path': '../wcEcoli/out/underscore/kb/simData.cPickle'}
-        # 'sim_data_path': '../wcEcoli/out/manual/kb/simData.cPickle'}
+        'sim_data_path': '../wcEcoli/out/underscore/kb/simData.cPickle',
+        'daughter_path': tuple(),
+    }
 
     def __init__(self, config):
         super(Ecoli, self).__init__(config)
@@ -364,6 +366,17 @@ class Ecoli(Generator):
         divide_condition = DivideCondition(divide_config)
         return divide_condition
 
+    def initialize_meta_division(self, config):
+        daughter_path = config['daughter_path']
+        agent_id = config['agent_id']
+        division_config = dict(
+            config.get('division', {}),
+            daughter_path=daughter_path,
+            agent_id=agent_id,
+            compartment=self)
+        meta_division = MetaDivision(division_config)
+        return meta_division
+
     def generate_processes(self, config):
         sim_data_path = config['sim_data_path']
         with open(sim_data_path, 'rb') as sim_data_file:
@@ -382,6 +395,7 @@ class Ecoli(Generator):
         metabolism = self.initialize_metabolism(sim_data)
         mass = self.initialize_mass(sim_data)
         divide_condition = self.initialize_division(sim_data)
+        # meta_division = self.initialize_meta_division(config)
 
         return {
             'tf_binding': tf_binding,
@@ -397,6 +411,7 @@ class Ecoli(Generator):
             'metabolism': metabolism,
             'mass': mass,
             'divide_condition': divide_condition,
+            # 'division': meta_division,
         }
 
     def generate_topology(self, config):
@@ -495,6 +510,11 @@ class Ecoli(Generator):
                 'variable': ('listeners', 'mass', 'cell_mass'),
                 'divide': ('globals', 'divide',),
             },
+
+            # 'division': {
+            #     'global': boundary_path,
+            #     'agents': agents_path
+            # },
         }
 
 
@@ -562,7 +582,7 @@ def get_initial_state():
 
 
 def test_ecoli():
-    ecoli = Ecoli({})
+    ecoli = Ecoli({'agent_id': '1'})
     initial_state = get_initial_state()
     settings = {
         'timestep': 1,
