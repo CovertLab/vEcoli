@@ -335,7 +335,7 @@ class Ecoli(Generator):
     def initialize_mass(self, sim_data):
         bulk_ids = sim_data.internal_state.bulk_molecules.bulk_data['id']
 
-        # NOTE: molecule weight is converted to femtograms/mol
+        # molecule weight is converted to femtograms/mol
         molecular_weights = {
                 molecule_id: sim_data.getter.get_mass([molecule_id]).asNumber(units.fg / units.mol)[0]
                 for molecule_id in bulk_ids}
@@ -350,8 +350,7 @@ class Ecoli(Generator):
             'molecular_weights': molecular_weights,
             'unique_masses': unique_masses,
             'cellDensity': sim_data.constants.cell_density.asNumber(units.g / units.L),
-            'bulk_path': ('..', '..', '..', 'bulk'),
-            'water_path': ('..', '..', '..', 'bulk', 'WATER[c]'),
+            'water_id': 'WATER[c]',
         }
         mass = Mass(mass_config)
         return mass

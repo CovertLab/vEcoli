@@ -21,18 +21,6 @@ from vivarium.library.units import units
 AVOGADRO = constants.N_A #* 1 / units.mol
 
 
-def calculate_mass(value, path, node):
-    '''
-    Reducer for summing masses in hierarchy
-    '''
-    if 'mw' in node.properties:
-        count = node.value
-        mw = node.properties['mw']
-        node_mass = mass_from_count(count, mw)
-        return value + node_mass
-    else:
-        return value
-
 def mass_from_count(count, mw):
     mol = count / AVOGADRO
     return mw * mol
@@ -44,20 +32,20 @@ class Mass(Deriver):
         'molecular_weights': {},
         'unique_masses': {},
         'cellDensity': 1100.0,
-        'bulk_path': ('..', '..', '..', 'bulk'),
-        'water_path': ('..', '..', '..', 'bulk', 'water')
+        'water_id': 'water'
     }
 
     def __init__(self, initial_parameters=None):
         super(Mass, self).__init__(initial_parameters)
         self.molecular_weights = self.parameters['molecular_weights']
-        self.bulk_path = self.parameters['bulk_path']
-        self.water_path = self.parameters['water_path']
         self.unique_masses = self.parameters['unique_masses']
 
     def ports_schema(self):
         return {
-            'bulk': mw_schema(self.molecular_weights),
+            'bulk': {
+                mol_id: {'_default': 0}
+                for mol_id in self.molecular_weights.keys()
+            },
             'unique': {
                 mol_id: {'*': {}}
                 for mol_id in self.unique_masses.keys()
@@ -76,36 +64,37 @@ class Mass(Deriver):
                         '_default': 0.0,
                         '_updater': 'set',
                         '_emit': True},
-                    'unique_mass': {
-                        '_default': 0.0,
-                        '_updater': 'set',
-                        '_emit': True}
                 }
             }
         }
 
-    def next_update(self, timestep, states):
-        cell_mass = states['listeners']['mass']['cell_mass']
-        water_mass = states['listeners']['mass']['water_mass']
-        dry_mass = cell_mass - water_mass  # dry mass will be 1 ts delayed from cell and water mass
+    def get_bulk_mass(self, molecule_id, state):
+        count = state['bulk'][molecule_id]
+        return mass_from_count(count, self.molecular_weights.get(molecule_id))
 
-        # TODO -- get bulk mass in a loop
+    def next_update(self, timestep, states):
+
+        # calculate bulk molecule mass
+        bulk_mass = 0.0
+        for molecule_id, count in states['bulk'].items():
+            if count > 0:
+                added_mass = mass_from_count(count, self.molecular_weights.get(molecule_id))
+                bulk_mass += added_mass
 
         # calculate unique molecule mass
         unique_masses = np.array([])
         for molecule_id, molecules in states['unique'].items():
             n_molecules = len(molecules)
-            print('unique mol {}: {}'.format(molecule_id, n_molecules))
-
             if unique_masses.any():
                 unique_masses += self.unique_masses[molecule_id] * n_molecules
             else:
                 unique_masses = self.unique_masses[molecule_id] * n_molecules
         unique_mass = np.sum(unique_masses)
 
-
-        import ipdb;
-        ipdb.set_trace()
+        # calculate masses
+        cell_mass = bulk_mass + unique_mass
+        water_mass = self.get_bulk_mass(self.parameters['water_id'], states)
+        dry_mass = cell_mass - water_mass
 
 
         # self.waterMass = all_submasses[self.waterIndex]
@@ -142,22 +131,9 @@ class Mass(Deriver):
         return {
             'listeners': {
                 'mass': {
-                    'cell_mass': {
-                        '_reduce': {
-                            'reducer': calculate_mass,
-                            'from': self.bulk_path,
-                            'initial': 0.0,
-                        }
-                    },
-                    'water_mass': {
-                        '_reduce': {
-                            'reducer': calculate_mass,
-                            'from': self.water_path,
-                            'initial': 0.0,
-                        }
-                    },
+                    'cell_mass': cell_mass,
+                    'water_mass': water_mass,
                     'dry_mass': dry_mass,
-                    'unique_mass': unique_mass,
                 },
             }
         }
