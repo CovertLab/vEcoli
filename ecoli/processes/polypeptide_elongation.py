@@ -708,7 +708,7 @@ class SteadyStateElongationModel(TranslationSupplyElongationModel):
             update['listeners']['growth_limits']['spot_syn'] = spot_syn
             update['listeners']['growth_limits']['spot_deg'] = spot_deg
 
-            update['ppgpp_reaction_metabolites'] = delta_metabolites
+            update['ppgpp_reaction_metabolites'] = array_to(self.ppgpp_reaction_metabolites, delta_metabolites)
 
         # Update proton counts to reflect polymerization reactions and transfer of AA from tRNA
         # Peptide bond formation releases a water but transferring AA from tRNA consumes a OH-
