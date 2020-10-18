@@ -5,6 +5,10 @@ from matplotlib import pyplot as plt
 from matplotlib.ticker import FormatStrFormatter
 import numpy as np
 
+from wholecell.utils import units
+
+from ecoli.processes.mass import mass_from_counts_array
+
 
 def mrna_scatter_comparison(data, config, out_dir='out'):
     filename = 'mrna_comparison'
@@ -86,11 +90,11 @@ def sum_lists_to_array(lists):
             summed_list = np.array(list)
     return summed_list
 
-def mass_fractions_summary(data, config, out_dir='out'):
-    filename = 'mass_fractions_summary'
-    sim_data = config['sim_data']
 
-    # get ids from sim_data
+def get_masses_from_sim(data, sim_data):
+    """ aggregate output data to masses """
+
+    ## Get ids from sim_data
     protein_ids = sim_data.process.translation.monomer_data['id']
     RNA_ids = sim_data.process.transcription.rna_data["id"]
     tRNA_ids = RNA_ids[sim_data.process.transcription.rna_data['is_tRNA']]
@@ -98,7 +102,6 @@ def mass_fractions_summary(data, config, out_dir='out'):
     rRNA_ids = RNA_ids[sim_data.process.transcription.rna_data['is_rRNA']]
     # dna_ids
 
-    # get small molecules from reaction stoich
     smallMolecule_ids = []
     reaction_stoich = sim_data.process.metabolism.reaction_stoich
     for reaction_id, stoich_dict in reaction_stoich.items():
@@ -107,18 +110,74 @@ def mass_fractions_summary(data, config, out_dir='out'):
             if metabolite not in smallMolecule_ids:
                 smallMolecule_ids.append(metabolite)
 
-    # get the time series
+    ## Get molecule weights
+    # molecule weight is converted to femtograms/mol
+    bulk_ids = sim_data.internal_state.bulk_molecules.bulk_data['id']
+    molecular_weights = {
+        molecule_id: sim_data.getter.get_mass([molecule_id]).asNumber(units.fg / units.mol)[0]
+        for molecule_id in bulk_ids}
+
+    # unique molecule weights
+    unique_masses = {}
+    uniqueMoleculeMasses = sim_data.internal_state.unique_molecule.unique_molecule_masses
+    for (id_, mass) in zip(uniqueMoleculeMasses["id"], uniqueMoleculeMasses["mass"]):
+        unique_masses[id_] = (mass / sim_data.constants.n_avogadro).asNumber(units.fg)
+
+    ## Get the time series
     listeners = data['listeners']
     bulk = data['bulk']
-    t = np.array(data['time']) / 60.
     cell = np.array(listeners['mass']['cell_mass'])
-    protein = sum_lists_to_array([bulk[mol_id] for mol_id in protein_ids])
-    rRna = sum_lists_to_array([bulk[mol_id] for mol_id in rRNA_ids])
-    tRna = sum_lists_to_array([bulk[mol_id] for mol_id in tRNA_ids])
-    mRna = sum_lists_to_array([bulk[mol_id] for mol_id in mRNA_ids])
-    metabolite_series = [bulk[mol_id] for mol_id in smallMolecule_ids if mol_id in bulk]
-    smallMolecules = sum_lists_to_array(metabolite_series)
+    cell_dry = np.array(listeners['mass']['dry_mass'])
+
+    # Convert to masses
+    protein = sum_lists_to_array(
+        [mass_from_counts_array(bulk[mol_id], molecular_weights.get(mol_id))
+         for mol_id in protein_ids])
+    rna = sum_lists_to_array(
+        [mass_from_counts_array(bulk[mol_id], molecular_weights.get(mol_id))
+         for mol_id in RNA_ids])
+    rRna = sum_lists_to_array(
+        [mass_from_counts_array(bulk[mol_id], molecular_weights.get(mol_id))
+         for mol_id in rRNA_ids])
+    tRna = sum_lists_to_array(
+        [mass_from_counts_array(bulk[mol_id], molecular_weights.get(mol_id))
+         for mol_id in tRNA_ids])
+    mRna = sum_lists_to_array(
+        [mass_from_counts_array(bulk[mol_id], molecular_weights.get(mol_id))
+         for mol_id in mRNA_ids])
+    smallMolecules = sum_lists_to_array(
+        [mass_from_counts_array(bulk[mol_id], molecular_weights.get(mol_id))
+         for mol_id in smallMolecule_ids if mol_id in bulk])
     # dna = sum_lists_to_array([bulk[mol_id] for mol_id in dna_ids])
+
+    return {
+        'cell': cell,
+        'cell_dry': cell_dry,
+        'protein': protein,
+        'rna': rna,
+        'rRna': rRna,
+        'tRna': tRna,
+        'mRna': mRna,
+        'smallMolecules': smallMolecules,
+    }
+
+
+
+def mass_fractions_summary(data, config, out_dir='out'):
+    filename = 'mass_fractions_summary'
+    sim_data = config['sim_data']
+
+    t = np.array(data['time']) / 60.
+
+    # get masses
+    masses = get_masses_from_sim(data, sim_data)
+    cell = masses['cell']
+    protein = masses['protein']
+    rRna = masses['rRna']
+    tRna = masses['tRna']
+    mRna = masses['mRna']
+    smallMolecules = masses['smallMolecules']
+    # dna = masses['dna']
 
     masses = np.vstack([
         protein,
@@ -160,34 +219,16 @@ def mass_fractions(data, config, out_dir='out'):
     filename = 'mass_fractions'
     sim_data = config['sim_data']
 
-    # get ids from sim_data
-    protein_ids = sim_data.process.translation.monomer_data['id']
-    RNA_ids = sim_data.process.transcription.rna_data["id"]
-    tRNA_ids = RNA_ids[sim_data.process.transcription.rna_data['is_tRNA']]
-    mRNA_ids = RNA_ids[sim_data.process.transcription.rna_data['is_mRNA']]
-    rRNA_ids = RNA_ids[sim_data.process.transcription.rna_data['is_rRNA']]
-    # dna_ids
-
-    # get small molecules from reaction stoich
-    smallMolecule_ids = []
-    reaction_stoich = sim_data.process.metabolism.reaction_stoich
-    for reaction_id, stoich_dict in reaction_stoich.items():
-        for metabolite, stoich in stoich_dict.items():
-            # Add metabolites that were not encountered
-            if metabolite not in smallMolecule_ids:
-                smallMolecule_ids.append(metabolite)
-
-    # get the time series
-    listeners = data['listeners']
-    bulk = data['bulk']
     t = np.array(data['time']) / 60.
-    cell = np.array(listeners['mass']['cell_mass'])
-    cellDry = np.array(listeners['mass']['dry_mass'])
-    protein = sum_lists_to_array([bulk[mol_id] for mol_id in protein_ids])
-    rna = sum_lists_to_array([bulk[mol_id] for mol_id in RNA_ids])
-    metabolite_series = [bulk[mol_id] for mol_id in smallMolecule_ids if mol_id in bulk]
-    smallMolecules = sum_lists_to_array(metabolite_series)
-    # dna = sum_lists_to_array([bulk[mol_id] for mol_id in dna_ids])
+
+    # get masses
+    masses = get_masses_from_sim(data, sim_data)
+    cell = masses['cell']
+    cellDry = masses['cell_dry']
+    protein = masses['protein']
+    rna = masses['rna']
+    smallMolecules = masses['smallMolecules']
+    # dna = masses['dna']
 
     # make the plot
     plt.figure(figsize=(8.5, 15))

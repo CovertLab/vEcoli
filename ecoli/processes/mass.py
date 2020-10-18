@@ -17,13 +17,15 @@ from vivarium.core.experiment import pp
 from vivarium.core.composition import process_in_experiment
 from vivarium.library.units import units
 
-
 AVOGADRO = constants.N_A #* 1 / units.mol
 
+def mass_from_counts_array(counts, mw):
+    return np.array([mass_from_count(count, mw) for count in counts])
 
 def mass_from_count(count, mw):
     mol = count / AVOGADRO
     return mw * mol
+
 
 
 class Mass(Deriver):
