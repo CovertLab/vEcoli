@@ -487,7 +487,7 @@ class BaseElongationModel(object):
         return net_charged, {}, {
             'amino_acids': array_to(states['amino_acids'].keys(), -aas_used),
             'molecules': {
-                'water': nElongations - nInitialized}}
+                self.process.water: nElongations - nInitialized}}
 
 class TranslationSupplyElongationModel(BaseElongationModel):
     """
@@ -646,7 +646,7 @@ class SteadyStateElongationModel(TranslationSupplyElongationModel):
         return fraction_charged, aa_counts_for_translation, {
             'charging_molecules': requested_molecules,
             'charged_trna': charged_trna_request,
-            'water': aa_counts_for_translation.sum(),
+            self.process.water: aa_counts_for_translation.sum(),
             'ppgpp_reaction_metabolites': request_ppgpp_metabolites}
 
     def final_amino_acids(self, total_aa_counts):

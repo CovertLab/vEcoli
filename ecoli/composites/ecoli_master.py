@@ -235,8 +235,8 @@ class Ecoli(Generator):
             'aa_from_trna': transcription.aa_from_trna,
             'gtpPerElongation': constants.gtp_per_translation,
             'ppgpp_regulation': False,
-            'trna_charging': True,
-            'translation_supply': True,
+            'trna_charging': False,
+            'translation_supply': False,
             'ribosome30S': sim_data.molecule_ids.s30_full_complex,
             'ribosome50S': sim_data.molecule_ids.s50_full_complex,
             'amino_acids': sim_data.molecule_groups.amino_acids,
@@ -351,7 +351,7 @@ class Ecoli(Generator):
             'aa_names': sim_data.molecule_groups.amino_acids,
 
             # these are options given to the wholecell.sim.simulation
-            'use_trna_charging': True,
+            'use_trna_charging': False,
             'include_ppgpp': False,
 
             # these values came from the initialized environment state
