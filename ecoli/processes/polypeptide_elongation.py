@@ -225,7 +225,7 @@ class PolypeptideElongation(Process):
 
             'polypeptide_elongation': {
                 'aa_count_diff': {
-                    '_default': [],
+                    '_default': {},
                     '_updater': 'set',
                     '_emit': True},
                 'gtp_to_hydrolyze': {
@@ -241,6 +241,9 @@ class PolypeptideElongation(Process):
         # elongation rate.
 
         update = {
+            'molecules': {
+                self.water: 0,
+            },
             'listeners': {
                 'ribosome_data': {},
                 'growth_limits': {}}}
@@ -292,11 +295,13 @@ class PolypeptideElongation(Process):
         update['listeners']['growth_limits']['aa_pool_size'] = array_from(states['amino_acids'])
         update['listeners']['growth_limits']['aa_request_size'] = aa_counts_for_translation
 
+
+        ## Begin wcEcoli evolveState()
         # Set value to 0 for metabolism in case of early return
         self.gtp_to_hydrolyze = 0
 
         # Write allocation data to listener
-        update['listeners']['growth_limits']['aa_allocated'] = aa_counts_for_translation
+        # update['listeners']['growth_limits']['aa_allocated'] = aa_counts_for_translation
 
         # Get number of active ribosomes
         n_active_ribosomes = len(states['active_ribosome'])
@@ -310,11 +315,12 @@ class PolypeptideElongation(Process):
 
         # Calculate elongation resource capacity
         aaCountInSequence = np.bincount(sequences[(sequences != polymerize.PAD_VALUE)])
-        total_aa_counts = array_from(states['amino_acids'])
+        # total_aa_counts = array_from(states['amino_acids'])
         # total_aa_counts = self.aas.counts()
 
         # MODEL SPECIFIC: Get amino acid counts
         aa_counts_for_translation = self.elongation_model.final_amino_acids(aa_counts_for_translation)
+        aa_counts_for_translation = aa_counts_for_translation.astype(int)
 
         # Using polymerization algorithm elongate each ribosome up to the limits
         # of amino acids, sequence, and GTP
@@ -395,8 +401,7 @@ class PolypeptideElongation(Process):
 
         # MODEL SPECIFIC: evolve
         # TODO: use something other than a class attribute to pass aa diff to metabolism
-        net_charged, self.aa_count_diff, evolve_update = self.elongation_model.evolve(
-            # total_aa_counts,
+        net_charged, aa_count_diff, evolve_update = self.elongation_model.evolve(
             timestep,
             states,
             requests,
@@ -412,7 +417,7 @@ class PolypeptideElongation(Process):
         self.gtp_to_hydrolyze = self.gtpPerElongation * nElongations
 
         update['polypeptide_elongation'] = {}
-        update['polypeptide_elongation']['aa_count_diff'] = self.aa_count_diff
+        update['polypeptide_elongation']['aa_count_diff'] = aa_count_diff
         update['polypeptide_elongation']['gtp_to_hydrolyze'] = self.gtp_to_hydrolyze
 
         # Write data to listeners
@@ -508,8 +513,7 @@ class SteadyStateElongationModel(TranslationSupplyElongationModel):
 
         # Cell parameters
         self.cellDensity = self.parameters['cellDensity']
-        elongation_max = constants.ribosome_elongation_rate_max if self.process.variable_elongation else constants.ribosome_elongation_rate_basal
-        self.maxRibosomeElongationRate = float(elongation_max.asNumber(units.aa / units.s))
+        self.maxRibosomeElongationRate = float(self.parameters['elongation_max'].asNumber(units.aa / units.s))
 
         # Data structures for charging
         self.aa_from_synthetase = self.parameters['aa_from_synthetase']
@@ -554,8 +558,10 @@ class SteadyStateElongationModel(TranslationSupplyElongationModel):
             self.aa_from_synthetase,
             array_from(states['synthetases']))
         aa_counts = array_from(states['amino_acids'])
-        uncharged_trna_counts = np.dot(self.process.aa_from_trna, array_from(states['uncharged_trna']))
-        charged_trna_counts = np.dot(self.process.aa_from_trna, array_from(states['charged_trna']))
+        uncharged_trna_array = array_from(states['uncharged_trna'])
+        charged_trna_array = array_from(states['charged_trna'])
+        uncharged_trna_counts = np.dot(self.process.aa_from_trna, uncharged_trna_array)
+        charged_trna_counts = np.dot(self.process.aa_from_trna, charged_trna_array)
         ribosome_counts = len(states['active_ribosome'])
 
         # Get concentration
@@ -578,12 +584,12 @@ class SteadyStateElongationModel(TranslationSupplyElongationModel):
 
         aa_counts_for_translation = v_rib * f * timestep / self.counts_to_molar.asNumber(MICROMOLAR_UNITS)
 
-        total_trna = charged_trna_counts + uncharged_trna_counts
+        total_trna = charged_trna_array + uncharged_trna_array
         final_charged_trna = np.dot(fraction_charged, self.process.aa_from_trna * total_trna)
 
-        charged_trna_request = charged_trna_counts - final_charged_trna
+        charged_trna_request = charged_trna_array - final_charged_trna
         charged_trna_request[charged_trna_request < 0] = 0
-        uncharged_trna_request = final_charged_trna - charged_trna_counts
+        uncharged_trna_request = final_charged_trna - charged_trna_array
         uncharged_trna_request[uncharged_trna_request < 0] = 0
 
         self.aa_counts_for_translation = np.array(aa_counts_for_translation)
@@ -615,6 +621,7 @@ class SteadyStateElongationModel(TranslationSupplyElongationModel):
         # self.water.requestIs(aa_counts_for_translation.sum())
 
         # ppGpp reactions based on charged tRNA
+        request_ppgpp_metabolites = np.zeros(len(self.process.ppgpp_reaction_metabolites))
         if self.process.ppgpp_regulation:
             total_trna_conc = self.counts_to_molar * (uncharged_trna_counts + charged_trna_counts)
             updated_charged_trna_conc = total_trna_conc * fraction_charged
@@ -641,11 +648,13 @@ class SteadyStateElongationModel(TranslationSupplyElongationModel):
         return np.fmin(total_aa_counts, self.aa_counts_for_translation)
 
     def evolve(self, timestep, states, requests, total_aa_counts, aas_used, nElongations, nInitialized):
-        update = {}
+        update = {
+            'molecules': {}
+        }
 
         # Get tRNA counts
         uncharged_trna = array_from(states['uncharged_trna'])
-        charged_trna = requests['charged_trna']
+        charged_trna = requests['charged_trna'].astype(int)
         total_trna = uncharged_trna + charged_trna
 
         # Adjust molecules for number of charging reactions that occurred
@@ -699,8 +708,8 @@ class SteadyStateElongationModel(TranslationSupplyElongationModel):
         # Peptide bond formation releases a water but transferring AA from tRNA consumes a OH-
         # Net production of H+ for each elongation, consume extra water for each initialization
         # since a peptide bond doesn't form
-        update['molecules']['proton'] = nElongations
-        update['molecules']['water'] = nInitialized
+        update['molecules'][self.process.proton] = nElongations
+        update['molecules'][self.process.water] = nInitialized
 
         # Use the difference between expected AA supply based on expected doubling time
         # and current DCW and AA used to charge tRNA to update the concentration target

@@ -158,7 +158,7 @@ class Metabolism(Process):
                     
             'polypeptide_elongation': {
                 'aa_count_diff': {
-                    '_default': [],
+                    '_default': {},
                     '_emit': True},
                 'gtp_to_hydrolyze': {
                     '_default': 0,
@@ -198,7 +198,11 @@ class Metabolism(Process):
         doubling_time = self.nutrientToDoublingTime.get(current_media_id, self.nutrientToDoublingTime['minimal'])
         conc_updates = self.model.getBiomassAsConcentrations(doubling_time)
         if self.use_trna_charging:
-            conc_updates.update(self.update_amino_acid_targets(counts_to_molar, states['aa_count_diff']))
+            conc_updates.update(self.update_amino_acid_targets(
+                counts_to_molar,
+                states['polypeptide_elongation']['aa_count_diff'],
+                states['amino_acids'],
+            ))
         if self.include_ppgpp:
             conc_updates[self.model.ppgpp_id] = self.model.getppGppConc(doubling_time).asUnit(CONC_UNITS)
         ## Converted from units to make reproduction from listener data

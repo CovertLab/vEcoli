@@ -98,7 +98,7 @@ class TranscriptElongation(Process):
                     'coordinates': {'_default': 0, '_updater': 'set', '_emit': True},
                     'direction': {'_default': 0, '_updater': 'set'}}},
 
-            'bulk_rnas': bulk_schema(self.rnaIds),
+            'bulk_RNAs': bulk_schema(self.rnaIds),
             'ntps': bulk_schema(self.ntp_ids),
             'molecules': bulk_schema(self.molecule_ids),
 
@@ -314,7 +314,7 @@ class TranscriptElongation(Process):
         update['active_RNAPs']['_delete'] = [(rnap_indexes[index],) for index in delete_rnaps]
 
         update['ntps'] = array_to(self.ntp_ids, -ntps_used)
-        update['bulk_rnas'] = array_to(self.rnaIds, n_new_bulk_RNAs)
+        update['bulk_RNAs'] = array_to(self.rnaIds, n_new_bulk_RNAs)
         update['molecules'] = array_to(self.molecule_ids, [
             n_elongations - n_initialized,
             n_terminated])

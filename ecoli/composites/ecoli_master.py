@@ -42,7 +42,7 @@ SIM_DATA_PATH = '../wcEcoli/out/underscore/kb/simData.cPickle'
 class Ecoli(Generator):
 
     defaults = {
-        'time_step': 1.0,
+        'time_step': 2.0,
         'parallel': False,
         'seed': 0,
         'sim_data_path': SIM_DATA_PATH,
@@ -488,7 +488,7 @@ class Ecoli(Generator):
                 'RNAs': ('unique', 'RNA'),
                 'active_RNAPs': ('unique', 'active_RNAP'),
                 'molecules': ('bulk',),
-                'bulk_rnas': ('bulk',),
+                'bulk_RNAs': ('bulk',),
                 'ntps': ('bulk',),
                 'listeners': ('listeners',)},
 
