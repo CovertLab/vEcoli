@@ -204,7 +204,7 @@ class TranscriptInitiation(Process):
                 cell_mass = states['listeners']['mass']['cell_mass'] * units.fg
                 cell_volume = cell_mass / self.cell_density
                 counts_to_molar = 1 / (self.n_avogadro * cell_volume)
-                ppgpp_conc = states[self.ppgpp] * counts_to_molar
+                ppgpp_conc = states['molecules'][self.ppgpp] * counts_to_molar
                 basal_prob = self.synth_prob(ppgpp_conc, self.copy_number)
             else:
                 basal_prob = self.basal_prob

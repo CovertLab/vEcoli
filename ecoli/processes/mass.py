@@ -74,6 +74,8 @@ class Mass(Deriver):
 
     def next_update(self, timestep, states):
 
+        # TODO -- run these with reducers, to avoid deepcopy of states
+
         # calculate bulk molecule mass
         bulk_mass = 0.0
         for molecule_id, count in states['bulk'].items():
@@ -95,38 +97,6 @@ class Mass(Deriver):
         cell_mass = bulk_mass + unique_mass
         water_mass = self.get_bulk_mass(self.parameters['water_id'], states)
         dry_mass = cell_mass - water_mass
-
-
-        # self.waterMass = all_submasses[self.waterIndex]
-        # self.dryMass = self.cellMass - self.waterMass
-        # self.rnaMass = all_submasses[self.rnaIndexes].sum()
-        # self.rRnaMass = all_submasses[self.rRnaIndex]
-        # self.tRnaMass = all_submasses[self.tRnaIndex]
-        # self.mRnaMass = all_submasses[self.mRnaIndex]
-        # self.dnaMass = all_submasses[self.dnaIndex]
-        # self.proteinMass = all_submasses[self.proteinIndex]
-        # self.smallMoleculeMass = all_submasses[self.smallMoleculeIndex]
-
-        # self.instantaniousGrowthRate = self.growth / self.timeStepSec() / self.dryMass
-        # self.proteinMassFraction = self.proteinMass / self.dryMass
-        # self.rnaMassFraction = self.rnaMass / self.dryMass
-        #
-        # if not self.setInitial:
-        #     self.setInitial = True
-        #
-        #     self.timeInitial = self.time()
-        #
-        #     self.dryMassInitial = self.dryMass
-        #     self.proteinMassInitial = self.proteinMass
-        #     self.rnaMassInitial = self.rnaMass
-        #     self.smallMoleculeMassInitial = self.smallMoleculeMass
-        #
-        # self.dryMassFoldChange = self.dryMass / self.dryMassInitial
-        # self.proteinMassFoldChange = self.proteinMass / self.proteinMassInitial
-        # self.rnaMassFoldChange = self.rnaMass / self.rnaMassInitial
-        # self.smallMoleculeFoldChange = self.smallMoleculeMass / self.smallMoleculeMassInitial
-        #
-        # self.expectedMassFoldChange = np.exp(np.log(2) * (self.time() - self.timeInitial) / self.cellCycleLen)
 
         return {
             'listeners': {

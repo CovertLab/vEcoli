@@ -286,6 +286,8 @@ class PolypeptideElongation(Process):
         self.aa_supply = units.strip_empty_units(mol_aas_supplied * self.n_avogadro)
         update['listeners']['ribosome_data']['translation_supply'] = translation_supply_rate.asNumber()
 
+        assert not any(i<0 for i in states['uncharged_trna'].values())
+
         # MODEL SPECIFIC: Calculate AA request
         fraction_charged, aa_counts_for_translation, requests = self.elongation_model.request(
             timestep, states, aasInSequences)
@@ -520,6 +522,9 @@ class SteadyStateElongationModel(TranslationSupplyElongationModel):
         self.charging_stoich_matrix = self.parameters['charging_stoich_matrix']
 
         # ppGpp synthesis
+        self.ppgpp = self.parameters['ppgpp']
+        self.rela = self.parameters['rela']
+        self.spot = self.parameters['spot']
         self.ppgpp_reaction_names = self.parameters['ppgpp_reaction_names']
         self.ppgpp_reaction_metabolites = self.parameters['ppgpp_reaction_metabolites']
         self.ppgpp_reaction_stoich = self.parameters['ppgpp_reaction_stoich']
@@ -626,12 +631,12 @@ class SteadyStateElongationModel(TranslationSupplyElongationModel):
             total_trna_conc = self.counts_to_molar * (uncharged_trna_counts + charged_trna_counts)
             updated_charged_trna_conc = total_trna_conc * fraction_charged
             updated_uncharged_trna_conc = total_trna_conc - updated_charged_trna_conc
-            ppgpp_conc = self.counts_to_molar * states['molecules']['ppgpp']
-            rela_conc = self.counts_to_molar * states['molecules']['rela']
-            spot_conc = self.counts_to_molar * states['molecules']['spot']
+            ppgpp_conc = self.counts_to_molar * states['molecules'][self.ppgpp]
+            rela_conc = self.counts_to_molar * states['molecules'][self.rela]
+            spot_conc = self.counts_to_molar * states['molecules'][self.spot]
             delta_metabolites, _, _, _, _, _ = self.ppgpp_metabolite_changes(
                 updated_uncharged_trna_conc, updated_charged_trna_conc, ribosome_conc,
-                f, rela_conc, spot_conc, ppgpp_conc, self.counts_to_molar, v_rib, request=True
+                f, rela_conc, spot_conc, ppgpp_conc, self.counts_to_molar, v_rib, timestep, request=True
             )
 
             request_ppgpp_metabolites = -delta_metabolites
@@ -649,7 +654,8 @@ class SteadyStateElongationModel(TranslationSupplyElongationModel):
 
     def evolve(self, timestep, states, requests, total_aa_counts, aas_used, nElongations, nInitialized):
         update = {
-            'molecules': {}
+            'molecules': {},
+            'listeners': {},
         }
 
         # Get tRNA counts
@@ -680,24 +686,24 @@ class SteadyStateElongationModel(TranslationSupplyElongationModel):
         if self.process.ppgpp_regulation:
             v_rib = (nElongations * self.counts_to_molar).asNumber(MICROMOLAR_UNITS) / timestep
             ribosome_conc = self.counts_to_molar * len(states['active_ribosome'])
-            updated_uncharged_trna_counts = array_from(
-                requests['uncharged_trna'] + charged_and_elongated) - net_charged
-            updated_charged_trna_counts = array_from(
-                requests['charged_trna'] - charged_and_elongated) + net_charged
+            updated_uncharged_trna_counts = array_from(states['uncharged_trna']) - net_charged
+            updated_charged_trna_counts = array_from(states['charged_trna']) + net_charged
             uncharged_trna_conc = self.counts_to_molar * np.dot(
                 self.process.aa_from_trna, updated_uncharged_trna_counts)
             charged_trna_conc = self.counts_to_molar * np.dot(
                 self.process.aa_from_trna, updated_charged_trna_counts)
-            ppgpp_conc = self.counts_to_molar * states['ppgpp']
-            rela_conc = self.counts_to_molar * states['rela']
-            spot_conc = self.counts_to_molar * states['spot']
+            ppgpp_conc = self.counts_to_molar * states['molecules'][self.ppgpp]
+            rela_conc = self.counts_to_molar * states['molecules'][self.rela]
+            spot_conc = self.counts_to_molar * states['molecules'][self.spot]
 
             f = aas_used / aas_used.sum()
             limits = requests['ppgpp_reaction_metabolites']
             delta_metabolites, ppgpp_syn, ppgpp_deg, rela_syn, spot_syn, spot_deg = self.ppgpp_metabolite_changes(
                 uncharged_trna_conc, charged_trna_conc, ribosome_conc, f, rela_conc,
-                spot_conc, ppgpp_conc, self.counts_to_molar, v_rib, limits=limits)
+                spot_conc, ppgpp_conc, self.counts_to_molar, v_rib, timestep, limits=limits)
 
+            if 'growth_limits' not in update['listeners']:
+                update['listeners']['growth_limits'] = {}
             update['listeners']['growth_limits']['rela_syn'] = rela_syn
             update['listeners']['growth_limits']['spot_syn'] = spot_syn
             update['listeners']['growth_limits']['spot_deg'] = spot_deg
@@ -880,7 +886,7 @@ class SteadyStateElongationModel(TranslationSupplyElongationModel):
 
     def ppgpp_metabolite_changes(self, uncharged_trna_conc, charged_trna_conc,
             ribosome_conc, f, rela_conc, spot_conc, ppgpp_conc, counts_to_molar,
-            v_rib, request=False, limits=None):
+            v_rib, timestep, request=False, limits=None):
         '''
         Calculates the changes in metabolite counts based on ppGpp synthesis and
         degradation reactions.
@@ -948,8 +954,8 @@ class SteadyStateElongationModel(TranslationSupplyElongationModel):
         v_deg = self.k_SpoT_deg * spot_conc * ppgpp_conc / (1 + uncharged_trna_conc.sum() / self.KI_SpoT)
 
         # Convert to discrete reactions
-        n_syn_reactions = stochasticRound(self.process.random_state, v_syn * self.process.timeStepSec() / counts_to_micromolar)[0]
-        n_deg_reactions = stochasticRound(self.process.random_state, v_deg * self.process.timeStepSec() / counts_to_micromolar)[0]
+        n_syn_reactions = stochasticRound(self.process.random_state, v_syn * timestep / counts_to_micromolar)[0]
+        n_deg_reactions = stochasticRound(self.process.random_state, v_deg * timestep / counts_to_micromolar)[0]
 
         # Only look at reactant stoichiometry if requesting molecules to use
         if request:
