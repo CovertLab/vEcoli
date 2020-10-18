@@ -669,7 +669,7 @@ class SteadyStateElongationModel(TranslationSupplyElongationModel):
         total_charging_reactions = charged_and_elongated + net_charged
         update['charging_molecules'] = array_to(
             states['charging_molecules'].keys(),
-            np.dot(self.charging_stoich_matrix, total_charging_reactions))
+            np.dot(self.charging_stoich_matrix, total_charging_reactions).astype(int))
 
         ## Account for uncharging of tRNA during elongation
         update['charged_trna'] = array_to(states['charged_trna'].keys(), -charged_and_elongated)

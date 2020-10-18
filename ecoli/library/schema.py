@@ -20,7 +20,7 @@ def type_of(array):
 
 def arrays_from(ds, keys):
     if not ds:
-        return array([])
+        return np.array([])
 
     arrays = {
         key: []
