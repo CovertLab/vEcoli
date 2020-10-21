@@ -59,8 +59,8 @@ setup(
         'wholecell',
         'wholecell.utils',
         'reconstruction'],
-    author='Ryan Spangler',
-    author_email='ryan.spangler@gmail.com',
+    author='Eran Agmon, Ryan Spangler',
+    author_email='eagmon@stanford.edu, ryan.spangler@gmail.com',
     url='https://github.com/CovertLab/vivarium-ecoli',
     license='MIT',
     entry_points={
@@ -68,13 +68,10 @@ setup(
     long_description=long_description,
     long_description_content_type='text/markdown',
     install_requires=[
-        'Cython',
         'vivarium-cell>=0.0.17',
-        'vivarium-scripts'
         'biopython==1.77',
         'Unum==4.1.4',
         'numba==0.50.1',
         'Theano==1.0.5',
         'ipython==7.16.1',
-        'Cython==0.29.21',
         ])
