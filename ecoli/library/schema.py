@@ -8,6 +8,12 @@ def array_to(keys, array):
         key: array[index]
         for index, key in enumerate(keys)}
 
+def array_to_nonzero(keys, array):
+    return {
+        key: array[index]
+        for index, key in enumerate(keys)
+        if array[index] != 0}
+
 def type_of(array):
     if len(array) == 0:
         return None

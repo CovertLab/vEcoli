@@ -47,7 +47,8 @@ import numpy as np
 from vivarium.core.process import Process
 from vivarium.core.composition import simulate_process_in_experiment
 
-from ecoli.library.schema import array_from, array_to, arrays_from, arrays_to, listener_schema, bulk_schema
+from ecoli.library.schema import (
+    array_from, array_to, arrays_from, arrays_to, listener_schema, bulk_schema, array_to_nonzero)
 
 from wholecell.utils.constants import REQUEST_PRIORITY_DEGRADATION
 from wholecell.utils import units
@@ -331,6 +332,8 @@ class RnaDegradation(Process):
 
         water_request = waterForNewRnas + waterForLeftOverFragments
 
+
+        ## wcEcoli evolveState
         # Get vector of numbers of RNAs to degrade for each RNA species
         n_degraded_bulk_RNA = n_bulk_RNAs_to_degrade
         n_degraded_unique_RNA = self.n_unique_RNAs_to_degrade
@@ -366,7 +369,7 @@ class RnaDegradation(Process):
                     'nucleotides_from_degradation': np.dot(n_degraded_RNA, self.rna_lengths)}},
 
             # Degrade bulk RNAs
-            'bulk_RNAs': array_to(
+            'bulk_RNAs': array_to_nonzero(
                 self.rnaIds,
                 -n_degraded_bulk_RNA),
             'RNAs': {
