@@ -53,7 +53,7 @@ setup(
     version='0.0.1',
     packages=[
         'ecoli',
-        'ecoli.compartments',
+        'ecoli.composites',
         'ecoli.experiments',
         'ecoli.processes',
         'wholecell',
@@ -68,13 +68,10 @@ setup(
     long_description=long_description,
     long_description_content_type='text/markdown',
     install_requires=[
-        'Cython',
         'vivarium-cell>=0.0.17',
-        'vivarium-scripts'
         'biopython==1.77',
         'Unum==4.1.4',
         'numba==0.50.1',
         'Theano==1.0.5',
         'ipython==7.16.1',
-        'Cython==0.29.21',
         ])
