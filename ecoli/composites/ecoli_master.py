@@ -422,7 +422,7 @@ class Ecoli(Generator):
         return meta_division
 
     def initial_state(self, config=None):
-        return get_initial_state()
+        return get_state_from_file(path='data/wcecoli_initial.json')
 
     def generate_processes(self, config):
         time_step = config['time_step']
@@ -586,10 +586,9 @@ def load_states(path):
 
     return states
 
-def get_initial_state():
+def get_state_from_file(path='data/wcecoli_initial.json'):
 
-    states_path = 'data/states.json'
-    states = load_states(states_path)
+    states = load_states(path)
 
     initial_state = {
         'environment': {
@@ -635,7 +634,7 @@ def get_initial_state():
 
 def test_ecoli():
     ecoli = Ecoli({'agent_id': '1'})
-    initial_state = get_initial_state()
+    initial_state = get_state_from_file()
     settings = {
         'timestep': 1,
         'total_time': 10,

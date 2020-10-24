@@ -14,7 +14,7 @@ from vivarium.core.experiment import pp
 # from vivarium_cell.processes.growth_rate import GrowthRate
 from vivarium_cell.processes.diffusion_network import DiffusionNetwork
 
-from ecoli.composites.ecoli_master import get_initial_state
+from ecoli.composites.ecoli_master import get_state_from_file
 
 #TODO: change this before merging
 SIM_DATA_PATH = '../wcEcoli/out/for_vivarium/kb/simData.cPickle'
@@ -57,7 +57,7 @@ class EcoliSpatial(Generator):
 
     def initial_state(self, config=None):
 
-        initial_state = get_initial_state()
+        initial_state = get_state_from_file(path='data/wcecoli_t1000.json')
         bulk = initial_state['bulk']
 
         # TODO: Make this not hardcoded
