@@ -422,7 +422,7 @@ class Ecoli(Generator):
         return meta_division
 
     def initial_state(self, config=None):
-        return get_initial_state()
+        return get_state_from_file()
 
     def generate_processes(self, config):
         time_step = config['time_step']
@@ -586,10 +586,9 @@ def load_states(path):
 
     return states
 
-def get_initial_state():
+def get_state_from_file(path='data/wcecoli_t10.json'):
 
-    states_path = 'data/states.json'
-    states = load_states(states_path)
+    states = load_states(path)
 
     initial_state = {
         'environment': {
@@ -618,13 +617,10 @@ def get_initial_state():
                 'constrained': {
                     'GLC[p]': 20.0 * units.mmol / (units.g * units.h)}},
             'external_concentrations': states['environment']},
-        'listeners': {
-            # TODO(Ryan): deal with mass
-            # add mw property to bulk and unique molecules
-            # and include any "submass" attributes from unique molecules
-            'mass': {
-                'cell_mass': 1172.2152594471481,
-                'dry_mass': 351.8184693073905}},
+        # TODO(Eran): deal with mass
+        # add mw property to bulk and unique molecules
+        # and include any "submass" attributes from unique molecules
+        'listeners': states['listeners'],
         'bulk': states['bulk'],
         'unique': states['unique'],
         'process_state': {
@@ -635,7 +631,7 @@ def get_initial_state():
 
 def test_ecoli():
     ecoli = Ecoli({'agent_id': '1'})
-    initial_state = get_initial_state()
+    initial_state = get_state_from_file()
     settings = {
         'timestep': 1,
         'total_time': 10,
