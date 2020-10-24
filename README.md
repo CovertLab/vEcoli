@@ -1,5 +1,19 @@
 # vivarium-ecoli
 
+
+## set up
+
+First install numpy and Cython:
+```
+$ pip install numpy
+$ pip install Cython
+```
+
+Then the remaining requirements:
+```
+$ pip install -r requirements.txt
+```
+
 ## background
 
 This project is a port of https://github.com/CovertLab/wcEcoli to the Vivarium framework: https://github.com/vivarium-collective/vivarium-core

@@ -586,7 +586,7 @@ def load_states(path):
 
     return states
 
-def get_state_from_file(path='data/wcecoli_initial.json'):
+def get_state_from_file(path='data/wcecoli_t10.json'):
 
     states = load_states(path)
 
@@ -617,13 +617,10 @@ def get_state_from_file(path='data/wcecoli_initial.json'):
                 'constrained': {
                     'GLC[p]': 20.0 * units.mmol / (units.g * units.h)}},
             'external_concentrations': states['environment']},
-        'listeners': {
-            # TODO(Ryan): deal with mass
-            # add mw property to bulk and unique molecules
-            # and include any "submass" attributes from unique molecules
-            'mass': {
-                'cell_mass': 1172.2152594471481,
-                'dry_mass': 351.8184693073905}},
+        # TODO(Eran): deal with mass
+        # add mw property to bulk and unique molecules
+        # and include any "submass" attributes from unique molecules
+        'listeners': states['listeners'],
         'bulk': states['bulk'],
         'unique': states['unique'],
         'process_state': {
