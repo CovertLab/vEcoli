@@ -422,7 +422,7 @@ class Ecoli(Generator):
         return meta_division
 
     def initial_state(self, config=None):
-        return get_state_from_file(path='data/wcecoli_initial.json')
+        return get_state_from_file()
 
     def generate_processes(self, config):
         time_step = config['time_step']
