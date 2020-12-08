@@ -53,7 +53,7 @@ setup(
     version='0.0.1',
     packages=[
         'ecoli',
-        'ecoli.compartments',
+        'ecoli.composites',
         'ecoli.experiments',
         'ecoli.processes',
         'wholecell',
