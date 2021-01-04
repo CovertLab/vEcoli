@@ -83,7 +83,7 @@ from ecoli.plots.ecoli_spatial_plots import (
 
 from ecoli.composites.ecoli_master import get_state_from_file
 
-SIM_DATA_PATH = '../wcEcoli/out/for_vivarium/kb/simData.cPickle'
+SIM_DATA_PATH = 'reconstruction/sim_data/kb/simData.cPickle'
 RIBOSOME_SIZE = 21      # in nm
 
 
