@@ -65,7 +65,7 @@ from scipy import constants
 
 from six.moves import cPickle
 
-from vivarium.core.process import Generator
+from vivarium.core.process import Composte
 from vivarium.core.composition import simulate_compartment_in_experiment
 
 # processes
@@ -87,7 +87,7 @@ SIM_DATA_PATH = 'reconstruction/sim_data/kb/simData.cPickle'
 RIBOSOME_SIZE = 21      # in nm
 
 
-class EcoliSpatial(Generator):
+class EcoliSpatial(Composte):
 
     defaults = {
         'time_step': 2.0,

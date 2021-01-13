@@ -1,6 +1,20 @@
 # vivarium-ecoli
 
 
+## pyenv
+
+Install Python using pyenv. pyenv lets you install and switch between multiple Python releases and multiple "virtual environments", each with its own pip packages.
+
+PYTHON_CONFIGURE_OPTS="--enable-shared" pyenv install 3.8.5
+
+
+## pip version for multiple setup
+TODO: fix this to support most recent pip!
+
+```
+pip install pip==20.0.2
+```
+
 ## set up
 
 First install numpy and Cython:
@@ -10,8 +24,9 @@ $ pip install Cython
 ```
 
 Then the remaining requirements:
+
 ```
-$ pip install -r requirements.txt
+$ python setup.py install
 ```
 
 ## background
