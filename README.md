@@ -8,7 +8,7 @@ Install Python using pyenv. pyenv lets you install and switch between multiple P
 PYTHON_CONFIGURE_OPTS="--enable-shared" pyenv install 3.8.5
 
 
-## pip version for multiple setup
+## pip version 20.0.2 is required for the current multiple setup in setup.py
 TODO: fix this to support most recent pip!
 
 ```
