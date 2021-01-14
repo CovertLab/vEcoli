@@ -298,7 +298,7 @@ class TranscriptElongation(Process):
             'RNAs': {
                 rna_indexes[index]: rna
                 for index, rna in enumerate(rnas_update)}}
-        update['RNAs']['_delete'] = [(rna_indexes[index],) for index in delete_rnas]
+        update['RNAs']['_delete'] = [rna_indexes[index] for index in delete_rnas]
 
         rnap_indexes = list(states['active_RNAPs'].keys())
         rnaps_update = arrays_to(
@@ -311,7 +311,7 @@ class TranscriptElongation(Process):
             rnap_indexes[index]: rnap
             for index, rnap in enumerate(rnaps_update)}
 
-        update['active_RNAPs']['_delete'] = [(rnap_indexes[index],) for index in delete_rnaps]
+        update['active_RNAPs']['_delete'] = [rnap_indexes[index] for index in delete_rnaps]
 
         update['ntps'] = array_to(self.ntp_ids, -ntps_used)
         update['bulk_RNAs'] = array_to(self.rnaIds, n_new_bulk_RNAs)
