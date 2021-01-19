@@ -18,12 +18,20 @@ def run_migration_check():
         'total_time': 2,
         'initial_state': initial_state}
 
-    data = simulate_compartment_in_experiment(ecoli, settings)
+    output = simulate_compartment_in_experiment(ecoli, settings)
+
+
+    # separate data by port
+    bulk = output['bulk']
+    unique = output['unique']
+    listeners = output['listeners']
+    process_state = output['process_state']
+    environment = output['environment']
 
     import ipdb;
     ipdb.set_trace()
 
-    return data
+    return output
 
 
 
