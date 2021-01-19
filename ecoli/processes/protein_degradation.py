@@ -102,13 +102,15 @@ class ProteinDegradation(Process):
             self.degradation_matrix,
             degrade).astype(int)
 
-        return {
+        update = {
             'metabolites': {
                 metabolite: metabolites_delta[index]
                 for index, metabolite in enumerate(self.metabolite_ids)},
             'proteins': {
                 protein: -degrade[index]
                 for index, protein in enumerate(proteins.keys())}}
+
+        return update
 
 
 def test_protein_degradation():

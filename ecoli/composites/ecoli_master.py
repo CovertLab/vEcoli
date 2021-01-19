@@ -10,7 +10,7 @@ import uuid
 
 from six.moves import cPickle
 
-from vivarium.core.process import Generator
+from vivarium.core.process import Composite
 from vivarium.core.composition import simulate_compartment_in_experiment
 from vivarium.core.experiment import pp
 
@@ -39,7 +39,7 @@ RAND_MAX = 2**31
 SIM_DATA_PATH = 'reconstruction/sim_data/kb/simData.cPickle'
 
 
-class Ecoli(Generator):
+class Ecoli(Composite):
 
     defaults = {
         'time_step': 2.0,
