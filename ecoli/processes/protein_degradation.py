@@ -18,6 +18,8 @@ from vivarium.core.composition import simulate_process_in_experiment
 from wholecell.utils.constants import REQUEST_PRIORITY_DEGRADATION
 from wholecell.utils import units
 
+from functools import reduce
+
 
 class ProteinDegradation(Process):
     name = 'ecoli-protein-degradation'
@@ -54,7 +56,7 @@ class ProteinDegradation(Process):
         self.protein_lengths = self.parameters['protein_lengths']
 
         self.seed = self.parameters['seed']
-        self.random_state = np.random.RandomState(seed = self.seed)
+        self.random_state = np.random.RandomState(seed=self.seed)
 
         # Build S matrix
         self.degradation_matrix = np.zeros((
@@ -62,8 +64,8 @@ class ProteinDegradation(Process):
             len(self.protein_ids)), np.int64)
         self.degradation_matrix[self.amino_acid_indexes, :] = np.transpose(
             self.amino_acid_counts)
-        self.degradation_matrix[self.water_index, :]  = -(np.sum(
-            self.degradation_matrix[self.amino_acid_indexes, :], axis = 0) - 1)
+        self.degradation_matrix[self.water_index, :] = -(np.sum(
+            self.degradation_matrix[self.amino_acid_indexes, :], axis=0) - 1)
 
     def ports_schema(self):
         return {
@@ -146,6 +148,31 @@ def test_protein_degradation():
         'initial_state': state}
 
     data = simulate_process_in_experiment(protein_degradation, settings)
+
+    # Assertions =======================================================
+    # Proteins are monotonically decreasing, never <0:
+    for protein in test_config['protein_ids']:
+        protein_data = data["proteins"][protein]
+        assert all(x >= y >= 0
+                   for x, y in zip(protein_data, protein_data[1:])), \
+            f"Protein {protein} is not monotonically decreasing or falls below zero."
+
+    # Amino acids are monotonically increasing
+    for aa in test_config['amino_acid_ids']:
+        aa_data = data["metabolites"][aa]
+        assert all(x <= y
+                   for x, y in zip(aa_data, aa_data[1:])), \
+            f"Amino acid {aa} is not monotonically increasing."
+
+    # H20 is monotonically decreasing, never < 0
+    h20_data = data["metabolites"][test_config["water_id"]]
+    assert all(x >= y >= 0
+               for x, y in zip(h20_data, h20_data[1:])), \
+        f"H20 is not monotonically decreasing or falls below zero."
+
+    # Amino acids are released, H20 consumed whenever a protein is degraded
+
+    # Protein degradation events follow a Poisson distribution with specified rate
 
     print(data)
 
