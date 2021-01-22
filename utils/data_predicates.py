@@ -2,7 +2,7 @@
 Data Predicates
 
 Defines several assertions about data that are useful for tests,
-e.g. checks for monotonicity, whether the data follows a Poisson distribution of specified rate, etc.
+e.g. checks for monotonicity, whether the data approximately follows a Poisson distribution, etc.
 
 All functions expect a 1D numpy array as first parameter.
 
@@ -61,7 +61,7 @@ def approx_poisson(data, rate=None, significance=0.05, verbose=False):
     if rate is None:
         rate = np.mean(data)
 
-    counts = Counter(data)
+    counts = Counter(list(data))
     counts = [counts[i] if i in counts.keys() else 0
               for i in range(max(data) + 1)]
 
