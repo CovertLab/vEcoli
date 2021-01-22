@@ -173,28 +173,35 @@ def test_protein_degradation():
 
     # Amino acids are released, H20 consumed whenever a protein is degraded
     protein_data = np.concatenate([[data["proteins"][protein]] for protein in test_config['protein_ids']], axis=0)
-    protein_delta = protein_data[:, :-1] - protein_data[:, 1:]
+    protein_delta = protein_data[:, 1:] - protein_data[:, :-1]
+
+    aa_delta_expected = map(lambda i: [test_config['amino_acid_counts'].T @ -protein_delta[:, i]],
+                            range(protein_delta.shape[1]))
+    aa_delta_expected = np.concatenate(list(aa_delta_expected)).T
+    aa_data = np.concatenate([[data["metabolites"][aa]] for aa in test_config['amino_acid_ids']], axis=0)
+    aa_delta = aa_data[:, 1:] - aa_data[:, :-1]
+    assert np.array_equal(aa_delta, aa_delta_expected)
+
     h20_delta_expected = (protein_delta.T * (test_config['protein_lengths'] - 1)).T
     h20_delta_expected = np.sum(h20_delta_expected, axis=0)
-    h20_delta = h20_data[:-1] - h20_data[1:]
+    h20_delta = h20_data[1:] - h20_data[:-1]
 
     assert np.array_equal(h20_delta, h20_delta_expected)
-
-    #TODO: test consumption of amino acids
 
     # Protein degradation events follow a Poisson distribution with specified rate
     for protein in test_config['protein_ids']:
         protein_data = np.array(data["proteins"][protein])
         # exclude data after all proteins degraded, since zeroes skew the data
         protein_data = protein_data[np.nonzero(protein_data)]
-        protein_delta = protein_data[:-1] - protein_data[1:]
+        protein_delta = protein_data[1:] - protein_data[:-1]
 
-        assert approx_poisson(protein_delta), \
+        assert approx_poisson(-protein_delta, verbose=False), \
             f"Degradation of protein {protein} is not approximately Poisson."
 
-        #TODO: test poisson rates? difficult due to stopping condition (running out of protein)
+        # TODO: test poisson rates? difficult due to stopping condition (running out of protein)
 
     print("Passed all tests.")
+
 
 if __name__ == "__main__":
     test_protein_degradation()
