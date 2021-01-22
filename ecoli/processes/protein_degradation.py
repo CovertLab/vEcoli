@@ -19,6 +19,7 @@ from wholecell.utils.constants import REQUEST_PRIORITY_DEGRADATION
 from wholecell.utils import units
 
 from functools import reduce
+from utils.data_predicates import monotonically_increasing, monotonically_decreasing, all_nonnegative, approx_poisson
 
 
 class ProteinDegradation(Process):
@@ -144,38 +145,52 @@ def test_protein_degradation():
             'z': 8}}
 
     settings = {
-        'total_time': 10,
+        'total_time': 100,
         'initial_state': state}
 
     data = simulate_process_in_experiment(protein_degradation, settings)
 
+    print(data)
+
     # Assertions =======================================================
     # Proteins are monotonically decreasing, never <0:
     for protein in test_config['protein_ids']:
-        protein_data = data["proteins"][protein]
-        assert all(x >= y >= 0
-                   for x, y in zip(protein_data, protein_data[1:])), \
-            f"Protein {protein} is not monotonically decreasing or falls below zero."
+        protein_data = np.array(data["proteins"][protein])
+        assert monotonically_decreasing(protein_data), \
+            f"Protein {protein} is not monotonically decreasing."
+        assert all_nonnegative(protein_data), f"Protein {protein} falls below 0."
 
     # Amino acids are monotonically increasing
     for aa in test_config['amino_acid_ids']:
-        aa_data = data["metabolites"][aa]
-        assert all(x <= y
-                   for x, y in zip(aa_data, aa_data[1:])), \
+        aa_data = np.array(data["metabolites"][aa])
+        assert monotonically_increasing(aa_data), \
             f"Amino acid {aa} is not monotonically increasing."
 
     # H20 is monotonically decreasing, never < 0
-    h20_data = data["metabolites"][test_config["water_id"]]
-    assert all(x >= y >= 0
-               for x, y in zip(h20_data, h20_data[1:])), \
-        f"H20 is not monotonically decreasing or falls below zero."
+    h20_data = np.array(data["metabolites"][test_config["water_id"]])
+    assert monotonically_decreasing(h20_data), f"H20 is not monotonically decreasing."
+    assert all_nonnegative(h20_data), f"H20 falls below 0."
 
     # Amino acids are released, H20 consumed whenever a protein is degraded
+    protein_data = np.concatenate([[data["proteins"][protein]] for protein in test_config['protein_ids']], axis=0)
+    protein_delta = protein_data[:, :-1] - protein_data[:, 1:]
+    h20_delta_expected = (protein_delta.T * (test_config['protein_lengths'] - 1)).T
+    h20_delta_expected = np.sum(h20_delta_expected, axis=0)
+    h20_delta = h20_data[:-1] - h20_data[1:]
+
+    assert np.array_equal(h20_delta, h20_delta_expected)
 
     # Protein degradation events follow a Poisson distribution with specified rate
+    for protein in test_config['protein_ids']:
+        protein_data = np.array(data["proteins"][protein])
+        # exclude data after all proteins degraded, since zeroes skew the data
+        protein_data = protein_data[np.nonzero(protein_data)]
+        protein_delta = protein_data[:-1] - protein_data[1:]
 
-    print(data)
+        assert approx_poisson(protein_delta), \
+            f"Degradation of protein {protein} is not approximately Poisson."
 
+    print("Passed all tests.")
 
 if __name__ == "__main__":
     test_protein_degradation()

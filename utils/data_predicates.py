@@ -47,7 +47,7 @@ def all_nonpositive(data):
     return np.all(data <= 0)
 
 
-def approx_poisson(data, rate=None, significance=0.05):
+def approx_poisson(data, rate=None, significance=0.05, verbose=False):
     """
     Test whether data appears to follow Poisson distribution, using Chi-sq goodness of fit.
     Does not do particularly well comparing poisson data of rate r_1 vs. poisson distribution of rate r_2.
@@ -55,6 +55,7 @@ def approx_poisson(data, rate=None, significance=0.05):
         data: 1D array where index i corresponds the number of events observed in interval i.
         rate: rate (lambda) of the Poisson distribution against which to compare. If None, rate is estimated from the data.
         significance: for p > significance, fail to reject that the data is not Poisson-distributed.
+        verbose: if True, prints estimated rate, and results (chi-sq, p-value) of the goodness-of-fit test.
     """
 
     if rate is None:
@@ -62,10 +63,15 @@ def approx_poisson(data, rate=None, significance=0.05):
 
     counts = Counter(data)
     counts = [counts[i] if i in counts.keys() else 0
-              for i in range(max(data))]
+              for i in range(max(data) + 1)]
 
     res = chisquare(np.array(counts) / sum(counts),
                     poisson(rate).pmf(range(len(counts))) / sum(poisson(rate).pmf(range(len(counts)))))
+
+    if verbose:
+        print(f"Estimated rate (lambda): {rate}")
+        print(f"Chi-sq: {res[0]}")
+        print(f"p: {res[1]}")
 
     return res[1] > significance
 
