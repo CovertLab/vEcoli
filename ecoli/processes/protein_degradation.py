@@ -186,16 +186,6 @@ def test_protein_degradation():
     h20_delta_expected = np.sum(h20_delta_expected, axis=0)
     assert np.array_equal(h20_delta, h20_delta_expected)
 
-    # Protein degradation events follow a Poisson distribution with specified rate
-    for row in range(protein_data.shape[0]):
-        # exclude data after all proteins degraded, since zeroes skew the data
-        test_data = protein_delta[row][np.nonzero(protein_data[row])]
-
-        assert approx_poisson(-test_data, verbose=False), \
-            f"Degradation of protein {protein} is not approximately Poisson."
-
-        # TODO: test poisson rates? difficult due to stopping condition (running out of protein)
-
     print("Passed all tests.")
 
 
