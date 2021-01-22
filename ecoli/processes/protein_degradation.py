@@ -65,6 +65,7 @@ class ProteinDegradation(Process):
             len(self.protein_ids)), np.int64)
         self.degradation_matrix[self.amino_acid_indexes, :] = np.transpose(
             self.amino_acid_counts)
+        # Assuming N-1 H2O is required per peptide chain length N
         self.degradation_matrix[self.water_index, :] = -(np.sum(
             self.degradation_matrix[self.amino_acid_indexes, :], axis=0) - 1)
 
@@ -86,15 +87,18 @@ class ProteinDegradation(Process):
         protein_counts = np.array(list(proteins.values()))
         rates = self.raw_degradation_rate * timestep
 
+        # Get number of degradation events,
+        # constrained by number of proteins and water molecules.
         degrade = np.fmin(
             self.random_state.poisson(rates * protein_counts),
             protein_counts)
 
-        # Determine the number of hydrolysis reactions
-        reactions = np.dot(self.protein_lengths, degrade)
+        # Only do degradation if there is enough water for the reactions.
+        # This behavior is not realistic, but should be fine under an assumption of
+        # water not being limiting (?)
+        degrade *= int(states['metabolites'][self.water_id] >=
+                       np.dot(self.protein_lengths - 1, degrade))
 
-        # Determine the amount of water required to degrade the selected proteins
-        # Assuming one N-1 H2O is required per peptide chain length N
         # TODO(Ryan): It seems this water request is never used?
         # self.h2o.requestIs(nReactions - np.sum(nProteinsToDegrade))
         # self.proteins.requestIs(nProteinsToDegrade)
@@ -137,20 +141,18 @@ def test_protein_degradation():
             'A': 10,
             'B': 20,
             'C': 30,
-            'H2O': 1000},
+            'H2O': 10000},
         'proteins': {
-            'w': 5,
-            'x': 6,
-            'y': 7,
-            'z': 8}}
+            'w': 50,
+            'x': 60,
+            'y': 70,
+            'z': 80}}
 
     settings = {
         'total_time': 100,
         'initial_state': state}
 
     data = simulate_process_in_experiment(protein_degradation, settings)
-
-    print(data)
 
     # Assertions =======================================================
     protein_data = np.concatenate([[data["proteins"][protein]] for protein in test_config['protein_ids']], axis=0)
