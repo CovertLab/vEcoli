@@ -18,6 +18,9 @@ from vivarium.core.composition import simulate_process_in_experiment
 from wholecell.utils.constants import REQUEST_PRIORITY_DEGRADATION
 from wholecell.utils import units
 
+from functools import reduce
+from utils.data_predicates import monotonically_increasing, monotonically_decreasing, all_nonnegative, approx_poisson
+
 
 class ProteinDegradation(Process):
     name = 'ecoli-protein-degradation'
@@ -54,7 +57,7 @@ class ProteinDegradation(Process):
         self.protein_lengths = self.parameters['protein_lengths']
 
         self.seed = self.parameters['seed']
-        self.random_state = np.random.RandomState(seed = self.seed)
+        self.random_state = np.random.RandomState(seed=self.seed)
 
         # Build S matrix
         self.degradation_matrix = np.zeros((
@@ -62,8 +65,9 @@ class ProteinDegradation(Process):
             len(self.protein_ids)), np.int64)
         self.degradation_matrix[self.amino_acid_indexes, :] = np.transpose(
             self.amino_acid_counts)
-        self.degradation_matrix[self.water_index, :]  = -(np.sum(
-            self.degradation_matrix[self.amino_acid_indexes, :], axis = 0) - 1)
+        # Assuming N-1 H2O is required per peptide chain length N
+        self.degradation_matrix[self.water_index, :] = -(np.sum(
+            self.degradation_matrix[self.amino_acid_indexes, :], axis=0) - 1)
 
     def ports_schema(self):
         return {
@@ -83,15 +87,18 @@ class ProteinDegradation(Process):
         protein_counts = np.array(list(proteins.values()))
         rates = self.raw_degradation_rate * timestep
 
+        # Get number of degradation events,
+        # constrained by number of proteins and water molecules.
         degrade = np.fmin(
             self.random_state.poisson(rates * protein_counts),
             protein_counts)
 
-        # Determine the number of hydrolysis reactions
-        reactions = np.dot(self.protein_lengths, degrade)
+        # Only do degradation if there is enough water for the reactions.
+        # This behavior is not realistic, but should be fine under an assumption of
+        # water not being limiting (?)
+        degrade *= int(states['metabolites'][self.water_id] >=
+                       np.dot(self.protein_lengths - 1, degrade))
 
-        # Determine the amount of water required to degrade the selected proteins
-        # Assuming one N-1 H2O is required per peptide chain length N
         # TODO(Ryan): It seems this water request is never used?
         # self.h2o.requestIs(nReactions - np.sum(nProteinsToDegrade))
         # self.proteins.requestIs(nProteinsToDegrade)
@@ -134,20 +141,54 @@ def test_protein_degradation():
             'A': 10,
             'B': 20,
             'C': 30,
-            'H2O': 1000},
+            'H2O': 10000},
         'proteins': {
-            'w': 5,
-            'x': 6,
-            'y': 7,
-            'z': 8}}
+            'w': 50,
+            'x': 60,
+            'y': 70,
+            'z': 80}}
 
     settings = {
-        'total_time': 10,
+        'total_time': 100,
         'initial_state': state}
 
     data = simulate_process_in_experiment(protein_degradation, settings)
 
-    print(data)
+    # Assertions =======================================================
+    protein_data = np.concatenate([[data["proteins"][protein]] for protein in test_config['protein_ids']], axis=0)
+    protein_delta = protein_data[:, 1:] - protein_data[:, :-1]
+
+    aa_data = np.concatenate([[data["metabolites"][aa]] for aa in test_config['amino_acid_ids']], axis=0)
+    aa_delta = aa_data[:, 1:] - aa_data[:, :-1]
+
+    h20_data = np.array(data["metabolites"][test_config["water_id"]])
+    h20_delta = h20_data[1:] - h20_data[:-1]
+
+    # Proteins are monotonically decreasing, never <0:
+    assert all(np.apply_along_axis(monotonically_decreasing, 1, protein_data)), \
+        f"Protein {protein} is not monotonically decreasing."
+    assert all_nonnegative(protein_data), f"Protein {protein} falls below 0."
+
+    # Amino acids are monotonically increasing
+    assert all(np.apply_along_axis(monotonically_increasing, 1, aa_data)), \
+        f"Amino acid {aa} is not monotonically increasing."
+
+    # H20 is monotonically decreasing, never < 0
+    assert monotonically_decreasing(h20_data), f"H20 is not monotonically decreasing."
+    assert all_nonnegative(h20_data), f"H20 falls below 0."
+
+    # Amino acids are released in specified numbers whenever a protein is degraded
+    aa_delta_expected = map(lambda i: [test_config['amino_acid_counts'].T @ -protein_delta[:, i]],
+                            range(protein_delta.shape[1]))
+    aa_delta_expected = np.concatenate(list(aa_delta_expected)).T
+    assert np.array_equal(aa_delta, aa_delta_expected)
+
+    # N-1 molecules H20 is consumed whenever a protein of length N is degraded
+    h20_delta_expected = (protein_delta.T * (test_config['protein_lengths'] - 1)).T
+    h20_delta_expected = np.sum(h20_delta_expected, axis=0)
+    assert np.array_equal(h20_delta, h20_delta_expected)
+
+    print("Passed all tests.")
 
 
 if __name__ == "__main__":
