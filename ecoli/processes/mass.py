@@ -27,7 +27,6 @@ def mass_from_count(count, mw):
     return mw * mol
 
 
-
 class Mass(Deriver):
     name = 'ecoli-mass'
     defaults = {
@@ -120,15 +119,9 @@ def test_mass():
     # declare schema override to get mw properties
     parameters = {
         'initial_mass': 0 * units.g,  # in grams
-        '_schema': {
-            'bulk': {
-                'water': {
-                    '_emit': True,
-                    '_properties': {'mw': water_mw}},
-                'biomass': {
-                    '_emit': True,
-                    '_properties': {'mw': biomass_mw}},
-            },
+        'molecular_weights': {
+            'water': water_mw,
+            'biomass': biomass_mw,
         }
     }
     mass_process = Mass(parameters)
