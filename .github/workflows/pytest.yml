@@ -28,7 +28,7 @@ jobs:
         pip install numpy
         pip install Cython
         python setup.py install
-    - name: Cythonize
+    - name: Compile Cython components
       run: |
         make clean compile
     - name: Test with pytest
