@@ -165,13 +165,15 @@ def test_protein_degradation():
     h20_delta = h20_data[1:] - h20_data[:-1]
 
     # Proteins are monotonically decreasing, never <0:
-    assert all(np.apply_along_axis(monotonically_decreasing, 1, protein_data)), \
-        f"Protein {protein} is not monotonically decreasing."
-    assert all_nonnegative(protein_data), f"Protein {protein} falls below 0."
+    for i in range(protein_data.shape[0]):
+        assert monotonically_decreasing(protein_data[i, :]), \
+            f"Protein {test_config['protein_ids'][i]} is not monotonically decreasing."
+        assert all_nonnegative(protein_data), f"Protein {test_config['protein_ids'][i]} falls below 0."
 
     # Amino acids are monotonically increasing
-    assert all(np.apply_along_axis(monotonically_increasing, 1, aa_data)), \
-        f"Amino acid {aa} is not monotonically increasing."
+    for i in range(aa_data.shape[0]):
+        assert monotonically_increasing(aa_data[i, :]), \
+            f"Amino acid {test_config['amino_acid_ids'][i]} is not monotonically increasing."
 
     # H20 is monotonically decreasing, never < 0
     assert monotonically_decreasing(h20_data), f"H20 is not monotonically decreasing."
