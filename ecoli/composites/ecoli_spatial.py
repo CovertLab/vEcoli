@@ -193,7 +193,7 @@ class EcoliSpatial(Composite):
         }
 
 
-def add_polyribosomes(unique, unique_masses, polyribosome_assumption):
+def add_polyribosomes(unique, unique_masses, polyribosome_assumption, save_output=False):
         # pull polyribosome building blocks from unique initial state
         is_full_transcript_rna = np.asarray([unique['RNA'][
                                                  unique_index]['is_full_transcript']
@@ -234,7 +234,8 @@ def add_polyribosomes(unique, unique_masses, polyribosome_assumption):
             for i in np.unique(mrna_index_ribosome_on_full_mrna, return_index=True)[1]
             if n_ribosomes_on_full_mrna[mrna_index_ribosome_on_full_mrna[i]] != 0
         ])
-        plot_NT_availability(avg_NT_per_ribosome)
+        if save_output:
+            plot_NT_availability(avg_NT_per_ribosome)
 
         # Defines buckets for unique polyribosomes to be combined into
         groups = ['polyribosome_1[c]', 'polyribosome_2[c]', 'polyribosome_3[c]',
