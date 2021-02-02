@@ -192,6 +192,16 @@ def test_protein_degradation():
 
     print("Passed all tests.")
 
+    return data
+
+
+def run_plot(data):
+    pass
+
+def main():
+    data = test_protein_degradation()
+    run_plot(data)
+
 
 if __name__ == "__main__":
-    test_protein_degradation()
+    main()
