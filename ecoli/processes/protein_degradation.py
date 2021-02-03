@@ -183,12 +183,14 @@ def test_protein_degradation():
     aa_delta_expected = map(lambda i: [test_config['amino_acid_counts'].T @ -protein_delta[:, i]],
                             range(protein_delta.shape[1]))
     aa_delta_expected = np.concatenate(list(aa_delta_expected)).T
-    assert np.array_equal(aa_delta, aa_delta_expected)
+    assert np.array_equal(aa_delta, aa_delta_expected), \
+        f"Mismatch between expected release of amino acids, and counts actually released."
 
     # N-1 molecules H20 is consumed whenever a protein of length N is degraded
     h20_delta_expected = (protein_delta.T * (test_config['protein_lengths'] - 1)).T
     h20_delta_expected = np.sum(h20_delta_expected, axis=0)
-    assert np.array_equal(h20_delta, h20_delta_expected)
+    assert np.array_equal(h20_delta, h20_delta_expected), \
+        f"Mismatch between number of water molecules consumed and expected to be consumed in degradation."
 
     print("Passed all tests.")
 
