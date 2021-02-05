@@ -1,6 +1,7 @@
 import json
 import numpy as np
-from scipy.stats import chisquare
+from collections import Counter
+from scipy.stats import mannwhitneyu
 from vivarium.core.composition import process_in_experiment
 
 from ecoli.library.sim_data import LoadSimData
@@ -18,11 +19,17 @@ def test_protein_degradation():
     time_step = 2
     total_time = 2
 
+    # Create process, experiment, loading in initial state from file.
     config = load_sim_data.get_protein_degradation_config(time_step=time_step)
     prot_deg_process = ProteinDegradation(config)
     initial_state = get_state_from_file(path='data/wcecoli_t10.json')
+    initial_state = {
+        'metabolites': {m: initial_state['bulk'][m] for m in config['amino_acid_ids'] + [config["water_id"]]},
+        'proteins': {p: initial_state['bulk'][p] for p in config['protein_ids']}}
     experiment = process_in_experiment(prot_deg_process, initial_state=initial_state)
 
+    # Get update (changes in protein, metabolites) from process.
+    # METHOD 1
     process_paths = experiment.process_paths
     path = list(process_paths.keys())[0]
     process = process_paths[path]
@@ -35,9 +42,17 @@ def test_protein_degradation():
     d_proteins = actual_update['proteins']
     d_metabolites = actual_update['metabolites']
 
-    ''' METHOD 2
+    '''
+    # METHOD 2
     experiment.update(total_time)
     data = experiment.emitter.get_data()
+
+    #settings = {
+    #    'total_time': total_time,
+    #    'initial_state': initial_state}
+
+    #from vivarium.core.composition import simulate_process_in_experiment
+    #data = simulate_process_in_experiment(prot_deg_process, settings)
 
     initial = data[0.0]
     final = data[total_time]
@@ -49,6 +64,7 @@ def test_protein_degradation():
     with open("data/prot_deg_update_t2.json") as f:
         wc_data = json.load(f)
 
+        # Sanity checks: wcEcoli and vivarium-ecoli match in number, names of proteins, metabolites
         assert len(d_proteins) == len(wc_data['proteins_to_degrade']) == len(wc_data['protein_ids']), \
             (f"Mismatch in lengths: vivarium-ecoli protein update has length {len(d_proteins)}\n"
              f"while wcecoli has {len(wc_data['protein_ids'])} proteins with {len(wc_data['proteins_to_degrade'])} values.")
@@ -60,15 +76,46 @@ def test_protein_degradation():
         assert set(d_metabolites.keys()) == set(wc_data['metabolite_ids']), \
             "Mismatch between metabolite ids in vivarium-ecoli and wcEcoli."
 
-        # TODO: chisquare is not really the best here, need to look into this
+        # Test whether distribution of number of proteins degraded, amino acids released
+        # "looks alike" (same median) between wcEcoli and vivarium-ecoli.
         threshold = 0.05
-        assert chisquare(wc_data["proteins_to_degrade"],
-                         [d_proteins[id] for id in wc_data["protein_ids"]]).pvalue > threshold, \
-            f"Numbers of proteins degraded are significantly different between vivarium-ecoli and wcEcoli."
 
-        assert chisquare(wc_data["metabolite_update"],
-                         [d_metabolites[id] for id in wc_data["metabolite_ids"]]).pvalue > threshold, \
-            f"Metabolite updates are significantly different between vivarium-ecoli and wcEcoli."
+        utest_protein = mannwhitneyu(wc_data["proteins_to_degrade"],
+                                     [-d_proteins[id] for id in wc_data["protein_ids"]],
+                                     alternative="two-sided")
+        assert utest_protein.pvalue > threshold, \
+            f"Distribution of #proteins degraded is different between wcEcoli and vivarium-ecoli (p={utest_protein.pvalue} <= {threshold})"
+
+        amino_acids = config["amino_acid_ids"]
+        aa_wcecoli = [dict(zip(wc_data["metabolite_ids"], wc_data["metabolite_update"]))[aa]
+                      for aa in amino_acids]
+        utest_aa = mannwhitneyu(aa_wcecoli,
+                                [d_metabolites[aa] for aa in amino_acids],
+                                alternative="two-sided")
+        assert utest_aa.pvalue > threshold, \
+            f"Distribution of #amino acids released is different between wcEcoli and vivarium-ecoli (p={utest_aa.pvalue} <= {threshold})"
+
+        # Calculating percent error in total number of proteins degraded, metabolites changed
+        # for wcEcoli vs. vivarium-coli, and checking if this is below some (somewhat arbitrary) threshold.
+        threshold = 0.05
+
+        n_prot_wcecoli = sum(wc_data['proteins_to_degrade'])
+        n_prot_vivecoli = -sum(d_proteins.values())
+        protein_error = abs(n_prot_wcecoli - n_prot_vivecoli) / n_prot_wcecoli
+        assert protein_error < threshold, \
+            f"Total # of proteins degraded differs between wcEcoli and vivarium-ecoli (percent error = {protein_error})"
+
+        n_aa_wcecoli = sum(aa_wcecoli)
+        n_aa_vivecoli = sum(d_metabolites[aa] for aa in amino_acids)
+        aa_error = abs((n_aa_wcecoli - n_aa_vivecoli) / n_aa_wcecoli)
+        assert aa_error < threshold, \
+            f"Total # of amino acids released differs between wcEcoli and vivarium-ecoli (percent error = {aa_error})"
+
+        n_water_wcecoli = dict(zip(wc_data["metabolite_ids"], wc_data["metabolite_update"]))[config["water_id"]]
+        n_water_vivecoli = d_metabolites[config["water_id"]]
+        water_error = abs((n_water_wcecoli - n_water_vivecoli) / n_water_wcecoli)
+        assert water_error < threshold, \
+            f"Total # of water molecules used differs between wcEcoli and vivarium-ecoli (percent error = {water_error})"
 
 
 if __name__ == "__main__":
