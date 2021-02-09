@@ -20,7 +20,7 @@ class LoadSimData:
         with open(sim_data_path, 'rb') as sim_data_file:
             self.sim_data = cPickle.load(sim_data_file)
 
-    def get_tf_config(self, time_step=1, parallel=False):
+    def get_tf_config(self, time_step=2, parallel=False):
         tf_binding_config = {
             'time_step': time_step,
             '_parallel': parallel,
@@ -40,7 +40,7 @@ class LoadSimData:
 
         return tf_binding_config
 
-    def get_transcript_initiation_config(self, time_step=1, parallel=False):
+    def get_transcript_initiation_config(self, time_step=2, parallel=False):
         transcript_initiation_config = {
             'time_step': time_step,
             '_parallel': parallel,
@@ -80,7 +80,7 @@ class LoadSimData:
 
         return transcript_initiation_config
 
-    def get_transcript_elongation_config(self, time_step=1, parallel=False):
+    def get_transcript_elongation_config(self, time_step=2, parallel=False):
         transcript_elongation_config = {
             'time_step': time_step,
             '_parallel': parallel,
@@ -106,7 +106,7 @@ class LoadSimData:
 
         return transcript_elongation_config
 
-    def get_rna_degradation_config(self, time_step=1, parallel=False):
+    def get_rna_degradation_config(self, time_step=2, parallel=False):
         rna_degradation_config = {
             'time_step': time_step,
             '_parallel': parallel,
@@ -143,7 +143,7 @@ class LoadSimData:
 
         return rna_degradation_config
 
-    def get_polypeptide_initiation_config(self, time_step=1, parallel=False):
+    def get_polypeptide_initiation_config(self, time_step=2, parallel=False):
         polypeptide_initiation_config = {
             'time_step': time_step,
             '_parallel': parallel,
@@ -166,7 +166,7 @@ class LoadSimData:
 
         return polypeptide_initiation_config
 
-    def get_polypeptide_elongation_config(self, time_step=1, parallel=False):
+    def get_polypeptide_elongation_config(self, time_step=2, parallel=False):
         constants = self.sim_data.constants
         molecule_ids = self.sim_data.molecule_ids
         translation = self.sim_data.process.translation
@@ -238,7 +238,7 @@ class LoadSimData:
 
         return polypeptide_elongation_config
 
-    def get_complexation_config(self,  time_step=1, parallel=False):
+    def get_complexation_config(self,  time_step=2, parallel=False):
         complexation_config = {
             'time_step': time_step,
             '_parallel': parallel,
@@ -250,7 +250,7 @@ class LoadSimData:
 
         return complexation_config
 
-    def get_two_component_system_config(self, time_step=1, parallel=False):
+    def get_two_component_system_config(self, time_step=2, parallel=False):
         two_component_system_config = {
             'time_step': time_step,
             '_parallel': parallel,
@@ -264,7 +264,7 @@ class LoadSimData:
 
         return two_component_system_config
 
-    def get_equilibrium_config(self, time_step=1, parallel=False):
+    def get_equilibrium_config(self, time_step=2, parallel=False):
         equilibrium_config = {
             'time_step': time_step,
             '_parallel': parallel,
@@ -279,7 +279,7 @@ class LoadSimData:
 
         return equilibrium_config
 
-    def get_protein_degradation_config(self, time_step=1, parallel=False):
+    def get_protein_degradation_config(self, time_step=2, parallel=False):
         protein_degradation_config = {
             'time_step': time_step,
             '_parallel': parallel,
@@ -296,7 +296,7 @@ class LoadSimData:
 
         return protein_degradation_config
 
-    def get_metabolism_config(self, time_step=1, parallel=False):
+    def get_metabolism_config(self, time_step=2, parallel=False):
         metabolism_config = {
             'time_step': time_step,
             '_parallel': parallel,
@@ -332,7 +332,7 @@ class LoadSimData:
 
         return metabolism_config
 
-    def get_mass_config(self, time_step=1, parallel=False):
+    def get_mass_config(self, time_step=2, parallel=False):
         bulk_ids = self.sim_data.internal_state.bulk_molecules.bulk_data['id']
 
         # molecule weight is converted to femtograms/mol

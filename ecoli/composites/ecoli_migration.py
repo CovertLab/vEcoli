@@ -1,3 +1,11 @@
+"""
+tests that vivarium-ecoli process update are the same as save wcEcoli updates
+
+TODO:
+    - get wcEcoli state at time 0, so that the comparison is fair.
+"""
+
+
 import json
 import numpy as np
 from collections import Counter
@@ -13,6 +21,25 @@ from ecoli.processes.protein_degradation import ProteinDegradation
 load_sim_data = LoadSimData(
             sim_data_path=SIM_DATA_PATH,
             seed=0)
+
+
+def load_ecoli_process(process, total_time=2):
+
+    # TODO get wcecoli_t0
+    initial_state = get_state_from_file(path='data/wcecoli_t10.json')
+    # TODO - get initial state correct mapping
+
+    experiment = process_in_experiment(process, initial_state=initial_state)
+
+    # Get update (changes in protein, metabolites) from process.
+    # METHOD 1
+    path, process = list(experiment.process_paths.items())[0]
+    update, process_topology, state = experiment.process_update(path, process, total_time)
+
+    # This actual update comes from the process, and can be compared to wcEcoli process json
+    actual_update = update.get()
+
+    return actual_update
 
 
 def test_protein_degradation():
