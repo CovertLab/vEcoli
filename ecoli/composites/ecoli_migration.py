@@ -5,7 +5,7 @@ TODO:
     - get wcEcoli state at time 0, so that the comparison is fair.
 """
 
-
+import os
 import json
 import numpy as np
 import matplotlib.pyplot as plt
@@ -17,6 +17,8 @@ from ecoli.library.sim_data import LoadSimData
 from ecoli.composites.ecoli_master import SIM_DATA_PATH, get_state_from_file
 
 from ecoli.processes.protein_degradation import ProteinDegradation
+
+from utils.plots import qqplot
 
 
 load_sim_data = LoadSimData(
@@ -126,6 +128,7 @@ def test_protein_degradation():
     # Numerical tests =======================================================================
     # Perform tests of equal-medians (or more precisely, failure to reject non-equal medians)
     # in distributions of number of proteins degraded, amino acids released:
+    utest_threshold = 0.05
 
     utest_protein = mannwhitneyu(wc_proteins, [-p for p in d_proteins.values()], alternative="two-sided")
     utest_aa = mannwhitneyu(wc_amino_acids, viv_amino_acids, alternative="two-sided")
@@ -133,27 +136,69 @@ def test_protein_degradation():
     # Find percent errors between total numbers of
     # proteins degraded, amino acids released, and water molecules consumed
     # between wcEcoli and vivarium-ecoli.
+    percent_error_threshold = 0.05
 
     protein_error = percent_error(-sum(d_proteins.values()), sum(wc_proteins))
     aa_error = percent_error(sum(viv_amino_acids), sum(wc_amino_acids))
     water_error = percent_error(viv_water, wc_water)
 
-    #with open("out/migration/protein_degradation.txt", "w") as f:
-    #    pass
+    # Write test log to file
+    log_file = "out/migration/protein_degradation.txt"
+    os.makedirs(os.path.dirname(log_file), exist_ok=True)
+    with open(log_file, "w") as f:
+        report = []
+
+        report += 'COMPARING MEDIANS ===========================\n\n'
+        report += ('Median number of degradations per protein \n' +
+                   ("differed significantly " if utest_protein.pvalue <= utest_threshold
+                    else "did not differ significantly ") +
+                   'between wcEcoli and vivarium-ecoli \n' +
+                   f'(Mann-Whitney U, U={utest_protein.statistic}, p={utest_protein.pvalue}).\n\n')
+        report += ('Median number of molecules released per amino acid \n' +
+                   ('differed significantly ' if utest_aa.pvalue <= utest_threshold
+                    else 'did not differ significantly ') +
+                   'between wcEcoli and vivarium-ecoli \n' +
+                   f'(Mann-Whitney U, U={utest_aa.statistic}, p={utest_aa.pvalue}).\n\n')
+
+        report += 'PERCENT ERROR ===============================\n\n'
+        report += ('Percent error in total number of proteins degraded \n' +
+                   f'was {protein_error * 100}% ' + ('<= ' if protein_error <= percent_error_threshold else '> ') +
+                   f'{percent_error_threshold * 100}% (threshold).\n\n')
+        report += ('Percent error in total number of amino acids released \n' +
+                   f'was {aa_error * 100}% ' + ('<= ' if aa_error <= percent_error_threshold else '> ') +
+                   f'{percent_error_threshold * 100}% (threshold).\n\n')
+        report += ('Percent error in total number of water molecules consumed \n' +
+                   f'was {water_error * 100}% ' + ('<= ' if water_error <= percent_error_threshold else '> ') +
+                   f'{percent_error_threshold * 100}% (threshold).\n\n')
+
+        f.writelines(report)
+
+    # QQ-plot of degradation per protein (wcEcoli vs. vivarium-ecoli)
+    plt.subplot(2, 1, 1)
+    qqplot(wc_proteins, [-p for p in d_proteins.values()], quantile_precision=0.0001)
+    plt.xlabel("wcEcoli")
+    plt.ylabel("vivarium-ecoli")
+    plt.title("QQ-plot of degradations per protein type")
+
+    plt.subplot(2, 1, 2)
+    qqplot(wc_amino_acids, viv_amino_acids)
+    plt.xlabel("wcEcoli")
+    plt.ylabel("vivarium-ecoli")
+    plt.title("QQ-plot of release events per amino acid type")
+
+    plt.savefig("out/migration/protein_degradation_figures.png")
 
     # Asserts for numerical tests:
-    threshold = 0.05
-    assert utest_protein.pvalue > threshold, \
+    assert utest_protein.pvalue > utest_threshold, \
         f"Distribution of #proteins degraded is different between wcEcoli and vivarium-ecoli (p={utest_protein.pvalue} <= {threshold}) "
-    assert utest_aa.pvalue > threshold, \
+    assert utest_aa.pvalue > utest_threshold, \
         f"Distribution of #amino acids released is different between wcEcoli and vivarium-ecoli (p={utest_aa.pvalue} <= {threshold})"
 
-    threshold = 0.05
-    assert protein_error < threshold, \
+    assert protein_error < percent_error_threshold, \
         f"Total # of proteins degraded differs between wcEcoli and vivarium-ecoli (percent error = {protein_error})"
-    assert aa_error < threshold, \
+    assert aa_error < percent_error_threshold, \
         f"Total # of amino acids released differs between wcEcoli and vivarium-ecoli (percent error = {aa_error})"
-    assert water_error < threshold, \
+    assert water_error < percent_error_threshold, \
         f"Total # of water molecules used differs between wcEcoli and vivarium-ecoli (percent error = {water_error})"
 
 
