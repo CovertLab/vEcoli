@@ -8,6 +8,7 @@ TODO:
 
 import json
 import numpy as np
+import matplotlib.pyplot as plt
 from collections import Counter
 from scipy.stats import mannwhitneyu
 from vivarium.core.composition import process_in_experiment
@@ -40,6 +41,10 @@ def load_ecoli_process(process, total_time=2):
     actual_update = update.get()
 
     return actual_update
+
+
+def percent_error(actual, expected):
+    return abs((actual - expected) / expected)
 
 
 def test_protein_degradation():
@@ -85,64 +90,64 @@ def test_protein_degradation():
     with open("data/prot_deg_update_t2.json") as f:
         wc_data = json.load(f)
 
-        # Unpack
-        protein_ids = wc_data['protein_ids']
-        wc_proteins = wc_data['proteins_to_degrade']
-        metabolite_ids = wc_data['metabolite_ids']
-        wc_metabolites = wc_data['metabolite_update']
-        amino_acid_ids = config["amino_acid_ids"]
-        water_id = config["water_id"]
-        wc_amino_acids = [wc_metabolites[i] for i in range(len(wc_metabolites)) if metabolite_ids[i] != water_id]
-        wc_water = wc_metabolites[metabolite_ids.index(water_id)]
+    # Unpack
+    protein_ids = wc_data['protein_ids']
+    wc_proteins = wc_data['proteins_to_degrade']
+    metabolite_ids = wc_data['metabolite_ids']
+    wc_metabolites = wc_data['metabolite_update']
+    amino_acid_ids = config["amino_acid_ids"]
+    water_id = config["water_id"]
+    wc_amino_acids = [wc_metabolites[i] for i in range(len(wc_metabolites)) if metabolite_ids[i] != water_id]
+    wc_water = wc_metabolites[metabolite_ids.index(water_id)]
 
-        viv_amino_acids = [d_metabolites[aa] for aa in amino_acid_ids]
-        viv_water = d_metabolites[water_id]
+    viv_amino_acids = [d_metabolites[aa] for aa in amino_acid_ids]
+    viv_water = d_metabolites[water_id]
 
-        # Sanity checks: wcEcoli and vivarium-ecoli match in number, names of proteins, metabolites
-        assert len(d_proteins) == len(wc_proteins) == len(protein_ids), \
-            (f"Mismatch in lengths: vivarium-ecoli protein update has length {len(d_proteins)}\n"
-             f"while wcecoli has {len(protein_ids)} proteins with {len(wc_proteins)} values.")
+    # Sanity checks: wcEcoli and vivarium-ecoli match in number, names of proteins, metabolites
+    assert len(d_proteins) == len(wc_proteins) == len(protein_ids), \
+        (f"Mismatch in lengths: vivarium-ecoli protein update has length {len(d_proteins)}\n"
+         f"while wcecoli has {len(protein_ids)} proteins with {len(wc_proteins)} values.")
 
-        assert len(d_metabolites) == len(wc_metabolites) == len(metabolite_ids), \
-            (f"Mismatch in lengths: vivarium-ecoli metabolite update has length {len(d_metabolites)}\n"
-             f"while wcecoli has {len(metabolite_ids)} metabolites with {len(wc_metabolites)} values.")
+    assert len(d_metabolites) == len(wc_metabolites) == len(metabolite_ids), \
+        (f"Mismatch in lengths: vivarium-ecoli metabolite update has length {len(d_metabolites)}\n"
+         f"while wcecoli has {len(metabolite_ids)} metabolites with {len(wc_metabolites)} values.")
 
-        assert set(d_proteins.keys()) == set(protein_ids), \
-            "Mismatch between protein ids in vivarium-ecoli and wcEcoli."
+    assert set(d_proteins.keys()) == set(protein_ids), \
+        "Mismatch between protein ids in vivarium-ecoli and wcEcoli."
 
-        assert set(d_metabolites.keys()) == set(metabolite_ids), \
-            "Mismatch between metabolite ids in vivarium-ecoli and wcEcoli."
+    assert set(d_metabolites.keys()) == set(metabolite_ids), \
+        "Mismatch between metabolite ids in vivarium-ecoli and wcEcoli."
 
-        # Test whether distribution of number of proteins degraded, amino acids released
-        # "looks alike" (same median) between wcEcoli and vivarium-ecoli.
-        threshold = 0.05
+    # Test whether distribution of number of proteins degraded, amino acids released
+    # "looks alike" (same median) between wcEcoli and vivarium-ecoli.
+    threshold = 0.05
 
-        utest_protein = mannwhitneyu(wc_proteins, [-p for p in d_proteins.values()], alternative="two-sided")
-        assert utest_protein.pvalue > threshold, \
-            f"Distribution of #proteins degraded is different between wcEcoli and vivarium-ecoli (p={utest_protein.pvalue} <= {threshold}) "
+    utest_protein = mannwhitneyu(wc_proteins, [-p for p in d_proteins.values()], alternative="two-sided")
+    assert utest_protein.pvalue > threshold, \
+        f"Distribution of #proteins degraded is different between wcEcoli and vivarium-ecoli (p={utest_protein.pvalue} <= {threshold}) "
 
-        utest_aa = mannwhitneyu(wc_amino_acids, viv_amino_acids, alternative="two-sided")
-        assert utest_aa.pvalue > threshold, \
-            f"Distribution of #amino acids released is different between wcEcoli and vivarium-ecoli (p={utest_aa.pvalue} <= {threshold})"
+    utest_aa = mannwhitneyu(wc_amino_acids, viv_amino_acids, alternative="two-sided")
+    assert utest_aa.pvalue > threshold, \
+        f"Distribution of #amino acids released is different between wcEcoli and vivarium-ecoli (p={utest_aa.pvalue} <= {threshold})"
 
-        # Calculating percent error in total number of proteins degraded, metabolites changed
-        # for wcEcoli vs. vivarium-coli, and checking if this is below some (somewhat arbitrary) threshold.
-        threshold = 0.05
+    #with open("out/migration/protein_degradation.txt", "w") as f:
+    #    pass
 
-        def percent_error(actual, expected):
-            return abs((actual - expected) / expected)
+    # Calculating percent error in total number of proteins degraded, metabolites changed
+    # for wcEcoli vs. vivarium-coli, and checking if this is below some (somewhat arbitrary) threshold.
+    threshold = 0.05
 
-        protein_error = percent_error(-sum(d_proteins.values()), sum(wc_proteins))
-        assert protein_error < threshold, \
-            f"Total # of proteins degraded differs between wcEcoli and vivarium-ecoli (percent error = {protein_error})"
+    protein_error = percent_error(-sum(d_proteins.values()), sum(wc_proteins))
+    assert protein_error < threshold, \
+        f"Total # of proteins degraded differs between wcEcoli and vivarium-ecoli (percent error = {protein_error})"
 
-        aa_error = percent_error(sum(viv_amino_acids), sum(wc_amino_acids))
-        assert aa_error < threshold, \
-            f"Total # of amino acids released differs between wcEcoli and vivarium-ecoli (percent error = {aa_error})"
+    aa_error = percent_error(sum(viv_amino_acids), sum(wc_amino_acids))
+    assert aa_error < threshold, \
+        f"Total # of amino acids released differs between wcEcoli and vivarium-ecoli (percent error = {aa_error})"
 
-        water_error = percent_error(viv_water, wc_water)
-        assert water_error < threshold, \
-            f"Total # of water molecules used differs between wcEcoli and vivarium-ecoli (percent error = {water_error})"
+    water_error = percent_error(viv_water, wc_water)
+    assert water_error < threshold, \
+        f"Total # of water molecules used differs between wcEcoli and vivarium-ecoli (percent error = {water_error})"
 
 
 if __name__ == "__main__":
