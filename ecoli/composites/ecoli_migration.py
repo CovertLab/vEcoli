@@ -11,7 +11,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from collections import Counter
 from scipy.stats import mannwhitneyu
-from vivarium.core.composition import process_in_experiment
+from vivarium.core.experiment import Experiment
 
 from ecoli.library.sim_data import LoadSimData
 from ecoli.composites.ecoli_master import SIM_DATA_PATH, get_state_from_file
@@ -24,22 +24,46 @@ load_sim_data = LoadSimData(
             seed=0)
 
 
-def load_ecoli_process(process, total_time=2):
+def run_ecoli_process(process, topology, total_time=2):
+    """
+    load a single ecoli process, run it, and return the update
 
-    # TODO get wcecoli_t0
+    Args:
+        process: an initialized Process
+        topology: (dict) topology for the Process, from ecoli_master
+        total_time: (optional) run time. defaults at 2 seconds -- the default time of wcEcoli
+
+    Returns:
+        an update from the perspective of the Process.
+    """
+
+    # get initial state from file
+    # TODO -- get wcecoli_t0
     initial_state = get_state_from_file(path='data/wcecoli_t10.json')
-    # TODO - get initial state correct mapping
 
-    experiment = process_in_experiment(process, initial_state=initial_state)
+    # make an experiment
+    experiment_config = {
+        'processes': {process.name: process},
+        'topology': {process.name: topology},
+        'initial_state': initial_state}
+    experiment = Experiment(experiment_config)
 
-    # Get update (changes in protein, metabolites) from process.
+    # Get update from process.
     # METHOD 1
     path, process = list(experiment.process_paths.items())[0]
-    update, process_topology, state = experiment.process_update(path, process, total_time)
+    store = experiment.state.get_path(path)
 
-    # This actual update comes from the process, and can be compared to wcEcoli process json
+    # translate the values from the tree structure into the form
+    # that this process expects, based on its declared topology
+    states = store.outer.schema_topology(process.schema, store.topology)
+
+    update = experiment.invoke_process(
+        process,
+        path,
+        total_time,
+        states)
+
     actual_update = update.get()
-
     return actual_update
 
 
@@ -48,45 +72,24 @@ def percent_error(actual, expected):
 
 
 def test_protein_degradation():
-    time_step = 2
-    total_time = 2
 
     # Create process, experiment, loading in initial state from file.
-    config = load_sim_data.get_protein_degradation_config(time_step=time_step)
+    config = load_sim_data.get_protein_degradation_config()
     prot_deg_process = ProteinDegradation(config)
 
-    initial_state = get_state_from_file(path='data/wcecoli_t10.json')
+    # copy topology from ecoli_master, under generate_topology
+    topology = {
+        'metabolites': ('bulk',),
+        'proteins': ('bulk',)}
 
-    # Get the actually relevant parts in correct form for the initial state
-    initial_state = {
-        'metabolites': {m: initial_state['bulk'][m] for m in config['amino_acid_ids'] + [config["water_id"]]},
-        'proteins': {p: initial_state['bulk'][p] for p in config['protein_ids']}}
+    # run the process and get an update
+    actual_update = run_ecoli_process(prot_deg_process, topology)
 
-    experiment = process_in_experiment(prot_deg_process, initial_state=initial_state)
-
-    # Get update (changes in protein, metabolites) from process.
-    # METHOD 1
-    path, process = list(experiment.process_paths.items())[0]
-    update, process_topology, state = experiment.process_update(path, process, total_time)
-
-    # This actual update comes from the process, and can be compared to wcEcoli process json
-    actual_update = update.get()
-
+    # separate the update to its ports
     d_proteins = actual_update['proteins']
     d_metabolites = actual_update['metabolites']
 
-    '''
-    # METHOD 2
-    experiment.update(total_time)
-    data = experiment.emitter.get_data()
-
-    initial = data[0.0]
-    final = data[total_time]
-
-    d_proteins = {id : final['proteins'][id] - initial['proteins'][id] for id in initial['proteins'].keys()}
-    d_metabolites = {id : final['metabolites'][id] - initial['metabolites'][id] for id in initial['metabolites'].keys()}
-    '''
-
+    # compare to collected update from ecEcoli
     with open("data/prot_deg_update_t2.json") as f:
         wc_data = json.load(f)
 
