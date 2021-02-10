@@ -111,19 +111,19 @@ def test_protein_degradation():
     wc_water = wc_metabolites[metabolite_ids.index(water_id)]
 
     # Sanity checks: wcEcoli and vivarium-ecoli match in number, names of proteins, metabolites
-    assert len(d_proteins) == len(wc_proteins) == len(protein_ids), \
-        (f"Mismatch in lengths: vivarium-ecoli protein update has length {len(d_proteins)}\n"
-         f"while wcecoli has {len(protein_ids)} proteins with {len(wc_proteins)} values.")
+    assert len(d_proteins) == len(wc_proteins) == len(protein_ids), (
+        f"Mismatch in lengths: vivarium-ecoli protein update has length {len(d_proteins)}\n"
+        f"while wcecoli has {len(protein_ids)} proteins with {len(wc_proteins)} values.")
 
-    assert len(d_metabolites) == len(wc_metabolites) == len(metabolite_ids), \
-        (f"Mismatch in lengths: vivarium-ecoli metabolite update has length {len(d_metabolites)}\n"
-         f"while wcecoli has {len(metabolite_ids)} metabolites with {len(wc_metabolites)} values.")
+    assert len(d_metabolites) == len(wc_metabolites) == len(metabolite_ids), (
+        f"Mismatch in lengths: vivarium-ecoli metabolite update has length {len(d_metabolites)}\n"
+        f"while wcecoli has {len(metabolite_ids)} metabolites with {len(wc_metabolites)} values.")
 
-    assert set(d_proteins.keys()) == set(protein_ids), \
-        "Mismatch between protein ids in vivarium-ecoli and wcEcoli."
+    assert set(d_proteins.keys()) == set(protein_ids), (
+        "Mismatch between protein ids in vivarium-ecoli and wcEcoli.")
 
-    assert set(d_metabolites.keys()) == set(metabolite_ids), \
-        "Mismatch between metabolite ids in vivarium-ecoli and wcEcoli."
+    assert set(d_metabolites.keys()) == set(metabolite_ids), (
+        "Mismatch between metabolite ids in vivarium-ecoli and wcEcoli.")
 
     # Numerical tests =======================================================================
     # Perform tests of equal-medians (or more precisely, failure to reject non-equal medians)
@@ -189,17 +189,22 @@ def test_protein_degradation():
     plt.savefig("out/migration/protein_degradation_figures.png")
 
     # Asserts for numerical tests:
-    assert utest_protein.pvalue > utest_threshold, \
-        f"Distribution of #proteins degraded is different between wcEcoli and vivarium-ecoli (p={utest_protein.pvalue} <= {threshold}) "
-    assert utest_aa.pvalue > utest_threshold, \
-        f"Distribution of #amino acids released is different between wcEcoli and vivarium-ecoli (p={utest_aa.pvalue} <= {threshold})"
+    assert utest_protein.pvalue > utest_threshold, (
+        "Distribution of #proteins degraded is different between wcEcoli and vivarium-ecoli"
+        f"(p={utest_protein.pvalue} <= {threshold}) ")
+    assert utest_aa.pvalue > utest_threshold, (
+        "Distribution of #amino acids released is different between wcEcoli and vivarium-ecoli"
+        f"(p={utest_aa.pvalue} <= {threshold})")
 
-    assert protein_error < percent_error_threshold, \
-        f"Total # of proteins degraded differs between wcEcoli and vivarium-ecoli (percent error = {protein_error})"
-    assert aa_error < percent_error_threshold, \
-        f"Total # of amino acids released differs between wcEcoli and vivarium-ecoli (percent error = {aa_error})"
-    assert water_error < percent_error_threshold, \
-        f"Total # of water molecules used differs between wcEcoli and vivarium-ecoli (percent error = {water_error})"
+    assert protein_error < percent_error_threshold, (
+        "Total # of proteins degraded differs between wcEcoli and vivarium-ecoli"
+        f"(percent error = {protein_error})")
+    assert aa_error < percent_error_threshold, (
+        f"Total # of amino acids released differs between wcEcoli and vivarium-ecoli"
+        "(percent error = {aa_error})")
+    assert water_error < percent_error_threshold, (
+        f"Total # of water molecules used differs between wcEcoli and vivarium-ecoli"
+        "(percent error = {water_error})")
 
 
 if __name__ == "__main__":
