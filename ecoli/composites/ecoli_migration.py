@@ -186,6 +186,8 @@ def test_protein_degradation():
     plt.ylabel("vivarium-ecoli")
     plt.title("QQ-plot of release events per amino acid type")
 
+    plt.subplots_adjust(hspace=0.5)
+
     plt.savefig("out/migration/protein_degradation_figures.png")
 
     # Asserts for numerical tests:
