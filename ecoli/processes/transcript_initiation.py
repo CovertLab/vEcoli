@@ -431,3 +431,11 @@ class TranscriptInitiation(Process):
         for idx, synth_prob in zip(fixed_indexes, fixed_synth_probs):
             fixed_mask = (TU_index == idx)
             self.promoter_init_probs[fixed_mask] = synth_prob / fixed_mask.sum()
+
+
+def test_transcript_initiation():
+    pass
+
+
+if __name__ == "__main__":
+    test_transcript_initiation()
