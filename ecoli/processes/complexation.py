@@ -16,6 +16,8 @@ from arrow import StochasticSystem
 from vivarium.core.process import Process
 from vivarium.core.composition import simulate_process_in_experiment
 
+from utils.data_predicates import all_nonnegative
+
 # Maximum unsigned int value + 1 for randint() to seed srand from C stdlib
 RAND_MAX = 2**31
 
@@ -65,7 +67,6 @@ class Complexation(Process):
 
         # # Write outputs to listeners
         # self.writeToListener("ComplexationListener", "complexationEvents", events)
-
         return update
 
 
@@ -97,6 +98,16 @@ def test_complexation():
     data = simulate_process_in_experiment(complexation, settings)
 
     print(data)
+
+    molecule_data = np.concatenate([[data["molecules"][molecules]] for molecules in test_config['molecule_names']], axis=0)
+    assert all_nonnegative(molecule_data)
+
+    molecule_delta = molecule_data[:, 1:] - molecule_data[:, :-1]
+    molecule_expected = (molecule_delta + molecule_data[:, :-1])
+    assert np.array_equal(molecule_data[:, 1:], molecule_expected)
+
+    #expected_molecule =
+    print("passed tests.")
 
 
 if __name__ == "__main__":
