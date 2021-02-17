@@ -16,7 +16,7 @@ from arrow import StochasticSystem
 from vivarium.core.process import Process
 from vivarium.core.composition import simulate_process_in_experiment
 
-from utils.data_predicates import all_nonnegative
+from ecoli.library.data_predicates import all_nonnegative
 
 # Maximum unsigned int value + 1 for randint() to seed srand from C stdlib
 RAND_MAX = 2**31
