@@ -17,6 +17,7 @@ from ecoli.library.sim_data import LoadSimData
 from ecoli.composites.ecoli_master import SIM_DATA_PATH, get_state_from_file
 
 from ecoli.processes.protein_degradation import ProteinDegradation
+from ecoli.processes.complexation import Complexation
 
 from utils.plots import qqplot
 
@@ -208,6 +209,51 @@ def test_protein_degradation():
         f"Total # of water molecules used differs between wcEcoli and vivarium-ecoli"
         "(percent error = {water_error})")
 
+def test_complexation():
+    config = load_sim_data.get_complexation_config()
+    complexation = Complexation(config)
+
+
+
+    molecules = config["molecule_names"]
+
+    topology = {
+        'molecules': ('bulk',)
+        }
+
+
+    # run the process and get an update
+    actual_update = run_ecoli_process(complexation, topology)
+
+
+
+
+    with open("data/complexation_update3_t2.json") as f:
+        wc_complexation_data = json.load(f)
+
+    d_molecules = actual_update["molecules"]
+    wc_molecules = wc_complexation_data["molecules"]
+    wc_moleculesCounts = wc_complexation_data["migrationCounts"]
+
+
+
+
+    assert len(wc_molecules) == len(d_molecules), (
+        f"Mismatch in lengths: vivarium-ecoli molecule update has length {len(d_molecules)}\n"
+        f"while wcecoli has {len(wc_molecules)}.")
+
+    assert set(d_molecules.keys()) == set(wc_molecules), (
+        "Mismatch between moleules in vivarium-ecoli and wcEcoli.")
+
+
+    utest_threshold = 0.05
+    utest_protein = mannwhitneyu(wc_moleculesCounts, [-p for p in d_molecules.values()], alternative="two-sided")
+    percent_error_threshold = 0.05
+    molecules_error = percent_error(-sum(d_molecules.values()), sum(wc_moleculesCounts))
+
+    import ipdb
+    ipdb.set_trace()
+
 
 if __name__ == "__main__":
-    test_protein_degradation()
+    test_complexation()
