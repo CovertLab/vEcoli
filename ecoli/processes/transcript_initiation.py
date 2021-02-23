@@ -79,7 +79,9 @@ class TranscriptInitiation(Process):
         - cell_density: Density of cell (constant)
         - ppgpp (str): id of ppGpp
         - inactive_RNAP (str): id of inactive RNAP
-        - synth_prob (func): see Transcription.synth_prob. lambda concentration, copy: 0.0,
+        - synth_prob (func): Function used in model of ppGpp regulation (see Transcription.synth_prob_from_ppgpp).
+                             - parameters: ppGpp_concentration (mol/volume), copy_number (Callable[float, int])
+                             - returns (ndarray[float]): normalized synthesis probability for each gene
         - copy_number (func): see Replication.get_average_copy_number.
                               - parameters: tau (float): expected doubling time in minutes
                                             coords (int or ndarray[int]): chromosome coordinates of genes
@@ -102,9 +104,9 @@ class TranscriptInitiation(Process):
         'rna_data': {},
         'shuffleIdxs': None,
 
-        'idx_16SrRNA': np.array([]),  # RNA component of the 30S small subunit of ribosome
-        'idx_23SrRNA': np.array([]),  # RNA component of the 50S large subunit of ribosome
-        'idx_5SrRNA': np.array([]),  # RNA component of ribosome
+        'idx_16SrRNA': np.array([]),
+        'idx_23SrRNA': np.array([]),
+        'idx_5SrRNA': np.array([]),
         'idx_rRNA': np.array([]),
         'idx_mRNA': np.array([]),
         'idx_tRNA': np.array([]),
@@ -127,6 +129,8 @@ class TranscriptInitiation(Process):
     # Constructor
     def __init__(self, initial_parameters):
         super(TranscriptInitiation, self).__init__(initial_parameters)
+
+        import ipdb; ipdb.set_trace()
 
         # Load parameters
         self.fracActiveRnapDict = self.parameters['fracActiveRnapDict']
@@ -254,9 +258,6 @@ class TranscriptInitiation(Process):
                     'rnaInitEvent': 0})}}
 
     def next_update(self, timestep, states):
-        import ipdb;
-        ipdb.set_trace()
-
         current_media_id = states['environment']['media_id']
         n_promoters = len(states['promoters'])
 
@@ -503,39 +504,77 @@ class TranscriptInitiation(Process):
 
 
 def test_transcript_initiation():
-    # Construct matrix that maps promoters to transcription units
+
+    from wholecell.utils.random import stochasticRound
+    from wholecell.utils.unit_struct_array import UnitStructArray
+
+    def make_elongation_rates(random, base, time_step, variable_elongation=False):
+        size = 9  # number of TUs
+        lengths = time_step * np.full(size, base, dtype=np.int64)
+        lengths = stochasticRound(random, lengths) if random else np.round(lengths)
+
+        return lengths.astype(np.int64)
 
     test_config = {
         'fracActiveRnapDict': {'minimal': 0.2},
-        'rnaLengths': np.array([]),
+        'rnaLengths': np.array([45, 450, 600, 700, 800, 900, 1200, 4000, 7000]),
         'rnaPolymeraseElongationRateDict': {'minimal': 50 * units.nt / units.s},
         'variable_elongation': False,
-        'make_elongation_rates': lambda random, rate, timestep, variable: np.array([]),
-        'basal_prob': np.array([]),
-        'delta_prob': {'deltaI': [], 'deltaJ': [], 'deltaV': [], 'shape': (1, 1)},
+        'make_elongation_rates': make_elongation_rates,
+        'basal_prob': np.array([1e-7, 1e-7, 1e-7, 1e-7, 1e-6, 1e-6, 1e-6, 1e-5, 1e-5]),
+        'delta_prob': {
+            'deltaV': [-1e-3, -1e-5, -1e-6, 1e-7, 1e-6, 1e-6, 1e-5],
+            'deltaI': [0,     1,     2,     3,    4,    5,    6],
+            'deltaJ': [0,     1,     2,     3,    0,    1,    2],
+            'shape': (9, 4)
+        },
         'perturbations': {},
-        'rna_data': {},
+        'rna_data':
+            UnitStructArray(# id   deg_rate len    counts_ACGU               mw       mRNA?  miscRNA? rRNA? tRNA? 23S?   16S?   5S?    rProt? RNAP?  geneid      Km    coord direction
+                np.array([('16SrRNA',  .002, 45,   [10, 11, 12, 12],         13500,   False, False, True,  False, False, True,  False, False, False, '16SrRNA',  2e-4, 0,    True),
+                          ('23SrRNA',  .002, 450,  [100, 110, 120, 120],     135000,  False, False, True,  False, True,  False, False, False, False, '23SrRNA',  2e-4, 1000, True),
+                          ('5SrRNA',   .002, 600,  [150, 150, 150, 150],     180000,  False, False, True,  False, False, False, True,  False, False, '5SrRNA',   2e-4, 2000, True),
+                          ('rProtein', .002, 700,  [175, 175, 175, 175],     210000,  True,  False, False, False, False, False, False, True,  False, 'rProtein', 2e-4, 3000, False),
+                          ('RNAP',     .002, 800,  [200, 200, 200, 200],     240000,  True,  False, False, False, False, False, False, False, True,  'RNAP',     2e-4, 4000, False),
+                          ('miscProt', .002, 900,  [225, 225, 225, 225],     270000,  True,  False, False, False, False, False, False, False, False, 'miscProt', 2e-4, 5000, True),
+                          ('tRNA1',    .002, 1200, [300, 300, 300, 300],     360000,  False, False, False, True,  False, False, False, False, False, 'tRNA1',    2e-4, 6000, False),
+                          ('tRNA2',    .002, 4000, [1000, 1000, 1000, 1000], 1200000, False, False, False, True,  False, False, False, False, False, 'tRNA2',    2e-4, 7000, False),
+                          ('tRNA3',    .002, 7000, [1750, 1750, 1750, 1750], 2100000, False, False, False, True,  False, False, False, False, False, 'tRNA3',    2e-4, 8000, True)
+                          ],
+                         dtype=[('id', '<U15'), ('deg_rate', '<f8'), ('length', '<i8'),
+                                ('counts_ACGU', '<i8', (4,)), ('mw', '<f8'), ('is_mRNA', '?'),
+                                ('is_miscRNA', '?'), ('is_rRNA', '?'), ('is_tRNA', '?'),
+                                ('is_23S_rRNA', '?'), ('is_16S_rRNA', '?'), ('is_5S_rRNA', '?'),
+                                ('is_ribosomal_protein', '?'), ('is_RNAP', '?'), ('gene_id', '<U8'),
+                                ('Km_endoRNase', '<f8'), ('replication_coordinate', '<i8'), ('direction', '?')]),
+                {'id': None, 'deg_rate': 1.0/units.s, 'length': units.nt, 'counts_ACGU': units.nt,
+                 'mw': units.g/units.mol, 'is_mRNA': None, 'is_miscRNA': None, 'is_rRNA': None, 'is_tRNA': None,
+                 'is_23S_rRNA': None, 'is_16S_rRNA': None, 'is_5S_rRNA': None, 'is_ribosomal_protein': None,
+                 'is_RNAP': None, 'gene_id': None, 'Km_endoRNase': units.mol/units.L, 'replication_coordinate': None,
+                 'direction': None}
+            )
+        ,
         'shuffleIdxs': None,
 
-        'idx_16SrRNA': np.array([]),
-        'idx_23SrRNA': np.array([]),
-        'idx_5SrRNA': np.array([]),
-        'idx_rRNA': np.array([]),
-        'idx_mRNA': np.array([]),
-        'idx_tRNA': np.array([]),
-        'idx_rprotein': np.array([]),
-        'idx_rnap': np.array([]),
-        'rnaSynthProbFractions': {'minimal': {'mRna': 0.25, 'tRNA': 0.6, 'rRNA': 0.15}},
-        'rnaSynthProbRProtein': {},
-        'rnaSynthProbRnaPolymerase': {},
-        'replication_coordinate': np.array([]),
-        'transcription_direction': np.array([]),
+        'idx_16SrRNA': np.array([0]),
+        'idx_23SrRNA': np.array([1]),
+        'idx_5SrRNA': np.array([2]),
+        'idx_rRNA': np.array([0, 1, 2]),
+        'idx_mRNA': np.array([3, 4, 5]),
+        'idx_tRNA': np.array([6, 7, 8]),
+        'idx_rprotein': np.array([3]),
+        'idx_rnap': np.array([4]),
+        'rnaSynthProbFractions': {'minimal': {'mRna': 0.25, 'tRna': 0.6, 'rRna': 0.15}},
+        'rnaSynthProbRProtein': {'minimal' : np.array([.06])},
+        'rnaSynthProbRnaPolymerase': {'minimal' : np.array([.002])},
+        'replication_coordinate': np.array([0, 1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000]),
+        'transcription_direction': np.array([True, True, True, False, False, True, False, False, True]),
         'n_avogadro': 6.02214076e+23 / units.mol,
         'cell_density': 1100 * units.g / units.L,
         'ppgpp': 'ppGpp',
         'inactive_RNAP': 'APORNAP-CPLX[c]',
-        'synth_prob': lambda concentration, copy: 0.0,
-        'copy_number': lambda x: x,
+        'synth_prob': lambda concentration, copy: 0.0,  # not needed, since not using ppGpp regulation
+        'copy_number': lambda x: x,                     # not needed, since not using ppGpp regulation
         'ppgpp_regulation': False,
         'seed': 0}
 
@@ -543,35 +582,11 @@ def test_transcript_initiation():
 
     initial_state = {
         'environment': {'media_id': 'minimal'},
-
         'molecules': {'APORNAP-CPLX[c]' : 2500, 'GUANOSINE-5DP-3DP[c]': 30000},
-
         'full_chromosomes': {'0' : {'unique_index' : 0}},
-
-        'promoters': {  # len = 6358 > 4558
-            '*': {
-                'TU_index': {'_default': 0},
-                'coordinates': {'_default': 0},
-                'domain_index': {'_default': 0},  # 0, 1, 2??
-                'bound_TF': {'_default': 0}}}, # boolean list (len = 23) for each promoter
-
-        'RNAs': {
-            '*': {
-                'unique_index': {'_default': 0, '_updater': 'set'},
-                'TU_index': {'_default': 0, '_updater': 'set'},
-                'transcript_length': {'_default': 0, '_updater': 'set', '_emit': True},
-                'is_mRNA': {'_default': 0, '_updater': 'set'},
-                'is_full_transcript': {'_default': 0, '_updater': 'set'},
-                'can_translate': {'_default': 0, '_updater': 'set'},
-                'RNAP_index': {'_default': 0, '_updater': 'set'}}},
-
-        'active_RNAPs': {
-            '*': {
-                'unique_index': {'_default': 0, '_updater': 'set'},
-                'domain_index': {'_default': 0, '_updater': 'set'},  # 0, 1, 2
-                'coordinates': {'_default': 0, '_updater': 'set', '_emit': True},
-                'direction': {'_default': 0, '_updater': 'set'}}},
-
+        'promoters': {},
+        'RNAs': {},
+        'active_RNAPs': {},
         'listeners': {
             'mass': {
                 'cell_mass': 1000,
@@ -579,11 +594,24 @@ def test_transcript_initiation():
         }
     }
 
+    # add promoter data to initial_state
+    for i in range(test_config['rna_data'].struct_array.shape[0]):
+        rna = test_config['rna_data'][i]
+        p = {
+            'TU_index': i,
+            'coordinates': rna['replication_coordinate'],
+            'domain_index': 0,  # 0, 1, 2??
+            'bound_TF': [False, False, False, False]
+        }
+        initial_state['promoters'][str(i)] = p
+
     settings = {
         'total_time': 10,
         'initial_state': initial_state}
 
     data = simulate_process_in_experiment(transcript_initiation, settings)
+
+    import ipdb; ipdb.set_trace()
 
     return data
 
