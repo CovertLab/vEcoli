@@ -69,7 +69,7 @@ from vivarium.core.process import Composite
 from vivarium.core.composition import simulate_compartment_in_experiment
 
 # processes
-from vivarium_cell.processes.diffusion_network import DiffusionNetwork
+from ecoli.processes.diffusion_network import DiffusionNetwork
 
 # plots
 from ecoli.plots.ecoli_spatial_plots import (
