@@ -7,8 +7,8 @@ E. coli master composite
 import json
 import uuid
 
-from vivarium.core.process import Composite
-from vivarium.core.composition import simulate_compartment_in_experiment
+from vivarium.core.process import Composer
+from vivarium.core.composition import simulate_composer
 from vivarium.core.experiment import pp
 
 # sim data
@@ -38,7 +38,7 @@ RAND_MAX = 2**31
 SIM_DATA_PATH = 'reconstruction/sim_data/kb/simData.cPickle'
 
 
-class Ecoli(Composite):
+class Ecoli(Composer):
 
     defaults = {
         'time_step': 2.0,
@@ -291,7 +291,7 @@ def test_ecoli():
         'total_time': 10,
         'initial_state': initial_state}
 
-    data = simulate_compartment_in_experiment(ecoli, settings)
+    data = simulate_composer(ecoli, settings)
 
     return data
 
