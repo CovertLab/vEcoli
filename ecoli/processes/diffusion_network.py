@@ -7,7 +7,7 @@ from iteround import saferound
 
 from vivarium.core.process import Process
 from vivarium.core.composition import (
-    simulate_process_in_experiment,
+    simulate_process,
     PROCESS_OUT_DIR,
 )
 
@@ -262,7 +262,7 @@ def test_diffusion_network_process(out_dir=None):
         },
     }
 
-    output = simulate_process_in_experiment(diffusion_network_process, sim_settings)
+    output = simulate_process(diffusion_network_process, sim_settings)
     rp = diffusion_network_process.rp
     diffusion_constants = diffusion_network_process.diffusion_constants
 

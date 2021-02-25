@@ -15,7 +15,7 @@ from scipy.sparse import csr_matrix
 from typing import List, Tuple
 
 from vivarium.core.process import Process
-from vivarium.core.composition import simulate_process_in_experiment
+from vivarium.core.composition import simulate_process
 
 from ecoli.library.schema import bulk_schema, array_from
 
