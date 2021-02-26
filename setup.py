@@ -74,4 +74,6 @@ setup(
         'numba==0.50.1',
         'Theano==1.0.5',
         'ipython==7.16.1',
+        'stochastic-arrow',
+        'iteround',
         ])
