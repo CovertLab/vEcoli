@@ -76,4 +76,5 @@ setup(
         'ipython==7.16.1',
         'stochastic-arrow',
         'iteround',
+        'cobra',
         ])
