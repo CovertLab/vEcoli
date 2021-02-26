@@ -69,7 +69,6 @@ setup(
     long_description_content_type='text/markdown',
     install_requires=[
         'vivarium-core==0.1.4',
-        'vivarium-cell>=0.0.17',
         'biopython==1.77',
         'Unum==4.1.4',
         'numba==0.50.1',
