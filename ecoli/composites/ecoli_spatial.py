@@ -65,11 +65,11 @@ from scipy import constants
 
 from six.moves import cPickle
 
-from vivarium.core.process import Composite
-from vivarium.core.composition import simulate_compartment_in_experiment
+from vivarium.core.process import Composer
+from vivarium.core.composition import simulate_composer
 
 # processes
-from vivarium_cell.processes.diffusion_network import DiffusionNetwork
+from ecoli.processes.diffusion_network import DiffusionNetwork
 
 # plots
 from ecoli.plots.ecoli_spatial_plots import (
@@ -87,7 +87,7 @@ SIM_DATA_PATH = 'reconstruction/sim_data/kb/simData.cPickle'
 RIBOSOME_SIZE = 21      # in nm
 
 
-class EcoliSpatial(Composite):
+class EcoliSpatial(Composer):
 
     defaults = {
         'time_step': 2.0,
@@ -350,7 +350,7 @@ def test_spatial_ecoli():
         'total_time': 5*60,       # in s
         'initial_state': ecoli.initial_state(initial_config)}
 
-    data = simulate_compartment_in_experiment(ecoli, settings)
+    data = simulate_composer(ecoli, settings)
     return ecoli, initial_config, data
 
 
