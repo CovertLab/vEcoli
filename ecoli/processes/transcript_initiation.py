@@ -12,6 +12,7 @@ from __future__ import absolute_import, division, print_function
 
 import numpy as np
 import scipy.sparse
+import matplotlib.pyplot as plt
 from typing import cast
 
 from six.moves import zip
@@ -33,7 +34,7 @@ class TranscriptInitiation(Process):
         - rnaLengths (1d array[int]): lengths of RNAs for each transcription unit (TU), in nucleotides
         - rnaPolymeraseElongationRateDict (dict): Dictionary with keys corresponding to media, values being
                                                   RNAP's elongation rate in that media, in nucleotides/s
-        - variable_elongation (bool): Whether to add amplified elongation rates for certain TUs (?).
+        - variable_elongation (bool): Whether to add amplified elongation rates for rRNAs.
                                       False by default.
         - make_elongation_rates (func): Function for making elongation rates
                                         (see Transcription.make_elongation_rates).
@@ -48,9 +49,13 @@ class TranscriptInitiation(Process):
                              - 'shape' (tuple): (m, n) = (# of TUs, # of TFs)
         - perturbations (dict): Dictionary of genetic perturbations (optional, can be empty)
         - rna_data (1d array): Structured array with an entry for each TU, where entries look like:
+
                     (id, deg_rate, length (nucleotides), counts_AGCU, mw (molecular weight),
                     is_mRNA, is_miscRNA, is_rRNA, is_tRNA, is_23S_rRNA, is_16S_rRNA, is_5S_rRNA,
                     is_ribosomal_protein, is_RNAP, gene_id, Km_endoRNase, replication_coordinate, direction)
+
+                    NOTE: This array has some redundancy with other parameters - we could just
+                    get rid of some parameters and pull them from this table instead
 
         - shuffleIdxs (1D array or None): A permutation of the TU indices, used to shuffle
                                           probabilities around if given. Can be None,
@@ -74,7 +79,7 @@ class TranscriptInitiation(Process):
                                             arrays storing the (fixed) probability of synthesis for each
                                             RNAP TU, under that media condition.
         - replication_coordinate (1d array): Array with chromosome coordinates for each TU
-        - transcription_direction (1d bool array): Array of transcription directions for each TU (T/F corresponding to which direction?)
+        - transcription_direction (1d array[bool]): Array of transcription directions for each TU (T/F corresponding to which direction?)
         - n_avogadro: Avogadro's number (constant)
         - cell_density: Density of cell (constant)
         - ppgpp (str): id of ppGpp
@@ -99,7 +104,7 @@ class TranscriptInitiation(Process):
         'variable_elongation': False,
         'make_elongation_rates': lambda random, rate, timestep, variable: np.array([]),
         'basal_prob': np.array([]),
-        'delta_prob': {'deltaI': [], 'deltaJ': [], 'deltaV': []},
+        'delta_prob': {'deltaI': [], 'deltaJ': [], 'deltaV': [], 'shape': tuple()},
         'perturbations': {},
         'rna_data': {},
         'shuffleIdxs': None,
@@ -129,8 +134,6 @@ class TranscriptInitiation(Process):
     # Constructor
     def __init__(self, initial_parameters):
         super(TranscriptInitiation, self).__init__(initial_parameters)
-
-        import ipdb; ipdb.set_trace()
 
         # Load parameters
         self.fracActiveRnapDict = self.parameters['fracActiveRnapDict']
@@ -410,7 +413,7 @@ class TranscriptInitiation(Process):
 
         # Decrement counts of inactive RNAPs
         update['molecules'] = {
-            'inactive_RNAPs': -n_initiations.sum()}
+            self.inactive_RNAP : -n_initiations.sum()}
 
         # Add partially transcribed RNAs
         is_mRNA = np.isin(TU_index_partial_RNAs, self.idx_mRNA)
@@ -434,7 +437,7 @@ class TranscriptInitiation(Process):
 
         # Write outputs to listeners
         update['listeners']['ribosome_data'] = {
-            'rrn16S_produced': n_initiations[is_16Srrna].sum(),
+            'rrn16S_produced': n_initiations[is_16Srrna].sum(), # should go in transcript_elongation?
             'rrn23S_produced': n_initiations[is_23Srrna].sum(),
             'rrn5S_produced': n_initiations[is_5Srrna].sum(),
 
@@ -504,7 +507,6 @@ class TranscriptInitiation(Process):
 
 
 def test_transcript_initiation():
-
     from wholecell.utils.random import stochasticRound
     from wholecell.utils.unit_struct_array import UnitStructArray
 
@@ -530,7 +532,7 @@ def test_transcript_initiation():
         },
         'perturbations': {},
         'rna_data':
-            UnitStructArray(# id   deg_rate len    counts_ACGU               mw       mRNA?  miscRNA? rRNA? tRNA? 23S?   16S?   5S?    rProt? RNAP?  geneid      Km    coord direction
+            UnitStructArray(# id   deg_rate  len   counts_ACGU               mw       mRNA?  miscRNA? rRNA? tRNA? 23S?   16S?   5S?    rProt? RNAP?  geneid      Km    coord direction
                 np.array([('16SrRNA',  .002, 45,   [10, 11, 12, 12],         13500,   False, False, True,  False, False, True,  False, False, False, '16SrRNA',  2e-4, 0,    True),
                           ('23SrRNA',  .002, 450,  [100, 110, 120, 120],     135000,  False, False, True,  False, True,  False, False, False, False, '23SrRNA',  2e-4, 1000, True),
                           ('5SrRNA',   .002, 600,  [150, 150, 150, 150],     180000,  False, False, True,  False, False, False, True,  False, False, '5SrRNA',   2e-4, 2000, True),
@@ -611,13 +613,77 @@ def test_transcript_initiation():
 
     data = simulate_process_in_experiment(transcript_initiation, settings)
 
+    # Assertions =========================================================
+
+    # Inactive RNAPs deplete as they are activated
     import ipdb; ipdb.set_trace()
+
+    inactive_RNAP = np.array(data['molecules'][test_config['inactive_RNAP']])
+    d_inactive = inactive_RNAP[1:] - inactive_RNAP[:-1]
+
+    np.testing.assert_array_equal(-d_inactive,
+                                  data['listeners']['rnap_data']['didInitialize'][1:])
+
+    # RNAs being transcribed matches active RNAPs
+
+    # Actual rRNA initiation probability matches set point
+
+    # mRNA, tRNA, rRNA synthesized in correct proportion
 
     return data
 
 
 def run_plot(data):
-    pass
+    N = len(data['time'])
+
+    # plot number of active RNAPs over time
+    rnaps = data['active_RNAPs']
+    n_rnap = np.zeros(N)
+
+    for rnap in rnaps.values():
+        lifetime = len(rnap['coordinates'])
+        n_rnap[(N-lifetime):N] += 1
+
+    plt.subplot(2, 2, 1)
+    plt.plot(data['time'], n_rnap)
+    plt.xlabel("Time (s)")
+    plt.ylabel("Active RNAPs")
+    plt.title("Active RNAPs over time")
+
+    # plot number of RNAs being transcribed over time
+    rnas = data['RNAs']
+    n_rnas = np.zeros(N)
+
+    for rna in rnas.values():
+        lifetime = len(rna['transcript_length'])
+        n_rnas[(N-lifetime):N] += 1
+
+    plt.subplot(2, 2, 2)
+    plt.plot(data['time'], n_rnas)
+    plt.xlabel("Time (s)")
+    plt.ylabel("Transcripts")
+    plt.title("Transcripts over time")
+
+    # plot which RNAs are transcribed
+
+    inits_by_TU = np.stack(data['listeners']['rnap_data']['rnaInitEvent'][1:])
+
+    plt.subplot(2, 2, 3)
+
+    prev = np.zeros(N-1)
+    for TU in range(inits_by_TU.shape[1]):
+        plt.bar(data['time'][1:], inits_by_TU[:, TU], bottom=prev)
+        prev += inits_by_TU[:, TU]
+
+    plt.xlabel("Time (s)")
+    plt.ylabel("Transcripts")
+    plt.title("Transcripts over time, for all TUs")
+
+    plt.subplots_adjust(hspace=0.5, wspace=0.5)
+
+    plt.savefig("out/migration/transcript_initiation_toy_model.png")
+
+
 
 
 def main():
