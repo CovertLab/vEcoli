@@ -12,7 +12,7 @@ $ python ecoli/experiments/comparison.py -w 1
 
 from six.moves import cPickle
 
-from vivarium.core.composition import simulate_compartment_in_experiment
+from vivarium.core.composition import simulate_composer
 from vivarium.core.control import Control
 
 # composites
@@ -50,7 +50,7 @@ def run_experiment():
         'initial_state': initial_state,
         # 'emitter': {'type': 'database'}
         }
-    return simulate_compartment_in_experiment(ecoli, settings)
+    return simulate_composer(ecoli, settings)
 
 
 # libraries for control
