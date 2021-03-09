@@ -23,6 +23,11 @@ from vivarium.core.composition import simulate_process_in_experiment
 from ecoli.library.schema import arrays_from, arrays_to, add_elements, listener_schema, bulk_schema
 
 from wholecell.utils import units
+from wholecell.utils.random import stochasticRound
+from wholecell.utils.unit_struct_array import UnitStructArray
+
+from utils.data_predicates import monotonically_decreasing, all_nonnegative
+from scipy.stats import chisquare
 
 
 class TranscriptInitiation(Process):
@@ -380,7 +385,7 @@ class TranscriptInitiation(Process):
             self.activationProb * states['molecules'][self.inactive_RNAP])
 
         if n_RNAPs_to_activate == 0:
-            return
+            return {}
 
         #### Growth control code ####
 
@@ -413,7 +418,7 @@ class TranscriptInitiation(Process):
 
         # Decrement counts of inactive RNAPs
         update['molecules'] = {
-            self.inactive_RNAP : -n_initiations.sum()}
+            self.inactive_RNAP: -n_initiations.sum()}
 
         # Add partially transcribed RNAs
         is_mRNA = np.isin(TU_index_partial_RNAs, self.idx_mRNA)
@@ -437,7 +442,7 @@ class TranscriptInitiation(Process):
 
         # Write outputs to listeners
         update['listeners']['ribosome_data'] = {
-            'rrn16S_produced': n_initiations[is_16Srrna].sum(), # should go in transcript_elongation?
+            'rrn16S_produced': n_initiations[is_16Srrna].sum(),  # should go in transcript_elongation?
             'rrn23S_produced': n_initiations[is_23Srrna].sum(),
             'rrn5S_produced': n_initiations[is_5Srrna].sum(),
 
@@ -507,9 +512,6 @@ class TranscriptInitiation(Process):
 
 
 def test_transcript_initiation():
-    from wholecell.utils.random import stochasticRound
-    from wholecell.utils.unit_struct_array import UnitStructArray
-
     def make_elongation_rates(random, base, time_step, variable_elongation=False):
         size = 9  # number of TUs
         lengths = time_step * np.full(size, base, dtype=np.int64)
@@ -517,46 +519,53 @@ def test_transcript_initiation():
 
         return lengths.astype(np.int64)
 
+    rna_data = UnitStructArray(
+        # id   deg_rate  len   counts_ACGU               mw       mRNA?  miscRNA? rRNA? tRNA? 23S?   16S?   5S?    rProt? RNAP?  geneid      Km    coord direction
+        np.array([('16SrRNA', .002, 45, [10, 11, 12, 12], 13500, False, False, True, False, False, True, False, False,
+                   False, '16SrRNA', 2e-4, 0, True),
+                  ('23SrRNA', .002, 450, [100, 110, 120, 120], 135000, False, False, True, False, True, False, False,
+                   False, False, '23SrRNA', 2e-4, 1000, True),
+                  ('5SrRNA', .002, 600, [150, 150, 150, 150], 180000, False, False, True, False, False, False, True,
+                   False, False, '5SrRNA', 2e-4, 2000, True),
+                  ('rProtein', .002, 700, [175, 175, 175, 175], 210000, True, False, False, False, False, False, False,
+                   True, False, 'rProtein', 2e-4, 3000, False),
+                  ('RNAP', .002, 800, [200, 200, 200, 200], 240000, True, False, False, False, False, False, False,
+                   False, True, 'RNAP', 2e-4, 4000, False),
+                  ('miscProt', .002, 900, [225, 225, 225, 225], 270000, True, False, False, False, False, False, False,
+                   False, False, 'miscProt', 2e-4, 5000, True),
+                  ('tRNA1', .002, 1200, [300, 300, 300, 300], 360000, False, False, False, True, False, False, False,
+                   False, False, 'tRNA1', 2e-4, 6000, False),
+                  ('tRNA2', .002, 4000, [1000, 1000, 1000, 1000], 1200000, False, False, False, True, False, False,
+                   False, False, False, 'tRNA2', 2e-4, 7000, False),
+                  ('tRNA3', .002, 7000, [1750, 1750, 1750, 1750], 2100000, False, False, False, True, False, False,
+                   False, False, False, 'tRNA3', 2e-4, 8000, True)
+                  ],
+                 dtype=[('id', '<U15'), ('deg_rate', '<f8'), ('length', '<i8'),
+                        ('counts_ACGU', '<i8', (4,)), ('mw', '<f8'), ('is_mRNA', '?'),
+                        ('is_miscRNA', '?'), ('is_rRNA', '?'), ('is_tRNA', '?'),
+                        ('is_23S_rRNA', '?'), ('is_16S_rRNA', '?'), ('is_5S_rRNA', '?'),
+                        ('is_ribosomal_protein', '?'), ('is_RNAP', '?'), ('gene_id', '<U8'),
+                        ('Km_endoRNase', '<f8'), ('replication_coordinate', '<i8'), ('direction', '?')]),
+        {'id': None, 'deg_rate': 1.0 / units.s, 'length': units.nt, 'counts_ACGU': units.nt,
+         'mw': units.g / units.mol, 'is_mRNA': None, 'is_miscRNA': None, 'is_rRNA': None, 'is_tRNA': None,
+         'is_23S_rRNA': None, 'is_16S_rRNA': None, 'is_5S_rRNA': None, 'is_ribosomal_protein': None,
+         'is_RNAP': None, 'gene_id': None, 'Km_endoRNase': units.mol / units.L, 'replication_coordinate': None,
+         'direction': None}
+    )
+
     test_config = {
         'fracActiveRnapDict': {'minimal': 0.2},
-        'rnaLengths': np.array([45, 450, 600, 700, 800, 900, 1200, 4000, 7000]),
+        'rnaLengths': np.array([x[2] for x in rna_data.fullArray()]),
         'rnaPolymeraseElongationRateDict': {'minimal': 50 * units.nt / units.s},
-        'variable_elongation': False,
         'make_elongation_rates': make_elongation_rates,
         'basal_prob': np.array([1e-7, 1e-7, 1e-7, 1e-7, 1e-6, 1e-6, 1e-6, 1e-5, 1e-5]),
         'delta_prob': {
             'deltaV': [-1e-3, -1e-5, -1e-6, 1e-7, 1e-6, 1e-6, 1e-5],
-            'deltaI': [0,     1,     2,     3,    4,    5,    6],
-            'deltaJ': [0,     1,     2,     3,    0,    1,    2],
+            'deltaI': [0, 1, 2, 3, 4, 5, 6],
+            'deltaJ': [0, 1, 2, 3, 0, 1, 2],
             'shape': (9, 4)
         },
-        'perturbations': {},
-        'rna_data':
-            UnitStructArray(# id   deg_rate  len   counts_ACGU               mw       mRNA?  miscRNA? rRNA? tRNA? 23S?   16S?   5S?    rProt? RNAP?  geneid      Km    coord direction
-                np.array([('16SrRNA',  .002, 45,   [10, 11, 12, 12],         13500,   False, False, True,  False, False, True,  False, False, False, '16SrRNA',  2e-4, 0,    True),
-                          ('23SrRNA',  .002, 450,  [100, 110, 120, 120],     135000,  False, False, True,  False, True,  False, False, False, False, '23SrRNA',  2e-4, 1000, True),
-                          ('5SrRNA',   .002, 600,  [150, 150, 150, 150],     180000,  False, False, True,  False, False, False, True,  False, False, '5SrRNA',   2e-4, 2000, True),
-                          ('rProtein', .002, 700,  [175, 175, 175, 175],     210000,  True,  False, False, False, False, False, False, True,  False, 'rProtein', 2e-4, 3000, False),
-                          ('RNAP',     .002, 800,  [200, 200, 200, 200],     240000,  True,  False, False, False, False, False, False, False, True,  'RNAP',     2e-4, 4000, False),
-                          ('miscProt', .002, 900,  [225, 225, 225, 225],     270000,  True,  False, False, False, False, False, False, False, False, 'miscProt', 2e-4, 5000, True),
-                          ('tRNA1',    .002, 1200, [300, 300, 300, 300],     360000,  False, False, False, True,  False, False, False, False, False, 'tRNA1',    2e-4, 6000, False),
-                          ('tRNA2',    .002, 4000, [1000, 1000, 1000, 1000], 1200000, False, False, False, True,  False, False, False, False, False, 'tRNA2',    2e-4, 7000, False),
-                          ('tRNA3',    .002, 7000, [1750, 1750, 1750, 1750], 2100000, False, False, False, True,  False, False, False, False, False, 'tRNA3',    2e-4, 8000, True)
-                          ],
-                         dtype=[('id', '<U15'), ('deg_rate', '<f8'), ('length', '<i8'),
-                                ('counts_ACGU', '<i8', (4,)), ('mw', '<f8'), ('is_mRNA', '?'),
-                                ('is_miscRNA', '?'), ('is_rRNA', '?'), ('is_tRNA', '?'),
-                                ('is_23S_rRNA', '?'), ('is_16S_rRNA', '?'), ('is_5S_rRNA', '?'),
-                                ('is_ribosomal_protein', '?'), ('is_RNAP', '?'), ('gene_id', '<U8'),
-                                ('Km_endoRNase', '<f8'), ('replication_coordinate', '<i8'), ('direction', '?')]),
-                {'id': None, 'deg_rate': 1.0/units.s, 'length': units.nt, 'counts_ACGU': units.nt,
-                 'mw': units.g/units.mol, 'is_mRNA': None, 'is_miscRNA': None, 'is_rRNA': None, 'is_tRNA': None,
-                 'is_23S_rRNA': None, 'is_16S_rRNA': None, 'is_5S_rRNA': None, 'is_ribosomal_protein': None,
-                 'is_RNAP': None, 'gene_id': None, 'Km_endoRNase': units.mol/units.L, 'replication_coordinate': None,
-                 'direction': None}
-            )
-        ,
-        'shuffleIdxs': None,
+        'rna_data': rna_data,
 
         'idx_16SrRNA': np.array([0]),
         'idx_23SrRNA': np.array([1]),
@@ -567,25 +576,22 @@ def test_transcript_initiation():
         'idx_rprotein': np.array([3]),
         'idx_rnap': np.array([4]),
         'rnaSynthProbFractions': {'minimal': {'mRna': 0.25, 'tRna': 0.6, 'rRna': 0.15}},
-        'rnaSynthProbRProtein': {'minimal' : np.array([.06])},
-        'rnaSynthProbRnaPolymerase': {'minimal' : np.array([.002])},
-        'replication_coordinate': np.array([0, 1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000]),
-        'transcription_direction': np.array([True, True, True, False, False, True, False, False, True]),
-        'n_avogadro': 6.02214076e+23 / units.mol,
-        'cell_density': 1100 * units.g / units.L,
-        'ppgpp': 'ppGpp',
+        'rnaSynthProbRProtein': {'minimal': np.array([.06])},
+        'rnaSynthProbRnaPolymerase': {'minimal': np.array([.02])},
+        'replication_coordinate': np.array([x[-2] for x in rna_data.fullArray()]),
+        'transcription_direction': np.array([x[-1] for x in rna_data.fullArray()]),
         'inactive_RNAP': 'APORNAP-CPLX[c]',
-        'synth_prob': lambda concentration, copy: 0.0,  # not needed, since not using ppGpp regulation
-        'copy_number': lambda x: x,                     # not needed, since not using ppGpp regulation
-        'ppgpp_regulation': False,
-        'seed': 0}
+
+        'seed': 0,
+        'time_step': 2
+    }
 
     transcript_initiation = TranscriptInitiation(test_config)
 
     initial_state = {
         'environment': {'media_id': 'minimal'},
-        'molecules': {'APORNAP-CPLX[c]' : 2500, 'GUANOSINE-5DP-3DP[c]': 30000},
-        'full_chromosomes': {'0' : {'unique_index' : 0}},
+        'molecules': {'APORNAP-CPLX[c]': 1000, 'GUANOSINE-5DP-3DP[c]': 0},  # RNAP breaks at 132
+        'full_chromosomes': {'0': {'unique_index': 0}},
         'promoters': {},
         'RNAs': {},
         'active_RNAPs': {},
@@ -597,8 +603,8 @@ def test_transcript_initiation():
     }
 
     # add promoter data to initial_state
-    for i in range(test_config['rna_data'].struct_array.shape[0]):
-        rna = test_config['rna_data'][i]
+    for i in range(len(rna_data)):
+        rna = rna_data[i]
         p = {
             'TU_index': i,
             'coordinates': rna['replication_coordinate'],
@@ -608,33 +614,82 @@ def test_transcript_initiation():
         initial_state['promoters'][str(i)] = p
 
     settings = {
-        'total_time': 10,
+        'total_time': 500,
         'initial_state': initial_state}
 
-    data = simulate_process_in_experiment(transcript_initiation, settings)
+    data_noTF = simulate_process_in_experiment(transcript_initiation, settings)
+
+    # Also gather data where TFs are bound:
+
 
     # Assertions =========================================================
+    inactive_RNAP = np.array(data_noTF['molecules'][test_config['inactive_RNAP']])
+    d_inactive_RNAP = inactive_RNAP[1:] - inactive_RNAP[:-1]
+    d_active_RNAP = np.array(data_noTF['listeners']['rnap_data']['didInitialize'][1:])
+
+    inits_by_TU = np.stack(data_noTF['listeners']['rnap_data']['rnaInitEvent'][1:])
+    # TODO: When no initiations occurred in a timestep, the inits_by_TU is a scalar 0
+    #  This is tricky to deal with, so we expand scalar 0 to array of 0s
+
+    rnap_inits = inits_by_TU[:, test_config['idx_rnap']]
+    rprotein_inits = inits_by_TU[:, test_config['idx_rprotein']]
+
+    # Sanity checks
+    assert monotonically_decreasing(inactive_RNAP), "Inactive RNAPs are not monotonically decreasing"
+    assert all_nonnegative(inactive_RNAP), "Inactive RNAPs fall below zero"
+    assert all_nonnegative(inits_by_TU), "Negative initiations (!?)"
+    assert monotonically_decreasing(d_active_RNAP), "Change in active RNAPs is not monotonically decreasing"
+    assert all_nonnegative(d_active_RNAP), "One or more timesteps has decrease in active RNAPs"
+    assert np.sum(d_active_RNAP) == np.sum(inits_by_TU), "# of active RNAPs does not match number of initiations"
+
+    # TODO: WEIRD things happen when RNAP is limiting, including affecting RNA synth probs, crashing the program
 
     # Inactive RNAPs deplete as they are activated
-    import ipdb; ipdb.set_trace()
-
-    inactive_RNAP = np.array(data['molecules'][test_config['inactive_RNAP']])
-    d_inactive = inactive_RNAP[1:] - inactive_RNAP[:-1]
-
-    np.testing.assert_array_equal(-d_inactive,
-                                  data['listeners']['rnap_data']['didInitialize'][1:])
+    np.testing.assert_array_equal(-d_inactive_RNAP,
+                                  d_active_RNAP,
+                                  "Depletion of inactive RNAPs does not match counts of RNAPs activated.")
 
     # RNAs being transcribed matches active RNAPs
 
-    # Actual rRNA initiation probability matches set point
+
+    # Fixed synthesis probability TUs (RNAP, rProtein) and non-fixed TUs synthesized in correct proportion
+    '''
+    expected = np.array([test_config['rnaSynthProbRProtein']['minimal'][0],
+                         test_config['rnaSynthProbRnaPolymerase']['minimal'][0],
+                         1])
+    expected[2] -= expected[0] + expected[1]
+    expected *= np.sum(inits_by_TU)
+
+    actual = np.array([np.sum(rprotein_inits),
+                       np.sum(rnap_inits),
+                       np.sum(inits_by_TU) - np.sum(rprotein_inits) - np.sum(rnap_inits)])
+    import ipdb; ipdb.set_trace()
+
+    fixed_prob_test = chisquare(actual, f_exp=expected)
+
+    assert fixed_prob_test.pvalue >= 0.95, ("Distribution of RNA types synthesized does "
+                                            "not (approximately) match set points for fixed synthesis "
+                                            f"(p = {fixed_prob_test.pvalue} < 0.95)")
+    '''
 
     # mRNA, tRNA, rRNA synthesized in correct proportion
+    RNA_dist = np.array([np.sum(inits_by_TU[:, test_config['idx_mRNA']]),
+                         np.sum(inits_by_TU[:, test_config['idx_tRNA']]),
+                         np.sum(inits_by_TU[:, test_config['idx_rRNA']])])
+    RNA_dist /= sum(RNA_dist)
 
-    return data
+    RNA_synth_prob_test = chisquare(RNA_dist,
+                                    [v for v in test_config['rnaSynthProbFractions']['minimal'].values()])
+
+    assert RNA_synth_prob_test.pvalue >= 0.95, ("Distribution of RNA types synthesized does"
+                                                "not (approximately) match values set by media")
+
+    return test_config, data_noTF
 
 
-def run_plot(data):
+def run_plot(config, data):
     N = len(data['time'])
+    inits_by_TU = np.stack(data['listeners']['rnap_data']['rnaInitEvent'][1:])
 
     # plot number of active RNAPs over time
     rnaps = data['active_RNAPs']
@@ -642,7 +697,7 @@ def run_plot(data):
 
     for rnap in rnaps.values():
         lifetime = len(rnap['coordinates'])
-        n_rnap[(N-lifetime):N] += 1
+        n_rnap[(N - lifetime):N] += 1
 
     plt.subplot(2, 2, 1)
     plt.plot(data['time'], n_rnap)
@@ -650,45 +705,50 @@ def run_plot(data):
     plt.ylabel("Active RNAPs")
     plt.title("Active RNAPs over time")
 
-    # plot number of RNAs being transcribed over time
-    rnas = data['RNAs']
-    n_rnas = np.zeros(N)
-
-    for rna in rnas.values():
-        lifetime = len(rna['transcript_length'])
-        n_rnas[(N-lifetime):N] += 1
+    # plot probability of synthesis for each RNA
 
     plt.subplot(2, 2, 2)
-    plt.plot(data['time'], n_rnas)
-    plt.xlabel("Time (s)")
-    plt.ylabel("Transcripts")
-    plt.title("Transcripts over time")
+    plt.bar([x[0] for x in config['rna_data']],
+            np.sum(inits_by_TU, axis=0) / np.sum(inits_by_TU))
+    plt.xticks(rotation=45)
+    plt.ylabel("Probability of Synthesis")
+    plt.title("Probability of Synthesis by TU")
 
     # plot which RNAs are transcribed
-
-    inits_by_TU = np.stack(data['listeners']['rnap_data']['rnaInitEvent'][1:])
-
     plt.subplot(2, 2, 3)
 
-    prev = np.zeros(N-1)
+    prev = np.zeros(N - 1)
     for TU in range(inits_by_TU.shape[1]):
-        plt.bar(data['time'][1:], inits_by_TU[:, TU], bottom=prev)
+        plt.bar(data['time'][1:], inits_by_TU[:, TU], bottom=prev, width=config['time_step'])
         prev += inits_by_TU[:, TU]
-
     plt.xlabel("Time (s)")
     plt.ylabel("Transcripts")
     plt.title("Transcripts over time, for all TUs")
 
-    plt.subplots_adjust(hspace=0.5, wspace=0.5)
+    # plot which RNAs are transcribed, grouped by mRNA/tRNA/rRNA
+    plt.subplot(2, 2, 4)
 
+    grouped_inits = np.concatenate([[np.sum(inits_by_TU[:, config['idx_tRNA']], axis=1)],
+                                    [np.sum(inits_by_TU[:, config['idx_mRNA']], axis=1)],
+                                    [np.sum(inits_by_TU[:, config['idx_rRNA']], axis=1)]]).T
+
+    prev = np.zeros(N - 1)
+    for TU in range(grouped_inits.shape[1]):
+        plt.bar(data['time'][1:], grouped_inits[:, TU], bottom=prev, width=config['time_step'])
+        prev += grouped_inits[:, TU]
+    plt.xlabel("Time (s)")
+    plt.ylabel("Transcripts")
+    plt.title("Transcripts over time by RNA type")
+    plt.legend(["tRNA", "mRNA", "rRNA"], bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad=0.)
+
+    plt.subplots_adjust(hspace=0.5, wspace=0.25)
+    plt.gcf().set_size_inches(10, 6)
     plt.savefig("out/migration/transcript_initiation_toy_model.png")
 
 
-
-
 def main():
-    data = test_transcript_initiation()
-    run_plot(data)
+    config, data = test_transcript_initiation()
+    run_plot(config, data)
 
 
 if __name__ == "__main__":
