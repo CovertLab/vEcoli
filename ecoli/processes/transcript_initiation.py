@@ -623,13 +623,21 @@ def test_transcript_initiation():
 
 
     # Assertions =========================================================
+    # TODO:
+    #  1) When no initiations occurred in a timestep, the inits_by_TU is a scalar 0
+    #  2) Weird things happen when RNAP is limiting, including affecting RNA synth probs
+    #     - for toy model, initial RNAPs <= 132 results in no initiation
+    #     - 1000 initial RNAPs, run for t=1000s results in initiations without depletion of inactive RNAP
+    #  3) rnaps in data['active_RNAPs'] seem to be missing direction, domain index data (likewise with rnas)
+    #  4) Effect of TF binding is not tested in the toy model
+    #     - simple test is to compare gene under up/down-regulation with data from same gene without regulation
+
+    # Unpack data
     inactive_RNAP = np.array(data_noTF['molecules'][test_config['inactive_RNAP']])
     d_inactive_RNAP = inactive_RNAP[1:] - inactive_RNAP[:-1]
     d_active_RNAP = np.array(data_noTF['listeners']['rnap_data']['didInitialize'][1:])
 
     inits_by_TU = np.stack(data_noTF['listeners']['rnap_data']['rnaInitEvent'][1:])
-    # TODO: When no initiations occurred in a timestep, the inits_by_TU is a scalar 0
-    #  This is tricky to deal with, so we expand scalar 0 to array of 0s
 
     rnap_inits = inits_by_TU[:, test_config['idx_rnap']]
     rprotein_inits = inits_by_TU[:, test_config['idx_rprotein']]
@@ -641,8 +649,7 @@ def test_transcript_initiation():
     assert monotonically_decreasing(d_active_RNAP), "Change in active RNAPs is not monotonically decreasing"
     assert all_nonnegative(d_active_RNAP), "One or more timesteps has decrease in active RNAPs"
     assert np.sum(d_active_RNAP) == np.sum(inits_by_TU), "# of active RNAPs does not match number of initiations"
-
-    # TODO: WEIRD things happen when RNAP is limiting, including affecting RNA synth probs, crashing the program
+    assert data_noTF['active_RNAPs'].keys() == data_noTF['RNAs'].keys(), "Keys of active RNAPs do not match keys of RNA"
 
     # Inactive RNAPs deplete as they are activated
     np.testing.assert_array_equal(-d_inactive_RNAP,
@@ -650,10 +657,12 @@ def test_transcript_initiation():
                                   "Depletion of inactive RNAPs does not match counts of RNAPs activated.")
 
     # RNAs being transcribed matches active RNAPs
-
+    for id, rnap in data_noTF['active_RNAPs'].items():
+        rna = data_noTF['RNAs'][id]
+        # TODO (3)
 
     # Fixed synthesis probability TUs (RNAP, rProtein) and non-fixed TUs synthesized in correct proportion
-    '''
+
     expected = np.array([test_config['rnaSynthProbRProtein']['minimal'][0],
                          test_config['rnaSynthProbRnaPolymerase']['minimal'][0],
                          1])
@@ -663,14 +672,12 @@ def test_transcript_initiation():
     actual = np.array([np.sum(rprotein_inits),
                        np.sum(rnap_inits),
                        np.sum(inits_by_TU) - np.sum(rprotein_inits) - np.sum(rnap_inits)])
-    import ipdb; ipdb.set_trace()
 
     fixed_prob_test = chisquare(actual, f_exp=expected)
 
-    assert fixed_prob_test.pvalue >= 0.95, ("Distribution of RNA types synthesized does "
-                                            "not (approximately) match set points for fixed synthesis "
-                                            f"(p = {fixed_prob_test.pvalue} < 0.95)")
-    '''
+    assert fixed_prob_test.pvalue > 0.05, ("Distribution of RNA types synthesized does "
+                                           "not (approximately) match set points for fixed synthesis "
+                                           f"(p = {fixed_prob_test.pvalue} > 0.05)")
 
     # mRNA, tRNA, rRNA synthesized in correct proportion
     RNA_dist = np.array([np.sum(inits_by_TU[:, test_config['idx_mRNA']]),
@@ -681,8 +688,8 @@ def test_transcript_initiation():
     RNA_synth_prob_test = chisquare(RNA_dist,
                                     [v for v in test_config['rnaSynthProbFractions']['minimal'].values()])
 
-    assert RNA_synth_prob_test.pvalue >= 0.95, ("Distribution of RNA types synthesized does"
-                                                "not (approximately) match values set by media")
+    assert (RNA_synth_prob_test.pvalue > 0.05), ("Distribution of RNA types synthesized does"
+                                                 "not (approximately) match values set by media")
 
     return test_config, data_noTF
 
