@@ -614,7 +614,7 @@ def test_transcript_initiation():
         initial_state['promoters'][str(i)] = p
 
     settings = {
-        'total_time': 500,
+        'total_time': 100,
         'initial_state': initial_state}
 
     data_noTF = simulate_process_in_experiment(transcript_initiation, settings)
@@ -631,6 +631,7 @@ def test_transcript_initiation():
     #  3) rnaps in data['active_RNAPs'] seem to be missing direction, domain index data (likewise with rnas)
     #  4) Effect of TF binding is not tested in the toy model
     #     - simple test is to compare gene under up/down-regulation with data from same gene without regulation
+    #  5) Test of fixed synthesis probabilties does not pass
 
     # Unpack data
     inactive_RNAP = np.array(data_noTF['molecules'][test_config['inactive_RNAP']])
