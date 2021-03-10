@@ -14,7 +14,7 @@ import numpy as np
 from arrow import StochasticSystem
 
 from vivarium.core.process import Process
-from vivarium.core.composition import simulate_process_in_experiment
+from vivarium.core.composition import simulate_process
 
 # Maximum unsigned int value + 1 for randint() to seed srand from C stdlib
 RAND_MAX = 2**31
@@ -94,7 +94,7 @@ def test_complexation():
         'total_time': 10,
         'initial_state': state}
 
-    data = simulate_process_in_experiment(complexation, settings)
+    data = simulate_process(complexation, settings)
 
     print(data)
 

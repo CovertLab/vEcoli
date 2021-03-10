@@ -17,7 +17,7 @@ import logging as log
 
 from vivarium.core.process import Process
 from vivarium.library.dict_utils import deep_merge
-from vivarium.core.composition import simulate_process_in_experiment
+from vivarium.core.composition import simulate_process
 
 from ecoli.library.schema import bulk_schema, listener_schema, arrays_from, array_from, array_to
 
