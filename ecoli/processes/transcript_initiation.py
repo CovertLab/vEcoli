@@ -26,7 +26,7 @@ from wholecell.utils import units
 from wholecell.utils.random import stochasticRound
 from wholecell.utils.unit_struct_array import UnitStructArray
 
-from utils.data_predicates import monotonically_decreasing, all_nonnegative
+from ecoli.library.data_predicates import monotonically_decreasing, all_nonnegative
 from scipy.stats import chisquare
 
 
@@ -617,7 +617,7 @@ def test_transcript_initiation():
         'total_time': 100,
         'initial_state': initial_state}
 
-    data_noTF = simulate_process_in_experiment(transcript_initiation, settings)
+    data_noTF = simulate_process(transcript_initiation, settings)
 
     # Also gather data where TFs are bound:
 
@@ -663,7 +663,6 @@ def test_transcript_initiation():
         # TODO (3)
 
     # Fixed synthesis probability TUs (RNAP, rProtein) and non-fixed TUs synthesized in correct proportion
-
     expected = np.array([test_config['rnaSynthProbRProtein']['minimal'][0],
                          test_config['rnaSynthProbRnaPolymerase']['minimal'][0],
                          1])
@@ -679,7 +678,7 @@ def test_transcript_initiation():
     assert fixed_prob_test.pvalue > 0.05, ("Distribution of RNA types synthesized does "
                                            "not (approximately) match set points for fixed synthesis "
                                            f"(p = {fixed_prob_test.pvalue} > 0.05)")
-
+    
     # mRNA, tRNA, rRNA synthesized in correct proportion
     RNA_dist = np.array([np.sum(inits_by_TU[:, test_config['idx_mRNA']]),
                          np.sum(inits_by_TU[:, test_config['idx_tRNA']]),
