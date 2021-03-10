@@ -11,7 +11,7 @@ from typing import cast
 import numpy as np
 
 from vivarium.core.process import Process
-from vivarium.core.composition import simulate_process_in_experiment
+from vivarium.core.composition import simulate_process
 
 from ecoli.library.schema import arrays_from, arrays_to, add_elements
 
@@ -358,7 +358,7 @@ def test_polypeptide_initiation():
         'total_time': 10,
         'initial_state': state}
 
-    data = simulate_process_in_experiment(polypeptide_initiation, settings)
+    data = simulate_process(polypeptide_initiation, settings)
 
     print(data)
 
