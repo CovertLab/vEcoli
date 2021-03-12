@@ -1,5 +1,5 @@
 """
-tests that vivarium-ecoli process update are the same as save wcEcoli updates
+tests that vivarium-ecoli process update are the same as saved wcEcoli updates
 
 TODO:
     - get wcEcoli state at time 0, so that the comparison is fair.
