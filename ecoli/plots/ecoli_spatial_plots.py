@@ -90,8 +90,8 @@ def plot_nucleoid_diff(output, nodes, polyribosome_assumption):
                nodes['nucleoid']['volume'] / nodes['cytosol_front']['volume'],
             color='#018571')
         pickle.dump(fig, open('out/nucleoid_diff.pickle', 'wb'))
-    else:
-        fig = plt.figure()
+    else:  # spherical assumption
+        fig = check_fig_pickle('out/nucleoid_diff.pickle')
         plt.plot(
             x, np.average(array_from(output['nucleoid']['molecules']), axis=1) /
             total_molecules *
@@ -112,7 +112,7 @@ def plot_nucleoid_diff(output, nodes, polyribosome_assumption):
 
 
 # Plots diffusion of polyribosomes in a pole and the nucleoid
-def plot_polyribosomes_diff(output, mesh_size, nodes):
+def plot_polyribosomes_diff(output, mesh_size, nodes, filename):
     fig = plt.figure()
     groups = ['polyribosome_1[c]', 'polyribosome_2[c]', 'polyribosome_3[c]',
                   'polyribosome_4[c]','polyribosome_5[c]', 'polyribosome_6[c]',
@@ -134,7 +134,7 @@ def plot_polyribosomes_diff(output, mesh_size, nodes):
     plt.xlabel('time (min)')
     plt.ylabel('Normalized concentration (% total concentration)')
     plt.title(f'Diffusion of polyribosomes with mesh of {str(mesh_size)} nm')
-    out_file = 'out/polyribosomes.png'
+    out_file = filename or 'out/polyribosomes.png'
     plt.tight_layout()
     plt.savefig(out_file, dpi=300)
 
@@ -233,8 +233,8 @@ def plot_polyribosomes(rp, radii, dc, dc_no_mesh, total_molecules, mesh_size,
         fig = check_fig_pickle('out/polyribosomes_sizes.pickle')
         plt.plot(x, np.multiply(radii, 2), color='#018571')
         pickle.dump(fig, open('out/polyribosomes_sizes.pickle', 'wb'))
-    else:
-        fig = plt.figure()
+    else:  # spherical assumption
+        fig = check_fig_pickle('out/polyribosomes_sizes.pickle')
         mesh = np.full(len(x), mesh_size)
         plt.plot(x, np.multiply(rp, 2), color='#d8b365')
 
@@ -284,7 +284,7 @@ def plot_polyribosomes(rp, radii, dc, dc_no_mesh, total_molecules, mesh_size,
         plt.plot(x, dc, color='#5ab4ac')
         plt.plot(x, dc_no_mesh, color='#5ab4ac', linestyle='dashed')
     else:
-        fig = plt.figure()
+        fig = check_fig_pickle('out/polyribosomes_dc.pickle')
         tot = len(dc)
         plt.plot(x, dc, color='#d8b365')
         plt.plot(x, dc_no_mesh, color='#d8b365', linestyle='dashed')
