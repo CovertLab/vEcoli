@@ -7,6 +7,7 @@ TODO:
 
 import os
 import json
+import numpy as np
 import matplotlib.pyplot as plt
 from scipy.stats import mannwhitneyu
 
@@ -46,7 +47,7 @@ def test_transcript_initiation():
     actual_update = run_ecoli_process(process, topology)
 
     # separate the update to its ports
-    rna_snyth_prob = actual_update['listeners']['rna_synth_prob']['rna_synth_prob']
+    rna_synth_prob = actual_update['listeners']['rna_synth_prob']['rna_synth_prob']
 
     rib_data = actual_update['listeners']['ribosome_data']
     n_5SrRNA_prod = rib_data['rrn5S_produced']
@@ -60,6 +61,7 @@ def test_transcript_initiation():
     rnap_data = actual_update['listeners']['rnap_data']
     assert total_rna_init == rnap_data['didInitialize']
     rna_inits = rnap_data['rnaInitEvent']
+    assert rna_inits.shape[0] == rna_synth_prob.shape[0]
 
     active_RNAPs = actual_update['active_RNAPs']['_add']
     d_inactive_RNAPs = actual_update['molecules']['inactive_RNAPs']
@@ -71,7 +73,7 @@ def test_transcript_initiation():
         wc_data = json.load(f)
 
     # unpack wc_data
-    wc_rna_synth_prob = wc_data['listeners']['rna_synth_prob']['rna_synth_prob']
+    wc_rna_synth_prob = np.array(wc_data['listeners']['rna_synth_prob']['rna_synth_prob'])
 
     wc_rib_data = wc_data['listeners']['ribosome_data']
     wc_n_5SrRNA_prod = wc_rib_data['rrn5S_produced']
@@ -84,14 +86,17 @@ def test_transcript_initiation():
 
     wc_rnap_data = wc_data['listeners']['rnap_data']
     assert wc_total_rna_init == wc_rnap_data['didInitialize']
-    wc_rna_inits = wc_rnap_data['rnaInitEvent']
+    wc_rna_inits = np.array(wc_rnap_data['rnaInitEvent'])
+    assert wc_rna_inits.shape[0] == wc_rna_synth_prob.shape[0]
 
     wc_active_RNAPs = wc_data['active_RNAPs']['_add']
     wc_d_inactive_RNAPs = wc_data['molecules']['APORNAP-CPLX[c]']
     assert wc_d_inactive_RNAPs == -wc_total_rna_init
     wc_RNAs = wc_data['RNAs']['_add']
 
-    # Sanity checks: ...
+    # Sanity checks:
+
+    assert len(rna_inits) == len(wc_rna_inits), "Number of TUs differs between vivarium-ecoli and wcEcoli."
 
     # Numerical tests =======================================================================
 
@@ -103,6 +108,19 @@ def test_transcript_initiation():
         f.writelines(report)
 
     # Plots =========================================================================
+
+    plt.subplot(2, 1, 1)
+    qqplot(rna_synth_prob, wc_rna_synth_prob, quantile_precision=0.0001)
+    plt.xlabel("vivarium-ecoli")
+    plt.ylabel("wcEcoli")
+    plt.title("QQ-Plot of Synthesis Probabilities")
+
+    plt.subplot(2, 1, 2)
+    qqplot(rna_inits, wc_rna_inits, quantile_precision=0.0001)
+    plt.xlabel("vivarium-ecoli")
+    plt.ylabel("wcEcoli")
+    plt.title("QQ-Plot of # of Initiations")
+
     plt.subplots_adjust(hspace=0.5)
 
     plt.savefig("out/migration/transcript_initiation_figures.png")
