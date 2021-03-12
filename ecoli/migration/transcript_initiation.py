@@ -32,7 +32,15 @@ def test_transcript_initiation():
     # get ids from config
 
     # copy topology from ecoli_master, under generate_topology
-    topology = {}
+    topology = {
+            'environment': ('environment',),
+            'full_chromosomes': ('unique', 'full_chromosome'),
+            'RNAs': ('unique', 'RNA'),
+            'active_RNAPs': ('unique', 'active_RNAP'),
+            'promoters': ('unique', 'promoter'),
+            'molecules': ('bulk',),
+            'listeners': ('listeners',)
+    }
 
     # run the process and get an update
     actual_update = run_ecoli_process(process, topology)
@@ -45,20 +53,7 @@ def test_transcript_initiation():
 
     # unpack wc_data
 
-    # Sanity checks: wcEcoli and vivarium-ecoli match in number, names of proteins, metabolites
-    assert len(d_proteins) == len(wc_proteins) == len(protein_ids), (
-        f"Mismatch in lengths: vivarium-ecoli protein update has length {len(d_proteins)}\n"
-        f"while wcecoli has {len(protein_ids)} proteins with {len(wc_proteins)} values.")
-
-    assert len(d_metabolites) == len(wc_metabolites) == len(metabolite_ids), (
-        f"Mismatch in lengths: vivarium-ecoli metabolite update has length {len(d_metabolites)}\n"
-        f"while wcecoli has {len(metabolite_ids)} metabolites with {len(wc_metabolites)} values.")
-
-    assert set(d_proteins.keys()) == set(protein_ids), (
-        "Mismatch between protein ids in vivarium-ecoli and wcEcoli.")
-
-    assert set(d_metabolites.keys()) == set(metabolite_ids), (
-        "Mismatch between metabolite ids in vivarium-ecoli and wcEcoli.")
+    # Sanity checks: ...
 
     # Numerical tests =======================================================================
 
