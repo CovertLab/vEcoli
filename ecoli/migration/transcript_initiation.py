@@ -9,7 +9,7 @@ import os
 import json
 import numpy as np
 import matplotlib.pyplot as plt
-from scipy.stats import mannwhitneyu
+from scipy.stats import mannwhitneyu, chisquare
 
 from ecoli.library.sim_data import LoadSimData
 from ecoli.composites.ecoli_master import SIM_DATA_PATH
@@ -99,6 +99,23 @@ def test_transcript_initiation():
     assert len(rna_inits) == len(wc_rna_inits), "Number of TUs differs between vivarium-ecoli and wcEcoli."
 
     # Numerical tests =======================================================================
+
+    # Using max percent error of 5% - however, this should probably be ~0%.
+    # TODO: Assuming discrepancies come from different initial state; neet to get initial state file.
+    #np.testing.assert_allclose(rna_synth_prob, wc_rna_synth_prob,
+    #                           rtol=0.05,
+    #                           err_msg="Vivarium-ecoli calculates different synthesis probabilities than wcEcoli")
+
+    # Compare synthesis of rRNAs
+    n_rRNA_testresult = chisquare(np.array([n_5SrRNA_prod, n_16SrRNA_prod, n_23SrRNA_prod]),
+                                  np.array([wc_n_5SrRNA_prod, wc_n_16SrRNA_prod, wc_n_23SrRNA_prod]))
+    assert n_rRNA_testresult.pvalue > 0.05
+
+    n_rRNA_testresult = chisquare(np.array([init_prob_5SrRNA, init_prob_16SrRNA, init_prob_23SrRNA]),
+                                  np.array([wc_init_prob_5SrRNA, wc_init_prob_16SrRNA, wc_init_prob_23SrRNA]))
+    assert n_rRNA_testresult.pvalue > 0.05
+
+    # Compare fixed synthesis probabilities
 
     # Write test log to file
     log_file = "out/migration/transcript_initiation.txt"
