@@ -4,12 +4,15 @@ E. coli master composite
 ========================
 """
 
+import os
+import argparse
 import json
 import uuid
 
 from vivarium.core.process import Composer
 from vivarium.core.composition import simulate_composer
 from vivarium.core.experiment import pp
+from vivarium.plots.topology import plot_topology
 
 # sim data
 from ecoli.library.sim_data import LoadSimData
@@ -312,5 +315,66 @@ def run_ecoli():
     pp(listeners['mass'])
 
 
+def ecoli_topology_plot(out_dir='out'):
+    ecoli = Ecoli({'agent_id': '1'})
+
+    settings = {
+        'graph_format': 'hierarchy',
+        'dashed_edges': True,
+        'node_size': 12000,
+        'node_labels': {
+            'tf_binding': 'tf\nbinding',
+            'transcript_initiation': 'transcript\ninitiation',
+            'transcript_elongation': 'transcript\nelongation',
+            'rna_degradation': 'rna\ndegradation',
+            'polypeptide_initiation': 'polypeptide\ninitiation',
+            'polypeptide_elongation': 'polypeptide\nelongation',
+            'complexation': 'complexation',
+            'two_component_system': 'two component\nsystem',
+            'equilibrium': 'equilibrium',
+            'protein_degradation': 'protein\ndegradation',
+            'metabolism': 'metabolism',
+            'mass': 'mass',
+            'divide_condition': 'divide\ncondition',
+        },
+        'remove_nodes': [
+            'listeners\nmass\ncell_mass',
+            'process_State',
+            'listeners\nfba_results',
+            'listeners\nenzyme_kinetics',
+            'listeners\nmass',
+            'listeners\nribosome_data',
+            'listeners\nfba_results',
+            'listeners\nequilibrium_listener',
+            'listeners\nrna_degradation_listener',
+            'process_state\npolypeptide_elongation',
+        ]
+    }
+    plot_topology(
+        ecoli,
+        filename='ecoli_master',
+        out_dir=out_dir,
+        settings=settings)
+
+
+
+
+def main():
+    out_dir = os.path.join('out', 'ecoli_master')
+    if not os.path.exists(out_dir):
+        os.makedirs(out_dir)
+
+
+    parser = argparse.ArgumentParser(description='bioscrape_cobra')
+    parser.add_argument('-topology', '-t', action='store_true', default=False, help='save a topology plot of ecoli master')
+    parser.add_argument('-simulate', '-s', action='store_true', default=False, help='simulate ecoli master')
+    args = parser.parse_args()
+
+
+    if args.topology:
+        ecoli_topology_plot(out_dir)
+    else:
+        run_ecoli()
+
 if __name__ == '__main__':
-    run_ecoli()
+    main()
