@@ -339,7 +339,7 @@ def ecoli_topology_plot(out_dir='out'):
         },
         'remove_nodes': [
             'listeners\nmass\ncell_mass',
-            'process_State',
+            'process_state',
             'listeners\nfba_results',
             'listeners\nenzyme_kinetics',
             'listeners\nmass',
