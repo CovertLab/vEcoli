@@ -27,8 +27,8 @@ def test_metabolism_migration():
     # run the process and get an update
     actual_update = run_ecoli_process(metabolism_process, topology, total_time=2)
 
-    print(actual_update)
-    import ipdb; ipdb.set_trace()
+    # print(actual_update)
+    # import ipdb; ipdb.set_trace()
 
 if __name__ == "__main__":
     test_metabolism_migration()
