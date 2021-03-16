@@ -243,7 +243,7 @@ def load_states(path):
 
     return states
 
-def get_state_from_file(path='data/wcecoli_t10.json'):
+def get_state_from_file(path='data/wcecoli_t0.json'):
 
     states = load_states(path)
 
