@@ -136,6 +136,11 @@ def test_transcript_initiation():
                                   wc_fixed_synths[np.nonzero(wc_fixed_synths)])
     assert fixed_test_result.pvalue > 0.05
 
+    # distribution RNAPs on each domain
+
+    # printout of deviations
+    # migration_utils.print_array_deviations(names=None, a, b, filename)
+
     # Write test log to file
     log_file = "out/migration/transcript_initiation.txt"
     os.makedirs(os.path.dirname(log_file), exist_ok=True)
