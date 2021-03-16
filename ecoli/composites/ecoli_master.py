@@ -318,11 +318,30 @@ def run_ecoli():
 def ecoli_topology_plot(out_dir='out'):
     ecoli = Ecoli({'agent_id': '1'})
 
+    process_row = -4
+    process_distance = 0.9
     settings = {
         'graph_format': 'hierarchy',
         'dashed_edges': True,
+        'show_ports': False,
         'node_size': 12000,
+        'coordinates': {
+            'tf_binding': (1*process_distance, process_row),
+            'transcript_initiation': (2*process_distance, process_row),
+            'transcript_elongation': (3*process_distance, process_row),
+            'rna_degradation': (4*process_distance, process_row),
+            'polypeptide_initiation': (5*process_distance, process_row),
+            'polypeptide_elongation': (6*process_distance, process_row),
+            'complexation': (7*process_distance, process_row),
+            'two_component_system': (8*process_distance, process_row),
+            'equilibrium': (9*process_distance, process_row),
+            'protein_degradation': (10*process_distance, process_row),
+            'metabolism': (11*process_distance, process_row),
+            'mass': (12*process_distance, process_row),
+            'divide_condition': (13*process_distance, process_row),
+        },
         'node_labels': {
+            # processes
             'tf_binding': 'tf\nbinding',
             'transcript_initiation': 'transcript\ninitiation',
             'transcript_elongation': 'transcript\nelongation',
@@ -335,7 +354,7 @@ def ecoli_topology_plot(out_dir='out'):
             'protein_degradation': 'protein\ndegradation',
             'metabolism': 'metabolism',
             'mass': 'mass',
-            'divide_condition': 'divide\ncondition',
+            'divide_condition': 'division',
         },
         'remove_nodes': [
             'listeners\nmass\ncell_mass',
