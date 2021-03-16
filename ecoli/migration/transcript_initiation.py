@@ -59,13 +59,16 @@ def test_transcript_initiation():
     total_rna_init = rib_data['total_rna_init']
 
     rnap_data = actual_update['listeners']['rnap_data']
-    assert total_rna_init == rnap_data['didInitialize']
+    assert total_rna_init == rnap_data['didInitialize'], ("Update malformed: number of inits does not "
+                                                          "match change in active rnaps")
     rna_inits = rnap_data['rnaInitEvent']
-    assert rna_inits.shape[0] == rna_synth_prob.shape[0]
+    assert rna_inits.shape[0] == rna_synth_prob.shape[0], ("Update malformed: TUs in rna_inits array "
+                                                           "do not match TUs in rna synthesis probabilities")
 
     active_RNAPs = actual_update['active_RNAPs']['_add']
     d_inactive_RNAPs = actual_update['molecules']['inactive_RNAPs']
-    assert d_inactive_RNAPs == -total_rna_init
+    assert d_inactive_RNAPs == -total_rna_init, ("Update malformed: change in inactive RNAPs does not match ",
+                                                 "total rnas initiated.")
     RNAs = actual_update['RNAs']['_add']
 
     # compare to collected update from wcEcoli
@@ -85,13 +88,16 @@ def test_transcript_initiation():
     wc_total_rna_init = wc_rib_data['total_rna_init']
 
     wc_rnap_data = wc_data['listeners']['rnap_data']
-    assert wc_total_rna_init == wc_rnap_data['didInitialize']
+    assert wc_total_rna_init == wc_rnap_data['didInitialize'], ("Update malformed: number of inits does not "
+                                                                "match change in active rnaps")
     wc_rna_inits = np.array(wc_rnap_data['rnaInitEvent'])
-    assert wc_rna_inits.shape[0] == wc_rna_synth_prob.shape[0]
+    assert wc_rna_inits.shape[0] == wc_rna_synth_prob.shape[0], ("Update malformed: TUs in rna_inits array "
+                                                                 "do not match TUs in rna synthesis probabilities")
 
     wc_active_RNAPs = wc_data['active_RNAPs']['_add']
     wc_d_inactive_RNAPs = wc_data['molecules']['APORNAP-CPLX[c]']
-    assert wc_d_inactive_RNAPs == -wc_total_rna_init
+    assert wc_d_inactive_RNAPs == -wc_total_rna_init, ("Update malformed: change in inactive RNAPs does not "
+                                                       "match total rnas initiated.")
     wc_RNAs = wc_data['RNAs']['_add']
 
     # Sanity checks:
@@ -100,8 +106,9 @@ def test_transcript_initiation():
 
     # Numerical tests =======================================================================
 
+    # Compare synthesis probabilities
     # Using max percent error of 5% - however, this should probably be ~0%.
-    # TODO: Assuming discrepancies come from different initial state; neet to get initial state file.
+    # TODO: Assuming discrepancies come from different initial state; need to get initial state file.
     #np.testing.assert_allclose(rna_synth_prob, wc_rna_synth_prob,
     #                           rtol=0.05,
     #                           err_msg="Vivarium-ecoli calculates different synthesis probabilities than wcEcoli")
@@ -111,39 +118,63 @@ def test_transcript_initiation():
                                   np.array([wc_n_5SrRNA_prod, wc_n_16SrRNA_prod, wc_n_23SrRNA_prod]))
     assert n_rRNA_testresult.pvalue > 0.05
 
-    n_rRNA_testresult = chisquare(np.array([init_prob_5SrRNA, init_prob_16SrRNA, init_prob_23SrRNA]),
-                                  np.array([wc_init_prob_5SrRNA, wc_init_prob_16SrRNA, wc_init_prob_23SrRNA]))
+    n_rRNA_testresult = chisquare(np.array([init_prob_5SrRNA, init_prob_16SrRNA, init_prob_23SrRNA]) * total_rna_init,
+                                  np.array([wc_init_prob_5SrRNA, wc_init_prob_16SrRNA, wc_init_prob_23SrRNA]) * total_rna_init)
     assert n_rRNA_testresult.pvalue > 0.05
 
     # Compare fixed synthesis probabilities
+    fixed_synths = np.array([sum(rna_inits[config['idx_rnap']]),
+                             sum(rna_inits[config['idx_rprotein']]),
+                             total_rna_init])
+    fixed_synths[2] -= fixed_synths[0] + fixed_synths[1]
+    wc_fixed_synths = np.array([sum(wc_rna_inits[config['idx_rnap']]),
+                                sum(wc_rna_inits[config['idx_rprotein']]),
+                                wc_total_rna_init])
+    wc_fixed_synths[2] -= wc_fixed_synths[0] + wc_fixed_synths[1]
+
+    fixed_test_result = chisquare(fixed_synths[np.nonzero(wc_fixed_synths)],
+                                  wc_fixed_synths[np.nonzero(wc_fixed_synths)])
+    assert fixed_test_result.pvalue > 0.05
 
     # Write test log to file
     log_file = "out/migration/transcript_initiation.txt"
     os.makedirs(os.path.dirname(log_file), exist_ok=True)
     with open(log_file, "w") as f:
-        report = []
+        pe_synths = (rna_synth_prob - wc_rna_synth_prob) / wc_rna_synth_prob
+        report = ["Compared synthesis probabilities, finding a maximum percent-error difference of",
+                  f" {max(pe_synths[~np.isnan(pe_synths)])}.\n",
+                  "\nCompared inits for fixed-synthesis-probability TUs, using a chi-square GOF test \n",
+                  f"(p = {fixed_test_result.pvalue})",
+                  ""]
         f.writelines(report)
 
     # Plots =========================================================================
 
-    plt.subplot(2, 1, 1)
+    plt.subplot(2, 2, 1)
     qqplot(rna_synth_prob, wc_rna_synth_prob, quantile_precision=0.0001)
     plt.xlabel("vivarium-ecoli")
     plt.ylabel("wcEcoli")
     plt.title("QQ-Plot of Synthesis Probabilities")
 
-    plt.subplot(2, 1, 2)
+    plt.subplot(2, 2, 2)
     qqplot(rna_inits, wc_rna_inits, quantile_precision=0.0001)
     plt.xlabel("vivarium-ecoli")
     plt.ylabel("wcEcoli")
     plt.title("QQ-Plot of # of Initiations")
 
+    plt.subplot(2, 1, 2)
+    diffplot = -np.sort(wc_rna_synth_prob - rna_synth_prob)
+    diffplot = diffplot[np.nonzero(diffplot)]
+    plt.hist(diffplot, bins=1000, rwidth=1)
+    plt.yscale("log")
+    plt.xlabel("$P_{Vivarium} - P_{wcEcoli}$")
+    plt.ylabel("TUs")
+    plt.title("Histogram of Synthesis Probability Differences")
+
     plt.subplots_adjust(hspace=0.5)
 
+    plt.gcf().set_size_inches(8, 6)
     plt.savefig("out/migration/transcript_initiation_figures.png")
-
-    # Asserts for numerical tests:
-
 
 
 if __name__ == "__main__":
