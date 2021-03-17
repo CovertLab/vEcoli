@@ -3,7 +3,11 @@ from vivarium.core.experiment import Experiment
 from ecoli.composites.ecoli_master import get_state_from_file
 
 
-def run_ecoli_process(process, topology, total_time=2):
+def run_ecoli_process(
+        process,
+        topology,
+        total_time=2,
+        initial_time=0):
     """
     load a single ecoli process, run it, and return the update
 
@@ -17,8 +21,8 @@ def run_ecoli_process(process, topology, total_time=2):
     """
 
     # get initial state from file
-    # TODO -- get wcecoli_t0
-    initial_state = get_state_from_file(path='data/wcecoli_t10.json')
+    initial_state = get_state_from_file(
+        path=f'data/wcecoli_t{initial_time}.json')
 
     # make an experiment
     experiment_config = {

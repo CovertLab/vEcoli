@@ -57,7 +57,7 @@ composite, but are unfinished or have not been incorporated. These processes
 are `growth_rate.py` and `spatial_geometry.py`.
 
 '''
-
+import argparse
 import numpy as np
 import math
 from wholecell.utils import units
@@ -303,7 +303,9 @@ def add_polyribosomes(unique, unique_masses, polyribosome_assumption, save_outpu
         return polyribosomes, mw, radii
 
 
-def test_spatial_ecoli():
+def test_spatial_ecoli(
+    polyribosome_assumption='spherical',    # choose from 'mrna', 'linear', or 'spherical'
+):
     ecoli_config = {
         'nodes': {
             'cytosol_front': {
@@ -343,7 +345,7 @@ def test_spatial_ecoli():
     initial_config = {
         'include_bulk': False,
         'include_polyribosomes': True,
-        'polyribosome_assumption': 'mrna',
+        'polyribosome_assumption': polyribosome_assumption,
     }
 
     settings = {
@@ -354,8 +356,11 @@ def test_spatial_ecoli():
     return ecoli, initial_config, data
 
 
-def run_spatial_ecoli():
-    ecoli, initial_config, output = test_spatial_ecoli()
+def run_spatial_ecoli(
+    polyribosome_assumption='linear'  # choose from 'mrna', 'linear', or 'spherical'
+):
+    ecoli, initial_config, output = test_spatial_ecoli(
+        polyribosome_assumption=polyribosome_assumption)
     mesh_size = ecoli.config['mesh_size']
     nodes = ecoli.config['nodes']
     plot_molecule_characterizations(ecoli, initial_config)
@@ -363,7 +368,8 @@ def run_spatial_ecoli():
         mol_ids = ['ADHE-CPLX[c]', 'CPLX0-3962[c]', 'CPLX0-3953[c]']
         plot_large_molecules(output, mol_ids, mesh_size, nodes)
     if initial_config['include_polyribosomes']:
-        plot_polyribosomes_diff(output, mesh_size, nodes)
+        filename = 'out/polyribosome_diffusion_' + initial_config['polyribosome_assumption']
+        plot_polyribosomes_diff(output, mesh_size, nodes, filename)
     if initial_config['include_polyribosomes'] and not initial_config['include_bulk']:
         plot_nucleoid_diff(output, nodes, initial_config['polyribosome_assumption'])
 
@@ -379,5 +385,19 @@ def array_to(keys, array):
         for index, key in enumerate(keys)}
 
 
+def main():
+    parser = argparse.ArgumentParser(description='ecoli spatial')
+    parser.add_argument('-mrna', '-m', action='store_true', default=False, help='mrna assumption')
+    parser.add_argument('-linear', '-l', action='store_true', default=False, help='linear assumption')
+    parser.add_argument('-spherical', '-s', action='store_true', default=False, help='spherical assumption')
+    args = parser.parse_args()
+
+    if args.mrna:
+        run_spatial_ecoli('mrna')
+    if args.linear:
+        run_spatial_ecoli('linear')
+    if args.spherical:
+        run_spatial_ecoli('spherical')
+
 if __name__ == '__main__':
-    run_spatial_ecoli()
+    main()
