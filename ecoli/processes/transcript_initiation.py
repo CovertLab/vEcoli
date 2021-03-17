@@ -583,7 +583,8 @@ def test_transcript_initiation():
         'inactive_RNAP': 'APORNAP-CPLX[c]',
 
         'seed': 0,
-        'time_step': 2
+        'time_step': 2,
+        #'_schema' : {'molecules' : {'APORNAP-CPLX[c]' : {'_updater' : 'null'}}}
     }
 
     transcript_initiation = TranscriptInitiation(test_config)
@@ -614,13 +615,12 @@ def test_transcript_initiation():
         initial_state['promoters'][str(i)] = p
 
     settings = {
-        'total_time': 100,
+        'total_time': 10,
         'initial_state': initial_state}
 
     data_noTF = simulate_process(transcript_initiation, settings)
 
     # Also gather data where TFs are bound:
-
 
     # Assertions =========================================================
     # TODO:
@@ -653,6 +653,7 @@ def test_transcript_initiation():
     assert data_noTF['active_RNAPs'].keys() == data_noTF['RNAs'].keys(), "Keys of active RNAPs do not match keys of RNA"
 
     # Inactive RNAPs deplete as they are activated
+
     np.testing.assert_array_equal(-d_inactive_RNAP,
                                   d_active_RNAP,
                                   "Depletion of inactive RNAPs does not match counts of RNAPs activated.")
@@ -675,8 +676,13 @@ def test_transcript_initiation():
 
     fixed_prob_test = chisquare(actual, f_exp=expected)
 
+    import ipdb; ipdb.set_trace()
+    from ecoli.migration.migration_utils import readout_diffs
+    print(readout_diffs(actual, expected))
+
+
     assert fixed_prob_test.pvalue > 0.05, ("Distribution of RNA types synthesized does "
-                                           "not (approximately) match set points for fixed synthesis "
+                                           "not (approximately) match set points for fixed synthesis"
                                            f"(p = {fixed_prob_test.pvalue} > 0.05)")
     
     # mRNA, tRNA, rRNA synthesized in correct proportion
