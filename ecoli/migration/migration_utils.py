@@ -48,13 +48,13 @@ def run_ecoli_process(process, topology, total_time=2):
 
 def readout_diffs(a, b, names=None):
     if len(a) != len(b):
-        raise InputError(f"Length of a does not match length of b ({len(a)} != {len(b)})")
+        raise ValueError(f"Length of a does not match length of b ({len(a)} != {len(b)})")
 
     if names is None:
         names = list(map(str, range(len(a))))
 
     if len(names) != len(a):
-        raise InputError(f"Length of names does not match length of a ({len(names)} != {len(a)})")
+        raise ValueError(f"Length of names does not match length of a ({len(names)} != {len(a)})")
 
     diffs = a - b
 
