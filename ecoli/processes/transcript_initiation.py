@@ -577,7 +577,7 @@ def test_transcript_initiation():
         'idx_rnap': np.array([4]),
         'rnaSynthProbFractions': {'minimal': {'mRna': 0.25, 'tRna': 0.6, 'rRna': 0.15}},
         'rnaSynthProbRProtein': {'minimal': np.array([.06])},
-        'rnaSynthProbRnaPolymerase': {'minimal': np.array([.02])},
+        'rnaSynthProbRnaPolymerase': {'minimal': np.array([.04])},
         'replication_coordinate': np.array([x[-2] for x in rna_data.fullArray()]),
         'transcription_direction': np.array([x[-1] for x in rna_data.fullArray()]),
         'inactive_RNAP': 'APORNAP-CPLX[c]',
@@ -675,9 +675,9 @@ def test_transcript_initiation():
 
     fixed_prob_test = chisquare(actual, f_exp=expected)
 
-    #assert fixed_prob_test.pvalue > 0.05, ("Distribution of RNA types synthesized does "
-    #                                       "not (approximately) match set points for fixed synthesis"
-    #                                       f"(p = {fixed_prob_test.pvalue} <= 0.05)")
+    assert fixed_prob_test.pvalue > 0.05, ("Distribution of RNA types synthesized does "
+                                          "not (approximately) match set points for fixed synthesis"
+                                          f"(p = {fixed_prob_test.pvalue} <= 0.05)")
     
     # mRNA, tRNA, rRNA synthesized in correct proportion
     RNA_dist = np.array([np.sum(inits_by_TU[:, test_config['idx_mRNA']]),
@@ -714,7 +714,7 @@ def run_plot(config, data):
     # plt.ylabel("Active RNAPs")
     # plt.title("Active RNAPs over time")
 
-    # plot sythesis probablities over time
+    # plot synthesis probablities over time
 
     plt.subplot(2, 2, 1)
     prev = np.zeros(N - 1)
@@ -725,11 +725,8 @@ def run_plot(config, data):
     plt.ylabel('Probability of Synthesis')
     plt.title('Theoretical Synthesis Probabilities over Time')
 
-
     # plot actual probability of synthesis for each RNA
-
     plt.subplot(2, 2, 2)
-
     probs = np.sum(inits_by_TU, axis=0) / np.sum(inits_by_TU)
     prev = 0
     for i in range(len(probs)):
@@ -737,18 +734,7 @@ def run_plot(config, data):
         plt.bar([0], [prob], bottom=prev, width=1)
         plt.text(i / len(probs) - 0.5, prev + prob/2, config['rna_data'][i][0])
         prev += prob
-
-    '''
-    plt.bar([x[0] for x in config['rna_data']],
-            np.sum(inits_by_TU, axis=0) / np.sum(inits_by_TU))
-    plt.xticks(rotation=45)
-    '''
-    plt.tick_params(
-        axis='x',  # changes apply to the x-axis
-        which='both',  # both major and minor ticks are affected
-        bottom=False,  # ticks along the bottom edge are off
-        top=False,  # ticks along the top edge are off
-        labelbottom=False)  # labels along the bottom edge are off
+    plt.tick_params(axis='x', which='both', bottom=False, top=False, labelbottom=False)
     plt.ylabel("Probability")
     plt.title("Actual Probability of Synthesis by TU")
 
