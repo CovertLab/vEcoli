@@ -50,5 +50,28 @@ def run_ecoli_process(
     return actual_update
 
 
+def array_diffs_readout(a, b, names=None):
+    if len(a) != len(b):
+        raise ValueError(f"Length of a does not match length of b ({len(a)} != {len(b)})")
+
+    if names is None:
+        names = list(map(str, range(len(a))))
+
+    if len(names) != len(a):
+        raise ValueError(f"Length of names does not match length of a ({len(names)} != {len(a)})")
+
+    diffs = a - b
+
+    name_pad = max(4, max(map(len, names))) + 1
+    diffs_pad = max(4, max(map(lambda x : len(str(x)), diffs))) + 1
+    result = "Name".center(name_pad) + ' | ' + "Diff".center(diffs_pad) + '\n'
+    result += '=' * (name_pad + diffs_pad + 3) + '\n'
+    for name, diff in zip(names, diffs):
+        result += str(name).ljust(name_pad) + ' : ' + str(diff).rjust(diffs_pad) + '\n'
+
+    return result
+
+
+
 def percent_error(actual, expected):
     return abs((actual - expected) / expected)
