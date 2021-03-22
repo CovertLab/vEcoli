@@ -18,6 +18,7 @@ from ecoli.migration.migration_utils import run_ecoli_process, percent_error
 from ecoli.processes.transcript_initiation import TranscriptInitiation
 
 from ecoli.migration.plots import qqplot
+from ecoli.migration.migration_utils import array_diffs_report
 
 
 load_sim_data = LoadSimData(
@@ -66,7 +67,7 @@ def test_transcript_initiation():
                                                            "do not match TUs in rna synthesis probabilities")
 
     active_RNAPs = actual_update['active_RNAPs']['_add']
-    d_inactive_RNAPs = actual_update['molecules']['inactive_RNAPs']
+    d_inactive_RNAPs = actual_update['molecules'][config['inactive_RNAP']]
     assert d_inactive_RNAPs == -total_rna_init, ("Update malformed: change in inactive RNAPs does not match ",
                                                  "total rnas initiated.")
     RNAs = actual_update['RNAs']['_add']
@@ -152,6 +153,11 @@ def test_transcript_initiation():
                   f"(p = {fixed_test_result.pvalue})",
                   ""]
         f.writelines(report)
+
+    synth_prob_file = "out/migration/synth_prob_comparison.txt"
+    with open(synth_prob_file, "w") as f:
+        f.write(array_diffs_report(rna_synth_prob, wc_rna_synth_prob,
+                                   names=[x[0] for x in config['rna_data']]))
 
     # Plots =========================================================================
 
