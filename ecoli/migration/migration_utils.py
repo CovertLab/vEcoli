@@ -46,7 +46,7 @@ def run_ecoli_process(process, topology, total_time=2):
     return actual_update
 
 
-def readout_diffs(a, b, names=None):
+def array_diffs_readout(a, b, names=None):
     if len(a) != len(b):
         raise ValueError(f"Length of a does not match length of b ({len(a)} != {len(b)})")
 
