@@ -1,3 +1,4 @@
+import numpy as np
 from vivarium.core.experiment import Experiment
 
 from ecoli.composites.ecoli_master import get_state_from_file
@@ -50,7 +51,7 @@ def run_ecoli_process(
     return actual_update
 
 
-def array_diffs_readout(a, b, names=None):
+def array_diffs_report(a, b, names=None):
     if len(a) != len(b):
         raise ValueError(f"Length of a does not match length of b ({len(a)} != {len(b)})")
 
@@ -61,10 +62,15 @@ def array_diffs_readout(a, b, names=None):
         raise ValueError(f"Length of names does not match length of a ({len(names)} != {len(a)})")
 
     diffs = a - b
+    order = np.argsort(-np.abs(diffs))
+    diffs = diffs[order]
+    names = [names[i] for i in order]
 
     name_pad = max(4, max(map(len, names))) + 1
     diffs_pad = max(4, max(map(lambda x : len(str(x)), diffs))) + 1
-    result = "Name".center(name_pad) + ' | ' + "Diff".center(diffs_pad) + '\n'
+
+    result = f"{np.nonzero(diffs)[0].shape[0]} / {len(diffs)} entries have differences.\n\n"
+    result += "Name".center(name_pad) + ' | ' + "Diff".center(diffs_pad) + '\n'
     result += '=' * (name_pad + diffs_pad + 3) + '\n'
     for name, diff in zip(names, diffs):
         result += str(name).ljust(name_pad) + ' : ' + str(diff).rjust(diffs_pad) + '\n'
