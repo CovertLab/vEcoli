@@ -197,6 +197,7 @@ def test_protein_degradation():
 def run_plot(data):
     pass
 
+
 def main():
     data = test_protein_degradation()
     run_plot(data)
