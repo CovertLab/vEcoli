@@ -110,3 +110,54 @@ class Equilibrium(Process):
                     'reaction_rates': deltaMolecules[self.product_indices] / timestep}}}
 
         return update
+
+def test_equilibrium():
+    test_config = {
+        'jit': False,
+        'n_avogadro': self.parameters['n_avogadro'],
+        'cell_density': self.parameters['cell_density'],
+        'stoichMatrix': np.array([
+            [-1, 1, 0],
+            [0, -1, 1],
+            [1, 0, -1],
+            [-1, 0, 1],
+            [1, -1, 0],
+            [0, 1, -1]], np.int64),
+        'fluxesAndMoleculesToSS': lambda counts, volume, avogadro, random, jit: ([], []),
+        'moleculeNames': ['A', 'B', 'C'],
+        'seed': 1}
+
+    equilibrium = Equilibrium(test_config)
+
+    state = {
+        'molecules': {
+            'A': 10,
+            'B': 20,
+            'C': 30},
+            'listeners': {
+                'mass': {
+                    'cell_mass': 1},
+                'equilibrium_listener': {
+                    'reaction_rates': {'_default': 0, '_updater': 'set'}}}}
+
+    settings = {
+        'total_time': 10,
+        'initial_state': state}
+
+    data = simulate_process_in_experiment(equilibrium, settings)
+
+    print(data)
+
+    #molecule_data = np.concatenate([[data["molecules"][molecules]] for molecules in test_config['molecule_names']], axis=0)
+    #assert all_nonnegative(molecule_data)
+
+    #molecule_delta = molecule_data[:, 1:] - molecule_data[:, :-1]
+    #molecule_expected = (molecule_delta + molecule_data[:, :-1])
+    #assert np.array_equal(molecule_data[:, 1:], molecule_expected)
+
+    #expected_molecule =
+    print("passed tests.")
+
+
+if __name__ == "__main__":
+    test_equilibrium()

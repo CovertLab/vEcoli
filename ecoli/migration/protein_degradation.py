@@ -61,6 +61,7 @@ def test_protein_degradation():
                       if id != water_id]
     wc_water = wc_metabolites[metabolite_ids.index(water_id)]
 
+    import ipdb; ipdb.set_trace()
     # Sanity checks: wcEcoli and vivarium-ecoli match in number, names of proteins, metabolites
     assert len(d_proteins) == len(wc_proteins) == len(protein_ids), (
         f"Mismatch in lengths: vivarium-ecoli protein update has length {len(d_proteins)}\n"

@@ -17,6 +17,8 @@ from vivarium.core.process import Process
 from vivarium.core.composition import simulate_process_in_experiment
 
 from ecoli.library.data_predicates import all_nonnegative
+from ecoli.migration.write_json import write_json
+import json
 
 # Maximum unsigned int value + 1 for randint() to seed srand from C stdlib
 RAND_MAX = 2**31
@@ -33,12 +35,18 @@ class Complexation(Process):
     def __init__(self, initial_parameters=None):
         super(Complexation, self).__init__(initial_parameters)
 
+        with open("data/complexation_wc_stoich.json") as f:
+            wc_complexation_data = json.load(f)
+        stoich = wc_complexation_data["wcstoichMatrix"]
+        stoich_numpy = np.array(stoich)
+
         self.stoichiometry = self.parameters['stoichiometry']
+        #self.stoichiometry = stoich_numpy
         self.rates = self.parameters['rates']
         self.molecule_names = self.parameters['molecule_names']
         self.seed = self.parameters['seed']
-
         self.system = StochasticSystem(self.stoichiometry, random_seed=self.seed)
+
 
     def ports_schema(self):
         return {
@@ -52,16 +60,25 @@ class Complexation(Process):
         molecules = states['molecules']
 
         substrate = np.zeros(len(molecules), dtype=np.int64)
+        with open("data/complexation_update11_t2.json") as f:
+            wc_complexation_data = json.load(f)
+        wc_molecules = wc_complexation_data["moleculeCounts"]
+
         for index, molecule in enumerate(self.molecule_names):
             substrate[index] = molecules[molecule]
 
         result = self.system.evolve(timestep, substrate, self.rates)
         outcome = result['outcome'] - substrate
 
+        requested_molecules = np.fmax(substrate - outcome, 0)
+        final_result = self.system.evolve(timestep, requested_molecules, self.rates)
+        final_outcome = final_result['outcome'] - substrate
+        import ipdb; ipdb.set_trace()
         molecules_update = {
             molecule: outcome[index]
             for index, molecule in enumerate(self.molecule_names)}
 
+        #import ipdb; ipdb.set_trace()
         update = {
             'molecules': molecules_update}
 
