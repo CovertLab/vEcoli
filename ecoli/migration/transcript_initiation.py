@@ -109,7 +109,14 @@ def test_transcript_initiation():
 
     # Compare synthesis probabilities
     # Using max percent error of 5% - however, this should probably be ~0%.
-    # TODO: Assuming discrepancies come from different initial state; need to get initial state file.
+    # TODO: Possible origin of differences:
+    #  1) differing basal probabilities
+    #  2) differing TFs bound (in initial state of promoters)
+    #  3) differing mRNA/tRNA/rRNA set points, in media data of initial state
+    #  4) differing fixed synthesis set points, in media data of initial state
+    #  5) differing calculation (code itself)
+    #  6) rounding issues?
+
     np.testing.assert_allclose(rna_synth_prob, wc_rna_synth_prob,
                                rtol=0.05,
                                err_msg="Vivarium-ecoli calculates different synthesis probabilities than wcEcoli")
@@ -133,14 +140,8 @@ def test_transcript_initiation():
                                 wc_total_rna_init])
     wc_fixed_synths[2] -= wc_fixed_synths[0] + wc_fixed_synths[1]
 
-    fixed_test_result = chisquare(fixed_synths[np.nonzero(wc_fixed_synths)],
-                                  wc_fixed_synths[np.nonzero(wc_fixed_synths)])
-    # assert fixed_test_result.pvalue > 0.05
-
-    # distribution RNAPs on each domain
-
-    # printout of deviations
-    # migration_utils.print_array_deviations(names=None, a, b, filename)
+    fixed_test_result = mannwhitneyu(fixed_synths, wc_fixed_synths)
+    assert fixed_test_result.pvalue > 0.05
 
     # Write test log to file
     log_file = "out/migration/transcript_initiation.txt"
@@ -171,7 +172,7 @@ def test_transcript_initiation():
     qqplot(rna_inits, wc_rna_inits, quantile_precision=0.0001)
     plt.xlabel("vivarium-ecoli")
     plt.ylabel("wcEcoli")
-    plt.title("QQ-Plot of # of Initiations")
+    plt.title("QQ-Plot of # of Initiations per TU")
 
     plt.subplot(2, 1, 2)
     diffplot = -np.sort(wc_rna_synth_prob - rna_synth_prob)
