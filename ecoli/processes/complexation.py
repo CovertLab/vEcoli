@@ -8,8 +8,6 @@ TODO:
 - handle protein complex dissociation
 """
 
-from __future__ import absolute_import, division, print_function
-
 import numpy as np
 from arrow import StochasticSystem
 
@@ -35,16 +33,11 @@ class Complexation(Process):
     def __init__(self, initial_parameters=None):
         super(Complexation, self).__init__(initial_parameters)
 
-        with open("data/complexation_wc_stoich.json") as f:
-            wc_complexation_data = json.load(f)
-        stoich = wc_complexation_data["wcstoichMatrix"]
-        stoich_numpy = np.array(stoich)
-
         self.stoichiometry = self.parameters['stoichiometry']
-        #self.stoichiometry = stoich_numpy
         self.rates = self.parameters['rates']
         self.molecule_names = self.parameters['molecule_names']
         self.seed = self.parameters['seed']
+
         self.system = StochasticSystem(self.stoichiometry, random_seed=self.seed)
 
 
@@ -73,17 +66,19 @@ class Complexation(Process):
         requested_molecules = np.fmax(substrate - outcome, 0)
         final_result = self.system.evolve(timestep, requested_molecules, self.rates)
         final_outcome = final_result['outcome'] - substrate
+
         import ipdb; ipdb.set_trace()
+
         molecules_update = {
             molecule: outcome[index]
             for index, molecule in enumerate(self.molecule_names)}
 
-        #import ipdb; ipdb.set_trace()
         update = {
             'molecules': molecules_update}
 
         # # Write outputs to listeners
         # self.writeToListener("ComplexationListener", "complexationEvents", events)
+        
         return update
 
 
