@@ -15,11 +15,10 @@ from vivarium.core.process import Process
 from vivarium.core.composition import simulate_process
 
 from ecoli.library.data_predicates import all_nonnegative
-from ecoli.migration.write_json import write_json
-import json
 
 # Maximum unsigned int value + 1 for randint() to seed srand from C stdlib
 RAND_MAX = 2**31
+
 
 class Complexation(Process):
     name = 'ecoli-complexation'
@@ -30,8 +29,8 @@ class Complexation(Process):
         'molecule_names': [],
         'seed': 0}
 
-    def __init__(self, initial_parameters=None):
-        super(Complexation, self).__init__(initial_parameters)
+    def __init__(self, parameters=None):
+        super().__init__(parameters)
 
         self.stoichiometry = self.parameters['stoichiometry']
         self.rates = self.parameters['rates']
@@ -53,21 +52,11 @@ class Complexation(Process):
         molecules = states['molecules']
 
         substrate = np.zeros(len(molecules), dtype=np.int64)
-        with open("data/complexation_update11_t2.json") as f:
-            wc_complexation_data = json.load(f)
-        wc_molecules = wc_complexation_data["moleculeCounts"]
-
         for index, molecule in enumerate(self.molecule_names):
             substrate[index] = molecules[molecule]
 
         result = self.system.evolve(timestep, substrate, self.rates)
         outcome = result['outcome'] - substrate
-
-        requested_molecules = np.fmax(substrate - outcome, 0)
-        final_result = self.system.evolve(timestep, requested_molecules, self.rates)
-        final_outcome = final_result['outcome'] - substrate
-
-        import ipdb; ipdb.set_trace()
 
         molecules_update = {
             molecule: outcome[index]
@@ -78,7 +67,8 @@ class Complexation(Process):
 
         # # Write outputs to listeners
         # self.writeToListener("ComplexationListener", "complexationEvents", events)
-        
+        import ipdb; ipdb.set_trace()
+
         return update
 
 
