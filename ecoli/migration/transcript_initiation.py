@@ -140,6 +140,7 @@ def test_transcript_initiation():
                                 wc_total_rna_init])
     wc_fixed_synths[2] -= wc_fixed_synths[0] + wc_fixed_synths[1]
 
+    import ipdb; ipdb.set_trace()
     fixed_test_result = mannwhitneyu(fixed_synths, wc_fixed_synths)
     assert fixed_test_result.pvalue > 0.05
 
