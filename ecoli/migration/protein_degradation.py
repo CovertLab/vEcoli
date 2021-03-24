@@ -39,7 +39,7 @@ def test_protein_degradation():
         'proteins': ('bulk',)}
 
     # run the process and get an update
-    actual_update = run_ecoli_process(prot_deg_process, topology)
+    actual_update = run_ecoli_process(prot_deg_process, topology, total_time=2, initial_time=10)
 
     # separate the update to its ports
     d_proteins = actual_update['proteins']
@@ -61,7 +61,6 @@ def test_protein_degradation():
                       if id != water_id]
     wc_water = wc_metabolites[metabolite_ids.index(water_id)]
 
-    import ipdb; ipdb.set_trace()
     # Sanity checks: wcEcoli and vivarium-ecoli match in number, names of proteins, metabolites
     assert len(d_proteins) == len(wc_proteins) == len(protein_ids), (
         f"Mismatch in lengths: vivarium-ecoli protein update has length {len(d_proteins)}\n"

@@ -3,7 +3,11 @@ from vivarium.core.experiment import Experiment
 from ecoli.composites.ecoli_master import get_state_from_file
 
 
-def run_ecoli_process(process, topology, total_time=2):
+def run_ecoli_process(
+        process,
+        topology,
+        total_time=2,
+        initial_time=0):
     """
     load a single ecoli process, run it, and return the update
 
@@ -17,8 +21,8 @@ def run_ecoli_process(process, topology, total_time=2):
     """
 
     # get initial state from file
-    # TODO -- get wcecoli_t0
-    initial_state = get_state_from_file(path='data/wcecoli_t10.json')
+    initial_state = get_state_from_file(
+        path=f'data/wcecoli_t{initial_time}.json')
 
     # make an experiment
     experiment_config = {
@@ -44,6 +48,29 @@ def run_ecoli_process(process, topology, total_time=2):
 
     actual_update = update.get()
     return actual_update
+
+
+def array_diffs_readout(a, b, names=None):
+    if len(a) != len(b):
+        raise ValueError(f"Length of a does not match length of b ({len(a)} != {len(b)})")
+
+    if names is None:
+        names = list(map(str, range(len(a))))
+
+    if len(names) != len(a):
+        raise ValueError(f"Length of names does not match length of a ({len(names)} != {len(a)})")
+
+    diffs = a - b
+
+    name_pad = max(4, max(map(len, names))) + 1
+    diffs_pad = max(4, max(map(lambda x : len(str(x)), diffs))) + 1
+    result = "Name".center(name_pad) + ' | ' + "Diff".center(diffs_pad) + '\n'
+    result += '=' * (name_pad + diffs_pad + 3) + '\n'
+    for name, diff in zip(names, diffs):
+        result += str(name).ljust(name_pad) + ' : ' + str(diff).rjust(diffs_pad) + '\n'
+
+    return result
+
 
 
 def percent_error(actual, expected):
