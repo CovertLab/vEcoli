@@ -1,8 +1,6 @@
 """
 tests that vivarium-ecoli process update are the same as saved wcEcoli updates
 
-TODO:
-    - get wcEcoli state at time 0, so that the comparison is fair.
 """
 
 import os
@@ -17,6 +15,8 @@ from ecoli.migration.migration_utils import run_ecoli_process, percent_error
 
 from ecoli.processes.transcript_initiation import TranscriptInitiation
 
+from ecoli.library.schema import arrays_from
+from ecoli.composites.ecoli_master import get_state_from_file
 from ecoli.migration.plots import qqplot
 from ecoli.migration.migration_utils import array_diffs_report
 
@@ -105,13 +105,24 @@ def test_transcript_initiation():
     with open("data/transcript_initiation_probability_factors_t2.json") as f:
         wc_prob_factors = json.load(f)
 
-    import ipdb; ipdb.set_trace()
-
     # Sanity checks:
 
     assert len(rna_inits) == len(wc_rna_inits), "Number of TUs differs between vivarium-ecoli and wcEcoli."
 
     # Numerical tests =======================================================================
+
+    # Compare probability factors between models
+    # basal prob:
+    with open("out/migration/basal_prob_comparison.txt", "w") as f:
+        f.write(array_diffs_report(process.basal_prob, wc_prob_factors['basal_prob'],
+                                   names=[x[0] for x in config['rna_data']]))
+    # TFs bound:
+    initial_state = get_state_from_file(path=f'data/wcecoli_t0.json')
+    bound_TF = arrays_from(initial_state['unique']['promoter'].values(), ['bound_TF'])
+    np.testing.assert_equal(bound_TF[0], np.array(wc_prob_factors['bound_TF']))
+
+    # mRNA/tRNA/rRNA set points:
+    # fixed synthesis set points:
 
     # Compare synthesis probabilities
     # Using max percent error of 5% - however, this should probably be ~0%.
