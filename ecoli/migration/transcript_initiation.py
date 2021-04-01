@@ -112,30 +112,36 @@ def test_transcript_initiation():
     # Numerical tests =======================================================================
 
     # Compare probability factors between models
+
     # basal prob:
     with open("out/migration/basal_prob_comparison.txt", "w") as f:
         f.write(array_diffs_report(process.basal_prob, wc_prob_factors['basal_prob'],
                                    names=[x[0] for x in config['rna_data']]))
+
     # TFs bound:
     initial_state = get_state_from_file(path=f'data/wcecoli_t0.json')
     bound_TF = arrays_from(initial_state['unique']['promoter'].values(), ['bound_TF'])
     np.testing.assert_equal(bound_TF[0], np.array(wc_prob_factors['bound_TF']))
 
     # mRNA/tRNA/rRNA set points:
-    # fixed synthesis set points:
+    np.testing.assert_allclose([x for x in config['rnaSynthProbFractions'][initial_state['environment']['media_id']].values()],
+                               [x for x in wc_prob_factors['synthProbFractions'].values()])
 
-    # Compare synthesis probabilities
-    # Using max percent error of 5% - however, this should probably be ~0%.
-    # TODO: Possible origin of differences:
-    #  1) differing basal probabilities
-    #  2) differing TFs bound (in initial state of promoters)
-    #  3) differing mRNA/tRNA/rRNA set points, in media data of initial state
-    #  4) differing fixed synthesis set points, in media data of initial state
-    #  5) differing calculation (code itself)
-    #  6) rounding issues?
+    # fixed synthesis set points:
+    np.testing.assert_allclose(config['rnaSynthProbRProtein'][initial_state['environment']['media_id']],
+                               wc_prob_factors['rnaSynthProbRProtein'])
+
+    np.testing.assert_allclose(config['rnaSynthProbRnaPolymerase'][initial_state['environment']['media_id']],
+                               wc_prob_factors['rnaSynthProbRnaPolymerase'])
+
+
+    # Compare calculated synthesis probabilities
+    # Using max deviation of 1% of wc_rna_synth_prob - however, this should ideally be ~0%.
+    # The source of the difference has been identified to basal_prob difference, probably due to rounding,
+    # which then gets amplified by rescaling. This does not rule out to code differences playing a role however.
 
     np.testing.assert_allclose(rna_synth_prob, wc_rna_synth_prob,
-                               rtol=0.05,
+                               rtol=0.01,
                                err_msg="Vivarium-ecoli calculates different synthesis probabilities than wcEcoli")
 
     # Compare synthesis of rRNAs
