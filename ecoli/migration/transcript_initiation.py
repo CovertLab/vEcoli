@@ -101,6 +101,12 @@ def test_transcript_initiation():
                                                        "match total rnas initiated.")
     wc_RNAs = wc_data['RNAs']['_add']
 
+    # get saved "probability factors" from wcEcoli
+    with open("data/transcript_initiation_probability_factors_t2.json") as f:
+        wc_prob_factors = json.load(f)
+
+    import ipdb; ipdb.set_trace()
+
     # Sanity checks:
 
     assert len(rna_inits) == len(wc_rna_inits), "Number of TUs differs between vivarium-ecoli and wcEcoli."

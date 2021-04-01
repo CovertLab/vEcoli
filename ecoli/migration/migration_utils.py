@@ -102,7 +102,7 @@ def array_diffs_report(a, b, names=None, sort_by="absolute", sort_with=np.abs):
 
     result += ' | '.join(map(lambda t: t[0].center(t[1]),
                              zip(headings, paddings))) + '\n'
-    result += '=' * (sum(paddings) + 2*3) + '\n'
+    result += '=' * (sum(paddings) + 2*len(' | ')) + '\n'
     for name, diff, r_diff in zip(names, diffs, r_diffs):
         result += (str(name).ljust(name_pad) + ' : ' +
                    str(diff).center(diffs_pad) + ' : ' +
