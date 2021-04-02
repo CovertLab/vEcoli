@@ -26,7 +26,15 @@ load_sim_data = LoadSimData(
             seed=0)
 
 
-def test_transcript_initiation():
+def test_transcript_initiation(fixed_synths_monte_carlo=False):
+    """
+
+    Args:
+        fixed_synths_monte_carlo: Only do the fixed synths monte carlo if specified, since this is expensive
+
+    Returns:
+
+    """
     # Create process, experiment, loading in initial state from file.
     config = load_sim_data.get_transcript_initiation_config()
     process = TranscriptInitiation(config)
@@ -163,7 +171,30 @@ def test_transcript_initiation():
                                 wc_total_rna_init])
     wc_fixed_synths[2] -= wc_fixed_synths[0] + wc_fixed_synths[1]
 
-    import ipdb; ipdb.set_trace()
+
+    if fixed_synths_monte_carlo:
+        N = 100
+        fixed_synths_trials = np.zeros([N, 3])
+        for seed in range(100):
+            config['seed'] = seed
+            process = TranscriptInitiation(config)
+            actual_update = run_ecoli_process(process, topology)
+
+            rna_inits = actual_update['listeners']['rnap_data']['rnaInitEvent']
+            fixed_synths_trials[seed, :] = np.array([sum(rna_inits[config['idx_rnap']]),
+                                     sum(rna_inits[config['idx_rprotein']]),
+                                     total_rna_init])
+            fixed_synths_trials[seed, 2] -= fixed_synths_trials[seed, 0] + fixed_synths_trials[seed, 1]
+
+        plt.boxplot(fixed_synths_trials,
+                    vert=True,  # vertical box alignment
+                    labels=["RNAP", "rProtein", "Others"])  # will be used to label x-ticks
+        plt.plot(range(1,4), wc_fixed_synths, "r.")
+
+        plt.gcf().set_size_inches(8, 6)
+        plt.savefig("out/migration/fixed_synths_comparison.png")
+
+
     fixed_test_result = mannwhitneyu(fixed_synths, wc_fixed_synths)
     assert fixed_test_result.pvalue > 0.05
 
