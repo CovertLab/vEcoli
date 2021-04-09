@@ -21,6 +21,37 @@ from wholecell.utils.polymerize import buildSequences, polymerize, computeMassIn
 from wholecell.utils import units
 
 class TranscriptElongation(Process):
+    """TranscriptElongation
+
+    defaults:
+        - max_time_step (float) : ???
+        - rnaPolymeraseElongationRateDict (dict): Array with elongation rate set points
+                                                  for different media environments.
+        - rnaIds (array[str]) : array of names for each TU
+        - rnaLengths (array[int]) : array of lengths for each TU (in nucleotides?)
+        - rnaSequences (2D array[int]) : Array with the nucleotide sequences of each TU.
+                                         This is in the form of a 2D array where
+                                         each row is a TU, and each column is a position in
+                                         the TU's sequence. Nucleotides are stored as an index
+                                         {0, 1, 2, 3}, and the row is padded with -1's on the right
+                                         to indicate where the sequence ends.
+        - ntWeights (array[float]): Array of nucleotide weights
+        - endWeight (array[float]): ???,
+        - replichore_lengths (array[int]): lengths of replichores (in nucleotides?),
+        - idx_16S_rRNA (array[int]): indexes of TUs for 16SrRNA
+        - idx_23S_rRNA (array[int]): indexes of TUs for 23SrRNA
+        - idx_5S_rRNA (array[int]): indexes of TUs for 5SrRNA
+        - is_mRNA (array[bool]): Mask for mRNAs
+        - ppi (str): ID of PPI
+        - inactive_RNAP (str): ID of inactive RNAP
+        - ntp_ids list[str]: IDs of ntp's (A, C, G, U)
+        - variable_elongation (bool): Whether to use variable elongation.
+                                      False by default.
+        - make_elongation_rates: Function to make elongation rates, of the form:
+                                 lambda random, rates, timestep, variable: rates
+    """
+
+
     name = 'ecoli-transcript-elongation'
 
     defaults = {
@@ -105,6 +136,8 @@ class TranscriptElongation(Process):
             'listeners': {}}
 
     def next_update(self, timestep, states):
+        import ipdb; ipdb.set_trace()
+
         # Calculate elongation rate based on the current media
         current_media_id = states['environment']['media_id']
 
@@ -134,6 +167,7 @@ class TranscriptElongation(Process):
         TU_indexes_partial = TU_indexes[is_partial_transcript]
         transcript_lengths_partial = transcript_lengths[is_partial_transcript]
 
+        # ?? mysterious function
         sequences = buildSequences(
             self.rnaSequences,
             TU_indexes_partial,
@@ -161,7 +195,7 @@ class TranscriptElongation(Process):
         ntpCounts = array_from(states['ntps'])
 
         # Determine sequences of RNAs that should be elongated
-        is_partial_transcript = np.logical_not(is_full_transcript)
+        is_partial_transcript = np.logical_not(is_full_transcript) # redundant
         partial_transcript_indexes = np.where(is_partial_transcript)[0]
         TU_index_partial_RNAs = TU_index_all_RNAs[is_partial_transcript]
         length_partial_RNAs = length_all_RNAs[is_partial_transcript]
@@ -172,7 +206,7 @@ class TranscriptElongation(Process):
             self.rnaSequences,
             TU_index_partial_RNAs,
             length_partial_RNAs,
-            self.elongation_rates)
+            self.elongation_rates) # redundant?
 
         # Polymerize transcripts based on sequences and available nucleotides
         reactionLimit = ntpCounts.sum()
@@ -381,3 +415,60 @@ def get_mapping_arrays(x, y):
     y_to_x = y_argsort[argsort_unique(x_argsort)]
 
     return x_to_y, y_to_x
+
+def test_transcript_elongation():
+    def make_elongation_rates(random, base, time_step, variable_elongation=False):
+        size = 9  # number of TUs
+        lengths = time_step * np.full(size, base, dtype=np.int64)
+        lengths = stochasticRound(random, lengths) if random else np.round(lengths)
+
+        return lengths.astype(np.int64)
+
+    test_config = TranscriptElongation.defaults
+    test_config['max_time_step'] = 2.0
+
+    test_config = {
+        'max_time_step': 2.0,
+        'rnaPolymeraseElongationRateDict': {'minimal' : 49.24 * units.nt / units.s},
+        'rnaIds': [],
+        'rnaLengths': np.array([]),
+        'rnaSequences': np.array([[]]),
+        'ntWeights': np.array([5.44990582e-07, 5.05094471e-07, 5.71557547e-07, 5.06728441e-07]),
+        'endWeight': np.array([2.90509649e-07]),
+        'replichore_lengths': np.array([2322985, 2316690]),
+        'idx_16S_rRNA': np.array([]),
+        'idx_23S_rRNA': np.array([]),
+        'idx_5S_rRNA': np.array([]),
+        'is_mRNA': np.array([]),
+        'ppi': 'PPI[c]',
+        'inactive_RNAP': 'APORNAP-CPLX[c]',
+        'ntp_ids': ['ATP[c]', 'CTP[c]', 'GTP[c]', 'UTP[c]'],
+        'variable_elongation': False,
+        'make_elongation_rates': lambda random, rates, timestep, variable: rates,
+        'seed': 0}
+
+
+    transcript_elongation = TranscriptElongation(test_config)
+
+    initial_state = {
+            'environment': {'minimal'},
+
+            'RNAs': {},
+
+            'active_RNAPs': {},
+
+            'bulk_RNAs': None, #bulk_schema(self.rnaIds),
+            'ntps': None, #bulk_schema(self.ntp_ids),
+            'molecules': None #bulk_schema(self.molecule_ids)
+    }
+
+    settings = {
+        'total_time': 100,
+        'initial_state': initial_state}
+
+    data = simulate_process(transcript_elongation, settings)
+
+
+
+if __name__ == "__main__":
+    test_transcript_elongation()
