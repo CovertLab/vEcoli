@@ -233,7 +233,6 @@ def test_transcript_initiation(fixed_synths_monte_carlo=False):
     diffplot = -np.sort(wc_rna_synth_prob - rna_synth_prob)
     diffplot = diffplot[np.nonzero(diffplot)]
     plt.hist(diffplot, bins=1000, rwidth=1)
-    plt.yscale("log")
     plt.xlabel("$P_{Vivarium} - P_{wcEcoli}$")
     plt.ylabel("TUs")
     plt.title("Histogram of Synthesis Probability Differences")
