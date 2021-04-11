@@ -107,6 +107,10 @@ class TranscriptElongation(Process):
         self.seed = self.parameters['seed']
         self.random_state = np.random.RandomState(seed = self.seed)
 
+
+        # TODO: Remove request code once migration is complete
+        self.request_on = False
+
     def ports_schema(self):
         return {
             'environment': {
@@ -138,61 +142,66 @@ class TranscriptElongation(Process):
     def next_update(self, timestep, states):
         import ipdb; ipdb.set_trace()
 
-        # Calculate elongation rate based on the current media
-        current_media_id = states['environment']['media_id']
+        if self.request_on:
 
-        self.rnapElongationRate = self.rnaPolymeraseElongationRateDict[current_media_id].asNumber(units.nt / units.s)
+            # Calculate elongation rate based on the current media
+            current_media_id = states['environment']['media_id']
 
-        self.elongation_rates = self.make_elongation_rates(
-            self.random_state,
-            self.rnapElongationRate,
-            timestep,
-            self.variable_elongation)
+            self.rnapElongationRate = self.rnaPolymeraseElongationRateDict[current_media_id].asNumber(units.nt / units.s)
 
-        # If there are no active RNA polymerases, return immediately
-        if len(states['active_RNAPs']) == 0:
-            return {}
+            self.elongation_rates = self.make_elongation_rates(
+                self.random_state,
+                self.rnapElongationRate,
+                timestep,
+                self.variable_elongation)
 
-        # Determine total possible sequences of nucleotides that can be
-        # transcribed in this time step for each partial transcript
-        # Get attributes from existing RNAs
-        TU_index_all_RNAs, length_all_RNAs, is_full_transcript, is_mRNA_all_RNAs, RNAP_index_all_RNAs = arrays_from(
-            states['RNAs'].values(),
-            ['TU_index', 'transcript_length', 'is_full_transcript', 'is_mRNA', 'RNAP_index'])
+            # If there are no active RNA polymerases, return immediately
+            if len(states['active_RNAPs']) == 0:
+                return {}
 
-        TU_indexes = TU_index_all_RNAs
-        transcript_lengths = length_all_RNAs
+            # Determine total possible sequences of nucleotides that can be
+            # transcribed in this time step for each partial transcript
+            # Get attributes from existing RNAs
+            TU_index_all_RNAs, length_all_RNAs, is_full_transcript, is_mRNA_all_RNAs, RNAP_index_all_RNAs = arrays_from(
+                states['RNAs'].values(),
+                ['TU_index', 'transcript_length', 'is_full_transcript', 'is_mRNA', 'RNAP_index'])
 
-        is_partial_transcript = np.logical_not(is_full_transcript)
-        TU_indexes_partial = TU_indexes[is_partial_transcript]
-        transcript_lengths_partial = transcript_lengths[is_partial_transcript]
+            TU_indexes = TU_index_all_RNAs
+            transcript_lengths = length_all_RNAs
 
-        # ?? mysterious function
-        sequences = buildSequences(
-            self.rnaSequences,
-            TU_indexes_partial,
-            transcript_lengths_partial,
-            self.elongation_rates)
+            is_partial_transcript = np.logical_not(is_full_transcript)
+            TU_indexes_partial = TU_indexes[is_partial_transcript]
+            transcript_lengths_partial = transcript_lengths[is_partial_transcript]
 
-        sequenceComposition = np.bincount(
-            sequences[sequences != polymerize.PAD_VALUE], minlength = 4)
+            # ?? mysterious function
+            sequences = buildSequences(
+                self.rnaSequences,
+                TU_indexes_partial,
+                transcript_lengths_partial,
+                self.elongation_rates)
 
-        # Calculate if any nucleotides are limited and request up to the number
-        # in the sequences or number available
-        # ntpsTotal = self.ntps.total_counts()
-        ntpsTotal = array_from(states['ntps'])
-        maxFractionalReactionLimit = np.fmin(1, ntpsTotal / sequenceComposition)
-        ntpsCounts = maxFractionalReactionLimit * sequenceComposition
+            sequenceComposition = np.bincount(
+                sequences[sequences != polymerize.PAD_VALUE], minlength = 4)
 
-        update = {
-            'listeners': {
-                'growth_limits': {}}}
+            # Calculate if any nucleotides are limited and request up to the number
+            # in the sequences or number available
+            # ntpsTotal = self.ntps.total_counts()
+            ntpsTotal = array_from(states['ntps'])
+            maxFractionalReactionLimit = np.fmin(1, ntpsTotal / sequenceComposition)
+            ntpsCounts = maxFractionalReactionLimit * sequenceComposition
 
-        update['listeners']['growth_limits']['ntp_pool_size'] = ntpsTotal
-        update['listeners']['growth_limits']['ntp_request_size'] = ntpsCounts
-        update['listeners']['growth_limits']['ntp_allocated'] = ntpsCounts
+            update = {
+                'listeners': {
+                    'growth_limits': {}}}
 
-        ntpCounts = array_from(states['ntps'])
+            update['listeners']['growth_limits']['ntp_pool_size'] = ntpsTotal
+            update['listeners']['growth_limits']['ntp_request_size'] = ntpsCounts
+            update['listeners']['growth_limits']['ntp_allocated'] = ntpsCounts
+
+            ntpCounts = array_from(states['ntps'])
+        else:
+            # retrieve states
+            pass
 
         # Determine sequences of RNAs that should be elongated
         is_partial_transcript = np.logical_not(is_full_transcript) # redundant
@@ -444,7 +453,7 @@ def test_transcript_elongation():
         'inactive_RNAP': 'APORNAP-CPLX[c]',
         'ntp_ids': ['ATP[c]', 'CTP[c]', 'GTP[c]', 'UTP[c]'],
         'variable_elongation': False,
-        'make_elongation_rates': lambda random, rates, timestep, variable: rates,
+        'make_elongation_rates': make_elongation_rates,
         'seed': 0}
 
 
