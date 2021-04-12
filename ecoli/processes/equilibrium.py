@@ -15,7 +15,15 @@ from ecoli.library.schema import array_from, array_to, arrays_from, arrays_to, l
 
 from wholecell.utils import units
 from six.moves import range
+'''
+    _jit:
+    n_avogadro:
+    cell_density:
+    stoichmatrix:
+    fluxesandMOleculesTOSS:
+    molecule_names:
 
+'''
 
 class Equilibrium(Process):
     name = 'ecoli-equilibrium'
@@ -110,3 +118,38 @@ class Equilibrium(Process):
                     'reaction_rates': deltaMolecules[self.product_indices] / timestep}}}
 
         return update
+
+
+
+ef test_equilibrium():
+    test_config = {
+        'stoichiometry': np.array([
+            [-1, 1, 0],
+            [0, -1, 1],
+            [1, 0, -1],
+            [-1, 0, 1],
+            [1, -1, 0],
+            [0, 1, -1]], np.int64),
+        'rates': np.array([1, 1, 1, 1, 1, 1], np.float64),
+        'molecule_names': ['A', 'B', 'C'],
+        'seed': 1}
+
+    equilibrium = Equilibrium(test_config)
+
+    state = {
+        'molecules': {
+            'A': 10,
+            'B': 20,
+            'C': 30}}
+
+    settings = {
+        'total_time': 10,
+        'initial_state': state}
+
+    data = simulate_process_in_experiment(equilibrium, settings)
+
+    print(data)
+
+
+if __name__ == "__main__":
+    test_equilibrium()
