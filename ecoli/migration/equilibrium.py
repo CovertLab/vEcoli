@@ -8,12 +8,12 @@ from vivarium.core.experiment import Experiment
 
 from ecoli.library.sim_data import LoadSimData
 from ecoli.composites.ecoli_master import SIM_DATA_PATH, get_state_from_file
-from ecoli.processes.complexation import Complexation, Equilibrium
+from ecoli.processes.equilibrium import Equilibrium
 
 from ecoli.migration.plots import qqplot
 from ecoli.migration.migration_utils import run_ecoli_process, percent_error
 
-from ecoli.migration.write_json import write_json
+#from ecoli.migration.write_json import write_json
 import pandas
 
 load_sim_data = LoadSimData(
@@ -26,15 +26,16 @@ def test_equilibrium():
     config = load_sim_data.get_equilibrium_config()
     equil = Equilibrium(config)
 
-    molecules = config["molecule_names"]
+    #molecules = config["molecule_names"]
 
     topology = {
         'molecules': ('bulk',)
         }
 
     # run the process and get an update
-    actual_update = run_ecoli_process(complexation, topology)
+    actual_update = run_ecoli_process(equil, topology)
 
+    import ipdb; ipdb.set_trace()
     with open("data/complexation_update9_t2.json") as f:
         wc_complexation_data = json.load(f)
 
@@ -92,4 +93,4 @@ def test_equilibrium():
 
 
 if __name__ == "__main__":
-    test_complexation()
+    test_equilibrium()

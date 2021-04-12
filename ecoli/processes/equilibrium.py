@@ -16,12 +16,13 @@ from ecoli.library.schema import array_from, array_to, arrays_from, arrays_to, l
 from wholecell.utils import units
 from six.moves import range
 '''
-    _jit:
-    n_avogadro:
-    cell_density:
-    stoichmatrix:
-    fluxesandMOleculesTOSS:
-    molecule_names:
+    _jit: just in time: false. utilized in the fluxes and molecules function
+    n_avogadro: constant (6.02214076e+20)
+    cell_density: constant (1.1728608844230047e-12)
+    stoichmatrix: (94, 33), molecule counts are (94,).
+    fluxesandMOleculesToSS:produces self.rxnFluxes - shape:(33,) and self.req - shape: (94 - solves ODES to get to steadystate based off of cell denisty, volumes
+        and molecule counts
+    molecule_names: list of molecules that are being iterated over size:94
 
 '''
 
@@ -70,6 +71,7 @@ class Equilibrium(Process):
 
     def next_update(self, timestep, states):
         # Get molecule counts
+        import ipdb; ipdb.set_trace()
         moleculeCounts = array_from(states['molecules'])
 
         # Get cell mass and volume
@@ -121,18 +123,21 @@ class Equilibrium(Process):
 
 
 
-ef test_equilibrium():
+def test_equilibrium():
     test_config = {
-        'stoichiometry': np.array([
+        'stoichMatrix': np.array([
             [-1, 1, 0],
             [0, -1, 1],
             [1, 0, -1],
             [-1, 0, 1],
             [1, -1, 0],
             [0, 1, -1]], np.int64),
-        'rates': np.array([1, 1, 1, 1, 1, 1], np.float64),
-        'molecule_names': ['A', 'B', 'C'],
-        'seed': 1}
+            'jit': False,
+            'n_avogadro': 6.02214076e+20,
+            'cell_density': 1.1728608844230047e-12,
+            'fluxesAndMoleculesToSS': lambda counts, volume, avogadro, random, jit: ([], []),
+            'moleculeNames': [A, B, C],
+            'seed': 1}
 
     equilibrium = Equilibrium(test_config)
 
