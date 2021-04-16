@@ -8,8 +8,6 @@ TODO:
 - match sigma factors to promoters
 '''
 
-from __future__ import absolute_import, division, print_function
-
 import numpy as np
 import scipy.sparse
 import matplotlib.pyplot as plt
@@ -138,7 +136,7 @@ class TranscriptInitiation(Process):
 
     # Constructor
     def __init__(self, initial_parameters):
-        super(TranscriptInitiation, self).__init__(initial_parameters)
+        super().__init__(initial_parameters)
 
         # Load parameters
         self.fracActiveRnapDict = self.parameters['fracActiveRnapDict']

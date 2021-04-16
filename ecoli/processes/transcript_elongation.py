@@ -8,8 +8,6 @@ TODO:
 - account for energy
 """
 
-from __future__ import absolute_import, division, print_function
-
 import numpy as np
 
 from vivarium.core.process import Process
@@ -17,6 +15,7 @@ from vivarium.core.composition import simulate_process
 
 from ecoli.library.schema import array_from, array_to, arrays_from, arrays_to, listener_schema, bulk_schema
 
+from wholecell.utils.random import stochasticRound
 from wholecell.utils.polymerize import buildSequences, polymerize, computeMassIncrease
 from wholecell.utils import units
 
@@ -75,7 +74,7 @@ class TranscriptElongation(Process):
         'seed': 0}
 
     def __init__(self, initial_parameters):
-        super(TranscriptElongation, self).__init__(initial_parameters)
+        super().__init__(initial_parameters)
 
         self.max_time_step = self.parameters['max_time_step']
 
@@ -462,15 +461,15 @@ def test_transcript_elongation():
     transcript_elongation = TranscriptElongation(test_config)
 
     initial_state = {
-            'environment': {'minimal'},
+            'environment': {'media_id': 'minimal'},
 
             'RNAs': {},
 
             'active_RNAPs': {},
 
-            'bulk_RNAs': None, #bulk_schema(self.rnaIds),
-            'ntps': None, #bulk_schema(self.ntp_ids),
-            'molecules': None #bulk_schema(self.molecule_ids)
+            # 'bulk_RNAs': None, #bulk_schema(self.rnaIds),
+            # 'ntps': None, #bulk_schema(self.ntp_ids),
+            # 'molecules': None #bulk_schema(self.molecule_ids)
     }
 
     settings = {
