@@ -142,18 +142,18 @@ class TranscriptElongation(Process):
     def next_update(self, timestep, states):
         import ipdb; ipdb.set_trace()
 
-        if self.request_on:
+        # Calculate elongation rate based on the current media
+        current_media_id = states['environment']['media_id']
 
-            # Calculate elongation rate based on the current media
-            current_media_id = states['environment']['media_id']
+        self.rnapElongationRate = self.rnaPolymeraseElongationRateDict[current_media_id].asNumber(units.nt / units.s)
 
-            self.rnapElongationRate = self.rnaPolymeraseElongationRateDict[current_media_id].asNumber(units.nt / units.s)
+        self.elongation_rates = self.make_elongation_rates(
+            self.random_state,
+            self.rnapElongationRate,
+            timestep,
+            self.variable_elongation)
 
-            self.elongation_rates = self.make_elongation_rates(
-                self.random_state,
-                self.rnapElongationRate,
-                timestep,
-                self.variable_elongation)
+        if self.request_on: # Equivalent to calculateRequest in wcEcoli
 
             # If there are no active RNA polymerases, return immediately
             if len(states['active_RNAPs']) == 0:
@@ -202,6 +202,8 @@ class TranscriptElongation(Process):
         else:
             # retrieve states
             pass
+
+        # Start of evolveState equivalent
 
         # Determine sequences of RNAs that should be elongated
         is_partial_transcript = np.logical_not(is_full_transcript) # redundant
@@ -388,7 +390,7 @@ class TranscriptElongation(Process):
         # Write outputs to listeners
         update['listeners']['transcript_elongation_listener'] = {
             "countRnaSynthesized": terminated_RNAs,
-            "countNTPsUSed": n_elongations}
+            "countNTPsUSed": n_elongations} # typo
         update['listeners']['growth_limits'] = {
             "ntpUsed": ntps_used}
         update['listeners']['rnap_data'] = {
@@ -475,6 +477,8 @@ def test_transcript_elongation():
         'total_time': 100,
         'initial_state': initial_state}
 
+    import ipdb;
+    ipdb.set_trace()
     data = simulate_process(transcript_elongation, settings)
 
 
