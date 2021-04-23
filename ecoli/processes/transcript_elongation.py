@@ -136,7 +136,7 @@ class TranscriptElongation(Process):
             'ntps': bulk_schema(self.ntp_ids),
             'molecules': bulk_schema(self.molecule_ids),
 
-            'listeners': {}}
+            'listeners': {}} # TODO: Fill out listeners schema
 
     def next_update(self, timestep, states):
         import ipdb; ipdb.set_trace()
@@ -363,6 +363,7 @@ class TranscriptElongation(Process):
             n_elongations - n_initialized,
             n_terminated])
 
+        # TODO: make sure everything here is represented above
         # self.RNAs.attrIs(transcript_length=length_all_RNAs)
         # self.RNAs.attrIs(is_full_transcript=is_full_transcript_updated)
         # self.RNAs.add_submass_by_name("nonspecific_RNA", added_nsRNA_mass_all_RNAs)
@@ -389,7 +390,7 @@ class TranscriptElongation(Process):
         # Write outputs to listeners
         update['listeners']['transcript_elongation_listener'] = {
             "countRnaSynthesized": terminated_RNAs,
-            "countNTPsUSed": n_elongations} # typo
+            "countNTPsUsed": n_elongations}
         update['listeners']['growth_limits'] = {
             "ntpUsed": ntps_used}
         update['listeners']['rnap_data'] = {
@@ -441,21 +442,23 @@ def test_transcript_elongation():
         'max_time_step': 2.0,
         'rnaPolymeraseElongationRateDict': {'minimal' : 49.24 * units.nt / units.s},
         'rnaIds': [],
-        'rnaLengths': np.array([]),
+        'rnaLengths': np.array([1542, 2905, 120]),
         'rnaSequences': np.array([[]]),
         'ntWeights': np.array([5.44990582e-07, 5.05094471e-07, 5.71557547e-07, 5.06728441e-07]),
         'endWeight': np.array([2.90509649e-07]),
         'replichore_lengths': np.array([2322985, 2316690]),
-        'idx_16S_rRNA': np.array([]),
-        'idx_23S_rRNA': np.array([]),
-        'idx_5S_rRNA': np.array([]),
-        'is_mRNA': np.array([]),
+        'idx_16S_rRNA': np.array([0]),
+        'idx_23S_rRNA': np.array([1]),
+        'idx_5S_rRNA': np.array([2]),
+        'is_mRNA': np.array([3]),
         'ppi': 'PPI[c]',
         'inactive_RNAP': 'APORNAP-CPLX[c]',
         'ntp_ids': ['ATP[c]', 'CTP[c]', 'GTP[c]', 'UTP[c]'],
         'variable_elongation': False,
         'make_elongation_rates': make_elongation_rates,
         'seed': 0}
+
+
 
 
     transcript_elongation = TranscriptElongation(test_config)
