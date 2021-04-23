@@ -40,5 +40,18 @@ def test_transcription_elongation():
 
     actual_update = run_ecoli_process(process, topology)
 
+
+def save_test_sequences(config):
+    save_idx = np.array([config['idx_16S_rRNA'][0],
+                         config['idx_23S_rRNA'][0],
+                         config['idx_5S_rRNA'][0],
+                         config['is_mRNA'].tolist().index(True)])
+
+    save_seq = config['rnaSequences'][save_idx]
+
+    with open('data/elongation_sequences.npy', 'wb') as f:
+        np.save(f, save_seq)
+
+
 if __name__ == "__main__":
     test_transcription_elongation()
