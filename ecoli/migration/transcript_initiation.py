@@ -32,14 +32,10 @@ def test_transcript_initiation(fixed_synths_monte_carlo=False):
     Args:
         fixed_synths_monte_carlo: Only do the fixed synths monte carlo if specified, since this is expensive
 
-    Returns:
-
     """
     # Create process, experiment, loading in initial state from file.
     config = load_sim_data.get_transcript_initiation_config()
     process = TranscriptInitiation(config)
-
-    # get ids from config
 
     # copy topology from ecoli_master, under generate_topology
     topology = {
@@ -119,7 +115,8 @@ def test_transcript_initiation(fixed_synths_monte_carlo=False):
 
     # Numerical tests =======================================================================
 
-    # Compare probability factors between models
+    # Compare probability factors between models,
+    # saving comparison txt file.
 
     # basal prob:
     with open("out/migration/basal_prob_comparison.txt", "w") as f:
@@ -144,12 +141,8 @@ def test_transcript_initiation(fixed_synths_monte_carlo=False):
 
 
     # Compare calculated synthesis probabilities
-    # Using max deviation of 1% of wc_rna_synth_prob - however, this should ideally be ~0%.
-    # The source of the difference has been identified to basal_prob difference, probably due to rounding,
-    # which then gets amplified by rescaling. This does not rule out to code differences playing a role however.
 
     np.testing.assert_allclose(rna_synth_prob, wc_rna_synth_prob,
-                               rtol=0.01,
                                err_msg="Vivarium-ecoli calculates different synthesis probabilities than wcEcoli")
 
     # Compare synthesis of rRNAs
@@ -175,7 +168,7 @@ def test_transcript_initiation(fixed_synths_monte_carlo=False):
     if fixed_synths_monte_carlo:
         N = 100
         fixed_synths_trials = np.zeros([N, 3])
-        for seed in range(100):
+        for seed in range(N):
             config['seed'] = seed
             process = TranscriptInitiation(config)
             actual_update = run_ecoli_process(process, topology)
