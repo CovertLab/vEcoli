@@ -38,6 +38,8 @@ def test_transcription_elongation():
                 'ntps': ('bulk',),
                 'listeners': ('listeners',)}
 
+    import ipdb; ipdb.set_trace()
+
     actual_update = run_ecoli_process(process, topology)
 
 

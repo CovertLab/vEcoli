@@ -139,8 +139,6 @@ class TranscriptElongation(Process):
             'listeners': {}} # TODO: Fill out listeners schema
 
     def next_update(self, timestep, states):
-        import ipdb; ipdb.set_trace()
-
         # Calculate elongation rate based on the current media
         current_media_id = states['environment']['media_id']
 
@@ -152,57 +150,61 @@ class TranscriptElongation(Process):
             timestep,
             self.variable_elongation)
 
-        if self.request_on: # Equivalent to calculateRequest in wcEcoli
+        # If there are no active RNA polymerases, return immediately
+        if len(states['active_RNAPs']) == 0:
+            return {}
 
-            # If there are no active RNA polymerases, return immediately
-            if len(states['active_RNAPs']) == 0:
-                return {}
+        # Determine total possible sequences of nucleotides that can be
+        # transcribed in this time step for each partial transcript
+        # Get attributes from existing RNAs
+        TU_index_all_RNAs, length_all_RNAs, is_full_transcript, is_mRNA_all_RNAs, RNAP_index_all_RNAs = arrays_from(
+            states['RNAs'].values(),
+            ['TU_index', 'transcript_length', 'is_full_transcript', 'is_mRNA', 'RNAP_index'])
 
-            # Determine total possible sequences of nucleotides that can be
-            # transcribed in this time step for each partial transcript
-            # Get attributes from existing RNAs
-            TU_index_all_RNAs, length_all_RNAs, is_full_transcript, is_mRNA_all_RNAs, RNAP_index_all_RNAs = arrays_from(
-                states['RNAs'].values(),
-                ['TU_index', 'transcript_length', 'is_full_transcript', 'is_mRNA', 'RNAP_index'])
+        TU_indexes = TU_index_all_RNAs
+        transcript_lengths = length_all_RNAs
 
-            TU_indexes = TU_index_all_RNAs
-            transcript_lengths = length_all_RNAs
+        is_partial_transcript = np.logical_not(is_full_transcript)
+        TU_indexes_partial = TU_indexes[is_partial_transcript]
+        transcript_lengths_partial = transcript_lengths[is_partial_transcript]
 
-            is_partial_transcript = np.logical_not(is_full_transcript)
-            TU_indexes_partial = TU_indexes[is_partial_transcript]
-            transcript_lengths_partial = transcript_lengths[is_partial_transcript]
+        import ipdb;
+        ipdb.set_trace()
 
-            # ?? mysterious function
-            sequences = buildSequences(
-                self.rnaSequences,
-                TU_indexes_partial,
-                transcript_lengths_partial,
-                self.elongation_rates)
+        # ?? mysterious function
+        sequences = buildSequences(
+            self.rnaSequences,
+            TU_indexes_partial,
+            transcript_lengths_partial,
+            self.elongation_rates)
 
-            sequenceComposition = np.bincount(
-                sequences[sequences != polymerize.PAD_VALUE], minlength = 4)
+        sequenceComposition = np.bincount(
+            sequences[sequences != polymerize.PAD_VALUE], minlength=4)
 
-            # Calculate if any nucleotides are limited and request up to the number
-            # in the sequences or number available
-            # ntpsTotal = self.ntps.total_counts()
-            ntpsTotal = array_from(states['ntps'])
-            maxFractionalReactionLimit = np.fmin(1, ntpsTotal / sequenceComposition)
-            ntpsCounts = maxFractionalReactionLimit * sequenceComposition
+        # Calculate if any nucleotides are limited and request up to the number
+        # in the sequences or number available
+        # ntpsTotal = self.ntps.total_counts()
+        ntpsTotal = array_from(states['ntps'])
+        maxFractionalReactionLimit = np.fmin(1, ntpsTotal / sequenceComposition)
+        ntpsCounts = maxFractionalReactionLimit * sequenceComposition
 
-            update = {
-                'listeners': {
-                    'growth_limits': {}}}
+        update = {
+            'listeners': {
+                'growth_limits': {}}}
 
-            update['listeners']['growth_limits']['ntp_pool_size'] = ntpsTotal
-            update['listeners']['growth_limits']['ntp_request_size'] = ntpsCounts
-            update['listeners']['growth_limits']['ntp_allocated'] = ntpsCounts
+        update['listeners']['growth_limits']['ntp_pool_size'] = ntpsTotal
+        update['listeners']['growth_limits']['ntp_request_size'] = ntpsCounts
+        update['listeners']['growth_limits']['ntp_allocated'] = ntpsCounts
 
-            ntpCounts = array_from(states['ntps'])
+        ntpCounts = array_from(states['ntps']) #TODO: redundant? same as ntpsTotal?
+
+        if self.request_on:  # Equivalent to calculateRequest in wcEcoli
+            pass
         else:
             # retrieve states
             pass
 
-        # Start of evolveState equivalent
+        # Start of evolveState equivalent ==============================================================================
 
         # Determine sequences of RNAs that should be elongated
         is_partial_transcript = np.logical_not(is_full_transcript) # redundant
@@ -398,6 +400,9 @@ class TranscriptElongation(Process):
             "didTerminate": did_terminate_mask.sum(),
             "terminationLoss": (terminal_lengths - length_partial_RNAs)[did_terminate_mask].sum()}
 
+        import ipdb;
+        ipdb.set_trace()
+
         return update
 
     def isTimeStepShortEnough(self, inputTimeStep, timeStepSafetyFraction):
@@ -438,19 +443,22 @@ def test_transcript_elongation():
     test_config = TranscriptElongation.defaults
     test_config['max_time_step'] = 2.0
 
+    with open('data/elongation_sequences.npy', 'rb') as f:
+        sequences = np.load(f)
+
     test_config = {
         'max_time_step': 2.0,
         'rnaPolymeraseElongationRateDict': {'minimal' : 49.24 * units.nt / units.s},
-        'rnaIds': [],
-        'rnaLengths': np.array([1542, 2905, 120]),
-        'rnaSequences': np.array([[]]),
+        'rnaIds': ['16S rRNA', '23S rRNA', '5S rRNA', 'mRNA'],
+        'rnaLengths': np.array([1542, 2905, 120, 1080]),
+        'rnaSequences': sequences,
         'ntWeights': np.array([5.44990582e-07, 5.05094471e-07, 5.71557547e-07, 5.06728441e-07]),
         'endWeight': np.array([2.90509649e-07]),
         'replichore_lengths': np.array([2322985, 2316690]),
         'idx_16S_rRNA': np.array([0]),
         'idx_23S_rRNA': np.array([1]),
         'idx_5S_rRNA': np.array([2]),
-        'is_mRNA': np.array([3]),
+        'is_mRNA': np.array([False, False, False, True]),
         'ppi': 'PPI[c]',
         'inactive_RNAP': 'APORNAP-CPLX[c]',
         'ntp_ids': ['ATP[c]', 'CTP[c]', 'GTP[c]', 'UTP[c]'],
@@ -459,28 +467,39 @@ def test_transcript_elongation():
         'seed': 0}
 
 
-
-
     transcript_elongation = TranscriptElongation(test_config)
 
     initial_state = {
-            'environment': {'media_id': 'minimal'},
+        'environment': {'media_id': 'minimal'},
 
-            'RNAs': {},
+        'RNAs': {str(i) : {'unique_index': i,
+                           'TU_index': i,
+                           'transcript_length': test_config['rnaLengths'][i],
+                           'is_mRNA': test_config['is_mRNA'][i],
+                           'is_full_transcript': False,
+                           'can_translate': True,
+                           'RNAP_index': i}
+                 for i in range(len(test_config['rnaIds']))},
 
-            'active_RNAPs': {},
+        'active_RNAPs': {str(i) : {'unique_index': i,
+                                   'domain_index': 2,
+                                   'coordinates': i * 1000, #TODO: How to link to RNAs?
+                                   'direction': True}
+                         for i in range(4)},
 
-            # 'bulk_RNAs': None, #bulk_schema(self.rnaIds),
-            # 'ntps': None, #bulk_schema(self.ntp_ids),
-            # 'molecules': None #bulk_schema(self.molecule_ids)
+        'bulk_RNAs': {'16S rRNA' : 174,
+                      '23S rRNA' : 86,
+                      '5S rRNA' : 5,
+                      'mRNA' : 20
+                      },
+        'ntps': {'ATP[c]': 6178058, 'CTP[c]': 1152211, 'GTP[c]': 1369694, 'UTP[c]': 3024874},
+        'molecules': {'PPI[c]': 320771, 'APORNAP-CPLX[c]': 2768}
     }
 
     settings = {
         'total_time': 100,
         'initial_state': initial_state}
 
-    import ipdb;
-    ipdb.set_trace()
     data = simulate_process(transcript_elongation, settings)
 
 
