@@ -137,9 +137,38 @@ class TranscriptElongation(Process):
             'molecules': bulk_schema(self.molecule_ids),
 
             'listeners': {
-                # 'transcript_elongation_listener' : {},
-                # 'growth_limits' : {},
-                # 'rnap_data' : {}
+                'transcript_elongation_listener': {
+                    'countNTPsUsed': {
+                        '_default': 0,
+                        '_updater': 'set',
+                        '_emit': True
+                    },
+                    'countRnaSynthesized': {
+                        '_default': np.zeros(len(self.rnaIds)),
+                        '_updater': 'set',
+                        '_emit': True
+                    }
+                    },
+                'growth_limits': {
+                    'ntpUsed': {
+                        '_default': np.zeros(len(self.ntp_ids)),
+                        '_updater': 'set',
+                        '_emit': True
+                    }
+                },
+                'rnap_data': {
+                    'actualElongations': {
+                        '_default': 0,
+                        '_updater': 'set',
+                        '_emit': True},
+                    'didTerminate': {
+                        '_default': 0,
+                        '_updater': 'set',
+                        '_emit': True},
+                    'terminationLoss': {
+                        '_default': 0,
+                        '_updater': 'set',
+                        '_emit': True}}
             }} # TODO: Finish filling out listeners schema
 
     def next_update(self, timestep, states):
