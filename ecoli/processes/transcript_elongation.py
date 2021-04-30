@@ -136,7 +136,11 @@ class TranscriptElongation(Process):
             'ntps': bulk_schema(self.ntp_ids),
             'molecules': bulk_schema(self.molecule_ids),
 
-            'listeners': {}} # TODO: Fill out listeners schema
+            'listeners': {
+                # 'transcript_elongation_listener' : {},
+                # 'growth_limits' : {},
+                # 'rnap_data' : {}
+            }} # TODO: Finish filling out listeners schema
 
     def next_update(self, timestep, states):
         # Calculate elongation rate based on the current media
@@ -167,9 +171,6 @@ class TranscriptElongation(Process):
         is_partial_transcript = np.logical_not(is_full_transcript)
         TU_indexes_partial = TU_indexes[is_partial_transcript]
         transcript_lengths_partial = transcript_lengths[is_partial_transcript]
-
-        import ipdb;
-        ipdb.set_trace()
 
         # ?? mysterious function
         sequences = buildSequences(
@@ -400,8 +401,13 @@ class TranscriptElongation(Process):
             "didTerminate": did_terminate_mask.sum(),
             "terminationLoss": (terminal_lengths - length_partial_RNAs)[did_terminate_mask].sum()}
 
-        import ipdb;
-        ipdb.set_trace()
+        def pretty(d, indent=0):
+            for key, value in d.items():
+                print('\t' * indent + str(key))
+                if isinstance(value, dict):
+                    pretty(value, indent + 1)
+                else:
+                    print('\t' * (indent + 1) + str(value))
 
         return update
 
@@ -474,7 +480,7 @@ def test_transcript_elongation():
 
         'RNAs': {str(i) : {'unique_index': i,
                            'TU_index': i,
-                           'transcript_length': test_config['rnaLengths'][i],
+                           'transcript_length': 0,
                            'is_mRNA': test_config['is_mRNA'][i],
                            'is_full_transcript': False,
                            'can_translate': True,
@@ -483,7 +489,7 @@ def test_transcript_elongation():
 
         'active_RNAPs': {str(i) : {'unique_index': i,
                                    'domain_index': 2,
-                                   'coordinates': i * 1000, #TODO: How to link to RNAs?
+                                   'coordinates': i * 1000,
                                    'direction': True}
                          for i in range(4)},
 

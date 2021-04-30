@@ -38,9 +38,52 @@ def test_transcription_elongation():
                 'ntps': ('bulk',),
                 'listeners': ('listeners',)}
 
-    import ipdb; ipdb.set_trace()
-
     actual_update = run_ecoli_process(process, topology)
+
+    plots(actual_update, None)
+    assertions(actual_update, None)
+
+
+def plots(actual_update, expected_update):
+    # unpack update
+    rnas_synthesized = actual_update['listeners']['transcript_elongation_listener']['countRnaSynthesized']
+    ntps_used = actual_update['listeners']['growth_limits']['ntpUsed']
+    total_ntps_used = actual_update['listeners']['transcript_elongation_listener']['countNTPsUsed']
+
+    ntps = actual_update['ntps']
+
+    plt.subplot(2, 1, 1)
+    plt.bar(range(len(rnas_synthesized)), rnas_synthesized, width=1)
+    plt.xlabel("TU")
+    plt.ylabel("Count")
+    plt.title("Counts synthesized")
+
+    plt.subplot(2, 1, 2)
+    import ipdb; ipdb.set_trace()
+    plt.bar(range(ntps_used.size), ntps_used)
+    plt.xticks(ticks=range(len(ntps.keys())), labels=list(ntps.keys()))
+    plt.ylabel('Count')
+    plt.title('NTP Counts Used')
+
+    plt.subplots_adjust(hspace=0.5)
+    plt.gcf().set_size_inches(8, 6)
+    plt.savefig("out/migration/transcript_elongation_toymodel.png")
+
+
+def assertions(actual_update, expected_update):
+    # unpack update
+    rnas_synthesized = actual_update['listeners']['transcript_elongation_listener']['countRnaSynthesized']
+    ntps_used = actual_update['listeners']['growth_limits']['ntpUsed']
+    total_ntps_used = actual_update['listeners']['transcript_elongation_listener']['countNTPsUsed']
+
+    ntps = actual_update['ntps']
+
+    # NTPs used match sequences of which RNAs were elongated
+
+    # total NTPS used matches sum of NTP-used types
+
+    assert sum(ntps_used) == total_ntps_used
+
 
 
 def save_test_sequences(config):
@@ -57,3 +100,4 @@ def save_test_sequences(config):
 
 if __name__ == "__main__":
     test_transcription_elongation()
+    plt.ylabel("# synthesized")
