@@ -112,7 +112,7 @@ class Ecoli(Composer):
             'transcript_elongation': transcript_elongation,
             'rna_degradation': rna_degradation,
             'polypeptide_initiation': polypeptide_initiation,
-            'polypeptide_elongation': polypeptide_elongation,
+            # 'polypeptide_elongation': polypeptide_elongation,
             'complexation': complexation,
             'two_component_system': two_component_system,
             'equilibrium': equilibrium,
@@ -170,20 +170,20 @@ class Ecoli(Composer):
                 'RNA': ('unique', 'RNA'),
                 'subunits': ('bulk',)},
 
-            'polypeptide_elongation': {
-                'environment': ('environment',),
-                'listeners': ('listeners',),
-                'active_ribosome': ('unique', 'active_ribosome'),
-                'molecules': ('bulk',),
-                'monomers': ('bulk',),
-                'amino_acids': ('bulk',),
-                'ppgpp_reaction_metabolites': ('bulk',),
-                'uncharged_trna': ('bulk',),
-                'charged_trna': ('bulk',),
-                'charging_molecules': ('bulk',),
-                'synthetases': ('bulk',),
-                'subunits': ('bulk',),
-                'polypeptide_elongation': ('process_state', 'polypeptide_elongation')},
+            # 'polypeptide_elongation': {
+            #     'environment': ('environment',),
+            #     'listeners': ('listeners',),
+            #     'active_ribosome': ('unique', 'active_ribosome'),
+            #     'molecules': ('bulk',),
+            #     'monomers': ('bulk',),
+            #     'amino_acids': ('bulk',),
+            #     'ppgpp_reaction_metabolites': ('bulk',),
+            #     'uncharged_trna': ('bulk',),
+            #     'charged_trna': ('bulk',),
+            #     'charging_molecules': ('bulk',),
+            #     'synthetases': ('bulk',),
+            #     'subunits': ('bulk',),
+            #     'polypeptide_elongation': ('process_state', 'polypeptide_elongation')},
 
             'complexation': {
                 'molecules': ('bulk',)},
@@ -298,14 +298,11 @@ def test_ecoli(total_time=60):
     ecoli_config = {
         'agent_id': '1',
         # _schema overrides default methods.
-        # This likely has to do with imbalances in the simulation
         '_schema': {
-            'polypeptide_elongation': {
-                'amino_acids': {
-                    aa: {'_updater': 'nonnegative_accumulate'}
-                    for aa in amino_acids
-                }
-            }
+            # 'polypeptide_elongation': {
+            #     'amino_acids': {
+            #         aa: {'_updater': 'nonnegative_accumulate'}
+            #         for aa in amino_acids}}
         }}
     ecoli_composer = Ecoli(ecoli_config)
 
@@ -331,7 +328,7 @@ def test_ecoli(total_time=60):
     ecoli_experiment.update(total_time)
 
     # retrieve the data
-    data = ecoli_experiment.emitter.get_data()
+    data = ecoli_experiment.emitter.get_timeseries()
     return data
 
 
