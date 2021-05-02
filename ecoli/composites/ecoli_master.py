@@ -8,10 +8,10 @@ import os
 import argparse
 import json
 import uuid
+from pprint import pformat
 
 from vivarium.core.process import Composer
-from vivarium.core.composition import simulate_composer
-from vivarium.core.experiment import pp
+from vivarium.core.experiment import pp, Experiment
 from vivarium.plots.topology import plot_topology
 
 # sim data
@@ -52,7 +52,7 @@ class Ecoli(Composer):
     }
 
     def __init__(self, config):
-        super(Ecoli, self).__init__(config)
+        super().__init__(config)
 
         self.load_sim_data = LoadSimData(
             sim_data_path=self.config['sim_data_path'],
@@ -286,18 +286,53 @@ def get_state_from_file(path='data/wcecoli_t0.json'):
     return initial_state
 
 
-def test_ecoli():
-    ecoli = Ecoli({'agent_id': '1'})
+def test_ecoli(total_time=60):
+
+    # configure the composer
+    amino_acids = [
+        'L-ALPHA-ALANINE[c]', 'ARG[c]', 'ASN[c]', 'L-ASPARTATE[c]', 'CYS[c]',
+        'GLT[c]', 'GLN[c]', 'GLY[c]', 'HIS[c]', 'ILE[c]', 'LEU[c]', 'LYS[c]',
+        'MET[c]', 'PHE[c]', 'PRO[c]', 'SER[c]', 'THR[c]', 'TRP[c]', 'TYR[c]',
+        'L-SELENOCYSTEINE[c]', 'VAL[c]']
+
+    ecoli_config = {
+        'agent_id': '1',
+        # _schema overrides default methods.
+        # This likely has to do with imbalances in the simulation
+        '_schema': {
+            'polypeptide_elongation': {
+                'amino_acids': {
+                    aa: {'_updater': 'nonnegative_accumulate'}
+                    for aa in amino_acids
+                }
+            }
+        }}
+    ecoli_composer = Ecoli(ecoli_config)
+
+    # get initial state
     initial_state = get_state_from_file()
-    settings = {
-        'timestep': 1,
-        'total_time': 10,
-        'initial_state': initial_state}
 
-    data = simulate_composer(ecoli, settings)
+    # make the experiment
+    ecoli = ecoli_composer.generate()
+    ecoli_experiment = Experiment({
+        'processes': ecoli.processes,
+        'topology': ecoli.topology,
+        'initial_state': initial_state,
+        'progress_bar': True,
+    })
 
+
+    debug_experiment = False
+    if debug_experiment:
+        print(pformat(ecoli_experiment.state.get_config(True)))
+        import ipdb; ipdb.set_trace()
+
+    # run the experiment
+    ecoli_experiment.update(total_time)
+
+    # retrieve the data
+    data = ecoli_experiment.emitter.get_data()
     return data
-
 
 
 def run_ecoli():
@@ -384,7 +419,7 @@ def main():
         os.makedirs(out_dir)
 
 
-    parser = argparse.ArgumentParser(description='bioscrape_cobra')
+    parser = argparse.ArgumentParser(description='ecoli_master')
     parser.add_argument('-topology', '-t', action='store_true', default=False, help='save a topology plot of ecoli master')
     parser.add_argument('-simulate', '-s', action='store_true', default=False, help='simulate ecoli master')
     args = parser.parse_args()
