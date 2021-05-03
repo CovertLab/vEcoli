@@ -64,7 +64,7 @@ class Metabolism(Process):
         'seed': 0}
 
     def __init__(self, initial_parameters):
-        super(Metabolism, self).__init__(initial_parameters)
+        super().__init__(initial_parameters)
 
         # Use information from the environment and sim
         self.get_import_constraints = self.parameters['get_import_constraints']

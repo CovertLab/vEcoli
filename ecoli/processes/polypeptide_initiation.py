@@ -4,8 +4,6 @@ PolypeptideInitiation
 Polypeptide initiation sub-model.
 """
 
-from __future__ import absolute_import, division, print_function
-
 from typing import cast
 
 import numpy as np
@@ -39,7 +37,7 @@ class PolypeptideInitiation(Process):
         'shuffle_indexes': None}
 
     def __init__(self, initial_parameters):
-        super(PolypeptideInitiation, self).__init__(initial_parameters)
+        super().__init__(initial_parameters)
 
         # Load parameters
         self.protein_lengths = self.parameters['protein_lengths']

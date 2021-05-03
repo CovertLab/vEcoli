@@ -96,7 +96,7 @@ class DiffusionNetwork(Process):
     }
 
     def __init__(self, parameters=None):
-        super(DiffusionNetwork, self).__init__(parameters)
+        super().__init__(parameters)
         self.nodes = np.asarray(self.parameters['nodes'])
         self.edges = self.parameters['edges']
         self.mw = self.parameters['mw']

@@ -37,7 +37,7 @@ class Mass(Deriver):
     }
 
     def __init__(self, initial_parameters=None):
-        super(Mass, self).__init__(initial_parameters)
+        super().__init__(initial_parameters)
         self.molecular_weights = self.parameters['molecular_weights']
         self.unique_masses = self.parameters['unique_masses']
 
