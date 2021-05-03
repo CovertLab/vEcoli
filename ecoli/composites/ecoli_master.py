@@ -33,7 +33,7 @@ from ecoli.processes.equilibrium import Equilibrium
 from ecoli.processes.protein_degradation import ProteinDegradation
 from ecoli.processes.metabolism import Metabolism
 from ecoli.processes.mass import Mass
-from ecoli.processes.carryover import CarryOver
+from ecoli.processes.allocate import Allocate
 
 from wholecell.utils import units
 
@@ -49,16 +49,17 @@ class Ecoli(Composer):
         'seed': 0,
         'sim_data_path': SIM_DATA_PATH,
         'daughter_path': tuple(),
+        'division': {'threshold': 2220},  # fg
     }
 
     def __init__(self, config):
-        super(Ecoli, self).__init__(config)
+        super().__init__(config)
 
         self.load_sim_data = LoadSimData(
             sim_data_path=self.config['sim_data_path'],
             seed=self.config['seed'])
 
-        self.aas = self.load_sim_data.sim_data.molecule_groups.amino_acids
+        self.partitioned_molecules = self.load_sim_data.sim_data.molecule_groups.amino_acids
 
     def initial_state(self, config=None):
         return get_state_from_file()
@@ -67,53 +68,39 @@ class Ecoli(Composer):
         time_step = config['time_step']
         parallel = config['parallel']  # TODO (Eran) -- which processes can be parallelized?
 
-        # initialize processes
-        tf_binding = TfBinding(
-            self.load_sim_data.get_tf_config(time_step=time_step))
-        transcript_initiation = TranscriptInitiation(
-            self.load_sim_data.get_transcript_initiation_config(time_step=time_step))
-        transcript_elongation = TranscriptElongation(
-            self.load_sim_data.get_transcript_elongation_config(time_step=time_step))
-        rna_degradation = RnaDegradation(
-            self.load_sim_data.get_rna_degradation_config(time_step=time_step))
-        polypeptide_initiation = PolypeptideInitiation(
-            self.load_sim_data.get_polypeptide_initiation_config(time_step=time_step))
-        polypeptide_elongation = PolypeptideElongation(
-            self.load_sim_data.get_polypeptide_elongation_config(time_step=time_step))
-        complexation = Complexation(
-            self.load_sim_data.get_complexation_config(time_step=time_step))
-        two_component_system = TwoComponentSystem(
-            self.load_sim_data.get_two_component_system_config(time_step=time_step))
-        equilibrium = Equilibrium(
-            self.load_sim_data.get_equilibrium_config(time_step=time_step))
-        protein_degradation = ProteinDegradation(
-            self.load_sim_data.get_protein_degradation_config(time_step=time_step))
-        metabolism = Metabolism(
-            self.load_sim_data.get_metabolism_config(time_step=time_step))
-        mass = Mass(
-            self.load_sim_data.get_mass_config(time_step=time_step))
+        # get the configs from sim_data
+        tf_binding_config = self.load_sim_data.get_tf_config(time_step=time_step)
+        transcript_initiation_config = self.load_sim_data.get_transcript_initiation_config(time_step=time_step)
+        transcript_elongation_config = self.load_sim_data.get_transcript_elongation_config(time_step=time_step)
+        rna_degradation_config = self.load_sim_data.get_rna_degradation_config(time_step=time_step)
+        polypeptide_initiation_config = self.load_sim_data.get_polypeptide_initiation_config(time_step=time_step)
+        polypeptide_elongation_config = self.load_sim_data.get_polypeptide_elongation_config(time_step=time_step)
+        complexation_config = self.load_sim_data.get_complexation_config(time_step=time_step)
+        two_component_system_config = self.load_sim_data.get_two_component_system_config(time_step=time_step)
+        equilibrium_config = self.load_sim_data.get_equilibrium_config(time_step=time_step)
+        protein_degradation_config = self.load_sim_data.get_protein_degradation_config(time_step=time_step)
+        metabolism_config = self.load_sim_data.get_metabolism_config(time_step=time_step)
+        mass_config = self.load_sim_data.get_mass_config(time_step=time_step)
 
-        # Division
-        # TODO -- get mass for division from sim_data
-        # TODO -- set divider to binomial division
-        divide_config = {'threshold': 2220}  # fg
-        divide_condition = DivideCondition(divide_config)
-
+        # additional processes
+        divide_config = config['division']
+        allocate_config = {'molecules': self.partitioned_molecules}
+        
         return {
-            'tf_binding': tf_binding,
-            'transcript_initiation': transcript_initiation,
-            'transcript_elongation': transcript_elongation,
-            'rna_degradation': rna_degradation,
-            'polypeptide_initiation': polypeptide_initiation,
-            'polypeptide_elongation': polypeptide_elongation,
-            'complexation': complexation,
-            'two_component_system': two_component_system,
-            'equilibrium': equilibrium,
-            'protein_degradation': protein_degradation,
-            'metabolism': metabolism,
-            'mass': mass,
-            'divide_condition': divide_condition,
-            'carry_over': CarryOver({'molecules': self.aas}),
+            'tf_binding': TfBinding(tf_binding_config),
+            'transcript_initiation': TranscriptInitiation(transcript_initiation_config),
+            'transcript_elongation': TranscriptElongation(transcript_elongation_config),
+            'rna_degradation': RnaDegradation(rna_degradation_config),
+            'polypeptide_initiation': PolypeptideInitiation(polypeptide_initiation_config),
+            'polypeptide_elongation': PolypeptideElongation(polypeptide_elongation_config),
+            'complexation': Complexation(complexation_config),
+            'two_component_system': TwoComponentSystem(two_component_system_config),
+            'equilibrium': Equilibrium(equilibrium_config),
+            'protein_degradation': ProteinDegradation(protein_degradation_config),
+            'metabolism': Metabolism(metabolism_config),
+            'mass': Mass(mass_config),
+            'divide_condition': DivideCondition(divide_config),
+            'allocate': Allocate(allocate_config),
         }
 
     def generate_topology(self, config):
@@ -169,7 +156,7 @@ class Ecoli(Composer):
                 'active_ribosome': ('unique', 'active_ribosome'),
                 'molecules': ('bulk',),
                 'monomers': ('bulk',),
-                'amino_acids': ('bulk',),
+                'amino_acids': ('partitioned_bulk',),  # amino acids connect to partitioned_bulk
                 'ppgpp_reaction_metabolites': ('bulk',),
                 'uncharged_trna': ('bulk',),
                 'charged_trna': ('bulk',),
@@ -213,9 +200,9 @@ class Ecoli(Composer):
                 'divide': ('globals', 'divide',),
             },
 
-            'carry_over': {
-                'source': ('bulk'),
-                'target': ('residual')
+            'allocate': {
+                'supply': ('bulk',),
+                'request': ('partitioned_bulk',)
             }
         }
 
