@@ -8,8 +8,6 @@ TODO:
 - add protease functionality
 """
 
-from __future__ import absolute_import, division, print_function
-
 import numpy as np
 
 from vivarium.core.process import Process
@@ -33,7 +31,7 @@ class ProteinDegradation(Process):
 
     # Constructor
     def __init__(self, initial_parameters):
-        super(ProteinDegradation, self).__init__(initial_parameters)
+        super().__init__(initial_parameters)
 
         self.raw_degradation_rate = self.parameters['raw_degradation_rate']
         self.shuffle_indexes = self.parameters['shuffle_indexes']

@@ -1,8 +1,6 @@
 import math
-import copy
 
 from vivarium.core.process import Deriver
-from vivarium.library.dict_utils import deep_merge
 from vivarium.library.units import units
 
 PI = math.pi
@@ -62,7 +60,7 @@ class Shape(Deriver):
                 * **width** (:py:class:`float`): Width of the cell in
                   microns
         '''
-        super(Shape, self).__init__(parameters)
+        super().__init__(parameters)
 
     def ports_schema(self):
         default_state = {

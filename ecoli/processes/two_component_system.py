@@ -4,7 +4,6 @@ Two component system
 Two component system sub-model
 
 """
-from __future__ import absolute_import, division, print_function
 
 import numpy as np
 
@@ -29,7 +28,7 @@ class TwoComponentSystem(Process):
 
     # Constructor
     def __init__(self, initial_parameters):
-        super(TwoComponentSystem, self).__init__(initial_parameters)
+        super().__init__(initial_parameters)
 
         # Simulation options
         self.jit = self.parameters['jit']
