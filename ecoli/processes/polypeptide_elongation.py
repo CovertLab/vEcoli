@@ -197,6 +197,7 @@ class PolypeptideElongation(Process):
 
             'monomers': bulk_schema(self.proteinIds),
             'amino_acids': bulk_schema(self.amino_acids),
+            'amino_acids_request': bulk_schema(self.amino_acids),
             'ppgpp_reaction_metabolites': bulk_schema(self.ppgpp_reaction_metabolites),
             'uncharged_trna': bulk_schema(self.uncharged_trna_names),
             'charged_trna': bulk_schema(self.charged_trna_names),
@@ -286,16 +287,24 @@ class PolypeptideElongation(Process):
         assert not any(i<0 for i in states['uncharged_trna'].values())
 
         # MODEL SPECIFIC: Calculate AA request
-        fraction_charged, aa_counts_for_translation, requests = self.elongation_model.request(
+        fraction_charged, aa_counts_requested, requests = self.elongation_model.request(
             timestep, states, aasInSequences)
+
+        # save request
+        update['amino_acids_request'] = array_to(self.amino_acids, aa_counts_requested)
+        aa_counts_for_translation = array_from(states['amino_acids'])
 
         # Write to listeners
         update['listeners']['growth_limits']['fraction_trna_charged'] = np.dot(fraction_charged, self.aa_from_trna)
-        update['listeners']['growth_limits']['aa_pool_size'] = array_from(states['amino_acids'])
+        # update['listeners']['growth_limits']['aa_pool_size'] = array_from(states['amino_acids'])
         update['listeners']['growth_limits']['aa_request_size'] = aa_counts_for_translation
 
 
+        # import ipdb; ipdb.set_trace()
+
+
         ## Begin wcEcoli evolveState()
+
         # Set value to 0 for metabolism in case of early return
         self.gtp_to_hydrolyze = 0
 
