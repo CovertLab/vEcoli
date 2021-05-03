@@ -4,8 +4,6 @@ Equilibrium
 Equilibrium binding sub-model
 """
 
-from __future__ import absolute_import, division, print_function
-
 import numpy as np
 
 from vivarium.core.process import Process
@@ -31,7 +29,7 @@ class Equilibrium(Process):
 
     # Constructor
     def __init__(self, initial_parameters):
-        super(Equilibrium, self).__init__(initial_parameters)
+        super().__init__(initial_parameters)
 
         # Simulation options
         self.jit = self.parameters['jit']
