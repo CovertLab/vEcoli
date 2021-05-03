@@ -19,7 +19,6 @@ from ecoli.library.sim_data import LoadSimData
 
 # vivarium processes
 from vivarium.processes.divide_condition import DivideCondition
-from vivarium.processes.meta_division import MetaDivision
 
 # vivarium-ecoli processes
 from ecoli.processes.tf_binding import TfBinding
@@ -34,6 +33,7 @@ from ecoli.processes.equilibrium import Equilibrium
 from ecoli.processes.protein_degradation import ProteinDegradation
 from ecoli.processes.metabolism import Metabolism
 from ecoli.processes.mass import Mass
+from ecoli.processes.carryover import CarryOver
 
 from wholecell.utils import units
 
@@ -57,6 +57,8 @@ class Ecoli(Composer):
         self.load_sim_data = LoadSimData(
             sim_data_path=self.config['sim_data_path'],
             seed=self.config['seed'])
+
+        self.aas = self.load_sim_data.sim_data.molecule_groups.amino_acids
 
     def initial_state(self, config=None):
         return get_state_from_file()
@@ -97,15 +99,6 @@ class Ecoli(Composer):
         divide_config = {'threshold': 2220}  # fg
         divide_condition = DivideCondition(divide_config)
 
-        # daughter_path = config['daughter_path']
-        # agent_id = config.get('agent_id', str(uuid.uuid1()))
-        # division_config = dict(
-        #     config.get('division', {}),
-        #     daughter_path=daughter_path,
-        #     agent_id=agent_id,
-        #     compartment=self)
-        # meta_division = MetaDivision(division_config)
-
         return {
             'tf_binding': tf_binding,
             'transcript_initiation': transcript_initiation,
@@ -120,7 +113,7 @@ class Ecoli(Composer):
             'metabolism': metabolism,
             'mass': mass,
             'divide_condition': divide_condition,
-            # 'division': meta_division,
+            'carry_over': CarryOver({'molecules': self.aas}),
         }
 
     def generate_topology(self, config):
@@ -220,10 +213,10 @@ class Ecoli(Composer):
                 'divide': ('globals', 'divide',),
             },
 
-            # 'division': {
-            #     'global': boundary_path,
-            #     'agents': agents_path
-            # },
+            'carry_over': {
+                'source': ('bulk'),
+                'target': ('residual')
+            }
         }
 
 
