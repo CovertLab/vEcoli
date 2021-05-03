@@ -1,11 +1,14 @@
 from vivarium.core.process import Deriver
 
 class Allocate(Deriver):
+
     defaults = {
         'molecules': []
     }
+
     def __init__(self, config):
         super().__init__(config)
+
     def ports_schema(self):
         return {
             'supply': {
@@ -13,17 +16,17 @@ class Allocate(Deriver):
                 for mol_id in self.parameters['molecules']},
             'request': {
                 mol_id: {}
-                for mol_id in self.parameters['molecules']}
-        }
+                for mol_id in self.parameters['molecules']}}
+
     def next_update(self, timestep, states):
 
-        # TODO -- meet last request with all that is available in supply.
-        import ipdb;
-        ipdb.set_trace()
-
-        return {
-            'request': states['supply'],
+        # meet last request with all that is available in supply.
+        update = {
+            'request': {
+                state: -value
+                for state, value in states['request'].items()},
             'supply': {
                 state: -value
-                for state, value in states['supply'].items()}
-        }
+                for state, value in states['request'].items()}}
+
+        return update

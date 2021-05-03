@@ -85,7 +85,7 @@ class Ecoli(Composer):
         # additional processes
         divide_config = config['division']
         allocate_config = {'molecules': self.partitioned_molecules}
-        
+
         return {
             'tf_binding': TfBinding(tf_binding_config),
             'transcript_initiation': TranscriptInitiation(transcript_initiation_config),
