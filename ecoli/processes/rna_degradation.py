@@ -40,8 +40,6 @@ that can be digested
 digestion
 """
 
-from __future__ import absolute_import, division, print_function
-
 import numpy as np
 
 from vivarium.core.process import Process
@@ -89,7 +87,7 @@ class RnaDegradation(Process):
         'seed': 0}
 
     def __init__(self, initial_parameters):
-        super(RnaDegradation, self).__init__(initial_parameters)
+        super().__init__(initial_parameters)
 
         self.rnaIds = self.parameters['rnaIds']
         self.n_total_RNAs = len(self.rnaIds)

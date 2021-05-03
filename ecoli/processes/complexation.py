@@ -8,8 +8,6 @@ TODO:
 - handle protein complex dissociation
 """
 
-from __future__ import absolute_import, division, print_function
-
 import numpy as np
 from arrow import StochasticSystem
 
@@ -29,7 +27,7 @@ class Complexation(Process):
         'seed': 0}
 
     def __init__(self, initial_parameters=None):
-        super(Complexation, self).__init__(initial_parameters)
+        super().__init__(initial_parameters)
 
         self.stoichiometry = self.parameters['stoichiometry']
         self.rates = self.parameters['rates']

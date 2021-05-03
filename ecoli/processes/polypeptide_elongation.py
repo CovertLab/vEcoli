@@ -7,9 +7,6 @@ TODO:
 - see the initiation process for more TODOs
 """
 
-from __future__ import absolute_import, division, print_function
-
-
 import numpy as np
 from scipy.integrate import odeint
 from six.moves import range, zip
@@ -88,7 +85,7 @@ class PolypeptideElongation(Process):
         'seed': 0}
 
     def __init__(self, initial_parameters):
-        super(PolypeptideElongation, self).__init__(initial_parameters)
+        super().__init__(initial_parameters)
 
         self.max_time_step = self.parameters['max_time_step']
 
