@@ -289,21 +289,8 @@ def get_state_from_file(path='data/wcecoli_t0.json'):
 def test_ecoli(total_time=60):
 
     # configure the composer
-    amino_acids = [
-        'L-ALPHA-ALANINE[c]', 'ARG[c]', 'ASN[c]', 'L-ASPARTATE[c]', 'CYS[c]',
-        'GLT[c]', 'GLN[c]', 'GLY[c]', 'HIS[c]', 'ILE[c]', 'LEU[c]', 'LYS[c]',
-        'MET[c]', 'PHE[c]', 'PRO[c]', 'SER[c]', 'THR[c]', 'TRP[c]', 'TYR[c]',
-        'L-SELENOCYSTEINE[c]', 'VAL[c]']
-
     ecoli_config = {
-        'agent_id': '1',
-        # _schema overrides default methods.
-        '_schema': {
-            # 'polypeptide_elongation': {
-            #     'amino_acids': {
-            #         aa: {'_updater': 'nonnegative_accumulate'}
-            #         for aa in amino_acids}}
-        }}
+        'agent_id': '1'}
     ecoli_composer = Ecoli(ecoli_config)
 
     # get initial state
