@@ -13,12 +13,14 @@ def partition_updater(current_value, update):
     if isinstance(current_value, int) and \
             not isinstance(current_value, PartitionedCount):
         value = PartitionedCount(current_value)
-    elif isinstance(current_value, PartitionedCount):
+    else:
         value = current_value
 
-
-    import ipdb; ipdb.set_trace()
-
+    if update == 'reset_partition':
+        value.partition = 0
+        return value
+    elif update < 0:
+        value.partition += update
 
     return value + update
 
@@ -41,30 +43,35 @@ class Allocate(Deriver):
                 for mol_id in self.parameters['molecules']}
         return {
             'supply': molecules_schema,
-            'demand': molecules_schema,
             'allocated': molecules_schema,
         }
 
     def next_update(self, timestep, states):
 
-        # meet last request with all that is available in supply.
-        # TODO -- don't give all of the demand, just what is available
-        update = {
-            'supply': {
-                state: -value
-                for state, value in states['demand'].items()},
-            'demand': {
-                state: {
-                    '_updater': 'set',
-                    '_value': 0}
-                for state in self.parameters['molecules']},
-            'allocated': states['demand'],
-        }
+        allocated_update = {
+                state: value + value.partition
+                for state, value in states['supply'].items()}
+
+
+        partition_state = {
+                state: value.partition
+                for state, value in states['supply'].items()}
+        print(f'STATES: {states}')
+        print(f'PARTITION: {partition_state}')
+        print(f'ALLOCATE: {allocated_update}')
+
 
         import ipdb;
         ipdb.set_trace()
 
-        return update
+
+        return {
+            'supply': {
+                state: 'reset_partition'
+                for state in states['supply'].keys()},
+            'allocated': allocated_update
+        }
+
 
 
 class ToyProcess(Process):
@@ -75,13 +82,13 @@ class ToyProcess(Process):
         return {
             'molecules': {
                 mol_id: {
-                    '_default': 0}
+                    '_emit': True}
                 for mol_id in self.parameters['molecules']}}
     def next_update(self, timestep, states):
         return {
             'molecules': {
-                mol_id: random.randint(-10, 10)
-                for mol_id in self.parameters['molecules']}}
+                mol_id: random.randint(-value, value)
+                for mol_id, value in states['molecules'].items()}}
 
 
 class ToyComposer(Composer):
@@ -89,17 +96,20 @@ class ToyComposer(Composer):
     def generate_processes(self, config):
         molecules = config['molecules']
         return {
-            'toy': ToyProcess({'molecules': molecules}),
+            'toy1': ToyProcess({'molecules': molecules}),
+            'toy2': ToyProcess({'molecules': molecules}),
             'allocate': Allocate({'molecules': molecules})
         }
     def generate_topology(self, config):
         return {
-            'toy': {
+            'toy1': {
                 'molecules': ('bulk',)
+            },
+            'toy2': {
+                'molecules': ('partitioned_bulk',)
             },
             'allocate': {
                 'supply': ('bulk',),
-                'demand': ('requested_bulk',),
                 'allocated': ('partitioned_bulk',),
             }
         }
@@ -114,9 +124,13 @@ def test_allocate():
     allocate_composite = allocate_composer.generate()
     initial_state = {
         'bulk': {
-            'A': PartitionedCount(1),
-            'B': PartitionedCount(2),
-            'C': PartitionedCount(3)}
+            'A': PartitionedCount(10),
+            'B': PartitionedCount(10),
+            'C': PartitionedCount(10)},
+        'partitioned_bulk': {
+            'A': PartitionedCount(0),
+            'B': PartitionedCount(0),
+            'C': PartitionedCount(0)}
     }
 
     experiment = Experiment({

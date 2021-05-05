@@ -158,7 +158,6 @@ class Ecoli(Composer):
                 'active_ribosome': ('unique', 'active_ribosome'),
                 'molecules': ('bulk',),
                 'monomers': ('bulk',),
-                'amino_acids_request': ('requested_bulk',),
                 'amino_acids': ('partitioned_bulk',),  # amino acids connect to partitioned_bulk
                 'ppgpp_reaction_metabolites': ('bulk',),
                 'uncharged_trna': ('bulk',),
@@ -205,7 +204,6 @@ class Ecoli(Composer):
 
             'allocate': {
                 'supply': ('bulk',),
-                'demand': ('requested_bulk',),
                 'allocated': ('partitioned_bulk',),
             }
         }
