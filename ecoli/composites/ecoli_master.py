@@ -291,7 +291,7 @@ def test_ecoli(total_time=60):
     })
 
 
-    debug_experiment = False
+    debug_experiment = True
     if debug_experiment:
         print(pformat(ecoli_experiment.state.get_config(True)))
         import ipdb; ipdb.set_trace()
