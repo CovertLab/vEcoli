@@ -8,7 +8,8 @@ def run_ecoli_process(
         process,
         topology,
         total_time=2,
-        initial_time=0):
+        initial_time=0,
+        initial_state=None):
     """
     load a single ecoli process, run it, and return the update
 
@@ -20,10 +21,10 @@ def run_ecoli_process(
     Returns:
         an update from the perspective of the Process.
     """
-
-    # get initial state from file
-    initial_state = get_state_from_file(
-        path=f'data/wcecoli_t{initial_time}.json')
+    if not initial_state:
+        # get initial state from file
+        initial_state = get_state_from_file(
+            path=f'data/wcecoli_t{initial_time}.json')
 
     # make an experiment
     experiment_config = {
