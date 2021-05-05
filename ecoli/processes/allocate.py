@@ -8,6 +8,15 @@ from vivarium.core.experiment import Experiment
 class PartitionedCount(int):
     partition = 0
 
+    # def __init__(self, value):
+    #     self.value = value
+    # def __new__(self, value):
+    #     return super().__new__(self, value)
+
+    def __add__(self, value):
+        new_value = self + PartitionedCount(value)
+        return new_value
+
 
 def partition_updater(current_value, update):
     if isinstance(current_value, int) and \
@@ -21,6 +30,15 @@ def partition_updater(current_value, update):
         return value
     elif update < 0:
         value.partition += update
+
+
+    new_value = value + update
+    print(f'NEW VALUE: {new_value}')
+    try:
+        new_value.partition
+    except:
+        import ipdb; ipdb.set_trace()
+
 
     return value + update
 
@@ -59,11 +77,7 @@ class Allocate(Deriver):
         print(f'STATES: {states}')
         print(f'PARTITION: {partition_state}')
         print(f'ALLOCATE: {allocated_update}')
-
-
-        import ipdb;
-        ipdb.set_trace()
-
+        # import ipdb; ipdb.set_trace()
 
         return {
             'supply': {
@@ -82,6 +96,8 @@ class ToyProcess(Process):
         return {
             'molecules': {
                 mol_id: {
+                    '_default': PartitionedCount(0),
+                    '_updater': partition_updater,
                     '_emit': True}
                 for mol_id in self.parameters['molecules']}}
     def next_update(self, timestep, states):
