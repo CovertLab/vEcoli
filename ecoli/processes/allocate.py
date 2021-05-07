@@ -54,10 +54,12 @@ class PartitionInt(int):
         return self.make_new(value)
 
     def __mul__(self, other):
-        raise ValueError("PartitionInt can not be multiplied")
+        # raise ValueError("PartitionInt can not be multiplied")
+        return super().__mul__(other)
 
     def __truediv__(self, other):
-        raise ValueError("PartitionInt can not be divided")
+        return super().__truediv__(other)
+        # raise ValueError("PartitionInt can not be divided")
 
     # def __repr__(self):
     #     return f"{int(self)}"
@@ -124,6 +126,8 @@ class Allocate(Deriver):
             supply_update[mol_id] = {
                 'value': -allocate,
                 'partition': 'reset'}
+
+        import ipdb; ipdb.set_trace()
 
         return {
             'supply': supply_update,

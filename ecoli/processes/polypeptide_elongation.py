@@ -302,7 +302,6 @@ class PolypeptideElongation(Process):
 
 
         ## Begin wcEcoli evolveState()
-
         # Set value to 0 for metabolism in case of early return
         self.gtp_to_hydrolyze = 0
 

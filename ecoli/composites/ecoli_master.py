@@ -33,13 +33,16 @@ from ecoli.processes.equilibrium import Equilibrium
 from ecoli.processes.protein_degradation import ProteinDegradation
 from ecoli.processes.metabolism import Metabolism
 from ecoli.processes.mass import Mass
-from ecoli.processes.allocate import Allocate
+from ecoli.processes.allocate import Allocate, PartitionInt
 
 from wholecell.utils import units
 
 RAND_MAX = 2**31
 SIM_DATA_PATH = 'reconstruction/sim_data/kb/simData.cPickle'
-
+PARTITIONED_BULK = [
+    'L-ALPHA-ALANINE[c]', 'ARG[c]', 'ASN[c]', 'L-ASPARTATE[c]', 'CYS[c]', 'GLT[c]',
+    'GLN[c]', 'GLY[c]', 'HIS[c]', 'ILE[c]', 'LEU[c]', 'LYS[c]', 'MET[c]', 'PHE[c]',
+    'PRO[c]', 'SER[c]', 'THR[c]', 'TRP[c]', 'TYR[c]', 'L-SELENOCYSTEINE[c]', 'VAL[c]']
 
 class Ecoli(Composer):
 
@@ -50,6 +53,7 @@ class Ecoli(Composer):
         'sim_data_path': SIM_DATA_PATH,
         'daughter_path': tuple(),
         'division': {'threshold': 2220},  # fg
+        'partitioned_bulk': PARTITIONED_BULK
     }
 
     def __init__(self, config):
@@ -59,10 +63,15 @@ class Ecoli(Composer):
             sim_data_path=self.config['sim_data_path'],
             seed=self.config['seed'])
 
-        self.partitioned_molecules = self.load_sim_data.sim_data.molecule_groups.amino_acids
+        self.partitioned_bulk = self.config['partitioned_bulk']
 
     def initial_state(self, config=None):
-        return get_state_from_file()
+        state = get_state_from_file()
+        for mol_id in self.partitioned_bulk:
+            mol_id_state = state['bulk'][mol_id]
+            state['bulk'][mol_id] = PartitionInt(mol_id_state)
+
+        return state
 
     def generate_processes(self, config):
         time_step = config['time_step']
@@ -84,7 +93,7 @@ class Ecoli(Composer):
 
         # additional processes
         divide_config = config['division']
-        allocate_config = {'molecules': self.partitioned_molecules}
+        allocate_config = {'molecules': self.partitioned_bulk}
 
         return {
             'tf_binding': TfBinding(tf_binding_config),
@@ -204,7 +213,7 @@ class Ecoli(Composer):
 
             'allocate': {
                 'supply': ('bulk',),
-                'allocated': ('partitioned_bulk',),
+                'target': ('partitioned_bulk',),
             }
         }
 
@@ -269,6 +278,8 @@ def get_state_from_file(path='data/wcecoli_t0.json'):
     return initial_state
 
 
+amino_acid_ids = []
+
 def test_ecoli(total_time=60):
 
     # configure the composer
@@ -277,7 +288,7 @@ def test_ecoli(total_time=60):
     ecoli_composer = Ecoli(ecoli_config)
 
     # get initial state
-    initial_state = get_state_from_file()
+    initial_state = ecoli_composer.initial_state()
 
     # make the experiment
     ecoli = ecoli_composer.generate()
@@ -288,11 +299,8 @@ def test_ecoli(total_time=60):
         'progress_bar': True,
     })
 
-
-    debug_experiment = True
-    if debug_experiment:
-        print(pformat(ecoli_experiment.state.get_config(True)))
-        import ipdb; ipdb.set_trace()
+    # print(pformat(ecoli_experiment.state.get_config(True)))
+    # import ipdb; ipdb.set_trace()
 
     # run the experiment
     ecoli_experiment.update(total_time)
