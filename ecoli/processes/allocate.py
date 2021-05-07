@@ -1,7 +1,7 @@
 import random
 
 from vivarium.core.process import Deriver, Process, Composer
-from vivarium.core.experiment import Experiment
+from vivarium.core.experiment import Experiment, pf
 
 
 class PartitionInt(int):
@@ -9,45 +9,58 @@ class PartitionInt(int):
 
     subclassing int reference: https://stackoverflow.com/questions/3238350/subclassing-int-in-python
     """
-    allocated = 0
+    initial = 0
+    used = 0
+    added = 0
 
     def get_remaining(self):
-        return max(self - self.allocated, 0)
+        return max(self.initial - self.used, 0)
 
-    def get_allocated(self):
-        return self.allocated
-
-    def add_to_allocated(self, value):
-        self.allocated += value
-
-    def reset_allocated(self):
-        self.allocated = 0
+    def reset(self):
+        self.initial = int(self)
+        self.used = 0
+        self.added = 0
 
     def make_new(self, value):
         new = self.__class__(value)
-        new.add_to_allocated(self.allocated)
+        new.initial = self.initial
+        new.used = self.used
+        new.added = self.added
         return new
+
+    def print(self):
+        return f"{int(self)} " \
+               f"(initial: {self.initial} " \
+               f"used: {self.used} " \
+               f"added: {self.added})"
 
     def __new__(cls, value, *args, **kwargs):
         return super(cls, cls).__new__(cls, value)
 
     def __add__(self, other):
         value = super().__add__(other)
-        if other < 0:
-            self.allocated -= other
+        if other > 0:
+            self.added = other
+        else:
+            self.used -= other
         return self.make_new(value)
 
     def __sub__(self, other):
         value = super().__sub__(other)
+        if other < 0:
+            self.added -= other
+        else:
+            self.used = other
         return self.make_new(value)
 
     def __mul__(self, other):
-        value = super().__mul__(other)
-        return self.make_new(value)
+        raise ValueError("PartitionInt can not be multiplied")
 
-    def __div__(self, other):
-        value = super().__div__(other)
-        return self.make_new(value)
+    def __truediv__(self, other):
+        raise ValueError("PartitionInt can not be divided")
+
+    # def __repr__(self):
+    #     return f"{int(self)}"
 
 
 def partition_updater(current_value, update):
@@ -57,8 +70,8 @@ def partition_updater(current_value, update):
     else:
         value = current_value
 
-    if update == 'reset_partition':
-        value.reset_allocated()
+    if update == 'reset':
+        value.reset()
         return value
 
     return value + update
@@ -91,9 +104,12 @@ class Allocate(Deriver):
                 state: value.get_remaining()
                 for state, value in states['supply'].items()}
 
+        for state, value in states['supply'].items():
+            print(f"{state}: {value.print()}")
+
         return {
             'supply': {
-                state: 'reset_partition'
+                state: 'reset'
                 for state in states['supply'].keys()},
             'allocated': remaining_state}
 
@@ -168,7 +184,9 @@ def test_allocate():
 
     experiment.update(10)
 
-    data = experiment.emitter.get_data()
+    timeseries = experiment.emitter.get_timeseries()
+
+    print(pf(timeseries))
 
     import ipdb; ipdb.set_trace()
 
