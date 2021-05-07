@@ -4,41 +4,62 @@ from vivarium.core.process import Deriver, Process, Composer
 from vivarium.core.experiment import Experiment
 
 
-
-class PartitionedCount(int):
+class PartitionInt(int):
+    """integer that tracks partition"""
     partition = 0
 
-    # def __init__(self, value):
-    #     self.value = value
-    # def __new__(self, value):
-    #     return super().__new__(self, value)
+    def get_partition(self):
+        return self.partition
 
-    def __add__(self, value):
-        new_value = self + PartitionedCount(value)
-        return new_value
+    def add_to_partition(self, value):
+        self.partition += value
+
+    def reset_partition(self):
+        self.partition = 0
+
+    def make_new(self, value):
+        new = self.__class__(value)
+        new.add_to_partition(self.partition)
+        return new
+
+    def __new__(cls, value, *args, **kwargs):
+        return super(cls, cls).__new__(cls, value)
+
+    def __add__(self, other):
+        value = super().__add__(other)
+        if other < 0:
+            self.partition += other
+        return self.make_new(value)
+
+    def __sub__(self, other):
+        value = super().__sub__(other)
+        return self.make_new(value)
+
+    def __mul__(self, other):
+        value = super().__mul__(other)
+        return self.make_new(value)
+
+    def __div__(self, other):
+        value = super().__div__(other)
+        return self.make_new(value)
+
+    # def __str__(self):
+    #     return f"{int(self)}"
+    #
+    # def __repr__(self):
+    #     return f"{int(self)}::{int(self.partition)}"
 
 
 def partition_updater(current_value, update):
     if isinstance(current_value, int) and \
-            not isinstance(current_value, PartitionedCount):
-        value = PartitionedCount(current_value)
+            not isinstance(current_value, PartitionInt):
+        value = PartitionInt(current_value)
     else:
         value = current_value
 
     if update == 'reset_partition':
-        value.partition = 0
+        value.reset_partition()
         return value
-    elif update < 0:
-        value.partition += update
-
-
-    new_value = value + update
-    print(f'NEW VALUE: {new_value}')
-    try:
-        new_value.partition
-    except:
-        import ipdb; ipdb.set_trace()
-
 
     return value + update
 
@@ -55,7 +76,7 @@ class Allocate(Deriver):
     def ports_schema(self):
         molecules_schema = {
                 mol_id: {
-                    '_default': PartitionedCount(0),
+                    '_default': PartitionInt(0),
                     '_updater': partition_updater
                 }
                 for mol_id in self.parameters['molecules']}
@@ -75,9 +96,10 @@ class Allocate(Deriver):
                 state: value.partition
                 for state, value in states['supply'].items()}
         print(f'STATES: {states}')
-        print(f'PARTITION: {partition_state}')
-        print(f'ALLOCATE: {allocated_update}')
-        # import ipdb; ipdb.set_trace()
+        # print(f'PARTITION: {partition_state}')
+        # print(f'ALLOCATE: {allocated_update}')
+        # states['supply']['A'].partition
+        import ipdb; ipdb.set_trace()
 
         return {
             'supply': {
@@ -96,7 +118,7 @@ class ToyProcess(Process):
         return {
             'molecules': {
                 mol_id: {
-                    '_default': PartitionedCount(0),
+                    '_default': PartitionInt(0),
                     '_updater': partition_updater,
                     '_emit': True}
                 for mol_id in self.parameters['molecules']}}
@@ -140,13 +162,13 @@ def test_allocate():
     allocate_composite = allocate_composer.generate()
     initial_state = {
         'bulk': {
-            'A': PartitionedCount(10),
-            'B': PartitionedCount(10),
-            'C': PartitionedCount(10)},
+            'A': PartitionInt(10),
+            'B': PartitionInt(10),
+            'C': PartitionInt(10)},
         'partitioned_bulk': {
-            'A': PartitionedCount(0),
-            'B': PartitionedCount(0),
-            'C': PartitionedCount(0)}
+            'A': PartitionInt(0),
+            'B': PartitionInt(0),
+            'C': PartitionInt(0)}
     }
 
     experiment = Experiment({
@@ -159,7 +181,7 @@ def test_allocate():
 
     data = experiment.emitter.get_data()
 
-    import ipdb; ipdb.set_trace()
+    # import ipdb; ipdb.set_trace()
 
 
 
