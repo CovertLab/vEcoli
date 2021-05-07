@@ -5,21 +5,27 @@ from vivarium.core.experiment import Experiment
 
 
 class PartitionInt(int):
-    """integer that tracks partition"""
-    partition = 0
+    """integer that tracks allocated counts
 
-    def get_partition(self):
-        return self.partition
+    subclassing int reference: https://stackoverflow.com/questions/3238350/subclassing-int-in-python
+    """
+    allocated = 0
 
-    def add_to_partition(self, value):
-        self.partition += value
+    def get_remaining(self):
+        return max(self - self.allocated, 0)
 
-    def reset_partition(self):
-        self.partition = 0
+    def get_allocated(self):
+        return self.allocated
+
+    def add_to_allocated(self, value):
+        self.allocated += value
+
+    def reset_allocated(self):
+        self.allocated = 0
 
     def make_new(self, value):
         new = self.__class__(value)
-        new.add_to_partition(self.partition)
+        new.add_to_allocated(self.allocated)
         return new
 
     def __new__(cls, value, *args, **kwargs):
@@ -28,7 +34,7 @@ class PartitionInt(int):
     def __add__(self, other):
         value = super().__add__(other)
         if other < 0:
-            self.partition += other
+            self.allocated -= other
         return self.make_new(value)
 
     def __sub__(self, other):
@@ -47,7 +53,7 @@ class PartitionInt(int):
     #     return f"{int(self)}"
     #
     # def __repr__(self):
-    #     return f"{int(self)}::{int(self.partition)}"
+    #     return f"{int(self)}::{int(self.allocated)}"
 
 
 def partition_updater(current_value, update):
@@ -58,7 +64,7 @@ def partition_updater(current_value, update):
         value = current_value
 
     if update == 'reset_partition':
-        value.reset_partition()
+        value.reset_allocated()
         return value
 
     return value + update
@@ -87,25 +93,23 @@ class Allocate(Deriver):
 
     def next_update(self, timestep, states):
 
-        allocated_update = {
-                state: value + value.partition
+        remaining_state = {
+                state: value.get_remaining()
                 for state, value in states['supply'].items()}
 
-
-        partition_state = {
-                state: value.partition
-                for state, value in states['supply'].items()}
-        print(f'STATES: {states}')
-        # print(f'PARTITION: {partition_state}')
-        # print(f'ALLOCATE: {allocated_update}')
-        # states['supply']['A'].partition
-        import ipdb; ipdb.set_trace()
+        # allocated_state = {
+        #         state: value.get_allocated()
+        #         for state, value in states['supply'].items()}
+        # print(f"SUPPLY: {states['supply']}")
+        # print(f"ALLOCATED: {allocated_state}")
+        # print(f"REMAINING: {remaining_state}")
+        # import ipdb; ipdb.set_trace()
 
         return {
             'supply': {
                 state: 'reset_partition'
                 for state in states['supply'].keys()},
-            'allocated': allocated_update
+            'allocated': remaining_state
         }
 
 
@@ -181,7 +185,7 @@ def test_allocate():
 
     data = experiment.emitter.get_data()
 
-    # import ipdb; ipdb.set_trace()
+    import ipdb; ipdb.set_trace()
 
 
 
