@@ -1,3 +1,4 @@
+import numpy as np
 from vivarium.core.experiment import Experiment
 
 from ecoli.composites.ecoli_master import get_state_from_file
@@ -7,7 +8,8 @@ def run_ecoli_process(
         process,
         topology,
         total_time=2,
-        initial_time=0):
+        initial_time=0,
+        initial_state=None):
     """
     load a single ecoli process, run it, and return the update
 
@@ -19,10 +21,10 @@ def run_ecoli_process(
     Returns:
         an update from the perspective of the Process.
     """
-
-    # get initial state from file
-    initial_state = get_state_from_file(
-        path=f'data/wcecoli_t{initial_time}.json')
+    if not initial_state:
+        # get initial state from file
+        initial_state = get_state_from_file(
+            path=f'data/wcecoli_t{initial_time}.json')
 
     # make an experiment
     experiment_config = {
@@ -50,7 +52,23 @@ def run_ecoli_process(
     return actual_update
 
 
-def array_diffs_readout(a, b, names=None):
+def array_diffs_report(a, b, names=None, sort_by="absolute", sort_with=np.abs):
+    """
+    Returns a report of the differences between numpy arrays a and b, including both
+    absolute and relative differences.
+
+    Args:
+        a: First array.
+        b: Second array.
+        names: Optional array of names for the entries in a/b. If not provided, the diffs will simply be numbered.
+        sort_by: Which values to sort the the differences by, if any. Can be "absolute", "relative", or None.
+        sort_with: Function to apply to diffs prior to sorting. For example,
+                   the default of np.abs can be substituted with the identity function if negative
+                   diffs should be considered less than positive diffs.
+
+    Returns: String representing a report of the differences between a and b.
+    """
+
     if len(a) != len(b):
         raise ValueError(f"Length of a does not match length of b ({len(a)} != {len(b)})")
 
@@ -61,13 +79,35 @@ def array_diffs_readout(a, b, names=None):
         raise ValueError(f"Length of names does not match length of a ({len(names)} != {len(a)})")
 
     diffs = a - b
+    r_diffs = diffs / b
 
-    name_pad = max(4, max(map(len, names))) + 1
-    diffs_pad = max(4, max(map(lambda x : len(str(x)), diffs))) + 1
-    result = "Name".center(name_pad) + ' | ' + "Diff".center(diffs_pad) + '\n'
-    result += '=' * (name_pad + diffs_pad + 3) + '\n'
-    for name, diff in zip(names, diffs):
-        result += str(name).ljust(name_pad) + ' : ' + str(diff).rjust(diffs_pad) + '\n'
+    if sort_by is not None:
+        if sort_by == "absolute":
+            order = np.argsort(-sort_with(diffs))
+        elif sort_by == "relative":
+            order = np.argsort(-sort_with(r_diffs))
+
+    diffs = diffs[order]
+    r_diffs = r_diffs[order]
+    names = [names[i] for i in order]
+
+    headings = ["Name", "Diff", "Relative Diff"]
+    name_pad = max(len(headings[0]), max(map(len, names))) + 1
+    diffs_pad = max(len(headings[1]), max(map(lambda x : len(str(x)), diffs))) + 1
+    r_diffs_pad = max(len(headings[2]), max(map(lambda x : len(str(x)), r_diffs))) + 1
+    paddings = [name_pad, diffs_pad, r_diffs_pad]
+
+    result = f"{np.nonzero(diffs)[0].shape[0]} / {len(diffs)} entries have differences.\n"
+    result += f"Maximum absolute difference is {np.max(diffs)}.\n"
+    result += f"Maximum relative difference is {np.max(r_diffs[~np.isnan(r_diffs)])}.\n\n"
+
+    result += ' | '.join(map(lambda t: t[0].center(t[1]),
+                             zip(headings, paddings))) + '\n'
+    result += '=' * (sum(paddings) + 2*len(' | ')) + '\n'
+    for name, diff, r_diff in zip(names, diffs, r_diffs):
+        result += (str(name).ljust(name_pad) + ' : ' +
+                   str(diff).center(diffs_pad) + ' : ' +
+                   str(r_diff).rjust(r_diffs_pad) + '\n')
 
     return result
 
