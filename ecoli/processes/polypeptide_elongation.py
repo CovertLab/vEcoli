@@ -285,12 +285,9 @@ class PolypeptideElongation(Process):
 
         assert not any(i<0 for i in states['uncharged_trna'].values())
 
-        # # MODEL SPECIFIC: Calculate AA request
-        # fraction_charged, aa_counts_requested, requests = self.elongation_model.request(
-        #     timestep, states, aasInSequences)
-
-        # save request
-        aa_counts_for_translation = array_from(states['amino_acids'])
+        # MODEL SPECIFIC: Calculate AA request
+        fraction_charged, aa_counts_for_translation, requests = self.elongation_model.request(
+            timestep, states, aasInSequences)
 
         # Write to listeners
         # update['listeners']['growth_limits']['fraction_trna_charged'] = np.dot(fraction_charged, self.aa_from_trna)
@@ -298,7 +295,8 @@ class PolypeptideElongation(Process):
         # update['listeners']['growth_limits']['aa_request_size'] = aa_counts_for_translation
 
 
-        # import ipdb; ipdb.set_trace()
+        # aa_counts_for_translation = array_from(states['amino_acids'])
+        import ipdb; ipdb.set_trace()
 
 
         ## Begin wcEcoli evolveState()

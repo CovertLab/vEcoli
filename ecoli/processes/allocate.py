@@ -35,7 +35,10 @@ class PartitionInt(int):
                f"added: {self.added})"
 
     def __new__(cls, value, *args, **kwargs):
-        return super(cls, cls).__new__(cls, value)
+        try:
+            return super(cls, cls).__new__(cls, value)
+        except:
+            import ipdb; ipdb.set_trace()
 
     def __add__(self, other):
         value = super().__add__(other)

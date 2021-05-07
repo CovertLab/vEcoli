@@ -67,9 +67,11 @@ class Ecoli(Composer):
 
     def initial_state(self, config=None):
         state = get_state_from_file()
+        state['partitioned_bulk'] = {}
         for mol_id in self.partitioned_bulk:
             mol_id_state = state['bulk'][mol_id]
             state['bulk'][mol_id] = PartitionInt(mol_id_state)
+            state['partitioned_bulk'][mol_id] = PartitionInt(0)
 
         return state
 
