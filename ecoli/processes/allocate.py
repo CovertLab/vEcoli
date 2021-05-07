@@ -10,28 +10,28 @@ class PartitionInt(int):
     subclassing int reference: https://stackoverflow.com/questions/3238350/subclassing-int-in-python
     """
     initial = 0
-    used = 0
+    demand = 0
     added = 0
 
     def get_remaining(self):
-        return max(self.initial - self.used, 0)
+        return self.initial - self.demand
 
     def reset(self):
         self.initial = int(self)
-        self.used = 0
+        self.demand = 0
         self.added = 0
 
     def make_new(self, value):
         new = self.__class__(value)
         new.initial = self.initial
-        new.used = self.used
+        new.demand = self.demand
         new.added = self.added
         return new
 
-    def print(self):
+    def print_info(self):
         return f"{int(self)} " \
                f"(initial: {self.initial} " \
-               f"used: {self.used} " \
+               f"demand: {self.demand} " \
                f"added: {self.added})"
 
     def __new__(cls, value, *args, **kwargs):
@@ -42,7 +42,7 @@ class PartitionInt(int):
         if other > 0:
             self.added = other
         else:
-            self.used -= other
+            self.demand -= other
         return self.make_new(value)
 
     def __sub__(self, other):
@@ -50,7 +50,7 @@ class PartitionInt(int):
         if other < 0:
             self.added -= other
         else:
-            self.used = other
+            self.demand = other
         return self.make_new(value)
 
     def __mul__(self, other):
@@ -70,11 +70,15 @@ def partition_updater(current_value, update):
     else:
         value = current_value
 
-    if update == 'reset':
-        value.reset()
-        return value
+    if isinstance(update, dict):
+        update_value = update['value']
+        partition = update['partition']
+        if partition == 'reset':
+            value.reset()
+    else:
+        update_value = update
 
-    return value + update
+    return value + update_value
 
 
 class Allocate(Deriver):
@@ -95,28 +99,42 @@ class Allocate(Deriver):
                 for mol_id in self.parameters['molecules']}
         return {
             'supply': molecules_schema,
-            'allocated': molecules_schema,
-        }
+            'target': molecules_schema}
 
     def next_update(self, timestep, states):
+        supply = states['supply']
+        target = states['target']
 
-        remaining_state = {
-                state: value.get_remaining()
-                for state, value in states['supply'].items()}
+        target_update = {}
+        supply_update = {}
+        for mol_id, value in supply.items():
+            supply_remaining = value.get_remaining()
+            target_stock = target[mol_id]
+            target_demand = target[mol_id].demand
 
-        for state, value in states['supply'].items():
-            print(f"{state}: {value.print()}")
+            # allocate to make expected target_stock = 0
+            allocate = target_demand - target_stock
+
+            # don't allocate more than is available
+            allocate = min(allocate, supply_remaining)
+
+            target_update[mol_id] = {
+                'value': allocate,
+                'partition': 'reset'}
+            supply_update[mol_id] = {
+                'value': -allocate,
+                'partition': 'reset'}
 
         return {
-            'supply': {
-                state: 'reset'
-                for state in states['supply'].keys()},
-            'allocated': remaining_state}
+            'supply': supply_update,
+            'target': target_update}
 
 
 
 class ToyProcess(Process):
-    defaults = {'molecules': []}
+    defaults = {
+        'molecules': [],
+        'update': {}}
     def __init__(self, config):
         super().__init__(config)
     def ports_schema(self):
@@ -128,32 +146,46 @@ class ToyProcess(Process):
                     '_emit': True}
                 for mol_id in self.parameters['molecules']}}
     def next_update(self, timestep, states):
-        return {
-            'molecules': {
-                mol_id: random.randint(-value, value)
-                for mol_id, value in states['molecules'].items()}}
+        molecules_update = {}
+        for mol_id, value in states['molecules'].items():
+            molecules_update[mol_id] = max(
+                self.parameters['update'].get(mol_id, 0),
+                -value)
+        return {'molecules': molecules_update}
 
 
 class ToyComposer(Composer):
-    defaults = {'molecules': []}
+    defaults = {
+        'molecules': [],
+        'supply_update': {},
+        'use_update': {},
+        'partitioned_update': {},
+    }
     def generate_processes(self, config):
-        molecules = config['molecules']
+        molecules = {'molecules': config['molecules']}
+        supply_update = {'update': config['supply_update']}
+        use_update = {'update': config['use_update']}
+        partitioned_update = {'update': config['partitioned_update']}
         return {
-            'toy1': ToyProcess({'molecules': molecules}),
-            'toy2': ToyProcess({'molecules': molecules}),
-            'allocate': Allocate({'molecules': molecules})
+            'toy_supply': ToyProcess({**molecules, **supply_update}),
+            'toy_use': ToyProcess({**molecules, **use_update}),
+            'toy_partitioned': ToyProcess({**molecules, **partitioned_update}),
+            'allocate': Allocate(molecules)
         }
     def generate_topology(self, config):
         return {
-            'toy1': {
+            'toy_supply': {
                 'molecules': ('bulk',)
             },
-            'toy2': {
+            'toy_use': {
+                'molecules': ('bulk',)
+            },
+            'toy_partitioned': {
                 'molecules': ('partitioned_bulk',)
             },
             'allocate': {
                 'supply': ('bulk',),
-                'allocated': ('partitioned_bulk',),
+                'target': ('partitioned_bulk',),
             }
         }
 
@@ -161,7 +193,26 @@ class ToyComposer(Composer):
 def test_allocate():
 
     config = {
-        'molecules': ['A', 'B', 'C']
+        'molecules': [
+            'A',
+            # 'B',
+            # 'C'
+        ],
+        'supply_update': {
+            'A': 3,
+            # 'B': 3,
+            # 'C': 4
+        },
+        'use_update': {
+            'A': -2,
+            # 'B': -3,
+            # 'C': -4
+        },
+        'partitioned_update': {
+            'A': -1,
+            # 'B': -1,
+            # 'C': -1,
+        },
     }
     allocate_composer = ToyComposer(config)
     allocate_composite = allocate_composer.generate()
