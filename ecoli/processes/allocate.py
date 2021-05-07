@@ -49,12 +49,6 @@ class PartitionInt(int):
         value = super().__div__(other)
         return self.make_new(value)
 
-    # def __str__(self):
-    #     return f"{int(self)}"
-    #
-    # def __repr__(self):
-    #     return f"{int(self)}::{int(self.allocated)}"
-
 
 def partition_updater(current_value, update):
     if isinstance(current_value, int) and \
@@ -97,20 +91,11 @@ class Allocate(Deriver):
                 state: value.get_remaining()
                 for state, value in states['supply'].items()}
 
-        # allocated_state = {
-        #         state: value.get_allocated()
-        #         for state, value in states['supply'].items()}
-        # print(f"SUPPLY: {states['supply']}")
-        # print(f"ALLOCATED: {allocated_state}")
-        # print(f"REMAINING: {remaining_state}")
-        # import ipdb; ipdb.set_trace()
-
         return {
             'supply': {
                 state: 'reset_partition'
                 for state in states['supply'].keys()},
-            'allocated': remaining_state
-        }
+            'allocated': remaining_state}
 
 
 
