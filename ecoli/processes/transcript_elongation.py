@@ -19,6 +19,8 @@ from wholecell.utils.random import stochasticRound
 from wholecell.utils.polymerize import buildSequences, polymerize, computeMassIncrease
 from wholecell.utils import units
 
+from ecoli.library.data_predicates import monotonically_increasing
+
 class TranscriptElongation(Process):
     """TranscriptElongation
 
@@ -536,6 +538,100 @@ def test_transcript_elongation():
         'initial_state': initial_state}
 
     data = simulate_process(transcript_elongation, settings)
+
+    plots(data)
+    assertions(data)
+
+
+def plots(actual_update):
+    import matplotlib.pyplot as plt
+
+    # unpack update
+    rnas_synthesized = actual_update['listeners']['transcript_elongation_listener']['countRnaSynthesized']
+    ntps_used = actual_update['listeners']['growth_limits']['ntpUsed']
+    total_ntps_used = actual_update['listeners']['transcript_elongation_listener']['countNTPsUsed']
+
+    ntps = actual_update['ntps']
+
+    plt.subplot(2, 1, 1)
+    plt.plot(range(len(rnas_synthesized)), rnas_synthesized)
+    plt.xlabel("TU")
+    plt.ylabel("Count")
+    plt.title("Counts synthesized")
+
+    plt.subplot(2, 1, 2)
+    plt.hist(np.array(ntps_used))
+    #plt.xticks(ticks=range(len(ntps.keys())), labels=list(ntps.keys()))
+    plt.ylabel('Count')
+    plt.title('NTP Counts Used')
+
+    plt.subplots_adjust(hspace=0.5)
+    plt.gcf().set_size_inches(8, 6)
+    plt.savefig("out/migration/transcript_elongation_toymodel.png")
+
+
+def assertions(actual_update):
+    # unpack update
+    trans_lengths = [r['transcript_length'] for r in actual_update["RNAs"].values()]
+    rnas_synthesized = actual_update['listeners']['transcript_elongation_listener']['countRnaSynthesized']
+    bulk_16SrRNA = actual_update['bulk_RNAs']['16S rRNA']
+    bulk_5SrRNA = actual_update['bulk_RNAs']['5S rRNA']
+    bulk_23SrRNA = actual_update['bulk_RNAs']['23S rRNA']
+    bulk_mRNA = actual_update['bulk_RNAs']['mRNA']
+
+    ntps_used = actual_update['listeners']['growth_limits']['ntpUsed']
+    total_ntps_used = actual_update['listeners']['transcript_elongation_listener']['countNTPsUsed']
+    ntps = actual_update['ntps']
+
+    RNAP_coordinates = [v['coordinates'] for v in actual_update['active_RNAPs'].values()]
+    RNAP_elongations = actual_update['listeners']['rnap_data']['actualElongations']
+    terminations = actual_update['listeners']['rnap_data']['didTerminate']
+    termination_loss = actual_update['listeners']['rnap_data']['terminationLoss']
+
+    ppi = actual_update['molecules']['PPI[c]']
+    inactive_RNAP = actual_update['molecules']['APORNAP-CPLX[c]']
+
+    # transcript lengths are monotonically increasing
+    assert np.all(list(map(monotonically_increasing, trans_lengths)))
+
+    # RNAP positions are monotonically increasing
+    assert np.all(list(map(monotonically_increasing, RNAP_coordinates)))
+
+    # RNAP positions match transcript lengths?
+    RNAP_coordinates_realigned = [np.array(v) - v[0] for v in RNAP_coordinates]
+    for a, e in zip(trans_lengths, RNAP_coordinates_realigned):
+        np.testing.assert_array_equal(a,e)
+
+    # bulk RNAs monotonically increasing?
+    # TODO: should these change at all? (currently don't)
+    assert monotonically_increasing(bulk_16SrRNA)
+    assert monotonically_increasing(bulk_5SrRNA)
+    assert monotonically_increasing(bulk_23SrRNA)
+    assert monotonically_increasing(bulk_mRNA)
+
+    # Change in PPI matches...?
+
+    # Change in APORNAP-CPLX matches terminations?
+    d_inactive_RNAP = np.array(inactive_RNAP[1:]) - inactive_RNAP[:-1]
+    np.testing.assert_array_equal(d_inactive_RNAP, terminations[1:])
+
+    # RNAP elongations matches...?
+
+    # terminations match rnas_synthesized?
+    assert all(np.array([sum(v) for v in rnas_synthesized]) == terminations)
+
+    # TODO: termination_loss means...?
+
+    # NTPs used match sequences of which RNAs were elongated
+
+    # bulk NTP counts decrease by numbers used
+    ntps_arr = np.array([v for v in ntps.values()])
+    d_ntps = ntps_arr[:, 1:] - ntps_arr[:, :-1]
+
+    np.testing.assert_array_equal(d_ntps, -np.array(ntps_used[1:]).transpose())
+
+    # total NTPS used matches sum of ntps_used
+    assert np.all(np.sum(ntps_used, axis=1) == np.array(total_ntps_used))
 
 
 
