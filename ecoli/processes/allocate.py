@@ -10,42 +10,42 @@ class PartitionInt(int):
     subclassing int reference: https://stackoverflow.com/questions/3238350/subclassing-int-in-python
     """
     initial = 0
-    demand = 0
+    used = 0
     added = 0
 
     def get_remaining(self):
-        return self.initial - self.demand
+        return self.initial - self.used
 
     def reset(self):
         self.initial = int(self)
-        self.demand = 0
+        self.used = 0
         self.added = 0
 
     def make_new(self, value):
         new = self.__class__(value)
         new.initial = self.initial
-        new.demand = self.demand
+        new.used = self.used
         new.added = self.added
         return new
 
     def print_info(self):
         return f"{int(self)} " \
                f"(initial: {self.initial} " \
-               f"demand: {self.demand} " \
+               f"used: {self.used} " \
                f"added: {self.added})"
 
     def __new__(cls, value, *args, **kwargs):
         try:
             return super(cls, cls).__new__(cls, value)
         except:
-            import ipdb; ipdb.set_trace()
+            raise ValueError(f'{value} is not a valid value for {__class__.__name__}')
 
     def __add__(self, other):
         value = super().__add__(other)
         if other > 0:
             self.added = other
         else:
-            self.demand -= other
+            self.used -= other
         return self.make_new(value)
 
     def __sub__(self, other):
@@ -53,7 +53,7 @@ class PartitionInt(int):
         if other < 0:
             self.added -= other
         else:
-            self.demand = other
+            self.used = other
         return self.make_new(value)
 
     def __mul__(self, other):
@@ -71,19 +71,21 @@ class PartitionInt(int):
 def partition_updater(current_value, update):
     if isinstance(current_value, int) and \
             not isinstance(current_value, PartitionInt):
-        value = PartitionInt(current_value)
-    else:
-        value = current_value
+        current_value = PartitionInt(current_value)
 
     if isinstance(update, dict):
-        update_value = update['value']
-        partition = update['partition']
-        if partition == 'reset':
-            value.reset()
-    else:
-        update_value = update
+        update_value = update.get('value', 0)
+        updater = update.get('updater', 'accumulate')
+        partition = update.get('partition')
 
-    return value + update_value
+        if partition == 'reset':
+            current_value.reset()
+        if updater == 'accumulate':
+            return current_value + update_value
+        elif updater == 'set':
+            return update_value
+
+    return current_value + update
 
 
 class Allocate(Deriver):
@@ -114,23 +116,16 @@ class Allocate(Deriver):
         supply_update = {}
         for mol_id, value in supply.items():
             supply_remaining = value.get_remaining()
-            target_stock = target[mol_id]
-            target_demand = target[mol_id].demand
-
-            # allocate to make expected target_stock = 0
-            allocate = target_demand - target_stock
-
-            # don't allocate more than is available
-            allocate = min(allocate, supply_remaining)
+            partition_used = target[mol_id].used
 
             target_update[mol_id] = {
-                'value': allocate,
+                'value': supply_remaining,
+                'updater': 'set',
                 'partition': 'reset'}
             supply_update[mol_id] = {
-                'value': -allocate,
+                'value': -partition_used,
+                'updater': 'accumulate',
                 'partition': 'reset'}
-
-        import ipdb; ipdb.set_trace()
 
         return {
             'supply': supply_update,
@@ -203,22 +198,18 @@ def test_allocate():
         'molecules': [
             'A',
             # 'B',
-            # 'C'
         ],
         'supply_update': {
-            'A': 3,
+            'A': 0,
             # 'B': 3,
-            # 'C': 4
         },
         'use_update': {
             'A': -2,
             # 'B': -3,
-            # 'C': -4
         },
         'partitioned_update': {
-            'A': -1,
+            'A': -3,
             # 'B': -1,
-            # 'C': -1,
         },
     }
     allocate_composer = ToyComposer(config)
@@ -243,10 +234,8 @@ def test_allocate():
     experiment.update(10)
 
     timeseries = experiment.emitter.get_timeseries()
-
     print(pf(timeseries))
-
-    import ipdb; ipdb.set_trace()
+    # import ipdb; ipdb.set_trace()
 
 
 
