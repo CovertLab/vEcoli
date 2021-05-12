@@ -75,6 +75,7 @@ def partition_updater(current_value, update):
 
     if isinstance(update, dict):
         update_value = update.get('value', 0)
+        update_value = int(update_value)
         updater = update.get('updater', 'accumulate')
         partition = update.get('partition')
 
@@ -85,7 +86,8 @@ def partition_updater(current_value, update):
         elif updater == 'set':
             return update_value
 
-    return current_value + update
+    # int() converts numpy.int
+    return current_value + int(update)
 
 
 class Allocate(Deriver):
@@ -117,6 +119,8 @@ class Allocate(Deriver):
         for mol_id, value in supply.items():
             supply_remaining = value.get_remaining()
             partition_used = target[mol_id].used
+
+            # TODO -- do a smarter allocation to keep values above 0
 
             target_update[mol_id] = {
                 'value': supply_remaining,
@@ -235,7 +239,6 @@ def test_allocate():
 
     timeseries = experiment.emitter.get_timeseries()
     print(pf(timeseries))
-    # import ipdb; ipdb.set_trace()
 
 
 

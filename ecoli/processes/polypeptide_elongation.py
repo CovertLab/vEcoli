@@ -15,6 +15,7 @@ import logging as log
 from vivarium.core.process import Process
 from vivarium.library.dict_utils import deep_merge
 from vivarium.core.composition import simulate_process
+from vivarium.core.experiment import pf
 
 from ecoli.library.schema import bulk_schema, listener_schema, arrays_from, array_from, array_to
 
@@ -285,8 +286,8 @@ class PolypeptideElongation(Process):
 
         assert not any(i<0 for i in states['uncharged_trna'].values())
 
-        # MODEL SPECIFIC: Calculate AA request
-        fraction_charged, aa_counts_for_translation, requests = self.elongation_model.request(
+        # # MODEL SPECIFIC: Calculate AA request
+        fraction_charged, total_aa_counts, requests = self.elongation_model.request(
             timestep, states, aasInSequences)
 
         # Write to listeners
@@ -295,11 +296,9 @@ class PolypeptideElongation(Process):
         # update['listeners']['growth_limits']['aa_request_size'] = aa_counts_for_translation
 
 
-        # aa_counts_for_translation = array_from(states['amino_acids'])
-        import ipdb; ipdb.set_trace()
-
 
         ## Begin wcEcoli evolveState()
+
         # Set value to 0 for metabolism in case of early return
         self.gtp_to_hydrolyze = 0
 
@@ -318,11 +317,11 @@ class PolypeptideElongation(Process):
 
         # Calculate elongation resource capacity
         aaCountInSequence = np.bincount(sequences[(sequences != polymerize.PAD_VALUE)])
-        # total_aa_counts = array_from(states['amino_acids'])
         # total_aa_counts = self.aas.counts()
+        total_aa_counts = array_from(states['amino_acids'])
 
         # MODEL SPECIFIC: Get amino acid counts
-        aa_counts_for_translation = self.elongation_model.final_amino_acids(aa_counts_for_translation)
+        aa_counts_for_translation = self.elongation_model.final_amino_acids(total_aa_counts)
         aa_counts_for_translation = aa_counts_for_translation.astype(int)
 
         # Using polymerization algorithm elongate each ribosome up to the limits

@@ -301,8 +301,8 @@ def test_ecoli(total_time=60):
         'progress_bar': True,
     })
 
+    # UNCOMMENT BELOW TO VIEW FULL STATE CONFIG
     # print(pformat(ecoli_experiment.state.get_config(True)))
-    # import ipdb; ipdb.set_trace()
 
     # run the experiment
     ecoli_experiment.update(total_time)
