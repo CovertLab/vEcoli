@@ -13,6 +13,7 @@ from pprint import pformat
 from vivarium.core.process import Composer
 from vivarium.core.experiment import pp, Experiment
 from vivarium.plots.topology import plot_topology
+from vivarium.plots.simulation_output import plot_variables
 
 # sim data
 from ecoli.library.sim_data import LoadSimData
@@ -39,7 +40,7 @@ from wholecell.utils import units
 
 RAND_MAX = 2**31
 SIM_DATA_PATH = 'reconstruction/sim_data/kb/simData.cPickle'
-PARTITIONED_BULK = [
+AMINO_ACIDS = [
     'L-ALPHA-ALANINE[c]', 'ARG[c]', 'ASN[c]', 'L-ASPARTATE[c]', 'CYS[c]', 'GLT[c]',
     'GLN[c]', 'GLY[c]', 'HIS[c]', 'ILE[c]', 'LEU[c]', 'LYS[c]', 'MET[c]', 'PHE[c]',
     'PRO[c]', 'SER[c]', 'THR[c]', 'TRP[c]', 'TYR[c]', 'L-SELENOCYSTEINE[c]', 'VAL[c]']
@@ -53,7 +54,7 @@ class Ecoli(Composer):
         'sim_data_path': SIM_DATA_PATH,
         'daughter_path': tuple(),
         'division': {'threshold': 2220},  # fg
-        'partitioned_bulk': PARTITIONED_BULK
+        'partitioned_bulk': AMINO_ACIDS
     }
 
     def __init__(self, config):
@@ -312,7 +313,7 @@ def test_ecoli(total_time=60):
     return data
 
 
-def run_ecoli():
+def run_ecoli(out_dir='out'):
     output = test_ecoli()
 
     # separate data by port
@@ -325,6 +326,14 @@ def run_ecoli():
     # print(bulk)
     # print(unique.keys())
     pp(listeners['mass'])
+
+    variables = [('bulk', aa) for aa in AMINO_ACIDS]
+    plot_variables(
+        output,
+        variables=variables,
+        out_dir=out_dir,
+        filename='ecoli_master_aas',
+    )
 
 
 def ecoli_topology_plot(out_dir='out'):
@@ -405,7 +414,7 @@ def main():
     if args.topology:
         ecoli_topology_plot(out_dir)
     else:
-        run_ecoli()
+        run_ecoli(out_dir)
 
 if __name__ == '__main__':
     main()
