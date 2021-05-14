@@ -1,7 +1,9 @@
 """
+=====================
 PolypeptideElongation
+=====================
 
-Translation elongation sub-model.
+Translation sub-model for protein synthesis by ribosome.
 
 TODO:
 - see the initiation process for more TODOs
@@ -30,6 +32,14 @@ DEFAULT_AA_NAMES = [
 
 
 class PolypeptideElongation(Process):
+    """PolypeptideElongation
+
+    defaults:
+        proteinIds: array length n of protein names
+
+
+    """
+
     name = 'ecoli-polypeptide-elongation'
 
     defaults = {
@@ -45,7 +55,7 @@ class PolypeptideElongation(Process):
         'ribosomeElongationRate': 17.388824902723737,
         'translation_aa_supply': {'minimal': np.array([])},
         'import_threshold': 1e-05,
-        'aa_from_trna': np.array([[]]),
+        'aa_from_trna': np.zeros(21),
         'gtpPerElongation': 4.2,
         'ppgpp_regulation': False,
         'trna_charging': False,
@@ -296,11 +306,6 @@ class PolypeptideElongation(Process):
         fraction_charged, aa_counts_for_translation, requests = self.elongation_model.request(
             timestep, states, aasInSequences)
 
-
-        import ipdb;
-        ipdb.set_trace()
-
-
         # Write to listeners
         update['listeners']['growth_limits']['fraction_trna_charged'] = np.dot(fraction_charged, self.aa_from_trna)
         update['listeners']['growth_limits']['aa_pool_size'] = array_from(states['amino_acids'])
@@ -469,7 +474,7 @@ def test_polypeptide_elongation():
         'ribosome30S': 'CPLX0-3953[c]',
         'ribosome50S': 'CPLX0-3962[c]',
         'make_elongation_rates': make_elongation_rates,
-        'aa_from_trna': np.array([]),
+        'proteinLengths': np.array([245]),  # this is the length of proteins in proteinSequences
         'translation_aa_supply': {
             'minimal': (units.mol / units.fg / units.min) * np.array([
                 6.73304301e-21, 3.63835219e-21, 2.89772671e-21, 3.88086822e-21,
