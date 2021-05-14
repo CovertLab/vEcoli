@@ -1,4 +1,4 @@
-from vivarium.core.experiment import Experiment
+from vivarium.core.experiment import Experiment, pf
 from ecoli.library.sim_data import LoadSimData
 from ecoli.composites.ecoli_master import SIM_DATA_PATH
 from ecoli.migration.migration_utils import run_ecoli_process
@@ -34,7 +34,8 @@ def test_polypeptide_elongation_migration():
     # run the process and get an update
     actual_update = run_ecoli_process(polypeptide_elongation_process, PE_TOPOLOGY, total_time=2)
 
-    print(actual_update)
+    print(f"molecules: {actual_update['molecules']}")
+    print(f"amino_acids: {pf(actual_update['amino_acids'])}")
     import ipdb; ipdb.set_trace()
 
 
