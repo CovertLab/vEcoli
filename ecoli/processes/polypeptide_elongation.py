@@ -23,6 +23,11 @@ from wholecell.utils.random import stochasticRound
 from wholecell.utils import units
 
 
+DEFAULT_AA_NAMES = [
+            'L-ALPHA-ALANINE[c]', 'ARG[c]', 'ASN[c]', 'L-ASPARTATE[c]', 'CYS[c]', 'GLT[c]', 'GLN[c]', 'GLY[c]',
+            'HIS[c]', 'ILE[c]', 'LEU[c]', 'LYS[c]', 'MET[c]', 'PHE[c]', 'PRO[c]', 'SER[c]', 'THR[c]', 'TRP[c]',
+            'TYR[c]', 'L-SELENOCYSTEINE[c]', 'VAL[c]']
+
 
 class PolypeptideElongation(Process):
     name = 'ecoli-polypeptide-elongation'
@@ -47,12 +52,13 @@ class PolypeptideElongation(Process):
         'translation_supply': False,
         'ribosome30S': 'ribosome30S',
         'ribosome50S': 'ribosome50S',
-        'amino_acids': [],
+        'amino_acids': DEFAULT_AA_NAMES,
 
         'basal_elongation_rate': 22.0,
-        'ribosomeElongationRateDict': {},
+        'ribosomeElongationRateDict': {
+            'minimal': 17.388824902723737 * units.aa / units.s},
         'uncharged_trna_names': np.array([]),
-        'aaNames': [],
+        'aaNames': DEFAULT_AA_NAMES,
         'proton': 'PROTON',
         'water': 'H2O',
         'cellDensity': 1100 * units.g / units.L,
@@ -162,6 +168,7 @@ class PolypeptideElongation(Process):
                 'amino_acids': bulk_schema([aa[:-3] for aa in self.aaNames])},
 
             'listeners': {
+                # TODO (Eran): mass should not come through listener
                 'mass': {
                     'cell_mass': {'_default': 0.0},
                     'dry_mass': {'_default': 0.0}},
@@ -266,8 +273,6 @@ class PolypeptideElongation(Process):
             timestep,
             self.variable_elongation)
 
-        # import ipdb; ipdb.set_trace()
-
         sequences = buildSequences(
             self.proteinSequences,
             protein_indexes,
@@ -290,6 +295,11 @@ class PolypeptideElongation(Process):
         # MODEL SPECIFIC to self.elongation_model: Calculate AA request
         fraction_charged, aa_counts_for_translation, requests = self.elongation_model.request(
             timestep, states, aasInSequences)
+
+
+        import ipdb;
+        ipdb.set_trace()
+
 
         # Write to listeners
         update['listeners']['growth_limits']['fraction_trna_charged'] = np.dot(fraction_charged, self.aa_from_trna)
@@ -453,19 +463,35 @@ def test_polypeptide_elongation():
         lengths = stochasticRound(random, lengths) if random else np.round(lengths)
         return lengths.astype(np.int64)
 
-    amino_acids = [
-            'L-ALPHA-ALANINE[c]', 'ARG[c]', 'ASN[c]', 'L-ASPARTATE[c]', 'CYS[c]', 'GLT[c]', 'GLN[c]', 'GLY[c]',
-            'HIS[c]', 'ILE[c]', 'LEU[c]', 'LYS[c]', 'MET[c]', 'PHE[c]', 'PRO[c]', 'SER[c]', 'THR[c]', 'TRP[c]',
-            'TYR[c]', 'L-SELENOCYSTEINE[c]', 'VAL[c]']
     test_config = {
         'time_step': 2,
         'proteinIds': np.array(['TRYPSYN-APROTEIN[c]']),
-        'ribosomeElongationRateDict': {'minimal': 17.388824902723737 * units.aa / units.s},
         'ribosome30S': 'CPLX0-3953[c]',
         'ribosome50S': 'CPLX0-3962[c]',
-        'amino_acids': amino_acids,
         'make_elongation_rates': make_elongation_rates,
-        'proteinSequences': np.array([[12, 15, 1, 1, 20, 0, 16, 9, 16, 10, 2, 14, 0, 18, 3, 10, 20, 7, 13, 4, 14, 5, 9, 5, 1, 7, 5, 20, 2, 10, 20, 11, 16, 16, 7, 10, 8, 0, 0, 7, 11, 7, 9, 2, 20, 0, 11, 20, 10, 11, 3, 10, 7, 9, 3, 20, 16, 20, 7, 7, 13, 10, 7, 11, 3, 2, 6, 3, 7, 13, 6, 6, 10, 13, 15, 5, 10, 7, 9, 0, 2, 1, 13, 6, 20, 20, 6, 7, 1, 16, 1, 9, 2, 20, 11, 10, 16, 5, 11, 3, 7, 5, 20, 16, 3, 13, 2, 13, 15, 7, 13, 5, 20, 16, 14, 0, 3, 17, 5, 1, 13, 20, 16, 3, 15, 10, 15, 17, 10, 7, 6, 13, 3, 12, 20, 4, 20, 15, 7, 15, 10, 14, 15, 7, 20, 15, 14, 5, 0, 13, 16, 3, 17, 12, 16, 1, 10, 1, 15, 6, 4, 14, 4, 9, 9, 13, 3, 15, 15, 1, 5, 0, 10, 20, 0, 7, 10, 11, 0, 0, 14, 17, 10, 20, 11, 14, 2, 1, 1, 5, 10, 5, 9, 17, 0, 7, 1, 11, 10, 14, 5, 12, 11, 3, 20, 9, 5, 0, 0, 8, 0, 10, 1, 5, 6, 7, 9, 0, 8, 20, 20, 9, 15, 10, 7, 0, 5, 7, 0, 10, 17, 20, 2, 0, 15, 7, 5, 17, 9, 0, 11, 14, 14, 15, 20, 3, 20, 20, 15, 16, 20, 7, 0, 7, 3, 15, 12, 20, 7, 7, 10, 9, 18, 7, 10, 10, 12, 1, 5, 15, 15, 5, 8, 16, 10, 1, 10, 0, 16, 0, 20, 0, 0, 10, 0, 20, 15, 6, 15, 2, 20, 7, 9, 16, 3, 1, 14, 6, 10, 0, 0, 12, 12, 0, 1, 20, 3, 10, 6, 14, 13, 2, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1]]).astype(np.int8)
+        'aa_from_trna': np.array([]),
+        'translation_aa_supply': {
+            'minimal': (units.mol / units.fg / units.min) * np.array([
+                6.73304301e-21, 3.63835219e-21, 2.89772671e-21, 3.88086822e-21,
+                5.04645651e-22, 4.45295877e-21, 2.64600664e-21, 5.35711230e-21,
+                1.26817689e-21, 3.81168405e-21, 5.66834531e-21, 4.30576056e-21,
+                1.70428208e-21, 2.24878356e-21, 2.49335033e-21, 3.47019761e-21,
+                3.83858460e-21, 6.34564026e-22, 1.86880523e-21, 1.40959498e-27,
+                5.20884460e-21])},
+        'proteinSequences': np.array([[
+            12, 10, 18, 9, 13, 1, 10, 9, 9, 16, 20, 9, 18, 15, 9, 10, 20, 4, 20, 13, 7, 15, 9, 18, 4, 10, 13, 15, 14, 1,
+            2, 14, 11, 8, 20, 0, 16, 13, 7, 8, 12, 13, 7, 1, 10, 0, 14, 10, 13, 7, 10, 11, 20, 5, 4, 1, 11, 14, 16, 3,
+            0, 5, 15, 18, 7, 2, 0, 9, 18, 9, 0, 2, 8, 6, 2, 2, 18, 3, 12, 20, 16, 0, 15, 2, 9, 20, 6, 14, 14, 16, 20,
+            16, 20, 7, 11, 11, 15, 10, 10, 17, 9, 14, 13, 13, 7, 6, 10, 18, 17, 10, 16, 7, 2, 10, 10, 9, 3, 1, 2, 2, 1,
+            16, 11, 0, 8, 7, 16, 9, 0, 5, 20, 20, 2, 8, 13, 11, 11, 1, 1, 9, 15, 9, 17, 12, 13, 14, 5, 7, 16, 1, 15, 1,
+            7, 1, 7, 10, 10, 14, 13, 11, 16, 7, 0, 13, 8, 0, 0, 9, 0, 0, 7, 20, 14, 9, 9, 14, 20, 4, 20, 15, 16, 16, 15,
+            2, 11, 9, 2, 10, 2, 1, 10, 8, 2, 7, 10, 20, 9, 20, 5, 12, 10, 14, 14, 9, 3, 20, 15, 6, 18, 7, 11, 3, 6, 20,
+            1, 5, 10, 0, 0, 8, 4, 1, 15, 9, 12, 5, 6, 11, 9, 0, 5, 10, 3, 11, 5, 20, 0, 5, 1, 5, 0, 0, 7, 11, 20, -1,
+            -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+            -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+            -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+            -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+            -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1]]).astype(np.int8)
     }
 
     polypep_elong = PolypeptideElongation(test_config)
@@ -480,10 +506,15 @@ def test_polypeptide_elongation():
             'TRYPSYN-APROTEIN[c]': 0,
         },
         'amino_acids': {
-            aa: 100 for aa in amino_acids
+            aa: 100 for aa in DEFAULT_AA_NAMES
         },
         'active_ribosome': {
-            '1': {'unique_index': 1, 'protein_index': 1, 'peptide_length': 1, 'pos_on_mRNA': 1, 'submass': {'protein': 0}}
+            '1': {'unique_index': 1, 'protein_index': 0, 'peptide_length': 1, 'pos_on_mRNA': 1, 'submass': {'protein': 0}}
+        },
+        'listeners': {
+            'mass': {
+                'dry_mass': 350.0
+            }
         }
     }
 
@@ -499,7 +530,7 @@ def test_polypeptide_elongation():
 def run_plot(data, config):
 
     proteins = [('monomers', prot_id) for prot_id in config['proteinIds']]
-    aa = [('amino_acids', aa) for aa in config['amino_acids']]
+    aa = [('amino_acids', aa) for aa in DEFAULT_AA_NAMES]
     plot_variables(
         data,
         variables=proteins,
