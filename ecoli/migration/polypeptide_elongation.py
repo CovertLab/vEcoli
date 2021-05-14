@@ -28,7 +28,7 @@ PE_TOPOLOGY = {
 
 def test_polypeptide_elongation_migration():
     # Create process, experiment, loading in initial state from file.
-    config = load_sim_data.get_metabolism_config()
+    config = load_sim_data.get_polypeptide_elongation_config()
     polypeptide_elongation_process = PolypeptideElongation(config)
 
     # run the process and get an update
