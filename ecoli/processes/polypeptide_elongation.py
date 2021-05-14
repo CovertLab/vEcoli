@@ -12,17 +12,21 @@ TODO:
 import numpy as np
 import logging as log
 
-from vivarium.core.process import Process
-from vivarium.library.dict_utils import deep_merge
-from vivarium.core.composition import simulate_process
-from vivarium.plots.simulation_output import plot_variables
-
-from ecoli.library.schema import bulk_schema, listener_schema, arrays_from, array_from
-from ecoli.models.polypeptide_elongation_models import BaseElongationModel, MICROMOLAR_UNITS
-
+# wcEcoli imports
 from wholecell.utils.polymerize import buildSequences, polymerize, computeMassIncrease
 from wholecell.utils.random import stochasticRound
 from wholecell.utils import units
+
+# vivarium imports
+from vivarium.core.process import Process
+from vivarium.core.composition import simulate_process
+from vivarium.library.dict_utils import deep_merge
+from vivarium.plots.simulation_output import plot_variables
+
+# vivarium-ecoli imports
+from ecoli.library.schema import bulk_schema, listener_schema, arrays_from, array_from
+from ecoli.models.polypeptide_elongation_models import BaseElongationModel, MICROMOLAR_UNITS
+
 
 
 DEFAULT_AA_NAMES = [
@@ -63,7 +67,6 @@ class PolypeptideElongation(Process):
         'ribosome30S': 'ribosome30S',
         'ribosome50S': 'ribosome50S',
         'amino_acids': DEFAULT_AA_NAMES,
-
         'basal_elongation_rate': 22.0,
         'ribosomeElongationRateDict': {
             'minimal': 17.388824902723737 * units.aa / units.s},
@@ -133,6 +136,7 @@ class PolypeptideElongation(Process):
         self.aa_from_trna = self.parameters['aa_from_trna']
 
         # Set modeling method
+        # TODO (Eran): bring these different elongations models back
         # if self.parameters['trna_charging']:
         #     self.elongation_model = SteadyStateElongationModel(self.parameters, self)
         # elif self.parameters['translation_supply']:
@@ -226,6 +230,7 @@ class PolypeptideElongation(Process):
                     'protein_index': {'_default': 0, '_updater': 'set'},
                     'peptide_length': {'_default': 0, '_updater': 'set', '_emit': True},
                     'pos_on_mRNA': {'_default': 0, '_updater': 'set', '_emit': True},
+                    # TODO(Eran) -- should submass be an add updater?
                     'submass': {
                         'protein': {'_default': 0, '_emit': True}}}},
 
@@ -391,10 +396,11 @@ class PolypeptideElongation(Process):
 
         update['active_ribosome'] = {'_delete': []}
         for index, ribosome in enumerate(states['active_ribosome'].values()):
+            unique_index = str(ribosome['unique_index'])
             if didTerminate[index]:
-                update['active_ribosome']['_delete'].append((ribosome['unique_index'],))
+                update['active_ribosome']['_delete'].append((unique_index,))
             else:
-                update['active_ribosome'][ribosome['unique_index']] = {
+                update['active_ribosome'][unique_index] = {
                     'peptide_length': updated_lengths[index],
                     'pos_on_mRNA': updated_positions_on_mRNA[index],
                     'submass': {
@@ -524,7 +530,7 @@ def test_polypeptide_elongation():
     }
 
     settings = {
-        'total_time': 100,
+        'total_time': 200,
         'initial_state': initial_state}
     data = simulate_process(polypep_elong, settings)
 
@@ -534,11 +540,14 @@ def test_polypeptide_elongation():
 
 def run_plot(data, config):
 
+    # plot a list of variables
     proteins = [('monomers', prot_id) for prot_id in config['proteinIds']]
     aa = [('amino_acids', aa) for aa in DEFAULT_AA_NAMES]
+    variables = proteins + aa
+
     plot_variables(
         data,
-        variables=proteins,
+        variables=variables,
         out_dir='out/processes/polypeptide_elongation',
         filename='variables'
     )
