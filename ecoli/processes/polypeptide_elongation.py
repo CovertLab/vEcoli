@@ -8,8 +8,6 @@ TODO:
 """
 
 import numpy as np
-from scipy.integrate import odeint
-from six.moves import range, zip
 import logging as log
 
 from vivarium.core.process import Process
@@ -17,13 +15,13 @@ from vivarium.library.dict_utils import deep_merge
 from vivarium.core.composition import simulate_process
 from vivarium.plots.simulation_output import plot_variables
 
-from ecoli.library.schema import bulk_schema, listener_schema, arrays_from, array_from, array_to
+from ecoli.library.schema import bulk_schema, listener_schema, arrays_from, array_from
+from ecoli.models.polypeptide_elongation_models import BaseElongationModel, MICROMOLAR_UNITS
 
 from wholecell.utils.polymerize import buildSequences, polymerize, computeMassIncrease
 from wholecell.utils.random import stochasticRound
 from wholecell.utils import units
 
-MICROMOLAR_UNITS = units.umol / units.L
 
 
 class PolypeptideElongation(Process):
@@ -268,6 +266,8 @@ class PolypeptideElongation(Process):
             timestep,
             self.variable_elongation)
 
+        # import ipdb; ipdb.set_trace()
+
         sequences = buildSequences(
             self.proteinSequences,
             protein_indexes,
@@ -424,7 +424,7 @@ class PolypeptideElongation(Process):
         # Write data to listeners
         update['listeners']['growth_limits']['net_charged'] = net_charged
 
-        update['listeners']["ribosome_data"]["effective_elongation_rate"] = currElongRate
+        update['listeners']['ribosome_data']['effective_elongation_rate'] = currElongRate
         update['listeners']['ribosome_data']['aaCountInSequence'] = aaCountInSequence
         update['listeners']['ribosome_data']['aaCounts'] = aa_counts_for_translation
         update['listeners']['ribosome_data']['actualElongations'] = sequence_elongations.sum()
@@ -446,59 +446,45 @@ class PolypeptideElongation(Process):
         return inputTimeStep <= self.max_time_step
 
 
-class BaseElongationModel(object):
-    """
-    Base Model: Request amino acids according to upcoming sequence, assuming
-    max ribosome elongation.
-    """
-    def __init__(self, parameters, process):
-        self.parameters = parameters
-        self.process = process
-        self.basal_elongation_rate = self.parameters['basal_elongation_rate']
-        self.ribosomeElongationRateDict = self.parameters['ribosomeElongationRateDict']
-        self.aaNames = self.parameters['aaNames']
-
-    def elongation_rate(self, current_media_id):
-        rate = self.process.elngRateFactor * self.ribosomeElongationRateDict[
-            current_media_id].asNumber(units.aa / units.s)
-        return np.min([self.basal_elongation_rate, rate])
-
-    def amino_acid_counts(self, aasInSequences):
-        return aasInSequences
-
-    def request(self, timestep, states, aasInSequences):
-        aa_counts_for_translation = self.amino_acid_counts(aasInSequences)
-
-        # self.process.aas.requestIs(aa_counts_for_translation)
-
-        # Not modeling charging so set fraction charged to 0 for all tRNA
-        fraction_charged = np.zeros(len(self.aaNames))
-
-        return fraction_charged, aa_counts_for_translation, {}
-
-    def final_amino_acids(self, total_aa_counts):
-        return total_aa_counts
-
-    def evolve(self, timestep, states, requests, total_aa_counts, aas_used, nElongations, nInitialized):
-        # Update counts of amino acids and water to reflect polymerization reactions
-        net_charged = np.zeros(len(self.parameters['uncharged_trna_names']))
-
-        return net_charged, {}, {
-            'amino_acids': array_to(states['amino_acids'].keys(), -aas_used),
-            'molecules': {
-                self.process.water: nElongations - nInitialized}}
-
-
 def test_polypeptide_elongation():
+    def make_elongation_rates(random, base, time_step, variable_elongation=False):
+        size = 1
+        lengths = time_step * np.full(size, base, dtype=np.int64)
+        lengths = stochasticRound(random, lengths) if random else np.round(lengths)
+        return lengths.astype(np.int64)
+
+    amino_acids = [
+            'L-ALPHA-ALANINE[c]', 'ARG[c]', 'ASN[c]', 'L-ASPARTATE[c]', 'CYS[c]', 'GLT[c]', 'GLN[c]', 'GLY[c]',
+            'HIS[c]', 'ILE[c]', 'LEU[c]', 'LYS[c]', 'MET[c]', 'PHE[c]', 'PRO[c]', 'SER[c]', 'THR[c]', 'TRP[c]',
+            'TYR[c]', 'L-SELENOCYSTEINE[c]', 'VAL[c]']
     test_config = {
+        'time_step': 2,
         'proteinIds': np.array(['TRYPSYN-APROTEIN[c]']),
         'ribosomeElongationRateDict': {'minimal': 17.388824902723737 * units.aa / units.s},
+        'ribosome30S': 'CPLX0-3953[c]',
+        'ribosome50S': 'CPLX0-3962[c]',
+        'amino_acids': amino_acids,
+        'make_elongation_rates': make_elongation_rates,
+        'proteinSequences': np.array([[12, 15, 1, 1, 20, 0, 16, 9, 16, 10, 2, 14, 0, 18, 3, 10, 20, 7, 13, 4, 14, 5, 9, 5, 1, 7, 5, 20, 2, 10, 20, 11, 16, 16, 7, 10, 8, 0, 0, 7, 11, 7, 9, 2, 20, 0, 11, 20, 10, 11, 3, 10, 7, 9, 3, 20, 16, 20, 7, 7, 13, 10, 7, 11, 3, 2, 6, 3, 7, 13, 6, 6, 10, 13, 15, 5, 10, 7, 9, 0, 2, 1, 13, 6, 20, 20, 6, 7, 1, 16, 1, 9, 2, 20, 11, 10, 16, 5, 11, 3, 7, 5, 20, 16, 3, 13, 2, 13, 15, 7, 13, 5, 20, 16, 14, 0, 3, 17, 5, 1, 13, 20, 16, 3, 15, 10, 15, 17, 10, 7, 6, 13, 3, 12, 20, 4, 20, 15, 7, 15, 10, 14, 15, 7, 20, 15, 14, 5, 0, 13, 16, 3, 17, 12, 16, 1, 10, 1, 15, 6, 4, 14, 4, 9, 9, 13, 3, 15, 15, 1, 5, 0, 10, 20, 0, 7, 10, 11, 0, 0, 14, 17, 10, 20, 11, 14, 2, 1, 1, 5, 10, 5, 9, 17, 0, 7, 1, 11, 10, 14, 5, 12, 11, 3, 20, 9, 5, 0, 0, 8, 0, 10, 1, 5, 6, 7, 9, 0, 8, 20, 20, 9, 15, 10, 7, 0, 5, 7, 0, 10, 17, 20, 2, 0, 15, 7, 5, 17, 9, 0, 11, 14, 14, 15, 20, 3, 20, 20, 15, 16, 20, 7, 0, 7, 3, 15, 12, 20, 7, 7, 10, 9, 18, 7, 10, 10, 12, 1, 5, 15, 15, 5, 8, 16, 10, 1, 10, 0, 16, 0, 20, 0, 0, 10, 0, 20, 15, 6, 15, 2, 20, 7, 9, 16, 3, 1, 14, 6, 10, 0, 0, 12, 12, 0, 1, 20, 3, 10, 6, 14, 13, 2, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1]]).astype(np.int8)
     }
 
     polypep_elong = PolypeptideElongation(test_config)
 
     initial_state = {
-        'environment': {'media_id': 'minimal'}
+        'environment': {'media_id': 'minimal'},
+        'subunits': {
+            'CPLX0-3953[c]': 100,
+            'CPLX0-3962[c]': 100
+        },
+        'monomers': {
+            'TRYPSYN-APROTEIN[c]': 0,
+        },
+        'amino_acids': {
+            aa: 100 for aa in amino_acids
+        },
+        'active_ribosome': {
+            '1': {'unique_index': 1, 'protein_index': 1, 'peptide_length': 1, 'pos_on_mRNA': 1, 'submass': {'protein': 0}}
+        }
     }
 
     settings = {
@@ -513,12 +499,15 @@ def test_polypeptide_elongation():
 def run_plot(data, config):
 
     proteins = [('monomers', prot_id) for prot_id in config['proteinIds']]
+    aa = [('amino_acids', aa) for aa in config['amino_acids']]
     plot_variables(
         data,
         variables=proteins,
         out_dir='out/processes/polypeptide_elongation',
         filename='variables'
     )
+
+
 
 
 def main():
