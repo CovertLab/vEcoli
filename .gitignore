@@ -22,6 +22,7 @@ user/*
 __pycache__
 *.so
 /wholecell/utils/*.c
+/doc/reference/
 
 # OS generated files #
 ######################
