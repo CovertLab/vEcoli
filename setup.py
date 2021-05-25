@@ -78,4 +78,5 @@ setup(
         'stochastic-arrow',
         'iteround',
         'cobra',
+        'aesara',
         ])
