@@ -71,7 +71,7 @@ class Equilibrium(Process):
 
     def next_update(self, timestep, states):
         # Get molecule counts
-        import ipdb; ipdb.set_trace()
+        #import ipdb; ipdb.set_trace()
         moleculeCounts = array_from(states['molecules'])
 
         # Get cell mass and volume

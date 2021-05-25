@@ -18,7 +18,7 @@ def run_ecoli_process(process, topology, total_time=2):
 
     # get initial state from file
     # TODO -- get wcecoli_t0
-    initial_state = get_state_from_file(path='data/wcecoli_t10.json')
+    initial_state = get_state_from_file(path='data/wcecoli_t0.json')
 
     # make an experiment
     experiment_config = {
