@@ -325,10 +325,12 @@ class LoadSimData:
             'ppgpp_id': self.sim_data.molecule_ids.ppGpp,
             'get_ppGpp_conc': self.sim_data.growth_rate_parameters.get_ppGpp_conc,
             'exchange_data_from_media': self.sim_data.external_state.exchange_data_from_media,
-            'get_mass': self.sim_data.getter.get_mass,
+            'get_masses': self.sim_data.getter.get_masses,
             'doubling_time': self.sim_data.condition_to_doubling_time[self.sim_data.condition],
             'amino_acid_ids': sorted(self.sim_data.amino_acid_code_to_id_ordered.values()),
-            'seed': self.random_state.randint(RAND_MAX)}
+            'seed': self.random_state.randint(RAND_MAX),
+            'linked_metabolites': self.sim_data.process.metabolism.linked_metabolites,
+        }
 
         return metabolism_config
 
