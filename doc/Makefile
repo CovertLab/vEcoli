@@ -16,7 +16,7 @@ help:
 .PHONY: help Makefile clean
 
 clean:
-	@rm -rf build/*
+	@rm -rf $(BUILDDIR)/*
 	@rm -rf $(APIDOCDIR)/*
 
 # Catch-all target: route all unknown targets to Sphinx using the new
