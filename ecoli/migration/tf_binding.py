@@ -17,7 +17,7 @@ TF_BINDING_TOPOLOGY = {
     'listeners': ('listeners',)}
 
 
-def test_metabolism_migration():
+def test_tf_binding_migration():
     # Create process, experiment, loading in initial state from file.
     config = load_sim_data.get_tf_config()
     tf_binding_process = TfBinding(config)
@@ -48,5 +48,5 @@ def run_tf_binding():
 
 
 if __name__ == "__main__":
-    # test_metabolism_migration()
+    # test_tf_binding_migration()
     run_tf_binding()
