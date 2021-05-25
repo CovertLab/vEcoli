@@ -154,7 +154,7 @@ class LoadSimData:
             'elongation_rates': self.sim_data.process.translation.ribosomeElongationRateDict,
             'variable_elongation': False,
             'make_elongation_rates': self.sim_data.process.translation.make_elongation_rates,
-            'protein_index_to_TU_index': self.sim_data.relation.rna_index_to_monomer_mapping,
+            'protein_index_to_TU_index': self.sim_data.relation.RNA_to_monomer_mapping,
             'all_TU_ids': self.sim_data.process.transcription.rna_data['id'],
             'all_mRNA_ids': self.sim_data.process.translation.monomer_data['rna_id'],
             'ribosome30S': self.sim_data.molecule_ids.s30_full_complex,
