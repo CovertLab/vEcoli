@@ -116,6 +116,7 @@ class TfBinding(Process):
                     'pPromoterBound': 0,
                     'nPromoterBound': 0,
                     'nActualBound': 0,
+                    'n_available_promoters': 0,
                     'n_bound_TF_per_TU': 0})}}
 
 
@@ -140,6 +141,7 @@ class TfBinding(Process):
         pPromotersBound = np.zeros(self.n_TF, dtype=np.float64)
         nPromotersBound = np.zeros(self.n_TF, dtype=np.float64)
         nActualBound = np.zeros(self.n_TF, dtype=np.float64)
+        n_promoters = np.zeros(self.n_TF, dtype=np.float64)
         n_bound_TF_per_TU = np.zeros((self.n_TU, self.n_TF), dtype=np.int16)
 
         update = {
@@ -150,6 +152,9 @@ class TfBinding(Process):
             # transcription factors
             active_tf_key = self.active_tfs[tf_id]
             tf_count = states['active_tfs'][active_tf_key]
+
+            import ipdb; ipdb.set_trace()
+
             bound_tf_counts = n_bound_TF[tf_idx]
             update['active_tfs'][active_tf_key] = bound_tf_counts
             # active_tf_view.countInc(bound_tf_counts)
@@ -164,6 +169,11 @@ class TfBinding(Process):
             #   and why they would be different (otherwise these two variables are always the same)
             active_tf_counts = np.array([tf_count + bound_tf_counts])
             n_available_active_tfs = tf_count + bound_tf_counts
+
+            # Determine the number of available promoter sites
+            available_promoters = np.isin(TU_index, self.TF_to_TU_idx[tf_id])
+            n_available_promoters = np.count_nonzero(available_promoters)
+            n_promoters[tf_idx] = n_available_promoters
 
             # If there are no active transcription factors to work with,
             # continue to the next transcription factor
@@ -185,7 +195,7 @@ class TfBinding(Process):
 
             # Calculate the number of promoters that should be bound
             n_to_bind = int(min(stochasticRound(
-                self.random_state, n_available_promoters * pPromoterBound),
+                self.random_state, np.full(n_available_promoters, pPromoterBound)).sum(),
                 n_available_active_tfs))
 
             bound_locs = np.zeros(n_available_promoters, dtype=np.bool)
@@ -237,6 +247,7 @@ class TfBinding(Process):
                 'pPromoterBound': pPromotersBound,
                 'nPromoterBound': nPromotersBound,
                 'nActualBound': nActualBound,
+                'n_available_promoters': n_promoters,
                 'n_bound_TF_per_TU': n_bound_TF_per_TU}}
 
         return update
