@@ -36,8 +36,8 @@ def test_equilibrium():
     actual_update = run_ecoli_process(equil, topology)
 
     import ipdb; ipdb.set_trace()
-    with open("data/complexation_update9_t2.json") as f:
-        wc_complexation_data = json.load(f)
+    with open("data/equilibrium_update_t2.json") as f:
+        wc_equilibrium_data = json.load(f)
 
     d_molecules = actual_update["molecules"]
     wc_molecules = wc_complexation_data["molecules"]
