@@ -153,8 +153,6 @@ class TfBinding(Process):
             active_tf_key = self.active_tfs[tf_id]
             tf_count = states['active_tfs'][active_tf_key]
 
-            import ipdb; ipdb.set_trace()
-
             bound_tf_counts = n_bound_TF[tf_idx]
             update['active_tfs'][active_tf_key] = bound_tf_counts
             # active_tf_view.countInc(bound_tf_counts)
