@@ -337,12 +337,12 @@ class LoadSimData:
         return metabolism_config
 
     def get_mass_config(self, time_step=2, parallel=False):
-        bulk_ids = self.sim_data.internal_state.bulk_molecules.bulk_data['id']
 
-        # molecule weight is converted to femtograms/mol
-        molecular_weights = {
-                molecule_id: self.sim_data.getter.get_mass([molecule_id]).asNumber(units.fg / units.mol)[0]
-                for molecule_id in bulk_ids}
+        bulk_ids = self.sim_data.internal_state.bulk_molecules.bulk_data['id']
+        molecular_weights = {}
+        for molecule_id in bulk_ids:
+            molecular_weights[molecule_id] = self.sim_data.getter.get_mass(
+                molecule_id).asNumber(units.fg / units.mol)
 
         # unique molecule masses
         unique_masses = {}
