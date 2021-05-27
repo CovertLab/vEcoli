@@ -27,7 +27,7 @@ def test_polypeptide_initiation_migration():
     actual_update = run_ecoli_process(polypeptide_initiation_process, PI_TOPOLOGY, total_time=2)
 
 
-def run_polypeptide_initiation():
+def test_polypeptide_initiation():
     # Create process, experiment, loading in initial state from file.
     config = load_sim_data.get_polypeptide_initiation_config()
     polypeptide_initiation_process = PolypeptideInitiation(config)
@@ -46,6 +46,11 @@ def run_polypeptide_initiation():
     experiment.update(10)
 
     data = experiment.emitter.get_data()
+
+    return data
+
+def run_polypeptide_initiation():
+    data = test_polypeptide_initiation()
     import ipdb; ipdb.set_trace()
 
 
