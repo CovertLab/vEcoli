@@ -70,8 +70,6 @@ def test_transcription(total_time=10):
 
     data = transcription_experiment.emitter.get_timeseries()
 
-    import ipdb; ipdb.set_trace()
-
 
 if __name__ == "__main__":
     test_transcription()
