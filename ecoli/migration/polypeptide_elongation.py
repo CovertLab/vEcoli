@@ -36,7 +36,6 @@ def test_polypeptide_elongation_migration():
 
     print(f"molecules: {actual_update['molecules']}")
     print(f"amino_acids: {pf(actual_update['amino_acids'])}")
-    import ipdb; ipdb.set_trace()
 
 
 def run_polypeptide_elongation():
@@ -61,5 +60,5 @@ def run_polypeptide_elongation():
 
 
 if __name__ == "__main__":
-    test_polypeptide_elongation_migration()
-    # run_polypeptide_elongation()
+    # test_polypeptide_elongation_migration()
+    run_polypeptide_elongation()
