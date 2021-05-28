@@ -101,7 +101,7 @@ class EcoliSpatial(Composer):
     }
 
     def __init__(self, config):
-        super(EcoliSpatial, self).__init__(config)
+        super().__init__(config)
         self.seed = np.uint32(self.config['seed'] % np.iinfo(np.uint32).max)
         self.random_state = np.random.RandomState(seed=self.seed)
         self.sim_data_path = self.config['sim_data_path']
@@ -120,8 +120,8 @@ class EcoliSpatial(Composer):
 
         # molecular weight is converted to femtograms
         self.bulk_molecular_weights = {
-            molecule_id: (sim_data.getter.get_mass([molecule_id]) / constants.N_A).asNumber(
-                units.fg / units.mol)[0]
+            molecule_id: (sim_data.getter.get_mass(molecule_id) / constants.N_A).asNumber(
+                units.fg / units.mol)
             for molecule_id in bulk_ids}
 
         # unique molecule masses
