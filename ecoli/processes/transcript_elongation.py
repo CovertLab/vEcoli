@@ -554,14 +554,24 @@ def test_transcript_elongation():
 
     # Test running out of ntps
 
+    initial_state['ntps'] = {'ATP[c]': 100, 'CTP[c]': 100, 'GTP[c]': 100, 'UTP[c]': 100}
+
+    data = simulate_process(transcript_elongation, settings)
+
+    plots(data, "transcript_elongation_toymodel_100_ntps.png")
+    assertions(test_config, data)
+
+    # Test no ntps
+
     initial_state['ntps'] = {'ATP[c]': 0, 'CTP[c]': 0, 'GTP[c]': 0, 'UTP[c]': 0}
 
     data = simulate_process(transcript_elongation, settings)
 
+    plots(data, "transcript_elongation_toymodel_no_ntps.png")
     assertions(test_config, data)
 
 
-def plots(actual_update):
+def plots(actual_update, filename="transcript_elongation_toymodel.png"):
     import matplotlib.pyplot as plt
 
     # unpack update
@@ -571,6 +581,8 @@ def plots(actual_update):
 
     ntps = actual_update['ntps']
 
+    plt.figure()
+
     plt.subplot(2, 1, 1)
     plt.plot(range(len(rnas_synthesized)), rnas_synthesized)
     plt.xlabel("TU")
@@ -578,19 +590,20 @@ def plots(actual_update):
     plt.title("Counts synthesized")
 
     plt.subplot(2, 1, 2)
-    plt.hist(np.array(ntps_used))
-    #plt.xticks(ticks=range(len(ntps.keys())), labels=list(ntps.keys()))
+    t = np.array(actual_update['time'])
+    width = 0.25
+    for i, ntp in enumerate(np.array(ntps_used).transpose()):
+        plt.bar(t + (i-2) * width, ntp, width, label=str(i))
     plt.ylabel('Count')
     plt.title('NTP Counts Used')
+    plt.legend()
 
     plt.subplots_adjust(hspace=0.5)
-    plt.gcf().set_size_inches(8, 6)
-    plt.savefig("out/migration/transcript_elongation_toymodel.png")
+    plt.gcf().set_size_inches(10, 6)
+    plt.savefig(f"out/migration/{filename}")
 
 
 def assertions(config, actual_update):
-    from collections import Counter
-
     # unpack update
     trans_lengths = [r['transcript_length'] for r in actual_update["RNAs"].values()]
     rnas_synthesized = actual_update['listeners']['transcript_elongation_listener']['countRnaSynthesized']
@@ -671,10 +684,21 @@ def assertions(config, actual_update):
     n_term = np.sum(rnas_synthesized, axis=0)
     sequence_ntps = np.array([[sum(seq==0), sum(seq==1), sum(seq==2), sum(seq==3)]
                               for seq in config['rnaSequences']])
-    np.testing.assert_array_equal(actual,
-                                  np.array([np.array(seq) * n
-                                            for seq, n in zip(sequence_ntps, n_term)
-                                            ]).sum(axis=0))
+    expect = np.array([np.array(seq) * n
+                       for seq, n in zip(sequence_ntps, n_term)
+                       ]).sum(axis=0)
+    partial = np.array([0 < t_length[-1] < final_length   # length > 0 and not completed
+                        for t_length, final_length
+                        in zip(trans_lengths, config['rnaLengths'])])
+
+    for a, e, is_partial in zip(actual, expect, partial):
+        if is_partial:
+            assert a >= e
+        else:
+            assert a == e
+
+    #import ipdb; ipdb.set_trace()
+    #np.testing.assert_array_equal(actual, expect)
 
 
 if __name__ == "__main__":
