@@ -22,6 +22,7 @@ from wholecell.utils import units
 from ecoli.library.data_predicates import monotonically_increasing
 
 class TranscriptElongation(Process):
+    # TODO: comment out terminationLoss - doesn't seem to be used/informative?
     """TranscriptElongation
 
     defaults:
@@ -588,6 +589,8 @@ def plots(actual_update):
 
 
 def assertions(config, actual_update):
+    from collections import Counter
+
     # unpack update
     trans_lengths = [r['transcript_length'] for r in actual_update["RNAs"].values()]
     rnas_synthesized = actual_update['listeners']['transcript_elongation_listener']['countRnaSynthesized']
@@ -655,20 +658,23 @@ def assertions(config, actual_update):
     np.testing.assert_array_equal(d_5SrRNA, np.array(rnas_synthesized)[:, config['idx_5S_rRNA']].transpose()[0, 1:])
     np.testing.assert_array_equal(d_23SrRNA, np.array(rnas_synthesized)[:, config['idx_23S_rRNA']].transpose()[0, 1:])
 
-    # TODO: comment out terminationLoss
-
-    # which NTPs used match sequences of which RNAs were elongated
-    import ipdb; ipdb.set_trace()
-
     # bulk NTP counts decrease by numbers used
     ntps_arr = np.array([v for v in ntps.values()])
     d_ntps = ntps_arr[:, 1:] - ntps_arr[:, :-1]
 
     np.testing.assert_array_equal(d_ntps, -np.array(ntps_used[1:]).transpose())
 
-    # total NTPS used matches sum of ntps_used
+    # total NTPS used matches sum of ntps_used,
+    # total of each type of NTP used matches rna sequences
     assert np.all(np.sum(ntps_used, axis=1) == np.array(total_ntps_used))
-
+    actual = np.sum(ntps_used, axis=0)
+    n_term = np.sum(rnas_synthesized, axis=0)
+    sequence_ntps = np.array([[sum(seq==0), sum(seq==1), sum(seq==2), sum(seq==3)]
+                              for seq in config['rnaSequences']])
+    np.testing.assert_array_equal(actual,
+                                  np.array([np.array(seq) * n
+                                            for seq, n in zip(sequence_ntps, n_term)
+                                            ]).sum(axis=0))
 
 
 if __name__ == "__main__":
