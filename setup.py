@@ -73,10 +73,9 @@ setup(
         'biopython==1.77',
         'Unum==4.1.4',
         'numba==0.50.1',
-        'Theano==1.0.5',
         'ipython==7.16.1',
         'stochastic-arrow',
         'iteround',
         'cobra',
-        'aesara',
+        'aesara==2.0.8',
         ])
