@@ -697,9 +697,6 @@ def assertions(config, actual_update):
         else:
             assert a == e
 
-    #import ipdb; ipdb.set_trace()
-    #np.testing.assert_array_equal(actual, expect)
-
 
 if __name__ == "__main__":
     test_transcript_elongation()
