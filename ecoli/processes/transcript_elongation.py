@@ -646,11 +646,14 @@ def assertions(config, actual_update):
     # RNAP elongations matches total ntps used at each timestep
     np.testing.assert_array_equal(RNAP_elongations, [sum(v) for v in ntps_used])
 
-    # terminations match rnas_synthesized, TODO: change in bulk rRNAs (what about mRNA?)
+    # terminations match rnas_synthesized
     assert all(np.array([sum(v) for v in rnas_synthesized]) == terminations)
     d_16SrRNA = np.array(bulk_16SrRNA)[1:] - bulk_16SrRNA[:-1]
     d_5SrRNA = np.array(bulk_5SrRNA)[1:] - bulk_5SrRNA[:-1]
     d_23SrRNA = np.array(bulk_23SrRNA)[1:] - bulk_23SrRNA[:-1]
+    np.testing.assert_array_equal(d_16SrRNA, np.array(rnas_synthesized)[:, config['idx_16S_rRNA']].transpose()[0, 1:])
+    np.testing.assert_array_equal(d_5SrRNA, np.array(rnas_synthesized)[:, config['idx_5S_rRNA']].transpose()[0, 1:])
+    np.testing.assert_array_equal(d_23SrRNA, np.array(rnas_synthesized)[:, config['idx_23S_rRNA']].transpose()[0, 1:])
 
     # TODO: comment out terminationLoss
 
