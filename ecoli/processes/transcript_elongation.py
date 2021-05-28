@@ -221,7 +221,6 @@ class TranscriptElongation(Process):
         TU_indexes_partial = TU_indexes[is_partial_transcript]
         transcript_lengths_partial = transcript_lengths[is_partial_transcript]
 
-        # ?? mysterious function
         sequences = buildSequences(
             self.rnaSequences,
             TU_indexes_partial,
@@ -412,10 +411,10 @@ class TranscriptElongation(Process):
         update['ntps'] = array_to(self.ntp_ids, -ntps_used)
         update['bulk_RNAs'] = array_to(self.rnaIds, n_new_bulk_RNAs)
         update['molecules'] = array_to(self.molecule_ids, [
-            n_elongations - n_initialized,
-            n_terminated])
+            n_elongations - n_initialized,  # ppi
+            n_terminated])                  # inactve RNAPs
 
-        # TODO: make sure everything here is represented above
+        # TODO: make sure everything here is represented above, delete
         # self.RNAs.attrIs(transcript_length=length_all_RNAs)
         # self.RNAs.attrIs(is_full_transcript=is_full_transcript_updated)
         # self.RNAs.add_submass_by_name("nonspecific_RNA", added_nsRNA_mass_all_RNAs)
@@ -534,10 +533,10 @@ def test_transcript_elongation():
                                    'direction': True}
                          for i in range(4)},
 
-        'bulk_RNAs': {'16S rRNA' : 174,
-                      '23S rRNA' : 86,
-                      '5S rRNA' : 5,
-                      'mRNA' : 20
+        'bulk_RNAs': {'16S rRNA' : 0,
+                      '23S rRNA' : 0,
+                      '5S rRNA' : 0,
+                      'mRNA' : 0
                       },
         'ntps': {'ATP[c]': 6178058, 'CTP[c]': 1152211, 'GTP[c]': 1369694, 'UTP[c]': 3024874},
         'molecules': {'PPI[c]': 320771, 'APORNAP-CPLX[c]': 2768}
@@ -550,7 +549,15 @@ def test_transcript_elongation():
     data = simulate_process(transcript_elongation, settings)
 
     plots(data)
-    assertions(data)
+    assertions(test_config, data)
+
+    # Test running out of ntps
+
+    initial_state['ntps'] = {'ATP[c]': 0, 'CTP[c]': 0, 'GTP[c]': 0, 'UTP[c]': 0}
+
+    data = simulate_process(transcript_elongation, settings)
+
+    assertions(test_config, data)
 
 
 def plots(actual_update):
@@ -580,7 +587,7 @@ def plots(actual_update):
     plt.savefig("out/migration/transcript_elongation_toymodel.png")
 
 
-def assertions(actual_update):
+def assertions(config, actual_update):
     # unpack update
     trans_lengths = [r['transcript_length'] for r in actual_update["RNAs"].values()]
     rnas_synthesized = actual_update['listeners']['transcript_elongation_listener']['countRnaSynthesized']
@@ -596,7 +603,6 @@ def assertions(actual_update):
     RNAP_coordinates = [v['coordinates'] for v in actual_update['active_RNAPs'].values()]
     RNAP_elongations = actual_update['listeners']['rnap_data']['actualElongations']
     terminations = actual_update['listeners']['rnap_data']['didTerminate']
-    termination_loss = actual_update['listeners']['rnap_data']['terminationLoss']
 
     ppi = actual_update['molecules']['PPI[c]']
     inactive_RNAP = actual_update['molecules']['APORNAP-CPLX[c]']
@@ -610,33 +616,46 @@ def assertions(actual_update):
 
     # RNAP positions match transcript lengths?
     RNAP_coordinates_realigned = [np.array(v) - v[0] for v in RNAP_coordinates]
-    for t_length, e in zip(trans_lengths, RNAP_coordinates_realigned):
-        if len(t_length) != e.size:
-            import ipdb; ipdb.set_trace()
-        #np.testing.assert_array_equal(t_length, e)
+    for t_length, expect, mRNA in zip(trans_lengths, RNAP_coordinates_realigned, config['is_mRNA']):
+        # truncate lengths arrays of terminated mRNAs, since these stay
+        # in the unique molecules pool after termination
+        if mRNA:
+            t_length = t_length[:len(expect)]
+        np.testing.assert_array_equal(t_length, expect)
 
     # bulk RNAs monotonically increasing?
-    # TODO: should these change at all? (currently don't)
     assert monotonically_increasing(bulk_16SrRNA)
     assert monotonically_increasing(bulk_5SrRNA)
     assert monotonically_increasing(bulk_23SrRNA)
     assert monotonically_increasing(bulk_mRNA)
 
-    # Change in PPI matches...?
+    # Change in PPI matches #elongations - #initiations
+    d_ppi = np.array(ppi)[1:] - ppi[:-1]
+    expected_d_ppi = RNAP_elongations[1:]
+    # Hacky way to find number of initiations
+    # Assuming initiations only happen in the first time step (valid for toy model,
+    # where there is no initiation process)
+    expected_d_ppi[0] -= np.sum((np.array([t[0] for t in trans_lengths]) == 0) & (np.array([t[1] for t in trans_lengths]) > 0))
 
-    # Change in APORNAP-CPLX matches terminations?
-    # Fails: terminations is 1 for each timestep after final actual termination
+    np.testing.assert_array_equal(d_ppi, expected_d_ppi)
+
+    # Change in APORNAP-CPLX matches terminations
     d_inactive_RNAP = np.array(inactive_RNAP[1:]) - inactive_RNAP[:-1]
     np.testing.assert_array_equal(d_inactive_RNAP, terminations[1:])
 
-    # RNAP elongations matches...?
+    # RNAP elongations matches total ntps used at each timestep
+    np.testing.assert_array_equal(RNAP_elongations, [sum(v) for v in ntps_used])
 
-    # terminations match rnas_synthesized?
+    # terminations match rnas_synthesized, TODO: change in bulk rRNAs (what about mRNA?)
     assert all(np.array([sum(v) for v in rnas_synthesized]) == terminations)
+    d_16SrRNA = np.array(bulk_16SrRNA)[1:] - bulk_16SrRNA[:-1]
+    d_5SrRNA = np.array(bulk_5SrRNA)[1:] - bulk_5SrRNA[:-1]
+    d_23SrRNA = np.array(bulk_23SrRNA)[1:] - bulk_23SrRNA[:-1]
 
-    # TODO: termination_loss means...?
+    # TODO: comment out terminationLoss
 
-    # NTPs used match sequences of which RNAs were elongated
+    # which NTPs used match sequences of which RNAs were elongated
+    import ipdb; ipdb.set_trace()
 
     # bulk NTP counts decrease by numbers used
     ntps_arr = np.array([v for v in ntps.values()])
