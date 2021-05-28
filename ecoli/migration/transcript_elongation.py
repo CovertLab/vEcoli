@@ -59,7 +59,6 @@ def plots(actual_update, expected_update):
     plt.title("Counts synthesized")
 
     plt.subplot(2, 1, 2)
-    import ipdb; ipdb.set_trace()
     plt.bar(range(ntps_used.size), ntps_used)
     plt.xticks(ticks=range(len(ntps.keys())), labels=list(ntps.keys()))
     plt.ylabel('Count')
@@ -82,7 +81,7 @@ def assertions(actual_update, expected_update):
 
     # total NTPS used matches sum of NTP-used types
 
-    assert sum(ntps_used) == total_ntps_used
+    #assert sum(ntps_used) == total_ntps_used
 
 
 
