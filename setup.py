@@ -1,5 +1,3 @@
-from __future__ import absolute_import, division, print_function
-
 import glob
 import setuptools
 
@@ -68,6 +66,7 @@ setup(
     long_description=long_description,
     long_description_content_type='text/markdown',
     install_requires=[
+        'pytest==6.2.4',
         'vivarium-core>=0.2.0',
         'decorator<5',
         'biopython==1.77',
