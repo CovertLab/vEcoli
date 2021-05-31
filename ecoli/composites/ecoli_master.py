@@ -219,11 +219,6 @@ def get_state_from_file(path='data/wcecoli_t0.json'):
 
     states = load_states(path)
 
-    # make correct number of TFs for promoters
-    # TODO (ERAN) get updated wcecoli_state.jsons and remove this hack
-    for index in states['unique']['promoter'].keys():
-        states['unique']['promoter'][index]['bound_TF'] = [False] * 24
-
     initial_state = {
         'environment': {
             'media_id': 'minimal',
