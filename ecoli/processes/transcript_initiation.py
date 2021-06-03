@@ -65,7 +65,7 @@ class TranscriptInitiation(Process):
                                           in which case no shuffling is performed.
 
         - idx_16SrRNA (1D array): indexes of TUs for 16SrRNA, an RNA component of the ribosome
-        - idx_23SrRNA (1D array): indexes of TUs for 16SrRNA, an RNA component of the ribosome
+        - idx_23SrRNA (1D array): indexes of TUs for 23SrRNA, an RNA component of the ribosome
         - idx_5SrRNA (1D array):  indexes of TUs for 5SrRNA, an RNA component of the ribosome
         - idx_rRNA (1D array): indexes of TUs corresponding to rRNAs
         - idx_mRNA (1D array): indexes of TUs corresponding to mRNAs
