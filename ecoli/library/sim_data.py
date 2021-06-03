@@ -102,7 +102,20 @@ class LoadSimData:
             'ntp_ids': ["ATP[c]", "CTP[c]", "GTP[c]", "UTP[c]"],
             'variable_elongation': False,
             'make_elongation_rates': self.sim_data.process.transcription.make_elongation_rates,
-            'seed': self.random_state.randint(RAND_MAX)}
+
+            # Attenuation
+            'trna_attenuation': False,
+            'charged_trna_names': self.sim_data.process.transcription.charged_trna_names,
+            'polymerized_ntps': self.sim_data.molecule_groups.polymerized_ntps,
+            'cell_density': self.sim_data.constants.cell_density,
+            'n_avogadro': self.sim_data.constants.n_avogadro,
+            'stop_probabilities': self.sim_data.process.transcription.get_attenuation_stop_probabilities,
+            'attenuated_rna_indices': self.sim_data.process.transcription.attenuated_rna_indices,
+            'location_lookup': self.sim_data.process.transcription.attenuation_location,
+
+            # random seed
+            'seed': self.random_state.randint(RAND_MAX)
+        }
 
         return transcript_elongation_config
 
