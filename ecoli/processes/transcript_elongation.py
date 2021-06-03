@@ -84,7 +84,7 @@ class TranscriptElongation(Process):
         'trna_attenuation': False,
         'cell_density': 1100 * units.g / units.L,
         'n_avogadro':  6.02214076e+23 / units.mol,
-        'get_attenuation_stop_probabilities': lambda trna_conc: stop_prob,
+        'get_attenuation_stop_probabilities': lambda trna_conc: np.array([]),
         'attenuated_rna_indices': np.array([]),
         'attenuation_location': {},
 

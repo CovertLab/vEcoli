@@ -52,6 +52,7 @@ class LoadSimData:
             'make_elongation_rates': self.sim_data.process.transcription.make_elongation_rates,
             'basal_prob': self.sim_data.process.transcription_regulation.basal_prob,
             'delta_prob': self.sim_data.process.transcription_regulation.delta_prob,
+            'get_delta_prob_matrix': self.sim_data.process.transcription_regulation.get_delta_prob_matrix,
             'perturbations': getattr(self.sim_data, "genetic_perturbations", {}),
             'rna_data': self.sim_data.process.transcription.rna_data,
             'shuffleIdxs': getattr(self.sim_data.process.transcription, "initiationShuffleIdxs", None),
@@ -76,7 +77,15 @@ class LoadSimData:
             'synth_prob': self.sim_data.process.transcription.synth_prob_from_ppgpp,
             'copy_number': self.sim_data.process.replication.get_average_copy_number,
             'ppgpp_regulation': False,
-            'seed': self.random_state.randint(RAND_MAX)}
+
+            # attenuation
+            'trna_attenuation': False,
+            'attenuated_rna_indices': self.sim_data.process.transcription.attenuated_rna_indices,
+            'attenuation_adjustments': self.sim_data.process.transcription.attenuation_basal_prob_adjustments,
+
+            # random seed
+            'seed': self.random_state.randint(RAND_MAX)
+        }
 
         return transcript_initiation_config
 
@@ -103,7 +112,7 @@ class LoadSimData:
             'variable_elongation': False,
             'make_elongation_rates': self.sim_data.process.transcription.make_elongation_rates,
 
-            # Attenuation
+            # attenuation
             'trna_attenuation': False,
             'charged_trna_names': self.sim_data.process.transcription.charged_trna_names,
             'polymerized_ntps': self.sim_data.molecule_groups.polymerized_ntps,
