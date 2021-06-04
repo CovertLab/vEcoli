@@ -144,10 +144,10 @@ def test_protein_degradation():
     # Asserts for numerical tests:
     assert utest_protein.pvalue > utest_threshold, (
         "Distribution of #proteins degraded is different between wcEcoli and vivarium-ecoli"
-        f"(p={utest_protein.pvalue} <= {threshold}) ")
+        f"(p={utest_protein.pvalue} <= {utest_threshold}) ")
     assert utest_aa.pvalue > utest_threshold, (
         "Distribution of #amino acids released is different between wcEcoli and vivarium-ecoli"
-        f"(p={utest_aa.pvalue} <= {threshold})")
+        f"(p={utest_aa.pvalue} <= {utest_threshold})")
 
     assert protein_error < percent_error_threshold, (
         "Total # of proteins degraded differs between wcEcoli and vivarium-ecoli"
