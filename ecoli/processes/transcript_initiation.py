@@ -108,7 +108,7 @@ class TranscriptInitiation(Process):
         'make_elongation_rates': lambda random, rate, timestep, variable: np.array([]),
         'basal_prob': np.array([]),
         'delta_prob': {'deltaI': [], 'deltaJ': [], 'deltaV': [], 'shape': tuple()},
-        'get_delta_prob_matrix': lambda dense: np.array([]),
+        'get_delta_prob_matrix': None,
         'perturbations': {},
         'rna_data': {},
         'shuffleIdxs': None,
@@ -163,7 +163,16 @@ class TranscriptInitiation(Process):
             self.basal_prob[self.attenuated_rna_indices] += self.attenuation_adjustments
 
         self.n_TUs = len(self.basal_prob)
-        self.delta_prob_matrix = self.parameters['get_delta_prob_matrix'](dense=True)
+        self.delta_prob = self.parameters['delta_prob']
+        if self.parameters['get_delta_prob_matrix'] is not None:
+            self.delta_prob_matrix = self.parameters['get_delta_prob_matrix'](dense=True)
+        else:
+            # make delta_prob_matrix without adjustments
+            self.delta_prob_matrix = scipy.sparse.csr_matrix(
+                (self.delta_prob['deltaV'],
+                 (self.delta_prob['deltaI'], self.delta_prob['deltaJ'])),
+                shape=self.delta_prob['shape']
+            ).toarray()
 
         # Determine changes from genetic perturbations
         self.genetic_perturbations = {}
