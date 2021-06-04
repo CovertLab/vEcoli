@@ -447,7 +447,7 @@ class TranscriptInitiation(Process):
                 'TU_index': TU_index_partial_RNAs,
                 'transcript_length': np.zeros(cast(int, n_RNAPs_to_activate)),
                 'is_mRNA': is_mRNA,
-                'is_full_transcript': np.zeros(cast(int, n_RNAPs_to_activate), dtype=np.bool),
+                'is_full_transcript': np.zeros(cast(int, n_RNAPs_to_activate), dtype=bool),
                 'can_translate': is_mRNA,
                 'RNAP_index': RNAP_indexes})
         update['RNAs'] = add_elements(new_RNAs, 'unique_index')
