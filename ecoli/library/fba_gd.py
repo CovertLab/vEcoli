@@ -1,11 +1,19 @@
 """FBA via gradient descent."""
-from typing import Any, Iterable, Iterator, Mapping, Optional, Tuple, Union
+from dataclasses import dataclass
+import time
+from typing import Any, Iterable, Iterator, Mapping, Optional, Tuple
 
 import jax
 import jax.numpy as jnp
-
 import numpy as np
 import scipy.optimize
+
+
+@dataclass
+class FbaResult:
+    velocities: Mapping[str, float]
+    dm_dt: Mapping[str, float]
+    seed: int
 
 
 class GradientDescentFba:
@@ -77,7 +85,7 @@ class GradientDescentFba:
               params: Mapping[str, Any],
               initial: Optional[Mapping[str, float]] = None,
               variance: Optional[float] = None,
-              seed: int = 0) -> Tuple[Mapping[str, float], Mapping[str, float]]:
+              seed: int = None) -> FbaResult:
         processed_params = {}
         if self._homeostatic_objective:
             processed_params["objective"] = self.network.molecule_vector(objective)[self._homeostatic_indices]
@@ -94,6 +102,8 @@ class GradientDescentFba:
                 variance = 1.0
 
         if variance is not None:
+            if seed is None:
+                seed = int(time.time())
             x0 += variance * jax.random.normal(jax.random.PRNGKey(seed), (self.network.shape[1],))
 
         bounds = [(0, np.inf)] * self.network.shape[1]
@@ -103,7 +113,7 @@ class GradientDescentFba:
         soln = scipy.optimize.least_squares(fn, x0, jac=jac, bounds=bounds)
         velocities = self.network.reaction_values(soln.x)
         dm_dt = self.network.molecule_values(self.network.dm_dt(soln.x))
-        return velocities, dm_dt
+        return FbaResult(velocities, dm_dt, seed)
 
 
 class ReactionNetwork:
@@ -144,9 +154,9 @@ class ReactionNetwork:
         """The index of the reactionID."""
         return self._reaction_index.get(reactionID, None)
 
-    def reaction_vector(self, data: Mapping[str, float], default: float = 0) -> np.ndarray:
+    def reaction_vector(self, data: Mapping[str, float], default: float = 0) -> jnp.ndarray:
         """Converts a dict of {reactionID: value} to a 1D vector for numpy ops."""
-        return np.array([data.get(reactionID, default) for reactionID in self._reactionIDs])
+        return jnp.array([data.get(reactionID, default) for reactionID in self._reactionIDs])
 
     def reaction_values(self, values: Iterable[float]) -> Mapping[str, float]:
         """Converts an array of values to a {reactionID: value} dict."""
@@ -161,9 +171,9 @@ class ReactionNetwork:
         """The index of the moleculeID."""
         return self._molecule_index.get(moleculeID, None)
 
-    def molecule_vector(self, data: Mapping[str, float], default: float = 0) -> np.ndarray:
+    def molecule_vector(self, data: Mapping[str, float], default: float = 0) -> jnp.ndarray:
         """Converts a dict of {moleculeID: value} to a 1D vector for numpy ops."""
-        return np.array([data.get(moleculeID, default) for moleculeID in self._moleculeIDs])
+        return jnp.array([data.get(moleculeID, default) for moleculeID in self._moleculeIDs])
 
     def molecule_values(self, values: Iterable[float]) -> Mapping[str, float]:
         """Converts an array of values to a {moleculeID: value} dict."""
