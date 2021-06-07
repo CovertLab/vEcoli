@@ -48,8 +48,8 @@ def test_protein_degradation():
     viv_amino_acids = [d_metabolites[aa] for aa in amino_acid_ids]
     viv_water = d_metabolites[water_id]
 
-    # compare to collected update from ecEcoli
-    with open("data/prot_deg_update_t2.json") as f:
+    # compare to collected update from wcEcoli
+    with open("data/prot_deg_update_t10.json") as f:
         wc_data = json.load(f)
 
     # unpack wc_data
