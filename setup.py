@@ -68,7 +68,7 @@ setup(
     install_requires=[
         'pytest==6.2.4',
         'vivarium-core>=0.2.0',
-        'decorator<5',
+        'decorator',
         'biopython==1.77',
         'Unum==4.1.4',
         'numba==0.50.1',
