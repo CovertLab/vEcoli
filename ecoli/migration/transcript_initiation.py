@@ -146,8 +146,10 @@ def test_transcript_initiation(fixed_synths_monte_carlo=False):
                                err_msg="Vivarium-ecoli calculates different synthesis probabilities than wcEcoli")
 
     # Compare synthesis of rRNAs
-    n_rRNA_testresult = chisquare(np.array([n_5SrRNA_prod, n_16SrRNA_prod, n_23SrRNA_prod]),
-                                  np.array([wc_n_5SrRNA_prod, wc_n_16SrRNA_prod, wc_n_23SrRNA_prod]))
+    total_produced = n_5SrRNA_prod + n_16SrRNA_prod + n_23SrRNA_prod
+    wc_total_produced = wc_n_5SrRNA_prod + wc_n_16SrRNA_prod + wc_n_23SrRNA_prod
+    n_rRNA_testresult = chisquare(np.array([n_5SrRNA_prod, n_16SrRNA_prod, n_23SrRNA_prod]) / total_produced,
+                                  np.array([wc_n_5SrRNA_prod, wc_n_16SrRNA_prod, wc_n_23SrRNA_prod]) / wc_total_produced)
     assert n_rRNA_testresult.pvalue > 0.05
 
     n_rRNA_testresult = chisquare(np.array([init_prob_5SrRNA, init_prob_16SrRNA, init_prob_23SrRNA]) * total_rna_init,
