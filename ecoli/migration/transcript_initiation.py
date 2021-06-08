@@ -146,13 +146,19 @@ def test_transcript_initiation(fixed_synths_monte_carlo=False):
                                err_msg="Vivarium-ecoli calculates different synthesis probabilities than wcEcoli")
 
     # Compare synthesis of rRNAs
-    n_rRNA_testresult = chisquare(np.array([n_5SrRNA_prod, n_16SrRNA_prod, n_23SrRNA_prod]),
-                                  np.array([wc_n_5SrRNA_prod, wc_n_16SrRNA_prod, wc_n_23SrRNA_prod]))
+    remaining_RNA = total_rna_init - n_5SrRNA_prod - n_16SrRNA_prod - n_23SrRNA_prod
+    wc_remaining_RNA = wc_total_rna_init - wc_n_5SrRNA_prod - wc_n_16SrRNA_prod - wc_n_23SrRNA_prod
+    n_rRNA_testresult = chisquare(
+        np.array([n_5SrRNA_prod, n_16SrRNA_prod, n_23SrRNA_prod, remaining_RNA]) / total_rna_init,
+        np.array([wc_n_5SrRNA_prod, wc_n_16SrRNA_prod, wc_n_23SrRNA_prod, wc_remaining_RNA]) / wc_total_rna_init)
     assert n_rRNA_testresult.pvalue > 0.05
 
-    n_rRNA_testresult = chisquare(np.array([init_prob_5SrRNA, init_prob_16SrRNA, init_prob_23SrRNA]) * total_rna_init,
-                                  np.array([wc_init_prob_5SrRNA, wc_init_prob_16SrRNA, wc_init_prob_23SrRNA]) * total_rna_init)
-    assert n_rRNA_testresult.pvalue > 0.05
+    remaining_init_prob_RNA = 1 - init_prob_5SrRNA - init_prob_16SrRNA - init_prob_23SrRNA
+    wc_remaining_init_prob_RNA = 1 - wc_init_prob_5SrRNA - wc_init_prob_16SrRNA - wc_init_prob_23SrRNA
+    prob_rRNA_testresult = chisquare(
+        np.array([init_prob_5SrRNA, init_prob_16SrRNA, init_prob_23SrRNA, remaining_init_prob_RNA]),
+        np.array([wc_init_prob_5SrRNA, wc_init_prob_16SrRNA, wc_init_prob_23SrRNA, wc_remaining_init_prob_RNA]))
+    assert prob_rRNA_testresult.pvalue > 0.05
 
     # Compare fixed synthesis probabilities
     fixed_synths = np.array([sum(rna_inits[config['idx_rnap']]),
