@@ -65,9 +65,7 @@ class ChromosomeReplication(Process):
 
 
     def ports_schema(self):
-        # Create ports for replisome subunits, active replisomes,
-        # origins of replication, chromosome domains, and free active TFs
-        ports = {
+        return {
             # bulk molecules
             'replisome_trimers': bulk_schema(self.parameters['replisome_trimers_subunits']),
             'replisome_monomers': bulk_schema(self.parameters['replisome_monomers_subunits']),
@@ -75,27 +73,52 @@ class ChromosomeReplication(Process):
             'ppi': bulk_schema(self.parameters['ppi']),
 
             # unique molecules
-            'active_replisomes': {},
-            'oriCs': {},
-            'chromosome_domains': {},
-            'full_chromosomes': {},
+            'active_replisomes': {
+                '*': {
+                    'domain_index': {
+                        '_default': 0, '_updater': 'set'},
+                    'right_replichore': {
+                        '_default': 0, '_updater': 'set'},
+                    'coordinates': {
+                        '_default': 0, '_updater': 'set'},
+                }},
+            'oriCs': {
+                '*': {
+                    'domain_index': {
+                        '_default': 0, '_updater': 'set'},
+                }},
+            'chromosome_domains': {
+                '*': {
+                    'domain_index': {
+                        '_default': 0, '_updater': 'set'},
+                    'child_domains': {
+                        '_default': 0, '_updater': 'set'},
+                }},
+            'full_chromosomes': {
+                '*': {
+                    'domain_index': {
+                        '_default': 0, '_updater': 'set'},
+                    'has_triggered_division': {
+                        '_default': False, '_updater': 'set'},
+                    'division_time': {
+                        '_default': 0, '_updater': 'set'},
+                }},
         }
 
-        import ipdb;
-        ipdb.set_trace()
-        # unique molecules
-        # self.active_replisomes = self.uniqueMoleculesView('active_replisome')
-        # self.oriCs = self.uniqueMoleculesView('oriC')
-        # self.chromosome_domains = self.uniqueMoleculesView('chromosome_domain')
-        #
-        # # Create molecules views for full chromosomes
-        # self.full_chromosomes = self.uniqueMoleculesView('full_chromosome')
-
-        return ports
 
     def next_update(self, timestep, states):
 
+
+
+
+
+
+
+
         update = {}
+
+        import ipdb;
+        ipdb.set_trace()
 
         return update
 

@@ -9,18 +9,35 @@ load_sim_data = LoadSimData(
             sim_data_path=SIM_DATA_PATH,
             seed=0)
 
+topology = {
+    # bulk molecules
+    'replisome_trimers': ('bulk',),
+    'replisome_monomers': ('bulk',),
+    'dntps': ('bulk',),
+    'ppi': ('bulk',),
 
-def test_complexation():
+    # unique molecules
+    'active_replisomes': ('unique', 'active_replisomes',),
+    'oriCs': ('unique', 'oriCs',),
+    'chromosome_domains': ('unique', 'chromosome_domains',),
+    'full_chromosomes': ('unique', 'full_chromosome',),
+}
+
+
+def test_chromosome_replication():
     config = load_sim_data.get_chromosome_replication_config()
     chromosome_replication = ChromosomeReplication(config)
 
-    topology = {}
-
     # run the process and get an update
-    actual_update = run_ecoli_process(chromosome_replication, topology)
+    actual_update = run_ecoli_process(
+        chromosome_replication,
+        topology,
+        total_time=2,
+        initial_time=10,
+    )
 
     import ipdb; ipdb.set_trace()
 
 
 if __name__ == "__main__":
-    test_complexation()
+    test_chromosome_replication()
