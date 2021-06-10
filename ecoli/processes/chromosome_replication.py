@@ -13,6 +13,7 @@ from vivarium.core.composition import simulate_process
 from ecoli.library.schema import arrays_from, arrays_to, add_elements, listener_schema, bulk_schema
 
 from wholecell.utils import units
+from wholecell.utils.polymerize import buildSequences, polymerize
 
 
 
@@ -40,6 +41,9 @@ class ChromosomeReplication(Process):
         'replisome_monomers_subunits': [],
         'dntps': [],
         'ppi': [],
+
+        # random seed
+        'seed': 0,
     }
 
     def __init__(self, parameters=None):
@@ -63,6 +67,9 @@ class ChromosomeReplication(Process):
         # Sim options
         self.mechanistic_replisome = self.parameters['mechanistic_replisome']
 
+        # random state
+        self.seed = self.parameters['seed']
+        self.random_state = np.random.RandomState(seed=self.seed)
 
     def ports_schema(self):
         return {
@@ -71,7 +78,15 @@ class ChromosomeReplication(Process):
             'replisome_monomers': bulk_schema(self.parameters['replisome_monomers_subunits']),
             'dntps': bulk_schema(self.parameters['dntps']),
             'ppi': bulk_schema(self.parameters['ppi']),
-
+            'listeners': {
+                'mass': {
+                    'cell_mass': {'_default': 0.0},
+                }},
+            'environment': {
+                'media_id': {
+                    '_default': '',
+                    '_updater': 'set'},
+                },
             # unique molecules
             'active_replisomes': {
                 '*': {
@@ -108,82 +123,94 @@ class ChromosomeReplication(Process):
 
     def next_update(self, timestep, states):
 
-        update = {}
-
-        import ipdb;
-        ipdb.set_trace()
-
-
-
         # Get total count of existing oriC's
-        n_oric = self.oriCs.total_count()
+        n_oric = len(states['oriCs'])
+        # n_oric = self.oriCs.total_count()
 
         # If there are no origins, return immediately
-        if n_oric == 0:
-            return
+        # if n_oric == 0:
+        #     return
+        if n_oric != 0:
 
-        # Get current cell mass
-        cellMass = (self.readFromListener("Mass", "cellMass") * units.fg)
+            # Get current cell mass
+            cellMass = states['listeners']['mass']['cell_mass'] * units.fg
+            # cellMass = (self.readFromListener("Mass", "cellMass") * units.fg)
 
-        # Get critical initiation mass for current simulation environment
-        current_media_id = self._external_states['Environment'].current_media_id
-        self.criticalInitiationMass = self.get_dna_critical_mass(
-            self.nutrientToDoublingTime[current_media_id])
+            # Get critical initiation mass for current simulation environment
+            current_media_id = states['environment']['media_id']
+            # current_media_id = self._external_states['Environment'].current_media_id
+            self.criticalInitiationMass = self.get_dna_critical_mass(
+                self.nutrientToDoublingTime[current_media_id])
 
-        # Calculate mass per origin of replication, and compare to critical
-        # initiation mass. If the cell mass has reached this critical mass,
-        # the process will initiate a round of chromosome replication for each
-        # origin of replication.
-        massPerOrigin = cellMass / n_oric
-        self.criticalMassPerOriC = massPerOrigin / self.criticalInitiationMass
+            # Calculate mass per origin of replication, and compare to critical
+            # initiation mass. If the cell mass has reached this critical mass,
+            # the process will initiate a round of chromosome replication for each
+            # origin of replication.
+            massPerOrigin = cellMass / n_oric
+            self.criticalMassPerOriC = massPerOrigin / self.criticalInitiationMass
 
-        # If replication should be initiated, request subunits required for
-        # building two replisomes per one origin of replication, and edit
-        # access to oriC and chromosome domain attributes
-        if self.criticalMassPerOriC >= 1.0:
-            self.replisome_trimers.requestIs(6 * n_oric)
-            self.replisome_monomers.requestIs(2 * n_oric)
-            self.oriCs.request_access(self.EDIT_ACCESS)
-            self.chromosome_domains.request_access(self.EDIT_ACCESS)
+            # If replication should be initiated, request subunits required for
+            # building two replisomes per one origin of replication, and edit
+            # access to oriC and chromosome domain attributes
+            if self.criticalMassPerOriC >= 1.0:
+                replisome_trimers = 6 * n_oric
+                replisome_monomers = 2 * n_oric
+                # self.replisome_trimers.requestIs(6 * n_oric)
+                # self.replisome_monomers.requestIs(2 * n_oric)
+                # self.oriCs.request_access(self.EDIT_ACCESS)
+                # self.chromosome_domains.request_access(self.EDIT_ACCESS)
 
         # If there are no active forks return
-        n_active_replisomes = self.active_replisomes.total_count()
-        if n_active_replisomes == 0:
-            return
+        n_active_replisomes = len(states['active_replisomes'])
+        # n_active_replisomes = self.active_replisomes.total_count()
 
-        # Get current locations of all replication forks
-        fork_coordinates = self.active_replisomes.attr("coordinates")
-        sequence_length = np.abs(np.repeat(fork_coordinates, 2))
+        # if n_active_replisomes == 0:
+        #     return
+        if n_active_replisomes != 0:
 
-        self.elongation_rates = self.make_elongation_rates(
-            self.randomState,
-            len(self.sequences),
-            self.basal_elongation_rate,
-            self.timeStepSec())
+            # Get current locations of all replication forks
+            fork_coordinates, = arrays_from(
+                states['active_replisomes'].values(),
+                ['coordinates'])
+            # fork_coordinates = self.active_replisomes.attr("coordinates")
+            sequence_length = np.abs(np.repeat(fork_coordinates, 2))
 
-        sequences = buildSequences(
-            self.sequences,
-            np.tile(np.arange(4), n_active_replisomes // 2),
-            sequence_length,
-            self.elongation_rates)
+            self.elongation_rates = self.make_elongation_rates(
+                self.random_state,
+                len(self.sequences),
+                self.basal_elongation_rate,
+                timestep)
 
-        # Count number of each dNTP in sequences for the next timestep
-        sequenceComposition = np.bincount(
-            sequences[sequences != polymerize.PAD_VALUE], minlength=4)
+            sequences = buildSequences(
+                self.sequences,
+                np.tile(np.arange(4), n_active_replisomes // 2),
+                sequence_length,
+                self.elongation_rates)
 
-        # If one dNTP is limiting then limit the request for the other three by
-        # the same ratio
-        dNtpsTotal = self.dntps.total_counts()
-        maxFractionalReactionLimit = (np.fmin(1, dNtpsTotal / sequenceComposition)).min()
+            # Count number of each dNTP in sequences for the next timestep
+            sequenceComposition = np.bincount(
+                sequences[sequences != polymerize.PAD_VALUE], minlength=4)
 
-        # Request dNTPs
-        self.dntps.requestIs(
-            maxFractionalReactionLimit * sequenceComposition)
+            # If one dNTP is limiting then limit the request for the other three by
+            # the same ratio
+            dNtpsTotal = len(states['dntps'])
+            # dNtpsTotal = self.dntps.total_counts()
+            maxFractionalReactionLimit = (np.fmin(1, dNtpsTotal / sequenceComposition)).min()
 
-        # Request access to relevant unique molecules
-        self.full_chromosomes.request_access(self.EDIT_ACCESS)
-        self.active_replisomes.request_access(self.EDIT_DELETE_ACCESS)
+            # Request dNTPs
+            dntps = maxFractionalReactionLimit * sequenceComposition
+            # self.dntps.requestIs(
+            #     maxFractionalReactionLimit * sequenceComposition)
 
+            # # Request access to relevant unique molecules
+            # self.full_chromosomes.request_access(self.EDIT_ACCESS)
+            # self.active_replisomes.request_access(self.EDIT_DELETE_ACCESS)
+
+
+
+
+
+        import ipdb; ipdb.set_trace()
 
 
 
@@ -427,6 +454,9 @@ class ChromosomeReplication(Process):
                 self.replisome_trimers.countsInc(3 * replisomes_to_delete.sum())
                 self.replisome_monomers.countsInc(replisomes_to_delete.sum())
 
+
+        import ipdb;
+        ipdb.set_trace()
 
 
 

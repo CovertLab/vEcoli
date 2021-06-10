@@ -47,6 +47,9 @@ class LoadSimData:
             'replisome_monomers_subunits': self.sim_data.molecule_groups.replisome_monomer_subunits,
             'dntps': self.sim_data.molecule_groups.dntps,
             'ppi': [self.sim_data.molecule_ids.ppi],
+
+            # random state
+            'seed': self.random_state.randint(RAND_MAX),
         }
 
 

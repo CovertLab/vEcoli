@@ -17,10 +17,14 @@ topology = {
     'ppi': ('bulk',),
 
     # unique molecules
-    'active_replisomes': ('unique', 'active_replisomes',),
-    'oriCs': ('unique', 'oriCs',),
-    'chromosome_domains': ('unique', 'chromosome_domains',),
+    'active_replisomes': ('unique', 'active_replisome',),
+    'oriCs': ('unique', 'oriC',),
+    'chromosome_domains': ('unique', 'chromosome_domain',),
     'full_chromosomes': ('unique', 'full_chromosome',),
+
+    # other
+    'listeners': ('listeners',),
+    'environment': ('environment',),
 }
 
 
@@ -33,7 +37,7 @@ def test_chromosome_replication():
         chromosome_replication,
         topology,
         total_time=2,
-        initial_time=10,
+        initial_time=1000,
     )
 
     import ipdb; ipdb.set_trace()
