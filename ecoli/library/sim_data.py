@@ -39,9 +39,16 @@ class LoadSimData:
                 self.sim_data.growth_rate_parameters.replisome_elongation_rate.asNumber(units.nt / units.s))),
             'make_elongation_rates': self.sim_data.process.replication.make_elongation_rates,
 
-            # Sim options
+            # sim options
             'mechanistic_replisome': True,
+
+            # molecules
+            'replisome_trimers_subunits': self.sim_data.molecule_groups.replisome_trimer_subunits,
+            'replisome_monomers_subunits': self.sim_data.molecule_groups.replisome_monomer_subunits,
+            'dntps': self.sim_data.molecule_groups.dntps,
+            'ppi': [self.sim_data.molecule_ids.ppi],
         }
+
 
         return chromosome_replication_config
 

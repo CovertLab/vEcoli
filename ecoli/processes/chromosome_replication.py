@@ -1,24 +1,23 @@
-"""
-Complexation
+"""Chromosome Replication
 
-Macromolecular complexation sub-model. Encodes molecular simulation of macromolecular complexation
-
-TODO:
-- allow for shuffling when appropriate (maybe in another process)
-- handle protein complex dissociation
+Process for chromosome replication. Performs initiation, elongation, and
+termination of active partial chromosomes that replicate the chromosome.
 """
 
 import numpy as np
 from arrow import StochasticSystem
 
-from wholecell.utils import units
-
 from vivarium.core.process import Process
 from vivarium.core.composition import simulate_process
+
+from ecoli.library.schema import arrays_from, arrays_to, add_elements, listener_schema, bulk_schema
+
+from wholecell.utils import units
 
 
 
 class ChromosomeReplication(Process):
+
     name = 'ecoli-chromosome_replication'
 
     defaults = {
@@ -35,6 +34,12 @@ class ChromosomeReplication(Process):
         'basal_elongation_rate': 967,
         'make_elongation_rates': lambda random, replisomes, base, time_step: units.Unum,
         'mechanistic_replisome': True,
+
+        # molecules
+        'replisome_trimers_subunits': [],
+        'replisome_monomers_subunits': [],
+        'dntps': [],
+        'ppi': [],
     }
 
     def __init__(self, parameters=None):
@@ -59,31 +64,34 @@ class ChromosomeReplication(Process):
         self.mechanistic_replisome = self.parameters['mechanistic_replisome']
 
 
-        import ipdb; ipdb.set_trace()
+    def ports_schema(self):
+        # Create ports for replisome subunits, active replisomes,
+        # origins of replication, chromosome domains, and free active TFs
+        ports = {
+            # bulk molecules
+            'replisome_trimers': bulk_schema(self.parameters['replisome_trimers_subunits']),
+            'replisome_monomers': bulk_schema(self.parameters['replisome_monomers_subunits']),
+            'dntps': bulk_schema(self.parameters['dntps']),
+            'ppi': bulk_schema(self.parameters['ppi']),
 
-        # # Create molecule views for replisome subunits, active replisomes,
-        # # origins of replication, chromosome domains, and free active TFs
-        # self.replisome_trimers = self.bulkMoleculesView(
-        #     sim_data.molecule_groups.replisome_trimer_subunits)
-        # self.replisome_monomers = self.bulkMoleculesView(
-        #     sim_data.molecule_groups.replisome_monomer_subunits)
+            # unique molecules
+            'active_replisomes': {},
+            'oriCs': {},
+            'chromosome_domains': {},
+            'full_chromosomes': {},
+        }
+
+        import ipdb;
+        ipdb.set_trace()
+        # unique molecules
         # self.active_replisomes = self.uniqueMoleculesView('active_replisome')
         # self.oriCs = self.uniqueMoleculesView('oriC')
         # self.chromosome_domains = self.uniqueMoleculesView('chromosome_domain')
         #
-        # # Create bulk molecule views for polymerization reaction
-        # self.dntps = self.bulkMoleculesView(sim_data.molecule_groups.dntps)
-        # self.ppi = self.bulkMoleculeView(sim_data.molecule_ids.ppi)
-        #
         # # Create molecules views for full chromosomes
         # self.full_chromosomes = self.uniqueMoleculesView('full_chromosome')
 
-
-
-
-
-    def ports_schema(self):
-        return {}
+        return ports
 
     def next_update(self, timestep, states):
 
