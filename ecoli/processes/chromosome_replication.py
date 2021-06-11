@@ -213,6 +213,7 @@ class ChromosomeReplication(Process):
 
         # TODO -- use request values
         update = {
+            'oriCs': {},
             'listeners': {
                 'ribosome_data': {
                     'ReplicationData': {}
@@ -276,6 +277,11 @@ class ChromosomeReplication(Process):
 
             # Add new oriC's, and reset attributes of existing oriC's
             # All oriC's must be assigned new domain indexes
+
+            import ipdb; ipdb.set_trace()
+            # TODO -- add new oriCs
+            update['oriCs'] = add_elements()
+
             self.oriCs.attrIs(domain_index=domain_index_new[:n_oriC])
             self.oriCs.moleculesNew(
                 n_oriC, domain_index=domain_index_new[n_oriC:])
