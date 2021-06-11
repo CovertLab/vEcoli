@@ -444,7 +444,7 @@ class TranscriptElongation(Process):
             "countRnaSynthesized": terminated_RNAs,
             "countNTPsUsed": n_elongations}
         update['listeners']['growth_limits'] = {
-            "ntpUsed": ntps_used }#if ntps_used else np.zeros(4)}
+            "ntpUsed": ntps_used }
         update['listeners']['rnap_data'] = {
             "actualElongations": sequence_elongations.sum(),
             "didTerminate": did_terminate_mask.sum(),

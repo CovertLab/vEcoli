@@ -40,49 +40,112 @@ def test_transcription_elongation():
 
     actual_update = run_ecoli_process(process, topology)
 
-    plots(actual_update, None)
-    assertions(actual_update, None)
+    with open("data/transcript_elongation_update_t2.json") as f:
+        wc_update = json.load(f)
+
+    plots(actual_update, wc_update)
+    assertions(actual_update, wc_update)
 
 
 def plots(actual_update, expected_update):
     # unpack update
+    trans_lengths = [r['transcript_length'] for k, r in actual_update["RNAs"].items()
+                     if k != "_delete"]
     rnas_synthesized = actual_update['listeners']['transcript_elongation_listener']['countRnaSynthesized']
+    # bulk_16SrRNA = actual_update['bulk_RNAs']['16S rRNA']
+    # bulk_5SrRNA = actual_update['bulk_RNAs']['5S rRNA']
+    # bulk_23SrRNA = actual_update['bulk_RNAs']['23S rRNA']
+    # bulk_mRNA = actual_update['bulk_RNAs']['mRNA']
+
     ntps_used = actual_update['listeners']['growth_limits']['ntpUsed']
     total_ntps_used = actual_update['listeners']['transcript_elongation_listener']['countNTPsUsed']
-
     ntps = actual_update['ntps']
 
-    plt.subplot(2, 1, 1)
-    plt.bar(range(len(rnas_synthesized)), rnas_synthesized, width=1)
-    plt.xlabel("TU")
-    plt.ylabel("Count")
-    plt.title("Counts synthesized")
+    RNAP_coordinates = [v['coordinates'] for k, v in actual_update['active_RNAPs'].items()
+                        if k != "_delete"]
+    RNAP_elongations = actual_update['listeners']['rnap_data']['actualElongations']
+    terminations = actual_update['listeners']['rnap_data']['didTerminate']
 
-    plt.subplot(2, 1, 2)
-    plt.bar(range(ntps_used.size), ntps_used)
-    plt.xticks(ticks=range(len(ntps.keys())), labels=list(ntps.keys()))
-    plt.ylabel('Count')
-    plt.title('NTP Counts Used')
+    ppi = actual_update['molecules']['PPI[c]']
+    inactive_RNAP = actual_update['molecules']['APORNAP-CPLX[c]']
 
-    plt.subplots_adjust(hspace=0.5)
+    # unpack wcEcoli update
+    # TODO: wc_trans_lengths = ...
+    wc_rnas_synthesized = expected_update['listeners']['transcript_elongation_listener']['countRnaSynthesized']
+
+    wc_ntps_used = expected_update['listeners']['growth_limits']['ntpUsed']
+    wc_total_ntps_used = expected_update['listeners']['transcript_elongation_listener']['countNTPsUsed']
+    wc_ntps = expected_update['ntps']
+
+    # TODO: wc_RNAP_coordinates = ...
+    wc_RNAP_elongations = expected_update['listeners']['rnap_data']['actualElongations']
+    wc_terminations = expected_update['listeners']['rnap_data']['didTerminate']
+
+    wc_ppi = expected_update['molecules']['PPI[c]']
+    wc_inactive_RNAP = expected_update['molecules']['APORNAP-CPLX[c]']
+
+    # Plots ======================================================
+
+    # rnas synthesized follow same distribution
+    plt.subplot(3, 1, 1)
+    qqplot(rnas_synthesized, wc_rnas_synthesized)
+
+    # ntps used of each type
+    plt.subplot(3, 1, 2)
+    plt.bar(np.arange(4)-0.1, ntps_used, 0.2)
+    plt.bar(np.arange(4)+0.1, wc_ntps_used, 0.2)
+
+    # wc_ntps
+    plt.subplot(3, 1, 3)
+    plt.bar(np.arange(4) - 0.1, [v for v in ntps.values()], 0.2)
+    plt.bar(np.arange(4) + 0.1, [v for v in wc_ntps.values()], 0.2)
+
     plt.gcf().set_size_inches(8, 6)
-    plt.savefig("out/migration/transcript_elongation_toymodel.png")
+    plt.savefig("out/migration/transcript_elongation_figures.png")
 
 
 def assertions(actual_update, expected_update):
     # unpack update
+    trans_lengths = [r['transcript_length'] for k, r in actual_update["RNAs"].items()
+                     if k != "_delete"]
     rnas_synthesized = actual_update['listeners']['transcript_elongation_listener']['countRnaSynthesized']
+    #bulk_16SrRNA = actual_update['bulk_RNAs']['16S rRNA']
+    #bulk_5SrRNA = actual_update['bulk_RNAs']['5S rRNA']
+    #bulk_23SrRNA = actual_update['bulk_RNAs']['23S rRNA']
+    #bulk_mRNA = actual_update['bulk_RNAs']['mRNA']
+
     ntps_used = actual_update['listeners']['growth_limits']['ntpUsed']
     total_ntps_used = actual_update['listeners']['transcript_elongation_listener']['countNTPsUsed']
-
     ntps = actual_update['ntps']
 
-    # NTPs used match sequences of which RNAs were elongated
+    RNAP_coordinates = [v['coordinates'] for k, v in actual_update['active_RNAPs'].items()
+                        if k != "_delete"]
+    RNAP_elongations = actual_update['listeners']['rnap_data']['actualElongations']
+    terminations = actual_update['listeners']['rnap_data']['didTerminate']
 
-    # total NTPS used matches sum of NTP-used types
+    ppi = actual_update['molecules']['PPI[c]']
+    inactive_RNAP = actual_update['molecules']['APORNAP-CPLX[c]']
 
-    #assert sum(ntps_used) == total_ntps_used
+    # unpack wcEcoli update
+    # TODO: wc_trans_lengths = ...
+    wc_rnas_synthesized = expected_update['listeners']['transcript_elongation_listener']['countRnaSynthesized']
 
+    wc_ntps_used = expected_update['listeners']['growth_limits']['ntpUsed']
+    wc_total_ntps_used = expected_update['listeners']['transcript_elongation_listener']['countNTPsUsed']
+    wc_ntps = expected_update['ntps']
+
+    # TODO: wc_RNAP_coordinates = ...
+    wc_RNAP_elongations = expected_update['listeners']['rnap_data']['actualElongations']
+    wc_terminations = expected_update['listeners']['rnap_data']['didTerminate']
+
+    wc_ppi = expected_update['molecules']['PPI[c]']
+    wc_inactive_RNAP = expected_update['molecules']['APORNAP-CPLX[c]']
+
+    # Assertions ======================================================
+
+    # Assert that rnas synthesized are exactly the same!
+    # (possible because this, somehow, is deterministic?)
+    np.testing.assert_array_equal(rnas_synthesized, wc_rnas_synthesized)
 
 
 def save_test_sequences(config):
@@ -96,7 +159,5 @@ def save_test_sequences(config):
     with open('data/elongation_sequences.npy', 'wb') as f:
         np.save(f, save_seq)
 
-
 if __name__ == "__main__":
     test_transcription_elongation()
-    plt.ylabel("# synthesized")
