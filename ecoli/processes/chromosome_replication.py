@@ -13,7 +13,7 @@ from vivarium.core.composition import simulate_process
 from ecoli.library.schema import arrays_from, arrays_to, add_elements, listener_schema, bulk_schema
 
 from wholecell.utils import units
-from wholecell.utils.polymerize import buildSequences, polymerize
+from wholecell.utils.polymerize import buildSequences, polymerize, computeMassIncrease
 
 
 
@@ -124,41 +124,43 @@ class ChromosomeReplication(Process):
     def next_update(self, timestep, states):
 
         # Get total count of existing oriC's
-        n_oric = len(states['oriCs'])
+        n_oriC = len(states['oriCs'])
         # n_oric = self.oriCs.total_count()
 
         # If there are no origins, return immediately
-        # if n_oric == 0:
-        #     return
-        if n_oric != 0:
+        if n_oriC == 0:
+            return
 
-            # Get current cell mass
-            cellMass = states['listeners']['mass']['cell_mass'] * units.fg
-            # cellMass = (self.readFromListener("Mass", "cellMass") * units.fg)
+        # Get current cell mass
+        cellMass = states['listeners']['mass']['cell_mass'] * units.fg
+        # cellMass = (self.readFromListener("Mass", "cellMass") * units.fg)
 
-            # Get critical initiation mass for current simulation environment
-            current_media_id = states['environment']['media_id']
-            # current_media_id = self._external_states['Environment'].current_media_id
-            self.criticalInitiationMass = self.get_dna_critical_mass(
-                self.nutrientToDoublingTime[current_media_id])
+        # Get critical initiation mass for current simulation environment
+        current_media_id = states['environment']['media_id']
+        # current_media_id = self._external_states['Environment'].current_media_id
+        self.criticalInitiationMass = self.get_dna_critical_mass(
+            self.nutrientToDoublingTime[current_media_id])
 
-            # Calculate mass per origin of replication, and compare to critical
-            # initiation mass. If the cell mass has reached this critical mass,
-            # the process will initiate a round of chromosome replication for each
-            # origin of replication.
-            massPerOrigin = cellMass / n_oric
-            self.criticalMassPerOriC = massPerOrigin / self.criticalInitiationMass
+        # Calculate mass per origin of replication, and compare to critical
+        # initiation mass. If the cell mass has reached this critical mass,
+        # the process will initiate a round of chromosome replication for each
+        # origin of replication.
+        massPerOrigin = cellMass / n_oriC
+        self.criticalMassPerOriC = massPerOrigin / self.criticalInitiationMass
 
-            # If replication should be initiated, request subunits required for
-            # building two replisomes per one origin of replication, and edit
-            # access to oriC and chromosome domain attributes
-            if self.criticalMassPerOriC >= 1.0:
-                replisome_trimers = 6 * n_oric
-                replisome_monomers = 2 * n_oric
-                # self.replisome_trimers.requestIs(6 * n_oric)
-                # self.replisome_monomers.requestIs(2 * n_oric)
-                # self.oriCs.request_access(self.EDIT_ACCESS)
-                # self.chromosome_domains.request_access(self.EDIT_ACCESS)
+        # If replication should be initiated, request subunits required for
+        # building two replisomes per one origin of replication, and edit
+        # access to oriC and chromosome domain attributes
+        if self.criticalMassPerOriC >= 1.0:
+            n_replisome_trimers = 6 * n_oriC
+            n_replisome_monomers = 2 * n_oriC
+            # self.replisome_trimers.requestIs(6 * n_oric)
+            # self.replisome_monomers.requestIs(2 * n_oric)
+            # self.oriCs.request_access(self.EDIT_ACCESS)
+            # self.chromosome_domains.request_access(self.EDIT_ACCESS)
+        else:
+            n_replisome_trimers = 0
+            n_replisome_monomers = 0
 
         # If there are no active forks return
         n_active_replisomes = len(states['active_replisomes'])
@@ -193,7 +195,7 @@ class ChromosomeReplication(Process):
 
             # If one dNTP is limiting then limit the request for the other three by
             # the same ratio
-            dNtpsTotal = len(states['dntps'])
+            dNtpsTotal = np.array(list(states['dntps'].values()))
             # dNtpsTotal = self.dntps.total_counts()
             maxFractionalReactionLimit = (np.fmin(1, dNtpsTotal / sequenceComposition)).min()
 
@@ -209,29 +211,35 @@ class ChromosomeReplication(Process):
 
 
 
+        # TODO -- use request values
+        update = {
+            'listeners': {
+                'ribosome_data': {
+                    'ReplicationData': {}
+                },
+            }}
 
-        import ipdb; ipdb.set_trace()
 
-
-
-
-        # def evolveState(self):
-        ## Module 1: Replication initiation
-        # Get number of existing replisomes and oriCs
-        n_active_replisomes = self.active_replisomes.total_count()
-        n_oriC = self.oriCs.total_count()
-
-        # If there are no origins, return immediately
-        if n_oriC == 0:
-            return
+        # # def evolveState(self):
+        # ## Module 1: Replication initiation
+        # # Get number of existing replisomes and oriCs
+        # n_active_replisomes = self.active_replisomes.total_count()
+        # n_oriC = self.oriCs.total_count()
+        #
+        # # If there are no origins, return immediately
+        # if n_oriC == 0:
+        #     return
 
         # Get attributes of existing chromosome domains
-        domain_index_existing_domain, child_domains = self.chromosome_domains.attrs(
-            'domain_index', 'child_domains')
+        domain_index_existing_domain, child_domains = arrays_from(
+            states['chromosome_domains'].values(),
+            ['domain_index', 'child_domains'])
+        # domain_index_existing_domain, child_domains = self.chromosome_domains.attrs(
+        #     'domain_index', 'child_domains')
 
-        # Get number of available replisome subunits
-        n_replisome_trimers = self.replisome_trimers.counts()
-        n_replisome_monomers = self.replisome_monomers.counts()
+        # # Get number of available replisome subunits
+        # n_replisome_trimers = self.replisome_trimers.counts()
+        # n_replisome_monomers = self.replisome_monomers.counts()
 
         # Initiate replication only when
         # 1) The cell has reached the critical mass per oriC
@@ -246,7 +254,10 @@ class ChromosomeReplication(Process):
         # origin of replication
         if initiate_replication:
             # Get attributes of existing oriCs and domains
-            domain_index_existing_oric = self.oriCs.attr('domain_index')
+            domain_index_existing_oric, = arrays_from(
+                states['oriCs'].values(),
+                ['domain_index'])
+            # domain_index_existing_oric = self.oriCs.attr('domain_index')
 
             # Get indexes of the domains that would be getting child domains
             # (domains that contain an origin)
@@ -303,11 +314,17 @@ class ChromosomeReplication(Process):
                 self.replisome_trimers.countsDec(6 * n_oriC)
                 self.replisome_monomers.countsDec(2 * n_oriC)
 
-        # Write data from this module to a listener
-        self.writeToListener("ReplicationData", "criticalMassPerOriC",
-                             self.criticalMassPerOriC)
-        self.writeToListener("ReplicationData", "criticalInitiationMass",
-                             self.criticalInitiationMass.asNumber(units.fg))
+
+        update['listener']['ReplicationData']['criticalMassPerOriC'] = \
+            self.criticalMassPerOriC
+        update['listener']['ReplicationData']['criticalInitiationMass'] = \
+            self.criticalInitiationMass.asNumber(units.fg)
+
+        # # Write data from this module to a listener
+        # self.writeToListener("ReplicationData", "criticalMassPerOriC",
+        #                      self.criticalMassPerOriC)
+        # self.writeToListener("ReplicationData", "criticalInitiationMass",
+        #                      self.criticalInitiationMass.asNumber(units.fg))
 
         ## Module 2: replication elongation
         # If no active replisomes are present, return immediately
