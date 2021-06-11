@@ -79,4 +79,5 @@ setup(
         'stochastic-arrow',
         'iteround',
         'cobra',
+        'jaxlib',
         ])
