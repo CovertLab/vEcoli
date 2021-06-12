@@ -10,7 +10,7 @@ from arrow import StochasticSystem
 from vivarium.core.process import Process
 from vivarium.core.composition import simulate_process
 
-from ecoli.library.schema import arrays_from, arrays_to, add_elements, listener_schema, bulk_schema
+from ecoli.library.schema import array_to, arrays_from, arrays_to, add_elements, listener_schema, bulk_schema
 
 from wholecell.utils import units
 from wholecell.utils.polymerize import buildSequences, polymerize, computeMassIncrease
@@ -80,8 +80,9 @@ class ChromosomeReplication(Process):
             'ppi': bulk_schema(self.parameters['ppi']),
             'listeners': {
                 'mass': {
-                    'cell_mass': {'_default': 0.0},
-                }},
+                    'cell_mass': {'_default': 0.0}},
+                'replication_data': {}
+            },
             'environment': {
                 'media_id': {
                     '_default': '',
@@ -96,6 +97,8 @@ class ChromosomeReplication(Process):
                         '_default': 0, '_updater': 'set'},
                     'coordinates': {
                         '_default': 0, '_updater': 'set'},
+                    'dna_mass': {
+                        '_default': 0, '_updater': 'accumulate'},
                 }},
             'oriCs': {
                 '*': {
@@ -209,15 +212,11 @@ class ChromosomeReplication(Process):
             # self.active_replisomes.request_access(self.EDIT_DELETE_ACCESS)
 
 
-
-
         # TODO -- use request values
         update = {
             'oriCs': {},
             'listeners': {
-                'ribosome_data': {
-                    'ReplicationData': {}
-                },
+                'replication_data': {},
             }}
 
 
@@ -321,12 +320,11 @@ class ChromosomeReplication(Process):
                 self.replisome_monomers.countsDec(2 * n_oriC)
 
 
-        update['listener']['ReplicationData']['criticalMassPerOriC'] = \
+        # Write data from this module to a listener
+        update['listeners']['replication_data']['criticalMassPerOriC'] = \
             self.criticalMassPerOriC
-        update['listener']['ReplicationData']['criticalInitiationMass'] = \
+        update['listeners']['replication_data']['criticalInitiationMass'] = \
             self.criticalInitiationMass.asNumber(units.fg)
-
-        # # Write data from this module to a listener
         # self.writeToListener("ReplicationData", "criticalMassPerOriC",
         #                      self.criticalMassPerOriC)
         # self.writeToListener("ReplicationData", "criticalInitiationMass",
@@ -340,11 +338,15 @@ class ChromosomeReplication(Process):
             return
 
         # Get allocated counts of dNTPs
-        dNtpCounts = self.dntps.counts()
+        dNtpCounts = dntps
+        # dNtpCounts = self.dntps.counts()
 
         # Get attributes of existing replisomes
-        domain_index_replisome, right_replichore, coordinates_replisome = self.active_replisomes.attrs(
-            "domain_index", "right_replichore", "coordinates")
+        domain_index_replisome, right_replichore, coordinates_replisome, = arrays_from(
+            states['active_replisomes'].values(),
+            ['domain_index', 'right_replichore', 'coordinates'])
+        # domain_index_replisome, right_replichore, coordinates_replisome = self.active_replisomes.attrs(
+        #     "domain_index", "right_replichore", "coordinates")
         sequence_length = np.abs(np.repeat(coordinates_replisome, 2))
 
         # Build sequences to polymerize
@@ -366,7 +368,7 @@ class ChromosomeReplication(Process):
             sequences,
             dNtpCounts,
             reactionLimit,
-            self.randomState,
+            self.random_state,
             active_elongation_rates)
 
         sequenceElongations = result.sequenceElongation
@@ -389,12 +391,24 @@ class ChromosomeReplication(Process):
         updated_coordinates[~right_replichore] = -updated_coordinates[~right_replichore]
 
         # Update attributes and submasses of replisomes
-        self.active_replisomes.attrIs(coordinates=updated_coordinates)
-        self.active_replisomes.add_submass_by_name("DNA", added_dna_mass)
+        active_replisomes_indexes = list(states['active_replisomes'].keys())
+        active_replisomes_update = arrays_to(
+            len(states['active_replisomes']),
+            {
+                'coordinates': updated_coordinates,
+                'dna_mass': added_dna_mass,
+             })
+        update['active_replisomes'] = {
+                active_replisomes_indexes[index]: active_replisomes
+                for index, active_replisomes in enumerate(active_replisomes_update)}
+        # self.active_replisomes.attrIs(coordinates=updated_coordinates)
+        # self.active_replisomes.add_submass_by_name("DNA", added_dna_mass)
 
         # Update counts of polymerized metabolites
-        self.dntps.countsDec(dNtpsUsed)
-        self.ppi.countInc(dNtpsUsed.sum())
+        update['dntps'] = array_to(self.parameters['dntps'], -dNtpsUsed)
+        update['ppi'] = array_to(self.parameters['ppi'], [dNtpsUsed.sum()])
+        # self.dntps.countsDec(dNtpsUsed)
+        # self.ppi.countInc(dNtpsUsed.sum())
 
         ## Module 3: replication termination
         # Determine if any forks have reached the end of their sequences. If
@@ -480,8 +494,6 @@ class ChromosomeReplication(Process):
 
         import ipdb;
         ipdb.set_trace()
-
-
 
 
         return update
