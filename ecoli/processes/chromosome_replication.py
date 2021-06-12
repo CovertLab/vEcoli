@@ -5,7 +5,6 @@ termination of active partial chromosomes that replicate the chromosome.
 """
 
 import numpy as np
-from arrow import StochasticSystem
 
 from vivarium.core.process import Process
 from vivarium.core.composition import simulate_process
@@ -149,12 +148,12 @@ class ChromosomeReplication(Process):
         # the process will initiate a round of chromosome replication for each
         # origin of replication.
         massPerOrigin = cellMass / n_oriC
-        self.criticalMassPerOriC = massPerOrigin / self.criticalInitiationMass
+        criticalMassPerOriC = massPerOrigin / self.criticalInitiationMass
 
         # If replication should be initiated, request subunits required for
         # building two replisomes per one origin of replication, and edit
         # access to oriC and chromosome domain attributes
-        if self.criticalMassPerOriC >= 1.0:
+        if criticalMassPerOriC >= 1.0:
             n_replisome_trimers = 6 * n_oriC
             n_replisome_monomers = 2 * n_oriC
             # self.replisome_trimers.requestIs(6 * n_oric)
@@ -212,13 +211,12 @@ class ChromosomeReplication(Process):
             # self.active_replisomes.request_access(self.EDIT_DELETE_ACCESS)
 
 
-        # TODO -- use request values
+        # Initialize the update dictionary
         update = {
             'oriCs': {},
             'listeners': {
                 'replication_data': {},
             }}
-
 
         # # def evolveState(self):
         # ## Module 1: Replication initiation
@@ -246,9 +244,15 @@ class ChromosomeReplication(Process):
         # 2) If mechanistic replisome option is on, there are enough replisome
         # subunits to assemble two replisomes per existing OriC.
         # Note that we assume asynchronous initiation does not happen.
-        initiate_replication = self.criticalMassPerOriC >= 1.0 and (
+        initiate_replication = criticalMassPerOriC >= 1.0 and (
                 not self.mechanistic_replisome or (np.all(n_replisome_trimers == 6 * n_oriC) and
                                                    np.all(n_replisome_monomers == 2 * n_oriC)))
+
+
+
+        import ipdb; ipdb.set_trace()
+        # TODO -- test initiation initialization event! Pull this from wcEcoli state
+
 
         # If all conditions are met, initiate a round of replication on every
         # origin of replication
@@ -322,7 +326,7 @@ class ChromosomeReplication(Process):
 
         # Write data from this module to a listener
         update['listeners']['replication_data']['criticalMassPerOriC'] = \
-            self.criticalMassPerOriC
+            criticalMassPerOriC
         update['listeners']['replication_data']['criticalInitiationMass'] = \
             self.criticalInitiationMass.asNumber(units.fg)
         # self.writeToListener("ReplicationData", "criticalMassPerOriC",
@@ -416,6 +420,12 @@ class ChromosomeReplication(Process):
         terminal_lengths = self.replichore_lengths[
             np.logical_not(right_replichore).astype(np.int64)]
         terminated_replisomes = (np.abs(updated_coordinates) == terminal_lengths)
+
+
+
+        import ipdb; ipdb.set_trace()
+        # TODO -- test fork termination event! Pull this from wcEcoli state
+
 
         # If any forks were terminated,
         if terminated_replisomes.sum() > 0:
