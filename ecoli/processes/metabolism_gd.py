@@ -29,39 +29,45 @@ class MetabolismGD(Process):
     name = 'ecoli-metabolism-gradient-descent'
 
     defaults = {
-        'get_import_constraints': lambda u, c, p: (u, c, []),
-        'nutrientToDoublingTime': {},
-        'use_trna_charging': False,
-        'include_ppgpp': False,
-        'aa_names': [],
-        'current_timeline': None,
-        'media_id': 'minimal',
-        'condition': 'basal',
-        'nutrients': [],
-        'metabolism': {},
-        'non_growth_associated_maintenance': 8.39 * units.mmol / (units.g * units.h),
-        'avogadro': 6.02214076e+23 / units.mol,
-        'cell_density': 1100 * units.g / units.L,
-        'dark_atp': 33.565052868380675 * units.mmol / units.g,
-        'cell_dry_mass_fraction': 0.3,
-        'get_biomass_as_concentrations': lambda doubling_time: {},
-        'ppgpp_id': 'ppgpp',
-        'get_ppGpp_conc': lambda media: 0.0,
-        'exchange_data_from_media': lambda media: [],
-        'get_mass': lambda exchanges: [],
-        'doubling_time': 44.0 * units.min,
-        'amino_acid_ids': [],
-        'seed': 0}
+        'stoichiometry': [],
+        'reaction_catalysts': [],
+        'catalyst_ids': [],
+
+
+        # 'get_import_constraints': lambda u, c, p: (u, c, []),
+        # 'nutrientToDoublingTime': {},
+        # 'use_trna_charging': False,
+        # 'include_ppgpp': False,
+        # 'aa_names': [],
+        # 'current_timeline': None,
+        # 'media_id': 'minimal',
+        # 'condition': 'basal',
+        # 'nutrients': [],
+        # 'metabolism': {},
+        # 'non_growth_associated_maintenance': 8.39 * units.mmol / (units.g * units.h),
+        # 'avogadro': 6.02214076e+23 / units.mol,
+        # 'cell_density': 1100 * units.g / units.L,
+        # 'dark_atp': 33.565052868380675 * units.mmol / units.g,
+        # 'cell_dry_mass_fraction': 0.3,
+        # 'get_biomass_as_concentrations': lambda doubling_time: {},
+        # 'ppgpp_id': 'ppgpp',
+        # 'get_ppGpp_conc': lambda media: 0.0,
+        # 'exchange_data_from_media': lambda media: [],
+        # 'get_mass': lambda exchanges: [],
+        # 'doubling_time': 44.0 * units.min,
+        # 'amino_acid_ids': [],
+        # 'seed': 0,
+    }
 
     def __init__(self, parameters):
         super().__init__(parameters)
 
 
         # TODO -- extract the FBA configuration from the metabolism dataclass object
-        metabolism = self.parameters['metabolism']
-        stoichiometry = metabolism.reaction_stoich
-        reaction_catalysts = metabolism.reaction_catalysts
-        catalyst_ids = metabolism.catalyst_ids
+        # metabolism = self.parameters['metabolism']
+        stoichiometry = self.parameters['stoichiometry']
+        reaction_catalysts = self.parameters['reaction_catalysts']
+        catalyst_ids = self.parameters['catalyst_ids']
         import ipdb;
         ipdb.set_trace()
 
