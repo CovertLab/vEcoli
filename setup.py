@@ -80,4 +80,5 @@ setup(
         'iteround',
         'cobra',
         'jaxlib',
+        "jupyter",
         ])
