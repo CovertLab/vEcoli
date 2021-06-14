@@ -159,7 +159,7 @@ class GradientDescentFba:
 
         self.network = ReactionNetwork(reactions)
         self._exchanges = set(exchanges)
-        self._objective_components = set(objective.keys())
+        self._objective_components = set(objective)
 
         # Declared exchanges and objective components are excluded from steady state requirement.
         self._steady_state_objective = SteadyStateResidual(
@@ -167,14 +167,14 @@ class GradientDescentFba:
 
         self.objectiveType = objectiveType or "homeostatic"
         if self.objectiveType == "homeostatic":
-            self._homeostatic_objective = DmdtTargetResidual(self.network, objective.keys(), "objective")
+            self._homeostatic_objective = DmdtTargetResidual(self.network, self._objective_components, "objective")
             self._kinetic_objective = None
         elif self.objectiveType == "kinetic_only":
             self._homeostatic_objective = None
             self._kinetic_objective = KineticTargetResidual(
                 self.network, objectiveParameters["reactionRateTargets"], "kinetic_targets")
         elif self.objectiveType == "homeostatic_kinetics_mixed":
-            self._homeostatic_objective = DmdtTargetResidual(self.network, objective.keys(), "objective")
+            self._homeostatic_objective = DmdtTargetResidual(self.network, self._objective_components, "objective")
             self._kinetic_objective = KineticTargetResidual(
                 self.network, objectiveParameters["reactionRateTargets"], "kinetic_targets")
         else:
