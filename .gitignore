@@ -15,6 +15,7 @@ out/
 user/*
 !user/user.txt
 *.cprof
+.ipynb_checkpoints
 
 # Compiled source #
 ###################
