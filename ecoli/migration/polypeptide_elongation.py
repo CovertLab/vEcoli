@@ -60,5 +60,5 @@ def run_polypeptide_elongation():
 
 
 if __name__ == "__main__":
-    test_polypeptide_elongation_migration()
-    # run_polypeptide_elongation()
+    # test_polypeptide_elongation_migration()
+    run_polypeptide_elongation()
