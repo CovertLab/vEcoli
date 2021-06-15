@@ -4,6 +4,7 @@ Process for chromosome replication. Performs initiation, elongation, and
 termination of active partial chromosomes that replicate the chromosome.
 """
 
+import uuid
 import numpy as np
 
 from vivarium.core.process import Process
@@ -249,8 +250,7 @@ class ChromosomeReplication(Process):
                                                    np.all(n_replisome_monomers == 2 * n_oriC)))
 
 
-
-        import ipdb; ipdb.set_trace()
+        # import ipdb; ipdb.set_trace()
         # TODO -- test initiation initialization event! Pull this from wcEcoli state
 
 
@@ -280,14 +280,15 @@ class ChromosomeReplication(Process):
 
             # Add new oriC's, and reset attributes of existing oriC's
             # All oriC's must be assigned new domain indexes
-
-            import ipdb; ipdb.set_trace()
-            # TODO -- add new oriCs
-            update['oriCs'] = add_elements()
-
-            self.oriCs.attrIs(domain_index=domain_index_new[:n_oriC])
-            self.oriCs.moleculesNew(
-                n_oriC, domain_index=domain_index_new[n_oriC:])
+            update['oriCs'] = {
+                '_add': [{
+                    'key': str(uuid.uuid1()),
+                    'state': {'domain_index': index}}
+                    for index in domain_index_new],
+                '_delete': [list(states['oriCs'].keys())]}
+            # self.oriCs.attrIs(domain_index=domain_index_new[:n_oriC])
+            # self.oriCs.moleculesNew(
+            #     n_oriC, domain_index=domain_index_new[n_oriC:])
 
             # Add and set attributes of newly created replisomes.
             # New replisomes inherit the domain indexes of the oriC's they
@@ -299,29 +300,61 @@ class ChromosomeReplication(Process):
             domain_index_new_replisome = np.repeat(
                 domain_index_existing_oric, 2)
 
-            self.active_replisomes.moleculesNew(
-                n_new_replisome,
-                coordinates=coordinates_replisome,
-                right_replichore=right_replichore,
-                domain_index=domain_index_new_replisome)
+            update['active_replisomes'] = {
+                '_add': [{
+                    'key': str(uuid.uuid1()),
+                    'state': {
+                        'coordinates': coordinates_replisome[index],
+                        'right_replichore': right_replichore[index],
+                        'domain_index': domain_index_new_replisome[index],
+                    }}
+                    for index in range(n_new_replisome)]}
+            # self.active_replisomes.moleculesNew(
+            #     n_new_replisome,
+            #     coordinates=coordinates_replisome,
+            #     right_replichore=right_replichore,
+            #     domain_index=domain_index_new_replisome)
 
             # Add and set attributes of new chromosome domains. All new domains
             # should have have no children domains.
-            self.chromosome_domains.moleculesNew(
-                n_new_domain,
-                domain_index=domain_index_new,
-                child_domains=np.full(
-                    (n_new_domain, 2), self.no_child_place_holder,
-                    dtype=np.int32))
+            new_child_domains = np.full(
+                (n_new_domain, 2), self.no_child_place_holder, dtype=np.int32)
+            new_domains_update = {
+                '_add': [{
+                    'key': str(uuid.uuid1()),
+                    'state': {
+                        'domain_index': domain_index_new[index],
+                        'child_domains': new_child_domains[index],
+                    }}
+                    for index in range(n_new_domain)]}
 
             # Add new domains as children of existing domains
             child_domains[new_parent_domains] = domain_index_new.reshape(-1, 2)
-            self.chromosome_domains.attrIs(child_domains=child_domains)
+            existing_domains_update = {
+                domain: child_domains[index]
+                for index, domain in enumerate(states['chromosome_domains'].keys())}
+            update['chromosome_domains'] = {**new_domains_update, **existing_domains_update}
+
+            # self.chromosome_domains.moleculesNew(
+            #     n_new_domain,
+            #     domain_index=domain_index_new,
+            #     child_domains=np.full(
+            #         (n_new_domain, 2), self.no_child_place_holder,
+            #         dtype=np.int32))
+            # child_domains[new_parent_domains] = domain_index_new.reshape(-1, 2)
+            # self.chromosome_domains.attrIs(child_domains=child_domains)
 
             # Decrement counts of replisome subunits
             if self.mechanistic_replisome:
-                self.replisome_trimers.countsDec(6 * n_oriC)
-                self.replisome_monomers.countsDec(2 * n_oriC)
+                update['replisome_trimers'] = {
+                    mol: -6 * n_oriC
+                    for mol in self.parameters['replisome_trimers_subunits']}
+                update['replisome_monomers'] = {
+                    mol: -2 * n_oriC
+                    for mol in self.parameters['replisome_monomers_subunits']}
+
+                # self.replisome_trimers.countsDec(6 * n_oriC)
+                # self.replisome_monomers.countsDec(2 * n_oriC)
 
 
         # Write data from this module to a listener
@@ -423,7 +456,7 @@ class ChromosomeReplication(Process):
 
 
 
-        import ipdb; ipdb.set_trace()
+        # import ipdb; ipdb.set_trace()
         # TODO -- test fork termination event! Pull this from wcEcoli state
 
 
@@ -502,8 +535,8 @@ class ChromosomeReplication(Process):
                 self.replisome_monomers.countsInc(replisomes_to_delete.sum())
 
 
-        import ipdb;
-        ipdb.set_trace()
+        # import ipdb;
+        # ipdb.set_trace()
 
 
         return update
