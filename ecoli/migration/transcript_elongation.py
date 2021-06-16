@@ -152,12 +152,16 @@ def assertions(actual_update, expected_update):
         }
     }
 
+    # Note: While writing tests, use fail_loudly=False, verbose=True
+    #       Once all tests are passing, consider fail_loudly=True, verbose=False for efficiency
+
     tests = ComparisonTestSuite(test_structure, fail_loudly=False)
     tests.run_tests(actual_update,
                     expected_update,
                     verbose=True)
-
-    print(tests.report)
+    #print(tests.report)
+    #tests.dump_report()
+    tests.fail()
 
 
 def save_test_sequences(config):
