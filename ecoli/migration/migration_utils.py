@@ -19,7 +19,7 @@ def get_process_state(process, topology, initial_state):
     # translate the values from the tree structure into the form
     # that this process expects, based on its declared topology
     states = store.outer.schema_topology(process.schema, store.topology)
-    return states
+    return states, experiment
 
 
 def run_ecoli_process(
