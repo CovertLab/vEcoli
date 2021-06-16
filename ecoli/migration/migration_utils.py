@@ -145,7 +145,8 @@ class ComparisonTestSuite:
     Results of testing can be viewed using ComparisonTestSuite.dump_report(), or
     by examining ComparisonTestSuite.report manually.
 
-    To raise an AssertionError after running
+    To raise an AssertionError if necessary after running tests with fail_loudly=False,
+    use ComparisonTestSuite.fail().
     '''
 
     def __init__(self, test_structure, fail_loudly=False):
@@ -154,10 +155,11 @@ class ComparisonTestSuite:
         self.report = {}
 
     def run_tests(self, vivEcoli_update, wcEcoli_update, verbose=False):
-        failures
+        self.report = {}
 
         def run_tests_iter(vivEcoli_update, wcEcoli_update, test_structure,
                            verbose, level=0):
+            report = {}
             for k, v in test_structure.items():
                 if verbose:
                     print('.'*level + f'Testing {k}...')
@@ -170,28 +172,37 @@ class ComparisonTestSuite:
 
                 # run test if at a leaf node, else recurse
                 if callable(v):
-                    try:
-                        print('.'*level + 'Running test\n' +
-                              '.'*level + f'\t{v}\n' +
-                              '.'*level + 'for element {k}.')
-                        test_result = v(vivEcoli_update[k], wcEcoli_update[k])
-                        #self.report[k] = test_result if test_result is not None else True
-                    except AssertionError as e:
-                        self.failure = e
+                    print('.' * level + 'Running test\n' +
+                          '.' * level + f'\t{v.__name__}\n' +
+                          '.' * level + f'for element {k}.')
+                    test_result = v(vivEcoli_update[k], wcEcoli_update[k])
+                    report[k] = test_result
+
+                    passed = test_result[0] if isinstance(test_result, tuple) else test_result
+                    if verbose:
+                        print('.' * level + f'{"PASSED" if passed else "FAILED"} test "{v.__name__}" for {k}:')
+                        if isinstance(test_result, tuple):
+                            print('.' * level + f'\t{test_result[1]}')
+
+                    if not passed:
+                        self.failure = True
                         if self.fail_loudly:
-                            raise e
-                        if verbose:
-                            print(e)
-
-                        #self.report[k]=False
+                            assert passed, '.' * level + f'FAILED test "{v.__name__}" for {k}.'
                 else:
-                    run_tests_iter(vivEcoli_update[k],
-                                   wcEcoli_update[k],
-                                   test_structure[k],
-                                   verbose,
-                                   level+1)
+                    report[k] = run_tests_iter(vivEcoli_update[k],
+                                               wcEcoli_update[k],
+                                               test_structure[k],
+                                               verbose,
+                                               level+1)
+            return report
 
-        run_tests_iter(vivEcoli_update, wcEcoli_update, self.test_structure, verbose)
+        self.report = run_tests_iter(vivEcoli_update, wcEcoli_update, self.test_structure, verbose)
+
+    def dump_report(self):
+        pass
+
+    def fail(self):
+        pass
 
 
 def array_equal(arr1, arr2):
