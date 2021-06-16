@@ -115,3 +115,57 @@ def array_diffs_report(a, b, names=None, sort_by="absolute", sort_with=np.abs):
 
 def percent_error(actual, expected):
     return abs((actual - expected) / expected)
+
+
+class MigrationTestSuite:
+    def __init__(self, test_structure, fail_loudly=False):
+        self.test_structure = test_structure
+        self.fail_loudly = fail_loudly
+
+    def run_tests(self, vivEcoli_update, wcEcoli_update, verbose=False):
+        self.report = {}
+
+        def run_tests_iter(vivEcoli_update, wcEcoli_update, test_structure, verbose, level=0):
+            for k, v in test_structure.items():
+                if verbose:
+                    print('.'*level + f'Testing {k}...')
+
+                # check structure is correct:
+                if k not in vivEcoli_update:
+                    raise ValueError(f"Key {k} is missing from vivarium-ecoli update.")
+                if k not in wcEcoli_update:
+                    raise ValueError(f"Key {k} is missing from wcEcoli update.")
+
+                # run test if at a leaf node, else recurse
+                if callable(v):
+                    try:
+                        print('.'*level + 'Running test\n' +
+                              '.'*level + f'\t{v}\n'+
+                              '.'*level + 'for element {k}.')
+                        test_result = v(vivEcoli_update[k], wcEcoli_update[k])
+                        #self.report[k] = test_result if test_result is not None else True
+                    except AssertionError as e:
+                        if self.fail_loudly:
+                            raise e
+                        if verbose:
+                            print(e)
+
+                        #self.report[k]=False
+                else:
+                    run_tests_iter(vivEcoli_update[k],
+                                   wcEcoli_update[k],
+                                   test_structure[k],
+                                   verbose,
+                                   level+1)
+
+        run_tests_iter(vivEcoli_update, wcEcoli_update, self.test_structure, verbose)
+
+
+def array_equal(arr1, arr2):
+    np.testing.assert_array_equal(arr1, arr2)
+
+def scalar_equal(v1, v2):
+    assert v1==v2
+
+def array_almost_equal(tol=0.05):
+    return lambda arr1, arr2: max(percent_error(a, b) for a, b in zip(arr1, arr2)) < tol

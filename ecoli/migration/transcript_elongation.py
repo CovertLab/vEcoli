@@ -11,7 +11,7 @@ from scipy.stats import mannwhitneyu, chisquare
 
 from ecoli.library.sim_data import LoadSimData
 from ecoli.composites.ecoli_master import SIM_DATA_PATH
-from ecoli.migration.migration_utils import run_ecoli_process, percent_error
+from ecoli.migration.migration_utils import *
 
 from ecoli.processes.transcript_elongation import TranscriptElongation
 
@@ -143,9 +143,20 @@ def assertions(actual_update, expected_update):
 
     # Assertions ======================================================
 
-    # Assert that rnas synthesized are exactly the same!
-    # (possible because this, somehow, is deterministic?)
-    np.testing.assert_array_equal(rnas_synthesized, wc_rnas_synthesized)
+    test_structure = {
+        'listeners' : {
+            'transcript_elongation_listener' : {
+                'countRnaSynthesized' : array_equal
+            }
+        }
+    }
+
+    tests = MigrationTestSuite(test_structure, fail_loudly=False)
+    tests.run_tests(actual_update,
+                    expected_update,
+                    verbose=True)
+
+    print(tests.report)
 
 
 def save_test_sequences(config):
