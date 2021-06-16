@@ -253,3 +253,11 @@ def run_all(*tests):
         return result
 
     return _run_all
+
+def array_diffs_report_test(filename, names=None, sort_by="absolute", sort_with=np.abs):
+    def _array_diffs_report_test(a, b):
+        result = array_diffs_report(a, b, names, sort_by, sort_with)
+        with open(filename, 'w') as f:
+            f.write(result)
+        return True
+    return _array_diffs_report_test
