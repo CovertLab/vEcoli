@@ -148,6 +148,10 @@ def assertions(actual_update, expected_update):
             'transcript_elongation_listener' : {
                 'countRnaSynthesized' : array_equal,
                 'countNTPsUsed' : scalar_equal
+            },
+            'growth_limits' : {
+                'ntpUsed' : run_all(array_equal,
+                                    array_diffs_report_test("out/migration/ntpUsed_comparison.txt"))
             }
         }
     }
@@ -159,8 +163,11 @@ def assertions(actual_update, expected_update):
     tests.run_tests(actual_update,
                     expected_update,
                     verbose=True)
+
+    #pretty_print(tests.report)
     #print(tests.report)
     #tests.dump_report()
+
     tests.fail()
 
 
