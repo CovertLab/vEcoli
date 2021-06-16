@@ -1,0 +1,7 @@
+README.md
+setup.py
+Fast_polymerize_sums.egg-info/PKG-INFO
+Fast_polymerize_sums.egg-info/SOURCES.txt
+Fast_polymerize_sums.egg-info/dependency_links.txt
+Fast_polymerize_sums.egg-info/top_level.txt
+wholecell/utils/_fastsums.c
