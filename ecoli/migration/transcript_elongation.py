@@ -146,12 +146,13 @@ def assertions(actual_update, expected_update):
     test_structure = {
         'listeners' : {
             'transcript_elongation_listener' : {
-                'countRnaSynthesized' : array_equal
+                'countRnaSynthesized' : array_equal,
+                'countNTPsUsed' : scalar_equal
             }
         }
     }
 
-    tests = MigrationTestSuite(test_structure, fail_loudly=False)
+    tests = ComparisonTestSuite(test_structure, fail_loudly=False)
     tests.run_tests(actual_update,
                     expected_update,
                     verbose=True)
