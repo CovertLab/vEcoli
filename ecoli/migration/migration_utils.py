@@ -131,8 +131,9 @@ class ComparisonTestSuite:
     but with the leaf nodes replaced with a (two-input) "test function" that compares
     the corresponding elements of the two updates by
 
-    1. returning False if they are different (something Truth-y otherwise), and
-    2. (optionally) returning additional diagnostic information.
+    1. returning False if they are different (True otherwise), and
+    2. (optionally) returning additional diagnostic information as the
+       second element of a tuple.
 
     For example:
 
@@ -147,12 +148,16 @@ class ComparisonTestSuite:
 
     To raise an AssertionError if necessary after running tests with fail_loudly=False,
     use ComparisonTestSuite.fail().
+
+    I recommend to use fail_loudly=False, verbose=True while writing tests for ease of debugging,
+    and fail_loudly=True, verbose=False once tests are passing, for efficiency.
     '''
 
     def __init__(self, test_structure, fail_loudly=False):
         self.test_structure = test_structure
         self.fail_loudly = fail_loudly
         self.report = {}
+        self.failure = False
 
     def run_tests(self, vivEcoli_update, wcEcoli_update, verbose=False):
         self.report = {}
@@ -172,6 +177,7 @@ class ComparisonTestSuite:
 
                 # run test if at a leaf node, else recurse
                 if callable(v):
+                    print('.' * level)
                     print('.' * level + 'Running test\n' +
                           '.' * level + f'\t{v.__name__}\n' +
                           '.' * level + f'for element {k}.')
@@ -188,6 +194,8 @@ class ComparisonTestSuite:
                         self.failure = True
                         if self.fail_loudly:
                             assert passed, '.' * level + f'FAILED test "{v.__name__}" for {k}.'
+
+                    print('.' * level)
                 else:
                     report[k] = run_tests_iter(vivEcoli_update[k],
                                                wcEcoli_update[k],
@@ -199,10 +207,32 @@ class ComparisonTestSuite:
         self.report = run_tests_iter(vivEcoli_update, wcEcoli_update, self.test_structure, verbose)
 
     def dump_report(self):
-        pass
+        def dump_report_iter(test_structure, report):
+            n_passed = 0
+            n_tests = 0
+
+            for k, v in report.items():
+                if not isinstance(v, dict):
+                    passed = v[0] if isinstance(v, tuple) else v
+                    print(f'{"PASSED" if passed else "FAILED"} test for {k}:')
+                    if isinstance(v, tuple):
+                        print(f'\t{v[1]}')
+
+                    n_passed += passed
+                    n_tests += 1
+                else:
+                    p, t = dump_report_iter(test_structure[k], report[k])
+                    n_passed += p
+                    n_tests += t
+
+            return (n_passed, n_tests)
+
+        n_passed, n_tests = dump_report_iter(self.test_structure, self.report)
+        print(f"Passed {n_passed}/{n_tests} tests.")
+
 
     def fail(self):
-        pass
+        assert not self.failure, "Failed one or more tests."
 
 
 def array_equal(arr1, arr2):
