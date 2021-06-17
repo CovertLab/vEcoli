@@ -217,7 +217,13 @@ class ChromosomeReplication(Process):
 
         # Initialize the update dictionary
         update = {
-            'oriCs': {},
+            'replisome_trimers': {
+                    mol: 0
+                    for mol in self.parameters['replisome_trimers_subunits']},
+            'replisome_monomers': {
+                    mol: 0
+                    for mol in self.parameters['replisome_monomers_subunits']},
+            # 'oriCs': {},
             'active_replisomes': {},
             'listeners': {
                 'replication_data': {},
@@ -286,7 +292,7 @@ class ChromosomeReplication(Process):
                     'key': str(uuid.uuid1()),
                     'state': {'domain_index': domain_index_new[index]}}
                     for index in range(n_oriC)],
-                '_delete': list(states['oriCs'].keys())}
+                '_delete': [(key,) for key in states['oriCs'].keys()]}
             # self.oriCs.attrIs(domain_index=domain_index_new[:n_oriC])
             # self.oriCs.moleculesNew(
             #     n_oriC, domain_index=domain_index_new[n_oriC:])
@@ -346,12 +352,10 @@ class ChromosomeReplication(Process):
 
             # Decrement counts of replisome subunits
             if self.mechanistic_replisome:
-                update['replisome_trimers'] = {
-                    mol: -6 * n_oriC
-                    for mol in self.parameters['replisome_trimers_subunits']}
-                update['replisome_monomers'] = {
-                    mol: -2 * n_oriC
-                    for mol in self.parameters['replisome_monomers_subunits']}
+                for mol in self.parameters['replisome_trimers_subunits']:
+                    update['replisome_trimers'][mol] -= 6 * n_oriC
+                for mol in self.parameters['replisome_monomers_subunits']:
+                    update['replisome_monomers'][mol] -= 2 * n_oriC
 
                 # self.replisome_trimers.countsDec(6 * n_oriC)
                 # self.replisome_monomers.countsDec(2 * n_oriC)
@@ -515,8 +519,8 @@ class ChromosomeReplication(Process):
 
             # Delete terminated replisomes
             replisome_delete_update = [
-                    key for index, key in enumerate(states['active_replisomes'].keys())
-                    if replisomes_to_delete[index]]
+                (key,) for index, key in enumerate(states['active_replisomes'].keys())
+                if replisomes_to_delete[index]]
             if replisome_delete_update:
                 update['active_replisomes']['_delete'] = replisome_delete_update
             # self.active_replisomes.delByIndexes(np.where(replisomes_to_delete)[0])
@@ -550,16 +554,15 @@ class ChromosomeReplication(Process):
 
             # Increment counts of replisome subunits
             if self.mechanistic_replisome:
-                update['replisome_trimers'] = 3 * replisomes_to_delete.sum()
-                update['replisome_monomers'] = replisomes_to_delete.sum()
+                for mol in self.parameters['replisome_trimers_subunits']:
+                    update['replisome_trimers'][mol] += 3 * replisomes_to_delete.sum()
+                for mol in self.parameters['replisome_monomers_subunits']:
+                    update['replisome_monomers'][mol] += replisomes_to_delete.sum()
+
+                # update['replisome_trimers'] = 3 * replisomes_to_delete.sum()
+                # update['replisome_monomers'] = replisomes_to_delete.sum()
                 # self.replisome_trimers.countsInc(3 * replisomes_to_delete.sum())
                 # self.replisome_monomers.countsInc(replisomes_to_delete.sum())
-
-
-
-        import ipdb;
-        ipdb.set_trace()
-
 
         return update
 
