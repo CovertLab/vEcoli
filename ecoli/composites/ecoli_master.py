@@ -32,6 +32,7 @@ from ecoli.processes.two_component_system import TwoComponentSystem
 from ecoli.processes.equilibrium import Equilibrium
 from ecoli.processes.protein_degradation import ProteinDegradation
 from ecoli.processes.metabolism import Metabolism
+from ecoli.processes.chromosome_replication import ChromosomeReplication
 from ecoli.processes.mass import Mass
 
 from wholecell.utils import units
@@ -77,6 +78,7 @@ class Ecoli(Composer):
         equilibrium_config = self.load_sim_data.get_equilibrium_config(time_step=time_step)
         protein_degradation_config = self.load_sim_data.get_protein_degradation_config(time_step=time_step)
         metabolism_config = self.load_sim_data.get_metabolism_config(time_step=time_step)
+        chromosome_replication_config = self.load_sim_data.get_chromosome_replication_config(time_step=time_step)
         mass_config = self.load_sim_data.get_mass_config(time_step=time_step)
 
         # additional processes
@@ -94,6 +96,7 @@ class Ecoli(Composer):
             'equilibrium': Equilibrium(equilibrium_config),
             'protein_degradation': ProteinDegradation(protein_degradation_config),
             'metabolism': Metabolism(metabolism_config),
+            'chromosome_replication': ChromosomeReplication(chromosome_replication_config),
             'mass': Mass(mass_config),
             'divide_condition': DivideCondition(divide_config),
         }
@@ -184,6 +187,18 @@ class Ecoli(Composer):
                 'listeners': ('listeners',),
                 'environment': ('environment',),
                 'polypeptide_elongation': ('process_state', 'polypeptide_elongation')},
+
+            'chromosome_replication': {
+                'replisome_trimers': ('bulk',),
+                'replisome_monomers': ('bulk',),
+                'dntps': ('bulk',),
+                'ppi': ('bulk',),
+                'active_replisomes': ('unique', 'active_replisome',),
+                'oriCs': ('unique', 'oriC',),
+                'chromosome_domains': ('unique', 'chromosome_domain',),
+                'full_chromosomes': ('unique', 'full_chromosome',),
+                'listeners': ('listeners',),
+                'environment': ('environment',)},
 
             'mass': {
                 'bulk': ('bulk',),
