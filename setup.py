@@ -75,10 +75,11 @@ setup(
         'numba==0.50.1',
         'Theano==1.0.5',
         'ipython==7.16.1',
-        'jax',
         'stochastic-arrow',
         'iteround',
         'cobra',
+        'escher',
+        'jax',
         'jaxlib',
         "jupyter",
         ])
