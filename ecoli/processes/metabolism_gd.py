@@ -32,7 +32,10 @@ class MetabolismGD(Process):
         'stoichiometry': [],
         'reaction_catalysts': [],
         'catalyst_ids': [],
-
+        'media_id': 'minimal',
+        'objective_type': 'homeostatic',
+        'nutrients': [],
+        'cell_density': 1100 * units.g / units.L,
 
         # 'get_import_constraints': lambda u, c, p: (u, c, []),
         # 'nutrientToDoublingTime': {},
@@ -68,15 +71,38 @@ class MetabolismGD(Process):
         stoichiometry = self.parameters['stoichiometry']
         reaction_catalysts = self.parameters['reaction_catalysts']
         catalyst_ids = self.parameters['catalyst_ids']
-        import ipdb;
-        ipdb.set_trace()
+        media_id = self.parameters['media_id']
+        objective_type = self.parameters['objective_type']
+        nutrients = parameters['nutrients'] # "minimal"? same as media_id, two different entries in sim_data
 
-        # TODO -- get list of exchanges
-        # TODO -- get object dict
+
+        import ipdb;
+        #ipdb.set_trace()
+
+        # TODO -- get list of exchanges, should be working
+        exchange_molecules = set()
+        exchanges = parameters['exchange_data_from_media'](media_id)
+        exchange_molecules.update(exchanges['externalExchangeMolecules'])
+        exchange_molecules = list(sorted(exchange_molecules))
+
+        # TODO -- get object dict, do something about dataclass here
+        conc_dict = metabolism.concentration_updates.concentrations_based_on_nutrients(nutrients)
+        doubling_time = parameters['doubling_time']
+        conc_dict.update(self.getBiomassAsConcentrations(doubling_time))
+
+        self.homeostatic_objective = dict((key, conc_dict[key].asNumber(CONC_UNITS)) for key in conc_dict)
+
+        ## Include all concentrations that will be present in a sim for constant length listeners
+        for met in self.metaboliteNamesFromNutrients:
+            if met not in self.homeostatic_objective:
+                self.homeostatic_objective[met] = 0.
 
         # Create model to use to solve metabolism updates
         self.model = GradientDescentFba(
-            stoichiometry,
+            reactions=stoichiometry,
+            exchanges=exchange_molecules,
+            objective= self.homeostatic_objective,
+            objectiveType=objective_type # missing objectiveParameters for kinetic models
         )
 
 
@@ -147,7 +173,13 @@ class MetabolismGD(Process):
         metabolites = states['metabolites']
         catalysts = states['catalysts']
 
-        # TODO -- get the states, use them to set the FBA problem
+
+
+
+
+        # TODO -- get the states, use them to set the FBA problem.
+        # Need to run set_molecule_levels and set_reaction_bounds for homeostatic solution.
+        # set molecule_levels requires exchange_constraints from dataclass.
         kinetic_constraints = self.parameters['metabolism'].get_kinetic_constraints(catalysts, metabolites)
 
         # make the new objective
