@@ -8,7 +8,8 @@ TODO:
 import os
 import json
 import matplotlib.pyplot as plt
-from scipy.stats import mannwhitneyu
+import numpy as np
+from scipy.stats import chi2_contingency
 
 from ecoli.library.sim_data import LoadSimData
 from ecoli.composites.ecoli_master import SIM_DATA_PATH
@@ -79,10 +80,19 @@ def test_protein_degradation():
     # Numerical tests =======================================================================
     # Perform tests of equal-medians (or more precisely, failure to reject non-equal medians)
     # in distributions of number of proteins degraded, amino acids released:
-    utest_threshold = 0.05
+    test_threshold = 0.05
 
-    utest_protein = mannwhitneyu(wc_proteins, [-p for p in d_proteins.values()], alternative="two-sided")
-    utest_aa = mannwhitneyu(wc_amino_acids, viv_amino_acids, alternative="two-sided")
+    def hist(dist):
+        return [sum(np.array(dist) == k) for k in range(0, max(dist))]
+
+    def match_shape(dist1, dist2):
+        l = max(len(dist1), len(dist2))
+        return [[dist1[k] if k < len(dist1) else 0 for k in range(l)],
+                [dist2[k] if k < len(dist2) else 0 for k in range(l)]]
+
+    viv_proteins = [-p for p in d_proteins.values()]
+    test_protein = chi2_contingency(match_shape(hist(wc_proteins), hist(viv_proteins)))
+    test_aa = chi2_contingency(np.array([wc_amino_acids, viv_amino_acids]) + 1) # using pseudo-counts to prevent divide-by-zero
 
     # Find percent errors between total numbers of
     # proteins degraded, amino acids released, and water molecules consumed
@@ -100,16 +110,16 @@ def test_protein_degradation():
         report = []
 
         report += 'COMPARING MEDIANS ===========================\n\n'
-        report += ('Median number of degradations per protein \n' +
-                   ("differed significantly " if utest_protein.pvalue <= utest_threshold
+        report += ('Distribution of number of degradations per protein \n' +
+                   ("differed significantly " if test_protein[1] <= test_threshold
                     else "did not differ significantly ") +
                    'between wcEcoli and vivarium-ecoli \n' +
-                   f'(Mann-Whitney U, U={utest_protein.statistic}, p={utest_protein.pvalue}).\n\n')
-        report += ('Median number of molecules released per amino acid \n' +
-                   ('differed significantly ' if utest_aa.pvalue <= utest_threshold
+                   f'(Chi-Squared test, X^2={test_protein[0]}, p={test_protein[1]}).\n\n')
+        report += ('Number of molecules released for each amino acid type \n' +
+                   ('differed significantly ' if test_aa[1] <= test_threshold
                     else 'did not differ significantly ') +
                    'between wcEcoli and vivarium-ecoli \n' +
-                   f'(Mann-Whitney U, U={utest_aa.statistic}, p={utest_aa.pvalue}).\n\n')
+                   f'(Chi-Squared test, X^2={test_aa[0]}, p={test_aa[1]}).\n\n')
 
         report += 'PERCENT ERROR ===============================\n\n'
         report += ('Percent error in total number of proteins degraded \n' +
@@ -142,12 +152,12 @@ def test_protein_degradation():
     plt.savefig("out/migration/protein_degradation_figures.png")
 
     # Asserts for numerical tests:
-    assert utest_protein.pvalue > utest_threshold, (
+    assert test_protein[1] > test_threshold, (
         "Distribution of #proteins degraded is different between wcEcoli and vivarium-ecoli"
-        f"(p={utest_protein.pvalue} <= {utest_threshold}) ")
-    assert utest_aa.pvalue > utest_threshold, (
+        f"(p={test_protein[1]} <= {test_threshold}) ")
+    assert test_aa[1] > test_threshold, (
         "Distribution of #amino acids released is different between wcEcoli and vivarium-ecoli"
-        f"(p={utest_aa.pvalue} <= {utest_threshold})")
+        f"(p={test_aa[1]} <= {test_threshold})")
 
     assert protein_error < percent_error_threshold, (
         "Total # of proteins degraded differs between wcEcoli and vivarium-ecoli"
