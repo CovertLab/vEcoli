@@ -39,7 +39,7 @@ def test_protein_degradation():
         'proteins': ('bulk',)}
 
     # run the process and get an update
-    actual_update = run_ecoli_process(prot_deg_process, topology, total_time=2, initial_time=10)
+    actual_update = run_ecoli_process(prot_deg_process, topology, total_time=2, initial_time=0)
 
     # separate the update to its ports
     d_proteins = actual_update['proteins']
@@ -49,7 +49,7 @@ def test_protein_degradation():
     viv_water = d_metabolites[water_id]
 
     # compare to collected update from wcEcoli
-    with open("data/prot_deg_update_t10.json") as f:
+    with open("data/prot_deg_update_t2.json") as f:
         wc_data = json.load(f)
 
     # unpack wc_data
