@@ -78,9 +78,9 @@ def test_protein_degradation():
         "Mismatch between metabolite ids in vivarium-ecoli and wcEcoli.")
 
     # Numerical tests =======================================================================
-    # Perform tests of equal-medians (or more precisely, failure to reject non-equal medians)
+    # Perform tests of homogeneity (or more precisely, inability to reject homogeneity)
     # in distributions of number of proteins degraded, amino acids released:
-    test_threshold = 0.05
+    test_threshold = 0.01
 
     def hist(dist):
         return [sum(np.array(dist) == k) for k in range(0, max(dist))]
@@ -97,7 +97,7 @@ def test_protein_degradation():
     # Find percent errors between total numbers of
     # proteins degraded, amino acids released, and water molecules consumed
     # between wcEcoli and vivarium-ecoli.
-    percent_error_threshold = 0.05
+    percent_error_threshold = 0.5
 
     protein_error = percent_error(-sum(d_proteins.values()), sum(wc_proteins))
     aa_error = percent_error(sum(viv_amino_acids), sum(wc_amino_acids))
@@ -163,11 +163,11 @@ def test_protein_degradation():
         "Total # of proteins degraded differs between wcEcoli and vivarium-ecoli"
         f"(percent error = {protein_error})")
     assert aa_error < percent_error_threshold, (
-        f"Total # of amino acids released differs between wcEcoli and vivarium-ecoli"
-        "(percent error = {aa_error})")
+        "Total # of amino acids released differs between wcEcoli and vivarium-ecoli"
+        f"(percent error = {aa_error})")
     assert water_error < percent_error_threshold, (
-        f"Total # of water molecules used differs between wcEcoli and vivarium-ecoli"
-        "(percent error = {water_error})")
+        "Total # of water molecules used differs between wcEcoli and vivarium-ecoli"
+        f"(percent error = {water_error})")
 
 
 if __name__ == "__main__":
