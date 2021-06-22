@@ -1,5 +1,5 @@
 import numpy as np
-from vivarium.core.experiment import Experiment
+from vivarium.core.engine import Engine
 
 from ecoli.composites.ecoli_master import get_state_from_file
 
@@ -50,7 +50,7 @@ def run_ecoli_process(
         'processes': {process.name: process},
         'topology': {process.name: topology},
         'initial_state': initial_state}
-    experiment = Experiment(experiment_config)
+    experiment = Engine(experiment_config)
 
     # Get update from process.
     path, process = list(experiment.process_paths.items())[0]
