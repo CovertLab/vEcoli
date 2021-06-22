@@ -10,7 +10,7 @@ def get_process_state(process, topology, initial_state):
         'processes': {process.name: process},
         'topology': {process.name: topology},
         'initial_state': initial_state}
-    experiment = Experiment(experiment_config)
+    experiment = Engine(experiment_config)
 
     # Get update from process.
     path, process = list(experiment.process_paths.items())[0]

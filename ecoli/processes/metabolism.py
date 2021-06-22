@@ -64,8 +64,8 @@ class Metabolism(Process):
         'linked_metabolites': None,
         'seed': 0}
 
-    def __init__(self, initial_parameters):
-        super().__init__(initial_parameters)
+    def __init__(self, parameters):
+        super().__init__(parameters)
 
         # Use information from the environment and sim
         self.get_import_constraints = self.parameters['get_import_constraints']
@@ -74,9 +74,6 @@ class Metabolism(Process):
         self.include_ppgpp = self.parameters['include_ppgpp']
         self.current_timeline = self.parameters['current_timeline']
         self.media_id = self.parameters['media_id']
-
-
-        import ipdb; ipdb.set_trace()
 
         # Create model to use to solve metabolism updates
         self.model = FluxBalanceAnalysisModel(
