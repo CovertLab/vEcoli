@@ -2,7 +2,7 @@
 import argparse
 import numpy as np
 
-from vivarium.core.experiment import pf
+from vivarium.core.engine import pf
 from ecoli.library.sim_data import LoadSimData
 from ecoli.composites.ecoli_master import SIM_DATA_PATH
 from ecoli.processes.chromosome_replication import ChromosomeReplication
