@@ -12,28 +12,43 @@ import scipy.optimize
 class ReactionNetwork:
     """General representation of a network of stoichiometric reactions."""
 
-    def __init__(self, reactions: Mapping[str, Mapping[str, float]]):
+    def __init__(self, reactions: Optional[Iterable[dict]] = None):
+        """Initialize this reaction network.
+
+        Args:
+            reactions: a list of reaction dicts following the knowledge base structure. Expected keys are "reaction id",
+                "stoichiometry", "is reversible".
+        """
+
         # Defer construction of the stoichiometry matrix until it is needed.
         self._s_matrix = None
 
         # Build maps between string id and numerical array index, for reactions and molecules.
         self._reactions = {}
-        self._reactionIDs = []
+        self._reaction_ids = []
         self._reaction_index = {}
-        self._moleculeIDs = []
+        self._molecule_ids = []
         self._molecule_index = {}
-        for reactionID, stoichiometry in reactions.items():
-            self.add_reaction(reactionID, stoichiometry)
+        for reaction in reactions:
+            self.add_reaction(reaction)
 
-    def add_reaction(self, reactionID: str, stoichiometry: Mapping[str, float]):
-        """Adds a reaction to the network."""
-        self._reactions[reactionID] = stoichiometry
-        self._reaction_index[reactionID] = len(self._reactionIDs)
-        self._reactionIDs.append(reactionID)
-        for moleculeID in stoichiometry:
-            if moleculeID not in self._molecule_index:
-                self._molecule_index[moleculeID] = len(self._moleculeIDs)
-                self._moleculeIDs.append(moleculeID)
+    def add_reaction(self, reaction: dict):
+        """Adds a reaction to the network.
+
+        Args:
+            reaction: a reaction dict following the knowledge base structure. Expected keys are "reaction id",
+                "stoichiometry", "is reversible".
+        """
+        reaction_id = reaction["reaction id"]
+        stoichiometry = reaction["stoichiometry"]
+
+        self._reactions[reaction_id] = stoichiometry
+        self._reaction_index[reaction_id] = len(self._reaction_ids)
+        self._reaction_ids.append(reaction_id)
+        for molecule_id in stoichiometry:
+            if molecule_id not in self._molecule_index:
+                self._molecule_index[molecule_id] = len(self._molecule_ids)
+                self._molecule_ids.append(molecule_id)
         # Force reconstruction of the stoichiometry matrix.
         self._s_matrix = None
 
@@ -42,50 +57,50 @@ class ReactionNetwork:
         """The 2D stoichiometry matrix describing this reaction network."""
         if self._s_matrix is None:
             s_matrix = np.zeros(self.shape)
-            for reactionID, stoichiometry in self._reactions.items():
-                for moleculeID, coeff in stoichiometry.items():
-                    s_matrix[self._molecule_index[moleculeID], self._reaction_index[reactionID]] += coeff
+            for reaction_id, stoichiometry in self._reactions.items():
+                for molecule_id, coeff in stoichiometry.items():
+                    s_matrix[self._molecule_index[molecule_id], self._reaction_index[reaction_id]] += coeff
             self._s_matrix = s_matrix
         return self._s_matrix
 
     @property
     def shape(self) -> Tuple[int, int]:
         """The 2D shape of this network, (#molecules, #reactions)."""
-        return len(self._moleculeIDs), len(self._reactionIDs)
+        return len(self._molecule_ids), len(self._reaction_ids)
 
-    def reactionIDs(self) -> Iterator[str]:
-        """Iterates through reactionIDs in their indexed order."""
-        for reactionID in self._reactionIDs:
-            yield reactionID
+    def reaction_ids(self) -> Iterator[str]:
+        """Iterates through reaction_ids in their indexed order."""
+        for reaction_id in self._reaction_ids:
+            yield reaction_id
 
-    def reaction_index(self, reactionID: str) -> Optional[int]:
-        """The index of the reactionID, or None if it is not part of the network."""
-        return self._reaction_index.get(reactionID, None)
+    def reaction_index(self, reaction_id: str) -> Optional[int]:
+        """The index of the reaction_id, or None if it is not part of the network."""
+        return self._reaction_index.get(reaction_id, None)
 
     def reaction_vector(self, data: Mapping[str, float], default: float = 0) -> np.ndarray:
-        """Converts a dict of {reactionID: value} to a 1D vector for numpy ops."""
-        return np.array([data.get(reactionID, default) for reactionID in self._reactionIDs])
+        """Converts a dict of {reaction_id: value} to a 1D vector for numpy ops."""
+        return np.array([data.get(reaction_id, default) for reaction_id in self._reaction_ids])
 
     def reaction_values(self, values: Iterable[float]) -> Mapping[str, float]:
-        """Converts an array of values to a {reactionID: value} dict."""
-        return {reactionID: value for reactionID, value in zip(self._reactionIDs, values)}
+        """Converts an array of values to a {reaction_id: value} dict."""
+        return {reaction_id: value for reaction_id, value in zip(self._reaction_ids, values)}
 
-    def moleculeIDs(self) -> Iterator[str]:
-        """Iterates through moleculeIDs in their indexed order."""
-        for moleculeID in self._moleculeIDs:
-            yield moleculeID
+    def molecule_ids(self) -> Iterator[str]:
+        """Iterates through molecule_ids in their indexed order."""
+        for molecule_id in self._molecule_ids:
+            yield molecule_id
 
-    def molecule_index(self, moleculeID: str) -> Optional[int]:
-        """The index of the moleculeID, or None if it is not part of the network."""
-        return self._molecule_index.get(moleculeID, None)
+    def molecule_index(self, molecule_id: str) -> Optional[int]:
+        """The index of the molecule_id, or None if it is not part of the network."""
+        return self._molecule_index.get(molecule_id, None)
 
     def molecule_vector(self, data: Mapping[str, float], default: float = 0) -> np.ndarray:
-        """Converts a dict of {moleculeID: value} to a 1D vector for numpy ops."""
-        return np.array([data.get(moleculeID, default) for moleculeID in self._moleculeIDs])
+        """Converts a dict of {molecule_id: value} to a 1D vector for numpy ops."""
+        return np.array([data.get(molecule_id, default) for molecule_id in self._molecule_ids])
 
     def molecule_values(self, values: Iterable[float]) -> Mapping[str, float]:
-        """Converts an array of values to a {moleculeID: value} dict."""
-        return {moleculeID: value for moleculeID, value in zip(self._moleculeIDs, values)}
+        """Converts an array of values to a {molecule_id: value} dict."""
+        return {molecule_id: value for molecule_id, value in zip(self._molecule_ids, values)}
 
 
 class SteadyStateResidual:
@@ -96,9 +111,9 @@ class SteadyStateResidual:
         self.param_key = None
         exchanges = set(exchanges)
         indices = []
-        for moleculeID in self.network.moleculeIDs():
-            if moleculeID not in exchanges:
-                indices.append(self.network.molecule_index(moleculeID))
+        for molecule_id in self.network.molecule_ids():
+            if molecule_id not in exchanges:
+                indices.append(self.network.molecule_index(molecule_id))
         self._intermediate_indices = np.array(indices)
 
     def __call__(self, velocities: jnp.ndarray, dm_dt: jnp.ndarray, params: Mapping[str, Any]) -> jnp.ndarray:
@@ -110,10 +125,10 @@ class SteadyStateResidual:
 class DmdtTargetResidual:
     """Calculates the deviation from target rates of change (dm/dt) for specified molecules."""
 
-    def __init__(self, network: ReactionNetwork, moleculeIDs: Iterable[str], param_key: str):
+    def __init__(self, network: ReactionNetwork, molecule_ids: Iterable[str], param_key: str):
         self.network = network
         self.param_key = param_key
-        self._molecule_indices = np.array([self.network.molecule_index(moleculeID) for moleculeID in moleculeIDs])
+        self._molecule_indices = np.array([self.network.molecule_index(molecule_id) for molecule_id in molecule_ids])
 
     def __call__(self, velocities: jnp.ndarray, dm_dt: jnp.ndarray, params: Mapping[str, Any]) -> jnp.ndarray:
         del (velocities)
@@ -124,10 +139,10 @@ class DmdtTargetResidual:
 class KineticTargetResidual:
     """Calculates the deviation from target velocities for specified reactions."""
 
-    def __init__(self, network: ReactionNetwork, reactionIDs: Iterable[str], param_key: str):
+    def __init__(self, network: ReactionNetwork, reaction_ids: Iterable[str], param_key: str):
         self.network = network
         self.param_key = param_key
-        self._reaction_indices = np.array([self.network.reaction_index(reactionID) for reactionID in reactionIDs])
+        self._reaction_indices = np.array([self.network.reaction_index(reaction_id) for reaction_id in reaction_ids])
 
     def __call__(self, velocities: jnp.ndarray, dm_dt: jnp.ndarray, params: Mapping[str, Any]) -> jnp.ndarray:
         del (dm_dt)
@@ -148,16 +163,38 @@ class GradientDescentFba:
     """Solves an FBA problem with kinetic and/or homeostatic objectives, by gradient descent."""
 
     def __init__(self,
-                 reactions: Mapping[str, Mapping[str, float]],
+                 reactions: Iterable[dict],
                  exchanges: Iterable[str],
-                 objective: Mapping[str, float],
+                 objective: Iterable[str],
                  objectiveType: Optional[str] = None,
                  objectiveParameters: Optional[Mapping[str, Any]] = None):
+        """Initialize this FBA solver.
+
+        Args:
+            reactions: a list of reaction dicts following the knowledge base structure. Expected keys are "reaction id",
+                "stoichiometry", "is reversible".
+            exchanges: ids of molecules on the boundary, which may flow in or out of the system.
+            objective: ids of molecules included in the (homeostatic) objective.
+            objectiveType: "homeostatic", "kinetic_only", or "homeostatic_kinetics_mixed".
+            objectiveParameters: additional objective-specific parameters. Currently supported is "reactionRateTargets",
+                for kinetic objectives.
+        """
         # Implementation Note: this is a prototype implementation with an API roughly following
         # modular_fba.FluxBalanceAnalysis, focusing on objectiveTypes currently used in metabolism.py.
         # The details could be refactored quite a lot, depending on what is learned from the prototype.
 
         self.network = ReactionNetwork(reactions)
+        lb = []
+        ub = []
+        for reaction in reactions:
+            if reaction["is reversible"]:
+                lb.append(-np.inf)
+                ub.append(np.inf)
+            else:
+                lb.append(0)
+                ub.append(np.inf)
+        self._bounds = (np.array(lb), np.array(ub))
+
         self._exchanges = set(exchanges)
         self._objective_components = set(objective)
 
@@ -217,12 +254,17 @@ class GradientDescentFba:
                 seed = int(time.time())
             x0 += variance * jax.random.normal(jax.random.PRNGKey(seed), (self.network.shape[1],))
 
-        # TODO(fdrusso): Bounds depending on reversibility. Requires we keep track of reversibility.
+        # Truncate to bounds
+        x0 = np.maximum(x0, self._bounds[0])
+        x0 = np.minimum(x0, self._bounds[1])
+        print(x0)
+        print(self._bounds)
+
         fn = jax.jit(lambda v: self.residual(v, ready_params))
         jac = jax.jacfwd(fn)
 
-        soln = scipy.optimize.least_squares(fn, x0, jac=jac)
-        dm_dt = dm_dt = self.network.s_matrix @ soln.x
+        soln = scipy.optimize.least_squares(fn, x0, jac=jac, bounds=self._bounds)
+        dm_dt = self.network.s_matrix @ soln.x
         ss_residual = self._steady_state_objective(soln.x, dm_dt, ready_params)
         return FbaResult(seed=seed,
                          velocities=self.network.reaction_values(soln.x),
