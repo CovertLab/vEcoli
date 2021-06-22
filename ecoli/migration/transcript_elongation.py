@@ -146,7 +146,7 @@ def assertions(actual_update, expected_update):
     test_structure = {
         'listeners' : {
             'transcript_elongation_listener' : {
-                'countRnaSynthesized' : array_equal,
+                'countRnaSynthesized' : array_almost_equal, # transform_and_run(lambda x: np.array(x) + 1, good_fit),
                 'countNTPsUsed' : scalar_equal
             },
             'growth_limits' : {
