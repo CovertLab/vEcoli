@@ -71,7 +71,12 @@ class ChromosomeReplication(Process):
         self.seed = self.parameters['seed']
         self.random_state = np.random.RandomState(seed=self.seed)
 
+        self.emit_unique = self.parameters.get('emit_unique', True)
+
     def ports_schema(self):
+
+        default_unique_schema = {
+            '_default': 0, '_updater': 'set', '_emit': self.emit_unique}
         return {
             # bulk molecules
             'replisome_trimers': bulk_schema(self.parameters['replisome_trimers_subunits']),
@@ -94,37 +99,28 @@ class ChromosomeReplication(Process):
             # unique molecules
             'active_replisomes': {
                 '*': {
-                    'domain_index': {
-                        '_default': 0, '_updater': 'set'},
-                    'right_replichore': {
-                        '_default': 0, '_updater': 'set'},
-                    'coordinates': {
-                        '_default': 0, '_updater': 'set'},
+                    'domain_index': default_unique_schema,
+                    'right_replichore': default_unique_schema,
+                    'coordinates': default_unique_schema,
                     'dna_mass': {
-                        '_default': 0, '_updater': 'accumulate'},
+                            '_default': 0, '_updater': 'accumulate'},
                 }},
             'oriCs': {
                 '*': {
-                    'domain_index': {
-                        '_default': 0, '_updater': 'set'},
+                    'domain_index': default_unique_schema,
                 }},
             'chromosome_domains': {
                 '*': {
-                    'domain_index': {
-                        '_default': 0, '_updater': 'set'},
-                    'child_domains': {
-                        '_default': 0, '_updater': 'set'},
+                    attr: default_unique_schema
+                    for attr in ('domain_index', 'child_domains')
                 }},
             'full_chromosomes': {
                 '*': {
-                    'domain_index': {
-                        '_default': 0, '_updater': 'set'},
+                    'domain_index': default_unique_schema,
+                    'division_time': default_unique_schema,
                     'has_triggered_division': {
                         '_default': False, '_updater': 'set'},
-                    'division_time': {
-                        '_default': 0, '_updater': 'set'},
-                }},
-        }
+                }}}
 
 
     def next_update(self, timestep, states):
@@ -237,9 +233,9 @@ class ChromosomeReplication(Process):
         # n_active_replisomes = self.active_replisomes.total_count()
         # n_oriC = self.oriCs.total_count()
         #
-        # # If there are no origins, return immediately
-        # if n_oriC == 0:
-        #     return
+        # If there are no origins, return immediately
+        if n_oriC == 0:
+            return {}
 
         # Get attributes of existing chromosome domains
         domain_index_existing_domain, child_domains = arrays_from(
