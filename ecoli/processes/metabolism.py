@@ -75,6 +75,9 @@ class Metabolism(Process):
         self.current_timeline = self.parameters['current_timeline']
         self.media_id = self.parameters['media_id']
 
+
+        import ipdb; ipdb.set_trace()
+
         # Create model to use to solve metabolism updates
         self.model = FluxBalanceAnalysisModel(
             self.parameters,
