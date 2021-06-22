@@ -1,4 +1,4 @@
-from vivarium.core.experiment import Experiment, pf
+from vivarium.core.engine import Engine, pf
 from ecoli.library.sim_data import LoadSimData
 from ecoli.composites.ecoli_master import SIM_DATA_PATH
 from ecoli.migration.migration_utils import run_ecoli_process
@@ -47,7 +47,7 @@ def run_polypeptide_elongation():
         path=f'data/wcecoli_t0.json')
 
     polypeptide_elongation_composite = polypeptide_elongation_process.generate()
-    experiment = Experiment({
+    experiment = Engine({
         'processes': polypeptide_elongation_composite['processes'],
         'topology': {polypeptide_elongation_process.name: PE_TOPOLOGY},
         'initial_state': initial_state

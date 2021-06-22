@@ -13,7 +13,7 @@ from vivarium.core.process import Deriver
 from ecoli.library.schema import mw_schema
 # from wholecell.utils import units
 
-from vivarium.core.experiment import pp
+from vivarium.core.engine import pp
 from vivarium.core.composition import process_in_experiment
 from vivarium.library.units import units
 

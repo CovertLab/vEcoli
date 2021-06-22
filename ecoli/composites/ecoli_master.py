@@ -10,8 +10,8 @@ import json
 import uuid
 from pprint import pformat
 
-from vivarium.core.process import Composer
-from vivarium.core.experiment import pp, Experiment
+from vivarium.core.composer import Composer
+from vivarium.core.engine import pp, Engine
 from vivarium.plots.topology import plot_topology
 
 # sim data
@@ -284,7 +284,7 @@ def test_ecoli(
 
     # make the experiment
     ecoli = ecoli_composer.generate()
-    ecoli_experiment = Experiment({
+    ecoli_experiment = Engine({
         'processes': ecoli.processes,
         'topology': ecoli.topology,
         'initial_state': initial_state,
