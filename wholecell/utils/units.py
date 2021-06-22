@@ -2,10 +2,6 @@
 Units
 
 Defines/registers custom units for Pint
-
-@author: Nick Ruggero
-@organization: Covert Lab, Department of Bioengineering, Stanford University
-@date: Created 8/14/2014
 """
 
 from __future__ import absolute_import, division, print_function
@@ -81,6 +77,22 @@ def dot(a, b, out=None):
 		b = b.asNumber()
 
 	return a_units * b_units * np.dot(a, b, out)
+
+def matmul(a, b, out=None):
+	if not isinstance(a, Unum):
+		a_units = 1
+	else:
+		a_units = getUnit(a)
+		a = a.asNumber()
+
+	if not isinstance(b, Unum):
+		b_units = 1
+	else:
+		b_units = getUnit(b)
+		b = b.asNumber()
+
+	return a_units * b_units * np.matmul(a, b, out)
+Unum.__matmul__ = matmul
 
 def multiply(a, b):
 	if not isinstance(a, Unum):

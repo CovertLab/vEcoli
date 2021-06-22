@@ -21,6 +21,7 @@ from wholecell.utils import units
 
 from ecoli.library.data_predicates import monotonically_increasing
 
+
 class TranscriptElongation(Process):
     # TODO: comment out terminationLoss - doesn't seem to be used/informative?
     """TranscriptElongation
@@ -65,6 +66,8 @@ class TranscriptElongation(Process):
         'ntWeights': np.array([]),
         'endWeight': np.array([]),
         'replichore_lengths': np.array([]),
+        'n_fragment_bases': 0,
+        'recycle_stalled_elongation': False,
         'idx_16S_rRNA': np.array([]),
         'idx_23S_rRNA': np.array([]),
         'idx_5S_rRNA': np.array([]),
@@ -74,10 +77,22 @@ class TranscriptElongation(Process):
         'ntp_ids': [],
         'variable_elongation': False,
         'make_elongation_rates': lambda random, rates, timestep, variable: rates,
-        'seed': 0}
 
-    def __init__(self, initial_parameters):
-        super().__init__(initial_parameters)
+        # Attenuation
+        'polymerized_ntps': [],
+        'charged_trna_names': [],
+        'trna_attenuation': False,
+        'cell_density': 1100 * units.g / units.L,
+        'n_avogadro':  6.02214076e+23 / units.mol,
+        'get_attenuation_stop_probabilities': lambda trna_conc: np.array([]),
+        'attenuated_rna_indices': np.array([]),
+        'attenuation_location': {},
+
+        'seed': 0,
+    }
+
+    def __init__(self, parameters):
+        super().__init__(parameters)
 
         self.max_time_step = self.parameters['max_time_step']
 
@@ -93,6 +108,8 @@ class TranscriptElongation(Process):
         self.endWeight = self.parameters['endWeight']
         self.replichore_lengths = self.parameters['replichore_lengths']
         self.chromosome_length = self.replichore_lengths.sum()
+        self.n_fragment_bases = self.parameters['n_fragment_bases']
+        self.recycle_stalled_elongation = self.parameters['recycle_stalled_elongation']
 
         # ID Groups of rRNAs
         self.idx_16S_rRNA = self.parameters['idx_16S_rRNA']
@@ -106,14 +123,30 @@ class TranscriptElongation(Process):
         self.variable_elongation = self.parameters['variable_elongation']
         self.make_elongation_rates = self.parameters['make_elongation_rates']
 
+        # TODO -- add to ports for views
+        self.polymerized_ntps = self.parameters['polymerized_ntps']
+        self.charged_trna_names = self.parameters['charged_trna_names']
+        # self.fragmentBases = self.bulkMoleculesView(sim_data.molecule_groups.polymerized_ntps)
+        # self.charged_trna = self.bulkMoleculesView(sim_data.process.transcription.charged_trna_names)
+
+        # Attenuation
+        self.trna_attenuation = self.parameters['trna_attenuation']
+        self.cell_density = self.parameters['cell_density']
+        self.n_avogadro = self.parameters['n_avogadro']
+        self.stop_probabilities = self.parameters['get_attenuation_stop_probabilities']
+        self.attenuated_rna_indices = self.parameters['attenuated_rna_indices']
+        self.attenuated_rna_indices_lookup = {idx: i for i, idx in enumerate(self.attenuated_rna_indices)}
+        self.location_lookup = self.parameters['attenuation_location']
+
+        # random seed
         self.seed = self.parameters['seed']
-        self.random_state = np.random.RandomState(seed = self.seed)
+        self.random_state = np.random.RandomState(seed=self.seed)
 
 
         # TODO: Remove request code once migration is complete
         self.request_on = False
 
-        self.stop=False
+        self.stop = False
 
     def ports_schema(self):
         return {
@@ -152,8 +185,16 @@ class TranscriptElongation(Process):
                         '_default': np.zeros(len(self.rnaIds)),
                         '_updater': 'set',
                         '_emit': True
-                    }
                     },
+                    'attenuation_probability': {
+                        '_updater': 'set',
+                        '_emit': True
+                    },
+                    'counts_attenuated': {
+                        '_updater': 'set',
+                        '_emit': True
+                    },
+                },
                 'growth_limits': {
                     'ntpUsed': {
                         '_default': np.zeros(len(self.ntp_ids)),
@@ -173,7 +214,12 @@ class TranscriptElongation(Process):
                     'terminationLoss': {
                         '_default': 0,
                         '_updater': 'set',
-                        '_emit': True}}
+                        '_emit': True},
+                    'didStall': {
+                        '_updater': 'set',
+                        '_emit': True
+                    }
+                }
             }}
 
     def next_update(self, timestep, states):
@@ -264,6 +310,23 @@ class TranscriptElongation(Process):
         is_mRNA_partial_RNAs = is_mRNA_all_RNAs[is_partial_transcript]
         RNAP_index_partial_RNAs = RNAP_index_all_RNAs[is_partial_transcript]
 
+        # Attenuation
+        if self.trna_attenuation:
+            # cell_mass = self.readFromListener('Mass', 'cellMass') * units.fg
+            cellVolume = cell_mass / self.cell_density
+            counts_to_molar = 1 / (self.n_avogadro * cellVolume)
+            attenuation_probability = self.stop_probabilities(counts_to_molar * self.charged_trna.total_counts())
+            prob_lookup = {tu: prob for tu, prob in zip(self.attenuated_rna_indices, attenuation_probability)}
+            tu_stop_probability = np.array([
+                prob_lookup.get(idx, 0) * (length < self.location_lookup.get(idx, 0))
+                for idx, length in zip(TU_index_partial_RNAs, length_partial_RNAs)
+            ])
+            rna_to_attenuate = stochasticRound(self.random_state, tu_stop_probability).astype(bool)
+        else:
+            attenuation_probability = np.zeros(len(self.attenuated_rna_indices))
+            rna_to_attenuate = np.zeros(len(TU_index_partial_RNAs), bool)
+        rna_to_elongate = ~rna_to_attenuate
+
         sequences = buildSequences(
             self.rnaSequences,
             TU_index_partial_RNAs,
@@ -273,14 +336,18 @@ class TranscriptElongation(Process):
         # Polymerize transcripts based on sequences and available nucleotides
         reactionLimit = ntpCounts.sum()
         result = polymerize(
-            sequences,
+            sequences[rna_to_elongate],
             ntpCounts,
             reactionLimit,
             self.random_state,
-            self.elongation_rates[TU_index_partial_RNAs])
+            self.elongation_rates[TU_index_partial_RNAs][rna_to_elongate],
+            self.variable_elongation
+        )
 
-        sequence_elongations = result.sequenceElongation
+        sequence_elongations = np.zeros_like(length_partial_RNAs)
+        sequence_elongations[rna_to_elongate] = result.sequenceElongation
         ntps_used = result.monomerUsages
+        did_stall_mask = result.sequences_limited_elongation
 
         # Calculate changes in mass associated with polymerization
         added_mass = computeMassIncrease(sequences, sequence_elongations,
@@ -403,6 +470,48 @@ class TranscriptElongation(Process):
 
         delete_rnaps = np.where(did_terminate_mask[partial_RNA_to_RNAP_mapping])[0]
 
+        # Attenuation removes RNAs and RNAPs
+        counts_attenuated = np.zeros(len(self.attenuated_rna_indices))
+        if np.any(rna_to_attenuate):
+            for idx in TU_index_partial_RNAs[rna_to_attenuate]:
+                counts_attenuated[self.attenuated_rna_indices_lookup[idx]] += 1
+            self.RNAs.delByIndexes(partial_transcript_indexes[rna_to_attenuate])
+            self.active_RNAPs.delByIndexes(np.where(rna_to_attenuate[partial_RNA_to_RNAP_mapping]))
+        n_attenuated = rna_to_attenuate.sum()
+
+        # Handle stalled elongation
+        n_total_stalled = did_stall_mask.sum()
+        if self.recycle_stalled_elongation and (n_total_stalled > 0):
+            # Remove RNAPs that were bound to stalled elongation transcripts
+            # and increment counts of inactive RNAPs
+            self.active_RNAPs.delByIndexes(
+                np.where(did_stall_mask[partial_RNA_to_RNAP_mapping])[0])
+            self.inactive_RNAPs.countInc(n_total_stalled)
+
+            # Remove partial transcripts from stalled elongation
+            self.RNAs.delByIndexes(
+                partial_transcript_indexes[did_stall_mask])
+            stalled_sequence_lengths = updated_transcript_lengths[did_stall_mask]
+            n_initiated_sequences = np.count_nonzero(stalled_sequence_lengths)
+
+            if n_initiated_sequences > 0:
+                # Get the full sequence of stalled transcripts
+                stalled_sequences = buildSequences(
+                    self.rnaSequences,
+                    TU_index_partial_RNAs[did_stall_mask],
+                    np.zeros(n_total_stalled, dtype=np.int64),
+                    np.full(n_total_stalled, updated_transcript_lengths.max()))
+
+                # Count the number of fragment bases in these transcripts up until the stalled length
+                base_counts = np.zeros(self.n_fragment_bases, dtype=np.int64)
+                for sl, seq in zip(stalled_sequence_lengths, stalled_sequences):
+                    base_counts += np.bincount(seq[:sl], minlength=self.n_fragment_bases)
+
+                # Increment counts of fragment NTPs and phosphates
+                self.fragmentBases.countsInc(base_counts)
+                self.ppi.countInc(n_initiated_sequences)
+
+
         update['active_RNAPs'] = {
             rnap_indexes[index]: rnap
             for index, rnap in enumerate(rnaps_update)}
@@ -413,7 +522,7 @@ class TranscriptElongation(Process):
         update['bulk_RNAs'] = array_to(self.rnaIds, n_new_bulk_RNAs)
         update['molecules'] = array_to(self.molecule_ids, [
             n_elongations - n_initialized,  # ppi
-            n_terminated])                  # inactve RNAPs
+            n_terminated + n_attenuated])   # inactve RNAPs
 
         # TODO: make sure everything here is represented above, delete
         # self.RNAs.attrIs(transcript_length=length_all_RNAs)
@@ -442,13 +551,16 @@ class TranscriptElongation(Process):
         # Write outputs to listeners
         update['listeners']['transcript_elongation_listener'] = {
             "countRnaSynthesized": terminated_RNAs,
-            "countNTPsUsed": n_elongations}
+            "countNTPsUsed": n_elongations,
+            "attenuation_probability": attenuation_probability,
+            "counts_attenuated": counts_attenuated}
         update['listeners']['growth_limits'] = {
-            "ntpUsed": ntps_used }#if ntps_used else np.zeros(4)}
+            "ntpUsed": ntps_used} #if ntps_used else np.zeros(4)}
         update['listeners']['rnap_data'] = {
             "actualElongations": sequence_elongations.sum(),
             "didTerminate": did_terminate_mask.sum(),
-            "terminationLoss": (terminal_lengths - length_partial_RNAs)[did_terminate_mask].sum()}
+            "terminationLoss": (terminal_lengths - length_partial_RNAs)[did_terminate_mask].sum(),
+            "didStall": n_total_stalled}
 
         return update
 

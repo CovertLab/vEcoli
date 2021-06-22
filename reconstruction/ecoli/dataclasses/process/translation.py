@@ -22,6 +22,7 @@ class Translation(object):
 
 	def __init__(self, raw_data, sim_data):
 		self.max_time_step = min(MAX_TIME_STEP, PROCESS_MAX_TIME_STEP)
+		self.next_aa_pad = 1  # Need an extra amino acid in sequences lengths to find next one
 
 		self._build_monomer_data(raw_data, sim_data)
 		self._build_translation(raw_data, sim_data)
@@ -51,9 +52,31 @@ class Translation(object):
 			self.translation_sequences[i, :len(seq)] = seq
 
 	def _build_monomer_data(self, raw_data, sim_data):
+		valid_mRNA_ids = {
+			rna['id'] for rna in raw_data.rnas
+			if rna['type'] == 'mRNA' and sim_data.getter.is_valid_molecule(rna['id'])
+			}
+
+		# Get mappings from monomer IDs to RNA IDs
+		monomer_id_to_rna_id = {
+			rna['monomer_ids'][0]: rna['id']
+			for rna in raw_data.rnas
+			if len(rna['monomer_ids']) > 0}
+
+		# Select proteins with valid sequences and mappings to valid mRNAs
+		all_proteins = []
+		for protein in raw_data.proteins:
+			if sim_data.getter.is_valid_molecule(protein['id']):
+				try:
+					rna_id = monomer_id_to_rna_id[protein['id']]
+				except KeyError:
+					continue
+				if rna_id in valid_mRNA_ids:
+					all_proteins.append(protein)
+
 		# Get protein IDs with compartments
-		protein_ids = [protein['id'] for protein in raw_data.proteins]
-		protein_compartments = sim_data.getter.get_location(protein_ids)
+		protein_ids = [protein['id'] for protein in all_proteins]
+		protein_compartments = sim_data.getter.get_compartments(protein_ids)
 		assert all([len(loc) == 1 for loc in protein_compartments])
 		protein_ids_with_compartments = [
 			f'{protein_id}[{loc[0]}]' for (protein_id, loc)
@@ -61,22 +84,18 @@ class Translation(object):
 			]
 		n_proteins = len(protein_ids)
 
-		# Get mappings from monomer IDs to RNA IDs
-		monomer_id_to_rna_id = {
-			rna['monomer_id']: rna['id'] for rna in raw_data.rnas}
-
 		# Get RNA IDs with compartments
 		rna_ids = [
 			monomer_id_to_rna_id[protein['id']]
-			for protein in raw_data.proteins]
-		rna_compartments = sim_data.getter.get_location(rna_ids)
+			for protein in all_proteins]
+		rna_compartments = sim_data.getter.get_compartments(rna_ids)
 		assert all([len(loc) == 1 for loc in rna_compartments])
 		rna_ids_with_compartments = [
 			f'{rna_id}[{loc[0]}]'
 			for (rna_id, loc) in zip(rna_ids, rna_compartments)]
 
 		# Get lengths and amino acids counts of each protein
-		protein_seqs = sim_data.getter.get_sequence(protein_ids)
+		protein_seqs = sim_data.getter.get_sequences(protein_ids)
 		lengths = [len(seq) for seq in protein_seqs]
 		aa_counts = [
 			[seq.count(aa) for aa in sim_data.amino_acid_code_to_id_ordered.keys()]
@@ -84,7 +103,7 @@ class Translation(object):
 		n_amino_acids = len(sim_data.amino_acid_code_to_id_ordered)
 
 		# Get molecular weights
-		mws = sim_data.getter.get_mass(protein_ids).asNumber(units.g / units.mol)
+		mws = sim_data.getter.get_masses(protein_ids).asNumber(units.g / units.mol)
 
 		# Calculate degradation rates based on N-rule
 		deg_rate_units = 1 / units.s
@@ -105,8 +124,8 @@ class Translation(object):
 			for p in raw_data.protein_half_lives_measured
 			}
 
-		deg_rate = np.zeros(len(raw_data.proteins))
-		for i, protein in enumerate(raw_data.proteins):
+		deg_rate = np.zeros(len(all_proteins))
+		for i, protein in enumerate(all_proteins):
 			if protein['id'] in measured_deg_rates:
 				deg_rate[i] = measured_deg_rates[protein['id']]
 			elif protein['id'] not in ribosomalProteins:
@@ -150,13 +169,13 @@ class Translation(object):
 		self.n_monomers = len(self.monomer_data)
 
 	def _build_translation(self, raw_data, sim_data):
-		sequences = sim_data.getter.get_sequence(
-			[protein['id'] for protein in raw_data.proteins])
+		sequences = sim_data.getter.get_sequences(
+			[protein_id[:-3] for protein_id in self.monomer_data['id']])
 
 		max_len = np.int64(
 			self.monomer_data["length"].asNumber().max()
 			+ self.max_time_step * sim_data.constants.ribosome_elongation_rate_max.asNumber(units.aa / units.s)
-			)
+			) + self.next_aa_pad
 
 		self.translation_sequences = np.full((len(sequences), max_len), polymerize.PAD_VALUE, dtype=np.int8)
 		aa_ids_single_letter = six.viewkeys(sim_data.amino_acid_code_to_id_ordered)
@@ -169,19 +188,22 @@ class Translation(object):
 
 		self.translation_monomer_weights = (
 			(
-				sim_data.getter.get_mass(aaIDs)
-				- sim_data.getter.get_mass([sim_data.molecule_ids.water])
+				sim_data.getter.get_masses(aaIDs)
+				- sim_data.getter.get_masses([sim_data.molecule_ids.water])
 				)
 			/ sim_data.constants.n_avogadro
 			).asNumber(units.fg)
-		self.translation_end_weight = (sim_data.getter.get_mass([sim_data.molecule_ids.water]) / sim_data.constants.n_avogadro).asNumber(units.fg)
+		self.translation_end_weight = (sim_data.getter.get_masses([sim_data.molecule_ids.water]) / sim_data.constants.n_avogadro).asNumber(units.fg)
 
 	def _build_translation_efficiency(self, raw_data, sim_data):
-		monomer_ids = [protein["id"] for protein in raw_data.proteins]
+		monomer_ids = [
+			protein_id[:-3] for protein_id in self.monomer_data['id']]
 
 		# Get mappings from monomer IDs to gene IDs
 		monomer_id_to_rna_id = {
-			rna['monomer_id']: rna['id'] for rna in raw_data.rnas}
+			rna['monomer_ids'][0]: rna['id']
+			for rna in raw_data.rnas
+			if len(rna['monomer_ids']) > 0}
 		rna_id_to_gene_id = {
 			gene['rna_id']: gene['id'] for gene in raw_data.genes}
 		monomer_id_to_gene_id = {

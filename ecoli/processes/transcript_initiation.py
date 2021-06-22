@@ -108,6 +108,7 @@ class TranscriptInitiation(Process):
         'make_elongation_rates': lambda random, rate, timestep, variable: np.array([]),
         'basal_prob': np.array([]),
         'delta_prob': {'deltaI': [], 'deltaJ': [], 'deltaV': [], 'shape': tuple()},
+        'get_delta_prob_matrix': None,
         'perturbations': {},
         'rna_data': {},
         'shuffleIdxs': None,
@@ -132,11 +133,19 @@ class TranscriptInitiation(Process):
         'synth_prob': lambda concentration, copy: 0.0,
         'copy_number': lambda x: x,
         'ppgpp_regulation': False,
-        'seed': 0}
+
+        # attenuation
+        'trna_attenuation': False,
+        'attenuated_rna_indices': np.array([]),
+        'attenuation_adjustments': np.array([]),
+
+        # random seed
+        'seed': 0,
+    }
 
     # Constructor
-    def __init__(self, initial_parameters):
-        super().__init__(initial_parameters)
+    def __init__(self, parameters):
+        super().__init__(parameters)
 
         # Load parameters
         self.fracActiveRnapDict = self.parameters['fracActiveRnapDict']
@@ -146,14 +155,24 @@ class TranscriptInitiation(Process):
         self.make_elongation_rates = self.parameters['make_elongation_rates']
 
         # Initialize matrices used to calculate synthesis probabilities
-        self.basal_prob = self.parameters['basal_prob']
+        self.basal_prob = self.parameters['basal_prob'].copy()
+        self.trna_attenuation = self.parameters['trna_attenuation']
+        if self.trna_attenuation:
+            self.attenuated_rna_indices = self.parameters['attenuated_rna_indices']
+            self.attenuation_adjustments = self.parameters['attenuation_basal_prob_adjustments']
+            self.basal_prob[self.attenuated_rna_indices] += self.attenuation_adjustments
+
         self.n_TUs = len(self.basal_prob)
         self.delta_prob = self.parameters['delta_prob']
-        self.delta_prob_matrix = scipy.sparse.csr_matrix(
-            (self.delta_prob['deltaV'],
-             (self.delta_prob['deltaI'], self.delta_prob['deltaJ'])),
-            shape=self.delta_prob['shape']
-        ).toarray()
+        if self.parameters['get_delta_prob_matrix'] is not None:
+            self.delta_prob_matrix = self.parameters['get_delta_prob_matrix'](dense=True)
+        else:
+            # make delta_prob_matrix without adjustments
+            self.delta_prob_matrix = scipy.sparse.csr_matrix(
+                (self.delta_prob['deltaV'],
+                 (self.delta_prob['deltaI'], self.delta_prob['deltaJ'])),
+                shape=self.delta_prob['shape']
+            ).toarray()
 
         # Determine changes from genetic perturbations
         self.genetic_perturbations = {}
@@ -278,7 +297,9 @@ class TranscriptInitiation(Process):
                 cell_volume = cell_mass / self.cell_density
                 counts_to_molar = 1 / (self.n_avogadro * cell_volume)
                 ppgpp_conc = states['molecules'][self.ppgpp] * counts_to_molar
-                basal_prob = self.synth_prob(ppgpp_conc, self.copy_number)
+                basal_prob, _ = self.synth_prob(ppgpp_conc, self.copy_number)
+                if self.trna_attenuation:
+                    basal_prob[self.attenuated_rna_indices] += self.attenuation_adjustments
             else:
                 basal_prob = self.basal_prob
 
@@ -426,7 +447,7 @@ class TranscriptInitiation(Process):
                 'TU_index': TU_index_partial_RNAs,
                 'transcript_length': np.zeros(cast(int, n_RNAPs_to_activate)),
                 'is_mRNA': is_mRNA,
-                'is_full_transcript': np.zeros(cast(int, n_RNAPs_to_activate), dtype=np.bool),
+                'is_full_transcript': np.zeros(cast(int, n_RNAPs_to_activate), dtype=bool),
                 'can_translate': is_mRNA,
                 'RNAP_index': RNAP_indexes})
         update['RNAs'] = add_elements(new_RNAs, 'unique_index')
