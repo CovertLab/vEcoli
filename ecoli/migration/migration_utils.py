@@ -1,8 +1,11 @@
 import numpy as np
+from scipy.stats import mannwhitneyu, chi2_contingency
 from vivarium.core.experiment import Experiment
 
 from ecoli.composites.ecoli_master import get_state_from_file
 
+PERCENT_ERROR_THRESHOLD = 0.05
+PVALUE_THRESHOLD = 0.05
 
 def run_ecoli_process(
         process,
@@ -110,7 +113,6 @@ def array_diffs_report(a, b, names=None, sort_by="absolute", sort_with=np.abs):
                    str(r_diff).rjust(r_diffs_pad) + '\n')
 
     return result
-
 
 
 def percent_error(actual, expected):
@@ -243,6 +245,35 @@ def array_equal(arr1, arr2):
 def scalar_equal(v1, v2):
     return v1==v2, f"Difference (actual-expected) is {v1-v2}"
 
+def array_almost_equal(arr1, arr2):
+    pe = np.sum(np.abs(arr1 - arr2) / arr2)
+    return pe < PERCENT_ERROR_THRESHOLD or np.isnan(pe), f"Percent error = {pe:.4f}"
+
+def scalar_almost_equal(v1, v2):
+    return percent_error(v1, v2) < PERCENT_ERROR_THRESHOLD or np.isnan(pe), f"Percent error = {percent_error(v1, v2):.4f}"
+
+def custom_array_comp(percent_error_threshold = 0.05):
+    def _array_almost_equal(arr1, arr2):
+        pe = np.sum(np.abs(arr1 - arr2) / arr2)
+        return pe < percent_error_threshold or np.isnan(pe), f"Percent error = {pe:.4f}"
+
+    return _array_almost_equal
+
+def custom_scalar_comp(percent_error_threshold = 0.05):
+    def _array_almost_equal(arr1, arr2):
+        pe = np.sum(np.abs(arr1 - arr2) / arr2)
+        return pe < percent_error_threshold, f"Percent error = {pe:.4f}"
+
+    return _array_almost_equal
+
+def good_fit(dist1, dist2):
+    chi2, p, _, _ = chi2_contingency([dist1, dist2])
+    return p > PVALUE_THRESHOLD, f"Chi^2 test, X^2 = {chi2:.4f}, p {p:.4f}"
+
+def stochastic_equal(dist1, dist2):
+    u, p = mannwhitneyu(dist1, dist2)
+    return p > PVALUE_THRESHOLD, f"Mann-Whitney U, U = {u}, p = {p:.4f}"
+
 def array_diffs_report_test(filename, names=None, sort_by="absolute", sort_with=np.abs):
     def _array_diffs_report_test(a, b):
         result = array_diffs_report(a, b, names, sort_by, sort_with)
@@ -290,3 +321,19 @@ def one_of(*tests):
 
     return _one_of
 
+def transform_and_run(transformation, test):
+    '''
+    Allows preprocessing of elements prior to testing. transformation(val) does the transformation
+    prior to running the specified test.
+
+    Args:
+        transformation: function to preprocess each element to be compared
+        test: the test to run on transformed elements
+
+    Returns: A test function.
+    '''
+
+    def _transform_and_run(v1, v2):
+        return test(transformation(v1), transformation(v2))
+
+    return _transform_and_run
