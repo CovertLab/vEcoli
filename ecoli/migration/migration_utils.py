@@ -235,11 +235,23 @@ class ComparisonTestSuite:
         assert not self.failure, "Failed one or more tests."
 
 
+# Common tests for use with ComparisonTestSuite ========================================================================
+
 def array_equal(arr1, arr2):
     return np.array_equal(arr1, arr2, equal_nan=True)
 
 def scalar_equal(v1, v2):
     return v1==v2, f"Difference (actual-expected) is {v1-v2}"
+
+def array_diffs_report_test(filename, names=None, sort_by="absolute", sort_with=np.abs):
+    def _array_diffs_report_test(a, b):
+        result = array_diffs_report(a, b, names, sort_by, sort_with)
+        with open(filename, 'w') as f:
+            f.write(result)
+        return True
+    return _array_diffs_report_test
+
+# Test composition and modification ====================================================================================
 
 def run_all(*tests):
     def _run_all(arr1, arr2):
@@ -254,10 +266,27 @@ def run_all(*tests):
 
     return _run_all
 
-def array_diffs_report_test(filename, names=None, sort_by="absolute", sort_with=np.abs):
-    def _array_diffs_report_test(a, b):
-        result = array_diffs_report(a, b, names, sort_by, sort_with)
-        with open(filename, 'w') as f:
-            f.write(result)
-        return True
-    return _array_diffs_report_test
+def one_of(*tests):
+    '''
+    For composing tests. Equivalent to asserting that at least one of the specified tests passes.
+
+    Args:
+        *tests: the test functions to use.
+
+    Returns: a test function, returning a tuple of
+             1. boolean representing whether at least one test passed, followed by
+             2. a list of all the diagnostic information from all tests.
+    '''
+
+    def _one_of(arr1, arr2):
+        result = []
+        for test in tests:
+            result.append(test(arr1, arr2))
+
+        result = (all([x[0] if isinstance(x, tuple) else x for x in result]),
+                  [x[1] if isinstance(x, tuple) else None for x in result])
+
+        return result
+
+    return _one_of
+
