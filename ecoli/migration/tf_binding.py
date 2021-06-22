@@ -1,4 +1,4 @@
-from vivarium.core.experiment import Experiment
+from vivarium.core.engine import Engine
 from ecoli.library.sim_data import LoadSimData
 from ecoli.composites.ecoli_master import SIM_DATA_PATH
 from ecoli.processes.tf_binding import TfBinding
@@ -35,7 +35,7 @@ def run_tf_binding():
         path=f'data/wcecoli_t0.json')
 
     tf_binding_composite = tf_binding_process.generate()
-    experiment = Experiment({
+    experiment = Engine({
         'processes': tf_binding_composite['processes'],
         'topology': {tf_binding_process.name: TF_BINDING_TOPOLOGY},
         'initial_state': initial_state
