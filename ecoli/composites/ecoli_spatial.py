@@ -65,7 +65,7 @@ from scipy import constants
 
 from six.moves import cPickle
 
-from vivarium.core.process import Composer
+from vivarium.core.composer import Composer
 from vivarium.core.composition import simulate_composer
 
 # processes
