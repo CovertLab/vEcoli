@@ -86,10 +86,9 @@ def test_initiate_replication():
     data = experiment.emitter.get_data()
 
     print(pf(data))
-    # import ipdb; ipdb.set_trace()
 
-    # TODO -- is delete coming through?
-    data[1.0]['oriC']
+    # TODO -- test whether oriC delete is coming through?
+    # data[1.0]['oriC']
 
 
 def test_fork_termination():
@@ -112,7 +111,6 @@ def test_fork_termination():
     data = experiment.emitter.get_data()
 
     print(pf(data))
-    # import ipdb; ipdb.set_trace()
 
 
 test_library = {

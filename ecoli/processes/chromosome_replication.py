@@ -568,15 +568,13 @@ def test_chromosome_replication():
 
     process = ChromosomeReplication(test_config)
 
-    initial_state = {}
+    # initial_state = {}
+    # settings = {
+    #     'total_time': 10,
+    #     'initial_state': initial_state}
+    # data = simulate_process(process, settings)
 
-    settings = {
-        'total_time': 10,
-        'initial_state': initial_state}
-
-    data = simulate_process(process, settings)
-
-    print(data)
+    # print(data)
 
 
 if __name__ == "__main__":
