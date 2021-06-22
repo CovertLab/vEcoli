@@ -10,9 +10,12 @@ import numpy as np
 from vivarium.core.process import Process
 from vivarium.core.composition import simulate_process
 
-from ecoli.library.schema import array_from, array_to, arrays_from, arrays_to, listener_schema, bulk_schema
+from ecoli.library.schema import (
+    array_from, array_to, arrays_from,
+    arrays_to, listener_schema, bulk_schema)
 
 from wholecell.utils import units
+
 
 class TwoComponentSystem(Process):
     name = 'ecoli-two-component-system'

@@ -1,4 +1,4 @@
-from vivarium.core.experiment import Experiment
+from vivarium.core.engine import Engine
 from ecoli.library.sim_data import LoadSimData
 from ecoli.composites.ecoli_master import SIM_DATA_PATH
 from ecoli.processes.two_component_system import TwoComponentSystem
@@ -34,7 +34,7 @@ def test_two_component_system():
 
     two_component_system_composite = two_component_system_process.generate()
 
-    experiment = Experiment({
+    experiment = Engine({
         'processes': two_component_system_composite['processes'],
         'topology': {two_component_system_process.name: TOPOLOGY},
         'initial_state': initial_state
