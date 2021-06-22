@@ -40,80 +40,120 @@ class Equilibrium(object):
 		self.metabolite_set = set()
 		self.complex_name_to_rxn_idx = {}
 
-		# Make sure reactions are not duplicated in complexationReactions and equilibriumReactions
-		equilibriumReactionIds = set([x["id"] for x in raw_data.equilibrium_reactions])
-		complexationReactionIds = set([x["id"] for x in raw_data.complexation_reactions])
+		# Make sure reactions are not duplicated in complexationReactions and
+		# equilibriumReactions
+		removed_equilibrium_reaction_ids = {
+			rxn['id'] for rxn in raw_data.equilibrium_reactions_removed}
+		removed_complexation_reaction_ids = {
+			rxn['id'] for rxn in raw_data.complexation_reactions_removed}
 
-		if equilibriumReactionIds.intersection(complexationReactionIds) != set():
+		equilibrium_reaction_ids = set(
+			[x["id"] for x in raw_data.equilibrium_reactions
+			 if x['id'] not in removed_equilibrium_reaction_ids]
+		)
+		complexation_reaction_ids = set(
+			[x["id"] for x in raw_data.complexation_reactions
+			 if x['id'] not in removed_complexation_reaction_ids]
+		)
+
+		if equilibrium_reaction_ids.intersection(complexation_reaction_ids) != set():
 			raise Exception(
 				"The following reaction ids are specified in equilibriumReactions and complexationReactions: %s" % (
-					equilibriumReactionIds.intersection(
-						complexationReactionIds)))
+					equilibrium_reaction_ids.intersection(
+						complexation_reaction_ids)))
+
+		# Get IDs of all metabolites
+		metabolite_ids = {met['id'] for met in raw_data.metabolites}
+
+		# IDs of 2CS ligands that should be tagged to the periplasm
+		two_component_system_ligands = [
+			l["molecules"]["LIGAND"] for l in raw_data.two_component_systems]
 
 		# Remove complexes that are currently not simulated
 		FORBIDDEN_MOLECULES = {
 			"modified-charged-selC-tRNA", # molecule does not exist
 			}
 
-		# Remove reactions that we know won't occur (e.g., don't do computations on metabolites that have zero counts)
-		MOLECULES_THAT_WILL_EXIST_IN_SIMULATION = [m["Metabolite"] for m in raw_data.metabolite_concentrations] + ["LEU", "S-ADENOSYLMETHIONINE", "ARABINOSE", "4FE-4S"] + [l["molecules"]["LIGAND"] for l in raw_data.two_component_systems]
+		# Remove reactions that we know won't occur (e.g., don't do
+		# computations on metabolites that have zero counts)
+		# TODO (ggsun): check if this list is accurate
+		MOLECULES_THAT_WILL_EXIST_IN_SIMULATION = [
+			m["Metabolite"] for m in raw_data.metabolite_concentrations] + [
+			"LEU", "S-ADENOSYLMETHIONINE", "ARABINOSE", "4FE-4S"] + two_component_system_ligands
 
-		deleteReactions = []
-		for reactionIndex, reaction in enumerate(raw_data.equilibrium_reactions):
-			for molecule in reaction["stoichiometry"]:
-				if molecule["molecule"] in FORBIDDEN_MOLECULES or (molecule["type"] == "metabolite" and molecule["molecule"] not in MOLECULES_THAT_WILL_EXIST_IN_SIMULATION):
-					deleteReactions.append(reactionIndex)
+		for reaction in raw_data.equilibrium_reactions:
+			for mol_id in reaction["stoichiometry"].keys():
+				if mol_id in FORBIDDEN_MOLECULES or (
+						mol_id in metabolite_ids and mol_id not in MOLECULES_THAT_WILL_EXIST_IN_SIMULATION):
+					removed_equilibrium_reaction_ids.add(reaction['id'])
 					break
 
-		for reactionIndex in deleteReactions[::-1]:
-			del raw_data.equilibrium_reactions[reactionIndex]
+		# Get forward and reverse rates of each reaction
+		forward_rates = {
+			rxn['id']: rxn['forward_rate'] for rxn in raw_data.equilibrium_reaction_rates
+			}
+		reverse_rates = {
+			rxn['id']: rxn['reverse_rate'] for rxn in raw_data.equilibrium_reaction_rates
+			}
+		median_forward_rate = np.median(np.array(list(forward_rates.values())))
+		median_reverse_rate = np.median(np.array(list(reverse_rates.values())))
+
+		reaction_index = 0
 
 		# Build stoichiometry matrix
-		for reactionIndex, reaction in enumerate(raw_data.equilibrium_reactions):
-			assert reaction["process"] == "equilibrium"
-			assert reaction["dir"] == 1
+		for reaction in raw_data.equilibrium_reactions:
+			if reaction['id'] in removed_equilibrium_reaction_ids:
+				continue
 
-			ratesFwd.append(reaction["forward rate"])
-			ratesRev.append(reaction["reverse rate"])
+			ratesFwd.append(forward_rates.get(reaction['id'], median_forward_rate))
+			ratesRev.append(reverse_rates.get(reaction['id'], median_reverse_rate))
 			rxnIds.append(reaction["id"])
 
-			for molecule in reaction["stoichiometry"]:
-				if molecule["type"] == "metabolite":
-					moleculeName = "{}[{}]".format(
-						molecule["molecule"].upper(),
-						molecule["location"]
-						)
-					self.metabolite_set.add(moleculeName)
-
+			for mol_id, coeff in reaction["stoichiometry"].items():
+				if mol_id in metabolite_ids:
+					if mol_id in two_component_system_ligands:
+						mol_id_with_compartment = "{}[{}]".format(
+							mol_id, 'p'  # Assume 2CS ligands are in periplasm
+							)
+					else:
+						mol_id_with_compartment = "{}[{}]".format(
+							mol_id, 'c'  # Assume all other metabolites are in cytosol
+							)
+					self.metabolite_set.add(mol_id_with_compartment)
 				else:
-					moleculeName = "{}[{}]".format(
-						molecule["molecule"],
-						molecule["location"]
+					mol_id_with_compartment = "{}[{}]".format(
+						mol_id,
+						sim_data.getter.get_compartment(mol_id)[0]
 						)
 
-				if moleculeName not in molecules:
-					molecules.append(moleculeName)
-					moleculeIndex = len(molecules) - 1
-
+				if mol_id_with_compartment not in molecules:
+					molecules.append(mol_id_with_compartment)
+					molecule_index = len(molecules) - 1
 				else:
-					moleculeIndex = molecules.index(moleculeName)
+					molecule_index = molecules.index(mol_id_with_compartment)
 
-				coefficient = molecule["coeff"]
+				# Assume coefficients given as null are -1
+				if coeff is None:
+					coeff = -1
 
-				assert coefficient % 1 == 0
+				# All stoichiometric coefficients must be integers
+				assert coeff % 1 == 0
 
-				# Store indices for the row and column, and molecule coefficient for building the stoichiometry matrix
-				stoichMatrixI.append(moleculeIndex)
-				stoichMatrixJ.append(reactionIndex)
-				stoichMatrixV.append(coefficient)
+				# Store indices for the row and column, and molecule
+				# coefficient for building the stoichiometry matrix
+				stoichMatrixI.append(molecule_index)
+				stoichMatrixJ.append(reaction_index)
+				stoichMatrixV.append(coeff)
 
-				if coefficient > 0:
-					assert molecule["type"] == "proteincomplex"
-					self.complex_name_to_rxn_idx[moleculeName] = reactionIndex
+				# If coefficient is positive, the molecule is the complex
+				if coeff > 0:
+					self.complex_name_to_rxn_idx[mol_id_with_compartment] = reaction_index
 
 				# Find molecular mass
-				molecularMass = sim_data.getter.get_mass([moleculeName]).asNumber(units.g / units.mol)[0]
+				molecularMass = sim_data.getter.get_mass(mol_id_with_compartment).asNumber(units.g / units.mol)
 				stoichMatrixMass.append(molecularMass)
+
+			reaction_index += 1
 
 		# TODO(jerry): Move the rest to a subroutine for __init__ and __setstate__?
 		self._stoichMatrixI = np.array(stoichMatrixI)
@@ -278,21 +318,34 @@ class Equilibrium(object):
 			negIdxs = np.where(S[:, colIdx] < 0)[0]
 			posIdxs = np.where(S[:, colIdx] > 0)[0]
 
+			fwd_stoich = 1.
 			reactantFlux = ratesFwd[colIdx]
 			for negIdx in negIdxs:
 				stoich = -S[negIdx, colIdx]
 				if stoich == 1:
 					reactantFlux *= y[negIdx]
 				else:
+					if stoich > fwd_stoich:
+						fwd_stoich = stoich
 					reactantFlux *= y[negIdx]**stoich
 
-			productFlux = ratesRev[colIdx]
+			# Need to scale the rate by the number of dissociation reactions
+			# which is the highest stoichiometry in the forward direction
+			if fwd_stoich > 1:
+				productFlux = ratesRev[colIdx]**fwd_stoich
+			else:
+				productFlux = ratesRev[colIdx]
 			for posIdx in posIdxs:
 				stoich = S[posIdx, colIdx]
 				if stoich == 1:
 					productFlux *= y[posIdx]
 				else:
-					productFlux *= y[posIdx]**stoich
+					# If this needs to be included, it may affect the rate
+					# calculation with multiple products so double check before
+					# implementing.  For now, the assumption is that there will
+					# only be one product and this verifies that assumption.
+					raise ValueError('Expected a single product (stoichiometry'
+						f' of 1) for equilibrium reaction {self.rxn_ids[colIdx]}')
 
 			rates.append(reactantFlux - productFlux)
 
@@ -329,10 +382,19 @@ class Equilibrium(object):
 			derivatives_jacobian = self.derivatives_jacobian
 
 		# Note: odeint has issues solving with a long time step so need to use solve_ivp
-		sol = integrate.solve_ivp(
-			derivatives, [0, time_limit], y_init,
-			method="LSODA", t_eval=[0, time_limit],
-			jac=derivatives_jacobian)
+		for method in ['LSODA', 'BDF']:
+			try:
+				sol = integrate.solve_ivp(
+					derivatives, [0, time_limit], y_init,
+					method=method, t_eval=[0, time_limit],
+					jac=derivatives_jacobian)
+				break
+			except ValueError as e:
+				print(f'Warning: switching solver method in equilibrium, {e!r}')
+		else:
+			raise RuntimeError('Could not solve ODEs in equilibrium to SS.'
+				' Try adjusting time step or changing methods.')
+
 		y = sol.y.T
 
 		if np.any(y[-1, :] * (cellVolume * nAvogadro) <= -1):

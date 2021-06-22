@@ -258,11 +258,25 @@ def get_state_from_file(path='data/wcecoli_t0.json'):
     return initial_state
 
 
-def test_ecoli(total_time=60):
+def test_ecoli(
+        total_time=10,
+        debug_config=False,
+):
 
     # configure the composer
     ecoli_config = {
-        'agent_id': '1'}
+        'agent_id': '1',
+        # TODO -- remove schema override once values don't go negative
+        '_schema': {
+            'equilibrium': {
+                'molecules': {
+                    'PD00413[c]': {
+                        '_updater': 'nonnegative_accumulate'
+                    }
+                }
+            }
+        }
+    }
     ecoli_composer = Ecoli(ecoli_config)
 
     # get initial state
@@ -277,9 +291,7 @@ def test_ecoli(total_time=60):
         'progress_bar': True,
     })
 
-
-    debug_experiment = False
-    if debug_experiment:
+    if debug_config:
         print(pformat(ecoli_experiment.state.get_config(True)))
         import ipdb; ipdb.set_trace()
 
