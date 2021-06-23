@@ -1,7 +1,0 @@
-README.md
-setup.py
-Build_sequences.egg-info/PKG-INFO
-Build_sequences.egg-info/SOURCES.txt
-Build_sequences.egg-info/dependency_links.txt
-Build_sequences.egg-info/top_level.txt
-wholecell/utils/_build_sequences.c
