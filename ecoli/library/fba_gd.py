@@ -233,6 +233,23 @@ class GradientDescentFba:
               variance: Optional[float] = None,
               seed: int = None) -> FbaResult:
         """Performs the optimization to solve the specified FBA problem."""
+        # Set up x0 with or without random variation, and truncate to bounds.
+        if initial is not None:
+            x0 = jnp.asarray(self.network.reaction_vector(initial))
+        else:
+            # Random starting point, ensuring we have some variation.
+            x0 = jnp.zeros(self.network.shape[1])
+            if variance is None:
+                variance = 1.0
+        if variance is not None:
+            if seed is None:
+                seed = int(time.time())
+            x0 += variance * jax.random.normal(jax.random.PRNGKey(seed), (self.network.shape[1],))
+
+        x0 = np.maximum(x0, self._bounds[0])
+        x0 = np.minimum(x0, self._bounds[1])
+
+        # Put all parameters into jax arrays, passed as side arguments to the final residual function.
         ready_params = {}
         if self._homeostatic_objective:
             key = self._homeostatic_objective.param_key
@@ -241,28 +258,10 @@ class GradientDescentFba:
             key = self._kinetic_objective.param_key
             ready_params[key] = jnp.asarray(self.network.reaction_vector(params[key]))
 
-        if initial is not None:
-            x0 = jnp.asarray(self.network.reaction_vector(initial))
-        else:
-            # Random starting point, ensuring we have some variation.
-            x0 = jnp.zeros(self.network.shape[1])
-            if variance is None:
-                variance = 1.0
-
-        if variance is not None:
-            if seed is None:
-                seed = int(time.time())
-            x0 += variance * jax.random.normal(jax.random.PRNGKey(seed), (self.network.shape[1],))
-
-        # Truncate to bounds
-        x0 = np.maximum(x0, self._bounds[0])
-        x0 = np.minimum(x0, self._bounds[1])
-        print(x0)
-        print(self._bounds)
-
         fn = jax.jit(lambda v: self.residual(v, ready_params))
         jac = jax.jacfwd(fn)
 
+        # Perform the actual gradient descent, and extract the result.
         soln = scipy.optimize.least_squares(fn, x0, jac=jac, bounds=self._bounds)
         dm_dt = self.network.s_matrix @ soln.x
         ss_residual = self._steady_state_objective(soln.x, dm_dt, ready_params)
