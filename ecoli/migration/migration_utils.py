@@ -282,9 +282,25 @@ def array_diffs_report_test(filename, names=None, sort_by="absolute", sort_with=
         return True
     return _array_diffs_report_test
 
+# Common transformations ===============================================================================================
+
+def pseudocount(arr):
+    return arr + 1
+
 # Test composition and modification ====================================================================================
 
 def run_all(*tests):
+    '''
+    Function for composing tests. Passes if all input tests pass.
+
+    Args:
+        *tests: the tests to be run.
+
+    Returns: A test function that returns a tuple of
+             1. a boolean for whether all tests passed, and
+             2. a list of all diagnostic information for the tests.
+
+    '''
     def _run_all(arr1, arr2):
         result = []
         for test in tests:
@@ -321,7 +337,7 @@ def one_of(*tests):
 
     return _one_of
 
-def transform_and_run(transformation, test):
+def transform_and_run(transformation, test, transform_first=True, transform_second=True):
     '''
     Allows preprocessing of elements prior to testing. transformation(val) does the transformation
     prior to running the specified test.
@@ -334,6 +350,12 @@ def transform_and_run(transformation, test):
     '''
 
     def _transform_and_run(v1, v2):
-        return test(transformation(v1), transformation(v2))
+        if transform_first:
+            v1 = transformation(v1)
+
+        if transform_second:
+            v2 = transformation(v2)
+
+        return test(v1, v2)
 
     return _transform_and_run
