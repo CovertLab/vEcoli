@@ -332,6 +332,8 @@ def run_ecoli():
     # print(unique.keys())
     pp(listeners['mass'])
 
+    return output
+
 
 def ecoli_topology_plot(out_dir='out'):
     ecoli = Ecoli({'agent_id': '1'})
@@ -357,6 +359,7 @@ def ecoli_topology_plot(out_dir='out'):
             'metabolism': (11*process_distance, process_row),
             'mass': (12*process_distance, process_row),
             'divide_condition': (13*process_distance, process_row),
+            'chromosome_replication': (14*process_distance, process_row)
         },
         'node_labels': {
             # processes
@@ -405,13 +408,15 @@ def main():
     parser = argparse.ArgumentParser(description='ecoli_master')
     parser.add_argument('-topology', '-t', action='store_true', default=False, help='save a topology plot of ecoli master')
     parser.add_argument('-simulate', '-s', action='store_true', default=False, help='simulate ecoli master')
+    parser.add_argument('-debug', '-d', action='store_true', default=False, help='run tests, generating a report of failures/successes')
     args = parser.parse_args()
-
 
     if args.topology:
         ecoli_topology_plot(out_dir)
     else:
-        run_ecoli()
+        output = run_ecoli()
+        if ars.debug:
+            print("poopy!")
 
 if __name__ == '__main__':
     main()
