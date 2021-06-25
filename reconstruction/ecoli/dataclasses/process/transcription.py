@@ -8,6 +8,7 @@ TODO: handle ppGpp and DksA-ppGpp regulation separately
 from __future__ import absolute_import, division, print_function
 
 import numpy as np
+import scipy
 from scipy import interpolate
 import sympy as sp
 from typing import cast
@@ -41,6 +42,7 @@ class Transcription(object):
 		self._build_rna_data(raw_data, sim_data)
 		self._build_transcription(raw_data, sim_data)
 		self._build_charged_trna(raw_data, sim_data)
+		self._build_attenuation(raw_data, sim_data)
 		self._build_elongation_rates(raw_data, sim_data)
 
 	def __getstate__(self):
@@ -177,16 +179,21 @@ class Transcription(object):
 		"""
 		self._basal_rna_fractions = sim_data.mass.get_basal_rna_fractions()
 
+		# Filter out RNAs without sequences
+		all_rnas = [
+			rna for rna in raw_data.rnas
+			if sim_data.getter.is_valid_molecule(rna['id'])]
+
 		# Load RNA IDs with compartment tags
-		rna_ids = [rna['id'] for rna in raw_data.rnas]
-		compartments = sim_data.getter.get_location(rna_ids)
+		rna_ids = [rna['id'] for rna in all_rnas]
+		compartments = sim_data.getter.get_compartments(rna_ids)
 
 		rna_ids_with_compartments = [
 			f'{rna_id}[{loc[0]}]' for (rna_id, loc)
 			in zip(rna_ids, compartments)]
 
 		# Load set of mRNA ids
-		mRNA_ids = set([rna['id'] for rna in raw_data.rnas if rna['type'] == 'mRNA'])
+		mRNA_ids = set([rna['id'] for rna in all_rnas if rna['type'] == 'mRNA'])
 
 		# Load RNA half lives
 		rna_id_to_half_life = {}
@@ -205,7 +212,7 @@ class Transcription(object):
 		# average reported half life of mRNAs
 		half_lives = np.array([
 			rna_id_to_half_life.get(rna['id'], average_mRNA_half_lives).asNumber(units.s)
-			for rna in raw_data.rnas])
+			for rna in all_rnas])
 
 		# Convert to degradation rates
 		rna_deg_rates = np.log(2) / half_lives
@@ -219,18 +226,10 @@ class Transcription(object):
 			x['Gene']: x[sim_data.basal_expression_condition]
 			for x in getattr(raw_data.rna_seq_data, f'rnaseq_{RNA_SEQ_ANALYSIS}_mean')}
 
-		for rna in raw_data.rnas:
+		for rna in all_rnas:
 			gene_id = rna_id_to_gene_id[rna['id']]
-			# If sequencing data is not found for rRNA or tRNA, initialize
-            # expression to zero. For other RNA types, raise exception.
-			if gene_id in seq_data:
-				expression.append(seq_data[gene_id])
-			elif rna['type'] == 'mRNA' or rna['type'] == 'miscRNA':
-				raise Exception(f'No RNA-seq data found for {rna["id"]}')
-			elif rna['type'] == 'rRNA' or rna['type'] == 'tRNA':
-				expression.append(0.)
-			else:
-				raise Exception(f'Unknown RNA {rna["id"]}')
+			# If sequencing data is not found, initialize expression to zero.
+			expression.append(seq_data.get(gene_id, 0.))
 
 		expression = np.array(expression)
 
@@ -246,10 +245,21 @@ class Transcription(object):
 
 		# Load gene IDs
 		gene_ids = np.array(
-			[rna_id_to_gene_id[rna['id']] for rna in raw_data.rnas])
+			[rna_id_to_gene_id[rna['id']] for rna in all_rnas])
+
+		# Construct boolean arrays for ribosomal protein and RNAP genes
+		n_rnas = len(rna_ids_with_compartments)
+		is_ribosomal_protein = np.zeros(n_rnas, dtype=np.bool)
+		is_RNAP	= np.zeros(n_rnas, dtype=np.bool)
+
+		for i, rna in enumerate(all_rnas):
+			for monomer_id in rna['monomer_ids']:
+				if monomer_id + '[c]' in sim_data.molecule_groups.ribosomal_proteins:
+					is_ribosomal_protein[i] = True
+				if monomer_id + '[c]' in sim_data.molecule_groups.RNAP_subunits:
+					is_RNAP[i] = True
 
 		# Construct boolean arrays and index arrays for each rRNA type
-		n_rnas = len(rna_ids_with_compartments)
 		is_23S = np.zeros(n_rnas, dtype = np.bool)
 		is_16S = np.zeros(n_rnas, dtype = np.bool)
 		is_5S = np.zeros(n_rnas, dtype = np.bool)
@@ -257,7 +267,7 @@ class Transcription(object):
 		idx_16S = []
 		idx_5S = []
 
-		for rnaIndex, rna in enumerate(raw_data.rnas):
+		for rnaIndex, rna in enumerate(all_rnas):
 			if rna["type"] == "rRNA" and rna["id"].startswith("RRL"):
 				is_23S[rnaIndex] = True
 				idx_23S.append(rnaIndex)
@@ -274,12 +284,9 @@ class Transcription(object):
 		idx_16S = np.array(idx_16S)
 		idx_5S = np.array(idx_5S)
 
-		# Load IDs of protein monomers
-		monomer_ids = [rna['monomer_id'] for rna in raw_data.rnas]
-
 		# Load RNA sequences and molecular weights from getter functions
-		rna_seqs = sim_data.getter.get_sequence(rna_ids)
-		mws = sim_data.getter.get_mass(rna_ids).asNumber(units.g / units.mol)
+		rna_seqs = sim_data.getter.get_sequences(rna_ids)
+		mws = sim_data.getter.get_masses(rna_ids).asNumber(units.g / units.mol)
 
 		# Calculate lengths and nt counts from sequence
 		rna_lengths = np.array([len(seq) for seq in rna_seqs])
@@ -297,7 +304,10 @@ class Transcription(object):
 			for i, gene in enumerate(raw_data.genes)}
 
 		# Get list of coordinates and directions for each gene
-		coordinate_list = [gene["coordinate"] for gene in raw_data.genes]
+		coordinate_list = [
+			gene["left_end_pos"] if gene["direction"] == '+'
+			else gene["right_end_pos"]
+			for gene in raw_data.genes]
 		direction_list = [gene["direction"] for gene in raw_data.genes]
 
 		# Get coordinates of oriC and terC
@@ -322,12 +332,12 @@ class Transcription(object):
 		# Get location of transcription initiation relative to origin
 		replication_coordinate = [
 			get_relative_coordinates(coordinate_list[rna_id_to_gene_index[rna["id"]]])
-			for rna in raw_data.rnas]
+			for rna in all_rnas]
 
 		# Get direction of transcription
 		direction = [
 			(direction_list[rna_id_to_gene_index[rna["id"]]] == "+")
-			for rna in raw_data.rnas]
+			for rna in all_rnas]
 
 		# Set the lengths, nucleotide counts, molecular weights, and sequences
 		# of each type of rRNAs to be identical to those of the first rRNA
@@ -379,16 +389,12 @@ class Transcription(object):
 		rna_data['length'] = rna_lengths
 		rna_data['counts_ACGU'] = nt_counts
 		rna_data['mw'] = mws
-		rna_data['is_mRNA'] = [rna["type"] == "mRNA" for rna in raw_data.rnas]
-		rna_data['is_miscRNA'] = [rna["type"] == "miscRNA" for rna in raw_data.rnas]
-		rna_data['is_rRNA'] = [rna["type"] == "rRNA" for rna in raw_data.rnas]
-		rna_data['is_tRNA'] = [rna["type"] == "tRNA" for rna in raw_data.rnas]
-		rna_data['is_ribosomal_protein'] = [
-            "{}[c]".format(x) in sim_data.molecule_groups.ribosomal_proteins
-            for x in monomer_ids]
-		rna_data['is_RNAP'] = [
-            "{}[c]".format(x) in sim_data.molecule_groups.RNAP_subunits
-            for x in monomer_ids]
+		rna_data['is_mRNA'] = [rna["type"] == "mRNA" for rna in all_rnas]
+		rna_data['is_miscRNA'] = [rna["type"] == "miscRNA" for rna in all_rnas]
+		rna_data['is_rRNA'] = [rna["type"] == "rRNA" for rna in all_rnas]
+		rna_data['is_tRNA'] = [rna["type"] == "tRNA" for rna in all_rnas]
+		rna_data['is_ribosomal_protein'] = is_ribosomal_protein
+		rna_data['is_RNAP'] = is_RNAP
 		rna_data['is_23S_rRNA'] = is_23S
 		rna_data['is_16S_rRNA'] = is_16S
 		rna_data['is_5S_rRNA'] = is_5S
@@ -433,8 +439,8 @@ class Transcription(object):
 		Build transcription-associated simulation data from raw data.
 		"""
 		# Load sequence data
-		rna_seqs = sim_data.getter.get_sequence(
-			[rna['id'] for rna in raw_data.rnas])
+		rna_seqs = sim_data.getter.get_sequences(
+			[rna_id[:-3] for rna_id in self.rna_data['id']])
 
 		rrna_types = ['is_23S_rRNA', 'is_16S_rRNA', 'is_5S_rRNA']
 		for rrna in rrna_types:
@@ -457,13 +463,13 @@ class Transcription(object):
 		# Calculate weights of transcript nucleotide monomers
 		self.transcription_monomer_weights = (
 			(
-				sim_data.getter.get_mass(sim_data.molecule_groups.ntps)
-				- sim_data.getter.get_mass([sim_data.molecule_ids.ppi])
+				sim_data.getter.get_masses(sim_data.molecule_groups.ntps)
+				- sim_data.getter.get_masses([sim_data.molecule_ids.ppi])
 				)
 			/ sim_data.constants.n_avogadro
 			).asNumber(units.fg)
 
-		self.transcription_end_weight = ((sim_data.getter.get_mass([sim_data.molecule_ids.ppi])
+		self.transcription_end_weight = ((sim_data.getter.get_masses([sim_data.molecule_ids.ppi])
 			/ sim_data.constants.n_avogadro).asNumber(units.fg))
 
 	def _build_charged_trna(self, raw_data, sim_data):
@@ -485,7 +491,7 @@ class Transcription(object):
 				if 'FMET' in trna or 'modified' in trna:
 					continue
 
-				assert('c' in sim_data.getter.get_location([trna])[0])
+				assert('c' in sim_data.getter.get_compartment(trna))
 				filtered_charged_trna += [trna + '[c]']
 
 		self.charged_trna_names = filtered_charged_trna
@@ -516,7 +522,7 @@ class Transcription(object):
 			elif aa == 'RNA':
 				aa = trna_dict[trna]
 
-			assert('c' in sim_data.getter.get_location([aa])[0])
+			assert('c' in sim_data.getter.get_compartment(aa))
 			aa += '[c]'
 			if aa in aa_names:
 				aa_idx = aa_indices[aa]
@@ -535,46 +541,44 @@ class Transcription(object):
 		synthetase_mapping_aa = []
 		synthetase_mapping_syn = []
 
+		# Get IDs of charging reactions that should be removed
+		removed_reaction_ids = {
+			rxn['id'] for rxn in raw_data.trna_charging_reactions_removed}
+
+		# Get IDs of all metabolites
+		metabolite_ids = {met['id'] for met in raw_data.metabolites}
+
 		# Create stoichiometry matrix for charging reactions
-		for reaction in raw_data.modification_reactions:
-			# Skip reactions from modificationReactions that don't have both an uncharged and charged tRNA
-			no_charged_trna_in_reaction = True
-			no_trna_in_reaction = True
-			for mol in [molecule['molecule'] + '[' + molecule['location'] + ']' for molecule in reaction['stoichiometry']]:
-				if mol in self.charged_trna_names:
-					no_charged_trna_in_reaction = False
-
-				if mol in trna_names:
-					no_trna_in_reaction = False
-
-			if no_charged_trna_in_reaction or no_trna_in_reaction:
+		for reaction in raw_data.trna_charging_reactions:
+			if reaction['id'] in removed_reaction_ids:
 				continue
-
-			assert reaction['process'] == 'rna'
-			assert reaction['dir'] == 1
 
 			# Get uncharged tRNA name for the given reaction
 			trna = None
-			for mol in [molecule['molecule'] + '[' + molecule['location'] + ']' for molecule in reaction['stoichiometry']]:
-				if mol in trna_names:
-					trna = mol
+			for mol_id in reaction['stoichiometry'].keys():
+				if f'{mol_id}[c]' in trna_names:
+					trna = f'{mol_id}[c]'
 					break
 
 			if trna is None:
 				continue
+
 			trna_index = trna_indices[trna]
 
 			# Get molecule information
 			aa_idx = None
-			for molecule in reaction['stoichiometry']:
-				molecule_prefix = molecule['molecule']
-				if molecule['type'] == 'metabolite':
-					molecule_prefix = molecule_prefix.upper()
+			for mol_id, coeff in reaction['stoichiometry'].items():
 
-				molecule_name = '{}[{}]'.format(
-					molecule_prefix,
-					molecule['location']
-					)
+				if mol_id in metabolite_ids:
+					molecule_name = "{}[{}]".format(
+						mol_id, 'c'
+						# Assume all metabolites are in cytosol
+						)
+				else:
+					molecule_name = "{}[{}]".format(
+						mol_id,
+						sim_data.getter.get_compartment(mol_id)[0]
+						)
 
 				if molecule_name not in molecules:
 					molecules.append(molecule_name)
@@ -584,19 +588,21 @@ class Transcription(object):
 
 				aa_idx = aa_indices.get(molecule_name, aa_idx)
 
-				coefficient = molecule['coeff']
-
-				assert coefficient % 1 == 0
+				# Assume coefficents given as null are -1
+				if coeff is None:
+					coeff = -1
+				assert coeff % 1 == 0
 
 				stoich_matrix_i.append(molecule_index)
 				stoich_matrix_j.append(trna_index)
-				stoich_matrix_v.append(coefficient)
+				stoich_matrix_v.append(coeff)
 
 			assert aa_idx is not None
 
 			# Create mapping for synthetases catalyzing charging
-			for synthetase in reaction['catBy']:
-				synthetase = '{}[{}]'.format(synthetase, molecule['location'])
+			for synthetase in reaction['catalyzed_by']:
+				synthetase = '{}[{}]'.format(
+					synthetase, sim_data.getter.get_compartment(synthetase)[0])
 
 				if synthetase not in synthetase_names:
 					synthetase_names.append(synthetase)
@@ -629,8 +635,97 @@ class Transcription(object):
 
 		return out
 
+	def _build_attenuation(self, raw_data, sim_data):
+		"""
+		Load fold changes related to transcriptional attenuation.
+		"""
+
+		# Load data from file
+		aa_trnas = []
+		attenuated_rnas = []
+		fold_changes = []
+		gene_to_rna = {g['symbol']: g['rna_id'] for g in raw_data.genes}
+		for row in raw_data.transcriptional_attenuation:
+			trna_aa = row['tRNA'].split('-')[1].upper() + '[c]'
+			gene = row['Target']
+			rna = gene_to_rna[gene] + '[c]'
+
+			aa_trnas.append(trna_aa)
+			attenuated_rnas.append(rna)
+			fold_changes.append(2**row['log2 FC'])
+
+		self.attenuated_rna_ids = np.unique(attenuated_rnas)
+
+		# Convert data to matrix mapping tRNA to genes with a fold change
+		trna_to_row = {t: i for i, t in enumerate(sim_data.molecule_groups.amino_acids)}
+		rna_to_col = {r: i for i, r in enumerate(self.attenuated_rna_ids)}
+		n_aas = len(sim_data.molecule_groups.amino_acids)
+		n_rnas = len(self.attenuated_rna_ids)
+		self._attenuation_fold_changes = np.ones((n_aas, n_rnas))
+		for trna, rna, fc in zip(aa_trnas, attenuated_rnas, fold_changes):
+			i = trna_to_row[trna]
+			j = rna_to_col[rna]
+			self._attenuation_fold_changes[i, j] = fc
+
+		# Attenuated RNA index mapping
+		rna_to_index = {r: i for i, r in enumerate(self.rna_data['id'])}
+		self.attenuated_rna_indices = np.array([rna_to_index[r] for r in self.attenuated_rna_ids])
+
+		# Specify location in gene where attenuation will occur
+		# Currently just assumes before a transcript begins elongation (position < 1)
+		# TODO: base this on specific locations for each gene
+		locations = np.ones(len(self.attenuated_rna_indices))
+		self.attenuation_location = {idx: loc for idx, loc in zip(self.attenuated_rna_indices, locations)}
+
+	def calculate_attenuation(self, sim_data, cell_specs):
+		"""
+		Calculate constants for each attenuated gene.
+
+		TODO:
+			Calculate estimate charged tRNA concentration to use instead of all tRNA
+		"""
+
+		def get_trna_conc(condition):
+			spec = cell_specs[condition]
+			uncharged_trna_ids = self.rna_data['id'][self.rna_data['is_tRNA']]
+			counts = spec['bulkAverageContainer'].counts(uncharged_trna_ids)
+			volume = (spec['avgCellDryMassInit'] / sim_data.constants.cell_density
+				/ sim_data.mass.cell_dry_mass_fraction)
+			# Order of operations for conc (counts last) is to get units to work well
+			conc = (1 / sim_data.constants.n_avogadro / volume * counts)
+			return conc
+
+		k_units = units.umol / units.L
+		trna_conc = self.aa_from_trna @ get_trna_conc('with_aa').asNumber(k_units)
+
+		# Calculate constant for stop probability
+		self.attenuation_k = np.zeros_like(self._attenuation_fold_changes)
+		for i, j in zip(*np.where(self._attenuation_fold_changes != 1)):
+			k = trna_conc[i] / np.log(self._attenuation_fold_changes[i, j])
+			self.attenuation_k[i, j] = 1/k
+		self.attenuation_k = 1 / k_units * self.attenuation_k
+
+		# Adjust basal synthesis probabilities to account for less synthesis
+		# due to attenuation
+		condition = 'basal'
+		basal_prob = sim_data.process.transcription_regulation.basal_prob
+		delta_prob = sim_data.process.transcription_regulation.get_delta_prob_matrix()
+		p_promoter_bound = np.array([
+			sim_data.pPromoterBound[condition][tf]
+			for tf in sim_data.process.transcription_regulation.tf_ids
+			])
+		delta = delta_prob @ p_promoter_bound
+		basal_stop_prob = self.get_attenuation_stop_probabilities(get_trna_conc(condition))
+		basal_synth_prob = (basal_prob + delta)[self.attenuated_rna_indices]
+		self.attenuation_basal_prob_adjustments = basal_synth_prob * (1 / (1 - basal_stop_prob) - 1)
+
+	def get_attenuation_stop_probabilities(self, trna_conc):
+		trna_by_aa = units.matmul(self.aa_from_trna, trna_conc)
+		stop_prob = 1 - np.exp(units.strip_empty_units(trna_by_aa @ self.attenuation_k))
+		return stop_prob
+
 	def _build_elongation_rates(self, raw_data, sim_data):
-		self.max_elongation_rate = sim_data.constants.RNAP_elongation_rate_max
+		self.max_elongation_rate = sim_data.constants.RNAP_elongation_rate_max.asNumber(units.nt / units.s)
 		self.rRNA_indexes = np.where(self.rna_data['is_rRNA'])[0]
 
 	def make_elongation_rates(self, random, base, time_step, variable_elongation=False):
@@ -806,6 +901,13 @@ class Transcription(object):
 			exp_free (ndarray[float]): expression for each gene when RNAP
 				is not bound to ppGpp, adjusted for necessary RNAP and ribosome
 				expression, normalized to 1
+
+		Note:
+			See docs/processes/transcription_regulation.pdf for a description
+			of the math used in this section.
+
+		TODO:
+			fit for all conditions and not just those specified below?
 		"""
 
 		# Fraction RNAP bound to ppGpp in different conditions
@@ -814,31 +916,89 @@ class Transcription(object):
 		ppgpp_basal = sim_data.growth_rate_parameters.get_ppGpp_conc(
 			sim_data.condition_to_doubling_time['basal'])
 		ppgpp_anaerobic = sim_data.growth_rate_parameters.get_ppGpp_conc(
-			sim_data.condition_to_doubling_time['basal'])
+			sim_data.condition_to_doubling_time['no_oxygen'])
 		f_ppgpp_aa = self.fraction_rnap_bound_ppgpp(ppgpp_aa)
 		f_ppgpp_basal = self.fraction_rnap_bound_ppgpp(ppgpp_basal)
 		f_ppgpp_anaerobic = self.fraction_rnap_bound_ppgpp(ppgpp_anaerobic)
 
+		# Adjustments for TFs
+		tf_adjustments = {}
+		delta_prob = sim_data.process.transcription_regulation.get_delta_prob_matrix()
+		for condition in ['with_aa', 'basal', 'no_oxygen']:
+			p_promoter_bound = np.array([
+				sim_data.pPromoterBound[condition][tf]
+				for tf in sim_data.process.transcription_regulation.tf_ids
+				])
+			delta = delta_prob @ p_promoter_bound
+			# TODO(jerry): Handle the NaN or Infinity values from this line then
+			#  use `with np.errstate(invalid='ignore'):` to suppress its warnings.
+			tf_adjustments[condition] = delta / sim_data.process.transcription.rna_synth_prob[condition]
+
 		# Solve least squares fit for expression of each component of RNAP and ribosomes
+		self._normalize_ppgpp_expression()  # Need to normalize first to get correct scale
 		adjusted_mask = self.rna_data['is_RNAP'] | self.rna_data['is_ribosomal_protein'] | self.rna_data['is_rRNA']
 		F = np.array([[1- f_ppgpp_aa, f_ppgpp_aa], [1 - f_ppgpp_basal, f_ppgpp_basal], [1 - f_ppgpp_anaerobic, f_ppgpp_anaerobic]])
 		Flst = np.linalg.inv(F.T.dot(F)).dot(F.T)
 		expression = np.array([
-			self.rna_expression['with_aa'],
-			self.rna_expression['basal'],
-			self.rna_expression['no_oxygen']])
+			self.rna_expression['with_aa'] * (1 - tf_adjustments['with_aa']),
+			self.rna_expression['basal'] * (1 - tf_adjustments['basal']),
+			self.rna_expression['no_oxygen'] * (1 - tf_adjustments['no_oxygen'])])
 		adjusted_free, adjusted_ppgpp = Flst.dot(expression)
 		self.exp_free[adjusted_mask] = adjusted_free[adjusted_mask]
 		self.exp_ppgpp[adjusted_mask] = adjusted_ppgpp[adjusted_mask]
+		self._normalize_ppgpp_expression()
 
-		# Rescale expression of genes that are not regulated so expression sums to 1
-		ppgpp_regulated = np.array([g[:-3] in self.ppgpp_regulated_genes for g in self.rna_data['id']])
-		scale_free_by = (1 - self.exp_free[ppgpp_regulated].sum()) / self.exp_free[~ppgpp_regulated].sum()
-		self.exp_free[~ppgpp_regulated] *= scale_free_by
-		assert(scale_free_by > 0)
-		scale_ppgpp_by = (1 - self.exp_ppgpp[ppgpp_regulated].sum()) / self.exp_ppgpp[~ppgpp_regulated].sum()
-		self.exp_ppgpp[~ppgpp_regulated] *= scale_ppgpp_by
-		assert(scale_ppgpp_by > 0)
+	def adjust_ppgpp_expression_for_tfs(self, sim_data):
+		"""
+		Adjusts ppGpp regulated expression to get expression with and without
+		ppGpp regulation to match in basal condition and taking into account
+		the effect transcription factors will have.
+
+		TODO:
+			Should this not adjust polymerizing genes (adjusted_mask in
+				adjust_polymerizing_ppgpp_expression) since they have already
+				been adjusted for transcription factor effects?
+		"""
+
+		condition = 'basal'
+
+		# Current (unnormalized) probabilities from ppGpp regulation
+		ppgpp_conc = sim_data.growth_rate_parameters.get_ppGpp_conc(
+			sim_data.condition_to_doubling_time[condition])
+		old_prob, factor = self.synth_prob_from_ppgpp(ppgpp_conc,
+			sim_data.process.replication.get_average_copy_number)
+
+		# Calculate the average expected effect of TFs in basal condition
+		delta_prob = sim_data.process.transcription_regulation.get_delta_prob_matrix()
+		p_promoter_bound = np.array([
+			sim_data.pPromoterBound[condition][tf]
+			for tf in sim_data.process.transcription_regulation.tf_ids
+			])
+		delta = delta_prob @ p_promoter_bound
+
+		# Calculate the required probability to match expression without ppGpp
+		new_prob = normalize(self.rna_expression[condition] * factor) - delta
+		new_prob[new_prob < 0] = 0
+		new_prob = normalize(new_prob)
+
+		# Determine adjustments to the current ppGpp expression to scale
+		# to the expected expression
+		with np.errstate(invalid='ignore'):
+			adjustment = new_prob / old_prob
+		adjustment[~np.isfinite(adjustment)] = 1
+
+		# Scale free and bound expression and renormalize ppGpp regulated expression
+		self.exp_free *= adjustment
+		self.exp_ppgpp *= adjustment
+		self._normalize_ppgpp_expression()
+
+	def _normalize_ppgpp_expression(self):
+		"""
+		Normalize both free and ppGpp bound expression values to 1.
+		"""
+
+		self.exp_free /= self.exp_free.sum()
+		self.exp_ppgpp /= self.exp_ppgpp.sum()
 
 	def fraction_rnap_bound_ppgpp(self, ppgpp):
 		"""
@@ -884,7 +1044,8 @@ class Transcription(object):
 				number given a doubling time and gene replication coordinate
 
 		Returns
-			ndarray[float]: normalized synthesis probability for each gene
+			prob (ndarray[float]): normalized synthesis probability for each gene
+			factor (ndarray[float]): factor to adjust expression to probability for each gene
 
 		Note:
 			copy_number should be sim_data.process.replication.get_average_copy_number
@@ -899,7 +1060,10 @@ class Transcription(object):
 		growth = max(cast(float, y), 0.0)
 		tau = np.log(2) / growth / 60
 		loss = growth + self.rna_data['deg_rate'].asNumber(1 / units.s)
-
 		n_avg_copy = copy_number(tau, self.rna_data['replication_coordinate'])
 
-		return normalize((self.exp_free * (1 - f_ppgpp) + self.exp_ppgpp * f_ppgpp) * loss / n_avg_copy)
+		# Return values
+		factor = loss / n_avg_copy
+		prob = normalize((self.exp_free * (1 - f_ppgpp) + self.exp_ppgpp * f_ppgpp) * factor)
+
+		return prob, factor

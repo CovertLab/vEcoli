@@ -10,8 +10,8 @@ import json
 import uuid
 from pprint import pformat
 
-from vivarium.core.process import Composer
-from vivarium.core.experiment import pp, Experiment
+from vivarium.core.composer import Composer
+from vivarium.core.engine import pp, Engine
 from vivarium.plots.topology import plot_topology
 
 # sim data
@@ -32,6 +32,7 @@ from ecoli.processes.two_component_system import TwoComponentSystem
 from ecoli.processes.equilibrium import Equilibrium
 from ecoli.processes.protein_degradation import ProteinDegradation
 from ecoli.processes.metabolism import Metabolism
+from ecoli.processes.chromosome_replication import ChromosomeReplication
 from ecoli.processes.mass import Mass
 
 from wholecell.utils import units
@@ -77,6 +78,7 @@ class Ecoli(Composer):
         equilibrium_config = self.load_sim_data.get_equilibrium_config(time_step=time_step)
         protein_degradation_config = self.load_sim_data.get_protein_degradation_config(time_step=time_step)
         metabolism_config = self.load_sim_data.get_metabolism_config(time_step=time_step)
+        chromosome_replication_config = self.load_sim_data.get_chromosome_replication_config(time_step=time_step)
         mass_config = self.load_sim_data.get_mass_config(time_step=time_step)
 
         # additional processes
@@ -94,6 +96,7 @@ class Ecoli(Composer):
             'equilibrium': Equilibrium(equilibrium_config),
             'protein_degradation': ProteinDegradation(protein_degradation_config),
             'metabolism': Metabolism(metabolism_config),
+            'chromosome_replication': ChromosomeReplication(chromosome_replication_config),
             'mass': Mass(mass_config),
             'divide_condition': DivideCondition(divide_config),
         }
@@ -185,6 +188,18 @@ class Ecoli(Composer):
                 'environment': ('environment',),
                 'polypeptide_elongation': ('process_state', 'polypeptide_elongation')},
 
+            'chromosome_replication': {
+                'replisome_trimers': ('bulk',),
+                'replisome_monomers': ('bulk',),
+                'dntps': ('bulk',),
+                'ppi': ('bulk',),
+                'active_replisomes': ('unique', 'active_replisome',),
+                'oriCs': ('unique', 'oriC',),
+                'chromosome_domains': ('unique', 'chromosome_domain',),
+                'full_chromosomes': ('unique', 'full_chromosome',),
+                'listeners': ('listeners',),
+                'environment': ('environment',)},
+
             'mass': {
                 'bulk': ('bulk',),
                 'unique': ('unique',),
@@ -258,11 +273,25 @@ def get_state_from_file(path='data/wcecoli_t0.json'):
     return initial_state
 
 
-def test_ecoli(total_time=60):
+def test_ecoli(
+        total_time=10,
+        debug_config=False,
+):
 
     # configure the composer
     ecoli_config = {
-        'agent_id': '1'}
+        'agent_id': '1',
+        # TODO -- remove schema override once values don't go negative
+        '_schema': {
+            'equilibrium': {
+                'molecules': {
+                    'PD00413[c]': {
+                        '_updater': 'nonnegative_accumulate'
+                    }
+                }
+            }
+        }
+    }
     ecoli_composer = Ecoli(ecoli_config)
 
     # get initial state
@@ -270,16 +299,14 @@ def test_ecoli(total_time=60):
 
     # make the experiment
     ecoli = ecoli_composer.generate()
-    ecoli_experiment = Experiment({
+    ecoli_experiment = Engine({
         'processes': ecoli.processes,
         'topology': ecoli.topology,
         'initial_state': initial_state,
         'progress_bar': True,
     })
 
-
-    debug_experiment = False
-    if debug_experiment:
+    if debug_config:
         print(pformat(ecoli_experiment.state.get_config(True)))
         import ipdb; ipdb.set_trace()
 

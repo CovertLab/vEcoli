@@ -1,4 +1,4 @@
-from vivarium.core.experiment import Experiment
+from vivarium.core.engine import Engine
 from ecoli.library.sim_data import LoadSimData
 from ecoli.composites.ecoli_master import SIM_DATA_PATH
 from ecoli.processes.rna_degradation import RnaDegradation
@@ -44,7 +44,7 @@ def test_rna_degradation():
 
     rna_degradation_composite = rna_degradation_process.generate()
 
-    experiment = Experiment({
+    experiment = Engine({
         'processes': rna_degradation_composite['processes'],
         'topology': {rna_degradation_process.name: TOPOLOGY},
         'initial_state': initial_state
