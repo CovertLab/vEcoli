@@ -11,14 +11,14 @@ from scipy.stats import mannwhitneyu, chisquare
 
 from ecoli.library.sim_data import LoadSimData
 from ecoli.composites.ecoli_master import SIM_DATA_PATH
-from ecoli.migration.migration_utils import *
+from migration.migration_utils import *
 
 from ecoli.processes.transcript_elongation import TranscriptElongation
 
 from ecoli.library.schema import arrays_from
 from ecoli.composites.ecoli_master import get_state_from_file
-from ecoli.migration.plots import qqplot
-from ecoli.migration.migration_utils import array_diffs_report
+from migration.plots import qqplot
+from migration.migration_utils import array_diffs_report
 
 
 load_sim_data = LoadSimData(sim_data_path=SIM_DATA_PATH,
