@@ -144,6 +144,9 @@ class TfBinding(Process):
         n_promoters = np.zeros(self.n_TF, dtype=np.float64)
         n_bound_TF_per_TU = np.zeros((self.n_TU, self.n_TF), dtype=np.int16)
 
+        # Track active TF counts for testing purposes
+        # active_tf_counts = np.zeros(self.n_TF, dtype=np.float64)
+
         update = {
             'active_tfs': {}}
 
@@ -165,7 +168,8 @@ class TfBinding(Process):
 
             # TODO(Ryan): figure out the difference between .total_counts() and .count() above
             #   and why they would be different (otherwise these two variables are always the same)
-            active_tf_counts = np.array([tf_count + bound_tf_counts])
+            # Track active TF counts for testing purposes
+            # active_tf_counts[tf_idx] = tf_count + bound_tf_counts
             n_available_active_tfs = tf_count + bound_tf_counts
 
             # Determine the number of available promoter sites
@@ -185,11 +189,7 @@ class TfBinding(Process):
                 # inactive_tf_counts = self.inactive_tf_view[tf_id].total_counts()
                 inactive_tf_counts = states['inactive_tfs'][self.inactive_tfs[tf_id]]
                 pPromoterBound = self.p_promoter_bound_tf(
-                    active_tf_counts, inactive_tf_counts)
-
-            # Determine the number of available promoter sites
-            available_promoters = np.isin(TU_index, self.TF_to_TU_idx[tf_id])
-            n_available_promoters = np.count_nonzero(available_promoters)
+                    n_available_active_tfs, inactive_tf_counts)
 
             # Calculate the number of promoters that should be bound
             n_to_bind = int(min(stochasticRound(
