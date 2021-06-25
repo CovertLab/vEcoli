@@ -1,18 +1,37 @@
 import numpy as np
 from scipy.stats import mannwhitneyu, chi2_contingency
-from vivarium.core.experiment import Experiment
+from vivarium.core.engine import Engine
 
 from ecoli.composites.ecoli_master import get_state_from_file
 
 PERCENT_ERROR_THRESHOLD = 0.05
 PVALUE_THRESHOLD = 0.05
 
+def get_process_state(process, topology, initial_state):
+    # make an experiment
+    experiment_config = {
+        'processes': {process.name: process},
+        'topology': {process.name: topology},
+        'initial_state': initial_state}
+    experiment = Engine(experiment_config)
+
+    # Get update from process.
+    path, process = list(experiment.process_paths.items())[0]
+    store = experiment.state.get_path(path)
+
+    # translate the values from the tree structure into the form
+    # that this process expects, based on its declared topology
+    states = store.outer.schema_topology(process.schema, store.topology)
+    return states, experiment
+
+
 def run_ecoli_process(
         process,
         topology,
         total_time=2,
         initial_time=0,
-        initial_state=None):
+        initial_state=None,
+):
     """
     load a single ecoli process, run it, and return the update
 
@@ -34,10 +53,9 @@ def run_ecoli_process(
         'processes': {process.name: process},
         'topology': {process.name: topology},
         'initial_state': initial_state}
-    experiment = Experiment(experiment_config)
+    experiment = Engine(experiment_config)
 
     # Get update from process.
-    # METHOD 1
     path, process = list(experiment.process_paths.items())[0]
     store = experiment.state.get_path(path)
 

@@ -1,4 +1,4 @@
-from vivarium.core.experiment import Experiment
+from vivarium.core.engine import Engine
 from ecoli.library.sim_data import LoadSimData
 from ecoli.composites.ecoli_master import SIM_DATA_PATH
 from ecoli.processes.polypeptide_initiation import PolypeptideInitiation
@@ -37,7 +37,7 @@ def test_polypeptide_initiation():
 
     polypeptide_initiation_composite = polypeptide_initiation_process.generate()
 
-    experiment = Experiment({
+    experiment = Engine({
         'processes': polypeptide_initiation_composite['processes'],
         'topology': {polypeptide_initiation_process.name: PI_TOPOLOGY},
         'initial_state': initial_state

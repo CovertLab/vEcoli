@@ -1,0 +1,848 @@
+{
+    "ABC-12-RXN": {
+        "reversibility": false, 
+        "stoichiometry": {
+            "ADP[c]": 1, 
+            "ATP[c]": -1, 
+            "GLN[c]": 1, 
+            "GLN[p]": -1, 
+            "PI[c]": 1, 
+            "PROTON[c]": 1, 
+            "WATER[c]": -1
+        }, 
+        "transporters": [
+            "ABC-12-CPLX[i]"
+        ]
+    }, 
+    "ABC-13-RXN": {
+        "reversibility": false, 
+        "stoichiometry": {
+            "ADP[c]": 1, 
+            "ATP[c]": -1, 
+            "GLT[c]": 1, 
+            "GLT[p]": -1, 
+            "PI[c]": 1, 
+            "PROTON[c]": 1, 
+            "WATER[c]": -1
+        }, 
+        "transporters": [
+            "ABC-13-CPLX[i]"
+        ]
+    }, 
+    "ABC-14-RXN": {
+        "reversibility": false, 
+        "stoichiometry": {
+            "ADP[c]": 1, 
+            "ATP[c]": -1, 
+            "HIS[c]": 1, 
+            "HIS[p]": -1, 
+            "PI[c]": 1, 
+            "PROTON[c]": 1, 
+            "WATER[c]": -1
+        }, 
+        "transporters": [
+            "ABC-14-CPLX[i]"
+        ]
+    }, 
+    "ABC-15-RXN": {
+        "reversibility": false, 
+        "stoichiometry": {
+            "ADP[c]": 1, 
+            "ATP[c]": -1, 
+            "ILE[c]": 1, 
+            "ILE[p]": -1, 
+            "PI[c]": 1, 
+            "PROTON[c]": 1, 
+            "WATER[c]": -1
+        }, 
+        "transporters": [
+            "ABC-15-CPLX[i]"
+        ]
+    }, 
+    "ABC-26-RXN": {
+        "reversibility": false, 
+        "stoichiometry": {
+            "ADP[c]": 1, 
+            "ATP[c]": -1, 
+            "PI[c]": 1, 
+            "PROTON[c]": 1, 
+            "PRO[c]": 1, 
+            "PRO[p]": -1, 
+            "WATER[c]": -1
+        }, 
+        "transporters": [
+            "ABC-26-CPLX[i]"
+        ]
+    }, 
+    "ABC-3-RXN": {
+        "reversibility": false, 
+        "stoichiometry": {
+            "ADP[c]": 1, 
+            "ATP[c]": -1, 
+            "LYS[c]": 1, 
+            "LYS[p]": -1, 
+            "PI[c]": 1, 
+            "PROTON[c]": 1, 
+            "WATER[c]": -1
+        }, 
+        "transporters": [
+            "ABC-3-CPLX[i]"
+        ]
+    }, 
+    "ABC-35-RXN": {
+        "reversibility": false, 
+        "stoichiometry": {
+            "ADP[c]": 1, 
+            "ATP[c]": -1, 
+            "LEU[c]": 1, 
+            "LEU[p]": -1, 
+            "PI[c]": 1, 
+            "PROTON[c]": 1, 
+            "WATER[c]": -1
+        }, 
+        "transporters": [
+            "ABC-15-CPLX[i]", 
+            "ABC-304-CPLX[i]"
+        ]
+    }, 
+    "ABC-36-RXN": {
+        "reversibility": false, 
+        "stoichiometry": {
+            "ADP[c]": 1, 
+            "ATP[c]": -1, 
+            "PI[c]": 1, 
+            "PROTON[c]": 1, 
+            "VAL[c]": 1, 
+            "VAL[p]": -1, 
+            "WATER[c]": -1
+        }, 
+        "transporters": [
+            "ABC-15-CPLX[i]"
+        ]
+    }, 
+    "ABC-4-RXN": {
+        "reversibility": false, 
+        "stoichiometry": {
+            "ADP[c]": 1, 
+            "ARG[c]": 1, 
+            "ARG[p]": -1, 
+            "ATP[c]": -1, 
+            "PI[c]": 1, 
+            "PROTON[c]": 1, 
+            "WATER[c]": -1
+        }, 
+        "transporters": [
+            "ABC-4-CPLX[i]", 
+            "ABC-3-CPLX[i]"
+        ]
+    },
+    "RXN0-1924": {
+        "reversibility": true, 
+        "stoichiometry": {
+            "CYS[c]": -1, 
+            "CYS[p]": 1
+        }, 
+        "transporters": [
+            "EG12445-MONOMER[i]", 
+            "EG11639-MONOMER[i]"
+        ]
+    }, 
+    "RXN0-1924 (reverse)": {
+        "reversibility": false, 
+        "stoichiometry": {
+            "CYS[c]": 1, 
+            "CYS[p]": -1
+        }, 
+        "transporters": [
+            "EG12445-MONOMER[i]", 
+            "EG11639-MONOMER[i]"
+        ]
+    }, 
+    "RXN0-3": {
+        "reversibility": false, 
+        "stoichiometry": {
+            "ADP[c]": 1, 
+            "ATP[c]": -1, 
+            "CYS[c]": -1, 
+            "CYS[p]": 1, 
+            "PI[c]": 1, 
+            "PROTON[c]": 1, 
+            "WATER[c]": -1
+        }, 
+        "transporters": [
+            "ABC-6-CPLX[i]"
+        ]
+    }, 
+    "RXN0-4083": {
+        "reversibility": false, 
+        "stoichiometry": {
+            "NA+[c]": 1, 
+            "NA+[p]": -1, 
+            "SER[c]": 1, 
+            "SER[p]": -1
+        }, 
+        "transporters": [
+            "YGJU-MONOMER[i]"
+        ]
+    }, 
+    "RXN0-4522": {
+        "reversibility": false, 
+        "stoichiometry": {
+            "ADP[c]": 1, 
+            "ATP[c]": -1, 
+            "MET[c]": 1, 
+            "MET[p]": -1, 
+            "PI[c]": 1, 
+            "PROTON[c]": 1, 
+            "WATER[c]": -1
+        }, 
+        "transporters": [
+            "METNIQ-METHIONINE-ABC-CPLX[i]"
+        ]
+    },
+    "RXN0-5202": {
+        "reversibility": false, 
+        "stoichiometry": {
+            "L-ALPHA-ALANINE[c]": 1, 
+            "L-ALPHA-ALANINE[p]": -1, 
+            "PROTON[c]": 1, 
+            "PROTON[p]": -1
+        }, 
+        "transporters": [
+            "CYCA-MONOMER[i]"
+        ]
+    }, 
+    "RXN0-7050": {
+        "reversibility": false, 
+        "stoichiometry": {
+            "MET[c]": -1, 
+            "MET[p]": 1, 
+            "PROTON[c]": 1, 
+            "PROTON[p]": -1
+        }, 
+        "transporters": [
+            "B4141-MONOMER[i]", 
+            "G6984-MONOMER[i]"
+        ]
+    }, 
+    "TRANS-RXN-106A": {
+        "reversibility": false, 
+        "stoichiometry": {
+            "L-ASPARTATE[c]": 1, 
+            "L-ASPARTATE[p]": -1, 
+            "SUC[c]": -1, 
+            "SUC[p]": 1
+        }, 
+        "transporters": [
+            "DCUB-MONOMER[i]", 
+            "DCUA-MONOMER[i]"
+        ]
+    }, 
+    "TRANS-RXN-106D-L-ASPARTATE/PROTON//L-ASPARTATE/PROTON.39.": {
+        "reversibility": false, 
+        "stoichiometry": {
+            "L-ASPARTATE[c]": 1, 
+            "L-ASPARTATE[p]": -1, 
+            "PROTON[c]": 3, 
+            "PROTON[p]": -3
+        }, 
+        "transporters": [
+            "DCUB-MONOMER[i]", 
+            "DCUA-MONOMER[i]"
+        ]
+    }, 
+    "TRANS-RXN-118": {
+        "reversibility": false, 
+        "stoichiometry": {
+            "NA+[c]": 1, 
+            "NA+[p]": -1, 
+            "PRO[c]": 1, 
+            "PRO[p]": -1
+        }, 
+        "transporters": [
+            "PUTP-MONOMER[i]"
+        ]
+    }, 
+    "TRANS-RXN-122": {
+        "reversibility": false, 
+        "stoichiometry": {
+            "GLT[c]": 1, 
+            "GLT[p]": -1, 
+            "NA+[c]": 2, 
+            "NA+[p]": -2
+        }, 
+        "transporters": [
+            "GLTP-MONOMER[i]", 
+            "DCTA-MONOMER[i]"
+        ]
+    }, 
+    "TRANS-RXN-122A": {
+        "reversibility": false, 
+        "stoichiometry": {
+            "L-ASPARTATE[c]": 1, 
+            "L-ASPARTATE[p]": -1, 
+            "PROTON[c]": 2, 
+            "PROTON[p]": -2
+        }, 
+        "transporters": [
+            "GLTP-MONOMER[i]", 
+            "DCTA-MONOMER[i]"
+        ]
+    }, 
+    "TRANS-RXN-125": {
+        "reversibility": false, 
+        "stoichiometry": {
+            "L-ALPHA-ALANINE[c]": 1, 
+            "L-ALPHA-ALANINE[p]": -1, 
+            "NA+[c]": 1, 
+            "NA+[p]": -1
+        }
+    }, 
+    "TRANS-RXN-126": {
+        "reversibility": false, 
+        "stoichiometry": {
+            "ILE[c]": 1, 
+            "ILE[p]": -1, 
+            "NA+[c]": 1, 
+            "NA+[p]": -1
+        }, 
+        "transporters": [
+            "BRNQ-MONOMER[i]"
+        ]
+    }, 
+    "TRANS-RXN-126A": {
+        "reversibility": false, 
+        "stoichiometry": {
+            "NA+[c]": 1, 
+            "NA+[p]": -1, 
+            "VAL[c]": 1, 
+            "VAL[p]": -1
+        }, 
+        "transporters": [
+            "BRNQ-MONOMER[i]"
+        ]
+    }, 
+    "TRANS-RXN-126B": {
+        "reversibility": false, 
+        "stoichiometry": {
+            "LEU[c]": 1, 
+            "LEU[p]": -1, 
+            "NA+[c]": 1, 
+            "NA+[p]": -1
+        }, 
+        "transporters": [
+            "BRNQ-MONOMER[i]"
+        ]
+    }, 
+    "TRANS-RXN-162": {
+        "reversibility": false, 
+        "stoichiometry": {
+            "GLT[c]": 1, 
+            "GLT[p]": -1, 
+            "PROTON[c]": 2, 
+            "PROTON[p]": -2
+        }, 
+        "transporters": [
+            "GLTP-MONOMER[i]"
+        ]
+    }, 
+    "TRANS-RXN-261": {
+        "reversibility": false, 
+        "stoichiometry": {
+            "4-AMINO-BUTYRATE[c]": -1, 
+            "4-AMINO-BUTYRATE[p]": 1, 
+            "GLT[c]": 1, 
+            "GLT[p]": -1
+        }, 
+        "transporters": [
+            "XASA-MONOMER[i]"
+        ]
+    }, 
+    "TRANS-RXN-262": {
+        "reversibility": false, 
+        "stoichiometry": {
+            "ASN[c]": 1, 
+            "ASN[p]": -1, 
+            "PROTON[c]": 1, 
+            "PROTON[p]": -1
+        }, 
+        "transporters": [
+            "ANSP-MONOMER[i]"
+        ]
+    }, 
+    "TRANS-RXN-265": {
+        "reversibility": false, 
+        "stoichiometry": {
+            "ADP[c]": 1, 
+            "ATP[c]": -1, 
+            "CYS[c]": 1, 
+            "CYS[p]": -1, 
+            "PI[c]": 1, 
+            "PROTON[c]": 1, 
+            "WATER[c]": -1
+        }, 
+        "transporters": [
+            "CPLX0-8152[i]"
+        ]
+    }, 
+    "TRANS-RXN-29": {
+        "reversibility": false, 
+        "stoichiometry": {
+            "PROTON[c]": 1, 
+            "PROTON[p]": -1, 
+            "PRO[c]": 1, 
+            "PRO[p]": -1
+        }, 
+        "transporters": [
+            "CPLX0-7642[i]"
+        ]
+    }, 
+    "TRANS-RXN-56": {
+        "reversibility": false, 
+        "stoichiometry": {
+            "PHE[c]": 1, 
+            "PHE[p]": -1, 
+            "PROTON[c]": 1, 
+            "PROTON[p]": -1
+        }, 
+        "transporters": [
+            "AROP-MONOMER[i]", 
+            "PHEP-MONOMER[i]"
+        ]
+    }, 
+    "TRANS-RXN-58": {
+        "reversibility": false, 
+        "stoichiometry": {
+            "LYS[c]": 1, 
+            "LYS[p]": -1, 
+            "PROTON[c]": 1, 
+            "PROTON[p]": -1
+        }, 
+        "transporters": [
+            "LYSP-MONOMER[i]"
+        ]
+    }, 
+    "TRANS-RXN-62B": {
+        "reversibility": false, 
+        "stoichiometry": {
+            "GLY[c]": 1, 
+            "GLY[p]": -1, 
+            "PROTON[c]": 1, 
+            "PROTON[p]": -1
+        }, 
+        "transporters": [
+            "CYCA-MONOMER[i]"
+        ]
+    }, 
+    "TRANS-RXN-68": {
+        "reversibility": false, 
+        "stoichiometry": {
+            "CADAVERINE[c]": -1, 
+            "CADAVERINE[p]": 1, 
+            "LYS[c]": 1, 
+            "LYS[p]": -1
+        }, 
+        "transporters": [
+            "CADB-MONOMER[i]"
+        ]
+    }, 
+    "TRANS-RXN-71": {
+        "reversibility": false, 
+        "stoichiometry": {
+            "PROTON[c]": 1, 
+            "PROTON[p]": -1, 
+            "SER[c]": 1, 
+            "SER[p]": -1
+        }, 
+        "transporters": [
+            "TDCC-MONOMER[i]", 
+            "SDAC-MONOMER[i]"
+        ]
+    }, 
+    "TRANS-RXN-72": {
+        "reversibility": false, 
+        "stoichiometry": {
+            "PROTON[c]": 1, 
+            "PROTON[p]": -1, 
+            "THR[c]": 1, 
+            "THR[p]": -1
+        }, 
+        "transporters": [
+            "TDCC-MONOMER[i]"
+        ]
+    }, 
+    "TRANS-RXN-76": {
+        "reversibility": false, 
+        "stoichiometry": {
+            "PROTON[c]": 1, 
+            "PROTON[p]": -1, 
+            "TRP[c]": 1, 
+            "TRP[p]": -1
+        }, 
+        "transporters": [
+            "AROP-MONOMER[i]", 
+            "MTR-MONOMER[i]", 
+            "TNAB-MONOMER[i]"
+        ]
+    }, 
+    "TRANS-RXN-77": {
+        "reversibility": false, 
+        "stoichiometry": {
+            "PROTON[c]": 1, 
+            "PROTON[p]": -1, 
+            "TYR[c]": 1, 
+            "TYR[p]": -1
+        }, 
+        "transporters": [
+            "TYRP-MONOMER[i]", 
+            "AROP-MONOMER[i]"
+        ]
+    }, 
+    "TRANS-RXN0-0244": {
+        "reversibility": false, 
+        "stoichiometry": {
+            "PROTON[c]": 1, 
+            "PROTON[p]": -1, 
+            "THR[c]": -1, 
+            "THR[p]": 1
+        }, 
+        "transporters": [
+            "EG12134-MONOMER[i]", 
+            "RHTC-MONOMER[i]"
+        ]
+    }, 
+    "TRANS-RXN0-222": {
+        "reversibility": false, 
+        "stoichiometry": {
+            "ADP[c]": 1, 
+            "ATP[c]": -1, 
+            "L-ASPARTATE[c]": 1, 
+            "L-ASPARTATE[p]": -1, 
+            "PI[c]": 1, 
+            "PROTON[c]": 1, 
+            "WATER[c]": -1
+        }, 
+        "transporters": [
+            "ABC-13-CPLX[i]"
+        ]
+    }, 
+    "TRANS-RXN0-265-HIS//HIS.9.": {
+        "reversibility": false, 
+        "stoichiometry": {
+            "HIS[c]": -1, 
+            "HIS[p]": 1
+        }, 
+        "transporters": [
+            "EG12713-MONOMER[i]"
+        ]
+    }, 
+    "TRANS-RXN0-265-PHE//PHE.9.": {
+        "reversibility": false, 
+        "stoichiometry": {
+            "PHE[c]": -1, 
+            "PHE[p]": 1
+        }, 
+        "transporters": [
+            "EG12713-MONOMER[i]"
+        ]
+    }, 
+    "TRANS-RXN0-265-TRP//TRP.9.": {
+        "reversibility": false, 
+        "stoichiometry": {
+            "TRP[c]": -1, 
+            "TRP[p]": 1
+        }, 
+        "transporters": [
+            "EG12713-MONOMER[i]"
+        ]
+    }, 
+    "TRANS-RXN0-265-TYR//TYR.9.": {
+        "reversibility": false, 
+        "stoichiometry": {
+            "TYR[c]": -1, 
+            "TYR[p]": 1
+        }, 
+        "transporters": [
+            "EG12713-MONOMER[i]"
+        ]
+    }, 
+    "TRANS-RXN0-269": {
+        "reversibility": false, 
+        "stoichiometry": {
+            "VAL[c]": -1, 
+            "VAL[p]": 1
+        }, 
+        "transporters": [
+            "CPLX0-7684[i]"
+        ]
+    }, 
+    "TRANS-RXN0-270": {
+        "reversibility": false, 
+        "stoichiometry": {
+            "LEU[c]": -1, 
+            "LEU[p]": 1, 
+            "PROTON[c]": 1, 
+            "PROTON[p]": -1
+        }, 
+        "transporters": [
+            "B4141-MONOMER[i]", 
+            "G6984-MONOMER[i]"
+        ]
+    }, 
+    "TRANS-RXN0-469": {
+        "reversibility": false, 
+        "stoichiometry": {
+            "L-ALPHA-ALANINE[c]": -1, 
+            "L-ALPHA-ALANINE[p]": 1
+        }, 
+        "transporters": [
+            "G7399-MONOMER[i]"
+        ]
+    }, 
+    "TRANS-RXN0-480": {
+        "reversibility": false, 
+        "stoichiometry": {
+            "L-SELENOCYSTEINE[c]": 1, 
+            "L-SELENOCYSTEINE[p]": -1
+        }
+    }, 
+    "TRANS-RXN0-517-L-ASPARTATE/PROTON//L-ASPARTATE/PROTON.39.": {
+        "reversibility": false, 
+        "stoichiometry": {
+            "L-ASPARTATE[c]": 1, 
+            "L-ASPARTATE[p]": -1, 
+            "PROTON[c]": 2, 
+            "PROTON[p]": -2
+        }
+    }, 
+    "TRANS-RXN0-537": {
+        "reversibility": true, 
+        "stoichiometry": {
+            "GLY[c]": 1, 
+            "GLY[p]": -1
+        }, 
+        "transporters": [
+            "CPLX0-7654[i]"
+        ]
+    }, 
+    "TRANS-RXN0-537 (reverse)": {
+        "reversibility": false, 
+        "stoichiometry": {
+            "GLY[c]": -1, 
+            "GLY[p]": 1
+        }, 
+        "transporters": [
+            "CPLX0-7654[i]"
+        ]
+    }, 
+    "TRANS-RXN0-554": {
+        "reversibility": false, 
+        "stoichiometry": {
+            "L-ASPARTATE[c]": 1, 
+            "L-ASPARTATE[p]": -1
+        }, 
+        "transporters": [
+            "YCHM-MONOMER[i]"
+        ]
+    }, 
+    "TRANS-RXN0-569-ARG//ARG.9.": {
+        "reversibility": false, 
+        "stoichiometry": {
+            "ARG[c]": -1, 
+            "ARG[p]": 1
+        }, 
+        "transporters": [
+            "G6458-MONOMER[i]"
+        ]
+    }, 
+    "TRANS-RXN0-569-ASN//ASN.9.": {
+        "reversibility": false, 
+        "stoichiometry": {
+            "ASN[c]": -1, 
+            "ASN[p]": 1
+        }, 
+        "transporters": [
+            "G6458-MONOMER[i]"
+        ]
+    }, 
+    "TRANS-RXN0-569-CYS//CYS.9.": {
+        "reversibility": false, 
+        "stoichiometry": {
+            "CYS[c]": -1, 
+            "CYS[p]": 1
+        }, 
+        "transporters": [
+            "G6458-MONOMER[i]"
+        ]
+    }, 
+    "TRANS-RXN0-569-GLN//GLN.9.": {
+        "reversibility": false, 
+        "stoichiometry": {
+            "GLN[c]": -1, 
+            "GLN[p]": 1
+        }, 
+        "transporters": [
+            "G6458-MONOMER[i]"
+        ]
+    }, 
+    "TRANS-RXN0-569-GLT//GLT.9.": {
+        "reversibility": false, 
+        "stoichiometry": {
+            "GLT[c]": -1, 
+            "GLT[p]": 1
+        }, 
+        "transporters": [
+            "G6458-MONOMER[i]"
+        ]
+    }, 
+    "TRANS-RXN0-569-HIS//HIS.9.": {
+        "reversibility": false, 
+        "stoichiometry": {
+            "HIS[c]": -1, 
+            "HIS[p]": 1
+        }, 
+        "transporters": [
+            "G6458-MONOMER[i]"
+        ]
+    }, 
+    "TRANS-RXN0-569-ILE//ILE.9.": {
+        "reversibility": false, 
+        "stoichiometry": {
+            "ILE[c]": -1, 
+            "ILE[p]": 1
+        }, 
+        "transporters": [
+            "G6458-MONOMER[i]"
+        ]
+    }, 
+    "TRANS-RXN0-569-L-ALPHA-ALANINE//L-ALPHA-ALANINE.33.": {
+        "reversibility": false, 
+        "stoichiometry": {
+            "L-ALPHA-ALANINE[c]": -1, 
+            "L-ALPHA-ALANINE[p]": 1
+        }, 
+        "transporters": [
+            "G6458-MONOMER[i]"
+        ]
+    }, 
+    "TRANS-RXN0-569-L-ASPARTATE//L-ASPARTATE.25.": {
+        "reversibility": false, 
+        "stoichiometry": {
+            "L-ASPARTATE[c]": -1, 
+            "L-ASPARTATE[p]": 1
+        }, 
+        "transporters": [
+            "G6458-MONOMER[i]"
+        ]
+    }, 
+    "TRANS-RXN0-569-L-SELENOCYSTEINE//L-SELENOCYSTEINE.35.": {
+        "reversibility": false, 
+        "stoichiometry": {
+            "L-SELENOCYSTEINE[c]": -1, 
+            "L-SELENOCYSTEINE[p]": 1
+        }, 
+        "transporters": [
+            "G6458-MONOMER[i]"
+        ]
+    }, 
+    "TRANS-RXN0-569-LEU//LEU.9.": {
+        "reversibility": false, 
+        "stoichiometry": {
+            "LEU[c]": -1, 
+            "LEU[p]": 1
+        }, 
+        "transporters": [
+            "G6458-MONOMER[i]"
+        ]
+    }, 
+    "TRANS-RXN0-569-LYS//LYS.9.": {
+        "reversibility": false, 
+        "stoichiometry": {
+            "LYS[c]": -1, 
+            "LYS[p]": 1
+        }, 
+        "transporters": [
+            "G6458-MONOMER[i]"
+        ]
+    }, 
+    "TRANS-RXN0-569-MET//MET.9.": {
+        "reversibility": false, 
+        "stoichiometry": {
+            "MET[c]": -1, 
+            "MET[p]": 1
+        }, 
+        "transporters": [
+            "G6458-MONOMER[i]"
+        ]
+    }, 
+    "TRANS-RXN0-569-PHE//PHE.9.": {
+        "reversibility": false, 
+        "stoichiometry": {
+            "PHE[c]": -1, 
+            "PHE[p]": 1
+        }, 
+        "transporters": [
+            "G6458-MONOMER[i]"
+        ]
+    }, 
+    "TRANS-RXN0-569-PRO//PRO.9.": {
+        "reversibility": false, 
+        "stoichiometry": {
+            "PRO[c]": -1, 
+            "PRO[p]": 1
+        }, 
+        "transporters": [
+            "G6458-MONOMER[i]"
+        ]
+    }, 
+    "TRANS-RXN0-569-SER//SER.9.": {
+        "reversibility": false, 
+        "stoichiometry": {
+            "SER[c]": -1, 
+            "SER[p]": 1
+        }, 
+        "transporters": [
+            "G6458-MONOMER[i]"
+        ]
+    }, 
+    "TRANS-RXN0-569-THR//THR.9.": {
+        "reversibility": false, 
+        "stoichiometry": {
+            "THR[c]": -1, 
+            "THR[p]": 1
+        }, 
+        "transporters": [
+            "G6458-MONOMER[i]"
+        ]
+    }, 
+    "TRANS-RXN0-569-TRP//TRP.9.": {
+        "reversibility": false, 
+        "stoichiometry": {
+            "TRP[c]": -1, 
+            "TRP[p]": 1
+        }, 
+        "transporters": [
+            "G6458-MONOMER[i]"
+        ]
+    }, 
+    "TRANS-RXN0-569-TYR//TYR.9.": {
+        "reversibility": false, 
+        "stoichiometry": {
+            "TYR[c]": -1, 
+            "TYR[p]": 1
+        }, 
+        "transporters": [
+            "G6458-MONOMER[i]"
+        ]
+    }, 
+    "TRANS-RXN0-569-VAL//VAL.9.": {
+        "reversibility": false, 
+        "stoichiometry": {
+            "VAL[c]": -1, 
+            "VAL[p]": 1
+        }, 
+        "transporters": [
+            "G6458-MONOMER[i]"
+        ]
+    }
+}

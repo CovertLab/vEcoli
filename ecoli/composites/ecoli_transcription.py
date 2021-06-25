@@ -1,5 +1,5 @@
-from vivarium.core.process import Composer
-from vivarium.core.experiment import Experiment
+from vivarium.core.composer import Composer
+from vivarium.core.engine import Engine
 
 from ecoli.library.sim_data import LoadSimData
 from ecoli.composites.ecoli_master import get_state_from_file, SIM_DATA_PATH
@@ -65,7 +65,7 @@ def test_transcription(total_time=10):
         'topology' : transcription_composite.topology,
         'initial_state' : initial_state
     }
-    transcription_experiment = Experiment(experiment_config)
+    transcription_experiment = Engine(experiment_config)
     transcription_experiment.update(total_time)
 
     data = transcription_experiment.emitter.get_timeseries()
