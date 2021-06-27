@@ -147,10 +147,10 @@ def assertions(actual_update, expected_update):
         'listeners' : {
             'transcript_elongation_listener' : {
                 'countRnaSynthesized' : array_almost_equal, # transform_and_run(lambda x: np.array(x) + 1, good_fit),
-                'countNTPsUsed' : scalar_equal
+                'countNTPsUsed' : scalar_almost_equal
             },
             'growth_limits' : {
-                'ntpUsed' : run_all(array_equal,
+                'ntpUsed' : run_all(array_almost_equal,
                                     array_diffs_report_test("out/migration/ntpUsed_comparison.txt"))
             }
         }
