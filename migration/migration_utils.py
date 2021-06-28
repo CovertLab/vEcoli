@@ -260,22 +260,29 @@ class ComparisonTestSuite:
 # Common tests for use with ComparisonTestSuite ========================================================================
 
 def array_equal(arr1, arr2):
-    return np.array_equal(arr1, arr2, equal_nan=True)
+    return (np.array_equal(arr1, arr2, equal_nan=True),
+            f"Total difference (actual-expected) is {np.sum(np.abs(arr1-arr2))}")
 
 def scalar_equal(v1, v2):
-    return v1==v2, f"Difference (actual-expected) is {v1-v2}"
+    return v1 == v2, f"Difference (actual-expected) is {v1-v2}"
 
 def array_almost_equal(arr1, arr2):
-    pe = np.sum(np.abs(arr1 - arr2) / arr2)
-    return pe < PERCENT_ERROR_THRESHOLD or np.isnan(pe), f"Percent error = {pe:.4f}"
+    p_errors = np.abs(arr1 - arr2) / np.abs(arr2)
+    p_errors[np.isnan(p_errors)] = 0
+
+    return (np.all(p_errors <= PERCENT_ERROR_THRESHOLD),
+            f"Max error = {np.max(p_errors):.4f}")
 
 def scalar_almost_equal(v1, v2):
     return percent_error(v1, v2) < PERCENT_ERROR_THRESHOLD or np.isnan(pe), f"Percent error = {percent_error(v1, v2):.4f}"
 
 def custom_array_comp(percent_error_threshold = 0.05):
     def _array_almost_equal(arr1, arr2):
-        pe = np.sum(np.abs(arr1 - arr2) / arr2)
-        return pe < percent_error_threshold or np.isnan(pe), f"Percent error = {pe:.4f}"
+        p_errors = np.abs(arr1 - arr2) / np.abs(arr2)
+        p_errors[np.isnan(p_errors)] = 0
+
+        return (np.all(p_errors <= percent_error_threshold),
+                f"Max error = {np.max(p_errors):.4f}")
 
     return _array_almost_equal
 
@@ -363,7 +370,7 @@ def transform_and_run(transformation, test, transform_first=True, transform_seco
     prior to running the specified test.
 
     Args:
-        transformation: function to preprocess each element to be compared
+        transformation: list of functions to preprocess each element to be compared
         test: the test to run on transformed elements
 
     Returns: A test function.
