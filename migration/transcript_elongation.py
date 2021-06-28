@@ -105,44 +105,6 @@ def plots(actual_update, expected_update):
 
 
 def assertions(actual_update, expected_update):
-    # unpack update
-    trans_lengths = [r['transcript_length'] for k, r in actual_update["RNAs"].items()
-                     if k != "_delete"]
-    rnas_synthesized = actual_update['listeners']['transcript_elongation_listener']['countRnaSynthesized']
-    #bulk_16SrRNA = actual_update['bulk_RNAs']['16S rRNA']
-    #bulk_5SrRNA = actual_update['bulk_RNAs']['5S rRNA']
-    #bulk_23SrRNA = actual_update['bulk_RNAs']['23S rRNA']
-    #bulk_mRNA = actual_update['bulk_RNAs']['mRNA']
-
-    ntps_used = actual_update['listeners']['growth_limits']['ntpUsed']
-    total_ntps_used = actual_update['listeners']['transcript_elongation_listener']['countNTPsUsed']
-    ntps = actual_update['ntps']
-
-    RNAP_coordinates = [v['coordinates'] for k, v in actual_update['active_RNAPs'].items()
-                        if k != "_delete"]
-    RNAP_elongations = actual_update['listeners']['rnap_data']['actualElongations']
-    terminations = actual_update['listeners']['rnap_data']['didTerminate']
-
-    ppi = actual_update['molecules']['PPI[c]']
-    inactive_RNAP = actual_update['molecules']['APORNAP-CPLX[c]']
-
-    # unpack wcEcoli update
-    # TODO: wc_trans_lengths = ...
-    wc_rnas_synthesized = expected_update['listeners']['transcript_elongation_listener']['countRnaSynthesized']
-
-    wc_ntps_used = expected_update['listeners']['growth_limits']['ntpUsed']
-    wc_total_ntps_used = expected_update['listeners']['transcript_elongation_listener']['countNTPsUsed']
-    wc_ntps = expected_update['ntps']
-
-    # TODO: wc_RNAP_coordinates = ...
-    wc_RNAP_elongations = expected_update['listeners']['rnap_data']['actualElongations']
-    wc_terminations = expected_update['listeners']['rnap_data']['didTerminate']
-
-    wc_ppi = expected_update['molecules']['PPI[c]']
-    wc_inactive_RNAP = expected_update['molecules']['APORNAP-CPLX[c]']
-
-    # Assertions ======================================================
-
     test_structure = {
         'listeners' : {
             'transcript_elongation_listener' : {
