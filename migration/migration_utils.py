@@ -1,5 +1,5 @@
 import numpy as np
-from scipy.stats import mannwhitneyu, chi2_contingency, ttest_ind
+from scipy.stats import mannwhitneyu, chi2_contingency, ttest_ind, bartlett
 from vivarium.core.engine import Engine
 
 from ecoli.composites.ecoli_master import get_state_from_file
@@ -298,9 +298,12 @@ def good_fit(dist1, dist2):
     return p > PVALUE_THRESHOLD, f"Chi^2 test, X^2 = {chi2:.4f}, p = {p:.4f}"
 
 def same_means(dist1, dist2):
-    result = ttest_ind(dist1, dist2, equal_var=False)
+    var_result = bartlett(dist1, dist2)
+    same_var = var_result.pvalue > PVALUE_THRESHOLD
+    result = ttest_ind(dist1, dist2, equal_var=same_var)
     return (result.pvalue > PVALUE_THRESHOLD,
-            f"Two-sample T-test, t = {result.statistic:.4f}, p = {result.pvalue:.4f}")
+            f"Two-sample T-test, t = {result.statistic:.4f}, p = {result.pvalue:.4f}"
+            f" (Assuming {'' if same_var else 'un'}equal variances based on Bartlett test, p={var_result.pvalue:.4f})")
 
 def stochastic_equal(dist1, dist2):
     u, p = mannwhitneyu(dist1, dist2)
