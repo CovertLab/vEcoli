@@ -186,8 +186,9 @@ class ComparisonTestSuite:
                            verbose, level=0):
             report = {}
             for k, v in test_structure.items():
+                indent = "." * level
                 if verbose:
-                    print('.'*level + f'Testing {k}...')
+                    print(f'{indent}Testing {k}...')
 
                 # check structure is correct:
                 if k not in vivEcoli_update:
@@ -197,25 +198,26 @@ class ComparisonTestSuite:
 
                 # run test if at a leaf node, else recurse
                 if callable(v):
-                    print('.' * level)
-                    print('.' * level + 'Running test\n' +
-                          '.' * level + f'\t{v.__name__}\n' +
-                          '.' * level + f'for element {k}.')
+                    print(
+                        f'{indent}\n'
+                        f'{indent}Running test\n'
+                        f'{indent}\t{v.__name__}\n'
+                        f'{indent}for element {k}.')
                     test_result = v(vivEcoli_update[k], wcEcoli_update[k])
                     report[k] = test_result
 
                     passed = test_result[0] if isinstance(test_result, tuple) else test_result
                     if verbose:
-                        print('.' * level + f'{"PASSED" if passed else "FAILED"} test "{v.__name__}" for {k}:')
+                        print(f'{indent}{"PASSED" if passed else "FAILED"} test "{v.__name__}" for {k}:')
                         if isinstance(test_result, tuple):
-                            print('.' * level + f'\t{test_result[1]}')
+                            print(f'{indent}\t{test_result[1]}')
 
                     if not passed:
                         self.failure = True
                         if self.fail_loudly:
-                            assert passed, '.' * level + f'FAILED test "{v.__name__}" for {k}.'
+                            assert passed, f'{indent}FAILED test "{v.__name__}" for {k}.'
 
-                    print('.' * level)
+                    print(indent)
                 else:
                     report[k] = run_tests_iter(vivEcoli_update[k],
                                                wcEcoli_update[k],
