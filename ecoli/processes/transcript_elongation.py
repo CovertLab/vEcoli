@@ -21,6 +21,8 @@ from wholecell.utils import units
 
 from ecoli.library.data_predicates import monotonically_increasing
 
+from os import makedirs
+
 
 class TranscriptElongation(Process):
     # TODO: comment out terminationLoss - doesn't seem to be used/informative?
@@ -712,6 +714,7 @@ def plots(actual_update, filename="transcript_elongation_toymodel.png"):
 
     plt.subplots_adjust(hspace=0.5)
     plt.gcf().set_size_inches(10, 6)
+    makedirs(f"out/migration", exist_ok=True)
     plt.savefig(f"out/migration/{filename}")
 
 
