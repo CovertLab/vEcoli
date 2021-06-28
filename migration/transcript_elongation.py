@@ -108,7 +108,7 @@ def assertions(actual_update, expected_update):
     test_structure = {
         'listeners' : {
             'transcript_elongation_listener' : {
-                'countRnaSynthesized' : transform_and_run(lambda x: pseudocount(np.array(x)), good_fit),
+                'countRnaSynthesized' : stochastic_equal,
                 'countNTPsUsed' : scalar_almost_equal
             },
             'growth_limits' : {
