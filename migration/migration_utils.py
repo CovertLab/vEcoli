@@ -160,6 +160,9 @@ class ComparisonTestSuite:
         def scalar_equal(v1, v2):
             return v1==v2, f"Difference (actual-expected) is {v1-v2}"
 
+    Leaf nodes can also be lists of such test functions, in which case all the specified
+    tests will be run.
+
     Creating a ComparisonTestSuite with fail_loudly = True causes it to stop testing
     as soon as it encounters the first error. Otherwise, failures occur silently.
 
@@ -260,7 +263,6 @@ class ComparisonTestSuite:
         dump_report_iter(self.test_structure, self.report)
         print(f"Passed {dump_report_iter.n_passed}/{dump_report_iter.n_tests} tests.")
 
-
     def fail(self):
         assert not self.failure, "Failed one or more tests."
 
@@ -332,7 +334,7 @@ def pseudocount(arr):
 
 # Test composition and modification ====================================================================================
 
-def one_of(*tests):
+def some_of(*tests):
     '''
     For composing tests. Equivalent to asserting that at least one of the specified tests passes.
 
@@ -344,7 +346,7 @@ def one_of(*tests):
              2. a list of all the diagnostic information from all tests.
     '''
 
-    def _one_of(arr1, arr2):
+    def _some_of(arr1, arr2):
         result = []
         for test in tests:
             result.append(test(arr1, arr2))
@@ -354,7 +356,7 @@ def one_of(*tests):
 
         return result
 
-    return _one_of
+    return _some_of
 
 def transform_and_run(transformation, test, transform_first=True, transform_second=True):
     '''
