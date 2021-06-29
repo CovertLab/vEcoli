@@ -185,45 +185,49 @@ class ComparisonTestSuite:
         def run_tests_iter(vivEcoli_update, wcEcoli_update, test_structure,
                            verbose, level=0):
             report = {}
-            for k, v in test_structure.items():
-                indent = "." * level
+            indent = " " * level
+            if callable(test_structure):
                 if verbose:
-                    print(f'{indent}Testing {k}...')
+                    print(f'{indent}\n'
+                          f'{indent}Running test\n'
+                          f'{indent}\t{test_structure.__name__}')
+                test_result = test_structure(vivEcoli_update, wcEcoli_update)
+                report = test_result
 
-                # check structure is correct:
-                if k not in vivEcoli_update:
-                    raise ValueError(f"Key {k} is missing from vivarium-ecoli update.")
-                if k not in wcEcoli_update:
-                    raise ValueError(f"Key {k} is missing from wcEcoli update.")
+                passed = test_result[0] if isinstance(test_result, tuple) else test_result
+                if verbose:
+                    print(f'{indent}{"PASSED" if passed else "FAILED"} test "{test_structure.__name__}":')
+                    if isinstance(test_result, tuple):
+                        print(f'{indent}\t{test_result[1]}')
 
-                # run test if at a leaf node, else recurse
-                if callable(v):
-                    print(
-                        f'{indent}\n'
-                        f'{indent}Running test\n'
-                        f'{indent}\t{v.__name__}\n'
-                        f'{indent}for element {k}.')
-                    test_result = v(vivEcoli_update[k], wcEcoli_update[k])
-                    report[k] = test_result
-
-                    passed = test_result[0] if isinstance(test_result, tuple) else test_result
+                if not passed:
+                    self.failure = True
+                    if self.fail_loudly:
+                        assert passed, f'{indent}FAILED test "{v.__name__}"'
+            elif isinstance(test_structure, list):
+                report = [run_tests_iter(vivEcoli_update,
+                                         vivEcoli_update,
+                                         test,
+                                         verbose,
+                                         level + 1)
+                          for test in test_structure]
+            else: # assumed to be dictionary
+                for k, v in test_structure.items():
                     if verbose:
-                        print(f'{indent}{"PASSED" if passed else "FAILED"} test "{v.__name__}" for {k}:')
-                        if isinstance(test_result, tuple):
-                            print(f'{indent}\t{test_result[1]}')
+                        print(f'{indent}Testing {k}...')
 
-                    if not passed:
-                        self.failure = True
-                        if self.fail_loudly:
-                            assert passed, f'{indent}FAILED test "{v.__name__}" for {k}.'
+                    # check structure is correct:
+                    if k not in vivEcoli_update:
+                        raise ValueError(f"Key {k} is missing from vivarium-ecoli update.")
+                    if k not in wcEcoli_update:
+                        raise ValueError(f"Key {k} is missing from wcEcoli update.")
 
-                    print(indent)
-                else:
                     report[k] = run_tests_iter(vivEcoli_update[k],
                                                wcEcoli_update[k],
                                                test_structure[k],
                                                verbose,
-                                               level+1)
+                                               level + 1)
+
             return report
 
         self.report = run_tests_iter(vivEcoli_update, wcEcoli_update, self.test_structure, verbose)

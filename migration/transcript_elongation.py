@@ -112,8 +112,8 @@ def assertions(actual_update, expected_update):
                 'countNTPsUsed' : scalar_almost_equal
             },
             'growth_limits' : {
-                'ntpUsed' : run_all(array_almost_equal,
-                                    array_diffs_report_test("out/migration/ntpUsed_comparison.txt"))
+                'ntpUsed' : [array_almost_equal,
+                             array_diffs_report_test("out/migration/ntpUsed_comparison.txt")]
             }
         }
     }
@@ -127,8 +127,8 @@ def assertions(actual_update, expected_update):
                     verbose=True)
 
     #pretty_print(tests.report)
-    #print(tests.report)
-    #tests.dump_report()
+    print(tests.report)
+    tests.dump_report()
 
     tests.fail()
 
