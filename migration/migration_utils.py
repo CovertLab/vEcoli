@@ -152,7 +152,7 @@ class ComparisonTestSuite:
     the corresponding elements of the two updates by
 
     1. returning False if they are different (True otherwise), and
-    2. (optionally) returning additional diagnostic information as the
+    2. (optionally) returning additional diagnostic information, as the
        second element of a tuple.
 
     For example:
@@ -185,14 +185,14 @@ class ComparisonTestSuite:
         def run_tests_iter(vivEcoli_update, wcEcoli_update, test_structure,
                            verbose, level=0):
             report = {}
-            indent = " " * level
+            indent = "  " * level
             if callable(test_structure):
                 if verbose:
                     print(f'{indent}\n'
                           f'{indent}Running test\n'
                           f'{indent}\t{test_structure.__name__}')
                 test_result = test_structure(vivEcoli_update, wcEcoli_update)
-                report = test_result
+                report = {test_structure.__name__: test_result}
 
                 passed = test_result[0] if isinstance(test_result, tuple) else test_result
                 if verbose:
@@ -233,28 +233,32 @@ class ComparisonTestSuite:
         self.report = run_tests_iter(vivEcoli_update, wcEcoli_update, self.test_structure, verbose)
 
     def dump_report(self):
-        def dump_report_iter(test_structure, report):
-            n_passed = 0
-            n_tests = 0
 
-            for k, v in report.items():
-                if not isinstance(v, dict):
+        def dump_report_iter(test_structure, report, level=0):
+            indent = '  '*level
+
+            if isinstance(test_structure, dict):
+                for k, v in test_structure.items():
+                    print(f'{indent}Tests for {k}:')
+                    dump_report_iter(v, report[k], level + 1)
+            elif isinstance(test_structure, list):
+                for test, result in zip(test_structure, report):
+                    dump_report_iter(test, result, level)
+            else:
+                for k, v in report.items():
                     passed = v[0] if isinstance(v, tuple) else v
-                    print(f'{"PASSED" if passed else "FAILED"} test for {k}:')
+                    print(f'{indent}{"PASSED" if passed else "FAILED"} test "{k}":')
+
                     if isinstance(v, tuple):
-                        print(f'\t{v[1]}')
+                        print(f'{indent}\t{v[1]}')
 
-                    n_passed += passed
-                    n_tests += 1
-                else:
-                    p, t = dump_report_iter(test_structure[k], report[k])
-                    n_passed += p
-                    n_tests += t
+                    dump_report_iter.n_passed += passed
+                    dump_report_iter.n_tests += 1
 
-            return (n_passed, n_tests)
-
-        n_passed, n_tests = dump_report_iter(self.test_structure, self.report)
-        print(f"Passed {n_passed}/{n_tests} tests.")
+        dump_report_iter.n_passed = 0
+        dump_report_iter.n_tests = 0
+        dump_report_iter(self.test_structure, self.report)
+        print(f"Passed {dump_report_iter.n_passed}/{dump_report_iter.n_tests} tests.")
 
 
     def fail(self):
