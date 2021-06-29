@@ -126,9 +126,8 @@ def assertions(actual_update, expected_update):
                     expected_update,
                     verbose=True)
 
-    #pretty_print(tests.report)
-    print(tests.report)
-    tests.dump_report()
+    #print(tests.report)
+    #tests.dump_report()
 
     tests.fail()
 
