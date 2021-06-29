@@ -144,7 +144,7 @@ class TranscriptInitiation(Process):
     }
 
     # Constructor
-    def __init__(self, parameters):
+    def __init__(self, parameters=None):
         super().__init__(parameters)
 
         # Load parameters
