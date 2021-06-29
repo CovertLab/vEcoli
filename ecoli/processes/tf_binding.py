@@ -35,8 +35,8 @@ class TfBinding(Process):
         'seed': 0}
 
     # Constructor
-    def __init__(self, initial_parameters):
-        super().__init__(initial_parameters)
+    def __init__(self, parameters=None):
+        super().__init__(parameters)
 
         # Get IDs of transcription factors
         self.tf_ids = self.parameters['tf_ids']

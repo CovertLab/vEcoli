@@ -6,7 +6,7 @@ from vivarium.core.engine import Engine
 from ecoli.library.sim_data import LoadSimData
 from ecoli.composites.ecoli_master import SIM_DATA_PATH
 from ecoli.processes.tf_binding import TfBinding
-from ecoli.migration.migration_utils import run_ecoli_process
+from migration.migration_utils import run_ecoli_process
 from ecoli.composites.ecoli_master import get_state_from_file
 
 
