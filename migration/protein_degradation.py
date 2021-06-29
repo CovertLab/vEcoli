@@ -13,11 +13,11 @@ from scipy.stats import chi2_contingency
 
 from ecoli.library.sim_data import LoadSimData
 from ecoli.composites.ecoli_master import SIM_DATA_PATH
-from ecoli.migration.migration_utils import run_ecoli_process, percent_error
+from migration.migration_utils import run_ecoli_process, percent_error
 
 from ecoli.processes.protein_degradation import ProteinDegradation
 
-from ecoli.migration.plots import qqplot
+from migration.plots import qqplot
 
 
 load_sim_data = LoadSimData(
