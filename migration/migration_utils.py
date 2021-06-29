@@ -328,30 +328,6 @@ def pseudocount(arr):
 
 # Test composition and modification ====================================================================================
 
-def run_all(*tests):
-    '''
-    Function for composing tests. Passes if all input tests pass.
-
-    Args:
-        *tests: the tests to be run.
-
-    Returns: A test function that returns a tuple of
-             1. a boolean for whether all tests passed, and
-             2. a list of all diagnostic information for the tests.
-
-    '''
-    def _run_all(arr1, arr2):
-        result = []
-        for test in tests:
-            result.append(test(arr1, arr2))
-
-        result = (all([x[0] if isinstance(x, tuple) else x for x in result]),
-                  [x[1] if isinstance(x, tuple) else "" for x in result])
-
-        return result
-
-    return _run_all
-
 def one_of(*tests):
     '''
     For composing tests. Equivalent to asserting that at least one of the specified tests passes.
