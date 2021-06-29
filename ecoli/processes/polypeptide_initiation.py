@@ -36,8 +36,8 @@ class PolypeptideInitiation(Process):
         'seed': 0,
         'shuffle_indexes': None}
 
-    def __init__(self, initial_parameters):
-        super().__init__(initial_parameters)
+    def __init__(self, parameters=None):
+        super().__init__(parameters)
 
         # Load parameters
         self.protein_lengths = self.parameters['protein_lengths']
