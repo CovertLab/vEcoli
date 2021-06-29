@@ -54,7 +54,7 @@ class Shape(Deriver):
         * **global**: Should be given the agent's boundary store.
 
         Arguments:
-            initial_parameters (dict): A dictionary that can contain the
+            parameters (dict): A dictionary that can contain the
                 follwing configuration options:
 
                 * **width** (:py:class:`float`): Width of the cell in

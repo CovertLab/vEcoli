@@ -104,7 +104,7 @@ class PolypeptideElongation(Process):
         'aa_supply_scaling': lambda aa_conc, aa_in_media: 0,
         'seed': 0}
 
-    def __init__(self, parameters):
+    def __init__(self, parameters=None):
         super().__init__(parameters)
 
         self.max_time_step = self.parameters['max_time_step']

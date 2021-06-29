@@ -91,7 +91,7 @@ class TranscriptElongation(Process):
         'seed': 0,
     }
 
-    def __init__(self, parameters):
+    def __init__(self, parameters=None):
         super().__init__(parameters)
 
         self.max_time_step = self.parameters['max_time_step']

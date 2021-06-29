@@ -64,7 +64,7 @@ class Metabolism(Process):
         'linked_metabolites': None,
         'seed': 0}
 
-    def __init__(self, parameters):
+    def __init__(self, parameters=None):
         super().__init__(parameters)
 
         # Use information from the environment and sim
