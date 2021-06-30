@@ -55,7 +55,7 @@ class DiffusionNetwork(Process):
          for `length`, `volume`, and `molecules`.
 
          Arguments:
-             initial_parameters: A dictionary of configuration options.
+             parameters: A dictionary of configuration options.
                  The following configuration options may be provided:
 
                  * **nodes** (:py:class:`list`): A list of node names.
@@ -205,10 +205,10 @@ class DiffusionNetwork(Process):
 
 # TODO: change this to multiple tests and add asserts
 def test_diffusion_network_process(out_dir=None):
-    # initialize the process by passing initial_parameters
+    # initialize the process by passing parameters
     n = int(1E6)
     molecule_ids = [str(np.round(i, 1)) for i in np.arange(0.1, 19.6, 0.1)]
-    initial_parameters = {
+    parameters = {
         'nodes': ['cytosol_front', 'nucleoid', 'cytosol_rear'],
         'edges': {
             '1': {
@@ -232,7 +232,7 @@ def test_diffusion_network_process(out_dir=None):
         'radii': {str(np.round(i, 1)): np.round(i, 1) for i in np.arange(0.1, 19.6, 0.1)},
     }
 
-    diffusion_network_process = DiffusionNetwork(initial_parameters)
+    diffusion_network_process = DiffusionNetwork(parameters)
 
     # run the simulation
     sim_settings = {

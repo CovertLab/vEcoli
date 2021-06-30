@@ -36,8 +36,8 @@ class Mass(Deriver):
         'water_id': 'water'
     }
 
-    def __init__(self, initial_parameters=None):
-        super().__init__(initial_parameters)
+    def __init__(self, parameters=None):
+        super().__init__(parameters)
         self.molecular_weights = self.parameters['molecular_weights']
         self.unique_masses = self.parameters['unique_masses']
 

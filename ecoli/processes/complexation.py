@@ -26,8 +26,8 @@ class Complexation(Process):
         'molecule_names': [],
         'seed': 0}
 
-    def __init__(self, initial_parameters=None):
-        super().__init__(initial_parameters)
+    def __init__(self, parameters=None):
+        super().__init__(parameters)
 
         self.stoichiometry = self.parameters['stoichiometry']
         self.rates = self.parameters['rates']

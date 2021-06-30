@@ -86,8 +86,8 @@ class RnaDegradation(Process):
         'ribosome50S': 'ribosome50S',
         'seed': 0}
 
-    def __init__(self, initial_parameters):
-        super().__init__(initial_parameters)
+    def __init__(self, parameters=None):
+        super().__init__(parameters)
 
         self.rnaIds = self.parameters['rnaIds']
         self.n_total_RNAs = len(self.rnaIds)

@@ -2,7 +2,7 @@ from ecoli.library.sim_data import LoadSimData
 from ecoli.composites.ecoli_master import SIM_DATA_PATH
 from ecoli.processes.complexation import Complexation
 
-from ecoli.migration.migration_utils import run_ecoli_process
+from migration.migration_utils import run_ecoli_process
 
 
 load_sim_data = LoadSimData(
