@@ -18,3 +18,4 @@ def make_logging_process(process_class):
     logging_process.next_update = next_update
 
     return logging_process
+
