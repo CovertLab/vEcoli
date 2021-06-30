@@ -23,11 +23,20 @@ from ecoli.library.sim_data import LoadSimData
 from vivarium.processes.divide_condition import DivideCondition
 
 # vivarium-ecoli processes
-from ecoli.processes import (
-    TfBinding, TranscriptInitiation, TranscriptElongation, RnaDegradation,
-    PolypeptideInitiation, PolypeptideElongation, Complexation, TwoComponentSystem,
-    Equilibrium, ProteinDegradation, Metabolism, ChromosomeReplication, Mass
-)
+from ecoli.processes.tf_binding import TfBinding
+from ecoli.processes.transcript_initiation import TranscriptInitiation
+from ecoli.processes.transcript_elongation import TranscriptElongation
+from ecoli.processes.rna_degradation import RnaDegradation
+from ecoli.processes.polypeptide_initiation import PolypeptideInitiation
+from ecoli.processes.polypeptide_elongation import PolypeptideElongation
+from ecoli.processes.complexation import Complexation
+from ecoli.processes.two_component_system import TwoComponentSystem
+from ecoli.processes.equilibrium import Equilibrium
+from ecoli.processes.protein_degradation import ProteinDegradation
+from ecoli.processes.metabolism import Metabolism
+from ecoli.processes.chromosome_replication import ChromosomeReplication
+from ecoli.processes.mass import Mass
+
 from ecoli.processes.allocator import Allocate
 
 NAME = 'ecoli_master_partition'

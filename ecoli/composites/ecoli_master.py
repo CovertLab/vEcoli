@@ -21,6 +21,7 @@ from ecoli.library.sim_data import LoadSimData
 from vivarium.processes.divide_condition import DivideCondition
 
 # vivarium-ecoli processes
+from ecoli.composites.ecoli_master_partition import ECOLI_PROCESSES, ECOLI_TOPOLOGY
 from ecoli.processes.tf_binding import TfBinding
 from ecoli.processes.transcript_initiation import TranscriptInitiation
 from ecoli.processes.transcript_elongation import TranscriptElongation
@@ -102,116 +103,12 @@ class Ecoli(Composer):
         }
 
     def generate_topology(self, config):
-        return {
-            'tf_binding': {
-                'promoters': ('unique', 'promoter'),
-                'active_tfs': ('bulk',),
-                'inactive_tfs': ('bulk',),
-                'listeners': ('listeners',)},
-
-            'transcript_initiation': {
-                'environment': ('environment',),
-                'full_chromosomes': ('unique', 'full_chromosome'),
-                'RNAs': ('unique', 'RNA'),
-                'active_RNAPs': ('unique', 'active_RNAP'),
-                'promoters': ('unique', 'promoter'),
-                'molecules': ('bulk',),
-                'listeners': ('listeners',)},
-
-            'transcript_elongation': {
-                'environment': ('environment',),
-                'RNAs': ('unique', 'RNA'),
-                'active_RNAPs': ('unique', 'active_RNAP'),
-                'molecules': ('bulk',),
-                'bulk_RNAs': ('bulk',),
-                'ntps': ('bulk',),
-                'listeners': ('listeners',)},
-
-            'rna_degradation': {
-                'charged_trna': ('bulk',),
-                'bulk_RNAs': ('bulk',),
-                'nmps': ('bulk',),
-                'fragmentMetabolites': ('bulk',),
-                'fragmentBases': ('bulk',),
-                'endoRnases': ('bulk',),
-                'exoRnases': ('bulk',),
-                'subunits': ('bulk',),
-                'molecules': ('bulk',),
-                'RNAs': ('unique', 'RNA'),
-                'active_ribosome': ('unique', 'active_ribosome'),
-                'listeners': ('listeners',)},
-
-            'polypeptide_initiation': {
-                'environment': ('environment',),
-                'listeners': ('listeners',),
-                'active_ribosome': ('unique', 'active_ribosome'),
-                'RNA': ('unique', 'RNA'),
-                'subunits': ('bulk',)},
-
-            # 'polypeptide_elongation': {
-            #     'environment': ('environment',),
-            #     'listeners': ('listeners',),
-            #     'active_ribosome': ('unique', 'active_ribosome'),
-            #     'molecules': ('bulk',),
-            #     'monomers': ('bulk',),
-            #     'amino_acids': ('bulk',),
-            #     'ppgpp_reaction_metabolites': ('bulk',),
-            #     'uncharged_trna': ('bulk',),
-            #     'charged_trna': ('bulk',),
-            #     'charging_molecules': ('bulk',),
-            #     'synthetases': ('bulk',),
-            #     'subunits': ('bulk',),
-            #     'polypeptide_elongation': ('process_state', 'polypeptide_elongation')},
-
-            'complexation': {
-                'molecules': ('bulk',)},
-
-            'two_component_system': {
-                'listeners': ('listeners',),
-                'molecules': ('bulk',)},
-
-            'equilibrium': {
-                'listeners': ('listeners',),
-                'molecules': ('bulk',)},
-
-            'protein_degradation': {
-                'metabolites': ('bulk',),
-                'proteins': ('bulk',)},
-
-            'metabolism': {
-                'metabolites': ('bulk',),
-                'catalysts': ('bulk',),
-                'kinetics_enzymes': ('bulk',),
-                'kinetics_substrates': ('bulk',),
-                'amino_acids': ('bulk',),
-                'listeners': ('listeners',),
-                'environment': ('environment',),
-                'polypeptide_elongation': ('process_state', 'polypeptide_elongation')},
-
-            'chromosome_replication': {
-                'replisome_trimers': ('bulk',),
-                'replisome_monomers': ('bulk',),
-                'dntps': ('bulk',),
-                'ppi': ('bulk',),
-                'active_replisomes': ('unique', 'active_replisome',),
-                'oriCs': ('unique', 'oriC',),
-                'chromosome_domains': ('unique', 'chromosome_domain',),
-                'full_chromosomes': ('unique', 'full_chromosome',),
-                'listeners': ('listeners',),
-                'environment': ('environment',)},
-
-            'mass': {
-                'bulk': ('bulk',),
-                'unique': ('unique',),
-                'listeners': ('listeners',)},
-
-            'divide_condition': {
-                'variable': ('listeners', 'mass', 'cell_mass'),
-                'divide': ('globals', 'divide',),
-            },
-
-        }
-
+        topology = {}
+        for process_id, ports in ECOLI_TOPOLOGY.items():
+            topology[process_id] = ports
+            if config['blame']:
+                topology[process_id]['log_update'] = ('log_output', process_id,)
+        return topology
 
 
 def infinitize(value):
@@ -274,10 +171,16 @@ def get_state_from_file(path='data/wcecoli_t0.json'):
 
 
 def test_ecoli(
+        blame=False,
         total_time=10,
-        debug_config=False,
 ):
+    data = run_ecoli(blame, total_time)
 
+    # TODO: Assertions
+
+
+
+def run_ecoli(blame=False, total_time=10):
     # configure the composer
     ecoli_config = {
         'agent_id': '1',
@@ -290,7 +193,8 @@ def test_ecoli(
                     }
                 }
             }
-        }
+        },
+        'blame' : blame
     }
     ecoli_composer = Ecoli(ecoli_config)
 
@@ -306,20 +210,11 @@ def test_ecoli(
         'progress_bar': True,
     })
 
-    if debug_config:
-        print(pformat(ecoli_experiment.state.get_config(True)))
-        import ipdb; ipdb.set_trace()
-
     # run the experiment
     ecoli_experiment.update(total_time)
 
     # retrieve the data
-    data = ecoli_experiment.emitter.get_timeseries()
-    return data
-
-
-def run_ecoli():
-    output = test_ecoli()
+    output = ecoli_experiment.emitter.get_timeseries()
 
     # separate data by port
     bulk = output['bulk']
@@ -406,17 +301,21 @@ def main():
 
 
     parser = argparse.ArgumentParser(description='ecoli_master')
-    parser.add_argument('-topology', '-t', action='store_true', default=False, help='save a topology plot of ecoli master')
-    parser.add_argument('-simulate', '-s', action='store_true', default=False, help='simulate ecoli master')
-    parser.add_argument('-debug', '-d', action='store_true', default=False, help='run tests, generating a report of failures/successes')
+    parser.add_argument('-topology', '-t', action='store_true', default=False,
+                        help='save a topology plot of ecoli master')
+    parser.add_argument('-blame', '-b', action='store_true', default=False,
+                        help='when running simulation, create a report of which processes affected which molecules')
+    parser.add_argument('-debug', '-d', action='store_true', default=False,
+                        help='run tests, generating a report of failures/successes')
     args = parser.parse_args()
 
     if args.topology:
         ecoli_topology_plot(out_dir)
     else:
-        output = run_ecoli()
-        if ars.debug:
-            print("poopy!")
+        if args.debug:
+            output = test_ecoli(args.blame)
+        else:
+            output = run_ecoli(args.blame)
 
 if __name__ == '__main__':
     main()
