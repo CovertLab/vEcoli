@@ -21,6 +21,8 @@ from wholecell.utils import units
 
 from ecoli.library.data_predicates import monotonically_increasing
 
+from os import makedirs
+
 
 class TranscriptElongation(Process):
     # TODO: comment out terminationLoss - doesn't seem to be used/informative?
@@ -91,7 +93,7 @@ class TranscriptElongation(Process):
         'seed': 0,
     }
 
-    def __init__(self, parameters):
+    def __init__(self, parameters=None):
         super().__init__(parameters)
 
         self.max_time_step = self.parameters['max_time_step']
@@ -555,7 +557,7 @@ class TranscriptElongation(Process):
             "attenuation_probability": attenuation_probability,
             "counts_attenuated": counts_attenuated}
         update['listeners']['growth_limits'] = {
-            "ntpUsed": ntps_used} #if ntps_used else np.zeros(4)}
+            "ntpUsed": ntps_used}
         update['listeners']['rnap_data'] = {
             "actualElongations": sequence_elongations.sum(),
             "didTerminate": did_terminate_mask.sum(),
@@ -712,6 +714,7 @@ def plots(actual_update, filename="transcript_elongation_toymodel.png"):
 
     plt.subplots_adjust(hspace=0.5)
     plt.gcf().set_size_inches(10, 6)
+    makedirs(f"out/migration", exist_ok=True)
     plt.savefig(f"out/migration/{filename}")
 
 
