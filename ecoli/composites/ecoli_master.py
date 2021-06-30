@@ -197,51 +197,40 @@ class Ecoli(Composer):
         parallel = config['parallel']  # TODO (Eran) -- which processes can be parallelized?
 
         # get the configs from sim_data
-        tf_binding_config = self.load_sim_data.get_tf_config(time_step=time_step)
-        transcript_initiation_config = self.load_sim_data.get_transcript_initiation_config(time_step=time_step)
-        transcript_elongation_config = self.load_sim_data.get_transcript_elongation_config(time_step=time_step)
-        rna_degradation_config = self.load_sim_data.get_rna_degradation_config(time_step=time_step)
-        polypeptide_initiation_config = self.load_sim_data.get_polypeptide_initiation_config(time_step=time_step)
-        polypeptide_elongation_config = self.load_sim_data.get_polypeptide_elongation_config(time_step=time_step)
-        complexation_config = self.load_sim_data.get_complexation_config(time_step=time_step)
-        two_component_system_config = self.load_sim_data.get_two_component_system_config(time_step=time_step)
-        equilibrium_config = self.load_sim_data.get_equilibrium_config(time_step=time_step)
-        protein_degradation_config = self.load_sim_data.get_protein_degradation_config(time_step=time_step)
-        metabolism_config = self.load_sim_data.get_metabolism_config(time_step=time_step)
-        chromosome_replication_config = self.load_sim_data.get_chromosome_replication_config(time_step=time_step)
-        mass_config = self.load_sim_data.get_mass_config(time_step=time_step)
+        configs = {
+            'tf_binding_config' : self.load_sim_data.get_tf_config(time_step=time_step),
+            'transcript_initiation_config' : self.load_sim_data.get_transcript_initiation_config(time_step=time_step),
+            'transcript_elongation_config' : self.load_sim_data.get_transcript_elongation_config(time_step=time_step),
+            'rna_degradation_config' : self.load_sim_data.get_rna_degradation_config(time_step=time_step),
+            'polypeptide_initiation_config' : self.load_sim_data.get_polypeptide_initiation_config(time_step=time_step),
+            'polypeptide_elongation_config' : self.load_sim_data.get_polypeptide_elongation_config(time_step=time_step),
+            'complexation_config' : self.load_sim_data.get_complexation_config(time_step=time_step),
+            'two_component_system_config' : self.load_sim_data.get_two_component_system_config(time_step=time_step),
+            'equilibrium_config' : self.load_sim_data.get_equilibrium_config(time_step=time_step),
+            'protein_degradation_config' : self.load_sim_data.get_protein_degradation_config(time_step=time_step),
+            'metabolism_config' : self.load_sim_data.get_metabolism_config(time_step=time_step),
+            'chromosome_replication_config' : self.load_sim_data.get_chromosome_replication_config(time_step=time_step),
+            'mass_config' : self.load_sim_data.get_mass_config(time_step=time_step),
 
-        # additional processes
-        divide_config = config['division']
-
-        configs = [tf_binding_config,
-                   transcript_initiation_config,
-                   transcript_elongation_config,
-                   rna_degradation_config,
-                   polypeptide_initiation_config,
-                   polypeptide_elongation_config,
-                   complexation_config,
-                   two_component_system_config,
-                   equilibrium_config,
-                   protein_degradation_config,
-                   metabolism_config,
-                   chromosome_replication_config,
-                   mass_config,
-                   divide_config]
-
-        return {
-            k: v(process_config) if not config['blame'] else make_logging_process(v)(process_config)
-            for (k, v), process_config in zip(ECOLI_PROCESSES.items(), configs)
-            if k != "polypeptide_elongation" # TODO: get polypeptide elongation working again
+            # additional processes
+            'divide_config' : config['division']
         }
 
+        return {
+            process_name: (process(process_config)
+                           if not config['blame']
+                           else make_logging_process(process)(process_config))
+
+            for (process_name, process), process_config in zip(ECOLI_PROCESSES.items(), configs.values())
+            if process_name != "polypeptide_elongation"  # TODO: get polypeptide elongation working again
+        }
 
     def generate_topology(self, config):
         topology = {}
         for process_id, ports in ECOLI_TOPOLOGY.items():
             topology[process_id] = ports
             if config['blame']:
-                topology[process_id]['log_update'] = ('log_output', process_id,)
+                topology[process_id]['log_update'] = ('log_update', process_id,)
         return topology
 
 
@@ -250,6 +239,7 @@ def infinitize(value):
         return float('inf')
     else:
         return value
+
 
 def load_states(path):
     with open(path, 'r') as states_file:
@@ -260,6 +250,7 @@ def load_states(path):
         for key, value in states['environment'].items()}
 
     return states
+
 
 def get_state_from_file(path='data/wcecoli_t0.json'):
 
@@ -302,6 +293,7 @@ def get_state_from_file(path='data/wcecoli_t0.json'):
             'polypeptide_elongation': {}}}
 
     return initial_state
+
 
 def run_ecoli(blame=False, total_time=10):
     # configure the composer
@@ -349,9 +341,6 @@ def run_ecoli(blame=False, total_time=10):
     # print(bulk)
     # print(unique.keys())
     pp(listeners['mass'])
-
-    import ipdb;
-    ipdb.set_trace()
 
     return output
 
@@ -418,13 +407,10 @@ def ecoli_topology_plot(out_dir='out'):
         settings=settings)
 
 
-
-
 def main():
     out_dir = os.path.join('out', 'ecoli_master')
     if not os.path.exists(out_dir):
         os.makedirs(out_dir)
-
 
     parser = argparse.ArgumentParser(description='ecoli_master')
     parser.add_argument('-topology', '-t', action='store_true', default=False,
