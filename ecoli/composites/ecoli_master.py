@@ -198,30 +198,30 @@ class Ecoli(Composer):
 
         # get the configs from sim_data
         configs = {
-            'tf_binding_config' : self.load_sim_data.get_tf_config(time_step=time_step),
-            'transcript_initiation_config' : self.load_sim_data.get_transcript_initiation_config(time_step=time_step),
-            'transcript_elongation_config' : self.load_sim_data.get_transcript_elongation_config(time_step=time_step),
-            'rna_degradation_config' : self.load_sim_data.get_rna_degradation_config(time_step=time_step),
-            'polypeptide_initiation_config' : self.load_sim_data.get_polypeptide_initiation_config(time_step=time_step),
-            'polypeptide_elongation_config' : self.load_sim_data.get_polypeptide_elongation_config(time_step=time_step),
-            'complexation_config' : self.load_sim_data.get_complexation_config(time_step=time_step),
-            'two_component_system_config' : self.load_sim_data.get_two_component_system_config(time_step=time_step),
-            'equilibrium_config' : self.load_sim_data.get_equilibrium_config(time_step=time_step),
-            'protein_degradation_config' : self.load_sim_data.get_protein_degradation_config(time_step=time_step),
-            'metabolism_config' : self.load_sim_data.get_metabolism_config(time_step=time_step),
-            'chromosome_replication_config' : self.load_sim_data.get_chromosome_replication_config(time_step=time_step),
-            'mass_config' : self.load_sim_data.get_mass_config(time_step=time_step),
+            'tf_binding' : self.load_sim_data.get_tf_config(time_step=time_step),
+            'transcript_initiation' : self.load_sim_data.get_transcript_initiation_config(time_step=time_step),
+            'transcript_elongation' : self.load_sim_data.get_transcript_elongation_config(time_step=time_step),
+            'rna_degradation' : self.load_sim_data.get_rna_degradation_config(time_step=time_step),
+            'polypeptide_initiation' : self.load_sim_data.get_polypeptide_initiation_config(time_step=time_step),
+            'polypeptide_elongation' : self.load_sim_data.get_polypeptide_elongation_config(time_step=time_step),
+            'complexation' : self.load_sim_data.get_complexation_config(time_step=time_step),
+            'two_component_system' : self.load_sim_data.get_two_component_system_config(time_step=time_step),
+            'equilibrium' : self.load_sim_data.get_equilibrium_config(time_step=time_step),
+            'protein_degradation' : self.load_sim_data.get_protein_degradation_config(time_step=time_step),
+            'metabolism' : self.load_sim_data.get_metabolism_config(time_step=time_step),
+            'chromosome_replication' : self.load_sim_data.get_chromosome_replication_config(time_step=time_step),
+            'mass' : self.load_sim_data.get_mass_config(time_step=time_step),
 
             # additional processes
-            'divide_config' : config['division']
+            'divide_condition' : config['division']
         }
 
         return {
-            process_name: (process(process_config)
+            process_name: (process(configs[process_name])
                            if not config['blame']
-                           else make_logging_process(process)(process_config))
+                           else make_logging_process(process)(configs[process_name]))
 
-            for (process_name, process), process_config in zip(ECOLI_PROCESSES.items(), configs.values())
+            for (process_name, process) in ECOLI_PROCESSES.items()
             if process_name != "polypeptide_elongation"  # TODO: get polypeptide elongation working again
         }
 
