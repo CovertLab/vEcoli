@@ -460,8 +460,9 @@ def run_ecoli():
     pp(listeners['mass'])
 
 
-def ecoli_topology_plot(out_dir='out'):
-    ecoli = Ecoli({'agent_id': '1'})
+def ecoli_topology_plot(config={}, filename=None, out_dir=None):
+    agent_id_config = {'agent_id': '1'}
+    ecoli = Ecoli({**agent_id_config, **config})
 
     process_row = -4
     process_distance = 0.9
@@ -516,12 +517,12 @@ def ecoli_topology_plot(out_dir='out'):
             'process_state\npolypeptide_elongation',
         ]
     }
-    plot_topology(
+    topo_plot = plot_topology(
         ecoli,
-        filename='ecoli_master',
+        filename=filename,
         out_dir=out_dir,
         settings=settings)
-
+    return topo_plot
 
 
 
@@ -538,7 +539,7 @@ def main():
 
 
     if args.topology:
-        ecoli_topology_plot(out_dir)
+        ecoli_topology_plot(filename='ecoli_master', out_dir=out_dir)
     else:
         run_ecoli()
 
