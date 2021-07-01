@@ -369,7 +369,9 @@ def ecoli_topology_plot(out_dir='out'):
             'metabolism': (11*process_distance, process_row),
             'mass': (12*process_distance, process_row),
             'divide_condition': (13*process_distance, process_row),
-            'chromosome_replication': (14*process_distance, process_row)
+            'chromosome_replication': (14*process_distance, process_row),
+            'mass': (13*process_distance, process_row),
+            'divide_condition': (14*process_distance, process_row),
         },
         'node_labels': {
             # processes
@@ -384,6 +386,7 @@ def ecoli_topology_plot(out_dir='out'):
             'equilibrium': 'equilibrium',
             'protein_degradation': 'protein\ndegradation',
             'metabolism': 'metabolism',
+            'chromosome_replication': 'chromosome\nreplication',
             'mass': 'mass',
             'divide_condition': 'division',
         },
