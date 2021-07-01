@@ -11,7 +11,7 @@ def make_logging_process(process_class):
 
     def next_update(self, timestep, states):
         update = super().next_update(timestep, states)  # get the original update
-        log_update = {'log_update' : update} # log the update, under the process name
+        log_update = {'log_update' : update} # log the update
         return {**update, **log_update}
 
     logging_process.ports_schema = ports_schema
