@@ -433,5 +433,9 @@ def main():
         else:
             output = run_ecoli(args.blame)
 
+        if args.blame:
+            from ecoli.plots.blame import blame_plot
+            blame_plot(output)
+
 if __name__ == '__main__':
     main()
