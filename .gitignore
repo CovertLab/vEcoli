@@ -31,3 +31,7 @@ __pycache__
 ._*
 .python-version
 .pytest_cache
+
+# Jupyter #
+###########
+.ipynb_checkpoints
