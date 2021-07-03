@@ -62,7 +62,7 @@ def blame_plot(data, filename='out/ecoli_master/blame.png'):
     max_val = np.max(plot_data)
 
     fig, ax = plt.subplots()
-    fig.set_size_inches(2 * plot_data.shape[1], plot_data.shape[0] / 10)
+    fig.set_size_inches(2 * plot_data.shape[1], plot_data.shape[0] / 8)
     im = ax.imshow(plot_data,
                    aspect='auto',
                    cmap=plt.get_cmap('seismic'),
