@@ -92,7 +92,7 @@ class Metabolism(Process):
         # Molecules with concentration updates for listener
         doubling_time = self.nutrientToDoublingTime.get(
             self.media_id,
-            self.nutrientToDoublingTime['minimal'])
+            self.nutrientToDoublingTime[self.media_id],)
         update_molecules = list(self.model.getBiomassAsConcentrations(doubling_time).keys())
         if self.use_trna_charging:
             update_molecules += [aa for aa in self.aa_names if aa not in self.aa_targets_not_updated]
@@ -193,7 +193,7 @@ class Metabolism(Process):
         coefficient = dry_mass / cell_mass * self.cellDensity * timestep * units.s
 
         ## Determine updates to concentrations depending on the current state
-        doubling_time = self.nutrientToDoublingTime.get(current_media_id, self.nutrientToDoublingTime['minimal'])
+        doubling_time = self.nutrientToDoublingTime.get(current_media_id, self.nutrientToDoublingTime[self.media_id])
         conc_updates = self.model.getBiomassAsConcentrations(doubling_time)
         if self.use_trna_charging:
             conc_updates.update(self.update_amino_acid_targets(
