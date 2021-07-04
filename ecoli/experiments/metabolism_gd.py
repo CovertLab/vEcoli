@@ -24,7 +24,7 @@ TOPOLOGY = {
 
 def run_metabolism():
     # Create process, experiment, loading in initial state from file.
-    config = load_sim_data.get_metabolism_config()
+    config = load_sim_data.get_metabolism_gd_config()
     metabolism_process = MetabolismGD(config)
 
     initial_state = get_state_from_file(

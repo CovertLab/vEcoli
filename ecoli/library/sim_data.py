@@ -296,6 +296,49 @@ class LoadSimData:
 
         return protein_degradation_config
 
+    def get_metabolism_gd_config(self, time_step=2, parallel=False):
+        # Create reversible reactions from "reaction pairs".
+        stoichiometry = self.sim_data.process.metabolism.reaction_stoich
+        rxns = dict(self.sim_data.process.metabolism.reaction_stoich)
+
+        for key in stoichiometry.keys():
+            if key.endswith('(reverse)'):
+                del rxns[key]
+
+        metabolism_config = {
+            'time_step': time_step,
+            '_parallel': parallel,
+
+
+            # variables
+            'stoichiometry': self.sim_data.process.metabolism.reaction_stoich,
+            'stoichiometry_r': rxns,
+            'reaction_catalysts': self.sim_data.process.metabolism.reaction_catalysts,
+            'maintenance_reaction': self.sim_data.process.metabolism.maintenance_reaction,
+            'aa_names': self.sim_data.molecule_groups.amino_acids,
+            'media_id': self.sim_data.conditions[self.sim_data.condition]['nutrients'],
+            'nutrients': self.sim_data.conditions[self.sim_data.condition]['nutrients'], # TODO (Niels) Replace with media_id.
+            'avogadro': self.sim_data.constants.n_avogadro,
+            'cell_density': self.sim_data.constants.cell_density,
+            'nutrientToDoublingTime': self.sim_data.nutrient_to_doubling_time,
+
+            # methods
+            'concentration_updates': self.sim_data.process.metabolism.concentration_updates,
+            'get_biomass_as_concentrations': self.sim_data.mass.getBiomassAsConcentrations,
+            'exchange_data_from_media': self.sim_data.external_state.exchange_data_from_media,
+            'doubling_time': self.sim_data.condition_to_doubling_time[self.sim_data.condition],
+            'get_kinetic_constraints': self.sim_data.process.metabolism.get_kinetic_constraints,
+
+            # ports schema
+            'catalyst_ids': self.sim_data.process.metabolism.catalyst_ids,
+            'kinetic_constraint_enzymes': self.sim_data.process.metabolism.kinetic_constraint_reactions,
+            'kinetic_constraint_substrates': self.sim_data.process.metabolism.kinetic_constraint_substrates
+        }
+
+        # TODO Create new config-get with only necessary parts.
+
+        return metabolism_config
+
     def get_metabolism_config(self, time_step=2, parallel=False):
         metabolism_config = {
             'time_step': time_step,
@@ -305,6 +348,8 @@ class LoadSimData:
             'stoichiometry': self.sim_data.process.metabolism.reaction_stoich,
             'reaction_catalysts': self.sim_data.process.metabolism.reaction_catalysts,
             'catalyst_ids': self.sim_data.process.metabolism.catalyst_ids,
+            'concentration_updates': self.sim_data.process.metabolism.concentration_updates,
+            'maintenance_reaction': self.sim_data.process.metabolism.maintenance_reaction,
 
             # wcEcoli parameters
             'get_import_constraints': self.sim_data.external_state.get_import_constraints,
@@ -317,10 +362,10 @@ class LoadSimData:
 
             # these values came from the initialized environment state
             'current_timeline': None,
-            'media_id': 'minimal',
+            'media_id': self.sim_data.conditions[self.sim_data.condition]['nutrients'],
 
             'condition': self.sim_data.condition,
-            'nutrients': self.sim_data.conditions[self.sim_data.condition]['nutrients'],
+            'nutrients': self.sim_data.conditions[self.sim_data.condition]['nutrients'],    # TODO Replace this with media_id
             'metabolism': self.sim_data.process.metabolism,
             'non_growth_associated_maintenance': self.sim_data.constants.non_growth_associated_maintenance,
             'avogadro': self.sim_data.constants.n_avogadro,
