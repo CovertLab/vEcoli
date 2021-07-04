@@ -99,9 +99,10 @@ def array_diffs_report(a, b, names=None, sort_by="absolute", sort_with=np.abs):
     if len(names) != len(a):
         raise ValueError(f"Length of names does not match length of a ({len(names)} != {len(a)})")
 
-    diffs = a - b
-    r_diffs = diffs / b
-
+    diffs = np.abs(a - b)
+    r_diffs = diffs / np.maximum(np.abs(a), np.abs(b))    
+    r_diffs[np.isnan(r_diffs)] = 0
+        
     if sort_by is not None:
         if sort_by == "absolute":
             order = np.argsort(-sort_with(diffs))
@@ -134,7 +135,7 @@ def array_diffs_report(a, b, names=None, sort_by="absolute", sort_with=np.abs):
 
 
 def percent_error(actual, expected):
-    return abs((actual - expected) / expected)
+    return abs(actual - expected) / max(abs(actual), abs(expected))
 
 
 class ComparisonTestSuite:
@@ -206,10 +207,10 @@ class ComparisonTestSuite:
                 if not passed:
                     self.failure = True
                     if self.fail_loudly:
-                        assert passed, f'{indent}FAILED test "{v.__name__}"'
+                        assert passed, f'{indent}FAILED test "{test_structure.__name__}"'
             elif isinstance(test_structure, list):
                 report = [run_tests_iter(vivEcoli_update,
-                                         vivEcoli_update,
+                                         wcEcoli_update,
                                          test,
                                          verbose,
                                          level + 1)
@@ -277,18 +278,19 @@ def scalar_equal(v1, v2):
     return v1 == v2, f"Difference (actual-expected) is {v1-v2}"
 
 def array_almost_equal(arr1, arr2):
-    p_errors = np.abs(arr1 - arr2) / np.abs(arr2)
+    p_errors = np.abs(arr1 - arr2) / np.maximum(np.abs(arr1), np.abs(arr2))
     p_errors[np.isnan(p_errors)] = 0
 
     return (np.all(p_errors <= PERCENT_ERROR_THRESHOLD),
             f"Max error = {np.max(p_errors):.4f}")
 
 def scalar_almost_equal(v1, v2):
-    return percent_error(v1, v2) < PERCENT_ERROR_THRESHOLD or np.isnan(pe), f"Percent error = {percent_error(v1, v2):.4f}"
+    pe = percent_error(v1, v2)
+    return pe < PERCENT_ERROR_THRESHOLD or np.isnan(pe), f"Percent error = {percent_error(v1, v2):.4f}"
 
 def custom_array_comp(percent_error_threshold = 0.05):
     def _array_almost_equal(arr1, arr2):
-        p_errors = np.abs(arr1 - arr2) / np.abs(arr2)
+        p_errors = np.abs(arr1 - arr2) / np.maximum(np.abs(arr1), np.abs(arr2))
         p_errors[np.isnan(p_errors)] = 0
 
         return (np.all(p_errors <= percent_error_threshold),
@@ -297,11 +299,11 @@ def custom_array_comp(percent_error_threshold = 0.05):
     return _array_almost_equal
 
 def custom_scalar_comp(percent_error_threshold = 0.05):
-    def _array_almost_equal(arr1, arr2):
-        pe = np.sum(np.abs(arr1 - arr2) / arr2)
-        return pe < percent_error_threshold, f"Percent error = {pe:.4f}"
+    def _scalar_almost_equal(v1, v2):
+        pe = percent_error(v1, v2)
+        return pe < PERCENT_ERROR_THRESHOLD or np.isnan(pe), f"Percent error = {percent_error(v1, v2):.4f}"
 
-    return _array_almost_equal
+    return _scalar_almost_equal
 
 def good_fit(dist1, dist2):
     chi2, p, _, _ = chi2_contingency([dist1, dist2])
