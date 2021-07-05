@@ -131,33 +131,22 @@ def assertions(actual_update, expected_update, time):
 
     #tests.fail()
     
-    def stochastic_equal_array(arr1, arr2):
-        u_stats, p_vals = mannwhitneyu(arr1, arr2)
-        return p_vals > PVALUE_THRESHOLD, f"Mann-Whitney U, (U,p) = {list(zip(u_stats, [round(p, 4) for p in p_vals]))}"
+    # Sanity checks for randomly sampled TF-promoter binding
     
-    # Test similarity of underlying distributions for randomly sampled promoter binding
     bound_TF = np.array([promoter['bound_TF'] for promoter in actual_update['promoters'].values()])
-    bound_promoters = np.transpose(bound_TF)
     wc_bound_TF = np.array([promoter['bound_TF'] for promoter in actual_update['promoters'].values()])
-    wc_bound_promoters = np.transpose(wc_bound_TF)
     
-    assert all(stochastic_equal_array(bound_promoters, wc_bound_promoters)[0]), "Distributions of bound promoters are not similar!"
+    assert all(np.sum(bound_TF, axis=0) == np.sum(wc_bound_TF, axis=0)), "Counts of bound TFs not consistent!"
     
-    # Test similarity of underlying TF submass distributions for randomly sampled promoter binding
     bound_TF_submass = np.array([promoter['submass'] for promoter in actual_update['promoters'].values()])
-    bound_promoters_submass = np.transpose(bound_TF_submass)
     wc_bound_TF_submass = np.array([promoter['submass'] for promoter in actual_update['promoters'].values()])
-    wc_bound_promoters_submass = np.transpose(wc_bound_TF_submass)
     
-    assert all(stochastic_equal_array(bound_promoters_submass, wc_bound_promoters_submass)[0]), "Distributions of bound TF submasses are not similar!"
-    
-    # Test similarity of underlying TF-to-TU distributions for randomly sampled promoter binding
+    assert all(np.sum(bound_TF_submass, axis=0) == np.sum(wc_bound_TF_submass, axis=0)), "Sums of bound TF submasses not consistent!"
+
     n_bound_TF_per_TU = actual_update['listeners']['rna_synth_prob']['n_bound_TF_per_TU']
-    n_bound_TU_per_TF = np.transpose(n_bound_TF_per_TU)
     wc_n_bound_TF_per_TU = expected_update['listeners']['rna_synth_prob']['n_bound_TF_per_TU']
-    wc_n_bound_TU_per_TF = np.transpose(wc_n_bound_TF_per_TU)
     
-    assert all(stochastic_equal_array(n_bound_TU_per_TF, wc_n_bound_TU_per_TF)[0]), "Distrubutions of bound TUs are not similar!"
+    assert all(np.sum(n_bound_TF_per_TU, axis=0) == np.sum(wc_n_bound_TF_per_TU, axis=0)), "Counts of bound TFs per TU not consistent!"
     
 def run_tf_binding():
     # Create process, experiment, loading in initial state from file.
