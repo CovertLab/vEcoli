@@ -321,6 +321,10 @@ def stochastic_equal(dist1, dist2):
     u, p = mannwhitneyu(dist1, dist2)
     return p > PVALUE_THRESHOLD, f"Mann-Whitney U, U = {u}, p = {p:.4f}"
 
+def stochastic_equal_array(arr1, arr2):
+    u_stats, p_vals = mannwhitneyu(arr1, arr2)
+    return p_vals > PVALUE_THRESHOLD, f"Mann-Whitney U, (U,p) = {list(zip(u_stats, [round(p, 4) for p in p_vals]))}"
+
 def array_diffs_report_test(filename, names=None, sort_by="absolute", sort_with=np.abs):
     def _array_diffs_report_test(a, b):
         result = array_diffs_report(a, b, names, sort_by, sort_with)
