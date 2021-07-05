@@ -28,20 +28,25 @@ TF_BINDING_TOPOLOGY = {
 
 
 def test_tf_binding_migration():
+    # Set time parameters
+    total_time = 2
+    initial_time = 100
+    
     # Create process, experiment, loading in initial state from file.
     config = load_sim_data.get_tf_config()
     tf_binding_process = TfBinding(config)
 
     # run the process and get an update
-    actual_update = run_ecoli_process(tf_binding_process, TF_BINDING_TOPOLOGY, total_time=2)
+    actual_update = run_ecoli_process(tf_binding_process, TF_BINDING_TOPOLOGY, 
+                                      total_time=total_time, initial_time = initial_time)
 
-    with open("data/tf_binding_update_t2.json") as f:
+    with open(f"data/tf_binding_update_t{total_time+initial_time}.json") as f:
         wc_update = json.load(f)
     
-    plots(actual_update, wc_update)
-    assertions(actual_update,wc_update)
+    plots(actual_update, wc_update, total_time+initial_time)
+    assertions(actual_update,wc_update, total_time+initial_time)
 
-def plots(actual_update, expected_update):
+def plots(actual_update, expected_update, time):
     def unpack(update):
         promoters = [promoter for promoter in update['promoters']]
         active_tfs = update['active_tfs']
@@ -100,9 +105,9 @@ def plots(actual_update, expected_update):
     
     plt.gcf().set_size_inches(16, 12)
     plt.tight_layout()
-    plt.savefig("out/migration/tf_binding_figures.png")
+    plt.savefig(f"out/migration/tf_binding/tf_binding_figures{time}.png")
 
-def assertions(actual_update, expected_update):
+def assertions(actual_update, expected_update, time):
     test_structure = {
         'active_tfs' : {
             tf_index : scalar_almost_equal
@@ -110,13 +115,13 @@ def assertions(actual_update, expected_update):
         'listeners' : {
             'rna_synth_prob' : {
                 'pPromoterBound' : [array_almost_equal,
-                                    array_diffs_report_test("out/migration/pPromoterBound_comp.txt")],
+                                    array_diffs_report_test(f"out/migration/tf_binding/pPromoterBound_comp{time}.txt")],
                 'nPromoterBound' : [array_almost_equal,
-                                    array_diffs_report_test("out/migration/nPromoterBound_comp.txt")],
+                                    array_diffs_report_test(f"out/migration/tf_binding/nPromoterBound_comp{time}.txt")],
                 'nActualBound' : [array_almost_equal,
-                                array_diffs_report_test("out/migration/nActualBound_comp.txt")],
+                                array_diffs_report_test(f"out/migration/tf_binding/nActualBound_comp{time}.txt")],
                 'n_available_promoters' : [array_almost_equal,
-                                        array_diffs_report_test("out/migration/n_available_promoters_comp.txt")]
+                                        array_diffs_report_test(f"out/migration/tf_binding/n_available_promoters_comp{time}.txt")]
             }
         }
     }
@@ -160,7 +165,7 @@ def run_tf_binding():
     tf_binding_process = TfBinding(config)
 
     initial_state = get_state_from_file(
-        path=f'data/wcecoli_t0_new.json')
+        path=f'data/wcecoli_t0.json')
 
     tf_binding_composite = tf_binding_process.generate()
     experiment = Engine({
