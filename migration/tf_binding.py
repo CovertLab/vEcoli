@@ -6,6 +6,7 @@ import json
 import numpy as np
 import matplotlib.pyplot as plt
 from migration.plots import qqplot
+import os
 
 from vivarium.core.engine import Engine
 from ecoli.library.sim_data import LoadSimData
@@ -30,7 +31,7 @@ TF_BINDING_TOPOLOGY = {
 def test_tf_binding_migration():
     # Set time parameters
     total_time = 2
-    initial_time = 100
+    initial_time = 2
     
     # Create process, experiment, loading in initial state from file.
     config = load_sim_data.get_tf_config()
@@ -47,6 +48,7 @@ def test_tf_binding_migration():
     assertions(actual_update,wc_update, total_time+initial_time)
 
 def plots(actual_update, expected_update, time):
+    os.makedirs("out/migration/tf_binding/", exist_ok=True)
     def unpack(update):
         promoters = [promoter for promoter in update['promoters']]
         active_tfs = update['active_tfs']
