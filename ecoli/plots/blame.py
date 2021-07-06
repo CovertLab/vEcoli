@@ -37,6 +37,7 @@ def blame_plot(data, filename='out/ecoli_master/blame.png',
 
     title = "Average Change (#mol/sec) in Bulk due to each Process (non-zero only, logarithmic color-scale)"
 
+    
     bulk_idx, process_idx, plot_data = extract_bulk(data)
     plot_data = plot_data.toarray()
 
@@ -131,7 +132,7 @@ def blame_plot(data, filename='out/ecoli_master/blame.png',
         for i in range(plot_data.shape[0]):
             for j in range(plot_data.shape[1]):
                 if plot_data[i, j] != 0:
-                    ax.text(j, i, f'{"-" if plot_data[i, j] < 0 else "+"}{plot_data[i, j]}',
+                    ax.text(j, i, f'{"-" if plot_data[i, j] < 0 else "+"}{plot_data[i, j]}/s',
                             ha="center", va="center", color="w")
 
     ax.set_title(title)
@@ -144,6 +145,8 @@ def blame_plot(data, filename='out/ecoli_master/blame.png',
 
 
 def extract_bulk(data):
+    max_t = data['time'][-1]
+    
     # Get relevant processes (those affecting bulk)
     bulk_processes = {}
     for process, ports in ECOLI_TOPOLOGY.items():
@@ -193,7 +196,7 @@ def extract_bulk(data):
             col_i += 1
 
     bulk_data = coo_matrix((data_out, (row.astype(int), np.array(col))))
-    return bulk_indices, process_idx, bulk_data
+    return bulk_indices, process_idx, bulk_data / max_t
 
 
 def idx_array_from(dictionary):
