@@ -12,7 +12,7 @@ from ecoli.composites.ecoli_master import ECOLI_TOPOLOGY
 
 
 # set the colormap and centre the colorbar
-class MidpointNormalize(colors.Normalize):
+class MidpointLogNormalize(colors.Normalize):
     """
     Normalise the colorbar so that diverging bars work there way either side from a prescribed midpoint value)
 
@@ -24,16 +24,34 @@ class MidpointNormalize(colors.Normalize):
         colors.Normalize.__init__(self, vmin, vmax, clip)
 
     def __call__(self, value, clip=None):
-        # I'm ignoring masked values and all kinds of edge cases to make a
-        # simple example...
+        value[value < 0] = -np.log(-value[value < 0])
+        value[value > 0] = np.log(value[value > 0])
+
         x, y = [self.vmin, self.midpoint, self.vmax], [0, 0.5, 1]
         return np.ma.masked_array(np.interp(value, x, y), np.isnan(value))
 
 
-def blame_plot(data, filename='out/ecoli_master/blame.png'):
+def blame_plot(data, filename='out/ecoli_master/blame.png',
+               label_cells=True,
+               color_normalize="n"):
+    """
+
+    Args:
+        data:
+        filename:
+        label_cells:
+        color_normalize: whether to normalize values within (p)rocesses, (m)olecules, or (n)either.
+
+    Returns:
+
+    """
+
     if 'log_update' not in data.keys():
         raise ValueError("Missing log_update in data; did you run vivarium-ecoli without -blame?")
 
+    title = "Log-changes in Bulk due to each Process (non-zero only)"
+
+    # TODO: order changes every time??
     bulk_idx, process_idx, plot_data = extract_bulk(data)
     plot_data = plot_data.toarray()
 
@@ -43,35 +61,73 @@ def blame_plot(data, filename='out/ecoli_master/blame.png'):
     plot_data = plot_data[nonzero_mols, :]
 
     # sort molecules by sum of absolute changes
-    sorted_mol_idx = np.argsort(np.sum(np.abs(plot_data), axis=1))
+    sorted_mol_idx = np.argsort(-np.sum(np.abs(plot_data), axis=1))
     bulk_idx = bulk_idx[sorted_mol_idx]
     plot_data = plot_data[sorted_mol_idx, :]
 
-    # normalize for each process
-    # col_sums = np.sum(plot_data, axis=0)
-    # col_sums[col_sums == 0] = 1
-    # plot_data = plot_data / col_sums
-    # min_val = np.min(plot_data)
-    # max_val = np.max(plot_data)
+    # Normalization within rows (molecules) or columns (processes)
+    normalized_data = plot_data.copy()
 
-    # normalize for each molecule
-    row_sums = plot_data.sum(axis=1)
-    row_sums[row_sums == 0] = 1
-    plot_data = (plot_data.T / row_sums).T
-    min_val = np.min(plot_data)
-    max_val = np.max(plot_data)
+    color_normalize = color_normalize.strip().lower()
+    if color_normalize.startswith("p"):
+        title += f'\n (normalizing within processes)'
+
+        for col in range(normalized_data.shape[1]):
+            data_col = normalized_data[:, col]  # get view of this column
+
+            # rescale logarithmically
+            data_col[data_col > 0] = np.log(1 + data_col[data_col > 0])
+            data_col[data_col < 0] = -np.log(1 - data_col[data_col < 0])
+
+            # bring back to [-1, 1]
+            if (data_col < 0).sum() > 0:
+                data_col[data_col < 0] /= -(data_col[data_col < 0].min())
+            if (data_col > 0).sum() > 0:
+                data_col[data_col > 0] /= data_col[data_col > 0].max()
+
+            assert np.all(data_col <= 1)
+            assert np.all(data_col >= -1)
+
+    elif color_normalize.startswith("m"):
+        title += f'\n (normalizing within molecules)'
+
+        for row in range(normalized_data.shape[0]):
+            data_row = normalized_data[row, :]  # get view of this row
+
+            # rescale logarithmically
+            data_row[data_row > 0] = np.log(1 + data_row[data_row > 0])
+            data_row[data_row < 0] = -np.log(1 - data_row[data_row < 0])
+
+            # bring back to [-1, 1]
+            if (data_row < 0).sum() > 0:
+                data_row[data_row < 0] /= -(data_row[data_row < 0].min())
+            if (data_row > 0).sum() > 0:
+                data_row[data_row > 0] /= data_row[data_row > 0].max()
+
+            assert np.all(data_row <= 1)
+            assert np.all(data_row >= -1)
+    else:
+        # rescale logarithmically
+        normalized_data[normalized_data > 0] = np.log(1 + normalized_data[normalized_data > 0])
+        normalized_data[normalized_data < 0] = -np.log(1 - normalized_data[normalized_data < 0])
+
+        # bring to [-1, 1]
+        if (normalized_data < 0).sum() > 0:
+            normalized_data[normalized_data < 0] /= -(normalized_data[normalized_data < 0].min())
+        if (normalized_data > 0).sum() > 0:
+            normalized_data[normalized_data > 0] /= normalized_data[normalized_data > 0].max()
 
     fig, ax = plt.subplots()
-    fig.set_size_inches(2 * plot_data.shape[1], plot_data.shape[0] / 8)
-    im = ax.imshow(plot_data,
+    fig.set_size_inches(2 * normalized_data.shape[1], normalized_data.shape[0] / 8)
+    im = ax.imshow(normalized_data,
                    aspect='auto',
-                   cmap=plt.get_cmap('seismic'),
-                   clim=(min_val, max_val),
-                   norm=MidpointNormalize(midpoint=0, vmin=min_val, vmax=max_val))
+                   cmap=plt.get_cmap('seismic'))#,
+                   # clim=(min_val, max_val)),
+                   # norm=MidpointLogNormalize(midpoint=0, vmin=min_val, vmax=max_val))
 
     # show and rename ticks
-    ax.set_xticks(np.arange(plot_data.shape[1]))
-    ax.set_yticks(np.arange(plot_data.shape[0]))
+    ax.set_xticks(np.arange(normalized_data.shape[1]))
+    ax.set_yticks(np.arange(normalized_data.shape[0]))
     ax.set_xticklabels(process_idx)
     ax.set_yticklabels(bulk_idx)
 
@@ -82,16 +138,20 @@ def blame_plot(data, filename='out/ecoli_master/blame.png'):
     ax.xaxis.tick_top()
     ax.xaxis.set_label_position('top')
 
-    # # Loop over data dimensions and create text annotations.
-    # for i in range(len(vegetables)):
-    #     for j in range(len(farmers)):
-    #         text = ax.text(j, i, harvest[i, j],
-    #                        ha="center", va="center", color="w")
-    #
-    # ax.set_title("Harvest of local farmers (in tons/year)")
+    # Label cells with numeric values
+    if label_cells:
+        for i in range(plot_data.shape[0]):
+            for j in range(plot_data.shape[1]):
+                if plot_data[i, j] != 0:
+                    ax.text(j, i, f'{"-" if plot_data[i, j] < 0 else "+"}{plot_data[i, j]}',
+                            ha="center", va="center", color="w")
+
+    ax.set_title(title)
     fig.tight_layout()
 
     plt.savefig(filename)
+
+    return ax, fig
 
 
 def extract_bulk(data):
