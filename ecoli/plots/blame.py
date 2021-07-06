@@ -13,26 +13,30 @@ from ecoli.composites.ecoli_master import ECOLI_TOPOLOGY
 
 def blame_plot(data, filename='out/ecoli_master/blame.png',
                highlighted_molecules=None,
-               label_cells=True,
+               label_values=True,
                color_normalize="n"):
     """
+    Given data from a logged simulation (e.g. by running python ecoli_master.py -blame),
+    generates a heatmap where the columns are processes, rows are molecules, and
+    cell colors reflect the average rate of change in a molecule over the whole simulation
+    due to a particular process.
 
     Args:
-        data:
-        filename:
-        label_cells:
+        data: Data from a logged ecoli_master simulation.
+        filename: The file to save the plot to. To skip writing to file, set this to None.
+        highlighted_molecules: A collection of molecules to highlight in red (or None).
+        label_values: Whether to numerically label the heatmap cells with their values.
         color_normalize: whether to normalize values within (p)rocesses, (m)olecules, or (n)either.
 
     Returns:
-
+        matplotlib axes and figure.
     """
 
     if 'log_update' not in data.keys():
         raise ValueError("Missing log_update in data; did you run vivarium-ecoli without -blame?")
 
-    title = "Log-changes in Bulk due to each Process (non-zero only)"
+    title = "Average Change (#mol/sec) in Bulk due to each Process (non-zero only, logarithmic color-scale)"
 
-    # TODO: order changes every time??
     bulk_idx, process_idx, plot_data = extract_bulk(data)
     plot_data = plot_data.toarray()
 
@@ -123,7 +127,7 @@ def blame_plot(data, filename='out/ecoli_master/blame.png',
             ax.get_yticklabels()[i].set_color("red")
 
     # Label cells with numeric values
-    if label_cells:
+    if label_values:
         for i in range(plot_data.shape[0]):
             for j in range(plot_data.shape[1]):
                 if plot_data[i, j] != 0:
@@ -133,7 +137,8 @@ def blame_plot(data, filename='out/ecoli_master/blame.png',
     ax.set_title(title)
     fig.tight_layout()
 
-    plt.savefig(filename)
+    if filename:
+        plt.savefig(filename)
 
     return ax, fig
 
