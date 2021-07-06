@@ -229,25 +229,47 @@ class GradientDescentFba:
     def solve(self,
               objective: Mapping[str, float],
               params: Mapping[str, Any],
+              reaction_flux_bounds: Optional[Mapping[str, float]] = None,
               initial: Optional[Mapping[str, float]] = None,
-              variance: Optional[float] = None,
-              seed: int = None) -> FbaResult:
-        """Performs the optimization to solve the specified FBA problem."""
+              rng_seed: int = None) -> FbaResult:
+        """Performs the optimization to solve the specified FBA problem.
+
+        Args:
+            objective: dict mapping metabolite_id -> homeostatic objective, in units of concentration per time. Values
+                should be included for all objective keys used to initialize this solver.
+            params: dict with additional parameter values, depending on the problem to be solved.
+                'kinetic_targets': dict mapping reaction_id -> velocity, as current kinetic targets per reaction.
+            reaction_flux_bounds: (optional) dict mapping reaction_id -> (lb, ub) providing explicit bounds on reaction
+                velocity (flux). Bounds default to (-inf, +inf) for reversible or (0, +inf) for irreversible reactions.
+                Bounds provided here will override these defaults, including for instance allowing reversibility.
+            initial: (optional) dict mapping reaction_id -> velocity as a starting point for optimization. For
+                repeated solutions with evolving objective targets, starting from the previous solution can improve
+                performance. If None, a random starting point is used.
+            rng_seed: (optional) seed for the random number generator, when randomizing the starting point. Provided
+                as an arg to support reproducibility; if None then a suitable seed is chosen.
+
+        Returns:
+            FbaResult containing optimized reaction velocities, and resulting rate of change per metabolite (dm/dt).
+        """
         # Set up x0 with or without random variation, and truncate to bounds.
         if initial is not None:
             x0 = jnp.asarray(self.network.reaction_vector(initial))
         else:
-            # Random starting point, ensuring we have some variation.
-            x0 = jnp.zeros(self.network.shape[1])
-            if variance is None:
-                variance = 1.0
-        if variance is not None:
-            if seed is None:
-                seed = int(time.time())
-            x0 += variance * jax.random.normal(jax.random.PRNGKey(seed), (self.network.shape[1],))
+            # Random starting point.
+            if rng_seed is None:
+                rng_seed = int(time.time() * 1000)
+            num_reactions = self.network.shape[1]
+            x0 = jax.random.uniform(jax.random.PRNGKey(rng_seed), (num_reactions,))
 
-        x0 = np.maximum(x0, self._bounds[0])
-        x0 = np.minimum(x0, self._bounds[1])
+        # Update bounds, and enforce on x0.
+        lb = np.array(self._bounds[0])
+        ub = np.array(self._bounds[1])
+        if reaction_flux_bounds is not None:
+            for reaction_id,  (reaction_lb, reaction_ub) in reaction_flux_bounds.items():
+                i = self.network.reaction_index(reaction_id)
+                lb[i] = reaction_lb
+                ub[i] = reaction_ub
+        x0 = np.maximum(lb, np.minimum(ub, x0))
 
         # Put all parameters into jax arrays, passed as side arguments to the final residual function.
         ready_params = {}
@@ -262,10 +284,10 @@ class GradientDescentFba:
         jac = jax.jacfwd(fn)
 
         # Perform the actual gradient descent, and extract the result.
-        soln = scipy.optimize.least_squares(fn, x0, jac=jac, bounds=self._bounds)
+        soln = scipy.optimize.least_squares(fn, x0, jac=jac, bounds=(lb, ub))
         dm_dt = self.network.s_matrix @ soln.x
         ss_residual = self._steady_state_objective(soln.x, dm_dt, ready_params)
-        return FbaResult(seed=seed,
+        return FbaResult(seed=rng_seed,
                          velocities=self.network.reaction_values(soln.x),
                          dm_dt=self.network.molecule_values(dm_dt),
                          ss_residual=ss_residual)
