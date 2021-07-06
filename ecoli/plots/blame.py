@@ -184,10 +184,9 @@ def extract_bulk(data):
     # convert dictionary to array
     collected_data = {process: idx_array_from(data) for process, data in collected_data.items()}
 
-    bulk_indices = set()
+    bulk_indices = np.array([])
     for idx, _ in collected_data.values():
-        bulk_indices.update(idx)
-    bulk_indices = np.array(list(bulk_indices))
+        bulk_indices = np.concatenate((bulk_indices, idx[~np.isin(idx, bulk_indices)]))
 
     col_i = 0
     row = []  # molecules
@@ -196,9 +195,9 @@ def extract_bulk(data):
     process_idx = []
     for process, (idx, value) in collected_data.items():
         rows = np.where(np.isin(bulk_indices, idx))[0]
-        if rows.size != 0:
+        if rows.size != 0:  # exclude processes with zero update
             row = np.concatenate((row, rows))
-            col += [col_i for _ in range(len(rows))]
+            col += [col_i] * len(rows)
             data_out = np.concatenate((data_out, value))
             process_idx.append(process)
             col_i += 1
