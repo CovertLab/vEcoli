@@ -11,27 +11,8 @@ from collections import Counter
 from ecoli.composites.ecoli_master import ECOLI_TOPOLOGY
 
 
-# set the colormap and centre the colorbar
-class MidpointLogNormalize(colors.Normalize):
-    """
-    Normalise the colorbar so that diverging bars work there way either side from a prescribed midpoint value)
-
-    e.g. im=ax1.imshow(array, norm=MidpointNormalize(midpoint=0.,vmin=-100, vmax=100))
-    """
-
-    def __init__(self, vmin=None, vmax=None, midpoint=None, clip=False):
-        self.midpoint = midpoint
-        colors.Normalize.__init__(self, vmin, vmax, clip)
-
-    def __call__(self, value, clip=None):
-        value[value < 0] = -np.log(-value[value < 0])
-        value[value > 0] = np.log(value[value > 0])
-
-        x, y = [self.vmin, self.midpoint, self.vmax], [0, 0.5, 1]
-        return np.ma.masked_array(np.interp(value, x, y), np.isnan(value))
-
-
 def blame_plot(data, filename='out/ecoli_master/blame.png',
+               highlighted_molecules=None,
                label_cells=True,
                color_normalize="n"):
     """
@@ -131,12 +112,15 @@ def blame_plot(data, filename='out/ecoli_master/blame.png',
     ax.set_xticklabels(process_idx)
     ax.set_yticklabels(bulk_idx)
 
-    # Rotate the tick labels and set their alignment.
-    # plt.setp(ax.get_xticklabels(), rotation=90, ha="right",
-    #          rotation_mode="anchor")
-
+    # Put process ticks labels on top
     ax.xaxis.tick_top()
     ax.xaxis.set_label_position('top')
+
+    # Highlight selected molecules
+    if highlighted_molecules:
+        highlight_idx = np.where(np.isin(bulk_idx, highlighted_molecules))[0]
+        for i in highlight_idx:
+            ax.get_yticklabels()[i].set_color("red")
 
     # Label cells with numeric values
     if label_cells:
@@ -193,9 +177,10 @@ def extract_bulk(data):
     col = []  # processes
     data_out = []  # update data
     process_idx = []
+    sorter = np.argsort(bulk_indices)
     for process, (idx, value) in collected_data.items():
-        rows = np.where(np.isin(bulk_indices, idx))[0]
-        if rows.size != 0:  # exclude processes with zero update
+        if idx.size != 0:  # exclude processes with zero update
+            rows = sorter[np.searchsorted(bulk_indices, idx, sorter=sorter)]
             row = np.concatenate((row, rows))
             col += [col_i] * len(rows)
             data_out = np.concatenate((data_out, value))
@@ -251,7 +236,7 @@ def test_blame():
         data = run_ecoli(blame=True, total_time=4)
         write_json('data/blame_test_data.json', data)
 
-    blame_plot(data, 'out/ecoli_master/blame_test.png')
+    blame_plot(data, 'out/ecoli_master/blame_test.png', highlighted_molecules=['PD00413[c]'])
 
 
 if __name__ == "__main__":
