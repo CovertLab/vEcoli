@@ -74,7 +74,7 @@ def plots(actual_update, expected_update, time):
     plt.bar(np.arange(24)-0.1, active_tfs.values(), 0.2, label = "Vivarium")
     plt.bar(np.arange(24)+0.1, wc_active_tfs.values(), 0.2, label = "wcEcoli")
     plt.xticks(ticks = np.arange(24), labels = active_tfs.keys(), rotation = 90)
-    plt.ylabel('Log # of Active TFs')
+    plt.ylabel('Active TFs')
     plt.yscale('log')
     plt.title('Active TF Counts')
     plt.legend()
