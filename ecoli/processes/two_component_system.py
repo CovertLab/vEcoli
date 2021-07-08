@@ -75,6 +75,7 @@ class TwoComponentSystem(Process):
             # and rates will be much lower with a fraction of total counts allocated
             # so a much longer time scale is needed.
 
+        # check if each field is the same here
         _, self.all_molecule_changes = self.moleculesToNextTimeStep(
             moleculeCounts, self.cellVolume, self.n_avogadro,
             10000, self.random_state, method="BDF", min_time_step=timestep,
