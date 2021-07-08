@@ -16,7 +16,7 @@ from migration.migration_utils import *
 from ecoli.processes.transcript_elongation import TranscriptElongation
 
 from ecoli.library.schema import arrays_from
-from ecoli.composites.ecoli_master import get_state_from_file
+from ecoli.states.wcecoli_state import get_state_from_file
 from migration.plots import qqplot
 from migration.migration_utils import array_diffs_report
 
