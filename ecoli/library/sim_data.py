@@ -309,7 +309,9 @@ class LoadSimData:
 
         return complexation_config
 
-    def get_two_component_system_config(self, time_step=2, parallel=False):
+    def get_two_component_system_config(self, time_step=2, parallel=False, random_seed=None):
+        # stoichI = self.sim_data.process.two_component_system._stoichI
+        # import ipdb; ipdb.set_trace()
         two_component_system_config = {
             'time_step': time_step,
             '_parallel': parallel,
@@ -319,7 +321,7 @@ class LoadSimData:
             'cell_density': self.sim_data.constants.cell_density.asNumber(units.g / units.L),
             'moleculesToNextTimeStep': self.sim_data.process.two_component_system.molecules_to_next_time_step,
             'moleculeNames': self.sim_data.process.two_component_system.molecule_names,
-            'seed': self.random_state.randint(RAND_MAX)}
+            'seed': random_seed or self.random_state.randint(RAND_MAX)}
 
         return two_component_system_config
 
