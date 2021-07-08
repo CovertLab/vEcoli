@@ -3,8 +3,7 @@ from ecoli.library.sim_data import LoadSimData
 from ecoli.composites.ecoli_master import SIM_DATA_PATH
 from ecoli.processes.polypeptide_initiation import PolypeptideInitiation
 from migration.migration_utils import run_ecoli_process
-from ecoli.composites.ecoli_master import get_state_from_file
-
+from ecoli.states.wcecoli_state import get_state_from_file
 
 load_sim_data = LoadSimData(
             sim_data_path=SIM_DATA_PATH,
