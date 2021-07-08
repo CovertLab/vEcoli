@@ -222,7 +222,7 @@ class Ecoli(Composer):
                            else make_logging_process(process)(configs[process_name]))
 
             for (process_name, process) in ECOLI_PROCESSES.items()
-            if process_name != "polypeptide_elongation"  # TODO: get polypeptide elongation working again
+            #if process_name != "polypeptide_elongation"  # TODO: get polypeptide elongation working again
         }
 
     def generate_topology(self, config):

@@ -16,7 +16,7 @@ def blame_plot(data, filename='out/ecoli_master/blame.png',
                label_values=True,
                color_normalize="n"):
     """
-    Given data from a logged simulation (e.g. by running python ecoli_master.py -blame),
+    Given data from a logged simulation (e.g. by running python run_ecoli(blame=True)),
     generates a heatmap where the columns are processes, rows are molecules, and
     cell colors reflect the average rate of change in a molecule over the whole simulation
     due to a particular process.
@@ -37,9 +37,9 @@ def blame_plot(data, filename='out/ecoli_master/blame.png',
 
     title = "Average Change (#mol/sec) in Bulk due to each Process (non-zero only, logarithmic color-scale)"
 
-    
+    max_t = data['time'][-1]
     bulk_idx, process_idx, plot_data = extract_bulk(data)
-    plot_data = plot_data.toarray()
+    plot_data = plot_data.toarray() / max_t  # convert counts to average rate
 
     # exclude zero-change molecules
     nonzero_mols = np.sum(plot_data, axis=1) != 0
@@ -61,15 +61,7 @@ def blame_plot(data, filename='out/ecoli_master/blame.png',
         for col in range(normalized_data.shape[1]):
             data_col = normalized_data[:, col]  # get view of this column
 
-            # rescale logarithmically
-            data_col[data_col > 0] = np.log(1 + data_col[data_col > 0])
-            data_col[data_col < 0] = -np.log(1 - data_col[data_col < 0])
-
-            # bring back to [-1, 1]
-            if (data_col < 0).sum() > 0:
-                data_col[data_col < 0] /= -(data_col[data_col < 0].min())
-            if (data_col > 0).sum() > 0:
-                data_col[data_col > 0] /= data_col[data_col > 0].max()
+            data_col = diverging_color_normalize(data_col)
 
             assert np.all(data_col <= 1)
             assert np.all(data_col >= -1)
@@ -80,73 +72,120 @@ def blame_plot(data, filename='out/ecoli_master/blame.png',
         for row in range(normalized_data.shape[0]):
             data_row = normalized_data[row, :]  # get view of this row
 
-            # rescale logarithmically
-            data_row[data_row > 0] = np.log(1 + data_row[data_row > 0])
-            data_row[data_row < 0] = -np.log(1 - data_row[data_row < 0])
-
-            # bring back to [-1, 1]
-            if (data_row < 0).sum() > 0:
-                data_row[data_row < 0] /= -(data_row[data_row < 0].min())
-            if (data_row > 0).sum() > 0:
-                data_row[data_row > 0] /= data_row[data_row > 0].max()
+            data_row = diverging_color_normalize(data_row)
 
             assert np.all(data_row <= 1)
             assert np.all(data_row >= -1)
     else:
-        # rescale logarithmically
-        normalized_data[normalized_data > 0] = np.log(1 + normalized_data[normalized_data > 0])
-        normalized_data[normalized_data < 0] = -np.log(1 - normalized_data[normalized_data < 0])
+        normalized_data = diverging_color_normalize(normalized_data)
 
-        # bring to [-1, 1]
-        if (normalized_data < 0).sum() > 0:
-            normalized_data[normalized_data < 0] /= -(normalized_data[normalized_data < 0].min())
-        if (normalized_data > 0).sum() > 0:
-            normalized_data[normalized_data > 0] /= normalized_data[normalized_data > 0].max()
+    n_molecules = normalized_data.shape[1]
+    n_processes = normalized_data.shape[0]
+    fig, axs = plt.subplots(2, 2,
+                            gridspec_kw={'height_ratios' : [n_processes, 1],
+                                         'width_ratios' : [n_molecules, 1]})
 
-    fig, ax = plt.subplots()
-    fig.set_size_inches(2 * normalized_data.shape[1], normalized_data.shape[0] / 8)
-    im = ax.imshow(normalized_data,
+    main_ax = axs[0, 0]
+    molecules_total_ax = axs[0, 1]
+    process_total_ax = axs[1, 0]
+    total_total_ax = axs[1, 1]
+
+    fig.set_size_inches(2 * (n_molecules + 1), (n_processes + 1) / 5)
+    main_ax.imshow(normalized_data,
                    aspect='auto',
-                   cmap=plt.get_cmap('seismic'))#,
-                   # clim=(min_val, max_val)),
-                   # norm=MidpointLogNormalize(midpoint=0, vmin=min_val, vmax=max_val))
+                   cmap=plt.get_cmap('seismic'))
+
+    # get totals
+    process_total = np.atleast_2d(plot_data.sum(axis=0))
+    molecules_total = np.atleast_2d(plot_data.sum(axis=1))
+    total_total = np.atleast_2d(plot_data.sum())
+
+    # normalize totals
+    process_total_norm = diverging_color_normalize(process_total)
+    molecules_total_norm = diverging_color_normalize(molecules_total)
+
+    # plot totals
+    process_total_ax.imshow(process_total_norm, aspect='auto', cmap=plt.get_cmap('seismic'))
+    molecules_total_ax.imshow(molecules_total_norm.T, aspect='auto', cmap=plt.get_cmap('seismic'))
+
+    class SignNormalize(colors.Normalize):
+        def __call__(self, value, clip=None):
+            return (np.sign(value) + 1) / 2
+
+    total_total_ax.imshow(total_total, aspect='auto', cmap=plt.get_cmap('seismic'), norm=SignNormalize())
 
     # show and rename ticks
-    ax.set_xticks(np.arange(normalized_data.shape[1]))
-    ax.set_yticks(np.arange(normalized_data.shape[0]))
-    ax.set_xticklabels(process_idx)
-    ax.set_yticklabels(bulk_idx)
+    process_labels = [p.replace('_', '\n') for p in process_idx]
 
-    # Put process ticks labels on top
-    ax.xaxis.tick_top()
-    ax.xaxis.set_label_position('top')
+    main_ax.set_xticks(np.arange(normalized_data.shape[1]))
+    main_ax.set_yticks(np.arange(normalized_data.shape[0]))
+    main_ax.set_xticklabels(process_labels)
+    main_ax.set_yticklabels(bulk_idx)
+
+    molecules_total_ax.set_xticks([0])
+    molecules_total_ax.set_yticks(np.arange(normalized_data.shape[0]))
+    molecules_total_ax.set_xticklabels(['TOTAL'])
+    molecules_total_ax.set_yticklabels(bulk_idx)
+
+    process_total_ax.set_xticks(np.arange(normalized_data.shape[1]))
+    process_total_ax.set_yticks([0])
+    process_total_ax.set_xticklabels(process_labels)
+    process_total_ax.set_yticklabels(['TOTAL'])
+
+    total_total_ax.set_xticks([0])
+    total_total_ax.set_yticks([0])
+    total_total_ax.set_xticklabels(['TOTAL'])
+    total_total_ax.set_yticklabels(['TOTAL'])
+
+    # Put process ticks labels on correct sides
+    main_ax.xaxis.tick_top()
+    main_ax.xaxis.set_label_position('top')
+    molecules_total_ax.xaxis.tick_top()
+    molecules_total_ax.xaxis.set_label_position('top')
+    molecules_total_ax.yaxis.tick_right()
+    molecules_total_ax.yaxis.set_label_position('right')
+    total_total_ax.yaxis.tick_right()
+    total_total_ax.yaxis.set_label_position('right')
 
     # Highlight selected molecules
     if highlighted_molecules:
         highlight_idx = np.where(np.isin(bulk_idx, highlighted_molecules))[0]
         for i in highlight_idx:
-            ax.get_yticklabels()[i].set_color("red")
+            main_ax.get_yticklabels()[i].set_color("red")
+            molecules_total_ax.get_yticklabels()[i].set_color("red")
 
     # Label cells with numeric values
     if label_values:
         for i in range(plot_data.shape[0]):
             for j in range(plot_data.shape[1]):
                 if plot_data[i, j] != 0:
-                    ax.text(j, i, f'{"-" if plot_data[i, j] < 0 else "+"}{plot_data[i, j]}/s',
+                    main_ax.text(j, i, f'{"-" if plot_data[i, j] < 0 else "+"}{plot_data[i, j]:.2f}/s',
+                                 ha="center", va="center", color="w")
+
+            if molecules_total_norm[0, i] != 0:
+                val = molecules_total[0, i]
+                molecules_total_ax.text(0, i, f'{"-" if val < 0 else "+"}{val:.2f}/s',
+                                        ha="center", va="center", color="w")
+
+        for i in range(plot_data.shape[1]):
+            if process_total_norm[0, i] != 0:
+                val = process_total[0, i]
+                process_total_ax.text(i, 0, f'{"-" if val < 0 else "+"}{val:.2f}/s',
+                                      ha="center", va="center", color="w")
+
+        total_total_ax.text(0, 0, f'{"-" if total_total[0, 0] < 0 else "+"}{total_total[0, 0]:.2f}/s',
                             ha="center", va="center", color="w")
 
-    ax.set_title(title)
+    main_ax.set_title(title)
     fig.tight_layout()
 
     if filename:
         plt.savefig(filename)
 
-    return ax, fig
+    return main_ax, fig
 
 
 def extract_bulk(data):
-    max_t = data['time'][-1]
-    
     # Get relevant processes (those affecting bulk)
     bulk_processes = {}
     for process, ports in ECOLI_TOPOLOGY.items():
@@ -196,7 +235,24 @@ def extract_bulk(data):
             col_i += 1
 
     bulk_data = coo_matrix((data_out, (row.astype(int), np.array(col))))
-    return bulk_indices, process_idx, bulk_data / max_t
+    return bulk_indices, process_idx, bulk_data
+
+
+def diverging_color_normalize(count_data, transform_log=True):
+    count_data = count_data.copy()
+
+    # rescale logarithmically
+    if transform_log:
+        count_data[count_data > 0] = np.log(1 + count_data[count_data > 0])
+        count_data[count_data < 0] = -np.log(1 - count_data[count_data < 0])
+
+    # bring back to [-1, 1]
+    if (count_data < 0).sum() > 0:
+        count_data[count_data < 0] /= -(count_data[count_data < 0].min())
+    if (count_data > 0).sum() > 0:
+        count_data[count_data > 0] /= count_data[count_data > 0].max()
+
+    return count_data
 
 
 def idx_array_from(dictionary):
