@@ -20,6 +20,44 @@ class LoadSimData:
         with open(sim_data_path, 'rb') as sim_data_file:
             self.sim_data = cPickle.load(sim_data_file)
 
+
+    def get_chromosome_replication_config(self, time_step=2, parallel=False):
+        get_dna_critical_mass = self.sim_data.mass.get_dna_critical_mass
+        doubling_time = self.sim_data.condition_to_doubling_time[self.sim_data.condition]
+        chromosome_replication_config = {
+            'time_step': time_step,
+            '_parallel': parallel,
+
+            'max_time_step': self.sim_data.process.replication.max_time_step,
+            'get_dna_critical_mass': get_dna_critical_mass,
+            'criticalInitiationMass': get_dna_critical_mass(doubling_time),
+            'nutrientToDoublingTime': self.sim_data.nutrient_to_doubling_time,
+            'replichore_lengths': self.sim_data.process.replication.replichore_lengths,
+            'sequences': self.sim_data.process.replication.replication_sequences,
+            'polymerized_dntp_weights': self.sim_data.process.replication.replication_monomer_weights,
+            'replication_coordinate': self.sim_data.process.transcription.rna_data['replication_coordinate'],
+            'D_period': self.sim_data.growth_rate_parameters.d_period.asNumber(units.s),
+            'no_child_place_holder': self.sim_data.process.replication.no_child_place_holder,
+            'basal_elongation_rate': int(round(
+                self.sim_data.growth_rate_parameters.replisome_elongation_rate.asNumber(units.nt / units.s))),
+            'make_elongation_rates': self.sim_data.process.replication.make_elongation_rates,
+
+            # sim options
+            'mechanistic_replisome': True,
+
+            # molecules
+            'replisome_trimers_subunits': self.sim_data.molecule_groups.replisome_trimer_subunits,
+            'replisome_monomers_subunits': self.sim_data.molecule_groups.replisome_monomer_subunits,
+            'dntps': self.sim_data.molecule_groups.dntps,
+            'ppi': [self.sim_data.molecule_ids.ppi],
+
+            # random state
+            'seed': self.random_state.randint(RAND_MAX),
+        }
+
+
+        return chromosome_replication_config
+
     def get_tf_config(self, time_step=2, parallel=False):
         tf_binding_config = {
             'time_step': time_step,
@@ -52,6 +90,7 @@ class LoadSimData:
             'make_elongation_rates': self.sim_data.process.transcription.make_elongation_rates,
             'basal_prob': self.sim_data.process.transcription_regulation.basal_prob,
             'delta_prob': self.sim_data.process.transcription_regulation.delta_prob,
+            'get_delta_prob_matrix': self.sim_data.process.transcription_regulation.get_delta_prob_matrix,
             'perturbations': getattr(self.sim_data, "genetic_perturbations", {}),
             'rna_data': self.sim_data.process.transcription.rna_data,
             'shuffleIdxs': getattr(self.sim_data.process.transcription, "initiationShuffleIdxs", None),
@@ -76,7 +115,15 @@ class LoadSimData:
             'synth_prob': self.sim_data.process.transcription.synth_prob_from_ppgpp,
             'copy_number': self.sim_data.process.replication.get_average_copy_number,
             'ppgpp_regulation': False,
-            'seed': self.random_state.randint(RAND_MAX)}
+
+            # attenuation
+            'trna_attenuation': False,
+            'attenuated_rna_indices': self.sim_data.process.transcription.attenuated_rna_indices,
+            'attenuation_adjustments': self.sim_data.process.transcription.attenuation_basal_prob_adjustments,
+
+            # random seed
+            'seed': self.random_state.randint(RAND_MAX)
+        }
 
         return transcript_initiation_config
 
@@ -102,7 +149,20 @@ class LoadSimData:
             'ntp_ids': ["ATP[c]", "CTP[c]", "GTP[c]", "UTP[c]"],
             'variable_elongation': False,
             'make_elongation_rates': self.sim_data.process.transcription.make_elongation_rates,
-            'seed': self.random_state.randint(RAND_MAX)}
+
+            # attenuation
+            'trna_attenuation': False,
+            'charged_trna_names': self.sim_data.process.transcription.charged_trna_names,
+            'polymerized_ntps': self.sim_data.molecule_groups.polymerized_ntps,
+            'cell_density': self.sim_data.constants.cell_density,
+            'n_avogadro': self.sim_data.constants.n_avogadro,
+            'stop_probabilities': self.sim_data.process.transcription.get_attenuation_stop_probabilities,
+            'attenuated_rna_indices': self.sim_data.process.transcription.attenuated_rna_indices,
+            'location_lookup': self.sim_data.process.transcription.attenuation_location,
+
+            # random seed
+            'seed': self.random_state.randint(RAND_MAX)
+        }
 
         return transcript_elongation_config
 
@@ -154,7 +214,7 @@ class LoadSimData:
             'elongation_rates': self.sim_data.process.translation.ribosomeElongationRateDict,
             'variable_elongation': False,
             'make_elongation_rates': self.sim_data.process.translation.make_elongation_rates,
-            'protein_index_to_TU_index': self.sim_data.relation.rna_index_to_monomer_mapping,
+            'protein_index_to_TU_index': self.sim_data.relation.RNA_to_monomer_mapping,
             'all_TU_ids': self.sim_data.process.transcription.rna_data['id'],
             'all_mRNA_ids': self.sim_data.process.translation.monomer_data['rna_id'],
             'ribosome30S': self.sim_data.molecule_ids.s30_full_complex,
@@ -189,12 +249,14 @@ class LoadSimData:
             'endWeight': translation.translation_end_weight,
             'variable_elongation': variable_elongation,
             'make_elongation_rates': translation.make_elongation_rates,
+            'next_aa_pad': translation.next_aa_pad,
             'ribosomeElongationRate': float(self.sim_data.growth_rate_parameters.ribosomeElongationRate.asNumber(units.aa / units.s)),
             'translation_aa_supply': self.sim_data.translation_supply_rate,
             'import_threshold': self.sim_data.external_state.import_constraint_threshold,
             'aa_from_trna': transcription.aa_from_trna,
             'gtpPerElongation': constants.gtp_per_translation,
             'ppgpp_regulation': False,
+            'mechanistic_supply': False,
             'trna_charging': False,
             'translation_supply': False,
             'ribosome30S': self.sim_data.molecule_ids.s30_full_complex,
@@ -256,7 +318,7 @@ class LoadSimData:
             '_parallel': parallel,
 
             'jit': False,
-            'n_avogadro': self.sim_data.constants.n_avogadro.asNumber(1 / units.mmol),
+            'n_avogadro': self.sim_data.constants.n_avogadro.asNumber(1 / units.mol),
             'cell_density': self.sim_data.constants.cell_density.asNumber(units.g / units.L),
             'moleculesToNextTimeStep': self.sim_data.process.two_component_system.molecules_to_next_time_step,
             'moleculeNames': self.sim_data.process.two_component_system.molecule_names,
@@ -270,7 +332,7 @@ class LoadSimData:
             '_parallel': parallel,
 
             'jit': False,
-            'n_avogadro': self.sim_data.constants.n_avogadro.asNumber(1 / units.mmol),
+            'n_avogadro': self.sim_data.constants.n_avogadro.asNumber(1 / units.mol),
             'cell_density': self.sim_data.constants.cell_density.asNumber(units.g / units.L),
             'stoichMatrix': self.sim_data.process.equilibrium.stoich_matrix().astype(np.int64),
             'fluxesAndMoleculesToSS': self.sim_data.process.equilibrium.fluxes_and_molecules_to_SS,
@@ -376,20 +438,22 @@ class LoadSimData:
             'ppgpp_id': self.sim_data.molecule_ids.ppGpp,
             'get_ppGpp_conc': self.sim_data.growth_rate_parameters.get_ppGpp_conc,
             'exchange_data_from_media': self.sim_data.external_state.exchange_data_from_media,
-            'get_mass': self.sim_data.getter.get_mass,
+            'get_masses': self.sim_data.getter.get_masses,
             'doubling_time': self.sim_data.condition_to_doubling_time[self.sim_data.condition],
             'amino_acid_ids': sorted(self.sim_data.amino_acid_code_to_id_ordered.values()),
-            'seed': self.random_state.randint(RAND_MAX)}
+            'seed': self.random_state.randint(RAND_MAX),
+            'linked_metabolites': self.sim_data.process.metabolism.linked_metabolites,
+        }
 
         return metabolism_config
 
     def get_mass_config(self, time_step=2, parallel=False):
-        bulk_ids = self.sim_data.internal_state.bulk_molecules.bulk_data['id']
 
-        # molecule weight is converted to femtograms/mol
-        molecular_weights = {
-                molecule_id: self.sim_data.getter.get_mass([molecule_id]).asNumber(units.fg / units.mol)[0]
-                for molecule_id in bulk_ids}
+        bulk_ids = self.sim_data.internal_state.bulk_molecules.bulk_data['id']
+        molecular_weights = {}
+        for molecule_id in bulk_ids:
+            molecular_weights[molecule_id] = self.sim_data.getter.get_mass(
+                molecule_id).asNumber(units.fg / units.mol)
 
         # unique molecule masses
         unique_masses = {}
