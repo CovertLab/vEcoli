@@ -25,7 +25,9 @@ class TfBinding(Process):
         'delta_prob': {'deltaI': [], 'deltaJ': [], 'deltaV': []},
         'n_avogadro': 6.02214076e+23 / units.mol,
         'cell_density': 1100 * units.g / units.L,
-        'p_promoter_bound_tf': lambda active, inactive: 0,
+        # Calculate promoter binding probability when not 0CS TF
+        'p_promoter_bound_tf': lambda active, inactive: float(active) / 
+                            (float(active) + float(inactive)),
         'tf_to_tf_type': {},
         'active_to_bound': {},
         'get_unbound': lambda tf: '',
@@ -154,18 +156,32 @@ class TfBinding(Process):
             tf_count = states['active_tfs'][active_tf_key]
 
             bound_tf_counts = n_bound_TF[tf_idx]
-            update['active_tfs'][active_tf_key] = bound_tf_counts
+            
+            # Base of 0 to match accumulative update schema
+            update['active_tfs'][active_tf_key] = 0
+            
+            #=======================wcEcoli Code==============================#
             # active_tf_view.countInc(bound_tf_counts)
-
+            
             # Get counts of transcription factors
             # countInc() above increases count() but not total_counts() value
             # so need to add freed TFs to the total active
-            # active_tf_counts = active_tf_view.total_counts() + bound_tf_counts
+            # active_tf_counts = active_tf_view.total_counts()+bound_tf_counts
             # n_available_active_tfs = active_tf_view.count()
+            #======================wcEcoli Code End===========================#
 
-            # TODO(Ryan): figure out the difference between .total_counts() and .count() above
-            #   and why they would be different (otherwise these two variables are always the same)
-            active_tf_counts = np.array([tf_count + bound_tf_counts])
+            # active_tf_view.total_counts() gives the number of molecules of a 
+            # given TF in the entire cell
+            # active_tf_view.count() gives the number of molecules of a given 
+            # TF that are partitioned to the tf_binding process
+            # When t=2, active_tf_counts != n_available_active_tfs for 4 TFs
+            #   CPLX0-7669[¢]: 230 != 126
+            #   CPLX0-7740[¢]: 36 != 35
+            #   PD00288[c]: 46405 != 46401
+            #   PUTA_CPLX[c]: 18 != 10
+            # This does not affect the update dictionary at t=2 but DOES later
+            # TODO: Implement paritioning assumption
+            active_tf_counts = tf_count + bound_tf_counts
             n_available_active_tfs = tf_count + bound_tf_counts
 
             # Determine the number of available promoter sites
@@ -186,10 +202,6 @@ class TfBinding(Process):
                 inactive_tf_counts = states['inactive_tfs'][self.inactive_tfs[tf_id]]
                 pPromoterBound = self.p_promoter_bound_tf(
                     active_tf_counts, inactive_tf_counts)
-
-            # Determine the number of available promoter sites
-            available_promoters = np.isin(TU_index, self.TF_to_TU_idx[tf_id])
-            n_available_promoters = np.count_nonzero(available_promoters)
 
             # Calculate the number of promoters that should be bound
             n_to_bind = int(min(stochasticRound(
