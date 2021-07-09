@@ -27,7 +27,7 @@ class LoadSimData:
         chromosome_replication_config = {
             'time_step': time_step,
             '_parallel': parallel,
-            
+
             'max_time_step': self.sim_data.process.replication.max_time_step,
             'get_dna_critical_mass': get_dna_critical_mass,
             'criticalInitiationMass': get_dna_critical_mass(doubling_time),
