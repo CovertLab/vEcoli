@@ -2,10 +2,6 @@
 random.py
 
 Special random number generators.  Most are holdovers from the original port.
-
-@author: John Mason
-@organization: Covert Lab, Department of Bioengineering, Stanford University
-@date: Created 6/2/2014
 """
 
 from __future__ import absolute_import, division, print_function
@@ -75,7 +71,7 @@ def make_elongation_rates_flat(
 		base: unadjusted value for all rates.
 		amplified: indexes of each rate to adjust.
 		ceiling: adjusted rate for amplified indexes.
-		variable_elongation: words go here.
+		variable_elongation: whether to add amplified values to the array.
 
 	Returns:
 	    rates: new array with base and adjusted rates.

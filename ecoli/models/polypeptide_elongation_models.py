@@ -41,7 +41,7 @@ class BaseElongationModel(object):
     def final_amino_acids(self, total_aa_counts):
         return total_aa_counts
 
-    def evolve(self, timestep, states, requests, total_aa_counts, aas_used, nElongations, nInitialized):
+    def evolve(self, timestep, states, requests, total_aa_counts, aas_used, next_amino_acid_count, nElongations, nInitialized):
         # Update counts of amino acids and water to reflect polymerization reactions
         net_charged = np.zeros(len(self.parameters['uncharged_trna_names']))
 
@@ -50,15 +50,21 @@ class BaseElongationModel(object):
             'molecules': {
                 self.process.water: nElongations - nInitialized}}
 
+    def isTimeStepShortEnough(self, inputTimeStep, timeStepSafetyFraction):
+         return True
+
+
 class TranslationSupplyElongationModel(BaseElongationModel):
     """
     Translation Supply Model: Requests minimum of 1) upcoming amino acid
     sequence assuming max ribosome elongation (ie. Base Model) and 2) estimation
     based on doubling the proteome in one cell cycle (does not use ribosome
     elongation, computed in Parca).
+
+    TODO (ERAN): update this to match wcEcoli
     """
     def __init__(self, parameters, process):
-        super(TranslationSupplyElongationModel, self).__init__(parameters, process)
+        super().__init__(parameters, process)
 
     def elongation_rate(self, current_media_id):
         return self.basal_elongation_rate
@@ -66,13 +72,14 @@ class TranslationSupplyElongationModel(BaseElongationModel):
     def amino_acid_counts(self, aasInSequences):
         return np.fmin(self.process.aa_supply, aasInSequences)  # Check if this is required. It is a better request but there may be fewer elongations.
 
+
 class SteadyStateElongationModel(TranslationSupplyElongationModel):
     """
     Steady State Charging Model: Requests amino acids based on the
     Michaelis-Menten competitive inhibition model.
     """
     def __init__(self, parameters, process):
-        super(SteadyStateElongationModel, self).__init__(parameters, process)
+        super().__init__(parameters, process)
 
         # Cell parameters
         self.cellDensity = self.parameters['cellDensity']
@@ -213,7 +220,7 @@ class SteadyStateElongationModel(TranslationSupplyElongationModel):
     def final_amino_acids(self, total_aa_counts):
         return np.fmin(total_aa_counts, self.aa_counts_for_translation)
 
-    def evolve(self, timestep, states, requests, total_aa_counts, aas_used, nElongations, nInitialized):
+    def evolve(self, timestep, states, requests, total_aa_counts, aas_used, next_amino_acid_count, nElongations, nInitialized):
         update = {
             'molecules': {},
             'listeners': {},
