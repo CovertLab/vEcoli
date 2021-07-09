@@ -79,6 +79,6 @@ setup(
         'escher',
         'jax',
         'jaxlib',
-        "jupyter",
+        'jupyter',
         'aesara==2.0.8',
         ])

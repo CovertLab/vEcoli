@@ -36,10 +36,6 @@ __pycache__
 .python-version
 .pytest_cache
 
-# Jupyter #
-###########
-.ipynb_checkpoints
-
 # Pipenv files #
 ################
 Pipfile
