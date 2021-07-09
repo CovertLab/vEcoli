@@ -2,7 +2,7 @@ import numpy as np
 from scipy.stats import mannwhitneyu, chi2_contingency, ttest_ind, bartlett
 from vivarium.core.engine import Engine
 
-from ecoli.composites.ecoli_master import get_state_from_file
+from ecoli.states.wcecoli_state import get_state_from_file
 
 PERCENT_ERROR_THRESHOLD = 0.05
 PVALUE_THRESHOLD = 0.05
