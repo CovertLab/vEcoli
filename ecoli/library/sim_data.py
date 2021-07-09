@@ -406,14 +406,6 @@ class LoadSimData:
             'time_step': time_step,
             '_parallel': parallel,
 
-            # metabolism-gd parameters
-            'stoichiometry': self.sim_data.process.metabolism.reaction_stoich,
-            'reaction_catalysts': self.sim_data.process.metabolism.reaction_catalysts,
-            'catalyst_ids': self.sim_data.process.metabolism.catalyst_ids,
-            'concentration_updates': self.sim_data.process.metabolism.concentration_updates,
-            'maintenance_reaction': self.sim_data.process.metabolism.maintenance_reaction,
-
-            # wcEcoli parameters
             'get_import_constraints': self.sim_data.external_state.get_import_constraints,
             'nutrientToDoublingTime': self.sim_data.nutrient_to_doubling_time,
             'aa_names': self.sim_data.molecule_groups.amino_acids,
