@@ -1,4 +1,4 @@
-from vivarium.core.experiment import Experiment
+from vivarium.core.engine import Engine
 from ecoli.library.sim_data import LoadSimData
 from ecoli.composites.ecoli_master import SIM_DATA_PATH
 from ecoli.processes.metabolism_gd import MetabolismGD
@@ -33,7 +33,7 @@ def run_metabolism():
     # TODO -- add perturbations to initial_state to test impact on metabolism
 
     metabolism_composite = metabolism_process.generate()
-    experiment = Experiment({
+    experiment = Engine({
         'processes': metabolism_composite['processes'],
         'topology': {metabolism_process.name: TOPOLOGY},
         'initial_state': initial_state
