@@ -435,7 +435,7 @@ def main():
 
         if args.blame:
             from ecoli.plots.blame import blame_plot
-            blame_plot(output, highlighted_molecules=['PD00413[c]'])
+            blame_plot(output, highlight_molecules=['PD00413[c]'])
 
 if __name__ == '__main__':
     main()
