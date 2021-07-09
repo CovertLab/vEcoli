@@ -11,3 +11,4 @@ from ecoli.processes.protein_degradation import ProteinDegradation
 from ecoli.processes.metabolism import Metabolism
 from ecoli.processes.chromosome_replication import ChromosomeReplication
 from ecoli.processes.mass import Mass
+from ecoli.processes.exchanger_stub import Exchanger
