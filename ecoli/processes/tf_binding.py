@@ -157,10 +157,8 @@ class TfBinding(Process):
 
             bound_tf_counts = n_bound_TF[tf_idx]
             
-            # This should really be the the number of molecules of the given TF
-            # that were partitioned to the tf_binding process PLUS
-            # bound_tf_counts (e.g. active_tf_view.count() + bound_tf_counts)
-            update['active_tfs'][active_tf_key] = tf_count + bound_tf_counts
+            # Base of 0 to match accumulative update schema
+            update['active_tfs'][active_tf_key] = 0
             
             #=======================wcEcoli Code==============================#
             # active_tf_view.countInc(bound_tf_counts)
