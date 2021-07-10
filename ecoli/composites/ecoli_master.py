@@ -17,6 +17,9 @@ from ecoli.library.sim_data import LoadSimData
 # logging
 from ecoli.library.logging import make_logging_process
 
+# partitioning
+from ecoli.library.partition import *
+
 # vivarium processes
 from vivarium.processes.divide_condition import DivideCondition
 
@@ -177,7 +180,8 @@ class Ecoli(Composer):
         'sim_data_path': SIM_DATA_PATH,
         'daughter_path': tuple(),
         'division': {'threshold': 2220},  # fg
-        'blame': False
+        'blame': False,
+        'partition': True
     }
 
     def __init__(self, config):
@@ -213,6 +217,9 @@ class Ecoli(Composer):
             # additional processes
             'divide_condition': config['division']
         }
+        
+        if config['partition']:
+            return generate_partition_proc(config['blame'], configs, ECOLI_PROCESSES, time_step)
 
         return {
             process_name: (process(configs[process_name])
@@ -223,7 +230,10 @@ class Ecoli(Composer):
             if process_name != "polypeptide_elongation"  # TODO: get polypeptide elongation working again
         }
 
-    def generate_topology(self, config):
+    def generate_topology(self, config):        
+        if config['partition']:
+            return generate_partition_topology(config['blame'], ECOLI_TOPOLOGY)
+
         topology = {}
         for process_id, ports in ECOLI_TOPOLOGY.items():
             topology[process_id] = ports
@@ -232,7 +242,7 @@ class Ecoli(Composer):
         return topology
 
 
-def run_ecoli(blame=False, total_time=10):
+def run_ecoli(blame=False, partition=False, total_time=10):
     # configure the composer
     ecoli_config = {
         'agent_id': '1',
@@ -246,7 +256,8 @@ def run_ecoli(blame=False, total_time=10):
                 }
             }
         },
-        'blame': blame
+        'blame': blame,
+        'partition': True
     }
     ecoli_composer = Ecoli(ecoli_config)
 
@@ -307,16 +318,18 @@ def main():
                         help='when running simulation, create a report of which processes affected which molecules')
     parser.add_argument('-debug', '-d', action='store_true', default=False,
                         help='run tests, generating a report of failures/successes')
+    parser.add_argument('-partition', '-p', action='store_true', default=False,
+                        help='run with partitioning assumption in place')
     args = parser.parse_args()
 
     if args.topology:
         ecoli_topology_plot(filename='ecoli_master', out_dir=out_dir)
     else:
         if args.debug:
-            output = run_ecoli(args.blame)
+            output = run_ecoli(args.blame, args.partition)
             #assertions(output)
         else:
-            output = run_ecoli(args.blame)
+            output = run_ecoli(args.blame, args.partition)
 
 if __name__ == '__main__':
     main()

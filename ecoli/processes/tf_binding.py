@@ -120,9 +120,17 @@ class TfBinding(Process):
                     'nActualBound': 0,
                     'n_available_promoters': 0,
                     'n_bound_TF_per_TU': 0})}}
-
-
-    def next_update(self, timestep, states):
+        
+    def calculate_request(self, timestep, states):
+        # request all active tfs
+        update = {'requested': {}}
+        for tf_id in self.tf_ids:
+            active_tf_key = self.active_tfs[tf_id]
+            tf_count = states['active_tfs'][active_tf_key]
+            update['requested'][active_tf_key] = tf_count
+        return update
+    
+    def evolve_state(self, timestep, states):
         # If there are no promoters, return immediately
         if not states['promoters']:
             return {}
@@ -182,7 +190,8 @@ class TfBinding(Process):
             # This does not affect the update dictionary at t=2 but DOES later
             # TODO: Implement paritioning assumption
             active_tf_counts = tf_count + bound_tf_counts
-            n_available_active_tfs = tf_count + bound_tf_counts
+            n_available_active_tfs = states.get(
+                'allocated', {active_tf_key: active_tf_counts})[active_tf_key]
 
             # Determine the number of available promoter sites
             available_promoters = np.isin(TU_index, self.TF_to_TU_idx[tf_id])
@@ -261,3 +270,6 @@ class TfBinding(Process):
                 'n_bound_TF_per_TU': n_bound_TF_per_TU}}
 
         return update
+        
+    def next_update(self, timestep, states):
+        return self.evolve_state(timestep, states)

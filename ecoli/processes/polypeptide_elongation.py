@@ -472,6 +472,9 @@ class PolypeptideElongation(Process):
         log.info('polypeptide elongation terminated: {}'.format(nTerminated))
 
         return update
+    
+    def calculate_request(self, timestep, states):
+        return {}
 
     def isTimeStepShortEnough(self, inputTimeStep, timeStepSafetyFraction):
         model_specific = self.elongation_model.isTimeStepShortEnough(inputTimeStep, timeStepSafetyFraction)

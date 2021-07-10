@@ -475,6 +475,9 @@ class TranscriptInitiation(Process):
             'rnaInitEvent': TU_to_promoter.dot(n_initiations)}
 
         return update
+    
+    def calculate_request(self, timestep, states):
+        return {}
 
     def _calculateActivationProb(self, timestep, fracActiveRnap, rnaLengths, rnaPolymeraseElongationRates, synthProb):
         """

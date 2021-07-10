@@ -113,6 +113,9 @@ class ProteinDegradation(Process):
 
         return update
 
+    def calculate_request(self, timestep, states):
+        return {}
+
 
 def test_protein_degradation():
     test_config = {

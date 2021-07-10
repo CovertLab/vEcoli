@@ -65,6 +65,9 @@ class Complexation(Process):
         # self.writeToListener("ComplexationListener", "complexationEvents", events)
 
         return update
+    
+    def calculate_request(self, timestep, states):
+        return {}
 
 
 def test_complexation():

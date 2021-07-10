@@ -108,3 +108,6 @@ class Equilibrium(Process):
                     'reaction_rates': deltaMolecules[self.product_indices] / timestep}}}
 
         return update
+    
+    def calculate_request(self, timestep, states):
+        return {}

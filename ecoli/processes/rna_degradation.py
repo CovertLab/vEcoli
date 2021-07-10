@@ -450,6 +450,9 @@ class RnaDegradation(Process):
         update['listeners']['rna_degradation_listener']['fragment_bases_digested'] = total_fragment_bases_digested
 
         return update
+    
+    def calculate_request(self, timestep, states):
+        return {}
 
 
     def _calculate_total_n_to_degrade(self, timestep, specificity, total_kcat_endornase):
