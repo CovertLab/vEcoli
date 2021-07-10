@@ -55,7 +55,7 @@ ECOLI_PROCESSES = {
     'metabolism': Metabolism,
     'chromosome_replication': ChromosomeReplication,
     'mass': Mass,
-    'divide_condition': Division,
+    'division': Division,
 }
 
 ECOLI_TOPOLOGY = {
@@ -161,9 +161,9 @@ ECOLI_TOPOLOGY = {
             'unique': ('unique',),
             'listeners': ('listeners',)},
 
-        'divide_condition': {
+        'division': {
             'variable': ('listeners', 'mass', 'cell_mass'),
-            'divide': ('globals', 'divide',),
+            'agents': ('..', '..', 'agents'),  # TODO -- this need to be configurable
         },
     }
 
@@ -176,8 +176,10 @@ class Ecoli(Composer):
         'seed': 0,
         'sim_data_path': SIM_DATA_PATH,
         'daughter_path': tuple(),
-        'division': {'threshold': 2220},  # fg
-        'blame': False
+        'division': {
+            'condition_config': {
+                'threshold': 2220}},  # fg
+        'blame': False,
     }
 
     def __init__(self, config):
