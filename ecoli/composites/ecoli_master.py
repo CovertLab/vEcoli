@@ -55,7 +55,6 @@ ECOLI_PROCESSES = {
     'metabolism': Metabolism,
     'chromosome_replication': ChromosomeReplication,
     'mass': Mass,
-    'division': Division,
 }
 
 ECOLI_TOPOLOGY = {
@@ -160,11 +159,6 @@ ECOLI_TOPOLOGY = {
             'bulk': ('bulk',),
             'unique': ('unique',),
             'listeners': ('listeners',)},
-
-        'division': {
-            'variable': ('listeners', 'mass', 'cell_mass'),
-            'agents': ('..', '..', 'agents'),  # TODO -- this need to be configurable
-        },
     }
 
 
@@ -176,9 +170,12 @@ class Ecoli(Composer):
         'seed': 0,
         'sim_data_path': SIM_DATA_PATH,
         'daughter_path': tuple(),
+        'agent_id': '0',
+        'agents_path': ('agents',),  # TODO -- this needs to be ('..', '..', 'agents',),
         'division': {
             'condition_config': {
                 'threshold': 2220}},  # fg
+        'divide': True,
         'blame': False,
     }
 
@@ -194,7 +191,7 @@ class Ecoli(Composer):
 
     def generate_processes(self, config):
         time_step = config['time_step']
-        parallel = config['parallel']  # TODO (Eran) -- which processes can be parallelized?
+        parallel = config['parallel']
 
         # get the configs from sim_data
         configs = {
@@ -211,26 +208,42 @@ class Ecoli(Composer):
             'metabolism': self.load_sim_data.get_metabolism_config(time_step=time_step),
             'chromosome_replication': self.load_sim_data.get_chromosome_replication_config(time_step=time_step),
             'mass': self.load_sim_data.get_mass_config(time_step=time_step),
-
-            # additional processes
-            'divide_condition': config['division']
         }
 
-        return {
+        # make the processes
+        processes = {
             process_name: (process(configs[process_name])
                            if not config['blame']
                            else make_logging_process(process)(configs[process_name]))
-
             for (process_name, process) in ECOLI_PROCESSES.items()
             if process_name != "polypeptide_elongation"  # TODO: get polypeptide elongation working again
         }
 
+        # add division
+        if self.config['divide']:
+            division_config = dict(
+                config['division'],
+                agent_id=self.config['agent_id'],
+                composer=self)
+            processes['division'] = Division(division_config)
+
+        return processes
+
     def generate_topology(self, config):
         topology = {}
+
+        # make the topology
         for process_id, ports in ECOLI_TOPOLOGY.items():
             topology[process_id] = ports
             if config['blame']:
                 topology[process_id]['log_update'] = ('log_update', process_id,)
+
+        # add division
+        if self.config['divide']:
+            topology['division'] = {
+                'variable': ('listeners', 'mass', 'cell_mass'),
+                'agents': config['agents_path']}
+
         return topology
 
 
