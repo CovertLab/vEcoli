@@ -18,7 +18,7 @@ from ecoli.library.sim_data import LoadSimData
 from ecoli.library.logging import make_logging_process
 
 # vivarium processes
-from vivarium.processes.divide_condition import DivideCondition
+from vivarium.processes.division import Division
 
 # vivarium-ecoli processes
 from ecoli.plots.topology import get_ecoli_master_topology_settings
@@ -55,7 +55,7 @@ ECOLI_PROCESSES = {
     'metabolism': Metabolism,
     'chromosome_replication': ChromosomeReplication,
     'mass': Mass,
-    'divide_condition': DivideCondition,
+    'divide_condition': Division,
 }
 
 ECOLI_TOPOLOGY = {

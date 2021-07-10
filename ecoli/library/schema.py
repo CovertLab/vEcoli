@@ -55,6 +55,7 @@ def bulk_schema(elements):
     return {
         element: {
             '_default': 0,
+            '_divider': 'binomial',
             '_emit': True}
         for element in elements}
 
