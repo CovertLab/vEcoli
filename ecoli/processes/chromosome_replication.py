@@ -561,6 +561,9 @@ class ChromosomeReplication(Process):
                 # self.replisome_monomers.countsInc(replisomes_to_delete.sum())
 
         return update
+    
+    def calculate_request(self, timestep, states):
+        return {}
 
 
 def test_chromosome_replication():

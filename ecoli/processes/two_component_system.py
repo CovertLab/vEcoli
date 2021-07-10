@@ -85,3 +85,6 @@ class TwoComponentSystem(Process):
             'molecules': array_to(self.moleculeNames, self.all_molecule_changes.astype(int))}
 
         return update
+    
+    def calculate_request(self, timestep, states):
+        return {}

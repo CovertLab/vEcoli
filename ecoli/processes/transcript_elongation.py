@@ -565,6 +565,9 @@ class TranscriptElongation(Process):
             "didStall": n_total_stalled}
 
         return update
+    
+    def calculate_request(self, timestep, states):
+        return {}
 
     def isTimeStepShortEnough(self, inputTimeStep, timeStepSafetyFraction):
         return inputTimeStep <= self.max_time_step

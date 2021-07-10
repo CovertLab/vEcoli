@@ -289,6 +289,9 @@ class Metabolism(Process):
                     'targetFluxesLower': lower_targets / timestep}}}
 
         return update
+    
+    def calculate_request(self, timestep, states):
+        return {}
 
     def update_amino_acid_targets(self, counts_to_molar, count_diff, amino_acid_counts):
         '''

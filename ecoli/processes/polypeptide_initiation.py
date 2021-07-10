@@ -242,6 +242,9 @@ class PolypeptideInitiation(Process):
                     'prob_translation_per_transcript': protein_init_prob}}}
 
         return update
+    
+    def calculate_request(self, timestep, states):
+        return {}
 
     def calculate_activation_prob(
             self,
