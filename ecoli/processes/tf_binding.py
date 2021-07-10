@@ -158,7 +158,8 @@ class TfBinding(Process):
             bound_tf_counts = n_bound_TF[tf_idx]
             
             # Base of 0 to match accumulative update schema
-            update['active_tfs'][active_tf_key] = 0
+            # update['active_tfs'][active_tf_key] = 0  # TODO (Eran) -- this 0 breaks ecoli_master
+            update['active_tfs'][active_tf_key] = tf_count + bound_tf_counts
             
             #=======================wcEcoli Code==============================#
             # active_tf_view.countInc(bound_tf_counts)
