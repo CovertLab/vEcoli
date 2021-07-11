@@ -175,7 +175,7 @@ class Ecoli(Composer):
         'agents_path': ('..', '..', 'agents',),
         'division': {
             'condition_config': {
-                'threshold': 1170}},  # 2220 fg
+                'threshold': 2220}},  # fg
         'divide': True,
         'blame': False,
     }
