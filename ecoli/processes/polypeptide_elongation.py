@@ -24,7 +24,7 @@ from vivarium.library.dict_utils import deep_merge
 from vivarium.plots.simulation_output import plot_variables
 
 # vivarium-ecoli imports
-from ecoli.library.schema import bulk_schema, listener_schema, arrays_from, array_from
+from ecoli.library.schema import bulk_schema, listener_schema, arrays_from, array_from, array_to
 from ecoli.models.polypeptide_elongation_models import BaseElongationModel, MICROMOLAR_UNITS
 
 
@@ -271,12 +271,14 @@ class PolypeptideElongation(Process):
 
         # If there are no active ribosomes, return immediately
         if len(states['active_ribosome']) == 0:
-            return
+            return {}
 
         # Build sequences to request appropriate amount of amino acids to
         # polymerize for next timestep
-        proteinIndexes, peptideLengths = arrays_from(states['active_ribosome'], 
-                                            ['protein_indexes', 'peptide_length'])
+        proteinIndexes = np.array([states['active_ribosome'][i]['protein_index'] 
+                          for i in states['active_ribosome']])
+        peptideLengths = np.array([states['active_ribosome'][i]['peptide_length'] 
+                          for i in states['active_ribosome']]) 
 
         self.elongation_rates = self.make_elongation_rates(
             self.random_state,
@@ -294,22 +296,26 @@ class PolypeptideElongation(Process):
         aasInSequences = np.bincount(sequences[sequenceHasAA], minlength=21)
         
         requests = {
+            'requested': {},
             'listeners': {
                 'ribosome_data': {},
                 'growth_limits': {}}}
 
         # Calculate AA supply for expected doubling of protein
-        dryMass = (states['listeners']['mass']['dryMass'] * units.fg)
+        dryMass = (states['listeners']['mass']['dry_mass'] * units.fg)
         translation_supply_rate = self.translation_aa_supply[current_media_id] \
             * self.elngRateFactor
         mol_aas_supplied = translation_supply_rate * dryMass * timestep*2 * units.s
         self.aa_supply = units.strip_empty_units(mol_aas_supplied * self.n_avogadro)
-        requests['listeners'] = {'ribosome_data': {'translation_supply': 
-                            translation_supply_rate.asNumber()}}
+        requests['listeners'].update({'ribosome_data': {'translation_supply': 
+                            translation_supply_rate.asNumber()}})
 
         # MODEL SPECIFIC: Calculate AA request
-        fraction_charged, aa_counts_for_translation = \
-            self.elongation_model.request(aasInSequences)
+        fraction_charged, aa_counts_for_translation, _ = \
+            self.elongation_model.request(timestep*2, states, aasInSequences)
+            
+        requests['requested'] = array_to(self.amino_acids, 
+                                           aa_counts_for_translation)
 
         # Write to listeners
         requests['listeners']['growth_limits']['fraction_trna_charged'] = np.dot(fraction_charged, self.aa_from_trna)
@@ -365,7 +371,7 @@ class PolypeptideElongation(Process):
 
         # Calculate elongation resource capacity
         aaCountInSequence = np.bincount(sequences[(sequences != polymerize.PAD_VALUE)])
-        total_aa_counts = [states['allocated'][aa] for aa in states['amino_acids']]
+        total_aa_counts = np.array([states['allocated'][aa] for aa in states['amino_acids']])
         # total_aa_counts = self.aas.counts()
 
         # MODEL SPECIFIC: Get amino acid counts

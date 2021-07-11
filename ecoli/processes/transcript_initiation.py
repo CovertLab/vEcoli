@@ -288,16 +288,17 @@ class TranscriptInitiation(Process):
 
         # Get all inactive RNA polymerases
         requests = {}
-        requests['requested'] = {inactive_RNAP: count for (inactive_RNAP, count) 
-                                    in states['molecules'][self.inactive_RNAP].items()}
+        requests['requested'] = {self.inactive_RNAP: states['molecules'][self.inactive_RNAP]}
 
         # Read current environment
         current_media_id = states['environment']['media_id']
 
         if len(states['full_chromosomes']) > 0:
             # Get attributes of promoters
-            TU_index = states['promoters']['TU_index']
-            bound_TF = states['promoters']['bound_TF']
+            TU_index = [promoter['TU_index'] 
+                        for promoter in states['promoters'].values()]
+            bound_TF = [promoter['bound_TF'] 
+                        for promoter in states['promoters'].values()]
 
             self.probability_factors['bound_TF'] = bound_TF
 

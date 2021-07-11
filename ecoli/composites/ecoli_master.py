@@ -181,7 +181,7 @@ class Ecoli(Composer):
         'daughter_path': tuple(),
         'division': {'threshold': 2220},  # fg
         'blame': False,
-        'partition': True
+        'partition': False
     }
 
     def __init__(self, config):
@@ -257,7 +257,7 @@ def run_ecoli(blame=False, partition=False, total_time=10):
             }
         },
         'blame': blame,
-        'partition': True
+        'partition': partition
     }
     ecoli_composer = Ecoli(ecoli_config)
 

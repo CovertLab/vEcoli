@@ -166,24 +166,25 @@ class Metabolism(Process):
                     '_emit': True}}}
         
     def calculate_request(self, timestep, states):
-        requests = {}
-        requests['allocated'] = states['metabolites']
-        requests['allocated'].update(states['catalysts'])
-        requests['allocated'].update(states['kinetics_enzymes'])
-        requests['allocated'].update(states['kinetics_substrate'])
+        # Request counts of molecules needed
+        requests = {'requested': {}}
+        requests['requested'] = states['metabolites']
+        requests['requested'].update(states['catalysts'])
+        requests['requested'].update(states['kinetics_enzymes'])
+        requests['requested'].update(states['kinetics_substrates'])
         return requests
         
     def evolve_state(self, timestep, states):
         # Load current state of the sim
         ## Get internal state variables
-        metabolite_counts_init = [states['allocated'][molecule] 
-                                  for molecule in states['metabolites']]
-        catalyst_counts = [states['allocated'][molecule] 
-                                  for molecule in states['catalysts']]
-        kinetic_enzyme_counts = [states['allocated'][molecule] 
-                                  for molecule in states['kinetics_enzymes']]
-        kinetic_substrate_counts = [states['allocated'][molecule] 
-                                  for molecule in states['kinetics_substrates']]
+        metabolite_counts_init = np.array([states['allocated'][molecule] 
+                                  for molecule in states['metabolites']])
+        catalyst_counts = np.array([states['allocated'][molecule] 
+                                  for molecule in states['catalysts']])
+        kinetic_enzyme_counts = np.array([states['allocated'][molecule] 
+                                  for molecule in states['kinetics_enzymes']])
+        kinetic_substrate_counts = np.array([states['allocated'][molecule] 
+                                  for molecule in states['kinetics_substrates']])
 
         # self._sim.processes['PolypeptideElongation'].gtp_to_hydrolyze
         translation_gtp = states['polypeptide_elongation']['gtp_to_hydrolyze']

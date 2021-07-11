@@ -4,8 +4,8 @@ Partition
 Allocate molecules to each process by proportion requested and process priority
 """
 from vivarium.core.process import Deriver
-
-import copy
+from ecoli.library.schema import array_from
+import numpy as np
 
 class Partition(Deriver):
     name = 'partition'
@@ -34,40 +34,50 @@ class Partition(Deriver):
         }
 
     def ports_schema(self):
-        return {}
+        ports = {}
+        ports['totals'] = {'*': {'_default': 0}}
+        return ports
     
     def calculate_request(self, timestep, states):
+        # Ensure that time is incremented at the end of every
+        # half time step
         return {'timesteps': 1}
 
     def evolve_state(self, timestep, states):
-        # Find intersection between two lists
         def intersection(lst1, lst2):
             temp = set(lst2)
             lst3 = [value for value in lst1 if value in temp]
             return lst3
-        
-        # Deepcopy is bad
-        curr_state = copy.deepcopy(states)
         update = {'allocated': {}}
+        running_totals = {}
+        for process in states['requested'].values():
+            for molecule in process:
+                running_totals[molecule] = states['totals'][molecule]
         for processes in self.process_priorities.values():
             for process in processes:
                 update['allocated'][process] = {}
             # Get only processes that have requested molecules
-            requesting_procs = intersection(processes, list(curr_state['requested'].keys()))
-            total_requested = {name: 0 for name in curr_state['totals'].keys()}
+            requesting_procs = intersection(processes, list(states['requested']))
+            total_requested = {name: 0 for name in states['totals'].keys()}
             # Find total count requested for each molecule
             for process in requesting_procs:
-                for (molecule, count) in curr_state['requested'][process].items():
-                    total_requested[molecule] += count
+                for (molecule, count) in states['requested'][process].items():
+                    total_requested[molecule] += int(count)
             for process in requesting_procs:
-                for (molecule, requested_count) in curr_state['requested'][process].items():
-                    # Divy molecules by proportion requested if demand exceeds supply
-                    if total_requested[molecule] > curr_state['totals'][molecule]:
-                        update['allocated'][process][molecule] = requested_count \
-                            / total_requested[molecule] * curr_state['totals'][molecule]
+                for (molecule, requested_count) in states['requested'][process].items():
+                    if running_totals[molecule] <= 0:
+                        update['allocated'][process][molecule] = 0
                     else:
-                        update['allocated'][process][molecule] = requested_count
-                    # Decrease molecules left for lower priority processes
-                    curr_state['totals'][molecule] -= update['allocated'][process][molecule]
+                        # Divy molecules by proportion requested if demand exceeds supply
+                        if total_requested[molecule] > running_totals[molecule]:
+                            update['allocated'][process][molecule] = np.floor(requested_count 
+                                / total_requested[molecule] * running_totals[molecule])
+                        else:
+                            update['allocated'][process][molecule] = requested_count
+                        # Decrease molecules left for lower priority processes
+                        running_totals[molecule] -= update['allocated'][process][molecule]
         update['timesteps'] = 1
         return update
+    
+    def next_update(self, timestep, states):
+        return self.evolve_state(timestep, states)
