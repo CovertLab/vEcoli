@@ -269,6 +269,21 @@ def run_ecoli(
                 'molecules': {
                     'PD00413[c]': {'_updater': 'nonnegative_accumulate'}
                 }
+            },
+            'rna_degradation': {
+                'bulk_RNAs': {
+                    rna_id: {'_updater': 'nonnegative_accumulate'}
+                    for rna_id in [
+                        'EG10316_RNA[c]', 'EG10321_RNA[c]', 'EG10367_RNA[c]', 'EG10408_RNA[c]', 'EG10455_RNA[c]',
+                        'EG10495_RNA[c]', 'EG10540_RNA[c]', 'EG10570_RNA[c]', 'EG10669_RNA[c]', 'EG10805_RNA[c]',
+                        'EG10872_RNA[c]', 'EG10874_RNA[c]', 'EG10879_RNA[c]', 'EG10883_RNA[c]', 'EG10888_RNA[c]',
+                        'EG10891_RNA[c]', 'EG10900_RNA[c]', 'EG10904_RNA[c]', 'EG10907_RNA[c]', 'EG10912_RNA[c]',
+                        'EG10918_RNA[c]', 'EG11390_RNA[c]', 'EG11479_RNA[c]', 'EG11506_RNA[c]', 'EG11554_RNA[c]',
+                        'EG11673_RNA[c]', 'EG11699_RNA[c]', 'EG12099_RNA[c]', 'EG12179_RNA[c]', 'EG12341_RNA[c]',
+                        'G7347_RNA[c]', 'G7748_RNA[c]', 'EG10875_RNA[c]', 'EG10882_RNA[c]', 'EG10887_RNA[c]',
+                        'EG10911_RNA[c]', 'EG10913_RNA[c]', 'EG11314_RNA[c]', 'EG11666_RNA[c]', 'EG12111_RNA[c]',
+                        'EG50002_RNA[c]', 'G6562_RNA[c]']
+                }
             }
         },
         'blame': blame
@@ -303,16 +318,8 @@ def run_ecoli(
     if divide:
         output = output['agents'][agent_id]
 
-    # separate data by port
-    bulk = output['bulk']
-    unique = output['unique']
-    listeners = output['listeners']
-    process_state = output['process_state']
-    environment = output['environment']
-
-    # print(bulk)
-    # print(unique.keys())
-    pp(listeners['mass'])
+    # print mass output
+    pp(output['listeners']['mass'])
 
     return output
 
