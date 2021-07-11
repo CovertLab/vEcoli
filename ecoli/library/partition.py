@@ -7,7 +7,7 @@ from ecoli.processes.partition import Partition
 def generate_partition_proc(blame, proc_conf, ECOLI_PROCESSES, timestep):
     """
     Replaces default generate_processes function in composer to
-        utilize partition process wrapper make_partition_proc
+    utilize partition process wrapper make_partition_proc
 
     Args:
         blame (bool): Whether to enable logging
@@ -25,8 +25,7 @@ def generate_partition_proc(blame, proc_conf, ECOLI_PROCESSES, timestep):
         proc_conf[process]['time_step'] = timestep/2
     procs = {
         proc_name: make_partition_proc(proc)(proc_conf[proc_name])
-        for (proc_name, proc) in ECOLI_PROCESSES.items()
-        if proc_name != 'polypeptide_elongation'}
+        for (proc_name, proc) in ECOLI_PROCESSES.items()}
     if blame:
         procs = {
             proc_name: make_logging_process(proc)
@@ -38,7 +37,7 @@ def generate_partition_proc(blame, proc_conf, ECOLI_PROCESSES, timestep):
 def make_partition_proc(process_class):
     """
     Wrapper function to add partitioning specific ports and logic to
-        all instantiated processes
+    all instantiated processes
 
     Args:
         process_class (Process): Instantiated process to be inherited
@@ -67,7 +66,6 @@ def make_partition_proc(process_class):
         """
         # get the original port structure
         ports = super().ports_schema()  
-        ports['totals'] = {'*': {'_default': 0, '_emit': True}}
         ports['requested'] = {'_default' : {}, '_updater': 'set', '_emit': True}
         ports['allocated'] = {'_default' : {}, '_updater': 'set', '_emit': True}
         ports['timesteps'] = {'_default' : 0, '_emit': True}
@@ -76,8 +74,8 @@ def make_partition_proc(process_class):
     def next_update(self, timestep, states):
         """
         Run Processes with halved timestep (hTS) to enable staggered 
-            calculate_request, partitioning, and evolve_state calls. 
-            Processes and Derivers run according to the following time table.
+        calculate_request, partitioning, and evolve_state calls. 
+        Processes and Derivers run according to the following time table.
         
         Partition: increment elapsed timestep every hTS starting from 0, 
             partition every 2 hTS starting from 1 hTS
@@ -93,18 +91,19 @@ def make_partition_proc(process_class):
             Dict: Next update (can be empty, only elapsed timesteps, etc.)
         """
         # Derivers have 0 timestep, run at end of every timestep (inc. t=0),
-        # and update immediately after running
+        # and update states immediately after running
         if timestep==0:
             if not (states['timesteps']%2):
-                # Only Partition can see other process requests
-                if 'tf_binding' in states['requested']:
+                # Only Partition can see bulk totals
+                if 'totals' in states:
                     return super().calculate_request(timestep, states)
                 return {}
-            return super().eveolve_state(timestep, states)
+            return super().next_update(timestep, states)
         elif not (states['timesteps']%2):
             # IMPORTANT: Run update with full timestep (not halved)
             return super().evolve_state(timestep*2, states)
         return super().calculate_request(timestep, states)
+        #return super().next_update(timestep, states)
 
     partition_process.ports_schema = ports_schema
     partition_process.next_update = next_update
@@ -129,10 +128,11 @@ def generate_partition_topology(blame, ECOLI_TOPOLOGY):
         proc_topo[proc_id] = {}
     for proc_id, ports in ECOLI_TOPOLOGY.items():
         proc_topo[proc_id] = ports
-        proc_topo[proc_id]['totals'] = ('bulk',)
-        proc_topo[proc_id]['requested'] = ('partitioning', 'requested', proc_id)
-        proc_topo[proc_id]['allocated'] = ('partitioning', 'allocated', proc_id)
         proc_topo[proc_id]['timesteps'] = ('partitioning', 'timesteps')
+        if proc_id not in ['mass', 'divide_condition']:
+            proc_topo[proc_id]['requested'] = ('partitioning', 'requested', proc_id)
+            proc_topo[proc_id]['allocated'] = ('partitioning', 'allocated', proc_id)
+
         
         
     partition_topo = {'totals': ('bulk',),

@@ -14,7 +14,7 @@ from vivarium.core.process import Process
 from vivarium.core.composition import simulate_process
 
 from ecoli.library.data_predicates import monotonically_increasing, monotonically_decreasing, all_nonnegative
-from ecoli.library.schema import array_to
+from ecoli.library.schema import array_to, array_from
 
 class ProteinDegradation(Process):
     name = 'ecoli-protein-degradation'
@@ -78,9 +78,10 @@ class ProteinDegradation(Process):
         
     def calculate_request(self, timestep, states):
         # Determine how many proteins to degrade based on the degradation rates and counts of each protein
+        protein_data = array_from(states['proteins'])
         nProteinsToDegrade = np.fmin(
-            self.random_state.poisson(self._proteinDegRates() * states['proteins'].values()),
-            states['proteins'].values()
+            self.random_state.poisson(self._proteinDegRates(timestep*2) * protein_data),
+            protein_data
             )
 
         # Determine the number of hydrolysis reactions
@@ -97,8 +98,8 @@ class ProteinDegradation(Process):
     def evolve_state(self, timestep, states):
         # Degrade selected proteins, release amino acids from those proteins back into the cell, 
         # and consume H_2O that is required for the degradation process
-        allocated_proteins = [states['allocated'][protein] 
-                              for protein in states['proteins']]
+        allocated_proteins = np.array([states['allocated'][protein] 
+                              for protein in states['proteins']])
         metabolites_delta = np.dot(
             self.degradation_matrix,
             allocated_proteins).astype(int)
@@ -114,8 +115,8 @@ class ProteinDegradation(Process):
         return update
 
     
-    def _proteinDegRates(self):
-        return self.rawDegRate * self.timeStepSec()
+    def _proteinDegRates(self, timestep):
+        return self.raw_degradation_rate * timestep
 
     def next_update(self, timestep, states):
         proteins = states['proteins']

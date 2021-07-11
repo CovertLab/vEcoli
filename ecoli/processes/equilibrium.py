@@ -60,10 +60,10 @@ class Equilibrium(Process):
         
     def calculate_request(self, timestep, states):
         # Get molecule counts
-        moleculeCounts = states['molecules'].values()
+        moleculeCounts = array_from(states['molecules'])
 
         # Get cell mass and volume
-        cellMass = (states['Mass']['cellMass'] * units.fg).asNumber(units.g)
+        cellMass = (states['listeners']['mass']['cell_mass'] * units.fg).asNumber(units.g)
         cellVolume = cellMass / self.cell_density
 
         # Solve ODEs to steady state
@@ -73,7 +73,7 @@ class Equilibrium(Process):
             )
 
         # Request counts of molecules needed
-        requests = {}
+        requests = {'requested': {}}
         requests['requested'] = array_to(states['molecules'], self.req)
         return requests
         

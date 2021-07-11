@@ -243,9 +243,13 @@ class TranscriptElongation(Process):
 
         # Determine total possible sequences of nucleotides that can be
         # transcribed in this time step for each partial transcript
-        TU_indexes = states['RNAs']['TU_index']
-        transcript_lengths = states['RNAs']['transcript_length']
-        is_full_transcript = states['RNAs']['is_full_transcript']
+        TU_indexes = np.array([rna['TU_index'] for rna in states['RNAs'].values()],
+                              dtype = np.int64)
+        transcript_lengths = np.array([rna['transcript_length'] 
+                                    for rna in states['RNAs'].values()], 
+                                    dtype = np.int64)
+        is_full_transcript = np.array([rna['is_full_transcript'] 
+                              for rna in states['RNAs'].values()])
         is_partial_transcript = np.logical_not(is_full_transcript)
         TU_indexes_partial = TU_indexes[is_partial_transcript]
         transcript_lengths_partial = transcript_lengths[is_partial_transcript]
@@ -308,7 +312,7 @@ class TranscriptElongation(Process):
             'listeners': {
                 'growth_limits': {}}}
 
-        ntpCounts = [states['allocated'][molecule] for molecule in states['ntps']]
+        ntpCounts = np.array([states['allocated'][molecule] for molecule in states['ntps']])
         
         # Determine sequences of RNAs that should be elongated
         is_partial_transcript = np.logical_not(is_full_transcript) # redundant

@@ -70,15 +70,15 @@ class TwoComponentSystem(Process):
         # solver for this setting among the list of solvers that can be used
         # by the scipy ODE suite.
         self.molecules_required, self.all_molecule_changes = self.moleculesToNextTimeStep(
-            moleculeCounts, self.cellVolume, self.nAvogadro,
-            timestep*2, self.randomState, method="LSODA", jit=self.jit,
+            moleculeCounts, self.cellVolume, self.n_avogadro,
+            timestep*2, self.random_state, method="BDF", jit=self.jit,
             )
         requests = {}
         requests['requested'] = array_to(states['molecules'], self.molecules_required)
         return requests
     
     def evolve_state(self, timestep, states):
-        moleculeCounts = array_from(states['molecules'])
+        moleculeCounts = array_from(states['allocated'])
         # Check if any molecules were allocated fewer counts than requested
         if (self.molecules_required > moleculeCounts).any():
             _, self.all_molecule_changes = self.moleculesToNextTimeStep(

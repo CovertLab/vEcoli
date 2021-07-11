@@ -122,11 +122,11 @@ class PolypeptideInitiation(Process):
                     '_emit': True}}}
     
     def calculate_request(self, timestep, states):
-        current_media_id = self['environment']['media_id']
+        current_media_id = states['environment']['media_id']
         
         requests = {}
         requests['requested'] = {subunit: count for (subunit, count) 
-                                 in states['subunits']}
+                                 in states['subunits'].items()}
 
         self.fracActiveRibosome = self.active_ribosome_fraction[current_media_id]
 
@@ -147,6 +147,7 @@ class PolypeptideInitiation(Process):
 
         # Ensure rates are never zero
         self.elongation_rates = np.fmax(self.elongation_rates, 1)
+        return requests
         
         
     def evolve_state(self, timestep, states):
@@ -175,7 +176,7 @@ class PolypeptideInitiation(Process):
         # Calculate actual number of ribosomes that should be activated based
         # on probabilities
         activation_prob = self.calculate_activation_prob(
-            self.active_ribosome_fraction,
+            self.fracActiveRibosome,
             self.protein_lengths,
             self.elongation_rates,
             protein_init_prob,

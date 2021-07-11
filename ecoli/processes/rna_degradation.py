@@ -190,24 +190,27 @@ class RnaDegradation(Process):
             
     def calculate_request(self, timestep, states):
         # Compute factor that convert counts into concentration, and vice versa
-        cell_mass = states['mass']['cell_mass'] * units.fg
+        cell_mass = states['listeners']['mass']['cell_mass'] * units.fg
         cell_volume = cell_mass / self.cell_density
         counts_to_molar = 1 / (self.n_avogadro * cell_volume)
 
         # Get total counts of RNAs including rRNAs, charged tRNAs, and active
         # (translatable) unique mRNAs
-        bulk_RNA_counts = states['bulk_RNAs'].values().copy()
+        bulk_RNA_counts = array_from(states['bulk_RNAs'])
         bulk_RNA_counts[self.rrsaIdx] += states['subunits'][self.ribosome30S]
         bulk_RNA_counts[[self.rrlaIdx, self.rrfaIdx]] += states['subunits'][
             self.ribosome50S]
         bulk_RNA_counts[[self.rrlaIdx, self.rrfaIdx, self.rrsaIdx]] \
             += len(states['active_ribosome'])
         bulk_RNA_counts[self.is_tRNA.astype(np.bool)] \
-            += states['charged_trna'].values()
+            += array_from(states['charged_trna'])
 
-        TU_index = states['RNAs']['TU_index']
-        can_translate = states['RNAs']['can_translate']
-        is_full_transcript = states['RNAs']['is_full_transcript']
+        TU_index = np.array([rna['TU_index'] 
+                             for rna in states['RNAs'].values()])
+        can_translate = np.array([rna['can_translate'] 
+                             for rna in states['RNAs'].values()])
+        is_full_transcript = np.array([rna['is_full_transcript'] 
+                             for rna in states['RNAs'].values()])
          
         TU_index_translatable_mRNAs = TU_index[can_translate]
         unique_RNA_counts = np.bincount(
@@ -218,7 +221,7 @@ class RnaDegradation(Process):
         rna_conc_molar = counts_to_molar * total_RNA_counts
 
         # Get counts of endoRNases
-        endornase_counts = states['endoRnases'].values().copy()
+        endornase_counts = array_from(states['endoRnases'])
         total_kcat_endornase = units.dot(self.KcatEndoRNases, endornase_counts)
 
         # Calculate the fraction of active endoRNases for each RNA based on
@@ -241,14 +244,14 @@ class RnaDegradation(Process):
             )
         endornase_per_rna = total_endornase_counts / np.sum(total_RNA_counts)
         
-        requests = {}
-        requests['listener'].update({"rna_degradation_listener": {
+        requests = {'listeners': {}}
+        requests['listeners'].update({"rna_degradation_listener": {
                                     "fraction_active_endo_rnases": 
                                         np.sum(frac_endornase_saturated)}})
-        requests['listener'].update({"rna_degradation_listener": {
+        requests['listeners'].update({"rna_degradation_listener": {
                                     "diff_relative_first_oder_decay": 
                                         diff_relative_first_order_decay.asNumber()}})
-        requests['listener'].update({"rna_degradation_listener": {
+        requests['listeners'].update({"rna_degradation_listener": {
                                     "fract_endo_rrna_counts": 
                                         endornase_per_rna}})
 
@@ -259,14 +262,17 @@ class RnaDegradation(Process):
             rrna_specificity = np.dot(frac_endornase_saturated, self.is_rRNA)
 
             n_total_mrnas_to_degrade = self._calculate_total_n_to_degrade(
+                timestep*2,
                 mrna_specificity,
                 total_kcat_endornase
                 )
             n_total_trnas_to_degrade = self._calculate_total_n_to_degrade(
+                timestep*2,
                 trna_specificity,
                 total_kcat_endornase
                 )
             n_total_rrnas_to_degrade = self._calculate_total_n_to_degrade(
+                timestep*2,
                 rrna_specificity,
                 total_kcat_endornase
                 )
@@ -346,7 +352,7 @@ class RnaDegradation(Process):
         waterForNewRnas = np.dot(
             n_bulk_RNAs_to_degrade + self.n_unique_RNAs_to_degrade,
             self.rna_lengths)
-        waterForLeftOverFragments = states['fragmentBases'].values().sum()
+        waterForLeftOverFragments = array_from(states['fragmentBases']).sum()
         requests['requested'].update({self.water_id: waterForNewRnas + 
                                       waterForLeftOverFragments})
         return requests
@@ -354,8 +360,8 @@ class RnaDegradation(Process):
     def evolve_state(self, timestep, states):
         ## wcEcoli evolveState
         # Get vector of numbers of RNAs to degrade for each RNA species
-        n_degraded_bulk_RNA = [states['allocated'][molecule] 
-                               for molecule in states['bulk_RNAs']]
+        n_degraded_bulk_RNA = np.array([states['allocated'][molecule] 
+                               for molecule in states['bulk_RNAs']])
         n_degraded_unique_RNA = self.n_unique_RNAs_to_degrade
         n_degraded_RNA = n_degraded_bulk_RNA + n_degraded_unique_RNA
         
@@ -422,8 +428,8 @@ class RnaDegradation(Process):
             metabolitesEndoCleavage)
 
         # Check if exonucleolytic digestion can happen 
-        fragmentBases = [states['allocated'][molecule] 
-                         for molecule in states['fragmentBases']]
+        fragmentBases = np.array([states['allocated'][molecule] 
+                         for molecule in states['fragmentBases']])
         if fragmentBases.sum() == 0:
             return update
 
@@ -440,8 +446,8 @@ class RnaDegradation(Process):
         # 3 NMP + 3 H(+)
         # Note: Lack of -OH on 3' end of chain
 
-        n_exoRNases = [states['allocated'][molecule] 
-                         for molecule in states['ecoRnases']]
+        n_exoRNases = np.array([states['allocated'][molecule] 
+                         for molecule in states['exoRnases']])
         n_fragment_bases = fragmentBases
         n_fragment_bases_sum = n_fragment_bases.sum()
 

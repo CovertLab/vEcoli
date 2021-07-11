@@ -124,11 +124,11 @@ class ChromosomeReplication(Process):
 
     def calculate_request(self, timestep, states):
         # Get total count of existing oriC's
-        n_oric = len(states['oriC'])
-    
+        n_oric = len(states['oriCs'])
+        requests = {'requested': {}}
 		# If there are no origins, return immediately
         if n_oric == 0:
-            return {}
+            return requests
         
         # Get current cell mass
         cellMass = (states['listeners']['mass']['cell_mass'] * units.fg)
@@ -148,21 +148,20 @@ class ChromosomeReplication(Process):
         # If replication should be initiated, request subunits required for
         # building two replisomes per one origin of replication, and edit
         # access to oriC and chromosome domain attributes
-        requests = {}
         if self.criticalMassPerOriC >= 1.0:
             requests['requested'] = {rep_trimer: 6*n_oric 
-                                   for rep_trimer in states['replisome_timer']}
+                                   for rep_trimer in states['replisome_trimer']}
             requests['requested'].update({rep_monomer: 2*n_oric for rep_monomer 
                                         in states['replisome_monomer']})
 
         # If there are no active forks return
         n_active_replisomes = len(states['active_replisomes'])
         if n_active_replisomes == 0:
-            return {}
+            return requests
 
         # Get current locations of all replication forks
         fork_coordinates = [active_rep['coordinates'] 
-                            for active_rep in states['active_replisomes']]
+                            for active_rep in states['active_replisomes'].values()]
         sequence_length = np.abs(np.repeat(fork_coordinates, 2))
 
         self.elongation_rates = self.make_elongation_rates(
@@ -187,8 +186,8 @@ class ChromosomeReplication(Process):
         maxFractionalReactionLimit = (np.fmin(1, dNtpsTotal / sequenceComposition)).min()
 
         # Request dNTPs
-        requests['requested'].update({dntp: maxFractionalReactionLimit \
-            * sequenceComposition for dntp in states['dntps']})
+        requests['requested'].update(array_to(states['dntps'], maxFractionalReactionLimit
+            * sequenceComposition))
 
         return requests
         
@@ -217,7 +216,7 @@ class ChromosomeReplication(Process):
 
         # If there are no origins, return immediately
         if n_oriC == 0:
-            return {}
+            return update
 
         # Get attributes of existing chromosome domains
         domain_index_existing_domain, child_domains = arrays_from(
@@ -229,19 +228,21 @@ class ChromosomeReplication(Process):
         # # Get number of available replisome subunits
         # n_replisome_trimers = self.replisome_trimers.counts()
         # n_replisome_monomers = self.replisome_monomers.counts()
-        n_replisome_trimers = [states['allocated'][molecule]
-                               for molecule in states['replisome_trimers']]
-        n_replisome_monomers = [states['allocated'][molecule]
-                               for molecule in states['replisome_monomers']]
-
+        
         # Initiate replication only when
         # 1) The cell has reached the critical mass per oriC
         # 2) If mechanistic replisome option is on, there are enough replisome
         # subunits to assemble two replisomes per existing OriC.
         # Note that we assume asynchronous initiation does not happen.
-        initiate_replication = self.criticalMassPerOriC >= 1.0 and (
-                not self.mechanistic_replisome or (np.all(n_replisome_trimers == 6 * n_oriC) and
-                                                   np.all(n_replisome_monomers == 2 * n_oriC)))
+        initiate_replication = False
+        if self.criticalMassPerOriC >= 1.0:
+            n_replisome_trimers = np.array([states['allocated'][molecule]
+                                for molecule in states['replisome_trimers']])
+            n_replisome_monomers = np.array([states['allocated'][molecule]
+                                for molecule in states['replisome_monomers']])
+            initiate_replication = (not self.mechanistic_replisome or 
+                                    (np.all(n_replisome_trimers == 6 * n_oriC) and
+                                    np.all(n_replisome_monomers == 2 * n_oriC)))
 
         # If all conditions are met, initiate a round of replication on every
         # origin of replication
@@ -358,10 +359,10 @@ class ChromosomeReplication(Process):
         # Note: the new replication forks added in the previous module are not
         # elongated until the next timestep.
         if n_active_replisomes == 0:
-            return {}
+            return update
 
         # Get allocated counts of dNTPs
-        dNtpCounts = [states['allocated'][molecule] for molecule in states['dntps']]
+        dNtpCounts = np.array([states['allocated'][molecule] for molecule in states['dntps']])
         # dNtpCounts = self.dntps.counts()
 
         # Get attributes of existing replisomes

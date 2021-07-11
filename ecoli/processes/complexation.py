@@ -52,7 +52,7 @@ class Complexation(Process):
         result = self.system.evolve(
             timestep*2, moleculeCounts, self.rates)
         updatedMoleculeCounts = result['outcome']
-        requests = {}
+        requests = {'requested': {}}
         requests['requested'] = array_to(states['molecules'], np.fmax(
             moleculeCounts - updatedMoleculeCounts, 0))
         return requests

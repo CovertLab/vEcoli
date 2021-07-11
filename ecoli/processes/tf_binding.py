@@ -314,8 +314,7 @@ class TfBinding(Process):
             # This does not affect the update dictionary at t=2 but DOES later
             # TODO: Implement paritioning assumption
             active_tf_counts = tf_count + bound_tf_counts
-            n_available_active_tfs = states.get(
-                'allocated', {active_tf_key: active_tf_counts})[active_tf_key]
+            n_available_active_tfs = active_tf_counts
 
             # Determine the number of available promoter sites
             available_promoters = np.isin(TU_index, self.TF_to_TU_idx[tf_id])
