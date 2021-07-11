@@ -11,6 +11,7 @@ from vivarium.core.composer import Composer
 from vivarium.core.engine import pp, Engine
 from vivarium.plots.topology import plot_topology
 from vivarium.library.topology import assoc_path
+from vivarium.library.dict_utils import deep_merge
 
 # sim data
 from ecoli.library.sim_data import LoadSimData
@@ -256,12 +257,24 @@ class Ecoli(Composer):
 
 def run_ecoli(
         total_time=10,
+        config=None,
         divide=False,
+        progress_bar=True,
         blame=False,
 ):
-    # configure ecoli composer
+    """Run ecoli_master simulations
+
+    Arguments: TODO -- complete the arguments docstring
+        * **total_time** (:py:class:`int`): the total runtime of the experiment
+        * **config** (:py:class:`dict`):
+
+    Returns:
+        * output data
+    """
+    # make the ecoli config dictionary
     agent_id = '0'
     ecoli_config = {
+        'blame': blame,
         'agent_id': agent_id,
         # TODO -- remove schema override once values don't go negative
         '_schema': {
@@ -270,24 +283,12 @@ def run_ecoli(
                     'PD00413[c]': {'_updater': 'nonnegative_accumulate'}
                 }
             },
-            'rna_degradation': {
-                'bulk_RNAs': {
-                    rna_id: {'_updater': 'nonnegative_accumulate'}
-                    for rna_id in [
-                        'EG10316_RNA[c]', 'EG10321_RNA[c]', 'EG10367_RNA[c]', 'EG10408_RNA[c]', 'EG10455_RNA[c]',
-                        'EG10495_RNA[c]', 'EG10540_RNA[c]', 'EG10570_RNA[c]', 'EG10669_RNA[c]', 'EG10805_RNA[c]',
-                        'EG10872_RNA[c]', 'EG10874_RNA[c]', 'EG10879_RNA[c]', 'EG10883_RNA[c]', 'EG10888_RNA[c]',
-                        'EG10891_RNA[c]', 'EG10900_RNA[c]', 'EG10904_RNA[c]', 'EG10907_RNA[c]', 'EG10912_RNA[c]',
-                        'EG10918_RNA[c]', 'EG11390_RNA[c]', 'EG11479_RNA[c]', 'EG11506_RNA[c]', 'EG11554_RNA[c]',
-                        'EG11673_RNA[c]', 'EG11699_RNA[c]', 'EG12099_RNA[c]', 'EG12179_RNA[c]', 'EG12341_RNA[c]',
-                        'G7347_RNA[c]', 'G7748_RNA[c]', 'EG10875_RNA[c]', 'EG10882_RNA[c]', 'EG10887_RNA[c]',
-                        'EG10911_RNA[c]', 'EG10913_RNA[c]', 'EG11314_RNA[c]', 'EG11666_RNA[c]', 'EG12111_RNA[c]',
-                        'EG50002_RNA[c]', 'G6562_RNA[c]']
-                }
-            }
         },
-        'blame': blame
     }
+    if config:
+        ecoli_config = deep_merge(ecoli_config, config)
+
+    # initialize the ecoli composer
     ecoli_composer = Ecoli(ecoli_config)
 
     # set path at which agent is initialized
@@ -306,7 +307,7 @@ def run_ecoli(
         'processes': ecoli.processes,
         'topology': ecoli.topology,
         'initial_state': initial_state,
-        'progress_bar': True,
+        'progress_bar': progress_bar,
     })
 
     # run the experiment
@@ -315,13 +316,29 @@ def run_ecoli(
     # retrieve the data
     output = ecoli_experiment.emitter.get_timeseries()
 
-    if divide:
-        output = output['agents'][agent_id]
-
-    # print mass output
-    pp(output['listeners']['mass'])
+    # import ipdb;
+    # ipdb.set_trace()
 
     return output
+
+
+def test_division():
+
+    # TODO -- unique molecules need to be divided between daughter cells!!! This can get sophisticated
+
+    config = {
+        'division': {
+            'condition_config': {
+                'threshold': 1170}}}
+    output = run_ecoli(
+        total_time=30,
+        divide=True,
+        config=config,
+        progress_bar=False,
+    )
+
+    # import ipdb;
+    # ipdb.set_trace()
 
 
 def ecoli_topology_plot(config={}, filename=None, out_dir=None):
@@ -337,24 +354,40 @@ def ecoli_topology_plot(config={}, filename=None, out_dir=None):
     return topo_plot
 
 
+test_library = {
+    '0': run_ecoli,
+    '1': test_division,
+}
+
+
 def main():
     out_dir = os.path.join('out', 'ecoli_master')
     if not os.path.exists(out_dir):
         os.makedirs(out_dir)
 
     parser = argparse.ArgumentParser(description='ecoli_master')
-    parser.add_argument('-topology', '-t', action='store_true', default=False,
-                        help='save a topology plot of ecoli master')
-    parser.add_argument('-divide', '-v', action='store_true', default=False,
-                        help='set ecoli to divide')
-    parser.add_argument('-blame', '-b', action='store_true', default=False,
-                        help='when running simulation, create a report of which processes affected which molecules')
-    parser.add_argument('-debug', '-d', action='store_true', default=False,
-                        help='run tests, generating a report of failures/successes')
+    parser.add_argument(
+        '--name', '-n', default=[], nargs='+',
+        help='test ids to run')
+    parser.add_argument(
+        '--topology', '-t', action='store_true', default=False,
+        help='save a topology plot of ecoli master')
+    parser.add_argument(
+        '--divide', '-v', action='store_true', default=False,
+        help='set ecoli to divide')
+    parser.add_argument(
+        '--blame', '-b', action='store_true', default=False,
+        help='when running simulation, create a report of which processes affected which molecules')
+    parser.add_argument(
+        '--debug', '-d', action='store_true', default=False,
+        help='run tests, generating a report of failures/successes')
     args = parser.parse_args()
 
     if args.topology:
         ecoli_topology_plot(filename='ecoli_master', out_dir=out_dir)
+    elif args.name:
+        for name in args.name:
+            test_library[name]()
     else:
         output = run_ecoli(
             divide=args.divide,
