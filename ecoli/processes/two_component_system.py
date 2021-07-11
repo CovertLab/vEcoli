@@ -55,6 +55,40 @@ class TwoComponentSystem(Process):
             'listeners': {
                 'mass': {
                     'cell_mass': {'_default': 0}}}}
+        
+        
+    def calculate_request(self, timestep, states):
+        # Get molecule counts
+        moleculeCounts = array_from(states['molecules'])
+
+        # Get cell mass and volume
+        cellMass = (states['listeners']['mass']['cell_mass'] * units.fg).asNumber(units.g)
+        self.cellVolume = cellMass / self.cell_density
+
+        # Solve ODEs to next time step using the BDF solver through solve_ivp.
+        # Note: the BDF solver has been empirically tested to be the fastest
+        # solver for this setting among the list of solvers that can be used
+        # by the scipy ODE suite.
+        self.molecules_required, self.all_molecule_changes = self.moleculesToNextTimeStep(
+            moleculeCounts, self.cellVolume, self.nAvogadro,
+            timestep*2, self.randomState, method="LSODA", jit=self.jit,
+            )
+        requests = {}
+        requests['requested'] = array_to(states['molecules'], self.molecules_required)
+        return requests
+    
+    def evolve_state(self, timestep, states):
+        moleculeCounts = array_from(states['molecules'])
+        # Check if any molecules were allocated fewer counts than requested
+        if (self.molecules_required > moleculeCounts).any():
+            _, self.all_molecule_changes = self.moleculesToNextTimeStep(
+                moleculeCounts, self.cellVolume, self.n_avogadro,
+                10000, self.random_state, method="BDF", min_time_step=timestep,
+                jit=self.jit)
+        # Increment changes in molecule counts
+        update = {'molecules': array_to(self.moleculeNames, 
+                                        self.all_molecule_changes.astype(int))}
+        return update
 
     def next_update(self, timestep, states):
         # Get molecule counts
@@ -85,6 +119,3 @@ class TwoComponentSystem(Process):
             'molecules': array_to(self.moleculeNames, self.all_molecule_changes.astype(int))}
 
         return update
-    
-    def calculate_request(self, timestep, states):
-        return {}

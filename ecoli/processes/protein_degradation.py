@@ -14,7 +14,7 @@ from vivarium.core.process import Process
 from vivarium.core.composition import simulate_process
 
 from ecoli.library.data_predicates import monotonically_increasing, monotonically_decreasing, all_nonnegative
-
+from ecoli.library.schema import array_to
 
 class ProteinDegradation(Process):
     name = 'ecoli-protein-degradation'
@@ -75,6 +75,47 @@ class ProteinDegradation(Process):
                     '_default': 0,
                     '_emit': True}
                 for protein in self.protein_ids}}
+        
+    def calculate_request(self, timestep, states):
+        # Determine how many proteins to degrade based on the degradation rates and counts of each protein
+        nProteinsToDegrade = np.fmin(
+            self.random_state.poisson(self._proteinDegRates() * states['proteins'].values()),
+            states['proteins'].values()
+            )
+
+        # Determine the number of hydrolysis reactions
+        # TODO: Missing asNumber() and other unit-related things
+        nReactions = np.dot(self.protein_lengths, nProteinsToDegrade)
+
+        # Determine the amount of water required to degrade the selected proteins
+        # Assuming one N-1 H2O is required per peptide chain length N
+        requests = {}
+        requests['requested'] = {self.water_id: nReactions - np.sum(nProteinsToDegrade)}
+        requests['requested'].update(array_to(states['proteins'], nProteinsToDegrade))
+        return requests
+        
+    def evolve_state(self, timestep, states):
+        # Degrade selected proteins, release amino acids from those proteins back into the cell, 
+        # and consume H_2O that is required for the degradation process
+        allocated_proteins = [states['allocated'][protein] 
+                              for protein in states['proteins']]
+        metabolites_delta = np.dot(
+            self.degradation_matrix,
+            allocated_proteins).astype(int)
+
+        update = {
+            'metabolites': {
+                metabolite: metabolites_delta[index]
+                for index, metabolite in enumerate(self.metabolite_ids)},
+            'proteins': {
+                protein: -allocated_proteins[index]
+                for index, protein in enumerate(states['proteins'])}}
+
+        return update
+
+    
+    def _proteinDegRates(self):
+        return self.rawDegRate * self.timeStepSec()
 
     def next_update(self, timestep, states):
         proteins = states['proteins']
@@ -112,10 +153,6 @@ class ProteinDegradation(Process):
                 for index, protein in enumerate(proteins.keys())}}
 
         return update
-
-    def calculate_request(self, timestep, states):
-        return {}
-
 
 def test_protein_degradation():
     test_config = {

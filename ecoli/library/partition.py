@@ -4,24 +4,6 @@ from ecoli.library.logging import make_logging_process
 # partitioning
 from ecoli.processes.partition import Partition
 
-process_priorities = {
-    10: ['protein_degradation'],
-    0: ['transcript_initiation',
-        'transcript_elongation',
-        'rna_degradation',
-        'polypeptide_initiation',
-        'polypeptide_elongation',
-        'complexation',
-        'equilibrium',
-        'chromosome_replication',
-        'mass',
-        'divide_condition',
-        'partition'],
-    -5: ['two_component_system'],
-    -10:['tf_binding',
-        'metabolism'],
-}
-
 def generate_partition_proc(blame, proc_conf, ECOLI_PROCESSES, timestep):
     """
     Replaces default generate_processes function in composer to
@@ -118,10 +100,10 @@ def make_partition_proc(process_class):
                 if 'tf_binding' in states['requested']:
                     return super().calculate_request(timestep, states)
                 return {}
-            return super().next_update(timestep, states)
+            return super().eveolve_state(timestep, states)
         elif not (states['timesteps']%2):
             # IMPORTANT: Run update with full timestep (not halved)
-            return super().next_update(timestep*2, states)
+            return super().evolve_state(timestep*2, states)
         return super().calculate_request(timestep, states)
 
     partition_process.ports_schema = ports_schema
