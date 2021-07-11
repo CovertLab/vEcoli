@@ -39,7 +39,7 @@ class Partition(Deriver):
     def calculate_request(self, timestep, states):
         return {'timesteps': 1}
 
-    def next_update(self, timestep, states):
+    def evolve_state(self, timestep, states):
         # Find intersection between two lists
         def intersection(lst1, lst2):
             temp = set(lst2)

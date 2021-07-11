@@ -14,6 +14,8 @@ from arrow import StochasticSystem
 from vivarium.core.process import Process
 from vivarium.core.composition import simulate_process
 
+from ecoli.library.schema import array_to, array_from
+
 # Maximum unsigned int value + 1 for randint() to seed srand from C stdlib
 RAND_MAX = 2**31
 
@@ -43,6 +45,38 @@ class Complexation(Process):
                     '_default': 0,
                     '_emit': True}
                 for molecule in self.molecule_names}}
+        
+    def calculate_request(self, timestep, states):
+        moleculeCounts = array_from(states['molecules'])
+
+        result = self.system.evolve(
+            timestep*2, moleculeCounts, self.rates)
+        updatedMoleculeCounts = result['outcome']
+        requests = {}
+        requests['requested'] = array_to(states['molecules'], np.fmax(
+            moleculeCounts - updatedMoleculeCounts, 0))
+        return requests
+        
+    def evolve_state(self, timestep, states):
+        molecules = {molecule: states['allocated'][molecule] 
+                     for molecule in self.molecule_names}
+
+        substrate = np.zeros(len(molecules), dtype=np.int64)
+        for index, molecule in enumerate(self.molecule_names):
+            substrate[index] = molecules[molecule]
+
+        result = self.system.evolve(timestep, substrate, self.rates)
+        outcome = result['outcome'] - substrate
+
+        molecules_update = array_to(self.molecule_names, outcome)
+
+        update = {
+            'molecules': molecules_update}
+
+        # # Write outputs to listeners
+        # self.writeToListener("ComplexationListener", "complexationEvents", events)
+
+        return update
 
     def next_update(self, timestep, states):
         molecules = states['molecules']
@@ -66,9 +100,6 @@ class Complexation(Process):
 
         return update
     
-    def calculate_request(self, timestep, states):
-        return {}
-
 
 def test_complexation():
     test_config = {
