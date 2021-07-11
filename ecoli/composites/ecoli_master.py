@@ -10,6 +10,7 @@ import argparse
 from vivarium.core.composer import Composer
 from vivarium.core.engine import pp, Engine
 from vivarium.plots.topology import plot_topology
+from vivarium.library.topology import assoc_path
 
 # sim data
 from ecoli.library.sim_data import LoadSimData
@@ -171,10 +172,10 @@ class Ecoli(Composer):
         'sim_data_path': SIM_DATA_PATH,
         'daughter_path': tuple(),
         'agent_id': '0',
-        'agents_path': ('agents',),  # TODO -- this needs to be ('..', '..', 'agents',),
+        'agents_path': ('..', '..', 'agents',),
         'division': {
             'condition_config': {
-                'threshold': 2220}},  # fg
+                'threshold': 1170}},  # 2220 fg
         'divide': True,
         'blame': False,
     }
@@ -186,8 +187,11 @@ class Ecoli(Composer):
             sim_data_path=self.config['sim_data_path'],
             seed=self.config['seed'])
 
-    def initial_state(self, config=None):
-        return get_state_from_file()
+    def initial_state(self, config=None, path=()):
+        initial_state = get_state_from_file()
+        embedded_state = {}
+        assoc_path(embedded_state, path, initial_state)
+        return embedded_state
 
     def generate_processes(self, config):
         time_step = config['time_step']
@@ -250,10 +254,15 @@ class Ecoli(Composer):
         return topology
 
 
-def run_ecoli(blame=False, total_time=10):
-    # configure the composer
+def run_ecoli(
+        total_time=10,
+        divide=False,
+        blame=False,
+):
+    # configure ecoli composer
+    agent_id = '0'
     ecoli_config = {
-        'agent_id': '1',
+        'agent_id': agent_id,
         # TODO -- remove schema override once values don't go negative
         '_schema': {
             'equilibrium': {
@@ -266,11 +275,18 @@ def run_ecoli(blame=False, total_time=10):
     }
     ecoli_composer = Ecoli(ecoli_config)
 
+    # set path at which agent is initialized
+    path = tuple()
+    if divide:
+        path = ('agents', agent_id,)
+
     # get initial state
-    initial_state = get_state_from_file()
+    initial_state = ecoli_composer.initial_state(path=path)
+
+    # generate the composite at the path
+    ecoli = ecoli_composer.generate(path=path)
 
     # make the experiment
-    ecoli = ecoli_composer.generate()
     ecoli_experiment = Engine({
         'processes': ecoli.processes,
         'topology': ecoli.topology,
@@ -283,6 +299,9 @@ def run_ecoli(blame=False, total_time=10):
 
     # retrieve the data
     output = ecoli_experiment.emitter.get_timeseries()
+
+    if divide:
+        output = output['agents'][agent_id]
 
     # separate data by port
     bulk = output['bulk']
@@ -319,6 +338,8 @@ def main():
     parser = argparse.ArgumentParser(description='ecoli_master')
     parser.add_argument('-topology', '-t', action='store_true', default=False,
                         help='save a topology plot of ecoli master')
+    parser.add_argument('-divide', '-v', action='store_true', default=False,
+                        help='set ecoli to divide')
     parser.add_argument('-blame', '-b', action='store_true', default=False,
                         help='when running simulation, create a report of which processes affected which molecules')
     parser.add_argument('-debug', '-d', action='store_true', default=False,
@@ -328,11 +349,15 @@ def main():
     if args.topology:
         ecoli_topology_plot(filename='ecoli_master', out_dir=out_dir)
     else:
+        output = run_ecoli(
+            divide=args.divide,
+            blame=args.blame,
+            )
+
         if args.debug:
-            output = run_ecoli(args.blame)
             #assertions(output)
-        else:
-            output = run_ecoli(args.blame)
+            pass
+
 
 if __name__ == '__main__':
     main()
