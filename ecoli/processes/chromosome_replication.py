@@ -16,7 +16,6 @@ from wholecell.utils import units
 from wholecell.utils.polymerize import buildSequences, polymerize, computeMassIncrease
 
 
-
 class ChromosomeReplication(Process):
 
     name = 'ecoli-chromosome_replication'
@@ -168,7 +167,7 @@ class ChromosomeReplication(Process):
             self.random_state,
             len(self.sequences),
             self.basal_elongation_rate,
-            timestep*2)
+            timestep)
 
         sequences = buildSequences(
             self.sequences,
@@ -546,6 +545,8 @@ class ChromosomeReplication(Process):
                 # update['replisome_monomers'] = replisomes_to_delete.sum()
                 # self.replisome_trimers.countsInc(3 * replisomes_to_delete.sum())
                 # self.replisome_monomers.countsInc(replisomes_to_delete.sum())
+                
+        update['requested'] = {molecule: 0 for molecule in states['requested']}
 
         return update
 

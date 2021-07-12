@@ -88,6 +88,7 @@ class TwoComponentSystem(Process):
         # Increment changes in molecule counts
         update = {'molecules': array_to(self.moleculeNames, 
                                         self.all_molecule_changes.astype(int))}
+        update['requested'] = {molecule: 0 for molecule in states['requested']}
         return update
 
     def next_update(self, timestep, states):
@@ -117,5 +118,4 @@ class TwoComponentSystem(Process):
         # Increment changes in molecule counts
         update = {
             'molecules': array_to(self.moleculeNames, self.all_molecule_changes.astype(int))}
-
         return update

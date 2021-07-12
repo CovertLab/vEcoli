@@ -283,6 +283,9 @@ class TranscriptInitiation(Process):
                     'rnaInitEvent': 0})}}
         
     def calculate_request(self, timestep, states):
+        from copy import deepcopy
+        from migration.dict_compare import recursive_compare
+        states_copy = deepcopy(states)
         # Migration: save factors influencing promoter initiation probabilities
         self.probability_factors = {}
 
@@ -494,6 +497,8 @@ class TranscriptInitiation(Process):
         update['listeners']['rnap_data'] = {
             'didInitialize': n_RNAPs_to_activate,
             'rnaInitEvent': TU_to_promoter.dot(n_initiations)}
+        
+        update['requested'] = {molecule: 0 for molecule in states['requested']}
 
         return update
 

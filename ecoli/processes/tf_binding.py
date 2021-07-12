@@ -252,6 +252,8 @@ class TfBinding(Process):
                 'nActualBound': nActualBound,
                 'n_available_promoters': n_promoters,
                 'n_bound_TF_per_TU': n_bound_TF_per_TU}}
+        
+        update['requested'] = {molecule: 0 for molecule in states['requested']}
 
         return update
     

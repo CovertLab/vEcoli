@@ -234,7 +234,7 @@ class TranscriptElongation(Process):
         self.elongation_rates = self.make_elongation_rates(
             self.random_state,
             self.rnapElongationRate,
-            timestep*2,
+            timestep,
             self.variable_elongation)
 
         # If there are no active RNA polymerases, return immediately
@@ -553,6 +553,8 @@ class TranscriptElongation(Process):
             "terminationLoss": (terminal_lengths - length_partial_RNAs)[
                 did_terminate_mask].sum(),
             "didStall": n_total_stalled}
+        
+        update['requested'] = {molecule: 0 for molecule in states['requested']}
 
         return update
 

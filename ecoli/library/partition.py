@@ -1,10 +1,13 @@
 # logging
+from ecoli.processes.metabolism_evolve import MetabolismEvolve
+from ecoli.processes.metabolism_request import MetabolismRequest
 from ecoli.library.logging import make_logging_process
 
 # partitioning
 from ecoli.processes.partition import Partition
 
-def generate_partition_proc(blame, proc_conf, ECOLI_PROCESSES, timestep):
+def generate_partition_proc(blame, proc_conf, ECOLI_PROCESSES, timestep, 
+                            random_state):
     """
     Replaces default generate_processes function in composer to
     utilize partition process wrapper make_partition_proc
@@ -14,24 +17,44 @@ def generate_partition_proc(blame, proc_conf, ECOLI_PROCESSES, timestep):
         proc_conf (dict): Configuration paramaters for all processes
         ECOLI_PROCESSES (dict): Map process names to process classes
         timestep (float): Base time to increment between updates
+        random_state (numpy.random.RandomState): Used to generate seed
+            for partitioning
 
     Returns:
         Dict: All instantiated and configured processes
     """
-    partition_proc = {
+    partition_conf = {'time_step': timestep/2,
+                      'molecule_names': list(proc_conf['mass'][
+                          'molecular_weights'].keys()),
+                      'proc_names': list(proc_conf.keys()),
+                      'seed': random_state.randint(2**31)}
+    partition = {
         'partition': make_partition_proc(Partition)(
-            {'time_step': timestep/2})}
+            partition_conf)}
+    metabolism_partition = {
+        'metabolism_partition': make_partition_proc(Partition)(
+            partition_conf)}
     for process in proc_conf.keys():
         proc_conf[process]['time_step'] = timestep/2
+    metabolism_request = {
+        'metabolism_request': make_partition_proc(MetabolismRequest)(
+            proc_conf['metabolism'])}
+    metabolism = {
+        'metabolism': make_partition_proc(MetabolismEvolve)(
+        proc_conf['metabolism'])}
     procs = {
         proc_name: make_partition_proc(proc)(proc_conf[proc_name])
-        for (proc_name, proc) in ECOLI_PROCESSES.items()}
+        for (proc_name, proc) in ECOLI_PROCESSES.items()
+        # Removing polypeptide elongation makes dry mass updates reasonable
+        # if proc_name != 'polypeptide_elongation'}
+        if proc_name not in ['metabolism', 'polypeptide_elongation']}
+        
     if blame:
         procs = {
             proc_name: make_logging_process(proc)
             for (proc_name, proc) in procs.items()
         }
-    all_procs = {**partition_proc, **procs}
+    all_procs = {**partition, **metabolism_request, **metabolism_partition, **metabolism, **procs}
     return all_procs
 
 def make_partition_proc(process_class):
@@ -63,12 +86,13 @@ def make_partition_proc(process_class):
 
         Returns:
             Dict: Updated ports schema
-        """
-        # get the original port structure
-        ports = super().ports_schema()  
+        """ 
+        ports = {}
         ports['requested'] = {'_default' : {}, '_updater': 'set', '_emit': True}
         ports['allocated'] = {'_default' : {}, '_updater': 'set', '_emit': True}
         ports['timesteps'] = {'_default' : 0, '_emit': True}
+        # get the original port structure
+        ports.update(super().ports_schema())
         return ports
 
     def next_update(self, timestep, states):
@@ -80,7 +104,7 @@ def make_partition_proc(process_class):
         Partition: increment elapsed timestep every hTS starting from 0, 
             partition every 2 hTS starting from 1 hTS
         Other derivers: update states every 2 hTS starting from 0
-        Processes: calculate requests every 2 hT starting from 1 hTS,
+        Processes: calculate requests every 2 hTS starting from 1 hTS,
             evolve state every 2 hTS starting from 2 hTS
 
         Args:
@@ -90,20 +114,19 @@ def make_partition_proc(process_class):
         Returns:
             Dict: Next update (can be empty, only elapsed timesteps, etc.)
         """
+        fixes = ['partition', 'ecoli-metabolism', 'ecoli-metabolism-request']
         # Derivers have 0 timestep, run at end of every timestep (inc. t=0),
         # and update states immediately after running
-        if timestep==0:
+        if timestep == 0:
             if not (states['timesteps']%2):
-                # Only Partition can see bulk totals
-                if 'totals' in states:
-                    return super().calculate_request(timestep, states)
-                return {}
-            return super().next_update(timestep, states)
-        elif not (states['timesteps']%2):
+                if self.name in fixes:
+                    if states['timesteps'] != 0:
+                        return super().calculate_request(2, states)
+            return super().next_update(2, states)
+        if not (states['timesteps']%2):
             # IMPORTANT: Run update with full timestep (not halved)
             return super().evolve_state(timestep*2, states)
-        return super().calculate_request(timestep, states)
-        #return super().next_update(timestep, states)
+        return super().calculate_request(timestep*2, states)
 
     partition_process.ports_schema = ports_schema
     partition_process.next_update = next_update
@@ -122,7 +145,6 @@ def generate_partition_topology(blame, ECOLI_TOPOLOGY):
     Returns:
         Dict: Completely wired process/store topology for partitioning
     """
-    #topology = deepcopy(ECOLI_TOPOLOGY)
     proc_topo = {}
     for proc_id in ECOLI_TOPOLOGY:
         proc_topo[proc_id] = {}
@@ -132,15 +154,28 @@ def generate_partition_topology(blame, ECOLI_TOPOLOGY):
         if proc_id not in ['mass', 'divide_condition']:
             proc_topo[proc_id]['requested'] = ('partitioning', 'requested', proc_id)
             proc_topo[proc_id]['allocated'] = ('partitioning', 'allocated', proc_id)
-
-        
         
     partition_topo = {'totals': ('bulk',),
                       'requested': ('partitioning', 'requested',),
                       'allocated': ('partitioning', 'allocated',),
                       'timesteps': ('partitioning', 'timesteps')}
-        
-    total = {'partition': partition_topo, **proc_topo}
-        
+    metabolism_partition_topo = {'totals': ('bulk',),
+                      'requested': ('partitioning', 'requested'),
+                      'allocated': ('partitioning', 'allocated',),
+                      'timesteps': ('partitioning', 'timesteps')}
+    metabolism_request_topo = {
+                            'metabolites': ('bulk',),
+                            'catalysts': ('bulk',),
+                            'kinetics_enzymes': ('bulk',),
+                            'kinetics_substrates': ('bulk',),
+                            'requested': ('partitioning', 'requested', 'metabolism'),
+                            'allocated': ('partitioning', 'allocated', 'metabolism'),
+                            'timesteps': ('partitioning', 'timesteps'),
+                            }
+    
+    total = {'partition': partition_topo,
+             'metabolism_partition': metabolism_partition_topo,
+             'metabolism_request': metabolism_request_topo,
+             **proc_topo}
     return total
     
