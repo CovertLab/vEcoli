@@ -9,6 +9,22 @@ from typing import Any, Dict
 from vivarium.core.process import Deriver
 
 
+def divide_by_domain(state, **args):
+    """
+    divide a dictionary into two daughters based on their domain_index
+    """
+    daughter1 = {}
+    daughter2 = {}
+    for state_id, value in state.items():
+        domain_index = value['domain_index']
+        if domain_index == 1:
+            daughter1[state_id] = value
+        elif domain_index == 2:
+            daughter2[state_id] = value
+            daughter2[state_id]['domain_index'] = 1
+    return [daughter1, daughter2]
+
+
 def daughter_phylogeny_id(mother_id):
     return [
         str(mother_id) + '0',
