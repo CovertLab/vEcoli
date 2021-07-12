@@ -463,7 +463,9 @@ class PolypeptideElongation(Process):
         # TODO: use something other than a class attribute to pass aa diff to metabolism
         # TODO: Why is aa_counts_for_translation is used here instead of total_aa_counts?
         net_charged, aa_count_diff, evolve_update = self.elongation_model.evolve(
+            timestep,
             states['amino_acids'].keys(),
+            {},
             total_aa_counts,
             aas_used,
             next_amino_acid_count,
