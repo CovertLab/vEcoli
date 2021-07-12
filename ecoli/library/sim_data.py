@@ -310,7 +310,11 @@ class LoadSimData:
         return complexation_config
 
     def get_two_component_system_config(self, time_step=2, parallel=False, random_seed=None):
-        # stoichI = self.sim_data.process.two_component_system._stoichI
+        """
+        stoichI = self.sim_data.process.two_component_system._stoichMatrixI
+        stoichJ = self.sim_data.process.two_component_system._stoichMatrixJ
+        stoichV = self.sim_data.process.two_component_system._stoichMatrixV
+        """
         # import ipdb; ipdb.set_trace()
         two_component_system_config = {
             'time_step': time_step,
@@ -323,6 +327,7 @@ class LoadSimData:
             'moleculeNames': self.sim_data.process.two_component_system.molecule_names,
             'seed': random_seed or self.random_state.randint(RAND_MAX)}
 
+        #return two_component_system_config, stoichI, stoichJ, stoichV
         return two_component_system_config
 
     def get_equilibrium_config(self, time_step=2, parallel=False):
