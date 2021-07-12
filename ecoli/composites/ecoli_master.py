@@ -219,7 +219,9 @@ class Ecoli(Composer):
         }
         
         if config['partition']:
-            return generate_partition_proc(config['blame'], configs, ECOLI_PROCESSES, time_step)
+            return generate_partition_proc(config['blame'], configs, 
+                                           ECOLI_PROCESSES, time_step, 
+                                           self.load_sim_data.random_state)
 
         return {
             process_name: (process(configs[process_name])
@@ -257,7 +259,7 @@ def run_ecoli(blame=False, partition=False, total_time=10):
             }
         },
         'blame': blame,
-        'partition': partition
+        'partition': True
     }
     ecoli_composer = Ecoli(ecoli_config)
 

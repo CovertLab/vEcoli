@@ -41,12 +41,12 @@ class BaseElongationModel(object):
     def final_amino_acids(self, total_aa_counts):
         return total_aa_counts
 
-    def evolve(self, timestep, states, requests, total_aa_counts, aas_used, next_amino_acid_count, nElongations, nInitialized):
+    def evolve(self, amino_acid_names, total_aa_counts, aas_used, next_amino_acid_count, nElongations, nInitialized):
         # Update counts of amino acids and water to reflect polymerization reactions
         net_charged = np.zeros(len(self.parameters['uncharged_trna_names']))
 
         return net_charged, {}, {
-            'amino_acids': array_to(states['amino_acids'].keys(), -aas_used),
+            'amino_acids': array_to(amino_acid_names, -aas_used),
             'molecules': {
                 self.process.water: nElongations - nInitialized}}
 

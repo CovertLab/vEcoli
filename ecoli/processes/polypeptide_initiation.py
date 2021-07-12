@@ -43,7 +43,7 @@ class PolypeptideInitiation(Process):
         self.protein_lengths = self.parameters['protein_lengths']
         self.translation_efficiencies = self.parameters['translation_efficiencies']
         self.active_ribosome_fraction = self.parameters['active_ribosome_fraction']
-        self.elongation_rates = self.parameters['elongation_rates']
+        self.ribosome_elongation_rates_dict = self.parameters['elongation_rates']
         self.variable_elongation = self.parameters['variable_elongation']
         self.make_elongation_rates = self.parameters['make_elongation_rates']
         
@@ -137,7 +137,7 @@ class PolypeptideInitiation(Process):
         # the first timestep), set ribosome elongation rate to the one in
         # dictionary
         if self.ribosomeElongationRate == 0:
-            self.ribosomeElongationRate = self.elongation_rates[
+            self.ribosomeElongationRate = self.ribosome_elongation_rates_dict[
                 current_media_id].asNumber(units.aa / units.s)
         self.elongation_rates = self.make_elongation_rates(
             self.random_state,
@@ -248,6 +248,8 @@ class PolypeptideInitiation(Process):
                 'ribosome_data': {
                     'ribosomes_initialized': n_new_proteins.sum(),
                     'prob_translation_per_transcript': protein_init_prob}}}
+        
+        update['requested'] = {molecule: 0 for molecule in states['requested']}
 
         return update
 
@@ -263,7 +265,8 @@ class PolypeptideInitiation(Process):
         # the first timestep), set ribosome elongation rate to the one in
         # dictionary
         if ribosome_elongation_rate == 0:
-            ribosome_elongation_rate = self.elongation_rates[media_id].asNumber(units.aa / units.s)
+            ribosome_elongation_rate = self.ribosome_elongation_rates_dict[
+                media_id].asNumber(units.aa / units.s)
 
         elongation_rates = self.make_elongation_rates(
             self.random_state,

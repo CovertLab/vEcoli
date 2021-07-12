@@ -80,7 +80,7 @@ class ProteinDegradation(Process):
         # Determine how many proteins to degrade based on the degradation rates and counts of each protein
         protein_data = array_from(states['proteins'])
         nProteinsToDegrade = np.fmin(
-            self.random_state.poisson(self._proteinDegRates(timestep*2) * protein_data),
+            self.random_state.poisson(self._proteinDegRates(timestep) * protein_data),
             protein_data
             )
 
@@ -111,6 +111,8 @@ class ProteinDegradation(Process):
             'proteins': {
                 protein: -allocated_proteins[index]
                 for index, protein in enumerate(states['proteins'])}}
+        
+        update['requested'] = {molecule: 0 for molecule in states['requested']}
 
         return update
 

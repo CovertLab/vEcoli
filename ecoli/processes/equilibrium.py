@@ -116,9 +116,10 @@ class Equilibrium(Process):
             'listeners': {
                 'equilibrium_listener': {
                     'reaction_rates': deltaMolecules[self.product_indices] / timestep}}}
+        
+        update['requested'] = {molecule: 0 for molecule in states['requested']}
 
         return update
-
 
     def next_update(self, timestep, states):
         # Get molecule counts

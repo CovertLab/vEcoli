@@ -47,10 +47,11 @@ class Complexation(Process):
                 for molecule in self.molecule_names}}
         
     def calculate_request(self, timestep, states):
-        moleculeCounts = array_from(states['molecules'])
+        moleculeCounts = np.array(list(states['molecules'].values()), 
+                                  dtype = np.int64)
 
         result = self.system.evolve(
-            timestep*2, moleculeCounts, self.rates)
+            timestep, moleculeCounts, self.rates)
         updatedMoleculeCounts = result['outcome']
         requests = {'requested': {}}
         requests['requested'] = array_to(states['molecules'], np.fmax(
@@ -74,7 +75,9 @@ class Complexation(Process):
             'molecules': molecules_update}
 
         # # Write outputs to listeners
-        # self.writeToListener("ComplexationListener", "complexationEvents", events)
+        # self.writeToListener("ComplexationListener", "complexationEvents", events)  
+        
+        update['requested'] = {molecule: 0 for molecule in states['requested']}
 
         return update
 

@@ -262,17 +262,17 @@ class RnaDegradation(Process):
             rrna_specificity = np.dot(frac_endornase_saturated, self.is_rRNA)
 
             n_total_mrnas_to_degrade = self._calculate_total_n_to_degrade(
-                timestep*2,
+                timestep,
                 mrna_specificity,
                 total_kcat_endornase
                 )
             n_total_trnas_to_degrade = self._calculate_total_n_to_degrade(
-                timestep*2,
+                timestep,
                 trna_specificity,
                 total_kcat_endornase
                 )
             n_total_rrnas_to_degrade = self._calculate_total_n_to_degrade(
-                timestep*2,
+                timestep,
                 rrna_specificity,
                 total_kcat_endornase
                 )
@@ -361,7 +361,8 @@ class RnaDegradation(Process):
         ## wcEcoli evolveState
         # Get vector of numbers of RNAs to degrade for each RNA species
         n_degraded_bulk_RNA = np.array([states['allocated'][molecule] 
-                               for molecule in states['bulk_RNAs']])
+                               for molecule in states['bulk_RNAs']], 
+                                dtype = np.int64)
         n_degraded_unique_RNA = self.n_unique_RNAs_to_degrade
         n_degraded_RNA = n_degraded_bulk_RNA + n_degraded_unique_RNA
         
@@ -478,9 +479,10 @@ class RnaDegradation(Process):
             update['fragmentBases'] = array_to(self.polymerized_ntp_ids, -n_fragment_bases_digested)
 
         update['listeners']['rna_degradation_listener']['fragment_bases_digested'] = total_fragment_bases_digested
+        
+        update['requested'] = {molecule: 0 for molecule in states['requested']}
 
         return update
-
 
     def next_update(self, timestep, states):
         # Compute factor that convert counts into concentration, and vice versa
