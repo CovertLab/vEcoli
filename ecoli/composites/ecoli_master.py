@@ -19,9 +19,6 @@ from ecoli.library.sim_data import LoadSimData
 # logging
 from ecoli.library.logging import make_logging_process
 
-# vivarium processes
-from vivarium.processes.division import Division
-
 # vivarium-ecoli processes
 from ecoli.plots.topology import get_ecoli_master_topology_settings
 from ecoli.processes.tf_binding import TfBinding
@@ -37,7 +34,11 @@ from ecoli.processes.protein_degradation import ProteinDegradation
 from ecoli.processes.metabolism import Metabolism
 from ecoli.processes.chromosome_replication import ChromosomeReplication
 from ecoli.processes.mass import Mass
+from ecoli.processes.cell_division import Division
+
+# state
 from ecoli.states.wcecoli_state import get_state_from_file
+
 
 RAND_MAX = 2**31
 SIM_DATA_PATH = 'reconstruction/sim_data/kb/simData.cPickle'
@@ -175,8 +176,7 @@ class Ecoli(Composer):
         'agent_id': '0',
         'agents_path': ('..', '..', 'agents',),
         'division': {
-            'condition_config': {
-                'threshold': 2220}},  # fg
+            'threshold': 2220},  # fg
         'divide': True,
         'blame': False,
     }
@@ -316,9 +316,6 @@ def run_ecoli(
     # retrieve the data
     output = ecoli_experiment.emitter.get_timeseries()
 
-    # import ipdb;
-    # ipdb.set_trace()
-
     return output
 
 
@@ -328,8 +325,7 @@ def test_division():
 
     config = {
         'division': {
-            'condition_config': {
-                'threshold': 1170}}}
+            'threshold': 1170}}
     output = run_ecoli(
         total_time=30,
         divide=True,
@@ -373,9 +369,6 @@ def main():
         '--topology', '-t', action='store_true', default=False,
         help='save a topology plot of ecoli master')
     parser.add_argument(
-        '--divide', '-v', action='store_true', default=False,
-        help='set ecoli to divide')
-    parser.add_argument(
         '--blame', '-b', action='store_true', default=False,
         help='when running simulation, create a report of which processes affected which molecules')
     parser.add_argument(
@@ -390,7 +383,6 @@ def main():
             test_library[name]()
     else:
         output = run_ecoli(
-            divide=args.divide,
             blame=args.blame,
             )
 
