@@ -345,6 +345,97 @@ def run_ecoli(blame=False, total_time=10):
     return output
 
 
+def assertions(sim_output):
+
+    test_structure = {
+        'bulk' : ...,# transform_and_run(array_from, nonnegative),
+        'process_state' : {
+            'polypeptide_elongation' : {
+                'aa_count_diff' : ...,
+                'gtp_to_hydrolyze' : ...
+            }
+        },
+        'listeners' : {
+            'rna_synth_prob' : {
+                'pPromoterBound' : ...,
+                'nPromoterBound' : ...,
+                'nActualBound' : ...,
+                'n_available_promoters' : ...,
+                'n_bound_TF_per_TU' : ...,
+                'rna_synth_prob' : ...
+            },
+            'mass' : {
+                'cell_mass' : ...,
+                'dry_mass' : ...,
+                'water_mass' : ...
+            },
+            'ribosome_data' : {
+                'rrn16S_produced' : ...,
+                'rrn23S_produced' : ...,
+                'rrn5S_produced' : ...,
+                'rrn16S_init_prob' : ...,
+                'rrn23S_init_prob' : ...,
+                'rrn5S_init_prob' : ...,
+                'total_rna_init' : ...,
+                'ribosomes_initialized' : ...,
+                'prob_translation_per_transcript' : ...,
+                'effective_elongation_rate' : ...,
+                'translation_supply' : ...,
+                'aaCountInSequence' : ...,
+                'aaCounts' : ...,
+                'actualElongations' : ...,
+                'actualElongationHist' : ...,
+                'elongationsNonTerminatingHist' : ...,
+                'didTerminate' : ...,
+                'terminationLoss' : ...,
+                'numTrpATerminated' : ...,
+                'processElongationRate' : ...
+            },
+            'rnap_data' : {
+                'didInitialize' : ...,
+                'rnaInitEvent' : ...,
+                'actualElongations' : ...,
+                'didTerminate' : ...,
+                'terminationLoss' : ...,
+                'didStall' : ...
+            },
+            'transcript_elongation_listener' : {
+                'countNTPsUsed' : ...,
+                'countRnaSynthesized' : ...,
+                'attenuation_probability' : ...,
+                'counts_attenuated' : ...
+            },
+            'growth_limits' : {
+                'ntpUsed' : ...,
+                'fraction_trna_charged': ...,
+                'aa_pool_size' : ...,
+                'aa_request_size' : ...,
+                'aa_allocated' : ...,
+                'active_ribosomes_allocated' : ...,
+                'net_charged' : ...,
+                'aasUsed' : ...
+            },
+            'rna_degradation_listener' : {
+                'fraction_active_endo_rnases' : ...,
+                'diff_relative_first_order_decay' : ...,
+                'fract_endo_rrna_counts' : ...,
+                'count_rna_degraded' : ...,
+                'nucleotides_from_degradation' : ...,
+                'fragment_bases_digested' : ...
+            },
+            'equilibrium_listener' : {},
+            'fba_results' : {},
+            'enzyme_kinetics' : {},
+            'replication_data' : {}
+        }
+    }
+
+    from ecoli.library.data_predicates import all_nonnegative
+
+    for molecule, timeseries in sim_output['bulk'].items():
+        assert all_nonnegative(timeseries), f'{molecule} goes negative'
+
+
 def ecoli_topology_plot(out_dir='out'):
     ecoli = Ecoli({'agent_id': '1'})
 
@@ -429,13 +520,14 @@ def main():
     else:
         if args.debug:
             output = run_ecoli(args.blame)
-            #assertions(output)
+            assertions(output)
         else:
             output = run_ecoli(args.blame)
 
         if args.blame:
             from ecoli.plots.blame import blame_plot
             blame_plot(output, highlight_molecules=['PD00413[c]'])
+
 
 if __name__ == '__main__':
     main()
