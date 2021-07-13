@@ -119,7 +119,9 @@ class TfBinding(Process):
                     'nPromoterBound': 0,
                     'nActualBound': 0,
                     'n_available_promoters': 0,
-                    'n_bound_TF_per_TU': 0})}}
+                    'n_bound_TF_per_TU': 0})},
+            
+            'time_step': {'_default': 0, '_updater': 'set'}}
         
     def calculate_request(self, timestep, states):
         # request all active tfs
@@ -128,6 +130,8 @@ class TfBinding(Process):
             active_tf_key = self.active_tfs[tf_id]
             tf_count = states['active_tfs'][active_tf_key]
             update['requested'][active_tf_key] = tf_count
+            
+        update['time_step'] = timestep
         return update
         
     def evolve_state(self, timestep, states):
