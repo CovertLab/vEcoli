@@ -90,8 +90,14 @@ class TwoComponentSystem(Process):
                                         self.all_molecule_changes.astype(int))}
         update['requested'] = {molecule: 0 for molecule in states['requested']}
         
+        update['molecules_required'] = self.molecules_required
+        update['all_molecule_changes'] = self.all_molecule_changes
+        
         from write_json import write_json
         write_json('out/comparison/double_two_comp.json', update)
+        
+        update.pop('all_molecule_changes')
+        update.pop('molecules_required')
         return update
 
     def next_update(self, timestep, states):
