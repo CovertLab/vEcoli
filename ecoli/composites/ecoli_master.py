@@ -66,7 +66,8 @@ ECOLI_TOPOLOGY = {
             'promoters': ('unique', 'promoter'),
             'active_tfs': ('bulk',),
             'inactive_tfs': ('bulk',),
-            'listeners': ('listeners',)},
+            'listeners': ('listeners',),
+            'time_step': ('global_timestep',)},
 
         'transcript_initiation': {
             'environment': ('environment',),
@@ -145,7 +146,8 @@ ECOLI_TOPOLOGY = {
             'amino_acids': ('bulk',),
             'listeners': ('listeners',),
             'environment': ('environment',),
-            'polypeptide_elongation': ('process_state', 'polypeptide_elongation')},
+            'polypeptide_elongation': ('process_state', 'polypeptide_elongation'),
+            'time_step': ('global_timestep',)},
 
         'chromosome_replication': {
             'replisome_trimers': ('bulk',),
@@ -229,7 +231,7 @@ class Ecoli(Composer):
                            else make_logging_process(process)(configs[process_name]))
 
             for (process_name, process) in ECOLI_PROCESSES.items()
-            #if process_name != "polypeptide_elongation"  # TODO: get polypeptide elongation working again
+            if process_name != "polypeptide_elongation"  # TODO: get polypeptide elongation working again
         }
 
     def generate_topology(self, config):        
@@ -259,7 +261,7 @@ def run_ecoli(blame=False, partition=False, total_time=10):
             }
         },
         'blame': blame,
-        'partition': False
+        'partition': True
     }
     ecoli_composer = Ecoli(ecoli_config)
 

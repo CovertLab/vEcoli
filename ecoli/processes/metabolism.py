@@ -12,7 +12,7 @@ import numpy as np
 from scipy.sparse import csr_matrix
 from typing import List, Tuple
 
-from vivarium.core.process import Process
+from vivarium.core.process import Deriver
 from vivarium.core.composition import simulate_process
 
 from ecoli.library.schema import bulk_schema, array_from
@@ -35,7 +35,7 @@ GDCW_BASIS = units.mmol / units.g / units.h
 USE_KINETICS = True
 
 
-class Metabolism(Process):
+class Metabolism(Deriver):
     name = 'ecoli-metabolism'
 
     defaults = {
@@ -163,147 +163,18 @@ class Metabolism(Process):
                     '_emit': True},
                 'gtp_to_hydrolyze': {
                     '_default': 0,
-                    '_emit': True}}}
+                    '_emit': True}},
+            
+            'time_step': {'_default': 0, '_updater': 'set'}}
         
     def calculate_request(self, timestep, states):
-        # Request counts of molecules needed
-        requests = {'requested': {}}
-        requests['requested'] = states['metabolites']
-        requests['requested'].update(states['catalysts'])
-        requests['requested'].update(states['kinetics_enzymes'])
-        requests['requested'].update(states['kinetics_substrates'])
-        return requests
+        return {'timesteps': 1}
         
-    def evolve_state(self, timestep, states):
-        # Load current state of the sim
-        ## Get internal state variables
-        metabolite_counts_init = np.array([states['allocated'][molecule] 
-                                  for molecule in states['metabolites']])
-        catalyst_counts = np.array([states['allocated'][molecule] 
-                                  for molecule in states['catalysts']])
-        kinetic_enzyme_counts = np.array([states['allocated'][molecule] 
-                                  for molecule in states['kinetics_enzymes']])
-        kinetic_substrate_counts = np.array([states['allocated'][molecule] 
-                                  for molecule in states['kinetics_substrates']])
-
-        # self._sim.processes['PolypeptideElongation'].gtp_to_hydrolyze
-        translation_gtp = states['polypeptide_elongation']['gtp_to_hydrolyze']
-        # self.readFromListener('Mass', 'cellMass') * units.fg
-        cell_mass = states['listeners']['mass']['cell_mass'] * units.fg
-        # self.readFromListener('Mass', 'dryMass') * units.fg
-        dry_mass = states['listeners']['mass']['dry_mass'] * units.fg
-
-        ## Get environment updates
-        # environment = self._external_states['Environment']
-        # environment.current_media_id
-        current_media_id = states['environment']['media_id']
-        # environment.get_exchange_data()
-        unconstrained = states['environment']['exchange_data']['unconstrained']
-        constrained = states['environment']['exchange_data']['constrained']
-
-        ## Calculate state values
-        cellVolume = cell_mass / self.cellDensity
-        counts_to_molar = (1 / (self.nAvogadro * cellVolume)).asUnit(CONC_UNITS)
-
-        ## Coefficient to convert between flux (mol/g DCW/hr) basis and concentration (M) basis
-        coefficient = dry_mass / cell_mass * self.cellDensity * timestep * units.s
-
-        ## Determine updates to concentrations depending on the current state
-        doubling_time = self.nutrientToDoublingTime.get(current_media_id, self.nutrientToDoublingTime['minimal'])
-        conc_updates = self.model.getBiomassAsConcentrations(doubling_time)
-        if self.use_trna_charging:
-            conc_updates.update(self.update_amino_acid_targets(
-                counts_to_molar,
-                states['polypeptide_elongation']['aa_count_diff'],
-                states['amino_acids'],
-            ))
-        if self.include_ppgpp:
-            conc_updates[self.model.ppgpp_id] = self.model.getppGppConc(doubling_time).asUnit(CONC_UNITS)
-        ## Converted from units to make reproduction from listener data
-        ## accurate to model results (otherwise can have floating point diffs)
-        conc_updates = {
-            met: conc.asNumber(CONC_UNITS)
-            for met, conc in conc_updates.items()}
-
-        # Update FBA problem based on current state
-        ## Set molecule availability (internal and external)
-        self.model.set_molecule_levels(metabolite_counts_init, counts_to_molar,
-            coefficient, current_media_id, unconstrained, constrained, conc_updates)
-
-        ## Set reaction limits for maintenance and catalysts present
-        self.model.set_reaction_bounds(catalyst_counts, counts_to_molar,
-            coefficient, translation_gtp)
-
-        ## Constrain reactions based on targets
-        targets, upper_targets, lower_targets = self.model.set_reaction_targets(kinetic_enzyme_counts,
-            kinetic_substrate_counts, counts_to_molar, timestep * units.s)
-
-        # Solve FBA problem and update states
-        n_retries = 3
-        fba = self.model.fba
-        fba.solve(n_retries)
-
-        ## Internal molecule changes
-        delta_metabolites = (1 / counts_to_molar) * (CONC_UNITS * fba.getOutputMoleculeLevelsChange())
-        delta_metabolites_final = np.fmax(stochasticRound(
-            self.random_state,
-            delta_metabolites.asNumber()
-            ), 0).astype(np.int64)
-
-        ## Environmental changes
-        exchange_fluxes = CONC_UNITS * fba.getExternalExchangeFluxes()
-        converted_exchange_fluxes = (exchange_fluxes / coefficient).asNumber(GDCW_BASIS)
-        delta_nutrients = ((1 / counts_to_molar) * exchange_fluxes).asNumber().astype(int)
-
-        # Write outputs to listeners
-        unconstrained, constrained, uptake_constraints = self.get_import_constraints(
-            unconstrained, constrained, GDCW_BASIS)
-
-        update = {
-            'metabolites': {
-                metabolite: delta_metabolites_final[index]
-                for index, metabolite in enumerate(self.model.metaboliteNamesFromNutrients)},
-
-            'environment': {
-                'exchange': {
-                    molecule: delta_nutrients[index]
-                    for index, molecule in enumerate(fba.getExternalMoleculeIDs())}},
-
-            'listeners': {
-                'fba_results': {
-                    'media_id': current_media_id,
-                    'conc_updates': [conc_updates[m] for m in self.conc_update_molecules],
-                    'catalyst_counts': catalyst_counts,
-                    'translation_gtp': translation_gtp,
-                    'coefficient': coefficient.asNumber(CONVERSION_UNITS),
-                    'unconstrained_molecules': unconstrained,
-                    'constrained_molecules': constrained,
-                    'uptake_constraints': uptake_constraints,
-                    'deltaMetabolites': delta_metabolites_final,
-                    'reactionFluxes': fba.getReactionFluxes() / timestep,
-                    'externalExchangeFluxes': converted_exchange_fluxes,
-                    'objectiveValue': fba.getObjectiveValue(),
-                    'shadowPrices': fba.getShadowPrices(self.model.metaboliteNamesFromNutrients),
-                    'reducedCosts': fba.getReducedCosts(fba.getReactionIDs()),
-                    'targetConcentrations': [
-                        self.model.homeostatic_objective[mol]
-                        for mol in fba.getHomeostaticTargetMolecules()],
-                    'homeostaticObjectiveValues': fba.getHomeostaticObjectiveValues(),
-                    'kineticObjectiveValues': fba.getKineticObjectiveValues()},
-
-                'enzyme_kinetics': {
-                    'metaboliteCountsInit': metabolite_counts_init,
-                    'metaboliteCountsFinal': metabolite_counts_init + delta_metabolites_final,
-                    'enzymeCountsInit': kinetic_enzyme_counts,
-                    'countsToMolar': counts_to_molar.asNumber(CONC_UNITS),
-                    'actualFluxes': fba.getReactionFluxes(self.model.kinetics_constrained_reactions) / timestep,
-                    'targetFluxes': targets / timestep,
-                    'targetFluxesUpper': upper_targets / timestep,
-                    'targetFluxesLower': lower_targets / timestep}}}
-
-        return update
-
     def next_update(self, timestep, states):
+        return self.evolve_state(timestep, states)
+
+    def evolve_state(self, timestep, states):
+        timestep = states['time_step']
         # Load current state of the sim
         ## Get internal state variables
         metabolite_counts_init = array_from(states['metabolites'])
@@ -425,6 +296,7 @@ class Metabolism(Process):
                     'targetFluxes': targets / timestep,
                     'targetFluxesUpper': upper_targets / timestep,
                     'targetFluxesLower': lower_targets / timestep}}}
+        update['timesteps'] = 1
 
         return update
 

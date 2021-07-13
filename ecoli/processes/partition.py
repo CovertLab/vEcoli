@@ -42,10 +42,10 @@ class Partition(Deriver):
         ports['allocated'] = {'*': {'_default': {}, '_updater': 'set', '_emit': True}}
         return ports
     
-    def calculate_request(self, timestep, states):
-        return self.evolve_state(timestep, states)
-
     def evolve_state(self, timestep, states):
+        return {}
+
+    def calculate_request(self, timestep, states):
         total_counts = np.array([states['totals'][molecule] for 
                                  molecule in self.mol_idx_to_name.values()])
         original_totals = total_counts.copy()

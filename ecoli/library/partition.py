@@ -1,6 +1,4 @@
 # logging
-from ecoli.processes.metabolism_evolve import MetabolismEvolve
-from ecoli.processes.metabolism_request import MetabolismRequest
 from ecoli.library.logging import make_logging_process
 
 # partitioning
@@ -25,36 +23,26 @@ def generate_partition_proc(blame, proc_conf, ECOLI_PROCESSES, timestep,
     """
     partition_conf = {'time_step': timestep/2,
                       'molecule_names': list(proc_conf['mass'][
-                          'molecular_weights'].keys()),
+                        'molecular_weights'].keys()),
                       'proc_names': list(proc_conf.keys()),
                       'seed': random_state.randint(2**31)}
     partition = {
         'partition': make_partition_proc(Partition)(
             partition_conf)}
-    metabolism_partition = {
-        'metabolism_partition': make_partition_proc(Partition)(
-            partition_conf)}
     for process in proc_conf.keys():
         proc_conf[process]['time_step'] = timestep/2
-    metabolism_request = {
-        'metabolism_request': make_partition_proc(MetabolismRequest)(
-            proc_conf['metabolism'])}
-    metabolism = {
-        'metabolism': make_partition_proc(MetabolismEvolve)(
-        proc_conf['metabolism'])}
     procs = {
         proc_name: make_partition_proc(proc)(proc_conf[proc_name])
         for (proc_name, proc) in ECOLI_PROCESSES.items()
         # Removing polypeptide elongation makes dry mass updates reasonable
-        # if proc_name != 'polypeptide_elongation'}
-        if proc_name not in ['metabolism', 'polypeptide_elongation']}
+        if proc_name != 'polypeptide_elongation'}
         
     if blame:
         procs = {
             proc_name: make_logging_process(proc)
             for (proc_name, proc) in procs.items()
         }
-    all_procs = {**partition, **metabolism_request, **metabolism_partition, **metabolism, **procs}
+    all_procs = {**partition, **procs}
     return all_procs
 
 def make_partition_proc(process_class):
@@ -101,33 +89,31 @@ def make_partition_proc(process_class):
         calculate_request, partitioning, and evolve_state calls. 
         Processes and Derivers run according to the following time table.
         
-        Partition: increment elapsed timestep every hTS starting from 0, 
-            partition every 2 hTS starting from 1 hTS
-        Other derivers: update states every 2 hTS starting from 0
+        Partition: partition every 2 hTS starting from 1 hTS
+        Metabolism: run every 2 hTS starting from 2 hTS
+        Other derivers: update states every 1 hTS starting from 0
         Processes: calculate requests every 2 hTS starting from 1 hTS,
             evolve state every 2 hTS starting from 2 hTS
 
         Args:
-            timestep (float): Base time increment between process updates
+            timestep (float): Base time to increment between process updates
             states (dict): View of all connected stores
 
         Returns:
-            Dict: Next update (can be empty, only elapsed timesteps, etc.)
+            Dict: Update to apply to states (derivers apply immediately,
+                processes do not)
         """
-        fixes = ['partition', 'ecoli-metabolism', 'ecoli-metabolism-request']
         # Derivers have 0 timestep, run at end of every timestep (inc. t=0),
         # and update states immediately after running
-        if timestep == 0:
-            if not (states['timesteps']%2):
-                if self.name in fixes:
-                    if states['timesteps'] != 0:
-                        return super().calculate_request(2, states)
+        if self.name in ['ecoli-mass', 'divide_condition']:
             return super().next_update(2, states)
-        if not (states['timesteps']%2):
+        if states['timesteps']==0:
+            return super().calculate_request(timestep*2, states)
+        if states['timesteps']%2:
+            return super().calculate_request(timestep*2, states)
             # IMPORTANT: Run update with full timestep (not halved)
-            return super().evolve_state(timestep*2, states)
-        return super().calculate_request(timestep*2, states)
-
+        return super().evolve_state(timestep*2, states)
+        
     partition_process.ports_schema = ports_schema
     partition_process.next_update = next_update
 
@@ -152,6 +138,8 @@ def generate_partition_topology(blame, ECOLI_TOPOLOGY):
         proc_topo[proc_id] = ports
         proc_topo[proc_id]['timesteps'] = ('partitioning', 'timesteps')
         if proc_id not in ['mass', 'divide_condition']:
+            if blame:
+                proc_topo[proc_id]['log_update'] = ('log_update', proc_id,)
             proc_topo[proc_id]['requested'] = ('partitioning', 'requested', proc_id)
             proc_topo[proc_id]['allocated'] = ('partitioning', 'allocated', proc_id)
         
@@ -159,23 +147,8 @@ def generate_partition_topology(blame, ECOLI_TOPOLOGY):
                       'requested': ('partitioning', 'requested',),
                       'allocated': ('partitioning', 'allocated',),
                       'timesteps': ('partitioning', 'timesteps')}
-    metabolism_partition_topo = {'totals': ('bulk',),
-                      'requested': ('partitioning', 'requested'),
-                      'allocated': ('partitioning', 'allocated',),
-                      'timesteps': ('partitioning', 'timesteps')}
-    metabolism_request_topo = {
-                            'metabolites': ('bulk',),
-                            'catalysts': ('bulk',),
-                            'kinetics_enzymes': ('bulk',),
-                            'kinetics_substrates': ('bulk',),
-                            'requested': ('partitioning', 'requested', 'metabolism'),
-                            'allocated': ('partitioning', 'allocated', 'metabolism'),
-                            'timesteps': ('partitioning', 'timesteps'),
-                            }
     
     total = {'partition': partition_topo,
-             'metabolism_partition': metabolism_partition_topo,
-             'metabolism_request': metabolism_request_topo,
              **proc_topo}
     return total
     
