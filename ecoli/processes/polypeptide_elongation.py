@@ -9,6 +9,8 @@ TODO:
 - see the initiation process for more TODOs
 """
 
+import ipdb
+
 import numpy as np
 import logging as log
 
@@ -40,10 +42,7 @@ class PolypeptideElongation(Process):
 
     defaults:
         proteinIds: array length n of protein names
-
-
     """
-
     name = 'ecoli-polypeptide-elongation'
 
     defaults = {
@@ -271,6 +270,7 @@ class PolypeptideElongation(Process):
             'listeners': {
                 'ribosome_data': {},
                 'growth_limits': {}}}
+        ipdb.set_trace()
 
         current_media_id = states['environment']['media_id']
 
@@ -283,7 +283,7 @@ class PolypeptideElongation(Process):
 
         # Build sequences to request appropriate amount of amino acids to
         # polymerize for next timestep
-        protein_indexes, peptide_lengths, positions_on_mRNA = arrays_from(
+        proteinIndexes, peptideLengths, positions_on_mRNA = arrays_from(
             states['active_ribosome'].values(),
             ['protein_index', 'peptide_length', 'pos_on_mRNA'])
 
@@ -295,8 +295,8 @@ class PolypeptideElongation(Process):
 
         all_sequences = buildSequences(
             self.proteinSequences,
-            protein_indexes,
-            peptide_lengths,
+            proteinIndexes,
+            peptideLengths,
             self.elongation_rates + self.next_aa_pad)
         sequences = all_sequences[:, :-self.next_aa_pad].copy()
 
@@ -322,7 +322,7 @@ class PolypeptideElongation(Process):
         update['listeners']['growth_limits']['aa_pool_size'] = array_from(states['amino_acids'])
         update['listeners']['growth_limits']['aa_request_size'] = aa_counts_for_translation
 
-
+        ipdb.set_trace()
         ## Begin wcEcoli evolveState()
         # Set value to 0 for metabolism in case of early return
         self.gtp_to_hydrolyze = 0
@@ -403,6 +403,8 @@ class PolypeptideElongation(Process):
 
         # self.active_ribosomes.delByIndexes(termination)
 
+        ipdb.set_trace()
+
         update['active_ribosome'] = {'_delete': []}
         for index, ribosome in enumerate(states['active_ribosome'].values()):
             unique_index = str(ribosome['unique_index'])
@@ -415,9 +417,13 @@ class PolypeptideElongation(Process):
                     'submass': {
                         'protein': added_protein_mass[index]}}
 
+        ipdb.set_trace()
+
         update['monomers'] = {}
         for index, count in enumerate(terminatedProteins):
             update['monomers'][self.proteinIds[index]] = count
+
+        ipdb.set_trace()
 
         # self.bulkMonomers.countsInc(terminatedProteins)
 
