@@ -320,14 +320,17 @@ def run_ecoli(
 
 
 def test_division():
+    """
+    Work in progress to get division working
 
-    # TODO -- unique molecules need to be divided between daughter cells!!! This can get sophisticated
+    * TODO -- unique molecules need to be divided between daughter cells!!! This can get sophisticated
+    """
 
     config = {
         'division': {
             'threshold': 1170}}
     output = run_ecoli(
-        total_time=30,
+        total_time=10,
         divide=True,
         config=config,
         progress_bar=False,
