@@ -59,7 +59,7 @@ class TwoComponentSystem(Process):
     def next_update(self, timestep, states):
         # Get molecule counts
         moleculeCounts = array_from(states['molecules'])
-
+        #import ipdb; ipdb.set_trace()
         # Get cell mass and volume
         cellMass = (states['listeners']['mass']['cell_mass'] * units.fg).asNumber(units.g)
         self.cellVolume = cellMass / self.cell_density
@@ -68,19 +68,11 @@ class TwoComponentSystem(Process):
         # Note: the BDF solver has been empirically tested to be the fastest
         # solver for this setting among the list of solvers that can be used
         # by the scipy ODE suite.
-
-            # Solve ODEs to a large time step using the the counts of molecules
-            # allocated to this process using the BDF solver for stable integration.
-            # The number of reactions has already been determined in calculateRequest
-            # and rates will be much lower with a fraction of total counts allocated
-            # so a much longer time scale is needed.
-
-        # check if each field is the same here
-        _, self.all_molecule_changes = self.moleculesToNextTimeStep(
+        self.molecules_required, self.all_molecule_changes = self.moleculesToNextTimeStep(
             moleculeCounts, self.cellVolume, self.n_avogadro,
-            10000, self.random_state, method="BDF", min_time_step=timestep,
-            jit=self.jit)
+            timestep, self.random_state, method="BDF", jit=self.jit)
 
+        moleculeCounts = self.molecules_required
         # Increment changes in molecule counts
         update = {
             'molecules': array_to(self.moleculeNames, self.all_molecule_changes.astype(int))}
