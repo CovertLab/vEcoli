@@ -314,8 +314,8 @@ class PolypeptideElongation(Process):
         fraction_charged, aa_counts_for_translation, _ = \
             self.elongation_model.request(timestep, states, aasInSequences)
             
-        # requests['requested'] = array_to(self.amino_acids, 
-                                           # aa_counts_for_translation)
+        requests['requested'] = array_to(self.amino_acids, 
+                                        aa_counts_for_translation)
 
         # Write to listeners
         requests['listeners']['growth_limits']['fraction_trna_charged'] = np.dot(fraction_charged, self.aa_from_trna)
@@ -368,8 +368,8 @@ class PolypeptideElongation(Process):
 
         # Calculate elongation resource capacity
         aaCountInSequence = np.bincount(sequences[(sequences != polymerize.PAD_VALUE)])
-        total_aa_counts = np.array([states['amino_acids'][aa] for aa in states['amino_acids']], 
-                                   dtype = np.int64)
+        total_aa_counts = np.array([states['allocated'][aa] for aa in states['amino_acids']], 
+                                    dtype = np.int64)
         # total_aa_counts = self.aas.counts()
 
         # MODEL SPECIFIC: Get amino acid counts
@@ -464,9 +464,9 @@ class PolypeptideElongation(Process):
         # TODO: Why is aa_counts_for_translation is used here instead of total_aa_counts?
         net_charged, aa_count_diff, evolve_update = self.elongation_model.evolve(
             timestep,
-            states['amino_acids'].keys(),
+            states,
             {},
-            total_aa_counts,
+            aa_counts_for_translation,
             aas_used,
             next_amino_acid_count,
             nElongations,
