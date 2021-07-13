@@ -113,6 +113,9 @@ class ProteinDegradation(Process):
                 for index, protein in enumerate(states['proteins'])}}
         
         update['requested'] = {molecule: 0 for molecule in states['requested']}
+        
+        from write_json import write_json
+        write_json('out/comparison/double_p_degrade.json', update)
 
         return update
 

@@ -555,6 +555,9 @@ class TranscriptElongation(Process):
             "didStall": n_total_stalled}
         
         update['requested'] = {molecule: 0 for molecule in states['requested']}
+        
+        from write_json import write_json
+        write_json('out/comparison/double_t_elong.json', update)
 
         return update
 

@@ -246,7 +246,7 @@ class Ecoli(Composer):
         return topology
 
 
-def run_ecoli(blame=False, partition=False, total_time=10):
+def run_ecoli(blame=False, partition=False, total_time=2):
     # configure the composer
     ecoli_config = {
         'agent_id': '1',

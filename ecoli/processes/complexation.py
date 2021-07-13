@@ -78,6 +78,9 @@ class Complexation(Process):
         # self.writeToListener("ComplexationListener", "complexationEvents", events)  
         
         update['requested'] = {molecule: 0 for molecule in states['requested']}
+        
+        from write_json import write_json
+        write_json('out/comparison/double_complex.json', update)
 
         return update
 

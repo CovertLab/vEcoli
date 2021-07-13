@@ -297,6 +297,9 @@ class Metabolism(Deriver):
                     'targetFluxesUpper': upper_targets / timestep,
                     'targetFluxesLower': lower_targets / timestep}}}
         update['timesteps'] = 1
+        
+        from write_json import write_json
+        write_json('out/comparison/double_meta.json', update)
 
         return update
 
