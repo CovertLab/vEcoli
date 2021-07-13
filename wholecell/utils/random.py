@@ -71,7 +71,7 @@ def make_elongation_rates_flat(
 		base: unadjusted value for all rates.
 		amplified: indexes of each rate to adjust.
 		ceiling: adjusted rate for amplified indexes.
-		variable_elongation: words go here.
+		variable_elongation: whether to add amplified values to the array.
 
 	Returns:
 	    rates: new array with base and adjusted rates.

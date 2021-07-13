@@ -14,6 +14,9 @@ from arrow import StochasticSystem
 from vivarium.core.process import Process
 from vivarium.core.composition import simulate_process
 
+from ecoli.library.schema import bulk_schema
+
+
 # Maximum unsigned int value + 1 for randint() to seed srand from C stdlib
 RAND_MAX = 2**31
 
@@ -38,11 +41,7 @@ class Complexation(Process):
 
     def ports_schema(self):
         return {
-            'molecules': {
-                molecule: {
-                    '_default': 0,
-                    '_emit': True}
-                for molecule in self.molecule_names}}
+            'molecules': bulk_schema(self.molecule_names)}
 
     def next_update(self, timestep, states):
         molecules = states['molecules']
