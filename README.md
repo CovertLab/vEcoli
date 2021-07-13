@@ -63,26 +63,14 @@ All effort has been made to translate these processes as faithfully as possible.
 
 ## current state
 
-As of 9/30/2020, 11 of the 14 wcEcoli processes are migrated.
-The sim_data is generated with wcEcoli commit# 695031deac0a51b4225641c1f79cdbd2d878cd57
-
-* complexation.py
-* equilibrium.py
-* metabolism.py
-* polypeptide_elongation.py
-* polypeptide_initiation.py
-* protein_degradation.py
-* rna_degradation.py
-* tf_binding.py
-* transcript_elongation.py
-* transcript_initiation.py
-* two_component_system.py
+As of June 2020, 
+The sim_data is generated with wcEcoli branch [vivarium-ecoli-52021](https://github.com/CovertLab/wcEcoli/tree/vivarium-ecoli-52021)
 
 Remaining are:
 
-* CellDivision - there is a branch (`division`) with a WIP on this. That said, cell division works differently in Vivarium from wcEcoli, so this will need to be a more substantial change. In wcEcoli, the simulation is ended on division and two files with daughter states are written to the filesystem, which need to be started again separately. In Vivarium, the simulation can continue running on division, simulating each daughter in a new compartment in a shared environment. This will need to be addressed.
+* ChromosomeStructure - These are substantial and deal mostly with the chromosome, but don't present any challenge that the other processes didn't already provide. They use UniqueMolecules extensively so other processes like `transcript_initiation.py` may act as a good reference for migration.
 
-* ChromosomeReplication/ChromosomeStructure - These are substantial and deal mostly with the chromosome, but don't present any challenge that the other processes didn't already provide. They use UniqueMolecules extensively so other processes like `transcript_initiation.py` may act as a good reference for migration.
+* CellDivision - there is a branch (`division`) with a WIP on this. That said, cell division works differently in Vivarium from wcEcoli, so this will need to be a more substantial change. In wcEcoli, the simulation is ended on division and two files with daughter states are written to the filesystem, which need to be started again separately. In Vivarium, the simulation can continue running on division, simulating each daughter in a new compartment in a shared environment. This will need to be addressed.
 
 In order to finish this migration, here are a few tips for migrating a process from wcEcoli to Vivarium:
 
