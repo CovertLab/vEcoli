@@ -2,7 +2,8 @@ from vivarium.core.composer import Composer
 from vivarium.core.engine import Engine
 
 from ecoli.library.sim_data import LoadSimData
-from ecoli.composites.ecoli_master import get_state_from_file, SIM_DATA_PATH
+from ecoli.composites.ecoli_master import SIM_DATA_PATH
+from ecoli.states.wcecoli_state import get_state_from_file
 
 from ecoli.processes.transcript_initiation import TranscriptInitiation
 from ecoli.processes.transcript_elongation import TranscriptElongation
