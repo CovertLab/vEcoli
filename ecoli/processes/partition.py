@@ -116,7 +116,7 @@ class Partition(Deriver):
                 for process in states['requested']}}
         
         from write_json import write_json
-        write_json('out/comparison/double_chrom_rep.json', update)
+        write_json('out/comparison/double_part.json', update)
         return update
     
     def next_update(self, timestep, states):
