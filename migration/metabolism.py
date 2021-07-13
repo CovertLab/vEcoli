@@ -11,7 +11,7 @@ from vivarium.library.dict_utils import deep_merge
 # ecoli imports
 from ecoli.library.sim_data import LoadSimData
 from ecoli.states.wcecoli_state import get_state_from_file
-from ecoli.composites.ecoli_master import SIM_DATA_PATH, ECOLI_TOPOLOGY
+from ecoli.composites.ecoli_master import SIM_DATA_PATH, ECOLI_TOPOLOGY, AA_MEDIA_ID
 from ecoli.processes import Metabolism, Exchange
 
 # migration imports
@@ -32,7 +32,7 @@ metabolism_topology = ECOLI_TOPOLOGY['metabolism']
 class MetabolismExchange(Composer):
     defaults = {
         'metabolism': {},
-        'exchange': {},
+        'exchanges': {},  # dict with {molecule: exchange rate}
         'sim_data_path': SIM_DATA_PATH,
         'seed': 0,
     }
@@ -51,9 +51,7 @@ class MetabolismExchange(Composer):
         metabolism_process = Metabolism(metabolism_config)
 
         # configure exchanger stub process
-        # TODO -- this needs a dictionary with {mol_id: exchanged counts/sec}
-        exchanger_config = {'exchanges': {}}
-        exchanger_process = Exchange(exchanger_config)
+        exchanger_process = Exchange({'exchanges': config['exchanges']})
 
         return {
             'metabolism': metabolism_process,
@@ -118,30 +116,17 @@ def run_metabolism(
     return data
 
 
-def run_metabolism_composite():
-    composer = MetabolismExchange()
-    metabolism_composite = composer.generate()
-    initial_state = get_state_from_file(
-        path=f'data/wcecoli_t1000.json')
-    experiment = Engine({
-        'processes': metabolism_composite['processes'],
-        'topology': metabolism_composite['topology'],
-        'initial_state': initial_state})
-    experiment.update(10)
-    data = experiment.emitter.get_data()
-
-
 def test_metabolism():
     data = run_metabolism(total_time=10)
 
 
 def test_metabolism_aas():
     config = {
-        'media_id': 'minimal_plus_amino_acids'
+        'media_id': AA_MEDIA_ID
     }
     initial_state = {
         'environment': {
-            'media_id': 'minimal_plus_amino_acids'
+            'media_id': AA_MEDIA_ID
         }
     }
     data = run_metabolism(
@@ -151,11 +136,58 @@ def test_metabolism_aas():
     )
 
 
+
+def run_metabolism_composite():
+    # configure exchange stub process with molecules to exchange
+    config = {
+        'exchanges': {
+            'ARG[c]': 0.0,
+            'ASN[c]': 0.0,
+            'CYS[c]': 0.0,
+            'GLN[c]': 0.0,
+            'GLT[c]': 0.0,
+            'GLY[c]': 0.0,
+            'HIS[c]': 0.0,
+            'ILE[c]': 0.0,
+            'L-ALPHA-ALANINE[c]': 0.0,
+            'L-ASPARTATE[c]': 0.0,
+            'L-SELENOCYSTEINE[c]': 0.0,
+            'LEU[c]': 0.0,
+            'LYS[c]': 0.0,
+            'MET[c]': 0.0,
+            'PHE[c]': 0.0,
+            'PRO[c]': 0.0,
+            'SER[c]': 0.0,
+            'THR[c]': 0.0,
+            'TRP[c]': 0.0,
+            'TYR[c]': 0.0,
+            'VAL[c]': 0.0,
+        }
+    }
+
+    composer = MetabolismExchange(config)
+    metabolism_composite = composer.generate()
+
+    # get initial state
+    initial_state = get_state_from_file(
+        path=f'data/wcecoli_t1000.json')
+
+    # run a simulation
+    experiment = Engine({
+        'processes': metabolism_composite['processes'],
+        'topology': metabolism_composite['topology'],
+        'initial_state': initial_state})
+    experiment.update(10)
+    data = experiment.emitter.get_data()
+
+
+
 # functions to run from the command line
 test_library = {
     '0': test_metabolism_migration,
     '1': test_metabolism,
     '2': test_metabolism_aas,
+    '3': run_metabolism_composite,
 }
 
 if __name__ == '__main__':
