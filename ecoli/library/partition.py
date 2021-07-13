@@ -34,8 +34,9 @@ def generate_partition_proc(blame, proc_conf, ECOLI_PROCESSES, timestep,
     procs = {
         proc_name: make_partition_proc(proc)(proc_conf[proc_name])
         for (proc_name, proc) in ECOLI_PROCESSES.items()
+        }
         # Removing polypeptide elongation makes dry mass updates reasonable
-        if proc_name != 'polypeptide_elongation'}
+        # if proc_name != 'polypeptide_elongation'}
         
     if blame:
         procs = {
