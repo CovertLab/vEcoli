@@ -369,7 +369,8 @@ class LoadSimData:
 
             # these are options given to the wholecell.sim.simulation
             'use_trna_charging': False,
-            'include_ppgpp': False,
+            # Should be: not sim._ppgpp_regulation or not self.use_trna_charging
+            'include_ppgpp': True, 
 
             # these values came from the initialized environment state
             'current_timeline': None,

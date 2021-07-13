@@ -79,6 +79,7 @@ class ProteinDegradation(Process):
     def calculate_request(self, timestep, states):
         # Determine how many proteins to degrade based on the degradation rates and counts of each protein
         protein_data = array_from(states['proteins'])
+        # TODO: This differs from wcEcoli (just an artifact of different random state or...)
         nProteinsToDegrade = np.fmin(
             self.random_state.poisson(self._proteinDegRates(timestep) * protein_data),
             protein_data
