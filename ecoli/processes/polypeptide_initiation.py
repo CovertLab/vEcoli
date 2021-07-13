@@ -251,8 +251,12 @@ class PolypeptideInitiation(Process):
         
         update['requested'] = {molecule: 0 for molecule in states['requested']}
         
+        update['elongation_rates'] = self.elongation_rates
+        
         from write_json import write_json
         write_json('out/comparison/double_p_init.json', update)
+        
+        update.pop('elongation_rates')
 
         return update
 

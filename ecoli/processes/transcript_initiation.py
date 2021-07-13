@@ -500,8 +500,14 @@ class TranscriptInitiation(Process):
         
         update['requested'] = {molecule: 0 for molecule in states['requested']}
         
+        update['promoter_init_probs'] = self.promoter_init_probs
+        update['elongation_rates'] = self.elongation_rates
+        
         from write_json import write_json
         write_json('out/comparison/double_t_init.json', update)
+        
+        update.pop('promoter_init_probs')
+        update.pop('elongation_rates')
 
         return update
 
