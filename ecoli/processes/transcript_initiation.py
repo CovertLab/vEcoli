@@ -499,6 +499,9 @@ class TranscriptInitiation(Process):
             'rnaInitEvent': TU_to_promoter.dot(n_initiations)}
         
         update['requested'] = {molecule: 0 for molecule in states['requested']}
+        
+        from write_json import write_json
+        write_json('out/comparison/double_t_init.json', update)
 
         return update
 

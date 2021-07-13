@@ -547,6 +547,9 @@ class ChromosomeReplication(Process):
                 # self.replisome_monomers.countsInc(replisomes_to_delete.sum())
                 
         update['requested'] = {molecule: 0 for molecule in states['requested']}
+        
+        from write_json import write_json
+        write_json('out/comparison/double_chrom_rep.json', update)
 
         return update
 

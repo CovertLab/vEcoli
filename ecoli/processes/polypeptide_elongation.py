@@ -502,6 +502,9 @@ class PolypeptideElongation(Process):
 
         log.info('polypeptide elongation terminated: {}'.format(nTerminated))
         update['requested'] = {molecule: 0 for molecule in states['requested']}
+        
+        from write_json import write_json
+        write_json('out/comparison/double_p_elong.json', update)
 
         return update
 

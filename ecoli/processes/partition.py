@@ -114,6 +114,9 @@ class Partition(Deriver):
                                                     self.proc_name_to_idx[process]] 
                     for molecule in states['requested'][process]}
                 for process in states['requested']}}
+        
+        from write_json import write_json
+        write_json('out/comparison/double_chrom_rep.json', update)
         return update
     
     def next_update(self, timestep, states):

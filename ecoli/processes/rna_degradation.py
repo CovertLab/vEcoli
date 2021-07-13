@@ -481,6 +481,9 @@ class RnaDegradation(Process):
         update['listeners']['rna_degradation_listener']['fragment_bases_digested'] = total_fragment_bases_digested
         
         update['requested'] = {molecule: 0 for molecule in states['requested']}
+        
+        from write_json import write_json
+        write_json('out/comparison/double_r_degrade.json', update)
 
         return update
 

@@ -258,6 +258,9 @@ class TfBinding(Process):
                 'n_bound_TF_per_TU': n_bound_TF_per_TU}}
         
         update['requested'] = {molecule: 0 for molecule in states['requested']}
+        
+        from write_json import write_json
+        write_json('out/comparison/double_tf.json', update)
 
         return update
     

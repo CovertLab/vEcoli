@@ -250,6 +250,9 @@ class PolypeptideInitiation(Process):
                     'prob_translation_per_transcript': protein_init_prob}}}
         
         update['requested'] = {molecule: 0 for molecule in states['requested']}
+        
+        from write_json import write_json
+        write_json('out/comparison/double_p_init.json', update)
 
         return update
 
