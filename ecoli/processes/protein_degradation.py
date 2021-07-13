@@ -13,7 +13,9 @@ import numpy as np
 from vivarium.core.process import Process
 from vivarium.core.composition import simulate_process
 
-from ecoli.library.data_predicates import monotonically_increasing, monotonically_decreasing, all_nonnegative
+from ecoli.library.data_predicates import (
+    monotonically_increasing, monotonically_decreasing, all_nonnegative)
+from ecoli.library.schema import bulk_schema
 
 
 class ProteinDegradation(Process):
@@ -65,16 +67,8 @@ class ProteinDegradation(Process):
 
     def ports_schema(self):
         return {
-            'metabolites': {
-                metabolite: {
-                    '_default': 0,
-                    '_emit': True}
-                for metabolite in self.metabolite_ids},
-            'proteins': {
-                protein: {
-                    '_default': 0,
-                    '_emit': True}
-                for protein in self.protein_ids}}
+            'metabolites': bulk_schema(self.metabolite_ids),
+            'proteins': bulk_schema(self.protein_ids)}
 
     def next_update(self, timestep, states):
         proteins = states['proteins']

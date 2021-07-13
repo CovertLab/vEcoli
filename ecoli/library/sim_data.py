@@ -27,7 +27,7 @@ class LoadSimData:
         chromosome_replication_config = {
             'time_step': time_step,
             '_parallel': parallel,
-            
+
             'max_time_step': self.sim_data.process.replication.max_time_step,
             'get_dna_critical_mass': get_dna_critical_mass,
             'criticalInitiationMass': get_dna_critical_mass(doubling_time),
@@ -318,7 +318,7 @@ class LoadSimData:
             '_parallel': parallel,
 
             'jit': False,
-            'n_avogadro': self.sim_data.constants.n_avogadro.asNumber(1 / units.mmol),
+            'n_avogadro': self.sim_data.constants.n_avogadro.asNumber(1 / units.mmol),  # TODO -- wcEcoli has this in 1/mmol, why?
             'cell_density': self.sim_data.constants.cell_density.asNumber(units.g / units.L),
             'moleculesToNextTimeStep': self.sim_data.process.two_component_system.molecules_to_next_time_step,
             'moleculeNames': self.sim_data.process.two_component_system.molecule_names,
