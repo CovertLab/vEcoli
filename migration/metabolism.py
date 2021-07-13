@@ -86,6 +86,7 @@ def run_metabolism(
         total_time=10,
         initial_time=0,
         config=None,
+        initial_state=None,
 ):
     # get parameters from sim data
     metabolism_config = load_sim_data.get_metabolism_config()
@@ -96,15 +97,17 @@ def run_metabolism(
     metabolism = Metabolism(metabolism_config)
 
     # get initial state from file
-    initial_state = get_state_from_file(
+    state = get_state_from_file(
         path=f'data/wcecoli_t{initial_time}.json')
+    if initial_state:
+        state = deep_merge(state, initial_state)
 
     # initialize a simulation
     metabolism_composite = metabolism.generate()
     simulation = Engine({
         'processes': metabolism_composite['processes'],
         'topology': {metabolism.name: metabolism_topology},
-        'initial_state': initial_state
+        'initial_state': state
     })
 
     # run the simulation
@@ -133,11 +136,19 @@ def test_metabolism():
 
 
 def test_metabolism_aas():
-    config = {}
-    data = run_metabolism(total_time=10, config=config)
-
-    # import ipdb;
-    # ipdb.set_trace()
+    config = {
+        'media_id': 'minimal_plus_amino_acids'
+    }
+    initial_state = {
+        'environment': {
+            'media_id': 'minimal_plus_amino_acids'
+        }
+    }
+    data = run_metabolism(
+        total_time=10,
+        config=config,
+        initial_state=initial_state,
+    )
 
 
 # functions to run from the command line

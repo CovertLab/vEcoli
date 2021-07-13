@@ -43,6 +43,9 @@ from ecoli.states.wcecoli_state import get_state_from_file
 RAND_MAX = 2**31
 SIM_DATA_PATH = 'reconstruction/sim_data/kb/simData.cPickle'
 
+MINIMAL_MEDIA_ID = 'minimal'
+AA_MEDIA_ID = 'minimal_plus_amino_acids'
+ANAEROBIC_MEDIA_ID = 'minimal_minus_oxygen'
 
 ECOLI_PROCESSES = {
     'tf_binding': TfBinding,
