@@ -1,3 +1,4 @@
+import os
 import json
 import numpy as np
 from scipy.sparse import coo_matrix
@@ -163,6 +164,7 @@ def blame_plot(data, filename='out/ecoli_master/blame.png',
     fig.tight_layout()
 
     if filename:
+        os.makedirs(os.path.dirname(filename), exist_ok=True)
         plt.savefig(filename)
 
     return axs, fig
