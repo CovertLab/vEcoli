@@ -8,7 +8,7 @@ def make_logging_process(process_class):
     logging_process = type(f"Logging_{process_class.__name__}",
                            (process_class,),
                            {})
-    __class__ = logging_process # set __class__ manually so super() knows what to do
+    __class__ = logging_process  # set __class__ manually so super() knows what to do
 
     def ports_schema(self):
         ports = super().ports_schema()  # get the original port structure

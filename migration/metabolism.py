@@ -11,8 +11,10 @@ from vivarium.library.dict_utils import deep_merge
 # ecoli imports
 from ecoli.library.sim_data import LoadSimData
 from ecoli.states.wcecoli_state import get_state_from_file
-from ecoli.composites.ecoli_master import SIM_DATA_PATH, ECOLI_TOPOLOGY, AA_MEDIA_ID
+from ecoli.composites.ecoli_master import SIM_DATA_PATH, AA_MEDIA_ID
 from ecoli.processes import Metabolism, Exchange
+
+from data.ecoli_master_configs.default import ECOLI_TOPOLOGY
 
 # migration imports
 from migration.migration_utils import run_ecoli_process
