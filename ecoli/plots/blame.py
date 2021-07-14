@@ -10,7 +10,6 @@ from collections import Counter
 
 from ecoli.composites.ecoli_master import ECOLI_TOPOLOGY
 
-ecoli_topology = ECOLI_TOPOLOGY.copy()
 
 def blame_plot(data, filename='out/ecoli_master/blame.png',
                selected_molecules=None,
@@ -173,7 +172,7 @@ def blame_plot(data, filename='out/ecoli_master/blame.png',
 def extract_bulk(data):
     # Get relevant processes (those affecting bulk)
     bulk_processes = {}
-    for process, ports in ecoli_topology.items():
+    for process, ports in ECOLI_TOPOLOGY.items():
         for port, path in ports.items():
             if 'bulk' in path:
                 if process not in bulk_processes:

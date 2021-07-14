@@ -245,7 +245,7 @@ class Ecoli(Composer):
 
         # make the topology
         for process_id, ports in ECOLI_TOPOLOGY.items():
-            topology[process_id] = ports
+            topology[process_id] = ports.copy()
             if config['blame']:
                 topology[process_id]['log_update'] = ('log_update', process_id,)
 

@@ -26,8 +26,6 @@ load_sim_data = LoadSimData(
 # get topology from ecoli master
 metabolism_topology = ECOLI_TOPOLOGY['metabolism']
 
-
-
 # make a composite with Exchange
 class MetabolismExchange(Composer):
     defaults = {
