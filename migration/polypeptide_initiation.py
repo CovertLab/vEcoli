@@ -97,7 +97,7 @@ def plots(actual_update, expected_update, time):
 
     plt.gcf().set_size_inches(16, 12)
     plt.tight_layout()
-    plt.savefig(f"out/migration/polypeptide_initiation/polypeptide_initiation{time}.png")
+    plt.savefig(f"out/migration/polypeptide_initiation/polypeptide_initiation_t{time}.png")
 
 def assertions(actual_update, expected_update):
 
