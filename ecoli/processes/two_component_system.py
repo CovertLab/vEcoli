@@ -59,7 +59,7 @@ class TwoComponentSystem(Process):
     def next_update(self, timestep, states):
         # Get molecule counts
         moleculeCounts = array_from(states['molecules'])
-        #import ipdb; ipdb.set_trace()
+
         # Get cell mass and volume
         cellMass = (states['listeners']['mass']['cell_mass'] * units.fg).asNumber(units.g)
         self.cellVolume = cellMass / self.cell_density
@@ -72,7 +72,6 @@ class TwoComponentSystem(Process):
             moleculeCounts, self.cellVolume, self.n_avogadro,
             timestep, self.random_state, method="BDF", jit=self.jit)
 
-        moleculeCounts = self.molecules_required
         # Increment changes in molecule counts
         update = {
             'molecules': array_to(self.moleculeNames, self.all_molecule_changes.astype(int))}
