@@ -284,7 +284,8 @@ def array_almost_equal(arr1, arr2):
             f"Max error = {np.max(p_errors):.4f}")
 
 def scalar_almost_equal(v1, v2):
-    return percent_error(v1, v2) < PERCENT_ERROR_THRESHOLD or np.isnan(pe), f"Percent error = {percent_error(v1, v2):.4f}"
+    pe = percent_error(v1, v2)
+    return pe < PERCENT_ERROR_THRESHOLD or np.isnan(pe), f"Percent error = {pe:.4f}"
 
 def custom_array_comp(percent_error_threshold = 0.05):
     def _array_almost_equal(arr1, arr2):

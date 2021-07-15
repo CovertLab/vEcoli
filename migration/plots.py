@@ -15,7 +15,6 @@ def qqplot(actual, expected, quantile_precision=0.01, include_line=True):
 
     Returns: matplotlib Plot object
     """
-
     # theoretical line
     if include_line:
         plt.plot([min(expected), max(expected)], [min(actual), max(actual)], 'r--')
