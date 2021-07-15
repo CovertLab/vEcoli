@@ -1,5 +1,7 @@
 import argparse
 import json
+
+import ipdb
 import matplotlib.pyplot as plt
 import os
 
@@ -36,7 +38,7 @@ def test_actual_update():
     config = load_sim_data.get_chromosome_replication_config()
     chromosome_replication = ChromosomeReplication(config)
     total_time = 2
-    initial_time = 1438
+    initial_time = 3142
 
     # run the process and get an update
     actual_update = run_ecoli_process(
@@ -49,7 +51,6 @@ def test_actual_update():
         wc_update = json.load(f)
 
     print(pf(actual_update))
-
     plots(actual_update, wc_update, total_time + initial_time)
     assertions(actual_update, wc_update)
 
@@ -116,7 +117,7 @@ def plots(actual_update, expected_update, time):
             plt.legend()
 
         if key == 'dntps':
-            plt.subplot(3, 3, 7)
+            plt.subplot(3, 3, 5)
             plt.bar(np.arange(len(actual_update[key].keys())) - 0.1, actual_update[key].values(), 0.2, label="Vivarium")
             plt.bar(np.arange(len(expected_update[key].keys())) + 0.1, expected_update[key].values(), 0.2,
                     label="wcEcoli")
@@ -149,19 +150,23 @@ def assertions(actual_update, expected_update):
     tests = ComparisonTestSuite(test_structure, fail_loudly=False)
     tests.run_tests(actual_update, expected_update, verbose=True)
 
-    def compare_dict_data(actual_dicts, expected_dicts, comparison, keys):
+    def compare_dict_data(actual_dicts, expected_dicts, comparison, keys, data_type=None):
         actual_data = []
         expected_data = []
         for i in range(len(actual_dicts)):
             actual_value = actual_dicts[i]
             for key in keys:
                 actual_value = actual_value[key]
+            if data_type:
+                actual_value = data_type(actual_value)
             actual_data.append(actual_value)
         for j in range(len(expected_dicts)):
             expected_value = expected_dicts[j]
             for key in keys:
                 expected_value = expected_value[key]
-            expected_data.append(expected_value[key])
+            if data_type:
+                expected_value = data_type(expected_value)
+            expected_data.append(expected_value)
         assert comparison(np.array(actual_data), expected_data)
 
     if '_delete' in actual_update['active_replisomes']:
@@ -173,16 +178,16 @@ def assertions(actual_update, expected_update):
         compare_dict_data(actual_update['active_replisomes']['_add'], expected_update['active_replisomes']['_add'],
                           array_equal, ['state', 'coordinates'])
         compare_dict_data(actual_update['active_replisomes']['_add'], expected_update['active_replisomes']['_add'],
-                          array_equal, ['state', 'right_replichore'])
+                          array_equal, ['state', 'right_replichore'], int)
 
     def compare_index_data(actual_dict, expected_dict, comparison, data_key, data_type):
         actual_data = []
         expected_data = []
         for key in actual_dict:
-            if key != '_add' and key != 'delete':
+            if key != '_add' and key != '_delete':
                 actual_data.append(data_type(actual_dict[key][data_key]))
         for key in expected_dict:
-            if key != '_add' and key != 'delete':
+            if key != '_add' and key != '_delete':
                 expected_data.append(data_type(actual_dict[key][data_key]))
         if actual_data and expected_data:
             assert comparison(np.array(actual_data), expected_data)
@@ -210,7 +215,7 @@ def assertions(actual_update, expected_update):
             compare_dict_data(actual_update['full_chromosomes']['_add'], expected_update['full_chromosomes']['_add'],
                               array_equal, ['state', 'division_time'])
             compare_dict_data(actual_update['full_chromosomes']['_add'], expected_update['full_chromosomes']['_add'],
-                              array_equal, ['state', 'has_triggered_division'])
+                              scalar_equal, ['state', 'has_triggered_division'], int)
 
     if 'chromosome_domains' in actual_update:
         # TODO: use compare_index_data
