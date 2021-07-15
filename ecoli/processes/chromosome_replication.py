@@ -131,7 +131,7 @@ class ChromosomeReplication(Process):
 
         # If there are no origins, return immediately
         if n_oriC == 0:
-            return
+            return {}
 
         # Get current cell mass
         cellMass = states['listeners']['mass']['cell_mass'] * units.fg
@@ -372,7 +372,7 @@ class ChromosomeReplication(Process):
         # Note: the new replication forks added in the previous module are not
         # elongated until the next timestep.
         if n_active_replisomes == 0:
-            return
+            return update
 
         # Get allocated counts of dNTPs
         dNtpCounts = dntps
