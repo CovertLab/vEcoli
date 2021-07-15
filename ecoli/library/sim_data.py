@@ -418,3 +418,12 @@ class LoadSimData:
             'water_id': 'WATER[c]',
         }
         return mass_config
+    
+    def get_allocator_config(self, time_step=2, parallel=False, processes={}):
+        allocator_config = {
+            'time_step': time_step, 
+            'molecule_names': self.sim_data.internal_state.bulk_molecules.bulk_data['id'],
+            'processes': processes,
+            'seed': self.random_state.randint(2**31)
+        }
+        return allocator_config
