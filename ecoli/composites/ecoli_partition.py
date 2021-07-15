@@ -35,6 +35,7 @@ from ecoli.processes.protein_degradation import ProteinDegradation
 from ecoli.processes.metabolism import Metabolism
 from ecoli.processes.chromosome_replication import ChromosomeReplication
 from ecoli.processes.mass import Mass
+from ecoli.processes.allocator import Allocator
 from ecoli.states.wcecoli_state import get_state_from_file
 
 RAND_MAX = 2**31
@@ -56,13 +57,18 @@ ECOLI_PROCESSES = {
     'chromosome_replication': ChromosomeReplication,
     'mass': Mass,
     'divide_condition': DivideCondition,
+    'allocator': Allocator,
 }
 
-ECOLI_TOPOLOGY = {
+ECOLI_TOPOLOGY = {   
+        'allocator': {
+            'bulk': ('bulk',),
+        },
+        
         'tf_binding': {
             'promoters': ('unique', 'promoter'),
-            'active_tfs': ('bulk',),
-            'inactive_tfs': ('bulk',),
+            'active_tfs': ('bulk', 'tf_binding'),
+            'inactive_tfs': ('bulk', 'tf_binding'),
             'listeners': ('listeners',)},
 
         'transcript_initiation': {
@@ -71,28 +77,28 @@ ECOLI_TOPOLOGY = {
             'RNAs': ('unique', 'RNA'),
             'active_RNAPs': ('unique', 'active_RNAP'),
             'promoters': ('unique', 'promoter'),
-            'molecules': ('bulk',),
+            'molecules': ('bulk', 'transcript_initiation'),
             'listeners': ('listeners',)},
 
         'transcript_elongation': {
             'environment': ('environment',),
             'RNAs': ('unique', 'RNA'),
             'active_RNAPs': ('unique', 'active_RNAP'),
-            'molecules': ('bulk',),
-            'bulk_RNAs': ('bulk',),
-            'ntps': ('bulk',),
+            'molecules': ('bulk', 'transcript_elongation'),
+            'bulk_RNAs': ('bulk', 'transcript_elongation'),
+            'ntps': ('bulk', 'transcript_elongation'),
             'listeners': ('listeners',)},
 
         'rna_degradation': {
-            'charged_trna': ('bulk',),
-            'bulk_RNAs': ('bulk',),
-            'nmps': ('bulk',),
-            'fragmentMetabolites': ('bulk',),
-            'fragmentBases': ('bulk',),
-            'endoRnases': ('bulk',),
-            'exoRnases': ('bulk',),
-            'subunits': ('bulk',),
-            'molecules': ('bulk',),
+            'charged_trna': ('bulk', 'rna_degradation'),
+            'bulk_RNAs': ('bulk', 'rna_degradation'),
+            'nmps': ('bulk', 'rna_degradation'),
+            'fragmentMetabolites': ('bulk', 'rna_degradation'),
+            'fragmentBases': ('bulk', 'rna_degradation'),
+            'endoRnases': ('bulk', 'rna_degradation'),
+            'exoRnases': ('bulk', 'rna_degradation'),
+            'subunits': ('bulk', 'rna_degradation'),
+            'molecules': ('bulk', 'rna_degradation'),
             'RNAs': ('unique', 'RNA'),
             'active_ribosome': ('unique', 'active_ribosome'),
             'listeners': ('listeners',)},
@@ -102,53 +108,53 @@ ECOLI_TOPOLOGY = {
             'listeners': ('listeners',),
             'active_ribosome': ('unique', 'active_ribosome'),
             'RNA': ('unique', 'RNA'),
-            'subunits': ('bulk',)},
+            'subunits': ('bulk', 'polypeptide_initiation')},
 
         'polypeptide_elongation': {
             'environment': ('environment',),
             'listeners': ('listeners',),
             'active_ribosome': ('unique', 'active_ribosome'),
-            'molecules': ('bulk',),
-            'monomers': ('bulk',),
-            'amino_acids': ('bulk',),
-            'ppgpp_reaction_metabolites': ('bulk',),
-            'uncharged_trna': ('bulk',),
-            'charged_trna': ('bulk',),
-            'charging_molecules': ('bulk',),
-            'synthetases': ('bulk',),
-            'subunits': ('bulk',),
+            'molecules': ('bulk', 'polypeptide_elongation'),
+            'monomers': ('bulk', 'polypeptide_elongation'),
+            'amino_acids': ('bulk', 'polypeptide_elongation'),
+            'ppgpp_reaction_metabolites': ('bulk', 'polypeptide_elongation'),
+            'uncharged_trna': ('bulk', 'polypeptide_elongation'),
+            'charged_trna': ('bulk', 'polypeptide_elongation'),
+            'charging_molecules': ('bulk', 'polypeptide_elongation'),
+            'synthetases': ('bulk', 'polypeptide_elongation'),
+            'subunits': ('bulk', 'polypeptide_elongation'),
             'polypeptide_elongation': ('process_state', 'polypeptide_elongation')},
 
         'complexation': {
-            'molecules': ('bulk',)},
+            'molecules': ('bulk', 'complexation')},
 
         'two_component_system': {
             'listeners': ('listeners',),
-            'molecules': ('bulk',)},
+            'molecules': ('bulk', 'two_component_system')},
 
         'equilibrium': {
             'listeners': ('listeners',),
-            'molecules': ('bulk',)},
+            'molecules': ('bulk', 'equilibrium')},
 
         'protein_degradation': {
-            'metabolites': ('bulk',),
-            'proteins': ('bulk',)},
+            'metabolites': ('bulk', 'protein_degradation'),
+            'proteins': ('bulk', 'protein_degradation')},
 
         'metabolism': {
-            'metabolites': ('bulk',),
-            'catalysts': ('bulk',),
-            'kinetics_enzymes': ('bulk',),
-            'kinetics_substrates': ('bulk',),
-            'amino_acids': ('bulk',),
+            'metabolites': ('bulk', 'metabolism'),
+            'catalysts': ('bulk', 'metabolism'),
+            'kinetics_enzymes': ('bulk', 'metabolism'),
+            'kinetics_substrates': ('bulk', 'metabolism'),
+            'amino_acids': ('bulk', 'metabolism'),
             'listeners': ('listeners',),
             'environment': ('environment',),
             'polypeptide_elongation': ('process_state', 'polypeptide_elongation')},
 
         'chromosome_replication': {
-            'replisome_trimers': ('bulk',),
-            'replisome_monomers': ('bulk',),
-            'dntps': ('bulk',),
-            'ppi': ('bulk',),
+            'replisome_trimers': ('bulk', 'chromosome_replication'),
+            'replisome_monomers': ('bulk', 'chromosome_replication'),
+            'dntps': ('bulk', 'chromosome_replication'),
+            'ppi': ('bulk', 'chromosome_replication'),
             'active_replisomes': ('unique', 'active_replisome',),
             'oriCs': ('unique', 'oriC',),
             'chromosome_domains': ('unique', 'chromosome_domain',),
@@ -211,17 +217,24 @@ class Ecoli(Composer):
             'mass': self.load_sim_data.get_mass_config(time_step=time_step),
 
             # additional processes
-            'divide_condition': config['division']
+            'divide_condition': config['division'],
         }
-
-        return {
+        
+        processes = {
             process_name: (process(configs[process_name])
                            if not config['blame']
                            else make_logging_process(process)(configs[process_name]))
 
             for (process_name, process) in ECOLI_PROCESSES.items()
-            #if process_name != "polypeptide_elongation"  # TODO: get polypeptide elongation working again
+            if process_name not in ["polypeptide_elongation", 'allocator'] # TODO: get polypeptide elongation working again
         }
+        
+        allocator_config = self.load_sim_data.get_allocator_config(time_step=time_step,
+                                                                    processes=processes)
+        
+        processes['allocator'] = Allocator(allocator_config)
+        
+        return processes
 
     def generate_topology(self, config):        
         topology = {}
@@ -310,13 +323,13 @@ def main():
     args = parser.parse_args()
 
     if args.topology:
-        ecoli_topology_plot(filename='ecoli_master', out_dir=out_dir)
+        ecoli_topology_plot(filename='ecoli_partition', out_dir=out_dir)
     else:
         if args.debug:
-            output = run_ecoli(args.blame, args.partition)
+            output = run_ecoli(args.blame)
             #assertions(output)
         else:
-            output = run_ecoli(args.blame, args.partition)
+            output = run_ecoli(args.blame)
 
 if __name__ == '__main__':
     main()
