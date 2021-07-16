@@ -25,17 +25,15 @@ def test_polypeptide_initiation_migration():
     config = load_sim_data.get_polypeptide_initiation_config()
     polypeptide_initiation_process = PolypeptideInitiation(config)
     total_time = 2
-    initial_time = 0
-
-    # run the process and get an update
-    actual_update = run_ecoli_process(polypeptide_initiation_process, PI_TOPOLOGY, total_time=total_time,
-                                      initial_time=initial_time)
-
-    with open(f"data/polypeptide_initiation_update_t{initial_time + total_time}.json") as f:
-        wc_update = json.load(f)
-
-    plots(actual_update, wc_update, total_time + initial_time)
-    assertions(actual_update, wc_update)
+    initial_times = [0, 10, 100]
+    for initial_time in initial_times:
+        # run the process and get an update
+        actual_update = run_ecoli_process(polypeptide_initiation_process, PI_TOPOLOGY, total_time=total_time,
+                                          initial_time=initial_time)
+        with open(f"data/polypeptide_initiation_update_t{initial_time + total_time}.json") as f:
+            wc_update = json.load(f)
+        plots(actual_update, wc_update, total_time + initial_time)
+        assertions(actual_update, wc_update)
 
 def test_polypeptide_initiation():
     # Create process, experiment, loading in initial state from file.
