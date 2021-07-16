@@ -37,21 +37,21 @@ def test_actual_update():
     config = load_sim_data.get_chromosome_replication_config()
     chromosome_replication = ChromosomeReplication(config)
     total_time = 2
-    initial_time = 3142
+    initial_times = [0, 1438, 1440, 2140, 3142]
+    for initial_time in initial_times:
+        # run the process and get an update
+        actual_update = run_ecoli_process(
+            chromosome_replication,
+            topology,
+            total_time=total_time,
+            initial_time=initial_time)
 
-    # run the process and get an update
-    actual_update = run_ecoli_process(
-        chromosome_replication,
-        topology,
-        total_time=total_time,
-        initial_time=initial_time)
+        with open(f"data/chromosome_replication_update_t{initial_time + total_time}.json") as f:
+            wc_update = json.load(f)
 
-    with open(f"data/chromosome_replication_update_t{initial_time + total_time}.json") as f:
-        wc_update = json.load(f)
-
-    print(pf(actual_update))
-    plots(actual_update, wc_update, total_time + initial_time)
-    assertions(actual_update, wc_update)
+        print(pf(actual_update))
+        plots(actual_update, wc_update, total_time + initial_time)
+        assertions(actual_update, wc_update)
 
 
 def plots(actual_update, expected_update, time):
