@@ -156,9 +156,7 @@ class TfBinding(Process):
             tf_count = states['active_tfs'][active_tf_key]
 
             bound_tf_counts = n_bound_TF[tf_idx]
-            
-            # Base of 0 to match accumulative update schema
-            update['active_tfs'][active_tf_key] = 0
+            update['active_tfs'][active_tf_key] = bound_tf_counts
             
             #=======================wcEcoli Code==============================#
             # active_tf_view.countInc(bound_tf_counts)

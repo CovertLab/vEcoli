@@ -51,11 +51,18 @@ def arrays_to(n, attrs):
 
     return ds
 
-def bulk_schema(elements):
+def bulk_schema(
+        elements,
+        updater=None,
+):
+    schema = {
+        '_default': 0,
+        '_divider': 'binomial',
+        '_emit': True}
+    if updater:
+        schema['_updater'] = updater
     return {
-        element: {
-            '_default': 0,
-            '_emit': True}
+        element: schema
         for element in elements}
 
 def mw_schema(mass_dict):
