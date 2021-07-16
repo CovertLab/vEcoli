@@ -25,7 +25,7 @@ def test_polypeptide_initiation_migration():
     config = load_sim_data.get_polypeptide_initiation_config()
     polypeptide_initiation_process = PolypeptideInitiation(config)
     total_time = 2
-    initial_time = 1000
+    initial_time = 0
 
     # run the process and get an update
     actual_update = run_ecoli_process(polypeptide_initiation_process, PI_TOPOLOGY, total_time=total_time,
