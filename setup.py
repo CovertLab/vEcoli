@@ -1,5 +1,3 @@
-from __future__ import absolute_import, division, print_function
-
 import glob
 import setuptools
 
@@ -68,12 +66,12 @@ setup(
     long_description=long_description,
     long_description_content_type='text/markdown',
     install_requires=[
-        'vivarium-core>=0.2.0',
+        'pytest==6.2.4',
+        'vivarium-core>=0.3.0',
         'decorator',
         'biopython==1.77',
         'Unum==4.1.4',
         'numba==0.50.1',
-        'Theano==1.0.5',
         'ipython==7.16.1',
         'stochastic-arrow',
         'iteround',
@@ -81,5 +79,6 @@ setup(
         'escher',
         'jax',
         'jaxlib',
-        "jupyter",
+        'jupyter',
+        'aesara==2.0.8',
         ])

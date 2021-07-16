@@ -86,8 +86,8 @@ class RnaDegradation(Process):
         'ribosome50S': 'ribosome50S',
         'seed': 0}
 
-    def __init__(self, initial_parameters):
-        super().__init__(initial_parameters)
+    def __init__(self, parameters=None):
+        super().__init__(parameters)
 
         self.rnaIds = self.parameters['rnaIds']
         self.n_total_RNAs = len(self.rnaIds)
@@ -200,7 +200,7 @@ class RnaDegradation(Process):
         bulk_RNA_counts[self.rrsaIdx] += states['subunits'][self.ribosome30S]
         bulk_RNA_counts[[self.rrlaIdx, self.rrfaIdx]] += states['subunits'][self.ribosome50S]
         bulk_RNA_counts[[self.rrlaIdx, self.rrfaIdx, self.rrsaIdx]] += len(states['active_ribosome'])
-        bulk_RNA_counts[self.is_tRNA.astype(np.bool)] += array_from(states['charged_trna'])
+        bulk_RNA_counts[self.is_tRNA.astype(bool)] += array_from(states['charged_trna'])
 
         TU_index, can_translate, is_full_transcript = arrays_from(
             states['RNAs'].values(),

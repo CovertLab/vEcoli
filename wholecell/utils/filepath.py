@@ -31,6 +31,8 @@ TIMEOUT = 60  # seconds
 
 # The wcEcoli/ project root path which contains wholecell/.
 ROOT_PATH = os.path.dirname(os.path.dirname(os.path.realpath(wholecell.__file__)))
+OUT_DIR = os.path.join(ROOT_PATH, 'out')
+DEBUG_OUT_DIR = os.path.join(OUT_DIR, 'debug')
 
 MATPLOTLIBRC_FILE = os.path.join(ROOT_PATH, 'matplotlibrc')
 
@@ -42,18 +44,13 @@ def makedirs(path, *paths):
 	"""Join one or more path components, make that directory path (using the
 	default mode 0o0777), and return the full path.
 
-	Raise OSError if it can't achieve the result (e.g. the containing directory
-	is readonly or the path contains a file); not if the directory already
-	exists.
+	Raise FileExistsError if there's a file (not a directory) with that path.
+	No exception if the directory already exists.
 	"""
 	full_path = os.path.join(path, *paths)
 
-	try:
-		if full_path:
-			os.makedirs(full_path)
-	except OSError as e:
-		if e.errno != errno.EEXIST or not os.path.isdir(full_path):
-			raise
+	if full_path:
+		os.makedirs(full_path, exist_ok=True)
 
 	return full_path
 
@@ -81,8 +78,8 @@ def verify_dir_exists(dir_path, message=''):
 		raise IOError(errno.ENOENT,
 			'Missing dir "{}".  {}'.format(dir_path, message))
 
-def run_cmd2(tokens, trim=True, timeout=TIMEOUT):
-	# type: (Sequence[str], bool, Optional[int]) -> Tuple[str, str]
+def run_cmd2(tokens, trim=True, timeout=TIMEOUT, env=None):
+	# type: (Sequence[str], bool, Optional[int], Optional[dict]) -> Tuple[str, str]
 	"""Run a shell command-line (in token list form) and return a tuple
 	containing its (stdout, stderr).
 	This does not expand filename patterns or environment variables or do other
@@ -93,6 +90,8 @@ def run_cmd2(tokens, trim=True, timeout=TIMEOUT):
 		trim: Whether to trim off trailing whitespace. This is useful
 			because the outputs usually end with a newline.
 		timeout: timeout in seconds; None for no timeout.
+		env: optional environment variables for the new process to use instead
+			of inheriting the current process' environment.
 	Returns:
 		The command's stdout and stderr strings.
 	Raises:
@@ -104,24 +103,25 @@ def run_cmd2(tokens, trim=True, timeout=TIMEOUT):
 		stdout=subprocess.PIPE,
 		stderr=subprocess.PIPE,
 		check=True,
-		universal_newlines=True,
+		env=env,
+		encoding='utf-8',
 		timeout=timeout)
 	if trim:
 		return out.stdout.rstrip(), out.stderr.rstrip()
 	return out.stdout, out.stderr
 
 
-def run_cmd(tokens, trim=True, timeout=TIMEOUT):
-	# type: (Sequence[str], bool, Optional[int]) -> str
+def run_cmd(tokens, trim=True, timeout=TIMEOUT, env=None):
+	# type: (Sequence[str], bool, Optional[int], Optional[dict]) -> str
 	"""Run a shell command-line (in token list form) and return its stdout.
 	See run_cmd2().
 	"""
-	return run_cmd2(tokens, trim=trim, timeout=timeout)[0]
+	return run_cmd2(tokens, trim=trim, timeout=timeout, env=env)[0]
 
 
-def run_cmdline(line, trim=True, timeout=TIMEOUT):
-	# type: (str, bool, Optional[int]) -> Optional[str]
-	"""Run a shell command-line string and return its output, or None if it
+def run_cmdline(line, trim=True, timeout=TIMEOUT, fallback=None):
+	# type: (str, bool, Optional[int], Optional[str]) -> Optional[str]
+	"""Run a shell command-line string then return its output or fallback if it
 	failed. This does not expand filename patterns or environment variables or
 	do other shell processing steps like quoting.
 
@@ -130,14 +130,33 @@ def run_cmdline(line, trim=True, timeout=TIMEOUT):
 		trim: Whether to trim off trailing whitespace. This is useful
 			because the subprocess output usually ends with a newline.
 		timeout: timeout in seconds; None for no timeout.
+		fallback: Return this if the subprocess fails, e.g. trying to run git
+			in a Docker Image that has no git repo.
 	Returns:
 		The command's output string, or None if it couldn't even run.
 	"""
 	try:
 		return run_cmd(tokens=line.split(), trim=trim, timeout=timeout)
 	except (OSError, subprocess.SubprocessError) as e:
-		print('failed to run command line {}: {}'.format(line, e))
-		return None
+		if fallback is None:
+			print('failed to run command line {}: {}'.format(line, e))
+		return fallback
+
+
+def git_hash():
+	"""Return the source code git hash, or the environment variable
+	$IMAGE_GIT_HASH if there's no git repo (in a Docker Image), or else '--'.
+	"""
+	return run_cmdline("git rev-parse HEAD",
+					   fallback=os.environ.get("IMAGE_GIT_HASH", '--'))
+
+
+def git_branch():
+	"""Return the source code git branch name, or the environment variable
+	$IMAGE_GIT_BRANCH if there's no git repo (in a Docker Image), or '--'.
+	"""
+	return run_cmdline("git symbolic-ref --short HEAD",
+					   fallback=os.environ.get("IMAGE_GIT_BRANCH", '--'))
 
 def write_file(filename, content):
 	# type: (str, String) -> None

@@ -56,6 +56,7 @@ class PolypeptideElongation(Process):
         'endWeight': np.array([2.99146113e-08]),
         'variable_elongation': False,
         'make_elongation_rates': lambda random, rate, timestep, variable: np.array([]),
+        'next_aa_pad': 1,
         'ribosomeElongationRate': 17.388824902723737,
         'translation_aa_supply': {'minimal': np.array([])},
         'import_threshold': 1e-05,
@@ -64,6 +65,7 @@ class PolypeptideElongation(Process):
         'ppgpp_regulation': False,
         'trna_charging': False,
         'translation_supply': False,
+        'mechanistic_supply': False,
         'ribosome30S': 'ribosome30S',
         'ribosome50S': 'ribosome50S',
         'amino_acids': DEFAULT_AA_NAMES,
@@ -102,8 +104,8 @@ class PolypeptideElongation(Process):
         'aa_supply_scaling': lambda aa_conc, aa_in_media: 0,
         'seed': 0}
 
-    def __init__(self, initial_parameters):
-        super().__init__(initial_parameters)
+    def __init__(self, parameters=None):
+        super().__init__(parameters)
 
         self.max_time_step = self.parameters['max_time_step']
 
@@ -116,6 +118,8 @@ class PolypeptideElongation(Process):
         self.endWeight = self.parameters['endWeight']
         self.variable_elongation = self.parameters['variable_elongation']
         self.make_elongation_rates = self.parameters['make_elongation_rates']
+        self.next_aa_pad = self.parameters['next_aa_pad']
+
         self.ribosome30S = self.parameters['ribosome30S']
         self.ribosome50S = self.parameters['ribosome50S']
         self.amino_acids = self.parameters['amino_acids']
@@ -145,6 +149,7 @@ class PolypeptideElongation(Process):
         #     self.elongation_model = BaseElongationModel(self.parameters, self)
         self.elongation_model = BaseElongationModel(self.parameters, self)
         self.ppgpp_regulation = self.parameters['ppgpp_regulation']
+        self.mechanistic_supply = self.parameters['mechanistic_supply']
 
         # Growth associated maintenance energy requirements for elongations
         self.gtpPerElongation = self.parameters['gtpPerElongation']
@@ -288,11 +293,12 @@ class PolypeptideElongation(Process):
             timestep,
             self.variable_elongation)
 
-        sequences = buildSequences(
+        all_sequences = buildSequences(
             self.proteinSequences,
             protein_indexes,
             peptide_lengths,
-            self.elongation_rates)
+            self.elongation_rates + self.next_aa_pad)
+        sequences = all_sequences[:, :-self.next_aa_pad].copy()
 
         sequenceHasAA = (sequences != polymerize.PAD_VALUE)
         aasInSequences = np.bincount(sequences[sequenceHasAA], minlength=21)
@@ -362,6 +368,9 @@ class PolypeptideElongation(Process):
             sequence_elongations,
             self.aaWeightsIncorporated)
 
+        next_amino_acid = all_sequences[np.arange(len(sequence_elongations)), sequence_elongations]
+        next_amino_acid_count = np.bincount(next_amino_acid[next_amino_acid != polymerize.PAD_VALUE], minlength=21)
+
         updated_lengths = peptide_lengths + sequence_elongations
         updated_positions_on_mRNA = positions_on_mRNA + 3*sequence_elongations
 
@@ -429,6 +438,7 @@ class PolypeptideElongation(Process):
             requests,
             aa_counts_for_translation,
             aas_used,
+            next_amino_acid_count,
             nElongations,
             nInitialized)
 
@@ -464,7 +474,10 @@ class PolypeptideElongation(Process):
         return update
 
     def isTimeStepShortEnough(self, inputTimeStep, timeStepSafetyFraction):
-        return inputTimeStep <= self.max_time_step
+        model_specific = self.elongation_model.isTimeStepShortEnough(inputTimeStep, timeStepSafetyFraction)
+        max_time_step = inputTimeStep <= self.max_time_step
+        return model_specific and max_time_step
+
 
 
 def test_polypeptide_elongation():

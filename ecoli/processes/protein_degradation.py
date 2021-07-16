@@ -30,8 +30,8 @@ class ProteinDegradation(Process):
         'seed': 0}
 
     # Constructor
-    def __init__(self, initial_parameters):
-        super().__init__(initial_parameters)
+    def __init__(self, parameters=None):
+        super().__init__(parameters)
 
         self.raw_degradation_rate = self.parameters['raw_degradation_rate']
         self.shuffle_indexes = self.parameters['shuffle_indexes']
