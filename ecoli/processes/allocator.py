@@ -43,18 +43,15 @@ class Allocator(Deriver):
         ports['bulk'] = {molecule: {'_default': 0} 
                          for molecule in self.moleculeNames}
         return ports
-    
-    def evolve_state(self, timestep, states):
-        return {}
 
-    def calculate_request(self, timestep, states):
+    def next_update(self, timestep, states):
         total_counts = np.array([states['totals'][molecule] for 
                                  molecule in self.mol_idx_to_name.values()])
         original_totals = total_counts.copy()
         counts_requested = np.zeros((self.n_molecules, self.n_processes))
-        for process, process_requests in states['requested'].items():
+        for process in self.processes:
             proc_idx = self.proc_name_to_idx[process]
-            for molecule, molecule_requests in process_requests.items():
+            for molecule, molecule_requests in self.processes.requests:
                 mol_idx = self.mol_name_to_idx[molecule]
                 counts_requested[mol_idx][proc_idx] = molecule_requests
 
@@ -120,9 +117,6 @@ class Allocator(Deriver):
         from write_json import write_json
         write_json('out/comparison/double_part.json', update)
         return update
-    
-    def next_update(self, timestep, states):
-        return self.evolve_state(timestep, states)
 
 def calculatePartition(process_priorities, counts_requested, total_counts, random_state):
     priorityLevels = np.sort(np.unique(process_priorities))[::-1]

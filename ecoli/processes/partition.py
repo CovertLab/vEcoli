@@ -21,11 +21,11 @@ class Partition(Deriver):
     # Constructor
     def __init__(self, parameters=None):
         super().__init__(parameters)
-        moleculeNames = self.parameters['molecule_names']
+        moleculeNames = self.parameters['molecules']
         self.n_molecules = len(moleculeNames)
         self.mol_name_to_idx = {name: idx for idx, name in enumerate(moleculeNames)}
         self.mol_idx_to_name = {idx: name for idx, name in enumerate(moleculeNames)}
-        processNames = self.parameters['proc_names']
+        processNames = self.parameters['processes']
         self.n_processes = len(processNames)
         self.proc_name_to_idx = {name: idx for idx, name in enumerate(processNames)}
         self.proc_idx_to_name = {idx: name for idx, name in enumerate(processNames)}
@@ -41,11 +41,8 @@ class Partition(Deriver):
         ports['requested'] = {'*': {'_default': {}, '_updater': 'set', '_emit': True}}
         ports['allocated'] = {'*': {'_default': {}, '_updater': 'set', '_emit': True}}
         return ports
-    
-    def evolve_state(self, timestep, states):
-        return {}
 
-    def calculate_request(self, timestep, states):
+    def next_update(self, timestep, states):
         total_counts = np.array([states['totals'][molecule] for 
                                  molecule in self.mol_idx_to_name.values()])
         original_totals = total_counts.copy()
@@ -115,12 +112,9 @@ class Partition(Deriver):
                     for molecule in states['requested'][process]}
                 for process in states['requested']}}
         
-        from write_json import write_json
-        write_json('out/comparison/double_part.json', update)
+        from wholecell.utils.filepath import write_json_file
+        write_json_file(f'out/comparison/deriver_part.json', update)
         return update
-    
-    def next_update(self, timestep, states):
-        return self.evolve_state(timestep, states)
 
 def calculatePartition(process_priorities, counts_requested, total_counts, random_state):
     priorityLevels = np.sort(np.unique(process_priorities))[::-1]

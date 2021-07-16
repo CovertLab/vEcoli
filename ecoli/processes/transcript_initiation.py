@@ -141,7 +141,11 @@ class TranscriptInitiation(Process):
 
         # random seed
         'seed': 0,
-    }
+        'request_only': False,
+        'evolve_only': False,}
+    
+    time_step = [0]
+    requests = {'requested': {}}
 
     # Constructor
     def __init__(self, parameters=None):
@@ -225,6 +229,8 @@ class TranscriptInitiation(Process):
         self.random_state = np.random.RandomState(seed=self.seed)
 
         self.rnap_index = 60000
+        
+        self.time_step[0] = self.parameters['time_step']
 
     def ports_schema(self):
         return {
@@ -283,15 +289,12 @@ class TranscriptInitiation(Process):
                     'rnaInitEvent': 0})}}
         
     def calculate_request(self, timestep, states):
-        from copy import deepcopy
-        from migration.dict_compare import recursive_compare
-        states_copy = deepcopy(states)
+        timestep = self.time_step[0]
         # Migration: save factors influencing promoter initiation probabilities
         self.probability_factors = {}
 
         # Get all inactive RNA polymerases
-        requests = {}
-        requests['requested'] = {self.inactive_RNAP: states['molecules'][self.inactive_RNAP]}
+        self.requests['requested'] = {self.inactive_RNAP: states['molecules'][self.inactive_RNAP]}
 
         # Read current environment
         current_media_id = states['environment']['media_id']
@@ -380,9 +383,10 @@ class TranscriptInitiation(Process):
             self.rnaPolymeraseElongationRate.asNumber(units.nt / units.s),
             1,  # want elongation rate, not lengths adjusted for time step
             self.variable_elongation)
-        return requests
+        return {}
     
     def evolve_state(self, timestep, states):
+        self.time_step[0] = timestep
         update = {
             'listeners': {
                 'rna_synth_prob': {

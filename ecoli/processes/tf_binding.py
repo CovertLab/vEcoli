@@ -34,7 +34,12 @@ class TfBinding(Process):
         'active_to_inactive_tf': {},
         'bulk_molecule_ids': [],
         'bulk_mass_data': np.array([[]]) * units.g / units.mol,
-        'seed': 0}
+        'seed': 0,
+        'request_only': False,
+        'evolve_only': False,}
+    
+    time_step = [0]
+    requests = {}
 
     # Constructor
     def __init__(self, parameters=None):
@@ -95,6 +100,8 @@ class TfBinding(Process):
 
         self.seed = self.parameters['seed']
         self.random_state = np.random.RandomState(seed = self.seed)
+        
+        self.time_step[0] = self.parameters['time_step']
 
     def ports_schema(self):
         return {
@@ -119,22 +126,23 @@ class TfBinding(Process):
                     'nPromoterBound': 0,
                     'nActualBound': 0,
                     'n_available_promoters': 0,
-                    'n_bound_TF_per_TU': 0})},
-            
-            'time_step': {'_default': 0, '_updater': 'set'}}
+                    'n_bound_TF_per_TU': 0})}
+            }
         
     def calculate_request(self, timestep, states):
+        timestep = self.time_step[0]
         # request all active tfs
-        update = {'requested': {}}
+        self.requests = {'requested': {}}
         for tf_id in self.tf_ids:
             active_tf_key = self.active_tfs[tf_id]
             tf_count = states['active_tfs'][active_tf_key]
-            update['requested'][active_tf_key] = tf_count
-            
-        update['time_step'] = timestep
-        return update
+            self.requests['requested'][active_tf_key] = tf_count
+
+        return {}
         
     def evolve_state(self, timestep, states):
+        self.time_step[0] = timestep
+        
         # If there are no promoters, return immediately
         if not states['promoters']:
             return {}
@@ -179,7 +187,7 @@ class TfBinding(Process):
             # active_tf_counts = active_tf_view.total_counts()+bound_tf_counts
             # n_available_active_tfs = active_tf_view.count()
             active_tf_counts = tf_count + bound_tf_counts
-            n_available_active_tfs = states['allocated'][active_tf_key] + bound_tf_counts
+            n_available_active_tfs = self.requests['requested'][active_tf_key] + bound_tf_counts
 
             # Determine the number of available promoter sites
             available_promoters = np.isin(TU_index, self.TF_to_TU_idx[tf_id])
@@ -257,148 +265,14 @@ class TfBinding(Process):
                 'n_available_promoters': n_promoters,
                 'n_bound_TF_per_TU': n_bound_TF_per_TU}}
         
-        update['requested'] = {molecule: 0 for molecule in states['requested']}
-        
-        from write_json import write_json
-        write_json('out/comparison/double_tf.json', update)
+        """ from write_json import write_json
+        write_json('out/comparison/double_tf.json', update) """
 
         return update
     
     def next_update(self, timestep, states):
-        # If there are no promoters, return immediately
-        if not states['promoters']:
-            return {}
-
-        # Get attributes of all promoters
-        # TU_index, bound_TF = self.promoters.attrs('TU_index', 'bound_TF')
-        TU_index, bound_TF = arrays_from(
-            states['promoters'].values(),
-            ['TU_index', 'bound_TF'])
-
-        # Calculate number of bound TFs for each TF prior to changes
-        n_bound_TF = bound_TF.sum(axis=0)
-
-        # Initialize new bound_TF array
-        bound_TF_new = np.zeros_like(bound_TF)
-
-        # Create vectors for storing values
-        pPromotersBound = np.zeros(self.n_TF, dtype=np.float64)
-        nPromotersBound = np.zeros(self.n_TF, dtype=np.float64)
-        nActualBound = np.zeros(self.n_TF, dtype=np.float64)
-        n_promoters = np.zeros(self.n_TF, dtype=np.float64)
-        n_bound_TF_per_TU = np.zeros((self.n_TU, self.n_TF), dtype=np.int16)
-
-        update = {
-            'active_tfs': {}}
-
-        for tf_idx, tf_id in enumerate(self.tf_ids):
-            # Free all DNA-bound transcription factors into free active
-            # transcription factors
-            active_tf_key = self.active_tfs[tf_id]
-            tf_count = states['active_tfs'][active_tf_key]
-
-            bound_tf_counts = n_bound_TF[tf_idx]
-            
-            update['active_tfs'][active_tf_key] = bound_tf_counts
-            
-            #=======================wcEcoli Code==============================#
-            # active_tf_view.countInc(bound_tf_counts)
-            
-            # Get counts of transcription factors
-            # countInc() above increases count() but not total_counts() value
-            # so need to add freed TFs to the total active
-            # active_tf_counts = active_tf_view.total_counts()+bound_tf_counts
-            # n_available_active_tfs = active_tf_view.count()
-            #======================wcEcoli Code End===========================#
-
-            # active_tf_view.total_counts() gives the number of molecules of a 
-            # given TF in the entire cell
-            # active_tf_view.count() gives the number of molecules of a given 
-            # TF that are partitioned to the tf_binding process
-            # When t=2, active_tf_counts != n_available_active_tfs for 4 TFs
-            #   CPLX0-7669[¢]: 230 != 126
-            #   CPLX0-7740[¢]: 36 != 35
-            #   PD00288[c]: 46405 != 46401
-            #   PUTA_CPLX[c]: 18 != 10
-            # This does not affect the update dictionary at t=2 but DOES later
-            # TODO: Implement paritioning assumption
-            active_tf_counts = tf_count + bound_tf_counts
-            n_available_active_tfs = active_tf_counts
-
-            # Determine the number of available promoter sites
-            available_promoters = np.isin(TU_index, self.TF_to_TU_idx[tf_id])
-            n_available_promoters = np.count_nonzero(available_promoters)
-            n_promoters[tf_idx] = n_available_promoters
-
-            # If there are no active transcription factors to work with,
-            # continue to the next transcription factor
-            if n_available_active_tfs == 0:
-                continue
-
-            # Compute probability of binding the promoter
-            if self.tf_to_tf_type[tf_id] == '0CS':
-                pPromoterBound = 1.
-            else:
-                # inactive_tf_counts = self.inactive_tf_view[tf_id].total_counts()
-                inactive_tf_counts = states['inactive_tfs'][self.inactive_tfs[tf_id]]
-                pPromoterBound = self.p_promoter_bound_tf(
-                    active_tf_counts, inactive_tf_counts)
-
-            # Calculate the number of promoters that should be bound
-            n_to_bind = int(min(stochasticRound(
-                self.random_state, np.full(n_available_promoters, pPromoterBound)).sum(),
-                n_available_active_tfs))
-
-            bound_locs = np.zeros(n_available_promoters, dtype=bool)
-            if n_to_bind > 0:
-                # Determine randomly which DNA targets to bind based on which of
-                # the following is more limiting:
-                # number of promoter sites to bind, or number of active
-                # transcription factors
-                bound_locs[
-                    self.random_state.choice(
-                        n_available_promoters,
-                        size=n_to_bind,
-                        replace=False)
-                    ] = True
-
-                # Update count of free transcription factors
-                # active_tf_view.countDec(bound_locs.sum())
-                update['active_tfs'][active_tf_key] -= bound_locs.sum()
-
-                # Update bound_TF array
-                bound_TF_new[available_promoters, tf_idx] = bound_locs
-
-            n_bound_TF_per_TU[:, tf_idx] = np.bincount(
-                TU_index[bound_TF_new[:, tf_idx]],
-                minlength=self.n_TU)
-
-            # Record values
-            pPromotersBound[tf_idx] = pPromoterBound
-            nPromotersBound[tf_idx] = n_to_bind
-            nActualBound[tf_idx] = bound_locs.sum()
-
-        delta_TF = bound_TF_new.astype(np.int8) - bound_TF.astype(np.int8)
-        mass_diffs = delta_TF.dot(self.active_tf_masses)
-
-        # # Reset bound_TF attribute of promoters
-        # self.promoters.attrIs(bound_TF=bound_TF_new)
-
-        # # Add mass_diffs array to promoter submass
-        # self.promoters.add_submass_by_array(mass_diffs)
-
-        update['promoters'] = {
-            key: {
-                'bound_TF': bound_TF_new[index],
-                'submass': mass_diffs[index]}
-            for index, key in enumerate(states['promoters'].keys())}
-
-        update['listeners'] = {
-            'rna_synth_prob': {
-                'pPromoterBound': pPromotersBound,
-                'nPromoterBound': nPromotersBound,
-                'nActualBound': nActualBound,
-                'n_available_promoters': n_promoters,
-                'n_bound_TF_per_TU': n_bound_TF_per_TU}}
-
+        if self.request_only:
+            update = self.calculate_request(timestep, states)
+        elif self.evolve_only:
+            update = self.evolve_state(timestep, states)
         return update
