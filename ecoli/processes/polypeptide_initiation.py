@@ -36,8 +36,8 @@ class PolypeptideInitiation(Process):
         'seed': 0,
         'shuffle_indexes': None}
 
-    def __init__(self, initial_parameters):
-        super().__init__(initial_parameters)
+    def __init__(self, parameters=None):
+        super().__init__(parameters)
 
         # Load parameters
         self.protein_lengths = self.parameters['protein_lengths']
@@ -225,6 +225,7 @@ class PolypeptideInitiation(Process):
                 'pos_on_mRNA': np.zeros(cast(int, n_ribosomes_to_activate), dtype=np.int64)})
 
         self.ribosome_index += n_ribosomes_to_activate
+        # TODO -- this tracking of index seems messy -- can it automatically create new index?
 
         update = {
             'subunits': {
