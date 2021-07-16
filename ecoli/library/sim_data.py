@@ -343,6 +343,7 @@ class LoadSimData:
             'dark_atp': self.sim_data.constants.darkATP,
             'non_growth_associated_maintenance': self.sim_data.constants.non_growth_associated_maintenance,
             'cell_dry_mass_fraction': self.sim_data.mass.cell_dry_mass_fraction,
+            'seed': self.random_state.randint(RAND_MAX),
 
             # methods
             'concentration_updates': self.sim_data.process.metabolism.concentration_updates,
