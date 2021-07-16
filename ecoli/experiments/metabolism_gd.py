@@ -43,7 +43,7 @@ def run_metabolism():
 
     data = experiment.emitter.get_data()
 
-    import ipdb; ipdb.set_trace()
+
 
 
 if __name__ == "__main__":
