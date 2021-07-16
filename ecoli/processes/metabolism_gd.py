@@ -10,6 +10,7 @@ from vivarium.core.composition import simulate_process
 from ecoli.library.schema import bulk_schema, array_from
 
 from wholecell.utils import units
+from wholecell.utils.random import stochasticRound
 
 from ecoli.library.fba_gd import GradientDescentFba, FbaResult
 
@@ -80,6 +81,7 @@ class MetabolismGD(Process):
         self.nutrient_to_doubling_time = self.parameters['nutrientToDoublingTime']
         self.ngam = parameters['non_growth_associated_maintenance']
         self.gam = parameters['dark_atp'] * parameters['cell_dry_mass_fraction']
+        self.random_state = np.random.RandomState(seed=self.parameters['seed'])
 
         # new variables for the model
         self.cell_mass = None
@@ -113,7 +115,8 @@ class MetabolismGD(Process):
             reactions=self.stoichiometry,
             exchanges=exchange_molecules,
             objective=self.homeostatic_objective,
-            objectiveType=objective_type  # missing objectiveParameters for kinetic models
+            objectiveType=objective_type,  # missing objectiveParameters for kinetic models,
+            objectiveParameters = {"reactionRateTargets": 'maintenance_reaction'}
         )
 
         # for ports schema
@@ -243,19 +246,23 @@ class MetabolismGD(Process):
         )
         # TODO Get target flux for solver.
         current_metabolite_concentrations = {key: value*counts_to_molar for key, value in metabolite_counts.items()}
-        target_delta_concentrations = {key: (objective[key]*CONC_UNITS - current_metabolite_concentrations[key])*timestep
-                                       for key, value in objective.items()}
+        target_homeostatic_fluxes = {key: ((objective[key]*CONC_UNITS
+                                            - current_metabolite_concentrations[key])/timestep).asNumber()
+                                     for key, value in objective.items()}
 
-
-        # TODO Implement GAM.
-
+        # TODO Implement GAM. Be aware of GAM. How to scale?
         # calculate mass delta for GAM
         if self.previous_mass is not None:
-            flux_gam = self.gam * (self.cell_mass - self.previous_mass)
+            flux_gam = self.gam * (self.cell_mass - self.previous_mass)/VOLUME_UNITS
         else:
-            flux_gam = 0
-        flux_ngam = (self.ngam * coefficient).asNumber(CONC_UNITS)
-        flux_gtp = (counts_to_molar * translation_gtp).asNumber(CONC_UNITS)
+            flux_gam = 0 * CONC_UNITS
+        flux_ngam = (self.ngam * coefficient)
+        flux_gtp = (counts_to_molar * translation_gtp)
+
+
+        total_maintenance = flux_gam + flux_ngam + flux_gtp
+
+        kinetic_targets = {'maintenance_reaction': total_maintenance.asNumber}
 
         # TODO Figure out how to implement catalysis. Can come later.
         # reaction_bounds = np.inf * np.ones(len(self.reactions_with_catalyst))
@@ -268,19 +275,20 @@ class MetabolismGD(Process):
         # kinetic constraints
         # kinetic_constraints = get_kinetic_constraints(catalyst_counts, metabolite_counts) # kinetic
 
-        import ipdb
-        ipdb.set_trace()
-
         # run FBA
         solution: FbaResult = self.model.solve(
-            objective=target_delta_concentrations,
+            objective=target_homeostatic_fluxes,
             initial=self.reaction_fluxes,
-            params=None,
-            reaction_flux_bounds={'maintenance_reaction': [sum([flux_gam, flux_ngam, flux_gtp])-0.001,
-                                                           sum([flux_gam, flux_ngam, flux_gtp])]}
+            params={'kinetic_targets': kinetic_targets}
         )
 
-        self.reaction_fluxes = []
+        self.reaction_fluxes = solution.velocities
+
+        metabolite_counts_updates = {key: np.round(((value*CONC_UNITS)/counts_to_molar*timestep).asNumber())
+                                     for key, value in objective.items()}
+
+        print(metabolite_counts_updates)
+
 
         # TODO (Niels) -- extract FBA solution, and pass the update
         # solution -- changes in internal and exchange metabolites
