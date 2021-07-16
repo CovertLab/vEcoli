@@ -13,7 +13,6 @@ from wholecell.utils import units
 
 from ecoli.library.fba_gd import GradientDescentFba, FbaResult
 
-
 COUNTS_UNITS = units.mmol
 VOLUME_UNITS = units.L
 MASS_UNITS = units.g
@@ -67,60 +66,68 @@ class MetabolismGD(Process):
     def __init__(self, parameters):
         super().__init__(parameters)
 
-
-        # TODO (Niels) -- extract the FBA configuration from the metabolism dataclass object
+        # variables
         maintenance_reaction = self.parameters['maintenance_reaction']
         self.stoichiometry = self.parameters['stoichiometry_r']
-        self.stoichiometry['maintenance_reaction'] = maintenance_reaction
-
+        self.stoichiometry.append({'reaction id': 'maintenance_reaction',
+                                   'stoichiometry': parameters['maintenance_reaction'],
+                                   'is reversible': False})
         reaction_catalysts = self.parameters['reaction_catalysts']
         self.media_id = self.parameters['media_id']
         objective_type = self.parameters['objective_type']
-        concentration_updates = self.parameters['concentration_updates']
         self.cell_density = self.parameters['cell_density']
         self.nAvogadro = self.parameters['avogadro']
         self.nutrient_to_doubling_time = self.parameters['nutrientToDoublingTime']
+        self.ngam = parameters['non_growth_associated_maintenance']
+        self.gam = parameters['dark_atp'] * parameters['cell_dry_mass_fraction']
 
+        # new variables for the model
+        self.cell_mass = None
+        self.previous_mass = None
+        self.reaction_fluxes = None
+
+        # methods
         self._biomass_concentrations = {}  # type: dict
         self._getBiomassAsConcentrations = parameters['get_biomass_as_concentrations']
+        concentration_updates = self.parameters['concentration_updates']
+        self.exchange_constraints = self.parameters['exchange_constraints']
+
+        # retrieve exchanged molecules
+        exchange_molecules = set()
+        exchanges = parameters['exchange_data_from_media'](self.media_id)
+        exchange_molecules.update(exchanges['externalExchangeMolecules'])
+        self.exchange_molecules = exchange_molecules
+        exchange_molecules = list(sorted(exchange_molecules))  # set vs list, unify?
+
+        # retrieve conc dict and get homeostatic objective
+        conc_dict = concentration_updates.concentrations_based_on_nutrients(self.media_id)
+        doubling_time = parameters['doubling_time']
+        conc_dict.update(self.getBiomassAsConcentrations(doubling_time))
+
+        self.homeostatic_objective = dict((key, conc_dict[key].asNumber(CONC_UNITS)) for key in conc_dict)
+
+
+
+        # Create model to use to solve metabolism updates
+        self.model = GradientDescentFba(
+            reactions=self.stoichiometry,
+            exchanges=exchange_molecules,
+            objective=self.homeostatic_objective,
+            objectiveType=objective_type  # missing objectiveParameters for kinetic models
+        )
+
+        # for ports schema
+        self.metabolite_names_for_nutrients = self.get_port_metabolite_names(conc_dict)
+        # Include all concentrations that will be present in a sim for constant length listeners
+        for met in self.metabolite_names_for_nutrients:
+            if met not in self.homeostatic_objective:
+                self.homeostatic_objective[met] = 0.
 
         # for ports schema
         self.aa_names = self.parameters['aa_names']
         self.catalyst_ids = self.parameters['catalyst_ids']
         self.kinetic_constraint_enzymes = self.parameters['kinetic_constraint_enzymes']
         self.kinetic_constraint_substrates = self.parameters['kinetic_constraint_substrates']
-
-        # TODO (Niels) -- get list of exchanges, should be working
-        exchange_molecules = set()
-        exchanges = parameters['exchange_data_from_media'](self.media_id)
-        exchange_molecules.update(exchanges['externalExchangeMolecules'])
-        self.exchange_molecules = exchange_molecules
-        exchange_molecules = list(sorted(exchange_molecules)) # set vs list, unify?
-
-        # TODO (Niels) -- get object dict, do something about dataclass here
-        conc_dict = concentration_updates.concentrations_based_on_nutrients(self.media_id)
-        doubling_time = parameters['doubling_time']
-        conc_dict.update(self.getBiomassAsConcentrations(doubling_time))
-
-        # TODO (Niels) -- Finish getting parameters for ports
-        self.metabolite_names_for_nutrients = self.get_port_metabolite_names(conc_dict)
-
-        self.homeostatic_objective = dict((key, conc_dict[key].asNumber(CONC_UNITS)) for key in conc_dict)
-
-        ## Include all concentrations that will be present in a sim for constant length listeners
-        for met in self.metabolite_names_for_nutrients:
-            if met not in self.homeostatic_objective:
-                self.homeostatic_objective[met] = 0.
-
-        # Create model to use to solve metabolism updates
-        self.model = GradientDescentFba(
-            reactions=self.stoichiometry,
-            exchanges=exchange_molecules,
-            objective= self.homeostatic_objective,
-            objectiveType=objective_type # missing objectiveParameters for kinetic models
-        )
-
-
 
     def get_port_metabolite_names(self, conc_dict):
         metabolite_names_from_nutrients = set()
@@ -140,7 +147,8 @@ class MetabolismGD(Process):
                 'media_id': {
                     '_default': '',
                     '_updater': 'set'},
-                'exchange': bulk_schema(self.exchange_molecules), # can probably remove, identical to exchanges except tuple.
+                'exchange': bulk_schema(self.exchange_molecules),
+                # can probably remove, identical to exchanges except tuple.
                 'exchange_data': {
                     'unconstrained': {'_default': []},
                     'constrained': {'_default': []}}},
@@ -152,24 +160,24 @@ class MetabolismGD(Process):
 
                 # comment out. keep fluxes for seed.
                 'fba_results': {
-                #     'media_id': {'_default': '', '_updater': 'set'},
-                #     'conc_updates': {'_default': [], '_updater': 'set'},
-                #     'catalyst_counts': {'_default': 0, '_updater': 'set'},
-                #     'translation_gtp': {'_default': 0, '_updater': 'set'},
-                #     'coefficient': {'_default': 0.0, '_updater': 'set'},
-                #     'unconstrained_molecules': {'_default': [], '_updater': 'set'},
-                #     'constrained_molecules': {'_default': [], '_updater': 'set'},
-                #     'uptake_constraints': {'_default': [], '_updater': 'set'},
-                #     'deltaMetabolites': {'_default': [], '_updater': 'set'},
+                    #     'media_id': {'_default': '', '_updater': 'set'},
+                    #     'conc_updates': {'_default': [], '_updater': 'set'},
+                    #     'catalyst_counts': {'_default': 0, '_updater': 'set'},
+                    #     'translation_gtp': {'_default': 0, '_updater': 'set'},
+                    #     'coefficient': {'_default': 0.0, '_updater': 'set'},
+                    #     'unconstrained_molecules': {'_default': [], '_updater': 'set'},
+                    #     'constrained_molecules': {'_default': [], '_updater': 'set'},
+                    #     'uptake_constraints': {'_default': [], '_updater': 'set'},
+                    #     'deltaMetabolites': {'_default': [], '_updater': 'set'},
                     'reactionFluxes': {'_default': [], '_updater': 'set'},
-                #     'externalExchangeFluxes': {'_default': [], '_updater': 'set'},
-                #     'objectiveValue': {'_default': [], '_updater': 'set'},
-                #     'shadowPrices': {'_default': [], '_updater': 'set'},
-                #     'reducedCosts': {'_default': [], '_updater': 'set'},
-                #     'targetConcentrations': {'_default': [], '_updater': 'set'},
-                #     'homeostaticObjectiveValues': {'_default': [], '_updater': 'set'},
-                #     'kineticObjectiveValues': {'_default': [], '_updater': 'set'}
-                        },
+                    #     'externalExchangeFluxes': {'_default': [], '_updater': 'set'},
+                    #     'objectiveValue': {'_default': [], '_updater': 'set'},
+                    #     'shadowPrices': {'_default': [], '_updater': 'set'},
+                    #     'reducedCosts': {'_default': [], '_updater': 'set'},
+                    #     'targetConcentrations': {'_default': [], '_updater': 'set'},
+                    #     'homeostaticObjectiveValues': {'_default': [], '_updater': 'set'},
+                    #     'kineticObjectiveValues': {'_default': [], '_updater': 'set'}
+                },
                 #
                 # 'enzyme_kinetics': {
                 #     'metaboliteCountsInit': {'_default': 0, '_updater': 'set'},
@@ -197,59 +205,82 @@ class MetabolismGD(Process):
         # extract the states from the ports
         metabolite_counts = states['metabolites']
         catalyst_counts = states['catalysts']
-        reaction_fluxes = states['listeners']['fba_results']['reactionFluxes']
+        translation_gtp = states['polypeptide_elongation']['gtp_to_hydrolyze']
 
-        kinetic_enzyme_counts = states['kinetics_enzymes']
-        kinetic_substrate_counts = states['kinetics_substrates']
-
-        get_kinetic_constraints = self.parameters['get_kinetic_constraints']
+        # kinetic_enzyme_counts = states['kinetics_enzymes'] # kinetics related
+        # kinetic_substrate_counts = states['kinetics_substrates']
+        # get_kinetic_constraints = self.parameters['get_kinetic_constraints']
 
         # might delete later?
         translation_gtp = states['polypeptide_elongation']['gtp_to_hydrolyze']
-        cell_mass = states['listeners']['mass']['cell_mass'] * units.fg
+
+        if self.cell_mass is not None:
+            self.previous_mass = self.cell_mass
+        self.cell_mass = states['listeners']['mass']['cell_mass'] * units.fg
         dry_mass = states['listeners']['mass']['dry_mass'] * units.fg
         current_media_id = states['environment']['media_id']
         unconstrained = states['environment']['exchange_data']['unconstrained']
         constrained = states['environment']['exchange_data']['constrained']
 
-        cell_volume = cell_mass / self.cell_density
+        cell_volume = self.cell_mass / self.cell_density
         counts_to_molar = (1 / (self.nAvogadro * cell_volume)).asUnit(CONC_UNITS)
-        coefficient = dry_mass / cell_mass * self.cell_density * timestep * units.s
+        coefficient = dry_mass / self.cell_mass * self.cell_density * timestep * units.s
 
-
-        doubling_time = self.nutrient_to_doubling_time.get(
-            self.media_id,
-            self.nutrient_to_doubling_time[self.media_id],)
+        doubling_time = self.nutrient_to_doubling_time.get(self.media_id,
+                                                           self.nutrient_to_doubling_time[self.media_id], )
         conc_updates = self.getBiomassAsConcentrations(doubling_time)
         conc_updates = {met: conc.asNumber(CONC_UNITS)
                         for met, conc in conc_updates.items()}
 
-        import ipdb;
-        ipdb.set_trace()
-
         # are all of these needed?
-        self.set_molecule_levels(metabolite_counts, counts_to_molar,
-            coefficient, current_media_id, unconstrained, constrained, conc_updates)
+        # self.set_molecule_levels(metabolite_counts, counts_to_molar,
+        # coefficient, current_media_id, unconstrained, constrained, conc_updates)
 
-        ## Set reaction limits for maintenance and catalysts present
-        self.set_reaction_bounds(catalyst_counts, counts_to_molar,
-            coefficient, translation_gtp)
+        # objective update
+        _, objective = self.exchange_constraints(
+            self.exchange_molecules, coefficient, CONC_UNITS,
+            current_media_id, unconstrained, constrained, conc_updates,
+        )
+        # TODO Get target flux for solver.
+        current_metabolite_concentrations = {key: value*counts_to_molar for key, value in metabolite_counts.items()}
+        target_delta_concentrations = {key: (objective[key]*CONC_UNITS - current_metabolite_concentrations[key])*timestep
+                                       for key, value in objective.items()}
 
 
-        # TODO (Niels) -- get the states, use them to set the FBA problem.
+        # TODO Implement GAM.
+
+        # calculate mass delta for GAM
+        if self.previous_mass is not None:
+            flux_gam = self.gam * (self.cell_mass - self.previous_mass)
+        else:
+            flux_gam = 0
+        flux_ngam = (self.ngam * coefficient).asNumber(CONC_UNITS)
+        flux_gtp = (counts_to_molar * translation_gtp).asNumber(CONC_UNITS)
+
+        # TODO Figure out how to implement catalysis. Can come later.
+        # reaction_bounds = np.inf * np.ones(len(self.reactions_with_catalyst))
+        # no_rxn_mask = self.catalysis_matrix.dot(catalyst_counts) == 0
+        # reaction_bounds[no_rxn_mask] = 0
+
         # Need to run set_molecule_levels and set_reaction_bounds for homeostatic solution.
         # set molecule_levels requires exchange_constraints from dataclass.
-        kinetic_constraints = get_kinetic_constraints(catalyst_counts, metabolite_counts)
 
-        # make the new objective
-        objective = {}
+        # kinetic constraints
+        # kinetic_constraints = get_kinetic_constraints(catalyst_counts, metabolite_counts) # kinetic
+
+        import ipdb
+        ipdb.set_trace()
 
         # run FBA
         solution: FbaResult = self.model.solve(
-            params=kinetic_constraints,
-            objective=objective,
-            initial=reaction_fluxes,
+            objective=target_delta_concentrations,
+            initial=self.reaction_fluxes,
+            params=None,
+            reaction_flux_bounds={'maintenance_reaction': [sum([flux_gam, flux_ngam, flux_gtp])-0.001,
+                                                           sum([flux_gam, flux_ngam, flux_gtp])]}
         )
+
+        self.reaction_fluxes = []
 
         # TODO (Niels) -- extract FBA solution, and pass the update
         # solution -- changes in internal and exchange metabolites
@@ -284,88 +315,6 @@ class MetabolismGD(Process):
 
         return self._biomass_concentrations[minutes]
 
-    def set_molecule_levels(self, metabolite_counts, counts_to_molar,
-            coefficient, current_media_id, unconstrained, constrained, conc_updates):
-        """
-        Set internal and external molecule levels available to the FBA solver.
-
-        Args:
-            metabolite_counts (np.ndarray[int]): counts for each metabolite with a
-                concentration target
-            counts_to_molar (Unum): conversion from counts to molar (counts/volume units)
-            coefficient (Unum): coefficient to convert from mmol/g DCW/hr to mM basis
-                (mass.time/volume units)
-            current_media_id (str): ID of current media
-            unconstrained (Set[str]): molecules that have unconstrained import
-            constrained (Dict[str, units.Unum]): molecules (keys) and their
-                limited max uptake rates (values in mol / mass / time units)
-            conc_updates (Dict[str, Unum]): updates to concentrations targets for
-                molecules (molecule ID: concentration in counts/volume units)
-        """
-
-        # Update objective from media exchanges
-        # internal exchanges = sorted(objective.keys())
-        # external exchanges = exchange_reactions
-        # set internal molecule levels. forces internal exchange levels.
-        # set external molecule levels. forces external exchange levels.
-        # update homeostatic targets: transfers objective from "objective" to internal solver. probably unnecessary.
-        # exchange constraints: updates objective and molecule levels. probably necessary.
-
-        external_molecule_levels, objective = self.exchange_constraints(
-            self.fba.getExternalMoleculeIDs(), coefficient, CONC_UNITS,
-            current_media_id, unconstrained, constrained, conc_updates,
-            )
-        self.fba.update_homeostatic_targets(objective)
-
-        # Internal concentrations
-        metabolite_conc = counts_to_molar * metabolite_counts
-        self.fba.setInternalMoleculeLevels(metabolite_conc.asNumber(CONC_UNITS))
-
-        # External concentrations
-        external_molecule_levels = self.update_external_molecule_levels(
-            objective, metabolite_conc, external_molecule_levels)
-        self.fba.setExternalMoleculeLevels(external_molecule_levels)
-
-    def set_reaction_bounds(self, catalyst_counts, counts_to_molar, coefficient,
-            gtp_to_hydrolyze):
-        """
-        Set reaction bounds for constrained reactions in the FBA object.
-
-        Args:
-            catalyst_counts (np.ndarray[int]): counts of enzyme catalysts
-            counts_to_molar (Unum): conversion from counts to molar (counts/volume units)
-            coefficient (Unum): coefficient to convert from mmol/g DCW/hr to mM basis
-                (mass.time/volume units)
-            gtp_to_hydrolyze (float): number of GTP molecules to hydrolyze to
-                account for consumption in translation
-        """
-        # fixes growth and non-growth associated maintenance.
-        # fixes gtp demand for protein elongation. why is this not a homeostatic objective?
-
-        # Maintenance reactions
-        ## Calculate new NGAM
-        flux = (self.ngam * coefficient).asNumber(CONC_UNITS)
-        self.fba.setReactionFluxBounds(
-            self.fba._reactionID_NGAM,
-            lowerBounds=flux, upperBounds=flux,
-            )
-
-        ## Calculate GTP usage based on how much was needed in polypeptide
-        ## elongation in previous step.
-        flux = (counts_to_molar * gtp_to_hydrolyze).asNumber(CONC_UNITS)
-        self.fba.setReactionFluxBounds(
-            self.fba._reactionID_polypeptideElongationEnergy,
-            lowerBounds=flux, upperBounds=flux,
-            )
-
-        # Set hard upper bounds constraints based on enzyme presence
-        # (infinite upper bound) or absence (upper bound of zero)
-        reaction_bounds = np.inf * np.ones(len(self.reactions_with_catalyst))
-        no_rxn_mask = self.catalysis_matrix.dot(catalyst_counts) == 0
-        reaction_bounds[no_rxn_mask] = 0
-        self.fba.setReactionFluxBounds(self.reactions_with_catalyst,
-            upperBounds=reaction_bounds, raiseForReversible=False)
-
 def test_metabolism():
     test_config = {
         'stoichiometry': np.array([])
@@ -383,6 +332,7 @@ def test_metabolism():
     data = simulate_process(process, settings)
 
     print(data)
+
 
 if __name__ == '__main__':
     test_metabolism()
