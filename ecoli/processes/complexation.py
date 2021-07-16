@@ -26,7 +26,12 @@ class Complexation(Process):
         'stoichiometry': np.array([[]]),
         'rates': np.array([]),
         'molecule_names': [],
-        'seed': 0}
+        'seed': 0,
+        'request_only': False,
+        'evolve_only': False,}
+    
+    time_step = [0]
+    requests = {'requested': {}}
 
     def __init__(self, parameters=None):
         super().__init__(parameters)
@@ -37,6 +42,8 @@ class Complexation(Process):
         self.seed = self.parameters['seed']
 
         self.system = StochasticSystem(self.stoichiometry, random_seed=self.seed)
+        
+        self.time_step[0] = self.parameters['time_step']
 
     def ports_schema(self):
         return {
@@ -47,19 +54,20 @@ class Complexation(Process):
                 for molecule in self.molecule_names}}
         
     def calculate_request(self, timestep, states):
+        timestep = self.time_step[0]
         moleculeCounts = np.array(list(states['molecules'].values()), 
                                   dtype = np.int64)
 
         result = self.system.evolve(
             timestep, moleculeCounts, self.rates)
         updatedMoleculeCounts = result['outcome']
-        requests = {'requested': {}}
-        requests['requested'] = array_to(states['molecules'], np.fmax(
+        self.requests['requested'] = array_to(states['molecules'], np.fmax(
             moleculeCounts - updatedMoleculeCounts, 0))
-        return requests
+        return {}
         
     def evolve_state(self, timestep, states):
-        molecules = {molecule: states['allocated'][molecule] 
+        self.time_step[0] = timestep
+        molecules = {molecule: self.requests['requested'][molecule] 
                      for molecule in self.molecule_names}
 
         substrate = np.zeros(len(molecules), dtype=np.int64)
@@ -77,33 +85,16 @@ class Complexation(Process):
         # # Write outputs to listeners
         # self.writeToListener("ComplexationListener", "complexationEvents", events)  
         
-        update['requested'] = {molecule: 0 for molecule in states['requested']}
-        
-        from write_json import write_json
-        write_json('out/comparison/double_complex.json', update)
+        """ from write_json import write_json
+        write_json('out/comparison/double_complex.json', update) """
 
         return update
 
     def next_update(self, timestep, states):
-        molecules = states['molecules']
-
-        substrate = np.zeros(len(molecules), dtype=np.int64)
-        for index, molecule in enumerate(self.molecule_names):
-            substrate[index] = molecules[molecule]
-
-        result = self.system.evolve(timestep, substrate, self.rates)
-        outcome = result['outcome'] - substrate
-
-        molecules_update = {
-            molecule: outcome[index]
-            for index, molecule in enumerate(self.molecule_names)}
-
-        update = {
-            'molecules': molecules_update}
-
-        # # Write outputs to listeners
-        # self.writeToListener("ComplexationListener", "complexationEvents", events)
-
+        if self.request_only:
+            update = self.calculate_request(timestep, states)
+        elif self.evolve_only:
+            update = self.evolve_state(timestep, states)
         return update
     
 

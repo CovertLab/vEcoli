@@ -12,7 +12,7 @@ import numpy as np
 from scipy.sparse import csr_matrix
 from typing import List, Tuple
 
-from vivarium.core.process import Process
+from vivarium.core.process import Deriver
 from vivarium.core.composition import simulate_process
 
 from ecoli.library.schema import bulk_schema, array_from
@@ -35,7 +35,7 @@ GDCW_BASIS = units.mmol / units.g / units.h
 USE_KINETICS = True
 
 
-class Metabolism(Process):
+class Metabolism(Deriver):
     name = 'ecoli-metabolism'
 
     defaults = {
@@ -62,7 +62,9 @@ class Metabolism(Process):
         'doubling_time': 44.0 * units.min,
         'amino_acid_ids': {},
         'linked_metabolites': None,
-        'seed': 0}
+        'seed': 0,
+        'request_only': False,
+        'evolve_only': False,}
 
     def __init__(self, parameters=None):
         super().__init__(parameters)
@@ -164,17 +166,9 @@ class Metabolism(Process):
                 'gtp_to_hydrolyze': {
                     '_default': 0,
                     '_emit': True}},
-            
-            'time_step': {'_default': 0, '_updater': 'set'}}
-        
-    def calculate_request(self, timestep, states):
-        return {'timesteps': 1}
-        
-    def next_update(self, timestep, states):
-        return self.evolve_state(timestep, states)
+            }
 
-    def evolve_state(self, timestep, states):
-        timestep = states['time_step']
+    def next_update(self, timestep, states):
         # Load current state of the sim
         ## Get internal state variables
         metabolite_counts_init = array_from(states['metabolites'])
@@ -296,10 +290,9 @@ class Metabolism(Process):
                     'targetFluxes': targets / timestep,
                     'targetFluxesUpper': upper_targets / timestep,
                     'targetFluxesLower': lower_targets / timestep}}}
-        update['timesteps'] = 1
         
-        from write_json import write_json
-        write_json('out/comparison/double_meta.json', update)
+        """ from write_json import write_json
+        write_json('out/comparison/double_meta.json', update) """
 
         return update
 

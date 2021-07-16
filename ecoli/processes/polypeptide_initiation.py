@@ -34,7 +34,13 @@ class PolypeptideInitiation(Process):
         'ribosome30S': 'ribosome30S',
         'ribosome50S': 'ribosome50S',
         'seed': 0,
-        'shuffle_indexes': None}
+        'shuffle_indexes': None,
+        'request_only': False,
+        'evolve_only': False,}
+    
+    time_step = [0]
+    requests = {'requested': {}}
+    elongation_rates = [0]
 
     def __init__(self, parameters=None):
         super().__init__(parameters)
@@ -80,6 +86,8 @@ class PolypeptideInitiation(Process):
                 'ribosome_data': {
                     'ribosomes_initialized': 0,
                     'prob_translation_per_transcript': 0.0}}}
+        
+        self.time_step[0] = self.parameters['time_step']
 
     def ports_schema(self):
         return {
@@ -122,10 +130,10 @@ class PolypeptideInitiation(Process):
                     '_emit': True}}}
     
     def calculate_request(self, timestep, states):
+        timestep = self.time_step[0]
         current_media_id = states['environment']['media_id']
         
-        requests = {}
-        requests['requested'] = {subunit: count for (subunit, count) 
+        self.requests['requested'] = {subunit: count for (subunit, count) 
                                  in states['subunits'].items()}
 
         self.fracActiveRibosome = self.active_ribosome_fraction[current_media_id]
@@ -139,23 +147,24 @@ class PolypeptideInitiation(Process):
         if self.ribosomeElongationRate == 0:
             self.ribosomeElongationRate = self.ribosome_elongation_rates_dict[
                 current_media_id].asNumber(units.aa / units.s)
-        self.elongation_rates = self.make_elongation_rates(
+        self.elongation_rates[0] = self.make_elongation_rates(
             self.random_state,
             self.ribosomeElongationRate,
             1,  # want elongation rate, not lengths adjusted for time step
             self.variable_elongation)
 
         # Ensure rates are never zero
-        self.elongation_rates = np.fmax(self.elongation_rates, 1)
-        return requests
+        self.elongation_rates[0] = np.fmax(self.elongation_rates[0], 1)
+        return {}
         
         
     def evolve_state(self, timestep, states):
+        self.time_step[0] = timestep
         # Calculate number of ribosomes that could potentially be initialized
         # based on counts of free 30S and 50S subunits
         inactive_ribosome_count = np.min([
-            states['allocated'][self.ribosome30S],
-            states['allocated'][self.ribosome50S]])
+            self.requests['requested'][self.ribosome30S],
+            self.requests['requested'][self.ribosome50S]])
 
         # Get attributes of active (translatable) mRNAs
         TU_index_RNAs, can_translate, unique_index_RNAs = arrays_from(
@@ -178,7 +187,7 @@ class PolypeptideInitiation(Process):
         activation_prob = self.calculate_activation_prob(
             self.fracActiveRibosome,
             self.protein_lengths,
-            self.elongation_rates,
+            self.elongation_rates[0],
             protein_init_prob,
             timestep)
 
@@ -249,138 +258,20 @@ class PolypeptideInitiation(Process):
                     'ribosomes_initialized': n_new_proteins.sum(),
                     'prob_translation_per_transcript': protein_init_prob}}}
         
-        update['requested'] = {molecule: 0 for molecule in states['requested']}
+        update['elongation_rates'] = self.elongation_rates[0]
         
-        update['elongation_rates'] = self.elongation_rates
-        
-        from write_json import write_json
-        write_json('out/comparison/double_p_init.json', update)
+        """ from write_json import write_json
+        write_json('out/comparison/double_p_init.json', update) """
         
         update.pop('elongation_rates')
 
         return update
 
     def next_update(self, timestep, states):
-        if not states['RNA']:
-            return self.empty_update
-
-        media_id = states['environment']['media_id']
-        active_ribosome_fraction = self.active_ribosome_fraction[media_id]
-        ribosome_elongation_rate = states['listeners']['ribosome_data']['effective_elongation_rate']
-
-        # If the ribosome elongation rate is zero (which is always the case for
-        # the first timestep), set ribosome elongation rate to the one in
-        # dictionary
-        if ribosome_elongation_rate == 0:
-            ribosome_elongation_rate = self.ribosome_elongation_rates_dict[
-                media_id].asNumber(units.aa / units.s)
-
-        elongation_rates = self.make_elongation_rates(
-            self.random_state,
-            ribosome_elongation_rate,
-            1,  # want elongation rate, not lengths adjusted for time step
-            self.variable_elongation)
-
-        elongation_rates = np.fmax(elongation_rates, 1)
-
-        # Calculate number of ribosomes that could potentially be initialized
-        # based on counts of free 30S and 50S subunits
-        inactive_ribosome_count = np.min([
-            states['subunits'][self.ribosome30S],
-            states['subunits'][self.ribosome50S]])
-
-        # Get attributes of active (translatable) mRNAs
-        TU_index_RNAs, can_translate, unique_index_RNAs = arrays_from(
-            states['RNA'].values(),
-            ['TU_index', 'can_translate', 'unique_index'])
-        TU_index_active_mRNAs = TU_index_RNAs[can_translate]
-        unique_index_active_mRNAs = unique_index_RNAs[can_translate]
-
-        # Get counts of each type of active mRNA
-        TU_counts = np.bincount(TU_index_active_mRNAs, minlength=self.n_TUs)
-        mRNA_counts = self.TU_counts_to_mRNA_counts.dot(TU_counts)
-
-        # Calculate initiation probabilities for ribosomes based on mRNA counts
-        # and associated mRNA translational efficiencies
-        protein_init_prob = normalize(
-            mRNA_counts * self.translation_efficiencies)
-
-        # Calculate actual number of ribosomes that should be activated based
-        # on probabilities
-        activation_prob = self.calculate_activation_prob(
-            active_ribosome_fraction,
-            self.protein_lengths,
-            elongation_rates,
-            protein_init_prob,
-            timestep)
-
-        n_ribosomes_to_activate = np.int64(activation_prob * inactive_ribosome_count)
-
-        if n_ribosomes_to_activate == 0:
-            return self.empty_update
-
-        # Sample multinomial distribution to determine which mRNAs have full
-        # 70S ribosomes initialized on them
-        n_new_proteins = self.random_state.multinomial(
-            n_ribosomes_to_activate,
-            protein_init_prob)
-
-        # Build attributes for active ribosomes.
-        # Each ribosome is assigned a protein index for the protein that
-        # corresponds to the polypeptide it will polymerize. This is done in
-        # blocks of protein ids for efficiency.
-        protein_indexes = np.empty(n_ribosomes_to_activate, np.int64)
-        mRNA_indexes = np.empty(n_ribosomes_to_activate, np.int64)
-        nonzero_count = (n_new_proteins > 0)
-        start_index = 0
-
-        for protein_index, counts in zip(
-                np.arange(n_new_proteins.size)[nonzero_count],
-                n_new_proteins[nonzero_count]):
-
-            # Set protein index
-            protein_indexes[start_index:start_index+counts] = protein_index
-
-            # Get mask for active mRNA molecules that produce this protein
-            mask = (TU_index_active_mRNAs == self.protein_index_to_TU_index[protein_index])
-            n_mRNAs = np.count_nonzero(mask)
-
-            # Distribute ribosomes among these mRNAs
-            n_ribosomes_per_RNA = self.random_state.multinomial(
-                counts, np.full(n_mRNAs, 1./n_mRNAs))
-
-            # Get unique indexes of each mRNA
-            mRNA_indexes[start_index:start_index + counts] = np.repeat(
-                unique_index_active_mRNAs[mask], n_ribosomes_per_RNA)
-
-            start_index += counts
-
-        # Create active 70S ribosomes and assign their attributes
-        new_ribosomes = arrays_to(
-            n_ribosomes_to_activate, {
-                'unique_index': np.arange(self.ribosome_index, self.ribosome_index + n_ribosomes_to_activate),
-                'protein_index': protein_indexes,
-                'peptide_length': np.zeros(cast(int, n_ribosomes_to_activate), dtype=np.int64),
-                'mRNA_index': mRNA_indexes,
-                'pos_on_mRNA': np.zeros(cast(int, n_ribosomes_to_activate), dtype=np.int64)})
-
-        self.ribosome_index += n_ribosomes_to_activate
-        # TODO -- this tracking of index seems messy -- can it automatically create new index?
-
-        update = {
-            'subunits': {
-                self.ribosome30S: -n_new_proteins.sum(),
-                self.ribosome50S: -n_new_proteins.sum()},
-            'active_ribosome': add_elements(new_ribosomes, 'unique_index'), # {
-                # '_add': [{
-                #     'path': (ribosome['unique_index'],),
-                #     'state': ribosome}
-                #     for ribosome in new_ribosomes]},
-            'listeners': {
-                'ribosome_data': {
-                    'ribosomes_initialized': n_new_proteins.sum(),
-                    'prob_translation_per_transcript': protein_init_prob}}}
-
+        if self.request_only:
+            update = self.calculate_request(timestep, states)
+        elif self.evolve_only:
+            update = self.evolve_state(timestep, states)
         return update
 
     def calculate_activation_prob(
