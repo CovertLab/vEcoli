@@ -11,7 +11,8 @@ import numpy as np
 from vivarium.core.process import Process
 from vivarium.core.composition import simulate_process
 
-from ecoli.library.schema import arrays_from, arrays_to, add_elements
+from ecoli.library.schema import (
+    arrays_from, arrays_to, add_elements, bulk_schema)
 
 from wholecell.utils import units
 from wholecell.utils.fitting import normalize
@@ -113,13 +114,9 @@ class PolypeptideInitiation(Process):
                     'TU_index': {'_default': 0},
                     'can_translate': {'_default': False},
                     'unique_index': {'_default': 0}}},
-            'subunits': {
-                self.ribosome30S: {
-                    '_default': 0,
-                    '_emit': True},
-                self.ribosome50S: {
-                    '_default': 0,
-                    '_emit': True}}}
+            'subunits': bulk_schema([
+                self.ribosome30S,
+                self.ribosome50S])}
 
     def next_update(self, timestep, states):
         if not states['RNA']:

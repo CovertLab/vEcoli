@@ -13,13 +13,13 @@ import numpy as np
 from vivarium.core.process import Process
 from vivarium.core.composition import simulate_process
 
-from ecoli.library.schema import array_from, array_to, arrays_from, arrays_to, listener_schema, bulk_schema
-
 from wholecell.utils.random import stochasticRound
 from wholecell.utils.polymerize import buildSequences, polymerize, computeMassIncrease
 from wholecell.utils import units
 
+from ecoli.library.schema import arrays_from, arrays_to, array_from, array_to, listener_schema, bulk_schema
 from ecoli.library.data_predicates import monotonically_increasing
+from ecoli.processes.cell_division import divide_by_domain
 
 from os import makedirs
 
@@ -166,6 +166,10 @@ class TranscriptElongation(Process):
                     'RNAP_index': {'_default': 0, '_updater': 'set'}}},
 
             'active_RNAPs': {
+                '_divider': {
+                        'divider': divide_by_domain,
+                        'config': {}
+                    },
                 '*': {
                     'unique_index': {'_default': 0, '_updater': 'set'},
                     'domain_index': {'_default': 0, '_updater': 'set'},
