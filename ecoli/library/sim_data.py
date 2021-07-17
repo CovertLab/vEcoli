@@ -157,7 +157,7 @@ class LoadSimData:
             'elongation_rates': self.sim_data.process.translation.ribosomeElongationRateDict,
             'variable_elongation': False,
             'make_elongation_rates': self.sim_data.process.translation.make_elongation_rates,
-            'protein_index_to_TU_index': self.sim_data.relation.rna_index_to_monomer_mapping,
+            'protein_index_to_TU_index': self.sim_data.relation.RNA_to_monomer_mapping,
             'all_TU_ids': self.sim_data.process.transcription.rna_data['id'],
             'all_mRNA_ids': self.sim_data.process.translation.monomer_data['rna_id'],
             'ribosome30S': self.sim_data.molecule_ids.s30_full_complex,
@@ -401,7 +401,7 @@ class LoadSimData:
             'ppgpp_id': self.sim_data.molecule_ids.ppGpp,
             'get_ppGpp_conc': self.sim_data.growth_rate_parameters.get_ppGpp_conc,
             'exchange_data_from_media': self.sim_data.external_state.exchange_data_from_media,
-            'get_mass': self.sim_data.getter.get_mass,
+            'get_masses': self.sim_data.getter.get_masses,
             'doubling_time': self.sim_data.condition_to_doubling_time[self.sim_data.condition],
             'amino_acid_ids': sorted(self.sim_data.amino_acid_code_to_id_ordered.values()),
             'seed': self.random_state.randint(RAND_MAX)}

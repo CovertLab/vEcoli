@@ -188,6 +188,7 @@ test_library = {
     '1': test_metabolism,
     '2': test_metabolism_aas,
     '3': run_metabolism_composite,
+    '4': run_metabolism,
 }
 
 if __name__ == '__main__':
