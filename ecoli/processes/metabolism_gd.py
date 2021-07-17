@@ -275,6 +275,7 @@ class MetabolismGD(Process):
         # kinetic constraints
         # kinetic_constraints = get_kinetic_constraints(catalyst_counts, metabolite_counts) # kinetic
 
+
         # run FBA
         solution: FbaResult = self.model.solve(
             objective=target_homeostatic_fluxes,
@@ -283,20 +284,33 @@ class MetabolismGD(Process):
         )
 
         self.reaction_fluxes = solution.velocities
+        self.metabolite_dmdt = solution.dm_dt
 
-        metabolite_counts_updates = {key: np.round(((value*CONC_UNITS)/counts_to_molar*timestep).asNumber())
-                                     for key, value in objective.items()}
+        # updates for homeostatic targets
+        homeostasis_metabolite_updates = {key: int(np.round(
+            (self.metabolite_dmdt[key]*CONC_UNITS/counts_to_molar*timestep).asNumber()
+        )) for key in objective.keys()}
 
-        print(metabolite_counts_updates)
+        #print(homeostasis_metabolite_updates)
 
+        # updates for exchanges
+        exchange_metabolite_updates = {key: int(np.round(
+            (self.metabolite_dmdt[key] * CONC_UNITS / counts_to_molar * timestep).asNumber()
+        )) for key in self.exchange_molecules}
+
+        #print(exchange_metabolite_updates)
+
+        print({key: int((value/counts_to_molar).asNumber()) for key, value in objective.items()})
+        print(metabolite_counts)
+        print(homeostasis_metabolite_updates)
 
         # TODO (Niels) -- extract FBA solution, and pass the update
         # solution -- changes in internal and exchange metabolites
 
         return {
-            'metabolites': {},  # changes to internal metabolites
+            'metabolites': homeostasis_metabolite_updates,  # changes to internal metabolites
             'environment': {
-                'exchanges': {}  # changes to external metabolites
+                'exchanges': exchange_metabolite_updates  # changes to external metabolites
             }
         }
 
