@@ -13,6 +13,8 @@ from ecoli.processes.chromosome_replication import ChromosomeReplication
 from ecoli.processes.mass import Mass
 from ecoli.processes.cell_division import Division
 
+from ecoli.processes.listeners.mass_listener import MassListener
+
 ECOLI_PROCESSES = {
     'tf_binding': TfBinding,
     'transcript_initiation': TranscriptInitiation,
@@ -26,7 +28,7 @@ ECOLI_PROCESSES = {
     'protein_degradation': ProteinDegradation,
     'metabolism': Metabolism,
     'chromosome_replication': ChromosomeReplication,
-    'mass': Mass,
+    'mass': MassListener,
 }
 
 ECOLI_TOPOLOGY = {
