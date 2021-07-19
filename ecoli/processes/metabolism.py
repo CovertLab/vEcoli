@@ -106,8 +106,16 @@ class Metabolism(Process):
         self.seed = self.parameters['seed']
         self.random_state = np.random.RandomState(seed = self.seed)
 
+        # TODO -- make list of reaction ids for the flux port
+        self.kinetic_targets = []
+
     def ports_schema(self):
         return {
+            'flux_targets': {
+                reaction_id: {
+                    '_default': 0.0,
+                }
+                for reaction_id in self.kinetic_targets},  # TODO -- add fluxes here. Needs to be {reaction_id: flux_value}
             'metabolites': bulk_schema(self.model.metaboliteNamesFromNutrients),
             'catalysts': bulk_schema(self.model.catalyst_ids),
             'kinetics_enzymes': bulk_schema(self.model.kinetic_constraint_enzymes),
@@ -168,6 +176,10 @@ class Metabolism(Process):
                     '_emit': True}}}
 
     def next_update(self, timestep, states):
+
+        # TODO -- get the fluxes to constrain metabolism FBA problem
+        flux_targets = states['flux_targets']
+
         # Load current state of the sim
         ## Get internal state variables
         metabolite_counts_init = array_from(states['metabolites'])
