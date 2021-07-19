@@ -16,39 +16,42 @@ load_sim_data = LoadSimData(
             sim_data_path=SIM_DATA_PATH,
             seed=0)
 
-
-def test_complexation():
-    # Set time parameters
-    total_time = 2
-    initial_time = 0
-    
-    # Create process, experiment, loading in initial state from file.
-    config = load_sim_data.get_complexation_config()
-    complexation = Complexation(config)
-
-    topology = {
-        'molecules': ('bulk',)
-        }
-    
-    with open(f"data/complexation/complexation_partitioned_t{total_time+initial_time}.json") as f:
-        partitioned_counts = json.load(f)
+def test_complexation_migration():
+    def test(initial_time):
+        total_time = 2
         
-    initial_state = get_state_from_file(
-        path=f'data/complexation/wcecoli_t{initial_time}.json')
-    
-    deep_merge(initial_state, {'bulk': partitioned_counts})
+        # Create process, experiment, loading in initial state from file.
+        config = load_sim_data.get_complexation_config()
+        config['seed'] = 0
+        complexation = Complexation(config)
 
-    # run the process and get an update
-    actual_update = run_ecoli_process(complexation, topology,
-                                      total_time=total_time,
-                                      initial_time=initial_time,
-                                      initial_state=initial_state)
-    
-    with open(f"data/complexation/complexation_update_t{total_time+initial_time}.json") as f:
-        wc_update = json.load(f)
+        topology = {
+            'molecules': ('bulk',)
+            }
+        
+        with open(f"data/complexation/complexation_partitioned_t{total_time+initial_time}.json") as f:
+            partitioned_counts = json.load(f)
+            
+        initial_state = get_state_from_file(
+            path=f'data/complexation/wcecoli_t{initial_time}.json')
+        
+        deep_merge(initial_state, {'bulk': partitioned_counts})
 
-    plots(actual_update, wc_update, total_time+initial_time)
-    assertions(actual_update,wc_update, total_time+initial_time)
+        # run the process and get an update
+        actual_update = run_ecoli_process(complexation, topology,
+                                        total_time=total_time,
+                                        initial_time=initial_time,
+                                        initial_state=initial_state)
+        
+        with open(f"data/complexation/complexation_update_t{total_time+initial_time}.json") as f:
+            wc_update = json.load(f)
+
+        plots(actual_update, wc_update, total_time+initial_time)
+        assertions(actual_update,wc_update, total_time+initial_time)
+    
+    times = [0, 2, 8, 100]
+    for initial_time in times:
+        test(initial_time)
 
 def plots(actual_update, expected_update, time):
     os.makedirs("out/migration/complexation/", exist_ok=True)
@@ -57,16 +60,14 @@ def plots(actual_update, expected_update, time):
     wc_molecules_update = expected_update['molecules']
     
     n_molecules = len(molecules_update)
-    
-    plt.scatter(np.arange(n_molecules), molecules_update.values(), 0.2, c="g",
-            label = "Vivarium")
-    plt.scatter(np.arange(n_molecules), wc_molecules_update.values(), 0.2, c="b",
-            label = "wcEcoli")
-    plt.ylabel('Change in Molecule Counts')
-    plt.title('Molecule Deltas')
-    plt.legend()
+    differences = array_from(molecules_update) - array_from(wc_molecules_update)
+    plt.scatter(np.arange(n_molecules), differences, 0.2, c="b")
+    plt.ylabel('Vivarium update - wcEcoli update')
+    plt.xlabel('Molecules (unlabelled for space)')
+    plt.title(f'Update Dictionary Differences at t = {time}')
     plt.tight_layout()
     plt.savefig(f"out/migration/complexation/complexation_{time}.png")
+    plt.close()
 
 def assertions(actual_update, expected_update, time):
     # Create report with exact differences between molecule count updates
@@ -78,4 +79,4 @@ def assertions(actual_update, expected_update, time):
         "# of molecules not equal!"
 
 if __name__ == "__main__":
-    test_complexation()
+    test_complexation_migration()
