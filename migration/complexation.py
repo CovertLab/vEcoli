@@ -16,14 +16,16 @@ load_sim_data = LoadSimData(
             sim_data_path=SIM_DATA_PATH,
             seed=0)
 
+def test_different_times(times = [0, 2, 8, 100]):
+    for initial_time in times:
+        test_complexation(initial_time)
 
-def test_complexation():
-    # Set time parameters
+def test_complexation(initial_time):
     total_time = 2
-    initial_time = 0
     
     # Create process, experiment, loading in initial state from file.
     config = load_sim_data.get_complexation_config()
+    config['seed'] = 0
     complexation = Complexation(config)
 
     topology = {
@@ -63,10 +65,12 @@ def plots(actual_update, expected_update, time):
     plt.scatter(np.arange(n_molecules), wc_molecules_update.values(), 0.2, c="b",
             label = "wcEcoli")
     plt.ylabel('Change in Molecule Counts')
+    plt.xlabel('Molecules (unlabelled for space)')
     plt.title('Molecule Deltas')
     plt.legend()
     plt.tight_layout()
     plt.savefig(f"out/migration/complexation/complexation_{time}.png")
+    plt.close()
 
 def assertions(actual_update, expected_update, time):
     # Create report with exact differences between molecule count updates
@@ -78,4 +82,4 @@ def assertions(actual_update, expected_update, time):
         "# of molecules not equal!"
 
 if __name__ == "__main__":
-    test_complexation()
+    test_different_times()
