@@ -1,18 +1,19 @@
+import json
+import os
+import numpy as np
+from matplotlib import pyplot as plt
+
+from vivarium.library.dict_utils import deep_merge
+
 from ecoli.library.sim_data import LoadSimData
+from ecoli.library.schema import array_from
 from ecoli.composites.ecoli_master import SIM_DATA_PATH
 from ecoli.processes.complexation import Complexation
-from vivarium.library.dict_utils import deep_merge
 from ecoli.states.wcecoli_state import get_state_from_file
-
 from migration.migration_utils import (run_ecoli_process,
                                        array_equal,
                                        stochastic_equal,
                                        array_diffs_report_test)
-import json
-import os
-from matplotlib import pyplot as plt
-import numpy as np
-from ecoli.library.schema import array_from
 
 load_sim_data = LoadSimData(
             sim_data_path=SIM_DATA_PATH,
