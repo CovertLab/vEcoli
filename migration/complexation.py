@@ -5,6 +5,8 @@ from vivarium.library.dict_utils import deep_merge
 from ecoli.states.wcecoli_state import get_state_from_file
 
 from migration.migration_utils import (run_ecoli_process,
+                                       array_equal,
+                                       stochastic_equal,
                                        array_diffs_report_test)
 import json
 import os
@@ -29,7 +31,8 @@ def test_complexation_migration():
             'molecules': ('bulk',)
             }
         
-        with open(f"data/complexation/complexation_partitioned_t{total_time+initial_time}.json") as f:
+        with open(f"data/complexation/complexation_partitioned_t"
+            f"{total_time+initial_time}.json") as f:
             partitioned_counts = json.load(f)
             
         initial_state = get_state_from_file(
@@ -43,7 +46,8 @@ def test_complexation_migration():
                                         initial_time=initial_time,
                                         initial_state=initial_state)
         
-        with open(f"data/complexation/complexation_update_t{total_time+initial_time}.json") as f:
+        with open("data/complexation/complexation_update_t"
+            f"{total_time+initial_time}.json") as f:
             wc_update = json.load(f)
 
         plots(actual_update, wc_update, total_time+initial_time)
@@ -60,8 +64,8 @@ def plots(actual_update, expected_update, time):
     wc_molecules_update = expected_update['molecules']
     
     n_molecules = len(molecules_update)
-    differences = array_from(molecules_update) - array_from(wc_molecules_update)
-    plt.scatter(np.arange(n_molecules), differences, 0.2, c="b")
+    diffs = array_from(molecules_update) - array_from(wc_molecules_update)
+    plt.scatter(np.arange(n_molecules), diffs, 0.2, c="b")
     plt.ylabel('Vivarium update - wcEcoli update')
     plt.xlabel('Molecules (unlabelled for space)')
     plt.title(f'Update Dictionary Differences at t = {time}')
@@ -70,12 +74,25 @@ def plots(actual_update, expected_update, time):
     plt.close()
 
 def assertions(actual_update, expected_update, time):
-    # Create report with exact differences between molecule count updates
-    test = array_diffs_report_test(f"out/migration/complexation/complexation_{time}.txt")
-    test(array_from(actual_update['molecules']), array_from(expected_update['molecules']))
+    vivarium_deltas = array_from(actual_update['molecules'])
+    wcecoli_deltas = array_from(expected_update['molecules'])
     
-    # check number of molecules
-    assert len(actual_update['molecules']) == len(expected_update['molecules']), \
+    # check that molecule count changes are exactly equal (must use seeded 
+    # update dictionaries)
+    assert array_equal(vivarium_deltas, wcecoli_deltas)
+    
+    # check that molecule count changes likely have the same underlying 
+    # distribution (for use with unseeded update dictionaries)
+    assert stochastic_equal(vivarium_deltas, wcecoli_deltas)
+    
+    # create report to troubleshoot any observed differences between 
+    # molecule count updates
+    test = array_diffs_report_test("out/migration/complexation/"
+                                   f"complexation_{time}.txt")
+    test(vivarium_deltas, wcecoli_deltas)
+    
+    # check number of molecules included in update dictionary
+    assert len(vivarium_deltas) == len(wcecoli_deltas), \
         "# of molecules not equal!"
 
 if __name__ == "__main__":
