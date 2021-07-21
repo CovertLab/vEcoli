@@ -132,10 +132,11 @@ def array_diffs_report(a, b, names=None, sort_by="absolute", sort_with=np.abs):
 
     return result
 
-
 def percent_error(actual, expected):
-    return abs((actual - expected) / expected)
-
+    pe = np.divide(abs(actual - expected), max(abs(actual), abs(expected)))
+    if np.isnan(pe):
+        pe = 0
+    return pe
 
 class ComparisonTestSuite:
     '''
@@ -284,6 +285,7 @@ def array_almost_equal(arr1, arr2):
             f"Max error = {np.max(p_errors):.4f}")
 
 def scalar_almost_equal(v1, v2):
+    pe = percent_error(v1, v2)
     return percent_error(v1, v2) < PERCENT_ERROR_THRESHOLD or np.isnan(pe), f"Percent error = {percent_error(v1, v2):.4f}"
 
 def custom_array_comp(percent_error_threshold = 0.05):

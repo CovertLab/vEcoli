@@ -155,8 +155,10 @@ class PolypeptideElongation(Process):
         ## Need to account for ATP hydrolysis for charging that has been
         ## removed from measured GAM (ATP -> AMP is 2 hydrolysis reactions)
         ## if charging reactions are not explicitly modeled
+
         if not self.parameters['trna_charging']:
             self.gtpPerElongation += 2
+
         ## Variable for metabolism to read to consume required energy
         self.gtp_to_hydrolyze = 0
 
@@ -270,7 +272,6 @@ class PolypeptideElongation(Process):
             'listeners': {
                 'ribosome_data': {},
                 'growth_limits': {}}}
-        ipdb.set_trace()
 
         current_media_id = states['environment']['media_id']
 
@@ -283,7 +284,7 @@ class PolypeptideElongation(Process):
 
         # Build sequences to request appropriate amount of amino acids to
         # polymerize for next timestep
-        proteinIndexes, peptideLengths, positions_on_mRNA = arrays_from(
+        protein_indexes, peptide_lengths, positions_on_mRNA = arrays_from(
             states['active_ribosome'].values(),
             ['protein_index', 'peptide_length', 'pos_on_mRNA'])
 
@@ -295,8 +296,8 @@ class PolypeptideElongation(Process):
 
         all_sequences = buildSequences(
             self.proteinSequences,
-            proteinIndexes,
-            peptideLengths,
+            protein_indexes,
+            peptide_lengths,
             self.elongation_rates + self.next_aa_pad)
         sequences = all_sequences[:, :-self.next_aa_pad].copy()
 
@@ -322,7 +323,6 @@ class PolypeptideElongation(Process):
         update['listeners']['growth_limits']['aa_pool_size'] = array_from(states['amino_acids'])
         update['listeners']['growth_limits']['aa_request_size'] = aa_counts_for_translation
 
-        ipdb.set_trace()
         ## Begin wcEcoli evolveState()
         # Set value to 0 for metabolism in case of early return
         self.gtp_to_hydrolyze = 0
@@ -403,8 +403,6 @@ class PolypeptideElongation(Process):
 
         # self.active_ribosomes.delByIndexes(termination)
 
-        ipdb.set_trace()
-
         update['active_ribosome'] = {'_delete': []}
         for index, ribosome in enumerate(states['active_ribosome'].values()):
             unique_index = str(ribosome['unique_index'])
@@ -417,13 +415,11 @@ class PolypeptideElongation(Process):
                     'submass': {
                         'protein': added_protein_mass[index]}}
 
-        ipdb.set_trace()
-
         update['monomers'] = {}
         for index, count in enumerate(terminatedProteins):
             update['monomers'][self.proteinIds[index]] = count
 
-        ipdb.set_trace()
+
 
         # self.bulkMonomers.countsInc(terminatedProteins)
 
@@ -476,7 +472,6 @@ class PolypeptideElongation(Process):
         update['listeners']['ribosome_data']['processElongationRate'] = self.ribosomeElongationRate / timestep
 
         log.info('polypeptide elongation terminated: {}'.format(nTerminated))
-
         return update
 
     def isTimeStepShortEnough(self, inputTimeStep, timeStepSafetyFraction):
