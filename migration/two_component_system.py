@@ -1,12 +1,13 @@
-import json
-import matplotlib.pyplot as plt
-from migration.plots import qqplot
 import os
+import json
+import numpy as np
+import matplotlib.pyplot as plt
 
 from ecoli.library.sim_data import LoadSimData
 from ecoli.composites.ecoli_master import SIM_DATA_PATH
 from ecoli.processes.two_component_system import TwoComponentSystem
-from migration.migration_utils import *
+from migration.plots import qqplot
+from migration.migration_utils import run_ecoli_process, scalar_almost_equal, ComparisonTestSuite
 
 load_sim_data = LoadSimData(
             sim_data_path=SIM_DATA_PATH,
@@ -63,7 +64,6 @@ def assertions(actual_update, expected_update):
     
     Once partitioning is fixed, we should include these molecules back into the migration tests.
     """
-
     test_structure = {
         'molecules': {
             key: scalar_almost_equal
@@ -75,9 +75,7 @@ def assertions(actual_update, expected_update):
     tests.run_tests(actual_update, expected_update, verbose=True)
 
     # display test reports
-    #print(tests.report)
     tests.dump_report()
-    #tests.fail()
 
 if __name__ == "__main__":
     test_two_component_system_migration()
