@@ -44,8 +44,6 @@ class BaseElongationModel(object):
     def evolve(self, timestep, states, requests, total_aa_counts, aas_used, next_amino_acid_count, nElongations, nInitialized):
         # Update counts of amino acids and water to reflect polymerization reactions
         net_charged = np.zeros(len(self.parameters['uncharged_trna_names']))
-
-        import ipdb; ipdb.set_trace()
         return net_charged, {}, {
             'amino_acids': array_to(states['amino_acids'].keys(), -aas_used),
             'molecules': {
