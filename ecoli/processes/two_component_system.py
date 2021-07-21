@@ -68,17 +68,9 @@ class TwoComponentSystem(Process):
         # Note: the BDF solver has been empirically tested to be the fastest
         # solver for this setting among the list of solvers that can be used
         # by the scipy ODE suite.
-
-            # Solve ODEs to a large time step using the the counts of molecules
-            # allocated to this process using the BDF solver for stable integration.
-            # The number of reactions has already been determined in calculateRequest
-            # and rates will be much lower with a fraction of total counts allocated
-            # so a much longer time scale is needed.
-
-        _, self.all_molecule_changes = self.moleculesToNextTimeStep(
+        self.molecules_required, self.all_molecule_changes = self.moleculesToNextTimeStep(
             moleculeCounts, self.cellVolume, self.n_avogadro,
-            10000, self.random_state, method="BDF", min_time_step=timestep,
-            jit=self.jit)
+            timestep, self.random_state, method="BDF", jit=self.jit)
 
         # Increment changes in molecule counts
         update = {
