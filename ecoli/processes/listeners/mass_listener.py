@@ -31,18 +31,19 @@ class MassListener(Deriver):
             'smallMolecule': [],
             'water' : -1,
         },
-        'n_avogadro': 6.0221409e23  # 1/mol
+        'n_avogadro': 6.0221409e23,  # 1/mol
+        'time_step' : 2.0
     }
 
     def __init__(self, parameters=None):
         super().__init__(parameters)
 
+        # molecule indexes and masses
         self.bulk_ids = self.parameters['bulk_ids']
         self.bulk_masses = self.parameters['bulk_masses']
         self.unique_ids = self.parameters['unique_ids']
         self.unique_masses = self.parameters['unique_masses']
 
-        # molecule indexes
         self.submass_indices = self.parameters['submass_indices']
         self.waterIndex = self.parameters['submass_indices']['water']
 
@@ -62,6 +63,7 @@ class MassListener(Deriver):
         self.cellDensity = self.parameters['cellDensity']
         self.n_avogadro = self.parameters['n_avogadro']
 
+        self.time_step = self.parameters['time_step']
         self.first_time_step = True
 
     def ports_schema(self):
@@ -88,10 +90,7 @@ class MassListener(Deriver):
                 }
             }
         }
-
-    def get_bulk_mass(self, molecule_id, state):
-        count = state['bulk'][molecule_id]
-        return self.mass_from_count(count, self.molecular_weights.get(molecule_id))
+        
 
     def next_update(self, timestep, states):
         # Initialize update with 0's for each submass
@@ -142,7 +141,7 @@ class MassListener(Deriver):
             mass_update['growth'] = mass_update['dry_mass'] - old_dry_mass
 
             mass_update['instantaniousGrowthRate'] = (
-                mass_update['growth'] / timestep / mass_update['dry_mass'])
+                mass_update['growth'] / self.time_step / mass_update['dry_mass'])
 
         # Unique molecules assumed to be in cytosol, after wcEcoli
 
@@ -181,10 +180,3 @@ class MassListener(Deriver):
                 'mass': mass_update
             }
         }
-
-    def mass_from_counts_array(self, counts, mw):
-        return np.array([self.mass_from_count(count, mw) for count in counts])
-
-    def mass_from_count(self, count, mw):
-        mol = count / self.n_avogadro
-        return mw * mol

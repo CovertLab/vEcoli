@@ -87,7 +87,7 @@ class Ecoli(Composer):
             'protein_degradation': self.load_sim_data.get_protein_degradation_config(time_step=time_step),
             'metabolism': self.load_sim_data.get_metabolism_config(time_step=time_step),
             'chromosome_replication': self.load_sim_data.get_chromosome_replication_config(time_step=time_step),
-            'mass': self.load_sim_data.get_mass_config(time_step=time_step),
+            'mass': self.load_sim_data.get_mass_listener_config(time_step=time_step),
         }
 
         # make the processes
@@ -183,6 +183,7 @@ def run_ecoli(
         'topology': ecoli.topology,
         'initial_state': initial_state,
         'progress_bar': progress_bar,
+        'emitter' : 'database'
     })
 
     # run the experiment
