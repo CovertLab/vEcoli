@@ -25,6 +25,9 @@ class LoadSimData:
         get_dna_critical_mass = self.sim_data.mass.get_dna_critical_mass
         doubling_time = self.sim_data.condition_to_doubling_time[self.sim_data.condition]
         chromosome_replication_config = {
+            'time_step': time_step,
+            '_parallel': parallel,
+
             'max_time_step': self.sim_data.process.replication.max_time_step,
             'get_dna_critical_mass': get_dna_critical_mass,
             'criticalInitiationMass': get_dna_critical_mass(doubling_time),
@@ -315,7 +318,7 @@ class LoadSimData:
             '_parallel': parallel,
 
             'jit': False,
-            'n_avogadro': self.sim_data.constants.n_avogadro.asNumber(1 / units.mmol),
+            'n_avogadro': self.sim_data.constants.n_avogadro.asNumber(1 / units.mmol),  # TODO (Eran) -- this should be 1/mol
             'cell_density': self.sim_data.constants.cell_density.asNumber(units.g / units.L),
             'moleculesToNextTimeStep': self.sim_data.process.two_component_system.molecules_to_next_time_step,
             'moleculeNames': self.sim_data.process.two_component_system.molecule_names,
@@ -330,7 +333,7 @@ class LoadSimData:
             '_parallel': parallel,
 
             'jit': False,
-            'n_avogadro': self.sim_data.constants.n_avogadro.asNumber(1 / units.mmol),
+            'n_avogadro': self.sim_data.constants.n_avogadro.asNumber(1 / units.mol),
             'cell_density': self.sim_data.constants.cell_density.asNumber(units.g / units.L),
             'stoichMatrix': self.sim_data.process.equilibrium.stoich_matrix().astype(np.int64),
             'fluxesAndMoleculesToSS': self.sim_data.process.equilibrium.fluxes_and_molecules_to_SS,
