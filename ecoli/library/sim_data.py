@@ -310,12 +310,6 @@ class LoadSimData:
         return complexation_config
 
     def get_two_component_system_config(self, time_step=2, parallel=False, random_seed=None):
-        """
-        stoichI = self.sim_data.process.two_component_system._stoichMatrixI
-        stoichJ = self.sim_data.process.two_component_system._stoichMatrixJ
-        stoichV = self.sim_data.process.two_component_system._stoichMatrixV
-        """
-        # import ipdb; ipdb.set_trace()
         two_component_system_config = {
             'time_step': time_step,
             '_parallel': parallel,
