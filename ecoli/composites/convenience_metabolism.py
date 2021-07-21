@@ -3,7 +3,7 @@ Composite model with Metabolism and Convenience Kinetics
 """
 
 from vivarium.core.composer import Composer
-from vivarium.core.engine import Engine
+from vivarium.core.engine import pp, Engine
 from vivarium.library.dict_utils import deep_merge
 
 from ecoli.library.sim_data import LoadSimData
@@ -13,6 +13,7 @@ from ecoli.states.wcecoli_state import get_state_from_file
 from ecoli.processes.metabolism import Metabolism
 from ecoli.processes.convenience_kinetics import ConvenienceKinetics
 
+SIM_DATA_PATH = 'reconstruction/sim_data/kb/simData_3.cPickle'
 
 class ConvenienceMetabolism(Composer):
 
@@ -41,9 +42,8 @@ class ConvenienceMetabolism(Composer):
         # get the parameters
         metabolism_config = self.load_sim_data.get_metabolism_config(time_step=time_step)
         metabolism_config = deep_merge(metabolism_config, config['metabolism'])
-        # TODO -- get_kinetics_config from load_sim_data?
 
-        convenience_kinetics_config = config['convenience_kinetics']
+        convenience_kinetics_config = self.load_sim_data.get_metabolism_config(time_step=time_step)
 
         # make the processes
         return {
@@ -62,7 +62,7 @@ class ConvenienceMetabolism(Composer):
                 'listeners': ('listeners',),
                 'environment': ('environment',),
                 'polypeptide_elongation': ('process_state', 'polypeptide_elongation'),
-                'flux_targets': ('fluxes',),
+                'exchange_constants': ('fluxes',),
             },
 
             'convenience_kinetics': {
@@ -80,12 +80,7 @@ def test_convenience_metabolism(
         progress_bar=True,
 ):
 
-    # initialize the composer
-    config = {
-        'convenience_kinetics': {},
-        # 'sim_data_path': ''
-    }
-    composer = ConvenienceMetabolism(config)
+    composer = ConvenienceMetabolism()
 
     # get initial state
     initial_state = composer.initial_state()
@@ -106,8 +101,7 @@ def test_convenience_metabolism(
 
     # retrieve the data
     output = ecoli_simulation.emitter.get_timeseries()
-
-
+    
     import ipdb; ipdb.set_trace()
 
 
