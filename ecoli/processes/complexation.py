@@ -8,13 +8,11 @@ TODO:
 - handle protein complex dissociation
 """
 
-from __future__ import absolute_import, division, print_function
-
 import numpy as np
 from arrow import StochasticSystem
 
 from vivarium.core.process import Process
-from vivarium.core.composition import simulate_process_in_experiment
+from vivarium.core.composition import simulate_process
 
 # Maximum unsigned int value + 1 for randint() to seed srand from C stdlib
 RAND_MAX = 2**31
@@ -29,7 +27,7 @@ class Complexation(Process):
         'seed': 0}
 
     def __init__(self, initial_parameters=None):
-        super(Complexation, self).__init__(initial_parameters)
+        super().__init__(initial_parameters)
 
         self.stoichiometry = self.parameters['stoichiometry']
         self.rates = self.parameters['rates']
@@ -94,7 +92,7 @@ def test_complexation():
         'total_time': 10,
         'initial_state': state}
 
-    data = simulate_process_in_experiment(complexation, settings)
+    data = simulate_process(complexation, settings)
 
     print(data)
 

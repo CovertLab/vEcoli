@@ -8,12 +8,10 @@ TODO:
 - add protease functionality
 """
 
-from __future__ import absolute_import, division, print_function
-
 import numpy as np
 
 from vivarium.core.process import Process
-from vivarium.core.composition import simulate_process_in_experiment
+from vivarium.core.composition import simulate_process
 
 from ecoli.library.data_predicates import monotonically_increasing, monotonically_decreasing, all_nonnegative
 
@@ -33,7 +31,7 @@ class ProteinDegradation(Process):
 
     # Constructor
     def __init__(self, initial_parameters):
-        super(ProteinDegradation, self).__init__(initial_parameters)
+        super().__init__(initial_parameters)
 
         self.raw_degradation_rate = self.parameters['raw_degradation_rate']
         self.shuffle_indexes = self.parameters['shuffle_indexes']
@@ -148,7 +146,7 @@ def test_protein_degradation():
         'total_time': 100,
         'initial_state': state}
 
-    data = simulate_process_in_experiment(protein_degradation, settings)
+    data = simulate_process(protein_degradation, settings)
 
     # Assertions =======================================================
     protein_data = np.concatenate([[data["proteins"][protein]] for protein in test_config['protein_ids']], axis=0)
@@ -196,6 +194,7 @@ def test_protein_degradation():
 
 def run_plot(data):
     pass
+
 
 def main():
     data = test_protein_degradation()

@@ -4,12 +4,11 @@ Two component system
 Two component system sub-model
 
 """
-from __future__ import absolute_import, division, print_function
 
 import numpy as np
 
 from vivarium.core.process import Process
-from vivarium.core.composition import simulate_process_in_experiment
+from vivarium.core.composition import simulate_process
 
 from ecoli.library.schema import array_from, array_to, arrays_from, arrays_to, listener_schema, bulk_schema
 
@@ -29,7 +28,7 @@ class TwoComponentSystem(Process):
 
     # Constructor
     def __init__(self, initial_parameters):
-        super(TwoComponentSystem, self).__init__(initial_parameters)
+        super().__init__(initial_parameters)
 
         # Simulation options
         self.jit = self.parameters['jit']

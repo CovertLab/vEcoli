@@ -7,9 +7,6 @@ TODO:
 - see the initiation process for more TODOs
 """
 
-from __future__ import absolute_import, division, print_function
-
-
 import numpy as np
 from scipy.integrate import odeint
 from six.moves import range, zip
@@ -17,7 +14,7 @@ import logging as log
 
 from vivarium.core.process import Process
 from vivarium.library.dict_utils import deep_merge
-from vivarium.core.composition import simulate_process_in_experiment
+from vivarium.core.composition import simulate_process
 
 from ecoli.library.schema import bulk_schema, listener_schema, arrays_from, array_from, array_to
 
@@ -88,7 +85,7 @@ class PolypeptideElongation(Process):
         'seed': 0}
 
     def __init__(self, initial_parameters):
-        super(PolypeptideElongation, self).__init__(initial_parameters)
+        super().__init__(initial_parameters)
 
         self.max_time_step = self.parameters['max_time_step']
 

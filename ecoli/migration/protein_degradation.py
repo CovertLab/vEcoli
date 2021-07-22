@@ -39,7 +39,7 @@ def test_protein_degradation():
         'proteins': ('bulk',)}
 
     # run the process and get an update
-    actual_update = run_ecoli_process(prot_deg_process, topology)
+    actual_update = run_ecoli_process(prot_deg_process, topology, total_time=2, initial_time=10)
 
     # separate the update to its ports
     d_proteins = actual_update['proteins']

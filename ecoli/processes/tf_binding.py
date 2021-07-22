@@ -4,12 +4,10 @@ TfBinding
 Bind transcription factors to DNA
 """
 
-from __future__ import absolute_import, division, print_function
-
 import numpy as np
 
 from vivarium.core.process import Process
-from vivarium.core.composition import simulate_process_in_experiment
+from vivarium.core.composition import simulate_process
 
 from ecoli.library.schema import arrays_from, arrays_to, bulk_schema, listener_schema
 
@@ -38,7 +36,7 @@ class TfBinding(Process):
 
     # Constructor
     def __init__(self, initial_parameters):
-        super(TfBinding, self).__init__(initial_parameters)
+        super().__init__(initial_parameters)
 
         # Get IDs of transcription factors
         self.tf_ids = self.parameters['tf_ids']

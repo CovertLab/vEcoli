@@ -1,8 +1,17 @@
-from vivarium_cell.processes.diffusion_network import calculate_rp_from_mw
-from vivarium_cell.processes.diffusion_network import compute_diffusion_constants_from_rp
+from ecoli.processes.diffusion_network import calculate_rp_from_mw
+from ecoli.processes.diffusion_network import compute_diffusion_constants_from_rp
 import pickle
 import matplotlib.pyplot as plt
 import numpy as np
+
+def check_fig_pickle(path):
+    try:
+        fig = pickle.load(open(path, 'rb'))
+    except (OSError, IOError) as e:
+        fig = plt.figure()
+        pickle.dump(fig, open(path, 'wb'))
+    return fig
+
 
 '''
 These plots are all intended to be run on `ecoli_spatial.py` and can be called
@@ -66,7 +75,7 @@ def plot_nucleoid_diff(output, nodes, polyribosome_assumption):
         output['cytosol_front']['molecules'])[:, 0] + array_from(
         output['cytosol_rear']['molecules'])[:, 0]
     if polyribosome_assumption == 'mrna':
-        fig = pickle.load(open('out/nucleoid_diff.pickle', 'rb'))
+        fig = check_fig_pickle('out/nucleoid_diff.pickle')
         plt.plot(
             x, np.average(array_from(output['nucleoid']['molecules']), axis=1) /
                total_molecules *
@@ -74,15 +83,15 @@ def plot_nucleoid_diff(output, nodes, polyribosome_assumption):
             color='#5ab4ac')
         pickle.dump(fig, open('out/nucleoid_diff.pickle', 'wb'))
     elif polyribosome_assumption == 'linear':
-        fig = pickle.load(open('out/nucleoid_diff.pickle', 'rb'))
+        fig = check_fig_pickle('out/nucleoid_diff.pickle')
         plt.plot(
             x, np.average(array_from(output['nucleoid']['molecules']), axis=1) /
                total_molecules *
                nodes['nucleoid']['volume'] / nodes['cytosol_front']['volume'],
             color='#018571')
         pickle.dump(fig, open('out/nucleoid_diff.pickle', 'wb'))
-    else:
-        fig = plt.figure()
+    else:  # spherical assumption
+        fig = check_fig_pickle('out/nucleoid_diff.pickle')
         plt.plot(
             x, np.average(array_from(output['nucleoid']['molecules']), axis=1) /
             total_molecules *
@@ -103,7 +112,7 @@ def plot_nucleoid_diff(output, nodes, polyribosome_assumption):
 
 
 # Plots diffusion of polyribosomes in a pole and the nucleoid
-def plot_polyribosomes_diff(output, mesh_size, nodes):
+def plot_polyribosomes_diff(output, mesh_size, nodes, filename):
     fig = plt.figure()
     groups = ['polyribosome_1[c]', 'polyribosome_2[c]', 'polyribosome_3[c]',
                   'polyribosome_4[c]','polyribosome_5[c]', 'polyribosome_6[c]',
@@ -125,7 +134,7 @@ def plot_polyribosomes_diff(output, mesh_size, nodes):
     plt.xlabel('time (min)')
     plt.ylabel('Normalized concentration (% total concentration)')
     plt.title(f'Diffusion of polyribosomes with mesh of {str(mesh_size)} nm')
-    out_file = 'out/polyribosomes.png'
+    out_file = filename or 'out/polyribosomes.png'
     plt.tight_layout()
     plt.savefig(out_file, dpi=300)
 
@@ -181,7 +190,7 @@ def plot_molecule_characterizations(ecoli, initial_config):
         rp[np.where(molecule_ids == mol_id)[0][0]] = r
     dc = compute_diffusion_constants_from_rp(
         ecoli.config['nodes']['cytosol_front']['molecules'].keys(),
-        rp, ecoli.config['mesh_size'], ecoli.config['edges'])
+        rp, ecoli.config['mesh_size'], ecoli.config['edges'], ecoli.config['temp'])
 
     if initial_config['include_bulk']:
         cytosol_mask = [i for i, mol_id in enumerate(
@@ -217,15 +226,15 @@ def plot_polyribosomes(rp, radii, dc, dc_no_mesh, total_molecules, mesh_size,
     x = np.arange(1, 11)
     labels = [str(val) if val < 10 else str(val) + '+' for val in np.arange(1, 11)]
     if polyribosome_assumption == 'mrna':
-        fig = pickle.load(open('out/polyribosomes_sizes.pickle', 'rb'))
+        fig = check_fig_pickle('out/polyribosomes_sizes.pickle')
         plt.plot(x, np.multiply(radii, 2), color='#5ab4ac')
         pickle.dump(fig, open('out/polyribosomes_sizes.pickle', 'wb'))
     elif polyribosome_assumption == 'linear':
-        fig = pickle.load(open('out/polyribosomes_sizes.pickle', 'rb'))
+        fig = check_fig_pickle('out/polyribosomes_sizes.pickle')
         plt.plot(x, np.multiply(radii, 2), color='#018571')
         pickle.dump(fig, open('out/polyribosomes_sizes.pickle', 'wb'))
-    else:
-        fig = plt.figure()
+    else:  # spherical assumption
+        fig = check_fig_pickle('out/polyribosomes_sizes.pickle')
         mesh = np.full(len(x), mesh_size)
         plt.plot(x, np.multiply(rp, 2), color='#d8b365')
 
@@ -261,7 +270,7 @@ def plot_polyribosomes(rp, radii, dc, dc_no_mesh, total_molecules, mesh_size,
     plt.savefig(out_file, dpi=300)
 
     if polyribosome_assumption == 'linear':
-        fig = pickle.load(open('out/polyribosomes_dc.pickle', 'rb'))
+        fig = check_fig_pickle('out/polyribosomes_dc.pickle')
         plt.plot(x, dc, color='#018571')
         plt.plot(x, dc_no_mesh, color='#018571', linestyle='dashed')
         plt.legend(['spherical protein assumption: 50 nm mesh',
@@ -271,11 +280,11 @@ def plot_polyribosomes(rp, radii, dc, dc_no_mesh, total_molecules, mesh_size,
                     'linear ribosomes assumption: 50 nm mesh',
                     'linear ribosomes assumption: no mesh'])
     elif polyribosome_assumption == 'mrna':
-        fig = pickle.load(open('out/polyribosomes_dc.pickle', 'rb'))
+        fig = check_fig_pickle('out/polyribosomes_dc.pickle')
         plt.plot(x, dc, color='#5ab4ac')
         plt.plot(x, dc_no_mesh, color='#5ab4ac', linestyle='dashed')
     else:
-        fig = plt.figure()
+        fig = check_fig_pickle('out/polyribosomes_dc.pickle')
         tot = len(dc)
         plt.plot(x, dc, color='#d8b365')
         plt.plot(x, dc_no_mesh, color='#d8b365', linestyle='dashed')

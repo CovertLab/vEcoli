@@ -4,14 +4,12 @@ PolypeptideInitiation
 Polypeptide initiation sub-model.
 """
 
-from __future__ import absolute_import, division, print_function
-
 from typing import cast
 
 import numpy as np
 
 from vivarium.core.process import Process
-from vivarium.core.composition import simulate_process_in_experiment
+from vivarium.core.composition import simulate_process
 
 from ecoli.library.schema import arrays_from, arrays_to, add_elements
 
@@ -39,7 +37,7 @@ class PolypeptideInitiation(Process):
         'shuffle_indexes': None}
 
     def __init__(self, initial_parameters):
-        super(PolypeptideInitiation, self).__init__(initial_parameters)
+        super().__init__(initial_parameters)
 
         # Load parameters
         self.protein_lengths = self.parameters['protein_lengths']
@@ -358,7 +356,7 @@ def test_polypeptide_initiation():
         'total_time': 10,
         'initial_state': state}
 
-    data = simulate_process_in_experiment(polypeptide_initiation, settings)
+    data = simulate_process(polypeptide_initiation, settings)
 
     print(data)
 

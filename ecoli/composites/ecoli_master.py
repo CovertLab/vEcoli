@@ -4,19 +4,21 @@ E. coli master composite
 ========================
 """
 
+import os
+import argparse
 import json
 import uuid
+from pprint import pformat
 
-from vivarium.core.process import Composite
-from vivarium.core.composition import simulate_compartment_in_experiment
-from vivarium.core.experiment import pp
+from vivarium.core.process import Composer
+from vivarium.core.experiment import pp, Experiment
+from vivarium.plots.topology import plot_topology
 
 # sim data
 from ecoli.library.sim_data import LoadSimData
 
 # vivarium processes
 from vivarium.processes.divide_condition import DivideCondition
-from vivarium.processes.meta_division import MetaDivision
 
 # vivarium-ecoli processes
 from ecoli.processes.tf_binding import TfBinding
@@ -38,7 +40,7 @@ RAND_MAX = 2**31
 SIM_DATA_PATH = 'reconstruction/sim_data/kb/simData.cPickle'
 
 
-class Ecoli(Composite):
+class Ecoli(Composer):
 
     defaults = {
         'time_step': 2.0,
@@ -46,10 +48,11 @@ class Ecoli(Composite):
         'seed': 0,
         'sim_data_path': SIM_DATA_PATH,
         'daughter_path': tuple(),
+        'division': {'threshold': 2220},  # fg
     }
 
     def __init__(self, config):
-        super(Ecoli, self).__init__(config)
+        super().__init__(config)
 
         self.load_sim_data = LoadSimData(
             sim_data_path=self.config['sim_data_path'],
@@ -62,62 +65,37 @@ class Ecoli(Composite):
         time_step = config['time_step']
         parallel = config['parallel']  # TODO (Eran) -- which processes can be parallelized?
 
-        # initialize processes
-        tf_binding = TfBinding(
-            self.load_sim_data.get_tf_config(time_step=time_step))
-        transcript_initiation = TranscriptInitiation(
-            self.load_sim_data.get_transcript_initiation_config(time_step=time_step))
-        transcript_elongation = TranscriptElongation(
-            self.load_sim_data.get_transcript_elongation_config(time_step=time_step))
-        rna_degradation = RnaDegradation(
-            self.load_sim_data.get_rna_degradation_config(time_step=time_step))
-        polypeptide_initiation = PolypeptideInitiation(
-            self.load_sim_data.get_polypeptide_initiation_config(time_step=time_step))
-        polypeptide_elongation = PolypeptideElongation(
-            self.load_sim_data.get_polypeptide_elongation_config(time_step=time_step))
-        complexation = Complexation(
-            self.load_sim_data.get_complexation_config(time_step=time_step))
-        two_component_system = TwoComponentSystem(
-            self.load_sim_data.get_two_component_system_config(time_step=time_step))
-        equilibrium = Equilibrium(
-            self.load_sim_data.get_equilibrium_config(time_step=time_step))
-        protein_degradation = ProteinDegradation(
-            self.load_sim_data.get_protein_degradation_config(time_step=time_step))
-        metabolism = Metabolism(
-            self.load_sim_data.get_metabolism_config(time_step=time_step))
-        mass = Mass(
-            self.load_sim_data.get_mass_config(time_step=time_step))
+        # get the configs from sim_data
+        tf_binding_config = self.load_sim_data.get_tf_config(time_step=time_step)
+        transcript_initiation_config = self.load_sim_data.get_transcript_initiation_config(time_step=time_step)
+        transcript_elongation_config = self.load_sim_data.get_transcript_elongation_config(time_step=time_step)
+        rna_degradation_config = self.load_sim_data.get_rna_degradation_config(time_step=time_step)
+        polypeptide_initiation_config = self.load_sim_data.get_polypeptide_initiation_config(time_step=time_step)
+        polypeptide_elongation_config = self.load_sim_data.get_polypeptide_elongation_config(time_step=time_step)
+        complexation_config = self.load_sim_data.get_complexation_config(time_step=time_step)
+        two_component_system_config = self.load_sim_data.get_two_component_system_config(time_step=time_step)
+        equilibrium_config = self.load_sim_data.get_equilibrium_config(time_step=time_step)
+        protein_degradation_config = self.load_sim_data.get_protein_degradation_config(time_step=time_step)
+        metabolism_config = self.load_sim_data.get_metabolism_config(time_step=time_step)
+        mass_config = self.load_sim_data.get_mass_config(time_step=time_step)
 
-        # Division
-        # TODO -- get mass for division from sim_data
-        # TODO -- set divider to binomial division
-        divide_config = {'threshold': 2220}  # fg
-        divide_condition = DivideCondition(divide_config)
-
-        # daughter_path = config['daughter_path']
-        # agent_id = config.get('agent_id', str(uuid.uuid1()))
-        # division_config = dict(
-        #     config.get('division', {}),
-        #     daughter_path=daughter_path,
-        #     agent_id=agent_id,
-        #     compartment=self)
-        # meta_division = MetaDivision(division_config)
+        # additional processes
+        divide_config = config['division']
 
         return {
-            'tf_binding': tf_binding,
-            'transcript_initiation': transcript_initiation,
-            'transcript_elongation': transcript_elongation,
-            'rna_degradation': rna_degradation,
-            'polypeptide_initiation': polypeptide_initiation,
-            'polypeptide_elongation': polypeptide_elongation,
-            'complexation': complexation,
-            'two_component_system': two_component_system,
-            'equilibrium': equilibrium,
-            'protein_degradation': protein_degradation,
-            'metabolism': metabolism,
-            'mass': mass,
-            'divide_condition': divide_condition,
-            # 'division': meta_division,
+            'tf_binding': TfBinding(tf_binding_config),
+            'transcript_initiation': TranscriptInitiation(transcript_initiation_config),
+            'transcript_elongation': TranscriptElongation(transcript_elongation_config),
+            'rna_degradation': RnaDegradation(rna_degradation_config),
+            'polypeptide_initiation': PolypeptideInitiation(polypeptide_initiation_config),
+            # 'polypeptide_elongation': PolypeptideElongation(polypeptide_elongation_config),
+            'complexation': Complexation(complexation_config),
+            'two_component_system': TwoComponentSystem(two_component_system_config),
+            'equilibrium': Equilibrium(equilibrium_config),
+            'protein_degradation': ProteinDegradation(protein_degradation_config),
+            'metabolism': Metabolism(metabolism_config),
+            'mass': Mass(mass_config),
+            'divide_condition': DivideCondition(divide_config),
         }
 
     def generate_topology(self, config):
@@ -167,20 +145,20 @@ class Ecoli(Composite):
                 'RNA': ('unique', 'RNA'),
                 'subunits': ('bulk',)},
 
-            'polypeptide_elongation': {
-                'environment': ('environment',),
-                'listeners': ('listeners',),
-                'active_ribosome': ('unique', 'active_ribosome'),
-                'molecules': ('bulk',),
-                'monomers': ('bulk',),
-                'amino_acids': ('bulk',),
-                'ppgpp_reaction_metabolites': ('bulk',),
-                'uncharged_trna': ('bulk',),
-                'charged_trna': ('bulk',),
-                'charging_molecules': ('bulk',),
-                'synthetases': ('bulk',),
-                'subunits': ('bulk',),
-                'polypeptide_elongation': ('process_state', 'polypeptide_elongation')},
+            # 'polypeptide_elongation': {
+            #     'environment': ('environment',),
+            #     'listeners': ('listeners',),
+            #     'active_ribosome': ('unique', 'active_ribosome'),
+            #     'molecules': ('bulk',),
+            #     'monomers': ('bulk',),
+            #     'amino_acids': ('bulk',),
+            #     'ppgpp_reaction_metabolites': ('bulk',),
+            #     'uncharged_trna': ('bulk',),
+            #     'charged_trna': ('bulk',),
+            #     'charging_molecules': ('bulk',),
+            #     'synthetases': ('bulk',),
+            #     'subunits': ('bulk',),
+            #     'polypeptide_elongation': ('process_state', 'polypeptide_elongation')},
 
             'complexation': {
                 'molecules': ('bulk',)},
@@ -217,11 +195,8 @@ class Ecoli(Composite):
                 'divide': ('globals', 'divide',),
             },
 
-            # 'division': {
-            #     'global': boundary_path,
-            #     'agents': agents_path
-            # },
         }
+
 
 
 def infinitize(value):
@@ -240,7 +215,7 @@ def load_states(path):
 
     return states
 
-def get_state_from_file(path='data/wcecoli_t10.json'):
+def get_state_from_file(path='data/wcecoli_t0.json'):
 
     states = load_states(path)
 
@@ -283,18 +258,37 @@ def get_state_from_file(path='data/wcecoli_t10.json'):
     return initial_state
 
 
-def test_ecoli():
-    ecoli = Ecoli({'agent_id': '1'})
+def test_ecoli(total_time=60):
+
+    # configure the composer
+    ecoli_config = {
+        'agent_id': '1'}
+    ecoli_composer = Ecoli(ecoli_config)
+
+    # get initial state
     initial_state = get_state_from_file()
-    settings = {
-        'timestep': 1,
-        'total_time': 10,
-        'initial_state': initial_state}
 
-    data = simulate_compartment_in_experiment(ecoli, settings)
+    # make the experiment
+    ecoli = ecoli_composer.generate()
+    ecoli_experiment = Experiment({
+        'processes': ecoli.processes,
+        'topology': ecoli.topology,
+        'initial_state': initial_state,
+        'progress_bar': True,
+    })
 
+
+    debug_experiment = False
+    if debug_experiment:
+        print(pformat(ecoli_experiment.state.get_config(True)))
+        import ipdb; ipdb.set_trace()
+
+    # run the experiment
+    ecoli_experiment.update(total_time)
+
+    # retrieve the data
+    data = ecoli_experiment.emitter.get_timeseries()
     return data
-
 
 
 def run_ecoli():
@@ -312,5 +306,85 @@ def run_ecoli():
     pp(listeners['mass'])
 
 
+def ecoli_topology_plot(out_dir='out'):
+    ecoli = Ecoli({'agent_id': '1'})
+
+    process_row = -4
+    process_distance = 0.9
+    settings = {
+        'graph_format': 'hierarchy',
+        'dashed_edges': True,
+        'show_ports': False,
+        'node_size': 12000,
+        'coordinates': {
+            'tf_binding': (1*process_distance, process_row),
+            'transcript_initiation': (2*process_distance, process_row),
+            'transcript_elongation': (3*process_distance, process_row),
+            'rna_degradation': (4*process_distance, process_row),
+            'polypeptide_initiation': (5*process_distance, process_row),
+            'polypeptide_elongation': (6*process_distance, process_row),
+            'complexation': (7*process_distance, process_row),
+            'two_component_system': (8*process_distance, process_row),
+            'equilibrium': (9*process_distance, process_row),
+            'protein_degradation': (10*process_distance, process_row),
+            'metabolism': (11*process_distance, process_row),
+            'mass': (12*process_distance, process_row),
+            'divide_condition': (13*process_distance, process_row),
+        },
+        'node_labels': {
+            # processes
+            'tf_binding': 'tf\nbinding',
+            'transcript_initiation': 'transcript\ninitiation',
+            'transcript_elongation': 'transcript\nelongation',
+            'rna_degradation': 'rna\ndegradation',
+            'polypeptide_initiation': 'polypeptide\ninitiation',
+            'polypeptide_elongation': 'polypeptide\nelongation',
+            'complexation': 'complexation',
+            'two_component_system': 'two component\nsystem',
+            'equilibrium': 'equilibrium',
+            'protein_degradation': 'protein\ndegradation',
+            'metabolism': 'metabolism',
+            'mass': 'mass',
+            'divide_condition': 'division',
+        },
+        'remove_nodes': [
+            'listeners\nmass\ncell_mass',
+            'process_state',
+            'listeners\nfba_results',
+            'listeners\nenzyme_kinetics',
+            'listeners\nmass',
+            'listeners\nribosome_data',
+            'listeners\nfba_results',
+            'listeners\nequilibrium_listener',
+            'listeners\nrna_degradation_listener',
+            'process_state\npolypeptide_elongation',
+        ]
+    }
+    plot_topology(
+        ecoli,
+        filename='ecoli_master',
+        out_dir=out_dir,
+        settings=settings)
+
+
+
+
+def main():
+    out_dir = os.path.join('out', 'ecoli_master')
+    if not os.path.exists(out_dir):
+        os.makedirs(out_dir)
+
+
+    parser = argparse.ArgumentParser(description='ecoli_master')
+    parser.add_argument('-topology', '-t', action='store_true', default=False, help='save a topology plot of ecoli master')
+    parser.add_argument('-simulate', '-s', action='store_true', default=False, help='simulate ecoli master')
+    args = parser.parse_args()
+
+
+    if args.topology:
+        ecoli_topology_plot(out_dir)
+    else:
+        run_ecoli()
+
 if __name__ == '__main__':
-    run_ecoli()
+    main()

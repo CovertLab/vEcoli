@@ -8,14 +8,12 @@ TODO:
 - handle oneSidedReaction constraints
 """
 
-from __future__ import absolute_import, division, print_function
-
 import numpy as np
 from scipy.sparse import csr_matrix
 from typing import List, Tuple
 
 from vivarium.core.process import Process
-from vivarium.core.composition import simulate_process_in_experiment
+from vivarium.core.composition import simulate_process
 
 from ecoli.library.schema import bulk_schema, array_from
 
@@ -66,7 +64,7 @@ class Metabolism(Process):
         'seed': 0}
 
     def __init__(self, initial_parameters):
-        super(Metabolism, self).__init__(initial_parameters)
+        super().__init__(initial_parameters)
 
         # Use information from the environment and sim
         self.get_import_constraints = self.parameters['get_import_constraints']
@@ -637,3 +635,7 @@ class FluxBalanceAnalysisModel(object):
 
 def test_metabolism():
     test_config = {}
+
+
+if __name__ == '__main__':
+    test_metabolism()
