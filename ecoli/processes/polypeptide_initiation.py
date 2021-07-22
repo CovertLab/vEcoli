@@ -10,6 +10,7 @@ import numpy as np
 
 from vivarium.core.process import Process
 from vivarium.core.composition import simulate_process
+from vivarium.library.dict_utils import deep_merge
 
 from ecoli.library.schema import arrays_from, arrays_to, add_elements
 
@@ -35,12 +36,9 @@ class PolypeptideInitiation(Process):
         'ribosome50S': 'ribosome50S',
         'seed': 0,
         'shuffle_indexes': None,
+        # partitioning flags
         'request_only': False,
         'evolve_only': False,}
-    
-    time_step = [0]
-    requests = {'requested': {}}
-    elongation_rates = [0]
 
     def __init__(self, parameters=None):
         super().__init__(parameters)
@@ -87,7 +85,8 @@ class PolypeptideInitiation(Process):
                     'ribosomes_initialized': 0,
                     'prob_translation_per_transcript': 0.0}}}
         
-        self.time_step[0] = self.parameters['time_step']
+        self.request_only = self.parameters['request_only']
+        self.evolve_only = self.parameters['evolve_only']
 
     def ports_schema(self):
         return {
@@ -130,11 +129,10 @@ class PolypeptideInitiation(Process):
                     '_emit': True}}}
     
     def calculate_request(self, timestep, states):
-        timestep = self.time_step[0]
         current_media_id = states['environment']['media_id']
         
-        self.requests['requested'] = {subunit: count for (subunit, count) 
-                                 in states['subunits'].items()}
+        requests = {}
+        requests['subunits'] = states['subunits']
 
         self.fracActiveRibosome = self.active_ribosome_fraction[current_media_id]
 
@@ -147,24 +145,24 @@ class PolypeptideInitiation(Process):
         if self.ribosomeElongationRate == 0:
             self.ribosomeElongationRate = self.ribosome_elongation_rates_dict[
                 current_media_id].asNumber(units.aa / units.s)
-        self.elongation_rates[0] = self.make_elongation_rates(
+        self.elongation_rates = self.make_elongation_rates(
             self.random_state,
             self.ribosomeElongationRate,
             1,  # want elongation rate, not lengths adjusted for time step
             self.variable_elongation)
 
         # Ensure rates are never zero
-        self.elongation_rates[0] = np.fmax(self.elongation_rates[0], 1)
-        return {}
+        self.elongation_rates = np.fmax(self.elongation_rates, 1)
+        return requests
         
         
     def evolve_state(self, timestep, states):
-        self.time_step[0] = timestep
+        self.time_step = timestep
         # Calculate number of ribosomes that could potentially be initialized
         # based on counts of free 30S and 50S subunits
         inactive_ribosome_count = np.min([
-            self.requests['requested'][self.ribosome30S],
-            self.requests['requested'][self.ribosome50S]])
+            states['subunits'][self.ribosome30S],
+            states['subunits'][self.ribosome50S]])
 
         # Get attributes of active (translatable) mRNAs
         TU_index_RNAs, can_translate, unique_index_RNAs = arrays_from(
@@ -187,7 +185,7 @@ class PolypeptideInitiation(Process):
         activation_prob = self.calculate_activation_prob(
             self.fracActiveRibosome,
             self.protein_lengths,
-            self.elongation_rates[0],
+            self.elongation_rates,
             protein_init_prob,
             timestep)
 
@@ -257,13 +255,6 @@ class PolypeptideInitiation(Process):
                 'ribosome_data': {
                     'ribosomes_initialized': n_new_proteins.sum(),
                     'prob_translation_per_transcript': protein_init_prob}}}
-        
-        update['elongation_rates'] = self.elongation_rates[0]
-        
-        """ from write_json import write_json
-        write_json('out/comparison/double_p_init.json', update) """
-        
-        update.pop('elongation_rates')
 
         return update
 
@@ -271,6 +262,10 @@ class PolypeptideInitiation(Process):
         if self.request_only:
             update = self.calculate_request(timestep, states)
         elif self.evolve_only:
+            update = self.evolve_state(timestep, states)
+        else:
+            requests = self.calculate_request(timestep, states)
+            states = deep_merge(states, requests)
             update = self.evolve_state(timestep, states)
         return update
 

@@ -111,6 +111,7 @@ ECOLI_TOPOLOGY = {
             'molecules': ('bulk',),
             'monomers': ('bulk',),
             'amino_acids': ('bulk',),
+            'aa_enzymes': ('bulk',),
             'ppgpp_reaction_metabolites': ('bulk',),
             'uncharged_trna': ('bulk',),
             'charged_trna': ('bulk',),
@@ -313,10 +314,10 @@ def main():
         ecoli_topology_plot(filename='ecoli_master', out_dir=out_dir)
     else:
         if args.debug:
-            output = run_ecoli(args.blame, args.partition)
+            output = run_ecoli(args.blame)
             #assertions(output)
         else:
-            output = run_ecoli(args.blame, args.partition)
+            output = run_ecoli(args.blame)
 
 if __name__ == '__main__':
     main()

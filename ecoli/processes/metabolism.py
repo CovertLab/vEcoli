@@ -6,14 +6,19 @@ Metabolism sub-model. Encodes molecular simulation of microbial metabolism using
 TODO:
 - option to call a reduced form of metabolism (assume optimal)
 - handle oneSidedReaction constraints
+
+NOTE:
+- In wcEcoli, metabolism only runs after all other processes have completed 
+and internal states have been updated (deriver-like, no partitioning necessary)
 """
 
 import numpy as np
 from scipy.sparse import csr_matrix
 from typing import List, Tuple
 
-from vivarium.core.process import Deriver
+from vivarium.core.process import Process
 from vivarium.core.composition import simulate_process
+from vivarium.library.dict_utils import deep_merge
 
 from ecoli.library.schema import bulk_schema, array_from
 
@@ -35,7 +40,7 @@ GDCW_BASIS = units.mmol / units.g / units.h
 USE_KINETICS = True
 
 
-class Metabolism(Deriver):
+class Metabolism(Process):
     name = 'ecoli-metabolism'
 
     defaults = {
@@ -62,9 +67,7 @@ class Metabolism(Deriver):
         'doubling_time': 44.0 * units.min,
         'amino_acid_ids': {},
         'linked_metabolites': None,
-        'seed': 0,
-        'request_only': False,
-        'evolve_only': False,}
+        'seed': 0}
 
     def __init__(self, parameters=None):
         super().__init__(parameters)
@@ -165,8 +168,7 @@ class Metabolism(Deriver):
                     '_emit': True},
                 'gtp_to_hydrolyze': {
                     '_default': 0,
-                    '_emit': True}},
-            }
+                    '_emit': True}}}
 
     def next_update(self, timestep, states):
         # Load current state of the sim
@@ -290,9 +292,6 @@ class Metabolism(Deriver):
                     'targetFluxes': targets / timestep,
                     'targetFluxesUpper': upper_targets / timestep,
                     'targetFluxesLower': lower_targets / timestep}}}
-        
-        """ from write_json import write_json
-        write_json('out/comparison/double_meta.json', update) """
 
         return update
 

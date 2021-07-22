@@ -32,16 +32,19 @@ class BaseElongationModel(object):
         aa_counts_for_translation = self.amino_acid_counts(aasInSequences)
 
         # self.process.aas.requestIs(aa_counts_for_translation)
+        requests = {
+            'amino_acids': array_to(states['amino_acids'], aa_counts_for_translation)
+        }
 
         # Not modeling charging so set fraction charged to 0 for all tRNA
         fraction_charged = np.zeros(len(self.aaNames))
 
-        return fraction_charged, aa_counts_for_translation, {}
+        return fraction_charged, aa_counts_for_translation, requests
 
     def final_amino_acids(self, total_aa_counts):
         return total_aa_counts
 
-    def evolve(self, timestep, states, requests, total_aa_counts, aas_used, next_amino_acid_count, nElongations, nInitialized):
+    def evolve(self, timestep, states, total_aa_counts, aas_used, next_amino_acid_count, nElongations, nInitialized):
         # Update counts of amino acids and water to reflect polymerization reactions
         net_charged = np.zeros(len(self.parameters['uncharged_trna_names']))
 
@@ -71,7 +74,9 @@ class TranslationSupplyElongationModel(BaseElongationModel):
 
     def amino_acid_counts(self, aasInSequences):
         return np.fmin(self.process.aa_supply, aasInSequences)  # Check if this is required. It is a better request but there may be fewer elongations.
-
+    
+    def isTimeStepShortEnough(self, inputTimeStep, timeStepSafetyFraction):
+        return True
 
 class SteadyStateElongationModel(TranslationSupplyElongationModel):
     """
@@ -119,10 +124,23 @@ class SteadyStateElongationModel(TranslationSupplyElongationModel):
 
         # Amino acid supply calculations
         self.aa_supply_scaling = self.parameters['aa_supply_scaling']
+        
+        # Manage unstable charging with too long time step by setting
+        # time_step_short_enough to False during updates. Other variables
+        # manage when to trigger an adjustment and how quickly the time step
+        # increases after being reduced
+        self.time_step_short_enough = True
+        self.max_time_step = self.process.max_time_step
+        self.time_step_increase = 1.01
+        self.max_amino_acid_adjustment = 0.05
+
+        self.amino_acid_synthesis = self.parameters['amino_acid_synthesis']
+        self.amino_acid_import = self.parameters['amino_acid_import']
 
     def request(self, timestep, states, aasInSequences):
         # Conversion from counts to molarity
-        cell_mass = self.process.cell_mass
+        cell_mass = states['listeners']['mass']['cell_mass'] * units.fg
+        dry_mass = states['listeners']['mass']['dry_mass'] * units.fg
         cell_volume = cell_mass / self.cellDensity
         self.counts_to_molar = 1 / (self.process.n_avogadro * cell_volume)
 
@@ -176,8 +194,17 @@ class SteadyStateElongationModel(TranslationSupplyElongationModel):
         # Improves stability of charging and mimics amino acid synthesis
         # inhibition and export
         aa_in_media = array_from(states['environment']['amino_acids']) # self.aa_environment.import_present()
-        # TODO (Travis): add to listener?
-        self.process.aa_supply *= self.aa_supply_scaling(aa_conc, aa_in_media)
+        synthesis, enzyme_counts, saturation = self.amino_acid_synthesis(
+            array_from(states['aa_enzymes']), aa_conc)
+        if self.process.mechanistic_supply:
+            # Set supply based on mechanistic synthesis and supply
+            self.process.aa_supply = self.process.timeStepSec() * (
+                    synthesis + self.amino_acid_import(aa_in_media, dry_mass))
+        else:
+            # Adjust aa_supply higher if amino acid concentrations are low
+            # Improves stability of charging and mimics amino acid synthesis
+            # inhibition and export
+            self.process.aa_supply *= self.aa_supply_scaling(aa_conc, aa_in_media)
 
         # Only request molecules that will be consumed in the charging reactions
         requested_molecules = -np.dot(self.charging_stoich_matrix, total_charging_reactions)
@@ -214,13 +241,23 @@ class SteadyStateElongationModel(TranslationSupplyElongationModel):
         return fraction_charged, aa_counts_for_translation, {
             'charging_molecules': requested_molecules,
             'charged_trna': charged_trna_request,
-            self.process.water: aa_counts_for_translation.sum(),
-            'ppgpp_reaction_metabolites': request_ppgpp_metabolites}
+            'molecules': {
+                self.process.water: aa_counts_for_translation.sum(),
+                self.process.ppgpp: states['molecules'][self.process.ppgpp]},
+            'ppgpp_reaction_metabolites': request_ppgpp_metabolites,
+            'listeners': {
+                'growth_limits': {
+                    'aa_supply': self.process.aa_supply,
+                    'aa_supply_enzymes': enzyme_counts,
+                    'aa_supply_aa_conc': aa_conc.asNumber(units.mmol/units.L),
+                    'aa_supply_fraction': saturation
+                }
+            }}
 
     def final_amino_acids(self, total_aa_counts):
         return np.fmin(total_aa_counts, self.aa_counts_for_translation)
 
-    def evolve(self, timestep, states, requests, total_aa_counts, aas_used, next_amino_acid_count, nElongations, nInitialized):
+    def evolve(self, timestep, states, total_aa_counts, aas_used, next_amino_acid_count, nElongations, nInitialized):
         update = {
             'molecules': {},
             'listeners': {},
@@ -228,7 +265,7 @@ class SteadyStateElongationModel(TranslationSupplyElongationModel):
 
         # Get tRNA counts
         uncharged_trna = array_from(states['uncharged_trna'])
-        charged_trna = requests['charged_trna'].astype(int)
+        charged_trna = array_from(states['charged_trna'])
         total_trna = uncharged_trna + charged_trna
 
         # Adjust molecules for number of charging reactions that occurred
@@ -236,26 +273,30 @@ class SteadyStateElongationModel(TranslationSupplyElongationModel):
         aa_for_charging = total_aa_counts - aas_used
         n_aa_charged = np.fmin(aa_for_charging, np.dot(self.process.aa_from_trna, uncharged_trna))
         n_trna_charged = self.distribution_from_aa(n_aa_charged, uncharged_trna, True)
-        net_charged = n_trna_charged - charged_trna
+        
+        # Reactions that are charged and elongated in same time step
+        total_uncharging_reactions = self.distribution_from_aa(aas_used, total_trna)
+        trna_to_uncharge = np.fmin(charged_trna, total_uncharging_reactions)
+        charged_and_elongated = total_uncharging_reactions - trna_to_uncharge
+        total_charging_reactions = charged_and_elongated + n_trna_charged
+        net_charged = total_charging_reactions - total_uncharging_reactions
+        self.charging_molecules.countsInc(np.dot(self.charging_stoich_matrix, total_charging_reactions))
 
-        ## Reactions that are charged and elongated in same time step
-        charged_and_elongated = self.distribution_from_aa(aas_used, total_trna)
-        total_charging_reactions = charged_and_elongated + net_charged
         update['charging_molecules'] = array_to(
             states['charging_molecules'].keys(),
             np.dot(self.charging_stoich_matrix, total_charging_reactions).astype(int))
 
         ## Account for uncharging of tRNA during elongation
-        update['charged_trna'] = array_to(states['charged_trna'].keys(), -charged_and_elongated)
-        update['uncharged_trna'] = array_to(states['uncharged_trna'].keys(), charged_and_elongated)
+        update['charged_trna'] = array_to(states['charged_trna'].keys(), -total_uncharging_reactions)
+        update['uncharged_trna'] = array_to(states['uncharged_trna'].keys(), total_uncharging_reactions)
 
         # Create ppGpp
         ## Concentrations of interest
         if self.process.ppgpp_regulation:
             v_rib = (nElongations * self.counts_to_molar).asNumber(MICROMOLAR_UNITS) / timestep
             ribosome_conc = self.counts_to_molar * len(states['active_ribosome'])
-            updated_uncharged_trna_counts = array_from(states['uncharged_trna']) - net_charged
-            updated_charged_trna_counts = array_from(states['charged_trna']) + net_charged
+            updated_uncharged_trna_counts = uncharged_trna - net_charged
+            updated_charged_trna_counts = charged_trna + net_charged
             uncharged_trna_conc = self.counts_to_molar * np.dot(
                 self.process.aa_from_trna, updated_uncharged_trna_counts)
             charged_trna_conc = self.counts_to_molar * np.dot(
@@ -264,14 +305,16 @@ class SteadyStateElongationModel(TranslationSupplyElongationModel):
             rela_conc = self.counts_to_molar * states['molecules'][self.rela]
             spot_conc = self.counts_to_molar * states['molecules'][self.spot]
 
-            f = aas_used / aas_used.sum()
-            limits = requests['ppgpp_reaction_metabolites']
+            # Need to include the next amino acid the ribosome sees for certain
+            # cases where elongation does not occur, otherwise f will be NaN
+            aa_at_ribosome = aas_used + next_amino_acid_count
+            f = aa_at_ribosome / aa_at_ribosome.sum()
+            limits = array_from(states['ppgpp_reaction_metabolites'])
             delta_metabolites, ppgpp_syn, ppgpp_deg, rela_syn, spot_syn, spot_deg = self.ppgpp_metabolite_changes(
                 uncharged_trna_conc, charged_trna_conc, ribosome_conc, f, rela_conc,
                 spot_conc, ppgpp_conc, self.counts_to_molar, v_rib, timestep, limits=limits)
 
-            if 'growth_limits' not in update['listeners']:
-                update['listeners']['growth_limits'] = {}
+            update['listeners']['growth_limits'] = {}
             update['listeners']['growth_limits']['rela_syn'] = rela_syn
             update['listeners']['growth_limits']['spot_syn'] = spot_syn
             update['listeners']['growth_limits']['spot_deg'] = spot_deg
@@ -283,13 +326,15 @@ class SteadyStateElongationModel(TranslationSupplyElongationModel):
         # Net production of H+ for each elongation, consume extra water for each initialization
         # since a peptide bond doesn't form
         update['molecules'][self.process.proton] = nElongations
-        update['molecules'][self.process.water] = nInitialized
+        update['molecules'][self.process.water] = -nInitialized
 
         # Use the difference between expected AA supply based on expected doubling time
         # and current DCW and AA used to charge tRNA to update the concentration target
         # in metabolism during the next time step
         aa_diff = self.process.aa_supply - np.dot(self.process.aa_from_trna, total_charging_reactions)
-
+        if np.any(np.abs(aa_diff / array_to(states['amino_acids'])) > self.max_amino_acid_adjustment):
+            self.time_step_short_enough = False
+        
         return net_charged, {aa: diff for aa, diff in zip(self.aaNames, aa_diff)}, update
 
     def calculate_trna_charging(self, synthetase_conc, uncharged_trna_conc, charged_trna_conc, aa_conc, ribosome_conc, f, time_limit=1000, use_disabled_aas=False):
@@ -563,3 +608,18 @@ class SteadyStateElongationModel(TranslationSupplyElongationModel):
             raise ValueError('Failed to meet molecule limits with ppGpp reactions.')
 
         return delta_metabolites, n_syn_reactions, n_deg_reactions, v_rela_syn, v_spot_syn, v_deg
+
+    def isTimeStepShortEnough(self, inputTimeStep, timeStepSafetyFraction):
+        short_enough = True
+
+        # Needs to be less than the max time step to prevent oscillatory behavior
+        if inputTimeStep > self.max_time_step:
+            short_enough = False
+
+        # Decrease the max time step to get more stable charging
+        if not self.time_step_short_enough:
+            self.max_time_step = inputTimeStep / 2
+            self.time_step_short_enough = True
+            short_enough = False
+
+        return short_enough

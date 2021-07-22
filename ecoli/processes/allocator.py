@@ -2,6 +2,8 @@
 Allcoator
 
 Updates bulk with process updates, runs metabolism, runs process requests, allocates molecules
+
+**Currently NON-FUNCTIONAL**
 """
 from vivarium.core.process import Deriver
 import numpy as np

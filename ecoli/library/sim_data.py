@@ -296,6 +296,9 @@ class LoadSimData:
             'k_SpoT_deg': constants.k_SpoT_ppGpp_degradation.asNumber(1 / (MICROMOLAR_UNITS * units.s)),
             'KI_SpoT': constants.KI_SpoT_ppGpp_degradation.asNumber(MICROMOLAR_UNITS),
             'aa_supply_scaling': metabolism.aa_supply_scaling,
+            'aa_enzymes': metabolism.aa_enzymes,
+            'amino_acid_synthesis': metabolism.amino_acid_synthesis,
+            'amino_acid_import': metabolism.amino_acid_import,
             'seed': self.random_state.randint(RAND_MAX)}
 
         return polypeptide_elongation_config
