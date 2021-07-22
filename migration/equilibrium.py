@@ -10,8 +10,8 @@ from ecoli.library.sim_data import LoadSimData
 from ecoli.composites.ecoli_master import SIM_DATA_PATH, get_state_from_file
 from ecoli.processes.equilibrium import Equilibrium
 
-from ecoli.migration.plots import qqplot
-from ecoli.migration.migration_utils import run_ecoli_process, percent_error
+from migration.plots import qqplot
+from migration.migration_utils import run_ecoli_process, percent_error
 
 import scipy.constants
 from wholecell.utils import units
