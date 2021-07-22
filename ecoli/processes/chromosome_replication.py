@@ -84,7 +84,7 @@ class ChromosomeReplication(Process):
             'ppi': bulk_schema(self.parameters['ppi']),
             'listeners': {
                 'mass': {
-                    'cell_mass': {'_default': 0.0}},
+                    'cell_mass': {'_default': 0.0, '_emit': True}},
                 'replication_data': {
                     'criticalInitiationMass': {'_default': 0.0},
                     'criticalMassPerOriC': {'_default': 0.0},

@@ -1,3 +1,5 @@
+from vivarium import process_registry
+
 from ecoli.processes.tf_binding import TfBinding
 from ecoli.processes.transcript_initiation import TranscriptInitiation
 from ecoli.processes.transcript_elongation import TranscriptElongation
@@ -12,3 +14,6 @@ from ecoli.processes.metabolism import Metabolism
 from ecoli.processes.chromosome_replication import ChromosomeReplication
 from ecoli.processes.mass import Mass
 from ecoli.processes.exchange_stub import Exchange
+
+# add to registry
+process_registry.register(TfBinding.name, TfBinding)
