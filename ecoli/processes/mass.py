@@ -13,9 +13,12 @@ from vivarium.core.process import Deriver
 from ecoli.library.schema import mw_schema
 # from wholecell.utils import units
 
-from vivarium.core.experiment import pp
+from vivarium.core.engine import pp
 from vivarium.core.composition import process_in_experiment
 from vivarium.library.units import units
+
+from ecoli.library.schema import bulk_schema
+
 
 AVOGADRO = constants.N_A #* 1 / units.mol
 
@@ -36,17 +39,14 @@ class Mass(Deriver):
         'water_id': 'water'
     }
 
-    def __init__(self, initial_parameters=None):
-        super().__init__(initial_parameters)
+    def __init__(self, parameters=None):
+        super().__init__(parameters)
         self.molecular_weights = self.parameters['molecular_weights']
         self.unique_masses = self.parameters['unique_masses']
 
     def ports_schema(self):
         return {
-            'bulk': {
-                mol_id: {'_default': 0}
-                for mol_id in self.molecular_weights.keys()
-            },
+            'bulk': bulk_schema(self.molecular_weights.keys()),
             'unique': {
                 mol_id: {'*': {}}
                 for mol_id in self.unique_masses.keys()

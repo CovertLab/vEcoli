@@ -4,6 +4,9 @@
 /dist
 /doc/_build
 /vivarium_ecoli.egg-info
+/Build_sequences.egg-info
+/Fast_polymerize_sums.egg-info
+/Monte_carlo_complexation.egg-info
 
 *.out
 out/
@@ -22,6 +25,7 @@ user/*
 __pycache__
 *.so
 /wholecell/utils/*.c
+/doc/reference/api/
 
 # OS generated files #
 ######################
@@ -30,3 +34,18 @@ __pycache__
 ._*
 .python-version
 .pytest_cache
+
+# Jupyter #
+###########
+.ipynb_checkpoints
+
+# Pipenv files #
+################
+Pipfile
+Pipfile.lock
+pyproject.toml
+
+# VS Code files #
+#################
+/.vscode
+/.env

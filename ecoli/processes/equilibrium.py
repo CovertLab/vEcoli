@@ -37,8 +37,8 @@ class Equilibrium(Process):
         'seed': 0}
 
     # Constructor
-    def __init__(self, initial_parameters):
-        super().__init__(initial_parameters)
+    def __init__(self, parameters=None):
+        super().__init__(parameters)
 
         # Simulation options
         self.jit = self.parameters['jit']

@@ -11,7 +11,8 @@ import numpy as np
 from vivarium.core.process import Process
 from vivarium.core.composition import simulate_process
 
-from ecoli.library.schema import arrays_from, arrays_to, add_elements
+from ecoli.library.schema import (
+    arrays_from, arrays_to, add_elements, bulk_schema)
 
 from wholecell.utils import units
 from wholecell.utils.fitting import normalize
@@ -36,8 +37,8 @@ class PolypeptideInitiation(Process):
         'seed': 0,
         'shuffle_indexes': None}
 
-    def __init__(self, initial_parameters):
-        super().__init__(initial_parameters)
+    def __init__(self, parameters=None):
+        super().__init__(parameters)
 
         # Load parameters
         self.protein_lengths = self.parameters['protein_lengths']
@@ -113,13 +114,9 @@ class PolypeptideInitiation(Process):
                     'TU_index': {'_default': 0},
                     'can_translate': {'_default': False},
                     'unique_index': {'_default': 0}}},
-            'subunits': {
-                self.ribosome30S: {
-                    '_default': 0,
-                    '_emit': True},
-                self.ribosome50S: {
-                    '_default': 0,
-                    '_emit': True}}}
+            'subunits': bulk_schema([
+                self.ribosome30S,
+                self.ribosome50S])}
 
     def next_update(self, timestep, states):
         if not states['RNA']:
@@ -225,6 +222,7 @@ class PolypeptideInitiation(Process):
                 'pos_on_mRNA': np.zeros(cast(int, n_ribosomes_to_activate), dtype=np.int64)})
 
         self.ribosome_index += n_ribosomes_to_activate
+        # TODO -- this tracking of index seems messy -- can it automatically create new index?
 
         update = {
             'subunits': {
