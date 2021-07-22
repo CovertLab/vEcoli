@@ -315,18 +315,19 @@ class LoadSimData:
 
         return complexation_config
 
-    def get_two_component_system_config(self, time_step=2, parallel=False):
+    def get_two_component_system_config(self, time_step=2, parallel=False, random_seed=None):
         two_component_system_config = {
             'time_step': time_step,
             '_parallel': parallel,
 
             'jit': False,
-            'n_avogadro': self.sim_data.constants.n_avogadro.asNumber(1 / units.mmol),
+            'n_avogadro': self.sim_data.constants.n_avogadro.asNumber(1 / units.mmol),  # TODO (Eran) -- this should be 1/mol
             'cell_density': self.sim_data.constants.cell_density.asNumber(units.g / units.L),
             'moleculesToNextTimeStep': self.sim_data.process.two_component_system.molecules_to_next_time_step,
             'moleculeNames': self.sim_data.process.two_component_system.molecule_names,
-            'seed': self.random_state.randint(RAND_MAX)}
+            'seed': random_seed or self.random_state.randint(RAND_MAX)}
 
+        #return two_component_system_config, stoichI, stoichJ, stoichV
         return two_component_system_config
 
     def get_equilibrium_config(self, time_step=2, parallel=False):

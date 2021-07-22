@@ -77,7 +77,7 @@ class TwoComponentSystem(Process):
         # by the scipy ODE suite.
         self.molecules_required, self.all_molecule_changes = self.moleculesToNextTimeStep(
             moleculeCounts, self.cellVolume, self.n_avogadro,
-            timestep*2, self.random_state, method="BDF", jit=self.jit,
+            timestep, self.random_state, method="BDF", jit=self.jit,
             )
         requests = {}
         requests['molecules'] = array_to(states['molecules'], self.molecules_required)

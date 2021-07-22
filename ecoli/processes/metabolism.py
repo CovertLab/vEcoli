@@ -123,7 +123,9 @@ class Metabolism(Process):
                 'media_id': {
                     '_default': '',
                     '_updater': 'set'},
-                'exchange': bulk_schema(self.model.fba.getExternalMoleculeIDs()),
+                'exchange': {
+                    element: {'_default': 0}
+                    for element in self.model.fba.getExternalMoleculeIDs()},
                 'exchange_data': {
                     'unconstrained': {'_default': []},
                     'constrained': {'_default': []}}},

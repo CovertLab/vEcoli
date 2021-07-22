@@ -17,6 +17,9 @@ from vivarium.library.dict_utils import deep_merge
 
 from ecoli.library.schema import array_to, bulk_schema
 
+from ecoli.library.schema import bulk_schema
+
+
 # Maximum unsigned int value + 1 for randint() to seed srand from C stdlib
 RAND_MAX = 2**31
 

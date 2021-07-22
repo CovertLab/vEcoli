@@ -14,7 +14,8 @@ from vivarium.core.process import Process
 from vivarium.core.composition import simulate_process
 from vivarium.library.dict_utils import deep_merge
 
-from ecoli.library.data_predicates import monotonically_increasing, monotonically_decreasing, all_nonnegative
+from ecoli.library.data_predicates import (
+    monotonically_increasing, monotonically_decreasing, all_nonnegative)
 from ecoli.library.schema import array_to, array_from
 
 class ProteinDegradation(Process):
@@ -71,16 +72,8 @@ class ProteinDegradation(Process):
 
     def ports_schema(self):
         return {
-            'metabolites': {
-                metabolite: {
-                    '_default': 0,
-                    '_emit': True}
-                for metabolite in self.metabolite_ids},
-            'proteins': {
-                protein: {
-                    '_default': 0,
-                    '_emit': True}
-                for protein in self.protein_ids}}
+            'metabolites': bulk_schema(self.metabolite_ids),
+            'proteins': bulk_schema(self.protein_ids)}
         
     def calculate_request(self, timestep, states):
         # Determine how many proteins to degrade based on the degradation rates and counts of each protein

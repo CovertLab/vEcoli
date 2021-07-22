@@ -8,10 +8,9 @@ import uuid
 import numpy as np
 
 from vivarium.core.process import Process
-from vivarium.core.composition import simulate_process
 from vivarium.library.dict_utils import deep_merge
 
-from ecoli.library.schema import array_to, array_from, arrays_from, arrays_to, add_elements, listener_schema, bulk_schema
+from ecoli.library.schema import array_to, array_from, arrays_from, arrays_to, bulk_schema
 
 from wholecell.utils import units
 from wholecell.utils.polymerize import buildSequences, polymerize, computeMassIncrease
