@@ -12,6 +12,7 @@ import numpy as np
 
 from vivarium.core.process import Process
 from vivarium.core.composition import simulate_process
+from vivarium.library.dict_utils import deep_merge
 
 from ecoli.library.schema import array_from, array_to, arrays_from, arrays_to, listener_schema, bulk_schema
 
@@ -91,12 +92,9 @@ class TranscriptElongation(Process):
         'attenuation_location': {},
 
         'seed': 0,
+        # partitioning flags
         'request_only': False,
         'evolve_only': False,}
-    
-    time_step = [0]
-    requests = {'requested': {}}
-    elongation_rates = [0]
 
     def __init__(self, parameters=None):
         super().__init__(parameters)
@@ -155,8 +153,9 @@ class TranscriptElongation(Process):
 
         self.stop = False
         
-        self.time_step[0] = self.parameters['time_step']
-
+        self.request_only = self.parameters['request_only']
+        self.evolve_only = self.parameters['evolve_only']
+        
     def ports_schema(self):
         return {
             'environment': {
@@ -232,14 +231,13 @@ class TranscriptElongation(Process):
             }}
             
     def calculate_request(self, timestep, states):
-        timestep = self.time_step[0]
         # Calculate elongation rate based on the current media
         current_media_id = states['environment']['media_id']
 
         self.rnapElongationRate = self.rnaPolymeraseElongationRateDict[
             current_media_id].asNumber(units.nt / units.s)
 
-        self.elongation_rates[0] = self.make_elongation_rates(
+        self.elongation_rates = self.make_elongation_rates(
             self.random_state,
             self.rnapElongationRate,
             timestep,
@@ -247,17 +245,13 @@ class TranscriptElongation(Process):
 
         # If there are no active RNA polymerases, return immediately
         if len(states['active_RNAPs']) == 0:
-            return
+            return {}
 
         # Determine total possible sequences of nucleotides that can be
         # transcribed in this time step for each partial transcript
-        TU_indexes = np.array([rna['TU_index'] for rna in states['RNAs'].values()],
-                              dtype = np.int64)
-        transcript_lengths = np.array([rna['transcript_length'] 
-                                    for rna in states['RNAs'].values()], 
-                                    dtype = np.int64)
-        is_full_transcript = np.array([rna['is_full_transcript'] 
-                              for rna in states['RNAs'].values()])
+        TU_indexes, transcript_lengths, is_full_transcript = arrays_from(
+            states['RNAs'].values(), ['TU_index', 'transcript_length', 'is_full_transcript']
+        )
         is_partial_transcript = np.logical_not(is_full_transcript)
         TU_indexes_partial = TU_indexes[is_partial_transcript]
         transcript_lengths_partial = transcript_lengths[is_partial_transcript]
@@ -266,7 +260,7 @@ class TranscriptElongation(Process):
             self.rnaSequences,
             TU_indexes_partial,
             transcript_lengths_partial,
-            self.elongation_rates[0])
+            self.elongation_rates)
 
         sequenceComposition = np.bincount(
             sequences[sequences != polymerize.PAD_VALUE], minlength = 4)
@@ -275,9 +269,10 @@ class TranscriptElongation(Process):
         # in the sequences or number available
         ntpsTotal = array_from(states['ntps'])
         maxFractionalReactionLimit = np.fmin(1, ntpsTotal / sequenceComposition)
-        self.requests['requested'] = {
-            ntp: count for (ntp, count) in zip(states['ntps'], 
-                maxFractionalReactionLimit * sequenceComposition)}
+
+        requests = {}
+        requests['ntps'] = array_to(states['ntps'], 
+                                    maxFractionalReactionLimit * sequenceComposition)
         
         # TODO: Figure out how to migrate these listeners to vivarium
         # self.writeToListener(
@@ -285,10 +280,9 @@ class TranscriptElongation(Process):
         # self.writeToListener(
         #     "GrowthLimits", "ntpRequestSize",
         #     maxFractionalReactionLimit * sequenceComposition)
-        return {}
+        return requests
         
     def evolve_state(self, timestep, states):
-        self.time_step[0] = timestep
         # If there are no active RNA polymerases, return immediately
         if len(states['active_RNAPs']) == 0:
             # TODO (Eran): replace with custom updater that zeros if not given update
@@ -320,7 +314,7 @@ class TranscriptElongation(Process):
             'listeners': {
                 'growth_limits': {}}}
 
-        ntpCounts = np.array([self.requests['requested'][molecule] for molecule in states['ntps']])
+        ntpCounts = array_from(states['ntps'])
         
         # Determine sequences of RNAs that should be elongated
         is_partial_transcript = np.logical_not(is_full_transcript) # redundant
@@ -353,7 +347,7 @@ class TranscriptElongation(Process):
             self.rnaSequences,
             TU_index_partial_RNAs,
             length_partial_RNAs,
-            self.elongation_rates[0]) # redundant?
+            self.elongation_rates) # redundant?
 
         # Polymerize transcripts based on sequences and available nucleotides
         reactionLimit = ntpCounts.sum()
@@ -362,7 +356,7 @@ class TranscriptElongation(Process):
             ntpCounts,
             reactionLimit,
             self.random_state,
-            self.elongation_rates[0][TU_index_partial_RNAs][rna_to_elongate],
+            self.elongation_rates[TU_index_partial_RNAs][rna_to_elongate],
             self.variable_elongation
         )
 
@@ -561,9 +555,6 @@ class TranscriptElongation(Process):
             "terminationLoss": (terminal_lengths - length_partial_RNAs)[
                 did_terminate_mask].sum(),
             "didStall": n_total_stalled}
-        
-        """ from write_json import write_json
-        write_json('out/comparison/double_t_elong.json', update) """
 
         return update
 
@@ -571,6 +562,10 @@ class TranscriptElongation(Process):
         if self.request_only:
             update = self.calculate_request(timestep, states)
         elif self.evolve_only:
+            update = self.evolve_state(timestep, states)
+        else:
+            requests = self.calculate_request(timestep, states)
+            states = deep_merge(states, requests)
             update = self.evolve_state(timestep, states)
         return update
 

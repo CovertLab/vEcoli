@@ -8,6 +8,7 @@ import numpy as np
 
 from vivarium.core.process import Process
 from vivarium.core.composition import simulate_process
+from vivarium.library.dict_utils import deep_merge
 
 from ecoli.library.schema import array_from, array_to, arrays_from, arrays_to, listener_schema, bulk_schema
 
@@ -26,13 +27,9 @@ class Equilibrium(Process):
         'fluxesAndMoleculesToSS': lambda counts, volume, avogadro, random, jit: ([], []),
         'moleculeNames': [],
         'seed': 0,
+        # partitioning flags
         'request_only': False,
         'evolve_only': False,}
-    
-    time_step = [0]
-    requests = {'requested': {}}
-    
-    rxnFluxes = [0]
 
     # Constructor
     def __init__(self, parameters=None):
@@ -55,8 +52,9 @@ class Equilibrium(Process):
 
         self.seed = self.parameters['seed']
         self.random_state = np.random.RandomState(seed = self.seed)
-        
-        self.time_step[0] = self.parameters['time_step']
+
+        self.request_only = self.parameters['request_only']
+        self.evolve_only = self.parameters['evolve_only']
 
     def ports_schema(self):
         return {
@@ -68,7 +66,6 @@ class Equilibrium(Process):
                     'reaction_rates': {'_default': 0, '_updater': 'set'}}}}
         
     def calculate_request(self, timestep, states):
-        timestep = self.time_step[0]
         # Get molecule counts
         moleculeCounts = array_from(states['molecules'])
 
@@ -77,22 +74,22 @@ class Equilibrium(Process):
         cellVolume = cellMass / self.cell_density
 
         # Solve ODEs to steady state
-        self.rxnFluxes[0], self.req = self.fluxesAndMoleculesToSS(
+        self.rxnFluxes, self.req = self.fluxesAndMoleculesToSS(
             moleculeCounts, cellVolume, self.n_avogadro, self.random_state,
             jit=self.jit,
             )
 
         # Request counts of molecules needed
-        self.requests['requested'] = array_to(states['molecules'], self.req)
-        return {}
+        requests = {}
+        requests['molecules'] = array_to(states['molecules'], self.req)
+        return requests
         
     def evolve_state(self, timestep, states):
-        self.time_step[0] = timestep
         # Get molecule counts
-        moleculeCounts = array_from(self.requests['requested'])
+        moleculeCounts = array_from(states['molecules'])
         
         # Get counts of molecules allocated to this process
-        rxnFluxes = self.rxnFluxes[0].copy()
+        rxnFluxes = self.rxnFluxes.copy()
 
         # If we didn't get allocated all the molecules we need, make do with
         # what we have (decrease reaction fluxes so that they make use of what
@@ -126,9 +123,6 @@ class Equilibrium(Process):
             'listeners': {
                 'equilibrium_listener': {
                     'reaction_rates': deltaMolecules[self.product_indices] / timestep}}}
-        
-        """ from write_json import write_json
-        write_json('out/comparison/double_equi.json', update) """
 
         return update
 
@@ -136,5 +130,9 @@ class Equilibrium(Process):
         if self.request_only:
             update = self.calculate_request(timestep, states)
         elif self.evolve_only:
+            update = self.evolve_state(timestep, states)
+        else:
+            requests = self.calculate_request(timestep, states)
+            states = deep_merge(states, requests)
             update = self.evolve_state(timestep, states)
         return update

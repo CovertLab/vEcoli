@@ -8,6 +8,7 @@ import numpy as np
 
 from vivarium.core.process import Process
 from vivarium.core.composition import simulate_process
+from vivarium.library.dict_utils import deep_merge
 
 from ecoli.library.schema import arrays_from, arrays_to, bulk_schema, listener_schema
 
@@ -35,11 +36,9 @@ class TfBinding(Process):
         'bulk_molecule_ids': [],
         'bulk_mass_data': np.array([[]]) * units.g / units.mol,
         'seed': 0,
+        # partitioning flags
         'request_only': False,
         'evolve_only': False,}
-    
-    time_step = [0]
-    requests = {}
 
     # Constructor
     def __init__(self, parameters=None):
@@ -101,8 +100,9 @@ class TfBinding(Process):
         self.seed = self.parameters['seed']
         self.random_state = np.random.RandomState(seed = self.seed)
         
-        self.time_step[0] = self.parameters['time_step']
-
+        self.request_only = self.parameters['request_only']
+        self.evolve_only = self.parameters['evolve_only']
+        
     def ports_schema(self):
         return {
             'promoters': {
@@ -130,19 +130,16 @@ class TfBinding(Process):
             }
         
     def calculate_request(self, timestep, states):
-        timestep = self.time_step[0]
         # request all active tfs
-        self.requests = {'requested': {}}
+        requests = {'active_tfs': {}}
         for tf_id in self.tf_ids:
             active_tf_key = self.active_tfs[tf_id]
             tf_count = states['active_tfs'][active_tf_key]
-            self.requests['requested'][active_tf_key] = tf_count
+            requests['active_tfs'][active_tf_key] = tf_count
 
-        return {}
+        return requests
         
     def evolve_state(self, timestep, states):
-        self.time_step[0] = timestep
-        
         # If there are no promoters, return immediately
         if not states['promoters']:
             return {}
@@ -187,7 +184,7 @@ class TfBinding(Process):
             # active_tf_counts = active_tf_view.total_counts()+bound_tf_counts
             # n_available_active_tfs = active_tf_view.count()
             active_tf_counts = tf_count + bound_tf_counts
-            n_available_active_tfs = self.requests['requested'][active_tf_key] + bound_tf_counts
+            n_available_active_tfs = states['active_tfs'][active_tf_key] + bound_tf_counts
 
             # Determine the number of available promoter sites
             available_promoters = np.isin(TU_index, self.TF_to_TU_idx[tf_id])
@@ -264,9 +261,6 @@ class TfBinding(Process):
                 'nActualBound': nActualBound,
                 'n_available_promoters': n_promoters,
                 'n_bound_TF_per_TU': n_bound_TF_per_TU}}
-        
-        """ from write_json import write_json
-        write_json('out/comparison/double_tf.json', update) """
 
         return update
     
@@ -274,5 +268,10 @@ class TfBinding(Process):
         if self.request_only:
             update = self.calculate_request(timestep, states)
         elif self.evolve_only:
+            update = self.evolve_state(timestep, states)
+        else:
+            # TODO. Figure out how to separate listeners from requests
+            requests = self.calculate_request(timestep, states)
+            states = deep_merge(states, requests)
             update = self.evolve_state(timestep, states)
         return update

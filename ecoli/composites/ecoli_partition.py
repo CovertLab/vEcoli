@@ -1,7 +1,7 @@
 """
-========================
-E. coli master composite
-========================
+==============================
+E. coli partitioning composite
+==============================
 """
 
 import os
@@ -115,6 +115,7 @@ ECOLI_TOPOLOGY = {
             'molecules': ('bulk',),
             'monomers': ('bulk',),
             'amino_acids': ('bulk',),
+            'aa_enzymes': ('bulk',),
             'ppgpp_reaction_metabolites': ('bulk',),
             'uncharged_trna': ('bulk',),
             'charged_trna': ('bulk',),
@@ -284,6 +285,9 @@ def run_ecoli(blame=False, total_time=2):
         'topology': ecoli.topology,
         'initial_state': initial_state,
         'progress_bar': True,
+        # Speed things up big time
+        'emit_config': False,
+        # 'emitter': 'database'
     })
 
     # run the experiment

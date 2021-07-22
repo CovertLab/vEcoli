@@ -13,8 +13,9 @@ from arrow import StochasticSystem
 
 from vivarium.core.process import Process
 from vivarium.core.composition import simulate_process
+from vivarium.library.dict_utils import deep_merge
 
-from ecoli.library.schema import array_to, array_from
+from ecoli.library.schema import array_to, bulk_schema
 
 # Maximum unsigned int value + 1 for randint() to seed srand from C stdlib
 RAND_MAX = 2**31
@@ -27,11 +28,9 @@ class Complexation(Process):
         'rates': np.array([]),
         'molecule_names': [],
         'seed': 0,
+        # partitioning flags
         'request_only': False,
         'evolve_only': False,}
-    
-    time_step = [0]
-    requests = {'requested': {}}
 
     def __init__(self, parameters=None):
         super().__init__(parameters)
@@ -42,33 +41,29 @@ class Complexation(Process):
         self.seed = self.parameters['seed']
 
         self.system = StochasticSystem(self.stoichiometry, random_seed=self.seed)
-        
-        self.time_step[0] = self.parameters['time_step']
+
+        self.request_only = self.parameters['request_only']
+        self.evolve_only = self.parameters['evolve_only']
 
     def ports_schema(self):
         return {
-            'molecules': {
-                molecule: {
-                    '_default': 0,
-                    '_emit': True}
-                for molecule in self.molecule_names}}
+            'molecules': bulk_schema(self.molecule_names)}
         
     def calculate_request(self, timestep, states):
-        timestep = self.time_step[0]
+        # The int64 dtype is important (can break otherwise)
         moleculeCounts = np.array(list(states['molecules'].values()), 
                                   dtype = np.int64)
 
         result = self.system.evolve(
             timestep, moleculeCounts, self.rates)
         updatedMoleculeCounts = result['outcome']
-        self.requests['requested'] = array_to(states['molecules'], np.fmax(
+        requests = {}
+        requests['molecules'] = array_to(states['molecules'], np.fmax(
             moleculeCounts - updatedMoleculeCounts, 0))
-        return {}
+        return requests
         
     def evolve_state(self, timestep, states):
-        self.time_step[0] = timestep
-        molecules = {molecule: self.requests['requested'][molecule] 
-                     for molecule in self.molecule_names}
+        molecules = states['molecules']
 
         substrate = np.zeros(len(molecules), dtype=np.int64)
         for index, molecule in enumerate(self.molecule_names):
@@ -84,9 +79,6 @@ class Complexation(Process):
 
         # # Write outputs to listeners
         # self.writeToListener("ComplexationListener", "complexationEvents", events)  
-        
-        """ from write_json import write_json
-        write_json('out/comparison/double_complex.json', update) """
 
         return update
 
@@ -94,6 +86,10 @@ class Complexation(Process):
         if self.request_only:
             update = self.calculate_request(timestep, states)
         elif self.evolve_only:
+            update = self.evolve_state(timestep, states)
+        else:
+            requests = self.calculate_request(timestep, states)
+            states = deep_merge(states, requests)
             update = self.evolve_state(timestep, states)
         return update
     

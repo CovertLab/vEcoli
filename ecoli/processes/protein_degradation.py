@@ -12,6 +12,7 @@ import numpy as np
 
 from vivarium.core.process import Process
 from vivarium.core.composition import simulate_process
+from vivarium.library.dict_utils import deep_merge
 
 from ecoli.library.data_predicates import monotonically_increasing, monotonically_decreasing, all_nonnegative
 from ecoli.library.schema import array_to, array_from
@@ -30,9 +31,6 @@ class ProteinDegradation(Process):
         'seed': 0,
         'request_only': False,
         'evolve_only': False,}
-    
-    time_step = [0]
-    requests = {'requested': {}}
 
     # Constructor
     def __init__(self, parameters=None):
@@ -68,7 +66,8 @@ class ProteinDegradation(Process):
         self.degradation_matrix[self.water_index, :] = -(np.sum(
             self.degradation_matrix[self.amino_acid_indexes, :], axis=0) - 1)
         
-        self.time_step[0] = self.parameters['time_step']
+        self.request_only = self.parameters['request_only']
+        self.evolve_only = self.parameters['evolve_only']
 
     def ports_schema(self):
         return {
@@ -84,7 +83,6 @@ class ProteinDegradation(Process):
                 for protein in self.protein_ids}}
         
     def calculate_request(self, timestep, states):
-        timestep = self.time_step[0]
         # Determine how many proteins to degrade based on the degradation rates and counts of each protein
         protein_data = array_from(states['proteins'])
         # TODO: This differs from wcEcoli (just an artifact of different random state or...)
@@ -99,16 +97,15 @@ class ProteinDegradation(Process):
 
         # Determine the amount of water required to degrade the selected proteins
         # Assuming one N-1 H2O is required per peptide chain length N
-        self.requests['requested'] = {self.water_id: nReactions - np.sum(nProteinsToDegrade)}
-        self.requests['requested'].update(array_to(states['proteins'], nProteinsToDegrade))
-        return {}
+        requests = {}
+        requests[self.water_id] = nReactions - np.sum(nProteinsToDegrade)
+        requests['proteins'] = (array_to(states['proteins'], nProteinsToDegrade))
+        return requests
         
     def evolve_state(self, timestep, states):
-        self.time_step[0] = timestep
         # Degrade selected proteins, release amino acids from those proteins back into the cell, 
         # and consume H_2O that is required for the degradation process
-        allocated_proteins = np.array([self.requests['requested'][protein] 
-                              for protein in states['proteins']])
+        allocated_proteins = array_from(states['proteins'])
         metabolites_delta = np.dot(
             self.degradation_matrix,
             allocated_proteins).astype(int)
@@ -120,9 +117,6 @@ class ProteinDegradation(Process):
             'proteins': {
                 protein: -allocated_proteins[index]
                 for index, protein in enumerate(states['proteins'])}}
-        
-        """ from write_json import write_json
-        write_json('out/comparison/double_p_degrade.json', update) """
 
         return update
 
@@ -134,6 +128,10 @@ class ProteinDegradation(Process):
         if self.request_only:
             update = self.calculate_request(timestep, states)
         elif self.evolve_only:
+            update = self.evolve_state(timestep, states)
+        else:
+            requests = self.calculate_request(timestep, states)
+            states = deep_merge(states, requests)
             update = self.evolve_state(timestep, states)
         return update
 
