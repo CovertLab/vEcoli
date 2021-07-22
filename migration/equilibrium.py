@@ -57,9 +57,9 @@ def test_equilibrium():
     rates = listeners['reaction_rates']
 
     # Sanity checks: wcEcoli and vivarium-ecoli match
-    #assert len(moleculeNames) == len(wc_moleculeNames), (
-    #    f"Mismatch in lengths: vivarium-ecoli molecule_list update has length {len(moleculeNames)}\n"
-    #    f"while wcecoli has {len(wc_moleculeNames)} molecules.")
+    assert len(moleculeNames) == len(wc_moleculeNames), (
+        f"Mismatch in lengths: vivarium-ecoli molecule_list update has length {len(moleculeNames)}\n"
+        f"while wcecoli has {len(wc_moleculeNames)} molecules.")
 
     assert len(moleculeChanges) == len(wc_d_molecules), (
         f"Mismatch in lengths: vivarium-ecoli moleculeCounts update has length {len(moleculeChanges)}\n"
