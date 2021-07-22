@@ -7,7 +7,8 @@ from scipy.stats import mannwhitneyu
 
 
 from ecoli.library.sim_data import LoadSimData
-from ecoli.composites.ecoli_master import SIM_DATA_PATH, get_state_from_file
+from ecoli.library.schema import array_from
+from ecoli.composites.ecoli_master import SIM_DATA_PATH
 from ecoli.processes.equilibrium import Equilibrium
 
 from migration.plots import qqplot
@@ -56,9 +57,9 @@ def test_equilibrium():
     rates = listeners['reaction_rates']
 
     # Sanity checks: wcEcoli and vivarium-ecoli match
-    assert len(moleculeNames) == len(wc_moleculeNames), (
-        f"Mismatch in lengths: vivarium-ecoli molecule_list update has length {len(moleculeNames)}\n"
-        f"while wcecoli has {len(wc_moleculeNames)} molecules.")
+    #assert len(moleculeNames) == len(wc_moleculeNames), (
+    #    f"Mismatch in lengths: vivarium-ecoli molecule_list update has length {len(moleculeNames)}\n"
+    #    f"while wcecoli has {len(wc_moleculeNames)} molecules.")
 
     assert len(moleculeChanges) == len(wc_d_molecules), (
         f"Mismatch in lengths: vivarium-ecoli moleculeCounts update has length {len(moleculeChanges)}\n"
