@@ -122,36 +122,37 @@ class Equilibrium(Process):
 
 
 def test_equilibrium():
-    test_config = {
-        'stoichMatrix': np.array([
-            [-1, 1, 0],
-            [0, -1, 1],
-            [1, 0, -1],
-            [-1, 0, 1],
-            [1, -1, 0],
-            [0, 1, -1]], np.int64),
-            'jit': False,
-            'n_avogadro': 6.02214076e+20,
-            'cell_density': 1.1728608844230047e-12,
-            'fluxesAndMoleculesToSS': lambda counts, volume, avogadro, random, jit: ([], []),
-            'moleculeNames': [A, B, C],
-            'seed': 1}
-
-    equilibrium = Equilibrium(test_config)
-
-    state = {
-        'molecules': {
-            'A': 10,
-            'B': 20,
-            'C': 30}}
-
-    settings = {
-        'total_time': 10,
-        'initial_state': state}
-
-    data = simulate_process_in_experiment(equilibrium, settings)
-
-    print(data)
+    #test_config = {
+    #    'stoichMatrix': np.array([
+    #         [-1, 1, 0],
+    #         [0, -1, 1],
+    #         [1, 0, -1],
+    #         [-1, 0, 1],
+    #         [1, -1, 0],
+    #         [0, 1, -1]], np.int64),
+    #         'jit': False,
+    #         'n_avogadro': 6.02214076e+20,
+    #         'cell_density': 1.1728608844230047e-12,
+    #         'fluxesAndMoleculesToSS': lambda counts, volume, avogadro, random, jit: ([], []),
+    #         'moleculeNames': [A, B, C],
+    #         'seed': 1}
+    #
+    # equilibrium = Equilibrium(test_config)
+    #
+    # state = {
+    #     'molecules': {
+    #         'A': 10,
+    #         'B': 20,
+    #         'C': 30}}
+    #
+    # settings = {
+    #     'total_time': 10,
+    #     'initial_state': state}
+    #
+    # data = simulate_process_in_experiment(equilibrium, settings)
+    #
+    # print(data)
+    return 
 
 
 if __name__ == "__main__":
