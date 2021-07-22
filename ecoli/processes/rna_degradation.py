@@ -166,7 +166,7 @@ class RnaDegradation(Process):
     def ports_schema(self):
         return {
             'charged_trna': bulk_schema(self.charged_trna_names),
-            'bulk_RNAs': bulk_schema(self.rnaIds),
+            'bulk_RNAs': bulk_schema(self.rnaIds, updater='nonnegative_accumulate'),
             'nmps': bulk_schema(self.nmp_ids),
             'fragmentMetabolites': bulk_schema(self.endCleavageMetaboliteIds),
             'fragmentBases': bulk_schema(self.polymerized_ntp_ids),

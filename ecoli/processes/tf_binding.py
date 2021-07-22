@@ -173,9 +173,9 @@ class TfBinding(Process):
             tf_count = states['active_tfs'][active_tf_key]
 
             bound_tf_counts = n_bound_TF[tf_idx]
-
             update['active_tfs'][active_tf_key] = bound_tf_counts
             
+            #=======================wcEcoli Code==============================#
             # active_tf_view.countInc(bound_tf_counts)
             
             # Get counts of transcription factors

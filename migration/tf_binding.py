@@ -12,7 +12,9 @@ from vivarium.core.engine import Engine
 from ecoli.library.sim_data import LoadSimData
 from ecoli.composites.ecoli_master import SIM_DATA_PATH
 from ecoli.processes.tf_binding import TfBinding
-from migration.migration_utils import *
+from migration.migration_utils import (run_ecoli_process, ComparisonTestSuite,
+                                       array_almost_equal, array_diffs_report_test,
+                                       scalar_almost_equal)
 from ecoli.states.wcecoli_state import get_state_from_file
 
 
