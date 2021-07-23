@@ -116,8 +116,6 @@ class Allocator(Deriver):
                     for molecule in states['requested'][process]}
                 for process in states['requested']}}
         
-        from write_json import write_json
-        write_json('out/comparison/double_part.json', update)
         return update
 
 def calculatePartition(process_priorities, counts_requested, total_counts, random_state):
