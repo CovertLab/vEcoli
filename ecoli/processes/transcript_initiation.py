@@ -289,9 +289,6 @@ class TranscriptInitiation(Process):
                     'rnaInitEvent': 0})}}
         
     def calculate_request(self, timestep, states):
-        # Migration: save factors influencing promoter initiation probabilities
-        self.probability_factors = {}
-
         # Get all inactive RNA polymerases
         requests = {}
         requests['molecules'] = {self.inactive_RNAP: states['molecules'][self.inactive_RNAP]}
@@ -304,20 +301,16 @@ class TranscriptInitiation(Process):
             TU_index, bound_TF = arrays_from(
                 states['promoters'].values(), ['TU_index', 'bound_TF'])
 
-            self.probability_factors['bound_TF'] = bound_TF
-
             if self.ppgpp_regulation:
                 cell_mass = states['listeners']['mass']['cell_mass'] * units.fg
                 cell_volume = cell_mass / self.cell_density
                 counts_to_molar = 1 / (self.n_avogadro * cell_volume)
-                ppgpp_conc = states['molecules']['ppgpp'] * counts_to_molar
+                ppgpp_conc = states['molecules'][self.ppgpp] * counts_to_molar
                 basal_prob, _ = self.synth_prob(ppgpp_conc, self.copy_number)
                 if self.trna_attenuation:
                     basal_prob[self.attenuated_rna_indices] += self.attenuation_adjustments
             else:
                 basal_prob = self.basal_prob
-
-            self.probability_factors["basal_prob"] = basal_prob
 
             # Calculate probabilities of the RNAP binding to each promoter
             self.promoter_init_probs = (basal_prob[TU_index] +
@@ -336,8 +329,6 @@ class TranscriptInitiation(Process):
             if not self.ppgpp_regulation:
                 # Adjust synthesis probabilities depending on environment
                 synthProbFractions = self.rnaSynthProbFractions[current_media_id]
-                
-                self.probability_factors["synthProbFractions"] = synthProbFractions
 
                 # Create masks for different types of RNAs
                 is_mrna = np.isin(TU_index, self.idx_mRNA)
@@ -348,9 +339,12 @@ class TranscriptInitiation(Process):
                 is_fixed = is_trna | is_rrna | is_rprotein | is_rnap
 
                 # Rescale initiation probabilities based on type of RNA
-                self.promoter_init_probs[is_mrna] *= synthProbFractions["mRna"] / self.promoter_init_probs[is_mrna].sum()
-                self.promoter_init_probs[is_trna] *= synthProbFractions["tRna"] / self.promoter_init_probs[is_trna].sum()
-                self.promoter_init_probs[is_rrna] *= synthProbFractions["rRna"] / self.promoter_init_probs[is_rrna].sum()
+                self.promoter_init_probs[is_mrna] *= synthProbFractions["mRna"] / self.promoter_init_probs[
+                    is_mrna].sum()
+                self.promoter_init_probs[is_trna] *= synthProbFractions["tRna"] / self.promoter_init_probs[
+                    is_trna].sum()
+                self.promoter_init_probs[is_rrna] *= synthProbFractions["rRna"] / self.promoter_init_probs[
+                    is_rrna].sum()
 
                 # Set fixed synthesis probabilities for RProteins and RNAPs
                 self._rescale_initiation_probs(
@@ -358,16 +352,14 @@ class TranscriptInitiation(Process):
                     np.concatenate((
                         self.rnaSynthProbRProtein[current_media_id],
                         self.rnaSynthProbRnaPolymerase[current_media_id]
-                        )),
+                    )),
                     TU_index)
                 
-                self.probability_factors["rnaSynthProbRProtein"] = self.rnaSynthProbRProtein[current_media_id]
-                self.probability_factors["rnaSynthProbRnaPolymerase"] = self.rnaSynthProbRnaPolymerase[current_media_id]
-
                 assert self.promoter_init_probs[is_fixed].sum() < 1.0
 
                 # Scale remaining synthesis probabilities accordingly
-                scaleTheRestBy = (1. - self.promoter_init_probs[is_fixed].sum()) / self.promoter_init_probs[~is_fixed].sum()
+                scaleTheRestBy = (1. - self.promoter_init_probs[is_fixed].sum()) / self.promoter_init_probs[
+                    ~is_fixed].sum()
                 self.promoter_init_probs[~is_fixed] *= scaleTheRestBy
 
         # If there are no chromosomes in the cell, set all probs to zero
