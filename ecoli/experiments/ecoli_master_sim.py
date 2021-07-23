@@ -6,7 +6,7 @@ import argparse
 
 from vivarium.core.engine import Engine
 from ecoli.composites.ecoli_master import Ecoli
-from ecoli import process_registry
+from ecoli.processes import process_registry
 
 
 
@@ -17,11 +17,8 @@ def ecoli_from_file(file_path):
 
 class EcoliSim:
 
-    def build_from_cli(self):
+    def cli(self):
         parser = argparse.ArgumentParser(description='ecoli_master')
-        parser.add_argument(
-            '--topology', '-t', action='store_true', default=False,
-            help='save a topology plot of ecoli master')
         parser.add_argument(
             '--blame', '-b', action='store_true', default=False,
             help='when running simulation, create a report of which processes affected which molecules')
@@ -36,6 +33,9 @@ class EcoliSim:
         self.ecoli = ecoli_from_file(args.filepath, args.blame)
 
         self.total_time = args.total_time
+
+        self.run()
+
 
     def run(self):
         # make the experiment
@@ -59,5 +59,4 @@ class EcoliSim:
 # python ecoli/experiment/ecoli_master_sim.py -p [path to file] -e [emitter] -t [run time] -s [seed]
 if __name__ == '__main__':
     ecoli_sim = EcoliSim()
-    ecoli_sim.build_from_cli()
-    ecoli_sim.run()
+    ecoli_sim.cli()
