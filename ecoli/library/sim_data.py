@@ -11,10 +11,19 @@ SIM_DATA_PATH = 'reconstruction/sim_data/kb/simData.cPickle'
 
 class LoadSimData:
 
-    def __init__(self, sim_data_path=SIM_DATA_PATH, seed=0):
+    def __init__(
+        self, 
+        sim_data_path=SIM_DATA_PATH, 
+        seed=0,
+        trna_charging=False,
+        ppgpp_regulation=False,
+        ):
 
         self.seed = np.uint32(seed % np.iinfo(np.uint32).max)
         self.random_state = np.random.RandomState(seed = self.seed)
+        
+        self.trna_charging = trna_charging
+        self.ppgpp_regulation = ppgpp_regulation
 
         # load sim_data
         with open(sim_data_path, 'rb') as sim_data_file:
@@ -114,7 +123,7 @@ class LoadSimData:
             'ppgpp': self.sim_data.molecule_ids.ppGpp,
             'synth_prob': self.sim_data.process.transcription.synth_prob_from_ppgpp,
             'copy_number': self.sim_data.process.replication.get_average_copy_number,
-            'ppgpp_regulation': False,
+            'ppgpp_regulation': self.ppgpp_regulation,
 
             # attenuation
             'trna_attenuation': False,
@@ -255,9 +264,9 @@ class LoadSimData:
             'import_threshold': self.sim_data.external_state.import_constraint_threshold,
             'aa_from_trna': transcription.aa_from_trna,
             'gtpPerElongation': constants.gtp_per_translation,
-            'ppgpp_regulation': False,
+            'ppgpp_regulation': self.ppgpp_regulation,
             'mechanistic_supply': False,
-            'trna_charging': False,
+            'trna_charging': self.trna_charging,
             'translation_supply': False,
             'ribosome30S': self.sim_data.molecule_ids.s30_full_complex,
             'ribosome50S': self.sim_data.molecule_ids.s50_full_complex,
@@ -369,8 +378,8 @@ class LoadSimData:
             'aa_names': self.sim_data.molecule_groups.amino_acids,
 
             # these are options given to the wholecell.sim.simulation
-            'use_trna_charging': False,
-            'include_ppgpp': False,
+            'use_trna_charging': self.trna_charging,
+            'include_ppgpp': not self.ppgpp_regulation or not self.trna_charging,
 
             # these values came from the initialized environment state
             'current_timeline': None,
