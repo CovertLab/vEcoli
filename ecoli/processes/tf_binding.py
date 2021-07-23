@@ -184,7 +184,7 @@ class TfBinding(Process):
             # active_tf_counts = active_tf_view.total_counts()+bound_tf_counts
             # n_available_active_tfs = active_tf_view.count()
             active_tf_counts = tf_count + bound_tf_counts
-            n_available_active_tfs = states['active_tfs'][active_tf_key] + bound_tf_counts
+            n_available_active_tfs = tf_count + bound_tf_counts
 
             # Determine the number of available promoter sites
             available_promoters = np.isin(TU_index, self.TF_to_TU_idx[tf_id])

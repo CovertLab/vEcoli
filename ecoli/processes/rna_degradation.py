@@ -213,7 +213,8 @@ class RnaDegradation(Process):
             += array_from(states['charged_trna'])
 
         TU_index, can_translate, is_full_transcript = arrays_from(
-            states['RNAs'].values(), ['TU_index', 'can_translate', 'is_full_transcript'])
+            states['RNAs'].values(), 
+            ['TU_index', 'can_translate', 'is_full_transcript'])
          
         TU_index_translatable_mRNAs = TU_index[can_translate]
         unique_RNA_counts = np.bincount(
@@ -267,18 +268,15 @@ class RnaDegradation(Process):
             n_total_mrnas_to_degrade = self._calculate_total_n_to_degrade(
                 timestep,
                 mrna_specificity,
-                total_kcat_endornase
-                )
+                total_kcat_endornase)
             n_total_trnas_to_degrade = self._calculate_total_n_to_degrade(
                 timestep,
                 trna_specificity,
-                total_kcat_endornase
-                )
+                total_kcat_endornase)
             n_total_rrnas_to_degrade = self._calculate_total_n_to_degrade(
                 timestep,
                 rrna_specificity,
-                total_kcat_endornase
-                )
+                total_kcat_endornase)
 
             # Compute RNAse specificity
             rna_specificity = frac_endornase_saturated / np.sum(frac_endornase_saturated)

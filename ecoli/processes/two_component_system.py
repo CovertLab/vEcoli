@@ -92,8 +92,8 @@ class TwoComponentSystem(Process):
                 10000, self.random_state, method="BDF", min_time_step=timestep,
                 jit=self.jit)
         # Increment changes in molecule counts
-        update = {'molecules': array_to(self.moleculeNames, 
-                                        self.all_molecule_changes.astype(int))}
+        update = {
+            'molecules': array_to(self.moleculeNames, self.all_molecule_changes.astype(int))}
         
         return update
 

@@ -145,7 +145,7 @@ class ChromosomeReplication(Process):
             self.nutrientToDoublingTime[current_media_id])
 
         # Calculate mass per origin of replication, and compare to critical
-        # initiation mass. If the cell mass has reached thbis critical mass,
+        # initiation mass. If the cell mass has reached this critical mass,
         # the process will initiate a round of chromosome replication for each
         # origin of replication.
         massPerOrigin = cellMass / n_oriC

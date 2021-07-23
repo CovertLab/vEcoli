@@ -31,9 +31,7 @@ def get_state_from_file(path='data/wcecoli_t0.json'):
             # TODO(Ryan): pull in environmental amino acid levels
             'amino_acids': {},
             'exchange_data': {
-                # Does this have to be a set?
-                # Lists can be json serialized, sets cannot
-                'unconstrained': [
+                'unconstrained': {
                     'CL-[p]',
                     'FE+2[p]',
                     'CO+2[p]',
@@ -50,7 +48,7 @@ def get_state_from_file(path='data/wcecoli_t0.json'):
                     'PI[p]',
                     'NI+2[p]',
                     'WATER[p]',
-                    'AMMONIUM[c]'],
+                    'AMMONIUM[c]'},
                 'constrained': {
                     'GLC[p]': 20.0 * units.mmol / (units.g * units.h)}},
             'external_concentrations': states['environment']},
