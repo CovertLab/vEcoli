@@ -550,7 +550,6 @@ def test_polypeptide_elongation():
     return data, test_config
 
 
-
 def run_plot(data, config):
 
     # plot a list of variables
@@ -564,8 +563,6 @@ def run_plot(data, config):
         out_dir='out/processes/polypeptide_elongation',
         filename='variables'
     )
-
-
 
 
 def main():

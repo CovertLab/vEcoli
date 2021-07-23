@@ -208,10 +208,6 @@ def main():
 
     output = test_spatial_geometry_process()
 
-    # # plot the simulation output
-    # plot_settings = {}
-    # plot_simulation_output(output, plot_settings, out_dir)
-
 
 # Helper functions
 def array_from(d):
@@ -223,6 +219,6 @@ def array_to(keys, array):
         key: array[index]
         for index, key in enumerate(keys)}
 
-# run module with python vivarium/process/template_process.py
+
 if __name__ == '__main__':
     main()
