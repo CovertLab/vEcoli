@@ -16,7 +16,7 @@ from vivarium.library.dict_utils import deep_merge
 
 from ecoli.library.data_predicates import (
     monotonically_increasing, monotonically_decreasing, all_nonnegative)
-from ecoli.library.schema import array_to, array_from
+from ecoli.library.schema import array_to, array_from, bulk_schema
 
 class ProteinDegradation(Process):
     name = 'ecoli-protein-degradation'

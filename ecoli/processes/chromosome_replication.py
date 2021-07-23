@@ -207,7 +207,7 @@ class ChromosomeReplication(Process):
             'replisome_monomers': {
                     mol: 0
                     for mol in self.parameters['replisome_monomers_subunits']},
-            'oriCs': {},
+            # 'oriCs': {},
             'active_replisomes': {},
             'listeners': {
                 'replication_data': {},
