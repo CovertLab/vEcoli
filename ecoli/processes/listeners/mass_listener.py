@@ -31,10 +31,10 @@ class MassListener(Deriver):
             'dna': [],
             'protein': [],
             'smallMolecule': [],
-            'water' : -1,
+            'water': -1,
         },
         'n_avogadro': 6.0221409e23,  # 1/mol
-        'time_step' : 2.0
+        'time_step': 2.0
     }
 
     def __init__(self, parameters=None):
@@ -89,10 +89,58 @@ class MassListener(Deriver):
                         '_default': 0.0,
                         '_updater': 'set',
                         '_emit': True},
+                    **{submass + 'Mass': {'_default': 0.0,
+                                          '_updater': 'set',
+                                          '_emit': True}
+                       for submass in self.submass_indices.keys()
+                       if submass != 'water'},
+                    'volume' : {
+                        '_default': 0.0,
+                        '_updater': 'set',
+                        '_emit': True},
+                    'proteinMassFraction' : {
+                        '_default': 0.0,
+                        '_updater': 'set',
+                        '_emit': True
+                    },
+                    'rnaMassFraction' : {
+                        '_default': 0.0,
+                        '_updater': 'set',
+                        '_emit': True
+                    },
+                    'growth' : {
+                        '_default': 0.0,
+                        '_updater': 'set',
+                        '_emit': True
+                    },
+                    'instantaniousGrowthRate' : {
+                        '_default': 0.0,
+                        '_updater': 'set',
+                        '_emit': True
+                    },
+                    'dryMassFoldChange' : {
+                        '_default': 0.0,
+                        '_updater': 'set',
+                        '_emit': True
+                    },
+                    'proteinMassFoldChange' : {
+                        '_default': 0.0,
+                        '_updater': 'set',
+                        '_emit': True
+                    },
+                    'rnaMassFoldChange' : {
+                        '_default': 0.0,
+                        '_updater': 'set',
+                        '_emit': True
+                    },
+                    'smallMoleculeFoldChange' : {
+                        '_default': 0.0,
+                        '_updater': 'set',
+                        '_emit': True
+                    }
                 }
             }
         }
-        
 
     def next_update(self, timestep, states):
         # Initialize update with 0's for each submass
@@ -176,8 +224,6 @@ class MassListener(Deriver):
         # update['expectedMassFoldChange'] = np.exp(np.log(2) * (self.time() - self.timeInitial) / self.cellCycleLen)
 
         self.first_time_step = False
-
-        pp(mass_update)
 
         return {
             'listeners': {
