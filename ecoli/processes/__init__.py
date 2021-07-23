@@ -17,3 +17,4 @@ from ecoli.processes.exchange_stub import Exchange
 
 # add to registry
 process_registry.register(TfBinding.name, TfBinding)
+process_registry.register(TranscriptInitiation.name, TranscriptInitiation)
