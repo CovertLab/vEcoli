@@ -517,7 +517,6 @@ def array_to(keys, array):
         for index, key in enumerate(keys)}
 
 
-# run module is run as the main program with python vivarium/process/template_process.py
 if __name__ == '__main__':
     # make an output directory to save plots
     out_dir = os.path.join(PROCESS_OUT_DIR, NAME)
@@ -525,6 +524,3 @@ if __name__ == '__main__':
         os.makedirs(out_dir)
 
     test_diffusion_network_process(out_dir)
-
-
-

@@ -564,16 +564,7 @@ class ChromosomeReplication(Process):
 
 def test_chromosome_replication():
     test_config = {}
-
     process = ChromosomeReplication(test_config)
-
-    # initial_state = {}
-    # settings = {
-    #     'total_time': 10,
-    #     'initial_state': initial_state}
-    # data = simulate_process(process, settings)
-
-    # print(data)
 
 
 if __name__ == "__main__":

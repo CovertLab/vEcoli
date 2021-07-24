@@ -643,11 +643,3 @@ class FluxBalanceAnalysisModel(object):
             upper_targets = np.zeros(len(self.kinetics_constrained_reactions))
 
         return mean_targets, upper_targets, lower_targets
-
-
-def test_metabolism():
-    test_config = {}
-
-
-if __name__ == '__main__':
-    test_metabolism()
