@@ -19,6 +19,8 @@ import time
 import traceback
 from typing import Any, Callable, Iterable, List, Optional, Tuple
 
+import ipdb
+
 import wholecell.utils.filepath as fp
 from wholecell.sim.simulation import DEFAULT_SIMULATION_KWARGS
 from wholecell.utils.py3 import monotonic_seconds, process_time_seconds

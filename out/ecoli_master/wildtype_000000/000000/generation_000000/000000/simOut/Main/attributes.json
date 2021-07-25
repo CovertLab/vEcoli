@@ -1,0 +1,27 @@
+{
+ "_version": 3,
+ "endTime": "2021-07-21 18:18:59",
+ "initialTime": 0.0,
+ "lengthSec": 852.0,
+ "processes": [
+  "CellDivision",
+  "ChromosomeReplication",
+  "ChromosomeStructure",
+  "Complexation",
+  "Equilibrium",
+  "Metabolism",
+  "PolypeptideElongation",
+  "PolypeptideInitiation",
+  "ProteinDegradation",
+  "RnaDegradation",
+  "TfBinding",
+  "TranscriptElongation",
+  "TranscriptInitiation",
+  "TwoComponentSystem"
+ ],
+ "startTime": "2021-07-21 18:16:57",
+ "states": [
+  "BulkMolecules",
+  "UniqueMolecules"
+ ]
+}
