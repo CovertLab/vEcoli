@@ -1,0 +1,10 @@
+4 / 4 entries have differences.
+Maximum absolute difference is 172.
+Maximum relative difference is 0.009386084583901774.
+
+ Name |  Diff |     Relative Diff     
+======================================
+2     :  172  :   0.009386084583901774
+0     :   80  :   0.005222613918266093
+1     :   63  :   0.004327517516142327
+3     :   44  :  0.0033966342442488806

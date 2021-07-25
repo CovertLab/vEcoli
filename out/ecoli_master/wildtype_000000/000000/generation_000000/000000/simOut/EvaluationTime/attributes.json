@@ -1,0 +1,46 @@
+{
+ "_version": 3,
+ "listener_names": [
+  "Mass",
+  "ReplicationData",
+  "RibosomeData",
+  "UniqueMoleculeCounts",
+  "FBAResults",
+  "RnaDegradationListener",
+  "TranscriptElongationListener",
+  "RnapData",
+  "EnzymeKinetics",
+  "GrowthLimits",
+  "RnaSynthProb",
+  "MonomerCounts",
+  "mRNACounts",
+  "ComplexationListener",
+  "EquilibriumListener",
+  "DnaSupercoiling",
+  "EvaluationTime"
+ ],
+ "logger_names": [
+  "Shell",
+  "Disk"
+ ],
+ "process_names": [
+  "CellDivision",
+  "ChromosomeReplication",
+  "ChromosomeStructure",
+  "Complexation",
+  "Equilibrium",
+  "Metabolism",
+  "PolypeptideElongation",
+  "PolypeptideInitiation",
+  "ProteinDegradation",
+  "RnaDegradation",
+  "TfBinding",
+  "TranscriptElongation",
+  "TranscriptInitiation",
+  "TwoComponentSystem"
+ ],
+ "state_names": [
+  "BulkMolecules",
+  "UniqueMolecules"
+ ]
+}

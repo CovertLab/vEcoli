@@ -1,0 +1,4 @@
+Compared synthesis probabilities, finding a maximum percent-error difference of 0.0.
+
+Compared inits for fixed-synthesis-probability TUs, using a chi-square GOF test 
+(p = 1.0)
