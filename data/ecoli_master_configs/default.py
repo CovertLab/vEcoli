@@ -12,7 +12,6 @@ from ecoli.processes.metabolism import Metabolism
 from ecoli.processes.chromosome_replication import ChromosomeReplication
 from ecoli.processes.mass import Mass
 from ecoli.processes.cell_division import Division
-
 from ecoli.processes.listeners.mass_listener import MassListener
 
 ECOLI_PROCESSES = {
