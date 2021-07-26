@@ -41,7 +41,15 @@ from ecoli.library.kinetic_rate_laws import KineticFluxModel
 
 
 NAME = 'convenience_kinetics'
+COUNTS_UNITS = units.mmol
+VOLUME_UNITS = units.L
+MASS_UNITS = units.g
+TIME_UNITS = units.s
+CONC_UNITS = COUNTS_UNITS / VOLUME_UNITS
+CONVERSION_UNITS = MASS_UNITS * TIME_UNITS / VOLUME_UNITS
+GDCW_BASIS = units.mmol / units.g / units.h
 
+USE_KINETICS = True
 
 class ConvenienceKinetics(Process):
     '''Michaelis-Menten-style enzyme kinetics model
@@ -225,6 +233,8 @@ class ConvenienceKinetics(Process):
 
         # make the kinetic model
         self.kinetic_rate_laws = KineticFluxModel(self.reactions, kinetic_parameters)
+        self.nAvogadro = self.parameters['avogadro']
+        self.cellDensity = self.parameters['cell_density']
 
     def initial_state(self, config=None):
         return self.parameters['initial_state']
@@ -237,6 +247,7 @@ class ConvenienceKinetics(Process):
             for state_id in states:
                 schema[port][state_id] = {
                     '_default': initial_state[port][state_id],
+                    '_updater': 'null',
                     '_emit': True}
 
         # exchanges
@@ -245,6 +256,7 @@ class ConvenienceKinetics(Process):
             schema['exchanges'] = {
                 state_id: {
                     '_default': 0.0,
+                    '_updater': 'null',
                 }
                 for state_id in schema['external'].keys()
             }
@@ -254,6 +266,7 @@ class ConvenienceKinetics(Process):
             schema['fluxes'][state] = {
                 '_default': 0.0,
                 '_updater': 'set',
+                '_emit':True,
             }
 
         # global
@@ -262,24 +275,50 @@ class ConvenienceKinetics(Process):
                 '_default': 0.0 * units.L / units.mmol,
             },
         }
+
+        schema['listeners'] = {
+                'mass': {
+                    'cell_mass': {'_default': 0.0},
+                    'dry_mass': {'_default': 0.0}}}
+
+        schema['import_counts']={}
+        for state in self.kinetic_rate_laws.reaction_ids:
+            schema['import_counts'][state] = {
+                '_default': 0.0,
+                '_updater': 'set',
+                '_emit':True,
+            }
+
+        
         return schema
 
     def next_update(self, timestep, states):
 
+        transporters = states['internal']
+
+        cell_mass = states['listeners']['mass']['cell_mass'] * 1e-15 * units.g#grams
+        dry_mass = states['listeners']['mass']['dry_mass'] * 1e-15 * units.g
+        cellVolume = cell_mass / (self.cellDensity.asNumber()*units.g/units.L)
+        counts_to_mmolar = 1000 / (self.nAvogadro.asNumber() / units.mmol * cellVolume)#).asUnit(CONC_UNITS)
+
         # get mmol_to_counts for converting flux to exchange counts
-        mmol_to_counts = states['global']['mmol_to_counts']
+        mmol_to_counts = dry_mass*units.hr/(counts_to_mmolar*cellVolume*units.s*3600)  #states['global']['mmol_to_counts']
 
         # kinetic rate law requires a flat dict with ('port', 'state') keys.
         flattened_states = remove_units(tuplify_port_dicts(states))
 
+        counts_to_mmolar = remove_units(counts_to_mmolar)
+        flattened_concentrations = {k:s*counts_to_mmolar for k,s in flattened_states.items() if type(s)==type(1)}
+
         # get flux, which is in units of mmol / L
-        fluxes = self.kinetic_rate_laws.get_fluxes(flattened_states)
+        fluxes = self.kinetic_rate_laws.get_fluxes(flattened_concentrations)
 
         # make the update
         # add fluxes to update
         update = {port: {} for port in self.port_ids}
         update.update({'fluxes': fluxes})
-
+        update.update({'import_counts': {aa:(f/counts_to_mmolar) for aa,f in fluxes.items()}})
+        
         # update exchanges
         for reaction_id, flux in fluxes.items():
             stoichiometry = self.reactions[reaction_id]['stoichiometry']

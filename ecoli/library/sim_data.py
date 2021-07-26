@@ -358,7 +358,11 @@ class LoadSimData:
 
         return protein_degradation_config
 
-    def get_metabolism_config(self, time_step=2, parallel=False):
+    def get_metabolism_config(self, time_step=2, parallel=False, aa=False):
+        
+        condition = self.sim_data.condition if not aa else 'with_aa' 
+        media_id = 'minimal' if not aa else 'minimal_plus_amino_acids'
+
         metabolism_config = {
             'time_step': time_step,
             '_parallel': parallel,
@@ -373,10 +377,10 @@ class LoadSimData:
 
             # these values came from the initialized environment state
             'current_timeline': None,
-            'media_id': 'minimal',
+            'media_id': media_id,
 
-            'condition': self.sim_data.condition,
-            'nutrients': self.sim_data.conditions[self.sim_data.condition]['nutrients'],
+            'condition': condition,
+            'nutrients': self.sim_data.conditions[condition]['nutrients'],
             'metabolism': self.sim_data.process.metabolism,
             'non_growth_associated_maintenance': self.sim_data.constants.non_growth_associated_maintenance,
             'avogadro': self.sim_data.constants.n_avogadro,
@@ -388,7 +392,7 @@ class LoadSimData:
             'get_ppGpp_conc': self.sim_data.growth_rate_parameters.get_ppGpp_conc,
             'exchange_data_from_media': self.sim_data.external_state.exchange_data_from_media,
             'get_masses': self.sim_data.getter.get_masses,
-            'doubling_time': self.sim_data.condition_to_doubling_time[self.sim_data.condition],
+            'doubling_time': self.sim_data.condition_to_doubling_time[condition],
             'amino_acid_ids': sorted(self.sim_data.amino_acid_code_to_id_ordered.values()),
             'seed': self.random_state.randint(RAND_MAX),
             'linked_metabolites': self.sim_data.process.metabolism.linked_metabolites,
@@ -417,3 +421,49 @@ class LoadSimData:
             'water_id': 'WATER[c]',
         }
         return mass_config
+
+    def get_convenience_kinetics_config(self, time_step=2, parallel=False):
+        kcats=self.sim_data.process.metabolism.uptake_kcats_per_aa
+        matrix=self.sim_data.process.metabolism.aa_to_transporters_matrix
+        transp=self.sim_data.process.metabolism.aa_transporters_names
+        aas=self.sim_data.molecule_groups.amino_acids
+
+        transport_reactions = {'EX_' + str(aa): {
+                'stoichiometry': {
+                    ('internal', aa): 1.0,
+                    ('external', aa[:-3]+'[p]'): -1.0
+                },
+                'is reversible': False,
+                'catalyzed by': [('internal', transporter) for transporter in transp[matrix[i]>0]]
+            } for i, aa in enumerate(aas)}
+
+        transport_kinetics = {'EX_' + str(aa): {
+                                t: {
+                                    ('external', aa[:-3]+'[p]'): None,
+                                    ('internal', aa): None,
+                                    'kcat_f': kcats[i]/len(transport_reactions['EX_' + str(aa)]['catalyzed by']),  # 1/s
+                                }
+                            for t in transport_reactions['EX_' + str(aa)]['catalyzed by']}  
+                    for i, aa in enumerate(aas)}
+
+        conc_dict = self.sim_data.process.metabolism.conc_dict
+        internal={aa:conc_dict[aa].asNumber(units.MMOL/units.L) for aa in aas}
+        internal_2={t:0.0 for t in transp}
+        inter = {**internal, **internal_2}
+        env = self.sim_data.external_state.saved_media['minimal_plus_amino_acids']
+        external={aa[:-3]+'[p]':env[aa[:-3]] for aa in aas}
+        transport_initial_state = {'internal':inter,'external':external}
+
+        transport_ports = {
+            'internal': list(inter.keys()),
+            'external': list(external.keys()),
+        }
+
+        return {
+            'reactions': transport_reactions,
+            'kinetic_parameters': transport_kinetics,
+            'initial_state': transport_initial_state,
+            'ports': transport_ports,
+            'avogadro': self.sim_data.constants.n_avogadro,
+            'cell_density': self.sim_data.constants.cell_density}
+

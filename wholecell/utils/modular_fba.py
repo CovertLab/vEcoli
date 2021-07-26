@@ -1039,6 +1039,51 @@ class FluxBalanceAnalysis(object):
 		return self._externalMoleculeIDs
 
 
+	def setSpecificExternalMoleculeLevels(self, levels, molecules=None, force=False):
+		"""
+		Sets levels of external molecules that the cell can access. A positive
+		level indicates molcules that are available for uptake while a negative
+		level indicates secretion.
+
+		Args:
+			levels: limits corresponding to each molecule or to all molecules if
+				a singleton is passed
+			molecules: the molecule IDs to assign limits to
+			force: if True, will force exchange by setting both the upper and
+				lower bounds to the levels provided
+		"""
+
+		if molecules is None:
+			molecules = self._externalMoleculeIDs
+		elif isinstance(molecules, str):
+			molecules = [molecules]
+
+		levels_array = np.empty(len(molecules))
+		levels_array[:] = levels
+
+		for moleculeID, level in zip(molecules, levels_array):
+			flowID = self._generatedID_externalExchange + moleculeID
+
+			lb = None
+			ub = None
+			if level < 0:
+				print("Setting a negative external molecule level - be sure this is intended behavior.")
+
+				ub = -level
+				if force:
+					lb = ub
+			else:
+				lb = -level
+				if force:
+					ub = lb
+
+			self._solver.setFlowBounds(
+				flowID,
+				lowerBound=lb,
+				upperBound=ub,
+				)
+
+
 	def setExternalMoleculeLevels(self, levels):
 		levels_array = np.empty(len(self._externalMoleculeIDs))
 		levels_array[:] = levels

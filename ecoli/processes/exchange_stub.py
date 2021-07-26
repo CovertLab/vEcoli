@@ -6,7 +6,6 @@ Exchanges molecules at pre-set rates through a single port
 from vivarium.core.process import Process
 from vivarium.core.composition import simulate_process
 
-
 class Exchange(Process):
     defaults = {'exchanges': {}}
 
@@ -26,7 +25,7 @@ class Exchange(Process):
     def ports_schema(self):
         return {
             'molecules': {
-                mol_id: {'_default': 0}
+                mol_id: {'_default': 0, '_updater':'accumulate'}
                 for mol_id in self.parameters['exchanges'].keys()}}
 
     def next_update(self, timestep, states):

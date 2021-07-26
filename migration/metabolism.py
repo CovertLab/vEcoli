@@ -91,14 +91,14 @@ def run_metabolism(
     if config:
         metabolism_config = deep_merge(metabolism_config, config)
 
-    # initialize Metabolism
-    metabolism = Metabolism(metabolism_config)
-
     # get initial state from file
     state = get_state_from_file(
         path=f'data/wcecoli_t{initial_time}.json')
     if initial_state:
         state = deep_merge(state, initial_state)
+
+    #initialize Metabolism
+    metabolism = Metabolism(metabolism_config)
 
     # initialize a simulation
     metabolism_composite = metabolism.generate()

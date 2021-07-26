@@ -108,8 +108,8 @@ class Mass(object):
 		return massParams
 
 	def _build_CD_periods(self, raw_data, sim_data):
-		self.c_period = sim_data.growth_rate_parameters.c_period
-		self.d_period = sim_data.growth_rate_parameters.d_period
+		self.c_period = sim_data.constants.c_period
+		self.d_period = sim_data.constants.d_period
 
 	# Set based on growth rate avgCellDryMass
 	def get_avg_cell_dry_mass(self, doubling_time):
@@ -329,8 +329,8 @@ class Mass(object):
 		return dict(zip(metaboliteIDs, metaboliteConcentrations))
 
 	def _calculateGrowthRateDependentDnaMass(self, doubling_time):
-		C_PERIOD = self.c_period
-		D_PERIOD = self.d_period
+		C_PERIOD = self._c_period
+		D_PERIOD = self._d_period
 		CD_PERIOD = C_PERIOD + D_PERIOD
 
 		if doubling_time < D_PERIOD:
