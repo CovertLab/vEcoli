@@ -8,7 +8,11 @@ Updates bulk with process updates, runs metabolism, runs process requests, alloc
 from vivarium.core.process import Deriver
 import numpy as np
 
-from wholecell.utils.constants import CUSTOM_PRIORITIES
+CUSTOM_PRIORITIES = {'rna_degradation': 10, 
+                     'protein_degradation': 10, 
+                     'two_component_system': -5,
+                     'tf_binding': -10, 
+                     'metabolism': -15}
 
 ASSERT_POSITIVE_COUNTS = False
 
