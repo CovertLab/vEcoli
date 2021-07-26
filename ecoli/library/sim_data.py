@@ -442,6 +442,7 @@ class LoadSimData:
                 'smallMolecule': self.sim_data.submass_name_to_index["metabolite"],
                 'water': self.sim_data.submass_name_to_index["water"]
             },
+            'compartment_id_to_index' : self.sim_data.compartment_id_to_index,
             'n_avogadro': self.sim_data.constants.n_avogadro,  # 1/mol
             'time_step' : time_step
         }
