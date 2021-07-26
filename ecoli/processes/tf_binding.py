@@ -8,6 +8,7 @@ import numpy as np
 
 from vivarium.core.process import Process
 from vivarium.core.composition import simulate_process
+from vivarium.library.dict_utils import deep_merge
 
 from ecoli.library.schema import arrays_from, arrays_to, bulk_schema, listener_schema
 
@@ -34,7 +35,10 @@ class TfBinding(Process):
         'active_to_inactive_tf': {},
         'bulk_molecule_ids': [],
         'bulk_mass_data': np.array([[]]) * units.g / units.mol,
-        'seed': 0}
+        'seed': 0,
+        # partitioning flags
+        'request_only': False,
+        'evolve_only': False,}
 
     # Constructor
     def __init__(self, parameters=None):
@@ -95,7 +99,10 @@ class TfBinding(Process):
 
         self.seed = self.parameters['seed']
         self.random_state = np.random.RandomState(seed = self.seed)
-
+        
+        self.request_only = self.parameters['request_only']
+        self.evolve_only = self.parameters['evolve_only']
+        
     def ports_schema(self):
         return {
             'promoters': {
@@ -119,10 +126,20 @@ class TfBinding(Process):
                     'nPromoterBound': 0,
                     'nActualBound': 0,
                     'n_available_promoters': 0,
-                    'n_bound_TF_per_TU': 0})}}
+                    'n_bound_TF_per_TU': 0})}
+            }
+        
+    def calculate_request(self, timestep, states):
+        # request all active tfs
+        requests = {'active_tfs': {}}
+        for tf_id in self.tf_ids:
+            active_tf_key = self.active_tfs[tf_id]
+            tf_count = states['active_tfs'][active_tf_key]
+            requests['active_tfs'][active_tf_key] = tf_count
 
-
-    def next_update(self, timestep, states):
+        return requests
+        
+    def evolve_state(self, timestep, states):
         # If there are no promoters, return immediately
         if not states['promoters']:
             return {}
@@ -166,19 +183,6 @@ class TfBinding(Process):
             # so need to add freed TFs to the total active
             # active_tf_counts = active_tf_view.total_counts()+bound_tf_counts
             # n_available_active_tfs = active_tf_view.count()
-            #======================wcEcoli Code End===========================#
-
-            # active_tf_view.total_counts() gives the number of molecules of a 
-            # given TF in the entire cell
-            # active_tf_view.count() gives the number of molecules of a given 
-            # TF that are partitioned to the tf_binding process
-            # When t=2, active_tf_counts != n_available_active_tfs for 4 TFs
-            #   CPLX0-7669[¢]: 230 != 126
-            #   CPLX0-7740[¢]: 36 != 35
-            #   PD00288[c]: 46405 != 46401
-            #   PUTA_CPLX[c]: 18 != 10
-            # This does not affect the update dictionary at t=2 but DOES later
-            # TODO: Implement paritioning assumption
             active_tf_counts = tf_count + bound_tf_counts
             n_available_active_tfs = tf_count + bound_tf_counts
 
@@ -258,4 +262,15 @@ class TfBinding(Process):
                 'n_available_promoters': n_promoters,
                 'n_bound_TF_per_TU': n_bound_TF_per_TU}}
 
+        return update
+    
+    def next_update(self, timestep, states):
+        if self.request_only:
+            update = self.calculate_request(timestep, states)
+        elif self.evolve_only:
+            update = self.evolve_state(timestep, states)
+        else:
+            requests = self.calculate_request(timestep, states)
+            states = deep_merge(states, requests)
+            update = self.evolve_state(timestep, states)
         return update

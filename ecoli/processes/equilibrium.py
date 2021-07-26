@@ -8,6 +8,7 @@ import numpy as np
 
 from vivarium.core.process import Process
 from vivarium.core.composition import simulate_process
+from vivarium.library.dict_utils import deep_merge
 
 from ecoli.library.schema import array_from, array_to, arrays_from, arrays_to, listener_schema, bulk_schema
 
@@ -25,7 +26,10 @@ class Equilibrium(Process):
         'stoichMatrix': [[]],
         'fluxesAndMoleculesToSS': lambda counts, volume, avogadro, random, jit: ([], []),
         'moleculeNames': [],
-        'seed': 0}
+        'seed': 0,
+        # partitioning flags
+        'request_only': False,
+        'evolve_only': False,}
 
     # Constructor
     def __init__(self, parameters=None):
@@ -49,6 +53,9 @@ class Equilibrium(Process):
         self.seed = self.parameters['seed']
         self.random_state = np.random.RandomState(seed = self.seed)
 
+        self.request_only = self.parameters['request_only']
+        self.evolve_only = self.parameters['evolve_only']
+
     def ports_schema(self):
         return {
             'molecules': bulk_schema(self.moleculeNames),
@@ -57,8 +64,8 @@ class Equilibrium(Process):
                     'cell_mass': {'_default': 0}},
                 'equilibrium_listener': {
                     'reaction_rates': {'_default': 0, '_updater': 'set'}}}}
-
-    def next_update(self, timestep, states):
+        
+    def calculate_request(self, timestep, states):
         # Get molecule counts
         moleculeCounts = array_from(states['molecules'])
 
@@ -69,8 +76,18 @@ class Equilibrium(Process):
         # Solve ODEs to steady state
         self.rxnFluxes, self.req = self.fluxesAndMoleculesToSS(
             moleculeCounts, cellVolume, self.n_avogadro, self.random_state,
-            jit=self.jit)
+            jit=self.jit,
+            )
 
+        # Request counts of molecules needed
+        requests = {}
+        requests['molecules'] = array_to(states['molecules'], self.req)
+        return requests
+        
+    def evolve_state(self, timestep, states):
+        # Get molecule counts
+        moleculeCounts = array_from(states['molecules'])
+        
         # Get counts of molecules allocated to this process
         rxnFluxes = self.rxnFluxes.copy()
 
@@ -82,7 +99,7 @@ class Equilibrium(Process):
         max_iterations = int(np.abs(rxnFluxes).sum()) + 1
         for it in range(max_iterations):
             # Check if any metabolites will have negative counts with current reactions
-            negative_metabolite_idxs = np.where(np.dot(self.stoichMatrix, rxnFluxes) + self.req < 0)[0]
+            negative_metabolite_idxs = np.where(np.dot(self.stoichMatrix, rxnFluxes) + moleculeCounts < 0)[0]
             if len(negative_metabolite_idxs) == 0:
                 break
 
@@ -107,4 +124,15 @@ class Equilibrium(Process):
                 'equilibrium_listener': {
                     'reaction_rates': deltaMolecules[self.product_indices] / timestep}}}
 
+        return update
+
+    def next_update(self, timestep, states):
+        if self.request_only:
+            update = self.calculate_request(timestep, states)
+        elif self.evolve_only:
+            update = self.evolve_state(timestep, states)
+        else:
+            requests = self.calculate_request(timestep, states)
+            states = deep_merge(states, requests)
+            update = self.evolve_state(timestep, states)
         return update
