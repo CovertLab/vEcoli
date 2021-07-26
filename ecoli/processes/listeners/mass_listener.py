@@ -170,8 +170,6 @@ class MassListener(Deriver):
         # Store submasses
         for submass, indices in self.submass_indices.items():
             if submass != 'water':
-                if submass == "dna":
-                    ...
                 mass_update[submass + "Mass"] = all_submasses[indices].sum()
 
         mass_update['volume'] = mass_update['cell_mass'] / self.cellDensity
