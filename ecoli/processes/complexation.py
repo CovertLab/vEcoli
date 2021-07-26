@@ -13,6 +13,9 @@ from arrow import StochasticSystem
 
 from vivarium.core.process import Process
 from vivarium.core.composition import simulate_process
+from vivarium.library.dict_utils import deep_merge
+
+from ecoli.library.schema import array_to, bulk_schema
 
 from ecoli.library.schema import bulk_schema
 
@@ -27,7 +30,10 @@ class Complexation(Process):
         'stoichiometry': np.array([[]]),
         'rates': np.array([]),
         'molecule_names': [],
-        'seed': 0}
+        'seed': 0,
+        # partitioning flags
+        'request_only': False,
+        'evolve_only': False,}
 
     def __init__(self, parameters=None):
         super().__init__(parameters)
@@ -39,11 +45,27 @@ class Complexation(Process):
 
         self.system = StochasticSystem(self.stoichiometry, random_seed=self.seed)
 
+        self.request_only = self.parameters['request_only']
+        self.evolve_only = self.parameters['evolve_only']
+
     def ports_schema(self):
         return {
             'molecules': bulk_schema(self.molecule_names)}
+        
+    def calculate_request(self, timestep, states):
+        # The int64 dtype is important (can break otherwise)
+        moleculeCounts = np.array(list(states['molecules'].values()), 
+                                  dtype = np.int64)
 
-    def next_update(self, timestep, states):
+        result = self.system.evolve(
+            timestep, moleculeCounts, self.rates)
+        updatedMoleculeCounts = result['outcome']
+        requests = {}
+        requests['molecules'] = array_to(states['molecules'], np.fmax(
+            moleculeCounts - updatedMoleculeCounts, 0))
+        return requests
+        
+    def evolve_state(self, timestep, states):
         molecules = states['molecules']
 
         substrate = np.zeros(len(molecules), dtype=np.int64)
@@ -53,9 +75,7 @@ class Complexation(Process):
         result = self.system.evolve(timestep, substrate, self.rates)
         outcome = result['outcome'] - substrate
 
-        molecules_update = {
-            molecule: outcome[index]
-            for index, molecule in enumerate(self.molecule_names)}
+        molecules_update = array_to(self.molecule_names, outcome)
 
         update = {
             'molecules': molecules_update}
@@ -65,6 +85,17 @@ class Complexation(Process):
 
         return update
 
+    def next_update(self, timestep, states):
+        if self.request_only:
+            update = self.calculate_request(timestep, states)
+        elif self.evolve_only:
+            update = self.evolve_state(timestep, states)
+        else:
+            requests = self.calculate_request(timestep, states)
+            states = deep_merge(states, requests)
+            update = self.evolve_state(timestep, states)
+        return update
+    
 
 def test_complexation():
     test_config = {

@@ -201,6 +201,9 @@ class DiffusionNetwork(Process):
             } for node_id in self.nodes
         }
         return update
+    
+    def calculate_request(self, timestep, states):
+        return {}
 
 
 # TODO: change this to multiple tests and add asserts
