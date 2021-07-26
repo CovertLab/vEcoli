@@ -33,6 +33,7 @@ class MassListener(Deriver):
             'smallMolecule': [],
             'water': -1,
         },
+        'compartment_id_to_index' : {},
         'n_avogadro': 6.0221409e23,  # 1/mol
         'time_step': 2.0
     }
@@ -49,8 +50,9 @@ class MassListener(Deriver):
         self.submass_indices = self.parameters['submass_indices']
         self.waterIndex = self.parameters['submass_indices']['water']
 
+        #TODO: implement these
         # compartment indexes
-        # self.sim_data.internal_state.compartments ?
+        self.compartment_id_to_index = self.parameters['compartment_id_to_index']
         # self.projection_index = sim_data.compartment_id_to_index["CCO-CELL-PROJECTION"]
         # self.cytosol_index = sim_data.compartment_id_to_index["CCO-CYTOSOL"]
         # self.extracellular_index = sim_data.compartment_id_to_index["CCO-EXTRACELLULAR"]
@@ -168,6 +170,8 @@ class MassListener(Deriver):
         # Store submasses
         for submass, indices in self.submass_indices.items():
             if submass != 'water':
+                if submass == "dna":
+                    ...
                 mass_update[submass + "Mass"] = all_submasses[indices].sum()
 
         mass_update['volume'] = mass_update['cell_mass'] / self.cellDensity
@@ -190,8 +194,8 @@ class MassListener(Deriver):
         else:
             mass_update['growth'] = mass_update['dry_mass'] - old_dry_mass
 
-            mass_update['instantaniousGrowthRate'] = (
-                mass_update['growth'] / self.time_step / mass_update['dry_mass'])
+        mass_update['instantaniousGrowthRate'] = (
+            mass_update['growth'] / self.time_step / mass_update['dry_mass'])
 
         # Unique molecules assumed to be in cytosol, after wcEcoli
 

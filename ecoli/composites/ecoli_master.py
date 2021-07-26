@@ -136,6 +136,7 @@ def run_ecoli(
         divide=False,
         progress_bar=True,
         blame=False,
+        time_series=True
 ):
     """Run ecoli_master simulations
 
@@ -191,7 +192,10 @@ def run_ecoli(
     ecoli_experiment.update(total_time)
 
     # retrieve the data
-    output = ecoli_experiment.emitter.get_timeseries()
+    if time_series:
+        output = ecoli_experiment.emitter.get_timeseries()
+    else:
+        output = ecoli_experiment.emitter.get_data()
 
     return output
 
