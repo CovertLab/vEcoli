@@ -270,7 +270,6 @@ class TfBinding(Process):
         elif self.evolve_only:
             update = self.evolve_state(timestep, states)
         else:
-            # TODO. Figure out how to separate listeners from requests
             requests = self.calculate_request(timestep, states)
             states = deep_merge(states, requests)
             update = self.evolve_state(timestep, states)
