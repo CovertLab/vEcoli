@@ -29,10 +29,4 @@ REQUEST_PRIORITY_DEFAULT = 0
 REQUEST_PRIORITY_INTERN = -1 # processes that just request molecules
 REQUEST_PRIORITY_TWO_COMPONENT_SYSTEM = -5
 REQUEST_PRIORITY_TF_BINDING = -10  # need to have low priority with requestAll
-REQUEST_PRIORITY_METABOLISM = -15 # always runs last
-
-CUSTOM_PRIORITIES = {'rna_degradation': 10, 
-                     'protein_degradation': 10, 
-                     'two_component_system': -5,
-                     'tf_binding': -10, 
-                     'metabolism': -15}
+REQUEST_PRIORITY_METABOLISM = -10
