@@ -8,6 +8,7 @@ from vivarium.core.composition import simulate_process
 
 
 class Exchange(Process):
+    name = 'exchange'
     defaults = {'exchanges': {}}
 
     def __init__(self, parameters=None):
