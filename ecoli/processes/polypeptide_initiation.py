@@ -10,8 +10,10 @@ import numpy as np
 
 from vivarium.core.process import Process
 from vivarium.core.composition import simulate_process
+from vivarium.library.dict_utils import deep_merge
 
-from ecoli.library.schema import arrays_from, arrays_to, add_elements
+from ecoli.library.schema import (
+    arrays_from, arrays_to, add_elements, bulk_schema)
 
 from wholecell.utils import units
 from wholecell.utils.fitting import normalize
@@ -34,7 +36,10 @@ class PolypeptideInitiation(Process):
         'ribosome30S': 'ribosome30S',
         'ribosome50S': 'ribosome50S',
         'seed': 0,
-        'shuffle_indexes': None}
+        'shuffle_indexes': None,
+        # partitioning flags
+        'request_only': False,
+        'evolve_only': False,}
 
     def __init__(self, parameters=None):
         super().__init__(parameters)
@@ -43,7 +48,7 @@ class PolypeptideInitiation(Process):
         self.protein_lengths = self.parameters['protein_lengths']
         self.translation_efficiencies = self.parameters['translation_efficiencies']
         self.active_ribosome_fraction = self.parameters['active_ribosome_fraction']
-        self.elongation_rates = self.parameters['elongation_rates']
+        self.ribosome_elongation_rates_dict = self.parameters['elongation_rates']
         self.variable_elongation = self.parameters['variable_elongation']
         self.make_elongation_rates = self.parameters['make_elongation_rates']
         
@@ -80,6 +85,9 @@ class PolypeptideInitiation(Process):
                 'ribosome_data': {
                     'ribosomes_initialized': 0,
                     'prob_translation_per_transcript': 0.0}}}
+        
+        self.request_only = self.parameters['request_only']
+        self.evolve_only = self.parameters['evolve_only']
 
     def ports_schema(self):
         return {
@@ -113,36 +121,40 @@ class PolypeptideInitiation(Process):
                     'TU_index': {'_default': 0},
                     'can_translate': {'_default': False},
                     'unique_index': {'_default': 0}}},
-            'subunits': {
-                self.ribosome30S: {
-                    '_default': 0,
-                    '_emit': True},
-                self.ribosome50S: {
-                    '_default': 0,
-                    '_emit': True}}}
+            'subunits': bulk_schema([
+                self.ribosome30S,
+                self.ribosome50S])}
+    
+    def calculate_request(self, timestep, states):
+        current_media_id = states['environment']['media_id']
+        
+        requests = {}
+        requests['subunits'] = states['subunits']
 
-    def next_update(self, timestep, states):
-        if not states['RNA']:
-            return self.empty_update
+        self.fracActiveRibosome = self.active_ribosome_fraction[current_media_id]
 
-        media_id = states['environment']['media_id']
-        active_ribosome_fraction = self.active_ribosome_fraction[media_id]
-        ribosome_elongation_rate = states['listeners']['ribosome_data']['effective_elongation_rate']
-
+        # Read ribosome elongation rate from last timestep
+        self.ribosomeElongationRate = states['listeners']['ribosome_data'][
+            'effective_elongation_rate']
         # If the ribosome elongation rate is zero (which is always the case for
         # the first timestep), set ribosome elongation rate to the one in
         # dictionary
-        if ribosome_elongation_rate == 0:
-            ribosome_elongation_rate = self.elongation_rates[media_id].asNumber(units.aa / units.s)
-
-        elongation_rates = self.make_elongation_rates(
+        if self.ribosomeElongationRate == 0:
+            self.ribosomeElongationRate = self.ribosome_elongation_rates_dict[
+                current_media_id].asNumber(units.aa / units.s)
+        self.elongation_rates = self.make_elongation_rates(
             self.random_state,
-            ribosome_elongation_rate,
+            self.ribosomeElongationRate,
             1,  # want elongation rate, not lengths adjusted for time step
             self.variable_elongation)
 
-        elongation_rates = np.fmax(elongation_rates, 1)
-
+        # Ensure rates are never zero
+        self.elongation_rates = np.fmax(self.elongation_rates, 1)
+        return requests
+        
+        
+    def evolve_state(self, timestep, states):
+        self.time_step = timestep
         # Calculate number of ribosomes that could potentially be initialized
         # based on counts of free 30S and 50S subunits
         inactive_ribosome_count = np.min([
@@ -168,9 +180,9 @@ class PolypeptideInitiation(Process):
         # Calculate actual number of ribosomes that should be activated based
         # on probabilities
         activation_prob = self.calculate_activation_prob(
-            active_ribosome_fraction,
+            self.fracActiveRibosome,
             self.protein_lengths,
-            elongation_rates,
+            self.elongation_rates,
             protein_init_prob,
             timestep)
 
@@ -241,6 +253,17 @@ class PolypeptideInitiation(Process):
                     'ribosomes_initialized': n_new_proteins.sum(),
                     'prob_translation_per_transcript': protein_init_prob}}}
 
+        return update
+
+    def next_update(self, timestep, states):
+        if self.request_only:
+            update = self.calculate_request(timestep, states)
+        elif self.evolve_only:
+            update = self.evolve_state(timestep, states)
+        else:
+            requests = self.calculate_request(timestep, states)
+            states = deep_merge(states, requests)
+            update = self.evolve_state(timestep, states)
         return update
 
     def calculate_activation_prob(

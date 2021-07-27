@@ -6,6 +6,10 @@ Metabolism sub-model. Encodes molecular simulation of microbial metabolism using
 TODO:
 - option to call a reduced form of metabolism (assume optimal)
 - handle oneSidedReaction constraints
+
+NOTE:
+- In wcEcoli, metabolism only runs after all other processes have completed 
+and internal states have been updated (deriver-like, no partitioning necessary)
 """
 
 import numpy as np
@@ -14,6 +18,7 @@ from typing import List, Tuple
 
 from vivarium.core.process import Process
 from vivarium.core.composition import simulate_process
+from vivarium.library.dict_utils import deep_merge
 
 from ecoli.library.schema import bulk_schema, array_from
 
@@ -118,7 +123,9 @@ class Metabolism(Process):
                 'media_id': {
                     '_default': '',
                     '_updater': 'set'},
-                'exchange': bulk_schema(self.model.fba.getExternalMoleculeIDs()),
+                'exchange': {
+                    element: {'_default': 0}
+                    for element in self.model.fba.getExternalMoleculeIDs()},
                 'exchange_data': {
                     'unconstrained': {'_default': []},
                     'constrained': {'_default': []}}},
@@ -166,6 +173,7 @@ class Metabolism(Process):
                     '_emit': True}}}
 
     def next_update(self, timestep, states):
+
         # Load current state of the sim
         ## Get internal state variables
         metabolite_counts_init = array_from(states['metabolites'])
@@ -640,11 +648,3 @@ class FluxBalanceAnalysisModel(object):
             upper_targets = np.zeros(len(self.kinetics_constrained_reactions))
 
         return mean_targets, upper_targets, lower_targets
-
-
-def test_metabolism():
-    test_config = {}
-
-
-if __name__ == '__main__':
-    test_metabolism()
