@@ -186,7 +186,6 @@ def run_polypeptide_elongation():
     experiment.update(10)
 
     data = experiment.emitter.get_data()
-    import ipdb; ipdb.set_trace()
 
 
 if __name__ == "__main__":
