@@ -73,6 +73,24 @@ class BuildCausalityNetwork(AnalysisBase):
 			metadata=args.metadata)
 		task.run_task({})
 
+		# Optionally show the causality visualization.
+		server_dir = os.environ.get(CAUSALITY_ENV_VAR, os.path.join('..', 'causality'))
+		server_app = os.path.join('site', 'server.py')
+		server_path = os.path.join(server_dir, server_app)
+		if args.show and os.path.isfile(server_path):
+			# See #890 if running command fails due to differences in pyenv
+			# versions - might need to cd to repo and activate pyenv
+			cmd = ['python', server_path, dynamics_output_dir]
+			print(f'\nServing the Causality site via the command:\n  {cmd}\n'
+				  f'Ctrl+C to exit.\n')
+			subprocess.run(cmd)
+		else:
+			print('\nNOTE: Use the --show flag to automatically open the'
+				  ' Casuality viewer on this data. You\'ll first need to'
+				  ' `export {0}=~/path/to/causality` project unless the default'
+				  ' (../causality) is good.\n'
+				  .format(CAUSALITY_ENV_VAR))
+
 if __name__ == '__main__':
 	analysis = BuildCausalityNetwork()
 	analysis.cli()

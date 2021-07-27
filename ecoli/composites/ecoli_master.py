@@ -312,6 +312,8 @@ def run_ecoli(
         'topology': ecoli.topology,
         'initial_state': initial_state,
         'progress_bar': progress_bar,
+        'emitter': 'database',
+        'emit_config': False
     })
 
     # run the experiment
