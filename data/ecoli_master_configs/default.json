@@ -11,28 +11,28 @@
     "divide": false,
     "blame": false,
     "processes": [
-        "tf_binding",
-        "transcript_initiation",
-        "transcript_elongation",
-        "rna_degradation",
-        "polypeptide_initiation",
-        "polypeptide_elongation",
-        "complexation",
-        "two_component_system",
-        "equilibrium",
-        "protein_degradation",
-        "metabolism",
-        "chromosome_replication",
-        "mass"
+        "ecoli-tf-binding",
+        "ecoli-transcript-initiation",
+        "ecoli-transcript-elongation",
+        "ecoli-rna-degradation",
+        "ecoli-polypeptide-initiation",
+        "ecoli-polypeptide-elongation",
+        "ecoli-complexation",
+        "ecoli-two-component-system",
+        "ecoli-equilibrium",
+        "ecoli-protein-degradation",
+        "ecoli-metabolism",
+        "ecoli-chromosome_replication",
+        "ecoli-mass"
     ],
     "topology": {
-        "tf_binding": {
+        "ecoli-tf-binding": {
             "promoters": ["unique", "promoter"],
             "active_tfs": ["bulk"],
             "inactive_tfs": ["bulk"],
             "listeners": ["listeners"]
         },
-        "transcript_initiation": {
+        "ecoli-transcript-initiation": {
             "environment": ["environment"],
             "full_chromosomes": ["unique", "full_chromosome"],
             "RNAs": ["unique", "RNA"],
@@ -41,7 +41,7 @@
             "molecules": ["bulk"],
             "listeners": ["listeners"]
         },
-        "transcript_elongation": {
+        "ecoli-transcript-elongation": {
             "environment": ["environment"],
             "RNAs": ["unique", "RNA"],
             "active_RNAPs": ["unique", "active_RNAP"],
@@ -50,7 +50,7 @@
             "ntps": ["bulk"],
             "listeners": ["listeners"]
         },
-        "rna_degradation": {
+        "ecoli-rna-degradation": {
             "charged_trna": ["bulk"],
             "bulk_RNAs": ["bulk"],
             "nmps": ["bulk"],
@@ -64,14 +64,14 @@
             "active_ribosome": ["unique", "active_ribosome"],
             "listeners": ["listeners"]
         },
-        "polypeptide_initiation": {
+        "ecoli-polypeptide-initiation": {
             "environment": ["environment"],
             "listeners": ["listeners"],
             "active_ribosome": ["unique", "active_ribosome"],
             "RNA": ["unique", "RNA"],
             "subunits": ["bulk"]
         },
-        "polypeptide_elongation": {
+        "ecoli-polypeptide-elongation": {
             "environment": ["environment"],
             "listeners": ["listeners"],
             "active_ribosome": ["unique", "active_ribosome"],
@@ -86,22 +86,22 @@
             "subunits": ["bulk"],
             "polypeptide_elongation": ["process_state", "polypeptide_elongation"]
         },
-        "complexation": {
+        "ecoli-complexation": {
             "molecules": ["bulk"]
         },
-        "two_component_system": {
+        "ecoli-two-component-system": {
             "listeners": ["listeners"],
             "molecules": ["bulk"]
         },
-        "equilibrium": {
+        "ecoli-equilibrium": {
             "listeners": ["listeners"],
             "molecules": ["bulk"]
         },
-        "protein_degradation": {
+        "ecoli-protein-degradation": {
             "metabolites": ["bulk"],
             "proteins": ["bulk"]
         },
-        "metabolism": {
+        "ecoli-metabolism": {
             "metabolites": ["bulk"],
             "catalysts": ["bulk"],
             "kinetics_enzymes": ["bulk"],
@@ -111,7 +111,7 @@
             "environment": ["environment"],
             "polypeptide_elongation": ["process_state", "polypeptide_elongation"]
         },
-        "chromosome_replication": {
+        "ecoli-chromosome_replication": {
             "replisome_trimers": ["bulk"],
             "replisome_monomers": ["bulk"],
             "dntps": ["bulk"],
@@ -123,7 +123,7 @@
             "listeners": ["listeners"],
             "environment": ["environment"]
         },
-        "mass": {
+        "ecoli-mass": {
             "bulk": ["bulk"],
             "unique": ["unique"],
             "listeners": ["listeners"]
