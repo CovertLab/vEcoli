@@ -445,8 +445,6 @@ class PolypeptideElongation(Process):
         for index, count in enumerate(terminatedProteins):
             update['monomers'][self.proteinIds[index]] = count
 
-
-
         # self.bulkMonomers.countsInc(terminatedProteins)
 
         nTerminated = didTerminate.sum()
@@ -498,7 +496,6 @@ class PolypeptideElongation(Process):
         update['listeners']['ribosome_data']['processElongationRate'] = self.ribosomeElongationRate / timestep
 
         log.info('polypeptide elongation terminated: {}'.format(nTerminated))
-        ipdb.set_trace()
         return update
 
     def next_update(self, timestep, states):
