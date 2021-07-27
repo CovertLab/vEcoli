@@ -204,28 +204,11 @@ class Ecoli(Composer):
         time_step = config['time_step']
         parallel = config['parallel']
 
-        # get the configs from sim_data
-        configs = {
-            'tf_binding': self.load_sim_data.get_tf_config(time_step=time_step),
-            'transcript_initiation': self.load_sim_data.get_transcript_initiation_config(time_step=time_step),
-            'transcript_elongation': self.load_sim_data.get_transcript_elongation_config(time_step=time_step),
-            'rna_degradation': self.load_sim_data.get_rna_degradation_config(time_step=time_step),
-            'polypeptide_initiation': self.load_sim_data.get_polypeptide_initiation_config(time_step=time_step),
-            'polypeptide_elongation': self.load_sim_data.get_polypeptide_elongation_config(time_step=time_step),
-            'complexation': self.load_sim_data.get_complexation_config(time_step=time_step),
-            'two_component_system': self.load_sim_data.get_two_component_system_config(time_step=time_step),
-            'equilibrium': self.load_sim_data.get_equilibrium_config(time_step=time_step),
-            'protein_degradation': self.load_sim_data.get_protein_degradation_config(time_step=time_step),
-            'metabolism': self.load_sim_data.get_metabolism_config(time_step=time_step),
-            'chromosome_replication': self.load_sim_data.get_chromosome_replication_config(time_step=time_step),
-            'mass': self.load_sim_data.get_mass_config(time_step=time_step),
-        }
-
         # make the processes
         processes = {
-            process_name: (process(configs[process_name])
+            process_name: (process(self.load_sim_data.get_config_by_name(process_name))
                            if not config['blame']
-                           else make_logging_process(process)(configs[process_name]))
+                           else make_logging_process(process)(self.sim_data.get_config_by_name(process_name)))
             for (process_name, process) in self.processes.items()
             if process_name not in [
                 'polypeptide_elongation',
