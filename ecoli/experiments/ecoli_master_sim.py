@@ -27,6 +27,7 @@ class EcoliSim:
 
         # Get processes
         config['processes'] = self._retrieve_processes(config['processes'])
+        config['topology'] = self._retrieve_topology(config['topology'])
         self.config = config
         self.processes = config['processes']
         self.topology = config['topology']  # TODO: do these need to be processed into tuples?
@@ -40,6 +41,8 @@ class EcoliSim:
 
     @staticmethod
     def from_cli():
+        # TODO: Experiment id
+
         parser = argparse.ArgumentParser(description='ecoli_master')
         parser.add_argument(
             '--config', '-c', action='store', default=CONFIG_DIR_PATH + 'default.json',
@@ -82,36 +85,61 @@ class EcoliSim:
         with open(CONFIG_DIR_PATH + 'default.json') as default_file:
             default_config = json.load(default_file)
 
-        # TODO: confirm first is overwritten by second, does not happen in-place
-        ecoli_config = deep_merge(default_config, ecoli_config)
+        # Use defaults for any attributes not supplied
+        ecoli_config = deep_merge(dict(default_config), ecoli_config)
 
+        # TODO: some of these items (e.g. seed) should overwrite values in config instead
         return EcoliSim(ecoli_config,
                         emitter=args.emitter,
                         seed=args.seed,
                         total_time=args.total_time,
                         generations=args.generations,
                         log_updates=args.log_updates,
-                        timeseries_output=args.timeseries
+                        timeseries_output=args.timeseries,
                         sim_data_path=args.path_to_sim_data)
 
-    def _retrieve_processes(process_names):
+    def _retrieve_processes(self, process_names):
         result = {}
         for process_name in process_names:
-            try:
-                result[process_name] = process_registry.access(process_name)
-            except:  # TODO: what error?
+            process_class = process_registry.access(process_name)
+           
+            if not process_class:
                 raise ValueError(f"Unknown process with name {process_name}. "
                                  "Did you call process_registry.register() in ecoli/processes/__init__.py?")
+           
+            result[process_name] = process_class
 
+        return result
+    
+    def _retrieve_topology(self, topology):
+        result = {}
+        for process, process_topology in topology.items():
+            result[process] = {
+                k: tuple(v) for k, v in process_topology.items()
+            }
         return result
 
     def run(self):
+        # initialize the ecoli composer
+        ecoli_composer = Ecoli(self.config)
+
+        # set path at which agent is initialized
+        path = tuple()
+        if self.config['divide']:
+            path = ('agents', self.config['agent_id'],)
+
+        # get initial state
+        initial_state = ecoli_composer.initial_state(path=path)
+
+        # generate the composite at the path
+        ecoli = ecoli_composer.generate(path=path)
+
         # make the experiment
         ecoli_experiment = Engine({
-            'processes': self.ecoli.processes,
-            'topology': self.ecoli.topology,
-            'initial_state': self.initial_state,
-            'progress_bar': self.progress_bar,
+            'processes': ecoli.processes,
+            'topology': ecoli.topology,
+            'initial_state': initial_state,
+            'progress_bar': True, #TODO: make configurable?
         })
 
         # run the experiment

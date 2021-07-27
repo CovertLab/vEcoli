@@ -20,6 +20,29 @@ class LoadSimData:
         with open(sim_data_path, 'rb') as sim_data_file:
             self.sim_data = cPickle.load(sim_data_file)
 
+    
+    def get_config_by_name(self, name, time_step=2, parallel=False):
+        name_config_mapping = {
+            'ecoli-tf-binding': self.get_tf_config,
+            'ecoli-transcript-initiation': self.get_transcript_initiation_config,
+            'ecoli-transcript-elongation': self.get_transcript_elongation_config,
+            'ecoli-rna-degradation': self.get_rna_degradation_config,
+            'ecoli-polypeptide-initiation': self.get_polypeptide_initiation_config,
+            'ecoli-polypeptide-elongation': self.get_polypeptide_elongation_config,
+            'ecoli-complexation': self.get_complexation_config,
+            'ecoli-two-component-system': self.get_two_component_system_config,
+            'ecoli-equilibrium': self.get_equilibrium_config,
+            'ecoli-protein-degradation': self.get_protein_degradation_config,
+            'ecoli-metabolism': self.get_metabolism_config,
+            'ecoli-chromosome_replication': self.get_chromosome_replication_config,
+            'ecoli-mass': self.get_mass_config,
+        }
+
+        try:
+            return name_config_mapping[name](time_step=time_step, parallel=parallel)
+        except KeyError:
+            raise KeyError(f"Process of name {name} is not known to LoadSimData.get_config_by_name")
+
 
     def get_chromosome_replication_config(self, time_step=2, parallel=False):
         get_dna_critical_mass = self.sim_data.mass.get_dna_critical_mass
