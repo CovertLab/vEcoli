@@ -16,7 +16,6 @@ from migration.migration_utils import run_ecoli_process, percent_error
 
 import scipy.constants
 from wholecell.utils import units
-import pandas
 
 load_sim_data = LoadSimData(
             sim_data_path=SIM_DATA_PATH,
@@ -39,14 +38,13 @@ def test_equilibrium():
 
     update_molecules = actual_update['molecules']
     update_listeners = actual_update['listeners']
-    with open("data/equilibrium_update_t62.json") as f:
+    with open("data/equilibrium_update_new_t62.json") as f:
         wc_data = json.load(f)
 
     wc_moleculeNames = wc_data["molecules"]
     wc_moleculesCounts = wc_data["moleculeCounts"]
     wc_rxn = wc_data["rxnFluxes"]
     wc_req_molecules = wc_data['requested']
-    wc_partitioned = wc_data['partitioned_molecules']
     wc_d_molecules = wc_data['evolveResult']
     wc_rxnEvolve = wc_data['rcnFluxesEvolve']
     wc_rates = wc_data["wc_rates"]
@@ -55,6 +53,7 @@ def test_equilibrium():
     moleculeChanges = update_molecules.values()
     listeners = update_listeners['equilibrium_listener']
     rates = listeners['reaction_rates']
+
 
     # Sanity checks: wcEcoli and vivarium-ecoli match
     assert len(moleculeNames) == len(wc_moleculeNames), (
