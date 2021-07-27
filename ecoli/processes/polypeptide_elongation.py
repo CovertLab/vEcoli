@@ -4,12 +4,7 @@ PolypeptideElongation
 =====================
 
 Translation sub-model for protein synthesis by ribosome.
-
-TODO:
-- see the initiation process for more TODOs
 """
-
-import ipdb
 
 import numpy as np
 import logging as log
@@ -29,13 +24,10 @@ from vivarium.plots.simulation_output import plot_variables
 from ecoli.library.schema import bulk_schema, listener_schema, arrays_from, array_from
 from ecoli.models.polypeptide_elongation_models import BaseElongationModel, MICROMOLAR_UNITS
 
-
-
 DEFAULT_AA_NAMES = [
             'L-ALPHA-ALANINE[c]', 'ARG[c]', 'ASN[c]', 'L-ASPARTATE[c]', 'CYS[c]', 'GLT[c]', 'GLN[c]', 'GLY[c]',
             'HIS[c]', 'ILE[c]', 'LEU[c]', 'LYS[c]', 'MET[c]', 'PHE[c]', 'PRO[c]', 'SER[c]', 'THR[c]', 'TRP[c]',
             'TYR[c]', 'L-SELENOCYSTEINE[c]', 'VAL[c]']
-
 
 class PolypeptideElongation(Process):
     """PolypeptideElongation
@@ -188,7 +180,6 @@ class PolypeptideElongation(Process):
                 'amino_acids': bulk_schema([aa[:-3] for aa in self.aaNames])},
 
             'listeners': {
-                # TODO (Eran): mass should not come through listener
                 'mass': {
                     'cell_mass': {'_default': 0.0},
                     'dry_mass': {'_default': 0.0}},
@@ -236,7 +227,6 @@ class PolypeptideElongation(Process):
                     'protein_index': {'_default': 0, '_updater': 'set'},
                     'peptide_length': {'_default': 0, '_updater': 'set', '_emit': True},
                     'pos_on_mRNA': {'_default': 0, '_updater': 'set', '_emit': True},
-                    # TODO(Eran) -- should submass be an add updater?
                     'submass': {
                         'protein': {'_default': 0, '_emit': True}}}},
 
@@ -472,6 +462,7 @@ class PolypeptideElongation(Process):
         update['listeners']['ribosome_data']['processElongationRate'] = self.ribosomeElongationRate / timestep
 
         log.info('polypeptide elongation terminated: {}'.format(nTerminated))
+        ipdb.set_trace()
         return update
 
     def isTimeStepShortEnough(self, inputTimeStep, timeStepSafetyFraction):
