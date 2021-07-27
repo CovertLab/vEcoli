@@ -191,6 +191,9 @@ class Ecoli(Composer):
             sim_data_path=self.config['sim_data_path'],
             seed=self.config['seed'])
 
+        self.processes = config['processes']
+        self.topology = config['topology']
+
     def initial_state(self, config=None, path=()):
         initial_state = get_state_from_file()
         embedded_state = {}
@@ -223,7 +226,7 @@ class Ecoli(Composer):
             process_name: (process(configs[process_name])
                            if not config['blame']
                            else make_logging_process(process)(configs[process_name]))
-            for (process_name, process) in ECOLI_PROCESSES.items()
+            for (process_name, process) in self.processes.items()
             if process_name not in [
                 'polypeptide_elongation',
                 'two_component_system',
@@ -244,7 +247,7 @@ class Ecoli(Composer):
         topology = {}
 
         # make the topology
-        for process_id, ports in ECOLI_TOPOLOGY.items():
+        for process_id, ports in self.topology.items():
             topology[process_id] = ports
             if config['blame']:
                 topology[process_id]['log_update'] = ('log_update', process_id,)
