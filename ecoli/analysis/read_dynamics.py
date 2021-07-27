@@ -121,7 +121,8 @@ def convert_dynamics(simOutDir, seriesOutDir, simDataFile, node_list, edge_list)
 
 		# Cache cell volume array (used for calculating concentrations)
 
-		experiment_id = '002d4eba-ee5c-11eb-bb11-1e00312eb299'
+		# experiment_id = '002d4eba-ee5c-11eb-bb11-1e00312eb299' # 10 seconds
+		experiment_id = '458f814c-ef0d-11eb-a445-1e00312eb299' # 100 seconds
 		# retrieve the data directly from database
 		db = get_experiment_database()
 		data, _ = data_from_database(experiment_id, db)
@@ -252,7 +253,7 @@ def read_gene_dynamics(sim_data, node, node_id, columns, indexes, volume, timese
 		"transcription probability": PROB_UNITS,
 		"gene copy number": COUNT_UNITS,
 		}
-
+	ipdb.set_trace()
 	node.read_dynamics(dynamics, dynamics_units)
 
 
