@@ -8,12 +8,12 @@ import uuid
 import numpy as np
 
 from vivarium.core.process import Process
+from vivarium.library.dict_utils import deep_merge
 
-from ecoli.library.schema import array_to, arrays_from, arrays_to, bulk_schema
+from ecoli.library.schema import array_to, array_from, arrays_from, arrays_to, bulk_schema
 
 from wholecell.utils import units
 from wholecell.utils.polymerize import buildSequences, polymerize, computeMassIncrease
-
 
 
 class ChromosomeReplication(Process):
@@ -43,6 +43,10 @@ class ChromosomeReplication(Process):
 
         # random seed
         'seed': 0,
+        
+        # partitioning flags
+        'request_only': False,
+        'evolve_only': False
     }
 
     def __init__(self, parameters=None):
@@ -71,6 +75,9 @@ class ChromosomeReplication(Process):
         self.random_state = np.random.RandomState(seed=self.seed)
 
         self.emit_unique = self.parameters.get('emit_unique', True)
+
+        self.request_only = self.parameters['request_only']
+        self.evolve_only = self.parameters['evolve_only']
 
     def ports_schema(self):
 
@@ -121,24 +128,19 @@ class ChromosomeReplication(Process):
                         '_default': False, '_updater': 'set'},
                 }}}
 
-
-    def next_update(self, timestep, states):
-
+    def calculate_request(self, timestep, states):
+        requests = {}
         # Get total count of existing oriC's
         n_oriC = len(states['oriCs'])
-        # n_oric = self.oriCs.total_count()
-
-        # If there are no origins, return immediately
+		# If there are no origins, return immediately
         if n_oriC == 0:
-            return {}
-
+            return requests
+        
         # Get current cell mass
-        cellMass = states['listeners']['mass']['cell_mass'] * units.fg
-        # cellMass = (self.readFromListener("Mass", "cellMass") * units.fg)
+        cellMass = (states['listeners']['mass']['cell_mass'] * units.fg)
 
         # Get critical initiation mass for current simulation environment
         current_media_id = states['environment']['media_id']
-        # current_media_id = self._external_states['Environment'].current_media_id
         self.criticalInitiationMass = self.get_dna_critical_mass(
             self.nutrientToDoublingTime[current_media_id])
 
@@ -147,69 +149,56 @@ class ChromosomeReplication(Process):
         # the process will initiate a round of chromosome replication for each
         # origin of replication.
         massPerOrigin = cellMass / n_oriC
-        criticalMassPerOriC = massPerOrigin / self.criticalInitiationMass
+        self.criticalMassPerOriC = massPerOrigin / self.criticalInitiationMass
 
         # If replication should be initiated, request subunits required for
         # building two replisomes per one origin of replication, and edit
         # access to oriC and chromosome domain attributes
-        if criticalMassPerOriC >= 1.0:
-            n_replisome_trimers = 6 * n_oriC
-            n_replisome_monomers = 2 * n_oriC
-            # self.replisome_trimers.requestIs(6 * n_oric)
-            # self.replisome_monomers.requestIs(2 * n_oric)
-            # self.oriCs.request_access(self.EDIT_ACCESS)
-            # self.chromosome_domains.request_access(self.EDIT_ACCESS)
-        else:
-            n_replisome_trimers = 0
-            n_replisome_monomers = 0
+        if self.criticalMassPerOriC >= 1.0:
+            requests['replisome_trimers'] = {rep_trimer: 6*n_oriC 
+                                   for rep_trimer in states['replisome_trimers']}
+            requests['replisome_monomers'] = {rep_monomer: 2*n_oriC for rep_monomer 
+                                        in states['replisome_monomers']}
 
         # If there are no active forks return
         n_active_replisomes = len(states['active_replisomes'])
-        # n_active_replisomes = self.active_replisomes.total_count()
+        if n_active_replisomes == 0:
+            return requests
 
-        # if n_active_replisomes == 0:
-        #     return
-        if n_active_replisomes != 0:
-
-            # Get current locations of all replication forks
-            fork_coordinates, = arrays_from(
+        # Get current locations of all replication forks
+        fork_coordinates = arrays_from(
                 states['active_replisomes'].values(),
                 ['coordinates'])
-            # fork_coordinates = self.active_replisomes.attr("coordinates")
-            sequence_length = np.abs(np.repeat(fork_coordinates, 2))
+        sequence_length = np.abs(np.repeat(fork_coordinates, 2))
 
-            self.elongation_rates = self.make_elongation_rates(
-                self.random_state,
-                len(self.sequences),
-                self.basal_elongation_rate,
-                timestep)
+        self.elongation_rates = self.make_elongation_rates(
+            self.random_state,
+            len(self.sequences),
+            self.basal_elongation_rate,
+            timestep)
 
-            sequences = buildSequences(
-                self.sequences,
-                np.tile(np.arange(4), n_active_replisomes // 2),
-                sequence_length,
-                self.elongation_rates)
+        sequences = buildSequences(
+            self.sequences,
+            np.tile(np.arange(4), n_active_replisomes//2),
+            sequence_length,
+            self.elongation_rates)
 
-            # Count number of each dNTP in sequences for the next timestep
-            sequenceComposition = np.bincount(
-                sequences[sequences != polymerize.PAD_VALUE], minlength=4)
+        # Count number of each dNTP in sequences for the next timestep
+        sequenceComposition = np.bincount(
+            sequences[sequences != polymerize.PAD_VALUE], minlength=4)
 
-            # If one dNTP is limiting then limit the request for the other three by
-            # the same ratio
-            dNtpsTotal = np.array(list(states['dntps'].values()))
-            # dNtpsTotal = self.dntps.total_counts()
-            maxFractionalReactionLimit = (np.fmin(1, dNtpsTotal / sequenceComposition)).min()
+        # If one dNTP is limiting then limit the request for the other three by
+        # the same ratio
+        dNtpsTotal = array_from(states['dntps'])
+        maxFractionalReactionLimit = (np.fmin(1, dNtpsTotal / sequenceComposition)).min()
 
-            # Request dNTPs
-            dntps = maxFractionalReactionLimit * sequenceComposition
-            # self.dntps.requestIs(
-            #     maxFractionalReactionLimit * sequenceComposition)
+        # Request dNTPs
+        requests['dntps'] = array_to(states['dntps'], maxFractionalReactionLimit
+            * sequenceComposition)
 
-            # # Request access to relevant unique molecules
-            # self.full_chromosomes.request_access(self.EDIT_ACCESS)
-            # self.active_replisomes.request_access(self.EDIT_DELETE_ACCESS)
-
-
+        return requests
+        
+    def evolve_state(self, timestep, states):
         # Initialize the update dictionary
         update = {
             'replisome_trimers': {
@@ -223,18 +212,18 @@ class ChromosomeReplication(Process):
             'listeners': {
                 'replication_data': {},
             }}
-
-
-        ## def evolveState(self):
-
+        
+        
         ## Module 1: Replication initiation
         # # Get number of existing replisomes and oriCs
         # n_active_replisomes = self.active_replisomes.total_count()
         # n_oriC = self.oriCs.total_count()
-        #
+        n_active_replisomes = len(states['active_replisomes'])
+        n_oriC = len(states['oriCs'])
+
         # If there are no origins, return immediately
         if n_oriC == 0:
-            return {}
+            return update
 
         # Get attributes of existing chromosome domains
         domain_index_existing_domain, child_domains = arrays_from(
@@ -246,15 +235,19 @@ class ChromosomeReplication(Process):
         # # Get number of available replisome subunits
         # n_replisome_trimers = self.replisome_trimers.counts()
         # n_replisome_monomers = self.replisome_monomers.counts()
-
+        
         # Initiate replication only when
         # 1) The cell has reached the critical mass per oriC
         # 2) If mechanistic replisome option is on, there are enough replisome
         # subunits to assemble two replisomes per existing OriC.
         # Note that we assume asynchronous initiation does not happen.
-        initiate_replication = criticalMassPerOriC >= 1.0 and (
-                not self.mechanistic_replisome or (np.all(n_replisome_trimers == 6 * n_oriC) and
-                                                   np.all(n_replisome_monomers == 2 * n_oriC)))
+        initiate_replication = False
+        if self.criticalMassPerOriC >= 1.0:
+            n_replisome_trimers = array_from(states['replisome_trimers'])
+            n_replisome_monomers = array_from(states['replisome_monomers'])
+            initiate_replication = (not self.mechanistic_replisome or 
+                                    (np.all(n_replisome_trimers == 6 * n_oriC) and
+                                    np.all(n_replisome_monomers == 2 * n_oriC)))
 
         # If all conditions are met, initiate a round of replication on every
         # origin of replication
@@ -358,7 +351,7 @@ class ChromosomeReplication(Process):
 
         # Write data from this module to a listener
         update['listeners']['replication_data']['criticalMassPerOriC'] = \
-            criticalMassPerOriC
+            self.criticalMassPerOriC
         update['listeners']['replication_data']['criticalInitiationMass'] = \
             self.criticalInitiationMass.asNumber(units.fg)
         # self.writeToListener("ReplicationData", "criticalMassPerOriC",
@@ -374,7 +367,7 @@ class ChromosomeReplication(Process):
             return update
 
         # Get allocated counts of dNTPs
-        dNtpCounts = dntps
+        dNtpCounts = array_from(states['dntps'])
         # dNtpCounts = self.dntps.counts()
 
         # Get attributes of existing replisomes
@@ -561,19 +554,21 @@ class ChromosomeReplication(Process):
 
         return update
 
+    def next_update(self, timestep, states):
+        if self.request_only:
+            update = self.calculate_request(timestep, states)
+        elif self.evolve_only:
+            update = self.evolve_state(timestep, states)
+        else:
+            requests = self.calculate_request(timestep, states)
+            states = deep_merge(states, requests)
+            update = self.evolve_state(timestep, states)
+        return update
+    
 
 def test_chromosome_replication():
     test_config = {}
-
     process = ChromosomeReplication(test_config)
-
-    # initial_state = {}
-    # settings = {
-    #     'total_time': 10,
-    #     'initial_state': initial_state}
-    # data = simulate_process(process, settings)
-
-    # print(data)
 
 
 if __name__ == "__main__":

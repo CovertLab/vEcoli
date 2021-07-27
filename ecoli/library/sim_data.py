@@ -11,10 +11,19 @@ SIM_DATA_PATH = 'reconstruction/sim_data/kb/simData.cPickle'
 
 class LoadSimData:
 
-    def __init__(self, sim_data_path=SIM_DATA_PATH, seed=0):
+    def __init__(
+        self, 
+        sim_data_path=SIM_DATA_PATH, 
+        seed=0,
+        trna_charging=False,
+        ppgpp_regulation=False,
+        ):
 
         self.seed = np.uint32(seed % np.iinfo(np.uint32).max)
         self.random_state = np.random.RandomState(seed = self.seed)
+        
+        self.trna_charging = trna_charging
+        self.ppgpp_regulation = ppgpp_regulation
 
         # load sim_data
         with open(sim_data_path, 'rb') as sim_data_file:
@@ -114,7 +123,7 @@ class LoadSimData:
             'ppgpp': self.sim_data.molecule_ids.ppGpp,
             'synth_prob': self.sim_data.process.transcription.synth_prob_from_ppgpp,
             'copy_number': self.sim_data.process.replication.get_average_copy_number,
-            'ppgpp_regulation': False,
+            'ppgpp_regulation': self.ppgpp_regulation,
 
             # attenuation
             'trna_attenuation': False,
@@ -255,9 +264,9 @@ class LoadSimData:
             'import_threshold': self.sim_data.external_state.import_constraint_threshold,
             'aa_from_trna': transcription.aa_from_trna,
             'gtpPerElongation': constants.gtp_per_translation,
-            'ppgpp_regulation': False,
+            'ppgpp_regulation': self.ppgpp_regulation,
             'mechanistic_supply': False,
-            'trna_charging': False,
+            'trna_charging': self.trna_charging,
             'translation_supply': False,
             'ribosome30S': self.sim_data.molecule_ids.s30_full_complex,
             'ribosome50S': self.sim_data.molecule_ids.s50_full_complex,
@@ -296,6 +305,9 @@ class LoadSimData:
             'k_SpoT_deg': constants.k_SpoT_ppGpp_degradation.asNumber(1 / (MICROMOLAR_UNITS * units.s)),
             'KI_SpoT': constants.KI_SpoT_ppGpp_degradation.asNumber(MICROMOLAR_UNITS),
             'aa_supply_scaling': metabolism.aa_supply_scaling,
+            'aa_enzymes': metabolism.aa_enzymes,
+            'amino_acid_synthesis': metabolism.amino_acid_synthesis,
+            'amino_acid_import': metabolism.amino_acid_import,
             'seed': self.random_state.randint(RAND_MAX)}
 
         return polypeptide_elongation_config
@@ -318,7 +330,7 @@ class LoadSimData:
             '_parallel': parallel,
 
             'jit': False,
-            'n_avogadro': self.sim_data.constants.n_avogadro.asNumber(1 / units.mmol),  # TODO (Eran) -- this should be 1/mol
+            'n_avogadro': self.sim_data.constants.n_avogadro.asNumber(1 / units.mmol),  # TODO -- wcEcoli has this in 1/mmol, why?
             'cell_density': self.sim_data.constants.cell_density.asNumber(units.g / units.L),
             'moleculesToNextTimeStep': self.sim_data.process.two_component_system.molecules_to_next_time_step,
             'moleculeNames': self.sim_data.process.two_component_system.molecule_names,
@@ -369,8 +381,8 @@ class LoadSimData:
             'aa_names': self.sim_data.molecule_groups.amino_acids,
 
             # these are options given to the wholecell.sim.simulation
-            'use_trna_charging': False,
-            'include_ppgpp': False,
+            'use_trna_charging': self.trna_charging,
+            'include_ppgpp': not self.ppgpp_regulation or not self.trna_charging,
 
             # these values came from the initialized environment state
             'current_timeline': None,
@@ -418,3 +430,12 @@ class LoadSimData:
             'water_id': 'WATER[c]',
         }
         return mass_config
+    
+    def get_allocator_config(self, time_step=2, parallel=False, processes={}):
+        allocator_config = {
+            'time_step': time_step, 
+            'molecule_names': self.sim_data.internal_state.bulk_molecules.bulk_data['id'],
+            'processes': processes,
+            'seed': self.random_state.randint(2**31)
+        }
+        return allocator_config
