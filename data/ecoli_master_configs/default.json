@@ -1,4 +1,15 @@
 {
+    "agent_id": "0",
+    "time_step": 2.0,
+    "parallel": false,
+    "seed": 0,
+    "sim_data_path": "reconstruction/sim_data/kb/simData.cPickle",
+    "daughter_path": [],
+    "agents_path": ["..", "..", "agents"],
+    "division": {
+        "threshold": 2220},
+    "divide": false,
+    "blame": false,
     "processes": [
         "tf_binding",
         "transcript_initiation",
@@ -117,18 +128,5 @@
             "unique": ["unique"],
             "listeners": ["listeners"]
         }
-    },
-    "config": {
-        "agent_id": "0",
-        "time_step": 2.0,
-        "parallel": false,
-        "seed": 0,
-        "sim_data_path": "reconstruction/sim_data/kb/simData.cPickle",
-        "daughter_path": [],
-        "agents_path": ["..", "..", "agents"],
-        "division": {
-            "threshold": 2220},
-        "divide": false,
-        "blame": false
     }
 }
