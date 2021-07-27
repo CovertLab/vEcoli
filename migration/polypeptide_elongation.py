@@ -43,7 +43,6 @@ def test_polypeptide_elongation_migration():
     # initialize time parameters
     total_time = 2
     initial_times = [0, 2, 4, 10, 1000]
-    #initial_times = [0]
 
     for initial_time in initial_times:
         # run the process and get an update
@@ -51,7 +50,6 @@ def test_polypeptide_elongation_migration():
                                           initial_time=initial_time)
         with open(f"data/polypeptide_elongation_update_t{total_time + initial_time}.json") as f:
             wc_update = json.load(f)
-        #print(pf(actual_update))
         plots(actual_update, wc_update, total_time + initial_time)
         assertions(actual_update, wc_update)
 
