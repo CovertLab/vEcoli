@@ -7,7 +7,7 @@ from vivarium.core.engine import Engine, pf
 
 from ecoli.library.sim_data import LoadSimData
 from ecoli.composites.ecoli_master import SIM_DATA_PATH
-from ecoli.composites.ecoli_master import get_state_from_file
+from ecoli.states.wcecoli_state import get_state_from_file
 from ecoli.processes.polypeptide_elongation import PolypeptideElongation
 from ecoli.library.schema import array_from
 from migration.plots import qqplot

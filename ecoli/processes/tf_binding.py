@@ -8,6 +8,7 @@ import numpy as np
 
 from vivarium.core.process import Process
 from vivarium.core.composition import simulate_process
+from vivarium.library.dict_utils import deep_merge
 
 from ecoli.library.schema import arrays_from, arrays_to, bulk_schema, listener_schema
 
@@ -25,14 +26,19 @@ class TfBinding(Process):
         'delta_prob': {'deltaI': [], 'deltaJ': [], 'deltaV': []},
         'n_avogadro': 6.02214076e+23 / units.mol,
         'cell_density': 1100 * units.g / units.L,
-        'p_promoter_bound_tf': lambda active, inactive: 0,
+        # Calculate promoter binding probability when not 0CS TF
+        'p_promoter_bound_tf': lambda active, inactive: float(active) / 
+                            (float(active) + float(inactive)),
         'tf_to_tf_type': {},
         'active_to_bound': {},
         'get_unbound': lambda tf: '',
         'active_to_inactive_tf': {},
         'bulk_molecule_ids': [],
         'bulk_mass_data': np.array([[]]) * units.g / units.mol,
-        'seed': 0}
+        'seed': 0,
+        # partitioning flags
+        'request_only': False,
+        'evolve_only': False,}
 
     # Constructor
     def __init__(self, parameters=None):
@@ -93,7 +99,10 @@ class TfBinding(Process):
 
         self.seed = self.parameters['seed']
         self.random_state = np.random.RandomState(seed = self.seed)
-
+        
+        self.request_only = self.parameters['request_only']
+        self.evolve_only = self.parameters['evolve_only']
+        
     def ports_schema(self):
         return {
             'promoters': {
@@ -117,10 +126,20 @@ class TfBinding(Process):
                     'nPromoterBound': 0,
                     'nActualBound': 0,
                     'n_available_promoters': 0,
-                    'n_bound_TF_per_TU': 0})}}
+                    'n_bound_TF_per_TU': 0})}
+            }
+        
+    def calculate_request(self, timestep, states):
+        # request all active tfs
+        requests = {'active_tfs': {}}
+        for tf_id in self.tf_ids:
+            active_tf_key = self.active_tfs[tf_id]
+            tf_count = states['active_tfs'][active_tf_key]
+            requests['active_tfs'][active_tf_key] = tf_count
 
-
-    def next_update(self, timestep, states):
+        return requests
+        
+    def evolve_state(self, timestep, states):
         # If there are no promoters, return immediately
         if not states['promoters']:
             return {}
@@ -155,17 +174,16 @@ class TfBinding(Process):
 
             bound_tf_counts = n_bound_TF[tf_idx]
             update['active_tfs'][active_tf_key] = bound_tf_counts
+            
+            #=======================wcEcoli Code==============================#
             # active_tf_view.countInc(bound_tf_counts)
-
+            
             # Get counts of transcription factors
             # countInc() above increases count() but not total_counts() value
             # so need to add freed TFs to the total active
-            # active_tf_counts = active_tf_view.total_counts() + bound_tf_counts
+            # active_tf_counts = active_tf_view.total_counts()+bound_tf_counts
             # n_available_active_tfs = active_tf_view.count()
-
-            # TODO(Ryan): figure out the difference between .total_counts() and .count() above
-            #   and why they would be different (otherwise these two variables are always the same)
-            active_tf_counts = np.array([tf_count + bound_tf_counts])
+            active_tf_counts = tf_count + bound_tf_counts
             n_available_active_tfs = tf_count + bound_tf_counts
 
             # Determine the number of available promoter sites
@@ -186,10 +204,6 @@ class TfBinding(Process):
                 inactive_tf_counts = states['inactive_tfs'][self.inactive_tfs[tf_id]]
                 pPromoterBound = self.p_promoter_bound_tf(
                     active_tf_counts, inactive_tf_counts)
-
-            # Determine the number of available promoter sites
-            available_promoters = np.isin(TU_index, self.TF_to_TU_idx[tf_id])
-            n_available_promoters = np.count_nonzero(available_promoters)
 
             # Calculate the number of promoters that should be bound
             n_to_bind = int(min(stochasticRound(
@@ -248,4 +262,15 @@ class TfBinding(Process):
                 'n_available_promoters': n_promoters,
                 'n_bound_TF_per_TU': n_bound_TF_per_TU}}
 
+        return update
+    
+    def next_update(self, timestep, states):
+        if self.request_only:
+            update = self.calculate_request(timestep, states)
+        elif self.evolve_only:
+            update = self.evolve_state(timestep, states)
+        else:
+            requests = self.calculate_request(timestep, states)
+            states = deep_merge(states, requests)
+            update = self.evolve_state(timestep, states)
         return update
