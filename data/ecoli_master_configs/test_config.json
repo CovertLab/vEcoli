@@ -1,0 +1,11 @@
+{
+    "agent_id" : "0",
+    "_schema": {
+        "equilibrium": {
+            "molecules": {
+                "PD00413[c]": {"_updater": "nonnegative_accumulate"}
+            }
+        }
+    },
+    "exclude_processes" : ["ecoli-polypeptide-elongation", "two-component-system"]
+}
