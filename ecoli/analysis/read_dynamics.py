@@ -4,12 +4,14 @@ simulation.
 """
 from __future__ import absolute_import, division, print_function
 
+import ipdb
 from six.moves import cPickle
 import os
 import json
 import hashlib
 from typing import Any, Tuple
 import zipfile
+import numpy as np
 
 from wholecell.io.tablereader import TableReader
 from wholecell.utils import units
@@ -19,6 +21,8 @@ from network_components import (
 from build_network import NODE_ID_SUFFIX
 from ecoli.processes.metabolism import (
 	COUNTS_UNITS, VOLUME_UNITS, TIME_UNITS, MASS_UNITS)
+
+from vivarium.core.emitter import data_from_database, get_experiment_database, timeseries_from_data
 
 REQUIRED_COLUMNS = [
 	("BulkMolecules", "counts"),
@@ -116,8 +120,17 @@ def convert_dynamics(simOutDir, seriesOutDir, simDataFile, node_list, edge_list)
 		indexes["Charging"] = build_index_dict(trna_ids)
 
 		# Cache cell volume array (used for calculating concentrations)
+
+		experiment_id = '002d4eba-ee5c-11eb-bb11-1e00312eb299'
+		# retrieve the data directly from database
+		db = get_experiment_database()
+		data, _ = data_from_database(experiment_id, db)
+		timeseries = timeseries_from_data(data)
+		cell_mass = np.array(timeseries['listeners']['mass']['cell_mass'])
 		volume = ((1.0 / sim_data.constants.cell_density) * (
 			units.fg * columns[("Mass", "cellMass")])).asNumber(units.L)
+		# volume = ((1.0 / sim_data.constants.cell_density) * (
+		# 	units.fg * cell_mass)).asNumber(units.L)
 
 		def dynamics_mapping(dynamics, safe):
 			return [{
@@ -135,7 +148,8 @@ def convert_dynamics(simOutDir, seriesOutDir, simDataFile, node_list, edge_list)
 			node.node_type = node_dict['type']
 			reader = TYPE_TO_READER_FUNCTION.get(node.node_type)
 			if reader:
-				reader(sim_data, node, node.node_id, columns, indexes, volume)
+				# reader(sim_data, node, node.node_id, columns, indexes, volume)
+				reader(sim_data, node, node.node_id, columns, indexes, volume, timeseries)
 			return node
 
 		nodes = [build_dynamics(node_dict) for node_dict in node_list]
@@ -186,11 +200,19 @@ def time_node(columns):
 	return time_node
 
 
-def read_global_dynamics(sim_data, node, node_id, columns, indexes, volume):
+def read_global_dynamics(sim_data, node, node_id, columns, indexes, volume, timeseries):
 	"""
 	Reads global dynamics from simulation output.
 	"""
-	cell_mass = columns[("Mass", "cellMass")]
+	# # TODO: Get data_from_database working
+	# # mongo client
+	# experiment_id = '002d4eba-ee5c-11eb-bb11-1e00312eb299'
+	# # retrieve the data directly from database
+	# db = get_experiment_database()
+	# data, _ = data_from_database(experiment_id, db)
+	# timeseries = timeseries_from_data(data)
+
+	cell_mass = np.array(timeseries['listeners']['mass']['cell_mass'])
 
 	if node_id == "cell_mass":
 		dynamics = {
@@ -216,7 +238,7 @@ def read_global_dynamics(sim_data, node, node_id, columns, indexes, volume):
 	node.read_dynamics(dynamics, dynamics_units)
 
 
-def read_gene_dynamics(sim_data, node, node_id, columns, indexes, volume):
+def read_gene_dynamics(sim_data, node, node_id, columns, indexes, volume, timeseries):
 	"""
 	Reads dynamics data for gene nodes from simulation output.
 	"""
@@ -234,7 +256,7 @@ def read_gene_dynamics(sim_data, node, node_id, columns, indexes, volume):
 	node.read_dynamics(dynamics, dynamics_units)
 
 
-def read_rna_dynamics(sim_data, node, node_id, columns, indexes, volume):
+def read_rna_dynamics(sim_data, node, node_id, columns, indexes, volume, timeseries):
 	"""
 	Reads dynamics data for transcript (RNA) nodes from simulation output.
 	"""
@@ -256,7 +278,7 @@ def read_rna_dynamics(sim_data, node, node_id, columns, indexes, volume):
 	node.read_dynamics(dynamics, dynamics_units)
 
 
-def read_protein_dynamics(sim_data, node, node_id, columns, indexes, volume):
+def read_protein_dynamics(sim_data, node, node_id, columns, indexes, volume, timeseries):
 	"""
 	Reads dynamics data for monomer/complex nodes from a simulation output.
 	"""
@@ -276,7 +298,7 @@ def read_protein_dynamics(sim_data, node, node_id, columns, indexes, volume):
 	node.read_dynamics(dynamics, dynamics_units)
 
 
-def read_metabolite_dynamics(sim_data, node, node_id, columns, indexes, volume):
+def read_metabolite_dynamics(sim_data, node, node_id, columns, indexes, volume, timeseries):
 	"""
 	Reads dyanmics data for metabolite nodes from a simulation output.
 	"""
@@ -299,7 +321,7 @@ def read_metabolite_dynamics(sim_data, node, node_id, columns, indexes, volume):
 	node.read_dynamics(dynamics, dynamics_units)
 
 
-def read_transcription_dynamics(sim_data, node, node_id, columns, indexes, volume):
+def read_transcription_dynamics(sim_data, node, node_id, columns, indexes, volume, timeseries):
 	"""
 	Reads dynamics data for transcription nodes from simulation output.
 	"""
@@ -316,7 +338,7 @@ def read_transcription_dynamics(sim_data, node, node_id, columns, indexes, volum
 	node.read_dynamics(dynamics, dynamics_units)
 
 
-def read_translation_dynamics(sim_data, node, node_id, columns, indexes, volume):
+def read_translation_dynamics(sim_data, node, node_id, columns, indexes, volume, timeseries):
 	"""
 	Reads dynamics data for translation nodes from a simulation output.
 	"""
@@ -333,7 +355,7 @@ def read_translation_dynamics(sim_data, node, node_id, columns, indexes, volume)
 	node.read_dynamics(dynamics, dynamics_units)
 
 
-def read_complexation_dynamics(sim_data, node, node_id, columns, indexes, volume):
+def read_complexation_dynamics(sim_data, node, node_id, columns, indexes, volume, timeseries):
 	"""
 	Reads dynamics data for complexation nodes from a simulation output.
 	"""
@@ -349,7 +371,7 @@ def read_complexation_dynamics(sim_data, node, node_id, columns, indexes, volume
 	node.read_dynamics(dynamics, dynamics_units)
 
 
-def read_metabolism_dynamics(sim_data, node, node_id, columns, indexes, volume):
+def read_metabolism_dynamics(sim_data, node, node_id, columns, indexes, volume, timeseries):
 	"""
 	Reads dynamics data for metabolism nodes from a simulation output.
 	"""
@@ -365,7 +387,7 @@ def read_metabolism_dynamics(sim_data, node, node_id, columns, indexes, volume):
 	node.read_dynamics(dynamics, dynamics_units)
 
 
-def read_equilibrium_dynamics(sim_data, node, node_id, columns, indexes, volume):
+def read_equilibrium_dynamics(sim_data, node, node_id, columns, indexes, volume, timeseries):
 	"""
 	Reads dynamics data for equilibrium nodes from a simulation output.
 	"""
@@ -385,7 +407,7 @@ def read_equilibrium_dynamics(sim_data, node, node_id, columns, indexes, volume)
 	node.read_dynamics(dynamics, dynamics_units)
 
 
-def read_regulation_dynamics(sim_data, node, node_id, columns, indexes, volume):
+def read_regulation_dynamics(sim_data, node, node_id, columns, indexes, volume, timeseries):
 	"""
 	Reads dynamics data for regulation nodes from a simulation output.
 	"""
@@ -404,7 +426,7 @@ def read_regulation_dynamics(sim_data, node, node_id, columns, indexes, volume):
 	node.read_dynamics(dynamics, dynamics_units)
 
 
-def read_tf_binding_dynamics(sim_data, node, node_id, columns, indexes, volume):
+def read_tf_binding_dynamics(sim_data, node, node_id, columns, indexes, volume, timeseries):
 	"""
 	Reads dynamics data for TF binding nodes from a simulation output.
 	"""
@@ -423,7 +445,7 @@ def read_tf_binding_dynamics(sim_data, node, node_id, columns, indexes, volume):
 	node.read_dynamics(dynamics, dynamics_units)
 
 
-def read_charging_dynamics(sim_data, node, node_id, columns, indexes, volume):
+def read_charging_dynamics(sim_data, node, node_id, columns, indexes, volume, timeseries):
 	"""
 	Reads dynamics data for charging nodes from a simulation output.
 	"""
