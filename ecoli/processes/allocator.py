@@ -43,18 +43,21 @@ class Allocator(Deriver):
 
     def ports_schema(self):
         ports = {
-            'bulk': {molecule: {'_default': 0} 
-                    for molecule in self.moleculeNames},
-            'request': {process: {}
-                        for process in self.processNames},
-            'allocate': {process: {}
-                        for process in self.processNames},
+            'bulk': {
+                molecule: {'_default': 0} 
+                for molecule in self.moleculeNames},
+            'request': {
+                process: {
+                    'bulk': {
+                        '*': {'_default': 0, '_updater': 'set'}}}
+                for process in self.processNames},
+            'allocate': {
+                process: {
+                    'bulk': {
+                        '*': {'_default': 0, '_updater': 'set'}}}
+                for process in self.processNames},
         }
-        ports
         return ports
-    
-    def _next_update(self, timestep, states):
-        return {}
 
     def next_update(self, timestep, states):
         total_counts = np.array([states['bulk'][molecule] for 
@@ -63,7 +66,7 @@ class Allocator(Deriver):
         counts_requested = np.zeros((self.n_molecules, self.n_processes))
         for process in states['request']:
             proc_idx = self.proc_name_to_idx[process]
-            for molecule, count in states['request'][process]['bulk']:
+            for molecule, count in states['request'][process]['bulk'].items():
                 mol_idx = self.mol_name_to_idx[molecule]
                 counts_requested[mol_idx][proc_idx] = count
 
@@ -87,6 +90,8 @@ class Allocator(Deriver):
             total_counts,
             self.random_state
             )
+        
+        partitioned_counts.astype(int, copy=False)
         
         if ASSERT_POSITIVE_COUNTS and np.any(partitioned_counts < 0):
             raise NegativeCountsError(
@@ -118,7 +123,12 @@ class Allocator(Deriver):
                 )
         
         update = {
-            'request': {process: {} for process in states['request']},
+            'request': {
+                process: {
+                    'bulk': {
+                        molecule: 0 
+                        for molecule in states['request'][process]['bulk']}}
+                for process in states['request']},
             'allocate': {
                 process: {
                     'bulk': {molecule: partitioned_counts[

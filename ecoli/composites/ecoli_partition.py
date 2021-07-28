@@ -41,16 +41,86 @@ AA_MEDIA_ID = 'minimal_plus_amino_acids'
 ANAEROBIC_MEDIA_ID = 'minimal_minus_oxygen'
 
 
-def change_bulk_updater(topo, new_updater):
-    if '_properties' in topo:
-        if topo['_properties']['bulk']:
-            return {'_updater': new_updater}
-        return {}
-    if isinstance(topo, dict):
-        for port, value in topo.items():
+def change_bulk_updater(schema, new_updater):
+    """Retrieve port schemas for all bulk molecules
+    and modify their updater
+
+    Args:
+        schema (Dict): The ports schema to change
+        new_updater (String): The new updater to use
+
+    Returns:
+        Dict: Ports schema that only includes bulk molecules 
+        with the new updater
+    """
+    bulk_schema = {}
+    if '_properties' in schema:
+        if schema['_properties']['bulk']:
+            topo_copy = schema.copy()
+            topo_copy.update({'_updater': new_updater})
+            return topo_copy
+    for port, value in schema.items():
+        if has_bulk_property(value):
+            bulk_schema[port] = change_bulk_updater(value, new_updater)
+    return bulk_schema
+
+def has_bulk_property(schema):
+    """Check to see if a subset of the ports schema contains
+    a bulk molecule using {'_property': {'bulk': True}}
+
+    Args:
+        schema (Dict): Subset of ports schema to check for bulk
+
+    Returns:
+        Bool: Whether the subset contains a bulk molecule
+    """
+    if isinstance(schema, dict):
+        if '_properties' in schema:
+            if schema['_properties']['bulk']:
+                return True
+
+        for value in schema.values():
             if isinstance(value, dict):
-                topo[port].update(change_bulk_updater(value, new_updater))
-    return topo
+                if has_bulk_property(value):
+                    return True
+    return False
+
+def get_bulk_topo(topo):
+    """Return topology of only bulk molecules
+    NOTE: Does not work with '_path' key
+
+    Args:
+        topo (Dict): Experiment topology
+
+    Returns:
+        Dict: Experiment topology with non-bulk stores excluded
+    """
+    if 'bulk' in topo:
+        return topo
+    if isinstance(topo, dict):
+        bulk_topo = {}
+        for port, value in topo.items():
+            if path_in_bulk(value):
+                bulk_topo[port] = get_bulk_topo(value)
+    return bulk_topo
+
+def path_in_bulk(topo):
+    """Check whether a subset of the topology is contained within
+    the bulk store
+
+    Args:
+        topo (Dict): Subset of experiment topology
+
+    Returns:
+        Bool: Whether subset contains stores listed under 'bulk'
+    """
+    if 'bulk' in topo:
+        return True
+    if isinstance(topo, dict):
+        for value in topo.values():
+            if path_in_bulk(value):
+                return True
+    return False
 
 
 class Requester(Deriver):
@@ -68,6 +138,10 @@ class Requester(Deriver):
 
     def next_update(self, timestep, states):
         update = self.process.calculate_request(self.parameters['time_step'], states)
+        # Ensure listeners are updated if passed by calculate_request
+        listeners = update.pop('listeners', None)
+        if listeners != None:
+            return {'request': update, 'listeners': listeners}
         return {'request': update}
     
 
@@ -155,9 +229,8 @@ class Ecoli(Composer):
                            else make_logging_process(process)(configs[process_name]))
             for (process_name, process) in config['processes'].items()
             if process_name not in [
-                'polypeptide_elongation',
-                # 'two_component_system',
-                # TODO: get these working again
+                'polypeptide_elongation'
+                # TODO: get this working again
             ]
         }
         
@@ -208,12 +281,13 @@ class Ecoli(Composer):
                 topology[f'{process_id}_evolver'] = deepcopy(ports)
                 if config['blame']:
                     topology[f'{process_id}_evolver']['log_update'] = ('log_update', process_id,)
+                bulk_topo = get_bulk_topo(ports)
                 topology[f'{process_id}_requester']['request'] = {
                     '_path': ('bulk', 'request', process_id,),
-                    **deepcopy(ports)}
+                    **bulk_topo}
                 topology[f'{process_id}_evolver']['allocate'] = {
                     '_path': ('bulk', 'allocate', process_id,),
-                    **deepcopy(ports)}
+                    **bulk_topo}
 
         # add division
         if self.config['divide']:

@@ -350,7 +350,7 @@ class RnaDegradation(Process):
     def evolve_state(self, timestep, states):
         ## wcEcoli evolveState
         # Get vector of numbers of RNAs to degrade for each RNA species
-        n_degraded_bulk_RNA = array_from(states['bulk_RNAs'])
+        n_degraded_bulk_RNA = array_from(states['bulk_RNAs']).astype(int)
         n_degraded_unique_RNA = self.n_unique_RNAs_to_degrade
         n_degraded_RNA = n_degraded_bulk_RNA + n_degraded_unique_RNA
         

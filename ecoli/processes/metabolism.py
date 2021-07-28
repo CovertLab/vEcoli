@@ -173,6 +173,7 @@ class Metabolism(Process):
                     '_emit': True}}}
 
     def next_update(self, timestep, states):
+        timestep = self.parameters['time_step']
 
         # Load current state of the sim
         ## Get internal state variables
