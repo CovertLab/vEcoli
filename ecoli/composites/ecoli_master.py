@@ -75,7 +75,9 @@ class Ecoli(Composer):
         self.topology = config['topology']
 
     def initial_state(self, config=None, path=()):
-        initial_state = get_state_from_file()
+        if config:
+            initial_time = config.get("initial_time", 0)
+        initial_state = get_state_from_file(path=f'data/wcecoli_t{initial_time}.json')
         embedded_state = {}
         assoc_path(embedded_state, path, initial_state)
         return embedded_state
