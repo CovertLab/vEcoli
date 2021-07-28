@@ -41,11 +41,11 @@ class EcoliSim:
         parser = argparse.ArgumentParser(description='ecoli_master')
         parser.add_argument(
             '--config', '-c', action='store', default=CONFIG_DIR_PATH + 'default.json',
-            help="Path to configuration file for the simulation."
+            help=f"Path to configuration file for the simulation. Defaults to {CONFIG_DIR_PATH + 'default.json'}."
         )
         parser.add_argument(
             '--experiment_id', '-id', action="store",
-            help="ID for this experiment. Data generated will be associated with this ID. A UUID will be generated if not provided."
+            help='ID for this experiment. A UUID will be generated if this argument is not used and "experiment_id" is null in the configuration file.'
         )
         parser.add_argument(
             '--emitter', '-e', action="store", choices=["timeseries", "database", "print"],
