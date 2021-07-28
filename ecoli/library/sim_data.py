@@ -431,11 +431,11 @@ class LoadSimData:
         }
         return mass_config
     
-    def get_allocator_config(self, time_step=2, parallel=False, processes={}):
+    def get_allocator_config(self, time_step=2, parallel=False, process_names=[]):
         allocator_config = {
             'time_step': time_step, 
             'molecule_names': self.sim_data.internal_state.bulk_molecules.bulk_data['id'],
-            'processes': processes,
-            'seed': self.random_state.randint(2**31)
+            'seed': self.random_state.randint(2**31),
+            'process_names': process_names,
         }
         return allocator_config
