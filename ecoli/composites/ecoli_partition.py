@@ -38,6 +38,47 @@ from ecoli.processes.mass import Mass
 from ecoli.processes.allocator import Allocator
 from ecoli.states.wcecoli_state import get_state_from_file
 
+from vivarium.core.process import Process, Deriver
+from vivarium.library.dict_utils import deep_merge
+
+
+class Requester(Deriver):
+    defaults = {'process': None}
+
+    def __init__(self, parameters=None):
+        super.__init__(parameters)
+        self.process = self.parameters['process']
+
+    def ports_schema(self):
+        ports = self.process.port_schema()
+        ports['request'] = {}  # TODO -- schema logic?
+        return ports
+
+    def next_update(self, timestep, states):
+        update = self.process.calculate_request(self.parameters['time_step'], states)
+
+        # TODO -- inverse mapping of topology?
+        return {'request': update}
+
+
+class Evolver(Process):
+    defaults = {'process': None}
+
+    def __init__(self, parameters=None):
+        super.__init__(parameters)
+        self.process = self.parameters['process']
+
+    def ports_schema(self):
+        ports = self.process.port_schema()
+        ports['allocate'] = {}  # TODO -- schema logic?
+        return ports
+
+    def next_update(self, timestep, states):
+        states = deep_merge(states, states.pop('allocate'))
+        return self.process.evolve_state(timestep, states)
+
+
+
 RAND_MAX = 2**31
 SIM_DATA_PATH = 'reconstruction/sim_data/kb/simData.cPickle'
 
@@ -173,7 +214,7 @@ ECOLI_TOPOLOGY = {
     }
 
 
-class Ecoli(Composer):
+class EcoliPartition(Composer):
 
     defaults = {
         'time_step': 2.0,
@@ -221,40 +262,45 @@ class Ecoli(Composer):
         
         processes = {}
         
-        for process_name, process in ECOLI_PROCESSES.items():
+        for process_name, process_class in ECOLI_PROCESSES.items():
             process_config = configs[process_name]
-            # make requester
-            processes[f'{process_name}_requester'] = process({
-                **process_config, 'request_only': True})
 
-            # make evolver
-            processes[f'{process_name}_evolver'] = process({
-                **process_config, 'evolve_only': True})
+            process = process_class(process_config)
+            processes[f'{process_name}_requester'] = Requester({'process': process})
+            processes[f'{process_name}_evolver'] = Evolver({'process': process})
 
-        
-        processes = {
-            process_name: (process(configs[process_name])
-                           if not config['blame']
-                           else make_logging_process(process)(configs[process_name]))
-
-            for (process_name, process) in ECOLI_PROCESSES.items()
-            if process_name not in ["polypeptide_elongation"] # TODO: get polypeptide elongation working again
-        }
-        
-        allocator_config = self.load_sim_data.get_allocator_config(time_step=time_step,
-                                                                    processes=processes)
-        
+        allocator_config = self.load_sim_data.get_allocator_config(time_step=time_step)
+        allocator_config['topology'] = ECOLI_TOPOLOGY
         processes['allocator'] = Allocator(allocator_config)
         
         return processes
 
-    def generate_topology(self, config):        
-        topology = {}
-        for process_id, ports in ECOLI_TOPOLOGY.items():
-            topology[process_id] = ports
-            if config['blame']:
-                topology[process_id]['log_update'] = ('log_update', process_id,)
-        return topology
+    def generate_topology(self, config):
+
+        return {
+            'complexation_requester': {
+                'requested': ('bulk', 'request', 'complexation',),
+                'molecules': ('bulk',),
+            },
+            'complexation_evolver': {
+                'allocated': ('bulk', 'allocated', 'complexation',),
+                'molecules': ('bulk',),
+            },
+            'allocator': {
+                'bulk': ('bulk',),
+                'requests': ('bulk', 'request',),
+                'allocated': ('bulk', 'allocated')
+            }
+        }
+
+
+
+        # topology = {}
+        # for process_id, ports in ECOLI_TOPOLOGY.items():
+        #     topology[process_id] = ports
+        #     if config['blame']:
+        #         topology[process_id]['log_update'] = ('log_update', process_id,)
+        # return topology
 
 
 def run_ecoli(blame=False, total_time=2):
