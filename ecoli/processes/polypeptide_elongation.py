@@ -507,7 +507,7 @@ class PolypeptideElongation(Process):
             requests = self.calculate_request(timestep, states)
             states = deep_merge(states, requests)
             update = self.evolve_state(timestep, states)
-            update['listeners'].update(requests['listeners'])
+            update['listeners'] = deep_merge(update['listeners'], requests['listeners'])
         return update
 
     def isTimeStepShortEnough(self, inputTimeStep, timeStepSafetyFraction):

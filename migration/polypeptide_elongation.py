@@ -159,7 +159,7 @@ def assertions(actual_update, expected_update):
             if key != '_delete':
                 expected_update_indices.append(key)
 
-        for i in range(len(actual_update_indices)):
+        for i in range(min(len(expected_update_indices), len(actual_update_indices))):
             actual_key = actual_update_indices[i]
             expected_key = expected_update_indices[i]
             assert scalar_almost_equal(actual_update['active_ribosome'][actual_key]['peptide_length'], expected_update['active_ribosome'][expected_key]['peptide_length'])
