@@ -1,15 +1,24 @@
 {
-    "agent_id": "0",
-    "time_step": 2.0,
-    "parallel": false,
-    "seed": 0,
+    "experiment_id" : null,
     "sim_data_path": "reconstruction/sim_data/kb/simData.cPickle",
+    "emitter" : "timeseries",
+    "log_updates" : false,
+    "timeseries_output" : true,
+    "seed": 0,
+
+    "initial_time": 0,
+    "time_step": 2.0,
+    "total_time": 100.0,
+    "generations": null,
+
+    "agent_id": "0",
+    "parallel": false,
     "daughter_path": [],
     "agents_path": ["..", "..", "agents"],
     "division": {
         "threshold": 2220},
     "divide": false,
-    "blame": false,
+    
     "processes": [
         "ecoli-tf-binding",
         "ecoli-transcript-initiation",

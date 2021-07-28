@@ -15,53 +15,56 @@ CONFIG_DIR_PATH = 'data/ecoli_master_configs/'
 
 
 class EcoliSim:
-    def __init__(self,
-                 config,
-                 emitter="RAM",
-                 seed=0,
-                 total_time=100,
-                 generations=None,
-                 log_updates=False,
-                 timeseries_output=True,
-                 sim_data_path=SIM_DATA_PATH):
+    def __init__(self, config):
 
-        # Get processes
+        # Get processes and topology into correct form
         config['processes'] = self._retrieve_processes(config['processes'])
         config['topology'] = self._retrieve_topology(config['topology'])
+
         self.config = config
+
+        # unpack config
+        self.experiment_id = config['experiment_id']
+        self.emitter = config['emitter']
+        self.seed = config['seed']
         self.processes = config['processes']
-        self.topology = config['topology']  # TODO: do these need to be processed into tuples?
-        self.emitter = emitter
-        self.seed = seed
-        self.total_time = total_time
-        self.generations = generations
-        self.log_updates = log_updates
-        self.timeseries_output = timeseries_output
-        self.sim_data_path = sim_data_path
+        self.topology = config['topology']
+        self.initial_time = config['initial_time']
+        self.total_time = config['total_time']
+        self.generations = config['generations']
+        self.log_updates = config['log_updates']
+        self.timeseries_output = config['timeseries_output']
+        self.sim_data_path = config['sim_data_path']
 
     @staticmethod
     def from_cli():
-        # TODO: Experiment id
-
         parser = argparse.ArgumentParser(description='ecoli_master')
         parser.add_argument(
             '--config', '-c', action='store', default=CONFIG_DIR_PATH + 'default.json',
             help="Path to configuration file for the simulation."
         )
         parser.add_argument(
-            '--emitter', '-e', action="store", default="RAM", choices=["RAM", "database"],
-            help="Emitter to use (either RAM or database)."
+            '--experiment_id', '-id', action="store",
+            help="ID for this experiment. Data generated will be associated with this ID. A UUID will be generated if not provided."
         )
         parser.add_argument(
-            '--seed', '-s', action="store", default=0, type=int,
+            '--emitter', '-e', action="store", choices=["timeseries", "database", "print"],
+            help="Emitter to use. Timeseries uses RAMEmitter, database emits to MongoDB, and print emits to stdout."
+        )
+        parser.add_argument(
+            '--seed', '-s', action="store", type=int,
             help="Random seed."
         )
         parser.add_argument(
-            '--total_time', '-t', action="store", default=100, type=float,
+            '--initial_time', '-t0', action="store",
+            help="Time of the initial state to load from (corresponding inital state file must be present in data folder)."
+        )
+        parser.add_argument(
+            '--total_time', '-t', action="store", type=float,
             help="Time to run the simulation for."
         )
         parser.add_argument(
-            '--generations', '-g', action="store", default=None, type=int,
+            '--generations', '-g', action="store", type=int,
             help="Number of generations to run the simulation for."
         )
         parser.add_argument(
@@ -73,7 +76,7 @@ class EcoliSim:
             help="Whether to emit data in time-series format."
         )
         parser.add_argument(
-            'path_to_sim_data', nargs="*", default=SIM_DATA_PATH,
+            'path_to_sim_data', nargs="*", default=None,
             help="Path to the sim_data to use for this experiment."
         )
         args = parser.parse_args()
@@ -85,18 +88,15 @@ class EcoliSim:
         with open(CONFIG_DIR_PATH + 'default.json') as default_file:
             default_config = json.load(default_file)
 
+        # add attributes from CLI to the config
+        for setting, value in vars(args).items():
+            if value and setting != "config":
+                ecoli_config[setting] = value
+
         # Use defaults for any attributes not supplied
         ecoli_config = deep_merge(dict(default_config), ecoli_config)
 
-        # TODO: some of these items (e.g. seed) should overwrite values in config instead
-        return EcoliSim(ecoli_config,
-                        emitter=args.emitter,
-                        seed=args.seed,
-                        total_time=args.total_time,
-                        generations=args.generations,
-                        log_updates=args.log_updates,
-                        timeseries_output=args.timeseries,
-                        sim_data_path=args.path_to_sim_data)
+        return EcoliSim(ecoli_config)
 
     def _retrieve_processes(self, process_names):
         result = {}
@@ -129,18 +129,24 @@ class EcoliSim:
             path = ('agents', self.config['agent_id'],)
 
         # get initial state
-        initial_state = ecoli_composer.initial_state(path=path)
+        initial_state = ecoli_composer.initial_state(config=self.config, path=path)
 
         # generate the composite at the path
         ecoli = ecoli_composer.generate(path=path)
 
         # make the experiment
-        ecoli_experiment = Engine({
+        experiment_config = {
             'processes': ecoli.processes,
             'topology': ecoli.topology,
             'initial_state': initial_state,
             'progress_bar': True, #TODO: make configurable?
-        })
+            'emit_config' : False,
+            'emitter' : self.emitter,
+        }
+        if self.experiment_id:
+            experiment_config['experiment_id'] = self.experiment_id
+
+        ecoli_experiment = Engine(experiment_config)
 
         # run the experiment
         ecoli_experiment.update(self.total_time)

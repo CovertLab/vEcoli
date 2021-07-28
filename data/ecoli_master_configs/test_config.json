@@ -1,4 +1,6 @@
 {
+    "emitter" : "database",
+    "total_time" : 10,
     "agent_id" : "0",
     "_schema": {
         "ecoli-equilibrium": {
@@ -7,5 +9,5 @@
             }
         }
     },
-    "exclude_processes" : ["ecoli-polypeptide-elongation", "two-component-system"]
+    "exclude_processes" : ["ecoli-polypeptide-elongation", "ecoli-two-component-system"]
 }
