@@ -103,10 +103,7 @@ class PolypeptideElongation(Process):
         'k_SpoT_deg': 0.23,
         'KI_SpoT': 20.0,
         'aa_supply_scaling': lambda aa_conc, aa_in_media: 0,
-        'seed': 0,
-        # partitioning flags
-        'request_only': False,
-        'evolve_only': False,}
+        'seed': 0}
 
     def __init__(self, parameters=None):
         super().__init__(parameters)
@@ -182,9 +179,6 @@ class PolypeptideElongation(Process):
 
         self.seed = self.parameters['seed']
         self.random_state = np.random.RandomState(seed = self.seed)
-
-        self.request_only = self.parameters['request_only']
-        self.evolve_only = self.parameters['evolve_only']
 
     def ports_schema(self):
         return {
@@ -509,15 +503,10 @@ class PolypeptideElongation(Process):
         return update
 
     def next_update(self, timestep, states):
-        if self.request_only:
-            update = self.calculate_request(timestep, states)
-        elif self.evolve_only:
-            update = self.evolve_state(timestep, states)
-        else:
-            requests = self.calculate_request(timestep, states)
-            states = deep_merge(states, requests)
-            update = self.evolve_state(timestep, states)
-            update['listeners'].update(requests['listeners'])
+        requests = self.calculate_request(timestep, states)
+        states = deep_merge(states, requests)
+        update = self.evolve_state(timestep, states)
+        update['listeners'].update(requests['listeners'])
         return update
 
     def isTimeStepShortEnough(self, inputTimeStep, timeStepSafetyFraction):

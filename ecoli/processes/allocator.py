@@ -2,8 +2,6 @@
 Allcoator
 
 Updates bulk with process updates, runs metabolism, runs process requests, allocates molecules
-
-**Currently NON-FUNCTIONAL**
 """
 from vivarium.core.process import Deriver
 import numpy as np
@@ -14,7 +12,7 @@ CUSTOM_PRIORITIES = {'rna_degradation': 10,
                      'tf_binding': -10, 
                      'metabolism': -15}
 
-ASSERT_POSITIVE_COUNTS = False
+ASSERT_POSITIVE_COUNTS = True
 
 class NegativeCountsError(Exception):
 	pass
@@ -28,38 +26,46 @@ class Allocator(Deriver):
 
     # Constructor
     def __init__(self, parameters=None):
-        super().__init__()
-        self.moleculeNames = parameters['molecule_names']
+        super().__init__(parameters)
+        self.moleculeNames = self.parameters['molecule_names']
         self.n_molecules = len(self.moleculeNames)
         self.mol_name_to_idx = {name: idx for idx, name in enumerate(self.moleculeNames)}
         self.mol_idx_to_name = {idx: name for idx, name in enumerate(self.moleculeNames)}
-        self.processNames = list(parameters['processes'].keys())
+        self.processNames = self.parameters['process_names']
         self.n_processes = len(self.processNames)
         self.proc_name_to_idx = {name: idx for idx, name in enumerate(self.processNames)}
         self.proc_idx_to_name = {idx: name for idx, name in enumerate(self.processNames)}
         self.processPriorities = np.zeros(len(self.processNames))
         for process, custom_priority in CUSTOM_PRIORITIES.items():
             self.processPriorities[self.proc_name_to_idx[process]] = custom_priority
-        self.seed = parameters['seed']
+        self.seed = self.parameters['seed']
         self.random_state = np.random.RandomState(seed = self.seed)
-        self.processes = parameters['processes']
 
     def ports_schema(self):
-        ports = {}
-        ports['bulk'] = {molecule: {'_default': 0} 
-                         for molecule in self.moleculeNames}
+        ports = {
+            'bulk': {molecule: {'_default': 0} 
+                    for molecule in self.moleculeNames},
+            'request': {process: {}
+                        for process in self.processNames},
+            'allocate': {process: {}
+                        for process in self.processNames},
+        }
+        ports
         return ports
+    
+    def _next_update(self, timestep, states):
+        return {}
 
     def next_update(self, timestep, states):
-        total_counts = np.array([states['totals'][molecule] for 
+        total_counts = np.array([states['bulk'][molecule] for 
                                  molecule in self.mol_idx_to_name.values()])
         original_totals = total_counts.copy()
         counts_requested = np.zeros((self.n_molecules, self.n_processes))
-        for process in self.processes:
+        for process in states['request']:
             proc_idx = self.proc_name_to_idx[process]
-            for molecule, molecule_requests in self.processes.requests:
+            for molecule, count in states['request'][process]['bulk']:
                 mol_idx = self.mol_name_to_idx[molecule]
-                counts_requested[mol_idx][proc_idx] = molecule_requests
+                counts_requested[mol_idx][proc_idx] = count
 
         if ASSERT_POSITIVE_COUNTS and np.any(counts_requested < 0):
             raise NegativeCountsError(
@@ -112,13 +118,14 @@ class Allocator(Deriver):
                 )
         
         update = {
-            #'requested': {process: {} for process in states['requested']},
-            'allocated': {
+            'request': {process: {} for process in states['request']},
+            'allocate': {
                 process: {
-                    molecule: partitioned_counts[self.mol_name_to_idx[molecule], 
-                                                    self.proc_name_to_idx[process]] 
-                    for molecule in states['requested'][process]}
-                for process in states['requested']}}
+                    'bulk': {molecule: partitioned_counts[
+                        self.mol_name_to_idx[molecule], 
+                        self.proc_name_to_idx[process]] 
+                    for molecule in states['request'][process]['bulk']}}
+                for process in states['request']}}
         
         return update
 
