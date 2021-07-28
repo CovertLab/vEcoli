@@ -43,7 +43,9 @@ The new process classes can be found in `ecoli/processes/*` and a composites tha
 
 then simply invoke
 
-    > python ecoli/composites/ecoli_master.py
+    > python ecoli/experiments/ecoli_master_sim.py
+
+For details on configuring simulations through either the command-line interface or .json files, see `readmes/ecoli_master_configurations.md`.
 
 ## migration
 

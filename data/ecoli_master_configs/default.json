@@ -3,7 +3,7 @@
     "sim_data_path": "reconstruction/sim_data/kb/simData.cPickle",
     "emitter" : "timeseries",
     "log_updates" : false,
-    "timeseries_output" : true,
+    "raw_output" : false,
     "seed": 0,
 
     "initial_time": 0,
