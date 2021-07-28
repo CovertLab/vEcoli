@@ -33,7 +33,7 @@ class EcoliSim:
         self.total_time = config['total_time']
         self.generations = config['generations']
         self.log_updates = config['log_updates']
-        self.timeseries_output = config['timeseries_output']
+        self.raw_output = config['raw_output']
         self.sim_data_path = config['sim_data_path']
 
     @staticmethod
@@ -72,8 +72,8 @@ class EcoliSim:
             help="Save updates from each process if this flag is set, e.g. for use with blame plot."
         )
         parser.add_argument(
-            '--timeseries', action="store_true",
-            help="Whether to emit data in time-series format."
+            '--raw_output', action="store_true",
+            help="Whether to return data in raw format (dictionary where keys are times, values are states)."
         )
         parser.add_argument(
             'path_to_sim_data', nargs="*", default=None,
@@ -152,10 +152,10 @@ class EcoliSim:
         ecoli_experiment.update(self.total_time)
 
         # retrieve the data
-        if self.timeseries_output:
-            return ecoli_experiment.emitter.get_timeseries()
-        else:
+        if self.raw_output:
             return ecoli_experiment.emitter.get_data()
+        else:
+            return ecoli_experiment.emitter.get_timeseries()
 
 
 if __name__ == '__main__':

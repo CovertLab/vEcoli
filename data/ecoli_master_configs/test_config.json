@@ -1,5 +1,6 @@
 {
     "emitter" : "database",
+    "raw_output" : false,
     "total_time" : 10,
     "agent_id" : "0",
     "_schema": {
