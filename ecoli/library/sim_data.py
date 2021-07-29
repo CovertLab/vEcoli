@@ -76,7 +76,7 @@ class LoadSimData:
             'delta_prob': self.sim_data.process.transcription_regulation.delta_prob,
             'n_avogadro': self.sim_data.constants.n_avogadro,
             'cell_density': self.sim_data.constants.cell_density,
-            'pPromoter_bound_tf': self.sim_data.process.transcription_regulation.p_promoter_bound_tf,
+            'p_promoter_bound_tf': self.sim_data.process.transcription_regulation.p_promoter_bound_tf,
             'tf_to_tf_type': self.sim_data.process.transcription_regulation.tf_to_tf_type,
             'active_to_bound': self.sim_data.process.transcription_regulation.active_to_bound,
             'get_unbound': self.sim_data.process.equilibrium.get_unbound,
