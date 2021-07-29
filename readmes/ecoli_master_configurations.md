@@ -42,7 +42,7 @@ usage: ecoli_master_sim.py [-h] [--config CONFIG] [--experiment_id EXPERIMENT_ID
 
 ## JSON
 
-Configuring a simulation from JSON allows access much more complete access to simulation settings. This includes the ability to add/remove/swap processes, modify topology, and even change how individual molecules are updated or emitted (see Schema Overrides).
+Configuring a simulation from JSON allows access much more complete access to simulation settings. This includes the ability to add/remove/swap processes, modify topology, and even change how individual molecules are updated or emitted (see **Schema Overrides**).
 
 Not all settings need to be provided in a custom configuration file. Settings not given default to values from `data/ecoli_master_configs/default.json`.
 
@@ -106,9 +106,53 @@ However, typically one wishes to modify these only slightly, e.g. by adding a pr
 - `"exclude_processes"` : List of processes to remove from the simulation
 - `"swap_processes"` : Dictionary where keys are processes in the default configuration, and values are processes to replace these with.
 
-> ***Note:*** In order for `EcoliSimulation` to use new or alternative processes, two requirements need to be met. First, the new process should have its `.name` set (to something that does not conflict with existing processes). Second, the new process needs to be *registered* with the *process registry*: do this in `ecoli/processes/__init__.py`.
+> ***Note:*** In order for `EcoliSimulation` to use new or alternative processes, two requirements need to be met. First, the new process should have its `.name` set (to something that does not conflict with existing processes). Second, the new process needs to be *registered* with the *process registry* (do this in `ecoli/processes/__init__.py`).
+
+Adding a process requires adding a corresponding topology to the topology dictionary. Luckily, due to the way EcoliSimulation merges user settings with the default, one can simply specify topology of added processes without restating topology of processes kept from the default (check this??). For example:
+
+```
+{
+    "add_processes" : [
+        "clock"
+    ],
+    
+    "topology" : [
+        "clock" : {
+            "global_time" : ["global_time"]
+        }
+    ]
+}
+```
+
+would add a `Clock` process to the default configuration, without affecting the wiring of other processes.
+
+Removing a process removes the corresponding topology entry automatically, and swapping a process keeps the same topology as the original process (unless overridden by the user) (check this).
 
 ### Schema Overrides
+
+One powerful feature of the JSON configuration approach is the ability to override the port schemas specified by processes. To do so, one simply adds a `"_schema"` key to the configuration. In the following example, we have overwritten the schema for how the `"ecoli-equilibrium"` process affects the `"PD00413[c]"` molecule, in this case to temporarily avert a bug in which `"PD00413[c]"` goes below zero.
+
+```
+"_schema": {
+        "ecoli-equilibrium": {
+            "molecules": {
+                "PD00413[c]": {"_updater": "nonnegative_accumulate"}
+            }
+        }
+    },
+```
+
+Schema overrides can also be used to emit data that would normally not be emitted, by setting `"_emit"` to `True`.
+
+```
+"_schema": {
+        "ecoli-equilibrium": {
+            "molecules": {
+                "PD00413[c]": {"_emit": True}
+            }
+        }
+    },
+```
 
 ### Additional Settings
 
