@@ -102,6 +102,22 @@ class EcoliSim:
         ecoli_config = deep_merge(dict(default_config), ecoli_config)
 
         return EcoliSim(ecoli_config)
+    
+
+    @staticmethod
+    def from_file(filepath=CONFIG_DIR_PATH + 'default.json'):
+        # Load config, deep-merge with default config
+        with open(filepath) as config_file:
+            ecoli_config = json.load(config_file)
+
+        with open(CONFIG_DIR_PATH + 'default.json') as default_file:
+            default_config = json.load(default_file)
+
+        # Use defaults for any attributes not supplied
+        ecoli_config = deep_merge(dict(default_config), ecoli_config)
+
+        return EcoliSim(ecoli_config)
+
 
     def _retrieve_processes(self,
                             process_names,
@@ -157,12 +173,12 @@ class EcoliSim:
             config=self.config, path=path)
 
         # generate the composite at the path
-        ecoli = ecoli_composer.generate(path=path)
+        self.ecoli = ecoli_composer.generate(path=path)
 
         # make the experiment
         experiment_config = {
-            'processes': ecoli.processes,
-            'topology': ecoli.topology,
+            'processes': self.ecoli.processes,
+            'topology': self.ecoli.topology,
             'initial_state': initial_state,
             'progress_bar': True,  # TODO: make configurable?
             'emit_config': False,
@@ -171,16 +187,16 @@ class EcoliSim:
         if self.experiment_id:
             experiment_config['experiment_id'] = self.experiment_id
 
-        ecoli_experiment = Engine(experiment_config)
+        self.ecoli_experiment = Engine(experiment_config)
 
         # run the experiment
-        ecoli_experiment.update(self.total_time)
+        self.ecoli_experiment.update(self.total_time)
 
-        # retrieve the data
+        # return the data
         if self.raw_output:
-            return ecoli_experiment.emitter.get_data()
+            return self.ecoli_experiment.emitter.get_data()
         else:
-            return ecoli_experiment.emitter.get_timeseries()
+            return self.ecoli_experiment.emitter.get_timeseries()
 
 
 if __name__ == '__main__':
