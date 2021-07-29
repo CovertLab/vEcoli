@@ -19,6 +19,9 @@
         "threshold": 2220},
     "divide": false,
     
+    "add_processes" : [],
+    "exclude_processes" : [],
+    "swap_processes" : {},
     "processes": [
         "ecoli-tf-binding",
         "ecoli-transcript-initiation",
