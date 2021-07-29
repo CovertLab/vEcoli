@@ -121,8 +121,8 @@ def convert_dynamics(simOutDir, seriesOutDir, simDataFile, node_list, edge_list)
 
 		# Cache cell volume array (used for calculating concentrations)
 
-		# experiment_id = '002d4eba-ee5c-11eb-bb11-1e00312eb299' # 10 seconds
-		experiment_id = '458f814c-ef0d-11eb-a445-1e00312eb299' # 100 seconds
+		experiment_id = '002d4eba-ee5c-11eb-bb11-1e00312eb299' # 10 seconds
+		# experiment_id = '458f814c-ef0d-11eb-a445-1e00312eb299' # 100 seconds
 		# retrieve the data directly from database
 		db = get_experiment_database()
 		data, _ = data_from_database(experiment_id, db)
@@ -244,16 +244,29 @@ def read_gene_dynamics(sim_data, node, node_id, columns, indexes, volume, timese
 	Reads dynamics data for gene nodes from simulation output.
 	"""
 	gene_index = indexes["Genes"][node_id]
-
+	synth_prob_array = timeseries['listeners']['rna_synth_prob']['rna_synth_prob']
+	for value in synth_prob_array:
+		if type(value) != float:
+			array_len = len(value)
+			break
+	for i in range(len(synth_prob_array)):
+		if type(synth_prob_array[i]) == float:
+			synth_prob_array[i] = [0.0 for i in range(array_len)]
+	# TODO: Port gene_copy_num from rna_synth_prob listener
+	gene_copy_num = []
+	for i in range(6):
+		gene_copy_num.append(np.zeros(len(columns[("RnaSynthProb", "gene_copy_number")][0])))
 	dynamics = {
-		"transcription probability": columns[("RnaSynthProb", "rnaSynthProb")][:, gene_index],
-		"gene copy number": columns[("RnaSynthProb", "gene_copy_number")][:, gene_index],
+		# "transcription probability": columns[("RnaSynthProb", "rnaSynthProb")][:, gene_index],
+		"transcription probability": np.array(synth_prob_array)[:, gene_index],
+		# "gene copy number": columns[("RnaSynthProb", "gene_copy_number")][:, gene_index],
+		"gene copy number": np.array(gene_copy_num)[:, gene_index],
 		}
 	dynamics_units = {
 		"transcription probability": PROB_UNITS,
 		"gene copy number": COUNT_UNITS,
 		}
-	ipdb.set_trace()
+	# ipdb.set_trace()
 	node.read_dynamics(dynamics, dynamics_units)
 
 
@@ -261,13 +274,14 @@ def read_rna_dynamics(sim_data, node, node_id, columns, indexes, volume, timeser
 	"""
 	Reads dynamics data for transcript (RNA) nodes from simulation output.
 	"""
-
 	# If RNA is an mRNA, get counts from mRNA counts listener
+	# TODO: Port mRNA counts listener
 	if node_id in indexes["mRNAs"]:
 		counts = columns[("mRNACounts", "mRNA_counts")][:, indexes["mRNAs"][node_id]]
 	# If not, get counts from bulk molecules listener
 	else:
-		counts = columns[("BulkMolecules", "counts")][:, indexes["BulkMolecules"][node_id]]
+		# counts = columns[("BulkMolecules", "counts")][:, indexes["BulkMolecules"][node_id]]
+		counts = np.array(timeseries['bulk'][node_id])
 
 	dynamics = {
 		"counts": counts,
