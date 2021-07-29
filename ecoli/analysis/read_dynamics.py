@@ -343,10 +343,18 @@ def read_transcription_dynamics(sim_data, node, node_id, columns, indexes, volum
 	"""
 	gene_id = node_id.split(NODE_ID_SUFFIX["transcription"])[0]
 	gene_idx = indexes["Genes"][gene_id]
-
+	rna_init_array = timeseries['listeners']['rnap_data']['rnaInitEvent']
+	for value in rna_init_array:
+		if type(value) != int:
+			array_len = len(value)
+			break
+	for i in range(len(rna_init_array)):
+		if type(rna_init_array[i]) == int:
+			rna_init_array[i] = [0 for i in range(array_len)]
 	dynamics = {
-		"transcription initiations": columns[("RnapData", "rnaInitEvent")][:, gene_idx],
-		}
+		# "transcription initiations": columns[("RnapData", "rnaInitEvent")][:, gene_idx],
+		"transcription initiations": np.array(rna_init_array)[:, gene_idx],
+	}
 	dynamics_units = {
 		"transcription initiations": COUNT_UNITS,
 		}
