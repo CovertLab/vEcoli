@@ -20,7 +20,7 @@ python ecoli/experiments/ecoli_master_sim.py -h
 ```
 usage: ecoli_master_sim.py [-h] [--config CONFIG] [--experiment_id EXPERIMENT_ID] [--emitter {timeseries,database,print}]
                            [--seed SEED] [--initial_time INITIAL_TIME] [--total_time TOTAL_TIME] [--generations GENERATIONS]
-                           [--log_updates] [--timeseries]
+                           [--log_updates] [--raw_output]
                            [path_to_sim_data [path_to_sim_data ...]]
 ```
 
