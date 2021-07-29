@@ -128,10 +128,10 @@ def convert_dynamics(simOutDir, seriesOutDir, simDataFile, node_list, edge_list)
 		data, _ = data_from_database(experiment_id, db)
 		timeseries = timeseries_from_data(data)
 		cell_mass = np.array(timeseries['listeners']['mass']['cell_mass'])
-		volume = ((1.0 / sim_data.constants.cell_density) * (
-			units.fg * columns[("Mass", "cellMass")])).asNumber(units.L)
 		# volume = ((1.0 / sim_data.constants.cell_density) * (
-		# 	units.fg * cell_mass)).asNumber(units.L)
+		# 	units.fg * columns[("Mass", "cellMass")])).asNumber(units.L)
+		volume = ((1.0 / sim_data.constants.cell_density) * (
+			units.fg * cell_mass)).asNumber(units.L)
 
 		def dynamics_mapping(dynamics, safe):
 			return [{
@@ -297,8 +297,9 @@ def read_protein_dynamics(sim_data, node, node_id, columns, indexes, volume, tim
 	"""
 	Reads dynamics data for monomer/complex nodes from a simulation output.
 	"""
-	count_index = indexes["BulkMolecules"][node_id]
-	counts = columns[("BulkMolecules", "counts")][:, count_index]
+	# count_index = indexes["BulkMolecules"][node_id]
+	# counts = columns[("BulkMolecules", "counts")][:, count_index]
+	counts = np.array(timeseries['bulk'][node_id])
 	concentration = (((1 / sim_data.constants.n_avogadro) * counts) / (units.L * volume)).asNumber(units.mmol / units.L)
 
 	dynamics = {
@@ -309,7 +310,6 @@ def read_protein_dynamics(sim_data, node, node_id, columns, indexes, volume, tim
 		'counts': COUNT_UNITS,
 		'concentration': 'mmol/L',
 		}
-
 	node.read_dynamics(dynamics, dynamics_units)
 
 
@@ -321,7 +321,8 @@ def read_metabolite_dynamics(sim_data, node, node_id, columns, indexes, volume, 
 		count_index = indexes["BulkMolecules"][node_id]
 	except (KeyError, IndexError):
 		return  # Metabolite not being modeled
-	counts = columns[("BulkMolecules", "counts")][:, count_index]
+	# counts = columns[("BulkMolecules", "counts")][:, count_index]
+	counts = np.array(timeseries['bulk'][node_id])
 	concentration = (((1 / sim_data.constants.n_avogadro) * counts) / (units.L * volume)).asNumber(units.mmol / units.L)
 
 	dynamics = {
