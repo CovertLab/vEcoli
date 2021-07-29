@@ -18,8 +18,13 @@ class EcoliSim:
     def __init__(self, config):
 
         # Get processes and topology into correct form
-        config['processes'] = self._retrieve_processes(config['processes'])
-        config['topology'] = self._retrieve_topology(config['topology'])
+        config['processes'] = self._retrieve_processes(config['processes'],
+                                                       config['add_processes'],
+                                                       config['exclude_processes'],
+                                                       config['swap_processes'])
+        config['topology'] = self._retrieve_topology(config['topology'],
+                                                     config['exclude_processes'],
+                                                     config['swap_processes'])
 
         self.config = config
 
@@ -98,22 +103,41 @@ class EcoliSim:
 
         return EcoliSim(ecoli_config)
 
-    def _retrieve_processes(self, process_names):
+    def _retrieve_processes(self,
+                            process_names,
+                            add_processes,
+                            exclude_processes,
+                            swap_processes):
         result = {}
-        for process_name in process_names:
+        for process_name in process_names + add_processes:
+            if process_name in exclude_processes:
+                continue
+
+            if process_name in swap_processes:
+                process_name = swap_processes[process_name]
+
             process_class = process_registry.access(process_name)
-           
+
             if not process_class:
                 raise ValueError(f"Unknown process with name {process_name}. "
                                  "Did you call process_registry.register() in ecoli/processes/__init__.py?")
-           
+
             result[process_name] = process_class
 
         return result
-    
-    def _retrieve_topology(self, topology):
+
+    def _retrieve_topology(self,
+                           topology,
+                           exclude_processes,
+                           swap_processes):
         result = {}
         for process, process_topology in topology.items():
+            if process in exclude_processes:
+                continue
+
+            if process in swap_processes:
+                process = swap_processes[process]
+            
             result[process] = {
                 k: tuple(v) for k, v in process_topology.items()
             }
@@ -129,7 +153,8 @@ class EcoliSim:
             path = ('agents', self.config['agent_id'],)
 
         # get initial state
-        initial_state = ecoli_composer.initial_state(config=self.config, path=path)
+        initial_state = ecoli_composer.initial_state(
+            config=self.config, path=path)
 
         # generate the composite at the path
         ecoli = ecoli_composer.generate(path=path)
@@ -139,9 +164,9 @@ class EcoliSim:
             'processes': ecoli.processes,
             'topology': ecoli.topology,
             'initial_state': initial_state,
-            'progress_bar': True, #TODO: make configurable?
-            'emit_config' : False,
-            'emitter' : self.emitter,
+            'progress_bar': True,  # TODO: make configurable?
+            'emit_config': False,
+            'emitter': self.emitter,
         }
         if self.experiment_id:
             experiment_config['experiment_id'] = self.experiment_id

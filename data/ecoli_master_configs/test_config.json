@@ -1,4 +1,5 @@
 {
+    "experiment_id" : "test_ecoli_sim",
     "emitter" : "database",
     "raw_output" : false,
     "total_time" : 10,
@@ -10,5 +11,14 @@
             }
         }
     },
-    "exclude_processes" : ["ecoli-polypeptide-elongation", "ecoli-two-component-system"]
+    "add_processes" : ["clock"],
+    "exclude_processes" : ["ecoli-polypeptide-elongation", "ecoli-two-component-system"],
+    "topology" : {
+        "clock" : {
+            "global_time" : ["global_time"]
+        }
+    },
+    "process_configs" :{
+        "clock" : "default"
+    }
 }
