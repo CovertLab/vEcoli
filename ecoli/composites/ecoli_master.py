@@ -260,7 +260,7 @@ class Ecoli(Composer):
 
 
 def run_ecoli(
-        total_time=100,
+        total_time=10,
         config=None,
         divide=False,
         progress_bar=True,
