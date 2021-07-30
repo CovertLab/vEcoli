@@ -133,13 +133,11 @@ def array_diffs_report(a, b, names=None, sort_by="absolute", sort_with=np.abs):
 
     return result
 
-
 def percent_error(actual, expected):
     pe = np.divide(abs(actual - expected), max(abs(actual), abs(expected)))
     if np.isnan(pe):
         pe = 0
     return pe
-
 
 class ComparisonTestSuite:
     '''

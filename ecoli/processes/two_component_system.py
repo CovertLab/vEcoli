@@ -9,10 +9,10 @@ import numpy as np
 
 from vivarium.core.process import Process
 from vivarium.core.composition import simulate_process
+from vivarium.library.dict_utils import deep_merge
 
 from ecoli.library.schema import (
-    array_from, array_to, arrays_from,
-    arrays_to, listener_schema, bulk_schema)
+    array_from, array_to, bulk_schema)
 
 from wholecell.utils import units
 
@@ -27,7 +27,10 @@ class TwoComponentSystem(Process):
         'moleculesToNextTimeStep': lambda counts, volume, avogadro, timestep, random, method, min_step, jit: (
             [], []),
         'moleculeNames': [],
-        'seed': 0}
+        'seed': 0,
+        # partitioning flags
+        'request_only': False,
+        'evolve_only': False,}
 
     # Constructor
     def __init__(self, initial_parameters):
@@ -49,14 +52,18 @@ class TwoComponentSystem(Process):
         self.seed = self.parameters['seed']
         self.random_state = np.random.RandomState(seed = self.seed)
 
+        self.request_only = self.parameters['request_only']
+        self.evolve_only = self.parameters['evolve_only']
+
     def ports_schema(self):
         return {
             'molecules': bulk_schema(self.moleculeNames),
             'listeners': {
                 'mass': {
                     'cell_mass': {'_default': 0}}}}
-
-    def next_update(self, timestep, states):
+        
+        
+    def calculate_request(self, timestep, states):
         # Get molecule counts
         moleculeCounts = array_from(states['molecules'])
 
@@ -70,10 +77,33 @@ class TwoComponentSystem(Process):
         # by the scipy ODE suite.
         self.molecules_required, self.all_molecule_changes = self.moleculesToNextTimeStep(
             moleculeCounts, self.cellVolume, self.n_avogadro,
-            timestep, self.random_state, method="BDF", jit=self.jit)
-
+            timestep, self.random_state, method="BDF", jit=self.jit,
+            )
+        requests = {}
+        requests['molecules'] = array_to(states['molecules'], self.molecules_required)
+        return requests
+    
+    def evolve_state(self, timestep, states):
+        moleculeCounts = array_from(states['molecules'])
+        # Check if any molecules were allocated fewer counts than requested
+        if (self.molecules_required > moleculeCounts).any():
+            _, self.all_molecule_changes = self.moleculesToNextTimeStep(
+                moleculeCounts, self.cellVolume, self.n_avogadro,
+                10000, self.random_state, method="BDF", min_time_step=timestep,
+                jit=self.jit)
         # Increment changes in molecule counts
         update = {
             'molecules': array_to(self.moleculeNames, self.all_molecule_changes.astype(int))}
+        
+        return update
 
+    def next_update(self, timestep, states):
+        if self.request_only:
+            update = self.calculate_request(timestep, states)
+        elif self.evolve_only:
+            update = self.evolve_state(timestep, states)
+        else:
+            requests = self.calculate_request(timestep, states)
+            states = deep_merge(states, requests)
+            update = self.evolve_state(timestep, states)
         return update
