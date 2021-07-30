@@ -249,8 +249,7 @@ class ConvenienceKinetics(Process):
         for port, states in initial_state.items():
             for state_id in states:
                 schema[port][state_id] = {
-                    '_default': initial_state[port][state_id],
-                    '_updater': 'null',
+                    '_default': initial_state[port][state_id]
                 }
 
         # exchanges
@@ -259,7 +258,6 @@ class ConvenienceKinetics(Process):
             schema['exchanges'] = {
                 state_id: {
                     '_default': 0.0,
-                    '_updater': 'null'
                 }
                 for state_id in schema['external'].keys()
             }
@@ -331,11 +329,11 @@ class ConvenienceKinetics(Process):
                             existing_delta = update['exchanges'].get(
                                 state_id, {}).get('_value', 0)
                             update['exchanges'][state_id] = existing_delta + delta
-                        else:
-                            update[port_id][state_id] = (
-                                    update[port_id].get(state_id, 0)
-                                    + state_flux
-                            )
+                        # else:
+                        #    update[port_id][state_id] = (
+                        #           update[port_id].get(state_id, 0)
+                        #            + state_flux
+                        #    )
 
         # note: external and internal ports update change in mmol.
         return update

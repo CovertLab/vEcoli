@@ -85,6 +85,9 @@ class ConvenienceMetabolism(Composer):
             'VAL[c]': -0.02839286830361277
         }
         }
+        for mol, rate in exchange_stub_config['exchanges'].items():
+            exchange_stub_config['exchanges'][mol] = rate/2
+
         return {
             'convenience_kinetics': ConvenienceKinetics(convenience_kinetics_config),
             'metabolism': Metabolism(metabolism_config),
@@ -103,7 +106,8 @@ class ConvenienceMetabolism(Composer):
                 'listeners': ('listeners',),
                 'environment': ('environment',),
                 'polypeptide_elongation': ('process_state', 'polypeptide_elongation'),
-                'exchange_constraints': ('fluxes',)
+                'exchange_constraints': ('fluxes',),
+                'conc_diff': ('export',),
             },
 
             'convenience_kinetics': {
@@ -129,7 +133,7 @@ class ConvenienceMetabolism(Composer):
 
 
 def test_convenience_metabolism(
-        total_time=900,
+        total_time=100,
         progress_bar=True,
         aa = True
 ):
@@ -154,7 +158,6 @@ def test_convenience_metabolism(
 
     # retrieve the data
     output = ecoli_simulation.emitter.get_timeseries()
-    print('Finished!')
 
     import matplotlib.pyplot as plt
 

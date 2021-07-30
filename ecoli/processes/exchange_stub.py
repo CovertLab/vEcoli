@@ -28,7 +28,7 @@ class Exchange(Process):
     def ports_schema(self):
         return {
             'molecules': {
-                mol_id: {'_default': 0, '_updater': 'accumulate'}
+                mol_id: {'_default': 0}
                 for mol_id in self.parameters['exchanges'].keys()
             },
             'export': {
@@ -40,13 +40,10 @@ class Exchange(Process):
 
     def next_update(self, timestep, states):
         countsToMolar = states['listeners']['enzyme_kinetics']['countsToMolar']
-        exchange = {
-            mol_id: (rate * timestep * np.random.uniform(0.95, 1.05)) / countsToMolar
-            for mol_id, rate in self.parameters['exchanges'].items()}
         export = {
-            mol_id: (rate * timestep * np.random.uniform(0.95, 1.05)) / countsToMolar
+            mol_id: int((rate * timestep * np.random.uniform(0.68, 0.7)) / countsToMolar)
             for mol_id, rate in self.parameters['exchanges'].items()}
-        return {'molecules': exchange, 'export': export}
+        return {'export': export}
 
 
 def test_exchanger():
