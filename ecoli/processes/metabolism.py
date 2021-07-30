@@ -23,6 +23,8 @@ from wholecell.utils.constants import REQUEST_PRIORITY_METABOLISM
 from wholecell.utils.modular_fba import FluxBalanceAnalysis
 from six.moves import zip
 
+import time
+
 
 COUNTS_UNITS = units.mmol
 VOLUME_UNITS = units.L
@@ -118,14 +120,13 @@ class Metabolism(Process):
             'kinetics_enzymes': bulk_schema(self.model.kinetic_constraint_enzymes),
             'kinetics_substrates': bulk_schema(self.model.kinetic_constraint_substrates),
             'amino_acids': bulk_schema(self.aa_names,'accumulate'),
-            'amino_acids_inside': bulk_schema(self.aa_names,'set'),
 
             'environment': {
                 'media_id': {
                     '_default': '',
                     '_updater': 'set'},
                 'exchange': {
-                    element: {'_default': 0}
+                    element: {'_default': 0,'_emit':True, '_updater': 'set'}
                     for element in self.model.fba.getExternalMoleculeIDs()},
                 'exchange_data': {
                     'unconstrained': {'_default': []},
@@ -133,8 +134,8 @@ class Metabolism(Process):
 
             'listeners': {
                 'mass': {
-                    'cell_mass': {'_default': 0.0},
-                    'dry_mass': {'_default': 0.0}},
+                    'cell_mass': {'_default': 0.0, '_emit': True},
+                    'dry_mass': {'_default': 0.0, '_emit': True}},
 
                 'fba_results': {
                     'media_id': {'_default': '', '_updater': 'set'},
@@ -156,10 +157,10 @@ class Metabolism(Process):
                     'kineticObjectiveValues': {'_default': [], '_updater': 'set'}},
 
                 'enzyme_kinetics': {
-                    'metaboliteCountsInit': {'_default': 0, '_updater': 'set'},
-                    'metaboliteCountsFinal': {'_default': 0, '_updater': 'set'},
+                    'metaboliteCountsInit': {'_default': 0, '_updater': 'set', '_emit':True},
+                    'metaboliteCountsFinal': {'_default': 0, '_updater': 'set', '_emit':True},
                     'enzymeCountsInit': {'_default': 0, '_updater': 'set'},
-                    'countsToMolar': {'_default': 1.0, '_updater': 'set'},
+                    'countsToMolar': {'_default': 1.0, '_updater': 'set', '_emit': True},
                     'actualFluxes': {'_default': [], '_updater': 'set'},
                     'targetFluxes': {'_default': [], '_updater': 'set'},
                     'targetFluxesUpper': {'_default': [], '_updater': 'set'},
@@ -174,7 +175,6 @@ class Metabolism(Process):
                     '_emit': True}}}
 
     def next_update(self, timestep, states):
-        flux_targets = states['exchange_constraints']
 
         # Load current state of the sim
         ## Get internal state variables
@@ -222,7 +222,9 @@ class Metabolism(Process):
             met: conc.asNumber(CONC_UNITS)
             for met, conc in conc_updates.items()}
 
-        external_aa_levels = {aa[3:-3]+'[p]':f for aa,f in flux_targets.items()}
+        #Estimated flux based on mechanistic uptake
+        flux_targets = states['exchange_constraints']
+        external_aa_levels = {aa[3:-3] + '[p]': f for aa, f in flux_targets.items()}
 
         # Update FBA problem based on current state
         ## Set molecule availability (internal and external)
@@ -267,9 +269,6 @@ class Metabolism(Process):
                 'exchange': {
                     molecule: delta_nutrients[index]
                     for index, molecule in enumerate(fba.getExternalMoleculeIDs())}},
-
-            'amino_acids_inside':{metabolite: delta_metabolites_final[index]
-                for index, metabolite in enumerate(self.model.metaboliteNamesFromNutrients) if metabolite in self.aa_names},
 
             'listeners': {
                 'fba_results': {
@@ -555,10 +554,11 @@ class FluxBalanceAnalysisModel(object):
             conc_updates (Dict[str, Unum]): updates to concentrations targets for
                 molecules (molecule ID: concentration in counts/volume units)
         """
-        aa_in_media = [True]*21
-        aa_in_media[19]=False
-        aas=np.array(list(import_updates.keys()))[aa_in_media]
-        aa_fluxes=np.array(list(import_updates.values()))[aa_in_media]
+
+        aa_in_media = [True] * 21
+        aa_in_media[19] = False
+        aas = np.array(list(import_updates.keys()))[aa_in_media]
+        aa_fluxes = np.array(list(import_updates.values()))[aa_in_media]
 
         # Update objective from media exchanges
         external_molecule_levels, objective = self.exchange_constraints(
@@ -575,7 +575,7 @@ class FluxBalanceAnalysisModel(object):
         external_molecule_levels = self.update_external_molecule_levels(
             objective, metabolite_conc, external_molecule_levels)
         self.fba.setExternalMoleculeLevels(external_molecule_levels)
-        self.fba.setSpecificExternalMoleculeLevels(aa_fluxes,aas,force=True)
+        self.fba.setSpecificExternalMoleculeLevels(aa_fluxes, aas, force=True)
 
     def set_reaction_bounds(self, catalyst_counts, counts_to_molar, coefficient,
             gtp_to_hydrolyze):

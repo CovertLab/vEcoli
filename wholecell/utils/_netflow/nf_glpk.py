@@ -233,7 +233,6 @@ class NetworkFlowGLPK(NetworkFlowProblemBase):
 		elif lower == upper:
 			variable_type = glp.GLP_FX  # fixed variable
 		elif lower > upper:
-			print('-----------------> ',lower, upper)
 			raise ValueError("The lower bound must be <= upper bound")
 		elif not np.isinf(lower) and not np.isinf(upper):
 			variable_type = glp.GLP_DB  # double-bounded variable
@@ -259,7 +258,6 @@ class NetworkFlowGLPK(NetworkFlowProblemBase):
 				self._lb[flow],
 				self._ub[flow],
 				)
-			
 			self._flows[flow] = idx
 
 		return idx
@@ -302,8 +300,8 @@ class NetworkFlowGLPK(NetworkFlowProblemBase):
 			self._ub[flow] = upperBound
 			reset_bounds = True
 
-		if self._lb[flow]>self._ub[flow]:
-				self._lb[flow] = self._ub[flow];
+		if self._lb[flow] > self._ub[flow]:
+				self._lb[flow] = self._ub[flow]
 
 		if reset_bounds:
 			self._set_col_bounds(

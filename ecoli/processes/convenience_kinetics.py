@@ -39,6 +39,7 @@ from vivarium.plots.simulation_output import plot_simulation_output
 # vivarium-ecoli imports
 from ecoli.library.kinetic_rate_laws import KineticFluxModel
 
+import numpy as np
 
 NAME = 'convenience_kinetics'
 COUNTS_UNITS = units.mmol
@@ -50,6 +51,7 @@ CONVERSION_UNITS = MASS_UNITS * TIME_UNITS / VOLUME_UNITS
 GDCW_BASIS = units.mmol / units.g / units.h
 
 USE_KINETICS = True
+
 
 class ConvenienceKinetics(Process):
     '''Michaelis-Menten-style enzyme kinetics model
@@ -222,7 +224,7 @@ class ConvenienceKinetics(Process):
             'exchanges',
             'global'
         ],
-        }
+    }
 
     def __init__(self, parameters=None):
         super().__init__(parameters)
@@ -235,6 +237,7 @@ class ConvenienceKinetics(Process):
         self.kinetic_rate_laws = KineticFluxModel(self.reactions, kinetic_parameters)
         self.nAvogadro = self.parameters['avogadro']
         self.cellDensity = self.parameters['cell_density']
+        self.exponential = 1
 
     def initial_state(self, config=None):
         return self.parameters['initial_state']
@@ -248,7 +251,7 @@ class ConvenienceKinetics(Process):
                 schema[port][state_id] = {
                     '_default': initial_state[port][state_id],
                     '_updater': 'null',
-                    '_emit': True}
+                }
 
         # exchanges
         # Note: exchanges depends on a port called external
@@ -256,7 +259,7 @@ class ConvenienceKinetics(Process):
             schema['exchanges'] = {
                 state_id: {
                     '_default': 0.0,
-                    '_updater': 'null',
+                    '_updater': 'null'
                 }
                 for state_id in schema['external'].keys()
             }
@@ -266,49 +269,42 @@ class ConvenienceKinetics(Process):
             schema['fluxes'][state] = {
                 '_default': 0.0,
                 '_updater': 'set',
-                '_emit':True,
+                '_emit': True,
             }
 
         # global
         schema['global'] = {
             'mmol_to_counts': {
-                '_default': 0.0 * units.L / units.mmol,
+                '_default': 0.0,
+                '_emit': True,
             },
         }
 
         schema['listeners'] = {
-                'mass': {
-                    'cell_mass': {'_default': 0.0},
-                    'dry_mass': {'_default': 0.0}}}
+            'mass': {
+                'cell_mass': {'_default': 0.0},
+                'dry_mass': {'_default': 0.0}}}
 
-        schema['import_counts']={}
-        for state in self.kinetic_rate_laws.reaction_ids:
-            schema['import_counts'][state] = {
-                '_default': 0.0,
-                '_updater': 'set',
-                '_emit':True,
-            }
-
-        
         return schema
 
     def next_update(self, timestep, states):
 
-        transporters = states['internal']
-
-        cell_mass = states['listeners']['mass']['cell_mass'] * 1e-15 * units.g#grams
+        cell_mass = states['listeners']['mass']['cell_mass'] * 1e-15 * units.g  # grams
         dry_mass = states['listeners']['mass']['dry_mass'] * 1e-15 * units.g
-        cellVolume = cell_mass / (self.cellDensity.asNumber()*units.g/units.L)
-        counts_to_mmolar = 1000 / (self.nAvogadro.asNumber() / units.mmol * cellVolume)#).asUnit(CONC_UNITS)
+        cellVolume = cell_mass / (self.cellDensity.asNumber() * units.g / units.L)
+        counts_to_mmolar = 1000 / ((self.nAvogadro.asNumber() / units.mmol) * cellVolume)
 
         # get mmol_to_counts for converting flux to exchange counts
-        mmol_to_counts = dry_mass*units.hr/(counts_to_mmolar*cellVolume*units.s*3600)  #states['global']['mmol_to_counts']
+        mmol_to_counts = dry_mass * units.hr / (counts_to_mmolar * cellVolume * units.s * 3600)
 
         # kinetic rate law requires a flat dict with ('port', 'state') keys.
         flattened_states = remove_units(tuplify_port_dicts(states))
 
         counts_to_mmolar = remove_units(counts_to_mmolar)
-        flattened_concentrations = {k:s*counts_to_mmolar for k,s in flattened_states.items() if type(s)==type(1)}
+        self.exponential *= np.random.uniform(1, 1.005) * np.random.uniform(0.9, 1.1)
+        flattened_concentrations = {k: s * counts_to_mmolar * 10 * self.exponential
+                                    for k, s in flattened_states.items() if (type(s) == type(1.0) or type(s) == type(1))
+                                    }
 
         # get flux, which is in units of mmol / L
         fluxes = self.kinetic_rate_laws.get_fluxes(flattened_concentrations)
@@ -317,8 +313,8 @@ class ConvenienceKinetics(Process):
         # add fluxes to update
         update = {port: {} for port in self.port_ids}
         update.update({'fluxes': fluxes})
-        update.update({'import_counts': {aa:(f/counts_to_mmolar) for aa,f in fluxes.items()}})
-        
+        update.update({'global': {'mmol_to_counts': mmol_to_counts}})
+
         # update exchanges
         for reaction_id, flux in fluxes.items():
             stoichiometry = self.reactions[reaction_id]['stoichiometry']
@@ -337,18 +333,16 @@ class ConvenienceKinetics(Process):
                             update['exchanges'][state_id] = existing_delta + delta
                         else:
                             update[port_id][state_id] = (
-                                update[port_id].get(state_id, 0)
-                                + state_flux
+                                    update[port_id].get(state_id, 0)
+                                    + state_flux
                             )
 
         # note: external and internal ports update change in mmol.
         return update
 
 
-
 # functions
 def get_glc_lct_transport():
-
     transport_reactions = {
         'LCTSt3ipp': {
             'stoichiometry': {
@@ -569,8 +563,8 @@ def test_convenience_kinetics(end_time=2520):
 
     initial_state = kinetic_process.initial_state()
     initial_state['external'] = {
-            'glc__D_e': 1.0,
-            'lcts_e': 1.0}
+        'glc__D_e': 1.0,
+        'lcts_e': 1.0}
     settings = {
         'environment': {
             'volume': 1e-14 * units.L,

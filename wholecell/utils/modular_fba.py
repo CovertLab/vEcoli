@@ -1114,7 +1114,8 @@ class FluxBalanceAnalysis(object):
 		levels_array[:] = levels
 
 		if (levels_array < 0).any():
-			raise InvalidBoundaryError("Negative molecule levels not allowed")
+			levels_array[levels_array < 0] = 0
+			#raise InvalidBoundaryError("Negative molecule levels not allowed")
 
 		for moleculeID, level in zip(self._internalMoleculeIDs, levels_array):
 			flowID = self._generatedID_internalExchange + moleculeID
@@ -1397,9 +1398,10 @@ class FluxBalanceAnalysis(object):
 				targets = [targets]
 
 			if (np.array(targets) < 0).any():
-				raise FBAError("Rate targets cannot be negative. {} were provided with targets of {}"
-					.format(np.array(reactionIDs)[np.array(targets) < 0],
-					np.array(targets)[np.array(targets) < 0]))
+				targets[targets < 0] = 0;
+				#raise fbaerror("rate targets cannot be negative. {} were provided with targets of {}"
+				#	.format(np.array(reactionids)[np.array(targets) < 0],
+				#	np.array(targets)[np.array(targets) < 0]))
 
 			if len(targets) != len(reactionIDs):
 				raise FBAError('There must be equal numbers of reactionIDs and'

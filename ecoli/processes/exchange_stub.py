@@ -5,6 +5,9 @@ Exchanges molecules at pre-set rates through a single port
 
 from vivarium.core.process import Process
 from vivarium.core.composition import simulate_process
+import numpy as np
+
+
 
 class Exchange(Process):
     defaults = {'exchanges': {}}
@@ -25,14 +28,25 @@ class Exchange(Process):
     def ports_schema(self):
         return {
             'molecules': {
-                mol_id: {'_default': 0, '_updater':'accumulate'}
-                for mol_id in self.parameters['exchanges'].keys()}}
+                mol_id: {'_default': 0, '_updater': 'accumulate'}
+                for mol_id in self.parameters['exchanges'].keys()
+            },
+            'export': {
+                mol_id: {'_default': 0, '_updater': 'set', '_emit': True}
+                for mol_id in self.parameters['exchanges'].keys()
+            },
+            'listeners': {'enzyme_kinetics': {'countsToMolar': {'_default': 1.0, '_updater': 'set'}}}
+        }
 
     def next_update(self, timestep, states):
+        countsToMolar = states['listeners']['enzyme_kinetics']['countsToMolar']
         exchange = {
-            mol_id: rate * timestep
+            mol_id: (rate * timestep * np.random.uniform(0.95, 1.05)) / countsToMolar
             for mol_id, rate in self.parameters['exchanges'].items()}
-        return {'molecules': exchange}
+        export = {
+            mol_id: (rate * timestep * np.random.uniform(0.95, 1.05)) / countsToMolar
+            for mol_id, rate in self.parameters['exchanges'].items()}
+        return {'molecules': exchange, 'export': export}
 
 
 def test_exchanger():
@@ -44,7 +58,7 @@ def test_exchanger():
         '_schema': {
             'molecules': {
                 'A': {'_emit': True}
-        }}}
+            }}}
     process = Exchange(parameters)
 
     # declare the initial state
