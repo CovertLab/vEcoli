@@ -241,7 +241,7 @@ class Ecoli(Composer):
             'protein_degradation': self.load_sim_data.get_protein_degradation_config(time_step=time_step),
             'metabolism': self.load_sim_data.get_metabolism_config(time_step=time_step, deriver_mode=True),
             'chromosome_replication': self.load_sim_data.get_chromosome_replication_config(time_step=time_step),
-            'mass': self.load_sim_data.get_mass_config(time_step=time_step),
+            'mass': self.load_sim_data.get_mass_listener_config(time_step=time_step),
             'allocator': self.load_sim_data.get_allocator_config(time_step=time_step, process_names=process_names)
         }
 
