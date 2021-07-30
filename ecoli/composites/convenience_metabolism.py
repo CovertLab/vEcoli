@@ -1,10 +1,12 @@
 """
 Composite model with Metabolism and Convenience Kinetics
 """
+import argparse
 import numpy as np
 from vivarium.core.composer import Composer
 from vivarium.core.engine import pp, Engine
 from vivarium.library.dict_utils import deep_merge
+from vivarium.processes.nonspatial_environment import NonSpatialEnvironment
 
 from ecoli.library.sim_data import LoadSimData
 from ecoli.composites.ecoli_master import AA_MEDIA_ID
@@ -13,6 +15,7 @@ from ecoli.states.wcecoli_state import get_state_from_file
 from ecoli.processes.metabolism import Metabolism
 from ecoli.processes.convenience_kinetics import ConvenienceKinetics
 from ecoli.processes.exchange_stub import Exchange
+from ecoli.processes.local_field import LocalField
 
 from vivarium.processes.growth_rate import GrowthRate
 
@@ -88,12 +91,25 @@ class ConvenienceMetabolism(Composer):
         for mol, rate in exchange_stub_config['exchanges'].items():
             exchange_stub_config['exchanges'][mol] = rate/2
 
-        return {
+        processes = {
             'convenience_kinetics': ConvenienceKinetics(convenience_kinetics_config),
             'metabolism': Metabolism(metabolism_config),
             'exchange_stub': Exchange(exchange_stub_config),
             'growth_rate': GrowthRate(growth_rate_config)
         }
+
+        # TODO -- plug in local field if you want to have environment exchnages applied to change external concentrations
+        # if config['fields_on']:
+        #     # initial_state_cobra = cobra_process.initial_state()
+        #     fields_config = config['field_deriver']
+        #     fields_config.update({
+        #         'initial_external': initial_state_cobra['external']
+        #     })
+        #     processes.update({
+        #         'field_deriver': LocalField(fields_config)
+        #     })
+
+        return processes
 
     def generate_topology(self, config):
         topology = {
@@ -125,10 +141,22 @@ class ConvenienceMetabolism(Composer):
             },
 
             'growth_rate': {
-                'variables': ('listeners', 'mass'),
+                'variables': {
+                    '_path': ('listeners', 'mass'),
+                    # 'transporter_id': ('..', '..', 'bulk', 'transporter_id')  # connect a variable manually
+                },
                 'rates': ('rates',)
             }
         }
+        # if config['fields_on']:
+        #     topology.update({
+        #         'field_deriver': {
+        #             'exchanges': ('environment', 'exchanges',),
+        #             'location': ('global', 'location',),
+        #             'fields': ('fields',),
+        #             'dimensions': ('dimensions',),
+        #             }
+        #     })
         return topology
 
 
@@ -158,7 +186,60 @@ def test_convenience_metabolism(
 
     # retrieve the data
     output = ecoli_simulation.emitter.get_timeseries()
+    return output
 
+
+def run_in_environment(
+        total_time=100,
+        progress_bar=True,
+        aa=True
+):
+    composer = ConvenienceMetabolism()
+
+    # get initial state
+    initial_state = composer.initial_state(aa=aa)
+
+    # generate the composite
+    ecoli = composer.generate()
+
+    # configure the environment
+    environment_config = {
+        'CYS[c]': 1.0,
+    }
+    environment_process = NonSpatialEnvironment(environment_config)
+    ecoli.processes.update({
+        environment_process.name: environment_process})
+
+    # add topology
+    environment_topology = environment_process.generate_topology({
+        'topology': {
+            'external': ('environment',),
+        }})[
+        environment_process.name]
+    ecoli.topology.update({
+        environment_process.name: environment_topology})
+
+    # TODO -- make sure that topology is wired correctly.
+
+
+
+    # make the experiment
+    ecoli_simulation = Engine({
+        'processes': ecoli.processes,
+        'topology': ecoli.topology,
+        'initial_state': initial_state,
+        'progress_bar': progress_bar,
+    })
+
+    # run the experiment
+    ecoli_simulation.update(total_time)
+
+    # retrieve the data
+    output = ecoli_simulation.emitter.get_timeseries()
+    return output
+
+
+def plot_output(output):
     import matplotlib.pyplot as plt
 
     rows = 6
@@ -201,6 +282,23 @@ def test_convenience_metabolism(
     plt.close("all")
 
 
+def run_convenience_metabolism():
+    output = test_convenience_metabolism()
+    plot_output(output)
+
+test_library = {
+    '0': run_convenience_metabolism,
+    '1': run_in_environment,
+}
 
 if __name__ == "__main__":
-    test_convenience_metabolism()
+    parser = argparse.ArgumentParser(description='convenience metabolism')
+    parser.add_argument(
+        '--name', '-n', default=[], nargs='+', help='test ids to run')
+    args = parser.parse_args()
+    run_all = not args.name
+
+    for name in args.name:
+        test_library[name]()
+
+
