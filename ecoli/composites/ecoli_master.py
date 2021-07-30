@@ -76,11 +76,28 @@ class Ecoli(Composer):
         time_step = config['time_step']
         parallel = config['parallel']
 
+        # get process configs
+        process_configs = config['process_configs']
+        for process in process_configs.keys():
+            if process_configs[process] == "sim_data":
+                process_configs[process] = self.load_sim_data.get_config_by_name(process)
+            elif process_configs[process] == "default":
+                process_configs[process] = None
+            else:
+                # user passed a dict, deep-merge with config from LoadSimData
+                # if it exists, else, deep-merge with default
+                try:
+                    default = self.load_sim_data.get_config_by_name(process)
+                except KeyError:
+                    default = ... # ?
+                
+                process_configs[process] = deep_merge(dict(default), process_configs[process])
+
         # make the processes
         processes = {
-            process_name: (process(self.load_sim_data.get_config_by_name(process_name))
-                           if not config['blame']
-                           else make_logging_process(process)(self.sim_data.get_config_by_name(process_name)))
+            process_name: (process(process_configs[process_name])
+                           if not config['log_updates']
+                           else make_logging_process(process)(process_configs[process_name]))
             for (process_name, process) in self.processes.items()
         }
 

@@ -25,7 +25,8 @@ class EcoliSim:
         config['topology'] = self._retrieve_topology(config['topology'],
                                                      config['exclude_processes'],
                                                      config['swap_processes'])
-
+        config['process_configs'] = self._retrieve_process_configs(config['process_configs'],
+                                                                   config['processes'])
         self.config = config
 
         # unpack config
@@ -34,6 +35,7 @@ class EcoliSim:
         self.seed = config['seed']
         self.processes = config['processes']
         self.topology = config['topology']
+        self.process_configs = config['process_configs']
         self.initial_time = config['initial_time']
         self.total_time = config['total_time']
         self.generations = config['generations']
@@ -81,7 +83,7 @@ class EcoliSim:
             help="Whether to return data in raw format (dictionary where keys are times, values are states)."
         )
         parser.add_argument(
-            'path_to_sim_data', nargs="*", default=None,
+            'sim_data_path', nargs="*", default=None,
             help="Path to the sim_data to use for this experiment."
         )
         args = parser.parse_args()
@@ -157,6 +159,16 @@ class EcoliSim:
             result[process] = {
                 k: tuple(v) for k, v in process_topology.items()
             }
+        return result
+
+    def _retrieve_process_configs(self, process_configs, processes):
+        result = {}
+        for process in processes:
+            result[process] = process_configs.get(process)
+
+            if result[process] == None:
+                result[process] = "sim_data"
+        
         return result
 
     def run(self):
