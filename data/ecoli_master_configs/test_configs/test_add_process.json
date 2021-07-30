@@ -6,6 +6,11 @@
             "molecules": {
                 "PD00413[c]": {"_updater": "nonnegative_accumulate"}
             }
+        },
+        "clock" : {
+            "global_time" : {
+                "_emit" : true
+            }
         }
     },
     "add_processes" : ["clock"],

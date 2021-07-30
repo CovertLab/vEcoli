@@ -11,6 +11,9 @@ def testAddProcess():
     sim = EcoliSim.from_file(CONFIG_DIR_PATH + 'test_configs/test_add_process.json')
     data = sim.run()
 
+    assert 'clock' in sim.ecoli.processes.keys()
+    assert 'global_time' in data.keys()
+
 
 def testExcludeProcess():
     sim = EcoliSim.from_file(CONFIG_DIR_PATH + 'test_configs/test_exclude_process.json')
@@ -34,7 +37,7 @@ def testSwapProcess():
 
 def main():
     testDefault()
-    #testAddProcess()  # TODO: Known not to work (config issue)
+    testAddProcess()
     testExcludeProcess()
     testSwapProcess()
 

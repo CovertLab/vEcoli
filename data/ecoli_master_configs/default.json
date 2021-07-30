@@ -37,6 +37,7 @@
         "ecoli-chromosome_replication",
         "ecoli-mass"
     ],
+    "process_configs": {},
     "topology": {
         "ecoli-tf-binding": {
             "promoters": ["unique", "promoter"],
