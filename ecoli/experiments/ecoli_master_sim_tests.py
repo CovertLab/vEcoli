@@ -24,13 +24,19 @@ def testExcludeProcess():
 def testSwapProcess():
     sim = EcoliSim.from_file(CONFIG_DIR_PATH + 'test_configs/test_swap_process.json')
     data = sim.run()
+    
+    assert "ecoli-mass-listener" in sim.ecoli.processes.keys()
+    assert "ecoli-mass-listener" in sim.ecoli.topology.keys()
+    assert "dnaMass" in data['listeners']['mass'].keys()
+    assert "ecoli-mass" not in sim.ecoli.processes.keys()
+    assert "ecoli-mass" not in sim.ecoli.topology.keys()
 
 
 def main():
     testDefault()
     #testAddProcess()  # TODO: Known not to work (config issue)
     testExcludeProcess()
-    # testSwapProcess()  # TODO: Known not to work (mass listener process not on this branch)
+    testSwapProcess()
 
 
 if __name__=="__main__":

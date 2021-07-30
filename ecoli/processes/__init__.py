@@ -14,6 +14,7 @@ from ecoli.processes.metabolism import Metabolism
 from ecoli.processes.chromosome_replication import ChromosomeReplication
 from ecoli.processes.mass import Mass
 from ecoli.processes.exchange_stub import Exchange
+from ecoli.processes.listeners.mass_listener import MassListener
 
 # add to registry
 process_registry.register(TfBinding.name, TfBinding)
@@ -29,4 +30,5 @@ process_registry.register(ProteinDegradation.name, ProteinDegradation)
 process_registry.register(Metabolism.name, Metabolism)
 process_registry.register(ChromosomeReplication.name, ChromosomeReplication)
 process_registry.register(Mass.name, Mass)
+process_registry.register(MassListener.name, MassListener)
 process_registry.register(Exchange.name, Exchange)
