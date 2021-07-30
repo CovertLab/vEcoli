@@ -20,6 +20,45 @@ class LoadSimData:
         with open(sim_data_path, 'rb') as sim_data_file:
             self.sim_data = cPickle.load(sim_data_file)
 
+
+    def get_chromosome_replication_config(self, time_step=2, parallel=False):
+        get_dna_critical_mass = self.sim_data.mass.get_dna_critical_mass
+        doubling_time = self.sim_data.condition_to_doubling_time[self.sim_data.condition]
+        chromosome_replication_config = {
+            'time_step': time_step,
+            '_parallel': parallel,
+
+            'max_time_step': self.sim_data.process.replication.max_time_step,
+            'get_dna_critical_mass': get_dna_critical_mass,
+            'criticalInitiationMass': get_dna_critical_mass(doubling_time),
+            'nutrientToDoublingTime': self.sim_data.nutrient_to_doubling_time,
+            'replichore_lengths': self.sim_data.process.replication.replichore_lengths,
+            'sequences': self.sim_data.process.replication.replication_sequences,
+            'polymerized_dntp_weights': self.sim_data.process.replication.replication_monomer_weights,
+            'replication_coordinate': self.sim_data.process.transcription.rna_data['replication_coordinate'],
+            'D_period': self.sim_data.growth_rate_parameters.d_period.asNumber(units.s),
+            'no_child_place_holder': self.sim_data.process.replication.no_child_place_holder,
+            'basal_elongation_rate': int(round(
+                self.sim_data.growth_rate_parameters.replisome_elongation_rate.asNumber(units.nt / units.s))),
+            'make_elongation_rates': self.sim_data.process.replication.make_elongation_rates,
+
+            # sim options
+            'mechanistic_replisome': True,
+
+            # molecules
+            'replisome_trimers_subunits': self.sim_data.molecule_groups.replisome_trimer_subunits,
+            'replisome_monomers_subunits': self.sim_data.molecule_groups.replisome_monomer_subunits,
+            'dntps': self.sim_data.molecule_groups.dntps,
+            'ppi': [self.sim_data.molecule_ids.ppi],
+
+            # random state
+            'seed': self.random_state.randint(RAND_MAX),
+        }
+
+
+        return chromosome_replication_config
+
+
     def get_tf_config(self, time_step=2, parallel=False):
         tf_binding_config = {
             'time_step': time_step,
@@ -310,6 +349,8 @@ class LoadSimData:
 
         REVERSE_TAG = ' (reverse)'
 
+        # TODO Consider moving separation of reactions into metabolism reaction. Is it even necessary?
+
         # First pass. Add all reactions without tag.
         for key, value in stoichiometry.items():
             if not key.endswith(REVERSE_TAG):
@@ -410,11 +451,10 @@ class LoadSimData:
 
     def get_mass_config(self, time_step=2, parallel=False):
         bulk_ids = self.sim_data.internal_state.bulk_molecules.bulk_data['id']
-
-        # molecule weight is converted to femtograms/mol
-        molecular_weights = {
-            molecule_id: self.sim_data.getter.get_mass([molecule_id]).asNumber(units.fg / units.mol)[0]
-            for molecule_id in bulk_ids}
+        molecular_weights = {}
+        for molecule_id in bulk_ids:
+            molecular_weights[molecule_id] = self.sim_data.getter.get_mass(
+                molecule_id).asNumber(units.fg / units.mol)
 
         # unique molecule masses
         unique_masses = {}
