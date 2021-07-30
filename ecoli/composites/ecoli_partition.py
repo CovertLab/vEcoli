@@ -122,6 +122,29 @@ def path_in_bulk(topo):
                 return True
     return False
 
+def make_deriver(process_class):
+    """Turn a given process class into a deriver
+
+    Args:
+        process_class (Process): process class to be converted
+        into a deriver
+
+    Returns:
+        Deriver: process class coverted into a deriver
+    """
+    process = type(
+        f"{process_class.__name__}",
+        (process_class,),
+        {})
+    __class__ = process
+    
+    def is_deriver(self):
+        return True
+    
+    process.is_deriver = is_deriver
+    
+    return process
+
 
 class Requester(Deriver):
     defaults = {'process': None}
@@ -216,7 +239,7 @@ class Ecoli(Composer):
             'two_component_system': self.load_sim_data.get_two_component_system_config(time_step=time_step),
             'equilibrium': self.load_sim_data.get_equilibrium_config(time_step=time_step),
             'protein_degradation': self.load_sim_data.get_protein_degradation_config(time_step=time_step),
-            'metabolism': self.load_sim_data.get_metabolism_config(time_step=time_step),
+            'metabolism': self.load_sim_data.get_metabolism_config(time_step=time_step, deriver_mode=True),
             'chromosome_replication': self.load_sim_data.get_chromosome_replication_config(time_step=time_step),
             'mass': self.load_sim_data.get_mass_config(time_step=time_step),
             'allocator': self.load_sim_data.get_allocator_config(time_step=time_step, process_names=process_names)
@@ -224,9 +247,7 @@ class Ecoli(Composer):
 
         # make the processes
         processes = {
-            process_name: (process(configs[process_name])
-                           if not config['blame']
-                           else make_logging_process(process)(configs[process_name]))
+            process_name: process(configs[process_name])
             for (process_name, process) in config['processes'].items()
             if process_name not in [
                 'polypeptide_elongation'
@@ -248,9 +269,22 @@ class Ecoli(Composer):
         evolvers = {
             f'{process_name}_evolver': Evolver({'time_step': time_step,
                                                 'process': process})
+                if not config['blame']
+                else make_logging_process(Evolver)({'time_step': time_step,
+                                                    'process': process})
             for (process_name, process) in processes.items()
             if process_name not in derivers
         }
+        
+        # Make metabolism into a deriver that runs after all processes have completed like in wcEcoli
+        # No partitioning necessary
+        config['processes']['metabolism'] = make_deriver(config['processes']['metabolism'])
+        
+        if config['blame']:
+            processes['metabolism'] = make_logging_process(
+                config['processes']['metabolism'])(configs['metabolism'])
+        else:
+            processes['metabolism'] = config['processes']['metabolism'](configs['metabolism'])
         
         division = {}
         # add division
@@ -303,6 +337,9 @@ class Ecoli(Composer):
         topology['mass'] = config['topology']['mass']
         
         topology['metabolism'] = config['topology']['metabolism']
+        
+        if config['blame']:
+            topology['metabolism']['log_update'] = ('log_update', 'metabolism',)
 
         return topology
 

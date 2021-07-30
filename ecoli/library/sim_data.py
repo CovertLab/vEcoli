@@ -371,7 +371,7 @@ class LoadSimData:
 
         return protein_degradation_config
 
-    def get_metabolism_config(self, time_step=2, parallel=False):
+    def get_metabolism_config(self, time_step=2, parallel=False, deriver_mode=False):
         metabolism_config = {
             'time_step': time_step,
             '_parallel': parallel,
@@ -405,6 +405,8 @@ class LoadSimData:
             'amino_acid_ids': sorted(self.sim_data.amino_acid_code_to_id_ordered.values()),
             'seed': self.random_state.randint(RAND_MAX),
             'linked_metabolites': self.sim_data.process.metabolism.linked_metabolites,
+            # Whether to use metabolism as a deriver (with t=0 skipped)
+            'deriver_mode': deriver_mode
         }
 
         return metabolism_config
