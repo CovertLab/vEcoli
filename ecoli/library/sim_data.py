@@ -64,7 +64,6 @@ class LoadSimData:
             'seed': self.random_state.randint(RAND_MAX),
         }
 
-
         return chromosome_replication_config
 
     def get_tf_config(self, time_step=2, parallel=False):
@@ -421,7 +420,8 @@ class LoadSimData:
         unique_masses = {}
         uniqueMoleculeMasses = self.sim_data.internal_state.unique_molecule.unique_molecule_masses
         for (id_, mass) in zip(uniqueMoleculeMasses["id"], uniqueMoleculeMasses["mass"]):
-            unique_masses[id_] = (mass / self.sim_data.constants.n_avogadro).asNumber(units.fg)
+            unique_masses[id_] = (
+                mass / self.sim_data.constants.n_avogadro).asNumber(units.fg)
 
         mass_config = {
             'molecular_weights': molecular_weights,
@@ -430,7 +430,38 @@ class LoadSimData:
             'water_id': 'WATER[c]',
         }
         return mass_config
-    
+
+      
+    def get_mass_listener_config(self, time_step=2, parallel=False):
+        mass_config = {
+            'cellDensity': self.sim_data.constants.cell_density.asNumber(units.g / units.L),
+            'bulk_ids' : self.sim_data.internal_state.bulk_molecules.bulk_data['id'],
+            'bulk_masses': self.sim_data.internal_state.bulk_molecules.bulk_data['mass'].asNumber(
+                units.fg / units.mol) / self.sim_data.constants.n_avogadro.asNumber(1 / units.mol),
+            'unique_ids' : self.sim_data.internal_state.unique_molecule.unique_molecule_masses['id'],
+            'unique_masses': self.sim_data.internal_state.unique_molecule.unique_molecule_masses['mass'].asNumber(
+                units.fg / units.mol) / self.sim_data.constants.n_avogadro.asNumber(1/units.mol),
+            'submass_indices': {
+                'rna': np.array([
+                    self.sim_data.submass_name_to_index[name]
+                    for name in ["rRNA", "tRNA", "mRNA", "miscRNA", "nonspecific_RNA"]
+                ]),
+                'rRna': self.sim_data.submass_name_to_index["rRNA"],
+                'tRna': self.sim_data.submass_name_to_index["tRNA"],
+                'mRna': self.sim_data.submass_name_to_index["mRNA"],
+                'dna': self.sim_data.submass_name_to_index["DNA"],
+                'protein': self.sim_data.submass_name_to_index["protein"],
+                'smallMolecule': self.sim_data.submass_name_to_index["metabolite"],
+                'water': self.sim_data.submass_name_to_index["water"]
+            },
+            'compartment_id_to_index' : self.sim_data.compartment_id_to_index,
+            'n_avogadro': self.sim_data.constants.n_avogadro,  # 1/mol
+            'time_step' : time_step
+        }
+
+        return mass_config
+
+      
     def get_allocator_config(self, time_step=2, parallel=False, processes={}):
         allocator_config = {
             'time_step': time_step, 
