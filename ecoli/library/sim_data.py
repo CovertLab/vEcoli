@@ -45,6 +45,7 @@ class LoadSimData:
             'ecoli-metabolism': self.get_metabolism_config,
             'ecoli-chromosome_replication': self.get_chromosome_replication_config,
             'ecoli-mass': self.get_mass_config,
+            'ecoli-mass-listener' : self.get_mass_listener_config
         }
 
         try:
