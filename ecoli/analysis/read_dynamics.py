@@ -368,9 +368,18 @@ def read_translation_dynamics(sim_data, node, node_id, columns, indexes, volume,
 	"""
 	rna_id = node_id.split(NODE_ID_SUFFIX["translation"])[0] + "_RNA[c]"
 	translation_idx = indexes["TranslatedRnas"][rna_id]
-
+	prob_translation_array = timeseries['listeners']['ribosome_data']['prob_translation_per_transcript']
+	for value in prob_translation_array:
+		if value != [] and type(value) != float:
+			array_len = len(value)
+			break
+	for i in range(len(prob_translation_array)):
+		if prob_translation_array[i] == [] or type(prob_translation_array[i]) == float:
+			prob_translation_array[i] = [0.0 for i in range(array_len)]
+	prob_translation_array = np.array(prob_translation_array)
 	dynamics = {
-		'translation probability': columns[("RibosomeData", "probTranslationPerTranscript")][:, translation_idx],
+		# 'translation probability': columns[("RibosomeData", "probTranslationPerTranscript")][:, translation_idx],
+		'translation probability': prob_translation_array[:, translation_idx],
 		}
 	dynamics_units = {
 		'translation probability': PROB_UNITS,
