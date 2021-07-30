@@ -88,7 +88,7 @@ class Ecoli(Composer):
             'protein_degradation': self.load_sim_data.get_protein_degradation_config(time_step=time_step),
             'metabolism': self.load_sim_data.get_metabolism_config(time_step=time_step),
             'chromosome_replication': self.load_sim_data.get_chromosome_replication_config(time_step=time_step),
-            'mass': self.load_sim_data.get_mass_config(time_step=time_step),
+            'mass': self.load_sim_data.get_mass_listener_config(time_step=time_step),
         }
 
         # make the processes
@@ -137,6 +137,7 @@ def run_ecoli(
         divide=False,
         progress_bar=True,
         blame=False,
+        time_series=True
 ):
     """Run ecoli_master simulations
 
@@ -187,14 +188,17 @@ def run_ecoli(
         'emit_config': False,
         # Not emitting every step is faster but breaks blame.py
         #'emit_step': 1000,
-        #'emitter': 'database'
+        #'emitter': 'database
     })
 
     # run the experiment
     ecoli_experiment.update(total_time)
 
     # retrieve the data
-    output = ecoli_experiment.emitter.get_timeseries()
+    if time_series:
+        output = ecoli_experiment.emitter.get_timeseries()
+    else:
+        output = ecoli_experiment.emitter.get_data()
 
     return output
 
