@@ -122,29 +122,6 @@ def path_in_bulk(topo):
                 return True
     return False
 
-def make_deriver(process_class):
-    """Turn a given process class into a deriver
-
-    Args:
-        process_class (Process): process class to be converted
-        into a deriver
-
-    Returns:
-        Deriver: process class coverted into a deriver
-    """
-    process = type(
-        f"{process_class.__name__}",
-        (process_class,),
-        {})
-    __class__ = process
-    
-    def is_deriver(self):
-        return True
-    
-    process.is_deriver = is_deriver
-    
-    return process
-
 
 class Requester(Deriver):
     defaults = {'process': None}
@@ -275,10 +252,6 @@ class Ecoli(Composer):
             for (process_name, process) in processes.items()
             if process_name not in derivers
         }
-        
-        # Make metabolism into a deriver that runs after all processes have completed like in wcEcoli
-        # No partitioning necessary
-        config['processes']['metabolism'] = make_deriver(config['processes']['metabolism'])
         
         if config['blame']:
             processes['metabolism'] = make_logging_process(

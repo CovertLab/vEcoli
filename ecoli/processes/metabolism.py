@@ -113,6 +113,9 @@ class Metabolism(Process):
         self.random_state = np.random.RandomState(seed = self.seed)
         
         self.deriver_mode = self.parameters['deriver_mode']
+        
+    def is_deriver(self):
+        return self.deriver_mode
 
     def ports_schema(self):
         return {
