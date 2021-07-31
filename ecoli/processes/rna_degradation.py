@@ -85,10 +85,7 @@ class RnaDegradation(Process):
         'EndoRNaseFunc': 1,
         'ribosome30S': 'ribosome30S',
         'ribosome50S': 'ribosome50S',
-        'seed': 0,
-        # partitioning flags
-        'request_only': False,
-        'evolve_only': False,}
+        'seed': 0}
     
     def __init__(self, parameters=None):
         super().__init__(parameters)
@@ -159,9 +156,6 @@ class RnaDegradation(Process):
 
         self.seed = self.parameters['seed']
         self.random_state = np.random.RandomState(seed = self.seed)
-        
-        self.request_only = self.parameters['request_only']
-        self.evolve_only = self.parameters['evolve_only']
         
     def ports_schema(self):
         return {
@@ -356,7 +350,7 @@ class RnaDegradation(Process):
     def evolve_state(self, timestep, states):
         ## wcEcoli evolveState
         # Get vector of numbers of RNAs to degrade for each RNA species
-        n_degraded_bulk_RNA = array_from(states['bulk_RNAs'])
+        n_degraded_bulk_RNA = array_from(states['bulk_RNAs']).astype(int)
         n_degraded_unique_RNA = self.n_unique_RNAs_to_degrade
         n_degraded_RNA = n_degraded_bulk_RNA + n_degraded_unique_RNA
         
@@ -475,15 +469,10 @@ class RnaDegradation(Process):
         return update
 
     def next_update(self, timestep, states):
-        if self.request_only:
-            update = self.calculate_request(timestep, states)
-        elif self.evolve_only:
-            update = self.evolve_state(timestep, states)
-        else:
-            requests = self.calculate_request(timestep, states)
-            states = deep_merge(states, requests)
-            update = self.evolve_state(timestep, states)
-            update['listeners'].update(requests['listeners'])
+        requests = self.calculate_request(timestep, states)
+        states = deep_merge(states, requests)
+        update = self.evolve_state(timestep, states)
+        update['listeners'] = deep_merge(update['listeners'], requests['listeners'])
         return update
 
     def _calculate_total_n_to_degrade(self, timestep, specificity, total_kcat_endornase):

@@ -67,7 +67,8 @@ class Metabolism(Process):
         'doubling_time': 44.0 * units.min,
         'amino_acid_ids': {},
         'linked_metabolites': None,
-        'seed': 0}
+        'seed': 0,
+        'deriver_mode': False}
 
     def __init__(self, parameters=None):
         super().__init__(parameters)
@@ -110,6 +111,11 @@ class Metabolism(Process):
 
         self.seed = self.parameters['seed']
         self.random_state = np.random.RandomState(seed = self.seed)
+        
+        self.deriver_mode = self.parameters['deriver_mode']
+        
+    def is_deriver(self):
+        return self.deriver_mode
 
     def ports_schema(self):
         return {
@@ -173,6 +179,12 @@ class Metabolism(Process):
                     '_emit': True}}}
 
     def next_update(self, timestep, states):
+        # Skip t=0 if a deriver
+        if self.deriver_mode:
+            self.deriver_mode = False
+            return {}
+        
+        timestep = self.parameters['time_step']
 
         # Load current state of the sim
         ## Get internal state variables
