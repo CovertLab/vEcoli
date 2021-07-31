@@ -27,10 +27,7 @@ class TwoComponentSystem(Process):
         'moleculesToNextTimeStep': lambda counts, volume, avogadro, timestep, random, method, min_step, jit: (
             [], []),
         'moleculeNames': [],
-        'seed': 0,
-        # partitioning flags
-        'request_only': False,
-        'evolve_only': False,}
+        'seed': 0}
 
     # Constructor
     def __init__(self, initial_parameters):
@@ -51,9 +48,6 @@ class TwoComponentSystem(Process):
 
         self.seed = self.parameters['seed']
         self.random_state = np.random.RandomState(seed = self.seed)
-
-        self.request_only = self.parameters['request_only']
-        self.evolve_only = self.parameters['evolve_only']
 
     def ports_schema(self):
         return {
@@ -98,12 +92,7 @@ class TwoComponentSystem(Process):
         return update
 
     def next_update(self, timestep, states):
-        if self.request_only:
-            update = self.calculate_request(timestep, states)
-        elif self.evolve_only:
-            update = self.evolve_state(timestep, states)
-        else:
-            requests = self.calculate_request(timestep, states)
-            states = deep_merge(states, requests)
-            update = self.evolve_state(timestep, states)
+        requests = self.calculate_request(timestep, states)
+        states = deep_merge(states, requests)
+        update = self.evolve_state(timestep, states)
         return update

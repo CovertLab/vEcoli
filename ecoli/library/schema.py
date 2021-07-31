@@ -58,6 +58,7 @@ def bulk_schema(
     schema = {
         '_default': 0,
         '_divider': 'binomial',
+        '_properties': {'bulk': True},
         '_emit': True}
     if updater:
         schema['_updater'] = updater
