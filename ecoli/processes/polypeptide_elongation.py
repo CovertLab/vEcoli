@@ -217,6 +217,13 @@ class PolypeptideElongation(Process):
                 self.rela,
                 self.spot,
                 self.ppgpp]),
+            
+            'molecules_total': bulk_schema([
+                self.proton,
+                self.water,
+                self.rela,
+                self.spot,
+                self.ppgpp]),
 
             'monomers': bulk_schema(self.proteinIds),
             'amino_acids': bulk_schema(self.amino_acids),
@@ -226,6 +233,10 @@ class PolypeptideElongation(Process):
             'charged_trna': bulk_schema(self.charged_trna_names),
             'charging_molecules': bulk_schema(self.charging_molecule_names),
             'synthetases': bulk_schema(self.synthetase_names),
+            
+            'amino_acids_total': bulk_schema(self.amino_acids),
+            'uncharged_trna_total': bulk_schema(self.uncharged_trna_names),
+            'charged_trna_total': bulk_schema(self.charged_trna_names),
 
             'active_ribosome': {
                 '*': {
