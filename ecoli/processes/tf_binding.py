@@ -108,6 +108,10 @@ class TfBinding(Process):
             'active_tfs': bulk_schema([
                 self.active_tfs[tf]
                 for tf in self.tf_ids]),
+            
+            'active_tfs_total': bulk_schema([
+                self.active_tfs[tf]
+                for tf in self.tf_ids]),
 
             'inactive_tfs': bulk_schema([
                 self.inactive_tfs[tf]
@@ -177,7 +181,8 @@ class TfBinding(Process):
             # so need to add freed TFs to the total active
             # active_tf_counts = active_tf_view.total_counts()+bound_tf_counts
             # n_available_active_tfs = active_tf_view.count()
-            active_tf_counts = tf_count + bound_tf_counts
+            active_tf_counts = (states['active_tfs_total'][active_tf_key]
+                                + bound_tf_counts)
             n_available_active_tfs = tf_count + bound_tf_counts
 
             # Determine the number of available promoter sites
