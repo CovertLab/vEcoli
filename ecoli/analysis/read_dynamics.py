@@ -393,7 +393,7 @@ def read_complexation_dynamics(sim_data, node, node_id, columns, indexes, volume
 	Reads dynamics data for complexation nodes from a simulation output.
 	"""
 	reaction_idx = indexes["ComplexationReactions"][node_id]
-
+	# TODO: Port ComplexationListener
 	dynamics = {
 		'complexation events': columns[("ComplexationListener", "complexationEvents")][:, reaction_idx],
 		}
@@ -409,7 +409,7 @@ def read_metabolism_dynamics(sim_data, node, node_id, columns, indexes, volume, 
 	Reads dynamics data for metabolism nodes from a simulation output.
 	"""
 	reaction_idx = indexes["MetabolismReactions"][node_id]
-
+	# TODO: Port reactionFluxesConverted within FBAResults
 	dynamics = {
 		'flux': columns[("FBAResults", "reactionFluxesConverted")][:, reaction_idx],
 		}
@@ -425,6 +425,7 @@ def read_equilibrium_dynamics(sim_data, node, node_id, columns, indexes, volume,
 	Reads dynamics data for equilibrium nodes from a simulation output.
 	"""
 	# TODO (ggsun): Fluxes for 2CS reactions are not being listened to.
+	# TODO: Port reactionRates within EquilibriumListener
 	try:
 		reaction_idx = indexes["EquilibriumReactions"][node_id]
 	except (KeyError, IndexError):
@@ -448,10 +449,21 @@ def read_regulation_dynamics(sim_data, node, node_id, columns, indexes, volume, 
 	gene_idx = indexes["Genes"][gene_id]
 	tf_idx = indexes["TranscriptionFactors"][tf_id]
 
+	bound_tf_array = timeseries['listeners']['rna_synth_prob']['n_bound_TF_per_TU']
+	for value in bound_tf_array:
+		if type(value) == list:
+			num_arrays = len(value)
+			array_len = len(value[0])
+			break
+	for i in range(len(bound_tf_array)):
+		if type(bound_tf_array[i]) == int:
+			bound_tf_array[i] = [[0 for i in range(array_len)] for i in range(num_arrays)]
+	bound_tf_array = np.array(bound_tf_array)
+
 	dynamics = {
-		'bound TFs': columns[("RnaSynthProb", "n_bound_TF_per_TU")][
-			:, gene_idx, tf_idx],
-		}
+		# 'bound TFs': columns[("RnaSynthProb", "n_bound_TF_per_TU")][:, gene_idx, tf_idx],
+		'bound TFs': bound_tf_array[:, gene_idx, tf_idx],
+	}
 	dynamics_units = {
 		'bound TFs': COUNT_UNITS,
 		}
@@ -467,10 +479,21 @@ def read_tf_binding_dynamics(sim_data, node, node_id, columns, indexes, volume, 
 	tf_id, _ = node_id.split("-bound")
 	tf_idx = indexes["TranscriptionFactors"][tf_id]
 
+	bound_tf_array = timeseries['listeners']['rna_synth_prob']['n_bound_TF_per_TU']
+	for value in bound_tf_array:
+		if type(value) == list:
+			num_arrays = len(value)
+			array_len = len(value[0])
+			break
+	for i in range(len(bound_tf_array)):
+		if type(bound_tf_array[i]) == int:
+			bound_tf_array[i] = [[0 for i in range(array_len)] for i in range(num_arrays)]
+	bound_tf_array = np.array(bound_tf_array)
+
 	dynamics = {
-		'bound TFs': columns[("RnaSynthProb", "n_bound_TF_per_TU")][
-			:, :, tf_idx].sum(axis=1),
-		}
+		# 'bound TFs': columns[("RnaSynthProb", "n_bound_TF_per_TU")][:, :, tf_idx].sum(axis=1),
+		'bound TFs': bound_tf_array[:, :, tf_idx].sum(axis=1),
+	}
 	dynamics_units = {
 		'bound TFs': COUNT_UNITS,
 		}
