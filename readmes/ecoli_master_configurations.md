@@ -106,27 +106,49 @@ However, typically one wishes to modify these only slightly, e.g. by adding a pr
 - `"exclude_processes"` : List of processes to remove from the simulation
 - `"swap_processes"` : Dictionary where keys are processes in the default configuration, and values are processes to replace these with.
 
-> ***Note:*** In order for `EcoliSimulation` to use new or alternative processes, two requirements need to be met. First, the new process should have its `.name` set (to something that does not conflict with existing processes). Second, the new process needs to be *registered* with the *process registry* (do this in `ecoli/processes/__init__.py`).
+> ***Note:*** In order for `EcoliSimulation` to use new or alternative processes, a few requirements need to be met. First, the new process should have its `.name` set (to something that does not conflict with existing processes). Second, the new process needs to be *registered* with the *process registry* (do this in `ecoli/processes/__init__.py`). Finally, one needs to specify the configuration of this process using the `"process_configs"` key (see below). If not specified, vivarium-ecoli will default to trying to load the process configuration from `sim_data` (see `LoadSimData.get_config_by_name`).
 
-Adding a process requires adding a corresponding topology to the topology dictionary. Luckily, due to the way EcoliSimulation merges user settings with the default, one can simply specify topology of added processes without restating topology of processes kept from the default (check this??). For example:
+Adding a process requires adding a corresponding topology to the topology dictionary. Luckily, due to the way EcoliSimulation merges user settings with the default, one can simply specify topology of added processes without restating topology of processes kept from the default. For example:
 
 ```
 {
-    "add_processes" : [
-        "clock"
-    ],
-    
-    "topology" : [
+    "add_processes" : ["clock"],
+    "topology" : {
         "clock" : {
             "global_time" : ["global_time"]
         }
-    ]
+    },
+    "process_configs" :{
+        "clock" : {
+            "time_step" : 2.0,
+        }
+    }
 }
 ```
 
-would add a `Clock` process to the default configuration, without affecting the wiring of other processes.
+would add a `vivarium.processes.clock.Clock` process to the default configuration, without affecting the wiring of other processes.
 
-Removing a process removes the corresponding topology entry automatically, and swapping a process keeps the same topology as the original process (unless overridden by the user) (check this).
+Note that we used the `"process_configs"` key to initialize the `Clock` process with a timestep of 2. Besides providing an explicit configuration as we did above, we could also have written
+
+```
+"process_configs" :{
+    "clock" : "default"
+}
+```
+
+to use the default configuration for `Clock`, or 
+
+```
+"process_configs" :{
+    "clock" : "sim_data"
+}
+```
+
+to attempt to load a configuration for `Clock` from sim_data using `LoadSimData.get_config_by_name()` (which would fail in this case). This is the default behavior if a process config is not specified. 
+
+> ***Note:*** when specifying an explicit process config, as in the first case where we set the timestep to 2, this explicit override actually gets deep-merged with (a) the config from sim_data, if it exists, or (b) the default process config, if it does not. This allows one to override only specific entries in the config.
+
+Removing a process removes the corresponding topology entry automatically, and swapping a process keeps the same topology as the original process (unless overridden by the user).
 
 ### Schema Overrides
 
@@ -156,6 +178,8 @@ Schema overrides can also be used to emit data that would normally not be emitte
 
 ### Additional Settings
 
+- `"description"` : (string) description of the experiment
+- `"progress_bar"` : (boolean) whether to show the progress bar
 - `"agent_id"`
 - `"parallel"`
 - `"daughter_path"`

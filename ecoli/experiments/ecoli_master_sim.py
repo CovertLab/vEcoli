@@ -31,6 +31,7 @@ class EcoliSim:
 
         # unpack config
         self.experiment_id = config['experiment_id']
+        self.description = config['description']
         self.emitter = config['emitter']
         self.seed = config['seed']
         self.processes = config['processes']
@@ -41,6 +42,7 @@ class EcoliSim:
         self.generations = config['generations']
         self.log_updates = config['log_updates']
         self.raw_output = config['raw_output']
+        self.progress_bar = config['progress_bar']
         self.sim_data_path = config['sim_data_path']
 
     @staticmethod
@@ -189,10 +191,11 @@ class EcoliSim:
 
         # make the experiment
         experiment_config = {
+            'description': self.description,
             'processes': self.ecoli.processes,
             'topology': self.ecoli.topology,
             'initial_state': initial_state,
-            'progress_bar': True,  # TODO: make configurable?
+            'progress_bar': self.progress_bar,
             'emit_config': False,
             'emitter': self.emitter,
         }
