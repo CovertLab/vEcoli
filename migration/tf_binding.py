@@ -164,14 +164,22 @@ def assertions(actual_update, expected_update, time):
         for tf_index in actual_update['active_tfs'].keys()},
         'listeners' : {
             'rna_synth_prob' : {
-                'pPromoterBound' : [array_equal,
-                                    array_diffs_report_test(f"out/migration/tf_binding/pPromoterBound_comp{time}.txt")],
-                'nPromoterBound' : [array_equal,
-                                    array_diffs_report_test(f"out/migration/tf_binding/nPromoterBound_comp{time}.txt")],
-                'nActualBound' : [array_equal,
-                                array_diffs_report_test(f"out/migration/tf_binding/nActualBound_comp{time}.txt")],
-                'n_available_promoters' : [array_equal,
-                                        array_diffs_report_test(f"out/migration/tf_binding/n_available_promoters_comp{time}.txt")]
+                'pPromoterBound' : [
+                    array_equal,
+                    array_diffs_report_test(
+                        f"out/migration/tf_binding/pPromoterBound_comp{time}.txt")],
+                'nPromoterBound' : [
+                    array_equal,
+                    array_diffs_report_test(
+                        f"out/migration/tf_binding/nPromoterBound_comp{time}.txt")],
+                'nActualBound' : [
+                    array_equal,
+                    array_diffs_report_test(
+                        f"out/migration/tf_binding/nActualBound_comp{time}.txt")],
+                'n_available_promoters' : [
+                    array_equal,
+                    array_diffs_report_test(
+                        f"out/migration/tf_binding/n_available_promoters_comp{time}.txt")]
             }
         }
     }

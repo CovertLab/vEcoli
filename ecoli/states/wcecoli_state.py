@@ -45,7 +45,7 @@ def get_state_from_file(path='data/wcecoli_t0.json'):
                     'SULFATE[p]',
                     'ZN+2[p]',
                     'CA+2[p]',
-                    'PI[p]',
+                    'Pi[p]',
                     'NI+2[p]',
                     'WATER[p]',
                     'AMMONIUM[c]'},

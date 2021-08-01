@@ -21,7 +21,7 @@ from vivarium.library.dict_utils import deep_merge
 from vivarium.plots.simulation_output import plot_variables
 
 # vivarium-ecoli imports
-from ecoli.library.schema import bulk_schema, listener_schema, arrays_from, array_from, array_to
+from ecoli.library.schema import bulk_schema, listener_schema, arrays_from, array_from
 from ecoli.models.polypeptide_elongation_models import BaseElongationModel, MICROMOLAR_UNITS
 
 DEFAULT_AA_NAMES = [
@@ -247,13 +247,7 @@ class PolypeptideElongation(Process):
                     'submass': {
                         'protein': {'_default': 0, '_emit': True}}}},
 
-            'subunits': {
-                self.ribosome30S: {
-                    '_default': 0,
-                    '_emit': True},
-                self.ribosome50S: {
-                    '_default': 0,
-                    '_emit': True}},
+            'subunits': bulk_schema([self.ribosome30S, self.ribosome50S]),
 
             'polypeptide_elongation': {
                 'aa_count_diff': {

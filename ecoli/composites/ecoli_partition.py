@@ -227,7 +227,7 @@ class Ecoli(Composer):
             process_name: process(configs[process_name])
             for (process_name, process) in config['processes'].items()
             if process_name not in [
-                'polypeptide_elongation'
+                # 'polypeptide_elongation'
                 # TODO: get this working again
             ]
         }
@@ -381,6 +381,8 @@ def run_ecoli(
 
     # retrieve the data
     output = ecoli_experiment.emitter.get_timeseries()
+    
+    pp(output['listeners']['mass'])
 
     return output
 

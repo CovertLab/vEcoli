@@ -96,7 +96,7 @@ ECOLI_TOPOLOGY = {
             'molecules_total': ('bulk',),
             'amino_acids_total': ('bulk',),
             'charged_trna_total': ('bulk',),
-            'charging_molecules_total': ('bulk',),},
+            'uncharged_trna_total': ('bulk',),},
 
         'complexation': {
             'molecules': ('bulk',)},
