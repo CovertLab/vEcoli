@@ -20,6 +20,9 @@
         }
     },
     "process_configs" :{
-        "clock" : "default"
+        "clock" : {
+            "time_step" : 2.0,
+            "test" : "Hello vivarium"
+        }
     }
 }

@@ -89,7 +89,7 @@ class Ecoli(Composer):
                 try:
                     default = self.load_sim_data.get_config_by_name(process)
                 except KeyError:
-                    default = ... # ?
+                    default = self.processes[process].defaults
                 
                 process_configs[process] = deep_merge(dict(default), process_configs[process])
 

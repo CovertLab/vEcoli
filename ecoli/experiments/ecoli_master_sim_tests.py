@@ -1,3 +1,5 @@
+import numpy as np
+
 from ecoli.experiments.ecoli_master_sim import EcoliSim, CONFIG_DIR_PATH
 
 
@@ -13,7 +15,8 @@ def testAddProcess():
 
     assert 'clock' in sim.ecoli.processes.keys()
     assert 'global_time' in data.keys()
-
+    assert np.array_equal(data['global_time'], [0, 2])
+    assert sim.ecoli.processes['clock'].parameters['test'] == "Hello vivarium"
 
 def testExcludeProcess():
     sim = EcoliSim.from_file(CONFIG_DIR_PATH + 'test_configs/test_exclude_process.json')
