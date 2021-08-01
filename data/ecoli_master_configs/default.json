@@ -1,5 +1,7 @@
 {
     "experiment_id" : null,
+    "description" : "",
+    "progress_bar" : true,
     "sim_data_path": "reconstruction/sim_data/kb/simData.cPickle",
     "emitter" : "timeseries",
     "log_updates" : false,
