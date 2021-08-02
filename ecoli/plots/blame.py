@@ -8,8 +8,6 @@ from ecoli.library.logging import write_json
 
 from collections import Counter
 
-from data.ecoli_master_configs.default import ECOLI_TOPOLOGY
-
 
 def blame_plot(data, filename='out/ecoli_master/blame.png',
                selected_molecules=None,

@@ -4,6 +4,7 @@ Run simulations of Ecoli Master
 
 import argparse
 import json
+import warnings
 
 from vivarium.core.engine import Engine
 from vivarium.library.dict_utils import deep_merge
@@ -44,6 +45,10 @@ class EcoliSim:
         self.raw_output = config['raw_output']
         self.progress_bar = config['progress_bar']
         self.sim_data_path = config['sim_data_path']
+
+        if self.generations:
+            warnings.warn("generations option is not yet implemented!")
+        
 
     @staticmethod
     def from_cli():
