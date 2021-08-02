@@ -505,10 +505,10 @@ def read_charging_dynamics(sim_data, node, node_id, columns, indexes, volume, ti
 	"""
 	Reads dynamics data for charging nodes from a simulation output.
 	"""
-
+	# TODO: Port net_charged within GrowthLimits
 	rna = '{}[c]'.format(node_id.split(' ')[0])
 	rna_idx = indexes["Charging"][rna]
-
+	ipdb.set_trace()
 	dynamics = {
 		'reaction rate': columns[("GrowthLimits", "net_charged")][:, rna_idx]
 		}
