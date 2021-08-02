@@ -205,13 +205,6 @@ def read_global_dynamics(sim_data, node, node_id, columns, indexes, volume, time
 	"""
 	Reads global dynamics from simulation output.
 	"""
-	# # TODO: Get data_from_database working
-	# # mongo client
-	# experiment_id = '002d4eba-ee5c-11eb-bb11-1e00312eb299'
-	# # retrieve the data directly from database
-	# db = get_experiment_database()
-	# data, _ = data_from_database(experiment_id, db)
-	# timeseries = timeseries_from_data(data)
 
 	cell_mass = np.array(timeseries['listeners']['mass']['cell_mass'])
 
