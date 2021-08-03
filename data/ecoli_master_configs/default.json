@@ -37,7 +37,7 @@
         "ecoli-protein-degradation",
         "ecoli-metabolism",
         "ecoli-chromosome_replication",
-        "ecoli-mass"
+        "ecoli-mass-listener"
     ],
     "process_configs": {},
     "topology": {
@@ -138,7 +138,7 @@
             "listeners": ["listeners"],
             "environment": ["environment"]
         },
-        "ecoli-mass": {
+        "ecoli-mass-listener": {
             "bulk": ["bulk"],
             "unique": ["unique"],
             "listeners": ["listeners"]
