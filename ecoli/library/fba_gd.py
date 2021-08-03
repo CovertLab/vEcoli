@@ -1,12 +1,14 @@
 """FBA via gradient descent."""
-from dataclasses import dataclass
 import time
-from typing import Any, Iterable, Iterator, Mapping, Optional, Tuple
+from dataclasses import dataclass
+from typing import Iterable, Iterator, Mapping, Optional, Tuple, Union
 
 import jax
 import jax.numpy as jnp
 import numpy as np
 import scipy.optimize
+
+ArrayT = Union[np.ndarray, jnp.ndarray]
 
 
 class ReactionNetwork:
@@ -29,8 +31,9 @@ class ReactionNetwork:
         self._reaction_index = {}
         self._molecule_ids = []
         self._molecule_index = {}
-        for reaction in reactions:
-            self.add_reaction(reaction)
+        if reactions is not None:
+            for reaction in reactions:
+                self.add_reaction(reaction)
 
     def add_reaction(self, reaction: dict):
         """Adds a reaction to the network.
@@ -103,51 +106,55 @@ class ReactionNetwork:
         return {molecule_id: value for molecule_id, value in zip(self._molecule_ids, values)}
 
 
-class SteadyStateResidual:
+# TODO(fdrusso): Formalize the Objective interface with an abstract superclass.
+class SteadyStateObjective:
     """Calculates the deviation of the system from steady state, for network intermediates."""
 
-    def __init__(self, network: ReactionNetwork, exchanges: Iterable[str]):
-        self.network = network
-        self.param_key = None
-        exchanges = set(exchanges)
-        indices = []
-        for molecule_id in self.network.molecule_ids():
-            if molecule_id not in exchanges:
-                indices.append(self.network.molecule_index(molecule_id))
-        self._intermediate_indices = np.array(indices)
+    def __init__(self, network: ReactionNetwork, intermediates: Iterable[str], weight: float = 1.0):
+        self.indices = np.array([network.molecule_index(m) for m in intermediates])
+        self.weight = weight
 
-    def __call__(self, velocities: jnp.ndarray, dm_dt: jnp.ndarray, params: Mapping[str, Any]) -> jnp.ndarray:
-        del (velocities)
-        del (params)
-        return dm_dt[self._intermediate_indices]
+    def prepare_targets(self, target_values: Optional[Mapping[str, float]] = None) -> Optional[ArrayT]:
+        """SteadyStateObjective does not use solve-time target values."""
+        return None
+
+    def residual(self, velocities: ArrayT, dm_dt: ArrayT, targets: Optional[ArrayT] = None) -> ArrayT:
+        """Returns the subset of dm/dt affecting intermediates, which should all be zero."""
+        return dm_dt[self.indices] * self.weight
 
 
-class DmdtTargetResidual:
+class TargetDmdtObjective:
     """Calculates the deviation from target rates of change (dm/dt) for specified molecules."""
 
-    def __init__(self, network: ReactionNetwork, molecule_ids: Iterable[str], param_key: str):
+    def __init__(self, network: ReactionNetwork, target_molecules: Iterable[str], weight: float = 1.0):
         self.network = network
-        self.param_key = param_key
-        self._molecule_indices = np.array([self.network.molecule_index(molecule_id) for molecule_id in molecule_ids])
+        self.indices = np.array([network.molecule_index(m) for m in target_molecules])
+        self.weight = weight
 
-    def __call__(self, velocities: jnp.ndarray, dm_dt: jnp.ndarray, params: Mapping[str, Any]) -> jnp.ndarray:
-        del (velocities)
-        targets = jnp.asarray(params[self.param_key])
-        return (dm_dt - targets)[self._molecule_indices]
+    def prepare_targets(self, target_values: Mapping[str, float]) -> Optional[ArrayT]:
+        """Converts a dict into a vector of target values."""
+        return self.network.molecule_vector(target_values)[self.indices]
+
+    def residual(self, velocities: ArrayT, dm_dt: ArrayT, targets: ArrayT) -> ArrayT:
+        """Returns the excess or shortfall of the actual dm/dt vs the target, for all target molecules."""
+        return (dm_dt[self.indices] - targets) * self.weight
 
 
-class KineticTargetResidual:
+class TargetVelocityObjective:
     """Calculates the deviation from target velocities for specified reactions."""
 
-    def __init__(self, network: ReactionNetwork, reaction_ids: Iterable[str], param_key: str):
+    def __init__(self, network: ReactionNetwork, target_reactions: Iterable[str], weight: float = 1.0):
         self.network = network
-        self.param_key = param_key
-        self._reaction_indices = np.array([self.network.reaction_index(reaction_id) for reaction_id in reaction_ids])
+        self.indices = np.array([network.reaction_index(r) for r in target_reactions])
+        self.weight = weight
 
-    def __call__(self, velocities: jnp.ndarray, dm_dt: jnp.ndarray, params: Mapping[str, Any]) -> jnp.ndarray:
-        del (dm_dt)
-        targets = jnp.asarray(params[self.param_key])
-        return (velocities - targets)[self._reaction_indices]
+    def prepare_targets(self, target_values: Mapping[str, float]) -> Optional[ArrayT]:
+        """Converts a dict into a vector of target values."""
+        return self.network.reaction_vector(target_values)[self.indices]
+
+    def residual(self, velocities: ArrayT, dm_dt: ArrayT, targets: ArrayT) -> ArrayT:
+        """Returns the excess or shortfall of the actual velocity vs the target, for all target reactions."""
+        return (velocities[self.indices] - targets) * self.weight
 
 
 @dataclass
@@ -165,86 +172,79 @@ class GradientDescentFba:
     def __init__(self,
                  reactions: Iterable[dict],
                  exchanges: Iterable[str],
-                 objective: Iterable[str],
-                 objectiveType: Optional[str] = None,
-                 objectiveParameters: Optional[Mapping[str, Any]] = None):
+                 target_metabolites: Iterable[str]):
         """Initialize this FBA solver.
 
         Args:
             reactions: a list of reaction dicts following the knowledge base structure. Expected keys are "reaction id",
                 "stoichiometry", "is reversible".
             exchanges: ids of molecules on the boundary, which may flow in or out of the system.
-            objective: ids of molecules included in the (homeostatic) objective.
-            objectiveType: "homeostatic", "kinetic_only", or "homeostatic_kinetics_mixed".
-            objectiveParameters: additional objective-specific parameters. Currently supported is "reactionRateTargets",
-                for kinetic objectives.
+            target_metabolites: ids of molecules with production targets.
         """
-        # Implementation Note: this is a prototype implementation with an API roughly following
-        # modular_fba.FluxBalanceAnalysis, focusing on objectiveTypes currently used in metabolism.py.
-        # The details could be refactored quite a lot, depending on what is learned from the prototype.
-
-        self.network = ReactionNetwork(reactions)
+        network = ReactionNetwork()
         lb = []
         ub = []
         for reaction in reactions:
+            network.add_reaction(reaction)
             if reaction["is reversible"]:
                 lb.append(-np.inf)
                 ub.append(np.inf)
             else:
                 lb.append(0)
                 ub.append(np.inf)
+        self.network = network
         self._bounds = (np.array(lb), np.array(ub))
 
-        self._exchanges = set(exchanges)
-        self._objective_components = set(objective)
+        # All FBA problems have a steady-state objective, for all intermediates.
+        exchanges = set(exchanges)
+        target_metabolites = set(target_metabolites)
+        self._objectives = {
+            "steady-state": SteadyStateObjective(network,
+                                                 (m for m in network.molecule_ids()
+                                                  if m not in exchanges and m not in target_metabolites))
+        }
 
-        # Declared exchanges and objective components are excluded from steady state requirement.
-        self._steady_state_objective = SteadyStateResidual(
-            self.network, self._exchanges | self._objective_components)
+    def add_objective(self, objective_id: str, objective):
+        self._objectives[objective_id] = objective
 
-        self.objectiveType = objectiveType or "homeostatic"
-        if self.objectiveType == "homeostatic":
-            self._homeostatic_objective = DmdtTargetResidual(self.network, self._objective_components, "objective")
-            self._kinetic_objective = None
-        elif self.objectiveType == "kinetic_only":
-            self._homeostatic_objective = None
-            self._kinetic_objective = KineticTargetResidual(
-                self.network, objectiveParameters["reactionRateTargets"], "kinetic_targets")
-        elif self.objectiveType == "homeostatic_kinetics_mixed":
-            self._homeostatic_objective = DmdtTargetResidual(self.network, self._objective_components, "objective")
-            self._kinetic_objective = KineticTargetResidual(
-                self.network, objectiveParameters["reactionRateTargets"], "kinetic_targets")
-        else:
-            raise ValueError(f"Unrecognized self.objectiveType: {self.objectiveType}")
+    def residuals(self, velocities: ArrayT, objective_targets: Mapping[str, ArrayT]) -> Mapping[str, ArrayT]:
+        """Calculates the residual for each component of the overall objective function.
 
-    def residual(self, velocities: jnp.ndarray, params: Mapping[str, Any]) -> jnp.ndarray:
-        """Combines objective residuals into a single residual vector."""
+        Args:
+            velocities: vector of velocities (rates) for all reactions in the network.
+            objective_targets: dict of target value vectors for each objective component. The shape and values of these
+                targets depend on the individual objectives. Missing are permitted, if the individual objective accepts
+                None.
+
+        Returns:
+            A dict of residual vectors, supplied by each objective component.
+        """
+        # TODO(fdrusso): Sparse matrix multiplication for efficiency
         dm_dt = self.network.s_matrix @ velocities
-        residuals = []
-        for objective in (self._steady_state_objective, self._homeostatic_objective, self._kinetic_objective):
-            if objective:
-                residuals.append(objective(velocities, dm_dt, params))
-        return jnp.concatenate(residuals)
+
+        residuals = {}
+        for objective_id, objective in self._objectives.items():
+            targets = objective_targets.get(objective_id, None)
+            residuals[objective_id] = objective.residual(velocities, dm_dt, targets)
+        return residuals
 
     def solve(self,
-              objective: Mapping[str, float],
-              params: Mapping[str, Any],
+              objective_targets: Mapping[str, Mapping[str, float]],
               reaction_flux_bounds: Optional[Mapping[str, float]] = None,
-              initial: Optional[Mapping[str, float]] = None,
+              initial_velocities: Optional[Mapping[str, float]] = None,
               rng_seed: int = None) -> FbaResult:
         """Performs the optimization to solve the specified FBA problem.
 
         Args:
-            objective: dict mapping metabolite_id -> homeostatic objective, in units of concentration per time. Values
-                should be included for all objective keys used to initialize this solver.
-            params: dict with additional parameter values, depending on the problem to be solved.
-                'kinetic_targets': dict mapping reaction_id -> velocity, as current kinetic targets per reaction.
-            reaction_flux_bounds: (optional) dict mapping reaction_id -> (lb, ub) providing explicit bounds on reaction
+            objective_targets: {objective_id: {key: value}} for each objective component. The details of these targets
+                depend on the individual objectives. Missing targets are permitted, if the individual objective accepts
+                None.
+            reaction_flux_bounds: (optional) {reaction_id: (lb, ub)} providing explicit bounds on reaction
                 velocity (flux). Bounds default to (-inf, +inf) for reversible or (0, +inf) for irreversible reactions.
                 Bounds provided here will override these defaults, including for instance allowing reversibility.
-            initial: (optional) dict mapping reaction_id -> velocity as a starting point for optimization. For
-                repeated solutions with evolving objective targets, starting from the previous solution can improve
-                performance. If None, a random starting point is used.
+            initial_velocities: (optional) {reaction_id: velocity} as a starting point for optimization. For repeated
+                solutions with evolving objective targets, starting from the previous solution can improve performance.
+                If None, a random starting point is used.
             rng_seed: (optional) seed for the random number generator, when randomizing the starting point. Provided
                 as an arg to support reproducibility; if None then a suitable seed is chosen.
 
@@ -252,8 +252,8 @@ class GradientDescentFba:
             FbaResult containing optimized reaction velocities, and resulting rate of change per metabolite (dm/dt).
         """
         # Set up x0 with or without random variation, and truncate to bounds.
-        if initial is not None:
-            x0 = jnp.asarray(self.network.reaction_vector(initial))
+        if initial_velocities is not None:
+            x0 = jnp.asarray(self.network.reaction_vector(initial_velocities))
         else:
             # Random starting point.
             if rng_seed is None:
@@ -265,28 +265,26 @@ class GradientDescentFba:
         lb = np.array(self._bounds[0])
         ub = np.array(self._bounds[1])
         if reaction_flux_bounds is not None:
-            for reaction_id,  (reaction_lb, reaction_ub) in reaction_flux_bounds.items():
+            for reaction_id, (reaction_lb, reaction_ub) in reaction_flux_bounds.items():
                 i = self.network.reaction_index(reaction_id)
                 lb[i] = reaction_lb
                 ub[i] = reaction_ub
         x0 = np.maximum(lb, np.minimum(ub, x0))
 
-        # Put all parameters into jax arrays, passed as side arguments to the final residual function.
-        ready_params = {}
-        if self._homeostatic_objective:
-            key = self._homeostatic_objective.param_key
-            ready_params[key] = jnp.asarray(self.network.molecule_vector(objective))
-        if self._kinetic_objective:
-            key = self._kinetic_objective.param_key
-            ready_params[key] = jnp.asarray(self.network.reaction_vector(params[key]))
+        target_values = {}
+        for objective_id, objective in self._objectives.items():
+            targets = objective.prepare_targets(objective_targets.get(objective_id))
+            if targets is not None:
+                target_values[objective_id] = jnp.asarray(targets)
 
-        fn = jax.jit(lambda v: self.residual(v, ready_params))
-        jac = jax.jacfwd(fn)
+        # Overall residual is a flattened vector of the (weighted) residuals of individual objectives.
+        def loss(v):
+            return jnp.concatenate(list(self.residuals(v, target_values).values()))
 
         # Perform the actual gradient descent, and extract the result.
-        soln = scipy.optimize.least_squares(fn, x0, jac=jac, bounds=(lb, ub))
+        soln = scipy.optimize.least_squares(jax.jit(loss), x0, jac=jax.jit(jax.jacfwd(loss)), bounds=(lb, ub))
         dm_dt = self.network.s_matrix @ soln.x
-        ss_residual = self._steady_state_objective(soln.x, dm_dt, ready_params)
+        ss_residual = self._objectives["steady-state"].residual(soln.x, dm_dt, None)
         return FbaResult(seed=rng_seed,
                          velocities=self.network.reaction_values(soln.x),
                          dm_dt=self.network.molecule_values(dm_dt),

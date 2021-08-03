@@ -12,7 +12,7 @@ from ecoli.library.schema import bulk_schema, array_from
 from wholecell.utils import units
 from wholecell.utils.random import stochasticRound
 
-from ecoli.library.fba_gd import GradientDescentFba, FbaResult
+from ecoli.library.fba_gd import GradientDescentFba, FbaResult, TargetDmdtObjective
 
 COUNTS_UNITS = units.mmol
 VOLUME_UNITS = units.L
@@ -88,10 +88,9 @@ class MetabolismGD(Process):
         self.model = GradientDescentFba(
             reactions=self.stoichiometry,
             exchanges=self.exchange_molecules,
-            objective=self.homeostatic_objective,
-            objectiveType=objective_type,  # missing objectiveParameters for kinetic models,
-            objectiveParameters = {"reactionRateTargets": 'maintenance_reaction'}
-        )
+            target_metabolites=self.homeostatic_objective)
+        self.model.add_objective('homeostatic', TargetDmdtObjective(self.model.network, self.homeostatic_objective))
+        # TODO(Niels): self.model.add_objective('kinetic', ...)
 
         self.objective = self.homeostatic_objective
 
@@ -234,9 +233,8 @@ class MetabolismGD(Process):
 
         # run FBA
         solution: FbaResult = self.model.solve(
-            objective=target_homeostatic_fluxes,
-            initial=self.reaction_fluxes,
-            params={'kinetic_targets': kinetic_targets}
+            {'homeostatic': target_homeostatic_fluxes, 'kinetic': kinetic_targets},
+            initial_velocities=self.reaction_fluxes
         )
 
         self.reaction_fluxes = solution.velocities
