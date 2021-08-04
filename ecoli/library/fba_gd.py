@@ -1,4 +1,5 @@
 """FBA via gradient descent."""
+import abc
 import time
 from dataclasses import dataclass
 from typing import Iterable, Iterator, Mapping, Optional, Tuple, Union
@@ -106,8 +107,21 @@ class ReactionNetwork:
         return {molecule_id: value for molecule_id, value in zip(self._molecule_ids, values)}
 
 
-# TODO(fdrusso): Formalize the Objective interface with an abstract superclass.
-class SteadyStateObjective:
+class ObjectiveComponent(abc.ABC):
+    """Abstract base class for components of an objective function to be optimized."""
+
+    @abc.abstractmethod
+    def prepare_targets(self, target_values: Mapping[str, float]) -> Optional[ArrayT]:
+        """Converts a dict of target values into a vector, suitable to be passed to residual()."""
+        raise NotImplementedError()
+
+    @abc.abstractmethod
+    def residual(self, velocities: ArrayT, dm_dt: ArrayT, targets: ArrayT) -> ArrayT:
+        """Returns a vector of singular residual values, all to be minimized to achieve the objective."""
+        raise NotImplementedError()
+
+
+class SteadyStateObjective(ObjectiveComponent):
     """Calculates the deviation of the system from steady state, for network intermediates."""
 
     def __init__(self, network: ReactionNetwork, intermediates: Iterable[str], weight: float = 1.0):
@@ -123,7 +137,7 @@ class SteadyStateObjective:
         return dm_dt[self.indices] * self.weight
 
 
-class TargetDmdtObjective:
+class TargetDmdtObjective(ObjectiveComponent):
     """Calculates the deviation from target rates of change (dm/dt) for specified molecules."""
 
     def __init__(self, network: ReactionNetwork, target_molecules: Iterable[str], weight: float = 1.0):
@@ -140,7 +154,7 @@ class TargetDmdtObjective:
         return (dm_dt[self.indices] - targets) * self.weight
 
 
-class TargetVelocityObjective:
+class TargetVelocityObjective(ObjectiveComponent):
     """Calculates the deviation from target velocities for specified reactions."""
 
     def __init__(self, network: ReactionNetwork, target_reactions: Iterable[str], weight: float = 1.0):
@@ -181,9 +195,12 @@ class GradientDescentFba:
             exchanges: ids of molecules on the boundary, which may flow in or out of the system.
             target_metabolites: ids of molecules with production targets.
         """
-        network = ReactionNetwork()
+        exchanges = set(exchanges)
+        target_metabolites = set(target_metabolites)
+
         lb = []
         ub = []
+        network = ReactionNetwork()
         for reaction in reactions:
             network.add_reaction(reaction)
             if reaction["is reversible"]:
@@ -192,19 +209,18 @@ class GradientDescentFba:
             else:
                 lb.append(0)
                 ub.append(np.inf)
+
         self.network = network
         self._bounds = (np.array(lb), np.array(ub))
+        self._objectives = {}
 
         # All FBA problems have a steady-state objective, for all intermediates.
-        exchanges = set(exchanges)
-        target_metabolites = set(target_metabolites)
-        self._objectives = {
-            "steady-state": SteadyStateObjective(network,
-                                                 (m for m in network.molecule_ids()
-                                                  if m not in exchanges and m not in target_metabolites))
-        }
+        self.add_objective("steady-state",
+                           SteadyStateObjective(network,
+                                                (m for m in network.molecule_ids()
+                                                 if m not in exchanges and m not in target_metabolites)))
 
-    def add_objective(self, objective_id: str, objective):
+    def add_objective(self, objective_id: str, objective: ObjectiveComponent):
         self._objectives[objective_id] = objective
 
     def residuals(self, velocities: ArrayT, objective_targets: Mapping[str, ArrayT]) -> Mapping[str, ArrayT]:
