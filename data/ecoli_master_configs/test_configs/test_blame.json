@@ -1,0 +1,13 @@
+{
+    "experiment_id" : "test_mass_listener",
+    "total_time" : 4,
+    "log_updates" : true,
+    "raw_output" : false,
+    "_schema": {
+        "ecoli-equilibrium": {
+            "molecules": {
+                "PD00413[c]": {"_updater": "nonnegative_accumulate"}
+            }
+        }
+    }
+}
