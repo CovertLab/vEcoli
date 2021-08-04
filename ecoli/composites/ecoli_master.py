@@ -18,7 +18,6 @@ from ecoli.library.sim_data import LoadSimData
 
 # logging
 from ecoli.library.logging import make_logging_process
-from ecoli.plots.blame import blame_plot
 
 # vivarium-ecoli processes
 from ecoli.processes.cell_division import Division

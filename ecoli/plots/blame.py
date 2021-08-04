@@ -4,7 +4,9 @@ import numpy as np
 from scipy.sparse import coo_matrix
 from matplotlib import pyplot as plt
 import matplotlib.colors as colors
+
 from ecoli.library.logging import write_json
+from ecoli.experiments.ecoli_master_sim import EcoliSim, CONFIG_DIR_PATH
 
 from collections import Counter
 
@@ -16,7 +18,7 @@ def blame_plot(data, filename='out/ecoli_master/blame.png',
                label_values=True,
                color_normalize="n"):
     """
-    Given data from a logged simulation (e.g. by running python run_ecoli(blame=True)),
+    Given data from a simulation with logged updates (e.g. by running from CLI with --log_updates flag set),
     generates a heatmap where the columns are processes, rows are molecules, and
     cell colors reflect the average rate of change in a molecule over the whole simulation
     due to a particular process.
@@ -35,7 +37,7 @@ def blame_plot(data, filename='out/ecoli_master/blame.png',
     """
 
     if 'log_update' not in data.keys():
-        raise ValueError("Missing log_update in data; did you call run_ecoli without blame=True?")
+        raise ValueError("Missing log_update in data; did you run simulation without logged updates?")
 
     max_t = data['time'][-1]
 
@@ -299,8 +301,8 @@ def test_blame():
         with open("data/blame_test_data.json") as f:
             data = json.load(f)
     except FileNotFoundError:  # save test data if it does not exist
-        from ecoli.composites.ecoli_master import run_ecoli
-        data = run_ecoli(blame=True, total_time=4)
+        sim = EcoliSim.from_file(CONFIG_DIR_PATH + "/test_configs/test_blame.json")
+        data = sim.run()
         write_json('data/blame_test_data.json', data)
 
     blame_plot(data, 'out/ecoli_master/blame_test.png',
