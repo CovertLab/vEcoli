@@ -268,7 +268,7 @@ def read_rna_dynamics(sim_data, node, node_id, columns, indexes, volume, timeser
 	Reads dynamics data for transcript (RNA) nodes from simulation output.
 	"""
 	# If RNA is an mRNA, get counts from mRNA counts listener
-	# TODO: Port mRNA counts listener
+	# TODO: Port mRNA_counts from mRNACounts listener. Listener is missing.
 	if node_id in indexes["mRNAs"]:
 		counts = columns[("mRNACounts", "mRNA_counts")][:, indexes["mRNAs"][node_id]]
 	# If not, get counts from bulk molecules listener
@@ -386,7 +386,7 @@ def read_complexation_dynamics(sim_data, node, node_id, columns, indexes, volume
 	Reads dynamics data for complexation nodes from a simulation output.
 	"""
 	reaction_idx = indexes["ComplexationReactions"][node_id]
-	# TODO: Port ComplexationListener
+	# TODO: Port complexationEvents from ComplexationListener. Listener is missing.
 	dynamics = {
 		'complexation events': columns[("ComplexationListener", "complexationEvents")][:, reaction_idx],
 		}
