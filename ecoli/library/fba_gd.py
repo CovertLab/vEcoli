@@ -286,7 +286,8 @@ class GradientDescentFba:
     def solve(self,
               objective_targets: Mapping[str, Mapping[str, float]],
               initial_velocities: Optional[Mapping[str, float]] = None,
-              rng_seed: int = None) -> FbaResult:
+              rng_seed: int = None,
+              **kwargs) -> FbaResult:
         """Performs the optimization to solve the specified FBA problem.
 
         Args:
@@ -298,6 +299,7 @@ class GradientDescentFba:
                 If None, a random starting point is used.
             rng_seed: (optional) seed for the random number generator, when randomizing the starting point. Provided
                 as an arg to support reproducibility; if None then a suitable seed is chosen.
+            kwargs: Any additional keyword arguments will be passed through to scipy.optimize.least_squares.
 
         Returns:
             FbaResult containing optimized reaction velocities, and resulting rate of change per metabolite (dm/dt).
@@ -323,7 +325,7 @@ class GradientDescentFba:
             return jnp.concatenate(list(self.residuals(v, target_values).values()))
 
         # Perform the actual gradient descent, and extract the result.
-        soln = scipy.optimize.least_squares(jax.jit(loss), x0, jac=jax.jit(jax.jacfwd(loss)))
+        soln = scipy.optimize.least_squares(jax.jit(loss), x0, jac=jax.jit(jax.jacfwd(loss)), **kwargs)
         dm_dt = self.network.s_matrix @ soln.x
         ss_residual = self._objectives["steady-state"].residual(soln.x, dm_dt, None)
         return FbaResult(seed=rng_seed,
