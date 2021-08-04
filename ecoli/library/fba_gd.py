@@ -2,7 +2,7 @@
 import abc
 import time
 from dataclasses import dataclass
-from typing import Iterable, Iterator, Mapping, Optional, Tuple, Union
+from typing import Any, Iterable, Iterator, Mapping, Optional, Tuple, Union
 
 import jax
 import jax.numpy as jnp
@@ -81,11 +81,11 @@ class ReactionNetwork:
         """The index of the reaction_id, or None if it is not part of the network."""
         return self._reaction_index.get(reaction_id, None)
 
-    def reaction_vector(self, data: Mapping[str, float], default: float = 0) -> np.ndarray:
+    def reaction_vector(self, data: Mapping[str, Any], default: Any = 0) -> np.ndarray:
         """Converts a dict of {reaction_id: value} to a 1D vector for numpy ops."""
         return np.array([data.get(reaction_id, default) for reaction_id in self._reaction_ids])
 
-    def reaction_values(self, values: Iterable[float]) -> Mapping[str, float]:
+    def reaction_values(self, values: Iterable[Any]) -> Mapping[str, Any]:
         """Converts an array of values to a {reaction_id: value} dict."""
         return {reaction_id: value for reaction_id, value in zip(self._reaction_ids, values)}
 
@@ -98,11 +98,11 @@ class ReactionNetwork:
         """The index of the molecule_id, or None if it is not part of the network."""
         return self._molecule_index.get(molecule_id, None)
 
-    def molecule_vector(self, data: Mapping[str, float], default: float = 0) -> np.ndarray:
+    def molecule_vector(self, data: Mapping[str, Any], default: Any = 0) -> np.ndarray:
         """Converts a dict of {molecule_id: value} to a 1D vector for numpy ops."""
         return np.array([data.get(molecule_id, default) for molecule_id in self._molecule_ids])
 
-    def molecule_values(self, values: Iterable[float]) -> Mapping[str, float]:
+    def molecule_values(self, values: Iterable[Any]) -> Mapping[str, Any]:
         """Converts an array of values to a {molecule_id: value} dict."""
         return {molecule_id: value for molecule_id, value in zip(self._molecule_ids, values)}
 
@@ -111,8 +111,8 @@ class ObjectiveComponent(abc.ABC):
     """Abstract base class for components of an objective function to be optimized."""
 
     @abc.abstractmethod
-    def prepare_targets(self, target_values: Mapping[str, float]) -> Optional[ArrayT]:
-        """Converts a dict of target values into a vector, suitable to be passed to residual()."""
+    def prepare_targets(self, target_values: Mapping[str, Any]) -> Optional[ArrayT]:
+        """Converts a dict of target values into an array, suitable to be passed to residual()."""
         raise NotImplementedError()
 
     @abc.abstractmethod
@@ -128,13 +128,51 @@ class SteadyStateObjective(ObjectiveComponent):
         self.indices = np.array([network.molecule_index(m) for m in intermediates])
         self.weight = weight
 
-    def prepare_targets(self, target_values: Optional[Mapping[str, float]] = None) -> Optional[ArrayT]:
-        """SteadyStateObjective does not use solve-time target values."""
+    def prepare_targets(self, target_values: Optional[Mapping[str, Any]] = None) -> Optional[ArrayT]:
+        """SteadyStateObjective does not use solve-time target values; always returns None."""
         return None
 
     def residual(self, velocities: ArrayT, dm_dt: ArrayT, targets: Optional[ArrayT] = None) -> ArrayT:
         """Returns the subset of dm/dt affecting intermediates, which should all be zero."""
         return dm_dt[self.indices] * self.weight
+
+
+class VelocityBoundsObjective(ObjectiveComponent):
+    """Penalizes reaction velocities outside of specified bounds."""
+
+    def __init__(self, network: ReactionNetwork, bounds: Mapping[str, Tuple[float, float]], weight: float = 1.0):
+        """Initializes the objective with defined upper and lower bounds."""
+        self.network = network
+        self.indices = np.array([network.reaction_index(r) for r in bounds])
+        self.bounds = {reaction_id: (lb, ub) for reaction_id, (lb, ub) in bounds.items()}
+        self.weight = weight
+
+    def prepare_targets(self, target_values: Optional[Mapping[str, Any]] = None) -> Optional[ArrayT]:
+        """Prepares an array of upper and lower bounds.
+
+        Args:
+            target_values: {reaction_id: (lb, ub)} _overriding_ any bounds specified at initialization.
+
+        Returns:
+            2D numpy array with shape (2, #targets). Any reaction missing from target_values (including if
+            target_values is None) defaults to the bounds specified on initialization.
+        """
+        if target_values is not None:
+            # Copy initialized bounds and update with target values as specified.
+            bounds = dict(self.bounds)
+            bounds.update(target_values)
+        else:
+            # Safe to use initialized bounds without copying
+            bounds = self.bounds
+
+        return self.network.reaction_vector(bounds, (-np.inf, np.inf))[self.indices].T
+
+    def residual(self, velocities: ArrayT, dm_dt: ArrayT, targets: ArrayT) -> ArrayT:
+        """Returns a vector of numbers, zero within bounds, negative for below lb, or positive for above ub."""
+        lb, ub = targets
+        shortfall = jnp.minimum(0, velocities[self.indices] - lb)
+        excess = jnp.maximum(0, velocities[self.indices] - ub)
+        return shortfall + excess
 
 
 class TargetDmdtObjective(ObjectiveComponent):
@@ -145,8 +183,8 @@ class TargetDmdtObjective(ObjectiveComponent):
         self.indices = np.array([network.molecule_index(m) for m in target_molecules])
         self.weight = weight
 
-    def prepare_targets(self, target_values: Mapping[str, float]) -> Optional[ArrayT]:
-        """Converts a dict into a vector of target values."""
+    def prepare_targets(self, target_values: Mapping[str, Any]) -> Optional[ArrayT]:
+        """Converts a dict {molecule_id: dmdt} into a vector of target values."""
         return self.network.molecule_vector(target_values)[self.indices]
 
     def residual(self, velocities: ArrayT, dm_dt: ArrayT, targets: ArrayT) -> ArrayT:
@@ -162,8 +200,8 @@ class TargetVelocityObjective(ObjectiveComponent):
         self.indices = np.array([network.reaction_index(r) for r in target_reactions])
         self.weight = weight
 
-    def prepare_targets(self, target_values: Mapping[str, float]) -> Optional[ArrayT]:
-        """Converts a dict into a vector of target values."""
+    def prepare_targets(self, target_values: Mapping[str, Any]) -> Optional[ArrayT]:
+        """Converts a dict {reaction_id: velocity} into a vector of target values."""
         return self.network.reaction_vector(target_values)[self.indices]
 
     def residual(self, velocities: ArrayT, dm_dt: ArrayT, targets: ArrayT) -> ArrayT:
@@ -198,20 +236,15 @@ class GradientDescentFba:
         exchanges = set(exchanges)
         target_metabolites = set(target_metabolites)
 
-        lb = []
-        ub = []
+        # Iterate once through the list of reactions
         network = ReactionNetwork()
+        irreversible_reactions = []
         for reaction in reactions:
             network.add_reaction(reaction)
-            if reaction["is reversible"]:
-                lb.append(-np.inf)
-                ub.append(np.inf)
-            else:
-                lb.append(0)
-                ub.append(np.inf)
+            if not reaction["is reversible"]:
+                irreversible_reactions.append(reaction["reaction id"])
 
         self.network = network
-        self._bounds = (np.array(lb), np.array(ub))
         self._objectives = {}
 
         # All FBA problems have a steady-state objective, for all intermediates.
@@ -219,6 +252,12 @@ class GradientDescentFba:
                            SteadyStateObjective(network,
                                                 (m for m in network.molecule_ids()
                                                  if m not in exchanges and m not in target_metabolites)))
+        # Apply any reversibility constraints with a bounds objective.
+        if irreversible_reactions:
+            self.add_objective("irreversibility",
+                               VelocityBoundsObjective(network,
+                                                       {reaction_id: (0, np.inf)
+                                                        for reaction_id in irreversible_reactions}))
 
     def add_objective(self, objective_id: str, objective: ObjectiveComponent):
         self._objectives[objective_id] = objective
@@ -246,7 +285,6 @@ class GradientDescentFba:
 
     def solve(self,
               objective_targets: Mapping[str, Mapping[str, float]],
-              reaction_flux_bounds: Optional[Mapping[str, float]] = None,
               initial_velocities: Optional[Mapping[str, float]] = None,
               rng_seed: int = None) -> FbaResult:
         """Performs the optimization to solve the specified FBA problem.
@@ -255,9 +293,6 @@ class GradientDescentFba:
             objective_targets: {objective_id: {key: value}} for each objective component. The details of these targets
                 depend on the individual objectives. Missing targets are permitted, if the individual objective accepts
                 None.
-            reaction_flux_bounds: (optional) {reaction_id: (lb, ub)} providing explicit bounds on reaction
-                velocity (flux). Bounds default to (-inf, +inf) for reversible or (0, +inf) for irreversible reactions.
-                Bounds provided here will override these defaults, including for instance allowing reversibility.
             initial_velocities: (optional) {reaction_id: velocity} as a starting point for optimization. For repeated
                 solutions with evolving objective targets, starting from the previous solution can improve performance.
                 If None, a random starting point is used.
@@ -277,16 +312,6 @@ class GradientDescentFba:
             num_reactions = self.network.shape[1]
             x0 = jax.random.uniform(jax.random.PRNGKey(rng_seed), (num_reactions,))
 
-        # Update bounds, and enforce on x0.
-        lb = np.array(self._bounds[0])
-        ub = np.array(self._bounds[1])
-        if reaction_flux_bounds is not None:
-            for reaction_id, (reaction_lb, reaction_ub) in reaction_flux_bounds.items():
-                i = self.network.reaction_index(reaction_id)
-                lb[i] = reaction_lb
-                ub[i] = reaction_ub
-        x0 = np.maximum(lb, np.minimum(ub, x0))
-
         target_values = {}
         for objective_id, objective in self._objectives.items():
             targets = objective.prepare_targets(objective_targets.get(objective_id))
@@ -298,7 +323,7 @@ class GradientDescentFba:
             return jnp.concatenate(list(self.residuals(v, target_values).values()))
 
         # Perform the actual gradient descent, and extract the result.
-        soln = scipy.optimize.least_squares(jax.jit(loss), x0, jac=jax.jit(jax.jacfwd(loss)), bounds=(lb, ub))
+        soln = scipy.optimize.least_squares(jax.jit(loss), x0, jac=jax.jit(jax.jacfwd(loss)))
         dm_dt = self.network.s_matrix @ soln.x
         ss_residual = self._objectives["steady-state"].residual(soln.x, dm_dt, None)
         return FbaResult(seed=rng_seed,
