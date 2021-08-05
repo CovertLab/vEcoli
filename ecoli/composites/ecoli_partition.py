@@ -190,7 +190,7 @@ class Ecoli(Composer):
             seed=self.config['seed'])
 
     def initial_state(self, config=None, path=()):
-        initial_state = get_state_from_file()
+        initial_state = get_state_from_file(path='data/metabolism/wcecoli_t0.json')
         embedded_state = {}
         assoc_path(embedded_state, path, initial_state)
         return embedded_state
@@ -201,6 +201,7 @@ class Ecoli(Composer):
         
         process_names = list(config['processes'].keys())
         process_names.remove('mass')
+        process_names.remove('metabolism')
         
         config['processes']['allocator'] = Allocator   
 
@@ -272,7 +273,7 @@ class Ecoli(Composer):
         mass = {'mass': processes['mass']}
         metabolism = {'metabolism': processes['metabolism']}
 
-        all_procs = {**requesters, **allocator, **evolvers, **metabolism, **division, **mass}
+        all_procs = {**metabolism, **requesters, **allocator, **evolvers, **division, **mass}
         
         return all_procs
 
@@ -290,10 +291,10 @@ class Ecoli(Composer):
                     topology[f'{process_id}_evolver']['log_update'] = ('log_update', process_id,)
                 bulk_topo = get_bulk_topo(ports)
                 topology[f'{process_id}_requester']['request'] = {
-                    '_path': ('bulk', 'request', process_id,),
+                    '_path': ('request', process_id,),
                     **bulk_topo}
                 topology[f'{process_id}_evolver']['allocate'] = {
-                    '_path': ('bulk', 'allocate', process_id,),
+                    '_path': ('allocate', process_id,),
                     **bulk_topo}
 
         # add division
@@ -303,8 +304,8 @@ class Ecoli(Composer):
                 'agents': config['agents_path']}
             
         topology['allocator'] = {
-            'request': ('bulk', 'request',),
-            'allocate': ('bulk', 'allocate',),
+            'request': ('request',),
+            'allocate': ('allocate',),
             'bulk': ('bulk',)}
         
         topology['mass'] = config['topology']['mass']
