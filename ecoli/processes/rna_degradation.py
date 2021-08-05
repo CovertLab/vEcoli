@@ -344,7 +344,7 @@ class RnaDegradation(Process):
             n_bulk_RNAs_to_degrade + self.n_unique_RNAs_to_degrade,
             self.rna_lengths)
         waterForLeftOverFragments = array_from(states['fragmentBases']).sum()
-        requests[self.water_id] = waterForNewRnas + waterForLeftOverFragments
+        requests['molecules'] = {self.water_id: waterForNewRnas + waterForLeftOverFragments}
         return requests
         
     def evolve_state(self, timestep, states):
@@ -415,9 +415,14 @@ class RnaDegradation(Process):
         update['fragmentMetabolites'] = array_to(
             self.endCleavageMetaboliteIds,
             metabolitesEndoCleavage)
-
+        
+        for polymerized_ntp in self.polymerized_ntp_ids:
+            states['fragmentBases'][polymerized_ntp] += update[
+                'fragmentMetabolites'][polymerized_ntp]
+        
         # Check if exonucleolytic digestion can happen 
         fragmentBases = array_from(states['fragmentBases'])
+        
         if fragmentBases.sum() == 0:
             return update
 
@@ -446,8 +451,11 @@ class RnaDegradation(Process):
             update['molecules'] = {
                 self.water_id: -n_fragment_bases_sum,
                 self.proton_id: n_fragment_bases_sum}
-            update['fragmentBases'] = array_to(self.polymerized_ntp_ids, -fragmentBases)
             total_fragment_bases_digested = n_fragment_bases_sum
+            update['fragmentBases'] = {
+                polymerized_ntp: -count
+                for polymerized_ntp, count in states['fragmentBases'].items()
+            }
 
         else:
             fragmentSpecificity = n_fragment_bases / n_fragment_bases_sum
