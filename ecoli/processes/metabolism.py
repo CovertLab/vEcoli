@@ -196,6 +196,8 @@ class Metabolism(Process):
         # self._sim.processes['PolypeptideElongation'].gtp_to_hydrolyze
         translation_gtp = states['polypeptide_elongation']['gtp_to_hydrolyze']
         # self.readFromListener('Mass', 'cellMass') * units.fg
+        # TODO: Fix mass calculation as metabolism requires accurate cell and dry masses
+        # Increasing both cell and dry mass by 4.570919404360666 returns correct update at t=2
         cell_mass = states['listeners']['mass']['cell_mass'] * units.fg
         # self.readFromListener('Mass', 'dryMass') * units.fg
         dry_mass = states['listeners']['mass']['dry_mass'] * units.fg
@@ -252,10 +254,11 @@ class Metabolism(Process):
 
         ## Internal molecule changes
         delta_metabolites = (1 / counts_to_molar) * (CONC_UNITS * fba.getOutputMoleculeLevelsChange())
-        delta_metabolites_final = np.fmax(stochasticRound(
+        metabolite_counts_final = np.fmax(stochasticRound(
             self.random_state,
-            delta_metabolites.asNumber()
+            metabolite_counts_init + delta_metabolites.asNumber()
             ), 0).astype(np.int64)
+        delta_metabolites_final = metabolite_counts_final - metabolite_counts_init
 
         ## Environmental changes
         exchange_fluxes = CONC_UNITS * fba.getExternalExchangeFluxes()
