@@ -2,6 +2,9 @@
 Metabolism process migration tests
 """
 import argparse
+import json
+import os
+import numpy as np
 
 # vivarium imports
 from vivarium.core.engine import Engine
@@ -10,14 +13,17 @@ from vivarium.library.dict_utils import deep_merge
 
 # ecoli imports
 from ecoli.library.sim_data import LoadSimData
-from ecoli.states.wcecoli_state import get_state_from_file
+from ecoli.states.wcecoli_state import get_state_from_file, infinitize
 from ecoli.composites.ecoli_master import SIM_DATA_PATH, AA_MEDIA_ID
 from ecoli.processes import Metabolism, Exchange
+from data.ecoli_master_configs import default
 
 from data.ecoli_master_configs.default import ECOLI_TOPOLOGY
 
 # migration imports
-from migration.migration_utils import run_ecoli_process
+from migration.migration_utils import (run_ecoli_process, ComparisonTestSuite,
+                                       scalar_almost_equal, array_almost_equal,
+                                       transform_and_run, array_diffs_report_test)
 
 
 # load sim_data
@@ -117,8 +123,106 @@ def run_metabolism(
 
 
 def test_metabolism():
-    data = run_metabolism(total_time=10)
+    def test(initial_time=0):
+        initial_time = initial_time
+        # get parameters from sim data
+        metabolism_config = load_sim_data.get_metabolism_config()
+        
+        # initialize Metabolism
+        metabolism = Metabolism(metabolism_config)
 
+        # get initial state from file
+        state = get_state_from_file(
+            path=f'data/metabolism/wcecoli_t{initial_time}.json')
+        # get partitioned molecule counts from file
+        with open('data/metabolism/metabolism_partitioned_'
+                  f't{initial_time+2}.json') as f:
+            partitioned = json.load(f)
+        
+        deep_merge(state, partitioned)
+        
+        topology = default.ECOLI_TOPOLOGY['metabolism'].copy()
+        
+        # run the process and get an update
+        actual_update = run_ecoli_process(metabolism, topology, 
+                                        initial_time=initial_time,
+                                        initial_state=state)
+        
+        with open('data/metabolism/metabolism_update_'
+                  f't{initial_time+2}.json') as f:
+            expected_update = json.load(f)
+        
+        plots(actual_update, expected_update, initial_time+2)
+        assertions(actual_update, expected_update, initial_time+2)
+    
+    os.makedirs('out/migration/metabolism/', exist_ok=True)
+    initial_times = [0, 2, 100]
+    for time in initial_times:
+        test(time)
+    
+def plots(actual_update, expected_update, time):
+    pass
+
+def assertions(actual_update, expected_update, time):
+    def array_close(a, b):
+        return np.allclose(a, b, rtol=0.05, atol=1)
+    
+    test_structure = {
+        'environment' : {
+            'exchange': {
+                molecule: scalar_almost_equal
+                for molecule in actual_update['environment']['exchange']}},
+        
+        'listeners' : {
+            'fba_results' : {
+                'conc_updates' : transform_and_run(np.array, array_close),
+                'catalyst_counts' : transform_and_run(np.array, array_close),
+                'translation_gtp' : scalar_almost_equal,
+                'coefficient' : scalar_almost_equal,
+                'deltaMetabolites': [transform_and_run(np.array, array_close),
+                                 transform_and_run(np.array, array_diffs_report_test(
+                                f'out/migration/metabolism/delta_metabolites_t{time}.txt'))],
+                'reactionFluxes': [transform_and_run(np.array, array_close),
+                                 transform_and_run(np.array, array_diffs_report_test(
+                                f'out/migration/metabolism/reaction_fluxes_t{time}.txt'))],
+                'externalExchangeFluxes': transform_and_run(np.array, array_close),
+                'objectiveValue': scalar_almost_equal,
+                'shadowPrices': [transform_and_run(np.array, array_close),
+                                 transform_and_run(np.array, array_diffs_report_test(
+                                     f'out/migration/metabolism/shadow_prices_t{time}.txt'))],
+                'reducedCosts': [transform_and_run(np.array, array_close),
+                                 transform_and_run(np.array, array_diffs_report_test(
+                                     f'out/migration/metabolism/reduced_costs_t{time}.txt'))],
+                'targetConcentrations': transform_and_run(np.array, array_close),
+                'homeostaticObjectiveValues': transform_and_run(np.array, array_close),
+                'kineticObjectiveValues': [transform_and_run(np.array, array_close),
+                                            transform_and_run(np.array, array_diffs_report_test(
+                                            f'out/migration/metabolism/kinetic_objective_value_t{time}.txt'))],
+            },
+            
+            'enzyme_kinetics': {
+                'metaboliteCountsInit': transform_and_run(np.array, array_close),
+                'metaboliteCountsFinal': transform_and_run(np.array, array_close),
+                'enzymeCountsInit': transform_and_run(np.array, array_close),
+                'countsToMolar': scalar_almost_equal,
+                'actualFluxes': [transform_and_run(np.array, array_close),
+                                 transform_and_run(np.array, array_diffs_report_test(
+                                f'out/migration/metabolism/actual_fluxes_t{time}.txt'))],
+                'targetFluxes': transform_and_run(np.array, array_close),
+                'targetFluxesUpper': transform_and_run(np.array, array_close),
+                'targetFluxesLower': transform_and_run(np.array, array_close),
+            }
+        }
+    }
+
+    tests = ComparisonTestSuite(test_structure, fail_loudly=False)
+    tests.run_tests(actual_update, expected_update)
+
+    tests.dump_report()
+    
+    assert (actual_update['listeners']['fba_results']['media_id'] ==
+            expected_update['listeners']['fba_results']['media_id']),\
+            'Media IDs not consistent!'
 
 def test_metabolism_aas():
     config = {
@@ -187,7 +291,7 @@ test_library = {
     '0': test_metabolism_migration,
     '1': test_metabolism,
     '2': test_metabolism_aas,
-    '3': run_metabolism_composite,
+    '3': run_metabolism_composite
 }
 
 if __name__ == '__main__':
@@ -195,6 +299,7 @@ if __name__ == '__main__':
     parser.add_argument(
         '--name', '-n', default=[], nargs='+', help='test ids to run')
     args = parser.parse_args()
+    args.name = ['1']
     run_all = not args.name
 
     for name in args.name:
