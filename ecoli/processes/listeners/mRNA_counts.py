@@ -7,8 +7,8 @@ mRNACounts Listener
 from __future__ import absolute_import, division, print_function
 
 import numpy as np
-from vivarium.core.process import Deriver
 from ecoli.library.schema import arrays_from
+from vivarium.core.process import Deriver
 
 
 def test_mrna_counts_listener():
