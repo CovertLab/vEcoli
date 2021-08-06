@@ -3,6 +3,7 @@ Mass
 
 Mass listener. Represents the total cellular mass.
 """
+
 import numpy as np
 from vivarium.core.process import Deriver
 from vivarium.library.units import units
@@ -225,6 +226,7 @@ class MassListener(Deriver):
         # update['expectedMassFoldChange'] = np.exp(np.log(2) * (self.time() - self.timeInitial) / self.cellCycleLen)
 
         self.first_time_step = False
+
         return {
             'listeners': {
                 'mass': mass_update
