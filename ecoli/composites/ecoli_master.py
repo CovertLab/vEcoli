@@ -7,7 +7,6 @@ E. coli master composite
 import os
 import argparse
 
-import ipdb
 from vivarium.core.composer import Composer
 from vivarium.core.engine import pp, Engine
 from vivarium.plots.topology import plot_topology

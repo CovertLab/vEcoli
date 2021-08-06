@@ -3,7 +3,6 @@ Mass
 
 Mass listener. Represents the total cellular mass.
 """
-import ipdb
 import numpy as np
 from vivarium.core.process import Deriver
 from vivarium.library.units import units
