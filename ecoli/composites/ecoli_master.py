@@ -7,6 +7,7 @@ E. coli master composite
 import os
 import argparse
 
+import ipdb
 from vivarium.core.composer import Composer
 from vivarium.core.engine import pp, Engine
 from vivarium.plots.topology import plot_topology
@@ -89,6 +90,7 @@ class Ecoli(Composer):
             'metabolism': self.load_sim_data.get_metabolism_config(time_step=time_step),
             'chromosome_replication': self.load_sim_data.get_chromosome_replication_config(time_step=time_step),
             'mass': self.load_sim_data.get_mass_listener_config(time_step=time_step),
+            'mrna_counts': self.load_sim_data.get_mrna_counts_listener_config(time_step=time_step),
         }
 
         # make the processes
