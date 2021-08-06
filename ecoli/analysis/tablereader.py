@@ -1,3 +1,5 @@
+import numpy as np
+
 MAPPING = {
     'BulkMolecules': {
         'atpAllocatedFinal',
@@ -267,22 +269,32 @@ MAPPING = {
 
 class TableReader(object):
     """
-    Fake TableReader 
+    Fake TableReader. In wcEcoli, the TableReader class was used to access data saved from simulations.
+    This class provides a bridge in order to port analyses over to vivarium-ecoli without significant modification.
+    Given a path within the wcEcoli output structure and timeseries data from a vivarium-ecoli experiment,
+    this class provides a way to retrieve data as if it were structured in the same way as it is in wcEcoli.
 
     Parameters:
-            path (str): Path to the input location (a directory).
+            wc_path (str): Which wcEcoli table this TableReader would be reading from.
+            data: timeseries data from a vivarium-ecoli experiment (to be read as if it were structured as in wcEcoli.)
     """
 
-    def __init__(self, path):
+    def __init__(self, path, data):
+        # Strip down to table name, in case a full path is given
+        path[(path.rfind('/')+1):]
         self._path = path
+
+        # Store reference to the data
+        self._data = data
 
         # Read the table's attributes file
         #attributes_filename = os.path.join(path, tw.FILE_ATTRIBUTES)
 
-    #self._attributes = filepath.read_json_file(attributes_filename)
+        #self._attributes = filepath.read_json_file(attributes_filename)
 
         # List the column file names. Ignore the 'attributes.json' file.
-    #self._columnNames = {p for p in os.listdir(path) if '.json' not in p}
+        self._mapping = MAPPING[path]
+        self._columnNames = {k for k in self._mapping.keys() if k != "attributes"}
 
     @property
     def path(self):
@@ -301,10 +313,10 @@ class TableReader(object):
                 value: The attribute value, JSON-deserialized from a string.
         """
 
-    raise NotImplementedError()
-    # if name not in self._attributes:
-    # 	raise DoesNotExistError("No such attribute: {}".format(name))
-    # return self._attributes[name]
+        raise NotImplementedError()
+        # if name not in self._attributes:
+        # 	raise DoesNotExistError("No such attribute: {}".format(name))
+        # return self._attributes[name]
 
     def readColumn(self, name, indices=None, squeeze=True):
         # type: (str, Any, bool) -> np.ndarray
@@ -334,105 +346,121 @@ class TableReader(object):
                 ndarray: A writable 0D, 1D, or 2D array.
         """
 
-        if name not in self._columnNames:
-            raise DoesNotExistError("No such column: {}".format(name))
+        # if name not in self._columnNames:
+        #     raise DoesNotExistError("No such column: {}".format(name))
 
-        entry_blocks = []  # type: List[bytes]
-        row_size_blocks = []
+        # entry_blocks = []  # type: List[bytes]
+        # row_size_blocks = []
 
-        # Read the header and read, decompress, and unpack all the blocks.
-        with open(os.path.join(self._path, name), 'rb') as dataFile:
-            chunk = Chunk(dataFile, align=False)
-            header = _ColumnHeader(chunk)
-            variable_length = header.variable_length
-            chunk.close()
+        # # Read the header and read, decompress, and unpack all the blocks.
+        # with open(os.path.join(self._path, name), 'rb') as dataFile:
+        #     chunk = Chunk(dataFile, align=False)
+        #     header = _ColumnHeader(chunk)
+        #     variable_length = header.variable_length
+        #     chunk.close()
 
-            if variable_length and indices is not None:
-                raise VariableLengthColumnError(
-                    'Attempted to access subcolumns of a variable-length column {}.'.format(name))
+        #     if variable_length and indices is not None:
+        #         raise VariableLengthColumnError(
+        #             'Attempted to access subcolumns of a variable-length column {}.'.format(name))
 
-            # Variable-length columns should not be squeezed.
-            if variable_length:
-                squeeze = False
+        #     # Variable-length columns should not be squeezed.
+        #     if variable_length:
+        #         squeeze = False
 
-            if header.compression_type == tw.COMPRESSION_TYPE_ZLIB:
-                def decompressor(data_bytes): return zlib.decompress(
-                    data_bytes)  # type: Callable[[bytes], bytes]
-            else:
-                def decompressor(data_bytes): return data_bytes
+        #     if header.compression_type == tw.COMPRESSION_TYPE_ZLIB:
+        #         def decompressor(data_bytes): return zlib.decompress(
+        #             data_bytes)  # type: Callable[[bytes], bytes]
+        #     else:
+        #         def decompressor(data_bytes): return data_bytes
 
-            while True:
-                try:
-                    chunk = Chunk(dataFile, align=False)
-                except EOFError:
-                    break
+        #     while True:
+        #         try:
+        #             chunk = Chunk(dataFile, align=False)
+        #         except EOFError:
+        #             break
 
-                if chunk.getname() == tw.BLOCK_CHUNK_TYPE:
-                    raw_entry = chunk.read()
-                    if len(raw_entry) != chunk.getsize():
-                        raise EOFError('Data block cut short {}/{}'.format(
-                            len(raw_entry), chunk.getsize()))
-                    entry_blocks.append(raw_entry)
+        #         if chunk.getname() == tw.BLOCK_CHUNK_TYPE:
+        #             raw_entry = chunk.read()
+        #             if len(raw_entry) != chunk.getsize():
+        #                 raise EOFError('Data block cut short {}/{}'.format(
+        #                     len(raw_entry), chunk.getsize()))
+        #             entry_blocks.append(raw_entry)
 
-                elif chunk.getname() == tw.ROW_SIZE_CHUNK_TYPE:
-                    row_sizes = chunk.read()
-                    if len(row_sizes) != chunk.getsize():
-                        raise EOFError('Row sizes block cut short {}/{}'.format(
-                            len(row_sizes), chunk.getsize()))
-                    row_size_blocks.append(row_sizes)
+        #         elif chunk.getname() == tw.ROW_SIZE_CHUNK_TYPE:
+        #             row_sizes = chunk.read()
+        #             if len(row_sizes) != chunk.getsize():
+        #                 raise EOFError('Row sizes block cut short {}/{}'.format(
+        #                     len(row_sizes), chunk.getsize()))
+        #             row_size_blocks.append(row_sizes)
 
-                chunk.close()  # skips to the next chunk
+        #         chunk.close()  # skips to the next chunk
 
-        if variable_length and len(entry_blocks) != len(row_size_blocks):
-            raise EOFError('Number of entry blocks ({}) does not match number of row size blocks ({}).'.format(
-                len(entry_blocks), len(row_size_blocks)))
+        # if variable_length and len(entry_blocks) != len(row_size_blocks):
+        #     raise EOFError('Number of entry blocks ({}) does not match number of row size blocks ({}).'.format(
+        #         len(entry_blocks), len(row_size_blocks)))
 
-        del raw_entry  # release the block ref
+        # del raw_entry  # release the block ref
 
-        # Variable-length columns
-        if variable_length:
-            # Concatenate row sizes array
-            row_sizes_list = [
-                np.frombuffer(block, tw.ROW_SIZE_CHUNK_DTYPE)
-                for block in row_size_blocks]  # type: List[Iterable[int]]
-            all_row_sizes = np.concatenate(row_sizes_list)
+        # # Variable-length columns
+        # if variable_length:
+        #     # Concatenate row sizes array
+        #     row_sizes_list = [
+        #         np.frombuffer(block, tw.ROW_SIZE_CHUNK_DTYPE)
+        #         for block in row_size_blocks]  # type: List[Iterable[int]]
+        #     all_row_sizes = np.concatenate(row_sizes_list)
 
-            # Initialize results array to NaNs
-            result = np.full((len(all_row_sizes), all_row_sizes.max()), np.nan)
+        #     # Initialize results array to NaNs
+        #     result = np.full((len(all_row_sizes), all_row_sizes.max()), np.nan)
 
-            row = 0
-            for raw_entry, row_sizes_ in zip(entry_blocks, row_sizes_list):
-                entries = decomp(raw_entry)
-                entry_idx = 0
+        #     row = 0
+        #     for raw_entry, row_sizes_ in zip(entry_blocks, row_sizes_list):
+        #         entries = decomp(raw_entry)
+        #         entry_idx = 0
 
-                # Fill each row with the length given by values in row_sizes_
-                for row_size in row_sizes_:
-                    result[row, :row_size] = entries[entry_idx: (
-                        entry_idx + row_size)]
-                    entry_idx += row_size
-                    row += 1
+        #         # Fill each row with the length given by values in row_sizes_
+        #         for row_size in row_sizes_:
+        #             result[row, :row_size] = entries[entry_idx: (
+        #                 entry_idx + row_size)]
+        #             entry_idx += row_size
+        #             row += 1
 
-        # Constant-length columns
-        else:
-            # Decompress the last block to get its shape, then allocate the result.
-            last_entries = decomp(entry_blocks.pop())
-            last_num_rows = last_entries.shape[0]
-            num_rows = len(entry_blocks) * \
-                header.entries_per_block + last_num_rows
-            num_subcolumns = header.elements_per_entry if indices is None else len(
-                indices)
-            result = np.zeros((num_rows, num_subcolumns), header.dtype)
+        # # Constant-length columns
+        # else:
+        #     # Decompress the last block to get its shape, then allocate the result.
+        #     last_entries = decomp(entry_blocks.pop())
+        #     last_num_rows = last_entries.shape[0]
+        #     num_rows = len(entry_blocks) * \
+        #         header.entries_per_block + last_num_rows
+        #     num_subcolumns = header.elements_per_entry if indices is None else len(
+        #         indices)
+        #     result = np.zeros((num_rows, num_subcolumns), header.dtype)
 
-            row = 0
-            for raw_entry in entry_blocks:
-                entries = decomp(raw_entry)
-                additional_rows = entries.shape[0]
-                result[row: (row + additional_rows)] = entries
-                row += additional_rows
+        #     row = 0
+        #     for raw_entry in entry_blocks:
+        #         entries = decomp(raw_entry)
+        #         additional_rows = entries.shape[0]
+        #         result[row: (row + additional_rows)] = entries
+        #         row += additional_rows
 
-            result[row: (row + last_num_rows)] = last_entries
+        #     result[row: (row + last_num_rows)] = last_entries
 
         # Squeeze if flag is set to True
+        viv_path = self._mapping[name]
+
+        if callable(viv_path):
+            result = viv_path(self._data)
+        elif isinstance(viv_path, tuple):
+            result = self._data
+            for elem in viv_path:
+                result = result[elem]
+        else:
+            raise NotImplementedError(f"No mapping implented from {self._path + '/' + name} to a path in vivarium data"
+                                      f"(mapping is {viv_path}).")
+
+        result = np.array(result)
+
+        # TODO: indices
+
         if squeeze:
             result = result.squeeze()
 
@@ -459,7 +487,7 @@ class TableReader(object):
         # subcols = self.readAttribute(subcol_name_map[column])
         # index = subcols.index(subcolumn_name)
         # return self.readColumn(column, [index], squeeze=False)[:, 0]
-    raise NotImplementedError()
+        raise NotImplementedError()
 
     def allAttributeNames(self):
         """
