@@ -466,11 +466,8 @@ class LoadSimData:
 
     def get_mrna_counts_listener_config(self, time_step=2):
         counts_config = {
-            'unique_molecules': self.sim_data.internal_state.unique_molecule,
-            'unique_ids': self.sim_data.internal_state.unique_molecule.unique_molecule_masses['id'],
             'rna_ids': self.sim_data.process.transcription.rna_data['id'],
             'mrna_indexes': np.where(self.sim_data.process.transcription.rna_data['is_mRNA'])[0],
-            'mrna_counts': np.zeros(len(np.where(self.sim_data.process.transcription.rna_data['is_mRNA'])[0]), dtype=np.int64)
         }
 
         return counts_config
