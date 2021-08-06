@@ -9,10 +9,13 @@ from __future__ import absolute_import, division, print_function
 import ipdb
 import numpy as np
 from vivarium.core.process import Deriver
-import collections
-from ecoli.library.schema import bulk_schema
 from ecoli.library.schema import arrays_from
+from ecoli.composites.ecoli_master import run_ecoli
 
+
+def test_mrna_listener():
+	data = run_ecoli(total_time=2)
+	ipdb.set_trace()
 
 class mRNACounts(Deriver):
 	"""
@@ -21,21 +24,16 @@ class mRNACounts(Deriver):
 	name = 'mRNA_counts_listener'
 
 	defaults = {
-		'unique_molecules':
+		'rna_ids': [],
+		'mrna_indexes': [],
 	}
 
 	def __init__(self, parameters=None):
 		super().__init__(parameters)
-		ipdb.set_trace()
-		self.uniqueMolecules = self.parameters['unique_molecules']
-		self.unique_ids = self.parameters['unique_ids']
 
 		# Get IDs and indexes of all mRNAs
 		self.all_RNA_ids = self.parameters['rna_ids']
 		self.mRNA_indexes = self.parameters['mrna_indexes']
-
-		self.mRNA_counts = self.parameters['mrna_counts']
-
 
 	def ports_schema(self):
 		return {
@@ -68,6 +66,9 @@ class mRNACounts(Deriver):
 
 		return {
 			'listeners': {
-				'mrna_counts': mrna_counts
+				'mRNA_counts': mrna_counts
 			}
 		}
+
+if __name__ == '__main__':
+	test_mrna_listener()
