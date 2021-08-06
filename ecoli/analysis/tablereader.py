@@ -526,7 +526,7 @@ def test_table_reader():
     bulk_counts = tb.readColumn("counts")
 
     try:
-        tb.readColumn("INVALID COLUMN")
+        tb.readColumn("atpAllocatedFinal")
         assert False
     except NotImplementedError:
         pass
