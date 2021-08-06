@@ -1,10 +1,13 @@
 import numpy as np
 
+from ecoli.library.schema import array_from
+from ecoli.composites.ecoli_master import run_ecoli
+
 MAPPING = {
     'BulkMolecules': {
         'atpAllocatedFinal' : None,
         'atpRequested' : None,
-        'counts' : None,
+        'counts' : ("bulk",),
         'atpAllocatedInitial' : None,
         'attributes' : None
     },
@@ -453,6 +456,7 @@ class TableReader(object):
             result = self._data
             for elem in viv_path:
                 result = result[elem]
+            result = array_from(result)  # Should this always happen?
         else:
             raise NotImplementedError(f"No mapping implented from {self._path + '/' + name} to a path in vivarium data"
                                       f"(mapping is {viv_path}).")
@@ -513,3 +517,22 @@ class TableReader(object):
         Does nothing.
         """
         pass
+
+
+def test_table_reader():
+    data = run_ecoli(total_time=4)
+    tb = TableReader("BulkMolecules", data)
+
+    bulk_counts = tb.readColumn("counts")
+
+    try:
+        tb.readColumn("INVALID COLUMN")
+        assert False
+    except NotImplementedError:
+        pass
+    except AssertionError:
+        assert False, "TableReader did not raise an exception for not implemented column"
+
+
+if __name__ == "__main__":
+    test_table_reader()
