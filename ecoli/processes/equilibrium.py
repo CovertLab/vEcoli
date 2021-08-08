@@ -14,7 +14,16 @@ from ecoli.library.schema import array_from, array_to, arrays_from, arrays_to, l
 
 from wholecell.utils import units
 from six.moves import range
+'''
+    _jit: just in time: false. utilized in the fluxes and molecules function
+    n_avogadro: constant (6.02214076e+20)
+    cell_density: constant (1.1728608844230047e-12)
+    stoichmatrix: (94, 33), molecule counts are (94,).
+    fluxesandMOleculesToSS:produces self.rxnFluxes - shape:(33,) and self.req - shape: (94 - solves ODES to get to steadystate based off of cell denisty, volumes
+        and molecule counts
+    molecule_names: list of molecules that are being iterated over size:94
 
+'''
 
 class Equilibrium(Process):
     name = 'ecoli-equilibrium'
@@ -61,6 +70,7 @@ class Equilibrium(Process):
         
     def calculate_request(self, timestep, states):
         # Get molecule counts
+        #import ipdb; ipdb.set_trace()
         moleculeCounts = array_from(states['molecules'])
 
         # Get cell mass and volume
