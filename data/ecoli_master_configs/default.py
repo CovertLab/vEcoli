@@ -92,7 +92,9 @@ ECOLI_TOPOLOGY = {
             'polypeptide_elongation': ('process_state', 'polypeptide_elongation')},
 
         'complexation': {
-            'molecules': ('bulk',)},
+            'molecules': ('bulk',),
+            'listeners': ('listeners',),
+        },
 
         'two_component_system': {
             'listeners': ('listeners',),
