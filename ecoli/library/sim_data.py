@@ -1,3 +1,4 @@
+import ipdb
 import numpy as np
 from six.moves import cPickle
 from wholecell.utils import units
@@ -319,7 +320,9 @@ class LoadSimData:
             'stoichiometry': self.sim_data.process.complexation.stoich_matrix().astype(np.int64).T,
             'rates': self.sim_data.process.complexation.rates,
             'molecule_names': self.sim_data.process.complexation.molecule_names,
-            'seed': self.random_state.randint(RAND_MAX)}
+            'seed': self.random_state.randint(RAND_MAX),
+            'numReactions': len(self.sim_data.process.complexation.rates),
+        }
 
         return complexation_config
 

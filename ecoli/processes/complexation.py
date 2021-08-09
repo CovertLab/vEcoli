@@ -7,7 +7,7 @@ TODO:
 - allow for shuffling when appropriate (maybe in another process)
 - handle protein complex dissociation
 """
-
+import ipdb
 import numpy as np
 from arrow import StochasticSystem
 
@@ -42,9 +42,19 @@ class Complexation(Process):
 
         self.system = StochasticSystem(self.stoichiometry, random_seed=self.seed)
 
+        num_reactions = parameters['numReactions']
+        self.complexationEvents = np.zeros(num_reactions, np.int64)
+
     def ports_schema(self):
         return {
-            'molecules': bulk_schema(self.molecule_names)}
+            'molecules': bulk_schema(self.molecule_names),
+            'listeners': {
+                'complexation_events': {
+                        '_default': [],
+                        '_updater': 'set',
+                        '_emit': True},
+            },
+        }
         
     def calculate_request(self, timestep, states):
         # The int64 dtype is important (can break otherwise)
@@ -67,12 +77,15 @@ class Complexation(Process):
             substrate[index] = molecules[molecule]
 
         result = self.system.evolve(timestep, substrate, self.rates)
+        self.complexationEvents = result['occurrences']
         outcome = result['outcome'] - substrate
-
         molecules_update = array_to(self.molecule_names, outcome)
-
         update = {
-            'molecules': molecules_update}
+            'molecules': molecules_update,
+            'listeners': {
+                'complexation_events': self.complexationEvents
+            }
+        }
 
         # # Write outputs to listeners
         # self.writeToListener("ComplexationListener", "complexationEvents", events)
