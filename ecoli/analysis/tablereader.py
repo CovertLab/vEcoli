@@ -85,7 +85,7 @@ MAPPING = {
         'n_headon_collisions': None,
         'n_removed_ribosomes': None,
         'n_total_collisions': None,
-        'rnaInitEvent': None,
+        'rnaInitEvent': ('listeners', 'rnap_data', 'rnaInitEvent', replace_scalars),
         'simulationStep': None,
         'terminationLoss': None,
         'time': None,
@@ -545,6 +545,9 @@ def test_table_reader():
     tb = TableReader("BulkMolecules", data)
 
     bulk_counts = tb.readColumn("counts")
+
+    rnap_tb = TableReader("RnapData")
+    rna_init = rnap_tb.readColumn("rnaInitEvent")
 
     ribosome_tb = TableReader("RibosomeData", data)
     prob_trans = ribosome_tb.readColumn("probTranslationPerTranscript")
