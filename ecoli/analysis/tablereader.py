@@ -18,6 +18,21 @@ def replace_scalars(array):
     return array
 
 
+def replace_scalars_2d(array):
+    for value in array:
+        if value != [] and type(value) in {list, np.array}:
+            rows = len(value)
+            cols = len(value[0])
+            break
+
+    for i in range(len(array)):
+        if array[i] == [] or type(array[i]) not in {list, np.array}:
+            array[i] = [[0 for i in range(cols)] for i in range(rows)]
+
+    array = np.array(array)
+    return array
+
+
 MAPPING = {
     'BulkMolecules': {
         'atpAllocatedFinal': None,
@@ -127,12 +142,12 @@ MAPPING = {
     },
     'RnaSynthProb': {
         'nActualBound': None,
-        'rnaSynthProb': None,
+        'rnaSynthProb': ('listeners', 'rna_synth_prob', 'rna_synth_prob', replace_scalars),
         'bound_TF_coordinates': None,
         'n_available_promoters': None,
         'simulationStep': None,
         'bound_TF_domains': None,
-        'n_bound_TF_per_TU': None,
+        'n_bound_TF_per_TU': ('listeners', 'rna_synth_prob', 'n_bound_TF_per_TU', replace_scalars_2d),
         'time': None,
         'bound_TF_indexes': None,
         'nPromoterBound': None,
@@ -542,23 +557,20 @@ class TableReader(object):
 
 def test_table_reader():
     data = run_ecoli(total_time=4)
-    tb = TableReader("BulkMolecules", data)
 
-    bulk_counts = tb.readColumn("counts")
+    bulk_tb = TableReader("BulkMolecules", data)
+    bulk_counts = bulk_tb.readColumn("counts")
 
-    rnap_tb = TableReader("RnapData")
+    rnap_tb = TableReader("RnapData", data)
     rna_init = rnap_tb.readColumn("rnaInitEvent")
+
+    rna_synth_tb = TableReader("RnaSynthProb", data)
+    tf_per_tu = rna_synth_tb.readColumn("n_bound_TF_per_TU")
+    #gene_copies = rna_synth_tb.readColumn("gene_copy_number")
+    rna_synth_prob = rna_synth_tb.readColumn("rnaSynthProb")
 
     ribosome_tb = TableReader("RibosomeData", data)
     prob_trans = ribosome_tb.readColumn("probTranslationPerTranscript")
-
-    try:
-        tb.readColumn("atpAllocatedFinal")
-        assert False
-    except NotImplementedError:
-        pass
-    except AssertionError:
-        assert False, "TableReader did not raise an exception for not implemented column"
 
 
 if __name__ == "__main__":
