@@ -30,7 +30,9 @@ class Complexation(Process):
         'stoichiometry': np.array([[]]),
         'rates': np.array([]),
         'molecule_names': [],
-        'seed': 0}
+        'seed': 0,
+        'numReactions': 0
+    }
 
     def __init__(self, parameters=None):
         super().__init__(parameters)
