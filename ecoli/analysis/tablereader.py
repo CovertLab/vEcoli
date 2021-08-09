@@ -3,269 +3,287 @@ import numpy as np
 from ecoli.library.schema import array_from
 from ecoli.composites.ecoli_master import run_ecoli
 
+
+def replace_scalars(array):
+    for value in array:
+        if value != [] and type(value) in {list, np.array}:
+            array_len = len(value)
+            break
+
+    for i in range(len(array)):
+        if array[i] == [] or type(array[i]) not in {list, np.array}:
+            array[i] = [0 for i in range(array_len)]
+
+    array = np.array(array)
+    return array
+
+
 MAPPING = {
     'BulkMolecules': {
-        'atpAllocatedFinal' : None,
-        'atpRequested' : None,
-        'counts' : ("bulk",),
-        'atpAllocatedInitial' : None,
-        'attributes' : None
+        'atpAllocatedFinal': None,
+        'atpRequested': None,
+        'counts': ("bulk", array_from),
+        'atpAllocatedInitial': None,
+        'attributes': None
     },
     'EnzymeKinetics': {
-        'actualFluxes' : None,
-        'metaboliteCountsFinal' : None,
-        'targetFluxesLower' : None,
-        'metaboliteCountsInit' : None,
-        'targetFluxesUpper' : None,
-        'countsToMolar' : None,
-        'simulationStep' : None,
-        'time' : None,
-        'enzymeCountsInit' : None,
-        'targetFluxes' : None,
-        'attributes' : None
+        'actualFluxes': None,
+        'metaboliteCountsFinal': None,
+        'targetFluxesLower': None,
+        'metaboliteCountsInit': None,
+        'targetFluxesUpper': None,
+        'countsToMolar': None,
+        'simulationStep': None,
+        'time': None,
+        'enzymeCountsInit': None,
+        'targetFluxes': None,
+        'attributes': None
     },
     'GrowthLimits': {
-        'aaAllocated' : None,
-        'aasUsed' : None,
-        'ntpRequestSize' : None,
-        'aaPoolSize' : None,
-        'activeRibosomeAllocated' : None,
-        'ntpUsed' : None,
-        'aaRequestSize' : None,
-        'rela_syn' : None,
-        'aa_supply' : None,
-        'fraction_trna_charged' : None,
-        'simulationStep' : None,
-        'aa_supply_aa_conc' : None,
-        'net_charged' : None,
-        'spot_deg' : None,
-        'aa_supply_enzymes' : None,
-        'ntpAllocated' : None,
-        'spot_syn' : None,
-        'aa_supply_fraction' : None,
-        'ntpPoolSize' : None,
-        'time' : None,
-        'attributes' : None
+        'aaAllocated': None,
+        'aasUsed': None,
+        'ntpRequestSize': None,
+        'aaPoolSize': None,
+        'activeRibosomeAllocated': None,
+        'ntpUsed': None,
+        'aaRequestSize': None,
+        'rela_syn': None,
+        'aa_supply': None,
+        'fraction_trna_charged': None,
+        'simulationStep': None,
+        'aa_supply_aa_conc': None,
+        'net_charged': None,
+        'spot_deg': None,
+        'aa_supply_enzymes': None,
+        'ntpAllocated': None,
+        'spot_syn': None,
+        'aa_supply_fraction': None,
+        'ntpPoolSize': None,
+        'time': None,
+        'attributes': None
     },
     'mRNACounts': {
-        'mRNA_counts' : None,
-        'simulationStep' : None,
-        'full_mRNA_counts' : None,
-        'partial_mRNA_counts' : None,
-        'time' : None,
-        'attributes' : None
+        'mRNA_counts': None,
+        'simulationStep': None,
+        'full_mRNA_counts': None,
+        'partial_mRNA_counts': None,
+        'time': None,
+        'attributes': None
     },
     'RnapData': {
-        'active_rnap_coordinates' : None,
-        'active_rnap_domain_indexes' : None,
-        'active_rnap_n_bound_ribosomes' : None,
-        'active_rnap_unique_indexes' : None,
-        'actualElongations' : None,
-        'codirectional_collision_coordinates' : None,
-        'didInitialize' : None,
-        'didStall' : None,
-        'didTerminate' : None,
-        'headon_collision_coordinates' : None,
-        'n_codirectional_collisions' : None,
-        'n_headon_collisions' : None,
-        'n_removed_ribosomes' : None,
-        'n_total_collisions' : None,
-        'rnaInitEvent' : None,
-        'simulationStep' : None,
-        'terminationLoss' : None,
-        'time' : None,
-        'attributes' : None
+        'active_rnap_coordinates': None,
+        'active_rnap_domain_indexes': None,
+        'active_rnap_n_bound_ribosomes': None,
+        'active_rnap_unique_indexes': None,
+        'actualElongations': None,
+        'codirectional_collision_coordinates': None,
+        'didInitialize': None,
+        'didStall': None,
+        'didTerminate': None,
+        'headon_collision_coordinates': None,
+        'n_codirectional_collisions': None,
+        'n_headon_collisions': None,
+        'n_removed_ribosomes': None,
+        'n_total_collisions': None,
+        'rnaInitEvent': None,
+        'simulationStep': None,
+        'terminationLoss': None,
+        'time': None,
+        'attributes': None
     },
     'UniqueMoleculeCounts': {
-        'simulationStep' : None,
-        'time' : None,
-        'uniqueMoleculeCounts' : None,
-        'attributes' : None
+        'simulationStep': None,
+        'time': None,
+        'uniqueMoleculeCounts': None,
+        'attributes': None
     },
     'ComplexationListener': {
-        'complexationEvents' : None,
-        'simulationStep' : None,
-        'time' : None,
-        'attributes' : None
+        'complexationEvents': None,
+        'simulationStep': None,
+        'time': None,
+        'attributes': None
     },
     'EquilibriumListener': {
-        'reactionRates' : None,
-        'simulationStep' : None,
-        'time' : None,
-        'attributes' : None
+        'reactionRates': None,
+        'simulationStep': None,
+        'time': None,
+        'attributes': None
     },
     'Main': {
-        'time' : None,
-        'timeStepSec' : None,
-        'attributes' : None
+        'time': None,
+        'timeStepSec': None,
+        'attributes': None
     },
     'ReplicationData': {
-        'fork_coordinates' : None,
-        'free_DnaA_boxes' : None,
-        'criticalInitiationMass' : None,
-        'fork_domains' : None,
-        'numberOfOric' : None,
-        'criticalMassPerOriC' : None,
-        'fork_unique_index' : None,
-        'total_DnaA_boxes' : None,
-        'attributes' : None
+        'fork_coordinates': None,
+        'free_DnaA_boxes': None,
+        'criticalInitiationMass': None,
+        'fork_domains': None,
+        'numberOfOric': None,
+        'criticalMassPerOriC': None,
+        'fork_unique_index': None,
+        'total_DnaA_boxes': None,
+        'attributes': None
     },
     'RnaSynthProb': {
-        'nActualBound' : None,
-        'rnaSynthProb' : None,
-        'bound_TF_coordinates' : None,
-        'n_available_promoters' : None,
-        'simulationStep' : None,
-        'bound_TF_domains' : None,
-        'n_bound_TF_per_TU' : None,
-        'time' : None,
-        'bound_TF_indexes' : None,
-        'nPromoterBound' : None,
-        'gene_copy_number' : None,
-        'pPromoterBound' : None,
-        'attributes' : None
+        'nActualBound': None,
+        'rnaSynthProb': None,
+        'bound_TF_coordinates': None,
+        'n_available_promoters': None,
+        'simulationStep': None,
+        'bound_TF_domains': None,
+        'n_bound_TF_per_TU': None,
+        'time': None,
+        'bound_TF_indexes': None,
+        'nPromoterBound': None,
+        'gene_copy_number': None,
+        'pPromoterBound': None,
+        'attributes': None
     },
     'UniqueMolecules': {
-        'attributes' : None
+        'attributes': None
     },
     'DnaSupercoiling': {
-        'segment_domain_indexes' : None,
-        'segment_left_boundary_coordinates' : None,
-        'segment_right_boundary_coordinates' : None,
-        'segment_superhelical_densities' : None,
-        'simulationStep' : None,
-        'time' : None,
-        'attributes' : None
+        'segment_domain_indexes': None,
+        'segment_left_boundary_coordinates': None,
+        'segment_right_boundary_coordinates': None,
+        'segment_superhelical_densities': None,
+        'simulationStep': None,
+        'time': None,
+        'attributes': None
     },
     'EvaluationTime': {
-        'append_times' : None,
-        'merge_times' : None,
-        'append_total' : None,
-        'merge_total' : None,
-        'partition_times' : None,
-        'calculate_mass_times' : None,
-        'partition_total' : None,
-        'calculate_mass_total' : None,
-        'simulationStep' : None,
-        'calculate_request_times' : None,
-        'time' : None,
-        'calculate_request_total' : None,
-        'update_queries_times' : None,
-        'clock_time' : None,
-        'update_queries_total' : None,
-        'evolve_state_times' : None,
-        'update_times' : None,
-        'evolve_state_total' : None,
-        'update_total' : None,
-        'attributes' : None
+        'append_times': None,
+        'merge_times': None,
+        'append_total': None,
+        'merge_total': None,
+        'partition_times': None,
+        'calculate_mass_times': None,
+        'partition_total': None,
+        'calculate_mass_total': None,
+        'simulationStep': None,
+        'calculate_request_times': None,
+        'time': None,
+        'calculate_request_total': None,
+        'update_queries_times': None,
+        'clock_time': None,
+        'update_queries_total': None,
+        'evolve_state_times': None,
+        'update_times': None,
+        'evolve_state_total': None,
+        'update_total': None,
+        'attributes': None
     },
     'Mass': {
-        'inner_membrane_mass' : None,
-        'proteinMass' : None,
-        'cellMass' : None,
-        'instantaniousGrowthRate' : None,
-        'rnaMass' : None,
-        'cellVolume' : None,
-        'membrane_mass' : None,
-        'rRnaMass' : None,
-        'cytosol_mass' : None,
-        'mRnaMass' : None,
-        'simulationStep' : None,
-        'dnaMass' : None,
-        'outer_membrane_mass' : None,
-        'smallMoleculeMass' : None,
-        'dryMass' : None,
-        'periplasm_mass' : None,
-        'time' : None,
-        'extracellular_mass' : None,
-        'pilus_mass' : None,
-        'tRnaMass' : None,
-        'flagellum' : None,
-        'processMassDifferences' : None,
-        'waterMass' : None,
-        'growth' : None,
-        'projection_mass' : None,
-        'attributes' : None
+        'inner_membrane_mass': None,
+        'proteinMass': None,
+        'cellMass': None,
+        'instantaniousGrowthRate': None,
+        'rnaMass': None,
+        'cellVolume': None,
+        'membrane_mass': None,
+        'rRnaMass': None,
+        'cytosol_mass': None,
+        'mRnaMass': None,
+        'simulationStep': None,
+        'dnaMass': None,
+        'outer_membrane_mass': None,
+        'smallMoleculeMass': None,
+        'dryMass': None,
+        'periplasm_mass': None,
+        'time': None,
+        'extracellular_mass': None,
+        'pilus_mass': None,
+        'tRnaMass': None,
+        'flagellum': None,
+        'processMassDifferences': None,
+        'waterMass': None,
+        'growth': None,
+        'projection_mass': None,
+        'attributes': None
     },
     'RibosomeData': {
-        'aaCountInSequence' : None,
-        'aaCounts' : None,
-        'actualElongationHist' : None,
-        'actualElongations' : None,
-        'didInitialize' : None,
-        'didTerminate' : None,
-        'effectiveElongationRate' : None,
-        'elongationsNonTerminatingHist' : None,
-        'n_ribosomes_on_partial_mRNA_per_transcript' : None,
-        'n_ribosomes_per_transcript' : None,
-        'numTrpATerminated' : None,
-        'probTranslationPerTranscript' : None,
-        'processElongationRate' : None,
-        'rrn16S_init_prob' : None,
-        'rrn16S_produced' : None,
-        'rrn23S_init_prob' : None,
-        'rrn23S_produced' : None,
-        'rrn5S_init_prob' : None,
-        'rrn5S_produced' : None,
-        'simulationStep' : None,
-        'terminationLoss' : None,
-        'time' : None,
-        'total_rna_init' : None,
-        'translationSupply' : None,
-        'attributes' : None
+        'aaCountInSequence': None,
+        'aaCounts': None,
+        'actualElongationHist': None,
+        'actualElongations': None,
+        'didInitialize': None,
+        'didTerminate': None,
+        'effectiveElongationRate': None,
+        'elongationsNonTerminatingHist': None,
+        'n_ribosomes_on_partial_mRNA_per_transcript': None,
+        'n_ribosomes_per_transcript': None,
+        'numTrpATerminated': None,
+        'probTranslationPerTranscript': ('listeners',
+                                         'ribosome_data',
+                                         'prob_translation_per_transcript',
+                                         replace_scalars),
+        'processElongationRate': None,
+        'rrn16S_init_prob': None,
+        'rrn16S_produced': None,
+        'rrn23S_init_prob': None,
+        'rrn23S_produced': None,
+        'rrn5S_init_prob': None,
+        'rrn5S_produced': None,
+        'simulationStep': None,
+        'terminationLoss': None,
+        'time': None,
+        'total_rna_init': None,
+        'translationSupply': None,
+        'attributes': None
     },
     'Environment': {
-        'media_concentrations' : None,
-        'media_id' : None,
-        'attributes' : None
+        'media_concentrations': None,
+        'media_id': None,
+        'attributes': None
     },
     'FBAResults': {
-        'objectiveValue' : None,
-        'catalyst_counts' : None,
-        'reactionFluxes' : None,
-        'coefficient' : None,
-        'reducedCosts' : None,
-        'conc_updates' : None,
-        'shadowPrices' : None,
-        'constrained_molecules' : None,
-        'simulationStep' : None,
-        'deltaMetabolites' : None,
-        'targetConcentrations' : None,
-        'externalExchangeFluxes' : None,
-        'time' : None,
-        'homeostaticObjectiveValues' : None,
-        'translation_gtp' : None,
-        'kineticObjectiveValues' : None,
-        'unconstrained_molecules' : None,
-        'media_id' : None,
-        'uptake_constraints' : None,
-        'attributes' : None
+        'objectiveValue': None,
+        'catalyst_counts': None,
+        'reactionFluxes': None,
+        'coefficient': None,
+        'reducedCosts': None,
+        'conc_updates': None,
+        'shadowPrices': None,
+        'constrained_molecules': None,
+        'simulationStep': None,
+        'deltaMetabolites': None,
+        'targetConcentrations': None,
+        'externalExchangeFluxes': None,
+        'time': None,
+        'homeostaticObjectiveValues': None,
+        'translation_gtp': None,
+        'kineticObjectiveValues': None,
+        'unconstrained_molecules': None,
+        'media_id': None,
+        'uptake_constraints': None,
+        'attributes': None
     },
     'MonomerCounts': {
-        'monomerCounts' : None,
-        'simulationStep' : None,
-        'time' : None,
-        'attributes' : None
+        'monomerCounts': None,
+        'simulationStep': None,
+        'time': None,
+        'attributes': None
     },
     'RnaDegradationListener': {
-        'fragmentBasesDigested' : None,
-        'countRnaDegraded' : None,
-        'nucleotidesFromDegradation' : None,
-        'DiffRelativeFirstOrderDecay' : None,
-        'simulationStep' : None,
-        'FractEndoRRnaCounts' : None,
-        'time' : None,
-        'FractionActiveEndoRNases' : None,
-        'attributes' : None
+        'fragmentBasesDigested': None,
+        'countRnaDegraded': None,
+        'nucleotidesFromDegradation': None,
+        'DiffRelativeFirstOrderDecay': None,
+        'simulationStep': None,
+        'FractEndoRRnaCounts': None,
+        'time': None,
+        'FractionActiveEndoRNases': None,
+        'attributes': None
     },
     'TranscriptElongationListener': {
-        'attenuation_probability' : None,
-        'countRnaSynthesized' : None,
-        'time' : None,
-        'counts_attenuated' : None,
-        'countNTPsUSed' : None,
-        'simulationStep' : None,
-        'attributes' : None
+        'attenuation_probability': None,
+        'countRnaSynthesized': None,
+        'time': None,
+        'counts_attenuated': None,
+        'countNTPsUSed': None,
+        'simulationStep': None,
+        'attributes': None
     }
 }
 
@@ -297,7 +315,8 @@ class TableReader(object):
 
         # List the column file names. Ignore the 'attributes.json' file.
         self._mapping = MAPPING[path]
-        self._columnNames = {k for k in self._mapping.keys() if k != "attributes"}
+        self._columnNames = {
+            k for k in self._mapping.keys() if k != "attributes"}
 
     @property
     def path(self):
@@ -455,8 +474,10 @@ class TableReader(object):
         elif isinstance(viv_path, tuple):
             result = self._data
             for elem in viv_path:
-                result = result[elem]
-            result = array_from(result)  # Should this always happen?
+                if callable(elem):
+                    result = elem(result)
+                else:
+                    result = result[elem]
         else:
             raise NotImplementedError(f"No mapping implented from {self._path + '/' + name} to a path in vivarium data"
                                       f"(mapping is {viv_path}).")
@@ -524,6 +545,9 @@ def test_table_reader():
     tb = TableReader("BulkMolecules", data)
 
     bulk_counts = tb.readColumn("counts")
+
+    ribosome_tb = TableReader("RibosomeData", data)
+    prob_trans = ribosome_tb.readColumn("probTranslationPerTranscript")
 
     try:
         tb.readColumn("atpAllocatedFinal")
