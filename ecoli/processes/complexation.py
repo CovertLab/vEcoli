@@ -7,7 +7,6 @@ TODO:
 - allow for shuffling when appropriate (maybe in another process)
 - handle protein complex dissociation
 """
-import ipdb
 import numpy as np
 from arrow import StochasticSystem
 

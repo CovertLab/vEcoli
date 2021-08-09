@@ -1,4 +1,3 @@
-import ipdb
 import numpy as np
 from six.moves import cPickle
 from wholecell.utils import units
