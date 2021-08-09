@@ -44,7 +44,7 @@ class Complexation(Process):
 
         self.system = StochasticSystem(self.stoichiometry, random_seed=self.seed)
 
-        num_reactions = parameters['numReactions']
+        num_reactions = self.parameters['numReactions']
         self.complexationEvents = np.zeros(num_reactions, np.int64)
 
     def ports_schema(self):
@@ -127,7 +127,8 @@ def test_complexation():
         'initial_state': state}
 
     data = simulate_process(complexation, settings)
-
+    assert (type(data['listeners']['complexation_events'][0]) == list)
+    assert (type(data['listeners']['complexation_events'][1]) == list)
     print(data)
 
 
