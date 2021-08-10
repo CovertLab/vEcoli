@@ -465,6 +465,14 @@ class LoadSimData:
 
         return mass_config
 
+    def get_mrna_counts_listener_config(self, time_step=2):
+        counts_config = {
+            'rna_ids': self.sim_data.process.transcription.rna_data['id'],
+            'mrna_indexes': np.where(self.sim_data.process.transcription.rna_data['is_mRNA'])[0],
+        }
+
+        return counts_config
+
       
     def get_allocator_config(self, time_step=2, parallel=False, process_names=[]):
         allocator_config = {
