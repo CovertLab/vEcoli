@@ -11,7 +11,6 @@ NOTE:
 - In wcEcoli, metabolism only runs after all other processes have completed 
 and internal states have been updated (deriver-like, no partitioning necessary)
 """
-
 import numpy as np
 from scipy.sparse import csr_matrix
 from typing import List, Tuple
@@ -151,7 +150,7 @@ class Metabolism(Process):
                     'constrained_molecules': {'_default': [], '_updater': 'set'},
                     'uptake_constraints': {'_default': [], '_updater': 'set'},
                     'deltaMetabolites': {'_default': [], '_updater': 'set'},
-                    'reactionFluxes': {'_default': [], '_updater': 'set'},
+                    'reactionFluxes': {'_default': [], '_updater': 'set', '_emit': True},
                     'externalExchangeFluxes': {'_default': [], '_updater': 'set'},
                     'objectiveValue': {'_default': [], '_updater': 'set'},
                     'shadowPrices': {'_default': [], '_updater': 'set'},
@@ -660,3 +659,14 @@ class FluxBalanceAnalysisModel(object):
             upper_targets = np.zeros(len(self.kinetics_constrained_reactions))
 
         return mean_targets, upper_targets, lower_targets
+
+
+def test_metabolism_listener():
+    from ecoli.composites.ecoli_master import run_ecoli
+    data = run_ecoli(total_time=2)
+    assert(type(data['listeners']['equilibrium_listener']['reaction_rates'][0]) == list)
+    assert(type(data['listeners']['equilibrium_listener']['reaction_rates'][1]) == list)
+
+
+if __name__ == '__main__':
+    test_metabolism_listener()
