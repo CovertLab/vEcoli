@@ -3,13 +3,6 @@ from ecoli.library.schema import arrays_from
 from vivarium.core.process import Deriver
 
 
-def test_mrna_counts_listener():
-	from ecoli.composites.ecoli_master import run_ecoli
-	data = run_ecoli(total_time=2)
-	assert(type(data['listeners']['mRNA_counts'][0]) == list)
-	assert(type(data['listeners']['mRNA_counts'][1]) == list)
-
-
 class mRNACounts(Deriver):
 	"""
 	Listener for the counts of each mRNA species.
@@ -62,6 +55,13 @@ class mRNACounts(Deriver):
 				'mRNA_counts': mrna_counts
 			}
 		}
+
+
+def test_mrna_counts_listener():
+	from ecoli.composites.ecoli_master import run_ecoli
+	data = run_ecoli(total_time=2)
+	assert(type(data['listeners']['mRNA_counts'][0]) == list)
+	assert(type(data['listeners']['mRNA_counts'][1]) == list)
 
 
 if __name__ == '__main__':
