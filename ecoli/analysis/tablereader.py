@@ -557,7 +557,6 @@ class TableReader(object):
 def test_table_reader():
     data = run_ecoli(total_time=4)
 
-    import ipdb; ipdb.set_trace()
     #TODO actaully grab their values - they fail 'gracefully' rn because their keys are empty or arrays are empty
     equi_tb = TableReader("EquilibriumListener", data)
     equi_rxns = equi_tb.readColumn('reactionRates')
@@ -568,7 +567,7 @@ def test_table_reader():
     growth_lim_tb = TableReader("GrowthLimits", data)
     growth_lim_vals = growth_lim_tb.readColumn('net_charged')
 
-#i believe these are right
+    #i believe these are right
     dry_m_tb = TableReader("Mass", data)
     dry_m_vals = dry_m_tb.readColumn('dryMass')
 
