@@ -9,6 +9,6 @@
         }
     },
     "swap_processes" : {
-        "ecoli-mass" : "ecoli-mass-listener"
+        "ecoli-mass-listener" : "ecoli-mass"
     }
 }

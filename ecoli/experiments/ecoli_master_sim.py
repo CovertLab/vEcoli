@@ -220,5 +220,5 @@ class EcoliSim:
 
 
 if __name__ == '__main__':
-    ecoli_sim = EcoliSim.from_cli()
+    ecoli_sim = EcoliSim.from_file("")
     ecoli_sim.run()
