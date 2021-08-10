@@ -3,7 +3,6 @@ Equilibrium
 
 Equilibrium binding sub-model
 """
-
 import numpy as np
 
 from vivarium.core.process import Process
@@ -66,7 +65,7 @@ class Equilibrium(Process):
                 'mass': {
                     'cell_mass': {'_default': 0}},
                 'equilibrium_listener': {
-                    'reaction_rates': {'_default': 0, '_updater': 'set'}}}}
+                    'reaction_rates': {'_default': [], '_updater': 'set', '_emit': True}}}}
         
     def calculate_request(self, timestep, states):
         # Get molecule counts
@@ -135,3 +134,14 @@ class Equilibrium(Process):
         states = deep_merge(states, requests)
         update = self.evolve_state(timestep, states)
         return update
+
+
+def test_equilibrium_listener():
+    from ecoli.composites.ecoli_master import run_ecoli
+    data = run_ecoli(total_time=2)
+    assert(type(data['listeners']['equilibrium_listener']['reaction_rates'][0]) == list)
+    assert(type(data['listeners']['equilibrium_listener']['reaction_rates'][1]) == list)
+
+
+if __name__ == '__main__':
+    test_equilibrium_listener()
