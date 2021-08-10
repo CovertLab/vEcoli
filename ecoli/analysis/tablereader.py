@@ -67,7 +67,7 @@ MAPPING = {
         'fraction_trna_charged': None,
         'simulationStep': None,
         'aa_supply_aa_conc': None,
-        'net_charged': None,
+        'net_charged': ('listeners', 'growth_limits'),
         'spot_deg': None,
         'aa_supply_enzymes': None,
         'ntpAllocated': None,
@@ -119,13 +119,13 @@ MAPPING = {
         'attributes': None
     },
     'EquilibriumListener': {
-        'reactionRates': None,
+        'reactionRates': ('listeners', 'equilibrium_listener'),
         'simulationStep': None,
         'time': None,
         'attributes': None
     },
     'Main': {
-        'time': None,
+        'time': ('time', ),
         'timeStepSec': None,
         'attributes': None
     },
@@ -192,7 +192,7 @@ MAPPING = {
     'Mass': {
         'inner_membrane_mass': None,
         'proteinMass': None,
-        'cellMass': None,
+        'cellMass': ('listeners', 'mass', 'cell_mass'),
         'instantaniousGrowthRate': None,
         'rnaMass': None,
         'cellVolume': None,
@@ -204,7 +204,7 @@ MAPPING = {
         'dnaMass': None,
         'outer_membrane_mass': None,
         'smallMoleculeMass': None,
-        'dryMass': None,
+        'dryMass': ('listeners', 'mass', 'dry_mass'),
         'periplasm_mass': None,
         'time': None,
         'extracellular_mass': None,
@@ -255,7 +255,7 @@ MAPPING = {
     'FBAResults': {
         'objectiveValue': None,
         'catalyst_counts': None,
-        'reactionFluxes': None,
+        'reactionFluxes': ('listeners', 'fba_results'),
         'coefficient': None,
         'reducedCosts': None,
         'conc_updates': None,
@@ -483,7 +483,6 @@ class TableReader(object):
 
         # Squeeze if flag is set to True
         viv_path = self._mapping[name]
-
         if callable(viv_path):
             result = viv_path(self._data)
         elif isinstance(viv_path, tuple):
@@ -557,6 +556,27 @@ class TableReader(object):
 
 def test_table_reader():
     data = run_ecoli(total_time=4)
+
+    import ipdb; ipdb.set_trace()
+    #TODO actaully grab their values - they fail 'gracefully' rn because their keys are empty or arrays are empty
+    equi_tb = TableReader("EquilibriumListener", data)
+    equi_rxns = equi_tb.readColumn('reactionRates')
+
+    fba_tb = TableReader("FBAResults", data)
+    fba_rxns = fba_tb.readColumn('reactionFluxes')
+
+    growth_lim_tb = TableReader("GrowthLimits", data)
+    growth_lim_vals = growth_lim_tb.readColumn('net_charged')
+
+#i believe these are right
+    dry_m_tb = TableReader("Mass", data)
+    dry_m_vals = dry_m_tb.readColumn('dryMass')
+
+    time_tb = TableReader("Main", data)
+    time_vals = time_tb.readColumn('time')
+
+    cell_m_tb = TableReader("Mass", data)
+    cell_m_vals = cell_m_tb.readColumn('cellMass')
 
     bulk_tb = TableReader("BulkMolecules", data)
     bulk_counts = bulk_tb.readColumn("counts")
