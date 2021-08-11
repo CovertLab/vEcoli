@@ -11,6 +11,7 @@ NOTE:
 - In wcEcoli, metabolism only runs after all other processes have completed 
 and internal states have been updated (deriver-like, no partitioning necessary)
 """
+
 import numpy as np
 from scipy.sparse import csr_matrix
 from typing import List, Tuple
