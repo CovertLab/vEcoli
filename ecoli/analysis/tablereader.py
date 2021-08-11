@@ -6,7 +6,7 @@ from ecoli.composites.ecoli_master import run_ecoli
 
 
 def warn_incomplete(array):
-    warn("Mapping may be incomplete, expect missing data!")
+    warn("Used incomplete TableReader mapping, expect missing data!")
     return array
 
 
@@ -329,15 +329,13 @@ class TableReader(object):
         # Store reference to the data
         self._data = data
 
-        # Read the table's attributes file
-        #attributes_filename = os.path.join(path, tw.FILE_ATTRIBUTES)
-
-        #self._attributes = filepath.read_json_file(attributes_filename)
-
-        # List the column file names. Ignore the 'attributes.json' file.
+        # List the column file names.
         self._mapping = MAPPING[path]
         self._columnNames = {
             k for k in self._mapping.keys() if k != "attributes"}
+
+        # Get attributes
+        self._attributes = self._mapping['attributes']
 
     @property
     def path(self):
@@ -356,10 +354,9 @@ class TableReader(object):
                 value: The attribute value, JSON-deserialized from a string.
         """
 
-        raise NotImplementedError()
-        # if name not in self._attributes:
-        # 	raise DoesNotExistError("No such attribute: {}".format(name))
-        # return self._attributes[name]
+        if name not in self._attributes:
+        	raise DoesNotExistError("No such attribute: {}".format(name))
+        return self._attributes[name]
 
     def readColumn(self, name, indices=None, squeeze=True):
         # type: (str, Any, bool) -> np.ndarray
