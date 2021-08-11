@@ -49,7 +49,7 @@ MAPPING = {
         'targetFluxesUpper': None,
         'countsToMolar': None,
         'simulationStep': None,
-        'time': None,
+        'time': ('time', ),
         'enzymeCountsInit': None,
         'targetFluxes': None,
         'attributes': None
@@ -74,7 +74,7 @@ MAPPING = {
         'spot_syn': None,
         'aa_supply_fraction': None,
         'ntpPoolSize': None,
-        'time': None,
+        'time': ('time', ),
         'attributes': None
     },
     'mRNACounts': {
@@ -82,7 +82,7 @@ MAPPING = {
         'simulationStep': None,
         'full_mRNA_counts': None,
         'partial_mRNA_counts': None,
-        'time': None,
+        'time': ('time', ),
         'attributes': None
     },
     'RnapData': {
@@ -103,25 +103,25 @@ MAPPING = {
         'rnaInitEvent': ('listeners', 'rnap_data', 'rnaInitEvent', replace_scalars),
         'simulationStep': None,
         'terminationLoss': None,
-        'time': None,
+        'time': ('time', ),
         'attributes': None
     },
     'UniqueMoleculeCounts': {
         'simulationStep': None,
-        'time': None,
+        'time': ('time', ),
         'uniqueMoleculeCounts': None,
         'attributes': None
     },
     'ComplexationListener': {
         'complexationEvents': None,
         'simulationStep': None,
-        'time': None,
+        'time': ('time', ),
         'attributes': None
     },
     'EquilibriumListener': {
         'reactionRates': ('listeners', 'equilibrium_listener'),
         'simulationStep': None,
-        'time': None,
+        'time': ('time', ),
         'attributes': None
     },
     'Main': {
@@ -148,7 +148,7 @@ MAPPING = {
         'simulationStep': None,
         'bound_TF_domains': None,
         'n_bound_TF_per_TU': ('listeners', 'rna_synth_prob', 'n_bound_TF_per_TU', replace_scalars_2d),
-        'time': None,
+        'time': ('time', ),
         'bound_TF_indexes': None,
         'nPromoterBound': None,
         'gene_copy_number': None,
@@ -164,7 +164,7 @@ MAPPING = {
         'segment_right_boundary_coordinates': None,
         'segment_superhelical_densities': None,
         'simulationStep': None,
-        'time': None,
+        'time': ('time', ),
         'attributes': None
     },
     'EvaluationTime': {
@@ -178,7 +178,7 @@ MAPPING = {
         'calculate_mass_total': None,
         'simulationStep': None,
         'calculate_request_times': None,
-        'time': None,
+        'time': ('time', ),
         'calculate_request_total': None,
         'update_queries_times': None,
         'clock_time': None,
@@ -206,7 +206,7 @@ MAPPING = {
         'smallMoleculeMass': None,
         'dryMass': ('listeners', 'mass', 'dry_mass'),
         'periplasm_mass': None,
-        'time': None,
+        'time': ('time', ),
         'extracellular_mass': None,
         'pilus_mass': None,
         'tRnaMass': None,
@@ -242,7 +242,7 @@ MAPPING = {
         'rrn5S_produced': None,
         'simulationStep': None,
         'terminationLoss': None,
-        'time': None,
+        'time': ('time', ),
         'total_rna_init': None,
         'translationSupply': None,
         'attributes': None
@@ -265,7 +265,7 @@ MAPPING = {
         'deltaMetabolites': None,
         'targetConcentrations': None,
         'externalExchangeFluxes': None,
-        'time': None,
+        'time': ('time', ),
         'homeostaticObjectiveValues': None,
         'translation_gtp': None,
         'kineticObjectiveValues': None,
@@ -277,7 +277,7 @@ MAPPING = {
     'MonomerCounts': {
         'monomerCounts': None,
         'simulationStep': None,
-        'time': None,
+        'time': ('time', ),
         'attributes': None
     },
     'RnaDegradationListener': {
@@ -287,14 +287,14 @@ MAPPING = {
         'DiffRelativeFirstOrderDecay': None,
         'simulationStep': None,
         'FractEndoRRnaCounts': None,
-        'time': None,
+        'time': ('time', ),
         'FractionActiveEndoRNases': None,
         'attributes': None
     },
     'TranscriptElongationListener': {
         'attenuation_probability': None,
         'countRnaSynthesized': None,
-        'time': None,
+        'time': ('time', ),
         'counts_attenuated': None,
         'countNTPsUSed': None,
         'simulationStep': None,
