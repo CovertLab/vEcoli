@@ -191,7 +191,7 @@ class PolypeptideElongation(Process):
                     'aa_pool_size': 0,
                     'aa_request_size': 0,
                     'active_ribosomes_allocated': 0,
-                    'net_charged': 0,
+                    'net_charged': [],
                     'aasUsed': 0,
                     'aa_supply': 0,
                     'aa_supply_enzymes': 0,
@@ -594,6 +594,7 @@ def run_plot(data, config):
 def main():
     data, config = test_polypeptide_elongation()
     run_plot(data, config)
+
 
 if __name__ == '__main__':
     main()
