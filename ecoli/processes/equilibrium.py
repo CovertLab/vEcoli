@@ -3,6 +3,7 @@ Equilibrium
 
 Equilibrium binding sub-model
 """
+
 import numpy as np
 
 from vivarium.core.process import Process
