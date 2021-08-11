@@ -21,7 +21,7 @@ from vivarium.library.dict_utils import deep_merge
 from vivarium.plots.simulation_output import plot_variables
 
 # vivarium-ecoli imports
-from ecoli.library.schema import bulk_schema, listener_schema, arrays_from, array_from
+from ecoli.library.schema import bulk_schema, listener_schema, arrays_from, array_from, submass_schema
 from ecoli.models.polypeptide_elongation_models import BaseElongationModel, MICROMOLAR_UNITS
 
 DEFAULT_AA_NAMES = [
@@ -244,8 +244,7 @@ class PolypeptideElongation(Process):
                     'protein_index': {'_default': 0, '_updater': 'set'},
                     'peptide_length': {'_default': 0, '_updater': 'set', '_emit': True},
                     'pos_on_mRNA': {'_default': 0, '_updater': 'set', '_emit': True},
-                    'submass': {
-                        'protein': {'_default': 0, '_emit': True}}}},
+                    'submass': submass_schema()}},
 
             'subunits': bulk_schema([self.ribosome30S, self.ribosome50S]),
 
@@ -427,18 +426,18 @@ class PolypeptideElongation(Process):
             minlength = self.proteinSequences.shape[0])
 
         # self.active_ribosomes.delByIndexes(termination)
-
         update['active_ribosome'] = {'_delete': []}
         for index, ribosome in enumerate(states['active_ribosome'].values()):
+            added_submass = np.zeros(9)
             unique_index = str(ribosome['unique_index'])
             if didTerminate[index]:
                 update['active_ribosome']['_delete'].append((unique_index,))
             else:
+                added_submass[5] = added_protein_mass[index]
                 update['active_ribosome'][unique_index] = {
                     'peptide_length': updated_lengths[index],
                     'pos_on_mRNA': updated_positions_on_mRNA[index],
-                    'submass': {
-                        'protein': added_protein_mass[index]}}
+                    'submass': added_submass}
 
         update['monomers'] = {}
         for index, count in enumerate(terminatedProteins):

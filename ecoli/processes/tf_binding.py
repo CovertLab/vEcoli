@@ -10,7 +10,7 @@ from vivarium.core.process import Process
 from vivarium.core.composition import simulate_process
 from vivarium.library.dict_utils import deep_merge
 
-from ecoli.library.schema import arrays_from, arrays_to, bulk_schema, listener_schema
+from ecoli.library.schema import arrays_from, arrays_to, bulk_schema, listener_schema, submass_schema
 
 from wholecell.utils.constants import REQUEST_PRIORITY_TF_BINDING
 from wholecell.utils.random import stochasticRound
@@ -103,7 +103,7 @@ class TfBinding(Process):
                 '*': {
                     'TU_index': {'_default': 0, '_updater': 'set', '_emit': True},
                     'bound_TF': {'_default': 0, '_updater': 'set', '_emit': True},
-                    'submass': {'_default': 0, '_emit': True}}},
+                    'submass': submass_schema()}},
 
             'active_tfs': bulk_schema([
                 self.active_tfs[tf]

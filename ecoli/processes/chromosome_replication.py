@@ -10,7 +10,7 @@ import numpy as np
 from vivarium.core.process import Process
 from vivarium.library.dict_utils import deep_merge
 
-from ecoli.library.schema import array_to, array_from, arrays_from, arrays_to, bulk_schema
+from ecoli.library.schema import array_to, array_from, arrays_from, arrays_to, bulk_schema, submass_schema
 
 from wholecell.utils import units
 from wholecell.utils.polymerize import buildSequences, polymerize, computeMassIncrease
@@ -101,8 +101,7 @@ class ChromosomeReplication(Process):
                     'domain_index': default_unique_schema,
                     'right_replichore': default_unique_schema,
                     'coordinates': default_unique_schema,
-                    'dna_mass': {
-                            '_default': 0, '_updater': 'accumulate'},
+                    'submass': submass_schema(),
                 }},
             'oriCs': {
                 '*': {
@@ -414,11 +413,13 @@ class ChromosomeReplication(Process):
 
         # Update attributes and submasses of replisomes
         active_replisomes_indexes = list(states['active_replisomes'].keys())
+        added_submass = np.zeros((len(states['active_replisomes']), 9))
+        added_submass[:, 8] = added_dna_mass
         active_replisomes_update = arrays_to(
             len(states['active_replisomes']),
             {
                 'coordinates': updated_coordinates,
-                'dna_mass': added_dna_mass,
+                'submass': added_submass,
              })
         update['active_replisomes'] = {
                 active_replisomes_indexes[index]: active_replisomes
