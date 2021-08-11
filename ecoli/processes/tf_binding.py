@@ -120,7 +120,8 @@ class TfBinding(Process):
                     'nPromoterBound': 0,
                     'nActualBound': 0,
                     'n_available_promoters': 0,
-                    'n_bound_TF_per_TU': 0})}
+                    'n_bound_TF_per_TU': 0,
+                    'gene_copy_number': []})}
             }
         
     def calculate_request(self, timestep, states):
@@ -254,7 +255,9 @@ class TfBinding(Process):
                 'nPromoterBound': nPromotersBound,
                 'nActualBound': nActualBound,
                 'n_available_promoters': n_promoters,
-                'n_bound_TF_per_TU': n_bound_TF_per_TU}}
+                'n_bound_TF_per_TU': n_bound_TF_per_TU,
+                'gene_copy_number': np.bincount(TU_index, minlength=self.n_TU)},
+        }
 
         return update
     
@@ -263,3 +266,14 @@ class TfBinding(Process):
         states = deep_merge(states, requests)
         update = self.evolve_state(timestep, states)
         return update
+
+
+def test_tf_binding_listener():
+    from ecoli.composites.ecoli_master import run_ecoli
+    data = run_ecoli(total_time=2)
+    assert(type(data['listeners']['rna_synth_prob']['gene_copy_number'][0]) == list)
+    assert(type(data['listeners']['rna_synth_prob']['gene_copy_number'][1]) == list)
+
+
+if __name__ == '__main__':
+    test_tf_binding_listener()
