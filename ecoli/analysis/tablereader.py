@@ -144,7 +144,7 @@ MAPPING = {
         'criticalMassPerOriC': None,
         'fork_unique_index': None,
         'total_DnaA_boxes': None,
-        'attributes': None
+        'attributes': {}
     },
     'RnaSynthProb': {
         'nActualBound': None,
@@ -171,7 +171,7 @@ MAPPING = {
         'segment_superhelical_densities': None,
         'simulationStep': None,
         'time': ('time', ),
-        'attributes': None
+        'attributes': {}
     },
     'EvaluationTime': {
         'append_times': None,
