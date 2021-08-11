@@ -595,5 +595,6 @@ def main():
     data, config = test_polypeptide_elongation()
     run_plot(data, config)
 
+
 if __name__ == '__main__':
     main()
