@@ -13,6 +13,7 @@ from ecoli.processes.chromosome_replication import ChromosomeReplication
 from ecoli.processes.mass import Mass
 from ecoli.processes.cell_division import Division
 from ecoli.processes.listeners.mass_listener import MassListener
+from ecoli.processes.listeners.mRNA_counts import mRNACounts
 
 ECOLI_PROCESSES = {
     'tf_binding': TfBinding,
@@ -28,6 +29,7 @@ ECOLI_PROCESSES = {
     'metabolism': Metabolism,
     'chromosome_replication': ChromosomeReplication,
     'mass': MassListener,
+    'mrna_counts': mRNACounts,
 }
 
 ECOLI_TOPOLOGY = {
@@ -99,7 +101,9 @@ ECOLI_TOPOLOGY = {
             'uncharged_trna_total': ('bulk',),},
 
         'complexation': {
-            'molecules': ('bulk',)},
+            'molecules': ('bulk',),
+            'listeners': ('listeners',),
+        },
 
         'two_component_system': {
             'listeners': ('listeners',),
@@ -139,4 +143,9 @@ ECOLI_TOPOLOGY = {
             'bulk': ('bulk',),
             'unique': ('unique',),
             'listeners': ('listeners',)},
+
+        'mrna_counts': {
+            'listeners': ('listeners',),
+            'RNAs': ('unique', 'RNA')
+        }
     }
