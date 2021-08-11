@@ -664,8 +664,8 @@ class FluxBalanceAnalysisModel(object):
 def test_metabolism_listener():
     from ecoli.composites.ecoli_master import run_ecoli
     data = run_ecoli(total_time=2)
-    assert(type(data['listeners']['equilibrium_listener']['reaction_rates'][0]) == list)
-    assert(type(data['listeners']['equilibrium_listener']['reaction_rates'][1]) == list)
+    assert(type(data['listeners']['fba_results']['reactionFluxes'][0]) == list)
+    assert(type(data['listeners']['fba_results']['reactionFluxes'][1]) == list)
 
 
 if __name__ == '__main__':
