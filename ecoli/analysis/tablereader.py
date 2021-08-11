@@ -1,7 +1,13 @@
+from warnings import warn
 import numpy as np
 
 from ecoli.library.schema import array_from
 from ecoli.composites.ecoli_master import run_ecoli
+
+
+def warn_incomplete(array):
+    warn("Mapping may be incomplete, expect missing data!")
+    return array
 
 
 def replace_scalars(array):
@@ -67,7 +73,7 @@ MAPPING = {
         'fraction_trna_charged': None,
         'simulationStep': None,
         'aa_supply_aa_conc': None,
-        'net_charged': ('listeners', 'growth_limits'),
+        'net_charged': ('listeners', 'growth_limits', warn_incomplete),
         'spot_deg': None,
         'aa_supply_enzymes': None,
         'ntpAllocated': None,
@@ -119,7 +125,7 @@ MAPPING = {
         'attributes': None
     },
     'EquilibriumListener': {
-        'reactionRates': ('listeners', 'equilibrium_listener'),
+        'reactionRates': ('listeners', 'equilibrium_listener', warn_incomplete),
         'simulationStep': None,
         'time': ('time', ),
         'attributes': None
@@ -255,7 +261,7 @@ MAPPING = {
     'FBAResults': {
         'objectiveValue': None,
         'catalyst_counts': None,
-        'reactionFluxes': ('listeners', 'fba_results'),
+        'reactionFluxes': ('listeners', 'fba_results', warn_incomplete),
         'coefficient': None,
         'reducedCosts': None,
         'conc_updates': None,
