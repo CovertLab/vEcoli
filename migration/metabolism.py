@@ -5,6 +5,8 @@ import argparse
 import json
 import os
 import numpy as np
+from matplotlib import pyplot as plt
+from migration.plots import qqplot
 
 # vivarium imports
 from vivarium.core.engine import Engine
@@ -16,6 +18,7 @@ from ecoli.library.sim_data import LoadSimData
 from ecoli.states.wcecoli_state import get_state_from_file
 from ecoli.composites.ecoli_master import SIM_DATA_PATH, AA_MEDIA_ID
 from ecoli.processes import Metabolism, Exchange
+from ecoli.library.schema import array_from
 from data.ecoli_master_configs import default
 
 from data.ecoli_master_configs.default import ECOLI_TOPOLOGY
@@ -161,7 +164,48 @@ def test_metabolism():
         test(time)
     
 def plots(actual_update, expected_update, time):
-    pass
+    os.makedirs("out/migration/metabolism/", exist_ok=True)
+    def unpack(update):
+        return {
+            'environment_exhange': array_from(update['environment']['exchange']),
+            'conc_updates': update['listeners']['fba_results']['conc_updates'],
+            'catalyst_counts': update['listeners']['fba_results']['catalyst_counts'],
+            'delta_metabolites': update['listeners']['fba_results']['deltaMetabolites'],
+            'reaction_fluxes': update['listeners']['fba_results']['reactionFluxes'],
+            'external_exchange_fluxes': update['listeners']['fba_results']['externalExchangeFluxes'],
+            'shadow_prices': update['listeners']['fba_results']['shadowPrices'],
+            'reduced_costs': update['listeners']['fba_results']['reducedCosts'],
+            'target_concentrations': update['listeners']['fba_results']['targetConcentrations'],
+            'homeostatic_objective_values': update['listeners']['fba_results']['homeostaticObjectiveValues'],
+            'kinetic_objective_values': update['listeners']['fba_results']['kineticObjectiveValues'],
+            'metabolite_counts_init': update['listeners']['enzyme_kinetics']['metaboliteCountsInit'],
+            'metabolite_counts_final': update['listeners']['enzyme_kinetics']['metaboliteCountsFinal'],
+            'enzyme_counts_init': update['listeners']['enzyme_kinetics']['enzymeCountsInit'],
+            'actual_fluxes': update['listeners']['enzyme_kinetics']['actualFluxes'],
+            'target_fluxes': update['listeners']['enzyme_kinetics']['targetFluxes'],
+            'target_fluxes_upper': update['listeners']['enzyme_kinetics']['targetFluxesUpper'],
+            'target_fluxes_lower': update['listeners']['enzyme_kinetics']['targetFluxesLower'],
+        }
+
+    # unpack updates
+    actual_update = unpack(actual_update)
+
+    expected_update = unpack(expected_update)
+
+    # Plots ============================================================================
+    plot_num = 0
+    for key, dist in actual_update.items():
+        plot_num += 1
+        plt.subplot(6, 3, plot_num)
+        qqplot(dist, expected_update[key])
+        plt.ylabel('wcEcoli')
+        plt.xlabel('Vivarium')
+        plt.title(key)
+
+    plt.gcf().set_size_inches(16, 12)
+    plt.tight_layout()
+    plt.savefig(f"out/migration/metabolism/metabolism_figures{time}.png")
+    plt.close()
 
 def assertions(actual_update, expected_update, time):
     def array_close(a, b):
