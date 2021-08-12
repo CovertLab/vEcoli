@@ -197,7 +197,6 @@ class Metabolism(Process):
         translation_gtp = states['polypeptide_elongation']['gtp_to_hydrolyze']
         # self.readFromListener('Mass', 'cellMass') * units.fg
         # TODO: Fix mass calculation as metabolism requires accurate cell and dry masses
-        # Increasing both cell and dry mass by 4.570919404360666 returns correct update at t=2
         cell_mass = states['listeners']['mass']['cell_mass'] * units.fg
         # self.readFromListener('Mass', 'dryMass') * units.fg
         dry_mass = states['listeners']['mass']['dry_mass'] * units.fg

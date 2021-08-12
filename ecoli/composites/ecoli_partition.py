@@ -190,6 +190,7 @@ class Ecoli(Composer):
             seed=self.config['seed'])
 
     def initial_state(self, config=None, path=()):
+        # Use initial state calculated with trna_charging and translationSupply disabled
         initial_state = get_state_from_file(path='data/metabolism/wcecoli_t0.json')
         embedded_state = {}
         assoc_path(embedded_state, path, initial_state)
@@ -384,7 +385,8 @@ def run_ecoli(
     # retrieve the data
     output = ecoli_experiment.emitter.get_timeseries()
     
-    pp(output['listeners']['mass'])
+    # Sanity check: breaks test_division()
+    # pp(output['listeners']['mass'])
 
     return output
 

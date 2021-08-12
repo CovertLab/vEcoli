@@ -23,6 +23,7 @@ from vivarium.plots.simulation_output import plot_variables
 # vivarium-ecoli imports
 from ecoli.library.schema import bulk_schema, listener_schema, arrays_from, array_from, submass_schema
 from ecoli.models.polypeptide_elongation_models import BaseElongationModel, MICROMOLAR_UNITS
+from ecoli.states.wcecoli_state import MASSDIFFS
 
 DEFAULT_AA_NAMES = [
             'L-ALPHA-ALANINE[c]', 'ARG[c]', 'ASN[c]', 'L-ASPARTATE[c]', 'CYS[c]', 'GLT[c]', 'GLN[c]', 'GLY[c]',
@@ -94,7 +95,8 @@ class PolypeptideElongation(Process):
         'k_SpoT_deg': 0.23,
         'KI_SpoT': 20.0,
         'aa_supply_scaling': lambda aa_conc, aa_in_media: 0,
-        'seed': 0}
+        'seed': 0,
+        'submass_indexes': MASSDIFFS,}
 
     def __init__(self, parameters=None):
         super().__init__(parameters)
@@ -169,6 +171,9 @@ class PolypeptideElongation(Process):
         self.charged_trna_names = self.parameters['charged_trna_names']
         self.charging_molecule_names = self.parameters['charging_molecule_names']
         self.synthetase_names = self.parameters['synthetase_names']
+        
+        # Index of protein submass in submass vector
+        self.protein_submass_idx = self.parameters['submass_indexes']['massDiff_protein']
 
         self.seed = self.parameters['seed']
         self.random_state = np.random.RandomState(seed = self.seed)
@@ -433,7 +438,7 @@ class PolypeptideElongation(Process):
             if didTerminate[index]:
                 update['active_ribosome']['_delete'].append((unique_index,))
             else:
-                added_submass[5] = added_protein_mass[index]
+                added_submass[self.protein_submass_idx] = added_protein_mass[index]
                 update['active_ribosome'][unique_index] = {
                     'peptide_length': updated_lengths[index],
                     'pos_on_mRNA': updated_positions_on_mRNA[index],
@@ -563,7 +568,7 @@ def test_polypeptide_elongation():
             aa: 100 for aa in DEFAULT_AA_NAMES
         },
         'active_ribosome': {
-            '1': {'unique_index': 1, 'protein_index': 0, 'peptide_length': 1, 'pos_on_mRNA': 1, 'submass': {'protein': 0}}
+            '1': {'unique_index': 1, 'protein_index': 0, 'peptide_length': 1, 'pos_on_mRNA': 1, 'submass': np.zeros(len(MASSDIFFS))}
         },
         'listeners': {
             'mass': {

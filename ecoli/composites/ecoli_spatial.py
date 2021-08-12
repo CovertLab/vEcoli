@@ -81,7 +81,7 @@ from ecoli.plots.ecoli_spatial_plots import (
     plot_molecule_characterizations,
 )
 
-from ecoli.states.wcecoli_state import get_state_from_file
+from ecoli.states.wcecoli_state import get_state_from_file, MASSDIFFS
 
 SIM_DATA_PATH = 'reconstruction/sim_data/kb/simData.cPickle'
 RIBOSOME_SIZE = 21      # in nm
@@ -274,7 +274,7 @@ def add_polyribosomes(unique, unique_masses, polyribosome_assumption, save_outpu
                 ])
             group_idx = np.where(n_ribosomes_per_mrna_by_group[i, :] > 0)[0]
             avg_mrna_mass[i] = np.average([
-                unique['RNA'][str(unique_index)]['massDiff_mRNA']
+                unique['RNA'][str(unique_index)]['submass'][MASSDIFFS['massDiff_mRNA']]
                 for unique_index in group_idx])
             avg_mrna_length[i] = np.average([
                 unique['RNA'][str(unique_index)]['transcript_length']
@@ -398,6 +398,7 @@ def main():
         run_spatial_ecoli('linear')
     if args.spherical:
         run_spatial_ecoli('spherical')
+    run_spatial_ecoli('spherical')
 
 if __name__ == '__main__':
     main()

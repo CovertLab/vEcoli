@@ -3,6 +3,11 @@ import numpy as np
 
 from wholecell.utils import units
 
+MASSDIFFS = {'massDiff_rRNA': 0, 'massDiff_tRNA': 1, 'massDiff_mRNA': 2, 
+            'massDiff_miscRNA': 3, 'massDiff_nonspecific_RNA': 4, 
+            'massDiff_protein': 5, 'massDiff_metabolite': 6, 
+            'massDiff_water': 7, 'massDiff_DNA': 8}
+
 
 def infinitize(value):
     if value == '__INFINITY__':
@@ -62,17 +67,13 @@ def get_state_from_file(path='data/wcecoli_t0.json'):
         'process_state': {
             'polypeptide_elongation': {}}}
     
-    massDiffs = {'massDiff_rRNA': 0, 'massDiff_tRNA': 1, 'massDiff_mRNA': 2, 
-                 'massDiff_miscRNA': 3, 'massDiff_nonspecific_RNA': 4, 
-                 'massDiff_protein': 5, 'massDiff_metabolite': 6, 
-                 'massDiff_water': 7, 'massDiff_DNA': 8}
     for mol_type, molecules in states['unique'].items():
         initial_state['unique'].update({mol_type: {}})
         for molecule, values in molecules.items():
-            initial_state['unique'][mol_type][molecule] = {'submass' : np.zeros(len(massDiffs))}
+            initial_state['unique'][mol_type][molecule] = {'submass' : np.zeros(len(MASSDIFFS))}
             for key, value in values.items():
-                if key in massDiffs:
-                    initial_state['unique'][mol_type][molecule]['submass'][massDiffs[key]] = value
+                if key in MASSDIFFS:
+                    initial_state['unique'][mol_type][molecule]['submass'][MASSDIFFS[key]] = value
                 else:
                     initial_state['unique'][mol_type][molecule][key] = value
 
