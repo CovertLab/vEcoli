@@ -64,8 +64,8 @@ def compact_json(obj, ensure_ascii=False, separators=(',', ':'), **kwargs):
 def convert_dynamics(simOutDir, seriesOutDir, simDataFile, node_list, edge_list):
 		"""Convert the sim's dynamics data to a Causality seriesOut.zip file."""
 
-		experiment_id = '8314b57a-fb22-11eb-b141-1e00312eb299'  # 10 seconds, new data
-		# experiment_id = '458f814c-ef0d-11eb-a445-1e00312eb299' # 100 seconds
+		# Put your own experiment id here to run the program
+		experiment_id = '9342827c-fba1-11eb-a1c0-1e00312eb299'
 		# retrieve the data directly from database
 		db = get_experiment_database()
 		data, _ = data_from_database(experiment_id, db)
@@ -75,10 +75,10 @@ def convert_dynamics(simOutDir, seriesOutDir, simDataFile, node_list, edge_list)
 			sim_data = cPickle.load(f)
 
 		# Read all required tables from simOutDir
-		columns = {}
-		for table_name, column_name in REQUIRED_COLUMNS:
-			columns[(table_name, column_name)] = TableReader(
-				os.path.join(simOutDir, table_name)).readColumn(column_name)
+		# columns = {}
+		# for table_name, column_name in REQUIRED_COLUMNS:
+		# 	columns[(table_name, column_name)] = TableReader(
+		# 		os.path.join(simOutDir, table_name)).readColumn(column_name)
 
 		# Convert units of metabolic fluxes in listener to mmol/gCDW/h
 		# conversion_coeffs = (
@@ -104,8 +104,9 @@ def convert_dynamics(simOutDir, seriesOutDir, simDataFile, node_list, edge_list)
 		def build_index_dict(id_array):
 			return {mol: i for i, mol in enumerate(id_array)}
 
-		molecule_ids = TableReader(
-			os.path.join(simOutDir, "BulkMolecules")).readAttribute("objectNames")
+		# molecule_ids = TableReader(
+		# 	os.path.join(simOutDir, "BulkMolecules")).readAttribute("objectNames")
+		molecule_ids = timeseries['bulk'].keys()
 		indexes["BulkMolecules"] = build_index_dict(molecule_ids)
 
 		gene_ids = sim_data.process.transcription.rna_data['gene_id']
@@ -119,8 +120,9 @@ def convert_dynamics(simOutDir, seriesOutDir, simDataFile, node_list, edge_list)
 		translated_rna_ids = sim_data.process.translation.monomer_data['rna_id']
 		indexes["TranslatedRnas"] = build_index_dict(translated_rna_ids)
 
-		metabolism_rxn_ids = TableReader(
-			os.path.join(simOutDir, "FBAResults")).readAttribute("reactionIDs")
+		# metabolism_rxn_ids = TableReader(
+		# 	os.path.join(simOutDir, "FBAResults")).readAttribute("reactionIDs")
+		metabolism_rxn_ids = sim_data.process.metabolism.reaction_stoich.keys()
 		indexes["MetabolismReactions"] = build_index_dict(metabolism_rxn_ids)
 
 		complexation_rxn_ids = sim_data.process.complexation.ids_reactions
