@@ -4,39 +4,7 @@ import numpy as np
 from ecoli.library.schema import array_from
 from ecoli.composites.ecoli_master import run_ecoli
 
-
-def warn_incomplete(array):
-    warn("Used incomplete TableReader mapping, expect missing data!")
-    return array
-
-
-def replace_scalars(array):
-    for value in array:
-        if value != [] and type(value) in {list, np.array}:
-            array_len = len(value)
-            break
-
-    for i in range(len(array)):
-        if array[i] == [] or type(array[i]) not in {list, np.array}:
-            array[i] = [0 for i in range(array_len)]
-
-    array = np.array(array)
-    return array
-
-
-def replace_scalars_2d(array):
-    for value in array:
-        if value != [] and type(value) in {list, np.array}:
-            rows = len(value)
-            cols = len(value[0])
-            break
-
-    for i in range(len(array)):
-        if array[i] == [] or type(array[i]) not in {list, np.array}:
-            array[i] = [[0 for i in range(cols)] for i in range(rows)]
-
-    array = np.array(array)
-    return array
+from tablereader_utils import warn_incomplete, replace_scalars, replace_scalars_2d, camel_case_to_underscored
 
 
 MAPPING = {
@@ -355,7 +323,7 @@ class TableReader(object):
         """
 
         if name not in self._attributes:
-        	raise DoesNotExistError("No such attribute: {}".format(name))
+            raise DoesNotExistError("No such attribute: {}".format(name))
         return self._attributes[name]
 
     def readColumn(self, name, indices=None, squeeze=True):
@@ -496,8 +464,18 @@ class TableReader(object):
                 else:
                     result = result[elem]
         else:
-            raise NotImplementedError(f"No mapping implented from {self._path + '/' + name} to a path in vivarium data"
-                                      f"(mapping is {viv_path}).")
+            # No explicit mapping defined, try heuristic mapping
+            heuristic_path = ('listeners',
+                              camel_case_to_underscored(self._path),
+                              camel_case_to_underscored(name))
+            
+            warn(f'No explicit mapping defined from {self._path + "/" + name} to a path in vivarium data,'
+                 f'Trying heuristic mapping: {heuristic_path}.'
+                 'If this works, consider adding an explicit mapping in tablereader.py!')
+
+            result = self._data
+            for elem in heuristic_path:
+                result = result[elem]
 
         result = np.array(result)
 
@@ -560,7 +538,7 @@ class TableReader(object):
 def test_table_reader():
     data = run_ecoli(total_time=4)
 
-    #TODO actaully grab their values - they fail 'gracefully' rn because their keys are empty or arrays are empty
+    # TODO actaully grab their values - they fail 'gracefully' rn because their keys are empty or arrays are empty
     equi_tb = TableReader("EquilibriumListener", data)
     equi_rxns = equi_tb.readColumn('reactionRates')
 
@@ -570,7 +548,7 @@ def test_table_reader():
     growth_lim_tb = TableReader("GrowthLimits", data)
     growth_lim_vals = growth_lim_tb.readColumn('net_charged')
 
-    #i believe these are right
+    # i believe these are right
     dry_m_tb = TableReader("Mass", data)
     dry_m_vals = dry_m_tb.readColumn('dryMass')
 
