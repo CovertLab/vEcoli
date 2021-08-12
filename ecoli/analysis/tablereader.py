@@ -469,8 +469,8 @@ class TableReader(object):
                               camel_case_to_underscored(self._path),
                               camel_case_to_underscored(name))
             
-            warn(f'No explicit mapping defined from {self._path + "/" + name} to a path in vivarium data,'
-                 f'Trying heuristic mapping: {heuristic_path}.'
+            warn(f'No explicit mapping defined from {self._path + "/" + name} to a path in vivarium data,\n'
+                 f'trying heuristic mapping: {heuristic_path}.\n'
                  'If this works, consider adding an explicit mapping in tablereader.py!')
 
             result = self._data
