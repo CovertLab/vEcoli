@@ -9,8 +9,6 @@ from __future__ import absolute_import, division, print_function
 import os
 import subprocess
 
-import ipdb
-
 from analysisBase import AnalysisBase
 from buildCausalityNetworkFiretask import BuildCausalityNetworkTask
 from wholecell.utils import constants

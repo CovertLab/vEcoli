@@ -4,7 +4,6 @@ simulation.
 """
 from __future__ import absolute_import, division, print_function
 
-import ipdb
 from six.moves import cPickle
 import os
 import json
@@ -291,27 +290,13 @@ def read_gene_dynamics(sim_data, node, node_id, indexes, volume, timeseries):
 	Reads dynamics data for gene nodes from simulation output.
 	"""
 	gene_index = indexes["Genes"][node_id]
-	synth_prob_array = timeseries['listeners']['rna_synth_prob']['rna_synth_prob']
-	for value in synth_prob_array:
-		if type(value) != float:
-			array_len = len(value)
-			break
-	for i in range(len(synth_prob_array)):
-		if type(synth_prob_array[i]) == float:
-			synth_prob_array[i] = [0.0 for i in range(array_len)]
-	gene_copy_num = timeseries['listeners']['rna_synth_prob']['gene_copy_number']
-	for value in gene_copy_num:
-		if value:
-			array_len = len(value)
-			break
-	for i in range(len(gene_copy_num)):
-		if not gene_copy_num[i]:
-			gene_copy_num[i] = [0 for i in range(array_len)]
+	synth_prob_array = fill_initial(timeseries['listeners']['rna_synth_prob']['rna_synth_prob'], 0.0)
+	gene_copy_num = fill_initial(timeseries['listeners']['rna_synth_prob']['gene_copy_number'], 0)
 	dynamics = {
 		# "transcription probability": columns[("RnaSynthProb", "rnaSynthProb")][:, gene_index],
-		"transcription probability": np.array(synth_prob_array)[:, gene_index],
+		"transcription probability": synth_prob_array[:, gene_index],
 		# "gene copy number": columns[("RnaSynthProb", "gene_copy_number")][:, gene_index],
-		"gene copy number": np.array(gene_copy_num)[:, gene_index],
+		"gene copy number": gene_copy_num[:, gene_index],
 		}
 	dynamics_units = {
 		"transcription probability": PROB_UNITS,
@@ -393,17 +378,10 @@ def read_transcription_dynamics(sim_data, node, node_id, indexes, volume, timese
 	"""
 	gene_id = node_id.split(NODE_ID_SUFFIX["transcription"])[0]
 	gene_idx = indexes["Genes"][gene_id]
-	rna_init_array = timeseries['listeners']['rnap_data']['rnaInitEvent']
-	for value in rna_init_array:
-		if type(value) != int:
-			array_len = len(value)
-			break
-	for i in range(len(rna_init_array)):
-		if type(rna_init_array[i]) == int:
-			rna_init_array[i] = [0 for i in range(array_len)]
+	rna_init_array = fill_initial(timeseries['listeners']['rnap_data']['rnaInitEvent'], 0)
 	dynamics = {
 		# "transcription initiations": columns[("RnapData", "rnaInitEvent")][:, gene_idx],
-		"transcription initiations": np.array(rna_init_array)[:, gene_idx],
+		"transcription initiations": rna_init_array[:, gene_idx],
 	}
 	dynamics_units = {
 		"transcription initiations": COUNT_UNITS,
@@ -418,15 +396,7 @@ def read_translation_dynamics(sim_data, node, node_id, indexes, volume, timeseri
 	"""
 	rna_id = node_id.split(NODE_ID_SUFFIX["translation"])[0] + "_RNA[c]"
 	translation_idx = indexes["TranslatedRnas"][rna_id]
-	prob_translation_array = timeseries['listeners']['ribosome_data']['prob_translation_per_transcript']
-	for value in prob_translation_array:
-		if value != [] and type(value) != float:
-			array_len = len(value)
-			break
-	for i in range(len(prob_translation_array)):
-		if prob_translation_array[i] == [] or type(prob_translation_array[i]) == float:
-			prob_translation_array[i] = [0.0 for i in range(array_len)]
-	prob_translation_array = np.array(prob_translation_array)
+	prob_translation_array = fill_initial(timeseries['listeners']['ribosome_data']['prob_translation_per_transcript'], 0.0)
 	dynamics = {
 		# 'translation probability': columns[("RibosomeData", "probTranslationPerTranscript")][:, translation_idx],
 		'translation probability': prob_translation_array[:, translation_idx],
