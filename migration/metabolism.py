@@ -13,7 +13,7 @@ from vivarium.library.dict_utils import deep_merge
 
 # ecoli imports
 from ecoli.library.sim_data import LoadSimData
-from ecoli.states.wcecoli_state import get_state_from_file, infinitize
+from ecoli.states.wcecoli_state import get_state_from_file
 from ecoli.composites.ecoli_master import SIM_DATA_PATH, AA_MEDIA_ID
 from ecoli.processes import Metabolism, Exchange
 from data.ecoli_master_configs import default
@@ -22,8 +22,8 @@ from data.ecoli_master_configs.default import ECOLI_TOPOLOGY
 
 # migration imports
 from migration.migration_utils import (run_ecoli_process, ComparisonTestSuite,
-                                       scalar_almost_equal, array_almost_equal,
-                                       transform_and_run, array_diffs_report_test)
+                                       scalar_almost_equal, transform_and_run, 
+                                       array_diffs_report_test)
 
 
 # load sim_data
