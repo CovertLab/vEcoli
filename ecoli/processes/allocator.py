@@ -9,7 +9,8 @@ import numpy as np
 CUSTOM_PRIORITIES = {'rna_degradation': 10, 
                      'protein_degradation': 10, 
                      'two_component_system': -5,
-                     'tf_binding': -10}
+                     'tf_binding': -10,
+                     'metabolism': -10}
 
 ASSERT_POSITIVE_COUNTS = True
 

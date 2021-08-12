@@ -202,7 +202,6 @@ class Ecoli(Composer):
         
         process_names = list(config['processes'].keys())
         process_names.remove('mass')
-        process_names.remove('metabolism')
         
         config['processes']['allocator'] = Allocator   
 
