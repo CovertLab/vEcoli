@@ -20,7 +20,15 @@
     "division": {
         "threshold": 2220},
     "divide": false,
-    
+
+    "_schema": {
+        "ecoli-equilibrium": {
+            "molecules": {
+                "PD00413[c]": {"_updater": "nonnegative_accumulate"}
+            }
+        }
+    },
+
     "add_processes" : [],
     "exclude_processes" : [],
     "swap_processes" : {},
