@@ -20,11 +20,11 @@ class BuildCausalityNetworkTask(FiretaskBase):
 	_fw_name = "BuildCausalNetworkTask"
 
 	required_params = [
-		"input_results_directory",
 		"input_sim_data",
 		"output_dynamics_directory",
 		]
 	optional_params = [
+		"input_results_directory",
 		"check_sanity",
 		"output_network_directory",  # no longer used
 		"metadata",  # no longer used
@@ -47,7 +47,6 @@ class BuildCausalityNetworkTask(FiretaskBase):
 		print("{}: Converting simulation results to a Causality series"
 			.format(time.ctime()))
 		read_dynamics.convert_dynamics(
-			self["input_results_directory"],
 			self["output_dynamics_directory"],
 			self["input_sim_data"],
 			node_list,

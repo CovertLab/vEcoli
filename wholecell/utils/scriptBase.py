@@ -93,49 +93,6 @@ RANGE_ARGS = {
 
 DEFAULT_VARIANT = ['wildtype', '0', '0']
 
-
-def default_wcecoli_out_subdir_path():
-	# type: () -> str
-	"""Return an absolute path to the most interesting subdirectory of
-	wcEcoli/out/: the subdirectory name that starts with the latest timestamp
-	or (if none) the one that's first alphabetically.
-	"""
-	out_dir = os.path.join(fp.ROOT_PATH, 'out')
-	timestamped = re.compile(fp.TIMESTAMP_PATTERN)
-	fallback = None
-
-	for directory in sorted(os.listdir(out_dir), reverse=True):
-		path = os.path.join(out_dir, directory)
-		if os.path.isdir(path):
-			if timestamped.match(directory):
-				return path
-			fallback = path
-
-	if fallback:
-		return fallback
-
-	raise IOError(errno.ENOENT,
-		'"{}" has no subdirectories.  Run runParca?'.format(out_dir))
-
-def find_sim_path(directory=None):
-	# type: (Optional[str]) -> str
-	"""Find a simulation path, looking for the given directory name as an
-	absolute path, or as a subdirectory of wcEcoli/out/, or as a subdirectory
-	name that starts with out/, or (if None) call
-	default_wcecoli_out_subdir_path().
-	"""
-	if directory is None:
-		input_dir = default_wcecoli_out_subdir_path()
-	elif os.path.isabs(directory):
-		input_dir = directory
-	elif directory.startswith('out/'):
-		input_dir = os.path.join(fp.ROOT_PATH, directory)
-	else:
-		input_dir = os.path.join(fp.ROOT_PATH, 'out', directory)
-
-	fp.verify_dir_exists(input_dir, "Need a simulation dir.")
-	return input_dir
-
 def str_to_bool(s):
 	# type: (str) -> bool
 	"""Convert a string command line parameter value to a bool. This ignores
@@ -514,25 +471,6 @@ class ScriptBase(metaclass=abc.ABCMeta):
 
 		return parser.parse_args()
 
-	def update_args(self, args):
-		# type: (argparse.Namespace) -> None
-		"""
-		Update or add to parsed arguments.
-
-		If there's a `sim_dir` arg [see define_parameter_sim_dir()], set
-		`args.sim_path`. If there's also a `variant_index` arg [see
-		define_parameter_variant_index()], set `args.variant_dir` to the
-		find_variant_dir() tuple.
-
-		When overriding, first call super().
-		"""
-
-		if 'sim_dir' in args:
-			args.sim_path = find_sim_path(args.sim_dir)
-
-			if 'variant_index' in args:
-				args.variant_dir = self.find_variant_dir(
-					args.sim_path, args.variant_index)
 
 	def extract_range_args(self, args):
 		# type: (argparse.Namespace) -> List[List[int]]

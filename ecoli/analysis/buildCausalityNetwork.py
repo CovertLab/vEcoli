@@ -9,12 +9,16 @@ from __future__ import absolute_import, division, print_function
 import os
 import subprocess
 
+import ipdb
+
 from analysisBase import AnalysisBase
 from buildCausalityNetworkFiretask import BuildCausalityNetworkTask
 from wholecell.utils import constants
 
 
 CAUSALITY_ENV_VAR = 'CAUSALITY_SERVER'
+SIM_DATA_PATH = 'reconstruction/sim_data/kb/simData.cPickle'
+DYNAMICS_OUTPUT = 'ecoli/analysis/seriesOut'
 
 
 class BuildCausalityNetwork(AnalysisBase):
@@ -46,31 +50,16 @@ class BuildCausalityNetwork(AnalysisBase):
 		args.gen_str = 'generation_%06d' % (args.generation,)
 		args.daughter_str = '%06d' % (args.daughter,)
 
-		metadata = args.metadata
-		metadata['analysis_type'] = 'causality_network'
-		metadata['seed'] = args.seed_str
-		metadata['gen'] = args.gen_str
-
 		return args
 
 	def run(self, args):
-		sim_path = args.sim_path
-		variant_dir_name = args.variant_dir_name
-
-		dirs = os.path.join(args.seed_str, args.gen_str, args.daughter_str)
-
-		input_variant_directory = os.path.join(sim_path, variant_dir_name)
-		input_dir = os.path.join(input_variant_directory, dirs, 'simOut')
-		sim_data_modified = os.path.join(input_variant_directory, 'kb',
-			constants.SERIALIZED_SIM_DATA_MODIFIED)
-		dynamics_output_dir = os.path.join(input_variant_directory, dirs, 'seriesOut')
+		sim_data = SIM_DATA_PATH
+		dynamics_output_dir = DYNAMICS_OUTPUT
 
 		task = BuildCausalityNetworkTask(
-			input_results_directory=input_dir,
-			input_sim_data=sim_data_modified,
+			input_sim_data=sim_data,
 			output_dynamics_directory=dynamics_output_dir,
-			check_sanity=args.check_sanity,
-			metadata=args.metadata)
+			check_sanity=args.check_sanity)
 		task.run_task({})
 
 		# Optionally show the causality visualization.
