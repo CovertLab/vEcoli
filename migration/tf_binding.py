@@ -42,7 +42,7 @@ def custom_run_process(
         'processes': {process.name: process},
         'topology': {process.name: topology},
         'initial_state': initial_state}
-    experiment = Engine(experiment_config)
+    experiment = Engine(**experiment_config)
 
     # Get update from process.
     path, process = list(experiment.process_paths.items())[0]
@@ -222,7 +222,7 @@ def run_tf_binding():
         path=f'data/wcecoli_t0.json')
 
     tf_binding_composite = tf_binding_process.generate()
-    experiment = Engine({
+    experiment = Engine(**{
         'processes': tf_binding_composite['processes'],
         'topology': {tf_binding_process.name: TF_BINDING_TOPOLOGY},
         'initial_state': initial_state

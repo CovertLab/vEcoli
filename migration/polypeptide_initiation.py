@@ -45,7 +45,7 @@ def test_polypeptide_initiation():
     initial_state = get_state_from_file(
         path=f'data/wcecoli_t0.json')
 
-    experiment = Engine({
+    experiment = Engine(**{
         'processes': polypeptide_initiation_composite['processes'],
         'topology': {polypeptide_initiation_process.name: PI_TOPOLOGY},
         'initial_state': initial_state
