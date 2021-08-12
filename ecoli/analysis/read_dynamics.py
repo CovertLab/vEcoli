@@ -61,7 +61,7 @@ def compact_json(obj, ensure_ascii=False, separators=(',', ':'), **kwargs):
 	"""Convert obj into compact JSON form."""
 	return json.dumps(obj, ensure_ascii=ensure_ascii, separators=separators, **kwargs)
 
-def convert_dynamics(simOutDir, seriesOutDir, simDataFile, node_list, edge_list):
+def convert_dynamics(seriesOutDir, simDataFile, node_list, edge_list):
 		"""Convert the sim's dynamics data to a Causality seriesOut.zip file."""
 
 		# Put your own experiment id here to run the program

@@ -89,23 +89,10 @@ class AnalysisBase(scriptBase.ScriptBase, metaclass=abc.ABCMeta):
 
 		Overrides should first call super().
 		"""
-		super(AnalysisBase, self).update_args(args)
+		super(AnalysisBase, self)
 
 		if self.plot_name:
 			args.plot = [self.plot_name]
-
-		args.input_validation_data = os.path.join(
-			args.sim_path, 'kb', constants.SERIALIZED_VALIDATION_DATA)
-
-		args.metadata_path = os.path.join(
-			args.sim_path, 'metadata', constants.JSON_METADATA_FILE)
-		args.metadata = filepath.read_json_file(args.metadata_path)
-
-		if 'variant_dir' in args:
-			args.variant_dir_name, variant_type, variant_index = args.variant_dir
-			metadata = args.metadata
-			metadata['variant_function'] = variant_type
-			metadata['variant_index'] = variant_index
 
 		args.cpus = parallelization.cpus(args.cpus)
 
