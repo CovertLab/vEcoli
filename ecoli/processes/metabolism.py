@@ -11,7 +11,7 @@ NOTE:
 - In wcEcoli, metabolism only runs after all other processes have completed 
 and internal states have been updated (deriver-like, no partitioning necessary)
 """
-
+import ipdb
 import numpy as np
 from scipy.sparse import csr_matrix
 from typing import List, Tuple
@@ -27,6 +27,8 @@ from wholecell.utils.random import stochasticRound
 from wholecell.utils.constants import REQUEST_PRIORITY_METABOLISM
 from wholecell.utils.modular_fba import FluxBalanceAnalysis
 from six.moves import zip
+
+from vivarium.library.units import units as punits
 
 
 COUNTS_UNITS = units.mmol
@@ -265,7 +267,6 @@ class Metabolism(Process):
         # Write outputs to listeners
         unconstrained, constrained, uptake_constraints = self.get_import_constraints(
             unconstrained, constrained, GDCW_BASIS)
-
         update = {
             'metabolites': {
                 metabolite: delta_metabolites_final[index]
