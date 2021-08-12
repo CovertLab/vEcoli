@@ -57,7 +57,7 @@ def change_bulk_updater(schema, new_updater):
     if '_properties' in schema:
         if schema['_properties']['bulk']:
             topo_copy = schema.copy()
-            topo_copy.update({'_updater': new_updater})
+            topo_copy.update({'_updater': new_updater, '_emit': False})
             return topo_copy
     for port, value in schema.items():
         if has_bulk_property(value):
@@ -368,7 +368,7 @@ def run_ecoli(
     ecoli = ecoli_composer.generate(path=path)
 
     # make the experiment
-    ecoli_experiment = Engine({
+    ecoli_experiment = Engine(**{
         'processes': ecoli.processes,
         'topology': ecoli.topology,
         'initial_state': initial_state,

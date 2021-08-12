@@ -43,7 +43,7 @@ def test_rna_degradation():
 
     rna_degradation_composite = rna_degradation_process.generate()
 
-    experiment = Engine({
+    experiment = Engine(**{
         'processes': rna_degradation_composite['processes'],
         'topology': {rna_degradation_process.name: TOPOLOGY},
         'initial_state': initial_state

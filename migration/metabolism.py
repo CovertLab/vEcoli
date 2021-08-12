@@ -111,7 +111,7 @@ def run_metabolism(
 
     # initialize a simulation
     metabolism_composite = metabolism.generate()
-    simulation = Engine({
+    simulation = Engine(**{
         'processes': metabolism_composite['processes'],
         'topology': {metabolism.name: metabolism_topology},
         'initial_state': state
@@ -321,7 +321,7 @@ def run_metabolism_composite():
         path=f'data/wcecoli_t1000.json')
 
     # run a simulation
-    experiment = Engine({
+    experiment = Engine(**{
         'processes': metabolism_composite['processes'],
         'topology': metabolism_composite['topology'],
         'initial_state': initial_state})
