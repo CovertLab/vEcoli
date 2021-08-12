@@ -4,6 +4,7 @@ simulation.
 """
 from __future__ import absolute_import, division, print_function
 
+import ipdb
 from six.moves import cPickle
 import os
 import json
@@ -41,6 +42,16 @@ REQUIRED_COLUMNS = [
 	("RibosomeData", "probTranslationPerTranscript"),
 	]
 
+def fill_initial(array, filler):
+	for value in array:
+		if value:
+			array_len = len(value)
+			break
+	for i in range(len(array)):
+		if not array[i]:
+			array[i] = [filler for i in range(array_len)]
+	return np.array(array)
+
 def get_safe_name(s):
 	fname = str(int(hashlib.sha256(s.encode('utf-8')).hexdigest(), 16) % 10 **16)
 	return fname
@@ -52,6 +63,14 @@ def compact_json(obj, ensure_ascii=False, separators=(',', ':'), **kwargs):
 
 def convert_dynamics(simOutDir, seriesOutDir, simDataFile, node_list, edge_list):
 		"""Convert the sim's dynamics data to a Causality seriesOut.zip file."""
+
+		experiment_id = '8314b57a-fb22-11eb-b141-1e00312eb299'  # 10 seconds, new data
+		# experiment_id = '458f814c-ef0d-11eb-a445-1e00312eb299' # 100 seconds
+		# retrieve the data directly from database
+		db = get_experiment_database()
+		data, _ = data_from_database(experiment_id, db)
+		timeseries = timeseries_from_data(data)
+
 		with open(simDataFile, 'rb') as f:
 			sim_data = cPickle.load(f)
 
@@ -62,23 +81,22 @@ def convert_dynamics(simOutDir, seriesOutDir, simDataFile, node_list, edge_list)
 				os.path.join(simOutDir, table_name)).readColumn(column_name)
 
 		# Convert units of metabolic fluxes in listener to mmol/gCDW/h
-		conversion_coeffs = (
-			columns[("Mass", "dryMass")] / columns[("Mass", "cellMass")]
-			* sim_data.constants.cell_density.asNumber(MASS_UNITS / VOLUME_UNITS)
-			)
+		# conversion_coeffs = (
+		# 	columns[("Mass", "dryMass")] / columns[("Mass", "cellMass")]
+		# 	* sim_data.constants.cell_density.asNumber(MASS_UNITS / VOLUME_UNITS)
+		# 	)
 
-		columns[("FBAResults", "reactionFluxesConverted")] = (
-			(COUNTS_UNITS / MASS_UNITS / TIME_UNITS) * (
-			columns[("FBAResults", "reactionFluxes")].T / conversion_coeffs).T
-			).asNumber(units.mmol/units.g/units.h)
+		# columns[("FBAResults", "reactionFluxesConverted")] = (
+		# 	(COUNTS_UNITS / MASS_UNITS / TIME_UNITS) * (
+		# 	columns[("FBAResults", "reactionFluxes")].T / conversion_coeffs).T
+		# 	).asNumber(units.mmol/units.g/units.h)
 
 		# Reshape array for number of bound transcription factors
-		n_TU = len(sim_data.process.transcription.rna_data["id"])
-		n_TF = len(sim_data.process.transcription_regulation.tf_ids)
-
-		columns[("RnaSynthProb", "n_bound_TF_per_TU")] = (
-			columns[("RnaSynthProb", "n_bound_TF_per_TU")]
-			).reshape(-1, n_TU, n_TF)
+		# n_TU = len(sim_data.process.transcription.rna_data["id"])
+		# n_TF = len(sim_data.process.transcription_regulation.tf_ids)
+		# columns[("RnaSynthProb", "n_bound_TF_per_TU")] = (
+		# 	columns[("RnaSynthProb", "n_bound_TF_per_TU")]
+		# 	).reshape(-1, n_TU, n_TF)
 
 		# Construct dictionaries of indexes where needed
 		indexes = {}
@@ -120,12 +138,6 @@ def convert_dynamics(simOutDir, seriesOutDir, simDataFile, node_list, edge_list)
 
 		# Cache cell volume array (used for calculating concentrations)
 
-		experiment_id = '002d4eba-ee5c-11eb-bb11-1e00312eb299' # 10 seconds
-		# experiment_id = '458f814c-ef0d-11eb-a445-1e00312eb299' # 100 seconds
-		# retrieve the data directly from database
-		db = get_experiment_database()
-		data, _ = data_from_database(experiment_id, db)
-		timeseries = timeseries_from_data(data)
 		cell_mass = np.array(timeseries['listeners']['mass']['cell_mass'])
 		# volume = ((1.0 / sim_data.constants.cell_density) * (
 		# 	units.fg * columns[("Mass", "cellMass")])).asNumber(units.L)
@@ -149,11 +161,12 @@ def convert_dynamics(simOutDir, seriesOutDir, simDataFile, node_list, edge_list)
 			reader = TYPE_TO_READER_FUNCTION.get(node.node_type)
 			if reader:
 				# reader(sim_data, node, node.node_id, columns, indexes, volume)
-				reader(sim_data, node, node.node_id, columns, indexes, volume, timeseries)
+				reader(sim_data, node, node.node_id, indexes, volume, timeseries)
 			return node
 
 		nodes = [build_dynamics(node_dict) for node_dict in node_list]
-		nodes.append(time_node(columns))
+		# nodes.append(time_node(columns))
+		nodes.append(time_node(timeseries))
 
 		# ZIP_BZIP2 saves 14% bytes vs. ZIP_DEFLATED but takes  +70 secs.
 		# ZIP_LZMA  saves 19% bytes vs. ZIP_DEFLATED but takes +260 sec.
@@ -178,7 +191,7 @@ def convert_dynamics(simOutDir, seriesOutDir, simDataFile, node_list, edge_list)
 			zf.writestr(EDGELIST_JSON, compact_json(edge_list))
 
 
-def time_node(columns):
+def time_node(timeseries):
 	time_node = Node()
 	attr = {
 		'node_class': 'time',
@@ -186,8 +199,48 @@ def time_node(columns):
 		'node_id': 'time',
 		}
 	time_node.read_attributes(**attr)
-
-	time = columns[("Main", "time")]
+	time = np.array(
+		[  0.,   2.,   4.,   6.,   8.,  10.,  12.,  14.,  16.,  18.,  20.,
+        22.,  24.,  26.,  28.,  30.,  32.,  34.,  36.,  38.,  40.,  42.,
+        44.,  46.,  48.,  50.,  52.,  54.,  56.,  58.,  60.,  62.,  64.,
+        66.,  68.,  70.,  72.,  74.,  76.,  78.,  80.,  82.,  84.,  86.,
+        88.,  90.,  92.,  94.,  96.,  98., 100., 102., 104., 106., 108.,
+       110., 112., 114., 116., 118., 120., 122., 124., 126., 128., 130.,
+       132., 134., 136., 138., 140., 142., 144., 146., 148., 150., 152.,
+       154., 156., 158., 160., 162., 164., 166., 168., 170., 172., 174.,
+       176., 178., 180., 182., 184., 186., 188., 190., 192., 194., 196.,
+       198., 200., 202., 204., 206., 208., 210., 212., 214., 216., 218.,
+       220., 222., 224., 226., 228., 230., 232., 234., 236., 238., 240.,
+       242., 244., 246., 248., 250., 252., 254., 256., 258., 260., 262.,
+       264., 266., 268., 270., 272., 274., 276., 278., 280., 282., 284.,
+       286., 288., 290., 292., 294., 296., 298., 300., 302., 304., 306.,
+       308., 310., 312., 314., 316., 318., 320., 322., 324., 326., 328.,
+       330., 332., 334., 336., 338., 340., 342., 344., 346., 348., 350.,
+       352., 354., 356., 358., 360., 362., 364., 366., 368., 370., 372.,
+       374., 376., 378., 380., 382., 384., 386., 388., 390., 392., 394.,
+       396., 398., 400., 402., 404., 406., 408., 410., 412., 414., 416.,
+       418., 420., 422., 424., 426., 428., 430., 432., 434., 436., 438.,
+       440., 442., 444., 446., 448., 450., 452., 454., 456., 458., 460.,
+       462., 464., 466., 468., 470., 472., 474., 476., 478., 480., 482.,
+       484., 486., 488., 490., 492., 494., 496., 498., 500., 502., 504.,
+       506., 508., 510., 512., 514., 516., 518., 520., 522., 524., 526.,
+       528., 530., 532., 534., 536., 538., 540., 542., 544., 546., 548.,
+       550., 552., 554., 556., 558., 560., 562., 564., 566., 568., 570.,
+       572., 574., 576., 578., 580., 582., 584., 586., 588., 590., 592.,
+       594., 596., 598., 600., 602., 604., 606., 608., 610., 612., 614.,
+       616., 618., 620., 622., 624., 626., 628., 630., 632., 634., 636.,
+       638., 640., 642., 644., 646., 648., 650., 652., 654., 656., 658.,
+       660., 662., 664., 666., 668., 670., 672., 674., 676., 678., 680.,
+       682., 684., 686., 688., 690., 692., 694., 696., 698., 700., 702.,
+       704., 706., 708., 710., 712., 714., 716., 718., 720., 722., 724.,
+       726., 728., 730., 732., 734., 736., 738., 740., 742., 744., 746.,
+       748., 750., 752., 754., 756., 758., 760., 762., 764., 766., 768.,
+       770., 772., 774., 776., 778., 780., 782., 784., 786., 788., 790.,
+       792., 794., 796., 798., 800., 802., 804., 806., 808., 810., 812.,
+       814., 816., 818., 820., 822., 824., 826., 828., 830., 832., 834.,
+       836., 838., 840., 842., 844., 846., 848., 850.]
+	)
+	# time = columns[("Main", "time")]
 
 	dynamics = {
 		'time': time,
@@ -200,7 +253,7 @@ def time_node(columns):
 	return time_node
 
 
-def read_global_dynamics(sim_data, node, node_id, columns, indexes, volume, timeseries):
+def read_global_dynamics(sim_data, node, node_id, indexes, volume, timeseries):
 	"""
 	Reads global dynamics from simulation output.
 	"""
@@ -231,7 +284,7 @@ def read_global_dynamics(sim_data, node, node_id, columns, indexes, volume, time
 	node.read_dynamics(dynamics, dynamics_units)
 
 
-def read_gene_dynamics(sim_data, node, node_id, columns, indexes, volume, timeseries):
+def read_gene_dynamics(sim_data, node, node_id, indexes, volume, timeseries):
 	"""
 	Reads dynamics data for gene nodes from simulation output.
 	"""
@@ -244,10 +297,14 @@ def read_gene_dynamics(sim_data, node, node_id, columns, indexes, volume, timese
 	for i in range(len(synth_prob_array)):
 		if type(synth_prob_array[i]) == float:
 			synth_prob_array[i] = [0.0 for i in range(array_len)]
-	# TODO: Port gene_copy_num from rna_synth_prob listener
-	gene_copy_num = []
-	for i in range(6):
-		gene_copy_num.append(np.zeros(len(columns[("RnaSynthProb", "gene_copy_number")][0])))
+	gene_copy_num = timeseries['listeners']['rna_synth_prob']['gene_copy_number']
+	for value in gene_copy_num:
+		if value:
+			array_len = len(value)
+			break
+	for i in range(len(gene_copy_num)):
+		if not gene_copy_num[i]:
+			gene_copy_num[i] = [0 for i in range(array_len)]
 	dynamics = {
 		# "transcription probability": columns[("RnaSynthProb", "rnaSynthProb")][:, gene_index],
 		"transcription probability": np.array(synth_prob_array)[:, gene_index],
@@ -258,18 +315,17 @@ def read_gene_dynamics(sim_data, node, node_id, columns, indexes, volume, timese
 		"transcription probability": PROB_UNITS,
 		"gene copy number": COUNT_UNITS,
 		}
-	# ipdb.set_trace()
 	node.read_dynamics(dynamics, dynamics_units)
 
 
-def read_rna_dynamics(sim_data, node, node_id, columns, indexes, volume, timeseries):
+def read_rna_dynamics(sim_data, node, node_id, indexes, volume, timeseries):
 	"""
 	Reads dynamics data for transcript (RNA) nodes from simulation output.
 	"""
 	# If RNA is an mRNA, get counts from mRNA counts listener
-	# TODO: Port mRNA_counts from mRNACounts listener. Listener is missing.
 	if node_id in indexes["mRNAs"]:
-		counts = columns[("mRNACounts", "mRNA_counts")][:, indexes["mRNAs"][node_id]]
+		# counts = columns[("mRNACounts", "mRNA_counts")][:, indexes["mRNAs"][node_id]]
+		counts = np.array(timeseries['listeners']['mRNA_counts'])
 	# If not, get counts from bulk molecules listener
 	else:
 		# counts = columns[("BulkMolecules", "counts")][:, indexes["BulkMolecules"][node_id]]
@@ -285,7 +341,7 @@ def read_rna_dynamics(sim_data, node, node_id, columns, indexes, volume, timeser
 	node.read_dynamics(dynamics, dynamics_units)
 
 
-def read_protein_dynamics(sim_data, node, node_id, columns, indexes, volume, timeseries):
+def read_protein_dynamics(sim_data, node, node_id, indexes, volume, timeseries):
 	"""
 	Reads dynamics data for monomer/complex nodes from a simulation output.
 	"""
@@ -305,7 +361,7 @@ def read_protein_dynamics(sim_data, node, node_id, columns, indexes, volume, tim
 	node.read_dynamics(dynamics, dynamics_units)
 
 
-def read_metabolite_dynamics(sim_data, node, node_id, columns, indexes, volume, timeseries):
+def read_metabolite_dynamics(sim_data, node, node_id, indexes, volume, timeseries):
 	"""
 	Reads dyanmics data for metabolite nodes from a simulation output.
 	"""
@@ -329,7 +385,7 @@ def read_metabolite_dynamics(sim_data, node, node_id, columns, indexes, volume, 
 	node.read_dynamics(dynamics, dynamics_units)
 
 
-def read_transcription_dynamics(sim_data, node, node_id, columns, indexes, volume, timeseries):
+def read_transcription_dynamics(sim_data, node, node_id, indexes, volume, timeseries):
 	"""
 	Reads dynamics data for transcription nodes from simulation output.
 	"""
@@ -354,7 +410,7 @@ def read_transcription_dynamics(sim_data, node, node_id, columns, indexes, volum
 	node.read_dynamics(dynamics, dynamics_units)
 
 
-def read_translation_dynamics(sim_data, node, node_id, columns, indexes, volume, timeseries):
+def read_translation_dynamics(sim_data, node, node_id, indexes, volume, timeseries):
 	"""
 	Reads dynamics data for translation nodes from a simulation output.
 	"""
@@ -380,14 +436,14 @@ def read_translation_dynamics(sim_data, node, node_id, columns, indexes, volume,
 	node.read_dynamics(dynamics, dynamics_units)
 
 
-def read_complexation_dynamics(sim_data, node, node_id, columns, indexes, volume, timeseries):
+def read_complexation_dynamics(sim_data, node, node_id, indexes, volume, timeseries):
 	"""
 	Reads dynamics data for complexation nodes from a simulation output.
 	"""
 	reaction_idx = indexes["ComplexationReactions"][node_id]
-	# TODO: Port complexationEvents from ComplexationListener. Listener is missing.
 	dynamics = {
-		'complexation events': columns[("ComplexationListener", "complexationEvents")][:, reaction_idx],
+		'complexation events': fill_initial(timeseries['listeners']['complexation_events'], 0.0)[:, reaction_idx],
+		# 'complexation events': columns[("ComplexationListener", "complexationEvents")][:, reaction_idx],
 		}
 	dynamics_units = {
 		'complexation events': COUNT_UNITS,
@@ -396,15 +452,24 @@ def read_complexation_dynamics(sim_data, node, node_id, columns, indexes, volume
 	node.read_dynamics(dynamics, dynamics_units)
 
 
-def read_metabolism_dynamics(sim_data, node, node_id, columns, indexes, volume, timeseries):
+def read_metabolism_dynamics(sim_data, node, node_id, indexes, volume, timeseries):
 	"""
 	Reads dynamics data for metabolism nodes from a simulation output.
 	"""
 	reaction_idx = indexes["MetabolismReactions"][node_id]
-	# TODO: Port reactionFluxesConverted within FBAResults
+	conversion_coeffs = (
+			np.array(timeseries['listeners']['mass']['dry_mass']) /
+			np.array(timeseries['listeners']['mass']['cell_mass'])
+			* sim_data.constants.cell_density.asNumber(MASS_UNITS / VOLUME_UNITS)
+	)
+	reaction_fluxes_converted = (
+			(COUNTS_UNITS / MASS_UNITS / TIME_UNITS) * (
+			fill_initial(timeseries['listeners']['fba_results']['reactionFluxes'], 0.0).T / conversion_coeffs).T
+	).asNumber(units.mmol / units.g / units.h)
 	dynamics = {
-		'flux': columns[("FBAResults", "reactionFluxesConverted")][:, reaction_idx],
-		}
+		# 'flux': columns[("FBAResults", "reactionFluxesConverted")][:, reaction_idx],
+		'flux': reaction_fluxes_converted[:, reaction_idx],
+	}
 	dynamics_units = {
 		'flux': 'mmol/gCDW/h',
 		}
@@ -412,20 +477,20 @@ def read_metabolism_dynamics(sim_data, node, node_id, columns, indexes, volume, 
 	node.read_dynamics(dynamics, dynamics_units)
 
 
-def read_equilibrium_dynamics(sim_data, node, node_id, columns, indexes, volume, timeseries):
+def read_equilibrium_dynamics(sim_data, node, node_id, indexes, volume, timeseries):
 	"""
 	Reads dynamics data for equilibrium nodes from a simulation output.
 	"""
 	# TODO (ggsun): Fluxes for 2CS reactions are not being listened to.
-	# TODO: Port reactionRates within EquilibriumListener
 	try:
 		reaction_idx = indexes["EquilibriumReactions"][node_id]
 	except (KeyError, IndexError):
 		return  # 2CS reaction
 
 	dynamics = {
-		'reaction rate': columns[("EquilibriumListener", "reactionRates")][:, reaction_idx],
-		}
+		# 'reaction rate': columns[("EquilibriumListener", "reactionRates")][:, reaction_idx],
+		'reaction rate': fill_initial(timeseries['listeners']['equilibrium_listener']['reaction_rates'], 0.0)[:, reaction_idx],
+	}
 	dynamics_units = {
 		'reaction rate': 'rxns/s',
 		}
@@ -433,7 +498,7 @@ def read_equilibrium_dynamics(sim_data, node, node_id, columns, indexes, volume,
 	node.read_dynamics(dynamics, dynamics_units)
 
 
-def read_regulation_dynamics(sim_data, node, node_id, columns, indexes, volume, timeseries):
+def read_regulation_dynamics(sim_data, node, node_id, indexes, volume, timeseries):
 	"""
 	Reads dynamics data for regulation nodes from a simulation output.
 	"""
@@ -450,7 +515,11 @@ def read_regulation_dynamics(sim_data, node, node_id, columns, indexes, volume, 
 	for i in range(len(bound_tf_array)):
 		if type(bound_tf_array[i]) == int:
 			bound_tf_array[i] = [[0 for i in range(array_len)] for i in range(num_arrays)]
+
 	bound_tf_array = np.array(bound_tf_array)
+	n_TU = len(sim_data.process.transcription.rna_data["id"])
+	n_TF = len(sim_data.process.transcription_regulation.tf_ids)
+	bound_tf_array = bound_tf_array.reshape(-1, n_TU, n_TF)
 
 	dynamics = {
 		# 'bound TFs': columns[("RnaSynthProb", "n_bound_TF_per_TU")][:, gene_idx, tf_idx],
@@ -463,7 +532,7 @@ def read_regulation_dynamics(sim_data, node, node_id, columns, indexes, volume, 
 	node.read_dynamics(dynamics, dynamics_units)
 
 
-def read_tf_binding_dynamics(sim_data, node, node_id, columns, indexes, volume, timeseries):
+def read_tf_binding_dynamics(sim_data, node, node_id, indexes, volume, timeseries):
 	"""
 	Reads dynamics data for TF binding nodes from a simulation output.
 	"""
@@ -493,16 +562,16 @@ def read_tf_binding_dynamics(sim_data, node, node_id, columns, indexes, volume, 
 	node.read_dynamics(dynamics, dynamics_units)
 
 
-def read_charging_dynamics(sim_data, node, node_id, columns, indexes, volume, timeseries):
+def read_charging_dynamics(sim_data, node, node_id, indexes, volume, timeseries):
 	"""
 	Reads dynamics data for charging nodes from a simulation output.
 	"""
-	# TODO: Port net_charged within GrowthLimits
 	rna = '{}[c]'.format(node_id.split(' ')[0])
 	rna_idx = indexes["Charging"][rna]
-	ipdb.set_trace()
+	net_charged = fill_initial(timeseries['listeners']['growth_limits']['net_charged'], 0.0)
 	dynamics = {
-		'reaction rate': columns[("GrowthLimits", "net_charged")][:, rna_idx]
+		# 'reaction rate': columns[("GrowthLimits", "net_charged")][:, rna_idx]
+		'reaction rate': net_charged[:, rna_idx]
 		}
 	dynamics_units = {
 		'reaction rate': 'rxns/s',
