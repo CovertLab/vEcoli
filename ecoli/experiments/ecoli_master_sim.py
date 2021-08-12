@@ -9,7 +9,7 @@ import warnings
 from vivarium.core.engine import Engine
 from vivarium.library.dict_utils import deep_merge
 from ecoli.composites.ecoli_master import Ecoli, SIM_DATA_PATH
-from ecoli.processes import process_registry
+from ecoli.processes import process_registry, topology_registry
 
 
 CONFIG_DIR_PATH = 'data/ecoli_master_configs/'
@@ -24,7 +24,7 @@ class EcoliSim:
                                                        config['exclude_processes'],
                                                        config['swap_processes'])
         config['topology'] = self._retrieve_topology(config['topology'],
-                                                     config['exclude_processes'],
+                                                     config['processes'],
                                                      config['swap_processes'])
         config['process_configs'] = self._retrieve_process_configs(config['process_configs'],
                                                                    config['processes'])
@@ -153,19 +153,29 @@ class EcoliSim:
 
     def _retrieve_topology(self,
                            topology,
-                           exclude_processes,
+                           processes,
                            swap_processes):
         result = {}
-        for process, process_topology in topology.items():
-            if process in exclude_processes:
-                continue
-
-            if process in swap_processes:
-                process = swap_processes[process]
+        for process in processes:
+            # Start from default topology if it exists
+            if process in swap_processes.values():
+                original_process = [k for k, v in swap_processes.items() if v == process][0]
+                process_topology = topology_registry.access(original_process)
+            else:
+                process_topology = topology_registry.access(process)
+            if not process_topology:
+                process_topology={}
             
-            result[process] = {
-                k: tuple(v) for k, v in process_topology.items()
-            }
+            # Allow the user to override default topology
+            if process in topology.keys():
+                deep_merge(process_topology, {k : tuple(v) for k, v in topology[process].items()})
+
+            # Assign 
+            if process in swap_processes.values():
+                process = ...
+            
+            result[process] = process_topology
+
         return result
 
     def _retrieve_process_configs(self, process_configs, processes):
