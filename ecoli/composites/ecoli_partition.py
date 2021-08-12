@@ -229,10 +229,6 @@ class Ecoli(Composer):
         processes = {
             process_name: process(configs[process_name])
             for (process_name, process) in config['processes'].items()
-            if process_name not in [
-                # 'polypeptide_elongation'
-                # TODO: get this working again
-            ]
         }
         
         derivers = ['metabolism', 'mass', 'mrna_counts', 'allocator']

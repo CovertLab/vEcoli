@@ -398,7 +398,6 @@ def main():
         run_spatial_ecoli('linear')
     if args.spherical:
         run_spatial_ecoli('spherical')
-    run_spatial_ecoli('spherical')
 
 if __name__ == '__main__':
     main()
