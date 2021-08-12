@@ -1,5 +1,4 @@
 from vivarium import process_registry
-from vivarium.core.registry import Registry
 
 from ecoli.processes.tf_binding import TfBinding
 from ecoli.processes.transcript_initiation import TranscriptInitiation
@@ -17,6 +16,8 @@ from ecoli.processes.mass import Mass
 from ecoli.processes.exchange_stub import Exchange
 from ecoli.processes.listeners.mass_listener import MassListener
 
+from registry.ecoli_master_topology import topology_registry
+
 # add to registry
 process_registry.register(TfBinding.name, TfBinding)
 process_registry.register(TranscriptInitiation.name, TranscriptInitiation)
@@ -33,14 +34,3 @@ process_registry.register(ChromosomeReplication.name, ChromosomeReplication)
 process_registry.register(Mass.name, Mass)
 process_registry.register(MassListener.name, MassListener)
 process_registry.register(Exchange.name, Exchange)
-
-#: Maps process names to topology
-topology_registry = Registry()
-topology_registry.register(
-    TfBinding.name,
-    {
-            "promoters": ("unique", "promoter"),
-            "active_tfs": ("bulk",),
-            "inactive_tfs": ("bulk",),
-            "listeners": ("listeners",)
-    })
