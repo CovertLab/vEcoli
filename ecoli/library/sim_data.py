@@ -11,10 +11,19 @@ SIM_DATA_PATH = 'reconstruction/sim_data/kb/simData.cPickle'
 
 class LoadSimData:
 
-    def __init__(self, sim_data_path=SIM_DATA_PATH, seed=0):
+    def __init__(
+        self, 
+        sim_data_path=SIM_DATA_PATH, 
+        seed=0,
+        trna_charging=False,
+        ppgpp_regulation=False,
+        ):
 
         self.seed = np.uint32(seed % np.iinfo(np.uint32).max)
         self.random_state = np.random.RandomState(seed = self.seed)
+        
+        self.trna_charging = trna_charging
+        self.ppgpp_regulation = ppgpp_regulation
 
         # load sim_data
         with open(sim_data_path, 'rb') as sim_data_file:
@@ -55,7 +64,6 @@ class LoadSimData:
             'seed': self.random_state.randint(RAND_MAX),
         }
 
-
         return chromosome_replication_config
 
     def get_tf_config(self, time_step=2, parallel=False):
@@ -67,7 +75,7 @@ class LoadSimData:
             'delta_prob': self.sim_data.process.transcription_regulation.delta_prob,
             'n_avogadro': self.sim_data.constants.n_avogadro,
             'cell_density': self.sim_data.constants.cell_density,
-            'pPromoter_bound_tf': self.sim_data.process.transcription_regulation.p_promoter_bound_tf,
+            'p_promoter_bound_tf': self.sim_data.process.transcription_regulation.p_promoter_bound_tf,
             'tf_to_tf_type': self.sim_data.process.transcription_regulation.tf_to_tf_type,
             'active_to_bound': self.sim_data.process.transcription_regulation.active_to_bound,
             'get_unbound': self.sim_data.process.equilibrium.get_unbound,
@@ -114,7 +122,7 @@ class LoadSimData:
             'ppgpp': self.sim_data.molecule_ids.ppGpp,
             'synth_prob': self.sim_data.process.transcription.synth_prob_from_ppgpp,
             'copy_number': self.sim_data.process.replication.get_average_copy_number,
-            'ppgpp_regulation': False,
+            'ppgpp_regulation': self.ppgpp_regulation,
 
             # attenuation
             'trna_attenuation': False,
@@ -255,9 +263,9 @@ class LoadSimData:
             'import_threshold': self.sim_data.external_state.import_constraint_threshold,
             'aa_from_trna': transcription.aa_from_trna,
             'gtpPerElongation': constants.gtp_per_translation,
-            'ppgpp_regulation': False,
+            'ppgpp_regulation': self.ppgpp_regulation,
             'mechanistic_supply': False,
-            'trna_charging': False,
+            'trna_charging': self.trna_charging,
             'translation_supply': False,
             'ribosome30S': self.sim_data.molecule_ids.s30_full_complex,
             'ribosome50S': self.sim_data.molecule_ids.s50_full_complex,
@@ -296,6 +304,9 @@ class LoadSimData:
             'k_SpoT_deg': constants.k_SpoT_ppGpp_degradation.asNumber(1 / (MICROMOLAR_UNITS * units.s)),
             'KI_SpoT': constants.KI_SpoT_ppGpp_degradation.asNumber(MICROMOLAR_UNITS),
             'aa_supply_scaling': metabolism.aa_supply_scaling,
+            'aa_enzymes': metabolism.aa_enzymes,
+            'amino_acid_synthesis': metabolism.amino_acid_synthesis,
+            'amino_acid_import': metabolism.amino_acid_import,
             'seed': self.random_state.randint(RAND_MAX)}
 
         return polypeptide_elongation_config
@@ -308,7 +319,9 @@ class LoadSimData:
             'stoichiometry': self.sim_data.process.complexation.stoich_matrix().astype(np.int64).T,
             'rates': self.sim_data.process.complexation.rates,
             'molecule_names': self.sim_data.process.complexation.molecule_names,
-            'seed': self.random_state.randint(RAND_MAX)}
+            'seed': self.random_state.randint(RAND_MAX),
+            'numReactions': len(self.sim_data.process.complexation.rates),
+        }
 
         return complexation_config
 
@@ -318,7 +331,7 @@ class LoadSimData:
             '_parallel': parallel,
 
             'jit': False,
-            'n_avogadro': self.sim_data.constants.n_avogadro.asNumber(1 / units.mmol),  # TODO (Eran) -- this should be 1/mol
+            'n_avogadro': self.sim_data.constants.n_avogadro.asNumber(1 / units.mmol),  # TODO -- wcEcoli has this in 1/mmol, why?
             'cell_density': self.sim_data.constants.cell_density.asNumber(units.g / units.L),
             'moleculesToNextTimeStep': self.sim_data.process.two_component_system.molecules_to_next_time_step,
             'moleculeNames': self.sim_data.process.two_component_system.molecule_names,
@@ -359,7 +372,7 @@ class LoadSimData:
 
         return protein_degradation_config
 
-    def get_metabolism_config(self, time_step=2, parallel=False):
+    def get_metabolism_config(self, time_step=2, parallel=False, deriver_mode=False):
         metabolism_config = {
             'time_step': time_step,
             '_parallel': parallel,
@@ -369,8 +382,8 @@ class LoadSimData:
             'aa_names': self.sim_data.molecule_groups.amino_acids,
 
             # these are options given to the wholecell.sim.simulation
-            'use_trna_charging': False,
-            'include_ppgpp': False,
+            'use_trna_charging': self.trna_charging,
+            'include_ppgpp': not self.ppgpp_regulation or not self.trna_charging,
 
             # these values came from the initialized environment state
             'current_timeline': None,
@@ -393,6 +406,8 @@ class LoadSimData:
             'amino_acid_ids': sorted(self.sim_data.amino_acid_code_to_id_ordered.values()),
             'seed': self.random_state.randint(RAND_MAX),
             'linked_metabolites': self.sim_data.process.metabolism.linked_metabolites,
+            # Whether to use metabolism as a deriver (with t=0 skipped)
+            'deriver_mode': deriver_mode
         }
 
         return metabolism_config
@@ -409,7 +424,8 @@ class LoadSimData:
         unique_masses = {}
         uniqueMoleculeMasses = self.sim_data.internal_state.unique_molecule.unique_molecule_masses
         for (id_, mass) in zip(uniqueMoleculeMasses["id"], uniqueMoleculeMasses["mass"]):
-            unique_masses[id_] = (mass / self.sim_data.constants.n_avogadro).asNumber(units.fg)
+            unique_masses[id_] = (
+                mass / self.sim_data.constants.n_avogadro).asNumber(units.fg)
 
         mass_config = {
             'molecular_weights': molecular_weights,
@@ -418,3 +434,51 @@ class LoadSimData:
             'water_id': 'WATER[c]',
         }
         return mass_config
+
+      
+    def get_mass_listener_config(self, time_step=2, parallel=False):
+        mass_config = {
+            'cellDensity': self.sim_data.constants.cell_density.asNumber(units.g / units.L),
+            'bulk_ids' : self.sim_data.internal_state.bulk_molecules.bulk_data['id'],
+            'bulk_masses': self.sim_data.internal_state.bulk_molecules.bulk_data['mass'].asNumber(
+                units.fg / units.mol) / self.sim_data.constants.n_avogadro.asNumber(1 / units.mol),
+            'unique_ids' : self.sim_data.internal_state.unique_molecule.unique_molecule_masses['id'],
+            'unique_masses': self.sim_data.internal_state.unique_molecule.unique_molecule_masses['mass'].asNumber(
+                units.fg / units.mol) / self.sim_data.constants.n_avogadro.asNumber(1/units.mol),
+            'submass_indices': {
+                'rna': np.array([
+                    self.sim_data.submass_name_to_index[name]
+                    for name in ["rRNA", "tRNA", "mRNA", "miscRNA", "nonspecific_RNA"]
+                ]),
+                'rRna': self.sim_data.submass_name_to_index["rRNA"],
+                'tRna': self.sim_data.submass_name_to_index["tRNA"],
+                'mRna': self.sim_data.submass_name_to_index["mRNA"],
+                'dna': self.sim_data.submass_name_to_index["DNA"],
+                'protein': self.sim_data.submass_name_to_index["protein"],
+                'smallMolecule': self.sim_data.submass_name_to_index["metabolite"],
+                'water': self.sim_data.submass_name_to_index["water"]
+            },
+            'compartment_id_to_index' : self.sim_data.compartment_id_to_index,
+            'n_avogadro': self.sim_data.constants.n_avogadro,  # 1/mol
+            'time_step' : time_step
+        }
+
+        return mass_config
+
+    def get_mrna_counts_listener_config(self, time_step=2):
+        counts_config = {
+            'rna_ids': self.sim_data.process.transcription.rna_data['id'],
+            'mrna_indexes': np.where(self.sim_data.process.transcription.rna_data['is_mRNA'])[0],
+        }
+
+        return counts_config
+
+      
+    def get_allocator_config(self, time_step=2, parallel=False, process_names=[]):
+        allocator_config = {
+            'time_step': time_step, 
+            'molecule_names': self.sim_data.internal_state.bulk_molecules.bulk_data['id'],
+            'seed': self.random_state.randint(2**31),
+            'process_names': process_names,
+        }
+        return allocator_config

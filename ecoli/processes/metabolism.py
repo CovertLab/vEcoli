@@ -6,6 +6,10 @@ Metabolism sub-model. Encodes molecular simulation of microbial metabolism using
 TODO:
 - option to call a reduced form of metabolism (assume optimal)
 - handle oneSidedReaction constraints
+
+NOTE:
+- In wcEcoli, metabolism only runs after all other processes have completed 
+and internal states have been updated (deriver-like, no partitioning necessary)
 """
 
 import numpy as np
@@ -14,6 +18,7 @@ from typing import List, Tuple
 
 from vivarium.core.process import Process
 from vivarium.core.composition import simulate_process
+from vivarium.library.dict_utils import deep_merge
 
 from ecoli.library.schema import bulk_schema, array_from
 
@@ -62,7 +67,8 @@ class Metabolism(Process):
         'doubling_time': 44.0 * units.min,
         'amino_acid_ids': {},
         'linked_metabolites': None,
-        'seed': 0}
+        'seed': 0,
+        'deriver_mode': False}
 
     def __init__(self, parameters=None):
         super().__init__(parameters)
@@ -105,6 +111,11 @@ class Metabolism(Process):
 
         self.seed = self.parameters['seed']
         self.random_state = np.random.RandomState(seed = self.seed)
+        
+        self.deriver_mode = self.parameters['deriver_mode']
+        
+    def is_deriver(self):
+        return self.deriver_mode
 
     def ports_schema(self):
         return {
@@ -140,7 +151,7 @@ class Metabolism(Process):
                     'constrained_molecules': {'_default': [], '_updater': 'set'},
                     'uptake_constraints': {'_default': [], '_updater': 'set'},
                     'deltaMetabolites': {'_default': [], '_updater': 'set'},
-                    'reactionFluxes': {'_default': [], '_updater': 'set'},
+                    'reactionFluxes': {'_default': [], '_updater': 'set', '_emit': True},
                     'externalExchangeFluxes': {'_default': [], '_updater': 'set'},
                     'objectiveValue': {'_default': [], '_updater': 'set'},
                     'shadowPrices': {'_default': [], '_updater': 'set'},
@@ -168,6 +179,13 @@ class Metabolism(Process):
                     '_emit': True}}}
 
     def next_update(self, timestep, states):
+        # Skip t=0 if a deriver
+        if self.deriver_mode:
+            self.deriver_mode = False
+            return {}
+        
+        timestep = self.parameters['time_step']
+
         # Load current state of the sim
         ## Get internal state variables
         metabolite_counts_init = array_from(states['metabolites'])
@@ -644,9 +662,12 @@ class FluxBalanceAnalysisModel(object):
         return mean_targets, upper_targets, lower_targets
 
 
-def test_metabolism():
-    test_config = {}
+def test_metabolism_listener():
+    from ecoli.composites.ecoli_master import run_ecoli
+    data = run_ecoli(total_time=2)
+    assert(type(data['listeners']['fba_results']['reactionFluxes'][0]) == list)
+    assert(type(data['listeners']['fba_results']['reactionFluxes'][1]) == list)
 
 
 if __name__ == '__main__':
-    test_metabolism()
+    test_metabolism_listener()
