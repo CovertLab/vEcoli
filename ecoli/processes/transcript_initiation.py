@@ -1,12 +1,17 @@
-'''
-TranscriptInitiation
+"""
+=====================
+Transcript Initiation
+=====================
 
 Transcription initiation sub-model.
+"""
 
-TODO:
-- use transcription units instead of single genes
-- match sigma factors to promoters
-'''
+# Note: the following comments were previously in the Docstring above, but I moved them
+# below so that our Docstrings are standardized when loading them into the jupyter notebook
+
+# TODO:
+# - use transcription units instead of single genes
+# - match sigma factors to promoters
 
 import numpy as np
 import scipy.sparse

@@ -1,8 +1,9 @@
 """
-Two component system
+====================
+Two Component System
+====================
 
-Two component system sub-model
-
+Two component system sub-model.
 """
 
 import numpy as np

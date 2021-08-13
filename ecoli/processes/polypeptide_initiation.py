@@ -1,5 +1,7 @@
 """
-PolypeptideInitiation
+======================
+Polypeptide Initiation
+======================
 
 Polypeptide initiation sub-model.
 """

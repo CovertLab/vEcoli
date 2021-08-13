@@ -1,12 +1,17 @@
 """
+============
 Complexation
+============
 
-Macromolecular complexation sub-model. Encodes molecular simulation of macromolecular complexation
-
-TODO:
-- allow for shuffling when appropriate (maybe in another process)
-- handle protein complex dissociation
+Macromolecular complexation sub-model. Encodes molecular simulation of macromolecular complexation, in which monomers are assembled into complexes.
 """
+
+# Note: the following comments were previously in the Docstring above, but I moved them
+# below so that our Docstrings are standardized when loading them into the jupyter notebook
+
+# TODO:
+# - allow for shuffling when appropriate (maybe in another process)
+# - handle protein complex dissociation
 
 import numpy as np
 from arrow import StochasticSystem

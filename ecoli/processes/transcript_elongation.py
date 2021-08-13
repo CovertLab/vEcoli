@@ -1,12 +1,19 @@
 """
-TranscriptElongation
+=====================
+Transcript Elongation
+=====================
 
 Transcription elongation sub-model.
-
-TODO:
-- use transcription units instead of single genes
-- account for energy
 """
+
+# Note: the following comments were previously in the Docstring above, but I moved them
+# below so that our Docstrings are standardized when loading them into the jupyter notebook
+
+# TODO:
+# - use transcription units instead of single genes
+# - account for energy
+
+
 
 import numpy as np
 
