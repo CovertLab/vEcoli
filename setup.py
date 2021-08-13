@@ -66,8 +66,9 @@ setup(
     long_description=long_description,
     long_description_content_type='text/markdown',
     install_requires=[
+        'fireworks',
         'pytest==6.2.4',
-        'vivarium-core>=0.3.0',
+        'vivarium-core==0.3.3',
         'vivarium-multibody>=0.0.13',
         'decorator',
         'biopython==1.77',
