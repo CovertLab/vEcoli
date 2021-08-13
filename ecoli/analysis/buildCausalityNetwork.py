@@ -10,8 +10,7 @@ import os
 import subprocess
 
 from analysisBase import AnalysisBase
-from buildCausalityNetworkFiretask import BuildCausalityNetworkTask
-from wholecell.utils import constants
+from buildCausalityNetworkTask import BuildCausalityNetworkTask
 
 
 CAUSALITY_ENV_VAR = 'CAUSALITY_SERVER'

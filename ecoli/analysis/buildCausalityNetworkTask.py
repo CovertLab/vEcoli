@@ -4,18 +4,17 @@ tool.
 """
 from __future__ import absolute_import, division, print_function
 
+from collections import defaultdict
 import datetime
 import time
 
-from fireworks import FiretaskBase, explicit_serialize
 import read_dynamics
 from build_network import BuildNetwork
 from wholecell.utils import filepath as fp
 from wholecell.utils.py3 import monotonic_seconds
 
 
-@explicit_serialize
-class BuildCausalityNetworkTask(FiretaskBase):
+class BuildCausalityNetworkTask(defaultdict):
 
 	_fw_name = "BuildCausalNetworkTask"
 
