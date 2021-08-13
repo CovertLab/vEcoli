@@ -175,7 +175,7 @@ def run_polypeptide_elongation():
         path=f'data/wcecoli_t0.json')
 
     polypeptide_elongation_composite = polypeptide_elongation_process.generate()
-    experiment = Engine({
+    experiment = Engine(**{
         'processes': polypeptide_elongation_composite['processes'],
         'topology': {polypeptide_elongation_process.name: PE_TOPOLOGY},
         'initial_state': initial_state

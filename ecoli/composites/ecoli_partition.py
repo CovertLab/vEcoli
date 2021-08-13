@@ -366,7 +366,7 @@ def run_ecoli(
     ecoli = ecoli_composer.generate(path=path)
 
     # make the experiment
-    ecoli_experiment = Engine({
+    ecoli_experiment = Engine(**{
         'processes': ecoli.processes,
         'topology': ecoli.topology,
         'initial_state': initial_state,

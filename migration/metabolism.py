@@ -102,7 +102,7 @@ def run_metabolism(
 
     # initialize a simulation
     metabolism_composite = metabolism.generate()
-    simulation = Engine({
+    simulation = Engine(**{
         'processes': metabolism_composite['processes'],
         'topology': {metabolism.name: metabolism_topology},
         'initial_state': state
