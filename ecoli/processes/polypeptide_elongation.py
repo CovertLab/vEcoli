@@ -1,7 +1,7 @@
 """
-=====================
-PolypeptideElongation
-=====================
+======================
+Polypeptide Elongation
+======================
 
 Translation sub-model for protein synthesis by ribosome.
 """

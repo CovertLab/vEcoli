@@ -1,7 +1,9 @@
 """
-TfBinding
+==========
+Tf Binding
+==========
 
-Bind transcription factors to DNA
+Bind transcription factors to DNA.
 """
 
 import numpy as np

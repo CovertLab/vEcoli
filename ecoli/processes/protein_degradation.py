@@ -1,12 +1,17 @@
 """
-ProteinDegradation
+===================
+Protein Degradation
+===================
 
 Protein degradation sub-model. Encodes molecular simulation of protein degradation as a Poisson process
-
-TODO:
-- protein complexes
-- add protease functionality
 """
+
+# Note: the following comments were previously in the Docstring above, but I moved them
+# below so that our Docstrings are standardized when loading them into the jupyter notebook
+
+# TODO:
+# - protein complexes
+# - add protease functionality
 
 import numpy as np
 

@@ -1,4 +1,7 @@
-"""Chromosome Replication
+"""
+======================
+Chromosome Replication
+======================
 
 Process for chromosome replication. Performs initiation, elongation, and
 termination of active partial chromosomes that replicate the chromosome.

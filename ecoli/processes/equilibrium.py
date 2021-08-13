@@ -1,7 +1,9 @@
 """
+===========
 Equilibrium
+===========
 
-Equilibrium binding sub-model
+Equilibrium binding sub-model.
 """
 
 import numpy as np
