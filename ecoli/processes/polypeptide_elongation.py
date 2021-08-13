@@ -236,13 +236,7 @@ class PolypeptideElongation(Process):
                     'submass': {
                         'protein': {'_default': 0, '_emit': True}}}},
 
-            'subunits': {
-                self.ribosome30S: {
-                    '_default': 0,
-                    '_emit': True},
-                self.ribosome50S: {
-                    '_default': 0,
-                    '_emit': True}},
+            'subunits': bulk_schema([self.ribosome30S, self.ribosome50S]),
 
             'polypeptide_elongation': {
                 'aa_count_diff': {
