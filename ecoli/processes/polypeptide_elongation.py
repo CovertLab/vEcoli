@@ -94,10 +94,7 @@ class PolypeptideElongation(Process):
         'k_SpoT_deg': 0.23,
         'KI_SpoT': 20.0,
         'aa_supply_scaling': lambda aa_conc, aa_in_media: 0,
-        'seed': 0,
-        # partitioning flags
-        'request_only': False,
-        'evolve_only': False,}
+        'seed': 0}
 
     def __init__(self, parameters=None):
         super().__init__(parameters)
@@ -176,9 +173,6 @@ class PolypeptideElongation(Process):
         self.seed = self.parameters['seed']
         self.random_state = np.random.RandomState(seed = self.seed)
 
-        self.request_only = self.parameters['request_only']
-        self.evolve_only = self.parameters['evolve_only']
-
     def ports_schema(self):
         return {
             'environment': {
@@ -197,7 +191,7 @@ class PolypeptideElongation(Process):
                     'aa_pool_size': 0,
                     'aa_request_size': 0,
                     'active_ribosomes_allocated': 0,
-                    'net_charged': 0,
+                    'net_charged': [],
                     'aasUsed': 0,
                     'aa_supply': 0,
                     'aa_supply_enzymes': 0,
@@ -242,13 +236,7 @@ class PolypeptideElongation(Process):
                     'submass': {
                         'protein': {'_default': 0, '_emit': True}}}},
 
-            'subunits': {
-                self.ribosome30S: {
-                    '_default': 0,
-                    '_emit': True},
-                self.ribosome50S: {
-                    '_default': 0,
-                    '_emit': True}},
+            'subunits': bulk_schema([self.ribosome30S, self.ribosome50S]),
 
             'polypeptide_elongation': {
                 'aa_count_diff': {
@@ -499,15 +487,10 @@ class PolypeptideElongation(Process):
         return update
 
     def next_update(self, timestep, states):
-        if self.request_only:
-            update = self.calculate_request(timestep, states)
-        elif self.evolve_only:
-            update = self.evolve_state(timestep, states)
-        else:
-            requests = self.calculate_request(timestep, states)
-            states = deep_merge(states, requests)
-            update = self.evolve_state(timestep, states)
-            update['listeners'] = deep_merge(update['listeners'], requests['listeners'])
+        requests = self.calculate_request(timestep, states)
+        states = deep_merge(states, requests)
+        update = self.evolve_state(timestep, states)
+        update['listeners'] = deep_merge(update['listeners'], requests['listeners'])
         return update
 
     def isTimeStepShortEnough(self, inputTimeStep, timeStepSafetyFraction):
@@ -605,6 +588,7 @@ def run_plot(data, config):
 def main():
     data, config = test_polypeptide_elongation()
     run_plot(data, config)
+
 
 if __name__ == '__main__':
     main()

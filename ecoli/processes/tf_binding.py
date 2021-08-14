@@ -35,10 +35,7 @@ class TfBinding(Process):
         'active_to_inactive_tf': {},
         'bulk_molecule_ids': [],
         'bulk_mass_data': np.array([[]]) * units.g / units.mol,
-        'seed': 0,
-        # partitioning flags
-        'request_only': False,
-        'evolve_only': False,}
+        'seed': 0}
 
     # Constructor
     def __init__(self, parameters=None):
@@ -100,9 +97,6 @@ class TfBinding(Process):
         self.seed = self.parameters['seed']
         self.random_state = np.random.RandomState(seed = self.seed)
         
-        self.request_only = self.parameters['request_only']
-        self.evolve_only = self.parameters['evolve_only']
-        
     def ports_schema(self):
         return {
             'promoters': {
@@ -126,7 +120,8 @@ class TfBinding(Process):
                     'nPromoterBound': 0,
                     'nActualBound': 0,
                     'n_available_promoters': 0,
-                    'n_bound_TF_per_TU': 0})}
+                    'n_bound_TF_per_TU': 0,
+                    'gene_copy_number': []})}
             }
         
     def calculate_request(self, timestep, states):
@@ -260,17 +255,25 @@ class TfBinding(Process):
                 'nPromoterBound': nPromotersBound,
                 'nActualBound': nActualBound,
                 'n_available_promoters': n_promoters,
-                'n_bound_TF_per_TU': n_bound_TF_per_TU}}
+                'n_bound_TF_per_TU': n_bound_TF_per_TU,
+                'gene_copy_number': np.bincount(TU_index, minlength=self.n_TU)},
+        }
 
         return update
     
     def next_update(self, timestep, states):
-        if self.request_only:
-            update = self.calculate_request(timestep, states)
-        elif self.evolve_only:
-            update = self.evolve_state(timestep, states)
-        else:
-            requests = self.calculate_request(timestep, states)
-            states = deep_merge(states, requests)
-            update = self.evolve_state(timestep, states)
+        requests = self.calculate_request(timestep, states)
+        states = deep_merge(states, requests)
+        update = self.evolve_state(timestep, states)
         return update
+
+
+def test_tf_binding_listener():
+    from ecoli.composites.ecoli_master import run_ecoli
+    data = run_ecoli(total_time=2)
+    assert(type(data['listeners']['rna_synth_prob']['gene_copy_number'][0]) == list)
+    assert(type(data['listeners']['rna_synth_prob']['gene_copy_number'][1]) == list)
+
+
+if __name__ == '__main__':
+    test_tf_binding_listener()
