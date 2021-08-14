@@ -29,9 +29,7 @@ class ProteinDegradation(Process):
         'amino_acid_counts': [],
         'protein_ids': [],
         'protein_lengths': [],
-        'seed': 0,
-        'request_only': False,
-        'evolve_only': False,}
+        'seed': 0}
 
     # Constructor
     def __init__(self, parameters=None):
@@ -66,9 +64,6 @@ class ProteinDegradation(Process):
         # Assuming N-1 H2O is required per peptide chain length N
         self.degradation_matrix[self.water_index, :] = -(np.sum(
             self.degradation_matrix[self.amino_acid_indexes, :], axis=0) - 1)
-        
-        self.request_only = self.parameters['request_only']
-        self.evolve_only = self.parameters['evolve_only']
 
     def ports_schema(self):
         return {
@@ -118,14 +113,9 @@ class ProteinDegradation(Process):
         return self.raw_degradation_rate * timestep
 
     def next_update(self, timestep, states):
-        if self.request_only:
-            update = self.calculate_request(timestep, states)
-        elif self.evolve_only:
-            update = self.evolve_state(timestep, states)
-        else:
-            requests = self.calculate_request(timestep, states)
-            states = deep_merge(states, requests)
-            update = self.evolve_state(timestep, states)
+        requests = self.calculate_request(timestep, states)
+        states = deep_merge(states, requests)
+        update = self.evolve_state(timestep, states)
         return update
 
 def test_protein_degradation():

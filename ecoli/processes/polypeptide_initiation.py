@@ -36,10 +36,7 @@ class PolypeptideInitiation(Process):
         'ribosome30S': 'ribosome30S',
         'ribosome50S': 'ribosome50S',
         'seed': 0,
-        'shuffle_indexes': None,
-        # partitioning flags
-        'request_only': False,
-        'evolve_only': False,}
+        'shuffle_indexes': None}
 
     def __init__(self, parameters=None):
         super().__init__(parameters)
@@ -85,9 +82,6 @@ class PolypeptideInitiation(Process):
                 'ribosome_data': {
                     'ribosomes_initialized': 0,
                     'prob_translation_per_transcript': 0.0}}}
-        
-        self.request_only = self.parameters['request_only']
-        self.evolve_only = self.parameters['evolve_only']
 
     def ports_schema(self):
         return {
@@ -256,14 +250,9 @@ class PolypeptideInitiation(Process):
         return update
 
     def next_update(self, timestep, states):
-        if self.request_only:
-            update = self.calculate_request(timestep, states)
-        elif self.evolve_only:
-            update = self.evolve_state(timestep, states)
-        else:
-            requests = self.calculate_request(timestep, states)
-            states = deep_merge(states, requests)
-            update = self.evolve_state(timestep, states)
+        requests = self.calculate_request(timestep, states)
+        states = deep_merge(states, requests)
+        update = self.evolve_state(timestep, states)
         return update
 
     def calculate_activation_prob(
