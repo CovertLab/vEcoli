@@ -7,7 +7,6 @@ TODO:
 - allow for shuffling when appropriate (maybe in another process)
 - handle protein complex dissociation
 """
-
 import numpy as np
 from arrow import StochasticSystem
 
@@ -31,9 +30,8 @@ class Complexation(Process):
         'rates': np.array([]),
         'molecule_names': [],
         'seed': 0,
-        # partitioning flags
-        'request_only': False,
-        'evolve_only': False,}
+        'numReactions': 0
+    }
 
     def __init__(self, parameters=None):
         super().__init__(parameters)
@@ -45,12 +43,19 @@ class Complexation(Process):
 
         self.system = StochasticSystem(self.stoichiometry, random_seed=self.seed)
 
-        self.request_only = self.parameters['request_only']
-        self.evolve_only = self.parameters['evolve_only']
+        num_reactions = self.parameters['numReactions']
+        self.complexationEvents = np.zeros(num_reactions, np.int64)
 
     def ports_schema(self):
         return {
-            'molecules': bulk_schema(self.molecule_names)}
+            'molecules': bulk_schema(self.molecule_names),
+            'listeners': {
+                'complexation_events': {
+                        '_default': [],
+                        '_updater': 'set',
+                        '_emit': True},
+            },
+        }
         
     def calculate_request(self, timestep, states):
         # The int64 dtype is important (can break otherwise)
@@ -73,12 +78,15 @@ class Complexation(Process):
             substrate[index] = molecules[molecule]
 
         result = self.system.evolve(timestep, substrate, self.rates)
+        self.complexationEvents = result['occurrences']
         outcome = result['outcome'] - substrate
-
         molecules_update = array_to(self.molecule_names, outcome)
-
         update = {
-            'molecules': molecules_update}
+            'molecules': molecules_update,
+            'listeners': {
+                'complexation_events': self.complexationEvents
+            }
+        }
 
         # # Write outputs to listeners
         # self.writeToListener("ComplexationListener", "complexationEvents", events)
@@ -86,16 +94,11 @@ class Complexation(Process):
         return update
 
     def next_update(self, timestep, states):
-        if self.request_only:
-            update = self.calculate_request(timestep, states)
-        elif self.evolve_only:
-            update = self.evolve_state(timestep, states)
-        else:
-            requests = self.calculate_request(timestep, states)
-            states = deep_merge(states, requests)
-            update = self.evolve_state(timestep, states)
+        requests = self.calculate_request(timestep, states)
+        states = deep_merge(states, requests)
+        update = self.evolve_state(timestep, states)
         return update
-    
+
 
 def test_complexation():
     test_config = {
@@ -123,7 +126,8 @@ def test_complexation():
         'initial_state': state}
 
     data = simulate_process(complexation, settings)
-
+    assert (type(data['listeners']['complexation_events'][0]) == list)
+    assert (type(data['listeners']['complexation_events'][1]) == list)
     print(data)
 
 

@@ -14,7 +14,16 @@ from ecoli.library.schema import array_from, array_to, arrays_from, arrays_to, l
 
 from wholecell.utils import units
 from six.moves import range
+'''
+    _jit: just in time: false. utilized in the fluxes and molecules function
+    n_avogadro: constant (6.02214076e+20)
+    cell_density: constant (1.1728608844230047e-12)
+    stoichmatrix: (94, 33), molecule counts are (94,).
+    fluxesandMOleculesToSS:produces self.rxnFluxes - shape:(33,) and self.req - shape: (94 - solves ODES to get to steadystate based off of cell denisty, volumes
+        and molecule counts
+    molecule_names: list of molecules that are being iterated over size:94
 
+'''
 
 class Equilibrium(Process):
     name = 'ecoli-equilibrium'
@@ -26,10 +35,7 @@ class Equilibrium(Process):
         'stoichMatrix': [[]],
         'fluxesAndMoleculesToSS': lambda counts, volume, avogadro, random, jit: ([], []),
         'moleculeNames': [],
-        'seed': 0,
-        # partitioning flags
-        'request_only': False,
-        'evolve_only': False,}
+        'seed': 0}
 
     # Constructor
     def __init__(self, parameters=None):
@@ -53,9 +59,6 @@ class Equilibrium(Process):
         self.seed = self.parameters['seed']
         self.random_state = np.random.RandomState(seed = self.seed)
 
-        self.request_only = self.parameters['request_only']
-        self.evolve_only = self.parameters['evolve_only']
-
     def ports_schema(self):
         return {
             'molecules': bulk_schema(self.moleculeNames),
@@ -63,10 +66,11 @@ class Equilibrium(Process):
                 'mass': {
                     'cell_mass': {'_default': 0}},
                 'equilibrium_listener': {
-                    'reaction_rates': {'_default': 0, '_updater': 'set'}}}}
+                    'reaction_rates': {'_default': [], '_updater': 'set', '_emit': True}}}}
         
     def calculate_request(self, timestep, states):
         # Get molecule counts
+        #import ipdb; ipdb.set_trace()
         moleculeCounts = array_from(states['molecules'])
 
         # Get cell mass and volume
@@ -127,12 +131,18 @@ class Equilibrium(Process):
         return update
 
     def next_update(self, timestep, states):
-        if self.request_only:
-            update = self.calculate_request(timestep, states)
-        elif self.evolve_only:
-            update = self.evolve_state(timestep, states)
-        else:
-            requests = self.calculate_request(timestep, states)
-            states = deep_merge(states, requests)
-            update = self.evolve_state(timestep, states)
+        requests = self.calculate_request(timestep, states)
+        states = deep_merge(states, requests)
+        update = self.evolve_state(timestep, states)
         return update
+
+
+def test_equilibrium_listener():
+    from ecoli.composites.ecoli_master import run_ecoli
+    data = run_ecoli(total_time=2)
+    assert(type(data['listeners']['equilibrium_listener']['reaction_rates'][0]) == list)
+    assert(type(data['listeners']['equilibrium_listener']['reaction_rates'][1]) == list)
+
+
+if __name__ == '__main__':
+    test_equilibrium_listener()

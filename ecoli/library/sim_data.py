@@ -99,7 +99,7 @@ class LoadSimData:
             'delta_prob': self.sim_data.process.transcription_regulation.delta_prob,
             'n_avogadro': self.sim_data.constants.n_avogadro,
             'cell_density': self.sim_data.constants.cell_density,
-            'pPromoter_bound_tf': self.sim_data.process.transcription_regulation.p_promoter_bound_tf,
+            'p_promoter_bound_tf': self.sim_data.process.transcription_regulation.p_promoter_bound_tf,
             'tf_to_tf_type': self.sim_data.process.transcription_regulation.tf_to_tf_type,
             'active_to_bound': self.sim_data.process.transcription_regulation.active_to_bound,
             'get_unbound': self.sim_data.process.equilibrium.get_unbound,
@@ -343,7 +343,9 @@ class LoadSimData:
             'stoichiometry': self.sim_data.process.complexation.stoich_matrix().astype(np.int64).T,
             'rates': self.sim_data.process.complexation.rates,
             'molecule_names': self.sim_data.process.complexation.molecule_names,
-            'seed': self.random_state.randint(RAND_MAX)}
+            'seed': self.random_state.randint(RAND_MAX),
+            'numReactions': len(self.sim_data.process.complexation.rates),
+        }
 
         return complexation_config
 
@@ -394,7 +396,7 @@ class LoadSimData:
 
         return protein_degradation_config
 
-    def get_metabolism_config(self, time_step=2, parallel=False):
+    def get_metabolism_config(self, time_step=2, parallel=False, deriver_mode=False):
         metabolism_config = {
             'time_step': time_step,
             '_parallel': parallel,
@@ -428,6 +430,8 @@ class LoadSimData:
             'amino_acid_ids': sorted(self.sim_data.amino_acid_code_to_id_ordered.values()),
             'seed': self.random_state.randint(RAND_MAX),
             'linked_metabolites': self.sim_data.process.metabolism.linked_metabolites,
+            # Whether to use metabolism as a deriver (with t=0 skipped)
+            'deriver_mode': deriver_mode
         }
 
         return metabolism_config
@@ -485,12 +489,20 @@ class LoadSimData:
 
         return mass_config
 
+    def get_mrna_counts_listener_config(self, time_step=2):
+        counts_config = {
+            'rna_ids': self.sim_data.process.transcription.rna_data['id'],
+            'mrna_indexes': np.where(self.sim_data.process.transcription.rna_data['is_mRNA'])[0],
+        }
+
+        return counts_config
+
       
-    def get_allocator_config(self, time_step=2, parallel=False, processes={}):
+    def get_allocator_config(self, time_step=2, parallel=False, process_names=[]):
         allocator_config = {
             'time_step': time_step, 
             'molecule_names': self.sim_data.internal_state.bulk_molecules.bulk_data['id'],
-            'processes': processes,
-            'seed': self.random_state.randint(2**31)
+            'seed': self.random_state.randint(2**31),
+            'process_names': process_names,
         }
         return allocator_config
