@@ -173,7 +173,7 @@ def run_metabolism_composite():
         path=f'data/wcecoli_t1000.json')
 
     # run a simulation
-    experiment = Engine({
+    experiment = Engine(**{
         'processes': metabolism_composite['processes'],
         'topology': metabolism_composite['topology'],
         'initial_state': initial_state})

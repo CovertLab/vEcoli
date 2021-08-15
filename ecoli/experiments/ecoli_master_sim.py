@@ -217,7 +217,7 @@ class EcoliSim:
         if self.experiment_id:
             experiment_config['experiment_id'] = self.experiment_id
 
-        self.ecoli_experiment = Engine(experiment_config)
+        self.ecoli_experiment = Engine(**experiment_config)
 
         # run the experiment
         self.ecoli_experiment.update(self.total_time)
