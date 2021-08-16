@@ -58,8 +58,10 @@ class mRNACounts(Deriver):
 
 
 def test_mrna_counts_listener():
-	from ecoli.composites.ecoli_master import run_ecoli
-	data = run_ecoli(total_time=2)
+	from ecoli.experiments.ecoli_master_sim import EcoliSim
+    sim = EcoliSim.from_file()
+    sim.total_time = 2
+    data = sim.run()
 	assert(type(data['listeners']['mRNA_counts'][0]) == list)
 	assert(type(data['listeners']['mRNA_counts'][1]) == list)
 
