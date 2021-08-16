@@ -15,6 +15,7 @@ from ecoli.processes.chromosome_replication import ChromosomeReplication
 from ecoli.processes.mass import Mass
 from ecoli.processes.exchange_stub import Exchange
 from ecoli.processes.listeners.mass_listener import MassListener
+from ecoli.processes.listeners.mRNA_counts import mRNACounts
 
 
 #: Maps process names to topology
@@ -158,3 +159,10 @@ topology_registry.register(
         "unique": ("unique"),
         "listeners": ("listeners")
     })
+topology_registry.register(
+    mRNACounts.name,
+    {
+        "listeners": ("listeners",),
+        "RNAs" : ("unique", "RNA"),
+    }
+)

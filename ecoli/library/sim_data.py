@@ -45,7 +45,8 @@ class LoadSimData:
             'ecoli-metabolism': self.get_metabolism_config,
             'ecoli-chromosome_replication': self.get_chromosome_replication_config,
             'ecoli-mass': self.get_mass_config,
-            'ecoli-mass-listener' : self.get_mass_listener_config
+            'ecoli-mass-listener' : self.get_mass_listener_config,
+            'mRNA_counts_listener' : self.get_mrna_counts_listener_config
         }
 
         try:
@@ -489,7 +490,7 @@ class LoadSimData:
 
         return mass_config
 
-    def get_mrna_counts_listener_config(self, time_step=2):
+    def get_mrna_counts_listener_config(self, time_step=2, parallel=False):
         counts_config = {
             'rna_ids': self.sim_data.process.transcription.rna_data['id'],
             'mrna_indexes': np.where(self.sim_data.process.transcription.rna_data['is_mRNA'])[0],
