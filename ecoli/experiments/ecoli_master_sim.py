@@ -166,8 +166,10 @@ class EcoliSim:
                                 if process not in swap_processes.values()
                                 else original_processes[process])
 
-            process_topology = dict(topology_registry.access(original_process))
-            if not process_topology:
+            process_topology = topology_registry.access(original_process)
+            if process_topology:
+                process_topology = dict(process_topology)
+            else:
                 process_topology = {}
 
             # Allow the user to override default topology
