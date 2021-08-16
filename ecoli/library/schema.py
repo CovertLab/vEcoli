@@ -87,3 +87,8 @@ def add_elements(elements, id):
             'key': element[id],
             'state': element}
             for element in elements]}
+    
+def submass_schema():
+    return {
+        '_default': np.zeros(9),
+        '_emit': True}
