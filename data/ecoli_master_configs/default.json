@@ -45,7 +45,8 @@
         "ecoli-protein-degradation",
         "ecoli-metabolism",
         "ecoli-chromosome_replication",
-        "ecoli-mass-listener"
+        "ecoli-mass-listener",
+        "mRNA_counts_listener"
     ],
     "process_configs": {},
     "topology": {
