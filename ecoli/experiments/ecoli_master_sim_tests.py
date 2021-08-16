@@ -40,10 +40,10 @@ def testSwapProcess():
 
 
 def main():
-    testDefault()
+    # testDefault()
     testAddProcess()
-    testExcludeProcess()
-    testSwapProcess()
+    # testExcludeProcess()
+    # testSwapProcess()
 
 
 if __name__=="__main__":
