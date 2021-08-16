@@ -22,7 +22,6 @@ load_sim_data = LoadSimData(
             sim_data_path=SIM_DATA_PATH,
             seed=0)
 
-# copy topology from ecoli_master.py, under generate_topology
 TF_BINDING_TOPOLOGY = {
     'promoters': ('unique', 'promoter'),
     'active_tfs': ('bulk',),
