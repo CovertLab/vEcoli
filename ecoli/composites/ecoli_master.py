@@ -16,7 +16,7 @@ from vivarium.library.dict_utils import deep_merge
 from ecoli.library.sim_data import LoadSimData
 
 # logging
-from ecoli.library.logging import make_logging_process
+from vivarium.library.wrappers import make_logging_process
 
 # vivarium-ecoli processes
 from ecoli.processes.cell_division import Division
@@ -26,7 +26,6 @@ from ecoli.plots.topology import get_ecoli_master_topology_settings
 from ecoli.states.wcecoli_state import get_state_from_file
 
 # plotting
-from ecoli.plots.blame import blame_plot
 from vivarium.plots.topology import plot_topology
 
 
@@ -147,7 +146,7 @@ def run_ecoli(
     # make the ecoli config dictionary
     agent_id = '0'
     ecoli_config = {
-        'blame': blame,
+        'log_updates': blame,
         'agent_id': agent_id,
         # TODO -- remove schema override once values don't go negative
         '_schema': {
@@ -247,9 +246,6 @@ def main():
     parser.add_argument(
         '--topology', '-t', action='store_true', default=False,
         help='save a topology plot of ecoli master')
-    parser.add_argument(
-        '--blame', '-b', action='store_true', default=False,
-        help='when running simulation, create a report of which processes affected which molecules')
     args = parser.parse_args()
 
     if args.topology:
@@ -258,11 +254,7 @@ def main():
         for name in args.name:
             test_library[name]()
     else:
-        output = run_ecoli(
-            blame=args.blame,
-        )
-        if args.blame:
-            blame_plot(output, highlight_molecules=['PD00413[c]'])
+        output = run_ecoli(blame=True)
 
 
 if __name__ == '__main__':
