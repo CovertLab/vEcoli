@@ -38,6 +38,8 @@ class BuildCausalityNetwork(AnalysisBase):
 		parser.add_argument('--show', action='store_true',
 			help='If set, attempts to show the causality visualization after'
 			' processing data.')
+		parser.add_argument('--id', type=str, default='',
+			help='If set, a causality network is built using a custom listener dataset.')
 		self.define_range_options(parser, 'variant', 'seed', 'generation')
 
 	def update_args(self, args):
@@ -56,7 +58,8 @@ class BuildCausalityNetwork(AnalysisBase):
 		task = BuildCausalityNetworkTask(
 			input_sim_data=sim_data,
 			output_dynamics_directory=dynamics_output_dir,
-			check_sanity=args.check_sanity)
+			check_sanity=args.check_sanity,
+			experiment_id=args.id)
 		task.run_task({})
 
 		# Optionally show the causality visualization.

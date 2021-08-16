@@ -27,6 +27,7 @@ class BuildCausalityNetworkTask(defaultdict):
 		"check_sanity",
 		"output_network_directory",  # no longer used
 		"metadata",  # no longer used
+		"experiment_id"
 		]
 
 	def run_task(self, fw_spec):
@@ -49,7 +50,8 @@ class BuildCausalityNetworkTask(defaultdict):
 			self["output_dynamics_directory"],
 			self["input_sim_data"],
 			node_list,
-			edge_list)
+			edge_list,
+			self.get("experiment_id", ""))
 
 		elapsed_real_sec = monotonic_seconds() - start_real_sec
 
