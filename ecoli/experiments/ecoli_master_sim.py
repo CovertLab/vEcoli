@@ -25,7 +25,9 @@ class EcoliSim:
                                                        config['swap_processes'])
         config['topology'] = self._retrieve_topology(config['topology'],
                                                      config['processes'],
-                                                     config['swap_processes'])
+                                                     config['swap_processes'],
+                                                     config['log_updates'],
+                                                     config['divide'])
         config['process_configs'] = self._retrieve_process_configs(config['process_configs'],
                                                                    config['processes'])
         self.config = config
@@ -45,10 +47,10 @@ class EcoliSim:
         self.raw_output = config['raw_output']
         self.progress_bar = config['progress_bar']
         self.sim_data_path = config['sim_data_path']
+        self.divide = config['divide']
 
         if self.generations:
             warnings.warn("generations option is not yet implemented!")
-        
 
     @staticmethod
     def from_cli():
@@ -111,7 +113,6 @@ class EcoliSim:
         ecoli_config = deep_merge(dict(default_config), ecoli_config)
 
         return EcoliSim(ecoli_config)
-    
 
     @staticmethod
     def from_file(filepath=CONFIG_DIR_PATH + 'default.json'):
@@ -126,7 +127,6 @@ class EcoliSim:
         ecoli_config = deep_merge(dict(default_config), ecoli_config)
 
         return EcoliSim(ecoli_config)
-
 
     def _retrieve_processes(self,
                             process_names,
@@ -154,27 +154,44 @@ class EcoliSim:
     def _retrieve_topology(self,
                            topology,
                            processes,
-                           swap_processes):
+                           swap_processes,
+                           log_updates,
+                           divide):
         result = {}
+
+        original_processes = {v: k for k, v in swap_processes.items()}
         for process in processes:
             # Start from default topology if it exists
-            if process in swap_processes.values():
-                original_process = [k for k, v in swap_processes.items() if v == process][0]
-                process_topology = topology_registry.access(original_process)
-            else:
-                process_topology = topology_registry.access(process)
-            if not process_topology:
-                process_topology={}
-            
-            # Allow the user to override default topology
-            if process in topology.keys():
-                deep_merge(process_topology, {k : tuple(v) for k, v in topology[process].items()})
+            original_process = (process
+                                if process not in swap_processes.values()
+                                else original_processes[process])
 
-            # Assign 
-            if process in swap_processes.values():
-                process = ...
-            
+            process_topology = topology_registry.access(original_process)
+            if not process_topology:
+                process_topology = {}
+
+            # Allow the user to override default topology
+            if original_process in topology.keys():
+                deep_merge(process_topology, {k: tuple(v)
+                           for k, v in topology[original_process].items()})
+
+            # For swapped processes, do additional overrides if they are provided
+            if process != original_process and process in topology.keys():
+                deep_merge(process_topology, {k: tuple(v)
+                           for k, v in topology[process].items()})
+
             result[process] = process_topology
+
+        # Add log_update ports if log_updates is True
+        if log_updates:
+            for process, ports in result.items():
+                result[process]['log_update'] = ('log_update', process,)
+
+        # add division
+        if divide:
+            result['division'] = {
+                'variable': ('listeners', 'mass', 'cell_mass'),
+                'agents': config['agents_path']}
 
         return result
 
@@ -185,7 +202,7 @@ class EcoliSim:
 
             if result[process] == None:
                 result[process] = "sim_data"
-        
+
         return result
 
     def run(self):
@@ -211,6 +228,8 @@ class EcoliSim:
             'topology': self.ecoli.topology,
             'initial_state': initial_state,
             'progress_bar': self.progress_bar,
+            'emit_topology': False,
+            'emit_processes': False,
             'emit_config': False,
             'emitter': self.emitter,
         }
