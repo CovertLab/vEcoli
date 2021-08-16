@@ -1,4 +1,5 @@
 from vivarium import process_registry
+from ecoli.processes.registry.ecoli_master_topology import topology_registry
 
 from ecoli.processes.tf_binding import TfBinding
 from ecoli.processes.transcript_initiation import TranscriptInitiation
@@ -16,7 +17,6 @@ from ecoli.processes.mass import Mass
 from ecoli.processes.exchange_stub import Exchange
 from ecoli.processes.listeners.mass_listener import MassListener
 
-from registry.ecoli_master_topology import topology_registry
 
 # add to registry
 process_registry.register(TfBinding.name, TfBinding)
