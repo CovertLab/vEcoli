@@ -277,7 +277,7 @@ class PolypeptideElongation(Process):
 
         # If there are no active ribosomes, return immediately
         if len(states['active_ribosome']) == 0:
-            return {}
+            return {'listeners': {}}
 
         # Build sequences to request appropriate amount of amino acids to
         # polymerize for next timestep
@@ -436,7 +436,7 @@ class PolypeptideElongation(Process):
             added_submass = np.zeros(9)
             unique_index = str(ribosome['unique_index'])
             if didTerminate[index]:
-                update['active_ribosome']['_delete'].append((unique_index,))
+                update['active_ribosome']['_delete'].append(unique_index)
             else:
                 added_submass[self.protein_submass_idx] = added_protein_mass[index]
                 update['active_ribosome'][unique_index] = {
