@@ -9,8 +9,8 @@ import numpy as np
 CUSTOM_PRIORITIES = {'rna_degradation': 10, 
                      'protein_degradation': 10, 
                      'two_component_system': -5,
-                     'tf_binding': -10, 
-                     'metabolism': -15}
+                     'tf_binding': -10,
+                     'metabolism': -10}
 
 ASSERT_POSITIVE_COUNTS = True
 
@@ -68,7 +68,7 @@ class Allocator(Deriver):
             proc_idx = self.proc_name_to_idx[process]
             for molecule, count in states['request'][process]['bulk'].items():
                 mol_idx = self.mol_name_to_idx[molecule]
-                counts_requested[mol_idx][proc_idx] = count
+                counts_requested[mol_idx][proc_idx] += count
 
         if ASSERT_POSITIVE_COUNTS and np.any(counts_requested < 0):
             raise NegativeCountsError(
