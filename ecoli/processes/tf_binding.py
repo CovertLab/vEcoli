@@ -269,8 +269,10 @@ class TfBinding(Process):
 
 
 def test_tf_binding_listener():
-    from ecoli.composites.ecoli_master import run_ecoli
-    data = run_ecoli(total_time=2)
+    from ecoli.experiments.ecoli_master_sim import EcoliSim
+    sim = EcoliSim.from_file()
+    sim.total_time = 2
+    data = sim.run()
     assert(type(data['listeners']['rna_synth_prob']['gene_copy_number'][0]) == list)
     assert(type(data['listeners']['rna_synth_prob']['gene_copy_number'][1]) == list)
 
