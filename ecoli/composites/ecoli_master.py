@@ -204,15 +204,16 @@ def test_division():
     * TODO -- unique molecules need to be divided between daughter cells!!! This can get sophisticated
     """
 
-    config = {
-        'division': {
-            'threshold': 1170}}
-    output = run_ecoli(
-        total_time=10,
-        divide=True,
-        config=config,
-        progress_bar=False,
-    )
+    from ecoli.experiments.ecoli_master_sim import EcoliSim
+
+
+    sim = EcoliSim.from_file()
+    sim.config['division'] = {'threshold' : 1170}
+    sim.total_time = 10
+    sim.divide = True
+    sim.progress_bar = False
+
+    output = sim.run()
 
 
 def ecoli_topology_plot(config={}, filename=None, out_dir=None):
