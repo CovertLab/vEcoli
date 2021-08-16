@@ -12,7 +12,6 @@ from typing import Any, Tuple
 import zipfile
 import numpy as np
 
-from wholecell.io.tablereader import TableReader
 from wholecell.utils import units
 
 from network_components import (
@@ -60,15 +59,17 @@ def compact_json(obj, ensure_ascii=False, separators=(',', ':'), **kwargs):
 	"""Convert obj into compact JSON form."""
 	return json.dumps(obj, ensure_ascii=ensure_ascii, separators=separators, **kwargs)
 
-def convert_dynamics(seriesOutDir, simDataFile, node_list, edge_list):
+def convert_dynamics(seriesOutDir, simDataFile, node_list, edge_list, experiment_id):
 		"""Convert the sim's dynamics data to a Causality seriesOut.zip file."""
 
-		# Put your own experiment id here to run the program
-		experiment_id = '9342827c-fba1-11eb-a1c0-1e00312eb299'
-		# retrieve the data directly from database
-		db = get_experiment_database()
-		data, _ = data_from_database(experiment_id, db)
-		timeseries = timeseries_from_data(data)
+		if experiment_id:
+			# Retrieve the data directly from database
+			db = get_experiment_database()
+			data, _ = data_from_database(experiment_id, db)
+			timeseries = timeseries_from_data(data)
+		else:
+			with open('ecoli/analysis/default_timeseries.json') as timeseries_json:
+				timeseries = json.load(timeseries_json)
 
 		with open(simDataFile, 'rb') as f:
 			sim_data = cPickle.load(f)
