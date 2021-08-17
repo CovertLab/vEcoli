@@ -1,8 +1,8 @@
 # Configuring Vivarium-ecoli Simulations
 
-Simulations of the Ecoli composite can be configured using the command-line interface (CLI), or through `.json` configuration files. These configuration files live in `data/ecoli_master_configs`.
+Simulations of the Ecoli composite can be configured using the command-line interface (CLI), `.json` configuration files, or programmatically through an object-oriented interface. JSON configuration files live in `data/ecoli_master_configs`.
 
-Configuration through the CLI affords easy access to the most important settings, whereas the JSON approach offers access to all settings.
+Configuration through the CLI affords easy access to the most important settings, whereas the programmatic and JSON approaches offer access to all settings.
 
 Default settings, which are overridden by the CLI and custom JSONs, may be found in `data/ecoli_master_configs/default.json`. This file should be edited with care if at all, since missing defaults may result in an error.
 
@@ -64,7 +64,7 @@ The following settings correspond exactly to the options available through the C
 
 ### Processes and Topology
 
-Processes to be used in a simulation are listed under the `"processes"` key, and these are wired to stores as specified with the `"topology"` key. One can configure a custom set of processes with custom topology using by overriding the values for `"processes"` and `"topology"` in `default.json`.
+Processes to be used in a simulation are listed under the `"processes"` key, and these are wired to stores as specified with the `"topology"` key (or default topology in the `topology_registry`, see note below). One can configure a custom set of processes with custom topology using by overriding the values for `"processes"` and `"topology"` in `default.json`.
 
 ```{json}
 {
@@ -75,30 +75,13 @@ Processes to be used in a simulation are listed under the `"processes"` key, and
         "ecoli-mass"
     ],
     "topology": {
-        "ecoli-tf-binding": {
-            "promoters": ["unique", "promoter"],
-            "active_tfs": ["bulk"],
-            "inactive_tfs": ["bulk"],
-            "listeners": ["listeners"]
-        },
-        "ecoli-transcript-initiation": {
-            "environment": ["environment"],
-            "full_chromosomes": ["unique", "full_chromosome"],
-            "RNAs": ["unique", "RNA"],
-            "active_RNAPs": ["unique", "active_RNAP"],
-            "promoters": ["unique", "promoter"],
-            "molecules": ["bulk"],
-            "listeners": ["listeners"]
-        },
-        ...
-        "ecoli-mass": {
-            "bulk": ["bulk"],
-            "unique": ["unique"],
-            "listeners": ["listeners"]
-        }
     }
 }
 ```
+
+> ***Note: Topology Registry***
+>
+> The topology key in `default.json` is actually empty, because default topologies come from the `topology_registry` (in `ecoli.processes.registries`). This is essentially a dictionary which associates the name of a process with its typical topology. Canonical processes register their default topology towards the top of the file.
 
 However, typically one wishes to modify these only slightly, e.g. by adding a process, removing a process, or swapping a process for an alternative version of itself. As such, the following keys can be used to modify the processes as declared in `default.json`:
 
@@ -106,7 +89,9 @@ However, typically one wishes to modify these only slightly, e.g. by adding a pr
 - `"exclude_processes"` : List of processes to remove from the simulation
 - `"swap_processes"` : Dictionary where keys are processes in the default configuration, and values are processes to replace these with.
 
-> ***Note:*** In order for `EcoliSimulation` to use new or alternative processes, a few requirements need to be met. First, the new process should have its `.name` set (to something that does not conflict with existing processes). Second, the new process needs to be *registered* with the *process registry* (do this in `ecoli/processes/__init__.py`). Finally, one needs to specify the configuration of this process using the `"process_configs"` key (see below). If not specified, vivarium-ecoli will default to trying to load the process configuration from `sim_data` (see `LoadSimData.get_config_by_name`).
+> ***Note: Adding Processes***
+>
+> In order for `EcoliSimulation` to use new or alternative processes, a few requirements need to be met. First, the new process should have its `.name` set (to something that does not conflict with existing processes). Second, the new process needs to be *registered* with the *process registry* (do this in `ecoli/processes/__init__.py`). Finally, one needs to specify the configuration of this process using the `"process_configs"` key (see below). If not specified, vivarium-ecoli will default to trying to load the process configuration from `sim_data` (see `LoadSimData.get_config_by_name`).
 
 Adding a process requires adding a corresponding topology to the topology dictionary. Luckily, due to the way EcoliSimulation merges user settings with the default, one can simply specify topology of added processes without restating topology of processes kept from the default. For example:
 
@@ -144,7 +129,7 @@ to use the default configuration for `Clock`, or
 }
 ```
 
-to attempt to load a configuration for `Clock` from sim_data using `LoadSimData.get_config_by_name()` (which would fail in this case). This is the default behavior if a process config is not specified. 
+to attempt to load a configuration for `Clock` from sim_data using `LoadSimData.get_config_by_name()` (which would fail in this case). Attempting to load from sim_data is the default behavior if a process config is not specified. 
 
 > ***Note:*** when specifying an explicit process config, as in the first case where we set the timestep to 2, this explicit override actually gets deep-merged with (a) the config from sim_data, if it exists, or (b) the default process config, if it does not. This allows one to override only specific entries in the config.
 
@@ -178,7 +163,9 @@ Schema overrides can also be used to emit data that would normally not be emitte
 
 ### Additional Settings
 
+- `"partition"` : (boolean) whether to use partitioning model (NOT YET IMPLEMENTED)
 - `"description"` : (string) description of the experiment
+- `"suffix_time"` : (boolean) whether to suffix custom experiment IDs with time of simulation, to avoid conflict in the database
 - `"progress_bar"` : (boolean) whether to show the progress bar
 - `"agent_id"`
 - `"parallel"`
@@ -186,3 +173,23 @@ Schema overrides can also be used to emit data that would normally not be emitte
 - `"agents_path"`
 - `"division"`
 - `"divide"`
+
+## Programmatic Interface
+
+Running simulations within code, one should use the `EcoliSim` class from `ecoli.experiments.ecoli_master_sim`. This class represents a simulation of the whole-cell *E. coli* model, along with its settings. 
+
+```
+# Make simulation with default.json
+sim = EcoliSim.from_file()  # Can also pass in a path to JSON config
+
+# Modify simulation settings
+sim.experiment_id = "Demo"
+sim.total_time = 10
+...
+
+data_out = sim.run()
+```
+
+All of the settings available to be modified from JSON are also accessible as fields of the `EcoliSim` object. If at any point you wish to access the full simulation config, `sim.config` offers an up-to-date configuration including all changes made through this OOP interface.
+
+After running a simulation, the `Ecoli` composite generated can be accessed with `sim.ecoli`.

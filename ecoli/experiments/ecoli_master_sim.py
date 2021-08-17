@@ -48,16 +48,16 @@ class EcoliSim:
         # >> sim.total_time = 100
         # >> sim.config['total_time']
         #    100
-        
+
         class ConfigEntry():
             def __set_name__(self, owner, name):
                 self.name = name
 
-            def __get__(self, obj, type=None):
-                return obj.config[self.name]
+            def __get__(self, sim, type=None):
+                return sim.config[self.name]
 
-            def __set__(self, obj, value):
-                obj.config[self.name] = value
+            def __set__(self, sim, value):
+                sim.config[self.name] = value
 
         for attr in self.config.keys():
             config_entry = ConfigEntry()
