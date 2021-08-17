@@ -1,5 +1,4 @@
 from vivarium import process_registry
-from ecoli.processes.registry.ecoli_master_topology import topology_registry
 
 from ecoli.processes.tf_binding import TfBinding
 from ecoli.processes.transcript_initiation import TranscriptInitiation

@@ -9,7 +9,8 @@ import warnings
 from vivarium.core.engine import Engine
 from vivarium.library.dict_utils import deep_merge
 from ecoli.composites.ecoli_master import Ecoli, SIM_DATA_PATH
-from ecoli.processes import process_registry, topology_registry
+from ecoli.processes import process_registry
+from ecoli.processes.registries import topology_registry
 
 
 CONFIG_DIR_PATH = 'data/ecoli_master_configs/'
@@ -251,5 +252,5 @@ class EcoliSim:
 
 
 if __name__ == '__main__':
-    ecoli_sim = EcoliSim.from_file("")
+    ecoli_sim = EcoliSim.from_file()
     ecoli_sim.run()

@@ -28,6 +28,23 @@ from wholecell.utils.constants import REQUEST_PRIORITY_METABOLISM
 from wholecell.utils.modular_fba import FluxBalanceAnalysis
 from six.moves import zip
 
+from ecoli.processes.registries import topology_registry
+
+
+# Register default topology for this process, associating it with process name
+NAME = 'ecoli-metabolism'
+topology_registry.register(
+    NAME,
+    {
+        "metabolites": ("bulk",),
+        "catalysts": ("bulk",),
+        "kinetics_enzymes": ("bulk",),
+        "kinetics_substrates": ("bulk",),
+        "amino_acids": ("bulk",),
+        "listeners": ("listeners",),
+        "environment": ("environment",),
+        "polypeptide_elongation": ("process_state", "polypeptide_elongation")
+    })
 
 COUNTS_UNITS = units.mmol
 VOLUME_UNITS = units.L
@@ -41,7 +58,7 @@ USE_KINETICS = True
 
 
 class Metabolism(Process):
-    name = 'ecoli-metabolism'
+    name = NAME
 
     defaults = {
         'get_import_constraints': lambda u, c, p: (u, c, []),

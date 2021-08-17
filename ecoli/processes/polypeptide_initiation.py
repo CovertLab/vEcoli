@@ -19,9 +19,24 @@ from wholecell.utils import units
 from wholecell.utils.fitting import normalize
 from six.moves import zip
 
+from ecoli.processes.registries import topology_registry
+
+
+# Register default topology for this process, associating it with process name
+NAME = 'ecoli-polypeptide-initiation'
+topology_registry.register(
+    NAME,
+    {
+        "environment": ("environment",),
+        "listeners": ("listeners",),
+        "active_ribosome": ("unique", "active_ribosome"),
+        "RNA": ("unique", "RNA"),
+        "subunits": ("bulk",)
+    })
+
 
 class PolypeptideInitiation(Process):
-    name = 'ecoli-polypeptide-initiation'
+    name = NAME
 
     defaults = {
         'protein_lengths': [],

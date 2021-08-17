@@ -17,16 +17,14 @@ from migration.migration_utils import (run_ecoli_process, ComparisonTestSuite,
                                        scalar_almost_equal)
 from ecoli.states.wcecoli_state import get_state_from_file
 
+from ecoli.processes.registries import topology_registry
+
 
 load_sim_data = LoadSimData(
             sim_data_path=SIM_DATA_PATH,
             seed=0)
 
-TF_BINDING_TOPOLOGY = {
-    'promoters': ('unique', 'promoter'),
-    'active_tfs': ('bulk',),
-    'inactive_tfs': ('bulk',),
-    'listeners': ('listeners',)}
+TF_BINDING_TOPOLOGY = topology_registry.access(TfBinding.name)
 
 
 def test_tf_binding_migration():

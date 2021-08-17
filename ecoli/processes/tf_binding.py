@@ -17,9 +17,23 @@ from wholecell.utils.random import stochasticRound
 from wholecell.utils import units
 import six
 
+from ecoli.processes.registries import topology_registry
+
+
+# Register default topology for this process, associating it with process name
+NAME = 'ecoli-tf-binding'
+topology_registry.register(
+    NAME,
+    {
+        "promoters": ("unique", "promoter"),
+        "active_tfs": ("bulk",),
+        "inactive_tfs": ("bulk",),
+        "listeners": ("listeners",)
+    })
+
 
 class TfBinding(Process):
-    name = 'ecoli-tf-binding'
+    name = NAME
 
     defaults = {
         'tf_ids': [],

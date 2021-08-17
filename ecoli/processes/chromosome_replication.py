@@ -15,10 +15,28 @@ from ecoli.library.schema import array_to, array_from, arrays_from, arrays_to, b
 from wholecell.utils import units
 from wholecell.utils.polymerize import buildSequences, polymerize, computeMassIncrease
 
+from ecoli.processes.registries import topology_registry
+
+
+# Register default topology for this process, associating it with process name
+NAME = 'ecoli-chromosome_replication'
+topology_registry.register(
+    NAME,
+    {
+        "replisome_trimers": ("bulk",),
+        "replisome_monomers": ("bulk",),
+        "dntps": ("bulk",),
+        "ppi": ("bulk",),
+        "active_replisomes": ("unique", "active_replisome"),
+        "oriCs": ("unique", "oriC"),
+        "chromosome_domains": ("unique", "chromosome_domain"),
+        "full_chromosomes": ("unique", "full_chromosome"),
+        "listeners": ("listeners",),
+        "environment": ("environment",)
+    })
 
 class ChromosomeReplication(Process):
-
-    name = 'ecoli-chromosome_replication'
+    name = NAME
 
     defaults = {
         'max_time_step': 2.0,

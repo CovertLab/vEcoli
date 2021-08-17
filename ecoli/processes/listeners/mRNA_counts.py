@@ -2,12 +2,23 @@ import numpy as np
 from ecoli.library.schema import arrays_from
 from vivarium.core.process import Deriver
 
+from ecoli.processes.registries import topology_registry
+
+
+NAME = 'mRNA_counts_listener'
+topology_registry.register(
+    NAME,
+    {
+        "listeners": ("listeners",),
+        "RNAs" : ("unique", "RNA"),
+    }
+)
 
 class mRNACounts(Deriver):
     """
     Listener for the counts of each mRNA species.
     """
-    name = 'mRNA_counts_listener'
+    name = NAME
 
     defaults = {
         'rna_ids': [],
