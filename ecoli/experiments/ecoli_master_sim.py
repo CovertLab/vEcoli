@@ -34,24 +34,36 @@ class EcoliSim:
                                                                    config['processes'])
         self.config = config
 
-        # unpack config
-        self.__dict__.update(config)
-        # self.experiment_id = config['experiment_id']
-        # self.suffix_time = config['suffix_time']
-        # self.description = config['description']
-        # self.emitter = config['emitter']
-        # self.seed = config['seed']
-        # self.processes = config['processes']
-        # self.topology = config['topology']
-        # self.process_configs = config['process_configs']
-        # self.initial_time = config['initial_time']
-        # self.total_time = config['total_time']
-        # self.generations = config['generations']
-        # self.log_updates = config['log_updates']
-        # self.raw_output = config['raw_output']
-        # self.progress_bar = config['progress_bar']
-        # self.sim_data_path = config['sim_data_path']
-        # self.divide = config['divide']
+        # Unpack config using Descriptor protocol black magic:
+        # all of the entries in config are translated to properties
+        # (of EcoliSim class) that get/set an entry in self.config.
+        #
+        # For example:
+        #
+        # >> sim = EcoliSim.from_file()
+        # >> sim.total_time 
+        #    10
+        # >> sim.config['total_time']
+        #    10
+        # >> sim.total_time = 100
+        # >> sim.config['total_time']
+        #    100
+        
+        class ConfigEntry():
+            def __set_name__(self, owner, name):
+                self.name = name
+
+            def __get__(self, obj, type=None):
+                return obj.config[self.name]
+
+            def __set__(self, obj, value):
+                obj.config[self.name] = value
+
+        for attr in self.config.keys():
+            config_entry = ConfigEntry()
+            setattr(EcoliSim, attr, config_entry)
+            config_entry.__set_name__(EcoliSim, attr)
+            
 
         if self.generations:
             warnings.warn("generations option is not yet implemented!")
