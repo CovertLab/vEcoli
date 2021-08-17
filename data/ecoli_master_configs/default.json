@@ -1,5 +1,6 @@
 {
     "experiment_id" : null,
+    "suffix_time" : true,
     "description" : "",
     "progress_bar" : true,
     "sim_data_path": "reconstruction/sim_data/kb/simData.cPickle",
@@ -7,6 +8,7 @@
     "log_updates" : false,
     "raw_output" : false,
     "seed": 0,
+    "partition": true,
 
     "initial_time": 0,
     "time_step": 2.0,
@@ -50,107 +52,5 @@
     ],
     "process_configs": {},
     "topology": {
-        "ecoli-tf-binding": {
-            "promoters": ["unique", "promoter"],
-            "active_tfs": ["bulk"],
-            "inactive_tfs": ["bulk"],
-            "listeners": ["listeners"]
-        },
-        "ecoli-transcript-initiation": {
-            "environment": ["environment"],
-            "full_chromosomes": ["unique", "full_chromosome"],
-            "RNAs": ["unique", "RNA"],
-            "active_RNAPs": ["unique", "active_RNAP"],
-            "promoters": ["unique", "promoter"],
-            "molecules": ["bulk"],
-            "listeners": ["listeners"]
-        },
-        "ecoli-transcript-elongation": {
-            "environment": ["environment"],
-            "RNAs": ["unique", "RNA"],
-            "active_RNAPs": ["unique", "active_RNAP"],
-            "molecules": ["bulk"],
-            "bulk_RNAs": ["bulk"],
-            "ntps": ["bulk"],
-            "listeners": ["listeners"]
-        },
-        "ecoli-rna-degradation": {
-            "charged_trna": ["bulk"],
-            "bulk_RNAs": ["bulk"],
-            "nmps": ["bulk"],
-            "fragmentMetabolites": ["bulk"],
-            "fragmentBases": ["bulk"],
-            "endoRnases": ["bulk"],
-            "exoRnases": ["bulk"],
-            "subunits": ["bulk"],
-            "molecules": ["bulk"],
-            "RNAs": ["unique", "RNA"],
-            "active_ribosome": ["unique", "active_ribosome"],
-            "listeners": ["listeners"]
-        },
-        "ecoli-polypeptide-initiation": {
-            "environment": ["environment"],
-            "listeners": ["listeners"],
-            "active_ribosome": ["unique", "active_ribosome"],
-            "RNA": ["unique", "RNA"],
-            "subunits": ["bulk"]
-        },
-        "ecoli-polypeptide-elongation": {
-            "environment": ["environment"],
-            "listeners": ["listeners"],
-            "active_ribosome": ["unique", "active_ribosome"],
-            "molecules": ["bulk"],
-            "monomers": ["bulk"],
-            "amino_acids": ["bulk"],
-            "ppgpp_reaction_metabolites": ["bulk"],
-            "uncharged_trna": ["bulk"],
-            "charged_trna": ["bulk"],
-            "charging_molecules": ["bulk"],
-            "synthetases": ["bulk"],
-            "subunits": ["bulk"],
-            "polypeptide_elongation": ["process_state", "polypeptide_elongation"]
-        },
-        "ecoli-complexation": {
-            "molecules": ["bulk"]
-        },
-        "ecoli-two-component-system": {
-            "listeners": ["listeners"],
-            "molecules": ["bulk"]
-        },
-        "ecoli-equilibrium": {
-            "listeners": ["listeners"],
-            "molecules": ["bulk"]
-        },
-        "ecoli-protein-degradation": {
-            "metabolites": ["bulk"],
-            "proteins": ["bulk"]
-        },
-        "ecoli-metabolism": {
-            "metabolites": ["bulk"],
-            "catalysts": ["bulk"],
-            "kinetics_enzymes": ["bulk"],
-            "kinetics_substrates": ["bulk"],
-            "amino_acids": ["bulk"],
-            "listeners": ["listeners"],
-            "environment": ["environment"],
-            "polypeptide_elongation": ["process_state", "polypeptide_elongation"]
-        },
-        "ecoli-chromosome_replication": {
-            "replisome_trimers": ["bulk"],
-            "replisome_monomers": ["bulk"],
-            "dntps": ["bulk"],
-            "ppi": ["bulk"],
-            "active_replisomes": ["unique", "active_replisome"],
-            "oriCs": ["unique", "oriC"],
-            "chromosome_domains": ["unique", "chromosome_domain"],
-            "full_chromosomes": ["unique", "full_chromosome"],
-            "listeners": ["listeners"],
-            "environment": ["environment"]
-        },
-        "ecoli-mass-listener": {
-            "bulk": ["bulk"],
-            "unique": ["unique"],
-            "listeners": ["listeners"]
-        }
     }
 }

@@ -53,8 +53,30 @@ from wholecell.utils.constants import REQUEST_PRIORITY_DEGRADATION
 from wholecell.utils import units
 from six.moves import range, zip
 
+from ecoli.processes.registries import topology_registry
+
+# Register default topology for this process, associating it with process name
+NAME = 'ecoli-rna-degradation'
+topology_registry.register(
+    NAME,
+    {
+        "charged_trna": ("bulk",),
+        "bulk_RNAs": ("bulk",),
+        "nmps": ("bulk",),
+        "fragmentMetabolites": ("bulk",),
+        "fragmentBases": ("bulk",),
+        "endoRnases": ("bulk",),
+        "exoRnases": ("bulk",),
+        "subunits": ("bulk",),
+        "molecules": ("bulk",),
+        "RNAs": ("unique", "RNA"),
+        "active_ribosome": ("unique", "active_ribosome"),
+        "listeners": ("listeners",)
+    })
+
+
 class RnaDegradation(Process):
-    name = 'ecoli-rna-degradation'
+    name = NAME
 
     defaults = {
         'rnaIds': [],

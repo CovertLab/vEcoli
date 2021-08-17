@@ -17,13 +17,23 @@ from vivarium.library.dict_utils import deep_merge
 from ecoli.library.schema import array_to, bulk_schema
 
 from ecoli.library.schema import bulk_schema
+from ecoli.processes.registries import topology_registry
+
+
+# Register default topology for this process, associating it with process name
+NAME = 'ecoli-complexation'
+topology_registry.register(
+    NAME,
+    {
+        "molecules": ("bulk",)
+    })
 
 
 # Maximum unsigned int value + 1 for randint() to seed srand from C stdlib
 RAND_MAX = 2**31
 
 class Complexation(Process):
-    name = 'ecoli-complexation'
+    name = NAME
 
     defaults = {
         'stoichiometry': np.array([[]]),
