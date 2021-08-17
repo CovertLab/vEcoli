@@ -19,8 +19,6 @@ import time
 import traceback
 from typing import Any, Callable, Iterable, List, Optional, Tuple
 
-import wholecell.utils.filepath as fp
-from wholecell.sim.simulation import DEFAULT_SIMULATION_KWARGS
 from wholecell.utils.py3 import monotonic_seconds, process_time_seconds
 
 
@@ -43,13 +41,6 @@ METADATA_KEYS = (
 	'mechanistic_aa_supply',
 	'trna_attenuation',
 	)
-
-PARCA_KEYS = (
-	'ribosome_fitting',
-	'rnapoly_fitting',
-	'cpus',
-	'variable_elongation_transcription',
-	'variable_elongation_translation')
 
 SIM_KEYS = (
 	'timeline',
@@ -90,49 +81,6 @@ RANGE_ARGS = {
 	}
 
 DEFAULT_VARIANT = ['wildtype', '0', '0']
-
-
-def default_wcecoli_out_subdir_path():
-	# type: () -> str
-	"""Return an absolute path to the most interesting subdirectory of
-	wcEcoli/out/: the subdirectory name that starts with the latest timestamp
-	or (if none) the one that's first alphabetically.
-	"""
-	out_dir = os.path.join(fp.ROOT_PATH, 'out')
-	timestamped = re.compile(fp.TIMESTAMP_PATTERN)
-	fallback = None
-
-	for directory in sorted(os.listdir(out_dir), reverse=True):
-		path = os.path.join(out_dir, directory)
-		if os.path.isdir(path):
-			if timestamped.match(directory):
-				return path
-			fallback = path
-
-	if fallback:
-		return fallback
-
-	raise IOError(errno.ENOENT,
-		'"{}" has no subdirectories.  Run runParca?'.format(out_dir))
-
-def find_sim_path(directory=None):
-	# type: (Optional[str]) -> str
-	"""Find a simulation path, looking for the given directory name as an
-	absolute path, or as a subdirectory of wcEcoli/out/, or as a subdirectory
-	name that starts with out/, or (if None) call
-	default_wcecoli_out_subdir_path().
-	"""
-	if directory is None:
-		input_dir = default_wcecoli_out_subdir_path()
-	elif os.path.isabs(directory):
-		input_dir = directory
-	elif directory.startswith('out/'):
-		input_dir = os.path.join(fp.ROOT_PATH, directory)
-	else:
-		input_dir = os.path.join(fp.ROOT_PATH, 'out', directory)
-
-	fp.verify_dir_exists(input_dir, "Need a simulation dir.")
-	return input_dir
 
 def str_to_bool(s):
 	# type: (str) -> bool
@@ -232,13 +180,8 @@ class ScriptBase(metaclass=abc.ABCMeta):
 		The parameter's `underscore_name` can contain underscores for easy
 		searching in the code. This converts them to dashes for CLI convention.
 		ArgumentParser does the reverse conversion when storing into `args`.
-
-		Setting `default_key` copies the default value from
-		`DEFAULT_SIMULATION_KWARGS[default_key]`.
 		"""
 		name = dashize(underscore_name)
-		default = bool(
-			DEFAULT_SIMULATION_KWARGS[default_key] if default_key else default)
 		group = parser.add_mutually_exclusive_group()
 		group.add_argument(
 			'--' + name,
@@ -259,12 +202,8 @@ class ScriptBase(metaclass=abc.ABCMeta):
 		The parameter's `underscore_name` can contain underscores for easy
 		searching in the code. This converts them to dashes for CLI convention.
 		ArgumentParser does the reverse conversion when storing into `args`.
-
-		Setting `default_key` copies the default value from
-		`DEFAULT_SIMULATION_KWARGS[default_key]`.
 		"""
 		names = (('-' + flag,) if flag else ()) + (dashize('--' + underscore_name),)
-		default = DEFAULT_SIMULATION_KWARGS[default_key] if default_key else default
 		parser.add_argument(*names,
 			type=datatype,
 			default=default,
@@ -326,48 +265,6 @@ class ScriptBase(metaclass=abc.ABCMeta):
 				'(any)' if index is None else index,
 				sim_path))
 
-	def define_elongation_options(self, parser):
-		# type: (argparse.ArgumentParser) -> None
-		"""Define the variable-elongation options for both Parca and Sim."""
-
-		def add_bool_option(name, key, help):
-			self.define_parameter_bool(parser, name, help=help, default_key=key)
-
-		add_bool_option('variable_elongation_transcription', 'variable_elongation_transcription',
-			help='Use a different elongation rate for different transcripts'
-				 ' (currently increases rates for rRNA).'
-				 ' Usually set this consistently between runParca and runSim.')
-		add_bool_option('variable_elongation_translation', 'variable_elongation_translation',
-			help='Use a different elongation rate for different polypeptides'
-				 ' (currently increases rates for ribosomal proteins).'
-				 ' Usually set this consistently between runParca and runSim.')
-
-	def define_parca_options(self, parser, run_parca_option=False):
-		# type: (argparse.ArgumentParser, bool) -> None
-		"""Define Parca task options EXCEPT the elongation options."""
-
-		if run_parca_option:
-			self.define_parameter_bool(parser, 'run_parca', True,
-				help='Run the Parca. The alternative, --no-run-parca, is useful'
-					 ' to run more cell sims without rerunning the Parca.'
-					 ' For that to work, the CLI args must specify the'
-					 ' --timestamp and the same --description, --id, and'
-					 ' --storage-root as a previous workflow that ran the Parca'
-					 ' in order to locate its storage path. --no-run-parca makes'
-					 ' other Parca CLI options irrelevant (the options below,'
-					 ' through --no-debug-parca).')
-
-		self.define_parameter_bool(parser, 'ribosome_fitting', True,
-			help="Fit ribosome expression to protein synthesis demands.")
-		self.define_parameter_bool(parser, 'rnapoly_fitting', True,
-			help="Fit RNA polymerase expression to protein synthesis demands.")
-
-		self.define_parameter_bool(parser, 'debug_parca', False,
-			help='Make Parca calculate only one arbitrarily-chosen transcription'
-				 ' factor condition when adjusting gene expression levels, leaving'
-				 ' the other TFs at their input levels for faster Parca debugging.'
-				 ' DO NOT USE THIS FOR A MEANINGFUL SIMULATION.')
-
 	def define_sim_loop_options(self, parser, manual_script=False):
 		# type: (argparse.ArgumentParser, bool) -> None
 		"""Define options for running a series of sims."""
@@ -409,78 +306,6 @@ class ScriptBase(metaclass=abc.ABCMeta):
 			help='Number of initial sims (cell lineages) per variant. The'
 				 ' lineages get sequential seeds starting with the --seed value.')
 
-	def define_sim_options(self, parser):
-		# type: (argparse.ArgumentParser) -> None
-		"""Define sim task options EXCEPT the elongation options, with defaults
-		from the sim class.
-		"""
-
-		def add_option(name, key, datatype, help):
-			self.define_option(parser, name, datatype, help=help, default_key=key)
-
-		def add_bool_option(name, key, help):
-			self.define_parameter_bool(parser, name, help=help, default_key=key)
-
-		self.define_option(parser, 'timeline', str, flag='t',
-			default_key='timeline',
-			help='The media timeline. See wholecell/utils/make_media.py,'
-				 ' make_timeline() for timeline formatting details')
-		add_option('length_sec', 'lengthSec', int,
-			help='The maximum simulation time, in seconds. Useful for short'
-				 ' simulations; not so useful for multiple generations.'
-				 ' Default is 3 hours')
-		add_option('timestep_safety_frac', 'timeStepSafetyFraction', float,
-			help='Scale the time step by this factor if conditions are'
-				 ' favorable, up the the limit of the max time step')
-		add_option('timestep_max', 'maxTimeStep', float,
-			help='the maximum time step, in seconds')
-		add_option('timestep_update_freq', 'updateTimeStepFreq', int,
-			help='frequency at which the time step is updated')
-		add_option('log_to_disk_every', 'logToDiskEvery', int,
-			help='frequency at which sim outputs are written to disk')
-
-		add_bool_option('jit', 'jit',
-			help='If true, jit compiled functions are used for certain'
-				 ' processes, otherwise only uses lambda functions')
-		add_bool_option('mass_distribution', 'massDistribution',
-			help='If true, a mass coefficient is drawn from a normal distribution'
-				 ' centered on 1; otherwise it is set equal to 1')
-		add_bool_option('growth_rate_noise', 'growthRateNoise',
-			help='If true, a growth rate coefficient is drawn from a normal'
-				 ' distribution centered on 1; otherwise it is set equal to 1')
-		add_bool_option('d_period_division', 'dPeriodDivision',
-			help='If true, ends simulation once D period has occurred after'
-				 ' chromosome termination; otherwise simulation terminates once'
-				 ' a given mass has been added to the cell')
-		add_bool_option('translation_supply', 'translationSupply',
-			help='If true, the ribosome elongation rate is limited by the'
-				 ' condition specific rate of amino acid supply; otherwise the'
-				 ' elongation rate is set by condition')
-		add_bool_option('trna_charging', 'trna_charging',
-			help='if true, tRNA charging reactions are modeled and the ribosome'
-				 ' elongation rate is set by the amount of charged tRNA	present.'
-				 ' This option will override TRANSLATION_SUPPLY in the simulation.')
-		add_bool_option('ppgpp_regulation', 'ppgpp_regulation',
-			help='if true, ppGpp concentration is determined with kinetic equations.')
-		add_bool_option('superhelical_density', 'superhelical_density',
-			help='if true, dynamically calculate superhelical densities of each DNA segment')
-		add_bool_option('recycle_stalled_elongation', 'recycle_stalled_elongation',
-						help='if true, recycle RNAP and fragment bases when transcription'
-							 'elongation is stalled in ntp-limiting conditions')
-		add_bool_option('mechanistic_replisome', 'mechanistic_replisome',
-			help='if true, replisome initiation is mechanistic (requires'
-				 ' appropriate number of subunits to initiate)')
-		add_bool_option('mechanistic_aa_supply', 'mechanistic_aa_supply',
-			help='if true, amino acid supply is mechanistic (depends on'
-				 ' concentrations of enzymes and amino acids)')
-		add_bool_option('trna_attenuation', 'trna_attenuation',
-			help='if true, transcriptional attenuation by charged tRNA is enabled')
-		add_bool_option('raise_on_time_limit', 'raise_on_time_limit',
-			help='if true, the simulation raises an error if the time limit'
-				 ' (--length-sec) is reached before division.')
-		add_bool_option('log_to_shell', 'logToShell',
-			help='if true, logs output to the shell')
-
 	def define_range_options(self, parser, *range_keys):
 		# type: (argparse.ArgumentParser, *str) -> None
 		"""Adds options to the arg parser for values that can take on ranges."""
@@ -512,25 +337,6 @@ class ScriptBase(metaclass=abc.ABCMeta):
 
 		return parser.parse_args()
 
-	def update_args(self, args):
-		# type: (argparse.Namespace) -> None
-		"""
-		Update or add to parsed arguments.
-
-		If there's a `sim_dir` arg [see define_parameter_sim_dir()], set
-		`args.sim_path`. If there's also a `variant_index` arg [see
-		define_parameter_variant_index()], set `args.variant_dir` to the
-		find_variant_dir() tuple.
-
-		When overriding, first call super().
-		"""
-
-		if 'sim_dir' in args:
-			args.sim_path = find_sim_path(args.sim_dir)
-
-			if 'variant_index' in args:
-				args.variant_dir = self.find_variant_dir(
-					args.sim_path, args.variant_index)
 
 	def extract_range_args(self, args):
 		# type: (argparse.Namespace) -> List[List[int]]
