@@ -86,7 +86,8 @@ def has_bulk_property(schema):
     return False
 
 def get_bulk_topo(topo):
-    """Return topology of only bulk molecules
+    """Return topology of only bulk molecules, excluding stores with 
+    '_total' in name (for non-partitioned counts)
     NOTE: Does not work with '_path' key
 
     Args:
@@ -100,7 +101,7 @@ def get_bulk_topo(topo):
     if isinstance(topo, dict):
         bulk_topo = {}
         for port, value in topo.items():
-            if path_in_bulk(value):
+            if path_in_bulk(value) and '_total' not in port:
                 bulk_topo[port] = get_bulk_topo(value)
     return bulk_topo
 
