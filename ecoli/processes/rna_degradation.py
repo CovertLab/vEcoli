@@ -393,7 +393,7 @@ class RnaDegradation(Process):
 
         # Degrade full mRNAs that are inactive
         update['RNAs']['_delete'] = [
-            (rnas_indexes[delete_index],)
+            rnas_indexes[delete_index]
             for delete_index in np.where(self.unique_mRNAs_to_degrade)[0]]
 
         # Modeling assumption: Once a RNA is cleaved by an endonuclease its
