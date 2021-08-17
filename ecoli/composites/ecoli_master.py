@@ -130,72 +130,34 @@ class Ecoli(Composer):
 
 def run_ecoli(
         total_time=10,
-        config=None,
         divide=False,
         progress_bar=True,
-        blame=False,
+        log_updates=False,
         time_series=True
 ):
-    """Run ecoli_master simulations
+    """
+    Simple way to run ecoli_master simulations. For full API, see ecoli.experiments.ecoli_master_sim.
+
     Arguments:
         * **total_time** (:py:class:`int`): the total runtime of the experiment
-        * **config** (:py:class:`dict`):
+        * **divide** (:py:class:`bool`): whether to incorporate division
+        * **progress_bar** (:py:class:`bool`): whether to show a progress bar
+        * **log_updates**  (:py:class:`bool`): whether to save updates from each process
+        * **time_series** (:py:class:`bool`): whether to return data in timeseries format
     Returns:
         * output data
     """
-    # make the ecoli config dictionary
-    agent_id = '0'
-    ecoli_config = {
-        'log_updates': blame,
-        'agent_id': agent_id,
-        # TODO -- remove schema override once values don't go negative
-        '_schema': {
-            'equilibrium': {
-                'molecules': {
-                    'PD00413[c]': {'_updater': 'nonnegative_accumulate'}
-                }
-            },
-        },
-    }
-    if config:
-        ecoli_config = deep_merge(ecoli_config, config)
+    
+    from ecoli.experiments.ecoli_master_sim import EcoliSim
+    
+    sim = EcoliSim.from_file()
+    sim.total_time = total_time
+    sim.divide = divide
+    sim.progress_bar = progress_bar
+    sim.log_updates = log_updates
+    sim.raw_output = not time_series
 
-    # initialize the ecoli composer
-    ecoli_composer = Ecoli(ecoli_config)
-
-    # set path at which agent is initialized
-    path = tuple()
-    if divide:
-        path = ('agents', agent_id,)
-
-    # get initial state
-    initial_state = ecoli_composer.initial_state(path=path)
-
-    # generate the composite at the path
-    ecoli = ecoli_composer.generate(path=path)
-
-    # make the experiment
-    ecoli_experiment = Engine(**{
-        'processes': ecoli.processes,
-        'topology': ecoli.topology,
-        'initial_state': initial_state,
-        'progress_bar': progress_bar,
-        'emit_config': False,
-        # Not emitting every step is faster but breaks blame.py
-        #'emit_step': 1000,
-        #'emitter': 'database'
-    })
-
-    # run the experiment
-    ecoli_experiment.update(total_time)
-
-    # retrieve the data
-    if time_series:
-        output = ecoli_experiment.emitter.get_timeseries()
-    else:
-        output = ecoli_experiment.emitter.get_data()
-
-    return output
+    return sim.run()
 
 
 def test_division():
@@ -205,7 +167,6 @@ def test_division():
     """
 
     from ecoli.experiments.ecoli_master_sim import EcoliSim
-
 
     sim = EcoliSim.from_file()
     sim.config['division'] = {'threshold' : 1170}
@@ -255,7 +216,7 @@ def main():
         for name in args.name:
             test_library[name]()
     else:
-        output = run_ecoli(blame=True)
+        output = run_ecoli(log_updates=True)
 
 
 if __name__ == '__main__':
