@@ -5,6 +5,7 @@ Run simulations of Ecoli Master
 import argparse
 import json
 import warnings
+from datetime import datetime
 
 from vivarium.core.engine import Engine
 from vivarium.library.dict_utils import deep_merge
@@ -35,6 +36,7 @@ class EcoliSim:
 
         # unpack config
         self.experiment_id = config['experiment_id']
+        self.suffix_time = config['suffix_time']
         self.description = config['description']
         self.emitter = config['emitter']
         self.seed = config['seed']
@@ -52,6 +54,9 @@ class EcoliSim:
 
         if self.generations:
             warnings.warn("generations option is not yet implemented!")
+
+        if config['partition']:
+            warnings.warn("partitioning is not compatible with EcoliSim yet!")
 
     @staticmethod
     def from_cli():
@@ -238,6 +243,8 @@ class EcoliSim:
         }
         if self.experiment_id:
             experiment_config['experiment_id'] = self.experiment_id
+            if self.suffix_time:
+                experiment_config['experiment_id'] += datetime.now().strftime("_%d/%m/%Y %H:%M:%S")
 
         self.ecoli_experiment = Engine(**experiment_config)
 
