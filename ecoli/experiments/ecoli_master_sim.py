@@ -35,22 +35,23 @@ class EcoliSim:
         self.config = config
 
         # unpack config
-        self.experiment_id = config['experiment_id']
-        self.suffix_time = config['suffix_time']
-        self.description = config['description']
-        self.emitter = config['emitter']
-        self.seed = config['seed']
-        self.processes = config['processes']
-        self.topology = config['topology']
-        self.process_configs = config['process_configs']
-        self.initial_time = config['initial_time']
-        self.total_time = config['total_time']
-        self.generations = config['generations']
-        self.log_updates = config['log_updates']
-        self.raw_output = config['raw_output']
-        self.progress_bar = config['progress_bar']
-        self.sim_data_path = config['sim_data_path']
-        self.divide = config['divide']
+        self.__dict__.update(config)
+        # self.experiment_id = config['experiment_id']
+        # self.suffix_time = config['suffix_time']
+        # self.description = config['description']
+        # self.emitter = config['emitter']
+        # self.seed = config['seed']
+        # self.processes = config['processes']
+        # self.topology = config['topology']
+        # self.process_configs = config['process_configs']
+        # self.initial_time = config['initial_time']
+        # self.total_time = config['total_time']
+        # self.generations = config['generations']
+        # self.log_updates = config['log_updates']
+        # self.raw_output = config['raw_output']
+        # self.progress_bar = config['progress_bar']
+        # self.sim_data_path = config['sim_data_path']
+        # self.divide = config['divide']
 
         if self.generations:
             warnings.warn("generations option is not yet implemented!")
@@ -219,8 +220,8 @@ class EcoliSim:
 
         # set path at which agent is initialized
         path = tuple()
-        if self.config['divide']:
-            path = ('agents', self.config['agent_id'],)
+        if self.divide:
+            path = ('agents', self.agent_id,)
 
         # get initial state
         initial_state = ecoli_composer.initial_state(
