@@ -278,7 +278,7 @@ class ChromosomeReplication(Process):
                     'key': str(uuid.uuid1()),
                     'state': {'domain_index': domain_index_new[index]}}
                     for index in range(n_oriC)],
-                '_delete': [(key,) for key in states['oriCs'].keys()]}
+                '_delete': [key for key in states['oriCs'].keys()]}
             # self.oriCs.attrIs(domain_index=domain_index_new[:n_oriC])
             # self.oriCs.moleculesNew(
             #     n_oriC, domain_index=domain_index_new[n_oriC:])
@@ -507,7 +507,7 @@ class ChromosomeReplication(Process):
 
             # Delete terminated replisomes
             replisome_delete_update = [
-                (key,) for index, key in enumerate(states['active_replisomes'].keys())
+                key for index, key in enumerate(states['active_replisomes'].keys())
                 if replisomes_to_delete[index]]
             if replisome_delete_update:
                 update['active_replisomes']['_delete'] = replisome_delete_update

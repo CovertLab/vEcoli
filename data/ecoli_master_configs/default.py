@@ -36,10 +36,10 @@ ECOLI_TOPOLOGY = {
         'tf_binding': {
             'promoters': ('unique', 'promoter'),
             'active_tfs': ('bulk',),
-            'inactive_tfs': ('bulk',),
             'listeners': ('listeners',),
             # Non-partitioned counts
-            'active_tfs_total': ('bulk',),},
+            'active_tfs_total': ('bulk',),
+            'inactive_tfs_total': ('bulk',),},
 
         'transcript_initiation': {
             'environment': ('environment',),

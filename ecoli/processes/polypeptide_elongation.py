@@ -228,7 +228,8 @@ class PolypeptideElongation(Process):
                 self.water,
                 self.rela,
                 self.spot,
-                self.ppgpp]),
+                self.ppgpp],
+                partition=False),
 
             'monomers': bulk_schema(self.proteinIds),
             'amino_acids': bulk_schema(self.amino_acids),
