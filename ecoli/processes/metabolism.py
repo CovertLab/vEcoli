@@ -28,8 +28,6 @@ from wholecell.utils.constants import REQUEST_PRIORITY_METABOLISM
 from wholecell.utils.modular_fba import FluxBalanceAnalysis
 from six.moves import zip
 
-from vivarium.library.units import units as punits
-
 
 COUNTS_UNITS = units.mmol
 VOLUME_UNITS = units.L
