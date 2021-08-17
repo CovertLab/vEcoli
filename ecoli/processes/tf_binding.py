@@ -111,12 +111,14 @@ class TfBinding(Process):
             
             'active_tfs_total': bulk_schema([
                 self.active_tfs[tf]
-                for tf in self.tf_ids]),
+                for tf in self.tf_ids],
+                partition=False),
 
-            'inactive_tfs': bulk_schema([
+            'inactive_tfs_total': bulk_schema([
                 self.inactive_tfs[tf]
                 for tf in self.tf_ids
-                if tf in self.inactive_tfs]),
+                if tf in self.inactive_tfs],
+                partition=False),
 
             'listeners': {
                 'rna_synth_prob': listener_schema({
@@ -201,7 +203,7 @@ class TfBinding(Process):
                 pPromoterBound = 1.
             else:
                 # inactive_tf_counts = self.inactive_tf_view[tf_id].total_counts()
-                inactive_tf_counts = states['inactive_tfs'][self.inactive_tfs[tf_id]]
+                inactive_tf_counts = states['inactive_tfs_total'][self.inactive_tfs[tf_id]]
                 pPromoterBound = self.p_promoter_bound_tf(
                     active_tf_counts, inactive_tf_counts)
 

@@ -54,12 +54,14 @@ def arrays_to(n, attrs):
 def bulk_schema(
         elements,
         updater=None,
+        partition=True,
 ):
     schema = {
         '_default': 0,
         '_divider': 'binomial',
-        '_properties': {'bulk': True},
         '_emit': True}
+    if partition:
+        schema['_properties'] = {'bulk': True}
     if updater:
         schema['_updater'] = updater
     return {
