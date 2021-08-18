@@ -314,7 +314,9 @@ class Ecoli(Composer):
         topology['mass'] = config['topology']['mass']
         
         topology['metabolism'] = config['topology']['metabolism']
+
         topology['mrna_counts'] = config['topology']['mrna_counts']
+
         if config['blame']:
             topology['metabolism']['log_update'] = ('log_update', 'metabolism',)
 
