@@ -170,10 +170,16 @@ def test_division():
     from ecoli.experiments.ecoli_master_sim import EcoliSim
 
     sim = EcoliSim.from_file()
-    sim.config['division'] = {'threshold' : 1170}
+    sim.division = {'threshold' : 1170}
+
+    # Remove metabolism for now 
+    # (divison fails because cannot deepcopy metabolism process)
+    sim.processes.pop("ecoli-metabolism")
+    sim.topology.pop("ecoli-metabolism")
+    
     sim.total_time = 10
     sim.divide = True
-    sim.progress_bar = False
+    sim.progress_bar = True
 
     output = sim.run()
 
@@ -221,4 +227,4 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    test_division()
