@@ -278,8 +278,9 @@ class Ecoli(Composer):
         allocator = {'allocator': processes['allocator']}
         mass = {'mass': processes['mass']}
         metabolism = {'metabolism': processes['metabolism']}
+        mrna_counts = {'mrna_counts': processes['mrna_counts']}
 
-        all_procs = {**metabolism, **requesters, **allocator, **evolvers, **division, **mass}
+        all_procs = {**metabolism, **requesters, **allocator, **evolvers, **division, **mrna_counts, **mass}
         return all_procs
 
     def generate_topology(self, config):
@@ -318,6 +319,8 @@ class Ecoli(Composer):
 
         topology['metabolism'] = config['topology']['metabolism']
 
+        topology['mrna_counts'] = config['topology']['mrna_counts']
+  
         if config['blame']:
             topology['metabolism']['log_update'] = (
                 'log_update', 'metabolism',)
