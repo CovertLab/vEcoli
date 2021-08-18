@@ -9,7 +9,6 @@ import argparse
 
 from vivarium.core.composer import Composer
 from vivarium.core.engine import pp, Engine
-from vivarium.plots.topology import plot_topology
 from vivarium.library.topology import assoc_path
 from vivarium.library.dict_utils import deep_merge
 
@@ -17,27 +16,17 @@ from vivarium.library.dict_utils import deep_merge
 from ecoli.library.sim_data import LoadSimData
 
 # logging
-from ecoli.library.logging import make_logging_process
+from vivarium.library.wrappers import make_logging_process
 
 # vivarium-ecoli processes
-from ecoli.plots.topology import get_ecoli_master_topology_settings
-from ecoli.processes.tf_binding import TfBinding
-from ecoli.processes.transcript_initiation import TranscriptInitiation
-from ecoli.processes.transcript_elongation import TranscriptElongation
-from ecoli.processes.rna_degradation import RnaDegradation
-from ecoli.processes.polypeptide_initiation import PolypeptideInitiation
-from ecoli.processes.polypeptide_elongation import PolypeptideElongation
-from ecoli.processes.complexation import Complexation
-from ecoli.processes.two_component_system import TwoComponentSystem
-from ecoli.processes.equilibrium import Equilibrium
-from ecoli.processes.protein_degradation import ProteinDegradation
-from ecoli.processes.metabolism import Metabolism
-from ecoli.processes.chromosome_replication import ChromosomeReplication
-from ecoli.processes.mass import Mass
 from ecoli.processes.cell_division import Division
+from ecoli.plots.topology import get_ecoli_master_topology_settings
 
 # state
 from ecoli.states.wcecoli_state import get_state_from_file
+
+# plotting
+from vivarium.plots.topology import plot_topology
 
 
 RAND_MAX = 2**31
@@ -46,126 +35,6 @@ SIM_DATA_PATH = 'reconstruction/sim_data/kb/simData.cPickle'
 MINIMAL_MEDIA_ID = 'minimal'
 AA_MEDIA_ID = 'minimal_plus_amino_acids'
 ANAEROBIC_MEDIA_ID = 'minimal_minus_oxygen'
-
-ECOLI_PROCESSES = {
-    'tf_binding': TfBinding,
-    'transcript_initiation': TranscriptInitiation,
-    'transcript_elongation': TranscriptElongation,
-    'rna_degradation': RnaDegradation,
-    'polypeptide_initiation': PolypeptideInitiation,
-    'polypeptide_elongation': PolypeptideElongation,
-    'complexation': Complexation,
-    'two_component_system': TwoComponentSystem,
-    'equilibrium': Equilibrium,
-    'protein_degradation': ProteinDegradation,
-    'metabolism': Metabolism,
-    'chromosome_replication': ChromosomeReplication,
-    'mass': Mass,
-}
-
-ECOLI_TOPOLOGY = {
-        'tf_binding': {
-            'promoters': ('unique', 'promoter'),
-            'active_tfs': ('bulk',),
-            'inactive_tfs': ('bulk',),
-            'listeners': ('listeners',)},
-
-        'transcript_initiation': {
-            'environment': ('environment',),
-            'full_chromosomes': ('unique', 'full_chromosome'),
-            'RNAs': ('unique', 'RNA'),
-            'active_RNAPs': ('unique', 'active_RNAP'),
-            'promoters': ('unique', 'promoter'),
-            'molecules': ('bulk',),
-            'listeners': ('listeners',)},
-
-        'transcript_elongation': {
-            'environment': ('environment',),
-            'RNAs': ('unique', 'RNA'),
-            'active_RNAPs': ('unique', 'active_RNAP'),
-            'molecules': ('bulk',),
-            'bulk_RNAs': ('bulk',),
-            'ntps': ('bulk',),
-            'listeners': ('listeners',)},
-
-        'rna_degradation': {
-            'charged_trna': ('bulk',),
-            'bulk_RNAs': ('bulk',),
-            'nmps': ('bulk',),
-            'fragmentMetabolites': ('bulk',),
-            'fragmentBases': ('bulk',),
-            'endoRnases': ('bulk',),
-            'exoRnases': ('bulk',),
-            'subunits': ('bulk',),
-            'molecules': ('bulk',),
-            'RNAs': ('unique', 'RNA'),
-            'active_ribosome': ('unique', 'active_ribosome'),
-            'listeners': ('listeners',)},
-
-        'polypeptide_initiation': {
-            'environment': ('environment',),
-            'listeners': ('listeners',),
-            'active_ribosome': ('unique', 'active_ribosome'),
-            'RNA': ('unique', 'RNA'),
-            'subunits': ('bulk',)},
-
-        'polypeptide_elongation': {
-            'environment': ('environment',),
-            'listeners': ('listeners',),
-            'active_ribosome': ('unique', 'active_ribosome'),
-            'molecules': ('bulk',),
-            'monomers': ('bulk',),
-            'amino_acids': ('bulk',),
-            'ppgpp_reaction_metabolites': ('bulk',),
-            'uncharged_trna': ('bulk',),
-            'charged_trna': ('bulk',),
-            'charging_molecules': ('bulk',),
-            'synthetases': ('bulk',),
-            'subunits': ('bulk',),
-            'polypeptide_elongation': ('process_state', 'polypeptide_elongation')},
-
-        'complexation': {
-            'molecules': ('bulk',)},
-
-        'two_component_system': {
-            'listeners': ('listeners',),
-            'molecules': ('bulk',)},
-
-        'equilibrium': {
-            'listeners': ('listeners',),
-            'molecules': ('bulk',)},
-
-        'protein_degradation': {
-            'metabolites': ('bulk',),
-            'proteins': ('bulk',)},
-
-        'metabolism': {
-            'metabolites': ('bulk',),
-            'catalysts': ('bulk',),
-            'kinetics_enzymes': ('bulk',),
-            'kinetics_substrates': ('bulk',),
-            'amino_acids': ('bulk',),
-            'listeners': ('listeners',),
-            'environment': ('environment',),
-            'polypeptide_elongation': ('process_state', 'polypeptide_elongation')},
-
-        'chromosome_replication': {
-            'replisome_trimers': ('bulk',),
-            'replisome_monomers': ('bulk',),
-            'dntps': ('bulk',),
-            'ppi': ('bulk',),
-            'active_replisomes': ('unique', 'active_replisome',),
-            'oriCs': ('unique', 'oriC',),
-            'chromosome_domains': ('unique', 'chromosome_domain',),
-            'full_chromosomes': ('unique', 'full_chromosome',),
-            'listeners': ('listeners',),
-            'environment': ('environment',)},
-
-        'mass': {
-            'bulk': ('bulk',),
-            'unique': ('unique',),
-            'listeners': ('listeners',)},
-    }
 
 
 class Ecoli(Composer):
@@ -181,7 +50,7 @@ class Ecoli(Composer):
         'division': {
             'threshold': 2220},  # fg
         'divide': False,
-        'blame': False,
+        'blame': False
     }
 
     def __init__(self, config):
@@ -191,8 +60,13 @@ class Ecoli(Composer):
             sim_data_path=self.config['sim_data_path'],
             seed=self.config['seed'])
 
+        self.processes = config['processes']
+        self.topology = config['topology']
+
     def initial_state(self, config=None, path=()):
-        initial_state = get_state_from_file()
+        if config:
+            initial_time = config.get("initial_time", 0)
+        initial_state = get_state_from_file(path=f'data/wcecoli_t{initial_time}.json')
         embedded_state = {}
         assoc_path(embedded_state, path, initial_state)
         return embedded_state
@@ -201,33 +75,29 @@ class Ecoli(Composer):
         time_step = config['time_step']
         parallel = config['parallel']
 
-        # get the configs from sim_data
-        configs = {
-            'tf_binding': self.load_sim_data.get_tf_config(time_step=time_step),
-            'transcript_initiation': self.load_sim_data.get_transcript_initiation_config(time_step=time_step),
-            'transcript_elongation': self.load_sim_data.get_transcript_elongation_config(time_step=time_step),
-            'rna_degradation': self.load_sim_data.get_rna_degradation_config(time_step=time_step),
-            'polypeptide_initiation': self.load_sim_data.get_polypeptide_initiation_config(time_step=time_step),
-            'polypeptide_elongation': self.load_sim_data.get_polypeptide_elongation_config(time_step=time_step),
-            'complexation': self.load_sim_data.get_complexation_config(time_step=time_step),
-            'two_component_system': self.load_sim_data.get_two_component_system_config(time_step=time_step),
-            'equilibrium': self.load_sim_data.get_equilibrium_config(time_step=time_step),
-            'protein_degradation': self.load_sim_data.get_protein_degradation_config(time_step=time_step),
-            'metabolism': self.load_sim_data.get_metabolism_config(time_step=time_step),
-            'chromosome_replication': self.load_sim_data.get_chromosome_replication_config(time_step=time_step),
-            'mass': self.load_sim_data.get_mass_config(time_step=time_step),
-        }
+        # get process configs
+        process_configs = config['process_configs']
+        for process in process_configs.keys():
+            if process_configs[process] == "sim_data":
+                process_configs[process] = self.load_sim_data.get_config_by_name(process)
+            elif process_configs[process] == "default":
+                process_configs[process] = None
+            else:
+                # user passed a dict, deep-merge with config from LoadSimData
+                # if it exists, else, deep-merge with default
+                try:
+                    default = self.load_sim_data.get_config_by_name(process)
+                except KeyError:
+                    default = self.processes[process].defaults
+                
+                process_configs[process] = deep_merge(dict(default), process_configs[process])
 
         # make the processes
         processes = {
-            process_name: (process(configs[process_name])
-                           if not config['blame']
-                           else make_logging_process(process)(configs[process_name]))
-            for (process_name, process) in ECOLI_PROCESSES.items()
-            if process_name not in [
-                'polypeptide_elongation',
-                'two_component_system',
-            ]  # TODO: get these working again
+            process_name: (process(process_configs[process_name])
+                           if not config['log_updates']
+                           else make_logging_process(process)(process_configs[process_name]))
+            for (process_name, process) in self.processes.items()
         }
 
         # add division
@@ -244,7 +114,7 @@ class Ecoli(Composer):
         topology = {}
 
         # make the topology
-        for process_id, ports in ECOLI_TOPOLOGY.items():
+        for process_id, ports in self.topology.items():
             topology[process_id] = ports
             if config['blame']:
                 topology[process_id]['log_update'] = ('log_update', process_id,)
@@ -260,87 +130,58 @@ class Ecoli(Composer):
 
 def run_ecoli(
         total_time=10,
-        config=None,
         divide=False,
         progress_bar=True,
-        blame=False,
+        log_updates=False,
+        time_series=True
 ):
-    """Run ecoli_master simulations
+    """
+    Simple way to run ecoli_master simulations. For full API, see ecoli.experiments.ecoli_master_sim.
 
-    Arguments: TODO -- complete the arguments docstring
+    Arguments:
         * **total_time** (:py:class:`int`): the total runtime of the experiment
-        * **config** (:py:class:`dict`):
-
+        * **divide** (:py:class:`bool`): whether to incorporate division
+        * **progress_bar** (:py:class:`bool`): whether to show a progress bar
+        * **log_updates**  (:py:class:`bool`): whether to save updates from each process
+        * **time_series** (:py:class:`bool`): whether to return data in timeseries format
     Returns:
         * output data
     """
-    # make the ecoli config dictionary
-    agent_id = '0'
-    ecoli_config = {
-        'blame': blame,
-        'agent_id': agent_id,
-        # TODO -- remove schema override once values don't go negative
-        '_schema': {
-            'equilibrium': {
-                'molecules': {
-                    'PD00413[c]': {'_updater': 'nonnegative_accumulate'}
-                }
-            },
-        },
-    }
-    if config:
-        ecoli_config = deep_merge(ecoli_config, config)
+    
+    from ecoli.experiments.ecoli_master_sim import EcoliSim
+    
+    sim = EcoliSim.from_file()
+    sim.total_time = total_time
+    sim.divide = divide
+    sim.progress_bar = progress_bar
+    sim.log_updates = log_updates
+    sim.raw_output = not time_series
 
-    # initialize the ecoli composer
-    ecoli_composer = Ecoli(ecoli_config)
 
-    # set path at which agent is initialized
-    path = tuple()
-    if divide:
-        path = ('agents', agent_id,)
-
-    # get initial state
-    initial_state = ecoli_composer.initial_state(path=path)
-
-    # generate the composite at the path
-    ecoli = ecoli_composer.generate(path=path)
-
-    # make the experiment
-    ecoli_experiment = Engine({
-        'processes': ecoli.processes,
-        'topology': ecoli.topology,
-        'initial_state': initial_state,
-        'progress_bar': progress_bar,
-    })
-
-    # run the experiment
-    ecoli_experiment.update(total_time)
-
-    # retrieve the data
-    output = ecoli_experiment.emitter.get_timeseries()
-
-    return output
+    return sim.run()
 
 
 def test_division():
     """
     Work in progress to get division working
-
     * TODO -- unique molecules need to be divided between daughter cells!!! This can get sophisticated
     """
 
-    config = {
-        'division': {
-            'threshold': 1170}}
-    output = run_ecoli(
-        total_time=10,
-        divide=True,
-        config=config,
-        progress_bar=False,
-    )
+    from ecoli.experiments.ecoli_master_sim import EcoliSim
 
-    # import ipdb;
-    # ipdb.set_trace()
+    sim = EcoliSim.from_file()
+    sim.division = {'threshold' : 1170}
+
+    # Remove metabolism for now 
+    # (divison fails because cannot deepcopy metabolism process)
+    sim.processes.pop("ecoli-metabolism")
+    sim.topology.pop("ecoli-metabolism")
+    
+    sim.total_time = 10
+    sim.divide = True
+    sim.progress_bar = True
+
+    output = sim.run()
 
 
 def ecoli_topology_plot(config={}, filename=None, out_dir=None):
@@ -374,12 +215,6 @@ def main():
     parser.add_argument(
         '--topology', '-t', action='store_true', default=False,
         help='save a topology plot of ecoli master')
-    parser.add_argument(
-        '--blame', '-b', action='store_true', default=False,
-        help='when running simulation, create a report of which processes affected which molecules')
-    parser.add_argument(
-        '--debug', '-d', action='store_true', default=False,
-        help='run tests, generating a report of failures/successes')
     args = parser.parse_args()
 
     if args.topology:
@@ -388,14 +223,8 @@ def main():
         for name in args.name:
             test_library[name]()
     else:
-        output = run_ecoli(
-            blame=args.blame,
-            )
-
-        if args.debug:
-            #assertions(output)
-            pass
+        output = run_ecoli(log_updates=True)
 
 
 if __name__ == '__main__':
-    main()
+    test_division()
