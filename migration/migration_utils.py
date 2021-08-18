@@ -13,7 +13,7 @@ def get_process_state(process, topology, initial_state):
         'processes': {process.name: process},
         'topology': {process.name: topology},
         'initial_state': initial_state}
-    experiment = Engine(experiment_config)
+    experiment = Engine(**experiment_config)
 
     # Get update from process.
     path, process = list(experiment.process_paths.items())[0]
@@ -53,7 +53,7 @@ def run_ecoli_process(
         'processes': {process.name: process},
         'topology': {process.name: topology},
         'initial_state': initial_state}
-    experiment = Engine(experiment_config)
+    experiment = Engine(**experiment_config)
 
     # Get update from process.
     path, process = list(experiment.process_paths.items())[0]
@@ -133,13 +133,11 @@ def array_diffs_report(a, b, names=None, sort_by="absolute", sort_with=np.abs):
 
     return result
 
-
 def percent_error(actual, expected):
     pe = np.divide(abs(actual - expected), max(abs(actual), abs(expected)))
     if np.isnan(pe):
         pe = 0
     return pe
-
 
 class ComparisonTestSuite:
     '''

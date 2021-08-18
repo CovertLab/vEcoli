@@ -8,17 +8,32 @@ import numpy as np
 
 from vivarium.core.process import Process
 from vivarium.core.composition import simulate_process
+from vivarium.library.dict_utils import deep_merge
 
-from ecoli.library.schema import arrays_from, arrays_to, bulk_schema, listener_schema
+from ecoli.library.schema import arrays_from, arrays_to, bulk_schema, listener_schema, submass_schema
 
 from wholecell.utils.constants import REQUEST_PRIORITY_TF_BINDING
 from wholecell.utils.random import stochasticRound
 from wholecell.utils import units
 import six
 
+from ecoli.processes.registries import topology_registry
+
+
+# Register default topology for this process, associating it with process name
+NAME = 'ecoli-tf-binding'
+topology_registry.register(
+    NAME,
+    {
+        "promoters": ("unique", "promoter"),
+        "active_tfs_total": ("bulk",),
+        "inactive_tfs_total": ("bulk",),
+        "listeners": ("listeners",)
+    })
+
 
 class TfBinding(Process):
-    name = 'ecoli-tf-binding'
+    name = NAME
 
     defaults = {
         'tf_ids': [],
@@ -95,23 +110,29 @@ class TfBinding(Process):
 
         self.seed = self.parameters['seed']
         self.random_state = np.random.RandomState(seed = self.seed)
-
+        
     def ports_schema(self):
         return {
             'promoters': {
                 '*': {
                     'TU_index': {'_default': 0, '_updater': 'set', '_emit': True},
                     'bound_TF': {'_default': 0, '_updater': 'set', '_emit': True},
-                    'submass': {'_default': 0, '_emit': True}}},
+                    'submass': submass_schema()}},
 
             'active_tfs': bulk_schema([
                 self.active_tfs[tf]
                 for tf in self.tf_ids]),
+            
+            'active_tfs_total': bulk_schema([
+                self.active_tfs[tf]
+                for tf in self.tf_ids],
+                partition=False),
 
-            'inactive_tfs': bulk_schema([
+            'inactive_tfs_total': bulk_schema([
                 self.inactive_tfs[tf]
                 for tf in self.tf_ids
-                if tf in self.inactive_tfs]),
+                if tf in self.inactive_tfs],
+                partition=False),
 
             'listeners': {
                 'rna_synth_prob': listener_schema({
@@ -119,10 +140,21 @@ class TfBinding(Process):
                     'nPromoterBound': 0,
                     'nActualBound': 0,
                     'n_available_promoters': 0,
-                    'n_bound_TF_per_TU': 0})}}
+                    'n_bound_TF_per_TU': 0,
+                    'gene_copy_number': []})}
+            }
+        
+    def calculate_request(self, timestep, states):
+        # request all active tfs
+        requests = {'active_tfs': {}}
+        for tf_id in self.tf_ids:
+            active_tf_key = self.active_tfs[tf_id]
+            tf_count = states['active_tfs'][active_tf_key]
+            requests['active_tfs'][active_tf_key] = tf_count
 
-
-    def next_update(self, timestep, states):
+        return requests
+        
+    def evolve_state(self, timestep, states):
         # If there are no promoters, return immediately
         if not states['promoters']:
             return {}
@@ -166,20 +198,8 @@ class TfBinding(Process):
             # so need to add freed TFs to the total active
             # active_tf_counts = active_tf_view.total_counts()+bound_tf_counts
             # n_available_active_tfs = active_tf_view.count()
-            #======================wcEcoli Code End===========================#
-
-            # active_tf_view.total_counts() gives the number of molecules of a 
-            # given TF in the entire cell
-            # active_tf_view.count() gives the number of molecules of a given 
-            # TF that are partitioned to the tf_binding process
-            # When t=2, active_tf_counts != n_available_active_tfs for 4 TFs
-            #   CPLX0-7669[¢]: 230 != 126
-            #   CPLX0-7740[¢]: 36 != 35
-            #   PD00288[c]: 46405 != 46401
-            #   PUTA_CPLX[c]: 18 != 10
-            # This does not affect the update dictionary at t=2 but DOES later
-            # TODO: Implement paritioning assumption
-            active_tf_counts = tf_count + bound_tf_counts
+            active_tf_counts = (states['active_tfs_total'][active_tf_key]
+                                + bound_tf_counts)
             n_available_active_tfs = tf_count + bound_tf_counts
 
             # Determine the number of available promoter sites
@@ -197,7 +217,7 @@ class TfBinding(Process):
                 pPromoterBound = 1.
             else:
                 # inactive_tf_counts = self.inactive_tf_view[tf_id].total_counts()
-                inactive_tf_counts = states['inactive_tfs'][self.inactive_tfs[tf_id]]
+                inactive_tf_counts = states['inactive_tfs_total'][self.inactive_tfs[tf_id]]
                 pPromoterBound = self.p_promoter_bound_tf(
                     active_tf_counts, inactive_tf_counts)
 
@@ -256,6 +276,27 @@ class TfBinding(Process):
                 'nPromoterBound': nPromotersBound,
                 'nActualBound': nActualBound,
                 'n_available_promoters': n_promoters,
-                'n_bound_TF_per_TU': n_bound_TF_per_TU}}
+                'n_bound_TF_per_TU': n_bound_TF_per_TU,
+                'gene_copy_number': np.bincount(TU_index, minlength=self.n_TU)},
+        }
 
         return update
+    
+    def next_update(self, timestep, states):
+        requests = self.calculate_request(timestep, states)
+        states = deep_merge(states, requests)
+        update = self.evolve_state(timestep, states)
+        return update
+
+
+def test_tf_binding_listener():
+    from ecoli.experiments.ecoli_master_sim import EcoliSim
+    sim = EcoliSim.from_file()
+    sim.total_time = 2
+    data = sim.run()
+    assert(type(data['listeners']['rna_synth_prob']['gene_copy_number'][0]) == list)
+    assert(type(data['listeners']['rna_synth_prob']['gene_copy_number'][1]) == list)
+
+
+if __name__ == '__main__':
+    test_tf_binding_listener()

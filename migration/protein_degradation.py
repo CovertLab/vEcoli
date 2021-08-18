@@ -34,7 +34,6 @@ def test_protein_degradation():
     amino_acid_ids = config["amino_acid_ids"]
     water_id = config["water_id"]
 
-    # copy topology from ecoli_master, under generate_topology
     topology = {
         'metabolites': ('bulk',),
         'proteins': ('bulk',)}
