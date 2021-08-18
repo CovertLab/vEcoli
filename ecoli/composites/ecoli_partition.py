@@ -57,7 +57,7 @@ def change_bulk_updater(schema, new_updater):
     if '_properties' in schema:
         if schema['_properties']['bulk']:
             topo_copy = schema.copy()
-            topo_copy.update({'_updater': new_updater})
+            topo_copy.update({'_updater': new_updater, '_emit': False})
             return topo_copy
     for port, value in schema.items():
         if has_bulk_property(value):
@@ -88,7 +88,8 @@ def has_bulk_property(schema):
 
 
 def get_bulk_topo(topo):
-    """Return topology of only bulk molecules
+    """Return topology of only bulk molecules, excluding stores with 
+    '_total' in name (for non-partitioned counts)
     NOTE: Does not work with '_path' key
 
     Args:
@@ -102,7 +103,7 @@ def get_bulk_topo(topo):
     if isinstance(topo, dict):
         bulk_topo = {}
         for port, value in topo.items():
-            if path_in_bulk(value):
+            if path_in_bulk(value) and '_total' not in port:
                 bulk_topo[port] = get_bulk_topo(value)
     return bulk_topo
 
@@ -193,7 +194,8 @@ class Ecoli(Composer):
             seed=self.config['seed'])
 
     def initial_state(self, config=None, path=()):
-        initial_state = get_state_from_file()
+        # Use initial state calculated with trna_charging and translationSupply disabled
+        initial_state = get_state_from_file(path='data/metabolism/wcecoli_t0.json')
         embedded_state = {}
         assoc_path(embedded_state, path, initial_state)
         return embedded_state
@@ -277,9 +279,7 @@ class Ecoli(Composer):
         mass = {'mass': processes['mass']}
         metabolism = {'metabolism': processes['metabolism']}
 
-        all_procs = {**requesters, **allocator, **
-                     evolvers, **metabolism, **division, **mass}
-
+        all_procs = {**metabolism, **requesters, **allocator, **evolvers, **division, **mass}
         return all_procs
 
     def generate_topology(self, config):
@@ -297,10 +297,10 @@ class Ecoli(Composer):
                         'log_update', process_id,)
                 bulk_topo = get_bulk_topo(ports)
                 topology[f'{process_id}_requester']['request'] = {
-                    '_path': ('bulk', 'request', process_id,),
+                    '_path': ('request', process_id,),
                     **bulk_topo}
                 topology[f'{process_id}_evolver']['allocate'] = {
-                    '_path': ('bulk', 'allocate', process_id,),
+                    '_path': ('allocate', process_id,),
                     **bulk_topo}
 
         # add division
@@ -310,8 +310,8 @@ class Ecoli(Composer):
                 'agents': config['agents_path']}
 
         topology['allocator'] = {
-            'request': ('bulk', 'request',),
-            'allocate': ('bulk', 'allocate',),
+            'request': ('request',),
+            'allocate': ('allocate',),
             'bulk': ('bulk',)}
 
         topology['mass'] = config['topology']['mass']
@@ -389,6 +389,9 @@ def run_ecoli(
 
     # retrieve the data
     output = ecoli_experiment.emitter.get_timeseries()
+    
+    # Sanity check: breaks test_division()
+    # pp(output['listeners']['mass'])
 
     return output
 
