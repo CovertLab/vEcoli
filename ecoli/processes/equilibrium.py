@@ -14,6 +14,19 @@ from ecoli.library.schema import array_from, array_to, arrays_from, arrays_to, l
 
 from wholecell.utils import units
 from six.moves import range
+
+from ecoli.processes.registries import topology_registry
+
+
+# Register default topology for this process, associating it with process name
+NAME = 'ecoli-equilibrium'
+topology_registry.register(
+    NAME,
+    {
+        "listeners": ("listeners",),
+        "molecules": ("bulk",)
+    })
+
 '''
     _jit: just in time: false. utilized in the fluxes and molecules function
     n_avogadro: constant (6.02214076e+20)
@@ -26,7 +39,7 @@ from six.moves import range
 '''
 
 class Equilibrium(Process):
-    name = 'ecoli-equilibrium'
+    name = NAME
 
     defaults = {
         'jit': False,
@@ -137,8 +150,10 @@ class Equilibrium(Process):
 
 
 def test_equilibrium_listener():
-    from ecoli.composites.ecoli_master import run_ecoli
-    data = run_ecoli(total_time=2)
+    from ecoli.experiments.ecoli_master_sim import EcoliSim
+    sim = EcoliSim.from_file()
+    sim.total_time = 2
+    data = sim.run()
     assert(type(data['listeners']['equilibrium_listener']['reaction_rates'][0]) == list)
     assert(type(data['listeners']['equilibrium_listener']['reaction_rates'][1]) == list)
 

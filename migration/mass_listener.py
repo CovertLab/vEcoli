@@ -16,7 +16,7 @@ from ecoli.library.sim_data import LoadSimData
 from ecoli.composites.ecoli_master import SIM_DATA_PATH
 from migration.migration_utils import *
 
-from ecoli.composites.ecoli_master import run_ecoli
+from ecoli.experiments.ecoli_master_sim import EcoliSim, CONFIG_DIR_PATH
 
 from ecoli.library.schema import arrays_from
 from ecoli.states.wcecoli_state import get_state_from_file
@@ -25,7 +25,11 @@ from migration.migration_utils import array_diffs_report
 
 
 def test_mass_listener():
-    actual_updates = run_ecoli(total_time=4, divide=False, blame=False, time_series=False)
+    ecoli_sim = EcoliSim.from_file(CONFIG_DIR_PATH + '/test_configs/test_mass_listener.json')
+    actual_updates = ecoli_sim.run()
+
+    # actual_updates = run_ecoli(total_time=4, divide=False, blame=False, time_series=False)
+    
     actual_update_t0 = actual_updates[0.0]['listeners']['mass']
     actual_update_t2 = actual_updates[2.0]['listeners']['mass']
 

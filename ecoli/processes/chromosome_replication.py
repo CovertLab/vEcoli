@@ -16,10 +16,28 @@ from ecoli.states.wcecoli_state import MASSDIFFS
 from wholecell.utils import units
 from wholecell.utils.polymerize import buildSequences, polymerize, computeMassIncrease
 
+from ecoli.processes.registries import topology_registry
+
+
+# Register default topology for this process, associating it with process name
+NAME = 'ecoli-chromosome_replication'
+topology_registry.register(
+    NAME,
+    {
+        "replisome_trimers": ("bulk",),
+        "replisome_monomers": ("bulk",),
+        "dntps": ("bulk",),
+        "ppi": ("bulk",),
+        "active_replisomes": ("unique", "active_replisome"),
+        "oriCs": ("unique", "oriC"),
+        "chromosome_domains": ("unique", "chromosome_domain"),
+        "full_chromosomes": ("unique", "full_chromosome"),
+        "listeners": ("listeners",),
+        "environment": ("environment",)
+    })
 
 class ChromosomeReplication(Process):
-
-    name = 'ecoli-chromosome_replication'
+    name = NAME
 
     defaults = {
         'max_time_step': 2.0,
@@ -90,7 +108,7 @@ class ChromosomeReplication(Process):
             'ppi': bulk_schema(self.parameters['ppi']),
             'listeners': {
                 'mass': {
-                    'cell_mass': {'_default': 0.0}},
+                    'cell_mass': {'_default': 0.0, '_emit': True}},
                 'replication_data': {
                     'criticalInitiationMass': {'_default': 0.0},
                     'criticalMassPerOriC': {'_default': 0.0},

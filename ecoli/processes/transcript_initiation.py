@@ -28,6 +28,22 @@ from wholecell.utils.unit_struct_array import UnitStructArray
 from ecoli.library.data_predicates import monotonically_decreasing, all_nonnegative
 from scipy.stats import chisquare
 
+from ecoli.processes.registries import topology_registry
+
+
+# Register default topology for this process, associating it with process name
+NAME = 'ecoli-transcript-initiation'
+topology_registry.register(
+    NAME,
+    {
+        "environment": ("environment",),
+        "full_chromosomes": ("unique", "full_chromosome"),
+        "RNAs": ("unique", "RNA"),
+        "active_RNAPs": ("unique", "active_RNAP"),
+        "promoters": ("unique", "promoter"),
+        "molecules": ("bulk",),
+        "listeners": ("listeners",)
+    })
 
 class TranscriptInitiation(Process):
     """TranscriptInitiation
@@ -99,7 +115,7 @@ class TranscriptInitiation(Process):
         - seed (int): random seed
     """
 
-    name = 'ecoli-transcript-initiation'
+    name = NAME
 
     defaults = {
         'fracActiveRnapDict': {},

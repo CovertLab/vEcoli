@@ -25,6 +25,23 @@ from ecoli.states.wcecoli_state import MASSDIFFS
 
 from os import makedirs
 
+from ecoli.processes.registries import topology_registry
+
+
+# Register default topology for this process, associating it with process name
+NAME = 'ecoli-transcript-elongation'
+topology_registry.register(
+    NAME,
+    {
+        "environment": ("environment",),
+        "RNAs": ("unique", "RNA"),
+        "active_RNAPs": ("unique", "active_RNAP"),
+        "molecules": ("bulk",),
+        "bulk_RNAs": ("bulk",),
+        "ntps": ("bulk",),
+        "listeners": ("listeners",)
+    })
+
 
 class TranscriptElongation(Process):
     # TODO: comment out terminationLoss - doesn't seem to be used/informative?
@@ -59,7 +76,7 @@ class TranscriptElongation(Process):
     """
 
 
-    name = 'ecoli-transcript-elongation'
+    name = NAME
 
     defaults = {
         'max_time_step': 0.0,

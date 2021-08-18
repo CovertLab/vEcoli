@@ -16,19 +16,14 @@ from migration.migration_utils import (ComparisonTestSuite, array_equal,
                                        array_diffs_report_test, scalar_equal)
 from ecoli.states.wcecoli_state import get_state_from_file
 
+from ecoli.processes.registries import topology_registry
+
 
 load_sim_data = LoadSimData(
             sim_data_path=SIM_DATA_PATH,
             seed=0)
 
-# copy topology from ecoli_master.py, under generate_topology
-TF_BINDING_TOPOLOGY = {
-    'promoters': ('unique', 'promoter'),
-    'active_tfs': ('bulk',),
-    'listeners': ('listeners',),
-    # Non-partitioned counts
-    'active_tfs_total': ('bulk',),
-    'inactive_tfs_total': ('bulk',),}
+TF_BINDING_TOPOLOGY = topology_registry.access(TfBinding.name)
 
 def custom_run_process(
     process,
