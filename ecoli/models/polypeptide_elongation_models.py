@@ -294,15 +294,17 @@ class SteadyStateElongationModel(TranslationSupplyElongationModel):
         if self.process.ppgpp_regulation:
             v_rib = (nElongations * self.counts_to_molar).asNumber(MICROMOLAR_UNITS) / timestep
             ribosome_conc = self.counts_to_molar * len(states['active_ribosome'])
-            updated_uncharged_trna_counts = uncharged_trna - net_charged
-            updated_charged_trna_counts = charged_trna + net_charged
+            updated_uncharged_trna_counts = (array_from(states['uncharged_trna_total']) 
+                                             - net_charged)
+            updated_charged_trna_counts = (array_from(states['charged_trna_total']) 
+                                           + net_charged)
             uncharged_trna_conc = self.counts_to_molar * np.dot(
                 self.process.aa_from_trna, updated_uncharged_trna_counts)
             charged_trna_conc = self.counts_to_molar * np.dot(
                 self.process.aa_from_trna, updated_charged_trna_counts)
-            ppgpp_conc = self.counts_to_molar * states['molecules'][self.ppgpp]
-            rela_conc = self.counts_to_molar * states['molecules'][self.rela]
-            spot_conc = self.counts_to_molar * states['molecules'][self.spot]
+            ppgpp_conc = self.counts_to_molar * states['molecules_total'][self.ppgpp]
+            rela_conc = self.counts_to_molar * states['molecules_total'][self.rela]
+            spot_conc = self.counts_to_molar * states['molecules_total'][self.spot]
 
             # Need to include the next amino acid the ribosome sees for certain
             # cases where elongation does not occur, otherwise f will be NaN
@@ -331,7 +333,7 @@ class SteadyStateElongationModel(TranslationSupplyElongationModel):
         # and current DCW and AA used to charge tRNA to update the concentration target
         # in metabolism during the next time step
         aa_diff = self.process.aa_supply - np.dot(self.process.aa_from_trna, total_charging_reactions)
-        if np.any(np.abs(aa_diff / array_to(states['amino_acids'])) > self.max_amino_acid_adjustment):
+        if np.any(np.abs(aa_diff / array_from(states['amino_acids_total'])) > self.max_amino_acid_adjustment):
             self.time_step_short_enough = False
         
         return net_charged, {aa: diff for aa, diff in zip(self.aaNames, aa_diff)}, update

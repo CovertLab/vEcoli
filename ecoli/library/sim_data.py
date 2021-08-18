@@ -4,6 +4,7 @@ from wholecell.utils import units
 from wholecell.utils.fitting import normalize
 
 from ecoli.processes.polypeptide_elongation import MICROMOLAR_UNITS
+from ecoli.states.wcecoli_state import MASSDIFFS
 
 RAND_MAX = 2**31
 SIM_DATA_PATH = 'reconstruction/sim_data/kb/simData.cPickle'
@@ -24,6 +25,8 @@ class LoadSimData:
         
         self.trna_charging = trna_charging
         self.ppgpp_regulation = ppgpp_regulation
+        
+        self.submass_indexes = MASSDIFFS
 
         # load sim_data
         with open(sim_data_path, 'rb') as sim_data_file:
@@ -87,6 +90,8 @@ class LoadSimData:
 
             # random state
             'seed': self.random_state.randint(RAND_MAX),
+            
+            'submass_indexes': self.submass_indexes,
         }
 
         return chromosome_replication_config
@@ -194,7 +199,9 @@ class LoadSimData:
             'location_lookup': self.sim_data.process.transcription.attenuation_location,
 
             # random seed
-            'seed': self.random_state.randint(RAND_MAX)
+            'seed': self.random_state.randint(RAND_MAX),
+            
+            'submass_indexes': self.submass_indexes,
         }
 
         return transcript_elongation_config
@@ -332,7 +339,9 @@ class LoadSimData:
             'aa_enzymes': metabolism.aa_enzymes,
             'amino_acid_synthesis': metabolism.amino_acid_synthesis,
             'amino_acid_import': metabolism.amino_acid_import,
-            'seed': self.random_state.randint(RAND_MAX)}
+            'seed': self.random_state.randint(RAND_MAX),
+            
+            'submass_indexes': self.submass_indexes,}
 
         return polypeptide_elongation_config
 
