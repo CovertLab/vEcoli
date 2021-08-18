@@ -26,8 +26,8 @@ topology_registry.register(
     NAME,
     {
         "promoters": ("unique", "promoter"),
-        "active_tfs": ("bulk",),
-        "inactive_tfs": ("bulk",),
+        "active_tfs_total": ("bulk",),
+        "inactive_tfs_total": ("bulk",),
         "listeners": ("listeners",)
     })
 
