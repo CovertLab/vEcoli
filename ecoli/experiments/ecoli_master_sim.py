@@ -34,8 +34,8 @@ class EcoliSim:
                                                                    config['processes'])
         self.config = config
 
-        # Unpack config using Descriptor protocol black magic:
-        # all of the entries in config are translated to properties
+        # Unpack config using Descriptor protocol:
+        # All of the entries in config are translated to properties
         # (of EcoliSim class) that get/set an entry in self.config.
         #
         # For example:
@@ -50,7 +50,7 @@ class EcoliSim:
         #    100
 
         class ConfigEntry():
-            def __set_name__(self, owner, name):
+            def __init__(self, name):
                 self.name = name
 
             def __get__(self, sim, type=None):
@@ -60,9 +60,8 @@ class EcoliSim:
                 sim.config[self.name] = value
 
         for attr in self.config.keys():
-            config_entry = ConfigEntry()
+            config_entry = ConfigEntry(attr)
             setattr(EcoliSim, attr, config_entry)
-            config_entry.__set_name__(EcoliSim, attr)
             
 
         if self.generations:
