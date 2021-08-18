@@ -32,6 +32,10 @@ class EcoliSim:
                                                      config['divide'])
         config['process_configs'] = self._retrieve_process_configs(config['process_configs'],
                                                                    config['processes'])
+
+        # make some lists into tuples
+        config['agents_path'] = tuple(config['agents_path'])
+
         self.config = config
 
         # Unpack config using Descriptor protocol:
@@ -69,6 +73,7 @@ class EcoliSim:
 
         if config['partition']:
             warnings.warn("partitioning is not compatible with EcoliSim yet!")
+
 
     @staticmethod
     def from_cli():
@@ -132,6 +137,7 @@ class EcoliSim:
 
         return EcoliSim(ecoli_config)
 
+
     @staticmethod
     def from_file(filepath=CONFIG_DIR_PATH + 'default.json'):
         # Load config, deep-merge with default config
@@ -145,6 +151,7 @@ class EcoliSim:
         ecoli_config = deep_merge(dict(default_config), ecoli_config)
 
         return EcoliSim(ecoli_config)
+
 
     def _retrieve_processes(self,
                             process_names,
@@ -168,6 +175,7 @@ class EcoliSim:
             result[process_name] = process_class
 
         return result
+
 
     def _retrieve_topology(self,
                            topology,
@@ -224,6 +232,7 @@ class EcoliSim:
                 result[process] = "sim_data"
 
         return result
+
 
     def run(self):
         # initialize the ecoli composer
