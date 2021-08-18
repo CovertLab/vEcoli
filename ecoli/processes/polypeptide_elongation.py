@@ -24,6 +24,28 @@ from vivarium.plots.simulation_output import plot_variables
 from ecoli.library.schema import bulk_schema, listener_schema, arrays_from, array_from, submass_schema
 from ecoli.models.polypeptide_elongation_models import BaseElongationModel, MICROMOLAR_UNITS
 from ecoli.states.wcecoli_state import MASSDIFFS
+from ecoli.processes.registries import topology_registry
+
+
+# Register default topology for this process, associating it with process name
+NAME = 'ecoli-polypeptide-elongation'
+topology_registry.register(
+    NAME,
+    {
+        "environment": ("environment",),
+        "listeners": ("listeners",),
+        "active_ribosome": ("unique", "active_ribosome"),
+        "molecules": ("bulk",),
+        "monomers": ("bulk",),
+        "amino_acids": ("bulk",),
+        "ppgpp_reaction_metabolites": ("bulk",),
+        "uncharged_trna": ("bulk",),
+        "charged_trna": ("bulk",),
+        "charging_molecules": ("bulk",),
+        "synthetases": ("bulk",),
+        "subunits": ("bulk",),
+        "polypeptide_elongation": ("process_state", "polypeptide_elongation")
+    })
 
 DEFAULT_AA_NAMES = [
             'L-ALPHA-ALANINE[c]', 'ARG[c]', 'ASN[c]', 'L-ASPARTATE[c]', 'CYS[c]', 'GLT[c]', 'GLN[c]', 'GLY[c]',
@@ -36,7 +58,7 @@ class PolypeptideElongation(Process):
     defaults:
         proteinIds: array length n of protein names
     """
-    name = 'ecoli-polypeptide-elongation'
+    name = NAME
 
     defaults = {
         'max_time_step': 2.0,

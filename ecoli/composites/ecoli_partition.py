@@ -64,6 +64,7 @@ def change_bulk_updater(schema, new_updater):
             bulk_schema[port] = change_bulk_updater(value, new_updater)
     return bulk_schema
 
+
 def has_bulk_property(schema):
     """Check to see if a subset of the ports schema contains
     a bulk molecule using {'_property': {'bulk': True}}
@@ -85,6 +86,7 @@ def has_bulk_property(schema):
                     return True
     return False
 
+
 def get_bulk_topo(topo):
     """Return topology of only bulk molecules, excluding stores with 
     '_total' in name (for non-partitioned counts)
@@ -104,6 +106,7 @@ def get_bulk_topo(topo):
             if path_in_bulk(value) and '_total' not in port:
                 bulk_topo[port] = get_bulk_topo(value)
     return bulk_topo
+
 
 def path_in_bulk(topo):
     """Check whether a subset of the topology is contained within
@@ -138,13 +141,13 @@ class Requester(Deriver):
         return ports
 
     def next_update(self, timestep, states):
-        update = self.process.calculate_request(self.parameters['time_step'], states)
+        update = self.process.calculate_request(
+            self.parameters['time_step'], states)
         # Ensure listeners are updated if passed by calculate_request
         listeners = update.pop('listeners', None)
         if listeners != None:
             return {'request': update, 'listeners': listeners}
         return {'request': update}
-    
 
 
 class Evolver(Process):
@@ -179,8 +182,8 @@ class Ecoli(Composer):
             'threshold': 2220},  # fg
         'divide': False,
         'blame': False,
-        'processes' : default.ECOLI_PROCESSES.copy(),
-        'topology' : default.ECOLI_TOPOLOGY.copy()
+        'processes': default.ECOLI_PROCESSES.copy(),
+        'topology': default.ECOLI_TOPOLOGY.copy()
     }
 
     def __init__(self, config):
@@ -199,12 +202,12 @@ class Ecoli(Composer):
 
     def generate_processes(self, config):
         time_step = config['time_step']
-        parallel = config['parallel']     
-        
+        parallel = config['parallel']
+
         process_names = list(config['processes'].keys())
         process_names.remove('mass')
-        
-        config['processes']['allocator'] = Allocator   
+
+        config['processes']['allocator'] = Allocator
 
         # get the configs from sim_data
         configs = {
@@ -234,9 +237,9 @@ class Ecoli(Composer):
             #     # TODO: get this working again
             # ]
         }
-        
+
         derivers = ['metabolism', 'mass', 'mrna_counts', 'allocator']
-        
+
         # make the requesters
         requesters = {
             f'{process_name}_requester': Requester({'time_step': time_step,
@@ -244,24 +247,25 @@ class Ecoli(Composer):
             for (process_name, process) in processes.items()
             if process_name not in derivers
         }
-        
+
         # make the evolvers
         evolvers = {
             f'{process_name}_evolver': Evolver({'time_step': time_step,
                                                 'process': process})
-                if not config['blame']
-                else make_logging_process(Evolver)({'time_step': time_step,
-                                                    'process': process})
+            if not config['blame']
+            else make_logging_process(Evolver)({'time_step': time_step,
+                                                'process': process})
             for (process_name, process) in processes.items()
             if process_name not in derivers
         }
-        
+
         if config['blame']:
             processes['metabolism'] = make_logging_process(
                 config['processes']['metabolism'])(configs['metabolism'])
         else:
-            processes['metabolism'] = config['processes']['metabolism'](configs['metabolism'])
-        
+            processes['metabolism'] = config['processes']['metabolism'](
+                configs['metabolism'])
+
         division = {}
         # add division
         if self.config['divide']:
@@ -270,19 +274,18 @@ class Ecoli(Composer):
                 agent_id=self.config['agent_id'],
                 composer=self)
             division = {'division': Division(division_config)}
-            
+
         allocator = {'allocator': processes['allocator']}
         mass = {'mass': processes['mass']}
         metabolism = {'metabolism': processes['metabolism']}
         mrna_counts = {'mrna_counts': processes['mrna_counts']}
 
         all_procs = {**metabolism, **requesters, **allocator, **evolvers, **division, **mrna_counts, **mass}
-        
         return all_procs
 
     def generate_topology(self, config):
         topology = {}
-        
+
         derivers = ['metabolism', 'mass', 'allocator']
 
         # make the topology
@@ -291,7 +294,8 @@ class Ecoli(Composer):
                 topology[f'{process_id}_requester'] = deepcopy(ports)
                 topology[f'{process_id}_evolver'] = deepcopy(ports)
                 if config['blame']:
-                    topology[f'{process_id}_evolver']['log_update'] = ('log_update', process_id,)
+                    topology[f'{process_id}_evolver']['log_update'] = (
+                        'log_update', process_id,)
                 bulk_topo = get_bulk_topo(ports)
                 topology[f'{process_id}_requester']['request'] = {
                     '_path': ('request', process_id,),
@@ -305,20 +309,21 @@ class Ecoli(Composer):
             topology['division'] = {
                 'variable': ('listeners', 'mass', 'cell_mass'),
                 'agents': config['agents_path']}
-            
+
         topology['allocator'] = {
             'request': ('request',),
             'allocate': ('allocate',),
             'bulk': ('bulk',)}
-        
+
         topology['mass'] = config['topology']['mass']
-        
+
         topology['metabolism'] = config['topology']['metabolism']
 
         topology['mrna_counts'] = config['topology']['mrna_counts']
-
+  
         if config['blame']:
-            topology['metabolism']['log_update'] = ('log_update', 'metabolism',)
+            topology['metabolism']['log_update'] = (
+                'log_update', 'metabolism',)
 
         return topology
 
@@ -378,8 +383,8 @@ def run_ecoli(
         'progress_bar': progress_bar,
         'emit_config': False,
         # Not emitting every step is faster but breaks blame.py
-        #'emit_step': 1000,
-        #'emitter': 'database'
+        # 'emit_step': 1000,
+        # 'emitter': 'database'
     })
 
     # run the experiment
@@ -505,6 +510,7 @@ def get_partition_topology_settings():
         },
     }
     return settings
+
 
 def ecoli_topology_plot(config={}, filename=None, out_dir=None):
     """Make a topology plot of Ecoli"""

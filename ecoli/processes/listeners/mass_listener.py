@@ -11,11 +11,21 @@ from ecoli.library.schema import bulk_schema, arrays_from, array_from, submass_s
 
 from vivarium.core.engine import pp
 
+from ecoli.processes.registries import topology_registry
 
+
+# Register default topology for this process, associating it with process name
+NAME = 'ecoli-mass-listener'
+topology_registry.register(
+    NAME,
+    {
+        "bulk": ("bulk",),
+        "unique": ("unique",),
+        "listeners": ("listeners",)
+    })
 class MassListener(Deriver):
     """ MassListener """
-
-    name = 'ecoli-mass-listener'
+    name = NAME
 
     defaults = {
         'cellDensity': 1100.0,
