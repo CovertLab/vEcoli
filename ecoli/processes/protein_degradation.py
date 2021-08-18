@@ -98,7 +98,7 @@ class ProteinDegradation(Process):
         # Determine the amount of water required to degrade the selected proteins
         # Assuming one N-1 H2O is required per peptide chain length N
         requests = {}
-        requests[self.water_id] = nReactions - np.sum(nProteinsToDegrade)
+        requests['metabolites'] = {self.water_id: nReactions - np.sum(nProteinsToDegrade)}
         requests['proteins'] = (array_to(states['proteins'], nProteinsToDegrade))
         return requests
         

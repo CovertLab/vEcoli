@@ -21,8 +21,9 @@ from vivarium.library.dict_utils import deep_merge
 from vivarium.plots.simulation_output import plot_variables
 
 # vivarium-ecoli imports
-from ecoli.library.schema import bulk_schema, listener_schema, arrays_from, array_from, array_to
+from ecoli.library.schema import bulk_schema, listener_schema, arrays_from, array_from, submass_schema
 from ecoli.models.polypeptide_elongation_models import BaseElongationModel, MICROMOLAR_UNITS
+from ecoli.states.wcecoli_state import MASSDIFFS
 from ecoli.processes.registries import topology_registry
 
 
@@ -116,7 +117,8 @@ class PolypeptideElongation(Process):
         'k_SpoT_deg': 0.23,
         'KI_SpoT': 20.0,
         'aa_supply_scaling': lambda aa_conc, aa_in_media: 0,
-        'seed': 0}
+        'seed': 0,
+        'submass_indexes': MASSDIFFS,}
 
     def __init__(self, parameters=None):
         super().__init__(parameters)
@@ -191,6 +193,9 @@ class PolypeptideElongation(Process):
         self.charged_trna_names = self.parameters['charged_trna_names']
         self.charging_molecule_names = self.parameters['charging_molecule_names']
         self.synthetase_names = self.parameters['synthetase_names']
+        
+        # Index of protein submass in submass vector
+        self.protein_submass_idx = self.parameters['submass_indexes']['massDiff_protein']
 
         self.seed = self.parameters['seed']
         self.random_state = np.random.RandomState(seed = self.seed)
@@ -239,6 +244,14 @@ class PolypeptideElongation(Process):
                 self.rela,
                 self.spot,
                 self.ppgpp]),
+            
+            'molecules_total': bulk_schema([
+                self.proton,
+                self.water,
+                self.rela,
+                self.spot,
+                self.ppgpp],
+                partition=False),
 
             'monomers': bulk_schema(self.proteinIds),
             'amino_acids': bulk_schema(self.amino_acids),
@@ -248,6 +261,10 @@ class PolypeptideElongation(Process):
             'charged_trna': bulk_schema(self.charged_trna_names),
             'charging_molecules': bulk_schema(self.charging_molecule_names),
             'synthetases': bulk_schema(self.synthetase_names),
+            
+            'amino_acids_total': bulk_schema(self.amino_acids),
+            'uncharged_trna_total': bulk_schema(self.uncharged_trna_names),
+            'charged_trna_total': bulk_schema(self.charged_trna_names),
 
             'active_ribosome': {
                 '*': {
@@ -255,8 +272,7 @@ class PolypeptideElongation(Process):
                     'protein_index': {'_default': 0, '_updater': 'set'},
                     'peptide_length': {'_default': 0, '_updater': 'set', '_emit': True},
                     'pos_on_mRNA': {'_default': 0, '_updater': 'set', '_emit': True},
-                    'submass': {
-                        'protein': {'_default': 0, '_emit': True}}}},
+                    'submass': submass_schema()}},
 
             'subunits': bulk_schema([self.ribosome30S, self.ribosome50S]),
 
@@ -284,7 +300,7 @@ class PolypeptideElongation(Process):
 
         # If there are no active ribosomes, return immediately
         if len(states['active_ribosome']) == 0:
-            return {}
+            return {'listeners': {}}
 
         # Build sequences to request appropriate amount of amino acids to
         # polymerize for next timestep
@@ -438,18 +454,18 @@ class PolypeptideElongation(Process):
             minlength = self.proteinSequences.shape[0])
 
         # self.active_ribosomes.delByIndexes(termination)
-
         update['active_ribosome'] = {'_delete': []}
         for index, ribosome in enumerate(states['active_ribosome'].values()):
+            added_submass = np.zeros(9)
             unique_index = str(ribosome['unique_index'])
             if didTerminate[index]:
-                update['active_ribosome']['_delete'].append((unique_index,))
+                update['active_ribosome']['_delete'].append(unique_index)
             else:
+                added_submass[self.protein_submass_idx] = added_protein_mass[index]
                 update['active_ribosome'][unique_index] = {
                     'peptide_length': updated_lengths[index],
                     'pos_on_mRNA': updated_positions_on_mRNA[index],
-                    'submass': {
-                        'protein': added_protein_mass[index]}}
+                    'submass': added_submass}
 
         update['monomers'] = {}
         for index, count in enumerate(terminatedProteins):
@@ -575,7 +591,7 @@ def test_polypeptide_elongation():
             aa: 100 for aa in DEFAULT_AA_NAMES
         },
         'active_ribosome': {
-            '1': {'unique_index': 1, 'protein_index': 0, 'peptide_length': 1, 'pos_on_mRNA': 1, 'submass': {'protein': 0}}
+            '1': {'unique_index': 1, 'protein_index': 0, 'peptide_length': 1, 'pos_on_mRNA': 1, 'submass': np.zeros(len(MASSDIFFS))}
         },
         'listeners': {
             'mass': {

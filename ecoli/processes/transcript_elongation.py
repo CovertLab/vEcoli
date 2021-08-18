@@ -18,9 +18,10 @@ from wholecell.utils.random import stochasticRound
 from wholecell.utils.polymerize import buildSequences, polymerize, computeMassIncrease
 from wholecell.utils import units
 
-from ecoli.library.schema import arrays_from, arrays_to, array_from, array_to, listener_schema, bulk_schema
+from ecoli.library.schema import arrays_from, arrays_to, array_from, array_to, listener_schema, bulk_schema, submass_schema
 from ecoli.library.data_predicates import monotonically_increasing
 from ecoli.processes.cell_division import divide_by_domain
+from ecoli.states.wcecoli_state import MASSDIFFS
 
 from os import makedirs
 
@@ -108,7 +109,8 @@ class TranscriptElongation(Process):
         'attenuated_rna_indices': np.array([]),
         'attenuation_location': {},
 
-        'seed': 0}
+        'seed': 0,
+        'submass_indexes': MASSDIFFS,}
 
     def __init__(self, parameters=None):
         super().__init__(parameters)
@@ -160,6 +162,10 @@ class TranscriptElongation(Process):
         # random seed
         self.seed = self.parameters['seed']
         self.random_state = np.random.RandomState(seed=self.seed)
+        
+        # Index of relevant submasses in submass vector
+        self.nsRNA_submass_idx = self.parameters['submass_indexes']['massDiff_nonspecific_RNA']
+        self.mRNA_submass_idx = self.parameters['submass_indexes']['massDiff_mRNA']
 
 
         # TODO: Remove request code once migration is complete
@@ -180,7 +186,8 @@ class TranscriptElongation(Process):
                     'is_mRNA': {'_default': False, '_updater': 'set'},
                     'is_full_transcript': {'_default': False, '_updater': 'set'},
                     'can_translate': {'_default': False, '_updater': 'set'},
-                    'RNAP_index': {'_default': 0, '_updater': 'set'}}},
+                    'RNAP_index': {'_default': 0, '_updater': 'set'},
+                    'submass': submass_schema()}},
 
             'active_RNAPs': {
                 '_divider': {
@@ -473,16 +480,17 @@ class TranscriptElongation(Process):
         # Get counts of new bulk RNAs
         n_new_bulk_RNAs = terminated_RNAs.copy()
         n_new_bulk_RNAs[self.is_mRNA] = 0
+        
+        added_submass = np.zeros((len(states['RNAs']), 9))
+        added_submass[:, self.nsRNA_submass_idx] = added_nsRNA_mass_all_RNAs
+        added_submass[:, self.mRNA_submass_idx] = added_mRNA_mass_all_RNAs
 
         rna_indexes = list(states['RNAs'].keys())
         rnas_update = arrays_to(
             len(states['RNAs']), {
                 'transcript_length': length_all_RNAs,
                 'is_full_transcript': is_full_transcript_updated,
-                'submass': arrays_to(
-                    len(states['RNAs']), {
-                        'nonspecific_RNA': added_nsRNA_mass_all_RNAs,
-                        'mRNA': added_mRNA_mass_all_RNAs})})
+                'submass': added_submass})
 
         delete_rnas = partial_transcript_indexes[np.logical_and(
             did_terminate_mask, np.logical_not(is_mRNA_partial_RNAs))]        

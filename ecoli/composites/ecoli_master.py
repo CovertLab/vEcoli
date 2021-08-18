@@ -157,6 +157,7 @@ def run_ecoli(
     sim.log_updates = log_updates
     sim.raw_output = not time_series
 
+
     return sim.run()
 
 

@@ -36,8 +36,10 @@ ECOLI_TOPOLOGY = {
         'tf_binding': {
             'promoters': ('unique', 'promoter'),
             'active_tfs': ('bulk',),
-            'inactive_tfs': ('bulk',),
-            'listeners': ('listeners',)},
+            'listeners': ('listeners',),
+            # Non-partitioned counts
+            'active_tfs_total': ('bulk',),
+            'inactive_tfs_total': ('bulk',),},
 
         'transcript_initiation': {
             'environment': ('environment',),
@@ -91,7 +93,12 @@ ECOLI_TOPOLOGY = {
             'charging_molecules': ('bulk',),
             'synthetases': ('bulk',),
             'subunits': ('bulk',),
-            'polypeptide_elongation': ('process_state', 'polypeptide_elongation')},
+            'polypeptide_elongation': ('process_state', 'polypeptide_elongation'),
+            # Non-partitioned counts
+            'molecules_total': ('bulk',),
+            'amino_acids_total': ('bulk',),
+            'charged_trna_total': ('bulk',),
+            'uncharged_trna_total': ('bulk',),},
 
         'complexation': {
             'molecules': ('bulk',),

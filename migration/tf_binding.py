@@ -12,9 +12,8 @@ from vivarium.core.engine import Engine
 from ecoli.library.sim_data import LoadSimData
 from ecoli.composites.ecoli_master import SIM_DATA_PATH
 from ecoli.processes.tf_binding import TfBinding
-from migration.migration_utils import (run_ecoli_process, ComparisonTestSuite,
-                                       array_almost_equal, array_diffs_report_test,
-                                       scalar_almost_equal)
+from migration.migration_utils import (ComparisonTestSuite, array_equal, 
+                                       array_diffs_report_test, scalar_equal)
 from ecoli.states.wcecoli_state import get_state_from_file
 
 from ecoli.processes.registries import topology_registry
@@ -26,25 +25,72 @@ load_sim_data = LoadSimData(
 
 TF_BINDING_TOPOLOGY = topology_registry.access(TfBinding.name)
 
+def custom_run_process(
+    process,
+    topology,
+    total_time=2,
+    initial_time=0,
+    initial_state=None,
+):
+    # make an experiment
+    experiment_config = {
+        'processes': {process.name: process},
+        'topology': {process.name: topology},
+        'initial_state': initial_state}
+    experiment = Engine(**experiment_config)
+
+    # Get update from process.
+    path, process = list(experiment.process_paths.items())[0]
+    store = experiment.state.get_path(path)
+
+    # translate the values from the tree structure into the form
+    # that this process expects, based on its declared topology
+    states = store.outer.schema_topology(process.schema, store.topology)
+    
+    # Make process see partitioned molecule counts
+    with open(f"data/tf_binding/tf_binding_partitioned_t"
+              f"{total_time+initial_time}.json") as f:
+        partitioned_counts = json.load(f)
+    
+    states['active_tfs'] = partitioned_counts['bulk']
+    
+    update = experiment.invoke_process(
+        process,
+        path,
+        total_time,
+        states)
+
+    actual_update = update.get()
+    return actual_update
 
 def test_tf_binding_migration():
-    # Set time parameters
-    total_time = 2
-    initial_time = 0
+    def test(initial_time):
+        # Set time parameters
+        total_time = 2
+        initial_time = initial_time
 
-    # Create process, experiment, loading in initial state from file.
-    config = load_sim_data.get_tf_config()
-    tf_binding_process = TfBinding(config)
+        # Create process, experiment, loading in initial state from file.
+        config = load_sim_data.get_tf_config()
+        config['seed'] = 0
+        tf_binding_process = TfBinding(config)
+                
+        initial_state = get_state_from_file(
+            path=f'data/tf_binding/wcecoli_t{initial_time}.json')
 
-    # run the process and get an update
-    actual_update = run_ecoli_process(tf_binding_process, TF_BINDING_TOPOLOGY, 
-                                      total_time=total_time, initial_time = initial_time)
+        # run the process and get an update
+        actual_update = custom_run_process(tf_binding_process, TF_BINDING_TOPOLOGY, 
+                                        total_time=total_time, initial_time = initial_time,
+                                        initial_state=initial_state)
 
-    with open(f"data/tf_binding_update_t{total_time+initial_time}.json") as f:
-        wc_update = json.load(f)
+        with open(f"data/tf_binding/tf_binding_update_t{total_time+initial_time}.json") as f:
+            wc_update = json.load(f)
 
-    plots(actual_update, wc_update, total_time+initial_time)
-    assertions(actual_update,wc_update, total_time+initial_time)
+        plots(actual_update, wc_update, total_time+initial_time)
+        assertions(actual_update,wc_update, total_time+initial_time)
+
+    times = [0, 2, 100]
+    for initial_time in times:
+        test(initial_time)
 
 def plots(actual_update, expected_update, time):
     os.makedirs("out/migration/tf_binding/", exist_ok=True)
@@ -101,28 +147,34 @@ def plots(actual_update, expected_update, time):
     plt.xlabel('Vivarium')
     plt.title('Q-Q Plot of n_available_promoters')
 
-    #plt.subplot(3, 2, 6)
-    #qqplot(n_bound_TF_per_TU, wc_n_bound_TF_per_TU)
-
     plt.gcf().set_size_inches(16, 12)
     plt.tight_layout()
     plt.savefig(f"out/migration/tf_binding/tf_binding_figures{time}.png")
+    plt.close()
 
 def assertions(actual_update, expected_update, time):
     test_structure = {
         'active_tfs' : {
-            tf_index : scalar_almost_equal
+            tf_index : scalar_equal
         for tf_index in actual_update['active_tfs'].keys()},
         'listeners' : {
             'rna_synth_prob' : {
-                'pPromoterBound' : [array_almost_equal,
-                                    array_diffs_report_test(f"out/migration/tf_binding/pPromoterBound_comp{time}.txt")],
-                'nPromoterBound' : [array_almost_equal,
-                                    array_diffs_report_test(f"out/migration/tf_binding/nPromoterBound_comp{time}.txt")],
-                'nActualBound' : [array_almost_equal,
-                                array_diffs_report_test(f"out/migration/tf_binding/nActualBound_comp{time}.txt")],
-                'n_available_promoters' : [array_almost_equal,
-                                        array_diffs_report_test(f"out/migration/tf_binding/n_available_promoters_comp{time}.txt")]
+                'pPromoterBound' : [
+                    array_equal,
+                    array_diffs_report_test(
+                        f"out/migration/tf_binding/pPromoterBound_comp{time}.txt")],
+                'nPromoterBound' : [
+                    array_equal,
+                    array_diffs_report_test(
+                        f"out/migration/tf_binding/nPromoterBound_comp{time}.txt")],
+                'nActualBound' : [
+                    array_equal,
+                    array_diffs_report_test(
+                        f"out/migration/tf_binding/nActualBound_comp{time}.txt")],
+                'n_available_promoters' : [
+                    array_equal,
+                    array_diffs_report_test(
+                        f"out/migration/tf_binding/n_available_promoters_comp{time}.txt")]
             }
         }
     }
@@ -130,25 +182,31 @@ def assertions(actual_update, expected_update, time):
     tests = ComparisonTestSuite(test_structure, fail_loudly=False)
     tests.run_tests(actual_update, expected_update, verbose=True)
 
-    # The test still fails for counts of active TFs (commented out)
-    # tests.fail()
+    tests.fail()
     
     # Sanity checks for randomly sampled TF-promoter binding
 
     bound_TF = np.array([promoter['bound_TF'] for promoter in actual_update['promoters'].values()])
+    bound_tf_totals = np.sum(bound_TF, axis=0)
     wc_bound_TF = np.array([promoter['bound_TF'] for promoter in actual_update['promoters'].values()])
+    wc_bound_tf_totals = np.sum(wc_bound_TF, axis=0)
 
-    assert all(np.sum(bound_TF, axis=0) == np.sum(wc_bound_TF, axis=0)), "Counts of bound TFs not consistent!"
+    assert array_equal(bound_tf_totals, wc_bound_tf_totals), "Counts of bound TFs not consistent!"
 
     bound_TF_submass = np.array([promoter['submass'] for promoter in actual_update['promoters'].values()])
+    bound_submass_per_TF = np.sum(bound_TF_submass, axis=0)
     wc_bound_TF_submass = np.array([promoter['submass'] for promoter in actual_update['promoters'].values()])
+    wc_bound_submass_per_TF = np.sum(wc_bound_TF_submass, axis=0)
 
-    assert all(np.sum(bound_TF_submass, axis=0) == np.sum(wc_bound_TF_submass, axis=0)), "Sums of bound TF submasses not consistent!"
+    assert array_equal(bound_submass_per_TF, wc_bound_submass_per_TF), "Sums of bound TF submasses not consistent!"
 
     n_bound_TF_per_TU = actual_update['listeners']['rna_synth_prob']['n_bound_TF_per_TU']
-    wc_n_bound_TF_per_TU = expected_update['listeners']['rna_synth_prob']['n_bound_TF_per_TU']
+    n_bound_TU_per_TF = np.sum(n_bound_TF_per_TU, axis=0)
+    wc_n_bound_TF_per_TU = np.array(expected_update['listeners']['rna_synth_prob']['n_bound_TF_per_TU'])
+    wc_n_bound_TU_per_TF = np.sum(wc_n_bound_TF_per_TU, axis=0)
+    
 
-    assert all(np.sum(n_bound_TF_per_TU, axis=0) == np.sum(wc_n_bound_TF_per_TU, axis=0)), "Counts of bound TFs per TU not consistent!"
+    assert array_equal(n_bound_TU_per_TF, wc_n_bound_TU_per_TF), "Counts of bound TUs per TF not consistent!"
         
 def run_tf_binding():
     # Create process, experiment, loading in initial state from file.
