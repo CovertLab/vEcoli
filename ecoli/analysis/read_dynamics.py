@@ -189,12 +189,9 @@ def convert_dynamics(seriesOutDir, simDataFile, node_list, edge_list, experiment
 	# compresslevel=9 saves very little space.
 	zip_name = os.path.join(seriesOutDir, 'seriesOut.zip')
 	with zipfile.ZipFile(zip_name, 'w', compression=zipfile.ZIP_DEFLATED, allowZip64=False) as zf:
-		i = 0
 		for node_dict in node_list:
-			print(i)
 			node = build_dynamics(node_dict)
 			save_node(node, name_mapping)
-			i += 1
 		save_node(time_node(timeseries), name_mapping)
 		# for node in nodes:
 		# 	if node.node_id in name_mapping:
