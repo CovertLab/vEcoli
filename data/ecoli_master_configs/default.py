@@ -166,6 +166,6 @@ ECOLI_TOPOLOGY = {
             'promoters': ('unique', 'promoter'),
             'DnaA_boxes': ('unique', 'DnaA_box'),
             # TODO Include this only if superhelical density flag is passed
-            # 'chromosomal_segment': ('unique', 'chromosomal_segment')
+            # 'chromosomal_segments': ('unique', 'chromosomal_segment')
             }
     }
