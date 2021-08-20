@@ -21,6 +21,7 @@ from ecoli.processes.metabolism import (
 
 from vivarium.core.emitter import data_from_database, get_experiment_database, timeseries_from_data
 
+MIN_TIMESTEPS = 41  # Minimum number of timesteps for a working visualization without modification
 # REQUIRED_COLUMNS = [
 # 	("BulkMolecules", "counts"),
 # 	("ComplexationListener", "complexationEvents"),
@@ -38,16 +39,6 @@ from vivarium.core.emitter import data_from_database, get_experiment_database, t
 # 	("RnapData", "rnaInitEvent"),
 # 	("RibosomeData", "probTranslationPerTranscript"),
 # 	]
-
-
-def fill_initial(array, filler):
-	for value in array:
-		if value:
-			array_len = len(value)
-			break
-	if not array[0]:
-		array[0] = [filler for i in range(array_len)]
-	return np.array(array)
 
 
 def get_safe_name(s):
@@ -70,6 +61,7 @@ def convert_dynamics(seriesOutDir, simDataFile, node_list, edge_list, experiment
 	# Retrieve the data directly from database
 	db = get_experiment_database()
 	data, _ = data_from_database(experiment_id, db)
+	del data[0.0]
 	timeseries = timeseries_from_data(data)
 
 	with open(simDataFile, 'rb') as f:
@@ -141,11 +133,10 @@ def convert_dynamics(seriesOutDir, simDataFile, node_list, edge_list, experiment
 
 	# Cache cell volume array (used for calculating concentrations)
 
-	cell_mass = np.array(timeseries['listeners']['mass']['cell_mass'])
 	# volume = ((1.0 / sim_data.constants.cell_density) * (
 	# 	units.fg * columns[("Mass", "cellMass")])).asNumber(units.L)
 	volume = ((1.0 / sim_data.constants.cell_density) * (
-		units.fg * cell_mass)).asNumber(units.L)
+		units.fg * np.array(timeseries['listeners']['mass']['cell_mass']))).asNumber(units.L)
 
 	def dynamics_mapping(dynamics, safe):
 		return [{
@@ -203,11 +194,11 @@ def time_node(timeseries):
 		'node_id': 'time',
 		}
 	time_node.read_attributes(**attr)
-	if len(timeseries['time']) < 426:
-		print("SIMULATION TOO SHORT! APOLOGIES FOR THE STRANGE TIMESERIES!")
-	time = np.array(timeseries['time'])
+	if len(timeseries['time']) < MIN_TIMESTEPS:
+		time = np.array([0.0 + (2 * i) for i in range(MIN_TIMESTEPS)])
+	else:
+		time = np.array(timeseries['time'])
 	# time = columns[("Main", "time")]
-
 	dynamics = {
 		'time': time,
 		}
@@ -255,13 +246,11 @@ def read_gene_dynamics(sim_data, node, node_id, indexes, volume, timeseries):
 	Reads dynamics data for gene nodes from simulation output.
 	"""
 	gene_index = indexes["Genes"][node_id]
-	synth_prob_array = fill_initial(timeseries['listeners']['rna_synth_prob']['rna_synth_prob'], 0.0)
-	gene_copy_num = fill_initial(timeseries['listeners']['rna_synth_prob']['gene_copy_number'], 0)
 	dynamics = {
 		# "transcription probability": columns[("RnaSynthProb", "rnaSynthProb")][:, gene_index],
-		"transcription probability": synth_prob_array[:, gene_index],
+		"transcription probability": np.array(timeseries['listeners']['rna_synth_prob']['rna_synth_prob'])[:, gene_index],
 		# "gene copy number": columns[("RnaSynthProb", "gene_copy_number")][:, gene_index],
-		"gene copy number": gene_copy_num[:, gene_index],
+		"gene copy number": np.array(timeseries['listeners']['rna_synth_prob']['gene_copy_number'])[:, gene_index],
 		}
 	dynamics_units = {
 		"transcription probability": PROB_UNITS,
@@ -343,10 +332,9 @@ def read_transcription_dynamics(sim_data, node, node_id, indexes, volume, timese
 	"""
 	gene_id = node_id.split(NODE_ID_SUFFIX["transcription"])[0]
 	gene_idx = indexes["Genes"][gene_id]
-	rna_init_array = fill_initial(timeseries['listeners']['rnap_data']['rnaInitEvent'], 0)
 	dynamics = {
 		# "transcription initiations": columns[("RnapData", "rnaInitEvent")][:, gene_idx],
-		"transcription initiations": rna_init_array[:, gene_idx],
+		"transcription initiations": np.array(timeseries['listeners']['rnap_data']['rnaInitEvent'])[:, gene_idx],
 	}
 	dynamics_units = {
 		"transcription initiations": COUNT_UNITS,
@@ -361,10 +349,10 @@ def read_translation_dynamics(sim_data, node, node_id, indexes, volume, timeseri
 	"""
 	rna_id = node_id.split(NODE_ID_SUFFIX["translation"])[0] + "_RNA[c]"
 	translation_idx = indexes["TranslatedRnas"][rna_id]
-	prob_translation_array = fill_initial(timeseries['listeners']['ribosome_data']['prob_translation_per_transcript'], 0.0)
 	dynamics = {
 		# 'translation probability': columns[("RibosomeData", "probTranslationPerTranscript")][:, translation_idx],
-		'translation probability': prob_translation_array[:, translation_idx],
+		'translation probability': np.array(timeseries['listeners']['ribosome_data']['prob_translation_per_transcript'])
+		[:, translation_idx],
 		}
 	dynamics_units = {
 		'translation probability': PROB_UNITS,
@@ -379,7 +367,7 @@ def read_complexation_dynamics(sim_data, node, node_id, indexes, volume, timeser
 	"""
 	reaction_idx = indexes["ComplexationReactions"][node_id]
 	dynamics = {
-		'complexation events': fill_initial(timeseries['listeners']['complexation_events'], 0.0)[:, reaction_idx],
+		'complexation events': np.array(timeseries['listeners']['complexation_events'])[:, reaction_idx],
 		# 'complexation events': columns[("ComplexationListener", "complexationEvents")][:, reaction_idx],
 		}
 	dynamics_units = {
@@ -401,7 +389,7 @@ def read_metabolism_dynamics(sim_data, node, node_id, indexes, volume, timeserie
 	)
 	reaction_fluxes_converted = (
 			(COUNTS_UNITS / MASS_UNITS / TIME_UNITS) * (
-			fill_initial(timeseries['listeners']['fba_results']['reactionFluxes'], 0.0).T / conversion_coeffs).T
+			np.array(timeseries['listeners']['fba_results']['reactionFluxes']).T / conversion_coeffs).T
 	).asNumber(units.mmol / units.g / units.h)
 	dynamics = {
 		# 'flux': columns[("FBAResults", "reactionFluxesConverted")][:, reaction_idx],
@@ -426,7 +414,7 @@ def read_equilibrium_dynamics(sim_data, node, node_id, indexes, volume, timeseri
 
 	dynamics = {
 		# 'reaction rate': columns[("EquilibriumListener", "reactionRates")][:, reaction_idx],
-		'reaction rate': fill_initial(timeseries['listeners']['equilibrium_listener']['reaction_rates'], 0.0)[:, reaction_idx],
+		'reaction rate': np.array(timeseries['listeners']['equilibrium_listener']['reaction_rates'])[:, reaction_idx],
 	}
 	dynamics_units = {
 		'reaction rate': 'rxns/s',
@@ -443,17 +431,7 @@ def read_regulation_dynamics(sim_data, node, node_id, indexes, volume, timeserie
 	gene_idx = indexes["Genes"][gene_id]
 	tf_idx = indexes["TranscriptionFactors"][tf_id]
 
-	bound_tf_array = timeseries['listeners']['rna_synth_prob']['n_bound_TF_per_TU']
-	for value in bound_tf_array:
-		if type(value) == list:
-			num_arrays = len(value)
-			array_len = len(value[0])
-			break
-	for i in range(len(bound_tf_array)):
-		if type(bound_tf_array[i]) == int:
-			bound_tf_array[i] = [[0 for i in range(array_len)] for i in range(num_arrays)]
-
-	bound_tf_array = np.array(bound_tf_array)
+	bound_tf_array = np.array(timeseries['listeners']['rna_synth_prob']['n_bound_TF_per_TU'])
 	n_TU = len(sim_data.process.transcription.rna_data["id"])
 	n_TF = len(sim_data.process.transcription_regulation.tf_ids)
 	bound_tf_array = bound_tf_array.reshape(-1, n_TU, n_TF)
@@ -477,20 +455,9 @@ def read_tf_binding_dynamics(sim_data, node, node_id, indexes, volume, timeserie
 	tf_id, _ = node_id.split("-bound")
 	tf_idx = indexes["TranscriptionFactors"][tf_id]
 
-	bound_tf_array = timeseries['listeners']['rna_synth_prob']['n_bound_TF_per_TU']
-	for value in bound_tf_array:
-		if type(value) == list:
-			num_arrays = len(value)
-			array_len = len(value[0])
-			break
-	for i in range(len(bound_tf_array)):
-		if type(bound_tf_array[i]) == int:
-			bound_tf_array[i] = [[0 for i in range(array_len)] for i in range(num_arrays)]
-	bound_tf_array = np.array(bound_tf_array)
-
 	dynamics = {
 		# 'bound TFs': columns[("RnaSynthProb", "n_bound_TF_per_TU")][:, :, tf_idx].sum(axis=1),
-		'bound TFs': bound_tf_array[:, :, tf_idx].sum(axis=1),
+		'bound TFs': np.array(timeseries['listeners']['rna_synth_prob']['n_bound_TF_per_TU'])[:, :, tf_idx].sum(axis=1),
 	}
 	dynamics_units = {
 		'bound TFs': COUNT_UNITS,
@@ -505,10 +472,9 @@ def read_charging_dynamics(sim_data, node, node_id, indexes, volume, timeseries)
 	"""
 	rna = '{}[c]'.format(node_id.split(' ')[0])
 	rna_idx = indexes["Charging"][rna]
-	net_charged = fill_initial(timeseries['listeners']['growth_limits']['net_charged'], 0.0)
 	dynamics = {
 		# 'reaction rate': columns[("GrowthLimits", "net_charged")][:, rna_idx]
-		'reaction rate': net_charged[:, rna_idx]
+		'reaction rate': np.array(timeseries['listeners']['growth_limits']['net_charged'])[:, rna_idx]
 		}
 	dynamics_units = {
 		'reaction rate': 'rxns/s',
