@@ -2,7 +2,6 @@
 Reads dynamics data for each of the nodes of a causality network from a single
 simulation.
 """
-from __future__ import absolute_import, division, print_function
 
 from six.moves import cPickle
 import os
@@ -168,9 +167,6 @@ def convert_dynamics(seriesOutDir, simDataFile, node_list, edge_list, experiment
 			reader(sim_data, node, node.node_id, indexes, volume, timeseries)
 		return node
 
-	# nodes = [build_dynamics(node_dict) for node_dict in node_list]
-	# nodes.append(time_node(columns))
-
 	def save_node(node, name_mapping):
 		if node.node_id in name_mapping:
 			# Skip duplicates. Why are there duplicates? --check_sanity finds them.
@@ -193,18 +189,6 @@ def convert_dynamics(seriesOutDir, simDataFile, node_list, edge_list, experiment
 			node = build_dynamics(node_dict)
 			save_node(node, name_mapping)
 		save_node(time_node(timeseries), name_mapping)
-		# for node in nodes:
-		# 	if node.node_id in name_mapping:
-		# 		# Skip duplicates. Why are there duplicates? --check_sanity finds them.
-		# 		continue
-		#
-		# 	dynamics_path = get_safe_name(node.node_id)
-		# 	dynamics = node.dynamics_dict()
-		# 	dynamics_json = compact_json(dynamics)
-		#
-		# 	zf.writestr(os.path.join('series', dynamics_path + '.json'), dynamics_json)
-		#
-		# 	name_mapping[node.node_id] = dynamics_mapping(dynamics, dynamics_path)
 
 		zf.writestr('series.json', compact_json(name_mapping))
 		zf.writestr(NODELIST_JSON, compact_json(node_list))
