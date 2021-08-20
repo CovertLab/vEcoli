@@ -223,6 +223,7 @@ class Ecoli(Composer):
             'protein_degradation': self.load_sim_data.get_protein_degradation_config(time_step=time_step),
             'metabolism': self.load_sim_data.get_metabolism_config(time_step=time_step, deriver_mode=True),
             'chromosome_replication': self.load_sim_data.get_chromosome_replication_config(time_step=time_step),
+            'chromosome_structure': self.load_sim_data.get_chromosome_structure_config(time_step=time_step, deriver_mode=True),
             'mass': self.load_sim_data.get_mass_listener_config(time_step=time_step),
             'mrna_counts': self.load_sim_data.get_mrna_counts_listener_config(time_step=time_step),
             'allocator': self.load_sim_data.get_allocator_config(time_step=time_step, process_names=process_names)
@@ -232,13 +233,9 @@ class Ecoli(Composer):
         processes = {
             process_name: process(configs[process_name])
             for (process_name, process) in config['processes'].items()
-            # if process_name not in [
-            #     'polypeptide_elongation'
-            #     # TODO: get this working again
-            # ]
         }
 
-        derivers = ['metabolism', 'mass', 'mrna_counts', 'allocator']
+        derivers = ['metabolism', 'mass', 'mrna_counts', 'allocator', 'chromosome_structure']
 
         # make the requesters
         requesters = {
@@ -262,9 +259,13 @@ class Ecoli(Composer):
         if config['blame']:
             processes['metabolism'] = make_logging_process(
                 config['processes']['metabolism'])(configs['metabolism'])
+            processes['chromosome_structure'] = make_logging_process(
+                config['processes']['chromosome_structure'])(configs['chromosome_structure'])
         else:
             processes['metabolism'] = config['processes']['metabolism'](
                 configs['metabolism'])
+            processes['chromosome_structure'] = config['processes']['chromosome_structure'](
+                configs['chromosome_structure'])
 
         division = {}
         # add division
@@ -279,14 +280,17 @@ class Ecoli(Composer):
         mass = {'mass': processes['mass']}
         metabolism = {'metabolism': processes['metabolism']}
         mrna_counts = {'mrna_counts': processes['mrna_counts']}
+        chromosome_structure = {'chromosome_structure': processes['chromosome_structure']}
 
-        all_procs = {**metabolism, **requesters, **allocator, **evolvers, **division, **mrna_counts, **mass}
+        all_procs = {**chromosome_structure, 
+                     **metabolism, **requesters, **allocator,
+                     **evolvers, **division, **mrna_counts, **mass}
         return all_procs
 
     def generate_topology(self, config):
         topology = {}
 
-        derivers = ['metabolism', 'mass', 'allocator']
+        derivers = ['metabolism', 'mass', 'allocator', 'mrna_counts', 'chromosome_structure']
 
         # make the topology
         for process_id, ports in config['topology'].items():
@@ -320,10 +324,14 @@ class Ecoli(Composer):
         topology['metabolism'] = config['topology']['metabolism']
 
         topology['mrna_counts'] = config['topology']['mrna_counts']
+        
+        topology['chromosome_structure'] = config['topology']['chromosome_structure']
   
         if config['blame']:
             topology['metabolism']['log_update'] = (
                 'log_update', 'metabolism',)
+            topology['chromosome_structure']['log_update'] = (
+                'log_update', 'chromosome_structure',)
 
         return topology
 

@@ -14,8 +14,11 @@ from ecoli.processes.mass import Mass
 from ecoli.processes.cell_division import Division
 from ecoli.processes.listeners.mass_listener import MassListener
 from ecoli.processes.listeners.mRNA_counts import mRNACounts
+from ecoli.processes.chromosome_structure import ChromosomeStructure
 
 ECOLI_PROCESSES = {
+    'chromosome_structure': ChromosomeStructure,
+    'metabolism': Metabolism,
     'tf_binding': TfBinding,
     'transcript_initiation': TranscriptInitiation,
     'transcript_elongation': TranscriptElongation,
@@ -26,10 +29,9 @@ ECOLI_PROCESSES = {
     'two_component_system': TwoComponentSystem,
     'equilibrium': Equilibrium,
     'protein_degradation': ProteinDegradation,
-    'metabolism': Metabolism,
     'chromosome_replication': ChromosomeReplication,
-    'mass': MassListener,
     'mrna_counts': mRNACounts,
+    'mass': MassListener,
 }
 
 ECOLI_TOPOLOGY = {
@@ -146,6 +148,24 @@ ECOLI_TOPOLOGY = {
 
         'mrna_counts': {
             'listeners': ('listeners',),
-            'RNAs': ('unique', 'RNA')
-        }
+            'RNAs': ('unique', 'RNA')},
+        
+        'chromosome_structure': {
+            'fragmentBases': ('bulk',),
+            'molecules': ('bulk',),
+            'active_tfs': ('bulk',),
+            'subunits': ('bulk',),
+            'amino_acids': ('bulk',),
+            'active_replisomes': ('unique', 'active_replisome',),
+            'oriCs': ('unique', 'oriC',),
+            'chromosome_domains': ('unique', 'chromosome_domain',),
+            'active_RNAPs': ('unique', 'active_RNAP'),
+            'RNAs': ('unique', 'RNA'),
+            'active_ribosome': ('unique', 'active_ribosome'),
+            'full_chromosomes': ('unique', 'full_chromosome',),
+            'promoters': ('unique', 'promoter'),
+            'DnaA_boxes': ('unique', 'DnaA_box'),
+            # TODO Include this only if superhelical density flag is passed
+            # 'chromosomal_segment': ('unique', 'chromosomal_segment')
+            }
     }
