@@ -8,8 +8,6 @@ ChromosomeStructure process
 
 import numpy as np
 
-import warnings
-
 from vivarium.core.process import Process
 
 from ecoli.library.schema import (add_elements, arrays_from, bulk_schema, 
@@ -28,7 +26,7 @@ topology_registry.register(
         "fragmentBases": ("bulk",),
         "molecules": ("bulk",),
         "active_tfs": ("bulk",),
-        "subunit": ("bulk",),
+        "subunits": ("bulk",),
         "amino_acids": ("bulk",),
         "active_replisomes": ("unique", "active_replisome",),
         "oriCs": ("unique", "oriC",),
@@ -39,7 +37,8 @@ topology_registry.register(
         "full_chromosomes": ("unique", "full_chromosome",),
         "promoters": ("unique", "promoter"),
         "DnaA_boxes": ("unique", "DnaA_box"),
-        "chromosomal_segment": ("unique", "chromosomal_segment")
+        # TODO: Only include if superhelical density flag is passed
+        # "chromosomal_segments": ("unique", "chromosomal_segment")
     })
 
 class ChromosomeStructure(Process):
@@ -187,7 +186,7 @@ class ChromosomeStructure(Process):
         }
         
         if self.calculate_superhelical_densities:
-            ports['chromosomal_segment'] = {
+            ports['chromosomal_segments'] = {
                 '*': {
                     'boundary_molecule_indexes': {'_default': np.empty((0, 2), dtype=np.int64)}, 
                     'boundary_coordinates': {'_default': np.empty((0, 2), dtype=np.int64)},
@@ -311,7 +310,20 @@ class ChromosomeStructure(Process):
                     'codirectional_collision_coordinates': RNAP_coordinates[RNAP_codirectional_collision_mask]
                 }
             },
-            'molecules': {}
+            'molecules': {},
+            'fragmentBases': {},
+            'active_tfs': {},
+            'subunits': {},
+            'amino_acids': {},
+            'active_replisomes': {},
+            'oriCs': {},
+            'chromosome_domains': {},
+            'active_RNAPs': {},
+            'RNAs': {},
+            'active_ribosome': {},
+            'full_chromosomes': {},
+            'promoters': {},
+            'DnaA_boxes': {}
         }
         
         if self.calculate_superhelical_densities:
@@ -592,14 +604,14 @@ class ChromosomeStructure(Process):
             #     domain_index=promoter_domain_indexes_new,
             #     bound_TF=np.zeros((n_new_promoters, self.n_TFs), dtype=np.bool))
             new_promoters = arrays_to(
-            n_new_promoters, {
-                'unique_index': np.arange(
-                    self.promoter_index, self.promoter_index + 
-                    n_new_promoters).astype(str),
-                'TU_index': promoter_TU_indexes_new,
-                'coordinates': promoter_coordinates_new,
-                'domain_index': promoter_domain_indexes_new,
-                'bound_TF': np.zeros((n_new_promoters, self.n_TFs), dtype=np.bool)})
+                n_new_promoters, {
+                    'unique_index': np.arange(
+                        self.promoter_index, self.promoter_index + 
+                        n_new_promoters).astype(str),
+                    'TU_index': promoter_TU_indexes_new,
+                    'coordinates': promoter_coordinates_new,
+                    'domain_index': promoter_domain_indexes_new,
+                    'bound_TF': np.zeros((n_new_promoters, self.n_TFs), dtype=np.bool)})
             update['promoters'].update(add_elements(
                 new_promoters, 'unique_index'))
             self.promoter_index += n_new_promoters
@@ -641,15 +653,6 @@ class ChromosomeStructure(Process):
             self.DnaA_box_index += n_new_DnaA_boxes
             
         return update
-    
-    def _next_update(self, timestep, states):
-        with warnings.catch_warnings():
-            warnings.filterwarnings("error", category=FutureWarning)
-            try:
-                update = self._next_update(timestep, states)
-                return update
-            except Exception as err:
-                raise err
 
 
     def _compute_new_segment_attributes(self, old_boundary_molecule_indexes,
