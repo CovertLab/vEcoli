@@ -4,6 +4,9 @@ Metabolism
 ==========
 
 Metabolism sub-model. Encodes molecular simulation of microbial metabolism using flux-balance analysis.
+
+This process demonstrates how metabolites are taken up from the environment
+and converted into other metabolites for use in other processes.
 """
 
 # Note: the following comments were previously in the Docstring above, but I moved them

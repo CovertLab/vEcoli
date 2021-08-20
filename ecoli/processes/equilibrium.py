@@ -4,6 +4,10 @@ Equilibrium
 ===========
 
 Equilibrium binding sub-model.
+
+This process models how ligands are bound to or unbound
+from their transcription factor binding partners in a fashion
+that maintains equilibrium.
 """
 
 import numpy as np
