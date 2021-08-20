@@ -3,7 +3,14 @@
 Polypeptide Elongation
 ======================
 
-Translation sub-model for protein synthesis by ribosome.
+Polypeptide elongation sub-model.
+
+This process models the polymerization of amino acids into polypeptides
+by ribosomes using an mRNA transcript as a template. Elongation terminates
+once a ribosome has reached the end of an mRNA transcript. Polymerization
+occurs across all ribosomes simultaneously and resources are allocated to
+maximize the progress of all ribosomes within the limits of the maximum ribosome
+elongation rate, available amino acids and GTP, and the length of the transcript.
 """
 
 import numpy as np

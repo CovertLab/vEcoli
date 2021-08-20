@@ -3,7 +3,10 @@
 Protein Degradation
 ===================
 
-Protein degradation sub-model. Encodes molecular simulation of protein degradation as a Poisson process
+Protein degradation sub-model.
+
+This process accounts for the degradation of protein monomers.
+Speciﬁc proteins to be degraded are selected as a Poisson process.
 """
 
 # Note: the following comments were previously in the Docstring above, but I moved them

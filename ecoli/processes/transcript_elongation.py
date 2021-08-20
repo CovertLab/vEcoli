@@ -4,6 +4,13 @@ Transcript Elongation
 =====================
 
 Transcription elongation sub-model.
+
+This process models nucleotide polymerization into RNA molecules
+by RNA polymerases. Polymerization occurs across all polymerases
+simultaneously and resources are allocated to maximize the progress
+of all polymerases up to the limit of the expected polymerase elongation
+rate and available nucleotides. The termination of RNA elongation occurs
+once a RNA polymerase has reached the end of the annotated gene.
 """
 
 # Note: the following comments were previously in the Docstring above, but I moved them

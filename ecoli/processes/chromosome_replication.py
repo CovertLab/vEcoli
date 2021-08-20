@@ -5,6 +5,14 @@ Chromosome Replication
 
 Process for chromosome replication. Performs initiation, elongation, and
 termination of active partial chromosomes that replicate the chromosome.
+
+First, a round of replication is initiated at a ﬁxed cell mass per origin
+of replication and generally occurs once per cell cycle. Second, replication
+forks are elongated up to the maximal expected elongation rate, dNTP resource
+limitations, and template strand sequence but elongation does not take into
+account the action of topoisomerases or the enzymes in the replisome. Finally,
+replication forks terminate once they reach the end of their template strand and
+the chromosome immediately decatenates forming two separate chromosome molecules.
 """
 
 import uuid

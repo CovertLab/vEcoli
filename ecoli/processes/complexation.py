@@ -3,7 +3,16 @@
 Complexation
 ============
 
-Macromolecular complexation sub-model. Encodes molecular simulation of macromolecular complexation, in which monomers are assembled into complexes.
+Macromolecular complexation sub-model.
+
+This process encodes molecular simulation of macromolecular complexation,
+in which monomers are assembled into complexes. Macromolecular complexation
+is done by identifying complexation reactions that are possible (which are
+reactions that have sufﬁcient counts of all sub-components), performing one
+randomly chosen possible reaction, and re-identifying all possible complexation
+reactions. This process assumes that macromolecular complexes form spontaneously,
+and that complexation reactions are fast and complete within the time step of the
+simulation.
 """
 
 # Note: the following comments were previously in the Docstring above, but I moved them
