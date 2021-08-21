@@ -7,7 +7,7 @@ E. coli master composite
 import os
 import argparse
 
-from vivarium.core.composer import Composer, Composite
+from vivarium.core.composer import Composer
 from vivarium.core.engine import pp, Engine
 from vivarium.library.topology import assoc_path
 from vivarium.library.dict_utils import deep_merge
@@ -21,7 +21,6 @@ from vivarium.library.wrappers import make_logging_process
 # vivarium-ecoli processes
 from ecoli.processes.cell_division import Division
 from ecoli.plots.topology import get_ecoli_master_topology_settings
-from data.ecoli_master_configs.default import ECOLI_PROCESSES, ECOLI_TOPOLOGY
 
 # state
 from ecoli.states.wcecoli_state import get_state_from_file
@@ -51,11 +50,7 @@ class Ecoli(Composer):
         'division': {
             'threshold': 2220},  # fg
         'divide': False,
-        'blame': False,
-        'processes': {},
-        'topology': {},
-        'process_configs': {},
-        'log_updates': False,
+        'blame': False
     }
 
     def __init__(self, config):
@@ -189,18 +184,11 @@ def test_division():
     output = sim.run()
 
 
-def ecoli_topology_plot(filename=None, out_dir=None):
+def ecoli_topology_plot(config={}, filename=None, out_dir=None):
     """Make a topology plot of Ecoli"""
-    agent_config = {
-        'agent_id': '1',
-        'processes': ECOLI_PROCESSES,
-        'topology': ECOLI_TOPOLOGY,
-        'process_configs': {
-            process_id: "sim_data" for process_id in ECOLI_PROCESSES.keys()}
-        }
-    ecoli = Ecoli(agent_config)
+    agent_id_config = {'agent_id': '1'}
+    ecoli = Ecoli({**agent_id_config, **config})
     settings = get_ecoli_master_topology_settings()
-
     topo_plot = plot_topology(
         ecoli,
         filename=filename,
@@ -239,4 +227,4 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    test_division()
