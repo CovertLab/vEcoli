@@ -17,25 +17,25 @@ from ecoli.processes.listeners.mRNA_counts import mRNACounts
 from ecoli.processes.chromosome_structure import ChromosomeStructure
 
 ECOLI_PROCESSES = {
-    'chromosome_structure': ChromosomeStructure,
-    'metabolism': Metabolism,
-    'tf_binding': TfBinding,
-    'transcript_initiation': TranscriptInitiation,
-    'transcript_elongation': TranscriptElongation,
-    'rna_degradation': RnaDegradation,
-    'polypeptide_initiation': PolypeptideInitiation,
-    'polypeptide_elongation': PolypeptideElongation,
-    'complexation': Complexation,
-    'two_component_system': TwoComponentSystem,
-    'equilibrium': Equilibrium,
-    'protein_degradation': ProteinDegradation,
-    'chromosome_replication': ChromosomeReplication,
-    'mrna_counts': mRNACounts,
-    'mass': MassListener,
+    ChromosomeStructure.name: ChromosomeStructure,
+    Metabolism.name: Metabolism,
+    TfBinding.name: TfBinding,
+    TranscriptInitiation.name: TranscriptInitiation,
+    TranscriptElongation.name: TranscriptElongation,
+    RnaDegradation.name: RnaDegradation,
+    PolypeptideInitiation.name: PolypeptideInitiation,
+    PolypeptideElongation.name: PolypeptideElongation,
+    Complexation.name: Complexation,
+    TwoComponentSystem.name: TwoComponentSystem,
+    Equilibrium.name: Equilibrium,
+    ProteinDegradation.name: ProteinDegradation,
+    ChromosomeReplication.name: ChromosomeReplication,
+    mRNACounts.name: mRNACounts,
+    MassListener.name: MassListener,
 }
 
 ECOLI_TOPOLOGY = {
-        'tf_binding': {
+        TfBinding.name: {
             'promoters': ('unique', 'promoter'),
             'active_tfs': ('bulk',),
             'listeners': ('listeners',),
@@ -43,7 +43,7 @@ ECOLI_TOPOLOGY = {
             'active_tfs_total': ('bulk',),
             'inactive_tfs_total': ('bulk',),},
 
-        'transcript_initiation': {
+        TranscriptInitiation.name: {
             'environment': ('environment',),
             'full_chromosomes': ('unique', 'full_chromosome'),
             'RNAs': ('unique', 'RNA'),
@@ -52,7 +52,7 @@ ECOLI_TOPOLOGY = {
             'molecules': ('bulk',),
             'listeners': ('listeners',)},
 
-        'transcript_elongation': {
+        TranscriptElongation.name: {
             'environment': ('environment',),
             'RNAs': ('unique', 'RNA'),
             'active_RNAPs': ('unique', 'active_RNAP'),
@@ -61,7 +61,7 @@ ECOLI_TOPOLOGY = {
             'ntps': ('bulk',),
             'listeners': ('listeners',)},
 
-        'rna_degradation': {
+        RnaDegradation.name: {
             'charged_trna': ('bulk',),
             'bulk_RNAs': ('bulk',),
             'nmps': ('bulk',),
@@ -75,14 +75,14 @@ ECOLI_TOPOLOGY = {
             'active_ribosome': ('unique', 'active_ribosome'),
             'listeners': ('listeners',)},
 
-        'polypeptide_initiation': {
+        PolypeptideInitiation.name: {
             'environment': ('environment',),
             'listeners': ('listeners',),
             'active_ribosome': ('unique', 'active_ribosome'),
             'RNA': ('unique', 'RNA'),
             'subunits': ('bulk',)},
 
-        'polypeptide_elongation': {
+        PolypeptideElongation.name: {
             'environment': ('environment',),
             'listeners': ('listeners',),
             'active_ribosome': ('unique', 'active_ribosome'),
@@ -102,24 +102,24 @@ ECOLI_TOPOLOGY = {
             'charged_trna_total': ('bulk',),
             'uncharged_trna_total': ('bulk',),},
 
-        'complexation': {
+        Complexation.name: {
             'molecules': ('bulk',),
             'listeners': ('listeners',),
         },
 
-        'two_component_system': {
+        TwoComponentSystem.name: {
             'listeners': ('listeners',),
             'molecules': ('bulk',)},
 
-        'equilibrium': {
+        Equilibrium.name: {
             'listeners': ('listeners',),
             'molecules': ('bulk',)},
 
-        'protein_degradation': {
+        ProteinDegradation.name: {
             'metabolites': ('bulk',),
             'proteins': ('bulk',)},
 
-        'metabolism': {
+        Metabolism.name: {
             'metabolites': ('bulk',),
             'catalysts': ('bulk',),
             'kinetics_enzymes': ('bulk',),
@@ -129,7 +129,7 @@ ECOLI_TOPOLOGY = {
             'environment': ('environment',),
             'polypeptide_elongation': ('process_state', 'polypeptide_elongation')},
 
-        'chromosome_replication': {
+        ChromosomeReplication.name: {
             'replisome_trimers': ('bulk',),
             'replisome_monomers': ('bulk',),
             'dntps': ('bulk',),
@@ -141,16 +141,16 @@ ECOLI_TOPOLOGY = {
             'listeners': ('listeners',),
             'environment': ('environment',)},
 
-        'mass': {
+        MassListener.name: {
             'bulk': ('bulk',),
             'unique': ('unique',),
             'listeners': ('listeners',)},
 
-        'mrna_counts': {
+        mRNACounts.name: {
             'listeners': ('listeners',),
             'RNAs': ('unique', 'RNA')},
         
-        'chromosome_structure': {
+        ChromosomeStructure.name: {
             'fragmentBases': ('bulk',),
             'molecules': ('bulk',),
             'active_tfs': ('bulk',),
