@@ -8,7 +8,6 @@ from typing import Any, Dict
 
 from vivarium.core.process import Deriver
 
-NAME = 'ecoli-cell-division'
 
 def divide_by_domain(state, **args):
     """
@@ -34,7 +33,6 @@ def daughter_phylogeny_id(mother_id):
 
 class Division(Deriver):
     """ Division Process """
-    name = NAME
     defaults: Dict[str, Any] = {
         'daughter_ids_function': daughter_phylogeny_id,
         'threshold': None,
