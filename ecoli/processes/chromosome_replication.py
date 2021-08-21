@@ -20,7 +20,7 @@ from ecoli.processes.registries import topology_registry
 
 
 # Register default topology for this process, associating it with process name
-NAME = 'ecoli-chromosome_replication'
+NAME = 'ecoli-chromosome-replication'
 topology_registry.register(
     NAME,
     {

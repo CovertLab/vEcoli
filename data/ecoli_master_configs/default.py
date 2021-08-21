@@ -16,11 +16,9 @@ from ecoli.processes.mass import Mass
 from ecoli.processes.cell_division import Division
 from ecoli.processes.listeners.mass_listener import MassListener
 from ecoli.processes.listeners.mRNA_counts import mRNACounts
-from ecoli.processes.chromosome_structure import ChromosomeStructure
 
 
 ECOLI_DEFAULT_PROCESSES = [
-    ChromosomeStructure,
     Metabolism,
     TfBinding,
     TranscriptInitiation,
