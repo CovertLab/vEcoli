@@ -48,9 +48,8 @@ class LoadSimData:
             'ecoli-metabolism': self.get_metabolism_config,
             'ecoli-chromosome_replication': self.get_chromosome_replication_config,
             'ecoli-mass': self.get_mass_config,
-            'ecoli-mass-listener': self.get_mass_listener_config,
-            'mRNA_counts_listener': self.get_mrna_counts_listener_config,
-            'ecoli-chromosome_structure': self.get_chromosome_structure_config,
+            'ecoli-mass-listener' : self.get_mass_listener_config,
+            'mRNA_counts_listener' : self.get_mrna_counts_listener_config
         }
 
         try:
