@@ -9,7 +9,7 @@ import argparse
 from copy import deepcopy
 
 from vivarium.core.composer import Composer
-from vivarium.core.engine import pp, Engine
+from vivarium.core.engine import Engine
 from vivarium.plots.topology import plot_topology
 from vivarium.library.topology import assoc_path
 from vivarium.library.dict_utils import deep_merge
@@ -17,21 +17,18 @@ from vivarium.core.process import Process, Deriver
 
 # sim data
 from ecoli.library.sim_data import LoadSimData
-from data.ecoli_master_configs import default
+from ecoli.composites.ecoli_master_configs import default
 
 # logging
 from ecoli.library.logging import make_logging_process
 from ecoli.plots.blame import blame_plot
 
 # vivarium-ecoli processes
-from ecoli.plots.topology import get_ecoli_master_topology_settings
 from ecoli.processes.cell_division import Division
 from ecoli.processes.allocator import Allocator
 
 # state
 from ecoli.states.wcecoli_state import get_state_from_file
-
-from ecoli.library.data_predicates import all_nonnegative
 
 RAND_MAX = 2**31
 SIM_DATA_PATH = 'reconstruction/sim_data/kb/simData.cPickle'
