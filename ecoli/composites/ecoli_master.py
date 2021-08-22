@@ -65,7 +65,7 @@ class Ecoli(Composer):
             self.config['processes'] = ECOLI_PROCESSES.copy()
         if 'topology' not in self.config:
             self.config['topology'] = ECOLI_TOPOLOGY.copy()
-            
+
         self.processes = self.config['processes']
         self.topology = self.config['topology']
 
@@ -190,11 +190,18 @@ def test_division():
     output = sim.run()
 
 
-def ecoli_topology_plot(config={}, filename=None, out_dir=None):
+def ecoli_topology_plot(filename=None, out_dir=None):
     """Make a topology plot of Ecoli"""
-    agent_id_config = {'agent_id': '1'}
-    ecoli = Ecoli({**agent_id_config, **config})
+    agent_config = {
+        'agent_id': '1',
+        'processes': ECOLI_PROCESSES,
+        'topology': ECOLI_TOPOLOGY,
+        'process_configs': {
+            process_id: "sim_data" for process_id in ECOLI_PROCESSES.keys()}
+        }
+    ecoli = Ecoli(agent_config)
     settings = get_ecoli_master_topology_settings()
+
     topo_plot = plot_topology(
         ecoli,
         filename=filename,
@@ -206,6 +213,7 @@ def ecoli_topology_plot(config={}, filename=None, out_dir=None):
 test_library = {
     '0': run_ecoli,
     '1': test_division,
+    '2': ecoli_topology_plot,
 }
 
 
@@ -215,17 +223,10 @@ def main():
         os.makedirs(out_dir)
 
     parser = argparse.ArgumentParser(description='ecoli_master')
-    parser.add_argument(
-        '--name', '-n', default=[], nargs='+',
-        help='test ids to run')
-    parser.add_argument(
-        '--topology', '-t', action='store_true', default=False,
-        help='save a topology plot of ecoli master')
+    parser.add_argument('--name', '-n', default=[], nargs='+', help='test ids to run')
     args = parser.parse_args()
 
-    if args.topology:
-        ecoli_topology_plot(filename='ecoli_master', out_dir=out_dir)
-    elif args.name:
+    if args.name:
         for name in args.name:
             test_library[name]()
     else:
@@ -233,4 +234,4 @@ def main():
 
 
 if __name__ == '__main__':
-    test_division()
+    main()
