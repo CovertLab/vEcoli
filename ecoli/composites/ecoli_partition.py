@@ -17,7 +17,7 @@ from vivarium.core.process import Process, Deriver
 
 # sim data
 from ecoli.library.sim_data import LoadSimData
-from data.ecoli_master_configs import default
+from ecoli.composites.ecoli_master_configs import default
 
 # logging
 from ecoli.library.logging import make_logging_process
