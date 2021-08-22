@@ -7,7 +7,7 @@ from vivarium.core.engine import Engine, pf
 
 from ecoli.library.sim_data import LoadSimData
 from ecoli.composites.ecoli_master import SIM_DATA_PATH
-from ecoli.states.wcecoli_state import get_state_from_file
+from ecoli.states.wcecoli_state import get_state_from_file, MASSDIFFS
 from ecoli.processes.polypeptide_elongation import PolypeptideElongation
 from ecoli.library.schema import array_from
 from migration.plots import qqplot
@@ -164,7 +164,8 @@ def assertions(actual_update, expected_update):
             expected_key = expected_update_indices[i]
             assert scalar_almost_equal(actual_update['active_ribosome'][actual_key]['peptide_length'], expected_update['active_ribosome'][expected_key]['peptide_length'])
             assert scalar_almost_equal(actual_update['active_ribosome'][actual_key]['pos_on_mRNA'], expected_update['active_ribosome'][expected_key]['pos_on_mRNA'])
-            assert scalar_almost_equal(actual_update['active_ribosome'][actual_key]['submass']['protein'], expected_update['active_ribosome'][expected_key]['submass']['protein'])
+            assert scalar_almost_equal(actual_update['active_ribosome'][actual_key]['submass'][MASSDIFFS['massDiff_protein']], 
+                                       expected_update['active_ribosome'][expected_key]['submass']['protein'])
 
 def run_polypeptide_elongation():
     # Create process, experiment, loading in initial state from file.
@@ -175,7 +176,7 @@ def run_polypeptide_elongation():
         path=f'data/wcecoli_t0.json')
 
     polypeptide_elongation_composite = polypeptide_elongation_process.generate()
-    experiment = Engine({
+    experiment = Engine(**{
         'processes': polypeptide_elongation_composite['processes'],
         'topology': {polypeptide_elongation_process.name: PE_TOPOLOGY},
         'initial_state': initial_state

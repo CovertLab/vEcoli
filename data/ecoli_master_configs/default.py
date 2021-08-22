@@ -13,6 +13,7 @@ from ecoli.processes.chromosome_replication import ChromosomeReplication
 from ecoli.processes.mass import Mass
 from ecoli.processes.cell_division import Division
 from ecoli.processes.listeners.mass_listener import MassListener
+from ecoli.processes.listeners.mRNA_counts import mRNACounts
 
 ECOLI_PROCESSES = {
     'tf_binding': TfBinding,
@@ -28,14 +29,17 @@ ECOLI_PROCESSES = {
     'metabolism': Metabolism,
     'chromosome_replication': ChromosomeReplication,
     'mass': MassListener,
+    'mrna_counts': mRNACounts,
 }
 
 ECOLI_TOPOLOGY = {
         'tf_binding': {
             'promoters': ('unique', 'promoter'),
             'active_tfs': ('bulk',),
-            'inactive_tfs': ('bulk',),
-            'listeners': ('listeners',)},
+            'listeners': ('listeners',),
+            # Non-partitioned counts
+            'active_tfs_total': ('bulk',),
+            'inactive_tfs_total': ('bulk',),},
 
         'transcript_initiation': {
             'environment': ('environment',),
@@ -89,10 +93,17 @@ ECOLI_TOPOLOGY = {
             'charging_molecules': ('bulk',),
             'synthetases': ('bulk',),
             'subunits': ('bulk',),
-            'polypeptide_elongation': ('process_state', 'polypeptide_elongation')},
+            'polypeptide_elongation': ('process_state', 'polypeptide_elongation'),
+            # Non-partitioned counts
+            'molecules_total': ('bulk',),
+            'amino_acids_total': ('bulk',),
+            'charged_trna_total': ('bulk',),
+            'uncharged_trna_total': ('bulk',),},
 
         'complexation': {
-            'molecules': ('bulk',)},
+            'molecules': ('bulk',),
+            'listeners': ('listeners',),
+        },
 
         'two_component_system': {
             'listeners': ('listeners',),
@@ -132,4 +143,9 @@ ECOLI_TOPOLOGY = {
             'bulk': ('bulk',),
             'unique': ('unique',),
             'listeners': ('listeners',)},
+
+        'mrna_counts': {
+            'listeners': ('listeners',),
+            'RNAs': ('unique', 'RNA')
+        }
     }
