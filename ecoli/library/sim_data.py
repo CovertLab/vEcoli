@@ -4,6 +4,7 @@ from wholecell.utils import units
 from wholecell.utils.fitting import normalize
 
 from ecoli.processes.polypeptide_elongation import MICROMOLAR_UNITS
+from ecoli.states.wcecoli_state import MASSDIFFS
 
 RAND_MAX = 2**31
 SIM_DATA_PATH = 'reconstruction/sim_data/kb/simData.cPickle'
@@ -24,10 +25,37 @@ class LoadSimData:
         
         self.trna_charging = trna_charging
         self.ppgpp_regulation = ppgpp_regulation
+        
+        self.submass_indexes = MASSDIFFS
 
         # load sim_data
         with open(sim_data_path, 'rb') as sim_data_file:
             self.sim_data = cPickle.load(sim_data_file)
+
+    
+    def get_config_by_name(self, name, time_step=2, parallel=False):
+        name_config_mapping = {
+            'ecoli-tf-binding': self.get_tf_config,
+            'ecoli-transcript-initiation': self.get_transcript_initiation_config,
+            'ecoli-transcript-elongation': self.get_transcript_elongation_config,
+            'ecoli-rna-degradation': self.get_rna_degradation_config,
+            'ecoli-polypeptide-initiation': self.get_polypeptide_initiation_config,
+            'ecoli-polypeptide-elongation': self.get_polypeptide_elongation_config,
+            'ecoli-complexation': self.get_complexation_config,
+            'ecoli-two-component-system': self.get_two_component_system_config,
+            'ecoli-equilibrium': self.get_equilibrium_config,
+            'ecoli-protein-degradation': self.get_protein_degradation_config,
+            'ecoli-metabolism': self.get_metabolism_config,
+            'ecoli-chromosome_replication': self.get_chromosome_replication_config,
+            'ecoli-mass': self.get_mass_config,
+            'ecoli-mass-listener' : self.get_mass_listener_config,
+            'mRNA_counts_listener' : self.get_mrna_counts_listener_config
+        }
+
+        try:
+            return name_config_mapping[name](time_step=time_step, parallel=parallel)
+        except KeyError:
+            raise KeyError(f"Process of name {name} is not known to LoadSimData.get_config_by_name")
 
 
     def get_chromosome_replication_config(self, time_step=2, parallel=False):
@@ -62,6 +90,8 @@ class LoadSimData:
 
             # random state
             'seed': self.random_state.randint(RAND_MAX),
+            
+            'submass_indexes': self.submass_indexes,
         }
 
         return chromosome_replication_config
@@ -169,7 +199,9 @@ class LoadSimData:
             'location_lookup': self.sim_data.process.transcription.attenuation_location,
 
             # random seed
-            'seed': self.random_state.randint(RAND_MAX)
+            'seed': self.random_state.randint(RAND_MAX),
+            
+            'submass_indexes': self.submass_indexes,
         }
 
         return transcript_elongation_config
@@ -307,7 +339,9 @@ class LoadSimData:
             'aa_enzymes': metabolism.aa_enzymes,
             'amino_acid_synthesis': metabolism.amino_acid_synthesis,
             'amino_acid_import': metabolism.amino_acid_import,
-            'seed': self.random_state.randint(RAND_MAX)}
+            'seed': self.random_state.randint(RAND_MAX),
+            
+            'submass_indexes': self.submass_indexes,}
 
         return polypeptide_elongation_config
 
@@ -319,7 +353,9 @@ class LoadSimData:
             'stoichiometry': self.sim_data.process.complexation.stoich_matrix().astype(np.int64).T,
             'rates': self.sim_data.process.complexation.rates,
             'molecule_names': self.sim_data.process.complexation.molecule_names,
-            'seed': self.random_state.randint(RAND_MAX)}
+            'seed': self.random_state.randint(RAND_MAX),
+            'numReactions': len(self.sim_data.process.complexation.rates),
+        }
 
         return complexation_config
 
@@ -462,6 +498,14 @@ class LoadSimData:
         }
 
         return mass_config
+
+    def get_mrna_counts_listener_config(self, time_step=2, parallel=False):
+        counts_config = {
+            'rna_ids': self.sim_data.process.transcription.rna_data['id'],
+            'mrna_indexes': np.where(self.sim_data.process.transcription.rna_data['is_mRNA'])[0],
+        }
+
+        return counts_config
 
       
     def get_allocator_config(self, time_step=2, parallel=False, process_names=[]):

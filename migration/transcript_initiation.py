@@ -37,7 +37,6 @@ def test_transcript_initiation(fixed_synths_monte_carlo=False):
     config = load_sim_data.get_transcript_initiation_config()
     process = TranscriptInitiation(config)
 
-    # copy topology from ecoli_master, under generate_topology
     topology = {
             'environment': ('environment',),
             'full_chromosomes': ('unique', 'full_chromosome'),
