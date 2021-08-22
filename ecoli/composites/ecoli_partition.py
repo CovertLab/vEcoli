@@ -9,7 +9,7 @@ import argparse
 from copy import deepcopy
 
 from vivarium.core.composer import Composer
-from vivarium.core.engine import pp, Engine
+from vivarium.core.engine import Engine
 from vivarium.plots.topology import plot_topology
 from vivarium.library.topology import assoc_path
 from vivarium.library.dict_utils import deep_merge
@@ -17,21 +17,19 @@ from vivarium.core.process import Process, Deriver
 
 # sim data
 from ecoli.library.sim_data import LoadSimData
-from ecoli.composites.ecoli_master_configs import default
+from ecoli.composites.ecoli_master_configs.default import ECOLI_PROCESSES, ECOLI_TOPOLOGY
 
 # logging
 from ecoli.library.logging import make_logging_process
 from ecoli.plots.blame import blame_plot
 
 # vivarium-ecoli processes
-from ecoli.plots.topology import get_ecoli_master_topology_settings
 from ecoli.processes.cell_division import Division
 from ecoli.processes.allocator import Allocator
 
 # state
 from ecoli.states.wcecoli_state import get_state_from_file
 
-from ecoli.library.data_predicates import all_nonnegative
 
 RAND_MAX = 2**31
 SIM_DATA_PATH = 'reconstruction/sim_data/kb/simData.cPickle'
@@ -167,6 +165,34 @@ class Evolver(Process):
         states = deep_merge(states, states.pop('allocate'))
         return self.process.evolve_state(timestep, states)
 
+# rename the processes
+# TODO: remove this!
+NAMES_MAP = {
+    'ecoli-tf-binding': 'tf_binding',
+    'ecoli-transcript-initiation': 'transcript_initiation',
+    'ecoli-transcript-elongation': 'transcript_elongation',
+    'ecoli-rna-degradation': 'rna_degradation',
+    'ecoli-polypeptide-initiation': 'polypeptide_initiation',
+    'ecoli-polypeptide-elongation': 'polypeptide_elongation',
+    'ecoli-complexation': 'complexation',
+    'ecoli-two-component-system': 'two_component_system',
+    'ecoli-equilibrium': 'equilibrium',
+    'ecoli-protein-degradation': 'protein_degradation',
+    'ecoli-metabolism': 'metabolism',
+    'ecoli-chromosome-replication': 'chromosome_replication',
+    'ecoli-mass-listener': 'mass',
+    'mRNA_counts_listener': 'mrna_counts',
+}
+
+RENAMED_ECOLI_PROCESSES = {
+    NAMES_MAP[process_name]: process
+    for process_name, process in ECOLI_PROCESSES.items()
+}
+RENAMED_ECOLI_TOPOLOGY = {
+    NAMES_MAP[process_name]: process
+    for process_name, process in ECOLI_TOPOLOGY.items()
+}
+
 
 class Ecoli(Composer):
 
@@ -182,8 +208,8 @@ class Ecoli(Composer):
             'threshold': 2220},  # fg
         'divide': False,
         'blame': False,
-        'processes': default.ECOLI_PROCESSES.copy(),
-        'topology': default.ECOLI_TOPOLOGY.copy()
+        'processes': RENAMED_ECOLI_PROCESSES.copy(),
+        'topology': RENAMED_ECOLI_TOPOLOGY.copy()
     }
 
     def __init__(self, config):
@@ -232,10 +258,6 @@ class Ecoli(Composer):
         processes = {
             process_name: process(configs[process_name])
             for (process_name, process) in config['processes'].items()
-            # if process_name not in [
-            #     'polypeptide_elongation'
-            #     # TODO: get this working again
-            # ]
         }
 
         derivers = ['metabolism', 'mass', 'mrna_counts', 'allocator']

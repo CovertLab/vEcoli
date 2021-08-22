@@ -7,17 +7,24 @@ import numpy as np
 
 from vivarium.core.process import Deriver
 
-from ecoli.processes.rna_degradation import RnaDegradation
-from ecoli.processes.protein_degradation import ProteinDegradation
-from ecoli.processes.two_component_system import TwoComponentSystem
-from ecoli.processes.tf_binding import TfBinding
-from ecoli.processes.metabolism import Metabolism
+# from ecoli.processes.rna_degradation import RnaDegradation
+# from ecoli.processes.protein_degradation import ProteinDegradation
+# from ecoli.processes.two_component_system import TwoComponentSystem
+# from ecoli.processes.tf_binding import TfBinding
+# from ecoli.processes.metabolism import Metabolism
+#
+# CUSTOM_PRIORITIES = {RnaDegradation.name: 10,
+#                      ProteinDegradation.name: 10,
+#                      TwoComponentSystem.name: -5,
+#                      TfBinding.name: -10,
+#                      Metabolism.name: -10}
 
-CUSTOM_PRIORITIES = {RnaDegradation.name: 10,
-                     ProteinDegradation.name: 10,
-                     TwoComponentSystem.name: -5,
-                     TfBinding.name: -10,
-                     Metabolism.name: -10}
+# TODO -- use the default process names (commented code above)
+CUSTOM_PRIORITIES = {'rna_degradation': 10,
+                      'protein_degradation': 10,
+                      'two_component_system': -5,
+                      'tf_binding': -10,
+                      'metabolism': -10}
 
 ASSERT_POSITIVE_COUNTS = True
 
