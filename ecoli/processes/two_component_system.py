@@ -21,10 +21,19 @@ from ecoli.library.schema import (
     array_from, array_to, bulk_schema)
 
 from wholecell.utils import units
+from ecoli.processes.registries import topology_registry
 
+# Register default topology for this process, associating it with process name
+NAME = 'ecoli-two-component-system'
+topology_registry.register(
+    NAME,
+    {
+        "listeners": ("listeners",),
+        "molecules": ("bulk",)
+    })
 
 class TwoComponentSystem(Process):
-    name = 'ecoli-two-component-system'
+    name = NAME
 
     defaults = {
         'jit': False,

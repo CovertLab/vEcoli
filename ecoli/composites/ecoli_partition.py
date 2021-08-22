@@ -57,12 +57,13 @@ def change_bulk_updater(schema, new_updater):
     if '_properties' in schema:
         if schema['_properties']['bulk']:
             topo_copy = schema.copy()
-            topo_copy.update({'_updater': new_updater})
+            topo_copy.update({'_updater': new_updater, '_emit': False})
             return topo_copy
     for port, value in schema.items():
         if has_bulk_property(value):
             bulk_schema[port] = change_bulk_updater(value, new_updater)
     return bulk_schema
+
 
 def has_bulk_property(schema):
     """Check to see if a subset of the ports schema contains
@@ -85,8 +86,10 @@ def has_bulk_property(schema):
                     return True
     return False
 
+
 def get_bulk_topo(topo):
-    """Return topology of only bulk molecules
+    """Return topology of only bulk molecules, excluding stores with 
+    '_total' in name (for non-partitioned counts)
     NOTE: Does not work with '_path' key
 
     Args:
@@ -100,9 +103,10 @@ def get_bulk_topo(topo):
     if isinstance(topo, dict):
         bulk_topo = {}
         for port, value in topo.items():
-            if path_in_bulk(value):
+            if path_in_bulk(value) and '_total' not in port:
                 bulk_topo[port] = get_bulk_topo(value)
     return bulk_topo
+
 
 def path_in_bulk(topo):
     """Check whether a subset of the topology is contained within
@@ -137,13 +141,13 @@ class Requester(Deriver):
         return ports
 
     def next_update(self, timestep, states):
-        update = self.process.calculate_request(self.parameters['time_step'], states)
+        update = self.process.calculate_request(
+            self.parameters['time_step'], states)
         # Ensure listeners are updated if passed by calculate_request
         listeners = update.pop('listeners', None)
         if listeners != None:
             return {'request': update, 'listeners': listeners}
         return {'request': update}
-    
 
 
 class Evolver(Process):
@@ -178,8 +182,8 @@ class Ecoli(Composer):
             'threshold': 2220},  # fg
         'divide': False,
         'blame': False,
-        'processes' : default.ECOLI_PROCESSES.copy(),
-        'topology' : default.ECOLI_TOPOLOGY.copy()
+        'processes': default.ECOLI_PROCESSES.copy(),
+        'topology': default.ECOLI_TOPOLOGY.copy()
     }
 
     def __init__(self, config):
@@ -190,19 +194,20 @@ class Ecoli(Composer):
             seed=self.config['seed'])
 
     def initial_state(self, config=None, path=()):
-        initial_state = get_state_from_file()
+        # Use initial state calculated with trna_charging and translationSupply disabled
+        initial_state = get_state_from_file(path='data/metabolism/wcecoli_t0.json')
         embedded_state = {}
         assoc_path(embedded_state, path, initial_state)
         return embedded_state
 
     def generate_processes(self, config):
         time_step = config['time_step']
-        parallel = config['parallel']     
-        
+        parallel = config['parallel']
+
         process_names = list(config['processes'].keys())
         process_names.remove('mass')
-        
-        config['processes']['allocator'] = Allocator   
+
+        config['processes']['allocator'] = Allocator
 
         # get the configs from sim_data
         configs = {
@@ -219,6 +224,7 @@ class Ecoli(Composer):
             'metabolism': self.load_sim_data.get_metabolism_config(time_step=time_step, deriver_mode=True),
             'chromosome_replication': self.load_sim_data.get_chromosome_replication_config(time_step=time_step),
             'mass': self.load_sim_data.get_mass_listener_config(time_step=time_step),
+            'mrna_counts': self.load_sim_data.get_mrna_counts_listener_config(time_step=time_step),
             'allocator': self.load_sim_data.get_allocator_config(time_step=time_step, process_names=process_names)
         }
 
@@ -226,14 +232,14 @@ class Ecoli(Composer):
         processes = {
             process_name: process(configs[process_name])
             for (process_name, process) in config['processes'].items()
-            if process_name not in [
-                'polypeptide_elongation'
-                # TODO: get this working again
-            ]
+            # if process_name not in [
+            #     'polypeptide_elongation'
+            #     # TODO: get this working again
+            # ]
         }
-        
-        derivers = ['metabolism', 'mass', 'allocator']
-        
+
+        derivers = ['metabolism', 'mass', 'mrna_counts', 'allocator']
+
         # make the requesters
         requesters = {
             f'{process_name}_requester': Requester({'time_step': time_step,
@@ -241,24 +247,25 @@ class Ecoli(Composer):
             for (process_name, process) in processes.items()
             if process_name not in derivers
         }
-        
+
         # make the evolvers
         evolvers = {
             f'{process_name}_evolver': Evolver({'time_step': time_step,
                                                 'process': process})
-                if not config['blame']
-                else make_logging_process(Evolver)({'time_step': time_step,
-                                                    'process': process})
+            if not config['blame']
+            else make_logging_process(Evolver)({'time_step': time_step,
+                                                'process': process})
             for (process_name, process) in processes.items()
             if process_name not in derivers
         }
-        
+
         if config['blame']:
             processes['metabolism'] = make_logging_process(
                 config['processes']['metabolism'])(configs['metabolism'])
         else:
-            processes['metabolism'] = config['processes']['metabolism'](configs['metabolism'])
-        
+            processes['metabolism'] = config['processes']['metabolism'](
+                configs['metabolism'])
+
         division = {}
         # add division
         if self.config['divide']:
@@ -267,18 +274,18 @@ class Ecoli(Composer):
                 agent_id=self.config['agent_id'],
                 composer=self)
             division = {'division': Division(division_config)}
-            
+
         allocator = {'allocator': processes['allocator']}
         mass = {'mass': processes['mass']}
         metabolism = {'metabolism': processes['metabolism']}
+        mrna_counts = {'mrna_counts': processes['mrna_counts']}
 
-        all_procs = {**requesters, **allocator, **evolvers, **metabolism, **division, **mass}
-        
+        all_procs = {**metabolism, **requesters, **allocator, **evolvers, **division, **mrna_counts, **mass}
         return all_procs
 
     def generate_topology(self, config):
         topology = {}
-        
+
         derivers = ['metabolism', 'mass', 'allocator']
 
         # make the topology
@@ -287,13 +294,14 @@ class Ecoli(Composer):
                 topology[f'{process_id}_requester'] = deepcopy(ports)
                 topology[f'{process_id}_evolver'] = deepcopy(ports)
                 if config['blame']:
-                    topology[f'{process_id}_evolver']['log_update'] = ('log_update', process_id,)
+                    topology[f'{process_id}_evolver']['log_update'] = (
+                        'log_update', process_id,)
                 bulk_topo = get_bulk_topo(ports)
                 topology[f'{process_id}_requester']['request'] = {
-                    '_path': ('bulk', 'request', process_id,),
+                    '_path': ('request', process_id,),
                     **bulk_topo}
                 topology[f'{process_id}_evolver']['allocate'] = {
-                    '_path': ('bulk', 'allocate', process_id,),
+                    '_path': ('allocate', process_id,),
                     **bulk_topo}
 
         # add division
@@ -301,18 +309,21 @@ class Ecoli(Composer):
             topology['division'] = {
                 'variable': ('listeners', 'mass', 'cell_mass'),
                 'agents': config['agents_path']}
-            
+
         topology['allocator'] = {
-            'request': ('bulk', 'request',),
-            'allocate': ('bulk', 'allocate',),
+            'request': ('request',),
+            'allocate': ('allocate',),
             'bulk': ('bulk',)}
-        
+
         topology['mass'] = config['topology']['mass']
-        
+
         topology['metabolism'] = config['topology']['metabolism']
-        
+
+        topology['mrna_counts'] = config['topology']['mrna_counts']
+  
         if config['blame']:
-            topology['metabolism']['log_update'] = ('log_update', 'metabolism',)
+            topology['metabolism']['log_update'] = (
+                'log_update', 'metabolism',)
 
         return topology
 
@@ -365,15 +376,15 @@ def run_ecoli(
     ecoli = ecoli_composer.generate(path=path)
 
     # make the experiment
-    ecoli_experiment = Engine({
+    ecoli_experiment = Engine(**{
         'processes': ecoli.processes,
         'topology': ecoli.topology,
         'initial_state': initial_state,
         'progress_bar': progress_bar,
         'emit_config': False,
         # Not emitting every step is faster but breaks blame.py
-        #'emit_step': 1000,
-        #'emitter': 'database'
+        # 'emit_step': 1000,
+        # 'emitter': 'database'
     })
 
     # run the experiment
@@ -381,6 +392,9 @@ def run_ecoli(
 
     # retrieve the data
     output = ecoli_experiment.emitter.get_timeseries()
+    
+    # Sanity check: breaks test_division()
+    # pp(output['listeners']['mass'])
 
     return output
 
@@ -403,105 +417,112 @@ def test_division():
     )
 
 
-def assertions(sim_output):
+def get_partition_topology_settings():
+    evolver_row = -6
+    allocator_row = -7
+    requester_row = -8
+    process_distance = 0.9
+    settings = {
+        'graph_format': 'hierarchy',
+        'dashed_edges': True,
+        'show_ports': False,
+        'node_size': 12000,
+        'coordinates': {
+            'tf_binding_evolver': (1 * process_distance, evolver_row),
+            'tf_binding_requester': (1 * process_distance, requester_row),
 
-    test_structure = {
-        'bulk' : ...,# transform_and_run(array_from, nonnegative),
-        'process_state' : {
-            'polypeptide_elongation' : {
-                'aa_count_diff' : ...,
-                'gtp_to_hydrolyze' : ...
-            }
+            'transcript_initiation_evolver': (2 * process_distance, evolver_row),
+            'transcript_initiation_requester': (2 * process_distance, requester_row),
+
+            'transcript_elongation_evolver': (3 * process_distance, evolver_row),
+            'transcript_elongation_requester': (3 * process_distance, requester_row),
+
+            'rna_degradation_evolver': (4 * process_distance, evolver_row),
+            'rna_degradation_requester': (4 * process_distance, requester_row),
+
+            'polypeptide_initiation_evolver': (5 * process_distance, evolver_row),
+            'polypeptide_initiation_requester': (5 * process_distance, requester_row),
+
+            'polypeptide_elongation_evolver': (6 * process_distance, evolver_row),
+            'polypeptide_elongation_requester': (6 * process_distance, requester_row),
+
+            'complexation_evolver': (7 * process_distance, evolver_row),
+            'complexation_requester': (7 * process_distance, requester_row),
+
+            'two_component_system_evolver': (8 * process_distance, evolver_row),
+            'two_component_system_requester': (8 * process_distance, requester_row),
+
+            'equilibrium_evolver': (9 * process_distance, evolver_row),
+            'equilibrium_requester': (9 * process_distance, requester_row),
+
+            'protein_degradation_evolver': (10 * process_distance, evolver_row),
+            'protein_degradation_requester': (10 * process_distance, requester_row),
+
+            'chromosome_replication_evolver': (11 * process_distance, evolver_row),
+            'chromosome_replication_requester': (11 * process_distance, requester_row),
+
+            'metabolism': (12 * process_distance, evolver_row),
+            'mass': (13 * process_distance, evolver_row),
+            'mrna_counts': (14 * process_distance, evolver_row),
+            'divide_condition': (15 * process_distance, evolver_row),
+
+            'allocator': (6 * process_distance, allocator_row),
         },
-        'listeners' : {
-            'rna_synth_prob' : {
-                'pPromoterBound' : ...,
-                'nPromoterBound' : ...,
-                'nActualBound' : ...,
-                'n_available_promoters' : ...,
-                'n_bound_TF_per_TU' : ...,
-                'rna_synth_prob' : ...
-            },
-            'mass' : {
-                'cell_mass' : ...,
-                'dry_mass' : ...,
-                'water_mass' : ...
-            },
-            'ribosome_data' : {
-                'rrn16S_produced' : ...,
-                'rrn23S_produced' : ...,
-                'rrn5S_produced' : ...,
-                'rrn16S_init_prob' : ...,
-                'rrn23S_init_prob' : ...,
-                'rrn5S_init_prob' : ...,
-                'total_rna_init' : ...,
-                'ribosomes_initialized' : ...,
-                'prob_translation_per_transcript' : ...,
-                'effective_elongation_rate' : ...,
-                'translation_supply' : ...,
-                'aaCountInSequence' : ...,
-                'aaCounts' : ...,
-                'actualElongations' : ...,
-                'actualElongationHist' : ...,
-                'elongationsNonTerminatingHist' : ...,
-                'didTerminate' : ...,
-                'terminationLoss' : ...,
-                'numTrpATerminated' : ...,
-                'processElongationRate' : ...
-            },
-            'rnap_data' : {
-                'didInitialize' : ...,
-                'rnaInitEvent' : ...,
-                'actualElongations' : ...,
-                'didTerminate' : ...,
-                'terminationLoss' : ...,
-                'didStall' : ...
-            },
-            'transcript_elongation_listener' : {
-                'countNTPsUsed' : ...,
-                'countRnaSynthesized' : ...,
-                'attenuation_probability' : ...,
-                'counts_attenuated' : ...
-            },
-            'growth_limits' : {
-                'ntpUsed' : ...,
-                'fraction_trna_charged': ...,
-                'aa_pool_size' : ...,
-                'aa_request_size' : ...,
-                'aa_allocated' : ...,
-                'active_ribosomes_allocated' : ...,
-                'net_charged' : ...,
-                'aasUsed' : ...
-            },
-            'rna_degradation_listener' : {
-                'fraction_active_endo_rnases' : ...,
-                'diff_relative_first_order_decay' : ...,
-                'fract_endo_rrna_counts' : ...,
-                'count_rna_degraded' : ...,
-                'nucleotides_from_degradation' : ...,
-                'fragment_bases_digested' : ...
-            },
-            'equilibrium_listener' : {},
-            'fba_results' : {},
-            'enzyme_kinetics' : {},
-            'replication_data' : {}
-        }
-    }
+        'node_labels': {
+            # processes
+            'tf_binding_requester': 'tf\nbinding\nrequester',
+            'tf_binding_evolver': 'tf\nbinding\nevolver',
 
-    for molecule, timeseries in sim_output['bulk'].items():
-        assert all_nonnegative(timeseries), f'{molecule} goes negative'
+            'transcript_initiation_requester': 'transcript\ninitiation\nrequester',
+            'transcript_initiation_evolver': 'transcript\ninitiation\nevolver',
+
+            'transcript_elongation_requester': 'transcript\nelongation\nrequester',
+            'transcript_elongation_evolver': 'transcript\nelongation\nevolver',
+
+            'rna_degradation_requester': 'rna\ndegradation\nrequester',
+            'rna_degradation_evolver': 'rna\ndegradation\nevolver',
+
+            'polypeptide_initiation_requester': 'polypeptide\ninitiation\nrequester',
+            'polypeptide_initiation_evolver': 'polypeptide\ninitiation\nevolver',
+
+            'polypeptide_elongation_requester': 'polypeptide\nelongation\nrequester',
+            'polypeptide_elongation_evolver': 'polypeptide\nelongation\nevolver',
+
+            'complexation_requester': 'complexation\nrequester',
+            'complexation_evolver': 'complexation\nevolver',
+
+            'two_component_system_requester': 'two component\nsystem\nrequester',
+            'two_component_system_evolver': 'two component\nsystem\nevolver',
+
+            'equilibrium_requester': 'equilibrium\nrequester',
+            'equilibrium_evolver': 'equilibrium\nevolver',
+
+            'protein_degradation_requester': 'protein\ndegradation\nrequester',
+            'protein_degradation_evolver': 'protein\ndegradation\nevolver',
+
+            'chromosome_replication_requester': 'chromosome\nreplication\nrequester',
+            'chromosome_replication_evolver': 'chromosome\nreplication\nevolver',
+
+            'metabolism': 'metabolism',
+            'mass': 'mass',
+            'mrna_counts': 'mrna\ncounts',
+            'divide_condition': 'division',
+        },
+    }
+    return settings
 
 
 def ecoli_topology_plot(config={}, filename=None, out_dir=None):
     """Make a topology plot of Ecoli"""
     agent_id_config = {'agent_id': '1'}
     ecoli = Ecoli({**agent_id_config, **config})
-    settings = get_ecoli_master_topology_settings()
+    settings = get_partition_topology_settings()
     topo_plot = plot_topology(
         ecoli,
         filename=filename,
         out_dir=out_dir,
-        settings=settings)
+        settings=settings
+    )
     return topo_plot
 
 
@@ -512,11 +533,11 @@ test_library = {
 
 
 def main():
-    out_dir = os.path.join('out', 'ecoli_master')
+    out_dir = os.path.join('out', 'ecoli_partition')
     if not os.path.exists(out_dir):
         os.makedirs(out_dir)
 
-    parser = argparse.ArgumentParser(description='ecoli_master')
+    parser = argparse.ArgumentParser(description='ecoli_partition')
     parser.add_argument(
         '--name', '-n', default=[], nargs='+',
         help='test ids to run')
@@ -532,7 +553,7 @@ def main():
     args = parser.parse_args()
 
     if args.topology:
-        ecoli_topology_plot(filename='ecoli_master', out_dir=out_dir)
+        ecoli_topology_plot(filename='ecoli_partition', out_dir=out_dir)
     elif args.name:
         for name in args.name:
             test_library[name]()
