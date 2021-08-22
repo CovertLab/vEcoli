@@ -10,15 +10,34 @@ import numpy as np
 from vivarium.core.process import Process
 from vivarium.library.dict_utils import deep_merge
 
-from ecoli.library.schema import array_to, array_from, arrays_from, arrays_to, bulk_schema
+from ecoli.library.schema import array_to, array_from, arrays_from, arrays_to, bulk_schema, submass_schema
+from ecoli.states.wcecoli_state import MASSDIFFS
 
 from wholecell.utils import units
 from wholecell.utils.polymerize import buildSequences, polymerize, computeMassIncrease
 
+from ecoli.processes.registries import topology_registry
+
+
+# Register default topology for this process, associating it with process name
+NAME = 'ecoli-chromosome_replication'
+topology_registry.register(
+    NAME,
+    {
+        "replisome_trimers": ("bulk",),
+        "replisome_monomers": ("bulk",),
+        "dntps": ("bulk",),
+        "ppi": ("bulk",),
+        "active_replisomes": ("unique", "active_replisome"),
+        "oriCs": ("unique", "oriC"),
+        "chromosome_domains": ("unique", "chromosome_domain"),
+        "full_chromosomes": ("unique", "full_chromosome"),
+        "listeners": ("listeners",),
+        "environment": ("environment",)
+    })
 
 class ChromosomeReplication(Process):
-
-    name = 'ecoli-chromosome_replication'
+    name = NAME
 
     defaults = {
         'max_time_step': 2.0,
@@ -43,6 +62,8 @@ class ChromosomeReplication(Process):
 
         # random seed
         'seed': 0,
+        
+        'submass_indexes': MASSDIFFS,
     }
 
     def __init__(self, parameters=None):
@@ -69,6 +90,9 @@ class ChromosomeReplication(Process):
         # random state
         self.seed = self.parameters['seed']
         self.random_state = np.random.RandomState(seed=self.seed)
+        
+        # Index of DNA submass in submass vector
+        self.DNA_submass_idx = self.parameters['submass_indexes']['massDiff_DNA']
 
         self.emit_unique = self.parameters.get('emit_unique', True)
 
@@ -84,7 +108,7 @@ class ChromosomeReplication(Process):
             'ppi': bulk_schema(self.parameters['ppi']),
             'listeners': {
                 'mass': {
-                    'cell_mass': {'_default': 0.0}},
+                    'cell_mass': {'_default': 0.0, '_emit': True}},
                 'replication_data': {
                     'criticalInitiationMass': {'_default': 0.0},
                     'criticalMassPerOriC': {'_default': 0.0},
@@ -101,8 +125,7 @@ class ChromosomeReplication(Process):
                     'domain_index': default_unique_schema,
                     'right_replichore': default_unique_schema,
                     'coordinates': default_unique_schema,
-                    'dna_mass': {
-                            '_default': 0, '_updater': 'accumulate'},
+                    'submass': submass_schema(),
                 }},
             'oriCs': {
                 '*': {
@@ -273,7 +296,7 @@ class ChromosomeReplication(Process):
                     'key': str(uuid.uuid1()),
                     'state': {'domain_index': domain_index_new[index]}}
                     for index in range(n_oriC)],
-                '_delete': [(key,) for key in states['oriCs'].keys()]}
+                '_delete': [key for key in states['oriCs'].keys()]}
             # self.oriCs.attrIs(domain_index=domain_index_new[:n_oriC])
             # self.oriCs.moleculesNew(
             #     n_oriC, domain_index=domain_index_new[n_oriC:])
@@ -414,11 +437,13 @@ class ChromosomeReplication(Process):
 
         # Update attributes and submasses of replisomes
         active_replisomes_indexes = list(states['active_replisomes'].keys())
+        added_submass = np.zeros((len(states['active_replisomes']), 9))
+        added_submass[:, self.DNA_submass_idx] = added_dna_mass
         active_replisomes_update = arrays_to(
             len(states['active_replisomes']),
             {
                 'coordinates': updated_coordinates,
-                'dna_mass': added_dna_mass,
+                'submass': added_submass,
              })
         update['active_replisomes'] = {
                 active_replisomes_indexes[index]: active_replisomes
@@ -500,7 +525,7 @@ class ChromosomeReplication(Process):
 
             # Delete terminated replisomes
             replisome_delete_update = [
-                (key,) for index, key in enumerate(states['active_replisomes'].keys())
+                key for index, key in enumerate(states['active_replisomes'].keys())
                 if replisomes_to_delete[index]]
             if replisome_delete_update:
                 update['active_replisomes']['_delete'] = replisome_delete_update

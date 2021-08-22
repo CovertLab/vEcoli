@@ -8,6 +8,8 @@ from vivarium.core.engine import pf
 from ecoli.library.sim_data import LoadSimData
 from ecoli.composites.ecoli_master import SIM_DATA_PATH
 from ecoli.processes.chromosome_replication import ChromosomeReplication
+from ecoli.states.wcecoli_state import MASSDIFFS
+from ecoli.library.schema import arrays_from
 from migration.migration_utils import *
 
 load_sim_data = LoadSimData(
@@ -92,8 +94,8 @@ def plots(actual_update, expected_update, time):
                 if unique_index != '_add' and unique_index != '_delete':
                     actual_coords.append(actual_update[key][unique_index]['coordinates'])
                     expected_coords.append(expected_update[key][unique_index]['coordinates'])
-                    actual_dna_mass.append(actual_update[key][unique_index]['dna_mass'])
-                    expected_dna_mass.append(actual_update[key][unique_index]['dna_mass'])
+                    actual_dna_mass.append(actual_update[key][unique_index]['submass'][MASSDIFFS['massDiff_DNA']])
+                    expected_dna_mass.append(expected_update[key][unique_index]['dna_mass'])
                     rep_labels.append(unique_index)
 
             plt.bar(np.arange(len(actual_coords)) - 0.1, actual_coords, 0.2,
@@ -193,8 +195,10 @@ def assertions(actual_update, expected_update):
 
     compare_index_data(actual_update['active_replisomes'], expected_update['active_replisomes'],
                        array_almost_equal, 'coordinates', int)
-    compare_index_data(actual_update['active_replisomes'], expected_update['active_replisomes'],
-                       array_equal, 'dna_mass', float)
+    for id in actual_update['active_replisomes']:
+        if id not in ['_delete', '_add']:
+            assert scalar_equal(actual_update['active_replisomes'][id]['submass'][MASSDIFFS['massDiff_DNA']], 
+                                expected_update['active_replisomes'][id]['dna_mass'])
 
     if 'oriCs' in actual_update:
         assert scalar_equal(len(actual_update['oriCs']['_delete']), len(expected_update['oriCs']['_delete']))

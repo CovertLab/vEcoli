@@ -7,15 +7,25 @@ Mass listener. Represents the total cellular mass.
 import numpy as np
 from vivarium.core.process import Deriver
 from vivarium.library.units import units
-from ecoli.library.schema import bulk_schema, array_from
+from ecoli.library.schema import bulk_schema, arrays_from, array_from, submass_schema
 
 from vivarium.core.engine import pp
 
+from ecoli.processes.registries import topology_registry
 
+
+# Register default topology for this process, associating it with process name
+NAME = 'ecoli-mass-listener'
+topology_registry.register(
+    NAME,
+    {
+        "bulk": ("bulk",),
+        "unique": ("unique",),
+        "listeners": ("listeners",)
+    })
 class MassListener(Deriver):
     """ MassListener """
-
-    name = 'ecoli-mass-listener'
+    name = NAME
 
     defaults = {
         'cellDensity': 1100.0,
@@ -49,6 +59,7 @@ class MassListener(Deriver):
 
         self.submass_indices = self.parameters['submass_indices']
         self.waterIndex = self.parameters['submass_indices']['water']
+        self.submass_indices.pop('water')
 
         #TODO: implement these
         # compartment indexes
@@ -69,12 +80,16 @@ class MassListener(Deriver):
 
         self.time_step = self.parameters['time_step']
         self.first_time_step = True
+        
+        self.mass_diffs = ['rRNA', 'tRNA', 'mRNA', 'miscRNA', 'nonspecific_RNA', 
+                           'protein',  'metabolite', 'water', 'DNA']
 
     def ports_schema(self):
         return {
             'bulk': bulk_schema(self.bulk_ids),
             'unique': {
-                mol_id: {'*': {}}
+                mol_id: {'*': {
+                    'submass': submass_schema()}}
                 for mol_id in self.unique_ids
             },
             'listeners': {
@@ -94,8 +109,7 @@ class MassListener(Deriver):
                     **{submass + 'Mass': {'_default': 0.0,
                                           '_updater': 'set',
                                           '_emit': True}
-                       for submass in self.submass_indices.keys()
-                       if submass != 'water'},
+                       for submass in self.submass_indices.keys()},
                     'volume' : {
                         '_default': 0.0,
                         '_updater': 'set',
@@ -158,6 +172,11 @@ class MassListener(Deriver):
         unique_counts = np.array([len(states['unique'][id])
                                  for id in self.unique_ids])
         unique_submasses = np.dot(unique_counts, self.unique_masses)
+        unique_mass_diffs = np.zeros(len(self.mass_diffs))
+        for id in self.unique_ids:
+            for molecule in states['unique'][id].values():
+                unique_mass_diffs += molecule['submass']
+        unique_submasses += unique_mass_diffs
 
         all_submasses = bulk_submasses + unique_submasses
 
@@ -169,8 +188,7 @@ class MassListener(Deriver):
 
         # Store submasses
         for submass, indices in self.submass_indices.items():
-            if submass != 'water':
-                mass_update[submass + "Mass"] = all_submasses[indices].sum()
+            mass_update[submass + "Mass"] = all_submasses[indices].sum()
 
         mass_update['volume'] = mass_update['cell_mass'] / self.cellDensity
 

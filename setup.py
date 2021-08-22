@@ -67,7 +67,8 @@ setup(
     long_description_content_type='text/markdown',
     install_requires=[
         'pytest==6.2.4',
-        'vivarium-core>=0.3.0',
+        'vivarium-core>=0.3.4',
+        'vivarium-multibody>=0.0.13',
         'decorator',
         'biopython==1.77',
         'Unum==4.1.4',

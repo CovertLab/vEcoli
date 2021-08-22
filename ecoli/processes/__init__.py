@@ -1,3 +1,5 @@
+from vivarium import process_registry
+
 from ecoli.processes.tf_binding import TfBinding
 from ecoli.processes.transcript_initiation import TranscriptInitiation
 from ecoli.processes.transcript_elongation import TranscriptElongation
@@ -12,3 +14,24 @@ from ecoli.processes.metabolism import Metabolism
 from ecoli.processes.chromosome_replication import ChromosomeReplication
 from ecoli.processes.mass import Mass
 from ecoli.processes.exchange_stub import Exchange
+from ecoli.processes.listeners.mass_listener import MassListener
+from ecoli.processes.listeners.mRNA_counts import mRNACounts
+
+
+# add to registry
+process_registry.register(TfBinding.name, TfBinding)
+process_registry.register(TranscriptInitiation.name, TranscriptInitiation)
+process_registry.register(TranscriptElongation.name, TranscriptElongation)
+process_registry.register(RnaDegradation.name, RnaDegradation)
+process_registry.register(PolypeptideInitiation.name, PolypeptideInitiation)
+process_registry.register(PolypeptideElongation.name, PolypeptideElongation)
+process_registry.register(Complexation.name, Complexation)
+process_registry.register(TwoComponentSystem.name, TwoComponentSystem)
+process_registry.register(Equilibrium.name, Equilibrium)
+process_registry.register(ProteinDegradation.name, ProteinDegradation)
+process_registry.register(Metabolism.name, Metabolism)
+process_registry.register(ChromosomeReplication.name, ChromosomeReplication)
+process_registry.register(Mass.name, Mass)
+process_registry.register(MassListener.name, MassListener)
+process_registry.register(Exchange.name, Exchange)
+process_registry.register(mRNACounts.name, mRNACounts)

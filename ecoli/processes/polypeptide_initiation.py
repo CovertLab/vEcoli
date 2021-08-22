@@ -19,9 +19,24 @@ from wholecell.utils import units
 from wholecell.utils.fitting import normalize
 from six.moves import zip
 
+from ecoli.processes.registries import topology_registry
+
+
+# Register default topology for this process, associating it with process name
+NAME = 'ecoli-polypeptide-initiation'
+topology_registry.register(
+    NAME,
+    {
+        "environment": ("environment",),
+        "listeners": ("listeners",),
+        "active_ribosome": ("unique", "active_ribosome"),
+        "RNA": ("unique", "RNA"),
+        "subunits": ("bulk",)
+    })
+
 
 class PolypeptideInitiation(Process):
-    name = 'ecoli-polypeptide-initiation'
+    name = NAME
 
     defaults = {
         'protein_lengths': [],
@@ -148,7 +163,6 @@ class PolypeptideInitiation(Process):
         
         
     def evolve_state(self, timestep, states):
-        self.time_step = timestep
         # Calculate number of ribosomes that could potentially be initialized
         # based on counts of free 30S and 50S subunits
         inactive_ribosome_count = np.min([
