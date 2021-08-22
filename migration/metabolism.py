@@ -19,7 +19,6 @@ from ecoli.states.wcecoli_state import get_state_from_file
 from ecoli.composites.ecoli_master import SIM_DATA_PATH, AA_MEDIA_ID
 from ecoli.processes import Metabolism, Exchange
 from ecoli.library.schema import array_from
-from data.ecoli_master_configs import default
 
 # migration imports
 from migration.migration_utils import (run_ecoli_process, ComparisonTestSuite,

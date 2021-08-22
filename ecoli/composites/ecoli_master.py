@@ -8,7 +8,6 @@ import os
 import argparse
 
 from vivarium.core.composer import Composer
-from vivarium.core.engine import pp, Engine
 from vivarium.library.topology import assoc_path
 from vivarium.library.dict_utils import deep_merge
 
@@ -19,14 +18,16 @@ from ecoli.library.sim_data import LoadSimData
 from vivarium.library.wrappers import make_logging_process
 
 # vivarium-ecoli processes
+from ecoli.composites.ecoli_master_configs.default import (
+    ECOLI_PROCESSES, ECOLI_TOPOLOGY)
 from ecoli.processes.cell_division import Division
-from ecoli.plots.topology import get_ecoli_master_topology_settings
 
 # state
 from ecoli.states.wcecoli_state import get_state_from_file
 
 # plotting
 from vivarium.plots.topology import plot_topology
+from ecoli.plots.topology import get_ecoli_master_topology_settings
 
 
 RAND_MAX = 2**31
@@ -50,7 +51,7 @@ class Ecoli(Composer):
         'division': {
             'threshold': 2220},  # fg
         'divide': False,
-        'blame': False
+        'blame': False,
     }
 
     def __init__(self, config):
@@ -60,8 +61,13 @@ class Ecoli(Composer):
             sim_data_path=self.config['sim_data_path'],
             seed=self.config['seed'])
 
-        self.processes = config['processes']
-        self.topology = config['topology']
+        if 'processes' not in self.config:
+            self.config['processes'] = ECOLI_PROCESSES.copy()
+        if 'topology' not in self.config:
+            self.config['topology'] = ECOLI_TOPOLOGY.copy()
+            
+        self.processes = self.config['processes']
+        self.topology = self.config['topology']
 
     def initial_state(self, config=None, path=()):
         if config:
