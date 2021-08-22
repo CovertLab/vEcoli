@@ -9,7 +9,7 @@ import argparse
 from copy import deepcopy
 
 from vivarium.core.composer import Composer
-from vivarium.core.engine import Engine
+from vivarium.core.engine import pp, Engine
 from vivarium.plots.topology import plot_topology
 from vivarium.library.topology import assoc_path
 from vivarium.library.dict_utils import deep_merge
@@ -17,18 +17,21 @@ from vivarium.core.process import Process, Deriver
 
 # sim data
 from ecoli.library.sim_data import LoadSimData
-from ecoli.composites.ecoli_master_configs import default
+from data.ecoli_master_configs import default
 
 # logging
 from ecoli.library.logging import make_logging_process
 from ecoli.plots.blame import blame_plot
 
 # vivarium-ecoli processes
+from ecoli.plots.topology import get_ecoli_master_topology_settings
 from ecoli.processes.cell_division import Division
 from ecoli.processes.allocator import Allocator
 
 # state
 from ecoli.states.wcecoli_state import get_state_from_file
+
+from ecoli.library.data_predicates import all_nonnegative
 
 RAND_MAX = 2**31
 SIM_DATA_PATH = 'reconstruction/sim_data/kb/simData.cPickle'
@@ -202,36 +205,40 @@ class Ecoli(Composer):
         parallel = config['parallel']
 
         process_names = list(config['processes'].keys())
-        process_names.remove('ecoli-mass-listener')
+        process_names.remove('mass')
 
         config['processes']['allocator'] = Allocator
 
         # get the configs from sim_data
         configs = {
-            'ecoli-tf-binding': self.load_sim_data.get_tf_config(time_step=time_step),
-            'ecoli-transcript-initiation': self.load_sim_data.get_transcript_initiation_config(time_step=time_step),
-            'ecoli-transcript-elongation': self.load_sim_data.get_transcript_elongation_config(time_step=time_step),
-            'ecoli-rna-degradation': self.load_sim_data.get_rna_degradation_config(time_step=time_step),
-            'ecoli-polypeptide-initiation': self.load_sim_data.get_polypeptide_initiation_config(time_step=time_step),
-            'ecoli-polypeptide-elongation': self.load_sim_data.get_polypeptide_elongation_config(time_step=time_step),
-            'ecoli-complexation': self.load_sim_data.get_complexation_config(time_step=time_step),
-            'ecoli-two-component-system': self.load_sim_data.get_two_component_system_config(time_step=time_step),
-            'ecoli-equilibrium': self.load_sim_data.get_equilibrium_config(time_step=time_step),
-            'ecoli-protein-degradation': self.load_sim_data.get_protein_degradation_config(time_step=time_step),
-            'ecoli-metabolism': self.load_sim_data.get_metabolism_config(time_step=time_step, deriver_mode=True),
-            'ecoli-chromosome-replication': self.load_sim_data.get_chromosome_replication_config(time_step=time_step),
-            'ecoli-mass-listener': self.load_sim_data.get_mass_listener_config(time_step=time_step),
-            'mRNA_counts_listener': self.load_sim_data.get_mrna_counts_listener_config(time_step=time_step),
+            'tf_binding': self.load_sim_data.get_tf_config(time_step=time_step),
+            'transcript_initiation': self.load_sim_data.get_transcript_initiation_config(time_step=time_step),
+            'transcript_elongation': self.load_sim_data.get_transcript_elongation_config(time_step=time_step),
+            'rna_degradation': self.load_sim_data.get_rna_degradation_config(time_step=time_step),
+            'polypeptide_initiation': self.load_sim_data.get_polypeptide_initiation_config(time_step=time_step),
+            'polypeptide_elongation': self.load_sim_data.get_polypeptide_elongation_config(time_step=time_step),
+            'complexation': self.load_sim_data.get_complexation_config(time_step=time_step),
+            'two_component_system': self.load_sim_data.get_two_component_system_config(time_step=time_step),
+            'equilibrium': self.load_sim_data.get_equilibrium_config(time_step=time_step),
+            'protein_degradation': self.load_sim_data.get_protein_degradation_config(time_step=time_step),
+            'metabolism': self.load_sim_data.get_metabolism_config(time_step=time_step, deriver_mode=True),
+            'chromosome_replication': self.load_sim_data.get_chromosome_replication_config(time_step=time_step),
+            'mass': self.load_sim_data.get_mass_listener_config(time_step=time_step),
+            'mrna_counts': self.load_sim_data.get_mrna_counts_listener_config(time_step=time_step),
             'allocator': self.load_sim_data.get_allocator_config(time_step=time_step, process_names=process_names)
         }
 
         # make the processes
         processes = {
-            process.name: process(configs[process_name])
+            process_name: process(configs[process_name])
             for (process_name, process) in config['processes'].items()
+            # if process_name not in [
+            #     'polypeptide_elongation'
+            #     # TODO: get this working again
+            # ]
         }
 
-        derivers = ['ecoli-metabolism', 'ecoli-mass', 'mRNA_counts_listener', 'allocator']
+        derivers = ['metabolism', 'mass', 'mrna_counts', 'allocator']
 
         # make the requesters
         requesters = {
@@ -253,11 +260,11 @@ class Ecoli(Composer):
         }
 
         if config['blame']:
-            processes['ecoli-metabolism'] = make_logging_process(
-                config['processes']['ecoli-metabolism'])(configs['ecoli-metabolism'])
+            processes['metabolism'] = make_logging_process(
+                config['processes']['metabolism'])(configs['metabolism'])
         else:
-            processes['ecoli-metabolism'] = config['processes']['ecoli-metabolism'](
-                configs['ecoli-metabolism'])
+            processes['metabolism'] = config['processes']['metabolism'](
+                configs['metabolism'])
 
         division = {}
         # add division
@@ -269,9 +276,9 @@ class Ecoli(Composer):
             division = {'division': Division(division_config)}
 
         allocator = {'allocator': processes['allocator']}
-        mass = {'ecoli-mass-listener': processes['ecoli-mass-listener']}
-        metabolism = {'ecoli-metabolism': processes['ecoli-metabolism']}
-        mrna_counts = {'mRNA_counts_listener': processes['mRNA_counts_listener']}
+        mass = {'mass': processes['mass']}
+        metabolism = {'metabolism': processes['metabolism']}
+        mrna_counts = {'mrna_counts': processes['mrna_counts']}
 
         all_procs = {**metabolism, **requesters, **allocator, **evolvers, **division, **mrna_counts, **mass}
         return all_procs
@@ -279,7 +286,7 @@ class Ecoli(Composer):
     def generate_topology(self, config):
         topology = {}
 
-        derivers = ['ecoli-metabolism', 'ecoli-mass-listener', 'allocator']
+        derivers = ['metabolism', 'mass', 'allocator']
 
         # make the topology
         for process_id, ports in config['topology'].items():
@@ -308,14 +315,14 @@ class Ecoli(Composer):
             'allocate': ('allocate',),
             'bulk': ('bulk',)}
 
-        topology['ecoli-mass-listener'] = config['topology']['ecoli-mass-listener']
+        topology['mass'] = config['topology']['mass']
 
-        topology['ecoli-metabolism'] = config['topology']['ecoli-metabolism']
+        topology['metabolism'] = config['topology']['metabolism']
 
-        topology['mRNA_counts_listener'] = config['topology']['mRNA_counts_listener']
+        topology['mrna_counts'] = config['topology']['mrna_counts']
   
         if config['blame']:
-            topology['ecoli-metabolism']['log_update'] = (
+            topology['metabolism']['log_update'] = (
                 'log_update', 'metabolism',)
 
         return topology
@@ -344,7 +351,7 @@ def run_ecoli(
         'agent_id': agent_id,
         # TODO -- remove schema override once values don't go negative
         '_schema': {
-            'ecoli-equilibrium_evolver': {
+            'equilibrium_evolver': {
                 'molecules': {
                     'PD00413[c]': {'_updater': 'nonnegative_accumulate'}
                 }

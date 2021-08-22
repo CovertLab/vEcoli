@@ -52,6 +52,10 @@ class Ecoli(Composer):
             'threshold': 2220},  # fg
         'divide': False,
         'blame': False,
+        'processes': {},
+        'topology': {},
+        'process_configs': {},
+        'log_updates': False,
     }
 
     def __init__(self, config):
@@ -61,9 +65,9 @@ class Ecoli(Composer):
             sim_data_path=self.config['sim_data_path'],
             seed=self.config['seed'])
 
-        if 'processes' not in self.config:
+        if not self.config['processes']:
             self.config['processes'] = ECOLI_PROCESSES.copy()
-        if 'topology' not in self.config:
+        if not self.config['topology']:
             self.config['topology'] = ECOLI_TOPOLOGY.copy()
 
         self.processes = self.config['processes']
@@ -162,7 +166,6 @@ def run_ecoli(
     sim.progress_bar = progress_bar
     sim.log_updates = log_updates
     sim.raw_output = not time_series
-
 
     return sim.run()
 
