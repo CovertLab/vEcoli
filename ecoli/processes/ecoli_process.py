@@ -9,7 +9,9 @@ from ecoli.processes.registries import topology_registry
 class EcoliProcess(Process):
     name = None
     topology = None
-    defaults = {}
+    defaults = {
+        'partition': False,
+    }
 
     def __init__(self, parameters=None):
         super().__init__(parameters)
