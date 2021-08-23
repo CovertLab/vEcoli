@@ -75,7 +75,7 @@ class TranscriptElongation(Process):
     """
 
     name = NAME
-    topolog = TOPOLOGY
+    topology = TOPOLOGY
     defaults = {
         'max_time_step': 0.0,
         'rnaPolymeraseElongationRateDict': {},

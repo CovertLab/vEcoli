@@ -31,6 +31,8 @@ load_sim_data = LoadSimData(
             sim_data_path=SIM_DATA_PATH,
             seed=0)
 
+TOPOLOGY = Metabolism.topology
+
 # make a composite with Exchange
 class MetabolismExchange(Composer):
     defaults = {
@@ -63,7 +65,7 @@ class MetabolismExchange(Composer):
 
     def generate_topology(self, config):
         return {
-            'metabolism': metabolism_process.topology,
+            'metabolism': TOPOLOGY,
             'exchange': {
                 'molecules': ('bulk',),
             }
@@ -79,7 +81,7 @@ def test_metabolism_migration():
     # run the process and get an update
     actual_update = run_ecoli_process(
         metabolism_process,
-        metabolism_process.topology,
+        TOPOLOGY,
         total_time=2)
 
 
