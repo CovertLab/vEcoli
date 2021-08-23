@@ -9,7 +9,11 @@ from datetime import datetime
 
 from vivarium.core.engine import Engine
 from vivarium.library.dict_utils import deep_merge
-from ecoli.composites.ecoli_master import Ecoli, SIM_DATA_PATH
+from ecoli.composites.ecoli_master import SIM_DATA_PATH
+# Two different Ecoli composites depending on partitioning
+import ecoli.composites.ecoli_master
+import ecoli.composites.ecoli_partition
+
 from ecoli.processes import process_registry
 from ecoli.processes.registries import topology_registry
 
@@ -19,23 +23,11 @@ CONFIG_DIR_PATH = 'data/ecoli_master_configs/'
 
 class EcoliSim:
     def __init__(self, config):
-
-        # Get processes and topology into correct form
-        config['processes'] = self._retrieve_processes(config['processes'],
-                                                       config['add_processes'],
-                                                       config['exclude_processes'],
-                                                       config['swap_processes'])
-        config['topology'] = self._retrieve_topology(config['topology'],
-                                                     config['processes'],
-                                                     config['swap_processes'],
-                                                     config['log_updates'],
-                                                     config['divide'])
-        config['process_configs'] = self._retrieve_process_configs(config['process_configs'],
-                                                                   config['processes'])
-
-        # make some lists into tuples
+        # Do some datatype pre-processesing
         config['agents_path'] = tuple(config['agents_path'])
+        config['processes'] = {process : None for process in config['processes']}
 
+        # store config
         self.config = config
 
         # Unpack config using Descriptor protocol:
@@ -45,7 +37,7 @@ class EcoliSim:
         # For example:
         #
         # >> sim = EcoliSim.from_file()
-        # >> sim.total_time 
+        # >> sim.total_time
         #    10
         # >> sim.config['total_time']
         #    10
@@ -66,14 +58,12 @@ class EcoliSim:
         for attr in self.config.keys():
             config_entry = ConfigEntry(attr)
             setattr(EcoliSim, attr, config_entry)
-            
 
         if self.generations:
             warnings.warn("generations option is not yet implemented!")
 
-        if config['partition']:
+        if self.partition:
             warnings.warn("partitioning is not compatible with EcoliSim yet!")
-
 
     @staticmethod
     def from_cli():
@@ -137,7 +127,6 @@ class EcoliSim:
 
         return EcoliSim(ecoli_config)
 
-
     @staticmethod
     def from_file(filepath=CONFIG_DIR_PATH + 'default.json'):
         # Load config, deep-merge with default config
@@ -152,14 +141,13 @@ class EcoliSim:
 
         return EcoliSim(ecoli_config)
 
-
     def _retrieve_processes(self,
-                            process_names,
+                            processes,
                             add_processes,
                             exclude_processes,
                             swap_processes):
         result = {}
-        for process_name in process_names + add_processes:
+        for process_name in list(processes.keys()) + list(add_processes):
             if process_name in exclude_processes:
                 continue
 
@@ -175,7 +163,6 @@ class EcoliSim:
             result[process_name] = process_class
 
         return result
-
 
     def _retrieve_topology(self,
                            topology,
@@ -233,10 +220,26 @@ class EcoliSim:
 
         return result
 
-
     def run(self):
+        # build processes, topology, configs to
+        self.processes = self._retrieve_processes(self.processes,
+                                                  self.add_processes,
+                                                  self.exclude_processes,
+                                                  self.swap_processes)
+        self.topology = self._retrieve_topology(self.topology,
+                                                self.processes,
+                                                self.swap_processes,
+                                                self.log_updates,
+                                                self.divide)
+        self.process_configs = self._retrieve_process_configs(self.process_configs,
+                                                              self.processes)
+
         # initialize the ecoli composer
-        ecoli_composer = Ecoli(self.config)
+        if self.partition:
+            ecoli_composer = ecoli.composites.ecoli_partition.Ecoli(
+                self.config)
+        else:
+            ecoli_composer = ecoli.composites.ecoli_master.Ecoli(self.config)
 
         # set path at which agent is initialized
         path = tuple()
@@ -265,7 +268,8 @@ class EcoliSim:
         if self.experiment_id:
             experiment_config['experiment_id'] = self.experiment_id
             if self.suffix_time:
-                experiment_config['experiment_id'] += datetime.now().strftime("_%d/%m/%Y %H:%M:%S")
+                experiment_config['experiment_id'] += datetime.now().strftime(
+                    "_%d/%m/%Y %H:%M:%S")
 
         self.ecoli_experiment = Engine(**experiment_config)
 
@@ -281,4 +285,7 @@ class EcoliSim:
 
 if __name__ == '__main__':
     ecoli_sim = EcoliSim.from_file()
+    ecoli_sim.total_time = 4
+    ecoli_sim.partition = False
+    ecoli_sim.run()
     ecoli_sim.run()
