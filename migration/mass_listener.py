@@ -3,25 +3,12 @@ tests that vivarium-ecoli process update are the same as saved wcEcoli updates
 
 """
 
-import os
 import json
 import numpy as np
-import matplotlib.pyplot as plt
-from scipy.stats import mannwhitneyu, chisquare
-
-from vivarium.processes.clock import Clock
 
 from ecoli.library.schema import array_from
-from ecoli.library.sim_data import LoadSimData
-from ecoli.composites.ecoli_master import SIM_DATA_PATH
-from migration.migration_utils import *
-
 from ecoli.experiments.ecoli_master_sim import EcoliSim, CONFIG_DIR_PATH
-
-from ecoli.library.schema import arrays_from
-from ecoli.states.wcecoli_state import get_state_from_file
-from migration.plots import qqplot
-from migration.migration_utils import array_diffs_report
+from migration.migration_utils import ComparisonTestSuite, array_diffs_report, scalar_almost_equal
 
 
 def test_mass_listener():
