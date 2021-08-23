@@ -57,9 +57,7 @@ from ecoli.processes.registries import topology_registry
 
 # Register default topology for this process, associating it with process name
 NAME = 'ecoli-rna-degradation'
-topology_registry.register(
-    NAME,
-    {
+TOPOLOGY = {
         "charged_trna": ("bulk",),
         "bulk_RNAs": ("bulk",),
         "nmps": ("bulk",),
@@ -72,12 +70,13 @@ topology_registry.register(
         "RNAs": ("unique", "RNA"),
         "active_ribosome": ("unique", "active_ribosome"),
         "listeners": ("listeners",)
-    })
+}
+topology_registry.register(NAME, TOPOLOGY)
 
 
 class RnaDegradation(Process):
     name = NAME
-
+    topology = TOPOLOGY
     defaults = {
         'rnaIds': [],
         'n_avogadro': 0.0,

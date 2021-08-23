@@ -33,9 +33,7 @@ from ecoli.processes.registries import topology_registry
 
 # Register default topology for this process, associating it with process name
 NAME = 'ecoli-transcript-initiation'
-topology_registry.register(
-    NAME,
-    {
+TOPOLOGY = {
         "environment": ("environment",),
         "full_chromosomes": ("unique", "full_chromosome"),
         "RNAs": ("unique", "RNA"),
@@ -43,7 +41,9 @@ topology_registry.register(
         "promoters": ("unique", "promoter"),
         "molecules": ("bulk",),
         "listeners": ("listeners",)
-    })
+}
+topology_registry.register(NAME, TOPOLOGY)
+
 
 class TranscriptInitiation(Process):
     """TranscriptInitiation
@@ -116,7 +116,7 @@ class TranscriptInitiation(Process):
     """
 
     name = NAME
-
+    topology = TOPOLOGY
     defaults = {
         'fracActiveRnapDict': {},
         'rnaLengths': np.array([]),
