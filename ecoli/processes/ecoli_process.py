@@ -4,13 +4,15 @@ import abc
 from vivarium.core.process import Process
 from vivarium.library.dict_utils import deep_merge
 from ecoli.processes.registries import topology_registry
+from ecoli.processes import process_registry
 
 
 class EcoliProcess(Process):
     name = None
     topology = None
     defaults = {
-        'partition': False,
+        'evolve_only': False,
+        'request_only': False,
     }
 
     def __init__(self, parameters=None):
@@ -33,7 +35,14 @@ class EcoliProcess(Process):
         return {}
 
     def next_update(self, timestep, states):
+
+        if self.parameters['request_only']:
+            return self.calculate_request(timestep, states)
+        elif self.parameters['evolve_only']:
+            return self.evolve_state(timestep, states)
+
         requests = self.calculate_request(timestep, states)
         states = deep_merge(states, requests)
         update = self.evolve_state(timestep, states)
+
         return update
