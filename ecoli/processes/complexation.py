@@ -23,7 +23,8 @@ from ecoli.processes.registries import topology_registry
 # Register default topology for this process, associating it with process name
 NAME = 'ecoli-complexation'
 TOPOLOGY = {
-        "molecules": ("bulk",)
+    "molecules": ("bulk",),
+    "listeners": ("listeners",)
 }
 topology_registry.register(NAME, TOPOLOGY)
 

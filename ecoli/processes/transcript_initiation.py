@@ -240,7 +240,7 @@ class TranscriptInitiation(Process):
         self.seed = self.parameters['seed']
         self.random_state = np.random.RandomState(seed=self.seed)
 
-        self.rnap_index = 60000
+        self.rnap_index = 6000000
 
     def ports_schema(self):
         return {

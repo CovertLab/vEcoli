@@ -30,19 +30,24 @@ from ecoli.processes.registries import topology_registry
 # Register default topology for this process, associating it with process name
 NAME = 'ecoli-polypeptide-elongation'
 TOPOLOGY = {
-        "environment": ("environment",),
-        "listeners": ("listeners",),
-        "active_ribosome": ("unique", "active_ribosome"),
-        "molecules": ("bulk",),
-        "monomers": ("bulk",),
-        "amino_acids": ("bulk",),
-        "ppgpp_reaction_metabolites": ("bulk",),
-        "uncharged_trna": ("bulk",),
-        "charged_trna": ("bulk",),
-        "charging_molecules": ("bulk",),
-        "synthetases": ("bulk",),
-        "subunits": ("bulk",),
-        "polypeptide_elongation": ("process_state", "polypeptide_elongation")
+    "environment": ("environment",),
+    "listeners": ("listeners",),
+    "active_ribosome": ("unique", "active_ribosome"),
+    "molecules": ("bulk",),
+    "monomers": ("bulk",),
+    "amino_acids": ("bulk",),
+    "ppgpp_reaction_metabolites": ("bulk",),
+    "uncharged_trna": ("bulk",),
+    "charged_trna": ("bulk",),
+    "charging_molecules": ("bulk",),
+    "synthetases": ("bulk",),
+    "subunits": ("bulk",),
+    "polypeptide_elongation": ("process_state", "polypeptide_elongation"),
+    # Non-partitioned counts
+    'molecules_total': ('bulk',),
+    'amino_acids_total': ('bulk',),
+    'charged_trna_total': ('bulk',),
+    'uncharged_trna_total': ('bulk',)
 }
 topology_registry.register(NAME, TOPOLOGY)
 
@@ -262,9 +267,9 @@ class PolypeptideElongation(Process):
             'charging_molecules': bulk_schema(self.charging_molecule_names),
             'synthetases': bulk_schema(self.synthetase_names),
             
-            'amino_acids_total': bulk_schema(self.amino_acids),
-            'uncharged_trna_total': bulk_schema(self.uncharged_trna_names),
-            'charged_trna_total': bulk_schema(self.charged_trna_names),
+            'amino_acids_total': bulk_schema(self.amino_acids, partition=False),
+            'uncharged_trna_total': bulk_schema(self.uncharged_trna_names, partition=False),
+            'charged_trna_total': bulk_schema(self.charged_trna_names, partition=False),
 
             'active_ribosome': {
                 '*': {

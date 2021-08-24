@@ -16,6 +16,7 @@ from ecoli.processes.mass import Mass
 from ecoli.processes.exchange_stub import Exchange
 from ecoli.processes.listeners.mass_listener import MassListener
 from ecoli.processes.listeners.mRNA_counts import mRNACounts
+from ecoli.processes.chromosome_structure import ChromosomeStructure
 
 
 # add to registry
@@ -35,3 +36,4 @@ process_registry.register(Mass.name, Mass)
 process_registry.register(MassListener.name, MassListener)
 process_registry.register(Exchange.name, Exchange)
 process_registry.register(mRNACounts.name, mRNACounts)
+process_registry.register(ChromosomeStructure.name, ChromosomeStructure)
