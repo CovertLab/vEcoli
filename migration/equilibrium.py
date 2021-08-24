@@ -20,7 +20,7 @@ from wholecell.utils import units
 load_sim_data = LoadSimData(
             sim_data_path=SIM_DATA_PATH,
             seed=0)
-
+TOPOLOGY = Equilibrium.topology
 
 
 def test_equilibrium():
@@ -28,13 +28,9 @@ def test_equilibrium():
     equil = Equilibrium(config)
 
     timestep = 2
-    topology = {
-        'molecules': ('bulk',)
-        }
 
     # run the process and get an update
-    actual_update = run_ecoli_process(equil, topology, timestep, 0, None)
-
+    actual_update = run_ecoli_process(equil, TOPOLOGY, timestep, 0, None)
 
     update_molecules = actual_update['molecules']
     update_listeners = actual_update['listeners']

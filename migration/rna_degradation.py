@@ -9,19 +9,7 @@ load_sim_data = LoadSimData(
             sim_data_path=SIM_DATA_PATH,
             seed=0)
 
-TOPOLOGY = {
-    'charged_trna': ('bulk',),
-    'bulk_RNAs': ('bulk',),
-    'nmps': ('bulk',),
-    'fragmentMetabolites': ('bulk',),
-    'fragmentBases': ('bulk',),
-    'endoRnases': ('bulk',),
-    'exoRnases': ('bulk',),
-    'subunits': ('bulk',),
-    'molecules': ('bulk',),
-    'RNAs': ('unique', 'RNA'),
-    'active_ribosome': ('unique', 'active_ribosome'),
-    'listeners': ('listeners',)}
+TOPOLOGY = RnaDegradation.topology
 
 
 def test_rna_degradation_migration():

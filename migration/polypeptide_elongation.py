@@ -19,21 +19,8 @@ load_sim_data = LoadSimData(
             sim_data_path=SIM_DATA_PATH,
             seed=0)
 
-# topology from ecoli_master
-PE_TOPOLOGY = {
-    'environment': ('environment',),
-    'listeners': ('listeners',),
-    'active_ribosome': ('unique', 'active_ribosome'),
-    'molecules': ('bulk',),
-    'monomers': ('bulk',),
-    'amino_acids': ('bulk',),
-    'ppgpp_reaction_metabolites': ('bulk',),
-    'uncharged_trna': ('bulk',),
-    'charged_trna': ('bulk',),
-    'charging_molecules': ('bulk',),
-    'synthetases': ('bulk',),
-    'subunits': ('bulk',),
-    'polypeptide_elongation': ('process_state', 'polypeptide_elongation')}
+PE_TOPOLOGY = PolypeptideElongation.topology
+
 
 def test_polypeptide_elongation_migration():
     # Create process, experiment, loading in initial state from file.
