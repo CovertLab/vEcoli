@@ -24,6 +24,7 @@ from migration.migration_utils import array_diffs_report
 load_sim_data = LoadSimData(
             sim_data_path=SIM_DATA_PATH,
             seed=0)
+TOPOLOGY = TranscriptInitiation.topology
 
 
 def test_transcript_initiation(fixed_synths_monte_carlo=False):
@@ -37,18 +38,8 @@ def test_transcript_initiation(fixed_synths_monte_carlo=False):
     config = load_sim_data.get_transcript_initiation_config()
     process = TranscriptInitiation(config)
 
-    topology = {
-            'environment': ('environment',),
-            'full_chromosomes': ('unique', 'full_chromosome'),
-            'RNAs': ('unique', 'RNA'),
-            'active_RNAPs': ('unique', 'active_RNAP'),
-            'promoters': ('unique', 'promoter'),
-            'molecules': ('bulk',),
-            'listeners': ('listeners',)
-    }
-
     # run the process and get an update
-    actual_update = run_ecoli_process(process, topology)
+    actual_update = run_ecoli_process(process, TOPOLOGY)
 
     # separate the update to its ports
     rna_synth_prob = actual_update['listeners']['rna_synth_prob']['rna_synth_prob']
@@ -176,7 +167,7 @@ def test_transcript_initiation(fixed_synths_monte_carlo=False):
         for seed in range(N):
             config['seed'] = seed
             process = TranscriptInitiation(config)
-            actual_update = run_ecoli_process(process, topology)
+            actual_update = run_ecoli_process(process, TOPOLOGY)
 
             rna_inits = actual_update['listeners']['rnap_data']['rnaInitEvent']
             fixed_synths_trials[seed, :] = np.array([sum(rna_inits[config['idx_rnap']]),

@@ -20,10 +20,8 @@ from ecoli.processes.registries import topology_registry
 
 
 # Register default topology for this process, associating it with process name
-NAME = 'ecoli-chromosome_replication'
-topology_registry.register(
-    NAME,
-    {
+NAME = 'ecoli-chromosome-replication'
+TOPOLOGY = {
         "replisome_trimers": ("bulk",),
         "replisome_monomers": ("bulk",),
         "dntps": ("bulk",),
@@ -34,11 +32,13 @@ topology_registry.register(
         "full_chromosomes": ("unique", "full_chromosome"),
         "listeners": ("listeners",),
         "environment": ("environment",)
-    })
+}
+topology_registry.register(NAME, TOPOLOGY)
+
 
 class ChromosomeReplication(Process):
     name = NAME
-
+    topology = TOPOLOGY
     defaults = {
         'max_time_step': 2.0,
         'get_dna_critical_mass': lambda doubling_time: units.Unum,

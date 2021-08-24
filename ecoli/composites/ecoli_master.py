@@ -7,8 +7,7 @@ E. coli master composite
 import os
 import argparse
 
-from vivarium.core.composer import Composer, Composite
-from vivarium.core.engine import pp, Engine
+from vivarium.core.composer import Composer
 from vivarium.library.topology import assoc_path
 from vivarium.library.dict_utils import deep_merge
 
@@ -19,15 +18,16 @@ from ecoli.library.sim_data import LoadSimData
 from vivarium.library.wrappers import make_logging_process
 
 # vivarium-ecoli processes
+from ecoli.composites.ecoli_master_configs.default import (
+    ECOLI_PROCESSES, ECOLI_TOPOLOGY)
 from ecoli.processes.cell_division import Division
-from ecoli.plots.topology import get_ecoli_master_topology_settings
-from data.ecoli_master_configs.default import ECOLI_PROCESSES, ECOLI_TOPOLOGY
 
 # state
 from ecoli.states.wcecoli_state import get_state_from_file
 
 # plotting
 from vivarium.plots.topology import plot_topology
+from ecoli.plots.topology import get_ecoli_master_topology_settings
 
 
 RAND_MAX = 2**31
@@ -65,8 +65,13 @@ class Ecoli(Composer):
             sim_data_path=self.config['sim_data_path'],
             seed=self.config['seed'])
 
-        self.processes = config['processes']
-        self.topology = config['topology']
+        if not self.config['processes']:
+            self.config['processes'] = ECOLI_PROCESSES.copy()
+        if not self.config['topology']:
+            self.config['topology'] = ECOLI_TOPOLOGY.copy()
+
+        self.processes = self.config['processes']
+        self.topology = self.config['topology']
 
     def initial_state(self, config=None, path=()):
         if config:
@@ -162,7 +167,6 @@ def run_ecoli(
     sim.log_updates = log_updates
     sim.raw_output = not time_series
 
-
     return sim.run()
 
 
@@ -212,6 +216,7 @@ def ecoli_topology_plot(filename=None, out_dir=None):
 test_library = {
     '0': run_ecoli,
     '1': test_division,
+    '2': ecoli_topology_plot,
 }
 
 
@@ -221,17 +226,10 @@ def main():
         os.makedirs(out_dir)
 
     parser = argparse.ArgumentParser(description='ecoli_master')
-    parser.add_argument(
-        '--name', '-n', default=[], nargs='+',
-        help='test ids to run')
-    parser.add_argument(
-        '--topology', '-t', action='store_true', default=False,
-        help='save a topology plot of ecoli master')
+    parser.add_argument('--name', '-n', default=[], nargs='+', help='test ids to run')
     args = parser.parse_args()
 
-    if args.topology:
-        ecoli_topology_plot(filename='ecoli_master', out_dir=out_dir)
-    elif args.name:
+    if args.name:
         for name in args.name:
             test_library[name]()
     else:

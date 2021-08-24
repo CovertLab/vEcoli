@@ -29,28 +29,27 @@ from ecoli.processes.registries import topology_registry
 
 # Register default topology for this process, associating it with process name
 NAME = 'ecoli-polypeptide-elongation'
-topology_registry.register(
-    NAME,
-    {
-        "environment": ("environment",),
-        "listeners": ("listeners",),
-        "active_ribosome": ("unique", "active_ribosome"),
-        "molecules": ("bulk",),
-        "monomers": ("bulk",),
-        "amino_acids": ("bulk",),
-        "ppgpp_reaction_metabolites": ("bulk",),
-        "uncharged_trna": ("bulk",),
-        "charged_trna": ("bulk",),
-        "charging_molecules": ("bulk",),
-        "synthetases": ("bulk",),
-        "subunits": ("bulk",),
-        "polypeptide_elongation": ("process_state", "polypeptide_elongation"),
-        # Non-partitioned counts
-        'molecules_total': ('bulk',),
-        'amino_acids_total': ('bulk',),
-        'charged_trna_total': ('bulk',),
-        'uncharged_trna_total': ('bulk',),
-    })
+TOPOLOGY = {
+    "environment": ("environment",),
+    "listeners": ("listeners",),
+    "active_ribosome": ("unique", "active_ribosome"),
+    "molecules": ("bulk",),
+    "monomers": ("bulk",),
+    "amino_acids": ("bulk",),
+    "ppgpp_reaction_metabolites": ("bulk",),
+    "uncharged_trna": ("bulk",),
+    "charged_trna": ("bulk",),
+    "charging_molecules": ("bulk",),
+    "synthetases": ("bulk",),
+    "subunits": ("bulk",),
+    "polypeptide_elongation": ("process_state", "polypeptide_elongation"),
+    # Non-partitioned counts
+    'molecules_total': ('bulk',),
+    'amino_acids_total': ('bulk',),
+    'charged_trna_total': ('bulk',),
+    'uncharged_trna_total': ('bulk',)
+}
+topology_registry.register(NAME, TOPOLOGY)
 
 DEFAULT_AA_NAMES = [
             'L-ALPHA-ALANINE[c]', 'ARG[c]', 'ASN[c]', 'L-ASPARTATE[c]', 'CYS[c]', 'GLT[c]', 'GLN[c]', 'GLY[c]',
@@ -64,6 +63,7 @@ class PolypeptideElongation(Process):
         proteinIds: array length n of protein names
     """
     name = NAME
+    topology = TOPOLOGY
 
     defaults = {
         'max_time_step': 2.0,

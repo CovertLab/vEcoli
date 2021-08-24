@@ -20,26 +20,25 @@ from ecoli.processes.registries import topology_registry
 
 # Register default topology for this process, associating it with process name
 NAME = 'ecoli-chromosome_structure'
-topology_registry.register(
-    NAME,
-    {
-        "fragmentBases": ("bulk",),
-        "molecules": ("bulk",),
-        "active_tfs": ("bulk",),
-        "subunits": ("bulk",),
-        "amino_acids": ("bulk",),
-        "active_replisomes": ("unique", "active_replisome",),
-        "oriCs": ("unique", "oriC",),
-        "chromosome_domains": ("unique", "chromosome_domain",),
-        "active_RNAPs": ("unique", "active_RNAP"),
-        "RNAs": ("unique", "RNA"),
-        "active_ribosome": ("unique", "active_ribosome"),
-        "full_chromosomes": ("unique", "full_chromosome",),
-        "promoters": ("unique", "promoter"),
-        "DnaA_boxes": ("unique", "DnaA_box"),
-        # TODO: Only include if superhelical density flag is passed
-        # "chromosomal_segments": ("unique", "chromosomal_segment")
-    })
+TOPOLOGY = {
+    "fragmentBases": ("bulk",),
+    "molecules": ("bulk",),
+    "active_tfs": ("bulk",),
+    "subunits": ("bulk",),
+    "amino_acids": ("bulk",),
+    "active_replisomes": ("unique", "active_replisome",),
+    "oriCs": ("unique", "oriC",),
+    "chromosome_domains": ("unique", "chromosome_domain",),
+    "active_RNAPs": ("unique", "active_RNAP"),
+    "RNAs": ("unique", "RNA"),
+    "active_ribosome": ("unique", "active_ribosome"),
+    "full_chromosomes": ("unique", "full_chromosome",),
+    "promoters": ("unique", "promoter"),
+    "DnaA_boxes": ("unique", "DnaA_box"),
+    # TODO: Only include if superhelical density flag is passed
+    # "chromosomal_segments": ("unique", "chromosomal_segment")
+}
+topology_registry.register(NAME, TOPOLOGY)
 
 class ChromosomeStructure(Process):
     """ ChromosomeStructure """
