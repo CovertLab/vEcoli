@@ -46,7 +46,7 @@
         "ecoli-equilibrium",
         "ecoli-protein-degradation",
         "ecoli-metabolism",
-        "ecoli-chromosome_replication",
+        "ecoli-chromosome-replication",
         "ecoli-mass-listener",
         "mRNA_counts_listener"
     ],

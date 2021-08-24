@@ -19,16 +19,16 @@ from ecoli.processes.registries import topology_registry
 
 # Register default topology for this process, associating it with process name
 NAME = 'ecoli-two-component-system'
-topology_registry.register(
-    NAME,
-    {
+TOPOLOGY = {
         "listeners": ("listeners",),
         "molecules": ("bulk",)
-    })
+}
+topology_registry.register(NAME, TOPOLOGY)
+
 
 class TwoComponentSystem(Process):
     name = NAME
-
+    topology = TOPOLOGY
     defaults = {
         'jit': False,
         'n_avogadro': 0.0,
