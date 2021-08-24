@@ -24,6 +24,7 @@ from ecoli.processes.registries import topology_registry
 NAME = 'ecoli-tf-binding'
 TOPOLOGY = {
         "promoters": ("unique", "promoter"),
+        "active_tfs": ("bulk",),
         "active_tfs_total": ("bulk",),
         "inactive_tfs_total": ("bulk",),
         "listeners": ("listeners",)
