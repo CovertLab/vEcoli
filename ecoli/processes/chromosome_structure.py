@@ -209,9 +209,13 @@ class ChromosomeStructure(Process):
             return {}
         
         # Read unique molecule attributes
-        replisome_domain_indexes, replisome_coordinates, replisome_unique_indexes = arrays_from(
-            states['active_replisomes'].values(),
-            ['domain_index', 'coordinates', 'unique_index'])
+        if states['active_replisomes'].values():
+            replisome_domain_indexes, replisome_coordinates, replisome_unique_indexes = arrays_from(
+                states['active_replisomes'].values(),
+                ['domain_index', 'coordinates', 'unique_index'])
+        else: 
+            replisome_domain_indexes, replisome_coordinates, replisome_unique_indexes = (
+                np.array([]), np.array([]), np.array([]))
         all_chromosome_domain_indexes, child_domains = arrays_from(
             states['chromosome_domains'].values(),
             ['domain_index', 'child_domains'])
@@ -615,7 +619,7 @@ class ChromosomeStructure(Process):
                     'TU_index': promoter_TU_indexes_new,
                     'coordinates': promoter_coordinates_new,
                     'domain_index': promoter_domain_indexes_new,
-                    'bound_TF': np.zeros((n_new_promoters, self.n_TFs), dtype=np.bool)})
+                    'bound_TF': np.zeros((n_new_promoters, self.n_TFs), dtype=np.bool).tolist()})
             update['promoters'].update(add_elements(
                 new_promoters, 'unique_index'))
             self.promoter_index += n_new_promoters
@@ -651,7 +655,7 @@ class ChromosomeStructure(Process):
                         n_new_DnaA_boxes).astype(str),
                     'coordinates': DnaA_box_coordinates_new,
                     'domain_index': DnaA_box_domain_indexes_new,
-                    'DnaA_bound': np.zeros(n_new_DnaA_boxes, dtype=np.bool)})
+                    'DnaA_bound': np.zeros(n_new_DnaA_boxes, dtype=np.bool).tolist()})
             update['DnaA_boxes'].update(add_elements(
                 new_DnaA_boxes, 'unique_index'))
             self.DnaA_box_index += n_new_DnaA_boxes

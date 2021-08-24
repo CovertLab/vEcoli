@@ -308,6 +308,7 @@ class ChromosomeReplication(Process):
             coordinates_replisome = np.zeros(n_new_replisome, dtype=np.int64)
             right_replichore = np.tile(
                 np.array([True, False], dtype=np.bool), n_oriC)
+            right_replichore = right_replichore.tolist()
             domain_index_new_replisome = np.repeat(
                 domain_index_existing_oric, 2)
 
