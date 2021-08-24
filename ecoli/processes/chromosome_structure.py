@@ -11,7 +11,7 @@ import numpy as np
 from vivarium.core.process import Process
 
 from ecoli.library.schema import (add_elements, arrays_from, bulk_schema, 
-                                  arrays_to, array_to)
+                                  arrays_to, array_to, listener_schema)
 from ecoli.processes.cell_division import divide_by_domain
 
 from wholecell.utils.polymerize import buildSequences
@@ -21,6 +21,7 @@ from ecoli.processes.registries import topology_registry
 # Register default topology for this process, associating it with process name
 NAME = 'ecoli-chromosome_structure'
 TOPOLOGY = {
+    "listeners": ("listeners",),
     "fragmentBases": ("bulk",),
     "molecules": ("bulk",),
     "active_tfs": ("bulk",),
@@ -119,6 +120,14 @@ class ChromosomeStructure(Process):
             '_default': 0, '_updater': 'set', '_emit': self.emit_unique}
         
         ports = {
+            'listeners': {
+                'RnapData': listener_schema(
+                    {'n_total_collisions': 0,
+                    'n_headon_collisions': 0,
+                    'n_codirectional_collisions': 0,
+                    'headon_collision_coordinates': 0,
+                    'codirectional_collision_coordinates': 0,
+                    'n_removed_ribosomes': 0})},
             # Bulk molecules
             'fragmentBases': bulk_schema(self.fragmentBases),
             'molecules': bulk_schema([self.ppi, self.water,
