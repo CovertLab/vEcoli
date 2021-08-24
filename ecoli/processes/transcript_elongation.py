@@ -44,9 +44,7 @@ from ecoli.processes.registries import topology_registry
 
 # Register default topology for this process, associating it with process name
 NAME = 'ecoli-transcript-elongation'
-topology_registry.register(
-    NAME,
-    {
+TOPOLOGY = {
         "environment": ("environment",),
         "RNAs": ("unique", "RNA"),
         "active_RNAPs": ("unique", "active_RNAP"),
@@ -54,7 +52,8 @@ topology_registry.register(
         "bulk_RNAs": ("bulk",),
         "ntps": ("bulk",),
         "listeners": ("listeners",)
-    })
+}
+topology_registry.register(NAME, TOPOLOGY)
 
 
 class TranscriptElongation(Process):
@@ -89,9 +88,8 @@ class TranscriptElongation(Process):
                                  lambda random, rates, timestep, variable: rates
     """
 
-
     name = NAME
-
+    topology = TOPOLOGY
     defaults = {
         'max_time_step': 0.0,
         'rnaPolymeraseElongationRateDict': {},
