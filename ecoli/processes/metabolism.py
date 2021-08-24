@@ -43,18 +43,17 @@ from ecoli.processes.registries import topology_registry
 
 # Register default topology for this process, associating it with process name
 NAME = 'ecoli-metabolism'
-topology_registry.register(
-    NAME,
-    {
-        "metabolites": ("bulk",),
-        "catalysts": ("bulk",),
-        "kinetics_enzymes": ("bulk",),
-        "kinetics_substrates": ("bulk",),
-        "amino_acids": ("bulk",),
-        "listeners": ("listeners",),
-        "environment": ("environment",),
-        "polypeptide_elongation": ("process_state", "polypeptide_elongation")
-    })
+TOPOLOGY = {
+    "metabolites": ("bulk",),
+    "catalysts": ("bulk",),
+    "kinetics_enzymes": ("bulk",),
+    "kinetics_substrates": ("bulk",),
+    "amino_acids": ("bulk",),
+    "listeners": ("listeners",),
+    "environment": ("environment",),
+    "polypeptide_elongation": ("process_state", "polypeptide_elongation")
+}
+topology_registry.register(NAME, TOPOLOGY)
 
 COUNTS_UNITS = units.mmol
 VOLUME_UNITS = units.L
@@ -69,7 +68,7 @@ USE_KINETICS = True
 
 class Metabolism(Process):
     name = NAME
-
+    topology = TOPOLOGY
     defaults = {
         'get_import_constraints': lambda u, c, p: (u, c, []),
         'nutrientToDoublingTime': {},

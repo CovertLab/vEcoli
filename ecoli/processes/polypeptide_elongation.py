@@ -36,9 +36,7 @@ from ecoli.processes.registries import topology_registry
 
 # Register default topology for this process, associating it with process name
 NAME = 'ecoli-polypeptide-elongation'
-topology_registry.register(
-    NAME,
-    {
+TOPOLOGY = {
         "environment": ("environment",),
         "listeners": ("listeners",),
         "active_ribosome": ("unique", "active_ribosome"),
@@ -52,7 +50,8 @@ topology_registry.register(
         "synthetases": ("bulk",),
         "subunits": ("bulk",),
         "polypeptide_elongation": ("process_state", "polypeptide_elongation")
-    })
+}
+topology_registry.register(NAME, TOPOLOGY)
 
 DEFAULT_AA_NAMES = [
             'L-ALPHA-ALANINE[c]', 'ARG[c]', 'ASN[c]', 'L-ASPARTATE[c]', 'CYS[c]', 'GLT[c]', 'GLN[c]', 'GLY[c]',
@@ -66,6 +65,7 @@ class PolypeptideElongation(Process):
         proteinIds: array length n of protein names
     """
     name = NAME
+    topology = TOPOLOGY
 
     defaults = {
         'max_time_step': 2.0,

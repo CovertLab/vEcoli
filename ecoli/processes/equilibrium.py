@@ -26,12 +26,11 @@ from ecoli.processes.registries import topology_registry
 
 # Register default topology for this process, associating it with process name
 NAME = 'ecoli-equilibrium'
-topology_registry.register(
-    NAME,
-    {
+TOPOLOGY = {
         "listeners": ("listeners",),
         "molecules": ("bulk",)
-    })
+}
+topology_registry.register(NAME, TOPOLOGY)
 
 '''
     _jit: just in time: false. utilized in the fluxes and molecules function
@@ -46,7 +45,7 @@ topology_registry.register(
 
 class Equilibrium(Process):
     name = NAME
-
+    topology = TOPOLOGY
     defaults = {
         'jit': False,
         'n_avogadro': 0.0,

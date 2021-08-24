@@ -31,16 +31,16 @@ from ecoli.processes.registries import topology_registry
 
 # Register default topology for this process, associating it with process name
 NAME = 'ecoli-protein-degradation'
-topology_registry.register(
-    NAME,
-    {
+TOPOLOGY = {
         "metabolites": ("bulk",),
         "proteins": ("bulk",)
-    })
+}
+topology_registry.register(NAME, TOPOLOGY)
+
 
 class ProteinDegradation(Process):
     name = NAME
-
+    topology = TOPOLOGY
     defaults = {
         'raw_degradation_rate': [],
         'shuffle_indexes': None,
