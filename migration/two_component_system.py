@@ -14,6 +14,8 @@ from ecoli.states.wcecoli_state import get_state_from_file
 load_sim_data = LoadSimData(
             sim_data_path=SIM_DATA_PATH,
             seed=0)
+TOPOLOGY = TwoComponentSystem.topology
+
 
 def test_two_component_system_migration():
     # Set time parameters
@@ -24,12 +26,8 @@ def test_two_component_system_migration():
     config = load_sim_data.get_two_component_system_config()
     two_component_system_process = TwoComponentSystem(config)
 
-    topology = {
-        'listeners': ('listeners',),
-        'molecules': ('bulk',)}
-
     # run the process and get an update
-    actual_update = run_ecoli_process(two_component_system_process, topology, total_time=total_time,
+    actual_update = run_ecoli_process(two_component_system_process, TOPOLOGY, total_time=total_time,
                                       initial_time=initial_time)
 
     with open("data/two_component_system_update_t12.json") as f:

@@ -9,29 +9,27 @@ import argparse
 from copy import deepcopy
 
 from vivarium.core.composer import Composer
-from vivarium.core.engine import pp, Engine
+from vivarium.core.engine import Engine
 from vivarium.plots.topology import plot_topology
 from vivarium.library.topology import assoc_path
 from vivarium.library.dict_utils import deep_merge
-from vivarium.core.process import Process, Deriver
 
 # sim data
 from ecoli.library.sim_data import LoadSimData
-from data.ecoli_master_configs import default
+from ecoli.composites.ecoli_master_configs.default import ECOLI_PROCESSES, ECOLI_TOPOLOGY
 
 # logging
 from ecoli.library.logging import make_logging_process
 from ecoli.plots.blame import blame_plot
 
 # vivarium-ecoli processes
-from ecoli.plots.topology import get_ecoli_master_topology_settings
 from ecoli.processes.cell_division import Division
 from ecoli.processes.allocator import Allocator
 
 # state
+from ecoli.processes.partition import get_bulk_topo, Requester, Evolver
 from ecoli.states.wcecoli_state import get_state_from_file
 
-from ecoli.library.data_predicates import all_nonnegative
 
 RAND_MAX = 2**31
 SIM_DATA_PATH = 'reconstruction/sim_data/kb/simData.cPickle'
@@ -40,132 +38,33 @@ MINIMAL_MEDIA_ID = 'minimal'
 AA_MEDIA_ID = 'minimal_plus_amino_acids'
 ANAEROBIC_MEDIA_ID = 'minimal_minus_oxygen'
 
+# rename the processes
+# TODO: remove this!
+NAMES_MAP = {
+    'ecoli-tf-binding': 'tf_binding',
+    'ecoli-transcript-initiation': 'transcript_initiation',
+    'ecoli-transcript-elongation': 'transcript_elongation',
+    'ecoli-rna-degradation': 'rna_degradation',
+    'ecoli-polypeptide-initiation': 'polypeptide_initiation',
+    'ecoli-polypeptide-elongation': 'polypeptide_elongation',
+    'ecoli-complexation': 'complexation',
+    'ecoli-two-component-system': 'two_component_system',
+    'ecoli-equilibrium': 'equilibrium',
+    'ecoli-protein-degradation': 'protein_degradation',
+    'ecoli-metabolism': 'metabolism',
+    'ecoli-chromosome-replication': 'chromosome_replication',
+    'ecoli-mass-listener': 'mass',
+    'mRNA_counts_listener': 'mrna_counts',
+}
 
-def change_bulk_updater(schema, new_updater):
-    """Retrieve port schemas for all bulk molecules
-    and modify their updater
-
-    Args:
-        schema (Dict): The ports schema to change
-        new_updater (String): The new updater to use
-
-    Returns:
-        Dict: Ports schema that only includes bulk molecules 
-        with the new updater
-    """
-    bulk_schema = {}
-    if '_properties' in schema:
-        if schema['_properties']['bulk']:
-            topo_copy = schema.copy()
-            topo_copy.update({'_updater': new_updater, '_emit': False})
-            return topo_copy
-    for port, value in schema.items():
-        if has_bulk_property(value):
-            bulk_schema[port] = change_bulk_updater(value, new_updater)
-    return bulk_schema
-
-
-def has_bulk_property(schema):
-    """Check to see if a subset of the ports schema contains
-    a bulk molecule using {'_property': {'bulk': True}}
-
-    Args:
-        schema (Dict): Subset of ports schema to check for bulk
-
-    Returns:
-        Bool: Whether the subset contains a bulk molecule
-    """
-    if isinstance(schema, dict):
-        if '_properties' in schema:
-            if schema['_properties']['bulk']:
-                return True
-
-        for value in schema.values():
-            if isinstance(value, dict):
-                if has_bulk_property(value):
-                    return True
-    return False
-
-
-def get_bulk_topo(topo):
-    """Return topology of only bulk molecules, excluding stores with 
-    '_total' in name (for non-partitioned counts)
-    NOTE: Does not work with '_path' key
-
-    Args:
-        topo (Dict): Experiment topology
-
-    Returns:
-        Dict: Experiment topology with non-bulk stores excluded
-    """
-    if 'bulk' in topo:
-        return topo
-    if isinstance(topo, dict):
-        bulk_topo = {}
-        for port, value in topo.items():
-            if path_in_bulk(value) and '_total' not in port:
-                bulk_topo[port] = get_bulk_topo(value)
-    return bulk_topo
-
-
-def path_in_bulk(topo):
-    """Check whether a subset of the topology is contained within
-    the bulk store
-
-    Args:
-        topo (Dict): Subset of experiment topology
-
-    Returns:
-        Bool: Whether subset contains stores listed under 'bulk'
-    """
-    if 'bulk' in topo:
-        return True
-    if isinstance(topo, dict):
-        for value in topo.values():
-            if path_in_bulk(value):
-                return True
-    return False
-
-
-class Requester(Deriver):
-    defaults = {'process': None}
-
-    def __init__(self, parameters=None):
-        super().__init__(parameters)
-        self.process = self.parameters['process']
-
-    def ports_schema(self):
-        ports = self.process.ports_schema()
-        ports_copy = ports.copy()
-        ports['request'] = change_bulk_updater(ports_copy, 'set')
-        return ports
-
-    def next_update(self, timestep, states):
-        update = self.process.calculate_request(
-            self.parameters['time_step'], states)
-        # Ensure listeners are updated if passed by calculate_request
-        listeners = update.pop('listeners', None)
-        if listeners != None:
-            return {'request': update, 'listeners': listeners}
-        return {'request': update}
-
-
-class Evolver(Process):
-    defaults = {'process': None}
-
-    def __init__(self, parameters=None):
-        super().__init__(parameters)
-        self.process = self.parameters['process']
-
-    def ports_schema(self):
-        ports = self.process.ports_schema()
-        ports_copy = ports.copy()
-        ports['allocate'] = change_bulk_updater(ports_copy, 'set')
-        return ports
-
-    def next_update(self, timestep, states):
-        states = deep_merge(states, states.pop('allocate'))
-        return self.process.evolve_state(timestep, states)
+RENAMED_ECOLI_PROCESSES = {
+    NAMES_MAP[process_name]: process
+    for process_name, process in ECOLI_PROCESSES.items()
+}
+RENAMED_ECOLI_TOPOLOGY = {
+    NAMES_MAP[process_name]: process
+    for process_name, process in ECOLI_TOPOLOGY.items()
+}
 
 
 class Ecoli(Composer):
@@ -182,8 +81,8 @@ class Ecoli(Composer):
             'threshold': 2220},  # fg
         'divide': False,
         'blame': False,
-        'processes': default.ECOLI_PROCESSES.copy(),
-        'topology': default.ECOLI_TOPOLOGY.copy()
+        'processes': RENAMED_ECOLI_PROCESSES.copy(),
+        'topology': RENAMED_ECOLI_TOPOLOGY.copy()
     }
 
     def __init__(self, config):
@@ -232,10 +131,6 @@ class Ecoli(Composer):
         processes = {
             process_name: process(configs[process_name])
             for (process_name, process) in config['processes'].items()
-            # if process_name not in [
-            #     'polypeptide_elongation'
-            #     # TODO: get this working again
-            # ]
         }
 
         derivers = ['metabolism', 'mass', 'mrna_counts', 'allocator']

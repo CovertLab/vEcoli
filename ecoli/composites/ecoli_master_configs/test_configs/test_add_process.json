@@ -1,0 +1,28 @@
+{
+    "experiment_id" : "test_add_process",
+    "total_time" : 2,
+    "_schema": {
+        "ecoli-equilibrium": {
+            "molecules": {
+                "PD00413[c]": {"_updater": "nonnegative_accumulate"}
+            }
+        },
+        "clock" : {
+            "global_time" : {
+                "_emit" : true
+            }
+        }
+    },
+    "add_processes" : ["clock"],
+    "topology" : {
+        "clock" : {
+            "global_time" : ["global_time"]
+        }
+    },
+    "process_configs" :{
+        "clock" : {
+            "time_step" : 2.0,
+            "test" : "Hello vivarium"
+        }
+    }
+}
