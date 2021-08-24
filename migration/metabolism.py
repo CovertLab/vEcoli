@@ -19,9 +19,6 @@ from ecoli.states.wcecoli_state import get_state_from_file
 from ecoli.composites.ecoli_master import SIM_DATA_PATH, AA_MEDIA_ID
 from ecoli.processes import Metabolism, Exchange
 from ecoli.library.schema import array_from
-from data.ecoli_master_configs import default
-
-from data.ecoli_master_configs.default import ECOLI_TOPOLOGY
 
 # migration imports
 from migration.migration_utils import (run_ecoli_process, ComparisonTestSuite,
@@ -34,8 +31,7 @@ load_sim_data = LoadSimData(
             sim_data_path=SIM_DATA_PATH,
             seed=0)
 
-# get topology from ecoli master
-metabolism_topology = ECOLI_TOPOLOGY['metabolism']
+TOPOLOGY = Metabolism.topology
 
 # make a composite with Exchange
 class MetabolismExchange(Composer):
@@ -69,7 +65,7 @@ class MetabolismExchange(Composer):
 
     def generate_topology(self, config):
         return {
-            'metabolism': metabolism_topology,
+            'metabolism': TOPOLOGY,
             'exchange': {
                 'molecules': ('bulk',),
             }
@@ -85,7 +81,7 @@ def test_metabolism_migration():
     # run the process and get an update
     actual_update = run_ecoli_process(
         metabolism_process,
-        metabolism_topology,
+        TOPOLOGY,
         total_time=2)
 
 
@@ -113,7 +109,7 @@ def run_metabolism(
     metabolism_composite = metabolism.generate()
     simulation = Engine(**{
         'processes': metabolism_composite['processes'],
-        'topology': {metabolism.name: metabolism_topology},
+        'topology': {metabolism.name: metabolism.topology},
         'initial_state': state
     })
 
@@ -143,11 +139,9 @@ def test_metabolism():
             partitioned = json.load(f)
         
         deep_merge(state, partitioned)
-        
-        topology = default.ECOLI_TOPOLOGY['metabolism'].copy()
-        
+
         # run the process and get an update
-        actual_update = run_ecoli_process(metabolism, topology, 
+        actual_update = run_ecoli_process(metabolism, metabolism.topology,
                                         initial_time=initial_time,
                                         initial_state=state)
         

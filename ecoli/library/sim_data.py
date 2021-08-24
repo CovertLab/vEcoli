@@ -46,7 +46,7 @@ class LoadSimData:
             'ecoli-equilibrium': self.get_equilibrium_config,
             'ecoli-protein-degradation': self.get_protein_degradation_config,
             'ecoli-metabolism': self.get_metabolism_config,
-            'ecoli-chromosome_replication': self.get_chromosome_replication_config,
+            'ecoli-chromosome-replication': self.get_chromosome_replication_config,
             'ecoli-mass': self.get_mass_config,
             'ecoli-mass-listener': self.get_mass_listener_config,
             'mRNA_counts_listener': self.get_mrna_counts_listener_config,

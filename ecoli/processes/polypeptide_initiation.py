@@ -24,19 +24,18 @@ from ecoli.processes.registries import topology_registry
 
 # Register default topology for this process, associating it with process name
 NAME = 'ecoli-polypeptide-initiation'
-topology_registry.register(
-    NAME,
-    {
+TOPOLOGY = {
         "environment": ("environment",),
         "listeners": ("listeners",),
         "active_ribosome": ("unique", "active_ribosome"),
         "RNA": ("unique", "RNA"),
         "subunits": ("bulk",)
-    })
-
+}
+topology_registry.register(NAME, TOPOLOGY)
 
 class PolypeptideInitiation(Process):
     name = NAME
+    topology = TOPOLOGY
 
     defaults = {
         'protein_lengths': [],

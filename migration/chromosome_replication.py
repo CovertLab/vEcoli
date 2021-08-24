@@ -16,23 +16,7 @@ load_sim_data = LoadSimData(
     sim_data_path=SIM_DATA_PATH,
     seed=0)
 
-topology = {
-    # bulk molecules
-    'replisome_trimers': ('bulk',),
-    'replisome_monomers': ('bulk',),
-    'dntps': ('bulk',),
-    'ppi': ('bulk',),
-
-    # unique molecules
-    'active_replisomes': ('unique', 'active_replisome',),
-    'oriCs': ('unique', 'oriC',),
-    'chromosome_domains': ('unique', 'chromosome_domain',),
-    'full_chromosomes': ('unique', 'full_chromosome',),
-
-    # other
-    'listeners': ('listeners',),
-    'environment': ('environment',),
-}
+TOPOLOGY = ChromosomeReplication.topology
 
 
 def test_actual_update():
@@ -44,7 +28,7 @@ def test_actual_update():
         # run the process and get an update
         actual_update = run_ecoli_process(
             chromosome_replication,
-            topology,
+            TOPOLOGY,
             total_time=total_time,
             initial_time=initial_time)
 
@@ -262,7 +246,7 @@ def test_chromosome_replication_default():
         path=f'data/wcecoli_t1000.json')
 
     # get relevant initial state and experiment
-    state_before, experiment = get_process_state(chromosome_replication, topology, initial_state)
+    state_before, experiment = get_process_state(chromosome_replication, TOPOLOGY, initial_state)
 
     # run experiment
     experiment.update(4)
@@ -284,7 +268,7 @@ def test_initiate_replication():
     initial_state['listeners']['mass']['cell_mass'] = cell_mass
 
     # get relevant initial state and experiment
-    state_before, experiment = get_process_state(chromosome_replication, topology, initial_state)
+    state_before, experiment = get_process_state(chromosome_replication, TOPOLOGY, initial_state)
 
     # run experiment
     experiment.update(4)
@@ -309,7 +293,7 @@ def test_fork_termination():
         path=f'data/wcecoli_t1000.json')
 
     # get relevant initial state and experiment
-    state_before, experiment = get_process_state(chromosome_replication, topology, initial_state)
+    state_before, experiment = get_process_state(chromosome_replication, TOPOLOGY, initial_state)
 
     # run experiment
     experiment.update(4)

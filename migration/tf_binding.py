@@ -23,7 +23,7 @@ load_sim_data = LoadSimData(
             sim_data_path=SIM_DATA_PATH,
             seed=0)
 
-TF_BINDING_TOPOLOGY = topology_registry.access(TfBinding.name)
+TF_BINDING_TOPOLOGY = TfBinding.topology
 
 def custom_run_process(
     process,

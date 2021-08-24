@@ -22,20 +22,19 @@ from ecoli.processes.registries import topology_registry
 
 # Register default topology for this process, associating it with process name
 NAME = 'ecoli-tf-binding'
-topology_registry.register(
-    NAME,
-    {
+TOPOLOGY = {
         "promoters": ("unique", "promoter"),
         "active_tfs": ("bulk",),
         "active_tfs_total": ("bulk",),
         "inactive_tfs_total": ("bulk",),
         "listeners": ("listeners",)
-    })
+}
+topology_registry.register(NAME, TOPOLOGY)
 
 
 class TfBinding(Process):
     name = NAME
-
+    topology = TOPOLOGY
     defaults = {
         'tf_ids': [],
         'delta_prob': {'deltaI': [], 'deltaJ': [], 'deltaV': []},

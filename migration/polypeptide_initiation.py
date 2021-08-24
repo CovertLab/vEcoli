@@ -12,12 +12,7 @@ load_sim_data = LoadSimData(
             sim_data_path=SIM_DATA_PATH,
             seed=0)
 
-PI_TOPOLOGY = {
-    'environment': ('environment',),
-    'listeners': ('listeners',),
-    'active_ribosome': ('unique', 'active_ribosome'),
-    'RNA': ('unique', 'RNA'),
-    'subunits': ('bulk',)}
+PI_TOPOLOGY = PolypeptideInitiation.topology
 
 
 def test_polypeptide_initiation_migration():
