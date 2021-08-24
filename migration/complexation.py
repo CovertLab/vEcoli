@@ -19,6 +19,9 @@ load_sim_data = LoadSimData(
             sim_data_path=SIM_DATA_PATH,
             seed=0)
 
+TOPOLOGY = Complexation.topology
+
+
 def test_complexation_migration():
     def test(initial_time):
         total_time = 2
@@ -28,9 +31,7 @@ def test_complexation_migration():
         config['seed'] = 0
         complexation = Complexation(config)
 
-        topology = {
-            'molecules': ('bulk',)
-            }
+
         
         with open(f"data/complexation/complexation_partitioned_t"
             f"{total_time+initial_time}.json") as f:
@@ -42,7 +43,7 @@ def test_complexation_migration():
         deep_merge(initial_state, {'bulk': partitioned_counts})
 
         # run the process and get an update
-        actual_update = run_ecoli_process(complexation, topology,
+        actual_update = run_ecoli_process(complexation, TOPOLOGY,
                                         total_time=total_time,
                                         initial_time=initial_time,
                                         initial_state=initial_state)
