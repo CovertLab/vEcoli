@@ -2,6 +2,8 @@
 ==============================
 E. coli partitioning composite
 ==============================
+NOTE: All ports with '_total' in their name are
+automatically exempt from partitioning
 """
 
 import os

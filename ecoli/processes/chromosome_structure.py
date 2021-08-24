@@ -111,8 +111,6 @@ class ChromosomeStructure(Process):
         self.promoter_index = 60000
         self.DnaA_box_index = 60000
         self.deriver_mode = self.parameters['deriver_mode']
-        
-        self.time = 0
 
     def is_deriver(self):
         return self.deriver_mode
@@ -137,6 +135,7 @@ class ChromosomeStructure(Process):
                 '*': {
                     'domain_index': default_unique_schema,
                     'coordinates': default_unique_schema,
+                    'unique_index': default_unique_schema
                 }},
             'oriCs': {
                 '*': {
@@ -155,18 +154,18 @@ class ChromosomeStructure(Process):
                 '*': {
                     'unique_index': {'_default': 0, '_updater': 'set'},
                     'domain_index': {'_default': 0, '_updater': 'set'},
-                    'coordinates': {'_default': 0, '_updater': 'set', '_emit': True},
+                    'coordinates': {'_default': 0, '_updater': 'set'},
                     'direction': {'_default': 0, '_updater': 'set'}}},
             'RNAs': {
                 '*': {
                     'unique_index': {'_default': 0, '_updater': 'set'},
                     'TU_index': {'_default': 0, '_updater': 'set'},
-                    'transcript_length': {'_default': 0, '_updater': 'set', '_emit': True},
+                    'transcript_length': {'_default': 0, '_updater': 'set'},
                     'RNAP_index': {'_default': 0, '_updater': 'set'}}},
             'active_ribosome': {
                 '*': {
                     'protein_index': {'_default': 0},
-                    'peptide_length': {'_default': 0, '_emit': True},
+                    'peptide_length': {'_default': 0},
                     'mRNA_index': {'_default': 0}}},
             'full_chromosomes': {
                 '*': {
@@ -211,17 +210,14 @@ class ChromosomeStructure(Process):
         RNAP_domain_indexes, RNAP_coordinates, RNAP_directions, RNAP_unique_indexes = arrays_from(
             states['active_RNAPs'].values(),
             ['domain_index', 'coordinates', 'direction', 'unique_index'])
-
-        origin_domain_indexes = arrays_from(states['oriCs'].values(), ['domain_index'])
-        mother_domain_indexes = arrays_from(states['full_chromosomes'].values(), ['domain_index'])
-
+        origin_domain_indexes = arrays_from(states['oriCs'].values(), ['domain_index'])[0]
+        mother_domain_indexes = arrays_from(states['full_chromosomes'].values(), ['domain_index'])[0]
         RNA_TU_indexes, transcript_lengths, RNA_RNAP_indexes, RNA_unique_indexes = arrays_from(
             states['RNAs'].values(),
             ['TU_index', 'transcript_length', 'RNAP_index', 'unique_index'])
         ribosome_protein_indexes, ribosome_peptide_lengths, ribosome_mRNA_indexes = arrays_from(
             states['active_ribosome'].values(),
             ['protein_index', 'peptide_length', 'mRNA_index'])
-
         promoter_TU_indexes, promoter_domain_indexes, promoter_coordinates, promoter_bound_TFs = arrays_from(
             states['promoters'].values(),
             ['TU_index', 'domain_index', 'coordinates', 'bound_TF'])
@@ -420,7 +416,7 @@ class ChromosomeStructure(Process):
             # self.chromosomal_segments.delByIndexes(
             #     np.arange(self.chromosomal_segments.total_count()))
             chromosomal_segments_delete_update = [
-                key for index, key in enumerate(states['chromosonal_segments'].keys())]
+                key for key in states['chromosonal_segments'].keys()]
             if chromosomal_segments_delete_update:
                 update['chromosomal_segments'] = {
                     '_delete': chromosomal_segments_delete_update}
