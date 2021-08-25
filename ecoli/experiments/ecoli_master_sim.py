@@ -9,6 +9,7 @@ from datetime import datetime
 
 from vivarium.core.engine import Engine
 from vivarium.library.dict_utils import deep_merge
+from ecoli.library.logging import write_json
 from ecoli.composites.ecoli_master import SIM_DATA_PATH
 # Two different Ecoli composites depending on partitioning
 import ecoli.composites.ecoli_master
@@ -298,6 +299,10 @@ class EcoliSim:
         """
 
         deep_merge(self.config, other.config)
+
+    
+    def export_json(self, filename=self.name + "_config.json"):
+        write_json(filename, self.config)
 
 
 if __name__ == '__main__':
