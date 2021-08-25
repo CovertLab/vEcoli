@@ -221,10 +221,9 @@ class Ecoli(Composer):
 
 def run_ecoli(
         total_time=10,
-        config=None,
         divide=False,
         progress_bar=True,
-        blame=False,
+        log_updates=False,
 ):
     """Run ecoli_master simulations
 
@@ -235,59 +234,15 @@ def run_ecoli(
     Returns:
         * output data
     """
-    # make the ecoli config dictionary
-    agent_id = '0'
-    ecoli_config = {
-        'log_updates': blame,
-        'agent_id': agent_id,
-        # TODO -- remove schema override once values don't go negative
-        '_schema': {
-            'equilibrium_evolver': {
-                'molecules': {
-                    'PD00413[c]': {'_updater': 'nonnegative_accumulate'}
-                }
-            },
-        },
-    }
-    if config:
-        ecoli_config = deep_merge(ecoli_config, config)
+    from ecoli.experiments.ecoli_master_sim import EcoliSim, CONFIG_DIR_PATH
+    
+    sim = EcoliSim.from_file(CONFIG_DIR_PATH + "default.json")
+    sim.total_time = total_time
+    sim.divide = divide
+    sim.progress_bar = progress_bar
+    sim.log_updates = log_updates
 
-    # initialize the ecoli composer
-    ecoli_composer = Ecoli(ecoli_config)
-
-    # set path at which agent is initialized
-    path = tuple()
-    if divide:
-        path = ('agents', agent_id,)
-
-    # get initial state
-    initial_state = ecoli_composer.initial_state(path=path)
-
-    # generate the composite at the path
-    ecoli = ecoli_composer.generate(path=path)
-
-    # make the experiment
-    ecoli_experiment = Engine(**{
-        'processes': ecoli.processes,
-        'topology': ecoli.topology,
-        'initial_state': initial_state,
-        'progress_bar': progress_bar,
-        'emit_config': False,
-        # Not emitting every step is faster but breaks blame.py
-        # 'emit_step': 1000,
-        # 'emitter': 'database'
-    })
-
-    # run the experiment
-    ecoli_experiment.update(total_time)
-
-    # retrieve the data
-    output = ecoli_experiment.emitter.get_timeseries()
-
-    # Sanity check: breaks test_division()
-    # pp(output['listeners']['mass'])
-
-    return output
+    return sim.run()
 
 
 def test_division():
@@ -297,15 +252,20 @@ def test_division():
     * TODO -- unique molecules need to be divided between daughter cells!!! This can get sophisticated
     """
 
-    config = {
-        'division': {
-            'threshold': 1170}}
-    output = run_ecoli(
-        total_time=10,
-        divide=True,
-        config=config,
-        progress_bar=False,
-    )
+    from ecoli.experiments.ecoli_master_sim import EcoliSim, CONFIG_DIR_PATH
+
+    sim = EcoliSim.from_file(CONFIG_DIR_PATH + "default.json")
+    sim.division = {'threshold' : 1170}
+
+    # Remove metabolism for now 
+    # (divison fails because cannot deepcopy metabolism process)
+    # sim.exclude_processes.append("ecoli-metabolism")
+    
+    sim.total_time = 10
+    sim.divide = True
+    sim.progress_bar = True
+
+    output = sim.run()
 
 
 def get_partition_topology_settings():
@@ -460,4 +420,4 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    test_division()
