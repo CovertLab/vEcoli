@@ -24,19 +24,18 @@ from ecoli.processes.registries import topology_registry
 
 # Register default topology for this process, associating it with process name
 NAME = 'ecoli-polypeptide-initiation'
-topology_registry.register(
-    NAME,
-    {
+TOPOLOGY = {
         "environment": ("environment",),
         "listeners": ("listeners",),
         "active_ribosome": ("unique", "active_ribosome"),
         "RNA": ("unique", "RNA"),
         "subunits": ("bulk",)
-    })
-
+}
+topology_registry.register(NAME, TOPOLOGY)
 
 class PolypeptideInitiation(Process):
     name = NAME
+    topology = TOPOLOGY
 
     defaults = {
         'protein_lengths': [],
@@ -238,7 +237,7 @@ class PolypeptideInitiation(Process):
         # Create active 70S ribosomes and assign their attributes
         new_ribosomes = arrays_to(
             n_ribosomes_to_activate, {
-                'unique_index': np.arange(self.ribosome_index, self.ribosome_index + n_ribosomes_to_activate),
+                'unique_index': np.arange(self.ribosome_index, self.ribosome_index + n_ribosomes_to_activate).astype(str),
                 'protein_index': protein_indexes,
                 'peptide_length': np.zeros(cast(int, n_ribosomes_to_activate), dtype=np.int64),
                 'mRNA_index': mRNA_indexes,
