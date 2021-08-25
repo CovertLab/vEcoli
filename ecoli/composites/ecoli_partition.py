@@ -213,6 +213,9 @@ class Ecoli(Composer):
             'allocate': ('allocate',),
             'bulk': ('bulk',)}
 
+        if config['log_updates']:
+            topology['allocator']['log_update'] = ('log_update', 'allocator',)
+
         return topology
 
 
