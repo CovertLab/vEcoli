@@ -50,7 +50,7 @@ class Ecoli(Composer):
         'division': {
             'threshold': 2220},  # fg
         'divide': False,
-        'blame': False
+        'log_updates': False
     }
 
     def __init__(self, config):
@@ -116,7 +116,7 @@ class Ecoli(Composer):
         # make the topology
         for process_id, ports in self.topology.items():
             topology[process_id] = ports
-            if config['blame']:
+            if config['log_updates']:
                 topology[process_id]['log_update'] = ('log_update', process_id,)
 
         # add division

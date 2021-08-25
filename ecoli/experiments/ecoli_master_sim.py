@@ -25,7 +25,8 @@ class EcoliSim:
     def __init__(self, config):
         # Do some datatype pre-processesing
         config['agents_path'] = tuple(config['agents_path'])
-        config['processes'] = {process : None for process in config['processes']}
+        config['processes'] = {
+            process: None for process in config['processes']}
 
         # store config
         self.config = config
@@ -64,6 +65,20 @@ class EcoliSim:
 
         if self.partition:
             warnings.warn("partitioning is not compatible with EcoliSim yet!")
+
+    @staticmethod
+    def from_file(filepath=CONFIG_DIR_PATH + 'default.json'):
+        # Load config, deep-merge with default config
+        with open(filepath) as config_file:
+            ecoli_config = json.load(config_file)
+
+        with open(CONFIG_DIR_PATH + 'default.json') as default_file:
+            default_config = json.load(default_file)
+
+        # Use defaults for any attributes not supplied
+        ecoli_config = deep_merge(dict(default_config), ecoli_config)
+
+        return EcoliSim(ecoli_config)
 
     @staticmethod
     def from_cli():
@@ -121,20 +136,6 @@ class EcoliSim:
         for setting, value in vars(args).items():
             if value and setting != "config":
                 ecoli_config[setting] = value
-
-        # Use defaults for any attributes not supplied
-        ecoli_config = deep_merge(dict(default_config), ecoli_config)
-
-        return EcoliSim(ecoli_config)
-
-    @staticmethod
-    def from_file(filepath=CONFIG_DIR_PATH + 'default.json'):
-        # Load config, deep-merge with default config
-        with open(filepath) as config_file:
-            ecoli_config = json.load(config_file)
-
-        with open(CONFIG_DIR_PATH + 'default.json') as default_file:
-            default_config = json.load(default_file)
 
         # Use defaults for any attributes not supplied
         ecoli_config = deep_merge(dict(default_config), ecoli_config)
@@ -220,8 +221,12 @@ class EcoliSim:
 
         return result
 
-    def run(self):
-        # build processes, topology, configs to
+    def build_ecoli(self):
+        """
+        Build self.ecoli, the Ecoli composite, and self.initial_state, from current settings.
+        """
+
+        # build processes, topology, configs
         self.processes = self._retrieve_processes(self.processes,
                                                   self.add_processes,
                                                   self.exclude_processes,
@@ -247,18 +252,22 @@ class EcoliSim:
             path = ('agents', self.agent_id,)
 
         # get initial state
-        initial_state = ecoli_composer.initial_state(
+        self.initial_state = ecoli_composer.initial_state(
             config=self.config, path=path)
 
         # generate the composite at the path
         self.ecoli = ecoli_composer.generate(path=path)
+
+    def run(self):
+        # build self.ecoli and self.initial_state
+        self.build_ecoli()
 
         # make the experiment
         experiment_config = {
             'description': self.description,
             'processes': self.ecoli.processes,
             'topology': self.ecoli.topology,
-            'initial_state': initial_state,
+            'initial_state': self.initial_state,
             'progress_bar': self.progress_bar,
             'emit_topology': self.emit_topology,
             'emit_processes': self.emit_processes,
@@ -281,6 +290,14 @@ class EcoliSim:
             return self.ecoli_experiment.emitter.get_data()
         else:
             return self.ecoli_experiment.emitter.get_timeseries()
+
+    def merge(self, other):
+        """
+        Combine settings from this EcoliSim with another, overriding 
+        current settings with those from the other EcoliSim.
+        """
+
+        deep_merge(self.config, other.config)
 
 
 if __name__ == '__main__':
