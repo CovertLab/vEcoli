@@ -1,12 +1,5 @@
 {
     "experiment_id" : "test_exclude_process",
     "total_time" : 2,
-    "_schema": {
-        "ecoli-equilibrium": {
-            "molecules": {
-                "PD00413[c]": {"_updater": "nonnegative_accumulate"}
-            }
-        }
-    },
     "exclude_processes" : ["ecoli-polypeptide-elongation", "ecoli-two-component-system"]
 }

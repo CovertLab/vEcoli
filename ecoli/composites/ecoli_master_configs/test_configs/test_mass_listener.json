@@ -1,12 +1,5 @@
 {
     "experiment_id" : "test_mass_listener",
     "total_time" : 4,
-    "raw_output" : true,
-    "_schema": {
-        "ecoli-equilibrium": {
-            "molecules": {
-                "PD00413[c]": {"_updater": "nonnegative_accumulate"}
-            }
-        }
-    }
+    "raw_output" : true
 }
