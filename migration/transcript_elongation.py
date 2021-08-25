@@ -23,6 +23,8 @@ from migration.migration_utils import array_diffs_report
 
 load_sim_data = LoadSimData(sim_data_path=SIM_DATA_PATH,
                             seed=0)
+TOPOLOGY = TranscriptElongation.topology
+
 
 def test_transcription_elongation():
 
@@ -30,15 +32,9 @@ def test_transcription_elongation():
     config = load_sim_data.get_transcript_elongation_config()
     process = TranscriptElongation(config)
 
-    topology = {'environment': ('environment',),
-                'RNAs': ('unique', 'RNA'),
-                'active_RNAPs': ('unique', 'active_RNAP'),
-                'molecules': ('bulk',),
-                'bulk_RNAs': ('bulk',),
-                'ntps': ('bulk',),
-                'listeners': ('listeners',)}
 
-    actual_update = run_ecoli_process(process, topology)
+
+    actual_update = run_ecoli_process(process, TOPOLOGY)
 
     with open("data/transcript_elongation_update_t2.json") as f:
         wc_update = json.load(f)

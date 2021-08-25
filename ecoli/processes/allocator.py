@@ -1,10 +1,10 @@
 """
-Allcoator
+Allocator
 
 Updates bulk with process updates, runs metabolism, runs process requests, allocates molecules
 """
-from vivarium.core.process import Deriver
 import numpy as np
+from vivarium.core.process import Deriver
 
 
 ASSERT_POSITIVE_COUNTS = True

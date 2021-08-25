@@ -33,9 +33,7 @@ from ecoli.processes.registries import topology_registry
 
 # Register default topology for this process, associating it with process name
 NAME = 'ecoli-transcript-initiation'
-topology_registry.register(
-    NAME,
-    {
+TOPOLOGY = {
         "environment": ("environment",),
         "full_chromosomes": ("unique", "full_chromosome"),
         "RNAs": ("unique", "RNA"),
@@ -43,7 +41,9 @@ topology_registry.register(
         "promoters": ("unique", "promoter"),
         "molecules": ("bulk",),
         "listeners": ("listeners",)
-    })
+}
+topology_registry.register(NAME, TOPOLOGY)
+
 
 class TranscriptInitiation(Process):
     """TranscriptInitiation
@@ -116,7 +116,7 @@ class TranscriptInitiation(Process):
     """
 
     name = NAME
-
+    topology = TOPOLOGY
     defaults = {
         'fracActiveRnapDict': {},
         'rnaLengths': np.array([]),
@@ -240,7 +240,7 @@ class TranscriptInitiation(Process):
         self.seed = self.parameters['seed']
         self.random_state = np.random.RandomState(seed=self.seed)
 
-        self.rnap_index = 60000
+        self.rnap_index = 6000000
 
     def ports_schema(self):
         return {
@@ -474,7 +474,7 @@ class TranscriptInitiation(Process):
                 'TU_index': TU_index_partial_RNAs,
                 'transcript_length': np.zeros(cast(int, n_RNAPs_to_activate)),
                 'is_mRNA': is_mRNA,
-                'is_full_transcript': np.zeros(cast(int, n_RNAPs_to_activate), dtype=bool),
+                'is_full_transcript': np.zeros(cast(int, n_RNAPs_to_activate), dtype=bool).tolist(),
                 'can_translate': is_mRNA,
                 'RNAP_index': RNAP_indexes})
         update['RNAs'] = add_elements(new_RNAs, 'unique_index')

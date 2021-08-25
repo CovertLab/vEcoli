@@ -22,19 +22,19 @@ from ecoli.processes.registries import topology_registry
 
 # Register default topology for this process, associating it with process name
 NAME = 'ecoli-complexation'
-topology_registry.register(
-    NAME,
-    {
-        "molecules": ("bulk",)
-    })
-
+TOPOLOGY = {
+    "molecules": ("bulk",),
+    "listeners": ("listeners",)
+}
+topology_registry.register(NAME, TOPOLOGY)
 
 # Maximum unsigned int value + 1 for randint() to seed srand from C stdlib
 RAND_MAX = 2**31
 
+
 class Complexation(Process):
     name = NAME
-
+    topology = TOPOLOGY
     defaults = {
         'stoichiometry': np.array([[]]),
         'rates': np.array([]),

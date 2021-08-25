@@ -270,6 +270,11 @@ class ComparisonTestSuite:
 
 
 # Common tests for use with ComparisonTestSuite ========================================================================
+def equal(a, b):
+    return np.all(a==b)
+
+def equal_len(a, b):
+    return len(a)==len(b)
 
 def array_equal(arr1, arr2):
     return (np.array_equal(arr1, arr2, equal_nan=True),

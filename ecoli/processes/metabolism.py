@@ -33,9 +33,7 @@ from ecoli.processes.registries import topology_registry
 
 # Register default topology for this process, associating it with process name
 NAME = 'ecoli-metabolism'
-topology_registry.register(
-    NAME,
-    {
+TOPOLOGY = {
         "metabolites": ("bulk",),
         "catalysts": ("bulk",),
         "kinetics_enzymes": ("bulk",),
@@ -43,8 +41,11 @@ topology_registry.register(
         "amino_acids": ("bulk",),
         "listeners": ("listeners",),
         "environment": ("environment",),
-        "polypeptide_elongation": ("process_state", "polypeptide_elongation")
-    })
+        "polypeptide_elongation": ("process_state", "polypeptide_elongation"),
+        # Non-partitioned count
+        "amino_acids_total": ("bulk",)
+    }
+topology_registry.register(NAME, TOPOLOGY)
 
 COUNTS_UNITS = units.mmol
 VOLUME_UNITS = units.L
@@ -59,7 +60,7 @@ USE_KINETICS = True
 
 class Metabolism(Process):
     name = NAME
-
+    topology = TOPOLOGY
     defaults = {
         'get_import_constraints': lambda u, c, p: (u, c, []),
         'nutrientToDoublingTime': {},
@@ -85,7 +86,7 @@ class Metabolism(Process):
         'amino_acid_ids': {},
         'linked_metabolites': None,
         'seed': 0,
-        'deriver_mode': False}
+        'deriver_mode': True}
 
     def __init__(self, parameters=None):
         super().__init__(parameters)
@@ -143,6 +144,7 @@ class Metabolism(Process):
             'kinetics_enzymes': bulk_schema(self.model.kinetic_constraint_enzymes),
             'kinetics_substrates': bulk_schema(self.model.kinetic_constraint_substrates),
             'amino_acids': bulk_schema(self.aa_names),
+            'amino_acids_total': bulk_schema(self.aa_names, partition=False),
 
             'environment': {
                 'media_id': {
@@ -244,7 +246,7 @@ class Metabolism(Process):
             conc_updates.update(self.update_amino_acid_targets(
                 counts_to_molar,
                 states['polypeptide_elongation']['aa_count_diff'],
-                states['amino_acids'],
+                states['amino_acids_total'],
             ))
         if self.include_ppgpp:
             conc_updates[self.model.ppgpp_id] = self.model.getppGppConc(

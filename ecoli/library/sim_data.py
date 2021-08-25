@@ -45,11 +45,12 @@ class LoadSimData:
             'ecoli-equilibrium': self.get_equilibrium_config,
             'ecoli-protein-degradation': self.get_protein_degradation_config,
             'ecoli-metabolism': self.get_metabolism_config,
-            'ecoli-chromosome_replication': self.get_chromosome_replication_config,
+            'ecoli-chromosome-replication': self.get_chromosome_replication_config,
             'ecoli-mass': self.get_mass_config,
             'ecoli-mass-listener': self.get_mass_listener_config,
             'mRNA_counts_listener': self.get_mrna_counts_listener_config,
             'allocator': self.get_allocator_config
+            'ecoli-chromosome_structure': self.get_chromosome_structure_config,
         }
 
         try:
@@ -522,3 +523,36 @@ class LoadSimData:
                 }
         }
         return allocator_config
+    
+    def get_chromosome_structure_config(self, time_step=2, parallel=False, deriver_mode=False):
+        chromosome_structure_config = {
+            # Load parameters
+            'RNA_sequences': self.sim_data.process.transcription.transcription_sequences,
+            'protein_sequences': self.sim_data.process.translation.translation_sequences,
+            'n_TUs': len(self.sim_data.process.transcription.rna_data),
+            'n_TFs': len(self.sim_data.process.transcription_regulation.tf_ids),
+            'n_amino_acids': len(self.sim_data.molecule_groups.amino_acids),
+            'n_fragment_bases': len(self.sim_data.molecule_groups.polymerized_ntps),
+            'replichore_lengths': self.sim_data.process.replication.replichore_lengths,
+            'relaxed_DNA_base_pairs_per_turn': self.sim_data.process.chromosome_structure.relaxed_DNA_base_pairs_per_turn,
+            'terC_index': self.sim_data.process.chromosome_structure.terC_dummy_molecule_index,
+            
+            # TODO: Should be loaded from simulation options
+            'calculate_superhelical_densities': False,
+
+            # Get placeholder value for chromosome domains without children
+            'no_child_place_holder': self.sim_data.process.replication.no_child_place_holder,
+
+            # Load bulk molecule views
+            'inactive_RNAPs': self.sim_data.molecule_ids.full_RNAP,
+            'fragmentBases': self.sim_data.molecule_groups.polymerized_ntps,
+            'ppi': self.sim_data.molecule_ids.ppi,
+            'active_tfs': [x + "[c]" for x in self.sim_data.process.transcription_regulation.tf_ids],
+            'ribosome_30S_subunit': self.sim_data.molecule_ids.s30_full_complex,
+            'ribosome_50S_subunit': self.sim_data.molecule_ids.s50_full_complex,
+            'amino_acids': self.sim_data.molecule_groups.amino_acids,
+            'water': self.sim_data.molecule_ids.water,
+            
+            'deriver_mode': deriver_mode
+        }
+        return chromosome_structure_config
