@@ -260,9 +260,9 @@ class EcoliSim:
             'topology': self.ecoli.topology,
             'initial_state': initial_state,
             'progress_bar': self.progress_bar,
-            'emit_topology': False,
-            'emit_processes': False,
-            'emit_config': False,
+            'emit_topology': self.emit_topology,
+            'emit_processes': self.emit_processes,
+            'emit_config': self.emit_config,
             'emitter': self.emitter,
         }
         if self.experiment_id:
@@ -285,7 +285,4 @@ class EcoliSim:
 
 if __name__ == '__main__':
     ecoli_sim = EcoliSim.from_file()
-    ecoli_sim.total_time = 4
-    ecoli_sim.partition = False
-    ecoli_sim.run()
     ecoli_sim.run()
