@@ -52,7 +52,7 @@ def test_merge():
 
 def test_export():
     sim1 = EcoliSim.from_file()
-    sim1.export_json(CONFIG_DIR_PATH + "/test_configs/test_export.json")
+    sim1.export_json(CONFIG_DIR_PATH + "test_configs/test_export.json")
 
 def main():
     testDefault()
