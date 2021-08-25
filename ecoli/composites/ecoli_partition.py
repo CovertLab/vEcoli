@@ -188,13 +188,14 @@ class Ecoli(Composer):
         self.load_sim_data = LoadSimData(
             sim_data_path=self.config['sim_data_path'],
             seed=self.config['seed'])
-        
+
         self.processes = config['processes']
         self.topology = config['topology']
 
     def initial_state(self, config=None, path=()):
         # Use initial state calculated with trna_charging and translationSupply disabled
-        initial_state = get_state_from_file(path='data/metabolism/wcecoli_t0.json')
+        initial_state = get_state_from_file(
+            path='data/metabolism/wcecoli_t0.json')
         embedded_state = {}
         assoc_path(embedded_state, path, initial_state)
         return embedded_state
@@ -209,7 +210,8 @@ class Ecoli(Composer):
         process_configs = config['process_configs']
         for process in process_configs.keys():
             if process_configs[process] == "sim_data":
-                process_configs[process] = self.load_sim_data.get_config_by_name(process)
+                process_configs[process] = self.load_sim_data.get_config_by_name(
+                    process)
             elif process_configs[process] == "default":
                 process_configs[process] = None
             else:
@@ -219,11 +221,11 @@ class Ecoli(Composer):
                     default = self.load_sim_data.get_config_by_name(process)
                 except KeyError:
                     default = self.processes[process].defaults
-                
-                process_configs[process] = deep_merge(dict(default), process_configs[process])
+
+                process_configs[process] = deep_merge(
+                    dict(default), process_configs[process])
 
         # make the processes
-        # TODO: only do derivers? Incorporate log_updates?
         processes = {
             process_name: process(process_configs[process_name])
             for process_name, process in config['processes'].items()
@@ -231,12 +233,14 @@ class Ecoli(Composer):
 
         # Add allocator process
         process_configs['allocator'] = self.load_sim_data.get_allocator_config(
-            process_names = [p for p in config['processes'].keys()
-                             if not processes[p].is_deriver()]
-            )
-        
+            process_names=[p for p in config['processes'].keys()
+                           if not processes[p].is_deriver()]
+        )
+
         config['processes']['allocator'] = Allocator
-        processes['allocator'] = Allocator(process_configs['allocator'])
+        processes['allocator'] = (Allocator(process_configs['allocator'])
+                                  if not config['log_updates']
+                                  else make_logging_process(Allocator)(process_configs['allocator']))
 
         # Store list of derivers
         self.derivers = [process_name
@@ -265,13 +269,6 @@ class Ecoli(Composer):
         processes.update(requesters)
         processes.update(evolvers)
 
-        # if config['log_updates']:
-        #     processes['metabolism'] = make_logging_process(
-        #         config['processes']['metabolism'])(process_configs['metabolism'])
-        # else:
-        #     processes['metabolism'] = config['processes']['metabolism'](
-        #         process_configs['metabolism'])
-
         division = {}
         # add division
         if self.config['divide']:
@@ -281,33 +278,29 @@ class Ecoli(Composer):
                 composer=self)
             division = {'division': Division(division_config)}
 
-        # allocator = {'allocator': processes['allocator']}
-        # mass = {'mass': processes['mass']}
-        # metabolism = {'metabolism': processes['metabolism']}
-        # mrna_counts = {'mrna_counts': processes['mrna_counts']}
-
-        all_procs = []
+        # Create final list of processes in the correct order.
+        # Following process_order, except that:
+        #   - All requesters appear before all evolvers
+        #   - Allocator appears immediately after requesters and immediately before evolvers
+        result = []
         last_requester = 0
         for i, process in enumerate(process_order):
-            if process == "allocator":
-                continue
-
             if process in self.derivers:
-                all_procs.append(process)
+                result.append(process)
             else:
-                all_procs.append(f'{process}_requester')
+                result.append(f'{process}_requester')
                 last_requester = i
-        
-        all_procs[last_requester+1:last_requester+1] = [f'{process}_evolver'
-                                                    for process in process_order
-                                                    if process not in self.derivers and process != "allocator"]
-        all_procs.insert(last_requester+1, "allocator")
 
-        all_procs = {process : processes[process] for process in all_procs}
+        result[last_requester+1:last_requester+1] = [f'{process}_evolver'
+                                                        for process in process_order
+                                                        if process not in self.derivers and process != "allocator"]
+        result.insert(last_requester+1, "allocator")
 
-        #all_procs = {**metabolism, **requesters, **allocator, **evolvers, **division, **mrna_counts, **mass}
+        result = {process: processes[process] for process in result}
 
-        return all_procs
+        # Under default config, should look like
+        # {**metabolism, **requesters, **allocator, **evolvers, **division, **mrna_counts, **mass}
+        return result
 
     def generate_topology(self, config):
         topology = {}
@@ -327,10 +320,11 @@ class Ecoli(Composer):
                 topology[f'{process_id}_evolver']['allocate'] = {
                     '_path': ('allocate', process_id,),
                     **bulk_topo}
-            else: 
+            else:
                 topology[process_id] = ports
                 if config['log_updates']:
-                    topology[process_id]['log_update'] = ('log_update', process_id,)
+                    topology[process_id]['log_update'] = (
+                        'log_update', process_id,)
 
         # add division
         if self.config['divide']:
@@ -410,7 +404,7 @@ def run_ecoli(
 
     # retrieve the data
     output = ecoli_experiment.emitter.get_timeseries()
-    
+
     # Sanity check: breaks test_division()
     # pp(output['listeners']['mass'])
 
