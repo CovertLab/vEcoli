@@ -26,14 +26,6 @@
         "threshold": 2220},
     "divide": false,
 
-    "_schema": {
-        "ecoli-equilibrium": {
-            "molecules": {
-                "PD00413[c]": {"_updater": "nonnegative_accumulate"}
-            }
-        }
-    },
-
     "add_processes" : [],
     "exclude_processes" : [],
     "swap_processes" : {},
@@ -53,7 +45,11 @@
         "ecoli-mass-listener",
         "mRNA_counts_listener"
     ],
-    "process_configs": {},
+    "process_configs": {
+        "ecoli-metabolism" : {
+            "deriver_mode" : true
+        }
+    },
     "topology": {
     }
 }

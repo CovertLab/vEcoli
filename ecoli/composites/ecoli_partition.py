@@ -17,11 +17,9 @@ from vivarium.core.process import Process, Deriver
 
 # sim data
 from ecoli.library.sim_data import LoadSimData
-from data.ecoli_master_configs import default
 
 # logging
 from ecoli.library.logging import make_logging_process
-from ecoli.plots.blame import blame_plot
 
 # vivarium-ecoli processes
 from ecoli.plots.topology import get_ecoli_master_topology_settings
@@ -181,9 +179,7 @@ class Ecoli(Composer):
         'division': {
             'threshold': 2220},  # fg
         'divide': False,
-        'blame': False,
-        'processes': default.ECOLI_PROCESSES.copy(),
-        'topology': default.ECOLI_TOPOLOGY.copy()
+        'log_updates': False
     }
 
     def __init__(self, config):
@@ -192,6 +188,9 @@ class Ecoli(Composer):
         self.load_sim_data = LoadSimData(
             sim_data_path=self.config['sim_data_path'],
             seed=self.config['seed'])
+        
+        self.processes = config['processes']
+        self.topology = config['topology']
 
     def initial_state(self, config=None, path=()):
         # Use initial state calculated with trna_charging and translationSupply disabled
@@ -204,67 +203,74 @@ class Ecoli(Composer):
         time_step = config['time_step']
         parallel = config['parallel']
 
-        process_names = list(config['processes'].keys())
-        process_names.remove('mass')
+        process_order = list(config['processes'].keys())
 
-        config['processes']['allocator'] = Allocator
-
-        # get the configs from sim_data
-        configs = {
-            'tf_binding': self.load_sim_data.get_tf_config(time_step=time_step),
-            'transcript_initiation': self.load_sim_data.get_transcript_initiation_config(time_step=time_step),
-            'transcript_elongation': self.load_sim_data.get_transcript_elongation_config(time_step=time_step),
-            'rna_degradation': self.load_sim_data.get_rna_degradation_config(time_step=time_step),
-            'polypeptide_initiation': self.load_sim_data.get_polypeptide_initiation_config(time_step=time_step),
-            'polypeptide_elongation': self.load_sim_data.get_polypeptide_elongation_config(time_step=time_step),
-            'complexation': self.load_sim_data.get_complexation_config(time_step=time_step),
-            'two_component_system': self.load_sim_data.get_two_component_system_config(time_step=time_step),
-            'equilibrium': self.load_sim_data.get_equilibrium_config(time_step=time_step),
-            'protein_degradation': self.load_sim_data.get_protein_degradation_config(time_step=time_step),
-            'metabolism': self.load_sim_data.get_metabolism_config(time_step=time_step, deriver_mode=True),
-            'chromosome_replication': self.load_sim_data.get_chromosome_replication_config(time_step=time_step),
-            'mass': self.load_sim_data.get_mass_listener_config(time_step=time_step),
-            'mrna_counts': self.load_sim_data.get_mrna_counts_listener_config(time_step=time_step),
-            'allocator': self.load_sim_data.get_allocator_config(time_step=time_step, process_names=process_names)
-        }
+        # get the configs from sim_data (except for allocator, built later)
+        process_configs = config['process_configs']
+        for process in process_configs.keys():
+            if process_configs[process] == "sim_data":
+                process_configs[process] = self.load_sim_data.get_config_by_name(process)
+            elif process_configs[process] == "default":
+                process_configs[process] = None
+            else:
+                # user passed a dict, deep-merge with config from LoadSimData
+                # if it exists, else, deep-merge with default
+                try:
+                    default = self.load_sim_data.get_config_by_name(process)
+                except KeyError:
+                    default = self.processes[process].defaults
+                
+                process_configs[process] = deep_merge(dict(default), process_configs[process])
 
         # make the processes
+        # TODO: only do derivers? Incorporate log_updates?
         processes = {
-            process_name: process(configs[process_name])
-            for (process_name, process) in config['processes'].items()
-            # if process_name not in [
-            #     'polypeptide_elongation'
-            #     # TODO: get this working again
-            # ]
+            process_name: process(process_configs[process_name])
+            for process_name, process in config['processes'].items()
         }
 
-        derivers = ['metabolism', 'mass', 'mrna_counts', 'allocator']
+        # Add allocator process
+        process_configs['allocator'] = self.load_sim_data.get_allocator_config(
+            process_names = [p for p in config['processes'].keys()
+                             if not processes[p].is_deriver()]
+            )
+        
+        config['processes']['allocator'] = Allocator
+        processes['allocator'] = Allocator(process_configs['allocator'])
+
+        # Store list of derivers
+        self.derivers = [process_name
+                         for process_name, process in processes.items()
+                         if process.is_deriver()]
 
         # make the requesters
         requesters = {
             f'{process_name}_requester': Requester({'time_step': time_step,
                                                     'process': process})
             for (process_name, process) in processes.items()
-            if process_name not in derivers
+            if process_name not in self.derivers
         }
 
         # make the evolvers
         evolvers = {
             f'{process_name}_evolver': Evolver({'time_step': time_step,
                                                 'process': process})
-            if not config['blame']
+            if not config['log_updates']
             else make_logging_process(Evolver)({'time_step': time_step,
                                                 'process': process})
             for (process_name, process) in processes.items()
-            if process_name not in derivers
+            if process_name not in self.derivers
         }
 
-        if config['blame']:
-            processes['metabolism'] = make_logging_process(
-                config['processes']['metabolism'])(configs['metabolism'])
-        else:
-            processes['metabolism'] = config['processes']['metabolism'](
-                configs['metabolism'])
+        processes.update(requesters)
+        processes.update(evolvers)
+
+        # if config['log_updates']:
+        #     processes['metabolism'] = make_logging_process(
+        #         config['processes']['metabolism'])(process_configs['metabolism'])
+        # else:
+        #     processes['metabolism'] = config['processes']['metabolism'](
+        #         process_configs['metabolism'])
 
         division = {}
         # add division
@@ -275,25 +281,43 @@ class Ecoli(Composer):
                 composer=self)
             division = {'division': Division(division_config)}
 
-        allocator = {'allocator': processes['allocator']}
-        mass = {'mass': processes['mass']}
-        metabolism = {'metabolism': processes['metabolism']}
-        mrna_counts = {'mrna_counts': processes['mrna_counts']}
+        # allocator = {'allocator': processes['allocator']}
+        # mass = {'mass': processes['mass']}
+        # metabolism = {'metabolism': processes['metabolism']}
+        # mrna_counts = {'mrna_counts': processes['mrna_counts']}
 
-        all_procs = {**metabolism, **requesters, **allocator, **evolvers, **division, **mrna_counts, **mass}
+        all_procs = []
+        last_requester = 0
+        for i, process in enumerate(process_order):
+            if process == "allocator":
+                continue
+
+            if process in self.derivers:
+                all_procs.append(process)
+            else:
+                all_procs.append(f'{process}_requester')
+                last_requester = i
+        
+        all_procs[last_requester+1:last_requester+1] = [f'{process}_evolver'
+                                                    for process in process_order
+                                                    if process not in self.derivers and process != "allocator"]
+        all_procs.insert(last_requester+1, "allocator")
+
+        all_procs = {process : processes[process] for process in all_procs}
+
+        #all_procs = {**metabolism, **requesters, **allocator, **evolvers, **division, **mrna_counts, **mass}
+
         return all_procs
 
     def generate_topology(self, config):
         topology = {}
 
-        derivers = ['metabolism', 'mass', 'allocator']
-
         # make the topology
         for process_id, ports in config['topology'].items():
-            if process_id not in derivers:
+            if process_id not in self.derivers:
                 topology[f'{process_id}_requester'] = deepcopy(ports)
                 topology[f'{process_id}_evolver'] = deepcopy(ports)
-                if config['blame']:
+                if config['log_updates']:
                     topology[f'{process_id}_evolver']['log_update'] = (
                         'log_update', process_id,)
                 bulk_topo = get_bulk_topo(ports)
@@ -303,6 +327,10 @@ class Ecoli(Composer):
                 topology[f'{process_id}_evolver']['allocate'] = {
                     '_path': ('allocate', process_id,),
                     **bulk_topo}
+            else: 
+                topology[process_id] = ports
+                if config['log_updates']:
+                    topology[process_id]['log_update'] = ('log_update', process_id,)
 
         # add division
         if self.config['divide']:
@@ -314,16 +342,6 @@ class Ecoli(Composer):
             'request': ('request',),
             'allocate': ('allocate',),
             'bulk': ('bulk',)}
-
-        topology['mass'] = config['topology']['mass']
-
-        topology['metabolism'] = config['topology']['metabolism']
-
-        topology['mrna_counts'] = config['topology']['mrna_counts']
-  
-        if config['blame']:
-            topology['metabolism']['log_update'] = (
-                'log_update', 'metabolism',)
 
         return topology
 
@@ -347,7 +365,7 @@ def run_ecoli(
     # make the ecoli config dictionary
     agent_id = '0'
     ecoli_config = {
-        'blame': blame,
+        'log_updates': blame,
         'agent_id': agent_id,
         # TODO -- remove schema override once values don't go negative
         '_schema': {

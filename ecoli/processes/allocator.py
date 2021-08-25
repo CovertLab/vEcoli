@@ -6,11 +6,6 @@ Updates bulk with process updates, runs metabolism, runs process requests, alloc
 from vivarium.core.process import Deriver
 import numpy as np
 
-CUSTOM_PRIORITIES = {'rna_degradation': 10, 
-                     'protein_degradation': 10, 
-                     'two_component_system': -5,
-                     'tf_binding': -10,
-                     'metabolism': -10}
 
 ASSERT_POSITIVE_COUNTS = True
 
@@ -36,7 +31,7 @@ class Allocator(Deriver):
         self.proc_name_to_idx = {name: idx for idx, name in enumerate(self.processNames)}
         self.proc_idx_to_name = {idx: name for idx, name in enumerate(self.processNames)}
         self.processPriorities = np.zeros(len(self.processNames))
-        for process, custom_priority in CUSTOM_PRIORITIES.items():
+        for process, custom_priority in self.parameters['custom_priorities'].items():
             self.processPriorities[self.proc_name_to_idx[process]] = custom_priority
         self.seed = self.parameters['seed']
         self.random_state = np.random.RandomState(seed = self.seed)

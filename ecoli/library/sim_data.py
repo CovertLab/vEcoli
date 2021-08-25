@@ -13,26 +13,25 @@ SIM_DATA_PATH = 'reconstruction/sim_data/kb/simData.cPickle'
 class LoadSimData:
 
     def __init__(
-        self, 
-        sim_data_path=SIM_DATA_PATH, 
+        self,
+        sim_data_path=SIM_DATA_PATH,
         seed=0,
         trna_charging=False,
         ppgpp_regulation=False,
-        ):
+    ):
 
         self.seed = np.uint32(seed % np.iinfo(np.uint32).max)
-        self.random_state = np.random.RandomState(seed = self.seed)
-        
+        self.random_state = np.random.RandomState(seed=self.seed)
+
         self.trna_charging = trna_charging
         self.ppgpp_regulation = ppgpp_regulation
-        
+
         self.submass_indexes = MASSDIFFS
 
         # load sim_data
         with open(sim_data_path, 'rb') as sim_data_file:
             self.sim_data = cPickle.load(sim_data_file)
 
-    
     def get_config_by_name(self, name, time_step=2, parallel=False):
         name_config_mapping = {
             'ecoli-tf-binding': self.get_tf_config,
@@ -48,15 +47,16 @@ class LoadSimData:
             'ecoli-metabolism': self.get_metabolism_config,
             'ecoli-chromosome_replication': self.get_chromosome_replication_config,
             'ecoli-mass': self.get_mass_config,
-            'ecoli-mass-listener' : self.get_mass_listener_config,
-            'mRNA_counts_listener' : self.get_mrna_counts_listener_config
+            'ecoli-mass-listener': self.get_mass_listener_config,
+            'mRNA_counts_listener': self.get_mrna_counts_listener_config,
+            'allocator': self.get_allocator_config
         }
 
         try:
             return name_config_mapping[name](time_step=time_step, parallel=parallel)
         except KeyError:
-            raise KeyError(f"Process of name {name} is not known to LoadSimData.get_config_by_name")
-
+            raise KeyError(
+                f"Process of name {name} is not known to LoadSimData.get_config_by_name")
 
     def get_chromosome_replication_config(self, time_step=2, parallel=False):
         get_dna_critical_mass = self.sim_data.mass.get_dna_critical_mass
@@ -90,7 +90,7 @@ class LoadSimData:
 
             # random state
             'seed': self.random_state.randint(RAND_MAX),
-            
+
             'submass_indexes': self.submass_indexes,
         }
 
@@ -200,7 +200,7 @@ class LoadSimData:
 
             # random seed
             'seed': self.random_state.randint(RAND_MAX),
-            
+
             'submass_indexes': self.submass_indexes,
         }
 
@@ -340,8 +340,8 @@ class LoadSimData:
             'amino_acid_synthesis': metabolism.amino_acid_synthesis,
             'amino_acid_import': metabolism.amino_acid_import,
             'seed': self.random_state.randint(RAND_MAX),
-            
-            'submass_indexes': self.submass_indexes,}
+
+            'submass_indexes': self.submass_indexes, }
 
         return polypeptide_elongation_config
 
@@ -365,13 +365,14 @@ class LoadSimData:
             '_parallel': parallel,
 
             'jit': False,
-            'n_avogadro': self.sim_data.constants.n_avogadro.asNumber(1 / units.mmol),  # TODO -- wcEcoli has this in 1/mmol, why?
+            # TODO -- wcEcoli has this in 1/mmol, why?
+            'n_avogadro': self.sim_data.constants.n_avogadro.asNumber(1 / units.mmol),
             'cell_density': self.sim_data.constants.cell_density.asNumber(units.g / units.L),
             'moleculesToNextTimeStep': self.sim_data.process.two_component_system.molecules_to_next_time_step,
             'moleculeNames': self.sim_data.process.two_component_system.molecule_names,
             'seed': random_seed or self.random_state.randint(RAND_MAX)}
 
-        #return two_component_system_config, stoichI, stoichJ, stoichV
+        # return two_component_system_config, stoichI, stoichJ, stoichV
         return two_component_system_config
 
     def get_equilibrium_config(self, time_step=2, parallel=False):
@@ -469,14 +470,13 @@ class LoadSimData:
         }
         return mass_config
 
-      
     def get_mass_listener_config(self, time_step=2, parallel=False):
         mass_config = {
             'cellDensity': self.sim_data.constants.cell_density.asNumber(units.g / units.L),
-            'bulk_ids' : self.sim_data.internal_state.bulk_molecules.bulk_data['id'],
+            'bulk_ids': self.sim_data.internal_state.bulk_molecules.bulk_data['id'],
             'bulk_masses': self.sim_data.internal_state.bulk_molecules.bulk_data['mass'].asNumber(
                 units.fg / units.mol) / self.sim_data.constants.n_avogadro.asNumber(1 / units.mol),
-            'unique_ids' : self.sim_data.internal_state.unique_molecule.unique_molecule_masses['id'],
+            'unique_ids': self.sim_data.internal_state.unique_molecule.unique_molecule_masses['id'],
             'unique_masses': self.sim_data.internal_state.unique_molecule.unique_molecule_masses['mass'].asNumber(
                 units.fg / units.mol) / self.sim_data.constants.n_avogadro.asNumber(1/units.mol),
             'submass_indices': {
@@ -492,9 +492,9 @@ class LoadSimData:
                 'smallMolecule': self.sim_data.submass_name_to_index["metabolite"],
                 'water': self.sim_data.submass_name_to_index["water"]
             },
-            'compartment_id_to_index' : self.sim_data.compartment_id_to_index,
+            'compartment_id_to_index': self.sim_data.compartment_id_to_index,
             'n_avogadro': self.sim_data.constants.n_avogadro,  # 1/mol
-            'time_step' : time_step
+            'time_step': time_step
         }
 
         return mass_config
@@ -507,12 +507,18 @@ class LoadSimData:
 
         return counts_config
 
-      
     def get_allocator_config(self, time_step=2, parallel=False, process_names=[]):
         allocator_config = {
-            'time_step': time_step, 
+            'time_step': time_step,
             'molecule_names': self.sim_data.internal_state.bulk_molecules.bulk_data['id'],
             'seed': self.random_state.randint(2**31),
             'process_names': process_names,
+            'custom_priorities': {
+                'ecoli-rna-degradation': 10,
+                'ecoli-protein-degradation': 10,
+                'ecoli-two-component-system': -5,
+                'ecoli-tf-binding': -10,
+                # 'ecoli-metabolism': -10  # Should not be necessary, metabolism runs as deriver (not partitioned)
+                }
         }
         return allocator_config
