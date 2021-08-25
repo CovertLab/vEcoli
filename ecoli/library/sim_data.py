@@ -49,8 +49,8 @@ class LoadSimData:
             'ecoli-mass': self.get_mass_config,
             'ecoli-mass-listener': self.get_mass_listener_config,
             'mRNA_counts_listener': self.get_mrna_counts_listener_config,
-            'allocator': self.get_allocator_config
-            'ecoli-chromosome_structure': self.get_chromosome_structure_config,
+            'allocator': self.get_allocator_config,
+            'ecoli-chromosome_structure': self.get_chromosome_structure_config
         }
 
         try:
