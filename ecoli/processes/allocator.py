@@ -32,6 +32,8 @@ class Allocator(Deriver):
         self.proc_idx_to_name = {idx: name for idx, name in enumerate(self.processNames)}
         self.processPriorities = np.zeros(len(self.processNames))
         for process, custom_priority in self.parameters['custom_priorities'].items():
+            if process not in self.proc_name_to_idx.keys():
+                continue
             self.processPriorities[self.proc_name_to_idx[process]] = custom_priority
         self.seed = self.parameters['seed']
         self.random_state = np.random.RandomState(seed = self.seed)

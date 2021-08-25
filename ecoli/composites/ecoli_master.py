@@ -154,9 +154,9 @@ def run_ecoli(
         * output data
     """
     
-    from ecoli.experiments.ecoli_master_sim import EcoliSim
+    from ecoli.experiments.ecoli_master_sim import EcoliSim, CONFIG_DIR_PATH
     
-    sim = EcoliSim.from_file()
+    sim = EcoliSim.from_file(CONFIG_DIR_PATH + "no_partition.json")
     sim.total_time = total_time
     sim.divide = divide
     sim.progress_bar = progress_bar
@@ -179,8 +179,7 @@ def test_division():
 
     # Remove metabolism for now 
     # (divison fails because cannot deepcopy metabolism process)
-    sim.processes.pop("ecoli-metabolism")
-    sim.topology.pop("ecoli-metabolism")
+    sim.exclude_processes.append("ecoli-metabolism")
     
     sim.total_time = 10
     sim.divide = True

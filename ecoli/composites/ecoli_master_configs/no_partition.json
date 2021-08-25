@@ -38,6 +38,7 @@
     "exclude_processes" : [],
     "swap_processes" : {},
     "processes": [
+        "ecoli-chromosome_structure",
         "ecoli-metabolism",
         "ecoli-tf-binding",
         "ecoli-transcript-initiation",
@@ -49,12 +50,15 @@
         "ecoli-two-component-system",
         "ecoli-equilibrium",
         "ecoli-protein-degradation",        
-        "ecoli-chromosome_replication",
+        "ecoli-chromosome-replication",
         "ecoli-mass-listener",
         "mRNA_counts_listener"
     ],
     "process_configs": {
         "ecoli-metabolism" : {
+            "deriver_mode" : false
+        },
+        "ecoli-chromosome_structure" : {
             "deriver_mode" : false
         }
     },

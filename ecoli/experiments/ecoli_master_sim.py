@@ -206,7 +206,7 @@ class EcoliSim:
         if divide:
             result['division'] = {
                 'variable': ('listeners', 'mass', 'cell_mass'),
-                'agents': config['agents_path']}
+                'agents': self.agents_path}
 
         return result
 

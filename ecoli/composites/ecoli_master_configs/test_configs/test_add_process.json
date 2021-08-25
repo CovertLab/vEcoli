@@ -1,4 +1,5 @@
 {
+    "partition" : false,
     "experiment_id" : "test_add_process",
     "total_time" : 2,
     "_schema": {
