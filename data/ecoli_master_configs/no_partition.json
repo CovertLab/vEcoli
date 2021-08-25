@@ -1,0 +1,63 @@
+{
+    "experiment_id" : null,
+    "suffix_time" : true,
+    "description" : "",
+    "progress_bar" : true,
+    "sim_data_path": "reconstruction/sim_data/kb/simData.cPickle",
+    "emitter" : "timeseries",
+    "emit_topology" : true,
+    "emit_processes" : true,
+    "emit_config" : false,
+    "log_updates" : false,
+    "raw_output" : false,
+    "seed": 0,
+    "partition": false,
+
+    "initial_time": 0,
+    "time_step": 2.0,
+    "total_time": 100.0,
+    "generations": null,
+
+    "agent_id": "0",
+    "parallel": false,
+    "daughter_path": [],
+    "agents_path": ["..", "..", "agents"],
+    "division": {
+        "threshold": 2220},
+    "divide": false,
+
+    "_schema": {
+        "ecoli-equilibrium": {
+            "molecules": {
+                "PD00413[c]": {"_updater": "nonnegative_accumulate"}
+            }
+        }
+    },
+
+    "add_processes" : [],
+    "exclude_processes" : [],
+    "swap_processes" : {},
+    "processes": [
+        "ecoli-metabolism",
+        "ecoli-tf-binding",
+        "ecoli-transcript-initiation",
+        "ecoli-transcript-elongation",
+        "ecoli-rna-degradation",
+        "ecoli-polypeptide-initiation",
+        "ecoli-polypeptide-elongation",
+        "ecoli-complexation",
+        "ecoli-two-component-system",
+        "ecoli-equilibrium",
+        "ecoli-protein-degradation",        
+        "ecoli-chromosome_replication",
+        "ecoli-mass-listener",
+        "mRNA_counts_listener"
+    ],
+    "process_configs": {
+        "ecoli-metabolism" : {
+            "deriver_mode" : true
+        }
+    },
+    "topology": {
+    }
+}
