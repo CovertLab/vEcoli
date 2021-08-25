@@ -175,7 +175,7 @@ class Ecoli(Composer):
         result = {process: processes[process] for process in result}
 
         # Under default config, should look like
-        # {**metabolism, **requesters, **allocator, **evolvers, **division, **mrna_counts, **mass}
+        # {**chromosome_structure, **metabolism, **requesters, **allocator, **evolvers, **division, **mrna_counts, **mass}
         return result
 
     def generate_topology(self, config):

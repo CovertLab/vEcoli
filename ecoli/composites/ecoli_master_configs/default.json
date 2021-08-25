@@ -30,6 +30,7 @@
     "exclude_processes" : [],
     "swap_processes" : {},
     "processes": [
+        "ecoli-chromosome_structure",
         "ecoli-metabolism",
         "ecoli-tf-binding",
         "ecoli-transcript-initiation",
@@ -47,6 +48,9 @@
     ],
     "process_configs": {
         "ecoli-metabolism" : {
+            "deriver_mode" : true
+        },
+        "ecoli-chromosome_structure" :{
             "deriver_mode" : true
         }
     },
