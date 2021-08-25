@@ -64,8 +64,6 @@ class EcoliSim:
         if self.generations:
             warnings.warn("generations option is not yet implemented!")
 
-        if self.partition:
-            warnings.warn("partitioning is not compatible with EcoliSim yet!")
 
     @staticmethod
     def from_file(filepath=CONFIG_DIR_PATH + 'default.json'):
@@ -301,8 +299,10 @@ class EcoliSim:
         deep_merge(self.config, other.config)
 
     
-    def export_json(self, filename=self.name + "_config.json"):
-        write_json(filename, self.config)
+    def export_json(self, filename=CONFIG_DIR_PATH + "export.json"):
+        export = dict(self.config)
+        export['processes'] = [k for k in export['processes'].keys()]
+        write_json(filename, export)
 
 
 if __name__ == '__main__':
