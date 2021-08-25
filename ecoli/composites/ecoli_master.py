@@ -172,9 +172,9 @@ def test_division():
     * TODO -- unique molecules need to be divided between daughter cells!!! This can get sophisticated
     """
 
-    from ecoli.experiments.ecoli_master_sim import EcoliSim
+    from ecoli.experiments.ecoli_master_sim import EcoliSim, CONFIG_DIR_PATH
 
-    sim = EcoliSim.from_file()
+    sim = EcoliSim.from_file(CONFIG_DIR_PATH + "no_partition.json")
     sim.division = {'threshold' : 1170}
 
     # Remove metabolism for now 
