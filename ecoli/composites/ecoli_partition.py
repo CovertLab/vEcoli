@@ -38,35 +38,6 @@ MINIMAL_MEDIA_ID = 'minimal'
 AA_MEDIA_ID = 'minimal_plus_amino_acids'
 ANAEROBIC_MEDIA_ID = 'minimal_minus_oxygen'
 
-# rename the processes
-# TODO: remove this!
-NAMES_MAP = {
-    'ecoli-tf-binding': 'tf_binding',
-    'ecoli-transcript-initiation': 'transcript_initiation',
-    'ecoli-transcript-elongation': 'transcript_elongation',
-    'ecoli-rna-degradation': 'rna_degradation',
-    'ecoli-polypeptide-initiation': 'polypeptide_initiation',
-    'ecoli-polypeptide-elongation': 'polypeptide_elongation',
-    'ecoli-complexation': 'complexation',
-    'ecoli-two-component-system': 'two_component_system',
-    'ecoli-equilibrium': 'equilibrium',
-    'ecoli-protein-degradation': 'protein_degradation',
-    'ecoli-metabolism': 'metabolism',
-    'ecoli-chromosome-replication': 'chromosome_replication',
-    'ecoli-mass-listener': 'mass',
-    'mRNA_counts_listener': 'mrna_counts',
-    'ecoli-chromosome_structure': 'chromosome_structure',
-}
-
-RENAMED_ECOLI_PROCESSES = {
-    NAMES_MAP[process_name]: process
-    for process_name, process in ECOLI_PROCESSES.items()
-}
-RENAMED_ECOLI_TOPOLOGY = {
-    NAMES_MAP[process_name]: process
-    for process_name, process in ECOLI_TOPOLOGY.items()
-}
-
 
 class Ecoli(Composer):
 
@@ -130,6 +101,8 @@ class Ecoli(Composer):
         # make the processes
         processes = {
             process_name: process(process_configs[process_name])
+            if not config['log_updates']
+            else make_logging_process(process)(process_configs[process_name])
             for process_name, process in config['processes'].items()
         }
 
@@ -171,17 +144,6 @@ class Ecoli(Composer):
         processes.update(requesters)
         processes.update(evolvers)
 
-        # TODO: make this not hardcoded
-        if config['log_updates']:
-            processes['metabolism'] = make_logging_process(
-                config['processes']['metabolism'])(configs['metabolism'])
-            processes['chromosome_structure'] = make_logging_process(
-                config['processes']['chromosome_structure'])(configs['chromosome_structure'])
-        else:
-            processes['metabolism'] = config['processes']['metabolism'](
-                configs['metabolism'])
-            processes['chromosome_structure'] = config['processes']['chromosome_structure'](
-                configs['chromosome_structure'])
 
         division = {}
         # add division
@@ -250,21 +212,6 @@ class Ecoli(Composer):
             'request': ('request',),
             'allocate': ('allocate',),
             'bulk': ('bulk',)}
-
-        # TODO: make this not hardcoded
-        topology['mass'] = config['topology']['mass']
-
-        topology['metabolism'] = config['topology']['metabolism']
-
-        topology['mrna_counts'] = config['topology']['mrna_counts']
-        
-        topology['chromosome_structure'] = config['topology']['chromosome_structure']
-  
-        if config['blame']:
-            topology['metabolism']['log_update'] = (
-                'log_update', 'metabolism',)
-            topology['chromosome_structure']['log_update'] = (
-                'log_update', 'chromosome_structure',)
 
         return topology
 
