@@ -6,6 +6,16 @@ Updates bulk with process updates, runs metabolism, runs process requests, alloc
 import numpy as np
 from vivarium.core.process import Deriver
 
+from ecoli.processes.registries import topology_registry
+
+
+# Register default topology for this process, associating it with process name
+NAME = 'allocator'
+TOPOLOGY = {
+    "molecules": ("bulk",),
+    "listeners": ("listeners",)
+}
+topology_registry.register(NAME, TOPOLOGY)
 
 ASSERT_POSITIVE_COUNTS = True
 
@@ -13,7 +23,8 @@ class NegativeCountsError(Exception):
 	pass
 
 class Allocator(Deriver):
-    name = 'allocator'
+    name = NAME
+    topology = TOPOLOGY
 
     defaults = {}
     
