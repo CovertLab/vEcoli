@@ -18,8 +18,7 @@ import ecoli.composites.ecoli_partition
 from ecoli.processes import process_registry
 from ecoli.processes.registries import topology_registry
 
-
-CONFIG_DIR_PATH = 'ecoli/composites/ecoli_master_configs/'
+from ecoli.composites.ecoli_master_configs import CONFIG_DIR_PATH
 
 
 class EcoliSim:
