@@ -18,8 +18,8 @@ from ecoli.library.sim_data import LoadSimData
 from vivarium.library.wrappers import make_logging_process
 
 # vivarium-ecoli processes
-from ecoli.composites.ecoli_master_configs.default import (
-    ECOLI_PROCESSES, ECOLI_TOPOLOGY)
+from ecoli.composites.ecoli_master_configs import (
+    ECOLI_DEFAULT_PROCESSES, ECOLI_DEFAULT_TOPOLOGY)
 from ecoli.processes.cell_division import Division
 
 # state
@@ -61,10 +61,10 @@ class Ecoli(Composer):
             sim_data_path=self.config['sim_data_path'],
             seed=self.config['seed'])
 
-        if not self.config['processes']:
-            self.config['processes'] = ECOLI_PROCESSES.copy()
-        if not self.config['topology']:
-            self.config['topology'] = ECOLI_TOPOLOGY.copy()
+        if not self.config.get('processes'):
+            self.config['processes'] = ECOLI_DEFAULT_PROCESSES.copy()
+        if not self.config.get('topology'):
+            self.config['topology'] = ECOLI_DEFAULT_TOPOLOGY.copy()
 
         self.processes = self.config['processes']
         self.topology = self.config['topology']
