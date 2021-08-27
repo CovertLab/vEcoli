@@ -122,6 +122,10 @@ class Ecoli(Composer):
                          for process_name, process in processes.items()
                          if process.is_deriver()]
 
+        # Update schema overrides to reflect name change for requesters/evolvers
+        self.schema_override = {f'{p}_evolver': v for p, v in self.schema_override.items()
+                                if p not in self.derivers}
+
         # make the requesters
         requesters = {
             f'{process_name}_requester': Requester({'time_step': time_step,
@@ -143,7 +147,6 @@ class Ecoli(Composer):
 
         processes.update(requesters)
         processes.update(evolvers)
-
 
         division = {}
         # add division
@@ -168,8 +171,8 @@ class Ecoli(Composer):
                 last_requester = i
 
         result[last_requester+1:last_requester+1] = [f'{process}_evolver'
-                                                        for process in process_order
-                                                        if process not in self.derivers and process != "allocator"]
+                                                     for process in process_order
+                                                     if process not in self.derivers and process != "allocator"]
         result.insert(last_requester+1, "allocator")
 
         result = {process: processes[process] for process in result}
@@ -235,7 +238,7 @@ def run_ecoli(
         * output data
     """
     from ecoli.experiments.ecoli_master_sim import EcoliSim, CONFIG_DIR_PATH
-    
+
     sim = EcoliSim.from_file(CONFIG_DIR_PATH + "default.json")
     sim.total_time = total_time
     sim.divide = divide
@@ -255,12 +258,12 @@ def test_division():
     from ecoli.experiments.ecoli_master_sim import EcoliSim, CONFIG_DIR_PATH
 
     sim = EcoliSim.from_file(CONFIG_DIR_PATH + "default.json")
-    sim.division = {'threshold' : 1170}
+    sim.division = {'threshold': 1170}
 
-    # Remove metabolism for now 
+    # Remove metabolism for now
     # (divison fails because cannot deepcopy metabolism process)
     # sim.exclude_processes.append("ecoli-metabolism")
-    
+
     sim.total_time = 10
     sim.divide = True
     sim.progress_bar = True
