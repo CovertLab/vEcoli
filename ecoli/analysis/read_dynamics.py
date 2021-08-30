@@ -3,23 +3,26 @@ Reads dynamics data for each of the nodes of a causality network from a single
 simulation.
 """
 
-from six.moves import cPickle
 import os
 import json
 import hashlib
 from typing import Any, Tuple
 import zipfile
+from functools import reduce
 import numpy as np
+from six.moves import cPickle
+
+from vivarium.library.dict_utils import get_value_from_path
+from vivarium.core.emitter import data_from_database, get_experiment_database, timeseries_from_data
+
+from ecoli.processes.metabolism import (
+    COUNTS_UNITS, VOLUME_UNITS, TIME_UNITS, MASS_UNITS)
+from ecoli.analysis.network_components import (
+    EDGELIST_JSON, Node, NODELIST_JSON, COUNT_UNITS, PROB_UNITS)
+from ecoli.analysis.build_network import NODE_ID_SUFFIX
 
 from wholecell.utils import units
 
-from network_components import (
-    EDGELIST_JSON, Node, NODELIST_JSON, COUNT_UNITS, PROB_UNITS)
-from build_network import NODE_ID_SUFFIX
-from ecoli.processes.metabolism import (
-    COUNTS_UNITS, VOLUME_UNITS, TIME_UNITS, MASS_UNITS)
-
-from vivarium.core.emitter import data_from_database, get_experiment_database
 
 MIN_TIMESTEPS = 41  # Minimum number of timesteps for a working visualization without modification
 # REQUIRED_COLUMNS = [
@@ -51,51 +54,14 @@ def compact_json(obj, ensure_ascii=False, separators=(',', ':'), **kwargs):
     """Convert obj into compact JSON form."""
     return json.dumps(obj, ensure_ascii=ensure_ascii, separators=separators, **kwargs)
 
-def value_in_embedded_dict(
-        data: dict,
-        timeseries = None,
-        time_index = None) -> dict:
-    """
-    converts data from a single time step into an embedded dictionary with lists
-    of values.
-    If the value has a unit, saves under a key with (key, unit_string).
-    """
-    # TODO(jerry): ^^^ Explain this further. Note that this function modifies
-    #  timeseries.
-    # TODO(jerry): Refine the type declarations.
-    # TODO(jerry): Use dictionary.setdefault(key, default) to simplify.
-    timeseries = timeseries or {}
 
-    for key, value in data.items():
-        if isinstance(value, dict):
-            if key not in timeseries:
-                timeseries[key] = {}
-            timeseries[key] = value_in_embedded_dict(value, timeseries[key], time_index)
-        elif time_index is None:
-            if key not in timeseries:
-                timeseries[key] = []
-            timeseries[key].append(value)
-        else:
-            if key not in timeseries:
-                timeseries[key] = {
-                    'value': [],
-                    'time_index': []
-                }
-            timeseries[key]['value'].append(value)
-            timeseries[key]['time_index'].append(time_index)
-
+def array_timeseries(data, path):
+    timeseries = np.array([])
+    for time, datum in data.items():
+        path_data = get_value_from_path(datum, path)
+        timeseries.extend(path_data)
     return timeseries
 
-def timeseries_from_data(data: dict) -> dict:
-    """Convert :term:`raw data` to an :term:`embedded timeseries`."""
-    times_vector = list(data.keys())
-    embedded_timeseries: dict = {}
-    for value in data.values():
-        if isinstance(value, dict):
-            embedded_timeseries = value_in_embedded_dict(
-                value, embedded_timeseries)
-    embedded_timeseries['time'] = times_vector
-    return embedded_timeseries
 
 def convert_dynamics(seriesOutDir, simDataFile, node_list, edge_list, experiment_id):
     """Convert the sim's dynamics data to a Causality seriesOut.zip file."""
@@ -111,7 +77,7 @@ def convert_dynamics(seriesOutDir, simDataFile, node_list, edge_list, experiment
     # timeseries['listeners']['rna'] = np.array(timeseries['listeners']['rna'])
     timeseries = {
         'listeners': {
-            'rna': np_timeseries(data, ('listeners', 'rna'))}}
+            'rna': array_timeseries(data, ('listeners', 'rna'))}}
 
     with open(simDataFile, 'rb') as f:
         sim_data = cPickle.load(f)
