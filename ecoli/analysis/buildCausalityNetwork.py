@@ -19,7 +19,7 @@ from wholecell.utils.py3 import monotonic_seconds, process_time_seconds
 
 CAUSALITY_ENV_VAR = 'CAUSALITY_SERVER'
 SIM_DATA_PATH = 'reconstruction/sim_data/kb/simData.cPickle'
-DYNAMICS_OUTPUT = 'ecoli/analysis/seriesOut'
+DYNAMICS_OUTPUT = 'out/seriesOut'
 
 
 class BuildCausalityNetwork:

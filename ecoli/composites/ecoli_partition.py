@@ -294,7 +294,7 @@ def run_ecoli(
         'emit_config': False,
         # Not emitting every step is faster but breaks blame.py
         # 'emit_step': 1000,
-        # 'emitter': 'database'
+        'emitter': 'database'
     })
 
     # run the experiment
