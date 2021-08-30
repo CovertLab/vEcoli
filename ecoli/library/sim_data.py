@@ -395,7 +395,8 @@ class LoadSimData:
             'doubling_time': self.sim_data.condition_to_doubling_time[condition],
             'amino_acid_ids': sorted(self.sim_data.amino_acid_code_to_id_ordered.values()),
             'seed': self.random_state.randint(RAND_MAX),
-            'linked_metabolites': self.sim_data.process.metabolism.linked_metabolites,
+            'linked_metabolites': {}, #self.sim_data.process.metabolism.linked_metabolites,
+            'translation_aa_supply': self.sim_data.translation_supply_rate,
         }
 
         return metabolism_config
@@ -465,5 +466,7 @@ class LoadSimData:
             'initial_state': transport_initial_state,
             'ports': transport_ports,
             'avogadro': self.sim_data.constants.n_avogadro,
-            'cell_density': self.sim_data.constants.cell_density}
+            'cell_density': self.sim_data.constants.cell_density,
+            'aa_ids': self.sim_data.molecule_groups.amino_acids
+        }
 

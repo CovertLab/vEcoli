@@ -232,12 +232,13 @@ class ConvenienceKinetics(Process):
         self.reactions = self.parameters['reactions']
         kinetic_parameters = self.parameters['kinetic_parameters']
         self.port_ids = self.parameters['port_ids'] + self.parameters['added_port_ids']
+        self.aa_ids = self.parameters['aa_ids']
 
         # make the kinetic model
         self.kinetic_rate_laws = KineticFluxModel(self.reactions, kinetic_parameters)
         self.nAvogadro = self.parameters['avogadro']
         self.cellDensity = self.parameters['cell_density']
-        self.exponential = 1
+        self.first = True
 
     def initial_state(self, config=None):
         return self.parameters['initial_state']
@@ -249,7 +250,7 @@ class ConvenienceKinetics(Process):
         for port, states in initial_state.items():
             for state_id in states:
                 schema[port][state_id] = {
-                    '_default': initial_state[port][state_id]
+                    '_default': 1000
                 }
 
         # exchanges
@@ -281,7 +282,12 @@ class ConvenienceKinetics(Process):
         schema['listeners'] = {
             'mass': {
                 'cell_mass': {'_default': 0.0},
-                'dry_mass': {'_default': 0.0}}}
+                'dry_mass': {'_default': 0.0}
+            },
+            'enzyme_kinetics': {
+                'countsToMolar': {'_default': 0.0},
+            }
+        }
 
         return schema
 
@@ -289,19 +295,24 @@ class ConvenienceKinetics(Process):
 
         cell_mass = states['listeners']['mass']['cell_mass'] * 1e-15 * units.g  # grams
         dry_mass = states['listeners']['mass']['dry_mass'] * 1e-15 * units.g
-        cellVolume = cell_mass / (self.cellDensity.asNumber() * units.g / units.L)
-        counts_to_mmolar = 1000 / ((self.nAvogadro.asNumber() / units.mmol) * cellVolume)
+        cellVolume = cell_mass / (self.cellDensity.asNumber() * (units.g/units.L))
+        counts_to_mmolar = 1000 * units.mmol / (self.nAvogadro.asNumber() * cellVolume)
+        mmol_to_counts = 1/counts_to_mmolar
+        noise = np.random.uniform(0.9, 1.1)
 
-        # get mmol_to_counts for converting flux to exchange counts
-        mmol_to_counts = dry_mass * units.hr / (counts_to_mmolar * cellVolume * units.s * 3600)
+        if self.first:
+            self.first = False
+            self.init_cell_mass = cell_mass
+
+        for mol in states['internal'].keys():
+            if mol not in self.aa_ids:
+                states['internal'][mol] *= remove_units(noise * cell_mass/self.init_cell_mass)
 
         # kinetic rate law requires a flat dict with ('port', 'state') keys.
         flattened_states = remove_units(tuplify_port_dicts(states))
-
-        counts_to_mmolar = remove_units(counts_to_mmolar)
-        self.exponential *= np.random.uniform(1, 1.005) * np.random.uniform(0.9, 1.1)
-        flattened_concentrations = {k: s * counts_to_mmolar * 10 * self.exponential
-                                    for k, s in flattened_states.items() if (type(s) == type(1.0) or type(s) == type(1))
+        import ipdb; ipdb.set_trace(context=10)
+        flattened_concentrations = {k: s * remove_units(counts_to_mmolar)
+                                    for k, s in flattened_states.items() if not isinstance(s, dict)
                                     }
 
         # get flux, which is in units of mmol / L
@@ -323,12 +334,12 @@ class ConvenienceKinetics(Process):
                         state_id = port_state_id[1]
                         state_flux = coeff * flux * timestep
 
-                        if port_id == 'external':
-                            # convert exchange fluxes to counts with mmol_to_counts
-                            delta = int((state_flux * mmol_to_counts).magnitude)
-                            existing_delta = update['exchanges'].get(
-                                state_id, {}).get('_value', 0)
-                            update['exchanges'][state_id] = existing_delta + delta
+                        #if port_id == 'external':
+                        #    # convert exchange fluxes to counts with mmol_to_counts
+                        #    delta = int((state_flux * mmol_to_counts).magnitude)
+                        #    existing_delta = update['exchanges'].get(
+                        #        state_id, {}).get('_value', 0)
+                        #    update['exchanges'][state_id] = existing_delta + delta
                         # else:
                         #    update[port_id][state_id] = (
                         #           update[port_id].get(state_id, 0)

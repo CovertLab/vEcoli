@@ -81,5 +81,27 @@ def get_state_from_file(path='data/wcecoli_t0.json', aa=False):
                 'TRP[p]': 0.1, 
                 'TYR[p]': 0.2, 
                 'VAL[p]': 0.6000000000000001}
+        initial_state['environment'].update({
+                'L-SELENOCYSTEINE[c]': 100.0, 
+                'L-ALPHA-ALANINE[p]': 0.8, 
+                'ARG[p]': 5.2, 
+                'ASN[p]': 0.4, 
+                'L-ASPARTATE[p]': 0.4, 
+                'CYS[p]': 0.1, 
+                'GLT[p]': 0.6000000000000001, 
+                'GLN[p]': 0.6200000000000001, 
+                'GLY[p]': 0.8, 
+                'HIS[p]': 0.2, 
+                'ILE[p]': 0.4, 
+                'LEU[p]': 0.8, 
+                'LYS[p]': 0.4, 
+                'MET[p]': 0.2, 
+                'PHE[p]': 0.4, 
+                'PRO[p]': 0.4, 
+                'SER[p]': 10.0, 
+                'THR[p]': 0.4, 
+                'TRP[p]': 0.1, 
+                'TYR[p]': 0.2, 
+                'VAL[p]': 0.6000000000000001})
 
     return initial_state

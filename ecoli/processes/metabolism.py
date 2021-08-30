@@ -73,6 +73,10 @@ class Metabolism(Process):
         self.include_ppgpp = self.parameters['include_ppgpp']
         self.current_timeline = self.parameters['current_timeline']
         self.media_id = self.parameters['media_id']
+        self.metabolism = self.parameters['metabolism']
+        self.aa_supply_scaling = self.metabolism.aa_supply_scaling
+        self.translation_aa_supply = self.parameters['translation_aa_supply']
+        self.translation_supply_rate = self.translation_aa_supply[self.media_id] * 1.
 
         # Create model to use to solve metabolism updates
         self.model = FluxBalanceAnalysisModel(
@@ -106,13 +110,29 @@ class Metabolism(Process):
         self.random_state = np.random.RandomState(seed=self.seed)
 
     def ports_schema(self):
+
+        environment = {
+            'media_id': {
+                '_default': '',
+                '_updater': 'set'},
+            'exchange': {
+                element: {'_default': 0, '_emit': True, '_updater': 'set'}
+                for element in self.model.fba.getExternalMoleculeIDs()},
+            'exchange_data': {
+                'unconstrained': {'_default': []},
+                'constrained': {'_default': []}},
+            'amino_acids': bulk_schema([aa[:-3] for aa in self.aa_names]),
+        }
+
+        environment.update({aa[:-3]+'[p]': {'_default':0, '_updater':'accumulate'} for aa in self.aa_names})
+        
         return {
-            'conc_diff': {
+            'conc_diff': { # I added this
                 aa: {
                     '_default': 0.0,
                 } for aa in self.aa_names
             },
-            'exchange_constraints': {
+            'exchange_constraints': { # I added this
                 'EX_' + reaction_id: {
                     '_default': 0.0,
                 } for reaction_id in self.aa_names
@@ -123,16 +143,7 @@ class Metabolism(Process):
             'kinetics_substrates': bulk_schema(self.model.kinetic_constraint_substrates),
             'amino_acids': bulk_schema(self.aa_names, 'accumulate'),
 
-            'environment': {
-                'media_id': {
-                    '_default': '',
-                    '_updater': 'set'},
-                'exchange': {
-                    element: {'_default': 0, '_emit': True, '_updater': 'set'}
-                    for element in self.model.fba.getExternalMoleculeIDs()},
-                'exchange_data': {
-                    'unconstrained': {'_default': []},
-                    'constrained': {'_default': []}}},
+            'environment': environment,
 
             'listeners': {
                 'mass': {
@@ -202,7 +213,7 @@ class Metabolism(Process):
 
         ## Calculate state values
         cellVolume = cell_mass / self.cellDensity
-        counts_to_molar = (1 / (self.nAvogadro * cellVolume)).asUnit(CONC_UNITS)
+        counts_to_mmolar = (1 / (self.nAvogadro * cellVolume)).asUnit(CONC_UNITS)
 
         ## Coefficient to convert between flux (mol/g DCW/hr) basis and concentration (M) basis
         coefficient = dry_mass / cell_mass * self.cellDensity * timestep * units.s
@@ -210,13 +221,25 @@ class Metabolism(Process):
         ## Determine updates to concentrations depending on the current state
         doubling_time = self.nutrientToDoublingTime.get(current_media_id, self.nutrientToDoublingTime['minimal'])
         conc_updates = self.model.getBiomassAsConcentrations(doubling_time)
+
+        mol_aas_supplied = self.translation_supply_rate * dry_mass * timestep * units.s
+        aa_counts = array_from(states['amino_acids'])
+        aa_conc = counts_to_mmolar * aa_counts
+        aa_in_media = [True] * 21
+        aa_in_media[self.aa_names.index('L-SELENOCYSTEINE[c]')] = False
+
+        self.aa_supply = units.strip_empty_units(mol_aas_supplied * self.nAvogadro)
+        self.aa_supply *= self.aa_supply_scaling(aa_conc, aa_in_media)
+        aa_conc_diff = {aa: val for aa, val in zip(self.aa_names, self.aa_supply - array_from(states['conc_diff']))}
+
         if self.use_trna_charging:
             conc_updates.update(self.update_amino_acid_targets(
-                counts_to_molar,
-                states['conc_diff'],
-                # states['polypeptide_elongation']['aa_count_diff'],
+                counts_to_mmolar,
+                aa_conc_diff,
                 states['amino_acids'],
-            ))
+            )
+        )
+
         if self.include_ppgpp:
             conc_updates[self.model.ppgpp_id] = self.model.getppGppConc(doubling_time).asUnit(CONC_UNITS)
         ## Converted from units to make reproduction from listener data
@@ -231,18 +254,18 @@ class Metabolism(Process):
 
         # Update FBA problem based on current state
         ## Set molecule availability (internal and external)
-        self.model.set_molecule_levels(metabolite_counts_init, counts_to_molar,
+        self.model.set_molecule_levels(metabolite_counts_init, counts_to_mmolar,
                                        coefficient, current_media_id, unconstrained, constrained, conc_updates,
                                        external_aa_levels)
 
         ## Set reaction limits for maintenance and catalysts present
-        self.model.set_reaction_bounds(catalyst_counts, counts_to_molar,
+        self.model.set_reaction_bounds(catalyst_counts, counts_to_mmolar,
                                        coefficient, translation_gtp)
 
         ## Constrain reactions based on targets
         targets, upper_targets, lower_targets = self.model.set_reaction_targets(kinetic_enzyme_counts,
                                                                                 kinetic_substrate_counts,
-                                                                                counts_to_molar, timestep * units.s)
+                                                                                counts_to_mmolar, timestep * units.s)
 
         # Solve FBA problem and update states
         n_retries = 3
@@ -250,7 +273,7 @@ class Metabolism(Process):
         fba.solve(n_retries)
 
         ## Internal molecule changes
-        delta_metabolites = (1 / counts_to_molar) * (CONC_UNITS * fba.getOutputMoleculeLevelsChange())
+        delta_metabolites = (1 / counts_to_mmolar) * (CONC_UNITS * fba.getOutputMoleculeLevelsChange())
         delta_metabolites_final = np.fmax(stochasticRound(
             self.random_state,
             delta_metabolites.asNumber()
@@ -259,12 +282,12 @@ class Metabolism(Process):
         ## Environmental changes
         exchange_fluxes = CONC_UNITS * fba.getExternalExchangeFluxes()
         converted_exchange_fluxes = (exchange_fluxes / coefficient).asNumber(GDCW_BASIS)
-        delta_nutrients = ((1 / counts_to_molar) * exchange_fluxes).asNumber().astype(int)
+        delta_nutrients = ((1 / counts_to_mmolar) * exchange_fluxes).asNumber().astype(int)
 
         # Write outputs to listeners
         unconstrained, constrained, uptake_constraints = self.get_import_constraints(
             unconstrained, constrained, GDCW_BASIS)
-
+        import ipdb; ipdb.set_trace(context=10)
         update = {
             'metabolites': {
                 metabolite: delta_metabolites_final[index]
@@ -301,7 +324,7 @@ class Metabolism(Process):
                     'metaboliteCountsInit': metabolite_counts_init,
                     'metaboliteCountsFinal': metabolite_counts_init + delta_metabolites_final,
                     'enzymeCountsInit': kinetic_enzyme_counts,
-                    'countsToMolar': counts_to_molar.asNumber(CONC_UNITS),
+                    'countsToMolar': counts_to_mmolar.asNumber(CONC_UNITS),
                     'actualFluxes': fba.getReactionFluxes(self.model.kinetics_constrained_reactions) / timestep,
                     'targetFluxes': targets / timestep,
                     'targetFluxesUpper': upper_targets / timestep,

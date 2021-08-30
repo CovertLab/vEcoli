@@ -35,7 +35,7 @@ class LocalField(Deriver):
         return {
             'exchanges': {
                 '*': {
-                    '_default': 0,  # counts!
+                    '_default': 0, '_updater': 'accumulate'  # counts!
                 }
             },
             'location': {
@@ -77,6 +77,7 @@ class LocalField(Deriver):
         # apply exchanges
         delta_fields = {}
         reset_exchanges = {}
+        import ipdb; ipdb.set_trace(context=10)
         for mol_id, value in exchanges.items():
 
             # delta concentration
