@@ -193,7 +193,7 @@ def test_division():
     output = sim.run()
 
 
-def ecoli_topology_plot(filename=None, out_dir=None):
+def ecoli_topology_plot():
     """Make a topology plot of Ecoli"""
     agent_config = {
         'agent_id': '1',
@@ -207,8 +207,8 @@ def ecoli_topology_plot(filename=None, out_dir=None):
 
     topo_plot = plot_topology(
         ecoli,
-        filename=filename,
-        out_dir=out_dir,
+        filename='ecoli_master',
+        out_dir='out/ecoli_master/',
         settings=settings)
     return topo_plot
 
