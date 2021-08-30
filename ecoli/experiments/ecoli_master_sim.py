@@ -36,6 +36,10 @@ class EcoliSim:
         # make some lists into tuples
         config['agents_path'] = tuple(config['agents_path'])
 
+        # Keep track of base experiment id
+        # in case multiple simulations are run with suffix_time = True.
+        self.experiment_id_base = config['experiment_id']
+
         self.config = config
 
         # Unpack config using Descriptor protocol:
@@ -66,12 +70,6 @@ class EcoliSim:
         for attr in self.config.keys():
             config_entry = ConfigEntry(attr)
             setattr(EcoliSim, attr, config_entry)
-        
-        # Store backup of base experiment ID,
-        # in case multiple experiments are run in a row
-        # with suffix_time = True.
-        setattr(EcoliSim, "experiment_id_base", ConfigEntry("experiment_id_base"))
-        self.experiment_id_base = self.experiment_id
 
         if self.generations:
             warnings.warn("generations option is not yet implemented!")
@@ -268,6 +266,12 @@ class EcoliSim:
             'emitter': self.emitter,
         }
         if self.experiment_id:
+            # Store backup of base experiment ID,
+            # in case multiple experiments are run in a row
+            # with suffix_time = True.
+            if not self.experiment_id_base:
+                self.experiment_id_base = self.experiment_id
+
             if self.suffix_time:
                 self.experiment_id = datetime.now().strftime(f"{self.experiment_id_base}_%d/%m/%Y %H:%M:%S")
             experiment_config['experiment_id'] = self.experiment_id
@@ -285,5 +289,5 @@ class EcoliSim:
 
 
 if __name__ == '__main__':
-    ecoli_sim = EcoliSim.from_file()
+    ecoli_sim = EcoliSim.from_cli()
     ecoli_sim.run()
