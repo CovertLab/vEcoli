@@ -51,51 +51,6 @@ def compact_json(obj, ensure_ascii=False, separators=(',', ':'), **kwargs):
     """Convert obj into compact JSON form."""
     return json.dumps(obj, ensure_ascii=ensure_ascii, separators=separators, **kwargs)
 
-def value_in_embedded_dict(
-        data: dict,
-        timeseries = None,
-        time_index = None) -> dict:
-    """
-    converts data from a single time step into an embedded dictionary with lists
-    of values.
-    If the value has a unit, saves under a key with (key, unit_string).
-    """
-    # TODO(jerry): ^^^ Explain this further. Note that this function modifies
-    #  timeseries.
-    # TODO(jerry): Refine the type declarations.
-    # TODO(jerry): Use dictionary.setdefault(key, default) to simplify.
-    timeseries = timeseries or {}
-
-    for key, value in data.items():
-        if isinstance(value, dict):
-            if key not in timeseries:
-                timeseries[key] = {}
-            timeseries[key] = value_in_embedded_dict(value, timeseries[key], time_index)
-        elif time_index is None:
-            if key not in timeseries:
-                timeseries[key] = []
-            timeseries[key].append(value)
-        else:
-            if key not in timeseries:
-                timeseries[key] = {
-                    'value': [],
-                    'time_index': []
-                }
-            timeseries[key]['value'].append(value)
-            timeseries[key]['time_index'].append(time_index)
-
-    return timeseries
-
-def timeseries_from_data(data: dict) -> dict:
-    """Convert :term:`raw data` to an :term:`embedded timeseries`."""
-    times_vector = list(data.keys())
-    embedded_timeseries: dict = {}
-    for value in data.values():
-        if isinstance(value, dict):
-            embedded_timeseries = value_in_embedded_dict(
-                value, embedded_timeseries)
-    embedded_timeseries['time'] = times_vector
-    return embedded_timeseries
 
 def convert_dynamics(seriesOutDir, simDataFile, node_list, edge_list, experiment_id):
     """Convert the sim's dynamics data to a Causality seriesOut.zip file."""
@@ -107,11 +62,28 @@ def convert_dynamics(seriesOutDir, simDataFile, node_list, edge_list, experiment
     db = get_experiment_database()
     data, _ = data_from_database(experiment_id, db)
     del data[0.0]
-    # timeseries = timeseries_from_data(data)
-    # timeseries['listeners']['rna'] = np.array(timeseries['listeners']['rna'])
+    np.array(timeseries['bulk'][node_id])
+    np.array(timeseries['listeners']['rnap_data']['rnaInitEvent'])
+    np.array(timeseries['listeners']['ribosome_data']['prob_translation_per_transcript'])
+    np.array(timeseries['listeners']['complexation_events'])
+    np.array(timeseries['listeners']['fba_results']['reactionFluxes'])
+    np.array(timeseries['listeners']['equilibrium_listener']['reaction_rates'])
+    np.array(timeseries['listeners']['growth_limits']['net_charged'])
     timeseries = {
+        'time': array_timeseries(data, 'time'),
         'listeners': {
-            'rna': np_timeseries(data, ('listeners', 'rna'))}}
+            'mass': {
+                'cell_mass': array_timeseries(data, ('listeners', 'mass', 'cell_mass')),
+                'dry_mass': array_timeseries(data, ('listeners', 'mass', 'dry_mass'))
+            },
+            'rna_synth_prob': {
+                'rna_synth_prob': array_timeseries(data, ('listeners', 'rna_synth_prob', 'rna_synth_prob')),
+                'gene_copy_number': array_timeseries(data, ('listeners', 'rna_synth_prob', 'gene_copy_number')),
+                'n_bound_TF_per_TU': array_timeseries(data, ('listeners', 'rna_synth_prob', 'n_bound_TF_per_TU'))
+            },
+            'mRNA_counts': array_timeseries(data, ('listeners', 'mRNA_counts')),
+        }
+    }
 
     with open(simDataFile, 'rb') as f:
         sim_data = cPickle.load(f)
