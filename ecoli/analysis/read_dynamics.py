@@ -55,13 +55,6 @@ def compact_json(obj, ensure_ascii=False, separators=(',', ':'), **kwargs):
     return json.dumps(obj, ensure_ascii=ensure_ascii, separators=separators, **kwargs)
 
 
-# def array_timeseries(data, path):
-#     timeseries = np.array([])
-#     for time, datum in data.items():
-#         path_data = get_value_from_path(datum, path)
-#         timeseries = np.append(timeseries, path_data)
-#     return timeseries
-
 def array_timeseries(data, path):
     timeseries = []
     for time, datum in data.items():
