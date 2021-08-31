@@ -3,23 +3,26 @@ Reads dynamics data for each of the nodes of a causality network from a single
 simulation.
 """
 
-from six.moves import cPickle
 import os
 import json
 import hashlib
 from typing import Any, Tuple
 import zipfile
+from functools import reduce
 import numpy as np
+from six.moves import cPickle
+
+from vivarium.library.dict_utils import get_value_from_path
+from vivarium.core.emitter import data_from_database, get_experiment_database, timeseries_from_data
+
+from ecoli.processes.metabolism import (
+    COUNTS_UNITS, VOLUME_UNITS, TIME_UNITS, MASS_UNITS)
+from ecoli.analysis.network_components import (
+    EDGELIST_JSON, Node, NODELIST_JSON, COUNT_UNITS, PROB_UNITS)
+from ecoli.analysis.build_network import NODE_ID_SUFFIX
 
 from wholecell.utils import units
 
-from network_components import (
-    EDGELIST_JSON, Node, NODELIST_JSON, COUNT_UNITS, PROB_UNITS)
-from build_network import NODE_ID_SUFFIX
-from ecoli.processes.metabolism import (
-    COUNTS_UNITS, VOLUME_UNITS, TIME_UNITS, MASS_UNITS)
-
-from vivarium.core.emitter import data_from_database, get_experiment_database
 
 MIN_TIMESTEPS = 41  # Minimum number of timesteps for a working visualization without modification
 # REQUIRED_COLUMNS = [
@@ -52,6 +55,21 @@ def compact_json(obj, ensure_ascii=False, separators=(',', ':'), **kwargs):
     return json.dumps(obj, ensure_ascii=ensure_ascii, separators=separators, **kwargs)
 
 
+# def array_timeseries(data, path):
+#     timeseries = np.array([])
+#     for time, datum in data.items():
+#         path_data = get_value_from_path(datum, path)
+#         timeseries = np.append(timeseries, path_data)
+#     return timeseries
+
+def array_timeseries(data, path):
+    timeseries = []
+    for time, datum in data.items():
+        path_data = get_value_from_path(datum, path)
+        timeseries.append(path_data)
+    return np.array(timeseries)
+
+
 def convert_dynamics(seriesOutDir, simDataFile, node_list, edge_list, experiment_id):
     """Convert the sim's dynamics data to a Causality seriesOut.zip file."""
 
@@ -62,15 +80,9 @@ def convert_dynamics(seriesOutDir, simDataFile, node_list, edge_list, experiment
     db = get_experiment_database()
     data, _ = data_from_database(experiment_id, db)
     del data[0.0]
-    np.array(timeseries['bulk'][node_id])
-    np.array(timeseries['listeners']['rnap_data']['rnaInitEvent'])
-    np.array(timeseries['listeners']['ribosome_data']['prob_translation_per_transcript'])
-    np.array(timeseries['listeners']['complexation_events'])
-    np.array(timeseries['listeners']['fba_results']['reactionFluxes'])
-    np.array(timeseries['listeners']['equilibrium_listener']['reaction_rates'])
-    np.array(timeseries['listeners']['growth_limits']['net_charged'])
     timeseries = {
-        'time': array_timeseries(data, 'time'),
+        'bulk': {},
+        'time': np.array(list(data.keys())),
         'listeners': {
             'mass': {
                 'cell_mass': array_timeseries(data, ('listeners', 'mass', 'cell_mass')),
@@ -82,9 +94,28 @@ def convert_dynamics(seriesOutDir, simDataFile, node_list, edge_list, experiment
                 'n_bound_TF_per_TU': array_timeseries(data, ('listeners', 'rna_synth_prob', 'n_bound_TF_per_TU'))
             },
             'mRNA_counts': array_timeseries(data, ('listeners', 'mRNA_counts')),
+            'rnap_data': {
+                'rnaInitEvent': array_timeseries(data, ('listeners', 'rnap_data', 'rnaInitEvent'))
+            },
+            'ribosome_data': {
+                'prob_translation_per_transcript': array_timeseries(data, ('listeners', 'ribosome_data',
+                                                                           'prob_translation_per_transcript'))
+            },
+            'complexation_events': array_timeseries(data, ('listeners', 'complexation_events')),
+            'fba_results': {
+                'reactionFluxes': array_timeseries(data, ('listeners', 'fba_results', 'reactionFluxes'))
+            },
+            'equilibrium_listener': {
+                'reaction_rates': array_timeseries(data, ('listeners', 'equilibrium_listener', 'reaction_rates'))
+            },
+            'growth_limits': {
+                'net_charged': array_timeseries(data, ('listeners', 'growth_limits', 'net_charged'))
+            }
         }
     }
-
+    node_ids = array_timeseries(data, ('bulk',))[0].keys()
+    for node_id in node_ids:
+        timeseries['bulk'][node_id] = array_timeseries(data, ('bulk', node_id))
     with open(simDataFile, 'rb') as f:
         sim_data = cPickle.load(f)
 
@@ -157,7 +188,7 @@ def convert_dynamics(seriesOutDir, simDataFile, node_list, edge_list, experiment
     # volume = ((1.0 / sim_data.constants.cell_density) * (
     # 	units.fg * columns[("Mass", "cellMass")])).asNumber(units.L)
     volume = ((1.0 / sim_data.constants.cell_density) * (
-        units.fg * np.array(timeseries['listeners']['mass']['cell_mass']))).asNumber(units.L)
+        units.fg * timeseries['listeners']['mass']['cell_mass'])).asNumber(units.L)
 
     def dynamics_mapping(dynamics, safe):
         return [{
@@ -180,7 +211,6 @@ def convert_dynamics(seriesOutDir, simDataFile, node_list, edge_list, experiment
         return node
 
     def save_node(node, name_mapping):
-        print("test")
         if node.node_id in name_mapping:
             # Skip duplicates. Why are there duplicates? --check_sanity finds them.
             return
@@ -219,7 +249,7 @@ def time_node(timeseries):
     if len(timeseries['time']) < MIN_TIMESTEPS:
         time = np.array([0.0 + (2 * i) for i in range(MIN_TIMESTEPS)])
     else:
-        time = np.array(timeseries['time'])
+        time = timeseries['time']
     # time = columns[("Main", "time")]
     dynamics = {
         'time': time,
@@ -237,7 +267,7 @@ def read_global_dynamics(sim_data, node, node_id, indexes, volume, timeseries):
     Reads global dynamics from simulation output.
     """
 
-    cell_mass = np.array(timeseries['listeners']['mass']['cell_mass'])
+    cell_mass = timeseries['listeners']['mass']['cell_mass']
 
     if node_id == "cell_mass":
         dynamics = {
@@ -270,9 +300,9 @@ def read_gene_dynamics(sim_data, node, node_id, indexes, volume, timeseries):
     gene_index = indexes["Genes"][node_id]
     dynamics = {
         # "transcription probability": columns[("RnaSynthProb", "rnaSynthProb")][:, gene_index],
-        "transcription probability": np.array(timeseries['listeners']['rna_synth_prob']['rna_synth_prob'])[:, gene_index],
+        "transcription probability": timeseries['listeners']['rna_synth_prob']['rna_synth_prob'][:, gene_index],
         # "gene copy number": columns[("RnaSynthProb", "gene_copy_number")][:, gene_index],
-        "gene copy number": np.array(timeseries['listeners']['rna_synth_prob']['gene_copy_number'])[:, gene_index],
+        "gene copy number": timeseries['listeners']['rna_synth_prob']['gene_copy_number'][:, gene_index],
         }
     dynamics_units = {
         "transcription probability": PROB_UNITS,
@@ -288,11 +318,11 @@ def read_rna_dynamics(sim_data, node, node_id, indexes, volume, timeseries):
     # If RNA is an mRNA, get counts from mRNA counts listener
     if node_id in indexes["mRNAs"]:
         # counts = columns[("mRNACounts", "mRNA_counts")][:, indexes["mRNAs"][node_id]]
-        counts = np.array(timeseries['listeners']['mRNA_counts'])
+        counts = timeseries['listeners']['mRNA_counts']
     # If not, get counts from bulk molecules listener
     else:
         # counts = columns[("BulkMolecules", "counts")][:, indexes["BulkMolecules"][node_id]]
-        counts = np.array(timeseries['bulk'][node_id])
+        counts = timeseries['bulk'][node_id]
 
     dynamics = {
         "counts": counts,
@@ -310,7 +340,7 @@ def read_protein_dynamics(sim_data, node, node_id, indexes, volume, timeseries):
     """
     # count_index = indexes["BulkMolecules"][node_id]
     # counts = columns[("BulkMolecules", "counts")][:, count_index]
-    counts = np.array(timeseries['bulk'][node_id])
+    counts = timeseries['bulk'][node_id]
     concentration = (((1 / sim_data.constants.n_avogadro) * counts) / (units.L * volume)).asNumber(units.mmol / units.L)
 
     dynamics = {
@@ -333,7 +363,7 @@ def read_metabolite_dynamics(sim_data, node, node_id, indexes, volume, timeserie
     except (KeyError, IndexError):
         return  # Metabolite not being modeled
     # counts = columns[("BulkMolecules", "counts")][:, count_index]
-    counts = np.array(timeseries['bulk'][node_id])
+    counts = timeseries['bulk'][node_id]
     concentration = (((1 / sim_data.constants.n_avogadro) * counts) / (units.L * volume)).asNumber(units.mmol / units.L)
 
     dynamics = {
@@ -356,7 +386,7 @@ def read_transcription_dynamics(sim_data, node, node_id, indexes, volume, timese
     gene_idx = indexes["Genes"][gene_id]
     dynamics = {
         # "transcription initiations": columns[("RnapData", "rnaInitEvent")][:, gene_idx],
-        "transcription initiations": np.array(timeseries['listeners']['rnap_data']['rnaInitEvent'])[:, gene_idx],
+        "transcription initiations": timeseries['listeners']['rnap_data']['rnaInitEvent'][:, gene_idx],
     }
     dynamics_units = {
         "transcription initiations": COUNT_UNITS,
@@ -373,7 +403,7 @@ def read_translation_dynamics(sim_data, node, node_id, indexes, volume, timeseri
     translation_idx = indexes["TranslatedRnas"][rna_id]
     dynamics = {
         # 'translation probability': columns[("RibosomeData", "probTranslationPerTranscript")][:, translation_idx],
-        'translation probability': np.array(timeseries['listeners']['ribosome_data']['prob_translation_per_transcript'])
+        'translation probability': timeseries['listeners']['ribosome_data']['prob_translation_per_transcript']
         [:, translation_idx],
         }
     dynamics_units = {
@@ -389,7 +419,7 @@ def read_complexation_dynamics(sim_data, node, node_id, indexes, volume, timeser
     """
     reaction_idx = indexes["ComplexationReactions"][node_id]
     dynamics = {
-        'complexation events': np.array(timeseries['listeners']['complexation_events'])[:, reaction_idx],
+        'complexation events': timeseries['listeners']['complexation_events'][:, reaction_idx],
         # 'complexation events': columns[("ComplexationListener", "complexationEvents")][:, reaction_idx],
         }
     dynamics_units = {
@@ -405,13 +435,13 @@ def read_metabolism_dynamics(sim_data, node, node_id, indexes, volume, timeserie
     """
     reaction_idx = indexes["MetabolismReactions"][node_id]
     conversion_coeffs = (
-            np.array(timeseries['listeners']['mass']['dry_mass']) /
-            np.array(timeseries['listeners']['mass']['cell_mass'])
+            timeseries['listeners']['mass']['dry_mass'] /
+            timeseries['listeners']['mass']['cell_mass']
             * sim_data.constants.cell_density.asNumber(MASS_UNITS / VOLUME_UNITS)
     )
     reaction_fluxes_converted = (
             (COUNTS_UNITS / MASS_UNITS / TIME_UNITS) * (
-            np.array(timeseries['listeners']['fba_results']['reactionFluxes']).T / conversion_coeffs).T
+            timeseries['listeners']['fba_results']['reactionFluxes'].T / conversion_coeffs).T
     ).asNumber(units.mmol / units.g / units.h)
     dynamics = {
         # 'flux': columns[("FBAResults", "reactionFluxesConverted")][:, reaction_idx],
@@ -436,7 +466,7 @@ def read_equilibrium_dynamics(sim_data, node, node_id, indexes, volume, timeseri
 
     dynamics = {
         # 'reaction rate': columns[("EquilibriumListener", "reactionRates")][:, reaction_idx],
-        'reaction rate': np.array(timeseries['listeners']['equilibrium_listener']['reaction_rates'])[:, reaction_idx],
+        'reaction rate': timeseries['listeners']['equilibrium_listener']['reaction_rates'][:, reaction_idx],
     }
     dynamics_units = {
         'reaction rate': 'rxns/s',
@@ -453,7 +483,7 @@ def read_regulation_dynamics(sim_data, node, node_id, indexes, volume, timeserie
     gene_idx = indexes["Genes"][gene_id]
     tf_idx = indexes["TranscriptionFactors"][tf_id]
 
-    bound_tf_array = np.array(timeseries['listeners']['rna_synth_prob']['n_bound_TF_per_TU'])
+    bound_tf_array = timeseries['listeners']['rna_synth_prob']['n_bound_TF_per_TU']
     n_TU = len(sim_data.process.transcription.rna_data["id"])
     n_TF = len(sim_data.process.transcription_regulation.tf_ids)
     bound_tf_array = bound_tf_array.reshape(-1, n_TU, n_TF)
@@ -479,7 +509,7 @@ def read_tf_binding_dynamics(sim_data, node, node_id, indexes, volume, timeserie
 
     dynamics = {
         # 'bound TFs': columns[("RnaSynthProb", "n_bound_TF_per_TU")][:, :, tf_idx].sum(axis=1),
-        'bound TFs': np.array(timeseries['listeners']['rna_synth_prob']['n_bound_TF_per_TU'])[:, :, tf_idx].sum(axis=1),
+        'bound TFs': timeseries['listeners']['rna_synth_prob']['n_bound_TF_per_TU'][:, :, tf_idx].sum(axis=1),
     }
     dynamics_units = {
         'bound TFs': COUNT_UNITS,
@@ -496,7 +526,7 @@ def read_charging_dynamics(sim_data, node, node_id, indexes, volume, timeseries)
     rna_idx = indexes["Charging"][rna]
     dynamics = {
         # 'reaction rate': columns[("GrowthLimits", "net_charged")][:, rna_idx]
-        'reaction rate': np.array(timeseries['listeners']['growth_limits']['net_charged'])[:, rna_idx]
+        'reaction rate': timeseries['listeners']['growth_limits']['net_charged'][:, rna_idx]
         }
     dynamics_units = {
         'reaction rate': 'rxns/s',
