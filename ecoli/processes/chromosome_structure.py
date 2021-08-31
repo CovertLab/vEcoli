@@ -19,7 +19,7 @@ from wholecell.utils.polymerize import buildSequences
 from ecoli.processes.registries import topology_registry
 
 # Register default topology for this process, associating it with process name
-NAME = 'ecoli-chromosome_structure'
+NAME = 'ecoli-chromosome-structure'
 TOPOLOGY = {
     "listeners": ("listeners",),
     "fragmentBases": ("bulk",),
