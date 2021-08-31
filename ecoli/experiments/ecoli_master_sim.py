@@ -140,9 +140,6 @@ class EcoliSim:
 
     @staticmethod
     def from_file(filepath=CONFIG_DIR_PATH + 'default.json'):
-        import os
-        print(os.path.abspath(filepath))
-        #print(os.listdir('../' + CONFIG_DIR_PATH))
         # Load config, deep-merge with default config
         with open(filepath) as config_file:
             ecoli_config = json.load(config_file)
