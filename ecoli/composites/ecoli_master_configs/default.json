@@ -50,7 +50,7 @@
         "ecoli-metabolism" : {
             "deriver_mode" : true
         },
-        "ecoli-chromosome_structure" :{
+        "ecoli-chromosome-structure" :{
             "deriver_mode" : true
         }
     },
