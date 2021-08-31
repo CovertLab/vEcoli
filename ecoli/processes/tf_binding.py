@@ -1,7 +1,11 @@
 """
-TfBinding
+==========
+Tf Binding
+==========
 
-Bind transcription factors to DNA
+Transcription factor binding sub-model.
+
+This process models how transcription factors bind to promoters on the DNA sequence.
 """
 
 import numpy as np
