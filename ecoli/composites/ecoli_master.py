@@ -63,6 +63,8 @@ class Ecoli(Composer):
 
         if not self.config.get('processes'):
             self.config['processes'] = ECOLI_DEFAULT_PROCESSES.copy()
+        if not self.config.get('process_configs'):
+            self.config['process_configs'] = {process: "sim_data" for process in self.config['processes']}
         if not self.config.get('topology'):
             self.config['topology'] = ECOLI_DEFAULT_TOPOLOGY.copy()
 
@@ -188,6 +190,17 @@ def test_division():
     output = sim.run()
 
 
+def test_ecoli_generate():
+    ecoli_composer = Ecoli({})
+    ecoli_composite = ecoli_composer.generate()
+
+    # asserts to ecoli_composite['processes'] and ecoli_composite['topology'] 
+    assert all(isinstance(v, ECOLI_DEFAULT_PROCESSES[k])
+               for k, v in ecoli_composite['processes'].items())
+    assert all(ECOLI_DEFAULT_TOPOLOGY[k] == v
+               for k, v in ecoli_composite['topology'].items())
+
+
 def ecoli_topology_plot(filename=None, out_dir=None):
     """Make a topology plot of Ecoli"""
     agent_config = {
@@ -211,7 +224,8 @@ def ecoli_topology_plot(filename=None, out_dir=None):
 test_library = {
     '0': run_ecoli,
     '1': test_division,
-    '2': ecoli_topology_plot,
+    '2': test_ecoli_generate,
+    '3': ecoli_topology_plot,
 }
 
 
