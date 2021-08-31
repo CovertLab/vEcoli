@@ -66,11 +66,13 @@ class Ecoli(Composer):
 
         if not self.config.get('processes'):
             self.config['processes'] = ECOLI_DEFAULT_PROCESSES.copy()
+        if not self.config.get('process_configs'):
+            self.config['process_configs'] = {process: "sim_data" for process in self.config['processes']}
         if not self.config.get('topology'):
             self.config['topology'] = ECOLI_DEFAULT_TOPOLOGY.copy()
 
-        self.processes = config['processes']
-        self.topology = config['topology']
+        self.processes = self.config['processes']
+        self.topology = self.config['topology']
 
     def initial_state(self, config=None, path=()):
         # Use initial state calculated with trna_charging and translationSupply disabled
@@ -278,6 +280,21 @@ def test_division():
     output = sim.run()
 
 
+def test_ecoli_generate():
+    ecoli_composer = Ecoli({})
+    ecoli_composite = ecoli_composer.generate()
+
+    # asserts to ecoli_composite['processes'] and ecoli_composite['topology'] 
+    assert all('_requester' in k or
+               '_evolver' in k or
+               k == 'allocator' or
+               isinstance(v, ECOLI_DEFAULT_PROCESSES[k])
+               for k, v in ecoli_composite['processes'].items())
+    assert all(ECOLI_DEFAULT_TOPOLOGY[k] == v
+               for k, v in ecoli_composite['topology'].items()
+               if k in ECOLI_DEFAULT_TOPOLOGY)
+
+
 def get_partition_topology_settings():
     evolver_row = -6
     allocator_row = -7
@@ -390,6 +407,7 @@ def ecoli_topology_plot(config={}, filename=None, out_dir=None):
 test_library = {
     '0': run_ecoli,
     '1': test_division,
+    '2': test_ecoli_generate
 }
 
 
