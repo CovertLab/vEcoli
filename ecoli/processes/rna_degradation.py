@@ -1,4 +1,8 @@
 """
+===============
+RNA Degradation
+===============
+
 Submodel for RNA degradation.
 
 Mathematical formulation:

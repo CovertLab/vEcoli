@@ -1,12 +1,24 @@
-'''
-TranscriptInitiation
+"""
+=====================
+Transcript Initiation
+=====================
 
 Transcription initiation sub-model.
 
-TODO:
-- use transcription units instead of single genes
-- match sigma factors to promoters
-'''
+This process models the binding of RNA polymerase to each gene.
+The number of RNA polymerases to activate in each time step is determined
+such that the average fraction of RNA polymerases that are active throughout
+the simulation matches measured fractions, which are dependent on the
+cellular growth rate. This is done by assuming a steady state concentration
+of active RNA polymerases.
+"""
+
+# Note: the following comments were previously in the Docstring above, but I moved them
+# below so that our Docstrings are standardized when loading them into the jupyter notebook
+
+# TODO:
+# - use transcription units instead of single genes
+# - match sigma factors to promoters
 
 import numpy as np
 import scipy.sparse

@@ -1,12 +1,26 @@
 """
-TranscriptElongation
+=====================
+Transcript Elongation
+=====================
 
 Transcription elongation sub-model.
 
-TODO:
-- use transcription units instead of single genes
-- account for energy
+This process models nucleotide polymerization into RNA molecules
+by RNA polymerases. Polymerization occurs across all polymerases
+simultaneously and resources are allocated to maximize the progress
+of all polymerases up to the limit of the expected polymerase elongation
+rate and available nucleotides. The termination of RNA elongation occurs
+once a RNA polymerase has reached the end of the annotated gene.
 """
+
+# Note: the following comments were previously in the Docstring above, but I moved them
+# below so that our Docstrings are standardized when loading them into the jupyter notebook
+
+# TODO:
+# - use transcription units instead of single genes
+# - account for energy
+
+
 
 import numpy as np
 

@@ -1,8 +1,14 @@
 """
-Two component system
+====================
+Two Component System
+====================
 
-Two component system sub-model
+Two component system sub-model.
 
+This process models the phosphotransfer reactions of signal transduction pathways.
+
+Specifically, phosphate groups are transferred from histidine kinases to response regulators
+and back in response to counts of ligand stimulants.
 """
 
 import numpy as np
