@@ -1,7 +1,16 @@
 """
-PolypeptideInitiation
+======================
+Polypeptide Initiation
+======================
 
 Polypeptide initiation sub-model.
+
+This process models the complementation of 30S and 50S ribosomal subunits
+into 70S ribosomes on mRNA transcripts. This process is in many ways
+analogous to the TranscriptInitiation process - the number of initiation
+events per transcript is determined in a probabilistic manner and dependent
+on the number of free ribosomal subunits, each mRNA transcript’s translation
+efﬁciency, and the counts of each type of transcript.
 """
 
 from typing import cast
