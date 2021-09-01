@@ -205,6 +205,7 @@ class DiffusionNetwork(Process):
         return {}
 
 
+# TODO: change this to multiple tests and add asserts
 def test_diffusion_network_process(out_dir=None):
     # initialize the process by passing parameters
     n = int(1E6)

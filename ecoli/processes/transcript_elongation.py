@@ -13,6 +13,10 @@ rate and available nucleotides. The termination of RNA elongation occurs
 once a RNA polymerase has reached the end of the annotated gene.
 """
 
+# TODO:
+#   - use transcription units instead of single genes
+#   - account for energy
+
 import numpy as np
 
 from vivarium.core.process import Process
@@ -48,6 +52,7 @@ topology_registry.register(NAME, TOPOLOGY)
 
 
 class TranscriptElongation(Process):
+    # TODO: comment out terminationLoss - doesn't seem to be used/informative?
     """TranscriptElongation
 
     defaults:
@@ -146,6 +151,7 @@ class TranscriptElongation(Process):
         self.variable_elongation = self.parameters['variable_elongation']
         self.make_elongation_rates = self.parameters['make_elongation_rates']
 
+        # TODO -- add to ports for views
         self.polymerized_ntps = self.parameters['polymerized_ntps']
         self.charged_trna_names = self.parameters['charged_trna_names']
 
@@ -166,10 +172,6 @@ class TranscriptElongation(Process):
         self.nsRNA_submass_idx = self.parameters['submass_indexes']['massDiff_nonspecific_RNA']
         self.mRNA_submass_idx = self.parameters['submass_indexes']['massDiff_mRNA']
 
-        self.request_on = False
-
-        self.stop = False
-        
     def ports_schema(self):
         return {
             'environment': {
@@ -289,15 +291,22 @@ class TranscriptElongation(Process):
         ntpsTotal = array_from(states['ntps'])
         maxFractionalReactionLimit = np.fmin(1, ntpsTotal / sequenceComposition)
 
-        requests = {}
-        requests['ntps'] = array_to(states['ntps'], 
-                                    maxFractionalReactionLimit * sequenceComposition)
+        requests = {'ntps': array_to(states['ntps'],
+                                     maxFractionalReactionLimit * sequenceComposition)}
+
+        # TODO: Figure out how to migrate these listeners to vivarium
+        # self.writeToListener(
+        #     "GrowthLimits", "ntpPoolSize", self.ntps.total_counts())
+        # self.writeToListener(
+        #     "GrowthLimits", "ntpRequestSize",
+        #     maxFractionalReactionLimit * sequenceComposition)
 
         return requests
         
     def evolve_state(self, timestep, states):
         # If there are no active RNA polymerases, return immediately
         if len(states['active_RNAPs']) == 0:
+            # TODO (Eran): replace with custom updater that zeros if not given update
             return {
                        'listeners': {
                            'transcript_elongation_listener': {
@@ -336,6 +345,7 @@ class TranscriptElongation(Process):
         is_mRNA_partial_RNAs = is_mRNA_all_RNAs[is_partial_transcript]
         RNAP_index_partial_RNAs = RNAP_index_all_RNAs[is_partial_transcript]
 
+        # TODO: Attenuation: need access to mass, charged_trna stores
         if self.trna_attenuation:
             cellVolume = cell_mass / self.cell_density
             counts_to_molar = 1 / (self.n_avogadro * cellVolume)

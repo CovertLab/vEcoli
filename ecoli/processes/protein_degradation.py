@@ -9,6 +9,10 @@ This process accounts for the degradation of protein monomers.
 Specific proteins to be degraded are selected as a Poisson process.
 """
 
+# TODO:
+#  - protein complexes
+#  - add protease functionality
+
 import numpy as np
 
 from vivarium.core.process import Process
@@ -82,25 +86,26 @@ class ProteinDegradation(Process):
         return {
             'metabolites': bulk_schema(self.metabolite_ids),
             'proteins': bulk_schema(self.protein_ids)}
-        
+
     def calculate_request(self, timestep, states):
         # Determine how many proteins to degrade based on the degradation rates and counts of each protein
         protein_data = array_from(states['proteins'])
+        # TODO: This differs from wcEcoli (just an artifact of different random state or...)
         nProteinsToDegrade = np.fmin(
             self.random_state.poisson(self._proteinDegRates(timestep) * protein_data),
             protein_data
             )
 
         # Determine the number of hydrolysis reactions
+        # TODO: Missing asNumber() and other unit-related things
         nReactions = np.dot(self.protein_lengths, nProteinsToDegrade)
 
         # Determine the amount of water required to degrade the selected proteins
         # Assuming one N-1 H2O is required per peptide chain length N
-        requests = {}
-        requests['metabolites'] = {self.water_id: nReactions - np.sum(nProteinsToDegrade)}
-        requests['proteins'] = (array_to(states['proteins'], nProteinsToDegrade))
+        requests = {'metabolites': {self.water_id: nReactions - np.sum(nProteinsToDegrade)},
+                    'proteins': (array_to(states['proteins'], nProteinsToDegrade))}
         return requests
-        
+
     def evolve_state(self, timestep, states):
         # Degrade selected proteins, release amino acids from those proteins back into the cell, 
         # and consume H_2O that is required for the degradation process
@@ -119,7 +124,7 @@ class ProteinDegradation(Process):
 
         return update
 
-    
+
     def _proteinDegRates(self, timestep):
         return self.raw_degradation_rate * timestep
 

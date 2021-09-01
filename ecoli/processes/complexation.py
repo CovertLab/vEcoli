@@ -15,6 +15,10 @@ and that complexation reactions are fast and complete within the time step of th
 simulation.
 """
 
+# TODO:
+# - allow for shuffling when appropriate (maybe in another process)
+# - handle protein complex dissociation
+
 import numpy as np
 from arrow import StochasticSystem
 
