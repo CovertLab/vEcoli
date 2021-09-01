@@ -1,10 +1,8 @@
-
 import abc
 
 from vivarium.core.process import Process
 from vivarium.library.dict_utils import deep_merge
 from ecoli.processes.registries import topology_registry
-from ecoli.processes import process_registry
 
 
 class EcoliProcess(Process):
