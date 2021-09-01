@@ -14,7 +14,7 @@ class LocalField(Deriver):
 
     name = 'local_field'
     defaults = {
-        'initial_external': {},
+        'initial_external': {'location': [500, 500], 'dimensions': {'bounds': [1000, 1000], 'n_bins': [1000, 1000], 'depth': 1}},
         'nonspatial': False,
         'bin_volume': 1e-6 * units.L,
     }
@@ -48,10 +48,12 @@ class LocalField(Deriver):
             },
             'dimensions': {
                 'bounds': {
-                    '_default': [1, 1],
+                    '_default': [1000, 1000],
+                    '_updater': 'set'
                 },
                 'n_bins': {
-                    '_default': [1, 1],
+                    '_default': [1000, 1000],
+                    '_updater': 'set'
                 },
                 'depth': {
                     '_default': 1,
@@ -77,7 +79,7 @@ class LocalField(Deriver):
         # apply exchanges
         delta_fields = {}
         reset_exchanges = {}
-        import ipdb; ipdb.set_trace(context=10)
+        
         for mol_id, value in exchanges.items():
 
             # delta concentration
@@ -103,7 +105,11 @@ class LocalField(Deriver):
 
         return {
             'exchanges': reset_exchanges,
-            'fields': delta_fields}
+            'fields': delta_fields,
+            'dimensions': {
+                'bounds': [1000, 1000]
+            }
+        }
 
 
 def test_local_fields():

@@ -29,16 +29,7 @@ class NonSpatialEnvironment(Deriver):
         n_bin_y = 1
         schema = {
             'external': {
-                'L-ALPHA-ALANINE[p]': {
-                    '_default': 0.,
-                }, 
-                'ARG[p]': {
-                    '_default': 0.,
-                }, 
-                'ASN[p]': {
-                    '_default': 0.,
-                }, 
-                'L-ASPARTATE[p]': {
+                '*': {
                     '_default': 0.,
                 },
             },
@@ -80,13 +71,12 @@ class NonSpatialEnvironment(Deriver):
 
     def next_update(self, timestep, states):
         fields = states['fields']
-        import ipdb; ipdb.set_trace(context=10)
 
         update = {
             'external': {
                 mol_id: {
-                    '_updater': 'accumulate',
-                    '_value': -field[0][0],
+                    '_updater': 'set',
+                    '_value': field[0][0],
                 }
                 for mol_id, field in fields.items()
             },

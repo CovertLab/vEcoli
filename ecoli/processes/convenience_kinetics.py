@@ -34,6 +34,7 @@ from vivarium.core.composition import (
 )
 from vivarium.library.dict_utils import tuplify_port_dicts
 from vivarium.library.units import units, remove_units
+# from wholecell.utils.units import units as uunits
 from vivarium.plots.simulation_output import plot_simulation_output
 
 # vivarium-ecoli imports
@@ -308,9 +309,10 @@ class ConvenienceKinetics(Process):
             if mol not in self.aa_ids:
                 states['internal'][mol] *= remove_units(noise * cell_mass/self.init_cell_mass)
 
+        for mol in states['external'].keys():
+            states['external'][mol] /= remove_units(counts_to_mmolar)
         # kinetic rate law requires a flat dict with ('port', 'state') keys.
         flattened_states = remove_units(tuplify_port_dicts(states))
-        import ipdb; ipdb.set_trace(context=10)
         flattened_concentrations = {k: s * remove_units(counts_to_mmolar)
                                     for k, s in flattened_states.items() if not isinstance(s, dict)
                                     }

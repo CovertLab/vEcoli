@@ -60,7 +60,7 @@ class Metabolism(Process):
         'get_masses': lambda exchanges: [],
         'doubling_time': 44.0 * units.min,
         'amino_acid_ids': {},
-        'linked_metabolites': None,
+        'linked_metabolites': None, # Problems with file that comes from wcEcoli parca
         'seed': 0}
 
     def __init__(self, parameters=None):
@@ -110,21 +110,6 @@ class Metabolism(Process):
         self.random_state = np.random.RandomState(seed=self.seed)
 
     def ports_schema(self):
-
-        environment = {
-            'media_id': {
-                '_default': '',
-                '_updater': 'set'},
-            'exchange': {
-                element: {'_default': 0, '_emit': True, '_updater': 'set'}
-                for element in self.model.fba.getExternalMoleculeIDs()},
-            'exchange_data': {
-                'unconstrained': {'_default': []},
-                'constrained': {'_default': []}},
-            'amino_acids': bulk_schema([aa[:-3] for aa in self.aa_names]),
-        }
-
-        environment.update({aa[:-3]+'[p]': {'_default':0, '_updater':'accumulate'} for aa in self.aa_names})
         
         return {
             'conc_diff': { # I added this
@@ -143,7 +128,18 @@ class Metabolism(Process):
             'kinetics_substrates': bulk_schema(self.model.kinetic_constraint_substrates),
             'amino_acids': bulk_schema(self.aa_names, 'accumulate'),
 
-            'environment': environment,
+            'environment': {
+                'media_id': {
+                    '_default': '',
+                    '_updater': 'set'},
+                'exchange': {
+                    element: {'_default': 0, '_emit': True, '_updater': 'set'}
+                    for element in self.model.fba.getExternalMoleculeIDs()},
+                'exchange_data': {
+                    'unconstrained': {'_default': []},
+                    'constrained': {'_default': []}},
+                'amino_acids': bulk_schema([aa[:-3] for aa in self.aa_names]),
+            },
 
             'listeners': {
                 'mass': {
@@ -287,7 +283,7 @@ class Metabolism(Process):
         # Write outputs to listeners
         unconstrained, constrained, uptake_constraints = self.get_import_constraints(
             unconstrained, constrained, GDCW_BASIS)
-        import ipdb; ipdb.set_trace(context=10)
+
         update = {
             'metabolites': {
                 metabolite: delta_metabolites_final[index]
