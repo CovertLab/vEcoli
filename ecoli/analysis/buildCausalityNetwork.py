@@ -11,8 +11,8 @@ import pprint as pp
 import subprocess
 import time
 
-import read_dynamics
-from build_network import BuildNetwork
+from ecoli.analysis import read_dynamics
+from ecoli.analysis.build_network import BuildNetwork
 from wholecell.utils import filepath as fp
 from wholecell.utils.py3 import monotonic_seconds, process_time_seconds
 
@@ -113,7 +113,6 @@ class BuildCausalityNetwork:
 
 def main():
 	network = BuildCausalityNetwork()
-
 	args = network.parse_args()
 
 	location = getattr(args, 'sim_path', '')

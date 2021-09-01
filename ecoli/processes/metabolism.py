@@ -20,21 +20,16 @@ and converted into other metabolites for use in other processes.
 # - In wcEcoli, metabolism only runs after all other processes have completed
 # and internal states have been updated (deriver-like, no partitioning necessary)
 
-
-
 import numpy as np
 from scipy.sparse import csr_matrix
-from typing import List, Tuple
+from typing import Tuple
 
 from vivarium.core.process import Process
-from vivarium.core.composition import simulate_process
-from vivarium.library.dict_utils import deep_merge
 
 from ecoli.library.schema import bulk_schema, array_from
 
 from wholecell.utils import units
 from wholecell.utils.random import stochasticRound
-from wholecell.utils.constants import REQUEST_PRIORITY_METABOLISM
 from wholecell.utils.modular_fba import FluxBalanceAnalysis
 from six.moves import zip
 
