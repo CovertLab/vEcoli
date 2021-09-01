@@ -2,13 +2,13 @@
 =============
 Cell Division
 =============
-
 """
 from typing import Any, Dict
 
 from vivarium.core.process import Deriver
 
 NAME = 'ecoli-cell-division'
+
 
 def divide_by_domain(state, **args):
     """

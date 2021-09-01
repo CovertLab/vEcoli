@@ -15,13 +15,6 @@ and that complexation reactions are fast and complete within the time step of th
 simulation.
 """
 
-# Note: the following comments were previously in the Docstring above, but I moved them
-# below so that our Docstrings are standardized when loading them into the jupyter notebook
-
-# TODO:
-# - allow for shuffling when appropriate (maybe in another process)
-# - handle protein complex dissociation
-
 import numpy as np
 from arrow import StochasticSystem
 
@@ -33,7 +26,6 @@ from ecoli.library.schema import array_to, bulk_schema
 
 from ecoli.library.schema import bulk_schema
 from ecoli.processes.registries import topology_registry
-
 
 # Register default topology for this process, associating it with process name
 NAME = 'ecoli-complexation'
@@ -106,15 +98,14 @@ class Complexation(Process):
         self.complexationEvents = result['occurrences']
         outcome = result['outcome'] - substrate
         molecules_update = array_to(self.molecule_names, outcome)
+
+        # Write outputs to listeners
         update = {
             'molecules': molecules_update,
             'listeners': {
                 'complexation_events': self.complexationEvents
             }
         }
-
-        # # Write outputs to listeners
-        # self.writeToListener("ComplexationListener", "complexationEvents", events)
 
         return update
 

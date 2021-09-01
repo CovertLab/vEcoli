@@ -9,32 +9,16 @@ This process demonstrates how metabolites are taken up from the environment
 and converted into other metabolites for use in other processes.
 """
 
-# Note: the following comments were previously in the Docstring above, but I moved them
-# below so that our Docstrings are standardized when loading them into the jupyter notebook
-
-# TODO:
-# - option to call a reduced form of metabolism (assume optimal)
-# - handle oneSidedReaction constraints
-#
-# NOTE:
-# - In wcEcoli, metabolism only runs after all other processes have completed
-# and internal states have been updated (deriver-like, no partitioning necessary)
-
-
-
 import numpy as np
 from scipy.sparse import csr_matrix
-from typing import List, Tuple
+from typing import Tuple
 
 from vivarium.core.process import Process
-from vivarium.core.composition import simulate_process
-from vivarium.library.dict_utils import deep_merge
 
 from ecoli.library.schema import bulk_schema, array_from
 
 from wholecell.utils import units
 from wholecell.utils.random import stochasticRound
-from wholecell.utils.constants import REQUEST_PRIORITY_METABOLISM
 from wholecell.utils.modular_fba import FluxBalanceAnalysis
 from six.moves import zip
 
@@ -224,19 +208,12 @@ class Metabolism(Process):
         kinetic_enzyme_counts = array_from(states['kinetics_enzymes'])
         kinetic_substrate_counts = array_from(states['kinetics_substrates'])
 
-        # self._sim.processes['PolypeptideElongation'].gtp_to_hydrolyze
         translation_gtp = states['polypeptide_elongation']['gtp_to_hydrolyze']
-        # self.readFromListener('Mass', 'cellMass') * units.fg
-        # TODO: Fix mass calculation as metabolism requires accurate cell and dry masses
         cell_mass = states['listeners']['mass']['cell_mass'] * units.fg
-        # self.readFromListener('Mass', 'dryMass') * units.fg
         dry_mass = states['listeners']['mass']['dry_mass'] * units.fg
 
         # Get environment updates
-        # environment = self._external_states['Environment']
-        # environment.current_media_id
         current_media_id = states['environment']['media_id']
-        # environment.get_exchange_data()
         unconstrained = states['environment']['exchange_data']['unconstrained']
         constrained = states['environment']['exchange_data']['constrained']
 
@@ -285,7 +262,7 @@ class Metabolism(Process):
         fba = self.model.fba
         fba.solve(n_retries)
 
-        ## Internal molecule changes
+        # Internal molecule changes
         delta_metabolites = (1 / counts_to_molar) * (CONC_UNITS * fba.getOutputMoleculeLevelsChange())
         metabolite_counts_final = np.fmax(stochasticRound(
             self.random_state,
@@ -349,7 +326,7 @@ class Metabolism(Process):
         return update
 
     def update_amino_acid_targets(self, counts_to_molar, count_diff, amino_acid_counts):
-        '''
+        """
         Finds new amino acid concentration targets based on difference in supply
         and number of amino acids used in polypeptide_elongation
 
@@ -363,18 +340,14 @@ class Metabolism(Process):
 
         Skips updates to certain molecules defined in self.aa_targets_not_updated:
         - L-SELENOCYSTEINE: rare amino acid that led to high variability when updated
-
-        TODO:
-        - remove access to PolypeptideElongation class attribute (aa_count_diff)
-        '''
-
-        # count_diff = self._sim.processes['PolypeptideElongation'].aa_count_diff
+        """
 
         if len(self.aa_targets):
             for aa, diff in count_diff.items():
                 if aa in self.aa_targets_not_updated:
                     continue
                 self.aa_targets[aa] += diff
+
         # First time step of a simulation so set target to current counts to prevent
         # concentration jumps between generations
         else:
@@ -395,9 +368,9 @@ class Metabolism(Process):
 
 
 class FluxBalanceAnalysisModel(object):
-    '''
+    """
     Metabolism model that solves an FBA problem with modular_fba.
-    '''
+    """
 
     def __init__(self, parameters, timeline=None, include_ppgpp=True):
         """
@@ -566,11 +539,7 @@ class FluxBalanceAnalysisModel(object):
 
         Returns:
             external_molecule_levels (np.ndarray[float]): updated limits on external
-                molcule availability
-
-        TODO:
-            - determine rate of uptake so that some amino acid uptake can
-            be used as a carbon/nitrogen source
+                molecule availability
         """
 
         external_exchange_molecule_ids = self.fba.getExternalMoleculeIDs()

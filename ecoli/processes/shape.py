@@ -7,26 +7,28 @@ PI = math.pi
 
 
 def length_from_volume(volume, width):
-    '''
+    """
     get cell length from volume, using the following equation for capsule volume, with V=volume, r=radius,
     a=length of cylinder without rounded caps, l=total length:
 
     V = (4/3)*PI*r^3 + PI*r^2*a
     l = a + 2*r
-    '''
+    """
     radius = width / 2
     cylinder_length = (volume - (4/3) * PI * radius**3) / (PI * radius**2)
     total_length = cylinder_length + 2 * radius
     return total_length
 
+
 def volume_from_length(length, width):
-    '''
+    """
     inverse of length_from_volume
-    '''
+    """
     radius = width / 2
     cylinder_length = length - width
     volume = cylinder_length * (PI * radius**2) + (4 / 3) * PI * radius**3
     return volume
+
 
 def surface_area_from_length(length, width):
     '''
@@ -38,7 +40,6 @@ def surface_area_from_length(length, width):
     return surface_area
 
 
-
 class Shape(Deriver):
     name = 'ecoli-shape'
     defaults = {
@@ -47,7 +48,8 @@ class Shape(Deriver):
 
     def __init__(self, parameters=None):
         # type: (dict) -> None
-        '''Derives cell length and surface area from width and volume.
+        """
+        Derives cell length and surface area from width and volume.
 
         Ports:
 
@@ -59,7 +61,7 @@ class Shape(Deriver):
 
                 * **width** (:py:class:`float`): Width of the cell in
                   microns
-        '''
+        """
         super().__init__(parameters)
 
     def ports_schema(self):

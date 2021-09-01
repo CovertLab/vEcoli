@@ -6,15 +6,8 @@ Protein Degradation
 Protein degradation sub-model.
 
 This process accounts for the degradation of protein monomers.
-Speciﬁc proteins to be degraded are selected as a Poisson process.
+Specific proteins to be degraded are selected as a Poisson process.
 """
-
-# Note: the following comments were previously in the Docstring above, but I moved them
-# below so that our Docstrings are standardized when loading them into the jupyter notebook
-
-# TODO:
-# - protein complexes
-# - add protease functionality
 
 import numpy as np
 
@@ -93,14 +86,12 @@ class ProteinDegradation(Process):
     def calculate_request(self, timestep, states):
         # Determine how many proteins to degrade based on the degradation rates and counts of each protein
         protein_data = array_from(states['proteins'])
-        # TODO: This differs from wcEcoli (just an artifact of different random state or...)
         nProteinsToDegrade = np.fmin(
             self.random_state.poisson(self._proteinDegRates(timestep) * protein_data),
             protein_data
             )
 
         # Determine the number of hydrolysis reactions
-        # TODO: Missing asNumber() and other unit-related things
         nReactions = np.dot(self.protein_lengths, nProteinsToDegrade)
 
         # Determine the amount of water required to degrade the selected proteins
@@ -137,6 +128,7 @@ class ProteinDegradation(Process):
         states = deep_merge(states, requests)
         update = self.evolve_state(timestep, states)
         return update
+
 
 def test_protein_degradation():
     test_config = {
