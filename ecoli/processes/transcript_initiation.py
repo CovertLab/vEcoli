@@ -13,6 +13,10 @@ cellular growth rate. This is done by assuming a steady state concentration
 of active RNA polymerases.
 """
 
+# TODO:
+#   - use transcription units instead of single genes
+#   - match sigma factors to promoters
+
 import numpy as np
 import scipy.sparse
 import matplotlib.pyplot as plt

@@ -72,6 +72,9 @@ class Mass(Deriver):
         return mass_from_count(count, self.molecular_weights.get(molecule_id))
 
     def next_update(self, timestep, states):
+
+        # TODO: Run these with reducers, to avoid deepcopy of states
+
         # calculate bulk molecule mass
         bulk_mass = 0.0
         for molecule_id, count in states['bulk'].items():

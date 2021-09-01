@@ -170,6 +170,13 @@ class PolypeptideElongation(Process):
         self.aa_from_trna = self.parameters['aa_from_trna']
 
         # Set modeling method
+        # TODO (Eran): bring these different elongations models back
+        # if self.parameters['trna_charging']:
+        #     self.elongation_model = SteadyStateElongationModel(self.parameters, self)
+        # elif self.parameters['translation_supply']:
+        #     self.elongation_model = TranslationSupplyElongationModel(self.parameters, self)
+        # else:
+        #     self.elongation_model = BaseElongationModel(self.parameters, self)
         self.elongation_model = BaseElongationModel(self.parameters, self)
         self.ppgpp_regulation = self.parameters['ppgpp_regulation']
         self.mechanistic_supply = self.parameters['mechanistic_supply']
@@ -479,6 +486,8 @@ class PolypeptideElongation(Process):
         update['subunits'][self.ribosome50S] = nTerminated
 
         # MODEL SPECIFIC: evolve
+        # TODO: use something other than a class attribute to pass aa diff to metabolism
+        # TODO: Why is aa_counts_for_translation is used here instead of total_aa_counts?
         net_charged, aa_count_diff, evolve_update = self.elongation_model.evolve(
             timestep,
             states,

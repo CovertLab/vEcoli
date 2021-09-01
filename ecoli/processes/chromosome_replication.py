@@ -149,7 +149,7 @@ class ChromosomeReplication(Process):
             'full_chromosomes': {
                 '*': {
                     'domain_index': default_unique_schema,
-                    'division_time': default_unique_schema,
+                    'division_time': default_unique_schema,  # TODO: How is division_time used?
                     'has_triggered_division': {
                         '_default': False, '_updater': 'set'},
                 }}}

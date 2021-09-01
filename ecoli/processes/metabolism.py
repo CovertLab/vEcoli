@@ -9,6 +9,14 @@ This process demonstrates how metabolites are taken up from the environment
 and converted into other metabolites for use in other processes.
 """
 
+# TODO:
+# - option to call a reduced form of metabolism (assume optimal)
+# - handle oneSidedReaction constraints
+#
+# NOTE:
+# - In wcEcoli, metabolism only runs after all other processes have completed
+# and internal states have been updated (deriver-like, no partitioning necessary)
+
 import numpy as np
 from scipy.sparse import csr_matrix
 from typing import Tuple
@@ -209,6 +217,7 @@ class Metabolism(Process):
         kinetic_substrate_counts = array_from(states['kinetics_substrates'])
 
         translation_gtp = states['polypeptide_elongation']['gtp_to_hydrolyze']
+        # TODO: Fix mass calculation as metabolism requires accurate cell and dry masses
         cell_mass = states['listeners']['mass']['cell_mass'] * units.fg
         dry_mass = states['listeners']['mass']['dry_mass'] * units.fg
 
@@ -540,6 +549,10 @@ class FluxBalanceAnalysisModel(object):
         Returns:
             external_molecule_levels (np.ndarray[float]): updated limits on external
                 molecule availability
+
+        TODO:
+            determine rate of uptake so that some amino acid uptake can
+            be used as a carbon/nitrogen source
         """
 
         external_exchange_molecule_ids = self.fba.getExternalMoleculeIDs()

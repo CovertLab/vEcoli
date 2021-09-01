@@ -251,6 +251,7 @@ class PolypeptideInitiation(Process):
                 'mRNA_index': mRNA_indexes,
                 'pos_on_mRNA': np.zeros(cast(int, n_ribosomes_to_activate), dtype=np.int64)})
 
+        # TODO -- this tracking of index seems messy -- can it automatically create new index?
         self.ribosome_index += n_ribosomes_to_activate
 
         update = {
