@@ -11,15 +11,15 @@ import pprint as pp
 import subprocess
 import time
 
-import read_dynamics
-from build_network import BuildNetwork
+from ecoli.analysis import read_dynamics
+from ecoli.analysis.build_network import BuildNetwork
 from wholecell.utils import filepath as fp
 from wholecell.utils.py3 import monotonic_seconds, process_time_seconds
 
 
 CAUSALITY_ENV_VAR = 'CAUSALITY_SERVER'
 SIM_DATA_PATH = 'reconstruction/sim_data/kb/simData.cPickle'
-DYNAMICS_OUTPUT = 'ecoli/analysis/seriesOut'
+DYNAMICS_OUTPUT = 'out/seriesOut'
 
 
 class BuildCausalityNetwork:
@@ -113,7 +113,6 @@ class BuildCausalityNetwork:
 
 def main():
 	network = BuildCausalityNetwork()
-
 	args = network.parse_args()
 
 	location = getattr(args, 'sim_path', '')
