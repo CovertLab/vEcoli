@@ -149,7 +149,7 @@ class ChromosomeReplication(Process):
             'full_chromosomes': {
                 '*': {
                     'domain_index': default_unique_schema,
-                    'division_time': default_unique_schema,  # TODO: How is division_time used?
+                    'division_time': default_unique_schema,
                     'has_triggered_division': {
                         '_default': False, '_updater': 'set'},
                 }}}
@@ -504,10 +504,11 @@ class ChromosomeReplication(Process):
                     '_add': [{
                         'key': str(uuid.uuid1()),
                         'state': {
-                        'domain_index': domain_index_new_full_chroms[index],
-                        'division_time': self.D_period,
-                        'has_triggered_division': False}}
-                    for index in range(n_new_chromosomes)]}
+                            'domain_index': domain_index_new_full_chroms[index],
+                            'division_time': self.D_period,  # TODO: How is division_time used?
+                            'has_triggered_division': False}
+                    } for index in range(n_new_chromosomes)]
+                }
 
                 # Reset domain index of existing chromosomes that have finished
                 # replication
