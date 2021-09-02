@@ -73,7 +73,7 @@ class Mass(Deriver):
 
     def next_update(self, timestep, states):
 
-        # TODO: Run these with reducers, to avoid deepcopy of states
+        # TODO(vivarium): Run these with reducers, to avoid deepcopy of states
 
         # calculate bulk molecule mass
         bulk_mass = 0.0
