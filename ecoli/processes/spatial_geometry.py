@@ -1,7 +1,7 @@
-'''
+"""
 Execute by running: ``python vivarium/process/template_process.py``
 Note: This process is unfinished.
-'''
+"""
 
 import os
 import numpy as np
@@ -11,20 +11,19 @@ from vivarium.core.composition import (
     simulate_process,
     PROCESS_OUT_DIR,
 )
-from vivarium.plots.simulation_output import plot_simulation_output
 
-'''
+"""
 References:
  - width of 0.73 um: Cluzel et al., Nucleic Acids Research (2008)
-	- strain: K-12 Frag1
+ - strain: K-12 Frag1
  - periplasm width of 21 nm: Matias et al., J Bacteriology (2003)
  - cell density of 1100 g/L (from WCM): Baldwin et al., Arch microbiol. (1995)
-'''
+"""
 
 NAME = 'spatial_geometry'
-WIDTH = 0.73		# in um
-PERIPLASM_WIDTH = 21        # in nm
-DENSITY = 1100      # fg/um^3
+WIDTH = 0.73  # in um
+PERIPLASM_WIDTH = 21  # in nm
+DENSITY = 1100  # fg/um^3
 
 class SpatialGeometry(Deriver):
     """
@@ -100,7 +99,6 @@ class SpatialGeometry(Deriver):
         inner_radius = nodes['nucleoid']['radius']
         outer_radius = nodes['periplasm']['radius'] + inner_radius
 
-        # TODO -- get volume of each node from molecules and density
         for i, node_id in enumerate(self.nodes):
             # if nucleoid or nucleoid region of membrane
             nucleoid = True
@@ -152,25 +150,17 @@ class SpatialGeometry(Deriver):
             } for node_id in self.nodes
         }
         edge_update = {}
-        # edge_update = {
-        #     edge_id: {
-        #         'cross_sectional_area': cross_sectional_area[
-        #             np.where(self.edges == edge_id)][0],
-        #     } for edge_id in self.nodes
-        # }
         return {**node_update, **edge_update}
-
-
-
 
 
 # functions to configure and run the process
 def run_spatial_geometry_process():
-    '''Run a simulation of the process.
+    """
+    Run a simulation of the process.
 
     Returns:
         The simulation output.
-    '''
+    """
 
     # initialize the process by passing in parameters
     parameters = {}
@@ -189,10 +179,11 @@ def run_spatial_geometry_process():
 
 
 def test_spatial_geometry_process():
-    '''Test that the process runs correctly.
+    """
+    Test that the process runs correctly.
 
     This will be executed by pytest.
-    '''
+    """
     output = run_spatial_geometry_process()
     # TODO: Add assert statements to ensure correct performance.
 
@@ -200,7 +191,7 @@ def test_spatial_geometry_process():
 
 
 def main():
-    '''Simulate the process and plot results.'''
+    """Simulate the process and plot results."""
     # make an output directory to save plots
     out_dir = os.path.join(PROCESS_OUT_DIR, NAME)
     if not os.path.exists(out_dir):

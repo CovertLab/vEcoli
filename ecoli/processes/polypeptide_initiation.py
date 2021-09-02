@@ -10,7 +10,7 @@ into 70S ribosomes on mRNA transcripts. This process is in many ways
 analogous to the TranscriptInitiation process - the number of initiation
 events per transcript is determined in a probabilistic manner and dependent
 on the number of free ribosomal subunits, each mRNA transcript’s translation
-efﬁciency, and the counts of each type of transcript.
+efficiency, and the counts of each type of transcript.
 """
 
 from typing import cast
@@ -30,7 +30,6 @@ from six.moves import zip
 
 from ecoli.processes.registries import topology_registry
 
-
 # Register default topology for this process, associating it with process name
 NAME = 'ecoli-polypeptide-initiation'
 TOPOLOGY = {
@@ -41,6 +40,7 @@ TOPOLOGY = {
         "subunits": ("bulk",)
 }
 topology_registry.register(NAME, TOPOLOGY)
+
 
 class PolypeptideInitiation(Process):
     name = NAME
@@ -145,8 +145,7 @@ class PolypeptideInitiation(Process):
     def calculate_request(self, timestep, states):
         current_media_id = states['environment']['media_id']
         
-        requests = {}
-        requests['subunits'] = states['subunits']
+        requests = {'subunits': states['subunits']}
 
         self.fracActiveRibosome = self.active_ribosome_fraction[current_media_id]
 
@@ -252,18 +251,14 @@ class PolypeptideInitiation(Process):
                 'mRNA_index': mRNA_indexes,
                 'pos_on_mRNA': np.zeros(cast(int, n_ribosomes_to_activate), dtype=np.int64)})
 
-        self.ribosome_index += n_ribosomes_to_activate
         # TODO -- this tracking of index seems messy -- can it automatically create new index?
+        self.ribosome_index += n_ribosomes_to_activate
 
         update = {
             'subunits': {
                 self.ribosome30S: -n_new_proteins.sum(),
                 self.ribosome50S: -n_new_proteins.sum()},
-            'active_ribosome': add_elements(new_ribosomes, 'unique_index'), # {
-                # '_add': [{
-                #     'path': (ribosome['unique_index'],),
-                #     'state': ribosome}
-                #     for ribosome in new_ribosomes]},
+            'active_ribosome': add_elements(new_ribosomes, 'unique_index'),
             'listeners': {
                 'ribosome_data': {
                     'ribosomes_initialized': n_new_proteins.sum(),
