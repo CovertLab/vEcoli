@@ -205,10 +205,10 @@ def ecoli_topology_plot():
     """Make a topology plot of Ecoli"""
     agent_config = {
         'agent_id': '1',
-        'processes': ECOLI_PROCESSES,
-        'topology': ECOLI_TOPOLOGY,
+        'processes': ECOLI_DEFAULT_PROCESSES,
+        'topology': ECOLI_DEFAULT_TOPOLOGY,
         'process_configs': {
-            process_id: "sim_data" for process_id in ECOLI_PROCESSES.keys()}
+            process_id: "sim_data" for process_id in ECOLI_DEFAULT_PROCESSES.keys()}
         }
     ecoli = Ecoli(agent_config)
     settings = get_ecoli_master_topology_settings()
