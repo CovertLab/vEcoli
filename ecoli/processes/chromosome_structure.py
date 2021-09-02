@@ -36,7 +36,7 @@ TOPOLOGY = {
     "full_chromosomes": ("unique", "full_chromosome",),
     "promoters": ("unique", "promoter"),
     "DnaA_boxes": ("unique", "DnaA_box"),
-    # TODO: Only include if superhelical density flag is passed
+    # TODO(vivarium): Only include if superhelical density flag is passed
     # "chromosomal_segments": ("unique", "chromosomal_segment")
 }
 topology_registry.register(NAME, TOPOLOGY)
