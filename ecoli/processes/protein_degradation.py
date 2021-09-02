@@ -9,7 +9,7 @@ This process accounts for the degradation of protein monomers.
 Specific proteins to be degraded are selected as a Poisson process.
 """
 
-# TODO:
+# TODO(wcEcoli):
 #  - protein complexes
 #  - add protease functionality
 
@@ -90,14 +90,13 @@ class ProteinDegradation(Process):
     def calculate_request(self, timestep, states):
         # Determine how many proteins to degrade based on the degradation rates and counts of each protein
         protein_data = array_from(states['proteins'])
-        # TODO: This differs from wcEcoli (just an artifact of different random state or...)
         nProteinsToDegrade = np.fmin(
             self.random_state.poisson(self._proteinDegRates(timestep) * protein_data),
             protein_data
             )
 
         # Determine the number of hydrolysis reactions
-        # TODO: Missing asNumber() and other unit-related things
+        # TODO(vivarium): Missing asNumber() and other unit-related things
         nReactions = np.dot(self.protein_lengths, nProteinsToDegrade)
 
         # Determine the amount of water required to degrade the selected proteins
