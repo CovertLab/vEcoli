@@ -11,7 +11,7 @@
     "log_updates" : false,
     "raw_output" : false,
     "seed": 0,
-    "partition": true,
+    "partition": false,
 
     "initial_time": 0,
     "time_step": 2.0,
@@ -25,6 +25,14 @@
     "division": {
         "threshold": 2220},
     "divide": false,
+
+    "_schema": {
+        "ecoli-equilibrium": {
+            "molecules": {
+                "PD00413[c]": {"_updater": "nonnegative_accumulate"}
+            }
+        }
+    },
 
     "add_processes" : [],
     "exclude_processes" : [],
@@ -48,10 +56,10 @@
     ],
     "process_configs": {
         "ecoli-metabolism" : {
-            "deriver_mode" : true
+            "deriver_mode" : false
         },
-        "ecoli-chromosome-structure" :{
-            "deriver_mode" : true
+        "ecoli-chromosome-structure" : {
+            "deriver_mode" : false
         }
     },
     "topology": {

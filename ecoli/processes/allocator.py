@@ -4,27 +4,18 @@ Allocator
 Updates bulk with process updates, runs metabolism, runs process requests, allocates molecules
 """
 import numpy as np
-
 from vivarium.core.process import Deriver
 
-# from ecoli.processes.rna_degradation import RnaDegradation
-# from ecoli.processes.protein_degradation import ProteinDegradation
-# from ecoli.processes.two_component_system import TwoComponentSystem
-# from ecoli.processes.tf_binding import TfBinding
-# from ecoli.processes.metabolism import Metabolism
-#
-# CUSTOM_PRIORITIES = {RnaDegradation.name: 10,
-#                      ProteinDegradation.name: 10,
-#                      TwoComponentSystem.name: -5,
-#                      TfBinding.name: -10,
-#                      Metabolism.name: -10}
+from ecoli.processes.registries import topology_registry
 
-# TODO -- use the default process names (commented code above)
-CUSTOM_PRIORITIES = {'rna_degradation': 10,
-                      'protein_degradation': 10,
-                      'two_component_system': -5,
-                      'tf_binding': -10,
-                      'metabolism': -10}
+
+# Register default topology for this process, associating it with process name
+NAME = 'allocator'
+TOPOLOGY = {
+    "molecules": ("bulk",),
+    "listeners": ("listeners",)
+}
+topology_registry.register(NAME, TOPOLOGY)
 
 ASSERT_POSITIVE_COUNTS = True
 
@@ -32,7 +23,8 @@ class NegativeCountsError(Exception):
 	pass
 
 class Allocator(Deriver):
-    name = 'allocator'
+    name = NAME
+    topology = TOPOLOGY
 
     defaults = {}
     
@@ -50,7 +42,9 @@ class Allocator(Deriver):
         self.proc_name_to_idx = {name: idx for idx, name in enumerate(self.processNames)}
         self.proc_idx_to_name = {idx: name for idx, name in enumerate(self.processNames)}
         self.processPriorities = np.zeros(len(self.processNames))
-        for process, custom_priority in CUSTOM_PRIORITIES.items():
+        for process, custom_priority in self.parameters['custom_priorities'].items():
+            if process not in self.proc_name_to_idx.keys():
+                continue
             self.processPriorities[self.proc_name_to_idx[process]] = custom_priority
         self.seed = self.parameters['seed']
         self.random_state = np.random.RandomState(seed = self.seed)
