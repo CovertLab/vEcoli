@@ -15,7 +15,7 @@ and that complexation reactions are fast and complete within the time step of th
 simulation.
 """
 
-# TODO:
+# TODO(wcEcoli):
 # - allow for shuffling when appropriate (maybe in another process)
 # - handle protein complex dissociation
 

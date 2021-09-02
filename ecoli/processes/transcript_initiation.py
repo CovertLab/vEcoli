@@ -13,7 +13,7 @@ cellular growth rate. This is done by assuming a steady state concentration
 of active RNA polymerases.
 """
 
-# TODO:
+# TODO(wcEcoli):
 #   - use transcription units instead of single genes
 #   - match sigma factors to promoters
 
@@ -683,7 +683,7 @@ def test_transcript_initiation():
     # Also gather data where TFs are bound:
 
     # Assertions =========================================================
-    # TODO:
+    # TODO(Michael):
     #  1) When no initiations occurred in a timestep, the inits_by_TU is a scalar 0
     #  2) Weird things happen when RNAP is limiting, including affecting RNA synth probs
     #     - for toy model, initial RNAPs <= 132 results in no initiation
@@ -720,7 +720,7 @@ def test_transcript_initiation():
     # RNAs being transcribed matches active RNAPs
     for id, rnap in data_noTF['active_RNAPs'].items():
         rna = data_noTF['RNAs'][id]
-        # TODO (3)
+        # TODO(Michael) (3)
 
     # Fixed synthesis probability TUs (RNAP, rProtein) and non-fixed TUs synthesized in correct proportion
     expected = np.array([test_config['rnaSynthProbRProtein']['minimal'][0],

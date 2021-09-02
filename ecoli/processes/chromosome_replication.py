@@ -505,7 +505,7 @@ class ChromosomeReplication(Process):
                         'key': str(uuid.uuid1()),
                         'state': {
                             'domain_index': domain_index_new_full_chroms[index],
-                            'division_time': self.D_period,  # TODO: How is division_time used?
+                            'division_time': self.D_period,  # TODO(vivarium-ecoli): How is division_time used?
                             'has_triggered_division': False}
                     } for index in range(n_new_chromosomes)]
                 }

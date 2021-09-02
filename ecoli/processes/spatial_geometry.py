@@ -185,7 +185,7 @@ def test_spatial_geometry_process():
     This will be executed by pytest.
     """
     output = run_spatial_geometry_process()
-    # TODO: Add assert statements to ensure correct performance.
+    # TODO(vivarium): Add assert statements to ensure correct performance.
 
     return output
 
