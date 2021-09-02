@@ -425,8 +425,6 @@ class ChromosomeStructure(Process):
                     all_new_linking_numbers, new_segment_attrs["linking_numbers"]))
     
             # Delete all existing chromosomal segments
-            # self.chromosomal_segments.delByIndexes(
-            #     np.arange(self.chromosomal_segments.total_count()))
             chromosomal_segments_delete_update = [
                 key for key in states['chromosonal_segments'].keys()]
             if chromosomal_segments_delete_update:
@@ -435,13 +433,6 @@ class ChromosomeStructure(Process):
     
             # Add new chromosomal segments
             n_segments = len(all_new_linking_numbers)
-            # self.chromosomal_segments.moleculesNew(
-            #     n_segments,
-            #     boundary_molecule_indexes=all_new_boundary_molecule_indexes,
-            #     boundary_coordinates=all_new_boundary_coordinates,
-            #     domain_index=all_new_segment_domain_indexes,
-            #     linking_number=all_new_linking_numbers,
-            #     )
             new_chromosome_segments = arrays_to(
             n_segments, {
                 'unique_index': np.arange(
@@ -461,8 +452,6 @@ class ChromosomeStructure(Process):
 
         # Remove RNAPs and RNAs that have collided with replisomes
         if n_total_collisions > 0:
-            # self.active_RNAPs.delByIndexes(np.where(removed_RNAPs_mask)[0])
-            # self.RNAs.delByIndexes(np.where(removed_RNAs_mask)[0])
             active_RNAP_delete_update = [
                 key for index, key in enumerate(states['active_RNAPs'].keys())
                 if removed_RNAPs_mask[index]]
@@ -477,7 +466,6 @@ class ChromosomeStructure(Process):
                 update['RNAs'] = {'_delete': RNA_delete_update}
 
             # Increment counts of inactive RNAPs
-            # self.inactive_RNAPs.countInc(n_total_collisions)
             update['molecules'][self.inactive_RNAPs] = n_total_collisions
 
             # Get sequences of incomplete transcripts
@@ -498,8 +486,6 @@ class ChromosomeStructure(Process):
                     base_counts += np.bincount(seq[:sl], minlength=self.n_fragment_bases)
 
                 # Increment counts of fragment NTPs and phosphates
-                # self.fragmentBases.countsInc(base_counts)
-                # self.ppi.countInc(n_initiated_sequences)
                 update['fragmentBases'] = array_to(
                     self.fragmentBases, base_counts)
                 update['molecules'] = {self.ppi: n_initiated_sequences}
@@ -513,8 +499,6 @@ class ChromosomeStructure(Process):
 
         # Remove ribosomes that are bound to removed mRNA molecules
         if n_removed_ribosomes > 0:
-            # self.active_ribosomes.delByIndexes(
-            #     np.where(removed_ribosomes_mask)[0])
             active_ribosome_delete_update = [
                 key for index, key in enumerate(states['active_ribosome'].keys())
                 if removed_ribosomes_mask[index]]
@@ -523,8 +507,6 @@ class ChromosomeStructure(Process):
                     '_delete': active_ribosome_delete_update}
 
             # Increment counts of inactive ribosomal subunits
-            # self.ribosome_30S_subunit.countInc(n_removed_ribosomes)
-            # self.ribosome_50S_subunit.countInc(n_removed_ribosomes)
             update['subunits'] = {
                 self.ribosome_30S_subunit: n_removed_ribosomes,
                 self.ribosome_50S_subunit: n_removed_ribosomes}
@@ -550,16 +532,11 @@ class ChromosomeStructure(Process):
 
                 # Increment counts of free amino acids and decrease counts of
                 # free water molecules
-                # self.amino_acids.countsInc(amino_acid_counts)
                 update['amino_acids'] = array_to(self.amino_acids, amino_acid_counts)
-                # self.water.countDec(
-                #     incomplete_sequence_lengths.sum() - n_initiated_sequences)
                 update['molecules'][self.water] = (
                     n_initiated_sequences - incomplete_sequence_lengths.sum())
 
         # Write to listener
-        # self.writeToListener(
-        #     'RnapData', 'n_removed_ribosomes', n_removed_ribosomes)
         update['listeners']['RnapData']['n_removed_ribosomes'] = n_removed_ribosomes
         
 
@@ -585,7 +562,6 @@ class ChromosomeStructure(Process):
 
         if n_new_promoters > 0:
             # Delete original promoters
-            # self.promoters.delByIndexes(np.where(removed_promoters_mask)[0])
             promoter_delete_update = [
                 key for index, key in enumerate(states['promoters'].keys())
                 if removed_promoters_mask[index]]
@@ -593,8 +569,6 @@ class ChromosomeStructure(Process):
                 update['promoters'] = {'_delete': promoter_delete_update}
 
             # Add freed active tfs
-            # self.active_tfs.countsInc(
-            #     promoter_bound_TFs[removed_promoters_mask, :].sum(axis=0))
             update['active_tfs'] = array_to(
                 self.active_tfs, promoter_bound_TFs[removed_promoters_mask, :].sum(axis=0))
 
@@ -605,12 +579,6 @@ class ChromosomeStructure(Process):
                 promoter_domain_indexes[removed_promoters_mask])
 
             # Add new promoters with new domain indexes
-            # self.promoters.moleculesNew(
-            #     n_new_promoters,
-            #     TU_index=promoter_TU_indexes_new,
-            #     coordinates=promoter_coordinates_new,
-            #     domain_index=promoter_domain_indexes_new,
-            #     bound_TF=np.zeros((n_new_promoters, self.n_TFs), dtype=np.bool))
             new_promoters = arrays_to(
                 n_new_promoters, {
                     'unique_index': np.arange(
@@ -630,7 +598,6 @@ class ChromosomeStructure(Process):
 
         if n_new_DnaA_boxes > 0:
             # Delete original DnaA boxes
-            # self.DnaA_boxes.delByIndexes(np.where(removed_DnaA_boxes_mask)[0])
             DnaA_box_delete_update = [
                 key for index, key in enumerate(states['DnaA_boxes'].keys())
                 if removed_DnaA_boxes_mask[index]]
@@ -643,11 +610,6 @@ class ChromosomeStructure(Process):
                 DnaA_box_domain_indexes[removed_DnaA_boxes_mask])
 
             # Add new promoters with new domain indexes
-            # self.DnaA_boxes.moleculesNew(
-            #     n_new_DnaA_boxes,
-            #     coordinates=DnaA_box_coordinates_new,
-            #     domain_index=DnaA_box_domain_indexes_new,
-            #     DnaA_bound=np.zeros(n_new_DnaA_boxes, dtype=np.bool))
             new_DnaA_boxes = arrays_to(
                 n_new_DnaA_boxes, {
                     'unique_index': np.arange(

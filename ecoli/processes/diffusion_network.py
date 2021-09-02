@@ -14,7 +14,7 @@ from vivarium.core.composition import (
 NAME = 'diffusion_network'
 
 class DiffusionNetwork(Process):
-    ''' Models Brownian diffusion using a network of nodes and edges. Each
+    """ Models Brownian diffusion using a network of nodes and edges. Each
         node acts as a cellular compartment and each edge connects those
         compartments, indicating where diffusion can occur.
 
@@ -80,8 +80,7 @@ class DiffusionNetwork(Process):
                    This is an optional parameter.
                  * **temp** (:py:class:`float`): Temperature of experiment
                  in units of K. This is an optional parameter.
-
-'''
+    """
 
     name = NAME
 
@@ -116,7 +115,7 @@ class DiffusionNetwork(Process):
             self.molecule_ids, self.rp, self.mesh_size, self.edges, self.temp)
 
     def ports_schema(self):
-        '''
+        """
         ports_schema returns a dictionary that declares how each state will behave.
         Each key can be assigned settings for the schema_keys declared in Store:
 
@@ -127,7 +126,7 @@ class DiffusionNetwork(Process):
         * `_properties`
         * `_emit`
         * `_serializer`
-        '''
+        """
         schema = {
             node_id: {
                 'volume': {
@@ -201,7 +200,7 @@ class DiffusionNetwork(Process):
             } for node_id in self.nodes
         }
         return update
-    
+
     def calculate_request(self, timestep, states):
         return {}
 
@@ -272,7 +271,6 @@ def test_diffusion_network_process(out_dir=None):
     if out_dir:
         # plot the simulation output
         plot_output(output, sim_settings['initial_state'], out_dir)
-        # plot_diff_range(diffusion_constants, rp, out_dir)
 
 
 # Plots the diffusion constants by molecule sizes for edges with and without mesh
@@ -335,7 +333,7 @@ def plot_output(output, nodes, out_dir='out'):
 
 # This function is modified from spatial_tool.py from WCM
 def calculate_rp_from_mw(molecule_ids, mw):
-    '''
+    """
         This function compute the hydrodynamic radius of a macromolecules from
         its molecular weight. It is important to note that the hydrodynamic
         diameter is mainly used for computation of diffusion constant, and can
@@ -359,7 +357,7 @@ def calculate_rp_from_mw(molecule_ids, mw):
             - rp = 0.024*MW^(0.57) nm (Robertson et al 2006) (linear DNA)
             - rp = 0.0125*MW^(0.59) nm (Robertson et al 2006) (circular DNA)
             - rp = 0.0145*MW^(0.57) nm (Robertson et al 2006) (supercoiled DNA)
-        '''
+    """
 
     dic_rp = {'protein': (0.0515, 0.392),
               'RNA': (0.0566, 0.38),
@@ -384,7 +382,7 @@ def calculate_rp_from_mw(molecule_ids, mw):
 # This function is modified from spatial_tool.py from WCM
 def compute_diffusion_constants_from_rp(molecule_ids, rp, mesh_size, edges,
                                        temp):
-    '''
+    """
         Warning: The default values of the 'parameters' are E coli specific.
 
         This function computes the hypothesized diffusion constant of
@@ -456,7 +454,7 @@ def compute_diffusion_constants_from_rp(molecule_ids, rp, mesh_size, edges,
 
         Returns:
             dc: the diffusion constant of the macromolecule, units: um**2/sec
-        '''
+    """
     if temp is None:
         temp = 310.15
     parameters = (0.51, 0.53, 10)
@@ -512,6 +510,7 @@ def compute_diffusion_constants_from_rp(molecule_ids, rp, mesh_size, edges,
 # Helper function
 def array_from(d):
     return np.array(list(d.values()))
+
 
 # Helper function
 def array_to(keys, array):
