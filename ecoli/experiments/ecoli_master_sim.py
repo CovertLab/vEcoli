@@ -9,33 +9,26 @@ from datetime import datetime
 
 from vivarium.core.engine import Engine
 from vivarium.library.dict_utils import deep_merge
-from ecoli.composites.ecoli_master import Ecoli, SIM_DATA_PATH
+from ecoli.library.logging import write_json
+from ecoli.composites.ecoli_master import SIM_DATA_PATH
+# Two different Ecoli composites depending on partitioning
+import ecoli.composites.ecoli_master
+import ecoli.composites.ecoli_partition
+
 from ecoli.processes import process_registry
 from ecoli.processes.registries import topology_registry
 
-
-CONFIG_DIR_PATH = 'ecoli/composites/ecoli_master_configs/'
+from ecoli.composites.ecoli_master_configs import CONFIG_DIR_PATH
 
 
 class EcoliSim:
     def __init__(self, config):
-
-        # Get processes and topology into correct form
-        config['processes'] = self._retrieve_processes(config['processes'],
-                                                       config['add_processes'],
-                                                       config['exclude_processes'],
-                                                       config['swap_processes'])
-        config['topology'] = self._retrieve_topology(config['topology'],
-                                                     config['processes'],
-                                                     config['swap_processes'],
-                                                     config['log_updates'],
-                                                     config['divide'])
-        config['process_configs'] = self._retrieve_process_configs(config['process_configs'],
-                                                                   config['processes'])
-
-        # make some lists into tuples
+        # Do some datatype pre-processesing
         config['agents_path'] = tuple(config['agents_path'])
+        config['processes'] = {
+            process: None for process in config['processes']}
 
+        # store config
         self.config = config
 
         # Unpack config using Descriptor protocol:
@@ -45,7 +38,7 @@ class EcoliSim:
         # For example:
         #
         # >> sim = EcoliSim.from_file()
-        # >> sim.total_time 
+        # >> sim.total_time
         #    10
         # >> sim.config['total_time']
         #    10
@@ -66,14 +59,24 @@ class EcoliSim:
         for attr in self.config.keys():
             config_entry = ConfigEntry(attr)
             setattr(EcoliSim, attr, config_entry)
-            
 
         if self.generations:
             warnings.warn("generations option is not yet implemented!")
 
-        if config['partition']:
-            warnings.warn("partitioning is not compatible with EcoliSim yet!")
 
+    @staticmethod
+    def from_file(filepath=CONFIG_DIR_PATH + 'default.json'):
+        # Load config, deep-merge with default config
+        with open(filepath) as config_file:
+            ecoli_config = json.load(config_file)
+
+        with open(CONFIG_DIR_PATH + 'default.json') as default_file:
+            default_config = json.load(default_file)
+
+        # Use defaults for any attributes not supplied
+        ecoli_config = deep_merge(dict(default_config), ecoli_config)
+
+        return EcoliSim(ecoli_config)
 
     @staticmethod
     def from_cli():
@@ -137,29 +140,13 @@ class EcoliSim:
 
         return EcoliSim(ecoli_config)
 
-
-    @staticmethod
-    def from_file(filepath=CONFIG_DIR_PATH + 'default.json'):
-        # Load config, deep-merge with default config
-        with open(filepath) as config_file:
-            ecoli_config = json.load(config_file)
-
-        with open(CONFIG_DIR_PATH + 'default.json') as default_file:
-            default_config = json.load(default_file)
-
-        # Use defaults for any attributes not supplied
-        ecoli_config = deep_merge(dict(default_config), ecoli_config)
-
-        return EcoliSim(ecoli_config)
-
-
     def _retrieve_processes(self,
-                            process_names,
+                            processes,
                             add_processes,
                             exclude_processes,
                             swap_processes):
         result = {}
-        for process_name in process_names + add_processes:
+        for process_name in list(processes.keys()) + list(add_processes):
             if process_name in exclude_processes:
                 continue
 
@@ -175,7 +162,6 @@ class EcoliSim:
             result[process_name] = process_class
 
         return result
-
 
     def _retrieve_topology(self,
                            topology,
@@ -219,7 +205,7 @@ class EcoliSim:
         if divide:
             result['division'] = {
                 'variable': ('listeners', 'mass', 'cell_mass'),
-                'agents': config['agents_path']}
+                'agents': self.agents_path}
 
         return result
 
@@ -233,10 +219,30 @@ class EcoliSim:
 
         return result
 
+    def build_ecoli(self):
+        """
+        Build self.ecoli, the Ecoli composite, and self.initial_state, from current settings.
+        """
 
-    def run(self):
+        # build processes, topology, configs
+        self.processes = self._retrieve_processes(self.processes,
+                                                  self.add_processes,
+                                                  self.exclude_processes,
+                                                  self.swap_processes)
+        self.topology = self._retrieve_topology(self.topology,
+                                                self.processes,
+                                                self.swap_processes,
+                                                self.log_updates,
+                                                self.divide)
+        self.process_configs = self._retrieve_process_configs(self.process_configs,
+                                                              self.processes)
+
         # initialize the ecoli composer
-        ecoli_composer = Ecoli(self.config)
+        if self.partition:
+            ecoli_composer = ecoli.composites.ecoli_partition.Ecoli(
+                self.config)
+        else:
+            ecoli_composer = ecoli.composites.ecoli_master.Ecoli(self.config)
 
         # set path at which agent is initialized
         path = tuple()
@@ -244,28 +250,33 @@ class EcoliSim:
             path = ('agents', self.agent_id,)
 
         # get initial state
-        initial_state = ecoli_composer.initial_state(
+        self.initial_state = ecoli_composer.initial_state(
             config=self.config, path=path)
 
         # generate the composite at the path
         self.ecoli = ecoli_composer.generate(path=path)
+
+    def run(self):
+        # build self.ecoli and self.initial_state
+        self.build_ecoli()
 
         # make the experiment
         experiment_config = {
             'description': self.description,
             'processes': self.ecoli.processes,
             'topology': self.ecoli.topology,
-            'initial_state': initial_state,
+            'initial_state': self.initial_state,
             'progress_bar': self.progress_bar,
-            'emit_topology': False,
-            'emit_processes': False,
-            'emit_config': False,
+            'emit_topology': self.emit_topology,
+            'emit_processes': self.emit_processes,
+            'emit_config': self.emit_config,
             'emitter': self.emitter,
         }
         if self.experiment_id:
             experiment_config['experiment_id'] = self.experiment_id
             if self.suffix_time:
-                experiment_config['experiment_id'] += datetime.now().strftime("_%d/%m/%Y %H:%M:%S")
+                experiment_config['experiment_id'] += datetime.now().strftime(
+                    "_%d/%m/%Y %H:%M:%S")
 
         self.ecoli_experiment = Engine(**experiment_config)
 
@@ -277,6 +288,20 @@ class EcoliSim:
             return self.ecoli_experiment.emitter.get_data()
         else:
             return self.ecoli_experiment.emitter.get_timeseries()
+
+    def merge(self, other):
+        """
+        Combine settings from this EcoliSim with another, overriding 
+        current settings with those from the other EcoliSim.
+        """
+
+        deep_merge(self.config, other.config)
+
+    
+    def export_json(self, filename=CONFIG_DIR_PATH + "export.json"):
+        export = dict(self.config)
+        export['processes'] = [k for k in export['processes'].keys()]
+        write_json(filename, export)
 
 
 if __name__ == '__main__':
