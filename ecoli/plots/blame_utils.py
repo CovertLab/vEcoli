@@ -1,4 +1,5 @@
 from collections import Counter
+from functools import reduce
 
 import numpy as np
 from scipy.sparse import coo_matrix

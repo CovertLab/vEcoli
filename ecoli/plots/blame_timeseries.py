@@ -43,18 +43,23 @@ def blame_timeseries(data,
 
 
 def test_blame_timeseries():
-    from vivarium.core.emitter import data_from_database, get_local_client
+    from vivarium.core.emitter import (
+        data_from_database, get_local_client, timeseries_from_data)
 
-    EXPERIMENT_ID = "blame_timeseries_test_30/08/2021 17:34:09"
+    EXPERIMENT_ID = None # "test_blame_03/09/2021 14:47:01"
 
     if EXPERIMENT_ID:
         data, conf = data_from_database(EXPERIMENT_ID,
                                         get_local_client("localhost", "27017", "simulations"))
+        data = timeseries_from_data(data)
         topo = conf['topology']
 
     else:
-        sim = EcoliSim.from_file(
-            CONFIG_DIR_PATH + "/test_configs/test_blame.json")
+        sim = EcoliSim.from_file()
+            #CONFIG_DIR_PATH + "/test_configs/test_blame.json")
+        sim.emitter = "database"
+        sim.log_updates = True
+        sim.total_time = 4
         data = sim.run()
         topo = sim.ecoli.topology
 
