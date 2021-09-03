@@ -1,12 +1,24 @@
 """
+============
 Complexation
+============
 
-Macromolecular complexation sub-model. Encodes molecular simulation of macromolecular complexation
+Macromolecular complexation sub-model.
 
-TODO:
-- allow for shuffling when appropriate (maybe in another process)
-- handle protein complex dissociation
+This process encodes molecular simulation of macromolecular complexation,
+in which monomers are assembled into complexes. Macromolecular complexation
+is done by identifying complexation reactions that are possible (which are
+reactions that have sufﬁcient counts of all sub-components), performing one
+randomly chosen possible reaction, and re-identifying all possible complexation
+reactions. This process assumes that macromolecular complexes form spontaneously,
+and that complexation reactions are fast and complete within the time step of the
+simulation.
 """
+
+# TODO(wcEcoli):
+# - allow for shuffling when appropriate (maybe in another process)
+# - handle protein complex dissociation
+
 import numpy as np
 from arrow import StochasticSystem
 
@@ -18,7 +30,6 @@ from ecoli.library.schema import array_to, bulk_schema
 
 from ecoli.library.schema import bulk_schema
 from ecoli.processes.registries import topology_registry
-
 
 # Register default topology for this process, associating it with process name
 NAME = 'ecoli-complexation'
@@ -91,15 +102,14 @@ class Complexation(Process):
         self.complexationEvents = result['occurrences']
         outcome = result['outcome'] - substrate
         molecules_update = array_to(self.molecule_names, outcome)
+
+        # Write outputs to listeners
         update = {
             'molecules': molecules_update,
             'listeners': {
                 'complexation_events': self.complexationEvents
             }
         }
-
-        # # Write outputs to listeners
-        # self.writeToListener("ComplexationListener", "complexationEvents", events)
 
         return update
 

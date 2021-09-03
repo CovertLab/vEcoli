@@ -1,14 +1,19 @@
 """
-Two component system
+====================
+Two Component System
+====================
 
-Two component system sub-model
+Two component system sub-model.
 
+This process models the phosphotransfer reactions of signal transduction pathways.
+
+Specifically, phosphate groups are transferred from histidine kinases to response regulators
+and back in response to counts of ligand stimulants.
 """
 
 import numpy as np
 
 from vivarium.core.process import Process
-from vivarium.core.composition import simulate_process
 from vivarium.library.dict_utils import deep_merge
 
 from ecoli.library.schema import (
@@ -82,8 +87,7 @@ class TwoComponentSystem(Process):
             moleculeCounts, self.cellVolume, self.n_avogadro,
             timestep, self.random_state, method="BDF", jit=self.jit,
             )
-        requests = {}
-        requests['molecules'] = array_to(states['molecules'], self.molecules_required)
+        requests = {'molecules': array_to(states['molecules'], self.molecules_required)}
         return requests
     
     def evolve_state(self, timestep, states):

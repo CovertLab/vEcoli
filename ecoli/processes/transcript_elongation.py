@@ -1,12 +1,21 @@
 """
-TranscriptElongation
+=====================
+Transcript Elongation
+=====================
 
 Transcription elongation sub-model.
 
-TODO:
-- use transcription units instead of single genes
-- account for energy
+This process models nucleotide polymerization into RNA molecules
+by RNA polymerases. Polymerization occurs across all polymerases
+simultaneously and resources are allocated to maximize the progress
+of all polymerases up to the limit of the expected polymerase elongation
+rate and available nucleotides. The termination of RNA elongation occurs
+once a RNA polymerase has reached the end of the annotated gene.
 """
+
+# TODO(wcEcoli):
+#   - use transcription units instead of single genes
+#   - account for energy
 
 import numpy as np
 
@@ -43,7 +52,6 @@ topology_registry.register(NAME, TOPOLOGY)
 
 
 class TranscriptElongation(Process):
-    # TODO: comment out terminationLoss - doesn't seem to be used/informative?
     """TranscriptElongation
 
     defaults:
@@ -142,11 +150,8 @@ class TranscriptElongation(Process):
         self.variable_elongation = self.parameters['variable_elongation']
         self.make_elongation_rates = self.parameters['make_elongation_rates']
 
-        # TODO -- add to ports for views
         self.polymerized_ntps = self.parameters['polymerized_ntps']
         self.charged_trna_names = self.parameters['charged_trna_names']
-        # self.fragmentBases = self.bulkMoleculesView(sim_data.molecule_groups.polymerized_ntps)
-        # self.charged_trna = self.bulkMoleculesView(sim_data.process.transcription.charged_trna_names)
 
         # Attenuation
         self.trna_attenuation = self.parameters['trna_attenuation']
@@ -165,12 +170,6 @@ class TranscriptElongation(Process):
         self.nsRNA_submass_idx = self.parameters['submass_indexes']['massDiff_nonspecific_RNA']
         self.mRNA_submass_idx = self.parameters['submass_indexes']['massDiff_mRNA']
 
-
-        # TODO: Remove request code once migration is complete
-        self.request_on = False
-
-        self.stop = False
-        
     def ports_schema(self):
         return {
             'environment': {
@@ -290,22 +289,14 @@ class TranscriptElongation(Process):
         ntpsTotal = array_from(states['ntps'])
         maxFractionalReactionLimit = np.fmin(1, ntpsTotal / sequenceComposition)
 
-        requests = {}
-        requests['ntps'] = array_to(states['ntps'], 
-                                    maxFractionalReactionLimit * sequenceComposition)
-        
-        # TODO: Figure out how to migrate these listeners to vivarium
-        # self.writeToListener(
-        #     "GrowthLimits", "ntpPoolSize", self.ntps.total_counts())
-        # self.writeToListener(
-        #     "GrowthLimits", "ntpRequestSize",
-        #     maxFractionalReactionLimit * sequenceComposition)
+        requests = {'ntps': array_to(states['ntps'],
+                                     maxFractionalReactionLimit * sequenceComposition)}
+
         return requests
         
     def evolve_state(self, timestep, states):
         # If there are no active RNA polymerases, return immediately
         if len(states['active_RNAPs']) == 0:
-            # TODO (Eran): replace with custom updater that zeros if not given update
             return {
                        'listeners': {
                            'transcript_elongation_listener': {
@@ -344,9 +335,8 @@ class TranscriptElongation(Process):
         is_mRNA_partial_RNAs = is_mRNA_all_RNAs[is_partial_transcript]
         RNAP_index_partial_RNAs = RNAP_index_all_RNAs[is_partial_transcript]
 
-        # TODO: Attenuation: need access to mass, charged_trna stores
+        # TODO(vivarium): Attenuation: need access to mass, charged_trna stores
         if self.trna_attenuation:
-            # cell_mass = self.readFromListener('Mass', 'cellMass') * units.fg
             cellVolume = cell_mass / self.cell_density
             counts_to_molar = 1 / (self.n_avogadro * cellVolume)
             attenuation_probability = self.stop_probabilities(counts_to_molar * self.charged_trna.total_counts())
@@ -367,7 +357,7 @@ class TranscriptElongation(Process):
             self.rnaSequences,
             TU_index_partial_RNAs,
             length_partial_RNAs,
-            self.elongation_rates) # redundant?
+            self.elongation_rates)
 
         # Polymerize transcripts based on sequences and available nucleotides
         reactionLimit = ntpCounts.sum()
@@ -612,6 +602,7 @@ def get_mapping_arrays(x, y):
 
     return x_to_y, y_to_x
 
+
 def test_transcript_elongation():
     def make_elongation_rates(random, base, time_step, variable_elongation=False):
         size = 9  # number of TUs
@@ -646,13 +637,12 @@ def test_transcript_elongation():
         'make_elongation_rates': make_elongation_rates,
         'seed': 0}
 
-
     transcript_elongation = TranscriptElongation(test_config)
 
     initial_state = {
         'environment': {'media_id': 'minimal'},
 
-        'RNAs': {str(i) : {'unique_index': i,
+        'RNAs': {str(i): {'unique_index': i,
                            'TU_index': i,
                            'transcript_length': 0,
                            'is_mRNA': test_config['is_mRNA'][i],
@@ -661,16 +651,16 @@ def test_transcript_elongation():
                            'RNAP_index': i}
                  for i in range(len(test_config['rnaIds']))},
 
-        'active_RNAPs': {str(i) : {'unique_index': i,
+        'active_RNAPs': {str(i): {'unique_index': i,
                                    'domain_index': 2,
                                    'coordinates': i * 1000,
                                    'direction': True}
                          for i in range(4)},
 
-        'bulk_RNAs': {'16S rRNA' : 0,
-                      '23S rRNA' : 0,
-                      '5S rRNA' : 0,
-                      'mRNA' : 0
+        'bulk_RNAs': {'16S rRNA': 0,
+                      '23S rRNA': 0,
+                      '5S rRNA': 0,
+                      'mRNA': 0
                       },
         'ntps': {'ATP[c]': 6178058, 'CTP[c]': 1152211, 'GTP[c]': 1369694, 'UTP[c]': 3024874},
         'molecules': {'PPI[c]': 320771, 'APORNAP-CPLX[c]': 2768}

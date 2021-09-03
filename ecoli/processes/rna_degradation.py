@@ -1,4 +1,8 @@
 """
+===============
+RNA Degradation
+===============
+
 Submodel for RNA degradation.
 
 Mathematical formulation:
@@ -43,7 +47,6 @@ digestion
 import numpy as np
 
 from vivarium.core.process import Process
-from vivarium.core.composition import simulate_process
 from vivarium.library.dict_utils import deep_merge
 
 from ecoli.library.schema import (
@@ -369,7 +372,6 @@ class RnaDegradation(Process):
         return requests
         
     def evolve_state(self, timestep, states):
-        ## wcEcoli evolveState
         # Get vector of numbers of RNAs to degrade for each RNA species
         n_degraded_bulk_RNA = array_from(states['bulk_RNAs']).astype(int)
         n_degraded_unique_RNA = self.n_unique_RNAs_to_degrade
