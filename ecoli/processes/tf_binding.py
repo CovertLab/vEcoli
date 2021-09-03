@@ -1,21 +1,22 @@
 """
-TfBinding
+==========
+Tf Binding
+==========
 
-Bind transcription factors to DNA
+Transcription factor binding sub-model.
+
+This process models how transcription factors bind to promoters on the DNA sequence.
 """
 
 import numpy as np
 
 from vivarium.core.process import Process
-from vivarium.core.composition import simulate_process
 from vivarium.library.dict_utils import deep_merge
 
 from ecoli.library.schema import arrays_from, arrays_to, bulk_schema, listener_schema, submass_schema
 
-from wholecell.utils.constants import REQUEST_PRIORITY_TF_BINDING
 from wholecell.utils.random import stochasticRound
 from wholecell.utils import units
-import six
 
 from ecoli.processes.registries import topology_registry
 
@@ -78,10 +79,6 @@ class TfBinding(Process):
         self.p_promoter_bound_tf = self.parameters['p_promoter_bound_tf']
         self.tf_to_tf_type = self.parameters['tf_to_tf_type']
 
-        # Build views with low request priority to requestAll
-        # self.bulkMoleculesRequestPriorityIs(REQUEST_PRIORITY_TF_BINDING)
-        # self.promoters = self.uniqueMoleculesView('promoter')
-
         self.active_to_bound = self.parameters['active_to_bound']
         self.get_unbound = self.parameters['get_unbound']
         self.active_to_inactive_tf = self.parameters['active_to_inactive_tf']
@@ -104,8 +101,7 @@ class TfBinding(Process):
 
         # Build array of active TF masses
         self.bulk_molecule_ids = self.parameters['bulk_molecule_ids']
-        tf_indexes = [np.where(self.bulk_molecule_ids == tf_id + '[c]')[0][0]
-            for tf_id in self.tf_ids]
+        tf_indexes = [np.where(self.bulk_molecule_ids == tf_id + '[c]')[0][0] for tf_id in self.tf_ids]
         self.active_tf_masses = (self.bulk_mass_data[tf_indexes] / self.n_avogadro).asNumber(units.fg)
 
         self.seed = self.parameters['seed']
@@ -160,7 +156,6 @@ class TfBinding(Process):
             return {}
 
         # Get attributes of all promoters
-        # TU_index, bound_TF = self.promoters.attrs('TU_index', 'bound_TF')
         TU_index, bound_TF = arrays_from(
             states['promoters'].values(),
             ['TU_index', 'bound_TF'])
@@ -189,15 +184,8 @@ class TfBinding(Process):
 
             bound_tf_counts = n_bound_TF[tf_idx]
             update['active_tfs'][active_tf_key] = bound_tf_counts
-            
-            #=======================wcEcoli Code==============================#
-            # active_tf_view.countInc(bound_tf_counts)
-            
+
             # Get counts of transcription factors
-            # countInc() above increases count() but not total_counts() value
-            # so need to add freed TFs to the total active
-            # active_tf_counts = active_tf_view.total_counts()+bound_tf_counts
-            # n_available_active_tfs = active_tf_view.count()
             active_tf_counts = (states['active_tfs_total'][active_tf_key]
                                 + bound_tf_counts)
             n_available_active_tfs = tf_count + bound_tf_counts
@@ -216,7 +204,6 @@ class TfBinding(Process):
             if self.tf_to_tf_type[tf_id] == '0CS':
                 pPromoterBound = 1.
             else:
-                # inactive_tf_counts = self.inactive_tf_view[tf_id].total_counts()
                 inactive_tf_counts = states['inactive_tfs_total'][self.inactive_tfs[tf_id]]
                 pPromoterBound = self.p_promoter_bound_tf(
                     active_tf_counts, inactive_tf_counts)
@@ -240,7 +227,6 @@ class TfBinding(Process):
                     ] = True
 
                 # Update count of free transcription factors
-                # active_tf_view.countDec(bound_locs.sum())
                 update['active_tfs'][active_tf_key] -= bound_locs.sum()
 
                 # Update bound_TF array
@@ -257,12 +243,6 @@ class TfBinding(Process):
 
         delta_TF = bound_TF_new.astype(np.int8) - bound_TF.astype(np.int8)
         mass_diffs = delta_TF.dot(self.active_tf_masses)
-
-        # # Reset bound_TF attribute of promoters
-        # self.promoters.attrIs(bound_TF=bound_TF_new)
-
-        # # Add mass_diffs array to promoter submass
-        # self.promoters.add_submass_by_array(mass_diffs)
 
         update['promoters'] = {
             key: {

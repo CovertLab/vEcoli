@@ -18,13 +18,13 @@ from vivarium.library.dict_utils import deep_merge
 
 # sim data
 from ecoli.library.sim_data import LoadSimData
-from ecoli.composites.ecoli_master_configs.default import ECOLI_PROCESSES, ECOLI_TOPOLOGY
 
 # logging
 from ecoli.library.logging import make_logging_process
-from ecoli.plots.blame import blame_plot
 
 # vivarium-ecoli processes
+from ecoli.composites.ecoli_master_configs import (
+    ECOLI_DEFAULT_PROCESSES, ECOLI_DEFAULT_TOPOLOGY)
 from ecoli.processes.cell_division import Division
 from ecoli.processes.allocator import Allocator
 
@@ -40,35 +40,6 @@ MINIMAL_MEDIA_ID = 'minimal'
 AA_MEDIA_ID = 'minimal_plus_amino_acids'
 ANAEROBIC_MEDIA_ID = 'minimal_minus_oxygen'
 
-# rename the processes
-# TODO: remove this!
-NAMES_MAP = {
-    'ecoli-tf-binding': 'tf_binding',
-    'ecoli-transcript-initiation': 'transcript_initiation',
-    'ecoli-transcript-elongation': 'transcript_elongation',
-    'ecoli-rna-degradation': 'rna_degradation',
-    'ecoli-polypeptide-initiation': 'polypeptide_initiation',
-    'ecoli-polypeptide-elongation': 'polypeptide_elongation',
-    'ecoli-complexation': 'complexation',
-    'ecoli-two-component-system': 'two_component_system',
-    'ecoli-equilibrium': 'equilibrium',
-    'ecoli-protein-degradation': 'protein_degradation',
-    'ecoli-metabolism': 'metabolism',
-    'ecoli-chromosome-replication': 'chromosome_replication',
-    'ecoli-mass-listener': 'mass',
-    'mRNA_counts_listener': 'mrna_counts',
-    'ecoli-chromosome_structure': 'chromosome_structure',
-}
-
-RENAMED_ECOLI_PROCESSES = {
-    NAMES_MAP[process_name]: process
-    for process_name, process in ECOLI_PROCESSES.items()
-}
-RENAMED_ECOLI_TOPOLOGY = {
-    NAMES_MAP[process_name]: process
-    for process_name, process in ECOLI_TOPOLOGY.items()
-}
-
 
 class Ecoli(Composer):
 
@@ -83,9 +54,7 @@ class Ecoli(Composer):
         'division': {
             'threshold': 2220},  # fg
         'divide': False,
-        'blame': False,
-        'processes': RENAMED_ECOLI_PROCESSES.copy(),
-        'topology': RENAMED_ECOLI_TOPOLOGY.copy()
+        'log_updates': False
     }
 
     def __init__(self, config):
@@ -95,9 +64,20 @@ class Ecoli(Composer):
             sim_data_path=self.config['sim_data_path'],
             seed=self.config['seed'])
 
+        if not self.config.get('processes'):
+            self.config['processes'] = ECOLI_DEFAULT_PROCESSES.copy()
+        if not self.config.get('process_configs'):
+            self.config['process_configs'] = {process: "sim_data" for process in self.config['processes']}
+        if not self.config.get('topology'):
+            self.config['topology'] = ECOLI_DEFAULT_TOPOLOGY.copy()
+
+        self.processes = self.config['processes']
+        self.topology = self.config['topology']
+
     def initial_state(self, config=None, path=()):
         # Use initial state calculated with trna_charging and translationSupply disabled
-        initial_state = get_state_from_file(path='data/metabolism/wcecoli_t0.json')
+        initial_state = get_state_from_file(
+            path='data/metabolism/wcecoli_t0.json')
         embedded_state = {}
         assoc_path(embedded_state, path, initial_state)
         return embedded_state
@@ -106,68 +86,76 @@ class Ecoli(Composer):
         time_step = config['time_step']
         parallel = config['parallel']
 
-        process_names = list(config['processes'].keys())
-        process_names.remove('mass')
+        process_order = list(config['processes'].keys())
 
-        config['processes']['allocator'] = Allocator
+        # get the configs from sim_data (except for allocator, built later)
+        process_configs = config['process_configs']
+        for process in process_configs.keys():
+            if process_configs[process] == "sim_data":
+                process_configs[process] = self.load_sim_data.get_config_by_name(
+                    process)
+            elif process_configs[process] == "default":
+                process_configs[process] = None
+            else:
+                # user passed a dict, deep-merge with config from LoadSimData
+                # if it exists, else, deep-merge with default
+                try:
+                    default = self.load_sim_data.get_config_by_name(process)
+                except KeyError:
+                    default = self.processes[process].defaults
 
-        # get the configs from sim_data
-        configs = {
-            'tf_binding': self.load_sim_data.get_tf_config(time_step=time_step),
-            'transcript_initiation': self.load_sim_data.get_transcript_initiation_config(time_step=time_step),
-            'transcript_elongation': self.load_sim_data.get_transcript_elongation_config(time_step=time_step),
-            'rna_degradation': self.load_sim_data.get_rna_degradation_config(time_step=time_step),
-            'polypeptide_initiation': self.load_sim_data.get_polypeptide_initiation_config(time_step=time_step),
-            'polypeptide_elongation': self.load_sim_data.get_polypeptide_elongation_config(time_step=time_step),
-            'complexation': self.load_sim_data.get_complexation_config(time_step=time_step),
-            'two_component_system': self.load_sim_data.get_two_component_system_config(time_step=time_step),
-            'equilibrium': self.load_sim_data.get_equilibrium_config(time_step=time_step),
-            'protein_degradation': self.load_sim_data.get_protein_degradation_config(time_step=time_step),
-            'metabolism': self.load_sim_data.get_metabolism_config(time_step=time_step, deriver_mode=True),
-            'chromosome_replication': self.load_sim_data.get_chromosome_replication_config(time_step=time_step),
-            'chromosome_structure': self.load_sim_data.get_chromosome_structure_config(time_step=time_step, deriver_mode=True),
-            'mass': self.load_sim_data.get_mass_listener_config(time_step=time_step),
-            'mrna_counts': self.load_sim_data.get_mrna_counts_listener_config(time_step=time_step),
-            'allocator': self.load_sim_data.get_allocator_config(time_step=time_step, process_names=process_names)
-        }
+                process_configs[process] = deep_merge(
+                    dict(default), process_configs[process])
 
         # make the processes
         processes = {
-            process_name: process(configs[process_name])
-            for (process_name, process) in config['processes'].items()
+            process_name: process(process_configs[process_name])
+            if not config['log_updates']
+            else make_logging_process(process)(process_configs[process_name])
+            for process_name, process in config['processes'].items()
         }
 
-        derivers = ['metabolism', 'mass', 'mrna_counts', 'allocator', 'chromosome_structure']
+        # Add allocator process
+        process_configs['allocator'] = self.load_sim_data.get_allocator_config(
+            process_names=[p for p in config['processes'].keys()
+                           if not processes[p].is_deriver()]
+        )
+
+        config['processes']['allocator'] = Allocator
+        processes['allocator'] = (Allocator(process_configs['allocator'])
+                                  if not config['log_updates']
+                                  else make_logging_process(Allocator)(process_configs['allocator']))
+
+        # Store list of derivers
+        self.derivers = [process_name
+                         for process_name, process in processes.items()
+                         if process.is_deriver()]
+
+        # Update schema overrides to reflect name change for requesters/evolvers
+        self.schema_override = {f'{p}_evolver': v for p, v in self.schema_override.items()
+                                if p not in self.derivers}
 
         # make the requesters
         requesters = {
             f'{process_name}_requester': Requester({'time_step': time_step,
                                                     'process': process})
             for (process_name, process) in processes.items()
-            if process_name not in derivers
+            if process_name not in self.derivers
         }
 
         # make the evolvers
         evolvers = {
             f'{process_name}_evolver': Evolver({'time_step': time_step,
                                                 'process': process})
-            if not config['blame']
+            if not config['log_updates']
             else make_logging_process(Evolver)({'time_step': time_step,
                                                 'process': process})
             for (process_name, process) in processes.items()
-            if process_name not in derivers
+            if process_name not in self.derivers
         }
 
-        if config['blame']:
-            processes['metabolism'] = make_logging_process(
-                config['processes']['metabolism'])(configs['metabolism'])
-            processes['chromosome_structure'] = make_logging_process(
-                config['processes']['chromosome_structure'])(configs['chromosome_structure'])
-        else:
-            processes['metabolism'] = config['processes']['metabolism'](
-                configs['metabolism'])
-            processes['chromosome_structure'] = config['processes']['chromosome_structure'](
-                configs['chromosome_structure'])
+        processes.update(requesters)
+        processes.update(evolvers)
 
         division = {}
         # add division
@@ -178,28 +166,39 @@ class Ecoli(Composer):
                 composer=self)
             division = {'division': Division(division_config)}
 
-        allocator = {'allocator': processes['allocator']}
-        mass = {'mass': processes['mass']}
-        metabolism = {'metabolism': processes['metabolism']}
-        mrna_counts = {'mrna_counts': processes['mrna_counts']}
-        chromosome_structure = {'chromosome_structure': processes['chromosome_structure']}
+        # Create final list of processes in the correct order.
+        # Following process_order, except that:
+        #   - All requesters appear before all evolvers
+        #   - Allocator appears immediately after requesters and immediately before evolvers
+        result = []
+        last_requester = 0
+        for i, process in enumerate(process_order):
+            if process in self.derivers:
+                result.append(process)
+            else:
+                result.append(f'{process}_requester')
+                last_requester = i
 
-        all_procs = {**chromosome_structure, 
-                     **metabolism, **requesters, **allocator,
-                     **evolvers, **division, **mrna_counts, **mass}
-        return all_procs
+        result[last_requester+1:last_requester+1] = [f'{process}_evolver'
+                                                     for process in process_order
+                                                     if process not in self.derivers and process != "allocator"]
+        result.insert(last_requester+1, "allocator")
+
+        result = {process: processes[process] for process in result}
+
+        # Under default config, should look like
+        # {**chromosome_structure, **metabolism, **requesters, **allocator, **evolvers, **division, **mrna_counts, **mass}
+        return result
 
     def generate_topology(self, config):
         topology = {}
 
-        derivers = ['metabolism', 'mass', 'allocator', 'mrna_counts', 'chromosome_structure']
-
         # make the topology
         for process_id, ports in config['topology'].items():
-            if process_id not in derivers:
+            if process_id not in self.derivers:
                 topology[f'{process_id}_requester'] = deepcopy(ports)
                 topology[f'{process_id}_evolver'] = deepcopy(ports)
-                if config['blame']:
+                if config['log_updates']:
                     topology[f'{process_id}_evolver']['log_update'] = (
                         'log_update', process_id,)
                 bulk_topo = get_bulk_topo(ports)
@@ -209,6 +208,11 @@ class Ecoli(Composer):
                 topology[f'{process_id}_evolver']['allocate'] = {
                     '_path': ('allocate', process_id,),
                     **bulk_topo}
+            else:
+                topology[process_id] = ports
+                if config['log_updates']:
+                    topology[process_id]['log_update'] = (
+                        'log_update', process_id,)
 
         # add division
         if self.config['divide']:
@@ -221,29 +225,17 @@ class Ecoli(Composer):
             'allocate': ('allocate',),
             'bulk': ('bulk',)}
 
-        topology['mass'] = config['topology']['mass']
-
-        topology['metabolism'] = config['topology']['metabolism']
-
-        topology['mrna_counts'] = config['topology']['mrna_counts']
-        
-        topology['chromosome_structure'] = config['topology']['chromosome_structure']
-  
-        if config['blame']:
-            topology['metabolism']['log_update'] = (
-                'log_update', 'metabolism',)
-            topology['chromosome_structure']['log_update'] = (
-                'log_update', 'chromosome_structure',)
+        if config['log_updates']:
+            topology['allocator']['log_update'] = ('log_update', 'allocator',)
 
         return topology
 
 
 def run_ecoli(
         total_time=10,
-        config=None,
         divide=False,
         progress_bar=True,
-        blame=False,
+        log_updates=False,
 ):
     """Run ecoli_master simulations
 
@@ -254,59 +246,15 @@ def run_ecoli(
     Returns:
         * output data
     """
-    # make the ecoli config dictionary
-    agent_id = '0'
-    ecoli_config = {
-        'blame': blame,
-        'agent_id': agent_id,
-        # TODO -- remove schema override once values don't go negative
-        '_schema': {
-            'equilibrium_evolver': {
-                'molecules': {
-                    'PD00413[c]': {'_updater': 'nonnegative_accumulate'}
-                }
-            },
-        },
-    }
-    if config:
-        ecoli_config = deep_merge(ecoli_config, config)
+    from ecoli.experiments.ecoli_master_sim import EcoliSim, CONFIG_DIR_PATH
 
-    # initialize the ecoli composer
-    ecoli_composer = Ecoli(ecoli_config)
+    sim = EcoliSim.from_file(CONFIG_DIR_PATH + "default.json")
+    sim.total_time = total_time
+    sim.divide = divide
+    sim.progress_bar = progress_bar
+    sim.log_updates = log_updates
 
-    # set path at which agent is initialized
-    path = tuple()
-    if divide:
-        path = ('agents', agent_id,)
-
-    # get initial state
-    initial_state = ecoli_composer.initial_state(path=path)
-
-    # generate the composite at the path
-    ecoli = ecoli_composer.generate(path=path)
-
-    # make the experiment
-    ecoli_experiment = Engine(**{
-        'processes': ecoli.processes,
-        'topology': ecoli.topology,
-        'initial_state': initial_state,
-        'progress_bar': progress_bar,
-        'emit_config': False,
-        # Not emitting every step is faster but breaks blame.py
-        # 'emit_step': 1000,
-        # 'emitter': 'database'
-    })
-
-    # run the experiment
-    ecoli_experiment.update(total_time)
-
-    # retrieve the data
-    output = ecoli_experiment.emitter.get_timeseries()
-    
-    # Sanity check: breaks test_division()
-    # pp(output['listeners']['mass'])
-
-    return output
+    return sim.run()
 
 
 def test_division():
@@ -316,15 +264,35 @@ def test_division():
     * TODO -- unique molecules need to be divided between daughter cells!!! This can get sophisticated
     """
 
-    config = {
-        'division': {
-            'threshold': 1170}}
-    output = run_ecoli(
-        total_time=10,
-        divide=True,
-        config=config,
-        progress_bar=False,
-    )
+    from ecoli.experiments.ecoli_master_sim import EcoliSim, CONFIG_DIR_PATH
+
+    sim = EcoliSim.from_file(CONFIG_DIR_PATH + "default.json")
+    sim.division = {'threshold': 1170}
+
+    # Remove metabolism for now
+    # (divison fails because cannot deepcopy metabolism process)
+    # sim.exclude_processes.append("ecoli-metabolism")
+
+    sim.total_time = 10
+    sim.divide = True
+    sim.progress_bar = True
+
+    output = sim.run()
+
+
+def test_ecoli_generate():
+    ecoli_composer = Ecoli({})
+    ecoli_composite = ecoli_composer.generate()
+
+    # asserts to ecoli_composite['processes'] and ecoli_composite['topology'] 
+    assert all('_requester' in k or
+               '_evolver' in k or
+               k == 'allocator' or
+               isinstance(v, ECOLI_DEFAULT_PROCESSES[k])
+               for k, v in ecoli_composite['processes'].items())
+    assert all(ECOLI_DEFAULT_TOPOLOGY[k] == v
+               for k, v in ecoli_composite['topology'].items()
+               if k in ECOLI_DEFAULT_TOPOLOGY)
 
 
 def get_partition_topology_settings():
@@ -439,6 +407,7 @@ def ecoli_topology_plot(config={}, filename=None, out_dir=None):
 test_library = {
     '0': run_ecoli,
     '1': test_division,
+    '2': test_ecoli_generate
 }
 
 

@@ -1,22 +1,26 @@
 """
+===========
 Equilibrium
+===========
 
-Equilibrium binding sub-model
+Equilibrium binding sub-model.
+
+This process models how ligands are bound to or unbound
+from their transcription factor binding partners in a fashion
+that maintains equilibrium.
 """
 
 import numpy as np
 
 from vivarium.core.process import Process
-from vivarium.core.composition import simulate_process
 from vivarium.library.dict_utils import deep_merge
 
-from ecoli.library.schema import array_from, array_to, arrays_from, arrays_to, listener_schema, bulk_schema
+from ecoli.library.schema import array_from, array_to, bulk_schema
 
 from wholecell.utils import units
 from six.moves import range
 
 from ecoli.processes.registries import topology_registry
-
 
 # Register default topology for this process, associating it with process name
 NAME = 'ecoli-equilibrium'
@@ -26,20 +30,13 @@ TOPOLOGY = {
 }
 topology_registry.register(NAME, TOPOLOGY)
 
-'''
-    _jit: just in time: false. utilized in the fluxes and molecules function
-    n_avogadro: constant (6.02214076e+20)
-    cell_density: constant (1.1728608844230047e-12)
-    stoichmatrix: (94, 33), molecule counts are (94,).
-    fluxesandMOleculesToSS:produces self.rxnFluxes - shape:(33,) and self.req - shape: (94 - solves ODES to get to steadystate based off of cell denisty, volumes
-        and molecule counts
-    molecule_names: list of molecules that are being iterated over size:94
-
-'''
 
 class Equilibrium(Process):
     name = NAME
     topology = TOPOLOGY
+    """
+        molecule_names: list of molecules that are being iterated over size:94
+    """
     defaults = {
         'jit': False,
         'n_avogadro': 0.0,
@@ -54,18 +51,24 @@ class Equilibrium(Process):
         super().__init__(parameters)
 
         # Simulation options
-        self.jit = self.parameters['jit']
+        self.jit = self.parameters['jit']  # utilized in the fluxes and molecules function
 
         # Get constants
         self.n_avogadro = self.parameters['n_avogadro']
         self.cell_density = self.parameters['cell_density']
 
         # Create matrix and method
+        # stoichMatrix: (94, 33), molecule counts are (94,).
         self.stoichMatrix = self.parameters['stoichMatrix']
+
+        # fluxesAndMoleculesToSS: solves ODES to get to steady state based off of cell density,
+        # volumes and molecule counts
         self.fluxesAndMoleculesToSS = self.parameters['fluxesAndMoleculesToSS']
+
         self.product_indices = [idx for idx in np.where(np.any(self.stoichMatrix > 0, axis=1))[0]]
 
         # Build views
+        # moleculeNames: list of molecules that are being iterated over size: 94
         self.moleculeNames = self.parameters['moleculeNames']
 
         self.seed = self.parameters['seed']
