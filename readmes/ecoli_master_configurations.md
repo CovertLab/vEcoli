@@ -44,7 +44,7 @@ usage: ecoli_master_sim.py [-h] [--config CONFIG] [--experiment_id EXPERIMENT_ID
 
 Configuring a simulation from JSON allows access much more complete access to simulation settings. This includes the ability to add/remove/swap processes, modify topology, and even change how individual molecules are updated or emitted (see **Schema Overrides**).
 
-Not all settings need to be provided in a custom configuration file. Settings not given default to values from `data/ecoli_master_configs/default.json`.
+Not all settings need to be provided in a custom configuration file. Settings not given default to values from `ecoli/composites/ecoli_master_configs/default.json`.
 
 ### Basic Settings
 
