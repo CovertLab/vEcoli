@@ -275,7 +275,7 @@ def test_division(
     # get initial mass from Ecoli composer
     initial_state = Ecoli({}).initial_state()
     initial_mass = initial_state['listeners']['mass']['cell_mass']
-    division_mass = int(initial_mass+1)
+    division_mass = initial_mass + 0.1
 
     # make a new composer under an embedded path
     config = {
