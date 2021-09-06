@@ -3,6 +3,7 @@
 E. coli master composite
 ========================
 """
+import pytest
 
 from vivarium.core.composer import Composer
 from vivarium.library.topology import assoc_path
@@ -167,6 +168,7 @@ def run_ecoli(
     return sim.run()
 
 
+@pytest.mark.slow
 def test_division(total_time=30):
     """
     Work in progress to get division working
