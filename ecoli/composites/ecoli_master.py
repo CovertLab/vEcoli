@@ -10,6 +10,7 @@ import argparse
 from vivarium.core.composer import Composer
 from vivarium.library.topology import assoc_path
 from vivarium.library.dict_utils import deep_merge
+from vivarium.core.control import run_library_cli
 
 # sim data
 from ecoli.library.sim_data import LoadSimData
@@ -228,22 +229,7 @@ test_library = {
     '3': ecoli_topology_plot,
 }
 
-
-def main():
-    out_dir = os.path.join('out', 'ecoli_master')
-    if not os.path.exists(out_dir):
-        os.makedirs(out_dir)
-
-    parser = argparse.ArgumentParser(description='ecoli_master')
-    parser.add_argument('--name', '-n', default=[], nargs='+', help='test ids to run')
-    args = parser.parse_args()
-
-    if args.name:
-        for name in args.name:
-            test_library[name]()
-    else:
-        output = run_ecoli(log_updates=True)
-
-
+# run experiments in test_library from the command line with:
+# python ecoli/composites/ecoli_master.py -n [experiment id]
 if __name__ == '__main__':
-    main()
+    run_library_cli(test_library)
