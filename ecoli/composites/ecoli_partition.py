@@ -6,6 +6,7 @@ NOTE: All ports with '_total' in their name are
 automatically exempt from partitioning
 """
 
+import pytest
 from copy import deepcopy
 
 from vivarium.core.composer import Composer
@@ -263,6 +264,7 @@ def run_ecoli(
     return sim.run()
 
 
+@pytest.mark.slow
 def test_division(
         agent_id='1',
         total_time=30
