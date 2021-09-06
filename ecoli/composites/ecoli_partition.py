@@ -159,14 +159,14 @@ class Ecoli(Composer):
         processes.update(requesters)
         processes.update(evolvers)
 
-        division = {}
-        # add division
+        # add division process
         if self.config['divide']:
             division_config = dict(
                 config['division'],
                 agent_id=self.config['agent_id'],
                 composer=self)
-            division = {'division': Division(division_config)}
+            division_process = {'division': Division(division_config)}
+            processes.update(division_process)
 
         # Create final list of processes in the correct order.
         # Following process_order, except that:
@@ -263,31 +263,44 @@ def run_ecoli(
     return sim.run()
 
 
-def test_division():
+def test_division(
+        agent_id='1',
+        total_time=30
+):
     """
     Work in progress to get division working
     * TODO -- unique molecules need to be divided between daughter cells!!! This can get sophisticated
     """
-    agent_id = '1'
+
+    # get initial mass from Ecoli composer
+    initial_state = Ecoli({}).initial_state()
+    initial_mass = initial_state['listeners']['mass']['cell_mass']
+    division_mass = int(initial_mass+1)
+
+    # make a new composer under an embedded path
     config = {
         'divide': True,
-        'agent_id': agent_id
+        'agent_id': agent_id,
+        'division': {
+            'threshold': division_mass},  # fg
     }
     agent_path = ('agents', agent_id)
     ecoli_composer = Ecoli(config)
     initial_state = ecoli_composer.initial_state(path=agent_path)
     ecoli_composite = ecoli_composer.generate(path=agent_path)
 
+    # make and run the experiment
     experiment = Engine(
         processes=ecoli_composite.processes,
         topology=ecoli_composite.topology,
         initial_state=initial_state,
     )
+    experiment.update(total_time)
 
-    experiment.update(10)
-
+    # retrieve output
     output = experiment.emitter.get_data()
-    print(f"agents: {output[0.0]['agents'].keys()}")
+    print(f"initial agent ids: {output[0.0]['agents'].keys()}")
+    print(f"final agent ids: {output[total_time]['agents'].keys()}")
     # import ipdb; ipdb.set_trace()
 
 
@@ -304,6 +317,7 @@ def test_ecoli_generate():
     assert all(ECOLI_DEFAULT_TOPOLOGY[k] == v
                for k, v in ecoli_composite['topology'].items()
                if k in ECOLI_DEFAULT_TOPOLOGY)
+
 
 def ecoli_topology_plot(config={}):
     """Make a topology plot of Ecoli"""
