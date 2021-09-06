@@ -132,7 +132,9 @@ class Ecoli(Composer):
         # Store list of partition processes
         self.partitioned_processes = [process_name
                          for process_name, process in processes.items()
-                         if isinstance(process, PartitionedProcess)]
+                         if (isinstance(process, PartitionedProcess)
+                             # and not process.is_deriver()
+                             )]
 
         # Update schema overrides to reflect name change for requesters/evolvers
         self.schema_override = {f'{p}_evolver': v for p, v in self.schema_override.items()
@@ -162,12 +164,14 @@ class Ecoli(Composer):
 
         # add division process
         if self.config['divide']:
+            division_name = 'division'
             division_config = dict(
                 config['division'],
                 agent_id=self.config['agent_id'],
                 composer=self)
-            division_process = {'division': Division(division_config)}
+            division_process = {division_name: Division(division_config)}
             processes.update(division_process)
+            process_order.append(division_name)
 
         # Create final list of processes in the correct order.
         # Following process_order, except that:
