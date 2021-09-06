@@ -27,9 +27,8 @@ from vivarium.core.composition import simulate_process
 from vivarium.library.dict_utils import deep_merge
 
 from ecoli.library.schema import array_to, bulk_schema
-
-from ecoli.library.schema import bulk_schema
 from ecoli.processes.registries import topology_registry
+from ecoli.processes.partition import PartitionedProcess
 
 # Register default topology for this process, associating it with process name
 NAME = 'ecoli-complexation'
@@ -43,7 +42,7 @@ topology_registry.register(NAME, TOPOLOGY)
 RAND_MAX = 2**31
 
 
-class Complexation(Process):
+class Complexation(PartitionedProcess):
     name = NAME
     topology = TOPOLOGY
     defaults = {
@@ -113,11 +112,6 @@ class Complexation(Process):
 
         return update
 
-    def next_update(self, timestep, states):
-        requests = self.calculate_request(timestep, states)
-        states = deep_merge(states, requests)
-        update = self.evolve_state(timestep, states)
-        return update
 
 
 def test_complexation():
