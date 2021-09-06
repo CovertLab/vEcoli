@@ -38,6 +38,8 @@ from ecoli.library.data_predicates import monotonically_decreasing, all_nonnegat
 from scipy.stats import chisquare
 
 from ecoli.processes.registries import topology_registry
+from ecoli.processes.partition import PartitionedProcess
+
 
 # Register default topology for this process, associating it with process name
 NAME = 'ecoli-transcript-initiation'
@@ -53,7 +55,7 @@ TOPOLOGY = {
 topology_registry.register(NAME, TOPOLOGY)
 
 
-class TranscriptInitiation(Process):
+class TranscriptInitiation(PartitionedProcess):
     """TranscriptInitiation
 
     defaults:
@@ -508,12 +510,6 @@ class TranscriptInitiation(Process):
             'didInitialize': n_RNAPs_to_activate,
             'rnaInitEvent': TU_to_promoter.dot(n_initiations)}
 
-        return update
-
-    def next_update(self, timestep, states):
-        requests = self.calculate_request(timestep, states)
-        states = deep_merge(states, requests)
-        update = self.evolve_state(timestep, states)
         return update
 
     def _calculateActivationProb(self, timestep, fracActiveRnap, rnaLengths, rnaPolymeraseElongationRates, synthProb):

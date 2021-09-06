@@ -141,7 +141,7 @@ class Ecoli(Composer):
             f'{process_name}_requester': Requester({'time_step': time_step,
                                                     'process': process})
             for (process_name, process) in processes.items()
-            if process_name not in self.derivers
+            if process.is_partition_process()
         }
 
         # make the evolvers
@@ -152,7 +152,7 @@ class Ecoli(Composer):
             else make_logging_process(Evolver)({'time_step': time_step,
                                                 'process': process})
             for (process_name, process) in processes.items()
-            if process_name not in self.derivers
+            if process.is_partition_process()
         }
 
         processes.update(requesters)

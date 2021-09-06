@@ -154,6 +154,9 @@ class PartitionedProcess(Process):
 
         topology_registry.register(self.name, self.topology)
 
+    def is_partition_process(self):
+        return True
+
     @abc.abstractmethod
     def ports_schema(self):
         return {}

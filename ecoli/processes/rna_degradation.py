@@ -57,6 +57,8 @@ from wholecell.utils import units
 from six.moves import range, zip
 
 from ecoli.processes.registries import topology_registry
+from ecoli.processes.partition import PartitionedProcess
+
 
 # Register default topology for this process, associating it with process name
 NAME = 'ecoli-rna-degradation'
@@ -77,7 +79,7 @@ TOPOLOGY = {
 topology_registry.register(NAME, TOPOLOGY)
 
 
-class RnaDegradation(Process):
+class RnaDegradation(PartitionedProcess):
     name = NAME
     topology = TOPOLOGY
     defaults = {

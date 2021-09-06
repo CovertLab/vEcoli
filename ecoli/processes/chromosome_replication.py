@@ -18,9 +18,6 @@ the chromosome immediately decatenates forming two separate chromosome molecules
 import uuid
 import numpy as np
 
-from vivarium.core.process import Process
-from vivarium.library.dict_utils import deep_merge
-
 from ecoli.library.schema import array_to, array_from, arrays_from, arrays_to, bulk_schema, submass_schema
 from ecoli.states.wcecoli_state import MASSDIFFS
 
@@ -28,6 +25,8 @@ from wholecell.utils import units
 from wholecell.utils.polymerize import buildSequences, polymerize, computeMassIncrease
 
 from ecoli.processes.registries import topology_registry
+from ecoli.processes.partition import PartitionedProcess
+
 
 # Register default topology for this process, associating it with process name
 NAME = 'ecoli-chromosome-replication'
@@ -46,7 +45,7 @@ TOPOLOGY = {
 topology_registry.register(NAME, TOPOLOGY)
 
 
-class ChromosomeReplication(Process):
+class ChromosomeReplication(PartitionedProcess):
     name = NAME
     topology = TOPOLOGY
     defaults = {
@@ -527,11 +526,6 @@ class ChromosomeReplication(Process):
 
         return update
 
-    def next_update(self, timestep, states):
-        requests = self.calculate_request(timestep, states)
-        states = deep_merge(states, requests)
-        update = self.evolve_state(timestep, states)
-        return update
     
 
 def test_chromosome_replication():
