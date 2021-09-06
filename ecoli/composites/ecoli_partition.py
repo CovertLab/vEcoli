@@ -13,6 +13,7 @@ from vivarium.plots.topology import plot_topology
 from vivarium.library.topology import assoc_path
 from vivarium.library.dict_utils import deep_merge
 from vivarium.core.control import run_library_cli
+from vivarium.core.engine import Engine
 
 # sim data
 from ecoli.library.sim_data import LoadSimData
@@ -260,27 +261,22 @@ def run_ecoli(
 def test_division():
     """
     Work in progress to get division working
-
     * TODO -- unique molecules need to be divided between daughter cells!!! This can get sophisticated
     """
+    config = {
+        'divide': True
+    }
+    ecoli_composer = Ecoli(config)
+    ecoli_composite = ecoli_composer.generate()
 
-    from ecoli.experiments.ecoli_master_sim import EcoliSim, CONFIG_DIR_PATH
+    experiment = Engine(
+        processes=ecoli_composite.processes,
+        topology=ecoli_composite.topology,
+    )
 
-    sim = EcoliSim.from_file(CONFIG_DIR_PATH + "default.json")
-    sim.division = {'threshold': 1170}
-
-    # Remove metabolism for now
-    # (divison fails because cannot deepcopy metabolism process)
-    # sim.exclude_processes.append("ecoli-metabolism")
-
-    sim.total_time = 10
-    sim.divide = True
-    sim.progress_bar = True
-
-    output = sim.run()
-
-    print(f"agents: {output['agents'].keys()}")
-    # import ipdb; ipdb.set_trace()
+    experiment.update(10)
+    # print(f"agents: {output['agents'].keys()}")
+    import ipdb; ipdb.set_trace()
 
 
 def test_ecoli_generate():
