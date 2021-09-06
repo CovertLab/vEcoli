@@ -144,12 +144,6 @@ class Equilibrium(PartitionedProcess):
 
         return update
 
-    def next_update(self, timestep, states):
-        requests = self.calculate_request(timestep, states)
-        states = deep_merge(states, requests)
-        update = self.evolve_state(timestep, states)
-        return update
-
 
 def test_equilibrium_listener():
     from ecoli.experiments.ecoli_master_sim import EcoliSim

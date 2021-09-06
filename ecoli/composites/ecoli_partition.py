@@ -283,7 +283,7 @@ def run_division(
     initial_mass = initial_state['listeners']['mass']['cell_mass']
     division_mass = initial_mass + 0.1
     print(f"DIVIDE AT {division_mass} fg")
-    
+
     # make a new composer under an embedded path
     config = {
         'divide': True,
