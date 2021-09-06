@@ -72,9 +72,10 @@ class Ecoli(Composer):
         self.topology = self.config['topology']
 
     def initial_state(self, config=None, path=()):
-        if config:
-            initial_time = config.get("initial_time", 0)
-        initial_state = get_state_from_file(path=f'data/wcecoli_t{initial_time}.json')
+        # Use initial state calculated with trna_charging and translationSupply disabled
+        config = config or {}
+        initial_time = config.get('initial_time', 0)
+        initial_state = get_state_from_file(path=f'data/metabolism/wcecoli_t{initial_time}.json')
         embedded_state = {}
         assoc_path(embedded_state, path, initial_state)
         return embedded_state
@@ -177,7 +178,7 @@ def test_division():
     from ecoli.experiments.ecoli_master_sim import EcoliSim, CONFIG_DIR_PATH
 
     sim = EcoliSim.from_file(CONFIG_DIR_PATH + "no_partition.json")
-    sim.division = {'threshold' : 1170}
+    sim.division = {'threshold': 1170}
 
     # Remove metabolism for now 
     # (divison fails because cannot deepcopy metabolism process)
@@ -188,7 +189,6 @@ def test_division():
     sim.progress_bar = True
 
     output = sim.run()
-
 
 def test_ecoli_generate():
     ecoli_composer = Ecoli({})
