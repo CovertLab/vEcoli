@@ -22,7 +22,7 @@ from ecoli.library.sim_data import LoadSimData
 from ecoli.library.logging import make_logging_process
 
 # vivarium-ecoli processes
-from ecoli.composites.ecoli_master_configs import (
+from ecoli.composites.ecoli_configs import (
     ECOLI_DEFAULT_PROCESSES, ECOLI_DEFAULT_TOPOLOGY)
 from ecoli.plots.topology import get_partition_topology_settings
 from ecoli.processes.cell_division import Division

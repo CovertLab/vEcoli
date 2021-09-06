@@ -16,7 +16,7 @@ from ecoli.library.sim_data import LoadSimData
 from vivarium.library.wrappers import make_logging_process
 
 # vivarium-ecoli processes
-from ecoli.composites.ecoli_master_configs import (
+from ecoli.composites.ecoli_configs import (
     ECOLI_DEFAULT_PROCESSES, ECOLI_DEFAULT_TOPOLOGY)
 from ecoli.processes.cell_division import Division
 
