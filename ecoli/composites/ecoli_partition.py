@@ -265,7 +265,7 @@ def run_ecoli(
 
 
 @pytest.mark.slow
-def test_division(
+def run_division(
         agent_id='1',
         total_time=30
 ):
@@ -337,7 +337,7 @@ def ecoli_topology_plot(config={}):
 
 test_library = {
     '0': run_ecoli,
-    '1': test_division,
+    '1': run_division,
     '2': test_ecoli_generate,
     '3': ecoli_topology_plot,
 }

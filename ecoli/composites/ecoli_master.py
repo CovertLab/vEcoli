@@ -169,7 +169,7 @@ def run_ecoli(
 
 
 @pytest.mark.slow
-def test_division(total_time=30):
+def run_division(total_time=30):
     """
     Work in progress to get division working
     * TODO -- unique molecules need to be divided between daughter cells!!! This can get sophisticated
@@ -234,7 +234,7 @@ def ecoli_topology_plot():
 
 test_library = {
     '0': run_ecoli,
-    '1': test_division,
+    '1': run_division,
     '2': test_ecoli_generate,
     '3': ecoli_topology_plot,
 }
