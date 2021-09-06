@@ -528,13 +528,6 @@ class PolypeptideElongation(PartitionedProcess):
         log.info('polypeptide elongation terminated: {}'.format(nTerminated))
         return update
 
-    def next_update(self, timestep, states):
-        requests = self.calculate_request(timestep, states)
-        states = deep_merge(states, requests)
-        update = self.evolve_state(timestep, states)
-        update['listeners'] = deep_merge(update['listeners'], requests['listeners'])
-        return update
-
     def isTimeStepShortEnough(self, inputTimeStep, timeStepSafetyFraction):
         model_specific = self.elongation_model.isTimeStepShortEnough(inputTimeStep, timeStepSafetyFraction)
         max_time_step = inputTimeStep <= self.max_time_step

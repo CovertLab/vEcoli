@@ -177,5 +177,6 @@ class PartitionedProcess(Process):
         requests = self.calculate_request(timestep, states)
         states = deep_merge(states, requests)
         update = self.evolve_state(timestep, states)
-
+        if 'listeners' in requests:
+            update['listeners'] = deep_merge(update['listeners'], requests['listeners'])
         return update
