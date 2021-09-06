@@ -4,9 +4,6 @@ E. coli master composite
 ========================
 """
 
-import os
-import argparse
-
 from vivarium.core.composer import Composer
 from vivarium.library.topology import assoc_path
 from vivarium.library.dict_utils import deep_merge
@@ -216,8 +213,8 @@ def ecoli_topology_plot():
 
     topo_plot = plot_topology(
         ecoli,
-        filename='ecoli_master',
-        out_dir='out/ecoli_master/',
+        filename='topology',
+        out_dir='out/composites/ecoli_master/',
         settings=settings)
     return topo_plot
 
