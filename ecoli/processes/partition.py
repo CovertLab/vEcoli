@@ -142,20 +142,18 @@ class Evolver(Process):
 class PartitionedProcess(Process):
     name = None
     topology = None
-    defaults = {
-        'evolve_only': False,
-        'request_only': False,
-    }
 
     def __init__(self, parameters=None):
         super().__init__(parameters)
+
+        # set partition mode
+        self.evolve_only = self.parameters.get('evolve_only', False)
+        self.request_only = self.parameters.get('request_only', False)
+
+        # register topology
         assert self.name
         assert self.topology
-
         topology_registry.register(self.name, self.topology)
-
-    def is_partition_process(self):
-        return True
 
     @abc.abstractmethod
     def ports_schema(self):
@@ -171,9 +169,9 @@ class PartitionedProcess(Process):
 
     def next_update(self, timestep, states):
 
-        if self.parameters['request_only']:
+        if self.request_only:
             return self.calculate_request(timestep, states)
-        elif self.parameters['evolve_only']:
+        elif self.evolve_only:
             return self.evolve_state(timestep, states)
 
         requests = self.calculate_request(timestep, states)

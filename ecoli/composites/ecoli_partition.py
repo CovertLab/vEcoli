@@ -27,6 +27,7 @@ from ecoli.composites.ecoli_master_configs import (
 from ecoli.plots.topology import get_partition_topology_settings
 from ecoli.processes.cell_division import Division
 from ecoli.processes.allocator import Allocator
+from ecoli.processes.partition import PartitionedProcess
 
 # state
 from ecoli.processes.partition import get_bulk_topo, Requester, Evolver
@@ -127,21 +128,21 @@ class Ecoli(Composer):
                                   if not config['log_updates']
                                   else make_logging_process(Allocator)(process_configs['allocator']))
 
-        # Store list of derivers
-        self.derivers = [process_name
+        # Store list of partition processes
+        self.partitioned_processes = [process_name
                          for process_name, process in processes.items()
-                         if process.is_deriver()]
+                         if isinstance(process, PartitionedProcess)]
 
         # Update schema overrides to reflect name change for requesters/evolvers
         self.schema_override = {f'{p}_evolver': v for p, v in self.schema_override.items()
-                                if p not in self.derivers}
+                                if p not in self.partitioned_processes}
 
         # make the requesters
         requesters = {
             f'{process_name}_requester': Requester({'time_step': time_step,
                                                     'process': process})
             for (process_name, process) in processes.items()
-            if process.is_partition_process()
+            if process_name in self.partitioned_processes
         }
 
         # make the evolvers
@@ -152,7 +153,7 @@ class Ecoli(Composer):
             else make_logging_process(Evolver)({'time_step': time_step,
                                                 'process': process})
             for (process_name, process) in processes.items()
-            if process.is_partition_process()
+            if process_name in self.partitioned_processes
         }
 
         processes.update(requesters)
@@ -174,7 +175,7 @@ class Ecoli(Composer):
         result = []
         last_requester = 0
         for i, process in enumerate(process_order):
-            if process in self.derivers:
+            if process not in self.partitioned_processes:
                 result.append(process)
             else:
                 result.append(f'{process}_requester')
@@ -182,7 +183,7 @@ class Ecoli(Composer):
 
         result[last_requester+1:last_requester+1] = [f'{process}_evolver'
                                                      for process in process_order
-                                                     if process not in self.derivers and process != "allocator"]
+                                                     if process in self.partitioned_processes and process != "allocator"]
         result.insert(last_requester+1, "allocator")
 
         result = {process: processes[process] for process in result}
@@ -196,7 +197,9 @@ class Ecoli(Composer):
 
         # make the topology
         for process_id, ports in config['topology'].items():
-            if process_id not in self.derivers:
+
+            # make the partitioned processes' topologies
+            if process_id in self.partitioned_processes:
                 topology[f'{process_id}_requester'] = deepcopy(ports)
                 topology[f'{process_id}_evolver'] = deepcopy(ports)
                 if config['log_updates']:
@@ -209,6 +212,8 @@ class Ecoli(Composer):
                 topology[f'{process_id}_evolver']['allocate'] = {
                     '_path': ('allocate', process_id,),
                     **bulk_topo}
+
+            # make the non-partitioned processes' topologies
             else:
                 topology[process_id] = ports
                 if config['log_updates']:
