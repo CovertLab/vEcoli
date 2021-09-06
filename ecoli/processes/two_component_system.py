@@ -21,6 +21,8 @@ from ecoli.library.schema import (
 
 from wholecell.utils import units
 from ecoli.processes.registries import topology_registry
+from ecoli.processes.partition import PartitionedProcess
+
 
 # Register default topology for this process, associating it with process name
 NAME = 'ecoli-two-component-system'
@@ -31,7 +33,7 @@ TOPOLOGY = {
 topology_registry.register(NAME, TOPOLOGY)
 
 
-class TwoComponentSystem(Process):
+class TwoComponentSystem(PartitionedProcess):
     name = NAME
     topology = TOPOLOGY
     defaults = {
@@ -102,10 +104,4 @@ class TwoComponentSystem(Process):
         update = {
             'molecules': array_to(self.moleculeNames, self.all_molecule_changes.astype(int))}
         
-        return update
-
-    def next_update(self, timestep, states):
-        requests = self.calculate_request(timestep, states)
-        states = deep_merge(states, requests)
-        update = self.evolve_state(timestep, states)
         return update

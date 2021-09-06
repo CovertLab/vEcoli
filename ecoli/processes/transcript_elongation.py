@@ -35,6 +35,7 @@ from ecoli.states.wcecoli_state import MASSDIFFS
 from os import makedirs
 
 from ecoli.processes.registries import topology_registry
+from ecoli.processes.partition import PartitionedProcess
 
 
 # Register default topology for this process, associating it with process name
@@ -51,7 +52,7 @@ TOPOLOGY = {
 topology_registry.register(NAME, TOPOLOGY)
 
 
-class TranscriptElongation(Process):
+class TranscriptElongation(PartitionedProcess):
     """TranscriptElongation
 
     defaults:
@@ -567,12 +568,6 @@ class TranscriptElongation(Process):
                 did_terminate_mask].sum(),
             "didStall": n_total_stalled}
 
-        return update
-
-    def next_update(self, timestep, states):
-        requests = self.calculate_request(timestep, states)
-        states = deep_merge(states, requests)
-        update = self.evolve_state(timestep, states)
         return update
 
     def isTimeStepShortEnough(self, inputTimeStep, timeStepSafetyFraction):

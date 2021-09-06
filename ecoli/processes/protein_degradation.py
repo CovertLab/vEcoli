@@ -24,6 +24,7 @@ from ecoli.library.data_predicates import (
 from ecoli.library.schema import array_to, array_from, bulk_schema
 
 from ecoli.processes.registries import topology_registry
+from ecoli.processes.partition import PartitionedProcess
 
 
 # Register default topology for this process, associating it with process name
@@ -35,7 +36,7 @@ TOPOLOGY = {
 topology_registry.register(NAME, TOPOLOGY)
 
 
-class ProteinDegradation(Process):
+class ProteinDegradation(PartitionedProcess):
     name = NAME
     topology = TOPOLOGY
     defaults = {
@@ -126,12 +127,6 @@ class ProteinDegradation(Process):
 
     def _proteinDegRates(self, timestep):
         return self.raw_degradation_rate * timestep
-
-    def next_update(self, timestep, states):
-        requests = self.calculate_request(timestep, states)
-        states = deep_merge(states, requests)
-        update = self.evolve_state(timestep, states)
-        return update
 
 
 def test_protein_degradation():
