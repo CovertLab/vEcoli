@@ -55,7 +55,7 @@ class Ecoli(Composer):
         'division': {
             'threshold': 2220},  # fg
         'divide': False,
-        'log_updates': False
+        'log_updates': False,
     }
 
     def __init__(self, config):
@@ -268,20 +268,27 @@ def test_division():
     Work in progress to get division working
     * TODO -- unique molecules need to be divided between daughter cells!!! This can get sophisticated
     """
+    agent_id = '1'
     config = {
-        'divide': True
+        'divide': True,
+        'agent_id': agent_id
     }
+    agent_path = ('agents', agent_id)
     ecoli_composer = Ecoli(config)
-    ecoli_composite = ecoli_composer.generate()
+    initial_state = ecoli_composer.initial_state(path=agent_path)
+    ecoli_composite = ecoli_composer.generate(path=agent_path)
 
     experiment = Engine(
         processes=ecoli_composite.processes,
         topology=ecoli_composite.topology,
+        initial_state=initial_state,
     )
 
     experiment.update(10)
-    # print(f"agents: {output['agents'].keys()}")
-    import ipdb; ipdb.set_trace()
+
+    output = experiment.emitter.get_data()
+    print(f"agents: {output[0.0]['agents'].keys()}")
+    # import ipdb; ipdb.set_trace()
 
 
 def test_ecoli_generate():
