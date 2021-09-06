@@ -31,13 +31,13 @@ Then install the remaining requirements:
 
     $ python setup.py install
 
-## Running the simulation
-
-To run the simulation, first compile the `wholecell/utils` cython files:
+Finally, compile the `wholecell/utils` cython files:
 
     $ make clean compile
 
-then simply invoke:
+## Running the simulation
+
+To run the simulation, simply invoke:
 
     $ python ecoli/experiments/ecoli_master_sim.py
 
