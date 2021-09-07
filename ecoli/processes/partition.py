@@ -114,10 +114,14 @@ class Requester(Deriver):
     def next_update(self, timestep, states):
         update = self.process.calculate_request(
             self.parameters['time_step'], states)
+        if not self.process.request_set:
+            self.process.request_set = True
+
         # Ensure listeners are updated if passed by calculate_request
         listeners = update.pop('listeners', None)
         if listeners != None:
             return {'request': update, 'listeners': listeners}
+
         return {'request': update}
 
 
@@ -136,12 +140,18 @@ class Evolver(Process):
 
     def next_update(self, timestep, states):
         states = deep_merge(states, states.pop('allocate'))
+
+        # run request if it has not yet run
+        if not self.process.request_set:
+            _ = self.process.calculate_request(timestep, states)
+
         return self.process.evolve_state(timestep, states)
 
 
 class PartitionedProcess(Process):
     name = None
     topology = None
+    request_set = False
 
     def __init__(self, parameters=None):
         super().__init__(parameters)
