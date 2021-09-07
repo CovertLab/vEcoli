@@ -203,6 +203,10 @@ class TranscriptElongation(PartitionedProcess):
             'molecules': bulk_schema(self.molecule_ids),
 
             'listeners': {
+                'mass': {
+                    'cell_mass': {
+                        '_default': 0.0},
+                },
                 'transcript_elongation_listener': {
                     'countNTPsUsed': {
                         '_default': 0,
@@ -338,6 +342,7 @@ class TranscriptElongation(PartitionedProcess):
 
         # TODO(vivarium): Attenuation: need access to mass, charged_trna stores
         if self.trna_attenuation:
+            cell_mass = states['listeners']['cell_mass']
             cellVolume = cell_mass / self.cell_density
             counts_to_molar = 1 / (self.n_avogadro * cellVolume)
             attenuation_probability = self.stop_probabilities(counts_to_molar * self.charged_trna.total_counts())
@@ -392,7 +397,11 @@ class TranscriptElongation(PartitionedProcess):
 
         # Active RNAP count should equal partial transcript count
         if not (len(RNAP_unique_index) == len(RNAP_index_partial_RNAs)):
-            import ipdb; ipdb.set_trace()
+            for unique_id in RNAP_unique_index:
+                if unique_id not in RNAP_index_partial_RNAs:
+                    print(f"{unique_id} not in partial_RNAs")
+            # import ipdb; ipdb.set_trace()
+
         assert len(RNAP_unique_index) == len(RNAP_index_partial_RNAs)
 
         # All partial RNAs must be linked to an RNAP
