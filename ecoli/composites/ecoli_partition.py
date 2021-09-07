@@ -15,6 +15,7 @@ from vivarium.core.engine import Engine
 from vivarium.plots.topology import plot_topology
 from vivarium.library.topology import assoc_path
 from vivarium.library.dict_utils import deep_merge
+from vivarium.core.serialize import deserialize_value
 
 # sim data
 from ecoli.library.sim_data import LoadSimData
@@ -76,8 +77,53 @@ class Ecoli(Composer):
 
     def initial_state(self, config=None, path=()):
         # Use initial state calculated with trna_charging and translationSupply disabled
+        # initial_state = get_state_from_file(
+        #      path='data/wcecoli_t0.json')
         initial_state = get_state_from_file(
-            path='data/metabolism/wcecoli_t0.json')
+            path='data/vivecoli_t10.json')
+
+        # import json
+        # with open('data/vivecoli_t10.json', 'r') as state_file:
+        #     initial_state = json.load(state_file)
+        # # initial_state = deserialize_value(initial_state)
+        #
+        # def infinitize(value):
+        #     if value == '__INFINITY__':
+        #         return float('inf')
+        #     else:
+        #         return value
+        #
+        # environment_state = {
+        #     key: infinitize(value)
+        #     for key, value in initial_state['environment'].items()}
+        # from wholecell.utils import units
+        # initial_state['environment'] = {
+        #     'media_id': 'minimal',
+        #     # TODO(Ryan): pull in environmental amino acid levels
+        #     'amino_acids': {},
+        #     'exchange_data': {
+        #         'unconstrained': {
+        #             'CL-[p]',
+        #             'FE+2[p]',
+        #             'CO+2[p]',
+        #             'MG+2[p]',
+        #             'NA+[p]',
+        #             'CARBON-DIOXIDE[p]',
+        #             'OXYGEN-MOLECULE[p]',
+        #             'MN+2[p]',
+        #             'L-SELENOCYSTEINE[c]',
+        #             'K+[p]',
+        #             'SULFATE[p]',
+        #             'ZN+2[p]',
+        #             'CA+2[p]',
+        #             'Pi[p]',
+        #             'NI+2[p]',
+        #             'WATER[p]',
+        #             'AMMONIUM[c]'},
+        #         'constrained': {
+        #             'GLC[p]': 20.0 * units.mmol / (units.g * units.h)}},
+        #     'external_concentrations': environment_state}
+
         embedded_state = {}
         assoc_path(embedded_state, path, initial_state)
         return embedded_state

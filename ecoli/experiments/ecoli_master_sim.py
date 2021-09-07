@@ -7,6 +7,7 @@ import json
 import warnings
 from datetime import datetime
 
+import ipdb
 from vivarium.core.engine import Engine
 from vivarium.library.dict_utils import deep_merge
 from ecoli.library.logging import write_json
@@ -282,6 +283,16 @@ class EcoliSim:
 
         # run the experiment
         self.ecoli_experiment.update(self.total_time)
+
+        # save the state
+        state = self.ecoli_experiment.state.get_value()
+        state_to_save = {key: state[key] for key in ['listeners', 'bulk', 'unique', 'environment', 'process_state']}
+        # for path, process in self.ecoli_experiment.process_paths.items():
+        #     # states is what is important
+        #     store, process_state = self.ecoli_experiment.process_state(path, process)
+        #     deep_merge(state_to_save, process_state)
+
+        write_json('data/vivecoli_t' + str(20) + '.json', state_to_save)
 
         # return the data
         if self.raw_output:
