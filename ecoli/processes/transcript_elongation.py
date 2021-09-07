@@ -13,27 +13,21 @@ rate and available nucleotides. The termination of RNA elongation occurs
 once a RNA polymerase has reached the end of the annotated gene.
 """
 
-# TODO(wcEcoli):
-#   - use transcription units instead of single genes
-#   - account for energy
-
+from os import makedirs
 import numpy as np
 
-from vivarium.core.process import Process
 from vivarium.core.composition import simulate_process
-from vivarium.library.dict_utils import deep_merge
 
 from wholecell.utils.random import stochasticRound
 from wholecell.utils.polymerize import buildSequences, polymerize, computeMassIncrease
 from wholecell.utils import units
 
-from ecoli.library.schema import arrays_from, arrays_to, array_from, array_to, listener_schema, bulk_schema, submass_schema
+from ecoli.library.schema import (
+    arrays_from, arrays_to, array_from, array_to, bulk_schema, submass_schema)
 from ecoli.library.data_predicates import monotonically_increasing
-from ecoli.processes.cell_division import divide_by_domain
 from ecoli.states.wcecoli_state import MASSDIFFS
 
-from os import makedirs
-
+from ecoli.processes.cell_division import divide_active_RNAPs_by_domain, divide_RNAs_by_domain
 from ecoli.processes.registries import topology_registry
 from ecoli.processes.partition import PartitionedProcess
 
@@ -174,9 +168,13 @@ class TranscriptElongation(PartitionedProcess):
     def ports_schema(self):
         return {
             'environment': {
-                'media_id': {'_default': ''}},
-
+                'media_id': {'_default': ''}
+            },
             'RNAs': {
+                '_divider': {
+                    'divider': divide_RNAs_by_domain,
+                    'topology': {'active_RNAP': ('..', 'active_RNAP',)}
+                },
                 '*': {
                     'unique_index': {'_default': 0, '_updater': 'set'},
                     'TU_index': {'_default': 0, '_updater': 'set'},
@@ -185,18 +183,20 @@ class TranscriptElongation(PartitionedProcess):
                     'is_full_transcript': {'_default': False, '_updater': 'set'},
                     'can_translate': {'_default': False, '_updater': 'set'},
                     'RNAP_index': {'_default': 0, '_updater': 'set'},
-                    'submass': submass_schema()}},
-
+                    'submass': submass_schema()
+                }
+            },
             'active_RNAPs': {
                 '_divider': {
-                        'divider': divide_by_domain,
-                        'config': {}
-                    },
+                        'divider': divide_active_RNAPs_by_domain,
+                },
                 '*': {
                     'unique_index': {'_default': 0, '_updater': 'set'},
                     'domain_index': {'_default': 0, '_updater': 'set'},
                     'coordinates': {'_default': 0, '_updater': 'set', '_emit': True},
-                    'direction': {'_default': 0, '_updater': 'set'}}},
+                    'direction': {'_default': 0, '_updater': 'set'}
+                }
+            },
 
             'bulk_RNAs': bulk_schema(self.rnaIds),
             'ntps': bulk_schema(self.ntp_ids),
@@ -301,16 +301,16 @@ class TranscriptElongation(PartitionedProcess):
             return {
                        'listeners': {
                            'transcript_elongation_listener': {
-                               'countNTPsUsed' : 0,
+                               'countNTPsUsed': 0,
                                'countRnaSynthesized': np.zeros(len(self.rnaIds))
                            },
                            'growth_limits': {
-                               'ntpUsed' : np.zeros(len(self.ntp_ids))
+                               'ntpUsed': np.zeros(len(self.ntp_ids))
                            },
                            'rnap_data': {
-                              'actualElongations' : 0,
-                              'didTerminate' : 0,
-                              'terminationLoss' : 0
+                              'actualElongations': 0,
+                              'didTerminate': 0,
+                              'terminationLoss': 0
                            }
                        }
             }
@@ -391,6 +391,8 @@ class TranscriptElongation(PartitionedProcess):
             ['coordinates', 'domain_index', 'direction', 'unique_index'])
 
         # Active RNAP count should equal partial transcript count
+        if not (len(RNAP_unique_index) == len(RNAP_index_partial_RNAs)):
+            import ipdb; ipdb.set_trace()
         assert len(RNAP_unique_index) == len(RNAP_index_partial_RNAs)
 
         # All partial RNAs must be linked to an RNAP
