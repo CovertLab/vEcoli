@@ -38,11 +38,17 @@ def divide_RNAs_by_domain(state, view):
     full_transcripts = []
 
     # divide partial transcripts by domain_index
+    not_in_active_RNAP = []
+    in_active_RNAP = []
     for unique_id, specs in state.items():
         if not specs['is_full_transcript']:
             if unique_id not in view['active_RNAP']:
-                print(f"unique_id {unique_id} not in active_RNAP")
+                # TODO -- why are some partial RNA ids not in active_RNAP?
+                not_in_active_RNAP.append(unique_id)
                 continue
+            else:
+                in_active_RNAP.append(unique_id)
+
             domain_index = view['active_RNAP'][unique_id]['domain_index']
             if domain_index == 1:
                 daughter1[unique_id] = specs
@@ -51,6 +57,11 @@ def divide_RNAs_by_domain(state, view):
         else:
             # save full transcripts
             full_transcripts.append(unique_id)
+
+
+    print(f"unique ids NOT in active_RNAP: {not_in_active_RNAP}")
+    print(f"unique ids in active_RNAP: {in_active_RNAP}")
+
 
     # divide full transcripts binomially
     n_full_transcripts = len(full_transcripts)
