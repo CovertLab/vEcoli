@@ -32,6 +32,7 @@ from ecoli.library.schema import bulk_schema, listener_schema, arrays_from, arra
 from ecoli.models.polypeptide_elongation_models import BaseElongationModel, MICROMOLAR_UNITS
 from ecoli.states.wcecoli_state import MASSDIFFS
 from ecoli.processes.registries import topology_registry
+from ecoli.processes.partition import PartitionedProcess
 
 
 # Register default topology for this process, associating it with process name
@@ -64,7 +65,7 @@ DEFAULT_AA_NAMES = [
             'TYR[c]', 'L-SELENOCYSTEINE[c]', 'VAL[c]']
 
 
-class PolypeptideElongation(Process):
+class PolypeptideElongation(PartitionedProcess):
     """PolypeptideElongation
 
     defaults:
@@ -525,13 +526,6 @@ class PolypeptideElongation(Process):
         update['listeners']['ribosome_data']['processElongationRate'] = self.ribosomeElongationRate / timestep
 
         log.info('polypeptide elongation terminated: {}'.format(nTerminated))
-        return update
-
-    def next_update(self, timestep, states):
-        requests = self.calculate_request(timestep, states)
-        states = deep_merge(states, requests)
-        update = self.evolve_state(timestep, states)
-        update['listeners'] = deep_merge(update['listeners'], requests['listeners'])
         return update
 
     def isTimeStepShortEnough(self, inputTimeStep, timeStepSafetyFraction):
