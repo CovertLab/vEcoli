@@ -46,7 +46,7 @@ def test_blame_timeseries():
     from vivarium.core.emitter import (
         data_from_database, get_local_client, timeseries_from_data)
 
-    EXPERIMENT_ID = None # "test_blame_03/09/2021 14:47:01"
+    EXPERIMENT_ID = None # "d811d69e-0cf6-11ec-a1ab-00155df92294"
 
     if EXPERIMENT_ID:
         data, conf = data_from_database(EXPERIMENT_ID,
@@ -58,8 +58,12 @@ def test_blame_timeseries():
         sim = EcoliSim.from_file()
             #CONFIG_DIR_PATH + "/test_configs/test_blame.json")
         sim.emitter = "database"
+        sim.partition = False
         sim.log_updates = True
+        sim.emit_topology = False
+        sim.emit_processes = False
         sim.total_time = 4
+        sim.exclude_processes = ["ecoli-chromosome-structure", "ecoli-transcript-elongation", 'ecoli-polypeptide-elongation']
         data = sim.run()
         topo = sim.ecoli.topology
 
