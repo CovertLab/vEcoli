@@ -1,10 +1,10 @@
 # Configuring Vivarium-ecoli Simulations
 
-Simulations of the Ecoli composite can be configured using the command-line interface (CLI), `.json` configuration files, or programmatically through an object-oriented interface. JSON configuration files live in `data/ecoli_master_configs`.
+Simulations of the Ecoli composite can be configured using the command-line interface (CLI), `.json` configuration files, or programmatically through an object-oriented interface. JSON configuration files live in `data/ecoli_configs`.
 
 Configuration through the CLI affords easy access to the most important settings, whereas the programmatic and JSON approaches offer access to all settings.
 
-Default settings, which are overridden by the CLI and custom JSONs, may be found in `data/ecoli_master_configs/default.json`. This file should be edited with care if at all, since missing defaults may result in an error.
+Default settings, which are overridden by the CLI and custom JSONs, may be found in `data/ecoli_configs/default.json`. This file should be edited with care if at all, since missing defaults may result in an error.
 
 
 ## CLI
@@ -30,7 +30,7 @@ usage: ecoli_master_sim.py [-h] [--config CONFIG] [--experiment_id EXPERIMENT_ID
 
 ### Optional arguments
 
-- `--config CONFIG`, `-c CONFIG`: path to a config file (`.json`) to use. Defaults to `data/ecoli_master_configs/default.json`. Settings from this file can be overridden with further command-line arguments.
+- `--config CONFIG`, `-c CONFIG`: path to a config file (`.json`) to use. Defaults to `data/ecoli_configs/default.json`. Settings from this file can be overridden with further command-line arguments.
 - `--experiment_id EXPERIMENT_ID`, `-id EXPERIMENT_ID`: ID for this experiment. A UUID will be generated if this argument is not used and `"experiment_id"` is `null` in the configuration file.
 - `--emitter`, `-e`: Emitter to use. Options are `timeseries`, `database`, and `print`. Timeseries uses RAMEmitter, database emits to MongoDB, and print emits to stdout.
 - `--seed SEED`, `-s SEED`  Random seed.
@@ -44,7 +44,7 @@ usage: ecoli_master_sim.py [-h] [--config CONFIG] [--experiment_id EXPERIMENT_ID
 
 Configuring a simulation from JSON allows access much more complete access to simulation settings. This includes the ability to add/remove/swap processes, modify topology, and even change how individual molecules are updated or emitted (see **Schema Overrides**).
 
-Not all settings need to be provided in a custom configuration file. Settings not given default to values from `ecoli/composites/ecoli_master_configs/default.json`.
+Not all settings need to be provided in a custom configuration file. Settings not given default to values from `ecoli/composites/ecoli_configs/default.json`.
 
 ### Basic Settings
 

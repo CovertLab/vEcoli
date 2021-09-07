@@ -45,7 +45,7 @@ then simply invoke
 
     > python ecoli/experiments/ecoli_master_sim.py
 
-For details on configuring simulations through either the command-line interface or .json files, see the [Ecoli-master configurations readme](readmes/ecoli_master_configurations.md).
+For details on configuring simulations through either the command-line interface or .json files, see the [Ecoli-master configurations readme](readmes/ecoli_configurations.md).
 
 ## migration
 
