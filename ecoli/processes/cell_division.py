@@ -12,13 +12,13 @@ from vivarium.core.process import Deriver
 NAME = 'ecoli-cell-division'
 
 
-def divide_active_RNAPs_by_domain(state, **args):
+def divide_active_RNAPs_by_domain(values, **args):
     """
     divide a dictionary into two daughters based on their domain_index
     """
     daughter1 = {}
     daughter2 = {}
-    for state_id, value in state.items():
+    for state_id, value in values.items():
         domain_index = value['domain_index']
         if domain_index == 1:
             daughter1[state_id] = value
@@ -28,7 +28,7 @@ def divide_active_RNAPs_by_domain(state, **args):
     return [daughter1, daughter2]
 
 
-def divide_RNAs_by_domain(state, view):
+def divide_RNAs_by_domain(values, state):
     """
     divide a dictionary of unique RNAs into two daughters,
     with partial RNAs divided along with their domain index
@@ -40,16 +40,16 @@ def divide_RNAs_by_domain(state, view):
     # divide partial transcripts by domain_index
     not_in_active_RNAP = []
     in_active_RNAP = []
-    for unique_id, specs in state.items():
+    for unique_id, specs in values.items():
         if not specs['is_full_transcript']:
-            if unique_id not in view['active_RNAP']:
+            if unique_id not in state['active_RNAP']:
                 # TODO -- why are some partial RNA ids not in active_RNAP?
                 not_in_active_RNAP.append(unique_id)
                 continue
             else:
                 in_active_RNAP.append(unique_id)
 
-            domain_index = view['active_RNAP'][unique_id]['domain_index']
+            domain_index = state['active_RNAP'][unique_id]['domain_index']
             if domain_index == 1:
                 daughter1[unique_id] = specs
             elif domain_index == 2:
@@ -58,17 +58,15 @@ def divide_RNAs_by_domain(state, view):
             # save full transcripts
             full_transcripts.append(unique_id)
 
-
-    print(f"unique ids NOT in active_RNAP: {not_in_active_RNAP}")
-    print(f"unique ids in active_RNAP: {in_active_RNAP}")
-
+    # print(f"unique ids NOT in active_RNAP: {not_in_active_RNAP}")
+    # print(f"unique ids in active_RNAP: {in_active_RNAP}")
 
     # divide full transcripts binomially
     n_full_transcripts = len(full_transcripts)
     daughter1_counts = np.random.binomial(n_full_transcripts, 0.5)
     daughter1_ids = random.sample(full_transcripts, daughter1_counts)
     for unique_id in full_transcripts:
-        specs = state[unique_id]
+        specs = values[unique_id]
         if unique_id in daughter1_ids:
             daughter1[unique_id] = specs
         else:
