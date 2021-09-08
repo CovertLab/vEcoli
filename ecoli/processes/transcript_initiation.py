@@ -456,9 +456,13 @@ class TranscriptInitiation(Process):
         coordinates = self.replication_coordinate[TU_index_partial_RNAs]
         direction = self.transcription_direction[TU_index_partial_RNAs]
 
+        import uuid
+        unique_indexes = [str(int(str(uuid.uuid4())[0:8], 16)) for i in range(n_RNAPs_to_activate)]
+
         new_RNAPs = arrays_to(
             n_RNAPs_to_activate, {
-                'unique_index': np.arange(self.rnap_index, self.rnap_index + n_RNAPs_to_activate).astype(str),
+                # 'unique_index': np.arange(self.rnap_index, self.rnap_index + n_RNAPs_to_activate).astype(str),
+                'unique_index': np.array(unique_indexes),
                 'domain_index': domain_index_rnap,
                 'coordinates': coordinates,
                 'direction': direction})
@@ -477,7 +481,8 @@ class TranscriptInitiation(Process):
         is_mRNA = np.isin(TU_index_partial_RNAs, self.idx_mRNA)
         new_RNAs = arrays_to(
             n_RNAPs_to_activate, {
-                'unique_index': np.arange(self.rnap_index, self.rnap_index + n_RNAPs_to_activate).astype(str),
+                # 'unique_index': np.arange(self.rnap_index, self.rnap_index + n_RNAPs_to_activate).astype(str),
+                'unique_index': np.array(unique_indexes),
                 'TU_index': TU_index_partial_RNAs,
                 'transcript_length': np.zeros(cast(int, n_RNAPs_to_activate)),
                 'is_mRNA': is_mRNA,

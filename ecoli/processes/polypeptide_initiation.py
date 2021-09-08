@@ -243,9 +243,14 @@ class PolypeptideInitiation(Process):
             start_index += counts
 
         # Create active 70S ribosomes and assign their attributes
+
+        import uuid
+        unique_indexes = [str(int(str(uuid.uuid4())[0:8], 16)) for i in range(n_ribosomes_to_activate)]
+
         new_ribosomes = arrays_to(
             n_ribosomes_to_activate, {
-                'unique_index': np.arange(self.ribosome_index, self.ribosome_index + n_ribosomes_to_activate).astype(str),
+                # 'unique_index': np.arange(self.ribosome_index, self.ribosome_index + n_ribosomes_to_activate).astype(str),
+                'unique_index': np.array(unique_indexes),
                 'protein_index': protein_indexes,
                 'peptide_length': np.zeros(cast(int, n_ribosomes_to_activate), dtype=np.int64),
                 'mRNA_index': mRNA_indexes,

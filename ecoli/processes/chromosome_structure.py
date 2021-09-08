@@ -433,11 +433,14 @@ class ChromosomeStructure(Process):
     
             # Add new chromosomal segments
             n_segments = len(all_new_linking_numbers)
+            import uuid
+            unique_indexes = [str(int(str(uuid.uuid4())[0:8], 16)) for i in range(n_segments)]
             new_chromosome_segments = arrays_to(
             n_segments, {
-                'unique_index': np.arange(
-                    self.chromosome_segment_index, self.chromosome_segment_index + 
-                    n_segments).astype(str),
+                # 'unique_index': np.arange(
+                #     self.chromosome_segment_index, self.chromosome_segment_index +
+                #     n_segments).astype(str),
+                'unique_index': np.array(unique_indexes),
                 'boundary_molecule_indexes': all_new_boundary_molecule_indexes,
                 'boundary_coordinates': all_new_boundary_coordinates,
                 'domain_index': all_new_segment_domain_indexes,
@@ -579,11 +582,16 @@ class ChromosomeStructure(Process):
                 promoter_domain_indexes[removed_promoters_mask])
 
             # Add new promoters with new domain indexes
+
+            import uuid
+            unique_indexes = [str(int(str(uuid.uuid4())[0:8], 16)) for i in range(n_new_promoters)]
+
             new_promoters = arrays_to(
                 n_new_promoters, {
-                    'unique_index': np.arange(
-                        self.promoter_index, self.promoter_index + 
-                        n_new_promoters).astype(str),
+                    # 'unique_index': np.arange(
+                    #     self.promoter_index, self.promoter_index +
+                    #     n_new_promoters).astype(str),
+                    'unique_index': np.array(unique_indexes),
                     'TU_index': promoter_TU_indexes_new,
                     'coordinates': promoter_coordinates_new,
                     'domain_index': promoter_domain_indexes_new,
@@ -610,11 +618,16 @@ class ChromosomeStructure(Process):
                 DnaA_box_domain_indexes[removed_DnaA_boxes_mask])
 
             # Add new promoters with new domain indexes
+
+            import uuid
+            unique_indexes = [str(int(str(uuid.uuid4())[0:8], 16)) for i in range(n_new_DnaA_boxes)]
+
             new_DnaA_boxes = arrays_to(
                 n_new_DnaA_boxes, {
-                    'unique_index': np.arange(
-                        self.DnaA_box_index, self.DnaA_box_index + 
-                        n_new_DnaA_boxes).astype(str),
+                    # 'unique_index': np.arange(
+                    #     self.DnaA_box_index, self.DnaA_box_index +
+                    #     n_new_DnaA_boxes).astype(str),
+                    'unique_index': np.array(unique_indexes),
                     'coordinates': DnaA_box_coordinates_new,
                     'domain_index': DnaA_box_domain_indexes_new,
                     'DnaA_bound': np.zeros(n_new_DnaA_boxes, dtype=np.bool).tolist()})
