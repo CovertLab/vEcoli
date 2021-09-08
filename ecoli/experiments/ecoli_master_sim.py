@@ -292,7 +292,7 @@ class EcoliSim:
         #     store, process_state = self.ecoli_experiment.process_state(path, process)
         #     deep_merge(state_to_save, process_state)
 
-        write_json('data/vivecoli_t' + str(20) + '.json', state_to_save)
+        write_json('data/vivecoli_t' + self.total_time + '.json', state_to_save)
 
         # return the data
         if self.raw_output:

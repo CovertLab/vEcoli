@@ -434,7 +434,7 @@ class ChromosomeStructure(Process):
             # Add new chromosomal segments
             n_segments = len(all_new_linking_numbers)
             import uuid
-            unique_indexes = [str(int(str(uuid.uuid4())[0:8], 16)) for i in range(n_segments)]
+            unique_indexes = [str(int(str(uuid.uuid4())[0:7], 16)) + str(int(str(uuid.uuid4())[0:8], 16)) for i in range(n_segments)]
             new_chromosome_segments = arrays_to(
             n_segments, {
                 # 'unique_index': np.arange(
@@ -584,7 +584,8 @@ class ChromosomeStructure(Process):
             # Add new promoters with new domain indexes
 
             import uuid
-            unique_indexes = [str(int(str(uuid.uuid4())[0:8], 16)) for i in range(n_new_promoters)]
+            unique_indexes = [str(int(str(uuid.uuid4())[0:7], 16)) + str(int(str(uuid.uuid4())[0:8], 16)) for i in range(n_new_promoters)]
+
 
             new_promoters = arrays_to(
                 n_new_promoters, {
@@ -620,8 +621,7 @@ class ChromosomeStructure(Process):
             # Add new promoters with new domain indexes
 
             import uuid
-            unique_indexes = [str(int(str(uuid.uuid4())[0:8], 16)) for i in range(n_new_DnaA_boxes)]
-
+            unique_indexes = [str(int(str(uuid.uuid4())[0:7], 16)) + str(int(str(uuid.uuid4())[0:8], 16)) for i in range(n_new_DnaA_boxes)]
             new_DnaA_boxes = arrays_to(
                 n_new_DnaA_boxes, {
                     # 'unique_index': np.arange(
