@@ -390,7 +390,10 @@ class TranscriptElongation(Process):
             ['coordinates', 'domain_index', 'direction', 'unique_index'])
 
         # Active RNAP count should equal partial transcript count
-        assert len(RNAP_unique_index) == len(RNAP_index_partial_RNAs)
+        try:
+            assert len(RNAP_unique_index) == len(RNAP_index_partial_RNAs)
+        except:
+            import ipdb; ipdb.set_trace()
 
         # All partial RNAs must be linked to an RNAP
         assert (np.count_nonzero(RNAP_index_partial_RNAs == -1) == 0)

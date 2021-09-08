@@ -77,10 +77,10 @@ class Ecoli(Composer):
 
     def initial_state(self, config=None, path=()):
         # Use initial state calculated with trna_charging and translationSupply disabled
-        # initial_state = get_state_from_file(
-        #      path='data/wcecoli_t0.json')
         initial_state = get_state_from_file(
-            path='data/vivecoli_t10.json')
+             path='data/wcecoli_t0.json')
+        # initial_state = get_state_from_file(
+        #     path='data/vivecoli_t10.json')
 
         # import json
         # with open('data/vivecoli_t10.json', 'r') as state_file:
