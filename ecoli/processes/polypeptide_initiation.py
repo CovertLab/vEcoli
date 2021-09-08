@@ -25,6 +25,7 @@ from ecoli.library.schema import (
     arrays_from, arrays_to, add_elements, bulk_schema)
 
 from wholecell.utils import units
+from wholecell.utils.data import create_unique_indexes
 from wholecell.utils.fitting import normalize
 from six.moves import zip
 
@@ -244,9 +245,7 @@ class PolypeptideInitiation(Process):
 
         # Create active 70S ribosomes and assign their attributes
 
-        import uuid
-        unique_indexes = [str(int(str(uuid.uuid4())[0:7], 16)) + str(int(str(uuid.uuid4())[0:8], 16)) for i in
-                          range(n_ribosomes_to_activate)]
+        unique_indexes = create_unique_indexes(n_ribosomes_to_activate)
         new_ribosomes = arrays_to(
             n_ribosomes_to_activate, {
                 # 'unique_index': np.arange(self.ribosome_index, self.ribosome_index + n_ribosomes_to_activate).astype(str),
