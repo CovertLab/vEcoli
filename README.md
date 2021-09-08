@@ -33,12 +33,7 @@ run the following command in your terminal:
 
     $ pyenv virtualenv 3.8.5 viv-ecoli && pyenv local viv-ecoli
 
-Install pip version 20.0.2, as it is required for the current multiple setup in setup.py.
-
-TODO: fix this to support most recent pip!
-
-    $ pip install pip==20.0.2
-
+#TODO: Create a pyproject.toml so the project can install with a single pip command (see the [PEP 517/518 solution](https://stackoverflow.com/questions/54117786/add-numpy-get-include-argument-to-setuptools-without-preinstalled-numpy))
 Now, install numpy and Cython:
 
     $ pip install numpy
@@ -51,6 +46,17 @@ Then install the remaining requirements:
 Finally, compile the `wholecell/utils` cython files:
 
     $ make clean compile
+
+
+## Conda install
+
+To install using conda (first line creates a conda environment with numpy and Cython, the second activates the environment and the third installs WCM and remaining dependencies).
+
+```
+conda create -n WCM numpy Cython
+conda activate WCM
+python setup.py install
+```
 
 ## Running the simulation
 
