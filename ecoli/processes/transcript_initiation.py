@@ -31,6 +31,7 @@ from vivarium.library.dict_utils import deep_merge
 from ecoli.library.schema import arrays_from, arrays_to, add_elements, listener_schema, bulk_schema
 
 from wholecell.utils import units
+from wholecell.utils.data import create_unique_indexes
 from wholecell.utils.random import stochasticRound
 from wholecell.utils.unit_struct_array import UnitStructArray
 
@@ -456,9 +457,7 @@ class TranscriptInitiation(Process):
         coordinates = self.replication_coordinate[TU_index_partial_RNAs]
         direction = self.transcription_direction[TU_index_partial_RNAs]
 
-        import uuid
-        unique_indexes = [str(int(str(uuid.uuid4())[0:7], 16)) + str(int(str(uuid.uuid4())[0:8], 16)) for i in
-                          range(n_RNAPs_to_activate)]
+        unique_indexes = create_unique_indexes(n_RNAPs_to_activate)
 
         new_RNAPs = arrays_to(
             n_RNAPs_to_activate, {
