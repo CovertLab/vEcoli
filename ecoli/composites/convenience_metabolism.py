@@ -43,15 +43,14 @@ class ConvenienceMetabolism(Composer):
         'fields_on': False,
         'field_deriver': {
             'initial_external': {
-                'location': [500, 500],
+                'location': [50, 50],
                 'dimensions': {
-                    'bounds': [1000,1000],
-                    'n_bins': [1,1],
-                    'depth': 1,
+                    'bounds': [100,100],
+                    'n_bins': [1,1]
                 }
             },
             'nonspatial': True,
-            'bin_volume': 500 * units.fL,
+            'bin_volume': 50 * units.fL,
         }
     }
 
@@ -65,14 +64,14 @@ class ConvenienceMetabolism(Composer):
 
     def initial_state(self, config=None, initial_time=0):
         state = get_state_from_file(aa = config['aa'])
-        x = {
-            'location': [500, 500],
+        fields_initial = {
+            'location': [50, 50],
             'dimensions': {
-                'bounds': [1000,1000],
+                'bounds': [100,100],
                 'n_bins': [1,1],
             }
         }
-        state = deep_merge(state, x)
+        state = deep_merge(state, fields_initial)
         return state
 
     def generate_processes(self, config):
@@ -86,8 +85,8 @@ class ConvenienceMetabolism(Composer):
 
         growth_rate_config = {
             'variables': ['cell_mass', 'dry_mass'],
-            'default_growth_noise': 0.00055,
-            'default_growth_rate':  0.00105,
+            'default_growth_noise': 0.0000015,
+            'default_growth_rate':  0.0005,
         }
 
         # mmolar/s 
@@ -124,7 +123,6 @@ class ConvenienceMetabolism(Composer):
             'growth_rate': GrowthRate(growth_rate_config)
         }
 
-        # TODO -- plug in local field if you want to have environment exchnages applied to change external concentrations
         if config['fields_on']:
             fields_config = config['field_deriver']
             processes.update({
@@ -182,7 +180,7 @@ class ConvenienceMetabolism(Composer):
 
 
 def test_convenience_metabolism(
-        total_time=100,
+        total_time=1000,
         progress_bar=True,
         aa = True
 ):
@@ -222,9 +220,10 @@ def test_convenience_metabolism(
 
 
 def run_in_environment(
-        total_time=100,
+        total_time=500,
         progress_bar=True,
-        aa=True
+        aa=True,
+        out_dir=''
 ):
     config = {
         'fields_on': True, 
@@ -246,7 +245,7 @@ def run_in_environment(
     
     # configure the environment
     environment_config = { # should be in mol/L (don't know why but gets multiplied by 1000)
-        "volume": 500 * units.fL,
+        "volume": 50 * units.fL,
         "concentrations": {
             "L-ALPHA-ALANINE[p]": 4.0/1000,
             "ARG[p]": 26.0/1000,
@@ -285,6 +284,16 @@ def run_in_environment(
     ecoli.topology.update({
         environment_process.name: environment_topology})
 
+    settings = get_ecoli_master_topology_settings()
+    topo_plot = plot_topology(
+        ecoli,
+        filename='environment_topology',
+        out_dir=out_dir,
+        settings=settings)
+    import ipdb; ipdb.set_trace()
+    if out_dir !='':
+        return topo_plot
+
     # make the experiment
     ecoli_simulation = Engine({
         'processes': ecoli.processes,
@@ -298,8 +307,8 @@ def run_in_environment(
 
     # retrieve the data
     output = ecoli_simulation.emitter.get_timeseries()
-    import ipdb; ipdb.set_trace()
     plot_output(output)
+    import ipdb; ipdb.set_trace()
     return output
 
 
@@ -320,30 +329,52 @@ def plot_output(output):
     for plot_index, aa in enumerate(output['export'].keys()):
         ax = plt.subplot(rows, cols, plot_index + 1)
 
-        # Get actual fluxes
-        bulk = np.array([b/m for b,m in zip(output['bulk'][str(aa)], output['listeners']['mass']['dry_mass'])])
-        bulk /= bulk[2]
+        # Change in bulk concentrations
+        raw_bulk = output['bulk'][str(aa)]
+        bulk = [0]
+        for i, v in enumerate(raw_bulk[1:]):
+            bulk.append(v - raw_bulk[i])
+
+        bulk = np.array([b/m for b, m in zip(bulk, output['listeners']['mass']['dry_mass'])])
+        bulk /= bulk[4]
+        
+        # Change in AA used in translation/tRNA/etc
         export = np.array([-e / m for e, m in zip(output['export'][str(aa)], output['listeners']['mass']['dry_mass'])])
         export /= export[2]
+
+        # Change in imported aa fluxes (FBA)
         tag='[p]'
         if 'L-SELE' in aa:
             tag = '[c]'
-        aa_flux = np.array([(-1 * b) / m for b, m in zip(output['environment']['exchange'][str(aa)[: -3]+tag], output['listeners']['mass']['dry_mass'])])
-        aa_flux /= aa_flux[2]
-
+        aa_flux = np.array([b/m for b, m in zip(output['environment']['exchange'][aa[:-3]+tag], output['listeners']['mass']['dry_mass'])])
+        aa_flux /= aa_flux[3]
+        
+        # Change in imported aa fluxes (Convinience Kinetics)
         fluxes = [b / m for b, m in zip(output['fluxes']['EX_'+str(aa)], output['listeners']['enzyme_kinetics']['countsToMolar'])]
         fluxes = np.array([f/m for f,m in zip(fluxes, output['listeners']['mass']['dry_mass'])])
         fluxes /= fluxes[2]
-        # Plot, orange is target flux and blue is actual flux
-        ax.plot(time, aa_flux, linewidth=1, label='Uptake', color='blue')
-        ax.plot(time, bulk, linewidth=1, label='Bulk', color='orange')
-        ax.plot(time, fluxes, linewidth=1, label='uptake2', color='red')
-        ax.plot(time, export, linewidth=1, label='export', color='black')
-        ax.set_xlabel("Time (min)", fontsize=6)
-        ax.set_ylabel("counts/gDCW", fontsize=6)
-        ax.set_title("%s" % aa, fontsize=6, y=1.1)
-        ax.tick_params(which="both", direction="out", labelsize=6)
 
+        # Fields change
+        if 'L-SELE' in aa:
+            fields = np.ones(len(time))
+        else:
+            fields = np.array([f[0][0] for f in output['fields'][aa[:-3]+tag]])
+        fields /= fields[0]
+
+        # Plot, orange is target flux and blue is actual flux
+        ax.plot(time, aa_flux, linewidth=1, label='Uptake - FBA', color='blue', alpha=0.8)
+        ax.plot(time, bulk, linewidth=1, label='Bulk', color='orange', alpha=0.8)
+        ax.plot(time, fluxes, linewidth=1, label='Uptake - CK', color='red',  alpha=0.8)
+        ax.plot(time, export, linewidth=1, label='Used in Translation', color='green', alpha=0.8)
+        ax.plot(time, fields, linewidth=1, label='Change in fields', color='pink', alpha=0.8)
+        ax.set_xlabel("Time (min)", fontsize=4, labelpad=-0.5)
+        ax.set_ylabel("counts/gDCW", fontsize=4, labelpad=-0.5)
+        ax.set_title("%s" % aa, fontsize=5.5, y=1., pad=2.)
+        # ax.legend(fontsize='xx-small', loc=4)
+        ax.tick_params(which="both", direction="in", labelsize=4)
+        handles, labels = ax.get_legend_handles_labels()
+    
+    fig.legend(handles, labels, loc='lower center')
     plt.rc("font", size=6)
     plt.suptitle("External exchange fluxes of amino acids", fontsize=10)
     plt.savefig('metabolism.png', dpi=300)
@@ -388,6 +419,6 @@ if __name__ == "__main__":
     run_all = not args.name
 
     for name in args.name:
-        test_library[name]()
+        test_library[name](out_dir=out_dir)
 
 

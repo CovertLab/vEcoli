@@ -440,7 +440,7 @@ class LoadSimData:
 
         transport_kinetics = {'EX_' + str(aa): {
                                 t: {
-                                    ('external', aa[:-3]+'[p]'): None,
+                                    ('external', aa[:-3]+'[p]'): None, # 0.15,
                                     ('internal', aa): None,
                                     'kcat_f': kcats[i]/len(transport_reactions['EX_' + str(aa)]['catalyzed by']),  # 1/s
                                 }

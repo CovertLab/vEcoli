@@ -168,7 +168,7 @@ def construct_convenience_rate_law(stoichiometry, enzyme, cofactors_sets, partit
             term = np.prod([
                 cofactor_denominator(
                     concentrations[molecule],
-                    parameters[molecule])
+                    parameters[molecule]) if str(molecule) in parameter else 1
 				for molecule in cofactors_set])
             denominator += term - 1
         flux = numerator / denominator

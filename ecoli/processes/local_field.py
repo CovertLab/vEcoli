@@ -14,9 +14,10 @@ class LocalField(Deriver):
 
     name = 'local_field'
     defaults = {
-        'initial_external': {'location': [500, 500], 'dimensions': {'bounds': [1000, 1000], 'n_bins': [1000, 1000], 'depth': 1}},
+        'initial_external': {'location': [0.5, 0.5], 'dimensions': {'bounds': [1, 1], 'n_bins': [1, 1], 'depth': 1}},
         'nonspatial': False,
         'bin_volume': 1e-6 * units.L,
+        'time_step': 2.0,
     }
 
     def __init__(self, parameters=None):
@@ -35,24 +36,26 @@ class LocalField(Deriver):
         return {
             'exchanges': {
                 '*': {
-                    '_default': 0, '_updater': 'accumulate'  # counts!
+                    '_default': 0,
                 }
             },
             'location': {
-                '_default': [0.5, 0.5]
+                '_default': [50, 50],
+                '_updater': 'set'
             },
             'fields': {
                 '*': {
                     '_default': np.ones(1) if not self.nonspatial else 1.0,
+                    '_emit': True,
                 }
             },
             'dimensions': {
                 'bounds': {
-                    '_default': [1000, 1000],
+                    '_default': [100, 100],
                     '_updater': 'set'
                 },
                 'n_bins': {
-                    '_default': [1000, 1000],
+                    '_default': [1, 1],
                     '_updater': 'set'
                 },
                 'depth': {
@@ -97,17 +100,12 @@ class LocalField(Deriver):
                 delta_fields[mol_id] = {
                     '_value': delta_field,
                     '_updater': 'nonnegative_accumulate'}
-
-            # reset the exchange value
-            reset_exchanges[mol_id] = {
-                '_value': -value,
-                '_updater': 'accumulate'}
-
+        
         return {
-            'exchanges': reset_exchanges,
             'fields': delta_fields,
+            'location': [50, 50],
             'dimensions': {
-                'bounds': [1000, 1000]
+                'bounds': [100, 100]
             }
         }
 

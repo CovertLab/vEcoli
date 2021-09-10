@@ -241,6 +241,10 @@ class ConvenienceKinetics(Process):
         self.cellDensity = self.parameters['cell_density']
         self.first = True
 
+        self.prev_noise = 1
+        self.prev_noise_2 = 1
+        self.noise = 1
+
     def initial_state(self, config=None):
         return self.parameters['initial_state']
 
@@ -299,7 +303,11 @@ class ConvenienceKinetics(Process):
         cellVolume = cell_mass / (self.cellDensity.asNumber() * (units.g/units.L))
         counts_to_mmolar = 1000 * units.mmol / (self.nAvogadro.asNumber() * cellVolume)
         mmol_to_counts = 1/counts_to_mmolar
-        noise = np.random.uniform(0.9, 1.1)
+
+        self.prev_noise_2 = self.prev_noise
+        self.prev_noise = self.noise
+        self.noise = np.random.uniform(0.5, 1.5)
+        noise = (self.prev_noise + self.prev_noise_2 + self.noise) / 3
 
         if self.first:
             self.first = False
