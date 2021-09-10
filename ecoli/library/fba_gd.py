@@ -8,6 +8,7 @@ import jax
 import jax.numpy as jnp
 import numpy as np
 import scipy.optimize
+from scipy.sparse import csr_matrix
 
 ArrayT = Union[np.ndarray, jnp.ndarray]
 
@@ -323,7 +324,13 @@ class GradientDescentFba:
         # Overall residual is a flattened vector of the (weighted) residuals of individual objectives.
         def loss(v):
             return jnp.concatenate(list(self.residuals(v, target_values).values()))
-
+        
+        # using csr_matrix
+        # jac_wrap = lambda x: csr_matrix(jac(x))
+        # soln = scipy.optimize.least_squares(fn, x0, jac=jac_wrap, verbose=2, ftol=0.00001,
+        #                                     tr_solver='lsmr', max_nfev=4,
+        #                                     tr_options={'atol': 10**(-7), 'btol': 10**(-7),'conlim':10**(8), 'show': False})
+        
         # Perform the actual gradient descent, and extract the result.
         soln = scipy.optimize.least_squares(jax.jit(loss), x0, jac=jax.jit(jax.jacfwd(loss)), **kwargs)
         dm_dt = self.network.s_matrix @ soln.x
