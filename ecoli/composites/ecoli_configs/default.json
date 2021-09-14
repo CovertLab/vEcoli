@@ -6,7 +6,7 @@
     "sim_data_path": "reconstruction/sim_data/kb/simData.cPickle",
     "emitter" : "timeseries",
     "emit_topology" : true,
-    "emit_processes" : true,
+    "emit_processes" : false,
     "emit_config" : false,
     "log_updates" : false,
     "raw_output" : false,

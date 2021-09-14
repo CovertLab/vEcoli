@@ -5,9 +5,11 @@ Includes Requester and Evolver processes, which take an EcoliProcess
 and use its calculate_request or evolve_state methods for the Process
 next_update.
 """
+import abc
 
 from vivarium.core.process import Deriver, Process
 from vivarium.library.dict_utils import deep_merge
+from ecoli.processes.registries import topology_registry
 
 
 def change_bulk_updater(schema, new_updater):
@@ -112,10 +114,14 @@ class Requester(Deriver):
     def next_update(self, timestep, states):
         update = self.process.calculate_request(
             self.parameters['time_step'], states)
+        if not self.process.request_set:
+            self.process.request_set = True
+
         # Ensure listeners are updated if passed by calculate_request
         listeners = update.pop('listeners', None)
         if listeners != None:
             return {'request': update, 'listeners': listeners}
+
         return {'request': update}
 
 
@@ -134,4 +140,53 @@ class Evolver(Process):
 
     def next_update(self, timestep, states):
         states = deep_merge(states, states.pop('allocate'))
+
+        # run request if it has not yet run
+        if not self.process.request_set:
+            _ = self.process.calculate_request(timestep, states)
+
         return self.process.evolve_state(timestep, states)
+
+
+class PartitionedProcess(Process):
+    name = None
+    topology = None
+    request_set = False
+
+    def __init__(self, parameters=None):
+        super().__init__(parameters)
+
+        # set partition mode
+        self.evolve_only = self.parameters.get('evolve_only', False)
+        self.request_only = self.parameters.get('request_only', False)
+
+        # register topology
+        assert self.name
+        assert self.topology
+        topology_registry.register(self.name, self.topology)
+
+    @abc.abstractmethod
+    def ports_schema(self):
+        return {}
+
+    @abc.abstractmethod
+    def calculate_request(self, timestep, states):
+        return {}
+
+    @abc.abstractmethod
+    def evolve_state(self, timestep, states):
+        return {}
+
+    def next_update(self, timestep, states):
+
+        if self.request_only:
+            return self.calculate_request(timestep, states)
+        elif self.evolve_only:
+            return self.evolve_state(timestep, states)
+
+        requests = self.calculate_request(timestep, states)
+        states = deep_merge(states, requests)
+        update = self.evolve_state(timestep, states)
+        if 'listeners' in requests:
+            update['listeners'] = deep_merge(update['listeners'], requests['listeners'])
+        return update
