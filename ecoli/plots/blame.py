@@ -8,7 +8,7 @@ from ecoli.library.logging import write_json
 from ecoli.experiments.ecoli_master_sim import EcoliSim, CONFIG_DIR_PATH
 
 from ecoli.plots.plot_utils import reposition_ticks
-from ecoli.plots.blame_utils import get_bulk_processes, extract_bulk
+from ecoli.plots.blame_utils import get_bulk_processes, extract_bulk, idx_array_from
 
 
 def blame_plot(data, 

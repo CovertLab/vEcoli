@@ -34,12 +34,12 @@ def extract_bulk(data, bulk_processes):
     collected_data = {}
     for process, updates in data['log_update'].items():
         if process not in bulk_processes.keys():
-            break
+            continue
 
         process_data = Counter()
         for port in updates.keys():
             if port not in bulk_processes[process]:
-                break
+                continue
 
             port_data = {k: np.sum(v) for k, v in updates[port].items()}
             process_data.update(port_data)

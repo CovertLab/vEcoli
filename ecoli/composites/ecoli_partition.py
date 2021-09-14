@@ -110,8 +110,8 @@ class Ecoli(Composer):
         # make the processes
         processes = {
             process_name: process(process_configs[process_name])
-            if not config['log_updates']
-            else make_logging_process(process)(process_configs[process_name])
+            # if not config['log_updates']
+            # else make_logging_process(process)(process_configs[process_name])
             for process_name, process in config['processes'].items()
         }
 
