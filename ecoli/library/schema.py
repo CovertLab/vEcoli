@@ -58,7 +58,7 @@ def bulk_schema(
 ):
     schema = {
         '_default': 0,
-        '_divider': 'binomial',
+        '_divider': 'binomial_ecoli',
         '_emit': True}
     if partition:
         schema['_properties'] = {'bulk': True}
