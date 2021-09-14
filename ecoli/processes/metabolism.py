@@ -19,7 +19,7 @@ and converted into other metabolites for use in other processes.
 
 import numpy as np
 from scipy.sparse import csr_matrix
-from typing import Tuple
+from typing import Tuple, Optional, Set
 
 from vivarium.core.process import Process
 
@@ -98,12 +98,15 @@ class Metabolism(Process):
         self.nutrientToDoublingTime = self.parameters['nutrientToDoublingTime']
         self.use_trna_charging = self.parameters['use_trna_charging']
         self.include_ppgpp = self.parameters['include_ppgpp']
+        self.mechanistic_aa_transport = self.parameters['mechanistic_aa_transport']
+        self.import_molecules = self.parameters['import_molecules']
         self.current_timeline = self.parameters['current_timeline']
         self.media_id = self.parameters['media_id']
 
         # Create model to use to solve metabolism updates
         self.model = FluxBalanceAnalysisModel(
             self.parameters,
+            imports=self.import_molecules,
             timeline=self.current_timeline,
             include_ppgpp=self.include_ppgpp)
 

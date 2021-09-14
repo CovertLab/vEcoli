@@ -76,8 +76,7 @@ class LoadSimData:
             'replication_coordinate': self.sim_data.process.transcription.rna_data['replication_coordinate'],
             'D_period': self.sim_data.growth_rate_parameters.d_period.asNumber(units.s),
             'no_child_place_holder': self.sim_data.process.replication.no_child_place_holder,
-            'basal_elongation_rate': int(round(
-                self.sim_data.growth_rate_parameters.replisome_elongation_rate.asNumber(units.nt / units.s))),
+            'basal_elongation_rate': self.sim_data.process.replication.basal_elongation_rate,
             'make_elongation_rates': self.sim_data.process.replication.make_elongation_rates,
 
             # sim options
@@ -409,6 +408,7 @@ class LoadSimData:
         return protein_degradation_config
 
     def get_metabolism_config(self, time_step=2, parallel=False, deriver_mode=False):
+        metabolism = self.sim_data.process.metabolism
         metabolism_config = {
             'time_step': time_step,
             '_parallel': parallel,
@@ -419,7 +419,11 @@ class LoadSimData:
 
             # these are options given to the wholecell.sim.simulation
             'use_trna_charging': self.trna_charging,
-            'include_ppgpp': not self.ppgpp_regulation or not self.trna_charging,
+            'include_ppgpp': not self.ppgpp_regulation or
+                             not self.trna_charging or
+                             getattr(metabolism, 'force_constant_ppgpp', False),
+            'mechanistic_aa_transport': False,
+            'import_molecules': [],
 
             # these values came from the initialized environment state
             'current_timeline': None,
@@ -427,7 +431,7 @@ class LoadSimData:
 
             'condition': self.sim_data.condition,
             'nutrients': self.sim_data.conditions[self.sim_data.condition]['nutrients'],
-            'metabolism': self.sim_data.process.metabolism,
+            'metabolism': metabolism,
             'non_growth_associated_maintenance': self.sim_data.constants.non_growth_associated_maintenance,
             'avogadro': self.sim_data.constants.n_avogadro,
             'cell_density': self.sim_data.constants.cell_density,
@@ -441,7 +445,7 @@ class LoadSimData:
             'doubling_time': self.sim_data.condition_to_doubling_time[self.sim_data.condition],
             'amino_acid_ids': sorted(self.sim_data.amino_acid_code_to_id_ordered.values()),
             'seed': self.random_state.randint(RAND_MAX),
-            'linked_metabolites': self.sim_data.process.metabolism.linked_metabolites,
+            'linked_metabolites': metabolism.concentration_updates.linked_metabolites,
             # Whether to use metabolism as a deriver (with t=0 skipped)
             'deriver_mode': deriver_mode
         }
