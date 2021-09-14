@@ -37,14 +37,16 @@ class MoleculeGroups(object):
 			'polymerized_dntps': polymerized_dntp_ids,
 			'polymerized_subunits': polymerized_aa_ids + polymerized_ntp_ids + polymerized_dntp_ids,
 
+			# EG11508-MONOMER[c] (sra) is removed from the list because it is
+			# not essential and should have very low counts in rich media
 			's30_proteins':	['EG10912-MONOMER[c]', 'EG10916-MONOMER[c]',
 				'EG10906-MONOMER[c]', 'EG10914-MONOMER[c]', 'EG10909-MONOMER[c]',
 				'EG10903-MONOMER[c]', 'EG10911-MONOMER[c]', 'EG10904-MONOMER[c]',
 				'EG10900-MONOMER[c]', 'EG10901-MONOMER[c]', 'EG10905-MONOMER[c]',
 				'EG10915-MONOMER[c]', 'EG10918-MONOMER[c]', 'EG10919-MONOMER[c]',
-				'EG10907-MONOMER[c]', 'EG11508-MONOMER[c]', 'EG10908-MONOMER[c]',
-				'EG10920-MONOMER[c]', 'EG10910-MONOMER[c]', 'EG10902-MONOMER[c]',
-				'EG10917-MONOMER[c]', 'EG10913-MONOMER[c]'],
+				'EG10907-MONOMER[c]', 'EG10908-MONOMER[c]', 'EG10920-MONOMER[c]',
+				'EG10910-MONOMER[c]', 'EG10902-MONOMER[c]', 'EG10917-MONOMER[c]',
+				'EG10913-MONOMER[c]'],
 			's30_16s_rRNA': ['RRSA-RRNA[c]', 'RRSB-RRNA[c]', 'RRSC-RRNA[c]',
 				'RRSD-RRNA[c]', 'RRSE-RRNA[c]', 'RRSG-RRNA[c]', 'RRSH-RRNA[c]'],
 
@@ -81,18 +83,19 @@ class MoleculeGroups(object):
 				'EG10858-MONOMER[c]', 'EG10863-MONOMER[c]', 'EG11259-MONOMER[c]',
 				'EG11547-MONOMER[c]', 'EG10746-MONOMER[c]', 'G7842-MONOMER[c]',
 				'EG10743-MONOMER[c]'],
-			'endoRNase_rnas': ['EG10856_RNA[c]', 'EG10857_RNA[c]',
-				'EG10859_RNA[c]', 'EG10860_RNA[c]', 'EG10861_RNA[c]',
-				'EG10862_RNA[c]', 'EG11299_RNA[c]', 'G7175_RNA[c]',
-				'G7365_RNA[c]'],
-			'exoRNase_rnas': ['EG11620_RNA[c]', 'G7175_RNA[c]',
-				'EG10858_RNA[c]', 'EG10863_RNA[c]', 'EG11259_RNA[c]',
-				'EG11547_RNA[c]', 'EG10746_RNA[c]', 'G7842_RNA[c]',
-				'EG10743_RNA[c]'],
-
+			'endoRNase_rnas': ['EG10856_RNA', 'EG10857_RNA',
+				'EG10859_RNA', 'EG10860_RNA', 'EG10861_RNA',
+				'EG10862_RNA', 'EG11299_RNA', 'G7175_RNA',
+				'G7365_RNA'],
+			'exoRNase_rnas': ['EG11620_RNA', 'G7175_RNA',
+				'EG10858_RNA', 'EG10863_RNA', 'EG11259_RNA',
+				'EG11547_RNA', 'EG10746_RNA', 'G7842_RNA',
+				'EG10743_RNA'],
 			'RNAP_subunits': ['RPOB-MONOMER[c]', 'RPOC-MONOMER[c]',
 				'EG10893-MONOMER[c]'],
 
+			# EG11508-MONOMER[c] (sra) is removed from the list because it is
+			# not essential and should have very low counts in rich media
 			'ribosomal_proteins': ['EG10872-MONOMER[c]', 'EG10879-MONOMER[c]',
 				'EG11232-MONOMER[c]', 'EG10877-MONOMER[c]', 'EG10876-MONOMER[c]',
 				'EG10892-MONOMER[c]', 'EG10874-MONOMER[c]',	'EG50001-MONOMER[c]',
@@ -109,9 +112,9 @@ class MoleculeGroups(object):
 				'EG10903-MONOMER[c]', 'EG10911-MONOMER[c]', 'EG10904-MONOMER[c]',
 				'EG10900-MONOMER[c]', 'EG10901-MONOMER[c]', 'EG10905-MONOMER[c]',
 				'EG10915-MONOMER[c]', 'EG10918-MONOMER[c]', 'EG10919-MONOMER[c]',
-				'EG10907-MONOMER[c]', 'EG11508-MONOMER[c]', 'EG10908-MONOMER[c]',
-				'EG10906-MONOMER[c]', 'EG10910-MONOMER[c]', 'EG10902-MONOMER[c]',
-				'EG10917-MONOMER[c]', 'EG10913-MONOMER[c]'],
+				'EG10907-MONOMER[c]', 'EG10908-MONOMER[c]', 'EG10906-MONOMER[c]',
+				'EG10910-MONOMER[c]', 'EG10902-MONOMER[c]', 'EG10917-MONOMER[c]',
+				'EG10913-MONOMER[c]'],
 
 			'carbon_sources': ['GLC[p]', 'ACET[p]', 'SUC[p]'],
 		}

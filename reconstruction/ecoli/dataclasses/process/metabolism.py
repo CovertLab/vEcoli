@@ -27,9 +27,6 @@ from wholecell.utils import units
 import six
 from six.moves import range, zip
 
-# TODO (ggsun): Add these values as raw data files
-PPI_CONCENTRATION = 0.5e-3  # M, multiple sources
-ECOLI_PH = 7.2
 KINETIC_CONSTRAINT_CONC_UNITS = units.umol / units.L
 K_CAT_UNITS = 1 / units.s
 METABOLITE_CONCENTRATION_UNITS = units.mol / units.L
@@ -54,7 +51,6 @@ class Metabolism(object):
 	def __init__(self, raw_data, sim_data):
 		self._set_solver_values(sim_data.constants)
 		self._build_biomass(raw_data, sim_data)
-		self._build_linked_metabolites(raw_data, sim_data)
 		self._build_metabolism(raw_data, sim_data)
 		self._build_ppgpp_reactions(raw_data, sim_data)
 		self._build_transport_reactions(raw_data, sim_data)
@@ -98,16 +94,23 @@ class Metabolism(object):
 			'Park Concentration',
 			'Lempp Concentration',
 			'Kochanowski Concentration',
+			'Sander Concentration',
 			]
 		excluded = {
 			'Park Concentration': {
 				'GLT',  # Steady state concentration reached with tRNA charging is much lower than Park
+				'THR',  # Attenuation needs concentration to be lower to match validation data
+				'VAL',  # Synthesis pathway kcat needs concentration to be lower and closer to KI
 				},
 			'Lempp Concentration': {
 				'ATP',  # TF binding does not solve with average concentration
+				'VAL',  # Synthesis pathway kcat needs concentration to be lower and closer to KI
 				},
 			'Kochanowski Concentration': {
 				'ATP',  # TF binding does not solve with average concentration
+				},
+			'Sander Concentration': {
+				'GLT',  # Steady state concentration reached with tRNA charging is much lower than Sander
 				},
 			}
 		metaboliteIDs = []
@@ -177,17 +180,19 @@ class Metabolism(object):
 		metaboliteConcentrations.append(dntpSmallestConc)
 
 		# H: from reported pH
-		hydrogenConcentration = 10**(-ECOLI_PH)
+		hydrogenConcentration = 10**(-sim_data.constants.pH)
 
 		metaboliteIDs.append(sim_data.molecule_ids.proton)
 		metaboliteConcentrations.append(hydrogenConcentration)
 
-		# PPI: multiple sources report 0.5 mM
+		# PPI
+		ppi_conc = sim_data.constants.ppi_concentration.asNumber(
+			METABOLITE_CONCENTRATION_UNITS)
 		metaboliteIDs.append(sim_data.molecule_ids.ppi)
-		metaboliteConcentrations.append(PPI_CONCENTRATION)
+		metaboliteConcentrations.append(ppi_conc)
 
 		metaboliteIDs.append("Pi[c]")
-		metaboliteConcentrations.append(PPI_CONCENTRATION)
+		metaboliteConcentrations.append(ppi_conc)
 
 		# include metabolites that are part of biomass
 		for key, value in six.viewitems(sim_data.mass.getBiomassAsConcentrations(sim_data.doubling_time)):
@@ -229,26 +234,27 @@ class Metabolism(object):
 			raise ValueError('Multiple concentrations for metabolite(s): {}'.format(', '.join(unique_ids[counts > 1])))
 
 		# TODO (Travis): only pass raw_data and sim_data and create functions to load absolute and relative concentrations
+		conc_dict = dict(zip(metaboliteIDs, METABOLITE_CONCENTRATION_UNITS * np.array(metaboliteConcentrations)))
 		all_metabolite_ids = {met['id'] for met in raw_data.metabolites}
-		self.concentration_updates = ConcentrationUpdates(dict(zip(
-			metaboliteIDs,
-			METABOLITE_CONCENTRATION_UNITS * np.array(metaboliteConcentrations)
-			)),
+		linked_metabolites = self._build_linked_metabolites(raw_data, conc_dict)
+		self.concentration_updates = ConcentrationUpdates(
+			conc_dict,
 			relative_changes,
 			raw_data.equilibrium_reactions,
 			sim_data.external_state.exchange_dict,
-			all_metabolite_ids
+			all_metabolite_ids,
+			linked_metabolites,
 		)
 		self.conc_dict = self.concentration_updates.concentrations_based_on_nutrients("minimal")
 		self.nutrients_to_internal_conc = {}
 		self.nutrients_to_internal_conc["minimal"] = self.conc_dict.copy()
 
-	def _build_linked_metabolites(self, raw_data, sim_data):
+	def _build_linked_metabolites(self, raw_data, conc_dict):
 		"""
 		Calculates ratio between linked metabolites to keep it constant
 		throughout a simulation.
 
-		Attributes set:
+		Returns:
 			linked_metabolites (Dict[str, Dict[str, Any]]): mapping from a
 				linked metabolite to its lead metabolite and concentration
 				ratio to be maintained with the following keys:
@@ -256,13 +262,15 @@ class Metabolism(object):
 					'ratio' (float): ratio to multiply the lead concentration by
 		"""
 
-		self.linked_metabolites = {}
+		linked_metabolites = {}
 		for row in raw_data.linked_metabolites:
 			lead = row['Lead metabolite']
 			linked = row['Linked metabolite']
-			ratio = units.strip_empty_units(self.conc_dict[lead] / self.conc_dict[linked])
+			ratio = units.strip_empty_units(conc_dict[linked] / conc_dict[lead])
 
-			self.linked_metabolites[linked] = {'lead': lead, 'ratio': ratio}
+			linked_metabolites[linked] = {'lead': lead, 'ratio': ratio}
+
+		return linked_metabolites
 
 	def _build_metabolism(self, raw_data, sim_data):
 		"""
@@ -346,6 +354,8 @@ class Metabolism(object):
 		self.use_all_constraints = USE_ALL_CONSTRAINTS
 		self.constraints_to_disable = [rxn["disabled reaction"]
 			for rxn in raw_data.disabled_kinetic_reactions]
+
+		self.amino_acid_export_kms = raw_data.amino_acid_export_kms
 
 	def _build_ppgpp_reactions(self, raw_data, sim_data):
 		'''
@@ -435,20 +445,36 @@ class Metabolism(object):
 		"""
 
 		self.aa_synthesis_pathways = {}
+		cytoplasm_tag = '[c]'
 
 		for row in raw_data.amino_acid_pathways:
 			data = {}
-			data['enzymes'] = row['Enzymes']
-			data['kcat_data'] = row['kcat'] if row['kcat'] else 0 / units.s
-			if row['KI, lower bound'] and row['KI, lower bound']:
-				data['ki'] = (row['KI, lower bound'], row['KI, upper bound'])
-			else:
+			data['enzymes'] = [e + cytoplasm_tag for e in row['Enzymes']]
+			data['kcat_data'] = 0 / units.s if units.isnan(row['kcat']) else row['kcat']
+			if units.isnan(row['KI, lower bound']) or units.isnan(row['KI, lower bound']):
 				data['ki'] = None
-			data['upstream'] = row['Upstream amino acid']
-			data['km, upstream'] = row['KM, upstream']
+			else:
+				data['ki'] = (row['KI, lower bound'], row['KI, upper bound'])
+			data['upstream'] = {k + cytoplasm_tag: v for k, v in row['Upstream amino acids'].items()}
+			data['reverse'] = {k + cytoplasm_tag: v for k, v in row['Reverse amino acids'].items()}
+			data['km, upstream'] = {k + cytoplasm_tag: v for k, v in row['KM, upstream'].items()}
 			data['km, reverse'] = row['KM, reverse']
-			data['downstream'] = row['Downstream amino acids']
-			self.aa_synthesis_pathways[row['Amino acid']] = data
+			data['km, degradation'] = np.inf * units.mol/units.L if units.isnan(row['KM, degradation']) else row['KM, degradation']
+			data['downstream'] = {k + cytoplasm_tag: v for k, v in row['Downstream amino acids'].items()}
+			self.aa_synthesis_pathways[row['Amino acid'] + cytoplasm_tag] = data
+
+		self.aa_synthesis_pathway_adjustments = {}
+		for row in raw_data.adjustments.amino_acid_pathways:
+			# Read data from row
+			aa = row['Amino acid'] + cytoplasm_tag
+			parameter = row['Parameter']
+			factor = row['Factor']
+
+			# Store adjustments to be used later
+			adjustments = self.aa_synthesis_pathway_adjustments.get(aa, {})
+			adjustments[parameter] = factor
+			self.aa_synthesis_pathway_adjustments[aa] = adjustments
+
 
 	def get_kinetic_constraints(self, enzymes, substrates):
 		# type: (units.Unum, units.Unum) -> units.Unum
@@ -492,7 +518,8 @@ class Metabolism(object):
 
 		return KINETIC_CONSTRAINT_CONC_UNITS * K_CAT_UNITS * capacity * saturation
 
-	def exchange_constraints(self, exchangeIDs, coefficient, targetUnits, currentNutrients, unconstrained, constrained, concModificationsBasedOnCondition = None):
+	def exchange_constraints(self, exchangeIDs, coefficient, targetUnits, media_id,
+			unconstrained, constrained, concModificationsBasedOnCondition = None):
 		"""
 		Called during Metabolism process
 		Returns the homeostatic objective concentrations based on the current nutrients
@@ -500,7 +527,8 @@ class Metabolism(object):
 		"""
 
 		newObjective = self.concentration_updates.concentrations_based_on_nutrients(
-			media_id=currentNutrients, conversion_units=targetUnits)
+			imports=unconstrained.union(constrained), media_id=media_id,
+			conversion_units=targetUnits)
 		if concModificationsBasedOnCondition is not None:
 			newObjective.update(concModificationsBasedOnCondition)
 
@@ -552,10 +580,10 @@ class Metabolism(object):
 		conc = self.concentration_updates.concentrations_based_on_nutrients
 
 		aa_conc_basal = np.array([
-			conc('minimal')[aa].asNumber(METABOLITE_CONCENTRATION_UNITS)
+			conc(media_id='minimal')[aa].asNumber(METABOLITE_CONCENTRATION_UNITS)
 			for aa in aa_ids])
 		aa_conc_aa_media = np.array([
-			conc('minimal_plus_amino_acids')[aa].asNumber(METABOLITE_CONCENTRATION_UNITS)
+			conc(media_id='minimal_plus_amino_acids')[aa].asNumber(METABOLITE_CONCENTRATION_UNITS)
 			for aa in aa_ids])
 
 		# Lower concentrations might produce strange rates (excess supply or
@@ -601,7 +629,168 @@ class Metabolism(object):
 
 		return supply_scaling
 
-	def set_mechanistic_supply_constants(self, sim_data, cell_specs):
+	def get_aa_to_transporters_mapping_data(self, sim_data, export=False):
+		'''
+		Creates a dictionary that maps amino acids with their transporters.
+		Based on this dictionary, it creates a correlation matrix with rows
+		as AA and columns as transporters.
+
+		Args:
+			sim_data (SimulationData object)
+			export (Boolean): if True, the parameters calculated are for mechanistic
+				export instead of uptake
+
+		Returns:
+			aa_to_transporters (Dict[str, list]): dictonary that maps aa to
+				transporters involved in transport reactions
+			aa_to_transporters_matrix (np.ndarray[int]): correlation matrix.
+				Columns correspond to transporter enzymes and rows to amino acids
+			aa_transporters_names (np.ndarray[str]): names of all transporters
+		'''
+
+		def matches_direction(direction):
+			if export:
+				return direction < 0
+			else:
+				return direction > 0
+
+
+		# Mapping aminoacids to their transporters
+		# CYS does not have any uptake reaction, so we initialize the dict with it to ensure
+		# the presence of the 21 AAs
+		# TODO (Santiago): Reversible reactions?
+		aa_to_transporters = {"CYS[c]": []}
+		for reaction in self.transport_reactions:
+			for aa in sim_data.molecule_groups.amino_acids:
+				if aa in self.reaction_stoich[reaction] and matches_direction(self.reaction_stoich[reaction][aa]):
+					if aa not in aa_to_transporters:
+						aa_to_transporters[aa] = []
+					aa_to_transporters[aa] += self.reaction_catalysts[reaction]
+
+		aa_to_transporters = {aa: aa_to_transporters[aa] for aa in sim_data.molecule_groups.amino_acids}
+
+		c = 0
+		transporters_to_idx = {}
+		for aa, transporters in aa_to_transporters.items():
+			for transporter in transporters:
+				if transporter not in transporters_to_idx:
+					transporters_to_idx[transporter]=c
+					c += 1
+
+		aa_to_transporters_matrix = [0]*len(aa_to_transporters)
+
+		for i, trnspts in enumerate(aa_to_transporters.values()):
+			temp = [0] * len(transporters_to_idx)
+			for tr in trnspts:
+				temp[transporters_to_idx[tr]] = 1
+			aa_to_transporters_matrix[i] = temp
+
+		aa_transporters_names = list(transporters_to_idx.keys())
+
+		return aa_to_transporters, np.array(aa_to_transporters_matrix), np.array(aa_transporters_names)
+
+	def set_mechanistic_export_constants(self, sim_data, cell_specs, basal_container):
+		'''
+		Calls get_aa_to_transporters_mapping_data() for AA export, which calculates
+		the total amount of export transporter counts per AA. Kcats are calculated using
+		the same exchange rates as for uptake and transporter counts. Missing KMs are calculated
+		based on present KMs. This is done by calculating the average factor for
+		KMs compared to estimated concentration (av_factor = sum(KM / concentration) / n_aa_with_kms).
+		** KM = av_factor * concentration
+
+
+		Args:
+			sim_data (SimulationData object)
+			cell_specs (Dict[str, Dict])
+			basal_container (BulkObjectsContainer): average initialization
+				container in the basal condition
+
+		Sets class attribute:
+			aa_to_export_transporters (Dict[str, list]): dictonary that maps aa to
+				transporters involved in export reactions
+			aa_to_export_transporters_matrix (np.ndarray[int]): correlation matrix.
+				Columns correspond to exporting enzymes and rows to amino acids
+			aa_export_transporters_names (np.ndarray[str]): names of all exporters
+			aa_export_kms (np.ndarray[float]): kms corresponding to generic transport/enzyme
+				reactions for each AA in concentration units (METABOLITE_CONCENTRATION_UNITS) [M]
+			export_kcats_per_aa (np.ndarray[float]): kcats corresponding to generic export
+				reactions for each AA. Units in counts/second [1/s]
+		'''
+
+		self.aa_to_export_transporters, self.aa_to_export_transporters_matrix, self.aa_export_transporters_names = self.get_aa_to_transporters_mapping_data(
+			sim_data, export=True)
+
+		aa_names = sim_data.molecule_groups.amino_acids
+		counts_to_molar = (sim_data.constants.cell_density / cell_specs['basal']['avgCellDryMassInit']) / sim_data.constants.n_avogadro
+		aa_conc = {aa: counts * counts_to_molar for aa, counts in zip(aa_names, basal_container.counts(aa_names))}
+		aa_with_km = {}
+
+		# Calculate average factor to estimate missing KMs
+		coeff_estimate_kms = 0
+		for export_kms in self.amino_acid_export_kms:
+			aa_with_km[export_kms['Amino Acid']] = export_kms['KM']
+			coef_per_aa = 0
+			for km in export_kms['KM'].values():
+				coef_per_aa += km.asUnit(METABOLITE_CONCENTRATION_UNITS) / aa_conc[export_kms['Amino Acid']]
+			coeff_estimate_kms += coef_per_aa / len(export_kms['KM'])
+		coeff_estimate_kms = coeff_estimate_kms / len(self.amino_acid_export_kms)
+
+		# Calculate estimated KMs for each AA
+		single_kms = {}
+		for aa in aa_names:
+			if aa in aa_with_km:
+				single_kms[aa] = np.mean(list(aa_with_km[aa].values()))
+			else:
+				single_kms[aa] = coeff_estimate_kms * aa_conc[aa]
+
+		self.aa_export_kms = np.array([single_kms[aa].asNumber(METABOLITE_CONCENTRATION_UNITS) for aa in aa_names])
+
+	def set_mechanistic_uptake_constants(self, sim_data, cell_specs, with_aa_container):
+		'''
+		Based on the matrix calculated in get_aa_to_transporters_mapping_data(), we calculate
+		the total amount of transporter counts per AA.
+
+		Args:
+			sim_data (SimulationData object)
+			cell_specs (Dict[str, Dict])
+			with_aa_container (BulkObjectsContainer): average initialization
+				container in the with_aa condition
+
+		Sets class attribute:
+			aa_to_transporters (Dict[str, list]): dictonary that maps aa to
+				transporters involved in import reactions
+			aa_to_transporters_matrix (np.ndarray[int]): correlation matrix.
+				Columns correspond to importing enzymes and rows to amino acids
+			aa_transporters_names (np.ndarray[str]): names of all importers
+			uptake_kcats_per_aa (np.ndarray[float]): kcats corresponding to generic uptake
+				reactions for each AA. Units in counts/second [1/s]
+
+		TODO:
+			- Include external amino acid concentrations and KM values
+		'''
+
+		aa_names = sim_data.molecule_groups.amino_acids
+		counts_to_molar = (sim_data.constants.cell_density / cell_specs['with_aa']['avgCellDryMassInit']) / sim_data.constants.n_avogadro
+		aa_counts = with_aa_container.counts(aa_names)
+		exchange_rates = sim_data.process.metabolism.specific_import_rates * cell_specs['with_aa']['avgCellDryMassInit'].asNumber(units.fg)
+
+		self.aa_to_transporters, self.aa_to_transporters_matrix, self.aa_transporters_names = self.get_aa_to_transporters_mapping_data(sim_data)
+
+		importer_counts = with_aa_container.counts(self.aa_transporters_names)
+		exporter_counts = with_aa_container.counts(self.aa_export_transporters_names)
+		counts_per_aa_import = self.aa_to_transporters_matrix.dot(importer_counts)
+		counts_per_aa_export = self.aa_to_export_transporters_matrix.dot(exporter_counts)
+		kms = self.aa_export_kms / counts_to_molar.asNumber(METABOLITE_CONCENTRATION_UNITS)
+
+		# Calculate kcats based on specific_import_rates, dry mass, transporters counts, export kms and counts of aas
+		with np.errstate(divide='ignore'):
+			vmax = exchange_rates / (1 - (aa_counts/(kms + aa_counts)))
+			self.uptake_kcats_per_aa = vmax / counts_per_aa_import
+			self.export_kcats_per_aa = vmax / counts_per_aa_export
+		self.export_kcats_per_aa[counts_per_aa_export == 0] = 0
+		self.uptake_kcats_per_aa[counts_per_aa_import == 0] = 0
+
+	def set_mechanistic_supply_constants(self, sim_data, cell_specs, basal_container, with_aa_container):
 		"""
 		Sets constants to determine amino acid supply during translation.  Used
 		with amino_acid_synthesis() and amino_acid_import() during simulations
@@ -613,6 +802,10 @@ class Metabolism(object):
 		Args:
 			sim_data (SimulationData object)
 			cell_specs (Dict[str, Dict])
+			basal_container (BulkObjectsContainer): average initialization
+				container in the basal condition
+			with_aa_container (BulkObjectsContainer): average initialization
+				container in the with_aa condition
 
 		Sets class attributes:
 			aa_enzymes (np.ndarray[str]): enzyme ID with location tag for each
@@ -624,7 +817,7 @@ class Metabolism(object):
 				in units of METABOLITE_CONCENTRATION_UNITS, ordered by amino
 				acid molecule group. Will be inf if there is no inhibitory
 				control.
-			aa_upstream_kms (np.ndarray[float]): KM value associated with the
+			aa_upstream_kms (List[List[float]]): KM value associated with the
 				amino acid that feeds into each synthesis pathway in units of
 				METABOLITE_CONCENTRATION_UNITS, ordered by amino acid molecule
 				group. Will be 0 if there is no upstream amino acid considered.
@@ -639,14 +832,19 @@ class Metabolism(object):
 				aa_enzymes to amino acids (n enzymes, m amino acids).  Will
 				contain a 1 if the enzyme associated with the row can catalyze
 				the pathway for the amino acid associated with the column
-			aa_supply_balance (np.ndarray[float]): relationship mapping from
+			aa_forward_stoich (np.ndarray[float]): relationship mapping from
 				upstream amino acids to downstream amino acids (n upstream,
 				m downstream).  Will contain a -1 if the amino acid associated
 				with the row is required for synthesis of the amino acid
 				associated with the column
+			aa_reverse_stoich (np.ndarray[float]): relationship mapping from
+				upstream amino acids to downstream amino acids (n downstream,
+				m upstream).  Will contain a -1 if the amino acid associated
+				with the row is produced through a reverse reaction from
+				the amino acid associated with the column
 			specific_import_rates (np.ndarray[float]): import rates expected
 				in rich media conditions for each amino acid normalized by dry
-				cell mass in units of (1 / (K_CAT_UNITS * DRY_MASS_UNITS),
+				cell mass in units of K_CAT_UNITS / DRY_MASS_UNITS,
 				ordered by amino acid molecule group
 
 		Assumptions:
@@ -657,7 +855,6 @@ class Metabolism(object):
 			terms
 
 		TODO:
-			Tie import rates to transporter expression and external concentrations
 			Handle different kcats (or enzymes) for reverse reactions
 			Search for new kcat/KM values in literature or use metabolism_kinetics.tsv
 			Consider multiple reaction steps
@@ -676,19 +873,44 @@ class Metabolism(object):
 			for aa, rate in zip(sim_data.molecule_groups.amino_acids, rates)
 			}
 		aa_enzymes = []
-		aa_kcats = []
-		aa_kis = []
-		upstream_aas = []
-		downstream_aas = []
-		aa_upstream_kms = []
-		aa_reverse_kms = []
 		enzyme_to_aa = []
+		aa_kcats = {}
+		aa_kis = {}
+		upstream_aas_for_km = {}
+		upstream_aas = {}
+		reverse_aas = {}
+		aa_upstream_kms = {}
+		aa_reverse_kms = {}
+		aa_degradation_kms = {}
+		degradation_rates = {}
 		minimal_conc = conc('minimal')
+
+		# Get order of amino acids to calculate parameters for to ensure that
+		# parameters that are dependent on other amino acids are run after
+		# those calculations have completed
+		dependencies = {}
 		for aa in aa_ids:
-			data = self.aa_synthesis_pathways[aa]
+			for downstream_aa in self.aa_synthesis_pathways[aa]['downstream']:
+				if np.isfinite(self.aa_synthesis_pathways[downstream_aa]['km, degradation'].asNumber()):
+					dependencies[aa] = dependencies.get(aa, []) + [downstream_aa]
+		ordered_aa_ids = []
+		for _ in aa_ids:  # limit number of iterations number of amino acids in case there are cyclic links
+			for aa in sorted(set(aa_ids) - set(ordered_aa_ids)):
+				for downstream_aa in dependencies.get(aa, []):
+					if downstream_aa not in ordered_aa_ids:
+						break
+				else:
+					ordered_aa_ids.append(aa)
+		if len(ordered_aa_ids) != len(aa_ids):
+			raise RuntimeError('Could not determine amino acid order to calculate dependencies first.'
+				' Make sure there are no cyclical pathways for amino acids that can degrade.')
+
+		for amino_acid in ordered_aa_ids:
+			data = self.aa_synthesis_pathways[amino_acid]
 			enzymes = data['enzymes']
-			enzyme_counts = cell_specs['basal']['bulkAverageContainer'].counts(enzymes).sum()
-			aa_conc = minimal_conc[aa]
+			enzyme_counts = basal_container.counts(enzymes).sum()
+
+			aa_conc = minimal_conc[amino_acid]
 			if data['ki'] is None:
 				ki = np.inf * units.mol / units.L
 			else:
@@ -700,36 +922,72 @@ class Metabolism(object):
 					ki = upper_limit
 				else:
 					ki = aa_conc
-			upstream_aa = data['upstream'] if data['upstream'] else aa
-			km_conc = minimal_conc[upstream_aa]
-			km = data['km, upstream'] if data['km, upstream'] else 0. * units.mol/units.L
-			km_reverse = data['km, reverse'] if data['km, reverse'] else np.inf * units.mol/units.L
-			total_supply = supply[aa]
-			for downstream in data['downstream']:
-				total_supply += supply[downstream]
+			upstream_aa = [aa for aa in data['upstream']]
+			km_conc = METABOLITE_CONCENTRATION_UNITS * np.array([
+				minimal_conc[aa].asNumber(METABOLITE_CONCENTRATION_UNITS)
+				for aa in upstream_aa
+				])
+			kms_upstream = data['km, upstream']
+			kms = METABOLITE_CONCENTRATION_UNITS * np.array([
+				kms_upstream.get(aa, minimal_conc[aa]).asNumber(METABOLITE_CONCENTRATION_UNITS)
+				for aa in upstream_aa
+				])  # TODO: better way to fill in this missing data
+			if data['reverse']:
+				if np.isnan(data['km, reverse'].asNumber()):
+					km_reverse = minimal_conc[amino_acid] * 10  # TODO: better way to fill in this missing data
+				else:
+					km_reverse = data['km, reverse']
+			else:
+				km_reverse = np.inf * units.mol / units.L
+			km_degradation = data['km, degradation']
+
+			total_supply = supply[amino_acid]
+			for aa, stoich in data['downstream'].items():
+				total_supply += stoich * supply[aa]
+				total_supply += stoich * degradation_rates.get(aa, 0 / units.min)
+
+			# Make required adjustments in order to get positive kcats and import rates
+			for parameter, factor in self.aa_synthesis_pathway_adjustments.get(amino_acid, {}).items():
+				if parameter == 'ki':
+					ki *= factor
+				elif parameter == 'km_degradation':
+					km_degradation *= factor
+				elif parameter == 'km_reverse':
+					km_reverse *= factor
+				elif parameter == 'kms':
+					kms *= factor
+				else:
+					raise ValueError(f'Unexpected parameter adjustment ({parameter}) for {amino_acid}.')
 
 			# Calculate kcat value to ensure sufficient supply to double
-			kcat = total_supply / (enzyme_counts * (1 / (1 + aa_conc / ki) / (1 + km / km_conc) - 1 / (1 + km_reverse / aa_conc)))
+			kcat = total_supply / (enzyme_counts * (1 / (1 + aa_conc / ki) * np.prod(1 / (1 + kms / km_conc)) - 1 / (1 + km_reverse / aa_conc) - 1 / (1 + km_degradation / aa_conc)))
 			data['kcat'] = kcat
 
 			aa_enzymes += enzymes
-			aa_kcats.append(kcat.asNumber(K_CAT_UNITS))
-			aa_kis.append(ki.asNumber(METABOLITE_CONCENTRATION_UNITS))
-			upstream_aas.append(upstream_aa)
-			downstream_aas.append(data['downstream'])
-			aa_upstream_kms.append(km.asNumber(METABOLITE_CONCENTRATION_UNITS))
-			aa_reverse_kms.append(km_reverse.asNumber(METABOLITE_CONCENTRATION_UNITS))
-			enzyme_to_aa += [aa] * len(enzymes)
+			enzyme_to_aa += [amino_acid] * len(enzymes)
+			aa_kcats[amino_acid] = kcat.asNumber(K_CAT_UNITS)
+			aa_kis[amino_acid] = ki.asNumber(METABOLITE_CONCENTRATION_UNITS)
+			upstream_aas_for_km[amino_acid] = upstream_aa
+			upstream_aas[amino_acid] = data['upstream']
+			reverse_aas[amino_acid] = data['reverse']
+			aa_upstream_kms[amino_acid] = kms.asNumber(METABOLITE_CONCENTRATION_UNITS)
+			aa_reverse_kms[amino_acid] = km_reverse.asNumber(METABOLITE_CONCENTRATION_UNITS)
+			aa_degradation_kms[amino_acid] = km_degradation.asNumber(METABOLITE_CONCENTRATION_UNITS)
+			degradation_rates[amino_acid] = kcat * enzyme_counts / (1 + km_degradation / aa_conc)
 
 		self.aa_enzymes = np.unique(aa_enzymes)
-		self.aa_kcats = np.array(aa_kcats)
-		self.aa_kis = np.array(aa_kis)
-		self.aa_upstream_kms = np.array(aa_upstream_kms)
-		self.aa_reverse_kms = np.array(aa_reverse_kms)
+		self.aa_kcats = np.array([aa_kcats[aa] for aa in aa_ids])
+		self.aa_kis = np.array([aa_kis[aa] for aa in aa_ids])
+		self.aa_upstream_kms = [aa_upstream_kms[aa] for aa in aa_ids]
+		self.aa_reverse_kms = np.array([aa_reverse_kms[aa] for aa in aa_ids])
+		self.aa_degradation_kms = np.array([aa_degradation_kms[aa] for aa in aa_ids])
 
 		# Convert aa_conc to array with upstream aa_conc via indexing (aa_conc[self.aa_upstream_mapping])
 		aa_to_index = {aa: i for i, aa in enumerate(aa_ids)}
-		self.aa_upstream_mapping = np.array([aa_to_index[aa] for aa in upstream_aas])
+
+		# TODO: better way of handling this that is efficient computationally
+		self.aa_to_index = aa_to_index
+		self.aa_upstream_aas = [upstream_aas_for_km[aa] for aa in aa_ids]
 
 		# Convert enzyme counts to an amino acid basis via dot product (counts @ self.enzyme_to_amino_acid)
 		self.enzyme_to_amino_acid = np.zeros((len(self.aa_enzymes), len(aa_ids)))
@@ -739,12 +997,17 @@ class Metabolism(object):
 			self.enzyme_to_amino_acid[enzyme_mapping[enzyme], aa_mapping[aa]] = 1
 
 		# Convert individual supply calculations to overall supply based on dependencies
-		# via dot product (self.aa_supply_balance @ supply)
+		# via dot product (self.aa_forward_stoich @ supply)
 		# TODO: check for loops (eg ser dependent on glt, glt dependent on ser)
-		self.aa_supply_balance = np.eye(len(aa_ids))
-		for i, downstream in enumerate(downstream_aas):
-			for aa in downstream:
-				self.aa_supply_balance[i, aa_to_index[aa]] = -1
+		# TODO: check this makes sense with new format
+		self.aa_forward_stoich = np.eye(len(aa_ids))
+		for aa, upstream in upstream_aas.items():
+			for upstream_aa, stoich in upstream.items():
+				self.aa_forward_stoich[aa_to_index[upstream_aa], aa_to_index[aa]] = -stoich
+		self.aa_reverse_stoich = np.eye(len(aa_ids))
+		for aa, reverse in reverse_aas.items():
+			for reverse_aa, stoich in reverse.items():
+				self.aa_reverse_stoich[aa_to_index[reverse_aa], aa_to_index[aa]] = -stoich
 
 		# Calculate import rates to match supply in amino acid conditions
 		with_aa_rates = (
@@ -755,24 +1018,34 @@ class Metabolism(object):
 			aa: rate
 			for aa, rate in zip(sim_data.molecule_groups.amino_acids, with_aa_rates)
 			}
-		enzyme_counts = cell_specs['with_aa']['bulkAverageContainer'].counts(self.aa_enzymes)
+		enzyme_counts = with_aa_container.counts(self.aa_enzymes)
 		aa_conc = units.mol / units.L * np.array([
 			conc('minimal_plus_amino_acids')[aa].asNumber(units.mol/units.L)
 			for aa in aa_ids
 			])
-		supply = np.array([with_aa_supply[aa] for aa in aa_ids])
+
+		supply = np.array([with_aa_supply[aa] for aa in aa_ids])  # TODO: check that this is ok and do not need other adjustments for downstream
 		synthesis, _, _ = self.amino_acid_synthesis(enzyme_counts, aa_conc)
 		self.specific_import_rates = (supply - synthesis) / cell_specs['with_aa']['avgCellDryMassInit'].asNumber(DRY_MASS_UNITS)
+		self.specific_import_rates[aa_ids.index('CYS[c]')] = 0  # Does not have direct import
+
+		# Concentrations for reference in analysis plot
+		conversion = sim_data.constants.cell_density / sim_data.constants.n_avogadro * sim_data.mass.cell_dry_mass_fraction
+		basal_counts = basal_container.counts(self.aa_enzymes)
+		self.aa_supply_enzyme_conc_with_aa = conversion * enzyme_counts / cell_specs['with_aa']['avgCellDryMassInit']
+		self.aa_supply_enzyme_conc_basal = conversion * basal_counts / cell_specs['basal']['avgCellDryMassInit']
 
 		# Check calculations that could end up negative
 		neg_idx = np.where(self.aa_kcats < 0)[0]
 		if len(neg_idx):
 			aas = ', '.join([aa_ids[idx] for idx in neg_idx])
+			print(f'{self.aa_kcats = }')
 			raise ValueError(f'kcat value was determined to be negative for {aas}.'
 				' Check input parameters like KM and KI or the concentration.')
 		neg_idx = np.where(self.specific_import_rates < 0)[0]
 		if len(neg_idx):
 			aas = ', '.join([aa_ids[idx] for idx in neg_idx])
+			print(f'{self.specific_import_rates = }')
 			raise ValueError(f'Import rate was determined to be negative for {aas}.'
 				' Check input parameters like supply and synthesis or enzyme expression.')
 
@@ -793,31 +1066,75 @@ class Metabolism(object):
 		# Convert to appropraite arrays
 		aa_conc = aa_conc.asNumber(METABOLITE_CONCENTRATION_UNITS)
 		counts_per_aa = enzyme_counts @ self.enzyme_to_amino_acid
-		upstream_conc = aa_conc[self.aa_upstream_mapping]
+
+		# TODO: more efficient way of doing this
+		km_saturation = np.array([np.product([1 / (1 + km / aa_conc[self.aa_to_index[aa]]) for km, aa in zip(kms, aas)]) for kms, aas in zip(self.aa_upstream_kms, self.aa_upstream_aas)])
 
 		# Determine saturation fraction for reactions
-		forward_fraction = 1 / (1 + aa_conc / self.aa_kis) / (1 + self.aa_upstream_kms / upstream_conc)
+		forward_fraction = 1 / (1 + aa_conc / self.aa_kis) * km_saturation
 		reverse_fraction = 1 / (1 + self.aa_reverse_kms / aa_conc)
-		fraction = forward_fraction - reverse_fraction
+		loss_fraction = 1 / (1 + self.aa_degradation_kms / aa_conc)
+		fraction = forward_fraction - reverse_fraction - loss_fraction
 
 		# Calculate synthesis rate
-		synthesis = self.aa_supply_balance @ (self.aa_kcats * counts_per_aa * fraction)
+		synthesis = (
+			self.aa_forward_stoich @ (self.aa_kcats * counts_per_aa * forward_fraction)
+			- self.aa_reverse_stoich @ (self.aa_kcats * counts_per_aa * reverse_fraction)
+			- self.aa_kcats * counts_per_aa * loss_fraction
+		)
+
 		return synthesis, counts_per_aa, fraction
 
-	def amino_acid_import(self, aa_in_media: np.ndarray, dry_mass: units.Unum):
+	def amino_acid_export(self, aa_transporters_counts: np.ndarray, aa_conc: units.Unum, mechanistic_uptake: bool):
+		"""
+		Calculate the rate of amino acid export.
+
+		Args:
+			aa_transporters_counts: counts of each transporter
+			aa_conc: concentrations of each amino acid with mol/volume units
+			mechanisitc_uptake: if true, the uptake is calculated based on transporters
+
+		Returns:
+			rate of export for each amino acid. array is unitless but
+				represents counts of amino acid per second
+		"""
+
+		if mechanistic_uptake:
+			# Export based on mechanistic model
+			aa_conc = aa_conc.asNumber(METABOLITE_CONCENTRATION_UNITS)
+			trans_counts_per_aa = self.aa_to_export_transporters_matrix @ aa_transporters_counts
+			export_rates = self.export_kcats_per_aa * trans_counts_per_aa / (1 + self.aa_export_kms / aa_conc)
+		else:
+			# Export is lumped with specific uptake rates in amino_acid_import
+			# and not dependent on internal amino acid concentrations or
+			# explicitly considered here
+			export_rates = np.zeros(len(aa_conc))
+
+		return export_rates
+
+	def amino_acid_import(self, aa_in_media: np.ndarray, dry_mass: units.Unum, aa_transporters_counts: np.ndarray, mechanisitc_uptake: bool):
 		"""
 		Calculate the rate of amino acid uptake.
 
 		Args:
 			aa_in_media: bool for each amino acid being present in current media
 			dry_mass: current dry mass of the cell, with mass units
+			aa_transporters_counts: counts of each transporter
+			mechanisitc_uptake: if true, the uptake is calculated based on transporters
 
 		Returns:
 			rate of uptake for each amino acid. array is unitless but
 				represents counts of amino acid per second
 		"""
 
-		return aa_in_media * self.specific_import_rates * dry_mass.asNumber(DRY_MASS_UNITS)
+		if mechanisitc_uptake:
+			# Uptake based on mechanistic model
+			counts_per_aa = self.aa_to_transporters_matrix @ aa_transporters_counts
+			import_rates = self.uptake_kcats_per_aa * counts_per_aa
+		else:
+			import_rates = self.specific_import_rates * dry_mass.asNumber(DRY_MASS_UNITS)
+
+		return import_rates * aa_in_media
 
 	@staticmethod
 	def extract_reactions(raw_data, sim_data):
@@ -849,26 +1166,64 @@ class Metabolism(object):
 		forward_directions = {'L2R', 'BOTH'}
 		reverse_directions = {'R2L', 'BOTH'}
 
+		metabolite_ids = {met['id'] for met in cast(Any, raw_data).metabolites}
+
+		# Build mapping from each complexation subunit to all downstream
+		# complexes containing the subunit, including itself
+		# Start by building mappings from subunits to complexes that are
+		# directly formed from the subunit through a single reaction
+		subunit_id_to_parent_complexes = {} # type: Dict[str, List[str]]
+
+		for comp_reaction in itertools.chain(
+				cast(Any, raw_data).complexation_reactions,
+				cast(Any, raw_data).equilibrium_reactions):
+			complex_id = None
+
+			# Find ID of complex
+			for mol_id, coeff in comp_reaction['stoichiometry'].items():
+				if coeff > 0:
+					complex_id = mol_id
+					break
+
+			assert complex_id is not None
+
+			# Map each subunit to found complex
+			for mol_id, coeff in comp_reaction['stoichiometry'].items():
+				if mol_id == complex_id or mol_id in metabolite_ids:
+					continue
+				elif mol_id in subunit_id_to_parent_complexes:
+					subunit_id_to_parent_complexes[mol_id].append(complex_id)
+				else:
+					subunit_id_to_parent_complexes[mol_id] = [complex_id]
+
+		# Recursive function that returns a list of all downstream complexes
+		# containing the given subunit, including itself
+		def get_all_complexes(subunit_id):
+			all_downstream_complex_ids = [subunit_id]
+
+			if subunit_id not in subunit_id_to_parent_complexes:
+				return all_downstream_complex_ids
+
+			# Get downstream complexes of all parent complexes
+			for parent_complex_id in subunit_id_to_parent_complexes[subunit_id]:
+				all_downstream_complex_ids.extend(get_all_complexes(parent_complex_id))
+
+			# Remove duplicates
+			return sorted(set(all_downstream_complex_ids))
+
+		subunit_id_to_all_downstream_complexes = {
+			subunit_id: get_all_complexes(subunit_id)
+			for subunit_id in subunit_id_to_parent_complexes.keys()
+			}
+
 		# Initialize variables to store reaction information
 		reaction_stoich = {}
 		reversible_reactions = []
 		reaction_catalysts = {}
 
-		# Get IDs of reactions that should be removed
-		removed_metabolic_reaction_ids = {
-			rxn['id'] for rxn in cast(Any, raw_data).metabolic_reactions_removed}
-
 		# Load and parse reaction information from raw_data
-		# TODO (ggsun): Two files will later be merged
-		for reaction in itertools.chain(
-				cast(Any, raw_data).metabolic_reactions,
-				cast(Any, raw_data).protein_modification_reactions):
+		for reaction in cast(Any, raw_data).metabolic_reactions:
 			reaction_id = reaction["id"]
-
-			# Skip removed reactions
-			if reaction_id in removed_metabolic_reaction_ids:
-				continue
-
 			stoich = reaction["stoichiometry"]
 			direction = reaction["direction"]
 
@@ -891,9 +1246,15 @@ class Metabolism(object):
 
 				return new_met_id
 
-			# TODO (ggsun): Add complexes formed by complexing given enzymes
+			# All protein complexes that contain an enzyme subunit are assumed
+			# to retain the enzyme's catalytic activity
 			catalysts_for_this_rxn = []
+			all_potential_catalysts = []
 			for catalyst in reaction["catalyzed_by"]:
+				all_potential_catalysts.extend(
+					subunit_id_to_all_downstream_complexes.get(catalyst, [catalyst]))
+
+			for catalyst in sorted(set(all_potential_catalysts)):
 				if sim_data.getter.is_valid_molecule(catalyst):
 					catalysts_with_loc = catalyst + sim_data.getter.get_compartment_tag(catalyst)
 					catalysts_for_this_rxn.append(catalysts_with_loc)
@@ -1555,12 +1916,13 @@ class Metabolism(object):
 
 # Class used to update metabolite concentrations based on the current nutrient conditions
 class ConcentrationUpdates(object):
-	def __init__(self, concDict, relative_changes, equilibriumReactions, exchange_data_dict, all_metabolite_ids):
+	def __init__(self, concDict, relative_changes, equilibriumReactions, exchange_data_dict, all_metabolite_ids, linked_metabolites):
 		self.units = units.getUnit(list(concDict.values())[0])
 		self.default_concentrations_dict = dict((key, concDict[key].asNumber(self.units)) for key in concDict)
 		self.exchange_fluxes = self._exchange_flux_present(exchange_data_dict)
 		self.relative_changes = relative_changes
 		self._all_metabolite_ids = all_metabolite_ids
+		self.linked_metabolites = linked_metabolites
 
 		# factor of internal amino acid increase if amino acids present in nutrients
 		self.molecule_scale_factors = {
@@ -1569,7 +1931,7 @@ class ConcentrationUpdates(object):
 			"ASN[c]": 2.,
 			"L-ASPARTATE[c]": 2.,
 			"CYS[c]": 2.,
-			"GLT[c]": 1.1,
+			"GLT[c]": 2.,
 			"GLN[c]": 2.,
 			"GLY[c]": 2.,
 			"HIS[c]": 2.,
@@ -1590,11 +1952,15 @@ class ConcentrationUpdates(object):
 		self.molecule_set_amounts = self._add_molecule_amounts(equilibriumReactions, self.default_concentrations_dict)
 
 	# return adjustments to concDict based on nutrient conditions
-	def concentrations_based_on_nutrients(self, media_id=None, conversion_units=None):
+	def concentrations_based_on_nutrients(self, media_id=None, imports=None, conversion_units=None):
+		# type: (Optional[str], Optional[Set[str]], Optional[units.Unum]) -> Dict[str, Any]
 		if conversion_units:
 			conversion = self.units.asNumber(conversion_units)
 		else:
 			conversion = self.units
+
+		if imports is None and media_id is not None:
+			imports = self.exchange_fluxes[media_id]
 
 		concentrationsDict = self.default_concentrations_dict.copy()
 
@@ -1602,7 +1968,7 @@ class ConcentrationUpdates(object):
 		concentrations = conversion * np.array([concentrationsDict[k] for k in metaboliteTargetIds])
 		concDict = dict(zip(metaboliteTargetIds, concentrations))
 
-		if media_id is not None:
+		if imports is not None:
 			# For faster conversions than .asNumber(conversion_units) for each setAmount
 			if conversion_units:
 				conversion_to_no_units = conversion_units.asUnit(self.units)
@@ -1613,14 +1979,15 @@ class ConcentrationUpdates(object):
 					if mol_id in concDict:
 						concDict[mol_id]  *= conc_change
 
-			# Adjust for concentration changes based on presence in media
-			exchanges = self.exchange_fluxes[media_id]
-			for moleculeName, setAmount in six.viewitems(self.molecule_set_amounts):
-				if ((moleculeName in exchanges and (moleculeName[:-3] + "[c]" not in self.molecule_scale_factors or moleculeName == "L-SELENOCYSTEINE[c]"))
-						or (moleculeName in self.molecule_scale_factors and moleculeName[:-3] + "[p]" in exchanges)):
+			for moleculeName, setAmount in self.molecule_set_amounts.items():
+				if ((moleculeName in imports and (moleculeName[:-3] + "[c]" not in self.molecule_scale_factors or moleculeName == "L-SELENOCYSTEINE[c]"))
+						or (moleculeName in self.molecule_scale_factors and moleculeName[:-3] + "[p]" in imports)):
 					if conversion_units:
 						setAmount = (setAmount / conversion_to_no_units).asNumber()
 					concDict[moleculeName] = setAmount
+
+		for met, linked in self.linked_metabolites.items():
+			concDict[met] = concDict[linked['lead']] * linked['ratio']
 
 		return concDict
 
@@ -1628,7 +1995,7 @@ class ConcentrationUpdates(object):
 		# type: (Dict[str, Any]) -> Dict[str, Set[str]]
 		"""
 		Caches the presence of exchanges in each media condition based on
-		exchange_data to set concentrations in concentrationsBasedOnNutrients().
+		exchange_data to set concentrations in concentrations_based_on_nutrients().
 
 		Args:
 			exchange_data: dictionary of exchange data for all media conditions with keys:

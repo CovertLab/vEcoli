@@ -13,7 +13,7 @@ def randCounts(randomState, counts, N):
 	counts = np.array(counts)
 	if counts.shape == ():
 		counts = counts.reshape(1)
-	if np.any(counts < 0) or counts.dtype != np.dtype(np.int):
+	if np.any(counts < 0) or counts.dtype != np.dtype(int):
 		raise Exception("counts must contain positive integers.")
 	if N < 0:
 		raise Exception("N must be positive.")
@@ -71,7 +71,7 @@ def make_elongation_rates_flat(
 		base: unadjusted value for all rates.
 		amplified: indexes of each rate to adjust.
 		ceiling: adjusted rate for amplified indexes.
-		variable_elongation: whether to add amplified values to the array.
+		variable_elongation: words go here.
 
 	Returns:
 	    rates: new array with base and adjusted rates.

@@ -6,7 +6,7 @@ from __future__ import absolute_import, division, print_function
 
 import itertools
 import re
-from typing import Any, List, Union
+from typing import Any, List, Union, Tuple
 
 from Bio.Seq import Seq
 import numpy as np
@@ -32,7 +32,13 @@ UNDEFINED_COMPARTMENT_IDS_TO_ABBREVS = {
 	'CCO-RIBOSOME': 'c',
 }
 
-class GeneDirectionError(Exception):
+IGNORED_DNA_SITE_TYPES = {
+	'dna-binding-site',
+	'phage-attachment-site',
+	'rep-element',
+	}
+
+class TranscriptionDirectionError(Exception):
 	pass
 
 class UnknownMolecularWeightError(Exception):
@@ -48,6 +54,8 @@ class InvalidProteinComplexError(Exception):
 class GetterFunctions(object):
 	""" getterFunctions """
 
+	_compartment_tag = re.compile(r'\[[a-z]]')
+
 	def __init__(self, raw_data, sim_data):
 		self._n_submass_indexes = len(sim_data.submass_name_to_index)
 		self._submass_name_to_index = sim_data.submass_name_to_index
@@ -55,6 +63,7 @@ class GetterFunctions(object):
 		self._build_sequences(raw_data)
 		self._build_all_masses(raw_data, sim_data)
 		self._build_compartments(raw_data, sim_data)
+		self._build_genomic_coordinates(raw_data)
 
 	def get_sequences(self, ids):
 		# type: (Union[List[str], np.ndarray]) -> List[str]
@@ -132,6 +141,15 @@ class GetterFunctions(object):
 		"""
 		return sorted(self._all_submass_arrays.keys() & self._all_compartments.keys())
 
+	def get_genomic_coordinates(self, site_id):
+		# type: (str) -> Tuple[int, int]
+		"""
+		Returns the genomic coordinates of the left and right ends of a DNA site
+		given the ID of the site.
+		"""
+		assert isinstance(site_id, str)
+		return self._all_genomic_coordinates[site_id]
+
 	def _build_sequences(self, raw_data):
 		"""
 		Builds sequences of RNAs and proteins.
@@ -142,14 +160,69 @@ class GetterFunctions(object):
 
 	def _build_rna_sequences(self, raw_data):
 		"""
-		Builds nucleotide sequences of each RNA using the genome sequence and
-		the transcription start sites and lengths of the corresponding gene.
+		Builds nucleotide sequences of each transcription unit using the genome
+		sequence and the left and right end positions.
 		"""
-		# Get mapping from rna_id to gene_id
-		rna_id_to_gene_id = {
-			gene['rna_id']: gene['id'] for gene in raw_data.genes}
+		genome_sequence = raw_data.genome_sequence
 
-		# Get coordinates and directions of each gene
+		def parse_sequence(tu_id, left_end_pos, right_end_pos, direction):
+			"""
+			Parses genome sequence to get transcription unit sequence, given
+			left and right end positions and transcription direction (Note:
+			the left and right end positions in the raw data files are given as
+			1-indexed coordinates)
+			"""
+			if direction == '+':
+				return genome_sequence[left_end_pos - 1 : right_end_pos].transcribe()
+			elif direction == '-':
+				return genome_sequence[left_end_pos - 1 : right_end_pos].reverse_complement().transcribe()
+			else:
+				raise TranscriptionDirectionError(
+					f"Unidentified transcription direction given for {tu_id}")
+
+		# Get set of valid gene IDs that have positions on the chromosome
+		valid_gene_ids = {
+			gene['id'] for gene in raw_data.genes
+			if gene['left_end_pos'] is not None
+			and gene['right_end_pos'] is not None
+			}
+
+		# Set of gene IDs that are covered by listed transcription units
+		covered_gene_ids = set()
+
+		# Keep track of common names to remove duplicate TUs that cover the same
+		# set of genes but have different left & right end coordinates. The
+		# first TU that covers the given set of genes will always be selected.
+		# TODO (ggsun): consider picking longest?
+		all_tu_common_names = set()
+
+		# Add sequences from transcription_units file
+		for tu in raw_data.transcription_units:
+			# Skip duplicate TUs
+			if tu['common_name'] in all_tu_common_names:
+				continue
+			else:
+				all_tu_common_names.add(tu['common_name'])
+
+			# Skip TUs that cover any gene without specified positions
+			if not set(tu['genes']) < valid_gene_ids:
+				continue
+
+			left_end_pos = tu['left_end_pos']
+			right_end_pos = tu['right_end_pos']
+			assert left_end_pos is not None and right_end_pos is not None
+
+			# Keep track of genes that are covered
+			covered_gene_ids |= set(tu['genes'])
+
+			self._sequences[tu['id']] = parse_sequence(
+				tu['id'], left_end_pos, right_end_pos, tu['direction'])
+
+		# Add sequences of individual RNAs that are not part of any
+		# transcription unit (these genes are assumed to be transcribed as
+		# monocistronic transcription units)
+		rna_id_to_gene_id = {
+			gene['rna_ids'][0]: gene['id'] for gene in raw_data.genes}
 		gene_id_to_left_end_pos = {
 			gene['id']: gene['left_end_pos'] for gene in raw_data.genes
 			}
@@ -160,35 +233,28 @@ class GetterFunctions(object):
 			gene['id']: gene['direction'] for gene in raw_data.genes
 			}
 
-		# Get RNA sequences from genome sequence
-		genome_sequence = raw_data.genome_sequence
-		all_rna_ids = list(set([rna['id'] for rna in raw_data.rnas]))
+		all_rna_ids = sorted(set([rna['id'] for rna in raw_data.rnas]))
 
 		for rna_id in all_rna_ids:
 			# Skip RNAs without associated genes
 			if rna_id not in rna_id_to_gene_id:
 				continue
-			else:
-				gene_id = rna_id_to_gene_id[rna_id]
-				left_end_pos = gene_id_to_left_end_pos[gene_id]
-				right_end_pos = gene_id_to_right_end_pos[gene_id]
 
-				# Skip RNAs without gene end positions
-				if left_end_pos is None or right_end_pos is None:
-					continue
-				else:
-					# Parse genome sequence to get RNA sequence (Note:
-					# positions in genes.tsv are given as 1-indexed
-					# coordinates)
-					if gene_id_to_direction[gene_id] == '+':
-						seq = genome_sequence[left_end_pos - 1 : right_end_pos].transcribe()
-					elif gene_id_to_direction[gene_id] == '-':
-						seq = genome_sequence[left_end_pos - 1 : right_end_pos].reverse_complement().transcribe()
-					else:
-						raise GeneDirectionError(
-							f'Unidentified gene direction given for {gene_id}')
+			gene_id = rna_id_to_gene_id[rna_id]
 
-			self._sequences[rna_id] = seq
+			# Skip RNAs that are already covered by transcription units
+			if gene_id in covered_gene_ids:
+				continue
+
+			# Skip RNAs without gene end positions
+			if gene_id not in valid_gene_ids:
+				continue
+
+			left_end_pos = gene_id_to_left_end_pos[gene_id]
+			right_end_pos = gene_id_to_right_end_pos[gene_id]
+
+			self._sequences[rna_id] = parse_sequence(
+				rna_id, left_end_pos, right_end_pos, gene_id_to_direction[gene_id])
 
 	def _build_protein_sequences(self, raw_data):
 		"""
@@ -244,7 +310,6 @@ class GetterFunctions(object):
 			)
 
 		self._mass_units = units.g / units.mol
-		self._compartment_tag = re.compile(r'\[[a-z]]')
 
 		# Build dictionary of total masses of each molecule
 		self._all_total_masses = {
@@ -293,7 +358,8 @@ class GetterFunctions(object):
 		of polymerized NTPs.
 		"""
 		rnas_with_seqs = [
-			rna['id'] for rna in raw_data.rnas if rna['id'] in self._sequences]
+			rna['id'] for rna in itertools.chain(raw_data.rnas, raw_data.transcription_units)
+			if rna['id'] in self._sequences]
 
 		# Get RNA nucleotide compositions
 		rna_seqs = self.get_sequences(rnas_with_seqs)
@@ -313,9 +379,21 @@ class GetterFunctions(object):
 
 		mws = nt_counts.dot(polymerized_ntp_mws) + ppi_mw  # Add end weight
 
-		rna_id_to_type = {
-			rna['id']: rna['type'] for rna in raw_data.rnas
+		gene_id_to_rna_id = {
+			gene['id']: gene['rna_ids'][0] for gene in raw_data.genes
 			}
+		rna_id_to_type = {rna['id']: rna['type'] for rna in raw_data.rnas}
+		for tu in raw_data.transcription_units:
+			tu_rna_types = [
+				rna_id_to_type[gene_id_to_rna_id[gene]] for gene in tu['genes']]
+
+			if len(set(tu_rna_types)) > 1:
+				raise ValueError(f'Transcription unit {tu["id"]} includes '
+					f'cistrons that encode for two or more different types of '
+					f'RNAs, which is not supported by this version of the '
+					f'model and thus should be removed.')
+			
+			rna_id_to_type[tu['id']] = tu_rna_types[0]
 
 		return {
 			rna_id: self._build_submass_array(
@@ -397,17 +475,8 @@ class GetterFunctions(object):
 			modified_rna_id for rna in raw_data.rnas
 			for modified_rna_id in rna['modified_forms']}
 
-		# Get IDs of charging reactions that should be removed
-		removed_charging_reaction_ids = {
-			rxn['id'] for rxn in raw_data.trna_charging_reactions_removed
-			}
-
 		# Loop through each charging reaction
 		for rxn in raw_data.trna_charging_reactions:
-			# Skip removed reactions
-			if rxn['id'] in removed_charging_reaction_ids:
-				continue
-
 			# Find molecule IDs whose masses are still unknown
 			unknown_mol_ids = [
 				mol_id for mol_id in rxn['stoichiometry'].keys()
@@ -446,21 +515,11 @@ class GetterFunctions(object):
 		"""
 		protein_complex_masses = {}
 
-		# Get IDs of complexation/equilibrium reactions that should be removed
-		removed_reaction_ids = {
-			rxn['id'] for rxn in itertools.chain(
-				raw_data.complexation_reactions_removed,
-				raw_data.equilibrium_reactions_removed)
-			}
-
 		# Build mapping from complex ID to its subunit stoichiometry
 		complex_id_to_stoich = {}
 
 		for rxn in itertools.chain(
 				raw_data.complexation_reactions, raw_data.equilibrium_reactions):
-			# Skip removed reactions
-			if rxn['id'] in removed_reaction_ids:
-				continue
 
 			# Get the ID of the complex and the stoichiometry of subunits
 			complex_ids = []
@@ -541,7 +600,9 @@ class GetterFunctions(object):
 		# RNAs, modified RNAs, and full chromosomes only localize to the
 		# cytosol
 		self._all_compartments.update({
-			rna['id']: ['c'] for rna in raw_data.rnas
+			rna['id']: ['c'] for rna
+			in itertools.chain(raw_data.rnas, raw_data.transcription_units)
+			if rna['id'] in self._sequences
 			})
 		self._all_compartments.update({
 			modified_rna_id: ['c'] for rna in raw_data.rnas
@@ -560,15 +621,15 @@ class GetterFunctions(object):
 		# information is given, the protein is assumed to localize to the
 		# cytosol.
 		for protein in raw_data.proteins:
-			exp_location = protein['exp_location']
-			comp_location = protein['comp_location']
+			exp_compartment = protein['experimental_compartment']
+			comp_compartment = protein['computational_compartment']
 
-			if len(exp_location) + len(comp_location) == 0:
+			if len(exp_compartment) + len(comp_compartment) == 0:
 				compartment = 'CCO-CYTOSOL'
-			elif len(exp_location) > 0:
-				compartment = exp_location[0]
+			elif len(exp_compartment) > 0:
+				compartment = exp_compartment[0]
 			else:
-				compartment = comp_location[0]
+				compartment = comp_compartment[0]
 
 			self._all_compartments.update({
 				protein['id']: [compartment_ids_to_abbreviations[compartment]]
@@ -621,23 +682,12 @@ class GetterFunctions(object):
 		protein_complex_compartments = {}
 		metabolite_ids = {met['id'] for met in raw_data.metabolites}
 
-		# Get IDs of complexation/equilibrium reactions that should be removed
-		removed_reaction_ids = {
-			rxn['id'] for rxn in itertools.chain(
-				raw_data.complexation_reactions_removed,
-				raw_data.equilibrium_reactions_removed)
-			}
-
 		# Build mapping from complex ID to its subunit IDs
 		complex_id_to_subunit_ids = {}
 
 		for rxn in itertools.chain(
 				raw_data.complexation_reactions,
 				raw_data.equilibrium_reactions):
-			# Skip removed reactions
-			if rxn['id'] in removed_reaction_ids:
-				continue
-
 			# Get the ID of the complex and the stoichiometry of subunits
 			complex_id = None
 			subunit_ids = []
@@ -692,3 +742,16 @@ class GetterFunctions(object):
 				{complex_id: get_compartment(complex_id)})
 
 		return protein_complex_compartments
+
+	def _build_genomic_coordinates(self, raw_data):
+		"""
+		Builds a dictionary of genomic coordinates of DNA sites. Keys are the
+		IDs of the sites, and the values are tuples of the left-end coordinate
+		and the right-end coordinate of the site. Sites whose types are included
+		in IGNORED_DNA_SITE_TYPES are ignored.
+		"""
+		self._all_genomic_coordinates = {
+			site['id']: (site['left_end_pos'], site['right_end_pos'])
+			for site in raw_data.dna_sites
+			if site['type'] not in IGNORED_DNA_SITE_TYPES
+			}

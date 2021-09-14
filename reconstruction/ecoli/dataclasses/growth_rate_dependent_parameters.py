@@ -2,18 +2,14 @@
 SimulationData mass data
 """
 
-from __future__ import absolute_import, division, print_function
-
 from typing import Tuple
 
 import numpy as np
 from scipy import interpolate, stats
 import unum
 
-from wholecell.utils import units
-from six.moves import range
+from wholecell.utils import fitting, units
 import six
-from six.moves import zip
 
 
 NORMAL_CRITICAL_MASS = 975 * units.fg
@@ -108,8 +104,8 @@ class Mass(object):
 		return massParams
 
 	def _build_CD_periods(self, raw_data, sim_data):
-		self.c_period = sim_data.growth_rate_parameters.c_period
-		self.d_period = sim_data.growth_rate_parameters.d_period
+		self._c_period = sim_data.constants.c_period
+		self._d_period = sim_data.constants.d_period
 
 	# Set based on growth rate avgCellDryMass
 	def get_avg_cell_dry_mass(self, doubling_time):
@@ -329,11 +325,9 @@ class Mass(object):
 		return dict(zip(metaboliteIDs, metaboliteConcentrations))
 
 	def _calculateGrowthRateDependentDnaMass(self, doubling_time):
-		C_PERIOD = self.c_period
-		D_PERIOD = self.d_period
-		CD_PERIOD = C_PERIOD + D_PERIOD
+		c_plus_d_period = self._c_period + self._d_period
 
-		if doubling_time < D_PERIOD:
+		if doubling_time < self._d_period:
 			raise Exception(
 				"Can't have doubling time shorter than cytokinesis time!")
 
@@ -343,9 +337,9 @@ class Mass(object):
 		# It is optimized to run quickly over the range of T_d
 		# and C and D periods that we have.
 		return self.chromosome_sequence_mass * (1 +
-												1 * (np.maximum(0. * doubling_time_unit, CD_PERIOD - doubling_time) / C_PERIOD) +
-												2 * (np.maximum(0. * doubling_time_unit, CD_PERIOD - 2 * doubling_time) / C_PERIOD) +
-												4 * (np.maximum(0. * doubling_time_unit, CD_PERIOD - 4 * doubling_time) / C_PERIOD)
+												1 * (np.maximum(0. * doubling_time_unit, c_plus_d_period - doubling_time) / self._c_period) +
+												2 * (np.maximum(0. * doubling_time_unit, c_plus_d_period - 2 * doubling_time) / self._c_period) +
+												4 * (np.maximum(0. * doubling_time_unit, c_plus_d_period - 4 * doubling_time) / self._c_period)
 												)
 
 	def _clipTau_d(self, doubling_time):
@@ -405,12 +399,12 @@ class GrowthRateParameters(object):
 		self.RNAP_elongation_rate_params = _get_fit_parameters(raw_data.growth_rate_dependent_parameters, "rnaPolymeraseElongationRate")
 		self.RNAP_active_fraction_params = _get_fit_parameters(raw_data.growth_rate_dependent_parameters, "fractionActiveRnap")
 		self.ribosome_active_fraction_params = _get_fit_parameters(raw_data.growth_rate_dependent_parameters, "fractionActiveRibosome")
-		self.ppGpp_concentration = _get_fit_parameters(raw_data.growth_rate_dependent_parameters, "ppGpp_conc")
 
-		self._per_dry_mass_to_per_volume = sim_data.constants.cell_density * (1. - raw_data.mass_parameters['cell_water_mass_fraction'])
-		self.c_period = units.min * 40.
-		self.d_period = units.min * 20.
-		self.replisome_elongation_rate = units.nt / units.s * 967.
+		# ppGpp concentration by linear fit
+		self.per_dry_mass_to_per_volume = sim_data.constants.cell_density * (1. - raw_data.mass_parameters['cell_water_mass_fraction'])
+		doubling_time = _loadRow('doublingTime', raw_data.growth_rate_dependent_parameters)
+		ppgpp_conc = _loadRow('ppGpp_conc', raw_data.growth_rate_dependent_parameters) * self.per_dry_mass_to_per_volume
+		self._ppGpp_concentration = _get_linearized_fit(doubling_time, ppgpp_conc)
 
 	def get_ribosome_elongation_rate(self, doubling_time):
 		return _useFitParameters(doubling_time, **self.ribosome_elongation_rate_params)
@@ -425,7 +419,7 @@ class GrowthRateParameters(object):
 		return _useFitParameters(doubling_time, **self.ribosome_active_fraction_params)
 
 	def get_ppGpp_conc(self, doubling_time):
-		return _useFitParameters(doubling_time, **self.ppGpp_concentration) * self._per_dry_mass_to_per_volume
+		return _use_linearized_fit(doubling_time, self._ppGpp_concentration)
 
 def _get_fit_parameters(list_of_dicts, key):
 	# Load rows of data
@@ -454,6 +448,25 @@ def _get_fit_parameters(list_of_dicts, key):
 
 	return {'function': cs, 'x_units': x_units, 'y_units': y_units, 'dtype': y.dtype}
 
+def _get_linearized_fit(x, y, **kwargs):
+	if units.hasUnit(x):
+		x_units = units.getUnit(x)
+		x = x.asNumber(x_units)
+	else:
+		x_units = None
+	if units.hasUnit(y):
+		y_units = units.getUnit(y)
+		y = y.asNumber(y_units)
+	else:
+		y_units = 1.
+
+	return x_units, y_units, fitting.fit_linearized_transforms(x, y, **kwargs)
+
+def _use_linearized_fit(x, params):
+	x_units, y_units, fit_params = params
+	x_unitless = x if x_units is None else x.asNumber(x_units)
+	return y_units * fitting.interpolate_linearized_fit(x_unitless, *fit_params)
+
 def _useFitParameters(x_new, function, x_units, y_units, dtype):
 	# Convert to same unit base
 	if units.hasUnit(x_units):
@@ -466,7 +479,7 @@ def _useFitParameters(x_new, function, x_units, y_units, dtype):
 
 	# If value should be an integer (i.e. an elongation rate)
 	# round to the nearest integer
-	if dtype == np.int:
+	if dtype == int:
 		y_new = int(np.round(y_new))
 
 	return y_units * y_new

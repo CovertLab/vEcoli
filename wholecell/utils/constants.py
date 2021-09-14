@@ -1,12 +1,14 @@
 '''
 constants.py
 
-Simulation constants.  Biological constants should go into the knowledge base;
-configurable constants belong in the default_config.cfg file.
+Simulation constants.  Biological constants should go into the knowledge base.
 '''
 
 from __future__ import absolute_import, division, print_function
 
+
+OPERON_OPTIONS = ('off', 'on')  # TODO(jerry): add 'both'
+DEFAULT_OPERON_OPTION = 'off'
 
 SERIALIZED_RAW_DATA = "rawData.cPickle"
 SERIALIZED_RAW_VALIDATION_DATA = "rawValidationData.cPickle"

@@ -115,22 +115,21 @@ class SimulationDataEcoli(object):
 	def _add_condition_data(self, raw_data):
 		abbrToActiveId = {x["TF"]: x["activeId"].split(", ") for x in raw_data.transcription_factors if len(x["activeId"]) > 0}
 		gene_id_to_rna_id = {
-			gene['id']: gene['rna_id'] for gene in raw_data.genes}
+			gene['id']: gene['rna_ids'][0] for gene in raw_data.genes}
 		gene_symbol_to_rna_id = {
-			gene['symbol']: gene['rna_id'] for gene in raw_data.genes}
+			gene['symbol']: gene['rna_ids'][0] for gene in raw_data.genes}
 		gene_symbol_to_rna_id.update({
 			x["name"]: gene_id_to_rna_id[x["geneId"]]
 			for x in raw_data.translation_efficiency
 			if x["geneId"] != "#N/A"})
 
 		rna_ids_with_coordinates = {
-			gene['rna_id'] for gene in raw_data.genes
+			gene['rna_ids'][0] for gene in raw_data.genes
 			if gene['left_end_pos'] is not None and gene['right_end_pos'] is not None}
 
 		self.tf_to_fold_change = {}
 		self.tf_to_direction = {}
 
-		removed_fcs = {(row['TF'], row['Target']) for row in raw_data.fold_changes_removed}
 		for fc_file in ['fold_changes', 'fold_changes_nca']:
 			gene_not_found = set()
 			tf_not_found = set()
@@ -138,10 +137,6 @@ class SimulationDataEcoli(object):
 
 			for row in getattr(raw_data, fc_file):
 				FC = row['log2 FC mean']
-
-				# Skip fold changes that have been removed
-				if (row['TF'], row['Target']) in removed_fcs:
-					continue
 
 				# Skip fold changes that do not agree with curation
 				if row['Regulation_direct'] != '' and row['Regulation_direct'] > 2:
@@ -271,7 +266,7 @@ class SimulationDataEcoli(object):
 
 		ppgpp = self.growth_rate_parameters.get_ppGpp_conc(
 			self.condition_to_doubling_time[condition])
-		delta_prob = self.process.transcription_regulation.get_delta_prob_matrix()
+		delta_prob = self.process.transcription_regulation.get_delta_prob_matrix(ppgpp=True)
 		p_promoter_bound = np.array([
 			self.pPromoterBound[condition][tf]
 			for tf in self.process.transcription_regulation.tf_ids
@@ -279,6 +274,12 @@ class SimulationDataEcoli(object):
 		delta = delta_prob @ p_promoter_bound
 		prob, factor = self.process.transcription.synth_prob_from_ppgpp(
 			ppgpp, self.process.replication.get_average_copy_number)
-		rna_expression = (prob + delta) / factor
+		rna_expression = prob * (1 + delta) / factor
+
+		# For cases with no basal ppGpp expression, assume the delta prob is the
+		# same as without ppGpp control
+		mask = prob == 0
+		rna_expression[mask] = delta[mask] / factor[mask]
+
 		rna_expression[rna_expression < 0] = 0
 		return normalize(rna_expression)

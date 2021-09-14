@@ -5,12 +5,10 @@ TODO: establish a controlled language for function behaviors (i.e. create* set* 
 TODO: functionalize so that values are not both set and returned from some methods
 """
 
-from __future__ import absolute_import, division, print_function
-
+import binascii
 import functools
 import itertools
 import os
-import sys
 import time
 import traceback
 from typing import Callable, List
@@ -19,14 +17,15 @@ from arrow import StochasticSystem
 from cvxpy import Variable, Problem, Minimize, norm
 import numpy as np
 import scipy.optimize
+import scipy.sparse
 import six
 from six.moves import cPickle, range, zip
 
+from reconstruction.ecoli.initialization import create_bulk_container
 from reconstruction.ecoli.simulation_data import SimulationDataEcoli
 from wholecell.containers.bulk_objects_container import BulkObjectsContainer
 from wholecell.utils import filepath, parallelization, units
 from wholecell.utils.fitting import normalize, masses_and_counts_for_homeostatic_target
-from wholecell.utils import parallelization
 
 
 # Fitting parameters
@@ -41,7 +40,7 @@ PROMOTER_SCALING = 10  # Multiplied to all matrices for numerical stability
 PROMOTER_NORM_TYPE = 1  # Matrix 1-norm
 PROMOTER_MAX_ITERATIONS = 100
 PROMOTER_CONVERGENCE_THRESHOLD = 1e-9
-ECOS_0_TOLERANCE = 1e-12  # Tolerance to adjust solver output to 0
+ECOS_0_TOLERANCE = 1e-10  # Tolerance to adjust solver output to 0
 
 BASAL_EXPRESSION_CONDITION = "M9 Glucose minus AAs"
 
@@ -66,6 +65,13 @@ def fitSimData_1(raw_data, **kwargs):
 		debug (bool) - if True, fit only one arbitrarily-chosen transcription
 			factor in order to speed up a debug cycle (should not be used for
 			an actual simulation)
+		save_intermediates (bool) - if True, save the state (sim_data and cell_specs)
+			to disk in intermediates_directory after each Parca step
+		intermediates_directory (str) - path to the directory to save intermediate
+			sim_data and cell_specs files to
+		load_intermediate (str) - the function name of the Parca step to load
+			sim_data and cell_specs from; functions prior to and including this
+			will be skipped but all following functions will run
 		variable_elongation_transcription (bool) - enable variable elongation
 			for transcription
 		variable_elongation_translation (bool) - enable variable elongation for
@@ -190,20 +196,20 @@ def input_adjustments(sim_data, cell_specs, debug=False, **kwargs):
 	setRNADegRates(sim_data)
 	setProteinDegRates(sim_data)
 
-	# TODO (ggsun): Make this part of dataclasses/process/replication.py?
-	# Set C-period
-	setCPeriod(sim_data)
-
 	return sim_data, cell_specs
 
 @save_state
 def basal_specs(sim_data, cell_specs,
 		disable_ribosome_capacity_fitting=False, disable_rnapoly_capacity_fitting=False,
+		variable_elongation_transcription=True, variable_elongation_translation=False,
 		**kwargs):
+
 	cell_specs = buildBasalCellSpecifications(
 		sim_data,
+		variable_elongation_transcription,
+		variable_elongation_translation,
 		disable_ribosome_capacity_fitting,
-		disable_rnapoly_capacity_fitting
+		disable_rnapoly_capacity_fitting,
 		)
 
 	# Set expression based on ppGpp regulation from basal expression
@@ -226,14 +232,16 @@ def basal_specs(sim_data, cell_specs,
 @save_state
 def tf_condition_specs(sim_data, cell_specs, cpus=1,
 		disable_ribosome_capacity_fitting=False, disable_rnapoly_capacity_fitting=False,
-		variable_elongation_transcription=False, variable_elongation_translation=False,
+		variable_elongation_transcription=True, variable_elongation_translation=False,
 		**kwargs):
 	# Limit the number of CPUs before printing it to stdout.
 	cpus = parallelization.cpus(cpus)
 
 	# Apply updates to cell_specs from buildTfConditionCellSpecifications for each TF condition
 	conditions = list(sorted(sim_data.tf_to_active_inactive_conditions))
-	args = [(sim_data, tf, disable_ribosome_capacity_fitting, disable_rnapoly_capacity_fitting)
+	args = [
+		(sim_data, tf, variable_elongation_transcription, variable_elongation_translation,
+				disable_ribosome_capacity_fitting, disable_rnapoly_capacity_fitting)
 		for tf in conditions]
 	apply_updates(buildTfConditionCellSpecifications, args, conditions, cell_specs, cpus)
 
@@ -243,6 +251,7 @@ def tf_condition_specs(sim_data, cell_specs, cpus=1,
 
 		sim_data.process.transcription.rna_expression[conditionKey] = cell_specs[conditionKey]["expression"]
 		sim_data.process.transcription.rna_synth_prob[conditionKey] = cell_specs[conditionKey]["synthProb"]
+		sim_data.process.transcription.cistron_expression[conditionKey] = cell_specs[conditionKey]['cistron_expression']
 
 	buildCombinedConditionCellSpecifications(
 		sim_data,
@@ -282,7 +291,6 @@ def promoter_binding(sim_data, cell_specs, **kwargs):
 def adjust_promoters(sim_data, cell_specs, **kwargs):
 	# noinspection PyTypeChecker
 	fitLigandConcentrations(sim_data, cell_specs)
-
 	calculateRnapRecruitment(sim_data, cell_specs)
 
 	return sim_data, cell_specs
@@ -306,7 +314,7 @@ def set_conditions(sim_data, cell_specs, **kwargs):
 			print("Updating mass in condition {}".format(condition_label))
 		spec = cell_specs[condition_label]
 
-		concDict = sim_data.process.metabolism.concentration_updates.concentrations_based_on_nutrients(nutrients)
+		concDict = sim_data.process.metabolism.concentration_updates.concentrations_based_on_nutrients(media_id=nutrients)
 		concDict.update(sim_data.mass.getBiomassAsConcentrations(sim_data.condition_to_doubling_time[condition_label]))
 
 		avgCellDryMassInit, fitAvgSolublePoolMass = rescaleMassForSolubleMetabolites(
@@ -332,11 +340,11 @@ def set_conditions(sim_data, cell_specs, **kwargs):
 					}
 
 			if nutrients not in sim_data.process.transcription.rnaSynthProbRProtein:
-				prob = sim_data.process.transcription.rna_synth_prob[condition_label][sim_data.process.transcription.rna_data['is_ribosomal_protein']]
+				prob = sim_data.process.transcription.rna_synth_prob[condition_label][sim_data.process.transcription.rna_data['includes_ribosomal_protein']]
 				sim_data.process.transcription.rnaSynthProbRProtein[nutrients] = prob
 
 			if nutrients not in sim_data.process.transcription.rnaSynthProbRnaPolymerase:
-				prob = sim_data.process.transcription.rna_synth_prob[condition_label][sim_data.process.transcription.rna_data['is_RNAP']]
+				prob = sim_data.process.transcription.rna_synth_prob[condition_label][sim_data.process.transcription.rna_data['includes_RNAP']]
 				sim_data.process.transcription.rnaSynthProbRnaPolymerase[nutrients] = prob
 
 			if nutrients not in sim_data.process.transcription.rnapFractionActiveDict:
@@ -370,8 +378,15 @@ def final_adjustments(sim_data, cell_specs, **kwargs):
 	sim_data.process.transcription.adjust_ppgpp_expression_for_tfs(sim_data)
 
 	# Set supply constants for amino acids based on condition supply requirements
+	average_basal_container = create_bulk_container(sim_data, n_seeds=5)
+	average_with_aa_container = create_bulk_container(sim_data, condition='with_aa', n_seeds=5)
 	sim_data.process.metabolism.set_phenomological_supply_constants(sim_data)
-	sim_data.process.metabolism.set_mechanistic_supply_constants(sim_data, cell_specs)
+	sim_data.process.metabolism.set_mechanistic_supply_constants(sim_data, cell_specs,
+		average_basal_container, average_with_aa_container)
+	sim_data.process.metabolism.set_mechanistic_export_constants(sim_data, cell_specs,
+		average_basal_container)
+	sim_data.process.metabolism.set_mechanistic_uptake_constants(sim_data, cell_specs,
+		average_with_aa_container)
 
 	return sim_data, cell_specs
 
@@ -427,8 +442,10 @@ def apply_updates(func, args, labels, dest, cpus):
 
 def buildBasalCellSpecifications(
 		sim_data,
+		variable_elongation_transcription=True,
+		variable_elongation_translation=False,
 		disable_ribosome_capacity_fitting=False,
-		disable_rnapoly_capacity_fitting=False
+		disable_rnapoly_capacity_fitting=False,
 		):
 	"""
 	Creates cell specifications for the basal condition by fitting expression.
@@ -450,6 +467,7 @@ def buildBasalCellSpecifications(
 	Modifies
 	--------
 	- Average mass values of the cell
+	- cistron expression
 	- RNA expression and synthesis probabilities
 
 	Returns
@@ -457,6 +475,9 @@ def buildBasalCellSpecifications(
 	- dict {'basal': dict} with the following keys in the dict from key 'basal':
 		'concDict' {metabolite_name (str): concentration (float with units)} -
 			dictionary of concentrations for each metabolite with a concentration
+		'cistron_expression' (array of floats) - hypothetical expression for
+			each RNA cistron, total normalized to 1, if all transcription units
+			were monocistronic
 		'expression' (array of floats) - expression for each RNA, total normalized to 1
 		'doubling_time' (float with units) - cell doubling time
 		'synthProb' (array of floats) - synthesis probability for each RNA,
@@ -475,17 +496,19 @@ def buildBasalCellSpecifications(
 	# Create dictionary for basal condition
 	cell_specs = {}
 	cell_specs["basal"] = {
-		"concDict": sim_data.process.metabolism.concentration_updates.concentrations_based_on_nutrients("minimal"),
+		"concDict": sim_data.process.metabolism.concentration_updates.concentrations_based_on_nutrients(media_id="minimal"),
 		"expression": sim_data.process.transcription.rna_expression["basal"].copy(),
 		"doubling_time": sim_data.condition_to_doubling_time["basal"],
 		}
 
 	# Determine expression and synthesis probabilities
-	expression, synthProb, avgCellDryMassInit, fitAvgSolubleTargetMolMass, bulkContainer, _ = expressionConverge(
+	expression, synthProb, cistron_expression, avgCellDryMassInit, fitAvgSolubleTargetMolMass, bulkContainer, _ = expressionConverge(
 		sim_data,
 		cell_specs["basal"]["expression"],
 		cell_specs["basal"]["concDict"],
 		cell_specs["basal"]["doubling_time"],
+		variable_elongation_transcription = variable_elongation_transcription,
+		variable_elongation_translation = variable_elongation_translation,
 		disable_ribosome_capacity_fitting = disable_ribosome_capacity_fitting,
 		disable_rnapoly_capacity_fitting = disable_rnapoly_capacity_fitting
 		)
@@ -493,6 +516,7 @@ def buildBasalCellSpecifications(
 	# Store calculated values
 	cell_specs["basal"]["expression"] = expression
 	cell_specs["basal"]["synthProb"] = synthProb
+	cell_specs["basal"]["cistron_expression"] = cistron_expression
 	cell_specs["basal"]["avgCellDryMassInit"] = avgCellDryMassInit
 	cell_specs["basal"]["fitAvgSolubleTargetMolMass"] = fitAvgSolubleTargetMolMass
 	cell_specs["basal"]["bulkContainer"] = bulkContainer
@@ -506,14 +530,17 @@ def buildBasalCellSpecifications(
 	# Modify sim_data expression
 	sim_data.process.transcription.rna_expression["basal"][:] = cell_specs["basal"]["expression"]
 	sim_data.process.transcription.rna_synth_prob["basal"][:] = cell_specs["basal"]["synthProb"]
+	sim_data.process.transcription.cistron_expression["basal"][:] = cell_specs["basal"]["cistron_expression"]
 
 	return cell_specs
 
 def buildTfConditionCellSpecifications(
 		sim_data,
 		tf,
+		variable_elongation_transcription=True,
+		variable_elongation_translation=False,
 		disable_ribosome_capacity_fitting=False,
-		disable_rnapoly_capacity_fitting=False
+		disable_rnapoly_capacity_fitting=False,
 		):
 	"""
 	Creates cell specifications for a given transcription factor by
@@ -533,7 +560,7 @@ def buildTfConditionCellSpecifications(
 	Requires
 	--------
 	- Metabolite concentrations based on nutrients for the TF
-	- Adjusted 'basal' RNA expression
+	- Adjusted 'basal' cistron expression
 	- Doubling time for the TF
 	- Fold changes in expression for each gene given the TF
 
@@ -546,6 +573,9 @@ def buildTfConditionCellSpecifications(
 		'doubling_time' (float with units) - cell doubling time
 		'synthProb' (array of floats) - synthesis probability for each RNA,
 			total normalized to 1
+		'cistron_expression' (array of floats) - hypothetical expression for
+			each RNA cistron, total normalized to 1, if all transcription units
+			were monocistronic
 		'avgCellDryMassInit' (float with units) - average initial cell dry mass
 		'fitAvgSolubleTargetMolMass' (float with units) - the adjusted dry mass
 			of the soluble fraction of a cell
@@ -568,15 +598,14 @@ def buildTfConditionCellSpecifications(
 			for key, value in six.viewitems(fcDataTmp):
 				fcData[key] = 1. / value
 		expression = expressionFromConditionAndFoldChange(
-			sim_data.process.transcription.rna_data["id"],
-			sim_data.process.transcription.rna_expression["basal"],
+			sim_data.process.transcription,
 			conditionValue["perturbations"],
 			fcData,
 			)
 
 		# Get metabolite concentrations for the condition
 		concDict = sim_data.process.metabolism.concentration_updates.concentrations_based_on_nutrients(
-			conditionValue["nutrients"]
+			media_id=conditionValue["nutrients"]
 			)
 		concDict.update(sim_data.mass.getBiomassAsConcentrations(sim_data.condition_to_doubling_time[conditionKey]))
 
@@ -591,12 +620,14 @@ def buildTfConditionCellSpecifications(
 			}
 
 		# Determine expression and synthesis probabilities
-		expression, synthProb, avgCellDryMassInit, fitAvgSolubleTargetMolMass, bulkContainer, concDict = expressionConverge(
+		expression, synthProb, cistron_expression, avgCellDryMassInit, fitAvgSolubleTargetMolMass, bulkContainer, concDict = expressionConverge(
 			sim_data,
 			cell_specs[conditionKey]["expression"],
 			cell_specs[conditionKey]["concDict"],
 			cell_specs[conditionKey]["doubling_time"],
 			sim_data.process.transcription.rna_data['Km_endoRNase'],
+			variable_elongation_transcription = variable_elongation_transcription,
+			variable_elongation_translation = variable_elongation_translation,
 			disable_ribosome_capacity_fitting = disable_ribosome_capacity_fitting,
 			disable_rnapoly_capacity_fitting = disable_rnapoly_capacity_fitting
 			)
@@ -604,6 +635,7 @@ def buildTfConditionCellSpecifications(
 		# Store calculated values
 		cell_specs[conditionKey]["expression"] = expression
 		cell_specs[conditionKey]["synthProb"] = synthProb
+		cell_specs[conditionKey]['cistron_expression'] = cistron_expression
 		cell_specs[conditionKey]["avgCellDryMassInit"] = avgCellDryMassInit
 		cell_specs[conditionKey]["fitAvgSolubleTargetMolMass"] = fitAvgSolubleTargetMolMass
 		cell_specs[conditionKey]["bulkContainer"] = bulkContainer
@@ -613,7 +645,7 @@ def buildTfConditionCellSpecifications(
 def buildCombinedConditionCellSpecifications(
 		sim_data,
 		cell_specs,
-		variable_elongation_transcription=False,
+		variable_elongation_transcription=True,
 		variable_elongation_translation=False,
 		disable_ribosome_capacity_fitting=False,
 		disable_rnapoly_capacity_fitting=False):
@@ -666,15 +698,14 @@ def buildCombinedConditionCellSpecifications(
 				fcData[gene] = fcData.get(gene, 1) / fc
 
 		expression = expressionFromConditionAndFoldChange(
-			sim_data.process.transcription.rna_data["id"],
-			sim_data.process.transcription.rna_expression["basal"],
+			sim_data.process.transcription,
 			conditionValue["perturbations"],
 			fcData,
 			)
 
 		# Get metabolite concentrations for the condition
 		concDict = sim_data.process.metabolism.concentration_updates.concentrations_based_on_nutrients(
-			conditionValue["nutrients"]
+			media_id=conditionValue["nutrients"]
 			)
 		concDict.update(sim_data.mass.getBiomassAsConcentrations(sim_data.condition_to_doubling_time[conditionKey]))
 
@@ -689,7 +720,7 @@ def buildCombinedConditionCellSpecifications(
 			}
 
 		# Determine expression and synthesis probabilities
-		expression, synthProb, avgCellDryMassInit, fitAvgSolubleTargetMolMass, bulkContainer, concDict = expressionConverge(
+		expression, synthProb, cistron_expression, avgCellDryMassInit, fitAvgSolubleTargetMolMass, bulkContainer, concDict = expressionConverge(
 			sim_data,
 			cell_specs[conditionKey]["expression"],
 			cell_specs[conditionKey]["concDict"],
@@ -703,6 +734,7 @@ def buildCombinedConditionCellSpecifications(
 		# Modify cell_specs for calculated values
 		cell_specs[conditionKey]["expression"] = expression
 		cell_specs[conditionKey]["synthProb"] = synthProb
+		cell_specs[conditionKey]['cistron_expression'] = cistron_expression
 		cell_specs[conditionKey]["avgCellDryMassInit"] = avgCellDryMassInit
 		cell_specs[conditionKey]["fitAvgSolubleTargetMolMass"] = fitAvgSolubleTargetMolMass
 		cell_specs[conditionKey]["bulkContainer"] = bulkContainer
@@ -710,6 +742,7 @@ def buildCombinedConditionCellSpecifications(
 		# Modify sim_data expression
 		sim_data.process.transcription.rna_expression[conditionKey] = cell_specs[conditionKey]["expression"]
 		sim_data.process.transcription.rna_synth_prob[conditionKey] = cell_specs[conditionKey]["synthProb"]
+		sim_data.process.transcription.cistron_expression[conditionKey] = cell_specs[conditionKey]['cistron_expression']
 
 def expressionConverge(
 		sim_data,
@@ -717,7 +750,7 @@ def expressionConverge(
 		concDict,
 		doubling_time,
 		Km=None,
-		variable_elongation_transcription=False,
+		variable_elongation_transcription=True,
 		variable_elongation_translation=False,
 		disable_ribosome_capacity_fitting=False,
 		disable_rnapoly_capacity_fitting=False):
@@ -790,11 +823,13 @@ def expressionConverge(
 				variable_elongation_translation)
 
 		# Normalize expression and write out changes
-		expression, synthProb = fitExpression(sim_data, bulkContainer, doubling_time, avgCellDryMassInit, Km)
+		expression, synthProb, cistron_expression, cistron_expression_res = fitExpression(
+			sim_data, bulkContainer, doubling_time, avgCellDryMassInit, Km)
 
 		degreeOfFit = np.sqrt(np.mean(np.square(initialExpression - expression)))
 		if VERBOSE > 1:
 			print('degree of fit: {}'.format(degreeOfFit))
+			print(f'Average cistron expression residuals: {np.linalg.norm(cistron_expression_res)}')
 
 		if degreeOfFit < FITNESS_THRESHOLD:
 			break
@@ -802,7 +837,7 @@ def expressionConverge(
 	else:
 		raise Exception("Fitting did not converge")
 
-	return expression, synthProb, avgCellDryMassInit, fitAvgSolubleTargetMolMass, bulkContainer, concDict
+	return expression, synthProb, cistron_expression, avgCellDryMassInit, fitAvgSolubleTargetMolMass, bulkContainer, concDict
 
 def fitCondition(sim_data, spec, condition):
 	"""
@@ -924,34 +959,50 @@ def setRNAExpression(sim_data):
 	This function's goal is to set expression levels for a subset of RNAs.
 	It first gathers the index of the RNA's it wants to modify, then changes
 	the expression levels of those RNAs, within sim_data, based on the
-	specified adjustment factor.
-	These adjustments were made so that the simulation could run.
+	specified adjustment factor. If the specified ID is an RNA cistron, the
+	expression levels of all RNA molecules containing the cistron are adjusted.
 
 	Requires
 	--------
-	- For each RNA that needs to be modified, it takes in an
-	adjustment factor.
+	- For each RNA that needs to be modified, it takes in an adjustment factor.
 
 	Modifies
 	--------
 	- This function modifies the basal RNA expression levels set in sim_data,
 	for the chosen RNAs. It takes their current basal expression and multiplies
 	them by the factor specified in adjustments.
-	- After updating the basal expression levels for the given genes, the
+	- After updating the basal expression levels for the given RNAs, the
 	function normalizes all the basal expression levels.
 	"""
+	cistron_ids = set(sim_data.process.transcription.cistron_data['id'])
+	rna_id_to_index = {
+		rna_id[:-3]: i for (i, rna_id)
+		in enumerate(sim_data.process.transcription.rna_data['id'])}
 
-	for rna in sim_data.adjustments.rna_expression_adjustments:
-		idx = np.where(sim_data.process.transcription.rna_data["id"] == rna)[0]
-		sim_data.process.transcription.rna_expression["basal"][idx] *= sim_data.adjustments.rna_expression_adjustments[rna]
+	for mol_id in sim_data.adjustments.rna_expression_adjustments:
+		if mol_id in cistron_ids:
+			# Find indexes of all RNAs containing the cistron
+			rna_indexes = sim_data.process.transcription.cistron_id_to_rna_indexes(mol_id)
+		elif mol_id in rna_id_to_index:
+			rna_indexes = rna_id_to_index[mol_id]
+		else:
+			raise ValueError(
+				f'Molecule ID {mol_id} not found in list of cistrons or transcription units.')
+
+		# Multiply all expression levels with the specified adjustment factor
+		sim_data.process.transcription.rna_expression["basal"][rna_indexes] *= sim_data.adjustments.rna_expression_adjustments[mol_id]
 
 	sim_data.process.transcription.rna_expression["basal"] /= sim_data.process.transcription.rna_expression["basal"].sum()
 
 def setRNADegRates(sim_data):
 	"""
-	This function's goal is to set the degradation rates for a subset of metabolic RNA's.
-	It first gathers the index of the RNA's it wants to modify, then changes the degradation
-	rates of those RNAs. These adjustments were made so that the simulation could run.
+	This function's goal is to adjust the degradation rates for a subset of
+	metabolic RNA's. It first gathers the index of the RNA's it wants to modify,
+	then changes the degradation rates of those RNAs. If the specified ID is
+	that of an RNA cistron, the degradation rates of all RNA molecules
+	containing the cistron are adjusted. (Note: since RNA concentrations are
+	assumed to be in equilibrium, increasing the degradation rate increases the
+	synthesis rates of these RNAs)
 
 	Requires
 	--------
@@ -959,13 +1010,27 @@ def setRNADegRates(sim_data):
 
 	Modifies
 	--------
-	- This function modifies the RNA degradation rates for the chosen RNAs in sim_data.
-	It takes their current degradation rate and multiplies them by the factor specified in adjustments.
+	- This function modifies the RNA degradation rates for the chosen RNAs in
+	sim_data. It takes their current degradation rate and multiplies them by the
+	factor specified in adjustments.
 	"""
+	cistron_ids = set(sim_data.process.transcription.cistron_data['id'])
+	rna_id_to_index = {
+		rna_id[:-3]: i for (i, rna_id)
+		in enumerate(sim_data.process.transcription.rna_data['id'])}
 
-	for rna in sim_data.adjustments.rna_deg_rates_adjustments:
-		idx = np.where(sim_data.process.transcription.rna_data["id"] == rna)[0]
-		sim_data.process.transcription.rna_data.struct_array['deg_rate'][idx] *= sim_data.adjustments.rna_deg_rates_adjustments[rna]
+	for mol_id in sim_data.adjustments.rna_deg_rates_adjustments:
+		if mol_id in cistron_ids:
+			# Find indexes of all RNAs containing the cistron
+			rna_indexes = sim_data.process.transcription.cistron_id_to_rna_indexes(mol_id)
+		elif mol_id in rna_id_to_index:
+			rna_indexes = rna_id_to_index[mol_id]
+		else:
+			raise ValueError(
+				f'Molecule ID {mol_id} not found in list of cistrons or transcription units.')
+
+		# Multiply all degradation rates with the specified adjustment factor
+		sim_data.process.transcription.rna_data.struct_array["deg_rate"][rna_indexes] *= sim_data.adjustments.rna_deg_rates_adjustments[mol_id]
 
 def setProteinDegRates(sim_data):
 	"""
@@ -987,24 +1052,6 @@ def setProteinDegRates(sim_data):
 		idx = np.where(sim_data.process.translation.monomer_data["id"] == protein)[0]
 		sim_data.process.translation.monomer_data.struct_array['deg_rate'][idx] *= sim_data.adjustments.protein_deg_rates_adjustments[protein]
 
-def setCPeriod(sim_data):
-	"""
-	The C period is the time the cell takes to replicate its chromosome. This function calculates the C period
-	based on knowledge of the length of the genome (in nucleotides) and the elongation rate.
-	Dividing the genome length by the elongation rate alone will give the time to replicate that many nucleotides,
-	this value is further divided by two since replication can take place in two directions.
-
-	Requires
-	--------
-	- Genome length (nt) and the DNA polymerase elongation rate (nt/s).
-
-	Modifies
-	--------
-	- This function modifies sim_data to contain the c_period.
-	"""
-
-	sim_data.growth_rate_parameters.c_period = sim_data.process.replication.genome_length * units.nt / sim_data.growth_rate_parameters.replisome_elongation_rate / 2
-	sim_data.process.replication._c_period = sim_data.growth_rate_parameters.c_period.asNumber(units.min)
 
 def rescaleMassForSolubleMetabolites(sim_data, bulkMolCntr, concDict, doubling_time):
 	"""
@@ -1114,17 +1161,17 @@ def setInitialRnaExpression(sim_data, expression, doubling_time):
 	rna_coord = rna_data['replication_coordinate']
 
 	## Mask arrays for rRNAs
-	is_rRNA23S = rna_data['is_23S_rRNA']
-	is_rRNA16S = rna_data['is_16S_rRNA']
-	is_rRNA5S = rna_data['is_5S_rRNA']
+	includes_rRNA23S = rna_data['is_23S_rRNA']
+	includes_rRNA16S = rna_data['is_16S_rRNA']
+	includes_rRNA5S = rna_data['is_5S_rRNA']
 	is_tRNA = rna_data['is_tRNA']
 	is_mRNA = rna_data['is_mRNA']
 
 	## IDs
 	ids_rnas = rna_data["id"]
-	ids_rRNA23S = ids_rnas[is_rRNA23S]
-	ids_rRNA16S = ids_rnas[is_rRNA16S]
-	ids_rRNA5S = ids_rnas[is_rRNA5S]
+	ids_rRNA23S = ids_rnas[includes_rRNA23S]
+	ids_rRNA16S = ids_rnas[includes_rRNA16S]
+	ids_rRNA5S = ids_rnas[includes_rRNA5S]
 	ids_mRNA = ids_rnas[is_mRNA]
 
 	## Mass fractions
@@ -1139,9 +1186,9 @@ def setInitialRnaExpression(sim_data, expression, doubling_time):
 	total_mass_mRNA = initial_rna_mass * rna_fractions['mrna']
 
 	## Molecular weights
-	individual_masses_rRNA23S = rna_mw[is_rRNA23S] / n_avogadro
-	individual_masses_rRNA16S = rna_mw[is_rRNA16S] / n_avogadro
-	individual_masses_rRNA5S = rna_mw[is_rRNA5S] / n_avogadro
+	individual_masses_rRNA23S = rna_mw[includes_rRNA23S] / n_avogadro
+	individual_masses_rRNA16S = rna_mw[includes_rRNA16S] / n_avogadro
+	individual_masses_rRNA5S = rna_mw[includes_rRNA5S] / n_avogadro
 	individual_masses_tRNA = rna_mw[is_tRNA] / n_avogadro
 	individual_masses_mRNA = rna_mw[is_mRNA] / n_avogadro
 
@@ -1149,9 +1196,9 @@ def setInitialRnaExpression(sim_data, expression, doubling_time):
 	tau = doubling_time.asNumber(units.min)
 
 	## Get replication coordinates of rRNA genes
-	coord_rRNA23S = rna_coord[is_rRNA23S]
-	coord_rRNA16S = rna_coord[is_rRNA16S]
-	coord_rRNA5S = rna_coord[is_rRNA5S]
+	coord_rRNA23S = rna_coord[includes_rRNA23S]
+	coord_rRNA16S = rna_coord[includes_rRNA16S]
+	coord_rRNA5S = rna_coord[includes_rRNA5S]
 
 	## Get average copy numbers for all rRNA genes
 	n_avg_copy_rRNA23S = get_average_copy_number(tau, coord_rRNA23S)
@@ -1256,13 +1303,17 @@ def totalCountIdDistributionProtein(sim_data, expression, doubling_time):
 	- distribution_protein (array of floats) - distribution for each protein,
 	normalized to 1
 	"""
-
 	ids_protein = sim_data.process.translation.monomer_data["id"]
 	total_mass_protein = sim_data.mass.get_component_masses(doubling_time)["proteinMass"] / sim_data.mass.avg_cell_to_initial_cell_conversion_factor
 	individual_masses_protein = sim_data.process.translation.monomer_data["mw"] / sim_data.constants.n_avogadro
-	distribution_transcripts_by_protein = normalize(expression[sim_data.relation.RNA_to_monomer_mapping])
-	translation_efficiencies_by_protein = normalize(sim_data.process.translation.translation_efficiencies_by_monomer)
 
+	mRNA_cistron_expression = sim_data.process.transcription.cistron_tu_mapping_matrix.dot(
+		expression)[sim_data.process.transcription.cistron_data['is_mRNA']]
+	distribution_transcripts_by_protein = normalize(
+		sim_data.relation.monomer_to_mRNA_cistron_mapping().dot(mRNA_cistron_expression)
+		)
+
+	translation_efficiencies_by_protein = normalize(sim_data.process.translation.translation_efficiencies_by_monomer)
 	degradationRates = sim_data.process.translation.monomer_data['deg_rate']
 
 	# Find the net protein loss
@@ -1334,8 +1385,8 @@ def createBulkContainer(sim_data, expression, doubling_time):
 	"""
 
 	total_count_RNA, ids_rnas, distribution_RNA = totalCountIdDistributionRNA(sim_data, expression, doubling_time)
-
 	total_count_protein, ids_protein, distribution_protein = totalCountIdDistributionProtein(sim_data, expression, doubling_time)
+
 	ids_molecules = sim_data.internal_state.bulk_molecules.bulk_data["id"]
 
 	# Construct bulk container
@@ -1597,49 +1648,71 @@ def fitExpression(sim_data, bulkContainer, doubling_time, avgCellDryMassInit, Km
 	-----
 	- TODO - sets bulkContainer counts and returns values - change to only return values
 	"""
+	# Load required parameters
+	translation_efficiencies_by_protein = normalize(
+		sim_data.process.translation.translation_efficiencies_by_monomer)
+	degradation_rates_protein = sim_data.process.translation.monomer_data['deg_rate']
+	net_loss_rate_protein = netLossRateFromDilutionAndDegradationProtein(
+		doubling_time, degradation_rates_protein)
+	avg_cell_fraction_mass = sim_data.mass.get_component_masses(doubling_time)
+	total_mass_RNA = avg_cell_fraction_mass["rnaMass"] / sim_data.mass.avg_cell_to_initial_cell_conversion_factor
+	cistron_tu_mapping_matrix = sim_data.process.transcription.cistron_tu_mapping_matrix
 
-	view_RNA = bulkContainer.countsView(sim_data.process.transcription.rna_data["id"])
-	counts_protein = bulkContainer.counts(sim_data.process.translation.monomer_data["id"])
+	# Calculate current expression fraction of mRNA transcription units
+	view_RNA = bulkContainer.countsView(
+		sim_data.process.transcription.rna_data["id"])
+	rna_expression_container = BulkObjectsContainer(
+		list(sim_data.process.transcription.rna_data["id"]),
+		dtype = np.dtype("float64"))
+	rna_expression_container.countsIs(normalize(view_RNA.counts()))
 
-	translation_efficienciesByProtein = normalize(sim_data.process.translation.translation_efficiencies_by_monomer)
+	mRNA_tu_expression_view = rna_expression_container.countsView(
+		sim_data.process.transcription.rna_data["id"][sim_data.process.transcription.rna_data['is_mRNA']])
+	mRNA_tu_expression_frac = np.sum(mRNA_tu_expression_view.counts())
 
-	avgCellFractionMass = sim_data.mass.get_component_masses(doubling_time)
-	totalMass_RNA = avgCellFractionMass["rnaMass"] / sim_data.mass.avg_cell_to_initial_cell_conversion_factor
+	# Calculate current expression levels of each cistron given the RNA
+	# expression levels
+	cistron_expression = normalize(
+		cistron_tu_mapping_matrix.dot(view_RNA.counts()))
+	mRNA_cistron_expression_frac = cistron_expression[
+		sim_data.process.transcription.cistron_data['is_mRNA']].sum()
 
-	degradationRates_protein = sim_data.process.translation.monomer_data['deg_rate']
+	# Calculate required mRNA expression from monomer counts
+	counts_protein = bulkContainer.counts(
+		sim_data.process.translation.monomer_data["id"])
+	mRNA_cistron_distribution_from_protein_counts = mRNADistributionFromProtein(
+		normalize(counts_protein),
+		translation_efficiencies_by_protein,
+		net_loss_rate_protein)
 
-	netLossRate_protein = netLossRateFromDilutionAndDegradationProtein(doubling_time, degradationRates_protein)
-
-	### Modify sim_dataFit to reflect our bulk container ###
-
-	## RNA and monomer expression ##
-	rnaExpressionContainer = BulkObjectsContainer(list(sim_data.process.transcription.rna_data["id"]), dtype = np.dtype("float64"))
-
-	rnaExpressionContainer.countsIs(
-		normalize(view_RNA.counts())
+	mRNA_cistron_distribution = normalize(
+		sim_data.relation.monomer_to_mRNA_cistron_mapping().T.dot(
+			mRNA_cistron_distribution_from_protein_counts)
 		)
 
-	mRnaExpressionView = rnaExpressionContainer.countsView(sim_data.process.transcription.rna_data["id"][sim_data.process.transcription.rna_data['is_mRNA']])
-	mRnaExpressionFrac = np.sum(mRnaExpressionView.counts())
+	# Replace mRNA cistron expression with values calculated from monomer counts
+	cistron_expression[
+		sim_data.process.transcription.cistron_data['is_mRNA']
+		] = mRNA_cistron_expression_frac * mRNA_cistron_distribution
 
-	mRnaExpressionView.countsIs(
-		mRnaExpressionFrac * mRNADistributionFromProtein(
-			normalize(counts_protein), translation_efficienciesByProtein, netLossRate_protein
-			).dot(sim_data.relation.monomer_to_mRNA_mapping())
-		)
+	# Use least squares to calculate expression of transcription units required
+	# to generate the given cistron expression levels and the residuals for
+	# the expression of each cistron
+	fit_tu_expression, cistron_expression_res = sim_data.process.transcription.fit_rna_expression(cistron_expression)
+	fit_mRNA_tu_expression = fit_tu_expression[
+		sim_data.process.transcription.rna_data['is_mRNA']]
 
-	expression = rnaExpressionContainer.counts()
+	mRNA_tu_expression_view.countsIs(
+		mRNA_tu_expression_frac * normalize(fit_mRNA_tu_expression))
+	expression = normalize(rna_expression_container.counts())
 
 	# Set number of RNAs based on expression we just set
 	nRnas = totalCountFromMassesAndRatios(
-		totalMass_RNA,
+		total_mass_RNA,
 		sim_data.process.transcription.rna_data["mw"] / sim_data.constants.n_avogadro,
-		expression
-		)
-
+		expression)
 	view_RNA.countsIs(nRnas * expression)
 
-	rnaLossRate = None
 	if Km is None:
 		rnaLossRate = netLossRateFromDilutionAndDegradationRNALinear(
 			doubling_time,
@@ -1667,7 +1740,7 @@ def fitExpression(sim_data, bulkContainer, doubling_time, avgCellDryMassInit, Km
 
 	synthProb = normalize(rnaLossRate.asNumber(1 / units.min))
 
-	return expression, synthProb
+	return expression, synthProb, cistron_expression, cistron_expression_res
 
 def fitMaintenanceCosts(sim_data, bulkContainer):
 	"""
@@ -2161,20 +2234,24 @@ def netLossRateFromDilutionAndDegradationRNALinear(doublingTime, degradationRate
 	return (np.log(2) / doublingTime + degradationRates) * rnaCounts
 
 
-def expressionFromConditionAndFoldChange(rnaIds, basalExpression, condPerturbations, tfFCs):
+def expressionFromConditionAndFoldChange(transcription, condPerturbations, tfFCs):
 	"""
-	Adjusts expression of RNA based on fold changes from basal for a given condition.
+	Adjusts expression of RNA based on fold changes from basal for a given
+	condition. Since fold changes are reported for individual RNA cistrons, the
+	changes are applied to the basal expression levels of each cistron and the
+	resulting vector is mapped back to RNA expression through nonnegative least
+	squares. For genotype perturbations, the expression of all RNAs that include
+	the given cistron are set to the given value.
 
 	Inputs
 	------
-	- rnaIds (array of str) - name of each RNA with location tag
-	- basalExpression (array of floats) - expression for each RNA in the basal
-	condition, normalized to 1
-	- condPerturbations {RNA ID with location tag (str): fold change (float)} -
-	dictionary of fold changes for RNAs based on the given condition
-	- tfFCs {RNA ID without location tag (str): fold change (float)} -
-	dictionary of fold changes for RNAs based on transcription factors in the
-	given condition
+	- transcription: Instance of the Transcription class from
+		reconstruction.ecoli.dataclasses.process.transcription
+	- condPerturbations {cistron ID (str): fold change (float)} -
+		dictionary of fold changes for cistrons based on the given condition
+	- tfFCs {cistron ID (str): fold change (float)} -
+		dictionary of fold changes for cistrons based on transcription factors
+		in the given condition
 
 	Returns
 	--------
@@ -2187,35 +2264,63 @@ def expressionFromConditionAndFoldChange(rnaIds, basalExpression, condPerturbati
 	perturbation and a transcription factor, currently RNA self regulation is not
 	included in tfFCs
 	"""
+	cistron_ids = transcription.cistron_data['id']
+	cistron_expression = transcription.cistron_expression['basal'].copy()
 
-	expression = basalExpression.copy()
+	# Gather indices and fold changes for each cistron that will be adjusted
+	cistron_id_to_index = {
+		cistron_id: i for (i, cistron_id) in enumerate(cistron_ids)
+		}
+	rna_indexes = []
+	rna_fcs = []
 
-	# Gather RNA indices and fold changes for each RNA that will be adjusted
-	rnaIdxs = []
-	fcs = []
-	for key in sorted(condPerturbations):
-		value = condPerturbations[key]
-		rnaIdxs.append(np.where(rnaIds == key)[0][0])
-		fcs.append(value)
-	for key in sorted(tfFCs):
-		compartment_key = key + "[c]"
-		if compartment_key in condPerturbations:
+	# Compile indexes and fold changes of each cistron
+	for cistron_id, fc_value in tfFCs.items():
+		if cistron_id in condPerturbations:
 			continue
-
-		rnaIdxs.append(np.where(rnaIds == compartment_key)[0][0])
-		fcs.append(tfFCs[key])
+		rna_indexes.append(cistron_id_to_index[cistron_id])
+		rna_fcs.append(fc_value)
 
 	# Sort fold changes and indices for the bool array indexing to work properly
-	fcs = [fc for (rnaIdx, fc) in sorted(zip(rnaIdxs, fcs), key = lambda pair: pair[0])]
-	rnaIdxs = [rnaIdx for (rnaIdx, fc) in sorted(zip(rnaIdxs, fcs), key = lambda pair: pair[0])]
+	rna_fcs = [fc for (cistron_idx, fc) in
+		sorted(zip(rna_indexes, rna_fcs), key = lambda pair: pair[0])]
+	rna_indexes = [cistron_idx for (cistron_idx, fc) in
+		sorted(zip(rna_indexes, rna_fcs), key = lambda pair: pair[0])]
 
 	# Adjust expression based on fold change and normalize
-	rnaIdxsBool = np.zeros(len(rnaIds), dtype = np.bool)
-	rnaIdxsBool[rnaIdxs] = 1
-	fcs = np.array(fcs)
-	scaleTheRestBy = (1. - (expression[rnaIdxs] * fcs).sum()) / (1. - (expression[rnaIdxs]).sum())
-	expression[rnaIdxsBool] *= fcs
-	expression[~rnaIdxsBool] *= scaleTheRestBy
+	rna_indexes_bool = np.zeros(len(cistron_ids), dtype = np.bool)
+	rna_indexes_bool[rna_indexes] = 1
+	rna_fcs = np.array(rna_fcs)
+	scaleTheRestBy = (1. - (cistron_expression[rna_indexes] * rna_fcs).sum()) / (1. - (cistron_expression[rna_indexes]).sum())
+	cistron_expression[rna_indexes_bool] *= rna_fcs
+	cistron_expression[~rna_indexes_bool] *= scaleTheRestBy
+
+	# Use NNLS to map new cistron expression to RNA expression
+	expression, _ = transcription.fit_rna_expression(cistron_expression)
+	expression = normalize(expression)
+
+	# Apply genotype perturbations to all RNAs that contain each cistron
+	rna_indexes = []
+	rna_fcs = []
+
+	for cistron_id, perturbation_value in condPerturbations.items():
+		rna_indexes_with_cistron = transcription.cistron_id_to_rna_indexes(cistron_id)
+		rna_indexes.extend(rna_indexes_with_cistron)
+		rna_fcs.extend([perturbation_value] * len(rna_indexes_with_cistron))
+
+	# Sort fold changes and indices for the bool array indexing to work properly
+	rna_fcs = [fc for (cistron_idx, fc) in
+		sorted(zip(rna_indexes, rna_fcs), key=lambda pair: pair[0])]
+	rna_indexes = [cistron_idx for (cistron_idx, fc) in
+		sorted(zip(rna_indexes, rna_fcs), key=lambda pair: pair[0])]
+
+	# Adjust expression based on fold change and normalize
+	rna_indexes_bool = np.zeros(len(transcription.rna_data), dtype=np.bool)
+	rna_indexes_bool[rna_indexes] = 1
+	rna_fcs = np.array(rna_fcs)
+	scaleTheRestBy = (1. - (expression[rna_indexes] * rna_fcs).sum()) / (1. - (expression[rna_indexes]).sum())
+	expression[rna_indexes_bool] *= rna_fcs
+	expression[~rna_indexes_bool] *= scaleTheRestBy
 
 	return expression
 
@@ -2278,10 +2383,9 @@ def fitPromoterBoundProbability(sim_data, cell_specs):
 		for idx, (rnaId, rnaCoordinate) in enumerate(
 				zip(sim_data.process.transcription.rna_data["id"],
 				sim_data.process.transcription.rna_data['replication_coordinate'])):
-			rnaIdNoLoc = rnaId[:-3]  # Remove compartment ID from RNA ID
 
 			# Get list of TFs that regulate this RNA
-			tfs = sim_data.process.transcription_regulation.target_tf.get(rnaIdNoLoc, [])
+			tfs = sim_data.relation.rna_id_to_regulating_tfs.get(rnaId, [])
 			conditions = ["basal"]
 			tfsWithData = []
 
@@ -2352,7 +2456,7 @@ def fitPromoterBoundProbability(sim_data, cell_specs):
 			rnaIdNoLoc = rnaId[:-3]  # Remove compartment ID from RNA ID
 
 			# Get list of TFs that regulate this RNA
-			tfs = sim_data.process.transcription_regulation.target_tf.get(rnaIdNoLoc, [])
+			tfs = sim_data.relation.rna_id_to_regulating_tfs[rnaId]
 			conditions = ["basal"]
 			tfsWithData = []
 
@@ -2430,7 +2534,7 @@ def fitPromoterBoundProbability(sim_data, cell_specs):
 			rna_id_no_loc = rna_id[:-3]  # Remove compartment ID from RNA ID
 
 			# Get list of TFs that regulate this RNA
-			tfs = sim_data.process.transcription_regulation.target_tf.get(rna_id_no_loc, [])
+			tfs = sim_data.relation.rna_id_to_regulating_tfs[rna_id]
 			tfs_with_data = []
 
 			# Get column index of the RNA's alpha column
@@ -2495,8 +2599,14 @@ def fitPromoterBoundProbability(sim_data, cell_specs):
 			rnaIdNoLoc = rnaId[:-3]  # Remove compartment ID from RNA ID
 
 			# Get list of TFs that regulate this RNA
-			tfs = sim_data.process.transcription_regulation.target_tf.get(rnaIdNoLoc, [])
+			tfs = sim_data.relation.rna_id_to_regulating_tfs[rnaId]
 			tfsWithData = []
+
+			# Get list of constituent cistron IDs
+			constituent_cistron_ids = [
+				sim_data.process.transcription.cistron_data['id'][i]
+				for i in sim_data.process.transcription.rna_id_to_cistron_indexes(rnaId)
+				]
 
 			# Take only those TFs with active/inactive conditions data
 			for tf in tfs:
@@ -2506,13 +2616,21 @@ def fitPromoterBoundProbability(sim_data, cell_specs):
 				tfsWithData.append(tf)
 
 			for tf in tfsWithData:
+				# Calculate the consensus regulation direction of the TF on the
+				# cistrons that constitute this transcription unit
+				directions = np.array([
+					sim_data.tf_to_direction[tf].get(cistron_id, 0)
+					for cistron_id in constituent_cistron_ids
+					])
+				consensus_direction = -1 + 2*(directions.sum() >= 0)
+
 				# Add row for TF and find column for TF in col_name_to_index
 				col_name = rnaIdNoLoc + "__" + tf
 
 				# Set matrix value to regulation direction (+1 or -1)
 				tI.append(row_idx)
 				tJ.append(col_name_to_index[col_name])
-				tV.append(sim_data.tf_to_direction[tf][rnaIdNoLoc])
+				tV.append(consensus_direction)
 				row_idx += 1
 
 			# Add RNA_alpha rows and columns, and set matrix value to zero
@@ -2577,7 +2695,7 @@ def fitPromoterBoundProbability(sim_data, cell_specs):
 		for idx, rnaId in enumerate(sim_data.process.transcription.rna_data["id"]):
 			rnaIdNoLoc = rnaId[:-3]  # Remove compartment ID from RNA ID
 
-			tfs = sim_data.process.transcription_regulation.target_tf.get(rnaIdNoLoc, [])
+			tfs = sim_data.relation.rna_id_to_regulating_tfs[rnaId]
 			conditions = ["basal"]
 			tfsWithData = []
 
@@ -2637,6 +2755,18 @@ def fitPromoterBoundProbability(sim_data, cell_specs):
 				pInitI.append(H_col_name_to_index[col_name])
 				pInitV.append(1.)
 
+		# Save indices to update promoter binding for active TFs in combined conditions
+		for condition, tfs in sim_data.condition_active_tfs.items():
+			for tf in tfs:
+				col_name = f'{tf}__{tf}__active'
+				pPromoterBoundIdxs[condition][tf] = H_col_name_to_index[col_name]
+
+		# Save indices to update promoter binding for inactive TFs in combined conditions
+		for condition, tfs in sim_data.condition_inactive_tfs.items():
+			for tf in tfs:
+				col_name = f'{tf}__{tf}__inactive'
+				pPromoterBoundIdxs[condition][tf] = H_col_name_to_index[col_name]
+
 		# Build vector pInit and matrix H
 		pInit = np.zeros(len(set(pInitI)))
 		pInit[pInitI] = pInitV
@@ -2658,7 +2788,7 @@ def fitPromoterBoundProbability(sim_data, cell_specs):
 			if secondElem in fixedTFs:
 				fixedTFIdxs.append(idx)
 
-		fixedTFIdxs = np.array(fixedTFIdxs, dtype=np.int)
+		fixedTFIdxs = np.array(fixedTFIdxs, dtype=int)
 
 		return H, pInit, pAlphaIdxs, pNotAlphaIdxs, fixedTFIdxs, pPromoterBoundIdxs, H_col_name_to_index
 
@@ -2765,7 +2895,9 @@ def fitPromoterBoundProbability(sim_data, cell_specs):
 			# Calculate average copy number of gene for this condition
 			n_avg_copy = sim_data.process.replication.get_average_copy_number(tau, rnaCoordinate)
 
-			sim_data.process.transcription.rna_synth_prob[condition][rna_idx] = k_value * n_avg_copy
+			# Multiply copy number by k_value to get synthesis probability
+			# (if k_value is negative clip at zero)
+			sim_data.process.transcription.rna_synth_prob[condition][rna_idx] = max(0, k_value) * n_avg_copy
 
 		# Normalize values such that probabilities for each condition sum to one
 		for condition in sim_data.process.transcription.rna_synth_prob:
@@ -2885,9 +3017,10 @@ def fitPromoterBoundProbability(sim_data, cell_specs):
 
 		# Get optimal value of P
 		p = np.array(P.value).reshape(-1)
+
 		# Adjust for solver tolerance over bounds to get proper probabilities
-		p[p < 0] = 0
-		p[p > 1] = 1
+		p[p < ECOS_0_TOLERANCE] = 0
+		p[p > (1 - ECOS_0_TOLERANCE)] = 1
 
 		# Update pPromoterBound with fit p
 		fromArray(p, pPromoterBound, pPromoterBoundIdxs)
@@ -3025,24 +3158,27 @@ def calculatePromoterBoundProbability(sim_data, cell_specs):
 	init_to_average = sim_data.mass.avg_cell_to_initial_cell_conversion_factor
 
 	# Matrix to determine number of promoters each TF can bind to in a given condition
-	rna_data = sim_data.process.transcription.rna_data
 	tf_idx = {tf: i for i, tf in enumerate(sim_data.tf_to_active_inactive_conditions)}
-	rna_idx = {rna[:-3]: i for i, rna in enumerate(rna_data['id'])}
+	cistron_id_to_tu_indexes = {
+		cistron_id: sim_data.process.transcription.cistron_id_to_rna_indexes(cistron_id)
+		for cistron_id in sim_data.process.transcription.cistron_data['id']}
 	regulation_i = []
 	regulation_j = []
 	regulation_v = []
-	for tf, rnas in sim_data.tf_to_fold_change.items():
+	for tf, cistrons in sim_data.tf_to_fold_change.items():
 		if tf not in tf_idx:
 			continue
 
-		for rna in rnas:
-			regulation_i.append(tf_idx[tf])
-			regulation_j.append(rna_idx[rna])
-			regulation_v.append(1)
+		for cistron in cistrons:
+			for tu_index in cistron_id_to_tu_indexes[cistron]:
+				regulation_i.append(tf_idx[tf])
+				regulation_j.append(tu_index)
+				regulation_v.append(1)
+
 	regulation = scipy.sparse.csr_matrix(
 		(regulation_v, (regulation_i, regulation_j)),
-		shape=(len(tf_idx), len(rna_idx)))
-	rna_coords = rna_data['replication_coordinate']
+		shape=(len(tf_idx), len(sim_data.process.transcription.rna_data)))
+	rna_coords = sim_data.process.transcription.rna_data['replication_coordinate']
 
 	for conditionKey in sorted(cell_specs):
 		pPromoterBound[conditionKey] = {}
@@ -3151,7 +3287,7 @@ def calculateRnapRecruitment(sim_data, cell_specs):
 		rnaIdNoLoc = rnaId[:-3]  # Remove compartment ID from RNA ID
 
 		# Take only those TFs with active/inactive conditions data
-		for tf in transcription_regulation.target_tf.get(rnaIdNoLoc, []):
+		for tf in sim_data.relation.rna_id_to_regulating_tfs.get(rnaId, []):
 			if tf not in sorted(sim_data.tf_to_active_inactive_conditions):
 				continue
 
@@ -3184,6 +3320,16 @@ def calculateRnapRecruitment(sim_data, cell_specs):
 		"deltaV": deltaV,
 		"shape": delta_shape,
 		}
+
+
+def crc32(*arrays: np.ndarray, initial: int = 0) -> int:
+	"""Return a CRC32 checksum of the given ndarrays."""
+	def crc_next(initial: int, array: np.ndarray) -> int:
+		shape = str(array.shape).encode()
+		values = array.tobytes()
+		return binascii.crc32(values, binascii.crc32(shape, initial))
+
+	return functools.reduce(crc_next, arrays, initial)
 
 
 def setKmCooperativeEndoRNonLinearRNAdecay(sim_data, bulkContainer):
@@ -3241,6 +3387,9 @@ def setKmCooperativeEndoRNonLinearRNAdecay(sim_data, bulkContainer):
 	TODO (John): Determine what part (if any) of the 'linear' parameter fitting should be retained.
 	"""
 
+	def arrays_differ(a: np.ndarray, b: np.ndarray) -> bool:
+		return a.shape != b.shape or not np.allclose(a, b, equal_nan=True)
+
 	cellDensity = sim_data.constants.cell_density
 	cellVolume = sim_data.mass.avg_cell_dry_mass_init / cellDensity / sim_data.mass.cell_dry_mass_fraction
 	countsToMolar = 1 / (sim_data.constants.n_avogadro * cellVolume)
@@ -3284,17 +3433,19 @@ def setKmCooperativeEndoRNonLinearRNAdecay(sim_data, bulkContainer):
 	if sim_data.constants.sensitivity_analysis_alpha:
 		Alphas = [0.0001, 0.001, 0.01, 0.1, 1, 10]
 
-	for alpha in Alphas:
+	total_endo_rnase_capacity_mol_l_s = totalEndoRnaseCapacity.asNumber(units.mol / units.L / units.s)
+	rna_conc_mol_l = (countsToMolar * rnaCounts).asNumber(units.mol / units.L)
+	degradation_rates_s = degradationRates.asNumber(1 / units.s)
 
+	for alpha in Alphas:
 		if VERBOSE: print('Alpha = %f' % alpha)
 
 		LossFunction, Rneg, R, LossFunctionP, R_aux, L_aux, Lp_aux, Jacob, Jacob_aux = sim_data.process.rna_decay.km_loss_function(
-				totalEndoRnaseCapacity.asNumber(units.mol / units.L / units.s),
-				(countsToMolar * rnaCounts).asNumber(units.mol / units.L),
-				degradationRates.asNumber(1 / units.s),
+				total_endo_rnase_capacity_mol_l_s,
+				rna_conc_mol_l,
+				degradation_rates_s,
 				isEndoRnase,
-				alpha
-			)
+				alpha)
 		KmCooperativeModel = scipy.optimize.fsolve(LossFunction, Kmcounts, fprime = LossFunctionP)
 		sim_data.process.rna_decay.sensitivity_analysis_alpha_residual[alpha] = np.sum(np.abs(R_aux(KmCooperativeModel)))
 		sim_data.process.rna_decay.sensitivity_analysis_alpha_regulari_neg[alpha] = np.sum(np.abs(Rneg(KmCooperativeModel)))
@@ -3307,55 +3458,56 @@ def setKmCooperativeEndoRNonLinearRNAdecay(sim_data, bulkContainer):
 		kcatEndo = [0.0001, 0.001, 0.01, 0.1, 1, 10]
 
 	for kcat in kcatEndo:
-
 		if VERBOSE: print('Kcat = %f' % kcat)
 
 		totalEndoRNcap = units.sum(endoRNaseConc * kcat)
 		LossFunction, Rneg, R, LossFunctionP, R_aux, L_aux, Lp_aux, Jacob, Jacob_aux = sim_data.process.rna_decay.km_loss_function(
 				totalEndoRNcap.asNumber(units.mol / units.L),
-				(countsToMolar * rnaCounts).asNumber(units.mol / units.L),
-				degradationRates.asNumber(1 / units.s),
+				rna_conc_mol_l,
+				degradation_rates_s,
 				isEndoRnase,
-				alpha
-			)
+				alpha)
 		KmcountsIni = (( totalEndoRNcap / degradationRates.asNumber() ) - rnaConc).asNumber()
 		KmCooperativeModel = scipy.optimize.fsolve(LossFunction, KmcountsIni, fprime = LossFunctionP)
 		sim_data.process.rna_decay.sensitivity_analysis_kcat[kcat] = KmCooperativeModel
 		sim_data.process.rna_decay.sensitivity_analysis_kcat_res_ini[kcat] = np.sum(np.abs(R_aux(Kmcounts)))
 		sim_data.process.rna_decay.sensitivity_analysis_kcat_res_opt[kcat] = np.sum(np.abs(R_aux(KmCooperativeModel)))
 
-
 	# Loss function, and derivative
 	LossFunction, Rneg, R, LossFunctionP, R_aux, L_aux, Lp_aux, Jacob, Jacob_aux = sim_data.process.rna_decay.km_loss_function(
-				totalEndoRnaseCapacity.asNumber(units.mol / units.L / units.s),
-				(countsToMolar * rnaCounts).asNumber(units.mol / units.L),
-				degradationRates.asNumber(1 / units.s),
-				isEndoRnase,
-				alpha
-			)
+			total_endo_rnase_capacity_mol_l_s,
+			rna_conc_mol_l,
+			degradation_rates_s,
+			isEndoRnase,
+			alpha)
 
-	needToUpdate = False
-	fixturesDir = filepath.makedirs(filepath.ROOT_PATH, "fixtures", "endo_km")
-	# Numpy 'U' fields make these files incompatible with older code, so change
-	# the filename. No need to make files compatible between Python 2 & 3; we'd
-	# have to set the same protocol version and set Python 3-only args like
-	# encoding='latin1'.
-	km_filepath = os.path.join(fixturesDir, 'km{}.cPickle'.format(sys.version_info[0]))
+	# The checksum in the filename picks independent caches for distinct cases
+	# such as different Parca options or Parca code in different git branches.
+	# `make clean` will delete the cache files.
+	needToUpdate = ''
+	cache_dir = filepath.makedirs(filepath.ROOT_PATH, "cache")
+	checksum = crc32(Kmcounts, isEndoRnase, np.array(alpha))
+	km_filepath = os.path.join(cache_dir, f'parca-km-{checksum}.cPickle')
 
 	if os.path.exists(km_filepath):
 		with open(km_filepath, "rb") as f:
-			KmcountsCached = cPickle.load(f)
+			KmCache = cPickle.load(f)
 
-		# KmcountsCached fits a set of Km values to give the expected degradation rates.
+		# KmCooperativeModel fits a set of Km values to give the expected degradation rates.
 		# It takes 1.5 - 3 minutes to recompute.
 		# R_aux calculates the difference of the degradation rate based on these
-		# Km values and the expected rate so this sum seems like a reliable test of
-		# whether the cache fits current input data.
-		if Kmcounts.shape != KmcountsCached.shape or np.sum(np.abs(R_aux(KmcountsCached))) > 1e-15:
-			needToUpdate = True
+		# Km values and the expected rate so this sum seems like a good test of
+		# whether the cache fits current input data, but cross-check additional
+		# inputs to avoid Issue #996.
+		KmCooperativeModel = KmCache['KmCooperativeModel']
+		if (Kmcounts.shape != KmCooperativeModel.shape
+				or np.sum(np.abs(R_aux(KmCooperativeModel))) > 1e-15
+				or arrays_differ(KmCache['total_endo_rnase_capacity_mol_l_s'], total_endo_rnase_capacity_mol_l_s)
+				or arrays_differ(KmCache['rna_conc_mol_l'], rna_conc_mol_l)
+				or arrays_differ(KmCache['degradation_rates_s'], degradation_rates_s)):
+			needToUpdate = 'recompute'
 	else:
-		needToUpdate = True
-
+		needToUpdate = 'compute'
 
 	if needToUpdate:
 		rnaConc = countsToMolar * bulkContainer.counts(sim_data.process.transcription.rna_data['id'])
@@ -3365,15 +3517,19 @@ def setKmCooperativeEndoRNonLinearRNAdecay(sim_data, bulkContainer):
 		totalEndoRnaseCapacity = units.sum(endoRNaseConc * kcatEndoRNase)
 		Kmcounts = (( 1 / degradationRates * totalEndoRnaseCapacity ) - rnaConc).asNumber()
 
-		if VERBOSE: print("Running non-linear optimization")
+		if VERBOSE: print(f'Running non-linear optimization to {needToUpdate} {km_filepath}')
 		KmCooperativeModel = scipy.optimize.fsolve(LossFunction, Kmcounts, fprime = LossFunctionP)
+		KmCache = dict(
+			KmCooperativeModel=KmCooperativeModel,
+			total_endo_rnase_capacity_mol_l_s=total_endo_rnase_capacity_mol_l_s,
+			rna_conc_mol_l=rna_conc_mol_l,
+			degradation_rates_s=degradation_rates_s)
 
 		with open(km_filepath, "wb") as f:
-			cPickle.dump(KmCooperativeModel, f, protocol=cPickle.HIGHEST_PROTOCOL)
+			cPickle.dump(KmCache, f, protocol=cPickle.HIGHEST_PROTOCOL)
 	else:
 		if VERBOSE:
 			print("Not running non-linear optimization--using cached result {}".format(km_filepath))
-		KmCooperativeModel = KmcountsCached
 
 	if VERBOSE > 1:
 		print("Loss function (Km inital) = %f" % np.sum(np.abs(LossFunction(Kmcounts))))
@@ -3389,7 +3545,6 @@ def setKmCooperativeEndoRNonLinearRNAdecay(sim_data, bulkContainer):
 
 		print("Residuals (scaled by Kdeg * RNAcounts) Km initial = %f" % np.sum(np.abs(R_aux(Kmcounts))))
 		print("Residuals (scaled by Kdeg * RNAcounts) optimized = %f" % np.sum(np.abs(R_aux(KmCooperativeModel))))
-
 
 	# Evaluate Jacobian around solutions (Kmcounts and KmCooperativeModel)
 	JacobDiag = np.diag(Jacob(KmCooperativeModel))
