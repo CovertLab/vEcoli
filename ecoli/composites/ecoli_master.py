@@ -226,7 +226,7 @@ def ecoli_topology_plot():
 
     topo_plot = plot_topology(
         ecoli,
-        filename='topology',
+        filename='ecoli_master_topology',
         out_dir='out/composites/ecoli_master/',
         settings=settings)
     return topo_plot

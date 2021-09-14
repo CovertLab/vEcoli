@@ -206,17 +206,17 @@ def assertions(actual_update, expected_update, time):
         return np.allclose(a, b, rtol=0.05, atol=1)
     
     test_structure = {
-        'environment' : {
+        'environment': {
             'exchange': {
                 molecule: scalar_almost_equal
                 for molecule in actual_update['environment']['exchange']}},
         
-        'listeners' : {
-            'fba_results' : {
-                'conc_updates' : transform_and_run(np.array, array_close),
-                'catalyst_counts' : transform_and_run(np.array, array_close),
-                'translation_gtp' : scalar_almost_equal,
-                'coefficient' : scalar_almost_equal,
+        'listeners': {
+            'fba_results': {
+                'conc_updates': transform_and_run(np.array, array_close),
+                'catalyst_counts': transform_and_run(np.array, array_close),
+                'translation_gtp': scalar_almost_equal,
+                'coefficient': scalar_almost_equal,
                 'deltaMetabolites': [transform_and_run(np.array, array_close),
                                  transform_and_run(np.array, array_diffs_report_test(
                                 f'out/migration/metabolism/delta_metabolites_t{time}.txt'))],
