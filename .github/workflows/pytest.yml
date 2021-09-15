@@ -25,6 +25,7 @@ jobs:
       run: |
         pip install pip==20.0.2
         pip install pytest
+        pip install pytest-cov
         pip install numpy
         pip install Cython
         python setup.py install
@@ -33,4 +34,4 @@ jobs:
         make clean compile
     - name: Test with pytest
       run: |
-        pytest
+        pytest --cov=ecoli
