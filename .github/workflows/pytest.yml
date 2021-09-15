@@ -33,6 +33,6 @@ jobs:
         make clean compile
     - name: Test with pytest
       run: |
-        pytest --cache-clear --cov=app test/ > pytest-coverage.txt
+        pytest --cache-clear --cov=ecoli test/ > pytest-coverage.txt
     - name: Comment coverage
       uses: coroo/pytest-coverage-commentator@v1.0.2
