@@ -33,12 +33,5 @@ jobs:
       run: |
         make clean compile
     - name: Test with pytest
-      file:
-        path: /test
-        state: directory
       run: |
-        pytest --cov=ecoli test/ > pytest-coverage.txt
-    - name: Comment coverage
-      uses: coroo/pytest-coverage-commentator@v1.0.2
-      with:
-        pytest-coverage: pytest-coverage.txt
+        pytest --cov=ecoli

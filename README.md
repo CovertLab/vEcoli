@@ -92,6 +92,12 @@ The way Vivarium state updates work, all states are provided as they appear at t
 process's update timestep, and then are applied at the end of that timestep. This ensures all states 
 are synchronized between processes.
 
+## Causality Network
+
+After running a simulation, you can explore the Causality visualization tool (see 
+[CovertLab/causality](https://github.com/CovertLab/causality)) to examine the model's causal links and 
+simulation output correlations.
+
 ## Current state
 
 As of September 2021, 
