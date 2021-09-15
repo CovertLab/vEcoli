@@ -33,6 +33,9 @@ jobs:
       run: |
         make clean compile
     - name: Test with pytest
+      file:
+        path: /test
+        state: directory
       run: |
         pytest --cov=ecoli test/ > pytest-coverage.txt
     - name: Comment coverage
