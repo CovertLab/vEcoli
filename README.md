@@ -33,16 +33,15 @@ run the following command in your terminal:
 
     $ pyenv virtualenv 3.8.5 viv-ecoli && pyenv local viv-ecoli
 
-Install pip version 20.0.2, as it is required for the current multiple setup in setup.py.
+Install pip:
 
-TODO: fix this to support most recent pip!
+    $ python -m pip install --upgrade pip
 
-    $ pip install pip==20.0.2
-
-Now, install numpy and Cython:
+Now, install numpy, Cython, and pybind11 to support the remaining requirements:
 
     $ pip install numpy
     $ pip install Cython
+    $ pip install pybind11
 
 Then install the remaining requirements:
 

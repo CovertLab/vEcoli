@@ -66,16 +66,17 @@ setup(
     long_description=long_description,
     long_description_content_type='text/markdown',
     install_requires=[
-        'pytest==6.2.4',
         'vivarium-core>=0.3.8',
         'vivarium-multibody>=0.0.13',
-        'decorator',
         'biopython==1.77',
         'Unum==4.1.4',
         'numba==0.50.1',
         'ipython==7.16.1',
-        'stochastic-arrow',
-        'iteround',
-        'cobra',
         'aesara==2.0.8',
-        ])
+        'decorator',
+        'iteround',
+        'stochastic-arrow',
+        'cobra',
+        'matplotlib',
+        'pytest',
+    ])
