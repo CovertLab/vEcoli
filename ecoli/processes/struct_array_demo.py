@@ -14,12 +14,16 @@ def struct_array_updater(current, update):
     into operations on a structured array.
 
     Expects current to be a numpy structured array, whose dtype will be
-    maintained by the result returned.
+    maintained by the result returned. The first element of the dtype must be
+    ("_key", "int"), an index targeted by _add and _delete operations.
 
     TODO:
       - inefficient use of numpy arrays, should instead pre-allocate and expand when necessary
-      - currently discards "key" information from _add, and assumes first column represents a key
-        for _delete - instead, require creation of a "key" column?
+        (cf. array list data structure)
+      - in the next_update method, retrieving data from state requires different code, since
+        dict and structured array interfaces are different. To avoid having to change code in each
+        process, we could, instead of using an updater, make a custom data structure with dict
+        interface but internally using a struct array.
     '''
     result = current
 
@@ -40,6 +44,14 @@ def struct_array_updater(current, update):
 
 
 class StructArrayDemo(Process):
+    '''
+    Process allowing for easy comparison of _add and _delete operations
+    with/without using a struct array.
+
+    Adds/deletes an active_RNAP molecule at exponentially distributed random intervals
+    with the rate parameters specified.
+    '''
+
     name = "StructArrayDemo"
     defaults = {
         'use_struct_array': False,
@@ -48,7 +60,7 @@ class StructArrayDemo(Process):
         'seed': 0
     }
 
-    DTYPE = np.dtype([("_key", 'int'),
+    DTYPE = np.dtype([("_key", 'int'),  # necessary for _add, _delete operations
                       ('unique_index', 'int'),
                       ('domain_index', 'int'),
                       ('coordinates', 'int'),
@@ -151,8 +163,6 @@ def test_struct_array_updater(use_struct_array=True,
     print(f'Run with{"out" if not use_struct_array else ""} '
           f'struct arrays took {tock - tick} seconds.')
 
-    # TODO: assertions to make sure these match
-
     return (tock - tick), data
 
 
@@ -179,9 +189,11 @@ def main():
                                                     rate_delete=rate_delete,
                                                     total_time=total_time)
                 result[i,j,k,0] = time
+
+    # TODO: assertions to make sure data matches with/without struct arrays.
     
     # Plots:
-    # One plot for using struct arrays, one without
+    # One plot for with-struct-arrays, one without
     # Y axis: time elapsed
     # X axis: total simulation time
     # Line color gradient: ratio of add rate to delete rate
