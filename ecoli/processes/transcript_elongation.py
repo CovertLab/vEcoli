@@ -551,9 +551,9 @@ class TranscriptElongation(PartitionedProcess):
 
         # update['active_RNAPs']['_delete'] = [rnap_indexes[index]
         #                                      for index in delete_rnaps]
-        # my_delete_rnas = partial_transcript_indexes[did_terminate_mask]
+        terminated_rnas_indexes = partial_transcript_indexes[did_terminate_mask]
         update['active_RNAPs']['_delete'] = [str(states['RNAs'][rna_indexes[rna_index]]['RNAP_index'])
-                                             for rna_index in delete_rnas]
+                                             for rna_index in terminated_rnas_indexes]
 
         update['ntps'] = array_to(self.ntp_ids, -ntps_used)
         update['bulk_RNAs'] = array_to(self.rnaIds, n_new_bulk_RNAs)
