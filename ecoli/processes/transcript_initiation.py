@@ -29,6 +29,7 @@ from vivarium.core.composition import simulate_process
 from ecoli.library.schema import arrays_from, arrays_to, add_elements, listener_schema, bulk_schema
 
 from wholecell.utils import units
+from wholecell.utils.data import create_unique_indexes
 from wholecell.utils.random import stochasticRound
 from wholecell.utils.unit_struct_array import UnitStructArray
 
@@ -456,9 +457,12 @@ class TranscriptInitiation(PartitionedProcess):
         coordinates = self.replication_coordinate[TU_index_partial_RNAs]
         direction = self.transcription_direction[TU_index_partial_RNAs]
 
+        rnaps_unique_indexes = create_unique_indexes(n_RNAPs_to_activate)
+
         new_RNAPs = arrays_to(
             n_RNAPs_to_activate, {
-                'unique_index': np.arange(self.rnap_index, self.rnap_index + n_RNAPs_to_activate).astype(str),
+                # 'unique_index': np.arange(self.rnap_index, self.rnap_index + n_RNAPs_to_activate).astype(str),
+                'unique_index': np.array(rnaps_unique_indexes),
                 'domain_index': domain_index_rnap,
                 'coordinates': coordinates,
                 'direction': direction})
@@ -475,9 +479,13 @@ class TranscriptInitiation(PartitionedProcess):
 
         # Add partially transcribed RNAs
         is_mRNA = np.isin(TU_index_partial_RNAs, self.idx_mRNA)
+
+        partial_rnas_unique_indexes = create_unique_indexes(n_RNAPs_to_activate)
+
         new_RNAs = arrays_to(
             n_RNAPs_to_activate, {
-                'unique_index': np.arange(self.rnap_index, self.rnap_index + n_RNAPs_to_activate).astype(str),
+                # 'unique_index': np.arange(self.rnap_index, self.rnap_index + n_RNAPs_to_activate).astype(str),
+                'unique_index': np.array(partial_rnas_unique_indexes),
                 'TU_index': TU_index_partial_RNAs,
                 'transcript_length': np.zeros(cast(int, n_RNAPs_to_activate)),
                 'is_mRNA': is_mRNA,
