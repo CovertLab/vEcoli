@@ -712,7 +712,6 @@ def test_transcript_initiation():
     assert monotonically_decreasing(d_active_RNAP), "Change in active RNAPs is not monotonically decreasing"
     assert all_nonnegative(d_active_RNAP), "One or more timesteps has decrease in active RNAPs"
     assert np.sum(d_active_RNAP) == np.sum(inits_by_TU), "# of active RNAPs does not match number of initiations"
-    assert data_noTF['active_RNAPs'].keys() == data_noTF['RNAs'].keys(), "Keys of active RNAPs do not match keys of RNA"
 
     # Inactive RNAPs deplete as they are activated
     np.testing.assert_array_equal(-d_inactive_RNAP,
