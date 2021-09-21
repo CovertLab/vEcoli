@@ -1,5 +1,5 @@
-from ecoli.processes.diffusion_network import calculate_rp_from_mw
-from ecoli.processes.diffusion_network import compute_diffusion_constants_from_rp
+from ecoli.processes.spatiality.diffusion_network import calculate_rp_from_mw
+from ecoli.processes.spatiality.diffusion_network import compute_diffusion_constants_from_rp
 import pickle
 import matplotlib.pyplot as plt
 import numpy as np
