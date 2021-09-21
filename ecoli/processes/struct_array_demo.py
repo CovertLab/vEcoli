@@ -137,7 +137,6 @@ def test_struct_array_updater(use_struct_array=True,
                               rate_add=0.5,
                               rate_delete=0.2,
                               total_time=10):
-    data = {}
     process_config = {
         'use_struct_array': use_struct_array,
         'rate_add': rate_add,
@@ -157,7 +156,7 @@ def test_struct_array_updater(use_struct_array=True,
         'initial_state': initial_state}
 
     tick = time.perf_counter()
-    data[use_struct_array] = simulate_process(process, settings)
+    data = simulate_process(process, settings)
     tock = time.perf_counter()
 
     print(f'Run with{"out" if not use_struct_array else ""} '
@@ -181,17 +180,27 @@ def main():
                        1))
 
     rate_delete = 0.1
-    for i, use_struct_array in enumerate(sweep['use_struct_array']):
-        for j, rate_ratio in enumerate(sweep['add_to_delete_rate_ratio']):
-            for k, total_time in enumerate(sweep['total_time']):
-                time, _ = test_struct_array_updater(use_struct_array=use_struct_array,
-                                                    rate_add=rate_ratio * rate_delete,
-                                                    rate_delete=rate_delete,
-                                                    total_time=total_time)
-                result[i,j,k,0] = time
+    for i, rate_ratio in enumerate(sweep['add_to_delete_rate_ratio']):
+        for j, total_time in enumerate(sweep['total_time']):
+            data = {}
+            for k, use_struct_array in enumerate(sweep['use_struct_array']):
+                time, data[use_struct_array] = test_struct_array_updater(use_struct_array=use_struct_array,
+                                                                         rate_add=rate_ratio * rate_delete,
+                                                                         rate_delete=rate_delete,
+                                                                         total_time=total_time)
+                result[k, i, j, 0] = time
 
-    # TODO: assertions to make sure data matches with/without struct arrays.
-    
+            # Assertions to make sure data matches with/without struct arrays
+            # Note: When not using struct arrays, information about when adds and removes happen is lost,
+            #       only the length of time a molecule is in existence is kept!
+            lifetimes = {}
+            for snapshot in data[True]['active_RNAPs']:
+                for molecule in snapshot:
+                    lifetimes[molecule[0]] = lifetimes.get(molecule[0], 0) + 1
+            
+            for index, molecule in data[False]['active_RNAPs'].items():
+                assert len(molecule['unique_index']) == lifetimes[int(index)]
+
     # Plots:
     # One plot for with-struct-arrays, one without
     # Y axis: time elapsed
@@ -203,8 +212,9 @@ def main():
     for i, rate_ratio in enumerate(sweep['add_to_delete_rate_ratio']):
         for j, use_struct_array in enumerate(sweep['use_struct_array']):
             axs[j].plot(sweep['total_time'], result[j, i, :],
-                    label=rate_ratio, color=(1-i/n_lines, i/n_lines, 0.25))
-            axs[j].set_title(f'Runtime {"" if use_struct_array else "not "}using struct array')
+                        label=rate_ratio, color=(1-i/n_lines, i/n_lines, 0.25))
+            axs[j].set_title(
+                f'Runtime {"" if use_struct_array else "not "}using struct array')
             axs[j].set_xlabel("Simulation length (s)")
             axs[j].set_xticks(sweep['total_time'])
             axs[j].tick_params(axis='x', labelrotation=45)
