@@ -115,7 +115,7 @@ class ReceptorCluster(Process):
     }
 
     def __init__(self, parameters=None):
-        super(ReceptorCluster, self).__init__(parameters)
+        super().__init__(parameters)
 
         # initialize the state by running until steady
         initial_internal_state = self.parameters['initial_internal_state']
