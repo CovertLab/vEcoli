@@ -69,12 +69,11 @@ from vivarium.core.composer import Composer
 from vivarium.core.composition import simulate_composer
 
 # processes
-from ecoli.processes.diffusion_network import DiffusionNetwork
+from ecoli.processes.spatiality.diffusion_network import DiffusionNetwork
 
 # plots
 from ecoli.plots.ecoli_spatial_plots import (
     plot_NT_availability,
-    plot_single_molecule_diff,
     plot_nucleoid_diff,
     plot_large_molecules,
     plot_polyribosomes_diff,
