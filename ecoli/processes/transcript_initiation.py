@@ -718,11 +718,6 @@ def test_transcript_initiation():
                                   d_active_RNAP,
                                   "Depletion of inactive RNAPs does not match counts of RNAPs activated.")
 
-    # RNAs being transcribed matches active RNAPs
-    for id, rnap in data_noTF['active_RNAPs'].items():
-        rna = data_noTF['RNAs'][id]
-        # TODO(Michael) (3)
-
     # Fixed synthesis probability TUs (RNAP, rProtein) and non-fixed TUs synthesized in correct proportion
     expected = np.array([test_config['rnaSynthProbRProtein']['minimal'][0],
                          test_config['rnaSynthProbRnaPolymerase']['minimal'][0],
