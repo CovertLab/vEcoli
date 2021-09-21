@@ -38,7 +38,7 @@ class ChemotaxisMinimal(Composer):
     }
 
     def __init__(self, config):
-        super(ChemotaxisMinimal, self).__init__(config)
+        super().__init__(config)
 
     def generate_processes(self, config):
 
@@ -109,7 +109,7 @@ def test_chemotaxis_minimal(total_time=10):
     return timeseries
 
 
-if __name__ == '__main__':
+def main():
     out_dir = os.path.join(COMPOSITE_OUT_DIR, NAME)
     if not os.path.exists(out_dir):
         os.makedirs(out_dir)
@@ -129,3 +129,9 @@ if __name__ == '__main__':
         plot_settings,
         out_dir,
         'exponential_timeline')
+
+
+
+
+if __name__ == '__main__':
+    main()

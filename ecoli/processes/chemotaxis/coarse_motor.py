@@ -85,7 +85,7 @@ class MotorActivity(Process):
     }
 
     def __init__(self, parameters=None):
-        super(MotorActivity, self).__init__(parameters)
+        super().__init__(parameters)
 
     def ports_schema(self):
         ports = ['internal', 'external']
