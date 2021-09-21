@@ -29,7 +29,7 @@ from vivarium.core.composition import simulate_process
 from ecoli.library.schema import arrays_from, arrays_to, add_elements, listener_schema, bulk_schema
 
 from wholecell.utils import units
-from wholecell.utils.data import create_unique_indexes
+from ecoli.library.unique_indexes import create_unique_indexes
 from wholecell.utils.random import stochasticRound
 from wholecell.utils.unit_struct_array import UnitStructArray
 
