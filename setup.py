@@ -51,7 +51,7 @@ setup(
         'decorator',
         'biopython==1.77',
         'Unum==4.1.4',
-        'numba>=0.50.1',
+        'numba==0.50.1',
         'ipython==7.16.1',
         'stochastic-arrow',
         'iteround',
