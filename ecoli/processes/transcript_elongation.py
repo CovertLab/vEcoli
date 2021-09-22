@@ -501,7 +501,7 @@ class TranscriptElongation(PartitionedProcess):
             len(states['active_RNAPs']), {
                 'coordinates': updated_coordinates})
 
-        delete_rnaps = np.where(did_terminate_mask[partial_RNA_to_RNAP_mapping])[0]
+        # delete_rnaps = [np.where(did_terminate_mask[partial_RNA_to_RNAP_mapping])[0]]
 
         # Attenuation removes RNAs and RNAPs (NON-FUNCTIONAL)
         counts_attenuated = np.zeros(len(self.attenuated_rna_indices))
@@ -549,8 +549,11 @@ class TranscriptElongation(PartitionedProcess):
             rnap_indexes[index]: rnap
             for index, rnap in enumerate(rnaps_update)}
 
-        update['active_RNAPs']['_delete'] = [rnap_indexes[index] 
-                                             for index in delete_rnaps]
+        # update['active_RNAPs']['_delete'] = [rnap_indexes[index]
+        #                                      for index in delete_rnaps]
+        terminated_rnas_indexes = partial_transcript_indexes[did_terminate_mask]
+        update['active_RNAPs']['_delete'] = [str(states['RNAs'][rna_indexes[rna_index]]['RNAP_index'])
+                                             for rna_index in terminated_rnas_indexes]
 
         update['ntps'] = array_to(self.ntp_ids, -ntps_used)
         update['bulk_RNAs'] = array_to(self.rnaIds, n_new_bulk_RNAs)
