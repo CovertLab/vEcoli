@@ -57,6 +57,8 @@ from wholecell.utils import units
 from six.moves import range, zip
 
 from ecoli.processes.registries import topology_registry
+from ecoli.processes.partition import PartitionedProcess
+
 
 # Register default topology for this process, associating it with process name
 NAME = 'ecoli-rna-degradation'
@@ -77,7 +79,7 @@ TOPOLOGY = {
 topology_registry.register(NAME, TOPOLOGY)
 
 
-class RnaDegradation(Process):
+class RnaDegradation(PartitionedProcess):
     name = NAME
     topology = TOPOLOGY
     defaults = {
@@ -499,12 +501,6 @@ class RnaDegradation(Process):
 
         return update
 
-    def next_update(self, timestep, states):
-        requests = self.calculate_request(timestep, states)
-        states = deep_merge(states, requests)
-        update = self.evolve_state(timestep, states)
-        update['listeners'] = deep_merge(update['listeners'], requests['listeners'])
-        return update
 
     def _calculate_total_n_to_degrade(self, timestep, specificity, total_kcat_endornase):
         """

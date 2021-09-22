@@ -12,7 +12,7 @@ from vivarium.core.process import Process
 
 from ecoli.library.schema import (add_elements, arrays_from, bulk_schema, 
                                   arrays_to, array_to, listener_schema)
-from ecoli.processes.cell_division import divide_by_domain
+from ecoli.processes.cell_division import divide_active_RNAPs_by_domain
 
 from wholecell.utils.polymerize import buildSequences
 from wholecell.utils.data import create_unique_indexes
@@ -157,8 +157,7 @@ class ChromosomeStructure(Process):
                 }},
             'active_RNAPs': {
                 '_divider': {
-                        'divider': divide_by_domain,
-                        'config': {}
+                        'divider': divide_active_RNAPs_by_domain,
                     },
                 '*': {
                     'unique_index': {'_default': 0, '_updater': 'set'},

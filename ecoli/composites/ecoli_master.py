@@ -3,13 +3,12 @@
 E. coli master composite
 ========================
 """
-
-import os
-import argparse
+import pytest
 
 from vivarium.core.composer import Composer
 from vivarium.library.topology import assoc_path
 from vivarium.library.dict_utils import deep_merge
+from vivarium.core.control import run_library_cli
 
 # sim data
 from ecoli.library.sim_data import LoadSimData
@@ -18,7 +17,7 @@ from ecoli.library.sim_data import LoadSimData
 from vivarium.library.wrappers import make_logging_process
 
 # vivarium-ecoli processes
-from ecoli.composites.ecoli_master_configs import (
+from ecoli.composites.ecoli_configs import (
     ECOLI_DEFAULT_PROCESSES, ECOLI_DEFAULT_TOPOLOGY)
 from ecoli.processes.cell_division import Division
 
@@ -72,9 +71,10 @@ class Ecoli(Composer):
         self.topology = self.config['topology']
 
     def initial_state(self, config=None, path=()):
-        if config:
-            initial_time = config.get("initial_time", 0)
-        initial_state = get_state_from_file(path=f'data/wcecoli_t{initial_time}.json')
+        # Use initial state calculated with trna_charging and translationSupply disabled
+        config = config or {}
+        initial_time = config.get('initial_time', 0)
+        initial_state = get_state_from_file(path=f'data/metabolism/wcecoli_t{initial_time}.json')
         embedded_state = {}
         assoc_path(embedded_state, path, initial_state)
         return embedded_state
@@ -168,7 +168,8 @@ def run_ecoli(
     return sim.run()
 
 
-def test_division():
+@pytest.mark.slow
+def run_division(total_time=30):
     """
     Work in progress to get division working
     * TODO -- unique molecules need to be divided between daughter cells!!! This can get sophisticated
@@ -176,18 +177,28 @@ def test_division():
 
     from ecoli.experiments.ecoli_master_sim import EcoliSim, CONFIG_DIR_PATH
 
+    initial_state = Ecoli({}).initial_state()
+    initial_mass = initial_state['listeners']['mass']['cell_mass']
+    division_mass = initial_mass+0.1
+    print(f"DIVIDE AT {division_mass} fg")
+
     sim = EcoliSim.from_file(CONFIG_DIR_PATH + "no_partition.json")
-    sim.division = {'threshold' : 1170}
+    sim.division = {'threshold': division_mass}
 
     # Remove metabolism for now 
     # (divison fails because cannot deepcopy metabolism process)
     sim.exclude_processes.append("ecoli-metabolism")
-    
-    sim.total_time = 10
+    sim.total_time = total_time
     sim.divide = True
-    sim.progress_bar = True
+    sim.progress_bar = False
+    sim.raw_output = True
 
+    # run simulation
     output = sim.run()
+
+    print(f"initial agent ids: {output[0.0]['agents'].keys()}")
+    print(f"final agent ids: {output[total_time]['agents'].keys()}")
+    # import ipdb; ipdb.set_trace()
 
 
 def test_ecoli_generate():
@@ -215,35 +226,20 @@ def ecoli_topology_plot():
 
     topo_plot = plot_topology(
         ecoli,
-        filename='ecoli_master',
-        out_dir='out/ecoli_master/',
+        filename='ecoli_master_topology',
+        out_dir='out/composites/ecoli_master/',
         settings=settings)
     return topo_plot
 
 
 test_library = {
     '0': run_ecoli,
-    '1': test_division,
+    '1': run_division,
     '2': test_ecoli_generate,
     '3': ecoli_topology_plot,
 }
 
-
-def main():
-    out_dir = os.path.join('out', 'ecoli_master')
-    if not os.path.exists(out_dir):
-        os.makedirs(out_dir)
-
-    parser = argparse.ArgumentParser(description='ecoli_master')
-    parser.add_argument('--name', '-n', default=[], nargs='+', help='test ids to run')
-    args = parser.parse_args()
-
-    if args.name:
-        for name in args.name:
-            test_library[name]()
-    else:
-        output = run_ecoli(log_updates=True)
-
-
+# run experiments in test_library from the command line with:
+# python ecoli/composites/ecoli_master.py -n [experiment id]
 if __name__ == '__main__':
-    main()
+    run_library_cli(test_library)
