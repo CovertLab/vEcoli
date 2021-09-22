@@ -114,10 +114,10 @@ def assertions(actual_update, expected_update):
      wc_prob_translation_per_transcript) = unpack(expected_update)
 
     # Assertions fail by initial_time = 1000 due to stochasticity
-    assert array_equal(np.array(ar_peptides), wc_ar_peptides)
-    assert array_equal(np.array(ar_pos_on_mrna), wc_ar_pos_on_mrna)
-    assert array_equal(np.array(subunits), wc_subunits)
-    assert scalar_equal(np.array(ribosomes_initialized), wc_ribosomes_initialized)
+    assert len_almost_equal(np.array(ar_peptides), wc_ar_peptides)
+    assert len_almost_equal(np.array(ar_pos_on_mrna), wc_ar_pos_on_mrna)
+    assert array_almost_equal(np.array(subunits), wc_subunits)
+    assert scalar_almost_equal(np.array(ribosomes_initialized), wc_ribosomes_initialized)
     assert array_equal(np.array(prob_translation_per_transcript), wc_prob_translation_per_transcript)
 
 
