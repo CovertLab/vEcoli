@@ -30,6 +30,7 @@ from wholecell.utils.fitting import normalize
 from six.moves import zip
 
 from ecoli.processes.registries import topology_registry
+from ecoli.processes.partition import PartitionedProcess
 
 # Register default topology for this process, associating it with process name
 NAME = 'ecoli-polypeptide-initiation'
@@ -43,7 +44,7 @@ TOPOLOGY = {
 topology_registry.register(NAME, TOPOLOGY)
 
 
-class PolypeptideInitiation(Process):
+class PolypeptideInitiation(PartitionedProcess):
     name = NAME
     topology = TOPOLOGY
 
@@ -268,12 +269,6 @@ class PolypeptideInitiation(Process):
                     'ribosomes_initialized': n_new_proteins.sum(),
                     'prob_translation_per_transcript': protein_init_prob}}}
 
-        return update
-
-    def next_update(self, timestep, states):
-        requests = self.calculate_request(timestep, states)
-        states = deep_merge(states, requests)
-        update = self.evolve_state(timestep, states)
         return update
 
     def calculate_activation_prob(

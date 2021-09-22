@@ -24,14 +24,12 @@ from typing import cast
 
 from six.moves import zip
 
-from vivarium.core.process import Process
 from vivarium.core.composition import simulate_process
-from vivarium.library.dict_utils import deep_merge
 
 from ecoli.library.schema import arrays_from, arrays_to, add_elements, listener_schema, bulk_schema
 
 from wholecell.utils import units
-from wholecell.utils.data import create_unique_indexes
+from ecoli.library.unique_indexes import create_unique_indexes
 from wholecell.utils.random import stochasticRound
 from wholecell.utils.unit_struct_array import UnitStructArray
 
@@ -39,6 +37,8 @@ from ecoli.library.data_predicates import monotonically_decreasing, all_nonnegat
 from scipy.stats import chisquare
 
 from ecoli.processes.registries import topology_registry
+from ecoli.processes.partition import PartitionedProcess
+
 
 # Register default topology for this process, associating it with process name
 NAME = 'ecoli-transcript-initiation'
@@ -54,7 +54,7 @@ TOPOLOGY = {
 topology_registry.register(NAME, TOPOLOGY)
 
 
-class TranscriptInitiation(Process):
+class TranscriptInitiation(PartitionedProcess):
     """TranscriptInitiation
 
     defaults:
@@ -457,12 +457,12 @@ class TranscriptInitiation(Process):
         coordinates = self.replication_coordinate[TU_index_partial_RNAs]
         direction = self.transcription_direction[TU_index_partial_RNAs]
 
-        unique_indexes = create_unique_indexes(n_RNAPs_to_activate)
+        rnaps_unique_indexes = create_unique_indexes(n_RNAPs_to_activate)
 
         new_RNAPs = arrays_to(
             n_RNAPs_to_activate, {
                 # 'unique_index': np.arange(self.rnap_index, self.rnap_index + n_RNAPs_to_activate).astype(str),
-                'unique_index': np.array(unique_indexes),
+                'unique_index': np.array(rnaps_unique_indexes),
                 'domain_index': domain_index_rnap,
                 'coordinates': coordinates,
                 'direction': direction})
@@ -479,10 +479,13 @@ class TranscriptInitiation(Process):
 
         # Add partially transcribed RNAs
         is_mRNA = np.isin(TU_index_partial_RNAs, self.idx_mRNA)
+
+        partial_rnas_unique_indexes = create_unique_indexes(n_RNAPs_to_activate)
+
         new_RNAs = arrays_to(
             n_RNAPs_to_activate, {
                 # 'unique_index': np.arange(self.rnap_index, self.rnap_index + n_RNAPs_to_activate).astype(str),
-                'unique_index': np.array(unique_indexes),
+                'unique_index': np.array(partial_rnas_unique_indexes),
                 'TU_index': TU_index_partial_RNAs,
                 'transcript_length': np.zeros(cast(int, n_RNAPs_to_activate)),
                 'is_mRNA': is_mRNA,
@@ -513,12 +516,6 @@ class TranscriptInitiation(Process):
             'didInitialize': n_RNAPs_to_activate,
             'rnaInitEvent': TU_to_promoter.dot(n_initiations)}
 
-        return update
-
-    def next_update(self, timestep, states):
-        requests = self.calculate_request(timestep, states)
-        states = deep_merge(states, requests)
-        update = self.evolve_state(timestep, states)
         return update
 
     def _calculateActivationProb(self, timestep, fracActiveRnap, rnaLengths, rnaPolymeraseElongationRates, synthProb):
@@ -715,17 +712,11 @@ def test_transcript_initiation():
     assert monotonically_decreasing(d_active_RNAP), "Change in active RNAPs is not monotonically decreasing"
     assert all_nonnegative(d_active_RNAP), "One or more timesteps has decrease in active RNAPs"
     assert np.sum(d_active_RNAP) == np.sum(inits_by_TU), "# of active RNAPs does not match number of initiations"
-    assert data_noTF['active_RNAPs'].keys() == data_noTF['RNAs'].keys(), "Keys of active RNAPs do not match keys of RNA"
 
     # Inactive RNAPs deplete as they are activated
     np.testing.assert_array_equal(-d_inactive_RNAP,
                                   d_active_RNAP,
                                   "Depletion of inactive RNAPs does not match counts of RNAPs activated.")
-
-    # RNAs being transcribed matches active RNAPs
-    for id, rnap in data_noTF['active_RNAPs'].items():
-        rna = data_noTF['RNAs'][id]
-        # TODO(Michael) (3)
 
     # Fixed synthesis probability TUs (RNAP, rProtein) and non-fixed TUs synthesized in correct proportion
     expected = np.array([test_config['rnaSynthProbRProtein']['minimal'][0],

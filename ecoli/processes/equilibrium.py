@@ -12,15 +12,15 @@ that maintains equilibrium.
 
 import numpy as np
 
-from vivarium.core.process import Process
 from vivarium.library.dict_utils import deep_merge
 
 from ecoli.library.schema import array_from, array_to, bulk_schema
+from ecoli.processes.registries import topology_registry
+from ecoli.processes.partition import PartitionedProcess
 
 from wholecell.utils import units
 from six.moves import range
 
-from ecoli.processes.registries import topology_registry
 
 # Register default topology for this process, associating it with process name
 NAME = 'ecoli-equilibrium'
@@ -31,7 +31,7 @@ TOPOLOGY = {
 topology_registry.register(NAME, TOPOLOGY)
 
 
-class Equilibrium(Process):
+class Equilibrium(PartitionedProcess):
     name = NAME
     topology = TOPOLOGY
     """
@@ -142,12 +142,6 @@ class Equilibrium(Process):
                 'equilibrium_listener': {
                     'reaction_rates': deltaMolecules[self.product_indices] / timestep}}}
 
-        return update
-
-    def next_update(self, timestep, states):
-        requests = self.calculate_request(timestep, states)
-        states = deep_merge(states, requests)
-        update = self.evolve_state(timestep, states)
         return update
 
 

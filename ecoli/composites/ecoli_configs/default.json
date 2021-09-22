@@ -15,7 +15,7 @@
 
     "initial_time": 0,
     "time_step": 2.0,
-    "total_time": 2550.0,
+    "total_time": 14.0,
     "generations": null,
 
     "agent_id": "0",

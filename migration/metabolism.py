@@ -1,7 +1,6 @@
 """
 Metabolism process migration tests
 """
-import argparse
 import json
 import os
 import numpy as np
@@ -12,6 +11,7 @@ from migration.plots import qqplot
 from vivarium.core.engine import Engine
 from vivarium.core.composer import Composer
 from vivarium.library.dict_utils import deep_merge
+from vivarium.core.control import run_library_cli
 
 # ecoli imports
 from ecoli.library.sim_data import LoadSimData
@@ -206,17 +206,17 @@ def assertions(actual_update, expected_update, time):
         return np.allclose(a, b, rtol=0.05, atol=1)
     
     test_structure = {
-        'environment' : {
+        'environment': {
             'exchange': {
                 molecule: scalar_almost_equal
                 for molecule in actual_update['environment']['exchange']}},
         
-        'listeners' : {
-            'fba_results' : {
-                'conc_updates' : transform_and_run(np.array, array_close),
-                'catalyst_counts' : transform_and_run(np.array, array_close),
-                'translation_gtp' : scalar_almost_equal,
-                'coefficient' : scalar_almost_equal,
+        'listeners': {
+            'fba_results': {
+                'conc_updates': transform_and_run(np.array, array_close),
+                'catalyst_counts': transform_and_run(np.array, array_close),
+                'translation_gtp': scalar_almost_equal,
+                'coefficient': scalar_almost_equal,
                 'deltaMetabolites': [transform_and_run(np.array, array_close),
                                  transform_and_run(np.array, array_diffs_report_test(
                                 f'out/migration/metabolism/delta_metabolites_t{time}.txt'))],
@@ -333,15 +333,4 @@ test_library = {
 }
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='metabolism process migration')
-    parser.add_argument(
-        '--name', '-n', default=[], nargs='+', help='test ids to run')
-    args = parser.parse_args()
-    args.name = ['1']
-    run_all = not args.name
-
-    for name in args.name:
-        test_library[name]()
-    if run_all:
-        for name, test in test_library.items():
-            test()
+    run_library_cli(test_library)
