@@ -22,7 +22,7 @@ handled entirely by Vivarium's core engine and process interface.
 The new process classes can be found in `ecoli/processes/*` and are linked together using 
 a Vivarium topology that is generated in `ecoli/experiments/ecoli_master_sim.py`.
 
-## Installation
+## Pyenv Installation
 
 pyenv lets you install and switch between multiple Python releases and multiple "virtual 
 environments", each with its own pip packages. Using pyenv, create a virtual environment 
@@ -33,12 +33,7 @@ run the following command in your terminal:
 
     $ pyenv virtualenv 3.8.5 viv-ecoli && pyenv local viv-ecoli
 
-Install pip version 20.0.2, as it is required for the current multiple setup in setup.py.
-
-TODO: fix this to support most recent pip!
-
-    $ pip install pip==20.0.2
-
+#TODO: Create a pyproject.toml so the project can install with a single pip command (see the [PEP 517/518 solution](https://stackoverflow.com/questions/54117786/add-numpy-get-include-argument-to-setuptools-without-preinstalled-numpy))
 Now, install numpy and Cython:
 
     $ pip install numpy
@@ -46,11 +41,17 @@ Now, install numpy and Cython:
 
 Then install the remaining requirements:
 
+    $ pip install -r requirements.txt 
     $ python setup.py install
 
-Finally, compile the `wholecell/utils` cython files:
+## Conda install
 
-    $ make clean compile
+To install using conda (first line creates a conda environment with numpy and Cython, the second activates the environment and the third installs WCM and remaining dependencies).
+
+    $ conda create -n WCM numpy Cython
+    $ conda activate WCM
+    $ conda install --file requirements.txt
+    $ python setup.py install
 
 ## Running the simulation
 
