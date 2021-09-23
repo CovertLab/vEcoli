@@ -3,6 +3,8 @@
 E. coli master composite
 ========================
 """
+import os
+
 import pytest
 
 from vivarium.core.composer import Composer
@@ -30,7 +32,13 @@ from ecoli.plots.topology import get_ecoli_master_topology_settings
 
 
 RAND_MAX = 2**31
-SIM_DATA_PATH = 'reconstruction/sim_data/kb/simData.cPickle'
+SIM_DATA_PATH = os.path.abspath(
+    os.path.join(
+        os.path.dirname(__file__), '..', '..', 'reconstruction',
+        'sim_data', 'kb', 'simData.cPickle',
+    )
+)
+print(SIM_DATA_PATH)
 
 MINIMAL_MEDIA_ID = 'minimal'
 AA_MEDIA_ID = 'minimal_plus_amino_acids'
@@ -97,7 +105,7 @@ class Ecoli(Composer):
                     default = self.load_sim_data.get_config_by_name(process)
                 except KeyError:
                     default = self.processes[process].defaults
-                
+
                 process_configs[process] = deep_merge(dict(default), process_configs[process])
 
         # make the processes
@@ -155,9 +163,9 @@ def run_ecoli(
     Returns:
         * output data
     """
-    
+
     from ecoli.experiments.ecoli_master_sim import EcoliSim, CONFIG_DIR_PATH
-    
+
     sim = EcoliSim.from_file(CONFIG_DIR_PATH + "no_partition.json")
     sim.total_time = total_time
     sim.divide = divide
@@ -185,7 +193,7 @@ def run_division(total_time=30):
     sim = EcoliSim.from_file(CONFIG_DIR_PATH + "no_partition.json")
     sim.division = {'threshold': division_mass}
 
-    # Remove metabolism for now 
+    # Remove metabolism for now
     # (divison fails because cannot deepcopy metabolism process)
     sim.exclude_processes.append("ecoli-metabolism")
     sim.total_time = total_time
@@ -205,13 +213,13 @@ def test_ecoli_generate():
     ecoli_composer = Ecoli({})
     ecoli_composite = ecoli_composer.generate()
 
-    # asserts to ecoli_composite['processes'] and ecoli_composite['topology'] 
+    # asserts to ecoli_composite['processes'] and ecoli_composite['topology']
     assert all(isinstance(v, ECOLI_DEFAULT_PROCESSES[k])
                for k, v in ecoli_composite['processes'].items())
     assert all(ECOLI_DEFAULT_TOPOLOGY[k] == v
                for k, v in ecoli_composite['topology'].items())
 
-    
+
 def ecoli_topology_plot():
     """Make a topology plot of Ecoli"""
     agent_config = {
