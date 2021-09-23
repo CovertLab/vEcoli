@@ -10,7 +10,6 @@ This process models how transcription factors bind to promoters on the DNA seque
 
 import numpy as np
 
-from vivarium.core.process import Process
 from vivarium.library.dict_utils import deep_merge
 
 from ecoli.library.schema import arrays_from, arrays_to, bulk_schema, listener_schema, submass_schema
@@ -19,6 +18,7 @@ from wholecell.utils.random import stochasticRound
 from wholecell.utils import units
 
 from ecoli.processes.registries import topology_registry
+from ecoli.processes.partition import PartitionedProcess
 
 
 # Register default topology for this process, associating it with process name
@@ -33,7 +33,7 @@ TOPOLOGY = {
 topology_registry.register(NAME, TOPOLOGY)
 
 
-class TfBinding(Process):
+class TfBinding(PartitionedProcess):
     name = NAME
     topology = TOPOLOGY
     defaults = {

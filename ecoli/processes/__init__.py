@@ -13,7 +13,7 @@ from ecoli.processes.protein_degradation import ProteinDegradation
 from ecoli.processes.metabolism import Metabolism
 from ecoli.processes.chromosome_replication import ChromosomeReplication
 from ecoli.processes.mass import Mass
-from ecoli.processes.exchange_stub import Exchange
+from ecoli.processes.stubs.exchange_stub import Exchange
 from ecoli.processes.listeners.mass_listener import MassListener
 from ecoli.processes.listeners.mRNA_counts import mRNACounts
 from ecoli.processes.chromosome_structure import ChromosomeStructure
