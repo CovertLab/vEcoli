@@ -73,7 +73,7 @@ class TranslationSupplyElongationModel(BaseElongationModel):
 
     def amino_acid_counts(self, aasInSequences):
         return np.fmin(self.process.aa_supply, aasInSequences)  # Check if this is required. It is a better request but there may be fewer elongations.
-    
+
     def isTimeStepShortEnough(self, inputTimeStep, timeStepSafetyFraction):
         return True
 
@@ -123,7 +123,7 @@ class SteadyStateElongationModel(TranslationSupplyElongationModel):
 
         # Amino acid supply calculations
         self.aa_supply_scaling = self.parameters['aa_supply_scaling']
-        
+
         # Manage unstable charging with too long time step by setting
         # time_step_short_enough to False during updates. Other variables
         # manage when to trigger an adjustment and how quickly the time step
@@ -272,7 +272,7 @@ class SteadyStateElongationModel(TranslationSupplyElongationModel):
         aa_for_charging = total_aa_counts - aas_used
         n_aa_charged = np.fmin(aa_for_charging, np.dot(self.process.aa_from_trna, uncharged_trna))
         n_trna_charged = self.distribution_from_aa(n_aa_charged, uncharged_trna, True)
-        
+
         # Reactions that are charged and elongated in same time step
         total_uncharging_reactions = self.distribution_from_aa(aas_used, total_trna)
         trna_to_uncharge = np.fmin(charged_trna, total_uncharging_reactions)
@@ -294,9 +294,9 @@ class SteadyStateElongationModel(TranslationSupplyElongationModel):
         if self.process.ppgpp_regulation:
             v_rib = (nElongations * self.counts_to_molar).asNumber(MICROMOLAR_UNITS) / timestep
             ribosome_conc = self.counts_to_molar * len(states['active_ribosome'])
-            updated_uncharged_trna_counts = (array_from(states['uncharged_trna_total']) 
+            updated_uncharged_trna_counts = (array_from(states['uncharged_trna_total'])
                                              - net_charged)
-            updated_charged_trna_counts = (array_from(states['charged_trna_total']) 
+            updated_charged_trna_counts = (array_from(states['charged_trna_total'])
                                            + net_charged)
             uncharged_trna_conc = self.counts_to_molar * np.dot(
                 self.process.aa_from_trna, updated_uncharged_trna_counts)
@@ -335,7 +335,7 @@ class SteadyStateElongationModel(TranslationSupplyElongationModel):
         aa_diff = self.process.aa_supply - np.dot(self.process.aa_from_trna, total_charging_reactions)
         if np.any(np.abs(aa_diff / array_from(states['amino_acids_total'])) > self.max_amino_acid_adjustment):
             self.time_step_short_enough = False
-        
+
         return net_charged, {aa: diff for aa, diff in zip(self.aaNames, aa_diff)}, update
 
     def calculate_trna_charging(self, synthetase_conc, uncharged_trna_conc, charged_trna_conc, aa_conc, ribosome_conc, f, time_limit=1000, use_disabled_aas=False):
@@ -343,7 +343,7 @@ class SteadyStateElongationModel(TranslationSupplyElongationModel):
         Calculates the steady state value of tRNA based on charging and incorporation through polypeptide elongation.
         The fraction of charged/uncharged is also used to determine how quickly the ribosome is elongating.
 
-        Inputs:
+        Args:
             synthetase_conc (array of floats with concentration units) - concentration of synthetases associated
                 with each amino acid
             uncharged_trna_conc (array of floats with concentration units) - concentration of uncharged tRNA associated
@@ -458,14 +458,14 @@ class SteadyStateElongationModel(TranslationSupplyElongationModel):
         fraction that each tRNA species makes up for all tRNA species that code for the
         same amino acid.
 
-        Inputs:
-            n_aa (array of ints) - counts of each amino acid to distribute to each tRNA
-            n_trna (array of ints) - counts of each tRNA to determine the distribution
-            limited (bool) - optional, if True, limits the amino acids distributed to
+        Args:
+            n_aa (array of ints): counts of each amino acid to distribute to each tRNA
+            n_trna (array of ints): counts of each tRNA to determine the distribution
+            limited (bool): optional, if True, limits the amino acids distributed to
                 each tRNA to the number of tRNA that are available (n_trna)
 
         Returns:
-            array of ints - distributed counts for each tRNA
+            (array of ints) distributed counts for each tRNA
         '''
 
         # Determine the fraction each tRNA species makes up out of all tRNA of the
@@ -530,13 +530,15 @@ class SteadyStateElongationModel(TranslationSupplyElongationModel):
                 If None, no limits are placed on molecule changes.
 
         Returns:
-            delta_metabolites (np.array[int]): the change in counts of each metabolite
-                involved in ppGpp reactions
-            n_syn_reactions (int): the number of ppGpp synthesis reactions
-            n_deg_reactions (int): the number of ppGpp degradation reactions
-            v_rela_syn (float): rate of synthesis from RelA
-            v_spot_syn (float): rate of synthesis from SpoT
-            v_deg (float): rate of degradation from SpoT
+            Tuple of:
+
+            * delta_metabolites (np.array[int]): the change in counts of each metabolite
+              involved in ppGpp reactions
+            * n_syn_reactions (int): the number of ppGpp synthesis reactions
+            * n_deg_reactions (int): the number of ppGpp degradation reactions
+            * v_rela_syn (float): rate of synthesis from RelA
+            * v_spot_syn (float): rate of synthesis from SpoT
+            * v_deg (float): rate of degradation from SpoT
         '''
 
         uncharged_trna_conc = uncharged_trna_conc.asNumber(MICROMOLAR_UNITS)
