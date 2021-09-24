@@ -24,6 +24,7 @@ jobs:
       - name: Deploy documentation to GitHub pages
         run: |
           cd doc/_build/html
+          touch .nojekyll
           git config --global init.defaultBranch master
           git config --global user.name "CovertLab [bot]"
           git config --global user.email "CovertLab@users.noreply.github.com"
