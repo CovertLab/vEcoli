@@ -28,7 +28,7 @@ def divide_active_RNAPs_by_domain(values, **args):
     return [daughter1, daughter2]
 
 
-def divide_RNAs_by_domain(values, view):
+def divide_RNAs_by_domain(values, state):
     """
     divide a dictionary of unique RNAs into two daughters,
     with partial RNAs divided along with their domain index
@@ -42,14 +42,14 @@ def divide_RNAs_by_domain(values, view):
     in_active_RNAP = []
     for unique_id, specs in values.items():
         if not specs['is_full_transcript']:
-            if unique_id not in view['active_RNAP']:
+            if unique_id not in state['active_RNAP']:
                 # TODO -- why are some partial RNA ids not in active_RNAP?
                 not_in_active_RNAP.append(unique_id)
                 continue
             else:
                 in_active_RNAP.append(unique_id)
 
-            domain_index = view['active_RNAP'][unique_id]['domain_index']
+            domain_index = state['active_RNAP'][unique_id]['domain_index']
             if domain_index == 1:
                 daughter1[unique_id] = specs
             elif domain_index == 2:
