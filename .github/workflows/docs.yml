@@ -2,7 +2,7 @@ name: Deploy Documentation
 
 on:
   push:
-    branches: [deploy-docs]
+    branches: [master]
 
 jobs:
   deploy-docs:
