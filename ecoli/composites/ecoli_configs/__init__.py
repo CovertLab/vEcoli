@@ -69,4 +69,4 @@ if config['log_updates']:
 if config['divide']:
     ECOLI_DEFAULT_TOPOLOGY['division'] = {
         'variable': ('listeners', 'mass', 'cell_mass'),
-        'agents': self.agents_path}
+        'agents': ["..", "..", "agents"]}
