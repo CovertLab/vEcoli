@@ -38,7 +38,6 @@ SIM_DATA_PATH = os.path.abspath(
         'sim_data', 'kb', 'simData.cPickle',
     )
 )
-print(SIM_DATA_PATH)
 
 MINIMAL_MEDIA_ID = 'minimal'
 AA_MEDIA_ID = 'minimal_plus_amino_acids'

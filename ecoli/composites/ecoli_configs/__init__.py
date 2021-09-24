@@ -4,7 +4,7 @@ import os
 from ecoli.processes import process_registry
 from ecoli.processes.registries import topology_registry
 
-CONFIG_DIR_PATH = os.path.dirname(os.path.abspath(__file__))
+CONFIG_DIR_PATH = os.path.dirname(os.path.abspath(__file__)) + '/'
 
 # Load default processes and topology
 with open(os.path.join(CONFIG_DIR_PATH, 'default.json')) as default_file:
