@@ -15,7 +15,7 @@ def struct_array_updater(current, update):
 
     Expects current to be a numpy structured array, whose dtype will be
     maintained by the result returned. The first element of the dtype must be
-    ("_key", "int"), an index targeted by _add and _delete operations.
+    ("_key", "str"), an index targeted by _add and _delete operations.
 
     TODO:
       - inefficient use of numpy arrays, should instead pre-allocate and expand when necessary
@@ -60,7 +60,7 @@ class StructArrayDemo(Process):
         'seed': 0
     }
 
-    DTYPE = np.dtype([("_key", 'int'),  # necessary for _add, _delete operations
+    DTYPE = np.dtype([("_key", '<U8'),  # necessary for _add, _delete operations. We restrict keys to be 16 characters or less.
                       ('unique_index', 'int'),
                       ('domain_index', 'int'),
                       ('coordinates', 'int'),
@@ -153,7 +153,8 @@ def test_struct_array_updater(use_struct_array=True,
     }
     settings = {
         'total_time': total_time,
-        'initial_state': initial_state}
+        'initial_state': initial_state,
+        'return_raw_data' : True}
 
     tick = time.perf_counter()
     data = simulate_process(process, settings)
@@ -193,13 +194,14 @@ def main():
             # Assertions to make sure data matches with/without struct arrays
             # Note: When not using struct arrays, information about when adds and removes happen is lost,
             #       only the length of time a molecule is in existence is kept!
-            lifetimes = {}
-            for snapshot in data[True]['active_RNAPs']:
-                for molecule in snapshot:
-                    lifetimes[molecule[0]] = lifetimes.get(molecule[0], 0) + 1
+
+            # lifetimes = {}
+            # for snapshot in data[True]['active_RNAPs']:
+            #     for molecule in snapshot:
+            #         lifetimes[molecule[0]] = lifetimes.get(molecule[0], 0) + 1
             
-            for index, molecule in data[False]['active_RNAPs'].items():
-                assert len(molecule['unique_index']) == lifetimes[int(index)]
+            # for index, molecule in data[False]['active_RNAPs'].items():
+            #     assert len(molecule['unique_index']) == lifetimes[(index)]
 
     # Plots:
     # One plot for with-struct-arrays, one without
