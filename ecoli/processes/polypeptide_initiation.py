@@ -72,10 +72,10 @@ class PolypeptideInitiation(PartitionedProcess):
         self.ribosome_elongation_rates_dict = self.parameters['elongation_rates']
         self.variable_elongation = self.parameters['variable_elongation']
         self.make_elongation_rates = self.parameters['make_elongation_rates']
-        
+
         # Get indexes from proteins to transcription units
         self.protein_index_to_TU_index = self.parameters['protein_index_to_TU_index']
-        
+
         # Build matrix to convert transcription unit counts to mRNA counts
         self.all_TU_ids = self.parameters['all_TU_ids']
         self.all_mRNA_ids = self.parameters['all_mRNA_ids']
@@ -142,10 +142,10 @@ class PolypeptideInitiation(PartitionedProcess):
             'subunits': bulk_schema([
                 self.ribosome30S,
                 self.ribosome50S])}
-    
+
     def calculate_request(self, timestep, states):
         current_media_id = states['environment']['media_id']
-        
+
         requests = {'subunits': states['subunits']}
 
         self.fracActiveRibosome = self.active_ribosome_fraction[current_media_id]
@@ -168,8 +168,8 @@ class PolypeptideInitiation(PartitionedProcess):
         # Ensure rates are never zero
         self.elongation_rates = np.fmax(self.elongation_rates, 1)
         return requests
-        
-        
+
+
     def evolve_state(self, timestep, states):
         # Calculate number of ribosomes that could potentially be initialized
         # based on counts of free 30S and 50S subunits
@@ -277,16 +277,17 @@ class PolypeptideInitiation(PartitionedProcess):
         """
         Calculates the expected ribosome termination rate based on the ribosome
         elongation rate
-        Params:
-            - allTranslationTimes: Vector of times required to translate each
-            protein
-            - allTranslationTimestepCounts: Vector of numbers of timesteps
-            required to translate each protein
-            - averageTranslationTimeStepCounts: Average number of timesteps
-            required to translate a protein, weighted by initiation
-            probabilities
-            - expectedTerminationRate: Average number of terminations in one
-            timestep for one protein
+
+        Args:
+            allTranslationTimes: Vector of times required to translate each
+                protein
+            allTranslationTimestepCounts: Vector of numbers of timesteps
+                required to translate each protein
+            averageTranslationTimeStepCounts: Average number of timesteps
+                required to translate a protein, weighted by initiation
+                probabilities
+            expectedTerminationRate: Average number of terminations in one
+                timestep for one protein
         """
         allTranslationTimes = 1. / ribosomeElongationRates * proteinLengths
         allTranslationTimestepCounts = np.ceil(allTranslationTimes / timeStepSec)

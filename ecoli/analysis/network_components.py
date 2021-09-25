@@ -36,33 +36,35 @@ TIME_PRECISION = 2
 class Node(object):
 	"""
 	Class definition for a node in the causality network.
+
+	Attributes:
+		node_class: Class of node, string, either "State" or "Process"
+		node_type: Type of node, string, e.g. "Gene", "Metabolism"
+		node_id: Unique ID of node, string, e.g. "EG11274", "CPLX-125[c]"
+		name: Generic name of node, string, e.g. "trpL", "pyruvate"
+		synonyms: List of synonyms of node, list of strings
+			e.g. ["anth", "tryD", tryp-4"]
+		constants: Dictionary with constant names as keys and constants as
+			values, dictionary, e.g. {"reversibility": 0, "Km": 1e-6}
+		dynamics: Dictionary with dynamics data type as keys and list of
+			time-series data as values, dictionary. For example:
+
+			.. code-block:: python
+
+				{
+					"counts": [8151, 8525, ...],
+					"concentration": [1.151e-7, 1.155e-7, ...],
+				}
+
+		dynamics_units: Dictionary with dynamics data type as keys and its
+			units as values (must share same keys with dynamics),
+			dictionary, e.g. {"counts": "N", "concentration": "mol/L"}
+		url: URL to EcoCyc page, string, eg. "https://ecocyc.org/ECOLI/
+			substring-search?type=NIL&object=EG11028&quickSearch=Quick+
+			Search"
 	"""
 
 	def __init__(self):
-		"""
-		Initializes instance variables. Node class and type must be given as
-		arguments.
-
-		Variables:
-			node_class: Class of node, string, either "State" or "Process"
-			node_type: Type of node, string, e.g. "Gene", "Metabolism"
-			node_id: Unique ID of node, string, e.g. "EG11274", "CPLX-125[c]"
-			name: Generic name of node, string, e.g. "trpL", "pyruvate"
-			synonyms: List of synonyms of node, list of strings
-				e.g. ["anth", "tryD", tryp-4"]
-			constants: Dictionary with constant names as keys and constants as
-				values, dictionary, e.g. {"reversibility": 0, "Km": 1e-6}
-			dynamics: Dictionary with dynamics data type as keys and list of
-				time-series data as values, dictionary,
-				e.g. {"counts": [8151, 8525, ...],
-					  "concentration": [1.151e-7, 1.155e-7, ...]}
-			dynamics_units: Dictionary with dynamics data type as keys and its
-				units as values (must share same keys with dynamics),
-				dictionary, e.g. {"counts": "N", "concentration": "mol/L"}
-			url: URL to EcoCyc page, string, eg. "https://ecocyc.org/ECOLI/
-				substring-search?type=NIL&object=EG11028&quickSearch=Quick+
-				Search"
-		"""
 		self.node_class = None
 		self.node_type = None
 		self.node_id = None
@@ -226,21 +228,18 @@ class Node(object):
 class Edge(object):
 	"""
 	Class definition for an edge in the causality network.
+
+	Attributes:
+		edge_type: Type of edge (type of the process node the edge is
+			attached to), string, e.g. "Complexation", "Metabolism"
+		src_id: ID of the source node, string, e.g. "RXN0-2382"
+		dst_id: ID of the destination node, string, e.g. "WATER[c]"
+		stoichiometry: (Only for metabolism edges) Stoichiometric
+			coefficient of reaction-metabolite pair, integer, e.g. 1
 	"""
 
 	def __init__(self, process):
 		# type: (str) -> None
-		"""
-		Initializes instance variables. Edge type must be given as arguments.
-
-		Variables:
-			edge_type: Type of edge (type of the process node the edge is
-				attached to), string, e.g. "Complexation", "Metabolism"
-			src_id: ID of the source node, string, e.g. "RXN0-2382"
-			dst_id: ID of the destination node, string, e.g. "WATER[c]"
-			stoichiometry: (Only for metabolism edges) Stoichiometric
-				coefficient of reaction-metabolite pair, integer, e.g. 1
-		"""
 		self.process = process  # type: str
 		self.src_id = None  # type: Optional[str]
 		self.dst_id = None  # type: Optional[str]
