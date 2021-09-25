@@ -12,11 +12,14 @@
 #
 from datetime import datetime
 import os
+from pprint import pformat
 import shutil
 import sys
 sys.path.insert(0, os.path.abspath('..'))
 
+import docutils
 from docutils.nodes import Text
+from docutils.parsers.rst import Parser
 from sphinx.addnodes import pending_xref
 from sphinx.ext import apidoc
 from sphinx.ext.intersphinx import missing_reference
@@ -117,6 +120,74 @@ def run_apidoc(_):
     apidoc.main(['-f', '-e', '-o', apidoc_dir, module_path])
 
 
+objects_to_pprint = {}
+
+
+def autodoc_process_signature_handler(
+        _app, what, name, obj, _options, _signature, _return_annotation):
+    '''Save class attributes before their signatures are processed.
+
+    In ``object_description_handler``, we will use these saved objects
+    to generate pretty representations of their default values.
+    '''
+    if what != 'attribute':
+        return
+    assert name not in objects_to_pprint
+    objects_to_pprint[name] = obj
+
+
+def object_description_handler(_, domain, objtype, contentnode):
+    '''Make representations of attribute default values pretty.
+
+    We transform the representations of the following attributes:
+
+    * defaults
+    * topology
+
+    Using the objects saved by ``autodoc_process_signature_handler``,
+    generate pretty representations of the objects and insert them into
+    the documentation as a code block.
+
+    WARNING: The algorithm for identifying attributes is clumsy. We just
+    check that the paragraph starts with the attribute name and type
+    hint (if applicable). This can cause problems if lines in the
+    docstring look start with an attribute name. We attempt to mitigate
+    this problem by also checking that the object name was saved by
+    ``autodoc_process_signature_handler``.
+    '''
+    if objtype != 'class' or domain != 'py':
+        return
+    for child in contentnode.children:
+        if child.astext().startswith('defaults: Dict['):
+            name = contentnode.source.split()[-1] + '.defaults'
+        elif child.astext().startswith('topology'):
+            name = contentnode.source.split()[-1] + '.topology'
+        else:
+            continue
+
+        obj = objects_to_pprint.get(name)
+        if not obj:
+            continue
+        obj_pprint = pformat(obj, indent=4)
+        value_node = child.children[0].children[-1]
+
+        parser = Parser()
+        settings = docutils.frontend.OptionParser(
+            components=(docutils.parsers.rst.Parser,)).get_default_values()
+        document = docutils.utils.new_document('<rst-doc>', settings=settings)
+        lines = ['.. code-block:: python', '']
+        for line in obj_pprint.split('\n'):
+            lines.append('   ' + line)
+        text = '\n'.join(lines)
+        parser.parse(text, document)
+        new_node = document.children[0]
+
+        value_node.replace_self(new_node)
+
+
 def setup(app):
     app.connect('autodoc-skip-member', autodoc_skip_member_handler)
+    app.connect('autodoc-process-signature', autodoc_process_signature_handler)
+    app.connect(
+        'object-description-transform', object_description_handler)
     app.connect('builder-inited', run_apidoc)
