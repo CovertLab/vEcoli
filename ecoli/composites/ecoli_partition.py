@@ -269,9 +269,9 @@ def run_ecoli(
 
 
 @pytest.mark.slow
-def run_division(
+def test_division(
         agent_id='1',
-        total_time=30
+        total_time=60
 ):
     """
     Work in progress to get division working
@@ -306,9 +306,13 @@ def run_division(
 
     # retrieve output
     output = experiment.emitter.get_data()
-    print(f"initial agent ids: {output[0.0]['agents'].keys()}")
-    print(f"final agent ids: {output[total_time]['agents'].keys()}")
-    # import ipdb; ipdb.set_trace()
+
+    # asserts
+    initial_agents = output[0.0]['agents'].keys()
+    final_agents = output[total_time]['agents'].keys()
+    print(f"initial agent ids: {initial_agents}")
+    print(f"final agent ids: {final_agents}")
+    assert len(final_agents) == 2 * len(initial_agents)
 
 
 def test_ecoli_generate():
@@ -342,7 +346,7 @@ def ecoli_topology_plot(config={}):
 
 test_library = {
     '0': run_ecoli,
-    '1': run_division,
+    '1': test_division,
     '2': test_ecoli_generate,
     '3': ecoli_topology_plot,
 }
