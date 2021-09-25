@@ -176,7 +176,9 @@ def run_ecoli(
 
 
 @pytest.mark.slow
-def run_division(total_time=30):
+def test_division(
+        total_time=60
+):
     """
     Work in progress to get division working
     * TODO -- unique molecules need to be divided between daughter cells!!! This can get sophisticated
@@ -184,17 +186,19 @@ def run_division(total_time=30):
 
     from ecoli.experiments.ecoli_master_sim import EcoliSim, CONFIG_DIR_PATH
 
+    # get division mass
     initial_state = Ecoli({}).initial_state()
     initial_mass = initial_state['listeners']['mass']['cell_mass']
     division_mass = initial_mass+0.1
     print(f"DIVIDE AT {division_mass} fg")
 
+    # initialize simulation
     sim = EcoliSim.from_file(CONFIG_DIR_PATH + "no_partition.json")
     sim.division = {'threshold': division_mass}
 
-    # Remove metabolism for now
-    # (divison fails because cannot deepcopy metabolism process)
-    sim.exclude_processes.append("ecoli-metabolism")
+    ## Remove metabolism for now
+    ## (divison fails because cannot deepcopy metabolism process)
+    # sim.exclude_processes.append("ecoli-metabolism")
     sim.total_time = total_time
     sim.divide = True
     sim.progress_bar = False
@@ -203,9 +207,12 @@ def run_division(total_time=30):
     # run simulation
     output = sim.run()
 
-    print(f"initial agent ids: {output[0.0]['agents'].keys()}")
-    print(f"final agent ids: {output[total_time]['agents'].keys()}")
-    # import ipdb; ipdb.set_trace()
+    # asserts
+    initial_agents = output[0.0]['agents'].keys()
+    final_agents = output[total_time]['agents'].keys()
+    print(f"initial agent ids: {initial_agents}")
+    print(f"final agent ids: {final_agents}")
+    assert len(final_agents) == 2 * len(initial_agents)
 
 
 def test_ecoli_generate():
@@ -241,7 +248,7 @@ def ecoli_topology_plot():
 
 test_library = {
     '0': run_ecoli,
-    '1': run_division,
+    '1': test_division,
     '2': test_ecoli_generate,
     '3': ecoli_topology_plot,
 }
