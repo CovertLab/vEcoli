@@ -12,7 +12,7 @@ from vivarium.core.process import Deriver
 NAME = 'ecoli-cell-division'
 
 
-def divide_active_RNAPs_by_domain(values, **args):
+def divide_by_domain(values, **args):
     """
     divide a dictionary into two daughters based on their domain_index
     """
@@ -25,6 +25,17 @@ def divide_active_RNAPs_by_domain(values, **args):
         elif domain_index == 2:
             daughter2[state_id] = value
             daughter2[state_id]['domain_index'] = 1
+    return [daughter1, daughter2]
+
+
+def divide_unique(values, **args):
+    daughter1 = {}
+    daughter2 = {}
+    for state_id, value in values.items():
+        if random.choice([True, False]):
+            daughter1[state_id] = value
+        else:
+            daughter2[state_id] = value
     return [daughter1, daughter2]
 
 
@@ -108,7 +119,6 @@ class Division(Deriver):
         print(f'division variable = {variable}')
 
         if variable >= self.parameters['threshold']:
-
             daughter_ids = self.parameters['daughter_ids_function'](self.agent_id)
             daughter_updates = []
             for daughter_id in daughter_ids:
@@ -118,6 +128,8 @@ class Division(Deriver):
                     'processes': composer['processes'],
                     'topology': composer['topology'],
                     'initial_state': {}})
+
+            print(f'DIVIDE! MOTHER {self.agent_id} -> DAUGHTERS {daughter_ids}')
 
             return {
                 'agents': {

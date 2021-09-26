@@ -17,10 +17,8 @@ from typing import cast
 
 import numpy as np
 
-from vivarium.core.process import Process
 from vivarium.core.composition import simulate_process
-from vivarium.library.dict_utils import deep_merge
-
+from ecoli.library.unique_indexes import create_unique_indexes
 from ecoli.library.schema import (
     arrays_from, arrays_to, add_elements, bulk_schema)
 
@@ -128,6 +126,7 @@ class PolypeptideInitiation(PartitionedProcess):
                         '_updater': 'set',
                         '_emit': True}}},
             'active_ribosome': {
+                '_divider': 'divide_unique',
                 '*': {
                     'unique_index': {'_default': 0},
                     'protein_index': {'_default': 0},
@@ -246,7 +245,7 @@ class PolypeptideInitiation(PartitionedProcess):
         # Create active 70S ribosomes and assign their attributes
         new_ribosomes = arrays_to(
             n_ribosomes_to_activate, {
-                'unique_index': np.arange(self.ribosome_index, self.ribosome_index + n_ribosomes_to_activate).astype(str),
+                'unique_index': np.array(create_unique_indexes(n_ribosomes_to_activate)),
                 'protein_index': protein_indexes,
                 'peptide_length': np.zeros(cast(int, n_ribosomes_to_activate), dtype=np.int64),
                 'mRNA_index': mRNA_indexes,
