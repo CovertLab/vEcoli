@@ -190,15 +190,11 @@ def test_division(
     initial_state = Ecoli({}).initial_state()
     initial_mass = initial_state['listeners']['mass']['cell_mass']
     division_mass = initial_mass+0.1
-    print(f"DIVIDE AT {division_mass} fg")
+    # print(f"DIVIDE AT {division_mass} fg")
 
     # initialize simulation
     sim = EcoliSim.from_file(CONFIG_DIR_PATH + "no_partition.json")
     sim.division = {'threshold': division_mass}
-
-    ## Remove metabolism for now
-    ## (divison fails because cannot deepcopy metabolism process)
-    # sim.exclude_processes.append("ecoli-metabolism")
     sim.total_time = total_time
     sim.divide = True
     sim.progress_bar = False

@@ -26,8 +26,6 @@ from ecoli.library.schema import (
     arrays_from, arrays_to, array_from, array_to, bulk_schema, submass_schema)
 from ecoli.library.data_predicates import monotonically_increasing
 from ecoli.states.wcecoli_state import MASSDIFFS
-
-from ecoli.processes.cell_division import divide_active_RNAPs_by_domain, divide_RNAs_by_domain
 from ecoli.processes.registries import topology_registry
 from ecoli.processes.partition import PartitionedProcess
 
@@ -172,7 +170,7 @@ class TranscriptElongation(PartitionedProcess):
             },
             'RNAs': {
                 '_divider': {
-                    'divider': divide_RNAs_by_domain,
+                    'divider': 'rna_by_domain',
                     'topology': {'active_RNAP': ('..', 'active_RNAP',)}
                 },
                 '*': {
@@ -187,9 +185,7 @@ class TranscriptElongation(PartitionedProcess):
                 }
             },
             'active_RNAPs': {
-                '_divider': {
-                        'divider': divide_active_RNAPs_by_domain,
-                },
+                '_divider': 'by_domain',
                 '*': {
                     'unique_index': {'_default': 0, '_updater': 'set'},
                     'domain_index': {'_default': 0, '_updater': 'set'},

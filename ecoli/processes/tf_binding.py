@@ -110,6 +110,7 @@ class TfBinding(PartitionedProcess):
     def ports_schema(self):
         return {
             'promoters': {
+                '_divider': 'by_domain',
                 '*': {
                     'TU_index': {'_default': 0, '_updater': 'set', '_emit': True},
                     'bound_TF': {'_default': 0, '_updater': 'set', '_emit': True},
