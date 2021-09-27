@@ -17,3 +17,4 @@ pytz
 pandas
 matplotlib
 llvmlite
+pandoc
