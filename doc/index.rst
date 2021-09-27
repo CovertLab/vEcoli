@@ -16,6 +16,7 @@ Vivarium *E. coli* project is a port of the `Covert Lab's *E. coli* Whole Cell M
    Processes <reference/processes>
    Composites <reference/composites>
    Experiments <reference/experiments>
+   tutorials
    docs
    reference/index
 
