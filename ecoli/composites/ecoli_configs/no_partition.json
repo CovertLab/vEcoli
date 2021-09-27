@@ -36,6 +36,11 @@
             "metabolites": {
                 "GLT[c]": {"_updater": "nonnegative_accumulate"}
             }
+        },
+        "ecoli-two-component-system": {
+            "molecules": {
+                "ATP[c]": {"_updater": "nonnegative_accumulate"}
+            }
         }
     },
 
