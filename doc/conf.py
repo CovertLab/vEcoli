@@ -81,6 +81,11 @@ html_static_path = ['_static']
 
 # -- Options for extensions --------------------------------------------------
 
+# -- nbsphinx options --
+
+# Never execute Jupyter notebooks.
+nbsphinx_execute = 'never'
+
 # -- sphinx.ext.intersphinx options --
 intersphinx_mapping = {
     'python': ('https://docs.python.org/3', None),
