@@ -38,6 +38,7 @@ class Plot(object):
         mass = TableReader("Mass", self.data)
         main_reader = TableReader("Main", self.data)
 
+        #import ipdb; ipdb.set_trace()
         cell = mass.readColumn("dryMass")
         protein = mass.readColumn("proteinMass")
         tRna = mass.readColumn("tRnaMass")
@@ -45,9 +46,12 @@ class Plot(object):
         mRna = mass.readColumn("mRnaMass")
         dna = mass.readColumn("dnaMass")
         smallMolecules = mass.readColumn("smallMoleculeMass")
-
+        time_tb = TableReader("Main", data)
+        time_vals = time_tb.readColumn('time')
+        #need to # FIX
+        initialTime = time_vals[0]
         #initialTime = main_reader.readAttribute("initialTime")
-        t = (main_reader.readColumn("time", ) - initialTime) / 60.
+        t = (time_vals - initialTime) / 60.
 
         masses = np.vstack([
             protein,
@@ -78,11 +82,11 @@ class Plot(object):
         plt.legend(legend, loc="best")
 
         plt.tight_layout()
-        #exportFigure(plt, plotOutDir, plotOutFileName, metadata)
+        plt.savefig('ecoli/analysis/seriesOut/massFractionSummary.png')
+        #exportFigure(plt, "ecoli/analysis/seriesOut", "massfractionSummary")
         plt.close("all")
 
     def __init__(self, data):
-        import ipdb; ipdb.set_trace()
         self.data = data
         self.do_plot(self.data)
 
@@ -90,10 +94,8 @@ class Plot(object):
 def test_plot():
 
     data = run_ecoli(total_time=4)
-    import ipdb; ipdb.set_trace()
     Plot(data)
 
 
 if __name__ == "__main__":
-    #import ipdb; ipdb.set_trace()
     test_plot()
