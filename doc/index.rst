@@ -14,6 +14,7 @@ Vivarium *E. coli* project is a port of the `Covert Lab's *E. coli* Whole Cell M
    :maxdepth: 2
 
    reference/index
+   docs
 
 .. note:: Vivarium *E. coli* has not yet been publicly released.
 
