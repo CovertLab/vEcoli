@@ -165,25 +165,25 @@ MAPPING = {
     },
     'Mass': {
         'inner_membrane_mass': None,
-        'proteinMass': None,
+        'proteinMass': ('listeners', 'mass', 'proteinMass'),
         'cellMass': ('listeners', 'mass', 'cell_mass'),
         'instantaniousGrowthRate': None,
         'rnaMass': None,
         'cellVolume': None,
         'membrane_mass': None,
-        'rRnaMass': None,
+        'rRnaMass': ('listeners', 'mass', 'rRnaMass'),
         'cytosol_mass': None,
-        'mRnaMass': None,
+        'mRnaMass': ('listeners', 'mass', 'mRnaMass'),
         'simulationStep': None,
-        'dnaMass': None,
+        'dnaMass': ('listeners', 'mass', 'dnaMass'),
         'outer_membrane_mass': None,
-        'smallMoleculeMass': None,
+        'smallMoleculeMass': ('listeners', 'mass', 'smallMoleculeMass'),
         'dryMass': ('listeners', 'mass', 'dry_mass'),
         'periplasm_mass': None,
         'time': ('time', ),
         'extracellular_mass': None,
         'pilus_mass': None,
-        'tRnaMass': None,
+        'tRnaMass': ('listeners', 'mass', 'tRnaMass'),
         'flagellum': None,
         'processMassDifferences': None,
         'waterMass': None,
@@ -468,7 +468,7 @@ class TableReader(object):
             heuristic_path = ('listeners',
                               camel_case_to_underscored(self._path),
                               camel_case_to_underscored(name))
-            
+
             warn(f'No explicit mapping defined from {self._path + "/" + name} to a path in vivarium data,\n'
                  f'trying heuristic mapping: {heuristic_path}.\n'
                  'If this works, consider adding an explicit mapping in tablereader.py!')
@@ -538,6 +538,7 @@ class TableReader(object):
 def test_table_reader():
     data = run_ecoli(total_time=4)
 
+    import ipdb; ipdb.set_trace()
     # TODO actaully grab their values - they fail 'gracefully' rn because their keys are empty or arrays are empty
     equi_tb = TableReader("EquilibriumListener", data)
     equi_rxns = equi_tb.readColumn('reactionRates')
