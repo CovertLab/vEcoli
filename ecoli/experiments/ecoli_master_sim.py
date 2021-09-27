@@ -1,4 +1,8 @@
 """
+============================
+*E. coli* Master Simulations
+============================
+
 Run simulations of Ecoli Master
 """
 
@@ -291,13 +295,13 @@ class EcoliSim:
 
     def merge(self, other):
         """
-        Combine settings from this EcoliSim with another, overriding 
+        Combine settings from this EcoliSim with another, overriding
         current settings with those from the other EcoliSim.
         """
 
         deep_merge(self.config, other.config)
 
-    
+
     def export_json(self, filename=CONFIG_DIR_PATH + "export.json"):
         export = dict(self.config)
         export['processes'] = [k for k in export['processes'].keys()]

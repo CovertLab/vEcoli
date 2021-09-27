@@ -117,7 +117,19 @@ def run_apidoc(_):
     if os.path.exists(apidoc_dir):
         shutil.rmtree(apidoc_dir)
     os.makedirs(apidoc_dir, exist_ok=True)
-    apidoc.main(['-f', '-e', '-o', apidoc_dir, module_path])
+    exclude = (
+        os.path.join(cur_dir, path) for path in (
+            '../ecoli/analysis',
+            '../ecoli/library',
+            '../ecoli/models',
+            '../ecoli/plots',
+            '../ecoli/processes/registries.py',
+            '../ecoli/states',
+            '../ecoli/experiments/ecoli_master_sim_tests.py',
+        )
+    )
+    apidoc.main(
+        ['-f', '-e', '-E', '-o', apidoc_dir, module_path, *exclude])
 
 
 objects_to_pprint = {}

@@ -13,8 +13,11 @@ Vivarium *E. coli* project is a port of the `Covert Lab's *E. coli* Whole Cell M
 .. toctree::
    :maxdepth: 2
 
-   reference/index
+   Processes <reference/processes>
+   Composites <reference/composites>
+   Experiments <reference/experiments>
    docs
+   reference/index
 
 .. note:: Vivarium *E. coli* has not yet been publicly released.
 
