@@ -47,6 +47,7 @@ extensions = [
     'sphinx.ext.napoleon',
     'sphinx.ext.intersphinx',
     'sphinx.ext.viewcode',
+    'nbsphinx',
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -113,10 +114,18 @@ def autodoc_skip_member_handler(app, what, name, obj, skip, options):
 def run_apidoc(_):
     cur_dir = os.path.abspath(os.path.dirname(__file__))
     module_path = os.path.join(cur_dir, '..', 'ecoli')
+
     apidoc_dir = os.path.join(cur_dir, 'reference', 'api')
     if os.path.exists(apidoc_dir):
         shutil.rmtree(apidoc_dir)
     os.makedirs(apidoc_dir, exist_ok=True)
+
+    notebooks_dst = os.path.join(cur_dir, 'notebooks')
+    notebooks_src = os.path.join(cur_dir, '..', 'notebooks')
+    if os.path.exists(notebooks_dst):
+        shutil.rmtree(notebooks_dst)
+    shutil.copytree(notebooks_src, notebooks_dst)
+
     exclude = (
         os.path.join(cur_dir, path) for path in (
             '../ecoli/analysis',
