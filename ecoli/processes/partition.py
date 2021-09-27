@@ -1,5 +1,7 @@
 """
-Partition processes
+=========
+Partition
+=========
 
 Includes Requester and Evolver processes, which take an EcoliProcess
 and use its calculate_request or evolve_state methods for the Process
