@@ -360,7 +360,7 @@ class PolypeptideElongation(PartitionedProcess):
                         translation_supply_rate.asNumber()}
         requests['listeners']['growth_limits']['fraction_trna_charged'] = np.dot(fraction_charged, self.aa_from_trna)
         requests['listeners']['growth_limits']['aa_pool_size'] = array_from(states['amino_acids'])
-        requests['listeners']['growth_limits']['aa_request_size'] = aa_counts_for_translation        
+        requests['listeners']['growth_limits']['aa_request_size'] = aa_counts_for_translation
         return requests
     
         

@@ -71,7 +71,7 @@ class Allocator(Deriver):
         total_counts = np.array([states['bulk'][molecule] for 
                                  molecule in self.mol_idx_to_name.values()])
         original_totals = total_counts.copy()
-        counts_requested = np.zeros((self.n_molecules, self.n_processes))
+        counts_requested = np.zeros((self.n_molecules, self.n_processes), dtype=int)
         for process in states['request']:
             proc_idx = self.proc_name_to_idx[process]
             for molecule, count in states['request'][process]['bulk'].items():
@@ -144,7 +144,7 @@ class Allocator(Deriver):
                         self.proc_name_to_idx[process]] 
                     for molecule in states['request'][process]['bulk']}}
                 for process in states['request']}}
-        
+
         return update
 
 def calculatePartition(process_priorities, counts_requested, total_counts, random_state):
