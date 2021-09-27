@@ -1,7 +1,9 @@
 """
-Mass
+=============
+Mass Listener
+=============
 
-Mass listener. Represents the total cellular mass.
+Represents the total cellular mass.
 """
 
 import numpy as np
@@ -80,8 +82,8 @@ class MassListener(Deriver):
 
         self.time_step = self.parameters['time_step']
         self.first_time_step = True
-        
-        self.mass_diffs = ['rRNA', 'tRNA', 'mRNA', 'miscRNA', 'nonspecific_RNA', 
+
+        self.mass_diffs = ['rRNA', 'tRNA', 'mRNA', 'miscRNA', 'nonspecific_RNA',
                            'protein',  'metabolite', 'water', 'DNA']
 
     def ports_schema(self):
