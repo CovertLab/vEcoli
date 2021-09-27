@@ -4,12 +4,7 @@ import os
 
 import numpy as np
 from matplotlib import pyplot as plt
-
-#from wholecell.io.tablereader import TableReader
-#from wholecell.analysis.analysis_tools import exportFigure
-#from models.ecoli.analysis import singleAnalysisPlot
 from six.moves import zip
-
 from ecoli.composites.ecoli_master import run_ecoli
 from ecoli.analysis.tablereader import TableReader
 
@@ -38,7 +33,6 @@ class Plot(object):
         mass = TableReader("Mass", self.data)
         main_reader = TableReader("Main", self.data)
 
-        #import ipdb; ipdb.set_trace()
         cell = mass.readColumn("dryMass")
         protein = mass.readColumn("proteinMass")
         tRna = mass.readColumn("tRnaMass")
@@ -48,7 +42,7 @@ class Plot(object):
         smallMolecules = mass.readColumn("smallMoleculeMass")
         time_tb = TableReader("Main", data)
         time_vals = time_tb.readColumn('time')
-        #need to # FIX
+        #need to # FIX intial time calculation maybe
         initialTime = time_vals[0]
         #initialTime = main_reader.readAttribute("initialTime")
         t = (time_vals - initialTime) / 60.
@@ -83,7 +77,9 @@ class Plot(object):
 
         plt.tight_layout()
         plt.savefig('ecoli/analysis/seriesOut/massFractionSummary.png')
-        #exportFigure(plt, "ecoli/analysis/seriesOut", "massfractionSummary")
+
+        #todo make analysis tools
+        #this is from WCEcoli: exportFigure(plt, "ecoli/analysis/seriesOut", "massfractionSummary")
         plt.close("all")
 
     def __init__(self, data):
