@@ -26,7 +26,10 @@ Writing Documentation
 Where to Write
 ==============
 
-We currently only have API reference documentation.  The API reference
+API Reference Documentation
+---------------------------
+
+We currently mostly have API reference documentation. The API reference
 is auto-generated from docstrings in the code. These docstrings can take
 advantage of all the reStructuredText syntax we use elsewhere in
 Vivarium. Eventually, we will remove from the reference material the
@@ -50,6 +53,37 @@ titles on each page.
 
             def __init__(self):
                 '''This is the constructor docstring'''
+
+The "API Reference" link in the sidebar of the documentation links to
+the full API reference under ``reference/api/`` which is generated
+automatically. The "Processes," "Composites," and "Experiments" links
+are to curated tables of contents under ``reference/`` that point to the
+generated pages in ``reference/api/``. This lets us highlight the
+processes, composites, and experiments that we hope other people will
+use.
+
+.. note::
+   If you add a process, composite, or experiment, remember to add it to
+   the curated tables of contents too.
+
+.. note::
+   Many files are excluded from documentation auto-generation by
+   ``docs/confg.py`` because they don't have headers in their
+   docstrings. These headers are required by Sphinx for a page to be
+   included in a table of contents.
+
+Tutorials
+---------
+
+We use Jupyter notebooks under ``notebooks/`` for our tutorials. When
+the documentation is compiled, these notebooks are copied into
+``docs/notebooks/`` and transformed into HTML. This HTML is rendered as
+pages under the "Tutorials" link in the sidebar.
+
+.. warning::
+   Sphinx relies on the header levels in the notebook being correct.
+   These headers are incorporated into the table of contents. Therefore,
+   each notebook should have exactly one level-one header at the top.
 
 Pointers for Technical Writing
 ==============================
