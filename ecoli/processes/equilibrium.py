@@ -3,8 +3,6 @@
 Equilibrium
 ===========
 
-Equilibrium binding sub-model.
-
 This process models how ligands are bound to or unbound
 from their transcription factor binding partners in a fashion
 that maintains equilibrium.
@@ -32,11 +30,13 @@ topology_registry.register(NAME, TOPOLOGY)
 
 
 class Equilibrium(PartitionedProcess):
+    """ Equilibrium PartitionedProcess
+
+    molecule_names: list of molecules that are being iterated over size:94
+    """
+
     name = NAME
     topology = TOPOLOGY
-    """
-        molecule_names: list of molecules that are being iterated over size:94
-    """
     defaults = {
         'jit': False,
         'n_avogadro': 0.0,

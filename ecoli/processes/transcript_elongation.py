@@ -3,8 +3,6 @@
 Transcript Elongation
 =====================
 
-Transcription elongation sub-model.
-
 This process models nucleotide polymerization into RNA molecules
 by RNA polymerases. Polymerization occurs across all polymerases
 simultaneously and resources are allocated to maximize the progress
@@ -47,7 +45,7 @@ topology_registry.register(NAME, TOPOLOGY)
 
 
 class TranscriptElongation(PartitionedProcess):
-    """TranscriptElongation
+    """ Transcript Elongation PartitionedProcess
 
     defaults:
         - max_time_step (float) : ???
