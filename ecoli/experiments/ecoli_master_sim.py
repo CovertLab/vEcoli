@@ -296,7 +296,8 @@ class EcoliSim:
                                  ['listeners', 'bulk', 'unique', 'environment', 'process_state']}
                 write_json('data/vivecoli_t' + str(time_elapsed) + '.json', state_to_save)
             time_remaining = self.total_time - self.save_times[-1]
-            self.ecoli_experiment.update(time_remaining)
+            if time_remaining:
+                self.ecoli_experiment.update(time_remaining)
         else:
             self.ecoli_experiment.update(self.total_time)
 
