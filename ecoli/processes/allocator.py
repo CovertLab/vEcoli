@@ -3,7 +3,8 @@
 Allocator
 =========
 
-Updates bulk with process updates, runs metabolism, runs process requests, allocates molecules
+Reads requests from PartionedProcesses, and allocates molecules according to
+process priorities.
 """
 import numpy as np
 from vivarium.core.process import Deriver
@@ -25,6 +26,7 @@ class NegativeCountsError(Exception):
 	pass
 
 class Allocator(Deriver):
+    """ Allocator Deriver """
     name = NAME
     topology = TOPOLOGY
 

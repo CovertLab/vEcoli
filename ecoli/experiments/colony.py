@@ -46,8 +46,14 @@ def get_lattice_composite(
     lattice_composer = Lattice(lattice_config)
     lattice_composite = lattice_composer.generate()
 
-    growth_config = {'default_growth_rate': growth_rate, 'default_growth_noise': growth_noise}
-    grow_divide_composer = GrowDivide({'agent_id': '0', 'growth': growth_config})
+    growth_config = {
+        'default_growth_rate': growth_rate,
+        'default_growth_noise': growth_noise,
+    }
+    grow_divide_composer = GrowDivide({
+        'agent_id': '0',
+        'growth': growth_config,
+    })
 
     agent_id = '0'
     grow_divide_composite = grow_divide_composer.generate(path=('agents', agent_id))

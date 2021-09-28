@@ -29,6 +29,8 @@ def mass_from_count(count, mw):
 
 
 class Mass(Deriver):
+    """ Mass Deriver """
+
     name = 'ecoli-mass'
     defaults = {
         'molecular_weights': {},
