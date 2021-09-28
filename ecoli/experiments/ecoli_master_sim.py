@@ -282,17 +282,23 @@ class EcoliSim:
         self.ecoli_experiment = Engine(**experiment_config)
 
         # run the experiment
-        self.ecoli_experiment.update(self.total_time)
-
-        # save the state
-        state = self.ecoli_experiment.state.get_value()
-        state_to_save = {key: state[key] for key in ['listeners', 'bulk', 'unique', 'environment', 'process_state']}
-        # for path, process in self.ecoli_experiment.process_paths.items():
-        #     # states is what is important
-        #     store, process_state = self.ecoli_experiment.process_state(path, process)
-        #     deep_merge(state_to_save, process_state)
-
-        write_json('data/vivecoli_t' + self.total_time + '.json', state_to_save)
+        if self.save:
+            time_elapsed = self.save_times[0]
+            for i in range(len(self.save_times)):
+                if i == 0:
+                    time_to_next_save = self.save_times[i]
+                else:
+                    time_to_next_save = self.save_times[i] - self.save_times[i - 1]
+                    time_elapsed += time_to_next_save
+                self.ecoli_experiment.update(time_to_next_save)
+                state = self.ecoli_experiment.state.get_value()
+                state_to_save = {key: state[key] for key in
+                                 ['listeners', 'bulk', 'unique', 'environment', 'process_state']}
+                write_json('data/vivecoli_t' + str(time_elapsed) + '.json', state_to_save)
+            time_remaining = self.total_time - self.save_times[-1]
+            self.ecoli_experiment.update(time_remaining)
+        else:
+            self.ecoli_experiment.update(self.total_time)
 
         # return the data
         if self.raw_output:
