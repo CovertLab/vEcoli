@@ -44,11 +44,10 @@ TOPOLOGY = {
 topology_registry.register(NAME, TOPOLOGY)
 
 class ChromosomeStructure(Process):
-    """ ChromosomeStructure """
+    """ Chromosome Structure Process """
 
     name = NAME
-    topology=TOPOLOGY
-
+    topology = TOPOLOGY
     defaults = {
             # Load parameters
             'RNA_sequences': [],

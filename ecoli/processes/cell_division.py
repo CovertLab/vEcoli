@@ -82,7 +82,8 @@ def daughter_phylogeny_id(mother_id):
 
 
 class Division(Deriver):
-    """ Division Process """
+    """ Division Deriver """
+
     name = NAME
     defaults: Dict[str, Any] = {
         'daughter_ids_function': daughter_phylogeny_id,
