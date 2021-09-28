@@ -12,6 +12,7 @@ be found under `notebooks/ on GitHub
 .. toctree::
    :maxdepth: 2
 
-   notebooks/API_demo
    notebooks/Vivarium_ecoli_processes
+   notebooks/Vivarium_ecoli_composites
+   notebooks/allocation_processes
    notebooks/logger_processes
