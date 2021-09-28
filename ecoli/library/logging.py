@@ -1,9 +1,7 @@
 import os
+import numpy as np
 import json
 import unum
-import numpy as np
-from vivarium.core.serialize import *
-from vivarium.core.serialize import _serialize_list, _serialize_dictionary
 
 
 def make_logging_process(process_class):
@@ -19,7 +17,7 @@ def make_logging_process(process_class):
 
     def next_update(self, timestep, states):
         update = super().next_update(timestep, states)  # get the original update
-        log_update = {'log_update' : update} # log the update
+        log_update = {'log_update' : update}  # log the update
         return {**update, **log_update}
 
     logging_process.ports_schema = ports_schema
@@ -49,12 +47,6 @@ def write_json(path, numpy_dict):
                 return bool(obj)
             else:
                 return super(NpEncoder, self).default(obj)
-
-    # class VivariumSerializer(json.JSONEncoder):
-    #     def default(self, value):
-    #         if isinstance(value, unum.Unum):
-    #             return value.asNumber()
-    #         serialize_value(value)
 
     os.makedirs(os.path.dirname(path), exist_ok=True)
 

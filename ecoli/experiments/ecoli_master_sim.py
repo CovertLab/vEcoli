@@ -7,7 +7,6 @@ import json
 import warnings
 from datetime import datetime
 
-import ipdb
 from vivarium.core.engine import Engine
 from vivarium.library.dict_utils import deep_merge
 from ecoli.library.logging import write_json
