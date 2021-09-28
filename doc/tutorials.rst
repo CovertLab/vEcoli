@@ -16,5 +16,4 @@ be found under `notebooks/ on GitHub
    notebooks/Vivarium_ecoli_composites
    notebooks/ecoli_simulations
    notebooks/allocation_processes
-   notebooks/logger_processes
    notebooks/colony_simulations
