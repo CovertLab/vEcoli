@@ -33,7 +33,7 @@ topology_registry.register(NAME, TOPOLOGY)
 
 class TwoComponentSystem(PartitionedProcess):
     """ Two Component System PartitionedProcess """
-    
+
     name = NAME
     topology = TOPOLOGY
     defaults = {
