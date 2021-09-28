@@ -47,6 +47,7 @@ class ChromosomeStructure(Process):
     """ ChromosomeStructure """
 
     name = NAME
+    topology=TOPOLOGY
 
     defaults = {
             # Load parameters
