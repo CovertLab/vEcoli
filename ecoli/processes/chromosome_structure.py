@@ -15,7 +15,6 @@ from ecoli.library.schema import (add_elements, arrays_from, bulk_schema,
 from ecoli.processes.cell_division import divide_active_RNAPs_by_domain
 
 from wholecell.utils.polymerize import buildSequences
-from wholecell.utils.data import create_unique_indexes
 
 from ecoli.processes.registries import topology_registry
 
@@ -433,13 +432,11 @@ class ChromosomeStructure(Process):
     
             # Add new chromosomal segments
             n_segments = len(all_new_linking_numbers)
-            unique_indexes = create_unique_indexes(n_segments)
             new_chromosome_segments = arrays_to(
             n_segments, {
-                # 'unique_index': np.arange(
-                #     self.chromosome_segment_index, self.chromosome_segment_index +
-                #     n_segments).astype(str),
-                'unique_index': np.array(unique_indexes),
+                'unique_index': np.arange(
+                    self.chromosome_segment_index, self.chromosome_segment_index +
+                    n_segments).astype(str),
                 'boundary_molecule_indexes': all_new_boundary_molecule_indexes,
                 'boundary_coordinates': all_new_boundary_coordinates,
                 'domain_index': all_new_segment_domain_indexes,
@@ -581,15 +578,11 @@ class ChromosomeStructure(Process):
                 promoter_domain_indexes[removed_promoters_mask])
 
             # Add new promoters with new domain indexes
-
-            unique_indexes = create_unique_indexes(n_new_promoters)
-
             new_promoters = arrays_to(
                 n_new_promoters, {
-                    # 'unique_index': np.arange(
-                    #     self.promoter_index, self.promoter_index +
-                    #     n_new_promoters).astype(str),
-                    'unique_index': np.array(unique_indexes),
+                    'unique_index': np.arange(
+                        self.promoter_index, self.promoter_index +
+                        n_new_promoters).astype(str),
                     'TU_index': promoter_TU_indexes_new,
                     'coordinates': promoter_coordinates_new,
                     'domain_index': promoter_domain_indexes_new,
@@ -616,14 +609,11 @@ class ChromosomeStructure(Process):
                 DnaA_box_domain_indexes[removed_DnaA_boxes_mask])
 
             # Add new promoters with new domain indexes
-
-            unique_indexes = create_unique_indexes(n_new_DnaA_boxes)
             new_DnaA_boxes = arrays_to(
                 n_new_DnaA_boxes, {
-                    # 'unique_index': np.arange(
-                    #     self.DnaA_box_index, self.DnaA_box_index +
-                    #     n_new_DnaA_boxes).astype(str),
-                    'unique_index': np.array(unique_indexes),
+                    'unique_index': np.arange(
+                        self.DnaA_box_index, self.DnaA_box_index +
+                        n_new_DnaA_boxes).astype(str),
                     'coordinates': DnaA_box_coordinates_new,
                     'domain_index': DnaA_box_domain_indexes_new,
                     'DnaA_bound': np.zeros(n_new_DnaA_boxes, dtype=np.bool).tolist()})
