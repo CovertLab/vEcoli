@@ -1,0 +1,29 @@
+name: Test Documentation
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  test-docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Setup Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.8
+      - name: Install dependencies
+        run: |
+          sudo apt-get install pandoc
+          python -m pip install --upgrade pip wheel
+          pip install numpy Cython
+          pip install -r requirements.txt
+          python setup.py install
+          pip install -r doc/requirements.txt
+      - name: Build documentation
+        run: |
+          cd doc
+          make html
