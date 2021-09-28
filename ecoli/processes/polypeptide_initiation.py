@@ -3,8 +3,6 @@
 Polypeptide Initiation
 ======================
 
-Polypeptide initiation sub-model.
-
 This process models the complementation of 30S and 50S ribosomal subunits
 into 70S ribosomes on mRNA transcripts. This process is in many ways
 analogous to the TranscriptInitiation process - the number of initiation
@@ -44,9 +42,10 @@ topology_registry.register(NAME, TOPOLOGY)
 
 
 class PolypeptideInitiation(PartitionedProcess):
+    """ Polypeptide Initiation PartitionedProcess """
+
     name = NAME
     topology = TOPOLOGY
-
     defaults = {
         'protein_lengths': [],
         'translation_efficiencies': [],

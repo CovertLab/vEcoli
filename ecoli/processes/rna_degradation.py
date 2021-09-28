@@ -3,8 +3,6 @@
 RNA Degradation
 ===============
 
-Submodel for RNA degradation.
-
 Mathematical formulations
 
 * ``dr/dt = Kb - Kd * r``
@@ -78,6 +76,8 @@ topology_registry.register(NAME, TOPOLOGY)
 
 
 class RnaDegradation(PartitionedProcess):
+    """ RNA Degradation PartitionedProcess """
+
     name = NAME
     topology = TOPOLOGY
     defaults = {

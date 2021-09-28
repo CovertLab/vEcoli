@@ -3,8 +3,6 @@
 Two Component System
 ====================
 
-Two component system sub-model.
-
 This process models the phosphotransfer reactions of signal transduction pathways.
 
 Specifically, phosphate groups are transferred from histidine kinases to response regulators
@@ -34,6 +32,8 @@ topology_registry.register(NAME, TOPOLOGY)
 
 
 class TwoComponentSystem(PartitionedProcess):
+    """ Two Component System PartitionedProcess """
+    
     name = NAME
     topology = TOPOLOGY
     defaults = {
