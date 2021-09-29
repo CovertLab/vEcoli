@@ -8,6 +8,54 @@ from vivarium.core.process import Process
 from ecoli.library.schema import add_elements
 
 
+class ArrayDict():
+    EMPTY = "__EMPTY__"
+
+    def __init__(self, dtype, capacity=1000):
+        if dtype[0][0] != "_key":
+            dtype = [("key", "<U16")] + dtype
+        self.struct_array = np.zeros([capacity],
+                                     dtype=dtype)
+        # Correct?
+        self.struct_array["key"] = EMPTY
+    
+    def __len__(self):
+        pass
+
+    def __getitem__(self):
+        pass
+
+    def __setitem__(self, key, value):
+        pass
+
+    def __delitem__(self, key):
+        pass
+
+    def __missing__(self, key):
+        pass
+
+    def __iter__(self):
+        pass
+
+    def __reversed__(self):
+        pass
+
+    def __contains__(self, item):
+        pass
+
+
+def dict_value_updater(current, update):
+    result = current
+
+    if update.get("add_items"):
+        for operation in update["add_items"]:
+            result[operation["key"]] = operation["state"]
+
+    for k in update.get("remove_items", {}):
+        result.pop(k)
+
+    return result
+
 def struct_array_updater(current, update):
     '''
     Updater which translates _add and _delete -style updates
@@ -15,7 +63,7 @@ def struct_array_updater(current, update):
 
     Expects current to be a numpy structured array, whose dtype will be
     maintained by the result returned. The first element of the dtype must be
-    ("_key", "str"), an index targeted by _add and _delete operations.
+    ("_key", "<U16"), an index targeted by _add and _delete operations.
 
     TODO:
       - inefficient use of numpy arrays, should instead pre-allocate and expand when necessary
@@ -27,17 +75,17 @@ def struct_array_updater(current, update):
     '''
     result = current
 
-    if update.get("_add"):
+    if update.get("add_items"):
         added = np.array([((v['key'],)
                            + tuple(v['state'][name]
                                    for name in current.dtype.names
                                    if name != "_key"))
-                         for v in update["_add"]],
+                         for v in update["add_items"]],
                          dtype=current.dtype)
         result = np.append(current, added)
 
-    if update.get("_delete"):
-        mask = np.isin(result['_key'], update['_delete'])
+    if update.get("remove_items"):
+        mask = np.isin(result['_key'], update['remove_items'])
         result = result[~mask]
 
     return result
@@ -54,13 +102,13 @@ class StructArrayDemo(Process):
 
     name = "StructArrayDemo"
     defaults = {
-        'use_struct_array': False,
+        'mode': "default",
         'rate_add': 0.5,
         'rate_delete': 0.2,
         'seed': 0
     }
 
-    DTYPE = np.dtype([("_key", '<U8'),  # necessary for _add, _delete operations. We restrict keys to be 16 characters or less.
+    DTYPE = np.dtype([("_key", '<U16'),  # necessary for _add, _delete operations. We restrict keys to be 16 characters or less.
                       ('unique_index', 'int'),
                       ('domain_index', 'int'),
                       ('coordinates', 'int'),
@@ -69,7 +117,7 @@ class StructArrayDemo(Process):
     def __init__(self, parameters=None):
         super().__init__(parameters)
 
-        self.use_struct_array = self.parameters['use_struct_array']
+        self.mode = self.parameters['mode']
         self.rate_add = self.parameters['rate_add']
         self.rate_delete = self.parameters['rate_delete']
         self.seed = self.parameters['seed']
@@ -81,15 +129,7 @@ class StructArrayDemo(Process):
         self.time_til_next_delete = 0
 
     def ports_schema(self):
-        if self.use_struct_array:
-            return {
-                'active_RNAPs': {
-                    '_default': np.array([], dtype=StructArrayDemo.DTYPE),
-                    '_updater': struct_array_updater,
-                    '_emit': True
-                }
-            }
-        else:
+        if self.mode == "default":
             return {
                 'active_RNAPs': {
                     '*': {
@@ -100,6 +140,19 @@ class StructArrayDemo(Process):
                     }
                 }
             }
+        elif self.mode == "struct_array":
+            return {
+                'active_RNAPs': {
+                    '_default': np.array([], dtype=StructArrayDemo.DTYPE),
+                    '_updater': struct_array_updater,
+                    '_emit': True
+                }
+            }
+        elif self.mode == "dict_value":
+            return {
+                'active_RNAPs' : {'_default' : {}, '_updater' : dict_value_updater, "_emit" : True}
+            }
+        
 
     def next_update(self, timestep, states):
         update = {'active_RNAPs': {}}
@@ -108,7 +161,8 @@ class StructArrayDemo(Process):
         self.time_til_next_delete -= timestep
 
         if self.time_til_next_add <= 0:
-            update['active_RNAPs']['_add'] = [{
+            key = "_add"  if self.mode == "default" else "add_items"
+            update['active_RNAPs'][key] = [{
                 'key': f'{self.next_id}',
                 'state': {
                     'unique_index': self.next_id,
@@ -122,9 +176,10 @@ class StructArrayDemo(Process):
 
         if self.time_til_next_delete <= 0:
             if len(states['active_RNAPs']) > 0:
-                update['active_RNAPs']['_delete'] = [self.random.choice(
+                key = "_delete" if self.mode == "default" else "remove_items"
+                update['active_RNAPs'][key] = [self.random.choice(
                     (list(states['active_RNAPs'].keys())
-                     if not self.use_struct_array
+                     if self.mode in {"default", "dict_value"}
                      else states['active_RNAPs']['_key']),
                     replace=False)]
             self.time_til_next_delete = self.random.exponential(
@@ -133,24 +188,25 @@ class StructArrayDemo(Process):
         return update
 
 
-def test_struct_array_updater(use_struct_array=True,
+def test_struct_array_updater(mode="struct_array",
                               rate_add=0.5,
                               rate_delete=0.2,
                               total_time=10):
     process_config = {
-        'use_struct_array': use_struct_array,
+        'mode': mode,
         'rate_add': rate_add,
         'rate_delete': rate_delete,
         'seed': 0
     }
     process = StructArrayDemo(process_config)
 
-    initial_state = {
-        'active_RNAPs': ({}
-                         if not use_struct_array
-                         else np.empty((0, len(StructArrayDemo.DTYPE)),
-                                       dtype=StructArrayDemo.DTYPE))
-    }
+    initial_state = {}
+    if mode == "default" or mode == "dict_value":
+        initial_state['active_RNAPs'] = {}
+    elif mode == "struct_array":
+        initial_state['active_RNAPs'] = np.empty((0, len(StructArrayDemo.DTYPE)),
+                                                 dtype=StructArrayDemo.DTYPE)
+
     settings = {
         'total_time': total_time,
         'initial_state': initial_state,
@@ -160,8 +216,7 @@ def test_struct_array_updater(use_struct_array=True,
     data = simulate_process(process, settings)
     tock = time.perf_counter()
 
-    print(f'Run with{"out" if not use_struct_array else ""} '
-          f'struct arrays took {tock - tick} seconds.')
+    print(f'Run in mode "{mode}" took {tock - tick} seconds.')
 
     return (tock - tick), data
 
@@ -169,13 +224,13 @@ def test_struct_array_updater(use_struct_array=True,
 def main():
     # Parameter values to sweep through.
     sweep = {
-        'use_struct_array': [False, True],
+        'mode': ["default", "struct_array", "dict_value"],
         'add_to_delete_rate_ratio': [1, 2, 5, 10],
         'total_time': [10, 50, 100, 200, 500, 750, 1000]
     }
 
     # Sweep through parameters, saving runtime.
-    result = np.zeros((len(sweep['use_struct_array']),
+    result = np.zeros((len(sweep['mode']),
                        len(sweep['add_to_delete_rate_ratio']),
                        len(sweep['total_time']),
                        1))
@@ -184,11 +239,11 @@ def main():
     for i, rate_ratio in enumerate(sweep['add_to_delete_rate_ratio']):
         for j, total_time in enumerate(sweep['total_time']):
             data = {}
-            for k, use_struct_array in enumerate(sweep['use_struct_array']):
-                time, data[use_struct_array] = test_struct_array_updater(use_struct_array=use_struct_array,
-                                                                         rate_add=rate_ratio * rate_delete,
-                                                                         rate_delete=rate_delete,
-                                                                         total_time=total_time)
+            for k, mode in enumerate(sweep['mode']):
+                time, data[mode] = test_struct_array_updater(mode=mode,
+                                                             rate_add=rate_ratio * rate_delete,
+                                                             rate_delete=rate_delete,
+                                                             total_time=total_time)
                 result[k, i, j, 0] = time
 
             # Assertions to make sure data matches with/without struct arrays
@@ -209,14 +264,14 @@ def main():
     # X axis: total simulation time
     # Line color gradient: ratio of add rate to delete rate
 
-    fig, axs = plt.subplots(1, 2, sharey=True)
+    fig, axs = plt.subplots(1, len(sweep['mode']), sharey=True)
     n_lines = len(sweep['add_to_delete_rate_ratio'])
     for i, rate_ratio in enumerate(sweep['add_to_delete_rate_ratio']):
-        for j, use_struct_array in enumerate(sweep['use_struct_array']):
+        for j, mode in enumerate(sweep['mode']):
             axs[j].plot(sweep['total_time'], result[j, i, :],
                         label=rate_ratio, color=(1-i/n_lines, i/n_lines, 0.25))
             axs[j].set_title(
-                f'Runtime {"" if use_struct_array else "not "}using struct array')
+                f'Runtime using\n"{mode}"')
             axs[j].set_xlabel("Simulation length (s)")
             axs[j].set_xticks(sweep['total_time'])
             axs[j].tick_params(axis='x', labelrotation=45)
