@@ -4,7 +4,7 @@ import numpy as np
 from ecoli.library.schema import array_from
 from ecoli.composites.ecoli_master import run_ecoli
 
-from tablereader_utils import warn_incomplete, replace_scalars, replace_scalars_2d, camel_case_to_underscored
+from ecoli.analysis.tablereader_utils import warn_incomplete, replace_scalars, replace_scalars_2d, camel_case_to_underscored
 
 
 MAPPING = {
