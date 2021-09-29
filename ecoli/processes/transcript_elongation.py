@@ -499,7 +499,7 @@ class TranscriptElongation(PartitionedProcess):
             len(states['active_RNAPs']), {
                 'coordinates': updated_coordinates})
 
-        # delete_rnaps = [np.where(did_terminate_mask[partial_RNA_to_RNAP_mapping])[0]]
+        # delete_rnaps = np.where(did_terminate_mask[partial_RNA_to_RNAP_mapping])[0]
 
         # Attenuation removes RNAs and RNAPs (NON-FUNCTIONAL)
         counts_attenuated = np.zeros(len(self.attenuated_rna_indices))
