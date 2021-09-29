@@ -22,11 +22,16 @@ def test_polypeptide_initiation_migration():
     total_time = 2
     initial_times = [0, 10, 100]
     for initial_time in initial_times:
-        # run the process and get an update
-        actual_update = run_ecoli_process(polypeptide_initiation_process, PI_TOPOLOGY, total_time=total_time,
-                                          initial_time=initial_time)
         with open(f"data/polypeptide_initiation_update_t{initial_time + total_time}.json") as f:
             wc_update = json.load(f)
+        # run the process and get an update
+        initial_state = get_state_from_file(
+            path=f'data/wcecoli_t{initial_time}.json')
+        states, _ = get_process_state(polypeptide_initiation_process, PI_TOPOLOGY, initial_state)
+        # This value is normally modified by polypeptide elongation
+        states['listeners']['ribosome_data']['effective_elongation_rate'] = wc_update[
+            'listeners']['ribosome_data'].pop('ribosomeElongationRate')
+        actual_update = polypeptide_initiation_process.next_update(total_time, states)
         plots(actual_update, wc_update, total_time + initial_time)
         assertions(actual_update, wc_update)
 
@@ -114,10 +119,10 @@ def assertions(actual_update, expected_update):
      wc_prob_translation_per_transcript) = unpack(expected_update)
 
     # Assertions fail by initial_time = 1000 due to stochasticity
-    assert len_almost_equal(np.array(ar_peptides), wc_ar_peptides)
-    assert len_almost_equal(np.array(ar_pos_on_mrna), wc_ar_pos_on_mrna)
-    assert array_almost_equal(np.array(subunits), wc_subunits)
-    assert scalar_almost_equal(np.array(ribosomes_initialized), wc_ribosomes_initialized)
+    assert array_equal(np.array(ar_peptides), wc_ar_peptides)
+    assert array_equal(np.array(ar_pos_on_mrna), wc_ar_pos_on_mrna)
+    assert array_equal(np.array(subunits), wc_subunits)
+    assert scalar_equal(np.array(ribosomes_initialized), wc_ribosomes_initialized)
     assert array_equal(np.array(prob_translation_per_transcript), wc_prob_translation_per_transcript)
 
 
