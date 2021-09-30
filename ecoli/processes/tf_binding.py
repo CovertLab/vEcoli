@@ -1,9 +1,7 @@
 """
-==========
-Tf Binding
-==========
-
-Transcription factor binding sub-model.
+============================
+Transcription Factor Binding
+============================
 
 This process models how transcription factors bind to promoters on the DNA sequence.
 """
@@ -34,6 +32,7 @@ topology_registry.register(NAME, TOPOLOGY)
 
 
 class TfBinding(PartitionedProcess):
+    """ Transcription Factor Binding PartitionedProcess """
     name = NAME
     topology = TOPOLOGY
     defaults = {

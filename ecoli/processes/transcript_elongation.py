@@ -3,8 +3,6 @@
 Transcript Elongation
 =====================
 
-Transcription elongation sub-model.
-
 This process models nucleotide polymerization into RNA molecules
 by RNA polymerases. Polymerization occurs across all polymerases
 simultaneously and resources are allocated to maximize the progress
@@ -45,7 +43,7 @@ topology_registry.register(NAME, TOPOLOGY)
 
 
 class TranscriptElongation(PartitionedProcess):
-    """TranscriptElongation
+    """ Transcript Elongation PartitionedProcess
 
     defaults:
         - max_time_step (float) : ???
@@ -497,7 +495,7 @@ class TranscriptElongation(PartitionedProcess):
             len(states['active_RNAPs']), {
                 'coordinates': updated_coordinates})
 
-        # delete_rnaps = [np.where(did_terminate_mask[partial_RNA_to_RNAP_mapping])[0]]
+        # delete_rnaps = np.where(did_terminate_mask[partial_RNA_to_RNAP_mapping])[0]
 
         # Attenuation removes RNAs and RNAPs (NON-FUNCTIONAL)
         counts_attenuated = np.zeros(len(self.attenuated_rna_indices))

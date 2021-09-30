@@ -26,6 +26,9 @@
         "threshold": 2220},
     "divide": false,
 
+    "save": false,
+    "save_times": [10, 100, 1000],
+
     "add_processes" : [],
     "exclude_processes" : [],
     "swap_processes" : {},

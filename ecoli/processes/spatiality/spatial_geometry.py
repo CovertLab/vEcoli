@@ -1,4 +1,7 @@
 """
+================
+Spatial Geometry
+================
 Execute by running: ``python vivarium/process/template_process.py``
 Note: This process is unfinished.
 """

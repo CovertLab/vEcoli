@@ -3,8 +3,6 @@
 Complexation
 ============
 
-Macromolecular complexation sub-model.
-
 This process encodes molecular simulation of macromolecular complexation,
 in which monomers are assembled into complexes. Macromolecular complexation
 is done by identifying complexation reactions that are possible (which are
@@ -43,6 +41,8 @@ RAND_MAX = 2**31
 
 
 class Complexation(PartitionedProcess):
+    """ Complexation PartitionedProcess """
+
     name = NAME
     topology = TOPOLOGY
     defaults = {

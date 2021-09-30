@@ -3,19 +3,16 @@
 Metabolism
 ==========
 
-Metabolism sub-model. Encodes molecular simulation of microbial metabolism using flux-balance analysis.
+Encodes molecular simulation of microbial metabolism using flux-balance analysis.
 
 This process demonstrates how metabolites are taken up from the environment
 and converted into other metabolites for use in other processes.
+
+NOTE:
+- In wcEcoli, metabolism only runs after all other processes have completed
+and internal states have been updated (deriver-like, no partitioning necessary)
 """
 
-# TODO(wcEcoli):
-# - option to call a reduced form of metabolism (assume optimal)
-# - handle oneSidedReaction constraints
-
-# NOTE:
-# - In wcEcoli, metabolism only runs after all other processes have completed
-# and internal states have been updated (deriver-like, no partitioning necessary)
 
 import numpy as np
 from scipy.sparse import csr_matrix
@@ -61,6 +58,8 @@ USE_KINETICS = True
 
 
 class Metabolism(Process):
+    """ Metabolism Process """
+
     name = NAME
     topology = TOPOLOGY
     defaults = {
