@@ -11,14 +11,14 @@ Chromosome Structure
 import numpy as np
 
 from vivarium.core.process import Process
-
-from ecoli.library.schema import (add_elements, arrays_from, bulk_schema,
-                                  arrays_to, array_to, listener_schema)
-from ecoli.processes.cell_division import divide_active_RNAPs_by_domain
+from ecoli.library.unique_indexes import create_unique_indexes
+from ecoli.processes.registries import topology_registry
+from ecoli.library.schema import (
+    add_elements, arrays_from, bulk_schema,
+    arrays_to, array_to, listener_schema)
 
 from wholecell.utils.polymerize import buildSequences
 
-from ecoli.processes.registries import topology_registry
 
 # Register default topology for this process, associating it with process name
 NAME = 'ecoli-chromosome-structure'
@@ -157,15 +157,17 @@ class ChromosomeStructure(Process):
                     for attr in ('domain_index', 'child_domains')
                 }},
             'active_RNAPs': {
-                '_divider': {
-                        'divider': divide_active_RNAPs_by_domain,
-                    },
+                '_divider': 'by_domain',
                 '*': {
                     'unique_index': {'_default': 0, '_updater': 'set'},
                     'domain_index': {'_default': 0, '_updater': 'set'},
                     'coordinates': {'_default': 0, '_updater': 'set'},
                     'direction': {'_default': 0, '_updater': 'set'}}},
             'RNAs': {
+                '_divider': {
+                    'divider': 'rna_by_domain',
+                    'topology': {'active_RNAP': ('..', 'active_RNAP',)}
+                },
                 '*': {
                     'unique_index': {'_default': 0, '_updater': 'set'},
                     'TU_index': {'_default': 0, '_updater': 'set'},
@@ -181,12 +183,14 @@ class ChromosomeStructure(Process):
                     'domain_index': default_unique_schema
                 }},
             'promoters': {
+                '_divider': 'by_domain',
                 '*': {
                     'TU_index': {'_default': 0},
                     'coordinates': {'_default': 0},
                     'domain_index': {'_default': 0},
                     'bound_TF': {'_default': 0}}},
             'DnaA_boxes': {
+                '_divider': 'by_domain',
                 '*': {
                     'domain_index': {'_default': 0},
                     'coordinates': {'_default': 0},
@@ -558,7 +562,9 @@ class ChromosomeStructure(Process):
             return new_coordinates, new_domain_indexes
 
 
-        # Replicate promoters
+        #######################
+        # Replicate promoters #
+        #######################
         n_new_promoters = 2*np.count_nonzero(removed_promoters_mask)
 
         if n_new_promoters > 0:
@@ -582,9 +588,7 @@ class ChromosomeStructure(Process):
             # Add new promoters with new domain indexes
             new_promoters = arrays_to(
                 n_new_promoters, {
-                    'unique_index': np.arange(
-                        self.promoter_index, self.promoter_index +
-                        n_new_promoters).astype(str),
+                    'unique_index': np.array(create_unique_indexes(n_new_promoters)),
                     'TU_index': promoter_TU_indexes_new,
                     'coordinates': promoter_coordinates_new,
                     'domain_index': promoter_domain_indexes_new,
@@ -594,7 +598,9 @@ class ChromosomeStructure(Process):
             self.promoter_index += n_new_promoters
 
 
-        # Replicate DnaA boxes
+        ########################
+        # Replicate DnaA boxes #
+        ########################
         n_new_DnaA_boxes = 2*np.count_nonzero(removed_DnaA_boxes_mask)
 
         if n_new_DnaA_boxes > 0:
@@ -613,9 +619,7 @@ class ChromosomeStructure(Process):
             # Add new promoters with new domain indexes
             new_DnaA_boxes = arrays_to(
                 n_new_DnaA_boxes, {
-                    'unique_index': np.arange(
-                        self.DnaA_box_index, self.DnaA_box_index +
-                        n_new_DnaA_boxes).astype(str),
+                    'unique_index': np.array(create_unique_indexes(n_new_DnaA_boxes)),
                     'coordinates': DnaA_box_coordinates_new,
                     'domain_index': DnaA_box_domain_indexes_new,
                     'DnaA_bound': np.zeros(n_new_DnaA_boxes, dtype=np.bool).tolist()})
