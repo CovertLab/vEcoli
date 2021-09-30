@@ -1,8 +1,8 @@
-
+import os
 import numpy as np
 from matplotlib import pyplot as plt
 from six.moves import zip
-from ecoli.composites.ecoli_master import run_ecoli
+from ecoli.composites.ecoli_partition import run_ecoli
 from ecoli.analysis.tablereader import TableReader
 
 
@@ -76,7 +76,9 @@ class Plot(object):
         plt.legend(legend, loc="best")
 
         plt.tight_layout()
-        plt.savefig('ecoli/analysis/seriesOut/massFractionSummary.png')
+        out_dir = 'out/analysis/'
+        os.makedirs(out_dir, exist_ok=True)
+        plt.savefig(out_dir + 'massFractionSummary.png')
 
         #todo make analysis tools
         #this is from WCEcoli: exportFigure(plt, "ecoli/analysis/seriesOut", "massfractionSummary")
@@ -86,8 +88,9 @@ class Plot(object):
 
 def test_plot():
 
-    data = run_ecoli(total_time=4)
+    data = run_ecoli(total_time=30)
     Plot(data)
+
 
 
 if __name__ == "__main__":
