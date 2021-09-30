@@ -263,6 +263,7 @@ class TranscriptInitiation(PartitionedProcess):
                     'unique_index': {'_default': 0}}},
 
             'promoters': {
+                '_divider': 'by_domain',
                 '*': {
                     'TU_index': {'_default': 0},
                     'coordinates': {'_default': 0},
@@ -270,6 +271,10 @@ class TranscriptInitiation(PartitionedProcess):
                     'bound_TF': {'_default': 0}}},
 
             'RNAs': {
+                '_divider': {
+                    'divider': 'rna_by_domain',
+                    'topology': {'active_RNAP': ('..', 'active_RNAP',)}
+                },
                 '*': {
                     'unique_index': {'_default': 0, '_updater': 'set'},
                     'TU_index': {'_default': 0, '_updater': 'set'},
@@ -280,6 +285,7 @@ class TranscriptInitiation(PartitionedProcess):
                     'RNAP_index': {'_default': 0, '_updater': 'set'}}},
 
             'active_RNAPs': {
+                '_divider': 'by_domain',
                 '*': {
                     'unique_index': {'_default': 0, '_updater': 'set'},
                     'domain_index': {'_default': 0, '_updater': 'set'},
