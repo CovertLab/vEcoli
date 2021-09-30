@@ -1,6 +1,7 @@
 import numpy as np
 
 from vivarium.core.registry import divider_registry
+from vivarium.core.registry import updater_registry
 
 
 def divide_binomial(state):
@@ -17,3 +18,5 @@ def divide_binomial(state):
     return [counts_1, counts_2]
 
 divider_registry.register('binomial_ecoli', divide_binomial)
+
+#TODO: updater_registry.register(dict_value_updater)

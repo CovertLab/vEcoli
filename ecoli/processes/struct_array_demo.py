@@ -9,6 +9,8 @@ from ecoli.library.schema import add_elements
 
 
 class ArrayDict():
+    # Reference: see https://docs.python.org/3/reference/datamodel.html?emulating-container-types#emulating-container-types
+
     EMPTY = "__EMPTY__"
 
     def __init__(self, dtype, capacity=1000):
@@ -44,7 +46,7 @@ class ArrayDict():
         pass
 
 
-def dict_value_updater(current, update):
+def dict_value_updater(current, update, defaults=None):
     result = current
 
     if update.get("add_items"):
@@ -150,7 +152,11 @@ class StructArrayDemo(Process):
             }
         elif self.mode == "dict_value":
             return {
-                'active_RNAPs' : {'_default' : {}, '_updater' : dict_value_updater, "_emit" : True}
+                'active_RNAPs' : {
+                    '_default' : {},
+                    '_updater' : dict_value_updater,
+                    "_emit" : True
+                    }
             }
         
 
