@@ -47,6 +47,7 @@ extensions = [
     'sphinx.ext.napoleon',
     'sphinx.ext.intersphinx',
     'sphinx.ext.viewcode',
+    'nbsphinx',
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -79,6 +80,11 @@ html_static_path = ['_static']
 
 
 # -- Options for extensions --------------------------------------------------
+
+# -- nbsphinx options --
+
+# Never execute Jupyter notebooks.
+nbsphinx_execute = 'never'
 
 # -- sphinx.ext.intersphinx options --
 intersphinx_mapping = {
@@ -113,11 +119,31 @@ def autodoc_skip_member_handler(app, what, name, obj, skip, options):
 def run_apidoc(_):
     cur_dir = os.path.abspath(os.path.dirname(__file__))
     module_path = os.path.join(cur_dir, '..', 'ecoli')
+
     apidoc_dir = os.path.join(cur_dir, 'reference', 'api')
     if os.path.exists(apidoc_dir):
         shutil.rmtree(apidoc_dir)
     os.makedirs(apidoc_dir, exist_ok=True)
-    apidoc.main(['-f', '-e', '-o', apidoc_dir, module_path])
+
+    notebooks_dst = os.path.join(cur_dir, 'notebooks')
+    notebooks_src = os.path.join(cur_dir, '..', 'notebooks')
+    if os.path.exists(notebooks_dst):
+        shutil.rmtree(notebooks_dst)
+    shutil.copytree(notebooks_src, notebooks_dst)
+
+    exclude = (
+        os.path.join(cur_dir, path) for path in (
+            '../ecoli/analysis',
+            '../ecoli/library',
+            '../ecoli/models',
+            '../ecoli/plots',
+            '../ecoli/processes/registries.py',
+            '../ecoli/states',
+            '../ecoli/experiments/ecoli_master_sim_tests.py',
+        )
+    )
+    apidoc.main(
+        ['-f', '-e', '-E', '-o', apidoc_dir, module_path, *exclude])
 
 
 objects_to_pprint = {}

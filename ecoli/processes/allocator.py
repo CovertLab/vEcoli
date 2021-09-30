@@ -1,7 +1,10 @@
 """
+=========
 Allocator
+=========
 
-Updates bulk with process updates, runs metabolism, runs process requests, allocates molecules
+Reads requests from PartionedProcesses, and allocates molecules according to
+process priorities.
 """
 import numpy as np
 from vivarium.core.process import Deriver
@@ -23,11 +26,12 @@ class NegativeCountsError(Exception):
 	pass
 
 class Allocator(Deriver):
+    """ Allocator Deriver """
     name = NAME
     topology = TOPOLOGY
 
     defaults = {}
-    
+
     processes = {}
 
     # Constructor
@@ -52,7 +56,7 @@ class Allocator(Deriver):
     def ports_schema(self):
         ports = {
             'bulk': {
-                molecule: {'_default': 0} 
+                molecule: {'_default': 0}
                 for molecule in self.moleculeNames},
             'request': {
                 process: {
@@ -68,7 +72,7 @@ class Allocator(Deriver):
         return ports
 
     def next_update(self, timestep, states):
-        total_counts = np.array([states['bulk'][molecule] for 
+        total_counts = np.array([states['bulk'][molecule] for
                                  molecule in self.mol_idx_to_name.values()])
         original_totals = total_counts.copy()
         counts_requested = np.zeros((self.n_molecules, self.n_processes), dtype=int)
@@ -98,9 +102,9 @@ class Allocator(Deriver):
             total_counts,
             self.random_state
             )
-        
+
         partitioned_counts.astype(int, copy=False)
-        
+
         if ASSERT_POSITIVE_COUNTS and np.any(partitioned_counts < 0):
             raise NegativeCountsError(
                     "Negative value(s) in partitioned_counts:\n"
@@ -129,19 +133,19 @@ class Allocator(Deriver):
                     for molIndex in np.where(counts_unallocated < 0)[0]
                     )
                 )
-        
+
         update = {
             'request': {
                 process: {
                     'bulk': {
-                        molecule: 0 
+                        molecule: 0
                         for molecule in states['request'][process]['bulk']}}
                 for process in states['request']},
             'allocate': {
                 process: {
                     'bulk': {molecule: partitioned_counts[
-                        self.mol_name_to_idx[molecule], 
-                        self.proc_name_to_idx[process]] 
+                        self.mol_name_to_idx[molecule],
+                        self.proc_name_to_idx[process]]
                     for molecule in states['request'][process]['bulk']}}
                 for process in states['request']}}
 
@@ -149,7 +153,7 @@ class Allocator(Deriver):
 
 def calculatePartition(process_priorities, counts_requested, total_counts, random_state):
     priorityLevels = np.sort(np.unique(process_priorities))[::-1]
-    
+
     partitioned_counts = np.zeros_like(counts_requested)
 
     for priorityLevel in priorityLevels:

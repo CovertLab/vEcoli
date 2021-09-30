@@ -1,4 +1,7 @@
-"""Exchange Stub Process
+"""
+=============
+Exchange Stub
+=============
 
 Exchanges molecules at pre-set rates through a single port
 """

@@ -1,7 +1,7 @@
 """
-==========================
+========================
 Flagella Motor Processes
-==========================
+========================
 """
 
 import os
@@ -41,7 +41,7 @@ class FlagellaMotor(Process):
         Sneddon, M. W., Pontius, W., & Emonet, T. (2012). Stochastic coordination of multiple
         actuators reduces latency and improves chemotactic response in bacteria.
 
-    """ 
+    """
 
     name = NAME
     expected_pmf = -140  # PMF ~170mV at pH 7, ~140mV at pH 7.7 (Berg H, E. coli in motion, 2004, pg 113)

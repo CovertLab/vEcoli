@@ -1,3 +1,9 @@
+"""
+=====
+Shape
+=====
+"""
+
 import math
 
 from vivarium.core.process import Deriver
@@ -41,13 +47,14 @@ def surface_area_from_length(length, width):
 
 
 class Shape(Deriver):
+    """ Shape Deriver """
+
     name = 'ecoli-shape'
     defaults = {
         'width': 1,  # um
     }
 
     def __init__(self, parameters=None):
-        # type: (dict) -> None
         """
         Derives cell length and surface area from width and volume.
 
