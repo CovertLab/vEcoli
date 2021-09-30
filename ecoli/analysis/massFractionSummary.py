@@ -1,6 +1,3 @@
-from __future__ import absolute_import, division, print_function
-
-import os
 
 import numpy as np
 from matplotlib import pyplot as plt
@@ -28,6 +25,9 @@ COLORS = [
 
 class Plot(object):
 
+    def __init__(self, data):
+        self.data = data
+        self.do_plot(self.data)
 
     def do_plot(self, data):
         mass = TableReader("Mass", self.data)
@@ -82,9 +82,6 @@ class Plot(object):
         #this is from WCEcoli: exportFigure(plt, "ecoli/analysis/seriesOut", "massfractionSummary")
         plt.close("all")
 
-    def __init__(self, data):
-        self.data = data
-        self.do_plot(self.data)
 
 
 def test_plot():
