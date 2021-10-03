@@ -26,6 +26,7 @@ __pycache__
 *.so
 /wholecell/utils/*.c
 /doc/reference/api/
+/doc/notebooks/
 
 # OS generated files #
 ######################
@@ -49,3 +50,4 @@ pyproject.toml
 #################
 /.vscode
 /.env
+data/blame_test_data.json

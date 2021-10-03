@@ -1,6 +1,12 @@
 import json
+import numpy as np
 
 from wholecell.utils import units
+
+MASSDIFFS = {'massDiff_rRNA': 0, 'massDiff_tRNA': 1, 'massDiff_mRNA': 2, 
+            'massDiff_miscRNA': 3, 'massDiff_nonspecific_RNA': 4, 
+            'massDiff_protein': 5, 'massDiff_metabolite': 6, 
+            'massDiff_water': 7, 'massDiff_DNA': 8}
 
 
 def infinitize(value):
@@ -44,7 +50,7 @@ def get_state_from_file(path='data/wcecoli_t0.json', aa=False):
                     'SULFATE[p]',
                     'ZN+2[p]',
                     'CA+2[p]',
-                    'PI[p]',
+                    'Pi[p]',
                     'NI+2[p]',
                     'WATER[p]',
                     'AMMONIUM[c]'},
@@ -53,9 +59,19 @@ def get_state_from_file(path='data/wcecoli_t0.json', aa=False):
             'external_concentrations': states['environment']},
         'listeners': states['listeners'],
         'bulk': states['bulk'],
-        'unique': states['unique'],
+        'unique': {},
         'process_state': {
             'polypeptide_elongation': {}}}
+    
+    for mol_type, molecules in states['unique'].items():
+        initial_state['unique'].update({mol_type: {}})
+        for molecule, values in molecules.items():
+            initial_state['unique'][mol_type][molecule] = {'submass' : np.zeros(len(MASSDIFFS))}
+            for key, value in values.items():
+                if key in MASSDIFFS:
+                    initial_state['unique'][mol_type][molecule]['submass'][MASSDIFFS[key]] = value
+                else:
+                    initial_state['unique'][mol_type][molecule][key] = value
 
     if aa:
         initial_state['environment']['media_id'] = 'minimal_plus_amino_acids'

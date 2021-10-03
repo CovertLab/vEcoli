@@ -54,11 +54,14 @@ def arrays_to(n, attrs):
 def bulk_schema(
         elements,
         updater=None,
+        partition=True,
 ):
     schema = {
         '_default': 0,
-        '_divider': 'binomial',
+        '_divider': 'binomial_ecoli',
         '_emit': True}
+    if partition:
+        schema['_properties'] = {'bulk': True}
     if updater:
         schema['_updater'] = updater
     return {
@@ -86,3 +89,8 @@ def add_elements(elements, id):
             'key': element[id],
             'state': element}
             for element in elements]}
+    
+def submass_schema():
+    return {
+        '_default': np.zeros(9),
+        '_emit': True}

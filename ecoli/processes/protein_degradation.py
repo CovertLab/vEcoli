@@ -1,26 +1,44 @@
 """
-ProteinDegradation
+===================
+Protein Degradation
+===================
 
-Protein degradation sub-model. Encodes molecular simulation of protein degradation as a Poisson process
+This process accounts for the degradation of protein monomers.
+Specific proteins to be degraded are selected as a Poisson process.
 
 TODO:
-- protein complexes
-- add protease functionality
+ - protein complexes
+ - add protease functionality
 """
 
 import numpy as np
 
 from vivarium.core.process import Process
 from vivarium.core.composition import simulate_process
+from vivarium.library.dict_utils import deep_merge
 
 from ecoli.library.data_predicates import (
     monotonically_increasing, monotonically_decreasing, all_nonnegative)
-from ecoli.library.schema import bulk_schema
+from ecoli.library.schema import array_to, array_from, bulk_schema
+
+from ecoli.processes.registries import topology_registry
+from ecoli.processes.partition import PartitionedProcess
 
 
-class ProteinDegradation(Process):
-    name = 'ecoli-protein-degradation'
+# Register default topology for this process, associating it with process name
+NAME = 'ecoli-protein-degradation'
+TOPOLOGY = {
+        "metabolites": ("bulk",),
+        "proteins": ("bulk",)
+}
+topology_registry.register(NAME, TOPOLOGY)
 
+
+class ProteinDegradation(PartitionedProcess):
+    """ Protein Degradation PartitionedProcess """
+
+    name = NAME
+    topology = TOPOLOGY
     defaults = {
         'raw_degradation_rate': [],
         'shuffle_indexes': None,
@@ -70,42 +88,45 @@ class ProteinDegradation(Process):
             'metabolites': bulk_schema(self.metabolite_ids),
             'proteins': bulk_schema(self.protein_ids)}
 
-    def next_update(self, timestep, states):
-        proteins = states['proteins']
-        protein_counts = np.array(list(proteins.values()))
-        rates = self.raw_degradation_rate * timestep
+    def calculate_request(self, timestep, states):
+        # Determine how many proteins to degrade based on the degradation rates and counts of each protein
+        protein_data = array_from(states['proteins'])
+        nProteinsToDegrade = np.fmin(
+            self.random_state.poisson(self._proteinDegRates(timestep) * protein_data),
+            protein_data
+            )
 
-        # Get number of degradation events,
-        # constrained by number of proteins and water molecules.
-        degrade = np.fmin(
-            self.random_state.poisson(rates * protein_counts),
-            protein_counts)
+        # Determine the number of hydrolysis reactions
+        # TODO(vivarium): Missing asNumber() and other unit-related things
+        nReactions = np.dot(self.protein_lengths, nProteinsToDegrade)
 
-        # Only do degradation if there is enough water for the reactions.
-        # This behavior is not realistic, but should be fine under an assumption of
-        # water not being limiting (?)
-        degrade *= int(states['metabolites'][self.water_id] >=
-                       np.dot(self.protein_lengths - 1, degrade))
+        # Determine the amount of water required to degrade the selected proteins
+        # Assuming one N-1 H2O is required per peptide chain length N
+        requests = {'metabolites': {self.water_id: nReactions - np.sum(nProteinsToDegrade)},
+                    'proteins': (array_to(states['proteins'], nProteinsToDegrade))}
+        return requests
 
-        # TODO(Ryan): It seems this water request is never used?
-        # self.h2o.requestIs(nReactions - np.sum(nProteinsToDegrade))
-        # self.proteins.requestIs(nProteinsToDegrade)
-
+    def evolve_state(self, timestep, states):
         # Degrade selected proteins, release amino acids from those proteins back into the cell, 
         # and consume H_2O that is required for the degradation process
+        allocated_proteins = array_from(states['proteins'])
         metabolites_delta = np.dot(
             self.degradation_matrix,
-            degrade).astype(int)
+            allocated_proteins).astype(int)
 
         update = {
             'metabolites': {
                 metabolite: metabolites_delta[index]
                 for index, metabolite in enumerate(self.metabolite_ids)},
             'proteins': {
-                protein: -degrade[index]
-                for index, protein in enumerate(proteins.keys())}}
+                protein: -allocated_proteins[index]
+                for index, protein in enumerate(states['proteins'])}}
 
         return update
+
+
+    def _proteinDegRates(self, timestep):
+        return self.raw_degradation_rate * timestep
 
 
 def test_protein_degradation():
@@ -186,14 +207,5 @@ def test_protein_degradation():
     return data
 
 
-def run_plot(data):
-    pass
-
-
-def main():
-    data = test_protein_degradation()
-    run_plot(data)
-
-
 if __name__ == "__main__":
-    main()
+    test_protein_degradation()
