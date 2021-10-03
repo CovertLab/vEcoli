@@ -61,10 +61,11 @@ class NonSpatialEnvironment(Deriver):
                 }
             },
         }
+
         # add field concentrations
         field_schema = {
             field_id: {
-                '_value': np.array([[conc*1000]]) # To turn them to mmol/L
+                '_value': np.array([[conc*1000]]) # Value to mmol/L
             } for field_id, conc in self.parameters['concentrations'].items()}
         schema['fields'].update(field_schema)
         return schema

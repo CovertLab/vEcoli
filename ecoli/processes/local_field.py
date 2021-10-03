@@ -103,10 +103,6 @@ class LocalField(Deriver):
         
         return {
             'fields': delta_fields,
-            'location': [50, 50],
-            'dimensions': {
-                'bounds': [100, 100]
-            }
         }
 
 

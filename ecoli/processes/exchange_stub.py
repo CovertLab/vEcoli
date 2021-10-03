@@ -56,10 +56,10 @@ class Exchange(Process):
             self.first = False
 
         mass_increase = mass / self.first_mass
-        export = {
+        export = { # [mmol/L[]
             mol_id: (rate * mass_increase * timestep * np.random.uniform(0.98, 1.02)) / countsToMolar
             for mol_id, rate in self.parameters['exchanges'].items()}
-        return {'export': export, 'molecules': export} # in mmol/L
+        return {'export': export, 'molecules': export} 
 
 
 def test_exchanger():

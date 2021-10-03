@@ -298,17 +298,19 @@ class ConvenienceKinetics(Process):
 
     def next_update(self, timestep, states):
 
-        cell_mass = states['listeners']['mass']['cell_mass'] * 1e-15 * units.g  # grams
+        cell_mass = states['listeners']['mass']['cell_mass'] * 1e-15 * units.g
         dry_mass = states['listeners']['mass']['dry_mass'] * 1e-15 * units.g
-        cellVolume = cell_mass / (self.cellDensity.asNumber() * (units.g/units.L))
+        cellVolume = cell_mass / (self.cellDensity.asNumber() * (units.g / units.L))
         counts_to_mmolar = 1000 * units.mmol / (self.nAvogadro.asNumber() * cellVolume)
         mmol_to_counts = 1/counts_to_mmolar
 
-        self.prev_noise_2 = self.prev_noise
+        # Noise low pass filter
+        self.prev_noise_ = self.prev_noise
         self.prev_noise = self.noise
         self.noise = np.random.uniform(0.5, 1.5)
-        noise = (self.prev_noise + self.prev_noise_2 + self.noise) / 3
+        noise = (self.prev_noise + self.prev_noise_ + self.noise) / 3
 
+        # Store initial cell mass
         if self.first:
             self.first = False
             self.init_cell_mass = cell_mass
@@ -319,6 +321,7 @@ class ConvenienceKinetics(Process):
 
         for mol in states['external'].keys():
             states['external'][mol] /= remove_units(counts_to_mmolar)
+
         # kinetic rate law requires a flat dict with ('port', 'state') keys.
         flattened_states = remove_units(tuplify_port_dicts(states))
         flattened_concentrations = {k: s * remove_units(counts_to_mmolar)
@@ -343,18 +346,6 @@ class ConvenienceKinetics(Process):
                     if port_id in port_state_id:
                         state_id = port_state_id[1]
                         state_flux = coeff * flux * timestep
-
-                        #if port_id == 'external':
-                        #    # convert exchange fluxes to counts with mmol_to_counts
-                        #    delta = int((state_flux * mmol_to_counts).magnitude)
-                        #    existing_delta = update['exchanges'].get(
-                        #        state_id, {}).get('_value', 0)
-                        #    update['exchanges'][state_id] = existing_delta + delta
-                        # else:
-                        #    update[port_id][state_id] = (
-                        #           update[port_id].get(state_id, 0)
-                        #            + state_flux
-                        #    )
 
         # note: external and internal ports update change in mmol.
         return update

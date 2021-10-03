@@ -11,7 +11,6 @@ from vivarium.library.dict_utils import deep_merge
 from ecoli.processes.nonspatial_environment import NonSpatialEnvironment
 
 from ecoli.library.sim_data import LoadSimData
-from ecoli.composites.ecoli_master import AA_MEDIA_ID
 from ecoli.states.wcecoli_state import get_state_from_file
 
 from ecoli.processes.metabolism import Metabolism
@@ -25,9 +24,7 @@ from vivarium.library.units import units
 from ecoli.plots.topology import get_ecoli_master_topology_settings
 from vivarium.plots.topology import plot_topology
 
-
 SIM_DATA_PATH = '/home/santiagomille/Desktop/vivarium-ecoli/reconstruction/sim_data/kb/simData.cPickle'
-
 
 class ConvenienceMetabolism(Composer):
     defaults = {
@@ -77,7 +74,7 @@ class ConvenienceMetabolism(Composer):
     def generate_processes(self, config):
         time_step = config['time_step']
 
-        metabolism_config = self.load_sim_data.get_metabolism_config(time_step = time_step, aa = config['aa'])
+        metabolism_config = self.load_sim_data.get_metabolism_config(time_step=time_step, aa=config['aa'])
         metabolism_config = deep_merge(metabolism_config, config['metabolism'])
 
         convenience_kinetics_config = self.load_sim_data.get_convenience_kinetics_config(time_step=time_step)
@@ -147,7 +144,7 @@ class ConvenienceMetabolism(Composer):
             },
 
             'convenience_kinetics': {
-                'external': ('local_environment',), #check this
+                'external': ('local_environment',),
                 'fluxes': ('fluxes',),
                 'listeners': ('listeners',),
                 'global': ('global',),
@@ -182,7 +179,7 @@ class ConvenienceMetabolism(Composer):
 def test_convenience_metabolism(
         total_time=1000,
         progress_bar=True,
-        aa = True
+        aa=True
 ):
     config = {
         'fields_on': False, 
@@ -191,7 +188,7 @@ def test_convenience_metabolism(
             'media_id': 'minimal_plus_amino_acids',
             'use_trna_charging': True
         },
-        'time_step': 1.0,
+        'time_step': 2.0,
     }
 
     composer = ConvenienceMetabolism(config)
@@ -243,8 +240,8 @@ def run_in_environment(
     # generate the composite
     ecoli = composer.generate()
     
-    # configure the environment
-    environment_config = { # should be in mol/L (don't know why but gets multiplied by 1000)
+    # configure the environment [mol/L]
+    environment_config = {
         "volume": 50 * units.fL,
         "concentrations": {
             "L-ALPHA-ALANINE[p]": 4.0/1000,
@@ -284,16 +281,6 @@ def run_in_environment(
     ecoli.topology.update({
         environment_process.name: environment_topology})
 
-    settings = get_ecoli_master_topology_settings()
-    topo_plot = plot_topology(
-        ecoli,
-        filename='environment_topology',
-        out_dir=out_dir,
-        settings=settings)
-    import ipdb; ipdb.set_trace()
-    if out_dir !='':
-        return topo_plot
-
     # make the experiment
     ecoli_simulation = Engine({
         'processes': ecoli.processes,
@@ -323,6 +310,7 @@ def plot_output(output):
     rows = 6
     cols = 4
     fig = plt.figure(figsize=(8, 11.5))
+    aa_no_in_media = 'L-SELENOCYSTEINE'
 
     time = output['time']
 
@@ -338,13 +326,13 @@ def plot_output(output):
         bulk = np.array([b/m for b, m in zip(bulk, output['listeners']['mass']['dry_mass'])])
         bulk /= bulk[4]
         
-        # Change in AA used in translation/tRNA/etc
+        # Change in AA used in translation/tRNA/etc.
         export = np.array([-e / m for e, m in zip(output['export'][str(aa)], output['listeners']['mass']['dry_mass'])])
         export /= export[2]
 
-        # Change in imported aa fluxes (FBA)
+        # Change in imported amino acid fluxes (FBA)
         tag='[p]'
-        if 'L-SELE' in aa:
+        if aa_no_in_media in aa:
             tag = '[c]'
         aa_flux = np.array([b/m for b, m in zip(output['environment']['exchange'][aa[:-3]+tag], output['listeners']['mass']['dry_mass'])])
         aa_flux /= aa_flux[3]
@@ -355,7 +343,7 @@ def plot_output(output):
         fluxes /= fluxes[2]
 
         # Fields change
-        if 'L-SELE' in aa:
+        if aa_no_in_media in aa:
             fields = np.ones(len(time))
         else:
             fields = np.array([f[0][0] for f in output['fields'][aa[:-3]+tag]])
@@ -370,8 +358,8 @@ def plot_output(output):
         ax.set_xlabel("Time (min)", fontsize=4, labelpad=-0.5)
         ax.set_ylabel("counts/gDCW", fontsize=4, labelpad=-0.5)
         ax.set_title("%s" % aa, fontsize=5.5, y=1., pad=2.)
-        # ax.legend(fontsize='xx-small', loc=4)
         ax.tick_params(which="both", direction="in", labelsize=4)
+        
         handles, labels = ax.get_legend_handles_labels()
     
     fig.legend(handles, labels, loc='lower center')
