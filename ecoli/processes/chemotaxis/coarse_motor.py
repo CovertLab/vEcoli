@@ -2,15 +2,16 @@
 ======================
 Coarse Motor Processes
 ======================
-Model of coarse motor activity, without explicit flagella
+``MotorActivity`` models `E. coli` coarse motor activity, without explicit flagella.
 
-* Based on the model described in:
+References:
+ Based on the model described in:
     `Vladimirov, N., Lovdok, L., Lebiedz, D., & Sourjik, V. (2008).
     Dependence of bacterial chemotaxis on gradient shape and adaptation rate.`
-* CheY phosphorylation model from:
+ CheY phosphorylation model from:
     `Kollmann, M., Lovdok, L., Bartholome, K., Timmer, J., & Sourjik, V. (2005).
     Design principles of a bacterial signalling network. Nature.`
-* Motor switching model from:
+ Motor switching model from:
     `Scharf, B. E., Fahrner, K. A., Turner, L., and Berg, H. C. (1998).
     Control of direction of flagellar rotation in bacterial chemotaxis. PNAS.`
 
@@ -45,8 +46,8 @@ class MotorActivity(Process):
     and current motor state.
 
     :term:`Ports`:
-    * **internal**: includes variables ``ccw_motor_bias``, ``ccw_to_cw``, ``motile_state``, ``CheY_P``
-    * **external**: includes variables `thrust` and `torque`
+        * **internal**: includes variables ``ccw_motor_bias``, ``ccw_to_cw``, ``motile_state``, ``CheY_P``
+        * **external**: includes variables ``thrust`` and ``torque``
     """
 
     name = NAME
@@ -95,7 +96,7 @@ class MotorActivity(Process):
         super().__init__(parameters)
 
     def ports_schema(self):
-        """ create internal and external ports """
+        """ create ``internal`` and ``external`` ports """
         ports = ['internal', 'external']
         schema = {port: {} for port in ports}
 

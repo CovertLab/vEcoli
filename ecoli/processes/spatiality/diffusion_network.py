@@ -3,9 +3,9 @@
 Diffusion Network
 =================
 
-Models Brownian diffusion using a network of nodes and edges. Each
-node acts as a cellular compartment and each edge connects those
-compartments, indicating where diffusion can occur.
+``DiffusionNetwork`` models Brownian diffusion using a network of nodes
+and edges. Each node acts as a cellular compartment and each edge connects
+those compartments, indicating where diffusion can occur.
 
 This :term:`process class` models diffusion based off of Fick's law.
 The following equation is used:
@@ -19,7 +19,7 @@ The following equation is used:
 This diffusion equation is solved using implicit Euler to derive a
 matrix, M, that updates the concentration, c(t), on each timestep.
 
-* Concentration update: :math:`\\c^{t+1} = M^{-1} * c^{t}`
+* Concentration update: :math:`c_{t+1} = M^{-1} * c_{t}`
 
 This process takes in molecular weights in order to solve for
 molecule hydrodynamic radii, which is it turn used to solve for

@@ -3,19 +3,17 @@
 Flagella Motor Processes
 ========================
 
-:module: ecoli.processes.chemotaxis.flagella_motor.FlagellaMotor
-generates thrust and torque based on number of flagella and their individual motor states.
+``FlagellaMotor`` :term:`process` generates thrust and torque based on number of
+flagella and their individual motor states.
 
 References:
-* CheY phosphorylation model from:
+ CheY phosphorylation model from:
     `Kollmann, M., Lovdok, L., Bartholome, K., Timmer, J., & Sourjik, V. (2005).
     Design principles of a bacterial signalling network. Nature.`
-
-* Veto model of motor activity from:
+ Veto model of motor activity from:
     `Mears, P. J., Koirala, S., Rao, C. V., Golding, I., & Chemla, Y. R. (2014).
     Escherichia coli swimming is robust against variations in flagellar number. Elife.`
-
-* Rotational state of an individual flagellum from:
+ Rotational state of an individual flagellum from:
     `Sneddon, M. W., Pontius, W., & Emonet, T. (2012). Stochastic coordination of multiple
     actuators reduces latency and improves chemotactic response in bacteria.`
 
@@ -45,12 +43,12 @@ class FlagellaMotor(Process):
     """ Flagellar motor activity
 
     :term:`Ports`:
-    * **internal_counts**
-    * **flagella**
-    * **internal**
-    * **boundary**
-    * **membrane**
-    
+     * **internal_counts**
+     * **flagella**
+     * **internal**
+     * **boundary**
+     * **membrane**
+
     """
 
     name = NAME
@@ -254,7 +252,8 @@ class FlagellaMotor(Process):
     def update_flagellum(self, motor_state, CheY_P, timestep):
         """
         calculate  therotational state of a individual flagellum
-        # TODO -- normal, semi, curly states from Sneddon
+        .. note::
+            TODO -- normal, semi, curly states from Sneddon
         """
         g_0 = self.parameters['g_0']  # (k_B*T) free energy barrier for CCW-->CW
         g_1 = self.parameters['g_1']  # (k_B*T) free energy barrier for CW-->CCW

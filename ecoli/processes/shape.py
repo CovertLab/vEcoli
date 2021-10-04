@@ -3,9 +3,9 @@
 Shape
 =====
 
-:module: ecoli.processes.shape.Shape is used to calculate shape properties using 3D capsule geometry.
-Length and Surface Area are determined from inputs Volume and Width. These variables are
-required to plug into a `Lattice Environment
+``Shape`` is used to calculate shape properties using 3D capsule geometry.
+Outputs `length and `surface_area` are determined from inputs `volume` and `width`.
+These variables are required to plug into a `Lattice Environment
 <https://github.com/vivarium-collective/vivarium-multibody/blob/master/vivarium_multibody/composites/lattice.py>`_
 """
 
