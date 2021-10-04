@@ -122,9 +122,11 @@ def get_partition_topology_settings():
 
             'ecoli-chromosome-structure_evolver': (12 * process_distance, evolver_row),
             'ecoli-chromosome-structure_requester': (12 * process_distance, requester_row),
+            'ecoli-chromosome-structure': (12 * process_distance, evolver_row),
 
             'ecoli-metabolism_evolver': (13 * process_distance, evolver_row),
             'ecoli-metabolism_requester': (13 * process_distance, requester_row),
+            'ecoli-metabolism': (13 * process_distance, evolver_row),
 
             'ecoli-mass-listener': (14 * process_distance, evolver_row),
             'mRNA_counts_listener': (15 * process_distance, evolver_row),
@@ -177,5 +179,25 @@ def get_partition_topology_settings():
             'mRNA_counts_listener': 'mrna\ncounts',
             'divide_condition': 'division',
         },
+        'remove_nodes': [
+            'allocate\necoli-polypeptide-elongation\nenvironment\namino_acids',
+            'request\necoli-polypeptide-elongation\nenvironment\namino_acids',
+            'aa_enzymes',
+            'process_state',
+            'process_state\npolypeptide_elongation',
+            'environment\nexchange_data',
+            'listeners\nmass\ncell_mass',
+            'listeners\nfba_results',
+            'listeners\nenzyme_kinetics',
+            'listeners\nmass',
+            'listeners\nribosome_data',
+            'listeners\nfba_results',
+            'listeners\nRnapData',
+            'listeners\ntranscript_elongation_listener',
+            'listeners\nrna_degradation_listener',
+            'listeners\nequilibrium_listener',
+            'listeners\nreplication_data',
+            'listeners\nrnap_data',
+        ],
     }
     return settings
