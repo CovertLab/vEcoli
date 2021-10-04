@@ -2,8 +2,23 @@
 ================
 Spatial Geometry
 ================
-Execute by running: ``python vivarium/process/template_process.py``
-Note: This process is unfinished.
+
+SpatialGeometry :term:`Process`  calculates geometric parameters of nodes a
+nd edges utilized in diffusion_network.py. This process assumes E. coli is
+a spherocylinder with constant radius. This process is currently unfinished.
+This process assumes that there are properties of the nodes that specify
+which type of compartment it is such that the geometry rules below apply.
+This is not currently implemented in ecoli_spatial.py in vivarium-ecoli.
+Much of the geometry rules have been specified, however it should be
+checked to see if it leads to consistent results.
+
+References:
+ - width of 0.73 um: Cluzel et al., Nucleic Acids Research (2008)
+ - strain: K-12 Frag1
+ - periplasm width of 21 nm: Matias et al., J Bacteriology (2003)
+ - cell density of 1100 g/L (from WCM): Baldwin et al., Arch microbiol. (1995)
+
+.. WARNING:: This process is unfinished.
 """
 
 import os
@@ -14,14 +29,8 @@ from vivarium.core.composition import (
     simulate_process,
     PROCESS_OUT_DIR,
 )
+from ecoli.library.schema import array_to, array_from
 
-"""
-References:
- - width of 0.73 um: Cluzel et al., Nucleic Acids Research (2008)
- - strain: K-12 Frag1
- - periplasm width of 21 nm: Matias et al., J Bacteriology (2003)
- - cell density of 1100 g/L (from WCM): Baldwin et al., Arch microbiol. (1995)
-"""
 
 NAME = 'spatial_geometry'
 WIDTH = 0.73  # in um
@@ -29,16 +38,6 @@ PERIPLASM_WIDTH = 21  # in nm
 DENSITY = 1100  # fg/um^3
 
 class SpatialGeometry(Deriver):
-    """
-    Calculates geometric parameters of nodes and edges utilized in
-    diffusion_network.py. This process assumes E. coli is a spherocylinder
-    with constant radius. This process is currently unfinished. This process
-    assumes that there are properties of the nodes that specify which type
-    of compartment it is such that the geometry rules below apply. This is
-    not currently implemented in ecoli_spatial.py in vivarium-ecoli.
-    Much of the geometry rules have been specified, however it should be
-    checked to see if it leads to consistent results.
-    """
 
     name = NAME
     defaults = {
@@ -202,16 +201,6 @@ def main():
 
     output = test_spatial_geometry_process()
 
-
-# Helper functions
-def array_from(d):
-    return np.array(list(d.values()))
-
-
-def array_to(keys, array):
-    return {
-        key: array[index]
-        for index, key in enumerate(keys)}
 
 
 if __name__ == '__main__':
