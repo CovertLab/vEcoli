@@ -2,6 +2,41 @@
 =================
 Diffusion Network
 =================
+
+Models Brownian diffusion using a network of nodes and edges. Each
+node acts as a cellular compartment and each edge connects those
+compartments, indicating where diffusion can occur.
+
+This :term:`process class` models diffusion based off of Fick's law.
+The following equation is used:
+
+* Diffusion: :math:`\\frac{dc}{dt} = \\frac{DA}{V} * \\frac{dc}{dx}`
+
+ * :math:`D`: Diffusion constant
+ * :math:`A`: Cross-sectional area of edge
+ * :math:`V`: Volume of node
+
+This diffusion equation is solved using implicit Euler to derive a
+matrix, M, that updates the concentration, c(t), on each timestep.
+
+* Concentration update: :math:`\\c^{t+1} = M^{-1} * c^{t}`
+
+This process takes in molecular weights in order to solve for
+molecule hydrodynamic radii, which is it turn used to solve for
+diffusion constants. These calculations assume that all
+molecules are spherical proteins. For more information on how
+this is done, see ``calculate_rp_from_mw`` and
+``compute_diffusion_constants_from_rp``.  However, if a
+molecule radius is known, it can be passed in as ``radii``.
+Similarly, if the diffusion constant is known, it can be passed
+in as a property of an edge as ``diffusion_constants``.
+
+.. note::
+ This model treats all molecule classes as concentrations and is
+ a deterministic solution. This model should only be used when there
+ is a sufficient number of molecules such that they can be treated
+ deterministically.
+
 """
 
 import os
@@ -20,74 +55,40 @@ from vivarium.core.composition import (
 NAME = 'diffusion_network'
 
 class DiffusionNetwork(Process):
-    """ Models Brownian diffusion using a network of nodes and edges. Each
-        node acts as a cellular compartment and each edge connects those
-        compartments, indicating where diffusion can occur.
+    """ Models diffusion between a network of connected nodes.
 
-         This :term:`process class` models diffusion based off of Fick's law.
-         The following equation is used:
+     :term:`Ports`:
+     * **nodes**: Expects a :term:`store` which is a dict of node names
+       (the keys of the dict) to a dict, which has the key value
+       pairs for ``length``, ``volume``, and ``molecules``.
 
-         * Diffusion: :math:`\\frac{dc}{dt} = \\frac{DA}{V} * \\frac{dc}{dx}`
+     Args:
+         parameters: A dictionary of configuration options.
+             The following configuration options may be provided:
 
-             * :math:`D`: Diffusion constant
-             * :math:`A`: Cross-sectional area of edge
-             * :math:`V`: Volume of node
-
-         This diffusion equation is solved using implicit Euler to derive a
-         matrix, M, that updates the concentration, c(t), on each timestep.
-
-         * Concentration update: :math:`\\c^{t+1} = M^{-1} * c^{t}`
-
-         This process takes in molecular weights in order to solve for
-         molecule hydrodynamic radii, which is it turn used to solve for
-         diffusion constants. These calculations assume that all
-         molecules are spherical proteins. For more information on how
-         this is done, see ``calculate_rp_from_mw`` and
-         ``compute_diffusion_constants_from_rp``.  However, if a
-         molecule radius is known, it can be passed in as ``radii``.
-         Similarly, if the diffusion constant is known, it can be passed
-         in as a property of an edge as ``diffusion_constants``.
-
-
-         .. note::
-             This model treats all molecule classes as concentrations and is
-             a deterministic solution. This model should only be used when there
-             is a sufficient number of molecules such that they can be treated
-             deterministically.
-
-         :term:`Ports`:
-
-         * **nodes**: Expects a :term:`store` which is a dict of node names
-           (the keys of the dict) to a dict, which has the key value
-           pairs for ``length``, ``volume``, and ``molecules``.
-
-         Args:
-             parameters: A dictionary of configuration options.
-                 The following configuration options may be provided:
-
-                 * **nodes** (:py:class:`list`): A list of node names.
-                 * **edges** (:py:class:`dict`): Maps edge
-                   names (the keys of the dict) to a dict (the values of
-                   the dict), which must include the key-value pairs of
-                   ``nodes`` to a list of nodes each edge connects, and
-                   ``cross_sectional_area`` to the area of that edge.
-                   Additionally, known diffusion constants can be
-                   included as ``diffusion_constants`` in units of
-                   um^2/s, and edge-specific scaling of the diffusion
-                   constants can be included as,
-                   ``diffusion_scaling_constant``.
-                 * **mw** (:py:class:`dict`): Maps from
-                   names of molecules (the keys of the dict) to their
-                   molecular weights in units of fg (the values of the dict).
-                 * **mesh_size** (:py:class:`float`): Mesh size in units of nm.
-                 * **time_step** (:py:class:`float`): The time step used in
-                   units of s.
-                 * **radii** (:py:class:`dict`): Maps from molecule names
-                   of molecules (the keys of the dict) to their known
-                   hydrodynamic radii in units of nm (the values of the dict).
-                   This is an optional parameter.
-                 * **temp** (:py:class:`float`): Temperature of experiment
-                   in units of K. This is an optional parameter.
+             * **nodes** (:py:class:`list`): A list of node names.
+             * **edges** (:py:class:`dict`): Maps edge
+               names (the keys of the dict) to a dict (the values of
+               the dict), which must include the key-value pairs of
+               ``nodes`` to a list of nodes each edge connects, and
+               ``cross_sectional_area`` to the area of that edge.
+               Additionally, known diffusion constants can be
+               included as ``diffusion_constants`` in units of
+               um^2/s, and edge-specific scaling of the diffusion
+               constants can be included as,
+               ``diffusion_scaling_constant``.
+             * **mw** (:py:class:`dict`): Maps from
+               names of molecules (the keys of the dict) to their
+               molecular weights in units of fg (the values of the dict).
+             * **mesh_size** (:py:class:`float`): Mesh size in units of nm.
+             * **time_step** (:py:class:`float`): The time step used in
+               units of s.
+             * **radii** (:py:class:`dict`): Maps from molecule names
+               of molecules (the keys of the dict) to their known
+               hydrodynamic radii in units of nm (the values of the dict).
+               This is an optional parameter.
+             * **temp** (:py:class:`float`): Temperature of experiment
+               in units of K. This is an optional parameter.
     """
 
     name = NAME
@@ -124,16 +125,9 @@ class DiffusionNetwork(Process):
 
     def ports_schema(self):
         """
-        ports_schema returns a dictionary that declares how each state will behave.
-        Each key can be assigned settings for the schema_keys declared in Store:
-
-        * `_default`
-        * `_updater`
-        * `_divider`
-        * `_value`
-        * `_properties`
-        * `_emit`
-        * `_serializer`
+        Dynamically constructs ports -- one port for each node in ``DiffusionNetwork.parameters['nodes']``.
+        Each node has variables ``volume``, ``length``, and a ``molecules`` dict with molecule names mapped
+        to their counts.
         """
         schema = {
             node_id: {

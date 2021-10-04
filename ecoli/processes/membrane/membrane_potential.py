@@ -2,6 +2,36 @@
 ==================
 Membrane Potential
 ==================
+
+Calculates membrane potential and the proton motive force by taking into account all of the ions
+that are permeant through the membrane.
+
+Goldman equation for membrane potential:
+*:math:`d_{V} = \\frac{RT}{F}\\ln{
+\\frac{\\sum_{i}^{n} P_{M^{+}_{i}}[M^{+}_{i}]_{out} + \\sum_{j}^{m} P_{A^{-}_{j}}[A^{-}_{j}]_{in}}
+{\\sum_{i}^{n} P_{M^{+}_{i}}[M^{+}_{i}]_{in} + \\sum_{j}^{m} P_{A^{-}_{j}}[A^{-}_{j}]_{out}}`
+ * :math:`D`: Diffusion constant
+ * :math:`M` monovalent positive ionic species
+ * :math:`A` negative ionic species
+
+transmembrane pH difference (currently fixed at -50):
+:math:`d_{pH} = -2.3 * k * T / e`
+ * :math:`k`: Boltzmann constant
+ * :math:`T`: temperature
+
+proton motive force:
+:math:`PMF = d_V + d_pH`
+
+.. note::
+    * expected d_V = -120 mV
+    * expected d_pH = -50 mV for cells grown at pH 7. (Berg, H. "E. coli in motion", pg 105)
+    * PMF ~170mV at pH 7. ~140mV at pH 7.7 (Berg)
+    * Ecoli internal pH in range 7.6-7.8 (Berg)
+    * (mmol) http://book.bionumbers.org/what-are-the-concentrations-of-different-ions-in-cells/
+    * Schultz, Stanley G., and A. K. Solomon. "Cation Transport in Escherichia coli" (1961)
+    * Zilberstein, Dan, et al. "Escherichia coli intracellular pH, membrane potential, and cell growth."
+      Journal of bacteriology 158.1 (1984): 246-252.
+    * TODO -- add Mg2+, Ca2+
 """
 
 import os
@@ -30,17 +60,7 @@ class MembranePotential(Process):
     :term:`Ports`:
     * ``internal``: holds the concentrations of internal ions
     * ``external``: holds the concentrations of external ions
-    * ``membrane``: holds the cross-membrane properties 'PMF', 'd_V', 'd_pH'
-
-    Notes:
-        * PMF ~170mV at pH 7. ~140mV at pH 7.7 (Berg)
-        * Ecoli internal pH in range 7.6-7.8 (Berg)
-
-        * (mmol) http://book.bionumbers.org/what-are-the-concentrations-of-different-ions-in-cells/
-        * Schultz, Stanley G., and A. K. Solomon. "Cation Transport in Escherichia coli" (1961)
-        * Zilberstein, Dan, et al. "Escherichia coli intracellular pH, membrane potential, and cell growth."
-          Journal of bacteriology 158.1 (1984): 246-252.
-        * TODO -- add Mg2+, Ca2+
+    * ``membrane``: holds the cross-membrane properties 'PMF', 'd_{V}', 'd_{pH}'
     """
 
     name = NAME
@@ -92,6 +112,9 @@ class MembranePotential(Process):
         super().__init__(parameters)
 
     def ports_schema(self):
+        """
+        declare schema for ports ``internal``, ``external`` and ``membrane``.
+        """
         ports = [
             'internal',
             'membrane',
@@ -179,7 +202,10 @@ class MembranePotential(Process):
 
 
 def test_mem_potential():
-    # configure process
+    """
+    test :module: ecoli.processes.membrane.membrane_potential.MembranePotential
+    by running it with changing external Na concentrations.
+    """
     parameters = {}
     mp = MembranePotential(parameters)
     timeline = [
