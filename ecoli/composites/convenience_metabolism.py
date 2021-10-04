@@ -1,4 +1,8 @@
 """
+======================
+Convenience Metabolism
+======================
+
 Composite model with Metabolism and Convenience Kinetics
 """
 import os
@@ -8,23 +12,32 @@ import numpy as np
 from vivarium.core.composer import Composer
 from vivarium.core.engine import pp, Engine
 from vivarium.library.dict_utils import deep_merge
-from ecoli.processes.nonspatial_environment import NonSpatialEnvironment
-
-from ecoli.library.sim_data import LoadSimData
-from ecoli.states.wcecoli_state import get_state_from_file
+from vivarium.processes.growth_rate import GrowthRate
+from vivarium.library.units import units
+from vivarium.plots.topology import plot_topology
 
 from ecoli.processes.metabolism import Metabolism
 from ecoli.processes.convenience_kinetics import ConvenienceKinetics
-from ecoli.processes.exchange_stub import Exchange
+from ecoli.processes.stubs.exchange_stub import Exchange
 from ecoli.processes.local_field import LocalField
-
-from vivarium.processes.growth_rate import GrowthRate
-from vivarium.library.units import units
+from ecoli.processes.nonspatial_environment import NonSpatialEnvironment
+from ecoli.library.sim_data import LoadSimData
+from ecoli.states.wcecoli_state import get_state_from_file
 
 from ecoli.plots.topology import get_ecoli_master_topology_settings
-from vivarium.plots.topology import plot_topology
 
-SIM_DATA_PATH = '/home/santiagomille/Desktop/vivarium-ecoli/reconstruction/sim_data/kb/simData.cPickle'
+# from ecoli.composites.ecoli_master import SIM_DATA_PATH
+
+# SIM_DATA_PATH = '/home/santiagomille/Desktop/vivarium-ecoli/reconstruction/sim_data/kb/simData.cPickle'
+# TODO (Santiago) -- upload you sim_data into the directory with the wcEcoli commit# you generated it from
+SIM_DATA_PATH = os.path.abspath(
+    os.path.join(
+        os.path.dirname(__file__), '..', '..', 'reconstruction',
+        'sim_data_COMMIT#', 'kb', 'simData.cPickle',
+    )
+)
+
+
 
 class ConvenienceMetabolism(Composer):
     defaults = {
