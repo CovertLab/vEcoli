@@ -2,6 +2,17 @@
 =====================
 Chemoreceptor Cluster
 =====================
+
+This ReceptorCluster :term:`Process` models the activity of a chemoreceptor cluster
+composed of Tsr and Tar amino acid chemoreceptors. The model is a
+Monod-Wyman-Changeux (MWC) model adapted from "Endres, R. G., & Wingreen, N. S.
+(2006). Precise adaptation in bacterial chemotaxis through assistance neighborhoods”.
+Each receptor homodimer is modeled as a two-state system (on or off) with energy
+values based on ligand concentration and methylation levels. This results in four
+energy levels: 1) on without ligand, on with ligand, off without ligand, off with
+ligand. Sensory adaptation comes from the methylation of receptors, which alters the
+free-energy offset and transition rate to favor the on state; attractant ligand
+binding favors the off state.
 """
 
 import os
@@ -26,11 +37,19 @@ DEFAULT_INITIAL_LIGAND = 1e-2
 
 
 def run_step(receptor, state, timestep):
+    """
+    Run for a timestep, and update the chemoreceptor_activity and n_methyl states
+    """
     update = receptor.next_update(timestep, state)
     state['internal']['chemoreceptor_activity'] = update['internal']['chemoreceptor_activity']
     state['internal']['n_methyl'] = update['internal']['n_methyl']
 
 def run_to_steady_state(receptor, state, timestep):
+    """ Runs the ReceptorCluster Process to steady state
+
+    This is used for initialization of the Process, so that
+    the chemoreceptors start off in an adapted state.
+    """
     P_on = state['internal']['chemoreceptor_activity']
     n_methyl = state['internal']['n_methyl']
     delta = 1
@@ -43,20 +62,8 @@ def run_to_steady_state(receptor, state, timestep):
         n_methyl = state['internal']['n_methyl']
 
 
-
 class ReceptorCluster(Process):
     """Models the activity of a chemoreceptor cluster
-
-       This :term:`process class` models the activity of a chemoreceptor cluster
-       composed of Tsr and Tar amino acid chemoreceptors. The model is a
-       Monod-Wyman-Changeux (MWC) model adapted from "Endres, R. G., & Wingreen, N. S.
-       (2006). Precise adaptation in bacterial chemotaxis through assistance neighborhoods”.
-       Each receptor homodimer is modeled as a two-state system (on or off) with energy
-       values based on ligand concentration and methylation levels. This results in four
-       energy levels: 1) on without ligand, on with ligand, off without ligand, off with
-       ligand. Sensory adaptation comes from the methylation of receptors, which alters the
-       free-energy offset and transition rate to favor the on state; attractant ligand
-       binding favors the off state.
 
        :term:`Ports`:
 
@@ -65,7 +72,7 @@ class ReceptorCluster(Process):
        * **external**: Expects a :term:`store` with the ligand.
 
        Arguments:
-           initial_parameters: A dictionary of configuration options.
+           parameters: A dictionary of configuration options.
                The following configuration options may be provided:
 
                * **ligand_id** (:py:class:`str`): The name of the external
@@ -84,7 +91,7 @@ class ReceptorCluster(Process):
                * **adapt_rate** (:py:class:`float`): adaptation rate relative to wild-type.
                  cell-to-cell variation cause by variability in CheR and CheB
 
-       Notes:
+       .. note::
            * dissociation constants (mM)
            * K_Tar_on = 12e-3  # Tar to Asp (Emonet05)
            * K_Tar_off = 1.7e-3  # Tar to Asp (Emonet05)
@@ -127,6 +134,9 @@ class ReceptorCluster(Process):
         run_to_steady_state(self, self.initial_state, 1.0)
 
     def ports_schema(self):
+        """
+        initialize **internal** and **external** ports
+        """
         ports = [
             'internal',
             'external',
@@ -151,6 +161,9 @@ class ReceptorCluster(Process):
         return schema
 
     def next_update(self, timestep, states):
+        """
+        calculate update to chemoreceptor_activity and n_methyl from ligand concentration, CheR, and CheB
+        """
 
         # parameters
         n_Tar = self.parameters['n_Tar']
@@ -217,6 +230,9 @@ class ReceptorCluster(Process):
 
 # tests and analyses of process
 def get_pulse_timeline(ligand='MeAsp'):
+    """
+    get a timeline with pulses applied to the external ligand
+    """
     timeline = [
         (0, {('external', ligand): 0.0}),
         (100, {('external', ligand): 0.01}),
@@ -229,7 +245,9 @@ def get_pulse_timeline(ligand='MeAsp'):
     return timeline
 
 def get_exponential_random_timeline(config):
-    # exponential space with random direction changes
+    """
+    get timeline with random walk in exponential space
+    """
     time = config.get('time', 100)
     timestep = config.get('timestep', 1)
     base = config.get('base', 1+1e-4)  # mM/um
@@ -243,7 +261,7 @@ def get_exponential_random_timeline(config):
     t = 0
     while t < time:
         conc += base**(random.choice((-1, 1)) * speed) - 1
-        if conc<0:
+        if conc < 0:
             conc = 0
         timeline.append((t, {env_port + (ligand,): conc}))
         t += timestep
@@ -269,12 +287,11 @@ def get_brownian_ligand_timeline(
         'speed': speed})
 
 
-def test_receptor(timeline=get_pulse_timeline(), timestep = 1):
+def test_receptor(timeline=get_pulse_timeline()):
     ligand = 'MeAsp'
 
     # initialize process
     initial_ligand = timeline[0][1][('external', ligand)]
-    end_time = timeline[-1][0]
     process_config = {
         'initial_ligand': initial_ligand}
     receptor = ReceptorCluster(process_config)
