@@ -88,7 +88,7 @@ class Plot(object):
 
 def test_plot():
 
-    data = run_ecoli(total_time=30)
+    data = run_ecoli(total_time=120)
     Plot(data)
 
 
