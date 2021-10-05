@@ -24,7 +24,7 @@ from six.moves import zip
 
 from vivarium.core.composition import simulate_process
 
-from ecoli.library.schema import arrays_from, arrays_to, add_elements, listener_schema, bulk_schema
+from ecoli.library.schema import arrays_from, arrays_to, listener_schema, bulk_schema
 
 from wholecell.utils import units
 from ecoli.library.unique_indexes import create_unique_indexes
@@ -36,6 +36,18 @@ from scipy.stats import chisquare
 
 from ecoli.processes.registries import topology_registry
 from ecoli.processes.partition import PartitionedProcess
+
+
+def add_elements(elements, id):
+    """
+    transcript_initiation has its own add_elements (as opposed to using the
+    one from schema.py) so that the keys can be made into strings.
+    """
+    return {
+        '_add': [{
+            'key': str(element[id]),
+            'state': element}
+            for element in elements]}
 
 
 # Register default topology for this process, associating it with process name
