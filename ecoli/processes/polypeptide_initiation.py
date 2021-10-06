@@ -240,6 +240,9 @@ class PolypeptideInitiation(PartitionedProcess):
 
             start_index += counts
 
+        if 'active_ribosome' in states and states['active_ribosome']:
+            self.ribosome_index = int(list(states['active_ribosome'].keys())[-1]) + 1
+
         # Create active 70S ribosomes and assign their attributes
         new_ribosomes = arrays_to(
             n_ribosomes_to_activate, {
@@ -248,9 +251,6 @@ class PolypeptideInitiation(PartitionedProcess):
                 'peptide_length': np.zeros(cast(int, n_ribosomes_to_activate), dtype=np.int64),
                 'mRNA_index': mRNA_indexes,
                 'pos_on_mRNA': np.zeros(cast(int, n_ribosomes_to_activate), dtype=np.int64)})
-
-        # TODO(vivarium) -- this tracking of index seems messy -- can it automatically create new index?
-        self.ribosome_index += n_ribosomes_to_activate
 
         update = {
             'subunits': {
