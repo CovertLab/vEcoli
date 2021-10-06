@@ -460,6 +460,16 @@ class TranscriptInitiation(PartitionedProcess):
         coordinates = self.replication_coordinate[TU_index_partial_RNAs]
         direction = self.transcription_direction[TU_index_partial_RNAs]
 
+        last_rnap_index = 0
+        if 'active_RNAPs' in states and states['active_RNAPs']:
+            last_rnap_index = int(list(states['active_RNAPs'].keys())[-1]) + 1
+
+        last_rna_index = 0
+        if 'RNAs' in states and states['RNAs']:
+            last_rnap_index = int(list(states['RNAs'].keys())[-1]) + 1
+
+        self.rnap_index = max(last_rna_index, last_rnap_index)
+
         new_RNAPs = arrays_to(
             n_RNAPs_to_activate, {
                 'unique_index': np.arange(self.rnap_index, self.rnap_index + n_RNAPs_to_activate).astype(int),
@@ -490,8 +500,6 @@ class TranscriptInitiation(PartitionedProcess):
                 'can_translate': is_mRNA,
                 'RNAP_index': RNAP_indexes})
         update['RNAs'] = add_elements(new_RNAs, 'unique_index')
-
-        self.rnap_index += n_RNAPs_to_activate
 
         # Create masks for ribosomal RNAs
         is_5Srrna = np.isin(TU_index, self.idx_5SrRNA)

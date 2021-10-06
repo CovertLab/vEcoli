@@ -437,6 +437,10 @@ class ChromosomeStructure(Process):
 
             # Add new chromosomal segments
             n_segments = len(all_new_linking_numbers)
+
+            if 'chromosomal_segments' in states and states['chromosomal_segments']:
+                self.chromosome_segment_index = int(list(states['chromosomal_segments'].keys())[-1]) + 1
+
             new_chromosome_segments = arrays_to(
             n_segments, {
                 'unique_index': np.arange(
@@ -448,7 +452,6 @@ class ChromosomeStructure(Process):
                 'linking_number': all_new_linking_numbers})
             update['chromosomal_segments'].update(add_elements(
                 new_chromosome_segments, 'unique_index'))
-            self.chromosome_segment_index += n_segments
 
         # Get mask for RNAs that are transcribed from removed RNAPs
         removed_RNAs_mask = np.isin(
@@ -585,6 +588,10 @@ class ChromosomeStructure(Process):
                 promoter_domain_indexes[removed_promoters_mask])
 
             # Add new promoters with new domain indexes
+
+            if 'promoters' in states and states['promoters']:
+                self.promoter_index = int(list(states['promoters'].keys())[-1]) + 1
+
             new_promoters = arrays_to(
                 n_new_promoters, {
                     'unique_index': np.arange(self.promoter_index, self.promoter_index + n_new_promoters).astype(int),
@@ -594,7 +601,6 @@ class ChromosomeStructure(Process):
                     'bound_TF': np.zeros((n_new_promoters, self.n_TFs), dtype=np.bool).tolist()})
             update['promoters'].update(add_elements(
                 new_promoters, 'unique_index'))
-            self.promoter_index += n_new_promoters
 
 
         ########################
@@ -616,6 +622,10 @@ class ChromosomeStructure(Process):
                 DnaA_box_domain_indexes[removed_DnaA_boxes_mask])
 
             # Add new promoters with new domain indexes
+
+            if 'DnaA_boxes' in states and states['DnaA_boxes']:
+                self.DnaA_box_index = int(list(states['DnaA_boxes'].keys())[-1]) + 1
+
             new_DnaA_boxes = arrays_to(
                 n_new_DnaA_boxes, {
                     'unique_index': np.arange(self.DnaA_box_index, self.DnaA_box_index + n_new_DnaA_boxes).astype(int),
@@ -624,7 +634,6 @@ class ChromosomeStructure(Process):
                     'DnaA_bound': np.zeros(n_new_DnaA_boxes, dtype=np.bool).tolist()})
             update['DnaA_boxes'].update(add_elements(
                 new_DnaA_boxes, 'unique_index'))
-            self.DnaA_box_index += n_new_DnaA_boxes
 
         return update
 
