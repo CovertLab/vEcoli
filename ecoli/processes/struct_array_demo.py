@@ -46,7 +46,15 @@ class ArrayDict():
         pass
 
 
-def dict_value_updater(current, update, defaults=None):
+def dict_value_updater(current, update):
+    '''
+    Updater which translates add_item and delete_item -style updates
+    into operations on a dictionary.
+
+    Expects current to be a dictionary, with no restriction on the types of objects
+    stored within it, and no defaults. For enforcing expectations/defaults, try
+    make_dict_value_updater(**defaults).
+    '''
     result = current
 
     if update.get("add_items"):
@@ -57,6 +65,33 @@ def dict_value_updater(current, update, defaults=None):
         result.pop(k)
 
     return result
+
+def make_dict_value_updater(**defaults):
+    '''
+    Returns an updater which translates add_item and delete_item -style updates
+    into operations on a dictionary.
+
+    The returned updater expects current to be a dictionary. Each added item
+    can have a subset of the provided defaults as its keys;
+    entries not provided will have values supplied by the defaults.
+    '''
+
+    def dict_value_updater(current, update):
+        result = current
+
+        for operation in update.get("add_items", {}):
+            state = operation["state"]
+            if not set(state.keys()).issubset(defaults.keys()):
+                raise Exception(f"Attempted to write state with keys not included in defaults")
+            state = {**defaults, **state}
+            result[operation["key"]] = state
+
+        for k in update.get("remove_items", {}):
+            result.pop(k)
+
+        return result
+
+    return dict_value_updater
 
 def struct_array_updater(current, update):
     '''
@@ -154,7 +189,11 @@ class StructArrayDemo(Process):
             return {
                 'active_RNAPs' : {
                     '_default' : {},
-                    '_updater' : dict_value_updater,
+                    '_updater' : make_dict_value_updater(
+                        unique_index=0,
+                        domain_index=0,
+                        coordinates=0,
+                        direction=True),
                     "_emit" : True
                     }
             }
@@ -231,7 +270,7 @@ def main():
     # Parameter values to sweep through.
     sweep = {
         'mode': ["default", "struct_array", "dict_value"],
-        'add_to_delete_rate_ratio': [1, 2, 5, 10],
+        'add_to_delete_rate_ratio': [1, 5, 10, 100],
         'total_time': [10, 50, 100, 200, 500, 750, 1000]
     }
 
