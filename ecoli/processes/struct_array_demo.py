@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 from vivarium.core.composition import simulate_process
 from vivarium.core.process import Process
 
-from ecoli.library.schema import add_elements
+from ecoli.library.schema import add_elements, array_from
 
 
 class ArrayDict():
@@ -291,17 +291,22 @@ def main():
                                                              total_time=total_time)
                 result[k, i, j, 0] = time
 
-            # Assertions to make sure data matches with/without struct arrays
-            # Note: When not using struct arrays, information about when adds and removes happen is lost,
-            #       only the length of time a molecule is in existence is kept!
+            # Assertions to make sure data matches across modes: ===============================
 
-            # lifetimes = {}
-            # for snapshot in data[True]['active_RNAPs']:
-            #     for molecule in snapshot:
-            #         lifetimes[molecule[0]] = lifetimes.get(molecule[0], 0) + 1
+            # Make default data conformable to dict_value data for comparison
+            data['default'] = {
+                k : v if v != {} else {'active_RNAPs' : {}}
+                for k, v in data['default'].items()
+                }
             
-            # for index, molecule in data[False]['active_RNAPs'].items():
-            #     assert len(molecule['unique_index']) == lifetimes[(index)]
+            # default vs. dict_value updater
+            assert data['dict_value'] == data['default']
+
+            # default vs. struct_array updater
+            for time, snapshot in data['default'].items():
+                struct_array_snapshot = data['struct_array'][time]['active_RNAPs']
+                for idx, rnap in enumerate(snapshot['active_RNAPs'].values()):
+                    assert all(array_from(rnap) == np.array(struct_array_snapshot[idx][1:]))
 
     # Plots:
     # One plot for with-struct-arrays, one without
