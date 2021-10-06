@@ -19,4 +19,25 @@ def divide_binomial(state):
 
 divider_registry.register('binomial_ecoli', divide_binomial)
 
-#TODO: updater_registry.register(dict_value_updater)
+
+def dict_value_updater(current, update):
+    '''
+    Updater which translates add_item and delete_item -style updates
+    into operations on a dictionary.
+
+    Expects current to be a dictionary, with no restriction on the types of objects
+    stored within it, and no defaults. For enforcing expectations/defaults, try
+    make_dict_value_updater(**defaults).
+    '''
+    result = current
+
+    if update.get("add_items"):
+        for operation in update["add_items"]:
+            result[operation["key"]] = operation["state"]
+
+    for k in update.get("remove_items", {}):
+        result.pop(k)
+
+    return result
+
+updater_registry.register('dict_value', dict_value_updater)
