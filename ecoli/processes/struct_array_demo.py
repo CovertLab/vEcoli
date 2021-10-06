@@ -142,6 +142,7 @@ class StructArrayDemo(Process):
         'mode': "default",
         'rate_add': 0.5,
         'rate_delete': 0.2,
+        'mean_add': 1,
         'seed': 0
     }
 
@@ -157,6 +158,7 @@ class StructArrayDemo(Process):
         self.mode = self.parameters['mode']
         self.rate_add = self.parameters['rate_add']
         self.rate_delete = self.parameters['rate_delete']
+        self.prob_add = 1 / self.parameters['mean_add']
         self.seed = self.parameters['seed']
 
         self.random = np.random.default_rng(self.seed)
@@ -207,16 +209,20 @@ class StructArrayDemo(Process):
 
         if self.time_til_next_add <= 0:
             key = "_add"  if self.mode == "default" else "add_items"
-            update['active_RNAPs'][key] = [{
-                'key': f'{self.next_id}',
-                'state': {
-                    'unique_index': self.next_id,
-                    'domain_index': self.random.integers(0, 2),
-                    'coordinates': self.random.integers(-10000, 10000),
-                    'direction': bool(self.random.integers(0, 2))
-                }
-            }]
-            self.next_id += 1
+
+            # Add geometrically distributed number of molecules
+            for _ in range(self.random.geometric(self.prob_add)):
+                update['active_RNAPs'][key] = [{
+                    'key': f'{self.next_id}',
+                    'state': {
+                        'unique_index': self.next_id,
+                        'domain_index': self.random.integers(0, 2),
+                        'coordinates': self.random.integers(-10000, 10000),
+                        'direction': bool(self.random.integers(0, 2))
+                    }
+                }]
+                self.next_id += 1
+            
             self.time_til_next_add = self.random.exponential(1/self.rate_add)
 
         if self.time_til_next_delete <= 0:
@@ -236,11 +242,13 @@ class StructArrayDemo(Process):
 def test_struct_array_updater(mode="struct_array",
                               rate_add=0.5,
                               rate_delete=0.2,
+                              mean_add=1,
                               total_time=10):
     process_config = {
         'mode': mode,
         'rate_add': rate_add,
         'rate_delete': rate_delete,
+        'mean_add' : mean_add,
         'seed': 0
     }
     process = StructArrayDemo(process_config)
@@ -288,6 +296,7 @@ def main():
                 time, data[mode] = test_struct_array_updater(mode=mode,
                                                              rate_add=rate_ratio * rate_delete,
                                                              rate_delete=rate_delete,
+                                                             mean_add = 100,
                                                              total_time=total_time)
                 result[k, i, j, 0] = time
 
