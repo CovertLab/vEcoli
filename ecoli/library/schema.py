@@ -86,16 +86,6 @@ def listener_schema(elements):
 def add_elements(elements, id):
     return {
         '_add': [{
-            'key': element[id],
-            'state': element}
-            for element in elements]}
-
-def add_elements_str_key(elements, id):
-    """
-    Same as add_elements(), except that keys are cast to strings.
-    """
-    return {
-        '_add': [{
             'key': str(element[id]),
             'state': element}
             for element in elements]}
