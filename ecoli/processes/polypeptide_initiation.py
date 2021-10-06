@@ -17,7 +17,7 @@ import numpy as np
 
 from vivarium.core.composition import simulate_process
 from ecoli.library.schema import (
-    arrays_from, arrays_to, add_elements_str_key, bulk_schema)
+    arrays_from, arrays_to, add_elements, bulk_schema)
 
 from wholecell.utils import units
 from wholecell.utils.fitting import normalize
@@ -256,7 +256,7 @@ class PolypeptideInitiation(PartitionedProcess):
             'subunits': {
                 self.ribosome30S: -n_new_proteins.sum(),
                 self.ribosome50S: -n_new_proteins.sum()},
-            'active_ribosome': add_elements_str_key(new_ribosomes, 'unique_index'),
+            'active_ribosome': add_elements(new_ribosomes, 'unique_index'),
             'listeners': {
                 'ribosome_data': {
                     'ribosomes_initialized': n_new_proteins.sum(),

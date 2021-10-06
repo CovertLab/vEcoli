@@ -24,7 +24,7 @@ from six.moves import zip
 
 from vivarium.core.composition import simulate_process
 
-from ecoli.library.schema import arrays_from, arrays_to, add_elements_str_key, listener_schema, bulk_schema
+from ecoli.library.schema import arrays_from, arrays_to, add_elements, listener_schema, bulk_schema
 
 from wholecell.utils import units
 from wholecell.utils.random import stochasticRound
@@ -471,7 +471,7 @@ class TranscriptInitiation(PartitionedProcess):
             RNAP['unique_index']
             for RNAP in new_RNAPs]
 
-        update['active_RNAPs'] = add_elements_str_key(new_RNAPs, 'unique_index')
+        update['active_RNAPs'] = add_elements(new_RNAPs, 'unique_index')
 
         # Decrement counts of inactive RNAPs
         update['molecules'] = {
@@ -489,7 +489,7 @@ class TranscriptInitiation(PartitionedProcess):
                 'is_full_transcript': np.zeros(cast(int, n_RNAPs_to_activate), dtype=bool).tolist(),
                 'can_translate': is_mRNA,
                 'RNAP_index': RNAP_indexes})
-        update['RNAs'] = add_elements_str_key(new_RNAs, 'unique_index')
+        update['RNAs'] = add_elements(new_RNAs, 'unique_index')
 
         self.rnap_index += n_RNAPs_to_activate
 

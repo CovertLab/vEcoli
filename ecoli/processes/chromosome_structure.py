@@ -13,7 +13,7 @@ import numpy as np
 from vivarium.core.process import Process
 from ecoli.processes.registries import topology_registry
 from ecoli.library.schema import (
-    add_elements_str_key, arrays_from, bulk_schema,
+    add_elements, arrays_from, bulk_schema,
     arrays_to, array_to, listener_schema)
 
 from wholecell.utils.polymerize import buildSequences
@@ -446,7 +446,7 @@ class ChromosomeStructure(Process):
                 'boundary_coordinates': all_new_boundary_coordinates,
                 'domain_index': all_new_segment_domain_indexes,
                 'linking_number': all_new_linking_numbers})
-            update['chromosomal_segments'].update(add_elements_str_key(
+            update['chromosomal_segments'].update(add_elements(
                 new_chromosome_segments, 'unique_index'))
             self.chromosome_segment_index += n_segments
 
@@ -592,7 +592,7 @@ class ChromosomeStructure(Process):
                     'coordinates': promoter_coordinates_new,
                     'domain_index': promoter_domain_indexes_new,
                     'bound_TF': np.zeros((n_new_promoters, self.n_TFs), dtype=np.bool).tolist()})
-            update['promoters'].update(add_elements_str_key(
+            update['promoters'].update(add_elements(
                 new_promoters, 'unique_index'))
             self.promoter_index += n_new_promoters
 
@@ -622,7 +622,7 @@ class ChromosomeStructure(Process):
                     'coordinates': DnaA_box_coordinates_new,
                     'domain_index': DnaA_box_domain_indexes_new,
                     'DnaA_bound': np.zeros(n_new_DnaA_boxes, dtype=np.bool).tolist()})
-            update['DnaA_boxes'].update(add_elements_str_key(
+            update['DnaA_boxes'].update(add_elements(
                 new_DnaA_boxes, 'unique_index'))
             self.DnaA_box_index += n_new_DnaA_boxes
 
