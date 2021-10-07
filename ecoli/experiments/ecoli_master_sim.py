@@ -1,4 +1,8 @@
 """
+============================
+*E. coli* Master Simulations
+============================
+
 Run simulations of Ecoli Master
 """
 
@@ -256,6 +260,26 @@ class EcoliSim:
         # generate the composite at the path
         self.ecoli = ecoli_composer.generate(path=path)
 
+    def save_states(self):
+        """
+        Runs the simulation while saving the states of specific timesteps to jsons.
+        """
+        time_elapsed = self.save_times[0]
+        for i in range(len(self.save_times)):
+            if i == 0:
+                time_to_next_save = self.save_times[i]
+            else:
+                time_to_next_save = self.save_times[i] - self.save_times[i - 1]
+                time_elapsed += time_to_next_save
+            self.ecoli_experiment.update(time_to_next_save)
+            state = self.ecoli_experiment.state.get_value()
+            state_to_save = {key: state[key] for key in
+                             ['listeners', 'bulk', 'unique', 'environment', 'process_state']}
+            write_json('data/vivecoli_t' + str(time_elapsed) + '.json', state_to_save)
+        time_remaining = self.total_time - self.save_times[-1]
+        if time_remaining:
+            self.ecoli_experiment.update(time_remaining)
+
     def run(self):
         # build self.ecoli and self.initial_state
         self.build_ecoli()
@@ -281,7 +305,10 @@ class EcoliSim:
         self.ecoli_experiment = Engine(**experiment_config)
 
         # run the experiment
-        self.ecoli_experiment.update(self.total_time)
+        if self.save:
+            self.save_states()
+        else:
+            self.ecoli_experiment.update(self.total_time)
 
         # return the data
         if self.raw_output:
@@ -291,13 +318,13 @@ class EcoliSim:
 
     def merge(self, other):
         """
-        Combine settings from this EcoliSim with another, overriding 
+        Combine settings from this EcoliSim with another, overriding
         current settings with those from the other EcoliSim.
         """
 
         deep_merge(self.config, other.config)
 
-    
+
     def export_json(self, filename=CONFIG_DIR_PATH + "export.json"):
         export = dict(self.config)
         export['processes'] = [k for k in export['processes'].keys()]

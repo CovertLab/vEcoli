@@ -2,6 +2,7 @@
 def get_ecoli_master_topology_settings():
     """plot settings for ecoli_master's topology plot"""
     process_row = -4
+    process_x_offset = -1
     process_distance = 0.9
     settings = {
         'graph_format': 'hierarchy',
@@ -10,22 +11,22 @@ def get_ecoli_master_topology_settings():
         'node_size': 12000,
         'font_size': 12,
         'coordinates': {
-            'ecoli-tf-binding': (1*process_distance, process_row),
-            'ecoli-transcript-initiation': (2*process_distance, process_row),
-            'ecoli-transcript-elongation': (3*process_distance, process_row),
-            'ecoli-rna-degradation': (4*process_distance, process_row),
-            'ecoli-polypeptide-initiation': (5*process_distance, process_row),
-            'ecoli-polypeptide-elongation': (6*process_distance, process_row),
-            'ecoli-complexation': (7*process_distance, process_row),
-            'ecoli-two-component-system': (8*process_distance, process_row),
-            'ecoli-equilibrium': (9*process_distance, process_row),
-            'ecoli-protein-degradation': (10*process_distance, process_row),
-            'ecoli-metabolism': (11*process_distance, process_row),
-            'ecoli-chromosome-replication': (12 * process_distance, process_row),
-            'ecoli-chromosome-structure': (13 * process_distance, process_row),
-            'ecoli-mass-listener': (14*process_distance, process_row),
-            'mRNA_counts_listener': (15 * process_distance, process_row),
-            'divide_condition': (16 * process_distance, process_row),
+            'ecoli-tf-binding': (1*process_distance+process_x_offset, process_row),
+            'ecoli-transcript-initiation': (2*process_distance+process_x_offset, process_row),
+            'ecoli-transcript-elongation': (3*process_distance+process_x_offset, process_row),
+            'ecoli-rna-degradation': (4*process_distance+process_x_offset, process_row),
+            'ecoli-polypeptide-initiation': (5*process_distance+process_x_offset, process_row),
+            'ecoli-polypeptide-elongation': (6*process_distance+process_x_offset, process_row),
+            'ecoli-complexation': (7*process_distance+process_x_offset, process_row),
+            'ecoli-two-component-system': (8*process_distance+process_x_offset, process_row),
+            'ecoli-equilibrium': (9*process_distance+process_x_offset, process_row),
+            'ecoli-protein-degradation': (10*process_distance+process_x_offset, process_row),
+            'ecoli-metabolism': (11*process_distance+process_x_offset, process_row),
+            'ecoli-chromosome-replication': (12*process_distance+process_x_offset, process_row),
+            'ecoli-chromosome-structure': (13*process_distance+process_x_offset, process_row),
+            'ecoli-mass-listener': (14*process_distance+process_x_offset, process_row),
+            'mRNA_counts_listener': (15*process_distance+process_x_offset, process_row),
+            'divide_condition': (16*process_distance+process_x_offset, process_row),
         },
         'node_labels': {
             # processes
@@ -46,21 +47,30 @@ def get_ecoli_master_topology_settings():
             'mRNA_counts_listener': 'mrna\ncounts',
             'divide_condition': 'division',
             # stores
+            'unique\nfull_chromosome': 'unique\nchromosome',
             'unique\nchromosome_domain': 'unique\nchromosome\ndomain',
+            'unique\nactive_replisome': 'unique\nactive\nreplisome',
+            'unique\nactive_RNAP': 'unique\nactive\nRNAP',
+            'unique\nactive_ribosome': 'unique\nactive\nribosome',
+            'unique\nDnaA_box': 'unique\nDnaA',
         },
         'remove_nodes': [
             'aa_enzymes',
-            'listeners\nmass\ncell_mass',
             'process_state',
+            'process_state\npolypeptide_elongation',
+            'environment\nexchange_data',
+            'listeners\nmass\ncell_mass',
             'listeners\nfba_results',
             'listeners\nenzyme_kinetics',
             'listeners\nmass',
             'listeners\nribosome_data',
             'listeners\nfba_results',
-            'listeners\necoli-equilibrium_listener',
-            'listeners\necoli-rna-degradation_listener',
-            'listeners\necoli-transcript-elongation_listener',
-            'process_state\necoli-polypeptide-elongation',
+            'listeners\nRnapData',
+            'listeners\ntranscript_elongation_listener',
+            'listeners\nrna_degradation_listener',
+            'listeners\nequilibrium_listener',
+            'listeners\nreplication_data',
+            'listeners\nrnap_data',
         ]
     }
     return settings
@@ -112,9 +122,11 @@ def get_partition_topology_settings():
 
             'ecoli-chromosome-structure_evolver': (12 * process_distance, evolver_row),
             'ecoli-chromosome-structure_requester': (12 * process_distance, requester_row),
+            'ecoli-chromosome-structure': (12 * process_distance, evolver_row),
 
             'ecoli-metabolism_evolver': (13 * process_distance, evolver_row),
             'ecoli-metabolism_requester': (13 * process_distance, requester_row),
+            'ecoli-metabolism': (13 * process_distance, evolver_row),
 
             'ecoli-mass-listener': (14 * process_distance, evolver_row),
             'mRNA_counts_listener': (15 * process_distance, evolver_row),
@@ -167,5 +179,25 @@ def get_partition_topology_settings():
             'mRNA_counts_listener': 'mrna\ncounts',
             'divide_condition': 'division',
         },
+        'remove_nodes': [
+            'allocate\necoli-polypeptide-elongation\nenvironment\namino_acids',
+            'request\necoli-polypeptide-elongation\nenvironment\namino_acids',
+            'aa_enzymes',
+            'process_state',
+            'process_state\npolypeptide_elongation',
+            'environment\nexchange_data',
+            'listeners\nmass\ncell_mass',
+            'listeners\nfba_results',
+            'listeners\nenzyme_kinetics',
+            'listeners\nmass',
+            'listeners\nribosome_data',
+            'listeners\nfba_results',
+            'listeners\nRnapData',
+            'listeners\ntranscript_elongation_listener',
+            'listeners\nrna_degradation_listener',
+            'listeners\nequilibrium_listener',
+            'listeners\nreplication_data',
+            'listeners\nrnap_data',
+        ],
     }
     return settings
