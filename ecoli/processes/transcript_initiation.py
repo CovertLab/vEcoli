@@ -462,11 +462,11 @@ class TranscriptInitiation(PartitionedProcess):
 
         last_rnap_index = 0
         if 'active_RNAPs' in states and states['active_RNAPs']:
-            last_rnap_index = int(list(states['active_RNAPs'].keys())[-1]) + 1
+            last_rnap_index = int(max(list(states['active_RNAPs'].keys()))) + 1
 
         last_rna_index = 0
         if 'RNAs' in states and states['RNAs']:
-            last_rnap_index = int(list(states['RNAs'].keys())[-1]) + 1
+            last_rna_index = int(max(list(states['RNAs'].keys()))) + 1
 
         self.rnap_index = max(last_rna_index, last_rnap_index)
 
