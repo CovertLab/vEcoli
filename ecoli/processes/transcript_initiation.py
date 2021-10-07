@@ -247,6 +247,7 @@ class TranscriptInitiation(PartitionedProcess):
         self.random_state = np.random.RandomState(seed=self.seed)
 
         self.rnap_index = 6000000
+        self.rna_index = 7000000
 
     def ports_schema(self):
         return {
@@ -460,15 +461,8 @@ class TranscriptInitiation(PartitionedProcess):
         coordinates = self.replication_coordinate[TU_index_partial_RNAs]
         direction = self.transcription_direction[TU_index_partial_RNAs]
 
-        last_rnap_index = 0
         if 'active_RNAPs' in states and states['active_RNAPs']:
-            last_rnap_index = int(max(list(states['active_RNAPs'].keys()))) + 1
-
-        last_rna_index = 0
-        if 'RNAs' in states and states['RNAs']:
-            last_rna_index = int(max(list(states['RNAs'].keys()))) + 1
-
-        self.rnap_index = max(last_rna_index, last_rnap_index)
+            self.rnap_index = int(max(list(states['active_RNAPs'].keys()))) + 1
 
         new_RNAPs = arrays_to(
             n_RNAPs_to_activate, {
@@ -490,9 +484,12 @@ class TranscriptInitiation(PartitionedProcess):
         # Add partially transcribed RNAs
         is_mRNA = np.isin(TU_index_partial_RNAs, self.idx_mRNA)
 
+        if 'RNAs' in states and states['RNAs']:
+            self.rna_index = int(max(list(states['RNAs'].keys()))) + 1
+
         new_RNAs = arrays_to(
             n_RNAPs_to_activate, {
-                'unique_index': np.arange(self.rnap_index, self.rnap_index + n_RNAPs_to_activate).astype(int),
+                'unique_index': np.arange(self.rna_index, self.rna_index + n_RNAPs_to_activate).astype(int),
                 'TU_index': TU_index_partial_RNAs,
                 'transcript_length': np.zeros(cast(int, n_RNAPs_to_activate)),
                 'is_mRNA': is_mRNA,
