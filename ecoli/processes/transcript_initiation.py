@@ -464,16 +464,14 @@ class TranscriptInitiation(PartitionedProcess):
         if 'active_RNAPs' in states and states['active_RNAPs']:
             self.rnap_index = int(max(list(states['active_RNAPs'].keys()))) + 1
 
+        RNAP_indexes = np.arange(self.rnap_index, self.rnap_index + n_RNAPs_to_activate).astype(int)
+
         new_RNAPs = arrays_to(
             n_RNAPs_to_activate, {
-                'unique_index': np.arange(self.rnap_index, self.rnap_index + n_RNAPs_to_activate).astype(int),
+                'unique_index': RNAP_indexes,
                 'domain_index': domain_index_rnap,
                 'coordinates': coordinates,
                 'direction': direction})
-
-        RNAP_indexes = [
-            RNAP['unique_index']
-            for RNAP in new_RNAPs]
 
         update['active_RNAPs'] = add_elements(new_RNAPs, 'unique_index')
 
