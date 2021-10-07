@@ -241,7 +241,7 @@ class PolypeptideInitiation(PartitionedProcess):
             start_index += counts
 
         if 'active_ribosome' in states and states['active_ribosome']:
-            self.ribosome_index = int(list(states['active_ribosome'].keys())[-1]) + 1
+            self.ribosome_index = int(max(list(states['active_ribosome'].keys()))) + 1
 
         # Create active 70S ribosomes and assign their attributes
         new_ribosomes = arrays_to(

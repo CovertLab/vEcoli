@@ -439,7 +439,7 @@ class ChromosomeStructure(Process):
             n_segments = len(all_new_linking_numbers)
 
             if 'chromosomal_segments' in states and states['chromosomal_segments']:
-                self.chromosome_segment_index = int(list(states['chromosomal_segments'].keys())[-1]) + 1
+                self.chromosome_segment_index = int(max(list(states['chromosomal_segments'].keys()))) + 1
 
             new_chromosome_segments = arrays_to(
             n_segments, {
@@ -590,7 +590,7 @@ class ChromosomeStructure(Process):
             # Add new promoters with new domain indexes
 
             if 'promoters' in states and states['promoters']:
-                self.promoter_index = int(list(states['promoters'].keys())[-1]) + 1
+                self.promoter_index = int(max(list(states['promoters'].keys()))) + 1
 
             new_promoters = arrays_to(
                 n_new_promoters, {
@@ -624,7 +624,7 @@ class ChromosomeStructure(Process):
             # Add new promoters with new domain indexes
 
             if 'DnaA_boxes' in states and states['DnaA_boxes']:
-                self.DnaA_box_index = int(list(states['DnaA_boxes'].keys())[-1]) + 1
+                self.DnaA_box_index = int(max(list(states['DnaA_boxes'].keys()))) + 1
 
             new_DnaA_boxes = arrays_to(
                 n_new_DnaA_boxes, {
