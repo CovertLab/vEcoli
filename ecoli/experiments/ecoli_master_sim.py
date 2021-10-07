@@ -102,8 +102,8 @@ class EcoliSim:
             help="Random seed."
         )
         parser.add_argument(
-            '--initial_time', '-t0', action="store",
-            help="Time of the initial state to load from (corresponding inital state file must be present in data folder)."
+            '--initial_state', '-t0', action="store",
+            help="Name of the initial state to load from (corresponding initial state file must be present in data folder)."
         )
         parser.add_argument(
             '--total_time', '-t', action="store", type=float,
