@@ -3,8 +3,8 @@
 Chromosome Replication
 ======================
 
-Process for chromosome replication. Performs initiation, elongation, and
-termination of active partial chromosomes that replicate the chromosome.
+Performs initiation, elongation, and termination of active partial chromosomes
+that replicate the chromosome.
 
 First, a round of replication is initiated at a ﬁxed cell mass per origin
 of replication and generally occurs once per cell cycle. Second, replication
@@ -46,6 +46,8 @@ topology_registry.register(NAME, TOPOLOGY)
 
 
 class ChromosomeReplication(PartitionedProcess):
+    """ Chromosome Replication PartitionedProcess """
+
     name = NAME
     topology = TOPOLOGY
     defaults = {

@@ -1,9 +1,17 @@
 """
-Partition processes
+======================
+Partitioning Processes
+======================
 
-Includes Requester and Evolver processes, which take an EcoliProcess
-and use its calculate_request or evolve_state methods for the Process
-next_update.
+This bundle of processes includes Requester, Evolver, and PartitionedProcess.
+PartitionedProcess is the inherited base class for all Processes that can be
+partitioned; these processes provide calculate_request or evolve_state methods,
+rather than the usual Process next_update.
+
+A PartitionedProcess can be passed into a Requester and Evolver, which call its
+calculate_request and evolve_state methods in coordination with an Allocator process,
+which reads the requests and allocates molecular counts for the evolve_state.
+
 """
 import abc
 
@@ -99,11 +107,17 @@ def path_in_bulk(topo):
 
 
 class Requester(Deriver):
+    """ Requester Deriver
+
+    Accepts a PartitionedProcess as an input, and runs in coordination with an
+    Evolver that uses the same PartitionedProcess.
+    """
     defaults = {'process': None}
 
     def __init__(self, parameters=None):
         super().__init__(parameters)
         self.process = self.parameters['process']
+        assert isinstance(self.process, PartitionedProcess)
 
     def ports_schema(self):
         ports = self.process.ports_schema()
@@ -126,11 +140,17 @@ class Requester(Deriver):
 
 
 class Evolver(Process):
+    """ Evolver Process
+
+    Accepts a PartitionedProcess as an input, and runs in coordination with an
+    Requester that uses the same PartitionedProcess.
+    """
     defaults = {'process': None}
 
     def __init__(self, parameters=None):
         super().__init__(parameters)
         self.process = self.parameters['process']
+        assert isinstance(self.process, PartitionedProcess)
 
     def ports_schema(self):
         ports = self.process.ports_schema()
@@ -144,11 +164,16 @@ class Evolver(Process):
         # run request if it has not yet run
         if not self.process.request_set:
             _ = self.process.calculate_request(timestep, states)
+            self.process.request_set = True
 
         return self.process.evolve_state(timestep, states)
 
 
 class PartitionedProcess(Process):
+    """ Partitioned Process Base Class
+
+    This is the base class for all processes whose updates can be partitioned.
+    """
     name = None
     topology = None
     request_set = False

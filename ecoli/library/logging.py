@@ -1,7 +1,7 @@
 import os
+import numpy as np
 import json
 import unum
-import numpy as np
 
 
 def make_logging_process(process_class):
@@ -17,7 +17,7 @@ def make_logging_process(process_class):
 
     def next_update(self, timestep, states):
         update = super().next_update(timestep, states)  # get the original update
-        log_update = {'log_update' : update} # log the update
+        log_update = {'log_update' : update}  # log the update
         return {**update, **log_update}
 
     logging_process.ports_schema = ports_schema
@@ -35,14 +35,16 @@ def write_json(path, numpy_dict):
                 return int(obj)
             elif isinstance(obj, np.ndarray):
                 return obj.tolist()
+            elif isinstance(obj, unum.Unum):
+                return obj.asNumber()
+            elif isinstance(obj, set):
+                return list(obj)
             elif obj == INFINITY:
                 return '__INFINITY__'
             elif isinstance(obj, np.floating):
                 return float(obj)
             elif isinstance(obj, np.bool_):
                 return bool(obj)
-            elif isinstance(obj, unum.Unum):
-                return float(obj)
             else:
                 return super(NpEncoder, self).default(obj)
 
