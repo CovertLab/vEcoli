@@ -8,44 +8,6 @@ from vivarium.core.process import Process
 from ecoli.library.schema import add_elements, array_from
 
 
-class ArrayDict():
-    # Reference: see https://docs.python.org/3/reference/datamodel.html?emulating-container-types#emulating-container-types
-
-    EMPTY = "__EMPTY__"
-
-    def __init__(self, dtype, capacity=1000):
-        if dtype[0][0] != "_key":
-            dtype = [("key", "<U16")] + dtype
-        self.struct_array = np.zeros([capacity],
-                                     dtype=dtype)
-        # Correct?
-        self.struct_array["key"] = EMPTY
-    
-    def __len__(self):
-        pass
-
-    def __getitem__(self):
-        pass
-
-    def __setitem__(self, key, value):
-        pass
-
-    def __delitem__(self, key):
-        pass
-
-    def __missing__(self, key):
-        pass
-
-    def __iter__(self):
-        pass
-
-    def __reversed__(self):
-        pass
-
-    def __contains__(self, item):
-        pass
-
-
 def dict_value_updater(current, update):
     '''
     Updater which translates add_item and delete_item -style updates
