@@ -1,23 +1,42 @@
 """
+===========
 Equilibrium
+===========
 
-Equilibrium binding sub-model
+This process models how ligands are bound to or unbound
+from their transcription factor binding partners in a fashion
+that maintains equilibrium.
 """
 
 import numpy as np
 
-from vivarium.core.process import Process
-from vivarium.core.composition import simulate_process
+from vivarium.library.dict_utils import deep_merge
 
-from ecoli.library.schema import array_from, array_to, arrays_from, arrays_to, listener_schema, bulk_schema
+from ecoli.library.schema import array_from, array_to, bulk_schema
+from ecoli.processes.registries import topology_registry
+from ecoli.processes.partition import PartitionedProcess
 
 from wholecell.utils import units
 from six.moves import range
 
 
-class Equilibrium(Process):
-    name = 'ecoli-equilibrium'
+# Register default topology for this process, associating it with process name
+NAME = 'ecoli-equilibrium'
+TOPOLOGY = {
+        "listeners": ("listeners",),
+        "molecules": ("bulk",)
+}
+topology_registry.register(NAME, TOPOLOGY)
 
+
+class Equilibrium(PartitionedProcess):
+    """ Equilibrium PartitionedProcess
+
+    molecule_names: list of molecules that are being iterated over size:94
+    """
+
+    name = NAME
+    topology = TOPOLOGY
     defaults = {
         'jit': False,
         'n_avogadro': 0.0,
@@ -32,18 +51,24 @@ class Equilibrium(Process):
         super().__init__(parameters)
 
         # Simulation options
-        self.jit = self.parameters['jit']
+        self.jit = self.parameters['jit']  # utilized in the fluxes and molecules function
 
         # Get constants
         self.n_avogadro = self.parameters['n_avogadro']
         self.cell_density = self.parameters['cell_density']
 
         # Create matrix and method
+        # stoichMatrix: (94, 33), molecule counts are (94,).
         self.stoichMatrix = self.parameters['stoichMatrix']
+
+        # fluxesAndMoleculesToSS: solves ODES to get to steady state based off of cell density,
+        # volumes and molecule counts
         self.fluxesAndMoleculesToSS = self.parameters['fluxesAndMoleculesToSS']
+
         self.product_indices = [idx for idx in np.where(np.any(self.stoichMatrix > 0, axis=1))[0]]
 
         # Build views
+        # moleculeNames: list of molecules that are being iterated over size: 94
         self.moleculeNames = self.parameters['moleculeNames']
 
         self.seed = self.parameters['seed']
@@ -56,9 +81,9 @@ class Equilibrium(Process):
                 'mass': {
                     'cell_mass': {'_default': 0}},
                 'equilibrium_listener': {
-                    'reaction_rates': {'_default': 0, '_updater': 'set'}}}}
-
-    def next_update(self, timestep, states):
+                    'reaction_rates': {'_default': [], '_updater': 'set', '_emit': True}}}}
+        
+    def calculate_request(self, timestep, states):
         # Get molecule counts
         moleculeCounts = array_from(states['molecules'])
 
@@ -69,8 +94,18 @@ class Equilibrium(Process):
         # Solve ODEs to steady state
         self.rxnFluxes, self.req = self.fluxesAndMoleculesToSS(
             moleculeCounts, cellVolume, self.n_avogadro, self.random_state,
-            jit=self.jit)
+            jit=self.jit,
+            )
 
+        # Request counts of molecules needed
+        requests = {}
+        requests['molecules'] = array_to(states['molecules'], self.req)
+        return requests
+        
+    def evolve_state(self, timestep, states):
+        # Get molecule counts
+        moleculeCounts = array_from(states['molecules'])
+        
         # Get counts of molecules allocated to this process
         rxnFluxes = self.rxnFluxes.copy()
 
@@ -82,7 +117,7 @@ class Equilibrium(Process):
         max_iterations = int(np.abs(rxnFluxes).sum()) + 1
         for it in range(max_iterations):
             # Check if any metabolites will have negative counts with current reactions
-            negative_metabolite_idxs = np.where(np.dot(self.stoichMatrix, rxnFluxes) + self.req < 0)[0]
+            negative_metabolite_idxs = np.where(np.dot(self.stoichMatrix, rxnFluxes) + moleculeCounts < 0)[0]
             if len(negative_metabolite_idxs) == 0:
                 break
 
@@ -108,3 +143,16 @@ class Equilibrium(Process):
                     'reaction_rates': deltaMolecules[self.product_indices] / timestep}}}
 
         return update
+
+
+def test_equilibrium_listener():
+    from ecoli.experiments.ecoli_master_sim import EcoliSim
+    sim = EcoliSim.from_file()
+    sim.total_time = 2
+    data = sim.run()
+    assert(type(data['listeners']['equilibrium_listener']['reaction_rates'][0]) == list)
+    assert(type(data['listeners']['equilibrium_listener']['reaction_rates'][1]) == list)
+
+
+if __name__ == '__main__':
+    test_equilibrium_listener()

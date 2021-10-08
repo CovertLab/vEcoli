@@ -23,6 +23,7 @@ from migration.plots import qqplot
 load_sim_data = LoadSimData(
             sim_data_path=SIM_DATA_PATH,
             seed=0)
+TOPOLOGY = ProteinDegradation.topology
 
 
 def test_protein_degradation():
@@ -34,13 +35,8 @@ def test_protein_degradation():
     amino_acid_ids = config["amino_acid_ids"]
     water_id = config["water_id"]
 
-    # copy topology from ecoli_master, under generate_topology
-    topology = {
-        'metabolites': ('bulk',),
-        'proteins': ('bulk',)}
-
     # run the process and get an update
-    actual_update = run_ecoli_process(prot_deg_process, topology, total_time=2, initial_time=0)
+    actual_update = run_ecoli_process(prot_deg_process, TOPOLOGY, total_time=2, initial_time=0)
 
     # separate the update to its ports
     d_proteins = actual_update['proteins']

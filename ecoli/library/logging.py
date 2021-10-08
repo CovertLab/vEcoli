@@ -1,8 +1,14 @@
+import os
+import numpy as np
+import json
+import unum
+
+
 def make_logging_process(process_class):
     logging_process = type(f"Logging_{process_class.__name__}",
                            (process_class,),
                            {})
-    __class__ = logging_process # set __class__ manually so super() knows what to do
+    __class__ = logging_process  # set __class__ manually so super() knows what to do
 
     def ports_schema(self):
         ports = super().ports_schema()  # get the original port structure
@@ -11,7 +17,7 @@ def make_logging_process(process_class):
 
     def next_update(self, timestep, states):
         update = super().next_update(timestep, states)  # get the original update
-        log_update = {'log_update' : update} # log the update
+        log_update = {'log_update' : update}  # log the update
         return {**update, **log_update}
 
     logging_process.ports_schema = ports_schema
@@ -19,3 +25,30 @@ def make_logging_process(process_class):
 
     return logging_process
 
+
+def write_json(path, numpy_dict):
+    INFINITY = float('inf')
+
+    class NpEncoder(json.JSONEncoder):
+        def default(self, obj):
+            if isinstance(obj, np.integer):
+                return int(obj)
+            elif isinstance(obj, np.ndarray):
+                return obj.tolist()
+            elif isinstance(obj, unum.Unum):
+                return obj.asNumber()
+            elif isinstance(obj, set):
+                return list(obj)
+            elif obj == INFINITY:
+                return '__INFINITY__'
+            elif isinstance(obj, np.floating):
+                return float(obj)
+            elif isinstance(obj, np.bool_):
+                return bool(obj)
+            else:
+                return super(NpEncoder, self).default(obj)
+
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+
+    with open(path, 'w') as outfile:
+        json.dump(numpy_dict, outfile, cls=NpEncoder)

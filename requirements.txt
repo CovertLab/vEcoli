@@ -1,1 +1,19 @@
 -e .
+numpy
+Cython
+ptyprocess
+sympy
+wcwidth
+attrs
+iniconfig
+pluggy
+py
+toml
+networkx
+packaging
+Pint
+pymongo
+pytz
+pandas
+matplotlib
+llvmlite

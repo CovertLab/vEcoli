@@ -9,19 +9,7 @@ load_sim_data = LoadSimData(
             sim_data_path=SIM_DATA_PATH,
             seed=0)
 
-TOPOLOGY = {
-    'charged_trna': ('bulk',),
-    'bulk_RNAs': ('bulk',),
-    'nmps': ('bulk',),
-    'fragmentMetabolites': ('bulk',),
-    'fragmentBases': ('bulk',),
-    'endoRnases': ('bulk',),
-    'exoRnases': ('bulk',),
-    'subunits': ('bulk',),
-    'molecules': ('bulk',),
-    'RNAs': ('unique', 'RNA'),
-    'active_ribosome': ('unique', 'active_ribosome'),
-    'listeners': ('listeners',)}
+TOPOLOGY = RnaDegradation.topology
 
 
 def test_rna_degradation_migration():
@@ -43,7 +31,7 @@ def test_rna_degradation():
 
     rna_degradation_composite = rna_degradation_process.generate()
 
-    experiment = Engine({
+    experiment = Engine(**{
         'processes': rna_degradation_composite['processes'],
         'topology': {rna_degradation_process.name: TOPOLOGY},
         'initial_state': initial_state

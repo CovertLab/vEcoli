@@ -1,0 +1,7 @@
+{
+    "experiment_id" : "test_swap_process",
+    "total_time" : 2,
+    "swap_processes" : {
+        "ecoli-mass-listener" : "ecoli-mass"
+    }
+}

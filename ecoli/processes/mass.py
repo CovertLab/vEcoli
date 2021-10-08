@@ -4,14 +4,10 @@ Mass
 ====
 """
 
-import os
-
 import numpy as np
 from scipy import constants
 
 from vivarium.core.process import Deriver
-from ecoli.library.schema import mw_schema
-# from wholecell.utils import units
 
 from vivarium.core.engine import pp
 from vivarium.core.composition import process_in_experiment
@@ -22,8 +18,10 @@ from ecoli.library.schema import bulk_schema
 
 AVOGADRO = constants.N_A #* 1 / units.mol
 
+
 def mass_from_counts_array(counts, mw):
     return np.array([mass_from_count(count, mw) for count in counts])
+
 
 def mass_from_count(count, mw):
     mol = count / AVOGADRO
@@ -31,6 +29,8 @@ def mass_from_count(count, mw):
 
 
 class Mass(Deriver):
+    """ Mass Deriver """
+
     name = 'ecoli-mass'
     defaults = {
         'molecular_weights': {},
@@ -75,7 +75,7 @@ class Mass(Deriver):
 
     def next_update(self, timestep, states):
 
-        # TODO -- run these with reducers, to avoid deepcopy of states
+        # TODO(vivarium): Run these with reducers, to avoid deepcopy of states
 
         # calculate bulk molecule mass
         bulk_mass = 0.0
@@ -113,8 +113,8 @@ class Mass(Deriver):
 # test functions
 def test_mass():
 
-    water_mw = 1.0  #* units.g / units.mol
-    biomass_mw = 1.0  #* units.g / units.mol
+    water_mw = 1.0  # * units.g / units.mol
+    biomass_mw = 1.0  # * units.g / units.mol
 
     # declare schema override to get mw properties
     parameters = {
