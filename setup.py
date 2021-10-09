@@ -19,7 +19,7 @@ ext_modules = [
              sources=[os.path.join("wholecell", "utils", "_build_sequences.pyx")],
 	     include_dirs = [np.get_include()],
              ),
-   Extension(name="wholecell.utils.complexation", 
+   Extension(name="wholecell.utils.complexation",
              sources=[os.path.join("wholecell", "utils", "mc_complexation.pyx")],
 	     include_dirs = [np.get_include()]
              ),
@@ -47,6 +47,7 @@ setup(
     install_requires=[
         'vivarium-core>=0.3.8',
         'vivarium-multibody>=0.0.15',
+        'vivarium-convenience>=0.0.2',
         'biopython==1.77',
         'Unum==4.1.4',
         'numba==0.50.1',
