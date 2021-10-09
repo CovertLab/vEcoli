@@ -15,7 +15,6 @@ from ecoli.experiments.ecoli_master_sim import EcoliSim, CONFIG_DIR_PATH
 def test_composite_mass():
     sim = EcoliSim.from_file(CONFIG_DIR_PATH + "default.json")
     sim.total_time = 10
-    os.makedirs('migration/composite_mass/', exist_ok=True)
 
     # run the composite and save specified states
     sim.run()

@@ -26,7 +26,7 @@ from vivarium.library.dict_utils import deep_merge
 from vivarium.plots.simulation_output import plot_variables
 
 # vivarium-ecoli imports
-from ecoli.library.schema import bulk_schema, listener_schema, arrays_from, array_from, submass_schema
+from ecoli.library.schema import bulk_schema, dict_value_schema, listener_schema, arrays_from, array_from, submass_schema
 from ecoli.models.polypeptide_elongation_models import BaseElongationModel, MICROMOLAR_UNITS
 from ecoli.states.wcecoli_state import MASSDIFFS
 from ecoli.processes.registries import topology_registry
@@ -286,10 +286,7 @@ class PolypeptideElongation(PartitionedProcess):
             #         'pos_on_mRNA': {'_default': 0, '_updater': 'set', '_emit': True},
             #         'submass': submass_schema()}},
             
-            'active_ribosome': {
-                '_default': {},
-                '_updater': 'active_ribosome_updater'
-            },
+            'active_ribosome': dict_value_schema('active_ribosome'),
 
             'subunits': bulk_schema([self.ribosome30S, self.ribosome50S]),
 
@@ -480,7 +477,7 @@ class PolypeptideElongation(PartitionedProcess):
                 update['active_ribosome'][unique_index] = {
                     'peptide_length': updated_lengths[index],
                     'pos_on_mRNA': updated_positions_on_mRNA[index],
-                    'submass': added_submass}
+                    'submass': ribosome['submass'] + added_submass}
 
         update['monomers'] = {}
         for index, count in enumerate(terminatedProteins):

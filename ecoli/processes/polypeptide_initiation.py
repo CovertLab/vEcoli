@@ -18,7 +18,7 @@ import numpy as np
 from vivarium.core.composition import simulate_process
 from ecoli.library.unique_indexes import create_unique_indexes
 from ecoli.library.schema import (
-    arrays_from, arrays_to, add_elements, bulk_schema)
+    arrays_from, arrays_to, add_elements, bulk_schema, dict_value_schema)
 
 from wholecell.utils import units
 from wholecell.utils.fitting import normalize
@@ -133,16 +133,14 @@ class PolypeptideInitiation(PartitionedProcess):
             #         'mRNA_index': {'_default': 0},
             #         'pos_on_mRNA': {'_default': 0, '_emit': True}}},
             
-            'active_ribosome': {
-                '_default': {},
-                '_updater': 'active_ribosome_updater'
-            },
+            'active_ribosome': dict_value_schema('active_ribosome'),
             
-            'RNA': {
-                '*': {
-                    'TU_index': {'_default': 0},
-                    'can_translate': {'_default': False},
-                    'unique_index': {'_default': 0}}},
+            # 'RNA': {
+            #     '*': {
+            #         'TU_index': {'_default': 0},
+            #         'can_translate': {'_default': False},
+            #         'unique_index': {'_default': 0}}},
+            'RNA': dict_value_schema('RNAs'),
             'subunits': bulk_schema([
                 self.ribosome30S,
                 self.ribosome50S])}
