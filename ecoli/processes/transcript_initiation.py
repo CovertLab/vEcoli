@@ -24,7 +24,7 @@ from six.moves import zip
 
 from vivarium.core.composition import simulate_process
 
-from ecoli.library.schema import arrays_from, arrays_to, add_elements, listener_schema, bulk_schema
+from ecoli.library.schema import arrays_from, arrays_to, add_elements, dict_value_schema, listener_schema, bulk_schema
 
 from wholecell.utils import units
 from ecoli.library.unique_indexes import create_unique_indexes
@@ -258,39 +258,45 @@ class TranscriptInitiation(PartitionedProcess):
 
             'molecules': bulk_schema([self.inactive_RNAP, self.ppgpp]),
 
-            'full_chromosomes': {
-                '*': {
-                    'unique_index': {'_default': 0}}},
+            # 'full_chromosomes': {
+            #     '*': {
+            #         'unique_index': {'_default': 0}}},
+            'full_chromosomes': dict_value_schema('full_chromosomes'),
 
-            'promoters': {
-                '_divider': 'by_domain',
-                '*': {
-                    'TU_index': {'_default': 0},
-                    'coordinates': {'_default': 0},
-                    'domain_index': {'_default': 0},
-                    'bound_TF': {'_default': 0}}},
+            # 'promoters': {
+            #     '_divider': 'by_domain',
+            #     '*': {
+            #         'TU_index': {'_default': 0},
+            #         'coordinates': {'_default': 0},
+            #         'domain_index': {'_default': 0},
+            #         'bound_TF': {'_default': 0}}},
+            
+            'promoters': dict_value_schema('promoters'),
 
-            'RNAs': {
-                '_divider': {
-                    'divider': 'rna_by_domain',
-                    'topology': {'active_RNAP': ('..', 'active_RNAP',)}
-                },
-                '*': {
-                    'unique_index': {'_default': 0, '_updater': 'set'},
-                    'TU_index': {'_default': 0, '_updater': 'set'},
-                    'transcript_length': {'_default': 0, '_updater': 'set', '_emit': True},
-                    'is_mRNA': {'_default': 0, '_updater': 'set'},
-                    'is_full_transcript': {'_default': 0, '_updater': 'set'},
-                    'can_translate': {'_default': 0, '_updater': 'set'},
-                    'RNAP_index': {'_default': 0, '_updater': 'set'}}},
-
-            'active_RNAPs': {
-                '_divider': 'by_domain',
-                '*': {
-                    'unique_index': {'_default': 0, '_updater': 'set'},
-                    'domain_index': {'_default': 0, '_updater': 'set'},
-                    'coordinates': {'_default': 0, '_updater': 'set', '_emit': True},
-                    'direction': {'_default': 0, '_updater': 'set'}}},
+            # 'RNAs': {
+            #     '_divider': {
+            #         'divider': 'rna_by_domain',
+            #         'topology': {'active_RNAP': ('..', 'active_RNAP',)}
+            #     },
+            #     '*': {
+            #         'unique_index': {'_default': 0, '_updater': 'set'},
+            #         'TU_index': {'_default': 0, '_updater': 'set'},
+            #         'transcript_length': {'_default': 0, '_updater': 'set', '_emit': True},
+            #         'is_mRNA': {'_default': 0, '_updater': 'set'},
+            #         'is_full_transcript': {'_default': 0, '_updater': 'set'},
+            #         'can_translate': {'_default': 0, '_updater': 'set'},
+            #         'RNAP_index': {'_default': 0, '_updater': 'set'}}},
+            
+            'RNAs': dict_value_schema('RNAs'),
+            
+            # 'active_RNAPs': {
+            #     '_divider': 'by_domain',
+            #     '*': {
+            #         'unique_index': {'_default': 0, '_updater': 'set'},
+            #         'domain_index': {'_default': 0, '_updater': 'set'},
+            #         'coordinates': {'_default': 0, '_updater': 'set', '_emit': True},
+            #         'direction': {'_default': 0, '_updater': 'set'}}},
+            'active_RNAPs': dict_value_schema('active_RNAPs'),
 
             'listeners': {
                 'mass': {

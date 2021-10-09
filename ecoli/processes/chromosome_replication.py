@@ -18,7 +18,7 @@ the chromosome immediately decatenates forming two separate chromosome molecules
 import uuid
 import numpy as np
 
-from ecoli.library.schema import array_to, array_from, arrays_from, arrays_to, bulk_schema, submass_schema
+from ecoli.library.schema import array_to, array_from, arrays_from, arrays_to, bulk_schema, dict_value_schema, submass_schema
 from ecoli.states.wcecoli_state import MASSDIFFS
 
 from wholecell.utils import units
@@ -131,29 +131,34 @@ class ChromosomeReplication(PartitionedProcess):
                     '_updater': 'set'},
                 },
             # unique molecules
-            'active_replisomes': {
-                '*': {
-                    'domain_index': default_unique_schema,
-                    'right_replichore': default_unique_schema,
-                    'coordinates': default_unique_schema,
-                    'submass': submass_schema(),
-                }},
-            'oriCs': {
-                '*': {
-                    'domain_index': default_unique_schema,
-                }},
-            'chromosome_domains': {
-                '*': {
-                    attr: default_unique_schema
-                    for attr in ('domain_index', 'child_domains')
-                }},
-            'full_chromosomes': {
-                '*': {
-                    'domain_index': default_unique_schema,
-                    'division_time': default_unique_schema,
-                    'has_triggered_division': {
-                        '_default': False, '_updater': 'set'},
-                }}}
+            # 'active_replisomes': {
+            #     '*': {
+            #         'domain_index': default_unique_schema,
+            #         'right_replichore': default_unique_schema,
+            #         'coordinates': default_unique_schema,
+            #         'submass': submass_schema(),
+            #     }},
+            'active_replisomes': dict_value_schema('active_replisomes'),
+            # 'oriCs': {
+            #     '*': {
+            #         'domain_index': default_unique_schema,
+            #     }},
+            'oriCs': dict_value_schema('oriCs'),
+            # 'chromosome_domains': {
+            #     '*': {
+            #         attr: default_unique_schema
+            #         for attr in ('domain_index', 'child_domains')
+            #     }},
+            'chromosome_domains': dict_value_schema('chromosome_domains'),
+            # 'full_chromosomes': {
+            #     '*': {
+            #         'domain_index': default_unique_schema,
+            #         'division_time': default_unique_schema,
+            #         'has_triggered_division': {
+            #             '_default': False, '_updater': 'set'},
+            #     }}
+            'full_chromosomes': dict_value_schema('full_chromosomes')
+            }
 
     def calculate_request(self, timestep, states):
         requests = {}
@@ -414,11 +419,14 @@ class ChromosomeReplication(PartitionedProcess):
         active_replisomes_indexes = list(states['active_replisomes'].keys())
         added_submass = np.zeros((len(states['active_replisomes']), 9))
         added_submass[:, self.DNA_submass_idx] = added_dna_mass
+        current_submass = np.zeros((n_active_replisomes, 9))
+        for index, value in enumerate(states['active_replisomes'].values()):
+            current_submass[index] = value['submass']
         active_replisomes_update = arrays_to(
             len(states['active_replisomes']),
             {
                 'coordinates': updated_coordinates,
-                'submass': added_submass,
+                'submass': current_submass + added_submass,
              })
         update['active_replisomes'] = {
                 active_replisomes_indexes[index]: active_replisomes

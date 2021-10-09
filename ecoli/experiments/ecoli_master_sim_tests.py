@@ -66,12 +66,12 @@ def test_load_state():
 
 
 def main():
-    testDefault()
-    testAddProcess()
-    testExcludeProcess()
-    testSwapProcess()
-    test_merge()
-    test_export()
+    # testDefault()
+    # testAddProcess()
+    # testExcludeProcess()
+    # testSwapProcess()
+    # test_merge()
+    # test_export()
     test_load_state()
 
 

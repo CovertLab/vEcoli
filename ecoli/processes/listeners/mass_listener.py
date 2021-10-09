@@ -9,7 +9,7 @@ Represents the total cellular mass.
 import numpy as np
 from vivarium.core.process import Deriver
 from vivarium.library.units import units
-from ecoli.library.schema import bulk_schema, arrays_from, array_from, submass_schema
+from ecoli.library.schema import bulk_schema, arrays_from, array_from, dict_value_schema, submass_schema
 
 from vivarium.core.engine import pp
 
@@ -85,15 +85,21 @@ class MassListener(Deriver):
 
         self.mass_diffs = ['rRNA', 'tRNA', 'mRNA', 'miscRNA', 'nonspecific_RNA',
                            'protein',  'metabolite', 'water', 'DNA']
+        self.first_run = True
 
     def ports_schema(self):
         ports = {
             'bulk': bulk_schema(self.bulk_ids),
+            # 'unique': {
+            #     mol_id: {'*': {
+            #         'submass': submass_schema()}}
+            #     for mol_id in self.unique_ids
+            #     if mol_id != 'active_ribosome'
+            # },
             'unique': {
-                mol_id: {'*': {
-                    'submass': submass_schema()}}
+                mol_id: dict_value_schema(mol_id + 's')
                 for mol_id in self.unique_ids
-                if mol_id != 'active_ribosome'
+                if mol_id not in ['DnaA_box', 'active_ribosome']
             },
             'listeners': {
                 'mass': {
@@ -160,12 +166,10 @@ class MassListener(Deriver):
                 }
             }
         }
-        ports['unique'].update(
-            {'active_ribosome': {
-                '_default': {},
-                '_updater': 'active_ribosome_updater'
-            }}
-        )
+        ports['unique'].update({
+            'active_ribosome': dict_value_schema('active_ribosome'),
+            'DnaA_box': dict_value_schema('DnaA_boxes')
+        })
         return ports
 
     def next_update(self, timestep, states):
@@ -187,7 +191,16 @@ class MassListener(Deriver):
             for molecule in states['unique'][id].values():
                 unique_mass_diffs += molecule['submass']
         unique_submasses += unique_mass_diffs
-
+        
+        a = np.zeros((0,9))
+        for molecule in states['unique']['active_ribosome'].values():
+            a = np.append(a, [molecule['submass']], axis = 0)
+        if self.first_run:
+            np.save('out/protein_submass_0', a)
+            self.first_run = False
+        else:
+            np.save('out/protein_submass_2', a)
+        
         all_submasses = bulk_submasses + unique_submasses
 
         # Store cell mass, water mass, dry mass

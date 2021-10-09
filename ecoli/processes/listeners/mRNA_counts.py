@@ -5,7 +5,7 @@ mRNA Counts Listener
 """
 
 import numpy as np
-from ecoli.library.schema import arrays_from
+from ecoli.library.schema import arrays_from, dict_value_schema
 from vivarium.core.process import Deriver
 
 from ecoli.processes.registries import topology_registry
@@ -46,16 +46,17 @@ class mRNACounts(Deriver):
                     '_updater': 'set',
                     '_emit': True}
             },
-            'RNAs': {
-                '*': {
-                    'unique_index': {'_default': 0, '_updater': 'set'},
-                    'TU_index': {'_default': 0, '_updater': 'set'},
-                    'transcript_length': {'_default': 0, '_updater': 'set', '_emit': True},
-                    'is_mRNA': {'_default': 0, '_updater': 'set'},
-                    'is_full_transcript': {'_default': 0, '_updater': 'set'},
-                    'can_translate': {'_default': 0, '_updater': 'set'},
-                    'RNAP_index': {'_default': 0, '_updater': 'set'}}
-            },
+            # 'RNAs': {
+            #     '*': {
+            #         'unique_index': {'_default': 0, '_updater': 'set'},
+            #         'TU_index': {'_default': 0, '_updater': 'set'},
+            #         'transcript_length': {'_default': 0, '_updater': 'set', '_emit': True},
+            #         'is_mRNA': {'_default': 0, '_updater': 'set'},
+            #         'is_full_transcript': {'_default': 0, '_updater': 'set'},
+            #         'can_translate': {'_default': 0, '_updater': 'set'},
+            #         'RNAP_index': {'_default': 0, '_updater': 'set'}}
+            # },
+            'RNAs': dict_value_schema('RNAs')
         }
 
     def next_update(self, timestep, states):

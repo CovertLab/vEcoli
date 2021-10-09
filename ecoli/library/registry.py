@@ -56,15 +56,13 @@ def make_dict_value_updater(defaults):
             state = operation["state"]
             if not state.keys() <= defaults.keys():
                 raise Exception("State has keys not in defaults: " + 
-                                state.keys() - defaults.keys())
+                                str(state.keys() - defaults.keys()))
             state = {**defaults, **state}
             result[operation["key"]] = state
                 
         for index, value in update.items():
             if index in result:
                 result[index].update(value)
-            else:
-                raise Exception("Cannot update non-existent key: " + index)
         
         for k in remove_items:
             result.pop(k)
@@ -92,6 +90,7 @@ UNIQUE_DEFAULTS = {
     'chromosome_domains': {
         'domain_index': 0,
         'child_domains': 0,
+        'unique_index': 0,
         'submass': np.zeros(9)
     },
     'active_replisomes': {
@@ -103,6 +102,7 @@ UNIQUE_DEFAULTS = {
     },
     'oriCs': {
         'domain_index': 0,
+        'unique_index': 0,
         'submass': np.zeros(9)
     },
     'promoters': {
@@ -110,15 +110,18 @@ UNIQUE_DEFAULTS = {
         'coordinates': 0,
         'domain_index': 0,
         'bound_TF': 0,
+        'unique_index': 0,
         'submass': np.zeros(9)
     },
     'chromosomal_segments': {
+        'unique_index': 0,
         'submass': np.zeros(9)
     },
     'DnaA_boxes': {
         'domain_index': 0,
         'coordinates': 0,
         'DnaA_bound': 0,
+        'unique_index': 0,
         'submass': np.zeros(9)
     },
     'active_RNAPs': {
