@@ -20,6 +20,7 @@ class AntibioticHydrolysis(ConvenienceKinetics):
         'initial_hydrolyzed_internal': 0,
         'catalyst': 'catalyst',
         'initial_catalyst': 1e-3,  # mM
+        'time_step': 1,
     }
 
     def __init__(self, initial_parameters=None):
@@ -71,6 +72,7 @@ class AntibioticHydrolysis(ConvenienceKinetics):
             },
             'port_ids': ['internal', 'catalyst_port'],
             'added_port_ids': ['fluxes', 'global'],
+            'time_step': parameters['time_step'],
         }
 
         super().__init__(kinetics_parameters)
