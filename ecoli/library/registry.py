@@ -47,16 +47,33 @@ def make_dict_value_updater(**defaults):
 
     def dict_value_updater(current, update):
         result = current
+        add_elements = False
+        remove_elements = False
+        
+        if update.get("_add") != None:
+            add_items = update.pop("_add")
+            add_elements = True
+        if update.get("_delete") != None:
+            remove_items = update.pop("_delete")
+            remove_elements = True
+            
+        for index, value in update.items():
+            if index in result:
+                result[index].update(value)
+            else:
+                raise Exception("Attempted to update non-existent key: " + index)
 
-        for operation in update.get("add_items", {}):
-            state = operation["state"]
-            if not set(state.keys()).issubset(defaults.keys()):
-                raise Exception(f"Attempted to write state with keys not included in defaults")
-            state = {**defaults, **state}
-            result[operation["key"]] = state
-
-        for k in update.get("remove_items", {}):
-            result.pop(k)
+        if add_elements:
+            for operation in add_items:
+                state = operation["state"]
+                if not set(state.keys()).issubset(defaults.keys()):
+                    raise Exception(f"Attempted to write state with keys not included in defaults")
+                state = {**defaults, **state}
+                result[operation["key"]] = state
+        
+        if remove_elements:
+            for k in remove_items:
+                result.pop(k)
 
         return result
 
