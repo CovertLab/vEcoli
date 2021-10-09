@@ -98,5 +98,6 @@ def submass_schema():
 def dict_value_schema(name):
     return {
         '_default': {},
-        '_updater': f'{name}_updater'
+        '_updater': f'{name}_updater',
+        '_emit': True
     }

@@ -10,7 +10,7 @@ import numpy as np
 
 from vivarium.library.dict_utils import deep_merge
 
-from ecoli.library.schema import arrays_from, arrays_to, bulk_schema, dict_value_schema, listener_schema, submass_schema
+from ecoli.library.schema import arrays_from, bulk_schema, dict_value_schema, listener_schema
 
 from wholecell.utils.random import stochasticRound
 from wholecell.utils import units
@@ -108,13 +108,9 @@ class TfBinding(PartitionedProcess):
         
     def ports_schema(self):
         return {
-            # 'promoters': {
-            #     '_divider': 'by_domain',
-            #     '*': {
-            #         'TU_index': {'_default': 0, '_updater': 'set', '_emit': True},
-            #         'bound_TF': {'_default': 0, '_updater': 'set', '_emit': True},
-            #         'submass': submass_schema()}},
-            'promoters': dict_value_schema('promoters'),
+            'promoters': {
+                '_divider': 'by_domain',
+                **dict_value_schema('promoters')},
 
             'active_tfs': bulk_schema([
                 self.active_tfs[tf]

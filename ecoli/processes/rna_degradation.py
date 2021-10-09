@@ -42,9 +42,6 @@ digestion":
 
 import numpy as np
 
-from vivarium.core.process import Process
-from vivarium.library.dict_utils import deep_merge
-
 from ecoli.library.schema import (
     array_from, array_to, arrays_from, arrays_to, dict_value_schema, listener_schema, bulk_schema, array_to_nonzero)
 
@@ -192,16 +189,7 @@ class RnaDegradation(PartitionedProcess):
             'exoRnases': bulk_schema(self.exoRnaseIds),
             'subunits': bulk_schema([self.ribosome30S, self.ribosome50S]),
             'molecules': bulk_schema([self.water_id, self.proton_id]),
-            # 'active_ribosome': {
-            #     '*': {
-            #         'unique_index': {'_default': 0}}},
             'active_ribosome': dict_value_schema('active_ribosome'),
-            # 'RNAs': {
-            #     '*': {
-            #         'unique_index': {'_default': 0, '_updater': 'set'},
-            #         'TU_index': {'_default': 0, '_updater': 'set'},
-            #         'is_full_transcript': {'_default': 0, '_updater': 'set'},
-            #         'can_translate': {'_default': 0, '_updater': 'set'}}},
             'RNAs': dict_value_schema('RNAs'),
             'listeners': {
                 'mass': {
