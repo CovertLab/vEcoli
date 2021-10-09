@@ -87,12 +87,13 @@ class MassListener(Deriver):
                            'protein',  'metabolite', 'water', 'DNA']
 
     def ports_schema(self):
-        return {
+        ports = {
             'bulk': bulk_schema(self.bulk_ids),
             'unique': {
                 mol_id: {'*': {
                     'submass': submass_schema()}}
                 for mol_id in self.unique_ids
+                if mol_id != 'active_ribosome'
             },
             'listeners': {
                 'mass': {
@@ -159,6 +160,13 @@ class MassListener(Deriver):
                 }
             }
         }
+        ports['unique'].update(
+            {'active_ribosome': {
+                '_default': {},
+                '_updater': 'active_ribosome_updater'
+            }}
+        )
+        return ports
 
     def next_update(self, timestep, states):
         # Initialize update with 0's for each submass

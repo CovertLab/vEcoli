@@ -124,14 +124,20 @@ class PolypeptideInitiation(PartitionedProcess):
                         '_default': 0.0,
                         '_updater': 'set',
                         '_emit': True}}},
+            # 'active_ribosome': {
+            #     '_divider': 'divide_unique',
+            #     '*': {
+            #         'unique_index': {'_default': 0},
+            #         'protein_index': {'_default': 0},
+            #         'peptide_length': {'_default': 0, '_emit': True},
+            #         'mRNA_index': {'_default': 0},
+            #         'pos_on_mRNA': {'_default': 0, '_emit': True}}},
+            
             'active_ribosome': {
-                '_divider': 'divide_unique',
-                '*': {
-                    'unique_index': {'_default': 0},
-                    'protein_index': {'_default': 0},
-                    'peptide_length': {'_default': 0, '_emit': True},
-                    'mRNA_index': {'_default': 0},
-                    'pos_on_mRNA': {'_default': 0, '_emit': True}}},
+                '_default': {},
+                '_updater': 'active_ribosome_updater'
+            },
+            
             'RNA': {
                 '*': {
                     'TU_index': {'_default': 0},

@@ -278,13 +278,18 @@ class PolypeptideElongation(PartitionedProcess):
             'uncharged_trna_total': bulk_schema(self.uncharged_trna_names, partition=False),
             'charged_trna_total': bulk_schema(self.charged_trna_names, partition=False),
 
+            # 'active_ribosome': {
+            #     '*': {
+            #         'unique_index': {'_default': 0, '_updater': 'set'},
+            #         'protein_index': {'_default': 0, '_updater': 'set'},
+            #         'peptide_length': {'_default': 0, '_updater': 'set', '_emit': True},
+            #         'pos_on_mRNA': {'_default': 0, '_updater': 'set', '_emit': True},
+            #         'submass': submass_schema()}},
+            
             'active_ribosome': {
-                '*': {
-                    'unique_index': {'_default': 0, '_updater': 'set'},
-                    'protein_index': {'_default': 0, '_updater': 'set'},
-                    'peptide_length': {'_default': 0, '_updater': 'set', '_emit': True},
-                    'pos_on_mRNA': {'_default': 0, '_updater': 'set', '_emit': True},
-                    'submass': submass_schema()}},
+                '_default': {},
+                '_updater': 'active_ribosome_updater'
+            },
 
             'subunits': bulk_schema([self.ribosome30S, self.ribosome50S]),
 

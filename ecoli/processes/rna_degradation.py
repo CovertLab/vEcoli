@@ -192,9 +192,13 @@ class RnaDegradation(PartitionedProcess):
             'exoRnases': bulk_schema(self.exoRnaseIds),
             'subunits': bulk_schema([self.ribosome30S, self.ribosome50S]),
             'molecules': bulk_schema([self.water_id, self.proton_id]),
+            # 'active_ribosome': {
+            #     '*': {
+            #         'unique_index': {'_default': 0}}},
             'active_ribosome': {
-                '*': {
-                    'unique_index': {'_default': 0}}},
+                '_default': {},
+                '_updater': 'active_ribosome_updater'
+            },
             'RNAs': {
                 '*': {
                     'unique_index': {'_default': 0, '_updater': 'set'},

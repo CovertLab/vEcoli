@@ -35,7 +35,7 @@ def dict_value_updater(current, update):
     return result
 
 
-def make_dict_value_updater(**defaults):
+def make_dict_value_updater(defaults):
     '''
     Returns an updater which translates add_item and delete_item -style updates
     into operations on a dictionary.
@@ -46,35 +46,96 @@ def make_dict_value_updater(**defaults):
     '''
 
     def dict_value_updater(current, update):
+
         result = current
-        add_elements = False
-        remove_elements = False
         
-        if update.get("_add") != None:
-            add_items = update.pop("_add")
-            add_elements = True
-        if update.get("_delete") != None:
-            remove_items = update.pop("_delete")
-            remove_elements = True
-            
+        add_items = update.pop("_add", {})
+        remove_items = update.pop("_delete", {})
+
+        for operation in add_items:
+            state = operation["state"]
+            if not state.keys() <= defaults.keys():
+                raise Exception("State has keys not in defaults: " + 
+                                state.keys() - defaults.keys())
+            state = {**defaults, **state}
+            result[operation["key"]] = state
+                
         for index, value in update.items():
             if index in result:
                 result[index].update(value)
             else:
-                raise Exception("Attempted to update non-existent key: " + index)
-
-        if add_elements:
-            for operation in add_items:
-                state = operation["state"]
-                if not set(state.keys()).issubset(defaults.keys()):
-                    raise Exception(f"Attempted to write state with keys not included in defaults")
-                state = {**defaults, **state}
-                result[operation["key"]] = state
+                raise Exception("Cannot update non-existent key: " + index)
         
-        if remove_elements:
-            for k in remove_items:
-                result.pop(k)
+        for k in remove_items:
+            result.pop(k)
 
         return result
 
     return dict_value_updater
+
+UNIQUE_DEFAULTS = {
+    'active_ribosome': {
+        'protein_index': 0,
+        'peptide_length': 0,
+        'mRNA_index': 0,
+        'unique_index': 0,
+        'pos_on_mRNA': 0,
+        'submass': np.zeros(9)
+    },
+    'full_chromosomes': {
+        'domain_index': 0,
+        'unique_index': 0,
+        'division_time': 0,
+        'has_triggered_division': 0,
+        'submass': np.zeros(9)
+    },
+    'chromosome_domains': {
+        'domain_index': 0,
+        'child_domains': 0,
+        'submass': np.zeros(9)
+    },
+    'active_replisomes': {
+        'domain_index': 0,
+        'coordinates': 0,
+        'unique_index': 0,
+        'right_replichore': 0,
+        'submass': np.zeros(9)
+    },
+    'oriCs': {
+        'domain_index': 0,
+        'submass': np.zeros(9)
+    },
+    'promoters': {
+        'TU_index': 0,
+        'coordinates': 0,
+        'domain_index': 0,
+        'bound_TF': 0,
+        'submass': np.zeros(9)
+    },
+    'chromosomal_segments': {
+        'submass': np.zeros(9)
+    },
+    'DnaA_boxes': {
+        'domain_index': 0,
+        'coordinates': 0,
+        'DnaA_bound': 0,
+        'submass': np.zeros(9)
+    },
+    'active_RNAPs': {
+        'unique_index': 0,
+        'domain_index': 0,
+        'coordinates': 0,
+        'direction': 0,
+        'submass': np.zeros(9)
+    },
+    'RNAs': {
+        'unique_index': 0,
+        'TU_index': 0,
+        'transcript_length': 0,
+        'RNAP_index': 0,
+        'is_mRNA': 0,
+        'is_full_transcript': 0,
+        'can_translate': 0,
+        'submass': np.zeros(9)
+    },
+}
