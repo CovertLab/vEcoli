@@ -174,7 +174,7 @@ class TranscriptElongation(PartitionedProcess):
                 '*': {
                     'unique_index': {'_default': 0, '_updater': 'set'},
                     'TU_index': {'_default': 0, '_updater': 'set'},
-                    'transcript_length': {'_default': 0, '_updater': 'set', '_emit': True},
+                    'transcript_length': {'_default': 0, '_updater': 'set'},
                     'is_mRNA': {'_default': False, '_updater': 'set'},
                     'is_full_transcript': {'_default': False, '_updater': 'set'},
                     'can_translate': {'_default': False, '_updater': 'set'},
@@ -187,7 +187,7 @@ class TranscriptElongation(PartitionedProcess):
                 '*': {
                     'unique_index': {'_default': 0, '_updater': 'set'},
                     'domain_index': {'_default': 0, '_updater': 'set'},
-                    'coordinates': {'_default': 0, '_updater': 'set', '_emit': True},
+                    'coordinates': {'_default': 0, '_updater': 'set'},
                     'direction': {'_default': 0, '_updater': 'set'}
                 }
             },

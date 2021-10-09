@@ -88,10 +88,10 @@ class Plot(object):
 
 def test_plot():
 
-    data = run_ecoli(total_time=120)
+    data = run_ecoli(filename='silent_unique', total_time=2500, emitter='database')
     Plot(data)
 
 
-
+# python ecoli/analysis/massFractionSummary.py
 if __name__ == "__main__":
     test_plot()

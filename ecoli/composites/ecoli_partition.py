@@ -136,9 +136,17 @@ class Ecoli(Composer):
                              # and not process.is_deriver()
                              )]
 
-        # Update schema overrides to reflect name change for requesters/evolvers
-        self.schema_override = {f'{p}_evolver': v for p, v in self.schema_override.items()
-                                if p not in self.partitioned_processes}
+        # update schema overrides for evolvers and requesters
+        update_override = {}
+        delete_override = []
+        for process_id, override in self.schema_override.items():
+            if process_id in self.partitioned_processes:
+                delete_override.append(process_id)
+                update_override[f'{process_id}_evolver'] = override
+                update_override[f'{process_id}_requester'] = override
+        for process_id in delete_override:
+            del self.schema_override[process_id]
+        self.schema_override.update(update_override)
 
         # make the requesters
         requesters = {
@@ -243,10 +251,12 @@ class Ecoli(Composer):
 
 
 def run_ecoli(
+        filename='default',
         total_time=10,
         divide=False,
         progress_bar=True,
         log_updates=False,
+        emitter='timeseries',
 ):
     """Run ecoli_master simulations
 
@@ -259,11 +269,16 @@ def run_ecoli(
     """
     from ecoli.experiments.ecoli_master_sim import EcoliSim, CONFIG_DIR_PATH
 
-    sim = EcoliSim.from_file(CONFIG_DIR_PATH + "default.json")
+    sim = EcoliSim.from_file(CONFIG_DIR_PATH + filename + '.json')
     sim.total_time = total_time
     sim.divide = divide
     sim.progress_bar = progress_bar
     sim.log_updates = log_updates
+    sim.emitter = emitter
+
+    # sim.build_ecoli()
+    # store = sim.ecoli.generate_store()
+    # import ipdb; ipdb.set_trace()
 
     return sim.run()
 
