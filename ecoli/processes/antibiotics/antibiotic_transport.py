@@ -35,8 +35,7 @@ class AntibioticTransport(ConvenienceKinetics):
         'initial_internal_antibiotic': 1e-3,
         'initial_external_antibiotic': 0,
         'initial_pump': 1e-3,
-#        'initial_mmol_to_counts': (1 * units.fL * AVOGADRO).to(
-#            units.counts / units.millimolar)
+        'time_step': 1,
     }
 
     def __init__(self, initial_parameters=None):
@@ -85,12 +84,9 @@ class AntibioticTransport(ConvenienceKinetics):
                 'pump_port': {
                     parameters['pump_key']: parameters['initial_pump'],
                 },
-#                'global': {
-#                    'mmol_to_counts': parameters[
-#                        'initial_mmol_to_counts'],
-#                }
             },
             'port_ids': ['internal', 'external', 'pump_port'],
+            'time_step': parameters['time_step'],
         }
 
         super().__init__(kinetics_parameters)
