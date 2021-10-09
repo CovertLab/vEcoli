@@ -26,7 +26,7 @@ from vivarium.library.dict_utils import deep_merge
 from vivarium.plots.simulation_output import plot_variables
 
 # vivarium-ecoli imports
-from ecoli.library.schema import bulk_schema, dict_value_schema, listener_schema, arrays_from, array_from, submass_schema
+from ecoli.library.schema import bulk_schema, dict_value_schema, listener_schema, arrays_from, array_from
 from ecoli.models.polypeptide_elongation_models import BaseElongationModel, MICROMOLAR_UNITS
 from ecoli.states.wcecoli_state import MASSDIFFS
 from ecoli.processes.registries import topology_registry
@@ -277,14 +277,6 @@ class PolypeptideElongation(PartitionedProcess):
             'amino_acids_total': bulk_schema(self.amino_acids, partition=False),
             'uncharged_trna_total': bulk_schema(self.uncharged_trna_names, partition=False),
             'charged_trna_total': bulk_schema(self.charged_trna_names, partition=False),
-
-            # 'active_ribosome': {
-            #     '*': {
-            #         'unique_index': {'_default': 0, '_updater': 'set'},
-            #         'protein_index': {'_default': 0, '_updater': 'set'},
-            #         'peptide_length': {'_default': 0, '_updater': 'set', '_emit': True},
-            #         'pos_on_mRNA': {'_default': 0, '_updater': 'set', '_emit': True},
-            #         'submass': submass_schema()}},
             
             'active_ribosome': dict_value_schema('active_ribosome'),
 

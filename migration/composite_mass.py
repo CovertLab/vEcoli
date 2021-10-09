@@ -62,6 +62,7 @@ def plots(actual_timeseries, wcecoli_timeseries, keys):
         plt.scatter(wcecoli_timeseries[key], actual_timeseries[key])
         slope, intercept, r_value, p_value, std_err = linregress(
             wcecoli_timeseries[key], actual_timeseries[key])
+        assert r_value >= 0.95, f"Correlation for {key} = {r_value} <= 0.95"
         best_fit = np.poly1d([slope, intercept])
         plt.plot(wcecoli_timeseries[key], best_fit(wcecoli_timeseries[key]), 
                  'b-', label=f'r = {r_value}')

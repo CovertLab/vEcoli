@@ -21,7 +21,7 @@ from wholecell.utils.polymerize import buildSequences, polymerize, computeMassIn
 from wholecell.utils import units
 
 from ecoli.library.schema import (
-    arrays_from, arrays_to, array_from, array_to, bulk_schema, submass_schema, dict_value_schema)
+    arrays_from, arrays_to, array_from, array_to, bulk_schema, dict_value_schema)
 from ecoli.library.data_predicates import monotonically_increasing
 from ecoli.states.wcecoli_state import MASSDIFFS
 from ecoli.processes.registries import topology_registry
@@ -166,33 +166,16 @@ class TranscriptElongation(PartitionedProcess):
             'environment': {
                 'media_id': {'_default': ''}
             },
-            # 'RNAs': {
-            #     '_divider': {
-            #         'divider': 'rna_by_domain',
-            #         'topology': {'active_RNAP': ('..', 'active_RNAP',)}
-            #     },
-            #     '*': {
-            #         'unique_index': {'_default': 0, '_updater': 'set'},
-            #         'TU_index': {'_default': 0, '_updater': 'set'},
-            #         'transcript_length': {'_default': 0, '_updater': 'set', '_emit': True},
-            #         'is_mRNA': {'_default': False, '_updater': 'set'},
-            #         'is_full_transcript': {'_default': False, '_updater': 'set'},
-            #         'can_translate': {'_default': False, '_updater': 'set'},
-            #         'RNAP_index': {'_default': 0, '_updater': 'set'},
-            #         'submass': submass_schema()
-            #     }
-            # },
-            'RNAs': dict_value_schema('RNAs'),
-            # 'active_RNAPs': {
-            #     '_divider': 'by_domain',
-            #     '*': {
-            #         'unique_index': {'_default': 0, '_updater': 'set'},
-            #         'domain_index': {'_default': 0, '_updater': 'set'},
-            #         'coordinates': {'_default': 0, '_updater': 'set', '_emit': True},
-            #         'direction': {'_default': 0, '_updater': 'set'}
-            #     }
-            # },
-            'active_RNAPs': dict_value_schema('active_RNAPs'),
+
+            'RNAs': {
+                '_divider': {
+                    'divider': 'rna_by_domain',
+                    'topology': {'active_RNAP': ('..', 'active_RNAP',)}},
+                **dict_value_schema('RNAs')},
+
+            'active_RNAPs': {
+                '_divider': 'by_domain',
+                **dict_value_schema('active_RNAPs')},
 
             'bulk_RNAs': bulk_schema(self.rnaIds),
             'ntps': bulk_schema(self.ntp_ids),
