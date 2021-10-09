@@ -9,7 +9,8 @@ from ecoli.processes.cell_division import (
     divide_unique,
 )
 
-from ecoli.library.registry import divide_binomial, dict_value_updater, make_dict_value_updater
+from ecoli.library.registry import (divide_binomial, dict_value_updater, 
+                                    make_dict_value_updater, UNIQUE_DEFAULTS)
 
 
 divider_registry.register('binomial_ecoli', divide_binomial)
@@ -19,9 +20,6 @@ divider_registry.register('divide_unique', divide_unique)
 
 updater_registry.register('dict_value', dict_value_updater)
 
-updater_registry.register('rnap_updater', make_dict_value_updater(
-    unique_index=0,
-    domain_index=0,
-    coordinates=0,
-    direction=True)
-)
+for unique_mol, defaults in UNIQUE_DEFAULTS.items():
+    updater_registry.register(f'{unique_mol}_updater', 
+                              make_dict_value_updater(defaults))

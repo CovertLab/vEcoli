@@ -173,11 +173,15 @@ class ChromosomeStructure(Process):
                     'TU_index': {'_default': 0, '_updater': 'set'},
                     'transcript_length': {'_default': 0, '_updater': 'set'},
                     'RNAP_index': {'_default': 0, '_updater': 'set'}}},
+            # 'active_ribosome': {
+            #     '*': {
+            #         'protein_index': {'_default': 0},
+            #         'peptide_length': {'_default': 0},
+            #         'mRNA_index': {'_default': 0}}},
             'active_ribosome': {
-                '*': {
-                    'protein_index': {'_default': 0},
-                    'peptide_length': {'_default': 0},
-                    'mRNA_index': {'_default': 0}}},
+                '_default': {},
+                '_updater': 'active_ribosome_updater'
+            },
             'full_chromosomes': {
                 '*': {
                     'domain_index': default_unique_schema
