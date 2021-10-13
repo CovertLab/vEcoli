@@ -9,7 +9,7 @@ Represents the total cellular mass.
 import numpy as np
 from vivarium.core.process import Deriver
 from vivarium.library.units import units
-from ecoli.library.schema import bulk_schema, arrays_from, array_from, submass_schema
+from ecoli.library.schema import bulk_schema, arrays_from, array_from, dict_value_schema, submass_schema
 
 from vivarium.core.engine import pp
 
@@ -87,12 +87,12 @@ class MassListener(Deriver):
                            'protein',  'metabolite', 'water', 'DNA']
 
     def ports_schema(self):
-        return {
+        ports = {
             'bulk': bulk_schema(self.bulk_ids),
             'unique': {
-                mol_id: {'*': {
-                    'submass': submass_schema()}}
+                mol_id: dict_value_schema(mol_id + 's')
                 for mol_id in self.unique_ids
+                if mol_id not in ['DnaA_box', 'active_ribosome']
             },
             'listeners': {
                 'mass': {
@@ -159,6 +159,11 @@ class MassListener(Deriver):
                 }
             }
         }
+        ports['unique'].update({
+            'active_ribosome': dict_value_schema('active_ribosome'),
+            'DnaA_box': dict_value_schema('DnaA_boxes')
+        })
+        return ports
 
     def next_update(self, timestep, states):
         # Initialize update with 0's for each submass
@@ -179,7 +184,7 @@ class MassListener(Deriver):
             for molecule in states['unique'][id].values():
                 unique_mass_diffs += molecule['submass']
         unique_submasses += unique_mass_diffs
-
+        
         all_submasses = bulk_submasses + unique_submasses
 
         # Store cell mass, water mass, dry mass
