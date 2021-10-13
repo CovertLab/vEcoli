@@ -1,3 +1,9 @@
+"""
+====================
+mRNA Counts Listener
+====================
+"""
+
 import numpy as np
 from ecoli.library.schema import arrays_from
 from vivarium.core.process import Deriver

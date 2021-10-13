@@ -13,7 +13,7 @@
     "seed": 0,
     "partition": true,
 
-    "initial_time": 0,
+    "initial_time": "wcecoli_t0",
     "time_step": 2.0,
     "total_time": 100.0,
     "generations": null,
@@ -25,6 +25,9 @@
     "division": {
         "threshold": 2220},
     "divide": false,
+
+    "save": false,
+    "save_times": [10, 100, 1000],
 
     "add_processes" : [],
     "exclude_processes" : [],

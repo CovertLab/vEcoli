@@ -3,8 +3,6 @@
 Polypeptide Elongation
 ======================
 
-Polypeptide elongation sub-model.
-
 This process models the polymerization of amino acids into polypeptides
 by ribosomes using an mRNA transcript as a template. Elongation terminates
 once a ribosome has reached the end of an mRNA transcript. Polymerization
@@ -66,14 +64,14 @@ DEFAULT_AA_NAMES = [
 
 
 class PolypeptideElongation(PartitionedProcess):
-    """PolypeptideElongation
+    """ Polypeptide Elongation PartitionedProcess
 
     defaults:
         proteinIds: array length n of protein names
     """
+
     name = NAME
     topology = TOPOLOGY
-
     defaults = {
         'max_time_step': 2.0,
         'n_avogadro': 6.02214076e+23 / units.mol,
@@ -301,12 +299,14 @@ class PolypeptideElongation(PartitionedProcess):
                     '_emit': True}}}
 
     def calculate_request(self, timestep, states):
-        # Set ribosome elongation rate based on simulation medium environment and elongation rate factor
-        # which is used to create single-cell variability in growth rate
-        # The maximum number of amino acids that can be elongated in a single timestep is set to 22
-        # intentionally as the minimum number of padding values on the protein sequence matrix is set to 22.
-        # If timesteps longer than 1.0s are used, this feature will lead to errors in the effective ribosome
-        # elongation rate.
+        """
+        Set ribosome elongation rate based on simulation medium environment and elongation rate factor
+        which is used to create single-cell variability in growth rate
+        The maximum number of amino acids that can be elongated in a single timestep is set to 22
+        intentionally as the minimum number of padding values on the protein sequence matrix is set to 22.
+        If timesteps longer than 1.0s are used, this feature will lead to errors in the effective ribosome
+        elongation rate.
+        """
 
         current_media_id = states['environment']['media_id']
 
@@ -360,17 +360,19 @@ class PolypeptideElongation(PartitionedProcess):
                         translation_supply_rate.asNumber()}
         requests['listeners']['growth_limits']['fraction_trna_charged'] = np.dot(fraction_charged, self.aa_from_trna)
         requests['listeners']['growth_limits']['aa_pool_size'] = array_from(states['amino_acids'])
-        requests['listeners']['growth_limits']['aa_request_size'] = aa_counts_for_translation        
+        requests['listeners']['growth_limits']['aa_request_size'] = aa_counts_for_translation
         return requests
     
         
     def evolve_state(self, timestep, states):
-        # Set ribosome elongation rate based on simulation medium environment and elongation rate factor
-        # which is used to create single-cell variability in growth rate
-        # The maximum number of amino acids that can be elongated in a single timestep is set to 22
-        # intentionally as the minimum number of padding values on the protein sequence matrix is set to 22.
-        # If timesteps longer than 1.0s are used, this feature will lead to errors in the effective ribosome
-        # elongation rate.
+        """
+        Set ribosome elongation rate based on simulation medium environment and elongation rate factor
+        which is used to create single-cell variability in growth rate
+        The maximum number of amino acids that can be elongated in a single timestep is set to 22
+        intentionally as the minimum number of padding values on the protein sequence matrix is set to 22.
+        If timesteps longer than 1.0s are used, this feature will lead to errors in the effective ribosome
+        elongation rate.
+        """
 
         update = {
             'molecules': {

@@ -276,6 +276,9 @@ def equal(a, b):
 def equal_len(a, b):
     return len(a)==len(b)
 
+def len_almost_equal(a, b):
+    return np.isclose(len(a), len(b), rtol=0.05, atol=1)
+
 def array_equal(arr1, arr2):
     return (np.array_equal(arr1, arr2, equal_nan=True),
             f"Total difference (actual-expected) is {np.sum(np.abs(arr1-arr2))}")

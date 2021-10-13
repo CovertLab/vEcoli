@@ -22,11 +22,16 @@ def test_polypeptide_initiation_migration():
     total_time = 2
     initial_times = [0, 10, 100]
     for initial_time in initial_times:
-        # run the process and get an update
-        actual_update = run_ecoli_process(polypeptide_initiation_process, PI_TOPOLOGY, total_time=total_time,
-                                          initial_time=initial_time)
         with open(f"data/polypeptide_initiation_update_t{initial_time + total_time}.json") as f:
             wc_update = json.load(f)
+        # run the process and get an update
+        initial_state = get_state_from_file(
+            path=f'data/wcecoli_t{initial_time}.json')
+        states, _ = get_process_state(polypeptide_initiation_process, PI_TOPOLOGY, initial_state)
+        # This value is normally modified by polypeptide elongation
+        states['listeners']['ribosome_data']['effective_elongation_rate'] = wc_update[
+            'listeners']['ribosome_data'].pop('ribosomeElongationRate')
+        actual_update = polypeptide_initiation_process.next_update(total_time, states)
         plots(actual_update, wc_update, total_time + initial_time)
         assertions(actual_update, wc_update)
 

@@ -1,34 +1,46 @@
 """
 BuildNetwork
+============
 
 Constructs a network representations of simulation components from sim_data,
 and generates files for node lists and edge lists.
 
 Adding new nodes to the network:
--------------------------------
+--------------------------------
 
 To add a new type of nodes to the network (either a state or process), you need
 to write a new function within this file (build_network.py), which goes through
 all of the instances of the new node type, and for each instance creates a
 node:
 
-	new_node = Node()
+.. code-block:: python
 
-adds attributes (**attr), which include "node_class", "node_type", "node_id",
+	new_node = Node()
+	print('hi')
+
+adds attributes (``**attr``), which include "node_class", "node_type", "node_id",
 "name", and "synonyms":
+
+.. code-block:: python
 
 	new_node.read_attributes(**attr)
 
 and appends the node to the node list:
+
+.. code-block:: python
 
 	self.node_list.append(new_node)
 
 The relevant edges that connect the new node to other nodes also need to be
 specified:
 
+.. code-block:: python
+
 	new_edge = Edge("Edge Type")
 
 The source and destination ids for that edge are added with an attribute:
+
+.. code-block:: python
 
 	attr = {
 		'src_id': source_id,
@@ -38,6 +50,8 @@ The source and destination ids for that edge are added with an attribute:
 	new_edge.read_attributes(**attr)
 
 and the edge is then added to the edge list:
+
+.. code-block:: python
 
 	self.edge_list.append(new_edge)
 
@@ -51,6 +65,8 @@ read_dynamics.py might require a new function to the dynamics data if it is of
 a new node type, specified in the TYPE_TO_READER_FUNCTION dictionary. When the
 node list is read, nodes of the new type will be passed into the new function,
 which assigns that node dynamics from listener output:
+
+.. code-block:: python
 
 	node.read_dynamics(dynamics, dynamics_units)
 """

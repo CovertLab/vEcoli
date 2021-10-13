@@ -79,8 +79,8 @@ class Ecoli(Composer):
     def initial_state(self, config=None, path=()):
         # Use initial state calculated with trna_charging and translationSupply disabled
         config = config or {}
-        initial_time = config.get('initial_time', 0)
-        initial_state = get_state_from_file(path=f'data/metabolism/wcecoli_t{initial_time}.json')
+        initial_time = config.get('initial_time', 'wcecoli_t0')
+        initial_state = get_state_from_file(path=f'data/{initial_time}.json')
         embedded_state = {}
         assoc_path(embedded_state, path, initial_state)
         return embedded_state
@@ -271,7 +271,7 @@ def run_ecoli(
 @pytest.mark.slow
 def run_division(
         agent_id='1',
-        total_time=30
+        total_time=60
 ):
     """
     Work in progress to get division working
@@ -281,7 +281,7 @@ def run_division(
     # get initial mass from Ecoli composer
     initial_state = Ecoli({}).initial_state()
     initial_mass = initial_state['listeners']['mass']['cell_mass']
-    division_mass = initial_mass + 0.1
+    division_mass = initial_mass + 1
     print(f"DIVIDE AT {division_mass} fg")
 
     # make a new composer under an embedded path
@@ -306,9 +306,13 @@ def run_division(
 
     # retrieve output
     output = experiment.emitter.get_data()
-    print(f"initial agent ids: {output[0.0]['agents'].keys()}")
-    print(f"final agent ids: {output[total_time]['agents'].keys()}")
-    # import ipdb; ipdb.set_trace()
+
+    # asserts
+    initial_agents = output[0.0]['agents'].keys()
+    final_agents = output[total_time]['agents'].keys()
+    print(f"initial agent ids: {initial_agents}")
+    print(f"final agent ids: {final_agents}")
+    assert len(final_agents) == 2 * len(initial_agents)
 
 
 def test_ecoli_generate():
