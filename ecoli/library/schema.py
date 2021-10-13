@@ -86,7 +86,7 @@ def listener_schema(elements):
 def add_elements(elements, id):
     return {
         '_add': [{
-            'key': element[id],
+            'key': str(element[id]),
             'state': element}
             for element in elements]}
     

@@ -3,6 +3,8 @@
 E. coli master composite
 ========================
 """
+import os
+
 import pytest
 
 from vivarium.core.composer import Composer
@@ -30,7 +32,12 @@ from ecoli.plots.topology import get_ecoli_master_topology_settings
 
 
 RAND_MAX = 2**31
-SIM_DATA_PATH = 'reconstruction/sim_data/kb/simData.cPickle'
+SIM_DATA_PATH = os.path.abspath(
+    os.path.join(
+        os.path.dirname(__file__), '..', '..', 'reconstruction',
+        'sim_data', 'kb', 'simData.cPickle',
+    )
+)
 
 MINIMAL_MEDIA_ID = 'minimal'
 AA_MEDIA_ID = 'minimal_plus_amino_acids'
@@ -73,8 +80,8 @@ class Ecoli(Composer):
     def initial_state(self, config=None, path=()):
         # Use initial state calculated with trna_charging and translationSupply disabled
         config = config or {}
-        initial_time = config.get('initial_time', 0)
-        initial_state = get_state_from_file(path=f'data/metabolism/wcecoli_t{initial_time}.json')
+        initial_time = config.get('initial_time', 'wcecoli_t0')
+        initial_state = get_state_from_file(path=f'data/{initial_time}.json')
         embedded_state = {}
         assoc_path(embedded_state, path, initial_state)
         return embedded_state
@@ -97,7 +104,7 @@ class Ecoli(Composer):
                     default = self.load_sim_data.get_config_by_name(process)
                 except KeyError:
                     default = self.processes[process].defaults
-                
+
                 process_configs[process] = deep_merge(dict(default), process_configs[process])
 
         # make the processes
@@ -155,9 +162,9 @@ def run_ecoli(
     Returns:
         * output data
     """
-    
+
     from ecoli.experiments.ecoli_master_sim import EcoliSim, CONFIG_DIR_PATH
-    
+
     sim = EcoliSim.from_file(CONFIG_DIR_PATH + "no_partition.json")
     sim.total_time = total_time
     sim.divide = divide
@@ -169,7 +176,9 @@ def run_ecoli(
 
 
 @pytest.mark.slow
-def run_division(total_time=30):
+def run_division(
+        total_time=60
+):
     """
     Work in progress to get division working
     * TODO -- unique molecules need to be divided between daughter cells!!! This can get sophisticated
@@ -177,17 +186,15 @@ def run_division(total_time=30):
 
     from ecoli.experiments.ecoli_master_sim import EcoliSim, CONFIG_DIR_PATH
 
+    # get division mass
     initial_state = Ecoli({}).initial_state()
     initial_mass = initial_state['listeners']['mass']['cell_mass']
     division_mass = initial_mass+0.1
-    print(f"DIVIDE AT {division_mass} fg")
+    # print(f"DIVIDE AT {division_mass} fg")
 
+    # initialize simulation
     sim = EcoliSim.from_file(CONFIG_DIR_PATH + "no_partition.json")
     sim.division = {'threshold': division_mass}
-
-    # Remove metabolism for now 
-    # (divison fails because cannot deepcopy metabolism process)
-    sim.exclude_processes.append("ecoli-metabolism")
     sim.total_time = total_time
     sim.divide = True
     sim.progress_bar = False
@@ -196,22 +203,25 @@ def run_division(total_time=30):
     # run simulation
     output = sim.run()
 
-    print(f"initial agent ids: {output[0.0]['agents'].keys()}")
-    print(f"final agent ids: {output[total_time]['agents'].keys()}")
-    # import ipdb; ipdb.set_trace()
+    # asserts
+    initial_agents = output[0.0]['agents'].keys()
+    final_agents = output[total_time]['agents'].keys()
+    print(f"initial agent ids: {initial_agents}")
+    print(f"final agent ids: {final_agents}")
+    assert len(final_agents) == 2 * len(initial_agents)
 
 
 def test_ecoli_generate():
     ecoli_composer = Ecoli({})
     ecoli_composite = ecoli_composer.generate()
 
-    # asserts to ecoli_composite['processes'] and ecoli_composite['topology'] 
+    # asserts to ecoli_composite['processes'] and ecoli_composite['topology']
     assert all(isinstance(v, ECOLI_DEFAULT_PROCESSES[k])
                for k, v in ecoli_composite['processes'].items())
     assert all(ECOLI_DEFAULT_TOPOLOGY[k] == v
                for k, v in ecoli_composite['topology'].items())
 
-    
+
 def ecoli_topology_plot():
     """Make a topology plot of Ecoli"""
     agent_config = {
@@ -226,7 +236,7 @@ def ecoli_topology_plot():
 
     topo_plot = plot_topology(
         ecoli,
-        filename='topology',
+        filename='ecoli_master_topology',
         out_dir='out/composites/ecoli_master/',
         settings=settings)
     return topo_plot

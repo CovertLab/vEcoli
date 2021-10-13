@@ -502,6 +502,9 @@ class LoadSimData:
 
     def get_mrna_counts_listener_config(self, time_step=2, parallel=False):
         counts_config = {
+            'time_step': time_step,
+            '_parallel': parallel,
+
             'rna_ids': self.sim_data.process.transcription.rna_data['id'],
             'mrna_indexes': np.where(self.sim_data.process.transcription.rna_data['is_mRNA'])[0],
         }
@@ -526,6 +529,9 @@ class LoadSimData:
     
     def get_chromosome_structure_config(self, time_step=2, parallel=False, deriver_mode=False):
         chromosome_structure_config = {
+            'time_step': time_step,
+            '_parallel': parallel,
+
             # Load parameters
             'RNA_sequences': self.sim_data.process.transcription.transcription_sequences,
             'protein_sequences': self.sim_data.process.translation.translation_sequences,

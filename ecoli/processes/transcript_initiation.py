@@ -3,19 +3,17 @@
 Transcript Initiation
 =====================
 
-Transcription initiation sub-model.
-
 This process models the binding of RNA polymerase to each gene.
 The number of RNA polymerases to activate in each time step is determined
 such that the average fraction of RNA polymerases that are active throughout
 the simulation matches measured fractions, which are dependent on the
 cellular growth rate. This is done by assuming a steady state concentration
 of active RNA polymerases.
-"""
 
-# TODO(wcEcoli):
-#   - use transcription units instead of single genes
-#   - match sigma factors to promoters
+TODO:
+  - use transcription units instead of single genes
+  - match sigma factors to promoters
+"""
 
 import numpy as np
 import scipy.sparse
@@ -54,7 +52,7 @@ topology_registry.register(NAME, TOPOLOGY)
 
 
 class TranscriptInitiation(PartitionedProcess):
-    """TranscriptInitiation
+    """ Transcript Initiation PartitionedProcess
 
     defaults:
         - fracActiveRnapDict (dict): Dictionary with keys corresponding to media, values being
@@ -249,6 +247,7 @@ class TranscriptInitiation(PartitionedProcess):
         self.random_state = np.random.RandomState(seed=self.seed)
 
         self.rnap_index = 6000000
+        self.rna_index = 7000000
 
     def ports_schema(self):
         return {
@@ -264,6 +263,7 @@ class TranscriptInitiation(PartitionedProcess):
                     'unique_index': {'_default': 0}}},
 
             'promoters': {
+                '_divider': 'by_domain',
                 '*': {
                     'TU_index': {'_default': 0},
                     'coordinates': {'_default': 0},
@@ -271,6 +271,10 @@ class TranscriptInitiation(PartitionedProcess):
                     'bound_TF': {'_default': 0}}},
 
             'RNAs': {
+                '_divider': {
+                    'divider': 'rna_by_domain',
+                    'topology': {'active_RNAP': ('..', 'active_RNAP',)}
+                },
                 '*': {
                     'unique_index': {'_default': 0, '_updater': 'set'},
                     'TU_index': {'_default': 0, '_updater': 'set'},
@@ -281,6 +285,7 @@ class TranscriptInitiation(PartitionedProcess):
                     'RNAP_index': {'_default': 0, '_updater': 'set'}}},
 
             'active_RNAPs': {
+                '_divider': 'by_domain',
                 '*': {
                     'unique_index': {'_default': 0, '_updater': 'set'},
                     'domain_index': {'_default': 0, '_updater': 'set'},
@@ -456,16 +461,17 @@ class TranscriptInitiation(PartitionedProcess):
         coordinates = self.replication_coordinate[TU_index_partial_RNAs]
         direction = self.transcription_direction[TU_index_partial_RNAs]
 
+        if 'active_RNAPs' in states and states['active_RNAPs']:
+            self.rnap_index = int(max([int(index) for index in list(states['active_RNAPs'].keys())])) + 1
+
+        RNAP_indexes = np.arange(self.rnap_index, self.rnap_index + n_RNAPs_to_activate).astype(int)
+
         new_RNAPs = arrays_to(
             n_RNAPs_to_activate, {
-                'unique_index': np.arange(self.rnap_index, self.rnap_index + n_RNAPs_to_activate).astype(str),
+                'unique_index': RNAP_indexes,
                 'domain_index': domain_index_rnap,
                 'coordinates': coordinates,
                 'direction': direction})
-
-        RNAP_indexes = [
-            RNAP['unique_index']
-            for RNAP in new_RNAPs]
 
         update['active_RNAPs'] = add_elements(new_RNAPs, 'unique_index')
 
@@ -475,18 +481,21 @@ class TranscriptInitiation(PartitionedProcess):
 
         # Add partially transcribed RNAs
         is_mRNA = np.isin(TU_index_partial_RNAs, self.idx_mRNA)
+
+        if 'RNAs' in states and states['RNAs']:
+            self.rna_index = int(max([int(index) for index in list(states['RNAs'].keys())])) + 1
+
         new_RNAs = arrays_to(
             n_RNAPs_to_activate, {
-                'unique_index': np.arange(self.rnap_index, self.rnap_index + n_RNAPs_to_activate).astype(str),
+                'unique_index': np.arange(self.rna_index, self.rna_index + n_RNAPs_to_activate).astype(int),
                 'TU_index': TU_index_partial_RNAs,
                 'transcript_length': np.zeros(cast(int, n_RNAPs_to_activate)),
                 'is_mRNA': is_mRNA,
                 'is_full_transcript': np.zeros(cast(int, n_RNAPs_to_activate), dtype=bool).tolist(),
                 'can_translate': is_mRNA,
                 'RNAP_index': RNAP_indexes})
-        update['RNAs'] = add_elements(new_RNAs, 'unique_index')
 
-        self.rnap_index += n_RNAPs_to_activate
+        update['RNAs'] = add_elements(new_RNAs, 'unique_index')
 
         # Create masks for ribosomal RNAs
         is_5Srrna = np.isin(TU_index, self.idx_5SrRNA)
@@ -704,17 +713,11 @@ def test_transcript_initiation():
     assert monotonically_decreasing(d_active_RNAP), "Change in active RNAPs is not monotonically decreasing"
     assert all_nonnegative(d_active_RNAP), "One or more timesteps has decrease in active RNAPs"
     assert np.sum(d_active_RNAP) == np.sum(inits_by_TU), "# of active RNAPs does not match number of initiations"
-    assert data_noTF['active_RNAPs'].keys() == data_noTF['RNAs'].keys(), "Keys of active RNAPs do not match keys of RNA"
 
     # Inactive RNAPs deplete as they are activated
     np.testing.assert_array_equal(-d_inactive_RNAP,
                                   d_active_RNAP,
                                   "Depletion of inactive RNAPs does not match counts of RNAPs activated.")
-
-    # RNAs being transcribed matches active RNAPs
-    for id, rnap in data_noTF['active_RNAPs'].items():
-        rna = data_noTF['RNAs'][id]
-        # TODO(Michael) (3)
 
     # Fixed synthesis probability TUs (RNAP, rProtein) and non-fixed TUs synthesized in correct proportion
     expected = np.array([test_config['rnaSynthProbRProtein']['minimal'][0],
