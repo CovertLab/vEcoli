@@ -52,17 +52,19 @@ def divide_RNAs_by_domain(values, state):
     not_in_active_RNAP = []
     in_active_RNAP = []
     for unique_id, specs in values.items():
+        associated_rnap_key = str(values[unique_id]['RNAP_index'])
         if not specs['is_full_transcript']:
-            if unique_id not in state['active_RNAP']:
+            if associated_rnap_key not in state['active_RNAP']:
                 # TODO -- why are some partial RNA ids not in active_RNAP?
                 not_in_active_RNAP.append(unique_id)
                 continue
             else:
                 in_active_RNAP.append(unique_id)
 
-            domain_index = state['active_RNAP'][unique_id]['domain_index']
-            if domain_index == 1:
+            domain_index = state['active_RNAP'][associated_rnap_key]['domain_index']
+            if domain_index == 1 or domain_index == 0:
                 daughter1[unique_id] = specs
+            # elif domain_index == 2:
             elif domain_index == 2:
                 daughter2[unique_id] = specs
         else:
