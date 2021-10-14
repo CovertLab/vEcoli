@@ -17,7 +17,7 @@ from ecoli.library.logging import write_json
 from ecoli.composites.ecoli_nonpartition import SIM_DATA_PATH
 # Two different Ecoli composites depending on partitioning
 import ecoli.composites.ecoli_nonpartition
-import ecoli.composites.ecoli_partition
+import ecoli.composites.ecoli_master
 
 from ecoli.processes import process_registry
 from ecoli.processes.registries import topology_registry
@@ -243,7 +243,7 @@ class EcoliSim:
 
         # initialize the ecoli composer
         if self.partition:
-            ecoli_composer = ecoli.composites.ecoli_partition.Ecoli(
+            ecoli_composer = ecoli.composites.ecoli_master.Ecoli(
                 self.config)
         else:
             ecoli_composer = ecoli.composites.ecoli_nonpartition.Ecoli(self.config)
