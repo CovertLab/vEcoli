@@ -11,7 +11,6 @@ import json
 import warnings
 from datetime import datetime
 
-from vivarium.core.control import run_library_cli
 from vivarium.core.engine import Engine
 from vivarium.library.dict_utils import deep_merge
 from ecoli.library.logging import write_json
@@ -332,27 +331,6 @@ class EcoliSim:
         write_json(filename, export)
 
 
-def run_from_file():
+if __name__ == '__main__':
     ecoli_sim = EcoliSim.from_file()
     ecoli_sim.run()
-
-
-def test_no_partition():
-    sim = EcoliSim.from_file(CONFIG_DIR_PATH + "no_partition.json")
-    sim.total_time = 10
-    sim.divide = False
-    sim.progress_bar = False
-    sim.log_updates = False
-    sim.raw_output = False
-    output = sim.run()
-    return output
-
-
-test_library = {
-    '0': run_from_file,
-    '1': test_no_partition,
-}
-# run experiments in test_library from the command line with:
-# python ecoli/experiments/ecoli_master_sim.py -n [experiment id]
-if __name__ == '__main__':
-    run_library_cli(test_library)
