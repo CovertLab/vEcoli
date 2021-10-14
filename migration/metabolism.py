@@ -132,7 +132,7 @@ def test_metabolism():
 
         # get initial state from file
         state = get_state_from_file(
-            path=f'data/metabolism/wcecoli_t{initial_time}.json')
+            path=f'data/wcecoli_t{initial_time}.json')
         # get partitioned molecule counts from file
         with open('data/metabolism/metabolism_partitioned_'
                   f't{initial_time+2}.json') as f:
