@@ -11,6 +11,7 @@ from vivarium.core.composer import Composer
 from vivarium.library.topology import assoc_path
 from vivarium.library.dict_utils import deep_merge
 from vivarium.core.control import run_library_cli
+from vivarium.core.engine import pf
 
 # sim data
 from ecoli.library.sim_data import LoadSimData
@@ -171,6 +172,11 @@ def run_ecoli(
     sim.progress_bar = progress_bar
     sim.log_updates = log_updates
     sim.raw_output = not time_series
+
+    sim.build_ecoli()
+    ecoli_store = sim.ecoli.generate_store()
+    print(pf(ecoli_store['unique'].get_config()))
+    # import ipdb; ipdb.set_trace()
 
     return sim.run()
 
