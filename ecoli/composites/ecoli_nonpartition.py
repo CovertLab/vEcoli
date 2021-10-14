@@ -175,6 +175,10 @@ def run_ecoli(
     return sim.run()
 
 
+def test_ecoli():
+    output = run_ecoli()
+
+
 @pytest.mark.slow
 def run_division(
         total_time=30
