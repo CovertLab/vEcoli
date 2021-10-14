@@ -120,7 +120,7 @@ class Requester(Deriver):
         assert isinstance(self.process, PartitionedProcess)
 
     def ports_schema(self):
-        ports = self.process.ports_schema()
+        ports = self.process.get_schema()
         ports_copy = ports.copy()
         ports['request'] = change_bulk_updater(ports_copy, 'set')
         return ports
@@ -153,7 +153,7 @@ class Evolver(Process):
         assert isinstance(self.process, PartitionedProcess)
 
     def ports_schema(self):
-        ports = self.process.ports_schema()
+        ports = self.process.get_schema()
         ports_copy = ports.copy()
         ports['allocate'] = change_bulk_updater(ports_copy, 'set')
         return ports

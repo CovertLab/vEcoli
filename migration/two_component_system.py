@@ -3,17 +3,12 @@ import json
 import numpy as np
 import matplotlib.pyplot as plt
 
-from ecoli.library.sim_data import LoadSimData
-from ecoli.composites.ecoli_master import SIM_DATA_PATH
 from ecoli.processes.two_component_system import TwoComponentSystem
 from migration.plots import qqplot
 from migration.migration_utils import run_ecoli_process, scalar_almost_equal, ComparisonTestSuite
-from migration.migration_utils import run_ecoli_process
-from ecoli.states.wcecoli_state import get_state_from_file
+from migration import load_sim_data
 
-load_sim_data = LoadSimData(
-            sim_data_path=SIM_DATA_PATH,
-            seed=0)
+
 TOPOLOGY = TwoComponentSystem.topology
 
 
