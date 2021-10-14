@@ -276,10 +276,6 @@ def run_ecoli(
     sim.log_updates = log_updates
     sim.emitter = emitter
 
-    # sim.build_ecoli()
-    # store = sim.ecoli.generate_store()
-    # import ipdb; ipdb.set_trace()
-
     return sim.run()
 
 

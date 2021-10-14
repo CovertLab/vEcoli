@@ -28,7 +28,7 @@ from ecoli.states.wcecoli_state import get_state_from_file
 
 # plotting
 from vivarium.plots.topology import plot_topology
-from ecoli.plots.topology import get_ecoli_master_topology_settings
+from ecoli.plots.topology import get_ecoli_nonpartition_topology_settings
 
 
 RAND_MAX = 2**31
@@ -151,7 +151,7 @@ def run_ecoli(
         time_series=True
 ):
     """
-    Simple way to run ecoli_master simulations. For full API, see ecoli.experiments.ecoli_master_sim.
+    Simple way to run ecoli simulations. For full API, see ecoli.experiments.ecoli_master_sim.
 
     Arguments:
         * **total_time** (:py:class:`int`): the total runtime of the experiment
@@ -232,12 +232,12 @@ def ecoli_topology_plot():
             process_id: "sim_data" for process_id in ECOLI_DEFAULT_PROCESSES.keys()}
         }
     ecoli = Ecoli(agent_config)
-    settings = get_ecoli_master_topology_settings()
+    settings = get_ecoli_nonpartition_topology_settings()
 
     topo_plot = plot_topology(
         ecoli,
-        filename='ecoli_master_topology',
-        out_dir='out/composites/ecoli_master/',
+        filename='ecoli_nonpartition_topology',
+        out_dir='out/composites/ecoli_nonpartition/',
         settings=settings)
     return topo_plot
 
