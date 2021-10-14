@@ -311,7 +311,7 @@ def add_polyribosomes(unique, unique_masses, polyribosome_assumption, save_outpu
 
 def test_spatial_ecoli(
     polyribosome_assumption='spherical',    # choose from 'mrna', 'linear', or 'spherical'
-    total_time=4,  # in seconds
+    total_time=10,  # in seconds
 ):
     ecoli_config = {
         'nodes': {
