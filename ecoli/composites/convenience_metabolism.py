@@ -26,14 +26,10 @@ from ecoli.states.wcecoli_state import get_state_from_file
 
 from ecoli.plots.topology import get_ecoli_master_topology_settings
 
-# from ecoli.composites.ecoli_master import SIM_DATA_PATH
-
-# SIM_DATA_PATH = '/home/santiagomille/Desktop/vivarium-ecoli/reconstruction/sim_data/kb/simData.cPickle'
-# TODO (Santiago) -- upload you sim_data into the directory with the wcEcoli commit# you generated it from
 SIM_DATA_PATH = os.path.abspath(
     os.path.join(
         os.path.dirname(__file__), '..', '..', 'reconstruction',
-        'sim_data_COMMIT#', 'kb', 'simData.cPickle',
+        'sim_data_wcEcoli-cffc309', 'kb', 'simData.cPickle',
     )
 )
 
