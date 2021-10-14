@@ -1,5 +1,5 @@
 """
-tests that ecoli_partition composite matches wcEcoli states at select time steps
+tests that ecoli_master composite matches wcEcoli states at select time steps
 """
 
 import json

@@ -349,7 +349,7 @@ def ecoli_topology_plot(config={}):
     topo_plot = plot_topology(
         ecoli,
         filename='topology',
-        out_dir='out/composites/ecoli_partition',
+        out_dir='out/composites/ecoli_master',
         settings=settings
     )
     return topo_plot
@@ -363,6 +363,6 @@ test_library = {
 }
 
 # run experiments in test_library from the command line with:
-# python ecoli/composites/ecoli_partition.py -n [experiment id]
+# python ecoli/composites/ecoli_master.py -n [experiment id]
 if __name__ == '__main__':
     run_library_cli(test_library)
