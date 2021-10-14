@@ -80,8 +80,8 @@ class Ecoli(Composer):
     def initial_state(self, config=None, path=()):
         # Use initial state calculated with trna_charging and translationSupply disabled
         config = config or {}
-        initial_time = config.get('initial_time', 0)
-        initial_state = get_state_from_file(path=f'data/metabolism/wcecoli_t{initial_time}.json')
+        initial_time = config.get('initial_time', 'wcecoli_t0')
+        initial_state = get_state_from_file(path=f'data/{initial_time}.json')
         embedded_state = {}
         assoc_path(embedded_state, path, initial_state)
         return embedded_state

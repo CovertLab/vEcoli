@@ -24,10 +24,9 @@ from six.moves import zip
 
 from vivarium.core.composition import simulate_process
 
-from ecoli.library.schema import arrays_from, arrays_to, add_elements, listener_schema, bulk_schema
+from ecoli.library.schema import arrays_from, arrays_to, add_elements, dict_value_schema, listener_schema, bulk_schema
 
 from wholecell.utils import units
-from ecoli.library.unique_indexes import create_unique_indexes
 from wholecell.utils.random import stochasticRound
 from wholecell.utils.unit_struct_array import UnitStructArray
 
@@ -248,6 +247,7 @@ class TranscriptInitiation(PartitionedProcess):
         self.random_state = np.random.RandomState(seed=self.seed)
 
         self.rnap_index = 6000000
+        self.rna_index = 7000000
 
     def ports_schema(self):
         return {
@@ -258,39 +258,21 @@ class TranscriptInitiation(PartitionedProcess):
 
             'molecules': bulk_schema([self.inactive_RNAP, self.ppgpp]),
 
-            'full_chromosomes': {
-                '*': {
-                    'unique_index': {'_default': 0}}},
-
+            'full_chromosomes': dict_value_schema('full_chromosomes'),
+            
             'promoters': {
                 '_divider': 'by_domain',
-                '*': {
-                    'TU_index': {'_default': 0},
-                    'coordinates': {'_default': 0},
-                    'domain_index': {'_default': 0},
-                    'bound_TF': {'_default': 0}}},
-
+                **dict_value_schema('promoters')},
+            
             'RNAs': {
                 '_divider': {
                     'divider': 'rna_by_domain',
-                    'topology': {'active_RNAP': ('..', 'active_RNAP',)}
-                },
-                '*': {
-                    'unique_index': {'_default': 0, '_updater': 'set'},
-                    'TU_index': {'_default': 0, '_updater': 'set'},
-                    'transcript_length': {'_default': 0, '_updater': 'set', '_emit': True},
-                    'is_mRNA': {'_default': 0, '_updater': 'set'},
-                    'is_full_transcript': {'_default': 0, '_updater': 'set'},
-                    'can_translate': {'_default': 0, '_updater': 'set'},
-                    'RNAP_index': {'_default': 0, '_updater': 'set'}}},
+                    'topology': {'active_RNAP': ('..', 'active_RNAP',)}},
+                **dict_value_schema('RNAs')},
 
             'active_RNAPs': {
                 '_divider': 'by_domain',
-                '*': {
-                    'unique_index': {'_default': 0, '_updater': 'set'},
-                    'domain_index': {'_default': 0, '_updater': 'set'},
-                    'coordinates': {'_default': 0, '_updater': 'set', '_emit': True},
-                    'direction': {'_default': 0, '_updater': 'set'}}},
+                **dict_value_schema('active_RNAPs')},
 
             'listeners': {
                 'mass': {
@@ -461,19 +443,17 @@ class TranscriptInitiation(PartitionedProcess):
         coordinates = self.replication_coordinate[TU_index_partial_RNAs]
         direction = self.transcription_direction[TU_index_partial_RNAs]
 
-        rnaps_unique_indexes = create_unique_indexes(n_RNAPs_to_activate)
+        if 'active_RNAPs' in states and states['active_RNAPs']:
+            self.rnap_index = int(max([int(index) for index in list(states['active_RNAPs'].keys())])) + 1
+
+        RNAP_indexes = np.arange(self.rnap_index, self.rnap_index + n_RNAPs_to_activate).astype(int)
 
         new_RNAPs = arrays_to(
             n_RNAPs_to_activate, {
-                # 'unique_index': np.arange(self.rnap_index, self.rnap_index + n_RNAPs_to_activate).astype(str),
-                'unique_index': np.array(rnaps_unique_indexes),
+                'unique_index': RNAP_indexes,
                 'domain_index': domain_index_rnap,
                 'coordinates': coordinates,
                 'direction': direction})
-
-        RNAP_indexes = [
-            RNAP['unique_index']
-            for RNAP in new_RNAPs]
 
         update['active_RNAPs'] = add_elements(new_RNAPs, 'unique_index')
 
@@ -484,21 +464,20 @@ class TranscriptInitiation(PartitionedProcess):
         # Add partially transcribed RNAs
         is_mRNA = np.isin(TU_index_partial_RNAs, self.idx_mRNA)
 
-        partial_rnas_unique_indexes = create_unique_indexes(n_RNAPs_to_activate)
+        if 'RNAs' in states and states['RNAs']:
+            self.rna_index = int(max([int(index) for index in list(states['RNAs'].keys())])) + 1
 
         new_RNAs = arrays_to(
             n_RNAPs_to_activate, {
-                # 'unique_index': np.arange(self.rnap_index, self.rnap_index + n_RNAPs_to_activate).astype(str),
-                'unique_index': np.array(partial_rnas_unique_indexes),
+                'unique_index': np.arange(self.rna_index, self.rna_index + n_RNAPs_to_activate).astype(int),
                 'TU_index': TU_index_partial_RNAs,
                 'transcript_length': np.zeros(cast(int, n_RNAPs_to_activate)),
                 'is_mRNA': is_mRNA,
                 'is_full_transcript': np.zeros(cast(int, n_RNAPs_to_activate), dtype=bool).tolist(),
                 'can_translate': is_mRNA,
                 'RNAP_index': RNAP_indexes})
-        update['RNAs'] = add_elements(new_RNAs, 'unique_index')
 
-        self.rnap_index += n_RNAPs_to_activate
+        update['RNAs'] = add_elements(new_RNAs, 'unique_index')
 
         # Create masks for ribosomal RNAs
         is_5Srrna = np.isin(TU_index, self.idx_5SrRNA)

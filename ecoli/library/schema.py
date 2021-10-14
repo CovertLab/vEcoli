@@ -86,7 +86,7 @@ def listener_schema(elements):
 def add_elements(elements, id):
     return {
         '_add': [{
-            'key': element[id],
+            'key': str(element[id]),
             'state': element}
             for element in elements]}
     
@@ -94,3 +94,10 @@ def submass_schema():
     return {
         '_default': np.zeros(9),
         '_emit': True}
+
+def dict_value_schema(name):
+    return {
+        '_default': {},
+        '_updater': f'{name}_updater',
+        '_emit': True
+    }
