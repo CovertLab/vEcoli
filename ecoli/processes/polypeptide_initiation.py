@@ -16,9 +16,8 @@ from typing import cast
 import numpy as np
 
 from vivarium.core.composition import simulate_process
-from ecoli.library.unique_indexes import create_unique_indexes
 from ecoli.library.schema import (
-    arrays_from, arrays_to, add_elements, bulk_schema)
+    arrays_from, arrays_to, add_elements, bulk_schema, dict_value_schema)
 
 from wholecell.utils import units
 from wholecell.utils.fitting import normalize
@@ -124,19 +123,12 @@ class PolypeptideInitiation(PartitionedProcess):
                         '_default': 0.0,
                         '_updater': 'set',
                         '_emit': True}}},
+            
             'active_ribosome': {
                 '_divider': 'divide_unique',
-                '*': {
-                    'unique_index': {'_default': 0},
-                    'protein_index': {'_default': 0},
-                    'peptide_length': {'_default': 0, '_emit': True},
-                    'mRNA_index': {'_default': 0},
-                    'pos_on_mRNA': {'_default': 0, '_emit': True}}},
-            'RNA': {
-                '*': {
-                    'TU_index': {'_default': 0},
-                    'can_translate': {'_default': False},
-                    'unique_index': {'_default': 0}}},
+                **dict_value_schema('active_ribosome')},
+
+            'RNA': dict_value_schema('RNAs'),
             'subunits': bulk_schema([
                 self.ribosome30S,
                 self.ribosome50S])}
@@ -241,17 +233,17 @@ class PolypeptideInitiation(PartitionedProcess):
 
             start_index += counts
 
+        if 'active_ribosome' in states and states['active_ribosome']:
+            self.ribosome_index = int(max([int(index) for index in list(states['active_ribosome'].keys())])) + 1
+
         # Create active 70S ribosomes and assign their attributes
         new_ribosomes = arrays_to(
             n_ribosomes_to_activate, {
-                'unique_index': np.array(create_unique_indexes(n_ribosomes_to_activate)),
+                'unique_index': np.arange(self.ribosome_index, self.ribosome_index + n_ribosomes_to_activate).astype(int),
                 'protein_index': protein_indexes,
                 'peptide_length': np.zeros(cast(int, n_ribosomes_to_activate), dtype=np.int64),
                 'mRNA_index': mRNA_indexes,
                 'pos_on_mRNA': np.zeros(cast(int, n_ribosomes_to_activate), dtype=np.int64)})
-
-        # TODO(vivarium) -- this tracking of index seems messy -- can it automatically create new index?
-        self.ribosome_index += n_ribosomes_to_activate
 
         update = {
             'subunits': {

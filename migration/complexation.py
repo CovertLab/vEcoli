@@ -4,20 +4,15 @@ import numpy as np
 from matplotlib import pyplot as plt
 
 from vivarium.library.dict_utils import deep_merge
-
-from ecoli.library.sim_data import LoadSimData
 from ecoli.library.schema import array_from
-from ecoli.composites.ecoli_master import SIM_DATA_PATH
 from ecoli.processes.complexation import Complexation
 from ecoli.states.wcecoli_state import get_state_from_file
 from migration.migration_utils import (run_ecoli_process,
                                        array_equal,
                                        stochastic_equal,
                                        array_diffs_report_test)
+from migration import load_sim_data
 
-load_sim_data = LoadSimData(
-            sim_data_path=SIM_DATA_PATH,
-            seed=0)
 
 TOPOLOGY = Complexation.topology
 

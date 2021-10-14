@@ -1,5 +1,5 @@
 
-def get_ecoli_master_topology_settings():
+def get_ecoli_nonpartition_topology_settings():
     """plot settings for ecoli_master's topology plot"""
     process_row = -4
     process_x_offset = -1
