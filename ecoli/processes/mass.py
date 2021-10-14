@@ -13,7 +13,7 @@ from vivarium.core.engine import pp
 from vivarium.core.composition import process_in_experiment
 from vivarium.library.units import units
 
-from ecoli.library.schema import bulk_schema
+from ecoli.library.schema import bulk_schema, dict_value_schema
 
 
 AVOGADRO = constants.N_A #* 1 / units.mol
@@ -48,7 +48,7 @@ class Mass(Deriver):
         return {
             'bulk': bulk_schema(self.molecular_weights.keys()),
             'unique': {
-                mol_id: {'*': {}}
+                mol_id: dict_value_schema(mol_id + 's')
                 for mol_id in self.unique_masses.keys()
             },
             'listeners': {
