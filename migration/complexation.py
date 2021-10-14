@@ -7,7 +7,7 @@ from vivarium.library.dict_utils import deep_merge
 
 from ecoli.library.sim_data import LoadSimData
 from ecoli.library.schema import array_from
-from ecoli.composites.ecoli_master import SIM_DATA_PATH
+from ecoli.composites.ecoli_nonpartition import SIM_DATA_PATH
 from ecoli.processes.complexation import Complexation
 from ecoli.states.wcecoli_state import get_state_from_file
 from migration.migration_utils import (run_ecoli_process,

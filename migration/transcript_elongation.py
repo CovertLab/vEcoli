@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 from scipy.stats import mannwhitneyu, chisquare
 
 from ecoli.library.sim_data import LoadSimData
-from ecoli.composites.ecoli_master import SIM_DATA_PATH
+from ecoli.composites.ecoli_nonpartition import SIM_DATA_PATH
 from migration.migration_utils import *
 
 from ecoli.processes.transcript_elongation import TranscriptElongation

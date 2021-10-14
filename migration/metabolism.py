@@ -16,7 +16,7 @@ from vivarium.core.control import run_library_cli
 # ecoli imports
 from ecoli.library.sim_data import LoadSimData
 from ecoli.states.wcecoli_state import get_state_from_file
-from ecoli.composites.ecoli_master import SIM_DATA_PATH, AA_MEDIA_ID
+from ecoli.composites.ecoli_nonpartition import SIM_DATA_PATH, AA_MEDIA_ID
 from ecoli.processes import Metabolism, Exchange
 from ecoli.library.schema import array_from
 
