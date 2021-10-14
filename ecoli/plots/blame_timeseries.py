@@ -49,44 +49,55 @@ def blame_timeseries(data,
                  if data != {}}
 
     # Start plotting!
-    time = data['time'][1:]
+    time = data['time']
     max_t = data['time'][-1]
 
-    # One subplot per molecule
-    fig, axs = plt.subplots(len(molecules), 1)
+    # Twp subplots per molecule (count, change)
+    fig, axs = plt.subplots(len(molecules), 2,
+                            figsize=(10 + np.sqrt(max_t), 3*len(molecules)),
+                            gridspec_kw={'width_ratios': [1, 10 + np.sqrt(max_t)]})
     for i, molecule in enumerate(molecules):
-        axs[i].set_title(f"Change in {molecule}")
-        axs[i].set_ylabel("# molecules")
-        axs[i].set_xlabel("Time (s)")
-        axs[i].set_xticks(time)
-        axs[i].axhline(y=0, color="k", linestyle="--", alpha=0.5)
+        # Plot molecule count over time
+        molecule_data = data['bulk'][molecule]
+        axs[i, 0].set_title(f"Count of {molecule}", pad=20)
+        axs[i, 0].set_ylabel("# molecules")
+        axs[i, 0].set_xlabel("Time (s)")
+        axs[i, 0].set_xticks(time)
+        axs[i, 0].plot(time, molecule_data)
+
+        # Plot change due to each process
+        axs[i, 1].set_title(f"Change in {molecule}", pad=20)
+        axs[i, 1].set_ylabel("# molecules")
+        axs[i, 1].set_xlabel("Time (s)")
+        axs[i, 1].set_xticks(time[1:])
+        axs[i, 1].axhline(y=0, color="k", linestyle="--", alpha=0.5)
 
         # Need to keep track of separate totals for positive, negative
         # entries at each time step, so that positive entries get stacked above 0,
         # and negative entries get stacked below.
-        total_pos = np.zeros_like(time)
-        total_neg = np.zeros_like(time)
+        total_pos = np.zeros_like(time[1:])
+        total_neg = np.zeros_like(time[1:])
         for process, process_data in plot_data.items():
             if molecule in process_data:
                 molecule_data = process_data[molecule]
-                axs[i].bar(time, molecule_data,
-                           bottom=np.where(molecule_data > 0,
-                                           total_pos, total_neg),
-                           label=process)
+                axs[i, 1].bar(time[1:], molecule_data,
+                              bottom=np.where(molecule_data > 0,
+                                              total_pos, total_neg),
+                              label=process)
                 total_pos += np.clip(molecule_data, 0, None)
                 total_neg += np.clip(molecule_data, None, 0)
 
-        axs[i].set_yscale(yscale)
+        axs[i, 1].set_yscale(yscale)
 
         # Plot net change
-        axs[i].legend(bbox_to_anchor=(1.04, 0.5),
-                      loc="center left", borderaxespad=0)
-        axs[i].plot(time, total_pos + total_neg,
-                    color="k", label="net change")
+        axs[i, 1].legend(bbox_to_anchor=(1.04, 0.5),
+                         loc="center left", borderaxespad=0)
+        axs[i, 1].plot(time[1:], total_pos + total_neg,
+                       color="k", label="net change")
 
     # Sizing and spacing
-    fig.set_size_inches(4 + max_t,  # include space for legend(s)
-                        3 * len(molecules))  # height prop. to number of plots
+    # fig.set_size_inches(4 + np.sqrt(max_t),  # include space for legend(s)
+    #                     3 * len(molecules))  # height prop. to number of plots
     fig.tight_layout(pad=2.0)
 
     # Save plot to file
@@ -127,8 +138,8 @@ def test_blame_timeseries():
         sim.emit_processes = False
         sim.total_time = 10
         sim.exclude_processes = ["ecoli-two-component-system",
-                                 "ecoli-chromosome-structure",
-                                 "ecoli-polypeptide-elongation"]
+                                 "ecoli-chromosome-structure",]
+                                 #"ecoli-polypeptide-elongation"]
         data = sim.run()
         topo = sim.ecoli.topology
 
@@ -144,7 +155,8 @@ def test_blame_timeseries():
     ]
 
     blame_timeseries(data, topo,
-                     # ['WATER[c]', 'APORNAP-CPLX[c]', 'TRP[c]'], #, "CPLX0-7452"],
+                     # , "CPLX0-7452"],
+                     # ['WATER[c]', 'APORNAP-CPLX[c]', 'TRP[c]'],
                      molecules,
                      'out/ecoli_master/test_blame_timeseries.png',
                      yscale="linear")
