@@ -8,7 +8,7 @@ from scipy.stats import mannwhitneyu
 
 from ecoli.library.sim_data import LoadSimData
 from ecoli.library.schema import array_from
-from ecoli.composites.ecoli_master import SIM_DATA_PATH
+from ecoli.composites.ecoli_nonpartition import SIM_DATA_PATH
 from ecoli.processes.equilibrium import Equilibrium
 
 from migration.plots import qqplot

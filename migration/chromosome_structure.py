@@ -9,7 +9,7 @@ import os
 
 from vivarium.core.engine import Engine
 from ecoli.library.sim_data import LoadSimData
-from ecoli.composites.ecoli_master import SIM_DATA_PATH
+from ecoli.composites.ecoli_nonpartition import SIM_DATA_PATH
 from ecoli.processes.chromosome_structure import ChromosomeStructure
 from migration.migration_utils import (ComparisonTestSuite, equal,
                                        equal_len, scalar_equal)

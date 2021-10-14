@@ -4,7 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from ecoli.library.sim_data import LoadSimData
-from ecoli.composites.ecoli_master import SIM_DATA_PATH
+from ecoli.composites.ecoli_nonpartition import SIM_DATA_PATH
 from ecoli.processes.two_component_system import TwoComponentSystem
 from migration.plots import qqplot
 from migration.migration_utils import run_ecoli_process, scalar_almost_equal, ComparisonTestSuite

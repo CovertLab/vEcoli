@@ -1,5 +1,5 @@
 from ecoli.library.sim_data import LoadSimData
-from ecoli.composites.ecoli_master import SIM_DATA_PATH
+from ecoli.composites.ecoli_nonpartition import SIM_DATA_PATH
 from ecoli.processes.polypeptide_initiation import PolypeptideInitiation
 from vivarium.core.engine import pf
 import json
