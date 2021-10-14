@@ -3,7 +3,6 @@ tests that ecoli_partition composite matches wcEcoli states at select time steps
 """
 
 import json
-import os
 import numpy as np
 from scipy.stats import linregress
 from matplotlib import pyplot as plt
