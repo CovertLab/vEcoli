@@ -5,16 +5,11 @@ import matplotlib.pyplot as plt
 import os
 
 from vivarium.core.engine import pf
-from ecoli.library.sim_data import LoadSimData
-from ecoli.composites.ecoli_nonpartition import SIM_DATA_PATH
 from ecoli.processes.chromosome_replication import ChromosomeReplication
 from ecoli.states.wcecoli_state import MASSDIFFS
-from ecoli.library.schema import arrays_from
 from migration.migration_utils import *
+from migration import load_sim_data
 
-load_sim_data = LoadSimData(
-    sim_data_path=SIM_DATA_PATH,
-    seed=0)
 
 TOPOLOGY = ChromosomeReplication.topology
 

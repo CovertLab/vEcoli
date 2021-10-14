@@ -282,7 +282,7 @@ def run_ecoli(
 @pytest.mark.slow
 def run_division(
         agent_id='1',
-        total_time=60
+        total_time=30
 ):
     """
     Work in progress to get division working

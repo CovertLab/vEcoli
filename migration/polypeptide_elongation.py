@@ -3,21 +3,15 @@ import json
 import numpy as np
 import matplotlib.pyplot as plt
 
-from vivarium.core.engine import Engine, pf
-
-from ecoli.library.sim_data import LoadSimData
-from ecoli.composites.ecoli_nonpartition import SIM_DATA_PATH
+from vivarium.core.engine import Engine
 from ecoli.states.wcecoli_state import get_state_from_file, MASSDIFFS
 from ecoli.processes.polypeptide_elongation import PolypeptideElongation
 from ecoli.library.schema import array_from
 from migration.plots import qqplot
 from migration.migration_utils import run_ecoli_process
 from migration.migration_utils import scalar_almost_equal, array_almost_equal, ComparisonTestSuite, transform_and_run
+from migration import load_sim_data
 
-
-load_sim_data = LoadSimData(
-            sim_data_path=SIM_DATA_PATH,
-            seed=0)
 
 PE_TOPOLOGY = PolypeptideElongation.topology
 
