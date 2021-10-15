@@ -71,11 +71,15 @@ def make_dict_value_updater(defaults):
                     if k in result:
                         del result[k]
                     else:
-                        print(f"Invalid delete key: {k}")
+                        pass
+                        # TODO -- fix processes to not delete invalid keys
+                        # print(f"Invalid delete key: {k}")
             elif key in result:
                 result[key].update(value)
             else:
-                print(f"Invalid update key: {key}")
+                pass
+                # TODO -- fix processes to not updater invalid keys
+                # print(f"Invalid update key: {key}")
         return result
 
     return custom_dict_value_updater
