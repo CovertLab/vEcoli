@@ -1,6 +1,7 @@
 import copy
 
 from matplotlib import pyplot as plt
+import numpy as np
 
 from vivarium.library.units import units
 from vivarium.library.dict_utils import deep_merge, deep_merge_check
@@ -117,6 +118,24 @@ def get_expected_demo_data():
         data['time'].append(i + 1)
 
     return data
+
+
+def test_antibiotic_hydrolysis():
+    _, simulated_data = demo()
+    expected_data = get_expected_demo_data()
+    assert simulated_data['time'] == expected_data['time']
+    np.testing.assert_allclose(
+        simulated_data['internal']['antibiotic'],
+        expected_data['antibiotic'],
+        rtol=0,
+        atol=1e-15,
+    )
+    np.testing.assert_allclose(
+        simulated_data['internal']['antibiotic_hydrolyzed'],
+        expected_data['antibiotic_hydrolyzed'],
+        rtol=0,
+        atol=1e-15,
+    )
 
 
 def get_demo_vs_expected_plot(demo_data, expected_data):
