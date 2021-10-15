@@ -63,8 +63,7 @@ class Plot:
             for label, fraction in zip(mass_labels, fractions)
         ] + ['Total dry mass']
 
-
-        plt.figure(figsize=(8.5, 11))
+        fig = plt.figure(figsize=(8.5, 11))
         plt.gca().set_prop_cycle('color', COLORS)
 
         plt.plot(t, masses / masses[0, :], linewidth=2)
@@ -84,12 +83,13 @@ class Plot:
         #todo make analysis tools
         #this is from WCEcoli: exportFigure(plt, "ecoli/analysis/seriesOut", "massfractionSummary")
         plt.close("all")
+        return fig
 
 
 
 def run_plot():
 
-    data = run_ecoli(filename='silent_unique', total_time=200, emitter='database')
+    data = run_ecoli(total_time=200)
     Plot(data)
 
 

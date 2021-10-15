@@ -25,13 +25,19 @@ def dict_value_updater(current, update):
     '''
     result = current
 
-    if update.get("_add"):
-        for operation in update["_add"]:
-            result[operation["key"]] = operation["state"]
-
-    for k in update.get("_delete", {}):
-        result.pop(k)
-
+    for key, value in update.items():
+        if key == "_add":
+            for added_value in value:
+                added_key = added_value["key"]
+                added_state = added_value["state"]
+                result[added_key] = added_state
+        elif key == "_delete":
+            for k in value:
+                del result[k]
+        elif key in result:
+            result[key].update(value)
+        else:
+            raise Exception(f"Invalid dict_value_updater key: {key}")
     return result
 
 
@@ -45,31 +51,39 @@ def make_dict_value_updater(defaults):
     entries not provided will have values supplied by the defaults.
     '''
 
-    def dict_value_updater(current, update):
-
+    def custom_dict_value_updater(current, update):
         result = current
-        
-        add_items = update.pop("_add", {})
-        remove_items = update.pop("_delete", {})
-
-        for operation in add_items:
-            state = operation["state"]
-            if not state.keys() <= defaults.keys():
-                raise Exception("State has keys not in defaults: " + 
-                                str(state.keys() - defaults.keys()))
-            state = {**defaults, **state}
-            result[operation["key"]] = state
-                
-        for index, value in update.items():
-            if index in result:
-                result[index].update(value)
-        
-        for k in remove_items:
-            result.pop(k)
-
+        for key, value in update.items():
+            if key == "_add":
+                assert isinstance(value, list)
+                for added_value in value:
+                    added_key = added_value["key"]
+                    added_state = added_value["state"]
+                    if added_key in current:
+                        raise Exception(f"Cannot add {added_key}, already in state")
+                    elif not added_state.keys() <= defaults.keys():
+                        raise Exception(f"State has keys not in defaults: "
+                                        f"{added_state.keys() - defaults.keys()}")
+                    result[added_key] = {**defaults, **added_state}
+            elif key == "_delete":
+                assert isinstance(value, list)
+                for k in value:
+                    if k in result:
+                        del result[k]
+                    else:
+                        pass
+                        # TODO -- fix processes to not delete invalid keys
+                        # print(f"Invalid delete key: {k}")
+            elif key in result:
+                result[key].update(value)
+            else:
+                pass
+                # TODO -- fix processes to not updater invalid keys
+                # print(f"Invalid update key: {key}")
         return result
 
-    return dict_value_updater
+    return custom_dict_value_updater
+
 
 UNIQUE_DEFAULTS = {
     'active_ribosome': {
