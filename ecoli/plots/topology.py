@@ -76,7 +76,7 @@ def get_ecoli_nonpartition_topology_settings():
     return settings
 
 
-def get_partition_topology_settings():
+def get_ecoli_partition_topology_settings():
     evolver_row = -6
     allocator_row = -7
     requester_row = -8

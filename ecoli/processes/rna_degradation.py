@@ -388,8 +388,8 @@ class RnaDegradation(PartitionedProcess):
 
         rnas_indexes = list(states['RNAs'].keys())
         rnas_update = arrays_to(
-            len(states['RNAs']), {
-            'can_translate': can_translate})
+            len(states['RNAs']),
+            {'can_translate': can_translate})
 
         update = {
             'listeners': {
