@@ -1,3 +1,4 @@
+import copy
 import numpy as np
 
 def divide_binomial(state):
@@ -28,7 +29,7 @@ def dict_value_updater(current, update):
     for key, value in update.items():
         if key == "_add":
             for added_value in value:
-                added_key = value["key"]
+                added_key = added_value["key"]
                 added_state = added_value["state"]
                 result[added_key] = added_state
         elif key == "_delete":
@@ -55,8 +56,9 @@ def make_dict_value_updater(defaults):
         result = current
         for key, value in update.items():
             if key == "_add":
+                assert isinstance(value, list)
                 for added_value in value:
-                    added_key = value["key"]
+                    added_key = added_value["key"]
                     added_state = added_value["state"]
                     if added_key in current:
                         raise Exception(f"Cannot add {added_key}, already in state")
@@ -65,6 +67,7 @@ def make_dict_value_updater(defaults):
                                         f"{added_state.keys() - defaults.keys()}")
                     result[added_key] = {**defaults, **added_state}
             elif key == "_delete":
+                assert isinstance(value, list)
                 for k in value:
                     del result[k]
             elif key in result:
