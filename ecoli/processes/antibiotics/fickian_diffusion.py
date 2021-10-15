@@ -1,6 +1,6 @@
+from matplotlib import pyplot as plt
 import numpy as np
 from scipy import constants
-from matplotlib import pyplot as plt
 
 from vivarium.library.units import units, Quantity, remove_units
 from vivarium.core.process import Process
@@ -238,6 +238,24 @@ def get_expected_demo_data():
         data['time'].append(i + 1)
 
     return remove_units(data)
+
+
+def test_fickian_diffusion():
+    _, simulated_data = demo()
+    expected_data = get_expected_demo_data()
+    assert simulated_data['time'] == expected_data['time']
+    np.testing.assert_allclose(
+        simulated_data['internal']['antibiotic'],
+        expected_data['internal'],
+        rtol=0,
+        atol=1e-15,
+    )
+    np.testing.assert_allclose(
+        simulated_data['external']['antibiotic'],
+        expected_data['external'],
+        rtol=0,
+        atol=1e-15,
+    )
 
 
 def get_demo_vs_expected_plot(demo_data, expected_data):

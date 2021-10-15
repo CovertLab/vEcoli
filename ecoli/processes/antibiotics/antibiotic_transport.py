@@ -8,6 +8,7 @@ Simulate Antibiotic Export
 import copy
 
 from matplotlib import pyplot as plt
+import numpy as np
 from scipy.constants import N_A
 
 from vivarium.core.composition import (
@@ -157,6 +158,25 @@ def get_expected_demo_data():
     return data
 
 
+def test_antibiotic_transport():
+    _, simulated_data = demo()
+    expected_data = get_expected_demo_data()
+
+    assert simulated_data['time'] == expected_data['time']
+    np.testing.assert_allclose(
+        simulated_data['internal']['antibiotic'],
+        expected_data['internal'],
+        rtol=0,
+        atol=1e-15,
+    )
+    np.testing.assert_allclose(
+        simulated_data['external']['antibiotic'],
+        expected_data['external'],
+        rtol=0,
+        atol=1e-15,
+    )
+
+
 def get_demo_vs_expected_plot(demo_data, expected_data):
     fig, (ax1, ax2) = plt.subplots(nrows=2, figsize=(10, 5))
     ax1.plot(
@@ -188,7 +208,3 @@ def get_demo_vs_expected_plot(demo_data, expected_data):
     fig.tight_layout()
 
     return fig
-
-
-if __name__ == '__main__':
-    get_expected_demo_data()
