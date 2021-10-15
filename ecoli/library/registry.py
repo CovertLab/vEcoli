@@ -69,11 +69,14 @@ def make_dict_value_updater(defaults):
             elif key == "_delete":
                 assert isinstance(value, list)
                 for k in value:
-                    del result[k]
+                    if k in result:
+                        del result[k]
+                    else:
+                        print(f"Invalid delete key: {k}")
             elif key in result:
                 result[key].update(value)
             else:
-                print(f"Invalid dict_value_updater key: {key}")
+                print(f"Invalid update key: {key}")
         return result
 
     return custom_dict_value_updater
