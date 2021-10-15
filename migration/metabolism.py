@@ -341,9 +341,9 @@ test_library = {
     '0': test_metabolism_migration,
     '1': test_metabolism,
     '2': test_metabolism_aas,
-    '3': run_metabolism_composite,
-    '4': run_metabolism,
-    '5': run_metabolism_exchanger,
+    '3': run_metabolism,
+#    '4': run_metabolism_composite,
+#    '5': run_metabolism_exchanger,
 }
 
 if __name__ == '__main__':

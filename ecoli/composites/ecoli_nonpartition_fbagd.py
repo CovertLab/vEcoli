@@ -20,7 +20,7 @@ from ecoli.library.sim_data import LoadSimData
 from ecoli.library.logging import make_logging_process
 
 # vivarium-ecoli processes
-from ecoli.plots.topology import get_ecoli_master_topology_settings
+from ecoli.plots.topology import get_ecoli_nonpartition_topology_settings
 from ecoli.processes.tf_binding import TfBinding
 from ecoli.processes.transcript_initiation import TranscriptInitiation
 from ecoli.processes.transcript_elongation import TranscriptElongation
@@ -306,12 +306,12 @@ def run_ecoli(
     ecoli = ecoli_composer.generate(path=path)
 
     # make the experiment
-    ecoli_experiment = Engine({
-        'processes': ecoli.processes,
-        'topology': ecoli.topology,
-        'initial_state': initial_state,
-        'progress_bar': progress_bar,
-    })
+    ecoli_experiment = Engine(
+        processes=ecoli.processes,
+        topology=ecoli.topology,
+        initial_state=initial_state,
+        progress_bar=progress_bar,
+    )
 
     # run the experiment
     ecoli_experiment.update(total_time)
@@ -350,7 +350,7 @@ def ecoli_topology_plot(config={}, filename=None, out_dir=None):
     """Make a topology plot of Ecoli"""
     agent_id_config = {'agent_id': '1'}
     ecoli = Ecoli({**agent_id_config, **config})
-    settings = get_ecoli_master_topology_settings()
+    settings = get_ecoli_nonpartition_topology_settings()
     topo_plot = plot_topology(
         ecoli,
         filename=filename,
