@@ -5,10 +5,10 @@ from dataclasses import dataclass
 from typing import Any, Iterable, Iterator, Mapping, Optional, Tuple, Union
 
 import jax
+import jax.ops
 import jax.numpy as jnp
 import numpy as np
 import scipy.optimize
-from scipy.sparse import csr_matrix
 
 ArrayT = Union[np.ndarray, jnp.ndarray]
 
@@ -211,6 +211,34 @@ class TargetVelocityObjective(ObjectiveComponent):
 
 
 @dataclass
+class CooSparseMatrix:
+    """Basic implementation of Coordinate-Format (COO) sparse matrix-vector multiplication with JAX primitives.
+
+    COO format uses three vectors containing the value, row index, and column index respectively for all non-zero
+    elements in a matrix. All three have length NNZ (Number of Non-Zeros), sorted first by row then by column.
+
+    Attrs:
+      shape: (#rows, #cols)
+      data: vector of non-zero values
+      rows: row index for each value in data
+      cols: column index for each value in data
+    """
+    shape: Tuple[int, int]
+    data: jnp.ndarray
+    rows: jnp.ndarray
+    cols: jnp.ndarray
+
+    def __matmul__(self, other: jnp.ndarray) -> jnp.ndarray:
+        """Implements the @ operator."""
+        return self.dot(other)
+
+    def dot(self, other: jnp.ndarray) -> jnp.ndarray:
+        """Sparse matrix by dense vector multiplication."""
+        terms = jnp.multiply(self.data, other[self.cols])
+        return jax.ops.segment_sum(terms, self.rows, num_segments=self.shape[0], indices_are_sorted=True)
+
+
+@dataclass
 class FbaResult:
     """Reaction velocities and dm/dt for an FBA solution, with metrics."""
     seed: int
@@ -246,9 +274,12 @@ class GradientDescentFba:
                 irreversible_reactions.append(reaction["reaction id"])
 
         self.network = network
-        self._objectives = {}
+        # Build a sparse copy of the S matrix for optimized matrix-vector multiplication.
+        rows, cols = jnp.nonzero(network.s_matrix)
+        self._s_sparse = CooSparseMatrix(network.s_matrix.shape, jnp.asarray(network.s_matrix[rows, cols]), rows, cols)
 
         # All FBA problems have a steady-state objective, for all intermediates.
+        self._objectives = {}
         self.add_objective("steady-state",
                            SteadyStateObjective(network,
                                                 (m for m in network.molecule_ids()
@@ -275,8 +306,7 @@ class GradientDescentFba:
         Returns:
             A dict of residual vectors, supplied by each objective component.
         """
-        # TODO(fdrusso): Sparse matrix multiplication for efficiency
-        dm_dt = self.network.s_matrix @ velocities
+        dm_dt = self._s_sparse @ velocities
 
         residuals = {}
         for objective_id, objective in self._objectives.items():
@@ -325,15 +355,9 @@ class GradientDescentFba:
         def loss(v):
             return jnp.concatenate(list(self.residuals(v, target_values).values()))
         
-        # using csr_matrix
-        # jac_wrap = lambda x: csr_matrix(jac(x))
-        # soln = scipy.optimize.least_squares(fn, x0, jac=jac_wrap, verbose=2, ftol=0.00001,
-        #                                     tr_solver='lsmr', max_nfev=4,
-        #                                     tr_options={'atol': 10**(-7), 'btol': 10**(-7),'conlim':10**(8), 'show': False})
-        
         # Perform the actual gradient descent, and extract the result.
         soln = scipy.optimize.least_squares(jax.jit(loss), x0, jac=jax.jit(jax.jacfwd(loss)), **kwargs)
-        dm_dt = self.network.s_matrix @ soln.x
+        dm_dt = self._s_sparse @ soln.x
         ss_residual = self._objectives["steady-state"].residual(soln.x, dm_dt, None)
         return FbaResult(seed=rng_seed,
                          velocities=self.network.reaction_values(soln.x),
