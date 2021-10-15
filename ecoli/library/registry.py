@@ -16,7 +16,7 @@ def divide_binomial(state):
 
 def dict_value_updater(current, update):
     '''
-    Updater which translates add_item and delete_item -style updates
+    Updater which translates _add and _delete -style updates
     into operations on a dictionary.
 
     Expects current to be a dictionary, with no restriction on the types of objects
@@ -37,7 +37,7 @@ def dict_value_updater(current, update):
 
 def make_dict_value_updater(defaults):
     '''
-    Returns an updater which translates add_item and delete_item -style updates
+    Returns an updater which translates _add and _delete -style updates
     into operations on a dictionary.
 
     The returned updater expects current to be a dictionary. Each added item
