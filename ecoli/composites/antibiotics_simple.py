@@ -1,10 +1,9 @@
-from enum import Enum
-
-from vivarium.core.composer import Composer, MetaComposer
+from vivarium.core.composer import Composer
 from vivarium.core.composition import (
     composite_in_experiment, simulate_experiment)
 from vivarium.library.units import units
 from vivarium.plots.simulation_output import plot_variables
+from vivarium.plots.topology import plot_topology
 
 from ecoli.processes.antibiotics.antibiotic_transport import AntibioticTransport
 from ecoli.processes.antibiotics.antibiotic_hydrolysis import AntibioticHydrolysis
@@ -46,7 +45,7 @@ class SimpleAntibioticsCell(Composer):
     '''
 
     defaults = {
-        'boundary_path': tuple(),
+        'boundary_path': ('boundary',),
         'efflux': {
             'initial_pump': 1e-3,
             'initial_internal_antibiotic': INITIAL_INTERNAL_ANTIBIOTIC,
@@ -109,30 +108,30 @@ class SimpleAntibioticsCell(Composer):
         boundary_path = config['boundary_path']
         topology = {
             'efflux': {
-                'internal': boundary_path + ('periplasm', 'concs'),
+                'internal': ('periplasm', 'concs'),
                 'external': boundary_path + ('external',),
                 'exchanges': boundary_path + ('exchanges',),
-                'pump_port': boundary_path + ('periplasm', 'concs'),
-                'fluxes': boundary_path + ('fluxes',),
-                'global': boundary_path + ('periplasm', 'global'),
+                'pump_port': ('periplasm', 'concs'),
+                'fluxes': ('fluxes',),
+                'global': ('periplasm', 'global'),
             },
             'hydrolysis': {
-                'internal': boundary_path + ('periplasm', 'concs'),
-                'catalyst_port': boundary_path + ('periplasm', 'concs'),
-                'fluxes': boundary_path + ('fluxes',),
-                'global': boundary_path + ('periplasm', 'global'),
+                'internal': ('periplasm', 'concs'),
+                'catalyst_port': ('periplasm', 'concs'),
+                'fluxes': ('fluxes',),
+                'global': ('periplasm', 'global'),
             },
             'fickian_diffusion': {
-                'internal': boundary_path + ('periplasm', 'concs'),
+                'internal': ('periplasm', 'concs'),
                 'external': boundary_path + ('external',),
                 'exchanges': boundary_path + ('exchanges',),
-                'fluxes': boundary_path + ('fluxes',),
-                'global': boundary_path + ('periplasm', 'global'),
+                'fluxes': ('fluxes',),
+                'volume_global': ('periplasm', 'global'),
+                'mass_global': boundary_path,
             },
             'shape_deriver': {
-                'cell_global': boundary_path + ('global',),
-                'periplasm_global': boundary_path + (
-                    'periplasm', 'global')
+                'cell_global': boundary_path,
+                'periplasm_global': ('periplasm', 'global')
             },
         }
         return topology
@@ -151,11 +150,11 @@ def demo():
         composite=env.generate(),
         topology={
             'nonspatial_environment': {
-                'external': ('external',),
-                'exchanges': ('exchanges',),
+                'external': ('boundary', 'external'),
+                'exchanges': ('boundary','exchanges'),
                 'fields': ('environment', 'fields'),
                 'dimensions': ('environment', 'dimensions'),
-                'global': ('global',),
+                'global': ('boundary',),
             }
         }
     )
@@ -164,13 +163,15 @@ def demo():
         composite,
         initial_state=composite.initial_state(),
     )
-    data = simulate_experiment(exp, {'total_time': 10})
+    data = simulate_experiment(
+        exp,
+        {'total_time': 10})
     fig = plot_variables(
         data,
         variables=[
             ('periplasm', 'concs', 'antibiotic'),
             ('periplasm', 'concs', 'antibiotic_hydrolyzed'),
-            ('external', 'antibiotic'),
+            ('boundary', 'external', 'antibiotic'),
         ],
     )
     return fig, data
