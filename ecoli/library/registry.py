@@ -73,7 +73,7 @@ def make_dict_value_updater(defaults):
             elif key in result:
                 result[key].update(value)
             else:
-                raise Exception(f"Invalid dict_value_updater key: {key}")
+                print(f"Invalid dict_value_updater key: {key}")
         return result
 
     return custom_dict_value_updater
