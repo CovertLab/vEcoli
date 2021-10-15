@@ -1,4 +1,3 @@
-import copy
 import numpy as np
 
 def divide_binomial(state):

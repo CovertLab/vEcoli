@@ -45,12 +45,23 @@ class Mass(Deriver):
         self.unique_masses = self.parameters['unique_masses']
 
     def ports_schema(self):
+
+        unique_schema = {}
+        for mol_id in self.unique_masses.keys():
+            # TODO -- this should be cleaned up to match the registered updaters
+            if mol_id in [
+                'RNA', 'active_RNAP', 'active_replisome', 'chromosomal_segment',
+                'chromosome_domain', 'full_chromosome', 'oriC', 'promoter'
+            ]:
+                unique_schema[mol_id] = dict_value_schema(mol_id + 's')
+            elif mol_id in ['DnaA_box']:
+                unique_schema[mol_id] = dict_value_schema(mol_id + 'es')
+            else:
+                unique_schema[mol_id] = dict_value_schema(mol_id)
+
         return {
             'bulk': bulk_schema(self.molecular_weights.keys()),
-            'unique': {
-                mol_id: dict_value_schema(mol_id + 's')
-                for mol_id in self.unique_masses.keys()
-            },
+            'unique': unique_schema,
             'listeners': {
                 'mass': {
                     'cell_mass': {
