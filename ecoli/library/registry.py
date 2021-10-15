@@ -25,11 +25,11 @@ def dict_value_updater(current, update):
     '''
     result = current
 
-    if update.get("add_items"):
-        for operation in update["add_items"]:
+    if update.get("_add"):
+        for operation in update["_add"]:
             result[operation["key"]] = operation["state"]
 
-    for k in update.get("remove_items", {}):
+    for k in update.get("_delete", {}):
         result.pop(k)
 
     return result
