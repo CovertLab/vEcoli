@@ -13,13 +13,14 @@ from vivarium.library.dict_utils import deep_merge
 # vivarium-ecoli imports
 from ecoli.library.sim_data import LoadSimData
 from ecoli.states.wcecoli_state import get_state_from_file
-from ecoli.composites.ecoli_master import SIM_DATA_PATH, ECOLI_TOPOLOGY
+from ecoli.composites.ecoli_master import SIM_DATA_PATH
 from ecoli.processes.metabolism_gd import MetabolismGD
 from ecoli.processes import Exchange
+from ecoli.processes.registries import topology_registry
 
 
 # get topology from ecoli_master
-metabolism_topology = ECOLI_TOPOLOGY['metabolism']
+metabolism_topology = topology_registry.access('ecoli-metabolism')
 
 
 # make a composite with Exchange
