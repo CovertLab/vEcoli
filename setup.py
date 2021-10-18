@@ -15,17 +15,17 @@ with open("README.md", 'r') as readme:
 # to include data in the package, use MANIFEST.in
 
 ext_modules = [
-   Extension(name="wholecell.utils._build_sequences",
-             sources=[os.path.join("wholecell", "utils", "_build_sequences.pyx")],
-	     include_dirs = [np.get_include()],
-             ),
-   Extension(name="wholecell.utils.complexation",
-             sources=[os.path.join("wholecell", "utils", "mc_complexation.pyx")],
-	     include_dirs = [np.get_include()]
-             ),
-   Extension(name="wholecell.utils._fastsums",
-             sources=[os.path.join("wholecell", "utils", "_fastsums.pyx")],
-	     include_dirs = [np.get_include()]),
+    Extension(name="wholecell.utils._build_sequences",
+              sources=[os.path.join("wholecell", "utils", "_build_sequences.pyx")],
+              include_dirs=[np.get_include()],
+              ),
+    Extension(name="wholecell.utils.complexation",
+              sources=[os.path.join("wholecell", "utils", "mc_complexation.pyx")],
+              include_dirs=[np.get_include()]
+              ),
+    Extension(name="wholecell.utils._fastsums",
+              sources=[os.path.join("wholecell", "utils", "_fastsums.pyx")],
+              include_dirs=[np.get_include()]),
 ]
 
 packages = find_packages(where=".")
@@ -33,8 +33,8 @@ packages = find_packages(where=".")
 setup(
     name='vivarium-ecoli',
     version='0.0.1',
-    cmdclass = {'build_ext': build_ext},
-    ext_modules = ext_modules,
+    cmdclass={'build_ext': build_ext},
+    ext_modules=ext_modules,
     packages=find_packages(where="."),
     author='Eran Agmon, Ryan Spangler',
     author_email='eagmon@stanford.edu, ryan.spangler@gmail.com',
@@ -61,7 +61,6 @@ setup(
         'jaxlib',
         'jupyter',
         'aesara==2.0.8',
-        ])
         'matplotlib',
         'pytest',
     ])
