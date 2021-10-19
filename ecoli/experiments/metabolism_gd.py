@@ -11,6 +11,7 @@ from vivarium.core.composer import Composer
 from vivarium.library.dict_utils import deep_merge
 
 # vivarium-ecoli imports
+from ecoli.experiments.ecoli_master_sim import EcoliSim, CONFIG_DIR_PATH
 from ecoli.library.sim_data import LoadSimData
 from ecoli.states.wcecoli_state import get_state_from_file
 from ecoli.composites.ecoli_master import SIM_DATA_PATH
@@ -143,11 +144,40 @@ def run_metabolism_composite():
     data = experiment.emitter.get_data()
 
 
+def test_ecoli_with_metabolism_gd(
+        filename='fba_gd_swap',
+        total_time=10,
+        divide=False,
+        progress_bar=True,
+        log_updates=False,
+        emitter='timeseries',
+):
+    sim = EcoliSim.from_file(CONFIG_DIR_PATH + filename + '.json')
+    sim.total_time = total_time
+    sim.divide = divide
+    sim.progress_bar = progress_bar
+    sim.log_updates = log_updates
+    sim.emitter = emitter
+
+    # assert that the processes were swapped
+    sim.build_ecoli()
+    assert 'ecoli-metabolism-gradient-descent' in sim.ecoli['processes']
+    assert 'ecoli-metabolism' not in sim.ecoli['processes']
+    assert 'ecoli-metabolism-gradient-descent' in sim.ecoli['topology']
+    assert 'ecoli-metabolism' not in sim.ecoli['topology']
+
+    # run simulation and add asserts to output
+    output = sim.run()
+
+    # put asserts here to make sure it is behaving as expected
+    assert output['listeners']['fba_results']
+
 
 
 experiment_library = {
     '0': run_metabolism,
     '1': run_metabolism_composite,
+    '2': test_ecoli_with_metabolism_gd,
 }
 
 

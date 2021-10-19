@@ -30,7 +30,9 @@
     "save_times": [10, 100, 1000],
 
     "add_processes" : [],
-    "exclude_processes" : [],
+    "exclude_processes" : [
+        "ecoli-metabolism"
+    ],
     "swap_processes" : {},
     "processes": [
         "ecoli-chromosome-structure",
