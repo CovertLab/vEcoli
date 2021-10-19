@@ -13,6 +13,8 @@ from wholecell.utils import units
 from wholecell.utils.random import stochasticRound
 
 from ecoli.library.fba_gd import GradientDescentFba, FbaResult, TargetDmdtObjective
+from ecoli.processes.registries import topology_registry
+
 
 COUNTS_UNITS = units.mmol
 VOLUME_UNITS = units.L
@@ -24,9 +26,14 @@ GDCW_BASIS = units.mmol / units.g / units.h
 
 USE_KINETICS = True
 
+NAME = 'ecoli-metabolism-gradient-descent'
+TOPOLOGY = topology_registry.access('ecoli-metabolism')
+topology_registry.register(NAME, TOPOLOGY)
+
 
 class MetabolismGD(Process):
-    name = 'ecoli-metabolism-gradient-descent'
+    name = NAME
+    topology = TOPOLOGY
 
     defaults = {
         'stoichiometry': [],
@@ -121,6 +128,7 @@ class MetabolismGD(Process):
             'kinetics_enzymes': bulk_schema(self.kinetic_constraint_enzymes),
             'kinetics_substrates': bulk_schema(self.kinetic_constraint_substrates),
             'amino_acids': bulk_schema(self.aa_names),
+            'amino_acids_total': bulk_schema(self.aa_names, partition=False),
 
             'environment': {
                 'media_id': {
