@@ -1,0 +1,7 @@
+{
+    "experiment_id" : "fba_gd_swap",
+    "total_time" : 600,
+    "swap_processes" : {
+        "ecoli-metabolism" : "ecoli-metabolism-gradient-descent"
+    }
+}
