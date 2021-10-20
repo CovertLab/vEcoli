@@ -14,10 +14,10 @@ from datetime import datetime
 from vivarium.core.engine import Engine
 from vivarium.library.dict_utils import deep_merge
 from ecoli.library.logging import write_json
-from ecoli.composites.ecoli_master import SIM_DATA_PATH
+from ecoli.composites.ecoli_nonpartition import SIM_DATA_PATH
 # Two different Ecoli composites depending on partitioning
+import ecoli.composites.ecoli_nonpartition
 import ecoli.composites.ecoli_master
-import ecoli.composites.ecoli_partition
 
 from ecoli.processes import process_registry
 from ecoli.processes.registries import topology_registry
@@ -102,8 +102,8 @@ class EcoliSim:
             help="Random seed."
         )
         parser.add_argument(
-            '--initial_time', '-t0', action="store",
-            help="Time of the initial state to load from (corresponding inital state file must be present in data folder)."
+            '--initial_state', '-t0', action="store",
+            help="Name of the initial state to load from (corresponding initial state file must be present in data folder)."
         )
         parser.add_argument(
             '--total_time', '-t', action="store", type=float,
@@ -243,10 +243,10 @@ class EcoliSim:
 
         # initialize the ecoli composer
         if self.partition:
-            ecoli_composer = ecoli.composites.ecoli_partition.Ecoli(
+            ecoli_composer = ecoli.composites.ecoli_master.Ecoli(
                 self.config)
         else:
-            ecoli_composer = ecoli.composites.ecoli_master.Ecoli(self.config)
+            ecoli_composer = ecoli.composites.ecoli_nonpartition.Ecoli(self.config)
 
         # set path at which agent is initialized
         path = tuple()
@@ -274,7 +274,7 @@ class EcoliSim:
             self.ecoli_experiment.update(time_to_next_save)
             state = self.ecoli_experiment.state.get_value()
             state_to_save = {key: state[key] for key in
-                             ['listeners', 'bulk', 'unique', 'environment', 'process_state']}
+                             ['listeners', 'bulk', 'unique', 'environment', 'process_state'] if key in state}
             write_json('data/vivecoli_t' + str(time_elapsed) + '.json', state_to_save)
         time_remaining = self.total_time - self.save_times[-1]
         if time_remaining:

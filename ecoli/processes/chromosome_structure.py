@@ -14,7 +14,7 @@ from vivarium.core.process import Process
 from ecoli.processes.registries import topology_registry
 from ecoli.library.schema import (
     add_elements, arrays_from, bulk_schema,
-    arrays_to, array_to, listener_schema)
+    arrays_to, array_to, dict_value_schema, listener_schema)
 
 from wholecell.utils.polymerize import buildSequences
 
@@ -140,61 +140,27 @@ class ChromosomeStructure(Process):
             'amino_acids': bulk_schema(self.amino_acids),
 
             # Unique molecules
-            'active_replisomes': {
-                '*': {
-                    'domain_index': default_unique_schema,
-                    'coordinates': default_unique_schema,
-                    'unique_index': default_unique_schema
-                }},
-            'oriCs': {
-                '*': {
-                    'domain_index': default_unique_schema,
-                }},
-            'chromosome_domains': {
-                '*': {
-                    attr: default_unique_schema
-                    for attr in ('domain_index', 'child_domains')
-                }},
+            'active_replisomes': dict_value_schema('active_replisomes'),
+            'oriCs': dict_value_schema('oriCs'),
+            'chromosome_domains': dict_value_schema('chromosome_domains'),
             'active_RNAPs': {
                 '_divider': 'by_domain',
-                '*': {
-                    'unique_index': {'_default': 0, '_updater': 'set'},
-                    'domain_index': {'_default': 0, '_updater': 'set'},
-                    'coordinates': {'_default': 0, '_updater': 'set'},
-                    'direction': {'_default': 0, '_updater': 'set'}}},
+                **dict_value_schema('active_RNAPs')},
             'RNAs': {
                 '_divider': {
                     'divider': 'rna_by_domain',
                     'topology': {'active_RNAP': ('..', 'active_RNAP',),
                                  'chromosome_domain': ('..', 'chromosome_domain')}
                 },
-                '*': {
-                    'unique_index': {'_default': 0, '_updater': 'set'},
-                    'TU_index': {'_default': 0, '_updater': 'set'},
-                    'transcript_length': {'_default': 0, '_updater': 'set'},
-                    'RNAP_index': {'_default': 0, '_updater': 'set'}}},
-            'active_ribosome': {
-                '*': {
-                    'protein_index': {'_default': 0},
-                    'peptide_length': {'_default': 0},
-                    'mRNA_index': {'_default': 0}}},
-            'full_chromosomes': {
-                '*': {
-                    'domain_index': default_unique_schema
-                }},
+                **dict_value_schema('RNAs')},
+            'active_ribosome': dict_value_schema('active_ribosome'),
+            'full_chromosomes': dict_value_schema('full_chromosomes'),
             'promoters': {
                 '_divider': 'by_domain',
-                '*': {
-                    'TU_index': {'_default': 0},
-                    'coordinates': {'_default': 0},
-                    'domain_index': {'_default': 0},
-                    'bound_TF': {'_default': 0}}},
+                **dict_value_schema('promoters')},
             'DnaA_boxes': {
                 '_divider': 'by_domain',
-                '*': {
-                    'domain_index': {'_default': 0},
-                    'coordinates': {'_default': 0},
-                    'DnaA_bound': {'_default': 0}}}
+                **dict_value_schema('DnaA_boxes')}
         }
 
         if self.calculate_superhelical_densities:

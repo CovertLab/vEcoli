@@ -1,5 +1,3 @@
-from ecoli.library.sim_data import LoadSimData
-from ecoli.composites.ecoli_master import SIM_DATA_PATH
 from ecoli.processes.polypeptide_initiation import PolypeptideInitiation
 from vivarium.core.engine import pf
 import json
@@ -7,10 +5,8 @@ import os
 import matplotlib.pyplot as plt
 from migration.plots import qqplot
 from migration.migration_utils import *
+from migration import load_sim_data
 
-load_sim_data = LoadSimData(
-            sim_data_path=SIM_DATA_PATH,
-            seed=0)
 
 PI_TOPOLOGY = PolypeptideInitiation.topology
 

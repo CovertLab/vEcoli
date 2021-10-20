@@ -94,3 +94,10 @@ def submass_schema():
     return {
         '_default': np.zeros(9),
         '_emit': True}
+
+def dict_value_schema(name):
+    return {
+        '_default': {},
+        '_updater': f'{name}_updater',
+        '_emit': True
+    }
