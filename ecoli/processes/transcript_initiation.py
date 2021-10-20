@@ -273,7 +273,8 @@ class TranscriptInitiation(PartitionedProcess):
             'RNAs': {
                 '_divider': {
                     'divider': 'rna_by_domain',
-                    'topology': {'active_RNAP': ('..', 'active_RNAP',)}
+                    'topology': {'active_RNAP': ('..', 'active_RNAP',),
+                                 'chromosome_domain': ('..', 'chromosome_domain')}
                 },
                 '*': {
                     'unique_index': {'_default': 0, '_updater': 'set'},
