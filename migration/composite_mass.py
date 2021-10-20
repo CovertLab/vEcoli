@@ -1,9 +1,8 @@
 """
-tests that ecoli_partition composite matches wcEcoli states at select time steps
+tests that ecoli_master composite matches wcEcoli states at select time steps
 """
 
 import json
-import os
 import numpy as np
 from scipy.stats import linregress
 from matplotlib import pyplot as plt
@@ -15,7 +14,6 @@ from ecoli.experiments.ecoli_master_sim import EcoliSim, CONFIG_DIR_PATH
 def test_composite_mass():
     sim = EcoliSim.from_file(CONFIG_DIR_PATH + "default.json")
     sim.total_time = 10
-    os.makedirs('migration/composite_mass/', exist_ok=True)
 
     # run the composite and save specified states
     sim.run()
@@ -63,6 +61,7 @@ def plots(actual_timeseries, wcecoli_timeseries, keys):
         plt.scatter(wcecoli_timeseries[key], actual_timeseries[key])
         slope, intercept, r_value, p_value, std_err = linregress(
             wcecoli_timeseries[key], actual_timeseries[key])
+        assert r_value >= 0.95, f"Correlation for {key} = {r_value} <= 0.95"
         best_fit = np.poly1d([slope, intercept])
         plt.plot(wcecoli_timeseries[key], best_fit(wcecoli_timeseries[key]), 
                  'b-', label=f'r = {r_value}')

@@ -19,7 +19,7 @@ python ecoli/experiments/ecoli_master_sim.py -h
 
 ```
 usage: ecoli_master_sim.py [-h] [--config CONFIG] [--experiment_id EXPERIMENT_ID] [--emitter {timeseries,database,print}]
-                           [--seed SEED] [--initial_time INITIAL_TIME] [--total_time TOTAL_TIME] [--generations GENERATIONS]
+                           [--seed SEED] [--initial_state INITIAL_STATE] [--total_time TOTAL_TIME] [--generations GENERATIONS]
                            [--log_updates] [--raw_output]
                            [path_to_sim_data [path_to_sim_data ...]]
 ```
@@ -34,7 +34,7 @@ usage: ecoli_master_sim.py [-h] [--config CONFIG] [--experiment_id EXPERIMENT_ID
 - `--experiment_id EXPERIMENT_ID`, `-id EXPERIMENT_ID`: ID for this experiment. A UUID will be generated if this argument is not used and `"experiment_id"` is `null` in the configuration file.
 - `--emitter`, `-e`: Emitter to use. Options are `timeseries`, `database`, and `print`. Timeseries uses RAMEmitter, database emits to MongoDB, and print emits to stdout.
 - `--seed SEED`, `-s SEED`  Random seed.
-- `--initial_time INITIAL_TIME`, `-t0 INITIAL_TIME`: Time of the initial state to load from (corresponding inital state file must be present in `data` folder).
+- `--initial_state INITIAL_STATE`, `-t0 INITIAL_STATE`: Name of the initial state to load from (corresponding initial state file must be present in data folder).
 - `--total_time TOTAL_TIME`, `-t TOTAL_TIME`: Time to run the simulation for.
 - `--generations GENERATIONS`, `-g GENERATIONS`: Number of generations to run the simulation for.
 - `--log_updates`, `-u`: Save updates from each process if this flag is set, e.g. for use with blame plot.
@@ -56,7 +56,7 @@ The following settings correspond exactly to the options available through the C
 - `"log_updates"`
 - `"raw_output"`
 - `"seed"`
-- `"initial_time"`
+- `"initial_state"`
 - `"time_step"`
 - `"total_time"`
 - `"generations"`
