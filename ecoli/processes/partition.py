@@ -115,9 +115,11 @@ class Requester(Deriver):
     defaults = {'process': None}
 
     def __init__(self, parameters=None):
-        super().__init__(parameters)
-        self.process = self.parameters['process']
+        self.process = parameters['process']
         assert isinstance(self.process, PartitionedProcess)
+        if self.process.parallel:
+            parameters['_parallel'] = True
+        super().__init__(parameters)
 
     def ports_schema(self):
         ports = self.process.get_schema()
@@ -148,9 +150,11 @@ class Evolver(Process):
     defaults = {'process': None}
 
     def __init__(self, parameters=None):
-        super().__init__(parameters)
-        self.process = self.parameters['process']
+        self.process = parameters['process']
         assert isinstance(self.process, PartitionedProcess)
+        if self.process.parallel:
+            parameters['_parallel'] = True
+        super().__init__(parameters)
 
     def ports_schema(self):
         ports = self.process.get_schema()
