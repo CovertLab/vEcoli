@@ -2,7 +2,7 @@ import os
 import numpy as np
 from matplotlib import pyplot as plt
 from six.moves import zip
-from ecoli.composites.ecoli_partition import run_ecoli
+from ecoli.composites.ecoli_master import run_ecoli
 from ecoli.analysis.tablereader import TableReader
 
 
@@ -23,7 +23,7 @@ COLORS = [
 ]
 
 
-class Plot(object):
+class Plot:
 
     def __init__(self, data):
         self.data = data
@@ -63,7 +63,7 @@ class Plot(object):
             for label, fraction in zip(mass_labels, fractions)
         ] + ['Total dry mass']
 
-        plt.figure(figsize=(8.5, 11))
+        fig = plt.figure(figsize=(8.5, 11))
         plt.gca().set_prop_cycle('color', COLORS)
 
         plt.plot(t, masses / masses[0, :], linewidth=2)
@@ -83,15 +83,16 @@ class Plot(object):
         #todo make analysis tools
         #this is from WCEcoli: exportFigure(plt, "ecoli/analysis/seriesOut", "massfractionSummary")
         plt.close("all")
+        return fig
 
 
 
-def test_plot():
+def run_plot():
 
-    data = run_ecoli(total_time=120)
+    data = run_ecoli(total_time=200)
     Plot(data)
 
 
-
+# python ecoli/analysis/massFractionSummary.py
 if __name__ == "__main__":
-    test_plot()
+    run_plot()

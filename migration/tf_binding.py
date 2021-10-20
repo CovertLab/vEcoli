@@ -10,7 +10,7 @@ import os
 
 from vivarium.core.engine import Engine
 from ecoli.library.sim_data import LoadSimData
-from ecoli.composites.ecoli_master import SIM_DATA_PATH
+from ecoli.composites.ecoli_nonpartition import SIM_DATA_PATH
 from ecoli.processes.tf_binding import TfBinding
 from migration.migration_utils import (ComparisonTestSuite, array_equal, 
                                        array_diffs_report_test, scalar_equal)
