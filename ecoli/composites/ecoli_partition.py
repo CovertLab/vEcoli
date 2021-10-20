@@ -279,7 +279,7 @@ def run_division(
     """
 
     # get initial mass from Ecoli composer
-    initial_state = Ecoli({}).initial_state()
+    initial_state = Ecoli({}).initial_state({'initial_state': 'vivecoli_t2550'})
     initial_mass = initial_state['listeners']['mass']['cell_mass']
     division_mass = initial_mass + 1
     print(f"DIVIDE AT {division_mass} fg")
@@ -293,14 +293,13 @@ def run_division(
     }
     agent_path = ('agents', agent_id)
     ecoli_composer = Ecoli(config)
-    initial_state = ecoli_composer.initial_state(path=agent_path)
     ecoli_composite = ecoli_composer.generate(path=agent_path)
 
     # make and run the experiment
     experiment = Engine(
         processes=ecoli_composite.processes,
         topology=ecoli_composite.topology,
-        initial_state=initial_state,
+        initial_state={'agents': {'1': initial_state}},
     )
     experiment.update(total_time)
 

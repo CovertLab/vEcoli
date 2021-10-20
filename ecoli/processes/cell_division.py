@@ -47,25 +47,58 @@ def divide_RNAs_by_domain(values, state):
     daughter1 = {}
     daughter2 = {}
     full_transcripts = []
+    index_to_children = {}
+
+    for domain_key in state['chromosome_domain']:
+        domain = state['chromosome_domain'][domain_key]
+        index_to_children[domain['domain_index']] = domain['child_domains']
+
+    def create_i_to_d(index_to_children):
+        """
+        Creates a dictionary linking a domain index to the daughter cell it belongs to.
+        If the index does not belong to a daughter cell, it is assigned a value of -1.
+        """
+        root_index = -1
+        for root_candidate in index_to_children:
+            root = True
+            for domain_index_to_check in index_to_children:
+                if root_candidate in index_to_children[domain_index_to_check]:
+                    root = False
+            if root:
+                root_index = root_candidate
+
+        def get_cell_for_index(index_to_children, domain_index_to_add, root_index):
+            if domain_index_to_add == root_index:
+                return -1
+            if domain_index_to_add in index_to_children[root_index]:
+                return domain_index_to_add
+            for domain_index in index_to_children:
+                children = index_to_children[domain_index]
+                if domain_index_to_add in children:
+                    cell = get_cell_for_index(index_to_children, domain_index, root_index)
+            return cell
+
+        index_to_daughter = {}
+        for domain_index_to_add in index_to_children:
+            index_to_daughter[domain_index_to_add] = get_cell_for_index(index_to_children, domain_index_to_add,
+                                                                        root_index)
+
+        return index_to_daughter
+
+    index_to_daughter = create_i_to_d(index_to_children)
+    cells = []
+    for cell in index_to_daughter.values():
+        if cell != -1 and cell not in cells:
+            cells.append(cell)
 
     # divide partial transcripts by domain_index
-    not_in_active_RNAP = []
-    in_active_RNAP = []
     for unique_id, specs in values.items():
         associated_rnap_key = str(values[unique_id]['RNAP_index'])
         if not specs['is_full_transcript']:
-            if associated_rnap_key not in state['active_RNAP']:
-                # TODO -- why are some partial RNA ids not in active_RNAP?
-                not_in_active_RNAP.append(unique_id)
-                continue
-            else:
-                in_active_RNAP.append(unique_id)
-
             domain_index = state['active_RNAP'][associated_rnap_key]['domain_index']
-            if domain_index == 1 or domain_index == 0:
+            if index_to_daughter[domain_index] == min(cells):
                 daughter1[unique_id] = specs
-            # elif domain_index == 2:
-            elif domain_index == 2:
+            elif index_to_daughter[domain_index == max(cells)]:
                 daughter2[unique_id] = specs
         else:
             # save full transcripts
