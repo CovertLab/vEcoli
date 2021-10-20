@@ -102,8 +102,8 @@ class EcoliSim:
             help="Random seed."
         )
         parser.add_argument(
-            '--initial_time', '-t0', action="store",
-            help="Time of the initial state to load from (corresponding inital state file must be present in data folder)."
+            '--initial_state', '-t0', action="store",
+            help="Name of the initial state to load from (corresponding initial state file must be present in data folder)."
         )
         parser.add_argument(
             '--total_time', '-t', action="store", type=float,
@@ -274,7 +274,7 @@ class EcoliSim:
             self.ecoli_experiment.update(time_to_next_save)
             state = self.ecoli_experiment.state.get_value()
             state_to_save = {key: state[key] for key in
-                             ['listeners', 'bulk', 'unique', 'environment', 'process_state']}
+                             ['listeners', 'bulk', 'unique', 'environment', 'process_state'] if key in state}
             write_json('data/vivecoli_t' + str(time_elapsed) + '.json', state_to_save)
         time_remaining = self.total_time - self.save_times[-1]
         if time_remaining:
