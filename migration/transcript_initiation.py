@@ -9,21 +9,15 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.stats import mannwhitneyu, chisquare
 
-from ecoli.library.sim_data import LoadSimData
-from ecoli.composites.ecoli_master import SIM_DATA_PATH
-from migration.migration_utils import run_ecoli_process
-
 from ecoli.processes.transcript_initiation import TranscriptInitiation
-
 from ecoli.library.schema import arrays_from
 from ecoli.states.wcecoli_state import get_state_from_file
+from migration.migration_utils import run_ecoli_process
 from migration.plots import qqplot
 from migration.migration_utils import array_diffs_report
+from migration import load_sim_data
 
 
-load_sim_data = LoadSimData(
-            sim_data_path=SIM_DATA_PATH,
-            seed=0)
 TOPOLOGY = TranscriptInitiation.topology
 
 

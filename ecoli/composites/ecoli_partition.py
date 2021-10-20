@@ -25,7 +25,7 @@ from ecoli.library.logging import make_logging_process
 # vivarium-ecoli processes
 from ecoli.composites.ecoli_configs import (
     ECOLI_DEFAULT_PROCESSES, ECOLI_DEFAULT_TOPOLOGY)
-from ecoli.plots.topology import get_partition_topology_settings
+from ecoli.plots.topology import get_ecoli_partition_topology_settings
 from ecoli.processes.cell_division import Division
 from ecoli.processes.allocator import Allocator
 from ecoli.processes.partition import PartitionedProcess
@@ -334,7 +334,7 @@ def ecoli_topology_plot(config={}):
     """Make a topology plot of Ecoli"""
     agent_id_config = {'agent_id': '1'}
     ecoli = Ecoli({**agent_id_config, **config})
-    settings = get_partition_topology_settings()
+    settings = get_ecoli_partition_topology_settings()
     topo_plot = plot_topology(
         ecoli,
         filename='topology',

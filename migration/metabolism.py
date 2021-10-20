@@ -16,7 +16,7 @@ from vivarium.core.control import run_library_cli
 # ecoli imports
 from ecoli.library.sim_data import LoadSimData
 from ecoli.states.wcecoli_state import get_state_from_file
-from ecoli.composites.ecoli_master import SIM_DATA_PATH, AA_MEDIA_ID
+from ecoli.composites.ecoli_nonpartition import SIM_DATA_PATH, AA_MEDIA_ID
 from ecoli.processes import Metabolism, Exchange
 from ecoli.library.schema import array_from
 
@@ -24,12 +24,8 @@ from ecoli.library.schema import array_from
 from migration.migration_utils import (run_ecoli_process, ComparisonTestSuite,
                                        scalar_almost_equal, transform_and_run, 
                                        array_diffs_report_test)
+from migration import load_sim_data
 
-
-# load sim_data
-load_sim_data = LoadSimData(
-            sim_data_path=SIM_DATA_PATH,
-            seed=0)
 
 TOPOLOGY = Metabolism.topology
 
@@ -44,9 +40,7 @@ class MetabolismExchange(Composer):
 
     def __init__(self, config=None):
         super().__init__(config)
-        self.load_sim_data = LoadSimData(
-            sim_data_path=self.config['sim_data_path'],
-            seed=self.config['seed'])
+        self.load_sim_data = load_sim_data
 
     def generate_processes(self, config):
 

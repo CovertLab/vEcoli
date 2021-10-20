@@ -42,11 +42,8 @@ digestion":
 
 import numpy as np
 
-from vivarium.core.process import Process
-from vivarium.library.dict_utils import deep_merge
-
 from ecoli.library.schema import (
-    array_from, array_to, arrays_from, arrays_to, listener_schema, bulk_schema, array_to_nonzero)
+    array_from, array_to, arrays_from, arrays_to, dict_value_schema, listener_schema, bulk_schema, array_to_nonzero)
 
 from wholecell.utils.constants import REQUEST_PRIORITY_DEGRADATION
 from wholecell.utils import units
@@ -192,15 +189,8 @@ class RnaDegradation(PartitionedProcess):
             'exoRnases': bulk_schema(self.exoRnaseIds),
             'subunits': bulk_schema([self.ribosome30S, self.ribosome50S]),
             'molecules': bulk_schema([self.water_id, self.proton_id]),
-            'active_ribosome': {
-                '*': {
-                    'unique_index': {'_default': 0}}},
-            'RNAs': {
-                '*': {
-                    'unique_index': {'_default': 0, '_updater': 'set'},
-                    'TU_index': {'_default': 0, '_updater': 'set'},
-                    'is_full_transcript': {'_default': 0, '_updater': 'set'},
-                    'can_translate': {'_default': 0, '_updater': 'set'}}},
+            'active_ribosome': dict_value_schema('active_ribosome'),
+            'RNAs': dict_value_schema('RNAs'),
             'listeners': {
                 'mass': {
                     'cell_mass': {'_default': 0.0},
@@ -398,8 +388,8 @@ class RnaDegradation(PartitionedProcess):
 
         rnas_indexes = list(states['RNAs'].keys())
         rnas_update = arrays_to(
-            len(states['RNAs']), {
-            'can_translate': can_translate})
+            len(states['RNAs']),
+            {'can_translate': can_translate})
 
         update = {
             'listeners': {
