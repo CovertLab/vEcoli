@@ -14,10 +14,10 @@ from datetime import datetime
 from vivarium.core.engine import Engine
 from vivarium.library.dict_utils import deep_merge
 from ecoli.library.logging import write_json
-from ecoli.composites.ecoli_master import SIM_DATA_PATH
+from ecoli.composites.ecoli_nonpartition import SIM_DATA_PATH
 # Two different Ecoli composites depending on partitioning
+import ecoli.composites.ecoli_nonpartition
 import ecoli.composites.ecoli_master
-import ecoli.composites.ecoli_partition
 
 from ecoli.processes import process_registry
 from ecoli.processes.registries import topology_registry
@@ -243,10 +243,10 @@ class EcoliSim:
 
         # initialize the ecoli composer
         if self.partition:
-            ecoli_composer = ecoli.composites.ecoli_partition.Ecoli(
+            ecoli_composer = ecoli.composites.ecoli_master.Ecoli(
                 self.config)
         else:
-            ecoli_composer = ecoli.composites.ecoli_master.Ecoli(self.config)
+            ecoli_composer = ecoli.composites.ecoli_nonpartition.Ecoli(self.config)
 
         # set path at which agent is initialized
         path = tuple()

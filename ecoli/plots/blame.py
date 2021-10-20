@@ -1,11 +1,9 @@
 import os
-import json
 import numpy as np
 from scipy.sparse import coo_matrix
 from matplotlib import pyplot as plt
 import matplotlib.colors as colors
 
-from ecoli.library.logging import write_json
 from ecoli.experiments.ecoli_master_sim import EcoliSim, CONFIG_DIR_PATH
 
 from collections import Counter
@@ -13,7 +11,7 @@ from collections import Counter
 
 def blame_plot(data, 
                topology,
-               filename='out/ecoli_master/blame.png',
+               filename='out/ecoli_sim/blame.png',
                selected_molecules=None,
                selected_processes=None,
                highlight_molecules=None,
@@ -26,7 +24,7 @@ def blame_plot(data,
     due to a particular process.
 
     Args:
-        data: Data from a logged ecoli_master simulation.
+        data: Data from a logged ecoli simulation.
         filename: The file to save the plot to. To skip writing to file, set this to None.
         selected_molecules: if not None, restricts to the specified molecules.
         selected_processes: if not None, restricts to the specified processes.
@@ -307,7 +305,7 @@ def test_blame():
     data = sim.run()
 
     blame_plot(data, sim.ecoli.topology,
-            'out/ecoli_master/blame_test.png',
+            'out/ecoli_sim/blame_test.png',
             highlight_molecules=['PD00413[c]', 'PHOR-CPLX[c]'])
 
 

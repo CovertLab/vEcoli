@@ -2,24 +2,14 @@ import os
 import json
 import numpy as np
 import matplotlib.pyplot as plt
-from collections import Counter
 from scipy.stats import mannwhitneyu
 
-
-from ecoli.library.sim_data import LoadSimData
-from ecoli.library.schema import array_from
-from ecoli.composites.ecoli_master import SIM_DATA_PATH
 from ecoli.processes.equilibrium import Equilibrium
-
 from migration.plots import qqplot
 from migration.migration_utils import run_ecoli_process, percent_error
+from migration import load_sim_data
 
-import scipy.constants
-from wholecell.utils import units
 
-load_sim_data = LoadSimData(
-            sim_data_path=SIM_DATA_PATH,
-            seed=0)
 TOPOLOGY = Equilibrium.topology
 
 

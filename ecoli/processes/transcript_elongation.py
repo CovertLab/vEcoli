@@ -21,7 +21,7 @@ from wholecell.utils.polymerize import buildSequences, polymerize, computeMassIn
 from wholecell.utils import units
 
 from ecoli.library.schema import (
-    arrays_from, arrays_to, array_from, array_to, bulk_schema, submass_schema)
+    arrays_from, arrays_to, array_from, array_to, bulk_schema, dict_value_schema)
 from ecoli.library.data_predicates import monotonically_increasing
 from ecoli.states.wcecoli_state import MASSDIFFS
 from ecoli.processes.registries import topology_registry
@@ -166,31 +166,16 @@ class TranscriptElongation(PartitionedProcess):
             'environment': {
                 'media_id': {'_default': ''}
             },
+
             'RNAs': {
                 '_divider': {
                     'divider': 'rna_by_domain',
-                    'topology': {'active_RNAP': ('..', 'active_RNAP',)}
-                },
-                '*': {
-                    'unique_index': {'_default': 0, '_updater': 'set'},
-                    'TU_index': {'_default': 0, '_updater': 'set'},
-                    'transcript_length': {'_default': 0, '_updater': 'set', '_emit': True},
-                    'is_mRNA': {'_default': False, '_updater': 'set'},
-                    'is_full_transcript': {'_default': False, '_updater': 'set'},
-                    'can_translate': {'_default': False, '_updater': 'set'},
-                    'RNAP_index': {'_default': 0, '_updater': 'set'},
-                    'submass': submass_schema()
-                }
-            },
+                    'topology': {'active_RNAP': ('..', 'active_RNAP',)}},
+                **dict_value_schema('RNAs')},
+
             'active_RNAPs': {
                 '_divider': 'by_domain',
-                '*': {
-                    'unique_index': {'_default': 0, '_updater': 'set'},
-                    'domain_index': {'_default': 0, '_updater': 'set'},
-                    'coordinates': {'_default': 0, '_updater': 'set', '_emit': True},
-                    'direction': {'_default': 0, '_updater': 'set'}
-                }
-            },
+                **dict_value_schema('active_RNAPs')},
 
             'bulk_RNAs': bulk_schema(self.rnaIds),
             'ntps': bulk_schema(self.ntp_ids),
@@ -474,11 +459,14 @@ class TranscriptElongation(PartitionedProcess):
         added_submass[:, self.mRNA_submass_idx] = added_mRNA_mass_all_RNAs
 
         rna_indexes = list(states['RNAs'].keys())
+        current_submass = np.zeros((len(rna_indexes), 9))
+        for index, value in enumerate(states['RNAs'].values()):
+            current_submass[index] = value['submass']
         rnas_update = arrays_to(
             len(states['RNAs']), {
                 'transcript_length': length_all_RNAs,
                 'is_full_transcript': is_full_transcript_updated,
-                'submass': added_submass})
+                'submass': current_submass + added_submass})
 
         delete_rnas = partial_transcript_indexes[np.logical_and(
             did_terminate_mask, np.logical_not(is_mRNA_partial_RNAs))]        
@@ -495,7 +483,7 @@ class TranscriptElongation(PartitionedProcess):
             len(states['active_RNAPs']), {
                 'coordinates': updated_coordinates})
 
-        # delete_rnaps = np.where(did_terminate_mask[partial_RNA_to_RNAP_mapping])[0]
+        delete_rnaps = np.where(did_terminate_mask[partial_RNA_to_RNAP_mapping])[0]
 
         # Attenuation removes RNAs and RNAPs (NON-FUNCTIONAL)
         counts_attenuated = np.zeros(len(self.attenuated_rna_indices))
@@ -543,11 +531,8 @@ class TranscriptElongation(PartitionedProcess):
             rnap_indexes[index]: rnap
             for index, rnap in enumerate(rnaps_update)}
 
-        # update['active_RNAPs']['_delete'] = [rnap_indexes[index]
-        #                                      for index in delete_rnaps]
-        terminated_rnas_indexes = partial_transcript_indexes[did_terminate_mask]
-        update['active_RNAPs']['_delete'] = [str(states['RNAs'][rna_indexes[rna_index]]['RNAP_index'])
-                                             for rna_index in terminated_rnas_indexes]
+        update['active_RNAPs']['_delete'] = [rnap_indexes[index]
+                                             for index in delete_rnaps]
 
         update['ntps'] = array_to(self.ntp_ids, -ntps_used)
         update['bulk_RNAs'] = array_to(self.rnaIds, n_new_bulk_RNAs)
@@ -645,13 +630,15 @@ def test_transcript_elongation():
                            'is_mRNA': test_config['is_mRNA'][i],
                            'is_full_transcript': False,
                            'can_translate': True,
-                           'RNAP_index': i}
+                           'RNAP_index': i,
+                           'submass': np.zeros(9)}
                  for i in range(len(test_config['rnaIds']))},
 
         'active_RNAPs': {str(i): {'unique_index': i,
                                    'domain_index': 2,
                                    'coordinates': i * 1000,
-                                   'direction': True}
+                                   'direction': True,
+                                   'submass': np.zeros(9)}
                          for i in range(4)},
 
         'bulk_RNAs': {'16S rRNA': 0,

@@ -8,19 +8,15 @@ import matplotlib.pyplot as plt
 import os
 
 from vivarium.core.engine import Engine
-from ecoli.library.sim_data import LoadSimData
-from ecoli.composites.ecoli_master import SIM_DATA_PATH
 from ecoli.processes.chromosome_structure import ChromosomeStructure
 from migration.migration_utils import (ComparisonTestSuite, equal,
                                        equal_len, scalar_equal)
 from ecoli.states.wcecoli_state import get_state_from_file
 
 from ecoli.processes.registries import topology_registry
+from migration import load_sim_data
 
 
-load_sim_data = LoadSimData(
-            sim_data_path=SIM_DATA_PATH,
-            seed=0)
 
 CHROMOSOME_STRUCTURE_TOPOLOGY = topology_registry.access(ChromosomeStructure.name)
 
