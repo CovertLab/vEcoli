@@ -131,15 +131,14 @@ def test_blame_timeseries():
         sim = EcoliSim.from_file()
         # CONFIG_DIR_PATH + "/test_configs/test_blame.json")
         # sim.emitter = "database"
-        # sim.initial_time = 1000
-        sim.partition = False
+        sim.partition = True
         sim.log_updates = True
         sim.emit_topology = False
         sim.emit_processes = False
         sim.total_time = 10
-        sim.exclude_processes = ["ecoli-two-component-system",
-                                 "ecoli-chromosome-structure",]
-                                 #"ecoli-polypeptide-elongation"]
+        # sim.exclude_processes = ["ecoli-two-component-system",
+        #                          "ecoli-chromosome-structure",]
+        #                          #"ecoli-polypeptide-elongation"]
         data = sim.run()
         topo = sim.ecoli.topology
 
@@ -156,8 +155,7 @@ def test_blame_timeseries():
 
     blame_timeseries(data, topo,
                      # , "CPLX0-7452"],
-                     # ['WATER[c]', 'APORNAP-CPLX[c]', 'TRP[c]'],
-                     molecules,
+                     ['WATER[c]', 'APORNAP-CPLX[c]', 'TRP[c]'] + molecules,
                      'out/ecoli_master/test_blame_timeseries.png',
                      yscale="linear")
 
