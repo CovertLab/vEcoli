@@ -13,7 +13,7 @@
     "seed": 0,
     "partition": false,
 
-    "initial_time": "wcecoli_t0",
+    "initial_state": "wcecoli_t0",
     "time_step": 2.0,
     "total_time": 100.0,
     "generations": null,
