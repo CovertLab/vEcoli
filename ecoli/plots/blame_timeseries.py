@@ -8,45 +8,95 @@ from ecoli.experiments.ecoli_master_sim import EcoliSim, CONFIG_DIR_PATH
 from ecoli.plots.blame_utils import get_bulk_processes, extract_bulk, idx_array_from
 
 
+def validate_data(data):
+    if 'log_update' not in data[0.0].keys():
+        raise ValueError(
+            "Missing log_update store in data; did you run simulation without logged updates?")
+
+
+def preprocess_data(data, bulk_processes, molecules):
+    """
+    Prepares raw data for blame-timeseries plot.
+    Returns data in the form x, y,
+    where x is a numpy array of times, and 
+    y is a dictionary of the following form:
+
+    y = {
+        time (float) : {
+            process (str) : {
+                molecule (str) : update (int or float)
+            }
+        }
+    }
+    """
+
+    x = np.array(list(data.keys()))
+    y = {}
+
+    for time in x:
+        y[time] = {process: {m: 0 for m in molecules}
+                   for process in bulk_processes}
+        for process, paths in bulk_processes.items():
+            for path in paths:
+                for molecule in molecules:
+                    y[time][process][molecule] += data[time]['log_update'][process].get(
+                        path, {}).get(molecule, 0)
+
+    return x, y
+
+
+def signed_stacked_bar(ax, x, y):
+    """
+    Creates a stacked bar chart in the specified Axes, where
+    y's with negative values represent bars below y=0, and
+    y's with positive values represent bars above y=0.
+    """
+    ...
+
+
 def blame_timeseries(data,
                      topology,
                      molecules,
                      filename='out/ecoli_master/blame_timeseries.png',
                      yscale='log'):
+    """
+    TODO
+    - data : expected to be in raw form (not timeseries)
+    """
 
-    if 'log_update' not in data.keys():
-        raise ValueError(
-            "Missing log_update in data; did you run simulation without logged updates?")
+    validate_data(data)
 
     # Collect data into one dictionary
     # of the form: {process : {molecule : timeseries}}
     bulk_processes = get_bulk_processes(topology)
-    plot_data = {}
-    for process, updates in data['log_update'].items():
-        if process not in bulk_processes.keys():
-            continue
+    time, values = preprocess_data(data, bulk_processes, molecules)
 
-        plot_data[process] = {}
-        for port in updates.keys():
-            if port not in bulk_processes[process]:
-                continue
+    # plot_data = {}
+    # for process, updates in data['log_update'].items():
+    #     if process not in bulk_processes.keys():
+    #         continue
 
-            port_data = updates[port]
-            for k, v in port_data.items():
-                if k in molecules:  # Only keep selected molecules
-                    if k in plot_data[process]:
-                        plot_data[process][k] += np.array(v)
-                    else:
-                        plot_data[process][k] = np.array(v)
+    #     plot_data[process] = {}
+    #     for port in updates.keys():
+    #         if port not in bulk_processes[process]:
+    #             continue
 
-    # Remove processes that do not affect any selected molecules
-    plot_data = {process: {molecule: timeseries
-                           for molecule, timeseries in data.items()
-                           if not all(timeseries == 0)}
-                 for process, data in plot_data.items()}
-    plot_data = {process: data
-                 for process, data in plot_data.items()
-                 if data != {}}
+    #         port_data = updates[port]
+    #         for k, v in port_data.items():
+    #             if k in molecules:  # Only keep selected molecules
+    #                 if k in plot_data[process]:
+    #                     plot_data[process][k] += np.array(v)
+    #                 else:
+    #                     plot_data[process][k] = np.array(v)
+
+    # # Remove processes that do not affect any selected molecules
+    # plot_data = {process: {molecule: timeseries
+    #                        for molecule, timeseries in data.items()
+    #                        if not all(timeseries == 0)}
+    #              for process, data in plot_data.items()}
+    # plot_data = {process: data
+    #              for process, data in plot_data.items()
+    #              if data != {}}
 
     # Start plotting!
     time = data['time']
@@ -132,15 +182,16 @@ def test_blame_timeseries():
         # CONFIG_DIR_PATH + "/test_configs/test_blame.json")
         # sim.emitter = "database"
         sim.partition = True
+        sim.raw_output = True
         sim.log_updates = True
         sim.emit_topology = False
         sim.emit_processes = False
-        sim.total_time = 10
+        sim.total_time = 4
         # sim.exclude_processes = ["ecoli-two-component-system",
         #                          "ecoli-chromosome-structure",]
         #                          #"ecoli-polypeptide-elongation"]
         data = sim.run()
-        topo = sim.ecoli.topology
+        topo = sim.topology
 
     molecules = [
         "EG10841-MONOMER",
