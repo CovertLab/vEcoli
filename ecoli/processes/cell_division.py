@@ -12,6 +12,45 @@ from vivarium.core.process import Deriver
 NAME = 'ecoli-cell-division'
 
 
+def create_i_to_d(chromosome_domain):
+    """
+    Creates a dictionary linking domain indexes to their respective cells.
+    If the index does not belong to a daughter cell, it is assigned a value of -1.
+    """
+
+    index_to_children = {}
+    for domain_key in chromosome_domain:
+        domain = chromosome_domain[domain_key]
+        index_to_children[domain['domain_index']] = domain['child_domains']
+
+    root_index = -1
+    for root_candidate in index_to_children:
+        root = True
+        for domain_index_to_check in index_to_children:
+            if root_candidate in index_to_children[domain_index_to_check]:
+                root = False
+        if root:
+            root_index = root_candidate
+
+    def get_cell_for_index(index_to_children, domain_index_to_add, root_index):
+        if domain_index_to_add == root_index:  # If the root index:
+            return -1
+        if domain_index_to_add in index_to_children[root_index]:  # If a daughter cell index:
+            return domain_index_to_add
+        for domain_index in index_to_children:
+            children = index_to_children[domain_index]
+            if domain_index_to_add in children:
+                cell = get_cell_for_index(index_to_children, domain_index, root_index)
+        return cell
+
+    index_to_daughter = {}
+    for domain_index_to_add in index_to_children:
+        index_to_daughter[domain_index_to_add] = get_cell_for_index(index_to_children, domain_index_to_add,
+                                                                    root_index)
+
+    return index_to_daughter
+
+
 def divide_by_domain(values, **args):
     """
     divide a dictionary into two daughters based on their domain_index
@@ -47,58 +86,23 @@ def divide_RNAs_by_domain(values, state):
     daughter1 = {}
     daughter2 = {}
     full_transcripts = []
-    index_to_children = {}
 
-    for domain_key in state['chromosome_domain']:
-        domain = state['chromosome_domain'][domain_key]
-        index_to_children[domain['domain_index']] = domain['child_domains']
-
-    def create_i_to_d(index_to_children):
-        """
-        Creates a dictionary linking a domain index to the daughter cell it belongs to.
-        If the index does not belong to a daughter cell, it is assigned a value of -1.
-        """
-        root_index = -1
-        for root_candidate in index_to_children:
-            root = True
-            for domain_index_to_check in index_to_children:
-                if root_candidate in index_to_children[domain_index_to_check]:
-                    root = False
-            if root:
-                root_index = root_candidate
-
-        def get_cell_for_index(index_to_children, domain_index_to_add, root_index):
-            if domain_index_to_add == root_index:
-                return -1
-            if domain_index_to_add in index_to_children[root_index]:
-                return domain_index_to_add
-            for domain_index in index_to_children:
-                children = index_to_children[domain_index]
-                if domain_index_to_add in children:
-                    cell = get_cell_for_index(index_to_children, domain_index, root_index)
-            return cell
-
-        index_to_daughter = {}
-        for domain_index_to_add in index_to_children:
-            index_to_daughter[domain_index_to_add] = get_cell_for_index(index_to_children, domain_index_to_add,
-                                                                        root_index)
-
-        return index_to_daughter
-
-    index_to_daughter = create_i_to_d(index_to_children)
+    index_to_daughter = create_i_to_d(state['chromosome_domain'])
     cells = []
     for cell in index_to_daughter.values():
         if cell != -1 and cell not in cells:
             cells.append(cell)
+    daughter1_index = min(cells)
+    daughter2_index = max(cells)
 
     # divide partial transcripts by domain_index
     for unique_id, specs in values.items():
         associated_rnap_key = str(values[unique_id]['RNAP_index'])
         if not specs['is_full_transcript']:
             domain_index = state['active_RNAP'][associated_rnap_key]['domain_index']
-            if index_to_daughter[domain_index] == min(cells):
+            if index_to_daughter[domain_index] == daughter1_index:
                 daughter1[unique_id] = specs
-            elif index_to_daughter[domain_index == max(cells)]:
+            elif index_to_daughter[domain_index] == daughter2_index:
                 daughter2[unique_id] = specs
         else:
             # save full transcripts
