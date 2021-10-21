@@ -14,10 +14,20 @@ which reads the requests and allocates molecular counts for the evolve_state.
 
 """
 import abc
+import os
+import pickle
 
 from vivarium.core.process import Deriver, Process
+from vivarium.core.registry import divider_registry
 from vivarium.library.dict_utils import deep_merge
 from ecoli.processes.registries import topology_registry
+
+
+def divide_set_none(_):
+    return [None, None]
+
+
+divider_registry.register('set_none', divide_set_none)
 
 
 def change_bulk_updater(schema, new_updater):
@@ -119,26 +129,42 @@ class Requester(Deriver):
         assert isinstance(self.process, PartitionedProcess)
         if self.process.parallel:
             parameters['_parallel'] = True
+        parameters['name'] = f'{self.process.name}_requester'
         super().__init__(parameters)
 
     def ports_schema(self):
         ports = self.process.get_schema()
         ports_copy = ports.copy()
         ports['request'] = change_bulk_updater(ports_copy, 'set')
+        ports['hidden_state'] = {
+            self.process.name: {
+                '_default': None,
+                '_updater': 'set',
+                '_emit': False,
+                '_divider': 'set_none',
+            },
+        }
         return ports
 
     def next_update(self, timestep, states):
-        update = self.process.calculate_request(
+        request = self.process.calculate_request(
             self.parameters['time_step'], states)
-        if not self.process.request_set:
-            self.process.request_set = True
+        self.process.request_set = True
 
         # Ensure listeners are updated if passed by calculate_request
-        listeners = update.pop('listeners', None)
+        listeners = request.pop('listeners', None)
+        update = {
+            'request': request,
+        }
         if listeners != None:
-            return {'request': update, 'listeners': listeners}
+            update['listeners'] = listeners
 
-        return {'request': update}
+        if self.process.parallel:
+            update['hidden_state'] = {
+                self.process.name: pickle.dumps(self.process)
+            }
+
+        return update
 
 
 class Evolver(Process):
@@ -154,19 +180,34 @@ class Evolver(Process):
         assert isinstance(self.process, PartitionedProcess)
         if self.process.parallel:
             parameters['_parallel'] = True
+        parameters['name'] = f'{self.process.name}_evolver'
         super().__init__(parameters)
 
     def ports_schema(self):
         ports = self.process.get_schema()
         ports_copy = ports.copy()
         ports['allocate'] = change_bulk_updater(ports_copy, 'set')
+        ports['hidden_state'] = {
+            self.process.name: {
+                '_default': None,
+                '_updater': 'set',
+                '_emit': False,
+                '_divider': 'set_none',
+            },
+        }
         return ports
 
     def next_update(self, timestep, states):
+        if self.process.parallel:
+            hidden_state = states.pop('hidden_state')
+            self.process = pickle.loads(hidden_state[self.process.name])
+
         states = deep_merge(states, states.pop('allocate'))
 
         # run request if it has not yet run
         if not self.process.request_set:
+            raise AssertionError(
+                'Should not be doing extra runs of calculate_request')
             _ = self.process.calculate_request(timestep, states)
             self.process.request_set = True
 
