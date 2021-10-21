@@ -242,7 +242,9 @@ class MetabolismGD(Process):
         # run FBA
         solution: FbaResult = self.model.solve(
             {'homeostatic': target_homeostatic_fluxes, 'kinetic': kinetic_targets},
-            initial_velocities=self.reaction_fluxes
+            initial_velocities=self.reaction_fluxes,
+            tr_solver='lsmr', max_nfev=6, ftol=0.00001, verbose=2,
+            tr_options={'atol': 10 ** (-7), 'btol': 10 ** (-7), 'conlim': 10 ** (8), 'show': False}
         )
 
         self.reaction_fluxes = solution.velocities
