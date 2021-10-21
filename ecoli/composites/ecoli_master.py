@@ -225,6 +225,10 @@ class Ecoli(Composer):
                 topology[f'{process_id}_evolver']['allocate'] = {
                     '_path': ('allocate', process_id,),
                     **bulk_topo}
+                topology[f'{process_id}_requester']['hidden_state'] = (
+                    'hidden_state',)
+                topology[f'{process_id}_evolver']['hidden_state'] = (
+                    'hidden_state',)
 
             # make the non-partitioned processes' topologies
             else:
@@ -330,7 +334,7 @@ def test_ecoli_generate():
     ecoli_composer = Ecoli({})
     ecoli_composite = ecoli_composer.generate()
 
-    # asserts to ecoli_composite['processes'] and ecoli_composite['topology'] 
+    # asserts to ecoli_composite['processes'] and ecoli_composite['topology']
     assert all('_requester' in k or
                '_evolver' in k or
                k == 'allocator' or
