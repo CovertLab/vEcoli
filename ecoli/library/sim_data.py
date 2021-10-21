@@ -414,7 +414,7 @@ class LoadSimData:
 
         return protein_degradation_config
 
-    def get_metabolism_gd_config(self, time_step=2, parallel=False):
+    def get_metabolism_gd_config(self, time_step=2, parallel=False, deriver_mode=False):
         # Create reversible reactions from "reaction pairs" similar to original sim_data format.
         stoichiometry = dict(self.sim_data.process.metabolism.reaction_stoich)
         stoichiometry = dict(sorted(stoichiometry.items()))
@@ -470,7 +470,9 @@ class LoadSimData:
             # ports schema
             'catalyst_ids': self.sim_data.process.metabolism.catalyst_ids,
             'kinetic_constraint_enzymes': self.sim_data.process.metabolism.kinetic_constraint_reactions,
-            'kinetic_constraint_substrates': self.sim_data.process.metabolism.kinetic_constraint_substrates
+            'kinetic_constraint_substrates': self.sim_data.process.metabolism.kinetic_constraint_substrates,
+            'deriver_mode': deriver_mode
+
         }
 
         # TODO Create new config-get with only necessary parts.
