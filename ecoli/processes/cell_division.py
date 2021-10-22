@@ -51,19 +51,27 @@ def create_i_to_d(chromosome_domain):
     return index_to_daughter
 
 
-def divide_by_domain(values, **args):
+def divide_by_domain(values, state):
     """
     divide a dictionary into two daughters based on their domain_index
     """
     daughter1 = {}
     daughter2 = {}
+
+    index_to_daughter = create_i_to_d(state['chromosome_domain'])
+    cells = []
+    for cell in index_to_daughter.values():
+        if cell != -1 and cell not in cells:
+            cells.append(cell)
+    daughter1_index = min(cells)
+    daughter2_index = max(cells)
+
     for state_id, value in values.items():
         domain_index = value['domain_index']
-        if domain_index == 1:
+        if index_to_daughter[domain_index] == daughter1_index:
             daughter1[state_id] = value
-        elif domain_index == 2:
+        elif index_to_daughter[domain_index] == daughter2_index:
             daughter2[state_id] = value
-            daughter2[state_id]['domain_index'] = 1
     return [daughter1, daughter2]
 
 
@@ -107,9 +115,6 @@ def divide_RNAs_by_domain(values, state):
         else:
             # save full transcripts
             full_transcripts.append(unique_id)
-
-    # print(f"unique ids NOT in active_RNAP: {not_in_active_RNAP}")
-    # print(f"unique ids in active_RNAP: {in_active_RNAP}")
 
     # divide full transcripts binomially
     n_full_transcripts = len(full_transcripts)

@@ -144,7 +144,10 @@ class ChromosomeStructure(Process):
             'oriCs': dict_value_schema('oriCs'),
             'chromosome_domains': dict_value_schema('chromosome_domains'),
             'active_RNAPs': {
-                '_divider': 'by_domain',
+                '_divider': {
+                    'divider': 'by_domain',
+                    'topology': {'chromosome_domain': ('..', 'chromosome_domain')}
+                },
                 **dict_value_schema('active_RNAPs')},
             'RNAs': {
                 '_divider': {
@@ -156,10 +159,16 @@ class ChromosomeStructure(Process):
             'active_ribosome': dict_value_schema('active_ribosome'),
             'full_chromosomes': dict_value_schema('full_chromosomes'),
             'promoters': {
-                '_divider': 'by_domain',
+                '_divider': {
+                    'divider': 'by_domain',
+                    'topology': {'chromosome_domain': ('..', 'chromosome_domain')}
+                },
                 **dict_value_schema('promoters')},
             'DnaA_boxes': {
-                '_divider': 'by_domain',
+                '_divider': {
+                    'divider': 'by_domain',
+                    'topology': {'chromosome_domain': ('..', 'chromosome_domain')}
+                },
                 **dict_value_schema('DnaA_boxes')}
         }
 

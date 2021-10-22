@@ -176,7 +176,10 @@ class TranscriptElongation(PartitionedProcess):
                 **dict_value_schema('RNAs')},
 
             'active_RNAPs': {
-                '_divider': 'by_domain',
+                '_divider': {
+                    'divider': 'by_domain',
+                    'topology': {'chromosome_domain': ('..', 'chromosome_domain')}
+                },
                 **dict_value_schema('active_RNAPs')},
 
             'bulk_RNAs': bulk_schema(self.rnaIds),

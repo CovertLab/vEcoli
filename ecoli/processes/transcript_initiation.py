@@ -261,7 +261,10 @@ class TranscriptInitiation(PartitionedProcess):
             'full_chromosomes': dict_value_schema('full_chromosomes'),
             
             'promoters': {
-                '_divider': 'by_domain',
+                '_divider': {
+                    'divider': 'by_domain',
+                    'topology': {'chromosome_domain': ('..', 'chromosome_domain')}
+                },
                 **dict_value_schema('promoters')},
             
             'RNAs': {
@@ -273,7 +276,10 @@ class TranscriptInitiation(PartitionedProcess):
                 **dict_value_schema('RNAs')},
 
             'active_RNAPs': {
-                '_divider': 'by_domain',
+                '_divider': {
+                    'divider': 'by_domain',
+                    'topology': {'chromosome_domain': ('..', 'chromosome_domain')}
+                },
                 **dict_value_schema('active_RNAPs')},
 
             'listeners': {
