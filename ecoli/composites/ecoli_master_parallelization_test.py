@@ -13,7 +13,6 @@ from ecoli.experiments.ecoli_master_sim import EcoliSim
 PARALLELIZED_PROCESSES = (
     'ecoli-transcript-elongation',
 )
-PARALLELIZED_PROCESSES = tuple()
 TIMESTEP = 2
 TOTAL_TIME = 10
 
