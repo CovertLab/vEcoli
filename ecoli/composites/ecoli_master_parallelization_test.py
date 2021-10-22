@@ -10,6 +10,9 @@ from ecoli.composites.ecoli_configs import CONFIG_DIR_PATH
 from ecoli.experiments.ecoli_master_sim import EcoliSim
 
 
+PARALLELIZED_PROCESSES = (
+    'ecoli-transcript-elongation',
+)
 PARALLELIZED_PROCESSES = tuple()
 TIMESTEP = 2
 TOTAL_TIME = 10
@@ -22,8 +25,10 @@ class TestableEcoliSim(EcoliSim):
         with open(path, 'r') as f:
             config = json.load(f)
         config['save_times'] = []
+        config['initial_state'] = 'wcecoli_t3142'
         for process in parallel_processes:
-            proc_config = config['processes'].setdefault(process, {})
+            proc_config = config['process_configs'].setdefault(
+                process, {})
             proc_config['_parallel'] = True
         self.ecoli_experiment = None
         super().__init__(config)
@@ -56,10 +61,11 @@ class TestableEcoliSim(EcoliSim):
     def get_state(self):
         return self.ecoli_experiment.state.emit_data()
 
+    def end(self):
+        self.ecoli_experiment.end()
+
 
 class EcoliParallelizationTests(unittest.TestCase):
-
-    maxDiff=None
 
     def _assertDataEqual(self, data1, data2, path=tuple(), **kwargs):
         with self.subTest(path=path, **kwargs):
@@ -84,7 +90,7 @@ class EcoliParallelizationTests(unittest.TestCase):
         parallel_sim.prepare()
         non_parallel_sim.prepare()
 
-        for time in range(0, TOTAL_TIME + TIMESTEP, TIMESTEP):
+        for time in range(0, TOTAL_TIME, TIMESTEP):
             parallel_sim.step(TIMESTEP)
             non_parallel_sim.step(TIMESTEP)
 
@@ -96,3 +102,6 @@ class EcoliParallelizationTests(unittest.TestCase):
                 non_parallel_state,
                 time=time,
             )
+
+        parallel_sim.end()
+        non_parallel_sim.end()
