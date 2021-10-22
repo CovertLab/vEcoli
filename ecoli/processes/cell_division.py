@@ -12,7 +12,7 @@ from vivarium.core.process import Deriver
 NAME = 'ecoli-cell-division'
 
 
-def create_i_to_d(chromosome_domain):
+def create_index_to_daughter(chromosome_domain):
     """
     Creates a dictionary linking domain indexes to their respective cells.
     If the index does not belong to a daughter cell, it is assigned a value of -1.
@@ -58,7 +58,7 @@ def divide_by_domain(values, state):
     daughter1 = {}
     daughter2 = {}
 
-    index_to_daughter = create_i_to_d(state['chromosome_domain'])
+    index_to_daughter = create_index_to_daughter(state['chromosome_domain'])
     cells = []
     for cell in index_to_daughter.values():
         if cell != -1 and cell not in cells:
@@ -95,7 +95,7 @@ def divide_RNAs_by_domain(values, state):
     daughter2 = {}
     full_transcripts = []
 
-    index_to_daughter = create_i_to_d(state['chromosome_domain'])
+    index_to_daughter = create_index_to_daughter(state['chromosome_domain'])
     cells = []
     for cell in index_to_daughter.values():
         if cell != -1 and cell not in cells:
