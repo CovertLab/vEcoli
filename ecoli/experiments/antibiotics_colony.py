@@ -19,7 +19,7 @@ OUT_DIR = os.path.join(BASE_OUT_DIR, 'experiments', 'antibiotics_colony')
 def get_antibiotics_grow_lattice_composite(
         diffusion_rate=0.001,
         initial_antibiotic_concentration=1e-3,
-        bins=[10, 10],
+        bins=[5, 5],
         bounds=[10, 10],
         depth=10,
         growth_rate=np.log(2) / (48 * 60),
