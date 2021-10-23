@@ -5,15 +5,14 @@ import os
 import matplotlib.pyplot as plt
 from migration.plots import qqplot
 from migration.migration_utils import *
-from migration import load_sim_data
 
 
 PI_TOPOLOGY = PolypeptideInitiation.topology
 
 
-def test_polypeptide_initiation_migration():
+def run_polypeptide_initiation_migration(sim_data):
     # Create process, experiment, loading in initial state from file.
-    config = load_sim_data.get_polypeptide_initiation_config()
+    config = sim_data.get_polypeptide_initiation_config()
     polypeptide_initiation_process = PolypeptideInitiation(config)
     total_time = 2
     initial_times = [0, 10, 100]
@@ -31,9 +30,9 @@ def test_polypeptide_initiation_migration():
         plots(actual_update, wc_update, total_time + initial_time)
         assertions(actual_update, wc_update)
 
-def test_polypeptide_initiation():
+def run_polypeptide_initiation_default(sim_data):
     # Create process, experiment, loading in initial state from file.
-    config = load_sim_data.get_polypeptide_initiation_config()
+    config = sim_data.get_polypeptide_initiation_config()
     polypeptide_initiation_process = PolypeptideInitiation(config)
 
     polypeptide_initiation_composite = polypeptide_initiation_process.generate()
@@ -122,9 +121,13 @@ def assertions(actual_update, expected_update):
     assert array_equal(np.array(prob_translation_per_transcript), wc_prob_translation_per_transcript)
 
 
-def run_polypeptide_initiation():
-    test_polypeptide_initiation_migration()
-
 
 if __name__ == "__main__":
-    run_polypeptide_initiation()
+    from ecoli.library.sim_data import LoadSimData
+    from ecoli.composites.ecoli_nonpartition import SIM_DATA_PATH
+
+    sim_data = LoadSimData(
+        sim_data_path=SIM_DATA_PATH,
+        seed=0)
+
+    run_polypeptide_initiation_migration(sim_data)

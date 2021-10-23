@@ -15,6 +15,7 @@ from vivarium.core.control import run_library_cli
 
 # ecoli imports
 from ecoli.library.sim_data import LoadSimData
+from ecoli.composites.ecoli_nonpartition import SIM_DATA_PATH
 from ecoli.states.wcecoli_state import get_state_from_file
 from ecoli.composites.ecoli_nonpartition import SIM_DATA_PATH, AA_MEDIA_ID
 from ecoli.processes import Metabolism, Exchange
@@ -24,7 +25,6 @@ from ecoli.library.schema import array_from
 from migration.migration_utils import (run_ecoli_process, ComparisonTestSuite,
                                        scalar_almost_equal, transform_and_run, 
                                        array_diffs_report_test)
-from migration import load_sim_data
 
 
 TOPOLOGY = Metabolism.topology
@@ -40,6 +40,10 @@ class MetabolismExchange(Composer):
 
     def __init__(self, config=None):
         super().__init__(config)
+        load_sim_data = LoadSimData(
+            sim_data_path=SIM_DATA_PATH,
+            seed=0)
+
         self.load_sim_data = load_sim_data
 
     def generate_processes(self, config):
@@ -67,9 +71,9 @@ class MetabolismExchange(Composer):
 
 
 
-def test_metabolism_migration():
+def run_metabolism_migration(sim_data):
     # Create process, experiment, loading in initial state from file.
-    config = load_sim_data.get_metabolism_config()
+    config = sim_data.get_metabolism_config()
     metabolism_process = Metabolism(config)
 
     # run the process and get an update
@@ -80,13 +84,14 @@ def test_metabolism_migration():
 
 
 def run_metabolism(
+        sim_data,
         total_time=10,
         initial_time=0,
         config=None,
         initial_state=None,
 ):
     # get parameters from sim data
-    metabolism_config = load_sim_data.get_metabolism_config()
+    metabolism_config = sim_data.get_metabolism_config()
     if config:
         metabolism_config = deep_merge(metabolism_config, config)
 
@@ -115,11 +120,11 @@ def run_metabolism(
     return data
 
 
-def test_metabolism():
+def run_metabolism_default(sim_data):
     def test(initial_time=0):
         initial_time = initial_time
         # get parameters from sim data
-        metabolism_config = load_sim_data.get_metabolism_config()
+        metabolism_config = sim_data.get_metabolism_config()
         
         # initialize Metabolism
         metabolism = Metabolism(metabolism_config)
@@ -256,7 +261,7 @@ def assertions(actual_update, expected_update, time):
             expected_update['listeners']['fba_results']['media_id']),\
             'Media IDs not consistent!'
 
-def test_metabolism_aas():
+def run_metabolism_aas(sim_data):
     config = {
         'media_id': AA_MEDIA_ID
     }
@@ -266,6 +271,7 @@ def test_metabolism_aas():
         }
     }
     data = run_metabolism(
+        sim_data,
         total_time=10,
         config=config,
         initial_state=initial_state,
@@ -320,9 +326,9 @@ def run_metabolism_composite():
 
 # functions to run from the command line
 test_library = {
-    '0': test_metabolism_migration,
-    '1': test_metabolism,
-    '2': test_metabolism_aas,
+    '0': run_metabolism_migration,
+    '1': run_metabolism_default,
+    '2': run_metabolism_aas,
     '3': run_metabolism_composite
 }
 

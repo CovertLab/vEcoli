@@ -14,7 +14,6 @@ from migration.migration_utils import (ComparisonTestSuite, equal,
 from ecoli.states.wcecoli_state import get_state_from_file
 
 from ecoli.processes.registries import topology_registry
-from migration import load_sim_data
 
 
 
@@ -58,14 +57,14 @@ def custom_run_process(
     actual_update = update.get()
     return actual_update
 
-def test_chromosome_structure_migration():
+def chromosome_structure_migration(sim_data):
     def test(initial_time):
         # Set time parameters
         total_time = 2
         initial_time = initial_time
 
         # Create process, experiment, loading in initial state from file.
-        config = load_sim_data.get_chromosome_structure_config()
+        config = sim_data.get_chromosome_structure_config()
         config['seed'] = 0
         chromosome_structure_process = ChromosomeStructure(config)
                 
@@ -177,4 +176,11 @@ def assertions(actual_update, expected_update, time):
     tests.fail()
 
 if __name__ == "__main__":
-    test_chromosome_structure_migration()
+
+    from ecoli.library.sim_data import LoadSimData
+    from ecoli.composites.ecoli_nonpartition import SIM_DATA_PATH
+    sim_data = LoadSimData(
+        sim_data_path=SIM_DATA_PATH,
+        seed=0)
+
+    chromosome_structure_migration(sim_data)

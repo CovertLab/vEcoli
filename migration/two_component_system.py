@@ -12,7 +12,7 @@ from migration import load_sim_data
 TOPOLOGY = TwoComponentSystem.topology
 
 
-def test_two_component_system_migration():
+def run_two_component_system_migration():
     # Set time parameters
     total_time = 2
     initial_time = 10
@@ -73,4 +73,4 @@ def assertions(actual_update, expected_update):
     tests.dump_report()
 
 if __name__ == "__main__":
-    test_two_component_system_migration()
+    run_two_component_system_migration()

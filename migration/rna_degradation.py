@@ -8,7 +8,7 @@ from migration import load_sim_data
 TOPOLOGY = RnaDegradation.topology
 
 
-def test_rna_degradation_migration():
+def run_rna_degradation_migration():
     # Create process, experiment, loading in initial state from file.
     config = load_sim_data.get_rna_degradation_config()
     rna_degradation_process = RnaDegradation(config)
@@ -17,7 +17,7 @@ def test_rna_degradation_migration():
     actual_update = run_ecoli_process(rna_degradation_process, TOPOLOGY, total_time=2)
 
 
-def test_rna_degradation():
+def run_rna_degradation_default():
     # Create process, experiment, loading in initial state from file.
     config = load_sim_data.get_rna_degradation_config()
     rna_degradation_process = RnaDegradation(config)
@@ -40,10 +40,10 @@ def test_rna_degradation():
     return data
 
 def run_rna_degradation():
-    data = test_rna_degradation()
+    data = run_rna_degradation_default()
     import ipdb; ipdb.set_trace()
 
 
 if __name__ == "__main__":
-    # test_rna_degradation_migration()
+    # run_rna_degradation_migration()
     run_rna_degradation()

@@ -11,21 +11,19 @@ from migration.migration_utils import (run_ecoli_process,
                                        array_equal,
                                        stochastic_equal,
                                        array_diffs_report_test)
-from migration import load_sim_data
 
 
 TOPOLOGY = Complexation.topology
 
 
-def test_complexation_migration():
+def complexation_migration(sim_data):
     def test(initial_time):
         total_time = 2
         
         # Create process, experiment, loading in initial state from file.
-        config = load_sim_data.get_complexation_config()
+        config = sim_data.get_complexation_config()
         config['seed'] = 0
         complexation = Complexation(config)
-
 
         
         with open(f"data/complexation/complexation_partitioned_t"
@@ -93,4 +91,10 @@ def assertions(actual_update, expected_update, time):
         "# of molecules not equal!"
 
 if __name__ == "__main__":
-    test_complexation_migration()
+    from ecoli.library.sim_data import LoadSimData
+    from ecoli.composites.ecoli_nonpartition import SIM_DATA_PATH
+    sim_data = LoadSimData(
+        sim_data_path=SIM_DATA_PATH,
+        seed=0)
+
+    complexation_migration(sim_data)

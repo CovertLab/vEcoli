@@ -14,7 +14,7 @@ from migration import load_sim_data
 TOPOLOGY = TranscriptElongation.topology
 
 
-def test_transcription_elongation():
+def run_transcription_elongation():
 
     # Create process, experiment, loading in initial state from file.
     config = load_sim_data.get_transcript_elongation_config()
@@ -128,4 +128,4 @@ def save_test_sequences(config):
         np.save(f, save_seq)
 
 if __name__ == "__main__":
-    test_transcription_elongation()
+    run_transcription_elongation()

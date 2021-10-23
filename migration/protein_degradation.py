@@ -26,7 +26,7 @@ load_sim_data = LoadSimData(
 TOPOLOGY = ProteinDegradation.topology
 
 
-def test_protein_degradation():
+def run_protein_degradation():
     # Create process, experiment, loading in initial state from file.
     config = load_sim_data.get_protein_degradation_config()
     prot_deg_process = ProteinDegradation(config)
@@ -167,4 +167,4 @@ def test_protein_degradation():
 
 
 if __name__ == "__main__":
-    test_protein_degradation()
+    run_protein_degradation()

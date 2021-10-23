@@ -21,7 +21,7 @@ from migration import load_sim_data
 TOPOLOGY = TranscriptInitiation.topology
 
 
-def test_transcript_initiation(fixed_synths_monte_carlo=False):
+def run_transcript_initiation(fixed_synths_monte_carlo=False):
     """
 
     Args:
@@ -227,4 +227,4 @@ def test_transcript_initiation(fixed_synths_monte_carlo=False):
 
 
 if __name__ == "__main__":
-    test_transcript_initiation()
+    run_transcript_initiation()

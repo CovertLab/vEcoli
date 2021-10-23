@@ -8,14 +8,14 @@ from vivarium.core.engine import pf
 from ecoli.processes.chromosome_replication import ChromosomeReplication
 from ecoli.states.wcecoli_state import MASSDIFFS
 from migration.migration_utils import *
-from migration import load_sim_data
+# from migration import load_sim_data
 
 
 TOPOLOGY = ChromosomeReplication.topology
 
 
-def test_actual_update():
-    config = load_sim_data.get_chromosome_replication_config()
+def chromosome_replication_actual_update(sim_data):
+    config = sim_data.get_chromosome_replication_config()
     chromosome_replication = ChromosomeReplication(config)
     total_time = 2
     initial_times = [0, 1438, 1440, 2140, 3142]
@@ -232,8 +232,8 @@ def assertions(actual_update, expected_update):
                            create_child_list(expected_update['chromosome_domains']['_add']))
 
 
-def test_chromosome_replication_default():
-    config = load_sim_data.get_chromosome_replication_config()
+def chromosome_replication_default(sim_data):
+    config = sim_data.get_chromosome_replication_config()
     chromosome_replication = ChromosomeReplication(config)
 
     # get the initial state
@@ -250,8 +250,8 @@ def test_chromosome_replication_default():
     print(pf(data))
 
 
-def test_initiate_replication():
-    config = load_sim_data.get_chromosome_replication_config()
+def chromosome_replication_initiate_replication(sim_data):
+    config = sim_data.get_chromosome_replication_config()
     chromosome_replication = ChromosomeReplication(config)
 
     # get the initial state
@@ -275,8 +275,8 @@ def test_initiate_replication():
     # data[1.0]['oriC']
 
 
-def test_fork_termination():
-    config = load_sim_data.get_chromosome_replication_config()
+def chromosome_replication_fork_termination(sim_data):
+    config = sim_data.get_chromosome_replication_config()
 
     # change replichore_length parameter to force early termination
     config['replichore_lengths'] = np.array([1897318, 1897318])
@@ -298,10 +298,10 @@ def test_fork_termination():
 
 
 test_library = {
-    '0': test_actual_update,
-    '1': test_chromosome_replication_default,
-    '2': test_initiate_replication,
-    '3': test_fork_termination,
+    '0': chromosome_replication_actual_update,
+    '1': chromosome_replication_default,
+    '2': chromosome_replication_initiate_replication,
+    '3': chromosome_replication_fork_termination,
 }
 
 if __name__ == '__main__':
@@ -311,8 +311,14 @@ if __name__ == '__main__':
     args = parser.parse_args()
     run_all = not args.name
 
+    from ecoli.library.sim_data import LoadSimData
+    from ecoli.composites.ecoli_nonpartition import SIM_DATA_PATH
+    sim_data = LoadSimData(
+        sim_data_path=SIM_DATA_PATH,
+        seed=0)
+
     for name in args.name:
-        test_library[name]()
+        test_library[name](sim_data)
     if run_all:
         for name, test in test_library.items():
-            test()
+            test(sim_data)

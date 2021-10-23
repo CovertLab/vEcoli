@@ -63,7 +63,7 @@ def custom_run_process(
     actual_update = update.get()
     return actual_update
 
-def test_tf_binding_migration():
+def run_tf_binding_migration():
     def test(initial_time):
         # Set time parameters
         total_time = 2
@@ -229,5 +229,5 @@ def run_tf_binding():
 
 
 if __name__ == "__main__":
-    test_tf_binding_migration()
+    run_tf_binding_migration()
     # run_tf_binding()

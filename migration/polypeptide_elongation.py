@@ -10,15 +10,14 @@ from ecoli.library.schema import array_from
 from migration.plots import qqplot
 from migration.migration_utils import run_ecoli_process
 from migration.migration_utils import scalar_almost_equal, array_almost_equal, ComparisonTestSuite, transform_and_run
-from migration import load_sim_data
 
 
 PE_TOPOLOGY = PolypeptideElongation.topology
 
 
-def test_polypeptide_elongation_migration():
+def run_polypeptide_elongation_migration(sim_data):
     # Create process, experiment, loading in initial state from file.
-    config = load_sim_data.get_polypeptide_elongation_config()
+    config = sim_data.get_polypeptide_elongation_config()
     polypeptide_elongation_process = PolypeptideElongation(config)
 
     # initialize time parameters
@@ -148,9 +147,9 @@ def assertions(actual_update, expected_update):
             assert scalar_almost_equal(actual_update['active_ribosome'][actual_key]['submass'][MASSDIFFS['massDiff_protein']], 
                                        expected_update['active_ribosome'][expected_key]['submass']['protein'])
 
-def run_polypeptide_elongation():
+def run_polypeptide_elongation(sim_data):
     # Create process, experiment, loading in initial state from file.
-    config = load_sim_data.get_polypeptide_elongation_config()
+    config = sim_data.get_polypeptide_elongation_config()
     polypeptide_elongation_process = PolypeptideElongation(config)
 
     initial_state = get_state_from_file(
@@ -169,5 +168,11 @@ def run_polypeptide_elongation():
 
 
 if __name__ == "__main__":
-    test_polypeptide_elongation_migration()
+    from ecoli.library.sim_data import LoadSimData
+    from ecoli.composites.ecoli_nonpartition import SIM_DATA_PATH
+    sim_data = LoadSimData(
+        sim_data_path=SIM_DATA_PATH,
+        seed=0)
+
+    run_polypeptide_elongation_migration(sim_data)
     # run_polypeptide_elongation()

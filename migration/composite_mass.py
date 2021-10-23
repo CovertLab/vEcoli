@@ -11,7 +11,7 @@ from migration.migration_utils import ComparisonTestSuite
 from ecoli.experiments.ecoli_master_sim import EcoliSim, CONFIG_DIR_PATH
 
 
-def test_composite_mass():
+def run_composite_mass(sim_data):
     sim = EcoliSim.from_file(CONFIG_DIR_PATH + "default.json")
     sim.total_time = 10
 
@@ -75,4 +75,10 @@ def plots(actual_timeseries, wcecoli_timeseries, keys):
     plt.close()
 
 if __name__ == "__main__":
-    test_composite_mass()
+    from ecoli.library.sim_data import LoadSimData
+    from ecoli.composites.ecoli_nonpartition import SIM_DATA_PATH
+    sim_data = LoadSimData(
+        sim_data_path=SIM_DATA_PATH,
+        seed=0)
+
+    run_composite_mass(sim_data)
