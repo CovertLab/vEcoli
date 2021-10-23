@@ -20,15 +20,12 @@ from ecoli.processes.protein_degradation import ProteinDegradation
 from migration.plots import qqplot
 
 
-load_sim_data = LoadSimData(
-            sim_data_path=SIM_DATA_PATH,
-            seed=0)
 TOPOLOGY = ProteinDegradation.topology
 
 
-def run_protein_degradation():
+def run_protein_degradation(sim_data):
     # Create process, experiment, loading in initial state from file.
-    config = load_sim_data.get_protein_degradation_config()
+    config = sim_data.get_protein_degradation_config()
     prot_deg_process = ProteinDegradation(config)
 
     # get ids from config

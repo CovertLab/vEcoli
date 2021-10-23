@@ -19,10 +19,6 @@ from ecoli.states.wcecoli_state import get_state_from_file
 from ecoli.processes.registries import topology_registry
 
 
-load_sim_data = LoadSimData(
-            sim_data_path=SIM_DATA_PATH,
-            seed=0)
-
 TF_BINDING_TOPOLOGY = TfBinding.topology
 
 def custom_run_process(
@@ -63,14 +59,14 @@ def custom_run_process(
     actual_update = update.get()
     return actual_update
 
-def run_tf_binding_migration():
+def run_tf_binding_migration(sim_data):
     def test(initial_time):
         # Set time parameters
         total_time = 2
         initial_time = initial_time
 
         # Create process, experiment, loading in initial state from file.
-        config = load_sim_data.get_tf_config()
+        config = sim_data.get_tf_config()
         config['seed'] = 0
         tf_binding_process = TfBinding(config)
                 
@@ -208,9 +204,9 @@ def assertions(actual_update, expected_update, time):
 
     assert array_equal(n_bound_TU_per_TF, wc_n_bound_TU_per_TF), "Counts of bound TUs per TF not consistent!"
         
-def run_tf_binding():
+def run_tf_binding(sim_data):
     # Create process, experiment, loading in initial state from file.
-    config = load_sim_data.get_tf_config()
+    config = sim_data.get_tf_config()
     tf_binding_process = TfBinding(config)
 
     initial_state = get_state_from_file(

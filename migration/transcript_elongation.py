@@ -8,16 +8,15 @@ import matplotlib.pyplot as plt
 from ecoli.processes.transcript_elongation import TranscriptElongation
 from migration.migration_utils import *
 from migration.plots import qqplot
-from migration import load_sim_data
 
 
 TOPOLOGY = TranscriptElongation.topology
 
 
-def run_transcription_elongation():
+def run_transcription_elongation(sim_data):
 
     # Create process, experiment, loading in initial state from file.
-    config = load_sim_data.get_transcript_elongation_config()
+    config = sim_data.get_transcript_elongation_config()
     process = TranscriptElongation(config)
 
 

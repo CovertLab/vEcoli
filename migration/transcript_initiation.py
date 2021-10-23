@@ -15,13 +15,12 @@ from ecoli.states.wcecoli_state import get_state_from_file
 from migration.migration_utils import run_ecoli_process
 from migration.plots import qqplot
 from migration.migration_utils import array_diffs_report
-from migration import load_sim_data
 
 
 TOPOLOGY = TranscriptInitiation.topology
 
 
-def run_transcript_initiation(fixed_synths_monte_carlo=False):
+def run_transcript_initiation(sim_data, fixed_synths_monte_carlo=False):
     """
 
     Args:
@@ -29,7 +28,7 @@ def run_transcript_initiation(fixed_synths_monte_carlo=False):
 
     """
     # Create process, experiment, loading in initial state from file.
-    config = load_sim_data.get_transcript_initiation_config()
+    config = sim_data.get_transcript_initiation_config()
     process = TranscriptInitiation(config)
 
     # run the process and get an update
@@ -227,4 +226,10 @@ def run_transcript_initiation(fixed_synths_monte_carlo=False):
 
 
 if __name__ == "__main__":
-    run_transcript_initiation()
+    from ecoli.library.sim_data import LoadSimData
+    from ecoli.composites.ecoli_nonpartition import SIM_DATA_PATH
+    sim_data = LoadSimData(
+        sim_data_path=SIM_DATA_PATH,
+        seed=0)
+
+    run_transcript_initiation(sim_data)

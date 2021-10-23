@@ -6,19 +6,18 @@ import matplotlib.pyplot as plt
 from ecoli.processes.two_component_system import TwoComponentSystem
 from migration.plots import qqplot
 from migration.migration_utils import run_ecoli_process, scalar_almost_equal, ComparisonTestSuite
-from migration import load_sim_data
 
 
 TOPOLOGY = TwoComponentSystem.topology
 
 
-def run_two_component_system_migration():
+def run_two_component_system_migration(sim_data):
     # Set time parameters
     total_time = 2
     initial_time = 10
 
     # Create process, experiment, loading in initial state from file.
-    config = load_sim_data.get_two_component_system_config()
+    config = sim_data.get_two_component_system_config()
     two_component_system_process = TwoComponentSystem(config)
 
     # run the process and get an update
