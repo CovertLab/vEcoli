@@ -19,7 +19,7 @@ ext_modules = [
              sources=[os.path.join("wholecell", "utils", "_build_sequences.pyx")],
 	     include_dirs = [np.get_include()],
              ),
-   Extension(name="wholecell.utils.complexation", 
+   Extension(name="wholecell.utils.complexation",
              sources=[os.path.join("wholecell", "utils", "mc_complexation.pyx")],
 	     include_dirs = [np.get_include()]
              ),
@@ -50,7 +50,7 @@ setup(
         'biopython==1.77',
         'Unum==4.1.4',
         'numba==0.50.1',
-        'ipython==7.16.1',
+        'ipython>=7.16.1',
         'aesara==2.0.8',
         'decorator',
         'iteround',
