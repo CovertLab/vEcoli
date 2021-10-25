@@ -147,6 +147,14 @@ class Requester(Deriver):
         return ports
 
     def next_update(self, timestep, states):
+        if self.process.parallel:
+            hidden_state = states.pop('hidden_state')
+            serialized = hidden_state[self.process.name]
+            # If the simulation is brand-new, there might not be a
+            # serialized process in the store yet.
+            if serialized:
+                self.process = pickle.loads(serialized)
+
         request = self.process.calculate_request(
             self.parameters['time_step'], states)
         self.process.request_set = True
@@ -211,7 +219,12 @@ class Evolver(Process):
             _ = self.process.calculate_request(timestep, states)
             self.process.request_set = True
 
-        return self.process.evolve_state(timestep, states)
+        update = self.process.evolve_state(timestep, states)
+        if self.process.parallel:
+            update['hidden_state'] = {
+                self.process.name: pickle.dumps(self.process)
+            }
+        return update
 
 
 class PartitionedProcess(Process):
