@@ -19,6 +19,7 @@ from migration.tf_binding import run_tf_binding_migration
 from migration.transcript_elongation import run_transcription_elongation
 from migration.transcript_initiation import run_transcript_initiation
 from migration.two_component_system import run_two_component_system_migration
+from migration.equilibrium import run_equilibrium
 
 from ecoli.library.sim_data import LoadSimData
 from ecoli.composites.ecoli_nonpartition import SIM_DATA_PATH
@@ -118,3 +119,8 @@ class TestMigration:
     @staticmethod
     def test_run_two_component_system_migration():
         run_two_component_system_migration(sim_data)
+
+    # EQUILIBRIUM
+    @staticmethod
+    def test_run_equilibrium():
+        run_equilibrium(sim_data)

@@ -8,7 +8,6 @@ from vivarium.core.engine import pf
 from ecoli.processes.chromosome_replication import ChromosomeReplication
 from ecoli.states.wcecoli_state import MASSDIFFS
 from migration.migration_utils import *
-# from migration import load_sim_data
 
 
 TOPOLOGY = ChromosomeReplication.topology

@@ -7,14 +7,13 @@ from scipy.stats import mannwhitneyu
 from ecoli.processes.equilibrium import Equilibrium
 from migration.plots import qqplot
 from migration.migration_utils import run_ecoli_process, percent_error
-from migration import load_sim_data
 
 
 TOPOLOGY = Equilibrium.topology
 
 
-def test_equilibrium():
-    config = load_sim_data.get_equilibrium_config()
+def run_equilibrium(sim_data):
+    config = sim_data.get_equilibrium_config()
     equil = Equilibrium(config)
 
     timestep = 2
@@ -53,7 +52,6 @@ def test_equilibrium():
     assert len(wc_rxnEvolve) == len(rates), (
         f"Mismatch in lengths: vivarium-ecoli metabolite update has length {len(d_metabolites)}\n"
         f"while wcecoli has {len(metabolite_ids)} metabolites with {len(wc_metabolites)} values.")
-
 
     assert set(wc_moleculeNames) == set(moleculeNames), (
         "Mismatch between protein ids in vivarium-ecoli and wcEcoli.")
@@ -101,4 +99,4 @@ def test_equilibrium():
     plt.savefig("out/migration/equilibrium_figures.png")
 
 if __name__ == "__main__":
-    test_equilibrium()
+    run_equilibrium()
