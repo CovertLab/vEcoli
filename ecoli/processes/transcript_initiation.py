@@ -259,28 +259,9 @@ class TranscriptInitiation(PartitionedProcess):
             'molecules': bulk_schema([self.inactive_RNAP, self.ppgpp]),
 
             'full_chromosomes': dict_value_schema('full_chromosomes'),
-            
-            'promoters': {
-                '_divider': {
-                    'divider': 'by_domain',
-                    'topology': {'chromosome_domain': ('..', 'chromosome_domain')}
-                },
-                **dict_value_schema('promoters')},
-            
-            'RNAs': {
-                '_divider': {
-                    'divider': 'rna_by_domain',
-                    'topology': {'active_RNAP': ('..', 'active_RNAP',),
-                                 'chromosome_domain': ('..', 'chromosome_domain')}
-                },
-                **dict_value_schema('RNAs')},
-
-            'active_RNAPs': {
-                '_divider': {
-                    'divider': 'by_domain',
-                    'topology': {'chromosome_domain': ('..', 'chromosome_domain')}
-                },
-                **dict_value_schema('active_RNAPs')},
+            'promoters': dict_value_schema('promoters'),
+            'RNAs': dict_value_schema('RNAs'),
+            'active_RNAPs': dict_value_schema('active_RNAPs'),
 
             'listeners': {
                 'mass': {

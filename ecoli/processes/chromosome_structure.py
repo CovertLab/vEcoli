@@ -120,21 +120,21 @@ class ChromosomeStructure(Process):
 
         ports = {
             'listeners': {
-                'RnapData': listener_schema(
-                    {'n_total_collisions': 0,
+                'RnapData': listener_schema({
+                    'n_total_collisions': 0,
                     'n_headon_collisions': 0,
                     'n_codirectional_collisions': 0,
                     'headon_collision_coordinates': 0,
                     'codirectional_collision_coordinates': 0,
                     'n_removed_ribosomes': 0})},
+
             # Bulk molecules
             'fragmentBases': bulk_schema(self.fragmentBases),
-            'molecules': bulk_schema([self.ppi, self.water,
-                                      self.inactive_RNAPs]),
+            'molecules': bulk_schema([
+                self.ppi, self.water, self.inactive_RNAPs]),
             'active_tfs': bulk_schema(self.active_tfs),
-            'subunits': bulk_schema(
-                [self.ribosome_30S_subunit,
-                 self.ribosome_50S_subunit]),
+            'subunits': bulk_schema([
+                self.ribosome_30S_subunit, self.ribosome_50S_subunit]),
             'amino_acids': bulk_schema(self.amino_acids),
 
             # Unique molecules
