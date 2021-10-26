@@ -24,103 +24,87 @@ from migration.equilibrium import run_equilibrium
 from ecoli.library.sim_data import LoadSimData
 from ecoli.composites.ecoli_nonpartition import SIM_DATA_PATH
 
-sim_data = LoadSimData(
-    sim_data_path=SIM_DATA_PATH,
-    seed=0)
 
 
 class TestMigration:
+    sim_data = None
+
+    @classmethod
+    def setUpClass(self):
+        self.sim_data = LoadSimData(sim_data_path=SIM_DATA_PATH, seed=0)
+
+    @classmethod
+    def tearDownClass(self):
+        self.sim_data = None  # not really needed
 
     # CHROMOSOME REPLICATION
-    @staticmethod
-    def test_complexation_actual_update():
-        chromosome_replication_actual_update(sim_data)
-    @staticmethod
-    def test_chromosome_replication_default():
-        chromosome_replication_default(sim_data)
-    @staticmethod
-    def test_chromosome_replication_fork_termination():
-        chromosome_replication_fork_termination(sim_data)
-    @staticmethod
-    def test_chromosome_replication_initiate_replication():
-        chromosome_replication_initiate_replication(sim_data)
+    def test_complexation_actual_update(self):
+        chromosome_replication_actual_update(self.sim_data)
+    def test_chromosome_replication_default(self):
+        chromosome_replication_default(self.sim_data)
+    def test_chromosome_replication_fork_termination(self):
+        chromosome_replication_fork_termination(self.sim_data)
+    def test_chromosome_replication_initiate_replication(self):
+        chromosome_replication_initiate_replication(self.sim_data)
 
     # CHROMOSOME STRUCTURE
-    @staticmethod
-    def test_chromosome_structure_migration():
-        chromosome_structure_migration(sim_data)
+    def test_chromosome_structure_migration(self):
+        chromosome_structure_migration(self.sim_data)
 
     # COMPLEXATION
-    @staticmethod
-    def test_complexation_migration():
-        complexation_migration(sim_data)
+    def test_complexation_migration(self):
+        complexation_migration(self.sim_data)
 
     # METABOLISM
-    @staticmethod
-    def test_run_metabolism_default():
-        run_metabolism_default(sim_data)
-    @staticmethod
-    def test_run_metabolism_aas():
-        run_metabolism_aas(sim_data)
-    @staticmethod
-    def test_run_metabolism_migration():
-        run_metabolism_migration(sim_data)
+    def test_run_metabolism_default(self):
+        run_metabolism_default(self.sim_data)
+    def test_run_metabolism_aas(self):
+        run_metabolism_aas(self.sim_data)
+    def test_run_metabolism_migration(self):
+        run_metabolism_migration(self.sim_data)
 
     # MASS
-    @staticmethod
-    def test_run_composite_mass():
-        run_composite_mass(sim_data)
-    # @staticmethod
+    def test_run_composite_mass(self):
+        run_composite_mass(self.sim_data)
     # def test_run_mass_listener():
     #     run_mass_listener()
 
     # POLYPEPTIDE INITIATION
-    @staticmethod
-    def test_run_polypeptide_initiation_default():
-        run_polypeptide_initiation_default(sim_data)
-    @staticmethod
-    def test_run_polypeptide_initiation_migration():
-        run_polypeptide_initiation_migration(sim_data)
+    def test_run_polypeptide_initiation_default(self):
+        run_polypeptide_initiation_default(self.sim_data)
+    def test_run_polypeptide_initiation_migration(self):
+        run_polypeptide_initiation_migration(self.sim_data)
 
     # POLYPEPTIDE ELONGATION
-    @staticmethod
-    def test_run_polypeptide_elongation_migration():
-        run_polypeptide_elongation_migration(sim_data)
+    def test_run_polypeptide_elongation_migration(self):
+        run_polypeptide_elongation_migration(self.sim_data)
 
     # PROTEIN DEGRADATION
-    @staticmethod
-    def test_run_protein_degradation():
-        run_protein_degradation(sim_data)
+    def test_run_protein_degradation(self):
+        run_protein_degradation(self.sim_data)
 
     # RNA DEGRADATION
-    @staticmethod
-    def test_run_rna_degradation_default():
-        run_rna_degradation_default(sim_data)
-    @staticmethod
-    def test_run_rna_degradation_migration():
-        run_rna_degradation_migration(sim_data)
+    def test_run_rna_degradation_default(self):
+        run_rna_degradation_default(self.sim_data)
+    def test_run_rna_degradation_migration(self):
+        run_rna_degradation_migration(self.sim_data)
 
     # TF BINDING
-    @staticmethod
-    def test_run_tf_binding_migration():
-        run_tf_binding_migration(sim_data)
+    def test_run_tf_binding_migration(self):
+        run_tf_binding_migration(self.sim_data)
 
     # TRANSCRIPT ELONGATION
-    @staticmethod
-    def test_run_transcription_elongation():
-        run_transcription_elongation(sim_data)
+    def test_run_transcription_elongation(self):
+        run_transcription_elongation(self.sim_data)
 
     # TRANSCRIPT INITIATION
-    @staticmethod
-    def test_run_transcript_initiation():
-        run_transcript_initiation(sim_data)
+    def test_run_transcript_initiation(self):
+        run_transcript_initiation(self.sim_data)
 
     # TWO COMPONENT SYSTEM
-    @staticmethod
-    def test_run_two_component_system_migration():
-        run_two_component_system_migration(sim_data)
+    def test_run_two_component_system_migration(self):
+        run_two_component_system_migration(self.sim_data)
 
     # EQUILIBRIUM
-    @staticmethod
     def test_run_equilibrium():
-        run_equilibrium(sim_data)
+        run_equilibrium(self.sim_data)
