@@ -117,8 +117,6 @@ class ChromosomeStructure(Process):
         return self.deriver_mode
 
     def ports_schema(self):
-        default_unique_schema = {
-            '_default': 0, '_updater': 'set', '_emit': self.emit_unique}
 
         ports = {
             'listeners': {
@@ -143,33 +141,12 @@ class ChromosomeStructure(Process):
             'active_replisomes': dict_value_schema('active_replisomes'),
             'oriCs': dict_value_schema('oriCs'),
             'chromosome_domains': dict_value_schema('chromosome_domains'),
-            'active_RNAPs': {
-                '_divider': {
-                    'divider': 'by_domain',
-                    'topology': {'chromosome_domain': ('..', 'chromosome_domain')}
-                },
-                **dict_value_schema('active_RNAPs')},
-            'RNAs': {
-                '_divider': {
-                    'divider': 'rna_by_domain',
-                    'topology': {'active_RNAP': ('..', 'active_RNAP',),
-                                 'chromosome_domain': ('..', 'chromosome_domain')}
-                },
-                **dict_value_schema('RNAs')},
+            'active_RNAPs': dict_value_schema('active_RNAPs'),
+            'RNAs': dict_value_schema('RNAs'),
             'active_ribosome': dict_value_schema('active_ribosome'),
             'full_chromosomes': dict_value_schema('full_chromosomes'),
-            'promoters': {
-                '_divider': {
-                    'divider': 'by_domain',
-                    'topology': {'chromosome_domain': ('..', 'chromosome_domain')}
-                },
-                **dict_value_schema('promoters')},
-            'DnaA_boxes': {
-                '_divider': {
-                    'divider': 'by_domain',
-                    'topology': {'chromosome_domain': ('..', 'chromosome_domain')}
-                },
-                **dict_value_schema('DnaA_boxes')}
+            'promoters': dict_value_schema('promoters'),
+            'DnaA_boxes': dict_value_schema('DnaA_boxes'),
         }
 
         if self.calculate_superhelical_densities:

@@ -1,4 +1,5 @@
 import numpy as np
+from ecoli import UNIQUE_DIVIDERS
 
 def array_from(d):
     return np.array(list(d.values()))
@@ -99,5 +100,6 @@ def dict_value_schema(name):
     return {
         '_default': {},
         '_updater': f'{name}_updater',
+        '_divider': UNIQUE_DIVIDERS[name],
         '_emit': True
     }
