@@ -294,7 +294,8 @@ class EcoliSim:
         try:
             description["git_hash"] = self._get_git_revision_hash()
         except:
-            warnings.warn("Unable to retrieve current git revision hash. Try making a note of this manually if your experiment may need to be replicated.")
+            warnings.warn("Unable to retrieve current git revision hash. "
+                          "Try making a note of this manually if your experiment may need to be replicated.")
 
         # make the experiment
         experiment_config = {
@@ -328,7 +329,7 @@ class EcoliSim:
         else:
             return self.ecoli_experiment.emitter.get_timeseries()
     
-    def _get_git_revision_hash():
+    def _get_git_revision_hash(self):
         return subprocess.check_output(['git', 'rev-parse', 'HEAD']).decode('ascii').strip()
 
     def merge(self, other):
