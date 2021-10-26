@@ -69,16 +69,17 @@ class EcoliSim:
 
 
     @staticmethod
-    def from_file(filepath=CONFIG_DIR_PATH + 'default.json'):
+    def from_file(filepath=CONFIG_DIR_PATH + 'default.json', merge_default=True):
         # Load config, deep-merge with default config
         with open(filepath) as config_file:
             ecoli_config = json.load(config_file)
 
-        with open(CONFIG_DIR_PATH + 'default.json') as default_file:
-            default_config = json.load(default_file)
+        if merge_default:
+            with open(CONFIG_DIR_PATH + 'default.json') as default_file:
+                default_config = json.load(default_file)
 
-        # Use defaults for any attributes not supplied
-        ecoli_config = deep_merge(dict(default_config), ecoli_config)
+            # Use defaults for any attributes not supplied
+            ecoli_config = deep_merge(dict(default_config), ecoli_config)
 
         return EcoliSim(ecoli_config)
 
