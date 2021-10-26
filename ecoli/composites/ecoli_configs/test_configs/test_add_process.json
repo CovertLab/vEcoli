@@ -2,6 +2,7 @@
     "partition" : false,
     "experiment_id" : "test_add_process",
     "total_time" : 2,
+    "raw_output" : false,
     "_schema": {
         "clock" : {
             "global_time" : {
