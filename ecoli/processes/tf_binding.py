@@ -108,12 +108,7 @@ class TfBinding(PartitionedProcess):
         
     def ports_schema(self):
         return {
-            'promoters': {
-                '_divider': {
-                    'divider': 'by_domain',
-                    'topology': {'chromosome_domain': ('..', 'chromosome_domain')}
-                },
-                **dict_value_schema('promoters')},
+            'promoters': dict_value_schema('promoters'),
 
             'active_tfs': bulk_schema([
                 self.active_tfs[tf]

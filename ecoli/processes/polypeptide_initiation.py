@@ -124,9 +124,7 @@ class PolypeptideInitiation(PartitionedProcess):
                         '_updater': 'set',
                         '_emit': True}}},
             
-            'active_ribosome': {
-                '_divider': 'divide_unique',
-                **dict_value_schema('active_ribosome')},
+            'active_ribosome': dict_value_schema('active_ribosome'),
 
             'RNA': dict_value_schema('RNAs'),
             'subunits': bulk_schema([
