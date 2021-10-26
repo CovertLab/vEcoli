@@ -7,6 +7,7 @@ Run simulations of Ecoli Master
 """
 
 import argparse
+import subprocess
 import json
 import warnings
 from datetime import datetime
@@ -285,9 +286,19 @@ class EcoliSim:
         # build self.ecoli and self.initial_state
         self.build_ecoli()
 
+        # create "description" of this experiment to be emitted,
+        # namely the config of this EcoliSim object
+        # with an additional key for the current git hash.
+        # Goal is to save enough information to reproduce the experiment.
+        description = dict(self.config)
+        try:
+            description["git_hash"] = self._get_git_revision_hash()
+        except:
+            warnings.warn("Unable to retrieve current git revision hash. Try making a note of this manually if your experiment may need to be replicated.")
+
         # make the experiment
         experiment_config = {
-            'description': self.description,
+            'description': description,
             'processes': self.ecoli.processes,
             'topology': self.ecoli.topology,
             'initial_state': self.initial_state,
@@ -316,6 +327,9 @@ class EcoliSim:
             return self.ecoli_experiment.emitter.get_data()
         else:
             return self.ecoli_experiment.emitter.get_timeseries()
+    
+    def _get_git_revision_hash():
+        return subprocess.check_output(['git', 'rev-parse', 'HEAD']).decode('ascii').strip()
 
     def merge(self, other):
         """
