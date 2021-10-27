@@ -352,6 +352,8 @@ def divide_by_domain(values, state):
     for cell in index_to_daughter.values():
         if cell != -1 and cell not in cells:
             cells.append(cell)
+        # TODO (Matt): Use a Set instead of a for loop
+    # TODO (Matt): Put an assert here to guarantee cells has length two
     daughter1_index = min(cells)
     daughter2_index = max(cells)
 
@@ -368,6 +370,8 @@ def divide_unique(values, **args):
     daughter1 = {}
     daughter2 = {}
     for state_id, value in values.items():
+        # TODO (Matt): Set a seed
+        # TODO (Matt): Make this use binomial division
         if random.choice([True, False]):
             daughter1[state_id] = value
         else:
@@ -407,6 +411,8 @@ def divide_RNAs_by_domain(values, state):
 
     # divide full transcripts binomially
     n_full_transcripts = len(full_transcripts)
+    # TODO (Matt): Set a seed
+    # TODO (Matt): Make this use divide_unique
     daughter1_counts = np.random.binomial(n_full_transcripts, 0.5)
     daughter1_ids = random.sample(full_transcripts, daughter1_counts)
     for unique_id in full_transcripts:
