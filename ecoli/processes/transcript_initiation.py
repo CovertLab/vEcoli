@@ -24,7 +24,11 @@ from six.moves import zip
 
 from vivarium.core.composition import simulate_process
 
-from ecoli.library.schema import arrays_from, arrays_to, add_elements, dict_value_schema, listener_schema, bulk_schema
+from ecoli.library.schema import (
+    create_unique_indexes, arrays_from, arrays_to,
+    add_elements, dict_value_schema, listener_schema,
+    bulk_schema,
+)
 
 from wholecell.utils import units
 from wholecell.utils.random import stochasticRound
@@ -432,11 +436,9 @@ class TranscriptInitiation(PartitionedProcess):
         coordinates = self.replication_coordinate[TU_index_partial_RNAs]
         direction = self.transcription_direction[TU_index_partial_RNAs]
 
-        if 'active_RNAPs' in states and states['active_RNAPs']:
-            self.rnap_index = int(max([int(index) for index in list(states['active_RNAPs'].keys())])) + 1
-
-        RNAP_indexes = np.arange(self.rnap_index, self.rnap_index + n_RNAPs_to_activate).astype(int)
-
+        # new RNAPs
+        RNAP_indexes = create_unique_indexes(n_RNAPs_to_activate)
+        RNAP_indexes = np.array(RNAP_indexes).astype(int)
         new_RNAPs = arrays_to(
             n_RNAPs_to_activate, {
                 'unique_index': RNAP_indexes,
@@ -452,13 +454,11 @@ class TranscriptInitiation(PartitionedProcess):
 
         # Add partially transcribed RNAs
         is_mRNA = np.isin(TU_index_partial_RNAs, self.idx_mRNA)
-
-        if 'RNAs' in states and states['RNAs']:
-            self.rna_index = int(max([int(index) for index in list(states['RNAs'].keys())])) + 1
-
+        rna_indices = create_unique_indexes(n_RNAPs_to_activate)
+        rna_indices = np.array(rna_indices).astype(int)
         new_RNAs = arrays_to(
             n_RNAPs_to_activate, {
-                'unique_index': np.arange(self.rna_index, self.rna_index + n_RNAPs_to_activate).astype(int),
+                'unique_index': rna_indices,
                 'TU_index': TU_index_partial_RNAs,
                 'transcript_length': np.zeros(cast(int, n_RNAPs_to_activate)),
                 'is_mRNA': is_mRNA,
