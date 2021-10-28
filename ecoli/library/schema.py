@@ -1,4 +1,5 @@
 import random
+from uuid import uuid4
 
 import numpy as np
 
@@ -9,7 +10,7 @@ UNIQUE_DIVIDERS = {
         'divider': 'by_domain',
         'topology': {'chromosome_domain': ('..', 'chromosome_domain')}
     },
-    'chromosome_domains': '_',
+    'chromosome_domains': 'set',  # TODO -- fix this
     'active_replisomes': {
         'divider': 'by_domain',
         'topology': {'chromosome_domain': ('..', 'chromosome_domain')}
@@ -22,7 +23,7 @@ UNIQUE_DIVIDERS = {
         'divider': 'by_domain',
         'topology': {'chromosome_domain': ('..', 'chromosome_domain')}
     },
-    'chromosomal_segments': '_',
+    'chromosomal_segments': 'set',  # TODO -- fix this
     'DnaA_boxes': {
         'divider': 'by_domain',
         'topology': {'chromosome_domain': ('..', 'chromosome_domain')}
@@ -109,6 +110,12 @@ UNIQUE_DEFAULTS = {
         'submass': np.zeros(9)
     },
 }
+
+def create_unique_indexes(n_indexes):
+    """
+    Creates a list of unique indexes by using uuid4() to generate each index.
+    """
+    return [str(uuid4().int)[-14:] for i in range(n_indexes)]
 
 def array_from(d):
     return np.array(list(d.values()))

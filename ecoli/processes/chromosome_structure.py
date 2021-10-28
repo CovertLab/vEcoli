@@ -13,7 +13,7 @@ import numpy as np
 from vivarium.core.process import Process
 from ecoli.processes.registries import topology_registry
 from ecoli.library.schema import (
-    add_elements, arrays_from, bulk_schema,
+    add_elements, arrays_from, bulk_schema, create_unique_indexes,
     arrays_to, array_to, dict_value_schema, listener_schema)
 
 from wholecell.utils.polymerize import buildSequences
@@ -541,13 +541,10 @@ class ChromosomeStructure(Process):
                 promoter_domain_indexes[removed_promoters_mask])
 
             # Add new promoters with new domain indexes
-
-            if 'promoters' in states and states['promoters']:
-                self.promoter_index = int(max([int(index) for index in list(states['promoters'].keys())])) + 1
-
+            promoter_indices = create_unique_indexes(n_new_promoters)
             new_promoters = arrays_to(
                 n_new_promoters, {
-                    'unique_index': np.arange(self.promoter_index, self.promoter_index + n_new_promoters).astype(int),
+                    'unique_index': np.array(promoter_indices).astype(int),
                     'TU_index': promoter_TU_indexes_new,
                     'coordinates': promoter_coordinates_new,
                     'domain_index': promoter_domain_indexes_new,
@@ -575,13 +572,10 @@ class ChromosomeStructure(Process):
                 DnaA_box_domain_indexes[removed_DnaA_boxes_mask])
 
             # Add new promoters with new domain indexes
-
-            if 'DnaA_boxes' in states and states['DnaA_boxes']:
-                self.DnaA_box_index = int(max([int(index) for index in list(states['DnaA_boxes'].keys())])) + 1
-
+            DnaA_box_indices = create_unique_indexes(n_new_DnaA_boxes)
             new_DnaA_boxes = arrays_to(
                 n_new_DnaA_boxes, {
-                    'unique_index': np.arange(self.DnaA_box_index, self.DnaA_box_index + n_new_DnaA_boxes).astype(int),
+                    'unique_index': np.array(DnaA_box_indices).astype(int),
                     'coordinates': DnaA_box_coordinates_new,
                     'domain_index': DnaA_box_domain_indexes_new,
                     'DnaA_bound': np.zeros(n_new_DnaA_boxes, dtype=np.bool).tolist()})

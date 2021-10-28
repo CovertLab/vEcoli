@@ -356,15 +356,19 @@ def test_division_topology():
     )
 
     full_topology = experiment.state.get_topology()
-    topology_before = full_topology.copy()
+    mother_topology = full_topology['agents'][agent_id].copy()
 
-    # update one timestep at a time until division
-    while len(full_topology['agents']) >= 1:
+    # update one time step at a time until division
+    while len(full_topology['agents']) <= 1:
         experiment.update(timestep)
         full_topology = experiment.state.get_topology()
 
-    # TODO -- divide_by_domain is breaking this
-    import ipdb; ipdb.set_trace()
+    # assert that the daughter topologies are the same as the mother topology
+    daughter_ids = list(full_topology['agents'].keys())
+    for daughter_id in daughter_ids:
+        daughter_topology = full_topology['agents'][daughter_id]
+        assert daughter_topology == mother_topology
+
 
 
 def test_ecoli_generate():
