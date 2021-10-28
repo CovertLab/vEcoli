@@ -311,7 +311,7 @@ def run_division(
     experiment = Engine(
         processes=ecoli_composite.processes,
         topology=ecoli_composite.topology,
-        initial_state={'agents': {'1': initial_state}},
+        initial_state={'agents': {agent_id: initial_state}},
     )
     experiment.update(total_time)
 
@@ -324,6 +324,47 @@ def run_division(
     print(f"initial agent ids: {initial_agents}")
     print(f"final agent ids: {final_agents}")
     assert len(final_agents) == 2 * len(initial_agents)
+
+
+def test_division_topology():
+    """test that the topology is correctly dividing"""
+    timestep = 2
+
+    # get initial mass from Ecoli composer
+    initial_state = Ecoli({}).initial_state({'initial_state': 'vivecoli_t2550'})
+    initial_mass = initial_state['listeners']['mass']['cell_mass']
+    division_mass = initial_mass + 0.1
+    print(f"DIVIDE AT {division_mass} fg")
+
+    # make a new composer under an embedded path
+    agent_id = '0'
+    config = {
+        'divide': True,
+        'agent_id': agent_id,
+        'division': {
+            'threshold': division_mass},  # fg
+    }
+    agent_path = ('agents', agent_id)
+    ecoli_composer = Ecoli(config)
+    ecoli_composite = ecoli_composer.generate(path=agent_path)
+
+    # make experiment
+    experiment = Engine(
+        processes=ecoli_composite.processes,
+        topology=ecoli_composite.topology,
+        initial_state={'agents': {agent_id: initial_state}},
+    )
+
+    full_topology = experiment.state.get_topology()
+    topology_before = full_topology.copy()
+
+    # update one timestep at a time until division
+    while len(full_topology['agents']) >= 1:
+        experiment.update(timestep)
+        full_topology = experiment.state.get_topology()
+
+    # TODO -- divide_by_domain is breaking this
+    import ipdb; ipdb.set_trace()
 
 
 def test_ecoli_generate():
@@ -358,8 +399,9 @@ def ecoli_topology_plot(config={}):
 test_library = {
     '0': run_ecoli,
     '1': run_division,
-    '2': test_ecoli_generate,
-    '3': ecoli_topology_plot,
+    '2': test_division_topology,
+    '3': test_ecoli_generate,
+    '4': ecoli_topology_plot,
 }
 
 # run experiments in test_library from the command line with:
