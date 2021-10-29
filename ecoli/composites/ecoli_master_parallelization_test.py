@@ -20,7 +20,7 @@ PARALLELIZED_PROCESSES = (
     'ecoli-rna-degradation',
     'ecoli-polypeptide-initiation',
     'ecoli-polypeptide-elongation',
-    #'ecoli-complexation',
+    'ecoli-complexation',
     'ecoli-two-component-system',
     'ecoli-equilibrium',
     'ecoli-protein-degradation',
@@ -200,8 +200,7 @@ class EcoliParallelizationTests(unittest.TestCase):
 
 
 def main():
-    sim = TestableEcoliSim(PARALLELIZED_PROCESSES)
-    sim.prepare()
+    unittest.main()
 
 
 if __name__ == '__main__':
