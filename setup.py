@@ -54,7 +54,7 @@ setup(
         'aesara==2.0.8',
         'decorator',
         'iteround',
-        'stochastic-arrow',
+        'stochastic-arrow>=0.4.4',
         'cobra',
         'matplotlib',
         'pytest',
