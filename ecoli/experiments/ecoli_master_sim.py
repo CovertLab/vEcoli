@@ -10,6 +10,7 @@ import argparse
 import subprocess
 import json
 import warnings
+from copy import deepcopy
 from datetime import datetime
 
 from vivarium.core.engine import Engine
@@ -244,11 +245,12 @@ class EcoliSim:
                                                               self.processes)
 
         # initialize the ecoli composer
+        config = deepcopy(self.config)
         if self.partition:
             ecoli_composer = ecoli.composites.ecoli_master.Ecoli(
-                self.config)
+                config)
         else:
-            ecoli_composer = ecoli.composites.ecoli_nonpartition.Ecoli(self.config)
+            ecoli_composer = ecoli.composites.ecoli_nonpartition.Ecoli(config)
 
         # set path at which agent is initialized
         path = tuple()
@@ -290,16 +292,11 @@ class EcoliSim:
         # namely the config of this EcoliSim object
         # with an additional key for the current git hash.
         # Goal is to save enough information to reproduce the experiment.
-        description = dict(self.config)
-        try:
-            description["git_hash"] = self._get_git_revision_hash()
-        except:
-            warnings.warn("Unable to retrieve current git revision hash. "
-                          "Try making a note of this manually if your experiment may need to be replicated.")
+        description = self.to_json_string(include_git_hash=True)
 
         # make the experiment
         experiment_config = {
-            'description': description,
+            'description': json.dumps(description),
             'processes': self.ecoli.processes,
             'topology': self.ecoli.topology,
             'initial_state': self.initial_state,
@@ -341,12 +338,32 @@ class EcoliSim:
         deep_merge(self.config, other.config)
 
 
+    def to_json_string(self, include_git_hash=False):
+        result = dict(self.config)
+
+        # Initial state file is large and should not be serialized;
+        # description maintains a 'initial_state_file' key that can
+        # be used instead
+        result.pop('initial_state', None)
+        
+        try:
+            result["git_hash"] = self._get_git_revision_hash()
+        except:
+            warnings.warn("Unable to retrieve current git revision hash. "
+                          "Try making a note of this manually if your experiment may need to be replicated.")
+
+        result['processes'] = [k for k in result['processes'].keys()]
+
+        return json.dumps(result)
+        
+
     def export_json(self, filename=CONFIG_DIR_PATH + "export.json"):
-        export = dict(self.config)
-        export['processes'] = [k for k in export['processes'].keys()]
-        write_json(filename, export)
+        with open(filename, 'w') as f:
+            f.write(self.to_json_string())
 
 
 if __name__ == '__main__':
     ecoli_sim = EcoliSim.from_file()
+    ecoli_sim.total_time = 4
+    ecoli_sim.emitter = "database"
     ecoli_sim.run()
