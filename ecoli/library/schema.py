@@ -308,6 +308,18 @@ def make_dict_value_updater(defaults):
     return custom_dict_value_updater
 
 
+def get_cell_for_index(index_to_children, domain_index_to_add, root_index):
+    if domain_index_to_add == root_index:  # If the root index:
+        return -1
+    if domain_index_to_add in index_to_children[root_index]:  # If a daughter cell index:
+        return domain_index_to_add
+    for domain_index in index_to_children:
+        children = index_to_children[domain_index]
+        if domain_index_to_add in children:
+            cell = get_cell_for_index(index_to_children, domain_index, root_index)
+    return cell
+
+
 def create_index_to_daughter(chromosome_domain):
     """
     Creates a dictionary linking domain indexes to their respective cells.
@@ -328,23 +340,20 @@ def create_index_to_daughter(chromosome_domain):
         if root:
             root_index = root_candidate
 
-    def get_cell_for_index(index_to_children, domain_index_to_add, root_index):
-        if domain_index_to_add == root_index:  # If the root index:
-            return -1
-        if domain_index_to_add in index_to_children[root_index]:  # If a daughter cell index:
-            return domain_index_to_add
-        for domain_index in index_to_children:
-            children = index_to_children[domain_index]
-            if domain_index_to_add in children:
-                cell = get_cell_for_index(index_to_children, domain_index, root_index)
-        return cell
-
     index_to_daughter = {}
     for domain_index_to_add in index_to_children:
-        index_to_daughter[domain_index_to_add] = get_cell_for_index(index_to_children, domain_index_to_add,
-                                                                    root_index)
+        index_to_daughter[domain_index_to_add] = get_cell_for_index(
+            index_to_children, domain_index_to_add, root_index)
 
-    return index_to_daughter
+    # check that there are 2 daughter indices, and return them
+    daughter_ids = set(index_to_daughter.values())
+    daughter_ids.remove(-1)
+    daughter_ids = list(daughter_ids)
+    assert len(daughter_ids) == 2
+    daughter1_index = daughter_ids[0]
+    daughter2_index = daughter_ids[1]
+    
+    return index_to_daughter, daughter1_index, daughter2_index
 
 
 def divide_by_domain(values, state):
@@ -354,35 +363,35 @@ def divide_by_domain(values, state):
     daughter1 = {}
     daughter2 = {}
 
-    index_to_daughter = create_index_to_daughter(state['chromosome_domain'])
-    cells = []
-    for cell in index_to_daughter.values():
-        if cell != -1 and cell not in cells:
-            cells.append(cell)
-        # TODO (Matt): Use a Set instead of a for loop
-    # TODO (Matt): Put an assert here to guarantee cells has length two
-    daughter1_index = min(cells)
-    daughter2_index = max(cells)
+    # get domain_index-to-daughter_index mapping
+    index_to_daughter, d1_index, d2_index = create_index_to_daughter(state['chromosome_domain'])
 
     for state_id, value in values.items():
         domain_index = value['domain_index']
-        if index_to_daughter[domain_index] == daughter1_index:
+        if index_to_daughter[domain_index] == d1_index:
             daughter1[state_id] = value
-        elif index_to_daughter[domain_index] == daughter2_index:
+        elif index_to_daughter[domain_index] == d2_index:
             daughter2[state_id] = value
     return [daughter1, daughter2]
 
 
-def divide_unique(values, **args):
+def divide_unique(unique_molecules, **args):
+    """divide unique molecules binomially"""
+    # TODO (Matt): Set a seed
+    n_unique_molecules = len(unique_molecules)
+    unique_molecule_ids = list(unique_molecules.keys())
+
+    daughter1_counts = np.random.binomial(n_unique_molecules, 0.5)
+    daughter1_ids = random.sample(unique_molecule_ids, daughter1_counts)
+
     daughter1 = {}
     daughter2 = {}
-    for state_id, value in values.items():
-        # TODO (Matt): Set a seed
-        # TODO (Matt): Make this use binomial division
-        if random.choice([True, False]):
-            daughter1[state_id] = value
+    for unique_id in unique_molecule_ids:
+        specs = unique_molecules[unique_id]
+        if unique_id in daughter1_ids:
+            daughter1[unique_id] = specs
         else:
-            daughter2[state_id] = value
+            daughter2[unique_id] = specs
     return [daughter1, daughter2]
 
 
@@ -393,40 +402,32 @@ def divide_RNAs_by_domain(values, state):
     """
     daughter1 = {}
     daughter2 = {}
-    full_transcripts = []
+    full_transcript_ids = []
 
-    index_to_daughter = create_index_to_daughter(state['chromosome_domain'])
-    cells = []
-    for cell in index_to_daughter.values():
-        if cell != -1 and cell not in cells:
-            cells.append(cell)
-    daughter1_index = min(cells)
-    daughter2_index = max(cells)
+    # get domain_index-to-daughter_index mapping
+    index_to_daughter, d1_index, d2_index = create_index_to_daughter(state['chromosome_domain'])
 
     # divide partial transcripts by domain_index
     for unique_id, specs in values.items():
         associated_rnap_key = str(values[unique_id]['RNAP_index'])
         if not specs['is_full_transcript']:
             domain_index = state['active_RNAP'][associated_rnap_key]['domain_index']
-            if index_to_daughter[domain_index] == daughter1_index:
+            if index_to_daughter[domain_index] == d1_index:
                 daughter1[unique_id] = specs
-            elif index_to_daughter[domain_index] == daughter2_index:
+            elif index_to_daughter[domain_index] == d2_index:
                 daughter2[unique_id] = specs
         else:
-            # save full transcripts
-            full_transcripts.append(unique_id)
+            # save full transcript ids
+            full_transcript_ids.append(unique_id)
 
-    # divide full transcripts binomially
-    n_full_transcripts = len(full_transcripts)
-    # TODO (Matt): Set a seed
-    # TODO (Matt): Make this use divide_unique
-    daughter1_counts = np.random.binomial(n_full_transcripts, 0.5)
-    daughter1_ids = random.sample(full_transcripts, daughter1_counts)
-    for unique_id in full_transcripts:
-        specs = values[unique_id]
-        if unique_id in daughter1_ids:
-            daughter1[unique_id] = specs
-        else:
-            daughter2[unique_id] = specs
+    # divide full transcripts with divide_unique
+    full_transcripts = {
+        unique_id: specs
+        for unique_id, specs in values.items()
+        if unique_id in full_transcript_ids
+    }
+    [daughter1_full, daughter2_full] = divide_unique(full_transcripts)
+    daughter1.update(daughter1_full)
+    daughter2.update(daughter2_full)
 
     return [daughter1, daughter2]
