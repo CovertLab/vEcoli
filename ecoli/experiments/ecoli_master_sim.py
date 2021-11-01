@@ -274,7 +274,7 @@ class EcoliSim:
             self.ecoli_experiment.update(time_to_next_save)
             state = self.ecoli_experiment.state.get_value()
             if self.divide:
-                state = state['agents']['0']
+                state = state['agents'][self.agent_id]
             state_to_save = {key: state[key] for key in
                              ['listeners', 'bulk', 'unique', 'environment', 'process_state']}
             write_json('data/vivecoli_t' + str(time_elapsed) + '.json', state_to_save)
