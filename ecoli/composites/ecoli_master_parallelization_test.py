@@ -4,6 +4,7 @@ import os
 import unittest
 
 import numpy as np
+import pytest
 import unum
 from vivarium.core.engine import Engine
 
@@ -14,7 +15,7 @@ from ecoli.experiments.ecoli_master_sim import EcoliSim
 PARALLELIZED_PROCESSES = (
     'ecoli-transcript-elongation',
     'ecoli-transcript-initiation',
-    #'ecoli-chromosome-structure',
+    'ecoli-chromosome-structure',
     #'ecoli-metabolism',
     'ecoli-tf-binding',
     'ecoli-rna-degradation',
@@ -25,7 +26,7 @@ PARALLELIZED_PROCESSES = (
     'ecoli-equilibrium',
     'ecoli-protein-degradation',
     'ecoli-chromosome-replication',
-    #'ecoli-mass-listener',
+    'ecoli-mass-listener',
     'mRNA_counts_listener',
 )
 TIMESTEP = 2
@@ -139,6 +140,7 @@ class TestableEcoliSim(EcoliSim):
         self.ecoli_experiment.end()
 
 
+@pytest.mark.slow
 class EcoliParallelizationTests(unittest.TestCase):
 
     def _assertDataEqual(self, data1, data2, path=tuple(), **kwargs):
