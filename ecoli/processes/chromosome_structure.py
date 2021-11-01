@@ -398,7 +398,7 @@ class ChromosomeStructure(Process):
             n_segments, {
                 'unique_index': np.arange(
                     self.chromosome_segment_index, self.chromosome_segment_index +
-                    n_segments).astype(int),
+                    n_segments),
                 'boundary_molecule_indexes': all_new_boundary_molecule_indexes,
                 'boundary_coordinates': all_new_boundary_coordinates,
                 'domain_index': all_new_segment_domain_indexes,
@@ -408,7 +408,7 @@ class ChromosomeStructure(Process):
 
         # Get mask for RNAs that are transcribed from removed RNAPs
         removed_RNAs_mask = np.isin(
-            RNA_RNAP_indexes, RNAP_unique_indexes[removed_RNAPs_mask].astype(int))
+            RNA_RNAP_indexes, RNAP_unique_indexes[removed_RNAPs_mask])
 
         # Remove RNAPs and RNAs that have collided with replisomes
         if n_total_collisions > 0:
@@ -454,7 +454,7 @@ class ChromosomeStructure(Process):
         remaining_RNA_unique_indexes = RNA_unique_indexes[
             np.logical_not(removed_RNAs_mask)]
         removed_ribosomes_mask = np.logical_not(np.isin(
-            ribosome_mRNA_indexes, remaining_RNA_unique_indexes.astype(int)))
+            ribosome_mRNA_indexes, remaining_RNA_unique_indexes))
         n_removed_ribosomes = np.count_nonzero(removed_ribosomes_mask)
 
         # Remove ribosomes that are bound to removed mRNA molecules
@@ -544,14 +544,13 @@ class ChromosomeStructure(Process):
             promoter_indices = create_unique_indexes(n_new_promoters)
             new_promoters = arrays_to(
                 n_new_promoters, {
-                    'unique_index': np.array(promoter_indices).astype(int),
+                    'unique_index': np.array(promoter_indices),
                     'TU_index': promoter_TU_indexes_new,
                     'coordinates': promoter_coordinates_new,
                     'domain_index': promoter_domain_indexes_new,
                     'bound_TF': np.zeros((n_new_promoters, self.n_TFs), dtype=np.bool).tolist()})
             update['promoters'].update(add_elements(
                 new_promoters, 'unique_index'))
-
 
         ########################
         # Replicate DnaA boxes #
@@ -575,7 +574,7 @@ class ChromosomeStructure(Process):
             DnaA_box_indices = create_unique_indexes(n_new_DnaA_boxes)
             new_DnaA_boxes = arrays_to(
                 n_new_DnaA_boxes, {
-                    'unique_index': np.array(DnaA_box_indices).astype(int),
+                    'unique_index': np.array(DnaA_box_indices),
                     'coordinates': DnaA_box_coordinates_new,
                     'domain_index': DnaA_box_domain_indexes_new,
                     'DnaA_bound': np.zeros(n_new_DnaA_boxes, dtype=np.bool).tolist()})

@@ -208,7 +208,7 @@ class PolypeptideInitiation(PartitionedProcess):
         # corresponds to the polypeptide it will polymerize. This is done in
         # blocks of protein ids for efficiency.
         protein_indexes = np.empty(n_ribosomes_to_activate, np.int64)
-        mRNA_indexes = np.empty(n_ribosomes_to_activate, np.int64)
+        mRNA_indexes = np.empty(n_ribosomes_to_activate, np.str)
         nonzero_count = (n_new_proteins > 0)
         start_index = 0
 
@@ -235,7 +235,7 @@ class PolypeptideInitiation(PartitionedProcess):
 
         # Create active 70S ribosomes and assign their attributes
         ribosome_indices = create_unique_indexes(n_ribosomes_to_activate)
-        ribosome_indices = np.array(ribosome_indices).astype(int)
+        ribosome_indices = np.array(ribosome_indices)
         new_ribosomes = arrays_to(
             n_ribosomes_to_activate, {
                 'unique_index': ribosome_indices,
