@@ -22,7 +22,7 @@ PARALLELIZED_PROCESSES = (
     'ecoli-polypeptide-initiation',
     'ecoli-polypeptide-elongation',
     'ecoli-complexation',
-    #'ecoli-two-component-system',
+    'ecoli-two-component-system',
     #'ecoli-equilibrium',
     #'ecoli-protein-degradation',
     #'ecoli-chromosome-replication',
