@@ -28,6 +28,7 @@ PARALLELIZED_PROCESSES = (
     'ecoli-chromosome-replication',
     'ecoli-mass-listener',
     'mRNA_counts_listener',
+    'allocator',
 )
 TIMESTEP = 2
 TOTAL_TIME = 10
@@ -102,6 +103,9 @@ class TestableEcoliSim(EcoliSim):
         config['save_times'] = []
         config['initial_state'] = 'wcecoli_t3142'
         for process in parallel_processes:
+            if process == 'allocator':
+                config['parallel_allocator'] = True
+                continue
             proc_config = config['process_configs'].setdefault(
                 process, {})
             proc_config['_parallel'] = True

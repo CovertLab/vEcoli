@@ -48,6 +48,7 @@ class Ecoli(Composer):
     defaults = {
         'time_step': 2.0,
         'parallel': False,
+        'parallel_allocator': False,
         'seed': 0,
         'sim_data_path': SIM_DATA_PATH,
         'daughter_path': tuple(),
@@ -121,7 +122,8 @@ class Ecoli(Composer):
         # Add allocator process
         process_configs['allocator'] = self.load_sim_data.get_allocator_config(
             process_names=[p for p in config['processes'].keys()
-                           if not processes[p].is_deriver()]
+                           if not processes[p].is_deriver()],
+            parallel=config['parallel_allocator'],
         )
 
         config['processes']['allocator'] = Allocator
