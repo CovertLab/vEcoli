@@ -286,7 +286,8 @@ class PartitionedProcess(Process):
             correctly apply the state.
         '''
         variables = self.parameters.get(
-            'hidden_state_instance_variables', [])
+            'partitioning_hidden_state_instance_variables', [])
+        variables.append('request_set')
         return {var: getattr(self, var) for var in variables}
 
     def set_partitioning_hidden_state(self, state):

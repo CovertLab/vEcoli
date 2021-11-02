@@ -116,7 +116,12 @@ class TranscriptElongation(PartitionedProcess):
         'attenuation_location': {},
 
         'seed': 0,
-        'submass_indexes': MASSDIFFS,}
+        'submass_indexes': MASSDIFFS,
+        'partitioning_hidden_state_instance_variables': [
+            'random_state',
+            'elongation_rates',
+        ],
+    }
 
     def __init__(self, parameters=None):
         super().__init__(parameters)
