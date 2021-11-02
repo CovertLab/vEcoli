@@ -56,7 +56,13 @@ class PolypeptideInitiation(PartitionedProcess):
         'ribosome30S': 'ribosome30S',
         'ribosome50S': 'ribosome50S',
         'seed': 0,
-        'shuffle_indexes': None}
+        'shuffle_indexes': None,
+        'partitioning_hidden_state_instance_variables': [
+            'fracActiveRibosome',
+            'elongation_rates',
+            'random_state',
+        ],
+    }
 
     def __init__(self, parameters=None):
         super().__init__(parameters)
@@ -123,7 +129,7 @@ class PolypeptideInitiation(PartitionedProcess):
                         '_default': 0.0,
                         '_updater': 'set',
                         '_emit': True}}},
-            
+
             'active_ribosome': {
                 '_divider': 'divide_unique',
                 **dict_value_schema('active_ribosome')},
