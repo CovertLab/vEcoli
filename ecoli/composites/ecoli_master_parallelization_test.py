@@ -25,7 +25,7 @@ PARALLELIZED_PROCESSES = (
     'ecoli-two-component-system',
     'ecoli-equilibrium',
     'ecoli-protein-degradation',
-    #'ecoli-chromosome-replication',
+    'ecoli-chromosome-replication',
     #'ecoli-mass-listener',
     #'mRNA_counts_listener',
     #'allocator',
