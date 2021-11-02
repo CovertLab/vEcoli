@@ -153,7 +153,9 @@ class Requester(Deriver):
             # If the simulation is brand-new, there might not be a
             # serialized process in the store yet.
             if serialized:
-                self.process = pickle.loads(serialized)
+                partitioning_hidden_state = pickle.loads(serialized)
+                self.process.set_partitioning_hidden_state(
+                    partitioning_hidden_state)
 
         request = self.process.calculate_request(
             self.parameters['time_step'], states)
@@ -169,7 +171,8 @@ class Requester(Deriver):
 
         if self.process.parallel:
             update['hidden_state'] = {
-                self.process.name: pickle.dumps(self.process)
+                self.process.name: pickle.dumps(
+                    self.process.get_partitioning_hidden_state())
             }
 
         return update
@@ -208,7 +211,10 @@ class Evolver(Process):
     def next_update(self, timestep, states):
         if self.process.parallel:
             hidden_state = states.pop('hidden_state')
-            self.process = pickle.loads(hidden_state[self.process.name])
+            partitioning_hidden_state = pickle.loads(
+                hidden_state[self.process.name])
+            self.process.set_partitioning_hidden_state(
+                partitioning_hidden_state)
 
         states = deep_merge(states, states.pop('allocate'))
 
@@ -222,7 +228,8 @@ class Evolver(Process):
         update = self.process.evolve_state(timestep, states)
         if self.process.parallel:
             update['hidden_state'] = {
-                self.process.name: pickle.dumps(self.process)
+                self.process.name: pickle.dumps(
+                    self.process.get_partitioning_hidden_state())
             }
         return update
 
@@ -260,11 +267,45 @@ class PartitionedProcess(Process):
     def evolve_state(self, timestep, states):
         return {}
 
-    def next_update(self, timestep, states):
+    def get_partitioning_hidden_state(self):
+        '''Returns a dictionary with the hidden state for partitioning.
 
+        The returned dictionary should be as small as possible and contain
+        only those variables that need to be passed between
+        :py:class:`Evolver` and :py:class:`Requester` instances since
+        serializing this data is expensive.
+
+        Returns:
+            The hidden state, as a dictionary. Each key-value pair should in
+            general store a single instance variable's value as the value
+            and the variable's name as the key. By default, this format is
+            used, with the variable names coming from
+            ``self.parameters['hidden_state_instance_variables']``. However,
+            the only real requirement is that the class's
+            :py:meth:`set_partitioning_hidden_state` method know how to
+            correctly apply the state.
+        '''
+        variables = self.parameters.get(
+            'hidden_state_instance_variables', [])
+        return {var: getattr(self, var) for var in variables}
+
+    def set_partitioning_hidden_state(self, state):
+        '''Set the hidden state for partitioning.
+
+        This method simply updates ``self.__dict__`` with the contents of
+        ``state``, which should work for many processes. However, subclasses
+        can also override this method if needed.
+
+        Args:
+            state: The state dictionary from
+                :py:meth:`get_partitioning_hidden_state`.
+        '''
+        self.__dict__.update(state)
+
+    def next_update(self, timestep, states):
         if self.request_only:
             return self.calculate_request(timestep, states)
-        elif self.evolve_only:
+        if self.evolve_only:
             return self.evolve_state(timestep, states)
 
         requests = self.calculate_request(timestep, states)
