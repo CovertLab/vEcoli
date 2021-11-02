@@ -10,7 +10,10 @@ UNIQUE_DIVIDERS = {
         'divider': 'by_domain',
         'topology': {'chromosome_domain': ('..', 'chromosome_domain')}
     },
-    'chromosome_domains': 'set',  # TODO -- fix this
+    'chromosome_domains': {
+        'divider': 'divide_domain',
+        'topology': {'chromosome_domain': ('..', 'chromosome_domain')}
+    },
     'active_replisomes': {
         'divider': 'by_domain',
         'topology': {'chromosome_domain': ('..', 'chromosome_domain')}
@@ -372,6 +375,13 @@ def divide_by_domain(values, state):
             daughter1[state_id] = value
         elif index_to_daughter[domain_index] == d2_index:
             daughter2[state_id] = value
+    return [daughter1, daughter2]
+
+
+def divide_domain(values, state):
+    import ipdb; ipdb.set_trace()
+    daughter1 = values
+    daughter2 = values
     return [daughter1, daughter2]
 
 
