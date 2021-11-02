@@ -21,7 +21,7 @@ PARALLELIZED_PROCESSES = (
     'ecoli-rna-degradation',
     'ecoli-polypeptide-initiation',
     'ecoli-polypeptide-elongation',
-    #'ecoli-complexation',
+    'ecoli-complexation',
     #'ecoli-two-component-system',
     #'ecoli-equilibrium',
     #'ecoli-protein-degradation',
