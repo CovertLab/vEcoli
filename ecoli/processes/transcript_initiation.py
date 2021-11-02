@@ -163,7 +163,16 @@ class TranscriptInitiation(PartitionedProcess):
         'attenuation_adjustments': np.array([]),
 
         # random seed
-        'seed': 0}
+        'seed': 0,
+
+        # partitioning hidden state
+        'partitioning_hidden_state_instance_variables': [
+            'promoter_init_probs',
+            'fracActiveRnap',
+            'elongation_rates',
+            'random_state',
+        ],
+    }
 
     # Constructor
     def __init__(self, parameters=None):
@@ -259,11 +268,11 @@ class TranscriptInitiation(PartitionedProcess):
             'molecules': bulk_schema([self.inactive_RNAP, self.ppgpp]),
 
             'full_chromosomes': dict_value_schema('full_chromosomes'),
-            
+
             'promoters': {
                 '_divider': 'by_domain',
                 **dict_value_schema('promoters')},
-            
+
             'RNAs': {
                 '_divider': {
                     'divider': 'rna_by_domain',

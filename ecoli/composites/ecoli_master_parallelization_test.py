@@ -14,7 +14,7 @@ from ecoli.experiments.ecoli_master_sim import EcoliSim
 
 PARALLELIZED_PROCESSES = (
     'ecoli-transcript-elongation',
-    #'ecoli-transcript-initiation',
+    'ecoli-transcript-initiation',
     #'ecoli-chromosome-structure',
     #'ecoli-metabolism',
     #'ecoli-tf-binding',
