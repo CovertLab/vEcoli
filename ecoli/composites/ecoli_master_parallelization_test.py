@@ -18,7 +18,7 @@ PARALLELIZED_PROCESSES = (
     #'ecoli-chromosome-structure',
     #'ecoli-metabolism',
     'ecoli-tf-binding',
-    #'ecoli-rna-degradation',
+    'ecoli-rna-degradation',
     'ecoli-polypeptide-initiation',
     'ecoli-polypeptide-elongation',
     #'ecoli-complexation',
