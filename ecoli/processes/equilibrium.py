@@ -44,7 +44,11 @@ class Equilibrium(PartitionedProcess):
         'stoichMatrix': [[]],
         'fluxesAndMoleculesToSS': lambda counts, volume, avogadro, random, jit: ([], []),
         'moleculeNames': [],
-        'seed': 0}
+        'seed': 0,
+        'partitioning_hidden_state_instance_variables': [
+            'rxnFluxes',
+        ],
+    }
 
     # Constructor
     def __init__(self, parameters=None):
@@ -82,7 +86,7 @@ class Equilibrium(PartitionedProcess):
                     'cell_mass': {'_default': 0}},
                 'equilibrium_listener': {
                     'reaction_rates': {'_default': [], '_updater': 'set', '_emit': True}}}}
-        
+
     def calculate_request(self, timestep, states):
         # Get molecule counts
         moleculeCounts = array_from(states['molecules'])
@@ -101,11 +105,11 @@ class Equilibrium(PartitionedProcess):
         requests = {}
         requests['molecules'] = array_to(states['molecules'], self.req)
         return requests
-        
+
     def evolve_state(self, timestep, states):
         # Get molecule counts
         moleculeCounts = array_from(states['molecules'])
-        
+
         # Get counts of molecules allocated to this process
         rxnFluxes = self.rxnFluxes.copy()
 
