@@ -13,22 +13,22 @@ from ecoli.experiments.ecoli_master_sim import EcoliSim
 
 
 PARALLELIZED_PROCESSES = (
-    'ecoli-transcript-elongation',
-    'ecoli-transcript-initiation',
-    'ecoli-chromosome-structure',
-    'ecoli-metabolism',
-    'ecoli-tf-binding',
-    'ecoli-rna-degradation',
-    'ecoli-polypeptide-initiation',
-    'ecoli-polypeptide-elongation',
-    'ecoli-complexation',
-    'ecoli-two-component-system',
-    'ecoli-equilibrium',
-    'ecoli-protein-degradation',
-    'ecoli-chromosome-replication',
-    'ecoli-mass-listener',
-    'mRNA_counts_listener',
-    'allocator',
+    #'ecoli-transcript-elongation',
+    #'ecoli-transcript-initiation',
+    #'ecoli-chromosome-structure',
+    #'ecoli-metabolism',
+    #'ecoli-tf-binding',
+    #'ecoli-rna-degradation',
+    #'ecoli-polypeptide-initiation',
+    #'ecoli-polypeptide-elongation',
+    #'ecoli-complexation',
+    #'ecoli-two-component-system',
+    #'ecoli-equilibrium',
+    #'ecoli-protein-degradation',
+    #'ecoli-chromosome-replication',
+    #'ecoli-mass-listener',
+    #'mRNA_counts_listener',
+    #'allocator',
 )
 TIMESTEP = 2
 TOTAL_TIME = 10
