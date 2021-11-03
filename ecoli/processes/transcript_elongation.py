@@ -167,15 +167,8 @@ class TranscriptElongation(PartitionedProcess):
                 'media_id': {'_default': ''}
             },
 
-            'RNAs': {
-                '_divider': {
-                    'divider': 'rna_by_domain',
-                    'topology': {'active_RNAP': ('..', 'active_RNAP',)}},
-                **dict_value_schema('RNAs')},
-
-            'active_RNAPs': {
-                '_divider': 'by_domain',
-                **dict_value_schema('active_RNAPs')},
+            'RNAs': dict_value_schema('RNAs'),
+            'active_RNAPs': dict_value_schema('active_RNAPs'),
 
             'bulk_RNAs': bulk_schema(self.rnaIds),
             'ntps': bulk_schema(self.ntp_ids),
@@ -378,7 +371,7 @@ class TranscriptElongation(PartitionedProcess):
         assert len(RNAP_unique_index) == len(RNAP_index_partial_RNAs)
 
         # All partial RNAs must be linked to an RNAP
-        assert (np.count_nonzero(RNAP_index_partial_RNAs == -1) == 0)
+        assert (np.count_nonzero(RNAP_index_partial_RNAs == '-1') == 0)
 
         # Get mapping indexes between partial RNAs to RNAPs
         partial_RNA_to_RNAP_mapping, RNAP_to_partial_RNA_mapping = get_mapping_arrays(
