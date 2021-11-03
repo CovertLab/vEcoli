@@ -5,6 +5,7 @@ Cell Division
 """
 from typing import Any, Dict
 
+import numpy as np
 from vivarium.core.process import Deriver
 
 NAME = 'ecoli-cell-division'
@@ -23,6 +24,7 @@ class Division(Deriver):
     defaults: Dict[str, Any] = {
         'daughter_ids_function': daughter_phylogeny_id,
         'threshold': None,
+        'seed': 0,
     }
 
     def __init__(self, parameters=None):
@@ -31,6 +33,8 @@ class Division(Deriver):
         # must provide a composer to generate new daughters
         self.agent_id = self.parameters['agent_id']
         self.composer = self.parameters['composer']
+        self.random_state = np.random.RandomState(
+            seed=self.parameters['seed'])
 
     def ports_schema(self):
         return {
@@ -47,7 +51,10 @@ class Division(Deriver):
             daughter_ids = self.parameters['daughter_ids_function'](self.agent_id)
             daughter_updates = []
             for daughter_id in daughter_ids:
-                composer = self.composer.generate({'agent_id': daughter_id})
+                composer = self.composer.generate({
+                    'agent_id': daughter_id,
+                    'seed': self.random_state.randint(0, 2**31)
+                })
                 daughter_updates.append({
                     'key': daughter_id,
                     'processes': composer['processes'],
