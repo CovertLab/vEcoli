@@ -10,7 +10,7 @@ UNIQUE_DIVIDERS = {
         'divider': 'by_domain',
         'topology': {'chromosome_domain': ('..', 'chromosome_domain')}
     },
-    'chromosome_domains': 'set',  # TODO -- fix this
+    'chromosome_domains': 'divide_domain',
     'active_replisomes': {
         'divider': 'by_domain',
         'topology': {'chromosome_domain': ('..', 'chromosome_domain')}
@@ -372,6 +372,25 @@ def divide_by_domain(values, state):
             daughter1[state_id] = value
         elif index_to_daughter[domain_index] == d2_index:
             daughter2[state_id] = value
+    return [daughter1, daughter2]
+
+
+def divide_domain(values):
+    """
+    Divides the chromosome domains between two cells. The left daughter of the
+    root index becomes the new root of the chromosome_domain tree for daughter
+    cell 1, and likewise for the right daughter for daughter cell 2.
+    """
+    daughter1 = {}
+    daughter2 = {}
+    index_to_daughter, d1_index, d2_index = create_index_to_daughter(values)
+    for key in values:
+        key_domain_index = values[key]['domain_index']
+        key_daughter_cell = index_to_daughter[key_domain_index]
+        if key_daughter_cell == d1_index:
+            daughter1[key] = values[key]
+        elif key_daughter_cell == d2_index:
+            daughter2[key] = values[key]
     return [daughter1, daughter2]
 
 

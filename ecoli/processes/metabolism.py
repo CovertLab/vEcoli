@@ -135,6 +135,12 @@ class Metabolism(Process):
 
         self.deriver_mode = self.parameters['deriver_mode']
 
+    def __getstate__(self):
+        return self.parameters
+
+    def __setstate__(self, state):
+        self.__init__(state)
+
     def is_deriver(self):
         return self.deriver_mode
 
