@@ -26,8 +26,8 @@ PARALLELIZED_PROCESSES = (
     'ecoli-equilibrium',
     'ecoli-protein-degradation',
     'ecoli-chromosome-replication',
-    #'ecoli-mass-listener',
-    #'mRNA_counts_listener',
+    'ecoli-mass-listener',
+    'mRNA_counts_listener',
     #'allocator',
 )
 TIMESTEP = 2
