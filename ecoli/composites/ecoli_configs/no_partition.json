@@ -9,7 +9,7 @@
     "emit_processes" : true,
     "emit_config" : false,
     "log_updates" : false,
-    "raw_output" : false,
+    "raw_output" : true,
     "seed": 0,
     "partition": false,
 
