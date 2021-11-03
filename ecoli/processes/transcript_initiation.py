@@ -446,7 +446,8 @@ class TranscriptInitiation(PartitionedProcess):
         direction = self.transcription_direction[TU_index_partial_RNAs]
 
         # new RNAPs
-        RNAP_indexes = create_unique_indexes(n_RNAPs_to_activate)
+        RNAP_indexes = create_unique_indexes(
+            n_RNAPs_to_activate, self.random_state)
         RNAP_indexes = np.array(RNAP_indexes)
         new_RNAPs = arrays_to(
             n_RNAPs_to_activate, {
@@ -463,7 +464,8 @@ class TranscriptInitiation(PartitionedProcess):
 
         # Add partially transcribed RNAs
         is_mRNA = np.isin(TU_index_partial_RNAs, self.idx_mRNA)
-        rna_indices = create_unique_indexes(n_RNAPs_to_activate)
+        rna_indices = create_unique_indexes(
+            n_RNAPs_to_activate, self.random_state)
         rna_indices = np.array(rna_indices)
         new_RNAs = arrays_to(
             n_RNAPs_to_activate, {

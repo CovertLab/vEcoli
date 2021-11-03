@@ -560,6 +560,7 @@ class LoadSimData:
             'amino_acids': self.sim_data.molecule_groups.amino_acids,
             'water': self.sim_data.molecule_ids.water,
 
-            'deriver_mode': deriver_mode
+            'deriver_mode': deriver_mode,
+            'seed': self.random_state.randint(RAND_MAX),
         }
         return chromosome_structure_config
