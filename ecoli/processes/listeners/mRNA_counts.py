@@ -70,6 +70,7 @@ def test_mrna_counts_listener():
     from ecoli.experiments.ecoli_master_sim import EcoliSim
     sim = EcoliSim.from_file()
     sim.total_time = 2
+    sim.raw_output = False
     data = sim.run()
     assert(type(data['listeners']['mRNA_counts'][0]) == list)
     assert(type(data['listeners']['mRNA_counts'][1]) == list)

@@ -116,8 +116,6 @@ class ChromosomeReplication(PartitionedProcess):
 
     def ports_schema(self):
 
-        default_unique_schema = {
-            '_default': 0, '_updater': 'set', '_emit': self.emit_unique}
         return {
             # bulk molecules
             'replisome_trimers': bulk_schema(self.parameters['replisome_trimers_subunits']),
@@ -147,7 +145,7 @@ class ChromosomeReplication(PartitionedProcess):
         requests = {}
         # Get total count of existing oriC's
         n_oriC = len(states['oriCs'])
-		# If there are no origins, return immediately
+        # If there are no origins, return immediately
         if n_oriC == 0:
             return requests
 

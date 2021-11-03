@@ -181,15 +181,8 @@ class TranscriptElongation(PartitionedProcess):
                 'media_id': {'_default': ''}
             },
 
-            'RNAs': {
-                '_divider': {
-                    'divider': 'rna_by_domain',
-                    'topology': {'active_RNAP': ('..', 'active_RNAP',)}},
-                **dict_value_schema('RNAs')},
-
-            'active_RNAPs': {
-                '_divider': 'by_domain',
-                **dict_value_schema('active_RNAPs')},
+            'RNAs': dict_value_schema('RNAs'),
+            'active_RNAPs': dict_value_schema('active_RNAPs'),
 
             'bulk_RNAs': bulk_schema(self.rnaIds),
             'ntps': bulk_schema(self.ntp_ids),
