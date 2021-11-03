@@ -288,15 +288,29 @@ class EcoliSim:
         # build self.ecoli and self.initial_state
         self.build_ecoli()
 
-        # create "description" of this experiment to be emitted,
+        # create metadata of this experiment to be emitted,
         # namely the config of this EcoliSim object
         # with an additional key for the current git hash.
         # Goal is to save enough information to reproduce the experiment.
-        description = self.to_json_string(include_git_hash=True)
+        metadata = dict(self.config)
+
+        # Initial state file is large and should not be serialized;
+        # output maintains a 'initial_state_file' key that can
+        # be used instead
+        metadata.pop('initial_state', None)
+        
+        try:
+            metadata["git_hash"] = self._get_git_revision_hash()
+        except:
+            warnings.warn("Unable to retrieve current git revision hash. "
+                          "Try making a note of this manually if your experiment may need to be replicated.")
+
+        metadata['processes'] = [k for k in metadata['processes'].keys()]
 
         # make the experiment
         experiment_config = {
-            'description': json.dumps(description),
+            'description': self.description,
+            'metadata' : metadata,
             'processes': self.ecoli.processes,
             'topology': self.ecoli.topology,
             'initial_state': self.initial_state,
@@ -342,7 +356,7 @@ class EcoliSim:
         result = dict(self.config)
 
         # Initial state file is large and should not be serialized;
-        # description maintains a 'initial_state_file' key that can
+        # output maintains a 'initial_state_file' key that can
         # be used instead
         result.pop('initial_state', None)
         
@@ -364,6 +378,4 @@ class EcoliSim:
 
 if __name__ == '__main__':
     ecoli_sim = EcoliSim.from_file()
-    ecoli_sim.total_time = 4
-    ecoli_sim.emitter = "database"
     ecoli_sim.run()
