@@ -149,7 +149,8 @@ def run_ecoli(
         divide=False,
         progress_bar=True,
         log_updates=False,
-        time_series=True
+        time_series=True,
+        print_config=False,
 ):
     """
     Simple way to run ecoli simulations. For full API, see ecoli.experiments.ecoli_master_sim.
@@ -174,9 +175,9 @@ def run_ecoli(
     sim.raw_output = not time_series
 
     sim.build_ecoli()
-    ecoli_store = sim.ecoli.generate_store()
-    print(pf(ecoli_store['unique'].get_config()))
-    # import ipdb; ipdb.set_trace()
+    if print_config:
+        ecoli_store = sim.ecoli.generate_store()
+        print(pf(ecoli_store['unique'].get_config()))
 
     return sim.run()
 
