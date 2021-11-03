@@ -13,7 +13,7 @@ import numpy as np
 from vivarium.core.process import Process
 from ecoli.processes.registries import topology_registry
 from ecoli.library.schema import (
-    add_elements, arrays_from, bulk_schema,
+    add_elements, arrays_from, bulk_schema, create_unique_indexes,
     arrays_to, array_to, dict_value_schema, listener_schema)
 
 from wholecell.utils.polymerize import buildSequences
@@ -117,48 +117,36 @@ class ChromosomeStructure(Process):
         return self.deriver_mode
 
     def ports_schema(self):
-        default_unique_schema = {
-            '_default': 0, '_updater': 'set', '_emit': self.emit_unique}
 
         ports = {
             'listeners': {
-                'RnapData': listener_schema(
-                    {'n_total_collisions': 0,
+                'RnapData': listener_schema({
+                    'n_total_collisions': 0,
                     'n_headon_collisions': 0,
                     'n_codirectional_collisions': 0,
                     'headon_collision_coordinates': 0,
                     'codirectional_collision_coordinates': 0,
                     'n_removed_ribosomes': 0})},
+
             # Bulk molecules
             'fragmentBases': bulk_schema(self.fragmentBases),
-            'molecules': bulk_schema([self.ppi, self.water,
-                                      self.inactive_RNAPs]),
+            'molecules': bulk_schema([
+                self.ppi, self.water, self.inactive_RNAPs]),
             'active_tfs': bulk_schema(self.active_tfs),
-            'subunits': bulk_schema(
-                [self.ribosome_30S_subunit,
-                 self.ribosome_50S_subunit]),
+            'subunits': bulk_schema([
+                self.ribosome_30S_subunit, self.ribosome_50S_subunit]),
             'amino_acids': bulk_schema(self.amino_acids),
 
             # Unique molecules
             'active_replisomes': dict_value_schema('active_replisomes'),
             'oriCs': dict_value_schema('oriCs'),
             'chromosome_domains': dict_value_schema('chromosome_domains'),
-            'active_RNAPs': {
-                '_divider': 'by_domain',
-                **dict_value_schema('active_RNAPs')},
-            'RNAs': {
-                '_divider': {
-                    'divider': 'rna_by_domain',
-                    'topology': {'active_RNAP': ('..', 'active_RNAP',)}},
-                **dict_value_schema('RNAs')},
+            'active_RNAPs': dict_value_schema('active_RNAPs'),
+            'RNAs': dict_value_schema('RNAs'),
             'active_ribosome': dict_value_schema('active_ribosome'),
             'full_chromosomes': dict_value_schema('full_chromosomes'),
-            'promoters': {
-                '_divider': 'by_domain',
-                **dict_value_schema('promoters')},
-            'DnaA_boxes': {
-                '_divider': 'by_domain',
-                **dict_value_schema('DnaA_boxes')}
+            'promoters': dict_value_schema('promoters'),
+            'DnaA_boxes': dict_value_schema('DnaA_boxes'),
         }
 
         if self.calculate_superhelical_densities:
@@ -410,7 +398,7 @@ class ChromosomeStructure(Process):
             n_segments, {
                 'unique_index': np.arange(
                     self.chromosome_segment_index, self.chromosome_segment_index +
-                    n_segments).astype(int),
+                    n_segments),
                 'boundary_molecule_indexes': all_new_boundary_molecule_indexes,
                 'boundary_coordinates': all_new_boundary_coordinates,
                 'domain_index': all_new_segment_domain_indexes,
@@ -420,7 +408,7 @@ class ChromosomeStructure(Process):
 
         # Get mask for RNAs that are transcribed from removed RNAPs
         removed_RNAs_mask = np.isin(
-            RNA_RNAP_indexes, RNAP_unique_indexes[removed_RNAPs_mask].astype(int))
+            RNA_RNAP_indexes, RNAP_unique_indexes[removed_RNAPs_mask])
 
         # Remove RNAPs and RNAs that have collided with replisomes
         if n_total_collisions > 0:
@@ -466,7 +454,7 @@ class ChromosomeStructure(Process):
         remaining_RNA_unique_indexes = RNA_unique_indexes[
             np.logical_not(removed_RNAs_mask)]
         removed_ribosomes_mask = np.logical_not(np.isin(
-            ribosome_mRNA_indexes, remaining_RNA_unique_indexes.astype(int)))
+            ribosome_mRNA_indexes, remaining_RNA_unique_indexes))
         n_removed_ribosomes = np.count_nonzero(removed_ribosomes_mask)
 
         # Remove ribosomes that are bound to removed mRNA molecules
@@ -553,20 +541,16 @@ class ChromosomeStructure(Process):
                 promoter_domain_indexes[removed_promoters_mask])
 
             # Add new promoters with new domain indexes
-
-            if 'promoters' in states and states['promoters']:
-                self.promoter_index = int(max([int(index) for index in list(states['promoters'].keys())])) + 1
-
+            promoter_indices = create_unique_indexes(n_new_promoters)
             new_promoters = arrays_to(
                 n_new_promoters, {
-                    'unique_index': np.arange(self.promoter_index, self.promoter_index + n_new_promoters).astype(int),
+                    'unique_index': np.array(promoter_indices),
                     'TU_index': promoter_TU_indexes_new,
                     'coordinates': promoter_coordinates_new,
                     'domain_index': promoter_domain_indexes_new,
                     'bound_TF': np.zeros((n_new_promoters, self.n_TFs), dtype=np.bool).tolist()})
             update['promoters'].update(add_elements(
                 new_promoters, 'unique_index'))
-
 
         ########################
         # Replicate DnaA boxes #
@@ -587,13 +571,10 @@ class ChromosomeStructure(Process):
                 DnaA_box_domain_indexes[removed_DnaA_boxes_mask])
 
             # Add new promoters with new domain indexes
-
-            if 'DnaA_boxes' in states and states['DnaA_boxes']:
-                self.DnaA_box_index = int(max([int(index) for index in list(states['DnaA_boxes'].keys())])) + 1
-
+            DnaA_box_indices = create_unique_indexes(n_new_DnaA_boxes)
             new_DnaA_boxes = arrays_to(
                 n_new_DnaA_boxes, {
-                    'unique_index': np.arange(self.DnaA_box_index, self.DnaA_box_index + n_new_DnaA_boxes).astype(int),
+                    'unique_index': np.array(DnaA_box_indices),
                     'coordinates': DnaA_box_coordinates_new,
                     'domain_index': DnaA_box_domain_indexes_new,
                     'DnaA_bound': np.zeros(n_new_DnaA_boxes, dtype=np.bool).tolist()})
