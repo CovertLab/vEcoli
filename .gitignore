@@ -50,4 +50,8 @@ pyproject.toml
 #################
 /.vscode
 /.env
+
+# Generated Data Files #
+########################
 data/blame_test_data.json
+data/vivecoli_t2.json
