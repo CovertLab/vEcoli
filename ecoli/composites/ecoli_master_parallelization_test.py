@@ -144,7 +144,7 @@ class TestableEcoliSim(EcoliSim):
         self.ecoli_experiment.end()
 
 
-@pytest.mark.slow
+@pytest.mark.highmem
 class EcoliParallelizationTests(unittest.TestCase):
 
     def _assertDataEqual(self, data1, data2, path=tuple(), **kwargs):
