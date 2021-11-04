@@ -241,6 +241,12 @@ class EcoliSim:
         self.process_configs = self._retrieve_process_configs(self.process_configs,
                                                               self.processes)
 
+        initial_state_path = self.config.get('initial_state', '')
+        if initial_state_path and initial_state_path.startswith('vivecoli'):
+            time_str = initial_state_path[len('vivecoli_t'):]
+            seed = int(float(time_str))
+            self.config['seed'] = seed
+
         # initialize the ecoli composer
         if self.partition:
             ecoli_composer = ecoli.composites.ecoli_master.Ecoli(
