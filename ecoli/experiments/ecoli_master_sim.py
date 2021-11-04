@@ -242,7 +242,9 @@ class EcoliSim:
                                                               self.processes)
 
         initial_state_path = self.config.get('initial_state', '')
-        if initial_state_path and initial_state_path.startswith('vivecoli'):
+        if (
+                isinstance(initial_state_path, str)
+                and initial_state_path.startswith('vivecoli')):
             time_str = initial_state_path[len('vivecoli_t'):]
             seed = int(float(time_str))
             self.config['seed'] = seed
