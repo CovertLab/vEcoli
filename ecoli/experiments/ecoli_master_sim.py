@@ -7,8 +7,10 @@ Run simulations of Ecoli Master
 """
 
 import argparse
+import subprocess
 import json
 import warnings
+from copy import deepcopy
 from datetime import datetime
 
 from vivarium.core.engine import Engine
@@ -69,16 +71,17 @@ class EcoliSim:
 
 
     @staticmethod
-    def from_file(filepath=CONFIG_DIR_PATH + 'default.json'):
+    def from_file(filepath=CONFIG_DIR_PATH + 'default.json', merge_default=True):
         # Load config, deep-merge with default config
         with open(filepath) as config_file:
             ecoli_config = json.load(config_file)
 
-        with open(CONFIG_DIR_PATH + 'default.json') as default_file:
-            default_config = json.load(default_file)
+        if merge_default:
+            with open(CONFIG_DIR_PATH + 'default.json') as default_file:
+                default_config = json.load(default_file)
 
-        # Use defaults for any attributes not supplied
-        ecoli_config = deep_merge(dict(default_config), ecoli_config)
+            # Use defaults for any attributes not supplied
+            ecoli_config = deep_merge(dict(default_config), ecoli_config)
 
         return EcoliSim(ecoli_config)
 
@@ -242,11 +245,12 @@ class EcoliSim:
                                                               self.processes)
 
         # initialize the ecoli composer
+        config = deepcopy(self.config)
         if self.partition:
             ecoli_composer = ecoli.composites.ecoli_master.Ecoli(
-                self.config)
+                config)
         else:
-            ecoli_composer = ecoli.composites.ecoli_nonpartition.Ecoli(self.config)
+            ecoli_composer = ecoli.composites.ecoli_nonpartition.Ecoli(config)
 
         # set path at which agent is initialized
         path = tuple()
@@ -287,9 +291,29 @@ class EcoliSim:
         # build self.ecoli and self.initial_state
         self.build_ecoli()
 
+        # create metadata of this experiment to be emitted,
+        # namely the config of this EcoliSim object
+        # with an additional key for the current git hash.
+        # Goal is to save enough information to reproduce the experiment.
+        metadata = dict(self.config)
+
+        # Initial state file is large and should not be serialized;
+        # output maintains a 'initial_state_file' key that can
+        # be used instead
+        metadata.pop('initial_state', None)
+        
+        try:
+            metadata["git_hash"] = self._get_git_revision_hash()
+        except:
+            warnings.warn("Unable to retrieve current git revision hash. "
+                          "Try making a note of this manually if your experiment may need to be replicated.")
+
+        metadata['processes'] = [k for k in metadata['processes'].keys()]
+
         # make the experiment
         experiment_config = {
             'description': self.description,
+            'metadata' : metadata,
             'processes': self.ecoli.processes,
             'topology': self.ecoli.topology,
             'initial_state': self.initial_state,
@@ -318,6 +342,9 @@ class EcoliSim:
             return self.ecoli_experiment.emitter.get_data()
         else:
             return self.ecoli_experiment.emitter.get_timeseries()
+    
+    def _get_git_revision_hash(self):
+        return subprocess.check_output(['git', 'rev-parse', 'HEAD']).decode('ascii').strip()
 
     def merge(self, other):
         """
@@ -328,10 +355,28 @@ class EcoliSim:
         deep_merge(self.config, other.config)
 
 
+    def to_json_string(self, include_git_hash=False):
+        result = dict(self.config)
+
+        # Initial state file is large and should not be serialized;
+        # output maintains a 'initial_state_file' key that can
+        # be used instead
+        result.pop('initial_state', None)
+        
+        try:
+            result["git_hash"] = self._get_git_revision_hash()
+        except:
+            warnings.warn("Unable to retrieve current git revision hash. "
+                          "Try making a note of this manually if your experiment may need to be replicated.")
+
+        result['processes'] = [k for k in result['processes'].keys()]
+
+        return json.dumps(result)
+        
+
     def export_json(self, filename=CONFIG_DIR_PATH + "export.json"):
-        export = dict(self.config)
-        export['processes'] = [k for k in export['processes'].keys()]
-        write_json(filename, export)
+        with open(filename, 'w') as f:
+            f.write(self.to_json_string())
 
 
 if __name__ == '__main__':
