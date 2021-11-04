@@ -1,3 +1,4 @@
+import atexit
 from datetime import datetime
 import json
 import os
@@ -188,6 +189,11 @@ class EcoliParallelizationTests(unittest.TestCase):
         parallel_sim.prepare()
         non_parallel_sim.prepare()
 
+        # Make sure we call .end(), even if the tests fail, so that
+        # parallel processes are shut down cleanly.
+        atexit.register(parallel_sim.end)
+        atexit.register(non_parallel_sim.end)
+
         for time in range(0, TOTAL_TIME, TIMESTEP):
             parallel_sim.step(TIMESTEP)
             non_parallel_sim.step(TIMESTEP)
@@ -200,9 +206,6 @@ class EcoliParallelizationTests(unittest.TestCase):
                 non_parallel_state,
                 time=time,
             )
-
-        parallel_sim.end()
-        non_parallel_sim.end()
 
 
 def main():
