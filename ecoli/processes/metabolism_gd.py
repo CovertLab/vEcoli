@@ -3,6 +3,7 @@ MetabolismGD
 """
 
 import numpy as np
+import json
 
 from vivarium.core.process import Process
 from vivarium.core.composition import simulate_process
@@ -51,6 +52,8 @@ class MetabolismGD(Process):
         super().__init__(parameters)
 
         # variables
+        #   print(len(self.parameters['stoichiometry_r']), len(self.parameters['stoichiometry']))\
+
         maintenance_reaction = self.parameters['maintenance_reaction']
         self.stoichiometry = self.parameters['stoichiometry_r']
         self.stoichiometry.append({'reaction id': 'maintenance_reaction',
@@ -91,10 +94,14 @@ class MetabolismGD(Process):
 
         self.homeostatic_objective = dict((key, conc_dict[key].asNumber(CONC_UNITS)) for key in conc_dict)
 
+        json.dump(self.parameters['stoichiometry_r'], open("notebooks/test_files/stoichiometry.json", 'w'))
+        json.dump(list(self.exchange_molecules), open("notebooks/test_files/exchanges.json", 'w'))
+        json.dump(self.homeostatic_objective, open("notebooks/test_files/homeostatic_objective.json", 'w'))
+
         # Create model to use to solve metabolism updates
         self.model = GradientDescentFba(
             reactions=self.stoichiometry,
-            exchanges=self.exchange_molecules,
+            exchanges=list(self.exchange_molecules),
             target_metabolites=self.homeostatic_objective)
         self.model.add_objective('homeostatic', TargetDmdtObjective(self.model.network, self.homeostatic_objective))
         # TODO(Niels): self.model.add_objective('kinetic', ...)
@@ -238,6 +245,9 @@ class MetabolismGD(Process):
 
         # kinetic constraints
         # kinetic_constraints = get_kinetic_constraints(catalyst_counts, metabolite_counts) # kinetic
+
+        json.dump(target_homeostatic_fluxes, open("notebooks/test_files/target_homeostatic_fluxes.json", 'w'))
+        json.dump(self.reaction_fluxes, open("notebooks/test_files/initial_reaction_fluxes.json", 'w'))
 
         # run FBA
         solution: FbaResult = self.model.solve(
