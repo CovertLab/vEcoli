@@ -163,10 +163,9 @@ class Evolver(Process):
 
         # run request if it has not yet run
         if not self.process.request_set:
-            _ = self.process.calculate_request(timestep, states)
-            self.process.request_set = True
-
-        return self.process.evolve_state(timestep, states)
+            return {}
+        else:
+            return self.process.evolve_state(timestep, states)
 
 
 class PartitionedProcess(Process):
