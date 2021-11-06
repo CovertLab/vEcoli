@@ -152,6 +152,7 @@ class Allocator(Deriver):
         return update
 
 def calculatePartition(process_priorities, counts_requested, total_counts, random_state):
+    print('Calculating partition!\n')
     priorityLevels = np.sort(np.unique(process_priorities))[::-1]
 
     partitioned_counts = np.zeros_like(counts_requested)
