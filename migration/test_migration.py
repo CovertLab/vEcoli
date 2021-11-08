@@ -25,17 +25,16 @@ from ecoli.library.sim_data import LoadSimData
 from ecoli.composites.ecoli_nonpartition import SIM_DATA_PATH
 
 
-
 class TestMigration:
-    sim_data = None
+    sim_data = LoadSimData(sim_data_path=SIM_DATA_PATH, seed=0)
 
-    @classmethod
-    def setUpClass(self):
-        self.sim_data = LoadSimData(sim_data_path=SIM_DATA_PATH, seed=0)
-
-    @classmethod
-    def tearDownClass(self):
-        self.sim_data = None  # not really needed
+    # @classmethod
+    # def setUpClass(self):
+    #     self.sim_data = LoadSimData(sim_data_path=SIM_DATA_PATH, seed=0)
+    #
+    # @classmethod
+    # def tearDownClass(self):
+    #     self.sim_data = None  # not really needed
 
     # CHROMOSOME REPLICATION
     def test_complexation_actual_update(self):
@@ -106,5 +105,5 @@ class TestMigration:
         run_two_component_system_migration(self.sim_data)
 
     # EQUILIBRIUM
-    def test_run_equilibrium():
+    def test_run_equilibrium(self):
         run_equilibrium(self.sim_data)
