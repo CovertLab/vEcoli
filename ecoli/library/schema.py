@@ -320,7 +320,7 @@ def get_cell_for_index(index_to_children, domain_index_to_add, root_index):
     return cell
 
 
-def create_index_to_daughter(chromosome_domain):
+def get_domain_index_to_daughter(chromosome_domain):
     """
     Creates a dictionary linking domain indexes to their respective cells.
     If the index does not belong to a daughter cell, it is assigned a value of -1.
@@ -356,6 +356,29 @@ def create_index_to_daughter(chromosome_domain):
     return index_to_daughter, daughter1_index, daughter2_index
 
 
+def get_rna_index_to_daughter(rna_indexes, random_state):
+    """Make a mapping from all RNA indices to a daughter index.
+
+     Args:
+         mrna_indexes: the mrna_indexes.
+         random_state: A Numpy :py:class:`np.random.RandomState` object
+             to use as a PRNG.
+     """
+    sorted_indexes = np.array(sorted(rna_indexes))
+    bitmap = random_state.choice([True, False], len(rna_indexes))
+    daughter_1_indexes = sorted_indexes[bitmap]
+    daughter_2_indexes = sorted_indexes[~bitmap]
+    return daughter_1_indexes, daughter_2_indexes
+
+
+def divide_ribosomes(ribosomes, state):
+    """divide ribosomes according to the rna they are attached to"""
+    rnas = state['rna']
+    random_state = state['random_state']
+    rna_indexes = rnas.keys()
+    daughter_1_indexes, daughter_2_indexes = get_rna_index_to_daughter(rna_indexes, random_state)
+
+
 def divide_by_domain(values, state):
     """
     divide a dictionary into two daughters based on their domain_index
@@ -364,7 +387,7 @@ def divide_by_domain(values, state):
     daughter2 = {}
 
     # get domain_index-to-daughter_index mapping
-    index_to_daughter, d1_index, d2_index = create_index_to_daughter(state['chromosome_domain'])
+    index_to_daughter, d1_index, d2_index = get_domain_index_to_daughter(state['chromosome_domain'])
 
     for state_id, value in values.items():
         domain_index = value['domain_index']
@@ -383,7 +406,7 @@ def divide_domain(values):
     """
     daughter1 = {}
     daughter2 = {}
-    index_to_daughter, d1_index, d2_index = create_index_to_daughter(values)
+    index_to_daughter, d1_index, d2_index = get_domain_index_to_daughter(values)
     for key in values:
         key_domain_index = values[key]['domain_index']
         key_daughter_cell = index_to_daughter[key_domain_index]
@@ -424,7 +447,7 @@ def divide_RNAs_by_domain(values, state):
     full_transcript_ids = []
 
     # get domain_index-to-daughter_index mapping
-    index_to_daughter, d1_index, d2_index = create_index_to_daughter(state['chromosome_domain'])
+    index_to_daughter, d1_index, d2_index = get_domain_index_to_daughter(state['chromosome_domain'])
 
     # divide partial transcripts by domain_index
     for unique_id, specs in values.items():
