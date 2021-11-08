@@ -135,6 +135,12 @@ class Metabolism(Process):
 
         self.deriver_mode = self.parameters['deriver_mode']
 
+    def __getstate__(self):
+        return self.parameters
+
+    def __setstate__(self, state):
+        self.__init__(state)
+
     def is_deriver(self):
         return self.deriver_mode
 
@@ -699,6 +705,7 @@ def test_metabolism_listener():
     from ecoli.experiments.ecoli_master_sim import EcoliSim
     sim = EcoliSim.from_file()
     sim.total_time = 2
+    sim.raw_output = False
     data = sim.run()
     assert(type(data['listeners']['fba_results']['reactionFluxes'][0]) == list)
     assert(type(data['listeners']['fba_results']['reactionFluxes'][1]) == list)

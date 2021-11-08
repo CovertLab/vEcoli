@@ -9,11 +9,11 @@
     "emit_processes" : false,
     "emit_config" : false,
     "log_updates" : false,
-    "raw_output" : false,
+    "raw_output" : true,
     "seed": 0,
     "partition": true,
 
-    "initial_state": "wcecoli_t0",
+    "initial_state_file": "wcecoli_t0",
     "time_step": 2.0,
     "total_time": 100.0,
     "generations": null,
