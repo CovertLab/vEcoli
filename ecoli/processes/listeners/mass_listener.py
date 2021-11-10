@@ -86,6 +86,11 @@ class MassListener(Deriver):
         self.pilus_index = self.parameters['compartment_indices']['pilus']
         self.inner_membrane_index = self.parameters['compartment_indices']['inner_membrane']
 
+        # Set up matrix for compartment mass calculation
+        self._bulk_molecule_by_compartment = np.stack(
+            [np.core.defchararray.chararray.endswith(self._moleculeIDs, abbrev + ']'
+                                                     ) for abbrev in self._compartment_abbrev_to_index])
+
         # units and constants
         self.cellDensity = self.parameters['cellDensity']
         self.n_avogadro = self.parameters['n_avogadro']
@@ -146,7 +151,22 @@ class MassListener(Deriver):
 
     def get_compartment_submasses(self, states):
         import ipdb; ipdb.set_trace()
-        return {}
+        # bulk
+        # Compute summed masses for each compartment
+        bulk_compartment_masses = np.dot(
+            np.hstack([self._countsAllocatedFinal, self._countsUnallocated[:, np.newaxis]]
+                      ).sum(axis=1) * self._bulk_molecule_by_compartment, self._moleculeMass)
+
+        # # unique
+        # unique_compartment_masses = np.zeros_like(self._compartment_masses)
+        # for moleculeId, moleculeMasses in zip(
+        #         self._molecule_ids, self._molecule_masses):
+        #
+        #     # TODO: include other compartments for unique molecules
+        #     unique_compartment_masses[self._compartment_abbrev_to_index['c'],
+        #     :] += moleculeMasses * n_molecules
+
+        return bulk_compartment_masses
 
     def next_update(self, timestep, states):
         # Initialize update with 0's for each submass
@@ -170,6 +190,9 @@ class MassListener(Deriver):
 
         # all of the submasses
         all_submasses = bulk_submasses + unique_submasses
+
+        import ipdb;
+        ipdb.set_trace()
 
         # save cell mass, water mass, dry mass
         mass_update['cell_mass'] = all_submasses.sum()
