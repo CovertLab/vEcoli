@@ -171,6 +171,10 @@ def calculatePartition(process_priorities, counts_requested, total_counts, rando
             requests[excess_request_mask, :] * total_counts[excess_request_mask, np.newaxis]
             / total_requested[excess_request_mask, np.newaxis]
             )
+        for lst_index in range(len(fractional_requests)):
+            for value_index in range(len(fractional_requests[lst_index])):
+                if np.isnan(fractional_requests[lst_index][value_index]):
+                    fractional_requests[lst_index][value_index] = 0
 
         # Distribute fractional counts to ensure full allocation of excess
         # request molecules
