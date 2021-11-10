@@ -382,7 +382,8 @@ class Equilibrium(object):
 			derivatives_jacobian = self.derivatives_jacobian
 
 		# Note: odeint has issues solving with a long time step so need to use solve_ivp
-		for method in ['LSODA', 'BDF']:
+		# for method in ['LSODA', 'BDF']:
+		for method in ['BDF']:
 			try:
 				sol = integrate.solve_ivp(
 					derivatives, [0, time_limit], y_init,
