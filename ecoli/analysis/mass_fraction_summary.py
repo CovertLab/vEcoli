@@ -75,13 +75,11 @@ class Plot:
         plt.ylabel("Mass (normalized by t = 0 min)")
         plt.legend(legend, loc="best")
 
+        # TODO -- this can go into a general method in an analysis base class
         plt.tight_layout()
         out_dir = 'out/analysis/'
         os.makedirs(out_dir, exist_ok=True)
         plt.savefig(out_dir + 'massFractionSummary.png')
-
-        #todo make analysis tools
-        #this is from WCEcoli: exportFigure(plt, "ecoli/analysis/seriesOut", "massfractionSummary")
         plt.close("all")
         return fig
 
@@ -93,6 +91,6 @@ def run_plot():
     Plot(data)
 
 
-# python ecoli/analysis/massFractionSummary.py
+# python ecoli/analysis/mass_fraction_summary.py
 if __name__ == "__main__":
     run_plot()
