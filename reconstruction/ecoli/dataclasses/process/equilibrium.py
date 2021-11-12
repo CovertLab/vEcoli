@@ -389,7 +389,10 @@ class Equilibrium(object):
 					derivatives, [0, time_limit], y_init,
 					method=method, t_eval=[0, time_limit],
 					jac=derivatives_jacobian)
+				# add assert that there are no negative solutions
 				break
+			# Add AssertionError as an exception
+			# except AssertionError as e:
 			except ValueError as e:
 				print(f'Warning: switching solver method in equilibrium, {e!r}')
 		else:

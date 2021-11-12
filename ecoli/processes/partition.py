@@ -158,6 +158,13 @@ class Evolver(Process):
         ports['allocate'] = change_bulk_updater(ports_copy, 'set')
         return ports
 
+    # try later
+    # def calculate_timestep(self, states):
+    #     if not self.process.request_set:
+    #         return 0
+    #     else:
+    #         return self.process.calculate_timestep(states)
+
     def next_update(self, timestep, states):
         states = deep_merge(states, states.pop('allocate'))
 
