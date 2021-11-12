@@ -27,7 +27,9 @@ metabolism_topology = topology_registry.access('ecoli-metabolism')
 # make a composite with Exchange
 class MetabolismExchange(Composer):
     defaults = {
-        'metabolism': {},
+        'metabolism': {
+            'kinetic_rates': [],
+        },
         'exchanger': {},
         'sim_data_path': SIM_DATA_PATH,
         'seed': 0,
@@ -43,7 +45,7 @@ class MetabolismExchange(Composer):
 
         # configure metabolism
         metabolism_config = self.load_sim_data.get_metabolism_gd_config()
-        metabolism_config = deep_merge(metabolism_config, self.config['metabolism'])
+        metabolism_config = deep_merge(metabolism_config, config['metabolism'])
         metabolism_process = MetabolismGD(metabolism_config)
 
         example_update = {'2-3-DIHYDROXYBENZOATE[c]': 0, '2-KETOGLUTARATE[c]': 0, '2-PG[c]': 0, '2K-4CH3-PENTANOATE[c]': 0,
