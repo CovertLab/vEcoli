@@ -58,6 +58,8 @@ class Division(Deriver):
                 daughter_updates.append({
                     'key': daughter_id,
                     'processes': composer['processes'],
+                    'steps': composer['steps'],
+                    'flow': composer['flow'],
                     'topology': composer['topology'],
                     'initial_state': {}})
 

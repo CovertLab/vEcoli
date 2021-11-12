@@ -220,8 +220,6 @@ class Evolver(Process):
 
         # run request if it has not yet run
         if not self.process.request_set:
-            raise AssertionError(
-                'Should not be doing extra runs of calculate_request')
             _ = self.process.calculate_request(timestep, states)
             self.process.request_set = True
 
