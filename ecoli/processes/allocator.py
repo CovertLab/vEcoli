@@ -171,6 +171,7 @@ def calculatePartition(process_priorities, counts_requested, total_counts, rando
             requests[excess_request_mask, :] * total_counts[excess_request_mask, np.newaxis]
             / total_requested[excess_request_mask, np.newaxis]
             )
+        # incorporate this fix in the line of code above
         for lst_index in range(len(fractional_requests)):
             for value_index in range(len(fractional_requests[lst_index])):
                 if np.isnan(fractional_requests[lst_index][value_index]):
