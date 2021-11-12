@@ -97,6 +97,7 @@ class MetabolismGD(Process):
         json.dump(self.parameters['stoichiometry_r'], open("notebooks/test_files/stoichiometry.json", 'w'))
         json.dump(list(self.exchange_molecules), open("notebooks/test_files/exchanges.json", 'w'))
         json.dump(self.homeostatic_objective, open("notebooks/test_files/homeostatic_objective.json", 'w'))
+        json.dump(reaction_catalysts, open("notebooks/test_files/reaction_catalysts.json", 'w'))
 
         # Create model to use to solve metabolism updates
         self.model = GradientDescentFba(
