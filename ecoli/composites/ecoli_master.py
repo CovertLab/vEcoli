@@ -6,9 +6,9 @@ NOTE: All ports with '_total' in their name are
 automatically exempt from partitioning
 """
 
-import pytest
 from copy import deepcopy
 
+import pytest
 from vivarium.core.composer import Composer
 from vivarium.plots.topology import plot_topology
 from vivarium.library.topology import assoc_path
@@ -77,6 +77,8 @@ class Ecoli(Composer):
         self.processes = self.config['processes']
         self.topology = self.config['topology']
 
+        self.processes_and_steps = None
+
     def initial_state(self, config=None, path=()):
         # Use initial state calculated with trna_charging and translationSupply disabled
         config = config or {}
@@ -86,7 +88,7 @@ class Ecoli(Composer):
         assoc_path(embedded_state, path, initial_state)
         return embedded_state
 
-    def generate_processes(self, config):
+    def _generate_processes_and_steps(self, config):
         time_step = config['time_step']
         parallel = config['parallel']
 
@@ -132,11 +134,11 @@ class Ecoli(Composer):
                                   else make_logging_process(Allocator)(process_configs['allocator']))
 
         # Store list of partition processes
-        self.partitioned_processes = [process_name
-                         for process_name, process in processes.items()
-                         if (isinstance(process, PartitionedProcess)
-                             # and not process.is_deriver()
-                             )]
+        self.partitioned_processes = [
+            process_name
+            for process_name, process in processes.items()
+            if isinstance(process, PartitionedProcess)
+        ]
 
         # update schema overrides for evolvers and requesters
         update_override = {}
@@ -183,29 +185,58 @@ class Ecoli(Composer):
             processes.update(division_process)
             process_order.append(division_name)
 
-        # Create final list of processes in the correct order.
-        # Following process_order, except that:
-        #   - All requesters appear before all evolvers
-        #   - Allocator appears immediately after requesters and immediately before evolvers
-        result = []
-        last_requester = 0
-        for i, process in enumerate(process_order):
-            if process not in self.partitioned_processes:
-                result.append(process)
+        steps = {
+            **requesters,
+            'allocator': processes['allocator'],
+        }
+        processes_not_steps = {
+            **evolvers,
+        }
+        flow = {
+            'allocator': [],
+        }
+
+        for name in process_order:
+            process = processes[name]
+            if name in self.partitioned_processes:
+                requester_name = f'{name}_requester'
+                evolver_name = f'{name}_evolver'
+                flow[requester_name] = []
+                flow['allocator'].append((requester_name,))
+                steps[requester_name] = processes[requester_name]
+                processes_not_steps[evolver_name] = processes[
+                    evolver_name]
+            elif process.is_step():
+                steps[name] = process
+                flow[name] = []
             else:
-                result.append(f'{process}_requester')
-                last_requester = i
+                processes_not_steps[name] = process
 
-        result[last_requester+1:last_requester+1] = [f'{process}_evolver'
-                                                     for process in process_order
-                                                     if process in self.partitioned_processes and process != "allocator"]
-        result.insert(last_requester+1, "allocator")
+        flow['ecoli-transcript-initiation_requester'].append(
+            ('ecoli-chromosome-structure',))
 
-        result = {process: processes[process] for process in result}
+        return processes_not_steps, steps, flow
 
-        # Under default config, should look like
-        # {**chromosome_structure, **metabolism, **requesters, **allocator, **evolvers, **division, **mrna_counts, **mass}
-        return result
+    def generate_processes(self, config):
+        if not self.processes_and_steps:
+            self.processes_and_steps = (
+                self._generate_processes_and_steps(config))
+        processes, _, _ = self.processes_and_steps
+        return processes
+
+    def generate_steps(self, config):
+        if not self.processes_and_steps:
+            self.processes_and_steps = (
+                self._generate_processes_and_steps(config))
+        _, steps, _ = self.processes_and_steps
+        return steps
+
+    def generate_flow(self, config):
+        if not self.processes_and_steps:
+            self.processes_and_steps = (
+                self._generate_processes_and_steps(config))
+        _, _, flow = self.processes_and_steps
+        return flow
 
     def generate_topology(self, config):
         topology = {}
@@ -316,6 +347,8 @@ def run_division(
     # make and run the experiment
     experiment = Engine(
         processes=ecoli_composite.processes,
+        steps=ecoli_composite.steps,
+        flow=ecoli_composite.flow,
         topology=ecoli_composite.topology,
         initial_state={'agents': {agent_id: initial_state}},
     )
@@ -357,6 +390,8 @@ def test_division_topology():
     # make experiment
     experiment = Engine(
         processes=ecoli_composite.processes,
+        steps=ecoli_composite.steps,
+        flow=ecoli_composite.flow,
         topology=ecoli_composite.topology,
         initial_state={'agents': {agent_id: initial_state}},
     )

@@ -299,6 +299,8 @@ class EcoliSim:
         experiment_config = {
             'description': self.description,
             'processes': self.ecoli.processes,
+            'steps': self.ecoli.steps,
+            'flow': self.ecoli.flow,
             'topology': self.ecoli.topology,
             'initial_state': self.initial_state,
             'progress_bar': self.progress_bar,
