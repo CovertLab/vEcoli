@@ -444,7 +444,7 @@ class TableReader(object):
 
 
 def test_table_reader():
-    data = run_ecoli(total_time=4)
+    data = run_ecoli(total_time=4, time_series=False)
 
     # TODO actaully grab their values - they fail 'gracefully' rn because their keys are empty or arrays are empty
     equi_tb = TableReader("EquilibriumListener", data)
