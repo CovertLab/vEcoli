@@ -75,7 +75,7 @@ def get_state_from_file(path='data/wcecoli_t0.json'):
             for key, value in values.items():
                 if key in MASSDIFFS:
                     initial_state['unique'][mol_type][molecule_id]['submass'][MASSDIFFS[key]] = value
-                elif key in ['unique_index', 'RNAP_index']:
+                elif key in ['unique_index', 'RNAP_index', 'mRNA_index']:
                     # convert these values to strings
                     initial_state['unique'][mol_type][molecule_id][key] = str(value)
                 else:
