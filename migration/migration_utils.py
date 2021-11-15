@@ -21,7 +21,8 @@ def get_process_state(process, topology, initial_state):
 
     # translate the values from the tree structure into the form
     # that this process expects, based on its declared topology
-    states = store.outer.schema_topology(process.schema, store.topology)
+    topology_view = store.outer.schema_topology(process.schema, store.topology)
+    states = view_values(topology_view)
     return states, experiment
 
 
