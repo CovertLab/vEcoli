@@ -30,8 +30,8 @@ class Plot:
         self.do_plot(self.data)
 
     def do_plot(self, data):
-        mass = TableReader("Mass", self.data)
-        main_reader = TableReader("Main", self.data)
+        mass = TableReader("Mass", data)
+        main_reader = TableReader("Main", data)
 
         cell = mass.readColumn("dryMass")
         protein = mass.readColumn("proteinMass")
@@ -40,8 +40,8 @@ class Plot:
         mRna = mass.readColumn("mRnaMass")
         dna = mass.readColumn("dnaMass")
         smallMolecules = mass.readColumn("smallMoleculeMass")
-        time_tb = TableReader("Main", data)
-        time_vals = time_tb.readColumn('time')
+
+        time_vals = main_reader.readColumn('time')
         #need to # FIX intial time calculation maybe
         initialTime = time_vals[0]
         #initialTime = main_reader.readAttribute("initialTime")

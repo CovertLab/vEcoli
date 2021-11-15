@@ -32,11 +32,8 @@ class Plot:
         self.do_plot(self.data)
 
     def do_plot(self, data):
-        mass = TableReader("Mass", self.data)
-        main_reader = TableReader("Main", self.data)
-
-
-        import ipdb; ipdb.set_trace()
+        mass = TableReader("Mass", data)
+        main_reader = TableReader("Main", data)
 
         cell = mass.readColumn("cellMass")
         projection = mass.readColumn("projection_mass")
@@ -47,9 +44,10 @@ class Plot:
         periplasm = mass.readColumn("periplasm_mass")
         pilus = mass.readColumn("pilus_mass")
         inner_membrane = mass.readColumn("inner_membrane_mass")
-        flagellum = mass.readColumn("flagellum")
+        flagellum = mass.readColumn("flagellum_mass")
 
-        initialTime = main_reader.readAttribute("initialTime")
+        time_vals = main_reader.readColumn('time')
+        initialTime = time_vals[0]
         t = (main_reader.readColumn("time") - initialTime) / 60.
 
         masses = np.vstack([
