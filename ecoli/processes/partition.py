@@ -15,7 +15,7 @@ which reads the requests and allocates molecular counts for the evolve_state.
 """
 import abc
 
-from vivarium.core.process import Deriver, Process
+from vivarium.core.process import Step, Process
 from vivarium.library.dict_utils import deep_merge
 from ecoli.processes.registries import topology_registry
 
@@ -106,8 +106,8 @@ def path_in_bulk(topo):
     return False
 
 
-class Requester(Deriver):
-    """ Requester Deriver
+class Requester(Step):
+    """ Requester Step
 
     Accepts a PartitionedProcess as an input, and runs in coordination with an
     Evolver that uses the same PartitionedProcess.
