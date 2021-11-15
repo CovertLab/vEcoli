@@ -15,7 +15,6 @@ from vivarium.core.engine import pp
 
 from ecoli.processes.registries import topology_registry
 
-
 # Register default topology for this process, associating it with process name
 NAME = 'ecoli-mass-listener'
 topology_registry.register(
@@ -25,6 +24,8 @@ topology_registry.register(
         "unique": ("unique",),
         "listeners": ("listeners",)
     })
+
+
 class MassListener(Deriver):
     """ MassListener """
     name = NAME
@@ -87,9 +88,10 @@ class MassListener(Deriver):
         self.inner_membrane_index = self.parameters['compartment_indices']['inner_membrane']
 
         # Set up matrix for compartment mass calculation
+        self.compartment_abbrev_to_index = self.parameters['compartment_abbrev_to_index']
         self._bulk_molecule_by_compartment = np.stack(
-            [np.core.defchararray.chararray.endswith(self._moleculeIDs, abbrev + ']'
-                                                     ) for abbrev in self._compartment_abbrev_to_index])
+            [np.core.defchararray.chararray.endswith(self.bulk_ids, abbrev + ']'
+                                                     ) for abbrev in self.compartment_abbrev_to_index])
 
         # units and constants
         self.cellDensity = self.parameters['cellDensity']
@@ -99,14 +101,14 @@ class MassListener(Deriver):
         self.first_time_step = True
 
         self.mass_diffs = ['rRNA', 'tRNA', 'mRNA', 'miscRNA', 'nonspecific_RNA',
-                           'protein',  'metabolite', 'water', 'DNA']
+                           'protein', 'metabolite', 'water', 'DNA']
 
     def ports_schema(self):
         default_schema = {
             '_default': 0.0,
             '_updater': 'set',
             '_emit': True}
-        
+
         ports = {
             'bulk': bulk_schema(self.bulk_ids),
             'unique': {
@@ -150,23 +152,30 @@ class MassListener(Deriver):
         return ports
 
     def get_compartment_submasses(self, states):
-        import ipdb; ipdb.set_trace()
-        # bulk
-        # Compute summed masses for each compartment
-        bulk_compartment_masses = np.dot(
-            np.hstack([self._countsAllocatedFinal, self._countsUnallocated[:, np.newaxis]]
-                      ).sum(axis=1) * self._bulk_molecule_by_compartment, self._moleculeMass)
 
-        # # unique
-        # unique_compartment_masses = np.zeros_like(self._compartment_masses)
-        # for moleculeId, moleculeMasses in zip(
-        #         self._molecule_ids, self._molecule_masses):
-        #
-        #     # TODO: include other compartments for unique molecules
-        #     unique_compartment_masses[self._compartment_abbrev_to_index['c'],
-        #     :] += moleculeMasses * n_molecules
+        # Compute bulk summed masses for each compartment
+        bulk_state = array_from(states['bulk'])
+        bulk_compartment_submasses = np.dot(
+            bulk_state * self._bulk_molecule_by_compartment, self.bulk_masses)
 
-        return bulk_compartment_masses
+        # Compute unique summed masses for each compartment
+        unique_compartment_submasses = np.zeros_like(bulk_compartment_submasses)
+        for molecule_id, molecule_mass in zip(
+                self.unique_ids, self.unique_masses):
+            molecules = states['unique'][molecule_id]
+            n_molecules = len(molecules)
+            if n_molecules == 0:
+                continue
+
+            mass = molecule_mass * n_molecules
+            # TODO: include other compartments for unique molecules
+            unique_compartment_submasses[self.compartment_abbrev_to_index['c'], :] += mass
+
+        compartment_submasses = sum(
+            bulk_compartment_submasses,
+            unique_compartment_submasses)
+
+        return compartment_submasses
 
     def next_update(self, timestep, states):
         # Initialize update with 0's for each submass
@@ -180,7 +189,7 @@ class MassListener(Deriver):
         bulk_submasses = np.dot(bulk_counts, self.bulk_masses)
 
         unique_counts = np.array([len(states['unique'][unique_id])
-                                 for unique_id in self.unique_ids])
+                                  for unique_id in self.unique_ids])
         unique_submasses = np.dot(unique_counts, self.unique_masses)
         unique_mass_diffs = np.zeros(len(self.mass_diffs))
         for unique_id in self.unique_ids:
@@ -191,14 +200,11 @@ class MassListener(Deriver):
         # all of the submasses
         all_submasses = bulk_submasses + unique_submasses
 
-        import ipdb;
-        ipdb.set_trace()
-
         # save cell mass, water mass, dry mass
         mass_update['cell_mass'] = all_submasses.sum()
         mass_update['water_mass'] = all_submasses[self.water_index]
         mass_update['dry_mass'] = (
-            mass_update['cell_mass'] - mass_update['water_mass'])
+                mass_update['cell_mass'] - mass_update['water_mass'])
 
         # Store submasses
         for submass, indices in self.submass_indices.items():
@@ -207,9 +213,9 @@ class MassListener(Deriver):
         mass_update['volume'] = mass_update['cell_mass'] / self.cellDensity
 
         mass_update['proteinMassFraction'] = (
-            mass_update['proteinMass'] / mass_update['dry_mass'])
+                mass_update['proteinMass'] / mass_update['dry_mass'])
         mass_update['rnaMassFraction'] = (
-            mass_update['rnaMass'] / mass_update['dry_mass'])
+                mass_update['rnaMass'] / mass_update['dry_mass'])
 
         if self.first_time_step:
             mass_update['growth'] = np.nan
@@ -221,7 +227,7 @@ class MassListener(Deriver):
             mass_update['growth'] = mass_update['dry_mass'] - old_dry_mass
 
         mass_update['instantaniousGrowthRate'] = (
-            mass_update['growth'] / self.time_step / mass_update['dry_mass'])
+                mass_update['growth'] / self.time_step / mass_update['dry_mass'])
 
         # Compartment submasses
         compartment_submasses = self.get_compartment_submasses(states)
@@ -242,13 +248,13 @@ class MassListener(Deriver):
 
         # These are "logged quantities" in wcEcoli - keep separate?
         mass_update['dryMassFoldChange'] = mass_update['dry_mass'] / \
-            self.dryMassInitial
+                                           self.dryMassInitial
         mass_update['proteinMassFoldChange'] = mass_update['proteinMass'] / \
-            self.proteinMassInitial
+                                               self.proteinMassInitial
         mass_update['rnaMassFoldChange'] = mass_update['rnaMass'] / \
-            self.rnaMassInitial
+                                           self.rnaMassInitial
         mass_update['smallMoleculeFoldChange'] = mass_update['smallMoleculeMass'] / \
-            self.smallMoleculeMassInitial
+                                                 self.smallMoleculeMassInitial
 
         self.first_time_step = False
 

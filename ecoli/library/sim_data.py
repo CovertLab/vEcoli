@@ -480,6 +480,7 @@ class LoadSimData:
             'unique_ids': self.sim_data.internal_state.unique_molecule.unique_molecule_masses['id'],
             'unique_masses': self.sim_data.internal_state.unique_molecule.unique_molecule_masses['mass'].asNumber(
                 units.fg / units.mol) / self.sim_data.constants.n_avogadro.asNumber(1/units.mol),
+            'compartment_abbrev_to_index': self.sim_data.compartment_abbrev_to_index,
             'submass_indices': {
                 'rna': np.array([
                     self.sim_data.submass_name_to_index[name]
