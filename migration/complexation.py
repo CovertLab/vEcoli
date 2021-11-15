@@ -26,8 +26,6 @@ def test_complexation_migration():
         config['seed'] = 0
         complexation = Complexation(config)
 
-
-        
         with open(f"data/complexation/complexation_partitioned_t"
             f"{total_time+initial_time}.json") as f:
             partitioned_counts = json.load(f)
@@ -42,7 +40,7 @@ def test_complexation_migration():
                                         total_time=total_time,
                                         initial_time=initial_time,
                                         initial_state=initial_state)
-        
+
         with open("data/complexation/complexation_update_t"
             f"{total_time+initial_time}.json") as f:
             wc_update = json.load(f)
@@ -50,7 +48,7 @@ def test_complexation_migration():
         plots(actual_update, wc_update, total_time+initial_time)
         assertions(actual_update,wc_update, total_time+initial_time)
     
-    times = [0, 2, 8, 100]
+    times = [2, 8, 100]
     for initial_time in times:
         test(initial_time)
 
@@ -78,9 +76,9 @@ def assertions(actual_update, expected_update, time):
     # update dictionaries)
     assert array_equal(vivarium_deltas, wcecoli_deltas)
     
-    # check that molecule count changes likely have the same underlying 
-    # distribution (for use with unseeded update dictionaries)
-    assert stochastic_equal(vivarium_deltas, wcecoli_deltas)
+    # # check that molecule count changes likely have the same underlying
+    # # distribution (for use with unseeded update dictionaries)
+    # assert stochastic_equal(vivarium_deltas, wcecoli_deltas)
     
     # create report to troubleshoot any observed differences between 
     # molecule count updates
