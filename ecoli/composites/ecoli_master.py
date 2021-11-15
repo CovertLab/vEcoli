@@ -82,7 +82,7 @@ class Ecoli(Composer):
     def initial_state(self, config=None, path=()):
         # Use initial state calculated with trna_charging and translationSupply disabled
         config = config or {}
-        initial_state_file = config.get('initial_state', 'wcecoli_t0')
+        initial_state_file = config.get('initial_state_file', 'wcecoli_t0')
         initial_state = get_state_from_file(path=f'data/{initial_state_file}.json')
         embedded_state = {}
         assoc_path(embedded_state, path, initial_state)
@@ -129,9 +129,7 @@ class Ecoli(Composer):
         )
 
         config['processes']['allocator'] = Allocator
-        processes['allocator'] = (Allocator(process_configs['allocator'])
-                                  if not config['log_updates']
-                                  else make_logging_process(Allocator)(process_configs['allocator']))
+        processes['allocator'] = Allocator(process_configs['allocator'])
 
         # Store list of partition processes
         self.partitioned_processes = [
@@ -280,9 +278,6 @@ class Ecoli(Composer):
             'request': ('request',),
             'allocate': ('allocate',),
             'bulk': ('bulk',)}
-
-        if config['log_updates']:
-            topology['allocator']['log_update'] = ('log_update', 'allocator',)
 
         return topology
 
