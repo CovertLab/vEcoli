@@ -1,6 +1,6 @@
 import numpy as np
 from scipy.stats import mannwhitneyu, chi2_contingency, ttest_ind, bartlett
-from vivarium.core.engine import Engine
+from vivarium.core.engine import Engine, view_values
 
 from ecoli.states.wcecoli_state import get_state_from_file
 
@@ -61,7 +61,8 @@ def run_ecoli_process(
 
     # translate the values from the tree structure into the form
     # that this process expects, based on its declared topology
-    states = store.outer.schema_topology(process.schema, store.topology)
+    topology_view = store.outer.schema_topology(process.schema, store.topology)
+    states = view_values(topology_view)
 
     update = experiment.invoke_process(
         process,
