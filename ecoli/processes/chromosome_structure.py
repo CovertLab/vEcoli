@@ -581,6 +581,7 @@ class ChromosomeStructure(Process):
             update['DnaA_boxes'].update(add_elements(
                 new_DnaA_boxes, 'unique_index'))
 
+        # import ipdb; ipdb.set_trace()
         return update
 
 
