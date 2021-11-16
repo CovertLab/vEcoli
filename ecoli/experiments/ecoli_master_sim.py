@@ -379,6 +379,11 @@ class EcoliSim:
             f.write(self.to_json_string())
 
 
-if __name__ == '__main__':
-    ecoli_sim = EcoliSim.from_file()
+def main():
+    ecoli_sim = EcoliSim.from_cli()
     ecoli_sim.run()
+
+
+# python ecoli/experiments/ecoli_master_sim.py
+if __name__ == '__main__':
+    main()

@@ -51,3 +51,7 @@ pyproject.toml
 /.vscode
 /.env
 data/blame_test_data.json
+
+# data files #
+##############
+data/
