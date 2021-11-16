@@ -199,7 +199,8 @@ class Ecoli(Composer):
             if name in self.partitioned_processes:
                 requester_name = f'{name}_requester'
                 evolver_name = f'{name}_evolver'
-                flow[requester_name] = []
+                flow[requester_name] = [
+                    ('ecoli-chromosome-structure',)]
                 flow['allocator'].append((requester_name,))
                 steps[requester_name] = processes[requester_name]
                 processes_not_steps[evolver_name] = processes[
@@ -209,9 +210,6 @@ class Ecoli(Composer):
                 flow[name] = []
             else:
                 processes_not_steps[name] = process
-
-        flow['ecoli-transcript-initiation_requester'].append(
-            ('ecoli-chromosome-structure',))
 
         return processes_not_steps, steps, flow
 
