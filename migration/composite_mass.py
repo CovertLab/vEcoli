@@ -11,9 +11,9 @@ from migration.migration_utils import ComparisonTestSuite
 from ecoli.experiments.ecoli_master_sim import EcoliSim, CONFIG_DIR_PATH
 
 
-def test_composite_mass():
+def test_composite_mass(total_time=30):
     sim = EcoliSim.from_file(CONFIG_DIR_PATH + "default.json")
-    sim.total_time = 10
+    sim.total_time = total_time
 
     # run the composite and save specified states
     sim.run()
