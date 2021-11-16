@@ -118,7 +118,12 @@ def create_unique_indexes(n_indexes):
     return [str(uuid4().int) for i in range(n_indexes)]
 
 def array_from(d):
+    """Returns an array with the dictionary values"""
     return np.array(list(d.values()))
+
+def key_array_from(d):
+    """Returns an array with the dictionary keys"""
+    return np.array(list(d.keys()))
 
 def array_to(keys, array):
     return {
