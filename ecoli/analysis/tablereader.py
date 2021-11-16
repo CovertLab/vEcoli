@@ -3,7 +3,7 @@ import numpy as np
 
 from vivarium.core.emitter import timeseries_from_data
 
-from ecoli.library.schema import array_from
+from ecoli.library.schema import array_from, key_array_from
 from ecoli.composites.ecoli_nonpartition import run_ecoli
 
 from ecoli.analysis.tablereader_utils import (
@@ -16,7 +16,8 @@ MAPPING = {
         'atpRequested': None,
         'counts': ("bulk", array_from),
         'atpAllocatedInitial': None,
-        'attributes': None
+        'attributes': None,
+        'objectNames': ("bulk", key_array_from),
     },
     'EnzymeKinetics': {
         'actualFluxes': None,
@@ -171,7 +172,7 @@ MAPPING = {
         'proteinMass': ('listeners', 'mass', 'proteinMass'),
         'cellMass': ('listeners', 'mass', 'cell_mass'),
         'instantaniousGrowthRate': None,
-        'rnaMass': None,
+        'rnaMass': ('listeners', 'mass', 'rnaMass'),
         'cellVolume': None,
         'membrane_mass': ('listeners', 'mass', 'membrane_mass'),
         'rRnaMass': ('listeners', 'mass', 'rRnaMass'),
