@@ -9,7 +9,7 @@ on:
     branches: [master]
 
 jobs:
-  low-memory:
+  test:
     runs-on: ubuntu-latest
     strategy:
       matrix:
