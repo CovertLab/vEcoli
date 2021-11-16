@@ -39,7 +39,7 @@ def blame_plot(data,
     if 'log_update' not in data.keys():
         raise ValueError("Missing log_update in data; did you run simulation without logged updates?")
 
-    max_t = data['time'][-1]
+    max_t = data['time'][-1] - data['time'][0]
 
     bulk_idx, process_idx, plot_data = extract_bulk(data, get_bulk_processes(topology))
     plot_data = plot_data.toarray() / max_t  # convert counts to average rate
