@@ -6,7 +6,7 @@ mRNA Counts Listener
 
 import numpy as np
 from ecoli.library.schema import arrays_from, dict_value_schema
-from vivarium.core.process import Deriver
+from vivarium.core.process import Step
 
 from ecoli.processes.registries import topology_registry
 
@@ -20,7 +20,7 @@ topology_registry.register(
     }
 )
 
-class mRNACounts(Deriver):
+class mRNACounts(Step):
     """
     Listener for the counts of each mRNA species.
     """
