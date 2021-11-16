@@ -105,18 +105,18 @@ class Allocator(Deriver):
 
         partitioned_counts.astype(int, copy=False)
 
-        if ASSERT_POSITIVE_COUNTS and np.any(partitioned_counts < 0):
-            raise NegativeCountsError(
-                    "Negative value(s) in partitioned_counts:\n"
-                    + "\n".join(
-                    "{} in {} ({})".format(
-                        self.mol_idx_to_name[molIndex],
-                        self.proc_idx_to_name[processIndex],
-                        counts_requested[molIndex, processIndex]
-                        )
-                    for molIndex, processIndex in zip(*np.where(partitioned_counts < 0))
-                    )
-                )
+        # if ASSERT_POSITIVE_COUNTS and np.any(partitioned_counts < 0):
+        #     raise NegativeCountsError(
+        #             "Negative value(s) in partitioned_counts:\n"
+        #             + "\n".join(
+        #             "{} in {} ({})".format(
+        #                 self.mol_idx_to_name[molIndex],
+        #                 self.proc_idx_to_name[processIndex],
+        #                 counts_requested[molIndex, processIndex]
+        #                 )
+        #             for molIndex, processIndex in zip(*np.where(partitioned_counts < 0))
+        #             )
+        #         )
 
         # Record unpartitioned counts for later merging
         counts_unallocated = original_totals - np.sum(
@@ -153,6 +153,11 @@ class Allocator(Deriver):
 
 def calculatePartition(process_priorities, counts_requested, total_counts, random_state):
     print('Calculating partition!\n')
+    # if counts_requested[32678][7] > total_counts[32678]:
+    #     import ipdb
+    #     ipdb.set_trace()
+    # if total_counts[32678] < 0:
+    #     import ipdb; ipdb.set_trace()
     priorityLevels = np.sort(np.unique(process_priorities))[::-1]
 
     partitioned_counts = np.zeros_like(counts_requested)
@@ -176,6 +181,8 @@ def calculatePartition(process_priorities, counts_requested, total_counts, rando
             for value_index in range(len(fractional_requests[lst_index])):
                 if np.isnan(fractional_requests[lst_index][value_index]):
                     fractional_requests[lst_index][value_index] = 0
+        # if np.any(fractional_requests < 0):
+        #     import ipdb; ipdb.set_trace()
 
         # Distribute fractional counts to ensure full allocation of excess
         # request molecules
@@ -190,6 +197,18 @@ def calculatePartition(process_priorities, counts_requested, total_counts, rando
         requests[excess_request_mask, :] = fractional_requests
 
         allocations = requests.astype(np.int64)
+        # if np.any(allocations < 0):
+        #     import ipdb; ipdb.set_trace()
         partitioned_counts[:, processHasPriority] = allocations
+        old_total_counts = total_counts
         total_counts -= allocations.sum(axis=1)
+        # if np.any(total_counts) < 0:
+        #     import ipdb;
+        #     ipdb.set_trace()
+
+    # partitioned_counts.astype(int, copy=False)
+    # if ASSERT_POSITIVE_COUNTS and np.any(partitioned_counts < 0):
+    #     import ipdb
+    #     ipdb.set_trace()
+    # import ipdb; ipdb.set_trace()
     return partitioned_counts

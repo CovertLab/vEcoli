@@ -336,6 +336,7 @@ class Metabolism(Process):
                     'targetFluxesUpper': upper_targets / timestep,
                     'targetFluxesLower': lower_targets / timestep}}}
 
+        # import ipdb; ipdb.set_trace()
         return update
 
     def update_amino_acid_targets(self, counts_to_molar, count_diff, amino_acid_counts):
