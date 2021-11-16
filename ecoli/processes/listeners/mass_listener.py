@@ -171,7 +171,7 @@ class MassListener(Deriver):
             # TODO: include other compartments for unique molecules
             unique_compartment_submasses[self.compartment_abbrev_to_index['c'], :] += mass
 
-        compartment_submasses = sum(
+        compartment_submasses = np.add(
             bulk_compartment_submasses,
             unique_compartment_submasses)
 
