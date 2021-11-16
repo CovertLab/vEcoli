@@ -244,10 +244,8 @@ class EcoliSim:
         self.process_configs = self._retrieve_process_configs(self.process_configs,
                                                               self.processes)
 
-        initial_state_path = self.config.get('initial_state', '')
-        if (
-                isinstance(initial_state_path, str)
-                and initial_state_path.startswith('vivecoli')):
+        initial_state_path = self.config.get('initial_state_file', '')
+        if initial_state_path.startswith('vivecoli'):
             time_str = initial_state_path[len('vivecoli_t'):]
             seed = int(float(time_str))
             self.config['seed'] = seed
@@ -309,7 +307,7 @@ class EcoliSim:
         # output maintains a 'initial_state_file' key that can
         # be used instead
         metadata.pop('initial_state', None)
-        
+
         try:
             metadata["git_hash"] = self._get_git_revision_hash()
         except:
@@ -352,7 +350,7 @@ class EcoliSim:
             return self.ecoli_experiment.emitter.get_data()
         else:
             return self.ecoli_experiment.emitter.get_timeseries()
-    
+
     def _get_git_revision_hash(self):
         return subprocess.check_output(['git', 'rev-parse', 'HEAD']).decode('ascii').strip()
 
@@ -372,7 +370,7 @@ class EcoliSim:
         # output maintains a 'initial_state_file' key that can
         # be used instead
         result.pop('initial_state', None)
-        
+
         try:
             result["git_hash"] = self._get_git_revision_hash()
         except:
@@ -382,7 +380,7 @@ class EcoliSim:
         result['processes'] = [k for k in result['processes'].keys()]
 
         return json.dumps(result)
-        
+
 
     def export_json(self, filename=CONFIG_DIR_PATH + "export.json"):
         with open(filename, 'w') as f:
