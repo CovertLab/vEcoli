@@ -332,13 +332,13 @@ def run_division(
     from ecoli.plots.blame import blame_plot
     blame_plot(timeseries['agents']['1'], experiment.topology['agents']['10'],
                'out/ecoli_sim/GLT_1.png',
-               selected_molecules=['GLT[c]'])
+               highlight_molecules=['GLT[c]'])
     blame_plot(timeseries['agents']['10'], experiment.topology['agents']['10'],
                'out/ecoli_sim/GLT_10.png',
-               selected_molecules=['GLT[c]'])
+               highlight_molecules=['GLT[c]'])
     blame_plot(timeseries['agents']['11'], experiment.topology['agents']['11'],
                'out/ecoli_sim/GLT_11.png',
-               selected_molecules=['GLT[c]'])
+               highlight_molecules=['GLT[c]'])
 
 
 def test_division_topology():
