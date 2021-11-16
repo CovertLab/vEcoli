@@ -55,3 +55,4 @@ pyproject.toml
 ########################
 data/blame_test_data.json
 data/vivecoli_t2.json
+ecoli/composites/ecoli_configs/test_configs/test_export.json
