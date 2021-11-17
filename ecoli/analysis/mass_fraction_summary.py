@@ -25,8 +25,10 @@ COLORS = [
 
 class Plot:
 
-    def __init__(self, data):
+    def __init__(self, data, out_dir='out'):
         self.data = data
+        self.out_dir = out_dir
+        os.makedirs(self.out_dir, exist_ok=True)
         self.do_plot(self.data)
 
     def do_plot(self, data):
@@ -77,9 +79,7 @@ class Plot:
 
         # TODO -- this can go into a general method in an analysis base class
         plt.tight_layout()
-        out_dir = 'out/analysis/'
-        os.makedirs(out_dir, exist_ok=True)
-        plt.savefig(out_dir + 'massFractionSummary.png')
+        plt.savefig(os.path.join(self.out_dir, 'massFractionSummary.png'))
         plt.close("all")
         return fig
 

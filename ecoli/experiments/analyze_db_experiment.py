@@ -36,19 +36,21 @@ def access():
 
 
 def make_plots(data, experiment_id='ecoli', sim_config={}):
-    experiment_out_dir = OUT_DIR + str(experiment_id)
-    os.makedirs(experiment_out_dir, exist_ok=True)
+    out_dir = os.path.join(OUT_DIR, str(experiment_id))
 
     # pull out mass data to improve TableReader runtime
     # TODO -- make this more general
     mass_data = {}
     for t, d in data.items():
-        mass_data[t] = d['listeners']['mass']
+        mass_data[t] = {
+            'bulk': d['bulk'],
+            'listeners': {
+                'mass': d['listeners']['mass']}}
 
     # run plots
-    CompartmentsMassFraction(mass_data)
-    MassFraction(mass_data)
-    VoronoiMassFraction(mass_data)
+    CompartmentsMassFraction(mass_data, out_dir=out_dir)
+    MassFraction(mass_data, out_dir=out_dir)
+    VoronoiMassFraction(mass_data, out_dir=out_dir)
 
 
 def main():
