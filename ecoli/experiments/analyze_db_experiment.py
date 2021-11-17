@@ -29,8 +29,9 @@ def access():
     db = emitter.db
 
     # access
+    query = [('listeners', 'mass'), ('bulk',)]
     data, sim_config = data_from_database(
-        experiment_id, db)
+        experiment_id, db, query)
 
     return data, experiment_id, sim_config
 
