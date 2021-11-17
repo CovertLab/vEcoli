@@ -48,6 +48,7 @@ class TwoComponentSystem(PartitionedProcess):
             'random_state',
             'molecules_required',
             'all_molecule_changes',
+            'cellVolume',
         ],
     }
 
