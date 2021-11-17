@@ -59,6 +59,6 @@ def main():
     make_plots(data, experiment_id, sim_config)
 
 
-# python ecoli/experiments/analyze_db_experiment.py -e [experiment_id]
+# python ecoli/analysis/analyze_db_experiment.py -e [experiment_id]
 if __name__ == '__main__':
     main()
