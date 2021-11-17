@@ -125,9 +125,7 @@ class Ecoli(Composer):
         )
 
         config['processes']['allocator'] = Allocator
-        processes['allocator'] = (Allocator(process_configs['allocator'])
-                                  if not config['log_updates']
-                                  else make_logging_process(Allocator)(process_configs['allocator']))
+        processes['allocator'] = Allocator(process_configs['allocator'])
 
         # Store list of partition processes
         self.partitioned_processes = [process_name
@@ -243,9 +241,6 @@ class Ecoli(Composer):
             'request': ('request',),
             'allocate': ('allocate',),
             'bulk': ('bulk',)}
-
-        if config['log_updates']:
-            topology['allocator']['log_update'] = ('log_update', 'allocator',)
 
         return topology
 
