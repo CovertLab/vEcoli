@@ -21,8 +21,10 @@ SEED = 0  # random seed
 
 class Plot:
 
-    def __init__(self, data):
+    def __init__(self, data, out_dir='out'):
         self.data = data
+        self.out_dir = out_dir
+        os.makedirs(self.out_dir, exist_ok=True)
         with open(SIM_DATA_PATH, 'rb') as sim_data_file:
             self.sim_data = cPickle.load(sim_data_file)
 
@@ -119,9 +121,7 @@ class Plot:
 
         # TODO -- this can go into a general method in an analysis base class
         plt.tight_layout()
-        out_dir = 'out/analysis/'
-        os.makedirs(out_dir, exist_ok=True)
-        plt.savefig(out_dir + 'voronoi_mass_fraction_summary.png')
+        plt.savefig(os.path.join(self.out_dir, 'voronoi_mass_fraction_summary.png'))
         plt.close("all")
         return vm
 
