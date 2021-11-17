@@ -25,24 +25,16 @@ def preprocess_data(data, bulk_processes, molecules):
 
     processes = list(bulk_processes.keys())
     x = np.array(list(data.keys()))
-    y = {}
-
-    for time in x:
-        y[time] = {process: {m: 0 for m in molecules}
-                   for process in bulk_processes}
-        for process, paths in bulk_processes.items():
-            for path in paths:
-                for molecule in molecules:
-                    y[time][process][molecule] += data[time]['log_update'][process].get(
-                        path, {}).get(molecule, 0)
 
     values_array = np.zeros([len(molecules), len(x), len(processes)])
-    for j, timepoint in enumerate(y):
-        for k, process in enumerate(y[timepoint]):
-            for i, molecule in enumerate(y[timepoint][process]):
-                values_array[i, j, k] = y[timepoint][process][molecule]
+    for j, timepoint in enumerate(x):
+        for k, process in enumerate(processes):
+            for i, molecule in enumerate(molecules):
+                for path in bulk_processes[process]:
+                    values_array[i, j, k] += data[timepoint]['log_update'][process].get(
+                        path, {}).get(molecule, 0)
 
-    return x, values_array
+    return x, processes, values_array
 
 
 def signed_stacked_bar(ax, x, y, bar_labels):
@@ -78,10 +70,22 @@ def blame_timeseries(data,
                      topology,
                      molecules,
                      filename='out/ecoli_master/blame_timeseries.png',
-                     yscale='log'):
+                     yscale='linear'):
     """
-    TODO
-    - data : expected to be in raw form (not timeseries)
+    Generates timeseries blame plots for the selected molecules, saving
+    to the specified output file. Timeseries blame plots show the change in molecule
+    counts due to each process at each timestep. For convenience, a small plot of count
+    is included to the side.
+
+    Example usage:
+    ```
+    sim = EcoliSim.from_file()
+    data = sim.run()
+    blame_timeseries(data, sim.topology,
+                     ['WATER[c]', 'APORNAP-CPLX[c]', 'TRP[c]'],
+                     'out/ecoli_master/test_blame_timeseries.png',
+                     yscale="linear")
+    ```
     """
 
     validate_data(data)
@@ -89,8 +93,7 @@ def blame_timeseries(data,
     # Collect data into one dictionary
     # of the form: {process : {molecule : timeseries}}
     bulk_processes = get_bulk_processes(topology)
-    processes = list(bulk_processes.keys())
-    time, values_array = preprocess_data(data, bulk_processes, molecules)     
+    time, processes, values_array = preprocess_data(data, bulk_processes, molecules)     
 
     # Twp subplots per molecule (count, change)
     max_t = time.max()
@@ -180,7 +183,6 @@ def test_blame_timeseries():
     ]
 
     blame_timeseries(data, topo,
-                     # , "CPLX0-7452"],
                      ['WATER[c]', 'APORNAP-CPLX[c]', 'TRP[c]'] + molecules,
                      'out/ecoli_master/test_blame_timeseries.png',
                      yscale="linear")
