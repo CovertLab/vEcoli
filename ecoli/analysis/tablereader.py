@@ -56,7 +56,7 @@ MAPPING = {
         'attributes': None
     },
     'mRNACounts': {
-        'mRNA_counts': None,
+        'mRNA_counts': ('listeners', 'mRNA_counts',),
         'simulationStep': None,
         'full_mRNA_counts': None,
         'partial_mRNA_counts': None,
