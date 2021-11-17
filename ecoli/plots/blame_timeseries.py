@@ -17,19 +17,13 @@ def validate_data(data):
 def preprocess_data(data, bulk_processes, molecules):
     """
     Prepares raw data for blame-timeseries plot.
-    Returns data in the form x, y,
-    where x is a numpy array of times, and 
-    y is a dictionary of the following form:
-
-    y = {
-        time (float) : {
-            process (str) : {
-                molecule (str) : update (int or float)
-            }
-        }
-    }
+    Returns data in the form time, process, values_array
+    where time is a numpy array of times, process is a list of 
+    process names, and values_array is a numpy array of the form
+    (molecule x time x process).
     """
 
+    processes = list(bulk_processes.keys())
     x = np.array(list(data.keys()))
     y = {}
 
@@ -42,16 +36,42 @@ def preprocess_data(data, bulk_processes, molecules):
                     y[time][process][molecule] += data[time]['log_update'][process].get(
                         path, {}).get(molecule, 0)
 
-    return x, y
+    values_array = np.zeros([len(molecules), len(x), len(processes)])
+    for j, timepoint in enumerate(y):
+        for k, process in enumerate(y[timepoint]):
+            for i, molecule in enumerate(y[timepoint][process]):
+                values_array[i, j, k] = y[timepoint][process][molecule]
+
+    return x, values_array
 
 
-def signed_stacked_bar(ax, x, y):
+def signed_stacked_bar(ax, x, y, bar_labels):
     """
+    ax: Axes object
+    x: x values (1d array)
+    y: y-values (len(x) columns by # stacked bars rows)
+
     Creates a stacked bar chart in the specified Axes, where
     y's with negative values represent bars below y=0, and
     y's with positive values represent bars above y=0.
     """
-    ...
+    # Need to keep track of separate totals for positive, negative
+    # entries at each time step, so that positive entries get stacked above 0,
+    # and negative entries get stacked below.
+    total_pos = np.zeros_like(x)
+    total_neg = np.zeros_like(x)
+    
+    for series in range(y.shape[1]):
+        data = y[:, series]
+        ax.bar(x, data,
+               bottom=np.where(data > 0, total_pos, total_neg),
+               label=bar_labels[series])
+        total_pos += np.clip(data, 0, None)
+        total_neg += np.clip(data, None, 0)
+
+    # Plot net change
+    ax.plot(x, total_pos + total_neg,
+            color="k", label="net change")
 
 
 def blame_timeseries(data,
@@ -69,46 +89,18 @@ def blame_timeseries(data,
     # Collect data into one dictionary
     # of the form: {process : {molecule : timeseries}}
     bulk_processes = get_bulk_processes(topology)
-    time, values = preprocess_data(data, bulk_processes, molecules)
-
-    # plot_data = {}
-    # for process, updates in data['log_update'].items():
-    #     if process not in bulk_processes.keys():
-    #         continue
-
-    #     plot_data[process] = {}
-    #     for port in updates.keys():
-    #         if port not in bulk_processes[process]:
-    #             continue
-
-    #         port_data = updates[port]
-    #         for k, v in port_data.items():
-    #             if k in molecules:  # Only keep selected molecules
-    #                 if k in plot_data[process]:
-    #                     plot_data[process][k] += np.array(v)
-    #                 else:
-    #                     plot_data[process][k] = np.array(v)
-
-    # # Remove processes that do not affect any selected molecules
-    # plot_data = {process: {molecule: timeseries
-    #                        for molecule, timeseries in data.items()
-    #                        if not all(timeseries == 0)}
-    #              for process, data in plot_data.items()}
-    # plot_data = {process: data
-    #              for process, data in plot_data.items()
-    #              if data != {}}
-
-    # Start plotting!
-    time = data['time']
-    max_t = data['time'][-1]
+    processes = list(bulk_processes.keys())
+    time, values_array = preprocess_data(data, bulk_processes, molecules)     
 
     # Twp subplots per molecule (count, change)
+    max_t = time.max()
     fig, axs = plt.subplots(len(molecules), 2,
                             figsize=(10 + np.sqrt(max_t), 3*len(molecules)),
                             gridspec_kw={'width_ratios': [1, 10 + np.sqrt(max_t)]})
     for i, molecule in enumerate(molecules):
         # Plot molecule count over time
-        molecule_data = data['bulk'][molecule]
+        # molecule_data = data['bulk'][molecule]
+        molecule_data = np.array([timepoint['bulk'].get(molecule, 0) for timepoint in data.values()])
         axs[i, 0].set_title(f"Count of {molecule}", pad=20)
         axs[i, 0].set_ylabel("# molecules")
         axs[i, 0].set_xlabel("Time (s)")
@@ -122,28 +114,12 @@ def blame_timeseries(data,
         axs[i, 1].set_xticks(time[1:])
         axs[i, 1].axhline(y=0, color="k", linestyle="--", alpha=0.5)
 
-        # Need to keep track of separate totals for positive, negative
-        # entries at each time step, so that positive entries get stacked above 0,
-        # and negative entries get stacked below.
-        total_pos = np.zeros_like(time[1:])
-        total_neg = np.zeros_like(time[1:])
-        for process, process_data in plot_data.items():
-            if molecule in process_data:
-                molecule_data = process_data[molecule]
-                axs[i, 1].bar(time[1:], molecule_data,
-                              bottom=np.where(molecule_data > 0,
-                                              total_pos, total_neg),
-                              label=process)
-                total_pos += np.clip(molecule_data, 0, None)
-                total_neg += np.clip(molecule_data, None, 0)
-
+        y = values_array[i, 1:len(time), :]
+        signed_stacked_bar(axs[i,1], time[1:], y, processes)
         axs[i, 1].set_yscale(yscale)
 
-        # Plot net change
-        axs[i, 1].legend(bbox_to_anchor=(1.04, 0.5),
-                         loc="center left", borderaxespad=0)
-        axs[i, 1].plot(time[1:], total_pos + total_neg,
-                       color="k", label="net change")
+    axs[0, 1].legend(bbox_to_anchor=(1.04, 0.5),
+                     loc="center left", borderaxespad=0)
 
     # Sizing and spacing
     # fig.set_size_inches(4 + np.sqrt(max_t),  # include space for legend(s)
@@ -161,7 +137,6 @@ def blame_timeseries(data,
 
 def test_blame_timeseries():
     # TODO:
-    # - make work with partitioning (currently, log-update port names need work to match non-partitioned case)
     # - add back processes
     # - get working with unique molecules (separate argument for unique)
     # - serializers
