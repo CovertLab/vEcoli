@@ -158,7 +158,7 @@ class Evolver(Process):
         ports['allocate'] = change_bulk_updater(ports_copy, 'set')
         return ports
 
-    # try later
+    # TODO(Matt): Have evolvers calculate timestep, returning zero if the requester hasn't run.
     # def calculate_timestep(self, states):
     #     if not self.process.request_set:
     #         return 0

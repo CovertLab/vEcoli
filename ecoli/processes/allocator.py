@@ -105,18 +105,18 @@ class Allocator(Deriver):
 
         partitioned_counts.astype(int, copy=False)
 
-        # if ASSERT_POSITIVE_COUNTS and np.any(partitioned_counts < 0):
-        #     raise NegativeCountsError(
-        #             "Negative value(s) in partitioned_counts:\n"
-        #             + "\n".join(
-        #             "{} in {} ({})".format(
-        #                 self.mol_idx_to_name[molIndex],
-        #                 self.proc_idx_to_name[processIndex],
-        #                 counts_requested[molIndex, processIndex]
-        #                 )
-        #             for molIndex, processIndex in zip(*np.where(partitioned_counts < 0))
-        #             )
-        #         )
+        if ASSERT_POSITIVE_COUNTS and np.any(partitioned_counts < 0):
+            raise NegativeCountsError(
+                    "Negative value(s) in partitioned_counts:\n"
+                    + "\n".join(
+                    "{} in {} ({})".format(
+                        self.mol_idx_to_name[molIndex],
+                        self.proc_idx_to_name[processIndex],
+                        counts_requested[molIndex, processIndex]
+                        )
+                    for molIndex, processIndex in zip(*np.where(partitioned_counts < 0))
+                    )
+                )
 
         # Record unpartitioned counts for later merging
         counts_unallocated = original_totals - np.sum(
