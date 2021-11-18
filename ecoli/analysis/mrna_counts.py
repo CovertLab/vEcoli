@@ -2,7 +2,6 @@
 Plot mRNA counts
 """
 
-from six.moves import cPickle
 import pickle
 import os
 
@@ -11,6 +10,7 @@ from matplotlib import pyplot as plt
 from ecoli.composites.ecoli_master import run_ecoli
 from ecoli.composites.ecoli_nonpartition import SIM_DATA_PATH
 from ecoli.analysis.tablereader import TableReader
+
 
 class Plot:
 
