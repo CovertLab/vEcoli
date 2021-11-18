@@ -5,7 +5,7 @@ from ecoli.plots.blame import blame_plot
 
 def run_division(
         agent_id='1',
-        total_time=16
+        total_time=60
 ):
     """
     Work in progress to get division working
