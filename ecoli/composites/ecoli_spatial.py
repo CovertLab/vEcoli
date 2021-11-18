@@ -140,7 +140,10 @@ class EcoliSpatial(Composer):
         # initialize variables
         include_bulk = config['include_bulk']
         include_polyribosomes = config['include_polyribosomes']
-        initial_state = get_state_from_file(path='data/wcecoli_t1000.json')
+        initial_state = get_state_from_file(
+            path='data/wcecoli_t1000.json',
+            convert_unique_id_to_string=False,
+        )
         bulk = {}
 
         if include_bulk:
@@ -235,6 +238,7 @@ def add_polyribosomes(unique, unique_masses, polyribosome_assumption, save_outpu
                                       str(unique_index)]['transcript_length']
                                   for unique_index in
                                   mrna_index_ribosome_on_full_mrna])
+
         avg_NT_per_ribosome = np.asarray([
             mrna_length[i] / n_ribosomes_on_full_mrna[mrna_index_ribosome_on_full_mrna[i]]
             for i in np.unique(mrna_index_ribosome_on_full_mrna, return_index=True)[1]
