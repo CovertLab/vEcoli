@@ -5,7 +5,7 @@ Monomer Counts Listener
 """
 
 import numpy as np
-from ecoli.library.schema import bulk_schema
+from ecoli.library.schema import bulk_schema, array_from
 from vivarium.core.process import Step
 
 from ecoli.processes.registries import topology_registry
@@ -110,12 +110,6 @@ class MonomerCounts(Step):
         self.rnap_subunit_idx = get_molecule_indexes(rnap_subunit_ids)
         self.replisome_subunit_idx = get_molecule_indexes(replisome_subunit_ids)
 
-        # Get indexes of all unique molecules that need to be accounted for
-        unique_molecule_ids = self.parameters['unique_ids']
-        self.ribosome_idx = unique_molecule_ids.index('active_ribosome')
-        self.rnap_idx = unique_molecule_ids.index('active_RNAP')
-        self.replisome_idx = unique_molecule_ids.index("active_replisome")
-
     def ports_schema(self):
         return {
             'listeners': {
@@ -125,20 +119,21 @@ class MonomerCounts(Step):
                     '_emit': True}
             },
             'bulk': bulk_schema(self.bulk_molecule_ids),
-            'unique': {},
+            'unique': {
+                unique_mol: {
+                    '_default': {}
+                } for unique_mol in self.parameters['unique_ids']
+            },
         }
 
     def next_update(self, timestep, states):
 
-        import ipdb; ipdb.set_trace()
-
-
         # Get current counts of bulk and unique molecules
-        bulkMoleculeCounts = self.bulkMolecules.container.counts()
-        uniqueMoleculeCounts = self.uniqueMolecules.container.counts()
-        n_active_ribosome = uniqueMoleculeCounts[self.ribosome_idx]
-        n_active_rnap = uniqueMoleculeCounts[self.rnap_idx]
-        n_active_replisome = uniqueMoleculeCounts[self.replisome_idx]
+        # uniqueMoleculeCounts = self.uniqueMolecules.container.counts()
+        bulkMoleculeCounts = array_from(states['bulk'])
+        n_active_ribosome = len(states['unique']['active_ribosome'])
+        n_active_rnap = len(states['unique']['active_RNAP'])
+        n_active_replisome = len(states['unique']['active_replisome'])
 
         # Account for monomers in bulk molecule complexes
         complex_monomer_counts = np.dot(self.complexation_stoich,
@@ -161,11 +156,11 @@ class MonomerCounts(Step):
         bulkMoleculeCounts[self.replisome_subunit_idx] += n_replisome_subunit.astype(np.int)
 
         # Update monomerCounts
-        mrna_counts = bulkMoleculeCounts[self.monomer_idx]
+        monomer_counts = bulkMoleculeCounts[self.monomer_idx]
 
         return {
             'listeners': {
-                'mRNA_counts': mrna_counts
+                'monomer_counts': monomer_counts
             }
         }
 

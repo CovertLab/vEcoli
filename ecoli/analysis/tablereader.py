@@ -253,7 +253,7 @@ MAPPING = {
         'attributes': None
     },
     'MonomerCounts': {
-        'monomerCounts': None,
+        'monomerCounts': ('listeners', 'monomer_counts'),
         'simulationStep': None,
         'time': ('time', ),
         'attributes': None
