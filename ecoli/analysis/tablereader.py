@@ -1,10 +1,13 @@
 from warnings import warn
 import numpy as np
 
+from vivarium.core.emitter import timeseries_from_data
+
 from ecoli.library.schema import array_from
 from ecoli.composites.ecoli_nonpartition import run_ecoli
 
-from ecoli.analysis.tablereader_utils import warn_incomplete, replace_scalars, replace_scalars_2d, camel_case_to_underscored
+from ecoli.analysis.tablereader_utils import (
+    warn_incomplete, replace_scalars, replace_scalars_2d, camel_case_to_underscored)
 
 
 MAPPING = {
@@ -289,12 +292,14 @@ class TableReader(object):
             data: timeseries data from a vivarium-ecoli experiment (to be read as if it were structured as in wcEcoli.)
     """
 
-    def __init__(self, path, data):
+    def __init__(self, path, data, timeseries_data=False):
         # Strip down to table name, in case a full path is given
         path[(path.rfind('/')+1):]
         self._path = path
 
         # Store reference to the data
+        if not timeseries_data:
+            data = timeseries_from_data(data)
         self._data = data
 
         # List the column file names.
@@ -439,7 +444,7 @@ class TableReader(object):
 
 
 def test_table_reader():
-    data = run_ecoli(total_time=4)
+    data = run_ecoli(total_time=4, time_series=False)
 
     # TODO actaully grab their values - they fail 'gracefully' rn because their keys are empty or arrays are empty
     equi_tb = TableReader("EquilibriumListener", data)
