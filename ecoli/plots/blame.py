@@ -9,7 +9,7 @@ from ecoli.experiments.ecoli_master_sim import EcoliSim, CONFIG_DIR_PATH
 from collections import Counter
 
 
-def blame_plot(data, 
+def blame_plot(data,
                topology,
                filename='out/ecoli_sim/blame.png',
                selected_molecules=None,
@@ -179,7 +179,7 @@ def get_bulk_processes(topology):
                     bulk_processes[process] = []
 
                 bulk_processes[process].append(port)
-    
+
     return bulk_processes
 
 
@@ -188,12 +188,12 @@ def extract_bulk(data, bulk_processes):
     collected_data = {}
     for process, updates in data['log_update'].items():
         if process not in bulk_processes.keys():
-            break
+            continue
 
         process_data = Counter()
         for port in updates.keys():
             if port not in bulk_processes[process]:
-                break
+                continue
 
             port_data = {k: np.sum(v) for k, v in updates[port].items()}
             process_data.update(port_data)

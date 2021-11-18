@@ -514,6 +514,7 @@ class LoadSimData:
     def get_allocator_config(self, time_step=2, parallel=False, process_names=[]):
         allocator_config = {
             'time_step': time_step,
+            '_parallel': parallel,
             'molecule_names': self.sim_data.internal_state.bulk_molecules.bulk_data['id'],
             'seed': self.random_state.randint(2**31),
             'process_names': process_names,
@@ -526,7 +527,7 @@ class LoadSimData:
                 }
         }
         return allocator_config
-    
+
     def get_chromosome_structure_config(self, time_step=2, parallel=False, deriver_mode=False):
         chromosome_structure_config = {
             'time_step': time_step,
@@ -542,7 +543,7 @@ class LoadSimData:
             'replichore_lengths': self.sim_data.process.replication.replichore_lengths,
             'relaxed_DNA_base_pairs_per_turn': self.sim_data.process.chromosome_structure.relaxed_DNA_base_pairs_per_turn,
             'terC_index': self.sim_data.process.chromosome_structure.terC_dummy_molecule_index,
-            
+
             # TODO: Should be loaded from simulation options
             'calculate_superhelical_densities': False,
 
@@ -558,7 +559,8 @@ class LoadSimData:
             'ribosome_50S_subunit': self.sim_data.molecule_ids.s50_full_complex,
             'amino_acids': self.sim_data.molecule_groups.amino_acids,
             'water': self.sim_data.molecule_ids.water,
-            
-            'deriver_mode': deriver_mode
+
+            'deriver_mode': deriver_mode,
+            'seed': self.random_state.randint(RAND_MAX),
         }
         return chromosome_structure_config

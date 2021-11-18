@@ -58,7 +58,13 @@ class PolypeptideInitiation(PartitionedProcess):
         'ribosome30S': 'ribosome30S',
         'ribosome50S': 'ribosome50S',
         'seed': 0,
-        'shuffle_indexes': None}
+        'shuffle_indexes': None,
+        'partitioning_hidden_state_instance_variables': [
+            'fracActiveRibosome',
+            'elongation_rates',
+            'random_state',
+        ],
+    }
 
     def __init__(self, parameters=None):
         super().__init__(parameters)
@@ -125,7 +131,7 @@ class PolypeptideInitiation(PartitionedProcess):
                         '_default': 0.0,
                         '_updater': 'set',
                         '_emit': True}}},
-            
+
             'active_ribosome': dict_value_schema('active_ribosome'),
 
             'RNA': dict_value_schema('RNAs'),
@@ -234,7 +240,8 @@ class PolypeptideInitiation(PartitionedProcess):
             start_index += counts
 
         # Create active 70S ribosomes and assign their attributes
-        ribosome_indices = create_unique_indexes(n_ribosomes_to_activate)
+        ribosome_indices = create_unique_indexes(
+            n_ribosomes_to_activate, self.random_state)
         ribosome_indices = np.array(ribosome_indices)
         new_ribosomes = arrays_to(
             n_ribosomes_to_activate, {
