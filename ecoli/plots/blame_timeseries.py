@@ -69,7 +69,7 @@ def signed_stacked_bar(ax, x, y, bar_labels):
 def blame_timeseries(data,
                      topology,
                      molecules,
-                     filename='out/ecoli_master/blame_timeseries.png',
+                     filename=None,
                      yscale='linear'):
     """
     Generates timeseries blame plots for the selected molecules, saving
@@ -86,6 +86,10 @@ def blame_timeseries(data,
                      'out/ecoli_master/test_blame_timeseries.png',
                      yscale="linear")
     ```
+
+    Returns:
+        - axes (Axes object)
+        - fig (Figure object)
     """
 
     validate_data(data)
