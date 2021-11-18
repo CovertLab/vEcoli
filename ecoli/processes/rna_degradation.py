@@ -106,7 +106,14 @@ class RnaDegradation(PartitionedProcess):
         'EndoRNaseFunc': 1,
         'ribosome30S': 'ribosome30S',
         'ribosome50S': 'ribosome50S',
-        'seed': 0}
+        'seed': 0,
+        'partitioning_hidden_state_instance_variables': [
+            'random_state',
+            'n_unique_RNAs_to_deactivate',
+            'unique_mRNAs_to_degrade',
+            'n_unique_RNAs_to_degrade',
+        ],
+    }
 
     def __init__(self, parameters=None):
         super().__init__(parameters)
@@ -201,7 +208,10 @@ class RnaDegradation(PartitionedProcess):
                     'fract_endo_rrna_counts': 0,
                     'count_rna_degraded': 0,
                     'nucleotides_from_degradation': 0,
-                    'fragment_bases_digested': 0})}}
+                    'fragment_bases_digested': 0,
+                }),
+            },
+        }
 
     def calculate_request(self, timestep, states):
         # Compute factor that convert counts into concentration, and vice versa

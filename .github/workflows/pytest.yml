@@ -9,8 +9,7 @@ on:
     branches: [master]
 
 jobs:
-  build:
-
+  test:
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -34,4 +33,4 @@ jobs:
         make clean compile
     - name: Test with pytest
       run: |
-        pytest --cov=ecoli
+        pytest --cov=ecoli -m 'not noci'

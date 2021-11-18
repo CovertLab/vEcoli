@@ -1,5 +1,4 @@
 import random
-from uuid import uuid4
 
 import numpy as np
 
@@ -111,11 +110,21 @@ UNIQUE_DEFAULTS = {
     },
 }
 
-def create_unique_indexes(n_indexes):
+def create_unique_indexes(n_indexes, random_state):
+    """Creates a list of unique indexes by making them random.
+
+    Args:
+        n_indexes: Number of indexes to generate.
+        random_state: A Numpy :py:class:`np.random.RandomState` object
+            to use as a PRNG.
+
+    Returns:
+        List of indexes. Each index is a string representing a number in
+        the range :math:`[0, 2^{63})`.
     """
-    Creates a list of unique indexes by using uuid4() to generate each index.
-    """
-    return [str(uuid4().int) for i in range(n_indexes)]
+    return [
+        str(num) for num in random_state.randint(0, 2**63, n_indexes)
+    ]
 
 def array_from(d):
     return np.array(list(d.values()))
@@ -206,7 +215,7 @@ def add_elements(elements, id):
             'key': str(element[id]),
             'state': element}
             for element in elements]}
-    
+
 def submass_schema():
     return {
         '_default': np.zeros(9),
@@ -352,7 +361,7 @@ def create_index_to_daughter(chromosome_domain):
     assert len(daughter_ids) == 2
     daughter1_index = daughter_ids[0]
     daughter2_index = daughter_ids[1]
-    
+
     return index_to_daughter, daughter1_index, daughter2_index
 
 
