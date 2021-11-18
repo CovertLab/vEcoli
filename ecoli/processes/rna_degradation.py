@@ -204,7 +204,6 @@ class RnaDegradation(PartitionedProcess):
                     'fragment_bases_digested': 0})}}
 
     def calculate_request(self, timestep, states):
-        print('Requesting degradation!\n')
         # Compute factor that convert counts into concentration, and vice versa
         cell_mass = states['listeners']['mass']['cell_mass'] * units.fg
         cell_volume = cell_mass / self.cell_density
@@ -299,7 +298,6 @@ class RnaDegradation(PartitionedProcess):
             mrna_deg_probs = 1. / np.dot(rna_specificity, self.is_mRNA * rna_exists) * rna_specificity * self.is_mRNA * rna_exists
             trna_deg_probs = 1. / np.dot(self.is_tRNA, rna_exists) * self.is_tRNA * rna_exists
             rrna_deg_probs = 1. / np.dot(self.is_rRNA, rna_exists) * self.is_rRNA * rna_exists
-            # import ipdb; ipdb.set_trace()
 
             # Mask RNA counts into each class of RNAs
             mrna_counts = total_RNA_counts * self.is_mRNA
@@ -364,7 +362,6 @@ class RnaDegradation(PartitionedProcess):
         return requests
 
     def evolve_state(self, timestep, states):
-        print('Degradation evolving state!\n')
         # Get vector of numbers of RNAs to degrade for each RNA species
         n_degraded_bulk_RNA = array_from(states['bulk_RNAs']).astype(int)
         n_degraded_unique_RNA = self.n_unique_RNAs_to_degrade
