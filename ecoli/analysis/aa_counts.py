@@ -42,12 +42,11 @@ class Plot:
         for idx in range(21):
             plt.subplot(6, 4, idx + 1)
 
-            plt.plot(time / 60., aaCounts[:, :], linewidth=2)
+            plt.plot(time / 60., aaCounts[:, idx], linewidth=2)
             plt.xlabel("Time (min)")
             plt.ylabel("Counts")
             plt.title(aa_ids[idx], fontsize=8)
             plt.tick_params(labelsize=8)
-
 
         # TODO -- this can go into a general method in an analysis base class
         plt.tight_layout()

@@ -39,7 +39,7 @@ class Plot:
         # assert np.all(mrna_ids == mrna_counts_reader.readAttribute('mRNA_ids'))
 
         # Read final mRNA counts from reader
-        counts = mrna_counts_reader.readColumn('mRNA_counts')[-1, :]
+        counts = mrna_counts_reader.readColumn('mRNA_counts')[:, -1]
 
         fig = plt.figure(figsize=(8.5, 11))
 
