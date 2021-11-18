@@ -280,7 +280,7 @@ def run_ecoli(
 @pytest.mark.slow
 def run_division(
         agent_id='1',
-        total_time=16
+        total_time=60
 ):
     """
     Work in progress to get division working
@@ -315,7 +315,6 @@ def run_division(
 
     # retrieve output
     output = experiment.emitter.get_data()
-    timeseries = experiment.emitter.get_timeseries()
 
     # asserts
     initial_agents = output[0.0]['agents'].keys()
@@ -323,22 +322,6 @@ def run_division(
     print(f"initial agent ids: {initial_agents}")
     print(f"final agent ids: {final_agents}")
     assert len(final_agents) == 2 * len(initial_agents)
-
-    timeseries['agents']['1']['time'] = []
-    timeseries['agents']['10']['time'] = [12.0, 14.0, 16.0]
-    timeseries['agents']['11']['time'] = [12.0, 14.0, 16.0]
-    for i in range(6):
-        timeseries['agents']['1']['time'].append(i * 2.0)
-    from ecoli.plots.blame import blame_plot
-    blame_plot(timeseries['agents']['1'], experiment.topology['agents']['10'],
-               'out/ecoli_sim/GLT_1.png',
-               selected_molecules=['GLT[c]'])
-    blame_plot(timeseries['agents']['10'], experiment.topology['agents']['10'],
-               'out/ecoli_sim/GLT_10.png',
-               selected_molecules=['GLT[c]'])
-    blame_plot(timeseries['agents']['11'], experiment.topology['agents']['11'],
-               'out/ecoli_sim/GLT_11.png',
-               selected_molecules=['GLT[c]'])
 
 
 def test_division_topology():
@@ -383,7 +366,6 @@ def test_division_topology():
     for daughter_id in daughter_ids:
         daughter_topology = full_topology['agents'][daughter_id]
         assert daughter_topology == mother_topology
-
 
 
 def test_ecoli_generate():
