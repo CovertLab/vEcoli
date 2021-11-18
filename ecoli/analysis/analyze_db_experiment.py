@@ -12,6 +12,7 @@ from ecoli.analysis.compartment_mass_fraction_summary import Plot as Compartment
 from ecoli.analysis.mass_fraction_summary import Plot as MassFraction
 from ecoli.analysis.mass_fractions_voronoi import Plot as VoronoiMassFraction
 from ecoli.analysis.mrna_counts import Plot as mRNAcounts
+from ecoli.analysis.protein_counts import Plot as ProteinCounts
 
 OUT_DIR = 'out/analysis/'
 
@@ -20,6 +21,7 @@ ANALYSIS = [
     MassFraction,
     VoronoiMassFraction,
     mRNAcounts,
+    ProteinCounts,
 ]
 
 
@@ -66,6 +68,7 @@ def main():
     query = [
         ('listeners', 'mass'),
         ('listeners', 'mRNA_counts'),
+        ('listeners', 'monomer_counts'),
         ('bulk',),
     ]
     data, experiment_id, sim_config = access(experiment_id, query)
