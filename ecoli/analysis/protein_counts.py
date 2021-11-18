@@ -33,7 +33,7 @@ class Plot:
 
     def do_plot(self, data):
         monomerCounts = TableReader("MonomerCounts", data)
-        avgCounts = monomerCounts.readColumn("monomerCounts").mean(axis=0)
+        avgCounts = monomerCounts.readColumn("monomerCounts").mean(axis=1)
 
         relativeCounts = avgCounts / avgCounts.sum()
 

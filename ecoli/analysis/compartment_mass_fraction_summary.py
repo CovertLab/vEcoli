@@ -63,7 +63,7 @@ class Plot:
             inner_membrane,
             flagellum,
         ]).T
-        fractions = (masses / cell[:, None]).mean(axis=0)
+        fractions = (masses / cell[:, None]).mean(axis=1)
 
         mass_labels = ["Projection", "Cytosol", "Extracellular", "Membrane",
                        "Outer Membrane", "Periplasm", "Pilus", "Inner Membrane",

@@ -387,11 +387,11 @@ class TableReader(object):
             for elem in heuristic_path:
                 result = result[elem]
 
-        result = np.array(result)
+        result = np.array(result).T
 
         # extract indices
         if indices is not None:
-            result = result[indices, :]
+            result = result[:, indices]
 
         if squeeze:
             result = result.squeeze()

@@ -41,7 +41,7 @@ class Plot:
         # Load data
         mass = TableReader("Mass", data)
         bulk_molecules = TableReader("BulkMolecules", data)
-        bulk_molecule_counts = bulk_molecules.readColumn("counts").T
+        bulk_molecule_counts = bulk_molecules.readColumn("counts")
         bulk_molecule_idx = {name: i for i, name in enumerate(bulk_molecules.readColumn("objectNames"))}
         nAvogadro = self.sim_data.constants.n_avogadro
 
