@@ -85,7 +85,7 @@ def blame_plot(data,
              f"(non-zero only, logarithmic color scale{f' normalizing within {norm_str}' if norm_str else ''})")
 
     if selected_molecules:
-        fig.set_size_inches(2 * (n_molecules + 3) + 10, (n_processes + 3) / 5 + 10)
+        fig.set_size_inches(2 * (n_molecules + 3) + 10, (n_processes + 3) / 5 + 10)  # Make margins larger
     else:
         fig.set_size_inches(2 * (n_molecules + 3), (n_processes + 3) / 5)
     main_ax.imshow(-plot_data, aspect='auto', cmap=plt.get_cmap('seismic'),
