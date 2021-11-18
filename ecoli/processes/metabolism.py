@@ -166,8 +166,11 @@ class Metabolism(Process):
 
             'listeners': {
                 'mass': {
-                    'cell_mass': {'_default': 0.0},
-                    'dry_mass': {'_default': 0.0}},
+                    # TODO(Matt): These should not be using a divider. Mass listener should run before metabolism after division.
+                    'cell_mass': {'_default': 0.0,
+                                  '_divider': 'split'},
+                    'dry_mass': {'_default': 0.0,
+                                 '_divider': 'split'}},
 
                 'fba_results': {
                     'media_id': {'_default': '', '_updater': 'set'},
@@ -201,10 +204,12 @@ class Metabolism(Process):
             'polypeptide_elongation': {
                 'aa_count_diff': {
                     '_default': {},
-                    '_emit': True},
+                    '_emit': True,
+                    '_divider': 'empty_dict'},
                 'gtp_to_hydrolyze': {
                     '_default': 0,
-                    '_emit': True}}}
+                    '_emit': True,
+                    '_divider': 'zero'}}}
 
     def next_update(self, timestep, states):
         # Skip t=0 if a deriver
@@ -336,7 +341,6 @@ class Metabolism(Process):
                     'targetFluxesUpper': upper_targets / timestep,
                     'targetFluxesLower': lower_targets / timestep}}}
 
-        # import ipdb; ipdb.set_trace()
         return update
 
     def update_amino_acid_targets(self, counts_to_molar, count_diff, amino_acid_counts):

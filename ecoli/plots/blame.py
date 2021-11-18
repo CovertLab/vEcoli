@@ -84,7 +84,10 @@ def blame_plot(data,
     title = (f"Average Change (#mol/sec) in Bulk due to each Process over {max_t} seconds\n"
              f"(non-zero only, logarithmic color scale{f' normalizing within {norm_str}' if norm_str else ''})")
 
-    fig.set_size_inches(2 * (n_molecules + 3), (n_processes + 3) / 5)
+    if selected_molecules:
+        fig.set_size_inches(2 * (n_molecules + 3) + 10, (n_processes + 3) / 5 + 10)
+    else:
+        fig.set_size_inches(2 * (n_molecules + 3), (n_processes + 3) / 5)
     main_ax.imshow(-plot_data, aspect='auto', cmap=plt.get_cmap('seismic'),
                    norm=DivergingNormalize(within=within))
 
@@ -179,7 +182,7 @@ def get_bulk_processes(topology):
                     bulk_processes[process] = []
 
                 bulk_processes[process].append(port)
-    
+
     return bulk_processes
 
 
@@ -188,12 +191,14 @@ def extract_bulk(data, bulk_processes):
     collected_data = {}
     for process, updates in data['log_update'].items():
         if process not in bulk_processes.keys():
-            break
+            if process + '_evolver' not in bulk_processes.keys():
+                break
+            process = process + '_evolver'
 
         process_data = Counter()
         for port in updates.keys():
             if port not in bulk_processes[process]:
-                break
+                continue
 
             port_data = {k: np.sum(v) for k, v in updates[port].items()}
             process_data.update(port_data)

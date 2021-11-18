@@ -450,3 +450,8 @@ def divide_RNAs_by_domain(values, state):
     daughter2.update(daughter2_full)
 
     return [daughter1, daughter2]
+
+
+def empty_dict_divider(values):
+    return [{}, {}]
+

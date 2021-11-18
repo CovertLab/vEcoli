@@ -580,8 +580,6 @@ class ChromosomeStructure(Process):
                     'DnaA_bound': np.zeros(n_new_DnaA_boxes, dtype=np.bool).tolist()})
             update['DnaA_boxes'].update(add_elements(
                 new_DnaA_boxes, 'unique_index'))
-
-        # import ipdb; ipdb.set_trace()
         return update
 
 
