@@ -27,7 +27,7 @@ COLORS = [
 
 class Plot:
 
-    def __init__(self, data, out_dir='out/analysis'):
+    def __init__(self, data, sim_data=None, out_dir='out/analysis'):
         self.data = data
         self.out_dir = out_dir
         os.makedirs(self.out_dir, exist_ok=True)
@@ -98,7 +98,7 @@ class Plot:
 
         # TODO -- this can go into a general method in an analysis base class
         plt.tight_layout()
-        plt.savefig(os.path.join(self.out_dir, 'compartmentMassFractionSummary.png'))
+        plt.savefig(os.path.join(self.out_dir, 'compartment_mass_fraction_summary.png'))
         plt.close("all")
         return fig
 

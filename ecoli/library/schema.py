@@ -23,7 +23,10 @@ UNIQUE_DIVIDERS = {
         'divider': 'by_domain',
         'topology': {'chromosome_domain': ('..', 'chromosome_domain')}
     },
-    'chromosomal_segments': 'set',  # TODO -- fix this
+    'chromosomal_segments': {
+        'divider': 'by_domain',
+        'topology': {'chromosome_domain': ('..', 'chromosome_domain')}
+    },
     'DnaA_boxes': {
         'divider': 'by_domain',
         'topology': {'chromosome_domain': ('..', 'chromosome_domain')}

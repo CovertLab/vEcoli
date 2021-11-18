@@ -25,7 +25,7 @@ COLORS = [
 
 class Plot:
 
-    def __init__(self, data, out_dir='out/analysis'):
+    def __init__(self, data, sim_data=None, out_dir='out/analysis'):
         self.data = data
         self.out_dir = out_dir
         os.makedirs(self.out_dir, exist_ok=True)
