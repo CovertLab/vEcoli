@@ -49,6 +49,7 @@ class LoadSimData:
             'ecoli-mass': self.get_mass_config,
             'ecoli-mass-listener': self.get_mass_listener_config,
             'mRNA_counts_listener': self.get_mrna_counts_listener_config,
+            'monomer_counts_listener': self.get_monomer_counts_listener_config,
             'allocator': self.get_allocator_config,
             'ecoli-chromosome-structure': self.get_chromosome_structure_config
         }
@@ -522,6 +523,51 @@ class LoadSimData:
         }
 
         return counts_config
+
+    def get_monomer_counts_listener_config(self, time_step=2, parallel=False):
+        monomer_counts_config = {
+            'time_step': time_step,
+            '_parallel': parallel,
+
+            # Get IDs of all bulk molecules
+            'bulk_molecule_ids': self.sim_data.internal_state.bulk_molecules.bulk_data["id"],
+            'unique_ids': self.sim_data.internal_state.unique_molecule.unique_molecule_masses['id'],
+
+            # Get IDs of molecules involved in complexation and equilibrium
+            'complexation_molecule_ids': self.sim_data.process.complexation.molecule_names,
+            'complexation_complex_ids': self.sim_data.process.complexation.ids_complexes,
+            'equilibrium_molecule_ids': self.sim_data.process.equilibrium.molecule_names,
+            'equilibrium_complex_ids': self.sim_data.process.equilibrium.ids_complexes,
+            'monomer_ids': self.sim_data.process.translation.monomer_data["id"].tolist(),
+
+            # Get IDs of complexed molecules monomers involved in two component system
+            'two_component_system_molecule_ids': list(
+                self.sim_data.process.two_component_system.molecule_names),
+            'two_component_system_complex_ids': list(
+                self.sim_data.process.two_component_system.complex_to_monomer.keys()),
+
+            # Get IDs of ribosome subunits
+            'ribosome_50s_subunits': self.sim_data.process.complexation.get_monomers(
+                self.sim_data.molecule_ids.s50_full_complex),
+            'ribosome_30s_subunits': self.sim_data.process.complexation.get_monomers(
+                self.sim_data.molecule_ids.s30_full_complex),
+
+            # Get IDs of RNA polymerase subunits
+            'rnap_subunits': self.sim_data.process.complexation.get_monomers(
+                self.sim_data.molecule_ids.full_RNAP),
+
+            # Get IDs of replisome subunits
+            'replisome_trimer_subunits': self.sim_data.molecule_groups.replisome_trimer_subunits,
+            'replisome_monomer_subunits': self.sim_data.molecule_groups.replisome_monomer_subunits,
+
+            # Get stoichiometric matrices for complexation, equilibrium, two component system and the
+            # assembly of unique molecules
+            'complexation_stoich': self.sim_data.process.complexation.stoich_matrix_monomers(),
+            'equilibrium_stoich': self.sim_data.process.equilibrium.stoich_matrix_monomers(),
+            'two_component_system_stoich': self.sim_data.process.two_component_system.stoich_matrix_monomers(),
+        }
+
+        return monomer_counts_config
 
     def get_allocator_config(self, time_step=2, parallel=False, process_names=[]):
         allocator_config = {
