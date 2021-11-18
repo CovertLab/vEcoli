@@ -1,26 +1,32 @@
 import argparse
 import os
+import pickle
+
 from vivarium.core.emitter import (
     data_from_database,
     DatabaseEmitter,
 )
+
+from ecoli.composites.ecoli_nonpartition import SIM_DATA_PATH
 from ecoli.analysis.compartment_mass_fraction_summary import Plot as CompartmentsMassFraction
 from ecoli.analysis.mass_fraction_summary import Plot as MassFraction
 from ecoli.analysis.mass_fractions_voronoi import Plot as VoronoiMassFraction
-
+from ecoli.analysis.mrna_counts import Plot as mRNAcounts
 
 OUT_DIR = 'out/analysis/'
 
+ANALYSIS = [
+    CompartmentsMassFraction,
+    MassFraction,
+    VoronoiMassFraction,
+    mRNAcounts,
+]
 
-def access():
-    # parse
-    parser = argparse.ArgumentParser(description='access data from db')
-    parser.add_argument('--experiment_id', '-e',
-                        type=str,
-                        default=False)
-    args = parser.parse_args()
-    experiment_id = args.experiment_id
 
+def access(
+        experiment_id,
+        query=None,
+):
     # mongo client
     config = {
         'host': '{}:{}'.format('localhost', 27017),
@@ -29,7 +35,6 @@ def access():
     db = emitter.db
 
     # access
-    query = [('listeners', 'mass'), ('bulk',)]
     data, sim_config = data_from_database(
         experiment_id, db, query)
 
@@ -39,23 +44,33 @@ def access():
 def make_plots(data, experiment_id='ecoli', sim_config={}):
     out_dir = os.path.join(OUT_DIR, str(experiment_id))
 
-    # pull out mass data to improve TableReader runtime
-    # TODO -- make this more general
-    mass_data = {}
-    for t, d in data.items():
-        mass_data[t] = {
-            'bulk': d['bulk'],
-            'listeners': {
-                'mass': d['listeners']['mass']}}
+    with open(SIM_DATA_PATH, 'rb') as sim_data_file:
+        sim_data = pickle.load(sim_data_file)
 
     # run plots
-    CompartmentsMassFraction(mass_data, out_dir=out_dir)
-    MassFraction(mass_data, out_dir=out_dir)
-    VoronoiMassFraction(mass_data, out_dir=out_dir)
+    for analysis in ANALYSIS:
+        analysis(data, sim_data=sim_data, out_dir=out_dir)
 
 
 def main():
-    data, experiment_id, sim_config = access()
+    # parse
+    parser = argparse.ArgumentParser(
+        description='access data from db')
+    parser.add_argument(
+        '--experiment_id', '-e',
+        type=str, default=False)
+    args = parser.parse_args()
+    experiment_id = args.experiment_id
+
+    # get the required data
+    query = [
+        ('listeners', 'mass'),
+        ('listeners', 'mRNA_counts'),
+        ('bulk',),
+    ]
+    data, experiment_id, sim_config = access(experiment_id, query)
+
+    # run plots
     make_plots(data, experiment_id, sim_config)
 
 

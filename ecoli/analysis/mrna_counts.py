@@ -3,10 +3,10 @@ Plot mRNA counts
 """
 
 from six.moves import cPickle
+import pickle
 import os
 
 from matplotlib import pyplot as plt
-import numpy as np
 
 from ecoli.composites.ecoli_master import run_ecoli
 from ecoli.composites.ecoli_nonpartition import SIM_DATA_PATH
@@ -14,13 +14,15 @@ from ecoli.analysis.tablereader import TableReader
 
 class Plot:
 
-
-    def __init__(self, data, out_dir='out/analysis'):
+    def __init__(self, data, sim_data=None, out_dir='out/analysis'):
         self.data = data
         self.out_dir = out_dir
         os.makedirs(self.out_dir, exist_ok=True)
-        with open(SIM_DATA_PATH, 'rb') as sim_data_file:
-            self.sim_data = cPickle.load(sim_data_file)
+
+        self.sim_data = sim_data
+        if not sim_data:
+            with open(SIM_DATA_PATH, 'rb') as sim_data_file:
+                self.sim_data = pickle.load(sim_data_file)
 
         self.do_plot(self.data)
 
