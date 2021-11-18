@@ -9,6 +9,7 @@ from ecoli.composites.ecoli_nonpartition import run_ecoli
 from ecoli.analysis.tablereader_utils import (
     warn_incomplete, replace_scalars, replace_scalars_2d, camel_case_to_underscored)
 
+ANY_STRING = (bytes, str)
 
 MAPPING = {
     'BulkMolecules': {
@@ -388,7 +389,9 @@ class TableReader(object):
 
         result = np.array(result)
 
-        # TODO: indices
+        # extract indices
+        if indices is not None:
+            result = result[indices, :]
 
         if squeeze:
             result = result.squeeze()
@@ -442,6 +445,48 @@ class TableReader(object):
         Does nothing.
         """
         pass
+
+
+def _check_bulk_inputs(mol_names):
+    """
+    Use to check and adjust mol_names inputs for functions that read bulk
+    molecules to get consistent argument handling in both functions.
+    """
+
+    # Wrap an array in a tuple to ensure correct dimensions
+    if not isinstance(mol_names, tuple):
+        mol_names = (mol_names,)
+
+    # Check for string instead of array since it will cause mol_indices lookup to fail
+    for names in mol_names:
+        if isinstance(names, ANY_STRING):
+            raise Exception('mol_names tuple must contain arrays not strings like {!r}'.format(names))
+
+    return mol_names
+
+
+def read_bulk_molecule_counts(data, mol_names):
+    '''
+    Reads a subset of molecule counts from BulkMolecules using the indexing method
+    of readColumn. Should only be called once per simulation being analyzed with
+    all molecules of interest.
+    '''
+
+    mol_names = _check_bulk_inputs(mol_names)
+
+    bulk_reader = TableReader('BulkMolecules', data)
+    bulk_molecule_names = bulk_reader.readColumn("objectNames")
+    mol_indices = {mol: i for i, mol in enumerate(bulk_molecule_names)}
+
+    lengths = [len(names) for names in mol_names]
+    indices = np.hstack([[mol_indices[mol] for mol in names] for names in mol_names])
+    bulk_counts = bulk_reader.readColumn('counts', indices, squeeze=False)
+
+    start_slice = 0
+    for length in lengths:
+        counts = bulk_counts[:, start_slice:start_slice + length].squeeze()
+        start_slice += length
+        yield counts
 
 
 def test_table_reader():

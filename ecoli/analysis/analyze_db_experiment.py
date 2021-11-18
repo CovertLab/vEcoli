@@ -13,10 +13,12 @@ from ecoli.analysis.mass_fraction_summary import Plot as MassFraction
 from ecoli.analysis.mass_fractions_voronoi import Plot as VoronoiMassFraction
 from ecoli.analysis.mrna_counts import Plot as mRNAcounts
 from ecoli.analysis.protein_counts import Plot as ProteinCounts
+from ecoli.analysis.aa_counts import Plot as AACounts
 
 OUT_DIR = 'out/analysis/'
 
 ANALYSIS = [
+    AACounts,
     CompartmentsMassFraction,
     MassFraction,
     VoronoiMassFraction,
