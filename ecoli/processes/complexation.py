@@ -50,7 +50,10 @@ class Complexation(PartitionedProcess):
         'rates': np.array([]),
         'molecule_names': [],
         'seed': 0,
-        'numReactions': 0
+        'numReactions': 0,
+        'partitioning_hidden_state_instance_variables': [
+            'system',
+        ],
     }
 
     def __init__(self, parameters=None):
@@ -76,10 +79,10 @@ class Complexation(PartitionedProcess):
                         '_emit': True},
             },
         }
-        
+
     def calculate_request(self, timestep, states):
         # The int64 dtype is important (can break otherwise)
-        moleculeCounts = np.array(list(states['molecules'].values()), 
+        moleculeCounts = np.array(list(states['molecules'].values()),
                                   dtype = np.int64)
 
         result = self.system.evolve(
@@ -89,7 +92,7 @@ class Complexation(PartitionedProcess):
         requests['molecules'] = array_to(states['molecules'], np.fmax(
             moleculeCounts - updatedMoleculeCounts, 0))
         return requests
-        
+
     def evolve_state(self, timestep, states):
         molecules = states['molecules']
 
