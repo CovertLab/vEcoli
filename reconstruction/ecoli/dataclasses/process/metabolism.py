@@ -450,6 +450,19 @@ class Metabolism(object):
 			data['downstream'] = row['Downstream amino acids']
 			self.aa_synthesis_pathways[row['Amino acid']] = data
 
+	def __getstate__(self):
+		'''Provide the object state for pickling without compiled code.
+
+		The ``self._compiled_enzymes`` and ``self._compiled_saturation``
+		functions are cached code. They can be re-generated if missing
+		and are hard to pickle (as they are lambda functions), so they
+		are excluded from the pickled state.
+		'''
+		state = self.__dict__.copy()
+		state['_compiled_enzymes'] = None
+		state['_compiled_saturation'] = None
+		return state
+
 	def get_kinetic_constraints(self, enzymes, substrates):
 		# type: (units.Unum, units.Unum) -> units.Unum
 		'''
