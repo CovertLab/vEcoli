@@ -73,7 +73,8 @@ class ChromosomeStructure(Process):
             'ribosome_50S_subunit': '50S',
             'amino_acids': [],
             'water': 'water',
-            'deriver_mode': True
+            'deriver_mode': True,
+            'seed': 0,
         }
 
     # Constructor
@@ -112,6 +113,9 @@ class ChromosomeStructure(Process):
         self.promoter_index = 60000
         self.DnaA_box_index = 60000
         self.deriver_mode = self.parameters['deriver_mode']
+
+        self.random_state = np.random.RandomState(
+            seed=self.parameters['seed'])
 
     def is_deriver(self):
         return self.deriver_mode
@@ -541,7 +545,8 @@ class ChromosomeStructure(Process):
                 promoter_domain_indexes[removed_promoters_mask])
 
             # Add new promoters with new domain indexes
-            promoter_indices = create_unique_indexes(n_new_promoters)
+            promoter_indices = create_unique_indexes(
+                n_new_promoters, self.random_state)
             new_promoters = arrays_to(
                 n_new_promoters, {
                     'unique_index': np.array(promoter_indices),
@@ -571,7 +576,8 @@ class ChromosomeStructure(Process):
                 DnaA_box_domain_indexes[removed_DnaA_boxes_mask])
 
             # Add new promoters with new domain indexes
-            DnaA_box_indices = create_unique_indexes(n_new_DnaA_boxes)
+            DnaA_box_indices = create_unique_indexes(
+                n_new_DnaA_boxes, self.random_state)
             new_DnaA_boxes = arrays_to(
                 n_new_DnaA_boxes, {
                     'unique_index': np.array(DnaA_box_indices),

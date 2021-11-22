@@ -6,9 +6,9 @@ NOTE: All ports with '_total' in their name are
 automatically exempt from partitioning
 """
 
-import pytest
 from copy import deepcopy
 
+import pytest
 from vivarium.core.composer import Composer
 from vivarium.plots.topology import plot_topology
 from vivarium.library.topology import assoc_path
@@ -48,6 +48,7 @@ class Ecoli(Composer):
     defaults = {
         'time_step': 2.0,
         'parallel': False,
+        'parallel_allocator': False,
         'seed': 0,
         'sim_data_path': SIM_DATA_PATH,
         'daughter_path': tuple(),
@@ -76,6 +77,8 @@ class Ecoli(Composer):
         self.processes = self.config['processes']
         self.topology = self.config['topology']
 
+        self.processes_and_steps = None
+
     def initial_state(self, config=None, path=()):
         # Use initial state calculated with trna_charging and translationSupply disabled
         config = config or {}
@@ -85,7 +88,7 @@ class Ecoli(Composer):
         assoc_path(embedded_state, path, initial_state)
         return embedded_state
 
-    def generate_processes(self, config):
+    def _generate_processes_and_steps(self, config):
         time_step = config['time_step']
         parallel = config['parallel']
 
@@ -121,18 +124,19 @@ class Ecoli(Composer):
         # Add allocator process
         process_configs['allocator'] = self.load_sim_data.get_allocator_config(
             process_names=[p for p in config['processes'].keys()
-                           if not processes[p].is_deriver()]
+                           if not processes[p].is_deriver()],
+            parallel=config['parallel_allocator'],
         )
 
         config['processes']['allocator'] = Allocator
         processes['allocator'] = Allocator(process_configs['allocator'])
 
         # Store list of partition processes
-        self.partitioned_processes = [process_name
-                         for process_name, process in processes.items()
-                         if (isinstance(process, PartitionedProcess)
-                             # and not process.is_deriver()
-                             )]
+        self.partitioned_processes = [
+            process_name
+            for process_name, process in processes.items()
+            if isinstance(process, PartitionedProcess)
+        ]
 
         # update schema overrides for evolvers and requesters
         update_override = {}
@@ -179,29 +183,56 @@ class Ecoli(Composer):
             processes.update(division_process)
             process_order.append(division_name)
 
-        # Create final list of processes in the correct order.
-        # Following process_order, except that:
-        #   - All requesters appear before all evolvers
-        #   - Allocator appears immediately after requesters and immediately before evolvers
-        result = []
-        last_requester = 0
-        for i, process in enumerate(process_order):
-            if process not in self.partitioned_processes:
-                result.append(process)
+        steps = {
+            **requesters,
+            'allocator': processes['allocator'],
+        }
+        processes_not_steps = {
+            **evolvers,
+        }
+        flow = {
+            'allocator': [],
+        }
+
+        for name in process_order:
+            process = processes[name]
+            if name in self.partitioned_processes:
+                requester_name = f'{name}_requester'
+                evolver_name = f'{name}_evolver'
+                flow[requester_name] = [
+                    ('ecoli-chromosome-structure',)]
+                flow['allocator'].append((requester_name,))
+                steps[requester_name] = processes[requester_name]
+                processes_not_steps[evolver_name] = processes[
+                    evolver_name]
+            elif process.is_step():
+                steps[name] = process
+                flow[name] = []
             else:
-                result.append(f'{process}_requester')
-                last_requester = i
+                processes_not_steps[name] = process
 
-        result[last_requester+1:last_requester+1] = [f'{process}_evolver'
-                                                     for process in process_order
-                                                     if process in self.partitioned_processes and process != "allocator"]
-        result.insert(last_requester+1, "allocator")
+        return processes_not_steps, steps, flow
 
-        result = {process: processes[process] for process in result}
+    def generate_processes(self, config):
+        if not self.processes_and_steps:
+            self.processes_and_steps = (
+                self._generate_processes_and_steps(config))
+        processes, _, _ = self.processes_and_steps
+        return processes
 
-        # Under default config, should look like
-        # {**chromosome_structure, **metabolism, **requesters, **allocator, **evolvers, **division, **mrna_counts, **mass}
-        return result
+    def generate_steps(self, config):
+        if not self.processes_and_steps:
+            self.processes_and_steps = (
+                self._generate_processes_and_steps(config))
+        _, steps, _ = self.processes_and_steps
+        return steps
+
+    def generate_flow(self, config):
+        if not self.processes_and_steps:
+            self.processes_and_steps = (
+                self._generate_processes_and_steps(config))
+        _, _, flow = self.processes_and_steps
+        return flow
 
     def generate_topology(self, config):
         topology = {}
@@ -225,6 +256,10 @@ class Ecoli(Composer):
                 topology[f'{process_id}_evolver']['allocate'] = {
                     '_path': ('allocate', process_id,),
                     **bulk_topo}
+                topology[f'{process_id}_requester']['hidden_state'] = (
+                    'hidden_state',)
+                topology[f'{process_id}_evolver']['hidden_state'] = (
+                    'hidden_state',)
 
             # make the non-partitioned processes' topologies
             else:
@@ -308,6 +343,8 @@ def run_division(
     # make and run the experiment
     experiment = Engine(
         processes=ecoli_composite.processes,
+        steps=ecoli_composite.steps,
+        flow=ecoli_composite.flow,
         topology=ecoli_composite.topology,
         initial_state={'agents': {agent_id: initial_state}},
     )
@@ -349,6 +386,8 @@ def test_division_topology():
     # make experiment
     experiment = Engine(
         processes=ecoli_composite.processes,
+        steps=ecoli_composite.steps,
+        flow=ecoli_composite.flow,
         topology=ecoli_composite.topology,
         initial_state={'agents': {agent_id: initial_state}},
     )
@@ -372,7 +411,7 @@ def test_ecoli_generate():
     ecoli_composer = Ecoli({})
     ecoli_composite = ecoli_composer.generate()
 
-    # asserts to ecoli_composite['processes'] and ecoli_composite['topology'] 
+    # asserts to ecoli_composite['processes'] and ecoli_composite['topology']
     assert all('_requester' in k or
                '_evolver' in k or
                k == 'allocator' or
