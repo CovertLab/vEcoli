@@ -49,6 +49,7 @@ class LoadSimData:
             'ecoli-mass': self.get_mass_config,
             'ecoli-mass-listener': self.get_mass_listener_config,
             'mRNA_counts_listener': self.get_mrna_counts_listener_config,
+            'monomer_counts_listener': self.get_monomer_counts_listener_config,
             'allocator': self.get_allocator_config,
             'ecoli-chromosome-structure': self.get_chromosome_structure_config
         }
@@ -480,6 +481,7 @@ class LoadSimData:
             'unique_ids': self.sim_data.internal_state.unique_molecule.unique_molecule_masses['id'],
             'unique_masses': self.sim_data.internal_state.unique_molecule.unique_molecule_masses['mass'].asNumber(
                 units.fg / units.mol) / self.sim_data.constants.n_avogadro.asNumber(1/units.mol),
+            'compartment_abbrev_to_index': self.sim_data.compartment_abbrev_to_index,
             'submass_indices': {
                 'rna': np.array([
                     self.sim_data.submass_name_to_index[name]
@@ -492,6 +494,17 @@ class LoadSimData:
                 'protein': self.sim_data.submass_name_to_index["protein"],
                 'smallMolecule': self.sim_data.submass_name_to_index["metabolite"],
                 'water': self.sim_data.submass_name_to_index["water"]
+            },
+            'compartment_indices': {
+                'projection': self.sim_data.compartment_id_to_index["CCO-CELL-PROJECTION"],
+                'cytosol': self.sim_data.compartment_id_to_index["CCO-CYTOSOL"],
+                'extracellular': self.sim_data.compartment_id_to_index["CCO-EXTRACELLULAR"],
+                'flagellum': self.sim_data.compartment_id_to_index["CCO-FLAGELLUM"],
+                'membrane': self.sim_data.compartment_id_to_index["CCO-MEMBRANE"],
+                'outer_membrane': self.sim_data.compartment_id_to_index["CCO-OUTER-MEM"],
+                'periplasm': self.sim_data.compartment_id_to_index["CCO-PERI-BAC"],
+                'pilus': self.sim_data.compartment_id_to_index["CCO-PILUS"],
+                'inner_membrane': self.sim_data.compartment_id_to_index["CCO-PM-BAC-NEG"],
             },
             'compartment_id_to_index': self.sim_data.compartment_id_to_index,
             'n_avogadro': self.sim_data.constants.n_avogadro,  # 1/mol
@@ -511,9 +524,55 @@ class LoadSimData:
 
         return counts_config
 
+    def get_monomer_counts_listener_config(self, time_step=2, parallel=False):
+        monomer_counts_config = {
+            'time_step': time_step,
+            '_parallel': parallel,
+
+            # Get IDs of all bulk molecules
+            'bulk_molecule_ids': self.sim_data.internal_state.bulk_molecules.bulk_data["id"],
+            'unique_ids': self.sim_data.internal_state.unique_molecule.unique_molecule_masses['id'],
+
+            # Get IDs of molecules involved in complexation and equilibrium
+            'complexation_molecule_ids': self.sim_data.process.complexation.molecule_names,
+            'complexation_complex_ids': self.sim_data.process.complexation.ids_complexes,
+            'equilibrium_molecule_ids': self.sim_data.process.equilibrium.molecule_names,
+            'equilibrium_complex_ids': self.sim_data.process.equilibrium.ids_complexes,
+            'monomer_ids': self.sim_data.process.translation.monomer_data["id"].tolist(),
+
+            # Get IDs of complexed molecules monomers involved in two component system
+            'two_component_system_molecule_ids': list(
+                self.sim_data.process.two_component_system.molecule_names),
+            'two_component_system_complex_ids': list(
+                self.sim_data.process.two_component_system.complex_to_monomer.keys()),
+
+            # Get IDs of ribosome subunits
+            'ribosome_50s_subunits': self.sim_data.process.complexation.get_monomers(
+                self.sim_data.molecule_ids.s50_full_complex),
+            'ribosome_30s_subunits': self.sim_data.process.complexation.get_monomers(
+                self.sim_data.molecule_ids.s30_full_complex),
+
+            # Get IDs of RNA polymerase subunits
+            'rnap_subunits': self.sim_data.process.complexation.get_monomers(
+                self.sim_data.molecule_ids.full_RNAP),
+
+            # Get IDs of replisome subunits
+            'replisome_trimer_subunits': self.sim_data.molecule_groups.replisome_trimer_subunits,
+            'replisome_monomer_subunits': self.sim_data.molecule_groups.replisome_monomer_subunits,
+
+            # Get stoichiometric matrices for complexation, equilibrium, two component system and the
+            # assembly of unique molecules
+            'complexation_stoich': self.sim_data.process.complexation.stoich_matrix_monomers(),
+            'equilibrium_stoich': self.sim_data.process.equilibrium.stoich_matrix_monomers(),
+            'two_component_system_stoich': self.sim_data.process.two_component_system.stoich_matrix_monomers(),
+        }
+
+        return monomer_counts_config
+
     def get_allocator_config(self, time_step=2, parallel=False, process_names=[]):
         allocator_config = {
             'time_step': time_step,
+            '_parallel': parallel,
             'molecule_names': self.sim_data.internal_state.bulk_molecules.bulk_data['id'],
             'seed': self.random_state.randint(2**31),
             'process_names': process_names,
@@ -526,7 +585,7 @@ class LoadSimData:
                 }
         }
         return allocator_config
-    
+
     def get_chromosome_structure_config(self, time_step=2, parallel=False, deriver_mode=False):
         chromosome_structure_config = {
             'time_step': time_step,
@@ -542,7 +601,7 @@ class LoadSimData:
             'replichore_lengths': self.sim_data.process.replication.replichore_lengths,
             'relaxed_DNA_base_pairs_per_turn': self.sim_data.process.chromosome_structure.relaxed_DNA_base_pairs_per_turn,
             'terC_index': self.sim_data.process.chromosome_structure.terC_dummy_molecule_index,
-            
+
             # TODO: Should be loaded from simulation options
             'calculate_superhelical_densities': False,
 
@@ -558,7 +617,8 @@ class LoadSimData:
             'ribosome_50S_subunit': self.sim_data.molecule_ids.s50_full_complex,
             'amino_acids': self.sim_data.molecule_groups.amino_acids,
             'water': self.sim_data.molecule_ids.water,
-            
-            'deriver_mode': deriver_mode
+
+            'deriver_mode': deriver_mode,
+            'seed': self.random_state.randint(RAND_MAX),
         }
         return chromosome_structure_config

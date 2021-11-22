@@ -43,7 +43,14 @@ class TwoComponentSystem(PartitionedProcess):
         'moleculesToNextTimeStep': lambda counts, volume, avogadro, timestep, random, method, min_step, jit: (
             [], []),
         'moleculeNames': [],
-        'seed': 0}
+        'seed': 0,
+        'partitioning_hidden_state_instance_variables': [
+            'random_state',
+            'molecules_required',
+            'all_molecule_changes',
+            'cellVolume',
+        ],
+    }
 
     # Constructor
     def __init__(self, initial_parameters):
@@ -71,8 +78,8 @@ class TwoComponentSystem(PartitionedProcess):
             'listeners': {
                 'mass': {
                     'cell_mass': {'_default': 0}}}}
-        
-        
+
+
     def calculate_request(self, timestep, states):
         # Get molecule counts
         moleculeCounts = array_from(states['molecules'])
@@ -91,7 +98,7 @@ class TwoComponentSystem(PartitionedProcess):
             )
         requests = {'molecules': array_to(states['molecules'], self.molecules_required)}
         return requests
-    
+
     def evolve_state(self, timestep, states):
         moleculeCounts = array_from(states['molecules'])
         # Check if any molecules were allocated fewer counts than requested
@@ -103,5 +110,5 @@ class TwoComponentSystem(PartitionedProcess):
         # Increment changes in molecule counts
         update = {
             'molecules': array_to(self.moleculeNames, self.all_molecule_changes.astype(int))}
-        
+
         return update

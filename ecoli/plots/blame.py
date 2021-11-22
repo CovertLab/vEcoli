@@ -9,7 +9,7 @@ from ecoli.experiments.ecoli_master_sim import EcoliSim, CONFIG_DIR_PATH
 from collections import Counter
 
 
-def blame_plot(data, 
+def blame_plot(data,
                topology,
                filename='out/ecoli_sim/blame.png',
                selected_molecules=None,
