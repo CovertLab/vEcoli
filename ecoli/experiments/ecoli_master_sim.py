@@ -247,6 +247,12 @@ class EcoliSim:
         self.process_configs = self._retrieve_process_configs(self.process_configs,
                                                               self.processes)
 
+        initial_state_path = self.config.get('initial_state_file', '')
+        if initial_state_path.startswith('vivecoli'):
+            time_str = initial_state_path[len('vivecoli_t'):]
+            seed = int(float(time_str))
+            self.config['seed'] = seed
+
         # initialize the ecoli composer
         config = deepcopy(self.config)
         if self.partition:
@@ -304,7 +310,7 @@ class EcoliSim:
         # output maintains a 'initial_state_file' key that can
         # be used instead
         metadata.pop('initial_state', None)
-        
+
         try:
             metadata["git_hash"] = self._get_git_revision_hash()
         except:
@@ -318,6 +324,8 @@ class EcoliSim:
             'description': self.description,
             'metadata' : metadata,
             'processes': self.ecoli.processes,
+            'steps': self.ecoli.steps,
+            'flow': self.ecoli.flow,
             'topology': self.ecoli.topology,
             'initial_state': self.initial_state,
             'progress_bar': self.progress_bar,
@@ -350,7 +358,7 @@ class EcoliSim:
             return self.ecoli_experiment.emitter.get_data()
         else:
             return self.ecoli_experiment.emitter.get_timeseries()
-    
+
     def _get_git_revision_hash(self):
         return subprocess.check_output(['git', 'rev-parse', 'HEAD']).decode('ascii').strip()
 
@@ -370,7 +378,7 @@ class EcoliSim:
         # output maintains a 'initial_state_file' key that can
         # be used instead
         result.pop('initial_state', None)
-        
+
         try:
             result["git_hash"] = self._get_git_revision_hash()
         except:
@@ -380,13 +388,18 @@ class EcoliSim:
         result['processes'] = [k for k in result['processes'].keys()]
 
         return json.dumps(result)
-        
+
 
     def export_json(self, filename=CONFIG_DIR_PATH + "export.json"):
         with open(filename, 'w') as f:
             f.write(self.to_json_string())
 
 
-if __name__ == '__main__':
+def main():
     ecoli_sim = EcoliSim.from_cli()
     ecoli_sim.run()
+
+
+# python ecoli/experiments/ecoli_master_sim.py
+if __name__ == '__main__':
+    main()
