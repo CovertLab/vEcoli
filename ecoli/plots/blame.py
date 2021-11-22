@@ -214,7 +214,8 @@ def sign_str(val):
 
 
 def test_blame():
-    sim = EcoliSim.from_file(CONFIG_DIR_PATH + "/test_configs/test_blame.json")
+    sim = EcoliSim.from_file(CONFIG_DIR_PATH + "no_partition.json")
+    sim.merge(EcoliSim.from_file(CONFIG_DIR_PATH + "/test_configs/test_blame.json"))
     data = sim.run()
 
     blame_plot(data, sim.topology,
@@ -249,4 +250,4 @@ def compare_partition():
     
 
 if __name__ == "__main__":
-    compare_partition()
+    test_blame()
