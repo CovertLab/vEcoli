@@ -34,7 +34,10 @@ class EcoliSim:
         config['processes'] = {
             process: None for process in config['processes']}
 
-        # store config
+        # Keep track of base experiment id
+        # in case multiple simulations are run with suffix_time = True.
+        self.experiment_id_base = config['experiment_id']
+
         self.config = config
 
         # Unpack config using Descriptor protocol:
@@ -332,10 +335,15 @@ class EcoliSim:
             'emitter': self.emitter,
         }
         if self.experiment_id:
-            experiment_config['experiment_id'] = self.experiment_id
+            # Store backup of base experiment ID,
+            # in case multiple experiments are run in a row
+            # with suffix_time = True.
+            if not self.experiment_id_base:
+                self.experiment_id_base = self.experiment_id
+
             if self.suffix_time:
-                experiment_config['experiment_id'] += datetime.now().strftime(
-                    "_%d/%m/%Y %H:%M:%S")
+                self.experiment_id = datetime.now().strftime(f"{self.experiment_id_base}_%d/%m/%Y %H:%M:%S")
+            experiment_config['experiment_id'] = self.experiment_id
 
         self.ecoli_experiment = Engine(**experiment_config)
 
