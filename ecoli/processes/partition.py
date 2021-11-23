@@ -226,6 +226,7 @@ class Evolver(Process):
         states = deep_merge(states, states.pop('allocate'))
 
         # if requester not yet run, skip evolver
+        # TODO(Matt): After division, request_set is true, but it should be false. Why?
         if not self.process.request_set:
             return {}
 
