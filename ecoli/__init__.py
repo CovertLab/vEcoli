@@ -6,7 +6,8 @@ from ecoli.library.schema import (
     UNIQUE_DEFAULTS,
     divide_binomial,
     dict_value_updater,
-    make_dict_value_updater, divide_by_domain, divide_unique, divide_RNAs_by_domain, divide_domain, empty_dict_divider
+    make_dict_value_updater, divide_by_domain, divide_unique, divide_RNAs_by_domain, divide_domain, empty_dict_divider,
+    divide_ribosomes
 )
 
 # register :term:`updaters`
@@ -22,3 +23,4 @@ divider_registry.register('divide_domain', divide_domain)
 divider_registry.register('rna_by_domain', divide_RNAs_by_domain)
 divider_registry.register('divide_unique', divide_unique)
 divider_registry.register('empty_dict', empty_dict_divider)
+divider_registry.register('divide_ribosomes', divide_ribosomes)
