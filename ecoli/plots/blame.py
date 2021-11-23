@@ -301,13 +301,41 @@ def idx_array_from(dictionary):
 
 
 def test_blame():
-    sim = EcoliSim.from_file(CONFIG_DIR_PATH + "/test_configs/test_blame.json")
+    sim = EcoliSim.from_file(CONFIG_DIR_PATH + "no_partition.json")
+    sim.merge(EcoliSim.from_file(CONFIG_DIR_PATH + "/test_configs/test_blame.json"))
     data = sim.run()
 
-    blame_plot(data, sim.ecoli.topology,
+    blame_plot(data, sim.topology,
             'out/ecoli_sim/blame_test.png',
             highlight_molecules=['PD00413[c]', 'PHOR-CPLX[c]'])
 
 
+def compare_partition():
+    sim = EcoliSim.from_file()
+    sim.total_time = 4
+    sim.log_updates = True
+    sim.raw_output = False
+
+    sim.partition = False
+    sim.exclude_processes = ["ecoli-two-component-system"]
+    data = sim.run()
+
+    blame_plot(data, sim.ecoli.topology,
+               "out/ecoli_sim/blame_nopartition.png")
+
+    sim = EcoliSim.from_file()
+    sim.total_time = 4
+    sim.log_updates = True
+    sim.raw_output = False
+
+    sim.partition = True
+    data = sim.run()
+
+    blame_plot(data, sim.topology,
+               "out/ecoli_sim/blame_partition.png")
+
+    
+
 if __name__ == "__main__":
     test_blame()
+    
