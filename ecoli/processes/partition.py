@@ -228,6 +228,8 @@ class Evolver(Process):
         # if requester not yet run, skip evolver
         # TODO(Matt): After division, request_set is true, but it should be false. Why?
         if not self.process.request_set:
+            # _ = self.process.calculate_request(timestep, states)
+            # self.process.request_set = True
             return {}
 
         update = self.process.evolve_state(timestep, states)
