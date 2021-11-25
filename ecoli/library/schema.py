@@ -130,9 +130,12 @@ def create_unique_indexes(n_indexes, random_state):
         List of indexes. Each index is a string representing a number in
         the range :math:`[0, 2^{63})`.
     """
-    # return [
+    # print(hash(random_state))
+    # update = [
     #     str(num) for num in random_state.randint(0, 2**63, n_indexes)
     # ]
+    # print(hash(random_state))
+    # return update
     from uuid import uuid4
     return [str(uuid4().int) for i in range(n_indexes)]
 
@@ -382,7 +385,7 @@ def get_domain_index_to_daughter(chromosome_domain):
 
 def get_full_transcript_rnas_to_daughter(full_transcript_rnas):
     """Make a mapping from all full transcript RNA indices to a daughter index."""
-    random_state = np.random.RandomState(seed=len(full_transcript_rnas))
+    random_state = np.random.RandomState(seed=len(full_transcript_rnas))  # TODO(Matt): pass in random_state from topology when available
     sorted_indexes = np.array(sorted(full_transcript_rnas))
     bitmap = random_state.choice([True, False], len(full_transcript_rnas))
     daughter_1_indexes = sorted_indexes[bitmap]
