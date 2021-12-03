@@ -78,6 +78,7 @@ class Ecoli(Composer):
         self.topology = self.config['topology']
 
         self.processes_and_steps = None
+        self.seed = None
 
     def initial_state(self, config=None, path=()):
         # Use initial state calculated with trna_charging and translationSupply disabled
@@ -214,7 +215,8 @@ class Ecoli(Composer):
         return processes_not_steps, steps, flow
 
     def generate_processes(self, config):
-        if not self.processes_and_steps:
+        if not self.processes_and_steps or self.seed != config['seed']:
+            self.seed = config['seed']
             self.processes_and_steps = (
                 self._generate_processes_and_steps(config))
         processes, _, _ = self.processes_and_steps

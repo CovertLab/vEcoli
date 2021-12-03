@@ -131,13 +131,13 @@ def create_unique_indexes(n_indexes, random_state):
         the range :math:`[0, 2^{63})`.
     """
     # print(hash(random_state))
-    # update = [
-    #     str(num) for num in random_state.randint(0, 2**63, n_indexes)
-    # ]
+    update = [
+        str(num) for num in random_state.randint(0, 2**63, n_indexes)
+    ]
     # print(hash(random_state))
-    # return update
-    from uuid import uuid4
-    return [str(uuid4().int) for i in range(n_indexes)]
+    return update
+    # from uuid import uuid4
+    # return [str(uuid4().int) for i in range(n_indexes)]
 
 def array_from(d):
     """Returns an array with the dictionary values"""
@@ -517,4 +517,9 @@ def divide_RNAs_by_domain(values, state):
 
 def empty_dict_divider(values):
     return [{}, {}]
+
+
+def divide_set_none(values):
+    return [None, None]
+
 

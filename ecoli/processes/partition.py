@@ -18,16 +18,8 @@ import os
 import pickle
 
 from vivarium.core.process import Step, Process
-from vivarium.core.registry import divider_registry
 from vivarium.library.dict_utils import deep_merge
 from ecoli.processes.registries import topology_registry
-
-
-def divide_set_none(_):
-    return [None, None]
-
-
-divider_registry.register('set_none', divide_set_none)
 
 
 def change_bulk_updater(schema, new_updater):
