@@ -112,7 +112,10 @@ class Ecoli(Composer):
                     default = self.processes[process].defaults
 
                 process_configs[process] = deep_merge(
-                    dict(default), process_configs[process])
+                    deepcopy(default), process_configs[process])
+
+                if 'seed' in process_configs[process]:
+                    process_configs[process]['seed'] = process_configs[process]['seed'] + config['seed']
 
         # make the processes
         processes = {
@@ -223,14 +226,16 @@ class Ecoli(Composer):
         return processes
 
     def generate_steps(self, config):
-        if not self.processes_and_steps:
+        if not self.processes_and_steps or self.seed != config['seed']:
+            self.seed = config['seed']
             self.processes_and_steps = (
                 self._generate_processes_and_steps(config))
         _, steps, _ = self.processes_and_steps
         return steps
 
     def generate_flow(self, config):
-        if not self.processes_and_steps:
+        if not self.processes_and_steps or self.seed != config['seed']:
+            self.seed = config['seed']
             self.processes_and_steps = (
                 self._generate_processes_and_steps(config))
         _, _, flow = self.processes_and_steps

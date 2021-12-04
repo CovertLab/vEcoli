@@ -3,6 +3,7 @@
 E. coli master composite
 ========================
 """
+import copy
 import os
 
 import pytest
@@ -106,7 +107,7 @@ class Ecoli(Composer):
                 except KeyError:
                     default = self.processes[process].defaults
 
-                process_configs[process] = deep_merge(dict(default), process_configs[process])
+                process_configs[process] = deep_merge(copy.deepcopy(default), process_configs[process])
 
         # make the processes
         processes = {
