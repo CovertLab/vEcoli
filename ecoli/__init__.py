@@ -11,7 +11,6 @@ from ecoli.library.schema import (
 )
 
 # register :term:`updaters`
-updater_registry.register('dict_value', dict_value_updater)
 for unique_mol, defaults in UNIQUE_DEFAULTS.items():
     updater_registry.register(f'{unique_mol}_updater',
                               make_dict_value_updater(defaults))
