@@ -324,10 +324,7 @@ def test_division(
         agent_id='1',
         total_time=60
 ):
-    """
-    Work in progress to get division working
-    * TODO -- unique molecules need to be divided between daughter cells!!! This can get sophisticated
-    """
+    """tests that a cell can be divided and keep running"""
 
     # get initial mass from Ecoli composer
     initial_state = Ecoli({}).initial_state({'initial_state': 'vivecoli_t2550'})
@@ -381,7 +378,7 @@ def test_division_topology():
     # make a new composer under an embedded path
     agent_id = '0'
     config = {
-        'log_updates': True,
+        'log_updates': True,  # TODO(Matt): pytest fails if log_updates is False?
         'divide': True,
         'agent_id': agent_id,
         'division': {
