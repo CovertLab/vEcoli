@@ -78,6 +78,7 @@ class Ecoli(Composer):
         self.topology = self.config['topology']
 
         self.processes_and_steps = None
+        self.seed = None
 
     def initial_state(self, config=None, path=()):
         # Use initial state calculated with trna_charging and translationSupply disabled
@@ -111,7 +112,10 @@ class Ecoli(Composer):
                     default = self.processes[process].defaults
 
                 process_configs[process] = deep_merge(
-                    dict(default), process_configs[process])
+                    deepcopy(default), process_configs[process])
+
+                if 'seed' in process_configs[process]:
+                    process_configs[process]['seed'] = process_configs[process]['seed'] + config['seed']
 
         # make the processes
         processes = {
@@ -214,21 +218,24 @@ class Ecoli(Composer):
         return processes_not_steps, steps, flow
 
     def generate_processes(self, config):
-        if not self.processes_and_steps:
+        if not self.processes_and_steps or self.seed != config['seed']:
+            self.seed = config['seed']
             self.processes_and_steps = (
                 self._generate_processes_and_steps(config))
         processes, _, _ = self.processes_and_steps
         return processes
 
     def generate_steps(self, config):
-        if not self.processes_and_steps:
+        if not self.processes_and_steps or self.seed != config['seed']:
+            self.seed = config['seed']
             self.processes_and_steps = (
                 self._generate_processes_and_steps(config))
         _, steps, _ = self.processes_and_steps
         return steps
 
     def generate_flow(self, config):
-        if not self.processes_and_steps:
+        if not self.processes_and_steps or self.seed != config['seed']:
+            self.seed = config['seed']
             self.processes_and_steps = (
                 self._generate_processes_and_steps(config))
         _, _, flow = self.processes_and_steps
@@ -246,6 +253,8 @@ class Ecoli(Composer):
                 topology[f'{process_id}_evolver'] = deepcopy(ports)
                 if config['log_updates']:
                     topology[f'{process_id}_evolver']['log_update'] = (
+                        'log_update', process_id,)
+                    topology[f'{process_id}_requester']['log_update'] = (
                         'log_update', process_id,)
                 bulk_topo = get_bulk_topo(ports)
                 topology[f'{process_id}_requester']['request'] = {
@@ -311,14 +320,11 @@ def run_ecoli(
 
 
 @pytest.mark.slow
-def run_division(
+def test_division(
         agent_id='1',
         total_time=60
 ):
-    """
-    Work in progress to get division working
-    * TODO -- unique molecules need to be divided between daughter cells!!! This can get sophisticated
-    """
+    """tests that a cell can be divided and keep running"""
 
     # get initial mass from Ecoli composer
     initial_state = Ecoli({}).initial_state({'initial_state': 'vivecoli_t2550'})
@@ -328,6 +334,7 @@ def run_division(
 
     # make a new composer under an embedded path
     config = {
+        'log_updates': True,
         'divide': True,
         'agent_id': agent_id,
         'division': {
@@ -371,6 +378,7 @@ def test_division_topology():
     # make a new composer under an embedded path
     agent_id = '0'
     config = {
+        'log_updates': True,  # TODO(Matt): pytest fails if log_updates is False?
         'divide': True,
         'agent_id': agent_id,
         'division': {
@@ -404,7 +412,6 @@ def test_division_topology():
         assert daughter_topology == mother_topology
 
 
-
 def test_ecoli_generate():
     ecoli_composer = Ecoli({})
     ecoli_composite = ecoli_composer.generate()
@@ -436,7 +443,7 @@ def ecoli_topology_plot(config={}):
 
 test_library = {
     '0': run_ecoli,
-    '1': run_division,
+    '1': test_division,
     '2': test_division_topology,
     '3': test_ecoli_generate,
     '4': ecoli_topology_plot,
