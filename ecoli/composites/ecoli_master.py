@@ -377,7 +377,6 @@ def test_division_topology():
     # make a new composer under an embedded path
     agent_id = '0'
     config = {
-        'log_updates': True,  # TODO(Matt): pytest fails if log_updates is False?
         'divide': True,
         'agent_id': agent_id,
         'division': {
