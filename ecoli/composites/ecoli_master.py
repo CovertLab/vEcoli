@@ -334,7 +334,6 @@ def test_division(
 
     # make a new composer under an embedded path
     config = {
-        'log_updates': True,
         'divide': True,
         'agent_id': agent_id,
         'division': {
