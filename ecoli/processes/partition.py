@@ -133,7 +133,7 @@ class Requester(Step):
                 '_default': None,
                 '_updater': 'set',
                 '_emit': False,
-                '_divider': 'set_none',  # This is probably not working
+                '_divider': 'set_none',
             },
         }
         return ports
