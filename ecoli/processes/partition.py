@@ -18,16 +18,8 @@ import os
 import pickle
 
 from vivarium.core.process import Step, Process
-from vivarium.core.registry import divider_registry
 from vivarium.library.dict_utils import deep_merge
 from ecoli.processes.registries import topology_registry
-
-
-def divide_set_none(_):
-    return [None, None]
-
-
-divider_registry.register('set_none', divide_set_none)
 
 
 def change_bulk_updater(schema, new_updater):
@@ -208,6 +200,13 @@ class Evolver(Process):
         }
         return ports
 
+    # TODO(Matt): Have evolvers calculate timestep, returning zero if the requester hasn't run.
+    # def calculate_timestep(self, states):
+    #     if not self.process.request_set:
+    #         return 0
+    #     else:
+    #         return self.process.calculate_timestep(states)
+
     def next_update(self, timestep, states):
         if self.process.parallel:
             hidden_state = states.pop('hidden_state')
@@ -218,10 +217,12 @@ class Evolver(Process):
 
         states = deep_merge(states, states.pop('allocate'))
 
-        # run request if it has not yet run
+        # if requester not yet run, skip evolver
+        # TODO(Matt): After division, request_set is true, but it should be false. Why?
         if not self.process.request_set:
-            _ = self.process.calculate_request(timestep, states)
-            self.process.request_set = True
+            # _ = self.process.calculate_request(timestep, states)
+            # self.process.request_set = True
+            return {}
 
         update = self.process.evolve_state(timestep, states)
         if self.process.parallel:
