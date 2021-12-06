@@ -7,6 +7,7 @@ Run simulations of Ecoli Master
 """
 
 import argparse
+import copy
 import subprocess
 import json
 import warnings
@@ -84,7 +85,7 @@ class EcoliSim:
                 default_config = json.load(default_file)
 
             # Use defaults for any attributes not supplied
-            ecoli_config = deep_merge(dict(default_config), ecoli_config)
+            ecoli_config = deep_merge(copy.deepcopy(default_config), ecoli_config)
 
         return EcoliSim(ecoli_config)
 
@@ -146,7 +147,7 @@ class EcoliSim:
                 ecoli_config[setting] = value
 
         # Use defaults for any attributes not supplied
-        ecoli_config = deep_merge(dict(default_config), ecoli_config)
+        ecoli_config = deep_merge(copy.deepcopy(default_config), ecoli_config)
 
         return EcoliSim(ecoli_config)
 

@@ -4,7 +4,12 @@ import numpy as np
 
 
 UNIQUE_DIVIDERS = {
-    'active_ribosome': 'divide_unique',
+    'active_ribosome': {
+        'divider': 'divide_ribosomes',
+        'topology': {'RNA': ('..', 'RNA'),
+                     'active_RNAP': ('..', 'active_RNAP',),
+                     'chromosome_domain': ('..', 'chromosome_domain')}
+    },
     'full_chromosomes': {
         'divider': 'by_domain',
         'topology': {'chromosome_domain': ('..', 'chromosome_domain')}
@@ -125,9 +130,7 @@ def create_unique_indexes(n_indexes, random_state):
         List of indexes. Each index is a string representing a number in
         the range :math:`[0, 2^{63})`.
     """
-    return [
-        str(num) for num in random_state.randint(0, 2**63, n_indexes)
-    ]
+    return [str(num) for num in random_state.randint(0, 2**63, n_indexes)]
 
 def array_from(d):
     """Returns an array with the dictionary values"""
@@ -373,16 +376,11 @@ def get_domain_index_to_daughter(chromosome_domain):
     return index_to_daughter, daughter1_index, daughter2_index
 
 
-def get_rna_index_to_daughter(rna_indexes, random_state):
-    """Make a mapping from all RNA indices to a daughter index.
-
-     Args:
-         mrna_indexes: the mrna_indexes.
-         random_state: A Numpy :py:class:`np.random.RandomState` object
-             to use as a PRNG.
-     """
-    sorted_indexes = np.array(sorted(rna_indexes))
-    bitmap = random_state.choice([True, False], len(rna_indexes))
+def get_full_transcript_rnas_to_daughter(full_transcript_rnas):
+    """Make a mapping from all full transcript RNA indices to a daughter index."""
+    random_state = np.random.RandomState(seed=len(full_transcript_rnas))  # TODO(Matt): pass in random_state from topology when available
+    sorted_indexes = np.array(sorted(full_transcript_rnas))
+    bitmap = random_state.choice([True, False], len(full_transcript_rnas))
     daughter_1_indexes = sorted_indexes[bitmap]
     daughter_2_indexes = sorted_indexes[~bitmap]
     return daughter_1_indexes, daughter_2_indexes
@@ -390,10 +388,31 @@ def get_rna_index_to_daughter(rna_indexes, random_state):
 
 def divide_ribosomes(ribosomes, state):
     """divide ribosomes according to the rna they are attached to"""
-    rnas = state['rna']
-    random_state = state['random_state']
-    rna_indexes = rnas.keys()
-    daughter_1_indexes, daughter_2_indexes = get_rna_index_to_daughter(rna_indexes, random_state)
+    daughter1 = {}
+    daughter2 = {}
+
+    # get domain_index-to-daughter_index mapping
+    index_to_daughter, d1_index, d2_index = get_domain_index_to_daughter(state['chromosome_domain'])
+
+    full_transcript_rnas = [index for index in state['RNA'] if state['RNA'][index]['is_full_transcript']]
+    daughter_1_indexes, daughter_2_indexes = get_full_transcript_rnas_to_daughter(full_transcript_rnas)
+
+    for ribo_index, specs in ribosomes.items():
+        ribo_mrna = ribosomes[ribo_index]['mRNA_index']
+        if ribo_mrna in daughter_1_indexes:
+            daughter1[ribo_index] = specs
+        elif ribo_mrna in daughter_2_indexes:
+            daughter2[ribo_index] = specs
+        else:  # Else the ribosome is on a partial mRNA
+            rnap_index = state['RNA'][ribo_mrna]['RNAP_index']
+            domain_index = state['active_RNAP'][rnap_index]['domain_index']
+            # Some ribosomes go to neither daughter as they are on domain_index 0 in forced-early division
+            if index_to_daughter[domain_index] == d1_index:
+                daughter1[ribo_index] = specs
+            elif index_to_daughter[domain_index] == d2_index:
+                daughter2[ribo_index] = specs
+
+    return [daughter1, daughter2]
 
 
 def divide_by_domain(values, state):
@@ -479,14 +498,21 @@ def divide_RNAs_by_domain(values, state):
             # save full transcript ids
             full_transcript_ids.append(unique_id)
 
-    # divide full transcripts with divide_unique
-    full_transcripts = {
-        unique_id: specs
-        for unique_id, specs in values.items()
-        if unique_id in full_transcript_ids
-    }
-    [daughter1_full, daughter2_full] = divide_unique(full_transcripts)
-    daughter1.update(daughter1_full)
-    daughter2.update(daughter2_full)
+    # divide full transcripts with get_full_transcript_rnas_to_daughter
+    daughter_1_indexes, daughter_2_indexes = get_full_transcript_rnas_to_daughter(full_transcript_ids)
+    for index in daughter_1_indexes:
+        daughter1[index] = values[index]
+    for index in daughter_2_indexes:
+        daughter2[index] = values[index]
 
     return [daughter1, daughter2]
+
+
+def empty_dict_divider(values):
+    return [{}, {}]
+
+
+def divide_set_none(values):
+    return [None, None]
+
+
