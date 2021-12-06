@@ -53,8 +53,8 @@ class TwoComponentSystem(PartitionedProcess):
     }
 
     # Constructor
-    def __init__(self, initial_parameters):
-        super().__init__(initial_parameters)
+    def __init__(self, parameters):
+        super().__init__(parameters)
 
         # Simulation options
         self.jit = self.parameters['jit']
