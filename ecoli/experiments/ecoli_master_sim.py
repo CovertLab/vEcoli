@@ -354,6 +354,8 @@ class EcoliSim:
         else:
             self.ecoli_experiment.update(self.total_time)
 
+        self.ecoli_experiment.end()
+
         # return the data
         if self.raw_output:
             return self.ecoli_experiment.emitter.get_data()
