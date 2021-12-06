@@ -1,3 +1,4 @@
+import copy
 import json
 import os
 
@@ -46,7 +47,7 @@ for process in ECOLI_DEFAULT_PROCESSES:
 
     process_topology = topology_registry.access(original_process)
     if process_topology:
-        process_topology = dict(process_topology)
+        process_topology = copy.deepcopy(process_topology)
     else:
         process_topology = {}
 
