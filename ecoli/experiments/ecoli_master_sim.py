@@ -8,6 +8,9 @@ Run simulations of Ecoli Master
 
 import argparse
 import copy
+import cProfile
+import os
+import pstats
 import subprocess
 import json
 import warnings
@@ -352,7 +355,28 @@ class EcoliSim:
         if self.save:
             self.save_states()
         else:
+            if self.profile:
+                profiler = cProfile.Profile()
+                profiler.enable()
             self.ecoli_experiment.update(self.total_time)
+            if self.profile:
+                profiler.disable()
+                stats = pstats.Stats(profiler)
+                _, stats_keys = stats.get_print_list(('(next_update)|(calculate_request)|(evolve_state)',))
+                summed_stats = {}
+                for key in stats_keys:
+                    key_stats = stats.stats[key]
+                    _, _, tottime, _, _ = key_stats
+                    path, line, func = key
+                    path = os.path.basename(path)
+                    summed_stats[(path, line, func)] = summed_stats.get(
+                        (path, func), 0) + tottime
+                summed_stats_inverse_map = {
+                    time: key for key, time in summed_stats.items()
+                }
+                for time in sorted(summed_stats_inverse_map.keys())[::-1]:
+                    path, line, func = summed_stats_inverse_map[time]
+                    print(f'{path}:{line} {func}(): {time}')
 
         self.ecoli_experiment.end()
 

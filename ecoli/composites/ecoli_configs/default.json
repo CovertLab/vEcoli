@@ -32,6 +32,7 @@
     "add_processes" : [],
     "exclude_processes" : [],
     "swap_processes" : {},
+    "profile": false,
     "processes": [
         "ecoli-chromosome-structure",
         "ecoli-metabolism",
