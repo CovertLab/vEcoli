@@ -1,4 +1,13 @@
 {
-    "parallel": true,
-    "parallel_allocator": true
+    "process_configs": {
+        "ecoli-polypeptide-elongation": {
+            "_parallel": true
+        },
+        "ecoli-mass-listener": {
+            "_parallel": true
+        },
+        "ecoli-polypeptide-initiation": {
+            "_parallel": true
+        }
+    }
 }
