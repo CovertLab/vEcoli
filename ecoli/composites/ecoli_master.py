@@ -117,7 +117,7 @@ class Ecoli(Composer):
                 if 'seed' in process_configs[process]:
                     process_configs[process]['seed'] = process_configs[process]['seed'] + config['seed']
 
-            if 'parallel' not in process_configs[process]:
+            if '_parallel' not in process_configs[process]:
                 process_configs[process]['_parallel'] = parallel
 
         # make the processes
