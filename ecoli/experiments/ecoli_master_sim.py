@@ -348,6 +348,7 @@ class EcoliSim:
             if self.suffix_time:
                 self.experiment_id = datetime.now().strftime(f"{self.experiment_id_base}_%d/%m/%Y %H:%M:%S")
             experiment_config['experiment_id'] = self.experiment_id
+        experiment_config['profile'] = self.profile
 
         self.ecoli_experiment = Engine(**experiment_config)
 
@@ -355,30 +356,29 @@ class EcoliSim:
         if self.save:
             self.save_states()
         else:
-            if self.profile:
-                profiler = cProfile.Profile()
-                profiler.enable()
             self.ecoli_experiment.update(self.total_time)
-            if self.profile:
-                profiler.disable()
-                stats = pstats.Stats(profiler)
-                _, stats_keys = stats.get_print_list(('(next_update)|(calculate_request)|(evolve_state)',))
-                summed_stats = {}
-                for key in stats_keys:
-                    key_stats = stats.stats[key]
-                    _, _, tottime, _, _ = key_stats
-                    path, line, func = key
-                    path = os.path.basename(path)
-                    summed_stats[(path, line, func)] = summed_stats.get(
-                        (path, func), 0) + tottime
-                summed_stats_inverse_map = {
-                    time: key for key, time in summed_stats.items()
-                }
-                for time in sorted(summed_stats_inverse_map.keys())[::-1]:
-                    path, line, func = summed_stats_inverse_map[time]
-                    print(f'{path}:{line} {func}(): {time}')
 
         self.ecoli_experiment.end()
+        if self.profile:
+            stats = self.ecoli_experiment.stats
+            _, stats_keys = stats.get_print_list(('(next_update)|(calculate_request)|(evolve_state)',))
+            summed_stats = {}
+            for key in stats_keys:
+                key_stats = stats.stats[key]
+                _, _, tottime, _, _ = key_stats
+                path, line, func = key
+                path = os.path.basename(path)
+                summed_stats[(path, line, func)] = summed_stats.get(
+                    (path, func), 0) + tottime
+            summed_stats_inverse_map = {
+                time: key for key, time in summed_stats.items()
+            }
+            print('\nPer-process profiling:\n')
+            for time in sorted(summed_stats_inverse_map.keys())[::-1]:
+                path, line, func = summed_stats_inverse_map[time]
+                print(f'{path}:{line} {func}(): {time}')
+            print('\nOverall Profile:\n')
+            stats.sort_stats('tottime').print_stats(20)
 
         # return the data
         if self.raw_output:
