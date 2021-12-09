@@ -365,11 +365,11 @@ class EcoliSim:
             summed_stats = {}
             for key in stats_keys:
                 key_stats = stats.stats[key]
-                _, _, tottime, _, _ = key_stats
+                _, _, _, cumtime, _ = key_stats
                 path, line, func = key
                 path = os.path.basename(path)
                 summed_stats[(path, line, func)] = summed_stats.get(
-                    (path, func), 0) + tottime
+                    (path, func), 0) + cumtime
             summed_stats_inverse_map = {
                 time: key for key, time in summed_stats.items()
             }
@@ -378,7 +378,7 @@ class EcoliSim:
                 path, line, func = summed_stats_inverse_map[time]
                 print(f'{path}:{line} {func}(): {time}')
             print('\nOverall Profile:\n')
-            stats.sort_stats('tottime').print_stats(20)
+            stats.sort_stats('cumtime').print_stats(20)
 
         # return the data
         if self.raw_output:
