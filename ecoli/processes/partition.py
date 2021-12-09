@@ -21,6 +21,8 @@ from vivarium.core.process import Step, Process
 from vivarium.library.dict_utils import deep_merge
 from ecoli.processes.registries import topology_registry
 
+from ecoli.library.convert_update import convert_numpy_to_builtins
+
 
 def change_bulk_updater(schema, new_updater):
     """Retrieve port schemas for all bulk molecules
@@ -167,7 +169,7 @@ class Requester(Step):
                     self.process.get_partitioning_hidden_state())
             }
 
-        return update
+        return convert_numpy_to_builtins(update)
 
 
 class Evolver(Process):
@@ -230,7 +232,7 @@ class Evolver(Process):
                 self.process.name: pickle.dumps(
                     self.process.get_partitioning_hidden_state())
             }
-        return update
+        return convert_numpy_to_builtins(update)
 
 
 class PartitionedProcess(Process):
