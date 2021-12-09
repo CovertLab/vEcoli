@@ -34,6 +34,11 @@ def convert_numpy_to_builtins(update):
             convert_numpy_to_builtins(val)
             for key, val in update.items()
         }
+    if isinstance(update, list):
+        return [
+            convert_numpy_to_builtins(elem)
+            for elem in update
+        ]
     return update
 
 

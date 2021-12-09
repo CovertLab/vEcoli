@@ -17,6 +17,7 @@ from ecoli.library.schema import (
     arrays_to, array_to, dict_value_schema, listener_schema)
 
 from wholecell.utils.polymerize import buildSequences
+from ecoli.library.convert_update import convert_numpy_to_builtins
 
 
 # Register default topology for this process, associating it with process name
@@ -587,7 +588,7 @@ class ChromosomeStructure(Process):
             update['DnaA_boxes'].update(add_elements(
                 new_DnaA_boxes, 'unique_index'))
 
-        return update
+        return convert_numpy_to_builtins(update)
 
 
     def _compute_new_segment_attributes(self, old_boundary_molecule_indexes,
