@@ -14,6 +14,7 @@ from ecoli.library.schema import bulk_schema, arrays_from, array_from, dict_valu
 from vivarium.core.engine import pp
 
 from ecoli.processes.registries import topology_registry
+from ecoli.library.convert_update import convert_numpy_to_builtins
 
 # Register default topology for this process, associating it with process name
 NAME = 'ecoli-mass-listener'
@@ -258,8 +259,9 @@ class MassListener(Deriver):
 
         self.first_time_step = False
 
-        return {
+        update = {
             'listeners': {
                 'mass': mass_update
             }
         }
+        return convert_numpy_to_builtins(update)
