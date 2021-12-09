@@ -19,7 +19,7 @@ from ecoli.composites.lattice.grow_divide import (
     GrowDivideExchange, GrowDivide)
 
 # plots
-from vivarium_multibody.plots.snapshots import (
+from ecoli.plots.snapshots import (
     format_snapshot_data, get_agent_ids, plot_snapshots,
     DEFAULT_SV)
 
