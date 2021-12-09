@@ -5,9 +5,6 @@
         },
         "ecoli-mass-listener": {
             "_parallel": true
-        },
-        "ecoli-polypeptide-initiation": {
-            "_parallel": true
         }
     }
 }
