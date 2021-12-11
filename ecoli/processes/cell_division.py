@@ -6,7 +6,7 @@ Cell Division
 from typing import Any, Dict
 
 import numpy as np
-from vivarium.core.process import Deriver
+from vivarium.core.process import Step
 
 NAME = 'ecoli-cell-division'
 
@@ -17,7 +17,7 @@ def daughter_phylogeny_id(mother_id):
         str(mother_id) + '1']
 
 
-class Division(Deriver):
+class Division(Step):
     """ Division Deriver """
 
     name = NAME
