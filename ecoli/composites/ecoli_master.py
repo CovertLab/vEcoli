@@ -68,11 +68,11 @@ class Ecoli(Composer):
             seed=self.config['seed'])
 
         if not self.config.get('processes'):
-            self.config['processes'] = ECOLI_DEFAULT_PROCESSES.copy()
+            self.config['processes'] = deepcopy(ECOLI_DEFAULT_PROCESSES)
         if not self.config.get('process_configs'):
             self.config['process_configs'] = {process: "sim_data" for process in self.config['processes']}
         if not self.config.get('topology'):
-            self.config['topology'] = ECOLI_DEFAULT_TOPOLOGY.copy()
+            self.config['topology'] = deepcopy(ECOLI_DEFAULT_TOPOLOGY)
 
         self.processes = self.config['processes']
         self.topology = self.config['topology']
