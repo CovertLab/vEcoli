@@ -31,6 +31,14 @@ from ecoli.processes.registries import topology_registry
 from ecoli.composites.ecoli_configs import CONFIG_DIR_PATH
 
 
+def key_value_pair(argument_string):
+    split = argument_string.split('=')
+    if len(split) != 2:
+        raise ValueError(
+            'Key-value pair arguments must have exactly one `=`.')
+    return split
+
+
 class EcoliSim:
     def __init__(self, config):
         # Do some datatype pre-processesing
@@ -106,6 +114,10 @@ class EcoliSim:
         parser.add_argument(
             '--emitter', '-e', action="store", choices=["timeseries", "database", "print"],
             help="Emitter to use. Timeseries uses RAMEmitter, database emits to MongoDB, and print emits to stdout."
+        )
+        parser.add_argument(
+            '--emitter_arg', '-ea', action='store', nargs='*', type=key_value_pair,
+            help='Key-value pairs, separated by `=`, to include in emitter config.'
         )
         parser.add_argument(
             '--seed', '-s', action="store", type=int,
@@ -324,6 +336,9 @@ class EcoliSim:
         metadata['processes'] = [k for k in metadata['processes'].keys()]
 
         # make the experiment
+        emitter_config = {'type': self.emitter}
+        for key, value in self.emitter_arg:
+            emitter_config[key] = value
         experiment_config = {
             'description': self.description,
             'metadata' : metadata,
