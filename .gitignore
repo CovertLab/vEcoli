@@ -19,6 +19,7 @@ user/*
 !user/user.txt
 *.cprof
 .ipynb_checkpoints
+/notebooks/test_files
 
 # Compiled source #
 ###################
@@ -48,3 +49,4 @@ pyproject.toml
 /.vscode
 /.env
 data/blame_test_data.json
+/notebooks/test_files/
