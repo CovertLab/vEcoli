@@ -17,6 +17,7 @@ class MetabolismGDKinetics(Composer):
         'kinetics': {},
         'sim_data_path': SIM_DATA_PATH,
         'seed': 0,
+        'reactions': []
     }
 
     def __init__(self, config):
@@ -36,13 +37,20 @@ class MetabolismGDKinetics(Composer):
 
     def generate_processes(self, config):
 
+        reactions = config['reactions']
+
         # configure metabolism
         metabolism_config = self.load_sim_data.get_metabolism_gd_config()
         metabolism_config = deep_merge(metabolism_config, config['metabolism'])
+        metabolism_config['kinetic_rates'] = reactions
         metabolism_process = MetabolismGD(metabolism_config)
+        reaction_stoich_r = metabolism_config['stoichiometry_r']
+        reaction_stoich = {rxn_id: stoich for rxn_id, stoich in reaction_stoich_r.items() if rxn_id in reactions}
 
         # configure kinetics
-        kinetics_process = EnzymeKinetics(config['kinetics'])
+        kinetics_config = config['kinetics']
+        kinetics_config['reactions'] = reaction_stoich
+        kinetics_process = EnzymeKinetics(kinetics_config)
 
         return {
             'metabolism': metabolism_process,
@@ -63,19 +71,7 @@ def main(
     total_time=10,
 ):
     config = {
-        'metabolism': {
-            'kinetic_rates': ['reaction1',], # pass in the reactions
-        },
         'kinetics': {
-            'reactions': {
-                'reaction1': {
-                    'stoichiometry': {
-                        ('bulk', 'A'): 1,
-                        ('bulk', 'B'): -1},
-                    'is reversible': False,
-                    'catalyzed by': [('bulk', 'enzyme1')]
-                }
-            },
             'kinetic_parameters': {
                 'reaction1': {
                     ('bulk', 'enzyme1'): {
@@ -83,7 +79,8 @@ def main(
                     }
                 }
             },
-        }
+        },
+        'reactions': []
     }
 
     composer = MetabolismGDKinetics(config)
