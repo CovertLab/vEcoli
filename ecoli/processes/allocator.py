@@ -118,17 +118,18 @@ class Allocator(Deriver):
         counts_unallocated = original_totals - np.sum(
             partitioned_counts, axis=-1)
 
-        if ASSERT_POSITIVE_COUNTS and np.any(counts_unallocated < 0):
-            raise NegativeCountsError(
-                    "Negative value(s) in counts_unallocated:\n"
-                    + "\n".join(
-                    "{} ({})".format(
-                        self.mol_idx_to_name[molIndex],
-                        counts_unallocated[molIndex]
-                        )
-                    for molIndex in np.where(counts_unallocated < 0)[0]
-                    )
-                )
+        # TODO (Cyrus) -- Reintroduce this later (or ignore it until allocation is removed)
+        # if ASSERT_POSITIVE_COUNTS and np.any(counts_unallocated < 0):
+        #     raise NegativeCountsError(
+        #             "Negative value(s) in counts_unallocated:\n"
+        #             + "\n".join(
+        #             "{} ({})".format(
+        #                 self.mol_idx_to_name[molIndex],
+        #                 counts_unallocated[molIndex]
+        #                 )
+        #             for molIndex in np.where(counts_unallocated < 0)[0]
+        #             )
+        #         )
         
         update = {
             'request': {
