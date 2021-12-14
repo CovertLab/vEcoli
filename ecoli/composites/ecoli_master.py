@@ -38,7 +38,6 @@ from ecoli.states.wcecoli_state import get_state_from_file
 from ecoli.library.schema import get_domain_index_to_daughter
 from migration.migration_utils import scalar_almost_equal
 
-
 RAND_MAX = 2**31
 SIM_DATA_PATH = 'reconstruction/sim_data/kb/simData.cPickle'
 
@@ -328,7 +327,7 @@ def run_ecoli(
 @pytest.mark.slow
 def test_division(
         agent_id='1',
-        total_time=16
+        total_time=60
 ):
     """tests that a cell can be divided and keep running"""
 
