@@ -1,4 +1,5 @@
 {
+    "total_time": 8700,
     "emitter" : "database",
     "emitter_arg": [
         ["host", "localhost:27017"]
