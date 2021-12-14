@@ -1,6 +1,12 @@
+"""
+====================
+mRNA Counts Listener
+====================
+"""
+
 import numpy as np
-from ecoli.library.schema import arrays_from
-from vivarium.core.process import Deriver
+from ecoli.library.schema import arrays_from, dict_value_schema
+from vivarium.core.process import Step
 
 from ecoli.processes.registries import topology_registry
 
@@ -14,7 +20,7 @@ topology_registry.register(
     }
 )
 
-class mRNACounts(Deriver):
+class mRNACounts(Step):
     """
     Listener for the counts of each mRNA species.
     """
@@ -40,16 +46,7 @@ class mRNACounts(Deriver):
                     '_updater': 'set',
                     '_emit': True}
             },
-            'RNAs': {
-                '*': {
-                    'unique_index': {'_default': 0, '_updater': 'set'},
-                    'TU_index': {'_default': 0, '_updater': 'set'},
-                    'transcript_length': {'_default': 0, '_updater': 'set', '_emit': True},
-                    'is_mRNA': {'_default': 0, '_updater': 'set'},
-                    'is_full_transcript': {'_default': 0, '_updater': 'set'},
-                    'can_translate': {'_default': 0, '_updater': 'set'},
-                    'RNAP_index': {'_default': 0, '_updater': 'set'}}
-            },
+            'RNAs': dict_value_schema('RNAs')
         }
 
     def next_update(self, timestep, states):
@@ -73,6 +70,7 @@ def test_mrna_counts_listener():
     from ecoli.experiments.ecoli_master_sim import EcoliSim
     sim = EcoliSim.from_file()
     sim.total_time = 2
+    sim.raw_output = False
     data = sim.run()
     assert(type(data['listeners']['mRNA_counts'][0]) == list)
     assert(type(data['listeners']['mRNA_counts'][1]) == list)

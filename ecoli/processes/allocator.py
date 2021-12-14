@@ -1,7 +1,10 @@
 """
+=========
 Allocator
+=========
 
-Updates bulk with process updates, runs metabolism, runs process requests, allocates molecules
+Reads requests from PartionedProcesses, and allocates molecules according to
+process priorities.
 """
 import numpy as np
 from vivarium.core.process import Deriver
@@ -23,11 +26,12 @@ class NegativeCountsError(Exception):
 	pass
 
 class Allocator(Deriver):
+    """ Allocator Deriver """
     name = NAME
     topology = TOPOLOGY
 
     defaults = {}
-    
+
     processes = {}
 
     # Constructor
@@ -52,7 +56,7 @@ class Allocator(Deriver):
     def ports_schema(self):
         ports = {
             'bulk': {
-                molecule: {'_default': 0} 
+                molecule: {'_default': 0}
                 for molecule in self.moleculeNames},
             'request': {
                 process: {
@@ -68,10 +72,10 @@ class Allocator(Deriver):
         return ports
 
     def next_update(self, timestep, states):
-        total_counts = np.array([states['bulk'][molecule] for 
+        total_counts = np.array([states['bulk'][molecule] for
                                  molecule in self.mol_idx_to_name.values()])
         original_totals = total_counts.copy()
-        counts_requested = np.zeros((self.n_molecules, self.n_processes))
+        counts_requested = np.zeros((self.n_molecules, self.n_processes), dtype=int)
         for process in states['request']:
             proc_idx = self.proc_name_to_idx[process]
             for molecule, count in states['request'][process]['bulk'].items():
@@ -98,9 +102,9 @@ class Allocator(Deriver):
             total_counts,
             self.random_state
             )
-        
+
         partitioned_counts.astype(int, copy=False)
-        
+
         if ASSERT_POSITIVE_COUNTS and np.any(partitioned_counts < 0):
             raise NegativeCountsError(
                     "Negative value(s) in partitioned_counts:\n"
@@ -131,26 +135,27 @@ class Allocator(Deriver):
         #             )
         #         )
         
+
         update = {
             'request': {
                 process: {
                     'bulk': {
-                        molecule: 0 
+                        molecule: 0
                         for molecule in states['request'][process]['bulk']}}
                 for process in states['request']},
             'allocate': {
                 process: {
                     'bulk': {molecule: partitioned_counts[
-                        self.mol_name_to_idx[molecule], 
-                        self.proc_name_to_idx[process]] 
+                        self.mol_name_to_idx[molecule],
+                        self.proc_name_to_idx[process]]
                     for molecule in states['request'][process]['bulk']}}
                 for process in states['request']}}
-        
+
         return update
 
 def calculatePartition(process_priorities, counts_requested, total_counts, random_state):
     priorityLevels = np.sort(np.unique(process_priorities))[::-1]
-    
+
     partitioned_counts = np.zeros_like(counts_requested)
 
     for priorityLevel in priorityLevels:
@@ -167,6 +172,16 @@ def calculatePartition(process_priorities, counts_requested, total_counts, rando
             requests[excess_request_mask, :] * total_counts[excess_request_mask, np.newaxis]
             / total_requested[excess_request_mask, np.newaxis]
             )
+
+        # requests_counts_product = requests[excess_request_mask, :] * total_counts[excess_request_mask, np.newaxis]
+        # requests_with_mask = total_requested[excess_request_mask, np.newaxis]
+        # test = np.true_divide(requests_counts_product, requests_with_mask,
+        #                  out=np.zeros_like(requests_counts_product), where=requests_with_mask != [0], casting='unsafe')
+        # TODO(Matt): Incorporate this fix into the line of code above. Commented code a start, but only returns ints.
+        for lst_index in range(len(fractional_requests)):
+            for value_index in range(len(fractional_requests[lst_index])):
+                if np.isnan(fractional_requests[lst_index][value_index]):
+                    fractional_requests[lst_index][value_index] = 0
 
         # Distribute fractional counts to ensure full allocation of excess
         # request molecules

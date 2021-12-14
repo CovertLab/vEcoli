@@ -12,7 +12,7 @@ import numpy as np
 from scipy.stats import chi2_contingency
 
 from ecoli.library.sim_data import LoadSimData
-from ecoli.composites.ecoli_master import SIM_DATA_PATH
+from ecoli.composites.ecoli_nonpartition import SIM_DATA_PATH
 from migration.migration_utils import run_ecoli_process, percent_error
 
 from ecoli.processes.protein_degradation import ProteinDegradation

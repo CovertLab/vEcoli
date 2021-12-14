@@ -13,7 +13,7 @@ from vivarium.core.engine import pp
 from vivarium.core.composition import process_in_experiment
 from vivarium.library.units import units
 
-from ecoli.library.schema import bulk_schema
+from ecoli.library.schema import bulk_schema, dict_value_schema
 
 
 AVOGADRO = constants.N_A #* 1 / units.mol
@@ -29,6 +29,8 @@ def mass_from_count(count, mw):
 
 
 class Mass(Deriver):
+    """ Mass Deriver """
+
     name = 'ecoli-mass'
     defaults = {
         'molecular_weights': {},
@@ -43,12 +45,23 @@ class Mass(Deriver):
         self.unique_masses = self.parameters['unique_masses']
 
     def ports_schema(self):
+
+        unique_schema = {}
+        for mol_id in self.unique_masses.keys():
+            # TODO -- this should be cleaned up to match the registered updaters
+            if mol_id in [
+                'RNA', 'active_RNAP', 'active_replisome', 'chromosomal_segment',
+                'chromosome_domain', 'full_chromosome', 'oriC', 'promoter'
+            ]:
+                unique_schema[mol_id] = dict_value_schema(mol_id + 's')
+            elif mol_id in ['DnaA_box']:
+                unique_schema[mol_id] = dict_value_schema(mol_id + 'es')
+            else:
+                unique_schema[mol_id] = dict_value_schema(mol_id)
+
         return {
             'bulk': bulk_schema(self.molecular_weights.keys()),
-            'unique': {
-                mol_id: {'*': {}}
-                for mol_id in self.unique_masses.keys()
-            },
+            'unique': unique_schema,
             'listeners': {
                 'mass': {
                     'cell_mass': {
@@ -77,20 +90,23 @@ class Mass(Deriver):
 
         # calculate bulk molecule mass
         bulk_mass = 0.0
-        for molecule_id, count in states['bulk'].items():
-            if count > 0:
-                added_mass = mass_from_count(count, self.molecular_weights.get(molecule_id))
-                bulk_mass += added_mass
+        if self.molecular_weights:
+            for molecule_id, count in states['bulk'].items():
+                if count > 0:
+                    added_mass = mass_from_count(count, self.molecular_weights.get(molecule_id))
+                    bulk_mass += added_mass
 
         # calculate unique molecule mass
-        unique_masses = np.array([])
-        for molecule_id, molecules in states['unique'].items():
-            n_molecules = len(molecules)
-            if unique_masses.any():
-                unique_masses += self.unique_masses[molecule_id] * n_molecules
-            else:
-                unique_masses = self.unique_masses[molecule_id] * n_molecules
-        unique_mass = np.sum(unique_masses)
+        unique_mass = 0.0
+        if self.unique_masses:
+            unique_masses = np.array([])
+            for molecule_id, molecules in states['unique'].items():
+                n_molecules = len(molecules)
+                if unique_masses.any():
+                    unique_masses += self.unique_masses[molecule_id] * n_molecules
+                else:
+                    unique_masses = self.unique_masses[molecule_id] * n_molecules
+            unique_mass = np.sum(unique_masses)
 
         # calculate masses
         cell_mass = bulk_mass + unique_mass

@@ -1,7 +1,7 @@
 """
-==============================
-Chemotaxis Minimal Composite
-==============================
+==========================
+Minimal E. coli Chemotaxis
+==========================
 """
 
 import os
@@ -25,7 +25,7 @@ NAME = 'chemotaxis_minimal'
 class ChemotaxisMinimal(Composer):
     """ Chemotaxis Minimal Composite
 
-     A chemotactic cell with only receptor and motor processes.
+     A chemotactic cell with only receptor and coarse motor processes.
      """
 
     name = NAME

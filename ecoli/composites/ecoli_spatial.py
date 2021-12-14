@@ -1,7 +1,7 @@
 '''
-========================
+=========================
 E. coli spatial composite
-========================
+=========================
 
 This composite is intended to run a spatial model of E. coli, where each
 cellular compartment is designated as a node. These nodes are connected by
@@ -19,27 +19,34 @@ molecules for faster runtime.
 If polyribosomes are included, one of three assumptions must be input to
 define how polyribosomes' hydrodynamic radius is calculated. Each of these
 assumption have significant limitations, however they likely indicate a
-plausible range of polyribosomes' sizes.These assumptions are as follows:
+plausible range of polyribosomes' sizes. These assumptions are as follows:
 
-    - `spherical`: This assumes that polyribosomes are spherical proteins and
-    calculates the hydrodynamic radius from the total molecular weight of the
-    mRNA molecules, attached ribosomes, and attached polypeptides. This is
-    the default of the diffusion network process that is called here (and is
-    the assumption for all bulk molecules); further details can be found in
-    `diffusion_network.py` in `vivarium-cell`.
-        * :math:`r_p = 0.515*MW^{0.392}`
-        * :math:`MW` = molecular weight
-        - Ref: Schuwirth et al., Science (2005)
-    - `mrna`: This assumes that polyribosomes are solely the mRNA molecule and
-    calculates the hydrodynamic radius of the mRNA molecule from the
-    nucleotide count.
-        * :math:`r_p = 5.5*N^{1/3}`
-        * :math:`N` = number of nucleotides in mRNA
-        - Ref: Hyeon et al., J Chem Phys. (2006)
-    -`linear`: This assumes that polyribosomes are solely the ribosomes and
-    calculates the radius to be half the length of the summed sizes of
-    ribosomes. This assumption does not have a reference
-        * :math:`r_p = \\frac{n_ribosome * ribosome_size}{2}`
+* ``spherical``: This assumes that polyribosomes are spherical proteins
+  and calculates the hydrodynamic radius from the total molecular weight
+  of the mRNA molecules, attached ribosomes, and attached polypeptides.
+  This is the default of the diffusion network process that is called
+  here (and is the assumption for all bulk molecules); further details
+  can be found in ``diffusion_network.py`` in ``vivarium-cell``.
+
+  * :math:`r_p = 0.515*MW^{0.392}`
+  * :math:`MW` = molecular weight
+
+  Ref: Schuwirth et al., Science (2005)
+
+* ``mrna``: This assumes that polyribosomes are solely the mRNA molecule and
+  calculates the hydrodynamic radius of the mRNA molecule from the
+  nucleotide count.
+
+  * :math:`r_p = 5.5*N^{1/3}`
+  * :math:`N` = number of nucleotides in mRNA
+
+  Ref: Hyeon et al., J Chem Phys. (2006)
+
+* ``linear``: This assumes that polyribosomes are solely the ribosomes and
+  calculates the radius to be half the length of the summed sizes of
+  ribosomes. This assumption does not have a reference
+
+  * :math:`r_p = \\frac{n_ribosome * ribosome_size}{2}`
 
 Since all molecules are treated as concentrations in the diffusion network
 process, polyribosomes are bucketed into groups defined by the number of
@@ -50,11 +57,11 @@ network process to scale diffusion constants to represent the impact that
 a meshgrid formed by DNA in the nucleoid has on bulk molecule and polyribosome
 diffusion.
 
-    - Ref: Xiang et al., bioRxiv (2020)
+Ref: Xiang et al., bioRxiv (2020)
 
-Other `vivarium-cell` processes are also intended to be compatible with this
+Other ``vivarium-cell`` processes are also intended to be compatible with this
 composite, but are unfinished or have not been incorporated. These processes
-are `growth_rate.py` and `spatial_geometry.py`.
+are ``growth_rate.py`` and ``spatial_geometry.py``.
 
 '''
 import argparse
@@ -133,7 +140,10 @@ class EcoliSpatial(Composer):
         # initialize variables
         include_bulk = config['include_bulk']
         include_polyribosomes = config['include_polyribosomes']
-        initial_state = get_state_from_file(path='data/wcecoli_t1000.json')
+        initial_state = get_state_from_file(
+            path='data/wcecoli_t1000.json',
+            convert_unique_id_to_string=False,
+        )
         bulk = {}
 
         if include_bulk:
@@ -228,6 +238,7 @@ def add_polyribosomes(unique, unique_masses, polyribosome_assumption, save_outpu
                                       str(unique_index)]['transcript_length']
                                   for unique_index in
                                   mrna_index_ribosome_on_full_mrna])
+
         avg_NT_per_ribosome = np.asarray([
             mrna_length[i] / n_ribosomes_on_full_mrna[mrna_index_ribosome_on_full_mrna[i]]
             for i in np.unique(mrna_index_ribosome_on_full_mrna, return_index=True)[1]
@@ -304,7 +315,7 @@ def add_polyribosomes(unique, unique_masses, polyribosome_assumption, save_outpu
 
 def test_spatial_ecoli(
     polyribosome_assumption='spherical',    # choose from 'mrna', 'linear', or 'spherical'
-    total_time=60,  # in seconds
+    total_time=10,  # in seconds
 ):
     ecoli_config = {
         'nodes': {

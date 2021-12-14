@@ -3,15 +3,13 @@
 Protein Degradation
 ===================
 
-Protein degradation sub-model.
-
 This process accounts for the degradation of protein monomers.
 Specific proteins to be degraded are selected as a Poisson process.
-"""
 
-# TODO(wcEcoli):
-#  - protein complexes
-#  - add protease functionality
+TODO:
+ - protein complexes
+ - add protease functionality
+"""
 
 import numpy as np
 
@@ -37,6 +35,8 @@ topology_registry.register(NAME, TOPOLOGY)
 
 
 class ProteinDegradation(PartitionedProcess):
+    """ Protein Degradation PartitionedProcess """
+
     name = NAME
     topology = TOPOLOGY
     defaults = {

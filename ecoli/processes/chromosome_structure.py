@@ -1,5 +1,7 @@
 """
-ChromosomeStructure process
+====================
+Chromosome Structure
+====================
 
 - Resolve collisions between molecules and replication forks on the chromosome.
 - Remove and replicate promoters and motifs that are traversed by replisomes.
@@ -9,14 +11,13 @@ ChromosomeStructure process
 import numpy as np
 
 from vivarium.core.process import Process
-
-from ecoli.library.schema import (add_elements, arrays_from, bulk_schema, 
-                                  arrays_to, array_to, listener_schema)
-from ecoli.processes.cell_division import divide_active_RNAPs_by_domain
+from ecoli.processes.registries import topology_registry
+from ecoli.library.schema import (
+    add_elements, arrays_from, bulk_schema, create_unique_indexes,
+    arrays_to, array_to, dict_value_schema, listener_schema)
 
 from wholecell.utils.polymerize import buildSequences
 
-from ecoli.processes.registries import topology_registry
 
 # Register default topology for this process, associating it with process name
 NAME = 'ecoli-chromosome-structure'
@@ -42,10 +43,10 @@ TOPOLOGY = {
 topology_registry.register(NAME, TOPOLOGY)
 
 class ChromosomeStructure(Process):
-    """ ChromosomeStructure """
+    """ Chromosome Structure Process """
 
     name = NAME
- 
+    topology = TOPOLOGY
     defaults = {
             # Load parameters
             'RNA_sequences': [],
@@ -57,7 +58,7 @@ class ChromosomeStructure(Process):
             'replichore_lengths': [0,0],
             'relaxed_DNA_base_pairs_per_turn': 1,
             'terC_index': 1,
-            
+
             'calculate_superhelical_densities': False,
 
             # Get placeholder value for chromosome domains without children
@@ -72,7 +73,8 @@ class ChromosomeStructure(Process):
             'ribosome_50S_subunit': '50S',
             'amino_acids': [],
             'water': 'water',
-            'deriver_mode': True
+            'deriver_mode': True,
+            'seed': 0,
         }
 
     # Constructor
@@ -89,13 +91,13 @@ class ChromosomeStructure(Process):
         self.max_coordinates = replichore_lengths[0]
         self.relaxed_DNA_base_pairs_per_turn = self.parameters['relaxed_DNA_base_pairs_per_turn']
         self.terC_index = self.parameters['terC_index']
-        
+
         # Load sim options
         self.calculate_superhelical_densities = self.parameters['calculate_superhelical_densities']
 
         # Get placeholder value for chromosome domains without children
         self.no_child_place_holder = self.parameters['no_child_place_holder']
-        
+
         self.inactive_RNAPs = self.parameters['inactive_RNAPs']
         self.fragmentBases = self.parameters['fragmentBases']
         self.ppi = self.parameters['ppi']
@@ -104,101 +106,61 @@ class ChromosomeStructure(Process):
         self.ribosome_50S_subunit = self.parameters['ribosome_50S_subunit']
         self.amino_acids = self.parameters['amino_acids']
         self.water = self.parameters['water']
-        
+
         self.emit_unique = self.parameters.get('emit_unique', True)
-        
+
         self.chromosome_segment_index = 0
         self.promoter_index = 60000
         self.DnaA_box_index = 60000
         self.deriver_mode = self.parameters['deriver_mode']
 
+        self.random_state = np.random.RandomState(
+            seed=self.parameters['seed'])
+
     def is_deriver(self):
         return self.deriver_mode
 
     def ports_schema(self):
-        default_unique_schema = {
-            '_default': 0, '_updater': 'set', '_emit': self.emit_unique}
-        
+
         ports = {
             'listeners': {
-                'RnapData': listener_schema(
-                    {'n_total_collisions': 0,
+                'RnapData': listener_schema({
+                    'n_total_collisions': 0,
                     'n_headon_collisions': 0,
                     'n_codirectional_collisions': 0,
                     'headon_collision_coordinates': 0,
                     'codirectional_collision_coordinates': 0,
                     'n_removed_ribosomes': 0})},
+
             # Bulk molecules
             'fragmentBases': bulk_schema(self.fragmentBases),
-            'molecules': bulk_schema([self.ppi, self.water,
-                                      self.inactive_RNAPs]),
+            'molecules': bulk_schema([
+                self.ppi, self.water, self.inactive_RNAPs]),
             'active_tfs': bulk_schema(self.active_tfs),
-            'subunits': bulk_schema(
-                [self.ribosome_30S_subunit,
-                 self.ribosome_50S_subunit]),
+            'subunits': bulk_schema([
+                self.ribosome_30S_subunit, self.ribosome_50S_subunit]),
             'amino_acids': bulk_schema(self.amino_acids),
-            
+
             # Unique molecules
-            'active_replisomes': {
-                '*': {
-                    'domain_index': default_unique_schema,
-                    'coordinates': default_unique_schema,
-                    'unique_index': default_unique_schema
-                }},
-            'oriCs': {
-                '*': {
-                    'domain_index': default_unique_schema,
-                }},
-            'chromosome_domains': {
-                '*': {
-                    attr: default_unique_schema
-                    for attr in ('domain_index', 'child_domains')
-                }},
-            'active_RNAPs': {
-                '_divider': {
-                        'divider': divide_active_RNAPs_by_domain,
-                    },
-                '*': {
-                    'unique_index': {'_default': 0, '_updater': 'set'},
-                    'domain_index': {'_default': 0, '_updater': 'set'},
-                    'coordinates': {'_default': 0, '_updater': 'set'},
-                    'direction': {'_default': 0, '_updater': 'set'}}},
-            'RNAs': {
-                '*': {
-                    'unique_index': {'_default': 0, '_updater': 'set'},
-                    'TU_index': {'_default': 0, '_updater': 'set'},
-                    'transcript_length': {'_default': 0, '_updater': 'set'},
-                    'RNAP_index': {'_default': 0, '_updater': 'set'}}},
-            'active_ribosome': {
-                '*': {
-                    'protein_index': {'_default': 0},
-                    'peptide_length': {'_default': 0},
-                    'mRNA_index': {'_default': 0}}},
-            'full_chromosomes': {
-                '*': {
-                    'domain_index': default_unique_schema
-                }},
-            'promoters': {
-                '*': {
-                    'TU_index': {'_default': 0},
-                    'coordinates': {'_default': 0},
-                    'domain_index': {'_default': 0},
-                    'bound_TF': {'_default': 0}}},
-            'DnaA_boxes': {
-                '*': {
-                    'domain_index': {'_default': 0},
-                    'coordinates': {'_default': 0},
-                    'DnaA_bound': {'_default': 0}}}
+            'active_replisomes': dict_value_schema('active_replisomes'),
+            'oriCs': dict_value_schema('oriCs'),
+            'chromosome_domains': dict_value_schema('chromosome_domains'),
+            'active_RNAPs': dict_value_schema('active_RNAPs'),
+            'RNAs': dict_value_schema('RNAs'),
+            'active_ribosome': dict_value_schema('active_ribosome'),
+            'full_chromosomes': dict_value_schema('full_chromosomes'),
+            'promoters': dict_value_schema('promoters'),
+            'DnaA_boxes': dict_value_schema('DnaA_boxes'),
         }
-        
+
         if self.calculate_superhelical_densities:
             ports['chromosomal_segments'] = {
                 '*': {
-                    'boundary_molecule_indexes': {'_default': np.empty((0, 2), dtype=np.int64)}, 
+                    'boundary_molecule_indexes': {'_default': np.empty((0, 2), dtype=np.int64)},
                     'boundary_coordinates': {'_default': np.empty((0, 2), dtype=np.int64)},
-                    'domain_index': {'_default': 0}, 
+                    'domain_index': {'_default': 0},
                     'linking_number': {'_default': 0}}}
-            
+
         return ports
 
     def next_update(self, timestep, states):
@@ -206,13 +168,13 @@ class ChromosomeStructure(Process):
         if self.deriver_mode:
             self.deriver_mode = False
             return {}
-        
+
         # Read unique molecule attributes
         if states['active_replisomes'].values():
             replisome_domain_indexes, replisome_coordinates, replisome_unique_indexes = arrays_from(
                 states['active_replisomes'].values(),
                 ['domain_index', 'coordinates', 'unique_index'])
-        else: 
+        else:
             replisome_domain_indexes, replisome_coordinates, replisome_unique_indexes = (
                 np.array([]), np.array([]), np.array([]))
         all_chromosome_domain_indexes, child_domains = arrays_from(
@@ -332,7 +294,7 @@ class ChromosomeStructure(Process):
             'promoters': {},
             'DnaA_boxes': {}
         }
-        
+
         if self.calculate_superhelical_densities:
             # Get attributes of existing segments
             boundary_molecule_indexes, boundary_coordinates, segment_domain_indexes, linking_numbers = arrays_from(
@@ -345,12 +307,12 @@ class ChromosomeStructure(Process):
             all_new_boundary_coordinates = np.empty((0, 2), dtype=np.int64)
             all_new_segment_domain_indexes = np.array([], dtype=np.int32)
             all_new_linking_numbers = np.array([], dtype=np.float64)
-    
+
             for domain_index in np.unique(all_chromosome_domain_indexes):
                 # Skip domains that have completed replication
                 if np.all(domain_index < mother_domain_indexes):
                     continue
-    
+
                 domain_spans_oriC = (domain_index in origin_domain_indexes)
                 domain_spans_terC = (domain_index in mother_domain_indexes)
 
@@ -366,7 +328,7 @@ class ChromosomeStructure(Process):
                 # Parse attributes of remaining RNAPs in this domain
                 new_molecule_coordinates_this_domain = remaining_RNAP_coordinates[RNAP_domain_mask]
                 new_molecule_indexes_this_domain = remaining_RNAP_unique_indexes[RNAP_domain_mask]
-    
+
                 # Append coordinates and indexes of replisomes on this domain, if any
                 if not domain_spans_oriC:
                     replisome_domain_mask = (replisome_domain_indexes == domain_index)
@@ -379,7 +341,7 @@ class ChromosomeStructure(Process):
                         new_molecule_indexes_this_domain,
                         replisome_unique_indexes[replisome_domain_mask]
                         ))
-    
+
                 # Append coordinates and indexes of parent domain replisomes, if any
                 if not domain_spans_terC:
                     parent_domain_index = all_chromosome_domain_indexes[
@@ -394,7 +356,7 @@ class ChromosomeStructure(Process):
                         new_molecule_indexes_this_domain,
                         replisome_unique_indexes[replisome_parent_domain_mask]
                         ))
-    
+
                 # If there are no molecules left on this domain, continue
                 if len(new_molecule_indexes_this_domain) == 0:
                     continue
@@ -408,7 +370,7 @@ class ChromosomeStructure(Process):
                     new_molecule_coordinates_this_domain,
                     domain_spans_oriC, domain_spans_terC
                     )
-    
+
                 # Append to existing array of new segment attributes
                 all_new_boundary_molecule_indexes = np.vstack((
                     all_new_boundary_molecule_indexes,
@@ -422,32 +384,35 @@ class ChromosomeStructure(Process):
                         dtype=np.int32)))
                 all_new_linking_numbers = np.concatenate((
                     all_new_linking_numbers, new_segment_attrs["linking_numbers"]))
-    
+
             # Delete all existing chromosomal segments
             chromosomal_segments_delete_update = [
                 key for key in states['chromosonal_segments'].keys()]
             if chromosomal_segments_delete_update:
                 update['chromosomal_segments'] = {
                     '_delete': chromosomal_segments_delete_update}
-    
+
             # Add new chromosomal segments
             n_segments = len(all_new_linking_numbers)
+
+            if 'chromosomal_segments' in states and states['chromosomal_segments']:
+                self.chromosome_segment_index = int(max([int(index) for index in list(states['chromosomal_segments'].keys())])) + 1
+
             new_chromosome_segments = arrays_to(
             n_segments, {
                 'unique_index': np.arange(
-                    self.chromosome_segment_index, self.chromosome_segment_index + 
-                    n_segments).astype(str),
+                    self.chromosome_segment_index, self.chromosome_segment_index +
+                    n_segments),
                 'boundary_molecule_indexes': all_new_boundary_molecule_indexes,
                 'boundary_coordinates': all_new_boundary_coordinates,
                 'domain_index': all_new_segment_domain_indexes,
                 'linking_number': all_new_linking_numbers})
             update['chromosomal_segments'].update(add_elements(
                 new_chromosome_segments, 'unique_index'))
-            self.chromosome_segment_index += n_segments
 
         # Get mask for RNAs that are transcribed from removed RNAPs
         removed_RNAs_mask = np.isin(
-            RNA_RNAP_indexes, RNAP_unique_indexes[removed_RNAPs_mask].astype(int))
+            RNA_RNAP_indexes, RNAP_unique_indexes[removed_RNAPs_mask])
 
         # Remove RNAPs and RNAs that have collided with replisomes
         if n_total_collisions > 0:
@@ -457,7 +422,7 @@ class ChromosomeStructure(Process):
             if active_RNAP_delete_update:
                 update['active_RNAPs'] = {
                     '_delete': active_RNAP_delete_update}
-                
+
             RNA_delete_update = [
                 key for index, key in enumerate(states['RNAs'].keys())
                 if removed_RNAs_mask[index]]
@@ -493,7 +458,7 @@ class ChromosomeStructure(Process):
         remaining_RNA_unique_indexes = RNA_unique_indexes[
             np.logical_not(removed_RNAs_mask)]
         removed_ribosomes_mask = np.logical_not(np.isin(
-            ribosome_mRNA_indexes, remaining_RNA_unique_indexes.astype(int)))
+            ribosome_mRNA_indexes, remaining_RNA_unique_indexes))
         n_removed_ribosomes = np.count_nonzero(removed_ribosomes_mask)
 
         # Remove ribosomes that are bound to removed mRNA molecules
@@ -537,7 +502,7 @@ class ChromosomeStructure(Process):
 
         # Write to listener
         update['listeners']['RnapData']['n_removed_ribosomes'] = n_removed_ribosomes
-        
+
 
         def get_replicated_motif_attributes(old_coordinates, old_domain_indexes):
             """
@@ -556,7 +521,9 @@ class ChromosomeStructure(Process):
             return new_coordinates, new_domain_indexes
 
 
-        # Replicate promoters
+        #######################
+        # Replicate promoters #
+        #######################
         n_new_promoters = 2*np.count_nonzero(removed_promoters_mask)
 
         if n_new_promoters > 0:
@@ -578,21 +545,21 @@ class ChromosomeStructure(Process):
                 promoter_domain_indexes[removed_promoters_mask])
 
             # Add new promoters with new domain indexes
+            promoter_indices = create_unique_indexes(
+                n_new_promoters, self.random_state)
             new_promoters = arrays_to(
                 n_new_promoters, {
-                    'unique_index': np.arange(
-                        self.promoter_index, self.promoter_index + 
-                        n_new_promoters).astype(str),
+                    'unique_index': np.array(promoter_indices),
                     'TU_index': promoter_TU_indexes_new,
                     'coordinates': promoter_coordinates_new,
                     'domain_index': promoter_domain_indexes_new,
                     'bound_TF': np.zeros((n_new_promoters, self.n_TFs), dtype=np.bool).tolist()})
             update['promoters'].update(add_elements(
                 new_promoters, 'unique_index'))
-            self.promoter_index += n_new_promoters
 
-
-        # Replicate DnaA boxes
+        ########################
+        # Replicate DnaA boxes #
+        ########################
         n_new_DnaA_boxes = 2*np.count_nonzero(removed_DnaA_boxes_mask)
 
         if n_new_DnaA_boxes > 0:
@@ -609,18 +576,17 @@ class ChromosomeStructure(Process):
                 DnaA_box_domain_indexes[removed_DnaA_boxes_mask])
 
             # Add new promoters with new domain indexes
+            DnaA_box_indices = create_unique_indexes(
+                n_new_DnaA_boxes, self.random_state)
             new_DnaA_boxes = arrays_to(
                 n_new_DnaA_boxes, {
-                    'unique_index': np.arange(
-                        self.DnaA_box_index, self.DnaA_box_index + 
-                        n_new_DnaA_boxes).astype(str),
+                    'unique_index': np.array(DnaA_box_indices),
                     'coordinates': DnaA_box_coordinates_new,
                     'domain_index': DnaA_box_domain_indexes_new,
                     'DnaA_bound': np.zeros(n_new_DnaA_boxes, dtype=np.bool).tolist()})
             update['DnaA_boxes'].update(add_elements(
                 new_DnaA_boxes, 'unique_index'))
-            self.DnaA_box_index += n_new_DnaA_boxes
-            
+
         return update
 
 

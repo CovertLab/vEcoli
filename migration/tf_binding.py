@@ -8,9 +8,9 @@ import matplotlib.pyplot as plt
 from migration.plots import qqplot
 import os
 
-from vivarium.core.engine import Engine
+from vivarium.core.engine import Engine, view_values
 from ecoli.library.sim_data import LoadSimData
-from ecoli.composites.ecoli_master import SIM_DATA_PATH
+from ecoli.composites.ecoli_nonpartition import SIM_DATA_PATH
 from ecoli.processes.tf_binding import TfBinding
 from migration.migration_utils import (ComparisonTestSuite, array_equal, 
                                        array_diffs_report_test, scalar_equal)
@@ -45,8 +45,9 @@ def custom_run_process(
 
     # translate the values from the tree structure into the form
     # that this process expects, based on its declared topology
-    states = store.outer.schema_topology(process.schema, store.topology)
-    
+    topology_view = store.outer.schema_topology(process.schema, store.topology)
+    states = view_values(topology_view)
+
     # Make process see partitioned molecule counts
     with open(f"data/tf_binding/tf_binding_partitioned_t"
               f"{total_time+initial_time}.json") as f:

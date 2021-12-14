@@ -34,11 +34,12 @@ def testSwapProcess():
     sim = EcoliSim.from_file(CONFIG_DIR_PATH + 'test_configs/test_swap_process.json')
     sim.total_time = 2
     data = sim.run()
-    
-    assert "ecoli-mass" in sim.ecoli.processes.keys()
+
+    assert "ecoli-mass" in sim.ecoli.steps.keys()
     assert "ecoli-mass" in sim.ecoli.topology.keys()
     assert "dnaMass" not in data['listeners']['mass'].keys()
     assert "ecoli-mass-listener" not in sim.ecoli.processes.keys()
+    assert "ecoli-mass-listener" not in sim.ecoli.steps.keys()
     assert "ecoli-mass-listener" not in sim.ecoli.topology.keys()
 
 
@@ -57,6 +58,14 @@ def test_export():
     sim1 = EcoliSim.from_file()
     sim1.export_json(CONFIG_DIR_PATH + "test_configs/test_export.json")
 
+
+def test_load_state():
+    sim1 = EcoliSim.from_file(CONFIG_DIR_PATH + 'test_configs/test_save_state.json')
+    sim1.run()
+    sim2 = EcoliSim.from_file(CONFIG_DIR_PATH + 'test_configs/test_load_state.json')
+    sim2.run()
+
+
 def main():
     testDefault()
     testAddProcess()
@@ -64,6 +73,7 @@ def main():
     testSwapProcess()
     test_merge()
     test_export()
+    test_load_state()
 
 
 if __name__=="__main__":
