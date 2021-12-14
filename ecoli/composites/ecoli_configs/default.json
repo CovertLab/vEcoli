@@ -4,9 +4,8 @@
     "description" : "",
     "progress_bar" : true,
     "sim_data_path": "reconstruction/sim_data/kb/simData.cPickle",
-    "emitter" : "database",
+    "emitter" : "timeseries",
     "emitter_arg": [
-	["host", "localhost:27017"]
     ],
     "emit_topology" : true,
     "emit_processes" : false,
@@ -63,5 +62,7 @@
         }
     },
     "topology": {
+    },
+    "_schema": {
     }
 }
