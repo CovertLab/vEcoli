@@ -355,6 +355,13 @@ def test_division(
 
     # retrieve output
     output = experiment.emitter.get_data()
+    for timestep in output:
+        if len(output[timestep]['agents'].keys()) == 2:
+            divide_time = timestep
+            mother_time = timestep - 2.0
+            daughter_1 = output[timestep]['agents'].keys()[0]
+            daughter_2 = output[timestep]['agents'].keys()[1]
+            break
 
     # asserts
     initial_agents = output[0.0]['agents'].keys()
