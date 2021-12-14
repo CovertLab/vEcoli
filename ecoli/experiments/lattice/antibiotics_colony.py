@@ -4,11 +4,11 @@ import numpy as np
 from vivarium.core.composition import simulate_composite, BASE_OUT_DIR
 from vivarium.core.control import run_library_cli
 from vivarium.plots.agents_multigen import plot_agents_multigen
-from vivarium_multibody.composites.lattice import (
+from ecoli.composites.lattice.lattice import (
     Lattice, make_lattice_config)
-from vivarium_multibody.plots.snapshots import (
+from ecoli.plots.snapshots import (
     plot_snapshots, format_snapshot_data)
-from vivarium_multibody.plots.snapshots_video import make_video
+from ecoli.plots.snapshots_video import make_video
 
 from ecoli.composites.antibiotics_grow import GrowDivideAntibioticsCell
 
@@ -111,6 +111,6 @@ test_library = {
 }
 
 # run experiments in test_library from the command line with:
-# python ecoli/experiments/colony.py -n [experiment id]
+# python ecoli/experiments/lattice/antibiotics_colony.py -n [experiment id]
 if __name__ == '__main__':
     run_library_cli(test_library)

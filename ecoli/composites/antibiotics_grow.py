@@ -2,7 +2,6 @@ import copy
 
 import numpy as np
 
-from vivarium.core.composer import MetaComposer
 from vivarium.core.composition import (
     composite_in_experiment, simulate_experiment)
 from vivarium.library.units import units, Quantity
@@ -13,11 +12,12 @@ from vivarium.processes.divide_condition import DivideCondition
 from vivarium.processes.meta_division import MetaDivision
 from vivarium.plots.topology import plot_topology
 from vivarium.plots.agents_multigen import plot_agents_multigen
-from vivarium_multibody.composites.lattice import (
+
+from ecoli.composites.lattice.lattice import (
     Lattice, make_lattice_config)
-from vivarium_multibody.processes.derive_globals import DeriveGlobals
-from vivarium_multibody.processes.local_field import LocalField
-from vivarium_multibody.plots.snapshots import plot_snapshots
+from ecoli.processes.lattice.derive_globals import DeriveGlobals
+from ecoli.processes.lattice.local_field import LocalField
+from ecoli.plots.snapshots import plot_snapshots
 
 from ecoli.composites.antibiotics_simple import SimpleAntibioticsCell
 

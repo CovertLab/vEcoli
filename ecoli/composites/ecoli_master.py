@@ -68,11 +68,11 @@ class Ecoli(Composer):
             seed=self.config['seed'])
 
         if not self.config.get('processes'):
-            self.config['processes'] = ECOLI_DEFAULT_PROCESSES.copy()
+            self.config['processes'] = deepcopy(ECOLI_DEFAULT_PROCESSES)
         if not self.config.get('process_configs'):
             self.config['process_configs'] = {process: "sim_data" for process in self.config['processes']}
         if not self.config.get('topology'):
-            self.config['topology'] = ECOLI_DEFAULT_TOPOLOGY.copy()
+            self.config['topology'] = deepcopy(ECOLI_DEFAULT_TOPOLOGY)
 
         self.processes = self.config['processes']
         self.topology = self.config['topology']
@@ -180,11 +180,11 @@ class Ecoli(Composer):
         processes.update(evolvers)
 
         # add division process
-        if self.config['divide']:
+        if config['divide']:
             division_name = 'division'
             division_config = dict(
                 config['division'],
-                agent_id=self.config['agent_id'],
+                agent_id=config['agent_id'],
                 composer=self)
             division_process = {division_name: Division(division_config)}
             processes.update(division_process)
@@ -279,7 +279,7 @@ class Ecoli(Composer):
                         'log_update', process_id,)
 
         # add division
-        if self.config['divide']:
+        if config['divide']:
             topology['division'] = {
                 'variable': ('listeners', 'mass', 'cell_mass'),
                 'agents': config['agents_path']}
@@ -337,7 +337,6 @@ def test_division(
 
     # make a new composer under an embedded path
     config = {
-        'log_updates': True,
         'divide': True,
         'agent_id': agent_id,
         'division': {
@@ -381,7 +380,6 @@ def test_division_topology():
     # make a new composer under an embedded path
     agent_id = '0'
     config = {
-        'log_updates': True,  # TODO(Matt): pytest fails if log_updates is False?
         'divide': True,
         'agent_id': agent_id,
         'division': {
