@@ -167,10 +167,8 @@ class Metabolism(Process):
             'listeners': {
                 'mass': {
                     # TODO(Matt): These should not be using a divider. Mass listener should run before metabolism after division.
-                    'cell_mass': {'_default': 0.0,
-                                  '_divider': 'split'},
-                    'dry_mass': {'_default': 0.0,
-                                 '_divider': 'split'}},
+                    'cell_mass': {'_default': 0.0},
+                    'dry_mass': {'_default': 0.0}},
 
                 'fba_results': {
                     'media_id': {'_default': '', '_updater': 'set'},
