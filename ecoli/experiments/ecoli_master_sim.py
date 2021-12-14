@@ -206,7 +206,7 @@ class EcoliSim:
 
             process_topology = topology_registry.access(original_process)
             if process_topology:
-                process_topology = dict(process_topology)
+                process_topology = copy.deepcopy(process_topology)
             else:
                 process_topology = {}
 
