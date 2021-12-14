@@ -177,11 +177,11 @@ class Ecoli(Composer):
         processes.update(evolvers)
 
         # add division process
-        if config['divide']:
+        if self.config['divide']:
             division_name = 'division'
             division_config = dict(
                 config['division'],
-                agent_id=config['agent_id'],
+                agent_id=self.config['agent_id'],
                 composer=self)
             division_process = {division_name: Division(division_config)}
             processes.update(division_process)
@@ -276,7 +276,7 @@ class Ecoli(Composer):
                         'log_update', process_id,)
 
         # add division
-        if config['divide']:
+        if self.config['divide']:
             topology['division'] = {
                 'variable': ('listeners', 'mass', 'cell_mass'),
                 'agents': config['agents_path']}
@@ -322,7 +322,7 @@ def run_ecoli(
 @pytest.mark.slow
 def test_division(
         agent_id='1',
-        total_time=60
+        total_time=16
 ):
     """tests that a cell can be divided and keep running"""
 
