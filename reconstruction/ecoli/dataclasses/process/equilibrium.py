@@ -388,19 +388,23 @@ class Equilibrium(object):
 					derivatives, [0, time_limit], y_init,
 					method=method, t_eval=[0, time_limit],
 					jac=derivatives_jacobian)
+
+				y = sol.y.T
+
+				if np.any(y[-1, :] * (cellVolume * nAvogadro) <= -1):
+					raise ValueError(
+						'Have negative values at equilibrium steady state -- probably due to numerical instability.')
+				if np.linalg.norm(derivatives(0, y[-1, :]), np.inf) * (cellVolume * nAvogadro) > 1:
+					raise RuntimeError('Did not reach steady state for equilibrium.')
+
 				break
-			except ValueError as e:
+
+			except (RuntimeError or ValueError) as e:
 				print(f'Warning: switching solver method in equilibrium, {e!r}')
 		else:
 			raise RuntimeError('Could not solve ODEs in equilibrium to SS.'
 				' Try adjusting time step or changing methods.')
 
-		y = sol.y.T
-
-		if np.any(y[-1, :] * (cellVolume * nAvogadro) <= -1):
-			raise ValueError('Have negative values at equilibrium steady state -- probably due to numerical instability.')
-		if np.linalg.norm(derivatives(0, y[-1, :]), np.inf) * (cellVolume * nAvogadro) > 1:
-			raise RuntimeError('Did not reach steady state for equilibrium.')
 		y[y < 0] = 0
 		yMolecules = y * (cellVolume * nAvogadro)
 

@@ -27,7 +27,10 @@ def load_states(path):
     return states
 
 
-def get_state_from_file(path='data/wcecoli_t0.json'):
+def get_state_from_file(
+        path='data/wcecoli_t0.json',
+        convert_unique_id_to_string=True,
+):
 
     states = load_states(path)
 
@@ -69,12 +72,17 @@ def get_state_from_file(path='data/wcecoli_t0.json'):
     
     for mol_type, molecules in states['unique'].items():
         initial_state['unique'].update({mol_type: {}})
-        for molecule, values in molecules.items():
-            initial_state['unique'][mol_type][molecule] = {'submass' : np.zeros(len(MASSDIFFS))}
+        for molecule_id, values in molecules.items():
+            if convert_unique_id_to_string:
+                molecule_id = str(molecule_id)
+            initial_state['unique'][mol_type][molecule_id] = {'submass': np.zeros(len(MASSDIFFS))}
             for key, value in values.items():
                 if key in MASSDIFFS:
-                    initial_state['unique'][mol_type][molecule]['submass'][MASSDIFFS[key]] = value
+                    initial_state['unique'][mol_type][molecule_id]['submass'][MASSDIFFS[key]] = value
+                elif key in ['unique_index', 'RNAP_index', 'mRNA_index'] and convert_unique_id_to_string:
+                    # convert these values to strings
+                    initial_state['unique'][mol_type][molecule_id][key] = str(value)
                 else:
-                    initial_state['unique'][mol_type][molecule][key] = value
+                    initial_state['unique'][mol_type][molecule_id][key] = value
 
     return initial_state

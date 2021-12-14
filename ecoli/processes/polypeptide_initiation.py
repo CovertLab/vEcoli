@@ -3,8 +3,6 @@
 Polypeptide Initiation
 ======================
 
-Polypeptide initiation sub-model.
-
 This process models the complementation of 30S and 50S ribosomal subunits
 into 70S ribosomes on mRNA transcripts. This process is in many ways
 analogous to the TranscriptInitiation process - the number of initiation
@@ -17,12 +15,11 @@ from typing import cast
 
 import numpy as np
 
-from vivarium.core.process import Process
 from vivarium.core.composition import simulate_process
-from vivarium.library.dict_utils import deep_merge
-
 from ecoli.library.schema import (
-    arrays_from, arrays_to, add_elements, bulk_schema)
+    arrays_from, arrays_to, add_elements,
+    bulk_schema, dict_value_schema, create_unique_indexes,
+)
 
 from wholecell.utils import units
 from wholecell.utils.fitting import normalize
@@ -44,9 +41,10 @@ topology_registry.register(NAME, TOPOLOGY)
 
 
 class PolypeptideInitiation(PartitionedProcess):
+    """ Polypeptide Initiation PartitionedProcess """
+
     name = NAME
     topology = TOPOLOGY
-
     defaults = {
         'protein_lengths': [],
         'translation_efficiencies': [],
@@ -60,7 +58,13 @@ class PolypeptideInitiation(PartitionedProcess):
         'ribosome30S': 'ribosome30S',
         'ribosome50S': 'ribosome50S',
         'seed': 0,
-        'shuffle_indexes': None}
+        'shuffle_indexes': None,
+        'partitioning_hidden_state_instance_variables': [
+            'fracActiveRibosome',
+            'elongation_rates',
+            'random_state',
+        ],
+    }
 
     def __init__(self, parameters=None):
         super().__init__(parameters)
@@ -72,10 +76,10 @@ class PolypeptideInitiation(PartitionedProcess):
         self.ribosome_elongation_rates_dict = self.parameters['elongation_rates']
         self.variable_elongation = self.parameters['variable_elongation']
         self.make_elongation_rates = self.parameters['make_elongation_rates']
-        
+
         # Get indexes from proteins to transcription units
         self.protein_index_to_TU_index = self.parameters['protein_index_to_TU_index']
-        
+
         # Build matrix to convert transcription unit counts to mRNA counts
         self.all_TU_ids = self.parameters['all_TU_ids']
         self.all_mRNA_ids = self.parameters['all_mRNA_ids']
@@ -127,25 +131,17 @@ class PolypeptideInitiation(PartitionedProcess):
                         '_default': 0.0,
                         '_updater': 'set',
                         '_emit': True}}},
-            'active_ribosome': {
-                '*': {
-                    'unique_index': {'_default': 0},
-                    'protein_index': {'_default': 0},
-                    'peptide_length': {'_default': 0, '_emit': True},
-                    'mRNA_index': {'_default': 0},
-                    'pos_on_mRNA': {'_default': 0, '_emit': True}}},
-            'RNA': {
-                '*': {
-                    'TU_index': {'_default': 0},
-                    'can_translate': {'_default': False},
-                    'unique_index': {'_default': 0}}},
+
+            'active_ribosome': dict_value_schema('active_ribosome'),
+
+            'RNA': dict_value_schema('RNAs'),
             'subunits': bulk_schema([
                 self.ribosome30S,
                 self.ribosome50S])}
-    
+
     def calculate_request(self, timestep, states):
         current_media_id = states['environment']['media_id']
-        
+
         requests = {'subunits': states['subunits']}
 
         self.fracActiveRibosome = self.active_ribosome_fraction[current_media_id]
@@ -168,8 +164,8 @@ class PolypeptideInitiation(PartitionedProcess):
         # Ensure rates are never zero
         self.elongation_rates = np.fmax(self.elongation_rates, 1)
         return requests
-        
-        
+
+
     def evolve_state(self, timestep, states):
         # Calculate number of ribosomes that could potentially be initialized
         # based on counts of free 30S and 50S subunits
@@ -218,7 +214,7 @@ class PolypeptideInitiation(PartitionedProcess):
         # corresponds to the polypeptide it will polymerize. This is done in
         # blocks of protein ids for efficiency.
         protein_indexes = np.empty(n_ribosomes_to_activate, np.int64)
-        mRNA_indexes = np.empty(n_ribosomes_to_activate, np.int64)
+        mRNA_indexes = np.empty(n_ribosomes_to_activate, dtype="U40")
         nonzero_count = (n_new_proteins > 0)
         start_index = 0
 
@@ -244,16 +240,16 @@ class PolypeptideInitiation(PartitionedProcess):
             start_index += counts
 
         # Create active 70S ribosomes and assign their attributes
+        ribosome_indices = create_unique_indexes(
+            n_ribosomes_to_activate, self.random_state)
+        ribosome_indices = np.array(ribosome_indices)
         new_ribosomes = arrays_to(
             n_ribosomes_to_activate, {
-                'unique_index': np.arange(self.ribosome_index, self.ribosome_index + n_ribosomes_to_activate).astype(str),
+                'unique_index': ribosome_indices,
                 'protein_index': protein_indexes,
                 'peptide_length': np.zeros(cast(int, n_ribosomes_to_activate), dtype=np.int64),
                 'mRNA_index': mRNA_indexes,
                 'pos_on_mRNA': np.zeros(cast(int, n_ribosomes_to_activate), dtype=np.int64)})
-
-        # TODO(vivarium) -- this tracking of index seems messy -- can it automatically create new index?
-        self.ribosome_index += n_ribosomes_to_activate
 
         update = {
             'subunits': {
@@ -277,16 +273,17 @@ class PolypeptideInitiation(PartitionedProcess):
         """
         Calculates the expected ribosome termination rate based on the ribosome
         elongation rate
-        Params:
-            - allTranslationTimes: Vector of times required to translate each
-            protein
-            - allTranslationTimestepCounts: Vector of numbers of timesteps
-            required to translate each protein
-            - averageTranslationTimeStepCounts: Average number of timesteps
-            required to translate a protein, weighted by initiation
-            probabilities
-            - expectedTerminationRate: Average number of terminations in one
-            timestep for one protein
+
+        Args:
+            allTranslationTimes: Vector of times required to translate each
+                protein
+            allTranslationTimestepCounts: Vector of numbers of timesteps
+                required to translate each protein
+            averageTranslationTimeStepCounts: Average number of timesteps
+                required to translate a protein, weighted by initiation
+                probabilities
+            expectedTerminationRate: Average number of terminations in one
+                timestep for one protein
         """
         allTranslationTimes = 1. / ribosomeElongationRates * proteinLengths
         allTranslationTimestepCounts = np.ceil(allTranslationTimes / timeStepSec)

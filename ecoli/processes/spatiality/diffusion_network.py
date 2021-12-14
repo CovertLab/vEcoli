@@ -1,3 +1,44 @@
+"""
+=================
+Diffusion Network
+=================
+
+``DiffusionNetwork`` models Brownian diffusion using a network of nodes
+and edges. Each node acts as a cellular compartment and each edge connects
+those compartments, indicating where diffusion can occur.
+
+This :term:`process class` models diffusion based off of Fick's law.
+The following equation is used:
+
+* Diffusion: :math:`\\frac{dc}{dt} = \\frac{DA}{V} * \\frac{dc}{dx}`
+
+ * :math:`D`: Diffusion constant
+ * :math:`A`: Cross-sectional area of edge
+ * :math:`V`: Volume of node
+
+This diffusion equation is solved using implicit Euler to derive a
+matrix, M, that updates the concentration, c(t), on each timestep.
+
+* Concentration update: :math:`c_{t+1} = M^{-1} * c_{t}`
+
+This process takes in molecular weights in order to solve for
+molecule hydrodynamic radii, which is it turn used to solve for
+diffusion constants. These calculations assume that all
+molecules are spherical proteins. For more information on how
+this is done, see ``calculate_rp_from_mw`` and
+``compute_diffusion_constants_from_rp``.  However, if a
+molecule radius is known, it can be passed in as ``radii``.
+Similarly, if the diffusion constant is known, it can be passed
+in as a property of an edge as ``diffusion_constants``.
+
+.. note::
+ This model treats all molecule classes as concentrations and is
+ a deterministic solution. This model should only be used when there
+ is a sufficient number of molecules such that they can be treated
+ deterministically.
+
+"""
+
 import os
 import numpy as np
 import matplotlib.pyplot as plt
@@ -14,72 +55,40 @@ from vivarium.core.composition import (
 NAME = 'diffusion_network'
 
 class DiffusionNetwork(Process):
-    """ Models Brownian diffusion using a network of nodes and edges. Each
-        node acts as a cellular compartment and each edge connects those
-        compartments, indicating where diffusion can occur.
+    """ Models diffusion between a network of connected nodes.
 
-         This :term:`process class` models diffusion based off of Fick's law.
-         The following equation is used:
+     :term:`Ports`:
+     * **nodes**: Expects a :term:`store` which is a dict of node names
+       (the keys of the dict) to a dict, which has the key value
+       pairs for ``length``, ``volume``, and ``molecules``.
 
-         * Diffusion: :math:`\\frac{dc}{dt} = \\frac{DA}{V} * \\frac{dc}{dx}`
+     Args:
+         parameters: A dictionary of configuration options.
+             The following configuration options may be provided:
 
-             * :math:`D`: Diffusion constant
-             * :math:`A`: Cross-sectional area of edge
-             * :math:`V`: Volume of node
-
-         This diffusion equation is solved using implicit Euler to derive a
-         matrix, M, that updates the concentration, c(t), on each timestep.
-
-         * Concentration update: :math:`\\c^{t+1} = M^{-1} * c^{t}`
-
-         This process takes in molecular weights in order to solve for
-         molecule hydrodynamic radii, which is it turn used to solve for
-         diffusion constants. These calculations assume that all molecules are
-         spherical proteins. For more information on how this is done, see
-         `calculate_rp_from_mw` and `compute_diffusion_constants_from_rp`.
-         However, if a molecule radius is known, it can be passed in as
-         `radii`. Similarly, if the diffusion constant is known, it can be
-         passed in as a property of an edge as `diffusion_constants`.
-
-
-         .. note::
-             This model treats all molecule classes as concentrations and is
-             a deterministic solution. This model should only be used when there
-             is a sufficient number of molecules such that they can be treated
-             deterministically.
-
-         :term:`Ports`:
-
-         * **nodes**: Expects a :term:`store` which is a dict of node names
-         (the keys of the dict) to a dict, which has the key value pairs
-         for `length`, `volume`, and `molecules`.
-
-         Arguments:
-             parameters: A dictionary of configuration options.
-                 The following configuration options may be provided:
-
-                 * **nodes** (:py:class:`list`): A list of node names.
-                 * **edges** (:py:class:`dict`): Maps edge
-                   names (the keys of the dict) to a dict (the
-                   values of the dict), which must include the key-value
-                   pairs of `nodes` to a list of nodes each edge connects,
-                   and `cross_sectional_area` to the area of that edge.
-                   Additionally, known diffusion constants can be included as
-                   `diffusion_constants` in units of um^2/s, and edge-specific
-                   scaling of the diffusion constants can be included as,
-                   `diffusion_scaling_constant`.
-                 * **mw** (:py:class:`dict`): Maps from
-                   names of molecules (the keys of the dict) to their
-                   molecular weights in units of fg (the values of the dict).
-                 * **mesh_size** (:py:class:`float`): Mesh size in units of nm.
-                 * **time_step** (:py:class:`float`): The time step used in
-                   units of s.
-                 * **radii** (:py:class:`dict`): Maps from molecule names
-                   of molecules (the keys of the dict) to their known
-                   hydrodynamic radii in units of nm (the values of the dict).
-                   This is an optional parameter.
-                 * **temp** (:py:class:`float`): Temperature of experiment
-                 in units of K. This is an optional parameter.
+             * **nodes** (:py:class:`list`): A list of node names.
+             * **edges** (:py:class:`dict`): Maps edge
+               names (the keys of the dict) to a dict (the values of
+               the dict), which must include the key-value pairs of
+               ``nodes`` to a list of nodes each edge connects, and
+               ``cross_sectional_area`` to the area of that edge.
+               Additionally, known diffusion constants can be
+               included as ``diffusion_constants`` in units of
+               um^2/s, and edge-specific scaling of the diffusion
+               constants can be included as,
+               ``diffusion_scaling_constant``.
+             * **mw** (:py:class:`dict`): Maps from
+               names of molecules (the keys of the dict) to their
+               molecular weights in units of fg (the values of the dict).
+             * **mesh_size** (:py:class:`float`): Mesh size in units of nm.
+             * **time_step** (:py:class:`float`): The time step used in
+               units of s.
+             * **radii** (:py:class:`dict`): Maps from molecule names
+               of molecules (the keys of the dict) to their known
+               hydrodynamic radii in units of nm (the values of the dict).
+               This is an optional parameter.
+             * **temp** (:py:class:`float`): Temperature of experiment
+               in units of K. This is an optional parameter.
     """
 
     name = NAME
@@ -116,16 +125,9 @@ class DiffusionNetwork(Process):
 
     def ports_schema(self):
         """
-        ports_schema returns a dictionary that declares how each state will behave.
-        Each key can be assigned settings for the schema_keys declared in Store:
-
-        * `_default`
-        * `_updater`
-        * `_divider`
-        * `_value`
-        * `_properties`
-        * `_emit`
-        * `_serializer`
+        Dynamically constructs ports -- one port for each node in ``DiffusionNetwork.parameters['nodes']``.
+        Each node has variables ``volume``, ``length``, and a ``molecules`` dict with molecule names mapped
+        to their counts.
         """
         schema = {
             node_id: {
@@ -334,29 +336,32 @@ def plot_output(output, nodes, out_dir='out'):
 # This function is modified from spatial_tool.py from WCM
 def calculate_rp_from_mw(molecule_ids, mw):
     """
-        This function compute the hydrodynamic radius of a macromolecules from
-        its molecular weight. It is important to note that the hydrodynamic
-        diameter is mainly used for computation of diffusion constant, and can
-        be different from the observed diameter under microscopes or the radius
-        of gyration, especially for loose polymers such as RNAs. This function
-        is not E coli specific.
+    This function compute the hydrodynamic radius of a macromolecules from
+    its molecular weight. It is important to note that the hydrodynamic
+    diameter is mainly used for computation of diffusion constant, and can
+    be different from the observed diameter under microscopes or the radius
+    of gyration, especially for loose polymers such as RNAs. This function
+    is not E coli specific.
 
-        References: Bioinformatics (2012). doi:10.1093/bioinformatics/bts537
+    References: Bioinformatics (2012). doi:10.1093/bioinformatics/bts537
 
-        Args:
-            molecule_ids: List of molecule ids.
-            mw: molecular weight of the macromolecules, units: fg.
+    Args:
+        molecule_ids: List of molecule ids.
+        mw: molecular weight of the macromolecules, units: fg.
 
-        Returns: the hydrodynamic radius (in unit of nm) of the macromolecules
+    Returns:
+        the hydrodynamic radius (in unit of nm) of the macromolecules
         using the following formula:
-            - rp = 0.0515*MW^(0.392) nm (Hong & Lei 2008) (protein)
 
-        These parameters are also possible for other macromolecule types,
-        however all molecules are currently assumed to be proteins.
-            - rp = 0.0566*MW^(0.38) nm (Werner 2011) (RNA)
-            - rp = 0.024*MW^(0.57) nm (Robertson et al 2006) (linear DNA)
-            - rp = 0.0125*MW^(0.59) nm (Robertson et al 2006) (circular DNA)
-            - rp = 0.0145*MW^(0.57) nm (Robertson et al 2006) (supercoiled DNA)
+        * ``rp = 0.0515*MW^(0.392) nm`` (Hong & Lei 2008) (protein)
+
+    These parameters are also possible for other macromolecule types,
+    however all molecules are currently assumed to be proteins.
+
+    * ``rp = 0.0566*MW^(0.38) nm`` (Werner 2011) (RNA)
+    * ``rp = 0.024*MW^(0.57) nm`` (Robertson et al 2006) (linear DNA)
+    * ``rp = 0.0125*MW^(0.59) nm`` (Robertson et al 2006) (circular DNA)
+    * ``rp = 0.0145*MW^(0.57) nm`` (Robertson et al 2006) (supercoiled DNA)
     """
 
     dic_rp = {'protein': (0.0515, 0.392),
@@ -383,49 +388,54 @@ def calculate_rp_from_mw(molecule_ids, mw):
 def compute_diffusion_constants_from_rp(molecule_ids, rp, mesh_size, edges,
                                        temp):
     """
-        Warning: The default values of the 'parameters' are E coli specific.
+    Warning: The default values of the 'parameters' are E coli specific.
 
-        This function computes the hypothesized diffusion constant of
-        macromolecules within the nucleoid and the cytoplasm region.
-        In literature, there is no known differentiation between the diffusion
-        constant of a molecule in the nucleoid and in the cytoplasm up to the
-        best of our knowledge in 2020. However, there is a good reason why we
-        can assume that previously reported diffusion constant are in fact the
-        diffusion constant of a protein in the nucleoid region:
-        (1) The image traces of a protein within a bacteria usually cross the
-            nucleoid regions.
-        (2) The nucleoid region, compared to the cytoplasm, should be the main
-        limiting factor restricting the magnitude of diffusion constant.
-        (3) The same theory of diffusion constant has been implemented to
-        mammalian cells, and the term 'rh', the average hydrodynamic radius of
-        the biggest crowders, are different in mammalian cytoplasm, and it seems
-        to reflect the hydrodynamic radius of the actin filament (note: the
-        hydrodynamic radius of actin filament should be computed based on the
-        average length of actin fiber, and is not equal to the radius of the
-        actin filament itself.) (ref: Nano Lett. 2011, 11, 2157-2163).
-        As for E coli, the 'rh' term = 40nm, which may correspond to the 80nm
-        DNA fiber. On the other hand, for the diffusion constant of E coli in
-        the true cytoplasm, we will expect the value of 'rh' term to be
-        approximately 10 nm, which correspond to the radius of active ribosomes.
+    This function computes the hypothesized diffusion constant of
+    macromolecules within the nucleoid and the cytoplasm region.
+    In literature, there is no known differentiation between the diffusion
+    constant of a molecule in the nucleoid and in the cytoplasm up to the
+    best of our knowledge in 2020. However, there is a good reason why we
+    can assume that previously reported diffusion constant are in fact the
+    diffusion constant of a protein in the nucleoid region:
 
-        Using these terms for scaling a baseline diffusion constant (calculated
-        from Enstein-Stokes equation), a cytosol-specific diffusion calculation
-        can be obtained).
+    1. The image traces of a protein within a bacteria usually cross the
+       nucleoid regions.
+    2. The nucleoid region, compared to the cytoplasm, should be the main
+       limiting factor restricting the magnitude of diffusion constant.
+    3. The same theory of diffusion constant has been implemented to
+       mammalian cells, and the term 'rh', the average hydrodynamic
+       radius of the biggest crowders, are different in mammalian
+       cytoplasm, and it seems to reflect the hydrodynamic radius of the
+       actin filament (note: the hydrodynamic radius of actin filament
+       should be computed based on the average length of actin fiber,
+       and is not equal to the radius of the actin filament itself.)
+       (ref: Nano Lett. 2011, 11, 2157-2163).  As for E coli, the 'rh'
+       term = 40nm, which may correspond to the 80nm DNA fiber. On the
+       other hand, for the diffusion constant of E coli in the true
+       cytoplasm, we will expect the value of 'rh' term to be
+       approximately 10 nm, which correspond to the radius of active
+       ribosomes.
 
-        Ref: Kalwarczyk, T., Tabaka, M. & Holyst, R.
-        Bioinformatics (2012). doi:10.1093/bioinformatics/bts537
+    Using these terms for scaling a baseline diffusion constant (calculated
+    from Enstein-Stokes equation), a cytosol-specific diffusion calculation
+    can be obtained).
 
-        This function computes the hypothesized diffusion constant of
-        macromolecules within the nucleoid region by scaling the hypothesized
-        cytoplasm diffusion constant. There is evidence that as molecules
-        grow in size, they become more excluded from E. coli's nucleoid because
-        the DNA polymers form a meshgrid with an estimated mesh size of 50
-        nm (ref: Xiang et al., bioRxiv (2020)). The equation implemented here
-        assumes that molecules move through the network by encountering openings
-        between the DNA meshgrid greater than the hydrodynamic radius.
+    Ref: Kalwarczyk, T., Tabaka, M. & Holyst, R.
+    Bioinformatics (2012). doi:10.1093/bioinformatics/bts537
 
-        Ref: Brian Amsden
-        Macromolecules (1999). doi:10.1021/ma980922a
+    This function computes the hypothesized diffusion constant of
+    macromolecules within the nucleoid region by scaling the hypothesized
+    cytoplasm diffusion constant. There is evidence that as molecules
+    grow in size, they become more excluded from E. coli's nucleoid because
+    the DNA polymers form a meshgrid with an estimated mesh size of 50
+    nm (ref: Xiang et al., bioRxiv (2020)). The equation implemented here
+    assumes that molecules move through the network by encountering openings
+    between the DNA meshgrid greater than the hydrodynamic radius.
+
+    Ref: Brian Amsden
+    Macromolecules (1999). doi:10.1021/ma980922a
+
+    .. code-block:: text
 
         D_0 = K_B*T/(6*pi*eta_0*rp)
         ln(D_0/D_cyto) = ln(eta/eta_0) = (xi^2/Rh^2 + xi^2/rp^2)^(-a/2)
@@ -437,23 +447,27 @@ def compute_diffusion_constants_from_rp(molecule_ids, rp, mesh_size, edges,
         a = some constant of the order of 1
         rp = hydrodynamic radius of probed molecule
 
-        In this formula, since we allow the changes in temperature, we also
-        consider the viscosity changes of water under different temperature:
-        Ref: Dortmund Data Bank
+    In this formula, since we allow the changes in temperature, we also
+    consider the viscosity changes of water under different temperature:
+
+    .. code-block:: text
+
         eta_0 = A*10^(B/(T-C))
         A = 2.414*10^(-5) Pa*sec
         B = 247.8 K
         C = 140 K
 
-        Args:
-            molecule_ids: List of molecule ids.
-            rp: List of radii corresponding to each molecule id. unit: nm
-            mesh_size: Size of meshgrid openings. unit: nm
-            edges: Dictionary of edges.
-            temp: The temperature of interest. unit: K.
+    Ref: Dortmund Data Bank
 
-        Returns:
-            dc: the diffusion constant of the macromolecule, units: um**2/sec
+    Args:
+        molecule_ids: List of molecule ids.
+        rp: List of radii corresponding to each molecule id. unit: nm
+        mesh_size: Size of meshgrid openings. unit: nm
+        edges: Dictionary of edges.
+        temp: The temperature of interest. unit: K.
+
+    Returns:
+        the diffusion constant of the macromolecule, units: ``um**2/sec``
     """
     if temp is None:
         temp = 310.15

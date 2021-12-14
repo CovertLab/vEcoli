@@ -1,9 +1,7 @@
 """
-==========
-Tf Binding
-==========
-
-Transcription factor binding sub-model.
+============================
+Transcription Factor Binding
+============================
 
 This process models how transcription factors bind to promoters on the DNA sequence.
 """
@@ -12,7 +10,7 @@ import numpy as np
 
 from vivarium.library.dict_utils import deep_merge
 
-from ecoli.library.schema import arrays_from, arrays_to, bulk_schema, listener_schema, submass_schema
+from ecoli.library.schema import arrays_from, bulk_schema, dict_value_schema, listener_schema
 
 from wholecell.utils.random import stochasticRound
 from wholecell.utils import units
@@ -34,6 +32,7 @@ topology_registry.register(NAME, TOPOLOGY)
 
 
 class TfBinding(PartitionedProcess):
+    """ Transcription Factor Binding PartitionedProcess """
     name = NAME
     topology = TOPOLOGY
     defaults = {
@@ -109,11 +108,7 @@ class TfBinding(PartitionedProcess):
         
     def ports_schema(self):
         return {
-            'promoters': {
-                '*': {
-                    'TU_index': {'_default': 0, '_updater': 'set', '_emit': True},
-                    'bound_TF': {'_default': 0, '_updater': 'set', '_emit': True},
-                    'submass': submass_schema()}},
+            'promoters': dict_value_schema('promoters'),
 
             'active_tfs': bulk_schema([
                 self.active_tfs[tf]
@@ -247,7 +242,7 @@ class TfBinding(PartitionedProcess):
         update['promoters'] = {
             key: {
                 'bound_TF': bound_TF_new[index],
-                'submass': mass_diffs[index]}
+                'submass': states['promoters'][key]['submass'] + mass_diffs[index]}
             for index, key in enumerate(states['promoters'].keys())}
 
         update['listeners'] = {
@@ -273,6 +268,7 @@ def test_tf_binding_listener():
     from ecoli.experiments.ecoli_master_sim import EcoliSim
     sim = EcoliSim.from_file()
     sim.total_time = 2
+    sim.raw_output = False
     data = sim.run()
     assert(type(data['listeners']['rna_synth_prob']['gene_copy_number'][0]) == list)
     assert(type(data['listeners']['rna_synth_prob']['gene_copy_number'][1]) == list)

@@ -3,54 +3,47 @@
 RNA Degradation
 ===============
 
-Submodel for RNA degradation.
+Mathematical formulations
 
-Mathematical formulation:
+* ``dr/dt = Kb - Kd * r``
+* ``dr/dt = Kb - kcatEndoRNase * EndoRNase * r / (Km + r)``
+* ``dr/dt = Kb - kcatEndoRNase * EndoRNase * r/Km / (1 + Sum(r/Km))``
 
-dr/dt = Kb - Kd * r
-or,
+where
 
-dr/dt = Kb - kcatEndoRNase * EndoRNase * r / (Km + r)
-or,
+* r = RNA counts
+* Kb = RNA production given a RNAP synthesis rate
+* tau = doubling time
+* kcatEndoRNase = enzymatic activity for EndoRNases
+* kd = RNA degradation rates
+* Km = Michaelis-Menten constants fitted to recapitulate first-order
+* RNA decay:
 
-dr/dt = Kb - kcatEndoRNase * EndoRNase * r/Km / (1 + Sum(r/Km))
-
-    where   r = RNA counts
-            Kb = RNA production given a RNAP synthesis rate 
-            tau = doubling time
-            kcatEndoRNase = enzymatic activity for EndoRNases
-            kd = RNA degradation rates 
-            Km = Michaelis-Menten constants fitted to recapitulate first-order
-            RNA decay:
-                kd * r = kcatEndoRNase * EndoRNase * r / (Km + r),
-                    non-cooperative EndoRNases
-                kd * r = kcatEndoRNase * EndoRNase * r/Km / (1 + sum(r/Km)),
-                    cooperation
+  * non-coorperative EndoRNases:
+    ``kd * r = kcatEndoRNase * EndoRNase * r / (Km + r)``
+  * cooperation: ``kd * r = kcatEndoRNase * EndoRNase * r/Km / (1 + sum(r/Km))``
 
 This sub-model encodes molecular simulation of RNA degradation as two main
 steps guided by RNases, "endonucleolytic cleavage" and "exonucleolytic
 digestion":
 
 1. Compute total counts of RNA to be degraded (D) and total capacity for
-endo-cleavage (C) at each time point
-2. Evaluate C and D. If C > D, then define a fraction of active endoRNases 
+   endo-cleavage (C) at each time point
+2. Evaluate C and D. If C > D, then define a fraction of active endoRNases
 3. Dissect RNA degraded into different species (mRNA, tRNA, and rRNA) by
-accounting endoRNases specificity
+   accounting endoRNases specificity
 4. Update RNA fragments (assumption: fragments are represented as a pool of
-nucleotides) created because of endonucleolytic cleavage
+   nucleotides) created because of endonucleolytic cleavage
 5. Compute total capacity of exoRNases and determine fraction of nucleotides
-that can be digested
+   that can be digested
 6. Update pool of metabolites (H and H2O) created because of exonucleolytic
-digestion
+   digestion
 """
 
 import numpy as np
 
-from vivarium.core.process import Process
-from vivarium.library.dict_utils import deep_merge
-
 from ecoli.library.schema import (
-    array_from, array_to, arrays_from, arrays_to, listener_schema, bulk_schema, array_to_nonzero)
+    array_from, array_to, arrays_from, arrays_to, dict_value_schema, listener_schema, bulk_schema, array_to_nonzero)
 
 from wholecell.utils.constants import REQUEST_PRIORITY_DEGRADATION
 from wholecell.utils import units
@@ -80,6 +73,8 @@ topology_registry.register(NAME, TOPOLOGY)
 
 
 class RnaDegradation(PartitionedProcess):
+    """ RNA Degradation PartitionedProcess """
+
     name = NAME
     topology = TOPOLOGY
     defaults = {
@@ -111,8 +106,15 @@ class RnaDegradation(PartitionedProcess):
         'EndoRNaseFunc': 1,
         'ribosome30S': 'ribosome30S',
         'ribosome50S': 'ribosome50S',
-        'seed': 0}
-    
+        'seed': 0,
+        'partitioning_hidden_state_instance_variables': [
+            'random_state',
+            'n_unique_RNAs_to_deactivate',
+            'unique_mRNAs_to_degrade',
+            'n_unique_RNAs_to_degrade',
+        ],
+    }
+
     def __init__(self, parameters=None):
         super().__init__(parameters)
 
@@ -182,7 +184,7 @@ class RnaDegradation(PartitionedProcess):
 
         self.seed = self.parameters['seed']
         self.random_state = np.random.RandomState(seed = self.seed)
-        
+
     def ports_schema(self):
         return {
             'charged_trna': bulk_schema(self.charged_trna_names),
@@ -194,15 +196,8 @@ class RnaDegradation(PartitionedProcess):
             'exoRnases': bulk_schema(self.exoRnaseIds),
             'subunits': bulk_schema([self.ribosome30S, self.ribosome50S]),
             'molecules': bulk_schema([self.water_id, self.proton_id]),
-            'active_ribosome': {
-                '*': {
-                    'unique_index': {'_default': 0}}},
-            'RNAs': {
-                '*': {
-                    'unique_index': {'_default': 0, '_updater': 'set'},
-                    'TU_index': {'_default': 0, '_updater': 'set'},
-                    'is_full_transcript': {'_default': 0, '_updater': 'set'},
-                    'can_translate': {'_default': 0, '_updater': 'set'}}},
+            'active_ribosome': dict_value_schema('active_ribosome'),
+            'RNAs': dict_value_schema('RNAs'),
             'listeners': {
                 'mass': {
                     'cell_mass': {'_default': 0.0},
@@ -213,8 +208,11 @@ class RnaDegradation(PartitionedProcess):
                     'fract_endo_rrna_counts': 0,
                     'count_rna_degraded': 0,
                     'nucleotides_from_degradation': 0,
-                    'fragment_bases_digested': 0})}}
-            
+                    'fragment_bases_digested': 0,
+                }),
+            },
+        }
+
     def calculate_request(self, timestep, states):
         # Compute factor that convert counts into concentration, and vice versa
         cell_mass = states['listeners']['mass']['cell_mass'] * units.fg
@@ -233,9 +231,9 @@ class RnaDegradation(PartitionedProcess):
             += array_from(states['charged_trna'])
 
         TU_index, can_translate, is_full_transcript = arrays_from(
-            states['RNAs'].values(), 
+            states['RNAs'].values(),
             ['TU_index', 'can_translate', 'is_full_transcript'])
-         
+
         TU_index_translatable_mRNAs = TU_index[can_translate]
         unique_RNA_counts = np.bincount(
             TU_index_translatable_mRNAs, minlength=self.n_total_RNAs)
@@ -267,16 +265,16 @@ class RnaDegradation(PartitionedProcess):
                 total_kcat_endornase * frac_endornase_saturated)
             )
         endornase_per_rna = total_endornase_counts / np.sum(total_RNA_counts)
-        
+
         requests = {'listeners': {}}
         requests['listeners'].update({"rna_degradation_listener": {
-                                    "fraction_active_endo_rnases": 
+                                    "fraction_active_endo_rnases":
                                         np.sum(frac_endornase_saturated)}})
         requests['listeners'].update({"rna_degradation_listener": {
-                                    "diff_relative_first_oder_decay": 
+                                    "diff_relative_first_oder_decay":
                                         diff_relative_first_order_decay.asNumber()}})
         requests['listeners'].update({"rna_degradation_listener": {
-                                    "fract_endo_rrna_counts": 
+                                    "fract_endo_rrna_counts":
                                         endornase_per_rna}})
 
         if self.EndoRNaseFunc:
@@ -329,7 +327,7 @@ class RnaDegradation(PartitionedProcess):
 
             n_RNAs_to_degrade = n_mrnas_to_degrade + n_trnas_to_degrade + n_rrnas_to_degrade
 
-        # First order decay with non-functional EndoRNase activity 
+        # First order decay with non-functional EndoRNase activity
         # Determine mRNAs to be degraded by sampling a Poisson distribution
         # (Kdeg * RNA)
         else:
@@ -349,7 +347,7 @@ class RnaDegradation(PartitionedProcess):
         n_bulk_RNAs_to_degrade[self.is_mRNA] = 0
         self.n_unique_RNAs_to_deactivate = n_RNAs_to_degrade.copy()
         self.n_unique_RNAs_to_deactivate[np.logical_not(self.is_mRNA)] = 0
-        
+
         requests['bulk_RNAs'] = array_to(states['bulk_RNAs'], n_bulk_RNAs_to_degrade)
         requests['endoRnases'] = states['endoRnases']
         requests['exoRnases'] = states['exoRnases']
@@ -372,13 +370,13 @@ class RnaDegradation(PartitionedProcess):
         waterForLeftOverFragments = array_from(states['fragmentBases']).sum()
         requests['molecules'] = {self.water_id: waterForNewRnas + waterForLeftOverFragments}
         return requests
-        
+
     def evolve_state(self, timestep, states):
         # Get vector of numbers of RNAs to degrade for each RNA species
         n_degraded_bulk_RNA = array_from(states['bulk_RNAs']).astype(int)
         n_degraded_unique_RNA = self.n_unique_RNAs_to_degrade
         n_degraded_RNA = n_degraded_bulk_RNA + n_degraded_unique_RNA
-        
+
         # Deactivate and degrade unique RNAs
         TU_index, can_translate = arrays_from(
             states['RNAs'].values(),
@@ -400,8 +398,8 @@ class RnaDegradation(PartitionedProcess):
 
         rnas_indexes = list(states['RNAs'].keys())
         rnas_update = arrays_to(
-            len(states['RNAs']), {
-            'can_translate': can_translate})
+            len(states['RNAs']),
+            {'can_translate': can_translate})
 
         update = {
             'listeners': {
@@ -440,14 +438,14 @@ class RnaDegradation(PartitionedProcess):
         update['fragmentMetabolites'] = array_to(
             self.endCleavageMetaboliteIds,
             metabolitesEndoCleavage)
-        
+
         for polymerized_ntp in self.polymerized_ntp_ids:
             states['fragmentBases'][polymerized_ntp] += update[
                 'fragmentMetabolites'][polymerized_ntp]
-        
-        # Check if exonucleolytic digestion can happen 
+
+        # Check if exonucleolytic digestion can happen
         fragmentBases = array_from(states['fragmentBases'])
-        
+
         if fragmentBases.sum() == 0:
             return update
 
@@ -498,6 +496,27 @@ class RnaDegradation(PartitionedProcess):
             update['fragmentBases'] = array_to(self.polymerized_ntp_ids, -n_fragment_bases_digested)
 
         update['listeners']['rna_degradation_listener']['fragment_bases_digested'] = total_fragment_bases_digested
+
+        # Delete active_ribosomes on mRNAs that are being degraded.
+        update['active_ribosome'] = {'_delete': []}
+        n_terminated_elongations = 0
+        ribo_to_mrna = {ribo_index: states['active_ribosome'][ribo_index]['mRNA_index']
+                        for ribo_index in states['active_ribosome']}
+        ribo_mrnas = np.array(list(ribo_to_mrna.values()))
+        ribo_indices = list(ribo_to_mrna.keys())
+        for rna in update['RNAs']['_delete']:
+            if rna in ribo_mrnas:
+                indices = np.where(rna == ribo_mrnas)[0]
+                ribo_to_delete = []
+                for index in indices:
+                    ribo_to_delete.append(ribo_indices[index])
+                for ribo_index in ribo_to_delete:
+                    update['active_ribosome']['_delete'].append(ribo_index)
+                    n_terminated_elongations += 1
+        if n_terminated_elongations:
+            update['subunits'] = {}
+            update['subunits'][self.ribosome30S] = n_terminated_elongations
+            update['subunits'][self.ribosome50S] = n_terminated_elongations
 
         return update
 

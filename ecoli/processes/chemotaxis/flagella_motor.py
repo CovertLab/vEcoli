@@ -1,7 +1,22 @@
 """
-==========================
+========================
 Flagella Motor Processes
-==========================
+========================
+
+``FlagellaMotor`` :term:`process` generates thrust and torque based on number of
+flagella and their individual motor states.
+
+References:
+ CheY phosphorylation model from:
+    `Kollmann, M., Lovdok, L., Bartholome, K., Timmer, J., & Sourjik, V. (2005).
+    Design principles of a bacterial signalling network. Nature.`
+ Veto model of motor activity from:
+    `Mears, P. J., Koirala, S., Rao, C. V., Golding, I., & Chemla, Y. R. (2014).
+    Escherichia coli swimming is robust against variations in flagellar number. Elife.`
+ Rotational state of an individual flagellum from:
+    `Sneddon, M. W., Pontius, W., & Emonet, T. (2012). Stochastic coordination of multiple
+    actuators reduces latency and improves chemotactic response in bacteria.`
+
 """
 
 import os
@@ -27,21 +42,14 @@ NAME = 'flagella_motor'
 class FlagellaMotor(Process):
     """ Flagellar motor activity
 
-    Generates thrust and torque based on number of flagella and their individual motor states.
+    :term:`Ports`:
+     * **internal_counts**
+     * **flagella**
+     * **internal**
+     * **boundary**
+     * **membrane**
 
-    CheY phosphorylation model from:
-        Kollmann, M., Lovdok, L., Bartholome, K., Timmer, J., & Sourjik, V. (2005).
-        Design principles of a bacterial signalling network. Nature.
-
-    Veto model of motor activity from:
-        Mears, P. J., Koirala, S., Rao, C. V., Golding, I., & Chemla, Y. R. (2014).
-        Escherichia coli swimming is robust against variations in flagellar number. Elife.
-
-    Rotational state of an individual flagellum from:
-        Sneddon, M. W., Pontius, W., & Emonet, T. (2012). Stochastic coordination of multiple
-        actuators reduces latency and improves chemotactic response in bacteria.
-
-    """ 
+    """
 
     name = NAME
     expected_pmf = -140  # PMF ~170mV at pH 7, ~140mV at pH 7.7 (Berg H, E. coli in motion, 2004, pg 113)
@@ -242,8 +250,10 @@ class FlagellaMotor(Process):
 
 
     def update_flagellum(self, motor_state, CheY_P, timestep):
-        """ rotational states of a individual flagellum
-        # TODO -- normal, semi, curly states from Sneddon
+        """
+        calculate  therotational state of a individual flagellum
+        .. note::
+            TODO -- normal, semi, curly states from Sneddon
         """
         g_0 = self.parameters['g_0']  # (k_B*T) free energy barrier for CCW-->CW
         g_1 = self.parameters['g_1']  # (k_B*T) free energy barrier for CW-->CCW
@@ -285,7 +295,9 @@ class FlagellaMotor(Process):
         return new_motor_state
 
     def tumble(self, n_flagella, PMF):
-        # thrust scales with log(n_flagella) because only the thickness of the bundle is affected
+        """
+        thrust scales with log(n_flagella) because only the thickness of the bundle is affected
+        """
         thrust = self.parameters['tumble_scaling'] * \
                  PMF * self.parameters['flagellum_thrust'] * \
                  math.log(n_flagella + 1)
@@ -293,7 +305,9 @@ class FlagellaMotor(Process):
         return [thrust, torque]
 
     def run(self, n_flagella, PMF):
-        # thrust scales with log(n_flagella) because only the thickness of the bundle is affected
+        """
+        thrust scales with log(n_flagella) because only the thickness of the bundle is affected
+        """
         thrust = self.parameters['run_scaling'] * \
                  PMF * self.parameters['flagellum_thrust'] * \
                  math.log(n_flagella + 1)

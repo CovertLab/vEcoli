@@ -1,11 +1,14 @@
+import copy
 import json
+import os
+
 from ecoli.processes import process_registry
 from ecoli.processes.registries import topology_registry
 
-CONFIG_DIR_PATH = 'ecoli/composites/ecoli_configs/'
+CONFIG_DIR_PATH = os.path.dirname(os.path.abspath(__file__)) + '/'
 
 # Load default processes and topology
-with open(CONFIG_DIR_PATH + 'default.json') as default_file:
+with open(os.path.join(CONFIG_DIR_PATH, 'default.json')) as default_file:
     config = json.load(default_file)
 
 processes = config['processes']
@@ -44,7 +47,7 @@ for process in ECOLI_DEFAULT_PROCESSES:
 
     process_topology = topology_registry.access(original_process)
     if process_topology:
-        process_topology = dict(process_topology)
+        process_topology = copy.deepcopy(process_topology)
     else:
         process_topology = {}
 
@@ -69,4 +72,4 @@ if config['log_updates']:
 if config['divide']:
     ECOLI_DEFAULT_TOPOLOGY['division'] = {
         'variable': ('listeners', 'mass', 'cell_mass'),
-        'agents': self.agents_path}
+        'agents': ["..", "..", "agents"]}

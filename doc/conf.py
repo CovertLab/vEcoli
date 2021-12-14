@@ -12,11 +12,14 @@
 #
 from datetime import datetime
 import os
+from pprint import pformat
 import shutil
 import sys
 sys.path.insert(0, os.path.abspath('..'))
 
+import docutils
 from docutils.nodes import Text
+from docutils.parsers.rst import Parser
 from sphinx.addnodes import pending_xref
 from sphinx.ext import apidoc
 from sphinx.ext.intersphinx import missing_reference
@@ -44,6 +47,7 @@ extensions = [
     'sphinx.ext.napoleon',
     'sphinx.ext.intersphinx',
     'sphinx.ext.viewcode',
+    'nbsphinx',
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -77,6 +81,11 @@ html_static_path = ['_static']
 
 # -- Options for extensions --------------------------------------------------
 
+# -- nbsphinx options --
+
+# Never execute Jupyter notebooks.
+nbsphinx_execute = 'never'
+
 # -- sphinx.ext.intersphinx options --
 intersphinx_mapping = {
     'python': ('https://docs.python.org/3', None),
@@ -91,8 +100,10 @@ intersphinx_mapping = {
 autodoc_inherit_docstrings = False
 # The Python dependencies aren't really required for building the docs
 autodoc_mock_imports = [
-    'cobra', 'arrow', 'IPython', 'six', 'numba', 'line-profiler',
-    'matplotlib', 'sympy', 'iteround',
+    'cobra', 'arrow', 'IPython', 'numba', 'line-profiler',
+    'matplotlib', 'sympy', 'iteround', 'vivarium_multibody', 'pytest',
+    # Runs code on import and fails due to missing solvers.
+    'wholecell.utils.modular_fba',
 ]
 # Concatenate class and __init__ docstrings
 autoclass_content = 'both'
@@ -108,13 +119,101 @@ def autodoc_skip_member_handler(app, what, name, obj, skip, options):
 def run_apidoc(_):
     cur_dir = os.path.abspath(os.path.dirname(__file__))
     module_path = os.path.join(cur_dir, '..', 'ecoli')
+
     apidoc_dir = os.path.join(cur_dir, 'reference', 'api')
     if os.path.exists(apidoc_dir):
         shutil.rmtree(apidoc_dir)
     os.makedirs(apidoc_dir, exist_ok=True)
-    apidoc.main(['-f', '-e', '-o', apidoc_dir, module_path])
+
+    notebooks_dst = os.path.join(cur_dir, 'notebooks')
+    notebooks_src = os.path.join(cur_dir, '..', 'notebooks')
+    if os.path.exists(notebooks_dst):
+        shutil.rmtree(notebooks_dst)
+    shutil.copytree(notebooks_src, notebooks_dst)
+
+    exclude = (
+        os.path.join(cur_dir, path) for path in (
+            '../ecoli/analysis',
+            '../ecoli/library',
+            '../ecoli/models',
+            '../ecoli/plots',
+            '../ecoli/processes/registries.py',
+            '../ecoli/states',
+            '../ecoli/experiments/ecoli_master_sim_tests.py',
+        )
+    )
+    apidoc.main(
+        ['-f', '-e', '-E', '-o', apidoc_dir, module_path, *exclude])
+
+
+objects_to_pprint = {}
+
+
+def autodoc_process_signature_handler(
+        _app, what, name, obj, _options, _signature, _return_annotation):
+    '''Save class attributes before their signatures are processed.
+
+    In ``object_description_handler``, we will use these saved objects
+    to generate pretty representations of their default values.
+    '''
+    if what != 'attribute':
+        return
+    assert name not in objects_to_pprint
+    objects_to_pprint[name] = obj
+
+
+def object_description_handler(_, domain, objtype, contentnode):
+    '''Make representations of attribute default values pretty.
+
+    We transform the representations of the following attributes:
+
+    * defaults
+    * topology
+
+    Using the objects saved by ``autodoc_process_signature_handler``,
+    generate pretty representations of the objects and insert them into
+    the documentation as a code block.
+
+    WARNING: The algorithm for identifying attributes is clumsy. We just
+    check that the paragraph starts with the attribute name and type
+    hint (if applicable). This can cause problems if lines in the
+    docstring look start with an attribute name. We attempt to mitigate
+    this problem by also checking that the object name was saved by
+    ``autodoc_process_signature_handler``.
+    '''
+    if objtype != 'class' or domain != 'py':
+        return
+    for child in contentnode.children:
+        if child.astext().startswith('defaults: Dict['):
+            name = contentnode.source.split()[-1] + '.defaults'
+        elif child.astext().startswith('topology'):
+            name = contentnode.source.split()[-1] + '.topology'
+        else:
+            continue
+
+        obj = objects_to_pprint.get(name)
+        if not obj:
+            continue
+        obj_pprint = pformat(obj, indent=4)
+        value_node = child.children[0].children[-1]
+
+        parser = Parser()
+        settings = docutils.frontend.OptionParser(
+            components=(docutils.parsers.rst.Parser,)).get_default_values()
+        document = docutils.utils.new_document('<rst-doc>', settings=settings)
+        lines = ['.. code-block:: python', '']
+        for line in obj_pprint.split('\n'):
+            lines.append('   ' + line)
+        text = '\n'.join(lines)
+        parser.parse(text, document)
+        new_node = document.children[0]
+
+        value_node.replace_self(new_node)
 
 
 def setup(app):
     app.connect('autodoc-skip-member', autodoc_skip_member_handler)
+    app.connect('autodoc-process-signature', autodoc_process_signature_handler)
+    app.connect(
+        'object-description-transform', object_description_handler)
     app.connect('builder-inited', run_apidoc)

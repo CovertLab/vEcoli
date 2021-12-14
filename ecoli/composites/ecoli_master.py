@@ -1,32 +1,38 @@
 """
-========================
-E. coli master composite
-========================
+==============================
+E. coli partitioning composite
+==============================
+NOTE: All ports with '_total' in their name are
+automatically exempt from partitioning
 """
-import pytest
 
+from copy import deepcopy
+
+import pytest
 from vivarium.core.composer import Composer
+from vivarium.plots.topology import plot_topology
 from vivarium.library.topology import assoc_path
 from vivarium.library.dict_utils import deep_merge
 from vivarium.core.control import run_library_cli
+from vivarium.core.engine import Engine
 
 # sim data
 from ecoli.library.sim_data import LoadSimData
 
 # logging
-from vivarium.library.wrappers import make_logging_process
+from ecoli.library.logging import make_logging_process
 
 # vivarium-ecoli processes
 from ecoli.composites.ecoli_configs import (
     ECOLI_DEFAULT_PROCESSES, ECOLI_DEFAULT_TOPOLOGY)
+from ecoli.plots.topology import get_ecoli_partition_topology_settings
 from ecoli.processes.cell_division import Division
+from ecoli.processes.allocator import Allocator
+from ecoli.processes.partition import PartitionedProcess
 
 # state
+from ecoli.processes.partition import get_bulk_topo, Requester, Evolver
 from ecoli.states.wcecoli_state import get_state_from_file
-
-# plotting
-from vivarium.plots.topology import plot_topology
-from ecoli.plots.topology import get_ecoli_master_topology_settings
 
 
 RAND_MAX = 2**31
@@ -42,6 +48,7 @@ class Ecoli(Composer):
     defaults = {
         'time_step': 2.0,
         'parallel': False,
+        'parallel_allocator': False,
         'seed': 0,
         'sim_data_path': SIM_DATA_PATH,
         'daughter_path': tuple(),
@@ -50,7 +57,7 @@ class Ecoli(Composer):
         'division': {
             'threshold': 2220},  # fg
         'divide': False,
-        'log_updates': False
+        'log_updates': False,
     }
 
     def __init__(self, config):
@@ -61,33 +68,39 @@ class Ecoli(Composer):
             seed=self.config['seed'])
 
         if not self.config.get('processes'):
-            self.config['processes'] = ECOLI_DEFAULT_PROCESSES.copy()
+            self.config['processes'] = deepcopy(ECOLI_DEFAULT_PROCESSES)
         if not self.config.get('process_configs'):
             self.config['process_configs'] = {process: "sim_data" for process in self.config['processes']}
         if not self.config.get('topology'):
-            self.config['topology'] = ECOLI_DEFAULT_TOPOLOGY.copy()
+            self.config['topology'] = deepcopy(ECOLI_DEFAULT_TOPOLOGY)
 
         self.processes = self.config['processes']
         self.topology = self.config['topology']
 
+        self.processes_and_steps = None
+        self.seed = None
+
     def initial_state(self, config=None, path=()):
         # Use initial state calculated with trna_charging and translationSupply disabled
         config = config or {}
-        initial_time = config.get('initial_time', 0)
-        initial_state = get_state_from_file(path=f'data/metabolism/wcecoli_t{initial_time}.json')
+        initial_state_file = config.get('initial_state_file', 'wcecoli_t0')
+        initial_state = get_state_from_file(path=f'data/{initial_state_file}.json')
         embedded_state = {}
         assoc_path(embedded_state, path, initial_state)
         return embedded_state
 
-    def generate_processes(self, config):
+    def _generate_processes_and_steps(self, config):
         time_step = config['time_step']
         parallel = config['parallel']
 
-        # get process configs
+        process_order = list(config['processes'].keys())
+
+        # get the configs from sim_data (except for allocator, built later)
         process_configs = config['process_configs']
         for process in process_configs.keys():
             if process_configs[process] == "sim_data":
-                process_configs[process] = self.load_sim_data.get_config_by_name(process)
+                process_configs[process] = self.load_sim_data.get_config_by_name(
+                    process)
             elif process_configs[process] == "default":
                 process_configs[process] = None
             else:
@@ -97,146 +110,341 @@ class Ecoli(Composer):
                     default = self.load_sim_data.get_config_by_name(process)
                 except KeyError:
                     default = self.processes[process].defaults
-                
-                process_configs[process] = deep_merge(dict(default), process_configs[process])
+
+                process_configs[process] = deep_merge(
+                    deepcopy(default), process_configs[process])
+
+                if 'seed' in process_configs[process]:
+                    process_configs[process]['seed'] = process_configs[process]['seed'] + config['seed']
 
         # make the processes
         processes = {
-            process_name: (process(process_configs[process_name])
-                           if not config['log_updates']
-                           else make_logging_process(process)(process_configs[process_name]))
-            for (process_name, process) in self.processes.items()
+            process_name: process(process_configs[process_name])
+            if not config['log_updates']
+            else make_logging_process(process)(process_configs[process_name])
+            for process_name, process in config['processes'].items()
         }
 
-        # add division
-        if self.config['divide']:
+        # Add allocator process
+        process_configs['allocator'] = self.load_sim_data.get_allocator_config(
+            process_names=[p for p in config['processes'].keys()
+                           if not processes[p].is_deriver()],
+            parallel=config['parallel_allocator'],
+        )
+
+        config['processes']['allocator'] = Allocator
+        processes['allocator'] = Allocator(process_configs['allocator'])
+
+        # Store list of partition processes
+        self.partitioned_processes = [
+            process_name
+            for process_name, process in processes.items()
+            if isinstance(process, PartitionedProcess)
+        ]
+
+        # update schema overrides for evolvers and requesters
+        update_override = {}
+        delete_override = []
+        for process_id, override in self.schema_override.items():
+            if process_id in self.partitioned_processes:
+                delete_override.append(process_id)
+                update_override[f'{process_id}_evolver'] = override
+                update_override[f'{process_id}_requester'] = override
+        for process_id in delete_override:
+            del self.schema_override[process_id]
+        self.schema_override.update(update_override)
+
+        # make the requesters
+        requesters = {
+            f'{process_name}_requester': Requester({'time_step': time_step,
+                                                    'process': process})
+            for (process_name, process) in processes.items()
+            if process_name in self.partitioned_processes
+        }
+
+        # make the evolvers
+        evolvers = {
+            f'{process_name}_evolver': Evolver({'time_step': time_step,
+                                                'process': process})
+            if not config['log_updates']
+            else make_logging_process(Evolver)({'time_step': time_step,
+                                                'process': process})
+            for (process_name, process) in processes.items()
+            if process_name in self.partitioned_processes
+        }
+
+        processes.update(requesters)
+        processes.update(evolvers)
+
+        # add division process
+        if config['divide']:
+            division_name = 'division'
             division_config = dict(
                 config['division'],
-                agent_id=self.config['agent_id'],
+                agent_id=config['agent_id'],
                 composer=self)
-            processes['division'] = Division(division_config)
+            division_process = {division_name: Division(division_config)}
+            processes.update(division_process)
+            process_order.append(division_name)
 
+        steps = {
+            **requesters,
+            'allocator': processes['allocator'],
+        }
+        processes_not_steps = {
+            **evolvers,
+        }
+        flow = {
+            'allocator': [],
+        }
+
+        for name in process_order:
+            process = processes[name]
+            if name in self.partitioned_processes:
+                requester_name = f'{name}_requester'
+                evolver_name = f'{name}_evolver'
+                flow[requester_name] = [
+                    ('ecoli-chromosome-structure',)]
+                flow['allocator'].append((requester_name,))
+                steps[requester_name] = processes[requester_name]
+                processes_not_steps[evolver_name] = processes[
+                    evolver_name]
+            elif process.is_step():
+                steps[name] = process
+                flow[name] = []
+            else:
+                processes_not_steps[name] = process
+
+        return processes_not_steps, steps, flow
+
+    def generate_processes(self, config):
+        if not self.processes_and_steps or self.seed != config['seed']:
+            self.seed = config['seed']
+            self.processes_and_steps = (
+                self._generate_processes_and_steps(config))
+        processes, _, _ = self.processes_and_steps
         return processes
+
+    def generate_steps(self, config):
+        if not self.processes_and_steps or self.seed != config['seed']:
+            self.seed = config['seed']
+            self.processes_and_steps = (
+                self._generate_processes_and_steps(config))
+        _, steps, _ = self.processes_and_steps
+        return steps
+
+    def generate_flow(self, config):
+        if not self.processes_and_steps or self.seed != config['seed']:
+            self.seed = config['seed']
+            self.processes_and_steps = (
+                self._generate_processes_and_steps(config))
+        _, _, flow = self.processes_and_steps
+        return flow
 
     def generate_topology(self, config):
         topology = {}
 
         # make the topology
-        for process_id, ports in self.topology.items():
-            topology[process_id] = ports
-            if config['log_updates']:
-                topology[process_id]['log_update'] = ('log_update', process_id,)
+        for process_id, ports in config['topology'].items():
+
+            # make the partitioned processes' topologies
+            if process_id in self.partitioned_processes:
+                topology[f'{process_id}_requester'] = deepcopy(ports)
+                topology[f'{process_id}_evolver'] = deepcopy(ports)
+                if config['log_updates']:
+                    topology[f'{process_id}_evolver']['log_update'] = (
+                        'log_update', process_id,)
+                    topology[f'{process_id}_requester']['log_update'] = (
+                        'log_update', process_id,)
+                bulk_topo = get_bulk_topo(ports)
+                topology[f'{process_id}_requester']['request'] = {
+                    '_path': ('request', process_id,),
+                    **bulk_topo}
+                topology[f'{process_id}_evolver']['allocate'] = {
+                    '_path': ('allocate', process_id,),
+                    **bulk_topo}
+                topology[f'{process_id}_requester']['hidden_state'] = (
+                    'hidden_state',)
+                topology[f'{process_id}_evolver']['hidden_state'] = (
+                    'hidden_state',)
+
+            # make the non-partitioned processes' topologies
+            else:
+                topology[process_id] = ports
+                if config['log_updates']:
+                    topology[process_id]['log_update'] = (
+                        'log_update', process_id,)
 
         # add division
-        if self.config['divide']:
+        if config['divide']:
             topology['division'] = {
                 'variable': ('listeners', 'mass', 'cell_mass'),
                 'agents': config['agents_path']}
+
+        topology['allocator'] = {
+            'request': ('request',),
+            'allocate': ('allocate',),
+            'bulk': ('bulk',)}
 
         return topology
 
 
 def run_ecoli(
+        filename='default',
         total_time=10,
         divide=False,
         progress_bar=True,
         log_updates=False,
-        time_series=True
+        emitter='timeseries',
 ):
-    """
-    Simple way to run ecoli_master simulations. For full API, see ecoli.experiments.ecoli_master_sim.
+    """Run ecoli_master simulations
 
-    Arguments:
+    Arguments: TODO -- complete the arguments docstring
         * **total_time** (:py:class:`int`): the total runtime of the experiment
-        * **divide** (:py:class:`bool`): whether to incorporate division
-        * **progress_bar** (:py:class:`bool`): whether to show a progress bar
-        * **log_updates**  (:py:class:`bool`): whether to save updates from each process
-        * **time_series** (:py:class:`bool`): whether to return data in timeseries format
+        * **config** (:py:class:`dict`):
+
     Returns:
         * output data
     """
-    
     from ecoli.experiments.ecoli_master_sim import EcoliSim, CONFIG_DIR_PATH
-    
-    sim = EcoliSim.from_file(CONFIG_DIR_PATH + "no_partition.json")
+
+    sim = EcoliSim.from_file(CONFIG_DIR_PATH + filename + '.json')
     sim.total_time = total_time
     sim.divide = divide
     sim.progress_bar = progress_bar
     sim.log_updates = log_updates
-    sim.raw_output = not time_series
+    sim.emitter = emitter
 
     return sim.run()
 
 
+
 @pytest.mark.slow
-def run_division(total_time=30):
-    """
-    Work in progress to get division working
-    * TODO -- unique molecules need to be divided between daughter cells!!! This can get sophisticated
-    """
+def test_division(
+        agent_id='1',
+        total_time=60
+):
+    """tests that a cell can be divided and keep running"""
 
-    from ecoli.experiments.ecoli_master_sim import EcoliSim, CONFIG_DIR_PATH
-
-    initial_state = Ecoli({}).initial_state()
+    # get initial mass from Ecoli composer
+    initial_state = Ecoli({}).initial_state({'initial_state': 'vivecoli_t2550'})
     initial_mass = initial_state['listeners']['mass']['cell_mass']
-    division_mass = initial_mass+0.1
+    division_mass = initial_mass + 1
     print(f"DIVIDE AT {division_mass} fg")
 
-    sim = EcoliSim.from_file(CONFIG_DIR_PATH + "no_partition.json")
-    sim.division = {'threshold': division_mass}
+    # make a new composer under an embedded path
+    config = {
+        'divide': True,
+        'agent_id': agent_id,
+        'division': {
+            'threshold': division_mass},  # fg
+    }
+    agent_path = ('agents', agent_id)
+    ecoli_composer = Ecoli(config)
+    ecoli_composite = ecoli_composer.generate(path=agent_path)
 
-    # Remove metabolism for now 
-    # (divison fails because cannot deepcopy metabolism process)
-    sim.exclude_processes.append("ecoli-metabolism")
-    sim.total_time = total_time
-    sim.divide = True
-    sim.progress_bar = False
-    sim.raw_output = True
+    # make and run the experiment
+    experiment = Engine(
+        processes=ecoli_composite.processes,
+        steps=ecoli_composite.steps,
+        flow=ecoli_composite.flow,
+        topology=ecoli_composite.topology,
+        initial_state={'agents': {agent_id: initial_state}},
+    )
+    experiment.update(total_time)
 
-    # run simulation
-    output = sim.run()
+    # retrieve output
+    output = experiment.emitter.get_data()
 
-    print(f"initial agent ids: {output[0.0]['agents'].keys()}")
-    print(f"final agent ids: {output[total_time]['agents'].keys()}")
-    # import ipdb; ipdb.set_trace()
+    # asserts
+    initial_agents = output[0.0]['agents'].keys()
+    final_agents = output[total_time]['agents'].keys()
+    print(f"initial agent ids: {initial_agents}")
+    print(f"final agent ids: {final_agents}")
+    assert len(final_agents) == 2 * len(initial_agents)
+
+
+def test_division_topology():
+    """test that the topology is correctly dividing"""
+    timestep = 2
+
+    # get initial mass from Ecoli composer
+    initial_state = Ecoli({}).initial_state({'initial_state': 'vivecoli_t2550'})
+    initial_mass = initial_state['listeners']['mass']['cell_mass']
+    division_mass = initial_mass + 0.1
+    print(f"DIVIDE AT {division_mass} fg")
+
+    # make a new composer under an embedded path
+    agent_id = '0'
+    config = {
+        'divide': True,
+        'agent_id': agent_id,
+        'division': {
+            'threshold': division_mass},  # fg
+    }
+    agent_path = ('agents', agent_id)
+    ecoli_composer = Ecoli(config)
+    ecoli_composite = ecoli_composer.generate(path=agent_path)
+
+    # make experiment
+    experiment = Engine(
+        processes=ecoli_composite.processes,
+        steps=ecoli_composite.steps,
+        flow=ecoli_composite.flow,
+        topology=ecoli_composite.topology,
+        initial_state={'agents': {agent_id: initial_state}},
+    )
+
+    full_topology = experiment.state.get_topology()
+    mother_topology = full_topology['agents'][agent_id].copy()
+
+    # update one time step at a time until division
+    while len(full_topology['agents']) <= 1:
+        experiment.update(timestep)
+        full_topology = experiment.state.get_topology()
+
+    # assert that the daughter topologies are the same as the mother topology
+    daughter_ids = list(full_topology['agents'].keys())
+    for daughter_id in daughter_ids:
+        daughter_topology = full_topology['agents'][daughter_id]
+        assert daughter_topology == mother_topology
 
 
 def test_ecoli_generate():
     ecoli_composer = Ecoli({})
     ecoli_composite = ecoli_composer.generate()
 
-    # asserts to ecoli_composite['processes'] and ecoli_composite['topology'] 
-    assert all(isinstance(v, ECOLI_DEFAULT_PROCESSES[k])
+    # asserts to ecoli_composite['processes'] and ecoli_composite['topology']
+    assert all('_requester' in k or
+               '_evolver' in k or
+               k == 'allocator' or
+               isinstance(v, ECOLI_DEFAULT_PROCESSES[k])
                for k, v in ecoli_composite['processes'].items())
     assert all(ECOLI_DEFAULT_TOPOLOGY[k] == v
-               for k, v in ecoli_composite['topology'].items())
+               for k, v in ecoli_composite['topology'].items()
+               if k in ECOLI_DEFAULT_TOPOLOGY)
 
-    
-def ecoli_topology_plot():
+
+def ecoli_topology_plot(config={}):
     """Make a topology plot of Ecoli"""
-    agent_config = {
-        'agent_id': '1',
-        'processes': ECOLI_DEFAULT_PROCESSES,
-        'topology': ECOLI_DEFAULT_TOPOLOGY,
-        'process_configs': {
-            process_id: "sim_data" for process_id in ECOLI_DEFAULT_PROCESSES.keys()}
-        }
-    ecoli = Ecoli(agent_config)
-    settings = get_ecoli_master_topology_settings()
-
+    agent_id_config = {'agent_id': '1'}
+    ecoli = Ecoli({**agent_id_config, **config})
+    settings = get_ecoli_partition_topology_settings()
     topo_plot = plot_topology(
         ecoli,
-        filename='ecoli_master_topology',
-        out_dir='out/composites/ecoli_master/',
-        settings=settings)
+        filename='topology',
+        out_dir='out/composites/ecoli_master',
+        settings=settings
+    )
     return topo_plot
 
 
 test_library = {
     '0': run_ecoli,
-    '1': run_division,
-    '2': test_ecoli_generate,
-    '3': ecoli_topology_plot,
+    '1': test_division,
+    '2': test_division_topology,
+    '3': test_ecoli_generate,
+    '4': ecoli_topology_plot,
 }
 
 # run experiments in test_library from the command line with:
