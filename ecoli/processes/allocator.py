@@ -158,7 +158,7 @@ def calculatePartition(process_priorities, counts_requested, total_counts, rando
         requests = counts_requested[:, processHasPriority].copy()
 
         total_requested = requests.sum(axis=1)
-        excess_request_mask = (total_requested > total_counts)
+        excess_request_mask = (total_requested > total_counts) & (total_requested > 0)
 
         # Get fractional request for molecules that have excess request
         # compared to available counts
