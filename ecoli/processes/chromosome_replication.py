@@ -283,7 +283,7 @@ class ChromosomeReplication(PartitionedProcess):
                 '_add': [{
                     'key': str(uuid.uuid1()),
                     'state': {'domain_index': domain_index_new[index]}}
-                    for index in range(n_oriC)],
+                    for index in range(2*n_oriC)],
                 '_delete': [key for key in states['oriCs'].keys()]}
 
             # Add and set attributes of newly created replisomes.
