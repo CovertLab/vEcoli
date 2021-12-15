@@ -17,7 +17,7 @@ from vivarium.core.control import run_library_cli
 from vivarium.core.engine import Engine
 
 # sim data
-from ecoli.library.sim_data import LoadSimData
+from ecoli.library.sim_data import LoadSimData, RAND_MAX
 
 # logging
 from ecoli.library.logging import make_logging_process
@@ -38,7 +38,6 @@ from ecoli.states.wcecoli_state import get_state_from_file
 from ecoli.library.schema import get_domain_index_to_daughter
 from migration.migration_utils import scalar_almost_equal
 
-RAND_MAX = 2**31
 SIM_DATA_PATH = 'reconstruction/sim_data/kb/simData.cPickle'
 
 MINIMAL_MEDIA_ID = 'minimal'
@@ -120,7 +119,9 @@ class Ecoli(Composer):
                     deepcopy(default), process_configs[process])
 
                 if 'seed' in process_configs[process]:
-                    process_configs[process]['seed'] = process_configs[process]['seed'] + config['seed']
+                    process_configs[process]['seed'] = (
+                        process_configs[process]['seed'] +
+                        config['seed']) % RAND_MAX
 
             if '_parallel' not in process_configs[process]:
                 process_configs[process]['_parallel'] = parallel
@@ -190,7 +191,9 @@ class Ecoli(Composer):
             division_config = dict(
                 config['division'],
                 agent_id=config['agent_id'],
-                composer=self)
+                composer=self,
+                seed=self.load_sim_data.random_state.randint(RAND_MAX),
+            )
             division_process = {division_name: Division(division_config)}
             processes.update(division_process)
             process_order.append(division_name)
