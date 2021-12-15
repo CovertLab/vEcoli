@@ -45,7 +45,7 @@ setup(
     long_description=long_description,
     long_description_content_type='text/markdown',
     install_requires=[
-        'vivarium-core>=0.4.10',
+        'vivarium-core>=0.4.12',
         # 'vivarium-multibody>=0.0.16',
         'vivarium-convenience>=0.0.3',
         'biopython==1.77',

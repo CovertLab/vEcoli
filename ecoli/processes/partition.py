@@ -212,10 +212,13 @@ class Evolver(Process):
     def next_update(self, timestep, states):
         if self.process.parallel:
             hidden_state = states.pop('hidden_state')
-            partitioning_hidden_state = pickle.loads(
-                hidden_state[self.process.name])
-            self.process.set_partitioning_hidden_state(
-                partitioning_hidden_state)
+            serialized = hidden_state[self.process.name]
+            # Right after division, the Evolver runs before the
+            # Requester.
+            if serialized:
+                partitioning_hidden_state = pickle.loads(serialized)
+                self.process.set_partitioning_hidden_state(
+                    partitioning_hidden_state)
 
         states = deep_merge(states, states.pop('allocate'))
 
