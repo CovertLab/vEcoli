@@ -18,9 +18,11 @@ from vivarium.core.engine import Engine
 from vivarium.library.dict_utils import deep_merge
 from ecoli.library.logging import write_json
 from ecoli.composites.ecoli_nonpartition import SIM_DATA_PATH
-# Two different Ecoli composites depending on partitioning
+# Two different Ecoli composers depending on partitioning
 import ecoli.composites.ecoli_nonpartition
 import ecoli.composites.ecoli_master
+# Environment composer for spatial environment sim
+import ecoli.composites.environment.lattice
 
 from ecoli.processes import process_registry
 from ecoli.processes.registries import topology_registry
@@ -155,7 +157,8 @@ class EcoliSim:
                             processes,
                             add_processes,
                             exclude_processes,
-                            swap_processes):
+                            swap_processes,
+                            ):
         result = {}
         for process_name in list(processes.keys()) + list(add_processes):
             if process_name in exclude_processes:
@@ -179,7 +182,8 @@ class EcoliSim:
                            processes,
                            swap_processes,
                            log_updates,
-                           divide):
+                           divide,
+                           ):
         result = {}
 
         original_processes = {v: k for k, v in swap_processes.items()}
@@ -239,12 +243,14 @@ class EcoliSim:
         self.processes = self._retrieve_processes(self.processes,
                                                   self.add_processes,
                                                   self.exclude_processes,
-                                                  self.swap_processes)
+                                                  self.swap_processes,
+                                                  )
         self.topology = self._retrieve_topology(self.topology,
                                                 self.processes,
                                                 self.swap_processes,
                                                 self.log_updates,
-                                                self.divide)
+                                                self.divide,
+                                                )
         self.process_configs = self._retrieve_process_configs(self.process_configs,
                                                               self.processes)
 
@@ -264,7 +270,7 @@ class EcoliSim:
 
         # set path at which agent is initialized
         path = tuple()
-        if self.divide:
+        if self.divide or self.spatial_environment:
             path = ('agents', self.agent_id,)
 
         # get initial state
@@ -273,6 +279,11 @@ class EcoliSim:
 
         # generate the composite at the path
         self.ecoli = ecoli_composer.generate(path=path)
+
+        # merge a lattice composite for the spatial environment
+        if self.spatial_environment:
+            environment_composite = ecoli.composites.environment.lattice.Lattice().generate()
+            self.ecoli.merge(environment_composite)
 
     def save_states(self):
         """
@@ -323,7 +334,7 @@ class EcoliSim:
         # make the experiment
         experiment_config = {
             'description': self.description,
-            'metadata' : metadata,
+            'metadata': metadata,
             'processes': self.ecoli.processes,
             'steps': self.ecoli.steps,
             'flow': self.ecoli.flow,
