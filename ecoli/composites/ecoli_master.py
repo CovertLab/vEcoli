@@ -34,6 +34,9 @@ from ecoli.processes.partition import PartitionedProcess
 from ecoli.processes.partition import get_bulk_topo, Requester, Evolver
 from ecoli.states.wcecoli_state import get_state_from_file
 
+# tests
+from ecoli.library.schema import get_domain_index_to_daughter
+from migration.migration_utils import scalar_almost_equal
 
 RAND_MAX = 2**31
 SIM_DATA_PATH = 'reconstruction/sim_data/kb/simData.cPickle'
@@ -41,6 +44,8 @@ SIM_DATA_PATH = 'reconstruction/sim_data/kb/simData.cPickle'
 MINIMAL_MEDIA_ID = 'minimal'
 AA_MEDIA_ID = 'minimal_plus_amino_acids'
 ANAEROBIC_MEDIA_ID = 'minimal_minus_oxygen'
+
+COUNT_THRESHOLD = 20
 
 
 class Ecoli(Composer):
@@ -355,6 +360,63 @@ def test_division(
 
     # retrieve output
     output = experiment.emitter.get_data()
+
+    # get the states of the daughter cells and the mother cell
+    daughter_states = []
+    for timestep in output:
+        if len(output[timestep]['agents'].keys()) == 2:
+            d1 = list(output[timestep]['agents'].keys())[0]
+            daughter_states.append(output[timestep]['agents'][d1])
+            d2 = list(output[timestep]['agents'].keys())[1]
+            daughter_states.append(output[timestep]['agents'][d2])
+            mother_idx = list(output[timestep - 2.0]['agents'].keys())[0]
+            mother_state = output[timestep - 2.0]['agents'][mother_idx]
+            break
+
+    # compare the counts of bulk molecules between the mother and daughters
+    for bulk_molecule in mother_state['bulk']:
+        if mother_state['bulk'][bulk_molecule] > COUNT_THRESHOLD:
+            assert (scalar_almost_equal(mother_state['bulk'][bulk_molecule],
+                                        daughter_states[0]['bulk'][bulk_molecule] +
+                                        daughter_states[1]['bulk'][bulk_molecule],
+                                        custom_threshold=0.1))
+
+    # compare the counts of unique molecules between the mother and daughters
+    idx_to_d = get_domain_index_to_daughter(mother_state['unique']['chromosome_domain'])
+    for key in mother_state['unique']:
+        num_divided = 0
+        if key == 'promoter' or key == 'oriC' or key == 'DnaA_box' or key == 'chromosomal_segment' \
+                or key == 'full_chromosome' or key == 'active_replisome':
+            for unique_molecule in mother_state['unique'][key]:
+                if idx_to_d[0][mother_state['unique'][key][unique_molecule]['domain_index']] != -1:
+                    num_divided += 1
+        elif key == 'RNA':
+            for rna in mother_state['unique']['RNA']:
+                if mother_state['unique']['RNA'][rna]['is_full_transcript']:
+                    num_divided += 1
+                else:
+                    rnap_index = mother_state['unique']['RNA'][rna]['RNAP_index']
+                    if idx_to_d[0][mother_state['unique']['active_RNAP'][rnap_index]['domain_index']] != -1:
+                        num_divided += 1
+        elif key == 'active_RNAP':
+            for rnap in mother_state['unique']['active_RNAP']:
+                if idx_to_d[0][mother_state['unique']['active_RNAP'][rnap]['domain_index']] != -1:
+                    num_divided += 1
+        elif key == 'active_ribosome':
+            for ribosome in initial_state['unique']['active_ribosome']:
+                mrna_index = initial_state['unique']['active_ribosome'][ribosome]['mRNA_index']
+                if mother_state['unique']['RNA'][mrna_index]['is_full_transcript']:
+                    num_divided += 1
+                else:
+                    rnap_index = mother_state['unique']['RNA'][mrna_index]['RNAP_index']
+                    if idx_to_d[0][mother_state['unique']['active_RNAP'][rnap_index]['domain_index']] != -1:
+                        num_divided += 1
+        elif key == 'chromosome_domain':
+            num_divided = len(mother_state['unique']['chromosome_domain'].keys()) - 1
+        assert (scalar_almost_equal(num_divided,
+                len(daughter_states[0]['unique'][key]) +
+                len(daughter_states[1]['unique'][key]),
+                custom_threshold=0.1))
 
     # asserts
     initial_agents = output[0.0]['agents'].keys()
