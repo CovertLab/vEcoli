@@ -107,7 +107,8 @@ class MetabolismGD(Process):
             exchanges=list(self.exchange_molecules),
             target_metabolites=self.homeostatic_objective)
         self.model.add_objective('homeostatic', TargetDmdtObjective(self.model.network, self.homeostatic_objective))
-        # TODO(Niels): self.model.add_objective('kinetic', ...)
+        # TODO (Cyrus): self.model.add_objective('kinetic', ...)
+        # TODO (Cyrus): self.model.add_objective('boundary', ...)
 
         self.objective = self.homeostatic_objective
 
@@ -238,7 +239,7 @@ class MetabolismGD(Process):
 
         total_maintenance = flux_gam + flux_ngam + flux_gtp
 
-        # TODO (Niels) increase maintenance target weight.
+        # TODO (Cyrus) increase maintenance target weight.
         kinetic_targets = {'maintenance_reaction': total_maintenance.asNumber}
 
         # TODO Figure out how to implement catalysis. Can come later.
@@ -311,7 +312,7 @@ class MetabolismGD(Process):
 
         """
 
-        # TODO (Niels) Repeats code found in processes/metabolism.py Should think of a way to share.
+        # TODO (Cyrus) Repeats code found in processes/metabolism.py Should think of a way to share.
 
         minutes = doubling_time.asNumber(units.min)  # hashable
         if minutes not in self._biomass_concentrations:
