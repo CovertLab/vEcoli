@@ -1,3 +1,16 @@
 {
-  "spatial_environment" : true
+  "spatial_environment" : true,
+  "spatial_environment_config": {
+          "multibody": {
+          "bounds": [10, 10],
+          "size": [10, 10]
+      },
+      "diffusion": {
+          "molecules": ["glc"],
+          "n_bins": [10, 10],
+          "size": [10, 10],
+          "depth": 3000.0,
+          "diffusion": 1e-2
+      }
+  }
 }
