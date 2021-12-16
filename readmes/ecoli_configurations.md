@@ -4,7 +4,7 @@ Simulations of the Ecoli composite can be configured using the command-line inte
 
 Configuration through the CLI affords easy access to the most important settings, whereas the programmatic and JSON approaches offer access to all settings.
 
-Default settings, which are overridden by the CLI and custom JSONs, may be found in `data/ecoli_configs/default.json`. This file should be edited with care if at all, since missing defaults may result in an error.
+Default settings, which are overridden by the CLI and custom JSONs, may be found in `ecoli/composites/ecoli_configs/default.json`. This file should be edited with care if at all, since missing defaults may result in an error.
 
 
 ## CLI

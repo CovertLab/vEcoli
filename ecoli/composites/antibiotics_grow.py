@@ -13,7 +13,7 @@ from vivarium.processes.meta_division import MetaDivision
 from vivarium.plots.topology import plot_topology
 from vivarium.plots.agents_multigen import plot_agents_multigen
 
-from ecoli.composites.lattice.lattice import (
+from ecoli.composites.environment.lattice import (
     Lattice, make_lattice_config)
 from ecoli.processes.lattice.derive_globals import DeriveGlobals
 from ecoli.processes.lattice.local_field import LocalField

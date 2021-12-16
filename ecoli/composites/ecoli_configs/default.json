@@ -25,6 +25,8 @@
     "division": {
         "threshold": 2220},
     "divide": false,
+    "spatial_environment": false,
+    "spatial_environment_config": {},
 
     "save": false,
     "save_times": [10, 100, 1000],

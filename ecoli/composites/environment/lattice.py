@@ -15,7 +15,7 @@ from ecoli.processes.lattice.multibody_physics import (
     Multibody, make_random_position)
 from ecoli.processes.lattice.diffusion_field import (
     DiffusionField)
-from ecoli.composites.lattice.grow_divide import (
+from ecoli.composites.environment.grow_divide import (
     GrowDivideExchange, GrowDivide)
 
 # plots
