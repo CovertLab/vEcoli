@@ -282,7 +282,8 @@ class EcoliSim:
 
         # merge a lattice composite for the spatial environment
         if self.spatial_environment:
-            environment_composite = ecoli.composites.environment.lattice.Lattice().generate()
+            environment_composite = ecoli.composites.environment.lattice.Lattice(
+                self.spatial_environment_config).generate()
             self.ecoli.merge(environment_composite)
 
     def save_states(self):
