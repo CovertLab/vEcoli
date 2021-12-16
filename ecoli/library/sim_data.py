@@ -432,7 +432,7 @@ class LoadSimData:
                              'is reversible': False})
             elif key.endswith(REVERSE_TAG) and rxns[-1]['reaction id'] == key[:-(len(REVERSE_TAG))]:
                 rxns[-1]['is reversible'] = True
-            # TODO (Niels) What to do about reactions with (reverse) tag that actually don't have the original reaction?
+            # TODO (Cyrus) What to do about reactions with (reverse) tag that actually don't have the original reaction?
             elif key.endswith(REVERSE_TAG):
                 rxns.append({'reaction id': key,
                              'stoichiometry': value,
@@ -450,7 +450,7 @@ class LoadSimData:
             'aa_names': self.sim_data.molecule_groups.amino_acids,
             'media_id': self.sim_data.conditions[self.sim_data.condition]['nutrients'],
             'nutrients': self.sim_data.conditions[self.sim_data.condition]['nutrients'],
-            # TODO (Niels) Replace with media_id.
+            # TODO (Cyrus) Replace with media_id.
             'avogadro': self.sim_data.constants.n_avogadro,
             'cell_density': self.sim_data.constants.cell_density,
             'nutrientToDoublingTime': self.sim_data.nutrient_to_doubling_time,

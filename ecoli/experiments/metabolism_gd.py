@@ -148,7 +148,7 @@ def run_metabolism_composite():
 
 def test_ecoli_with_metabolism_gd(
         filename='fba_gd_swap',
-        total_time=10,
+        total_time=100,
         divide=False,
         progress_bar=True,
         log_updates=False,
