@@ -9,6 +9,7 @@ from vivarium.core.process import Step
 from vivarium.core.composer import Composer
 from vivarium.core.engine import Engine, pf
 from vivarium.composites.toys import ToyTransport
+from vivarium.processes.timeline import TimelineProcess
 from ecoli.composites.lattice.lattice import Lattice
 from ecoli.processes.lattice.local_field import LocalField
 
@@ -20,6 +21,7 @@ class Lysis(Step):
 
     def __init__(self, parameters=None):
         super().__init__(parameters)
+        self.agent_id = self.parameters['agent_id']
 
     def ports_schema(self):
         return {
@@ -40,7 +42,20 @@ class Lysis(Step):
         }
 
     def next_update(self, timestep, states):
-        import ipdb; ipdb.set_trace()
+        if states['trigger']:
+            import ipdb; ipdb.set_trace()
+            internal = states['internal']
+
+            return {
+                'trigger': {
+                    '_updater': 'set',
+                    '_value': False},
+                'agents': {
+                    # remove self
+                    '_delete': [self.agent_id]
+                },
+                'fields': {}  # TODO place internal states in fields
+            }
         return {}
 
 
@@ -58,15 +73,23 @@ def test_lysis():
             'agents_path': ('..', '..', 'agents',),
         }
 
+        def __init__(self, config=None):
+            super().__init__(config)
+
         def generate_processes(self, config):
             return {
                 'transport': ToyTransport(config['transport'])
             }
 
         def generate_steps(self, config):
+            assert config['agent_id']
+            lysis_config = {
+                'agent_id': config['agent_id'],
+                **config['lysis']}
+
             return {
                 'local_field': LocalField(config['local_field']),
-                'lysis': Lysis(config['lysis']),
+                'lysis': Lysis(lysis_config),
             }
 
         def generate_flow(self, config):
@@ -101,6 +124,7 @@ def test_lysis():
             }
 
     agent_id = '1'
+    agent_path = ('agents', agent_id)
     lattice_composer = Lattice({
         'diffusion': {
             'molecules': ['GLC']}
@@ -110,7 +134,25 @@ def test_lysis():
 
     full_composite = lattice_composer.generate()
     agent_composite = agent_composer.generate({'agent_id': agent_id})
-    full_composite.merge(composite=agent_composite, path=('agents', agent_id))
+    full_composite.merge(composite=agent_composite, path=agent_path)
+
+    # add a timeline process to trigger lysis
+    timeline_config = {
+        'timeline': [
+            (5, {('death',): True}),
+        ]
+    }
+    timeline_process = TimelineProcess(timeline_config)
+    full_composite.merge(
+        processes={
+            'timeline': timeline_process},
+        topology={
+            'timeline': {
+                'death': ('boundary', 'death',),
+                'global': ('..', '..', 'global',),
+        }},
+        path=agent_path
+    )
 
     initial_state = full_composite.initial_state()
 
