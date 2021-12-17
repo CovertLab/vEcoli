@@ -3,6 +3,7 @@
 Lysis
 =====
 """
+import numpy as np
 
 from vivarium.core.process import Step
 from vivarium.core.composer import Composer
@@ -13,19 +14,33 @@ from ecoli.processes.lattice.local_field import LocalField
 
 
 class Lysis(Step):
-    defaults = {}
+    defaults = {
+        'secreted_molecules': ['GLC'],
+    }
 
     def __init__(self, parameters=None):
         super().__init__(parameters)
 
     def ports_schema(self):
         return {
-            'trigger': {},
+            'trigger': {
+                '_default': False
+            },
             'agents': {},
-            'fields': {}
+            'internal': {
+                mol_id: {
+                    '_default': 1
+                } for mol_id in self.parameters['secreted_molecules']
+            },
+            'fields': {
+                mol_id: {
+                    '_default': np.ones(1),
+                } for mol_id in self.parameters['secreted_molecules']
+            }
         }
 
     def next_update(self, timestep, states):
+        import ipdb; ipdb.set_trace()
         return {}
 
 
@@ -54,6 +69,12 @@ def test_lysis():
                 'lysis': Lysis(config['lysis']),
             }
 
+        def generate_flow(self, config):
+            return {
+                'local_field': (),
+                'lysis': (),
+            }
+
         def generate_topology(self, config):
             boundary_path = config['boundary_path']
             fields_path = config['fields_path']
@@ -72,7 +93,8 @@ def test_lysis():
                     'dimensions': dimensions_path,
                 },
                 'lysis': {
-                    'trigger': ('internal', 'GLC',),
+                    'trigger': ('boundary', 'death',),
+                    'internal': ('internal',),
                     'agents': agents_path,
                     'fields': fields_path,
                 },
@@ -87,8 +109,8 @@ def test_lysis():
     agent_composer = LysisAgent()
 
     full_composite = lattice_composer.generate()
-    agent = agent_composer.generate({'agent_id': agent_id})
-    full_composite.merge(composite=agent, path=('agents', agent_id))
+    agent_composite = agent_composer.generate({'agent_id': agent_id})
+    full_composite.merge(composite=agent_composite, path=('agents', agent_id))
 
     initial_state = full_composite.initial_state()
 
@@ -105,7 +127,7 @@ def test_lysis():
 
     print(pf(data['agents']))
 
-    # import ipdb; ipdb.set_trace()
+    import ipdb; ipdb.set_trace()
 
 
 # python ecoli/processes/antibiotics/lysis.py
