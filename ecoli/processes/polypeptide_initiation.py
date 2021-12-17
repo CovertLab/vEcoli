@@ -17,7 +17,9 @@ import numpy as np
 
 from vivarium.core.composition import simulate_process
 from ecoli.library.schema import (
-    arrays_from, arrays_to, add_elements, bulk_schema, dict_value_schema)
+    arrays_from, arrays_to, add_elements,
+    bulk_schema, dict_value_schema, create_unique_indexes,
+)
 
 from wholecell.utils import units
 from wholecell.utils.fitting import normalize
@@ -56,7 +58,13 @@ class PolypeptideInitiation(PartitionedProcess):
         'ribosome30S': 'ribosome30S',
         'ribosome50S': 'ribosome50S',
         'seed': 0,
-        'shuffle_indexes': None}
+        'shuffle_indexes': None,
+        'partitioning_hidden_state_instance_variables': [
+            'fracActiveRibosome',
+            'elongation_rates',
+            'random_state',
+        ],
+    }
 
     def __init__(self, parameters=None):
         super().__init__(parameters)
@@ -123,10 +131,8 @@ class PolypeptideInitiation(PartitionedProcess):
                         '_default': 0.0,
                         '_updater': 'set',
                         '_emit': True}}},
-            
-            'active_ribosome': {
-                '_divider': 'divide_unique',
-                **dict_value_schema('active_ribosome')},
+
+            'active_ribosome': dict_value_schema('active_ribosome'),
 
             'RNA': dict_value_schema('RNAs'),
             'subunits': bulk_schema([
@@ -208,7 +214,7 @@ class PolypeptideInitiation(PartitionedProcess):
         # corresponds to the polypeptide it will polymerize. This is done in
         # blocks of protein ids for efficiency.
         protein_indexes = np.empty(n_ribosomes_to_activate, np.int64)
-        mRNA_indexes = np.empty(n_ribosomes_to_activate, np.int64)
+        mRNA_indexes = np.empty(n_ribosomes_to_activate, dtype="U40")
         nonzero_count = (n_new_proteins > 0)
         start_index = 0
 
@@ -233,13 +239,13 @@ class PolypeptideInitiation(PartitionedProcess):
 
             start_index += counts
 
-        if 'active_ribosome' in states and states['active_ribosome']:
-            self.ribosome_index = int(max([int(index) for index in list(states['active_ribosome'].keys())])) + 1
-
         # Create active 70S ribosomes and assign their attributes
+        ribosome_indices = create_unique_indexes(
+            n_ribosomes_to_activate, self.random_state)
+        ribosome_indices = np.array(ribosome_indices)
         new_ribosomes = arrays_to(
             n_ribosomes_to_activate, {
-                'unique_index': np.arange(self.ribosome_index, self.ribosome_index + n_ribosomes_to_activate).astype(int),
+                'unique_index': ribosome_indices,
                 'protein_index': protein_indexes,
                 'peptide_length': np.zeros(cast(int, n_ribosomes_to_activate), dtype=np.int64),
                 'mRNA_index': mRNA_indexes,

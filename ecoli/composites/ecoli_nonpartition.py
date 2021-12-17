@@ -3,6 +3,7 @@
 E. coli master composite
 ========================
 """
+import copy
 import os
 
 import pytest
@@ -81,7 +82,7 @@ class Ecoli(Composer):
     def initial_state(self, config=None, path=()):
         # Use initial state calculated with trna_charging and translationSupply disabled
         config = config or {}
-        initial_time = config.get('initial_time', 'wcecoli_t0')
+        initial_time = config.get('initial_time_file', 'wcecoli_t0')
         initial_state = get_state_from_file(path=f'data/{initial_time}.json')
         embedded_state = {}
         assoc_path(embedded_state, path, initial_state)
@@ -106,7 +107,7 @@ class Ecoli(Composer):
                 except KeyError:
                     default = self.processes[process].defaults
 
-                process_configs[process] = deep_merge(dict(default), process_configs[process])
+                process_configs[process] = deep_merge(copy.deepcopy(default), process_configs[process])
 
         # make the processes
         processes = {
@@ -149,7 +150,8 @@ def run_ecoli(
         divide=False,
         progress_bar=True,
         log_updates=False,
-        time_series=True
+        time_series=True,
+        print_config=False,
 ):
     """
     Simple way to run ecoli simulations. For full API, see ecoli.experiments.ecoli_master_sim.
@@ -174,9 +176,9 @@ def run_ecoli(
     sim.raw_output = not time_series
 
     sim.build_ecoli()
-    ecoli_store = sim.ecoli.generate_store()
-    print(pf(ecoli_store['unique'].get_config()))
-    # import ipdb; ipdb.set_trace()
+    if print_config:
+        ecoli_store = sim.ecoli.generate_store()
+        print(pf(ecoli_store['unique'].get_config()))
 
     return sim.run()
 

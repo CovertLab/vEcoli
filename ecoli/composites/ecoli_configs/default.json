@@ -9,11 +9,11 @@
     "emit_processes" : false,
     "emit_config" : false,
     "log_updates" : false,
-    "raw_output" : false,
+    "raw_output" : true,
     "seed": 0,
     "partition": true,
 
-    "initial_time": "wcecoli_t0",
+    "initial_state_file": "wcecoli_t0",
     "time_step": 2.0,
     "total_time": 100.0,
     "generations": null,
@@ -25,6 +25,8 @@
     "division": {
         "threshold": 2220},
     "divide": false,
+    "spatial_environment": false,
+    "spatial_environment_config": {},
 
     "save": false,
     "save_times": [10, 100, 1000],
@@ -47,7 +49,8 @@
         "ecoli-protein-degradation",        
         "ecoli-chromosome-replication",
         "ecoli-mass-listener",
-        "mRNA_counts_listener"
+        "mRNA_counts_listener",
+        "monomer_counts_listener"
     ],
     "process_configs": {
         "ecoli-metabolism" : {

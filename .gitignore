@@ -19,7 +19,6 @@ user/*
 !user/user.txt
 *.cprof
 .ipynb_checkpoints
-/notebooks/test_files
 
 # Compiled source #
 ###################
@@ -48,5 +47,10 @@ pyproject.toml
 #################
 /.vscode
 /.env
+
+# Generated Files #
+###################
 data/blame_test_data.json
+data/vivecoli_t2.json
+ecoli/composites/ecoli_configs/test_configs/test_export.json
 /notebooks/test_files/

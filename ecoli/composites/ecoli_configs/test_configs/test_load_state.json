@@ -13,7 +13,7 @@
     "seed": 0,
     "partition": true,
 
-    "initial_time": "vivecoli_t2",
+    "initial_state_file": "vivecoli_t2",
     "time_step": 2.0,
     "total_time": 2.0,
     "generations": null,

@@ -6,7 +6,7 @@ from wholecell.utils.fitting import normalize
 from ecoli.processes.polypeptide_elongation import MICROMOLAR_UNITS
 from ecoli.states.wcecoli_state import MASSDIFFS
 
-RAND_MAX = 2 ** 31
+RAND_MAX = 2**31
 SIM_DATA_PATH = 'reconstruction/sim_data/kb/simData.cPickle'
 
 
@@ -50,6 +50,7 @@ class LoadSimData:
             'ecoli-mass': self.get_mass_config,
             'ecoli-mass-listener': self.get_mass_listener_config,
             'mRNA_counts_listener': self.get_mrna_counts_listener_config,
+            'monomer_counts_listener': self.get_monomer_counts_listener_config,
             'allocator': self.get_allocator_config,
             'ecoli-chromosome-structure': self.get_chromosome_structure_config
         }
@@ -98,7 +99,6 @@ class LoadSimData:
 
         return chromosome_replication_config
 
-
     def get_tf_config(self, time_step=2, parallel=False):
         tf_binding_config = {
             'time_step': time_step,
@@ -131,6 +131,7 @@ class LoadSimData:
             'make_elongation_rates': self.sim_data.process.transcription.make_elongation_rates,
             'basal_prob': self.sim_data.process.transcription_regulation.basal_prob,
             'delta_prob': self.sim_data.process.transcription_regulation.delta_prob,
+            'get_delta_prob_matrix': self.sim_data.process.transcription_regulation.get_delta_prob_matrix,
             'perturbations': getattr(self.sim_data, "genetic_perturbations", {}),
             'rna_data': self.sim_data.process.transcription.rna_data,
             'shuffleIdxs': getattr(self.sim_data.process.transcription, "initiationShuffleIdxs", None),
@@ -222,9 +223,7 @@ class LoadSimData:
             'KcatEndoRNases': self.sim_data.process.rna_decay.kcats,
             'charged_trna_names': self.sim_data.process.transcription.charged_trna_names,
             'rnaDegRates': self.sim_data.process.transcription.rna_data['deg_rate'],
-            'shuffle_indexes': self.sim_data.process.transcription.rnaDegRateShuffleIdxs if hasattr(
-                self.sim_data.process.transcription,
-                "rnaDegRateShuffleIdxs") and self.sim_data.process.transcription.rnaDegRateShuffleIdxs is not None else None,
+            'shuffle_indexes': self.sim_data.process.transcription.rnaDegRateShuffleIdxs if hasattr(self.sim_data.process.transcription, "rnaDegRateShuffleIdxs") and self.sim_data.process.transcription.rnaDegRateShuffleIdxs is not None else None,
             'is_mRNA': self.sim_data.process.transcription.rna_data['is_mRNA'].astype(np.int64),
             'is_rRNA': self.sim_data.process.transcription.rna_data['is_rRNA'].astype(np.int64),
             'is_tRNA': self.sim_data.process.transcription.rna_data['is_tRNA'].astype(np.int64),
@@ -253,8 +252,7 @@ class LoadSimData:
             '_parallel': parallel,
 
             'protein_lengths': self.sim_data.process.translation.monomer_data["length"].asNumber(),
-            'translation_efficiencies': normalize(
-                self.sim_data.process.translation.translation_efficiencies_by_monomer),
+            'translation_efficiencies': normalize(self.sim_data.process.translation.translation_efficiencies_by_monomer),
             'active_ribosome_fraction': self.sim_data.process.translation.ribosomeFractionActiveDict,
             'elongation_rates': self.sim_data.process.translation.ribosomeElongationRateDict,
             'variable_elongation': False,
@@ -294,8 +292,8 @@ class LoadSimData:
             'endWeight': translation.translation_end_weight,
             'variable_elongation': variable_elongation,
             'make_elongation_rates': translation.make_elongation_rates,
-            'ribosomeElongationRate': float(
-                self.sim_data.growth_rate_parameters.ribosomeElongationRate.asNumber(units.aa / units.s)),
+            'next_aa_pad': translation.next_aa_pad,
+            'ribosomeElongationRate': float(self.sim_data.growth_rate_parameters.ribosomeElongationRate.asNumber(units.aa / units.s)),
             'translation_aa_supply': self.sim_data.translation_supply_rate,
             'import_threshold': self.sim_data.external_state.import_constraint_threshold,
             'aa_from_trna': transcription.aa_from_trna,
@@ -309,11 +307,9 @@ class LoadSimData:
             'amino_acids': self.sim_data.molecule_groups.amino_acids,
 
             # parameters for specific elongation models
-            'basal_elongation_rate': self.sim_data.constants.ribosome_elongation_rate_basal.asNumber(
-                units.aa / units.s),
+            'basal_elongation_rate': self.sim_data.constants.ribosome_elongation_rate_basal.asNumber(units.aa / units.s),
             'ribosomeElongationRateDict': self.sim_data.process.translation.ribosomeElongationRateDict,
-            'uncharged_trna_names': self.sim_data.process.transcription.rna_data['id'][
-                self.sim_data.process.transcription.rna_data['is_tRNA']],
+            'uncharged_trna_names': self.sim_data.process.transcription.rna_data['id'][self.sim_data.process.transcription.rna_data['is_tRNA']],
             'aaNames': self.sim_data.molecule_groups.amino_acids,
             'proton': self.sim_data.molecule_ids.proton,
             'water': self.sim_data.molecule_ids.water,
@@ -388,7 +384,7 @@ class LoadSimData:
             '_parallel': parallel,
 
             'jit': False,
-            'n_avogadro': self.sim_data.constants.n_avogadro.asNumber(1 / units.mmol),
+            'n_avogadro': self.sim_data.constants.n_avogadro.asNumber(1 / units.mol),
             'cell_density': self.sim_data.constants.cell_density.asNumber(units.g / units.L),
             'stoichMatrix': self.sim_data.process.equilibrium.stoich_matrix().astype(np.int64),
             'fluxesAndMoleculesToSS': self.sim_data.process.equilibrium.fluxes_and_molecules_to_SS,
@@ -559,6 +555,7 @@ class LoadSimData:
             'unique_ids': self.sim_data.internal_state.unique_molecule.unique_molecule_masses['id'],
             'unique_masses': self.sim_data.internal_state.unique_molecule.unique_molecule_masses['mass'].asNumber(
                 units.fg / units.mol) / self.sim_data.constants.n_avogadro.asNumber(1/units.mol),
+            'compartment_abbrev_to_index': self.sim_data.compartment_abbrev_to_index,
             'submass_indices': {
                 'rna': np.array([
                     self.sim_data.submass_name_to_index[name]
@@ -571,6 +568,17 @@ class LoadSimData:
                 'protein': self.sim_data.submass_name_to_index["protein"],
                 'smallMolecule': self.sim_data.submass_name_to_index["metabolite"],
                 'water': self.sim_data.submass_name_to_index["water"]
+            },
+            'compartment_indices': {
+                'projection': self.sim_data.compartment_id_to_index["CCO-CELL-PROJECTION"],
+                'cytosol': self.sim_data.compartment_id_to_index["CCO-CYTOSOL"],
+                'extracellular': self.sim_data.compartment_id_to_index["CCO-EXTRACELLULAR"],
+                'flagellum': self.sim_data.compartment_id_to_index["CCO-FLAGELLUM"],
+                'membrane': self.sim_data.compartment_id_to_index["CCO-MEMBRANE"],
+                'outer_membrane': self.sim_data.compartment_id_to_index["CCO-OUTER-MEM"],
+                'periplasm': self.sim_data.compartment_id_to_index["CCO-PERI-BAC"],
+                'pilus': self.sim_data.compartment_id_to_index["CCO-PILUS"],
+                'inner_membrane': self.sim_data.compartment_id_to_index["CCO-PM-BAC-NEG"],
             },
             'compartment_id_to_index': self.sim_data.compartment_id_to_index,
             'n_avogadro': self.sim_data.constants.n_avogadro,  # 1/mol
@@ -590,9 +598,55 @@ class LoadSimData:
 
         return counts_config
 
+    def get_monomer_counts_listener_config(self, time_step=2, parallel=False):
+        monomer_counts_config = {
+            'time_step': time_step,
+            '_parallel': parallel,
+
+            # Get IDs of all bulk molecules
+            'bulk_molecule_ids': self.sim_data.internal_state.bulk_molecules.bulk_data["id"],
+            'unique_ids': self.sim_data.internal_state.unique_molecule.unique_molecule_masses['id'],
+
+            # Get IDs of molecules involved in complexation and equilibrium
+            'complexation_molecule_ids': self.sim_data.process.complexation.molecule_names,
+            'complexation_complex_ids': self.sim_data.process.complexation.ids_complexes,
+            'equilibrium_molecule_ids': self.sim_data.process.equilibrium.molecule_names,
+            'equilibrium_complex_ids': self.sim_data.process.equilibrium.ids_complexes,
+            'monomer_ids': self.sim_data.process.translation.monomer_data["id"].tolist(),
+
+            # Get IDs of complexed molecules monomers involved in two component system
+            'two_component_system_molecule_ids': list(
+                self.sim_data.process.two_component_system.molecule_names),
+            'two_component_system_complex_ids': list(
+                self.sim_data.process.two_component_system.complex_to_monomer.keys()),
+
+            # Get IDs of ribosome subunits
+            'ribosome_50s_subunits': self.sim_data.process.complexation.get_monomers(
+                self.sim_data.molecule_ids.s50_full_complex),
+            'ribosome_30s_subunits': self.sim_data.process.complexation.get_monomers(
+                self.sim_data.molecule_ids.s30_full_complex),
+
+            # Get IDs of RNA polymerase subunits
+            'rnap_subunits': self.sim_data.process.complexation.get_monomers(
+                self.sim_data.molecule_ids.full_RNAP),
+
+            # Get IDs of replisome subunits
+            'replisome_trimer_subunits': self.sim_data.molecule_groups.replisome_trimer_subunits,
+            'replisome_monomer_subunits': self.sim_data.molecule_groups.replisome_monomer_subunits,
+
+            # Get stoichiometric matrices for complexation, equilibrium, two component system and the
+            # assembly of unique molecules
+            'complexation_stoich': self.sim_data.process.complexation.stoich_matrix_monomers(),
+            'equilibrium_stoich': self.sim_data.process.equilibrium.stoich_matrix_monomers(),
+            'two_component_system_stoich': self.sim_data.process.two_component_system.stoich_matrix_monomers(),
+        }
+
+        return monomer_counts_config
+
     def get_allocator_config(self, time_step=2, parallel=False, process_names=[]):
         allocator_config = {
             'time_step': time_step,
+            '_parallel': parallel,
             'molecule_names': self.sim_data.internal_state.bulk_molecules.bulk_data['id'],
             'seed': self.random_state.randint(2**31),
             'process_names': process_names,
@@ -638,6 +692,7 @@ class LoadSimData:
             'amino_acids': self.sim_data.molecule_groups.amino_acids,
             'water': self.sim_data.molecule_ids.water,
 
-            'deriver_mode': deriver_mode
+            'deriver_mode': deriver_mode,
+            'seed': self.random_state.randint(RAND_MAX),
         }
         return chromosome_structure_config
