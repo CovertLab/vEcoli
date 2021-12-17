@@ -139,23 +139,32 @@ class EngineProcess(Process):
 
     def next_update(self, timestep, states):
         update = {}
-        # Update the internal state.
+        # Update the internal state with tunnel data.
         for tunnel, (path, _) in self.tunnels_in.items():
             incoming_state = states[tunnel]
             self.sim.state.get_path(path).set_value(incoming_state)
+        for tunnel in self.tunnels_out.values():
+            incoming_state = states[tunnel]
+            self.sim.state.get_path((tunnel,)).set_value(incoming_state)
 
-        # update the sim state
-        self.sim.state.set_value(states)
-
-        # run the sim
+        # Run inner simulation for timestep.
+        # TODO: What if internal processes have a longer timestep than
+        # this process?
         self.sim.update(timestep)
 
-        # get the values to update
-        current_state = self.store.get_value(self.parameters['ports'])
-
-        # TODO -- convert to update
-        update = current_state
-
+        # Craft an update to pass data back out through the tunnels.
+        update = {}
+        for tunnel, (path, _) in self.tunnels_in.items():
+            update[tunnel] = {
+                '_value': self.sim.state.get_path(path).get_value(),
+                '_updater': 'set',
+            }
+        for tunnel in self.tunnels_out.values():
+            update[tunnel] = {
+                '_value': self.sim.state.get_path(
+                    (tunnel,)).get_value(),
+                '_updater': 'set',
+            }
         return update
 
 
@@ -165,6 +174,10 @@ class ProcA(Process):
         return {
             'port_a': {
                 '_default': 0,
+                '_emit': True,
+            },
+            'port_c': {
+                '_default': 5,
                 '_emit': True,
             },
         }
@@ -187,7 +200,52 @@ class ProcB(Process):
         return {}
 
 
+class ProcC(Process):
+
+    def ports_schema(self):
+        return {
+            'port_c': {
+                '_default': 5,
+                '_emit': True,
+            },
+            'port_b': {
+                '_default': 0,
+                '_emit': True,
+            },
+        }
+
+    def next_update(self, timestep, states):
+        return {}
+
+
 def test_engine_process():
+    '''
+    Here's a schematic diagram of the hierarchy created in this test:
+
+    .. code-block:: text
+
+
+            +-------------+------------+------------------+
+            |             |            |                  |
+            |           +-+-+          |                  |
+            b...........| C |..........c    +-------------+-----------+
+            :           +---+          :    |       EngineProcess     |
+            :                          :    | +---+----+-----+-----+  |
+            :                          :    | |   |    |     |     |  |
+            :                          :    | | +-+-+..c     |     |  |
+            :                          :    | | | A |        |     |  |
+            :                          :    | | +---+........a     |  |
+            :                          :    | |                    |  |
+            :                          :    | +---+                |  |
+            :                          :    | | B |..........b_tunnel |
+            :                          :    | +---+                   |
+            :                          :    |                         |
+            :                          :    +---c_tunnel---b_tunnel---+
+            :                          :...........:           :
+            :                                                  :
+            :..................................................:
+
+    '''
     inner_composite = {
         'processes': {
             'procA': ProcA(),
@@ -196,6 +254,7 @@ def test_engine_process():
         'topology': {
             'procA': {
                 'port_a': ('a',),
+                'port_c': ('c',),
             },
             'procB': {
                 'port_b': ('..', 'b'),
@@ -205,10 +264,13 @@ def test_engine_process():
     proc = EngineProcess({
         'composite': inner_composite,
         'tunnels_in': {
-            'c': {
-                '_default': 5,
-                '_emit': True,
-            },
+            'c_tunnel': (
+                ('c',),
+                {
+                    '_default': 5,
+                    '_emit': True,
+                },
+            ),
         },
     })
     schema = proc.get_schema()
@@ -223,6 +285,25 @@ def test_engine_process():
         },
     }
     assert schema == expected_schema
+
+    outer_composite = {
+        'processes': {
+            'procC': ProcC(),
+            'engine': proc,
+        },
+        'topology': {
+            'procC': {
+                'port_b': ('b',),
+                'port_c': ('c',),
+            },
+            'engine': {
+                'b_tunnel': ('b',),
+                'c_tunnel': ('c',),
+            },
+        },
+    }
+    engine = Engine(**outer_composite)
+    engine.update(4)
 
 
 def test_cap_tunneling_paths():
