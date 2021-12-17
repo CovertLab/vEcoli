@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 from vivarium.core.composition import TEST_OUT_DIR
 from vivarium.plots.agents_multigen import plot_agents_multigen
 
-from ecoli.composites.lattice.lattice import test_lattice
+from ecoli.composites.environment.lattice import test_lattice
 from ecoli.plots.snapshots import (
     make_snapshots_figure,
     make_tags_figure,
