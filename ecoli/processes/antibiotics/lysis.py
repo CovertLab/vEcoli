@@ -37,6 +37,10 @@ def test_lysis():
             'lysis': {},
             'transport': {},
             'local_field': {},
+            'boundary_path': ('boundary',),
+            'fields_path': ('..', '..', 'fields'),
+            'dimensions_path': ('..', '..', 'dimensions',),
+            'agents_path': ('..', '..', 'agents',),
         }
 
         def generate_processes(self, config):
@@ -51,31 +55,49 @@ def test_lysis():
             }
 
         def generate_topology(self, config):
+            boundary_path = config['boundary_path']
+            fields_path = config['fields_path']
+            dimensions_path = config['dimensions_path']
+            agents_path = config['agents_path']
+
             return {
                 'transport': {
                     'internal': ('internal',),
-                    'external': ('..', '..', 'fields',),
+                    'external': boundary_path + ('external',),
+                },
+                'local_field': {
+                    'exchanges': boundary_path + ('exchange',),
+                    'location': boundary_path + ('location',),
+                    'fields': fields_path,
+                    'dimensions': dimensions_path,
                 },
                 'lysis': {
-                    'trigger': (),
-                    'agents': ('..', '..', 'agents',),
-                    'fields': ('..', '..', 'fields',),
-                }
+                    'trigger': ('internal', 'GLC',),
+                    'agents': agents_path,
+                    'fields': fields_path,
+                },
             }
 
     agent_id = '1'
-    lattice_composer = Lattice()
+    lattice_composer = Lattice({
+        'diffusion': {
+            'molecules': ['GLC']}
+        }
+    )
     agent_composer = LysisAgent()
 
     full_composite = lattice_composer.generate()
     agent = agent_composer.generate({'agent_id': agent_id})
     full_composite.merge(composite=agent, path=('agents', agent_id))
 
+    initial_state = full_composite.initial_state()
+
     experiment = Engine(
         processes=full_composite.processes,
         steps=full_composite.steps,
         topology=full_composite.topology,
         flow=full_composite.flow,
+        initial_state=initial_state,
     )
 
     experiment.update(10)
