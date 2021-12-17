@@ -90,20 +90,23 @@ class Mass(Deriver):
 
         # calculate bulk molecule mass
         bulk_mass = 0.0
-        for molecule_id, count in states['bulk'].items():
-            if count > 0:
-                added_mass = mass_from_count(count, self.molecular_weights.get(molecule_id))
-                bulk_mass += added_mass
+        if self.molecular_weights:
+            for molecule_id, count in states['bulk'].items():
+                if count > 0:
+                    added_mass = mass_from_count(count, self.molecular_weights.get(molecule_id))
+                    bulk_mass += added_mass
 
         # calculate unique molecule mass
-        unique_masses = np.array([])
-        for molecule_id, molecules in states['unique'].items():
-            n_molecules = len(molecules)
-            if unique_masses.any():
-                unique_masses += self.unique_masses[molecule_id] * n_molecules
-            else:
-                unique_masses = self.unique_masses[molecule_id] * n_molecules
-        unique_mass = np.sum(unique_masses)
+        unique_mass = 0.0
+        if self.unique_masses:
+            unique_masses = np.array([])
+            for molecule_id, molecules in states['unique'].items():
+                n_molecules = len(molecules)
+                if unique_masses.any():
+                    unique_masses += self.unique_masses[molecule_id] * n_molecules
+                else:
+                    unique_masses = self.unique_masses[molecule_id] * n_molecules
+            unique_mass = np.sum(unique_masses)
 
         # calculate masses
         cell_mass = bulk_mass + unique_mass

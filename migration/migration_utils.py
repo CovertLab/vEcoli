@@ -1,6 +1,6 @@
 import numpy as np
 from scipy.stats import mannwhitneyu, chi2_contingency, ttest_ind, bartlett
-from vivarium.core.engine import Engine
+from vivarium.core.engine import Engine, view_values
 
 from ecoli.states.wcecoli_state import get_state_from_file
 
@@ -21,7 +21,8 @@ def get_process_state(process, topology, initial_state):
 
     # translate the values from the tree structure into the form
     # that this process expects, based on its declared topology
-    states = store.outer.schema_topology(process.schema, store.topology)
+    topology_view = store.outer.schema_topology(process.schema, store.topology)
+    states = view_values(topology_view)
     return states, experiment
 
 
@@ -61,7 +62,8 @@ def run_ecoli_process(
 
     # translate the values from the tree structure into the form
     # that this process expects, based on its declared topology
-    states = store.outer.schema_topology(process.schema, store.topology)
+    topology_view = store.outer.schema_topology(process.schema, store.topology)
+    states = view_values(topology_view)
 
     update = experiment.invoke_process(
         process,
@@ -293,8 +295,10 @@ def array_almost_equal(arr1, arr2):
     return (np.all(p_errors <= PERCENT_ERROR_THRESHOLD),
             f"Max error = {np.max(p_errors):.4f}")
 
-def scalar_almost_equal(v1, v2):
+def scalar_almost_equal(v1, v2, custom_threshold=None):
     pe = percent_error(v1, v2)
+    if custom_threshold:
+        return pe < custom_threshold or np.isnan(pe), f"Percent error = {pe:.4f}"
     return pe < PERCENT_ERROR_THRESHOLD or np.isnan(pe), f"Percent error = {pe:.4f}"
 
 def custom_array_comp(percent_error_threshold = 0.05):

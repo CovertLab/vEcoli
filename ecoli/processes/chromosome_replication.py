@@ -73,8 +73,15 @@ class ChromosomeReplication(PartitionedProcess):
 
         # random seed
         'seed': 0,
-        
+
         'submass_indexes': MASSDIFFS,
+
+        'partitioning_hidden_state_instance_variables': [
+            'criticalInitiationMass',
+            'criticalMassPerOriC',
+            'elongation_rates',
+            'random_state',
+        ],
     }
 
     def __init__(self, parameters=None):
@@ -101,7 +108,7 @@ class ChromosomeReplication(PartitionedProcess):
         # random state
         self.seed = self.parameters['seed']
         self.random_state = np.random.RandomState(seed=self.seed)
-        
+
         # Index of DNA submass in submass vector
         self.DNA_submass_idx = self.parameters['submass_indexes']['massDiff_DNA']
 
@@ -109,8 +116,6 @@ class ChromosomeReplication(PartitionedProcess):
 
     def ports_schema(self):
 
-        default_unique_schema = {
-            '_default': 0, '_updater': 'set', '_emit': self.emit_unique}
         return {
             # bulk molecules
             'replisome_trimers': bulk_schema(self.parameters['replisome_trimers_subunits']),
@@ -140,10 +145,10 @@ class ChromosomeReplication(PartitionedProcess):
         requests = {}
         # Get total count of existing oriC's
         n_oriC = len(states['oriCs'])
-		# If there are no origins, return immediately
+        # If there are no origins, return immediately
         if n_oriC == 0:
             return requests
-        
+
         # Get current cell mass
         cellMass = (states['listeners']['mass']['cell_mass'] * units.fg)
 
@@ -163,9 +168,9 @@ class ChromosomeReplication(PartitionedProcess):
         # building two replisomes per one origin of replication, and edit
         # access to oriC and chromosome domain attributes
         if self.criticalMassPerOriC >= 1.0:
-            requests['replisome_trimers'] = {rep_trimer: 6*n_oriC 
+            requests['replisome_trimers'] = {rep_trimer: 6*n_oriC
                                    for rep_trimer in states['replisome_trimers']}
-            requests['replisome_monomers'] = {rep_monomer: 2*n_oriC for rep_monomer 
+            requests['replisome_monomers'] = {rep_monomer: 2*n_oriC for rep_monomer
                                         in states['replisome_monomers']}
 
         # If there are no active forks return
@@ -205,7 +210,7 @@ class ChromosomeReplication(PartitionedProcess):
             * sequenceComposition)
 
         return requests
-        
+
     def evolve_state(self, timestep, states):
         # Initialize the update dictionary
         update = {
@@ -245,7 +250,7 @@ class ChromosomeReplication(PartitionedProcess):
             # 2) If mechanistic replisome option is on, there are enough replisome
             # subunits to assemble two replisomes per existing OriC.
             # Note that we assume asynchronous initiation does not happen.
-            initiate_replication = (not self.mechanistic_replisome or 
+            initiate_replication = (not self.mechanistic_replisome or
                                     (np.all(n_replisome_trimers == 6 * n_oriC) and
                                     np.all(n_replisome_monomers == 2 * n_oriC)))
 
@@ -278,7 +283,7 @@ class ChromosomeReplication(PartitionedProcess):
                 '_add': [{
                     'key': str(uuid.uuid1()),
                     'state': {'domain_index': domain_index_new[index]}}
-                    for index in range(n_oriC)],
+                    for index in range(2*n_oriC)],
                 '_delete': [key for key in states['oriCs'].keys()]}
 
             # Add and set attributes of newly created replisomes.
@@ -512,7 +517,7 @@ class ChromosomeReplication(PartitionedProcess):
 
         return update
 
-    
+
 
 def test_chromosome_replication():
     test_config = {}

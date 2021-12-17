@@ -9,7 +9,7 @@ from ecoli.experiments.ecoli_master_sim import EcoliSim, CONFIG_DIR_PATH
 from collections import Counter
 
 
-def blame_plot(data, 
+def blame_plot(data,
                topology,
                filename='out/ecoli_sim/blame.png',
                selected_molecules=None,
@@ -39,7 +39,7 @@ def blame_plot(data,
     if 'log_update' not in data.keys():
         raise ValueError("Missing log_update in data; did you run simulation without logged updates?")
 
-    max_t = data['time'][-1]
+    max_t = data['time'][-1] - data['time'][0]
 
     bulk_idx, process_idx, plot_data = extract_bulk(data, get_bulk_processes(topology))
     plot_data = plot_data.toarray() / max_t  # convert counts to average rate
@@ -84,7 +84,10 @@ def blame_plot(data,
     title = (f"Average Change (#mol/sec) in Bulk due to each Process over {max_t} seconds\n"
              f"(non-zero only, logarithmic color scale{f' normalizing within {norm_str}' if norm_str else ''})")
 
-    fig.set_size_inches(2 * (n_molecules + 3), (n_processes + 3) / 5)
+    if selected_molecules:
+        fig.set_size_inches(2 * (n_molecules + 3) + 10, (n_processes + 3) / 5 + 10)  # Make margins larger
+    else:
+        fig.set_size_inches(2 * (n_molecules + 3), (n_processes + 3) / 5)
     main_ax.imshow(-plot_data, aspect='auto', cmap=plt.get_cmap('seismic'),
                    norm=DivergingNormalize(within=within))
 
@@ -179,7 +182,7 @@ def get_bulk_processes(topology):
                     bulk_processes[process] = []
 
                 bulk_processes[process].append(port)
-    
+
     return bulk_processes
 
 
@@ -188,12 +191,14 @@ def extract_bulk(data, bulk_processes):
     collected_data = {}
     for process, updates in data['log_update'].items():
         if process not in bulk_processes.keys():
-            break
+            if process + '_evolver' not in bulk_processes.keys():
+                break
+            process = process + '_evolver'
 
         process_data = Counter()
         for port in updates.keys():
             if port not in bulk_processes[process]:
-                break
+                continue
 
             port_data = {k: np.sum(v) for k, v in updates[port].items()}
             process_data.update(port_data)
@@ -301,12 +306,38 @@ def idx_array_from(dictionary):
 
 
 def test_blame():
-    sim = EcoliSim.from_file(CONFIG_DIR_PATH + "/test_configs/test_blame.json")
+    sim = EcoliSim.from_file(CONFIG_DIR_PATH + "no_partition.json")
+    sim.merge(EcoliSim.from_file(CONFIG_DIR_PATH + "/test_configs/test_blame.json"))
+    data = sim.run()
+
+    blame_plot(data, sim.topology,
+               'out/ecoli_sim/blame_test.png',
+               highlight_molecules=['PD00413[c]', 'PHOR-CPLX[c]'])
+
+
+def compare_partition():
+    sim = EcoliSim.from_file()
+    sim.total_time = 4
+    sim.log_updates = True
+    sim.raw_output = False
+
+    sim.partition = False
+    sim.exclude_processes = ["ecoli-two-component-system"]
     data = sim.run()
 
     blame_plot(data, sim.ecoli.topology,
-            'out/ecoli_sim/blame_test.png',
-            highlight_molecules=['PD00413[c]', 'PHOR-CPLX[c]'])
+               "out/ecoli_sim/blame_nopartition.png")
+
+    sim = EcoliSim.from_file()
+    sim.total_time = 4
+    sim.log_updates = True
+    sim.raw_output = False
+
+    sim.partition = True
+    data = sim.run()
+
+    blame_plot(data, sim.topology,
+               "out/ecoli_sim/blame_partition.png")
 
 
 if __name__ == "__main__":

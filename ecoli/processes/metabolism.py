@@ -134,6 +134,12 @@ class Metabolism(Process):
 
         self.deriver_mode = self.parameters['deriver_mode']
 
+    def __getstate__(self):
+        return self.parameters
+
+    def __setstate__(self, state):
+        self.__init__(state)
+
     def is_deriver(self):
         return self.deriver_mode
 
@@ -159,8 +165,11 @@ class Metabolism(Process):
 
             'listeners': {
                 'mass': {
-                    'cell_mass': {'_default': 0.0},
-                    'dry_mass': {'_default': 0.0}},
+                    # TODO(Matt): These should not be using a divider. Mass listener should run before metabolism after division.
+                    'cell_mass': {'_default': 0.0,
+                                  '_divider': 'split'},
+                    'dry_mass': {'_default': 0.0,
+                                 '_divider': 'split'}},
 
                 'fba_results': {
                     'media_id': {'_default': '', '_updater': 'set'},
@@ -200,10 +209,12 @@ class Metabolism(Process):
             'polypeptide_elongation': {
                 'aa_count_diff': {
                     '_default': {},
-                    '_emit': True},
+                    '_emit': True,
+                    '_divider': 'empty_dict'},
                 'gtp_to_hydrolyze': {
                     '_default': 0,
-                    '_emit': True}}}
+                    '_emit': True,
+                    '_divider': 'zero'}}}
 
     def next_update(self, timestep, states):
         # Skip t=0 if a deriver
@@ -720,6 +731,7 @@ def test_metabolism_listener():
     from ecoli.experiments.ecoli_master_sim import EcoliSim
     sim = EcoliSim.from_file()
     sim.total_time = 2
+    sim.raw_output = False
     data = sim.run()
     assert(type(data['listeners']['fba_results']['reactionFluxes'][0]) == list)
     assert(type(data['listeners']['fba_results']['reactionFluxes'][1]) == list)
