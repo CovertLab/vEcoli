@@ -62,7 +62,7 @@ information with the outside simulation.
 import copy
 
 from vivarium.core.engine import Engine
-from vivarium.core.process import Process
+from vivarium.core.process import Process, Step
 from vivarium.library.topology import get_in, assoc_path
 
 
@@ -108,6 +108,7 @@ class EngineProcess(Process):
         'composite': {},
         # Map from tunnel name to (path to internal store, schema)
         'tunnels_in': {},
+        'initial_state': {},
     }
     # TODO: Handle name clashes between tunnels.
 
@@ -122,6 +123,8 @@ class EngineProcess(Process):
             steps=composite.get('steps'),
             flow=composite.get('flow'),
             topology=composite['topology'],
+            initial_state=self.parameters['initial_state'],
+            emitter='null',
         )
 
     def ports_schema(self):
@@ -152,18 +155,27 @@ class EngineProcess(Process):
         # this process?
         self.sim.update(timestep)
 
+        # TODO: Handle division.
+
         # Craft an update to pass data back out through the tunnels.
         update = {}
         for tunnel, (path, _) in self.tunnels_in.items():
+            delta = (
+                self.sim.state.get_path(path).get_value()
+                - states[tunnel]
+            )
             update[tunnel] = {
-                '_value': self.sim.state.get_path(path).get_value(),
-                '_updater': 'set',
+                '_value': delta,
+                '_updater': 'accumulate',
             }
         for tunnel in self.tunnels_out.values():
+            delta = (
+                self.sim.state.get_path((tunnel,)).get_value()
+                - states[tunnel]
+            )
             update[tunnel] = {
-                '_value': self.sim.state.get_path(
-                    (tunnel,)).get_value(),
-                '_updater': 'set',
+                '_value': delta,
+                '_updater': 'accumulate',
             }
         return update
 
@@ -174,16 +186,21 @@ class ProcA(Process):
         return {
             'port_a': {
                 '_default': 0,
+                '_updater': 'accumulate',
                 '_emit': True,
             },
             'port_c': {
-                '_default': 5,
+                '_default': 0,
+                '_updater': 'accumulate',
                 '_emit': True,
             },
         }
 
     def next_update(self, timestep, states):
-        return {}
+        '''Each timestep, ``port_a += port_c``.'''
+        return {
+            'port_a': states['port_c'],
+        }
 
 
 class ProcB(Process):
@@ -192,12 +209,16 @@ class ProcB(Process):
         return {
             'port_b': {
                 '_default': 0,
+                '_updater': 'accumulate',
                 '_emit': True,
             },
         }
 
     def next_update(self, timestep, states):
-        return {}
+        '''Each timestep, ``port_b += 1``.'''
+        return {
+            'port_b': 1,
+        }
 
 
 class ProcC(Process):
@@ -205,17 +226,22 @@ class ProcC(Process):
     def ports_schema(self):
         return {
             'port_c': {
-                '_default': 5,
+                '_default': 0,
+                '_updater': 'accumulate',
                 '_emit': True,
             },
             'port_b': {
                 '_default': 0,
+                '_updater': 'accumulate',
                 '_emit': True,
             },
         }
 
     def next_update(self, timestep, states):
-        return {}
+        '''Each timestep, ``port_c += port_b``.'''
+        return {
+            'port_c': states['port_b'],
+        }
 
 
 def test_engine_process():
@@ -223,7 +249,6 @@ def test_engine_process():
     Here's a schematic diagram of the hierarchy created in this test:
 
     .. code-block:: text
-
 
             +-------------+------------+------------------+
             |             |            |                  |
@@ -245,6 +270,9 @@ def test_engine_process():
             :                                                  :
             :..................................................:
 
+    Notice that ``c_tunnel`` is a tunnel in from outer process ``C`` to
+    inner store `c`, and ``b_tunnel`` is a tunnel out from inner process
+    ``B`` to outer store ``b``.
     '''
     inner_composite = {
         'processes': {
@@ -267,7 +295,7 @@ def test_engine_process():
             'c_tunnel': (
                 ('c',),
                 {
-                    '_default': 5,
+                    '_default': 0,
                     '_emit': True,
                 },
             ),
@@ -277,10 +305,11 @@ def test_engine_process():
     expected_schema = {
         'b_tunnel': {
             '_default': 0,
+            '_updater': 'accumulate',
             '_emit': True,
         },
         'c_tunnel': {
-            '_default': 5,
+            '_default': 0,
             '_emit': True,
         },
     }
@@ -304,6 +333,27 @@ def test_engine_process():
     }
     engine = Engine(**outer_composite)
     engine.update(4)
+
+    outer_data = engine.emitter.get_timeseries()
+    inner_data = proc.sim.emitter.get_timeseries()
+    expected_outer_data = {
+        'b': [0, 1, 2, 3, 4],
+        'c': [0, 0, 1, 3, 6],
+        'time': [0.0, 1.0, 2.0, 3.0, 4.0],
+    }
+    # Note that these outputs appear "behind" for stores a and c because
+    # the EngineProcess doesn't see the impact of its updates until the
+    # start of the following timestep. We update the internal state at
+    # the beginning of the timestep before running the processes, so the
+    # simulation is still functionally correct.
+    expected_inner_data = {
+        'a': [0, 0, 0, 1, 4],
+        'b_tunnel': [0, 1, 2, 3, 4],
+        'c': [0, 0, 0, 1, 3],
+        'time': [0.0, 1.0, 2.0, 3.0, 4.0],
+    }
+    assert outer_data == expected_outer_data
+    assert inner_data == expected_inner_data
 
 
 def test_cap_tunneling_paths():
