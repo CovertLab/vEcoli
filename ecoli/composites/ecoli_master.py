@@ -333,14 +333,16 @@ def run_ecoli(
 @pytest.mark.slow
 def test_division(
         agent_id='1',
-        total_time=60
+        total_time=1600,
 ):
     """tests that a cell can be divided and keep running"""
 
     # get initial mass from Ecoli composer
     initial_state = Ecoli({}).initial_state({'initial_state': 'vivecoli_t2550'})
     initial_mass = initial_state['listeners']['mass']['cell_mass']
-    division_mass = initial_mass + 1
+    # The cell divides between the 1554 and 1556 timesteps with this
+    # mass target.
+    division_mass = 2000
     print(f"DIVIDE AT {division_mass} fg")
 
     # make a new composer under an embedded path
@@ -423,6 +425,12 @@ def test_division(
                 len(daughter_states[0]['unique'][key]) +
                 len(daughter_states[1]['unique'][key]),
                 custom_threshold=0.1))
+
+    # Assert that no RNA is in both daughters.
+    daughter1_rnas = daughter_states[0]['unique']['RNA'].keys()
+    daughter2_rnas = daughter_states[1]['unique']['RNA'].keys()
+    mother_rnas = mother_state['unique']['RNA'].keys()
+    assert not daughter1_rnas & daughter2_rnas
 
     # asserts
     initial_agents = output[0.0]['agents'].keys()
