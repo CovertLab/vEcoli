@@ -3,6 +3,7 @@
 Lysis
 =====
 """
+import os
 import numpy as np
 
 from vivarium.core.process import Step
@@ -12,6 +13,7 @@ from vivarium.composites.toys import ToyTransport
 from vivarium.processes.timeline import TimelineProcess
 from ecoli.composites.lattice.lattice import Lattice
 from ecoli.processes.lattice.local_field import LocalField
+from ecoli.plots.snapshots import plot_snapshots, format_snapshot_data, get_agent_ids
 
 
 class Lysis(Step):
@@ -43,7 +45,7 @@ class Lysis(Step):
 
     def next_update(self, timestep, states):
         if states['trigger']:
-            import ipdb; ipdb.set_trace()
+            # import ipdb; ipdb.set_trace()
             internal = states['internal']
 
             return {
@@ -60,76 +62,81 @@ class Lysis(Step):
 
 
 
-def test_lysis():
+class LysisAgent(Composer):
+    defaults = {
+        'lysis': {},
+        'transport': {},
+        'local_field': {},
+        'boundary_path': ('boundary',),
+        'fields_path': ('..', '..', 'fields'),
+        'dimensions_path': ('..', '..', 'dimensions',),
+        'agents_path': ('..', '..', 'agents',),
+    }
 
-    class LysisAgent(Composer):
-        defaults = {
-            'lysis': {},
-            'transport': {},
-            'local_field': {},
-            'boundary_path': ('boundary',),
-            'fields_path': ('..', '..', 'fields'),
-            'dimensions_path': ('..', '..', 'dimensions',),
-            'agents_path': ('..', '..', 'agents',),
+    def __init__(self, config=None):
+        super().__init__(config)
+
+    def generate_processes(self, config):
+        return {
+            'transport': ToyTransport(config['transport'])
         }
 
-        def __init__(self, config=None):
-            super().__init__(config)
+    def generate_steps(self, config):
+        assert config['agent_id']
+        lysis_config = {
+            'agent_id': config['agent_id'],
+            **config['lysis']}
 
-        def generate_processes(self, config):
-            return {
-                'transport': ToyTransport(config['transport'])
-            }
+        return {
+            'local_field': LocalField(config['local_field']),
+            'lysis': Lysis(lysis_config),
+        }
 
-        def generate_steps(self, config):
-            assert config['agent_id']
-            lysis_config = {
-                'agent_id': config['agent_id'],
-                **config['lysis']}
+    def generate_flow(self, config):
+        return {
+            'local_field': (),
+            'lysis': (),
+        }
 
-            return {
-                'local_field': LocalField(config['local_field']),
-                'lysis': Lysis(lysis_config),
-            }
+    def generate_topology(self, config):
+        boundary_path = config['boundary_path']
+        fields_path = config['fields_path']
+        dimensions_path = config['dimensions_path']
+        agents_path = config['agents_path']
 
-        def generate_flow(self, config):
-            return {
-                'local_field': (),
-                'lysis': (),
-            }
+        return {
+            'transport': {
+                'internal': ('internal',),
+                'external': boundary_path + ('external',),
+            },
+            'local_field': {
+                'exchanges': boundary_path + ('exchange',),
+                'location': boundary_path + ('location',),
+                'fields': fields_path,
+                'dimensions': dimensions_path,
+            },
+            'lysis': {
+                'trigger': ('boundary', 'death',),
+                'internal': ('internal',),
+                'agents': agents_path,
+                'fields': fields_path,
+            },
+        }
 
-        def generate_topology(self, config):
-            boundary_path = config['boundary_path']
-            fields_path = config['fields_path']
-            dimensions_path = config['dimensions_path']
-            agents_path = config['agents_path']
 
-            return {
-                'transport': {
-                    'internal': ('internal',),
-                    'external': boundary_path + ('external',),
-                },
-                'local_field': {
-                    'exchanges': boundary_path + ('exchange',),
-                    'location': boundary_path + ('location',),
-                    'fields': fields_path,
-                    'dimensions': dimensions_path,
-                },
-                'lysis': {
-                    'trigger': ('boundary', 'death',),
-                    'internal': ('internal',),
-                    'agents': agents_path,
-                    'fields': fields_path,
-                },
-            }
+def test_lysis():
 
+    bounds = [25, 25]
     agent_id = '1'
     agent_path = ('agents', agent_id)
     lattice_composer = Lattice({
         'diffusion': {
-            'molecules': ['GLC']}
-        }
-    )
+            'molecules': ['GLC'],
+            'bounds': bounds,
+        },
+        'multibody': {
+            'bounds': bounds,
+        }})
     agent_composer = LysisAgent()
 
     full_composite = lattice_composer.generate()
@@ -165,11 +172,24 @@ def test_lysis():
     )
 
     experiment.update(10)
-    data = experiment.emitter.get_timeseries()
+    data = experiment.emitter.get_data_unitless()
 
-    print(pf(data['agents']))
+    # print(pf(data['agents']))
+    # format the data for plot_snapshots
+    agents, fields = format_snapshot_data(data)
+    initial_ids = list(data[0]['agents'].keys())
+    agent_ids = get_agent_ids(agents)
 
-    import ipdb; ipdb.set_trace()
+    out_dir = os.path.join('out', 'lysis')
+    os.makedirs(out_dir, exist_ok=True)
+    plot_snapshots(
+        bounds,
+        agents=agents,
+        fields=fields,
+        n_snapshots=4,
+        # agent_colors=agent_colors,
+        out_dir=out_dir,
+        filename=f"lysis_snapshots")
 
 
 # python ecoli/processes/antibiotics/lysis.py
