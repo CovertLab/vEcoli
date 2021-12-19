@@ -14,6 +14,7 @@ from vivarium.processes.timeline import TimelineProcess
 from ecoli.composites.lattice.lattice import Lattice
 from ecoli.processes.lattice.local_field import LocalField
 from ecoli.plots.snapshots import plot_snapshots, format_snapshot_data, get_agent_ids
+from ecoli.plots.snapshots_video import make_video
 
 
 class Lysis(Step):
@@ -180,7 +181,7 @@ def test_lysis():
     initial_ids = list(data[0]['agents'].keys())
     agent_ids = get_agent_ids(agents)
 
-    out_dir = os.path.join('out', 'lysis')
+    out_dir = os.path.join('out', 'experiments', 'lysis')
     os.makedirs(out_dir, exist_ok=True)
     plot_snapshots(
         bounds,
@@ -190,6 +191,16 @@ def test_lysis():
         # agent_colors=agent_colors,
         out_dir=out_dir,
         filename=f"lysis_snapshots")
+
+    # make snapshot video
+    make_video(
+        data,
+        bounds,
+        plot_type='fields',
+        # step=40,  # render every nth snapshot
+        out_dir=out_dir,
+        filename='lysis_video',
+    )
 
 
 # python ecoli/processes/antibiotics/lysis.py
