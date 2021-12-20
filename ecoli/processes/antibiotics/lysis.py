@@ -5,16 +5,21 @@ Lysis
 """
 import os
 import numpy as np
+from scipy import constants
 
 from vivarium.core.process import Step
 from vivarium.core.composer import Composer
 from vivarium.core.engine import Engine, pf
+from vivarium.library.units import units
 from vivarium.composites.toys import ToyTransport
 from vivarium.processes.timeline import TimelineProcess
 from ecoli.composites.lattice.lattice import Lattice
 from ecoli.processes.lattice.local_field import LocalField
 from ecoli.plots.snapshots import plot_snapshots, format_snapshot_data, get_agent_ids
 from ecoli.plots.snapshots_video import make_video
+
+
+AVOGADRO = constants.N_A
 
 
 class Lysis(Step):
@@ -62,11 +67,54 @@ class Lysis(Step):
         return {}
 
 
+def mass_from_count(count, mw):
+    mol = count / AVOGADRO
+    return mw * mol
+
+
+class MassStep(Step):
+    defaults = {
+        'molecular_weights': {},
+    }
+
+    def __init__(self, parameters=None):
+        super().__init__(parameters)
+        self.molecular_weights = self.parameters['molecular_weights']
+
+    def ports_schema(self):
+
+        return {
+            'molecules': {
+                mol_id: {
+                    '_default': 0.0,
+                } for mol_id in self.molecular_weights.keys()},
+            'mass': {
+                '_default': 0.0 * units.fg,
+                '_updater': 'set'
+            },
+        }
+
+    def next_update(self, timestep, states):
+        # calculate bulk molecule mass
+        total_mass = 0.0
+        for molecule_id, count in states['molecules'].items():
+            if count > 0:
+                added_mass = mass_from_count(count, self.molecular_weights.get(molecule_id))
+                total_mass += added_mass
+        return {
+            'mass': total_mass,
+        }
+
 
 class LysisAgent(Composer):
     defaults = {
         'lysis': {},
         'transport': {},
+        'mass_step': {
+            'molecular_weights': {
+                'GLC': 100 * units.fg
+            }
+        },
         'local_field': {},
         'boundary_path': ('boundary',),
         'fields_path': ('..', '..', 'fields'),
@@ -90,13 +138,15 @@ class LysisAgent(Composer):
 
         return {
             'local_field': LocalField(config['local_field']),
+            'mass_step': MassStep(config['mass_step']),
             'lysis': Lysis(lysis_config),
         }
 
     def generate_flow(self, config):
         return {
-            'local_field': (),
-            'lysis': (),
+            'local_field': [],
+            'mass_step': [],
+            'lysis': [('mass_step',),],
         }
 
     def generate_topology(self, config):
@@ -115,6 +165,10 @@ class LysisAgent(Composer):
                 'location': boundary_path + ('location',),
                 'fields': fields_path,
                 'dimensions': dimensions_path,
+            },
+            'mass_step': {
+                'molecules': ('internal',),
+                'mass': ('boundary', 'mass')
             },
             'lysis': {
                 'trigger': ('boundary', 'death',),
