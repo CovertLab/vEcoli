@@ -72,14 +72,14 @@ def mass_from_count(count, mw):
 
 class ToyTransportBurst(Process):
     defaults = {
-        'uptake_rate': {'GLC': 2},
-        'molecules': ['GLC'],
+        'uptake_rate': {'GLC': 1},
         'molecular_weights': {'GLC': 1 * units.fg},
         'burst_mass': 2000 * units.fg,
     }
 
     def __init__(self, parameters=None):
         super().__init__(parameters)
+        self.molecules = list(self.parameters['uptake_rate'].keys())
 
     def ports_schema(self):
         return {
@@ -87,23 +87,22 @@ class ToyTransportBurst(Process):
                 key: {
                     '_default': 0.0,
                     '_emit': True,
-                } for key in self.parameters['molecules']
+                } for key in self.molecules
             },
             'exchanges': {
                 key: {
                     '_default': 0.0,
                     '_emit': True,
-                } for key in self.parameters['molecules']
+                } for key in self.molecules
             },
             'internal': {
                 key: {
                     '_default': 0.0,
                     '_emit': True,
-                } for key in self.parameters['molecules']
+                } for key in self.molecules
             },
             'mass': {
                 '_default': 0.0 * units.fg,
-                # '_updater': 'set',
                 '_emit': True,
             },
             'burst_trigger': {
@@ -114,32 +113,37 @@ class ToyTransportBurst(Process):
         }
 
     def next_update(self, timestep, states):
-        exchanges = {}
+        added = {}
+        exchanged = {}
         added_mass = 0.0
         for mol_id, e_state in states['external'].items():
-            exchange_counts = e_state * self.parameters['uptake_rate'][mol_id]
-            exchanges[mol_id] = exchange_counts
-            added_mass = mass_from_count(
+            exchange_concs = e_state * self.parameters['uptake_rate'][mol_id]
+            exchange_counts = exchange_concs
+
+            added[mol_id] = exchange_counts
+            exchanged[mol_id] = -1 * exchange_counts
+            added_mass += mass_from_count(
                 exchange_counts, self.parameters['molecular_weights'][mol_id])
 
         if states['mass'] + added_mass >= self.parameters['burst_mass']:
             return {'burst_trigger': True}
 
         return {
-            'internal': exchanges,
-            'exchanges': exchanges,
+            'internal': added,
+            'exchanges': exchanged,
             'mass': added_mass,
         }
-
 
 
 class LysisAgent(Composer):
     defaults = {
         'lysis': {},
         'transport_burst': {
-            'molecules': ['GLC'],
+            'uptake_rate': {
+                'GLC': 2,
+            },
             'molecular_weights': {
-                'GLC': 100 * units.fg
+                'GLC': 1e22 * units.fg
             },
             'burst_mass': 2000 * units.fg,
         },
@@ -204,7 +208,11 @@ class LysisAgent(Composer):
 
 
 def test_lysis():
+    total_time = 600
+    emit_step = 10
+    death_trigger_time = 500
 
+    # configure the environment
     bounds = [25, 25]
     n_bins = [5, 5]
     agent_id = '1'
@@ -224,8 +232,20 @@ def test_lysis():
         'multibody': {
             'bounds': bounds,
         }})
-    agent_composer = LysisAgent()
 
+    # configure the agent
+    agent_composer = LysisAgent({
+        'transport_burst': {
+            'uptake_rate': {
+                'GLC': 10,
+            },
+            # 'molecular_weights': {
+            #     'GLC': 1e22 * units.fg
+            # },
+            # 'burst_mass': 2000 * units.fg,
+        }})
+
+    # combine composites
     full_composite = lattice_composer.generate()
     agent_composite = agent_composer.generate({'agent_id': agent_id})
     full_composite.merge(composite=agent_composite, path=agent_path)
@@ -233,16 +253,15 @@ def test_lysis():
     # add a timeline process to trigger lysis
     timeline_config = {
         'timeline': [
-            (5, {('death',): True}),
-        ]
-    }
+            (death_trigger_time, {('death',): True}),
+        ]}
     timeline_process = TimelineProcess(timeline_config)
     full_composite.merge(
         processes={
             'timeline': timeline_process},
         topology={
             'timeline': {
-                'death': ('boundary', 'death',),
+                'death': ('boundary', 'burst',),
                 'global': ('..', '..', 'global',),
         }},
         path=agent_path
@@ -256,16 +275,14 @@ def test_lysis():
         topology=full_composite.topology,
         flow=full_composite.flow,
         initial_state=initial_state,
+        emit_step=emit_step,
     )
 
-    experiment.update(10)
+    experiment.update(total_time)
     data = experiment.emitter.get_data_unitless()
 
-    # print(pf(data['agents']))
     # format the data for plot_snapshots
     agents, fields = format_snapshot_data(data)
-    initial_ids = list(data[0]['agents'].keys())
-    agent_ids = get_agent_ids(agents)
 
     out_dir = os.path.join('out', 'experiments', 'lysis')
     os.makedirs(out_dir, exist_ok=True)
@@ -288,9 +305,9 @@ def test_lysis():
         filename='lysis_video',
     )
 
-    data = experiment.emitter.get_timeseries()
-    print(pf(data['agents']))
-    import ipdb; ipdb.set_trace()
+    # data = experiment.emitter.get_timeseries()
+    # print(pf(data['agents']))
+    # import ipdb; ipdb.set_trace()
 
 
 # python ecoli/processes/antibiotics/lysis.py
