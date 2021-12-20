@@ -12,7 +12,7 @@ from vivarium.core.composer import Composer
 from vivarium.core.engine import Engine, pf
 from vivarium.library.units import units, remove_units
 from vivarium.processes.timeline import TimelineProcess
-from ecoli.composites.lattice.lattice import Lattice
+from ecoli.composites.environment.lattice import Lattice
 from ecoli.processes.lattice.local_field import LocalField
 from ecoli.library.lattice_utils import (
     get_bin_site,
@@ -262,14 +262,14 @@ class LysisAgent(Composer):
         }
 
 
-def test_lysis():
-    total_time = 600
-    emit_step = 10
-    death_trigger_time = 500
+def test_lysis(
+        total_time=60,
+        emit_step=1,
+        death_trigger_time=50,
+        bounds=[25, 25],
+        n_bins=[5, 5],
+):
 
-    # configure the environment
-    bounds = [25, 25]
-    n_bins = [5, 5]
     agent_id = '1'
     agent_path = ('agents', agent_id)
     lattice_composer = Lattice({
@@ -335,6 +335,17 @@ def test_lysis():
 
     experiment.update(total_time)
     data = experiment.emitter.get_data_unitless()
+    return data
+
+
+def main():
+    bounds = [20, 20]
+    data = test_lysis(
+        total_time=600,
+        emit_step=10,
+        death_trigger_time=500,
+        bounds=bounds,
+    )
 
     # format the data for plot_snapshots
     agents, fields = format_snapshot_data(data)
@@ -346,7 +357,6 @@ def test_lysis():
         agents=agents,
         fields=fields,
         n_snapshots=4,
-        # agent_colors=agent_colors,
         out_dir=out_dir,
         filename=f"lysis_snapshots")
 
@@ -355,16 +365,12 @@ def test_lysis():
         data,
         bounds,
         plot_type='fields',
-        # step=40,  # render every nth snapshot
         out_dir=out_dir,
         filename='lysis_video',
     )
 
-    # data = experiment.emitter.get_timeseries()
-    # print(pf(data['agents']))
-    # import ipdb; ipdb.set_trace()
 
 
 # python ecoli/processes/antibiotics/lysis.py
 if __name__ == "__main__":
-    test_lysis()
+    main()
