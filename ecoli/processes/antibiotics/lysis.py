@@ -10,10 +10,16 @@ from scipy import constants
 from vivarium.core.process import Step, Process
 from vivarium.core.composer import Composer
 from vivarium.core.engine import Engine, pf
-from vivarium.library.units import units
+from vivarium.library.units import units, remove_units
 from vivarium.processes.timeline import TimelineProcess
 from ecoli.composites.lattice.lattice import Lattice
 from ecoli.processes.lattice.local_field import LocalField
+from ecoli.library.lattice_utils import (
+    get_bin_site,
+    get_bin_volume,
+    count_to_concentration,
+)
+
 from ecoli.plots.snapshots import plot_snapshots, format_snapshot_data, get_agent_ids
 from ecoli.plots.snapshots_video import make_video
 
@@ -23,12 +29,16 @@ AVOGADRO = constants.N_A
 
 class Lysis(Step):
     defaults = {
-        'secreted_molecules': ['GLC'],
+        'secreted_molecules': [],
+        'nonspatial': False,
+        'bin_volume': 1e-6 * units.L,
     }
 
     def __init__(self, parameters=None):
         super().__init__(parameters)
         self.agent_id = self.parameters['agent_id']
+        self.nonspatial = self.parameters['nonspatial']
+        self.bin_volume = self.parameters['bin_volume']
 
     def ports_schema(self):
         return {
@@ -46,21 +56,62 @@ class Lysis(Step):
                 mol_id: {
                     '_default': np.ones(1),
                 } for mol_id in self.parameters['secreted_molecules']
+            },
+            'location': {
+                '_default': [0.5, 0.5]
+            },
+            'dimensions': {
+                'bounds': {
+                    '_default': [1, 1],
+                },
+                'n_bins': {
+                    '_default': [1, 1],
+                },
+                'depth': {
+                    '_default': 1,
+                },
             }
         }
 
     def next_update(self, timestep, states):
         if states['trigger']:
+            location = remove_units(states['location'])
+            n_bins = states['dimensions']['n_bins']
+            bounds = states['dimensions']['bounds']
+            depth = states['dimensions']['depth']
+
+            # get bin volume
+            if self.nonspatial:
+                bin_volume = self.bin_volume
+            else:
+                bin_site = get_bin_site(location, n_bins, bounds)
+                bin_volume = get_bin_volume(n_bins, bounds, depth) * units.L
+
+            # apply internal states to fields
             internal = states['internal']
+            delta_fields = {}
+            for mol_id, value in internal.items():
+
+                # delta concentration
+                exchange = value * units.count
+                concentration = count_to_concentration(exchange, bin_volume).to(
+                    units.mmol / units.L).magnitude
+
+                if self.nonspatial:
+                    delta_fields[mol_id] = {
+                        '_value': concentration,
+                        '_updater': 'accumulate'}
+                else:
+                    delta_field = np.zeros((n_bins[0], n_bins[1]), dtype=np.float64)
+                    delta_field[bin_site[0], bin_site[1]] += concentration
+                    delta_fields[mol_id] = {
+                        '_value': delta_field,
+                        '_updater': 'accumulate'}
+
+            # remove agent and apply delta to field
             return {
-                'trigger': {
-                    '_updater': 'set',
-                    '_value': False},
-                'agents': {
-                    # remove self
-                    '_delete': [self.agent_id]
-                },
-                'fields': {}  # TODO place internal states in fields
+                'agents': {'_delete': [self.agent_id]},
+                'fields': delta_fields
             }
         return {}
 
@@ -137,7 +188,9 @@ class ToyTransportBurst(Process):
 
 class LysisAgent(Composer):
     defaults = {
-        'lysis': {},
+        'lysis': {
+            'secreted_molecules': ['GLC']
+        },
         'transport_burst': {
             'uptake_rate': {
                 'GLC': 2,
@@ -203,6 +256,8 @@ class LysisAgent(Composer):
                 'internal': ('internal',),
                 'agents': agents_path,
                 'fields': fields_path,
+                'location': boundary_path + ('location',),
+                'dimensions': dimensions_path,
             },
         }
 
