@@ -62,7 +62,6 @@ class DiffusionField(Process):
 
     def __init__(self, parameters=None):
         super().__init__(parameters)
-        # initial_parameters = parameters or {}
 
         # initial state
         self.molecule_ids = self.parameters['molecules']

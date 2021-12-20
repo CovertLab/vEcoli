@@ -7,11 +7,10 @@ import os
 import numpy as np
 from scipy import constants
 
-from vivarium.core.process import Step
+from vivarium.core.process import Step, Process
 from vivarium.core.composer import Composer
 from vivarium.core.engine import Engine, pf
 from vivarium.library.units import units
-from vivarium.composites.toys import ToyTransport
 from vivarium.processes.timeline import TimelineProcess
 from ecoli.composites.lattice.lattice import Lattice
 from ecoli.processes.lattice.local_field import LocalField
@@ -39,7 +38,8 @@ class Lysis(Step):
             'agents': {},
             'internal': {
                 mol_id: {
-                    '_default': 1
+                    '_default': 1,
+                    '_emit': True,
                 } for mol_id in self.parameters['secreted_molecules']
             },
             'fields': {
@@ -51,9 +51,7 @@ class Lysis(Step):
 
     def next_update(self, timestep, states):
         if states['trigger']:
-            # import ipdb; ipdb.set_trace()
             internal = states['internal']
-
             return {
                 'trigger': {
                     '_updater': 'set',
@@ -72,48 +70,78 @@ def mass_from_count(count, mw):
     return mw * mol
 
 
-class MassStep(Step):
+class ToyTransportBurst(Process):
     defaults = {
-        'molecular_weights': {},
+        'uptake_rate': {'GLC': 2},
+        'molecules': ['GLC'],
+        'molecular_weights': {'GLC': 1 * units.fg},
+        'burst_mass': 2000 * units.fg,
     }
 
     def __init__(self, parameters=None):
         super().__init__(parameters)
-        self.molecular_weights = self.parameters['molecular_weights']
 
     def ports_schema(self):
-
         return {
-            'molecules': {
-                mol_id: {
+            'external': {
+                key: {
                     '_default': 0.0,
-                } for mol_id in self.molecular_weights.keys()},
+                    '_emit': True,
+                } for key in self.parameters['molecules']
+            },
+            'exchanges': {
+                key: {
+                    '_default': 0.0,
+                    '_emit': True,
+                } for key in self.parameters['molecules']
+            },
+            'internal': {
+                key: {
+                    '_default': 0.0,
+                    '_emit': True,
+                } for key in self.parameters['molecules']
+            },
             'mass': {
                 '_default': 0.0 * units.fg,
-                '_updater': 'set'
+                # '_updater': 'set',
+                '_emit': True,
+            },
+            'burst_trigger': {
+                '_default': False,
+                '_updater': 'set',
+                '_emit': True,
             },
         }
 
     def next_update(self, timestep, states):
-        # calculate bulk molecule mass
-        total_mass = 0.0
-        for molecule_id, count in states['molecules'].items():
-            if count > 0:
-                added_mass = mass_from_count(count, self.molecular_weights.get(molecule_id))
-                total_mass += added_mass
+        exchanges = {}
+        added_mass = 0.0
+        for mol_id, e_state in states['external'].items():
+            exchange_counts = e_state * self.parameters['uptake_rate'][mol_id]
+            exchanges[mol_id] = exchange_counts
+            added_mass = mass_from_count(
+                exchange_counts, self.parameters['molecular_weights'][mol_id])
+
+        if states['mass'] + added_mass >= self.parameters['burst_mass']:
+            return {'burst_trigger': True}
+
         return {
-            'mass': total_mass,
+            'internal': exchanges,
+            'exchanges': exchanges,
+            'mass': added_mass,
         }
+
 
 
 class LysisAgent(Composer):
     defaults = {
         'lysis': {},
-        'transport': {},
-        'mass_step': {
+        'transport_burst': {
+            'molecules': ['GLC'],
             'molecular_weights': {
                 'GLC': 100 * units.fg
-            }
+            },
+            'burst_mass': 2000 * units.fg,
         },
         'local_field': {},
         'boundary_path': ('boundary',),
@@ -127,7 +155,7 @@ class LysisAgent(Composer):
 
     def generate_processes(self, config):
         return {
-            'transport': ToyTransport(config['transport'])
+            'transport_burst': ToyTransportBurst(config['transport_burst'])
         }
 
     def generate_steps(self, config):
@@ -135,18 +163,15 @@ class LysisAgent(Composer):
         lysis_config = {
             'agent_id': config['agent_id'],
             **config['lysis']}
-
         return {
             'local_field': LocalField(config['local_field']),
-            'mass_step': MassStep(config['mass_step']),
             'lysis': Lysis(lysis_config),
         }
 
     def generate_flow(self, config):
         return {
             'local_field': [],
-            'mass_step': [],
-            'lysis': [('mass_step',),],
+            'lysis': [],
         }
 
     def generate_topology(self, config):
@@ -156,22 +181,21 @@ class LysisAgent(Composer):
         agents_path = config['agents_path']
 
         return {
-            'transport': {
+            'transport_burst': {
                 'internal': ('internal',),
+                'exchanges': boundary_path + ('exchanges',),
                 'external': boundary_path + ('external',),
+                'mass': boundary_path + ('mass',),
+                'burst_trigger': boundary_path + ('burst',),
             },
             'local_field': {
-                'exchanges': boundary_path + ('exchange',),
+                'exchanges': boundary_path + ('exchanges',),
                 'location': boundary_path + ('location',),
                 'fields': fields_path,
                 'dimensions': dimensions_path,
             },
-            'mass_step': {
-                'molecules': ('internal',),
-                'mass': ('boundary', 'mass')
-            },
             'lysis': {
-                'trigger': ('boundary', 'death',),
+                'trigger': boundary_path + ('burst',),
                 'internal': ('internal',),
                 'agents': agents_path,
                 'fields': fields_path,
@@ -182,12 +206,20 @@ class LysisAgent(Composer):
 def test_lysis():
 
     bounds = [25, 25]
+    n_bins = [5, 5]
     agent_id = '1'
     agent_path = ('agents', agent_id)
     lattice_composer = Lattice({
         'diffusion': {
             'molecules': ['GLC'],
             'bounds': bounds,
+            'n_bins': n_bins,
+            'gradient': {
+                'type': 'uniform',
+                'molecules': {
+                    'GLC': 10.0,
+                }
+            },
         },
         'multibody': {
             'bounds': bounds,
@@ -255,6 +287,10 @@ def test_lysis():
         out_dir=out_dir,
         filename='lysis_video',
     )
+
+    data = experiment.emitter.get_timeseries()
+    print(pf(data['agents']))
+    import ipdb; ipdb.set_trace()
 
 
 # python ecoli/processes/antibiotics/lysis.py
