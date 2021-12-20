@@ -292,7 +292,7 @@ def test_lysis(
     agent_composer = LysisAgent({
         'transport_burst': {
             'uptake_rate': {
-                'GLC': 10,
+                'GLC': 5,
             },
             # 'molecular_weights': {
             #     'GLC': 1e22 * units.fg
@@ -339,12 +339,14 @@ def test_lysis(
 
 
 def main():
-    bounds = [20, 20]
+    bounds = [15, 15]
+    n_bins = [11, 11]
     data = test_lysis(
-        total_time=600,
+        total_time=700,
         emit_step=10,
         death_trigger_time=500,
         bounds=bounds,
+        n_bins=n_bins,
     )
 
     # format the data for plot_snapshots
@@ -356,7 +358,7 @@ def main():
         bounds,
         agents=agents,
         fields=fields,
-        n_snapshots=4,
+        n_snapshots=5,
         out_dir=out_dir,
         filename=f"lysis_snapshots")
 
