@@ -88,7 +88,7 @@ class Ecoli(Composer):
     def initial_state(self, config=None, path=()):
         # Use initial state calculated with trna_charging and translationSupply disabled
         config = config or {}
-        initial_state_file = config.get('initial_state_file', 'wcecoli_t0')
+        initial_state_file = config.get('initial_state', 'wcecoli_t0')
         initial_state = get_state_from_file(path=f'data/{initial_state_file}.json')
         embedded_state = {}
         assoc_path(embedded_state, path, initial_state)
@@ -332,17 +332,14 @@ def test_division(
     """tests that a cell can be divided and keep running"""
 
     # get initial mass from Ecoli composer
-    initial_state = Ecoli({}).initial_state({'initial_state': 'vivecoli_t2550'})
-    initial_mass = initial_state['listeners']['mass']['cell_mass']
-    division_mass = initial_mass + 1
-    print(f"DIVIDE AT {division_mass} fg")
+    initial_state = Ecoli({}).initial_state({'initial_state': 'vivecoli_t1840'})
 
     # make a new composer under an embedded path
     config = {
         'divide': True,
         'agent_id': agent_id,
         'division': {
-            'threshold': division_mass},  # fg
+            'threshold': 2220},  # fg
     }
     agent_path = ('agents', agent_id)
     ecoli_composer = Ecoli(config)
@@ -431,10 +428,7 @@ def test_division_topology():
     timestep = 2
 
     # get initial mass from Ecoli composer
-    initial_state = Ecoli({}).initial_state({'initial_state': 'vivecoli_t2550'})
-    initial_mass = initial_state['listeners']['mass']['cell_mass']
-    division_mass = initial_mass + 0.1
-    print(f"DIVIDE AT {division_mass} fg")
+    initial_state = Ecoli({}).initial_state({'initial_state': 'vivecoli_t1840'})
 
     # make a new composer under an embedded path
     agent_id = '0'
@@ -442,7 +436,7 @@ def test_division_topology():
         'divide': True,
         'agent_id': agent_id,
         'division': {
-            'threshold': division_mass},  # fg
+            'threshold': 2220},  # fg
     }
     agent_path = ('agents', agent_id)
     ecoli_composer = Ecoli(config)
