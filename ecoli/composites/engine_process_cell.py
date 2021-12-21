@@ -16,17 +16,26 @@ class EngineProcessCell(Composer):
 
     defaults = {
         'agent_id': '0',
+        'initial_cell_state': {},
     }
 
     def generate_processes(self, config):
         self.ecoli_sim = EcoliSim.from_cli([
             '--agent_id', config['agent_id']] + sys.argv[1:])
         self.ecoli_sim.build_ecoli()
+        if config['initial_cell_state']:
+            initial_inner_state = {
+                'agents': {
+                    config['agent_id']: config['initial_cell_state']
+                }
+            }
+        else:
+            initial_inner_state = self.ecoli_sim.initial_state
         cell_process = EngineProcess({
             'agent_id': config['agent_id'],
             'composer': self,
             'composite': self.ecoli_sim.ecoli,
-            'initial_state': self.ecoli_sim.initial_state,
+            'initial_inner_state': initial_inner_state,
             'tunnels_in': {
                 'mass_tunnel': (
                     ('agents', '0', 'listeners', 'mass'),
