@@ -4,6 +4,7 @@ Lysis
 =====
 """
 import os
+import random
 import numpy as np
 from scipy import constants
 
@@ -11,7 +12,6 @@ from vivarium.core.process import Step, Process
 from vivarium.core.composer import Composer
 from vivarium.core.engine import Engine, pf
 from vivarium.library.units import units, remove_units
-from vivarium.processes.timeline import TimelineProcess
 from ecoli.composites.environment.lattice import Lattice
 from ecoli.processes.lattice.local_field import LocalField
 from ecoli.library.lattice_utils import (
@@ -159,7 +159,9 @@ class ToyTransportBurst(Process):
             },
             'mass': {
                 '_default': 0.0 * units.fg,
-                '_emit': True,
+            },
+            'length': {
+                '_default': 0.0,
             },
             'burst_trigger': {
                 '_default': False,
@@ -184,10 +186,14 @@ class ToyTransportBurst(Process):
         if states['mass'] + added_mass >= self.parameters['burst_mass']:
             return {'burst_trigger': True}
 
+        # extend length relative to mass
+        added_length = added_mass * states['length'] / states['mass']
+
         return {
             'internal': added,
             'exchanges': exchanged,
             'mass': added_mass,
+            'length': added_length,
         }
 
 
@@ -248,6 +254,7 @@ class LysisAgent(Composer):
                 'exchanges': boundary_path + ('exchanges',),
                 'external': boundary_path + ('external',),
                 'mass': boundary_path + ('mass',),
+                'length': boundary_path + ('length',),
                 'burst_trigger': boundary_path + ('burst',),
             },
             'local_field': {
@@ -268,15 +275,14 @@ class LysisAgent(Composer):
 
 
 def test_lysis(
+        n_cells=1,
         total_time=60,
         emit_step=1,
-        death_trigger_time=50,
         bounds=[25, 25],
         n_bins=[5, 5],
+        uptake_rate_max=20
 ):
 
-    agent_id = '1'
-    agent_path = ('agents', agent_id)
     lattice_composer = Lattice({
         'diffusion': {
             'molecules': ['GLC'],
@@ -293,39 +299,26 @@ def test_lysis(
             'bounds': bounds,
         }})
 
-    # configure the agent
-    agent_composer = LysisAgent({
-        'transport_burst': {
-            'uptake_rate': {
-                'GLC': 5,
-            },
-            # 'molecular_weights': {
-            #     'GLC': 1e22 * units.fg
-            # },
-            # 'burst_mass': 2000 * units.fg,
-        }})
-
-    # combine composites
+    # initialize the composite with a lattice
     full_composite = lattice_composer.generate()
-    agent_composite = agent_composer.generate({'agent_id': agent_id})
-    full_composite.merge(composite=agent_composite, path=agent_path)
 
-    # add a timeline process to trigger lysis
-    timeline_config = {
-        'timeline': [
-            (death_trigger_time, {('death',): True}),
-        ]}
-    timeline_process = TimelineProcess(timeline_config)
-    full_composite.merge(
-        processes={
-            'timeline': timeline_process},
-        topology={
-            'timeline': {
-                'death': ('boundary', 'burst',),
-                'global': ('..', '..', 'global',),
-        }},
-        path=agent_path
-    )
+    # configure the agents
+    agent_composer = LysisAgent()
+
+    agent_ids = [str(idx) for idx in range(n_cells)]
+    for agent_id in agent_ids:
+        # get random uptake rate
+        uptake_rate = random.randrange(uptake_rate_max)
+        agent_composite = agent_composer.generate({
+            'agent_id': agent_id,
+            'transport_burst': {
+                'uptake_rate': {
+                    'GLC': uptake_rate,
+                },
+            }
+        })
+        agent_path = ('agents', agent_id)
+        full_composite.merge(composite=agent_composite, path=agent_path)
 
     initial_state = full_composite.initial_state()
 
@@ -345,13 +338,13 @@ def test_lysis(
 
 def main():
     bounds = [15, 15]
-    n_bins = [11, 11]
+
     data = test_lysis(
-        total_time=700,
+        n_cells=5,
+        total_time=800,
         emit_step=10,
-        death_trigger_time=500,
         bounds=bounds,
-        n_bins=n_bins,
+        n_bins=[11, 11],
     )
 
     # format the data for plot_snapshots
