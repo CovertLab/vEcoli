@@ -103,7 +103,7 @@ class EcoliSim:
         return EcoliSim(ecoli_config)
 
     @staticmethod
-    def from_cli():
+    def from_cli(cli_args=None):
         parser = argparse.ArgumentParser(description='ecoli_master')
         parser.add_argument(
             '--config', '-c', action='store', default=CONFIG_DIR_PATH + 'default.json',
@@ -146,10 +146,14 @@ class EcoliSim:
             help="Whether to return data in raw format (dictionary where keys are times, values are states)."
         )
         parser.add_argument(
+            "--agent_id", action="store", type=str,
+            help="Agent ID."
+        )
+        parser.add_argument(
             'sim_data_path', nargs="*", default=None,
             help="Path to the sim_data to use for this experiment."
         )
-        args = parser.parse_args()
+        args = parser.parse_args(cli_args)
 
         # Load config, deep-merge with default config
         with open(args.config) as config_file:

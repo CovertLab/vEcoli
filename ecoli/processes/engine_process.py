@@ -64,6 +64,9 @@ import copy
 from vivarium.core.engine import Engine
 from vivarium.core.process import Process, Step
 from vivarium.library.topology import get_in, assoc_path
+from vivarium.core.registry import updater_registry
+
+from ecoli.library.updaters import inverse_updater_registry
 
 
 def _get_path_net_depth(path):
@@ -109,6 +112,8 @@ class EngineProcess(Process):
         # Map from tunnel name to (path to internal store, schema)
         'tunnels_in': {},
         'initial_state': {},
+        'agent_id': '0',
+        'composer': None,
     }
     # TODO: Handle name clashes between tunnels.
 
@@ -125,6 +130,8 @@ class EngineProcess(Process):
             topology=composite['topology'],
             initial_state=self.parameters['initial_state'],
             emitter='null',
+            display_info=False,
+            progress_bar=False,
         )
 
     def ports_schema(self):
@@ -141,7 +148,6 @@ class EngineProcess(Process):
 
 
     def next_update(self, timestep, states):
-        update = {}
         # Update the internal state with tunnel data.
         for tunnel, (path, _) in self.tunnels_in.items():
             incoming_state = states[tunnel]
@@ -155,29 +161,70 @@ class EngineProcess(Process):
         # this process?
         self.sim.update(timestep)
 
-        # TODO: Handle division.
+        agents = self.sim.state.get_path(('agents',)).inner
+        if len(agents) > 1:
+            # Division has occurred.
+            daughters = []
+            for daughter_id in agents:
+                composite = self.parameters['composer'].generate({
+                    'agent_id': daughter_id})
+                daughter = {
+                    'daughter': daughter_id,
+                    'processes': composite.processes,
+                    'steps': composite.steps,
+                    'flow': composite.flow,
+                    'topology': composite.topology,
+                    'initial_state': agents[daughter_id].get_value(
+                        condition=lambda x: not isinstance(x, Process)
+                    ),
+                }
+            return {
+                '_divide': {
+                    'mother': self.parameters['agent_id'],
+                    'daughters': daughters,
+                }
+
+            }
 
         # Craft an update to pass data back out through the tunnels.
         update = {}
         for tunnel, (path, _) in self.tunnels_in.items():
-            delta = (
-                self.sim.state.get_path(path).get_value()
-                - states[tunnel]
+            store = self.sim.state.get_path(path)
+            update[tunnel] = _inverse_update(
+                states[tunnel],
+                store.get_value(),
+                store,
             )
-            update[tunnel] = {
-                '_value': delta,
-                '_updater': 'accumulate',
-            }
         for tunnel in self.tunnels_out.values():
-            delta = (
-                self.sim.state.get_path((tunnel,)).get_value()
-                - states[tunnel]
+            store = self.sim.state.get_path((tunnel,))
+            update[tunnel] = _inverse_update(
+                states[tunnel],
+                store.get_value(),
+                store,
             )
-            update[tunnel] = {
-                '_value': delta,
-                '_updater': 'accumulate',
-            }
         return update
+
+
+def _inverse_update(initial_state, final_state, store):
+    if store.updater:
+        # Handle the base case where we have an updater. Note that this
+        # could still be at a branch if we put an updater on a branch
+        # node.
+        # TODO: Handle non-string updaters.
+        assert isinstance(store.updater, str)
+        inverse_updater = inverse_updater_registry.access(store.updater)
+        assert inverse_updater
+        return inverse_updater(initial_state, final_state)
+
+    # Loop over the keys in the store and recurse.
+    update = {}
+    for key in store.inner:
+        # TODO: What if key is missing from initial or final?
+        sub_update = _inverse_update(
+            initial_state[key], final_state[key], store.inner[key])
+        if sub_update != {}:
+            update[key] = sub_update
+    return update
 
 
 class ProcA(Process):
