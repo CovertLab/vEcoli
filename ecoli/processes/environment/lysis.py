@@ -285,6 +285,7 @@ class LysisAgent(Composer):
 
 def test_lysis(
         n_cells=1,
+        molecule_name='GLC',
         total_time=60,
         emit_step=1,
         bounds=[25, 25],
@@ -294,13 +295,13 @@ def test_lysis(
 
     lattice_composer = Lattice({
         'diffusion': {
-            'molecules': ['GLC'],
+            'molecules': [molecule_name],
             'bounds': bounds,
             'n_bins': n_bins,
             'gradient': {
                 'type': 'uniform',
                 'molecules': {
-                    'GLC': 10.0,
+                    molecule_name: 10.0,
                 }
             },
         },
@@ -311,21 +312,29 @@ def test_lysis(
     # initialize the composite with a lattice
     full_composite = lattice_composer.generate()
 
-    # configure the agents
-    agent_composer = LysisAgent()
+    # configure the agent composer
+    agent_composer = LysisAgent({
+        'lysis': {
+            'secreted_molecules': [molecule_name]
+        },
+        'transport_burst': {
+            'molecular_weights': {
+                molecule_name: 1e22 * units.fg
+            },
+            'burst_mass': 2000 * units.fg,
+        },
+    })
 
+    # make individual agents, with unique uptake rates
     agent_ids = [str(idx) for idx in range(n_cells)]
     for agent_id in agent_ids:
-        # get random uptake rate
         uptake_rate = random.randrange(uptake_rate_max)
         agent_composite = agent_composer.generate({
             'agent_id': agent_id,
             'transport_burst': {
                 'uptake_rate': {
-                    'GLC': uptake_rate,
-                },
-            }
-        })
+                    molecule_name: uptake_rate,
+                }}})
         agent_path = ('agents', agent_id)
         full_composite.merge(composite=agent_composite, path=agent_path)
 
@@ -336,9 +345,7 @@ def test_lysis(
         agent_angle = random.uniform(0, 2*PI)
         initial_state['agents'][agent_id] = {
             'boundary': {
-                'angle': agent_angle
-            }
-        }
+                'angle': agent_angle}}
 
     # run the simulation and return the data
     sim = Engine(
@@ -355,9 +362,11 @@ def test_lysis(
 
 def main():
     bounds = [15, 15]
+    molecule_name = 'beta-lactam'
 
     data = test_lysis(
-        n_cells=5,
+        n_cells=8,
+        molecule_name=molecule_name,
         total_time=1000,
         emit_step=10,
         bounds=bounds,
