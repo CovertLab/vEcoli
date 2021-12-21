@@ -5,15 +5,42 @@ from vivarium.core.registry import (
 from ecoli.library.schema import (
     UNIQUE_DEFAULTS,
     divide_binomial,
-    dict_value_updater,
-    make_dict_value_updater, divide_by_domain, divide_unique, divide_RNAs_by_domain, divide_domain, empty_dict_divider,
-    divide_ribosomes, divide_set_none
+    make_dict_value_updater,
+    divide_by_domain,
+    divide_unique,
+    divide_RNAs_by_domain,
+    divide_domain,
+    empty_dict_divider,
+    divide_ribosomes,
+    divide_set_none,
+)
+from ecoli.library.updaters import (
+    inverse_updater_registry,
+    inverse_update_accumulate,
+    inverse_update_set,
+    inverse_update_null,
+    inverse_update_merge,
+    inverse_update_nonnegative_accumulate,
+    inverse_update_dictionary,
 )
 
 # register :term:`updaters`
 for unique_mol, defaults in UNIQUE_DEFAULTS.items():
     updater_registry.register(f'{unique_mol}_updater',
                               make_dict_value_updater(defaults))
+    # TODO: Handle defaults in inverse updater.
+    inverse_updater_registry.register(
+        f'{unique_mol}_updater', inverse_update_dictionary)
+
+inverse_updater_registry.register(
+    'accumulate', inverse_update_accumulate)
+inverse_updater_registry.register('set', inverse_update_set)
+inverse_updater_registry.register('null', inverse_update_null)
+inverse_updater_registry.register('merge', inverse_update_merge)
+inverse_updater_registry.register(
+    'nonnegative_accumulate', inverse_update_nonnegative_accumulate)
+inverse_updater_registry.register(
+    'dict_value', inverse_update_dictionary)
 
 # register :term:`dividers`
 divider_registry.register('binomial_ecoli', divide_binomial)
