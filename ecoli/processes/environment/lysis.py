@@ -13,14 +13,15 @@ from vivarium.core.composer import Composer
 from vivarium.core.engine import Engine, pf
 from vivarium.library.units import units, remove_units
 from ecoli.composites.environment.lattice import Lattice
-from ecoli.processes.lattice.local_field import LocalField
+from ecoli.processes.environment.multibody_physics import PI
+from ecoli.processes.environment.local_field import LocalField
 from ecoli.library.lattice_utils import (
     get_bin_site,
     get_bin_volume,
     count_to_concentration,
 )
 
-from ecoli.plots.snapshots import plot_snapshots, format_snapshot_data, get_agent_ids
+from ecoli.plots.snapshots import plot_snapshots, format_snapshot_data
 from ecoli.plots.snapshots_video import make_video
 
 
@@ -127,6 +128,11 @@ def mass_from_count(count, mw):
 
 
 class ToyTransportBurst(Process):
+    """
+    Toy process for testing Lysis.
+    Uptakes a molecule from a field, and triggers lysis.
+    """
+
     defaults = {
         'uptake_rate': {'GLC': 1},
         'molecular_weights': {'GLC': 1 * units.fg},
@@ -198,6 +204,12 @@ class ToyTransportBurst(Process):
 
 
 class LysisAgent(Composer):
+    """
+    Agent that uptakes a molecule from a lattice environment,
+    bursts upon reaching a set mass, and spills hte molecules
+    back into the environment
+    """
+
     defaults = {
         'lysis': {
             'secreted_molecules': ['GLC']
@@ -217,9 +229,6 @@ class LysisAgent(Composer):
         'dimensions_path': ('..', '..', 'dimensions',),
         'agents_path': ('..', '..', 'agents',),
     }
-
-    def __init__(self, config=None):
-        super().__init__(config)
 
     def generate_processes(self, config):
         return {
@@ -280,7 +289,7 @@ def test_lysis(
         emit_step=1,
         bounds=[25, 25],
         n_bins=[5, 5],
-        uptake_rate_max=20
+        uptake_rate_max=25
 ):
 
     lattice_composer = Lattice({
@@ -320,19 +329,27 @@ def test_lysis(
         agent_path = ('agents', agent_id)
         full_composite.merge(composite=agent_composite, path=agent_path)
 
+    # get initial state
     initial_state = full_composite.initial_state()
+    initial_state['agents'] = {}
+    for agent_id in agent_ids:
+        agent_angle = random.uniform(0, 2*PI)
+        initial_state['agents'][agent_id] = {
+            'boundary': {
+                'angle': agent_angle
+            }
+        }
 
-    experiment = Engine(
+    # run the simulation and return the data
+    sim = Engine(
         processes=full_composite.processes,
         steps=full_composite.steps,
         topology=full_composite.topology,
         flow=full_composite.flow,
         initial_state=initial_state,
-        emit_step=emit_step,
-    )
-
-    experiment.update(total_time)
-    data = experiment.emitter.get_data_unitless()
+        emit_step=emit_step)
+    sim.update(total_time)
+    data = sim.emitter.get_data_unitless()
     return data
 
 
@@ -341,7 +358,7 @@ def main():
 
     data = test_lysis(
         n_cells=5,
-        total_time=800,
+        total_time=1000,
         emit_step=10,
         bounds=bounds,
         n_bins=[11, 11],
@@ -370,7 +387,6 @@ def main():
     )
 
 
-
-# python ecoli/processes/antibiotics/lysis.py
+# python ecoli/processes/environment/lysis.py
 if __name__ == "__main__":
     main()
