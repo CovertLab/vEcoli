@@ -111,7 +111,7 @@ class EngineProcess(Process):
         'composite': {},
         # Map from tunnel name to (path to internal store, schema)
         'tunnels_in': {},
-        'initial_state': {},
+        'initial_inner_state': {},
         'agent_id': '0',
         'composer': None,
     }
@@ -128,7 +128,7 @@ class EngineProcess(Process):
             steps=composite.get('steps'),
             flow=composite.get('flow'),
             topology=composite['topology'],
-            initial_state=self.parameters['initial_state'],
+            initial_state=self.parameters['initial_inner_state'],
             emitter='null',
             display_info=False,
             progress_bar=False,
@@ -167,17 +167,20 @@ class EngineProcess(Process):
             daughters = []
             for daughter_id in agents:
                 composite = self.parameters['composer'].generate({
-                    'agent_id': daughter_id})
+                    'agent_id': daughter_id,
+                    'initial_cell_state': agents[daughter_id].get_value(
+                        condition=lambda x: not isinstance(
+                            x.value, Process)
+                    ),
+                })
                 daughter = {
                     'daughter': daughter_id,
                     'processes': composite.processes,
                     'steps': composite.steps,
                     'flow': composite.flow,
                     'topology': composite.topology,
-                    'initial_state': agents[daughter_id].get_value(
-                        condition=lambda x: not isinstance(x, Process)
-                    ),
                 }
+                daughters.append(daughter)
             return {
                 '_divide': {
                     'mother': self.parameters['agent_id'],
