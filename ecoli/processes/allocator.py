@@ -77,8 +77,7 @@ class Allocator(Deriver):
                                  molecule in self.mol_idx_to_name.values()])
         original_totals = total_counts.copy()
         counts_requested = np.zeros((self.n_molecules, self.n_processes), dtype=int)
-        for process in states['request']:
-            proc_idx = self.proc_name_to_idx[process]
+        for process, proc_idx in self.proc_name_to_idx.items():
             for molecule, count in states['request'][process]['bulk'].items():
                 mol_idx = self.mol_name_to_idx[molecule]
                 counts_requested[mol_idx][proc_idx] += count
@@ -135,7 +134,7 @@ class Allocator(Deriver):
         #             for molIndex in np.where(counts_unallocated < 0)[0]
         #             )
         #         )
-        
+
 
         update = {
             'request': {
