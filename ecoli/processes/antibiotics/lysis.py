@@ -41,6 +41,12 @@ class Lysis(Step):
         self.bin_volume = self.parameters['bin_volume']
 
     def ports_schema(self):
+        fields_schema = {
+                mol_id: {
+                    '_default': np.ones(1),
+                } for mol_id in self.parameters['secreted_molecules']
+            }
+
         return {
             'trigger': {
                 '_default': False
@@ -53,9 +59,8 @@ class Lysis(Step):
                 } for mol_id in self.parameters['secreted_molecules']
             },
             'fields': {
-                mol_id: {
-                    '_default': np.ones(1),
-                } for mol_id in self.parameters['secreted_molecules']
+                **fields_schema,
+                '_output': True,
             },
             'location': {
                 '_default': [0.5, 0.5]
