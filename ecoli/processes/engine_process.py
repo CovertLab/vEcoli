@@ -135,7 +135,9 @@ class EngineProcess(Process):
         )
 
     def ports_schema(self):
-        schema = {}
+        schema = {
+            'agents': {},
+        }
         for port_path, tunnel in self.tunnels_out.items():
             process_path = port_path[:-1]
             port = port_path[-1]
@@ -174,7 +176,7 @@ class EngineProcess(Process):
                     ),
                 })
                 daughter = {
-                    'daughter': daughter_id,
+                    'key': daughter_id,
                     'processes': composite.processes,
                     'steps': composite.steps,
                     'flow': composite.flow,
@@ -182,11 +184,12 @@ class EngineProcess(Process):
                 }
                 daughters.append(daughter)
             return {
-                '_divide': {
-                    'mother': self.parameters['agent_id'],
-                    'daughters': daughters,
-                }
-
+                'agents': {
+                    '_divide': {
+                        'mother': self.parameters['agent_id'],
+                        'daughters': daughters,
+                    },
+                },
             }
 
         # Craft an update to pass data back out through the tunnels.
