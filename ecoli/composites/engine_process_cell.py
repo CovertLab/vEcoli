@@ -71,6 +71,7 @@ class EngineProcessCell(Composer):
         return {
             'cell_process': {
                 'mass_tunnel': ('listeners', 'mass'),
+                'agents': ('..',),
             },
         }
 
