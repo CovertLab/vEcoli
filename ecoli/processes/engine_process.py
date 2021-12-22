@@ -173,8 +173,22 @@ class EngineProcess(Process):
         if len(agents) > 1:
             # Division has occurred.
             daughters = []
+            composer = self.parameters['composer']
             for daughter_id in agents:
-                composite = self.parameters['composer'].generate({
+                tunnel_states = {}
+                for tunnel, (path, _) in self.tunnels_in.items():
+                    # TODO: Make this general somehow or use the
+                    # assumption of the (agents, id) structure
+                    # everywhere.
+                    if len(path) >= 2 and path[:2] == (
+                            'agents', self.parameters['agent_id']):
+                        path = ('agents', daughter_id) + path[2:]
+                    store = self.sim.state.get_path(path)
+                    tunnel_states[tunnel] = store.get_value()
+                for tunnel in self.tunnels_out.values():
+                    store = self.sim.state.get_path((tunnel,))
+                    tunnel_states[tunnel] = store.get_value()
+                composite = composer.generate({
                     'agent_id': daughter_id,
                     'initial_cell_state': agents[daughter_id].get_value(
                         condition=lambda x: not isinstance(
@@ -188,6 +202,10 @@ class EngineProcess(Process):
                     'steps': composite.steps,
                     'flow': composite.flow,
                     'topology': composite.topology,
+                    'initial_state': composer.initial_state({
+                        'agent_id': daughter_id,
+                        'initial_tunnel_states': tunnel_states,
+                    }),
                 }
                 daughters.append(daughter)
             return {
