@@ -6,6 +6,7 @@ from vivarium.core.engine import Engine
 from vivarium.library.topology import get_in, assoc_path
 
 from ecoli.experiments.ecoli_master_sim import EcoliSim
+from ecoli.library.sim_data import RAND_MAX
 from ecoli.processes.engine_process import EngineProcess
 
 
@@ -18,12 +19,14 @@ class EngineProcessCell(Composer):
     defaults = {
         'agent_id': '0',
         'initial_cell_state': {},
+        'seed': 0,
     }
 
     def generate_processes(self, config):
         agent_id = config['agent_id']
         self.ecoli_sim = EcoliSim.from_cli([
-            '--agent_id', agent_id]] + sys.argv[1:])
+            '--agent_id', str(agent_id), '--seed', str(config['seed']),
+        ] + sys.argv[1:])
         self.ecoli_sim.build_ecoli()
         if config['initial_cell_state']:
             initial_inner_state = {
@@ -64,6 +67,7 @@ class EngineProcessCell(Composer):
                     },
                 ),
             },
+            'seed': (config['seed'] + 1) % RAND_MAX,
         })
         return {
             'cell_process': cell_process,
