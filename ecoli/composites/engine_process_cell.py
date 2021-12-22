@@ -10,10 +10,6 @@ from ecoli.library.sim_data import RAND_MAX
 from ecoli.processes.engine_process import EngineProcess
 
 
-def detect_division(store):
-    return len(store.inner['agents'].inner) > 2
-
-
 class EngineProcessCell(Composer):
 
     defaults = {
