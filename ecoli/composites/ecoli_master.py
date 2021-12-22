@@ -339,7 +339,7 @@ def test_division(
     """tests that a cell can be divided and keep running"""
 
     # get initial mass from Ecoli composer
-    initial_state = Ecoli({}).initial_state({'initial_state': 'vivecoli_t2550'})
+    initial_state = Ecoli({}).initial_state({'initial_state_file': 'vivecoli_t1840'})
     initial_mass = initial_state['listeners']['mass']['cell_mass']
     # The cell divides between the 1554 and 1556 timesteps with this
     # mass target.
@@ -351,7 +351,7 @@ def test_division(
         'divide': True,
         'agent_id': agent_id,
         'division': {
-            'threshold': division_mass},  # fg
+            'threshold': 2220},  # fg
     }
     agent_path = ('agents', agent_id)
     ecoli_composer = Ecoli(config)
@@ -378,8 +378,11 @@ def test_division(
             daughter_states.append(output[timestep]['agents'][d1])
             d2 = list(output[timestep]['agents'].keys())[1]
             daughter_states.append(output[timestep]['agents'][d2])
-            mother_idx = list(output[timestep - 2.0]['agents'].keys())[0]
-            mother_state = output[timestep - 2.0]['agents'][mother_idx]
+            if timestep == 0.0:
+                mother_state = initial_state
+            else:
+                mother_idx = list(output[timestep - 2.0]['agents'].keys())[0]
+                mother_state = output[timestep - 2.0]['agents'][mother_idx]
             break
 
     # compare the counts of bulk molecules between the mother and daughters
@@ -412,8 +415,8 @@ def test_division(
                 if idx_to_d[0][mother_state['unique']['active_RNAP'][rnap]['domain_index']] != -1:
                     num_divided += 1
         elif key == 'active_ribosome':
-            for ribosome in initial_state['unique']['active_ribosome']:
-                mrna_index = initial_state['unique']['active_ribosome'][ribosome]['mRNA_index']
+            for ribosome in mother_state['unique']['active_ribosome']:
+                mrna_index = mother_state['unique']['active_ribosome'][ribosome]['mRNA_index']
                 if mother_state['unique']['RNA'][mrna_index]['is_full_transcript']:
                     num_divided += 1
                 else:
@@ -434,11 +437,10 @@ def test_division(
     assert not daughter1_rnas & daughter2_rnas
 
     # asserts
-    initial_agents = output[0.0]['agents'].keys()
     final_agents = output[total_time]['agents'].keys()
-    print(f"initial agent ids: {initial_agents}")
+    print(f"initial agent id: {agent_id}")
     print(f"final agent ids: {final_agents}")
-    assert len(final_agents) == 2 * len(initial_agents)
+    assert len(final_agents) == 2
 
 
 def test_division_topology():
@@ -446,7 +448,7 @@ def test_division_topology():
     timestep = 2
 
     # get initial mass from Ecoli composer
-    initial_state = Ecoli({}).initial_state({'initial_state': 'vivecoli_t2550'})
+    initial_state = Ecoli({}).initial_state({'initial_state_file': 'vivecoli_t1840'})
     initial_mass = initial_state['listeners']['mass']['cell_mass']
     division_mass = initial_mass + 0.1
     print(f"DIVIDE AT {division_mass} fg")
