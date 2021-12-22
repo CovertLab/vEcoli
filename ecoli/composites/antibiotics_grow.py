@@ -15,8 +15,8 @@ from vivarium.plots.agents_multigen import plot_agents_multigen
 
 from ecoli.composites.environment.lattice import (
     Lattice, make_lattice_config)
-from ecoli.processes.lattice.derive_globals import DeriveGlobals
-from ecoli.processes.lattice.local_field import LocalField
+from ecoli.processes.environment.derive_globals import DeriveGlobals
+from ecoli.processes.environment.local_field import LocalField
 from ecoli.plots.snapshots import plot_snapshots
 
 from ecoli.composites.antibiotics_simple import SimpleAntibioticsCell

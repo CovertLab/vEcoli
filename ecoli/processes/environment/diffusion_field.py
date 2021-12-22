@@ -60,20 +60,20 @@ class DiffusionField(Process):
         'gradient': {},
     }
 
-    def __init__(self, initial_parameters=None):
-        initial_parameters = initial_parameters or {}
+    def __init__(self, parameters=None):
+        super().__init__(parameters)
 
         # initial state
-        self.molecule_ids = initial_parameters.get('molecules', self.defaults['molecules'])
-        self.initial = initial_parameters.get('initial_state', self.defaults['initial_state'])
+        self.molecule_ids = self.parameters['molecules']
+        self.initial = self.parameters['initial_state']
 
         # parameters
-        self.n_bins = initial_parameters.get('n_bins', self.defaults['n_bins'])
-        self.bounds = initial_parameters.get('bounds', self.defaults['bounds'])
-        depth = initial_parameters.get('depth', self.defaults['depth'])
+        self.n_bins = self.parameters['n_bins']
+        self.bounds = self.parameters['bounds']
+        depth = self.parameters['depth']
 
         # diffusion
-        diffusion = initial_parameters.get('diffusion', self.defaults['diffusion'])
+        diffusion = self.parameters['diffusion']
         bins_x = self.n_bins[0]
         bins_y = self.n_bins[1]
         length_x = self.bounds[0]
@@ -89,15 +89,10 @@ class DiffusionField(Process):
         self.bin_volume = get_bin_volume(self.n_bins, self.bounds, depth)
 
         # initialize gradient fields
-        gradient = initial_parameters.get('gradient', self.defaults['gradient'])
+        gradient = self.parameters['gradient']
         if gradient:
             gradient_fields = make_gradient(gradient, self.n_bins, self.bounds)
             self.initial.update(gradient_fields)
-
-        parameters = {}
-        parameters.update(initial_parameters)
-
-        super().__init__(parameters)
 
     def initial_state(self, config):
         return {
