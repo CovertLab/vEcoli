@@ -94,6 +94,7 @@ class Ecoli(Composer):
         return embedded_state
 
     def _generate_processes_and_steps(self, config):
+        config = deepcopy(config)
         time_step = config['time_step']
         parallel = config['parallel']
 
