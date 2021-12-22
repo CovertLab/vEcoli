@@ -117,6 +117,7 @@ class EngineProcess(Process):
         'agent_id': '0',
         'composer': None,
         'seed': 0,
+        'time_step': 2,
     }
     # TODO: Handle name clashes between tunnels.
 
