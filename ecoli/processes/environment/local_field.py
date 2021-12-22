@@ -1,6 +1,6 @@
 import numpy as np
 
-from vivarium.core.process import Deriver
+from vivarium.core.process import Step
 from vivarium.library.units import units, remove_units
 
 from ecoli.library.lattice_utils import (
@@ -10,7 +10,7 @@ from ecoli.library.lattice_utils import (
 )
 
 
-class LocalField(Deriver):
+class LocalField(Step):
 
     name = 'local_field'
     defaults = {
@@ -20,7 +20,7 @@ class LocalField(Deriver):
     }
 
     def __init__(self, parameters=None):
-        super(LocalField, self).__init__(parameters)
+        super().__init__(parameters)
         self.nonspatial = self.parameters['nonspatial']
         self.bin_volume = self.parameters['bin_volume']
 

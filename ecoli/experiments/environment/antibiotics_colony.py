@@ -111,6 +111,6 @@ test_library = {
 }
 
 # run experiments in test_library from the command line with:
-# python ecoli/experiments/lattice/antibiotics_colony.py -n [experiment id]
+# python ecoli/experiments/environment/antibiotics_colony.py -n [experiment id]
 if __name__ == '__main__':
     run_library_cli(test_library)

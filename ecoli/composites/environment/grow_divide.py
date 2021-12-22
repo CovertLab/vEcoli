@@ -12,9 +12,9 @@ from vivarium.plots.agents_multigen import plot_agents_multigen
 from vivarium.processes.growth_rate import GrowthRate
 from vivarium.processes.divide_condition import DivideCondition
 from vivarium.processes.meta_division import MetaDivision
-from ecoli.processes.lattice.derive_globals import DeriveGlobals
-from ecoli.processes.lattice.exchange import Exchange
-from ecoli.processes.lattice.local_field import LocalField
+from ecoli.processes.environment.derive_globals import DeriveGlobals
+from ecoli.processes.environment.exchange import Exchange
+from ecoli.processes.environment.local_field import LocalField
 
 
 NAME = 'grow_divide'

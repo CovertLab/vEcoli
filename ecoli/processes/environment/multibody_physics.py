@@ -24,7 +24,7 @@ from vivarium.core.composition import (
 )
 
 # vivarium-cell imports
-from ecoli.processes.lattice.derive_globals import volume_from_length
+from ecoli.processes.environment.derive_globals import volume_from_length
 from ecoli.library.pymunk_multibody import PymunkMultibody
 from ecoli.plots.snapshots import (
     plot_snapshots,
