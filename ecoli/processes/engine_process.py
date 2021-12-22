@@ -61,11 +61,13 @@ information with the outside simulation.
 '''
 import copy
 
+import numpy as np
 from vivarium.core.engine import Engine
 from vivarium.core.process import Process, Step
-from vivarium.library.topology import get_in, assoc_path
 from vivarium.core.registry import updater_registry
+from vivarium.library.topology import get_in, assoc_path
 
+from ecoli.library.sim_data import RAND_MAX
 from ecoli.library.updaters import inverse_updater_registry
 
 
@@ -114,6 +116,7 @@ class EngineProcess(Process):
         'initial_inner_state': {},
         'agent_id': '0',
         'composer': None,
+        'seed': 0,
     }
     # TODO: Handle name clashes between tunnels.
 
@@ -133,6 +136,8 @@ class EngineProcess(Process):
             display_info=False,
             progress_bar=False,
         )
+        self.random_state = np.random.RandomState(
+            seed=self.parameters['seed'])
 
     def ports_schema(self):
         schema = {
@@ -174,6 +179,7 @@ class EngineProcess(Process):
                         condition=lambda x: not isinstance(
                             x.value, Process)
                     ),
+                    'seed': self.random_state.randint(RAND_MAX),
                 })
                 daughter = {
                     'key': daughter_id,
