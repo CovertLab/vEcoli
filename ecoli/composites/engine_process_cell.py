@@ -16,6 +16,7 @@ class EngineProcessCell(Composer):
         'agent_id': '0',
         'initial_cell_state': {},
         'seed': 0,
+        'initial_tunnel_states': {},
     }
 
     def generate_processes(self, config):
@@ -80,22 +81,35 @@ class EngineProcessCell(Composer):
     def initial_state(self, config):
         merged_config = copy.deepcopy(self.config)
         merged_config.update(config)
-        mass_listener_path = (
-            'agents', merged_config['agent_id'], 'listeners', 'mass')
-        mass_listener_state = get_in(
-            self.ecoli_sim.initial_state, mass_listener_path)
-        initial_state = assoc_path({}, mass_listener_path,
-            mass_listener_state)
+
+        relative_mass_listener_path = ('listeners', 'mass')
+        absolute_mass_listener_path = (
+            'agents', merged_config['agent_id']
+        ) + relative_mass_listener_path
+
+        mass_listener_state = merged_config['initial_tunnel_states'].get(
+            'mass_tunnel',
+            get_in(
+                self.ecoli_sim.initial_state,
+                absolute_mass_listener_path
+            ),
+        )
+        initial_state = assoc_path(
+            {}, relative_mass_listener_path, mass_listener_state)
         return initial_state
 
 
 def run_simulation():
-    composer = EngineProcessCell()
+    composer = EngineProcessCell({'agent_id': '0'})
     composite = composer.generate(path=('agents', '0'))
     engine = Engine(
         processes=composite.processes,
         topology=composite.topology,
-        initial_state=composer.initial_state({}),
+        initial_state={
+            'agents': {
+                '0': composer.initial_state({}),
+            },
+        },
         emitter='database',
         progress_bar=True,
     )
