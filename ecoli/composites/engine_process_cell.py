@@ -1,3 +1,4 @@
+import copy
 import sys
 
 from vivarium.core.composer import Composer
@@ -20,25 +21,26 @@ class EngineProcessCell(Composer):
     }
 
     def generate_processes(self, config):
+        agent_id = config['agent_id']
         self.ecoli_sim = EcoliSim.from_cli([
-            '--agent_id', config['agent_id']] + sys.argv[1:])
+            '--agent_id', agent_id]] + sys.argv[1:])
         self.ecoli_sim.build_ecoli()
         if config['initial_cell_state']:
             initial_inner_state = {
                 'agents': {
-                    config['agent_id']: config['initial_cell_state']
+                    agent_id: config['initial_cell_state']
                 }
             }
         else:
             initial_inner_state = self.ecoli_sim.initial_state
         cell_process = EngineProcess({
-            'agent_id': config['agent_id'],
+            'agent_id': agent_id,
             'composer': self,
             'composite': self.ecoli_sim.ecoli,
             'initial_inner_state': initial_inner_state,
             'tunnels_in': {
                 'mass_tunnel': (
-                    ('agents', '0', 'listeners', 'mass'),
+                    ('agents', agent_id, 'listeners', 'mass'),
                     {
                         variable: {
                             '_default': 0.0,
@@ -76,7 +78,10 @@ class EngineProcessCell(Composer):
         }
 
     def initial_state(self, config):
-        mass_listener_path = ('agents', '0', 'listeners', 'mass')
+        merged_config = copy.deepcopy(self.config)
+        merged_config.update(config)
+        mass_listener_path = (
+            'agents', merged_config['agent_id'], 'listeners', 'mass')
         mass_listener_state = get_in(
             self.ecoli_sim.initial_state, mass_listener_path)
         initial_state = assoc_path({}, mass_listener_path,
