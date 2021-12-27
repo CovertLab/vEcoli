@@ -334,7 +334,7 @@ def run_ecoli(
 @pytest.mark.slow
 def test_division(
         agent_id='1',
-        total_time=1600,
+        total_time=10,
 ):
     """tests that a cell can be divided and keep running"""
 
