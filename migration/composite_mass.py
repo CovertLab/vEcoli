@@ -18,7 +18,7 @@ RELATIVE_TOLERANCES = {
     'rnaMass': 0.0002,
     'water_mass': 0.003,
     'smallMoleculeMass': 0.003,
-    'proteinMass': 1e-4,
+    'proteinMass': 2e-4,
     'cell_mass': 0.002,
     'dnaMass': 2e-15,
     'tRnaMass': 1e-4,
