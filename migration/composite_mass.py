@@ -11,6 +11,20 @@ from migration.migration_utils import ComparisonTestSuite
 from ecoli.experiments.ecoli_master_sim import EcoliSim, CONFIG_DIR_PATH
 
 
+RELATIVE_TOLERANCES = {
+    'mRnaMass': 0.001,
+    'rRnaMass': 1e-4,
+    'dry_mass': 0.002,
+    'rnaMass': 0.0002,
+    'water_mass': 0.003,
+    'smallMoleculeMass': 0.003,
+    'proteinMass': 1e-4,
+    'cell_mass': 0.002,
+    'dnaMass': 2e-15,
+    'tRnaMass': 1e-4,
+}
+
+
 def test_composite_mass(total_time=30):
     sim = EcoliSim.from_file(CONFIG_DIR_PATH + "default.json")
     sim.total_time = total_time
@@ -43,10 +57,13 @@ def test_composite_mass(total_time=30):
     print('These keys only exist in the vivarium mass listener: ' + str(list(only_vivarium)))
     plots(actual_timeseries, wcecoli_timeseries, both_keys)
 
+
 def assertions(actual_update, expected_update, keys):
     test_structure = {
-        key : lambda a,b: np.isclose(a, b, rtol=0.01)
-        for key in keys}
+        key : lambda a, b: np.isclose(
+            a, b, rtol=RELATIVE_TOLERANCES.get(key, 0.01))
+        for key in keys
+    }
 
     tests = ComparisonTestSuite(test_structure, fail_loudly=False)
     tests.run_tests(actual_update, expected_update, verbose=True)
