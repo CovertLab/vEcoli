@@ -3,6 +3,7 @@ from vivarium.core.engine import pf
 import json
 import os
 import matplotlib.pyplot as plt
+import pytest
 from migration.plots import qqplot
 from migration.migration_utils import *
 from migration import load_sim_data
@@ -11,6 +12,7 @@ from migration import load_sim_data
 PI_TOPOLOGY = PolypeptideInitiation.topology
 
 
+@pytest.mark.master
 def test_polypeptide_initiation_migration():
     # Create process, experiment, loading in initial state from file.
     config = load_sim_data.get_polypeptide_initiation_config()
@@ -31,6 +33,7 @@ def test_polypeptide_initiation_migration():
         plots(actual_update, wc_update, total_time + initial_time)
         assertions(actual_update, wc_update)
 
+@pytest.mark.master
 def test_polypeptide_initiation():
     # Create process, experiment, loading in initial state from file.
     config = load_sim_data.get_polypeptide_initiation_config()

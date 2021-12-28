@@ -3,6 +3,7 @@ import json
 
 import matplotlib.pyplot as plt
 import os
+import pytest
 
 from vivarium.core.engine import pf
 from ecoli.processes.chromosome_replication import ChromosomeReplication
@@ -14,6 +15,7 @@ from migration import load_sim_data
 TOPOLOGY = ChromosomeReplication.topology
 
 
+@pytest.mark.master
 def test_actual_update():
     config = load_sim_data.get_chromosome_replication_config()
     chromosome_replication = ChromosomeReplication(config)
@@ -176,7 +178,7 @@ def assertions(actual_update, expected_update):
                        array_almost_equal, 'coordinates', int)
     for id in actual_update['active_replisomes']:
         if id not in ['_delete', '_add']:
-            assert scalar_equal(actual_update['active_replisomes'][id]['submass'][MASSDIFFS['massDiff_DNA']], 
+            assert scalar_equal(actual_update['active_replisomes'][id]['submass'][MASSDIFFS['massDiff_DNA']],
                                 expected_update['active_replisomes'][id]['dna_mass'])
 
     if 'oriCs' in actual_update:
@@ -232,6 +234,7 @@ def assertions(actual_update, expected_update):
                            create_child_list(expected_update['chromosome_domains']['_add']))
 
 
+@pytest.mark.master
 def test_chromosome_replication_default():
     config = load_sim_data.get_chromosome_replication_config()
     chromosome_replication = ChromosomeReplication(config)
@@ -250,6 +253,7 @@ def test_chromosome_replication_default():
     print(pf(data))
 
 
+@pytest.mark.master
 def test_initiate_replication():
     config = load_sim_data.get_chromosome_replication_config()
     chromosome_replication = ChromosomeReplication(config)
@@ -275,6 +279,7 @@ def test_initiate_replication():
     # data[1.0]['oriC']
 
 
+@pytest.mark.master
 def test_fork_termination():
     config = load_sim_data.get_chromosome_replication_config()
 

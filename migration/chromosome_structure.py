@@ -6,6 +6,7 @@ import json
 import numpy as np
 import matplotlib.pyplot as plt
 import os
+import pytest
 
 from vivarium.core.engine import Engine
 from ecoli.processes.chromosome_structure import ChromosomeStructure
@@ -41,14 +42,14 @@ def custom_run_process(
     # translate the values from the tree structure into the form
     # that this process expects, based on its declared topology
     states = store.outer.schema_topology(process.schema, store.topology)
-    
+
     # Make process see partitioned molecule counts
     with open(f"data/chromosome_structure/chromosome_structure_partitioned_t"
               f"{total_time+initial_time}.json") as f:
         partitioned_counts = json.load(f)
-    
+
     states = partitioned_counts
-    
+
     update = experiment.invoke_process(
         process,
         path,
@@ -58,6 +59,7 @@ def custom_run_process(
     actual_update = update.get()
     return actual_update
 
+@pytest.mark.master
 def test_chromosome_structure_migration():
     def test(initial_time):
         # Set time parameters
@@ -68,12 +70,12 @@ def test_chromosome_structure_migration():
         config = load_sim_data.get_chromosome_structure_config()
         config['seed'] = 0
         chromosome_structure_process = ChromosomeStructure(config)
-                
+
         initial_state = get_state_from_file(
             path=f'data/chromosome_structure/wcecoli_t{initial_time}.json')
 
         # run the process and get an update
-        actual_update = custom_run_process(chromosome_structure_process, CHROMOSOME_STRUCTURE_TOPOLOGY, 
+        actual_update = custom_run_process(chromosome_structure_process, CHROMOSOME_STRUCTURE_TOPOLOGY,
                                         total_time=total_time, initial_time = initial_time,
                                         initial_state=initial_state)
 
@@ -95,12 +97,12 @@ def plots(actual_update, expected_update, time):
         active_tfs = update['active_tfs']
         subunits = update['subunits']
         amino_acids = update['amino_acids']
-        
+
         return (fragmentBases, molecules, active_tfs, subunits, amino_acids)
 
     # unpack updates
     actual_unpacked = unpack(actual_update)
-    
+
     wc_unpacked = unpack(expected_update)
 
     # Plots ============================================================================
@@ -108,7 +110,7 @@ def plots(actual_update, expected_update, time):
     plots_to_make = [True if data[0] else False for data in data_to_plot]
     total_plots = sum(plots_to_make)
     rows = int(np.ceil(total_plots/2))
-    titles = ['Fragment Base Deltas', 'Molecule Deltas', 'Active TF Deltas', 
+    titles = ['Fragment Base Deltas', 'Molecule Deltas', 'Active TF Deltas',
               'Subunit Deltas', 'Amino Acid Deltas']
     index = 0
     for data_idx, data in enumerate(data_to_plot):
@@ -170,7 +172,7 @@ def assertions(actual_update, expected_update, time):
                 }
             if actual_update[unique_molecule].get('_delete'):
                 test_structure[unique_molecule]['_delete'] = equal_len
-    
+
     tests = ComparisonTestSuite(test_structure, fail_loudly=False)
     tests.run_tests(actual_update, expected_update, verbose=True)
 

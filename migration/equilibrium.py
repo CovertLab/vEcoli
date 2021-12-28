@@ -2,6 +2,7 @@ import os
 import json
 import numpy as np
 import matplotlib.pyplot as plt
+import pytest
 from scipy.stats import mannwhitneyu
 
 from ecoli.processes.equilibrium import Equilibrium
@@ -13,6 +14,7 @@ from migration import load_sim_data
 TOPOLOGY = Equilibrium.topology
 
 
+@pytest.mark.master
 def test_equilibrium():
     config = load_sim_data.get_equilibrium_config()
     equil = Equilibrium(config)
