@@ -210,8 +210,8 @@ class Metabolism(Step):
 
     def next_update(self, timestep, states):
         # Skip t=0 if a deriver
-        if self.first_run:
-            self.first_run = False
+        if self.first_update:
+            self.first_update = False
             return {}
 
         timestep = self.parameters['time_step']
