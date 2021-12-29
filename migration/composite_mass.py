@@ -14,14 +14,14 @@ from ecoli.experiments.ecoli_master_sim import EcoliSim, CONFIG_DIR_PATH
 RELATIVE_TOLERANCES = {
     'mRnaMass': 0.005,
     'rRnaMass': 1e-4,
-    'dry_mass': 0.005,
-    'rnaMass': 0.0002,
-    'water_mass': 0.003,
-    'smallMoleculeMass': 0.005,
-    'proteinMass': 2e-4,
-    'cell_mass': 0.002,
+    'dry_mass': 0.01,
+    'rnaMass': 0.001,
+    'water_mass': 0.01,
+    'smallMoleculeMass': 0.01,
+    'proteinMass': 1e-3,
+    'cell_mass': 0.005,
     'dnaMass': 2e-15,
-    'tRnaMass': 1e-4,
+    'tRnaMass': 1e-3,
 }
 
 
