@@ -209,7 +209,7 @@ class Ecoli(Composer):
                 requester_name = f'{name}_requester'
                 evolver_name = f'{name}_evolver'
                 flow[requester_name] = [
-                    ('ecoli-chromosome-structure',)]
+                    ('ecoli-chromosome-structure',), ('division',)]
                 flow['allocator'].append((requester_name,))
                 steps[requester_name] = processes[requester_name]
                 processes_not_steps[evolver_name] = processes[
@@ -445,6 +445,7 @@ def test_division_topology():
         'agent_id': agent_id,
         'division': {
             'threshold': division_mass},  # fg
+        'seed': 1,
     }
     agent_path = ('agents', agent_id)
     ecoli_composer = Ecoli(config)
