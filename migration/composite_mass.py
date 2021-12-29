@@ -59,10 +59,20 @@ def test_composite_mass(total_time=30):
     plots(actual_timeseries, wcecoli_timeseries, both_keys)
 
 
+def _make_assert(key):
+    def custom_assert(a, b):
+        rtol = RELATIVE_TOLERANCES.get(key, 0.01)
+        close = np.isclose(a, b, rtol=rtol)
+        if not close:
+            rdiff = (np.absolute(a-b) / b).max()
+            print(f'Failure for {key}: rdiff {rdiff} > rtol {rtol}')
+        return close
+    return custom_assert
+
+
 def assertions(actual_update, expected_update, keys):
     test_structure = {
-        key : lambda a, b: np.isclose(
-            a, b, rtol=RELATIVE_TOLERANCES.get(key, 0.01))
+        key : _make_assert(key)
         for key in keys
     }
 
