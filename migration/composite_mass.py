@@ -12,12 +12,12 @@ from ecoli.experiments.ecoli_master_sim import EcoliSim, CONFIG_DIR_PATH
 
 
 RELATIVE_TOLERANCES = {
-    'mRnaMass': 0.001,
+    'mRnaMass': 0.005,
     'rRnaMass': 1e-4,
-    'dry_mass': 0.002,
+    'dry_mass': 0.005,
     'rnaMass': 0.0002,
     'water_mass': 0.003,
-    'smallMoleculeMass': 0.003,
+    'smallMoleculeMass': 0.005,
     'proteinMass': 2e-4,
     'cell_mass': 0.002,
     'dnaMass': 2e-15,
@@ -33,6 +33,7 @@ def test_composite_mass(total_time=30):
     sim.run()
 
     timeseries = sim.ecoli_experiment.emitter.get_timeseries()
+
     actual_timeseries = timeseries['listeners']['mass']
     wcecoli_timeseries = {key: np.zeros(len(timeseries['time']))
                           for key in actual_timeseries.keys()}
