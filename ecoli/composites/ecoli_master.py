@@ -10,7 +10,8 @@ from copy import deepcopy
 
 # vivarium-core
 from vivarium.core.composer import Composer
-from vivarium.plots.topology import plot_topology, assoc_path
+from vivarium.plots.topology import plot_topology
+from vivarium.library.topology import assoc_path
 from vivarium.library.dict_utils import deep_merge
 from vivarium.core.control import run_library_cli
 

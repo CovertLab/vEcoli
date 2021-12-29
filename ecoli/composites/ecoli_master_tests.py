@@ -1,9 +1,20 @@
+"""
+======================
+Tests for Ecoli Master
+======================
+"""
+
+import os
 import pytest
+
 from vivarium.core.engine import Engine
 from vivarium.core.control import run_library_cli
 
+from ecoli.plots.snapshots import plot_snapshots, format_snapshot_data
+from ecoli.plots.snapshots_video import make_video
 from ecoli.composites.ecoli_configs import ECOLI_DEFAULT_PROCESSES, ECOLI_DEFAULT_TOPOLOGY
 from ecoli.composites.ecoli_master import Ecoli, COUNT_THRESHOLD
+from ecoli.experiments.ecoli_master_sim import EcoliSim, CONFIG_DIR_PATH
 
 # tests
 from ecoli.library.schema import get_domain_index_to_daughter
@@ -172,10 +183,50 @@ def test_ecoli_generate():
                if k in ECOLI_DEFAULT_TOPOLOGY)
 
 
+def test_lattice_lysis(plot=False):
+    """
+    Run plots:
+    '''
+    > python ecoli/composites/ecoli_master_tests.py -n 4 -o plot=True
+    '''
+    """
+    sim = EcoliSim.from_file(CONFIG_DIR_PATH + 'lysis.json')
+    sim.total_time = 5
+    data = sim.run()
+
+    if plot:
+
+        bounds = sim.config['spatial_environment_config']['multibody']['bounds']
+
+        # format the data for plot_snapshots
+        agents, fields = format_snapshot_data(data)
+
+        out_dir = os.path.join('out', 'experiments', 'ecoli_lysis')
+        os.makedirs(out_dir, exist_ok=True)
+        plot_snapshots(
+            bounds,
+            agents=agents,
+            fields=fields,
+            n_snapshots=5,
+            out_dir=out_dir,
+            filename=f"lysis_snapshots")
+
+        # make snapshot video
+        make_video(
+            data,
+            bounds,
+            plot_type='fields',
+            out_dir=out_dir,
+            filename='lysis_video',
+        )
+
+
+
 test_library = {
     '1': test_division,
     '2': test_division_topology,
     '3': test_ecoli_generate,
+    '4': test_lattice_lysis,
 }
 
 # run experiments in test_library from the command line with:
