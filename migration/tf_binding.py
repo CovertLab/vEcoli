@@ -7,12 +7,13 @@ import numpy as np
 import matplotlib.pyplot as plt
 from migration.plots import qqplot
 import os
+import pytest
 
 from vivarium.core.engine import Engine, view_values
 from ecoli.library.sim_data import LoadSimData
 from ecoli.composites.ecoli_nonpartition import SIM_DATA_PATH
 from ecoli.processes.tf_binding import TfBinding
-from migration.migration_utils import (ComparisonTestSuite, array_equal, 
+from migration.migration_utils import (ComparisonTestSuite, array_equal,
                                        array_diffs_report_test, scalar_equal)
 from ecoli.states.wcecoli_state import get_state_from_file
 
@@ -52,9 +53,9 @@ def custom_run_process(
     with open(f"data/tf_binding/tf_binding_partitioned_t"
               f"{total_time+initial_time}.json") as f:
         partitioned_counts = json.load(f)
-    
+
     states['active_tfs'] = partitioned_counts['bulk']
-    
+
     update = experiment.invoke_process(
         process,
         path,
@@ -64,6 +65,7 @@ def custom_run_process(
     actual_update = update.get()
     return actual_update
 
+@pytest.mark.master
 def test_tf_binding_migration():
     def test(initial_time):
         # Set time parameters
@@ -74,12 +76,12 @@ def test_tf_binding_migration():
         config = load_sim_data.get_tf_config()
         config['seed'] = 0
         tf_binding_process = TfBinding(config)
-                
+
         initial_state = get_state_from_file(
             path=f'data/tf_binding/wcecoli_t{initial_time}.json')
 
         # run the process and get an update
-        actual_update = custom_run_process(tf_binding_process, TF_BINDING_TOPOLOGY, 
+        actual_update = custom_run_process(tf_binding_process, TF_BINDING_TOPOLOGY,
                                         total_time=total_time, initial_time = initial_time,
                                         initial_state=initial_state)
 
@@ -103,15 +105,15 @@ def plots(actual_update, expected_update, time):
         nAcutalBound = update['listeners']['rna_synth_prob']['nPromoterBound']
         n_available_promoters = update['listeners']['rna_synth_prob']['n_available_promoters']
         n_bound_TF_per_TU = update['listeners']['rna_synth_prob']['n_bound_TF_per_TU']
-        
-        return (promoters, active_tfs, pPromoterBound, nPromoterBound, nAcutalBound, 
+
+        return (promoters, active_tfs, pPromoterBound, nPromoterBound, nAcutalBound,
                 n_available_promoters, n_bound_TF_per_TU)
 
     # unpack updates
-    (promoters, active_tfs, pPromoterBound, nPromoterBound, nActualBound, 
+    (promoters, active_tfs, pPromoterBound, nPromoterBound, nActualBound,
         n_available_promoters, n_bound_TF_per_TU) = unpack(actual_update)
 
-    (wc_promoters, wc_active_tfs, wc_pPromoterBound, wc_nPromoterBound, wc_nActualBound, 
+    (wc_promoters, wc_active_tfs, wc_pPromoterBound, wc_nPromoterBound, wc_nActualBound,
         wc_n_available_promoters, wc_n_bound_TF_per_TU) = unpack(expected_update)
 
     # Plots ============================================================================
@@ -184,7 +186,7 @@ def assertions(actual_update, expected_update, time):
     tests.run_tests(actual_update, expected_update, verbose=True)
 
     tests.fail()
-    
+
     # Sanity checks for randomly sampled TF-promoter binding
 
     bound_TF = np.array([promoter['bound_TF'] for promoter in actual_update['promoters'].values()])
@@ -205,10 +207,10 @@ def assertions(actual_update, expected_update, time):
     n_bound_TU_per_TF = np.sum(n_bound_TF_per_TU, axis=0)
     wc_n_bound_TF_per_TU = np.array(expected_update['listeners']['rna_synth_prob']['n_bound_TF_per_TU'])
     wc_n_bound_TU_per_TF = np.sum(wc_n_bound_TF_per_TU, axis=0)
-    
+
 
     assert array_equal(n_bound_TU_per_TF, wc_n_bound_TU_per_TF), "Counts of bound TUs per TF not consistent!"
-        
+
 def run_tf_binding():
     # Create process, experiment, loading in initial state from file.
     config = load_sim_data.get_tf_config()

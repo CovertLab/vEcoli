@@ -2,6 +2,7 @@ import os
 import json
 import numpy as np
 import matplotlib.pyplot as plt
+import pytest
 
 from vivarium.core.engine import Engine
 from ecoli.states.wcecoli_state import get_state_from_file, MASSDIFFS
@@ -16,6 +17,7 @@ from migration import load_sim_data
 PE_TOPOLOGY = PolypeptideElongation.topology
 
 
+@pytest.mark.master
 def test_polypeptide_elongation_migration():
     # Create process, experiment, loading in initial state from file.
     config = load_sim_data.get_polypeptide_elongation_config()
@@ -145,7 +147,7 @@ def assertions(actual_update, expected_update):
             expected_key = expected_update_indices[i]
             assert scalar_almost_equal(actual_update['active_ribosome'][actual_key]['peptide_length'], expected_update['active_ribosome'][expected_key]['peptide_length'])
             assert scalar_almost_equal(actual_update['active_ribosome'][actual_key]['pos_on_mRNA'], expected_update['active_ribosome'][expected_key]['pos_on_mRNA'])
-            assert scalar_almost_equal(actual_update['active_ribosome'][actual_key]['submass'][MASSDIFFS['massDiff_protein']], 
+            assert scalar_almost_equal(actual_update['active_ribosome'][actual_key]['submass'][MASSDIFFS['massDiff_protein']],
                                        expected_update['active_ribosome'][expected_key]['submass']['protein'])
 
 def run_polypeptide_elongation():
