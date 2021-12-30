@@ -195,36 +195,42 @@ def test_lattice_lysis(plot=False):
     PUMP_KEY = 'TRANS-CPLX-201[s]'
     PORIN_KEY = 'porin'
     BETA_LACTAMASE_KEY = 'EG10040-MONOMER[p]'
+
+    TODO: connect glucose!
     """
     sim = EcoliSim.from_file(CONFIG_DIR_PATH + 'lysis.json')
     sim.total_time = 5
     data = sim.run()
 
     if plot:
+        plot_spatial_snapshots(data, sim, experiment_dir='ecoli_lysis')
 
-        bounds = sim.config['spatial_environment_config']['multibody']['bounds']
 
-        # format the data for plot_snapshots
-        agents, fields = format_snapshot_data(data)
+def plot_spatial_snapshots(data, sim, experiment_dir='ecoli_test'):
+    out_dir = os.path.join('out', 'experiments', experiment_dir)
+    os.makedirs(out_dir, exist_ok=True)
 
-        out_dir = os.path.join('out', 'experiments', 'ecoli_lysis')
-        os.makedirs(out_dir, exist_ok=True)
-        plot_snapshots(
-            bounds,
-            agents=agents,
-            fields=fields,
-            n_snapshots=5,
-            out_dir=out_dir,
-            filename=f"lysis_snapshots")
+    bounds = sim.config['spatial_environment_config']['multibody']['bounds']
 
-        # make snapshot video
-        make_video(
-            data,
-            bounds,
-            plot_type='fields',
-            out_dir=out_dir,
-            filename='lysis_video',
-        )
+    # format the data for plot_snapshots
+    agents, fields = format_snapshot_data(data)
+
+    plot_snapshots(
+        bounds,
+        agents=agents,
+        fields=fields,
+        n_snapshots=5,
+        out_dir=out_dir,
+        filename=f"snapshots")
+
+    # make snapshot video
+    make_video(
+        data,
+        bounds,
+        plot_type='fields',
+        out_dir=out_dir,
+        filename='video',
+    )
 
 
 
