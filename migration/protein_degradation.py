@@ -9,6 +9,7 @@ import os
 import json
 import matplotlib.pyplot as plt
 import numpy as np
+import pytest
 from scipy.stats import chi2_contingency
 
 from ecoli.library.sim_data import LoadSimData
@@ -26,6 +27,7 @@ load_sim_data = LoadSimData(
 TOPOLOGY = ProteinDegradation.topology
 
 
+@pytest.mark.master
 def test_protein_degradation():
     # Create process, experiment, loading in initial state from file.
     config = load_sim_data.get_protein_degradation_config()
