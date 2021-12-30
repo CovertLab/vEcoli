@@ -55,16 +55,7 @@
         "mRNA_counts_listener",
         "monomer_counts_listener"
     ],
-    "process_configs": {
-        "ecoli-metabolism" : {
-            "deriver_mode" : true
-        },
-        "ecoli-chromosome-structure" :{
-            "deriver_mode" : true
-        }
-    },
-    "topology": {
-    },
-    "_schema": {
-    }
+    "process_configs": {},
+    "topology": {},
+    "_schema": {}
 }
