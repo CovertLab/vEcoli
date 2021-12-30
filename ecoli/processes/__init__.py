@@ -19,6 +19,7 @@ from ecoli.processes.listeners.mRNA_counts import mRNACounts
 from ecoli.processes.listeners.monomer_counts import MonomerCounts
 from ecoli.processes.chromosome_structure import ChromosomeStructure
 from ecoli.processes.allocator import Allocator
+from ecoli.processes.environment.lysis import Lysis
 
 
 # add to registry
@@ -41,3 +42,6 @@ process_registry.register(mRNACounts.name, mRNACounts)
 process_registry.register(MonomerCounts.name, MonomerCounts)
 process_registry.register(ChromosomeStructure.name, ChromosomeStructure)
 process_registry.register(Allocator.name, Allocator)
+
+# antibiotics processes
+process_registry.register(Lysis.name, Lysis)
