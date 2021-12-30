@@ -10,7 +10,7 @@ Chromosome Structure
 
 import numpy as np
 
-from vivarium.core.process import Process
+from vivarium.core.process import Step
 from ecoli.processes.registries import topology_registry
 from ecoli.library.schema import (
     add_elements, arrays_from, bulk_schema, create_unique_indexes,
@@ -43,7 +43,7 @@ TOPOLOGY = {
 }
 topology_registry.register(NAME, TOPOLOGY)
 
-class ChromosomeStructure(Process):
+class ChromosomeStructure(Step):
     """ Chromosome Structure Process """
 
     name = NAME
@@ -74,7 +74,6 @@ class ChromosomeStructure(Process):
             'ribosome_50S_subunit': '50S',
             'amino_acids': [],
             'water': 'water',
-            'deriver_mode': True,
             'seed': 0,
         }
 
@@ -113,16 +112,12 @@ class ChromosomeStructure(Process):
         self.chromosome_segment_index = 0
         self.promoter_index = 60000
         self.DnaA_box_index = 60000
-        self.deriver_mode = self.parameters['deriver_mode']
+        self.first_update = True
 
         self.random_state = np.random.RandomState(
             seed=self.parameters['seed'])
 
-    def is_deriver(self):
-        return self.deriver_mode
-
     def ports_schema(self):
-
         ports = {
             'listeners': {
                 'RnapData': listener_schema({
@@ -166,8 +161,8 @@ class ChromosomeStructure(Process):
 
     def next_update(self, timestep, states):
         # Skip t=0 if a deriver
-        if self.deriver_mode:
-            self.deriver_mode = False
+        if self.first_update:
+            self.first_update = False
             return {}
 
         # Read unique molecule attributes
@@ -462,7 +457,9 @@ class ChromosomeStructure(Process):
             ribosome_mRNA_indexes, remaining_RNA_unique_indexes))
         n_removed_ribosomes = np.count_nonzero(removed_ribosomes_mask)
 
-        # Remove ribosomes that are bound to removed mRNA molecules
+        # Remove ribosomes that are bound to missing RNA molecules. This
+        # includes both RNAs removed by this function and RNAs removed
+        # by other processes (e.g. RNA degradation).
         if n_removed_ribosomes > 0:
             active_ribosome_delete_update = [
                 key for index, key in enumerate(states['active_ribosome'].keys())
