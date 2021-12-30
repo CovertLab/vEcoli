@@ -12,7 +12,8 @@ from vivarium.core.process import Step, Process
 from vivarium.core.composer import Composer
 from vivarium.core.engine import Engine, pf
 from vivarium.library.units import units, remove_units
-from ecoli.composites.environment.lattice import Lattice
+# from ecoli.composites.environment.lattice import Lattice
+import ecoli.composites.environment.lattice
 from ecoli.processes.environment.multibody_physics import PI
 from ecoli.processes.environment.local_field import LocalField
 from ecoli.library.lattice_utils import (
@@ -21,14 +22,13 @@ from ecoli.library.lattice_utils import (
     count_to_concentration,
 )
 
-from ecoli.plots.snapshots import plot_snapshots, format_snapshot_data
-from ecoli.plots.snapshots_video import make_video
 
 
 AVOGADRO = constants.N_A
 
 
 class Lysis(Step):
+    name = 'lysis'
     defaults = {
         'secreted_molecules': [],
         'nonspatial': False,
@@ -293,7 +293,7 @@ def test_lysis(
         uptake_rate_max=25
 ):
 
-    lattice_composer = Lattice({
+    lattice_composer = ecoli.composites.environment.lattice.Lattice({
         'diffusion': {
             'molecules': [molecule_name],
             'bounds': bounds,
@@ -361,6 +361,9 @@ def test_lysis(
 
 
 def main():
+    from ecoli.plots.snapshots import plot_snapshots, format_snapshot_data
+    from ecoli.plots.snapshots_video import make_video
+
     bounds = [15, 15]
     molecule_name = 'beta-lactam'
 

@@ -1,16 +1,34 @@
 {
+  "agent_id": "0",
   "spatial_environment": true,
   "spatial_environment_config": {
-          "multibody": {
-          "bounds": [10, 10],
-          "size": [10, 10]
-      },
-      "diffusion": {
-          "molecules": ["glc"],
-          "n_bins": [10, 10],
-          "size": [10, 10],
-          "depth": 3000.0,
-          "diffusion": 1e-2
+      "multibody": {
+      "bounds": [10, 10],
+      "size": [10, 10]
+    },
+    "diffusion": {
+      "molecules": ["glc", "EG10040-MONOMER[p]"],
+      "n_bins": [10, 10],
+      "size": [10, 10],
+      "depth": 3000.0,
+      "diffusion": 1e-2
+    }
+  }, 
+  "add_processes" : ["lysis"],
+    "topology" : {
+      "lysis" : {
+        "trigger": ["burst"],
+        "internal": ["internal"],
+        "agents": ["..","..","agents"],
+        "fields": ["..","..","fields"],
+        "location": ["boundary","location"],
+        "dimensions": ["..","..","dimensions"]
       }
-  }
+    },
+    "process_configs" :{
+      "lysis" : {
+        "secreted_molecules": ["EG10040-MONOMER[p]"],
+        "agent_id": "0"
+      }
+    }
 }

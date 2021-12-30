@@ -190,10 +190,18 @@ def test_lattice_lysis(plot=False):
     '''
     > python ecoli/composites/ecoli_master_tests.py -n 4 -o plot=True
     '''
+
+    ANTIBIOTIC_KEY = 'nitrocefin'
+    PUMP_KEY = 'TRANS-CPLX-201[s]'
+    PORIN_KEY = 'porin'
+    BETA_LACTAMASE_KEY = 'EG10040-MONOMER[p]'
     """
     sim = EcoliSim.from_file(CONFIG_DIR_PATH + 'lysis.json')
     sim.total_time = 5
     data = sim.run()
+
+
+    import ipdb; ipdb.set_trace()
 
     if plot:
 
