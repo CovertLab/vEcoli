@@ -11,14 +11,21 @@
       "n_bins": [10, 10],
       "size": [10, 10],
       "depth": 3000.0,
-      "diffusion": 1e-2
+      "diffusion": 1e-2,
+      "gradient": {
+        "type": "uniform",
+        "molecules": {
+          "glc": 1.0,
+          "EG10040-MONOMER[p]": 0.0
+        }
+      }
     }
   }, 
   "add_processes" : ["lysis"],
     "topology" : {
       "lysis" : {
         "trigger": ["burst"],
-        "internal": ["internal"],
+        "internal": ["bulk"],
         "agents": ["..","..","agents"],
         "fields": ["..","..","fields"],
         "location": ["boundary","location"],

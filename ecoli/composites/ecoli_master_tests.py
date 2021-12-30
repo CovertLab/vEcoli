@@ -200,9 +200,6 @@ def test_lattice_lysis(plot=False):
     sim.total_time = 5
     data = sim.run()
 
-
-    import ipdb; ipdb.set_trace()
-
     if plot:
 
         bounds = sim.config['spatial_environment_config']['multibody']['bounds']
