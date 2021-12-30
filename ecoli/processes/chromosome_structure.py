@@ -456,7 +456,9 @@ class ChromosomeStructure(Step):
             ribosome_mRNA_indexes, remaining_RNA_unique_indexes))
         n_removed_ribosomes = np.count_nonzero(removed_ribosomes_mask)
 
-        # Remove ribosomes that are bound to removed mRNA molecules
+        # Remove ribosomes that are bound to missing RNA molecules. This
+        # includes both RNAs removed by this function and RNAs removed
+        # by other processes (e.g. RNA degradation).
         if n_removed_ribosomes > 0:
             active_ribosome_delete_update = [
                 key for index, key in enumerate(states['active_ribosome'].keys())
