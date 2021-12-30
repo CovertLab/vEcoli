@@ -49,14 +49,6 @@
         "ecoli-mass-listener",
         "mRNA_counts_listener"
     ],
-    "process_configs": {
-        "ecoli-metabolism" : {
-            "deriver_mode" : true
-        },
-        "ecoli-chromosome-structure" :{
-            "deriver_mode" : true
-        }
-    },
-    "topology": {
-    }
+    "process_configs": {},
+    "topology": {}
 }

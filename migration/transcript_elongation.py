@@ -4,6 +4,7 @@ tests that vivarium-ecoli process update are the same as saved wcEcoli updates
 """
 import json
 import matplotlib.pyplot as plt
+import pytest
 
 from ecoli.processes.transcript_elongation import TranscriptElongation
 from migration.migration_utils import *
@@ -14,6 +15,7 @@ from migration import load_sim_data
 TOPOLOGY = TranscriptElongation.topology
 
 
+@pytest.mark.master
 def test_transcription_elongation():
 
     # Create process, experiment, loading in initial state from file.

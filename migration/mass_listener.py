@@ -5,32 +5,34 @@ tests that vivarium-ecoli process update are the same as saved wcEcoli updates
 
 import json
 import numpy as np
+import pytest
 
 from ecoli.library.schema import array_from
 from ecoli.experiments.ecoli_master_sim import EcoliSim, CONFIG_DIR_PATH
 from migration.migration_utils import ComparisonTestSuite, array_diffs_report, scalar_almost_equal
 
 
+@pytest.mark.master
 def test_mass_listener():
     ecoli_sim = EcoliSim.from_file(CONFIG_DIR_PATH + '/test_configs/test_mass_listener.json')
     actual_updates = ecoli_sim.run()
 
     # actual_updates = run_ecoli(total_time=4, divide=False, blame=False, time_series=False)
-    
+
     actual_update_t0 = actual_updates[0.0]['listeners']['mass']
     actual_update_t2 = actual_updates[2.0]['listeners']['mass']
 
     with open("data/mass_listener_update_t0.json") as f:
         wc_update_t0 = json.load(f)
-    
+
     with open("data/mass_listener_update_t2.json") as f:
         wc_update_t2 = json.load(f)
 
     assertions(actual_update_t0, wc_update_t0, time=0)
-    
+
     #TODO: wcEcoli shrinks from time 0 to 2 for some reason...
     #assertions(actual_update_t2, wc_update_t2, time=2)
-    
+
 
 
 def assertions(actual_update, expected_update, time=0):

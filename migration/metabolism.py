@@ -6,6 +6,7 @@ import os
 import numpy as np
 from matplotlib import pyplot as plt
 from migration.plots import qqplot
+import pytest
 
 # vivarium imports
 from vivarium.core.engine import Engine
@@ -22,7 +23,7 @@ from ecoli.library.schema import array_from
 
 # migration imports
 from migration.migration_utils import (run_ecoli_process, ComparisonTestSuite,
-                                       scalar_almost_equal, transform_and_run, 
+                                       scalar_almost_equal, transform_and_run,
                                        array_diffs_report_test)
 from migration import load_sim_data
 
@@ -66,7 +67,7 @@ class MetabolismExchange(Composer):
         }
 
 
-
+@pytest.mark.master
 def test_metabolism_migration():
     # Create process, experiment, loading in initial state from file.
     config = load_sim_data.get_metabolism_config()
@@ -115,12 +116,13 @@ def run_metabolism(
     return data
 
 
+@pytest.mark.master
 def test_metabolism():
     def test(initial_time=0):
         initial_time = initial_time
         # get parameters from sim data
         metabolism_config = load_sim_data.get_metabolism_config()
-        
+
         # initialize Metabolism
         metabolism = Metabolism(metabolism_config)
 
@@ -131,26 +133,26 @@ def test_metabolism():
         with open('data/metabolism/metabolism_partitioned_'
                   f't{initial_time+2}.json') as f:
             partitioned = json.load(f)
-        
+
         deep_merge(state, partitioned)
 
         # run the process and get an update
         actual_update = run_ecoli_process(metabolism, metabolism.topology,
                                         initial_time=initial_time,
                                         initial_state=state)
-        
+
         with open('data/metabolism/metabolism_update_'
                   f't{initial_time+2}.json') as f:
             expected_update = json.load(f)
-        
+
         plots(actual_update, expected_update, initial_time+2)
         assertions(actual_update, expected_update, initial_time+2)
-    
+
     os.makedirs('out/migration/metabolism/', exist_ok=True)
     initial_times = [0, 2, 100]
     for time in initial_times:
         test(time)
-    
+
 def plots(actual_update, expected_update, time):
     os.makedirs("out/migration/metabolism/", exist_ok=True)
     def unpack(update):
@@ -198,13 +200,13 @@ def plots(actual_update, expected_update, time):
 def assertions(actual_update, expected_update, time):
     def array_close(a, b):
         return np.allclose(a, b, rtol=0.05, atol=1)
-    
+
     test_structure = {
         'environment': {
             'exchange': {
                 molecule: scalar_almost_equal
                 for molecule in actual_update['environment']['exchange']}},
-        
+
         'listeners': {
             'fba_results': {
                 'conc_updates': transform_and_run(np.array, array_close),
@@ -231,7 +233,7 @@ def assertions(actual_update, expected_update, time):
                                             transform_and_run(np.array, array_diffs_report_test(
                                             f'out/migration/metabolism/kinetic_objective_value_t{time}.txt'))],
             },
-            
+
             'enzyme_kinetics': {
                 'metaboliteCountsInit': transform_and_run(np.array, array_close),
                 'metaboliteCountsFinal': transform_and_run(np.array, array_close),
@@ -251,11 +253,12 @@ def assertions(actual_update, expected_update, time):
     tests.run_tests(actual_update, expected_update)
 
     tests.dump_report()
-    
+
     assert (actual_update['listeners']['fba_results']['media_id'] ==
             expected_update['listeners']['fba_results']['media_id']),\
             'Media IDs not consistent!'
 
+@pytest.mark.master
 def test_metabolism_aas():
     config = {
         'media_id': AA_MEDIA_ID
