@@ -1,3 +1,5 @@
+import pytest
+
 from vivarium.core.engine import Engine
 from ecoli.processes.rna_degradation import RnaDegradation
 from migration.migration_utils import run_ecoli_process
@@ -8,6 +10,7 @@ from migration import load_sim_data
 TOPOLOGY = RnaDegradation.topology
 
 
+@pytest.mark.master
 def test_rna_degradation_migration():
     # Create process, experiment, loading in initial state from file.
     config = load_sim_data.get_rna_degradation_config()
@@ -17,6 +20,7 @@ def test_rna_degradation_migration():
     actual_update = run_ecoli_process(rna_degradation_process, TOPOLOGY, total_time=2)
 
 
+@pytest.mark.master
 def test_rna_degradation():
     # Create process, experiment, loading in initial state from file.
     config = load_sim_data.get_rna_degradation_config()

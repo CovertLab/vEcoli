@@ -205,11 +205,14 @@ class Ecoli(Composer):
                 requester_name = f'{name}_requester'
                 evolver_name = f'{name}_evolver'
                 flow[requester_name] = [
-                    ('ecoli-chromosome-structure',)]
+                    ('ecoli-chromosome-structure',), ('division',)]
                 flow['allocator'].append((requester_name,))
                 steps[requester_name] = processes[requester_name]
                 processes_not_steps[evolver_name] = processes[
                     evolver_name]
+            elif name == 'division':
+                steps[name] = process
+                flow[name] = [('ecoli-chromosome-structure',)]
             elif process.is_step():
                 steps[name] = process
                 flow[name] = []

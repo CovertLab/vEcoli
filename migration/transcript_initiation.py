@@ -7,6 +7,7 @@ import os
 import json
 import numpy as np
 import matplotlib.pyplot as plt
+import pytest
 from scipy.stats import mannwhitneyu, chisquare
 
 from ecoli.processes.transcript_initiation import TranscriptInitiation
@@ -21,6 +22,7 @@ from migration import load_sim_data
 TOPOLOGY = TranscriptInitiation.topology
 
 
+@pytest.mark.master
 def test_transcript_initiation(fixed_synths_monte_carlo=False):
     """
 
