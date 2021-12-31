@@ -30,6 +30,19 @@ from ecoli.processes.registries import topology_registry
 from ecoli.composites.ecoli_configs import CONFIG_DIR_PATH
 
 
+def _merge_files(config):
+    """merge specified files for any attributes not supplied"""
+    merge_files = config.get('merge_files', [])
+    for merge_filename in merge_files:
+        with open(CONFIG_DIR_PATH + merge_filename) as merge_file:
+            merge_config = json.load(merge_file)
+
+        # recursive merge of files specified by merge_file
+        merge_config = _merge_files(merge_config)
+        config = deep_merge(copy.deepcopy(merge_config), config)
+    return config
+
+
 class EcoliSim:
     def __init__(self, config):
         # Do some datatype pre-processesing
@@ -82,11 +95,13 @@ class EcoliSim:
         with open(filepath) as config_file:
             ecoli_config = json.load(config_file)
 
+        # merge specified files for any attributes not supplied
+        ecoli_config = _merge_files(ecoli_config)
+
+        # merge the default file for any attributes not supplied
         if merge_default:
             with open(CONFIG_DIR_PATH + 'default.json') as default_file:
                 default_config = json.load(default_file)
-
-            # Use defaults for any attributes not supplied
             ecoli_config = deep_merge(copy.deepcopy(default_config), ecoli_config)
 
         return EcoliSim(ecoli_config)
