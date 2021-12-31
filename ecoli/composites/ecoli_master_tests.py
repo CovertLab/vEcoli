@@ -196,9 +196,10 @@ def test_lattice_lysis(plot=False):
     PORIN_KEY = 'porin'
     BETA_LACTAMASE_KEY = 'EG10040-MONOMER[p]'
 
-    TODO: connect glucose!
+    TODO: connect glucose! through local_field
     """
-    sim = EcoliSim.from_file(CONFIG_DIR_PATH + 'lysis.json')
+    # sim = EcoliSim.from_file(CONFIG_DIR_PATH + 'lysis.json')
+    sim = EcoliSim.from_file(CONFIG_DIR_PATH + 'spatial.json')
     sim.total_time = 5
     data = sim.run()
 

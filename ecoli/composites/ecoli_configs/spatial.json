@@ -6,7 +6,7 @@
           "size": [10, 10]
       },
       "diffusion": {
-          "molecules": ["glc"],
+          "molecules": ["GLC[p]"],
           "n_bins": [10, 10],
           "size": [10, 10],
           "depth": 3000.0,
@@ -18,5 +18,17 @@
               }
           }
       }
+  },
+  "add_processes": ["local_field"],
+  "topology": {
+    "local_field": {
+      "exchanges": ["environment", "exchange"],
+      "location": ["boundary","location"],
+      "fields": ["..","..","fields"],
+      "dimensions": ["..","..","dimensions"]
+    }
+  },
+  "process_configs" :{
+    "local_field": {}
   }
 }
