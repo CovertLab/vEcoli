@@ -72,9 +72,12 @@ class MassListener(Deriver):
         self.unique_ids = self.parameters['unique_ids']
         self.unique_masses = self.parameters['unique_masses']
 
-        self.submass_indices = self.parameters['submass_indices']
         self.water_index = self.parameters['submass_indices']['water']
-        self.submass_indices.pop('water')
+        self.submass_indices = {
+            key: val
+            for key, val in self.parameters['submass_indices'].items()
+            if key != 'water'
+        }
 
         # compartment indexes
         self.compartment_id_to_index = self.parameters['compartment_id_to_index']
