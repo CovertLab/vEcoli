@@ -59,6 +59,7 @@ class MassListener(Deriver):
             'inner_membrane': [],
         },
         'compartment_id_to_index': {},
+        'compartment_abbrev_to_index': {},
         'n_avogadro': 6.0221409e23,  # 1/mol
         'time_step': 2.0
     }
@@ -93,9 +94,11 @@ class MassListener(Deriver):
 
         # Set up matrix for compartment mass calculation
         self.compartment_abbrev_to_index = self.parameters['compartment_abbrev_to_index']
-        self._bulk_molecule_by_compartment = np.stack(
-            [np.core.defchararray.chararray.endswith(self.bulk_ids, abbrev + ']'
-                                                     ) for abbrev in self.compartment_abbrev_to_index])
+        if self.compartment_abbrev_to_index:
+            self._bulk_molecule_by_compartment = np.stack([
+                np.core.defchararray.chararray.endswith(self.bulk_ids, abbrev + ']')
+                for abbrev in self.compartment_abbrev_to_index
+            ])
 
         # units and constants
         self.cellDensity = self.parameters['cellDensity']
@@ -108,10 +111,18 @@ class MassListener(Deriver):
                            'protein', 'metabolite', 'water', 'DNA']
 
     def ports_schema(self):
-        default_schema = {
+        split_divider_schema = {
             '_default': 0.0,
             '_updater': 'set',
-            '_emit': True}
+            '_emit': True,
+            '_divide': 'split',
+        }
+        set_divider_schema = {
+            '_default': 0.0,
+            '_updater': 'set',
+            '_emit': True,
+            '_divide': 'set',
+        }
 
         ports = {
             'bulk': bulk_schema(self.bulk_ids),
@@ -122,30 +133,30 @@ class MassListener(Deriver):
             },
             'listeners': {
                 'mass': {
-                    'cell_mass': default_schema,
-                    'water_mass': default_schema,
-                    'dry_mass': default_schema,
-                    **{submass + 'Mass': default_schema
+                    'cell_mass': split_divider_schema,
+                    'water_mass': split_divider_schema,
+                    'dry_mass': split_divider_schema,
+                    **{submass + 'Mass': split_divider_schema
                        for submass in self.submass_indices.keys()},
-                    'volume': default_schema,
-                    'proteinMassFraction': default_schema,
-                    'rnaMassFraction': default_schema,
-                    'growth': default_schema,
-                    'instantaniousGrowthRate': default_schema,
-                    'dryMassFoldChange': default_schema,
-                    'proteinMassFoldChange': default_schema,
-                    'rnaMassFoldChange': default_schema,
-                    'smallMoleculeFoldChange': default_schema,
+                    'volume': split_divider_schema,
+                    'proteinMassFraction': set_divider_schema,
+                    'rnaMassFraction': set_divider_schema,
+                    'growth': set_divider_schema,
+                    'instantaniousGrowthRate': set_divider_schema,
+                    'dryMassFoldChange': set_divider_schema,
+                    'proteinMassFoldChange': set_divider_schema,
+                    'rnaMassFoldChange': set_divider_schema,
+                    'smallMoleculeFoldChange': set_divider_schema,
                     # compartment mass
-                    'projection_mass': default_schema,
-                    'cytosol_mass': default_schema,
-                    'extracellular_mass': default_schema,
-                    'flagellum_mass': default_schema,
-                    'membrane_mass': default_schema,
-                    'outer_membrane_mass': default_schema,
-                    'periplasm_mass': default_schema,
-                    'pilus_mass': default_schema,
-                    'inner_membrane_mass': default_schema,
+                    'projection_mass': split_divider_schema,
+                    'cytosol_mass': split_divider_schema,
+                    'extracellular_mass': split_divider_schema,
+                    'flagellum_mass': split_divider_schema,
+                    'membrane_mass': split_divider_schema,
+                    'outer_membrane_mass': split_divider_schema,
+                    'periplasm_mass': split_divider_schema,
+                    'pilus_mass': split_divider_schema,
+                    'inner_membrane_mass': split_divider_schema,
                 }
             }
         }
