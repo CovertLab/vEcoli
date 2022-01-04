@@ -8,6 +8,7 @@ from vivarium.library.topology import get_in, assoc_path
 from ecoli.experiments.ecoli_master_sim import EcoliSim
 from ecoli.library.sim_data import RAND_MAX
 from ecoli.processes.engine_process import EngineProcess
+from ecoli.processes.listeners.mass_listener import MassListener
 
 
 class EngineProcessCell(Composer):
@@ -41,27 +42,14 @@ class EngineProcessCell(Composer):
             'tunnels_in': {
                 'mass_tunnel': (
                     ('agents', agent_id, 'listeners', 'mass'),
-                    {
-                        variable: {
-                            '_default': 0.0,
-                            '_emit': True,
-                            '_updater': 'set',
+                    MassListener({
+                        'submass_indices': {
+                            key: None
+                            for key in [
+                                'rna', 'rRna', 'tRna', 'mRna', 'dna',
+                                'protein', 'smallMolecule']
                         }
-                        for variable in [
-                            'cell_mass', 'dry_mass', 'water_mass',
-                            'rnaMass', 'rRnaMass', 'tRnaMass', 'mRnaMass',
-                            'dnaMass', 'proteinMass', 'smallMoleculeMass',
-                            'volume', 'proteinMassFraction',
-                            'rnaMassFraction', 'growth',
-                            'instantaniousGrowthRate', 'dryMassFoldChange',
-                            'proteinMassFoldChange', 'rnaMassFoldChange',
-                            'smallMoleculeFoldChange', 'projection_mass',
-                            'cytosol_mass', 'extracellular_mass',
-                            'flagellum_mass', 'membrane_mass',
-                            'outer_membrane_mass', 'periplasm_mass',
-                            'pilus_mass', 'inner_membrane_mass',
-                        ]
-                    },
+                    }).ports_schema()['listeners']['mass'],
                 ),
             },
             'seed': (config['seed'] + 1) % RAND_MAX,
