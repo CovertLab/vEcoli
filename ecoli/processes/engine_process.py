@@ -118,6 +118,7 @@ class EngineProcess(Process):
         'composer': None,
         'seed': 0,
         'time_step': 2,
+        'inner_emitter': 'null',
     }
     # TODO: Handle name clashes between tunnels.
 
@@ -133,7 +134,7 @@ class EngineProcess(Process):
             flow=composite.get('flow'),
             topology=composite['topology'],
             initial_state=self.parameters['initial_inner_state'],
-            emitter='null',
+            emitter=self.parameters['inner_emitter'],
             display_info=False,
             progress_bar=False,
         )
@@ -290,6 +291,10 @@ class ProcB(Process):
                 '_updater': 'accumulate',
                 '_emit': True,
             },
+            'agents': {
+                '_default': {},
+                '_emit': False,
+            }
         }
 
     def next_update(self, timestep, states):
@@ -364,6 +369,7 @@ def test_engine_process():
             },
             'procB': {
                 'port_b': ('..', 'b'),
+                'agents': ('agents',),
             },
         },
     }
@@ -378,9 +384,12 @@ def test_engine_process():
                 },
             ),
         },
+        'time_step': 1,
+        'inner_emitter': 'timeseries',
     })
     schema = proc.get_schema()
     expected_schema = {
+        'agents': {},
         'b_tunnel': {
             '_default': 0,
             '_updater': 'accumulate',
@@ -406,6 +415,7 @@ def test_engine_process():
             'engine': {
                 'b_tunnel': ('b',),
                 'c_tunnel': ('c',),
+                'agents': ('agents',),
             },
         },
     }
