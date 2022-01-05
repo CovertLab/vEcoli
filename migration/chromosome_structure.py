@@ -36,7 +36,7 @@ def custom_run_process(
     experiment = Engine(**experiment_config)
 
     # Get update from process.
-    path, process = list(experiment.process_paths.items())[0]
+    path = (process.name,)
     store = experiment.state.get_path(path)
 
     # translate the values from the tree structure into the form
