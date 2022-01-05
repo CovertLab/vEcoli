@@ -125,10 +125,13 @@ def run_simulation():
         emitter=emitter_config,
         progress_bar=config['progress_bar'],
         metadata=metadata,
+        profile=config['profile'],
     )
     engine.update(composer.ecoli_sim.total_time)
     engine.end()
 
+    if config['profile']:
+        report_profiling(engine.stats)
 
 if __name__ == '__main__':
     run_simulation()
