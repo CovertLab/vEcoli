@@ -38,11 +38,33 @@ def get_git_revision_hash():
     return subprocess.check_output(
         ['git', 'rev-parse', 'HEAD']).decode('ascii').strip()
 
+
 def get_git_status():
     status_str = subprocess.check_output(
         ['git', 'status', '--porcelain']).decode('ascii').strip()
     status = status_str.split('\n')
     return status
+
+
+def report_profiling(stats):
+    _, stats_keys = stats.get_print_list(('(next_update)|(calculate_request)|(evolve_state)',))
+    summed_stats = {}
+    for key in stats_keys:
+        key_stats = stats.stats[key]
+        _, _, _, cumtime, _ = key_stats
+        path, line, func = key
+        path = os.path.basename(path)
+        summed_stats[(path, line, func)] = summed_stats.get(
+            (path, func), 0) + cumtime
+    summed_stats_inverse_map = {
+        time: key for key, time in summed_stats.items()
+    }
+    print('\nPer-process profiling:\n')
+    for time in sorted(summed_stats_inverse_map.keys())[::-1]:
+        path, line, func = summed_stats_inverse_map[time]
+        print(f'{path}:{line} {func}(): {time}')
+    print('\nOverall Profile:\n')
+    stats.sort_stats('cumtime').print_stats(20)
 
 
 def key_value_pair(argument_string):
@@ -456,25 +478,7 @@ class EcoliSim:
 
         self.ecoli_experiment.end()
         if self.profile:
-            stats = self.ecoli_experiment.stats
-            _, stats_keys = stats.get_print_list(('(next_update)|(calculate_request)|(evolve_state)',))
-            summed_stats = {}
-            for key in stats_keys:
-                key_stats = stats.stats[key]
-                _, _, _, cumtime, _ = key_stats
-                path, line, func = key
-                path = os.path.basename(path)
-                summed_stats[(path, line, func)] = summed_stats.get(
-                    (path, func), 0) + cumtime
-            summed_stats_inverse_map = {
-                time: key for key, time in summed_stats.items()
-            }
-            print('\nPer-process profiling:\n')
-            for time in sorted(summed_stats_inverse_map.keys())[::-1]:
-                path, line, func = summed_stats_inverse_map[time]
-                print(f'{path}:{line} {func}(): {time}')
-            print('\nOverall Profile:\n')
-            stats.sort_stats('cumtime').print_stats(20)
+            report_profiling(self.ecoli_experiment.stats)
 
         # return the data
         if self.raw_output:
