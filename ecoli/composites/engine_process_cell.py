@@ -32,6 +32,7 @@ class EngineProcessCell(Composer):
         self.ecoli_sim = EcoliSim({
             **config['ecoli_sim_config'],
             'seed': config['seed'],
+            'agent_id': agent_id,
         })
         self.ecoli_sim.build_ecoli()
         if config['initial_cell_state']:
