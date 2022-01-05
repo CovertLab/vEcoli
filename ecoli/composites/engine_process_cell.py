@@ -5,7 +5,7 @@ from vivarium.core.composer import Composer
 from vivarium.core.engine import Engine
 from vivarium.library.topology import get_in, assoc_path
 
-from ecoli.experiments.ecoli_master_sim import EcoliSim
+from ecoli.experiments.ecoli_master_sim import EcoliSim, SimConfig
 from ecoli.library.sim_data import RAND_MAX
 from ecoli.processes.engine_process import EngineProcess
 from ecoli.processes.listeners.mass_listener import MassListener
@@ -19,13 +19,15 @@ class EngineProcessCell(Composer):
         'seed': 0,
         'initial_tunnel_states': {},
         'parallel': False,
+        'ecoli_sim_config': {},
     }
 
     def generate_processes(self, config):
         agent_id = config['agent_id']
-        self.ecoli_sim = EcoliSim.from_cli([
-            '--agent_id', str(agent_id), '--seed', str(config['seed']),
-        ] + sys.argv[1:])
+        self.ecoli_sim = EcoliSim({
+            **config['ecoli_sim_config'],
+            'seed': config['seed'],
+        })
         self.ecoli_sim.build_ecoli()
         if config['initial_cell_state']:
             initial_inner_state = {
@@ -90,18 +92,27 @@ class EngineProcessCell(Composer):
 
 
 def run_simulation():
-    composer = EngineProcessCell({'agent_id': '0', 'parallel': True})
-    composite = composer.generate(path=('agents', '0'))
+    config = SimConfig()
+    config.update_from_cli()
+    composer = EngineProcessCell({
+        'agent_id': config['agent_id'],
+        'parallel': config['parallel'],
+        'ecoli_sim_config': config.to_dict(),
+    })
+    composite = composer.generate(path=('agents', config['agent_id']))
+    emitter_config = {'type': config['emitter']}
+    for key, value in config['emitter_arg']:
+        emitter_config[key] = value
     engine = Engine(
         processes=composite.processes,
         topology=composite.topology,
         initial_state={
             'agents': {
-                '0': composer.initial_state({}),
+                config['agent_id']: composer.initial_state({}),
             },
         },
-        emitter='database',
-        progress_bar=True,
+        emitter=emitter_config,
+        progress_bar=config['progress_bar'],
     )
     engine.update(composer.ecoli_sim.total_time)
     engine.end()

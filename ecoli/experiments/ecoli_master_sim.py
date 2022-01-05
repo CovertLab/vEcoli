@@ -16,6 +16,7 @@ import json
 import warnings
 from copy import deepcopy
 from datetime import datetime
+from typing import Optional, Dict, Any
 
 from vivarium.core.engine import Engine
 from vivarium.library.dict_utils import deep_merge
@@ -39,6 +40,132 @@ def key_value_pair(argument_string):
         raise ValueError(
             'Key-value pair arguments must have exactly one `=`.')
     return split
+
+
+class SimConfig:
+
+    default_config_path = os.path.join(CONFIG_DIR_PATH, 'default.json')
+
+    def __init__(self, config: Optional[Dict[str, Any]] = None):
+        '''Stores configuration options for a simulation.
+
+        Attributes:
+            config: Current configuration.
+            parser: Argument parser for the command-line interface.
+
+        Args:
+            config: Configuration options. If provided, the default
+                configuration is not loaded.
+        '''
+        self._config = config or {}
+        if not self._config:
+            self.update_from_json(self.default_config_path)
+
+        self.parser = argparse.ArgumentParser(description='ecoli_master')
+        self.parser.add_argument(
+            '--config', '-c', action='store',
+            default=self.default_config_path,
+            help=(
+                'Path to configuration file for the simulation. '
+                'Defaults to {self.default_config_path}.')
+        )
+        self.parser.add_argument(
+            '--experiment_id', '-id', action="store",
+            help=(
+                'ID for this experiment. A UUID will be generated if '
+                'this argument is not used and "experiment_id" is null '
+                'in the configuration file.')
+        )
+        self.parser.add_argument(
+            '--emitter', '-e', action='store',
+            choices=["timeseries", "database", "print"],
+            help=(
+                "Emitter to use. Timeseries uses RAMEmitter, database "
+                "emits to MongoDB, and print emits to stdout.")
+        )
+        self.parser.add_argument(
+            '--emitter_arg', '-ea', action='store', nargs='*',
+            type=key_value_pair,
+            help=(
+                'Key-value pairs, separated by `=`, to include in '
+                'emitter config.')
+        )
+        self.parser.add_argument(
+            '--seed', '-s', action="store", type=int,
+            help="Random seed."
+        )
+        self.parser.add_argument(
+            '--initial_state', '-t0', action="store",
+            help=(
+                "Name of the initial state to load from (corresponding "
+                "initial state file must be present in data folder).")
+        )
+        self.parser.add_argument(
+            '--total_time', '-t', action="store", type=float,
+            help="Time to run the simulation for."
+        )
+        self.parser.add_argument(
+            '--generations', '-g', action="store", type=int,
+            help="Number of generations to run the simulation for."
+        )
+        self.parser.add_argument(
+            '--log_updates', '-u', action="store_true",
+            help=(
+                "Save updates from each process if this flag is set, "
+                "e.g. for use with blame plot.")
+        )
+        self.parser.add_argument(
+            '--raw_output', action="store_true",
+            help=(
+                "Whether to return data in raw format (dictionary "
+                "where keys are times, values are states).")
+        )
+        self.parser.add_argument(
+            "--agent_id", action="store", type=str,
+            help="Agent ID."
+        )
+        self.parser.add_argument(
+            'sim_data_path', nargs="*", default=None,
+            help="Path to the sim_data to use for this experiment."
+        )
+
+    def update_from_json(self, path):
+        with open(path, 'r') as f:
+            new_config = json.load(f)
+        self._config.update(new_config)
+
+    def update_from_cli(self, cli_args=None):
+        args = self.parser.parse_args(cli_args)
+        # First load in a configuration file, if one was specified.
+        config_path = getattr(args, 'config', None)
+        if config_path:
+            self.update_from_json(config_path)
+        # Then override the configuration file with any command-line
+        # options.
+        cli_config = {
+            key: value
+            for key, value in vars(args).items()
+            if value and key != 'config'
+        }
+        self._config.update(cli_config)
+
+    def update_from_dict(self, dict_config):
+        self._config.update(dict_config)
+
+    def __getitem__(self, key):
+        return self._config[key]
+
+    def get(self, key, default=None):
+        return self._config.get(key, default)
+
+    def __setitem__(self, key, val):
+        self._config[key] = val
+
+    def keys(self):
+        return self._config.keys()
+
+    def to_dict(self):
+        return copy.deepcopy(self._config)
 
 
 class EcoliSim:
@@ -88,89 +215,16 @@ class EcoliSim:
 
 
     @staticmethod
-    def from_file(filepath=CONFIG_DIR_PATH + 'default.json', merge_default=True):
-        # Load config, deep-merge with default config
-        with open(filepath) as config_file:
-            ecoli_config = json.load(config_file)
-
-        if merge_default:
-            with open(CONFIG_DIR_PATH + 'default.json') as default_file:
-                default_config = json.load(default_file)
-
-            # Use defaults for any attributes not supplied
-            ecoli_config = deep_merge(copy.deepcopy(default_config), ecoli_config)
-
-        return EcoliSim(ecoli_config)
+    def from_file(filepath=CONFIG_DIR_PATH + 'default.json'):
+        config = SimConfig()
+        config.update_from_json(filepath)
+        return EcoliSim(config.to_dict())
 
     @staticmethod
     def from_cli(cli_args=None):
-        parser = argparse.ArgumentParser(description='ecoli_master')
-        parser.add_argument(
-            '--config', '-c', action='store', default=CONFIG_DIR_PATH + 'default.json',
-            help=f"Path to configuration file for the simulation. Defaults to {CONFIG_DIR_PATH + 'default.json'}."
-        )
-        parser.add_argument(
-            '--experiment_id', '-id', action="store",
-            help='ID for this experiment. A UUID will be generated if this argument is not used and "experiment_id" is null in the configuration file.'
-        )
-        parser.add_argument(
-            '--emitter', '-e', action="store", choices=["timeseries", "database", "print"],
-            help="Emitter to use. Timeseries uses RAMEmitter, database emits to MongoDB, and print emits to stdout."
-        )
-        parser.add_argument(
-            '--emitter_arg', '-ea', action='store', nargs='*', type=key_value_pair,
-            help='Key-value pairs, separated by `=`, to include in emitter config.'
-        )
-        parser.add_argument(
-            '--seed', '-s', action="store", type=int,
-            help="Random seed."
-        )
-        parser.add_argument(
-            '--initial_state', '-t0', action="store",
-            help="Name of the initial state to load from (corresponding initial state file must be present in data folder)."
-        )
-        parser.add_argument(
-            '--total_time', '-t', action="store", type=float,
-            help="Time to run the simulation for."
-        )
-        parser.add_argument(
-            '--generations', '-g', action="store", type=int,
-            help="Number of generations to run the simulation for."
-        )
-        parser.add_argument(
-            '--log_updates', '-u', action="store_true",
-            help="Save updates from each process if this flag is set, e.g. for use with blame plot."
-        )
-        parser.add_argument(
-            '--raw_output', action="store_true",
-            help="Whether to return data in raw format (dictionary where keys are times, values are states)."
-        )
-        parser.add_argument(
-            "--agent_id", action="store", type=str,
-            help="Agent ID."
-        )
-        parser.add_argument(
-            'sim_data_path', nargs="*", default=None,
-            help="Path to the sim_data to use for this experiment."
-        )
-        args = parser.parse_args(cli_args)
-
-        # Load config, deep-merge with default config
-        with open(args.config) as config_file:
-            ecoli_config = json.load(config_file)
-
-        with open(CONFIG_DIR_PATH + 'default.json') as default_file:
-            default_config = json.load(default_file)
-
-        # add attributes from CLI to the config
-        for setting, value in vars(args).items():
-            if value and setting != "config":
-                ecoli_config[setting] = value
-
-        # Use defaults for any attributes not supplied
-        ecoli_config = deep_merge(copy.deepcopy(default_config), ecoli_config)
-
-        return EcoliSim(ecoli_config)
+        config = SimConfig()
+        config.update_from_cli(cli_args)
+        return EcoliSim(config.to_dict())
 
     def _retrieve_processes(self,
                             processes,
