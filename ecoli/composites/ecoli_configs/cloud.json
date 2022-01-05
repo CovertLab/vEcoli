@@ -5,6 +5,7 @@
     "emitter_arg": [
         ["host", "localhost:27017"]
     ],
+    "parallel": true,
     "_schema": {
         "monomer_counts_listener": {
             "bulk": {
