@@ -271,10 +271,6 @@ class Ecoli(Composer):
                 topology[f'{process_id}_evolver']['allocate'] = {
                     '_path': ('allocate', process_id,),
                     **bulk_topo}
-                topology[f'{process_id}_requester']['hidden_state'] = (
-                    'hidden_state',)
-                topology[f'{process_id}_evolver']['hidden_state'] = (
-                    'hidden_state',)
 
             # make the non-partitioned processes' topologies
             else:

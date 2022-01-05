@@ -44,12 +44,6 @@ class TwoComponentSystem(PartitionedProcess):
             [], []),
         'moleculeNames': [],
         'seed': 0,
-        'partitioning_hidden_state_instance_variables': [
-            'random_state',
-            'molecules_required',
-            'all_molecule_changes',
-            'cellVolume',
-        ],
     }
 
     # Constructor
