@@ -34,6 +34,17 @@ from ecoli.processes.registries import topology_registry
 from ecoli.composites.ecoli_configs import CONFIG_DIR_PATH
 
 
+def get_git_revision_hash():
+    return subprocess.check_output(
+        ['git', 'rev-parse', 'HEAD']).decode('ascii').strip()
+
+def get_git_status():
+    status_str = subprocess.check_output(
+        ['git', 'status', '--porcelain']).decode('ascii').strip()
+    status = status_str.split('\n')
+    return status
+
+
 def key_value_pair(argument_string):
     split = argument_string.split('=')
     if len(split) != 2:
@@ -398,7 +409,7 @@ class EcoliSim:
         metadata.pop('initial_state', None)
 
         try:
-            metadata["git_hash"] = self._get_git_revision_hash()
+            metadata["git_hash"] = get_git_revision_hash()
         except:
             warnings.warn("Unable to retrieve current git revision hash. "
                           "Try making a note of this manually if your experiment may need to be replicated.")
@@ -471,9 +482,6 @@ class EcoliSim:
         else:
             return self.ecoli_experiment.emitter.get_timeseries()
 
-    def _get_git_revision_hash(self):
-        return subprocess.check_output(['git', 'rev-parse', 'HEAD']).decode('ascii').strip()
-
     def merge(self, other):
         """
         Combine settings from this EcoliSim with another, overriding
@@ -492,7 +500,7 @@ class EcoliSim:
         result.pop('initial_state', None)
 
         try:
-            result["git_hash"] = self._get_git_revision_hash()
+            result["git_hash"] = get_git_revision_hash()
         except:
             warnings.warn("Unable to retrieve current git revision hash. "
                           "Try making a note of this manually if your experiment may need to be replicated.")
