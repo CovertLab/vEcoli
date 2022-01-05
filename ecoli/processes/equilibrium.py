@@ -45,9 +45,6 @@ class Equilibrium(PartitionedProcess):
         'fluxesAndMoleculesToSS': lambda counts, volume, avogadro, random, jit: ([], []),
         'moleculeNames': [],
         'seed': 0,
-        'partitioning_hidden_state_instance_variables': [
-            'rxnFluxes',
-        ],
     }
 
     # Constructor

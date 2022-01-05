@@ -122,7 +122,8 @@ class Requester(Step):
         self.process = parameters['process']
         assert isinstance(self.process, PartitionedProcess)
         if self.process.parallel:
-            parameters['_parallel'] = True
+            raise RuntimeError(
+                'PartitionedProcess objects cannot be parallelized.')
         parameters['name'] = f'{self.process.name}_requester'
         super().__init__(parameters)
 
@@ -130,27 +131,9 @@ class Requester(Step):
         ports = self.process.get_schema()
         ports_copy = ports.copy()
         ports['request'] = change_bulk_updater(ports_copy, 'set')
-        ports['hidden_state'] = {
-            self.process.name: {
-                '_default': None,
-                '_updater': 'set',
-                '_emit': False,
-                '_divider': 'set_none',
-            },
-        }
         return ports
 
     def next_update(self, timestep, states):
-        if self.process.parallel:
-            hidden_state = states.pop('hidden_state')
-            serialized = hidden_state[self.process.name]
-            # If the simulation is brand-new, there might not be a
-            # serialized process in the store yet.
-            if serialized:
-                partitioning_hidden_state = pickle.loads(serialized)
-                self.process.set_partitioning_hidden_state(
-                    partitioning_hidden_state)
-
         request = self.process.calculate_request(
             self.parameters['time_step'], states)
         self.process.request_set = True
@@ -162,12 +145,6 @@ class Requester(Step):
         }
         if listeners != None:
             update['listeners'] = listeners
-
-        if self.process.parallel:
-            update['hidden_state'] = {
-                self.process.name: pickle.dumps(
-                    self.process.get_partitioning_hidden_state())
-            }
 
         return convert_numpy_to_builtins(update)
 
@@ -183,8 +160,6 @@ class Evolver(Process):
     def __init__(self, parameters=None):
         self.process = parameters['process']
         assert isinstance(self.process, PartitionedProcess)
-        if self.process.parallel:
-            parameters['_parallel'] = True
         parameters['name'] = f'{self.process.name}_evolver'
         super().__init__(parameters)
 
@@ -192,14 +167,6 @@ class Evolver(Process):
         ports = self.process.get_schema()
         ports_copy = ports.copy()
         ports['allocate'] = change_bulk_updater(ports_copy, 'set')
-        ports['hidden_state'] = {
-            self.process.name: {
-                '_default': None,
-                '_updater': 'set',
-                '_emit': False,
-                '_divider': 'set_none',
-            },
-        }
         return ports
 
     # TODO(Matt): Have evolvers calculate timestep, returning zero if the requester hasn't run.
@@ -210,16 +177,6 @@ class Evolver(Process):
     #         return self.process.calculate_timestep(states)
 
     def next_update(self, timestep, states):
-        if self.process.parallel:
-            hidden_state = states.pop('hidden_state')
-            serialized = hidden_state[self.process.name]
-            # Right after division, the Evolver runs before the
-            # Requester.
-            if serialized:
-                partitioning_hidden_state = pickle.loads(serialized)
-                self.process.set_partitioning_hidden_state(
-                    partitioning_hidden_state)
-
         states = deep_merge(states, states.pop('allocate'))
 
         # if requester not yet run, skip evolver
@@ -230,11 +187,6 @@ class Evolver(Process):
             return {}
 
         update = self.process.evolve_state(timestep, states)
-        if self.process.parallel:
-            update['hidden_state'] = {
-                self.process.name: pickle.dumps(
-                    self.process.get_partitioning_hidden_state())
-            }
         return convert_numpy_to_builtins(update)
 
 
@@ -270,42 +222,6 @@ class PartitionedProcess(Process):
     @abc.abstractmethod
     def evolve_state(self, timestep, states):
         return {}
-
-    def get_partitioning_hidden_state(self):
-        '''Returns a dictionary with the hidden state for partitioning.
-
-        The returned dictionary should be as small as possible and contain
-        only those variables that need to be passed between
-        :py:class:`Evolver` and :py:class:`Requester` instances since
-        serializing this data is expensive.
-
-        Returns:
-            The hidden state, as a dictionary. Each key-value pair should in
-            general store a single instance variable's value as the value
-            and the variable's name as the key. By default, this format is
-            used, with the variable names coming from
-            ``self.parameters['hidden_state_instance_variables']``. However,
-            the only real requirement is that the class's
-            :py:meth:`set_partitioning_hidden_state` method know how to
-            correctly apply the state.
-        '''
-        variables = self.parameters.get(
-            'partitioning_hidden_state_instance_variables', [])
-        variables.append('request_set')
-        return {var: getattr(self, var) for var in variables}
-
-    def set_partitioning_hidden_state(self, state):
-        '''Set the hidden state for partitioning.
-
-        This method simply updates ``self.__dict__`` with the contents of
-        ``state``, which should work for many processes. However, subclasses
-        can also override this method if needed.
-
-        Args:
-            state: The state dictionary from
-                :py:meth:`get_partitioning_hidden_state`.
-        '''
-        self.__dict__.update(state)
 
     def next_update(self, timestep, states):
         if self.request_only:
