@@ -5,7 +5,12 @@ from vivarium.core.composer import Composer
 from vivarium.core.engine import Engine
 from vivarium.library.topology import get_in, assoc_path
 
-from ecoli.experiments.ecoli_master_sim import EcoliSim, SimConfig
+from ecoli.experiments.ecoli_master_sim import (
+    EcoliSim,
+    SimConfig,
+    get_git_revision_hash,
+    get_git_status,
+)
 from ecoli.library.sim_data import RAND_MAX
 from ecoli.processes.engine_process import EngineProcess
 from ecoli.processes.listeners.mass_listener import MassListener
@@ -100,6 +105,12 @@ def run_simulation():
         'ecoli_sim_config': config.to_dict(),
     })
     composite = composer.generate(path=('agents', config['agent_id']))
+
+    metadata = config.to_dict()
+    metadata.pop('initial_state', None)
+    metadata['git_hash'] = get_git_revision_hash()
+    metadata['git_status'] = get_git_status()
+
     emitter_config = {'type': config['emitter']}
     for key, value in config['emitter_arg']:
         emitter_config[key] = value
@@ -113,6 +124,7 @@ def run_simulation():
         },
         emitter=emitter_config,
         progress_bar=config['progress_bar'],
+        metadata=metadata,
     )
     engine.update(composer.ecoli_sim.total_time)
     engine.end()
