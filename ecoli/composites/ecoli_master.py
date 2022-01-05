@@ -51,8 +51,6 @@ class Ecoli(Composer):
 
     defaults = {
         'time_step': 2.0,
-        'parallel': False,
-        'parallel_allocator': False,
         'seed': 0,
         'sim_data_path': SIM_DATA_PATH,
         'daughter_path': tuple(),
@@ -96,7 +94,6 @@ class Ecoli(Composer):
     def _generate_processes_and_steps(self, config):
         config = deepcopy(config)
         time_step = config['time_step']
-        parallel = config['parallel']
 
         process_order = list(config['processes'].keys())
 
@@ -124,9 +121,6 @@ class Ecoli(Composer):
                         process_configs[process]['seed'] +
                         config['seed']) % RAND_MAX
 
-            if '_parallel' not in process_configs[process]:
-                process_configs[process]['_parallel'] = parallel
-
         # make the processes
         processes = {
             process_name: process(process_configs[process_name])
@@ -139,7 +133,6 @@ class Ecoli(Composer):
         process_configs['allocator'] = self.load_sim_data.get_allocator_config(
             process_names=[p for p in config['processes'].keys()
                            if not processes[p].is_deriver()],
-            parallel=config['parallel_allocator'],
         )
 
         config['processes']['allocator'] = Allocator

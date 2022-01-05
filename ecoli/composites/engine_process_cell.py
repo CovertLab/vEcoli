@@ -18,6 +18,7 @@ class EngineProcessCell(Composer):
         'initial_cell_state': {},
         'seed': 0,
         'initial_tunnel_states': {},
+        'parallel': False,
     }
 
     def generate_processes(self, config):
@@ -53,6 +54,7 @@ class EngineProcessCell(Composer):
                 ),
             },
             'seed': (config['seed'] + 1) % RAND_MAX,
+            '_parallel': config['parallel'],
         })
         return {
             'cell_process': cell_process,
@@ -88,7 +90,7 @@ class EngineProcessCell(Composer):
 
 
 def run_simulation():
-    composer = EngineProcessCell({'agent_id': '0'})
+    composer = EngineProcessCell({'agent_id': '0', 'parallel': True})
     composite = composer.generate(path=('agents', '0'))
     engine = Engine(
         processes=composite.processes,
@@ -102,6 +104,7 @@ def run_simulation():
         progress_bar=True,
     )
     engine.update(composer.ecoli_sim.total_time)
+    engine.end()
 
 
 if __name__ == '__main__':
