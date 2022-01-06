@@ -201,6 +201,19 @@ class SimConfig:
         return copy.deepcopy(self._config)
 
 
+def _merge_files(config):
+    """merge specified files for any attributes not supplied"""
+    merge_files = config.get('merge_files', [])
+    for merge_filename in merge_files:
+        with open(CONFIG_DIR_PATH + merge_filename) as merge_file:
+            merge_config = json.load(merge_file)
+
+        # recursive merge of files specified by merge_file
+        merge_config = _merge_files(merge_config)
+        config = deep_merge(copy.deepcopy(merge_config), config)
+    return config
+
+
 class EcoliSim:
     def __init__(self, config):
         # Do some datatype pre-processesing
@@ -249,8 +262,14 @@ class EcoliSim:
 
     @staticmethod
     def from_file(filepath=CONFIG_DIR_PATH + 'default.json'):
+        # Load config, deep-merge with default config
+        with open(filepath) as config_file:
+            ecoli_config = json.load(config_file)
+        # merge specified files for any attributes not supplied
+        ecoli_config = _merge_files(ecoli_config)
+
         config = SimConfig()
-        config.update_from_json(filepath)
+        config.update_from_dict(ecoli_config)
         return EcoliSim(config.to_dict())
 
     @staticmethod
@@ -390,7 +409,9 @@ class EcoliSim:
         if self.spatial_environment:
             environment_composite = ecoli.composites.environment.lattice.Lattice(
                 self.spatial_environment_config).generate()
+            initial_environment = environment_composite.initial_state()
             self.ecoli.merge(environment_composite)
+            self.initial_state = deep_merge(self.initial_state, initial_environment)
 
     def save_states(self):
         """
