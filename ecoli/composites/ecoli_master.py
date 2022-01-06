@@ -326,17 +326,12 @@ def run_ecoli(
 @pytest.mark.slow
 def test_division(
         agent_id='1',
-        total_time=10,
+        total_time=60,
 ):
     """tests that a cell can be divided and keep running"""
 
     # get initial mass from Ecoli composer
     initial_state = Ecoli({}).initial_state({'initial_state_file': 'vivecoli_t1840'})
-    initial_mass = initial_state['listeners']['mass']['cell_mass']
-    # The cell divides between the 1554 and 1556 timesteps with this
-    # mass target.
-    division_mass = 2000
-    print(f"DIVIDE AT {division_mass} fg")
 
     # make a new composer under an embedded path
     config = {
