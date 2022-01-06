@@ -1,0 +1,32 @@
+{
+  "merge_files": ["spatial.json"],
+  "agent_id": "0",
+  "spatial_environment_config": {
+    "diffusion": {
+      "molecules": ["GLC[p]", "EG10040-MONOMER[p]"],
+      "gradient": {
+        "molecules": {
+          "GLC[p]": 1.0,
+          "EG10040-MONOMER[p]": 0.0
+        }
+      }
+    }
+  }, 
+  "add_processes": ["lysis"],
+  "topology": {
+    "lysis": {
+      "trigger": ["burst"],
+      "internal": ["bulk"],
+      "agents": ["..","..","agents"],
+      "fields": ["..","..","fields"],
+      "location": ["boundary","location"],
+      "dimensions": ["..","..","dimensions"]
+    }
+  },
+  "process_configs": {
+    "lysis": {
+      "secreted_molecules": ["EG10040-MONOMER[p]"],
+      "agent_id": "0"
+    }
+  }
+}
