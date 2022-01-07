@@ -165,6 +165,9 @@ class SimConfig:
     def update_from_json(self, path):
         with open(path, 'r') as f:
             new_config = json.load(f)
+        for config_name in new_config.get('merge_files', []):
+            config_path = os.path.join(CONFIG_DIR_PATH, config_name)
+            self.update_from_json(config_path)
         self._config.update(new_config)
 
     def update_from_cli(self, cli_args=None):
@@ -199,19 +202,6 @@ class SimConfig:
 
     def to_dict(self):
         return copy.deepcopy(self._config)
-
-
-def _merge_files(config):
-    """merge specified files for any attributes not supplied"""
-    merge_files = config.get('merge_files', [])
-    for merge_filename in merge_files:
-        with open(CONFIG_DIR_PATH + merge_filename) as merge_file:
-            merge_config = json.load(merge_file)
-
-        # recursive merge of files specified by merge_file
-        merge_config = _merge_files(merge_config)
-        config = deep_merge(copy.deepcopy(merge_config), config)
-    return config
 
 
 class EcoliSim:
@@ -262,14 +252,8 @@ class EcoliSim:
 
     @staticmethod
     def from_file(filepath=CONFIG_DIR_PATH + 'default.json'):
-        # Load config, deep-merge with default config
-        with open(filepath) as config_file:
-            ecoli_config = json.load(config_file)
-        # merge specified files for any attributes not supplied
-        ecoli_config = _merge_files(ecoli_config)
-
         config = SimConfig()
-        config.update_from_dict(ecoli_config)
+        config.update_from_json(filepath)
         return EcoliSim(config.to_dict())
 
     @staticmethod
