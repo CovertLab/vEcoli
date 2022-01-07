@@ -69,6 +69,7 @@ from vivarium.library.topology import get_in, assoc_path
 
 from ecoli.library.sim_data import RAND_MAX
 from ecoli.library.updaters import inverse_updater_registry
+from ecoli.processes.cell_division import daughter_phylogeny_id
 
 
 def _get_path_net_depth(path):
@@ -119,6 +120,9 @@ class EngineProcess(Process):
         'seed': 0,
         'time_step': 2,
         'inner_emitter': 'null',
+        'divide': False,
+        'division_threshold': 0,
+        'division_variable': tuple(),
     }
     # TODO: Handle name clashes between tunnels.
 
@@ -144,12 +148,16 @@ class EngineProcess(Process):
     def ports_schema(self):
         schema = {
             'agents': {},
+            'division_variable': {},
         }
         for port_path, tunnel in self.tunnels_out.items():
             process_path = port_path[:-1]
             port = port_path[-1]
-            tunnel_schema = get_in(
-                self.sim.processes, process_path).get_schema()[port]
+            process = get_in(
+                self.sim.processes,
+                process_path,
+                get_in(self.sim.steps, process_path))
+            tunnel_schema = process.get_schema()[port]
             schema[tunnel] = copy.deepcopy(tunnel_schema)
         for tunnel, (_, tunnel_schema) in self.tunnels_in.items():
             schema[tunnel] = tunnel_schema
@@ -170,31 +178,30 @@ class EngineProcess(Process):
         # this process?
         self.sim.update(timestep)
 
-        agents = self.sim.state.get_path(('agents',)).inner
-        if len(agents) > 1:
-            # Division has occurred.
+        # Check for division and perform if needed.
+        division_threshold = self.parameters['division_threshold']
+        division_variable = self.sim.state.get_path(
+            self.parameters['division_variable']).get_value()
+        if (
+                self.parameters['divide']
+                and division_variable >= division_threshold):
+            # Perform division.
             daughters = []
             composer = self.parameters['composer']
-            for daughter_id in agents:
+            daughter_states = self.sim.state.divide_value()
+            daughter_ids = daughter_phylogeny_id(
+                self.parameters['agent_id'])
+            for daughter_id, inner_state in zip(
+                    daughter_ids, daughter_states):
                 tunnel_states = {}
                 for tunnel, (path, _) in self.tunnels_in.items():
-                    # TODO: Make this general somehow or use the
-                    # assumption of the (agents, id) structure
-                    # everywhere.
-                    if len(path) >= 2 and path[:2] == (
-                            'agents', self.parameters['agent_id']):
-                        path = ('agents', daughter_id) + path[2:]
-                    store = self.sim.state.get_path(path)
-                    tunnel_states[tunnel] = store.get_value()
+                    tunnel_states[tunnel] = get_in(inner_state, path)
                 for tunnel in self.tunnels_out.values():
                     store = self.sim.state.get_path((tunnel,))
                     tunnel_states[tunnel] = store.get_value()
                 composite = composer.generate({
                     'agent_id': daughter_id,
-                    'initial_cell_state': agents[daughter_id].get_value(
-                        condition=lambda x: not isinstance(
-                            x.value, Process)
-                    ),
+                    'initial_cell_state': inner_state,
                     'seed': self.random_state.randint(RAND_MAX),
                 })
                 daughter = {

@@ -4,6 +4,7 @@ import sys
 from vivarium.core.composer import Composer
 from vivarium.core.engine import Engine
 from vivarium.library.topology import get_in, assoc_path
+from vivarium.library.dict_utils import deep_merge_check
 
 from ecoli.experiments.ecoli_master_sim import (
     EcoliSim,
@@ -14,6 +15,7 @@ from ecoli.experiments.ecoli_master_sim import (
 from ecoli.library.sim_data import RAND_MAX
 from ecoli.processes.engine_process import EngineProcess
 from ecoli.processes.listeners.mass_listener import MassListener
+from ecoli.composites.environment.lattice import Lattice
 
 
 class EngineProcessCell(Composer):
@@ -25,6 +27,9 @@ class EngineProcessCell(Composer):
         'initial_tunnel_states': {},
         'parallel': False,
         'ecoli_sim_config': {},
+        'divide': False,
+        'division_threshold': 0,
+        'division_variable': tuple(),
     }
 
     def generate_processes(self, config):
@@ -33,16 +38,13 @@ class EngineProcessCell(Composer):
             **config['ecoli_sim_config'],
             'seed': config['seed'],
             'agent_id': agent_id,
+            'divide': False,  # Division is handled by EngineProcess.
+            'spatial_environment': False,
         })
         self.ecoli_sim.build_ecoli()
-        if config['initial_cell_state']:
-            initial_inner_state = {
-                'agents': {
-                    agent_id: config['initial_cell_state']
-                }
-            }
-        else:
-            initial_inner_state = self.ecoli_sim.initial_state
+        initial_inner_state = (
+            config['initial_cell_state']
+            or self.ecoli_sim.initial_state)
         cell_process = EngineProcess({
             'agent_id': agent_id,
             'composer': self,
@@ -50,7 +52,7 @@ class EngineProcessCell(Composer):
             'initial_inner_state': initial_inner_state,
             'tunnels_in': {
                 'mass_tunnel': (
-                    ('agents', agent_id, 'listeners', 'mass'),
+                    ('listeners', 'mass'),
                     MassListener({
                         'submass_indices': {
                             key: None
@@ -62,6 +64,9 @@ class EngineProcessCell(Composer):
                 ),
             },
             'seed': (config['seed'] + 1) % RAND_MAX,
+            'divide': config['divide'],
+            'division_threshold': config['division_threshold'],
+            'division_variable': config['division_variable'],
             '_parallel': config['parallel'],
         })
         return {
@@ -80,20 +85,17 @@ class EngineProcessCell(Composer):
         merged_config = copy.deepcopy(self.config)
         merged_config.update(config)
 
-        relative_mass_listener_path = ('listeners', 'mass')
-        absolute_mass_listener_path = (
-            'agents', merged_config['agent_id']
-        ) + relative_mass_listener_path
+        mass_listener_path = ('listeners', 'mass')
 
         mass_listener_state = merged_config['initial_tunnel_states'].get(
             'mass_tunnel',
             get_in(
                 self.ecoli_sim.initial_state,
-                absolute_mass_listener_path
+                mass_listener_path
             ),
         )
         initial_state = assoc_path(
-            {}, relative_mass_listener_path, mass_listener_state)
+            {}, mass_listener_path, mass_listener_state)
         return initial_state
 
 
@@ -104,8 +106,25 @@ def run_simulation():
         'agent_id': config['agent_id'],
         'parallel': config['parallel'],
         'ecoli_sim_config': config.to_dict(),
+        'divide': config['divide'],
+        'division_threshold': config['division']['threshold'],
+        'division_variable': ('listeners', 'mass', 'cell_mass'),
     })
     composite = composer.generate(path=('agents', config['agent_id']))
+    initial_state = {
+        'agents': {
+            config['agent_id']: composer.initial_state({}),
+        },
+    }
+
+    if config['spatial_environment']:
+        # Merge a lattice composite for the spatial environment.
+        environment_composer = Lattice(
+            config['spatial_environment_config'])
+        environment_composite = environment_composer.generate()
+        initial_environment = environment_composite.initial_state()
+        composite.merge(environment_composite)
+        initial_state = deep_merge_check(initial_state, initial_environment)
 
     metadata = config.to_dict()
     metadata.pop('initial_state', None)
@@ -118,17 +137,13 @@ def run_simulation():
     engine = Engine(
         processes=composite.processes,
         topology=composite.topology,
-        initial_state={
-            'agents': {
-                config['agent_id']: composer.initial_state({}),
-            },
-        },
+        initial_state=initial_state,
         emitter=emitter_config,
         progress_bar=config['progress_bar'],
         metadata=metadata,
         profile=config['profile'],
     )
-    engine.update(composer.ecoli_sim.total_time)
+    engine.update(config['total_time']),
     engine.end()
 
     if config['profile']:
