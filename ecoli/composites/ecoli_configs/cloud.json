@@ -1,4 +1,5 @@
 {
+    "merge_files": ["spatial.json"],
     "total_time": 8700,
     "divide": true,
     "emitter" : "database",
