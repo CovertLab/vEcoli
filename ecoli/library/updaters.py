@@ -32,7 +32,8 @@ arguments: the initial state and the final state. The function SHOULD
 not accept any other parameters. The function MUST return only the
 update needed to get from the initial state to the final state. The
 function SHOULD have a name that matches its associated updater
-function, only prefixed with ``inverse_``.
+function, only prefixed with ``inverse_``. Inverse updaters MUST return
+an empty dictionary only if the update can be ignored.
 '''
 
 import numpy as np
@@ -48,18 +49,18 @@ def inverse_update_set(initial_state, final_state):
 
 def inverse_update_null(initial_state, final_state):
     '''The null updater ignores the update.'''
-    return None
+    return {}
 
 
 def inverse_update_accumulate(initial_state, final_state):
     if np.all(initial_state == final_state):
-        return None
+        return {}
     return final_state - initial_state
 
 
 def inverse_update_nonnegative_accumulate(initial_state, final_state):
     if np.all(initial_state == final_state):
-        return None
+        return {}
     return final_state - initial_state
 
 
