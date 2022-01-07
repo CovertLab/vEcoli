@@ -158,9 +158,15 @@ class SimConfig:
             help="Agent ID."
         )
         self.parser.add_argument(
-            'sim_data_path', nargs="*", default=None,
+            '--sim_data_path', nargs="*", default=None,
             help="Path to the sim_data to use for this experiment."
         )
+        self.parser.add_argument(
+            '--parallel', action='store_true', default=None,
+            help='Run processes in parallel.')
+        self.parser.add_argument(
+            '--no_parallel', action='store_true', default=None,
+            help='Do not run processes in parallel.')
 
     def update_from_json(self, path):
         with open(path, 'r') as f:
@@ -181,8 +187,13 @@ class SimConfig:
         cli_config = {
             key: value
             for key, value in vars(args).items()
-            if value and key != 'config'
+            if value and key not in (
+                'config', 'parallel', 'no_parallel')
         }
+        if args.parallel:
+            cli_config['parallel'] = True
+        if args.no_parallel:
+            cli_config['parallel'] = False
         self._config.update(cli_config)
 
     def update_from_dict(self, dict_config):
