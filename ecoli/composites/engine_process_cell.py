@@ -25,6 +25,8 @@ class EngineProcessCell(Composer):
         'initial_cell_state': {},
         'seed': 0,
         'initial_tunnel_states': {},
+        'tunnel_out_schemas': {},
+        'tunnel_in_schemas': {},
         'parallel': False,
         'ecoli_sim_config': {},
         'divide': False,
@@ -62,7 +64,12 @@ class EngineProcessCell(Composer):
                         }
                     }).ports_schema()['listeners']['mass'],
                 ),
+                'boundary_tunnel': (
+                    ('boundary',),
+                    config['tunnel_in_schemas']['boundary_tunnel'],
+                ),
             },
+            'tunnel_out_schemas': config['tunnel_out_schemas'],
             'seed': (config['seed'] + 1) % RAND_MAX,
             'divide': config['divide'],
             'division_threshold': config['division_threshold'],
@@ -77,7 +84,10 @@ class EngineProcessCell(Composer):
         return {
             'cell_process': {
                 'mass_tunnel': ('listeners', 'mass'),
-                'agents': ('..',),
+                'agents': ('..', '..'),
+                'fields_tunnel': ('..', '..', 'fields'),
+                'boundary_tunnel': ('boundary',),
+                'dimensions_tunnel': ('..', '..', 'dimensions'),
             },
         }
 
@@ -102,6 +112,22 @@ class EngineProcessCell(Composer):
 def run_simulation():
     config = SimConfig()
     config.update_from_cli()
+
+    tunnel_out_schemas = {}
+    tunnel_in_schemas = {}
+    if config['spatial_environment']:
+        # Generate environment composite.
+        environment_composer = Lattice(
+            config['spatial_environment_config'])
+        environment_composite = environment_composer.generate()
+        diffusion_schema = environment_composite.processes[
+            'diffusion'].get_schema()
+        tunnel_out_schemas['fields_tunnel'] = diffusion_schema['fields']
+        tunnel_out_schemas['dimensions_tunnel'] = diffusion_schema[
+            'dimensions']
+        tunnel_in_schemas['boundary_tunnel'] = diffusion_schema[
+            'agents']['*']['boundary']
+
     composer = EngineProcessCell({
         'agent_id': config['agent_id'],
         'parallel': config['parallel'],
@@ -109,6 +135,7 @@ def run_simulation():
         'divide': config['divide'],
         'division_threshold': config['division']['threshold'],
         'division_variable': ('listeners', 'mass', 'cell_mass'),
+        'tunnel_in_schemas': tunnel_in_schemas,
     })
     composite = composer.generate(path=('agents', config['agent_id']))
     initial_state = {
@@ -119,9 +146,6 @@ def run_simulation():
 
     if config['spatial_environment']:
         # Merge a lattice composite for the spatial environment.
-        environment_composer = Lattice(
-            config['spatial_environment_config'])
-        environment_composite = environment_composer.generate()
         initial_environment = environment_composite.initial_state()
         composite.merge(environment_composite)
         initial_state = deep_merge_check(initial_state, initial_environment)
