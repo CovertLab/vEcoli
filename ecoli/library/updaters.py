@@ -51,10 +51,14 @@ def inverse_update_null(initial_state, final_state):
 
 
 def inverse_update_accumulate(initial_state, final_state):
+    if initial_state == final_state:
+        return None
     return final_state - initial_state
 
 
 def inverse_update_nonnegative_accumulate(initial_state, final_state):
+    if initial_state == final_state:
+        return None
     return final_state - initial_state
 
 
