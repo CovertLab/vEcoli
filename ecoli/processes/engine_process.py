@@ -112,8 +112,10 @@ def cap_tunneling_paths(topology, outer=tuple()):
 class EngineProcess(Process):
     defaults = {
         'composite': {},
-        # Map from tunnel name to (path to internal store, schema)
+        # Map from tunnel name to (path to internal store, schema).
         'tunnels_in': {},
+        # Map from tunnel name to schema. Schemas are optional.
+        'tunnel_out_schemas': {},
         'initial_inner_state': {},
         'agent_id': '0',
         'composer': None,
@@ -148,7 +150,6 @@ class EngineProcess(Process):
     def ports_schema(self):
         schema = {
             'agents': {},
-            'division_variable': {},
         }
         for port_path, tunnel in self.tunnels_out.items():
             process_path = port_path[:-1]
@@ -160,6 +161,9 @@ class EngineProcess(Process):
             tunnel_schema = process.get_schema()[port]
             schema[tunnel] = copy.deepcopy(tunnel_schema)
         for tunnel, (_, tunnel_schema) in self.tunnels_in.items():
+            schema[tunnel] = tunnel_schema
+        for tunnel, tunnel_schema in self.parameters[
+                'tunnel_out_schemas'].items():
             schema[tunnel] = tunnel_schema
         return schema
 
@@ -261,7 +265,7 @@ def _inverse_update(initial_state, final_state, store):
         # TODO: What if key is missing from initial or final?
         sub_update = _inverse_update(
             initial_state[key], final_state[key], store.inner[key])
-        if sub_update != {}:
+        if not (isinstance(sub_update, dict) and sub_update == {}):
             update[key] = sub_update
     return update
 
