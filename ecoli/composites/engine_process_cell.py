@@ -84,7 +84,7 @@ class EngineProcessCell(Composer):
         return {
             'cell_process': {
                 'mass_tunnel': ('listeners', 'mass'),
-                'agents': ('..', '..'),
+                'agents': ('..',),
                 'fields_tunnel': ('..', '..', 'fields'),
                 'boundary_tunnel': ('boundary',),
                 'dimensions_tunnel': ('..', '..', 'dimensions'),
