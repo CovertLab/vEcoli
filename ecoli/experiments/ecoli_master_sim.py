@@ -32,8 +32,8 @@ from ecoli.composites.ecoli_configs import CONFIG_DIR_PATH
 
 def _merge_files(config):
     """merge specified files for any attributes not supplied"""
-    merge_files = config.get('merge_files', [])
-    for merge_filename in merge_files:
+    inherit_from = config.get('inherit_from', [])
+    for merge_filename in inherit_from:
         with open(CONFIG_DIR_PATH + merge_filename) as merge_file:
             merge_config = json.load(merge_file)
 
@@ -96,6 +96,7 @@ class EcoliSim:
             ecoli_config = json.load(config_file)
 
         # merge specified files for any attributes not supplied
+        # this uses the `inherit_from` keyword arg.
         ecoli_config = _merge_files(ecoli_config)
 
         # merge the default file for any attributes not supplied

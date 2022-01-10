@@ -21,6 +21,7 @@ from ecoli.processes.chromosome_structure import ChromosomeStructure
 from ecoli.processes.allocator import Allocator
 from ecoli.processes.environment.lysis import Lysis
 from ecoli.processes.environment.local_field import LocalField
+from ecoli.processes.shape import Shape
 from vivarium.processes.timeline import TimelineProcess
 
 
@@ -45,6 +46,7 @@ process_registry.register(mRNACounts.name, mRNACounts)
 process_registry.register(MonomerCounts.name, MonomerCounts)
 process_registry.register(ChromosomeStructure.name, ChromosomeStructure)
 process_registry.register(Allocator.name, Allocator)
+process_registry.register(Shape.name, Shape)
 
 # environment processes
 process_registry.register(Lysis.name, Lysis)
