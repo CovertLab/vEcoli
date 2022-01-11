@@ -63,7 +63,7 @@ class Shape(Deriver):
 
     Arguments:
         parameters (dict): A dictionary that can contain the
-            follwing configuration options:
+            following configuration options:
 
             * **width** (:py:class:`float`): Initial width of the cell in
               microns
@@ -118,6 +118,8 @@ class Shape(Deriver):
 
         length = length_from_volume(volume.magnitude, width)
         surface_area = surface_area_from_length(length, width)
+
+        # import ipdb; ipdb.set_trace()
 
         return {
             'global': {
