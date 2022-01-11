@@ -1,3 +1,11 @@
+'''Composite for simulations with EngineProcess cells in an environment.
+
+.. note::
+
+    This composite requires a config with the spatial environment
+    enabled.
+'''
+
 import copy
 import sys
 
@@ -12,9 +20,11 @@ from ecoli.experiments.ecoli_master_sim import (
     get_git_revision_hash,
     get_git_status,
 )
+from ecoli.library.schema import bulk_schema
 from ecoli.library.sim_data import RAND_MAX
 from ecoli.processes.engine_process import EngineProcess
 from ecoli.processes.listeners.mass_listener import MassListener
+from ecoli.processes.shape import Shape
 from ecoli.composites.environment.lattice import Lattice
 
 
@@ -32,6 +42,7 @@ class EngineProcessCell(Composer):
         'divide': False,
         'division_threshold': 0,
         'division_variable': tuple(),
+        'bulk_reports': ['EG10040-MONOMER[p]', 'TRANS-CPLX-201[m]'],
     }
 
     def generate_processes(self, config):
@@ -47,7 +58,10 @@ class EngineProcessCell(Composer):
         initial_inner_state = (
             config['initial_cell_state']
             or self.ecoli_sim.initial_state)
-        cell_process = EngineProcess({
+
+        bulk_schemas = bulk_schema(config['bulk_reports'])
+
+        cell_process_config = {
             'agent_id': agent_id,
             'composer': self,
             'composite': self.ecoli_sim.ecoli,
@@ -75,13 +89,17 @@ class EngineProcessCell(Composer):
             'division_threshold': config['division_threshold'],
             'division_variable': config['division_variable'],
             '_parallel': config['parallel'],
-        })
+        }
+        for mol in config['bulk_reports']:
+            cell_process_config['tunnels_in'][f'{mol}_tunnel'] = (
+                ('bulk', mol), bulk_schemas[mol])
+        cell_process = EngineProcess(cell_process_config)
         return {
             'cell_process': cell_process,
         }
 
     def generate_topology(self, config):
-        return {
+        topology = {
             'cell_process': {
                 'mass_tunnel': ('listeners', 'mass'),
                 'agents': ('..',),
@@ -90,6 +108,9 @@ class EngineProcessCell(Composer):
                 'dimensions_tunnel': ('..', '..', 'dimensions'),
             },
         }
+        for mol in config['bulk_reports']:
+            topology['cell_process'][f'{mol}_tunnel'] = ('bulk', mol)
+        return topology
 
     def initial_state(self, config):
         merged_config = copy.deepcopy(self.config)
@@ -114,7 +135,9 @@ def run_simulation():
     config.update_from_cli()
 
     tunnel_out_schemas = {}
-    tunnel_in_schemas = {}
+    tunnel_in_schemas = {
+        'boundary_tunnel': Shape().ports_schema()['global'],
+    }
     if config['spatial_environment']:
         # Generate environment composite.
         environment_composer = Lattice(
@@ -125,8 +148,8 @@ def run_simulation():
         tunnel_out_schemas['fields_tunnel'] = diffusion_schema['fields']
         tunnel_out_schemas['dimensions_tunnel'] = diffusion_schema[
             'dimensions']
-        tunnel_in_schemas['boundary_tunnel'] = diffusion_schema[
-            'agents']['*']['boundary']
+        tunnel_in_schemas['boundary_tunnel'].update(diffusion_schema[
+            'agents']['*']['boundary'])
 
     composer = EngineProcessCell({
         'agent_id': config['agent_id'],
