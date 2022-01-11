@@ -1,5 +1,5 @@
 {
-    "merge_files": ["spatial.json"],
+    "inherit_from": ["spatial.json"],
     "total_time": 8700,
     "divide": true,
     "emitter" : "database",
