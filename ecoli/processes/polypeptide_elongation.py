@@ -131,11 +131,6 @@ class PolypeptideElongation(PartitionedProcess):
         'aa_supply_scaling': lambda aa_conc, aa_in_media: 0,
         'seed': 0,
         'submass_indexes': MASSDIFFS,
-        'partitioning_hidden_state_instance_variables': [
-            'ribosomeElongationRate',
-            'elongation_rates',
-            'random_state',
-        ],
     }
 
     def __init__(self, parameters=None):
