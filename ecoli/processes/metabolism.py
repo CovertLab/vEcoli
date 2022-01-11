@@ -28,6 +28,7 @@ from wholecell.utils.modular_fba import FluxBalanceAnalysis
 from six.moves import zip
 
 from ecoli.processes.registries import topology_registry
+from ecoli.library.convert_update import convert_numpy_to_builtins
 
 
 # Register default topology for this process, associating it with process name
@@ -338,7 +339,7 @@ class Metabolism(Step):
                     'targetFluxesUpper': upper_targets / timestep,
                     'targetFluxesLower': lower_targets / timestep}}}
 
-        return update
+        return convert_numpy_to_builtins(update)
 
     def update_amino_acid_targets(self, counts_to_molar, count_diff, amino_acid_counts):
         """

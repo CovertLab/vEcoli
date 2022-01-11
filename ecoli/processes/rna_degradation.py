@@ -107,12 +107,6 @@ class RnaDegradation(PartitionedProcess):
         'ribosome30S': 'ribosome30S',
         'ribosome50S': 'ribosome50S',
         'seed': 0,
-        'partitioning_hidden_state_instance_variables': [
-            'random_state',
-            'n_unique_RNAs_to_deactivate',
-            'unique_mRNAs_to_degrade',
-            'n_unique_RNAs_to_degrade',
-        ],
     }
 
     def __init__(self, parameters=None):

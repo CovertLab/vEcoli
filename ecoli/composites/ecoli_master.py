@@ -17,7 +17,7 @@ from vivarium.core.control import run_library_cli
 from vivarium.core.engine import Engine
 
 # sim data
-from ecoli.library.sim_data import LoadSimData
+from ecoli.library.sim_data import LoadSimData, RAND_MAX
 
 # logging
 from ecoli.library.logging import make_logging_process
@@ -38,7 +38,6 @@ from ecoli.states.wcecoli_state import get_state_from_file
 from ecoli.library.schema import get_domain_index_to_daughter
 from migration.migration_utils import scalar_almost_equal
 
-RAND_MAX = 2**31
 SIM_DATA_PATH = 'reconstruction/sim_data/kb/simData.cPickle'
 
 MINIMAL_MEDIA_ID = 'minimal'
@@ -52,8 +51,6 @@ class Ecoli(Composer):
 
     defaults = {
         'time_step': 2.0,
-        'parallel': False,
-        'parallel_allocator': False,
         'seed': 0,
         'sim_data_path': SIM_DATA_PATH,
         'daughter_path': tuple(),
@@ -95,8 +92,8 @@ class Ecoli(Composer):
         return embedded_state
 
     def _generate_processes_and_steps(self, config):
+        config = deepcopy(config)
         time_step = config['time_step']
-        parallel = config['parallel']
 
         process_order = list(config['processes'].keys())
 
@@ -120,7 +117,9 @@ class Ecoli(Composer):
                     deepcopy(default), process_configs[process])
 
                 if 'seed' in process_configs[process]:
-                    process_configs[process]['seed'] = process_configs[process]['seed'] + config['seed']
+                    process_configs[process]['seed'] = (
+                        process_configs[process]['seed'] +
+                        config['seed']) % RAND_MAX
 
         # make the processes
         processes = {
@@ -134,7 +133,6 @@ class Ecoli(Composer):
         process_configs['allocator'] = self.load_sim_data.get_allocator_config(
             process_names=[p for p in config['processes'].keys()
                            if not processes[p].is_deriver()],
-            parallel=config['parallel_allocator'],
         )
 
         config['processes']['allocator'] = Allocator
@@ -187,7 +185,9 @@ class Ecoli(Composer):
             division_config = dict(
                 config['division'],
                 agent_id=config['agent_id'],
-                composer=self)
+                composer=self,
+                seed=self.load_sim_data.random_state.randint(RAND_MAX),
+            )
             division_process = {division_name: Division(division_config)}
             processes.update(division_process)
             process_order.append(division_name)
@@ -271,10 +271,6 @@ class Ecoli(Composer):
                 topology[f'{process_id}_evolver']['allocate'] = {
                     '_path': ('allocate', process_id,),
                     **bulk_topo}
-                topology[f'{process_id}_requester']['hidden_state'] = (
-                    'hidden_state',)
-                topology[f'{process_id}_evolver']['hidden_state'] = (
-                    'hidden_state',)
 
             # make the non-partitioned processes' topologies
             else:
@@ -330,7 +326,7 @@ def run_ecoli(
 @pytest.mark.slow
 def test_division(
         agent_id='1',
-        total_time=60
+        total_time=60,
 ):
     """tests that a cell can be divided and keep running"""
 
@@ -420,6 +416,12 @@ def test_division(
                 len(daughter_states[0]['unique'][key]) +
                 len(daughter_states[1]['unique'][key]),
                 custom_threshold=0.1))
+
+    # Assert that no RNA is in both daughters.
+    daughter1_rnas = daughter_states[0]['unique']['RNA'].keys()
+    daughter2_rnas = daughter_states[1]['unique']['RNA'].keys()
+    mother_rnas = mother_state['unique']['RNA'].keys()
+    assert not daughter1_rnas & daughter2_rnas
 
     # asserts
     final_agents = output[total_time]['agents'].keys()

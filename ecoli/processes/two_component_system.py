@@ -44,17 +44,11 @@ class TwoComponentSystem(PartitionedProcess):
             [], []),
         'moleculeNames': [],
         'seed': 0,
-        'partitioning_hidden_state_instance_variables': [
-            'random_state',
-            'molecules_required',
-            'all_molecule_changes',
-            'cellVolume',
-        ],
     }
 
     # Constructor
-    def __init__(self, initial_parameters):
-        super().__init__(initial_parameters)
+    def __init__(self, parameters):
+        super().__init__(parameters)
 
         # Simulation options
         self.jit = self.parameters['jit']
