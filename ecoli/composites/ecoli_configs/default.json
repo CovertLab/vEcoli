@@ -6,6 +6,8 @@
     "progress_bar" : true,
     "sim_data_path": "reconstruction/sim_data/kb/simData.cPickle",
     "emitter" : "timeseries",
+    "emitter_arg": [
+    ],
     "emit_topology" : true,
     "emit_processes" : false,
     "emit_config" : false,
@@ -35,6 +37,7 @@
     "add_processes" : [],
     "exclude_processes" : [],
     "swap_processes" : {},
+    "profile": false,
     "processes": [
         "ecoli-chromosome-structure",
         "ecoli-metabolism",
@@ -54,5 +57,6 @@
         "monomer_counts_listener"
     ],
     "process_configs": {},
-    "topology": {}
+    "topology": {},
+    "_schema": {}
 }

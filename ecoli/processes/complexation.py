@@ -51,9 +51,6 @@ class Complexation(PartitionedProcess):
         'molecule_names': [],
         'seed': 0,
         'numReactions': 0,
-        'partitioning_hidden_state_instance_variables': [
-            'system',
-        ],
     }
 
     def __init__(self, parameters=None):

@@ -57,7 +57,7 @@ def run_ecoli_process(
     experiment = Engine(**experiment_config)
 
     # Get update from process.
-    path, process = list(experiment.process_paths.items())[0]
+    path = (process.name,)
     store = experiment.state.get_path(path)
 
     # translate the values from the tree structure into the form
@@ -102,9 +102,9 @@ def array_diffs_report(a, b, names=None, sort_by="absolute", sort_with=np.abs):
         raise ValueError(f"Length of names does not match length of a ({len(names)} != {len(a)})")
 
     diffs = np.abs(a - b)
-    r_diffs = diffs / np.maximum(np.abs(a), np.abs(b))    
+    r_diffs = diffs / np.maximum(np.abs(a), np.abs(b))
     r_diffs[np.isnan(r_diffs)] = 0
-        
+
     if sort_by is not None:
         if sort_by == "absolute":
             order = np.argsort(-sort_with(diffs))
