@@ -233,18 +233,24 @@ class EngineProcess(Process):
         update = {}
         for tunnel, (path, _) in self.tunnels_in.items():
             store = self.sim.state.get_path(path)
-            update[tunnel] = _inverse_update(
+            inverted_update = _inverse_update(
                 states[tunnel],
                 store.get_value(),
                 store,
             )
+            if not (isinstance(inverted_update, dict)
+                    and inverted_update == {}):
+                update[tunnel] = inverted_update
         for tunnel in self.tunnels_out.values():
             store = self.sim.state.get_path((tunnel,))
-            update[tunnel] = _inverse_update(
+            inverted_update = _inverse_update(
                 states[tunnel],
                 store.get_value(),
                 store,
             )
+            if not (isinstance(inverted_update, dict)
+                    and inverted_update == {}):
+                update[tunnel] = inverted_update
         return update
 
 
