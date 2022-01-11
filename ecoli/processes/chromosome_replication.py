@@ -75,13 +75,6 @@ class ChromosomeReplication(PartitionedProcess):
         'seed': 0,
 
         'submass_indexes': MASSDIFFS,
-
-        'partitioning_hidden_state_instance_variables': [
-            'criticalInitiationMass',
-            'criticalMassPerOriC',
-            'elongation_rates',
-            'random_state',
-        ],
     }
 
     def __init__(self, parameters=None):
