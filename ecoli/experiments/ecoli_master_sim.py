@@ -44,6 +44,19 @@ def _merge_files(config):
     return config
 
 
+def _tuplify_topology(topology):
+    """transform an embedded topology with list paths to tuple paths"""
+    tuplified_topology = {}
+    for k, v in topology.items():
+        if isinstance(v, dict):
+            tuplified_topology[k] = _tuplify_topology(v)
+        elif isinstance(v, str):
+            tuplified_topology[k] = (v,)
+        else:
+            tuplified_topology[k] = tuple(v)
+    return tuplified_topology
+
+
 class EcoliSim:
     def __init__(self, config):
         # Do some datatype pre-processesing
@@ -219,8 +232,8 @@ class EcoliSim:
 
             # Allow the user to override default topology
             if original_process in topology.keys():
-                deep_merge(process_topology, {k: tuple(v)
-                           for k, v in topology[original_process].items()})
+                deep_merge(process_topology, _tuplify_topology(
+                    topology[original_process]))
 
             # For swapped processes, do additional overrides if they are provided
             if process != original_process and process in topology.keys():

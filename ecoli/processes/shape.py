@@ -10,8 +10,7 @@ These variables are required to plug into a `Lattice Environment
 
 import math
 
-from vivarium.core.process import Deriver
-from vivarium.library.units import units
+from vivarium.core.process import Step
 
 PI = math.pi
 
@@ -52,8 +51,8 @@ def surface_area_from_length(length, width):
     return surface_area
 
 
-class Shape(Deriver):
-    """ Shape Deriver 
+class Shape(Step):
+    """ Shape Step
     
     Derives cell length and surface area from width and volume.
 
@@ -71,7 +70,7 @@ class Shape(Deriver):
 
     name = 'ecoli-shape'
     defaults = {
-        'width': 1,  # um
+        'width': 1.0,  # um
     }
 
     def __init__(self, parameters=None):
@@ -79,13 +78,16 @@ class Shape(Deriver):
 
     def ports_schema(self):
         """ includes **global** port """
-        default_state = {
-            'global': {
-                'volume': 0.0 * units.fL,
-                'width': self.parameters['width'],
-                'length': 0.0,
-                'surface_area': 0.0,
-            }
+        default_width = self.parameters['width']
+        default_volume = 1.0  # fL
+        default_length = length_from_volume(default_volume, default_width)
+        default_surface_area = surface_area_from_length(default_length, default_width)
+
+        default_global = {
+            'volume': default_volume,
+            'width': default_width,
+            'length': default_length,
+            'surface_area': default_surface_area,
         }
 
         schema = {
@@ -96,9 +98,9 @@ class Shape(Deriver):
                     '_divider': (
                         'set' if variable == 'width' else 'split'
                     ),
-                    '_default': default_state['global'][variable]
+                    '_default': default_global[variable]
                 }
-                for variable in default_state['global']
+                for variable in default_global
             }
         }
         return schema
@@ -114,12 +116,11 @@ class Shape(Deriver):
         * ['global']['surface_area']
         """
         width = states['global']['width']
-        volume = states['global']['volume']
+        volume = states['global']['volume']  # volume in fL
 
-        length = length_from_volume(volume.magnitude, width)
+        # calculate length and surface area
+        length = length_from_volume(volume, width)
         surface_area = surface_area_from_length(length, width)
-
-        # import ipdb; ipdb.set_trace()
 
         return {
             'global': {
