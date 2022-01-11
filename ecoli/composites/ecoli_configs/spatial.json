@@ -14,21 +14,31 @@
           "gradient": {
               "type": "uniform",
               "molecules": {
-                  "glc": 1.0
+                  "GLC[p]": 1.0
               }
           }
       }
   },
-  "add_processes": ["local_field"],
+  "add_processes": [
+    "local_field",
+    "ecoli-shape"
+  ],
   "topology": {
     "local_field": {
       "exchanges": ["environment", "exchange"],
-      "location": ["boundary","location"],
-      "fields": ["..","..","fields"],
-      "dimensions": ["..","..","dimensions"]
+      "location": ["boundary", "location"],
+      "fields": ["..", "..", "fields"],
+      "dimensions": ["..", "..", "dimensions"]
+    },
+    "ecoli-shape": {
+      "global": {
+        "_path": "boundary",
+        "volume": ["..", "listeners", "mass", "volume"]
+      }
     }
   },
-  "process_configs" :{
-    "local_field": {}
+  "process_configs": {
+    "local_field": {},
+    "ecoli-shape": {}
   }
 }

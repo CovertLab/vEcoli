@@ -1,5 +1,5 @@
 {
-  "merge_files": ["spatial.json"],
+  "inherit_from": ["spatial.json"],
   "agent_id": "0",
   "spatial_environment_config": {
     "diffusion": {
