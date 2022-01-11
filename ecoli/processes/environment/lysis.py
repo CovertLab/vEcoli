@@ -12,8 +12,6 @@ from vivarium.core.process import Step, Process
 from vivarium.core.composer import Composer
 from vivarium.core.engine import Engine, pf
 from vivarium.library.units import units, remove_units
-# from ecoli.composites.environment.lattice import Lattice
-import ecoli.composites.environment.lattice
 from ecoli.processes.environment.multibody_physics import PI
 from ecoli.processes.environment.local_field import LocalField
 from ecoli.library.lattice_utils import (
@@ -292,8 +290,9 @@ def test_lysis(
         n_bins=[5, 5],
         uptake_rate_max=25
 ):
+    from ecoli.composites.environment.lattice import Lattice
 
-    lattice_composer = ecoli.composites.environment.lattice.Lattice({
+    lattice_composer = Lattice({
         'diffusion': {
             'molecules': [molecule_name],
             'bounds': bounds,

@@ -19,7 +19,7 @@ from datetime import datetime
 from typing import Optional, Dict, Any
 
 from vivarium.core.engine import Engine
-from vivarium.library.dict_utils import deep_merge
+from vivarium.library.dict_utils import deep_merge, deep_merge_combine_lists
 from ecoli.library.logging import write_json
 from ecoli.composites.ecoli_nonpartition import SIM_DATA_PATH
 # Two different Ecoli composers depending on partitioning
@@ -32,6 +32,19 @@ from ecoli.processes import process_registry
 from ecoli.processes.registries import topology_registry
 
 from ecoli.composites.ecoli_configs import CONFIG_DIR_PATH
+
+
+def _tuplify_topology(topology):
+    """transform an embedded topology with list paths to tuple paths"""
+    tuplified_topology = {}
+    for k, v in topology.items():
+        if isinstance(v, dict):
+            tuplified_topology[k] = _tuplify_topology(v)
+        elif isinstance(v, str):
+            tuplified_topology[k] = (v,)
+        else:
+            tuplified_topology[k] = tuple(v)
+    return tuplified_topology
 
 
 def get_git_revision_hash():
@@ -171,7 +184,7 @@ class SimConfig:
     def update_from_json(self, path):
         with open(path, 'r') as f:
             new_config = json.load(f)
-        for config_name in new_config.get('merge_files', []):
+        for config_name in new_config.get('inherit_from', []):
             config_path = os.path.join(CONFIG_DIR_PATH, config_name)
             self.update_from_json(config_path)
         self._config.update(new_config)
@@ -260,7 +273,6 @@ class EcoliSim:
         if self.generations:
             warnings.warn("generations option is not yet implemented!")
 
-
     @staticmethod
     def from_file(filepath=CONFIG_DIR_PATH + 'default.json'):
         config = SimConfig()
@@ -321,8 +333,8 @@ class EcoliSim:
 
             # Allow the user to override default topology
             if original_process in topology.keys():
-                deep_merge(process_topology, {k: tuple(v)
-                           for k, v in topology[original_process].items()})
+                deep_merge(process_topology, _tuplify_topology(
+                    topology[original_process]))
 
             # For swapped processes, do additional overrides if they are provided
             if process != original_process and process in topology.keys():
@@ -351,7 +363,6 @@ class EcoliSim:
 
             if result[process] == None:
                 result[process] = "sim_data"
-
         return result
 
     def build_ecoli(self):
@@ -507,7 +518,6 @@ class EcoliSim:
         Combine settings from this EcoliSim with another, overriding
         current settings with those from the other EcoliSim.
         """
-
         deep_merge(self.config, other.config)
 
 
