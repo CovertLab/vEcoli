@@ -15,7 +15,7 @@ from copy import deepcopy
 from datetime import datetime
 
 from vivarium.core.engine import Engine
-from vivarium.library.dict_utils import deep_merge
+from vivarium.library.dict_utils import deep_merge, deep_merge_combine_lists
 from ecoli.library.logging import write_json
 from ecoli.composites.ecoli_nonpartition import SIM_DATA_PATH
 # Two different Ecoli composers depending on partitioning
@@ -32,14 +32,15 @@ from ecoli.composites.ecoli_configs import CONFIG_DIR_PATH
 
 def _merge_files(config):
     """merge specified files for any attributes not supplied"""
-    inherit_from = config.get('inherit_from', [])
+    inherit_from = config.get('inherit_from') or []
     for merge_filename in inherit_from:
         with open(CONFIG_DIR_PATH + merge_filename) as merge_file:
             merge_config = json.load(merge_file)
 
         # recursive merge of files specified by merge_file
         merge_config = _merge_files(merge_config)
-        config = deep_merge(copy.deepcopy(merge_config), config)
+        config = deep_merge_combine_lists(
+            copy.deepcopy(merge_config), config)
     return config
 
 
@@ -103,7 +104,8 @@ class EcoliSim:
         if merge_default:
             with open(CONFIG_DIR_PATH + 'default.json') as default_file:
                 default_config = json.load(default_file)
-            ecoli_config = deep_merge(copy.deepcopy(default_config), ecoli_config)
+            ecoli_config = deep_merge_combine_lists(
+                copy.deepcopy(default_config), ecoli_config)
 
         return EcoliSim(ecoli_config)
 
@@ -247,7 +249,6 @@ class EcoliSim:
 
             if result[process] == None:
                 result[process] = "sim_data"
-
         return result
 
     def build_ecoli(self):
@@ -398,7 +399,6 @@ class EcoliSim:
         Combine settings from this EcoliSim with another, overriding
         current settings with those from the other EcoliSim.
         """
-
         deep_merge(self.config, other.config)
 
 
