@@ -29,10 +29,10 @@ class FickianDiffusion(Process):
                 'antibiotic': 1e-3,  # mM
             },
             'mass_global': {
-                'dry_mass': 300 * units.fg,
+                'dry_mass': 300,  # fg
             },
             'volume_global': {
-                'volume': 1.2 * units.fL,
+                'volume': 1.2,  # fL
             },
         },
         'default_default': 0,
@@ -79,7 +79,8 @@ class FickianDiffusion(Process):
             },
             'volume_global': {
                 'volume': {
-                    '_default': self.parameters['default_default'],
+                    '_default': (
+                        self.parameters['default_default'] * units.fL),
                     '_divider': 'split',
                 },
             },
@@ -94,6 +95,12 @@ class FickianDiffusion(Process):
 
         for port, port_conf in self.parameters['initial_state'].items():
             for variable, default in port_conf.items():
+                if variable == 'dry_mass' and not isinstance(
+                        default, Quantity):
+                    default = default * units.fg
+                if variable == 'volume' and not isinstance(
+                        default, Quantity):
+                    default = default * units.fL
                 if variable in schema[port]:
                     schema[port][variable]['_default'] = default
 
@@ -125,15 +132,28 @@ class FickianDiffusion(Process):
                 'volume': parameters['default_default'],
             },
             'mass_global': {
-                'dry_mass': parameters['default_default'] * units.fg,
+                'dry_mass': parameters['default_default'],
             },
         }
-        initial_state.update(parameters['initial_state'])
+        # Apply initial states from parameters. Note that we don't just
+        # use deep_merge because we want to preserve the shape of
+        # initial_state.
+        for port, port_state in initial_state.items():
+            for variable, value, in port_state.items():
+                port_state[variable] = parameters[
+                    'initial_state'].get(port, {}).get(
+                    variable, value)
+        initial_state['volume_global']['volume'] *= units.fL
+        initial_state['mass_global']['dry_mass'] *= units.fg
         return initial_state
 
     def next_update(self, timestep, states):
         permeability = self.parameters['permeability']
+        if not isinstance(permeability, Quantity):
+            permeability *= units.cm / units.sec
         area_mass = self.parameters['surface_area_mass_ratio']
+        if not isinstance(area_mass, Quantity):
+            area_mass *= units.cm**2 / units.mg
         mass = states['mass_global']['dry_mass']
         flux_mmol = {}
         for molecule in self.parameters['molecules_to_diffuse']:
@@ -150,10 +170,8 @@ class FickianDiffusion(Process):
             molecule: flux * AVOGADRO
             for molecule, flux in flux_mmol.items()
         }
-        if not isinstance(states['volume_global']['volume'], Quantity):
-            volume = states['volume_global']['volume'] * units.fL
-        else:
-            volume = states['volume_global']['volume']
+        volume = states['volume_global']['volume']
+        assert isinstance(volume, Quantity)
         update = {
             'fluxes': {
                 molecule: mol_flux.to(units.count).magnitude

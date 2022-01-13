@@ -3,7 +3,7 @@ import copy
 from matplotlib import pyplot as plt
 import numpy as np
 
-from vivarium.library.units import units
+from vivarium.library.units import units, Quantity
 from vivarium.library.dict_utils import deep_merge, deep_merge_check
 from vivarium.core.composition import simulate_process
 from vivarium.plots.simulation_output import plot_variables
@@ -14,11 +14,11 @@ class AntibioticHydrolysis(ConvenienceKinetics):
 
     name = 'antibiotic_hydrolysis'
     defaults = {
-        'kcat': 1 / units.sec,
-        'Km': 1e-3 * units.mmol / units.L,
+        'kcat': 1,  # 1/sec
+        'Km': 1e-3,  # mM
         'target': 'antibiotic',
-        'initial_target_internal': 1e-3,
-        'initial_hydrolyzed_internal': 0,
+        'initial_target_internal': 1e-3,  # mM
+        'initial_hydrolyzed_internal': 0,  # mM
         'catalyst': 'catalyst',
         'initial_catalyst': 1e-3,  # mM
         'time_step': 1,
@@ -28,12 +28,15 @@ class AntibioticHydrolysis(ConvenienceKinetics):
         initial_parameters = initial_parameters or {}
         super_defaults = super().defaults
         deep_merge_check(self.defaults, super_defaults)
-        self.defaults.update(super_defaults)
         parameters = copy.deepcopy(self.defaults)
         deep_merge(parameters, initial_parameters)
 
-        kcat = parameters['kcat'].to(1 / units.sec).magnitude
-        km = parameters['Km'].to(units.mmol / units.L).magnitude
+        kcat = parameters['kcat']
+        if isinstance(kcat, Quantity):
+            kcat = kcat.to(1 / units.sec).magnitude
+        km = parameters['Km']
+        if isinstance(km, Quantity):
+            km = km.to(units.mmol / units.L).magnitude
         hydrolyzed_key = f'{parameters["target"]}_hydrolyzed'
 
         kinetics_parameters = {

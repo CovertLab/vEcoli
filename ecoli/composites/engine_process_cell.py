@@ -24,6 +24,8 @@ from ecoli.library.schema import bulk_schema
 from ecoli.library.sim_data import RAND_MAX
 from ecoli.processes.engine_process import EngineProcess
 from ecoli.processes.listeners.mass_listener import MassListener
+from ecoli.processes.antibiotics.fickian_diffusion import (
+    FickianDiffusion)
 from ecoli.processes.shape import Shape
 from ecoli.composites.environment.lattice import Lattice
 
@@ -36,13 +38,18 @@ class EngineProcessCell(Composer):
         'seed': 0,
         'initial_tunnel_states': {},
         'tunnel_out_schemas': {},
-        'tunnel_in_schemas': {},
         'parallel': False,
         'ecoli_sim_config': {},
         'divide': False,
         'division_threshold': 0,
         'division_variable': tuple(),
-        'bulk_reports': ['EG10040-MONOMER[p]', 'TRANS-CPLX-201[m]'],
+        'reports': [
+            ('bulk', 'EG10040-MONOMER[p]'),
+            ('bulk', 'TRANS-CPLX-201[m]'),
+            ('periplasm', 'concentrations', 'nitrocefin'),
+            ('periplasm', 'concentrations', 'EG10040-MONOMER[p]'),
+            ('periplasm', 'concentrations', 'TRANS-CPLX-201[m]'),
+        ],
     }
 
     def generate_processes(self, config):
@@ -59,29 +66,14 @@ class EngineProcessCell(Composer):
             config['initial_cell_state']
             or self.ecoli_sim.initial_state)
 
-        bulk_schemas = bulk_schema(config['bulk_reports'])
-
         cell_process_config = {
             'agent_id': agent_id,
             'composer': self,
             'composite': self.ecoli_sim.ecoli,
             'initial_inner_state': initial_inner_state,
             'tunnels_in': {
-                'mass_tunnel': (
-                    ('listeners', 'mass'),
-                    MassListener({
-                        'submass_indices': {
-                            key: None
-                            for key in [
-                                'rna', 'rRna', 'tRna', 'mRna', 'dna',
-                                'protein', 'smallMolecule']
-                        }
-                    }).ports_schema()['listeners']['mass'],
-                ),
-                'boundary_tunnel': (
-                    ('boundary',),
-                    config['tunnel_in_schemas']['boundary_tunnel'],
-                ),
+                'mass_tunnel': ('listeners', 'mass'),
+                'boundary_tunnel': ('boundary',),
             },
             'tunnel_out_schemas': config['tunnel_out_schemas'],
             'seed': (config['seed'] + 1) % RAND_MAX,
@@ -90,9 +82,9 @@ class EngineProcessCell(Composer):
             'division_variable': config['division_variable'],
             '_parallel': config['parallel'],
         }
-        for mol in config['bulk_reports']:
-            cell_process_config['tunnels_in'][f'{mol}_tunnel'] = (
-                ('bulk', mol), bulk_schemas[mol])
+        for path in config['reports']:
+            cell_process_config['tunnels_in'][
+                f'{"-".join(path)}_tunnel'] = path
         cell_process = EngineProcess(cell_process_config)
         return {
             'cell_process': cell_process,
@@ -108,8 +100,8 @@ class EngineProcessCell(Composer):
                 'dimensions_tunnel': ('..', '..', 'dimensions'),
             },
         }
-        for mol in config['bulk_reports']:
-            topology['cell_process'][f'{mol}_tunnel'] = ('bulk', mol)
+        for path in config['reports']:
+            topology['cell_process'][f'{"-".join(path)}_tunnel'] = path
         return topology
 
     def initial_state(self, config):
@@ -135,9 +127,6 @@ def run_simulation():
     config.update_from_cli()
 
     tunnel_out_schemas = {}
-    tunnel_in_schemas = {
-        'boundary_tunnel': Shape().ports_schema()['global'],
-    }
     if config['spatial_environment']:
         # Generate environment composite.
         environment_composer = Lattice(
@@ -148,8 +137,6 @@ def run_simulation():
         tunnel_out_schemas['fields_tunnel'] = diffusion_schema['fields']
         tunnel_out_schemas['dimensions_tunnel'] = diffusion_schema[
             'dimensions']
-        tunnel_in_schemas['boundary_tunnel'].update(diffusion_schema[
-            'agents']['*']['boundary'])
 
     composer = EngineProcessCell({
         'agent_id': config['agent_id'],
@@ -158,7 +145,6 @@ def run_simulation():
         'divide': config['divide'],
         'division_threshold': config['division']['threshold'],
         'division_variable': ('listeners', 'mass', 'cell_mass'),
-        'tunnel_in_schemas': tunnel_in_schemas,
     })
     composite = composer.generate(path=('agents', config['agent_id']))
     initial_state = {

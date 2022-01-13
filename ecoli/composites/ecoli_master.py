@@ -11,7 +11,6 @@ from copy import deepcopy
 # vivarium-core
 from vivarium.core.composer import Composer
 from vivarium.plots.topology import plot_topology
-from vivarium.library.topology import assoc_path
 from vivarium.library.dict_utils import deep_merge
 from vivarium.core.control import run_library_cli
 
@@ -78,14 +77,14 @@ class Ecoli(Composer):
         self.processes_and_steps = None
         self.seed = None
 
-    def initial_state(self, config=None, path=()):
+    def initial_state(self, config=None):
         # Use initial state calculated with trna_charging and translationSupply disabled
         config = config or {}
         initial_state_file = config.get('initial_state_file', 'wcecoli_t0')
         initial_state = get_state_from_file(path=f'data/{initial_state_file}.json')
-        embedded_state = {}
-        assoc_path(embedded_state, path, initial_state)
-        return embedded_state
+        initial_state = super().initial_state({
+            'initial_state': initial_state})
+        return initial_state
 
     def _generate_processes_and_steps(self, config):
         config = deepcopy(config)

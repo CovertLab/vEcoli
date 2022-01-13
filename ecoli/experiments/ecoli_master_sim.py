@@ -14,12 +14,12 @@ import pstats
 import subprocess
 import json
 import warnings
-from copy import deepcopy
 from datetime import datetime
 from typing import Optional, Dict, Any
 
 from vivarium.core.engine import Engine
 from vivarium.library.dict_utils import deep_merge, deep_merge_combine_lists
+from vivarium.library.topology import assoc_path
 from ecoli.library.logging import write_json
 from ecoli.composites.ecoli_nonpartition import SIM_DATA_PATH
 # Two different Ecoli composers depending on partitioning
@@ -181,13 +181,24 @@ class SimConfig:
             '--no_parallel', action='store_true', default=None,
             help='Do not run processes in parallel.')
 
+    @staticmethod
+    def merge_config_dicts(d1, d2):
+        # Handle config keys that need special handling.
+        LIST_KEYS_TO_MERGE = (
+            'save_times', 'add_processes', 'exclude_processes',
+            'processes')
+        for key in LIST_KEYS_TO_MERGE:
+            d2.setdefault(key, [])
+            d2[key].extend(d1.get(key, []))
+        deep_merge(d1, d2)
+
     def update_from_json(self, path):
         with open(path, 'r') as f:
             new_config = json.load(f)
         for config_name in new_config.get('inherit_from', []):
             config_path = os.path.join(CONFIG_DIR_PATH, config_name)
             self.update_from_json(config_path)
-        self._config.update(new_config)
+        self.merge_config_dicts(self._config, new_config)
 
     def update_from_cli(self, cli_args=None):
         args = self.parser.parse_args(cli_args)
@@ -207,10 +218,10 @@ class SimConfig:
             cli_config['parallel'] = True
         if args.no_parallel:
             cli_config['parallel'] = False
-        self._config.update(cli_config)
+        self.merge_config_dicts(self._config, cli_config)
 
     def update_from_dict(self, dict_config):
-        self._config.update(dict_config)
+        self.merge_config_dicts(self._config, dict_config)
 
     def __getitem__(self, key):
         return self._config[key]
@@ -392,7 +403,7 @@ class EcoliSim:
             self.config['seed'] = seed
 
         # initialize the ecoli composer
-        config = deepcopy(self.config)
+        config = copy.deepcopy(self.config)
         if self.partition:
             ecoli_composer = ecoli.composites.ecoli_master.Ecoli(
                 config)
@@ -405,8 +416,10 @@ class EcoliSim:
             path = ('agents', self.agent_id,)
 
         # get initial state
-        self.initial_state = ecoli_composer.initial_state(
-            config=self.config, path=path)
+        self.initial_state = {}
+        initial_cell_state = ecoli_composer.initial_state(
+            config=self.config)
+        assoc_path(self.initial_state, path, initial_cell_state)
 
         # generate the composite at the path
         self.ecoli = ecoli_composer.generate(path=path)

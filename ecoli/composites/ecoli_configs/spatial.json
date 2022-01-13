@@ -31,10 +31,11 @@
       "dimensions": ["..", "..", "dimensions"]
     },
     "ecoli-shape": {
-      "global": {
+      "cell_global": {
         "_path": "boundary",
         "volume": ["..", "listeners", "mass", "volume"]
-      }
+      },
+      "periplasm_global": ["periplasm", "global"]
     }
   },
   "process_configs": {

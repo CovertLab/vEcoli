@@ -14,7 +14,7 @@ from scipy.constants import N_A
 from vivarium.core.composition import (
     composite_in_experiment, simulate_experiment)
 from vivarium.core.composer import Composite
-from vivarium.library.units import units
+from vivarium.library.units import units, Quantity
 from vivarium.library.dict_utils import deep_merge, deep_merge_check
 from vivarium.plots.simulation_output import plot_variables
 from vivarium_convenience.processes.convenience_kinetics import ConvenienceKinetics
@@ -29,13 +29,13 @@ class AntibioticTransport(ConvenienceKinetics):
 
     name = 'antibiotic_transport'
     defaults = {
-        'kcat': 1 / units.sec,
-        'Km': 1e-3 * units.mmol / units.L,
+        'kcat': 1,  # 1/sec
+        'Km': 1e-3,  # mmol/L
         'pump_key': 'pump',
         'antibiotic_key': 'antibiotic',
-        'initial_internal_antibiotic': 1e-3,
-        'initial_external_antibiotic': 0,
-        'initial_pump': 1e-3,
+        'initial_internal_antibiotic': 1e-3,  # mM
+        'initial_external_antibiotic': 0,  # mM
+        'initial_pump': 1e-3,  # mM
         'time_step': 1,
     }
 
@@ -43,12 +43,16 @@ class AntibioticTransport(ConvenienceKinetics):
         initial_parameters = initial_parameters or {}
         super_defaults = super().defaults
         deep_merge_check(self.defaults, super_defaults)
-        self.defaults.update(super_defaults)
         parameters = copy.deepcopy(self.defaults)
         deep_merge(parameters, initial_parameters)
 
-        kcat = parameters['kcat'].to(1 / units.sec).magnitude
-        km = parameters['Km'].to(units.mmol / units.L).magnitude
+        kcat = parameters['kcat']
+        if isinstance(kcat, Quantity):
+            kcat = kcat.to(1 / units.sec).magnitude
+
+        km = parameters['Km']
+        if isinstance(km, Quantity):
+            km = km.to(units.mmol / units.L).magnitude
 
         kinetics_parameters = {
             'reactions': {

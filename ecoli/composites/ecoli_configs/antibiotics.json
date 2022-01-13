@@ -1,0 +1,99 @@
+{
+    "inherit_from": ["spatial.json", "cloud.json"],
+    "add_processes": [
+        "antibiotic_transport",
+        "antibiotic_hydrolysis",
+        "fickian_diffusion",
+        "concentrations_deriver"
+    ],
+    "spatial_environment_config": {
+        "multibody": {
+            "bounds": [10, 10],
+            "size": [10, 10]
+        },
+        "diffusion": {
+            "molecules": ["GLC[p]", "nitrocefin"],
+            "n_bins": [10, 10],
+            "size": [10, 10],
+            "depth": 3000.0,
+            "diffusion": 1e-2,
+            "gradient": {
+                "type": "uniform",
+                "molecules": {
+                    "GLC[p]": 1.0,
+                    "nitrocefin": 0.1239
+                }
+            }
+        }
+    },
+    "topology": {
+        "antibiotic_transport": {
+            "internal": ["periplasm", "concentrations"],
+            "external": ["boundary", "external"],
+            "exchanges": ["boundary", "exchanges"],
+            "pump_port": ["periplasm", "concentrations"],
+            "fluxes": ["fluxes"],
+            "global": ["periplasm", "global"]
+        },
+        "antibiotic_hydrolysis": {
+            "internal": ["periplasm", "concentrations"],
+            "catalyst_port": ["periplasm", "concentrations"],
+            "fluxes": ["fluxes"],
+            "global": ["periplasm", "global"]
+        },
+        "fickian_diffusion": {
+            "internal": ["periplasm", "concentrations"],
+            "external": ["boundary", "external"],
+            "exchanges": ["boundary", "exchanges"],
+            "fluxes": ["fluxes"],
+            "volume_global": ["periplasm", "global"],
+            "mass_global": ["boundary"]
+        },
+        "concentrations_deriver": {
+            "counts": ["bulk"],
+            "concentrations": ["periplasm", "concentrations"],
+            "volume": ["periplasm", "global", "volume"]
+        }
+    },
+    "process_configs": {
+        "antibiotic_transport": {
+            "initial_pump": 1e-3,
+            "initial_internal_antibiotic": 0,
+            "intial_external_antibiotic": 0.1239,
+            "kcat": 1e1,
+            "Km": 4.95e-3,
+            "pump_key": "TRANS-CPLX-201[m]",
+            "antibiotic_key": "nitrocefin",
+            "time_step": 2
+        },
+        "antibiotic_hydrolysis": {
+            "initial_catalyst": 1e-3,
+            "catalyst": "EG10040-MONOMER[p]",
+            "initial_target_internal": 0,
+            "target": "nitrocefin",
+            "kcat": 490,
+            "Km": 0.5,
+            "time_step": 2
+        },
+        "fickian_diffusion": {
+            "initial_state": {
+                "external": {
+                    "nitrocefin": 0.1239
+                },
+                "internal": {
+                    "nitrocefin": 0
+                },
+                "volume_global": {
+                    "volume": 0.36
+                }
+            },
+            "molecules_to_diffuse": ["nitrocefin"],
+            "permeability": 0.2e-6,
+            "surface_area_mass_ratio": 132,
+            "time_step": 2
+        },
+        "concentrations_deriver": {
+            "variables": ["EG10040-MONOMER[p]", "TRANS-CPLX-201[m]"]
+        }
+    }
+}
