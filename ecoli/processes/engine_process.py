@@ -64,7 +64,7 @@ import copy
 import numpy as np
 from vivarium.core.engine import Engine
 from vivarium.core.process import Process, Step
-from vivarium.core.registry import updater_registry
+from vivarium.core.registry import updater_registry, divider_registry
 from vivarium.library.topology import get_in, assoc_path
 
 from ecoli.library.sim_data import RAND_MAX
@@ -112,7 +112,7 @@ def cap_tunneling_paths(topology, outer=tuple()):
 class EngineProcess(Process):
     defaults = {
         'composite': {},
-        # Map from tunnel name to (path to internal store, schema).
+        # Map from tunnel name to path to internal store.
         'tunnels_in': {},
         # Map from tunnel name to schema. Schemas are optional.
         'tunnel_out_schemas': {},
@@ -120,7 +120,6 @@ class EngineProcess(Process):
         'agent_id': '0',
         'composer': None,
         'seed': 0,
-        'time_step': 2,
         'inner_emitter': 'null',
         'divide': False,
         'division_threshold': 0,
@@ -160,17 +159,23 @@ class EngineProcess(Process):
                 get_in(self.sim.steps, process_path))
             tunnel_schema = process.get_schema()[port]
             schema[tunnel] = copy.deepcopy(tunnel_schema)
-        for tunnel, (_, tunnel_schema) in self.tunnels_in.items():
+        for tunnel, path in self.tunnels_in.items():
+            tunnel_schema = self.sim.state.get_path(path).get_config()
             schema[tunnel] = tunnel_schema
         for tunnel, tunnel_schema in self.parameters[
                 'tunnel_out_schemas'].items():
             schema[tunnel] = tunnel_schema
         return schema
 
+    def calculate_timestep(self, states):
+        timestep = np.inf
+        for process in self.sim.processes.values():
+            timestep = min(timestep, process.calculate_timestep({}))
+        return timestep
 
     def next_update(self, timestep, states):
         # Update the internal state with tunnel data.
-        for tunnel, (path, _) in self.tunnels_in.items():
+        for tunnel, path in self.tunnels_in.items():
             incoming_state = states[tunnel]
             self.sim.state.get_path(path).set_value(incoming_state)
         for tunnel in self.tunnels_out.values():
@@ -198,7 +203,7 @@ class EngineProcess(Process):
             for daughter_id, inner_state in zip(
                     daughter_ids, daughter_states):
                 tunnel_states = {}
-                for tunnel, (path, _) in self.tunnels_in.items():
+                for tunnel, path in self.tunnels_in.items():
                     tunnel_states[tunnel] = get_in(inner_state, path)
                 for tunnel in self.tunnels_out.values():
                     store = self.sim.state.get_path((tunnel,))
@@ -231,7 +236,7 @@ class EngineProcess(Process):
 
         # Craft an update to pass data back out through the tunnels.
         update = {}
-        for tunnel, (path, _) in self.tunnels_in.items():
+        for tunnel, path in self.tunnels_in.items():
             store = self.sim.state.get_path(path)
             inverted_update = _inverse_update(
                 states[tunnel],
@@ -393,13 +398,7 @@ def test_engine_process():
     proc = EngineProcess({
         'composite': inner_composite,
         'tunnels_in': {
-            'c_tunnel': (
-                ('c',),
-                {
-                    '_default': 0,
-                    '_emit': True,
-                },
-            ),
+            'c_tunnel': ('c',),
         },
         'time_step': 1,
         'inner_emitter': 'timeseries',
@@ -412,9 +411,15 @@ def test_engine_process():
             '_updater': 'accumulate',
             '_emit': True,
         },
+        # The schema for c_tunnel is complete, even though we only
+        # specified a partial schema, because this schema is pulled from
+        # the filled inner simulation hierarchy.
         'c_tunnel': {
             '_default': 0,
+            '_divider': divider_registry.access('set'),
             '_emit': True,
+            '_updater': 'accumulate',
+            '_value': 0,
         },
     }
     assert schema == expected_schema
