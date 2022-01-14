@@ -218,6 +218,10 @@ class Ecoli(Composer):
             else:
                 processes_not_steps[name] = process
 
+        for name, dependencies in config['flow'].items():
+            flow.setdefault(name, [])
+            flow[name].extend([tuple(dep) for dep in dependencies])
+
         return processes_not_steps, steps, flow
 
     def generate_processes(self, config):

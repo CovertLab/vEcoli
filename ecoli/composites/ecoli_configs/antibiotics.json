@@ -95,5 +95,8 @@
         "concentrations_deriver": {
             "variables": ["EG10040-MONOMER[p]", "TRANS-CPLX-201[m]"]
         }
+    },
+    "flow": {
+        "concentrations_deriver": [["ecoli-shape"]]
     }
 }
