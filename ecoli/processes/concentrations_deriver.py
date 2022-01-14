@@ -25,6 +25,7 @@ class ConcentrationsDeriver(Step):
             'concentrations': {
                 variable: {
                     '_default': 0,  # mM
+                    '_updater': 'set',
                 }
                 for variable in self.parameters['variables']
             },

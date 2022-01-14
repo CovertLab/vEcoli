@@ -56,7 +56,7 @@ def surface_area_from_length(length, width):
 
 def mmol_to_counts_from_volume(volume):
     '''mmol_to_counts has units L/mmol'''
-    return volume * AVOGADRO
+    return (volume * AVOGADRO).to(units.L/units.mmol)
 
 
 class Shape(Step):
