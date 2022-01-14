@@ -46,9 +46,7 @@ class EngineProcessCell(Composer):
         'reports': [
             ('bulk', 'EG10040-MONOMER[p]'),
             ('bulk', 'TRANS-CPLX-201[m]'),
-            ('periplasm', 'concentrations', 'nitrocefin'),
-            ('periplasm', 'concentrations', 'EG10040-MONOMER[p]'),
-            ('periplasm', 'concentrations', 'TRANS-CPLX-201[m]'),
+            ('periplasm',),
         ],
     }
 
@@ -176,7 +174,7 @@ def run_simulation():
         metadata=metadata,
         profile=config['profile'],
     )
-    engine.update(config['total_time']),
+    engine.update(config['total_time'])
     engine.end()
 
     if config['profile']:
