@@ -174,6 +174,22 @@ class EngineProcess(Process):
         return timestep
 
     def next_update(self, timestep, states):
+        # Check whether we are being forced to finish early. This check
+        # should happen before we mutate the inner simulation state to
+        # make sure that self.calculate_timestep() returns the same
+        # value as it did to the Engine. However, this is just
+        # precautionary for now because currently,
+        # self.calculate_timestep() does not depend on the inner state.
+        # This only works because self.calculate_timestep() returns the
+        # same timestep that the inner Engine would normally use. If
+        # self.calculate_timestep() returned a timestep smaller than
+        # what the inner Engine would normally use, the outer simulation
+        # could be ending and forcing this process to complete, but
+        # since the timestep could by chance equal
+        # self.calculate_timestep(), we would not know to force the
+        # inner simulation to complete.
+        force_complete = timestep != self.calculate_timestep({})
+
         # Update the internal state with tunnel data.
         for tunnel, path in self.tunnels_in.items():
             incoming_state = states[tunnel]
@@ -183,9 +199,9 @@ class EngineProcess(Process):
             self.sim.state.get_path((tunnel,)).set_value(incoming_state)
 
         # Run inner simulation for timestep.
-        # TODO: What if internal processes have a longer timestep than
-        # this process?
-        self.sim.update(timestep)
+        self.sim.run_for(timestep)
+        if force_complete:
+            self.sim.complete()
 
         # Check for division and perform if needed.
         division_threshold = self.parameters['division_threshold']
