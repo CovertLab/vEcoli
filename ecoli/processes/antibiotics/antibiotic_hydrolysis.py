@@ -24,8 +24,8 @@ class AntibioticHydrolysis(ConvenienceKinetics):
         'time_step': 1,
     }
 
-    def __init__(self, initial_parameters=None):
-        initial_parameters = initial_parameters or {}
+    def __init__(self, parameters=None):
+        initial_parameters = parameters or {}
         super_defaults = super().defaults
         deep_merge_check(self.defaults, super_defaults)
         parameters = copy.deepcopy(self.defaults)
