@@ -41,5 +41,8 @@
   "process_configs": {
     "local_field": {},
     "ecoli-shape": {}
+  },
+  "flow": {
+    "ecoli-shape": [["ecoli-mass-listener"]]
   }
 }
