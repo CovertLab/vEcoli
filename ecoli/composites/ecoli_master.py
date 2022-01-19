@@ -8,16 +8,15 @@ automatically exempt from partitioning
 
 from copy import deepcopy
 
-import pytest
+# vivarium-core
 from vivarium.core.composer import Composer
 from vivarium.plots.topology import plot_topology
 from vivarium.library.topology import assoc_path
 from vivarium.library.dict_utils import deep_merge
 from vivarium.core.control import run_library_cli
-from vivarium.core.engine import Engine
 
 # sim data
-from ecoli.library.sim_data import LoadSimData
+from ecoli.library.sim_data import LoadSimData, RAND_MAX
 
 # logging
 from ecoli.library.logging import make_logging_process
@@ -34,11 +33,7 @@ from ecoli.processes.partition import PartitionedProcess
 from ecoli.processes.partition import get_bulk_topo, Requester, Evolver
 from ecoli.states.wcecoli_state import get_state_from_file
 
-# tests
-from ecoli.library.schema import get_domain_index_to_daughter
-from migration.migration_utils import scalar_almost_equal
 
-RAND_MAX = 2**31
 SIM_DATA_PATH = 'reconstruction/sim_data/kb/simData.cPickle'
 
 MINIMAL_MEDIA_ID = 'minimal'
@@ -52,8 +47,6 @@ class Ecoli(Composer):
 
     defaults = {
         'time_step': 2.0,
-        'parallel': False,
-        'parallel_allocator': False,
         'seed': 0,
         'sim_data_path': SIM_DATA_PATH,
         'daughter_path': tuple(),
@@ -95,8 +88,8 @@ class Ecoli(Composer):
         return embedded_state
 
     def _generate_processes_and_steps(self, config):
+        config = deepcopy(config)
         time_step = config['time_step']
-        parallel = config['parallel']
 
         process_order = list(config['processes'].keys())
 
@@ -120,7 +113,9 @@ class Ecoli(Composer):
                     deepcopy(default), process_configs[process])
 
                 if 'seed' in process_configs[process]:
-                    process_configs[process]['seed'] = process_configs[process]['seed'] + config['seed']
+                    process_configs[process]['seed'] = (
+                        process_configs[process]['seed'] +
+                        config['seed']) % RAND_MAX
 
         # make the processes
         processes = {
@@ -134,7 +129,6 @@ class Ecoli(Composer):
         process_configs['allocator'] = self.load_sim_data.get_allocator_config(
             process_names=[p for p in config['processes'].keys()
                            if not processes[p].is_deriver()],
-            parallel=config['parallel_allocator'],
         )
 
         config['processes']['allocator'] = Allocator
@@ -187,7 +181,9 @@ class Ecoli(Composer):
             division_config = dict(
                 config['division'],
                 agent_id=config['agent_id'],
-                composer=self)
+                composer=self,
+                seed=self.load_sim_data.random_state.randint(RAND_MAX),
+            )
             division_process = {division_name: Division(division_config)}
             processes.update(division_process)
             process_order.append(division_name)
@@ -209,11 +205,14 @@ class Ecoli(Composer):
                 requester_name = f'{name}_requester'
                 evolver_name = f'{name}_evolver'
                 flow[requester_name] = [
-                    ('ecoli-chromosome-structure',)]
+                    ('ecoli-chromosome-structure',), ('division',)]
                 flow['allocator'].append((requester_name,))
                 steps[requester_name] = processes[requester_name]
                 processes_not_steps[evolver_name] = processes[
                     evolver_name]
+            elif name == 'division':
+                steps[name] = process
+                flow[name] = [('ecoli-chromosome-structure',)]
             elif process.is_step():
                 steps[name] = process
                 flow[name] = []
@@ -268,10 +267,6 @@ class Ecoli(Composer):
                 topology[f'{process_id}_evolver']['allocate'] = {
                     '_path': ('allocate', process_id,),
                     **bulk_topo}
-                topology[f'{process_id}_requester']['hidden_state'] = (
-                    'hidden_state',)
-                topology[f'{process_id}_evolver']['hidden_state'] = (
-                    'hidden_state',)
 
             # make the non-partitioned processes' topologies
             else:
@@ -323,170 +318,6 @@ def run_ecoli(
     return sim.run()
 
 
-
-@pytest.mark.slow
-def test_division(
-        agent_id='1',
-        total_time=60
-):
-    """tests that a cell can be divided and keep running"""
-
-    # get initial mass from Ecoli composer
-    initial_state = Ecoli({}).initial_state({'initial_state': 'vivecoli_t2550'})
-    initial_mass = initial_state['listeners']['mass']['cell_mass']
-    division_mass = initial_mass + 1
-    print(f"DIVIDE AT {division_mass} fg")
-
-    # make a new composer under an embedded path
-    config = {
-        'divide': True,
-        'agent_id': agent_id,
-        'division': {
-            'threshold': division_mass},  # fg
-    }
-    agent_path = ('agents', agent_id)
-    ecoli_composer = Ecoli(config)
-    ecoli_composite = ecoli_composer.generate(path=agent_path)
-
-    # make and run the experiment
-    experiment = Engine(
-        processes=ecoli_composite.processes,
-        steps=ecoli_composite.steps,
-        flow=ecoli_composite.flow,
-        topology=ecoli_composite.topology,
-        initial_state={'agents': {agent_id: initial_state}},
-    )
-    experiment.update(total_time)
-
-    # retrieve output
-    output = experiment.emitter.get_data()
-
-    # get the states of the daughter cells and the mother cell
-    daughter_states = []
-    for timestep in output:
-        if len(output[timestep]['agents'].keys()) == 2:
-            d1 = list(output[timestep]['agents'].keys())[0]
-            daughter_states.append(output[timestep]['agents'][d1])
-            d2 = list(output[timestep]['agents'].keys())[1]
-            daughter_states.append(output[timestep]['agents'][d2])
-            mother_idx = list(output[timestep - 2.0]['agents'].keys())[0]
-            mother_state = output[timestep - 2.0]['agents'][mother_idx]
-            break
-
-    # compare the counts of bulk molecules between the mother and daughters
-    for bulk_molecule in mother_state['bulk']:
-        if mother_state['bulk'][bulk_molecule] > COUNT_THRESHOLD:
-            assert (scalar_almost_equal(mother_state['bulk'][bulk_molecule],
-                                        daughter_states[0]['bulk'][bulk_molecule] +
-                                        daughter_states[1]['bulk'][bulk_molecule],
-                                        custom_threshold=0.1))
-
-    # compare the counts of unique molecules between the mother and daughters
-    idx_to_d = get_domain_index_to_daughter(mother_state['unique']['chromosome_domain'])
-    for key in mother_state['unique']:
-        num_divided = 0
-        if key == 'promoter' or key == 'oriC' or key == 'DnaA_box' or key == 'chromosomal_segment' \
-                or key == 'full_chromosome' or key == 'active_replisome':
-            for unique_molecule in mother_state['unique'][key]:
-                if idx_to_d[0][mother_state['unique'][key][unique_molecule]['domain_index']] != -1:
-                    num_divided += 1
-        elif key == 'RNA':
-            for rna in mother_state['unique']['RNA']:
-                if mother_state['unique']['RNA'][rna]['is_full_transcript']:
-                    num_divided += 1
-                else:
-                    rnap_index = mother_state['unique']['RNA'][rna]['RNAP_index']
-                    if idx_to_d[0][mother_state['unique']['active_RNAP'][rnap_index]['domain_index']] != -1:
-                        num_divided += 1
-        elif key == 'active_RNAP':
-            for rnap in mother_state['unique']['active_RNAP']:
-                if idx_to_d[0][mother_state['unique']['active_RNAP'][rnap]['domain_index']] != -1:
-                    num_divided += 1
-        elif key == 'active_ribosome':
-            for ribosome in initial_state['unique']['active_ribosome']:
-                mrna_index = initial_state['unique']['active_ribosome'][ribosome]['mRNA_index']
-                if mother_state['unique']['RNA'][mrna_index]['is_full_transcript']:
-                    num_divided += 1
-                else:
-                    rnap_index = mother_state['unique']['RNA'][mrna_index]['RNAP_index']
-                    if idx_to_d[0][mother_state['unique']['active_RNAP'][rnap_index]['domain_index']] != -1:
-                        num_divided += 1
-        elif key == 'chromosome_domain':
-            num_divided = len(mother_state['unique']['chromosome_domain'].keys()) - 1
-        assert (scalar_almost_equal(num_divided,
-                len(daughter_states[0]['unique'][key]) +
-                len(daughter_states[1]['unique'][key]),
-                custom_threshold=0.1))
-
-    # asserts
-    initial_agents = output[0.0]['agents'].keys()
-    final_agents = output[total_time]['agents'].keys()
-    print(f"initial agent ids: {initial_agents}")
-    print(f"final agent ids: {final_agents}")
-    assert len(final_agents) == 2 * len(initial_agents)
-
-
-def test_division_topology():
-    """test that the topology is correctly dividing"""
-    timestep = 2
-
-    # get initial mass from Ecoli composer
-    initial_state = Ecoli({}).initial_state({'initial_state': 'vivecoli_t2550'})
-    initial_mass = initial_state['listeners']['mass']['cell_mass']
-    division_mass = initial_mass + 0.1
-    print(f"DIVIDE AT {division_mass} fg")
-
-    # make a new composer under an embedded path
-    agent_id = '0'
-    config = {
-        'divide': True,
-        'agent_id': agent_id,
-        'division': {
-            'threshold': division_mass},  # fg
-    }
-    agent_path = ('agents', agent_id)
-    ecoli_composer = Ecoli(config)
-    ecoli_composite = ecoli_composer.generate(path=agent_path)
-
-    # make experiment
-    experiment = Engine(
-        processes=ecoli_composite.processes,
-        steps=ecoli_composite.steps,
-        flow=ecoli_composite.flow,
-        topology=ecoli_composite.topology,
-        initial_state={'agents': {agent_id: initial_state}},
-    )
-
-    full_topology = experiment.state.get_topology()
-    mother_topology = full_topology['agents'][agent_id].copy()
-
-    # update one time step at a time until division
-    while len(full_topology['agents']) <= 1:
-        experiment.update(timestep)
-        full_topology = experiment.state.get_topology()
-
-    # assert that the daughter topologies are the same as the mother topology
-    daughter_ids = list(full_topology['agents'].keys())
-    for daughter_id in daughter_ids:
-        daughter_topology = full_topology['agents'][daughter_id]
-        assert daughter_topology == mother_topology
-
-
-def test_ecoli_generate():
-    ecoli_composer = Ecoli({})
-    ecoli_composite = ecoli_composer.generate()
-
-    # asserts to ecoli_composite['processes'] and ecoli_composite['topology']
-    assert all('_requester' in k or
-               '_evolver' in k or
-               k == 'allocator' or
-               isinstance(v, ECOLI_DEFAULT_PROCESSES[k])
-               for k, v in ecoli_composite['processes'].items())
-    assert all(ECOLI_DEFAULT_TOPOLOGY[k] == v
-               for k, v in ecoli_composite['topology'].items()
-               if k in ECOLI_DEFAULT_TOPOLOGY)
-
-
 def ecoli_topology_plot(config={}):
     """Make a topology plot of Ecoli"""
     agent_id_config = {'agent_id': '1'}
@@ -503,10 +334,7 @@ def ecoli_topology_plot(config={}):
 
 test_library = {
     '0': run_ecoli,
-    '1': test_division,
-    '2': test_division_topology,
-    '3': test_ecoli_generate,
-    '4': ecoli_topology_plot,
+    '1': ecoli_topology_plot,
 }
 
 # run experiments in test_library from the command line with:

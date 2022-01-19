@@ -10,6 +10,7 @@ import numpy as np
 from vivarium.core.process import Deriver
 
 from ecoli.processes.registries import topology_registry
+from ecoli.library.convert_update import convert_numpy_to_builtins
 
 
 # Register default topology for this process, associating it with process name
@@ -151,7 +152,7 @@ class Allocator(Deriver):
                     for molecule in states['request'][process]['bulk']}}
                 for process in states['request']}}
 
-        return update
+        return convert_numpy_to_builtins(update)
 
 def calculatePartition(process_priorities, counts_requested, total_counts, random_state):
     priorityLevels = np.sort(np.unique(process_priorities))[::-1]

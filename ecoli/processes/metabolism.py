@@ -18,7 +18,7 @@ import numpy as np
 from scipy.sparse import csr_matrix
 from typing import Tuple
 
-from vivarium.core.process import Process
+from vivarium.core.process import Step
 
 from ecoli.library.schema import bulk_schema, array_from
 
@@ -28,6 +28,7 @@ from wholecell.utils.modular_fba import FluxBalanceAnalysis
 from six.moves import zip
 
 from ecoli.processes.registries import topology_registry
+from ecoli.library.convert_update import convert_numpy_to_builtins
 
 
 # Register default topology for this process, associating it with process name
@@ -57,7 +58,7 @@ GDCW_BASIS = units.mmol / units.g / units.h
 USE_KINETICS = True
 
 
-class Metabolism(Process):
+class Metabolism(Step):
     """ Metabolism Process """
 
     name = NAME
@@ -87,7 +88,7 @@ class Metabolism(Process):
         'amino_acid_ids': {},
         'linked_metabolites': None,
         'seed': 0,
-        'deriver_mode': True}
+    }
 
     def __init__(self, parameters=None):
         super().__init__(parameters)
@@ -132,16 +133,13 @@ class Metabolism(Process):
         self.seed = self.parameters['seed']
         self.random_state = np.random.RandomState(seed=self.seed)
 
-        self.deriver_mode = self.parameters['deriver_mode']
+        self.first_update = True
 
     def __getstate__(self):
         return self.parameters
 
     def __setstate__(self, state):
         self.__init__(state)
-
-    def is_deriver(self):
-        return self.deriver_mode
 
     def ports_schema(self):
         return {
@@ -218,8 +216,8 @@ class Metabolism(Process):
 
     def next_update(self, timestep, states):
         # Skip t=0 if a deriver
-        if self.deriver_mode:
-            self.deriver_mode = False
+        if self.first_update:
+            self.first_update = False
             return {}
 
         timestep = self.parameters['time_step']
@@ -362,7 +360,7 @@ class Metabolism(Process):
                     'targetFluxesUpper': upper_targets / timestep,
                     'targetFluxesLower': lower_targets / timestep}}}
 
-        return update
+        return convert_numpy_to_builtins(update)
 
     def update_amino_acid_targets(self, counts_to_molar, count_diff, amino_acid_counts):
         """

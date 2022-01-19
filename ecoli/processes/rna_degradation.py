@@ -107,12 +107,6 @@ class RnaDegradation(PartitionedProcess):
         'ribosome30S': 'ribosome30S',
         'ribosome50S': 'ribosome50S',
         'seed': 0,
-        'partitioning_hidden_state_instance_variables': [
-            'random_state',
-            'n_unique_RNAs_to_deactivate',
-            'unique_mRNAs_to_degrade',
-            'n_unique_RNAs_to_degrade',
-        ],
     }
 
     def __init__(self, parameters=None):
@@ -497,26 +491,9 @@ class RnaDegradation(PartitionedProcess):
 
         update['listeners']['rna_degradation_listener']['fragment_bases_digested'] = total_fragment_bases_digested
 
-        # Delete active_ribosomes on mRNAs that are being degraded.
-        update['active_ribosome'] = {'_delete': []}
-        n_terminated_elongations = 0
-        ribo_to_mrna = {ribo_index: states['active_ribosome'][ribo_index]['mRNA_index']
-                        for ribo_index in states['active_ribosome']}
-        ribo_mrnas = np.array(list(ribo_to_mrna.values()))
-        ribo_indices = list(ribo_to_mrna.keys())
-        for rna in update['RNAs']['_delete']:
-            if rna in ribo_mrnas:
-                indices = np.where(rna == ribo_mrnas)[0]
-                ribo_to_delete = []
-                for index in indices:
-                    ribo_to_delete.append(ribo_indices[index])
-                for ribo_index in ribo_to_delete:
-                    update['active_ribosome']['_delete'].append(ribo_index)
-                    n_terminated_elongations += 1
-        if n_terminated_elongations:
-            update['subunits'] = {}
-            update['subunits'][self.ribosome30S] = n_terminated_elongations
-            update['subunits'][self.ribosome50S] = n_terminated_elongations
+        # Note that once mRNAs have been degraded,
+        # chromosome_structure.py will handle deleting the active
+        # ribosomes that were translating those mRNAs.
 
         return update
 
