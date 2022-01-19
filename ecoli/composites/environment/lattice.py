@@ -11,9 +11,9 @@ from vivarium.library.dict_utils import deep_merge
 from vivarium.library.units import units
 
 # processes
-from ecoli.processes.lattice.multibody_physics import (
+from ecoli.processes.environment.multibody_physics import (
     Multibody, make_random_position)
-from ecoli.processes.lattice.diffusion_field import (
+from ecoli.processes.environment.diffusion_field import (
     DiffusionField)
 from ecoli.composites.environment.grow_divide import (
     GrowDivideExchange, GrowDivide)
@@ -214,7 +214,9 @@ def main():
     out_dir = os.path.join(COMPOSITE_OUT_DIR, NAME)
     os.makedirs(out_dir, exist_ok=True)
     parser = argparse.ArgumentParser(description='lattice composite')
-    parser.add_argument('-exchange', '-e', action='store_true', default=False, help='simulate agents with exchange')
+    parser.add_argument(
+        '-exchange', '-e', action='store_true',
+        default=False, help='simulate agents with exchange')
     args = parser.parse_args()
 
     bounds = [25, 25]

@@ -23,14 +23,13 @@ jobs:
     - name: Install dependencies
       run: |
         pip install --upgrade pip
-        pip install pytest
-        pip install pytest-cov
         pip install numpy
         pip install Cython
+        pip install -r requirements.txt
         python setup.py install
     - name: Compile Cython components
       run: |
         make clean compile
     - name: Test with pytest
       run: |
-        pytest --cov=ecoli -m 'not noci'
+        pytest --cov=ecoli -m 'not (noci or master)'

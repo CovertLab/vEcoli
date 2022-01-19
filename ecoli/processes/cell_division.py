@@ -6,7 +6,9 @@ Cell Division
 from typing import Any, Dict
 
 import numpy as np
-from vivarium.core.process import Deriver
+from vivarium.core.process import Step
+
+from ecoli.library.sim_data import RAND_MAX
 
 NAME = 'ecoli-cell-division'
 
@@ -17,7 +19,7 @@ def daughter_phylogeny_id(mother_id):
         str(mother_id) + '1']
 
 
-class Division(Deriver):
+class Division(Step):
     """ Division Deriver """
 
     name = NAME
@@ -45,15 +47,13 @@ class Division(Deriver):
     def next_update(self, timestep, states):
         variable = states['variable']
 
-        print(f'division variable = {variable}')
-
         if variable >= self.parameters['threshold']:
             daughter_ids = self.parameters['daughter_ids_function'](self.agent_id)
             daughter_updates = []
             for daughter_id in daughter_ids:
                 composer = self.composer.generate({
                     'agent_id': daughter_id,
-                    'seed': self.random_state.randint(0, 2**31)
+                    'seed': self.random_state.randint(0, RAND_MAX)
                 })
                 daughter_updates.append({
                     'key': daughter_id,

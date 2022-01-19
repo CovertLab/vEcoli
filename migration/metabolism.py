@@ -6,6 +6,7 @@ import os
 import numpy as np
 from matplotlib import pyplot as plt
 from migration.plots import qqplot
+import pytest
 
 # vivarium imports
 from vivarium.core.engine import Engine
@@ -67,7 +68,7 @@ class MetabolismExchange(Composer):
         }
 
 
-
+@pytest.mark.master
 def test_metabolism_migration():
     # Create process, experiment, loading in initial state from file.
     config = load_sim_data.get_metabolism_config()
@@ -116,6 +117,7 @@ def run_metabolism(
     return data
 
 
+@pytest.mark.master
 def test_metabolism():
     def test(initial_time=0):
         initial_time = initial_time
@@ -257,6 +259,7 @@ def assertions(actual_update, expected_update, time):
             expected_update['listeners']['fba_results']['media_id']),\
             'Media IDs not consistent!'
 
+@pytest.mark.master
 def test_metabolism_aas():
     config = {
         'media_id': AA_MEDIA_ID

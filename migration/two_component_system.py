@@ -2,6 +2,7 @@ import os
 import json
 import numpy as np
 import matplotlib.pyplot as plt
+import pytest
 
 from ecoli.processes.two_component_system import TwoComponentSystem
 from migration.plots import qqplot
@@ -12,6 +13,7 @@ from migration import load_sim_data
 TOPOLOGY = TwoComponentSystem.topology
 
 
+@pytest.mark.master
 def test_two_component_system_migration():
     # Set time parameters
     total_time = 2
@@ -50,13 +52,13 @@ def assertions(actual_update, expected_update):
     # list moleculeNames that are partitioned (this is for initial_time=10)
     partitioned_molecules = ['PHOP-MONOMER[c]', 'PHOSPHO-PHOP[c]', 'ATP[c]', 'PROTON[c]', 'ADP[c]']
     """
-    As of now, we think partitioning causes only a partial amount of the moleculeCounts to be accounted for in the 
+    As of now, we think partitioning causes only a partial amount of the moleculeCounts to be accounted for in the
     function call to moleculesToNextTimeStep in wcEcoli/models/ecoli/processes/two_component_system.py.
-    
-    We suspect that the molecules listed in the partitioned_molecules variable are the ones that are being partitioned, 
-    based on the differences in the actual_update dictionary produced in vivarium and wc_update dictionary produced in 
+
+    We suspect that the molecules listed in the partitioned_molecules variable are the ones that are being partitioned,
+    based on the differences in the actual_update dictionary produced in vivarium and wc_update dictionary produced in
     wcEcoli.
-    
+
     Once partitioning is fixed, we should include these molecules back into the migration tests.
     """
     test_structure = {
