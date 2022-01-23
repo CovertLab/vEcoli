@@ -31,8 +31,11 @@ class PorinPermeability(Step):
     def next_update(self, timestep, states):
         porins = states['porins']
         surface_area = states['surface_area']
-        # Math here
-        permeabilities = {}  # TODO (Matt): for every diffusing molecule, one permeability value for the entire cell
+        permeability_coefficients = self.permeability_coefficients
+        cell_permeability = 0
+        for porin_id in porins:
+            cell_permeability += (porins[porin_id] / surface_area) * permeability_coefficients[porin_id]
+        permeabilities = {'cephaloridine': cell_permeability}  # TODO (Matt): for every diffusing molecule, one permeability value for the entire cell
         return {'permeabilities': permeabilities}
 
 
@@ -43,12 +46,38 @@ def main():
     # Average of the porin counts during the simulation divided by the average surface area during the simulation
     # Calculate these averages outside of this process
 
-    # ompc porin count about 50,000 halfway through
-    #
+    from vivarium.core.emitter import (
+        data_from_database, get_local_client, timeseries_from_data)
+    data, conf = data_from_database('789cf4a8-7805-11ec-9575-1e00312eb299',
+                                    get_local_client("localhost", "27017", "simulations"))
+    data = timeseries_from_data(data)
+
+    sa_sum = 0
+    ompc_sum = 0
+    ompf_sum = 0
+    sa_len = len(data['agents']['0']['boundary']['surface_area'])
+    ompc_len = len(data['agents']['0']['bulk']['EG10670-MONOMER[o]'])
+    ompf_len = len(data['agents']['0']['bulk']['EG10671-MONOMER[o]'])
+    for i in range(sa_len):
+        sa_sum += data['agents']['0']['boundary']['surface_area'][i]
+    for i in range(ompc_len):
+        ompc_sum += data['agents']['0']['bulk']['EG10670-MONOMER[o]'][i]
+    for i in range(ompf_len):
+        ompf_sum += data['agents']['0']['bulk']['EG10671-MONOMER[o]'][i]
+    sa_average = sa_sum / sa_len
+    ompc_average = ompc_sum / ompc_len  # ompc porin count about 50,000 halfway through on ecocyc
+    ompf_average = ompf_sum / ompf_len  # ompf porin count about 71,798 halfway through on ecocyc
+    import ipdb; ipdb.set_trace()
+
+    ompc_concentration = ompc_average / sa_average
+    ompf_concentration = ompf_average / sa_average
+    # Is volume-based concentration more appropriate?
+    ompc_permeability = 4.5 / ompc_concentration  # porin concentration permeability coefficient
+    ompf_permeability = 52.6 / ompf_concentration
 
     parameters = {
-        'porin_ids': ['EG10670', 'EG10671', 'EG10729'],
-        'diffusing_molecules': [],
+        'porin_ids': ['EG10670-MONOMER[o]', 'EG10671-MONOMER[o]'],
+        'diffusing_molecules': ['cephaloridine'],  # Temporary
         'permeability_coefficients': {}
     }
     process = PorinPermeability(parameters)
