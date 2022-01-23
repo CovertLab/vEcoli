@@ -71,3 +71,34 @@ class Division(Step):
                         'mother': self.agent_id,
                         'daughters': daughter_updates}}}
         return {}
+
+
+def main():
+    from vivarium.core.emitter import (
+        data_from_database, get_local_client, timeseries_from_data)
+    data, conf = data_from_database('789cf4a8-7805-11ec-9575-1e00312eb299',
+                                    get_local_client("localhost", "27017", "simulations"))
+    data = timeseries_from_data(data)
+
+    sa_sum = 0
+    ompc_sum = 0
+    ompf_sum = 0
+    sa_len = len(data['agents']['0']['boundary']['surface_area'])
+    ompc_len = len(data['agents']['0']['bulk']['EG10670-MONOMER[o]'])
+    ompf_len = len(data['agents']['0']['bulk']['EG10671-MONOMER[o]'])
+    for i in range(sa_len):
+        sa_sum += data['agents']['0']['boundary']['surface_area'][i]
+    for i in range(ompc_len):
+        ompc_sum += data['agents']['0']['bulk']['EG10670-MONOMER[o]'][i]
+    for i in range(ompf_len):
+        ompf_sum += data['agents']['0']['bulk']['EG10671-MONOMER[o]'][i]
+    sa_average = sa_sum / sa_len
+    ompc_average = ompc_sum / ompc_len
+    ompf_average = ompf_sum / ompf_len
+
+    import ipdb;
+    ipdb.set_trace()
+
+
+if __name__ == '__main__':
+    main()
