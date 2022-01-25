@@ -260,12 +260,17 @@ class MetabolismGD(Process):
         solution: FbaResult = self.model.solve(
             {'homeostatic': target_homeostatic_fluxes, 'kinetic': kinetic_targets},
             initial_velocities=self.reaction_fluxes,
-            tr_solver='lsmr', max_nfev=6, ftol=0.00001, verbose=2,
+            tr_solver='lsmr', max_nfev=8, ftol=0.00001, verbose=2,
             tr_options={'atol': 10 ** (-7), 'btol': 10 ** (-7), 'conlim': 10 ** (8), 'show': False}
         )
 
         self.reaction_fluxes = solution.velocities
         self.metabolite_dmdt = solution.dm_dt
+
+        # recalculating steady state values to concentration
+        steady_state_targets = {key: int(np.round(
+            (self.metabolite_dmdt[key] * CONC_UNITS / counts_to_molar * timestep).asNumber()
+        )) for key in self.metabolite_dmdt.keys()}
 
         # updates for homeostatic targets
         homeostasis_metabolite_updates = {key: int(np.round(
@@ -292,7 +297,7 @@ class MetabolismGD(Process):
                     'estimated_homeostatic_dmdt': homeostasis_metabolite_updates,
                     'target_homeostatic_dmdt': objective_counts,
                     'estimated_exchange_dmdt': exchange_metabolite_updates,
-                    'estimated_all_dmdt': self.metabolite_dmdt
+                    'estimated_all_dmdt': steady_state_targets
                 }
             }
         }
