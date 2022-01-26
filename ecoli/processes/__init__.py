@@ -54,3 +54,6 @@ process_registry.register(LocalField.name, LocalField)
 
 # auxiliary processes
 process_registry.register('timeline', TimelineProcess)
+
+# Test marA regulation
+process_registry.register('ecoli-tf-binding-marA', TfBinding)

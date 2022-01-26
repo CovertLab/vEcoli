@@ -35,6 +35,7 @@ class LoadSimData:
     def get_config_by_name(self, name, time_step=2, parallel=False):
         name_config_mapping = {
             'ecoli-tf-binding': self.get_tf_config,
+            'ecoli-tf-binding-marA': self.get_tf_marA_config,
             'ecoli-transcript-initiation': self.get_transcript_initiation_config,
             'ecoli-transcript-elongation': self.get_transcript_elongation_config,
             'ecoli-rna-degradation': self.get_rna_degradation_config,
@@ -99,6 +100,44 @@ class LoadSimData:
         return chromosome_replication_config
 
     def get_tf_config(self, time_step=2, parallel=False):
+        tf_binding_config = {
+            'time_step': time_step,
+            '_parallel': parallel,
+
+            'tf_ids': self.sim_data.process.transcription_regulation.tf_ids,
+            'delta_prob': self.sim_data.process.transcription_regulation.delta_prob,
+            'n_avogadro': self.sim_data.constants.n_avogadro,
+            'cell_density': self.sim_data.constants.cell_density,
+            'p_promoter_bound_tf': self.sim_data.process.transcription_regulation.p_promoter_bound_tf,
+            'tf_to_tf_type': self.sim_data.process.transcription_regulation.tf_to_tf_type,
+            'active_to_bound': self.sim_data.process.transcription_regulation.active_to_bound,
+            'get_unbound': self.sim_data.process.equilibrium.get_unbound,
+            'active_to_inactive_tf': self.sim_data.process.two_component_system.active_to_inactive_tf,
+            'bulk_molecule_ids': self.sim_data.internal_state.bulk_molecules.bulk_data["id"],
+            'bulk_mass_data': self.sim_data.internal_state.bulk_molecules.bulk_data["mass"],
+            'seed': self.random_state.randint(RAND_MAX)}
+
+        return tf_binding_config
+    
+    def get_tf_marA_config(self, time_step=2, parallel=False):
+        import json
+        self.sim_data.process.transcription_regulation.tf_ids += ["PD00365"]
+        self.sim_data.process.transcription_regulation.delta_prob["shape"] = (
+            self.sim_data.process.transcription_regulation.delta_prob["shape"][0], 
+            self.sim_data.process.transcription_regulation.delta_prob["shape"][1]+1)
+        self.sim_data.process.transcription_regulation.tf_to_tf_type["PD00365"] = "0CS"
+        with open("ecoli/experiments/marA_binding/TU_idx_to_FC.json") as f:
+            TU_idx_to_FC = json.load(f)
+        n_targets = len(TU_idx_to_FC)
+        new_deltaI = np.array(list(TU_idx_to_FC.keys()))
+        new_deltaJ = np.array([24]*n_targets)
+        new_deltaV = np.array(list(TU_idx_to_FC.values()))/1000
+        self.sim_data.process.transcription_regulation.delta_prob["deltaI"] = np.concatenate(
+            [self.sim_data.process.transcription_regulation.delta_prob["deltaI"], new_deltaI])
+        self.sim_data.process.transcription_regulation.delta_prob["deltaJ"] = np.concatenate(
+            [self.sim_data.process.transcription_regulation.delta_prob["deltaJ"], new_deltaJ])
+        self.sim_data.process.transcription_regulation.delta_prob["deltaV"] = np.concatenate(
+            [self.sim_data.process.transcription_regulation.delta_prob["deltaV"], new_deltaV])
         tf_binding_config = {
             'time_step': time_step,
             '_parallel': parallel,
