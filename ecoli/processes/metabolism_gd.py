@@ -29,7 +29,7 @@ USE_KINETICS = True
 
 NAME = 'ecoli-metabolism-gradient-descent'
 TOPOLOGY = topology_registry.access('ecoli-metabolism')
-TOPOLOGY['kinetic_flux_targets'] = ('rates', 'fluxes')
+# TOPOLOGY['kinetic_flux_targets'] = ('rates', 'fluxes')
 topology_registry.register(NAME, TOPOLOGY)
 
 
@@ -140,7 +140,7 @@ class MetabolismGD(Process):
             'kinetics_substrates': bulk_schema(self.kinetic_constraint_substrates),
             'amino_acids': bulk_schema(self.aa_names),
             'amino_acids_total': bulk_schema(self.aa_names, partition=False),
-            'kinetic_flux_targets': {reaction_id: {} for reaction_id in self.parameters['kinetic_rates']},
+            # 'kinetic_flux_targets': {reaction_id: {} for reaction_id in self.parameters['kinetic_rates']},
 
             'environment': {
                 'media_id': {
@@ -181,7 +181,7 @@ class MetabolismGD(Process):
         # extract the states from the ports
         metabolite_counts = states['metabolites']
 
-        kinetic_flux_targets = states['kinetic_flux_targets']  # TODO -- this feeds into the FBA problem
+        # kinetic_flux_targets = states['kinetic_flux_targets']  # TODO -- this feeds into the FBA problem
 
         # needed for kinetics
         # catalyst_counts = states['catalysts']
@@ -326,23 +326,7 @@ class MetabolismGD(Process):
         return self._biomass_concentrations[minutes]
 
 def test_metabolism():
-    test_config = {
-        'stoichiometry': np.array([]),
-        'kinetic_rates': [],  # pass in list of reaction names that will be targeted
-    }
-    process = MetabolismGD(test_config)
-
-    # TODO -- run the model
-    initial_state = {
-        'metabolites': {'A': 10, 'B': 100}
-    }
-    settings = {
-        'total_time': 10,
-        'initial_state': initial_state}
-
-    data = simulate_process(process, settings)
-
-    print(data)
+    return
 
 
 if __name__ == '__main__':
