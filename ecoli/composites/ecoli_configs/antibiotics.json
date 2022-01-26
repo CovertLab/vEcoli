@@ -64,7 +64,7 @@
             "Km": 4.95e-3,
             "pump_key": "TRANS-CPLX-201[m]",
             "antibiotic_key": "nitrocefin",
-            "time_step": 2
+            "time_step": 1
         },
         "antibiotic_hydrolysis": {
             "initial_catalyst": 1e-3,
@@ -73,7 +73,7 @@
             "target": "nitrocefin",
             "kcat": 490,
             "Km": 0.5,
-            "time_step": 2
+            "time_step": 1
         },
         "fickian_diffusion": {
             "initial_state": {
@@ -90,7 +90,7 @@
             "molecules_to_diffuse": ["nitrocefin"],
             "permeability": 0.2e-6,
             "surface_area_mass_ratio": 132,
-            "time_step": 2
+            "time_step": 1
         },
         "concentrations_deriver": {
             "variables": ["EG10040-MONOMER[p]", "TRANS-CPLX-201[m]"]

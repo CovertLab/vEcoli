@@ -14,14 +14,20 @@ which reads the requests and allocates molecular counts for the evolve_state.
 
 """
 import abc
+import copy
 import os
 import pickle
 
+import numpy as np
 from vivarium.core.process import Step, Process
-from vivarium.library.dict_utils import deep_merge
-from ecoli.processes.registries import topology_registry
+from vivarium.library.dict_utils import deep_merge, make_path_dict
 
+from ecoli.processes.registries import topology_registry
 from ecoli.library.convert_update import convert_numpy_to_builtins
+
+
+def check_whether_evolvers_have_run(evolvers_ran, proc_name):
+    return evolvers_ran
 
 
 def change_bulk_updater(schema, new_updater):
@@ -131,6 +137,7 @@ class Requester(Step):
         ports = self.process.get_schema()
         ports_copy = ports.copy()
         ports['request'] = change_bulk_updater(ports_copy, 'set')
+        ports['evolvers_ran'] = {'_default': True}
         return ports
 
     def next_update(self, timestep, states):
@@ -147,6 +154,10 @@ class Requester(Step):
             update['listeners'] = listeners
 
         return convert_numpy_to_builtins(update)
+
+    def update_condition(self, timestep, states):
+        return check_whether_evolvers_have_run(
+            states['evolvers_ran'], self.name)
 
 
 class Evolver(Process):
@@ -167,6 +178,12 @@ class Evolver(Process):
         ports = self.process.get_schema()
         ports_copy = ports.copy()
         ports['allocate'] = change_bulk_updater(ports_copy, 'set')
+        ports['evolvers_ran'] = {
+            '_default': True,
+            '_updater': 'set',
+            '_divider': 'set',
+            '_emit': False,
+        }
         return ports
 
     # TODO(Matt): Have evolvers calculate timestep, returning zero if the requester hasn't run.
@@ -177,7 +194,9 @@ class Evolver(Process):
     #         return self.process.calculate_timestep(states)
 
     def next_update(self, timestep, states):
-        states = deep_merge(states, states.pop('allocate'))
+        allocations = states.pop('allocate')
+        allocated_molecules = list(allocations.keys())
+        states = deep_merge(states, allocations)
 
         # if requester not yet run, skip evolver
         # TODO(Matt): After division, request_set is true, but it should be false. Why?
@@ -186,7 +205,9 @@ class Evolver(Process):
             # self.process.request_set = True
             return {}
 
-        update = self.process.evolve_state(timestep, states)
+        update = copy.deepcopy(
+            self.process.evolve_state(timestep, states))
+        update['evolvers_ran'] = True
         return convert_numpy_to_builtins(update)
 
 
