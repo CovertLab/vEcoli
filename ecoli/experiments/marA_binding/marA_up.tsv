@@ -1,0 +1,48 @@
+Gene name	Product	Fold change
+acnA	Aconitate hydrase 1	2.7/5.9
+acrA	Acridine efflux pump	1.9/2.3
+aldA	Aldehyde dehydrogenase, NAD linked	7.4/3.2
+b0447	Putative LRP-like transcriptional regulator	3.5/4.4
+b0853	Putative sensory transduction regulator	1.4/4.2
+b1448	Putative resistance protein	1.8/2.3
+b2889	Putative enzyme	2.5/5.6
+b2948	ORF; hypothetical protein	1.4/2.5
+cobU	Cobinamide kinase or cobinamide phosphate guanylyltransferase	1.6/2.2
+fumC	Fumarase C (fumarase hydratase class II); isoenzyme	2.5/2.9
+galK	Galactokinase	1.5/2.0
+galT	Galactose-1-phosphate uridylyltransferase	2.5/2.4
+gatA	Galactitol-specific enzyme IIA of phosphotransferase system	2.0/1.8
+gatC	PTS system galactitol-specific enzyme IIC	3.4/1.6
+gltA	Citrate synthase	2.1/1.9
+gshB	Glutathione synthetase	3.5/5.7
+hemB	5-Aminolevulinate dehydratase	5.7/5.1
+inaA	pH-inducible protein involved in stress response	5.0/20.2
+map	Methionine aminopeptidase	1.7/2.1
+marA	Multiple-antibiotic resistance; activator	24.0/46.6
+marB	Multiple-antibiotic resistance protein	7.5/16.3
+marR	Multiple-antibiotic resistance protein; repressor	15.9/46.3
+mdaA	Modulator of drug activity A	3.8/8.2
+mdaB	Modulator of drug activity B	5.5/8.2
+mglB	Galactose-binding transport protein; receptor for galactose taxis	5.3/2.6
+mtr	Tryptophan-specific transport protein	1.3/2.2
+nfnB	Oxygen-insensitive NADPH nitroreductase	12.4/20.1
+ompX	Outer membrane protein X	1.6/2.1
+pflB	Formate acetyltransferase 1	2.1/2.2
+pgi	Glucose-6-phosphate isomerase	2.4/2.1
+ribA	GTP cyclohydrolase II	1.1/2.2
+ribD	Bifunctional pyrimidine deaminase or reductase in pathway of riboflavin synthesis	1.7/2.5
+rimK	Ribosomal protein S6 modification protein	1.6/3.0
+sodA	Superoxide dismutase, manganese	7.0/4.6
+srlA2	PTS system, glucitol/sorbitol-specific IIB component and second of two IIC component	3.0/2.0
+tnaA	Tryptophanase	7.9/8.4
+tnaL	Tryptophanase leader peptide	1.3/2.1
+tolC	Outer membrane channel; specific tolerance to colicin E1; segregation of daughter chromosomes	3.1/2.8
+tpx	Thiol peroxidase	2.1/1.6
+yadG	Putative ATP-binding component of a transport system	9.2/11.2
+yadH	ORF; hypothetical protein	1.9/2.7
+ybjC	ORF; hypothetical protein	6.7/17.4
+ydeA	Putative resistance or regulatory protein	1.9/3.9
+yfaE	ORF; hypothetical protein	2.5/5.9
+yggJ	ORF; hypothetical protein	3.1/4.2
+yhbW	Putative enzyme	10.6/6.5
+zwf	Glucose-6-phosphate dehydrogenase	2.7/1.8

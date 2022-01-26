@@ -29,6 +29,7 @@ TOPOLOGY = {
         "listeners": ("listeners",)
 }
 topology_registry.register(NAME, TOPOLOGY)
+topology_registry.register('ecoli-tf-binding-marA', TOPOLOGY)
 
 
 class TfBinding(PartitionedProcess):
