@@ -270,6 +270,10 @@ class Ecoli(Composer):
                 topology[f'{process_id}_evolver']['allocate'] = {
                     '_path': ('allocate', process_id,),
                     **bulk_topo}
+                topology[f'{process_id}_requester'][
+                    'evolvers_ran'] = ('evolvers_ran',)
+                topology[f'{process_id}_evolver'][
+                    'evolvers_ran'] = ('evolvers_ran',)
 
             # make the non-partitioned processes' topologies
             else:
@@ -287,7 +291,9 @@ class Ecoli(Composer):
         topology['allocator'] = {
             'request': ('request',),
             'allocate': ('allocate',),
-            'bulk': ('bulk',)}
+            'bulk': ('bulk',),
+            'evolvers_ran': ('evolvers_ran',),
+        }
 
         return topology
 
