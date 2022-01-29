@@ -54,10 +54,11 @@ def main():
     process = PorinPermeability(parameters)
 
     initial_state = get_state_from_file(path='data/vivecoli_t1000.json')
+    initial_state['boundary'] = {}
     initial_state['boundary']['surface_area'] = SA_AVERAGE
     sim = Engine(processes={'porin_permeability': process},
                  topology={
-                     'porin_permeability':{
+                     'porin_permeability': {
                          'porins': ('bulk',),
                          'permeabilities': ('permeabilities',),
                          'surface_area': ('boundary', 'surface_area')
