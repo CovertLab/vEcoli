@@ -50,8 +50,8 @@ def main():
         data_from_database, get_local_client, timeseries_from_data)
     data, conf = data_from_database('9cc838ec-7d6e-11ec-b2e8-1e00312eb299',
                                     get_local_client("localhost", "27017", "simulations"),
-                                    query=[('bulk', 'EG10670-MONOMER[o]'),
-                                           ('bulk', 'EG10671-MONOMER[o]'),
+                                    query=[('bulk', 'CPLX0-7533[e]'),
+                                           ('bulk', 'CPLX0-7534[e]'),
                                            ('boundary', 'surface_area')])
     data = timeseries_from_data(data)
 
@@ -59,14 +59,14 @@ def main():
     ompc_sum = 0
     ompf_sum = 0
     sa_len = len(data['boundary']['surface_area'])
-    ompc_len = len(data['bulk']['EG10670-MONOMER[o]'])
-    ompf_len = len(data['bulk']['EG10671-MONOMER[o]'])
+    ompc_len = len(data['bulk']['CPLX0-7533[e]'])
+    ompf_len = len(data['bulk']['CPLX0-7534[e]'])
     for i in range(sa_len):
         sa_sum += data['boundary']['surface_area'][i]
     for i in range(ompc_len):
-        ompc_sum += data['bulk']['EG10670-MONOMER[o]'][i]
+        ompc_sum += data['bulk']['CPLX0-7533[e]'][i]
     for i in range(ompf_len):
-        ompf_sum += data['bulk']['EG10671-MONOMER[o]'][i]
+        ompf_sum += data['bulk']['CPLX0-7534[e]'][i]
     sa_average = sa_sum / sa_len
     ompc_average = ompc_sum / ompc_len  # ompc porin count about 50,000 halfway through on ecocyc
     ompf_average = ompf_sum / ompf_len  # ompf porin count about 71,798 halfway through on ecocyc
@@ -79,7 +79,7 @@ def main():
     ompf_permeability = 52.6 / ompf_concentration
 
     parameters = {
-        'porin_ids': ['EG10670-MONOMER[o]', 'EG10671-MONOMER[o]'],
+        'porin_ids': ['CPLX0-7533[e]', 'CPLX0-7534[e]'],
         'diffusing_molecules': ['cephaloridine'],  # Temporary
         'permeability_coefficients': {}
     }
