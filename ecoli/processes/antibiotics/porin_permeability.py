@@ -48,13 +48,13 @@ def main():
     parameters = {
         'porin_ids': ['CPLX0-7533[o]', 'CPLX0-7534[o]'],
         'diffusing_molecules': ['cephaloridine'],  # Temporary
-        'permeability_coefficients': {}
+        'permeability_coefficients': {'CPLX0-7533[o]': OMPC_CONCENTRATION_PERM,
+                                      'CPLX0-7534[o]': OMPF_CONCENTRATION_PERM}
     }
     process = PorinPermeability(parameters)
 
-    initial_state = get_state_from_file(path='data/vivecoli_t1840.json')
+    initial_state = get_state_from_file(path='data/vivecoli_t1000.json')
     initial_state['boundary']['surface_area'] = SA_AVERAGE
-    # Create a new save state that has surface area
     sim = Engine(processes={'porin_permeability': process},
                  topology={
                      'porin_permeability':{
