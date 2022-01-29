@@ -1,4 +1,4 @@
-aesara==2.0.8
+aesara==2.3.8
 anyio==3.4.0
 appdirs==1.4.4
 attrs==21.2.0
