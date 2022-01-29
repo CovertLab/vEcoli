@@ -64,7 +64,7 @@ rfc3986==1.5.0
 rich==10.16.0
 ruamel.yaml==0.17.17
 ruamel.yaml.clib==0.2.6
-scipy==1.7.1
+scipy==1.7.3
 six==1.16.0
 sniffio==1.2.0
 stochastic-arrow==0.4.4
