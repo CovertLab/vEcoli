@@ -1,8 +1,8 @@
-from vivarium.core.process import Step
-from vivarium.core.composition import simulate_process
 from ecoli.library.schema import bulk_schema
 from ecoli.states.wcecoli_state import get_state_from_file
 from vivarium.core.engine import Engine
+from vivarium.core.process import Step
+from vivarium.library.units import units
 
 SA_AVERAGE = 6.22200939450696
 OMPC_CONCENTRATION_PERM = 0.003521401200296894
@@ -26,7 +26,7 @@ class PorinPermeability(Step):
         return {
             'porins': bulk_schema(self.porin_ids),
             'permeabilities': {mol_id: {
-                '_default': 0.0,
+                '_default': 1e-5 * units.cm / units.sec,
                 '_emit': True,
                 '_updater': 'set'
             } for mol_id in self.diffusing_molecules},  # Different permeability for every antibiotic
@@ -40,8 +40,8 @@ class PorinPermeability(Step):
         cell_permeability = 0
         for porin_id in porins:
             cell_permeability += (porins[porin_id] / surface_area) * permeability_coefficients[porin_id]
-        permeabilities = {'antibiotic': cell_permeability}  # TODO (Matt): for every diffusing molecule, one permeability value for the entire cell
-        import ipdb; ipdb.set_trace()
+        # TODO (Matt): for every diffusing molecule, one permeability value for the entire cell
+        permeabilities = {'antibiotic': cell_permeability * 1e-5 * units.cm / units.sec}
         return {'permeabilities': permeabilities}
 
 
