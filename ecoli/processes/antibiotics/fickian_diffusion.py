@@ -145,9 +145,9 @@ class FickianDiffusion(Process):
             # Fick's first law of diffusion:
             rate = permeability * area_mass * delta_concentration
             flux = rate * mass * timestep * units.sec
-            flux_mmol[molecule] = flux
+            flux_mmol[molecule] = flux  #.to('millimole/milligram')
         flux_counts = {
-            molecule: flux * AVOGADRO
+            molecule: flux * AVOGADRO  #.to('1/milligram')
             for molecule, flux in flux_mmol.items()
         }
         if not isinstance(states['volume_global']['volume'], Quantity):
