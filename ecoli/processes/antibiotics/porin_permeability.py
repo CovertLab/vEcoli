@@ -40,7 +40,8 @@ class PorinPermeability(Step):
         cell_permeability = 0
         for porin_id in porins:
             cell_permeability += (porins[porin_id] / surface_area) * permeability_coefficients[porin_id]
-        permeabilities = {'cephaloridine': cell_permeability}  # TODO (Matt): for every diffusing molecule, one permeability value for the entire cell
+        permeabilities = {'antibiotic': cell_permeability}  # TODO (Matt): for every diffusing molecule, one permeability value for the entire cell
+        import ipdb; ipdb.set_trace()
         return {'permeabilities': permeabilities}
 
 
@@ -49,7 +50,7 @@ def main():
 
     parameters = {
         'porin_ids': ['CPLX0-7533[o]', 'CPLX0-7534[o]'],
-        'diffusing_molecules': ['cephaloridine'],  # Temporary
+        'diffusing_molecules': ['antibiotic'],  # Cephaloridine
         'permeability_coefficients': {'CPLX0-7533[o]': OMPC_CONCENTRATION_PERM,
                                       'CPLX0-7534[o]': OMPF_CONCENTRATION_PERM}
     }
@@ -62,8 +63,8 @@ def main():
                  topology={
                      'porin_permeability': {
                          'porins': ('bulk',),
-                         'permeabilities': ('permeabilities',),
-                         'surface_area': ('boundary', 'surface_area')
+                         'permeabilities': ('boundary', 'permeabilities',),
+                         'surface_area': ('boundary', 'surface_area',)
                      },
                  },
                  initial_state=initial_state)

@@ -28,7 +28,8 @@ class PorinFickian(Composer):
                 'fluxes': ('fluxes',),
                 'exchanges': ('exchanges',),
                 'volume_global': ('listeners', 'mass',),
-                'mass_global': ('listeners', 'mass',)
+                'mass_global': ('listeners', 'mass',),
+                'boundary': ('boundary',)
             },
             'porin_permeability': {
                 'porins': ('bulk',),
@@ -47,7 +48,7 @@ def main():
     config = {
         'porin_permeability': {
             'porin_ids': ['CPLX0-7533[o]', 'CPLX0-7534[o]'],
-            'diffusing_molecules': ['cephaloridine'],  # Temporary
+            'diffusing_molecules': ['antibiotic'],  # cephaloridine
             'permeability_coefficients': {
                 'CPLX0-7533[o]': OMPC_CONCENTRATION_PERM,
                 'CPLX0-7534[o]': OMPF_CONCENTRATION_PERM
