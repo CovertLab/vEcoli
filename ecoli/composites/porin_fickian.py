@@ -11,7 +11,7 @@ class PorinFickian(Composer):
     defaults = {
         'fickian': {},
         'porin_permeability': {},
-                }
+    }
 
     def __init__(self, config=None):
         super().__init__(config)
@@ -29,7 +29,7 @@ class PorinFickian(Composer):
                 'exchanges': ('exchanges',),
                 'volume_global': ('listeners', 'mass',),
                 'mass_global': ('listeners', 'mass',),
-                'boundary': ('boundary',)
+                'permeabilities': ('boundary', 'permeabilities')
             },
             'porin_permeability': {
                 'porins': ('bulk',),
