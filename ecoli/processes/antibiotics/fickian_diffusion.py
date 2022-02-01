@@ -89,7 +89,16 @@ class FickianDiffusion(Process):
                         self.parameters['default_default'] * units.fg),
                     '_divider': 'split',
                 },
-            }
+            },
+            'boundary': {
+                    'permeabilities': {
+                        mol_id: {
+                            '_default': 0.0,
+                            '_emit': True,
+                            '_updater': 'set'
+                        } for mol_id in self.parameters['molecules_to_diffuse']
+                    }
+            },
         }
 
         for port, port_conf in self.parameters['initial_state'].items():
@@ -132,6 +141,7 @@ class FickianDiffusion(Process):
         return initial_state
 
     def next_update(self, timestep, states):
+        import ipdb; ipdb.set_trace()
         permeability = self.parameters['permeability']
         area_mass = self.parameters['surface_area_mass_ratio']
         mass = states['mass_global']['dry_mass']
@@ -170,6 +180,7 @@ class FickianDiffusion(Process):
                 for molecule, mol_flux in flux_mmol.items()
             },
         }
+        import ipdb; ipdb.set_trace()
         return update
 
 
