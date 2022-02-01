@@ -8,10 +8,12 @@ SA_AVERAGE = 6.22200939450696
 OMPC_CONCENTRATION_PERM = 0.003521401200296894
 OMPF_CONCENTRATION_PERM = 0.01195286573132685
 
+
 class PorinPermeability(Step):
     defaults = {
         'porin_ids': [],
-        'diffusing_molecules': []
+        'diffusing_molecules': [],
+        'permeability_coefficients': {},
     }
 
     def __init__(self, parameters=None):
