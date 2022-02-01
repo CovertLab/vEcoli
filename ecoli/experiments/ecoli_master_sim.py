@@ -447,7 +447,7 @@ class EcoliSim:
         if time_remaining:
             self.ecoli_experiment.update(time_remaining)
 
-    def run(self):
+    def run(self, query=None):
         # build self.ecoli and self.initial_state
         self.build_ecoli()
 
@@ -514,9 +514,9 @@ class EcoliSim:
 
         # return the data
         if self.raw_output:
-            return self.ecoli_experiment.emitter.get_data()
+            return self.ecoli_experiment.emitter.get_data(query=None)
         else:
-            return self.ecoli_experiment.emitter.get_timeseries()
+            return self.ecoli_experiment.emitter.get_timeseries(query=query)
 
     def merge(self, other):
         """

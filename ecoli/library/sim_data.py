@@ -131,7 +131,7 @@ class LoadSimData:
         n_targets = len(TU_idx_to_FC)
         new_deltaI = np.array(list(TU_idx_to_FC.keys()))
         new_deltaJ = np.array([24]*n_targets)
-        new_deltaV = np.array(list(TU_idx_to_FC.values()))/1000
+        new_deltaV = np.array(list(TU_idx_to_FC.values()))/100
         self.sim_data.process.transcription_regulation.delta_prob["deltaI"] = np.concatenate(
             [self.sim_data.process.transcription_regulation.delta_prob["deltaI"], new_deltaI])
         self.sim_data.process.transcription_regulation.delta_prob["deltaJ"] = np.concatenate(
