@@ -317,7 +317,7 @@ def main():
         'base': 1+4e-4,
         'speed': 14}
     timeline4 = get_exponential_random_timeline(exponential_random_config)
-    output4 = test_receptor(timeline4, 0.1)
+    output4 = test_receptor(timeline4)
     plot_receptor_output(output4, {}, out_dir, 'exponential_random')
 
 
