@@ -1,6 +1,8 @@
 from vivarium.core.composer import Composer
+from vivarium.core.emitter import timeseries_from_data
 from vivarium.core.engine import Engine
 from vivarium.library.units import units
+from vivarium.plots.simulation_output import plot_variables
 from ecoli.processes.antibiotics.porin_permeability import PorinPermeability, CEPH_OMPC_CON_PERM,\
     CEPH_OMPF_CON_PERM, SA_AVERAGE
 from ecoli.processes.antibiotics.fickian_diffusion import FickianDiffusion
@@ -77,7 +79,10 @@ def main():
 
     sim = Engine(composite=composite, initial_state=initial_state)
     sim.update(sim_time)
-    data = sim.emitter.get_data()
+    timeseries_data = timeseries_from_data(sim.emitter.get_data())
+    plot_variables(timeseries_data, [('environment', 'cephaloridine'), ('bulk', 'cephaloridine'),
+                                     ('bulk', 'CPLX0-7533[o]'), ('bulk', 'CPLX0-7534[o]')],
+                   out_dir='data', filename='porin_fickian_counts')
 
 
 if __name__ == '__main__':
