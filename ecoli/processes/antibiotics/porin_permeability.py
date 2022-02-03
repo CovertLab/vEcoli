@@ -1,8 +1,11 @@
 from ecoli.library.schema import bulk_schema
 from ecoli.states.wcecoli_state import get_state_from_file
+from vivarium.core.emitter import timeseries_from_data
 from vivarium.core.engine import Engine
 from vivarium.core.process import Step
 from vivarium.library.units import units
+from vivarium.plots.simulation_output import plot_variables
+from vivarium.processes.timeline import TimelineProcess
 
 SA_AVERAGE = 6.22200939450696
 CEPH_OMPC_CON_PERM = 0.003521401200296894 * 1e-5 * units.cm * units.micron * units.micron / units.sec
@@ -46,7 +49,11 @@ class PorinPermeability(Step):
 def main():
     sim_time = 10
 
-    parameters = {
+    initial_state = get_state_from_file(path='data/vivecoli_t1000.json')
+    initial_state['boundary'] = {}
+    initial_state['boundary']['surface_area'] = SA_AVERAGE
+
+    porin_parameters = {
         'porin_ids': ['CPLX0-7533[o]', 'CPLX0-7534[o]'],
         'diffusing_molecules': {
             'cephaloridine': {
@@ -55,22 +62,46 @@ def main():
             }
         },
     }
-    process = PorinPermeability(parameters)
+    porin_process = PorinPermeability(porin_parameters)
 
-    initial_state = get_state_from_file(path='data/vivecoli_t1000.json')
-    initial_state['boundary'] = {}
-    initial_state['boundary']['surface_area'] = SA_AVERAGE
-    sim = Engine(processes={'porin_permeability': process},
+
+    timeline = []
+    for i in range(5):
+        timeline.append(
+            (i * 2, {
+                ('porins', 'CPLX0-7533[o]'): initial_state['bulk']['CPLX0-7533[o]'] + ((i + 1) * 500),
+                ('porins', 'CPLX0-7534[o]'): initial_state['bulk']['CPLX0-7534[o]'] + ((i + 1) * 500),
+            })
+        )
+    timeline_params = {
+        'time_step': 2.0,
+        'timeline': timeline,
+    }
+    timeline_process = TimelineProcess(timeline_params)
+
+    sim = Engine(processes={'porin_permeability': porin_process,
+                            'timeline': timeline_process},
                  topology={
                      'porin_permeability': {
                          'porins': ('bulk',),
                          'permeabilities': ('boundary', 'permeabilities',),
                          'surface_area': ('boundary', 'surface_area',)
                      },
+                     'timeline': {
+                         'global': ('global',),  # The global time is read here
+                         'porins': ('bulk',),  # This port is based on the declared timeline
+                     }
                  },
                  initial_state=initial_state)
     sim.update(sim_time)
-    data = sim.emitter.get_data()
+    timeseries_data = timeseries_from_data(sim.emitter.get_data())
+    str_to_float = []
+    for string in timeseries_data['boundary']['permeabilities']['cephaloridine']:
+        str_to_float.append(float(string.split()[0]))
+    timeseries_data['boundary']['permeabilities']['cephaloridine'] = str_to_float
+    plot_variables(timeseries_data, [('bulk', 'CPLX0-7533[o]'), ('bulk', 'CPLX0-7534[o]'),
+                                     ('boundary', 'permeabilities', 'cephaloridine')],
+                   out_dir='data', filename='porin_permeability_counts')
 
 
 if __name__ == '__main__':
