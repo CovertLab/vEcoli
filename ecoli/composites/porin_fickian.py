@@ -1,8 +1,8 @@
 from vivarium.core.composer import Composer
 from vivarium.core.engine import Engine
 from vivarium.library.units import units
-from ecoli.processes.antibiotics.porin_permeability import PorinPermeability, OMPC_CONCENTRATION_PERM,\
-    OMPF_CONCENTRATION_PERM, SA_AVERAGE
+from ecoli.processes.antibiotics.porin_permeability import PorinPermeability, CEPH_OMPC_CON_PERM,\
+    CEPH_OMPF_CON_PERM, SA_AVERAGE
 from ecoli.processes.antibiotics.fickian_diffusion import FickianDiffusion
 from ecoli.states.wcecoli_state import get_state_from_file
 
@@ -48,11 +48,23 @@ def main():
     config = {
         'porin_permeability': {
             'porin_ids': ['CPLX0-7533[o]', 'CPLX0-7534[o]'],
-            'diffusing_molecules': ['antibiotic'],  # cephaloridine
-            'permeability_coefficients': {
-                'CPLX0-7533[o]': OMPC_CONCENTRATION_PERM,
-                'CPLX0-7534[o]': OMPF_CONCENTRATION_PERM
+            'diffusing_molecules': {
+                'cephaloridine': {
+                    'CPLX0-7533[o]': CEPH_OMPC_CON_PERM,
+                    'CPLX0-7534[o]': CEPH_OMPF_CON_PERM
+                }
             },
+        },
+        'fickian': {
+            'molecules_to_diffuse': ['cephaloridine'],
+            'initial_state': {
+                'internal': {
+                    'cephaloridine': 0,  # mM
+                },
+                'external': {
+                    'cephaloridine': 1e-3,  # mM
+                },
+            }
         }
     }
     composer = PorinFickian(config)

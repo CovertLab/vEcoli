@@ -5,22 +5,20 @@ from vivarium.core.process import Step
 from vivarium.library.units import units
 
 SA_AVERAGE = 6.22200939450696
-OMPC_CONCENTRATION_PERM = 0.003521401200296894
-OMPF_CONCENTRATION_PERM = 0.01195286573132685
+CEPH_OMPC_CON_PERM = 0.003521401200296894 * 1e-5 * units.cm * units.micron * units.micron / units.sec
+CEPH_OMPF_CON_PERM = 0.01195286573132685 * 1e-5 * units.cm * units.micron * units.micron / units.sec
 
 
 class PorinPermeability(Step):
     defaults = {
         'porin_ids': [],
         'diffusing_molecules': [],
-        'permeability_coefficients': {},
     }
 
     def __init__(self, parameters=None):
         super().__init__(parameters)
         self.porin_ids = self.parameters['porin_ids']
         self.diffusing_molecules = self.parameters['diffusing_molecules']
-        self.permeability_coefficients = self.parameters['permeability_coefficients']
 
     def ports_schema(self):
         return {
@@ -35,13 +33,13 @@ class PorinPermeability(Step):
 
     def next_update(self, timestep, states):
         porins = states['porins']
-        surface_area = states['surface_area']
-        permeability_coefficients = self.permeability_coefficients
-        cell_permeability = 0
-        for porin_id in porins:
-            cell_permeability += (porins[porin_id] / surface_area) * permeability_coefficients[porin_id]
-        # TODO (Matt): for every diffusing molecule, one permeability value for the entire cell
-        permeabilities = {'antibiotic': cell_permeability * 1e-5 * units.cm / units.sec}
+        surface_area = states['surface_area'] * units.micron * units.micron
+        permeabilities = {}
+        for molecule in self.diffusing_molecules:
+            cell_permeability = 0
+            for porin_id in self.diffusing_molecules[molecule].keys():
+                cell_permeability += (porins[porin_id] / surface_area) * self.diffusing_molecules[molecule][porin_id]
+            permeabilities[molecule] = cell_permeability
         return {'permeabilities': permeabilities}
 
 
@@ -50,9 +48,12 @@ def main():
 
     parameters = {
         'porin_ids': ['CPLX0-7533[o]', 'CPLX0-7534[o]'],
-        'diffusing_molecules': ['antibiotic'],  # Cephaloridine
-        'permeability_coefficients': {'CPLX0-7533[o]': OMPC_CONCENTRATION_PERM,
-                                      'CPLX0-7534[o]': OMPF_CONCENTRATION_PERM}
+        'diffusing_molecules': {
+            'cephaloridine': {
+                'CPLX0-7533[o]': CEPH_OMPC_CON_PERM,
+                'CPLX0-7534[o]': CEPH_OMPF_CON_PERM
+            }
+        },
     }
     process = PorinPermeability(parameters)
 
