@@ -159,7 +159,7 @@ class Metabolism(Step):
                     for element in self.model.fba.getExternalMoleculeIDs()},
                 'exchange_data': {
                     'unconstrained': {'_default': []},
-                    'constrained': {'_default': []}}},
+                    'constrained': {'_default': []}}}, # this is only GLC[p].
 
             'listeners': {
                 'mass': {
