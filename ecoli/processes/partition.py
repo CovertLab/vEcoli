@@ -181,7 +181,12 @@ class Evolver(Process):
         ports['evolvers_ran'] = {
             '_default': True,
             '_updater': 'set',
-            '_divider': 'set',
+            '_divider': {
+                'divider': 'set_value',
+                'config': {
+                    'value': True,
+                },
+            },
             '_emit': False,
         }
         return ports
