@@ -167,6 +167,15 @@ class EngineProcess(Process):
             schema[tunnel] = tunnel_schema
         return schema
 
+    def initial_state(self, config=None):
+        state = {}
+        # We ignore tunnels out because those are to stores like fields
+        # or dimensions that are outside the cell and therefore don't
+        # get divided.
+        for tunnel, path in self.tunnels_in.items():
+            state[tunnel] = self.sim.state.get_path(path).get_value()
+        return state
+
     def calculate_timestep(self, states):
         timestep = np.inf
         for process in self.sim.processes.values():
@@ -218,12 +227,6 @@ class EngineProcess(Process):
                 self.parameters['agent_id'])
             for daughter_id, inner_state in zip(
                     daughter_ids, daughter_states):
-                tunnel_states = {}
-                for tunnel, path in self.tunnels_in.items():
-                    tunnel_states[tunnel] = get_in(inner_state, path)
-                for tunnel in self.tunnels_out.values():
-                    store = self.sim.state.get_path((tunnel,))
-                    tunnel_states[tunnel] = store.get_value()
                 composite = composer.generate({
                     'agent_id': daughter_id,
                     'initial_cell_state': inner_state,
@@ -235,10 +238,7 @@ class EngineProcess(Process):
                     'steps': composite.steps,
                     'flow': composite.flow,
                     'topology': composite.topology,
-                    'initial_state': composer.initial_state({
-                        'agent_id': daughter_id,
-                        'initial_tunnel_states': tunnel_states,
-                    }),
+                    'initial_state': composite.initial_state(),
                 }
                 daughters.append(daughter)
             return {

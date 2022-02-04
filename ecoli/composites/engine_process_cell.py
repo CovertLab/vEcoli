@@ -102,23 +102,6 @@ class EngineProcessCell(Composer):
             topology['cell_process'][f'{"-".join(path)}_tunnel'] = path
         return topology
 
-    def initial_state(self, config):
-        merged_config = copy.deepcopy(self.config)
-        merged_config.update(config)
-
-        mass_listener_path = ('listeners', 'mass')
-
-        mass_listener_state = merged_config['initial_tunnel_states'].get(
-            'mass_tunnel',
-            get_in(
-                self.ecoli_sim.initial_state,
-                mass_listener_path
-            ),
-        )
-        initial_state = assoc_path(
-            {}, mass_listener_path, mass_listener_state)
-        return initial_state
-
 
 def run_simulation():
     config = SimConfig()
@@ -147,7 +130,7 @@ def run_simulation():
     composite = composer.generate(path=('agents', config['agent_id']))
     initial_state = {
         'agents': {
-            config['agent_id']: composer.initial_state({}),
+            config['agent_id']: composite.initial_state()
         },
     }
 
