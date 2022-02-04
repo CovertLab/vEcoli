@@ -94,7 +94,7 @@ class EnzymeKinetics(Process):
         self.molecules_ids = [mol_id[1] for mol_id in self.kinetic_rate_laws.molecule_ids]
 
     # def initial_state(self, config):
-    #     # TODO -- return fluxes
+    #     # TODO (Cyrus) - test if this works
     #     initial_conc = config['initial_concentrations']
     #     initial_fluxes = self.next_update(
     #         initial_conc, self.parameters['time_step'])

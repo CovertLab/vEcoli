@@ -3,5 +3,6 @@
     "total_time" : 600,
     "swap_processes" : {
         "ecoli-metabolism" : "ecoli-metabolism-gradient-descent"
-    }
+    },
+    "raw_output" : false
 }

@@ -26,14 +26,6 @@ class MetabolismGDKinetics(Composer):
             sim_data_path=self.config['sim_data_path'],
             seed=self.config['seed'])
 
-    # TODO set up
-    # def initial_state(self, config):
-    #     path = config.get('initial_state_path', 'data/wcecoli_t1000.json')
-    #     initial_state = get_state_from_file(
-    #         path=path)
-    #     composite = self.generate(config)
-    #     composite['kinetics']
-
 
     def generate_processes(self, config):
 

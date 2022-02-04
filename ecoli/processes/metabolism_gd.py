@@ -6,12 +6,10 @@ import numpy as np
 import json
 
 from vivarium.core.process import Process
-from vivarium.core.composition import simulate_process
 
-from ecoli.library.schema import bulk_schema, array_from
+from ecoli.library.schema import bulk_schema
 
 from wholecell.utils import units
-from wholecell.utils.random import stochasticRound
 
 from ecoli.library.fba_gd import GradientDescentFba, FbaResult, TargetDmdtObjective
 from ecoli.processes.registries import topology_registry
@@ -29,6 +27,7 @@ USE_KINETICS = True
 
 NAME = 'ecoli-metabolism-gradient-descent'
 TOPOLOGY = topology_registry.access('ecoli-metabolism')
+# TODO (Cyrus) - Re-add when kinetics are added.
 # TOPOLOGY['kinetic_flux_targets'] = ('rates', 'fluxes')
 topology_registry.register(NAME, TOPOLOGY)
 
@@ -54,14 +53,14 @@ class MetabolismGD(Process):
         super().__init__(parameters)
 
         # variables
-        #   print(len(self.parameters['stoichiometry_r']), len(self.parameters['stoichiometry']))\
 
         maintenance_reaction = self.parameters['maintenance_reaction']
         self.stoichiometry = self.parameters['stoichiometry_r']
         self.stoichiometry.append({'reaction id': 'maintenance_reaction',
                                    'stoichiometry': parameters['maintenance_reaction'],
                                    'is reversible': False})
-        reaction_catalysts = self.parameters['reaction_catalysts']
+        # reaction_catalysts = self.parameters['reaction_catalysts']
+        # self.reactions_with_catalyst = self.parameters['reaction_with_catalysts']
         self.media_id = self.parameters['media_id']
         objective_type = self.parameters['objective_type']
         self.cell_density = self.parameters['cell_density']
@@ -99,7 +98,6 @@ class MetabolismGD(Process):
         json.dump(self.parameters['stoichiometry_r'], open("notebooks/test_files/stoichiometry.json", 'w'))
         json.dump(list(self.exchange_molecules), open("notebooks/test_files/exchanges.json", 'w'))
         json.dump(self.homeostatic_objective, open("notebooks/test_files/homeostatic_objective.json", 'w'))
-        json.dump(reaction_catalysts, open("notebooks/test_files/reaction_catalysts.json", 'w'))
 
         # Create model to use to solve metabolism updates
         self.model = GradientDescentFba(
@@ -181,8 +179,8 @@ class MetabolismGD(Process):
         # extract the states from the ports
         metabolite_counts = states['metabolites']
 
-        # kinetic_flux_targets = states['kinetic_flux_targets']  # TODO -- this feeds into the FBA problem
-
+        # TODO (Cyrus) - Implement kinetic model
+        # kinetic_flux_targets = states['kinetic_flux_targets']
         # needed for kinetics
         # catalyst_counts = states['catalysts']
         # translation_gtp = states['polypeptide_elongation']['gtp_to_hydrolyze']
@@ -197,32 +195,11 @@ class MetabolismGD(Process):
             self.previous_mass = self.cell_mass
         self.cell_mass = states['listeners']['mass']['cell_mass'] * units.fg
         dry_mass = states['listeners']['mass']['dry_mass'] * units.fg
-        # current_media_id = states['environment']['media_id']
-        # unconstrained = states['environment']['exchange_data']['unconstrained']
-        # constrained = states['environment']['exchange_data']['constrained']
 
         cell_volume = self.cell_mass / self.cell_density
         counts_to_molar = (1 / (self.nAvogadro * cell_volume)).asUnit(CONC_UNITS)
         coefficient = dry_mass / self.cell_mass * self.cell_density * timestep * units.s
 
-
-        # are all of these needed? sunset later.
-        # doubling_time = self.nutrient_to_doubling_time.get(self.media_id,
-        #                                                    self.nutrient_to_doubling_time[self.media_id], )
-        # conc_updates = self.getBiomassAsConcentrations(doubling_time)
-        # conc_updates = {met: conc.asNumber(CONC_UNITS)
-        #                 for met, conc in conc_updates.items()}
-
-        # self.set_molecule_levels(metabolite_counts, counts_to_molar,
-        # coefficient, current_media_id, unconstrained, constrained, conc_updates)
-
-        # objective update - i don't think this is necessary currently?
-        # _, objective = self.exchange_constraints(
-        #     self.exchange_molecules, coefficient, CONC_UNITS,
-        #     current_media_id, unconstrained, constrained, conc_updates,
-        # )
-
-        # TODO Get target flux for solver.
         current_metabolite_concentrations = {key: value*counts_to_molar for key, value in metabolite_counts.items()}
         target_homeostatic_fluxes = {key: ((self.objective[key]*CONC_UNITS
                                             - current_metabolite_concentrations[key])/timestep).asNumber()
@@ -239,10 +216,10 @@ class MetabolismGD(Process):
 
         total_maintenance = flux_gam + flux_ngam + flux_gtp
 
-        # TODO (Cyrus) increase maintenance target weight.
+        # TODO (Cyrus) - increase maintenance target weight.
         kinetic_targets = {'maintenance_reaction': total_maintenance.asNumber}
 
-        # TODO Figure out how to implement catalysis. Can come later.
+        # TODO (Cyrus) - Figure out how to implement catalysis. Can come later.
         # reaction_bounds = np.inf * np.ones(len(self.reactions_with_catalyst))
         # no_rxn_mask = self.catalysis_matrix.dot(catalyst_counts) == 0
         # reaction_bounds[no_rxn_mask] = 0
