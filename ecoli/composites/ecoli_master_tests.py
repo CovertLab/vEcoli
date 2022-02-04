@@ -29,7 +29,7 @@ def test_division(
     """tests that a cell can be divided and keep running"""
 
     # get initial mass from Ecoli composer
-    initial_state = Ecoli({}).initial_state({'initial_state_file': 'vivecoli_t1840'})
+    initial_state = Ecoli({}).initial_state({'initial_state_file': 'vivecoli_t2678'})
 
     # make a new composer under an embedded path
     config = {
@@ -133,7 +133,7 @@ def test_division_topology():
     timestep = 2
 
     # get initial mass from Ecoli composer
-    initial_state = Ecoli({}).initial_state({'initial_state_file': 'vivecoli_t1840'})
+    initial_state = Ecoli({}).initial_state({'initial_state_file': 'vivecoli_t2678'})
     initial_mass = initial_state['listeners']['mass']['cell_mass']
     division_mass = initial_mass + 4.5
     print(f"DIVIDE AT {division_mass} fg")
