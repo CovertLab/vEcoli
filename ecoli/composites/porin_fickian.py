@@ -7,11 +7,15 @@ from ecoli.processes.antibiotics.porin_permeability import PorinPermeability, CE
     CEPH_OMPF_CON_PERM, SA_AVERAGE
 from ecoli.processes.antibiotics.fickian_diffusion import FickianDiffusion
 from vivarium.processes.timeline import TimelineProcess
+from ecoli.processes.antibiotics.nonspatial_environment import NonSpatialEnvironment
+from ecoli.processes.environment.diffusion_field import DiffusionField
 from ecoli.states.wcecoli_state import get_state_from_file
 
 
 class PorinFickian(Composer):
     defaults = {
+        'diffusion_field': {},
+        'nonspatial': {},
         'fickian': {},
         'timeline': {},
         'porin_permeability': {},
@@ -21,21 +25,36 @@ class PorinFickian(Composer):
         super().__init__(config)
 
     def generate_processes(self, config):
+        diffusion_field = DiffusionField(config['diffusion_field'])
         fick_diffusion = FickianDiffusion(config['fickian'])
         timeline = TimelineProcess(config['timeline'])
-        return {'fickian': fick_diffusion,
-                'timeline': timeline}
+        return {'diffusion_field': diffusion_field,
+                'fickian': fick_diffusion,
+                'timeline': timeline,
+                }
 
     def generate_topology(self, config):
         return {
+            'diffusion_field': {
+                'agents': ('environment', 'agents',),
+                'fields': ('environment', 'fields',),
+                'dimensions': ('environment', 'dimensions',)
+            },
+            'nonspatial': {
+                'external': ('environment', 'external',),
+                'exchanges': ('boundary', 'exchanges',),
+                'fields': ('environment', 'fields'),
+                'dimensions': ('environment', 'dimensions'),
+                'global': ('listeners', 'mass',),  # To get location, volume, and mmol_to_counts
+            },
             'fickian': {
-                'internal': ('bulk',),  # This is where the antibiotic will diffuse into
-                'external': ('environment',),
+                'internal': ('boundary', 'internal',),
+                'external': ('environment', 'external',),
                 'fluxes': ('fluxes',),
-                'exchanges': ('exchanges',),
+                'exchanges': ('boundary', 'exchanges',),
                 'volume_global': ('listeners', 'mass',),
                 'mass_global': ('listeners', 'mass',),
-                'permeabilities': ('boundary', 'permeabilities')
+                'permeabilities': ('boundary', 'permeabilities',)
             },
             'timeline': {
                 'global': ('global',),  # The global time is read here
@@ -45,12 +64,14 @@ class PorinFickian(Composer):
                 'porins': ('bulk',),
                 'permeabilities': ('boundary', 'permeabilities',),
                 'surface_area': ('boundary', 'surface_area')
-            }
+            },
         }
 
     def generate_steps(self, config):
+        nonspatial = NonSpatialEnvironment(config['nonspatial'])
         porin_permeability = PorinPermeability(config['porin_permeability'])
-        return {'porin_permeability': porin_permeability}
+        return {'nonspatial': nonspatial,
+                'porin_permeability': porin_permeability}
 
 
 def main():
@@ -71,6 +92,26 @@ def main():
         )
 
     config = {
+        'diffusion_field': {
+            'molecules': ['cephaloridine'],
+            'depth': 3000.0000000000014 * units.um,
+            'n_bins': [1, 1],
+            'bounds': [1 * units.um, 1 * units.um]
+        },
+        'nonspatial': {
+            'env_volume': 3000.0 * units.fL
+        },
+        'fickian': {
+            'molecules_to_diffuse': ['cephaloridine'],
+            'initial_state': {
+                'internal': {
+                    'cephaloridine': 0,  # mM
+                },
+                'external': {
+                    'cephaloridine': 1e-3,  # mM
+                },
+            }
+        },
         'timeline': {
             'time_step': 1.0,
             'timeline': timeline,
@@ -84,17 +125,6 @@ def main():
                 }
             },
         },
-        'fickian': {
-            'molecules_to_diffuse': ['cephaloridine'],
-            'initial_state': {
-                'internal': {
-                    'cephaloridine': 0,  # mM
-                },
-                'external': {
-                    'cephaloridine': 1e-3,  # mM
-                },
-            }
-        }
     }
     composer = PorinFickian(config)
     composite = composer.generate()
@@ -102,7 +132,8 @@ def main():
     sim = Engine(composite=composite, initial_state=initial_state)
     sim.update(sim_time)
     timeseries_data = timeseries_from_data(sim.emitter.get_data())
-    plot_variables(timeseries_data, [('environment', 'cephaloridine'), ('bulk', 'cephaloridine'),
+    plot_variables(timeseries_data, [('environment', 'external', 'cephaloridine'),
+                                     ('boundary', 'internal', 'cephaloridine'),
                                      ('bulk', 'CPLX0-7533[o]'), ('bulk', 'CPLX0-7534[o]')],
                    out_dir='data', filename='porin_fickian_counts')
 
