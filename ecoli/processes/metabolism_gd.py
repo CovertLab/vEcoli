@@ -302,9 +302,4 @@ class MetabolismGD(Process):
 
         return self._biomass_concentrations[minutes]
 
-def test_metabolism():
-    return
-
-
-if __name__ == '__main__':
-    test_metabolism()
+# TODO (Cyrus) - Consider adding test with toy network.
