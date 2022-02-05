@@ -101,7 +101,7 @@ def main():
     timeseries_data['boundary']['permeabilities']['cephaloridine'] = str_to_float
     plot_variables(timeseries_data, [('bulk', 'CPLX0-7533[o]'), ('bulk', 'CPLX0-7534[o]'),
                                      ('boundary', 'permeabilities', 'cephaloridine')],
-                   out_dir='data', filename='porin_permeability_counts')
+                   out_dir='out', filename='porin_permeability_counts')
 
 
 if __name__ == '__main__':

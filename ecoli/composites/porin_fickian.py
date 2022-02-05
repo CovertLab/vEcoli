@@ -135,7 +135,7 @@ def main():
     plot_variables(timeseries_data, [('environment', 'external', 'cephaloridine'),
                                      ('boundary', 'internal', 'cephaloridine'),
                                      ('bulk', 'CPLX0-7533[o]'), ('bulk', 'CPLX0-7534[o]')],
-                   out_dir='data', filename='porin_fickian_counts')
+                   out_dir='out', filename='porin_fickian_counts')
 
 
 if __name__ == '__main__':
