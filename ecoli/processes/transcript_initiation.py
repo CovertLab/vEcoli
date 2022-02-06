@@ -168,14 +168,6 @@ class TranscriptInitiation(PartitionedProcess):
 
         # random seed
         'seed': 0,
-
-        # partitioning hidden state
-        'partitioning_hidden_state_instance_variables': [
-            'promoter_init_probs',
-            'fracActiveRnap',
-            'elongation_rates',
-            'random_state',
-        ],
     }
 
     # Constructor

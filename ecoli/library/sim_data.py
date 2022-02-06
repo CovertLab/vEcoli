@@ -6,7 +6,7 @@ from wholecell.utils.fitting import normalize
 from ecoli.processes.polypeptide_elongation import MICROMOLAR_UNITS
 from ecoli.states.wcecoli_state import MASSDIFFS
 
-RAND_MAX = 2**31
+RAND_MAX = 2**31 - 1
 SIM_DATA_PATH = 'reconstruction/sim_data/kb/simData.cPickle'
 
 
