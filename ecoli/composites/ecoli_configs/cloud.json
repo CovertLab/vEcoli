@@ -1,0 +1,9 @@
+{
+    "total_time": 8700,
+    "divide": true,
+    "emitter" : "database",
+    "emitter_arg": [
+        ["host", "localhost:27017"]
+    ],
+    "parallel": true
+}

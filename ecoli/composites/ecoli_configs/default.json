@@ -1,10 +1,13 @@
 {
+    "inherit_from": null,
     "experiment_id" : null,
     "suffix_time" : true,
     "description" : "",
     "progress_bar" : true,
     "sim_data_path": "reconstruction/sim_data/kb/simData.cPickle",
     "emitter" : "timeseries",
+    "emitter_arg": [
+    ],
     "emit_topology" : true,
     "emit_processes" : false,
     "emit_config" : false,
@@ -29,11 +32,12 @@
     "spatial_environment_config": {},
 
     "save": false,
-    "save_times": [10, 100, 1000],
+    "save_times": [2, 10, 100, 1000, 2678],
 
     "add_processes" : [],
     "exclude_processes" : [],
     "swap_processes" : {},
+    "profile": false,
     "processes": [
         "ecoli-chromosome-structure",
         "ecoli-metabolism",
@@ -53,5 +57,6 @@
         "monomer_counts_listener"
     ],
     "process_configs": {},
-    "topology": {}
+    "topology": {},
+    "_schema": {}
 }

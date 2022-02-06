@@ -9,6 +9,7 @@ from ecoli.library.schema import arrays_from, dict_value_schema
 from vivarium.core.process import Step
 
 from ecoli.processes.registries import topology_registry
+from ecoli.library.convert_update import convert_numpy_to_builtins
 
 
 NAME = 'mRNA_counts_listener'
@@ -59,11 +60,12 @@ class mRNACounts(Step):
             tu_indexes[can_translate],
             minlength=len(self.all_RNA_ids))[self.mRNA_indexes]
 
-        return {
+        update = {
             'listeners': {
                 'mRNA_counts': mrna_counts
             }
         }
+        return convert_numpy_to_builtins(update)
 
 
 def test_mrna_counts_listener():

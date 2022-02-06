@@ -59,11 +59,6 @@ class PolypeptideInitiation(PartitionedProcess):
         'ribosome50S': 'ribosome50S',
         'seed': 0,
         'shuffle_indexes': None,
-        'partitioning_hidden_state_instance_variables': [
-            'fracActiveRibosome',
-            'elongation_rates',
-            'random_state',
-        ],
     }
 
     def __init__(self, parameters=None):
