@@ -46,12 +46,13 @@ class MetabolismExchange(Composer):
     def generate_processes(self, config):
 
         # configure metabolism
-        metabolism_config = self.load_sim_data.get_metabolism_gd_config()
+        metabolism_config = self.load_sim_data.get_metabolism_config()
         metabolism_config = deep_merge(metabolism_config, self.config['metabolism'])
         metabolism_process = Metabolism(metabolism_config)
 
         # configure exchanger stub process
-        exchanger_process = Exchange({'exchanges': config['exchanges']})
+        exchanger_config = {'exchanges': example_update, 'time_step': metabolism_config['time_step']}
+        exchanger_process = Exchange(exchanger_config)
 
         return {
             'metabolism': metabolism_process,
@@ -320,13 +321,32 @@ def run_metabolism_composite():
     data = experiment.emitter.get_data()
 
 
+def run_metabolism_exchanger():
+    composer = MetabolismExchange()
+    metabolism_composite = composer.generate()
+
+    initial_state = get_state_from_file(
+        path=f'data/wcecoli_t1000.json')
+
+
+    experiment = Engine({
+        'processes': metabolism_composite['processes'],
+        'topology': metabolism_composite['topology'],
+        'initial_state': initial_state
+    })
+
+    experiment.update(10)
+
+    data = experiment.emitter.get_data()
 
 # functions to run from the command line
 test_library = {
     '0': test_metabolism_migration,
     '1': test_metabolism,
     '2': test_metabolism_aas,
-    '3': run_metabolism_composite
+    '3': run_metabolism,
+#    '4': run_metabolism_composite,
+#    '5': run_metabolism_exchanger,
 }
 
 if __name__ == '__main__':
