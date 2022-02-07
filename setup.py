@@ -26,6 +26,9 @@ INSTALL_REQUIRES = [
     'cobra',
     'matplotlib',
     'pytest',
+    'jax',
+    'jaxlib',
+    'jupyter',
 ]
 
 if __name__ == '__main__':
