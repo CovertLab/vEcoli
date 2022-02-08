@@ -159,6 +159,21 @@ class Requester(Step):
         return check_whether_evolvers_have_run(
             states['evolvers_ran'], self.name)
 
+    def __getstate__(self) -> dict:
+        """Return parameters
+
+        Unlike in vivarium.core.process.Process, here we return a
+        parameters dict that includes ``self.process`` instead of a
+        copy. This ensures that pickle will notice that the Requester
+        and Evolver in a pair share a process instance and will preserve
+        that shared object upon deserialization.
+        """
+        # Shallow copy since we just want to avoid changing
+        # `super()._original_parameters['process'].
+        state = copy.copy(super().__getstate__())
+        state['process'] = self.process
+        return state
+
 
 class Evolver(Process):
     """ Evolver Process
@@ -214,6 +229,21 @@ class Evolver(Process):
             self.process.evolve_state(timestep, states))
         update['evolvers_ran'] = True
         return convert_numpy_to_builtins(update)
+
+    def __getstate__(self) -> dict:
+        """Return parameters
+
+        Unlike in vivarium.core.process.Process, here we return a
+        parameters dict that includes ``self.process`` instead of a
+        copy. This ensures that pickle will notice that the Requester
+        and Evolver in a pair share a process instance and will preserve
+        that shared object upon deserialization.
+        """
+        # Shallow copy since we just want to avoid changing
+        # `super()._original_parameters['process'].
+        state = copy.copy(super().__getstate__())
+        state['process'] = self.process
+        return state
 
 
 class PartitionedProcess(Process):
