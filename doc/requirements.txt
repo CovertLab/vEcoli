@@ -15,6 +15,7 @@ docutils==0.16
 entrypoints==0.3
 idna==2.10
 imagesize==1.2.0
+jax==0.2.13
 iniconfig==1.1.1
 ipython==7.28.0
 ipython-genutils==0.2.0
