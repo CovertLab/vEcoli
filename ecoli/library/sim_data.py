@@ -416,9 +416,16 @@ class LoadSimData:
         stoichiometry = dict(sorted(stoichiometry.items()))
         rxns = list()
 
+        # TODO (Cyrus) Below operations are redundant (renaming, catalyst rearranging) and should just be removed.
+        # from the metabolism dataclass. Are catalysts all required? Or all possible ways to catalyze. Latter.
+        reaction_catalysts = self.sim_data.process.metabolism.reaction_catalysts
+        catalyst_ids = self.sim_data.process.metabolism.catalyst_ids
+        reactions_with_catalyst = self.sim_data.process.metabolism.reactions_with_catalyst
+
         REVERSE_TAG = ' (reverse)'
 
         # TODO Consider moving separation of reactions into metabolism reaction. Is it even necessary?
+        # Also add check for stoichiometries being equal for removed reverse reactions
 
         # First pass. Add all reactions without tag.
         for key, value in stoichiometry.items():
@@ -433,6 +440,14 @@ class LoadSimData:
                 rxns.append({'reaction id': key,
                              'stoichiometry': value,
                              'is reversible': False})
+
+            if key in reactions_with_catalyst:
+                rxns[-1]['enzyme'] = reaction_catalysts[key]
+            else:
+                rxns[-1]['enzyme'] = []
+
+        # TODO Reconstruct catalysis and annotate.
+        # Required:
 
         metabolism_config = {
             'time_step': time_step,
@@ -454,6 +469,7 @@ class LoadSimData:
             'non_growth_associated_maintenance': self.sim_data.constants.non_growth_associated_maintenance,
             'cell_dry_mass_fraction': self.sim_data.mass.cell_dry_mass_fraction,
             'seed': self.random_state.randint(RAND_MAX),
+            'reactions_with_catalyst': self.sim_data.process.metabolism.reactions_with_catalyst,
 
             # methods
             'concentration_updates': self.sim_data.process.metabolism.concentration_updates,

@@ -10,6 +10,7 @@
 
 *.out
 out/
+/out
 .idea/
 *.iml
 
