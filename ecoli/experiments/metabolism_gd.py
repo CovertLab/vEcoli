@@ -118,7 +118,7 @@ def run_metabolism_composite():
 
 def test_ecoli_with_metabolism_gd(
         filename='fba_gd_swap',
-        total_time=10 ,
+        total_time=1000 ,
         divide=False,
         progress_bar=True,
         log_updates=False,
@@ -140,9 +140,9 @@ def test_ecoli_with_metabolism_gd(
 
     # run simulation and add asserts to output
     output = sim.run()
-    # np.save('out/fba_results.npy', output['listeners']['fba_results'])
-    # np.save('out/mass.npy', output['listeners']['mass'])
-    # np.save('out/bulk.npy', output['bulk'])
+    np.save('out/fba_results.npy', output['listeners']['fba_results'])
+    np.save('out/mass.npy', output['listeners']['mass'])
+    np.save('out/bulk.npy', output['bulk'])
 
     # put asserts here to make sure it is behaving as expected
     # assert output['listeners']['fba_results']
