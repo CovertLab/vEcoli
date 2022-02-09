@@ -18,6 +18,7 @@ out/
 user/*
 !user/user.txt
 *.cprof
+.ipynb_checkpoints
 
 # Compiled source #
 ###################
@@ -36,10 +37,6 @@ __pycache__
 .python-version
 .pytest_cache
 
-# Jupyter #
-###########
-.ipynb_checkpoints
-
 # Pipenv files #
 ################
 Pipfile
@@ -56,3 +53,4 @@ pyproject.toml
 data/blame_test_data.json
 data/vivecoli_t2.json
 ecoli/composites/ecoli_configs/test_configs/test_export.json
+/notebooks/test_files/
