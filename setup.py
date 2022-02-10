@@ -19,7 +19,7 @@ INSTALL_REQUIRES = [
     'Unum==4.1.4',
     'numba==0.50.1',
     'ipython>=7.16.1',
-    'aesara==2.0.8',
+    'aesara>=2.3.8',
     'decorator',
     'iteround',
     'stochastic-arrow>=0.4.4',
