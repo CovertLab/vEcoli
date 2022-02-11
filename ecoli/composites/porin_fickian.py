@@ -1,3 +1,4 @@
+from numpy import array
 from vivarium.core.composer import Composer
 from vivarium.core.emitter import timeseries_from_data
 from vivarium.core.engine import Engine
@@ -8,13 +9,11 @@ from ecoli.processes.antibiotics.porin_permeability import PorinPermeability, CE
 from ecoli.processes.antibiotics.fickian_diffusion import FickianDiffusion
 from vivarium.processes.timeline import TimelineProcess
 from ecoli.processes.antibiotics.nonspatial_environment import NonSpatialEnvironment
-from ecoli.processes.environment.diffusion_field import DiffusionField
 from ecoli.states.wcecoli_state import get_state_from_file
 
 
 class PorinFickian(Composer):
     defaults = {
-        'diffusion_field': {},
         'nonspatial': {},
         'fickian': {},
         'timeline': {},
@@ -25,21 +24,14 @@ class PorinFickian(Composer):
         super().__init__(config)
 
     def generate_processes(self, config):
-        diffusion_field = DiffusionField(config['diffusion_field'])
         fick_diffusion = FickianDiffusion(config['fickian'])
         timeline = TimelineProcess(config['timeline'])
-        return {'diffusion_field': diffusion_field,
-                'fickian': fick_diffusion,
+        return {'fickian': fick_diffusion,
                 'timeline': timeline,
                 }
 
     def generate_topology(self, config):
         return {
-            'diffusion_field': {
-                'agents': ('environment', 'agents',),
-                'fields': ('environment', 'fields',),
-                'dimensions': ('environment', 'dimensions',)
-            },
             'nonspatial': {
                 'external': ('environment', 'external',),
                 'exchanges': ('boundary', 'exchanges',),
@@ -81,6 +73,10 @@ def main():
     initial_state['boundary'] = {}
     initial_state['boundary']['surface_area'] = SA_AVERAGE
     initial_state['listeners']['mass']['dry_mass'] = initial_state['listeners']['mass']['dry_mass'] * units.fg
+    initial_state['environment']['fields'] = {}
+    initial_state['environment']['fields']['cephaloridine'] = array([[1e-3]])
+    initial_state['bulk']['CPLX0-7533[o]'] = 500
+    initial_state['bulk']['CPLX0-7534[o]'] = 500
 
     timeline = []
     for i in range(10):
@@ -92,16 +88,11 @@ def main():
         )
 
     config = {
-        'diffusion_field': {
-            'molecules': ['cephaloridine'],
-            'depth': 3000.0000000000014 * units.um,
-            'n_bins': [1, 1],
-            'bounds': [1 * units.um, 1 * units.um]
-        },
         'nonspatial': {
             'env_volume': 3000.0 * units.fL
         },
         'fickian': {
+            'time_step': 0.1,
             'molecules_to_diffuse': ['cephaloridine'],
             'initial_state': {
                 'internal': {
