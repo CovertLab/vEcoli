@@ -7,7 +7,12 @@ from vivarium.library.units import units
 from vivarium.plots.simulation_output import plot_variables
 from vivarium.processes.timeline import TimelineProcess
 
+# To calculate SA_AVERAGE, we calculated the average surface area of the model up until division.
 SA_AVERAGE = 6.22200939450696
+# To calculate CEPH_OMPC_CON_PERM and CEPH_OMPF_CON_PERM, we calculated the average counts of ompC and ompF
+# in the model up until division and divided each by the average surface area to get the average concentrations
+# of ompC and ompF. We then divided the corresponding cephaloridine permeability coefficients from Nikaido, 1983
+# by these average concentrations to get our permeability per concentration constants.
 CEPH_OMPC_CON_PERM = 0.003521401200296894 * 1e-5 * units.cm * units.micron * units.micron / units.sec
 CEPH_OMPF_CON_PERM = 0.01195286573132685 * 1e-5 * units.cm * units.micron * units.micron / units.sec
 
