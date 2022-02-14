@@ -14,13 +14,13 @@ class AntibioticHydrolysis(ConvenienceKinetics):
 
     name = 'antibiotic_hydrolysis'
     defaults = {
-        'kcat': 1,  # 1/sec
-        'Km': 1e-3,  # mM
+        'kcat': 1 / units.sec,
+        'Km': 1e-3 * units.millimolar,
         'target': 'antibiotic',
-        'initial_target_internal': 1e-3,  # mM
-        'initial_hydrolyzed_internal': 0,  # mM
+        'initial_target_internal': 1e-3 * units.millimolar,
+        'initial_hydrolyzed_internal': 0 * units.millimolar,
         'catalyst': 'catalyst',
-        'initial_catalyst': 1e-3,  # mM
+        'initial_catalyst': 1e-3 * units.millimolar,
         'time_step': 1,
     }
 
@@ -31,12 +31,15 @@ class AntibioticHydrolysis(ConvenienceKinetics):
         parameters = copy.deepcopy(self.defaults)
         deep_merge(parameters, initial_parameters)
 
-        kcat = parameters['kcat']
-        if isinstance(kcat, Quantity):
-            kcat = kcat.to(1 / units.sec).magnitude
-        km = parameters['Km']
-        if isinstance(km, Quantity):
-            km = km.to(units.mmol / units.L).magnitude
+        kcat = parameters['kcat'].to(1 / units.sec).magnitude
+        km = parameters['Km'].to(units.millimolar).magnitude
+        initial_target = parameters['initial_target_internal'].to(
+            units.millimolar).magnitude
+        initial_hydrolyzed = parameters[
+            'initial_hydrolyzed_internal'].to(
+                units.millimolar).magnitude
+        initial_catalyst = parameters['initial_catalyst'].to(
+            units.millimolar).magnitude
         hydrolyzed_key = f'{parameters["target"]}_hydrolyzed'
 
         kinetics_parameters = {
@@ -64,14 +67,11 @@ class AntibioticHydrolysis(ConvenienceKinetics):
                     'hydrolysis': 0.0,
                 },
                 'internal': {
-                    parameters['target']: parameters[
-                        'initial_target_internal'],
-                    hydrolyzed_key: parameters[
-                        'initial_hydrolyzed_internal'],
+                    parameters['target']: initial_target,
+                    hydrolyzed_key: initial_hydrolyzed,
                 },
                 'catalyst_port': {
-                    parameters['catalyst']: parameters[
-                        'initial_catalyst'],
+                    parameters['catalyst']: initial_catalyst,
                 },
             },
             'port_ids': ['internal', 'catalyst_port'],

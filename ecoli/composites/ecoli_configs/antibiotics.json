@@ -57,22 +57,22 @@
     },
     "process_configs": {
         "antibiotic_transport": {
-            "initial_pump": 1e-3,
-            "initial_internal_antibiotic": 0,
-            "intial_external_antibiotic": 0.1239,
-            "kcat": 1e1,
-            "Km": 4.95e-3,
+            "initial_pump": "!UnitsSerializer[1e-3 millimolar]",
+            "initial_internal_antibiotic": "!UnitsSerializer[0 millimolar]",
+            "intial_external_antibiotic": "!UnitsSerializer[0.1239 millimolar]",
+            "kcat": "!UnitsSerializer[1e1 / second]",
+            "Km": "!UnitsSerializer[4.95e-3 millimolar]",
             "pump_key": "TRANS-CPLX-201[m]",
             "antibiotic_key": "nitrocefin",
             "time_step": 1
         },
         "antibiotic_hydrolysis": {
-            "initial_catalyst": 1e-3,
+            "initial_catalyst": "!UnitsSerializer[1e-3 millimolar]",
             "catalyst": "EG10040-MONOMER[p]",
-            "initial_target_internal": 0,
+            "initial_target_internal": "!UnitsSerializer[0 millimolar]",
             "target": "nitrocefin",
-            "kcat": 490,
-            "Km": 0.5,
+            "kcat": "!UnitsSerializer[490 / second]",
+            "Km": "!UnitsSerializer[0.5 millimolar]",
             "time_step": 1
         },
         "fickian_diffusion": {
@@ -84,12 +84,12 @@
                     "nitrocefin": 0
                 },
                 "volume_global": {
-                    "volume": 0.36
+                    "volume": "!UnitsSerializer[0.36 femtoliter]"
                 }
             },
             "molecules_to_diffuse": ["nitrocefin"],
-            "permeability": 0.2e-6,
-            "surface_area_mass_ratio": 132,
+            "permeability": "!UnitsSerializer[0.2e-6 centimeter / second]",
+            "surface_area_mass_ratio": "!UnitsSerializer[132 centimeter ** 2 / milligram]",
             "time_step": 1
         },
         "concentrations_deriver": {

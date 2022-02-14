@@ -29,13 +29,12 @@ class FickianDiffusion(Process):
                 'antibiotic': 1e-3,  # mM
             },
             'mass_global': {
-                'dry_mass': 300,  # fg
+                'dry_mass': 300 * units.fg,
             },
             'volume_global': {
-                'volume': 1.2,  # fL
+                'volume': 1.2 * units.fL,
             },
         },
-        'default_default': 0,
         'permeability': 1e-5 * units.cm / units.sec,
         'surface_area_mass_ratio': 132 * units.cm**2 / units.mg,
     }
@@ -46,7 +45,7 @@ class FickianDiffusion(Process):
             'internal': {
                 # Molecule concentration in mmol/L
                 molecule: {
-                    '_default': self.parameters['default_default'],
+                    '_default': 0,
                     '_divider': 'set',
                     '_emit': True,
                 }
@@ -55,7 +54,7 @@ class FickianDiffusion(Process):
             'external': {
                 # Molecule concentration in mmol/L
                 molecule: {
-                    '_default': self.parameters['default_default'],
+                    '_default': 0,
                     '_divider': 'set',
                     '_emit': True,
                 }
@@ -64,7 +63,7 @@ class FickianDiffusion(Process):
             'fluxes': {
                 # Molecule counts
                 molecule: {
-                    '_default': self.parameters['default_default'],
+                    '_default': 0,
                     '_divider': 'set',
                 }
                 for molecule in self.parameters['molecules_to_diffuse']
@@ -72,22 +71,20 @@ class FickianDiffusion(Process):
             'exchanges': {
                 # Molecule counts
                 molecule: {
-                    '_default': self.parameters['default_default'],
+                    '_default': 0,
                     '_divider': 'split',
                 }
                 for molecule in self.parameters['molecules_to_diffuse']
             },
             'volume_global': {
                 'volume': {
-                    '_default': (
-                        self.parameters['default_default'] * units.fL),
+                    '_default': 0 * units.fL,
                     '_divider': 'split',
                 },
             },
             'mass_global': {
                 'dry_mass': {
-                    '_default': (
-                        self.parameters['default_default'] * units.fg),
+                    '_default': 0 * units.fg,
                     '_divider': 'split',
                 },
             }
@@ -113,26 +110,26 @@ class FickianDiffusion(Process):
 
         initial_state = {
             'internal': {
-                molecule: parameters['default_default']
+                molecule: 0
                 for molecule in self.parameters['molecules_to_diffuse']
             },
             'external': {
-                molecule: parameters['default_default']
+                molecule: 0
                 for molecule in self.parameters['molecules_to_diffuse']
             },
             'fluxes': {
-                molecule: parameters['default_default']
+                molecule: 0
                 for molecule in self.parameters['molecules_to_diffuse']
             },
             'exchanges': {
-                molecule: parameters['default_default']
+                molecule: 0
                 for molecule in self.parameters['molecules_to_diffuse']
             },
             'volume_global': {
-                'volume': parameters['default_default'],
+                'volume': 0 * units.fL,
             },
             'mass_global': {
-                'dry_mass': parameters['default_default'],
+                'dry_mass': 0 * units.fg,
             },
         }
         # Apply initial states from parameters. Note that we don't just
@@ -143,8 +140,6 @@ class FickianDiffusion(Process):
                 port_state[variable] = parameters[
                     'initial_state'].get(port, {}).get(
                     variable, value)
-        initial_state['volume_global']['volume'] *= units.fL
-        initial_state['mass_global']['dry_mass'] *= units.fg
         return initial_state
 
     def next_update(self, timestep, states):
