@@ -122,7 +122,6 @@ typing_extensions==4.0.1
 Unum==4.1.4
 vivarium-convenience==0.0.3
 vivarium-core==0.4.20
-vivarium-ecoli==0.0.1
 vivarium-multibody==0.0.16
 wcwidth==0.2.5
 webencodings==0.5.1
