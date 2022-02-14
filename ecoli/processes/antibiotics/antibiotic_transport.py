@@ -29,13 +29,13 @@ class AntibioticTransport(ConvenienceKinetics):
 
     name = 'antibiotic_transport'
     defaults = {
-        'kcat': 1,  # 1/sec
-        'Km': 1e-3,  # mmol/L
+        'kcat': 1 / units.sec,
+        'Km': 1e-3 * units.millimolar,
         'pump_key': 'pump',
         'antibiotic_key': 'antibiotic',
-        'initial_internal_antibiotic': 1e-3,  # mM
-        'initial_external_antibiotic': 0,  # mM
-        'initial_pump': 1e-3,  # mM
+        'initial_internal_antibiotic': 1e-3 * units.millimolar,
+        'initial_external_antibiotic': 0 * units.millimolar,
+        'initial_pump': 1e-3 * units.millimolar,
         'time_step': 1,
     }
 
@@ -46,13 +46,15 @@ class AntibioticTransport(ConvenienceKinetics):
         parameters = copy.deepcopy(self.defaults)
         deep_merge(parameters, initial_parameters)
 
-        kcat = parameters['kcat']
-        if isinstance(kcat, Quantity):
-            kcat = kcat.to(1 / units.sec).magnitude
+        kcat = parameters['kcat'].to(1 / units.sec).magnitude
+        km = parameters['Km'].to(units.millimolar).magnitude
+        initial_internal = parameters['initial_internal_antibiotic'].to(
+            units.millimolar).magnitude
+        initial_external = parameters['initial_external_antibiotic'].to(
+            units.millimolar).magnitude
+        initial_pump = parameters['initial_pump'].to(
+            units.millimolar).magnitude
 
-        km = parameters['Km']
-        if isinstance(km, Quantity):
-            km = km.to(units.mmol / units.L).magnitude
 
         kinetics_parameters = {
             'reactions': {
@@ -79,15 +81,13 @@ class AntibioticTransport(ConvenienceKinetics):
                     'export': 0.0,
                 },
                 'internal': {
-                    parameters['antibiotic_key']: parameters[
-                        'initial_internal_antibiotic'],
+                    parameters['antibiotic_key']: initial_internal,
                 },
                 'external': {
-                    parameters['antibiotic_key']: parameters[
-                        'initial_external_antibiotic'],
+                    parameters['antibiotic_key']: initial_external,
                 },
                 'pump_port': {
-                    parameters['pump_key']: parameters['initial_pump'],
+                    parameters['pump_key']: initial_pump,
                 },
             },
             'port_ids': ['internal', 'external', 'pump_port'],

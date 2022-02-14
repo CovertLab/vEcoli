@@ -18,6 +18,7 @@ from datetime import datetime
 from typing import Optional, Dict, Any
 
 from vivarium.core.engine import Engine
+from vivarium.core.serialize import deserialize_value
 from vivarium.library.dict_utils import deep_merge, deep_merge_combine_lists
 from vivarium.library.topology import assoc_path
 from ecoli.library.logging import write_json
@@ -195,6 +196,7 @@ class SimConfig:
     def update_from_json(self, path):
         with open(path, 'r') as f:
             new_config = json.load(f)
+        new_config = deserialize_value(new_config)
         for config_name in new_config.get('inherit_from', []):
             config_path = os.path.join(CONFIG_DIR_PATH, config_name)
             self.update_from_json(config_path)
