@@ -56,7 +56,7 @@ def custom_run_process(
 
     states['active_tfs'] = partitioned_counts['bulk']
 
-    update = experiment.invoke_process(
+    update = experiment._invoke_process(
         process,
         path,
         total_time,

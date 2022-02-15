@@ -382,7 +382,7 @@ def test_growth_division(
     # make the process
     multibody = Multibody(config)
     experiment = process_in_experiment(multibody, experiment_settings)
-    experiment.state.update_subschema(
+    experiment.state._update_subschema(
         ('agents',), {
             'boundary': {
                 'mass': {
@@ -397,14 +397,14 @@ def test_growth_division(
                     '_updater': 'set',
                     '_divider': 'split'
                 }}})
-    experiment.state.apply_subschemas()
+    experiment.state._apply_subschemas()
 
     # make initial agent state
     experiment.state.set_value({'agents': initial_agents_state})
     agents_store = experiment.state.get_path(['agents'])
 
     # emit initial state
-    experiment.emit_data()
+    experiment._emit_store_data()
 
     # run simulation
     time = 0
@@ -451,7 +451,7 @@ def test_growth_division(
             invoked_update.append((InvokeUpdate({'agents': update}), None))
 
         # update experiment
-        experiment.send_updates(invoked_update)
+        experiment._send_updates(invoked_update)
 
     experiment.end()
     return experiment.emitter.get_data_unitless()
@@ -501,7 +501,7 @@ def main():
     if not os.path.exists(out_dir):
         os.makedirs(out_dir)
     run_growth_division(out_dir)
-    
+
 
 if __name__ == '__main__':
     main()
