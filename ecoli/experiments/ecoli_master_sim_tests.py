@@ -12,7 +12,8 @@ def testDefault():
 def testAddProcess():
     sim = EcoliSim.from_file(CONFIG_DIR_PATH + 'test_configs/test_add_process.json')
     sim.total_time = 2
-    data = sim.run()
+    sim.run()
+    data = sim.query()
 
     assert 'clock' in sim.ecoli.processes.keys()
     assert 'global_time' in data.keys()
@@ -33,7 +34,8 @@ def testExcludeProcess():
 def testSwapProcess():
     sim = EcoliSim.from_file(CONFIG_DIR_PATH + 'test_configs/test_swap_process.json')
     sim.total_time = 2
-    data = sim.run()
+    sim.run()
+    data = sim.query()
 
     assert "ecoli-mass" in sim.ecoli.steps.keys()
     assert "ecoli-mass" in sim.ecoli.topology.keys()

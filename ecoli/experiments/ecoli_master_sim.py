@@ -511,12 +511,13 @@ class EcoliSim:
         self.ecoli_experiment.end()
         if self.profile:
             report_profiling(self.ecoli_experiment.stats)
-
-        # return the data
+        
+    def query(self, query=None):
+        # return queried data
         if self.raw_output:
-            return self.ecoli_experiment.emitter.get_data(query=None)
+            return self.ecoli_experiment.emitter.get_data(query)
         else:
-            return self.ecoli_experiment.emitter.get_timeseries(query=query)
+            return self.ecoli_experiment.emitter.get_timeseries(query)
 
     def merge(self, other):
         """
