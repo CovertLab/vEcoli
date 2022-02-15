@@ -709,7 +709,8 @@ def test_metabolism_listener():
     sim = EcoliSim.from_file()
     sim.total_time = 2
     sim.raw_output = False
-    data = sim.run()
+    sim.run()
+    data = sim.query()
     assert(type(data['listeners']['fba_results']['reactionFluxes'][0]) == list)
     assert(type(data['listeners']['fba_results']['reactionFluxes'][1]) == list)
 

@@ -7,7 +7,7 @@ from os.path import exists
 from ecoli.experiments.ecoli_master_sim import EcoliSim
 from vivarium.plots.simulation_output import plot_variables
 
-def testDefault(paths):
+def runDefault(paths):
     sim = EcoliSim.from_file()
     sim.raw_output = False
     sim.total_time = 500
@@ -19,7 +19,7 @@ def testDefault(paths):
     plot_degenes(timeseries, "default", paths)
 
 
-def testMarA(paths):
+def includeMarA(paths):
     sim = EcoliSim.from_file()
     sim.raw_output = False
     sim.total_time = 500
@@ -39,6 +39,8 @@ def testMarA(paths):
     query = [i['variable'] for i in paths]
     query += [("bulk", "ACRB-MONOMER[p]")]
     timeseries = sim.run(query)
+    # Consider using "inherit_from" key (see lysis.json) to inherit from silent_unqiue.json once that is fixed
+    # vivarium scripts to clear out MongoDB database
     print(timeseries["bulk"]["ACRB-MONOMER[p]"])
 
     plot_degenes(timeseries, "marA_long_sim", paths)
@@ -86,9 +88,10 @@ def plot_degenes(timeseries, name, variable_paths):
     fig = plot_variables(
         timeseries, 
         variables=variable_paths,
-        # Try to find a way to overlay line plots from different runs
-        # Put expected fold change in plot as dashed line
+        # TODO: Try to find a way to overlay line plots from different runs
+        # TODO: Put expected fold change in plot as dashed line
         # Get list of misbehaving molecules to report at meetings
+        # Use mRNA fold changes from 10 mg/L tetracycline from PLoS ONE paper
     )
     fig.tight_layout()
     fig.savefig(f"ecoli/experiments/marA_binding/{name}.png")
@@ -96,8 +99,8 @@ def plot_degenes(timeseries, name, variable_paths):
 
 def main():
     paths = ids_of_interest()
-    #testDefault(paths)
-    testMarA(paths)
+    #runDefault(paths)
+    includeMarA(paths)
 
 if __name__=="__main__":
     main()

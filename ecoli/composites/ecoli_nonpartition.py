@@ -180,7 +180,9 @@ def run_ecoli(
         ecoli_store = sim.ecoli.generate_store()
         print(pf(ecoli_store['unique'].get_config()))
 
-    return sim.run()
+    sim.run()
+    
+    return sim.query()
 
 
 def test_ecoli():
@@ -212,8 +214,9 @@ def run_division(
     sim.progress_bar = False
     sim.raw_output = True
 
-    # run simulation
-    output = sim.run()
+    # run simulation and get output
+    sim.run()
+    output = sim.query()
 
     # asserts
     initial_agents = output[0.0]['agents'].keys()
