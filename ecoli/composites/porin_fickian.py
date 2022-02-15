@@ -20,9 +20,6 @@ class PorinFickian(Composer):
         'porin_permeability': {},
     }
 
-    def __init__(self, config=None):
-        super().__init__(config)
-
     def generate_processes(self, config):
         fick_diffusion = FickianDiffusion(config['fickian'])
         timeline = TimelineProcess(config['timeline'])

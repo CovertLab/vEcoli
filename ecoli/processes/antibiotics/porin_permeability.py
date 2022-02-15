@@ -35,13 +35,13 @@ class PorinPermeability(Step):
                 '_default': 1e-5 * units.cm / units.sec,
                 '_emit': True,
                 '_updater': 'set'
-            } for mol_id in self.diffusing_molecules},  # Different permeability for every antibiotic
+            } for mol_id in self.diffusing_molecules},  # Different permeability for every molecule
             'surface_area': {'_default': 0.0}
         }
 
     def next_update(self, timestep, states):
         porins = states['porins']
-        surface_area = states['surface_area'] * units.micron * units.micron
+        surface_area = states['surface_area'] * units.micron ** 2
         permeabilities = {}
         for molecule in self.diffusing_molecules:
             cell_permeability = 0
