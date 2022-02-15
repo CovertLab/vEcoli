@@ -45,8 +45,8 @@ class PorinPermeability(Step):
         permeabilities = {}
         for molecule in self.diffusing_molecules:
             cell_permeability = 0
-            for porin_id in self.diffusing_molecules[molecule].keys():
-                cell_permeability += (porins[porin_id] / surface_area) * self.diffusing_molecules[molecule][porin_id]
+            for porin_id, permeability in self.diffusing_molecules[molecule].items():
+                cell_permeability += (porins[porin_id] / surface_area) * permeability
             permeabilities[molecule] = cell_permeability
         return {'permeabilities': permeabilities}
 
