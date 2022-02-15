@@ -46,7 +46,7 @@ class FickianDiffusion(Process):
                 # Molecule concentration in mmol/L
                 molecule: {
                     '_default': self.parameters['default_default'],
-                    '_divider': 'split',
+                    '_divider': 'set',
                     '_emit': True,
                 }
                 for molecule in self.parameters['molecules_to_diffuse']
