@@ -9,11 +9,13 @@ from ecoli.processes.antibiotics.porin_permeability import PorinPermeability, CE
 from ecoli.processes.antibiotics.fickian_diffusion import FickianDiffusion
 from vivarium.processes.timeline import TimelineProcess
 from ecoli.processes.antibiotics.nonspatial_environment import NonSpatialEnvironment
+from ecoli.processes.environment.derive_globals import DeriveGlobals
 from ecoli.states.wcecoli_state import get_state_from_file
 
 
 class PorinFickian(Composer):
     defaults = {
+        'derive_globals': {},
         'nonspatial': {},
         'fickian': {},
         'timeline': {},
@@ -29,12 +31,15 @@ class PorinFickian(Composer):
 
     def generate_topology(self, config):
         return {
+            'derive_globals': {
+                'global': ('global',),
+            },
             'nonspatial': {
                 'external': ('environment', 'external',),
                 'exchanges': ('boundary', 'exchanges',),
                 'fields': ('environment', 'fields'),
                 'dimensions': ('environment', 'dimensions'),
-                'global': ('listeners', 'mass',),  # To get location, volume, and mmol_to_counts
+                'global': ('global',),
             },
             'fickian': {
                 'internal': ('boundary', 'internal',),
@@ -57,9 +62,11 @@ class PorinFickian(Composer):
         }
 
     def generate_steps(self, config):
+        derive_globals = DeriveGlobals(config['derive_globals'])
         nonspatial = NonSpatialEnvironment(config['nonspatial'])
         porin_permeability = PorinPermeability(config['porin_permeability'])
-        return {'nonspatial': nonspatial,
+        return {'derive_globals': derive_globals,
+                'nonspatial': nonspatial,
                 'porin_permeability': porin_permeability}
 
 
@@ -85,6 +92,7 @@ def main():
         )
 
     config = {
+        'derive_globals': {},
         'nonspatial': {
             'env_volume': 3000.0 * units.fL
         },
