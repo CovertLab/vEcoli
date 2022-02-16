@@ -13,7 +13,7 @@ import os
 # The exact versions of all our dependencies that are used for testing
 # are listed in requirements.txt.
 INSTALL_REQUIRES = [
-    'vivarium-core>=0.4.20',
+    'vivarium-core>=1.0.2',
     'vivarium-convenience>=0.0.3',
     'biopython==1.77',
     'Unum==4.1.4',
