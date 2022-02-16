@@ -36,7 +36,6 @@ class FickianDiffusion(Process):
             },
         },
         'default_default': 0,
-        'permeability': 1e-5 * units.cm / units.sec,
         'surface_area_mass_ratio': 132 * units.cm**2 / units.mg,
     }
 
@@ -89,6 +88,13 @@ class FickianDiffusion(Process):
                         self.parameters['default_default'] * units.fg),
                     '_divider': 'split',
                 },
+            },
+            'permeabilities': {
+                mol_id: {
+                    '_default': 1e-5 * units.cm / units.sec,
+                    '_emit': True,
+                    '_updater': 'set'
+                } for mol_id in self.parameters['molecules_to_diffuse']
             }
         }
 
@@ -132,11 +138,11 @@ class FickianDiffusion(Process):
         return initial_state
 
     def next_update(self, timestep, states):
-        permeability = self.parameters['permeability']
         area_mass = self.parameters['surface_area_mass_ratio']
         mass = states['mass_global']['dry_mass']
         flux_mmol = {}
         for molecule in self.parameters['molecules_to_diffuse']:
+            permeability = states['permeabilities'][molecule]
             # Flux is positive when leaving the cell
             delta_concentration = (
                 states['internal'][molecule]
@@ -211,7 +217,7 @@ def demo():
 
 
 def get_expected_demo_data():
-    p = FickianDiffusion.defaults['permeability']
+    p = 1e-5 * units.cm / units.sec
     x_am = FickianDiffusion.defaults['surface_area_mass_ratio']
 
     def rate(internal, external, dry_mass):
