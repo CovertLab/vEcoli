@@ -80,7 +80,8 @@ def blame_timeseries(data,
     Example usage:
     ```
     sim = EcoliSim.from_file()
-    data = sim.run()
+    sim.run()
+    data = sim.query()
     blame_timeseries(data, sim.topology,
                      ['WATER[c]', 'APORNAP-CPLX[c]', 'TRP[c]'],
                      'out/ecoli_master/test_blame_timeseries.png',
@@ -172,7 +173,8 @@ def test_blame_timeseries():
         # sim.exclude_processes = ["ecoli-two-component-system",
         #                          "ecoli-chromosome-structure",]
         #                          #"ecoli-polypeptide-elongation"]
-        data = sim.run()
+        sim.run()
+        data = sim.query()
         topo = sim.topology
 
     molecules = [
