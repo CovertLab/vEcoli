@@ -129,9 +129,11 @@ class LoadSimData:
         with open("ecoli/experiments/marA_binding/TU_idx_to_FC.json") as f:
             TU_idx_to_FC = json.load(f)
         n_targets = len(TU_idx_to_FC)
-        new_deltaI = np.array(list(TU_idx_to_FC.keys()))
+        new_deltaI = np.array(list(TU_idx_to_FC.keys())).astype(int)
         new_deltaJ = np.array([24]*n_targets)
-        new_deltaV = np.array(list(TU_idx_to_FC.values()))/100
+        # Just change one gene at a time to see if that causes the desired effect
+        new_deltaV = np.array(list(TU_idx_to_FC.values()))
+        
         self.sim_data.process.transcription_regulation.delta_prob["deltaI"] = np.concatenate(
             [self.sim_data.process.transcription_regulation.delta_prob["deltaI"], new_deltaI])
         self.sim_data.process.transcription_regulation.delta_prob["deltaJ"] = np.concatenate(

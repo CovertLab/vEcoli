@@ -21,17 +21,33 @@ degenes = degenes.sort_values(
     by="Fold change", ascending=False, ignore_index=True)
 model_degenes = []
 
+
+# Use fold change from direct exposure to tetracycline instead
+tet_FC = pd.read_table("ecoli/experiments/marA_binding/tet_FC.tsv")
+tet_10_FC = tet_FC.loc[:,["Gene Name ", "10 mg/L tet."]]
+# Figure out how best to scale these values (e.g. log, subtract 1, etc.)
+tet_10_FC["10 mg/L tet."] -= 1
+tet_10_FC.rename(columns={
+    "Gene Name ": "Gene name", "10 mg/L tet.": "Fold change"}, inplace=True)
+degenes = tet_10_FC.sort_values(
+    by="Fold change", ascending=False, ignore_index=True)
+
 for i, gene in enumerate(degenes["Gene name"]):
     # Cycle through gene synonyms in rnas.tsv to find EcoCyc name for DE genes
+    found = False
     for j, synonyms in enumerate(rnas["synonyms"]):
         if gene in synonyms:
             model_degenes.append(
                 degenes.iloc[i,].append(rnas.iloc[j,]).to_frame().T)
+            found = True
         # Special case because "-" character is hard to deal with
         elif gene=="srlA2":
             if "srlA-2" in synonyms:
                 model_degenes.append(
                     degenes.iloc[i,].append(rnas.iloc[j,]).to_frame().T)
+            found = True
+    if not found:
+        print(gene)
 
 # Concatenating at end is supposed to be more efficient than row-wise append
 model_degenes = pd.concat(model_degenes, ignore_index=True)
@@ -66,10 +82,9 @@ comp_rxns["common_name"][comp_rxns["common_name"].isna()] = "No name"
 
 def get_IDs(monomer_id):
     monomer_id = json.loads(monomer_id)
-    # In case monomer has more than 1 ID
-    if len(monomer_id) != 1:
-        print(monomer_id)
-        raise Exception(f"Monomer has more than 1 ID: {monomer_id}")
+    # Noncoding RNAs
+    if len(monomer_id) == 0:
+        return [[], [], [], []]
     else:
         monomer_id = monomer_id[0]
     degene_bulk_ids = []
