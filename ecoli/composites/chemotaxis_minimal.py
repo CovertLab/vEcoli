@@ -9,6 +9,8 @@ import os
 from vivarium.core.composer import Composer
 from vivarium.core.composition import COMPOSITE_OUT_DIR, simulate_composite
 from vivarium.plots.simulation_output import plot_simulation_output
+from vivarium.core.control import run_library_cli
+from vivarium.core.engine import Engine, pf
 
 # processes
 from ecoli.processes.chemotaxis.chemoreceptor_cluster import (
@@ -16,7 +18,7 @@ from ecoli.processes.chemotaxis.chemoreceptor_cluster import (
     get_exponential_random_timeline,
 )
 from ecoli.processes.chemotaxis.coarse_motor import MotorActivity
-
+from ecoli.processes.environment.static_field import StaticField, get_exponential_config
 
 
 NAME = 'chemotaxis_minimal'
@@ -108,6 +110,40 @@ def test_chemotaxis_minimal(total_time=10):
 
     return timeseries
 
+def run_in_static_field():
+    environment_port = ('external',)
+    ligand_id = 'MeAsp'
+    initial_conc = 0
+    time_step = 0.1
+
+    # make the compartment
+    chemotaxis_config = {
+        'external_path': (environment_port,),
+        'ligand_id': ligand_id,
+        'initial_ligand': initial_conc}
+    chemotaxis_composite = ChemotaxisMinimal(chemotaxis_config).generate(path=('agents', '1'))
+
+    # add a static field process
+    static_field_params = get_exponential_config()  # TODO -- put in parameters!
+    static_field = StaticField(static_field_params)
+    chemotaxis_composite.merge(
+        processes={'static_field': static_field},
+        topology={'static_field': {
+            'agents': ('agents',)
+        }}
+    )
+
+    # put the composite in an engine and run it
+    sim = Engine(processes=chemotaxis_composite.processes,
+                 topology=chemotaxis_composite.topology)
+    sim.update(10)
+
+    # get the data
+    data = sim.emitter.get_data()
+
+    print(pf(data))
+
+
 
 def main():
     out_dir = os.path.join(COMPOSITE_OUT_DIR, NAME)
@@ -131,7 +167,11 @@ def main():
         'exponential_timeline')
 
 
+library = {
+    '0': main,
+    '1': run_in_static_field
+}
 
-
+# python ecoli/composites/chemotaxis_minimal.py -n [exp #]
 if __name__ == '__main__':
-    main()
+    run_library_cli(library)
