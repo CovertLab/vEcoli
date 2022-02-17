@@ -315,7 +315,8 @@ def run_ecoli(
     sim.log_updates = log_updates
     sim.emitter = emitter
 
-    return sim.run()
+    sim.run()
+    return sim.query()
 
 
 def ecoli_topology_plot(config={}):
