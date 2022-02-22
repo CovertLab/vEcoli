@@ -6,10 +6,10 @@ from vivarium.library.units import units
 from vivarium.plots.simulation_output import plot_variables
 from vivarium.plots.topology import plot_topology
 from vivarium.processes.timeline import TimelineProcess
+from vivarium_convenience.processes.convenience_kinetics import ConvenienceKinetics
 
 from ecoli.states.wcecoli_state import get_state_from_file
 from ecoli.processes.enzyme_kinetics import EnzymeKinetics
-from ecoli.processes.antibiotics.antibiotic_hydrolysis import AntibioticHydrolysis
 from ecoli.processes.antibiotics.fickian_diffusion import (
     FickianDiffusion,
 )
@@ -50,7 +50,6 @@ class SimpleAntibioticsCell(Composer):
     '''
 
     defaults = {
-        'boundary_path': ('boundary',),
         'efflux': {
             'reactions': {
                 'cephaloridine_tolc': {
@@ -61,7 +60,7 @@ class SimpleAntibioticsCell(Composer):
                     'is reversible': False,
                     'catalyzed by': [('bulk', 'TRANS-CPLX-201')]
                 },
-                'cephaloridine_beta-lactamse': {
+                'cephaloridine_beta-lactamase': {
                     'stoichiometry': {
                         ('periplasm', 'concs', 'cephaloridine'): -1,
                         ('periplasm', 'concs', 'cephaloridine_hydrolyzed'): 1
@@ -87,29 +86,24 @@ class SimpleAntibioticsCell(Composer):
             'time_step': 0.1,
         },
         'fickian_diffusion': {
-            'default_state': {
-                'external': {
-                    ANTIBIOTIC_KEY: INITIAL_EXTERNAL_ANTIBIOTIC,
-                },
-                'internal': {
-                    ANTIBIOTIC_KEY: INITIAL_INTERNAL_ANTIBIOTIC,
-                },
-                'global': {
-                    'periplasm_volume': (
-                        1.2 * units.fL * PERIPLASM_FRACTION),
-                },
-            },
-            'molecules_to_diffuse': [ANTIBIOTIC_KEY],
-            # (Nagano & Nikaido, 2009) reports that their mutant strain,
-            # RAM121, has 10-fold faster influx of nitrocefin with a
-            # permeability of 0.2e-5 cm/s, so wildtype has a
-            # permeability of 0.2e-6 cm/s.
-            'permeability': 0.2e-6 * units.cm / units.sec,
-            # From (Nagano & Nikaido, 2009)
-            'surface_area_mass_ratio': 132 * units.cm**2 / units.mg,
             'time_step': 0.1,
+            'molecules_to_diffuse': ['cephaloridine'],
+            'initial_state': {
+                'internal': {
+                    'cephaloridine': INITIAL_INTERNAL_ANTIBIOTIC,  # mM
+                },
+                'external': {
+                    'cephaloridine': INITIAL_EXTERNAL_ANTIBIOTIC,  # mM
+                },
+                # 'global': {
+                #     'periplasm_volume': (
+                #         1.2 * units.fL * PERIPLASM_FRACTION),
+                # }
+            },
+            'surface_area_mass_ratio': 132 * units.cm ** 2 / units.mg,
         },
         'shape_deriver': {},
+        'timeline': {},
         'porin_permeability': {
             'porin_ids': ['CPLX0-7533[o]', 'CPLX0-7534[o]'],
             'diffusing_molecules': {
@@ -119,50 +113,47 @@ class SimpleAntibioticsCell(Composer):
                 },
             },
         },
-        'timeline': {},
+        'nonspatial_environment': {
+            'concentrations': {
+                'cephaloridine': INITIAL_EXTERNAL_ANTIBIOTIC,
+            },
+            'internal_volume': 1.2 * units.fL,
+            'env_volume': 1 * units.mL,
+        },
     }
 
     def generate_processes(self, config):
-        efflux = EnzymeKinetics(config['efflux'])
-        hydrolysis = AntibioticHydrolysis(config['hydrolysis'])
+        # efflux = EnzymeKinetics(config['efflux'])
+        efflux = ConvenienceKinetics(config['efflux'])
         fickian_diffusion = FickianDiffusion(
             config['fickian_diffusion'])
         timeline = TimelineProcess(config['timeline'])
         return {
             'efflux': efflux,
-            'hydrolysis': hydrolysis,
             'fickian_diffusion': fickian_diffusion,
             'timeline': timeline,
         }
 
     def generate_topology(self, config=None):
-        boundary_path = config['boundary_path']
         topology = {
             'efflux': {
                 'internal': ('periplasm', 'concs'),
-                'external': boundary_path + ('external',),
-                'exchanges': boundary_path + ('exchanges',),
-                'pump_port': ('periplasm', 'concs'),
-                'fluxes': ('fluxes',),
-                'global': ('periplasm', 'global'),
-            },
-            'hydrolysis': {
-                'internal': ('periplasm', 'concs'),
-                'catalyst_port': ('periplasm', 'concs'),
+                'external': ('boundary', 'external',),
+                'exchanges': ('boundary', 'exchanges',),
                 'fluxes': ('fluxes',),
                 'global': ('periplasm', 'global'),
             },
             'fickian_diffusion': {
                 'internal': ('periplasm', 'concs'),
-                'external': boundary_path + ('external',),
-                'exchanges': boundary_path + ('exchanges',),
+                'external': ('boundary', 'external',),
+                'exchanges': ('boundary', 'exchanges',),
                 'fluxes': ('fluxes',),
                 'volume_global': ('periplasm', 'global'),
-                'mass_global': boundary_path,
-                'permeabilities': boundary_path + ('permeabilities',)
+                'mass_global': ('boundary',),
+                'permeabilities': ('boundary', 'permeabilities',)
             },
             'shape_deriver': {
-                'cell_global': boundary_path,
+                'cell_global': ('boundary',),
                 'periplasm_global': ('periplasm', 'global')
             },
             'timeline': {
@@ -171,8 +162,15 @@ class SimpleAntibioticsCell(Composer):
             },
             'porin_permeability': {
                 'porins': ('bulk',),
-                'permeabilities': boundary_path + ('permeabilities',),
-                'surface_area': boundary_path + ('surface_area',)
+                'permeabilities': ('boundary', 'permeabilities',),
+                'surface_area': ('boundary', 'surface_area',)
+            },
+            'nonspatial_environment': {
+                'external': ('boundary', 'external'),
+                'exchanges': ('boundary', 'exchanges'),
+                'fields': ('environment', 'fields'),
+                'dimensions': ('environment', 'dimensions'),
+                'global': ('boundary',),
             },
         }
         return topology
@@ -180,33 +178,16 @@ class SimpleAntibioticsCell(Composer):
     def generate_steps(self, config):
         shape_deriver = ShapeDeriver(config['shape_deriver'])
         porin_permeability = PorinPermeability(config['porin_permeability'])
+        nonspatial_environment = NonSpatialEnvironment(config['nonspatial_environment'])
         return {
             'shape_deriver': shape_deriver,
-            'porin_permeability': porin_permeability
+            'porin_permeability': porin_permeability,
+            'nonspatial_environment': nonspatial_environment,
         }
 
 
 def demo():
     composite = SimpleAntibioticsCell().generate()
-    env = NonSpatialEnvironment({
-        'concentrations': {
-            'cephaloridine': INITIAL_EXTERNAL_ANTIBIOTIC,
-        },
-        'internal_volume': 1.2 * units.fL,
-        'env_volume': 1 * units.mL,
-    })
-    composite.merge(
-        composite=env.generate(),
-        topology={
-            'nonspatial_environment': {
-                'external': ('boundary', 'external'),
-                'exchanges': ('boundary', 'exchanges'),
-                'fields': ('environment', 'fields'),
-                'dimensions': ('environment', 'dimensions'),
-                'global': ('boundary',),
-            }
-        }
-    )
 
     initial_state = get_state_from_file(path='data/vivecoli_t1000.json')
     initial_state['boundary'] = {}
@@ -216,11 +197,10 @@ def demo():
     # initial_state['boundary']['external']['cephaloridine'] = array([[INITIAL_EXTERNAL_ANTIBIOTIC]])
     initial_state['periplasm'] = {}
     initial_state['periplasm']['concs'] = {}
-    initial_state['periplasm']['concs']['beta-lactamse'] = array([[1e-3]])
+    initial_state['periplasm']['concs']['beta-lactamase'] = array([[1e-3]])
     initial_state['bulk']['CPLX0-7533[o]'] = 500
     initial_state['bulk']['CPLX0-7534[o]'] = 500
 
-    import ipdb; ipdb.set_trace()
 
     exp = composite_in_experiment(
         composite,
