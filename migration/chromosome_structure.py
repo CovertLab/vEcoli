@@ -50,7 +50,7 @@ def custom_run_process(
 
     states = partitioned_counts
 
-    update = experiment.invoke_process(
+    update = experiment._invoke_process(
         process,
         path,
         total_time,
