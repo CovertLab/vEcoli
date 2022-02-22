@@ -4,12 +4,12 @@ import numpy as np
 from scipy import constants
 
 from vivarium.library.units import units
-from vivarium.core.process import Deriver
+from vivarium.core.process import Step
 
 AVOGADRO = constants.N_A * 1 / units.mol
 
 
-class NonSpatialEnvironment(Deriver):
+class NonSpatialEnvironment(Step):
     '''A non-spatial environment with volume'''
 
     name = 'nonspatial_environment'
