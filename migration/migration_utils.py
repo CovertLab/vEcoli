@@ -65,7 +65,7 @@ def run_ecoli_process(
     topology_view = store.outer.schema_topology(process.schema, store.topology)
     states = view_values(topology_view)
 
-    update = experiment.invoke_process(
+    update = experiment._invoke_process(
         process,
         path,
         total_time,
