@@ -13,6 +13,7 @@ from wholecell.utils import units
 
 from ecoli.library.fba_gd import GradientDescentFba, FbaResult, TargetDmdtObjective
 from ecoli.processes.registries import topology_registry
+from ecoli.processes.partition import check_whether_evolvers_have_run
 
 
 COUNTS_UNITS = units.mmol
@@ -171,8 +172,14 @@ class MetabolismGD(Process):
                 'gtp_to_hydrolyze': {
                     '_default': 0,
                     '_emit': True}
-            }
+            },
+
+            'evolvers_ran': {'_default': True},
         }
+
+    def update_condition(self, timestep, states):
+        return check_whether_evolvers_have_run(
+            states['evolvers_ran'], self.name)
 
     def next_update(self, timestep, states):
 
