@@ -213,3 +213,7 @@ def get_demo_vs_expected_plot(demo_data, expected_data):
     fig.tight_layout()
 
     return fig
+
+
+if __name__ == '__main__':
+    test_antibiotic_transport()
