@@ -55,6 +55,7 @@ class Ecoli(Composer):
             'threshold': 2220},  # fg
         'divide': False,
         'log_updates': False,
+        'flow': {},
     }
 
     def __init__(self, config):
