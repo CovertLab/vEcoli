@@ -438,6 +438,11 @@ class EcoliSim:
         """
         Runs the simulation while saving the states of specific timesteps to jsons.
         """
+        for time in self.save_times:
+            if time > self.total_time:
+                raise ValueError(
+                    f'Config contains save_time ({time}) > total '
+                    f'time ({self.total_time})')
         time_elapsed = self.save_times[0]
         for i in range(len(self.save_times)):
             if i == 0:
