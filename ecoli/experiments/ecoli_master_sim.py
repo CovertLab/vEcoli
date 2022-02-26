@@ -181,6 +181,13 @@ class SimConfig:
         self.parser.add_argument(
             '--no_parallel', action='store_true', default=None,
             help='Do not run processes in parallel.')
+        self.parser.add_argument(
+            '--profile', action='store_true', default=False,
+            help='Print profiling information at the end.')
+        self.parser.add_argument(
+            '--initial_state_file', action='store',
+            default='wcecoli_t0',
+            help='Name of initial state file (no ".json") under data/')
 
     @staticmethod
     def merge_config_dicts(d1, d2):
