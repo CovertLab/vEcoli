@@ -28,7 +28,7 @@ class NonSpatialEnvironment(Deriver):
         schema = {
             'external': {
                 '*': {
-                    '_value': 0,
+                    '_value': 0 * units.mM,
                 },
             },
             'exchanges': {
@@ -72,7 +72,9 @@ class NonSpatialEnvironment(Deriver):
         # add field concentrations
         field_schema = {
             field_id: {
-                '_value': np.array([[float(conc)]])
+                '_value': np.array([[
+                    float(conc.to(units.millimolar).magnitude)
+                ]])
             } for field_id, conc in self.parameters['concentrations'].items()}
         schema['fields'].update(field_schema)
         return schema
@@ -92,7 +94,7 @@ class NonSpatialEnvironment(Deriver):
             'external': {
                 mol_id: {
                     '_updater': 'set',
-                    '_value': field[0][0],
+                    '_value': field[0][0] * units.mM,
                 }
                 for mol_id, field in new_fields.items()
             },
