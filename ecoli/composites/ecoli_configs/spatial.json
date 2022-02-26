@@ -1,48 +1,49 @@
 {
-  "spatial_environment" : true,
-  "spatial_environment_config": {
-          "multibody": {
-          "bounds": [10, 10],
-          "size": [10, 10]
-      },
-      "diffusion": {
-          "molecules": ["GLC[p]"],
-          "n_bins": [10, 10],
-          "size": [10, 10],
-          "depth": 3000.0,
-          "diffusion": 1e-2,
-          "gradient": {
-              "type": "uniform",
-              "molecules": {
-                  "GLC[p]": 1.0
-              }
-          }
-      }
-  },
-  "add_processes": [
-    "local_field",
-    "ecoli-shape"
-  ],
-  "topology": {
-    "local_field": {
-      "exchanges": ["environment", "exchange"],
-      "location": ["boundary", "location"],
-      "fields": ["..", "..", "fields"],
-      "dimensions": ["..", "..", "dimensions"]
+    "spatial_environment" : true,
+    "spatial_environment_config": {
+        "multibody": {
+            "bounds": [10, 10],
+            "size": [10, 10]
+        },
+        "diffusion": {
+            "molecules": ["GLC[p]"],
+            "n_bins": [10, 10],
+            "size": [10, 10],
+            "depth": 3000.0,
+            "diffusion": 1e-2,
+            "gradient": {
+                "type": "uniform",
+                "molecules": {
+                    "GLC[p]": 1.0
+                }
+            }
+        }
     },
-    "ecoli-shape": {
-      "cell_global": {
-        "_path": "boundary",
-        "volume": ["..", "listeners", "mass", "volume"]
+    "add_processes": [
+      "local_field",
+      "ecoli-shape"
+    ],
+    "topology": {
+      "local_field": {
+        "exchanges": ["environment", "exchange"],
+        "location": ["boundary", "location"],
+        "fields": ["..", "..", "fields"],
+        "dimensions": ["..", "..", "dimensions"]
       },
-      "periplasm_global": ["periplasm", "global"]
+      "ecoli-shape": {
+        "cell_global": {
+          "_path": ["boundary"],
+          "volume": ["..", "listeners", "mass", "volume"]
+        },
+        "periplasm_global": ["periplasm", "global"],
+        "listener_cell_mass": ["listeners", "mass", "cell_mass"]
+      }
+    },
+    "process_configs": {
+      "local_field": {},
+      "ecoli-shape": {}
+    },
+    "flow": {
+      "ecoli-shape": [["ecoli-mass-listener"]]
     }
-  },
-  "process_configs": {
-    "local_field": {},
-    "ecoli-shape": {}
-  },
-  "flow": {
-    "ecoli-shape": [["ecoli-mass-listener"]]
-  }
 }
