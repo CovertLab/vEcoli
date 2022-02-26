@@ -496,6 +496,14 @@ def run_growth_division(
         bounds, agents=agents, fields=fields, out_dir=out_dir)
 
 
+def test_daughter_locations():
+    locations = daughter_locations(
+        [2, 2],
+        {'length': 2 * math.sqrt(2), 'angle': -math.pi / 4},
+    )
+    assert locations == [[1.5, 2.5], [2.5, 1.5]]
+
+
 def main():
     out_dir = os.path.join(PROCESS_OUT_DIR, NAME)
     if not os.path.exists(out_dir):
