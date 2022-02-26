@@ -109,6 +109,31 @@ def cap_tunneling_paths(topology, outer=tuple()):
     return tunnels
 
 
+class SchemaStub(Process):
+    '''Stub process for providing schemas to an inner simulation.
+
+    When using :py:class:`ecoli.processes.engine_process.EngineProcess`,
+    there may be processes in the outer simulation whose schemas you are
+    expecting to affect variables in the inner simulation. You can
+    include this stub process in your inner simulation to provide those
+    schemas from the outer simulation.
+
+    The process takes a single parameter, ``ports_schema``, whose value
+    is the process's ports schema to be provided to the inner
+    simulation.
+    '''
+
+    defaults = {
+        'ports_schema': {},
+    }
+
+    def ports_schema(self):
+        return self.parameters['ports_schema']
+
+    def next_update(self, timestep, states):
+        return {}
+
+
 class EngineProcess(Process):
     defaults = {
         'composite': {},
@@ -116,6 +141,12 @@ class EngineProcess(Process):
         'tunnels_in': {},
         # Map from tunnel name to schema. Schemas are optional.
         'tunnel_out_schemas': {},
+        # Map from process name to a map from path in the inner
+        # simulation to the schema that should be stubbed in at that
+        # path. A stub process will be added with a port for each
+        # schema, and the topology will wire each port to the specified
+        # path.
+        'stub_schemas': {},
         'initial_inner_state': {},
         'agent_id': '0',
         'composer': None,
@@ -133,11 +164,25 @@ class EngineProcess(Process):
         self.tunnels_out = cap_tunneling_paths(
             composite['topology'])
         self.tunnels_in = self.parameters['tunnels_in']
+
+        processes = composite['processes']
+        topology = composite['topology']
+        for process, d in self.parameters['stub_schemas'].items():
+            stub_ports_schema = {}
+            stub_process_name = f'{process}_stub'
+            topology[stub_process_name] = {}
+            for path, schema in d.items():
+                port = '>'.join(path)
+                stub_ports_schema[port] = schema
+                topology[stub_process_name][port] = path
+            stub = SchemaStub({'ports_schema': stub_ports_schema})
+            processes[stub_process_name] = stub
+
         self.sim = Engine(
-            processes=composite['processes'],
+            processes=processes,
             steps=composite.get('steps'),
             flow=composite.get('flow'),
-            topology=composite['topology'],
+            topology=topology,
             initial_state=self.parameters['initial_inner_state'],
             emitter=self.parameters['inner_emitter'],
             display_info=False,

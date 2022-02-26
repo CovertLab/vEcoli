@@ -44,6 +44,8 @@ inverse_updater_registry = Registry()
 
 
 def inverse_update_set(initial_state, final_state):
+    if initial_state == final_state:
+        return {}
     return final_state
 
 
