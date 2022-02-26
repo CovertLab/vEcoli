@@ -39,10 +39,8 @@ class FickianDiffusion(Process):
     }
 
     def ports_schema(self):
-
         schema = {
             'internal': {
-                # Molecule concentration in mmol/L
                 molecule: {
                     '_default': 0,
                     '_divider': 'set',
@@ -51,7 +49,6 @@ class FickianDiffusion(Process):
                 for molecule in self.parameters['molecules_to_diffuse']
             },
             'external': {
-                # Molecule concentration in mmol/L
                 molecule: {
                     '_default': 0,
                     '_divider': 'set',
@@ -83,7 +80,7 @@ class FickianDiffusion(Process):
             },
             'mass_global': {
                 'dry_mass': {
-                    '_default': 0 * units.fg,
+                    '_default': 0,
                     '_divider': 'split',
                 },
             },
@@ -95,18 +92,6 @@ class FickianDiffusion(Process):
                 } for mol_id in self.parameters['molecules_to_diffuse']
             }
         }
-
-        for port, port_conf in self.parameters['initial_state'].items():
-            for variable, default in port_conf.items():
-                if variable == 'dry_mass' and not isinstance(
-                        default, Quantity):
-                    default = default * units.fg
-                if variable == 'volume' and not isinstance(
-                        default, Quantity):
-                    default = default * units.fL
-                if variable in schema[port]:
-                    schema[port][variable]['_default'] = default
-
         return schema
 
     def initial_state(self, config=None):
@@ -135,7 +120,7 @@ class FickianDiffusion(Process):
                 'volume': 0 * units.fL,
             },
             'mass_global': {
-                'dry_mass': 0 * units.fg,
+                'dry_mass': 0,
             },
         }
         # Apply initial states from parameters. Note that we don't just
@@ -150,9 +135,10 @@ class FickianDiffusion(Process):
 
     def next_update(self, timestep, states):
         area_mass = self.parameters['surface_area_mass_ratio']
-        if not isinstance(area_mass, Quantity):
-            area_mass *= units.cm**2 / units.mg
+        assert isinstance(area_mass, Quantity)
         mass = states['mass_global']['dry_mass']
+        assert not isinstance(mass, Quantity)
+        mass *= units.fg
         flux_mmol = {}
         for molecule in self.parameters['molecules_to_diffuse']:
             permeability = states['permeabilities'][molecule]
@@ -160,7 +146,7 @@ class FickianDiffusion(Process):
             delta_concentration = (
                 states['internal'][molecule]
                 - states['external'][molecule]
-            ) * units.mmol / units.L
+            ) * units.mM
             # Fick's first law of diffusion:
             rate = permeability * area_mass * delta_concentration
             flux = rate * mass * timestep * units.sec
@@ -181,9 +167,7 @@ class FickianDiffusion(Process):
                 for molecule, mol_flux in flux_counts.items()
             },
             'internal': {
-                molecule: - (
-                    mol_flux / volume
-                ).to(units.mmol / units.L).magnitude
+                molecule: (- mol_flux / volume).to(units.mM).magnitude
                 for molecule, mol_flux in flux_mmol.items()
             },
         }
@@ -220,8 +204,8 @@ def demo():
     fig = plot_variables(
         data,
         variables=[
-            ('internal', 'antibiotic'),
-            ('external', 'antibiotic'),
+            ('internal', ('antibiotic', 'millimolar')),
+            ('external', ('antibiotic', 'millimolar')),
         ],
     )
     return fig, data
@@ -262,13 +246,13 @@ def test_fickian_diffusion():
     expected_data = get_expected_demo_data()
     assert simulated_data['time'] == expected_data['time']
     np.testing.assert_allclose(
-        simulated_data['internal']['antibiotic'],
+        simulated_data['internal'][('antibiotic', 'millimolar')],
         expected_data['internal'],
         rtol=0,
         atol=1e-15,
     )
     np.testing.assert_allclose(
-        simulated_data['external']['antibiotic'],
+        simulated_data['external'][('antibiotic', 'millimolar')],
         expected_data['external'],
         rtol=0,
         atol=1e-15,
@@ -278,7 +262,8 @@ def test_fickian_diffusion():
 def get_demo_vs_expected_plot(demo_data, expected_data):
     fig, (ax1, ax2) = plt.subplots(nrows=2, figsize=(10, 5))
     ax1.plot(
-        demo_data['time'], demo_data['internal']['antibiotic'],
+        demo_data['time'],
+        demo_data['internal'][('antibiotic', 'millimolar')],
         label='simulated', alpha=0.5,
     )
     ax1.plot(
@@ -292,7 +277,7 @@ def get_demo_vs_expected_plot(demo_data, expected_data):
 
     ax2.plot(
         demo_data['time'],
-        demo_data['external']['antibiotic'],
+        demo_data['external'][('antibiotic', 'millimolar')],
         label='simulated', alpha=0.5,
     )
     ax2.plot(
