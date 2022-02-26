@@ -30,7 +30,7 @@
         "antibiotic_transport": {
             "internal": ["periplasm", "concentrations"],
             "external": ["boundary", "external"],
-            "exchanges": ["boundary", "exchanges"],
+            "exchanges": ["environment", "exchange"],
             "pump_port": ["periplasm", "concentrations"],
             "fluxes": ["fluxes"],
             "global": ["periplasm", "global"]
@@ -44,10 +44,10 @@
         "fickian_diffusion": {
             "internal": ["periplasm", "concentrations"],
             "external": ["boundary", "external"],
-            "exchanges": ["boundary", "exchanges"],
+            "exchanges": ["environment", "exchange"],
             "fluxes": ["fluxes"],
             "volume_global": ["periplasm", "global"],
-            "mass_global": ["boundary"]
+            "mass_global": ["listeners", "mass"]
         },
         "concentrations_deriver": {
             "counts": ["bulk"],

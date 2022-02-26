@@ -219,8 +219,7 @@ class PolypeptideElongation(PartitionedProcess):
                 'media_id': {
                     '_default': '',
                     '_updater': 'set'},
-                'amino_acids': bulk_schema([aa[:-3] for aa in self.aaNames])},
-
+            },
             'listeners': {
                 'mass': {
                     'cell_mass': {'_default': 0.0},
