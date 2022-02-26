@@ -477,7 +477,6 @@ def test_engine_process():
         # the filled inner simulation hierarchy.
         'c_tunnel': {
             '_default': 0,
-            '_divider': divider_registry.access('set'),
             '_emit': True,
             '_updater': 'accumulate',
             '_value': 0,
