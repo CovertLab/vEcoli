@@ -19,6 +19,7 @@ from ecoli.experiments.ecoli_master_sim import (
     SimConfig,
     get_git_revision_hash,
     get_git_status,
+    report_profiling,
 )
 from ecoli.library.schema import bulk_schema
 from ecoli.library.sim_data import RAND_MAX
