@@ -38,6 +38,7 @@ class EngineProcessCell(Composer):
         'seed': 0,
         'initial_tunnel_states': {},
         'tunnel_out_schemas': {},
+        'stub_schemas': {},
         'parallel': False,
         'ecoli_sim_config': {},
         'divide': False,
@@ -74,6 +75,7 @@ class EngineProcessCell(Composer):
                 'boundary_tunnel': ('boundary',),
             },
             'tunnel_out_schemas': config['tunnel_out_schemas'],
+            'stub_schemas': config['stub_schemas'],
             'seed': (config['seed'] + 1) % RAND_MAX,
             'divide': config['divide'],
             'division_threshold': config['division_threshold'],
@@ -108,6 +110,7 @@ def run_simulation():
     config.update_from_cli()
 
     tunnel_out_schemas = {}
+    stub_schemas = {}
     if config['spatial_environment']:
         # Generate environment composite.
         environment_composer = Lattice(
@@ -115,12 +118,22 @@ def run_simulation():
         environment_composite = environment_composer.generate()
         diffusion_schema = environment_composite.processes[
             'diffusion'].get_schema()
+        multibody_schema = environment_composite.processes[
+            'multibody'].get_schema()
         tunnel_out_schemas['fields_tunnel'] = diffusion_schema['fields']
         tunnel_out_schemas['dimensions_tunnel'] = diffusion_schema[
             'dimensions']
+        stub_schemas['diffusion'] = {
+            ('boundary',): diffusion_schema['agents']['*']['boundary'],
+        }
+        stub_schemas['multibody'] = {
+            ('boundary',): multibody_schema['agents']['*']['boundary'],
+        }
 
     composer = EngineProcessCell({
         'agent_id': config['agent_id'],
+        'tunnel_out_schemas': tunnel_out_schemas,
+        'stub_schemas': stub_schemas,
         'parallel': config['parallel'],
         'ecoli_sim_config': config.to_dict(),
         'divide': config['divide'],
