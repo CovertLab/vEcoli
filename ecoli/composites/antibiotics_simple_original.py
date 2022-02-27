@@ -6,6 +6,7 @@ from vivarium.core.emitter import timeseries_from_data
 from vivarium.library.units import units
 from vivarium.plots.simulation_output import plot_variables
 from vivarium.plots.topology import plot_topology
+from vivarium_convenience.processes.convenience_kinetics import ConvenienceKinetics
 from vivarium.processes.timeline import TimelineProcess
 
 from ecoli.processes.antibiotics.antibiotic_transport import AntibioticTransport
@@ -20,9 +21,13 @@ from ecoli.processes.antibiotics.nonspatial_environment import (
 from ecoli.processes.antibiotics.shape import ShapeDeriver
 
 
-INITIAL_INTERNAL_BETA_LACTAM = 0
-INITIAL_EXTERNAL_BETA_LACTAM = 1e-3
-BETA_LACTAM = 'cephaloridine'
+INITIAL_INTERNAL_BETA_LACTAM = 0 * units.mM
+INITIAL_EXTERNAL_BETA_LACTAM = 1e-3 * units.mM
+INITIAL_INTERNAL_TET = 0 * units.mM
+INITIAL_EXTERNAL_TET = 1e-3 * units.mM
+INITIAL_PUMP = 1e-3 * units.mM
+BETA_LACTAM_KEY = 'cephaloridine'
+TET_KEY = 'tetracycline'
 PUMP_KEY = 'TRANS-CPLX-201'
 # Source: (Wülfing & Plückthun, 1994)
 PERIPLASM_FRACTION = 0.3
@@ -31,7 +36,8 @@ BETA_LACTAMASE_KEY = 'beta-lactamase'
 
 class PARAMETERS:
     # Reported in (Nagano & Nikaido, 2009)
-    CEPH_PUMP_KCAT = 1e1 / units.sec  # TODO: Placeholder
+    # CEPH_PUMP_KCAT = 1e1 / units.sec  # TODO: Placeholder
+    TOLC_KCAT = 1e1 / units.sec  # TODO: Placeholder. Constant regardless of substrate?
     # Reported in (Nagano & Nikaido, 2009)
     CEPH_PUMP_KM = 4.95e-3 * units.millimolar  # TODO: Placeholder
     # Reported in (Galleni et al., 1988)
@@ -40,7 +46,6 @@ class PARAMETERS:
     CEPH_BETA_LACTAMASE_KM = 170 * units.micromolar
 
     TET_OMPF_CON_PERM = 0.01195286573132685 * 1e-5 * units.cm * units.micron * units.micron / units.sec  # TODO: Placeholder
-    TET_PUMP_KCAT = 1e1 / units.sec  # TODO: Placeholder
     TET_PUMP_KM = 4.95e-3 * units.millimolar  # TODO: Placeholder
 
 
@@ -62,7 +67,7 @@ class SimpleAntibioticsCell(Composer):
     }
 
     def generate_processes(self, config):
-        efflux = AntibioticTransport(config['efflux'])
+        efflux = ConvenienceKinetics(config['efflux'])
         hydrolysis = AntibioticHydrolysis(config['hydrolysis'])
         fickian_diffusion = FickianDiffusion(config['fickian_diffusion'])
         timeline = TimelineProcess(config['timeline'])
@@ -148,20 +153,71 @@ def demo():
     config = {
         'boundary_path': ('boundary',),
         'efflux': {
-            'initial_pump': 1e-3,
-            'initial_internal_antibiotic': INITIAL_INTERNAL_BETA_LACTAM,
-            'intial_external_antibiotic': INITIAL_EXTERNAL_BETA_LACTAM,
-            'kcat': PARAMETERS.CEPH_PUMP_KCAT,
-            'Km': PARAMETERS.CEPH_PUMP_KM,
-            'pump_key': PUMP_KEY,
-            'antibiotic_key': BETA_LACTAM,
+            'reactions': {
+                'export': {
+                    'stoichiometry': {
+                        ('internal', BETA_LACTAM_KEY): -1,
+                        ('external', BETA_LACTAM_KEY): 1,
+                        ('internal', TET_KEY): -1,
+                        ('external', TET_KEY): 1,
+                    },
+                    'is_reversible': False,
+                    'catalyzed by': [
+                        ('pump_port', PUMP_KEY)],
+                },
+            },
+            'kinetic_parameters': {
+                'export': {
+                    ('pump_port', PUMP_KEY): {
+                        'kcat_f': PARAMETERS.TOLC_KCAT,  # TODO: Check if supposed to be the same regardless of cofactor
+                        ('internal', BETA_LACTAM_KEY): PARAMETERS.CEPH_PUMP_KM,
+                        ('internal', TET_KEY): PARAMETERS.TET_PUMP_KM
+                    },
+                },
+            },
+            'initial_state': {
+                'fluxes': {
+                    'export': 0.0,
+                },
+                'internal': {
+                    BETA_LACTAM_KEY: INITIAL_INTERNAL_BETA_LACTAM,
+                    TET_KEY: INITIAL_INTERNAL_TET
+                },
+                'external': {
+                    BETA_LACTAM_KEY: INITIAL_EXTERNAL_BETA_LACTAM,
+                    TET_KEY: INITIAL_EXTERNAL_TET
+                },
+                'pump_port': {
+                    PUMP_KEY: INITIAL_PUMP,
+                },
+            },
+            'port_ids': ['internal', 'external', 'pump_port'],
             'time_step': 0.1,
+            # 'ceph_tolc': {
+            #     'initial_pump': INITIAL_PUMP,
+            #     'initial_internal_antibiotic': INITIAL_INTERNAL_BETA_LACTAM,
+            #     'initial_external_antibiotic': INITIAL_EXTERNAL_BETA_LACTAM,
+            #     'kcat': PARAMETERS.CEPH_PUMP_KCAT,
+            #     'Km': PARAMETERS.CEPH_PUMP_KM,
+            #     'pump_key': PUMP_KEY,
+            #     'antibiotic_key': BETA_LACTAM_KEY,
+            # },
+            # 'tet_tolc': {
+            #     'initial_pump': INITIAL_PUMP,
+            #     'initial_internal_antibiotic': INITIAL_INTERNAL_TET,
+            #     'initial_external_antibiotic': INITIAL_EXTERNAL_TET,
+            #     'kcat': PARAMETERS.TET_PUMP_KCAT,
+            #     'Km': PARAMETERS.TET_PUMP_KM,
+            #     'pump_key': PUMP_KEY,
+            #     'antibiotic_key': TET_KEY,
+            # },
+            # 'time_step': 0.1,
         },
         'hydrolysis': {
             'initial_catalyst': 1e-3,
             'catalyst': BETA_LACTAMASE_KEY,
             'initial_target_internal': INITIAL_INTERNAL_BETA_LACTAM,
-            'target': BETA_LACTAM,
+            'target': BETA_LACTAM_KEY,
             'kcat': PARAMETERS.CEPH_BETA_LACTAMASE_KCAT,
             'Km': PARAMETERS.CEPH_BETA_LACTAMASE_KM,
             'time_step': 0.1,
@@ -169,10 +225,12 @@ def demo():
         'fickian_diffusion': {
             'initial_state': {
                 'external': {
-                    BETA_LACTAM: INITIAL_EXTERNAL_BETA_LACTAM,
+                    BETA_LACTAM_KEY: INITIAL_EXTERNAL_BETA_LACTAM,
+                    TET_KEY: INITIAL_EXTERNAL_TET
                 },
                 'internal': {
-                    BETA_LACTAM: INITIAL_INTERNAL_BETA_LACTAM,
+                    BETA_LACTAM_KEY: INITIAL_INTERNAL_BETA_LACTAM,
+                    TET_KEY: INITIAL_INTERNAL_TET
                 },
                 'mass_global': {
                     'dry_mass': 300 * units.fg,
@@ -181,7 +239,7 @@ def demo():
                     'volume': 1.2 * units.fL * PERIPLASM_FRACTION,
                 },
             },
-            'molecules_to_diffuse': [BETA_LACTAM],
+            'molecules_to_diffuse': [BETA_LACTAM_KEY, TET_KEY],
             # From (Nagano & Nikaido, 2009)
             'surface_area_mass_ratio': 132 * units.cm ** 2 / units.mg,
             'time_step': 0.1,
@@ -189,7 +247,8 @@ def demo():
         'shape_deriver': {},
         'nonspatial_environment': {
             'concentrations': {
-                BETA_LACTAM: INITIAL_EXTERNAL_BETA_LACTAM,
+                BETA_LACTAM_KEY: INITIAL_EXTERNAL_BETA_LACTAM,
+                TET_KEY: INITIAL_EXTERNAL_TET
             },
             'internal_volume': 1.2 * units.fL,
             'env_volume': 1 * units.mL,
@@ -201,9 +260,12 @@ def demo():
         'porin_permeability': {
             'porin_ids': ['CPLX0-7533[o]', 'CPLX0-7534[o]'],
             'diffusing_molecules': {
-                'cephaloridine': {
+                BETA_LACTAM_KEY: {
                     'CPLX0-7533[o]': CEPH_OMPC_CON_PERM,
                     'CPLX0-7534[o]': CEPH_OMPF_CON_PERM
+                },
+                TET_KEY: {
+                    'CPLX0-7534[o]': PARAMETERS.TET_OMPF_CON_PERM
                 }
             },
         },
@@ -215,6 +277,11 @@ def demo():
     initial_state['bulk'] = {}
     initial_state['bulk']['CPLX0-7533[o]'] = 500
     initial_state['bulk']['CPLX0-7534[o]'] = 500
+    initial_state['environment'] = {}
+    initial_state['environment']['fields'] = {}
+    from numpy import array
+    initial_state['environment']['fields']['cephaloridine'] = array([[1e-3]])
+    initial_state['environment']['fields']['tetracycline'] = array([[1e-3]])
 
     sim = Engine(composite=composite, initial_state=initial_state)
     sim.update(sim_time)
@@ -223,8 +290,10 @@ def demo():
         timeseries_data,
         variables=[
             ('periplasm', 'concs', 'cephaloridine'),
+            ('periplasm', 'concs', 'tetracycline'),
             ('periplasm', 'concs', 'cephaloridine_hydrolyzed'),
             ('boundary', 'external', 'cephaloridine'),
+            ('boundary', 'external', 'tetracycline')
         ],
         out_dir='out',
         filename='antibiotics_simple'

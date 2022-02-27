@@ -38,6 +38,8 @@ class FickianDiffusion(Process):
     #     'default_default': 0,
     #     'surface_area_mass_ratio': 132 * units.cm**2 / units.mg,
     # }
+
+    # old defaults were merging w/ new config instead of being replaced by new config?
     defaults = {
         'default_default': 0
     }
