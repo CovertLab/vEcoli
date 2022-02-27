@@ -96,10 +96,6 @@ class MetabolismGD(Process):
 
         self.homeostatic_objective = dict((key, conc_dict[key].asNumber(CONC_UNITS)) for key in conc_dict)
 
-        # json.dump(self.parameters['stoichiometry_r'], open("notebooks/test_files/stoichiometry.json", 'w'))
-        # json.dump(list(self.exchange_molecules), open("notebooks/test_files/exchanges.json", 'w'))
-        # json.dump(self.homeostatic_objective, open("notebooks/test_files/homeostatic_objective.json", 'w'))
-
         self.kinetic_objective = [reaction['reaction id'] for reaction in self.stoichiometry if reaction['enzyme']]
         self.maintenance_objective = ['maintenance_reaction']
 
@@ -109,8 +105,8 @@ class MetabolismGD(Process):
             exchanges=list(self.exchange_molecules),
             target_metabolites=self.homeostatic_objective)
         self.model.add_objective('homeostatic', TargetDmdtObjective(self.model.network, self.homeostatic_objective))
-        self.model.add_objective('kinetic', TargetVelocityObjective(self.model.network, self.kinetic_objective))
-        # self.model.add_objective('maintenance', TargetVelocityObjective(self.model.network, self.maintenance_objective))
+        # self.model.add_objective('kinetic', TargetVelocityObjective(self.model.network, self.kinetic_objective))
+        self.model.add_objective('maintenance', TargetVelocityObjective(self.model.network, self.maintenance_objective, weight=20))
         # TODO (Cyrus): self.model.add_objective('boundary', ...)
 
         self.objective = self.homeostatic_objective
@@ -167,6 +163,8 @@ class MetabolismGD(Process):
                     'target_kinetic_fluxes': {'_default': {}, '_updater': 'set', '_emit': True},
                     'estimated_exchange_dmdt': {'_default': {}, '_updater': 'set', '_emit': True},
                     'estimated_all_dmdt': {'_default': {}, '_updater': 'set', '_emit': True},
+                    'maintenance_target': {'_default': {}, '_updater': 'set', '_emit': True},
+                    'residuals': {'_default': {}, '_updater': 'set', '_emit': True},
                 },
             },
 
@@ -204,7 +202,7 @@ class MetabolismGD(Process):
 
         cell_volume = self.cell_mass / self.cell_density
         counts_to_molar = (1 / (self.nAvogadro * cell_volume)).asUnit(CONC_UNITS)
-        coefficient = dry_mass / self.cell_mass * self.cell_density * timestep * units.s
+        coefficient = dry_mass / self.cell_mass * self.cell_density * timestep * units.s # TODO (Cyrus) what's this?
 
         current_metabolite_concentrations = {key: value*counts_to_molar for key, value in metabolite_counts.items()}
         target_homeostatic_fluxes = {key: ((self.objective[key]*CONC_UNITS
@@ -225,13 +223,13 @@ class MetabolismGD(Process):
         # TODO (Cyrus) - increase maintenance target weight.
 
         kinetic_targets = {}
-        # TODO (Cyrus) - Figure out how to implement catalysis. Can come later.
-        for reaction in self.stoichiometry:
-            if reaction['enzyme'] and sum([catalyst_counts[enzyme] for enzyme in reaction['enzyme']]) == 0: # TODO (Cyrus) Change this to 0 later.
-                kinetic_targets[reaction['reaction id']] = 0
+        # # TODO (Cyrus) - Figure out how to implement catalysis. Can come later.
+        # for reaction in self.stoichiometry:
+        #     if reaction['enzyme'] and sum([catalyst_counts[enzyme] for enzyme in reaction['enzyme']]) == 0:
+        #         kinetic_targets[reaction['reaction id']] = 0
 
-        # maintenance_target = {}
-        # maintenance_target['maintenance_reaction'] = total_maintenance.asNumber()
+        maintenance_target = {}
+        maintenance_target['maintenance_reaction'] = total_maintenance.asNumber()
 
         # reaction_bounds = np.inf * np.ones(len(self.reactions_with_catalyst))
         # no_rxn_mask = self.catalysis_matrix.dot(catalyst_counts) == 0
@@ -247,22 +245,31 @@ class MetabolismGD(Process):
         solution: FbaResult = self.model.solve(
             {'homeostatic': target_homeostatic_fluxes,
              'kinetic': kinetic_targets,
-             # 'maintenance':maintenance_target
+             'maintenance': maintenance_target
              },
             initial_velocities=self.reaction_fluxes,
-            tr_solver='lsmr', max_nfev=8, ftol=0.00001, verbose=2,
-            tr_options={'atol': 10 ** (-7), 'btol': 10 ** (-7), 'conlim': 10 ** (8), 'show': False}
+            tr_solver='lsmr', max_nfev=16, ftol=10 ** (-5), verbose=2, xtol=10 ** (-4),
+            tr_options={'atol': 10 ** (-8), 'btol': 10 ** (-8), 'conlim': 10 ** (10), 'show': False}
         )
 
         self.reaction_fluxes = solution.velocities
         self.metabolite_dmdt = solution.dm_dt
+
+        # recalculate flux concentrations to counts
+        reaction_fluxes_counts = {key: int(np.round(
+            (self.reaction_fluxes[key] * CONC_UNITS / counts_to_molar * timestep).asNumber()
+        )) for key in self.reaction_fluxes.keys()}
+
+        kinetic_targets_counts = {key: int(np.round(
+            (kinetic_targets[key] * CONC_UNITS / counts_to_molar * timestep).asNumber()
+        )) for key in kinetic_targets.keys()}
 
         # recalculating steady state values to concentration
         steady_state_targets = {key: int(np.round(
             (self.metabolite_dmdt[key] * CONC_UNITS / counts_to_molar * timestep).asNumber()
         )) for key in self.metabolite_dmdt.keys()}
 
-        # updates for homeostatic targets
+        # updates for homeostatic targets, e.g. satisfy demands by other cell processes.
         homeostasis_metabolite_updates = {key: int(np.round(
             (self.metabolite_dmdt[key]*CONC_UNITS/counts_to_molar*timestep).asNumber()
         )) for key in self.objective.keys()}
@@ -283,12 +290,14 @@ class MetabolismGD(Process):
             },
             'listeners': {
                 'fba_results': {
-                    'estimated_fluxes': self.reaction_fluxes,
+                    'estimated_fluxes': reaction_fluxes_counts,
                     'estimated_homeostatic_dmdt': homeostasis_metabolite_updates,
                     'target_homeostatic_dmdt': objective_counts,
-                    'target_kinetic_fluxes': kinetic_targets,
+                    'target_kinetic_fluxes': kinetic_targets_counts,
                     'estimated_exchange_dmdt': exchange_metabolite_updates,
-                    'estimated_all_dmdt': steady_state_targets
+                    'estimated_all_dmdt': steady_state_targets,
+                    'maintenance_target': maintenance_target,
+                    'residuals': solution.residual,
                 }
             }
         }
