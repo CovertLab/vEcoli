@@ -363,7 +363,6 @@ class GradientDescentFba:
         soln = scipy.optimize.least_squares(jax.jit(loss), x0, jac=jac_wrap, **kwargs)
 
         # Perform the actual gradient descent, and extract the result.
-        #soln = scipy.optimize.least_squares(jax.jit(loss), x0, jac=jax.jit(jax.jacfwd(loss)), **kwargs)
         dm_dt = self._s_sparse @ soln.x
         ss_residual = self._objectives["steady-state"].residual(soln.x, dm_dt, None)
         return FbaResult(seed=rng_seed,

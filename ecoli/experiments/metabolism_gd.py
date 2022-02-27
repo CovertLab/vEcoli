@@ -118,7 +118,7 @@ def run_metabolism_composite():
 
 def test_ecoli_with_metabolism_gd(
         filename='fba_gd_swap',
-        total_time=1000 ,
+        total_time=10,
         divide=False,
         progress_bar=True,
         log_updates=False,
@@ -133,10 +133,17 @@ def test_ecoli_with_metabolism_gd(
 
     # assert that the processes were swapped
     sim.build_ecoli()
-    assert 'ecoli-metabolism-gradient-descent' in sim.ecoli['processes']
-    assert 'ecoli-metabolism' not in sim.ecoli['processes']
-    assert 'ecoli-metabolism-gradient-descent' in sim.ecoli['topology']
-    assert 'ecoli-metabolism' not in sim.ecoli['topology']
+
+    if divide is False:
+        assert 'ecoli-metabolism-gradient-descent' in sim.ecoli['processes']
+        assert 'ecoli-metabolism' not in sim.ecoli['processes']
+        assert 'ecoli-metabolism-gradient-descent' in sim.ecoli['topology']
+        assert 'ecoli-metabolism' not in sim.ecoli['topology']
+    else:
+        assert 'ecoli-metabolism-gradient-descent' in sim.processes
+        assert 'ecoli-metabolism' not in sim.processes
+        assert 'ecoli-metabolism-gradient-descent' in sim.processes
+        assert 'ecoli-metabolism' not in sim.processes
 
     # run simulation and add asserts to output
     output = sim.run()

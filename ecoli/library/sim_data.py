@@ -428,18 +428,19 @@ class LoadSimData:
         # Also add check for stoichiometries being equal for removed reverse reactions
 
         # First pass. Add all reactions without tag.
+        # TODO (Cyrus) Investigate how many reactions are supposed to be reversible.
         for key, value in stoichiometry.items():
             if not key.endswith(REVERSE_TAG):
                 rxns.append({'reaction id': key,
                              'stoichiometry': value,
-                             'is reversible': False})
+                             'is reversible': True})
             elif key.endswith(REVERSE_TAG) and rxns[-1]['reaction id'] == key[:-(len(REVERSE_TAG))]:
                 rxns[-1]['is reversible'] = True
             # TODO (Cyrus) What to do about reactions with (reverse) tag that actually don't have the original reaction?
             elif key.endswith(REVERSE_TAG):
                 rxns.append({'reaction id': key,
                              'stoichiometry': value,
-                             'is reversible': False})
+                             'is reversible': True})
 
             if key in reactions_with_catalyst:
                 rxns[-1]['enzyme'] = reaction_catalysts[key]
