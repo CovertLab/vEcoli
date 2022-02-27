@@ -308,7 +308,8 @@ def idx_array_from(dictionary):
 def test_blame():
     sim = EcoliSim.from_file(CONFIG_DIR_PATH + "no_partition.json")
     sim.merge(EcoliSim.from_file(CONFIG_DIR_PATH + "/test_configs/test_blame.json"))
-    data = sim.run()
+    sim.run()
+    data = sim.query()
 
     blame_plot(data, sim.topology,
                'out/ecoli_sim/blame_test.png',
@@ -323,7 +324,8 @@ def compare_partition():
 
     sim.partition = False
     sim.exclude_processes = ["ecoli-two-component-system"]
-    data = sim.run()
+    sim.run()
+    data = sim.query()
 
     blame_plot(data, sim.ecoli.topology,
                "out/ecoli_sim/blame_nopartition.png")
@@ -334,7 +336,8 @@ def compare_partition():
     sim.raw_output = False
 
     sim.partition = True
-    data = sim.run()
+    sim.run()
+    data = sim.query()
 
     blame_plot(data, sim.topology,
                "out/ecoli_sim/blame_partition.png")
