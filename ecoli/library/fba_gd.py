@@ -245,7 +245,7 @@ class FbaResult:
     seed: int
     velocities: Mapping[str, float]
     dm_dt: Mapping[str, float]
-    ss_residual: np.ndarray
+    residual: Mapping[str, np.ndarray]
 
 
 class GradientDescentFba:
@@ -364,8 +364,11 @@ class GradientDescentFba:
 
         # Perform the actual gradient descent, and extract the result.
         dm_dt = self._s_sparse @ soln.x
-        ss_residual = self._objectives["steady-state"].residual(soln.x, dm_dt, None)
+        residual = {
+            name: np.asarray(objective.residual(soln.x, dm_dt, target_values.get(name)))
+            for name, objective in self._objectives.items()
+        }
         return FbaResult(seed=rng_seed,
                          velocities=self.network.reaction_values(soln.x),
                          dm_dt=self.network.molecule_values(dm_dt),
-                         ss_residual=ss_residual)
+                         residual=residual)
