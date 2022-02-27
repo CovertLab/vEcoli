@@ -28,16 +28,17 @@ AVOGADRO = N_A / units.mol
 class AntibioticTransport(ConvenienceKinetics):
 
     name = 'antibiotic_transport'
-    defaults = {
-        'kcat': 1 / units.sec,
-        'Km': 1e-3 * units.mmol / units.L,
-        'pump_key': 'pump',
-        'antibiotic_key': 'antibiotic',
-        'initial_internal_antibiotic': 1e-3,
-        'initial_external_antibiotic': 0,
-        'initial_pump': 1e-3,
-        'time_step': 1,
-    }
+    # defaults = {
+    #     'kcat': 1 / units.sec,
+    #     'Km': 1e-3 * units.mmol / units.L,
+    #     'pump_key': 'pump',
+    #     'antibiotic_key': 'antibiotic',
+    #     'initial_internal_antibiotic': 1e-3,
+    #     'initial_external_antibiotic': 0,
+    #     'initial_pump': 1e-3,
+    #     'time_step': 1,
+    # }
+    defaults = {}
 
     def __init__(self, initial_parameters=None):
         initial_parameters = initial_parameters or {}
@@ -46,6 +47,50 @@ class AntibioticTransport(ConvenienceKinetics):
         self.defaults.update(super_defaults)
         parameters = copy.deepcopy(self.defaults)
         deep_merge(parameters, initial_parameters)
+
+        # transport_reactions = {}
+        # transport_kinetics = {}
+        # transport_initial_state = {
+        #     'fluxes': {},
+        #     'internal': {},
+        #     'external': {},
+        #     'pump_port': {},
+        # }
+        # for reaction in reactions.keys():
+        #     if reaction != 'time_step':
+        #         parameters = reactions[reaction]
+        #         kcat = parameters['kcat'].to(1 / units.sec).magnitude
+        #         km = parameters['Km'].to(units.mmol / units.L).magnitude
+        #         transport_reactions[reaction] = {
+        #             'stoichiometry': {
+        #                 ('internal', parameters['antibiotic_key']): -1,
+        #                 ('external', parameters['antibiotic_key']): 1,
+        #             },
+        #             'is_reversible': False,
+        #             'catalyzed by': [
+        #                 ('pump_port', parameters['pump_key'])
+        #             ],
+        #         }
+        #         transport_kinetics[reaction] = {
+        #             ('pump_port', parameters['pump_key']): {
+        #                 'kcat_f': kcat,
+        #                 ('internal', parameters['antibiotic_key']): km,
+        #             },
+        #         }
+        #         transport_initial_state['fluxes'][reaction] = 0.0
+        #         transport_initial_state['internal'][parameters['antibiotic_key']] = parameters['initial_internal_antibiotic']
+        #         transport_initial_state['external'][parameters['antibiotic_key']] = parameters['initial_external_antibiotic']
+        #         transport_initial_state['pump_port'][parameters['pump_key']] = parameters['initial_pump']
+        # kinetics_parameters = {
+        #     'reactions': transport_reactions,
+        #     'kinetic_parameters': transport_kinetics,
+        #     'initial_state': transport_initial_state,
+        #     'port_ids': ['internal', 'external', 'pump_port'],
+        #     'added_port_ids': ['exchanges', 'fluxes', 'global'],
+        #     'time_step': reactions['time_step'],
+        #     'flux_unit': 'mM',
+        # }
+        # super().__init__(kinetics_parameters)
 
         kcat = parameters['kcat'].to(1 / units.sec).magnitude
         km = parameters['Km'].to(units.mmol / units.L).magnitude
