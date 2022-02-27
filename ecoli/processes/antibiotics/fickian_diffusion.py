@@ -19,24 +19,27 @@ AVOGADRO = constants.N_A * 1 / units.mol
 class FickianDiffusion(Process):
 
     name = "fickian_diffusion"
+    # defaults = {
+    #     'molecules_to_diffuse': ['antibiotic'],
+    #     'initial_state': {
+    #         'internal': {
+    #             'antibiotic': 0,  # mM
+    #         },
+    #         'external': {
+    #             'antibiotic': 1e-3,  # mM
+    #         },
+    #         'mass_global': {
+    #             'dry_mass': 300 * units.fg,
+    #         },
+    #         'volume_global': {
+    #             'volume': 1.2 * units.fL,
+    #         },
+    #     },
+    #     'default_default': 0,
+    #     'surface_area_mass_ratio': 132 * units.cm**2 / units.mg,
+    # }
     defaults = {
-        'molecules_to_diffuse': ['antibiotic'],
-        'initial_state': {
-            'internal': {
-                'antibiotic': 0,  # mM
-            },
-            'external': {
-                'antibiotic': 1e-3,  # mM
-            },
-            'mass_global': {
-                'dry_mass': 300 * units.fg,
-            },
-            'volume_global': {
-                'volume': 1.2 * units.fL,
-            },
-        },
-        'default_default': 0,
-        'surface_area_mass_ratio': 132 * units.cm**2 / units.mg,
+        'default_default': 0
     }
 
     def ports_schema(self):
@@ -176,6 +179,7 @@ class FickianDiffusion(Process):
                 for molecule, mol_flux in flux_mmol.items()
             },
         }
+        # import ipdb; ipdb.set_trace()
         return update
 
 
