@@ -2,14 +2,14 @@ import copy
 
 from scipy.constants import N_A
 
-from vivarium.core.process import Deriver
+from vivarium.core.process import Step
 from vivarium.library.units import units
 
 
 AVOGADRO = N_A / units.mol
 
 
-class ShapeDeriver(Deriver):
+class ShapeDeriver(Step):
     name = 'shape_deriver'
     defaults = {
         'periplasm_fraction': 0.3,

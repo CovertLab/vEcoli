@@ -106,7 +106,15 @@ def main():
                 'external': {
                     'cephaloridine': 1e-3,  # mM
                 },
-            }
+                'mass_global': {
+                    'dry_mass': 300 * units.fg,
+                },
+                'volume_global': {
+                    'volume': 1.2 * units.fL,
+                },
+            },
+            'default_default': 0,
+            'surface_area_mass_ratio': 132 * units.cm ** 2 / units.mg,
         },
         'timeline': {
             'time_step': 1.0,

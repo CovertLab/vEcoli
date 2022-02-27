@@ -1,0 +1,256 @@
+from vivarium.core.composer import Composer
+from vivarium.core.composition import (
+    composite_in_experiment, simulate_experiment)
+from vivarium.core.engine import Engine
+from vivarium.core.emitter import timeseries_from_data
+from vivarium.library.units import units
+from vivarium.plots.simulation_output import plot_variables
+from vivarium.plots.topology import plot_topology
+from vivarium.processes.timeline import TimelineProcess
+
+from ecoli.processes.antibiotics.antibiotic_transport import AntibioticTransport
+from ecoli.processes.antibiotics.antibiotic_hydrolysis import AntibioticHydrolysis
+from ecoli.processes.antibiotics.fickian_diffusion import (
+    FickianDiffusion,
+)
+from ecoli.processes.antibiotics.porin_permeability import PorinPermeability, CEPH_OMPC_CON_PERM,\
+    CEPH_OMPF_CON_PERM, SA_AVERAGE
+from ecoli.processes.antibiotics.nonspatial_environment import (
+    NonSpatialEnvironment)
+from ecoli.processes.antibiotics.shape import ShapeDeriver
+
+
+INITIAL_INTERNAL_BETA_LACTAM = 0
+INITIAL_EXTERNAL_BETA_LACTAM = 1e-3
+BETA_LACTAM = 'cephaloridine'
+PUMP_KEY = 'TRANS-CPLX-201'
+# Source: (Wülfing & Plückthun, 1994)
+PERIPLASM_FRACTION = 0.3
+BETA_LACTAMASE_KEY = 'beta-lactamase'
+
+
+class PARAMETERS:
+    # Reported in (Nagano & Nikaido, 2009)
+    CEPH_PUMP_KCAT = 1e1 / units.sec  # TODO: Placeholder
+    # Reported in (Nagano & Nikaido, 2009)
+    CEPH_PUMP_KM = 4.95e-3 * units.millimolar  # TODO: Placeholder
+    # Reported in (Galleni et al., 1988)
+    CEPH_BETA_LACTAMASE_KCAT = 130 / units.sec
+    # Reported in (Galleni et al., 1988)
+    CEPH_BETA_LACTAMASE_KM = 170 * units.micromolar
+
+    TET_OMPF_CON_PERM = 0.01195286573132685 * 1e-5 * units.cm * units.micron * units.micron / units.sec  # TODO: Placeholder
+    TET_PUMP_KCAT = 1e1 / units.sec  # TODO: Placeholder
+    TET_PUMP_KM = 4.95e-3 * units.millimolar  # TODO: Placeholder
+
+
+class SimpleAntibioticsCell(Composer):
+    '''Integrate antibiotic resistance and susceptibility with wcEcoli
+    Integrates the WcEcoli process, which wraps the wcEcoli model, with
+    processes to model antibiotic susceptibility (diffusion-based
+    import and death) and resistance (hydrolysis and transport-based
+    efflux). Also includes derivers.
+    '''
+
+    default = {
+        'efflux': {},
+        'hydrolysis': {},
+        'fickian_diffusion': {},
+        'shape_deriver': {},
+        'nonspatial_environment': {},
+        'porin_permeability': {},
+    }
+
+    def generate_processes(self, config):
+        efflux = AntibioticTransport(config['efflux'])
+        hydrolysis = AntibioticHydrolysis(config['hydrolysis'])
+        fickian_diffusion = FickianDiffusion(config['fickian_diffusion'])
+        timeline = TimelineProcess(config['timeline'])
+        return {
+            'efflux': efflux,
+            'hydrolysis': hydrolysis,
+            'fickian_diffusion': fickian_diffusion,
+            'timeline': timeline
+        }
+
+    def generate_steps(self, config):
+        nonspatial_environment = NonSpatialEnvironment(config['nonspatial_environment'])
+        shape_deriver = ShapeDeriver(config['shape_deriver'])
+        porin_permeability = PorinPermeability(config['porin_permeability'])
+        return {
+            'nonspatial_environment': nonspatial_environment,
+            'shape_deriver': shape_deriver,
+            'porin_permeability': porin_permeability
+        }
+
+    def generate_topology(self, config=None):
+        boundary_path = config['boundary_path']
+        topology = {
+            'efflux': {
+                'internal': ('periplasm', 'concs'),
+                'external': boundary_path + ('external',),
+                'exchanges': boundary_path + ('exchanges',),
+                'pump_port': ('periplasm', 'concs'),
+                'fluxes': ('fluxes',),
+                'global': ('periplasm', 'global',),
+            },
+            'hydrolysis': {
+                'internal': ('periplasm', 'concs'),
+                'catalyst_port': ('periplasm', 'concs',),
+                'fluxes': ('fluxes',),
+                'global': ('periplasm', 'global',),
+            },
+            'fickian_diffusion': {
+                'internal': ('periplasm', 'concs',),
+                'external': boundary_path + ('external',),
+                'exchanges': boundary_path + ('exchanges',),
+                'fluxes': ('fluxes',),
+                'volume_global': ('periplasm', 'global',),
+                'mass_global': boundary_path,
+                'permeabilities': boundary_path + ('permeabilities',)
+            },
+            'shape_deriver': {
+                'cell_global': boundary_path,
+                'periplasm_global': ('periplasm', 'global',)
+            },
+            'nonspatial_environment': {
+                'external': boundary_path + ('external',),
+                'exchanges': boundary_path + ('exchanges',),
+                'fields': ('environment', 'fields',),
+                'dimensions': ('environment', 'dimensions'),
+                'global': boundary_path,
+            },
+            'porin_permeability': {
+                'porins': ('bulk',),
+                'permeabilities': boundary_path + ('permeabilities',),
+                'surface_area': boundary_path + ('surface_area',)
+            },
+            'timeline': {
+                'global': ('global',),  # The global time is read here
+                'porins': ('bulk',),  # This port is based on the declared timeline
+            },
+        }
+        return topology
+
+
+def demo():
+    sim_time = 10
+
+    timeline = []
+    for i in range(10):
+        timeline.append(
+            (i, {
+                ('porins', 'CPLX0-7533[o]'):  ((i + 2) * 500),
+                ('porins', 'CPLX0-7534[o]'):  ((i + 2) * 500),
+            })
+        )
+
+    config = {
+        'boundary_path': ('boundary',),
+        'efflux': {
+            'initial_pump': 1e-3,
+            'initial_internal_antibiotic': INITIAL_INTERNAL_BETA_LACTAM,
+            'intial_external_antibiotic': INITIAL_EXTERNAL_BETA_LACTAM,
+            'kcat': PARAMETERS.CEPH_PUMP_KCAT,
+            'Km': PARAMETERS.CEPH_PUMP_KM,
+            'pump_key': PUMP_KEY,
+            'antibiotic_key': BETA_LACTAM,
+            'time_step': 0.1,
+        },
+        'hydrolysis': {
+            'initial_catalyst': 1e-3,
+            'catalyst': BETA_LACTAMASE_KEY,
+            'initial_target_internal': INITIAL_INTERNAL_BETA_LACTAM,
+            'target': BETA_LACTAM,
+            'kcat': PARAMETERS.CEPH_BETA_LACTAMASE_KCAT,
+            'Km': PARAMETERS.CEPH_BETA_LACTAMASE_KM,
+            'time_step': 0.1,
+        },
+        'fickian_diffusion': {
+            'initial_state': {
+                'external': {
+                    BETA_LACTAM: INITIAL_EXTERNAL_BETA_LACTAM,
+                },
+                'internal': {
+                    BETA_LACTAM: INITIAL_INTERNAL_BETA_LACTAM,
+                },
+                'mass_global': {
+                    'dry_mass': 300 * units.fg,
+                },
+                'volume_global': {
+                    'volume': 1.2 * units.fL * PERIPLASM_FRACTION,
+                },
+            },
+            'molecules_to_diffuse': [BETA_LACTAM],
+            # From (Nagano & Nikaido, 2009)
+            'surface_area_mass_ratio': 132 * units.cm ** 2 / units.mg,
+            'time_step': 0.1,
+        },
+        'shape_deriver': {},
+        'nonspatial_environment': {
+            'concentrations': {
+                BETA_LACTAM: INITIAL_EXTERNAL_BETA_LACTAM,
+            },
+            'internal_volume': 1.2 * units.fL,
+            'env_volume': 1 * units.mL,
+        },
+        'timeline': {
+            'time_step': 1.0,
+            'timeline': timeline,
+        },
+        'porin_permeability': {
+            'porin_ids': ['CPLX0-7533[o]', 'CPLX0-7534[o]'],
+            'diffusing_molecules': {
+                'cephaloridine': {
+                    'CPLX0-7533[o]': CEPH_OMPC_CON_PERM,
+                    'CPLX0-7534[o]': CEPH_OMPF_CON_PERM
+                }
+            },
+        },
+    }
+
+    composite = SimpleAntibioticsCell(config).generate()
+    initial_state = composite.initial_state()
+    initial_state['boundary']['surface_area'] = SA_AVERAGE
+    initial_state['bulk'] = {}
+    initial_state['bulk']['CPLX0-7533[o]'] = 500
+    initial_state['bulk']['CPLX0-7534[o]'] = 500
+
+    sim = Engine(composite=composite, initial_state=initial_state)
+    sim.update(sim_time)
+    timeseries_data = timeseries_from_data(sim.emitter.get_data())
+    plot_variables(
+        timeseries_data,
+        variables=[
+            ('periplasm', 'concs', 'cephaloridine'),
+            ('periplasm', 'concs', 'cephaloridine_hydrolyzed'),
+            ('boundary', 'external', 'cephaloridine'),
+        ],
+        out_dir='out',
+        filename='antibiotics_simple'
+    )
+
+    # For some reason, if simulation run with commented out code, external cephaloridine would not change
+
+    # exp = composite_in_experiment(
+    #     composite,
+    #     initial_state=initial_state,
+    # )
+    # data = simulate_experiment(
+    #     exp,
+    #     {'total_time': 10})
+    # fig = plot_variables(
+    #     data,
+    #     variables=[
+    #         ('periplasm', 'concs', 'cephaloridine'),
+    #         ('periplasm', 'concs', 'cephaloridine_hydrolyzed'),
+    #         ('boundary', 'external', 'cephaloridine'),
+    #     ],
+    #     out_dir='out',
+    #     filename='antibiotics_simple'
+    # )
+    # return fig, data
+
+
+if __name__ == '__main__':
+    demo()
