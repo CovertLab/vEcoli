@@ -120,9 +120,8 @@ class Metabolism(Step):
         self.linked_metabolites = self.parameters['linked_metabolites']
         doubling_time = self.nutrientToDoublingTime.get(
             self.media_id,
-            self.nutrientToDoublingTime['minimal'])
-        update_molecules = list(
-            self.model.getBiomassAsConcentrations(doubling_time).keys())
+            self.nutrientToDoublingTime[self.media_id],)
+        update_molecules = list(self.model.getBiomassAsConcentrations(doubling_time).keys())
         if self.use_trna_charging:
             update_molecules += [
                 aa for aa in self.aa_names if aa not in self.aa_targets_not_updated]
@@ -160,7 +159,7 @@ class Metabolism(Step):
                     for element in self.model.fba.getExternalMoleculeIDs()},
                 'exchange_data': {
                     'unconstrained': {'_default': []},
-                    'constrained': {'_default': []}}},
+                    'constrained': {'_default': []}}}, # this is only GLC[p].
 
             'listeners': {
                 'mass': {
@@ -187,7 +186,13 @@ class Metabolism(Step):
                     'reducedCosts': {'_default': [], '_updater': 'set'},
                     'targetConcentrations': {'_default': [], '_updater': 'set'},
                     'homeostaticObjectiveValues': {'_default': [], '_updater': 'set'},
-                    'kineticObjectiveValues': {'_default': [], '_updater': 'set'}},
+                    'kineticObjectiveValues': {'_default': [], '_updater': 'set'},
+
+                    'estimated_fluxes': {'_default': {}, '_updater': 'set', '_emit': True},
+                    'estimated_dmdt': {'_default': {}, '_updater': 'set', '_emit': True},
+                    'target_dmdt': {'_default': {}, '_updater': 'set', '_emit': True},
+                    'estimated_exchange_dmdt': {'_default': {}, '_updater': 'set', '_emit': True},
+                },
 
                 'enzyme_kinetics': {
                     'metaboliteCountsInit': {'_default': 0, '_updater': 'set'},
@@ -241,9 +246,8 @@ class Metabolism(Step):
         # Coefficient to convert between flux (mol/g DCW/hr) basis and concentration (M) basis
         coefficient = dry_mass / cell_mass * self.cellDensity * timestep * units.s
 
-        # Determine updates to concentrations depending on the current state
-        doubling_time = self.nutrientToDoublingTime.get(
-            current_media_id, self.nutrientToDoublingTime['minimal'])
+        ## Determine updates to concentrations depending on the current state
+        doubling_time = self.nutrientToDoublingTime.get(current_media_id, self.nutrientToDoublingTime[self.media_id])
         conc_updates = self.model.getBiomassAsConcentrations(doubling_time)
         if self.use_trna_charging:
             conc_updates.update(self.update_amino_acid_targets(
@@ -297,6 +301,15 @@ class Metabolism(Step):
         unconstrained, constrained, uptake_constraints = self.get_import_constraints(
             unconstrained, constrained, GDCW_BASIS)
 
+        # used for comparing target and estimate between GD-FBA and LP-FBA
+        objective_counts = {key: int((self.model.homeostatic_objective[key] / counts_to_molar).asNumber())
+                            - int(states['metabolites'][key]) for key in fba.getHomeostaticTargetMolecules()}
+
+        fluxes = fba.getReactionFluxes() / timestep
+        names = fba.getReactionIDs()
+
+        flux_dict = {names[i]: fluxes[i] for i in range(len(names))}
+
         update = {
             'metabolites': {
                 metabolite: delta_metabolites_final[index]
@@ -327,7 +340,15 @@ class Metabolism(Step):
                         self.model.homeostatic_objective[mol]
                         for mol in fba.getHomeostaticTargetMolecules()],
                     'homeostaticObjectiveValues': fba.getHomeostaticObjectiveValues(),
-                    'kineticObjectiveValues': fba.getKineticObjectiveValues()},
+                    'kineticObjectiveValues': fba.getKineticObjectiveValues(),
+
+                    'estimated_fluxes': flux_dict ,
+                    'estimated_dmdt': {metabolite: delta_metabolites_final[index]
+                                       for index, metabolite in enumerate(self.model.metaboliteNamesFromNutrients)},
+                    'target_dmdt': objective_counts,
+                    'estimated_exchange_dmdt': {molecule: delta_nutrients[index]
+                                                for index, molecule in enumerate(fba.getExternalMoleculeIDs())},
+                },
 
                 'enzyme_kinetics': {
                     'metaboliteCountsInit': metabolite_counts_init,

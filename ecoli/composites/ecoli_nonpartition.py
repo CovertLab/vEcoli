@@ -181,7 +181,6 @@ def run_ecoli(
         print(pf(ecoli_store['unique'].get_config()))
 
     sim.run()
-    
     return sim.query()
 
 
@@ -214,7 +213,7 @@ def run_division(
     sim.progress_bar = False
     sim.raw_output = True
 
-    # run simulation and get output
+    # run simulation
     sim.run()
     output = sim.query()
 

@@ -13,6 +13,7 @@ Processes
    api/ecoli.processes.equilibrium
    api/ecoli.processes.mass
    api/ecoli.processes.metabolism
+   api/ecoli.processes.metabolism_gd
    api/ecoli.processes.partition
    api/ecoli.processes.polypeptide_elongation
    api/ecoli.processes.polypeptide_initiation

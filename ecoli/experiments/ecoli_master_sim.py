@@ -511,9 +511,9 @@ class EcoliSim:
         self.ecoli_experiment.end()
         if self.profile:
             report_profiling(self.ecoli_experiment.stats)
-        
+
     def query(self, query=None):
-        # return queried data
+        # Retrieve queried data (all if not specified)
         if self.raw_output:
             return self.ecoli_experiment.emitter.get_data(query)
         else:

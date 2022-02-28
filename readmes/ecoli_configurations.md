@@ -187,7 +187,6 @@ sim.experiment_id = "Demo"
 sim.total_time = 10
 ...
 
-# Run simulation and retrieve data
 sim.run()
 data_out = sim.query()
 ```
