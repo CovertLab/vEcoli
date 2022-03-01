@@ -15,7 +15,7 @@ SA_AVERAGE = 6.22200939450696
 # by these average concentrations to get our permeability per concentration constants.
 CEPH_OMPC_CON_PERM = 0.003521401200296894 * 1e-5 * units.cm * units.micron * units.micron / units.sec
 CEPH_OMPF_CON_PERM = 0.01195286573132685 * 1e-5 * units.cm * units.micron * units.micron / units.sec
-CEPH_PH_PERM = 0 * units.cm / units.cm
+CEPH_PH_PERM = 0 * units.cm / units.sec
 
 TET_OMPF_CON_PERM = 6.36274221439452 * 1e-13 * units.cm * units.micron * units.micron / units.sec
 TET_PH_PERM = 2.8 * 1e-9 * units.cm / units.sec  # Assuming constant pH-out: 6.3, pH-in: 7.8
