@@ -5,7 +5,7 @@ from vivarium.core.engine import Engine
 from vivarium.library.units import units
 from vivarium.plots.simulation_output import plot_variables
 from ecoli.processes.antibiotics.porin_permeability import PorinPermeability, CEPH_OMPC_CON_PERM,\
-    CEPH_OMPF_CON_PERM, SA_AVERAGE
+    CEPH_OMPF_CON_PERM, CEPH_PH_PERM, TET_OMPF_CON_PERM, TET_PH_PERM, SA_AVERAGE
 from ecoli.processes.antibiotics.fickian_diffusion import FickianDiffusion
 from vivarium.processes.timeline import TimelineProcess
 from ecoli.processes.antibiotics.nonspatial_environment import NonSpatialEnvironment
@@ -79,6 +79,7 @@ def main():
     initial_state['listeners']['mass']['dry_mass'] = initial_state['listeners']['mass']['dry_mass'] * units.fg
     initial_state['environment']['fields'] = {}
     initial_state['environment']['fields']['cephaloridine'] = array([[1e-3]])
+    initial_state['environment']['fields']['tetracycline'] = array([[1e-3]])
     initial_state['bulk']['CPLX0-7533[o]'] = 500
     initial_state['bulk']['CPLX0-7534[o]'] = 500
 
@@ -98,13 +99,15 @@ def main():
         },
         'fickian': {
             'time_step': 0.1,
-            'molecules_to_diffuse': ['cephaloridine'],
+            'molecules_to_diffuse': ['cephaloridine', 'tetracycline'],
             'initial_state': {
                 'internal': {
                     'cephaloridine': 0,  # mM
+                    'tetracycline': 0
                 },
                 'external': {
                     'cephaloridine': 1e-3,  # mM
+                    'tetracycline': 1e-3
                 },
                 'mass_global': {
                     'dry_mass': 300 * units.fg,
@@ -124,8 +127,17 @@ def main():
             'porin_ids': ['CPLX0-7533[o]', 'CPLX0-7534[o]'],
             'diffusing_molecules': {
                 'cephaloridine': {
-                    'CPLX0-7533[o]': CEPH_OMPC_CON_PERM,
-                    'CPLX0-7534[o]': CEPH_OMPF_CON_PERM
+                    'per_porin_perm': {
+                        'CPLX0-7533[o]': CEPH_OMPC_CON_PERM,
+                        'CPLX0-7534[o]': CEPH_OMPF_CON_PERM
+                    },
+                    'ph_perm': CEPH_PH_PERM
+                },
+                'tetracycline': {
+                    'per_porin_perm': {
+                        'CPLX0-7534[o]': TET_OMPF_CON_PERM,
+                    },
+                    'ph_perm': TET_PH_PERM
                 }
             },
         },
@@ -138,6 +150,8 @@ def main():
     timeseries_data = timeseries_from_data(sim.emitter.get_data())
     plot_variables(timeseries_data, [('environment', 'external', 'cephaloridine'),
                                      ('boundary', 'internal', 'cephaloridine'),
+                                     ('environment', 'external', 'tetracycline'),
+                                     ('boundary', 'internal', 'tetracycline'),
                                      ('bulk', 'CPLX0-7533[o]'), ('bulk', 'CPLX0-7534[o]')],
                    out_dir='out', filename='porin_fickian_counts')
 
