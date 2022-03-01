@@ -13,7 +13,6 @@ from ecoli.processes.protein_degradation import ProteinDegradation
 from ecoli.processes.metabolism import Metabolism
 from ecoli.processes.metabolism_gd import MetabolismGD
 from ecoli.processes.chromosome_replication import ChromosomeReplication
-from ecoli.processes.mass import Mass
 from ecoli.processes.stubs.exchange_stub import Exchange
 from ecoli.processes.listeners.mass_listener import MassListener
 from ecoli.processes.listeners.mRNA_counts import mRNACounts
@@ -41,7 +40,6 @@ process_registry.register(ProteinDegradation.name, ProteinDegradation)
 process_registry.register(Metabolism.name, Metabolism)
 process_registry.register(MetabolismGD.name, MetabolismGD)
 process_registry.register(ChromosomeReplication.name, ChromosomeReplication)
-process_registry.register(Mass.name, Mass)
 process_registry.register(MassListener.name, MassListener)
 process_registry.register(Exchange.name, Exchange)
 process_registry.register(mRNACounts.name, mRNACounts)
