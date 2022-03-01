@@ -277,11 +277,6 @@ def demo():
     initial_state['bulk'] = {}
     initial_state['bulk']['CPLX0-7533[o]'] = 500
     initial_state['bulk']['CPLX0-7534[o]'] = 500
-    initial_state['environment'] = {}
-    initial_state['environment']['fields'] = {}
-    from numpy import array
-    initial_state['environment']['fields']['cephaloridine'] = array([[1e-3]])
-    initial_state['environment']['fields']['tetracycline'] = array([[1e-3]])
 
     sim = Engine(composite=composite, initial_state=initial_state)
     sim.update(sim_time)
