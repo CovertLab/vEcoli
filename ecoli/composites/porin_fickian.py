@@ -71,7 +71,7 @@ class PorinFickian(Composer):
 
 
 def main():
-    sim_time = 10
+    sim_time = 24000
 
     initial_state = get_state_from_file(path='data/vivecoli_t1000.json')
     initial_state['boundary'] = {}
