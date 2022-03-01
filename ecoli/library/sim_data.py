@@ -415,6 +415,7 @@ class LoadSimData:
         stoichiometry = dict(self.sim_data.process.metabolism.reaction_stoich)
         stoichiometry = dict(sorted(stoichiometry.items()))
         rxns = list()
+        metabolite_names = set()
 
         # TODO (Cyrus) Below operations are redundant (renaming, catalyst rearranging) and should just be removed.
         # from the metabolism dataclass. Are catalysts all required? Or all possible ways to catalyze. Latter.
@@ -430,6 +431,8 @@ class LoadSimData:
         # First pass. Add all reactions without tag.
         # TODO (Cyrus) Investigate how many reactions are supposed to be reversible.
         for key, value in stoichiometry.items():
+            metabolite_names.update(list(value.keys()))
+
             if not key.endswith(REVERSE_TAG):
                 rxns.append({'reaction id': key,
                              'stoichiometry': value,
@@ -457,6 +460,7 @@ class LoadSimData:
             # variables
             'stoichiometry': self.sim_data.process.metabolism.reaction_stoich,
             'stoichiometry_r': rxns,
+            'metabolite_names': metabolite_names,
             'reaction_catalysts': self.sim_data.process.metabolism.reaction_catalysts,
             'maintenance_reaction': self.sim_data.process.metabolism.maintenance_reaction,
             'aa_names': self.sim_data.molecule_groups.amino_acids,
