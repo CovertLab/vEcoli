@@ -116,6 +116,7 @@ class Ecoli(Composer):
                     process_configs[process]['seed'] = (
                         process_configs[process]['seed'] +
                         config['seed']) % RAND_MAX
+            process_configs[process]['_no_original_parameters'] = True
 
         # make the processes
         processes = {
@@ -130,6 +131,7 @@ class Ecoli(Composer):
             process_names=[p for p in config['processes'].keys()
                            if not processes[p].is_deriver()],
         )
+        process_configs['allocator']['_no_original_parameters'] = True
 
         config['processes']['allocator'] = Allocator
         processes['allocator'] = Allocator(process_configs['allocator'])
@@ -155,19 +157,28 @@ class Ecoli(Composer):
 
         # make the requesters
         requesters = {
-            f'{process_name}_requester': Requester({'time_step': time_step,
-                                                    'process': process})
+            f'{process_name}_requester': Requester({
+                'time_step': time_step,
+                'process': process,
+                '_no_original_parameters': True,
+            })
             for (process_name, process) in processes.items()
             if process_name in self.partitioned_processes
         }
 
         # make the evolvers
         evolvers = {
-            f'{process_name}_evolver': Evolver({'time_step': time_step,
-                                                'process': process})
+            f'{process_name}_evolver': Evolver({
+                'time_step': time_step,
+                'process': process,
+                '_no_original_parameters': True,
+            })
             if not config['log_updates']
-            else make_logging_process(Evolver)({'time_step': time_step,
-                                                'process': process})
+            else make_logging_process(Evolver)({
+                'time_step': time_step,
+                'process': process,
+                '_no_original_parameters': True,
+            })
             for (process_name, process) in processes.items()
             if process_name in self.partitioned_processes
         }
@@ -183,6 +194,7 @@ class Ecoli(Composer):
                 agent_id=config['agent_id'],
                 composer=self,
                 seed=self.load_sim_data.random_state.randint(RAND_MAX),
+                _no_original_parameters=True,
             )
             division_process = {division_name: Division(division_config)}
             processes.update(division_process)
@@ -205,7 +217,9 @@ class Ecoli(Composer):
                 requester_name = f'{name}_requester'
                 evolver_name = f'{name}_evolver'
                 flow[requester_name] = [
-                    ('ecoli-chromosome-structure',), ('division',)]
+                    ('ecoli-chromosome-structure',)]
+                if config['divide']:
+                    flow[requester_name].append(('division',))
                 flow['allocator'].append((requester_name,))
                 steps[requester_name] = processes[requester_name]
                 processes_not_steps[evolver_name] = processes[
@@ -315,7 +329,8 @@ def run_ecoli(
     sim.log_updates = log_updates
     sim.emitter = emitter
 
-    return sim.run()
+    sim.run()
+    return sim.query()
 
 
 def ecoli_topology_plot(config={}):

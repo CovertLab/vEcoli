@@ -12,7 +12,8 @@ def testDefault():
 def testAddProcess():
     sim = EcoliSim.from_file(CONFIG_DIR_PATH + 'test_configs/test_add_process.json')
     sim.total_time = 2
-    data = sim.run()
+    sim.run()
+    data = sim.query()
 
     assert 'clock' in sim.ecoli.processes.keys()
     assert 'global_time' in data.keys()
@@ -28,19 +29,6 @@ def testExcludeProcess():
     assert "ecoli-polypeptide-elongation" not in sim.ecoli.topology.keys()
     assert "ecoli-two-component-system" not in sim.ecoli.processes.keys()
     assert "ecoli-two-component-system" not in sim.ecoli.topology.keys()
-
-
-def testSwapProcess():
-    sim = EcoliSim.from_file(CONFIG_DIR_PATH + 'test_configs/test_swap_process.json')
-    sim.total_time = 2
-    data = sim.run()
-
-    assert "ecoli-mass" in sim.ecoli.steps.keys()
-    assert "ecoli-mass" in sim.ecoli.topology.keys()
-    assert "dnaMass" not in data['listeners']['mass'].keys()
-    assert "ecoli-mass-listener" not in sim.ecoli.processes.keys()
-    assert "ecoli-mass-listener" not in sim.ecoli.steps.keys()
-    assert "ecoli-mass-listener" not in sim.ecoli.topology.keys()
 
 
 def test_merge():
@@ -70,11 +58,10 @@ def main():
     testDefault()
     testAddProcess()
     testExcludeProcess()
-    testSwapProcess()
     test_merge()
     test_export()
     test_load_state()
 
 
-if __name__=="__main__":
+if __name__ == "__main__":
     main()
