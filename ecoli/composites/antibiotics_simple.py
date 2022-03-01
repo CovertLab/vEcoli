@@ -18,7 +18,7 @@ from ecoli.processes.antibiotics.fickian_diffusion import (
 from ecoli.processes.antibiotics.nonspatial_environment import (
     NonSpatialEnvironment)
 from ecoli.processes.antibiotics.porin_permeability import PorinPermeability, CEPH_OMPC_CON_PERM,\
-    CEPH_OMPF_CON_PERM, SA_AVERAGE
+    CEPH_OMPF_CON_PERM, CEPH_PH_PERM, SA_AVERAGE
 from ecoli.processes.antibiotics.shape import ShapeDeriver
 
 
@@ -264,8 +264,11 @@ def demo():
             'porin_ids': ['CPLX0-7533[o]', 'CPLX0-7534[o]'],
             'diffusing_molecules': {
                 'cephaloridine': {
-                    'CPLX0-7533[o]': CEPH_OMPC_CON_PERM,
-                    'CPLX0-7534[o]': CEPH_OMPF_CON_PERM
+                    'per_porin_perm': {
+                        'CPLX0-7533[o]': CEPH_OMPC_CON_PERM,
+                        'CPLX0-7534[o]': CEPH_OMPF_CON_PERM
+                    },
+                    'ph_perm': CEPH_PH_PERM
                 },
             },
         },
