@@ -37,7 +37,7 @@ BETA_LACTAMASE_KEY = 'beta-lactamase'
 
 class PARAMETERS:
     # Reported in (Nagano & Nikaido, 2009)
-    # CEPH_PUMP_KCAT = 1e1 / units.sec  # TODO: Placeholderq
+    # CEPH_PUMP_KCAT = 1e1 / units.sec  # TODO: Placeholder
     TOLC_KCAT = 1e1  # / units.sec  # TODO: Placeholder. Constant regardless of substrate?
     # Reported in (Nagano & Nikaido, 2009)
     CEPH_PUMP_KM = 4.95e-3  # * units.millimolar  # TODO: Placeholder
