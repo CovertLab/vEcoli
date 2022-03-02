@@ -76,7 +76,7 @@
         "antibiotic_transport": {
             "initial_pump": "!UnitsSerializer[1e-3 millimolar]",
             "initial_internal_antibiotic": "!UnitsSerializer[0 millimolar]",
-            "intial_external_antibiotic": "!UnitsSerializer[0.1239 millimolar]",
+            "intial_external_antibiotic": "!UnitsSerializer[0 millimolar]",
             "kcat": "!UnitsSerializer[1e1 / second]",
             "Km": "!UnitsSerializer[4.95e-3 millimolar]",
             "pump_key": "TRANS-CPLX-201[m]",
@@ -95,7 +95,7 @@
         "fickian_diffusion": {
             "initial_state": {
                 "external": {
-                    "nitrocefin": 0.1239
+                    "nitrocefin": 0
                 },
                 "internal": {
                     "nitrocefin": 0
