@@ -40,7 +40,9 @@
       }
     },
     "process_configs": {
-      "local_field": {},
+      "local_field": {
+        "n_bins": [10, 10]
+      },
       "ecoli-shape": {}
     },
     "flow": {
