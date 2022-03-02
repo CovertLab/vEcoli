@@ -88,7 +88,7 @@ def cap_tunneling_paths(topology, outer=tuple()):
     for key, val in topology.items():
         if isinstance(val, dict):
             tunnels.update(cap_tunneling_paths(val, outer + (key,)))
-        elif isinstance(val, tuple):
+        elif isinstance(val, tuple) and val:  # Never cap empty paths
             path_depth = _get_path_net_depth(val)
             # Note that the last node in ``outer`` is the process name,
             # which doesn't count as part of the path depth.

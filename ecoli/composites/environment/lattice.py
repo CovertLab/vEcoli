@@ -15,6 +15,7 @@ from ecoli.processes.environment.multibody_physics import (
     Multibody, make_random_position)
 from ecoli.processes.environment.diffusion_field import (
     DiffusionField)
+from ecoli.processes.environment.field_timeline import FieldTimeline
 from ecoli.composites.environment.grow_divide import (
     GrowDivideExchange, GrowDivide)
 
@@ -107,12 +108,20 @@ class Lattice(Composer):
             'depth': 3000.0,
             'diffusion': 1e-2,
         },
+        'field_timeline': {
+            'bounds': [10, 10],
+            'timeline': [],
+        },
+        'field_timeline_topology': {
+            'global': ('global',),
+        },
     }
 
     def generate_processes(self, config):
         processes = {
             'multibody': Multibody(config['multibody']),
-            'diffusion': DiffusionField(config['diffusion'])
+            'diffusion': DiffusionField(config['diffusion']),
+            'field_timeline': FieldTimeline(config['field_timeline']),
         }
         return processes
 
@@ -125,6 +134,11 @@ class Lattice(Composer):
                 'agents': ('agents',),
                 'fields': ('fields',),
                 'dimensions': ('dimensions',),
+            },
+            'field_timeline': {
+                port: tuple(path)
+                for port, path in
+                config['field_timeline_topology'].items()
             },
         }
 
