@@ -70,11 +70,13 @@ class NonSpatialEnvironment(Step):
             },
         }
         # add field concentrations
-        field_schema = {
-            field_id: {
-                '_value': np.array([[conc.magnitude]])
-            } for field_id, conc in self.parameters['concentrations'].items()}
-        schema['fields'].update(field_schema)
+        field_schema = {}
+        for field_id, conc in self.parameters['concentrations'].items():
+            if not isinstance(self.parameters['concentrations']['cephaloridine'], float):
+                conc = conc.magnitude
+            field_schema[field_id] = {
+                '_value': np.array([[conc]])
+            }
         return schema
 
     def next_update(self, timestep, states):
