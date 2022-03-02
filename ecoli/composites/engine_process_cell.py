@@ -37,7 +37,6 @@ class EngineProcessCell(Composer):
         'agent_id': '0',
         'initial_cell_state': {},
         'seed': 0,
-        'initial_tunnel_states': {},
         'tunnel_out_schemas': {},
         'stub_schemas': {},
         'parallel': False,
