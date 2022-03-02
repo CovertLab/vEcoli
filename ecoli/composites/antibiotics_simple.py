@@ -37,17 +37,16 @@ BETA_LACTAMASE_KEY = 'beta-lactamase'
 
 class PARAMETERS:
     # Reported in (Nagano & Nikaido, 2009)
-    # CEPH_PUMP_KCAT = 1e1 / units.sec  # TODO: Placeholder
-    TOLC_KCAT = 1e1 / units.sec  # TODO: Placeholder. Constant regardless of substrate?
+    # CEPH_PUMP_KCAT = 1e1 / units.sec  # TODO: Placeholderq
+    TOLC_KCAT = 1e1  # / units.sec  # TODO: Placeholder. Constant regardless of substrate?
     # Reported in (Nagano & Nikaido, 2009)
-    CEPH_PUMP_KM = 4.95e-3 * units.millimolar  # TODO: Placeholder
+    CEPH_PUMP_KM = 4.95e-3  # * units.millimolar  # TODO: Placeholder
     # Reported in (Galleni et al., 1988)
     CEPH_BETA_LACTAMASE_KCAT = 130 / units.sec
     # Reported in (Galleni et al., 1988)
     CEPH_BETA_LACTAMASE_KM = 170 * units.micromolar
 
-    TET_OMPF_CON_PERM = 0.01195286573132685 * 1e-5 * units.cm * units.micron * units.micron / units.sec  # TODO: Placeholder
-    TET_PUMP_KM = 4.95e-3 * units.millimolar  # TODO: Placeholder
+    TET_PUMP_KM = 4.95e-3  # * units.millimolar  # TODO: Placeholder
 
 
 class SimpleAntibioticsCell(Composer):
@@ -194,25 +193,6 @@ def demo():
             },
             'port_ids': ['internal', 'external', 'pump_port'],
             'time_step': 0.1,
-            # 'ceph_tolc': {
-            #     'initial_pump': INITIAL_PUMP,
-            #     'initial_internal_antibiotic': INITIAL_INTERNAL_BETA_LACTAM,
-            #     'initial_external_antibiotic': INITIAL_EXTERNAL_BETA_LACTAM,
-            #     'kcat': PARAMETERS.CEPH_PUMP_KCAT,
-            #     'Km': PARAMETERS.CEPH_PUMP_KM,
-            #     'pump_key': PUMP_KEY,
-            #     'antibiotic_key': BETA_LACTAM_KEY,
-            # },
-            # 'tet_tolc': {
-            #     'initial_pump': INITIAL_PUMP,
-            #     'initial_internal_antibiotic': INITIAL_INTERNAL_TET,
-            #     'initial_external_antibiotic': INITIAL_EXTERNAL_TET,
-            #     'kcat': PARAMETERS.TET_PUMP_KCAT,
-            #     'Km': PARAMETERS.TET_PUMP_KM,
-            #     'pump_key': PUMP_KEY,
-            #     'antibiotic_key': TET_KEY,
-            # },
-            # 'time_step': 0.1,
         },
         'hydrolysis': {
             'initial_catalyst': 1e-3,
@@ -286,8 +266,8 @@ def demo():
     initial_state['bulk']['CPLX0-7534[o]'] = 500
     initial_state['environment'] = {}
     initial_state['environment']['fields'] = {}
-    initial_state['environment']['fields']['cephaloridine'] = array([[1e-3]])
-    initial_state['environment']['fields']['tetracycline'] = array([[1e-3]])
+    initial_state['environment']['fields']['cephaloridine'] = array([[INITIAL_EXTERNAL_BETA_LACTAM]])
+    initial_state['environment']['fields']['tetracycline'] = array([[INITIAL_EXTERNAL_TET]])
 
     sim = Engine(composite=composite, initial_state=initial_state)
     sim.update(sim_time)
@@ -304,27 +284,6 @@ def demo():
         out_dir='out',
         filename='antibiotics_simple'
     )
-
-    # For some reason, if simulation run with commented out code, external cephaloridine would not change
-
-    # exp = composite_in_experiment(
-    #     composite,
-    #     initial_state=initial_state,
-    # )
-    # data = simulate_experiment(
-    #     exp,
-    #     {'total_time': 10})
-    # fig = plot_variables(
-    #     data,
-    #     variables=[
-    #         ('periplasm', 'concs', 'cephaloridine'),
-    #         ('periplasm', 'concs', 'cephaloridine_hydrolyzed'),
-    #         ('boundary', 'external', 'cephaloridine'),
-    #     ],
-    #     out_dir='out',
-    #     filename='antibiotics_simple'
-    # )
-    # return fig, data
 
 
 if __name__ == '__main__':
