@@ -4,8 +4,10 @@
         "antibiotic_transport",
         "antibiotic_hydrolysis",
         "fickian_diffusion",
-        "concentrations_deriver"
+        "concentrations_deriver",
+        "death"
     ],
+    "total_time": 12000,
     "spatial_environment_config": {
         "multibody": {
             "bounds": [10, 10],
@@ -21,9 +23,19 @@
                 "type": "uniform",
                 "molecules": {
                     "GLC[p]": 1.0,
-                    "nitrocefin": 0.1239
+                    "nitrocefin": 0
                 }
             }
+        },
+        "field_timeline": {
+            "bins": [10, 10],
+            "timeline": [
+                [6000, {"nitrocefin": 0.1239}]
+            ]
+        },
+        "field_timeline_topology": {
+            "global": ["global"],
+            "fields": ["fields"]
         }
     },
     "topology": {
@@ -53,6 +65,11 @@
             "counts": ["bulk"],
             "concentrations": ["periplasm", "concentrations"],
             "volume": ["periplasm", "global", "volume"]
+        },
+        "death": {
+            "global": ["boundary"],
+            "processes": [],
+            "internal": ["periplasm", "concentrations"]
         }
     },
     "process_configs": {
@@ -94,6 +111,43 @@
         },
         "concentrations_deriver": {
             "variables": ["EG10040-MONOMER[p]", "TRANS-CPLX-201[m]"]
+        },
+        "death": {
+            "detectors": {
+                "antibiotic": {
+                    "antibiotic_threshold": 0.03,
+                    "antibiotic_key": "nitrocefin"
+                }
+            },
+            "targets": [
+                "ecoli-tf-binding_evolver",
+                "ecoli-transcript-initiation_evolver",
+                "ecoli-transcript-elongation_evolver",
+                "ecoli-rna-degradation_evolver",
+                "ecoli-polypeptide-initiation_evolver",
+                "ecoli-polypeptide-elongation_evolver",
+                "ecoli-complexation_evolver",
+                "ecoli-two-component-system_evolver",
+                "ecoli-equilibrium_evolver",
+                "ecoli-protein-degradation_evolver",
+                "ecoli-chromosome-replication_evolver",
+                "antibiotic_transport",
+                "antibiotic_hydrolysis",
+                "ecoli-tf-binding_requester",
+                "ecoli-transcript-initiation_requester",
+                "ecoli-transcript-elongation_requester",
+                "ecoli-rna-degradation_requester",
+                "ecoli-polypeptide-initiation_requester",
+                "ecoli-polypeptide-elongation_requester",
+                "ecoli-complexation_requester",
+                "ecoli-two-component-system_requester",
+                "ecoli-equilibrium_requester",
+                "ecoli-protein-degradation_requester",
+                "ecoli-chromosome-replication_requester",
+                "allocator",
+                "ecoli-chromosome-structure",
+                "ecoli-metabolism"
+            ]
         }
     },
     "flow": {
