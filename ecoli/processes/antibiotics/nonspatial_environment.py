@@ -14,7 +14,6 @@ class NonSpatialEnvironment(Deriver):
 
     name = 'nonspatial_environment'
     defaults = {
-        'internal_volume': 1 * units.fL,
         'env_volume': 1 * units.fL,
         'concentrations': {},
     }
@@ -59,21 +58,13 @@ class NonSpatialEnvironment(Deriver):
                 'location': {
                     '_value': [0.5, 0.5],
                 },
-                'volume': {
-                    '_value': self.parameters['internal_volume'],
-                },
-                'mmol_to_counts': {
-                    '_value': (
-                        AVOGADRO * self.parameters['internal_volume']
-                    ).to('L/mmol')
-                },
             },
         }
         # add field concentrations
         field_schema = {
             field_id: {
                 '_value': np.array([[
-                    float(conc.to(units.millimolar).magnitude)
+                    float(conc)
                 ]])
             } for field_id, conc in self.parameters['concentrations'].items()}
         schema['fields'].update(field_schema)
@@ -82,11 +73,12 @@ class NonSpatialEnvironment(Deriver):
     def next_update(self, timestep, states):
         fields = states['fields']
         new_fields = copy.deepcopy(fields)
+        env_volume = self.parameters['env_volume']
 
         exchanges = states['exchanges']
         for molecule, exchange in exchanges.items():
             conc_delta = (
-                exchange / AVOGADRO / self.parameters['env_volume'])
+                exchange / AVOGADRO / env_volume)
             new_fields[molecule][0, 0] += conc_delta.to(
                 units.millimolar).magnitude
 
@@ -94,7 +86,7 @@ class NonSpatialEnvironment(Deriver):
             'external': {
                 mol_id: {
                     '_updater': 'set',
-                    '_value': field[0][0] * units.mM,
+                    '_value': field[0][0],
                 }
                 for mol_id, field in new_fields.items()
             },
