@@ -1,6 +1,8 @@
+import os
+
 from vivarium.core.composer import Composer
 from vivarium.core.composition import (
-    composite_in_experiment, simulate_experiment)
+    composite_in_experiment, simulate_experiment, BASE_OUT_DIR)
 from vivarium.library.units import units
 from vivarium.plots.simulation_output import plot_variables
 from vivarium.plots.topology import plot_topology
@@ -12,11 +14,12 @@ from ecoli.processes.antibiotics.fickian_diffusion import (
 )
 from ecoli.processes.antibiotics.nonspatial_environment import (
     NonSpatialEnvironment)
-from ecoli.processes.antibiotics.shape import ShapeDeriver
+from ecoli.processes.shape import Shape
 
 
-INITIAL_INTERNAL_ANTIBIOTIC = 0
-INITIAL_EXTERNAL_ANTIBIOTIC = 1e-3
+OUT_DIR = os.path.join(BASE_OUT_DIR, 'experiments', 'antibiotics_colony')
+INITIAL_INTERNAL_ANTIBIOTIC = 0 * units.mM
+INITIAL_EXTERNAL_ANTIBIOTIC = 1e-3 * units.mM
 ANTIBIOTIC_KEY = 'antibiotic'
 PUMP_KEY = 'pump'
 # Source: (Wülfing & Plückthun, 1994)
@@ -44,10 +47,11 @@ class SimpleAntibioticsCell(Composer):
     efflux). Also includes derivers.
     '''
 
+    name = 'simple_antibiotics_cell'
     defaults = {
         'boundary_path': ('boundary',),
         'efflux': {
-            'initial_pump': 1e-3,
+            'initial_pump': 0.45e-3 * units.mM,
             'initial_internal_antibiotic': INITIAL_INTERNAL_ANTIBIOTIC,
             'intial_external_antibiotic': INITIAL_EXTERNAL_ANTIBIOTIC,
             'kcat': PARAMETERS.PUMP_KCAT,
@@ -57,7 +61,7 @@ class SimpleAntibioticsCell(Composer):
             'time_step': 0.1,
         },
         'hydrolysis': {
-            'initial_catalyst': 1e-3,
+            'initial_catalyst': 0.5e-3 * units.mM,
             'catalyst': BETA_LACTAMASE_KEY,
             'initial_target_internal': INITIAL_INTERNAL_ANTIBIOTIC,
             'target': ANTIBIOTIC_KEY,
@@ -75,7 +79,7 @@ class SimpleAntibioticsCell(Composer):
                 },
                 'global': {
                     'periplasm_volume': (
-                        1.2 * units.fL * PERIPLASM_FRACTION),
+                        1 * units.fL * PERIPLASM_FRACTION),
                 },
             },
             'molecules_to_diffuse': [ANTIBIOTIC_KEY],
@@ -88,7 +92,7 @@ class SimpleAntibioticsCell(Composer):
             'surface_area_mass_ratio': 132 * units.cm**2 / units.mg,
             'time_step': 0.1,
         },
-        'shape_deriver': {}
+        'shape': {}
     }
 
     def generate_processes(self, config):
@@ -96,12 +100,12 @@ class SimpleAntibioticsCell(Composer):
         hydrolysis = AntibioticHydrolysis(config['hydrolysis'])
         fickian_diffusion = FickianDiffusion(
             config['fickian_diffusion'])
-        shape_deriver = ShapeDeriver(config['shape_deriver'])
+        shape = Shape(config['shape'])
         return {
             'efflux': efflux,
             'hydrolysis': hydrolysis,
             'fickian_diffusion': fickian_diffusion,
-            'shape_deriver': shape_deriver,
+            'shape': shape,
         }
 
     def generate_topology(self, config=None):
@@ -127,11 +131,12 @@ class SimpleAntibioticsCell(Composer):
                 'exchanges': boundary_path + ('exchanges',),
                 'fluxes': ('fluxes',),
                 'volume_global': ('periplasm', 'global'),
-                'mass_global': boundary_path,
+                'mass_global': ('mass_listener',),
             },
-            'shape_deriver': {
+            'shape': {
                 'cell_global': boundary_path,
-                'periplasm_global': ('periplasm', 'global')
+                'periplasm_global': ('periplasm', 'global'),
+                'listener_cell_mass': ('mass_listener', 'dry_mass'),
             },
         }
         return topology
@@ -141,9 +146,9 @@ def demo():
     composite = SimpleAntibioticsCell().generate()
     env = NonSpatialEnvironment({
         'concentrations': {
-            'antibiotic': INITIAL_EXTERNAL_ANTIBIOTIC,
+            'antibiotic': INITIAL_EXTERNAL_ANTIBIOTIC.magnitude,
         },
-        'internal_volume': 1.2 * units.fL,
+        'internal_volume': 1 * units.fL,
         'env_volume': 1 * units.mL,
     })
     composite.merge(
@@ -175,3 +180,15 @@ def demo():
         ],
     )
     return fig, data
+
+
+def main():
+    if not os.path.exists(OUT_DIR):
+        os.makedirs(OUT_DIR)
+
+    fig, _ = demo()
+    fig.savefig(os.path.join(OUT_DIR, SimpleAntibioticsCell.name))
+
+
+if __name__ == '__main__':
+    main()
