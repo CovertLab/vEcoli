@@ -17,8 +17,8 @@ CEPH_OMPC_CON_PERM = 0.003521401200296894 * 1e-5 * units.cm * units.micron * uni
 CEPH_OMPF_CON_PERM = 0.01195286573132685 * 1e-5 * units.cm * units.micron * units.micron / units.sec
 CEPH_PH_PERM = 0 * units.cm / units.sec
 
-TET_OMPF_CON_PERM = 6.36274221439452 * 1e-13 * units.cm * units.micron * units.micron / units.sec
-TET_PH_PERM = 2.8 * 1e-9 * units.cm / units.sec  # Assuming constant pH-out: 6.3, pH-in: 7.8
+TET_OMPF_CON_PERM = 2.2496838543752056 * 1e-9 * units.cm * units.micron * units.micron / units.sec
+TET_PH_PERM = 1 * 1e-7 * units.cm / units.sec  # Assuming constant pH-out: 6.3, pH-in: 7.8
 
 
 class PorinPermeability(Step):
