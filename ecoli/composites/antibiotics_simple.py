@@ -38,7 +38,6 @@ BETA_LACTAMASE_KEY = 'beta-lactamase'
 class PARAMETERS:
     # Reported in (Nagano & Nikaido, 2009)
     # CEPH_PUMP_KCAT = 1e1 / units.sec  # TODO: Placeholder
-    TOLC_KCAT = 1e1  # / units.sec  # TODO: Placeholder. Constant regardless of substrate?
     # Reported in (Nagano & Nikaido, 2009)
     CEPH_PUMP_KM = 4.95e-3  # * units.millimolar  # TODO: Placeholder
     # Reported in (Galleni et al., 1988)
@@ -46,8 +45,12 @@ class PARAMETERS:
     # Reported in (Galleni et al., 1988)
     CEPH_BETA_LACTAMASE_KM = 170 * units.micromolar
 
-    TET_PUMP_KM = 4.95e-3  # * units.millimolar  # TODO: Placeholder
+    # Calculated from V_max reported in (Nikaido, 2012)
+    # TET_PUMP_KCAT = 0.00015759727703788977  # / units.sec
+    # Reported in (Nikaido, 2012)
+    TET_PUMP_KM = 200e-3  # * units.millimolar
 
+    TOLC_KCAT = 1e1  # / units.sec  # TODO: Placeholder. Constant regardless of substrate?
 
 class SimpleAntibioticsCell(Composer):
     '''Integrate antibiotic resistance and susceptibility with wcEcoli
