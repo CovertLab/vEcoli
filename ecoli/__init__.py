@@ -39,8 +39,8 @@ inverse_updater_registry.register('null', inverse_update_null)
 inverse_updater_registry.register('merge', inverse_update_merge)
 inverse_updater_registry.register(
     'nonnegative_accumulate', inverse_update_nonnegative_accumulate)
-inverse_updater_registry.register(
-    'dict_value', inverse_update_dictionary)
+# inverse_updater_registry.register(
+#     'dict_value', inverse_update_dictionary)
 
 # register :term:`dividers`
 divider_registry.register('binomial_ecoli', divide_binomial)

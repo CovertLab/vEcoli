@@ -43,7 +43,7 @@ class CellWall(Process):
 
         # Physical parameters
         'critical_radius': 20 * units.nm,
-        'cell_radius': 1 * units.um,
+        'cell_radius': 0.5 * units.um,
         # 4.1 in maximally stretched configuration,
         'disaccharide_length': 1.03 * units.nm,
         # divided by 3 because the sacculus can be stretched threefold
@@ -58,7 +58,6 @@ class CellWall(Process):
 
         # Get murein id and keep track of murein from last timestep
         self.murein = self.parameters['murein']
-        self.murein_prev = 0
 
         self.critical_radius = 20 * units.nm
         self.critical_area = np.pi * self.critical_radius**2
@@ -69,11 +68,15 @@ class CellWall(Process):
     def ports_schema(self):
         schema = {
             'bulk_murein': bulk_schema([self.parameters['murein']]),
+            'murein_state': {
+                'free_murein': {'_default': 0, '_updater': 'set'},
+                'incorporated_murein': {'_default': 0, '_updater': 'set'}
+            },
             'PBP': bulk_schema(self.parameters['PBP'].values()),
 
             'shape': {
                 "length": {
-                    '_default': 2 * units.um  # TODO: set to 0
+                    '_default': 0 * units.um
                 }
             },
 
@@ -107,9 +110,10 @@ class CellWall(Process):
         update = {}
 
         if DEBUG:
-            states['bulk_murein'][self.murein] = 3000000
+            #states['bulk_murein'][self.murein] = 3000000
             update['shape'] = {"length": length + 0.1 * units.um}
-            pass
+            assert states['bulk_murein'][self.murein] == states['murein_state']['free_murein'] + \
+                states['murein_state']['incorporated_murein']
 
         # Expand lattice size if necessary, depending on cell size
         print("resizing lattice")
@@ -118,9 +122,10 @@ class CellWall(Process):
 
         # Cell wall construction/destruction
         print("assigning murein")
-        d_murein = 2 * (states['bulk_murein'][self.murein] - self.murein_prev)  # One murein unit represents 2 PG subunits
-        self.murein_prev = states['bulk_murein'][self.murein]
-        lattice = self.assign_murein(d_murein, lattice, rows, columns)
+        lattice, new_free_murein, new_incorporated_murein = self.assign_murein(states['murein_state']['free_murein'],
+                                                                               states['murein_state']['incorporated_murein'],
+                                                                               lattice, rows, columns)
+        print(len(lattice))
 
         update['wall_state'] = {
             'lattice': lattice,
@@ -128,8 +133,10 @@ class CellWall(Process):
             'lattice_cols': columns
         }
 
-        # Cephaloridine activity
-        # TODO
+        update['murein_state'] = {
+            'free_murein': new_free_murein,
+            'incorporated_murein': new_incorporated_murein
+        }
 
         # Crack detection (cracking is irreversible)
         print("crack detection")
@@ -139,12 +146,11 @@ class CellWall(Process):
 
         return update
 
-
     def resize_lattice(self, cell_length, cell_radius,
                        lattice, prev_rows=0, prev_cols=0):
 
         # Calculate new lattice size
-        columns = int(cell_length / self.parameters['crossbridge_length'])
+        columns = int(cell_length / self.parameters['crossbridge_length'])  # TODO: account for sugar
         self.circumference = 2 * np.pi * cell_radius
         rows = int(self.circumference / self.parameters['disaccharide_length'])
 
@@ -161,29 +167,44 @@ class CellWall(Process):
 
         return lattice, rows, columns
 
+    def assign_murein(self, free_murein, incorporated_murein, lattice, rows, columns):
+        n_holes = len(lattice)
+        n_incorporated = rows * columns - n_holes
 
-    def assign_murein(self, d_murein, lattice, rows, columns):
-        adding_murein = d_murein > 0
+        # fill holes
+        fill_n = min(free_murein, n_holes)
+        fill_idx = self.rng.choice(
+            np.arange(len(lattice)), size=fill_n, replace=False)
+        lattice = [lattice[i]
+                   for i in range(len(lattice)) if i not in fill_idx]
 
-        if adding_murein:  # fill holes
-            defects = len(lattice)
-            fill_n = min(d_murein, defects)
-            
-            fill_idx = self.rng.choice(np.arange(len(lattice)), size=fill_n, replace=False)
-            lattice = [lattice[i] for i in range(len(lattice)) if i not in fill_idx]
-        else:  # add holes
-            for _ in range(d_murein):
-                candidate = (self.rng.integers(rows), self.rng.integers(columns))
-                while candidate in lattice:
-                    candidate = (self.rng.integers(rows), self.rng.integers(columns))
-                lattice.add(candidate)
-        
-        return lattice
+        # add holes
+        new_holes = n_incorporated - incorporated_murein
+        # if new_holes > 0:
+        #     for _ in range(new_holes):
+        #         candidate = (self.rng.integers(rows),
+        #                      self.rng.integers(columns))
+        #         while candidate in lattice:
+        #             candidate = (self.rng.integers(rows),
+        #                          self.rng.integers(columns))
+        #         lattice.append(candidate)
 
+        while new_holes > 0:
+            candidates = (self.rng.integers(rows, size=new_holes),
+                          self.rng.integers(columns, size=new_holes))
+            redo = 0
+            for c in range(len(candidates)):
+                cand = (candidates[0][c], candidates[1][c])
+                if c in lattice:
+                    redo += 1
+                else:
+                    lattice.append(cand)
+            new_holes = redo
 
-
-
-
+        total_murein = free_murein + incorporated_murein
+        new_incorporated = (rows*columns - len(lattice))
+        new_free = total_murein - new_incorporated
+        return lattice, new_free, new_incorporated
 
     def get_largest_defect_area(self, lattice):
         # TODO: generate hole-view from defects
@@ -193,13 +214,13 @@ class CellWall(Process):
         return max_size * 4 * units.nm**2
 
 
-    def get_full_lattice(self, sparse_lattice, rows, cols):
-        result = np.ones((rows, cols))
+def get_full_lattice(sparse_lattice, rows, cols):
+    result = np.ones((rows, cols))
 
-        for r, c in sparse_lattice:
-            result[r, c] = 0
+    for r, c in sparse_lattice:
+        result[r, c] = 0
 
-        return result
+    return result
 
 
 def plot_lattice(lattice):
@@ -227,7 +248,19 @@ def main():
     settings = {
         'total_time': 10,
         'initial_state': {
-
+            'bulk_murein': {
+                'CPD-12261[p]': int(3e6)
+            },
+            'shape': {
+                'length': 1 * units.um
+            },
+            'murein_state': {
+                'incorporated_murein': 3000000
+            },
+            'wall_state': {
+                'lattice_rows': 6100,
+                'lattice_cols': 1463
+            }
         }
     }
 
@@ -263,13 +296,19 @@ def main():
     fig = plot_variables(
         data,
         variables=[
-            ("bulk_murein", 'CPD-12261[p]'),
+            ("murein_state", 'free_murein'),
+            ("murein_state", 'incorporated_murein'),
         ],
     )
     fig.tight_layout()
 
     os.makedirs("out/processes/cell_wall/", exist_ok=True)
     fig.savefig("out/processes/cell_wall/test.png")
+
+    for t, lattice in enumerate([]):
+        fig = plot_lattice(get_full_lattice(lattice))
+        fig.tight_layout()
+        fig.save_fig(f"out/processes/cell_wall_t{t}.png")
 
 
 if __name__ == '__main__':
