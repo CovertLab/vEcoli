@@ -29,7 +29,7 @@ class FickianDiffusion(Process):
                 'antibiotic': 1e-3,  # mM
             },
             'mass_global': {
-                'dry_mass': 300 * units.fg,
+                'dry_mass': 300,
             },
             'volume_global': {
                 'volume': 1.2 * units.fL,
