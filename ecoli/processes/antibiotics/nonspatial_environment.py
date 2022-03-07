@@ -27,7 +27,7 @@ class NonSpatialEnvironment(Deriver):
         schema = {
             'external': {
                 '*': {
-                    '_value': 0 * units.mM,
+                    '_value': 0,
                 },
             },
             'exchanges': {
