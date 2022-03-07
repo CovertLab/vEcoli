@@ -298,6 +298,9 @@ def main():
         variables=[
             ("murein_state", 'free_murein'),
             ("murein_state", 'incorporated_murein'),
+            ("shape", "length"),
+            ("wall_state", "rows"),
+            ("wall_state", "columns")
         ],
     )
     fig.tight_layout()
