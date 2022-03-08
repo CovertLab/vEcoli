@@ -43,7 +43,7 @@ class CellWall(Process):
 
         # Physical parameters
         'critical_radius': 20 * units.nm,
-        'cell_radius': 0.5 * units.um,
+        'cell_radius': 0.25 * units.um,
         # 4.1 in maximally stretched configuration,
         'disaccharide_length': 1.03 * units.nm,
         # divided by 3 because the sacculus can be stretched threefold
@@ -82,13 +82,16 @@ class CellWall(Process):
 
             'wall_state': {
                 'lattice': {
-                    '_default': list()  # A sparse, set-of-defects representation of the cell wall
+                    '_default': np.array([], dtype=int),
+                    '_updater': 'set'
                 },
                 'lattice_rows': {
-                    '_default': 0
+                    '_default': 0,
+                    '_updater': 'set'
                 },
                 'lattice_cols': {
-                    '_default': 0
+                    '_default': 0,
+                    '_updater': 'set'
                 },
                 'cracked': {
                     '_default': False
@@ -112,8 +115,8 @@ class CellWall(Process):
         if DEBUG:
             #states['bulk_murein'][self.murein] = 3000000
             update['shape'] = {"length": length + 0.1 * units.um}
-            assert states['bulk_murein'][self.murein] == states['murein_state']['free_murein'] + \
-                states['murein_state']['incorporated_murein']
+            assert (states['bulk_murein'][self.murein] == states['murein_state']['free_murein'] +
+                    states['murein_state']['incorporated_murein'])
 
         # Expand lattice size if necessary, depending on cell size
         print("resizing lattice")
@@ -150,59 +153,50 @@ class CellWall(Process):
                        lattice, prev_rows=0, prev_cols=0):
 
         # Calculate new lattice size
-        columns = int(cell_length / self.parameters['crossbridge_length'])  # TODO: account for sugar
+        columns = int(cell_length / (self.parameters['crossbridge_length'] +
+                                     self.parameters['disaccharide_length']))
         self.circumference = 2 * np.pi * cell_radius
         rows = int(self.circumference / self.parameters['disaccharide_length'])
 
         # Fill in new positions with defects initially
-        if columns > prev_cols:
-            for c in range(prev_cols, columns):
-                for r in range(rows):
-                    lattice.append((r, c))
+        lattice = np.pad(lattice, ((0, max(0, rows - prev_rows)),
+                                   (0, max(0, columns - prev_cols))),
+                         mode='constant', constant_values=0)
 
-        if rows > prev_rows:
-            for r in range(prev_rows, rows):
-                for c in range(columns):
-                    lattice.append((r, c))
-
+        assert lattice.shape == (rows, columns)
         return lattice, rows, columns
 
     def assign_murein(self, free_murein, incorporated_murein, lattice, rows, columns):
-        n_holes = len(lattice)
-        n_incorporated = rows * columns - n_holes
+        n_incorporated = lattice.sum()
+        n_holes = lattice.size - n_incorporated
 
         # fill holes
         fill_n = min(free_murein, n_holes)
-        fill_idx = self.rng.choice(
-            np.arange(len(lattice)), size=fill_n, replace=False)
-        lattice = [lattice[i]
-                   for i in range(len(lattice)) if i not in fill_idx]
+
+        if fill_n > 0:
+            fill_idx = self.rng.choice(
+                np.arange(lattice.size), size=fill_n, replace=False)
+            for idx in fill_idx:
+                # Convert 1D index into row, column
+                r = idx // columns
+                c = idx - (r * columns)
+
+                # fill hole
+                lattice[r, c] = 1
 
         # add holes
         new_holes = n_incorporated - incorporated_murein
-        # if new_holes > 0:
-        #     for _ in range(new_holes):
-        #         candidate = (self.rng.integers(rows),
-        #                      self.rng.integers(columns))
-        #         while candidate in lattice:
-        #             candidate = (self.rng.integers(rows),
-        #                          self.rng.integers(columns))
-        #         lattice.append(candidate)
+        
+        # choose random occupied locations
+        if new_holes > 0:
+            idx_occupancies = np.array(np.where(lattice))
+            idx_new_holes = self.rng.choice(idx_occupancies.T, size=new_holes, replace=False)
 
-        while new_holes > 0:
-            candidates = (self.rng.integers(rows, size=new_holes),
-                          self.rng.integers(columns, size=new_holes))
-            redo = 0
-            for c in range(len(candidates)):
-                cand = (candidates[0][c], candidates[1][c])
-                if c in lattice:
-                    redo += 1
-                else:
-                    lattice.append(cand)
-            new_holes = redo
+            for hole_r, hole_c in idx_new_holes:
+                lattice[hole_r, hole_c] = 0
 
         total_murein = free_murein + incorporated_murein
-        new_incorporated = (rows*columns - len(lattice))
+        new_incorporated = lattice.sum()
         new_free = total_murein - new_incorporated
         return lattice, new_free, new_incorporated
 
@@ -252,14 +246,15 @@ def main():
                 'CPD-12261[p]': int(3e6)
             },
             'shape': {
-                'length': 1 * units.um
+                'length': 2 * units.um
             },
             'murein_state': {
                 'incorporated_murein': 3000000
             },
             'wall_state': {
-                'lattice_rows': 6100,
-                'lattice_cols': 1463
+                'lattice_rows': 1525,
+                'lattice_cols': 834,
+                'lattice': np.ones((1525, 834), dtype=int)
             }
         }
     }
