@@ -19,7 +19,7 @@ from ecoli.processes.shape import Shape
 
 OUT_DIR = os.path.join(BASE_OUT_DIR, 'experiments', 'antibiotics_colony')
 INITIAL_INTERNAL_ANTIBIOTIC = 0 * units.mM
-INITIAL_EXTERNAL_ANTIBIOTIC = 1e-3 * units.mM
+INITIAL_EXTERNAL_ANTIBIOTIC = 0.1239 * units.mM
 ANTIBIOTIC_KEY = 'antibiotic'
 PUMP_KEY = 'pump'
 # Source: (Wülfing & Plückthun, 1994)
