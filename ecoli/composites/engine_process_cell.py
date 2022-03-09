@@ -48,6 +48,7 @@ class EngineProcessCell(Composer):
             ('bulk', 'EG10040-MONOMER[p]'),
             ('bulk', 'TRANS-CPLX-201[m]'),
             ('periplasm',),
+            ('permeabilities',),
         ],
     }
 
@@ -171,7 +172,6 @@ def run_simulation():
         profile=config['profile'],
     )
     engine.update(config['total_time'])
-    import pdb; pdb.set_trace()
     engine.end()
 
     if config['profile']:

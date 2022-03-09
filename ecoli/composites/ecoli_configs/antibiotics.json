@@ -59,7 +59,8 @@
             "exchanges": ["environment", "exchange"],
             "fluxes": ["fluxes"],
             "volume_global": ["periplasm", "global"],
-            "mass_global": ["listeners", "mass"]
+            "mass_global": ["listeners", "mass"],
+            "permeabilities": ["permeabilities"]
         },
         "concentrations_deriver": {
             "counts": ["bulk"],
