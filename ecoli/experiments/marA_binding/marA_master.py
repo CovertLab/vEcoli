@@ -7,6 +7,8 @@ from os.path import exists
 
 from ecoli.experiments.ecoli_master_sim import EcoliSim
 from vivarium.plots.simulation_output import plot_variables
+from ecoli.analysis.analyze_db_experiment import access
+from vivarium.core.emitter import timeseries_from_data
 
 def runDefault(paths):
     sim = EcoliSim.from_file()
@@ -16,12 +18,11 @@ def runDefault(paths):
     
     query = [i['variable'] for i in paths]
     sim.run()
-    timeseries = sim.query(query)
+    
+    return sim.ecoli_experiment.experiment_id
 
-    plot_degenes(timeseries, "default", paths)
 
-
-def includeMarA(paths):
+def includeMarA(paths, baseline_id):
     sim = EcoliSim.from_file()
     sim.raw_output = False
     sim.total_time = 500
@@ -41,18 +42,15 @@ def includeMarA(paths):
     sim.initial_state_file = "wcecoli_marA"
     
     query = [i['variable'] for i in paths]
-    #query += [("bulk", "ACRB-MONOMER[p]")]
     sim.run()
     timeseries = sim.query(query)
-    # Consider using "inherit_from" key (see lysis.json) to inherit from silent_unqiue.json once that is fixed
-    # vivarium scripts to clear out MongoDB database
-    #print(timeseries["bulk"]["ACRB-MONOMER[p]"])
     
     # TODO: Plot mRNA counts instead of final protein counts
-    # TODO: Visualization tool
-    #   - Plot data from baseline run, marA-added run, and baseline * expected fold change
+    
+    baseline_data = access(baseline_id, query)
+    baseline_timeseries = timeseries_from_data(baseline_data[0])
 
-    plot_degenes(timeseries, "marA", paths)
+    plot_degenes(timeseries, baseline_timeseries, "marA_1000", paths)
 
 def ids_of_interest():
     model_degenes = pd.read_csv("ecoli/experiments/marA_binding/model_degenes.csv")
@@ -94,15 +92,11 @@ def ids_of_interest():
 
     return bulk_paths + complex_paths
 
-def plot_degenes(timeseries, name, variable_paths):
-    
+def extract_data(timeseries, variable_paths):
     fig = plot_variables(
         timeseries, 
         variables=variable_paths,
-        # TODO: Try to find a way to overlay line plots from different runs
-        # TODO: Put expected fold change in plot as dashed line
         # Get list of misbehaving molecules to report at meetings
-        # Use mRNA fold changes from 10 mg/L tetracycline from PLoS ONE paper
     )
     data = {}
     for axes in fig.axes:
@@ -114,37 +108,135 @@ def plot_degenes(timeseries, name, variable_paths):
                 "y_data": line.get_ydata()
             }
         })
+    plt.close(fig="all")
     complex_names = []
-    for title in data.keys():
+    dict_keys = list(data.keys())
+    for title in dict_keys:
+        if ":" in title:
+            fold_change = title.split(": ")[-1].split("x ")[0]
+            data[title.split(": ")[0]] = data.pop(title)
+            data[title.split(": ")[0]]['fold_change'] = fold_change
+            continue
         if "(" in title:
             monomer = title.split("(")[-1].split(" x")[0]
             counts = title.split("(")[-1].split("x ")[-1].split(")")[0]
             data[monomer]["y_data"] += int(counts)*data[title]["y_data"]
             complex_names.append(title)
-        if ":" in title:
-            fold_change = title.split(": ")[-1].split("x ")[0]
-            data[title]["fold_change"] = fold_change
     for key in complex_names:
         data.pop(key)
-    plt.close(fig="all")
+    
+    return data
+
+def plot_degenes(timeseries, baseline, name, variable_paths):
+    data = extract_data(timeseries, variable_paths)
+    baseline_data = extract_data(baseline, variable_paths)
+    
     n_monomers = len(data)
-    for i, monomer_data in enumerate(data.items()):
-        plt.subplot(n_monomers, 1, i+1)
-        title = monomer_data[0]
-        x = monomer_data[1]['x_data']
-        y = monomer_data[1]['y_data']
-        fold_change = monomer_data[1]['fold_change']
-        plt.plot(x, y)
-        plt.title(title)
-        # TODO: Extract baseline data from default sim for expected value
-        plt.plot(x, y*fold_change, '-')
+    fig, axes = plt.subplots(n_monomers, 1, figsize=(8, 4 * n_monomers), tight_layout=True)
+
+    for i, key in enumerate(data.keys()):
+        monomer_data = data[key]
+        baseline_monomer_data = baseline_data[key]
+        title = key
+        x = monomer_data['x_data']
+        assert (x == baseline_monomer_data['x_data']).all()
+        y = monomer_data['y_data']
+        fold_change = monomer_data['fold_change']
+        assert fold_change == baseline_monomer_data['fold_change']
+        y_exp = baseline_monomer_data['y_data']
+        axes[i].plot(x, y, label="marA")
+        axes[i].plot(x, y_exp*float(fold_change), 'r--', label="base")
+        axes[i].set_title(title)
+    plt.tight_layout()
     plt.savefig(f"ecoli/experiments/marA_binding/{name}.png")
     
+def timeseries_from_unique(data, path, f):
+    times_vector = list(data.keys())
+    embedded_timeseries: dict = {}
+    for value in data.values():
+        if isinstance(value, dict):
+            embedded_timeseries = value_in_embedded_dict(
+                value, embedded_timeseries, path, f)
+    embedded_timeseries['time'] = times_vector
+    return embedded_timeseries
+
+def value_in_embedded_dict(
+        data,
+        timeseries,
+        path,
+        f):
+    timeseries = timeseries or {}
+
+    for key, value in data.items():
+        if isinstance(value, dict):
+            if key == path[0]:
+                if len(path) == 1:
+                    if key not in timeseries:
+                        timeseries[key] = []
+                    timeseries[key].append(f(value))
+                else:
+                    if key not in timeseries:
+                        timeseries[key] = {}
+                    path = path[1:]
+                    timeseries[key] = value_in_embedded_dict(value, timeseries[key], path, f)
+
+    return timeseries
+
+def count_by_tu_idx(data):
+    tu_idx = np.zeros(len(data))
+    for i, rna in enumerate(data.values()):
+        tu_idx[i] = rna["TU_index"]
+    tu_idx = tu_idx.astype(int)
+    return np.bincount(tu_idx, minlength=4687)
+
+def plot_mrnas(mrna_ts, baseline_mrna_ts, name, idx, genes, fc):
+    mrna_data = np.array(mrna_ts["unique"]["RNA"])[:, idx]
+    baseline_mrna_data = np.array(baseline_mrna_ts["unique"]["RNA"])[:, idx]
+    
+    n_mrnas = len(idx)
+    fig, axes = plt.subplots(n_mrnas, 1, figsize=(8, 4 * n_mrnas), tight_layout=True)
+
+    for i, gene in enumerate(genes):
+        title = gene
+        x = np.arange(start=0, stop=len(mrna_data[:,i])*2, step=2)
+        y = mrna_data[:,i]
+        y_exp = baseline_mrna_data[:, i]
+        axes[i].plot(x, y, label="marA")
+        x_exp = np.arange(start=0, stop=len(baseline_mrna_data[:,i])*2, step=2)
+        fold_change = fc[i]
+        axes[i].plot(x_exp, y_exp*float(fold_change), 'r--', label="base")
+        axes[i].set_title(title)
+    plt.tight_layout()
+    plt.savefig(f"ecoli/experiments/marA_binding/{name}.png")
 
 def main():
+    degenes = pd.read_csv("ecoli/experiments/marA_binding/model_degenes.csv")
+    TU_idx = degenes["TU_idx"].to_list()
+    genes = degenes["Gene name"]
+    fc = degenes["Fold change"] + 1
     paths = ids_of_interest()
-    #runDefault(paths)
-    includeMarA(paths)
+    runDefault()
+    # query = [i['variable'] for i in paths]
+    # exp_id = runDefault(paths)
+    # includeMarA(paths, exp_id)
+    # e28c1670-99af-11ec-a9df-9cfce8b9977c: control (500 seconds)
+    # 75294312-99b1-11ec-93b7-9cfce8b9977c: deltaV = fold change - 1 (500 seconds)
+    # e6a0f8da-99b3-11ec-be35-9cfce8b9977c: deltaV = (fold change - 1)/1000 (500 seconds)
+    exp_id = "e28c1670-99af-11ec-a9df-9cfce8b9977c"
+    # baseline_monomer_data = access(exp_id, query)[0]
+    # baseline_monomer_timeseries = timeseries_from_data(baseline_monomer_data)
+    # baseline_mrna_data = access(exp_id, [("unique", "RNA")])[0]
+    # baseline_mrna_timeseries = timeseries_from_unique(baseline_mrna_data, ("unique", "RNA"), count_by_tu_idx)
+    
+    exp_id = "e6a0f8da-99b3-11ec-be35-9cfce8b9977c"
+    #marA_monomer_data = access(exp_id, query)[0]
+    #marA_monomer_timeseries = timeseries_from_data(marA_monomer_data)
+    # marA_mrna_data = access(exp_id, [("unique", "RNA")])[0]
+    # marA_mrna_timeseries = timeseries_from_unique(marA_mrna_data, ("unique", "RNA"), count_by_tu_idx)
+    
+    # TODO: Run several simulations with different seeds and longer times and plot an average
+
+    # plot_mrnas(marA_mrna_timeseries, baseline_mrna_timeseries, "mrnas", TU_idx, genes, fc)
 
 if __name__=="__main__":
     main()
