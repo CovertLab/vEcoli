@@ -21,6 +21,7 @@ SERIALIZED_PATHS = (
     ('boundary', 'surface_area'),
     ('boundary', 'mmol_to_counts'),
     ('boundary', 'mass'),
+    ('permeabilities',),
 )
 AGENTS_PATH = ('agents',)
 
