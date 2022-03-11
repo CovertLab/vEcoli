@@ -4,8 +4,8 @@ from vivarium.core.emitter import timeseries_from_data
 from vivarium.core.engine import Engine
 from vivarium.library.units import units
 from vivarium.plots.simulation_output import plot_variables
-from ecoli.processes.antibiotics.porin_permeability import PorinPermeability, CEPH_OMPC_CON_PERM,\
-    CEPH_OMPF_CON_PERM, CEPH_PH_PERM, TET_OMPF_CON_PERM, TET_PH_PERM, SA_AVERAGE
+from ecoli.processes.antibiotics.permeability import Permeability, CEPH_OMPC_CON_PERM,\
+    CEPH_OMPF_CON_PERM, OUTER_CEPH_PH_PERM, TET_OMPF_CON_PERM, OUTER_TET_PH_PERM, SA_AVERAGE
 from ecoli.processes.antibiotics.fickian_diffusion import FickianDiffusion
 from vivarium.processes.timeline import TimelineProcess
 from ecoli.processes.antibiotics.nonspatial_environment import NonSpatialEnvironment
@@ -64,7 +64,7 @@ class PorinFickian(Composer):
     def generate_steps(self, config):
         derive_globals = DeriveGlobals(config['derive_globals'])
         nonspatial = NonSpatialEnvironment(config['nonspatial'])
-        porin_permeability = PorinPermeability(config['porin_permeability'])
+        porin_permeability = Permeability(config['porin_permeability'])
         return {'derive_globals': derive_globals,
                 'nonspatial': nonspatial,
                 'porin_permeability': porin_permeability}
@@ -131,13 +131,13 @@ def main():
                         'CPLX0-7533[o]': CEPH_OMPC_CON_PERM,
                         'CPLX0-7534[o]': CEPH_OMPF_CON_PERM
                     },
-                    'ph_perm': CEPH_PH_PERM
+                    'ph_perm': OUTER_CEPH_PH_PERM
                 },
                 'tetracycline': {
                     'per_porin_perm': {
                         'CPLX0-7534[o]': TET_OMPF_CON_PERM,
                     },
-                    'ph_perm': TET_PH_PERM
+                    'ph_perm': OUTER_TET_PH_PERM
                 }
             },
         },
