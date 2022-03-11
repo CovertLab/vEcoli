@@ -13,6 +13,7 @@ class ShapeDeriver(Step):
     name = 'shape_deriver'
     defaults = {
         'periplasm_fraction': 0.3,
+        'cytosol_fraction': 0.7,
         # https://bionumbers.hms.harvard.edu/bionumber.aspx?&id=103904&ver=17
         'water_fraction': 0.7,
         'initial_state': {
@@ -57,6 +58,17 @@ class ShapeDeriver(Step):
                     '_divider': 'split',
                 },
             },
+            'cytosol_global': {
+                'volume': {
+                    '_default': 0 * units.fL,
+                    '_emit': True,
+                    '_divider': 'split',
+                },
+                'mmol_to_counts': {
+                    '_default': 0 * units.L / units.mmol,
+                    '_divider': 'split',
+                },
+            },
         }
         return schema
 
@@ -64,6 +76,12 @@ class ShapeDeriver(Step):
         cell_volume = state['cell_global']['volume']
         periplasm_volume = cell_volume * self.parameters[
             'periplasm_fraction']
+        return periplasm_volume
+
+    def _calculate_cytosol_volume(self, state):
+        cell_volume = state['cell_global']['volume']
+        periplasm_volume = cell_volume * self.parameters[
+            'cytosol_fraction']
         return periplasm_volume
 
     @staticmethod
@@ -81,17 +99,27 @@ class ShapeDeriver(Step):
         initial_state = copy.deepcopy(self.parameters['initial_state'])
         periplasm_volume = self._calculate_periplasm_volume(
             initial_state)
+        cytosol_volume = self._calculate_cytosol_volume(
+            initial_state
+        )
         dry_mass = self._calculate_dry_mass(initial_state)
         initial_state['periplasm_global'] = {
-            'volume': periplasm_volume,
+            'periplasm_volume': periplasm_volume,
             'mmol_to_counts': self._calculate_mmol_to_counts(
                 periplasm_volume)
+        }
+        initial_state['cytosol_global'] = {
+            'cytosol_volume': cytosol_volume,
+            'mmol_to_counts': self._calculate_mmol_to_counts(
+                cytosol_volume
+            )
         }
         initial_state['cell_global']['dry_mass'] = dry_mass
         return initial_state
 
     def next_update(self, _, states):
         periplasm_volume = self._calculate_periplasm_volume(states)
+        cytosol_volume = self._calculate_cytosol_volume(states)
         dry_mass = self._calculate_dry_mass(states)
         update = {
             'periplasm_global': {
@@ -102,6 +130,17 @@ class ShapeDeriver(Step):
                 'mmol_to_counts': {
                     '_value': self._calculate_mmol_to_counts(
                         periplasm_volume),
+                    '_updater': 'set',
+                },
+            },
+            'cytosol_global': {
+                'volume': {
+                    '_value': cytosol_volume,
+                    '_updater': 'set',
+                },
+                'mmol_to_counts': {
+                    '_value': self._calculate_mmol_to_counts(
+                        cytosol_volume),
                     '_updater': 'set',
                 },
             },

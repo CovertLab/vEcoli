@@ -15,13 +15,14 @@ SA_AVERAGE = 6.22200939450696
 # by these average concentrations to get our permeability per concentration constants.
 CEPH_OMPC_CON_PERM = 0.003521401200296894 * 1e-5 * units.cm * units.micron * units.micron / units.sec
 CEPH_OMPF_CON_PERM = 0.01195286573132685 * 1e-5 * units.cm * units.micron * units.micron / units.sec
-CEPH_PH_PERM = 0 * units.cm / units.sec
+OUTER_CEPH_PH_PERM = 0 * units.cm / units.sec
 
 TET_OMPF_CON_PERM = 2.2496838543752056 * 1e-9 * units.cm * units.micron * units.micron / units.sec
-TET_PH_PERM = 1 * 1e-7 * units.cm / units.sec  # Assuming constant pH-out: 6.3, pH-in: 7.8
+OUTER_TET_PH_PERM = 1 * 1e-7 * units.cm / units.sec  # TODO: Placeholder
+INNER_TET_PH_PERM = 1 * 1e-5 * units.cm / units.sec  # TODO: Placeholder
 
 
-class PorinPermeability(Step):
+class Permeability(Step):
     defaults = {
         'porin_ids': [],
         'diffusing_molecules': [],
@@ -71,17 +72,17 @@ def main():
                     'CPLX0-7533[o]': CEPH_OMPC_CON_PERM,
                     'CPLX0-7534[o]': CEPH_OMPF_CON_PERM
                 },
-                'ph_perm': CEPH_PH_PERM
+                'ph_perm': OUTER_CEPH_PH_PERM
             },
             'tetracycline': {
                 'per_porin_perm': {
                     'CPLX0-7534[o]': TET_OMPF_CON_PERM,
                 },
-                'ph_perm': TET_PH_PERM
+                'ph_perm': OUTER_TET_PH_PERM
             }
         },
     }
-    porin_process = PorinPermeability(porin_parameters)
+    porin_process = Permeability(porin_parameters)
 
 
     timeline = []
@@ -125,7 +126,7 @@ def main():
     plot_variables(timeseries_data, [('bulk', 'CPLX0-7533[o]'), ('bulk', 'CPLX0-7534[o]'),
                                      ('boundary', 'permeabilities', 'cephaloridine'),
                                      ('boundary', 'permeabilities', 'tetracycline')],
-                   out_dir='out', filename='porin_permeability_counts')
+                   out_dir='out', filename='permeability_counts')
 
 
 if __name__ == '__main__':
