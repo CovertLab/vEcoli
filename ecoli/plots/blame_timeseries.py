@@ -105,6 +105,7 @@ def blame_timeseries(data,
     fig, axs = plt.subplots(len(molecules), 2,
                             figsize=(10 + np.sqrt(max_t), 3*len(molecules)),
                             gridspec_kw={'width_ratios': [1, 10 + np.sqrt(max_t)]})
+    axs = np.atleast_2d(axs)
     for i, molecule in enumerate(molecules):
         # Plot molecule count over time
         # molecule_data = data['bulk'][molecule]
