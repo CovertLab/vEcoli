@@ -172,7 +172,8 @@ def test_monomer_counts_listener():
     sim = EcoliSim.from_file()
     sim.total_time = 2
     sim.raw_output = False
-    data = sim.run()
+    sim.run()
+    data = sim.query()
     assert(type(data['listeners']['monomer_counts'][0]) == list)
     assert(type(data['listeners']['monomer_counts'][1]) == list)
 

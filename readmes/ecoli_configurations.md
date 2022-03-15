@@ -187,7 +187,8 @@ sim.experiment_id = "Demo"
 sim.total_time = 10
 ...
 
-data_out = sim.run()
+sim.run()
+data_out = sim.query()
 ```
 
 All of the settings available to be modified from JSON are also accessible as fields of the `EcoliSim` object. If at any point you wish to access the full simulation config, `sim.config` offers an up-to-date configuration including all changes made through this OOP interface.
