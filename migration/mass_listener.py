@@ -15,7 +15,8 @@ from migration.migration_utils import ComparisonTestSuite, array_diffs_report, s
 @pytest.mark.master
 def test_mass_listener():
     ecoli_sim = EcoliSim.from_file(CONFIG_DIR_PATH + '/test_configs/test_mass_listener.json')
-    actual_updates = ecoli_sim.run()
+    ecoli_sim.run()
+    actual_updates = ecoli_sim.query()
 
     # actual_updates = run_ecoli(total_time=4, divide=False, blame=False, time_series=False)
 
