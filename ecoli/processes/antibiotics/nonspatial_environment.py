@@ -75,6 +75,7 @@ class NonSpatialEnvironment(Step):
             field_schema[field_id] = {
                 '_value': np.array([[conc]])
             }
+        schema['fields'].update(field_schema)
         return schema
 
     def next_update(self, timestep, states):
