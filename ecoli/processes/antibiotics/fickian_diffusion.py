@@ -181,7 +181,6 @@ class FickianDiffusion(Process):
                 for molecule, mol_flux in flux_mmol.items()
             },
         }
-        # import ipdb; ipdb.set_trace()
         return update
 
 
