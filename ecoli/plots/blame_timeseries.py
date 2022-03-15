@@ -104,6 +104,7 @@ def blame_timeseries(data,
     fig, axs = plt.subplots(len(molecules), 2,
                             figsize=(10 + np.sqrt(max_t), 3*len(molecules)),
                             gridspec_kw={'width_ratios': [1, 10 + np.sqrt(max_t)]})
+    axs = np.atleast_2d(axs)
     for i, molecule in enumerate(molecules):
         # Plot molecule count over time
         # molecule_data = data['bulk'][molecule]
@@ -168,7 +169,7 @@ def test_blame_timeseries():
         sim.log_updates = True
         sim.emit_topology = False
         sim.emit_processes = False
-        sim.total_time = 4
+        sim.total_time = 100
         # sim.exclude_processes = ["ecoli-two-component-system",
         #                          "ecoli-chromosome-structure",]
         #                          #"ecoli-polypeptide-elongation"]
@@ -187,8 +188,8 @@ def test_blame_timeseries():
     ]
 
     blame_timeseries(data, topo,
-                     ['WATER[c]', 'APORNAP-CPLX[c]', 'TRP[c]'] + molecules,
-                     'out/ecoli_master/test_blame_timeseries.png',
+                     ['CPD-12261[p]'],# + molecules,
+                     'out/ecoli_master/murein_blame.png',
                      yscale="linear")
 
 

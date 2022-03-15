@@ -69,32 +69,38 @@ class CellWall(Process):
         schema = {
             'bulk_murein': bulk_schema([self.parameters['murein']]),
             'murein_state': {
-                'free_murein': {'_default': 0, '_updater': 'set'},
-                'incorporated_murein': {'_default': 0, '_updater': 'set'}
+                'free_murein': {'_default': 0, '_updater': 'set', '_emit': True},
+                'incorporated_murein': {'_default': 0, '_updater': 'set', '_emit': True}
             },
             'PBP': bulk_schema(self.parameters['PBP'].values()),
 
             'shape': {
                 "length": {
-                    '_default': 0 * units.um
+                    '_default': 0 * units.um,
+                    '_emit': True
                 }
             },
 
             'wall_state': {
                 'lattice': {
                     '_default': np.array([], dtype=int),
-                    '_updater': 'set'
+                    '_updater': 'set',
+                    '_emit': True
                 },
                 'lattice_rows': {
                     '_default': 0,
-                    '_updater': 'set'
+                    '_updater': 'set',
+                    '_emit': True
                 },
                 'lattice_cols': {
                     '_default': 0,
-                    '_updater': 'set'
+                    '_updater': 'set',
+                    '_emit': True
                 },
                 'cracked': {
-                    '_default': False
+                    '_default': False,
+                    '_updater': 'set',
+                    '_emit': True
                 }
             }
         }
@@ -114,7 +120,7 @@ class CellWall(Process):
 
         if DEBUG:
             #states['bulk_murein'][self.murein] = 3000000
-            update['shape'] = {"length": length + 0.1 * units.um}
+            update['shape'] = {"length": 0.1 * units.um}
             assert (states['bulk_murein'][self.murein] == states['murein_state']['free_murein'] +
                     states['murein_state']['incorporated_murein'])
 
@@ -128,7 +134,8 @@ class CellWall(Process):
         lattice, new_free_murein, new_incorporated_murein = self.assign_murein(states['murein_state']['free_murein'],
                                                                                states['murein_state']['incorporated_murein'],
                                                                                lattice, rows, columns)
-        print(len(lattice))
+        print(f'Lattice size: {lattice.shape}')
+        print(f'Holes: {lattice.size - lattice.sum()}')
 
         update['wall_state'] = {
             'lattice': lattice,
@@ -146,6 +153,8 @@ class CellWall(Process):
         if (not states['wall_state']['cracked']
                 and self.get_largest_defect_area(lattice) > self.critical_area):
             update['wall_state']['cracked'] = True
+
+        assert new_incorporated_murein == lattice.sum()
 
         return update
 
@@ -171,6 +180,8 @@ class CellWall(Process):
         n_holes = lattice.size - n_incorporated
 
         # fill holes
+        # TODO: Replace random selection with strand extrusion
+        #       from a length distribution
         fill_n = min(free_murein, n_holes)
 
         if fill_n > 0:
@@ -185,7 +196,9 @@ class CellWall(Process):
                 lattice[r, c] = 1
 
         # add holes
-        new_holes = n_incorporated - incorporated_murein
+        # TODO: Replace random selection with biased selection
+        #       based on existing holes/stress map
+        new_holes = lattice.sum() - incorporated_murein
         
         # choose random occupied locations
         if new_holes > 0:
@@ -198,6 +211,7 @@ class CellWall(Process):
         total_murein = free_murein + incorporated_murein
         new_incorporated = lattice.sum()
         new_free = total_murein - new_incorporated
+
         return lattice, new_free, new_incorporated
 
     def get_largest_defect_area(self, lattice):
@@ -208,19 +222,11 @@ class CellWall(Process):
         return max_size * 4 * units.nm**2
 
 
-def get_full_lattice(sparse_lattice, rows, cols):
-    result = np.ones((rows, cols))
-
-    for r, c in sparse_lattice:
-        result[r, c] = 0
-
-    return result
-
-
 def plot_lattice(lattice):
-    fig, axs = plt.subplot()
-    fig.imshow(lattice, interpolation='nearest')
-    return fig, axs
+    fig, ax = plt.subplots()
+    mappable = ax.imshow(lattice, interpolation='nearest')
+    fig.colorbar(mappable, ax=ax)
+    return fig, ax
 
 
 def main():
@@ -249,6 +255,7 @@ def main():
                 'length': 2 * units.um
             },
             'murein_state': {
+                'free_murein' : 0,
                 'incorporated_murein': 3000000
             },
             'wall_state': {
@@ -293,9 +300,9 @@ def main():
         variables=[
             ("murein_state", 'free_murein'),
             ("murein_state", 'incorporated_murein'),
-            ("shape", "length"),
-            ("wall_state", "rows"),
-            ("wall_state", "columns")
+            # ("shape", "length"),
+            ("wall_state", "lattice_rows"),
+            ("wall_state", "lattice_cols")
         ],
     )
     fig.tight_layout()
@@ -303,10 +310,10 @@ def main():
     os.makedirs("out/processes/cell_wall/", exist_ok=True)
     fig.savefig("out/processes/cell_wall/test.png")
 
-    for t, lattice in enumerate([]):
-        fig = plot_lattice(get_full_lattice(lattice))
+    for t, lattice in enumerate(data['wall_state']['lattice']):
+        fig, ax = plot_lattice(lattice)
         fig.tight_layout()
-        fig.save_fig(f"out/processes/cell_wall_t{t}.png")
+        fig.savefig(f"out/processes/cell_wall/cell_wall_t{t}.png")
 
 
 if __name__ == '__main__':
