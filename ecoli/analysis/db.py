@@ -4,9 +4,9 @@ from vivarium.core.emitter import (
 )
 
 
-def access(experiment_id, query=None):
+def access(experiment_id, query=None, host='localhost', port=27017):
     config = {
-        'host': '{}:{}'.format('localhost', 27017),
+        'host': '{}:{}'.format(host, port),
         'database': 'simulations'}
     emitter = DatabaseEmitter(config)
     db = emitter.db

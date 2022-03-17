@@ -33,10 +33,15 @@ def main():
     parser.add_argument(
         '--experiment_id', '-e',
         type=str, default='')
+    parser.add_argument(
+        '--host', '-o', default='localhost', type=str)
+    parser.add_argument(
+        '--port', '-p', default=27017, type=int)
     args = parser.parse_args()
 
     # Retrieve all simulation data.
-    data, experiment_id, sim_config = access(args.experiment_id)
+    data, experiment_id, sim_config = access(
+        args.experiment_id, host=args.host, port=args.port)
     for time, time_data in data.items():
         for agent, agent_data in get_in(time_data, AGENTS_PATH).items():
             for path_suffix in SERIALIZED_PATHS:
