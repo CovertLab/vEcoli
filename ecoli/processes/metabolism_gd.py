@@ -194,7 +194,6 @@ class MetabolismGD(Process):
         # get_kinetic_constraints = self.parameters['get_kinetic_constraints']
 
         # might delete later?
-        translation_gtp = states['polypeptide_elongation']['gtp_to_hydrolyze']
 
         if self.cell_mass is not None:
             self.previous_mass = self.cell_mass
@@ -206,12 +205,14 @@ class MetabolismGD(Process):
         self.counts_to_molar = (1 / (self.nAvogadro * cell_volume)).asUnit(CONC_UNITS)
 
         current_metabolite_concentrations = {key: value * self.counts_to_molar for key, value in current_metabolite_counts.items()}
-        target_homeostatic_fluxes = {key: ((self.homeostatic_objective[key]*CONC_UNITS
+        target_homeostatic_dmdt = {key: ((self.homeostatic_objective[key]*CONC_UNITS
                                             - current_metabolite_concentrations[key])/timestep).asNumber()
                                      for key, value in self.homeostatic_objective.items()}
 
         # TODO Implement GAM/NGAM/GTP. Be aware of GAM. How to scale?
         # calculate mass delta for GAM
+        translation_gtp = states['polypeptide_elongation']['gtp_to_hydrolyze']
+
         if self.previous_mass is not None:
             flux_gam = self.gam * (self.cell_mass - self.previous_mass)/VOLUME_UNITS
         else:
@@ -225,9 +226,9 @@ class MetabolismGD(Process):
 
         kinetic_targets = {}
         # # TODO (Cyrus) - Figure out how to implement catalysis. Can come later.
-        # for reaction in self.stoichiometry:
-        #     if reaction['enzyme'] and sum([catalyst_counts[enzyme] for enzyme in reaction['enzyme']]) == 0:
-        #         kinetic_targets[reaction['reaction id']] = 0
+        for reaction in self.stoichiometry:
+            if reaction['enzyme'] and sum([catalyst_counts[enzyme] for enzyme in reaction['enzyme']]) == 0:
+                kinetic_targets[reaction['reaction id']] = 0
 
         maintenance_target = {}
         maintenance_target['maintenance_reaction'] = total_maintenance.asNumber()
@@ -244,12 +245,12 @@ class MetabolismGD(Process):
 
         # run FBA
         solution: FbaResult = self.model.solve(
-            {'homeostatic': target_homeostatic_fluxes,
+            {'homeostatic': target_homeostatic_dmdt,
              'kinetic': kinetic_targets,
              'maintenance': maintenance_target
              },
             initial_velocities=self.reaction_fluxes,
-            tr_solver='lsmr', max_nfev=32, ftol=10 ** (-5), verbose=2, xtol=10 ** (-4),
+            tr_solver='lsmr', max_nfev=64, ftol=10 ** (-5), verbose=2, xtol=10 ** (-4),
             tr_options={'atol': 10 ** (-8), 'btol': 10 ** (-8), 'conlim': 10 ** (10), 'show': False}
         )
 
@@ -261,16 +262,10 @@ class MetabolismGD(Process):
         metabolite_dmdt_counts = self.concentrationToCounts(self.metabolite_dmdt)
         target_kinetic_dmdt = self.concentrationToCounts(kinetic_targets)
         target_maintenance_flux = self.concentrationToCounts(maintenance_target)
+        target_homeostatic_dmdt = self.concentrationToCounts(target_homeostatic_dmdt)
 
         estimated_homeostatic_dmdt = {key: metabolite_dmdt_counts[key] for key in self.homeostatic_objective.keys()}
         estimated_exchange_dmdt = {key: metabolite_dmdt_counts[key] for key in self.exchange_molecules}
-
-        # steady_state_metabolites = [name for name in ]
-        # steady_state_targets = {metabolite_dmdt_counts[key] for key in self.homeostatic_objective.keys()}
-
-        # calculate
-        target_homeostatic_dmdt = {key: estimated_homeostatic_dmdt[key]
-                                        - current_metabolite_counts[key] for key in self.homeostatic_objective.keys()}
 
         return {
             'metabolites': estimated_homeostatic_dmdt,  # changes to internal metabolites

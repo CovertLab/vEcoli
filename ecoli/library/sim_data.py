@@ -436,14 +436,14 @@ class LoadSimData:
             if not key.endswith(REVERSE_TAG):
                 rxns.append({'reaction id': key,
                              'stoichiometry': value,
-                             'is reversible': True})
+                             'is reversible': False})
             elif key.endswith(REVERSE_TAG) and rxns[-1]['reaction id'] == key[:-(len(REVERSE_TAG))]:
                 rxns[-1]['is reversible'] = True
             # TODO (Cyrus) What to do about reactions with (reverse) tag that actually don't have the original reaction?
             elif key.endswith(REVERSE_TAG):
                 rxns.append({'reaction id': key,
                              'stoichiometry': value,
-                             'is reversible': True})
+                             'is reversible': False})
 
             if key in reactions_with_catalyst:
                 rxns[-1]['enzyme'] = reaction_catalysts[key]
