@@ -86,11 +86,11 @@ def run_metabolism():
         path=f'data/wcecoli_t1000.json')
 
     metabolism_composite = metabolism_process.generate()
-    experiment = Engine({
-        'processes': metabolism_composite['processes'],
-        'topology': {metabolism_process.name: metabolism_topology},
-        'initial_state': initial_state
-    })
+    experiment = Engine(
+        processes= metabolism_composite['processes'],
+        topology= metabolism_composite['topology'],
+        initial_state= initial_state
+    )
 
     experiment.update(10)
 
@@ -118,7 +118,7 @@ def run_metabolism_composite():
 
 def test_ecoli_with_metabolism_gd(
         filename='fba_gd_swap',
-        total_time=2000,
+        total_time=1000,
         divide=False,
         progress_bar=True,
         log_updates=False,
@@ -148,9 +148,10 @@ def test_ecoli_with_metabolism_gd(
     # run simulation and add asserts to output
     sim.run()
     output = sim.query()
-    np.save('out/fba_results_div.npy', output['listeners']['fba_results'])
-    np.save('out/mass_div.npy', output['listeners']['mass'])
-    np.save('out/bulk_div.npy', output['bulk'])
+    np.save('out/fba_results.npy', output['listeners']['fba_results'])
+    np.save('out/mass.npy', output['listeners']['mass'])
+    np.save('out/bulk.npy', output['bulk'])
+    np.save('out/stoichiometry.npy', sim.ecoli.processes['ecoli-metabolism-gradient-descent'].stoichiometry)
 
     # put asserts here to make sure it is behaving as expected
     # assert output['listeners']['fba_results']
@@ -168,6 +169,7 @@ experiment_library = {
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='metabolism with gd')
     parser.add_argument('--name', '-n', default=[], nargs='+', help='test ids to run')
+    parser.add_argument('--time', '-t', default=10, nargs='+', help='duration')
     args = parser.parse_args()
     run_all = not args.name
 
@@ -175,4 +177,4 @@ if __name__ == "__main__":
         experiment_library[name]()
     if run_all:
         for name, test in experiment_library.items():
-            test()
+            test(total_time = args.time)
