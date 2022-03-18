@@ -1,20 +1,12 @@
 import argparse
-import os
-import pickle
 
-from vivarium.core.emitter import (
-    data_from_database,
-    DatabaseEmitter,
-)
 from vivarium.core.serialize import deserialize_value
 from vivarium.plots.agents_multigen import plot_agents_multigen
 from vivarium.library.topology import get_in, assoc_path
 from vivarium.library.units import remove_units
 
-from ecoli.composites.ecoli_nonpartition import SIM_DATA_PATH
 from ecoli.analysis.analyze_db_experiment import access, OUT_DIR
 
-OUT_DIR = 'out/analysis/'
 SERIALIZED_PATHS = (
     ('periplasm', 'global', 'mmol_to_counts'),
     ('periplasm', 'global', 'volume'),
