@@ -105,12 +105,14 @@ class StaticField(Deriver):
         return concentrations
 
 
-def get_exponential_config():
-    molecule = 'glc'
-    center = [0.1, 0.5]
-    bounds = [20, 30]
-    scale = 1
-    base = 0.1
+def get_exponential_config(
+    molecule='glc',
+    center=[0.1, 0.5],
+    bounds=[20, 30],
+    scale=1,
+    base=0.1
+):
+
     return {
         'bounds': bounds,
         'molecules': [molecule],

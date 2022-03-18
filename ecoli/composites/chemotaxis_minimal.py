@@ -111,6 +111,7 @@ def test_chemotaxis_minimal(total_time=10):
     return timeseries
 
 def run_in_static_field():
+    out_dir = os.path.join(COMPOSITE_OUT_DIR, NAME)
     environment_port = ('external',)
     ligand_id = 'MeAsp'
     initial_conc = 0
@@ -124,24 +125,85 @@ def run_in_static_field():
     chemotaxis_composite = ChemotaxisMinimal(chemotaxis_config).generate(path=('agents', '1'))
 
     # add a static field process
-    static_field_params = get_exponential_config()  # TODO -- put in parameters!
+    bounds = [1000, 1000]
+    static_field_params = get_exponential_config(molecule='MeAsp', bounds=bounds, scale=1000)  # TODO -- put in parameters!
     static_field = StaticField(static_field_params)
+
+    # TODO create multibody
+    from ecoli.processes.environment.multibody_physics import Multibody
+    parameters = {
+        'bounds': static_field_params['bounds'],
+        'time_step': 0.1
+    }
+    multibody = Multibody(parameters)
+
+    # merge
     chemotaxis_composite.merge(
-        processes={'static_field': static_field},
-        topology={'static_field': {
-            'agents': ('agents',)
-        }}
+        processes={
+            'static_field': static_field,
+            'multibody': multibody,
+        },
+        topology={
+            'static_field': {
+                'agents': ('agents',)},
+            'multibody': {
+                'agents': ('agents',)
+            }
+        }
     )
 
     # put the composite in an engine and run it
     sim = Engine(processes=chemotaxis_composite.processes,
                  topology=chemotaxis_composite.topology)
-    sim.update(10)
+    sim.update(300)
 
     # get the data
     data = sim.emitter.get_data()
+    field = make_field(config=static_field_params)
+    field = field.T
 
     print(pf(data))
+
+
+    # times = data.keys()
+    # list_thrust = []
+
+    # modify to get x and y list
+    location = np.zeros([2, len(data.keys())])
+    for i, timepoint in enumerate(data.keys()):
+        # list_thrust.append(data[timepoint]['agents']['1']['boundary']['thrust'])
+        location[:, i] = data[timepoint]['agents']['1']['boundary']['location']
+
+    print(location)
+
+    shape = field.shape
+    im = plt.imshow(field, origin='lower', cmap='Greys', extent=[0,shape[1],0,shape[0]])
+    cbar = plt.colorbar(im)
+    cbar.set_label('concentration')
+    plt.plot(location[0], location[1])
+    plt.savefig('out/location.png')
+
+
+
+
+    # np.save('out/location.npy', location)
+
+    #seaborn lineplot
+
+    data = sim.emitter.get_timeseries()
+
+    # plot
+    plot_settings = {
+        'max_rows': 20,
+        'remove_zeros': True,
+        }
+    plot_simulation_output(
+        data,
+        plot_settings,
+        out_dir,
+        'chemotaxis_timeseries')
+
+    # print(pf(data))
 
 
 
