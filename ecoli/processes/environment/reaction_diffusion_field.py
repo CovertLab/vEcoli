@@ -9,6 +9,7 @@ from scipy import constants
 from scipy.ndimage import convolve
 
 from vivarium.core.process import Process
+from vivarium.core.engine import Engine
 from vivarium.library.units import units
 
 from ecoli.library.lattice_utils import (
@@ -94,23 +95,23 @@ class ReactionDiffusionField(Process):
         }
 
     def ports_schema(self):
-        local_concentration_schema = {
-            molecule: {
-                '_default': 0.0}
-            for molecule in self.molecule_ids}
-
-        # agents glob schema
         schema = {
             'agents': {
                 '*': {
                     'boundary': {
                         'location': {
-                            '_default': [0.5 * bound for bound in self.bounds],
+                            '_default': [
+                                0.5 * bound
+                                for bound in self.bounds],
                             '_updater': 'set'},
-                        'external': local_concentration_schema}}}}
-
-        # fields
-        fields_schema = {
+                        'external': {
+                            molecule: {
+                                '_default': 0.0}
+                            for molecule in self.molecule_ids
+                        }
+                    }
+                }
+            },
             'fields': {
                 field: {
                     '_default': self.ones_field(),
@@ -119,11 +120,6 @@ class ReactionDiffusionField(Process):
                 }
                 for field in self.molecule_ids
             },
-        }
-        schema.update(fields_schema)
-
-        # dimensions
-        dimensions_schema = {
             'dimensions': {
                 'bounds': {
                     '_value': self.parameters['bounds'],
@@ -142,7 +138,6 @@ class ReactionDiffusionField(Process):
                 }
             },
         }
-        schema.update(dimensions_schema)
         return schema
 
     def next_update(self, timestep, states):
@@ -220,8 +215,22 @@ class ReactionDiffusionField(Process):
 
 
 def main():
-    pass
+    params = {}
+    process = ReactionDiffusionField(params)
+    sim = Engine(
+        processes={'process': process},
+        topology={
+            'process': {
+                port: (port,)
+                for port in process.ports_schema().keys()
+            }
+        }
+    )
+    sim.update(10)
+
+    # import ipdb; ipdb.set_trace()
 
 
+# python ecoli/processes/environment/reaction_diffusion_field.py
 if __name__ == '__main__':
     main()
