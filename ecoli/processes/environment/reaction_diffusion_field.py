@@ -9,6 +9,7 @@ from scipy import constants
 from scipy.ndimage import convolve
 
 from vivarium.core.process import Process
+from vivarium.core.composer import Composer
 from vivarium.core.engine import Engine
 from vivarium.library.units import units
 
@@ -17,6 +18,9 @@ from ecoli.library.lattice_utils import (
     get_bin_site,
     get_bin_volume, make_gradient,
 )
+from vivarium.library.topology import get_in
+from ecoli.plots.snapshots import plot_snapshots
+
 
 NAME = 'reaction_diffusion_field'
 
@@ -108,7 +112,12 @@ class ReactionDiffusionField(Process):
                             molecule: {
                                 '_default': 0.0}
                             for molecule in self.molecule_ids
-                        }
+                        },
+                        # 'exchanges': {
+                        #     molecule: {
+                        #         '_default': 0.0}
+                        #     for molecule in self.molecule_ids
+                        # }
                     }
                 }
             },
@@ -143,6 +152,10 @@ class ReactionDiffusionField(Process):
     def next_update(self, timestep, states):
         fields = states['fields']
         agents = states['agents']
+
+        # TODO -- apply exchanges
+        # for boundary in agents.values():
+        #     import ipdb; ipdb.set_trace()
 
         # diffuse field
         delta_fields, new_fields = self.diffuse(fields, timestep)
@@ -214,20 +227,73 @@ class ReactionDiffusionField(Process):
         return delta_fields, new_fields
 
 
+class ExchangeAgent(Process):
+    defaults = {}
+    def __init__(self, parameters=None):
+        super().__init__(parameters)
+    def ports_schema(self):
+        return {
+            'boundary': {
+                'external': {
+                    '*': {'_default': 0.0}},
+                'exchanges': {
+                    '*': {'_default': 0.0}},
+            }
+        }
+    def next_update(self, timestep, states):
+        return {}
+
+
 def main():
+    # make the reaction diffusion process
     params = {}
-    process = ReactionDiffusionField(params)
+    rxn_diff_process = ReactionDiffusionField(params)
+
+    # make the toy exchange agent
+    agent_id = '0'
+    agent_params = {}
+    agent_process = ExchangeAgent(agent_params)
+
+    # put them together in a simulation
     sim = Engine(
-        processes={'process': process},
+        processes={
+            'rxn_diff': rxn_diff_process,
+            'agents': {
+                agent_id: {
+                    'exchange': agent_process
+                }
+            }
+        },
         topology={
-            'process': {
+            'rxn_diff': {
                 port: (port,)
-                for port in process.ports_schema().keys()
+                for port in rxn_diff_process.ports_schema().keys()
+            },
+            'agents': {
+                agent_id: {
+                    'exchange': {'boundary': ('boundary',)}
+                }
             }
         }
     )
     sim.update(10)
 
+    # plot
+    data = sim.emitter.get_data()
+
+    snapshots_fig = plot_snapshots(
+        bounds=get_in(data, (max(data), 'dimensions', 'bounds')),
+        agents={
+            time: d['agents']
+            for time, d in data.items()
+        },
+        fields={
+            time: d['fields']
+            for time, d in data.items()
+        },
+        out_dir='out/processes/environment/reaction_diffusion',
+        filename='snapshots',
+    )
     # import ipdb; ipdb.set_trace()
 
 
