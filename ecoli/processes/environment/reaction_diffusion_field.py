@@ -315,6 +315,13 @@ class ExchangeAgent(Process):
 
     def ports_schema(self):
         mol_ids = self.parameters['mol_ids']
+
+        def accumulate_location(value, update):
+            return [
+                max(value[0] + update[0], 0),
+                max(value[1] + update[1], 0)
+            ]
+
         return {
             'boundary': {
                 'external': {
@@ -322,11 +329,15 @@ class ExchangeAgent(Process):
                 'exchanges': {
                     mol_id: {'_default': self.parameters['default_exchange']}
                     for mol_id in mol_ids},
+                'location': {
+                    '_default': [0.5, 0.5],
+                    '_updater': accumulate_location,
+                }
             }
         }
 
     def next_update(self, timestep, states):
-        max_move = 1.0
+        max_move = 5.0
         mol_ids = self.parameters['mol_ids']
         return {
             'boundary': {
@@ -344,6 +355,8 @@ class ExchangeAgent(Process):
 def main():
     total_time = 100
     depth = 2
+    n_bins = [50, 50]
+    bounds = [50, 50]
 
     # make the reaction diffusion process
     params = {
@@ -351,6 +364,8 @@ def main():
             'beta-lactam',
             'beta-lactamase',
         ],
+        'n_bins': n_bins,
+        'bounds': bounds,
         'depth': depth,
         'reactions': {
             'antibiotic_hydrolysis': {
