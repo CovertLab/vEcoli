@@ -53,7 +53,8 @@ class ReactionDiffusionField(Process):
         'bounds': [10, 10],
         'depth': 3000.0,  # um
         'diffusion': 5e-1,
-        'reactions': {}
+        'reactions': {},
+        'kinetic_parameters': {},
     }
 
     def __init__(self, parameters=None):
@@ -89,7 +90,7 @@ class ReactionDiffusionField(Process):
         """
         return {
             'fields': {
-                mol_id: config.get(mol_id) * self.ones_field()
+                mol_id: config.get(mol_id, 0.0) * self.ones_field()
                 for mol_id in self.molecule_ids
             },
         }
@@ -191,19 +192,20 @@ class ReactionDiffusionField(Process):
             agent_updates[agent_id] = {'exchanges': reset_exchanges}
 
         # the updated fields, which get passed to diffusion
-        updated_fields = {
+        new_fields = {
             mol_id: field + exchange_delta_fields[mol_id]
             for mol_id, field in fields.items()}
 
-        #################
-        # diffuse field #
-        #################
+        #####################
+        # react and diffuse #
+        #####################
 
-        diffusion_delta_fields, new_fields = self.diffuse(updated_fields, timestep)
+        reaction_delta_fields, new_fields = self.react(new_fields, timestep)
+        diffusion_delta_fields, new_fields = self.diffuse(new_fields, timestep)
 
         # get total delta from exchange, diffusion, reaction
         delta_fields = {
-            mol_id: exchange_delta_fields[mol_id] + diffusion_delta_fields[mol_id]
+            mol_id: exchange_delta_fields[mol_id] + diffusion_delta_fields[mol_id] + reaction_delta_fields[mol_id]
             for mol_id, field in fields.items()}
 
         # get each agent's new local environment
@@ -241,6 +243,9 @@ class ReactionDiffusionField(Process):
                     self.get_single_local_environments(specs['boundary'], fields)
         return local_environments
 
+    def zeros_field(self):
+        return np.zeros((self.n_bins[0], self.n_bins[1]), dtype=np.float64)
+
     def ones_field(self):
         return np.ones((self.n_bins[0], self.n_bins[1]), dtype=np.float64)
 
@@ -269,6 +274,39 @@ class ReactionDiffusionField(Process):
                 new_field = field
             delta_fields[mol_id] = delta
             new_fields[mol_id] = new_field
+
+        return delta_fields, new_fields
+
+    def react(self, fields, timestep):
+        delta_fields = {field_id: self.zeros_field() for field_id in self.molecule_ids}
+        new_fields = fields.copy()
+        reactions = self.parameters['reactions']
+        kinetic_parameters = self.parameters['kinetic_parameters']
+        for rxn_id, rxn in reactions.items():
+
+            # get the parameters
+            kinetics = kinetic_parameters[rxn_id]
+            stoich = rxn['stoichiometry']
+            assert len(stoich.keys()) == 1, 'reactions can only do one substrate'
+            substrate_id = list(stoich.keys())[0]
+
+            catalyst_id = rxn['catalyzed by']
+            kcat = kinetics[catalyst_id]['kcat_f']
+            km = kinetics[catalyst_id][substrate_id]
+
+            # get the state
+            catalyst_field = fields[catalyst_id]
+            substrate_field = fields[substrate_id]
+
+            if np.sum(catalyst_field) > 0.0 and np.sum(substrate_field) > 0.0:
+                # calculate flux and delta
+                denominator = substrate_field + km
+                flux = kcat * catalyst_field * substrate_field / denominator
+                delta = stoich[substrate_id] * flux * timestep
+
+                # updates
+                delta_fields[substrate_id] = delta
+                new_fields[substrate_id] += delta
 
         return delta_fields, new_fields
 
@@ -313,9 +351,29 @@ def main():
 
     # make the reaction diffusion process
     params = {
-        'molecules': ['beta-lactam', 'beta-lactamase'],
+        'molecules': [
+            'beta-lactam',
+            'beta-lactamase',
+            # 'inert_byproduct',
+        ],
         'depth': depth,
-        'reactions': {}
+        'reactions': {
+            'antibiotic_hydrolysis': {
+                'stoichiometry': {
+                    'beta-lactam': -1,
+                    # 'inert_byproduct': 1,
+                },
+                'catalyzed by': 'beta-lactamase'
+            }
+        },
+        'kinetic_parameters': {
+            'antibiotic_hydrolysis': {
+                'beta-lactamase': {
+                    'kcat_f': 10.0,  # kcat for forward reaction
+                    'beta-lactam': 0.1,  # Km
+                },
+            },
+        },
     }
     rxn_diff_process = ReactionDiffusionField(params)
 
@@ -325,6 +383,10 @@ def main():
         'mol_ids': ['beta-lactamase'],
     }
     agent_process = ExchangeAgent(agent_params)
+
+    # get initial fields
+    initial_fields = rxn_diff_process.initial_state({
+        'beta-lactam': 1.0})
 
     # put them together in a simulation
     sim = Engine(
@@ -346,7 +408,8 @@ def main():
                     'exchange': {'boundary': ('boundary',)}
                 }
             }
-        }
+        },
+        initial_state=initial_fields
     )
     sim.update(total_time)
 
