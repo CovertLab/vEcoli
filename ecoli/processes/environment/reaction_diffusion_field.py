@@ -17,7 +17,7 @@ from vivarium.library.units import units
 from ecoli.library.lattice_utils import (
     count_to_concentration,
     get_bin_site,
-    get_bin_volume, make_gradient,
+    get_bin_volume,
 )
 from vivarium.library.topology import get_in
 from ecoli.plots.snapshots import plot_snapshots
@@ -48,12 +48,12 @@ class ReactionDiffusionField(Process):
     name = NAME
     defaults = {
         'time_step': 1,
-        'molecules': ['glc'],
+        'molecules': [],
         'n_bins': [10, 10],
         'bounds': [10, 10],
         'depth': 3000.0,  # um
         'diffusion': 5e-1,
-        'gradient': {},
+        'reactions': {}
     }
 
     def __init__(self, parameters=None):
@@ -82,12 +82,6 @@ class ReactionDiffusionField(Process):
 
         # volume, to convert between counts and concentration
         self.bin_volume = get_bin_volume(self.n_bins, self.bounds, depth)
-
-        # initialize gradient fields
-        gradient = self.parameters['gradient']
-        if gradient:
-            gradient_fields = make_gradient(gradient, self.n_bins, self.bounds)
-            self.initial.update(gradient_fields)
 
     def initial_state(self, config):
         """
@@ -287,22 +281,24 @@ class ExchangeAgent(Process):
     def __init__(self, parameters=None):
         super().__init__(parameters)
     def ports_schema(self):
+        mol_ids = self.parameters['mol_ids']
         return {
             'boundary': {
                 'external': {
-                    '*': {'_default': 0.0}},
+                    mol_id: {'_default': 0.0} for mol_id in mol_ids},
                 'exchanges': {
-                    '*': {'_default': self.parameters['default_exchange']}},
+                    mol_id: {'_default': self.parameters['default_exchange']}
+                    for mol_id in mol_ids},
             }
         }
     def next_update(self, timestep, states):
-        max_ex = self.parameters['default_exchange']
         max_move = 1.0
+        mol_ids = self.parameters['mol_ids']
         return {
             'boundary': {
                 'exchanges': {
-                    mol_id: np.random.uniform(-max_ex, max_ex)
-                    for mol_id in self.parameters['mol_ids']},
+                    mol_id: self.parameters['default_exchange']
+                    for mol_id in mol_ids},
                 'location': [
                     np.random.uniform(-max_move, max_move),
                     np.random.uniform(-max_move, max_move)
@@ -316,12 +312,18 @@ def main():
     depth = 2
 
     # make the reaction diffusion process
-    params = {'depth': depth}
+    params = {
+        'molecules': ['beta-lactam', 'beta-lactamase'],
+        'depth': depth,
+        'reactions': {}
+    }
     rxn_diff_process = ReactionDiffusionField(params)
 
     # make the toy exchange agent
     agent_id = '0'
-    agent_params = {}
+    agent_params = {
+        'mol_ids': ['beta-lactamase'],
+    }
     agent_process = ExchangeAgent(agent_params)
 
     # put them together in a simulation
