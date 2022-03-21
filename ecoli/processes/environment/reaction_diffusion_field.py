@@ -11,7 +11,6 @@ from scipy.ndimage import convolve
 
 from vivarium.core.process import Process
 from vivarium.core.composition import PROCESS_OUT_DIR
-from vivarium.core.composer import Composer
 from vivarium.core.engine import Engine
 from vivarium.library.units import units
 
@@ -50,7 +49,6 @@ class ReactionDiffusionField(Process):
     defaults = {
         'time_step': 1,
         'molecules': ['glc'],
-        'initial_state': {},
         'n_bins': [10, 10],
         'bounds': [10, 10],
         'depth': 3000.0,  # um
@@ -63,7 +61,6 @@ class ReactionDiffusionField(Process):
 
         # initial state
         self.molecule_ids = self.parameters['molecules']
-        self.initial = self.parameters['initial_state']
 
         # parameters
         self.n_bins = self.parameters['n_bins']
@@ -93,10 +90,13 @@ class ReactionDiffusionField(Process):
             self.initial.update(gradient_fields)
 
     def initial_state(self, config):
+        """
+        sets uniform initial state at the concentration provided for each the molecule_id in `config`
+        """
         return {
             'fields': {
-                field: self.initial.get(field, self.ones_field())
-                for field in self.molecule_ids
+                mol_id: config.get(mol_id) * self.ones_field()
+                for mol_id in self.molecule_ids
             },
         }
 
@@ -313,9 +313,10 @@ class ExchangeAgent(Process):
 
 def main():
     total_time = 100
+    depth = 2
 
     # make the reaction diffusion process
-    params = {'depth': 10}
+    params = {'depth': depth}
     rxn_diff_process = ReactionDiffusionField(params)
 
     # make the toy exchange agent
