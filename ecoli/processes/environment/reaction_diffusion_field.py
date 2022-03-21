@@ -4,11 +4,13 @@ Reaction Diffusion Field
 ========================
 '''
 
+import os
 import numpy as np
 from scipy import constants
 from scipy.ndimage import convolve
 
 from vivarium.core.process import Process
+from vivarium.core.composition import PROCESS_OUT_DIR
 from vivarium.core.composer import Composer
 from vivarium.core.engine import Engine
 from vivarium.library.units import units
@@ -107,12 +109,16 @@ class ReactionDiffusionField(Process):
                             '_default': [
                                 0.5 * bound
                                 for bound in self.bounds],
+                            '_emit': True,
                             '_updater': 'set'},
                         'external': {
                             molecule: {
                                 '_default': 0.0}
                             for molecule in self.molecule_ids
                         },
+                        'angle': {'_default': 0.0, '_emit': True},  # TODO -- remove this, should not be required
+                        'length': {'_default': 0.0, '_emit': True},  # TODO -- remove this, should not be required
+                        'width': {'_default': 0.0, '_emit': True},  # TODO -- remove this, should not be required
                         # 'exchanges': {
                         #     molecule: {
                         #         '_default': 0.0}
@@ -280,7 +286,9 @@ def main():
 
     # plot
     data = sim.emitter.get_data()
-
+    out_dir = os.path.join(PROCESS_OUT_DIR, 'environment', NAME)
+    if not os.path.exists(out_dir):
+        os.makedirs(out_dir)
     snapshots_fig = plot_snapshots(
         bounds=get_in(data, (max(data), 'dimensions', 'bounds')),
         agents={
@@ -291,10 +299,9 @@ def main():
             time: d['fields']
             for time, d in data.items()
         },
-        out_dir='out/processes/environment/reaction_diffusion',
+        out_dir=out_dir,
         filename='snapshots',
     )
-    # import ipdb; ipdb.set_trace()
 
 
 # python ecoli/processes/environment/reaction_diffusion_field.py
