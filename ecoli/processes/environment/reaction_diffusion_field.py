@@ -110,7 +110,7 @@ class ReactionDiffusionField(Process):
                                 0.5 * bound
                                 for bound in self.bounds],
                             '_emit': True,
-                            '_updater': 'set'},
+                        },
                         'external': {
                             molecule: {
                                 '_default': 0.0}
@@ -296,13 +296,24 @@ class ExchangeAgent(Process):
             }
         }
     def next_update(self, timestep, states):
+        max_ex = self.parameters['default_exchange']
+        max_move = 1.0
         return {
             'boundary': {
-                'exchanges': {mol_id: self.parameters['default_exchange']}
-                for mol_id in self.parameters['mol_ids']}}
+                'exchanges': {
+                    mol_id: np.random.uniform(-max_ex, max_ex)
+                    for mol_id in self.parameters['mol_ids']},
+                'location': [
+                    np.random.uniform(-max_move, max_move),
+                    np.random.uniform(-max_move, max_move)
+                ],
+            }
+        }
 
 
 def main():
+    total_time = 100
+
     # make the reaction diffusion process
     params = {'depth': 10}
     rxn_diff_process = ReactionDiffusionField(params)
@@ -334,7 +345,7 @@ def main():
             }
         }
     )
-    sim.update(10)
+    sim.update(total_time)
 
     # plot
     data = sim.emitter.get_data()
