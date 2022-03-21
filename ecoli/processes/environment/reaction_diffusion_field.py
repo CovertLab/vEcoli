@@ -313,11 +313,13 @@ class ReactionDiffusionField(Process):
 
 class ExchangeAgent(Process):
     defaults = {
-        'mol_ids': ['glc'],
+        'mol_ids': [],
         'default_exchange': 100,
     }
+
     def __init__(self, parameters=None):
         super().__init__(parameters)
+
     def ports_schema(self):
         mol_ids = self.parameters['mol_ids']
         return {
@@ -329,6 +331,7 @@ class ExchangeAgent(Process):
                     for mol_id in mol_ids},
             }
         }
+
     def next_update(self, timestep, states):
         max_move = 1.0
         mol_ids = self.parameters['mol_ids']
@@ -354,14 +357,12 @@ def main():
         'molecules': [
             'beta-lactam',
             'beta-lactamase',
-            # 'inert_byproduct',
         ],
         'depth': depth,
         'reactions': {
             'antibiotic_hydrolysis': {
                 'stoichiometry': {
                     'beta-lactam': -1,
-                    # 'inert_byproduct': 1,
                 },
                 'catalyzed by': 'beta-lactamase'
             }
@@ -379,9 +380,7 @@ def main():
 
     # make the toy exchange agent
     agent_id = '0'
-    agent_params = {
-        'mol_ids': ['beta-lactamase'],
-    }
+    agent_params = {'mol_ids': ['beta-lactamase']}
     agent_process = ExchangeAgent(agent_params)
 
     # get initial fields
