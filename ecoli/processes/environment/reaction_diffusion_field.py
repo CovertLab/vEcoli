@@ -23,26 +23,20 @@ from vivarium.library.topology import get_in
 from ecoli.plots.snapshots import plot_snapshots
 
 
-NAME = 'reaction_diffusion_field'
+NAME = 'reaction_diffusion'
 
 # laplacian kernel for diffusion
 LAPLACIAN_2D = np.array([[0.0, 1.0, 0.0], [1.0, -4.0, 1.0], [0.0, 1.0, 0.0]])
 AVOGADRO = constants.N_A
 
 
-class ReactionDiffusionField(Process):
+class ReactionDiffusion(Process):
     '''
-    Diffusion in 2-dimensional fields of molecules with agent exchange
+    Reaction and Diffusion in 2-dimensional fields of molecules, with agent
+    uptake and secretion at agent locations.
 
-    Agent uptake and secretion occurs at agent locations.
+    Parameters: TODO
 
-    Notes:
-
-    * Diffusion constant of glucose in 0.5 and 1.5 percent agarose gel
-      is around :math:`6 * 10^{-10} \\frac{m^2}{s}` (Weng et al. 2005.
-      Transport of glucose and poly(ethylene glycol)s in agarose gels).
-    * Conversion to micrometers:
-      :math:`6 * 10^{-10} \\frac{m^2}{s}=600 \\frac{micrometers^2}{s}`.
     '''
 
     name = NAME
@@ -249,7 +243,6 @@ class ReactionDiffusionField(Process):
     def ones_field(self):
         return np.ones((self.n_bins[0], self.n_bins[1]), dtype=np.float64)
 
-    # diffusion functions
     def diffusion_delta(self, field, timestep):
         ''' calculate concentration changes cause by diffusion'''
         field_new = field.copy()
@@ -376,7 +369,7 @@ def main():
             },
         },
     }
-    rxn_diff_process = ReactionDiffusionField(params)
+    rxn_diff_process = ReactionDiffusion(params)
 
     # make the toy exchange agent
     agent_id = '0'
