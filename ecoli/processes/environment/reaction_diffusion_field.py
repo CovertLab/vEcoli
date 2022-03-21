@@ -116,14 +116,14 @@ class ReactionDiffusionField(Process):
                                 '_default': 0.0}
                             for molecule in self.molecule_ids
                         },
+                        'exchanges': {
+                            molecule: {
+                                '_default': 0.0}
+                            for molecule in self.molecule_ids
+                        },
                         'angle': {'_default': 0.0, '_emit': True},  # TODO -- remove this, should not be required
                         'length': {'_default': 0.0, '_emit': True},  # TODO -- remove this, should not be required
                         'width': {'_default': 0.0, '_emit': True},  # TODO -- remove this, should not be required
-                        # 'exchanges': {
-                        #     molecule: {
-                        #         '_default': 0.0}
-                        #     for molecule in self.molecule_ids
-                        # }
                     }
                 }
             },
@@ -159,19 +159,65 @@ class ReactionDiffusionField(Process):
         fields = states['fields']
         agents = states['agents']
 
-        # TODO -- apply exchanges
-        # for boundary in agents.values():
-        #     import ipdb; ipdb.set_trace()
+        ###################
+        # apply exchanges #
+        ###################
 
-        # diffuse field
-        delta_fields, new_fields = self.diffuse(fields, timestep)
+        # track changes to the field from exchange
+        exchange_delta_fields = {}
+        for field_id, field in fields.items():
+            exchange_delta_fields[field_id] = np.zeros_like(field)
+
+        # apply exchanges from each agent
+        agent_updates = {}
+        for agent_id, agent_state in agents.items():
+            boundary = agent_state['boundary']
+            exchanges = boundary['exchanges']
+            location = boundary['location']
+            bin_site = get_bin_site(location, self.n_bins, self.bounds)
+
+            reset_exchanges = {}
+            for mol_id, value in exchanges.items():
+
+                # delta concentration
+                exchange = value * units.count
+                bin_volume = self.bin_volume * units.L
+                concentration = count_to_concentration(exchange, bin_volume).to(
+                    units.mmol / units.L).magnitude
+
+                delta_field = np.zeros((self.n_bins[0], self.n_bins[1]), dtype=np.float64)
+                delta_field[bin_site[0], bin_site[1]] += concentration
+                exchange_delta_fields[mol_id] += delta_field
+
+                # reset the exchange value
+                reset_exchanges[mol_id] = {
+                    '_value': -value,
+                    '_updater': 'accumulate'}
+
+            agent_updates[agent_id] = {'exchanges': reset_exchanges}
+
+        # the updated fields, which get passed to diffusion
+        updated_fields = {
+            mol_id: field + exchange_delta_fields[mol_id]
+            for mol_id, field in fields.items()}
+
+        #################
+        # diffuse field #
+        #################
+
+        diffusion_delta_fields, new_fields = self.diffuse(updated_fields, timestep)
+
+        # get total delta from exchange, diffusion, reaction
+        delta_fields = {
+            mol_id: exchange_delta_fields[mol_id] + diffusion_delta_fields[mol_id]
+            for mol_id, field in fields.items()}
 
         # get each agent's new local environment
         local_environments = self.get_local_environments(agents, new_fields)
 
-        update = {'fields': delta_fields}
-        if local_environments:
-            update.update({'agents': local_environments})
+        update = {
+            'fields': delta_fields,
+            'agents': local_environments}
 
         return update
 
@@ -234,7 +280,10 @@ class ReactionDiffusionField(Process):
 
 
 class ExchangeAgent(Process):
-    defaults = {}
+    defaults = {
+        'mol_ids': ['glc'],
+        'default_exchange': 100,
+    }
     def __init__(self, parameters=None):
         super().__init__(parameters)
     def ports_schema(self):
@@ -243,16 +292,19 @@ class ExchangeAgent(Process):
                 'external': {
                     '*': {'_default': 0.0}},
                 'exchanges': {
-                    '*': {'_default': 0.0}},
+                    '*': {'_default': self.parameters['default_exchange']}},
             }
         }
     def next_update(self, timestep, states):
-        return {}
+        return {
+            'boundary': {
+                'exchanges': {mol_id: self.parameters['default_exchange']}
+                for mol_id in self.parameters['mol_ids']}}
 
 
 def main():
     # make the reaction diffusion process
-    params = {}
+    params = {'depth': 10}
     rxn_diff_process = ReactionDiffusionField(params)
 
     # make the toy exchange agent
