@@ -34,7 +34,7 @@ class AntibioticTransport(ConvenienceKinetics):
         'pump_key': 'pump',
         'antibiotic_key': 'antibiotic',
         'initial_internal_antibiotic': 1e-3,
-        'initial_external_antibiotic': 0,
+        'initial_external_antibiotic': 0.0,
         'initial_pump': 1e-3,
         'time_step': 1,
     }
