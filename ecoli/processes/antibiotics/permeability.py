@@ -12,14 +12,22 @@ SA_AVERAGE = 6.22200939450696
 # To calculate CEPH_OMPC_CON_PERM and CEPH_OMPF_CON_PERM, we calculated the average counts of ompC and ompF
 # in the model up until division and divided each by the average surface area to get the average concentrations
 # of ompC and ompF. We then divided the corresponding cephaloridine permeability coefficients from Nikaido, 1983
-# by these average concentrations to get our permeability per concentration constants.
+# by these average concentrations to get our permeability per concentration constants for cephaloridine. Likewise, we
+# divided the tetracycline permeability coefficient due to ompF (overall permeability (estimated in (Thanassi et al.,
+# 1994)) subtracted by pH-gradient induced permeability (Nikaido and Pages, 2012)) by the average concentration of ompF
+# to get TET_OMPF_CON_PERM.
 CEPH_OMPC_CON_PERM = 0.003521401200296894 * 1e-5 * units.cm * units.micron * units.micron / units.sec
 CEPH_OMPF_CON_PERM = 0.01195286573132685 * 1e-5 * units.cm * units.micron * units.micron / units.sec
+TET_OMPF_CON_PERM = 2.2496838543752056 * 1e-9 * units.cm * units.micron * units.micron / units.sec
+
+# Cephaloridine is lipophilic. The diffusion of lipophilic molecules through the outer membrane bilayer is generally
+# negligible. (Nikaido and Pages, 2012)
 OUTER_CEPH_PH_PERM = 0 * units.cm / units.sec
 
-TET_OMPF_CON_PERM = 2.2496838543752056 * 1e-9 * units.cm * units.micron * units.micron / units.sec
-OUTER_TET_PH_PERM = 1 * 1e-7 * units.cm / units.sec  # TODO: Placeholder
-INNER_TET_PH_PERM = 1 * 1e-5 * units.cm / units.sec  # TODO: Placeholder
+# Estimated in (Nikaido and Pages, 2012)
+OUTER_TET_PH_PERM = 1 * 1e-7 * units.cm / units.sec
+# Estimated in (Thanassi et al., 1994)
+INNER_TET_PH_PERM = 3 * 1e-6 * units.cm / units.sec
 
 
 class Permeability(Step):
