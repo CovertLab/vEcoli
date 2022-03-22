@@ -6,6 +6,7 @@ Metabolism using Gradient Descent-based FBA
 import argparse
 
 # vivarium-core imports
+import pytest
 from vivarium.core.engine import Engine
 from vivarium.core.composer import Composer
 from vivarium.library.dict_utils import deep_merge
@@ -43,7 +44,6 @@ class MetabolismExchange(Composer):
             seed=self.config['seed'])
 
     def generate_processes(self, config):
-
         # configure metabolism
         metabolism_config = self.load_sim_data.get_metabolism_gd_config()
         metabolism_config = deep_merge(metabolism_config, config['metabolism'])
@@ -87,9 +87,9 @@ def run_metabolism():
 
     metabolism_composite = metabolism_process.generate()
     experiment = Engine(
-        processes= metabolism_composite['processes'],
-        topology= metabolism_composite['topology'],
-        initial_state= initial_state
+        processes=metabolism_composite['processes'],
+        topology=metabolism_composite['topology'],
+        initial_state=initial_state
     )
 
     experiment.update(10)
@@ -104,11 +104,10 @@ def run_metabolism_composite():
     initial_state = get_state_from_file(
         path=f'data/wcecoli_t1000.json')
 
-
     experiment = Engine(
-        processes= metabolism_composite['processes'],
-        topology= metabolism_composite['topology'],
-        initial_state= initial_state
+        processes=metabolism_composite['processes'],
+        topology=metabolism_composite['topology'],
+        initial_state=initial_state
     )
 
     experiment.update(10)
@@ -116,9 +115,35 @@ def run_metabolism_composite():
     data = experiment.emitter.get_data()
 
 
-def test_ecoli_with_metabolism_gd(
+def run_ecoli_with_metabolism_gd(
         filename='fba_gd_swap',
         total_time=1000,
+        divide=False,
+        progress_bar=True,
+        log_updates=False,
+        emitter='timeseries',
+):
+    sim = EcoliSim.from_file(CONFIG_DIR_PATH + filename + '.json')
+    sim.total_time = total_time
+    sim.divide = divide
+    sim.progress_bar = progress_bar
+    sim.log_updates = log_updates
+    sim.emitter = emitter
+
+    sim.build_ecoli()
+
+    sim.run()
+    output = sim.query()
+    np.save('out/fba_results.npy', output['listeners']['fba_results'])
+    np.save('out/mass.npy', output['listeners']['mass'])
+    np.save('out/bulk.npy', output['bulk'])
+    np.save('out/stoichiometry.npy', sim.ecoli.processes['ecoli-metabolism-gradient-descent'].stoichiometry)
+
+
+@pytest.mark.slow
+def test_ecoli_with_metabolism_gd(
+        filename='fba_gd_swap',
+        total_time=10,
         divide=False,
         progress_bar=True,
         log_updates=False,
@@ -147,29 +172,38 @@ def test_ecoli_with_metabolism_gd(
 
     # run simulation and add asserts to output
     sim.run()
-    output = sim.query()
-    np.save('out/fba_results.npy', output['listeners']['fba_results'])
-    np.save('out/mass.npy', output['listeners']['mass'])
-    np.save('out/bulk.npy', output['bulk'])
-    np.save('out/stoichiometry.npy', sim.ecoli.processes['ecoli-metabolism-gradient-descent'].stoichiometry)
 
     # put asserts here to make sure it is behaving as expected
     # assert output['listeners']['fba_results']
 
 
+@pytest.mark.slow
+def test_ecoli_with_metabolism_gd_div(
+        filename='fba_gd_division',
+        divide=True,
+        emitter='timeseries',
+):
+    sim = EcoliSim.from_file(CONFIG_DIR_PATH + filename + '.json')
+    sim.divide = divide
+    sim.emitter = emitter
+
+    # assert that the processes were swapped
+    sim.build_ecoli()
+    sim.run()
+
 
 experiment_library = {
     '0': run_metabolism,
     '1': run_metabolism_composite,
-    '2': test_ecoli_with_metabolism_gd,
+    '2': run_ecoli_with_metabolism_gd,
+    '3': test_ecoli_with_metabolism_gd,
+    '4': test_ecoli_with_metabolism_gd_div
 }
-
 
 # run experiments with command line arguments: python ecoli/experiments/metabolism_gd.py -n exp_id
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='metabolism with gd')
     parser.add_argument('--name', '-n', default=[], nargs='+', help='test ids to run')
-    parser.add_argument('--time', '-t', default=10, nargs='+', help='duration')
     args = parser.parse_args()
     run_all = not args.name
 
@@ -177,4 +211,4 @@ if __name__ == "__main__":
         experiment_library[name]()
     if run_all:
         for name, test in experiment_library.items():
-            test(total_time = args.time)
+            test()
