@@ -139,7 +139,8 @@ def test_ecoli_with_metabolism_gd(
     assert 'ecoli-metabolism' not in sim.ecoli['topology']
 
     # run simulation and add asserts to output
-    output = sim.run()
+    sim.run()
+    output = sim.query()
     # np.save('out/fba_results.npy', output['listeners']['fba_results'])
     # np.save('out/mass.npy', output['listeners']['mass'])
     # np.save('out/bulk.npy', output['bulk'])
