@@ -200,7 +200,7 @@ def demo():
         composite,
         initial_state=composite.initial_state(),
     )
-    data = simulate_experiment(exp, {'total_time': 10})
+    data = simulate_experiment(exp, {'total_time': 1000})
     fig = plot_variables(
         data,
         variables=[
@@ -212,7 +212,7 @@ def demo():
 
 
 def get_expected_demo_data():
-    p = 1e-5 * units.cm / units.sec
+    p = 2e-7 * units.cm / units.sec
     x_am = FickianDiffusion.defaults['surface_area_mass_ratio']
 
     def rate(internal, external, dry_mass):
@@ -221,12 +221,14 @@ def get_expected_demo_data():
 
     state = {
         'internal': 0 * units.millimolar,
-        'external': 1e-3 * units.millimolar,
-        'dry_mass': 300 * units.fg,
+        'external': FickianDiffusion.defaults['initial_state'][
+            'external']['antibiotic'] * units.millimolar,
+        'dry_mass': FickianDiffusion.defaults['initial_state'][
+            'mass_global']['dry_mass'] * units.fg,
     }
     data = {key: [val] for key, val in state.items()}
     data['time'] = [0]
-    for i in range(10):
+    for i in range(1000):
         flux = rate(
             state['internal'], state['external'], state['dry_mass']
         ) * AVOGADRO * units.sec  # dt = 1 sec
