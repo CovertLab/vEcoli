@@ -183,7 +183,7 @@ def demo():
             for molecule in FickianDiffusion.defaults[
                 'molecules_to_diffuse']
         },
-        'internal_volume': 1.2 * units.fL,
+        'internal_volume': 1.2,  # fL
         'env_volume': 1 * units.fL,
     })
     composite = Composite({
@@ -204,8 +204,8 @@ def demo():
     fig = plot_variables(
         data,
         variables=[
-            ('internal', ('antibiotic', 'millimolar')),
-            ('external', ('antibiotic', 'millimolar')),
+            ('internal', 'antibiotic'),
+            ('external', 'antibiotic'),
         ],
     )
     return fig, data
@@ -246,13 +246,13 @@ def test_fickian_diffusion():
     expected_data = get_expected_demo_data()
     assert simulated_data['time'] == expected_data['time']
     np.testing.assert_allclose(
-        simulated_data['internal'][('antibiotic', 'millimolar')],
+        simulated_data['internal']['antibiotic'],
         expected_data['internal'],
         rtol=0,
         atol=1e-15,
     )
     np.testing.assert_allclose(
-        simulated_data['external'][('antibiotic', 'millimolar')],
+        simulated_data['external']['antibiotic'],
         expected_data['external'],
         rtol=0,
         atol=1e-15,
@@ -263,7 +263,7 @@ def get_demo_vs_expected_plot(demo_data, expected_data):
     fig, (ax1, ax2) = plt.subplots(nrows=2, figsize=(10, 5))
     ax1.plot(
         demo_data['time'],
-        demo_data['internal'][('antibiotic', 'millimolar')],
+        demo_data['internal']['antibiotic'],
         label='simulated', alpha=0.5,
     )
     ax1.plot(
@@ -277,7 +277,7 @@ def get_demo_vs_expected_plot(demo_data, expected_data):
 
     ax2.plot(
         demo_data['time'],
-        demo_data['external'][('antibiotic', 'millimolar')],
+        demo_data['external']['antibiotic'],
         label='simulated', alpha=0.5,
     )
     ax2.plot(

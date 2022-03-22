@@ -103,9 +103,9 @@ def demo():
     env = NonSpatialEnvironment({
         'concentrations': {
             'antibiotic': AntibioticTransport.defaults[
-                'initial_external_antibiotic'],
+                'initial_external_antibiotic'].magnitude,
         },
-        'internal_volume': 1.2 * units.fL,
+        'internal_volume': 1.2,  # fL
         'env_volume': 1 * units.fL,
     })
     composite = Composite({

@@ -14,6 +14,7 @@ class NonSpatialEnvironment(Deriver):
 
     name = 'nonspatial_environment'
     defaults = {
+        'internal_volume': 1,  # fL
         'env_volume': 1 * units.fL,
         'concentrations': {},
     }
@@ -58,6 +59,12 @@ class NonSpatialEnvironment(Deriver):
                 'location': {
                     '_value': [0.5, 0.5],
                 },
+                'volume': {
+                    '_default': 0,
+                },
+                'mmol_to_counts': {
+                    '_default': 0 / units.mM,
+                },
             },
         }
         # add field concentrations
@@ -69,6 +76,17 @@ class NonSpatialEnvironment(Deriver):
             } for field_id, conc in self.parameters['concentrations'].items()}
         schema['fields'].update(field_schema)
         return schema
+
+    def initial_state(self, _):
+        return {
+            'global': {
+                'volume': self.parameters['internal_volume'],
+                'mmol_to_counts': (
+                    AVOGADRO * self.parameters['internal_volume']
+                    * units.fL
+                ).to(1 / units.mM),
+            }
+        }
 
     def next_update(self, timestep, states):
         fields = states['fields']
