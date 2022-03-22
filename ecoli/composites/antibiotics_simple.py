@@ -148,7 +148,7 @@ def demo():
         'concentrations': {
             'antibiotic': INITIAL_EXTERNAL_ANTIBIOTIC.magnitude,
         },
-        'internal_volume': 1 * units.fL,
+        'internal_volume': 1,
         'env_volume': 1 * units.mL,
     })
     composite.merge(
