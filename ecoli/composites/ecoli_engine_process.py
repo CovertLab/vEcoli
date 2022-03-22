@@ -24,6 +24,7 @@ from ecoli.experiments.ecoli_master_sim import (
 from ecoli.library.schema import bulk_schema
 from ecoli.library.sim_data import RAND_MAX
 from ecoli.processes.engine_process import EngineProcess
+from ecoli.processes.environment.field_timeline import FieldTimeline
 from ecoli.processes.listeners.mass_listener import MassListener
 from ecoli.processes.antibiotics.fickian_diffusion import (
     FickianDiffusion)
@@ -31,7 +32,7 @@ from ecoli.processes.shape import Shape
 from ecoli.composites.environment.lattice import Lattice
 
 
-class EngineProcessCell(Composer):
+class EcoliEngineProcess(Composer):
 
     defaults = {
         'agent_id': '0',
@@ -44,12 +45,7 @@ class EngineProcessCell(Composer):
         'divide': False,
         'division_threshold': 0,
         'division_variable': tuple(),
-        'reports': [
-            ('bulk', 'EG10040-MONOMER[p]'),
-            ('bulk', 'TRANS-CPLX-201[m]'),
-            ('periplasm',),
-            ('permeabilities',),
-        ],
+        'reports': tuple(),
     }
 
     def generate_processes(self, config):
@@ -117,6 +113,20 @@ def run_simulation():
         environment_composer = Lattice(
             config['spatial_environment_config'])
         environment_composite = environment_composer.generate()
+        field_timeline = FieldTimeline(
+            config['spatial_environment_config']['field_timeline'])
+        environment_composite.merge(
+            processes={'field_timeline': field_timeline},
+            topology={
+                'field_timeline': {
+                    port: tuple(path)
+                    for port, path in config[
+                        'spatial_environment_config'
+                    ]['field_timeline_topology'].items()
+                },
+            },
+        )
+
         diffusion_schema = environment_composite.processes[
             'diffusion'].get_schema()
         multibody_schema = environment_composite.processes[
@@ -131,7 +141,7 @@ def run_simulation():
             ('boundary',): multibody_schema['agents']['*']['boundary'],
         }
 
-    composer = EngineProcessCell({
+    composer = EcoliEngineProcess({
         'agent_id': config['agent_id'],
         'tunnel_out_schemas': tunnel_out_schemas,
         'stub_schemas': stub_schemas,
@@ -140,6 +150,12 @@ def run_simulation():
         'divide': config['divide'],
         'division_threshold': config['division']['threshold'],
         'division_variable': ('listeners', 'mass', 'cell_mass'),
+        'reports': (
+            ('bulk', 'EG10040-MONOMER[p]'),
+            ('bulk', 'TRANS-CPLX-201[m]'),
+            ('periplasm',),
+            ('permeabilities',),
+        ),
     })
     composite = composer.generate(path=('agents', config['agent_id']))
     initial_state = {
