@@ -86,7 +86,7 @@ class FickianDiffusion(Process):
             },
             'permeabilities': {
                 mol_id: {
-                    '_default': 1e-5 * units.cm / units.sec,
+                    '_default': 0.2e-6 * units.cm / units.sec,
                     '_emit': True,
                     '_updater': 'set'
                 } for mol_id in self.parameters['molecules_to_diffuse']
