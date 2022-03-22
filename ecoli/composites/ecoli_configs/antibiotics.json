@@ -59,7 +59,8 @@
             "exchanges": ["environment", "exchange"],
             "fluxes": ["fluxes"],
             "volume_global": ["periplasm", "global"],
-            "mass_global": ["listeners", "mass"]
+            "mass_global": ["listeners", "mass"],
+            "permeabilities": ["permeabilities"]
         },
         "concentrations_deriver": {
             "counts": ["bulk"],
@@ -74,22 +75,22 @@
     },
     "process_configs": {
         "antibiotic_transport": {
-            "initial_pump": "!UnitsSerializer[1e-3 millimolar]",
-            "initial_internal_antibiotic": "!UnitsSerializer[0 millimolar]",
-            "intial_external_antibiotic": "!UnitsSerializer[0 millimolar]",
-            "kcat": "!UnitsSerializer[1e1 / second]",
-            "Km": "!UnitsSerializer[4.95e-3 millimolar]",
+            "initial_pump": "!units[1e-3 millimolar]",
+            "initial_internal_antibiotic": "!units[0 millimolar]",
+            "intial_external_antibiotic": "!units[0 millimolar]",
+            "kcat": "!units[1e1 / second]",
+            "Km": "!units[4.95e-3 millimolar]",
             "pump_key": "TRANS-CPLX-201[m]",
             "antibiotic_key": "nitrocefin",
             "time_step": 1
         },
         "antibiotic_hydrolysis": {
-            "initial_catalyst": "!UnitsSerializer[1e-3 millimolar]",
+            "initial_catalyst": "!units[1e-3 millimolar]",
             "catalyst": "EG10040-MONOMER[p]",
-            "initial_target_internal": "!UnitsSerializer[0 millimolar]",
+            "initial_target_internal": "!units[0 millimolar]",
             "target": "nitrocefin",
-            "kcat": "!UnitsSerializer[490 / second]",
-            "Km": "!UnitsSerializer[0.5 millimolar]",
+            "kcat": "!units[490 / second]",
+            "Km": "!units[0.5 millimolar]",
             "time_step": 1
         },
         "fickian_diffusion": {
@@ -101,12 +102,12 @@
                     "nitrocefin": 0
                 },
                 "volume_global": {
-                    "volume": "!UnitsSerializer[0.36 femtoliter]"
+                    "volume": "!units[0.36 femtoliter]"
                 }
             },
             "molecules_to_diffuse": ["nitrocefin"],
-            "permeability": "!UnitsSerializer[0.2e-6 centimeter / second]",
-            "surface_area_mass_ratio": "!UnitsSerializer[132 centimeter ** 2 / milligram]",
+            "permeability": "!units[0.2e-6 centimeter / second]",
+            "surface_area_mass_ratio": "!units[132 centimeter ** 2 / milligram]",
             "time_step": 1
         },
         "concentrations_deriver": {
