@@ -45,12 +45,15 @@ def includeMarA(paths, baseline_id):
     sim.run()
     timeseries = sim.query(query)
     
-    # TODO: Plot mRNA counts instead of final protein counts
-    
     baseline_data = access(baseline_id, query)
     baseline_timeseries = timeseries_from_data(baseline_data[0])
+    
+    degenes = pd.read_csv("ecoli/experiments/marA_binding/model_degenes.csv")
+    TU_idx = degenes["TU_idx"].to_list()
+    genes = degenes["Gene name"]
+    fc = degenes["Fold change"] + 1
 
-    plot_degenes(timeseries, baseline_timeseries, "marA_1000", paths)
+    plot_mrnas(timeseries, baseline_timeseries, "marA_tweaked_1000", TU_idx, genes, fc)
 
 def ids_of_interest():
     model_degenes = pd.read_csv("ecoli/experiments/marA_binding/model_degenes.csv")
@@ -215,20 +218,22 @@ def main():
     genes = degenes["Gene name"]
     fc = degenes["Fold change"] + 1
     paths = ids_of_interest()
-    runDefault()
+    # runDefault()
     # query = [i['variable'] for i in paths]
     # exp_id = runDefault(paths)
-    # includeMarA(paths, exp_id)
+    exp_id = "e28c1670-99af-11ec-a9df-9cfce8b9977c"
+    includeMarA(paths, exp_id)
     # e28c1670-99af-11ec-a9df-9cfce8b9977c: control (500 seconds)
     # 75294312-99b1-11ec-93b7-9cfce8b9977c: deltaV = fold change - 1 (500 seconds)
     # e6a0f8da-99b3-11ec-be35-9cfce8b9977c: deltaV = (fold change - 1)/1000 (500 seconds)
-    exp_id = "e28c1670-99af-11ec-a9df-9cfce8b9977c"
+    # 600a7b42-aa30-11ec-b1a6-9cfce8b9977c: deltaV = eyeball adjustment of e6a0f8da-99b3-11ec-be35-9cfce8b9977c
+    # exp_id = "e28c1670-99af-11ec-a9df-9cfce8b9977c"
     # baseline_monomer_data = access(exp_id, query)[0]
     # baseline_monomer_timeseries = timeseries_from_data(baseline_monomer_data)
     # baseline_mrna_data = access(exp_id, [("unique", "RNA")])[0]
     # baseline_mrna_timeseries = timeseries_from_unique(baseline_mrna_data, ("unique", "RNA"), count_by_tu_idx)
     
-    exp_id = "e6a0f8da-99b3-11ec-be35-9cfce8b9977c"
+    # exp_id = "e6a0f8da-99b3-11ec-be35-9cfce8b9977c"
     #marA_monomer_data = access(exp_id, query)[0]
     #marA_monomer_timeseries = timeseries_from_data(marA_monomer_data)
     # marA_mrna_data = access(exp_id, [("unique", "RNA")])[0]
