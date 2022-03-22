@@ -207,7 +207,8 @@ def test_lattice_lysis(plot=False):
     sim = EcoliSim.from_file(CONFIG_DIR_PATH + 'lysis.json')
     # sim = EcoliSim.from_file(CONFIG_DIR_PATH + 'spatial.json')
     sim.total_time = 60
-    data = sim.run()
+    sim.run()
+    data = sim.query()
 
     if plot:
         plot_spatial_snapshots(data, sim, experiment_dir='ecoli_lysis')
