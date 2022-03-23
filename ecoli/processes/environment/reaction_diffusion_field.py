@@ -62,6 +62,7 @@ class ReactionDiffusion(Process):
         self.n_bins = self.parameters['n_bins']
         self.bounds = self.parameters['bounds']
         depth = self.parameters['depth']
+        self.bin_volume = get_bin_volume(self.n_bins, self.bounds, depth)
 
         # diffusion
         diffusion = self.parameters['diffusion']
@@ -75,9 +76,6 @@ class ReactionDiffusion(Process):
         self.diffusion = diffusion / dx2
         self.diffusion_dt = 0.01
         # self.diffusion_dt = 0.5 * dx ** 2 * dy ** 2 / (2 * self.diffusion * (dx ** 2 + dy ** 2))
-
-        # volume, to convert between counts and concentration
-        self.bin_volume = get_bin_volume(self.n_bins, self.bounds, depth)
 
     def initial_state(self, config):
         """
@@ -132,17 +130,17 @@ class ReactionDiffusion(Process):
             },
             'dimensions': {
                 'bounds': {
-                    '_value': self.parameters['bounds'],
+                    '_default': self.parameters['bounds'],
                     '_updater': 'set',
                     '_emit': True,
                 },
                 'n_bins': {
-                    '_value': self.parameters['n_bins'],
+                    '_default': self.parameters['n_bins'],
                     '_updater': 'set',
                     '_emit': True,
                 },
                 'depth': {
-                    '_value': self.parameters['depth'],
+                    '_default': self.parameters['depth'],
                     '_updater': 'set',
                     '_emit': True,
                 }
@@ -153,6 +151,15 @@ class ReactionDiffusion(Process):
     def next_update(self, timestep, states):
         fields = states['fields']
         agents = states['agents']
+        dimensions = states['dimensions']
+
+        # volume, to convert between counts and concentration
+        self.n_bins = dimensions['n_bins']
+        self.bounds = dimensions['bounds']
+        self.bin_volume = get_bin_volume(
+            self.n_bins,
+            self.bounds,
+            dimensions['depth'])
 
         ###################
         # apply exchanges #
@@ -217,16 +224,8 @@ class ReactionDiffusion(Process):
 
         return update
 
-    def count_to_concentration(self, count):
-        return count_to_concentration(
-            count * units.count, self.bin_volume * units.L
-        ).to(units.mmol / units.L).magnitude
-
-    def get_bin_site(self, location):
-        return get_bin_site(location, self.n_bins, self.bounds)
-
     def get_single_local_environments(self, specs, fields):
-        bin_site = self.get_bin_site(specs['location'])
+        bin_site = get_bin_site(specs['location'], self.n_bins, self.bounds)
         local_environment = {}
         for mol_id, field in fields.items():
             local_environment[mol_id] = {
