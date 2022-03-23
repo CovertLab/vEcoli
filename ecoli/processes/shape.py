@@ -172,8 +172,8 @@ class Shape(Step):
         width = self.parameters['width'] * units.um
         length = length_from_volume(cell_volume, width)
         surface_area = surface_area_from_length(length, width)
-        periplasm_volume = cell_volume * self.parameters[
-            'periplasm_fraction']
+        periplasm_volume = cell_volume * self.parameters['periplasm_fraction']
+        cytosol_volume = cell_volume * self.parameters['cytosol_fraction']
         mass = self.parameters['initial_mass'].to(units.fg)
         return {
             'cell_global': {
@@ -191,13 +191,17 @@ class Shape(Step):
                 'mmol_to_counts': mmol_to_counts_from_volume(
                     periplasm_volume),
             },
+            'cytosol_global': {
+                'volume': cytosol_volume,
+                'mmol_to_counts': mmol_to_counts_from_volume(
+                    cytosol_volume),
+            },
         }
 
     def next_update(self, timestep, states):
         width = states['cell_global']['width'] * units.um
         cell_volume = states['cell_global']['volume'] * units.fL
-        periplasm_volume = cell_volume * self.parameters[
-            'periplasm_fraction']
+        periplasm_volume = cell_volume * self.parameters['periplasm_fraction']
         cytosol_volume = cell_volume * self.parameters['cytosol_fraction']
 
         # calculate length and surface area
