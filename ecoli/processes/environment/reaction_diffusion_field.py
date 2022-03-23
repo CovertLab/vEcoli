@@ -9,7 +9,7 @@ import numpy as np
 from scipy import constants
 from scipy.ndimage import convolve
 
-from vivarium.core.process import Process
+from vivarium.core.process import Process, assoc_path
 from vivarium.core.composition import PROCESS_OUT_DIR
 from vivarium.core.engine import Engine
 from vivarium.library.units import units
@@ -49,6 +49,7 @@ class ReactionDiffusion(Process):
         'diffusion': 5e-1,
         'reactions': {},
         'kinetic_parameters': {},
+        'boundary_path': ('boundary',)
     }
 
     def __init__(self, parameters=None):
@@ -90,31 +91,36 @@ class ReactionDiffusion(Process):
         }
 
     def ports_schema(self):
+
+        # place the agent boundary schema at the configured boundary path
+        boundary_path = self.parameters['boundary_path']
+        boundary_schema = {
+            'location': {
+                '_default': [
+                    0.5 * bound
+                    for bound in self.bounds],
+                '_emit': True,
+            },
+            'external': {
+                molecule: {
+                    '_default': 0.0}
+                for molecule in self.molecule_ids
+            },
+            'exchanges': {
+                molecule: {
+                    '_default': 0.0}
+                for molecule in self.molecule_ids
+            },
+            'angle': {'_default': 0.0, '_emit': True},  # TODO -- remove this, should not be required
+            'length': {'_default': 0.0, '_emit': True},  # TODO -- remove this, should not be required
+            'width': {'_default': 0.0, '_emit': True},  # TODO -- remove this, should not be required
+        }
+        agent_schema = assoc_path({}, boundary_path, boundary_schema)
+
+        # make the full schema
         schema = {
             'agents': {
-                '*': {
-                    'boundary': {
-                        'location': {
-                            '_default': [
-                                0.5 * bound
-                                for bound in self.bounds],
-                            '_emit': True,
-                        },
-                        'external': {
-                            molecule: {
-                                '_default': 0.0}
-                            for molecule in self.molecule_ids
-                        },
-                        'exchanges': {
-                            molecule: {
-                                '_default': 0.0}
-                            for molecule in self.molecule_ids
-                        },
-                        'angle': {'_default': 0.0, '_emit': True},  # TODO -- remove this, should not be required
-                        'length': {'_default': 0.0, '_emit': True},  # TODO -- remove this, should not be required
-                        'width': {'_default': 0.0, '_emit': True},  # TODO -- remove this, should not be required
-                    }
-                }
+                '*': agent_schema
             },
             'fields': {
                 field: {
@@ -160,7 +166,7 @@ class ReactionDiffusion(Process):
         # apply exchanges from each agent
         agent_updates = {}
         for agent_id, agent_state in agents.items():
-            boundary = agent_state['boundary']
+            boundary = get_in(agent_state, self.parameters['boundary_path'])
             exchanges = boundary['exchanges']
             location = boundary['location']
             bin_site = get_bin_site(location, self.n_bins, self.bounds)
@@ -234,7 +240,9 @@ class ReactionDiffusion(Process):
             for agent_id, specs in agents.items():
                 local_environments[agent_id] = {'boundary': {}}
                 local_environments[agent_id]['boundary']['external'] = \
-                    self.get_single_local_environments(specs['boundary'], fields)
+                    self.get_single_local_environments(
+                        get_in(specs, self.parameters['boundary_path']),
+                        fields)
         return local_environments
 
     def zeros_field(self):
@@ -360,6 +368,7 @@ def main():
 
     # make the reaction diffusion process
     params = {
+        # 'boundary_path': ('a', 'b', 'c'), # needs to be 'boundary' for snapshots plot
         'molecules': [
             'beta-lactam',
             'beta-lactamase',
