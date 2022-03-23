@@ -115,7 +115,7 @@ class Shape(Step):
                     '_divider': 'split',
                 },
                 'surface_area': {
-                    '_default': 0,  # * units.um**2
+                    '_default': 0 * units.um**2,
                     '_updater': 'set',
                     '_emit': True,
                     '_divider': 'split',
