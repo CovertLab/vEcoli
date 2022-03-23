@@ -110,9 +110,6 @@ class ReactionDiffusion(Process):
                     '_default': 0.0}
                 for molecule in self.molecule_ids
             },
-            'angle': {'_default': 0.0, '_emit': True},  # TODO -- remove this, should not be required
-            'length': {'_default': 0.0, '_emit': True},  # TODO -- remove this, should not be required
-            'width': {'_default': 0.0, '_emit': True},  # TODO -- remove this, should not be required
         }
         agent_schema = assoc_path({}, boundary_path, boundary_schema)
 
@@ -392,6 +389,7 @@ def main():
     # get initial fields
     initial_fields = rxn_diff_process.initial_state({
         'beta-lactam': 1.0})
+    # initial_agents = {'agents': {agent_id: {'boundary': {'angle': 0.0}}}}
 
     # put them together in a simulation
     sim = Engine(
@@ -420,6 +418,13 @@ def main():
 
     # plot
     data = sim.emitter.get_data()
+
+    # add empty angle back in for the plot (this is undesirable)
+    for t in data.keys():
+        data[t]['agents'][agent_id]['boundary']['angle'] = 0.0
+        data[t]['agents'][agent_id]['boundary']['length'] = 1.0
+        data[t]['agents'][agent_id]['boundary']['width'] = 1.0
+
     out_dir = os.path.join(PROCESS_OUT_DIR, 'environment', NAME)
     if not os.path.exists(out_dir):
         os.makedirs(out_dir)
