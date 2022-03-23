@@ -115,13 +115,13 @@ class Shape(Step):
                     '_divider': 'split',
                 },
                 'surface_area': {
-                    '_default': 0 * units.um**2,
+                    '_default': 0,  # * units.um**2
                     '_updater': 'set',
                     '_emit': True,
                     '_divider': 'split',
                 },
                 'mmol_to_counts': {
-                    '_default': 0 / units.millimolar,
+                    '_default': 0 * units.millimolar,
                     '_emit': True,
                     '_divider': 'split',
                     '_updater': 'set',
@@ -138,7 +138,7 @@ class Shape(Step):
             },
             'periplasm_global': {
                 'volume': {
-                    '_default': 0 * units.fL,
+                    '_default': 0,  # * units.fL
                     '_emit': True,
                     '_divider': 'split',
                     '_updater': 'set',
@@ -152,7 +152,7 @@ class Shape(Step):
             },
             'cytosol_global': {
                 'volume': {
-                    '_default': 0 * units.fL,
+                    '_default': 0,  # * units.fL
                     '_emit': True,
                     '_divider': 'split',
                     '_updater': 'set',
@@ -172,8 +172,11 @@ class Shape(Step):
         width = self.parameters['width'] * units.um
         length = length_from_volume(cell_volume, width)
         surface_area = surface_area_from_length(length, width)
+
+        assert self.parameters['periplasm_fraction'] + self.parameters['cytosol_fraction'] == 1
         periplasm_volume = cell_volume * self.parameters['periplasm_fraction']
         cytosol_volume = cell_volume * self.parameters['cytosol_fraction']
+
         mass = self.parameters['initial_mass'].to(units.fg)
         return {
             'cell_global': {
@@ -201,6 +204,8 @@ class Shape(Step):
     def next_update(self, timestep, states):
         width = states['cell_global']['width'] * units.um
         cell_volume = states['cell_global']['volume'] * units.fL
+
+        assert self.parameters['periplasm_fraction'] + self.parameters['cytosol_fraction'] == 1
         periplasm_volume = cell_volume * self.parameters['periplasm_fraction']
         cytosol_volume = cell_volume * self.parameters['cytosol_fraction']
 
