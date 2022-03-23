@@ -3,7 +3,7 @@
 Reaction Diffusion Field
 ========================
 '''
-
+import copy
 import os
 import numpy as np
 from scipy import constants
@@ -49,6 +49,7 @@ class ReactionDiffusion(Process):
         'diffusion': 5e-1,
         'reactions': {},
         'kinetic_parameters': {},
+        'internal_time_step': 1,
         'boundary_path': ('boundary',)
     }
 
@@ -161,14 +162,12 @@ class ReactionDiffusion(Process):
             self.bounds,
             dimensions['depth'])
 
+        # make new fields for the updated state
+        new_fields = copy.deepcopy(fields)
+
         ###################
         # apply exchanges #
         ###################
-
-        # track changes to the field from exchange
-        exchange_delta_fields = {}
-        for field_id, field in fields.items():
-            exchange_delta_fields[field_id] = np.zeros_like(field)
 
         # apply exchanges from each agent
         agent_updates = {}
@@ -189,7 +188,7 @@ class ReactionDiffusion(Process):
 
                 delta_field = np.zeros((self.n_bins[0], self.n_bins[1]), dtype=np.float64)
                 delta_field[bin_site[0], bin_site[1]] += concentration
-                exchange_delta_fields[mol_id] += delta_field
+                new_fields[mol_id] += delta_field
 
                 # reset the exchange value
                 reset_exchanges[mol_id] = {
@@ -198,21 +197,18 @@ class ReactionDiffusion(Process):
 
             agent_updates[agent_id] = {'exchanges': reset_exchanges}
 
-        # the updated fields, which get passed to diffusion
-        new_fields = {
-            mol_id: field + exchange_delta_fields[mol_id]
-            for mol_id, field in fields.items()}
-
         #####################
         # react and diffuse #
         #####################
-
-        reaction_delta_fields, new_fields = self.react(new_fields, timestep)
-        diffusion_delta_fields, new_fields = self.diffuse(new_fields, timestep)
+        t = 0
+        while t < timestep:
+            new_fields = self.react(new_fields, timestep)
+            new_fields = self.diffuse(new_fields, timestep)
+            t += self.parameters['internal_time_step']
 
         # get total delta from exchange, diffusion, reaction
         delta_fields = {
-            mol_id: exchange_delta_fields[mol_id] + diffusion_delta_fields[mol_id] + reaction_delta_fields[mol_id]
+            mol_id: new_fields[mol_id] - field
             for mol_id, field in fields.items()}
 
         # get each agent's new local environment
@@ -251,34 +247,29 @@ class ReactionDiffusion(Process):
         return np.ones((self.n_bins[0], self.n_bins[1]), dtype=np.float64)
 
     def diffusion_delta(self, field, timestep):
-        ''' calculate concentration changes cause by diffusion'''
+        '''calculate new concentrations resulting from diffusion'''
         field_new = field.copy()
         t = 0.0
         dt = min(timestep, self.diffusion_dt)
         while t < timestep:
             field_new += self.diffusion * dt * convolve(field_new, LAPLACIAN_2D, mode='reflect')
             t += dt
-
-        return field_new - field, field_new
+        return field_new
 
     def diffuse(self, fields, timestep):
-        delta_fields = {}
         new_fields = {}
         for mol_id, field in fields.items():
 
             # run diffusion if molecule field is not uniform
             if len(set(field.flatten())) != 1:
-                delta, new_field = self.diffusion_delta(field, timestep)
+                new_field = self.diffusion_delta(field, timestep)
             else:
-                delta = np.zeros_like(field)
                 new_field = field
-            delta_fields[mol_id] = delta
             new_fields[mol_id] = new_field
 
-        return delta_fields, new_fields
+        return new_fields
 
     def react(self, fields, timestep):
-        delta_fields = {field_id: self.zeros_field() for field_id in self.molecule_ids}
         new_fields = fields.copy()
         reactions = self.parameters['reactions']
         kinetic_parameters = self.parameters['kinetic_parameters']
@@ -305,10 +296,9 @@ class ReactionDiffusion(Process):
                 delta = stoich[substrate_id] * flux * timestep
 
                 # updates
-                delta_fields[substrate_id] = delta
                 new_fields[substrate_id] += delta
 
-        return delta_fields, new_fields
+        return new_fields
 
 
 class ExchangeAgent(Process):
@@ -344,7 +334,7 @@ class ExchangeAgent(Process):
         }
 
     def next_update(self, timestep, states):
-        max_move = 5.0
+        max_move = 4.0
         mol_ids = self.parameters['mol_ids']
         return {
             'boundary': {
@@ -434,6 +424,7 @@ def main():
     if not os.path.exists(out_dir):
         os.makedirs(out_dir)
     snapshots_fig = plot_snapshots(
+        n_snapshots=6,
         bounds=get_in(data, (max(data), 'dimensions', 'bounds')),
         agents={
             time: d['agents']
