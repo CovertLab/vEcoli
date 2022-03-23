@@ -13,7 +13,7 @@ from ecoli.processes.antibiotics.permeability import Permeability, CEPH_OMPC_CON
     CEPH_OMPF_CON_PERM, OUTER_CEPH_PH_PERM, TET_OMPF_CON_PERM, OUTER_TET_PH_PERM, INNER_TET_PH_PERM, SA_AVERAGE
 from ecoli.processes.antibiotics.nonspatial_environment import (
     NonSpatialEnvironment)
-from ecoli.processes.antibiotics.shape import ShapeDeriver
+from ecoli.processes.shape import Shape
 
 from numpy import array
 
@@ -67,7 +67,7 @@ class SimpleAntibioticsCell(Composer):
         'kinetics': {},
         'ext_periplasm_diffusion': {},
         'periplasm_cytosol_diffusion': {},
-        'shape_deriver': {},
+        'shape': {},
         'nonspatial_environment': {},
         'outer_permeability': {},
         'inner_permeability': {}
@@ -87,12 +87,12 @@ class SimpleAntibioticsCell(Composer):
 
     def generate_steps(self, config):
         nonspatial_environment = NonSpatialEnvironment(config['nonspatial_environment'])
-        shape_deriver = ShapeDeriver(config['shape_deriver'])
+        shape = Shape(config['shape'])
         outer_permeability = Permeability(config['outer_permeability'])
         inner_permeability = Permeability(config['inner_permeability'])
         return {
             'nonspatial_environment': nonspatial_environment,
-            'shape_deriver': shape_deriver,
+            'shape': shape,
             'outer_permeability': outer_permeability,
             'inner_permeability': inner_permeability
         }
@@ -127,7 +127,7 @@ class SimpleAntibioticsCell(Composer):
                 'mass_global': boundary_path,
                 'permeabilities': boundary_path + ('inner_permeabilities',)
             },
-            'shape_deriver': {
+            'shape': {
                 'cell_global': boundary_path,
                 'periplasm_global': ('periplasm', 'global',),
                 'cytosol_global': ('cytosol', 'global',),
@@ -277,7 +277,7 @@ def demo():
             'surface_area_mass_ratio': 132 / CYTOSOL_FRACTION * units.cm ** 2 / units.mg,  # Dividng by 0.7 as cytosol has 70% of mass
             'time_step': time_step,
         },
-        'shape_deriver': {},
+        'shape': {},
         'nonspatial_environment': {
             'concentrations': {
                 BETA_LACTAM_KEY: INITIAL_EXTERNAL_BETA_LACTAM,
