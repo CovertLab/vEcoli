@@ -168,8 +168,8 @@ def demo():
     for i in range(10):
         timeline.append(
             (i, {
-                ('porins', 'CPLX0-7533[o]'):  ((i + 2) * 500),
-                ('porins', 'CPLX0-7534[o]'):  ((i + 2) * 500),
+                ('porins', 'CPLX0-7533[o]'):  5000 + ((i + 2) * 500),
+                ('porins', 'CPLX0-7534[o]'):  5000 + ((i + 2) * 500),
             },
              )
         )
