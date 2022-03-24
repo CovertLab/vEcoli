@@ -1,4 +1,3 @@
-from numpy import array
 from vivarium.core.composer import Composer
 from vivarium.core.emitter import timeseries_from_data
 from vivarium.core.engine import Engine
@@ -13,6 +12,7 @@ from vivarium.processes.timeline import TimelineProcess
 from ecoli.processes.antibiotics.nonspatial_environment import NonSpatialEnvironment
 from ecoli.processes.environment.derive_globals import DeriveGlobals
 from ecoli.states.wcecoli_state import get_state_from_file
+import numpy as np
 
 
 class PorinFickian(Composer):
@@ -80,8 +80,8 @@ def main():
     initial_state['boundary']['surface_area'] = SA_AVERAGE
     initial_state['listeners']['mass']['dry_mass'] = initial_state['listeners']['mass']['dry_mass'] * units.fg
     initial_state['environment']['fields'] = {}
-    initial_state['environment']['fields']['cephaloridine'] = array([[1e-3]])
-    initial_state['environment']['fields']['tetracycline'] = array([[1e-3]])
+    initial_state['environment']['fields']['cephaloridine'] = np.array([[1e-3]])
+    initial_state['environment']['fields']['tetracycline'] = np.array([[1e-3]])
     initial_state['bulk']['CPLX0-7533[o]'] = 500
     initial_state['bulk']['CPLX0-7534[o]'] = 500
 
