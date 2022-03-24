@@ -20,14 +20,13 @@ CEPH_OMPC_CON_PERM = 0.003521401200296894 * 1e-5 * units.cm * units.micron * uni
 CEPH_OMPF_CON_PERM = 0.01195286573132685 * 1e-5 * units.cm * units.micron * units.micron / units.sec
 TET_OMPF_CON_PERM = 2.2496838543752056 * 1e-9 * units.cm * units.micron * units.micron / units.sec
 
-# Cephaloridine is lipophilic. The diffusion of lipophilic molecules through the outer membrane bilayer is generally
-# negligible. (Nikaido and Pages, 2012)
-OUTER_CEPH_PH_PERM = 0 * units.cm / units.sec
+# Cephaloridine is assumed to not permeate through the outer membrane bilayer. (Nikaido, 1983)
+OUTER_BILAYER_CEPH_PERM = 0 * units.cm / units.sec
 
 # Estimated in (Nikaido and Pages, 2012)
-OUTER_TET_PH_PERM = 1 * 1e-7 * units.cm / units.sec
+OUTER_BILAYER_TET_PERM = 1 * 1e-7 * units.cm / units.sec
 # Estimated in (Thanassi et al., 1994)
-INNER_TET_PH_PERM = 3 * 1e-6 * units.cm / units.sec
+INNER_BILAYER_TET_PERM = 3 * 1e-6 * units.cm / units.sec
 
 
 class Permeability(Step):
@@ -62,7 +61,7 @@ class Permeability(Step):
             cell_permeability = 0
             for porin_id, permeability in self.diffusing_molecules[molecule]['concentration_perm'].items():
                 cell_permeability += (porins[porin_id] / surface_area) * permeability
-            cell_permeability += self.diffusing_molecules[molecule]['ph_perm']
+            cell_permeability += self.diffusing_molecules[molecule]['bilayer_perm']
             permeabilities[molecule] = cell_permeability
         return {'permeabilities': permeabilities}
 
@@ -82,13 +81,13 @@ def main():
                     'CPLX0-7533[o]': CEPH_OMPC_CON_PERM,
                     'CPLX0-7534[o]': CEPH_OMPF_CON_PERM
                 },
-                'ph_perm': OUTER_CEPH_PH_PERM
+                'bilayer_perm': OUTER_BILAYER_CEPH_PERM
             },
             'tetracycline': {
                 'concentration_perm': {
                     'CPLX0-7534[o]': TET_OMPF_CON_PERM,
                 },
-                'ph_perm': OUTER_TET_PH_PERM
+                'bilayer_perm': OUTER_BILAYER_TET_PERM
             }
         },
     }
