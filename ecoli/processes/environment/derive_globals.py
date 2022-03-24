@@ -89,7 +89,7 @@ class DeriveGlobals(Step):
         default_state = {
             'global': {
                 'mass': mass,
-                'volume': volume.to('fL'),
+                'volume': volume,  # .to('fL')
                 'mmol_to_counts': mmol_to_counts,
                 'density': density,
                 'width': width,
@@ -127,7 +127,7 @@ class DeriveGlobals(Step):
 
         return {
             'global': {
-                'volume': volume.to('fL'),
+                'volume': volume,  # .to('fL')
                 'mmol_to_counts': mmol_to_counts,
                 'length': length,
                 'surface_area': surface_area,
@@ -143,7 +143,7 @@ def get_default_global_state():
 
     return {
         'global': {
-            'volume': volume.to('fL'),
+            'volume': volume,  # .to('fL')
             'mmol_to_counts': mmol_to_counts.to('L/mmol')}}
 
 

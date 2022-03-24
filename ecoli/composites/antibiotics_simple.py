@@ -164,7 +164,7 @@ class SimpleAntibioticsCell(Composer):
 
 def demo():
     sim_time = 100
-    time_step = 0.05
+    time_step = 0.01
 
     timeline = []
     for i in range(10):

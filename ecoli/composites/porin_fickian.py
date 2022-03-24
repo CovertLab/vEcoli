@@ -78,7 +78,7 @@ def main():
     initial_state = get_state_from_file(path='data/vivecoli_t1000.json')
     initial_state['boundary'] = {}
     initial_state['boundary']['surface_area'] = SA_AVERAGE
-    initial_state['listeners']['mass']['dry_mass'] = initial_state['listeners']['mass']['dry_mass'] * units.fg
+    initial_state['listeners']['mass']['dry_mass'] = initial_state['listeners']['mass']['dry_mass']  # * units.fg
     initial_state['environment']['fields'] = {}
     initial_state['environment']['fields']['cephaloridine'] = np.array([[1e-3]])
     initial_state['environment']['fields']['tetracycline'] = np.array([[1e-3]])
@@ -112,7 +112,7 @@ def main():
                     'tetracycline': 1e-3
                 },
                 'mass_global': {
-                    'dry_mass': 300 * units.fg,
+                    'dry_mass': 300,  # * units.fg
                 },
                 'volume_global': {
                     'volume': 1.2  # * units.fL
