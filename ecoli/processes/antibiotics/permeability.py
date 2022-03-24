@@ -127,11 +127,11 @@ def main():
     timeseries_data = timeseries_from_data(sim.emitter.get_data())
     ceph_str_to_float = []
     for string in timeseries_data['boundary']['permeabilities']['cephaloridine']:
-        ceph_str_to_float.append(float(string.split()[0]))
+        ceph_str_to_float.append(units(string).magnitude)
     timeseries_data['boundary']['permeabilities']['cephaloridine'] = ceph_str_to_float
     tet_str_to_float = []
     for string in timeseries_data['boundary']['permeabilities']['tetracycline']:
-        tet_str_to_float.append(float(string.split()[0]))
+        tet_str_to_float.append(units(string).magnitude)
     timeseries_data['boundary']['permeabilities']['tetracycline'] = tet_str_to_float
     plot_variables(timeseries_data, [('bulk', 'CPLX0-7533[o]'), ('bulk', 'CPLX0-7534[o]'),
                                      ('boundary', 'permeabilities', 'cephaloridine'),
