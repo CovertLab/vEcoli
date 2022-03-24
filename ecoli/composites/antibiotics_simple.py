@@ -18,7 +18,7 @@ from ecoli.processes.antibiotics.nonspatial_environment import (
 )
 from ecoli.processes.shape import Shape
 
-from numpy import array
+import numpy as np
 
 INITIAL_EXTERNAL_BETA_LACTAM = 1e-3  # * units.mM
 INITIAL_PERIPLASM_BETA_LACTAM = 0  # * units.mM
@@ -330,8 +330,8 @@ def demo():
     initial_state['bulk']['CPLX0-7534[o]'] = 5000
     initial_state['environment'] = {}
     initial_state['environment']['fields'] = {}
-    initial_state['environment']['fields']['cephaloridine'] = array([[INITIAL_EXTERNAL_BETA_LACTAM]])
-    initial_state['environment']['fields']['tetracycline'] = array([[INITIAL_EXTERNAL_TET]])
+    initial_state['environment']['fields']['cephaloridine'] = np.array([[INITIAL_EXTERNAL_BETA_LACTAM]])
+    initial_state['environment']['fields']['tetracycline'] = np.array([[INITIAL_EXTERNAL_TET]])
 
     sim = Engine(composite=composite, initial_state=initial_state)
     sim.update(sim_time)
