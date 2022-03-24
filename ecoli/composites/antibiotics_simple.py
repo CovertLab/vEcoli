@@ -30,6 +30,7 @@ INITIAL_PERIPLASM_TET = 0   # * units.mM
 INITIAL_CYTOSOL_TET = 0  # * units.mM
 INITIAL_PUMP = 1e-3  # * units.mM
 BETA_LACTAM_KEY = 'cephaloridine'
+BETA_LACTAMASE_KEY = 'beta-lactamase'
 HYDROLYZED_BETA_LACTAM_KEY = BETA_LACTAM_KEY + '_hydrolyzed'
 TET_KEY = 'tetracycline'
 PUMP_KEY = 'TRANS-CPLX-201'
@@ -38,7 +39,6 @@ PUMP_KEY = 'TRANS-CPLX-201'
 PERIPLASM_FRACTION = 0.3
 
 CYTOSOL_FRACTION = 1 - PERIPLASM_FRACTION
-BETA_LACTAMASE_KEY = 'beta-lactamase'
 
 
 class PARAMETERS:
@@ -59,6 +59,7 @@ class PARAMETERS:
     TET_PUMP_KM = 200e-3  # * units.millimolar
 
     TOLC_KCAT = 1e1  # / units.sec  # TODO: Placeholder. Not supposed to be constant regardless of substrate.
+
 
 class SimpleAntibioticsCell(Composer):
     '''

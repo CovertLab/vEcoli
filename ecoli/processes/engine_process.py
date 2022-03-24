@@ -64,11 +64,12 @@ import copy
 import numpy as np
 from vivarium.core.engine import Engine
 from vivarium.core.process import Process, Step
-from vivarium.core.registry import updater_registry
+from vivarium.core.registry import updater_registry, divider_registry
 from vivarium.library.topology import get_in, assoc_path
 
 from ecoli.library.sim_data import RAND_MAX
 from ecoli.library.updaters import inverse_updater_registry
+from ecoli.processes.cell_division import daughter_phylogeny_id
 
 
 def _get_path_net_depth(path):
@@ -87,7 +88,7 @@ def cap_tunneling_paths(topology, outer=tuple()):
     for key, val in topology.items():
         if isinstance(val, dict):
             tunnels.update(cap_tunneling_paths(val, outer + (key,)))
-        elif isinstance(val, tuple):
+        elif isinstance(val, tuple) and val:  # Never cap empty paths
             path_depth = _get_path_net_depth(val)
             # Note that the last node in ``outer`` is the process name,
             # which doesn't count as part of the path depth.
@@ -108,17 +109,52 @@ def cap_tunneling_paths(topology, outer=tuple()):
     return tunnels
 
 
+class SchemaStub(Process):
+    '''Stub process for providing schemas to an inner simulation.
+
+    When using :py:class:`ecoli.processes.engine_process.EngineProcess`,
+    there may be processes in the outer simulation whose schemas you are
+    expecting to affect variables in the inner simulation. You can
+    include this stub process in your inner simulation to provide those
+    schemas from the outer simulation.
+
+    The process takes a single parameter, ``ports_schema``, whose value
+    is the process's ports schema to be provided to the inner
+    simulation.
+    '''
+
+    defaults = {
+        'ports_schema': {},
+    }
+
+    def ports_schema(self):
+        return self.parameters['ports_schema']
+
+    def next_update(self, timestep, states):
+        return {}
+
+
 class EngineProcess(Process):
     defaults = {
         'composite': {},
-        # Map from tunnel name to (path to internal store, schema)
+        # Map from tunnel name to path to internal store.
         'tunnels_in': {},
+        # Map from tunnel name to schema. Schemas are optional.
+        'tunnel_out_schemas': {},
+        # Map from process name to a map from path in the inner
+        # simulation to the schema that should be stubbed in at that
+        # path. A stub process will be added with a port for each
+        # schema, and the topology will wire each port to the specified
+        # path.
+        'stub_schemas': {},
         'initial_inner_state': {},
         'agent_id': '0',
         'composer': None,
         'seed': 0,
-        'time_step': 2,
         'inner_emitter': 'null',
+        'divide': False,
+        'division_threshold': 0,
+        'division_variable': tuple(),
     }
     # TODO: Handle name clashes between tunnels.
 
@@ -128,11 +164,25 @@ class EngineProcess(Process):
         self.tunnels_out = cap_tunneling_paths(
             composite['topology'])
         self.tunnels_in = self.parameters['tunnels_in']
+
+        processes = composite['processes']
+        topology = composite['topology']
+        for process, d in self.parameters['stub_schemas'].items():
+            stub_ports_schema = {}
+            stub_process_name = f'{process}_stub'
+            topology[stub_process_name] = {}
+            for path, schema in d.items():
+                port = '>'.join(path)
+                stub_ports_schema[port] = schema
+                topology[stub_process_name][port] = path
+            stub = SchemaStub({'ports_schema': stub_ports_schema})
+            processes[stub_process_name] = stub
+
         self.sim = Engine(
-            processes=composite['processes'],
+            processes=processes,
             steps=composite.get('steps'),
             flow=composite.get('flow'),
-            topology=composite['topology'],
+            topology=topology,
             initial_state=self.parameters['initial_inner_state'],
             emitter=self.parameters['inner_emitter'],
             display_info=False,
@@ -148,17 +198,54 @@ class EngineProcess(Process):
         for port_path, tunnel in self.tunnels_out.items():
             process_path = port_path[:-1]
             port = port_path[-1]
-            tunnel_schema = get_in(
-                self.sim.processes, process_path).get_schema()[port]
+            process = get_in(
+                self.sim.processes,
+                process_path,
+                get_in(self.sim.steps, process_path))
+            tunnel_schema = process.get_schema()[port]
             schema[tunnel] = copy.deepcopy(tunnel_schema)
-        for tunnel, (_, tunnel_schema) in self.tunnels_in.items():
+        for tunnel, path in self.tunnels_in.items():
+            tunnel_schema = self.sim.state.get_path(path).get_config()
+            schema[tunnel] = tunnel_schema
+        for tunnel, tunnel_schema in self.parameters[
+                'tunnel_out_schemas'].items():
             schema[tunnel] = tunnel_schema
         return schema
 
+    def initial_state(self, config=None):
+        state = {}
+        # We ignore tunnels out because those are to stores like fields
+        # or dimensions that are outside the cell and therefore don't
+        # get divided.
+        for tunnel, path in self.tunnels_in.items():
+            state[tunnel] = self.sim.state.get_path(path).get_value()
+        return state
+
+    def calculate_timestep(self, states):
+        timestep = np.inf
+        for process in self.sim.processes.values():
+            timestep = min(timestep, process.calculate_timestep({}))
+        return timestep
 
     def next_update(self, timestep, states):
+        # Check whether we are being forced to finish early. This check
+        # should happen before we mutate the inner simulation state to
+        # make sure that self.calculate_timestep() returns the same
+        # value as it did to the Engine. However, this is just
+        # precautionary for now because currently,
+        # self.calculate_timestep() does not depend on the inner state.
+        # This only works because self.calculate_timestep() returns the
+        # same timestep that the inner Engine would normally use. If
+        # self.calculate_timestep() returned a timestep smaller than
+        # what the inner Engine would normally use, the outer simulation
+        # could be ending and forcing this process to complete, but
+        # since the timestep could by chance equal
+        # self.calculate_timestep(), we would not know to force the
+        # inner simulation to complete.
+        force_complete = timestep != self.calculate_timestep({})
+
         # Update the internal state with tunnel data.
-        for tunnel, (path, _) in self.tunnels_in.items():
+        for tunnel, path in self.tunnels_in.items():
             incoming_state = states[tunnel]
             self.sim.state.get_path(path).set_value(incoming_state)
         for tunnel in self.tunnels_out.values():
@@ -166,35 +253,28 @@ class EngineProcess(Process):
             self.sim.state.get_path((tunnel,)).set_value(incoming_state)
 
         # Run inner simulation for timestep.
-        # TODO: What if internal processes have a longer timestep than
-        # this process?
-        self.sim.update(timestep)
+        self.sim.run_for(timestep)
+        if force_complete:
+            self.sim.complete()
 
-        agents = self.sim.state.get_path(('agents',)).inner
-        if len(agents) > 1:
-            # Division has occurred.
+        # Check for division and perform if needed.
+        division_threshold = self.parameters['division_threshold']
+        division_variable = self.sim.state.get_path(
+            self.parameters['division_variable']).get_value()
+        if (
+                self.parameters['divide']
+                and division_variable >= division_threshold):
+            # Perform division.
             daughters = []
             composer = self.parameters['composer']
-            for daughter_id in agents:
-                tunnel_states = {}
-                for tunnel, (path, _) in self.tunnels_in.items():
-                    # TODO: Make this general somehow or use the
-                    # assumption of the (agents, id) structure
-                    # everywhere.
-                    if len(path) >= 2 and path[:2] == (
-                            'agents', self.parameters['agent_id']):
-                        path = ('agents', daughter_id) + path[2:]
-                    store = self.sim.state.get_path(path)
-                    tunnel_states[tunnel] = store.get_value()
-                for tunnel in self.tunnels_out.values():
-                    store = self.sim.state.get_path((tunnel,))
-                    tunnel_states[tunnel] = store.get_value()
+            daughter_states = self.sim.state.divide_value()
+            daughter_ids = daughter_phylogeny_id(
+                self.parameters['agent_id'])
+            for daughter_id, inner_state in zip(
+                    daughter_ids, daughter_states):
                 composite = composer.generate({
                     'agent_id': daughter_id,
-                    'initial_cell_state': agents[daughter_id].get_value(
-                        condition=lambda x: not isinstance(
-                            x.value, Process)
-                    ),
+                    'initial_cell_state': inner_state,
                     'seed': self.random_state.randint(RAND_MAX),
                 })
                 daughter = {
@@ -203,10 +283,7 @@ class EngineProcess(Process):
                     'steps': composite.steps,
                     'flow': composite.flow,
                     'topology': composite.topology,
-                    'initial_state': composer.initial_state({
-                        'agent_id': daughter_id,
-                        'initial_tunnel_states': tunnel_states,
-                    }),
+                    'initial_state': composite.initial_state(),
                 }
                 daughters.append(daughter)
             return {
@@ -220,20 +297,26 @@ class EngineProcess(Process):
 
         # Craft an update to pass data back out through the tunnels.
         update = {}
-        for tunnel, (path, _) in self.tunnels_in.items():
+        for tunnel, path in self.tunnels_in.items():
             store = self.sim.state.get_path(path)
-            update[tunnel] = _inverse_update(
+            inverted_update = _inverse_update(
                 states[tunnel],
                 store.get_value(),
                 store,
             )
+            if not (isinstance(inverted_update, dict)
+                    and inverted_update == {}):
+                update[tunnel] = inverted_update
         for tunnel in self.tunnels_out.values():
             store = self.sim.state.get_path((tunnel,))
-            update[tunnel] = _inverse_update(
+            inverted_update = _inverse_update(
                 states[tunnel],
                 store.get_value(),
                 store,
             )
+            if not (isinstance(inverted_update, dict)
+                    and inverted_update == {}):
+                update[tunnel] = inverted_update
         return update
 
 
@@ -254,7 +337,7 @@ def _inverse_update(initial_state, final_state, store):
         # TODO: What if key is missing from initial or final?
         sub_update = _inverse_update(
             initial_state[key], final_state[key], store.inner[key])
-        if sub_update != {}:
+        if not (isinstance(sub_update, dict) and sub_update == {}):
             update[key] = sub_update
     return update
 
@@ -376,13 +459,7 @@ def test_engine_process():
     proc = EngineProcess({
         'composite': inner_composite,
         'tunnels_in': {
-            'c_tunnel': (
-                ('c',),
-                {
-                    '_default': 0,
-                    '_emit': True,
-                },
-            ),
+            'c_tunnel': ('c',),
         },
         'time_step': 1,
         'inner_emitter': 'timeseries',
@@ -395,9 +472,14 @@ def test_engine_process():
             '_updater': 'accumulate',
             '_emit': True,
         },
+        # The schema for c_tunnel is complete, even though we only
+        # specified a partial schema, because this schema is pulled from
+        # the filled inner simulation hierarchy.
         'c_tunnel': {
             '_default': 0,
             '_emit': True,
+            '_updater': 'accumulate',
+            '_value': 0,
         },
     }
     assert schema == expected_schema
