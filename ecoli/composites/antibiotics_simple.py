@@ -10,8 +10,8 @@ from ecoli.processes.antibiotics.fickian_diffusion import (
     FickianDiffusion,
 )
 from ecoli.processes.antibiotics.permeability import (
-    Permeability, CEPH_OMPC_CON_PERM, CEPH_OMPF_CON_PERM, OUTER_CEPH_PH_PERM, TET_OMPF_CON_PERM, OUTER_TET_PH_PERM,
-    INNER_TET_PH_PERM, SA_AVERAGE
+    Permeability, CEPH_OMPC_CON_PERM, CEPH_OMPF_CON_PERM, OUTER_BILAYER_CEPH_PERM, TET_OMPF_CON_PERM, OUTER_BILAYER_TET_PERM,
+    INNER_BILAYER_TET_PERM, SA_AVERAGE
 )
 from ecoli.processes.antibiotics.nonspatial_environment import (
     NonSpatialEnvironment
@@ -302,13 +302,13 @@ def demo():
                         'CPLX0-7533[o]': CEPH_OMPC_CON_PERM,
                         'CPLX0-7534[o]': CEPH_OMPF_CON_PERM
                     },
-                    'ph_perm': OUTER_CEPH_PH_PERM
+                    'bilayer_perm': OUTER_BILAYER_CEPH_PERM
                 },
                 'tetracycline': {
                     'concentration_perm': {
                         'CPLX0-7534[o]': TET_OMPF_CON_PERM,
                     },
-                    'ph_perm': OUTER_TET_PH_PERM
+                    'bilayer_perm': OUTER_BILAYER_TET_PERM
                 }
             },
         },
@@ -317,7 +317,7 @@ def demo():
             'diffusing_molecules': {
                 'tetracycline': {
                     'concentration_perm': {},
-                    'ph_perm': INNER_TET_PH_PERM
+                    'bilayer_perm': INNER_BILAYER_TET_PERM
                 }
             },
         },
