@@ -86,7 +86,7 @@ class Shape(Step):
         'periplasm_fraction': 0.3,
         'cytosol_fraction': 0.7,
         'initial_cell_volume': 1.2,  # fL
-        'initial_mass': 1339 * units.fg,
+        'initial_mass': 1339,  # * units.fg
     }
 
     def __init__(self, parameters=None):
@@ -127,7 +127,7 @@ class Shape(Step):
                     '_updater': 'set',
                 },
                 'mass': {
-                    '_default': 0 * units.fg,
+                    '_default': 0,  # * units.fg
                     '_updater': 'set',
                     '_emit': True,
                     '_divider': 'split',
@@ -177,7 +177,7 @@ class Shape(Step):
         periplasm_volume = cell_volume * self.parameters['periplasm_fraction']
         cytosol_volume = cell_volume * self.parameters['cytosol_fraction']
 
-        mass = self.parameters['initial_mass'].to(units.fg)
+        mass = self.parameters['initial_mass']  # .to(units.fg)
         return {
             'cell_global': {
                 'volume': cell_volume.magnitude,
@@ -188,7 +188,7 @@ class Shape(Step):
                     cell_volume),
                 'mass': mass,
             },
-            'listener_cell_mass': mass.magnitude,
+            'listener_cell_mass': mass,  # .magnitude
             'periplasm_global': {
                 'volume': periplasm_volume,
                 'mmol_to_counts': mmol_to_counts_from_volume(
@@ -219,7 +219,7 @@ class Shape(Step):
                 'surface_area': surface_area,
                 'mmol_to_counts': mmol_to_counts_from_volume(
                     cell_volume),
-                'mass': states['listener_cell_mass'] * units.fg,
+                'mass': states['listener_cell_mass'],  # * units.fg,
             },
             'periplasm_global': {
                 'volume': periplasm_volume,

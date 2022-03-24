@@ -118,7 +118,7 @@ class SimpleAntibioticsCell(Composer):
                 'exchanges': boundary_path + ('exchanges',),
                 'fluxes': ('fluxes',),
                 'volume_global': ('periplasm', 'global',),
-                'mass_global': boundary_path,
+                'mass_global': ('mass_listener',),
                 'permeabilities': boundary_path + ('outer_permeabilities',)
             },
             'periplasm_cytosol_diffusion': {
@@ -127,13 +127,14 @@ class SimpleAntibioticsCell(Composer):
                 'exchanges': boundary_path + ('exchanges',),
                 'fluxes': ('fluxes',),
                 'volume_global': ('cytosol', 'global',),
-                'mass_global': boundary_path,
+                'mass_global': ('mass_listener',),
                 'permeabilities': boundary_path + ('inner_permeabilities',)
             },
             'shape': {
                 'cell_global': boundary_path,
                 'periplasm_global': ('periplasm', 'global',),
                 'cytosol_global': ('cytosol', 'global',),
+                'listener_cell_mass': ('mass_listener', 'dry_mass'),
             },
             'nonspatial_environment': {
                 'external': boundary_path + ('external',),
@@ -162,7 +163,7 @@ class SimpleAntibioticsCell(Composer):
 
 def demo():
     sim_time = 100
-    time_step = 0.05
+    time_step = 0.01
 
     timeline = []
     for i in range(10):
@@ -249,7 +250,7 @@ def demo():
                     TET_KEY: INITIAL_PERIPLASM_TET
                 },
                 'mass_global': {
-                    'dry_mass': 300 * units.fg,
+                    'dry_mass': 300,  # * units.fg
                 },
                 'volume_global': {
                     'volume': 1.2 * PERIPLASM_FRACTION,  # * units.fL
@@ -269,7 +270,7 @@ def demo():
                     TET_KEY: INITIAL_CYTOSOL_TET
                 },
                 'mass_global': {
-                    'dry_mass': 300 * units.fg,
+                    'dry_mass': 300,  # * units.fg
                 },
                 'volume_global': {
                     'volume': 1.2 * CYTOSOL_FRACTION,  # * units.fL
