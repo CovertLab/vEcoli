@@ -222,12 +222,12 @@ class Shape(Step):
                 'mass': states['listener_cell_mass'],  # * units.fg,
             },
             'periplasm_global': {
-                'volume': periplasm_volume,
+                'volume': periplasm_volume.magnitude,
                 'mmol_to_counts': mmol_to_counts_from_volume(
                     periplasm_volume),
             },
             'cytosol_global': {
-                'volume': cytosol_volume,
+                'volume': cytosol_volume.magnitude,
                 'mmol_to_counts': mmol_to_counts_from_volume(
                     cytosol_volume),
             }
