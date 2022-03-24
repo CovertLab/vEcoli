@@ -13,22 +13,20 @@ NOTE:
 and internal states have been updated (deriver-like, no partitioning necessary)
 """
 
+from typing import Tuple
 
 import numpy as np
 from scipy.sparse import csr_matrix
-from typing import Tuple
-
+from six.moves import zip
 from vivarium.core.process import Step
 
+from ecoli.processes.registries import topology_registry
+from ecoli.processes.partition import check_whether_evolvers_have_run
+from ecoli.library.convert_update import convert_numpy_to_builtins
 from ecoli.library.schema import bulk_schema, array_from
-
 from wholecell.utils import units
 from wholecell.utils.random import stochasticRound
 from wholecell.utils.modular_fba import FluxBalanceAnalysis
-from six.moves import zip
-
-from ecoli.processes.registries import topology_registry
-from ecoli.library.convert_update import convert_numpy_to_builtins
 
 
 # Register default topology for this process, associating it with process name
@@ -43,7 +41,8 @@ TOPOLOGY = {
         "environment": ("environment",),
         "polypeptide_elongation": ("process_state", "polypeptide_elongation"),
         # Non-partitioned count
-        "amino_acids_total": ("bulk",)
+        "amino_acids_total": ("bulk",),
+        "evolvers_ran": ('evolvers_ran',),
     }
 topology_registry.register(NAME, TOPOLOGY)
 
@@ -142,7 +141,7 @@ class Metabolism(Step):
         self.__init__(state)
 
     def ports_schema(self):
-        return {
+        ports = {
             'metabolites': bulk_schema(self.model.metaboliteNamesFromNutrients),
             'catalysts': bulk_schema(self.model.catalyst_ids),
             'kinetics_enzymes': bulk_schema(self.model.kinetic_constraint_enzymes),
@@ -212,7 +211,17 @@ class Metabolism(Step):
                 'gtp_to_hydrolyze': {
                     '_default': 0,
                     '_emit': True,
-                    '_divider': 'zero'}}}
+                    '_divider': 'zero',
+                },
+            },
+            'evolvers_ran': {'_default': True},
+        }
+
+        return ports
+
+    def update_condition(self, timestep, states):
+        return check_whether_evolvers_have_run(
+            states['evolvers_ran'], self.name)
 
     def next_update(self, timestep, states):
         # Skip t=0 if a deriver

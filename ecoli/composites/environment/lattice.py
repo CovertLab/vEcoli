@@ -112,7 +112,7 @@ class Lattice(Composer):
     def generate_processes(self, config):
         processes = {
             'multibody': Multibody(config['multibody']),
-            'diffusion': DiffusionField(config['diffusion'])
+            'diffusion': DiffusionField(config['diffusion']),
         }
         return processes
 
