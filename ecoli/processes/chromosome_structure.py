@@ -8,14 +8,16 @@ Chromosome Structure
 - Reset the boundaries and linking numbers of chromosomal segments.
 """
 
-import numpy as np
+import copy
 
+import numpy as np
 from vivarium.core.process import Step
+
 from ecoli.processes.registries import topology_registry
+from ecoli.processes.partition import check_whether_evolvers_have_run
 from ecoli.library.schema import (
     add_elements, arrays_from, bulk_schema, create_unique_indexes,
     arrays_to, array_to, dict_value_schema, listener_schema)
-
 from wholecell.utils.polymerize import buildSequences
 from ecoli.library.convert_update import convert_numpy_to_builtins
 
@@ -38,6 +40,7 @@ TOPOLOGY = {
     "full_chromosomes": ("unique", "full_chromosome",),
     "promoters": ("unique", "promoter"),
     "DnaA_boxes": ("unique", "DnaA_box"),
+    "evolvers_ran": ("evolvers_ran",),
     # TODO(vivarium): Only include if superhelical density flag is passed
     # "chromosomal_segments": ("unique", "chromosomal_segment")
 }
@@ -147,6 +150,7 @@ class ChromosomeStructure(Step):
             'full_chromosomes': dict_value_schema('full_chromosomes'),
             'promoters': dict_value_schema('promoters'),
             'DnaA_boxes': dict_value_schema('DnaA_boxes'),
+            'evolvers_ran': {'_default': True},
         }
 
         if self.calculate_superhelical_densities:
@@ -158,6 +162,10 @@ class ChromosomeStructure(Step):
                     'linking_number': {'_default': 0}}}
 
         return ports
+
+    def update_condition(self, timestep, states):
+        return check_whether_evolvers_have_run(
+            states['evolvers_ran'], self.name)
 
     def next_update(self, timestep, states):
         # Skip t=0 if a deriver
