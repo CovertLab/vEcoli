@@ -14,7 +14,7 @@ class NonSpatialEnvironment(Step):
 
     name = 'nonspatial_environment'
     defaults = {
-        'internal_volume': 1 * units.fL,
+        'internal_volume': 1,  # fL
         'env_volume': 1 * units.fL,
         'concentrations': {},
     }
@@ -60,12 +60,10 @@ class NonSpatialEnvironment(Step):
                     '_value': [0.5, 0.5],
                 },
                 'volume': {
-                    '_value': self.parameters['internal_volume'],
+                    '_default': 0,
                 },
                 'mmol_to_counts': {
-                    '_value': (
-                        AVOGADRO * self.parameters['internal_volume']
-                    ).to('L/mmol')
+                    '_default': 0 / units.mM,
                 },
             },
         }
