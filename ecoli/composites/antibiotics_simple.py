@@ -294,14 +294,14 @@ def demo():
             'porin_ids': ['CPLX0-7533[o]', 'CPLX0-7534[o]'],
             'diffusing_molecules': {
                 'cephaloridine': {
-                    'per_porin_perm': {
+                    'concentration_perm': {
                         'CPLX0-7533[o]': CEPH_OMPC_CON_PERM,
                         'CPLX0-7534[o]': CEPH_OMPF_CON_PERM
                     },
                     'ph_perm': OUTER_CEPH_PH_PERM
                 },
                 'tetracycline': {
-                    'per_porin_perm': {
+                    'concentration_perm': {
                         'CPLX0-7534[o]': TET_OMPF_CON_PERM,
                     },
                     'ph_perm': OUTER_TET_PH_PERM
@@ -312,7 +312,7 @@ def demo():
             'porin_ids': [],
             'diffusing_molecules': {
                 'tetracycline': {
-                    'per_porin_perm': {},
+                    'concentration_perm': {},
                     'ph_perm': INNER_TET_PH_PERM
                 }
             },

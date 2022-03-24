@@ -115,7 +115,7 @@ class Shape(Step):
                     '_divider': 'split',
                 },
                 'surface_area': {
-                    '_default': 0 * units.um**2,
+                    '_default': 0,  # * units.um**2
                     '_updater': 'set',
                     '_emit': True,
                     '_divider': 'split',
@@ -171,7 +171,7 @@ class Shape(Step):
         cell_volume = self.parameters['initial_cell_volume'] * units.fL
         width = self.parameters['width'] * units.um
         length = length_from_volume(cell_volume, width)
-        surface_area = surface_area_from_length(length, width)
+        surface_area = surface_area_from_length(length, width).magnitude
 
         assert self.parameters['periplasm_fraction'] + self.parameters['cytosol_fraction'] == 1
         periplasm_volume = cell_volume * self.parameters['periplasm_fraction']
@@ -211,7 +211,7 @@ class Shape(Step):
 
         # calculate length and surface area
         length = length_from_volume(cell_volume, width)
-        surface_area = surface_area_from_length(length, width)
+        surface_area = surface_area_from_length(length, width).magnitude
 
         update = {
             'cell_global': {
