@@ -9,10 +9,13 @@ from vivarium.processes.timeline import TimelineProcess
 from ecoli.processes.antibiotics.fickian_diffusion import (
     FickianDiffusion,
 )
-from ecoli.processes.antibiotics.permeability import Permeability, CEPH_OMPC_CON_PERM,\
-    CEPH_OMPF_CON_PERM, OUTER_CEPH_PH_PERM, TET_OMPF_CON_PERM, OUTER_TET_PH_PERM, INNER_TET_PH_PERM, SA_AVERAGE
+from ecoli.processes.antibiotics.permeability import (
+    Permeability, CEPH_OMPC_CON_PERM, CEPH_OMPF_CON_PERM, OUTER_CEPH_PH_PERM, TET_OMPF_CON_PERM, OUTER_TET_PH_PERM,
+    INNER_TET_PH_PERM, SA_AVERAGE
+)
 from ecoli.processes.antibiotics.nonspatial_environment import (
-    NonSpatialEnvironment)
+    NonSpatialEnvironment
+)
 from ecoli.processes.shape import Shape
 
 from numpy import array

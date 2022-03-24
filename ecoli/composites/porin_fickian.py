@@ -4,8 +4,10 @@ from vivarium.core.emitter import timeseries_from_data
 from vivarium.core.engine import Engine
 from vivarium.library.units import units
 from vivarium.plots.simulation_output import plot_variables
-from ecoli.processes.antibiotics.permeability import Permeability, CEPH_OMPC_CON_PERM,\
-    CEPH_OMPF_CON_PERM, OUTER_CEPH_PH_PERM, TET_OMPF_CON_PERM, OUTER_TET_PH_PERM, SA_AVERAGE
+from ecoli.processes.antibiotics.permeability import (
+    Permeability, CEPH_OMPC_CON_PERM, CEPH_OMPF_CON_PERM, OUTER_CEPH_PH_PERM, TET_OMPF_CON_PERM, OUTER_TET_PH_PERM,
+    SA_AVERAGE
+)
 from ecoli.processes.antibiotics.fickian_diffusion import FickianDiffusion
 from vivarium.processes.timeline import TimelineProcess
 from ecoli.processes.antibiotics.nonspatial_environment import NonSpatialEnvironment
