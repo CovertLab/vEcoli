@@ -76,14 +76,26 @@ class NonSpatialEnvironment(Step):
         schema['fields'].update(field_schema)
         return schema
 
+    def initial_state(self, _):
+        return {
+            'global': {
+                'volume': self.parameters['internal_volume'],
+                'mmol_to_counts': (
+                        AVOGADRO * self.parameters['internal_volume']
+                        * units.fL
+                ).to(1 / units.mM),
+            }
+        }
+
     def next_update(self, timestep, states):
         fields = states['fields']
         new_fields = copy.deepcopy(fields)
+        env_volume = self.parameters['env_volume']
 
         exchanges = states['exchanges']
         for molecule, exchange in exchanges.items():
             conc_delta = (
-                exchange / AVOGADRO / self.parameters['env_volume'])
+                exchange / AVOGADRO / env_volume)
             new_fields[molecule][0, 0] += conc_delta.to(
                 units.millimolar).magnitude
 
