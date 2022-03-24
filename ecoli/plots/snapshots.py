@@ -609,7 +609,7 @@ def make_snapshots_figure(
                         agents_now,
                         agent_colors,
                         agent_shape=agent_shape,
-                        dead_color=None,
+                        dead_color=dead_color,
                         membrane_width=membrane_width,
                         membrane_color=membrane_color,
                         alpha=agent_alpha)
@@ -656,7 +656,7 @@ def make_snapshots_figure(
                     agents_now,
                     agent_colors,
                     agent_shape=agent_shape,
-                    dead_color=None,
+                    dead_color=dead_color,
                     membrane_width=membrane_width,
                     membrane_color=membrane_color,
                     alpha=agent_alpha)

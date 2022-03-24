@@ -115,6 +115,12 @@ def test_division(
                 len(daughter_states[1]['unique'][key]),
                 custom_threshold=0.1))
 
+    # Assert that no RNA is in both daughters.
+    daughter1_rnas = daughter_states[0]['unique']['RNA'].keys()
+    daughter2_rnas = daughter_states[1]['unique']['RNA'].keys()
+    mother_rnas = mother_state['unique']['RNA'].keys()
+    assert not daughter1_rnas & daughter2_rnas
+
     # asserts
     final_agents = output[total_time]['agents'].keys()
     print(f"initial agent id: {agent_id}")

@@ -12,20 +12,24 @@ def main():
         description='Create video of snapshot plots')
     parser.add_argument('experiment_id', help='Experiment ID')
     parser.add_argument(
-        '--tags', '-g', nargs='*',
+        '--tags', '-g', nargs='*', default=[],
         help='Paths (e.g. "a>b>c") to variables to tag.')
     parser.add_argument(
-        '--timeseries', '-t', nargs='*',
+        '--timeseries', '-t', nargs='*', default=[],
         help='Paths (e.g. "a>b>c") to variables to plot in timeseries.')
     parser.add_argument(
         '--highlight_agents', '-a', nargs='*',
         help='IDs of agents to highlight')
     parser.add_argument(
-        '--step', '-s', type=float, default=1,
+        '--step', '-s', type=int, default=1,
         help='Number of timepoints to step between frames.')
     parser.add_argument(
         '--fields', '-f', action='store_true',
         help='Generate snapshots video of fields.')
+    parser.add_argument(
+        '--host', '-o', default='localhost', type=str)
+    parser.add_argument(
+        '--port', '-p', default=27017, type=int)
     args = parser.parse_args()
 
     # Get the required data
@@ -36,7 +40,7 @@ def main():
     ]
     tags = [convert_path_style(path) for path in args.tags]
     timeseries = [convert_path_style(path) for path in args.timeseries]
-    data, _, sim_config = access(args.experiment_id, query)
+    data, _, sim_config = access(args.experiment_id, query, args.host, args.port)
     first_timepoint = data[min(data)]
 
     # Make the videos
