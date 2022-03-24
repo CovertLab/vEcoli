@@ -121,7 +121,7 @@ class Shape(Step):
                     '_divider': 'split',
                 },
                 'mmol_to_counts': {
-                    '_default': 0 * units.millimolar,
+                    '_default': 0 / units.millimolar,
                     '_emit': True,
                     '_divider': 'split',
                     '_updater': 'set',

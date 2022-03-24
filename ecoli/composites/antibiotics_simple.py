@@ -249,7 +249,7 @@ def demo():
                     'dry_mass': 300 * units.fg,
                 },
                 'volume_global': {
-                    'volume': 1.2 * units.fL * PERIPLASM_FRACTION,
+                    'volume': 1.2 * PERIPLASM_FRACTION,  # * units.fL
                 },
             },
             'molecules_to_diffuse': [BETA_LACTAM_KEY, TET_KEY],
@@ -269,7 +269,7 @@ def demo():
                     'dry_mass': 300 * units.fg,
                 },
                 'volume_global': {
-                    'volume': 1.2 * units.fL * CYTOSOL_FRACTION,
+                    'volume': 1.2 * CYTOSOL_FRACTION,  # * units.fL
                 },
             },
             'molecules_to_diffuse': [TET_KEY],
@@ -283,7 +283,7 @@ def demo():
                 BETA_LACTAM_KEY: INITIAL_EXTERNAL_BETA_LACTAM,
                 TET_KEY: INITIAL_EXTERNAL_TET
             },
-            'internal_volume': 1.2 * units.fL,
+            'internal_volume': 1.2,  # * units.fL,
             'env_volume': 1 * units.mL,
         },
         'timeline': {
