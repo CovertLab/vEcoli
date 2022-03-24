@@ -71,7 +71,7 @@ class PorinFickian(Composer):
 
 
 def main():
-    sim_time = 24000
+    sim_time = 100
 
     initial_state = get_state_from_file(path='data/vivecoli_t1000.json')
     initial_state['boundary'] = {}
@@ -113,7 +113,7 @@ def main():
                     'dry_mass': 300 * units.fg,
                 },
                 'volume_global': {
-                    'volume': 1.2 * units.fL,
+                    'volume': 1.2  # * units.fL
                 },
             },
             'default_default': 0,
@@ -127,14 +127,14 @@ def main():
             'porin_ids': ['CPLX0-7533[o]', 'CPLX0-7534[o]'],
             'diffusing_molecules': {
                 'cephaloridine': {
-                    'per_porin_perm': {
+                    'concentration_perm': {
                         'CPLX0-7533[o]': CEPH_OMPC_CON_PERM,
                         'CPLX0-7534[o]': CEPH_OMPF_CON_PERM
                     },
                     'ph_perm': OUTER_CEPH_PH_PERM
                 },
                 'tetracycline': {
-                    'per_porin_perm': {
+                    'concentration_perm': {
                         'CPLX0-7534[o]': TET_OMPF_CON_PERM,
                     },
                     'ph_perm': OUTER_TET_PH_PERM

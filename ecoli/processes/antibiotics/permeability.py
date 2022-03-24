@@ -8,7 +8,7 @@ from vivarium.plots.simulation_output import plot_variables
 from vivarium.processes.timeline import TimelineProcess
 
 # To calculate SA_AVERAGE, we calculated the average surface area of the model up until division.
-SA_AVERAGE = 6.22200939450696 * units.micron ** 2
+SA_AVERAGE = 6.22200939450696
 # To calculate CEPH_OMPC_CON_PERM and CEPH_OMPF_CON_PERM, we calculated the average counts of ompC and ompF
 # in the model up until division and divided each by the average surface area to get the average concentrations
 # of ompC and ompF. We then divided the corresponding cephaloridine permeability coefficients from Nikaido, 1983
@@ -50,17 +50,17 @@ class Permeability(Step):
                 '_updater': 'set'
             } for mol_id in self.diffusing_molecules},  # Different permeability for every molecule
             'surface_area': {
-                '_default': 0.0 * units.micron ** 2
+                '_default': 0.0  # * units.micron ** 2
             }
         }
 
     def next_update(self, timestep, states):
         porins = states['porins']
-        surface_area = states['surface_area']
+        surface_area = states['surface_area'] * units.micron ** 2
         permeabilities = {}
         for molecule in self.diffusing_molecules:
             cell_permeability = 0
-            for porin_id, permeability in self.diffusing_molecules[molecule]['per_porin_perm'].items():
+            for porin_id, permeability in self.diffusing_molecules[molecule]['concentration_perm'].items():
                 cell_permeability += (porins[porin_id] / surface_area) * permeability
             cell_permeability += self.diffusing_molecules[molecule]['ph_perm']
             permeabilities[molecule] = cell_permeability
@@ -78,14 +78,14 @@ def main():
         'porin_ids': ['CPLX0-7533[o]', 'CPLX0-7534[o]'],
         'diffusing_molecules': {
             'cephaloridine': {
-                'per_porin_perm': {
+                'concentration_perm': {
                     'CPLX0-7533[o]': CEPH_OMPC_CON_PERM,
                     'CPLX0-7534[o]': CEPH_OMPF_CON_PERM
                 },
                 'ph_perm': OUTER_CEPH_PH_PERM
             },
             'tetracycline': {
-                'per_porin_perm': {
+                'concentration_perm': {
                     'CPLX0-7534[o]': TET_OMPF_CON_PERM,
                 },
                 'ph_perm': OUTER_TET_PH_PERM
