@@ -68,11 +68,12 @@ class NonSpatialEnvironment(Step):
             },
         }
         # add field concentrations
-        field_schema = {}
-        for field_id, conc in self.parameters['concentrations'].items():
-            field_schema[field_id] = {
-                '_value': np.array([[conc]])
-            }
+        field_schema = {
+            field_id: {
+                '_value': np.array([[
+                    float(conc)
+                ]])
+            } for field_id, conc in self.parameters['concentrations'].items()}
         schema['fields'].update(field_schema)
         return schema
 
@@ -81,8 +82,8 @@ class NonSpatialEnvironment(Step):
             'global': {
                 'volume': self.parameters['internal_volume'],
                 'mmol_to_counts': (
-                        AVOGADRO * self.parameters['internal_volume']
-                        * units.fL
+                    AVOGADRO * self.parameters['internal_volume']
+                    * units.fL
                 ).to(1 / units.mM),
             }
         }
