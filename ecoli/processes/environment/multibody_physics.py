@@ -418,7 +418,7 @@ def test_growth_division(
             state = state['boundary']
             length = state['length']
             width = state['width']
-            mass = state['mass'].magnitude
+            mass = state['mass']  # .magnitude
 
             # update
             growth_rate2 = (
