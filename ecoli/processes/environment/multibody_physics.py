@@ -185,7 +185,7 @@ class Multibody(Process):
                         '_updater': 'set'},
                     'mass': {
                         '_emit': True,
-                        '_default': 1339 * units.fg},
+                        '_default': 1339},  # * units.fg
                     'thrust': {
                         '_default': 0.0,
                         '_updater': 'set'},
@@ -318,7 +318,7 @@ def single_agent_config(config):
             'volume': volume,
             'length': length,
             'width': width,
-            'mass': 1339 * units.fg,
+            'mass': 1339,  # * units.fg
             'thrust': 0,
             'torque': 0}}
 
@@ -446,7 +446,7 @@ def test_growth_division(
                         'boundary': {
                             'volume': new_volume,
                             'length': new_length,
-                            'mass': new_mass * units.fg}}}
+                            'mass': new_mass}}}  # * units.fg
 
             invoked_update.append((InvokeUpdate({'agents': update}), None))
 
