@@ -133,8 +133,8 @@ class ToyTransportBurst(Process):
 
     defaults = {
         'uptake_rate': {'GLC': 1},
-        'molecular_weights': {'GLC': 1 * units.fg},
-        'burst_mass': 2000 * units.fg,
+        'molecular_weights': {'GLC': 1},  # * units.fg
+        'burst_mass': 2000,  # * units.fg,
     }
 
     def __init__(self, parameters=None):
@@ -162,7 +162,7 @@ class ToyTransportBurst(Process):
                 } for key in self.molecules
             },
             'mass': {
-                '_default': 0.0 * units.fg,
+                '_default': 0.0,  # * units.fg
             },
             'length': {
                 '_default': 0.0,
@@ -217,9 +217,9 @@ class LysisAgent(Composer):
                 'GLC': 2,
             },
             'molecular_weights': {
-                'GLC': 1e22 * units.fg
+                'GLC': 1e22,  # * units.fg
             },
-            'burst_mass': 2000 * units.fg,
+            'burst_mass': 2000,  # * units.fg
         },
         'local_field': {},
         'boundary_path': ('boundary',),
@@ -318,9 +318,9 @@ def test_lysis(
         },
         'transport_burst': {
             'molecular_weights': {
-                molecule_name: 1e22 * units.fg
+                molecule_name: 1e22,  # * units.fg
             },
-            'burst_mass': 2000 * units.fg,
+            'burst_mass': 2000,  # * units.fg
         },
     })
 
