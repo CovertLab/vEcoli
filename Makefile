@@ -1,6 +1,6 @@
 .PHONY: compile, clean, recompile
 
-compile:
+compile: data/bioscrape_sbml.xml
 	python setup.py build_ext --inplace
 	rm -fr build
 
@@ -15,6 +15,9 @@ clean:
 	find . -name "*.so" -exec rm -fr {} \;
 	rm -fr build
 	rm -fr launcher_20* block_20*
+
+data/bioscrape_sbml.xml: scripts/generate_sbml.py
+	python scripts/generate_sbml.py
 
 # Delete just the *.so libraries then (re)compile them.
 # This is useful when switching to a different Python virtualenv.
