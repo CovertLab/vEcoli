@@ -24,12 +24,6 @@ from ecoli.processes.environment.local_field import LocalField
 from ecoli.processes.environment.field_timeline import FieldTimeline
 from ecoli.processes.shape import Shape
 from ecoli.processes.concentrations_deriver import ConcentrationsDeriver
-from ecoli.processes.antibiotics.antibiotic_hydrolysis import (
-    AntibioticHydrolysis)
-from ecoli.processes.antibiotics.antibiotic_transport import (
-    AntibioticTransport)
-from ecoli.processes.antibiotics.fickian_diffusion import (
-    FickianDiffusion)
 from ecoli.processes.antibiotics.death import DeathFreezeState
 from ecoli.processes.antibiotics.exchange_aware_bioscrape import (
     ExchangeAwareBioscrape)
@@ -70,12 +64,6 @@ process_registry.register(FieldTimeline.name, FieldTimeline)
 process_registry.register('timeline', TimelineProcess)
 
 # antibiotic processes
-process_registry.register(AntibioticHydrolysis.name,
-    AntibioticHydrolysis)
-process_registry.register(AntibioticTransport.name,
-    AntibioticTransport)
-process_registry.register(FickianDiffusion.name,
-    FickianDiffusion)
 process_registry.register(DeathFreezeState.name, DeathFreezeState)
 process_registry.register(
     ExchangeAwareBioscrape.name, ExchangeAwareBioscrape)
