@@ -53,9 +53,9 @@ class PARAMETERS:
     # Reported in (Galleni et al., 1988)
     CEPH_BETA_LACTAMASE_KM = 170  # * units.micromolar
 
-    # Calculated by dividing V_max reported in (Nikaido, 2012) by the model's initial pump concentration
+    # Calculated by dividing V_max estimated in (Thanassi et al., 1995) by the model's initial pump concentration
     # TET_PUMP_KCAT = 0.00015759727703788977  # / units.sec
-    # Reported in (Nikaido, 2012)
+    # Reported in (Thanassi et al., 1995)
     TET_PUMP_KM = 200e-3  # * units.millimolar
 
     TOLC_KCAT = 1e1  # / units.sec  # TODO: Placeholder. Not supposed to be constant regardless of substrate.
