@@ -44,7 +44,8 @@ CYTOSOL_FRACTION = 1 - PERIPLASM_FRACTION
 class PARAMETERS:
     # TODO: CEPH_PUMP parameters are placeholders as we're eventually going to use the Hill Equation for cephaloridine
     # TODO: instead of Michaelis-Menten
-    # Calculated by dividing V_max reported in (Nagano & Nikaido, 2009) by the model's initial pump concentration
+    # Calculated by dividing V_max reported in (Nagano & Nikaido, 2009) by the model's initial pump concentration of
+    # 20.179269875115253 counts / micron^2
     # CEPH_PUMP_KCAT = 0.0956090147363198  # / units.sec  # TODO: Placeholder
     # Reported in (Nagano & Nikaido, 2009)
     CEPH_PUMP_KM = 4.95e-3  # * units.millimolar  # TODO: Placeholder
@@ -53,7 +54,8 @@ class PARAMETERS:
     # Reported in (Galleni et al., 1988)
     CEPH_BETA_LACTAMASE_KM = 170  # * units.micromolar
 
-    # Calculated by dividing V_max estimated in (Thanassi et al., 1995) by the model's initial pump concentration
+    # Calculated by dividing V_max estimated in (Thanassi et al., 1995) by the model's initial pump concentration of
+    # 20.179269875115253 counts / micron^2
     # TET_PUMP_KCAT = 0.00015759727703788977  # / units.sec
     # Reported in (Thanassi et al., 1995)
     TET_PUMP_KM = 200e-3  # * units.millimolar
