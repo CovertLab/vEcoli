@@ -105,7 +105,9 @@ class DiffusionField(Process):
     def ports_schema(self):
         local_concentration_schema = {
             molecule: {
-                '_default': 0.0}
+                '_default': 0.0,
+                '_emit': True,
+            }
             for molecule in self.molecule_ids}
 
         # agents glob schema
