@@ -300,7 +300,7 @@ def main():
     _, data = demo()
     expected = get_expected_demo_data()
     fig = get_demo_vs_expected_plot(data, expected)
-    fig.savefig('test2.png')
+    fig.savefig('out/test2.png')
 
 
 if __name__ == '__main__':
