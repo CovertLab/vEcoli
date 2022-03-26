@@ -14,7 +14,7 @@ SA_AVERAGE = 6.22200939450696
 # of ompC and ompF. We then divided the corresponding cephaloridine permeability coefficients from Nikaido, 1983
 # by these average concentrations to get our permeability per concentration constants for cephaloridine. Likewise, we
 # divided the tetracycline permeability coefficient due to ompF (overall permeability (estimated in (Thanassi et al.,
-# 1994)) subtracted by pH-gradient induced permeability (Nikaido and Pages, 2012)) by the average concentration of ompF
+# 1995)) subtracted by pH-gradient induced permeability (Nikaido and Pages, 2012)) by the average concentration of ompF
 # to get TET_OMPF_CON_PERM.
 CEPH_OMPC_CON_PERM = 0.003521401200296894 * 1e-5 * units.cm * units.micron * units.micron / units.sec
 CEPH_OMPF_CON_PERM = 0.01195286573132685 * 1e-5 * units.cm * units.micron * units.micron / units.sec
@@ -23,9 +23,9 @@ TET_OMPF_CON_PERM = 2.2496838543752056 * 1e-9 * units.cm * units.micron * units.
 # Cephaloridine is assumed to not permeate through the outer membrane bilayer. (Nikaido, 1983)
 OUTER_BILAYER_CEPH_PERM = 0 * units.cm / units.sec
 
-# Estimated in (Nikaido and Pages, 2012)
+# Estimated in (Thanassi et al., 1995)
 OUTER_BILAYER_TET_PERM = 1 * 1e-7 * units.cm / units.sec
-# Estimated in (Thanassi et al., 1994)
+# Estimated in (Thanassi et al., 1995)
 INNER_BILAYER_TET_PERM = 3 * 1e-6 * units.cm / units.sec
 
 
