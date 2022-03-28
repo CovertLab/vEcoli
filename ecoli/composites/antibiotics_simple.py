@@ -330,8 +330,8 @@ def demo():
     initial_state = composite.initial_state()
     initial_state['boundary']['surface_area'] = SA_AVERAGE
     initial_state['bulk'] = {}
-    initial_state['bulk']['CPLX0-7533[o]'] = 5000
-    initial_state['bulk']['CPLX0-7534[o]'] = 5000
+    initial_state['bulk']['CPLX0-7533[o]'] = 6000
+    initial_state['bulk']['CPLX0-7534[o]'] = 6000
     initial_state['environment'] = {}
     initial_state['environment']['fields'] = {}
     initial_state['environment']['fields']['cephaloridine'] = np.array([[INITIAL_EXTERNAL_BETA_LACTAM]])
