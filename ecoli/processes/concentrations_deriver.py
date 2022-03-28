@@ -30,14 +30,15 @@ class ConcentrationsDeriver(Step):
                 for variable in self.parameters['variables']
             },
             'volume': {
-                '_default': 0 * units.fL,
+                '_default': 0,  # fL
             },
         }
         return schema
 
     def next_update(self, timestep, states):
         volume = states['volume']
-        assert isinstance(volume, Quantity)
+        assert not isinstance(volume, Quantity)
+        volume *= units.fL
         concentrations = {
             var: (
                 count * units.count / AVOGADRO / volume
