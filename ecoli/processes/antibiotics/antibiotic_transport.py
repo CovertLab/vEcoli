@@ -96,6 +96,28 @@ class AntibioticTransport(ConvenienceKinetics):
 
         super().__init__(kinetics_parameters)
 
+    def initial_state(self, config=None):
+        state = copy.deepcopy(super().initial_state(config))
+        for port in ('internal', 'pump_port', 'external'):
+            for variable in state[port]:
+                state[port][variable] *= units.mM
+        return state
+
+    def next_update(self, timestep, states):
+        for port in ('external', 'internal', 'pump_port'):
+            states[port] = {
+                variable: value.to(units.mM).magnitude
+                for variable, value in states[port].items()
+            }
+
+        update = super().next_update(timestep, states)
+
+        update['internal'] = {
+            variable: value * units.mM
+            for variable, value in update['internal'].items()
+        }
+        return update
+
 
 def demo():
     proc = AntibioticTransport()

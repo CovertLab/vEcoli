@@ -97,15 +97,14 @@ class Lattice(Composer):
         # To exclude a process, from the compartment, set its
         # configuration dictionary to None, e.g. colony_mass_deriver
         'multibody': {
-            'bounds': [10, 10],
-            'size': [10, 10],
+            'bounds': [10, 10] * units.um,
         },
         'diffusion': {
             'molecules': ['glc'],
             'n_bins': [10, 10],
-            'size': [10, 10],
-            'depth': 3000.0,
-            'diffusion': 1e-2,
+            'size': [10, 10] * units.um,
+            'depth': 3000.0 * units.um,
+            'diffusion': 1e-2 * units.um**2 / units.sec,
         },
     }
 
@@ -134,7 +133,7 @@ def test_lattice(
         total_time=1000,
         exchange=False,
         external_molecule='X',
-        bounds=[25, 25],
+        bounds=[25, 25] * units.um,
         n_bins=None,
         initial_field=None,
         growth_rate=0.05,  # fast growth
@@ -219,7 +218,7 @@ def main():
         default=False, help='simulate agents with exchange')
     args = parser.parse_args()
 
-    bounds = [25, 25]
+    bounds = [25, 25] * units.um
 
     if args.exchange:
         # GrowDivide agents with Exchange
