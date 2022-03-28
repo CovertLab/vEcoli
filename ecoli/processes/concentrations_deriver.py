@@ -24,25 +24,24 @@ class ConcentrationsDeriver(Step):
             },
             'concentrations': {
                 variable: {
-                    '_default': 0,  # mM
+                    '_default': 0 * units.mM,
                     '_updater': 'set',
                 }
                 for variable in self.parameters['variables']
             },
             'volume': {
-                '_default': 0,  # fL
+                '_default': 0 * units.fL,
             },
         }
         return schema
 
     def next_update(self, timestep, states):
         volume = states['volume']
-        assert not isinstance(volume, Quantity)
-        volume *= units.fL
+        assert isinstance(volume, Quantity)
         concentrations = {
             var: (
                 count * units.count / AVOGADRO / volume
-            ).to(units.millimolar).magnitude
+            ).to(units.millimolar)
             for var, count in states['counts'].items()
         }
         return {

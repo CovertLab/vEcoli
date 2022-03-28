@@ -54,9 +54,9 @@ class DiffusionField(Process):
         'molecules': ['glc'],
         'initial_state': {},
         'n_bins': [10, 10],
-        'bounds': [10, 10],
-        'depth': 3000.0,  # um
-        'diffusion': 5e-1,
+        'bounds': [10 * units.um, 10 * units.um],
+        'depth': 3000.0 * units.um,  # um
+        'diffusion': 5e-1 * units.um**2 / units.sec,
         'gradient': {},
     }
 
@@ -82,7 +82,7 @@ class DiffusionField(Process):
         dy = length_y / bins_y
         dx2 = dx * dy
         self.diffusion = diffusion / dx2
-        self.diffusion_dt = 0.01
+        self.diffusion_dt = 0.01 * units.sec
         # self.diffusion_dt = 0.5 * dx ** 2 * dy ** 2 / (2 * self.diffusion * (dx ** 2 + dy ** 2))
 
         # volume, to convert between counts and concentration
@@ -105,7 +105,8 @@ class DiffusionField(Process):
     def ports_schema(self):
         local_concentration_schema = {
             molecule: {
-                '_default': 0.0}
+                '_default': 0.0 * units.mM
+            }
             for molecule in self.molecule_ids}
 
         # agents glob schema
@@ -114,9 +115,14 @@ class DiffusionField(Process):
                 '*': {
                     'boundary': {
                         'location': {
-                            '_default': [0.5 * bound for bound in self.bounds],
+                            '_default': [
+                                0.5 * bound for bound in self.bounds],
                             '_updater': 'set'},
-                        'external': local_concentration_schema}}}}
+                        'external': local_concentration_schema,
+                    },
+                },
+            },
+        }
 
         # fields
         fields_schema = {
@@ -172,8 +178,8 @@ class DiffusionField(Process):
 
     def count_to_concentration(self, count):
         return count_to_concentration(
-            count * units.count, self.bin_volume * units.L
-        ).to(units.mmol / units.L).magnitude
+            count, self.bin_volume
+        ).to(units.mmol / units.L)
 
     def get_bin_site(self, location):
         return get_bin_site(location, self.n_bins, self.bounds)
@@ -183,7 +189,7 @@ class DiffusionField(Process):
         local_environment = {}
         for mol_id, field in fields.items():
             local_environment[mol_id] = {
-                '_value': field[bin_site],
+                '_value': field[bin_site] * units.mM,
                 '_updater': 'set'}
         return local_environment
 
@@ -204,9 +210,10 @@ class DiffusionField(Process):
         ''' calculate concentration changes cause by diffusion'''
         field_new = field.copy()
         t = 0.0
-        dt = min(timestep, self.diffusion_dt)
+        dt = min(timestep, self.diffusion_dt.to(units.sec).magnitude)
+        diffusion = self.diffusion.to(1 / units.sec).magnitude
         while t < timestep:
-            field_new += self.diffusion * dt * convolve(field_new, LAPLACIAN_2D, mode='reflect')
+            field_new += diffusion * dt * convolve(field_new, LAPLACIAN_2D, mode='reflect')
             t += dt
 
         return field_new - field, field_new
@@ -230,7 +237,7 @@ class DiffusionField(Process):
 
 # testing
 def get_random_field_config(config={}):
-    bounds = config.get('bounds', (20, 20))
+    bounds = config.get('bounds', (20, 20) * units.um)
     n_bins = config.get('n_bins', (10, 10))
     return {
         'molecules': ['glc'],
@@ -242,11 +249,11 @@ def get_random_field_config(config={}):
 
 def get_gaussian_config(config={}):
     molecules = config.get('molecules', ['glc'])
-    bounds = config.get('bounds', (50, 50))
+    bounds = config.get('bounds', (50, 50) * units.um)
     n_bins = config.get('n_bins', (20, 20))
     center = config.get('center', [0.5, 0.5])
     deviation = config.get('deviation', 5)
-    diffusion = config.get('diffusion', 5e-1)
+    diffusion = config.get('diffusion', 5e-1 * units.um**2 / units.sec)
 
     return {
         'molecules': molecules,
@@ -263,12 +270,12 @@ def get_gaussian_config(config={}):
 
 def get_exponential_config(config={}):
     molecules = config.get('molecules', ['glc'])
-    bounds = config.get('bounds', (40, 40))
+    bounds = config.get('bounds', (40, 40) * units.um)
     n_bins = config.get('n_bins', (20, 20))
     center = config.get('center', [1.0, 1.0])
     base = config.get('base', 1 + 2e-4)
     scale = config.get('scale', 0.1)
-    diffusion = config.get('diffusion', 1e1)
+    diffusion = config.get('diffusion', 1e1 * units.um**2 / units.sec)
 
     return {
         'molecules': molecules,
@@ -296,6 +303,15 @@ def test_diffusion_field(
         'total_time': time,
         'timestep': 1}
     return simulate_process(diffusion, settings)
+
+
+def test_all():
+    test_diffusion_field(
+        config=get_random_field_config(), initial_state={}, time=60)
+    test_diffusion_field(
+        config=get_gaussian_config(), initial_state={}, time=60)
+    test_diffusion_field(
+        config=get_exponential_config(), initial_state={}, time=60)
 
 
 def plot_fields(data, config, out_dir='out', filename='fields'):

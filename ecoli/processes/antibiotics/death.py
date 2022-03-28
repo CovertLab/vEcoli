@@ -45,8 +45,9 @@ from vivarium.core.process import Process
 from vivarium.core.composer import Composer
 from vivarium.processes.injector import Injector
 from vivarium.plots.simulation_output import plot_simulation_output
+from vivarium.library.units import units
 
-TOY_ANTIBIOTIC_THRESHOLD = 5.0
+TOY_ANTIBIOTIC_THRESHOLD = 5.0 * units.mM
 TOY_INJECTION_RATE = 2.0
 
 
@@ -185,7 +186,7 @@ class DeathFreezeState(Process):
                 if port not in schema:
                     schema[port] = {}
                 for state in states:
-                    schema[port][state] = {'_default': 0}
+                    schema[port][state] = {'_default': 0 * units.mM}
 
         return schema
 
@@ -263,8 +264,8 @@ def test_death_freeze_state(end_time=10, asserts=True):
 
     init_state = {
         'cell': {
-            'antibiotic': 0.0,
-            'enduring_antibiotic': 0.0},
+            'antibiotic': 0.0 * units.mM,
+            'enduring_antibiotic': 0.0 * units.mM},
         'global': {
             'dead': 0}}
 
@@ -276,7 +277,8 @@ def test_death_freeze_state(end_time=10, asserts=True):
 
     if asserts:
         # Add 1 because dies when antibiotic strictly above threshold
-        expected_death = 1 + TOY_ANTIBIOTIC_THRESHOLD // TOY_INJECTION_RATE
+        expected_death = 1 + (
+            TOY_ANTIBIOTIC_THRESHOLD.magnitude // TOY_INJECTION_RATE)
         expected_saved_states = {
             'cell': {
                 'antibiotic': [],
