@@ -12,12 +12,24 @@ SA_AVERAGE = 6.22200939450696
 # To calculate CEPH_OMPC_CON_PERM and CEPH_OMPF_CON_PERM, we calculated the average counts of ompC and ompF
 # in the model up until division and divided each by the average surface area to get the average concentrations
 # of ompC and ompF. We then divided the corresponding cephaloridine permeability coefficients from Nikaido, 1983
-# by these average concentrations to get our permeability per concentration constants.
+# by these average concentrations to get our permeability per concentration constants for cephaloridine. Likewise, we
+# divided the tetracycline permeability coefficient due to ompF (overall permeability (estimated in (Thanassi et al.,
+# 1995)) subtracted by pH-gradient induced permeability (Nikaido and Pages, 2012)) by the average concentration of ompF
+# to get TET_OMPF_CON_PERM.
 CEPH_OMPC_CON_PERM = 0.003521401200296894 * 1e-5 * units.cm * units.micron * units.micron / units.sec
 CEPH_OMPF_CON_PERM = 0.01195286573132685 * 1e-5 * units.cm * units.micron * units.micron / units.sec
+TET_OMPF_CON_PERM = 2.2496838543752056 * 1e-9 * units.cm * units.micron * units.micron / units.sec
+
+# Cephaloridine is assumed to not permeate through the outer membrane bilayer. (Nikaido, 1983)
+OUTER_BILAYER_CEPH_PERM = 0 * units.cm / units.sec
+
+# Estimated in (Thanassi et al., 1995)
+OUTER_BILAYER_TET_PERM = 1 * 1e-7 * units.cm / units.sec
+# Estimated in (Thanassi et al., 1995)
+INNER_BILAYER_TET_PERM = 3 * 1e-6 * units.cm / units.sec
 
 
-class PorinPermeability(Step):
+class Permeability(Step):
     defaults = {
         'porin_ids': [],
         'diffusing_molecules': [],
@@ -36,7 +48,9 @@ class PorinPermeability(Step):
                 '_emit': True,
                 '_updater': 'set'
             } for mol_id in self.diffusing_molecules},  # Different permeability for every molecule
-            'surface_area': {'_default': 0.0}
+            'surface_area': {
+                '_default': 0.0  # * units.micron ** 2
+            }
         }
 
     def next_update(self, timestep, states):
@@ -45,8 +59,9 @@ class PorinPermeability(Step):
         permeabilities = {}
         for molecule in self.diffusing_molecules:
             cell_permeability = 0
-            for porin_id, permeability in self.diffusing_molecules[molecule].items():
+            for porin_id, permeability in self.diffusing_molecules[molecule]['concentration_perm'].items():
                 cell_permeability += (porins[porin_id] / surface_area) * permeability
+            cell_permeability += self.diffusing_molecules[molecule]['bilayer_perm']
             permeabilities[molecule] = cell_permeability
         return {'permeabilities': permeabilities}
 
@@ -62,12 +77,21 @@ def main():
         'porin_ids': ['CPLX0-7533[o]', 'CPLX0-7534[o]'],
         'diffusing_molecules': {
             'cephaloridine': {
-                'CPLX0-7533[o]': CEPH_OMPC_CON_PERM,
-                'CPLX0-7534[o]': CEPH_OMPF_CON_PERM
+                'concentration_perm': {
+                    'CPLX0-7533[o]': CEPH_OMPC_CON_PERM,
+                    'CPLX0-7534[o]': CEPH_OMPF_CON_PERM
+                },
+                'bilayer_perm': OUTER_BILAYER_CEPH_PERM
+            },
+            'tetracycline': {
+                'concentration_perm': {
+                    'CPLX0-7534[o]': TET_OMPF_CON_PERM,
+                },
+                'bilayer_perm': OUTER_BILAYER_TET_PERM
             }
         },
     }
-    porin_process = PorinPermeability(porin_parameters)
+    porin_process = Permeability(porin_parameters)
 
 
     timeline = []
@@ -100,13 +124,18 @@ def main():
                  initial_state=initial_state)
     sim.update(sim_time)
     timeseries_data = timeseries_from_data(sim.emitter.get_data())
-    str_to_float = []
+    ceph_str_to_float = []
     for string in timeseries_data['boundary']['permeabilities']['cephaloridine']:
-        str_to_float.append(float(string.split()[0]))
-    timeseries_data['boundary']['permeabilities']['cephaloridine'] = str_to_float
+        ceph_str_to_float.append(units(string).magnitude)
+    timeseries_data['boundary']['permeabilities']['cephaloridine'] = ceph_str_to_float
+    tet_str_to_float = []
+    for string in timeseries_data['boundary']['permeabilities']['tetracycline']:
+        tet_str_to_float.append(units(string).magnitude)
+    timeseries_data['boundary']['permeabilities']['tetracycline'] = tet_str_to_float
     plot_variables(timeseries_data, [('bulk', 'CPLX0-7533[o]'), ('bulk', 'CPLX0-7534[o]'),
-                                     ('boundary', 'permeabilities', 'cephaloridine')],
-                   out_dir='out', filename='porin_permeability_counts')
+                                     ('boundary', 'permeabilities', 'cephaloridine'),
+                                     ('boundary', 'permeabilities', 'tetracycline')],
+                   out_dir='out', filename='permeability_counts')
 
 
 if __name__ == '__main__':
