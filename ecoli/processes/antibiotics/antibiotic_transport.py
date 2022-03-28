@@ -14,7 +14,7 @@ from scipy.constants import N_A
 from vivarium.core.composition import (
     composite_in_experiment, simulate_experiment)
 from vivarium.core.composer import Composite
-from vivarium.library.units import units, Quantity
+from vivarium.library.units import units
 from vivarium.library.dict_utils import deep_merge, deep_merge_check
 from vivarium.plots.simulation_output import plot_variables
 from vivarium_convenience.processes.convenience_kinetics import ConvenienceKinetics
@@ -54,7 +54,6 @@ class AntibioticTransport(ConvenienceKinetics):
             units.millimolar).magnitude
         initial_pump = parameters['initial_pump'].to(
             units.millimolar).magnitude
-
 
         kinetics_parameters = {
             'reactions': {

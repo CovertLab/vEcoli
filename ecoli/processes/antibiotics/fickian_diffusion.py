@@ -32,7 +32,7 @@ class FickianDiffusion(Process):
                 'dry_mass': 300,
             },
             'volume_global': {
-                'volume': 1.2 * units.fL,
+                'volume': 1.2,  # * units.fL
             },
         },
         'surface_area_mass_ratio': 132 * units.cm**2 / units.mg,
@@ -74,7 +74,7 @@ class FickianDiffusion(Process):
             },
             'volume_global': {
                 'volume': {
-                    '_default': 0 * units.fL,
+                    '_default': 0,  # * units.fL
                     '_divider': 'split',
                 },
             },
@@ -117,7 +117,7 @@ class FickianDiffusion(Process):
                 for molecule in self.parameters['molecules_to_diffuse']
             },
             'volume_global': {
-                'volume': 0 * units.fL,
+                'volume': 0,  # * units.fL
             },
             'mass_global': {
                 'dry_mass': 0,
@@ -156,7 +156,8 @@ class FickianDiffusion(Process):
             for molecule, flux in flux_mmol.items()
         }
         volume = states['volume_global']['volume']
-        assert isinstance(volume, Quantity)
+        assert not isinstance(volume, Quantity)
+        volume *= units.fL
         update = {
             'fluxes': {
                 molecule: mol_flux.to(units.count).magnitude
@@ -299,7 +300,7 @@ def main():
     _, data = demo()
     expected = get_expected_demo_data()
     fig = get_demo_vs_expected_plot(data, expected)
-    fig.savefig('test2.png')
+    fig.savefig('out/test2.png')
 
 
 if __name__ == '__main__':
