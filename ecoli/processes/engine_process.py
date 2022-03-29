@@ -65,6 +65,7 @@ import numpy as np
 from vivarium.core.engine import Engine
 from vivarium.core.process import Process, Step
 from vivarium.core.registry import updater_registry, divider_registry
+from vivarium.core.store import DEFAULT_SCHEMA
 from vivarium.library.topology import get_in, assoc_path
 
 from ecoli.library.sim_data import RAND_MAX
@@ -191,6 +192,11 @@ class EngineProcess(Process):
         self.random_state = np.random.RandomState(
             seed=self.parameters['seed'])
 
+        self.updater_registry_reverse = {
+            updater_registry.access(key): key
+            for key in updater_registry.main_keys
+        }
+
     def ports_schema(self):
         schema = {
             'agents': {},
@@ -303,6 +309,7 @@ class EngineProcess(Process):
                 states[tunnel],
                 store.get_value(),
                 store,
+                self.updater_registry_reverse,
             )
             if not (isinstance(inverted_update, dict)
                     and inverted_update == {}):
@@ -313,6 +320,7 @@ class EngineProcess(Process):
                 states[tunnel],
                 store.get_value(),
                 store,
+                self.updater_registry_reverse,
             )
             if not (isinstance(inverted_update, dict)
                     and inverted_update == {}):
@@ -320,14 +328,22 @@ class EngineProcess(Process):
         return update
 
 
-def _inverse_update(initial_state, final_state, store):
+def _inverse_update(
+        initial_state, final_state, store, updater_registry_reverse):
     if store.updater:
         # Handle the base case where we have an updater. Note that this
         # could still be at a branch if we put an updater on a branch
         # node.
-        # TODO: Handle non-string updaters.
-        assert isinstance(store.updater, str)
-        inverse_updater = inverse_updater_registry.access(store.updater)
+        if isinstance(store.updater, str):
+            updater_name = store.updater
+        else:
+            # If the updater is not a string, look up its name using the
+            # reverse lookup table.
+            updater_name = updater_registry_reverse[store.updater]
+        if updater_name == DEFAULT_SCHEMA:
+            updater_name = 'accumulate'
+
+        inverse_updater = inverse_updater_registry.access(updater_name)
         assert inverse_updater
         return inverse_updater(initial_state, final_state)
 
@@ -336,7 +352,8 @@ def _inverse_update(initial_state, final_state, store):
     for key in store.inner:
         # TODO: What if key is missing from initial or final?
         sub_update = _inverse_update(
-            initial_state[key], final_state[key], store.inner[key])
+            initial_state[key], final_state[key], store.inner[key],
+            updater_registry_reverse)
         if not (isinstance(sub_update, dict) and sub_update == {}):
             update[key] = sub_update
     return update
