@@ -23,16 +23,16 @@ class FickianDiffusion(Process):
         'molecules_to_diffuse': ['antibiotic'],
         'initial_state': {
             'internal': {
-                'antibiotic': 0,  # mM
+                'antibiotic': 0 * units.mM,
             },
             'external': {
-                'antibiotic': 1e-3,  # mM
+                'antibiotic': 1e-3 * units.mM,
             },
             'mass_global': {
-                'dry_mass': 300,
+                'dry_mass': 300 * units.fg,
             },
             'volume_global': {
-                'volume': 1.2,  # * units.fL
+                'volume': 1.2 * units.fL,
             },
         },
         'surface_area_mass_ratio': 132 * units.cm**2 / units.mg,
@@ -42,7 +42,7 @@ class FickianDiffusion(Process):
         schema = {
             'internal': {
                 molecule: {
-                    '_default': 0,
+                    '_default': 0 * units.mM,
                     '_divider': 'set',
                     '_emit': True,
                 }
@@ -50,7 +50,7 @@ class FickianDiffusion(Process):
             },
             'external': {
                 molecule: {
-                    '_default': 0,
+                    '_default': 0 * units.mM,
                     '_divider': 'set',
                     '_emit': True,
                 }
@@ -74,13 +74,13 @@ class FickianDiffusion(Process):
             },
             'volume_global': {
                 'volume': {
-                    '_default': 0,  # * units.fL
+                    '_default': 0 * units.fL,
                     '_divider': 'split',
                 },
             },
             'mass_global': {
                 'dry_mass': {
-                    '_default': 0,
+                    '_default': 0 * units.fg,
                     '_divider': 'split',
                 },
             },
@@ -101,11 +101,11 @@ class FickianDiffusion(Process):
 
         initial_state = {
             'internal': {
-                molecule: 0
+                molecule: 0 * units.mM
                 for molecule in self.parameters['molecules_to_diffuse']
             },
             'external': {
-                molecule: 0
+                molecule: 0 * units.mM
                 for molecule in self.parameters['molecules_to_diffuse']
             },
             'fluxes': {
@@ -117,10 +117,10 @@ class FickianDiffusion(Process):
                 for molecule in self.parameters['molecules_to_diffuse']
             },
             'volume_global': {
-                'volume': 0,  # * units.fL
+                'volume': 0 * units.fL,
             },
             'mass_global': {
-                'dry_mass': 0,
+                'dry_mass': 0 * units.fg,
             },
         }
         # Apply initial states from parameters. Note that we don't just
@@ -137,8 +137,7 @@ class FickianDiffusion(Process):
         area_mass = self.parameters['surface_area_mass_ratio']
         assert isinstance(area_mass, Quantity)
         mass = states['mass_global']['dry_mass']
-        assert not isinstance(mass, Quantity)
-        mass *= units.fg
+        assert isinstance(mass, Quantity)
         flux_mmol = {}
         for molecule in self.parameters['molecules_to_diffuse']:
             permeability = states['permeabilities'][molecule]
@@ -146,7 +145,7 @@ class FickianDiffusion(Process):
             delta_concentration = (
                 states['internal'][molecule]
                 - states['external'][molecule]
-            ) * units.mM
+            )
             # Fick's first law of diffusion:
             rate = permeability * area_mass * delta_concentration
             flux = rate * mass * timestep * units.sec
@@ -156,8 +155,7 @@ class FickianDiffusion(Process):
             for molecule, flux in flux_mmol.items()
         }
         volume = states['volume_global']['volume']
-        assert not isinstance(volume, Quantity)
-        volume *= units.fL
+        assert isinstance(volume, Quantity)
         update = {
             'fluxes': {
                 molecule: mol_flux.to(units.count).magnitude
@@ -168,7 +166,7 @@ class FickianDiffusion(Process):
                 for molecule, mol_flux in flux_counts.items()
             },
             'internal': {
-                molecule: (- mol_flux / volume).to(units.mM).magnitude
+                molecule: (- mol_flux / volume).to(units.mM)
                 for molecule, mol_flux in flux_mmol.items()
             },
         }
@@ -184,7 +182,7 @@ def demo():
             for molecule in FickianDiffusion.defaults[
                 'molecules_to_diffuse']
         },
-        'internal_volume': 1.2,  # fL
+        'internal_volume': 1.2 * units.fL,
         'env_volume': 1 * units.fL,
     })
     composite = Composite({
@@ -205,8 +203,8 @@ def demo():
     fig = plot_variables(
         data,
         variables=[
-            ('internal', 'antibiotic'),
-            ('external', 'antibiotic'),
+            ('internal', ('antibiotic', 'millimolar')),
+            ('external', ('antibiotic', 'millimolar')),
         ],
     )
     return fig, data
@@ -223,9 +221,9 @@ def get_expected_demo_data():
     state = {
         'internal': 0 * units.millimolar,
         'external': FickianDiffusion.defaults['initial_state'][
-            'external']['antibiotic'] * units.millimolar,
+            'external']['antibiotic'],
         'dry_mass': FickianDiffusion.defaults['initial_state'][
-            'mass_global']['dry_mass'] * units.fg,
+            'mass_global']['dry_mass'],
     }
     data = {key: [val] for key, val in state.items()}
     data['time'] = [0]
@@ -249,13 +247,13 @@ def test_fickian_diffusion():
     expected_data = get_expected_demo_data()
     assert simulated_data['time'] == expected_data['time']
     np.testing.assert_allclose(
-        simulated_data['internal']['antibiotic'],
+        simulated_data['internal'][('antibiotic', 'millimolar')],
         expected_data['internal'],
         rtol=0,
         atol=1e-15,
     )
     np.testing.assert_allclose(
-        simulated_data['external']['antibiotic'],
+        simulated_data['external'][('antibiotic', 'millimolar')],
         expected_data['external'],
         rtol=0,
         atol=1e-15,
@@ -266,7 +264,7 @@ def get_demo_vs_expected_plot(demo_data, expected_data):
     fig, (ax1, ax2) = plt.subplots(nrows=2, figsize=(10, 5))
     ax1.plot(
         demo_data['time'],
-        demo_data['internal']['antibiotic'],
+        demo_data['internal'][('antibiotic', 'millimolar')],
         label='simulated', alpha=0.5,
     )
     ax1.plot(
@@ -280,7 +278,7 @@ def get_demo_vs_expected_plot(demo_data, expected_data):
 
     ax2.plot(
         demo_data['time'],
-        demo_data['external']['antibiotic'],
+        demo_data['external'][('antibiotic', 'millimolar')],
         label='simulated', alpha=0.5,
     )
     ax2.plot(

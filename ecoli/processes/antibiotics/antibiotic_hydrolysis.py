@@ -82,6 +82,28 @@ class AntibioticHydrolysis(ConvenienceKinetics):
 
         super().__init__(kinetics_parameters)
 
+    def initial_state(self, config=None):
+        state = copy.deepcopy(super().initial_state(config))
+        for port in ('internal', 'catalyst_port'):
+            for variable in state[port]:
+                state[port][variable] *= units.mM
+        return state
+
+    def next_update(self, timestep, states):
+        for port in ('internal', 'catalyst_port'):
+            states[port] = {
+                variable: value.to(units.mM).magnitude
+                for variable, value in states[port].items()
+            }
+
+        update = super().next_update(timestep, states)
+
+        update['internal'] = {
+            variable: value * units.mM
+            for variable, value in update['internal'].items()
+        }
+        return update
+
 
 def demo():
     proc = AntibioticHydrolysis()
@@ -89,8 +111,8 @@ def demo():
     fig = plot_variables(
         data,
         variables=[
-            ('internal', 'antibiotic'),
-            ('internal', 'antibiotic_hydrolyzed'),
+            ('internal', ('antibiotic', 'millimolar')),
+            ('internal', ('antibiotic_hydrolyzed', 'millimolar')),
         ],
     )
     return fig, data
@@ -129,13 +151,14 @@ def test_antibiotic_hydrolysis():
     expected_data = get_expected_demo_data()
     assert simulated_data['time'] == expected_data['time']
     np.testing.assert_allclose(
-        simulated_data['internal']['antibiotic'],
+        simulated_data['internal'][('antibiotic', 'millimolar')],
         expected_data['antibiotic'],
         rtol=0,
         atol=1e-15,
     )
     np.testing.assert_allclose(
-        simulated_data['internal']['antibiotic_hydrolyzed'],
+        simulated_data['internal'][
+            ('antibiotic_hydrolyzed', 'millimolar')],
         expected_data['antibiotic_hydrolyzed'],
         rtol=0,
         atol=1e-15,
@@ -145,7 +168,8 @@ def test_antibiotic_hydrolysis():
 def get_demo_vs_expected_plot(demo_data, expected_data):
     fig, (ax1, ax2) = plt.subplots(nrows=2, figsize=(10, 5))
     ax1.plot(
-        demo_data['time'], demo_data['internal']['antibiotic'],
+        demo_data['time'], demo_data['internal'][
+            ('antibiotic', 'millimolar')],
         label='simulated', alpha=0.5,
     )
     ax1.plot(
@@ -159,7 +183,8 @@ def get_demo_vs_expected_plot(demo_data, expected_data):
 
     ax2.plot(
         demo_data['time'],
-        demo_data['internal']['antibiotic_hydrolyzed'],
+        demo_data['internal'][
+            ('antibiotic_hydrolyzed', 'millimolar')],
         label='simulated', alpha=0.5,
     )
     ax2.plot(
@@ -173,3 +198,7 @@ def get_demo_vs_expected_plot(demo_data, expected_data):
     fig.tight_layout()
 
     return fig
+
+
+if __name__ == '__main__':
+    test_antibiotic_hydrolysis()
