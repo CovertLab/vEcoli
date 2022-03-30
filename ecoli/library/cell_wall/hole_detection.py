@@ -113,7 +113,7 @@ def main():
     os.makedirs("out/hole_detection", exist_ok=True)
 
     # Get tests
-    test_files = os.listdir("user/hole_detection/test_cases")
+    test_files = os.listdir("ecoli/library/cell_wall/test_cases")
 
     # Run tests
     n_passed = 0
@@ -122,10 +122,10 @@ def main():
 
         # Load test case
         test_array = np.genfromtxt(
-            f"user/hole_detection/test_cases/{test_case}", dtype=int, skip_header=1
+            f"ecoli/library/cell_wall/test_cases/{test_case}", dtype=int, skip_header=1
         )
         expected_max_size = np.loadtxt(
-            f"user/hole_detection/test_cases/{test_case}", dtype=int, max_rows=1
+            f"ecoli/library/cell_wall/test_cases/{test_case}", dtype=int, max_rows=1
         )
 
         # Get hole view, size of largest hole
