@@ -10,15 +10,20 @@
     "total_time": 12000,
     "spatial_environment_config": {
         "multibody": {
-            "bounds": [10, 10],
-            "size": [10, 10]
+            "bounds": [
+                "!units[10 micrometer]",
+                "!units[10 micrometer]"
+            ]
         },
         "diffusion": {
             "molecules": ["GLC[p]", "nitrocefin"],
             "n_bins": [10, 10],
-            "size": [10, 10],
-            "depth": 3000.0,
-            "diffusion": 1e-2,
+            "size": [
+                "!units[10 micrometer]",
+                "!units[10 micrometer]"
+            ],
+            "depth": "!units[3000.0 micrometer]",
+            "diffusion": "!units[1e-2 micrometer ** 2 / second]",
             "gradient": {
                 "type": "uniform",
                 "molecules": {
@@ -59,7 +64,7 @@
             "exchanges": ["environment", "exchange"],
             "fluxes": ["fluxes"],
             "volume_global": ["periplasm", "global"],
-            "mass_global": ["listeners", "mass"],
+            "mass_global": ["boundary"],
             "permeabilities": ["permeabilities"]
         },
         "concentrations_deriver": {
@@ -96,10 +101,10 @@
         "fickian_diffusion": {
             "initial_state": {
                 "external": {
-                    "nitrocefin": 0
+                    "nitrocefin": "!units[0 millimolar]"
                 },
                 "internal": {
-                    "nitrocefin": 0
+                    "nitrocefin": "!units[0 millimolar]"
                 },
                 "volume_global": {
                     "volume": "!units[0.36 femtoliter]"
@@ -116,7 +121,7 @@
         "death": {
             "detectors": {
                 "antibiotic": {
-                    "antibiotic_threshold": 0.03,
+                    "antibiotic_threshold": "!units[0.03 millimolar]",
                     "antibiotic_key": "nitrocefin"
                 }
             },

@@ -2,19 +2,24 @@
     "spatial_environment" : true,
     "spatial_environment_config": {
         "multibody": {
-            "bounds": [10, 10],
-            "size": [10, 10]
+            "bounds": [
+                "!units[10 micrometer]",
+                "!units[10 micrometer]"
+            ]
         },
         "diffusion": {
             "molecules": ["GLC[p]"],
             "n_bins": [10, 10],
-            "size": [10, 10],
-            "depth": 3000.0,
-            "diffusion": 1e-2,
+            "size": [
+                "!units[10 micrometer]",
+                "!units[10 micrometer]"
+            ],
+            "depth": "!units[3000.0 micrometer]",
+            "diffusion": "!units[1e-2 micrometer ** 2 / second]",
             "gradient": {
                 "type": "uniform",
                 "molecules": {
-                    "GLC[p]": 1.0
+                    "GLC[p]": "!units[1.0 millimolar]"
                 }
             }
         }
@@ -31,12 +36,10 @@
         "dimensions": ["..", "..", "dimensions"]
       },
       "ecoli-shape": {
-        "cell_global": {
-          "_path": ["boundary"],
-          "volume": ["..", "listeners", "mass", "volume"]
-        },
+        "cell_global": ["boundary"],
         "periplasm_global": ["periplasm", "global"],
-        "listener_cell_mass": ["listeners", "mass", "cell_mass"]
+        "listener_cell_mass": ["listeners", "mass", "cell_mass"],
+        "listener_cell_volume": ["listeners", "mass", "volume"]
       }
     },
     "process_configs": {

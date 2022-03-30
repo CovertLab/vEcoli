@@ -45,9 +45,10 @@ from vivarium.core.process import Process
 from vivarium.core.composer import Composer
 from vivarium.processes.injector import Injector
 from vivarium.plots.simulation_output import plot_simulation_output
+from vivarium.library.units import units
 
-TOY_ANTIBIOTIC_THRESHOLD = 5.0
-TOY_INJECTION_RATE = 2.0
+TOY_ANTIBIOTIC_THRESHOLD = 5.0 * units.mM
+TOY_INJECTION_RATE = 2.0 * units.mM  # implicitly per second
 
 
 class DetectorInterface:
@@ -185,7 +186,7 @@ class DeathFreezeState(Process):
                 if port not in schema:
                     schema[port] = {}
                 for state in states:
-                    schema[port][state] = {'_default': 0}
+                    schema[port][state] = {'_default': 0 * units.mM}
 
         return schema
 
@@ -263,8 +264,8 @@ def test_death_freeze_state(end_time=10, asserts=True):
 
     init_state = {
         'cell': {
-            'antibiotic': 0.0,
-            'enduring_antibiotic': 0.0},
+            'antibiotic': 0.0 * units.mM,
+            'enduring_antibiotic': 0.0 * units.mM},
         'global': {
             'dead': 0}}
 
@@ -276,11 +277,12 @@ def test_death_freeze_state(end_time=10, asserts=True):
 
     if asserts:
         # Add 1 because dies when antibiotic strictly above threshold
-        expected_death = 1 + TOY_ANTIBIOTIC_THRESHOLD // TOY_INJECTION_RATE
+        expected_death = 1 + (
+            TOY_ANTIBIOTIC_THRESHOLD // TOY_INJECTION_RATE)
         expected_saved_states = {
             'cell': {
-                'antibiotic': [],
-                'enduring_antibiotic': [],
+                ('antibiotic', 'millimolar'): [],
+                ('enduring_antibiotic', 'millimolar'): [],
             },
             'global': {
                 'dead': [],
@@ -288,8 +290,10 @@ def test_death_freeze_state(end_time=10, asserts=True):
             'time': [],
         }
         for time in range(end_time + 1):
-            expected_saved_states['cell']['antibiotic'].append(
-                time * TOY_INJECTION_RATE
+            expected_saved_states['cell'][
+                ('antibiotic', 'millimolar')
+            ].append(
+                (time * TOY_INJECTION_RATE).magnitude
                 if time <= expected_death
                 # Add one because death will only be detected
                 # the iteration after antibiotic above
@@ -297,10 +301,14 @@ def test_death_freeze_state(end_time=10, asserts=True):
                 # injector run "concurrently" in the composite,
                 # so their updates are applied after both have
                 # finished.
-                else (expected_death + 1) * TOY_INJECTION_RATE
+                else (
+                    (expected_death + 1) * TOY_INJECTION_RATE
+                ).magnitude
             )
-            expected_saved_states['cell']['enduring_antibiotic'].append(
-                time * TOY_INJECTION_RATE)
+            expected_saved_states['cell'][
+                ('enduring_antibiotic', 'millimolar')
+            ].append(
+                (time * TOY_INJECTION_RATE).magnitude)
             expected_saved_states['global']['dead'].append(
                 0 if time <= expected_death else 1)
             expected_saved_states['time'].append(float(time))
