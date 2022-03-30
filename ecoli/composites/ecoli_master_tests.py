@@ -205,7 +205,6 @@ def test_lattice_lysis(plot=False):
     TODO: connect glucose! through local_field
     """
     sim = EcoliSim.from_file(CONFIG_DIR_PATH + 'lysis.json')
-    # sim = EcoliSim.from_file(CONFIG_DIR_PATH + 'spatial.json')
     sim.total_time = 60
     sim.run()
     data = sim.query()

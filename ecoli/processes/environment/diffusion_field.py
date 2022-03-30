@@ -22,7 +22,8 @@ from vivarium.library.units import units
 from ecoli.library.lattice_utils import (
     count_to_concentration,
     get_bin_site,
-    get_bin_volume, make_gradient,
+    get_bin_volume,
+    make_gradient,
 )
 from ecoli.plots.snapshots import plot_snapshots
 
@@ -91,7 +92,10 @@ class DiffusionField(Process):
         # initialize gradient fields
         gradient = self.parameters['gradient']
         if gradient:
-            gradient_fields = make_gradient(gradient, self.n_bins, self.bounds)
+            unitless_bounds = [
+                bound.to(units.um).magnitude for bound in self.bounds]
+            gradient_fields = make_gradient(
+                gradient, self.n_bins, unitless_bounds)
             self.initial.update(gradient_fields)
 
     def initial_state(self, config):

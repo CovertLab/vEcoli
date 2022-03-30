@@ -8,7 +8,7 @@ from vivarium.core.composition import (
     COMPOSITE_OUT_DIR,
 )
 from vivarium.library.dict_utils import deep_merge
-from vivarium.library.units import units
+from vivarium.library.units import units, remove_units
 
 # processes
 from ecoli.processes.environment.multibody_physics import (
@@ -47,11 +47,11 @@ def make_lattice_config(
     if time_step:
         config['multibody']['time_step'] = time_step
         config['diffusion']['time_step'] = time_step
-    if bounds:
+    if bounds is not None:
         config['multibody']['bounds'] = bounds
         config['diffusion']['bounds'] = bounds
-        config['diffusion']['n_bins'] = bounds
-    if n_bins:
+        config['diffusion']['n_bins'] = remove_units(bounds)
+    if n_bins is not None:
         config['diffusion']['n_bins'] = n_bins
     if jitter_force:
         config['multibody']['jitter_force'] = jitter_force
@@ -142,9 +142,9 @@ def test_lattice(
     # lattice configuration
     lattice_config_kwargs = {
         'bounds': bounds,
-        'n_bins': n_bins or bounds,
-        'depth': 2,
-        'diffusion': 1e-3,
+        'n_bins': n_bins or remove_units(bounds),
+        'depth': 2 * units.um,
+        'diffusion': 1e-3 * units.um**2 / units.sec,
         'time_step': 60,
         'jitter_force': 1e-5,
         'concentrations': {

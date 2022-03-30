@@ -15,11 +15,11 @@
                 "!units[10 micrometer]"
             ],
             "depth": "!units[3000.0 micrometer]",
-            "diffusion": "!units[1e-2] micrometer ** 2 / second",
+            "diffusion": "!units[1e-2 micrometer ** 2 / second]",
             "gradient": {
                 "type": "uniform",
                 "molecules": {
-                    "GLC[p]": 1.0
+                    "GLC[p]": "!units[1.0 millimolar]"
                 }
             }
         }

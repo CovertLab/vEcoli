@@ -71,7 +71,7 @@ class NonSpatialEnvironment(Step):
         field_schema = {
             field_id: {
                 '_value': np.array([[
-                    float(conc)
+                    float(conc.magnitude)
                 ]])
             } for field_id, conc in self.parameters['concentrations'].items()}
         schema['fields'].update(field_schema)

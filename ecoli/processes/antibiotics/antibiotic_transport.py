@@ -124,9 +124,9 @@ def demo():
     env = NonSpatialEnvironment({
         'concentrations': {
             'antibiotic': AntibioticTransport.defaults[
-                'initial_external_antibiotic'].magnitude,
+                'initial_external_antibiotic']
         },
-        'internal_volume': 1.2,  # fL
+        'internal_volume': 1.2 * units.fL,
         'env_volume': 1 * units.fL,
     })
     composite = Composite({
@@ -147,8 +147,8 @@ def demo():
     fig = plot_variables(
         data,
         variables=[
-            ('internal', 'antibiotic'),
-            ('external', 'antibiotic'),
+            ('internal', ('antibiotic', 'millimolar')),
+            ('external', ('antibiotic', 'millimolar')),
         ],
     )
     return fig, data
@@ -190,13 +190,13 @@ def test_antibiotic_transport():
 
     assert simulated_data['time'] == expected_data['time']
     np.testing.assert_allclose(
-        simulated_data['internal']['antibiotic'],
+        simulated_data['internal'][('antibiotic', 'millimolar')],
         expected_data['internal'],
         rtol=0,
         atol=1e-15,
     )
     np.testing.assert_allclose(
-        simulated_data['external']['antibiotic'],
+        simulated_data['external'][('antibiotic', 'millimolar')],
         expected_data['external'],
         rtol=0,
         atol=1e-15,
