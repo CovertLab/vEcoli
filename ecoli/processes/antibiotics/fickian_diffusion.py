@@ -203,8 +203,8 @@ def demo():
     fig = plot_variables(
         data,
         variables=[
-            ('internal', 'antibiotic'),
-            ('external', 'antibiotic'),
+            ('internal', ('antibiotic', 'millimolar')),
+            ('external', ('antibiotic', 'millimolar')),
         ],
     )
     return fig, data
@@ -221,9 +221,9 @@ def get_expected_demo_data():
     state = {
         'internal': 0 * units.millimolar,
         'external': FickianDiffusion.defaults['initial_state'][
-            'external']['antibiotic'] * units.millimolar,
+            'external']['antibiotic'],
         'dry_mass': FickianDiffusion.defaults['initial_state'][
-            'mass_global']['dry_mass'] * units.fg,
+            'mass_global']['dry_mass'],
     }
     data = {key: [val] for key, val in state.items()}
     data['time'] = [0]
@@ -247,13 +247,13 @@ def test_fickian_diffusion():
     expected_data = get_expected_demo_data()
     assert simulated_data['time'] == expected_data['time']
     np.testing.assert_allclose(
-        simulated_data['internal']['antibiotic'],
+        simulated_data['internal'][('antibiotic', 'millimolar')],
         expected_data['internal'],
         rtol=0,
         atol=1e-15,
     )
     np.testing.assert_allclose(
-        simulated_data['external']['antibiotic'],
+        simulated_data['external'][('antibiotic', 'millimolar')],
         expected_data['external'],
         rtol=0,
         atol=1e-15,
@@ -264,7 +264,7 @@ def get_demo_vs_expected_plot(demo_data, expected_data):
     fig, (ax1, ax2) = plt.subplots(nrows=2, figsize=(10, 5))
     ax1.plot(
         demo_data['time'],
-        demo_data['internal']['antibiotic'],
+        demo_data['internal'][('antibiotic', 'millimolar')],
         label='simulated', alpha=0.5,
     )
     ax1.plot(
@@ -278,7 +278,7 @@ def get_demo_vs_expected_plot(demo_data, expected_data):
 
     ax2.plot(
         demo_data['time'],
-        demo_data['external']['antibiotic'],
+        demo_data['external'][('antibiotic', 'millimolar')],
         label='simulated', alpha=0.5,
     )
     ax2.plot(

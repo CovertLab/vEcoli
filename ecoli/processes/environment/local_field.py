@@ -110,20 +110,20 @@ def test_local_fields():
     parameters = {}
     local_fields_process = LocalField(parameters)
 
-    bounds = [5, 5]
+    bounds = [5, 5] * units.um
     n_bins = [3, 3]
     initial_state = {
         'exchanges': {
             'A': 20
         },
-        'location': [0.5, 0.5],
+        'location': [0.5, 0.5] * units.um,
         'fields': {
             'A': np.ones((n_bins[0], n_bins[1]), dtype=np.float64)
         },
         'dimensions': {
             'bounds': bounds,
             'n_bins': n_bins,
-            'depth': 1,
+            'depth': 1 * units.um,
         }
     }
 

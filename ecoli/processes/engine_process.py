@@ -495,7 +495,7 @@ def test_engine_process():
         'c_tunnel': {
             '_default': 0,
             '_emit': True,
-            '_updater': 'accumulate',
+            '_updater': updater_registry.access('accumulate'),
             '_value': 0,
         },
     }

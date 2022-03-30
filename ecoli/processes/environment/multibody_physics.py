@@ -211,11 +211,11 @@ class Multibody(Process):
         agents = states['agents']
 
         # animate before update
+        agents = remove_units(agents)
         if self.animate:
             self.animate_frame(agents)
 
         # update multibody with new agents
-        agents = remove_units(agents)
         self.physics.update_bodies(agents)
 
         # run simulation
@@ -281,8 +281,10 @@ class Multibody(Process):
                 circle = patches.Circle((x, y), width, linewidth=1, edgecolor='b')
                 self.ax.add_patch(circle)
 
-        plt.xlim([0, self.bounds[0]])
-        plt.ylim([0, self.bounds[1]])
+        bounds = remove_units(self.bounds)
+
+        plt.xlim([0, bounds[0]])
+        plt.ylim([0, bounds[1]])
         plt.draw()
         plt.pause(0.01)
 
@@ -301,8 +303,8 @@ def make_random_position(bounds):
 
 def single_agent_config(config):
     # cell dimensions
-    width = 1.0
-    length = 2.0
+    width = 1.0 * units.um
+    length = 2.0 * units.um
     volume = volume_from_length(length, width)
     bounds = config.get('bounds', DEFAULT_BOUNDS)
     location = config.get('location')
@@ -318,7 +320,7 @@ def single_agent_config(config):
             'volume': volume,
             'length': length,
             'width': width,
-            'mass': 1339,  # * units.fg
+            'mass': 1339 * units.fg,
             'thrust': 0,
             'torque': 0}}
 
@@ -372,7 +374,7 @@ def test_growth_division(
         config=default_gd_config,
         growth_rate=0.05,
         growth_rate_noise=0.001,
-        division_volume=0.4**3,
+        division_volume=0.4**3 * units.fL,
         total_time=10,
         timestep=1,
         experiment_settings={},
@@ -487,7 +489,7 @@ def run_growth_division(
         config=multibody_config,
         growth_rate=0.05,
         growth_rate_noise=0.001,
-        division_volume=volume_from_length(4, 1),
+        division_volume=volume_from_length(4, 1) * units.fL,
         total_time=100,
         experiment_settings=experiment_settings)
 
