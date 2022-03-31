@@ -22,6 +22,7 @@ from biocrnpyler import (
     Reaction,
     Species,
 )
+from vivarium.library.units import units
 
 
 DATA_DIR = os.path.abspath(
@@ -30,7 +31,7 @@ DATA_DIR = os.path.abspath(
 # 20.179269875115253 counts / micron^2
 CEPH_PUMP_KCAT = 0.0956090147363198  # / units.sec
 # Reported in (Nagano & Nikaido, 2009)
-CEPH_PUMP_KM = 4.95e-3  # * units.millimolar  # TODO: Placeholder
+CEPH_PUMP_KM = 288e-3  # * units.millimolar
 # Reported in (Galleni et al., 1988)
 CEPH_BETA_LACTAMASE_KCAT = 130  # / units.sec
 # Reported in (Galleni et al., 1988)
@@ -76,52 +77,52 @@ def main() -> None:
     export_propensity = ProportionalHillPositive(
         k=ParameterEntry('export_kcat', CEPH_PUMP_KCAT),  # Hz
         s1=cephaloridine_in,
-        K=ParameterEntry('export_km', 4.95e-3),  # mM  TODO(Matt): What to put here?
+        K=ParameterEntry('export_km', CEPH_PUMP_KM),  # mM
         d=pump,
         n=1.75,
     )
     export = Reaction(
-        inputs=[nitrocefin_in],
-        outputs=[nitrocefin_out],
+        inputs=[cephaloridine_in],
+        outputs=[cephaloridine_out],
         propensity_type=export_propensity,
     )
 
     hydrolysis_propensity = ProportionalHillPositive(
-        k=ParameterEntry('hydrolysis_kcat', 490),  # Hz
-        s1=nitrocefin_in,
-        K=ParameterEntry('hydrolysis_km', 0.5),  # mM
+        k=ParameterEntry('hydrolysis_kcat', CEPH_BETA_LACTAMASE_KCAT),  # Hz
+        s1=cephaloridine_in,
+        K=ParameterEntry('hydrolysis_km', CEPH_BETA_LACTAMASE_KM),  # mM
         d=beta_lactamase,
         n=1,
     )
     hydrolysis = Reaction(
-        inputs=[nitrocefin_in],
-        outputs=[nitrocefin_hydrolyzed],
+        inputs=[cephaloridine_in],
+        outputs=[cephaloridine_hydrolyzed],
         propensity_type=hydrolysis_propensity,
     )
 
     area_mass_ratio = ParameterEntry('x_am', 132)  # cm^2/mg
-    permeability = ParameterEntry('perm', 2e-7)  # cm/sec
+    permeability = ParameterEntry('perm', 52.6e-5 + 4.5e-5)  # cm/sec, ompF permeability + ompC permeability (Nikaido, 1983)
     mass = ParameterEntry('mass', 1170e-12)  # mg
     volume = ParameterEntry('volume', 0.32e-12)  # mL
     influx_propensity = GeneralPropensity(
         (
-            f'x_am * perm * ({nitrocefin_out} - {nitrocefin_in}) '
+            f'x_am * perm * ({cephaloridine_out} - {cephaloridine_in}) '
             '* mass / (volume)'
         ),
-        propensity_species=[nitrocefin_in, nitrocefin_out],
+        propensity_species=[cephaloridine_in, cephaloridine_out],
         propensity_parameters=[
             area_mass_ratio, permeability, mass, volume],
     )
     influx = Reaction(
-        inputs=[nitrocefin_out],
-        outputs=[nitrocefin_in],
+        inputs=[cephaloridine_out],
+        outputs=[cephaloridine_in],
         propensity_type=influx_propensity
     )
 
     initial_concentrations = {
-        nitrocefin_in: 0,
-        nitrocefin_out: 0.1239,
-        nitrocefin_hydrolyzed: 0,
+        cephaloridine_in: 0,
+        cephaloridine_out: 0.1239,
+        cephaloridine_hydrolyzed: 0,
         pump: 0.0004525,
         beta_lactamase: 0.000525,
     }

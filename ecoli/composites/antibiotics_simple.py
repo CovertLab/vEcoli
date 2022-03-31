@@ -3,7 +3,6 @@ from vivarium.core.engine import Engine
 from vivarium.core.emitter import timeseries_from_data
 from vivarium.library.units import units
 from vivarium.plots.simulation_output import plot_variables
-from vivarium_convenience.processes.convenience_kinetics import ConvenienceKinetics
 from vivarium.processes.timeline import TimelineProcess
 
 from ecoli.processes.antibiotics.permeability import (
