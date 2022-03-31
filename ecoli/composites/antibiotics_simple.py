@@ -6,9 +6,6 @@ from vivarium.plots.simulation_output import plot_variables
 from vivarium_convenience.processes.convenience_kinetics import ConvenienceKinetics
 from vivarium.processes.timeline import TimelineProcess
 
-from ecoli.processes.antibiotics.fickian_diffusion import (
-    FickianDiffusion,
-)
 from ecoli.processes.antibiotics.permeability import (
     Permeability, CEPH_OMPC_CON_PERM, CEPH_OMPF_CON_PERM, OUTER_BILAYER_CEPH_PERM, TET_OMPF_CON_PERM, OUTER_BILAYER_TET_PERM,
     INNER_BILAYER_TET_PERM, SA_AVERAGE
@@ -46,7 +43,7 @@ class PARAMETERS:
     # TODO: instead of Michaelis-Menten
     # Calculated by dividing V_max reported in (Nagano & Nikaido, 2009) by the model's initial pump concentration of
     # 20.179269875115253 counts / micron^2
-    # CEPH_PUMP_KCAT = 0.0956090147363198  # / units.sec  # TODO: Placeholder
+    # CEPH_PUMP_KCAT = 0.0956090147363198  # / units.sec
     # Reported in (Nagano & Nikaido, 2009)
     CEPH_PUMP_KM = 4.95e-3  # * units.millimolar  # TODO: Placeholder
     # Reported in (Galleni et al., 1988)
@@ -80,14 +77,8 @@ class SimpleAntibioticsCell(Composer):
     }
 
     def generate_processes(self, config):
-        kinetics = ConvenienceKinetics(config['kinetics'])
-        ext_periplasm_diffusion = FickianDiffusion(config['ext_periplasm_diffusion'])
-        periplasm_cytosol_diffusion = FickianDiffusion(config['periplasm_cytosol_diffusion'])
         timeline = TimelineProcess(config['timeline'])
         return {
-            'kinetics': kinetics,
-            'ext_periplasm_diffusion': ext_periplasm_diffusion,
-            'periplasm_cytosol_diffusion': periplasm_cytosol_diffusion,
             'timeline': timeline
         }
 
@@ -180,110 +171,6 @@ def demo():
 
     config = {
         'boundary_path': ('boundary',),
-        'kinetics': {
-            'reactions': {
-                'export': {
-                    'stoichiometry': {
-                        ('internal', BETA_LACTAM_KEY): -1,
-                        ('external', BETA_LACTAM_KEY): 1,
-                        ('internal', TET_KEY): -1,
-                        ('external', TET_KEY): 1,
-                    },
-                    'is_reversible': False,
-                    'catalyzed by': [
-                        ('pump_port', PUMP_KEY)],
-                },
-                'hydrolysis': {
-                    'stoichiometry': {
-                        ('internal', BETA_LACTAM_KEY): -1,
-                        ('internal', HYDROLYZED_BETA_LACTAM_KEY): 1,
-                    },
-                    'is_reversible': False,
-                    'catalyzed by': [
-                        ('catalyst_port', BETA_LACTAMASE_KEY)],
-                },
-            },
-            'kinetic_parameters': {
-                'export': {
-                    ('pump_port', PUMP_KEY): {
-                        'kcat_f': PARAMETERS.TOLC_KCAT,
-                        ('internal', BETA_LACTAM_KEY): PARAMETERS.CEPH_PUMP_KM,
-                        ('internal', TET_KEY): PARAMETERS.TET_PUMP_KM
-                    },
-                },
-                'hydrolysis': {
-                    ('catalyst_port', BETA_LACTAMASE_KEY): {
-                        'kcat_f': PARAMETERS.CEPH_BETA_LACTAMASE_KCAT,
-                        ('internal', BETA_LACTAM_KEY): PARAMETERS.CEPH_BETA_LACTAMASE_KM,
-                    },
-                },
-            },
-            'initial_state': {
-                'fluxes': {
-                    'export': 0.0,
-                    'hydrolysis': 0.0,
-                },
-                'internal': {
-                    BETA_LACTAM_KEY: INITIAL_PERIPLASM_BETA_LACTAM,
-                    HYDROLYZED_BETA_LACTAM_KEY: INITIAL_HYRDOLYZED_BETA_LACTAM,
-                    TET_KEY: INITIAL_PERIPLASM_TET,
-                },
-                'external': {
-                    BETA_LACTAM_KEY: INITIAL_EXTERNAL_BETA_LACTAM,
-                    TET_KEY: INITIAL_EXTERNAL_TET
-                },
-                'pump_port': {
-                    PUMP_KEY: INITIAL_PUMP,
-                },
-                'catalyst_port': {
-                    BETA_LACTAMASE_KEY: INITIAL_BETA_LACTAMASE
-                }
-            },
-            'port_ids': ['internal', 'external', 'pump_port', 'catalyst_port'],
-            'time_step': time_step,
-        },
-        'ext_periplasm_diffusion': {
-            'initial_state': {
-                'external': {
-                    BETA_LACTAM_KEY: INITIAL_EXTERNAL_BETA_LACTAM,
-                    TET_KEY: INITIAL_EXTERNAL_TET
-                },
-                'internal': {
-                    BETA_LACTAM_KEY: INITIAL_PERIPLASM_BETA_LACTAM,
-                    TET_KEY: INITIAL_PERIPLASM_TET
-                },
-                'mass_global': {
-                    'dry_mass': 300,  # * units.fg
-                },
-                'volume_global': {
-                    'volume': 1.2 * PERIPLASM_FRACTION,  # * units.fL
-                },
-            },
-            'molecules_to_diffuse': [BETA_LACTAM_KEY, TET_KEY],
-            # From (Nagano & Nikaido, 2009)
-            'surface_area_mass_ratio': 132 * units.cm ** 2 / units.mg,
-            'time_step': time_step,
-        },
-        'periplasm_cytosol_diffusion': {
-            'initial_state': {
-                'external': {
-                    TET_KEY: INITIAL_PERIPLASM_TET
-                },
-                'internal': {
-                    TET_KEY: INITIAL_CYTOSOL_TET
-                },
-                'mass_global': {
-                    'dry_mass': 300,  # * units.fg
-                },
-                'volume_global': {
-                    'volume': 1.2 * CYTOSOL_FRACTION,  # * units.fL
-                },
-            },
-            'molecules_to_diffuse': [TET_KEY],
-            # From (Nagano & Nikaido, 2009)
-            'surface_area_mass_ratio': 132 / CYTOSOL_FRACTION * units.cm ** 2 / units.mg,  # Dividng by 0.7 as cytosol has 70% of mass
-            'time_step': time_step,
-        },
         'shape': {},
         'nonspatial_environment': {
             'concentrations': {
