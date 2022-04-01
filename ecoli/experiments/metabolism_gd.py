@@ -21,6 +21,7 @@ from ecoli.processes import Exchange
 from ecoli.processes.registries import topology_registry
 
 import numpy as np
+import pathlib, datetime
 
 # get topology from ecoli_master
 metabolism_topology = topology_registry.access('ecoli-metabolism')
@@ -117,7 +118,7 @@ def run_metabolism_composite():
 
 def run_ecoli_with_metabolism_gd(
         filename='fba_gd_swap',
-        total_time=1000,
+        total_time=10,
         divide=False,
         progress_bar=True,
         log_updates=False,
@@ -134,10 +135,14 @@ def run_ecoli_with_metabolism_gd(
 
     sim.run()
     output = sim.query()
-    np.save('out/fba_results.npy', output['listeners']['fba_results'])
-    np.save('out/mass.npy', output['listeners']['mass'])
-    np.save('out/bulk.npy', output['bulk'])
-    np.save('out/stoichiometry.npy', sim.ecoli.processes['ecoli-metabolism-gradient-descent'].stoichiometry)
+
+
+    folder = f'out/fbagd/{total_time}/{datetime.datetime.now()}/'
+    pathlib.Path(folder).mkdir(parents=True, exist_ok=True)
+    np.save(folder + 'fba_results.npy', output['listeners']['fba_results'])
+    np.save(folder + 'mass.npy', output['listeners']['mass'])
+    np.save(folder + 'bulk.npy', output['bulk'])
+    np.save(folder + 'stoichiometry.npy', sim.ecoli.processes['ecoli-metabolism-gradient-descent'].stoichiometry)
 
 
 @pytest.mark.slow
@@ -180,10 +185,12 @@ def test_ecoli_with_metabolism_gd(
 @pytest.mark.slow
 def test_ecoli_with_metabolism_gd_div(
         filename='fba_gd_division',
+        total_time=10,
         divide=True,
         emitter='timeseries',
 ):
     sim = EcoliSim.from_file(CONFIG_DIR_PATH + filename + '.json')
+    sim.total_time = total_time
     sim.divide = divide
     sim.emitter = emitter
 
