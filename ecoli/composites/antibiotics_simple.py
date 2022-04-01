@@ -53,7 +53,7 @@ class PARAMETERS:
     # Calculated by dividing V_max estimated in (Thanassi et al., 1995) by the model's initial pump concentration of
     # 20.179269875115253 counts / micron^2
     # TET_PUMP_KCAT = 0.00015759727703788977  # / units.sec
-    # Reported in (Thanassi et al., 1995)
+    # Estimated in (Thanassi et al., 1995)
     TET_PUMP_KM = 200e-3  # * units.millimolar
 
     TOLC_KCAT = 1e1  # / units.sec  # TODO: Placeholder. Not supposed to be constant regardless of substrate.
