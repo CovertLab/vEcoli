@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <sbml xmlns="http://www.sbml.org/sbml/level3/version2/core" level="3" version="2">
-  <model id="biocrnpyler_488606" name="biocrnpyler_488606" substanceUnits="mole" timeUnits="second" volumeUnits="litre" areaUnits="square_metre" lengthUnits="metre" extentUnits="mole">
+  <model id="biocrnpyler_714851" name="biocrnpyler_714851" substanceUnits="mole" timeUnits="second" volumeUnits="litre" areaUnits="square_metre" lengthUnits="metre" extentUnits="mole">
     <listOfUnitDefinitions>
       <unitDefinition id="square_metre">
         <listOfUnits>
@@ -21,10 +21,12 @@
       <species id="beta_lactamase" name="beta_lactamase" compartment="default" initialConcentration="0.000525" substanceUnits="mole" hasOnlySubstanceUnits="false" boundaryCondition="false" constant="false"/>
     </listOfSpecies>
     <listOfParameters>
-      <parameter id="export_kcat__" value="0.0956090147363198" constant="true"/>
-      <parameter id="export_km__" value="0.288" constant="true"/>
-      <parameter id="hydrolysis_kcat__" value="130" constant="true"/>
-      <parameter id="hydrolysis_km__" value="170" constant="true"/>
+      <parameter id="ceph_export_kcat__" value="0.0956090147363198" constant="true"/>
+      <parameter id="ceph_export_km__" value="0.288" constant="true"/>
+      <parameter id="tet_export_kcat__" value="0.00015759727703789" constant="true"/>
+      <parameter id="tet_export_km__" value="0.2" constant="true"/>
+      <parameter id="tet_hydrolysis_kcat__" value="130" constant="true"/>
+      <parameter id="tet_hydrolysis_km__" value="170" constant="true"/>
     </listOfParameters>
     <listOfReactions>
       <reaction id="r0" name="r0" reversible="false">
@@ -43,7 +45,7 @@
               <divide/>
               <apply>
                 <times/>
-                <ci> export_kcat__ </ci>
+                <ci> ceph_export_kcat__ </ci>
                 <ci> AcrAB </ci>
                 <apply>
                   <power/>
@@ -55,7 +57,7 @@
                 <plus/>
                 <apply>
                   <power/>
-                  <ci> export_km__ </ci>
+                  <ci> ceph_export_km__ </ci>
                   <ci> n </ci>
                 </apply>
                 <apply>
@@ -87,7 +89,7 @@
               <divide/>
               <apply>
                 <times/>
-                <ci> export_kcat__ </ci>
+                <ci> tet_export_kcat__ </ci>
                 <ci> AcrAB </ci>
                 <apply>
                   <power/>
@@ -99,7 +101,7 @@
                 <plus/>
                 <apply>
                   <power/>
-                  <ci> export_km__ </ci>
+                  <ci> tet_export_km__ </ci>
                   <ci> n </ci>
                 </apply>
                 <apply>
@@ -131,7 +133,7 @@
               <divide/>
               <apply>
                 <times/>
-                <ci> hydrolysis_kcat__ </ci>
+                <ci> tet_hydrolysis_kcat__ </ci>
                 <ci> beta_lactamase </ci>
                 <apply>
                   <power/>
@@ -143,7 +145,7 @@
                 <plus/>
                 <apply>
                   <power/>
-                  <ci> hydrolysis_km__ </ci>
+                  <ci> tet_hydrolysis_km__ </ci>
                   <ci> n </ci>
                 </apply>
                 <apply>
@@ -173,7 +175,7 @@
               <apply>
                 <times/>
                 <ci> x_am </ci>
-                <ci> perm </ci>
+                <ci> cephaloridine_permeability </ci>
                 <apply>
                   <minus/>
                   <ci> cephaloridine_environment </ci>
@@ -186,9 +188,9 @@
           </math>
           <listOfLocalParameters>
             <localParameter id="x_am" value="132"/>
-            <localParameter id="perm" value="0.000571"/>
+            <localParameter id="cephaloridine_permeability" value="0.000571"/>
             <localParameter id="mass" value="1.17e-09"/>
-            <localParameter id="volume" value="3.2e-13"/>
+            <localParameter id="volume" value="2.4e-13"/>
           </listOfLocalParameters>
         </kineticLaw>
       </reaction>
@@ -206,7 +208,7 @@
               <apply>
                 <times/>
                 <ci> x_am </ci>
-                <ci> perm </ci>
+                <ci> tetracycline_permeability </ci>
                 <apply>
                   <minus/>
                   <ci> tetracycline_environment </ci>
@@ -219,9 +221,9 @@
           </math>
           <listOfLocalParameters>
             <localParameter id="x_am" value="132"/>
-            <localParameter id="perm" value="1e-05"/>
+            <localParameter id="tetracycline_permeability" value="1e-05"/>
             <localParameter id="mass" value="1.17e-09"/>
-            <localParameter id="volume" value="3.2e-13"/>
+            <localParameter id="volume" value="2.4e-13"/>
           </listOfLocalParameters>
         </kineticLaw>
       </reaction>

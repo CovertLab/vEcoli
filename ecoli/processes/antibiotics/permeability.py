@@ -62,7 +62,7 @@ class Permeability(Step):
             for porin_id, permeability in self.diffusing_molecules[molecule]['concentration_perm'].items():
                 cell_permeability += (porins[porin_id] / surface_area) * permeability
             cell_permeability += self.diffusing_molecules[molecule]['bilayer_perm']
-            permeabilities[molecule] = cell_permeability
+            permeabilities[molecule + '_permeability'] = cell_permeability  # TODO(Matt): What about inner and outer permeabilities for same antibiotic
         return {'permeabilities': permeabilities}
 
 
