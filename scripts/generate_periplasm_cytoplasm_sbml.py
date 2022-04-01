@@ -31,9 +31,11 @@ DATA_DIR = os.path.abspath(
 # Estimated in (Thanassi et al., 1995)
 DEFAULT_TET_INNER_PERM = 3 * 1e-6  # cm/sec
 
-AREA_MASS_RATIO = 132  # cm^2/mg
+CYTOPLASM_FRACTION = 0.8
+AREA_MASS_RATIO = 132 / CYTOPLASM_FRACTION  # cm^2/mg, Dividing by 0.8 as cytosol has 80% of mass
 MASS = 1170e-12  # mg
-VOLUME = 0.32e-12  # mL  # TODO(Matt): Is this volume of the entire cell?
+CELL_VOLUME = 1.2e-12  # mL
+CYTOPLASM_VOLUME = CELL_VOLUME * CELL_VOLUME  # mL
 INITIAL_CYTOPLASM_TET = 0
 INITIAL_PERIPLASM_TET = 0.1239
 
@@ -70,7 +72,7 @@ def main() -> None:
     area_mass_ratio = ParameterEntry('x_am', AREA_MASS_RATIO)  # cm^2/mg
     tet_permeability = ParameterEntry('perm', DEFAULT_TET_INNER_PERM)  # cm/sec
     mass = ParameterEntry('mass', MASS)  # mg
-    volume = ParameterEntry('volume', VOLUME)  # mL
+    volume = ParameterEntry('volume', CYTOPLASM_VOLUME)  # mL
     tet_influx_propensity = GeneralPropensity(
         (
             f'x_am * perm * ({tetracycline_out} - {tetracycline_in}) '

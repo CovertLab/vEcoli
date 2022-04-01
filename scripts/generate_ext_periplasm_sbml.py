@@ -48,9 +48,11 @@ TET_PUMP_KM = 200e-3  # * units.millimolar
 # Estimated in (Thanassi et al., 1995)
 DEFAULT_TET_OUTER_PERM = 1e-5  # cm/sec
 
+PERIPLASM_FRACTION = 0.2
 AREA_MASS_RATIO = 132  # cm^2/mg
 MASS = 1170e-12  # mg
-VOLUME = 0.32e-12  # mL  # TODO(Matt): Is this volume of the entire cell?
+CELL_VOLUME = 1.2e-12  # mL
+PERIPLASM_VOLUME = CELL_VOLUME * PERIPLASM_FRACTION  # mL
 INITIAL_PERIPLASM_CEPH = 0
 INITIAL_ENVIRONMENT_CEPH = 0.1239
 INITIAL_HYDROLYZED_CEPH = 0
@@ -143,7 +145,7 @@ def main() -> None:
     ceph_permeability = ParameterEntry('perm', DEFAULT_CEPH_OUTER_PERM)  # cm/sec
     tet_permeability = ParameterEntry('perm', DEFAULT_TET_OUTER_PERM)  # cm/sec
     mass = ParameterEntry('mass', MASS)  # mg
-    volume = ParameterEntry('volume', VOLUME)  # mL
+    volume = ParameterEntry('volume', PERIPLASM_VOLUME)  # mL
     ceph_influx_propensity = GeneralPropensity(
         (
             f'x_am * perm * ({cephaloridine_out} - {cephaloridine_in}) '
