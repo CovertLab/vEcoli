@@ -50,7 +50,7 @@ DEFAULT_TET_OUTER_PERM = 1e-5  # cm/sec
 
 AREA_MASS_RATIO = 132  # cm^2/mg
 MASS = 1170e-12  # mg
-VOLUME = 0.32e-12  # mL
+VOLUME = 0.32e-12  # mL  # TODO(Matt): Is this volume of the entire cell?
 INITIAL_PERIPLASM_CEPH = 0
 INITIAL_ENVIRONMENT_CEPH = 0.1239
 INITIAL_HYDROLYZED_CEPH = 0
