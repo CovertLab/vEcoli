@@ -11,9 +11,9 @@ from ecoli.library.schema import bulk_schema
 
 from wholecell.utils import units
 
-from ecoli.library.fba_gd import GradientDescentFba, FbaResult, TargetDmdtObjective, TargetVelocityObjective
+from ecoli.library.fba_gd import GradientDescentFba, FbaResult, TargetDmdtObjective, \
+    TargetVelocityObjective, VelocityBoundsObjective
 from ecoli.processes.registries import topology_registry
-
 
 COUNTS_UNITS = units.mmol
 VOLUME_UNITS = units.L
@@ -52,8 +52,7 @@ class MetabolismGD(Process):
     def __init__(self, parameters):
         super().__init__(parameters)
 
-        # variables
-
+        # config initialization
         maintenance_reaction = self.parameters['maintenance_reaction']
         self.stoichiometry = self.parameters['stoichiometry_r']
         self.stoichiometry.append({'reaction id': 'maintenance_reaction',
@@ -62,8 +61,6 @@ class MetabolismGD(Process):
                                    'enzyme': []})
 
         self.metabolite_names = self.parameters['metabolite_names']
-        # reaction_catalysts = self.parameters['reaction_catalysts']
-        # self.reactions_with_catalyst = self.parameters['reaction_with_catalysts']
         self.media_id = self.parameters['media_id']
         objective_type = self.parameters['objective_type']
         self.cell_density = self.parameters['cell_density']
@@ -78,7 +75,7 @@ class MetabolismGD(Process):
         self.previous_mass = None
         self.reaction_fluxes = None
 
-        # methods
+        # methods from config
         self._biomass_concentrations = {}  # type: dict
         self._getBiomassAsConcentrations = parameters['get_biomass_as_concentrations']
         concentration_updates = self.parameters['concentration_updates']
@@ -100,6 +97,17 @@ class MetabolismGD(Process):
         self.kinetic_objective = [reaction['reaction id'] for reaction in self.stoichiometry if reaction['enzyme']]
         self.maintenance_objective = ['maintenance_reaction']
 
+        self.carbon_source_active_transport = ['TRANS-RXN-157-PTSH-PHOSPHORYLATED/GLC//ALPHA-GLC-6-P/PTSH-MONOMER.52.',
+                                               'TRANS-RXN-157-PTSH-PHOSPHORYLATED/GLC//D-glucopyranose-6-phosphate'
+                                               '/PTSH-MONOMER.66.',
+                                               'TRANS-RXN-157-PTSH-PHOSPHORYLATED/GLC//GLC-6-P/PTSH-MONOMER.46.']
+
+        self.carbon_source_facilitated_diffusion = ['RXN0-7077-GLC/PROTON//ALPHA-GLUCOSE/PROTON.33.',
+                                                    'RXN0-7077-GLC/PROTON//Glucopyranose/PROTON.33.',
+                                                    'RXN0-7077-GLC/PROTON//GLC/PROTON.23.',
+                                                    'TRANS-RXN0-574-GLC//GLC.9.',
+                                                    'TRANS-RXN0-574-GLC//Glucopyranose.19.']
+
         # Create model to use to solve metabolism updates
         self.model = GradientDescentFba(
             reactions=self.stoichiometry,
@@ -107,9 +115,17 @@ class MetabolismGD(Process):
             target_metabolites=self.homeostatic_objective)
         self.model.add_objective('homeostatic', TargetDmdtObjective(self.model.network, self.homeostatic_objective))
         # self.model.add_objective('kinetic', TargetVelocityObjective(self.model.network, self.kinetic_objective))
-        self.model.add_objective('maintenance', TargetVelocityObjective(self.model.network, self.maintenance_objective, weight=20))
+        self.model.add_objective('maintenance',
+                                 TargetVelocityObjective(self.model.network, self.maintenance_objective, weight=20))
         # TODO (Cyrus): self.model.add_objective('boundary', ...)
-
+        self.model.add_objective('diffusion',
+                                 TargetVelocityObjective(self.model.network,
+                                                         self.carbon_source_facilitated_diffusion,
+                                                         weight=5))
+        self.model.add_objective("active_transport",
+                                 VelocityBoundsObjective(self.model.network,
+                                                         {reaction_id: (0, 0.55) for reaction_id
+                                                          in self.carbon_source_active_transport}, weight=10))
 
         # for ports schema
         self.metabolite_names_for_nutrients = self.get_port_metabolite_names(conc_dict)
@@ -151,31 +167,39 @@ class MetabolismGD(Process):
                     'unconstrained': {'_default': []},
                     'constrained': {'_default': []}}},
 
+            'polypeptide_elongation': {
+                'aa_count_diff': {
+                    '_default': {},
+                    '_emit': True,
+                    '_divider': 'empty_dict'},
+                'gtp_to_hydrolyze': {
+                    '_default': 0,
+                    '_emit': True,
+                    '_divider': 'zero'}
+            },
+
             'listeners': {
                 'mass': {
-                    'cell_mass': {'_default': 0.0},
-                    'dry_mass': {'_default': 0.0}},
+                    # TODO (Matt -> Cyrus): These should not be using a divider. Mass listener should run before metabolism after division.
+                    'cell_mass': {'_default': 0.0,
+                                  '_divider': 'split'},
+                    'dry_mass': {'_default': 0.0,
+                                 '_divider': 'split'}},
 
                 'fba_results': {
                     'estimated_fluxes': {'_default': {}, '_updater': 'set', '_emit': True},
-                    'estimated_homeostatic_dmdt' : {'_default': {}, '_updater': 'set', '_emit': True},
+                    'estimated_homeostatic_dmdt': {'_default': {}, '_updater': 'set', '_emit': True},
                     'target_homeostatic_dmdt': {'_default': {}, '_updater': 'set', '_emit': True},
                     'target_kinetic_fluxes': {'_default': {}, '_updater': 'set', '_emit': True},
                     'estimated_exchange_dmdt': {'_default': {}, '_updater': 'set', '_emit': True},
                     'estimated_all_dmdt': {'_default': {}, '_updater': 'set', '_emit': True},
                     'maintenance_target': {'_default': {}, '_updater': 'set', '_emit': True},
-                    'residuals': {'_default': {}, '_updater': 'set', '_emit': True},
+                    'solution_fluxes': {'_default': {}, '_updater': 'set', '_emit': True},
+                    'solution_dmdt': {'_default': {}, '_updater': 'set', '_emit': True},
+                    'solution_residuals': {'_default': {}, '_updater': 'set', '_emit': True},
                 },
             },
 
-            'polypeptide_elongation': {
-                'aa_count_diff': {
-                    '_default': {},
-                    '_emit': True},
-                'gtp_to_hydrolyze': {
-                    '_default': 0,
-                    '_emit': True}
-            }
         }
 
     def next_update(self, timestep, states):
@@ -193,36 +217,27 @@ class MetabolismGD(Process):
         # kinetic_substrate_counts = states['kinetics_substrates']
         # get_kinetic_constraints = self.parameters['get_kinetic_constraints']
 
-        # might delete later?
-
+        # cell mass difference for calculating GAM
         if self.cell_mass is not None:
             self.previous_mass = self.cell_mass
         self.cell_mass = states['listeners']['mass']['cell_mass'] * units.fg
         dry_mass = states['listeners']['mass']['dry_mass'] * units.fg
 
         cell_volume = self.cell_mass / self.cell_density
-        coefficient = dry_mass / self.cell_mass * self.cell_density * timestep * units.s # TODO (Cyrus) what's this?
+        coefficient = dry_mass / self.cell_mass * self.cell_density * timestep * units.s  # TODO (Cyrus) what's this?
         self.counts_to_molar = (1 / (self.nAvogadro * cell_volume)).asUnit(CONC_UNITS)
 
-        current_metabolite_concentrations = {key: value * self.counts_to_molar for key, value in current_metabolite_counts.items()}
-        target_homeostatic_dmdt = {key: ((self.homeostatic_objective[key]*CONC_UNITS
-                                            - current_metabolite_concentrations[key])/timestep).asNumber()
-                                     for key, value in self.homeostatic_objective.items()}
-
-        # TODO Implement GAM/NGAM/GTP. Be aware of GAM. How to scale?
-        # calculate mass delta for GAM
+        #
         translation_gtp = states['polypeptide_elongation']['gtp_to_hydrolyze']
 
         if self.previous_mass is not None:
-            flux_gam = self.gam * (self.cell_mass - self.previous_mass)/VOLUME_UNITS
+            flux_gam = self.gam * (self.cell_mass - self.previous_mass) / VOLUME_UNITS
         else:
             flux_gam = 0 * CONC_UNITS
         flux_ngam = (self.ngam * coefficient)
         flux_gtp = (self.counts_to_molar * translation_gtp)
 
         total_maintenance = flux_gam + flux_ngam + flux_gtp
-
-        # TODO (Cyrus) - increase maintenance target weight.
 
         kinetic_targets = {}
         # # TODO (Cyrus) - Figure out how to implement catalysis. Can come later.
@@ -232,6 +247,14 @@ class MetabolismGD(Process):
 
         maintenance_target = {}
         maintenance_target['maintenance_reaction'] = total_maintenance.asNumber()
+
+        current_metabolite_concentrations = {key: value * self.counts_to_molar for key, value in
+                                             current_metabolite_counts.items()}
+        target_homeostatic_dmdt = {key: ((self.homeostatic_objective[key] * CONC_UNITS
+                                          - current_metabolite_concentrations[key]) / timestep).asNumber()
+                                   for key, value in self.homeostatic_objective.items()}
+
+        diffusion_target = {reaction: 0 for reaction in self.carbon_source_facilitated_diffusion}
 
         # reaction_bounds = np.inf * np.ones(len(self.reactions_with_catalyst))
         # no_rxn_mask = self.catalysis_matrix.dot(catalyst_counts) == 0
@@ -247,7 +270,8 @@ class MetabolismGD(Process):
         solution: FbaResult = self.model.solve(
             {'homeostatic': target_homeostatic_dmdt,
              'kinetic': kinetic_targets,
-             'maintenance': maintenance_target
+             'maintenance': maintenance_target,
+             'diffusion': diffusion_target,
              },
             initial_velocities=self.reaction_fluxes,
             tr_solver='lsmr', max_nfev=64, ftol=10 ** (-5), verbose=2, xtol=10 ** (-4),
@@ -281,7 +305,9 @@ class MetabolismGD(Process):
                     'estimated_exchange_dmdt': estimated_exchange_dmdt,
                     'estimated_all_dmdt': metabolite_dmdt_counts,
                     'maintenance_target': target_maintenance_flux,
-                    'residuals': solution.residual,
+                    'solution_fluxes': solution.velocities,
+                    'solution_dmdt': solution.dm_dt,
+                    'solution_residuals': solution.residual,
                 }
             }
         }
