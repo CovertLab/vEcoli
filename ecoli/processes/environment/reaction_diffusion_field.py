@@ -44,9 +44,9 @@ class ReactionDiffusion(Process):
         'time_step': 1,
         'molecules': [],
         'n_bins': [10, 10],
-        'bounds': [10, 10],
-        'depth': 3000.0,  # um
-        'diffusion': 5e-1,
+        'bounds': [10 * units.um, 10 * units.um],
+        'depth': 3000.0 * units.um,  # um
+        'diffusion': 5e-1 * units.um**2 / units.sec,
         'reactions': {},
         'kinetic_parameters': {},
         'internal_time_step': 1,
@@ -75,7 +75,7 @@ class ReactionDiffusion(Process):
         dy = length_y / bins_y
         dx2 = dx * dy
         self.diffusion = diffusion / dx2
-        self.diffusion_dt = 0.01
+        self.diffusion_dt = 0.01 * units.sec
         # self.diffusion_dt = 0.5 * dx ** 2 * dy ** 2 / (2 * self.diffusion * (dx ** 2 + dy ** 2))
 
     def initial_state(self, config):
@@ -102,7 +102,7 @@ class ReactionDiffusion(Process):
             },
             'external': {
                 molecule: {
-                    '_default': 0.0}
+                    '_default': 0.0 * units.mM}
                 for molecule in self.molecule_ids
             },
             'exchanges': {
@@ -179,7 +179,7 @@ class ReactionDiffusion(Process):
 
                 # delta concentration
                 exchange = value * units.count
-                bin_volume = self.bin_volume * units.L
+                bin_volume = self.bin_volume
                 concentration = count_to_concentration(exchange, bin_volume).to(
                     units.mmol / units.L).magnitude
 
@@ -222,7 +222,7 @@ class ReactionDiffusion(Process):
         local_environment = {}
         for mol_id, field in fields.items():
             local_environment[mol_id] = {
-                '_value': field[bin_site],
+                '_value': field[bin_site] * units.mM,
                 '_updater': 'set'}
         return local_environment
 
@@ -247,9 +247,10 @@ class ReactionDiffusion(Process):
         '''calculate new concentrations resulting from diffusion'''
         field_new = field.copy()
         t = 0.0
-        dt = min(timestep, self.diffusion_dt)
+        dt = min(timestep, self.diffusion_dt.to(units.sec).magnitude)
+        diffusion = self.diffusion.to(1 / units.sec).magnitude
         while t < timestep:
-            field_new += self.diffusion * dt * convolve(field_new, LAPLACIAN_2D, mode='reflect')
+            field_new += diffusion * dt * convolve(field_new, LAPLACIAN_2D, mode='reflect')
             t += dt
         return field_new
 
@@ -339,8 +340,8 @@ class ExchangeAgent(Process):
                     mol_id: self.parameters['default_exchange']
                     for mol_id in mol_ids},
                 'location': [
-                    np.random.uniform(-max_move, max_move),
-                    np.random.uniform(-max_move, max_move)
+                    np.random.uniform(-max_move, max_move) * units.um,
+                    np.random.uniform(-max_move, max_move) * units.um
                 ],
             }
         }
@@ -348,9 +349,9 @@ class ExchangeAgent(Process):
 
 def main():
     total_time = 100
-    depth = 2
+    depth = 2 * units.um
     n_bins = [50, 50]
-    bounds = [50, 50]
+    bounds = [50 * units.um, 50 * units.um]
 
     # make the reaction diffusion process
     params = {
@@ -417,7 +418,7 @@ def main():
     sim.update(total_time)
 
     # plot
-    data = sim.emitter.get_data()
+    data = sim.emitter.get_data_unitless()
 
     # add empty angle back in for the plot (this is undesirable)
     for t in data.keys():
