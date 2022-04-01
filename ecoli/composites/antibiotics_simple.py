@@ -5,6 +5,7 @@ from vivarium.library.units import units
 from vivarium.plots.simulation_output import plot_variables
 from vivarium.processes.timeline import TimelineProcess
 
+from ecoli.processes.antibiotics.exchange_aware_bioscrape import ExchangeAwareBioscrape
 from ecoli.processes.antibiotics.permeability import (
     Permeability, CEPH_OMPC_CON_PERM, CEPH_OMPF_CON_PERM, OUTER_BILAYER_CEPH_PERM, TET_OMPF_CON_PERM, OUTER_BILAYER_TET_PERM,
     INNER_BILAYER_TET_PERM, SA_AVERAGE
@@ -66,9 +67,9 @@ class SimpleAntibioticsCell(Composer):
     '''
 
     default = {
-        'kinetics': {},
-        'ext_periplasm_diffusion': {},
-        'periplasm_cytosol_diffusion': {},
+        'ext_periplasm_bioscrape': {},
+        'periplasm_cytoplasm_bioscrape': {},
+        'timeline': {},
         'shape': {},
         'nonspatial_environment': {},
         'outer_permeability': {},
@@ -76,8 +77,12 @@ class SimpleAntibioticsCell(Composer):
     }
 
     def generate_processes(self, config):
+        ext_periplasm_bioscrape = ExchangeAwareBioscrape(config['ext_periplasm_bioscrape'])
+        periplasm_cytoplasm_bioscrape = ExchangeAwareBioscrape(config['periplasm_cytoplasm_bioscrape'])
         timeline = TimelineProcess(config['timeline'])
         return {
+            'ext_periplasm_bioscrape': ext_periplasm_bioscrape,
+            'periplasm_cytoplasm_bioscrape': periplasm_cytoplasm_bioscrape,
             'timeline': timeline
         }
 
@@ -96,37 +101,30 @@ class SimpleAntibioticsCell(Composer):
     def generate_topology(self, config=None):
         boundary_path = config['boundary_path']
         topology = {
-            'kinetics': {
-                'internal': ('periplasm', 'concs'),
+            'ext_periplasm_bioscrape': {
+                'delta_species': ('delta_concs',),
+                'exchanges': boundary_path + ('exchanges',),
                 'external': boundary_path + ('external',),
-                'exchanges': boundary_path + ('exchanges',),
-                'pump_port': ('periplasm', 'concs'),
-                'catalyst_port': ('periplasm', 'concs'),
-                'fluxes': ('fluxes',),
-                'global': ('periplasm', 'global',),
+                'globals': ('global',),
+                'rates': ('kinetic_parameters',),
+                'species': ('concs',),
             },
-            'ext_periplasm_diffusion': {
-                'internal': ('periplasm', 'concs',),
+            'periplasm_cytoplasm_bioscrape': {
+                'delta_species': ('delta_concs',),
+                'exchanges': boundary_path + ('exchanges',),
                 'external': boundary_path + ('external',),
-                'exchanges': boundary_path + ('exchanges',),
-                'fluxes': ('fluxes',),
-                'volume_global': ('periplasm', 'global',),
-                'mass_global': ('mass_listener',),
-                'permeabilities': boundary_path + ('outer_permeabilities',)
+                'globals': ('global',),
+                'rates': ('kinetic_parameters',),
+                'species': ('concs',),
             },
-            'periplasm_cytosol_diffusion': {
-                'internal': ('cytosol', 'concs',),
-                'external': ('periplasm', 'concs',),
-                'exchanges': boundary_path + ('exchanges',),
-                'fluxes': ('fluxes',),
-                'volume_global': ('cytosol', 'global',),
-                'mass_global': ('mass_listener',),
-                'permeabilities': boundary_path + ('inner_permeabilities',)
+            'timeline': {
+                'global': ('global',),  # The global time is read here
+                'porins': ('bulk',),  # This port is based on the declared timeline
             },
             'shape': {
                 'cell_global': boundary_path,
-                'periplasm_global': ('periplasm', 'global',),
-                'cytosol_global': ('cytosol', 'global',),
+                'periplasm_global': ('periplasm',),
+                'cytosol_global': ('cytosol',),
                 'listener_cell_mass': ('mass_listener', 'dry_mass'),
             },
             'nonspatial_environment': {
@@ -134,21 +132,17 @@ class SimpleAntibioticsCell(Composer):
                 'exchanges': boundary_path + ('exchanges',),
                 'fields': ('environment', 'fields',),
                 'dimensions': ('environment', 'dimensions'),
-                'global': boundary_path,
+                'global': ('global',),
             },
             'outer_permeability': {
                 'porins': ('bulk',),
-                'permeabilities': boundary_path + ('outer_permeabilities',),
+                'permeabilities': ('kinetic_parameters',),
                 'surface_area': boundary_path + ('surface_area',)
             },
             'inner_permeability': {
                 'porins': ('bulk',),
-                'permeabilities': boundary_path + ('inner_permeabilities',),
+                'permeabilities': ('kinetic_parameters',),
                 'surface_area': boundary_path + ('surface_area',)
-            },
-            'timeline': {
-                'global': ('global',),  # The global time is read here
-                'porins': ('bulk',),  # This port is based on the declared timeline
             },
         }
         return topology
@@ -156,7 +150,6 @@ class SimpleAntibioticsCell(Composer):
 
 def demo():
     sim_time = 100
-    time_step = 0.01
 
     timeline = []
     for i in range(10):
@@ -170,6 +163,16 @@ def demo():
 
     config = {
         'boundary_path': ('boundary',),
+        'ext_periplasm_bioscrape': {
+            'sbml_file': 'data/ext_periplasm_sbml.xml',
+        },
+        'periplasm_cytoplasm_bioscrape': {
+            'sbml_file': 'data/periplasm_cytoplasm_sbml.xml',
+        },
+        'timeline': {
+            'time_step': 1.0,
+            'timeline': timeline,
+        },
         'shape': {},
         'nonspatial_environment': {
             'concentrations': {
@@ -178,10 +181,6 @@ def demo():
             },
             'internal_volume': 1.2,  # * units.fL,
             'env_volume': 1 * units.mL,
-        },
-        'timeline': {
-            'time_step': 1.0,
-            'timeline': timeline,
         },
         'outer_permeability': {
             'porin_ids': ['CPLX0-7533[o]', 'CPLX0-7534[o]'],
@@ -198,7 +197,7 @@ def demo():
                         'CPLX0-7534[o]': TET_OMPF_CON_PERM,
                     },
                     'bilayer_perm': OUTER_BILAYER_TET_PERM
-                }
+                },
             },
         },
         'inner_permeability': {
@@ -229,12 +228,12 @@ def demo():
     plot_variables(
         timeseries_data,
         variables=[
-            ('boundary', 'external', 'cephaloridine'),
-            ('boundary', 'external', 'tetracycline'),
-            ('periplasm', 'concs', 'cephaloridine'),
-            ('periplasm', 'concs', 'tetracycline'),
-            ('periplasm', 'concs', 'cephaloridine_hydrolyzed'),
-            ('cytosol', 'concs', 'tetracycline'),
+            ('concs', 'cephaloridine_environment'),
+            ('concs', 'cephaloridine_periplasm'),
+            ('concs', 'cephaloridine_hydrolyzed'),
+            ('concs', 'tetracycline_environment'),
+            ('concs', 'tetracycline_periplasm'),
+            ('concs', 'tetracycline_cytoplasm'),
         ],
         out_dir='out',
         filename='antibiotics_simple'

@@ -103,9 +103,9 @@ def main() -> None:
 
     # Define reactions.
     ceph_export_propensity = ProportionalHillPositive(
-        k=ParameterEntry('export_kcat', CEPH_PUMP_KCAT),  # Hz
+        k=ParameterEntry('ceph_export_kcat', CEPH_PUMP_KCAT),  # Hz
         s1=cephaloridine_in,
-        K=ParameterEntry('export_km', CEPH_PUMP_KM),  # mM
+        K=ParameterEntry('ceph_export_km', CEPH_PUMP_KM),  # mM
         d=pump,
         n=1.75,
     )
@@ -116,9 +116,9 @@ def main() -> None:
     )
 
     tet_export_propensity = ProportionalHillPositive(
-        k=ParameterEntry('export_kcat', TET_PUMP_KCAT),  #Hz
+        k=ParameterEntry('tet_export_kcat', TET_PUMP_KCAT),  #Hz
         s1=tetracycline_in,
-        K=ParameterEntry('export_km', TET_PUMP_KM),  #mM
+        K=ParameterEntry('tet_export_km', TET_PUMP_KM),  #mM
         d=pump,
         n=1
     )
@@ -129,9 +129,9 @@ def main() -> None:
     )
 
     hydrolysis_propensity = ProportionalHillPositive(
-        k=ParameterEntry('hydrolysis_kcat', CEPH_BETA_LACTAMASE_KCAT),  # Hz
+        k=ParameterEntry('tet_hydrolysis_kcat', CEPH_BETA_LACTAMASE_KCAT),  # Hz
         s1=cephaloridine_in,
-        K=ParameterEntry('hydrolysis_km', CEPH_BETA_LACTAMASE_KM),  # mM
+        K=ParameterEntry('tet_hydrolysis_km', CEPH_BETA_LACTAMASE_KM),  # mM
         d=beta_lactamase,
         n=1,
     )
@@ -142,18 +142,18 @@ def main() -> None:
     )
 
     area_mass_ratio = ParameterEntry('x_am', AREA_MASS_RATIO)  # cm^2/mg
-    ceph_permeability = ParameterEntry('perm', DEFAULT_CEPH_OUTER_PERM)  # cm/sec
-    tet_permeability = ParameterEntry('perm', DEFAULT_TET_OUTER_PERM)  # cm/sec
+    cephaloridine_permeability = ParameterEntry('cephaloridine_permeability', DEFAULT_CEPH_OUTER_PERM)  # cm/sec
+    tetracycline_permeability = ParameterEntry('tetracycline_permeability', DEFAULT_TET_OUTER_PERM)  # cm/sec
     mass = ParameterEntry('mass', MASS)  # mg
     volume = ParameterEntry('volume', PERIPLASM_VOLUME)  # mL
     ceph_influx_propensity = GeneralPropensity(
         (
-            f'x_am * perm * ({cephaloridine_out} - {cephaloridine_in}) '
+            f'x_am * cephaloridine_permeability * ({cephaloridine_out} - {cephaloridine_in}) '
             '* mass / (volume)'
         ),
         propensity_species=[cephaloridine_in, cephaloridine_out],
         propensity_parameters=[
-            area_mass_ratio, ceph_permeability, mass, volume],
+            area_mass_ratio, cephaloridine_permeability, mass, volume],
     )
     ceph_influx = Reaction(
         inputs=[cephaloridine_out],
@@ -162,12 +162,12 @@ def main() -> None:
     )
     tet_influx_propensity = GeneralPropensity(
         (
-            f'x_am * perm * ({tetracycline_out} - {tetracycline_in}) '
+            f'x_am * tetracycline_permeability * ({tetracycline_out} - {tetracycline_in}) '
             '* mass / (volume)'
         ),
         propensity_species=[tetracycline_in, tetracycline_out],
         propensity_parameters=[
-            area_mass_ratio, tet_permeability, mass, volume],
+            area_mass_ratio, tetracycline_permeability, mass, volume],
     )
     tet_influx = Reaction(
         inputs=[tetracycline_out],

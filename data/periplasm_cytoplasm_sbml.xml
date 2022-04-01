@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <sbml xmlns="http://www.sbml.org/sbml/level3/version2/core" level="3" version="2">
-  <model id="biocrnpyler_263484" name="biocrnpyler_263484" substanceUnits="mole" timeUnits="second" volumeUnits="litre" areaUnits="square_metre" lengthUnits="metre" extentUnits="mole">
+  <model id="biocrnpyler_507554" name="biocrnpyler_507554" substanceUnits="mole" timeUnits="second" volumeUnits="litre" areaUnits="square_metre" lengthUnits="metre" extentUnits="mole">
     <listOfUnitDefinitions>
       <unitDefinition id="square_metre">
         <listOfUnits>
@@ -42,10 +42,10 @@
             </apply>
           </math>
           <listOfLocalParameters>
-            <localParameter id="x_am" value="132"/>
+            <localParameter id="x_am" value="165"/>
             <localParameter id="perm" value="3e-06"/>
             <localParameter id="mass" value="1.17e-09"/>
-            <localParameter id="volume" value="3.2e-13"/>
+            <localParameter id="volume" value="1.44e-24"/>
           </listOfLocalParameters>
         </kineticLaw>
       </reaction>
