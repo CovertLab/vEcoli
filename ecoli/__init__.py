@@ -1,6 +1,7 @@
 from vivarium.core.registry import (
     divider_registry,
     updater_registry,
+    serializer_registry,
 )
 from ecoli.library.schema import (
     UNIQUE_DEFAULTS,
@@ -23,6 +24,7 @@ from ecoli.library.updaters import (
     inverse_update_nonnegative_accumulate,
     inverse_update_dictionary,
 )
+from ecoli.library.serialize import UnumSerializer
 
 # register :term:`updaters`
 for unique_mol, defaults in UNIQUE_DEFAULTS.items():
@@ -51,3 +53,6 @@ divider_registry.register('divide_unique', divide_unique)
 divider_registry.register('empty_dict', empty_dict_divider)
 divider_registry.register('divide_ribosomes', divide_ribosomes)
 divider_registry.register('set_none', divide_set_none)
+
+# register serializers
+serializer_registry.register('unum', UnumSerializer())

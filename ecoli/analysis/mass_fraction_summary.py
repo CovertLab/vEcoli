@@ -1,9 +1,14 @@
+import argparse
 import os
+import pickle
+
 import numpy as np
 from matplotlib import pyplot as plt
 from six.moves import zip
-from ecoli.composites.ecoli_master import run_ecoli
+
+from ecoli.composites.ecoli_nonpartition import SIM_DATA_PATH
 from ecoli.analysis.tablereader import TableReader
+from ecoli.analysis.db import access
 
 
 COLORS_256 = [  # From colorbrewer2.org, qualitative 8-class set 1
@@ -86,9 +91,33 @@ class Plot:
 
 
 def run_plot():
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        'experiment_id', type=str,
+        help='ID of experiment to plot data for.')
+    parser.add_argument(
+        '--agent_id', '-a', type=str,
+        help='ID of agent. If not specified, assume single-cell sim.')
+    args = parser.parse_args()
 
-    data = run_ecoli(total_time=30)
-    Plot(data)
+    query = [('listeners', 'mass')]
+
+    if args.agent_id:
+        query = [('agents', args.agent_id) + path for path in query]
+    data, _, _ = access(args.experiment_id, query)
+    if args.agent_id:
+        data = {
+            time: timepoint['agents'][args.agent_id]
+            for time, timepoint in data.items()
+            if args.agent_id in timepoint['agents']
+        }
+
+    with open(SIM_DATA_PATH, 'rb') as sim_data_file:
+        sim_data = pickle.load(sim_data_file)
+    out_dir = os.path.join('out', 'analysis', args.experiment_id)
+    if args.agent_id:
+        out_dir = os.path.join(out_dir, args.agent_id)
+    Plot(data, sim_data, out_dir)
 
 
 # python ecoli/analysis/mass_fraction_summary.py

@@ -6,12 +6,12 @@
       "molecules": ["GLC[p]", "EG10040-MONOMER[p]"],
       "gradient": {
         "molecules": {
-          "GLC[p]": 1.0,
-          "EG10040-MONOMER[p]": 0.0
+          "GLC[p]": "!units[1.0 millimolar]",
+          "EG10040-MONOMER[p]": "!units[0.0 millimolar]"
         }
       }
     }
-  }, 
+  },
   "add_processes": ["lysis"],
   "topology": {
     "lysis": {
