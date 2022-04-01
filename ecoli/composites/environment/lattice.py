@@ -8,7 +8,7 @@ from vivarium.core.composition import (
     COMPOSITE_OUT_DIR,
 )
 from vivarium.library.dict_utils import deep_merge
-from vivarium.library.units import units
+from vivarium.library.units import units, remove_units
 
 # processes
 from ecoli.processes.environment.multibody_physics import (
@@ -47,11 +47,11 @@ def make_lattice_config(
     if time_step:
         config['multibody']['time_step'] = time_step
         config['diffusion']['time_step'] = time_step
-    if bounds:
+    if bounds is not None:
         config['multibody']['bounds'] = bounds
         config['diffusion']['bounds'] = bounds
-        config['diffusion']['n_bins'] = bounds
-    if n_bins:
+        config['diffusion']['n_bins'] = remove_units(bounds)
+    if n_bins is not None:
         config['diffusion']['n_bins'] = n_bins
     if jitter_force:
         config['multibody']['jitter_force'] = jitter_force
@@ -97,22 +97,21 @@ class Lattice(Composer):
         # To exclude a process, from the compartment, set its
         # configuration dictionary to None, e.g. colony_mass_deriver
         'multibody': {
-            'bounds': [10, 10],
-            'size': [10, 10],
+            'bounds': [10, 10] * units.um,
         },
         'diffusion': {
             'molecules': ['glc'],
             'n_bins': [10, 10],
-            'size': [10, 10],
-            'depth': 3000.0,
-            'diffusion': 1e-2,
+            'size': [10, 10] * units.um,
+            'depth': 3000.0 * units.um,
+            'diffusion': 1e-2 * units.um**2 / units.sec,
         },
     }
 
     def generate_processes(self, config):
         processes = {
             'multibody': Multibody(config['multibody']),
-            'diffusion': DiffusionField(config['diffusion'])
+            'diffusion': DiffusionField(config['diffusion']),
         }
         return processes
 
@@ -134,7 +133,7 @@ def test_lattice(
         total_time=1000,
         exchange=False,
         external_molecule='X',
-        bounds=[25, 25],
+        bounds=[25, 25] * units.um,
         n_bins=None,
         initial_field=None,
         growth_rate=0.05,  # fast growth
@@ -143,9 +142,9 @@ def test_lattice(
     # lattice configuration
     lattice_config_kwargs = {
         'bounds': bounds,
-        'n_bins': n_bins or bounds,
-        'depth': 2,
-        'diffusion': 1e-3,
+        'n_bins': n_bins or remove_units(bounds),
+        'depth': 2 * units.um,
+        'diffusion': 1e-3 * units.um**2 / units.sec,
         'time_step': 60,
         'jitter_force': 1e-5,
         'concentrations': {
@@ -219,7 +218,7 @@ def main():
         default=False, help='simulate agents with exchange')
     args = parser.parse_args()
 
-    bounds = [25, 25]
+    bounds = [25, 25] * units.um
 
     if args.exchange:
         # GrowDivide agents with Exchange
