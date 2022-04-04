@@ -94,7 +94,6 @@ class GrowDivideExchange(GrowDivide):
 
         added_processes = {
             'exchange': Exchange(config['exchange']),
-            'local_field': LocalField(),
         }
         processes.update(added_processes)
         return processes
@@ -103,21 +102,13 @@ class GrowDivideExchange(GrowDivide):
         topology = super().generate_topology(config)
 
         boundary_path = config['boundary_path']
-        fields_path = config['fields_path']
-        dimensions_path = config['dimensions_path']
 
         added_topology = {
             'exchange': {
-                'exchange': boundary_path + ('exchange',),
+                'exchanges': boundary_path + ('exchanges',),
                 'external': boundary_path + ('external',),
                 'internal': ('internal',),
             },
-            'local_field': {
-                'exchanges': boundary_path + ('exchange',),
-                'location': boundary_path + ('location',),
-                'fields': fields_path,
-                'dimensions': dimensions_path,
-            }
         }
         topology.update(added_topology)
         return topology
