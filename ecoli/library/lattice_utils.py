@@ -6,6 +6,7 @@ Utilities for Lattice Environments
 
 import numpy as np
 from scipy import constants
+from vivarium.core.process import Process
 from vivarium.library.topology import get_in
 
 from vivarium.library.units import units, Quantity
@@ -299,3 +300,52 @@ def apply_exchanges(agents, fields, boundary_path, n_bins, bounds, bin_volume):
         agent_updates[agent_id] = {'exchanges': reset_exchanges}
 
     return fields, agent_updates
+
+
+class ExchangeAgent(Process):
+    defaults = {
+        'mol_ids': [],
+        'default_exchange': 100,
+        'max_move': 4,
+    }
+
+    def __init__(self, parameters=None):
+        super().__init__(parameters)
+
+    def ports_schema(self):
+        mol_ids = self.parameters['mol_ids']
+
+        def accumulate_location(value, update):
+            return [
+                max(value[0] + update[0], 0 * units.um),
+                max(value[1] + update[1], 0 * units.um)
+            ]
+
+        return {
+            'boundary': {
+                'external': {
+                    mol_id: {'_default': 0.0} for mol_id in mol_ids},
+                'exchanges': {
+                    mol_id: {'_default': self.parameters['default_exchange']}
+                    for mol_id in mol_ids},
+                'location': {
+                    '_default': [0.5, 0.5],
+                    '_updater': accumulate_location,
+                }
+            }
+        }
+
+    def next_update(self, timestep, states):
+        max_move = self.parameters['max_move']
+        mol_ids = self.parameters['mol_ids']
+        return {
+            'boundary': {
+                'exchanges': {
+                    mol_id: self.parameters['default_exchange']
+                    for mol_id in mol_ids},
+                'location': [
+                    np.random.uniform(-max_move, max_move) * units.um,
+                    np.random.uniform(-max_move, max_move) * units.um
+                ],
+            }
+        }

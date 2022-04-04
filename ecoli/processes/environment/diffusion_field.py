@@ -19,6 +19,7 @@ from vivarium.core.composition import (
     PROCESS_OUT_DIR
 )
 from vivarium.library.units import units, remove_units
+from vivarium.library.topology import get_in
 
 from ecoli.library.lattice_utils import (
     count_to_concentration,
@@ -26,6 +27,7 @@ from ecoli.library.lattice_utils import (
     get_bin_volume,
     make_gradient,
     apply_exchanges,
+    ExchangeAgent,
 )
 from ecoli.plots.snapshots import plot_snapshots
 
@@ -182,7 +184,12 @@ class DiffusionField(Process):
             self.n_bins, self.bounds, self.bin_volume)
 
         # diffuse field
-        delta_fields, new_fields = self.diffuse(new_fields, timestep)
+        new_fields = self.diffuse(new_fields, timestep)
+
+        # get total delta from exchange, diffusion, reaction
+        delta_fields = {
+            mol_id: new_fields[mol_id] - field
+            for mol_id, field in fields.items()}
 
         # get each agent's new local environment
         local_environments = self.get_local_environments(agents, new_fields)
@@ -236,7 +243,6 @@ class DiffusionField(Process):
         return field_new - field, field_new
 
     def diffuse(self, fields, timestep):
-        delta_fields = {}
         new_fields = {}
         for mol_id, field in fields.items():
 
@@ -246,98 +252,60 @@ class DiffusionField(Process):
             else:
                 delta = np.zeros_like(field)
                 new_field = field
-            delta_fields[mol_id] = delta
             new_fields[mol_id] = new_field
 
-        return delta_fields, new_fields
+        return new_fields
 
 
 # testing
-def get_random_field_config(config={}):
-    bounds = config.get('bounds', (20, 20) * units.um)
-    n_bins = config.get('n_bins', (10, 10))
+def get_random_field_config():
+    n_bins = (20, 20)
     return {
         'molecules': ['glc'],
         'initial_state': {
-            'glc': np.random.rand(n_bins[0], n_bins[1])},
+            'glc': 2.0 * np.random.rand(n_bins[0], n_bins[1])},
         'n_bins': n_bins,
-        'bounds': bounds}
+        'bounds': (20, 20) * units.um,
+        'depth': 5 * units.um,
+        'diffusion': 1e-2 * units.um**2 / units.sec,  # slow diffusion
+    }
 
 
-def get_gaussian_config(config={}):
-    molecules = config.get('molecules', ['glc'])
-    bounds = config.get('bounds', (50, 50) * units.um)
-    n_bins = config.get('n_bins', (20, 20))
-    center = config.get('center', [0.5, 0.5])
-    deviation = config.get('deviation', 5)
-    diffusion = config.get('diffusion', 5e-1 * units.um**2 / units.sec)
-
+def get_gaussian_config():
     return {
-        'molecules': molecules,
-        'n_bins': n_bins,
-        'bounds': bounds,
-        'diffusion': diffusion,
+        'molecules': ['glc'],
+        'n_bins': (20, 20),
+        'bounds': (20, 20) * units.um,
+        'depth': 100 * units.um,
         'gradient': {
             'type': 'gaussian',
             'molecules': {
                 'glc': {
-                    'center': center,
-                    'deviation': deviation}}}}
+                    'center': [0.5, 0.5],
+                    'deviation': 1}}}}
 
 
-def get_exponential_config(config={}):
-    molecules = config.get('molecules', ['glc'])
-    bounds = config.get('bounds', (40, 40) * units.um)
-    n_bins = config.get('n_bins', (20, 20))
-    center = config.get('center', [1.0, 1.0])
-    base = config.get('base', 1 + 2e-4)
-    scale = config.get('scale', 0.1)
-    diffusion = config.get('diffusion', 1e1 * units.um**2 / units.sec)
-
+def get_exponential_config():
     return {
-        'molecules': molecules,
-        'n_bins': n_bins,
-        'bounds': bounds,
-        'diffusion': diffusion,
+        'molecules': ['glc'],
+        'n_bins': (20, 20),
+        'bounds': (20, 20) * units.um,
+        'depth': 100 * units.um,
         'gradient': {
             'type': 'exponential',
             'molecules': {
                 'glc': {
-                    'center': center,
-                    'base': base,
-                    'scale': scale}}}}
-
-
-def test_diffusion_field(
-        config={},
-        time=10,
-):
-    diffusion = DiffusionField(config)
-    initial_fields = diffusion.initial_state()
-    # put them together in a simulation
-    sim = Engine(
-        processes={
-            'diffusion': diffusion,
-        },
-        topology={
-            'diffusion': {
-                port: (port,)
-                for port in diffusion.ports_schema().keys()
-            },
-        },
-        initial_state=initial_fields
-    )
-    sim.update(time)
-    return sim.emitter.get_data_unitless()
-
+                    'center': [1.0, 1.0],
+                    'base': 1 + 1e-3,
+                    'scale': 10.0}}}}
 
 def test_all():
-    test_diffusion_field(
-        config=get_random_field_config(), time=60)
-    test_diffusion_field(
-        config=get_gaussian_config(), time=60)
-    test_diffusion_field(
-        config=get_exponential_config(), time=60)
+    run_diffusion_field(
+        config=get_random_field_config(), total_time=60, filename='random')
+    run_diffusion_field(
+        config=get_gaussian_config(), total_time=60, filename='gaussian')
+    run_diffusion_field(
+        config=get_exponential_config(), total_time=60, filename='exponential')
 
 
 def plot_fields(data, config, out_dir='out', filename='fields'):
@@ -347,15 +315,81 @@ def plot_fields(data, config, out_dir='out', filename='fields'):
         unitless_config['bounds'],
         fields=fields,
         out_dir=out_dir,
-        filename=filename
+        filename=filename)
+
+
+def run_diffusion_field(config=None, total_time=100, filename='snapshots'):
+    config = config or {}
+    diff_process = DiffusionField(config)
+
+    # make the toy exchange agent
+    agent_id = '0'
+    agent_params = {
+        'mol_ids': ['glc'],
+        'default_exchange': 100,
+        'max_move': 1.0,
+    }
+    agent_process = ExchangeAgent(agent_params)
+
+    # get initial fields
+    initial_fields = diff_process.initial_state()
+
+    # put them together in a simulation
+    sim = Engine(
+        processes={
+            'diff': diff_process,
+            'agents': {
+                agent_id: {
+                    'exchange': agent_process
+                }
+            }
+        },
+        topology={
+            'diff': {
+                port: (port,)
+                for port in diff_process.ports_schema().keys()
+            },
+            'agents': {
+                agent_id: {
+                    'exchange': {'boundary': ('boundary',)}
+                }
+            }
+        },
+        initial_state=initial_fields
+    )
+    sim.update(total_time)
+
+    # plot
+    data = sim.emitter.get_data_unitless()
+
+    # add empty angle back in for the plot (this is undesirable)
+    for t in data.keys():
+        data[t]['agents'][agent_id]['boundary']['angle'] = 0.0
+        data[t]['agents'][agent_id]['boundary']['length'] = 1.0
+        data[t]['agents'][agent_id]['boundary']['width'] = 1.0
+
+    out_dir = os.path.join(PROCESS_OUT_DIR, 'environment', NAME)
+    if not os.path.exists(out_dir):
+        os.makedirs(out_dir)
+    snapshots_fig = plot_snapshots(
+        n_snapshots=6,
+        bounds=get_in(data, (max(data), 'dimensions', 'bounds')),
+        agents={
+            time: d['agents']
+            for time, d in data.items()
+        },
+        fields={
+            time: d['fields']
+            for time, d in data.items()
+        },
+        out_dir=out_dir,
+        filename=filename,
     )
 
 
 # python ecoli/processes/environment/diffusion_field.py
 if __name__ == '__main__':
-    out_dir = os.path.join(PROCESS_OUT_DIR, NAME)
-    if not os.path.exists(out_dir):
-        os.makedirs(out_dir)
+    # test_all()
 
     parser = argparse.ArgumentParser(description='diffusion_field')
     parser.add_argument('--random', '-r', action='store_true', default=False)
@@ -364,23 +398,14 @@ if __name__ == '__main__':
     args = parser.parse_args()
     no_args = (len(sys.argv) == 1)
 
-    if args.random or no_args:
-        config = get_random_field_config()
-        data = test_diffusion_field(
-            config=config,
-            time=60)
-        plot_fields(data, config, out_dir, 'random_field')
-
-    if args.gaussian or no_args:
-        config = get_gaussian_config()
-        data = test_diffusion_field(
-            config=config,
-            time=60)
-        plot_fields(data, config, out_dir, 'gaussian_field')
-
-    if args.exponential or no_args:
-        config = get_exponential_config()
-        data = test_diffusion_field(
-            config=config,
-            time=60)
-        plot_fields(data, config, out_dir, 'exponential_field')
+    if no_args:
+        test_all()
+    if args.random:
+        run_diffusion_field(
+            config=get_random_field_config(), total_time=60, filename='random')
+    if args.gaussian:
+        run_diffusion_field(
+            config=get_gaussian_config(), total_time=60, filename='gaussian')
+    if args.exponential:
+        run_diffusion_field(
+            config=get_exponential_config(), total_time=60, filename='exponential')
