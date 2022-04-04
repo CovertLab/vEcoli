@@ -201,15 +201,6 @@ class MetabolismGD(Process):
                 },
             },
 
-            'polypeptide_elongation': {
-                'aa_count_diff': {
-                    '_default': {},
-                    '_emit': True},
-                'gtp_to_hydrolyze': {
-                    '_default': 0,
-                    '_emit': True}
-            },
-
             'evolvers_ran': {'_default': True},
         }
 
