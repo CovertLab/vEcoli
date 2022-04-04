@@ -171,12 +171,14 @@ def test_grow_divide_exchange(total_time=2000):
                 'global': {
                     'mass': 1000 * units.fg},
                 'external': {
-                    molecule_id: 10.0},
-                    # molecule_id: 10.0 * units.mmol / units.L},
+                    molecule_id: 10.0  * units.mmol / units.L
+                },
                 'internal': {
-                    molecule_id: 0.0}
-                    # molecule_id: 0.0 * units.mmol / units.L}
-            }}}
+                    molecule_id: 0.0  * units.mmol / units.L
+                }
+            }
+        }
+    }
 
     settings = {
         'experiment_id': 'grow_divide_exchange'}
@@ -205,18 +207,15 @@ def main():
     if not os.path.exists(out_dir):
         os.makedirs(out_dir)
 
-    grow_divide = False
-    grow_divide_exchange = True
+    # if grow_divide:
+    output = test_grow_divide(2000)
+    plot_settings = {}
+    plot_agents_multigen(output, plot_settings, out_dir, 'grow_divide')
 
-    if grow_divide:
-        output = test_grow_divide(2000)
-        plot_settings = {}
-        plot_agents_multigen(output, plot_settings, out_dir, 'grow_divide')
-
-    if grow_divide_exchange:
-        output = test_grow_divide_exchange(2000)
-        plot_settings = {}
-        plot_agents_multigen(output, plot_settings, out_dir, 'grow_divide_exchange')
+    # if grow_divide_exchange:
+    output = test_grow_divide_exchange(2000)
+    plot_settings = {}
+    plot_agents_multigen(output, plot_settings, out_dir, 'grow_divide_exchange')
 
 
 if __name__ == '__main__':
