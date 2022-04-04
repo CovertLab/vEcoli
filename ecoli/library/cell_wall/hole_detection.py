@@ -3,7 +3,6 @@ from collections.abc import MutableMapping
 from functools import reduce
 from operator import __or__
 from time import perf_counter
-from attr import frozen
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -33,14 +32,19 @@ class HoleSizeDict(MutableMapping):
     def merge(self, hole1: frozenset, hole2: frozenset):
         while not isinstance(self.mapping[hole1], int):
             hole1 = self.mapping[hole1]
-        
+
         while not isinstance(self.mapping[hole2], int):
             hole2 = self.mapping[hole2]
-        
+
+        # Only merge if hole1 and hole2 do not already
+        # map to the same location
         merged_hole = hole1 | hole2
-        self.mapping[merged_hole] = self.mapping[hole1] + self.mapping[hole2]
-        self.mapping[hole1] = merged_hole
-        self.mapping[hole2] = merged_hole
+        if hole1 != hole2:
+            self.mapping[merged_hole] = self.mapping[hole1] + self.mapping[hole2]
+            self.mapping[hole1] = merged_hole
+            self.mapping[hole2] = merged_hole
+        
+        return merged_hole
 
     def __iter__(self):
         return iter(self.mapping)
@@ -62,7 +66,7 @@ def detect_holes(lattice):
 
     # Fill hole view initially with empty sets
     hole_view = np.full_like(lattice, frozenset(), dtype=object)
-    hole_sizes = dict()
+    hole_sizes = HoleSizeDict()
 
     next_hole_id = 1
     rows, cols = lattice.shape
@@ -83,11 +87,11 @@ def detect_holes(lattice):
                 for n_r in range(r - 1, r + 1)
                 for n_c in range(c - 1, c + 2)
             } - {(r, c), (r, c + 1)}
-            neighbor_holes = {
+            neighbor_holes = [
                 hole_view[n_r, n_c]
                 for n_r, n_c in neighbor_pos
                 if len(hole_view[n_r, n_c]) > 0
-            }
+            ]
 
             if len(neighbor_holes) == 0:
 
@@ -96,58 +100,10 @@ def detect_holes(lattice):
                 hole_sizes[new_id] = 1
                 next_hole_id += 1
             else:
-
-                # Fill current position with correct id, by merging with existing holes
-                new_id = reduce(__or__, neighbor_holes)
-
-                # If merging holes, need to re-route hole size information
-                # (e.g. if combining {1}, {2} => {1, 2}, need to update hole_sizes
-                # entries such that {1}, {2} say to go look at {1, 2}).
-                if new_id not in neighbor_holes:
-
-                    # Route everything to destination_id, initially new_id (may change later)
-                    destination_id = new_id
-                    hole_sizes[destination_id] = hole_sizes.get(destination_id, 0)
-
-                    for id in neighbor_holes:
-
-                        loc = hole_sizes[id]
-                        while not isinstance(loc, int):
-                            # May have found a new destination.
-                            # Traverse until an integer is found,
-                            # updating the destination along the way.
-                            new_dest_id = destination_id | loc
-
-                            # reroute current destination to new destination
-                            size = hole_sizes[destination_id]
-                            hole_sizes[destination_id] = new_dest_id
-                            hole_sizes[new_dest_id] = size
-                            destination_id = new_dest_id
-
-                            # reroute current location to destination
-                            assert loc != destination_id
-                            hole_sizes[loc] = destination_id
-
-                            # Traverse upwards
-                            loc = hole_sizes[loc]
-
-                        # Transfer size information to destination id,
-                        # route to destination id. Note we are iterating over
-                        # neighbor_holes, which is a set, so this will not
-                        # result in double-counting.
-                        hole_sizes[destination_id] += loc
-                        hole_sizes[
-                            id
-                        ] = destination_id  # Shortcut - can we just use this routing
-                        # without doing the in-traversal routing above?
-
-                    hole_sizes[destination_id] += 1
-
-                else:
-                    loc = new_id
-                    while not isinstance(hole_sizes[loc], int):
-                        loc = hole_sizes[loc]
-                    hole_sizes[loc] += 1
+                new_id = neighbor_holes[0]
+                for id1, id2 in zip(neighbor_holes, neighbor_holes[1:]):
+                    new_id = hole_sizes.merge(id1, id2)
+                hole_sizes[new_id] += 1
 
             hole_view[r, c] = new_id
 
@@ -155,10 +111,7 @@ def detect_holes(lattice):
 
 
 def test_hole_size_dict():
-    hsd = HoleSizeDict({
-        frozenset([1]): 1,
-        frozenset([2]): 2
-    })
+    hsd = HoleSizeDict({frozenset([1]): 1, frozenset([2]): 2})
 
     hsd.merge(frozenset([1]), frozenset([2]))
     assert hsd[frozenset([1, 2])] == 3
@@ -221,6 +174,8 @@ def test_detect_holes():
     print(f"Passed {n_passed}/{len(test_files)} tests.")
     print()
 
+
+def test_runtime():
     # Runtime plot
     rng = np.random.default_rng(0)
     side_length = [10, 100, 500]
@@ -239,7 +194,7 @@ def test_detect_holes():
                 f"Runtime for side length {s}, density {d:.1f} : {runtimes[r, c]} seconds"
             )
 
-    fig, ax = plt.subplot()
+    fig, ax = plt.subplots()
     ax.plot(runtimes)
     fig.tight_layout()
     fig.savefig("out/hole_detection/test_runtime.png")
@@ -248,6 +203,7 @@ def test_detect_holes():
 def main():
     test_hole_size_dict()
     test_detect_holes()
+    test_runtime()
 
 
 if __name__ == "__main__":
