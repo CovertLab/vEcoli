@@ -263,10 +263,10 @@ def get_random_field_config():
     return {
         'molecules': ['glc'],
         'initial_state': {
-            'glc': 2.0 * np.random.rand(n_bins[0], n_bins[1])},
+            'glc': 1.0 * np.random.rand(n_bins[0], n_bins[1])},
         'n_bins': n_bins,
         'bounds': (20, 20) * units.um,
-        'depth': 5 * units.um,
+        'depth': 1e-2 * units.um,
         'diffusion': 1e-2 * units.um**2 / units.sec,  # slow diffusion
     }
 
