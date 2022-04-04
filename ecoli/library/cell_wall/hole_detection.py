@@ -3,6 +3,7 @@ from collections.abc import MutableMapping
 from functools import reduce
 from operator import __or__
 from time import perf_counter
+from attr import frozen
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -13,17 +14,33 @@ class HoleSizeDict(MutableMapping):
         self.mapping = {}
         self.update(data)
 
-    def __getitem__(self, key):
-        # TODO
-        pass
+    def __getitem__(self, key: frozenset):
+        result = self.mapping[key]
+        while not isinstance(result, int):
+            result = self.mapping[result]
+        return result
 
     def __delitem__(self, key):
-        # TODO
-        pass
+        del self.mapping[key]
 
-    def __setitem__(self, key, value):
-        # TODO
-        pass
+    def __setitem__(self, key: frozenset, value: int):
+        loc = key
+        while not isinstance(self.mapping.get(loc, 0), int):
+            loc = self.mapping[loc]
+
+        self.mapping[loc] = value
+
+    def merge(self, hole1: frozenset, hole2: frozenset):
+        while not isinstance(self.mapping[hole1], int):
+            hole1 = self.mapping[hole1]
+        
+        while not isinstance(self.mapping[hole2], int):
+            hole2 = self.mapping[hole2]
+        
+        merged_hole = hole1 | hole2
+        self.mapping[merged_hole] = self.mapping[hole1] + self.mapping[hole2]
+        self.mapping[hole1] = merged_hole
+        self.mapping[hole2] = merged_hole
 
     def __iter__(self):
         return iter(self.mapping)
@@ -138,7 +155,16 @@ def detect_holes(lattice):
 
 
 def test_hole_size_dict():
-    hsd = HoleSizeDict()
+    hsd = HoleSizeDict({
+        frozenset([1]): 1,
+        frozenset([2]): 2
+    })
+
+    hsd.merge(frozenset([1]), frozenset([2]))
+    assert hsd[frozenset([1, 2])] == 3
+
+    hsd[frozenset([1])] += 5
+    assert hsd[frozenset([1, 2])] == 8
 
 
 def test_detect_holes():
