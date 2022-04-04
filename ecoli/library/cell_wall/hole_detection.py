@@ -87,7 +87,8 @@ def detect_holes(lattice):
                 continue
 
             # Get neighbors of the current hole.
-            # The following diagram indicates which positions relative to the current position (X)
+            # The following diagram indicates which positions
+            # relative to the current position (X)
             # are considered neighbors (N):
             #
             # N N N
@@ -187,25 +188,35 @@ def test_detect_holes():
 
 def test_runtime():
     # Runtime plot
-    rng = np.random.default_rng(0)
-    side_length = [10, 100, 500]
-    density = np.arange(0, 1, 0.1)
-    runtimes = np.zeros((len(side_length), len(density)))
+    fig, ax = plt.subplots()
 
-    for r, s in enumerate(side_length):
-        for c, d in enumerate(density):
+    rng = np.random.default_rng(0)
+    side_length = [10, 100, 200]
+    density = np.arange(0, 1, 0.1)
+
+    for d in density:
+        runtimes = []
+        for s in side_length:
             a = rng.binomial(1, d, size=s * s).reshape((s, s))
+
             tick = perf_counter()
             detect_holes(a)
             tock = perf_counter()
 
-            runtimes[r, c] = tock - tick
-            print(
-                f"Runtime for side length {s}, density {d:.1f} : {runtimes[r, c]} seconds"
-            )
+            runtimes.append(tock - tick)
 
-    fig, ax = plt.subplots()
-    ax.plot(runtimes)
+            print(f"Runtime for side length {s}, density {d:.1f} : {tock-tick} seconds")
+
+        ax.plot(
+            side_length,
+            runtimes,
+            label=f"density={d:.1f}",
+            color=((1 - d) * 0.75, 0, d),
+        )
+
+    ax.legend()
+    ax.set_xlabel("Side length")
+    ax.set_ylabel("Runtime (s)")
     fig.tight_layout()
     fig.savefig("out/hole_detection/test_runtime.png")
 
