@@ -7,6 +7,7 @@ Diffusion Field
 import sys
 import os
 import argparse
+import copy
 
 import numpy as np
 from scipy import constants
@@ -24,6 +25,7 @@ from ecoli.library.lattice_utils import (
     get_bin_site,
     get_bin_volume,
     make_gradient,
+    apply_exchanges,
 )
 from ecoli.plots.snapshots import plot_snapshots
 
@@ -168,8 +170,19 @@ class DiffusionField(Process):
         fields = states['fields']
         agents = states['agents']
 
+        # make new fields for the updated state
+        new_fields = copy.deepcopy(fields)
+
+        ###################
+        # apply exchanges #
+        ###################
+        new_fields, agent_updates = apply_exchanges(
+            agents, new_fields,
+            self.parameters['boundary_path'],
+            self.n_bins, self.bounds, self.bin_volume)
+
         # diffuse field
-        delta_fields, new_fields = self.diffuse(fields, timestep)
+        delta_fields, new_fields = self.diffuse(new_fields, timestep)
 
         # get each agent's new local environment
         local_environments = self.get_local_environments(agents, new_fields)

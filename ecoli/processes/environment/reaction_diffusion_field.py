@@ -15,9 +15,8 @@ from vivarium.core.engine import Engine
 from vivarium.library.units import units
 
 from ecoli.library.lattice_utils import (
-    count_to_concentration,
     get_bin_site,
-    get_bin_volume,
+    get_bin_volume, apply_exchanges,
 )
 from vivarium.library.topology import get_in
 from ecoli.plots.snapshots import plot_snapshots
@@ -165,34 +164,10 @@ class ReactionDiffusion(Process):
         ###################
         # apply exchanges #
         ###################
-
-        # apply exchanges from each agent
-        agent_updates = {}
-        for agent_id, agent_state in agents.items():
-            boundary = get_in(agent_state, self.parameters['boundary_path'])
-            exchanges = boundary['exchanges']
-            location = boundary['location']
-            bin_site = get_bin_site(location, self.n_bins, self.bounds)
-
-            reset_exchanges = {}
-            for mol_id, value in exchanges.items():
-
-                # delta concentration
-                exchange = value * units.count
-                bin_volume = self.bin_volume
-                concentration = count_to_concentration(exchange, bin_volume).to(
-                    units.mmol / units.L).magnitude
-
-                delta_field = np.zeros((self.n_bins[0], self.n_bins[1]), dtype=np.float64)
-                delta_field[bin_site[0], bin_site[1]] += concentration
-                new_fields[mol_id] += delta_field
-
-                # reset the exchange value
-                reset_exchanges[mol_id] = {
-                    '_value': -value,
-                    '_updater': 'accumulate'}
-
-            agent_updates[agent_id] = {'exchanges': reset_exchanges}
+        new_fields, agent_updates = apply_exchanges(
+            agents, new_fields,
+            self.parameters['boundary_path'],
+            self.n_bins, self.bounds, self.bin_volume)
 
         #####################
         # react and diffuse #
