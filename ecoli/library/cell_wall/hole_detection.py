@@ -1,10 +1,38 @@
 import os
+from collections.abc import MutableMapping
 from functools import reduce
 from operator import __or__
 from time import perf_counter
 
 import matplotlib.pyplot as plt
 import numpy as np
+
+
+class HoleSizeDict(MutableMapping):
+    def __init__(self, data=()):
+        self.mapping = {}
+        self.update(data)
+
+    def __getitem__(self, key):
+        # TODO
+        pass
+
+    def __delitem__(self, key):
+        # TODO
+        pass
+
+    def __setitem__(self, key, value):
+        # TODO
+        pass
+
+    def __iter__(self):
+        return iter(self.mapping)
+
+    def __len__(self):
+        return len(self.mapping)
+
+    def __repr__(self):
+        return f"{type(self).__name__}({self.mapping})"
 
 
 def detect_holes(lattice):
@@ -80,6 +108,7 @@ def detect_holes(lattice):
                             destination_id = new_dest_id
 
                             # reroute current location to destination
+                            assert loc != destination_id
                             hole_sizes[loc] = destination_id
 
                             # Traverse upwards
@@ -108,7 +137,11 @@ def detect_holes(lattice):
     return hole_view, max(filter(lambda x: isinstance(x, int), hole_sizes.values()))
 
 
-def main():
+def test_hole_size_dict():
+    hsd = HoleSizeDict()
+
+
+def test_detect_holes():
     # Create output directory
     os.makedirs("out/hole_detection", exist_ok=True)
 
@@ -184,6 +217,11 @@ def main():
     ax.plot(runtimes)
     fig.tight_layout()
     fig.savefig("out/hole_detection/test_runtime.png")
+
+
+def main():
+    test_hole_size_dict()
+    test_detect_holes()
 
 
 if __name__ == "__main__":
