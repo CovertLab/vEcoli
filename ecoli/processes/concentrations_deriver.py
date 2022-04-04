@@ -24,7 +24,7 @@ class ConcentrationsDeriver(Step):
             },
             'concentrations': {
                 variable: {
-                    '_default': 0,  # mM
+                    '_default': 0 * units.mM,
                     '_updater': 'set',
                 }
                 for variable in self.parameters['variables']
@@ -41,7 +41,7 @@ class ConcentrationsDeriver(Step):
         concentrations = {
             var: (
                 count * units.count / AVOGADRO / volume
-            ).to(units.millimolar).magnitude
+            ).to(units.millimolar)
             for var, count in states['counts'].items()
         }
         return {

@@ -12,7 +12,7 @@ import math
 
 from scipy.constants import N_A
 from vivarium.core.process import Step
-from vivarium.library.units import units
+from vivarium.library.units import units, Quantity
 
 PI = math.pi
 AVOGADRO = N_A / units.mol
@@ -82,9 +82,10 @@ class Shape(Step):
 
     name = 'ecoli-shape'
     defaults = {
-        'width': 1.0,  # um
+        'width': 1.0 * units.um,
         'periplasm_fraction': 0.3,
-        'initial_cell_volume': 1.2,  # fL
+        'cytosol_fraction': 0.7,
+        'initial_cell_volume': 1.2 * units.fL,
         'initial_mass': 1339 * units.fg,
     }
 
@@ -96,19 +97,19 @@ class Shape(Step):
         schema = {
             'cell_global': {
                 'volume': {
-                    '_default': 0,
+                    '_default': 0 * units.fL,
                     '_updater': 'set',
                     '_emit': True,
                     '_divider': 'split',
                 },
                 'width': {
-                    '_default': 0,
+                    '_default': 0 * units.um,
                     '_updater': 'set',
                     '_emit': True,
                     '_divider': 'set',
                 },
                 'length': {
-                    '_default': 0,
+                    '_default': 0 * units.um,
                     '_updater': 'set',
                     '_emit': True,
                     '_divider': 'split',
@@ -135,7 +136,24 @@ class Shape(Step):
             'listener_cell_mass': {
                 '_default': 0,
             },
+            'listener_cell_volume': {
+                '_default': 0,
+            },
             'periplasm_global': {
+                'volume': {
+                    '_default': 0 * units.fL,
+                    '_emit': True,
+                    '_divider': 'split',
+                    '_updater': 'set',
+                },
+                'mmol_to_counts': {
+                    '_default': 0 / units.millimolar,
+                    '_emit': True,
+                    '_divider': 'split',
+                    '_updater': 'set',
+                },
+            },
+            'cytosol_global': {
                 'volume': {
                     '_default': 0 * units.fL,
                     '_emit': True,
@@ -153,36 +171,55 @@ class Shape(Step):
         return schema
 
     def initial_state(self, config=None):
-        cell_volume = self.parameters['initial_cell_volume'] * units.fL
-        width = self.parameters['width'] * units.um
+        cell_volume = self.parameters['initial_cell_volume']
+        assert isinstance(cell_volume, Quantity)
+        width = self.parameters['width']
+        assert isinstance(width, Quantity)
         length = length_from_volume(cell_volume, width)
         surface_area = surface_area_from_length(length, width)
-        periplasm_volume = cell_volume * self.parameters[
-            'periplasm_fraction']
-        mass = self.parameters['initial_mass'].to(units.fg)
+
+        assert self.parameters['periplasm_fraction'] + self.parameters['cytosol_fraction'] == 1
+        periplasm_volume = cell_volume * self.parameters['periplasm_fraction']
+        cytosol_volume = cell_volume * self.parameters['cytosol_fraction']
+
+        mass = self.parameters['initial_mass']
+        assert isinstance(mass, Quantity)
         return {
             'cell_global': {
-                'volume': cell_volume.magnitude,
-                'width': width.magnitude,
-                'length': length.magnitude,
-                'surface_area': surface_area_from_length(length, width),
+                'volume': cell_volume,
+                'width': width,
+                'length': length,
+                'surface_area': surface_area,
                 'mmol_to_counts': mmol_to_counts_from_volume(
                     cell_volume),
                 'mass': mass,
             },
             'listener_cell_mass': mass.magnitude,
+            'listener_cell_volume': cell_volume.magnitude,
             'periplasm_global': {
                 'volume': periplasm_volume,
                 'mmol_to_counts': mmol_to_counts_from_volume(
                     periplasm_volume),
             },
+            'cytosol_global': {
+                'volume': cytosol_volume,
+                'mmol_to_counts': mmol_to_counts_from_volume(
+                    cytosol_volume),
+            },
         }
 
     def next_update(self, timestep, states):
-        width = states['cell_global']['width'] * units.um
-        cell_volume = states['cell_global']['volume'] * units.fL
-        periplasm_volume = cell_volume * self.parameters[
-            'periplasm_fraction']
+        for port in (
+                'cell_global', 'periplasm_global', 'cytosol_global'):
+            for variable in states[port].values():
+                assert isinstance(variable, Quantity)
+
+        width = states['cell_global']['width']
+        cell_volume = states['listener_cell_volume'] * units.fL
+
+        assert self.parameters['periplasm_fraction'] + self.parameters['cytosol_fraction'] == 1
+        periplasm_volume = cell_volume * self.parameters['periplasm_fraction']
+        cytosol_volume = cell_volume * self.parameters['cytosol_fraction']
 
         # calculate length and surface area
         length = length_from_volume(cell_volume, width)
@@ -190,7 +227,7 @@ class Shape(Step):
 
         update = {
             'cell_global': {
-                'length': length.magnitude,
+                'length': length,
                 'surface_area': surface_area,
                 'mmol_to_counts': mmol_to_counts_from_volume(
                     cell_volume),
@@ -201,5 +238,10 @@ class Shape(Step):
                 'mmol_to_counts': mmol_to_counts_from_volume(
                     periplasm_volume),
             },
+            'cytosol_global': {
+                'volume': cytosol_volume,
+                'mmol_to_counts': mmol_to_counts_from_volume(
+                    cytosol_volume),
+            }
         }
         return update
