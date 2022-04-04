@@ -16,7 +16,7 @@ from vivarium.library.units import units
 
 from ecoli.library.lattice_utils import (
     get_bin_site,
-    get_bin_volume, apply_exchanges,
+    get_bin_volume, apply_exchanges, ExchangeAgent,
 )
 from vivarium.library.topology import get_in
 from ecoli.plots.snapshots import plot_snapshots
@@ -272,54 +272,6 @@ class ReactionDiffusion(Process):
                 new_fields[substrate_id] += delta
 
         return new_fields
-
-
-class ExchangeAgent(Process):
-    defaults = {
-        'mol_ids': [],
-        'default_exchange': 100,
-    }
-
-    def __init__(self, parameters=None):
-        super().__init__(parameters)
-
-    def ports_schema(self):
-        mol_ids = self.parameters['mol_ids']
-
-        def accumulate_location(value, update):
-            return [
-                max(value[0] + update[0], 0),
-                max(value[1] + update[1], 0)
-            ]
-
-        return {
-            'boundary': {
-                'external': {
-                    mol_id: {'_default': 0.0} for mol_id in mol_ids},
-                'exchanges': {
-                    mol_id: {'_default': self.parameters['default_exchange']}
-                    for mol_id in mol_ids},
-                'location': {
-                    '_default': [0.5, 0.5],
-                    '_updater': accumulate_location,
-                }
-            }
-        }
-
-    def next_update(self, timestep, states):
-        max_move = 4.0
-        mol_ids = self.parameters['mol_ids']
-        return {
-            'boundary': {
-                'exchanges': {
-                    mol_id: self.parameters['default_exchange']
-                    for mol_id in mol_ids},
-                'location': [
-                    np.random.uniform(-max_move, max_move) * units.um,
-                    np.random.uniform(-max_move, max_move) * units.um
-                ],
-            }
-        }
 
 
 def main():
