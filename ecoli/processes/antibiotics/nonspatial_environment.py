@@ -4,17 +4,17 @@ import numpy as np
 from scipy import constants
 
 from vivarium.library.units import units
-from vivarium.core.process import Deriver
+from vivarium.core.process import Step
 
 AVOGADRO = constants.N_A * 1 / units.mol
 
 
-class NonSpatialEnvironment(Deriver):
+class NonSpatialEnvironment(Step):
     '''A non-spatial environment with volume'''
 
     name = 'nonspatial_environment'
     defaults = {
-        'internal_volume': 1,  # fL
+        'internal_volume': 1 * units.fL,
         'env_volume': 1 * units.fL,
         'concentrations': {},
     }
@@ -57,10 +57,10 @@ class NonSpatialEnvironment(Deriver):
             },
             'global': {
                 'location': {
-                    '_value': [0.5, 0.5],
+                    '_value': [0.5 * units.um, 0.5 * units.um],
                 },
                 'volume': {
-                    '_default': 0,
+                    '_default': 0 * units.fL,
                 },
                 'mmol_to_counts': {
                     '_default': 0 / units.mM,
@@ -71,7 +71,7 @@ class NonSpatialEnvironment(Deriver):
         field_schema = {
             field_id: {
                 '_value': np.array([[
-                    float(conc)
+                    float(conc.magnitude)
                 ]])
             } for field_id, conc in self.parameters['concentrations'].items()}
         schema['fields'].update(field_schema)
@@ -83,7 +83,6 @@ class NonSpatialEnvironment(Deriver):
                 'volume': self.parameters['internal_volume'],
                 'mmol_to_counts': (
                     AVOGADRO * self.parameters['internal_volume']
-                    * units.fL
                 ).to(1 / units.mM),
             }
         }
@@ -104,7 +103,7 @@ class NonSpatialEnvironment(Deriver):
             'external': {
                 mol_id: {
                     '_updater': 'set',
-                    '_value': field[0][0],
+                    '_value': field[0][0] * units.mM,
                 }
                 for mol_id, field in new_fields.items()
             },

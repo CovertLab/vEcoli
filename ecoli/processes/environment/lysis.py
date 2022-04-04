@@ -22,7 +22,7 @@ from ecoli.library.lattice_utils import (
 
 
 
-AVOGADRO = constants.N_A
+AVOGADRO = constants.N_A / units.mol
 
 
 class Lysis(Step):
@@ -53,7 +53,7 @@ class Lysis(Step):
             'agents': {},
             'internal': {
                 mol_id: {
-                    '_default': 1,
+                    '_default': 1,  # Counts
                     '_emit': True,
                 } for mol_id in self.parameters['secreted_molecules']
             },
@@ -62,24 +62,24 @@ class Lysis(Step):
                 '_output': True,
             },
             'location': {
-                '_default': [0.5, 0.5]
+                '_default': [0.5, 0.5] * units.um,
             },
             'dimensions': {
                 'bounds': {
-                    '_default': [1, 1],
+                    '_default': [1, 1] * units.um,
                 },
                 'n_bins': {
                     '_default': [1, 1],
                 },
                 'depth': {
-                    '_default': 1,
+                    '_default': 1 * units.um,
                 },
             }
         }
 
     def next_update(self, timestep, states):
         if states['trigger']:
-            location = remove_units(states['location'])
+            location = states['location']
             n_bins = states['dimensions']['n_bins']
             bounds = states['dimensions']['bounds']
             depth = states['dimensions']['depth']
@@ -89,7 +89,7 @@ class Lysis(Step):
                 bin_volume = self.bin_volume
             else:
                 bin_site = get_bin_site(location, n_bins, bounds)
-                bin_volume = get_bin_volume(n_bins, bounds, depth) * units.L
+                bin_volume = get_bin_volume(n_bins, bounds, depth)
 
             # apply internal states to fields
             internal = states['internal']
@@ -97,9 +97,9 @@ class Lysis(Step):
             for mol_id, value in internal.items():
 
                 # delta concentration
-                exchange = value * units.count
+                exchange = value
                 concentration = count_to_concentration(exchange, bin_volume).to(
-                    units.mmol / units.L).magnitude
+                    units.mM)
 
                 if self.nonspatial:
                     delta_fields[mol_id] = {
@@ -107,7 +107,8 @@ class Lysis(Step):
                         '_updater': 'accumulate'}
                 else:
                     delta_field = np.zeros((n_bins[0], n_bins[1]), dtype=np.float64)
-                    delta_field[bin_site[0], bin_site[1]] += concentration
+                    delta_field[bin_site[0], bin_site[1]] += concentration.to(
+                        units.mM).magnitude
                     delta_fields[mol_id] = {
                         '_value': delta_field,
                         '_updater': 'accumulate'}
@@ -133,7 +134,7 @@ class ToyTransportBurst(Process):
 
     defaults = {
         'uptake_rate': {'GLC': 1},
-        'molecular_weights': {'GLC': 1 * units.fg},
+        'molecular_weights': {'GLC': 1 * units.fg / units.mol},
         'burst_mass': 2000 * units.fg,
     }
 
@@ -145,7 +146,7 @@ class ToyTransportBurst(Process):
         return {
             'external': {
                 key: {
-                    '_default': 0.0,
+                    '_default': 0.0 * units.mM,
                     '_emit': True,
                 } for key in self.molecules
             },
@@ -165,7 +166,7 @@ class ToyTransportBurst(Process):
                 '_default': 0.0 * units.fg,
             },
             'length': {
-                '_default': 0.0,
+                '_default': 0.0 * units.um,
             },
             'burst_trigger': {
                 '_default': False,
@@ -177,11 +178,12 @@ class ToyTransportBurst(Process):
     def next_update(self, timestep, states):
         added = {}
         exchanged = {}
-        added_mass = 0.0
+        added_mass = 0.0 * units.fg
         for mol_id, e_state in states['external'].items():
             exchange_concs = e_state * self.parameters['uptake_rate'][mol_id]
-            exchange_counts = exchange_concs
-
+            # NOTE: This is not correct. We are just hacking this
+            # together for testing.
+            exchange_counts = exchange_concs.magnitude
             added[mol_id] = exchange_counts
             exchanged[mol_id] = -1 * exchange_counts
             added_mass += mass_from_count(
@@ -217,7 +219,7 @@ class LysisAgent(Composer):
                 'GLC': 2,
             },
             'molecular_weights': {
-                'GLC': 1e22 * units.fg
+                'GLC': 1e22 * units.fg / units.mol,
             },
             'burst_mass': 2000 * units.fg,
         },
@@ -286,7 +288,7 @@ def test_lysis(
         molecule_name='GLC',
         total_time=60,
         emit_step=1,
-        bounds=[25, 25],
+        bounds=[25, 25] * units.um,
         n_bins=[5, 5],
         uptake_rate_max=25
 ):
@@ -300,7 +302,7 @@ def test_lysis(
             'gradient': {
                 'type': 'uniform',
                 'molecules': {
-                    molecule_name: 10.0,
+                    molecule_name: 10.0 * units.mM,
                 }
             },
         },
@@ -318,7 +320,7 @@ def test_lysis(
         },
         'transport_burst': {
             'molecular_weights': {
-                molecule_name: 1e22 * units.fg
+                molecule_name: 1e22  * units.fg / units.mol,
             },
             'burst_mass': 2000 * units.fg,
         },
@@ -363,7 +365,7 @@ def main():
     from ecoli.plots.snapshots import plot_snapshots, format_snapshot_data
     from ecoli.plots.snapshots_video import make_video
 
-    bounds = [15, 15]
+    bounds = [15, 15] * units.um
     molecule_name = 'beta-lactam'
 
     data = test_lysis(

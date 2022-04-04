@@ -28,6 +28,14 @@ def get_bin_site(location, n_bins, bounds):
         tuple: A 2-tuple of the x and y indices of the bin in the
         lattice.
     '''
+    location = [
+        coordinate.to(units.um).magnitude
+        for coordinate in location
+    ]
+    bounds = [
+        bound.to(units.um).magnitude
+        for bound in bounds
+    ]
     bin_site_no_rounding = np.array([
         location[0] * n_bins[0] / bounds[0],
         location[1] * n_bins[1] / bounds[1]
@@ -51,8 +59,8 @@ def get_bin_volume(n_bins, bounds, depth):
     Returns:
         float: The volume of each bin in the lattice, in Liters.
     '''
-    total_volume = (depth * bounds[0] * bounds[1]) * 1e-15  # (L)
-    return total_volume / (n_bins[0] * n_bins[1])
+    total_volume = (depth * bounds[0] * bounds[1])
+    return (total_volume / (n_bins[0] * n_bins[1])).to(units.L)
 
 
 def count_to_concentration(count, bin_volume):

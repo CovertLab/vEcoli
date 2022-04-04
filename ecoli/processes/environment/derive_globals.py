@@ -53,7 +53,7 @@ class DeriveGlobals(Step):
 
     name = 'globals_deriver'
     defaults = {
-        'width': 1,  # um
+        'width': 1 * units.um,
         'initial_mass': 1339 * units.fg,  # wet mass in fg
     }
 
@@ -83,13 +83,13 @@ class DeriveGlobals(Step):
         density = 1100 * units.g / units.L
         volume = mass/density
         mmol_to_counts = (AVOGADRO * volume).to('L/mmol')
-        length = length_from_volume(volume.magnitude, width)
+        length = length_from_volume(volume, width)
         surface_area = surface_area_from_length(length, width)
 
         default_state = {
             'global': {
                 'mass': mass,
-                'volume': volume.to('fL'),
+                'volume': volume.to(units.fL),
                 'mmol_to_counts': mmol_to_counts,
                 'density': density,
                 'width': width,
@@ -122,12 +122,12 @@ class DeriveGlobals(Step):
         # get volume from mass, and more variables from volume
         volume = mass / density
         mmol_to_counts = (AVOGADRO * volume).to('L/mmol')
-        length = length_from_volume(volume.magnitude, width)
+        length = length_from_volume(volume, width)
         surface_area = surface_area_from_length(length, width)
 
         return {
             'global': {
-                'volume': volume.to('fL'),
+                'volume': volume,
                 'mmol_to_counts': mmol_to_counts,
                 'length': length,
                 'surface_area': surface_area,

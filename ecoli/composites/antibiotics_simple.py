@@ -10,6 +10,10 @@ from ecoli.processes.antibiotics.permeability import (
     Permeability, CEPH_OMPC_CON_PERM, CEPH_OMPF_CON_PERM, OUTER_BILAYER_CEPH_PERM, TET_OMPF_CON_PERM, OUTER_BILAYER_TET_PERM,
     INNER_BILAYER_TET_PERM, SA_AVERAGE
 )
+from ecoli.processes.antibiotics.permeability import (
+    Permeability, CEPH_OMPC_CON_PERM, CEPH_OMPF_CON_PERM, OUTER_BILAYER_CEPH_PERM, TET_OMPF_CON_PERM, OUTER_BILAYER_TET_PERM,
+    INNER_BILAYER_TET_PERM, SA_AVERAGE
+)
 from ecoli.processes.antibiotics.nonspatial_environment import (
     NonSpatialEnvironment
 )
@@ -150,7 +154,6 @@ class SimpleAntibioticsCell(Composer):
 
 def demo():
     sim_time = 100
-
     timeline = []
     for i in range(10):
         timeline.append(

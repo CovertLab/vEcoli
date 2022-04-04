@@ -15,7 +15,7 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 
 # vivarium imports
-from vivarium.library.units import units, Quantity
+from vivarium.library.units import units, Quantity, remove_units
 from vivarium.core.process import Process
 from vivarium.core.composition import (
     process_in_experiment,
@@ -34,7 +34,7 @@ from ecoli.plots.snapshots import (
 
 NAME = 'multibody'
 
-DEFAULT_BOUNDS = [40, 40]
+DEFAULT_BOUNDS = [40, 40] * units.um
 DEFAULT_LENGTH_UNIT = units.um
 DEFAULT_MASS_UNIT = units.fg
 DEFAULT_VELOCITY_UNIT = units.um / units.s
@@ -147,7 +147,7 @@ class Multibody(Process):
         multibody_config = {
             'agent_shape': self.agent_shape,
             'jitter_force': jitter_force,
-            'bounds': self.bounds,
+            'bounds': remove_units(self.bounds),
             'barriers': self.mother_machine,
             'physics_dt': self.parameters['time_step'] / 10,
         }
@@ -166,7 +166,9 @@ class Multibody(Process):
                 self.parameters['boundary_key']: {
                     'location': {
                         '_emit': True,
-                        '_default': [0.5 * bound for bound in self.bounds],
+                        '_default': [
+                            0.5 * bound for bound in self.bounds
+                        ],
                         '_updater': 'set',
                         '_divider': {
                             'divider': daughter_locations,
@@ -175,23 +177,29 @@ class Multibody(Process):
                                 'angle': ('..', 'angle',)}}},
                     'length': {
                         '_emit': True,
-                        '_default': 2.0},
+                        '_default': 2.0 * units.um
+                    },
                     'width': {
                         '_emit': True,
-                        '_default': 1.0},
+                        '_default': 1.0 * units.um
+                    },
                     'angle': {
                         '_emit': True,
                         '_default': 0.0,
-                        '_updater': 'set'},
+                        '_updater': 'set',
+                    },
                     'mass': {
                         '_emit': True,
-                        '_default': 1339 * units.fg},
+                        '_default': 1339 * units.fg,
+                    },
                     'thrust': {
                         '_default': 0.0,
-                        '_updater': 'set'},
+                        '_updater': 'set',
+                    },
                     'torque': {
                         '_default': 0.0,
-                        '_updater': 'set'},
+                        '_updater': 'set',
+                    },
                 }
             }
         }
@@ -203,11 +211,11 @@ class Multibody(Process):
         agents = states['agents']
 
         # animate before update
+        agents = remove_units(agents)
         if self.animate:
             self.animate_frame(agents)
 
         # update multibody with new agents
-        agents = self.bodies_remove_units(agents)
         self.physics.update_bodies(agents)
 
         # run simulation
@@ -236,23 +244,10 @@ class Multibody(Process):
                 update['agents']['_delete'] = [
                     agent_id for agent_id in delete_agents]
 
+        for agent in update['agents'].values():
+            agent['boundary']['location'] *= units.um
+
         return update
-
-    def bodies_remove_units(self, bodies):
-        for bodies_id, specs in bodies.items():
-            bodies[bodies_id]['boundary'] = self.boundary_remove_units(specs['boundary'])
-        return bodies
-
-    def boundary_remove_units(self, boundary):
-        if isinstance(boundary['mass'], Quantity):
-            boundary['mass'] = boundary['mass'].to(self.mass_unit).magnitude
-        if isinstance(boundary['location'], Quantity):
-            boundary['location'] = [loc.to(self.length_unit).magnitude for loc in boundary['location']]
-        # if isinstance(boundary['width'], Quantity):
-        #     boundary['width'] = boundary['width'].to(self.length_unit).magnitude
-        # if isinstance(boundary['length'], Quantity):
-        #     boundary['length'] = boundary['length'].to(self.length_unit).magnitude
-        return boundary
 
     ## matplotlib interactive plot
     def animate_frame(self, agents):
@@ -286,23 +281,30 @@ class Multibody(Process):
                 circle = patches.Circle((x, y), width, linewidth=1, edgecolor='b')
                 self.ax.add_patch(circle)
 
-        plt.xlim([0, self.bounds[0]])
-        plt.ylim([0, self.bounds[1]])
+        bounds = remove_units(self.bounds)
+
+        plt.xlim([0, bounds[0]])
+        plt.ylim([0, bounds[1]])
         plt.draw()
         plt.pause(0.01)
 
 
 # configs
 def make_random_position(bounds):
+    unitless_bounds = [
+        bound.to(units.um).magnitude
+        for bound in bounds
+    ]
     return [
-        np.random.uniform(0, bounds[0]),
-        np.random.uniform(0, bounds[1])]
+        np.random.uniform(0, unitless_bounds[0]),
+        np.random.uniform(0, unitless_bounds[1]),
+    ] * units.um
 
 
 def single_agent_config(config):
     # cell dimensions
-    width = 1.0
-    length = 2.0
+    width = 1.0 * units.um
+    length = 2.0 * units.um
     volume = volume_from_length(length, width)
     bounds = config.get('bounds', DEFAULT_BOUNDS)
     location = config.get('location')
@@ -372,7 +374,7 @@ def test_growth_division(
         config=default_gd_config,
         growth_rate=0.05,
         growth_rate_noise=0.001,
-        division_volume=0.4**3,
+        division_volume=0.4**3 * units.fL,
         total_time=10,
         timestep=1,
         experiment_settings={},
@@ -418,7 +420,7 @@ def test_growth_division(
             state = state['boundary']
             length = state['length']
             width = state['width']
-            mass = state['mass'].magnitude
+            mass = state['mass']  # .magnitude
 
             # update
             growth_rate2 = (
@@ -446,7 +448,7 @@ def test_growth_division(
                         'boundary': {
                             'volume': new_volume,
                             'length': new_length,
-                            'mass': new_mass * units.fg}}}
+                            'mass': new_mass}}}  # * units.fg
 
             invoked_update.append((InvokeUpdate({'agents': update}), None))
 
@@ -487,7 +489,7 @@ def run_growth_division(
         config=multibody_config,
         growth_rate=0.05,
         growth_rate_noise=0.001,
-        division_volume=volume_from_length(4, 1),
+        division_volume=volume_from_length(4, 1) * units.fL,
         total_time=100,
         experiment_settings=experiment_settings)
 
