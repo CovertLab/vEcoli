@@ -17,7 +17,7 @@ from ecoli.library.sim_data import LoadSimData
 from ecoli.states.wcecoli_state import get_state_from_file
 from ecoli.composites.ecoli_master import SIM_DATA_PATH
 from ecoli.processes.metabolism_gd import MetabolismGD
-from ecoli.processes import Exchange
+from ecoli.processes.stubs.exchange_stub import Exchange
 from ecoli.processes.registries import topology_registry
 
 import numpy as np
