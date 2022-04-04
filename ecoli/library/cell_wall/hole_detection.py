@@ -1,7 +1,5 @@
 import os
 from collections.abc import MutableMapping
-from functools import reduce
-from operator import __or__
 from time import perf_counter
 
 import matplotlib.pyplot as plt
@@ -9,9 +7,12 @@ import numpy as np
 
 
 class HoleSizeDict(MutableMapping):
-    def __init__(self, data=()):
+    def __init__(self, data={}):
         self.mapping = {}
+        self.max = 0
         self.update(data)
+        if len(data) > 0:
+            self.max = max(v for v in data.values() if isinstance(v, int))
 
     def __getitem__(self, key: frozenset):
         result = self.mapping[key]
@@ -28,6 +29,8 @@ class HoleSizeDict(MutableMapping):
             loc = self.mapping[loc]
 
         self.mapping[loc] = value
+        if value > self.max:
+            self.max = value
 
     def merge(self, hole1: frozenset, hole2: frozenset):
         while not isinstance(self.mapping[hole1], int):
@@ -40,11 +43,18 @@ class HoleSizeDict(MutableMapping):
         # map to the same location
         merged_hole = hole1 | hole2
         if hole1 != hole2:
-            self.mapping[merged_hole] = self.mapping[hole1] + self.mapping[hole2]
+            new_size = self.mapping[hole1] + self.mapping[hole2]
+            self.mapping[merged_hole] = new_size
             self.mapping[hole1] = merged_hole
             self.mapping[hole2] = merged_hole
-        
+
+            if new_size > self.max:
+                self.max = new_size
+
         return merged_hole
+
+    def get_max(self):
+        return self.max
 
     def __iter__(self):
         return iter(self.mapping)
@@ -107,7 +117,7 @@ def detect_holes(lattice):
 
             hole_view[r, c] = new_id
 
-    return hole_view, max(filter(lambda x: isinstance(x, int), hole_sizes.values()))
+    return hole_view, hole_sizes.get_max()
 
 
 def test_hole_size_dict():
