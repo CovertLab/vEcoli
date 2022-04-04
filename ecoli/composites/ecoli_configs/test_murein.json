@@ -1,0 +1,10 @@
+{
+    "experiment_id" : "test_murein",
+    "emitter" : "database",
+    "total_time" : 10,
+
+    "initial_state_file": "wcecoli_t0_reduced_murein",
+
+    "_schema": {
+    }
+}
