@@ -12,12 +12,12 @@ import numpy as np
 from scipy import constants
 from scipy.ndimage import convolve
 
-from vivarium.core.process import Process
+from vivarium.core.process import Process, assoc_path
+from vivarium.core.engine import Engine
 from vivarium.core.composition import (
-    simulate_process,
     PROCESS_OUT_DIR
 )
-from vivarium.library.units import units
+from vivarium.library.units import units, remove_units
 
 from ecoli.library.lattice_utils import (
     count_to_concentration,
@@ -59,6 +59,7 @@ class DiffusionField(Process):
         'depth': 3000.0 * units.um,  # um
         'diffusion': 5e-1 * units.um**2 / units.sec,
         'gradient': {},
+        'boundary_path': ('boundary',)
     }
 
     def __init__(self, parameters=None):
@@ -98,7 +99,7 @@ class DiffusionField(Process):
                 gradient, self.n_bins, unitless_bounds)
             self.initial.update(gradient_fields)
 
-    def initial_state(self, config):
+    def initial_state(self, config=None):
         return {
             'fields': {
                 field: self.initial.get(field, self.ones_field())
@@ -107,29 +108,34 @@ class DiffusionField(Process):
         }
 
     def ports_schema(self):
-        local_concentration_schema = {
-            molecule: {
-                '_default': 0.0 * units.mM
-            }
-            for molecule in self.molecule_ids}
 
-        # agents glob schema
-        schema = {
-            'agents': {
-                '*': {
-                    'boundary': {
-                        'location': {
-                            '_default': [
-                                0.5 * bound for bound in self.bounds],
-                            '_updater': 'set'},
-                        'external': local_concentration_schema,
-                    },
-                },
+        # place the agent boundary schema at the configured boundary path
+        boundary_path = self.parameters['boundary_path']
+        boundary_schema = {
+            'location': {
+                '_default': [
+                    0.5 * bound
+                    for bound in self.bounds],
+                '_emit': True,
+            },
+            'external': {
+                molecule: {
+                    '_default': 0.0 * units.mM}
+                for molecule in self.molecule_ids
+            },
+            'exchanges': {
+                molecule: {
+                    '_default': 0.0}
+                for molecule in self.molecule_ids
             },
         }
+        agent_schema = assoc_path({}, boundary_path, boundary_schema)
 
-        # fields
-        fields_schema = {
+        # make the full schema
+        schema = {
+            'agents': {
+                '*': agent_schema
+            },
             'fields': {
                 field: {
                     '_default': self.ones_field(),
@@ -138,30 +144,24 @@ class DiffusionField(Process):
                 }
                 for field in self.molecule_ids
             },
-        }
-        schema.update(fields_schema)
-
-        # dimensions
-        dimensions_schema = {
             'dimensions': {
                 'bounds': {
-                    '_value': self.parameters['bounds'],
+                    '_default': self.parameters['bounds'],
                     '_updater': 'set',
                     '_emit': True,
                 },
                 'n_bins': {
-                    '_value': self.parameters['n_bins'],
+                    '_default': self.parameters['n_bins'],
                     '_updater': 'set',
                     '_emit': True,
                 },
                 'depth': {
-                    '_value': self.parameters['depth'],
+                    '_default': self.parameters['depth'],
                     '_updater': 'set',
                     '_emit': True,
                 }
             },
         }
-        schema.update(dimensions_schema)
         return schema
 
     def next_update(self, timestep, states):
@@ -297,38 +297,48 @@ def get_exponential_config(config={}):
 
 def test_diffusion_field(
         config={},
-        initial_state={},
         time=10,
 ):
     diffusion = DiffusionField(config)
-    settings = {
-        'return_raw_data': True,
-        'initial_state': initial_state,
-        'total_time': time,
-        'timestep': 1}
-    return simulate_process(diffusion, settings)
+    initial_fields = diffusion.initial_state()
+    # put them together in a simulation
+    sim = Engine(
+        processes={
+            'diffusion': diffusion,
+        },
+        topology={
+            'diffusion': {
+                port: (port,)
+                for port in diffusion.ports_schema().keys()
+            },
+        },
+        initial_state=initial_fields
+    )
+    sim.update(time)
+    return sim.emitter.get_data_unitless()
 
 
 def test_all():
     test_diffusion_field(
-        config=get_random_field_config(), initial_state={}, time=60)
+        config=get_random_field_config(), time=60)
     test_diffusion_field(
-        config=get_gaussian_config(), initial_state={}, time=60)
+        config=get_gaussian_config(), time=60)
     test_diffusion_field(
-        config=get_exponential_config(), initial_state={}, time=60)
+        config=get_exponential_config(), time=60)
 
 
 def plot_fields(data, config, out_dir='out', filename='fields'):
+    unitless_config = remove_units(config)
     fields = {time: time_data['fields'] for time, time_data in data.items()}
-    snapshots_data = {
-        'fields': fields,
-        'config': config}
-    plot_config = {
-        'out_dir': out_dir,
-        'filename': filename}
-    plot_snapshots(snapshots_data, plot_config)
+    plot_snapshots(
+        unitless_config['bounds'],
+        fields=fields,
+        out_dir=out_dir,
+        filename=filename
+    )
 
 
+# python ecoli/processes/environment/diffusion_field.py
 if __name__ == '__main__':
     out_dir = os.path.join(PROCESS_OUT_DIR, NAME)
     if not os.path.exists(out_dir):
@@ -345,7 +355,6 @@ if __name__ == '__main__':
         config = get_random_field_config()
         data = test_diffusion_field(
             config=config,
-            initial_state={},
             time=60)
         plot_fields(data, config, out_dir, 'random_field')
 
@@ -353,7 +362,6 @@ if __name__ == '__main__':
         config = get_gaussian_config()
         data = test_diffusion_field(
             config=config,
-            initial_state={},
             time=60)
         plot_fields(data, config, out_dir, 'gaussian_field')
 
@@ -361,6 +369,5 @@ if __name__ == '__main__':
         config = get_exponential_config()
         data = test_diffusion_field(
             config=config,
-            initial_state={},
             time=60)
         plot_fields(data, config, out_dir, 'exponential_field')
