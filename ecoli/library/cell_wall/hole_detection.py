@@ -1,5 +1,7 @@
 import os
 from collections.abc import MutableMapping
+from functools import reduce
+from operator import __or__
 from time import perf_counter
 
 import matplotlib.pyplot as plt
@@ -34,26 +36,44 @@ class HoleSizeDict(MutableMapping):
         if value > self.max:
             self.max = value
 
-    def merge(self, hole1: frozenset, hole2: frozenset):
-        while not isinstance(self.mapping[hole1], int):
-            hole1 = self.mapping[hole1]
+    def merge(self, holes):
+        containing_holes = {self.get_containing_hole(hole) for hole in holes}
 
-        while not isinstance(self.mapping[hole2], int):
-            hole2 = self.mapping[hole2]
-
-        # Only merge if hole1 and hole2 do not already
-        # map to the same location
-        merged_hole = hole1 | hole2
-        if hole1 != hole2:
-            new_size = self.mapping[hole1] + self.mapping[hole2]
+        # Only merge if some entries do not already map to same location
+        merged_hole = reduce(__or__, containing_holes)
+        if len(containing_holes) > 1:
+            new_size = sum(self.mapping[hole] for hole in containing_holes)
             self.mapping[merged_hole] = new_size
-            self.mapping[hole1] = merged_hole
-            self.mapping[hole2] = merged_hole
-
-            if new_size > self.max:
-                self.max = new_size
-
+            for hole in holes:
+                self.mapping[hole] = merged_hole
+        
         return merged_hole
+
+        # while not isinstance(self.mapping[hole1], int):
+        #     hole1 = self.mapping[hole1]
+
+        # while not isinstance(self.mapping[hole2], int):
+        #     hole2 = self.mapping[hole2]
+
+        # # Only merge if hole1 and hole2 do not already
+        # # map to the same location
+        # merged_hole = hole1 | hole2
+        # if hole1 != hole2:
+        #     new_size = self.mapping[hole1] + self.mapping[hole2]
+        #     self.mapping[merged_hole] = new_size
+        #     self.mapping[hole1] = merged_hole
+        #     self.mapping[hole2] = merged_hole
+
+        #     if new_size > self.max:
+        #         self.max = new_size
+
+        # return merged_hole
+    
+    def get_containing_hole(self, hole):
+        containing_hole = hole
+        while not isinstance(self.mapping[containing_hole], int):
+            containing_hole = self.mapping[containing_hole]
+        return containing_hole
 
     def get_max(self):
         return self.max
@@ -115,8 +135,9 @@ def detect_holes(lattice):
                 next_hole_id += 1
             else:
                 new_id = neighbor_holes[0]
-                for id1, id2 in zip(neighbor_holes, neighbor_holes[1:]):
-                    new_id = hole_sizes.merge(id1, id2)
+                # for id1, id2 in zip(neighbor_holes, neighbor_holes[1:]):
+                #     new_id = hole_sizes.merge(id1, id2)
+                new_id = hole_sizes.merge(neighbor_holes)
                 hole_sizes[new_id] += 1
 
             hole_view[r, c] = new_id
@@ -127,7 +148,7 @@ def detect_holes(lattice):
 def test_hole_size_dict():
     hsd = HoleSizeDict({frozenset([1]): 1, frozenset([2]): 2})
 
-    hsd.merge(frozenset([1]), frozenset([2]))
+    hsd.merge([frozenset([1]), frozenset([2])])
     assert hsd[frozenset([1, 2])] == 3
 
     hsd[frozenset([1])] += 5
@@ -225,18 +246,18 @@ def test_runtime():
 
 
 def main():
-    # test_hole_size_dict()
-    # test_detect_holes()
-    # test_runtime()
+    test_hole_size_dict()
+    test_detect_holes()
+    test_runtime()
 
-    import cProfile
+    # import cProfile
 
-    cProfile.run("test_runtime()", "out/hole_detection/profile")
-    import pstats
-    from pstats import SortKey
+    # cProfile.run("test_runtime()", "out/hole_detection/profile")
+    # import pstats
+    # from pstats import SortKey
 
-    p = pstats.Stats("out/hole_detection/profile")
-    p.sort_stats(SortKey.TIME).print_stats(50)
+    # p = pstats.Stats("out/hole_detection/profile")
+    # p.sort_stats(SortKey.TIME).print_stats(50)
 
 
 if __name__ == "__main__":
