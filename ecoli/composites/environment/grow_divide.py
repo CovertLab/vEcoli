@@ -14,7 +14,6 @@ from vivarium.processes.divide_condition import DivideCondition
 from vivarium.processes.meta_division import MetaDivision
 from ecoli.processes.environment.derive_globals import DeriveGlobals
 from ecoli.processes.environment.exchange import Exchange
-from ecoli.processes.environment.local_field import LocalField
 
 
 NAME = 'grow_divide'
