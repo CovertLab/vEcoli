@@ -3,6 +3,7 @@ import os
 import numpy as np
 from vivarium.core.composition import simulate_composite, BASE_OUT_DIR
 from vivarium.core.control import run_library_cli
+from vivarium.library.units import units
 from vivarium.plots.agents_multigen import plot_agents_multigen
 from ecoli.composites.environment.lattice import (
     Lattice, make_lattice_config)
@@ -20,11 +21,12 @@ def get_antibiotics_grow_lattice_composite(
         diffusion_rate=0.001,
         initial_antibiotic_concentration=1e-3,
         bins=[5, 5],
-        bounds=[10, 10],
-        depth=10,
+        bounds=[10, 10] * units.um,
+        depth=10 * units.um,
         growth_rate=np.log(2) / (48 * 60),
         growth_noise=0,
-        num_agents=1):
+        num_agents=1,
+):
     env_config = make_lattice_config(
         concentrations={
             'antibiotic': initial_antibiotic_concentration,
@@ -59,13 +61,21 @@ def main():
     if not os.path.exists(OUT_DIR):
         os.makedirs(OUT_DIR)
 
-    bounds = [10, 10]
+    bounds = [10, 10] * units.um
     composite = get_antibiotics_grow_lattice_composite(
         bounds=bounds)
+    agent_ids = list(composite['flow']['agents'].keys())
     sim_settings = {
         'total_time': 48 * 60 * 4 + 10,
         'return_raw_data': True,
         'progress_bar': True,
+        'initial_state': {
+            'agents': {
+                agent_id: {
+                    'periplasm': {'global': {'volume': 300 * units.fL}},
+                    'cytosol': {'global': {'volume': 700 * units.fL}}
+            } for agent_id in agent_ids}
+        }
     }
     data = simulate_composite(composite, sim_settings)
 
