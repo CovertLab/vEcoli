@@ -14,7 +14,6 @@ from vivarium.processes.divide_condition import DivideCondition
 from vivarium.processes.meta_division import MetaDivision
 from ecoli.processes.environment.derive_globals import DeriveGlobals
 from ecoli.processes.environment.exchange import Exchange
-from ecoli.processes.environment.local_field import LocalField
 
 
 NAME = 'grow_divide'
@@ -94,7 +93,6 @@ class GrowDivideExchange(GrowDivide):
 
         added_processes = {
             'exchange': Exchange(config['exchange']),
-            'local_field': LocalField(),
         }
         processes.update(added_processes)
         return processes
@@ -103,21 +101,13 @@ class GrowDivideExchange(GrowDivide):
         topology = super().generate_topology(config)
 
         boundary_path = config['boundary_path']
-        fields_path = config['fields_path']
-        dimensions_path = config['dimensions_path']
 
         added_topology = {
             'exchange': {
-                'exchange': boundary_path + ('exchange',),
+                'exchanges': boundary_path + ('exchanges',),
                 'external': boundary_path + ('external',),
                 'internal': ('internal',),
             },
-            'local_field': {
-                'exchanges': boundary_path + ('exchange',),
-                'location': boundary_path + ('location',),
-                'fields': fields_path,
-                'dimensions': dimensions_path,
-            }
         }
         topology.update(added_topology)
         return topology
@@ -180,12 +170,14 @@ def test_grow_divide_exchange(total_time=2000):
                 'global': {
                     'mass': 1000 * units.fg},
                 'external': {
-                    molecule_id: 10.0},
-                    # molecule_id: 10.0 * units.mmol / units.L},
+                    molecule_id: 10.0  * units.mmol / units.L
+                },
                 'internal': {
-                    molecule_id: 0.0}
-                    # molecule_id: 0.0 * units.mmol / units.L}
-            }}}
+                    molecule_id: 0.0  * units.mmol / units.L
+                }
+            }
+        }
+    }
 
     settings = {
         'experiment_id': 'grow_divide_exchange'}
@@ -214,18 +206,15 @@ def main():
     if not os.path.exists(out_dir):
         os.makedirs(out_dir)
 
-    grow_divide = False
-    grow_divide_exchange = True
+    # if grow_divide:
+    output = test_grow_divide(2000)
+    plot_settings = {}
+    plot_agents_multigen(output, plot_settings, out_dir, 'grow_divide')
 
-    if grow_divide:
-        output = test_grow_divide(2000)
-        plot_settings = {}
-        plot_agents_multigen(output, plot_settings, out_dir, 'grow_divide')
-
-    if grow_divide_exchange:
-        output = test_grow_divide_exchange(2000)
-        plot_settings = {}
-        plot_agents_multigen(output, plot_settings, out_dir, 'grow_divide_exchange')
+    # if grow_divide_exchange:
+    output = test_grow_divide_exchange(2000)
+    plot_settings = {}
+    plot_agents_multigen(output, plot_settings, out_dir, 'grow_divide_exchange')
 
 
 if __name__ == '__main__':

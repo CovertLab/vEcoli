@@ -69,27 +69,28 @@ class SimpleAntibioticsCell(Composer):
     simulate the diffusion of a beta-lactam and tetracycline into E. coli.
     '''
 
-    default = {
+    defaults = {
         'kinetics': {},
         'ext_periplasm_diffusion': {},
         'periplasm_cytosol_diffusion': {},
         'shape': {},
         'nonspatial_environment': {},
         'outer_permeability': {},
-        'inner_permeability': {}
+        'inner_permeability': {},
     }
 
     def generate_processes(self, config):
-        kinetics = ConvenienceKinetics(config['kinetics'])
         ext_periplasm_diffusion = FickianDiffusion(config['ext_periplasm_diffusion'])
         periplasm_cytosol_diffusion = FickianDiffusion(config['periplasm_cytosol_diffusion'])
-        timeline = TimelineProcess(config['timeline'])
-        return {
-            'kinetics': kinetics,
+        processes = {
             'ext_periplasm_diffusion': ext_periplasm_diffusion,
             'periplasm_cytosol_diffusion': periplasm_cytosol_diffusion,
-            'timeline': timeline
         }
+        if config.get('kinetics'):
+            processes['kinetics'] = ConvenienceKinetics(config['kinetics'])
+        if config.get('timeline'):
+            processes['timeline'] = TimelineProcess(config['timeline'])
+        return processes
 
     def generate_steps(self, config):
         nonspatial_environment = NonSpatialEnvironment(config['nonspatial_environment'])
@@ -106,15 +107,6 @@ class SimpleAntibioticsCell(Composer):
     def generate_topology(self, config=None):
         boundary_path = config['boundary_path']
         topology = {
-            'kinetics': {
-                'internal': ('periplasm', 'concs'),
-                'external': boundary_path + ('external',),
-                'exchanges': boundary_path + ('exchanges',),
-                'pump_port': ('periplasm', 'concs'),
-                'catalyst_port': ('periplasm', 'concs'),
-                'fluxes': ('fluxes',),
-                'global': ('periplasm', 'global',),
-            },
             'ext_periplasm_diffusion': {
                 'internal': ('periplasm', 'concs',),
                 'external': boundary_path + ('external',),
@@ -156,11 +148,22 @@ class SimpleAntibioticsCell(Composer):
                 'permeabilities': boundary_path + ('inner_permeabilities',),
                 'surface_area': boundary_path + ('surface_area',)
             },
-            'timeline': {
+        }
+        if config.get('kinetics'):
+            topology['kinetics'] = {
+                'internal': ('periplasm', 'concs'),
+                'external': boundary_path + ('external',),
+                'exchanges': boundary_path + ('exchanges',),
+                'pump_port': ('periplasm', 'concs'),
+                'catalyst_port': ('periplasm', 'concs'),
+                'fluxes': ('fluxes',),
+                'global': ('periplasm', 'global',),
+            }
+        if config.get('timeline'):
+            topology['timeline'] = {
                 'global': ('global',),  # The global time is read here
                 'porins': ('bulk',),  # This port is based on the declared timeline
-            },
-        }
+            }
         return topology
 
 
