@@ -18,6 +18,7 @@ class HoleSizeDict(MutableMapping):
         result = self.mapping[key]
         while not isinstance(result, int):
             result = self.mapping[result]
+
         return result
 
     def __delitem__(self, key):
@@ -28,6 +29,7 @@ class HoleSizeDict(MutableMapping):
         while not isinstance(self.mapping.get(loc, 0), int):
             loc = self.mapping[loc]
 
+        # Store value, update maximum if necessary
         self.mapping[loc] = value
         if value > self.max:
             self.max = value
@@ -93,16 +95,17 @@ def detect_holes(lattice):
             #
             # N N N
             # N X
-            neighbor_pos = {
-                (max(0, min(n_r, rows - 1)), max(0, min(n_c, cols - 1)))
-                for n_r in range(r - 1, r + 1)
-                for n_c in range(c - 1, c + 2)
-            } - {(r, c), (r, c + 1)}
-            neighbor_holes = [
-                hole_view[n_r, n_c]
-                for n_r, n_c in neighbor_pos
-                if len(hole_view[n_r, n_c]) > 0
-            ]
+            neighbor_pos = {(r - 1, c - 1), (r - 1, c), (r - 1, c + 1), (r, c - 1)}
+            # list({...}) removes duplicates
+            neighbor_holes = list(
+                {
+                    hole_view[n_r, n_c]
+                    for n_r, n_c in neighbor_pos
+                    if 0 <= n_r < rows
+                    and 0 <= n_c < cols
+                    and len(hole_view[n_r, n_c]) > 0
+                }
+            )
 
             if len(neighbor_holes) == 0:
 
@@ -211,7 +214,7 @@ def test_runtime():
             side_length,
             runtimes,
             label=f"density={d:.1f}",
-            color=((1 - d) * 0.75, 0, d),
+            color=(0, 1 - (2*d - 1)**2, d),
         )
 
     ax.legend()
@@ -222,9 +225,18 @@ def test_runtime():
 
 
 def main():
-    test_hole_size_dict()
-    test_detect_holes()
-    test_runtime()
+    # test_hole_size_dict()
+    # test_detect_holes()
+    # test_runtime()
+
+    import cProfile
+
+    cProfile.run("test_runtime()", "out/hole_detection/profile")
+    import pstats
+    from pstats import SortKey
+
+    p = pstats.Stats("out/hole_detection/profile")
+    p.sort_stats(SortKey.TIME).print_stats(50)
 
 
 if __name__ == "__main__":
