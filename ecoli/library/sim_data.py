@@ -444,7 +444,10 @@ class LoadSimData:
             'seed': self.random_state.randint(RAND_MAX),
             'linked_metabolites': self.sim_data.process.metabolism.linked_metabolites,
             # Whether to use metabolism as a deriver (with t=0 skipped)
-            'deriver_mode': deriver_mode
+            'deriver_mode': deriver_mode,
+
+            # TODO: testing, remove later (perhaps after moving change to sim_data)
+            'reduce_murein_objective': False
         }
 
         return metabolism_config

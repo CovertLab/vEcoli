@@ -5,6 +5,9 @@
 
     "initial_state_file": "wcecoli_t0_reduced_murein",
 
-    "_schema": {
+    "process_configs": {
+        "ecoli-metabolism": {
+            "reduce_murein_objective" : true
+        }
     }
 }
