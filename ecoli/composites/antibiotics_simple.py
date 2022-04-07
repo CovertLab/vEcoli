@@ -19,49 +19,10 @@ from ecoli.processes.antibiotics.nonspatial_environment import (
 )
 from ecoli.processes.shape import Shape
 
-import numpy as np
-
-INITIAL_EXTERNAL_BETA_LACTAM = 1e-3  # * units.mM
-INITIAL_PERIPLASM_BETA_LACTAM = 0  # * units.mM
-INITIAL_CYTOSOL_BETA_LACTAM = 0  # * units.mM
-INITIAL_HYRDOLYZED_BETA_LACTAM = 0  # * units.mM
-INITIAL_BETA_LACTAMASE = 1e-3  # * units.mM
-INITIAL_EXTERNAL_TET = 1e-3   # * units.mM
-INITIAL_PERIPLASM_TET = 0   # * units.mM
-INITIAL_CYTOSOL_TET = 0  # * units.mM
-INITIAL_PUMP = 1e-3  # * units.mM
+INITIAL_ENVIRONMENT_CEPH = 0.1239 * units.mM
+INITIAL_ENVIRONMENT_TET = 0.1239 * units.mM
 BETA_LACTAM_KEY = 'cephaloridine'
-BETA_LACTAMASE_KEY = 'beta-lactamase'
-HYDROLYZED_BETA_LACTAM_KEY = BETA_LACTAM_KEY + '_hydrolyzed'
 TET_KEY = 'tetracycline'
-PUMP_KEY = 'TRANS-CPLX-201'
-
-# Source: (Wülfing & Plückthun, 1994)
-PERIPLASM_FRACTION = 0.3
-
-CYTOSOL_FRACTION = 1 - PERIPLASM_FRACTION
-
-
-class PARAMETERS:
-    # TODO: CEPH_PUMP parameters are placeholders as we're eventually going to use the Hill Equation for cephaloridine
-    # TODO: instead of Michaelis-Menten
-    # Calculated by dividing V_max reported in (Nagano & Nikaido, 2009) by the model's initial pump concentration of
-    # 20.179269875115253 counts / micron^2
-    # CEPH_PUMP_KCAT = 0.0956090147363198  # / units.sec
-    # Reported in (Nagano & Nikaido, 2009)
-    CEPH_PUMP_KM = 4.95e-3  # * units.millimolar  # TODO: Placeholder
-    # Reported in (Galleni et al., 1988)
-    CEPH_BETA_LACTAMASE_KCAT = 130  # / units.sec
-    # Reported in (Galleni et al., 1988)
-    CEPH_BETA_LACTAMASE_KM = 170  # * units.micromolar
-
-    # Calculated by dividing V_max estimated in (Thanassi et al., 1995) by the model's initial pump concentration of
-    # 20.179269875115253 counts / micron^2
-    # TET_PUMP_KCAT = 0.00015759727703788977  # / units.sec
-    # Estimated in (Thanassi et al., 1995)
-    TET_PUMP_KM = 200e-3  # * units.millimolar
-
-    TOLC_KCAT = 1e1  # / units.sec  # TODO: Placeholder. Not supposed to be constant regardless of substrate.
 
 
 class SimpleAntibioticsCell(Composer):
@@ -179,8 +140,8 @@ def demo():
         'shape': {},
         'nonspatial_environment': {
             'concentrations': {
-                BETA_LACTAM_KEY: INITIAL_EXTERNAL_BETA_LACTAM,
-                TET_KEY: INITIAL_EXTERNAL_TET
+                BETA_LACTAM_KEY: INITIAL_ENVIRONMENT_CEPH,
+                TET_KEY: INITIAL_ENVIRONMENT_TET
             },
             'internal_volume': 1.2,  # * units.fL,
             'env_volume': 1 * units.mL,
@@ -220,10 +181,7 @@ def demo():
     initial_state['bulk'] = {}
     initial_state['bulk']['CPLX0-7533[o]'] = 6000
     initial_state['bulk']['CPLX0-7534[o]'] = 6000
-    initial_state['environment'] = {}
-    initial_state['environment']['fields'] = {}
-    initial_state['environment']['fields']['cephaloridine'] = np.array([[INITIAL_EXTERNAL_BETA_LACTAM]])
-    initial_state['environment']['fields']['tetracycline'] = np.array([[INITIAL_EXTERNAL_TET]])
+    import ipdb; ipdb.set_trace()
 
     sim = Engine(composite=composite, initial_state=initial_state)
     sim.update(sim_time)

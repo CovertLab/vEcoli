@@ -258,7 +258,7 @@ class ExchangeAwareBioscrape(Bioscrape):
 
         update = self._rename_variables(
             update, self.rename_bioscrape_to_vivarium)
-
+        import ipdb; ipdb.set_trace()
         return update
 
 
