@@ -145,7 +145,7 @@ def test_lattice(
         'n_bins': n_bins or remove_units(bounds),
         'depth': 2 * units.um,
         'diffusion': 1e-3 * units.um**2 / units.sec,
-        'time_step': 60,
+        # 'time_step': 60,
         'jitter_force': 1e-5,
         'concentrations': {
             external_molecule: 1.0}
@@ -219,13 +219,14 @@ def main():
     args = parser.parse_args()
 
     bounds = [25, 25] * units.um
-
+    total_time = 4000
+    n_agents = 3
     if args.exchange:
         # GrowDivide agents with Exchange
         data = test_lattice(
             exchange=True,
-            n_agents=3,
-            total_time=4000,
+            n_agents=n_agents,
+            total_time=total_time,
             bounds=bounds)
     else:
         # GrowDivide agents
@@ -233,8 +234,8 @@ def main():
         initial_field = np.zeros((n_bins[0], n_bins[1]))
         initial_field[:, -1] = 100
         data = test_lattice(
-            n_agents=3,
-            total_time=4000,
+            n_agents=n_agents,
+            total_time=total_time,
             bounds=bounds,
             n_bins=n_bins,
             initial_field=initial_field)
@@ -264,5 +265,6 @@ def main():
         filename=f"lattice_snapshots{'_exchange' if args.exchange else ''}")
 
 
+# python ecoli/composites/environment/lattice.py [-e if exchanges on]
 if __name__ == '__main__':
     main()

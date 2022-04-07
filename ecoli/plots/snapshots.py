@@ -358,6 +358,7 @@ def get_agent_colors(
         agent_fill_color=None,
 ):
     agent_ids = get_agent_ids(agents)
+    agent_colors = {}
     if agents:
         # set agent colors
         if agent_fill_color:
@@ -436,6 +437,7 @@ def plot_snapshots(
         time_vec = list(agents.keys())
     elif fields:
         time_vec = list(fields.keys())
+        agents = {t: {} for t in time_vec}
     else:
         raise Exception('No agents or field data')
 

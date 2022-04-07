@@ -38,7 +38,7 @@ class SimpleAntibioticsCell(Composer):
         'shape': {},
         'nonspatial_environment': {},
         'outer_permeability': {},
-        'inner_permeability': {}
+        'inner_permeability': {},
     }
 
     def generate_processes(self, config):
@@ -50,6 +50,11 @@ class SimpleAntibioticsCell(Composer):
             'periplasm_cytoplasm_bioscrape': periplasm_cytoplasm_bioscrape,
             'timeline': timeline
         }
+        if config.get('kinetics'):
+            processes['kinetics'] = ConvenienceKinetics(config['kinetics'])
+        if config.get('timeline'):
+            processes['timeline'] = TimelineProcess(config['timeline'])
+        return processes
 
     def generate_steps(self, config):
         nonspatial_environment = NonSpatialEnvironment(config['nonspatial_environment'])
