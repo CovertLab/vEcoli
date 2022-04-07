@@ -33,7 +33,6 @@ class SimpleAntibioticsCell(Composer):
 
     default = {
         'ext_periplasm_bioscrape': {},
-        'periplasm_cytoplasm_bioscrape': {},
         'timeline': {},
         'shape': {},
         'nonspatial_environment': {},
@@ -43,18 +42,11 @@ class SimpleAntibioticsCell(Composer):
 
     def generate_processes(self, config):
         ext_periplasm_bioscrape = ExchangeAwareBioscrape(config['ext_periplasm_bioscrape'])
-        periplasm_cytoplasm_bioscrape = ExchangeAwareBioscrape(config['periplasm_cytoplasm_bioscrape'])
         timeline = TimelineProcess(config['timeline'])
         return {
             'ext_periplasm_bioscrape': ext_periplasm_bioscrape,
-            'periplasm_cytoplasm_bioscrape': periplasm_cytoplasm_bioscrape,
             'timeline': timeline
         }
-        if config.get('kinetics'):
-            processes['kinetics'] = ConvenienceKinetics(config['kinetics'])
-        if config.get('timeline'):
-            processes['timeline'] = TimelineProcess(config['timeline'])
-        return processes
 
     def generate_steps(self, config):
         nonspatial_environment = NonSpatialEnvironment(config['nonspatial_environment'])
@@ -76,15 +68,11 @@ class SimpleAntibioticsCell(Composer):
                 'exchanges': boundary_path + ('exchanges',),
                 'external': boundary_path + ('external',),
                 'globals': ('global',),
-                'rates': ('kinetic_parameters',),
-                'species': ('concs',),
-            },
-            'periplasm_cytoplasm_bioscrape': {
-                'delta_species': ('delta_concs',),
-                'exchanges': boundary_path + ('exchanges',),
-                'external': boundary_path + ('external',),
-                'globals': ('global',),
-                'rates': ('kinetic_parameters',),
+                'rates': {
+                    '_path': ('kinetic_parameters',),
+                    'mass': ('..',) + boundary_path + ('mass',),
+                    'volume': ('..',) + boundary_path + ('volume',),
+                },
                 'species': ('concs',),
             },
             'timeline': {
@@ -135,9 +123,6 @@ def demo():
         'ext_periplasm_bioscrape': {
             'sbml_file': 'data/ext_periplasm_sbml.xml',
         },
-        'periplasm_cytoplasm_bioscrape': {
-            'sbml_file': 'data/periplasm_cytoplasm_sbml.xml',
-        },
         'timeline': {
             'time_step': 1.0,
             'timeline': timeline,
@@ -148,7 +133,7 @@ def demo():
                 BETA_LACTAM_KEY: INITIAL_ENVIRONMENT_CEPH,
                 TET_KEY: INITIAL_ENVIRONMENT_TET
             },
-            'internal_volume': 1.2,  # * units.fL,
+            'internal_volume': 1.2 * units.fL,
             'env_volume': 1 * units.mL,
         },
         'outer_permeability': {
@@ -186,7 +171,6 @@ def demo():
     initial_state['bulk'] = {}
     initial_state['bulk']['CPLX0-7533[o]'] = 6000
     initial_state['bulk']['CPLX0-7534[o]'] = 6000
-    import ipdb; ipdb.set_trace()
 
     sim = Engine(composite=composite, initial_state=initial_state)
     sim.update(sim_time)
@@ -199,7 +183,6 @@ def demo():
             ('concs', 'cephaloridine_hydrolyzed'),
             ('concs', 'tetracycline_environment'),
             ('concs', 'tetracycline_periplasm'),
-            ('concs', 'tetracycline_cytoplasm'),
         ],
         out_dir='out',
         filename='antibiotics_simple'

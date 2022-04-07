@@ -118,6 +118,7 @@ class ExchangeAwareBioscrape(Bioscrape):
 
     def ports_schema(self):
         schema = super().ports_schema()
+        schema['globals']['volume']['_default'] *= units.fL
 
         rename_schema_for_vivarium = {}
         for path, new_name in self.rename_bioscrape_to_vivarium.items():
@@ -231,6 +232,9 @@ class ExchangeAwareBioscrape(Bioscrape):
             units.mg).magnitude
         state['rates']['volume'] = state['rates']['volume'].to(
             units.mL).magnitude
+        state['globals']['volume'] = state['globals']['volume'].magnitude
+        state['rates']['cephaloridine_permeability'] = state['rates']['cephaloridine_permeability'].magnitude
+        state['rates']['tetracycline_permeability'] = state['rates']['tetracycline_permeability'].magnitude
         # Compute the update using the bioscrape process.
         update = super().next_update(timestep, state)
 
@@ -258,7 +262,6 @@ class ExchangeAwareBioscrape(Bioscrape):
 
         update = self._rename_variables(
             update, self.rename_bioscrape_to_vivarium)
-        import ipdb; ipdb.set_trace()
         return update
 
 
