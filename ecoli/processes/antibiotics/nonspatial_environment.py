@@ -81,11 +81,9 @@ class NonSpatialEnvironment(Step):
         return {
             'global': {
                 'volume': self.parameters['internal_volume'],
-                # TODO: This fails?
-                #'mmol_to_counts': (
-                #    AVOGADRO * self.parameters['internal_volume']
-                #).to(1 / units.mM),
-                'mmol_to_counts': AVOGADRO * self.parameters['internal_volume'] * 1e3
+                'mmol_to_counts': (
+                   AVOGADRO * self.parameters['internal_volume']
+                ).to(1 / units.mM),
             }
         }
 
@@ -124,5 +122,4 @@ class NonSpatialEnvironment(Step):
                 for molecule, exchange in exchanges.items()
             },
         }
-        import ipdb; ipdb.set_trace()
         return update
