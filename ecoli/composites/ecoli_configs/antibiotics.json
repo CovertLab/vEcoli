@@ -158,5 +158,12 @@
     },
     "flow": {
         "concentrations_deriver": [["ecoli-shape"]]
-    }
+    },
+    "engine_process_reports": [
+        ["bulk", "EG10040-MONOMER[p]"],
+        ["bulk", "TRANS-CPLX-201[m]"],
+        ["periplasm"],
+        ["listeners", "mass"],
+        ["boundary"]
+    ]
 }
