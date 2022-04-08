@@ -154,7 +154,6 @@ def run_simulation():
             ('bulk', 'EG10040-MONOMER[p]'),
             ('bulk', 'TRANS-CPLX-201[m]'),
             ('periplasm',),
-            ('permeabilities',),
         ),
     })
     composite = composer.generate(path=('agents', config['agent_id']))
