@@ -18,6 +18,7 @@ from ecoli.processes.antibiotics.nonspatial_environment import (
     NonSpatialEnvironment
 )
 from ecoli.processes.shape import Shape
+import numpy as np
 
 INITIAL_ENVIRONMENT_CEPH = 0.1239 * units.mM
 INITIAL_ENVIRONMENT_TET = 0.1239 * units.mM
@@ -32,7 +33,7 @@ class SimpleAntibioticsCell(Composer):
     '''
 
     default = {
-        'ext_periplasm_bioscrape': {},
+        'ceph_tet_bioscrape': {},
         'timeline': {},
         'shape': {},
         'nonspatial_environment': {},
@@ -41,10 +42,10 @@ class SimpleAntibioticsCell(Composer):
     }
 
     def generate_processes(self, config):
-        ext_periplasm_bioscrape = ExchangeAwareBioscrape(config['ext_periplasm_bioscrape'])
+        ceph_tet_bioscrape = ExchangeAwareBioscrape(config['ceph_tet_bioscrape'])
         timeline = TimelineProcess(config['timeline'])
         return {
-            'ext_periplasm_bioscrape': ext_periplasm_bioscrape,
+            'ceph_tet_bioscrape': ceph_tet_bioscrape,
             'timeline': timeline
         }
 
@@ -63,7 +64,7 @@ class SimpleAntibioticsCell(Composer):
     def generate_topology(self, config=None):
         boundary_path = config['boundary_path']
         topology = {
-            'ext_periplasm_bioscrape': {
+            'ceph_tet_bioscrape': {
                 'delta_species': ('delta_concs',),
                 'exchanges': boundary_path + ('exchanges',),
                 'external': boundary_path + ('external',),
@@ -71,7 +72,8 @@ class SimpleAntibioticsCell(Composer):
                 'rates': {
                     '_path': ('kinetic_parameters',),
                     'mass': ('..',) + boundary_path + ('mass',),
-                    'volume': ('..',) + boundary_path + ('volume',),
+                    'volume_p': ('..', 'periplasm', 'volume',),
+                    'volume_c': ('..', 'cytoplasm', 'volume',),
                 },
                 'species': ('concs',),
             },
@@ -82,7 +84,7 @@ class SimpleAntibioticsCell(Composer):
             'shape': {
                 'cell_global': boundary_path,
                 'periplasm_global': ('periplasm',),
-                'cytosol_global': ('cytosol',),
+                'cytoplasm_global': ('cytoplasm',),
                 'listener_cell_mass': ('mass_listener', 'dry_mass'),
             },
             'nonspatial_environment': {
@@ -120,8 +122,9 @@ def demo():
 
     config = {
         'boundary_path': ('boundary',),
-        'ext_periplasm_bioscrape': {
-            'sbml_file': 'data/ext_periplasm_sbml.xml',
+        'ceph_tet_bioscrape': {
+            'external_species': ('tetracycline_environment', 'cephaloridine_environment'),
+            'sbml_file': 'data/ceph_tet_sbml.xml',
         },
         'timeline': {
             'time_step': 1.0,
@@ -130,8 +133,8 @@ def demo():
         'shape': {},
         'nonspatial_environment': {
             'concentrations': {
-                BETA_LACTAM_KEY: INITIAL_ENVIRONMENT_CEPH,
-                TET_KEY: INITIAL_ENVIRONMENT_TET
+                BETA_LACTAM_KEY + '_environment': INITIAL_ENVIRONMENT_CEPH,
+                TET_KEY + '_environment': INITIAL_ENVIRONMENT_TET
             },
             'internal_volume': 1.2 * units.fL,
             'env_volume': 1 * units.mL,
@@ -171,10 +174,15 @@ def demo():
     initial_state['bulk'] = {}
     initial_state['bulk']['CPLX0-7533[o]'] = 6000
     initial_state['bulk']['CPLX0-7534[o]'] = 6000
+    # initial_state['environment'] = {}
+    # initial_state['environment']['fields'] = {}
+    # initial_state['environment']['fields']['cephaloridine_environment'] = np.array([[INITIAL_ENVIRONMENT_CEPH.magnitude]])
+    # initial_state['environment']['fields']['tetracycline_environment'] = np.array([[INITIAL_ENVIRONMENT_TET.magnitude]])
 
     sim = Engine(composite=composite, initial_state=initial_state)
     sim.update(sim_time)
     timeseries_data = timeseries_from_data(sim.emitter.get_data())
+    import ipdb; ipdb.set_trace()
     plot_variables(
         timeseries_data,
         variables=[
@@ -183,6 +191,7 @@ def demo():
             ('concs', 'cephaloridine_hydrolyzed'),
             ('concs', 'tetracycline_environment'),
             ('concs', 'tetracycline_periplasm'),
+            ('concs', 'tetracycline_cytoplasm')
         ],
         out_dir='out',
         filename='antibiotics_simple'

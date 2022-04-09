@@ -230,18 +230,23 @@ class ExchangeAwareBioscrape(Bioscrape):
 
         state['rates']['mass'] = state['rates']['mass'].to(
             units.mg).magnitude
-        state['rates']['volume'] = state['rates']['volume'].to(
+        state['rates']['volume_p'] = state['rates']['volume_p'].to(
+            units.mL).magnitude
+        state['rates']['volume_c'] = state['rates']['volume_c'].to(
             units.mL).magnitude
         state['globals']['volume'] = state['globals']['volume'].magnitude
+        state['globals']['mmol_to_counts'] = state['globals']['mmol_to_counts'].magnitude
         state['rates']['cephaloridine_permeability'] = state['rates']['cephaloridine_permeability'].magnitude
         state['rates']['tetracycline_permeability'] = state['rates']['tetracycline_permeability'].magnitude
+        state['species']['cephaloridine_environment'] = state['species']['cephaloridine_environment'].magnitude
+        state['species']['tetracycline_environment'] = state['species']['tetracycline_environment'].magnitude
         # Compute the update using the bioscrape process.
         update = super().next_update(timestep, state)
 
         # Postprocess the update to convert changes to external
         # molecules into exchanges.
         update.setdefault('exchanges', {})
-        mmol_to_counts = state['globals']['mmol_to_counts']
+        mmol_to_counts = state['globals']['mmol_to_counts'] / units.mM
         for species in self.external_species_bioscrape:
             if species in update['species']:
                 delta_internal_conc = (
@@ -262,6 +267,14 @@ class ExchangeAwareBioscrape(Bioscrape):
 
         update = self._rename_variables(
             update, self.rename_bioscrape_to_vivarium)
+
+        # To correct the diffusion between compartments with different volumes
+        if 'tetracycline_periplasm' in update['delta_species']:
+            update['delta_species']['tetracycline_periplasm'] *= (state['rates']['volume_c']
+                                                                  / state['rates']['volume_p'])
+        if 'tetracycline_periplasm' in update['species']:
+            update['species']['tetracycline_periplasm'] *= (state['rates']['volume_c']
+                                                            / state['rates']['volume_p'])
         return update
 
 

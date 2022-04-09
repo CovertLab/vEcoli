@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <sbml xmlns="http://www.sbml.org/sbml/level3/version2/core" level="3" version="2">
-  <model id="biocrnpyler_714851" name="biocrnpyler_714851" substanceUnits="mole" timeUnits="second" volumeUnits="litre" areaUnits="square_metre" lengthUnits="metre" extentUnits="mole">
+  <model id="biocrnpyler_48474" name="biocrnpyler_48474" substanceUnits="mole" timeUnits="second" volumeUnits="litre" areaUnits="square_metre" lengthUnits="metre" extentUnits="mole">
     <listOfUnitDefinitions>
       <unitDefinition id="square_metre">
         <listOfUnits>
@@ -16,6 +16,7 @@
       <species id="cephaloridine_environment" name="cephaloridine_environment" compartment="default" initialConcentration="0.1239" substanceUnits="mole" hasOnlySubstanceUnits="false" boundaryCondition="false" constant="false"/>
       <species id="tetracycline_periplasm" name="tetracycline_periplasm" compartment="default" initialConcentration="0" substanceUnits="mole" hasOnlySubstanceUnits="false" boundaryCondition="false" constant="false"/>
       <species id="tetracycline_environment" name="tetracycline_environment" compartment="default" initialConcentration="0.1239" substanceUnits="mole" hasOnlySubstanceUnits="false" boundaryCondition="false" constant="false"/>
+      <species id="tetracycline_cytoplasm" name="tetracycline_cytoplasm" compartment="default" initialConcentration="0" substanceUnits="mole" hasOnlySubstanceUnits="false" boundaryCondition="false" constant="false"/>
       <species id="cephaloridine_hydrolyzed" name="cephaloridine_hydrolyzed" compartment="default" initialConcentration="0" substanceUnits="mole" hasOnlySubstanceUnits="false" boundaryCondition="false" constant="false"/>
       <species id="AcrAB" name="AcrAB" compartment="default" initialConcentration="0.0004525" substanceUnits="mole" hasOnlySubstanceUnits="false" boundaryCondition="false" constant="false"/>
       <species id="beta_lactamase" name="beta_lactamase" compartment="default" initialConcentration="0.000525" substanceUnits="mole" hasOnlySubstanceUnits="false" boundaryCondition="false" constant="false"/>
@@ -25,8 +26,8 @@
       <parameter id="ceph_export_km__" value="0.288" constant="true"/>
       <parameter id="tet_export_kcat__" value="0.00015759727703789" constant="true"/>
       <parameter id="tet_export_km__" value="0.2" constant="true"/>
-      <parameter id="tet_hydrolysis_kcat__" value="130" constant="true"/>
-      <parameter id="tet_hydrolysis_km__" value="170" constant="true"/>
+      <parameter id="ceph_hydrolysis_kcat__" value="130" constant="true"/>
+      <parameter id="ceph_hydrolysis_km__" value="170" constant="true"/>
     </listOfParameters>
     <listOfReactions>
       <reaction id="r0" name="r0" reversible="false">
@@ -133,7 +134,7 @@
               <divide/>
               <apply>
                 <times/>
-                <ci> tet_hydrolysis_kcat__ </ci>
+                <ci> ceph_hydrolysis_kcat__ </ci>
                 <ci> beta_lactamase </ci>
                 <apply>
                   <power/>
@@ -145,7 +146,7 @@
                 <plus/>
                 <apply>
                   <power/>
-                  <ci> tet_hydrolysis_km__ </ci>
+                  <ci> ceph_hydrolysis_km__ </ci>
                   <ci> n </ci>
                 </apply>
                 <apply>
@@ -183,14 +184,14 @@
                 </apply>
                 <ci> mass </ci>
               </apply>
-              <ci> volume </ci>
+              <ci> volume_p </ci>
             </apply>
           </math>
           <listOfLocalParameters>
             <localParameter id="x_am" value="132"/>
             <localParameter id="cephaloridine_permeability" value="0.000571"/>
             <localParameter id="mass" value="1.17e-09"/>
-            <localParameter id="volume" value="2.4e-13"/>
+            <localParameter id="volume_p" value="2.4e-13"/>
           </listOfLocalParameters>
         </kineticLaw>
       </reaction>
@@ -216,14 +217,47 @@
                 </apply>
                 <ci> mass </ci>
               </apply>
-              <ci> volume </ci>
+              <ci> volume_p </ci>
             </apply>
           </math>
           <listOfLocalParameters>
             <localParameter id="x_am" value="132"/>
             <localParameter id="tetracycline_permeability" value="1e-05"/>
             <localParameter id="mass" value="1.17e-09"/>
-            <localParameter id="volume" value="2.4e-13"/>
+            <localParameter id="volume_p" value="2.4e-13"/>
+          </listOfLocalParameters>
+        </kineticLaw>
+      </reaction>
+      <reaction id="r5" name="r5" reversible="false">
+        <listOfReactants>
+          <speciesReference species="tetracycline_periplasm" stoichiometry="1" constant="false"/>
+        </listOfReactants>
+        <listOfProducts>
+          <speciesReference species="tetracycline_cytoplasm" stoichiometry="1" constant="false"/>
+        </listOfProducts>
+        <kineticLaw>
+          <math xmlns="http://www.w3.org/1998/Math/MathML">
+            <apply>
+              <divide/>
+              <apply>
+                <times/>
+                <ci> x_am </ci>
+                <ci> inner_tet_perm </ci>
+                <apply>
+                  <minus/>
+                  <ci> tetracycline_periplasm </ci>
+                  <ci> tetracycline_cytoplasm </ci>
+                </apply>
+                <ci> mass </ci>
+              </apply>
+              <ci> volume_c </ci>
+            </apply>
+          </math>
+          <listOfLocalParameters>
+            <localParameter id="x_am" value="165"/>
+            <localParameter id="inner_tet_perm" value="3e-06"/>
+            <localParameter id="mass" value="1.17e-09"/>
+            <localParameter id="volume_c" value="9.6e-13"/>
           </listOfLocalParameters>
         </kineticLaw>
       </reaction>
