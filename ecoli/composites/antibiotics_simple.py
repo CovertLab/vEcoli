@@ -182,11 +182,11 @@ def demo():
     sim = Engine(composite=composite, initial_state=initial_state)
     sim.update(sim_time)
     timeseries_data = timeseries_from_data(sim.emitter.get_data())
-    import ipdb; ipdb.set_trace()
     plot_variables(
         timeseries_data,
         variables=[
-            ('concs', 'cephaloridine_environment'),
+            ('boundary', 'external', 'cephaloridine_environment'),
+            ('boundary', 'external', 'tetracycline_environment'),
             ('concs', 'cephaloridine_periplasm'),
             ('concs', 'cephaloridine_hydrolyzed'),
             ('concs', 'tetracycline_environment'),
