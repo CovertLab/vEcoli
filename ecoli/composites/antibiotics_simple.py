@@ -124,6 +124,10 @@ def demo():
         'boundary_path': ('boundary',),
         'ceph_tet_bioscrape': {
             'external_species': ('tetracycline_environment', 'cephaloridine_environment'),
+            'name_map': (
+                (('boundary', 'external', 'cephaloridine_environment',), 'cephaloridine_environment'),
+                (('boundary', 'external', 'tetracycline_environment',), 'tetracycline_environment'),
+            ),
             'sbml_file': 'data/ceph_tet_sbml.xml',
         },
         'timeline': {
