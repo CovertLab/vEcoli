@@ -269,6 +269,7 @@ class ExchangeAwareBioscrape(Bioscrape):
             update, self.rename_bioscrape_to_vivarium)
 
         # To correct the diffusion between compartments with different volumes
+        # TODO: Are these the right fields to change?
         if 'tetracycline_periplasm' in update['delta_species']:
             update['delta_species']['tetracycline_periplasm'] *= (state['rates']['volume_c']
                                                                   / state['rates']['volume_p'])
