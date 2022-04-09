@@ -83,8 +83,8 @@ class Shape(Step):
     name = 'ecoli-shape'
     defaults = {
         'width': 1.0 * units.um,
-        'periplasm_fraction': 0.3,
-        'cytosol_fraction': 0.7,
+        'periplasm_fraction': 0.2,
+        'cytoplasm_fraction': 0.8,
         'initial_cell_volume': 1.2 * units.fL,
         'initial_mass': 1339 * units.fg,
     }
@@ -134,14 +134,14 @@ class Shape(Step):
                 },
             },
             'listener_cell_mass': {
-                '_default': 0,
+                '_default': self.parameters['initial_mass'].magnitude,  # fg
             },
             'listener_cell_volume': {
-                '_default': 0,
+                '_default': self.parameters['initial_cell_volume'].magnitude,  # fL
             },
             'periplasm_global': {
                 'volume': {
-                    '_default': 0 * units.fL,
+                    '_default': self.parameters['initial_cell_volume'] * self.parameters['periplasm_fraction'],  # fL
                     '_emit': True,
                     '_divider': 'split',
                     '_updater': 'set',
@@ -153,9 +153,9 @@ class Shape(Step):
                     '_updater': 'set',
                 },
             },
-            'cytosol_global': {
+            'cytoplasm_global': {
                 'volume': {
-                    '_default': 0 * units.fL,
+                    '_default': self.parameters['initial_cell_volume'] * self.parameters['cytoplasm_fraction'],  # fL
                     '_emit': True,
                     '_divider': 'split',
                     '_updater': 'set',
@@ -178,9 +178,9 @@ class Shape(Step):
         length = length_from_volume(cell_volume, width)
         surface_area = surface_area_from_length(length, width)
 
-        assert self.parameters['periplasm_fraction'] + self.parameters['cytosol_fraction'] == 1
+        assert self.parameters['periplasm_fraction'] + self.parameters['cytoplasm_fraction'] == 1
         periplasm_volume = cell_volume * self.parameters['periplasm_fraction']
-        cytosol_volume = cell_volume * self.parameters['cytosol_fraction']
+        cytoplasm_volume = cell_volume * self.parameters['cytoplasm_fraction']
 
         mass = self.parameters['initial_mass']
         assert isinstance(mass, Quantity)
@@ -201,25 +201,25 @@ class Shape(Step):
                 'mmol_to_counts': mmol_to_counts_from_volume(
                     periplasm_volume),
             },
-            'cytosol_global': {
-                'volume': cytosol_volume,
+            'cytoplasm_global': {
+                'volume': cytoplasm_volume,
                 'mmol_to_counts': mmol_to_counts_from_volume(
-                    cytosol_volume),
+                    cytoplasm_volume),
             },
         }
 
     def next_update(self, timestep, states):
         for port in (
-                'cell_global', 'periplasm_global', 'cytosol_global'):
+                'cell_global', 'periplasm_global', 'cytoplasm_global'):
             for variable in states[port].values():
                 assert isinstance(variable, Quantity)
 
         width = states['cell_global']['width']
         cell_volume = states['listener_cell_volume'] * units.fL
 
-        assert self.parameters['periplasm_fraction'] + self.parameters['cytosol_fraction'] == 1
+        assert self.parameters['periplasm_fraction'] + self.parameters['cytoplasm_fraction'] == 1
         periplasm_volume = cell_volume * self.parameters['periplasm_fraction']
-        cytosol_volume = cell_volume * self.parameters['cytosol_fraction']
+        cytoplasm_volume = cell_volume * self.parameters['cytoplasm_fraction']
 
         # calculate length and surface area
         length = length_from_volume(cell_volume, width)
@@ -238,10 +238,10 @@ class Shape(Step):
                 'mmol_to_counts': mmol_to_counts_from_volume(
                     periplasm_volume),
             },
-            'cytosol_global': {
-                'volume': cytosol_volume,
+            'cytoplasm_global': {
+                'volume': cytoplasm_volume,
                 'mmol_to_counts': mmol_to_counts_from_volume(
-                    cytosol_volume),
+                    cytoplasm_volume),
             }
         }
         return update

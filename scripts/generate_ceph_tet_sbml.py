@@ -22,8 +22,6 @@ from biocrnpyler import (
     Reaction,
     Species,
 )
-from vivarium.library.units import units
-
 
 DATA_DIR = os.path.abspath(
     os.path.join(os.path.dirname(__file__), '..', 'data'))
@@ -47,17 +45,23 @@ TET_PUMP_KCAT = 0.00015759727703788977  # / units.sec
 TET_PUMP_KM = 200e-3  # * units.millimolar
 # Estimated in (Thanassi et al., 1995)
 DEFAULT_TET_OUTER_PERM = 1e-5  # cm/sec
+# Estimated in (Thanassi et al., 1995)
+DEFAULT_TET_INNER_PERM = 3 * 1e-6  # cm/sec
 
 PERIPLASM_FRACTION = 0.2
+CYTOPLASM_FRACTION = 1 - PERIPLASM_FRACTION
 AREA_MASS_RATIO = 132  # cm^2/mg
-MASS = 1170e-12  # mg
+CYTO_AREA_MASS_RATIO = AREA_MASS_RATIO / CYTOPLASM_FRACTION  # cm^2/mg, Dividing by 0.8 as cytosol has 80% of mass
+CELL_MASS = 1170e-12  # mg
 CELL_VOLUME = 1.2e-12  # mL
 PERIPLASM_VOLUME = CELL_VOLUME * PERIPLASM_FRACTION  # mL
+CYTOPLASM_VOLUME = CELL_VOLUME * CYTOPLASM_FRACTION  # mL
 INITIAL_PERIPLASM_CEPH = 0
 INITIAL_ENVIRONMENT_CEPH = 0.1239
 INITIAL_HYDROLYZED_CEPH = 0
 INITIAL_PERIPLASM_TET = 0
 INITIAL_ENVIRONMENT_TET = 0.1239
+INITIAL_CYTOPLASM_TET = 0
 INITIAL_PUMP = 0.0004525
 INITIAL_BETA_LACTAMASE = 0.000525
 
@@ -82,116 +86,150 @@ INITIAL_BETA_LACTAMASE = 0.000525
 
 def main() -> None:
     # Define species.
-    cephaloridine_in = Species('cephaloridine_periplasm')
-    cephaloridine_out = Species('cephaloridine_environment')
+    cephaloridine_p = Species('cephaloridine_periplasm')
+    cephaloridine_e = Species('cephaloridine_environment')
     cephaloridine_hydrolyzed = Species('cephaloridine_hydrolyzed')
-    tetracycline_in = Species('tetracycline_periplasm')
-    tetracycline_out = Species('tetracycline_environment')
+    tetracycline_p = Species('tetracycline_periplasm')
+    tetracycline_e = Species('tetracycline_environment')
+    tetracycline_c = Species('tetracycline_cytoplasm')
 
     pump = Species('AcrAB')
     beta_lactamase = Species('beta_lactamase')
 
     species = [
-        cephaloridine_in,
-        cephaloridine_out,
-        tetracycline_in,
-        tetracycline_out,
+        cephaloridine_p,
+        cephaloridine_e,
+        tetracycline_p,
+        tetracycline_e,
+        tetracycline_c,
         cephaloridine_hydrolyzed,
         pump,
         beta_lactamase,
     ]
 
     # Define reactions.
+
+    # Cephaloridine being pumped out of the periplasm by AcrAB-TolC
     ceph_export_propensity = ProportionalHillPositive(
         k=ParameterEntry('ceph_export_kcat', CEPH_PUMP_KCAT),  # Hz
-        s1=cephaloridine_in,
+        s1=cephaloridine_p,
         K=ParameterEntry('ceph_export_km', CEPH_PUMP_KM),  # mM
         d=pump,
         n=1.75,
     )
     ceph_export = Reaction(
-        inputs=[cephaloridine_in],
-        outputs=[cephaloridine_out],
+        inputs=[cephaloridine_p],
+        outputs=[cephaloridine_e],
         propensity_type=ceph_export_propensity,
     )
 
+    # Tetracycline being pumped out of the periplasm by AcrAB-TolC
     tet_export_propensity = ProportionalHillPositive(
         k=ParameterEntry('tet_export_kcat', TET_PUMP_KCAT),  #Hz
-        s1=tetracycline_in,
+        s1=tetracycline_p,
         K=ParameterEntry('tet_export_km', TET_PUMP_KM),  #mM
         d=pump,
         n=1
     )
     tet_export = Reaction(
-        inputs=[tetracycline_in],
-        outputs=[tetracycline_out],
+        inputs=[tetracycline_p],
+        outputs=[tetracycline_e],
         propensity_type=tet_export_propensity
     )
 
+    # Cephaloridine being hydrolyzed in the periplasm
     hydrolysis_propensity = ProportionalHillPositive(
-        k=ParameterEntry('tet_hydrolysis_kcat', CEPH_BETA_LACTAMASE_KCAT),  # Hz
-        s1=cephaloridine_in,
-        K=ParameterEntry('tet_hydrolysis_km', CEPH_BETA_LACTAMASE_KM),  # mM
+        k=ParameterEntry('ceph_hydrolysis_kcat', CEPH_BETA_LACTAMASE_KCAT),  # Hz
+        s1=cephaloridine_p,
+        K=ParameterEntry('ceph_hydrolysis_km', CEPH_BETA_LACTAMASE_KM),  # mM
         d=beta_lactamase,
         n=1,
     )
     hydrolysis = Reaction(
-        inputs=[cephaloridine_in],
+        inputs=[cephaloridine_p],
         outputs=[cephaloridine_hydrolyzed],
         propensity_type=hydrolysis_propensity,
     )
 
-    area_mass_ratio = ParameterEntry('x_am', AREA_MASS_RATIO)  # cm^2/mg
+    # Creating diffusion parameters
+    periplasm_area_mass_ratio = ParameterEntry('x_am', AREA_MASS_RATIO)  # cm^2/mg
     cephaloridine_permeability = ParameterEntry('cephaloridine_permeability', DEFAULT_CEPH_OUTER_PERM)  # cm/sec
     tetracycline_permeability = ParameterEntry('tetracycline_permeability', DEFAULT_TET_OUTER_PERM)  # cm/sec
-    mass = ParameterEntry('mass', MASS)  # mg
-    volume = ParameterEntry('volume', PERIPLASM_VOLUME)  # mL
+    mass = ParameterEntry('mass', CELL_MASS)  # mg
+    volume_p = ParameterEntry('volume_p', PERIPLASM_VOLUME)  # mL
+
+    # Cephaloridine diffusion between environment and periplasm
     ceph_influx_propensity = GeneralPropensity(
         (
-            f'x_am * cephaloridine_permeability * ({cephaloridine_out} - {cephaloridine_in}) '
-            '* mass / (volume)'
+            f'x_am * cephaloridine_permeability * ({cephaloridine_e} - {cephaloridine_p}) '
+            '* mass / (volume_p)'
         ),
-        propensity_species=[cephaloridine_in, cephaloridine_out],
+        propensity_species=[cephaloridine_p, cephaloridine_e],
         propensity_parameters=[
-            area_mass_ratio, cephaloridine_permeability, mass, volume],
+            periplasm_area_mass_ratio, cephaloridine_permeability, mass, volume_p],
     )
     ceph_influx = Reaction(
-        inputs=[cephaloridine_out],
-        outputs=[cephaloridine_in],
+        inputs=[cephaloridine_e],
+        outputs=[cephaloridine_p],
         propensity_type=ceph_influx_propensity
     )
-    tet_influx_propensity = GeneralPropensity(
+
+    # Tetracycline diffusion between environment and periplasm
+    tet_e_p_influx_propensity = GeneralPropensity(
         (
-            f'x_am * tetracycline_permeability * ({tetracycline_out} - {tetracycline_in}) '
-            '* mass / (volume)'
+            f'x_am * tetracycline_permeability * ({tetracycline_e} - {tetracycline_p}) '
+            '* mass / (volume_p)'
         ),
-        propensity_species=[tetracycline_in, tetracycline_out],
+        propensity_species=[tetracycline_p, tetracycline_e],
         propensity_parameters=[
-            area_mass_ratio, tetracycline_permeability, mass, volume],
+            periplasm_area_mass_ratio, tetracycline_permeability, mass, volume_p],
     )
-    tet_influx = Reaction(
-        inputs=[tetracycline_out],
-        outputs=[tetracycline_in],
-        propensity_type=tet_influx_propensity
+    tet_e_p_influx = Reaction(
+        inputs=[tetracycline_e],
+        outputs=[tetracycline_p],
+        propensity_type=tet_e_p_influx_propensity
+    )
+
+    # Tetracycline diffusion between periplasm and cytoplasm
+    # dTp = D(Tp - Tc) / vol_p
+    # dTc = D(Tp - Tc) / vol_c
+    CYTO_AREA_MASS_RATIO = AREA_MASS_RATIO / CYTOPLASM_FRACTION  # cm^2/mg, Dividing by 0.8 as cytosol has 80% of mass
+    cyto_area_mass_ratio = ParameterEntry('x_am', CYTO_AREA_MASS_RATIO)  # cm^2/mg
+    inner_tet_perm = ParameterEntry('inner_tet_perm', DEFAULT_TET_INNER_PERM)  # cm/sec
+    volume_c = ParameterEntry('volume_c', CYTOPLASM_VOLUME)
+    tet_p_c_influx_propensity = GeneralPropensity(
+        (
+            f'x_am * inner_tet_perm * ({tetracycline_p} - {tetracycline_c})'
+            '* mass / (volume_c)'
+        ),
+        propensity_species=[tetracycline_c, tetracycline_p],
+        propensity_parameters=[
+            cyto_area_mass_ratio, inner_tet_perm, mass, volume_c],
+    )
+    tet_p_c_influx = Reaction(
+        inputs=[tetracycline_p],
+        outputs=[tetracycline_c],
+        propensity_type=tet_p_c_influx_propensity
     )
 
     initial_concentrations = {
-        cephaloridine_in: INITIAL_PERIPLASM_CEPH,
-        cephaloridine_out: INITIAL_ENVIRONMENT_CEPH,
+        cephaloridine_p: INITIAL_PERIPLASM_CEPH,
+        cephaloridine_e: INITIAL_ENVIRONMENT_CEPH,
         cephaloridine_hydrolyzed: INITIAL_HYDROLYZED_CEPH,
         pump: INITIAL_PUMP,
-        tetracycline_in: INITIAL_PERIPLASM_TET,
-        tetracycline_out: INITIAL_ENVIRONMENT_TET,
+        tetracycline_p: INITIAL_PERIPLASM_TET,
+        tetracycline_e: INITIAL_ENVIRONMENT_TET,
+        tetracycline_c: INITIAL_CYTOPLASM_TET,
         beta_lactamase: INITIAL_BETA_LACTAMASE,
     }
 
     crn = ChemicalReactionNetwork(
         species=species,
-        reactions=[ceph_export, tet_export, hydrolysis, ceph_influx, tet_influx],
+        reactions=[ceph_export, tet_export, hydrolysis, ceph_influx, tet_e_p_influx, tet_p_c_influx],
         initial_concentration_dict=initial_concentrations,
     )
 
-    path = os.path.join(DATA_DIR, 'ext_periplasm_sbml.xml')
+    path = os.path.join(DATA_DIR, 'ceph_tet_sbml.xml')
     print(f'Writing the following CRN to {path}:')
     print(crn.pretty_print(show_rates=True))
     crn.write_sbml_file(path)
