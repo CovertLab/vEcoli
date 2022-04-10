@@ -123,10 +123,10 @@ def demo():
     config = {
         'boundary_path': ('boundary',),
         'ceph_tet_bioscrape': {
-            'external_species': ('tetracycline_environment', 'cephaloridine_environment'),
+            'external_species': ('cephaloridine_environment', 'tetracycline_environment',),
             'name_map': (
-                (('boundary', 'external', 'cephaloridine_environment',), 'cephaloridine_environment'),
-                (('boundary', 'external', 'tetracycline_environment',), 'tetracycline_environment'),
+                (('external', 'cephaloridine',), 'cephaloridine_environment',),
+                (('external', 'tetracycline',), 'tetracycline_environment',),
             ),
             'sbml_file': 'data/ceph_tet_sbml.xml',
         },
@@ -137,8 +137,8 @@ def demo():
         'shape': {},
         'nonspatial_environment': {
             'concentrations': {
-                BETA_LACTAM_KEY + '_environment': INITIAL_ENVIRONMENT_CEPH,
-                TET_KEY + '_environment': INITIAL_ENVIRONMENT_TET
+                BETA_LACTAM_KEY: INITIAL_ENVIRONMENT_CEPH,
+                TET_KEY: INITIAL_ENVIRONMENT_TET
             },
             'internal_volume': 1.2 * units.fL,
             'env_volume': 1 * units.mL,
@@ -178,10 +178,13 @@ def demo():
     initial_state['bulk'] = {}
     initial_state['bulk']['CPLX0-7533[o]'] = 6000
     initial_state['bulk']['CPLX0-7534[o]'] = 6000
-    # initial_state['environment'] = {}
-    # initial_state['environment']['fields'] = {}
-    # initial_state['environment']['fields']['cephaloridine_environment'] = np.array([[INITIAL_ENVIRONMENT_CEPH.magnitude]])
-    # initial_state['environment']['fields']['tetracycline_environment'] = np.array([[INITIAL_ENVIRONMENT_TET.magnitude]])
+    initial_state['environment'] = {}
+    initial_state['environment']['fields'] = {}
+    initial_state['environment']['fields']['cephaloridine_environment'] = np.array([[INITIAL_ENVIRONMENT_CEPH.magnitude]])
+    initial_state['environment']['fields']['tetracycline_environment'] = np.array([[INITIAL_ENVIRONMENT_TET.magnitude]])
+    initial_state['boundary']['external'] = {}
+    initial_state['boundary']['external']['cephaloridine'] = INITIAL_ENVIRONMENT_CEPH
+    initial_state['boundary']['external']['tetracycline'] = INITIAL_ENVIRONMENT_TET
 
     sim = Engine(composite=composite, initial_state=initial_state)
     sim.update(sim_time)
@@ -189,8 +192,8 @@ def demo():
     plot_variables(
         timeseries_data,
         variables=[
-            ('boundary', 'external', 'cephaloridine_environment'),
-            ('boundary', 'external', 'tetracycline_environment'),
+            ('boundary', 'external', 'cephaloridine'),
+            ('boundary', 'external', 'tetracycline'),
             ('concs', 'cephaloridine_periplasm'),
             ('concs', 'cephaloridine_hydrolyzed'),
             ('concs', 'tetracycline_environment'),
