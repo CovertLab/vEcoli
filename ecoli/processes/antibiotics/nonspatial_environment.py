@@ -29,6 +29,7 @@ class NonSpatialEnvironment(Step):
             'external': {
                 '*': {
                     '_value': 0,
+                    '_emit': True,
                 },
             },
             'exchanges': {
