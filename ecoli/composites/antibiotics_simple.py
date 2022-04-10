@@ -1,7 +1,8 @@
 from vivarium.core.composer import Composer
 from vivarium.core.engine import Engine
 from vivarium.core.emitter import timeseries_from_data
-from vivarium.library.units import units
+from vivarium.core.serialize import deserialize_value
+from vivarium.library.units import units, remove_units
 from vivarium.plots.simulation_output import plot_variables
 from vivarium.processes.timeline import TimelineProcess
 
@@ -178,17 +179,13 @@ def demo():
     initial_state['bulk'] = {}
     initial_state['bulk']['CPLX0-7533[o]'] = 6000
     initial_state['bulk']['CPLX0-7534[o]'] = 6000
-    initial_state['environment'] = {}
-    initial_state['environment']['fields'] = {}
-    initial_state['environment']['fields']['cephaloridine_environment'] = np.array([[INITIAL_ENVIRONMENT_CEPH.magnitude]])
-    initial_state['environment']['fields']['tetracycline_environment'] = np.array([[INITIAL_ENVIRONMENT_TET.magnitude]])
-    initial_state['boundary']['external'] = {}
-    initial_state['boundary']['external']['cephaloridine'] = INITIAL_ENVIRONMENT_CEPH
-    initial_state['boundary']['external']['tetracycline'] = INITIAL_ENVIRONMENT_TET
 
     sim = Engine(composite=composite, initial_state=initial_state)
     sim.update(sim_time)
-    timeseries_data = timeseries_from_data(sim.emitter.get_data())
+    data = sim.emitter.get_data()
+    data = deserialize_value(data)
+    data = remove_units(data)
+    timeseries_data = timeseries_from_data(data)
     plot_variables(
         timeseries_data,
         variables=[
@@ -196,7 +193,6 @@ def demo():
             ('boundary', 'external', 'tetracycline'),
             ('concs', 'cephaloridine_periplasm'),
             ('concs', 'cephaloridine_hydrolyzed'),
-            ('concs', 'tetracycline_environment'),
             ('concs', 'tetracycline_periplasm'),
             ('concs', 'tetracycline_cytoplasm')
         ],

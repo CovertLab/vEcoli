@@ -143,6 +143,7 @@ class ExchangeAwareBioscrape(Bioscrape):
         schema['external'] = {
             species: {
                 '_default': 0,
+                '_emit': True,
             }
             for species in self.external_species_bioscrape
         }
@@ -160,7 +161,6 @@ class ExchangeAwareBioscrape(Bioscrape):
             schema,
             rename_schema_for_vivarium,
         )
-
         return schema
 
     @staticmethod
