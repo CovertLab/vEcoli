@@ -4,6 +4,7 @@ MetabolismGD
 
 import numpy as np
 import json
+import time
 
 from vivarium.core.process import Process
 
@@ -12,7 +13,7 @@ from ecoli.library.schema import bulk_schema
 from wholecell.utils import units
 
 from ecoli.library.fba_gd import GradientDescentFba, FbaResult, TargetDmdtObjective, \
-    TargetVelocityObjective, VelocityBoundsObjective
+    TargetVelocityObjective, VelocityBoundsObjective, DmdtBoundsObjective, FluxSumObjective
 from ecoli.processes.registries import topology_registry
 
 COUNTS_UNITS = units.mmol
@@ -23,7 +24,12 @@ CONC_UNITS = COUNTS_UNITS / VOLUME_UNITS
 CONVERSION_UNITS = MASS_UNITS * TIME_UNITS / VOLUME_UNITS
 GDCW_BASIS = units.mmol / units.g / units.h
 
-USE_KINETICS = True
+# TODO (Cyrus) Move this into data file. Used to just come from states? Should be in constant file until environment
+#  is added.
+UNCONSTRAINED_UPTAKE = ["K+[p]", "MN+2[p]", "WATER[p]", "AMMONIUM[c]", "NI+2[p]", "NA+[p]", "Pi[p]", "MG+2[p]",
+                        "CL-[p]", "FE+2[p]", "L-SELENOCYSTEINE[c]", "CA+2[p]", "CARBON-DIOXIDE[p]", "ZN+2[p]",
+                        "CO+2[p]", "OXYGEN-MOLECULE[p]", "SULFATE[p]"]
+CONSTRAINED_UPTAKE = {"GLC[p]": 20}
 
 NAME = 'ecoli-metabolism-gradient-descent'
 TOPOLOGY = topology_registry.access('ecoli-metabolism')
@@ -43,7 +49,6 @@ class MetabolismGD(Process):
         'kinetic_rates': [],  # TODO (Cyrus) -- get these passed in, these are a subset of the stoichimetry
         'media_id': 'minimal',
         'objective_type': 'homeostatic',
-        'nutrients': [],
         'cell_density': 1100 * units.g / units.L,
         'concentration_updates': None,
         'maintenance_reaction': {},
@@ -70,6 +75,7 @@ class MetabolismGD(Process):
         self.gam = parameters['dark_atp'] * parameters['cell_dry_mass_fraction']
         self.random_state = np.random.RandomState(seed=self.parameters['seed'])
 
+
         # new variables for the model
         self.cell_mass = None
         self.previous_mass = None
@@ -87,6 +93,9 @@ class MetabolismGD(Process):
         exchange_molecules.update(exchanges['externalExchangeMolecules'])
         self.exchange_molecules = exchange_molecules
         exchange_molecules = list(sorted(exchange_molecules))  # set vs list, unify?
+
+        self.allowed_exchange_uptake = UNCONSTRAINED_UPTAKE + list(CONSTRAINED_UPTAKE.keys())
+        self.disallowed_exchange_uptake = list(set(exchange_molecules) - set(self.allowed_exchange_uptake))
 
         # retrieve conc dict and get homeostatic objective.
         conc_dict = concentration_updates.concentrations_based_on_nutrients(self.media_id)
@@ -117,15 +126,23 @@ class MetabolismGD(Process):
         # self.model.add_objective('kinetic', TargetVelocityObjective(self.model.network, self.kinetic_objective))
         self.model.add_objective('maintenance',
                                  TargetVelocityObjective(self.model.network, self.maintenance_objective, weight=20))
-        # TODO (Cyrus): self.model.add_objective('boundary', ...)
         self.model.add_objective('diffusion',
                                  TargetVelocityObjective(self.model.network,
                                                          self.carbon_source_facilitated_diffusion,
                                                          weight=5))
-        self.model.add_objective("active_transport",
-                                 VelocityBoundsObjective(self.model.network,
-                                                         {reaction_id: (0, 0.55) for reaction_id
-                                                          in self.carbon_source_active_transport}, weight=10))
+        self.model.add_objective('uptake_constraints',
+                                 DmdtBoundsObjective(self.model.network,
+                                                     {molecule_id: (0, np.inf)
+                                                      for molecule_id in self.disallowed_exchange_uptake}, weight=5))
+
+        self.model.add_objective('futile_cycle',
+                                 FluxSumObjective(self.model.network, weight=0.000001))
+
+        # TODO (Cyrus): Reintroduce later.
+        # self.model.add_objective("active_transport",
+        #                          VelocityBoundsObjective(self.model.network,
+        #                                                  {reaction_id: (0, 0.55) for reaction_id
+        #                                                   in self.carbon_source_active_transport}, weight=10))
 
         # for ports schema
         self.metabolite_names_for_nutrients = self.get_port_metabolite_names(conc_dict)
@@ -197,6 +214,7 @@ class MetabolismGD(Process):
                     'solution_fluxes': {'_default': {}, '_updater': 'set', '_emit': True},
                     'solution_dmdt': {'_default': {}, '_updater': 'set', '_emit': True},
                     'solution_residuals': {'_default': {}, '_updater': 'set', '_emit': True},
+                    'time_per_step': {'_default': 0.0, '_updater': 'set', '_emit': True},
                 },
             },
 
@@ -308,6 +326,7 @@ class MetabolismGD(Process):
                     'solution_fluxes': solution.velocities,
                     'solution_dmdt': solution.dm_dt,
                     'solution_residuals': solution.residual,
+                    'time_per_step': time.time()
                 }
             }
         }

@@ -465,8 +465,6 @@ class LoadSimData:
             'maintenance_reaction': self.sim_data.process.metabolism.maintenance_reaction,
             'aa_names': self.sim_data.molecule_groups.amino_acids,
             'media_id': self.sim_data.conditions[self.sim_data.condition]['nutrients'],
-            'nutrients': self.sim_data.conditions[self.sim_data.condition]['nutrients'],
-            # TODO (Cyrus) Replace with media_id.
             'avogadro': self.sim_data.constants.n_avogadro,
             'cell_density': self.sim_data.constants.cell_density,
             'nutrientToDoublingTime': self.sim_data.nutrient_to_doubling_time,

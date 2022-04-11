@@ -118,8 +118,8 @@ def run_metabolism_composite():
 
 def run_ecoli_with_metabolism_gd(
         filename='fba_gd_swap',
-        total_time=10,
-        divide=False,
+        total_time=4000,
+        divide=True,
         progress_bar=True,
         log_updates=False,
         emitter='timeseries',
@@ -131,18 +131,21 @@ def run_ecoli_with_metabolism_gd(
     sim.log_updates = log_updates
     sim.emitter = emitter
 
-    sim.build_ecoli()
-
     sim.run()
-    output = sim.query()
+
+    query = []
+    agents = sim.query()['agents'].keys()
+    for agent in agents:
+        query.extend([('agents', agent, 'listeners', 'fba_results'),
+                      ('agents', agent, 'listeners', 'mass'),
+                      ('agents', agent, 'bulk')])
+    output = sim.query(query)
 
 
     folder = f'out/fbagd/{total_time}/{datetime.datetime.now()}/'
     pathlib.Path(folder).mkdir(parents=True, exist_ok=True)
-    np.save(folder + 'fba_results.npy', output['listeners']['fba_results'])
-    np.save(folder + 'mass.npy', output['listeners']['mass'])
-    np.save(folder + 'bulk.npy', output['bulk'])
-    np.save(folder + 'stoichiometry.npy', sim.ecoli.processes['ecoli-metabolism-gradient-descent'].stoichiometry)
+    np.save(folder + 'output.npy', output)
+    np.save(folder + 'stoichiometry.npy', sim.ecoli['processes']['agents']['0']['ecoli-metabolism-gradient-descent'].stoichiometry)
 
 
 @pytest.mark.slow
@@ -198,13 +201,39 @@ def test_ecoli_with_metabolism_gd_div(
     sim.build_ecoli()
     sim.run()
 
+def run_ecoli_with_default_metabolism(
+        filename='default',
+        total_time=10,
+        divide=False,
+        progress_bar=True,
+        log_updates=False,
+        emitter='timeseries',
+):
+    sim = EcoliSim.from_file(CONFIG_DIR_PATH + filename + '.json')
+    sim.total_time = total_time
+    sim.divide = divide
+    sim.progress_bar = progress_bar
+    sim.log_updates = log_updates
+    sim.emitter = emitter
+
+    sim.run()
+    output = sim.query()
+
+
+    folder = f'out/fbagd/{total_time}/{datetime.datetime.now()}/'
+    pathlib.Path(folder).mkdir(parents=True, exist_ok=True)
+    np.save(folder + 'fba_results.npy', output['listeners']['fba_results'])
+    np.save(folder + 'mass.npy', output['listeners']['mass'])
+    np.save(folder + 'bulk.npy', output['bulk'])
+    np.save(folder + 'stoichiometry.npy', sim.ecoli.processes['ecoli-metabolism-gradient-descent'].stoichiometry)
 
 experiment_library = {
     '0': run_metabolism,
     '1': run_metabolism_composite,
     '2': run_ecoli_with_metabolism_gd,
     '3': test_ecoli_with_metabolism_gd,
-    '4': test_ecoli_with_metabolism_gd_div
+    '4': test_ecoli_with_metabolism_gd_div,
+    '5': run_ecoli_with_default_metabolism,
 }
 
 # run experiments with command line arguments: python ecoli/experiments/metabolism_gd.py -n exp_id
