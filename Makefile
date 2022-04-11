@@ -1,6 +1,5 @@
 .PHONY: compile, clean, recompile
 
-#compile: data/ceph_tet_sbml.xml
 compile:
 	python setup.py build_ext --inplace
 	rm -fr build
@@ -16,9 +15,6 @@ clean:
 	find wholecell/ -name "*.so" -exec rm -fr {} \;
 	rm -fr build
 	rm -fr launcher_20* block_20*
-
-# data/ceph_tet_sbml.xml: scripts/generate_ceph_tet_sbml.py
-# 	python scripts/generate_ceph_tet_sbml.py
 
 # Delete just the *.so libraries then (re)compile them.
 # This is useful when switching to a different Python virtualenv.
