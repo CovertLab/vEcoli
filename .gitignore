@@ -52,6 +52,5 @@ pyproject.toml
 ###################
 data/blame_test_data.json
 data/vivecoli_t2.json
-data/bioscrape_sbml.xml
 ecoli/composites/ecoli_configs/test_configs/test_export.json
 /notebooks/test_files/
