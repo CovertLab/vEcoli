@@ -1,6 +1,7 @@
 .PHONY: compile, clean, recompile
 
-compile: data/bioscrape_sbml.xml
+#compile: data/ceph_tet_sbml.xml
+compile:
 	python setup.py build_ext --inplace
 	rm -fr build
 
