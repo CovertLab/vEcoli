@@ -1,3 +1,9 @@
+"""
+=======================================
+Composite Model of Antibiotics Response
+=======================================
+"""
+
 from vivarium.core.composer import Composer
 from vivarium.core.engine import Engine
 from vivarium.core.emitter import timeseries_from_data
@@ -5,21 +11,18 @@ from vivarium.core.serialize import deserialize_value
 from vivarium.library.units import units, remove_units
 from vivarium.plots.simulation_output import plot_variables
 from vivarium.processes.timeline import TimelineProcess
+from vivarium.core.control import run_library_cli
 
 from ecoli.processes.antibiotics.exchange_aware_bioscrape import ExchangeAwareBioscrape
 from ecoli.processes.antibiotics.permeability import (
-    Permeability, CEPH_OMPC_CON_PERM, CEPH_OMPF_CON_PERM, OUTER_BILAYER_CEPH_PERM, TET_OMPF_CON_PERM, OUTER_BILAYER_TET_PERM,
-    INNER_BILAYER_TET_PERM, SA_AVERAGE
-)
-from ecoli.processes.antibiotics.permeability import (
-    Permeability, CEPH_OMPC_CON_PERM, CEPH_OMPF_CON_PERM, OUTER_BILAYER_CEPH_PERM, TET_OMPF_CON_PERM, OUTER_BILAYER_TET_PERM,
-    INNER_BILAYER_TET_PERM, SA_AVERAGE
+    Permeability, CEPH_OMPC_CON_PERM, CEPH_OMPF_CON_PERM, OUTER_BILAYER_CEPH_PERM, TET_OMPF_CON_PERM,
+    OUTER_BILAYER_TET_PERM, INNER_BILAYER_TET_PERM, SA_AVERAGE
 )
 from ecoli.processes.antibiotics.nonspatial_environment import (
     NonSpatialEnvironment
 )
 from ecoli.processes.shape import Shape
-import numpy as np
+
 
 INITIAL_ENVIRONMENT_CEPH = 0.1239 * units.mM
 INITIAL_ENVIRONMENT_TET = 0.1239 * units.mM
@@ -101,8 +104,7 @@ class SimpleAntibioticsCell(Composer):
         return topology
 
 
-def demo():
-    sim_time = 100
+def get_increasing_porins_timeline():
     timeline = []
     for i in range(10):
         timeline.append(
@@ -112,6 +114,14 @@ def demo():
             },
              )
         )
+    return timeline
+
+
+def demo(
+    timeline=get_increasing_porins_timeline(),
+    filename='antibiotics_simple'
+):
+    sim_time = 100
 
     config = {
         'boundary_path': ('boundary',),
@@ -177,6 +187,8 @@ def demo():
     plot_variables(
         timeseries_data,
         variables=[
+            ('bulk', 'CPLX0-7533[o]'),
+            ('bulk', 'CPLX0-7534[o]'),
             ('boundary', 'external', 'cephaloridine'),
             ('boundary', 'external', 'tetracycline'),
             ('concs', 'cephaloridine_periplasm'),
@@ -184,10 +196,16 @@ def demo():
             ('concs', 'tetracycline_periplasm'),
             ('concs', 'tetracycline_cytoplasm')
         ],
-        out_dir='out',
-        filename='antibiotics_simple'
+        out_dir='out/composites/antibiotics_simple',
+        filename=filename
     )
 
 
+demo_library = {
+    '0': demo
+}
+
+
+# python ecoli/composites/antibiotics_simple.py [-n function_id]
 if __name__ == '__main__':
-    demo()
+    run_library_cli(demo_library)
