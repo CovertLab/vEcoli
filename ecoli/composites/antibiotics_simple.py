@@ -130,6 +130,7 @@ def demo():
                 (('external', 'tetracycline',), 'tetracycline_environment',),
             ),
             'sbml_file': 'data/ceph_tet_sbml.xml',
+            'time_step': 0.5,
         },
         'timeline': {
             'time_step': 1.0,
