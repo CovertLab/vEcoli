@@ -112,19 +112,6 @@ class DiffusionField(Process):
         }
 
     def ports_schema(self):
-<<<<<<< HEAD
-        local_concentration_schema = {
-            molecule: {
-<<<<<<< HEAD
-                '_default': 0.0,
-                '_emit': True,
-=======
-                '_default': 0.0 * units.mM
->>>>>>> master
-            }
-            for molecule in self.molecule_ids}
-=======
->>>>>>> master
 
         # place the agent boundary schema at the configured boundary path
         boundary_path = self.parameters['boundary_path']
