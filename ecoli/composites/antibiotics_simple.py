@@ -38,8 +38,7 @@ class SimpleAntibioticsCell(Composer):
         'timeline': {},
         'shape': {},
         'nonspatial_environment': {},
-        'outer_permeability': {},
-        'inner_permeability': {},
+        'permeability': {},
     }
 
     def generate_processes(self, config):
@@ -53,13 +52,11 @@ class SimpleAntibioticsCell(Composer):
     def generate_steps(self, config):
         nonspatial_environment = NonSpatialEnvironment(config['nonspatial_environment'])
         shape = Shape(config['shape'])
-        outer_permeability = Permeability(config['outer_permeability'])
-        inner_permeability = Permeability(config['inner_permeability'])
+        permeability = Permeability(config['permeability'])
         return {
             'nonspatial_environment': nonspatial_environment,
             'shape': shape,
-            'outer_permeability': outer_permeability,
-            'inner_permeability': inner_permeability
+            'permeability': permeability,
         }
 
     def generate_topology(self, config=None):
@@ -95,12 +92,7 @@ class SimpleAntibioticsCell(Composer):
                 'dimensions': ('environment', 'dimensions'),
                 'global': ('global',),
             },
-            'outer_permeability': {
-                'porins': ('bulk',),
-                'permeabilities': ('kinetic_parameters',),
-                'surface_area': boundary_path + ('surface_area',)
-            },
-            'inner_permeability': {
+            'permeability': {
                 'porins': ('bulk',),
                 'permeabilities': ('kinetic_parameters',),
                 'surface_area': boundary_path + ('surface_area',)
@@ -110,7 +102,7 @@ class SimpleAntibioticsCell(Composer):
 
 
 def demo():
-    sim_time = 100
+    sim_time = 3000
     timeline = []
     for i in range(10):
         timeline.append(
@@ -145,28 +137,23 @@ def demo():
             'internal_volume': 1.2 * units.fL,
             'env_volume': 1 * units.mL,
         },
-        'outer_permeability': {
+        'permeability': {
             'porin_ids': ['CPLX0-7533[o]', 'CPLX0-7534[o]'],
             'diffusing_molecules': {
-                'cephaloridine': {
+                'outer_cephaloridine_permeability': {
                     'concentration_perm': {
                         'CPLX0-7533[o]': CEPH_OMPC_CON_PERM,
                         'CPLX0-7534[o]': CEPH_OMPF_CON_PERM
                     },
                     'bilayer_perm': OUTER_BILAYER_CEPH_PERM
                 },
-                'tetracycline': {
+                'outer_tetracycline_permeability': {
                     'concentration_perm': {
                         'CPLX0-7534[o]': TET_OMPF_CON_PERM,
                     },
                     'bilayer_perm': OUTER_BILAYER_TET_PERM
                 },
-            },
-        },
-        'inner_permeability': {
-            'porin_ids': [],
-            'diffusing_molecules': {
-                'tetracycline': {
+                'inner_tetracycline_permeability': {
                     'concentration_perm': {},
                     'bilayer_perm': INNER_BILAYER_TET_PERM
                 }

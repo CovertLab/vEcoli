@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <sbml xmlns="http://www.sbml.org/sbml/level3/version2/core" level="3" version="2">
-  <model id="biocrnpyler_48474" name="biocrnpyler_48474" substanceUnits="mole" timeUnits="second" volumeUnits="litre" areaUnits="square_metre" lengthUnits="metre" extentUnits="mole">
+  <model id="biocrnpyler_509694" name="biocrnpyler_509694" substanceUnits="mole" timeUnits="second" volumeUnits="litre" areaUnits="square_metre" lengthUnits="metre" extentUnits="mole">
     <listOfUnitDefinitions>
       <unitDefinition id="square_metre">
         <listOfUnits>
@@ -176,7 +176,7 @@
               <apply>
                 <times/>
                 <ci> x_am </ci>
-                <ci> cephaloridine_permeability </ci>
+                <ci> outer_cephaloridine_permeability </ci>
                 <apply>
                   <minus/>
                   <ci> cephaloridine_environment </ci>
@@ -189,7 +189,7 @@
           </math>
           <listOfLocalParameters>
             <localParameter id="x_am" value="132"/>
-            <localParameter id="cephaloridine_permeability" value="0.000571"/>
+            <localParameter id="outer_cephaloridine_permeability" value="0.000571"/>
             <localParameter id="mass" value="1.17e-09"/>
             <localParameter id="volume_p" value="2.4e-13"/>
           </listOfLocalParameters>
@@ -209,7 +209,7 @@
               <apply>
                 <times/>
                 <ci> x_am </ci>
-                <ci> tetracycline_permeability </ci>
+                <ci> outer_tetracycline_permeability </ci>
                 <apply>
                   <minus/>
                   <ci> tetracycline_environment </ci>
@@ -222,7 +222,7 @@
           </math>
           <listOfLocalParameters>
             <localParameter id="x_am" value="132"/>
-            <localParameter id="tetracycline_permeability" value="1e-05"/>
+            <localParameter id="outer_tetracycline_permeability" value="1e-05"/>
             <localParameter id="mass" value="1.17e-09"/>
             <localParameter id="volume_p" value="2.4e-13"/>
           </listOfLocalParameters>
@@ -242,7 +242,7 @@
               <apply>
                 <times/>
                 <ci> x_am </ci>
-                <ci> inner_tet_perm </ci>
+                <ci> inner_tetracycline_permeability </ci>
                 <apply>
                   <minus/>
                   <ci> tetracycline_periplasm </ci>
@@ -255,7 +255,7 @@
           </math>
           <listOfLocalParameters>
             <localParameter id="x_am" value="165"/>
-            <localParameter id="inner_tet_perm" value="3e-06"/>
+            <localParameter id="inner_tetracycline_permeability" value="3e-06"/>
             <localParameter id="mass" value="1.17e-09"/>
             <localParameter id="volume_c" value="9.6e-13"/>
           </listOfLocalParameters>

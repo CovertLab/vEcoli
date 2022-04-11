@@ -236,8 +236,9 @@ class ExchangeAwareBioscrape(Bioscrape):
             units.mL).magnitude
         state['globals']['volume'] = state['globals']['volume'].magnitude
         state['globals']['mmol_to_counts'] = state['globals']['mmol_to_counts'].magnitude
-        state['rates']['cephaloridine_permeability'] = state['rates']['cephaloridine_permeability'].magnitude
-        state['rates']['tetracycline_permeability'] = state['rates']['tetracycline_permeability'].magnitude
+        state['rates']['outer_cephaloridine_permeability'] = state['rates']['outer_cephaloridine_permeability'].magnitude
+        state['rates']['outer_tetracycline_permeability'] = state['rates']['outer_tetracycline_permeability'].magnitude
+        state['rates']['inner_tetracycline_permeability'] = state['rates']['inner_tetracycline_permeability'].magnitude
         state['species']['cephaloridine_environment'] = state['species']['cephaloridine_environment'].magnitude
         state['species']['tetracycline_environment'] = state['species']['tetracycline_environment'].magnitude
         # Compute the update using the bioscrape process.
