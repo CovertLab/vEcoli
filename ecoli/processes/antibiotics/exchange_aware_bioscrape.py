@@ -139,7 +139,6 @@ class ExchangeAwareBioscrape(Bioscrape):
         schema['external'] = {
             species: {
                 '_default': 0,
-                '_emit': True,
             }
             for species in self.external_species_bioscrape
         }
@@ -224,19 +223,22 @@ class ExchangeAwareBioscrape(Bioscrape):
             assert species not in state['species']
             state['species'][species] = state['external'].pop(species)
 
-        state['rates']['mass'] = state['rates']['mass'].to(
-            units.mg).magnitude
-        state['rates']['volume_p'] = state['rates']['volume_p'].to(
-            units.mL).magnitude
-        state['rates']['volume_c'] = state['rates']['volume_c'].to(
-            units.mL).magnitude
-        state['globals']['volume'] = state['globals']['volume'].magnitude
         state['globals']['mmol_to_counts'] = state['globals']['mmol_to_counts'].magnitude
-        state['rates']['outer_cephaloridine_permeability'] = state['rates']['outer_cephaloridine_permeability'].magnitude
-        state['rates']['outer_tetracycline_permeability'] = state['rates']['outer_tetracycline_permeability'].magnitude
-        state['rates']['inner_tetracycline_permeability'] = state['rates']['inner_tetracycline_permeability'].magnitude
-        state['species']['cephaloridine_environment'] = state['species']['cephaloridine_environment'].magnitude
-        state['species']['tetracycline_environment'] = state['species']['tetracycline_environment'].magnitude
+        # If diffusing cephaloridine and tetracycline, make state bioscrape friendly
+        if 'cephaloridine_environment' in state['species']:
+            state['rates']['mass'] = state['rates']['mass'].to(
+                units.mg).magnitude
+            state['rates']['volume_p'] = state['rates']['volume_p'].to(
+                units.mL).magnitude
+            state['rates']['volume_c'] = state['rates']['volume_c'].to(
+                units.mL).magnitude
+            state['globals']['volume'] = state['globals']['volume'].magnitude
+            state['rates']['outer_cephaloridine_permeability'] = state['rates']['outer_cephaloridine_permeability'].magnitude
+            state['rates']['outer_tetracycline_permeability'] = state['rates']['outer_tetracycline_permeability'].magnitude
+            state['rates']['inner_tetracycline_permeability'] = state['rates']['inner_tetracycline_permeability'].magnitude
+            state['species']['cephaloridine_environment'] = state['species']['cephaloridine_environment'].magnitude
+            state['species']['tetracycline_environment'] = state['species']['tetracycline_environment'].magnitude
+
         # Compute the update using the bioscrape process.
         update = super().next_update(timestep, state)
 
@@ -329,7 +331,7 @@ def test_exchange_aware_bioscrape():
         'globals': {
             'mmol_to_counts': {'_default': 0},
             'volume': {
-                '_default': 1,
+                '_default': 1 * units.fL,
                 '_emit': True,
                 '_updater': 'accumulate',
             },
