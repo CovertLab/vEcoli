@@ -270,7 +270,7 @@ class ExchangeAwareBioscrape(Bioscrape):
         # To correct the diffusion between compartments with different volumes
         if 'tetracycline_cytoplasm' in update['delta_species']:
             # Net tetracycline diffusion from cytoplasm to periplasm
-            tet_c_to_p = update['delta_species']['tetracycline_cytoplasm'] * -1
+            tet_c_to_p = - update['delta_species']['tetracycline_cytoplasm']
             # Undoing tetracycline diffusion from cytoplasm to periplasm
             update['delta_species']['tetracycline_periplasm'] += tet_c_to_p
             update['species']['tetracycline_periplasm'] += tet_c_to_p
