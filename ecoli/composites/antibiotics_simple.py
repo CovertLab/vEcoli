@@ -38,7 +38,6 @@ class SimpleAntibioticsCell(Composer):
 
     default = {
         'ceph_tet_bioscrape': {},
-        'timeline': {},
         'shape': {},
         'nonspatial_environment': {},
         'permeability': {},
@@ -46,10 +45,8 @@ class SimpleAntibioticsCell(Composer):
 
     def generate_processes(self, config):
         ceph_tet_bioscrape = ExchangeAwareBioscrape(config['ceph_tet_bioscrape'])
-        timeline = TimelineProcess(config['timeline'])
         return {
             'ceph_tet_bioscrape': ceph_tet_bioscrape,
-            'timeline': timeline
         }
 
     def generate_steps(self, config):
@@ -78,10 +75,6 @@ class SimpleAntibioticsCell(Composer):
                 },
                 'species': ('concs',),
             },
-            'timeline': {
-                'global': ('global',),  # The global time is read here
-                'porins': ('bulk',),  # This port is based on the declared timeline
-            },
             'shape': {
                 'cell_global': boundary_path,
                 'periplasm_global': ('periplasm',),
@@ -106,11 +99,11 @@ class SimpleAntibioticsCell(Composer):
 
 def get_increasing_porins_timeline():
     timeline = []
-    for i in range(10):
+    for i in range(0, 120, 10):
         timeline.append(
             (i, {
-                ('porins', 'CPLX0-7533[o]'):  5000 + ((i + 2) * 500),
-                ('porins', 'CPLX0-7534[o]'):  5000 + ((i + 2) * 500),
+                ('porins', 'CPLX0-7533[o]'):  (i * 10),
+                ('porins', 'CPLX0-7534[o]'):  (i * 10),
             },
              )
         )
@@ -121,7 +114,7 @@ def demo(
     timeline=get_increasing_porins_timeline(),
     filename='antibiotics_simple'
 ):
-    sim_time = 100
+    sim_time = timeline[-1][0]  # end at the last timeline entry
 
     config = {
         'boundary_path': ('boundary',),
@@ -133,10 +126,6 @@ def demo(
             ),
             'sbml_file': 'data/ceph_tet_sbml.xml',
             'time_step': 0.5,
-        },
-        'timeline': {
-            'time_step': 1.0,
-            'timeline': timeline,
         },
         'shape': {},
         'nonspatial_environment': {
@@ -170,13 +159,28 @@ def demo(
             },
         },
     }
-
     composite = SimpleAntibioticsCell(config).generate()
+
+    # add a timeline process to the composite
+    timeline_config = {
+        'time_step': 1.0,
+        'timeline': timeline,
+    }
+    timeline_process = {
+        'timeline': TimelineProcess(timeline_config)
+    }
+    timeline_topology = {
+        'timeline': {
+            'global': ('global',),  # The global time is read here
+            'porins': ('bulk',),  # This port is based on the declared timeline
+        }
+    }
+    composite.merge(processes=timeline_process, topology=timeline_topology)
+
+    # initial state
     initial_state = composite.initial_state()
     initial_state['boundary']['surface_area'] = SA_AVERAGE
     initial_state['bulk'] = {}
-    initial_state['bulk']['CPLX0-7533[o]'] = 6000
-    initial_state['bulk']['CPLX0-7534[o]'] = 6000
 
     sim = Engine(composite=composite, initial_state=initial_state)
     sim.update(sim_time)
