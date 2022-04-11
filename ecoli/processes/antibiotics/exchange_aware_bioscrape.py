@@ -275,9 +275,9 @@ class ExchangeAwareBioscrape(Bioscrape):
             update['delta_species']['tetracycline_periplasm'] += tet_c_to_p
             update['species']['tetracycline_periplasm'] += tet_c_to_p
             # Applying correct tetracycline concentration change in periplasm
-            update['delta_species']['tetracycline_periplasm'] += tet_c_to_p * (state['rates']['volume_c'] /
+            update['delta_species']['tetracycline_periplasm'] -= tet_c_to_p * (state['rates']['volume_c'] /
                                                                                state['rates']['volume_p'])
-            update['species']['tetracycline_periplasm'] += tet_c_to_p * (state['rates']['volume_c'] /
+            update['species']['tetracycline_periplasm'] -= tet_c_to_p * (state['rates']['volume_c'] /
                                                                          state['rates']['volume_p'])
         return update
 
