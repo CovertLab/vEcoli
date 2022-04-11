@@ -232,6 +232,7 @@ class Shape(Step):
                 'mmol_to_counts': mmol_to_counts_from_volume(
                     cell_volume),
                 'mass': states['listener_cell_mass'] * units.fg,
+                'volume': cell_volume,
             },
             'periplasm_global': {
                 'volume': periplasm_volume,
