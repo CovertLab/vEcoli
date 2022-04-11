@@ -67,10 +67,10 @@ class EcoliEngineProcess(Composer):
             'composer': self,
             'composite': self.ecoli_sim.ecoli,
             'initial_inner_state': initial_inner_state,
-            'tunnels_in': {
-                'mass_tunnel': ('listeners', 'mass'),
-                'boundary_tunnel': ('boundary',),
-            },
+            'tunnels_in': dict({
+                f'{"-".join(path)}_tunnel': path
+                for path in config['reports']
+            }),
             'tunnel_out_schemas': config['tunnel_out_schemas'],
             'stub_schemas': config['stub_schemas'],
             'seed': (config['seed'] + 1) % RAND_MAX,
@@ -79,9 +79,6 @@ class EcoliEngineProcess(Composer):
             'division_variable': config['division_variable'],
             '_parallel': config['parallel'],
         }
-        for path in config['reports']:
-            cell_process_config['tunnels_in'][
-                f'{"-".join(path)}_tunnel'] = path
         cell_process = EngineProcess(cell_process_config)
         return {
             'cell_process': cell_process,
@@ -90,10 +87,8 @@ class EcoliEngineProcess(Composer):
     def generate_topology(self, config):
         topology = {
             'cell_process': {
-                'mass_tunnel': ('listeners', 'mass'),
                 'agents': ('..',),
                 'fields_tunnel': ('..', '..', 'fields'),
-                'boundary_tunnel': ('boundary',),
                 'dimensions_tunnel': ('..', '..', 'dimensions'),
             },
         }
@@ -150,11 +145,9 @@ def run_simulation():
         'divide': config['divide'],
         'division_threshold': config['division']['threshold'],
         'division_variable': ('listeners', 'mass', 'cell_mass'),
-        'reports': (
-            ('bulk', 'EG10040-MONOMER[p]'),
-            ('bulk', 'TRANS-CPLX-201[m]'),
-            ('periplasm',),
-            ('permeabilities',),
+        'reports': tuple(
+            tuple(path) for path in
+            config.get('engine_process_reports', tuple())
         ),
     })
     composite = composer.generate(path=('agents', config['agent_id']))
