@@ -23,13 +23,9 @@ import tempfile
 
 from biocrnpyler import (
     ChemicalReactionNetwork,
-    ParameterEntry,
-    ProportionalHillPositive,
-    GeneralPropensity,
     Reaction,
     Species,
 )
-from bioscrape.types import Model
 from vivarium.library.units import units
 from vivarium_bioscrape.processes.bioscrape import Bioscrape
 
