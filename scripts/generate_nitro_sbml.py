@@ -26,7 +26,7 @@ from biocrnpyler import (
 
 DATA_DIR = os.path.abspath(
     os.path.join(os.path.dirname(__file__), '..', 'data'))
-
+FILENAME = 'bioscrape_sbml.xml'
 
 # A ProportionalHillPositive propensity generates a propensity:
 #
@@ -123,7 +123,7 @@ def main() -> None:
         initial_concentration_dict=initial_concentrations,
     )
 
-    path = os.path.join(DATA_DIR, 'bioscrape_sbml.xml')
+    path = os.path.join(DATA_DIR, FILENAME)
     print(f'Writing the following CRN to {path}:')
     print(crn.pretty_print(show_rates=True))
     crn.write_sbml_file(path)
