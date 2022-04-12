@@ -48,8 +48,10 @@ DEFAULT_TET_OUTER_PERM = 1e-5  # cm/sec
 # Estimated in (Thanassi et al., 1995)
 DEFAULT_TET_INNER_PERM = 3 * 1e-6  # cm/sec
 
+# Estimated in (Stock et al., 1977)
 PERIPLASM_FRACTION = 0.2
 CYTOPLASM_FRACTION = 1 - PERIPLASM_FRACTION
+
 AREA_MASS_RATIO = 132  # cm^2/mg
 CYTO_AREA_MASS_RATIO = AREA_MASS_RATIO / CYTOPLASM_FRACTION  # cm^2/mg, Dividing by 0.8 as cytosol has 80% of mass
 CELL_MASS = 1170e-12  # mg
