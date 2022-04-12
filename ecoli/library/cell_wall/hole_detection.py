@@ -202,9 +202,9 @@ def test_runtime():
     side_length = [10, 100, 200, 300, 400]
     density = np.arange(0, 1.1, 0.1)
 
-    for d in density:
+    for s in side_length:
         runtimes = []
-        for s in side_length:
+        for d in density:
             a = rng.binomial(1, 1 - d, size=s * s).reshape((s, s))
 
             tick = perf_counter()
@@ -215,33 +215,100 @@ def test_runtime():
 
             print(f"Runtime for side length {s}, density {d:.1f} : {tock-tick} seconds")
 
+        # ax.plot(
+        #     side_length,
+        #     runtimes,
+        #     label=f"density={d:.1f}",
+        #     color=(0, 1 - (2 * d - 1) ** 2, d),
+        # )
+
         ax.plot(
-            side_length,
+            density,
             runtimes,
-            label=f"density={d:.1f}",
-            color=(0, 1 - (2 * d - 1) ** 2, d),
+            label=f"Side length = {s}",
+            color=(0, 1 - (2 * s / max(side_length) - 1) ** 2, s / max(side_length)),
         )
 
     ax.legend()
-    ax.set_xlabel("Side length")
+    ax.set_xlabel("Hole Density")
     ax.set_ylabel("Runtime (s)")
+    # ax.set_xlabel("Side length")
+    # ax.set_ylabel("Runtime (s)")
     fig.tight_layout()
     fig.savefig("out/hole_detection/test_runtime.png")
+
+
+def test_case(side_length, density, rng=np.random.default_rng(0)):
+    a = rng.binomial(1, 1 - density, size=side_length * side_length).reshape(
+        (side_length, side_length)
+    )
+    detect_holes(a)
+
+
+def test_merge_time():
+    import cProfile
+    import pstats
+
+    os.makedirs("out/hole_detection/merge_profile", exist_ok=True)
+
+    side_length = [10, 100, 200, 300, 400]
+    density = np.arange(0, 1.1, 0.1)
+
+    merge_times = np.zeros((len(side_length), len(density)))
+    total_times = np.zeros((len(side_length), len(density)))
+
+    for r, s in enumerate(side_length):
+        for c, d in enumerate(density):
+            f = f"out/hole_detection/merge_profile/prof_{s}_{int(d*10)}"
+            cProfile.run(
+                f"test_case({s}, {d})",
+                f,
+            )
+
+            p = pstats.Stats(f)
+            p.strip_dirs()
+            try:
+                merge_time = [v for k, v in p.stats.items() if k[2] == "merge"][0][3]
+            except IndexError:
+                merge_time = 0
+
+            total_time = [v for k, v in p.stats.items() if k[2] == "detect_holes"][0][3]
+
+            merge_times[r, c] = merge_time
+            total_times[r, c] = total_time
+
+    fig, axs = plt.subplots(nrows=len(side_length), ncols=1)
+
+    # Time vs. Density plots
+    for r, s in enumerate(side_length):
+        axs[r].plot(density, merge_times[r, :], label="Merging time", color="b")
+        axs[r].plot(density, total_times[r, :], label="Total time", color="k")
+        axs[r].set_title(f"Runtime vs. Density (Side length={s})")
+        axs[r].set_xlabel("Density")
+        axs[r].set_ylabel("Runtime (s)")
+        axs[r].legend()
+
+        ax2 = axs[r].twinx()
+        ax2.plot(
+            density,
+            merge_times[r, :] / total_times[r, :],
+            "r--",
+            label="% Time Merging"
+        )
+        ax2.set_ylabel("% Time Merging")
+        ax2.set_ylim([0, 1])
+        ax2.legend()
+
+    fig.set_size_inches(6, 3 * len(side_length))
+    fig.tight_layout()
+    fig.savefig("out/hole_detection/merge_time.png")
 
 
 def main():
     test_hole_size_dict()
     test_detect_holes()
     test_runtime()
- 
-    # import cProfile
-
-    # cProfile.run("test_runtime()", "out/hole_detection/profile")
-    # import pstats
-    # from pstats import SortKey
-
-    # p = pstats.Stats("out/hole_detection/profile")
-    # p.sort_stats(SortKey.TIME).print_stats(50)
+    test_merge_time()
 
 
 if __name__ == "__main__":
