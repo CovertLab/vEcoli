@@ -24,7 +24,7 @@ class HoleSizeDict(MutableMapping):
         return result
 
     def __delitem__(self, key):
-        del self.mapping[key]
+        raise NotImplementedError("Not currently allowed to delete from HoleSizeDict")
 
     def __setitem__(self, key: frozenset, value: int):
         loc = key
@@ -41,34 +41,18 @@ class HoleSizeDict(MutableMapping):
 
         # Only merge if some entries do not already map to same location
         merged_hole = reduce(__or__, containing_holes)
+
         if len(containing_holes) > 1:
             new_size = sum(self.mapping[hole] for hole in containing_holes)
             self.mapping[merged_hole] = new_size
-            for hole in holes:
+            for hole in containing_holes:
                 self.mapping[hole] = merged_hole
-        
+
+            if new_size > self.max:
+                self.max = new_size
+
         return merged_hole
 
-        # while not isinstance(self.mapping[hole1], int):
-        #     hole1 = self.mapping[hole1]
-
-        # while not isinstance(self.mapping[hole2], int):
-        #     hole2 = self.mapping[hole2]
-
-        # # Only merge if hole1 and hole2 do not already
-        # # map to the same location
-        # merged_hole = hole1 | hole2
-        # if hole1 != hole2:
-        #     new_size = self.mapping[hole1] + self.mapping[hole2]
-        #     self.mapping[merged_hole] = new_size
-        #     self.mapping[hole1] = merged_hole
-        #     self.mapping[hole2] = merged_hole
-
-        #     if new_size > self.max:
-        #         self.max = new_size
-
-        # return merged_hole
-    
     def get_containing_hole(self, hole):
         containing_hole = hole
         while not isinstance(self.mapping[containing_hole], int):
@@ -215,13 +199,13 @@ def test_runtime():
     fig, ax = plt.subplots()
 
     rng = np.random.default_rng(0)
-    side_length = [10, 100, 200]
-    density = np.arange(0, 1, 0.1)
+    side_length = [10, 100, 200, 300, 400]
+    density = np.arange(0, 1.1, 0.1)
 
     for d in density:
         runtimes = []
         for s in side_length:
-            a = rng.binomial(1, d, size=s * s).reshape((s, s))
+            a = rng.binomial(1, 1 - d, size=s * s).reshape((s, s))
 
             tick = perf_counter()
             detect_holes(a)
@@ -235,7 +219,7 @@ def test_runtime():
             side_length,
             runtimes,
             label=f"density={d:.1f}",
-            color=(0, 1 - (2*d - 1)**2, d),
+            color=(0, 1 - (2 * d - 1) ** 2, d),
         )
 
     ax.legend()
@@ -249,7 +233,7 @@ def main():
     test_hole_size_dict()
     test_detect_holes()
     test_runtime()
-
+ 
     # import cProfile
 
     # cProfile.run("test_runtime()", "out/hole_detection/profile")

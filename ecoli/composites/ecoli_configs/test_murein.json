@@ -1,7 +1,8 @@
 {
     "experiment_id" : "test_murein",
     "emitter" : "database",
-    "total_time" : 10,
+    "total_time" : 3000,
+    "divide": true,
 
     "initial_state_file": "wcecoli_t0_reduced_murein",
 
