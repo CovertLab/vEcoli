@@ -149,6 +149,7 @@ def run_simulation():
             tuple(path) for path in
             config.get('engine_process_reports', tuple())
         ),
+        'seed': config['seed'],
     })
     composite = composer.generate(path=('agents', config['agent_id']))
     initial_state = {

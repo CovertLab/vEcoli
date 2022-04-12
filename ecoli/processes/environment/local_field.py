@@ -18,6 +18,7 @@ class LocalField(Step):
         'nonspatial': False,
         'bin_volume': 1e-6 * units.L,
         'n_bins': [1, 1],
+        'bounds': [1, 1] * units.um,
     }
 
     def __init__(self, parameters=None):
@@ -39,8 +40,8 @@ class LocalField(Step):
             },
             'location': {
                 '_default': [
-                    0.5 * count * units.um
-                    for count in self.parameters['n_bins']
+                    0.5 * bound
+                    for bound in self.parameters['bounds']
                 ],
             },
             'fields': {
@@ -50,10 +51,10 @@ class LocalField(Step):
             },
             'dimensions': {
                 'bounds': {
-                    '_default': [1, 1] * units.um,
+                    '_default': self.parameters['bounds'],
                 },
                 'n_bins': {
-                    '_default': [1, 1],
+                    '_default': self.parameters['n_bins'],
                 },
                 'depth': {
                     '_default': 1 * units.um,
