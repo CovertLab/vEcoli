@@ -1,4 +1,5 @@
 import os
+from sys import getsizeof
 from collections.abc import MutableMapping
 from functools import reduce
 from operator import __or__
@@ -24,7 +25,17 @@ class HoleSizeDict(MutableMapping):
         return result
 
     def __delitem__(self, key):
-        raise NotImplementedError("Not currently allowed to delete from HoleSizeDict")
+        # Need to remap anything that maps to this key
+        destination = self.get_containing_hole(key)
+        to_remap = set()
+        for k, v in self.items():
+            if v == key:
+                to_remap.add(k)
+
+        for k in to_remap:
+            self.mapping[k] = destination
+
+        del self.mapping[key]
 
     def __setitem__(self, key: frozenset, value: int):
         loc = key
@@ -53,14 +64,50 @@ class HoleSizeDict(MutableMapping):
 
         return merged_hole
 
+    def prune_subtree(self, root):
+        if not isinstance(self.mapping[root], int):
+            raise ValueError(f"Node {root} is not a root node of a subtree.")
+
+        for leaf in root:
+            leaf = frozenset([leaf])
+
+            current = leaf
+            while current != root and current in self.mapping:
+                next_node = self.mapping[current]
+                del self.mapping[current]
+                current = next_node
+
+        del self.mapping[root]
+
     def get_containing_hole(self, hole):
         containing_hole = hole
         while not isinstance(self.mapping[containing_hole], int):
             containing_hole = self.mapping[containing_hole]
+
         return containing_hole
 
     def get_max(self):
         return self.max
+
+    def get_depth(self):
+        # Returns the length of the longest branch in the tree.
+        # Somewhat naive implementation, but then again, shouldn't need this often.
+        depth = 1
+        seen = set()
+        for key in self.mapping:
+            if key in seen:
+                continue
+            seen.add(key)
+
+            key_depth = 1
+            while not isinstance(self.mapping[key], int):
+                key = self.mapping[key]
+                key_depth += 1
+
+            if key_depth > depth:
+                depth = key_depth
+
+        return depth
 
     def __iter__(self):
         return iter(self.mapping)
@@ -87,6 +134,7 @@ def detect_holes(lattice):
     next_hole_id = 1
     rows, cols = lattice.shape
     for r in range(rows):
+        ids_in_row = set()
         for c in range(cols):
             # Skip non-holes
             if lattice[r, c] == 1:
@@ -119,14 +167,31 @@ def detect_holes(lattice):
                 next_hole_id += 1
             else:
                 new_id = neighbor_holes[0]
-                # for id1, id2 in zip(neighbor_holes, neighbor_holes[1:]):
-                #     new_id = hole_sizes.merge(id1, id2)
                 new_id = hole_sizes.merge(neighbor_holes)
                 hole_sizes[new_id] += 1
 
             hole_view[r, c] = new_id
+            for primitive_id in new_id:
+                ids_in_row.add(frozenset([primitive_id]))
 
-    return hole_view, hole_sizes.get_max()
+        # prune the tree for memory efficiency
+        # if a subtree was not seen in this row,
+        # that hole/subtree is not coming back
+        # (except due to cylindrical wraparound)
+        subtrees_to_prune = set()
+        for k, v in hole_sizes.mapping.items():
+            # look only at root nodes
+            if not isinstance(v, int):
+                continue
+
+            # prune if none of its leaves/branches were seen
+            if not any(frozenset([primitive_id]) in ids_in_row for primitive_id in k):
+                subtrees_to_prune.add(k)
+
+        for subtree in subtrees_to_prune:
+            hole_sizes.prune_subtree(subtree)
+
+    return hole_sizes, hole_view
 
 
 def test_hole_size_dict():
@@ -160,7 +225,8 @@ def test_detect_holes():
         )
 
         # Get hole view, size of largest hole
-        hole_view, max_hole = detect_holes(test_array)
+        hole_sizes, hole_view = detect_holes(test_array)
+        max_hole = hole_sizes.get_max()
 
         # Prints and asserts
         print(f"> Size of largest hole: {max_hole} (Expected {expected_max_size})")
@@ -196,7 +262,7 @@ def test_detect_holes():
 
 def test_runtime():
     # Runtime plot
-    fig, ax = plt.subplots()
+    fig, axs = plt.subplots(nrows=3, ncols=1)
 
     rng = np.random.default_rng(0)
     side_length = [10, 100, 200, 300, 400]
@@ -204,27 +270,58 @@ def test_runtime():
 
     for d in density:
         runtimes = []
+        dict_sizes = []
+        tree_depths = []
         for s in side_length:
             a = rng.binomial(1, 1 - d, size=s * s).reshape((s, s))
 
             tick = perf_counter()
-            detect_holes(a)
+            hole_sizes, _ = detect_holes(a)
             tock = perf_counter()
 
             runtimes.append(tock - tick)
+            dict_sizes.append(len(hole_sizes.mapping))
+            tree_depths.append(hole_sizes.get_depth())
 
             print(f"Runtime for side length {s}, density {d:.1f} : {tock-tick} seconds")
 
-        ax.plot(
+        axs[0].plot(
             side_length,
             runtimes,
-            label=f"density={d:.1f}",
+            label=f"Density={d:.1f}",
             color=(0, 1 - (2 * d - 1) ** 2, d),
         )
 
-    ax.legend()
-    ax.set_xlabel("Side length")
-    ax.set_ylabel("Runtime (s)")
+        axs[1].plot(
+            side_length,
+            dict_sizes,
+            label=f"Density={d:.1f}",
+            color=(1 - (2 * d - 1) ** 2, d, 0),
+        )
+
+        axs[2].plot(
+            side_length,
+            tree_depths,
+            label=f"Density={d:.1f}",
+            color=(d, 0, 1 - (2 * d - 1) ** 2),
+        )
+
+    axs[0].set_title("Runtime vs. Side Length, Density")
+    axs[0].set_xlabel("Side length")
+    axs[0].set_ylabel("Runtime (s)")
+    axs[0].legend()
+
+    axs[1].set_title("Tree Size vs. Side Length, Density")
+    axs[1].set_xlabel("Side Length")
+    axs[1].set_ylabel("Size (nodes)")
+    axs[1].legend()
+
+    axs[2].set_title("Tree Depth vs. Side Length, Density")
+    axs[2].set_xlabel("Side Length")
+    axs[2].set_ylabel("Tree Depth")
+    axs[2].legend()
+
+    fig.set_size_inches(8, 18)
     fig.tight_layout()
     fig.savefig("out/hole_detection/test_runtime.png")
 
@@ -284,7 +381,7 @@ def test_merge_time():
             density,
             merge_times[r, :] / total_times[r, :],
             "r--",
-            label="% Time Merging"
+            label="% Time Merging",
         )
         ax2.set_ylabel("% Time Merging")
         ax2.set_ylim([0, 1])
