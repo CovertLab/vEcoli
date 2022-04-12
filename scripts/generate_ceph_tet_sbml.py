@@ -48,8 +48,10 @@ DEFAULT_TET_OUTER_PERM = 1e-5  # cm/sec
 # Estimated in (Thanassi et al., 1995)
 DEFAULT_TET_INNER_PERM = 3 * 1e-6  # cm/sec
 
+# Estimated in (Stock et al., 1977)
 PERIPLASM_FRACTION = 0.2
 CYTOPLASM_FRACTION = 1 - PERIPLASM_FRACTION
+
 AREA_MASS_RATIO = 132  # cm^2/mg
 CYTO_AREA_MASS_RATIO = AREA_MASS_RATIO / CYTOPLASM_FRACTION  # cm^2/mg, Dividing by 0.8 as cytosol has 80% of mass
 CELL_MASS = 1170e-12  # mg
@@ -152,7 +154,7 @@ def main() -> None:
     )
 
     # Creating diffusion parameters
-    periplasm_area_mass_ratio = ParameterEntry('x_am', AREA_MASS_RATIO)  # cm^2/mg
+    periplasm_area_mass_ratio = ParameterEntry('outer_x_am', AREA_MASS_RATIO)  # cm^2/mg
     cephaloridine_permeability = ParameterEntry('outer_cephaloridine_permeability', DEFAULT_CEPH_OUTER_PERM)  # cm/sec
     tetracycline_permeability = ParameterEntry('outer_tetracycline_permeability', DEFAULT_TET_OUTER_PERM)  # cm/sec
     mass = ParameterEntry('mass', CELL_MASS)  # mg
@@ -161,7 +163,7 @@ def main() -> None:
     # Cephaloridine diffusion between environment and periplasm
     ceph_influx_propensity = GeneralPropensity(
         (
-            f'x_am * outer_cephaloridine_permeability * ({cephaloridine_e} - {cephaloridine_p}) '
+            f'outer_x_am * outer_cephaloridine_permeability * ({cephaloridine_e} - {cephaloridine_p}) '
             '* mass / (volume_p)'
         ),
         propensity_species=[cephaloridine_p, cephaloridine_e],
@@ -177,7 +179,7 @@ def main() -> None:
     # Tetracycline diffusion between environment and periplasm
     tet_e_p_influx_propensity = GeneralPropensity(
         (
-            f'x_am * outer_tetracycline_permeability * ({tetracycline_e} - {tetracycline_p}) '
+            f'outer_x_am * outer_tetracycline_permeability * ({tetracycline_e} - {tetracycline_p}) '
             '* mass / (volume_p)'
         ),
         propensity_species=[tetracycline_p, tetracycline_e],
@@ -194,12 +196,12 @@ def main() -> None:
     # dTp = D(Tp - Tc) / vol_p
     # dTc = D(Tp - Tc) / vol_c
     CYTO_AREA_MASS_RATIO = AREA_MASS_RATIO / CYTOPLASM_FRACTION  # cm^2/mg, Dividing by 0.8 as cytosol has 80% of mass
-    cyto_area_mass_ratio = ParameterEntry('x_am', CYTO_AREA_MASS_RATIO)  # cm^2/mg
+    cyto_area_mass_ratio = ParameterEntry('inner_x_am', CYTO_AREA_MASS_RATIO)  # cm^2/mg
     inner_tet_perm = ParameterEntry('inner_tetracycline_permeability', DEFAULT_TET_INNER_PERM)  # cm/sec
     volume_c = ParameterEntry('volume_c', CYTOPLASM_VOLUME)
     tet_p_c_influx_propensity = GeneralPropensity(
         (
-            f'x_am * inner_tetracycline_permeability * ({tetracycline_p} - {tetracycline_c})'
+            f'inner_x_am * inner_tetracycline_permeability * ({tetracycline_p} - {tetracycline_c})'
             '* mass / (volume_c)'
         ),
         propensity_species=[tetracycline_c, tetracycline_p],
