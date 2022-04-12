@@ -202,9 +202,9 @@ def test_runtime():
     side_length = [10, 100, 200, 300, 400]
     density = np.arange(0, 1.1, 0.1)
 
-    for s in side_length:
+    for d in density:
         runtimes = []
-        for d in density:
+        for s in side_length:
             a = rng.binomial(1, 1 - d, size=s * s).reshape((s, s))
 
             tick = perf_counter()
@@ -215,25 +215,16 @@ def test_runtime():
 
             print(f"Runtime for side length {s}, density {d:.1f} : {tock-tick} seconds")
 
-        # ax.plot(
-        #     side_length,
-        #     runtimes,
-        #     label=f"density={d:.1f}",
-        #     color=(0, 1 - (2 * d - 1) ** 2, d),
-        # )
-
         ax.plot(
-            density,
+            side_length,
             runtimes,
-            label=f"Side length = {s}",
-            color=(0, 1 - (2 * s / max(side_length) - 1) ** 2, s / max(side_length)),
+            label=f"density={d:.1f}",
+            color=(0, 1 - (2 * d - 1) ** 2, d),
         )
 
     ax.legend()
-    ax.set_xlabel("Hole Density")
+    ax.set_xlabel("Side length")
     ax.set_ylabel("Runtime (s)")
-    # ax.set_xlabel("Side length")
-    # ax.set_ylabel("Runtime (s)")
     fig.tight_layout()
     fig.savefig("out/hole_detection/test_runtime.png")
 
