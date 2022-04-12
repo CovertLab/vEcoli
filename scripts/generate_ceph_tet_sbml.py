@@ -25,6 +25,7 @@ from biocrnpyler import (
 
 DATA_DIR = os.path.abspath(
     os.path.join(os.path.dirname(__file__), '..', 'data'))
+FILENAME = 'ceph_tet_sbml.xml'
 
 # Calculated by dividing V_max reported in (Nagano & Nikaido, 2009) by the model's initial pump concentration of
 # 20.179269875115253 counts / micron^2
@@ -231,7 +232,7 @@ def main() -> None:
         initial_concentration_dict=initial_concentrations,
     )
 
-    path = os.path.join(DATA_DIR, 'ceph_tet_sbml.xml')
+    path = os.path.join(DATA_DIR, FILENAME)
     print(f'Writing the following CRN to {path}:')
     print(crn.pretty_print(show_rates=True))
     crn.write_sbml_file(path)
