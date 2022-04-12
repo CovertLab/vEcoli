@@ -409,7 +409,7 @@ class EcoliSim:
         if initial_state_path.startswith('vivecoli'):
             time_str = initial_state_path[len('vivecoli_t'):]
             seed = int(float(time_str))
-            self.config['seed'] = seed
+            self.config['seed'] += seed
 
         # initialize the ecoli composer
         config = copy.deepcopy(self.config)

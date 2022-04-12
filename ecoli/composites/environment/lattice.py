@@ -102,7 +102,7 @@ class Lattice(Composer):
         'diffusion': {
             'molecules': ['glc'],
             'n_bins': [10, 10],
-            'size': [10, 10] * units.um,
+            'bounds': [10, 10] * units.um,
             'depth': 3000.0 * units.um,
             'diffusion': 1e-2 * units.um**2 / units.sec,
         },
