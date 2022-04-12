@@ -83,7 +83,7 @@ class NonSpatialEnvironment(Step):
             'global': {
                 'volume': self.parameters['internal_volume'],
                 'mmol_to_counts': (
-                   AVOGADRO * self.parameters['internal_volume']
+                    AVOGADRO * self.parameters['internal_volume']
                 ).to(1 / units.mM),
             }
         }
