@@ -37,7 +37,19 @@ class SimpleAntibioticsCell(Composer):
     '''
 
     default = {
-        'ceph_tet_bioscrape': {},
+        'ceph_tet_bioscrape': {
+            'convert_units_map': {
+                'rates': {
+                    'mass': units.mg,
+                    'volume_p': units.mL,
+                    'volume_c': units.mL,
+                },
+                'species': {
+                    'cephaloridine_environment': units.fL,
+                    'tetracycline_environment': units.fL,
+                }
+            }
+        },
         'shape': {},
         'nonspatial_environment': {},
         'permeability': {},

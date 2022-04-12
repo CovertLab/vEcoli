@@ -26,7 +26,7 @@ from biocrnpyler import (
     Reaction,
     Species,
 )
-from vivarium.library.units import units
+from vivarium.library.units import units, remove_units
 from vivarium_bioscrape.processes.bioscrape import Bioscrape
 
 
@@ -36,6 +36,7 @@ class ExchangeAwareBioscrape(Bioscrape):
         **Bioscrape.defaults,
         'external_species': tuple(),
         'name_map': tuple(),
+        'convert_units_map': {},
     }
 
     def __init__(self, parameters=None):
@@ -57,6 +58,10 @@ class ExchangeAwareBioscrape(Bioscrape):
           a larger set of variable names than bioscrape. See
           https://github.com/biocircuits/bioscrape/wiki/BioSCRAPE-XML
           for the bioscrape naming rules.
+        * ``convert_units_map``: Dictionary reflecting the nested port
+          structure, with variables mapped to the expected unit. The
+          conversion to these units happens before units are stripped
+          and the magnitudes are passed to Bioscrape.
         '''
         super().__init__(parameters)
         self.rename_vivarium_to_bioscrape = {}
@@ -158,6 +163,18 @@ class ExchangeAwareBioscrape(Bioscrape):
         )
         return schema
 
+    def _remove_units(self, state, units_map):
+        for key, value in state.items():
+            expected_unit = units_map.get(key)
+            if expected_unit:
+                if isinstance(value, dict):
+                    assert isinstance(expected_unit, dict)
+                    value = self._remove_units(value, expected_unit)
+                else:
+                    value = value.to(expected_unit)
+            state[key] = remove_units(value)
+        return state
+
     @staticmethod
     def _rename_variables(state, rename_map, path=tuple()):
         '''Rename variables in a hierarchy dict per a renaming map.
@@ -218,26 +235,12 @@ class ExchangeAwareBioscrape(Bioscrape):
         state = copy.deepcopy(state)
         state = self._rename_variables(
             state, self.rename_vivarium_to_bioscrape)
+        state = self._remove_units(
+            state, self.parameters['convert_units_map'])
 
         for species in self.external_species_bioscrape:
             assert species not in state['species']
             state['species'][species] = state['external'].pop(species)
-
-        state['globals']['mmol_to_counts'] = state['globals']['mmol_to_counts'].magnitude
-        # If diffusing cephaloridine and tetracycline, make state bioscrape friendly
-        if 'cephaloridine_environment' in state['species']:
-            state['rates']['mass'] = state['rates']['mass'].to(
-                units.mg).magnitude
-            state['rates']['volume_p'] = state['rates']['volume_p'].to(
-                units.mL).magnitude
-            state['rates']['volume_c'] = state['rates']['volume_c'].to(
-                units.mL).magnitude
-            state['globals']['volume'] = state['globals']['volume'].magnitude
-            state['rates']['outer_cephaloridine_permeability'] = state['rates']['outer_cephaloridine_permeability'].magnitude
-            state['rates']['outer_tetracycline_permeability'] = state['rates']['outer_tetracycline_permeability'].magnitude
-            state['rates']['inner_tetracycline_permeability'] = state['rates']['inner_tetracycline_permeability'].magnitude
-            state['species']['cephaloridine_environment'] = state['species']['cephaloridine_environment'].magnitude
-            state['species']['tetracycline_environment'] = state['species']['tetracycline_environment'].magnitude
 
         # Compute the update using the bioscrape process.
         update = super().next_update(timestep, state)
@@ -310,7 +313,14 @@ def test_exchange_aware_bioscrape():
             'name_map': (
                 (('external', 'a'), str(a)),
                 (('species', 'b'), str(b)),
-            )
+            ),
+            'convert_units_map': {
+                'rates': {
+                    'mass': units.mg,
+                    'volume_p': units.mL,
+                    'volume_c': units.mL,
+                }
+            }
         })
 
     schema = proc.get_schema()
