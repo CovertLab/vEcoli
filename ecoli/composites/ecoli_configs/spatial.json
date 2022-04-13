@@ -10,7 +10,7 @@
         "diffusion": {
             "molecules": ["GLC[p]"],
             "n_bins": [10, 10],
-            "size": [
+            "bounds": [
                 "!units[10 micrometer]",
                 "!units[10 micrometer]"
             ],
@@ -51,7 +51,11 @@
     },
     "process_configs": {
       "local_field": {
-        "n_bins": [10, 10]
+        "n_bins": [10, 10],
+        "bounds": [
+            "!units[10 micrometer]",
+            "!units[10 micrometer]"
+        ]
       },
       "ecoli-shape": {}
     },
