@@ -418,7 +418,7 @@ class LoadSimData:
         metabolite_names = set()
 
         # TODO (Cyrus) Below operations are redundant (renaming, catalyst rearranging) and should just be removed.
-        # from the metabolism dataclass. Are catalysts all required? Or all possible ways to catalyze. Latter.
+        #  from the metabolism dataclass. Are catalysts all required? Or all possible ways to catalyze. Latter.
         reaction_catalysts = self.sim_data.process.metabolism.reaction_catalysts
         catalyst_ids = self.sim_data.process.metabolism.catalyst_ids
         reactions_with_catalyst = self.sim_data.process.metabolism.reactions_with_catalyst
