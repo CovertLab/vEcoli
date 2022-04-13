@@ -37,6 +37,7 @@ class ExchangeAwareBioscrape(Bioscrape):
         'external_species': tuple(),
         'name_map': tuple(),
         'units_map': {},
+        'species_units': units.mM
     }
 
     def __init__(self, parameters=None):
@@ -120,6 +121,7 @@ class ExchangeAwareBioscrape(Bioscrape):
     def ports_schema(self):
         schema = super().ports_schema()
         schema['globals']['volume']['_default'] *= units.fL
+        schema['globals']['volume'].pop('_updater')  # don't use default updater
 
         rename_schema_for_vivarium = {}
         for path, new_name in self.rename_bioscrape_to_vivarium.items():
@@ -143,7 +145,7 @@ class ExchangeAwareBioscrape(Bioscrape):
         assert 'external' not in schema
         schema['external'] = {
             species: {
-                '_default': 0,
+                '_default': 0 * self.parameters['species_units'],
             }
             for species in self.external_species_bioscrape
         }
@@ -151,6 +153,10 @@ class ExchangeAwareBioscrape(Bioscrape):
         for species in self.external_species_bioscrape:
             del schema['species'][species]
             del schema['delta_species'][species]
+
+        for species_schema in schema['species'].values():
+            species_schema['_default'] = \
+                species_schema['_default'] * self.parameters['species_units']
 
         assert 'mmol_to_counts' not in schema['globals']
         schema['globals']['mmol_to_counts'] = {
@@ -285,7 +291,7 @@ class ExchangeAwareBioscrape(Bioscrape):
             if species in update['species']:
                 delta_internal_conc = (
                     update['delta_species'][species]
-                    * units.mM
+                    * self.parameters['species_units']
                 )
                 exchange = delta_internal_conc * mmol_to_counts
                 assert species not in update['exchanges']
