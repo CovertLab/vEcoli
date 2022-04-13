@@ -7,6 +7,13 @@ from vivarium.library.units import units, Quantity
 AVOGADRO = N_A / units.mol
 
 
+def get_delta(before, after):
+    # assuming before and after have the same keys
+    return {
+        key: after[key] - before_value
+        for key, before_value in before.items()}
+
+
 class ConcentrationsDeriver(Step):
 
     defaults = {
@@ -25,7 +32,7 @@ class ConcentrationsDeriver(Step):
             'concentrations': {
                 variable: {
                     '_default': 0 * units.mM,
-                    '_updater': 'set',
+                    '_updater': 'accumulate',
                 }
                 for variable in self.parameters['variables']
             },
@@ -38,12 +45,15 @@ class ConcentrationsDeriver(Step):
     def next_update(self, timestep, states):
         volume = states['volume']
         assert isinstance(volume, Quantity)
-        concentrations = {
+        new_concentrations = {
             var: (
                 count * units.count / AVOGADRO / volume
             ).to(units.millimolar)
             for var, count in states['counts'].items()
         }
-        return {
-            'concentrations': concentrations
+        update = {
+            'concentrations': get_delta(
+                states['concentrations'],
+                new_concentrations)
         }
+        return update

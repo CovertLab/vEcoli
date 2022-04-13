@@ -111,11 +111,11 @@ class SimpleAntibioticsCell(Composer):
 
 def get_increasing_porins_timeline():
     timeline = []
-    for i in range(0, 120, 10):
+    for i in range(0, 12, 1):
         timeline.append(
-            (i, {
-                ('porins', 'CPLX0-7533[o]'):  (i * 10),
-                ('porins', 'CPLX0-7534[o]'):  (i * 10),
+            (i * 10, {
+                ('porins', 'CPLX0-7533[o]'): i,
+                ('porins', 'CPLX0-7534[o]'): i,
             },
              )
         )
