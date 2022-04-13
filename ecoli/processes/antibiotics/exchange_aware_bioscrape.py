@@ -118,6 +118,12 @@ class ExchangeAwareBioscrape(Bioscrape):
         }
         return inverted_map
 
+    def initial_state(self, config=None):
+        initial_state = super().initial_state()
+        for k in initial_state['species'].keys():
+            initial_state['species'][k] *= self.parameters['species_units']
+        return initial_state
+
     def ports_schema(self):
         schema = super().ports_schema()
         schema['globals']['volume']['_default'] *= units.fL
@@ -154,9 +160,10 @@ class ExchangeAwareBioscrape(Bioscrape):
             del schema['species'][species]
             del schema['delta_species'][species]
 
-        for species_schema in schema['species'].values():
-            species_schema['_default'] = \
-                species_schema['_default'] * self.parameters['species_units']
+        # add units to species and delta_species
+        for species_id in schema['species'].keys():
+            schema['species'][species_id]['_default'] *= self.parameters['species_units']
+            schema['delta_species'][species_id]['_default'] *= self.parameters['species_units']
 
         assert 'mmol_to_counts' not in schema['globals']
         schema['globals']['mmol_to_counts'] = {
@@ -196,13 +203,14 @@ class ExchangeAwareBioscrape(Bioscrape):
     
     def _add_units(self, state, saved_units):
         """add units back in"""
+        unit_state = state.copy()
         for key, value in saved_units.items():
-            before = state[key]
+            before = unit_state[key]
             if isinstance(value, dict):
-                state[key] = self._add_units(before, value)
+                unit_state[key] = self._add_units(before, value)
             else:
-                state[key] = before * value
-        return state
+                unit_state[key] = before * value
+        return unit_state
 
     @staticmethod
     def _rename_variables(state, rename_map, path=tuple()):
