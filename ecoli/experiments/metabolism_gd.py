@@ -118,8 +118,9 @@ def run_metabolism_composite():
 
 def run_ecoli_with_metabolism_gd(
         filename='fba_gd_swap',
-        total_time=4000,
+        total_time=4,
         divide=True,
+        initial_state_file='vivecoli_t2678',
         progress_bar=True,
         log_updates=False,
         emitter='timeseries',
@@ -130,6 +131,7 @@ def run_ecoli_with_metabolism_gd(
     sim.progress_bar = progress_bar
     sim.log_updates = log_updates
     sim.emitter = emitter
+    sim.initial_state = get_state_from_file(path=f'data/{initial_state_file}')
 
     sim.run()
 
@@ -151,7 +153,7 @@ def run_ecoli_with_metabolism_gd(
 @pytest.mark.slow
 def test_ecoli_with_metabolism_gd(
         filename='fba_gd_swap',
-        total_time=10,
+        total_time=4,
         divide=False,
         progress_bar=True,
         log_updates=False,
@@ -188,7 +190,7 @@ def test_ecoli_with_metabolism_gd(
 @pytest.mark.slow
 def test_ecoli_with_metabolism_gd_div(
         filename='fba_gd_division',
-        total_time=10,
+        total_time=4,
         divide=True,
         emitter='timeseries',
 ):

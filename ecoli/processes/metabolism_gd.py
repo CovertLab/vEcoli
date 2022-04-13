@@ -135,14 +135,14 @@ class MetabolismGD(Process):
                                                      {molecule_id: (0, np.inf)
                                                       for molecule_id in self.disallowed_exchange_uptake}, weight=5))
 
-        self.model.add_objective('futile_cycle',
-                                 FluxSumObjective(self.model.network, weight=0.000001))
+        # self.model.add_objective('futile_cycle',
+        #                          FluxSumObjective(self.model.network, weight=0.02))
 
         # TODO (Cyrus): Reintroduce later.
-        # self.model.add_objective("active_transport",
-        #                          VelocityBoundsObjective(self.model.network,
-        #                                                  {reaction_id: (0, 0.55) for reaction_id
-        #                                                   in self.carbon_source_active_transport}, weight=10))
+        self.model.add_objective("active_transport",
+                                 VelocityBoundsObjective(self.model.network,
+                                                         {reaction_id: (0, 0.6) for reaction_id
+                                                          in self.carbon_source_active_transport}, weight=10))
 
         # for ports schema
         self.metabolite_names_for_nutrients = self.get_port_metabolite_names(conc_dict)
