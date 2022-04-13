@@ -26,7 +26,7 @@ from biocrnpyler import (
     Reaction,
     Species,
 )
-from vivarium.library.units import units, remove_units
+from vivarium.library.units import units, Quantity
 from vivarium_bioscrape.processes.bioscrape import Bioscrape
 
 
@@ -36,7 +36,7 @@ class ExchangeAwareBioscrape(Bioscrape):
         **Bioscrape.defaults,
         'external_species': tuple(),
         'name_map': tuple(),
-        'convert_units_map': {},
+        'units_map': {},
     }
 
     def __init__(self, parameters=None):
@@ -58,7 +58,7 @@ class ExchangeAwareBioscrape(Bioscrape):
           a larger set of variable names than bioscrape. See
           https://github.com/biocircuits/bioscrape/wiki/BioSCRAPE-XML
           for the bioscrape naming rules.
-        * ``convert_units_map``: Dictionary reflecting the nested port
+        * ``units_map``: Dictionary reflecting the nested port
           structure, with variables mapped to the expected unit. The
           conversion to these units happens before units are stripped
           and the magnitudes are passed to Bioscrape.
@@ -163,16 +163,39 @@ class ExchangeAwareBioscrape(Bioscrape):
         )
         return schema
 
-    def _remove_units(self, state, units_map):
+    def _remove_units(self, state, units_map=None):
+        units_map = units_map or {}
+        converted_state = {}
+        saved_units = {}
         for key, value in state.items():
-            expected_unit = units_map.get(key)
-            if expected_unit:
-                if isinstance(value, dict):
-                    assert isinstance(expected_unit, dict)
-                    value = self._remove_units(value, expected_unit)
+            if isinstance(value, dict):
+                value_no_units, new_saved_units = self._remove_units(
+                    value, units_map=units_map.get(key)
+                )
+                converted_state[key] = value_no_units
+                saved_units[key] = new_saved_units
+            elif isinstance(value, Quantity):
+                saved_units[key] = value.units
+                expected_units = units_map.get(key)
+                if expected_units:
+                    value_no_units = value.to(expected_units).magnitude
                 else:
-                    value = value.to(expected_unit)
-            state[key] = remove_units(value)
+                    value_no_units = value.magnitude
+                converted_state[key] = value_no_units
+            else:
+                assert not units_map.get(key), f'{key} does not have units'
+                converted_state[key] = value
+
+        return converted_state, saved_units
+    
+    def _add_units(self, state, saved_units):
+        """add units back in"""
+        for key, value in saved_units.items():
+            before = state[key]
+            if isinstance(value, dict):
+                state[key] = self._add_units(before, value)
+            else:
+                state[key] = before * value
         return state
 
     @staticmethod
@@ -232,23 +255,32 @@ class ExchangeAwareBioscrape(Bioscrape):
         # Prepare the state for the bioscrape process by moving species
         # from 'external' to 'species' where the bioscrape process
         # expects them to be.
-        state = copy.deepcopy(state)
-        state = self._rename_variables(
-            state, self.rename_vivarium_to_bioscrape)
-        state = self._remove_units(
-            state, self.parameters['convert_units_map'])
+        prepared_state = copy.deepcopy(state)
+        prepared_state = self._rename_variables(
+            prepared_state, self.rename_vivarium_to_bioscrape)
+        prepared_state, saved_units = self._remove_units(
+            prepared_state,
+            units_map=self.parameters['units_map'])
 
         for species in self.external_species_bioscrape:
-            assert species not in state['species']
-            state['species'][species] = state['external'].pop(species)
+            assert species not in prepared_state['species']
+            prepared_state['species'][species] = prepared_state['external'].pop(species)
 
         # Compute the update using the bioscrape process.
-        update = super().next_update(timestep, state)
+        update = super().next_update(timestep, prepared_state)
+
+        # Add units back in
+        species_update = update['species']
+        delta_species_update = update['delta_species']
+        update['species'] = self._add_units(
+            species_update, saved_units['species'])
+        update['delta_species'] = self._add_units(
+            delta_species_update, saved_units['species'])
 
         # Postprocess the update to convert changes to external
         # molecules into exchanges.
         update.setdefault('exchanges', {})
-        mmol_to_counts = state['globals']['mmol_to_counts'] / units.mM
+        mmol_to_counts = prepared_state['globals']['mmol_to_counts'] / units.mM
         for species in self.external_species_bioscrape:
             if species in update['species']:
                 delta_internal_conc = (
@@ -270,6 +302,7 @@ class ExchangeAwareBioscrape(Bioscrape):
         update = self._rename_variables(
             update, self.rename_bioscrape_to_vivarium)
 
+        # TODO (ERAN) -- this needs to be generalized
         # To correct the diffusion between compartments with different volumes
         if 'tetracycline_cytoplasm' in update['delta_species']:
             # Net tetracycline diffusion from cytoplasm to periplasm
@@ -278,10 +311,10 @@ class ExchangeAwareBioscrape(Bioscrape):
             update['delta_species']['tetracycline_periplasm'] += tet_c_to_p
             update['species']['tetracycline_periplasm'] += tet_c_to_p
             # Applying correct tetracycline concentration change in periplasm
-            update['delta_species']['tetracycline_periplasm'] -= tet_c_to_p * (state['rates']['volume_c'] /
-                                                                               state['rates']['volume_p'])
-            update['species']['tetracycline_periplasm'] -= tet_c_to_p * (state['rates']['volume_c'] /
-                                                                         state['rates']['volume_p'])
+            update['delta_species']['tetracycline_periplasm'] -= tet_c_to_p * (
+                    prepared_state['rates']['volume_c'] / prepared_state['rates']['volume_p'])
+            update['species']['tetracycline_periplasm'] -= tet_c_to_p * (
+                    prepared_state['rates']['volume_c'] / prepared_state['rates']['volume_p'])
         return update
 
 
@@ -314,7 +347,7 @@ def test_exchange_aware_bioscrape():
                 (('external', 'a'), str(a)),
                 (('species', 'b'), str(b)),
             ),
-            'convert_units_map': {
+            'units_map': {
                 'rates': {
                     'mass': units.mg,
                     'volume_p': units.mL,

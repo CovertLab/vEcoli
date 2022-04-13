@@ -38,7 +38,7 @@ class SimpleAntibioticsCell(Composer):
 
     default = {
         'ceph_tet_bioscrape': {
-            'convert_units_map': {
+            'units_map': {
                 'rates': {
                     'mass': units.mg,
                     'volume_p': units.mL,
