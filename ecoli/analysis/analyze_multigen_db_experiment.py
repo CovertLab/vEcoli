@@ -7,14 +7,6 @@ from vivarium.library.units import remove_units
 
 from ecoli.analysis.analyze_db_experiment import access, OUT_DIR
 
-SERIALIZED_PATHS = (
-    ('periplasm', 'global', 'mmol_to_counts'),
-    ('periplasm', 'global', 'volume'),
-    ('boundary', 'surface_area'),
-    ('boundary', 'mmol_to_counts'),
-    ('boundary', 'mass'),
-    ('permeabilities',),
-)
 AGENTS_PATH = ('agents',)
 
 
