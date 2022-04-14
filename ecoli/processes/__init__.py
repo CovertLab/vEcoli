@@ -33,6 +33,7 @@ from ecoli.processes.antibiotics.fickian_diffusion import (
 from ecoli.processes.antibiotics.death import DeathFreezeState
 from ecoli.processes.antibiotics.tetracycline_ribosome_equilibrium import (
     TetracyclineRibosomeEquilibrium)
+from ecoli.processes.chemostat import Chemostat
 from vivarium.processes.timeline import TimelineProcess
 
 
@@ -68,6 +69,7 @@ process_registry.register(FieldTimeline.name, FieldTimeline)
 
 # auxiliary processes
 process_registry.register('timeline', TimelineProcess)
+process_registry.register(Chemostat.name, Chemostat)
 
 # antibiotic processes
 process_registry.register(AntibioticHydrolysis.name,
