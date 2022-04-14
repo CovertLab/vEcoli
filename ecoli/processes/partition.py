@@ -14,14 +14,20 @@ which reads the requests and allocates molecular counts for the evolve_state.
 
 """
 import abc
+import copy
 import os
 import pickle
 
+import numpy as np
 from vivarium.core.process import Step, Process
-from vivarium.library.dict_utils import deep_merge
-from ecoli.processes.registries import topology_registry
+from vivarium.library.dict_utils import deep_merge, make_path_dict
 
+from ecoli.processes.registries import topology_registry
 from ecoli.library.convert_update import convert_numpy_to_builtins
+
+
+def check_whether_evolvers_have_run(evolvers_ran, proc_name):
+    return evolvers_ran
 
 
 def change_bulk_updater(schema, new_updater):
@@ -131,6 +137,7 @@ class Requester(Step):
         ports = self.process.get_schema()
         ports_copy = ports.copy()
         ports['request'] = change_bulk_updater(ports_copy, 'set')
+        ports['evolvers_ran'] = {'_default': True}
         return ports
 
     def next_update(self, timestep, states):
@@ -147,6 +154,25 @@ class Requester(Step):
             update['listeners'] = listeners
 
         return convert_numpy_to_builtins(update)
+
+    def update_condition(self, timestep, states):
+        return check_whether_evolvers_have_run(
+            states['evolvers_ran'], self.name)
+
+    def __getstate__(self) -> dict:
+        """Return parameters
+
+        Unlike in vivarium.core.process.Process, here we return a
+        parameters dict that includes ``self.process`` instead of a
+        copy. This ensures that pickle will notice that the Requester
+        and Evolver in a pair share a process instance and will preserve
+        that shared object upon deserialization.
+        """
+        # Shallow copy since we just want to avoid changing
+        # `super()._original_parameters['process'].
+        state = copy.copy(super().__getstate__())
+        state['process'] = self.process
+        return state
 
 
 class Evolver(Process):
@@ -167,6 +193,17 @@ class Evolver(Process):
         ports = self.process.get_schema()
         ports_copy = ports.copy()
         ports['allocate'] = change_bulk_updater(ports_copy, 'set')
+        ports['evolvers_ran'] = {
+            '_default': True,
+            '_updater': 'set',
+            '_divider': {
+                'divider': 'set_value',
+                'config': {
+                    'value': True,
+                },
+            },
+            '_emit': False,
+        }
         return ports
 
     # TODO(Matt): Have evolvers calculate timestep, returning zero if the requester hasn't run.
@@ -177,7 +214,9 @@ class Evolver(Process):
     #         return self.process.calculate_timestep(states)
 
     def next_update(self, timestep, states):
-        states = deep_merge(states, states.pop('allocate'))
+        allocations = states.pop('allocate')
+        allocated_molecules = list(allocations.keys())
+        states = deep_merge(states, allocations)
 
         # if requester not yet run, skip evolver
         # TODO(Matt): After division, request_set is true, but it should be false. Why?
@@ -186,8 +225,25 @@ class Evolver(Process):
             # self.process.request_set = True
             return {}
 
-        update = self.process.evolve_state(timestep, states)
+        update = copy.deepcopy(
+            self.process.evolve_state(timestep, states))
+        update['evolvers_ran'] = True
         return convert_numpy_to_builtins(update)
+
+    def __getstate__(self) -> dict:
+        """Return parameters
+
+        Unlike in vivarium.core.process.Process, here we return a
+        parameters dict that includes ``self.process`` instead of a
+        copy. This ensures that pickle will notice that the Requester
+        and Evolver in a pair share a process instance and will preserve
+        that shared object upon deserialization.
+        """
+        # Shallow copy since we just want to avoid changing
+        # `super()._original_parameters['process'].
+        state = copy.copy(super().__getstate__())
+        state['process'] = self.process
+        return state
 
 
 class PartitionedProcess(Process):

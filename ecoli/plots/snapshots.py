@@ -13,6 +13,7 @@ from mpl_toolkits.axes_grid1 import (
 import numpy as np
 
 from vivarium.library.dict_utils import get_value_from_path
+from vivarium.library.units import Quantity, units
 
 DEFAULT_BOUNDS = [10, 10]
 
@@ -385,7 +386,7 @@ def plot_snapshots(
         skip_fields=[],
         include_fields=None,
         out_dir=None,
-        filename=None,
+        filename='snapshots',
         **kwargs,
 ):
     '''Plot snapshots of the simulation over time
@@ -424,7 +425,9 @@ def plot_snapshots(
             * **filename** (:py:class:`str`): Base name of output file.
               ``snapshots`` by default.
     '''
-
+    # Strip units from bounds if present.
+    if isinstance(bounds[0], Quantity):
+        bounds = tuple(bound.to(units.um).magnitude for bound in bounds)
     # time steps that will be used
     if agents and fields:
         assert set(list(agents.keys())) == set(list(fields.keys())), 'agent and field times are different'
@@ -609,7 +612,7 @@ def make_snapshots_figure(
                         agents_now,
                         agent_colors,
                         agent_shape=agent_shape,
-                        dead_color=None,
+                        dead_color=dead_color,
                         membrane_width=membrane_width,
                         membrane_color=membrane_color,
                         alpha=agent_alpha)
@@ -656,7 +659,7 @@ def make_snapshots_figure(
                     agents_now,
                     agent_colors,
                     agent_shape=agent_shape,
-                    dead_color=None,
+                    dead_color=dead_color,
                     membrane_width=membrane_width,
                     membrane_color=membrane_color,
                     alpha=agent_alpha)

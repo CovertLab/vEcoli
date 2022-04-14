@@ -30,25 +30,30 @@ class AntibioticTransport(ConvenienceKinetics):
     name = 'antibiotic_transport'
     defaults = {
         'kcat': 1 / units.sec,
-        'Km': 1e-3 * units.mmol / units.L,
+        'Km': 1e-3 * units.millimolar,
         'pump_key': 'pump',
         'antibiotic_key': 'antibiotic',
-        'initial_internal_antibiotic': 1e-3,
-        'initial_external_antibiotic': 0,
-        'initial_pump': 1e-3,
+        'initial_internal_antibiotic': 1e-3 * units.millimolar,
+        'initial_external_antibiotic': 0 * units.millimolar,
+        'initial_pump': 1e-3 * units.millimolar,
         'time_step': 1,
     }
 
-    def __init__(self, initial_parameters=None):
-        initial_parameters = initial_parameters or {}
+    def __init__(self, parameters=None):
+        initial_parameters = parameters or {}
         super_defaults = super().defaults
         deep_merge_check(self.defaults, super_defaults)
-        self.defaults.update(super_defaults)
         parameters = copy.deepcopy(self.defaults)
         deep_merge(parameters, initial_parameters)
 
         kcat = parameters['kcat'].to(1 / units.sec).magnitude
-        km = parameters['Km'].to(units.mmol / units.L).magnitude
+        km = parameters['Km'].to(units.millimolar).magnitude
+        initial_internal = parameters['initial_internal_antibiotic'].to(
+            units.millimolar).magnitude
+        initial_external = parameters['initial_external_antibiotic'].to(
+            units.millimolar).magnitude
+        initial_pump = parameters['initial_pump'].to(
+            units.millimolar).magnitude
 
         kinetics_parameters = {
             'reactions': {
@@ -75,22 +80,43 @@ class AntibioticTransport(ConvenienceKinetics):
                     'export': 0.0,
                 },
                 'internal': {
-                    parameters['antibiotic_key']: parameters[
-                        'initial_internal_antibiotic'],
+                    parameters['antibiotic_key']: initial_internal,
                 },
                 'external': {
-                    parameters['antibiotic_key']: parameters[
-                        'initial_external_antibiotic'],
+                    parameters['antibiotic_key']: initial_external,
                 },
                 'pump_port': {
-                    parameters['pump_key']: parameters['initial_pump'],
+                    parameters['pump_key']: initial_pump,
                 },
             },
             'port_ids': ['internal', 'external', 'pump_port'],
             'time_step': parameters['time_step'],
+            '_original_parameters': parameters,
         }
 
         super().__init__(kinetics_parameters)
+
+    def initial_state(self, config=None):
+        state = copy.deepcopy(super().initial_state(config))
+        for port in ('internal', 'pump_port', 'external'):
+            for variable in state[port]:
+                state[port][variable] *= units.mM
+        return state
+
+    def next_update(self, timestep, states):
+        for port in ('external', 'internal', 'pump_port'):
+            states[port] = {
+                variable: value.to(units.mM).magnitude
+                for variable, value in states[port].items()
+            }
+
+        update = super().next_update(timestep, states)
+
+        update['internal'] = {
+            variable: value * units.mM
+            for variable, value in update['internal'].items()
+        }
+        return update
 
 
 def demo():
@@ -98,7 +124,7 @@ def demo():
     env = NonSpatialEnvironment({
         'concentrations': {
             'antibiotic': AntibioticTransport.defaults[
-                'initial_external_antibiotic'],
+                'initial_external_antibiotic']
         },
         'internal_volume': 1.2 * units.fL,
         'env_volume': 1 * units.fL,
@@ -121,8 +147,8 @@ def demo():
     fig = plot_variables(
         data,
         variables=[
-            ('internal', 'antibiotic'),
-            ('external', 'antibiotic'),
+            ('internal', ('antibiotic', 'millimolar')),
+            ('external', ('antibiotic', 'millimolar')),
         ],
     )
     return fig, data
@@ -164,13 +190,13 @@ def test_antibiotic_transport():
 
     assert simulated_data['time'] == expected_data['time']
     np.testing.assert_allclose(
-        simulated_data['internal']['antibiotic'],
+        simulated_data['internal'][('antibiotic', 'millimolar')],
         expected_data['internal'],
         rtol=0,
         atol=1e-15,
     )
     np.testing.assert_allclose(
-        simulated_data['external']['antibiotic'],
+        simulated_data['external'][('antibiotic', 'millimolar')],
         expected_data['external'],
         rtol=0,
         atol=1e-15,
@@ -208,3 +234,7 @@ def get_demo_vs_expected_plot(demo_data, expected_data):
     fig.tight_layout()
 
     return fig
+
+
+if __name__ == '__main__':
+    test_antibiotic_transport()
