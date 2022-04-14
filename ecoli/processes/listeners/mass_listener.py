@@ -61,6 +61,7 @@ class MassListener(Deriver):
         'compartment_id_to_index': {},
         'compartment_abbrev_to_index': {},
         'n_avogadro': 6.0221409e23,  # 1/mol
+        'add_tetracycline_masses': False,
         'time_step': 2.0
     }
 
@@ -72,6 +73,28 @@ class MassListener(Deriver):
         self.bulk_masses = self.parameters['bulk_masses']
         self.unique_ids = self.parameters['unique_ids']
         self.unique_masses = self.parameters['unique_masses']
+
+        # NOTE: This code is newly added in vivarium-ecoli.
+        if self.parameters['add_tetracycline_masses']:
+            self.unique_ids = np.append(
+                self.unique_ids, 'active_ribosome_tetracycline')
+            active_ribo_idx = np.where(
+                self.unique_ids == 'active_ribosome')[0][0]
+            self.unique_masses = np.append(
+                self.unique_masses,
+                [self.unique_masses[active_ribo_idx]],
+                axis=0,
+            )
+            self.bulk_ids = np.append(
+                self.bulk_ids, 'CPLX0-3953-tetracycline[c]')
+            bulk_30s_idx = np.where(
+                self.bulk_ids == 'CPLX0-3953[c]')[0][0]
+            self.bulk_masses = np.append(
+                self.bulk_masses,
+                [self.bulk_masses[bulk_30s_idx]],
+                axis=0,
+            )
+        # End of newly-added code.
 
         self.water_index = self.parameters['submass_indices']['water']
         self.submass_indices = {
@@ -129,7 +152,13 @@ class MassListener(Deriver):
             'unique': {
                 mol_id: dict_value_schema(mol_id + 's')
                 for mol_id in self.unique_ids
-                if mol_id not in ['DnaA_box', 'active_ribosome']
+                if mol_id not in [
+                    'DnaA_box',
+                    'active_ribosome',
+                    # NOTE: This code is newly added in vivarium-ecoli.
+                    'active_ribosome_tetracycline',
+                    # End of newly-added code.
+                ]
             },
             'listeners': {
                 'mass': {
@@ -162,8 +191,15 @@ class MassListener(Deriver):
         }
         ports['unique'].update({
             'active_ribosome': dict_value_schema('active_ribosome'),
-            'DnaA_box': dict_value_schema('DnaA_boxes')
+            'DnaA_box': dict_value_schema('DnaA_boxes'),
         })
+        # NOTE: This code is newly added in vivarium-ecoli.
+        if self.parameters['add_tetracycline_masses']:
+            ports['unique'].update({
+                'active_ribosome_tetracycline': dict_value_schema(
+                    'active_ribosome'),
+            })
+        # End of newly-added code.
         return ports
 
     def get_compartment_submasses(self, states):
