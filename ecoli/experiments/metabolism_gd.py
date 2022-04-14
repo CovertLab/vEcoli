@@ -120,7 +120,7 @@ def run_ecoli_with_metabolism_gd(
         filename='fba_gd_swap',
         total_time=4,
         divide=True,
-        initial_state_file='vivecoli_t2678',
+        initial_state_file='vivecoli_t2',
         progress_bar=True,
         log_updates=False,
         emitter='timeseries',
@@ -169,22 +169,15 @@ def test_ecoli_with_metabolism_gd(
     # assert that the processes were swapped
     sim.build_ecoli()
 
-    if divide is False:
-        assert 'ecoli-metabolism-gradient-descent' in sim.ecoli['processes']
-        assert 'ecoli-metabolism' not in sim.ecoli['processes']
-        assert 'ecoli-metabolism-gradient-descent' in sim.ecoli['topology']
-        assert 'ecoli-metabolism' not in sim.ecoli['topology']
-    else:
-        assert 'ecoli-metabolism-gradient-descent' in sim.processes
-        assert 'ecoli-metabolism' not in sim.processes
-        assert 'ecoli-metabolism-gradient-descent' in sim.processes
-        assert 'ecoli-metabolism' not in sim.processes
+    assert 'ecoli-metabolism-gradient-descent' in sim.ecoli['processes']
+    assert 'ecoli-metabolism' not in sim.ecoli['processes']
+    assert 'ecoli-metabolism-gradient-descent' in sim.ecoli['topology']
+    assert 'ecoli-metabolism' not in sim.ecoli['topology']
+
 
     # run simulation and add asserts to output
     sim.run()
 
-    # put asserts here to make sure it is behaving as expected
-    # assert output['listeners']['fba_results']
 
 
 @pytest.mark.slow
@@ -194,6 +187,7 @@ def test_ecoli_with_metabolism_gd_div(
         divide=True,
         emitter='timeseries',
 ):
+    # TODO (Cyrus) - Add test that affirms structure of output query.
     sim = EcoliSim.from_file(CONFIG_DIR_PATH + filename + '.json')
     sim.total_time = total_time
     sim.divide = divide
@@ -201,7 +195,24 @@ def test_ecoli_with_metabolism_gd_div(
 
     # assert that the processes were swapped
     sim.build_ecoli()
+
+    assert 'ecoli-metabolism-gradient-descent' in sim.processes
+    assert 'ecoli-metabolism' not in sim.processes
+    assert 'ecoli-metabolism-gradient-descent' in sim.processes
+    assert 'ecoli-metabolism' not in sim.processes
+
     sim.run()
+
+    query = []
+    agents = sim.query()['agents'].keys()
+    for agent in agents:
+        query.extend([('agents', agent, 'listeners', 'fba_results'),
+                      ('agents', agent, 'listeners', 'mass'),
+                      ('agents', agent, 'bulk')])
+    output = sim.query(query)
+
+    # test that water is being used (model is running)
+    assert sum(output['agents'][agent]['listeners']['fba_results']['estimated_exchange_dmdt']['WATER[p]']) != 0
 
 def run_ecoli_with_default_metabolism(
         filename='default',
