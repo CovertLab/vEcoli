@@ -422,10 +422,7 @@ def test_exchange_aware_bioscrape():
             'mmol_to_counts': 10 / units.millimolar,
             'volume': 0.32e-12 * units.mL,
         },
-        'rates': {
-            # 'mass': 1170e-12 * units.mg,
-            # 'volume': 0.32e-12 * units.mL,
-        },
+        'rates': {},
     }
     update = proc.next_update(1, initial_state)
 
