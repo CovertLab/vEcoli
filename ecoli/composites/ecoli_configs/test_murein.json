@@ -1,8 +1,8 @@
 {
+    "inherit_from": ["default.json"],
     "experiment_id" : "test_murein",
     "emitter" : "database",
-    "total_time" : 3000,
-    "divide": true,
+    "total_time" : 30,
 
     "initial_state_file": "wcecoli_t0_reduced_murein",
 
