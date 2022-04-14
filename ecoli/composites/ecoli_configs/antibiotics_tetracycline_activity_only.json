@@ -1,0 +1,75 @@
+{
+    "inherit_from": ["spatial.json", "cloud.json"],
+    "add_processes": [
+        "chemostat",
+        "tetracycline-ribosome-equilibrium"
+    ],
+    "total_time": 100,
+    "spatial_environment_config": {
+        "multibody": {
+            "bounds": [
+                "!units[50 micrometer]",
+                "!units[50 micrometer]"
+            ]
+        },
+        "diffusion": {
+            "molecules": ["GLC[p]"],
+            "n_bins": [10, 10],
+            "bounds": [
+                "!units[50 micrometer]",
+                "!units[50 micrometer]"
+            ],
+            "depth": "!units[3000.0 micrometer]",
+            "diffusion": "!units[1e-2 micrometer ** 2 / second]",
+            "gradient": {
+                "type": "uniform",
+                "molecules": {
+                    "GLC[p]": 1.0
+                }
+            }
+        }
+    },
+    "topology": {
+        "chemostat": {
+            "tetracycline": ["cytoplasm", "concentrations", "tetracycline"]
+        },
+        "tetracycline-ribosome-equilibrium": {
+            "tetracycline": ["cytoplasm", "concentrations", "tetracycline"],
+            "30s-free": ["bulk", "CPLX0-3953[c]"],
+            "70s-free": ["unique", "active_ribosome"],
+            "70s-tetracycline": ["unique", "active_ribosome_tetracycline"],
+            "30s-tetracycline": ["bulk", "CPLX0-3953-tetracycline[c]"],
+            "volume": ["periplasm", "global", "volume"],
+            "evolvers_ran": ["evolvers_ran"],
+            "reports": ["boundary", "reports"]
+        }
+    },
+    "process_configs": {
+        "local_field": {
+            "n_bins": [10, 10],
+            "bounds": [
+                "!units[50 micrometer]",
+                "!units[50 micrometer]"
+            ]
+        },
+        "chemostat": {
+            "targets": {
+                "tetracycline": "!units[0.01 millimolar]"
+            }
+        },
+        "tetracycline-ribosome-equilibrium": {},
+        "ecoli-mass-listener": {
+            "add_tetracycline_masses": true
+        }
+    },
+    "flow": {
+        "concentrations_deriver": [["ecoli-shape"]],
+        "ecoli-polypeptide-initiation_requester": [["tetracycline-ribosome-equilibrium"]]
+    },
+    "engine_process_reports": [
+        ["periplasm"],
+        ["cytoplasm"],
+        ["listeners", "mass"],
+        ["boundary"]
+    ]
+}

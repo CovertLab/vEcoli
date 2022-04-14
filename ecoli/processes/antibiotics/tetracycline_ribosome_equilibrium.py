@@ -43,6 +43,7 @@ class TetracyclineRibosomeEquilibrium(Step):
         return {
             'tetracycline': {
                 '_default': 0 * units.mM,
+                '_emit': True,
             },
             '30s-free': {
                 '_default': 0,
