@@ -31,6 +31,8 @@ from ecoli.processes.antibiotics.antibiotic_transport import (
 from ecoli.processes.antibiotics.fickian_diffusion import (
     FickianDiffusion)
 from ecoli.processes.antibiotics.death import DeathFreezeState
+from ecoli.processes.antibiotics.tetracycline_ribosome_equilibrium import (
+    TetracyclineRibosomeEquilibrium)
 from vivarium.processes.timeline import TimelineProcess
 
 
@@ -75,3 +77,6 @@ process_registry.register(AntibioticTransport.name,
 process_registry.register(FickianDiffusion.name,
     FickianDiffusion)
 process_registry.register(DeathFreezeState.name, DeathFreezeState)
+process_registry.register(
+    TetracyclineRibosomeEquilibrium.name,
+    TetracyclineRibosomeEquilibrium)
