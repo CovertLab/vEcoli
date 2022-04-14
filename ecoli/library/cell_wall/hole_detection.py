@@ -12,6 +12,7 @@ import numpy as np
 class HoleSizeDict(MutableMapping):
     def __init__(self, data={}):
         self.mapping = {}
+        self.roots = set()
         self.max = 0
         self.update(data)
         if len(data) > 0:
@@ -25,6 +26,10 @@ class HoleSizeDict(MutableMapping):
         return result
 
     def __delitem__(self, key):
+        if key in self.roots:
+            self.prune_subtree(key)
+            return
+
         # Need to remap anything that maps to this key
         destination = self.get_containing_hole(key)
         to_remap = set()
@@ -44,6 +49,7 @@ class HoleSizeDict(MutableMapping):
 
         # Store value, update maximum if necessary
         self.mapping[loc] = value
+        self.roots.add(loc)
         if value > self.max:
             self.max = value
 
@@ -59,8 +65,13 @@ class HoleSizeDict(MutableMapping):
             for hole in containing_holes:
                 self.mapping[hole] = merged_hole
 
+                # No longer a root node after merge
+                self.roots.remove(hole)
+
             if new_size > self.max:
                 self.max = new_size
+            
+            self.roots.add(merged_hole)
 
         return merged_hole
 
@@ -78,6 +89,7 @@ class HoleSizeDict(MutableMapping):
                 current = next_node
 
         del self.mapping[root]
+        self.roots.remove(root)
 
     def get_containing_hole(self, hole):
         containing_hole = hole
@@ -119,7 +131,7 @@ class HoleSizeDict(MutableMapping):
         return f"{type(self).__name__}({self.mapping})"
 
 
-def detect_holes(lattice):
+def detect_holes(lattice, critical_size=None):
     # Create "hole view" of lattice.
     # Each position contains a set of integers representing the id of the hole
     # containing that position (or an empty set if that position is not a hole).
@@ -179,10 +191,10 @@ def detect_holes(lattice):
         # that hole/subtree is not coming back
         # (except due to cylindrical wraparound)
         subtrees_to_prune = set()
-        for k, v in hole_sizes.mapping.items():
-            # look only at root nodes
-            if not isinstance(v, int):
-                continue
+        for k in hole_sizes.roots:  # hole_sizes.mapping.items():
+            # # look only at root nodes
+            # if not isinstance(v, int):
+            #     continue
 
             # prune if none of its leaves/branches were seen
             if not any(frozenset([primitive_id]) in ids_in_row for primitive_id in k):
@@ -190,6 +202,10 @@ def detect_holes(lattice):
 
         for subtree in subtrees_to_prune:
             hole_sizes.prune_subtree(subtree)
+
+        # Early stopping if reached critical size
+        if critical_size and hole_view.max >= critical_size:
+            break
 
     return hole_sizes, hole_view
 
@@ -265,7 +281,7 @@ def test_runtime():
     fig, axs = plt.subplots(nrows=3, ncols=1)
 
     rng = np.random.default_rng(0)
-    side_length = [10, 100, 200, 300, 400]
+    side_length = [10, 100, 200, 300, 400, 500]
     density = np.arange(0, 1.1, 0.1)
 
     for d in density:
