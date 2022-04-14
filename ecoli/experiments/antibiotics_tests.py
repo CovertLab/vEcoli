@@ -9,9 +9,6 @@ def test_antibiotics_base():
     sim.run()
     data = sim.query()
 
-    # print(pf(data))
-    # import ipdb; ipdb.set_trace()
-
 
 def test_antibiotics_nitrocefin():
     sim = EcoliSim.from_file(CONFIG_DIR_PATH + 'antibiotics_nitrocefin.json')

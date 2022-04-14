@@ -307,6 +307,8 @@ class ExchangeAwareBioscrape(Bioscrape):
                 update['exchanges'][species] = exchange.to(
                     units.counts).magnitude
                 del update['species'][species]
+                del update['delta_species'][species]
+
         # We don't want to change the rates nor the globals.
         if 'rates' in update:
             del update['rates']
@@ -374,7 +376,7 @@ def test_exchange_aware_bioscrape():
     expected_schema = {
         'delta_species': {
             'b': {
-                '_default': 0,
+                '_default': 0.0 * units.mM,
                 '_emit': False,
                 '_updater': 'set',
             },
@@ -383,14 +385,13 @@ def test_exchange_aware_bioscrape():
             'a': {'_default': 0},
         },
         'external': {
-            'a': {'_default': 0},
+            'a': {'_default': 0.0 * units.mM},
         },
         'globals': {
             'mmol_to_counts': {'_default': 0},
             'volume': {
-                '_default': 1 * units.fL,
+                '_default': 1.0 * units.fL,
                 '_emit': True,
-                '_updater': 'accumulate',
             },
         },
         'rates': {
@@ -401,7 +402,7 @@ def test_exchange_aware_bioscrape():
         },
         'species': {
             'b': {
-                '_default': 0,
+                '_default': 0.0 * units.mM,
                 '_divider': 'set',
                 '_emit': True,
                 '_updater': 'accumulate',
@@ -419,10 +420,11 @@ def test_exchange_aware_bioscrape():
         },
         'globals': {
             'mmol_to_counts': 10 / units.millimolar,
+            'volume': 0.32e-12 * units.mL,
         },
         'rates': {
-            'mass': 1170e-12 * units.mg,
-            'volume': 0.32e-12 * units.mL,
+            # 'mass': 1170e-12 * units.mg,
+            # 'volume': 0.32e-12 * units.mL,
         },
     }
     update = proc.next_update(1, initial_state)
