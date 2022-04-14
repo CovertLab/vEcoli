@@ -21,7 +21,16 @@ from ecoli.processes.chromosome_structure import ChromosomeStructure
 from ecoli.processes.allocator import Allocator
 from ecoli.processes.environment.lysis import Lysis
 from ecoli.processes.environment.local_field import LocalField
+from ecoli.processes.environment.field_timeline import FieldTimeline
 from ecoli.processes.shape import Shape
+from ecoli.processes.concentrations_deriver import ConcentrationsDeriver
+from ecoli.processes.antibiotics.antibiotic_hydrolysis import (
+    AntibioticHydrolysis)
+from ecoli.processes.antibiotics.antibiotic_transport import (
+    AntibioticTransport)
+from ecoli.processes.antibiotics.fickian_diffusion import (
+    FickianDiffusion)
+from ecoli.processes.antibiotics.death import DeathFreezeState
 from vivarium.processes.timeline import TimelineProcess
 
 
@@ -47,10 +56,22 @@ process_registry.register(MonomerCounts.name, MonomerCounts)
 process_registry.register(ChromosomeStructure.name, ChromosomeStructure)
 process_registry.register(Allocator.name, Allocator)
 process_registry.register(Shape.name, Shape)
+process_registry.register(ConcentrationsDeriver.name,
+    ConcentrationsDeriver)
 
 # environment processes
 process_registry.register(Lysis.name, Lysis)
 process_registry.register(LocalField.name, LocalField)
+process_registry.register(FieldTimeline.name, FieldTimeline)
 
 # auxiliary processes
 process_registry.register('timeline', TimelineProcess)
+
+# antibiotic processes
+process_registry.register(AntibioticHydrolysis.name,
+    AntibioticHydrolysis)
+process_registry.register(AntibioticTransport.name,
+    AntibioticTransport)
+process_registry.register(FickianDiffusion.name,
+    FickianDiffusion)
+process_registry.register(DeathFreezeState.name, DeathFreezeState)

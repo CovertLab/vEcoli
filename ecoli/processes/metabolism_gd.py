@@ -15,6 +15,7 @@ from wholecell.utils import units
 from ecoli.library.fba_gd import GradientDescentFba, FbaResult, TargetDmdtObjective, \
     TargetVelocityObjective, VelocityBoundsObjective, DmdtBoundsObjective, FluxSumObjective
 from ecoli.processes.registries import topology_registry
+from ecoli.processes.partition import check_whether_evolvers_have_run
 
 COUNTS_UNITS = units.mmol
 VOLUME_UNITS = units.L
@@ -218,7 +219,9 @@ class MetabolismGD(Process):
                 },
             },
 
+            'evolvers_ran': {'_default': True},
         }
+
 
     def next_update(self, timestep, states):
 

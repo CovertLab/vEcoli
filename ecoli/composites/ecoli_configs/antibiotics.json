@@ -1,0 +1,162 @@
+{
+    "inherit_from": ["spatial.json", "cloud.json"],
+    "add_processes": [
+        "antibiotic_transport",
+        "antibiotic_hydrolysis",
+        "fickian_diffusion",
+        "concentrations_deriver",
+        "death"
+    ],
+    "total_time": 12000,
+    "spatial_environment_config": {
+        "multibody": {
+            "bounds": [
+                "!units[10 micrometer]",
+                "!units[10 micrometer]"
+            ]
+        },
+        "diffusion": {
+            "molecules": ["GLC[p]", "nitrocefin"],
+            "n_bins": [10, 10],
+            "size": [
+                "!units[10 micrometer]",
+                "!units[10 micrometer]"
+            ],
+            "depth": "!units[3000.0 micrometer]",
+            "diffusion": "!units[1e-2 micrometer ** 2 / second]",
+            "gradient": {
+                "type": "uniform",
+                "molecules": {
+                    "GLC[p]": 1.0,
+                    "nitrocefin": 0
+                }
+            }
+        },
+        "field_timeline": {
+            "bins": [10, 10],
+            "timeline": [
+                [6000, {"nitrocefin": 0.1239}]
+            ]
+        },
+        "field_timeline_topology": {
+            "global": ["global"],
+            "fields": ["fields"]
+        }
+    },
+    "topology": {
+        "antibiotic_transport": {
+            "internal": ["periplasm", "concentrations"],
+            "external": ["boundary", "external"],
+            "exchanges": ["environment", "exchange"],
+            "pump_port": ["periplasm", "concentrations"],
+            "fluxes": ["fluxes"],
+            "global": ["periplasm", "global"]
+        },
+        "antibiotic_hydrolysis": {
+            "internal": ["periplasm", "concentrations"],
+            "catalyst_port": ["periplasm", "concentrations"],
+            "fluxes": ["fluxes"],
+            "global": ["periplasm", "global"]
+        },
+        "fickian_diffusion": {
+            "internal": ["periplasm", "concentrations"],
+            "external": ["boundary", "external"],
+            "exchanges": ["environment", "exchange"],
+            "fluxes": ["fluxes"],
+            "volume_global": ["periplasm", "global"],
+            "mass_global": ["boundary"],
+            "permeabilities": ["permeabilities"]
+        },
+        "concentrations_deriver": {
+            "counts": ["bulk"],
+            "concentrations": ["periplasm", "concentrations"],
+            "volume": ["periplasm", "global", "volume"]
+        },
+        "death": {
+            "global": ["boundary"],
+            "processes": [],
+            "internal": ["periplasm", "concentrations"]
+        }
+    },
+    "process_configs": {
+        "antibiotic_transport": {
+            "initial_pump": "!units[1e-3 millimolar]",
+            "initial_internal_antibiotic": "!units[0 millimolar]",
+            "intial_external_antibiotic": "!units[0 millimolar]",
+            "kcat": "!units[1e1 / second]",
+            "Km": "!units[4.95e-3 millimolar]",
+            "pump_key": "TRANS-CPLX-201[m]",
+            "antibiotic_key": "nitrocefin",
+            "time_step": 1
+        },
+        "antibiotic_hydrolysis": {
+            "initial_catalyst": "!units[1e-3 millimolar]",
+            "catalyst": "EG10040-MONOMER[p]",
+            "initial_target_internal": "!units[0 millimolar]",
+            "target": "nitrocefin",
+            "kcat": "!units[490 / second]",
+            "Km": "!units[0.5 millimolar]",
+            "time_step": 1
+        },
+        "fickian_diffusion": {
+            "initial_state": {
+                "external": {
+                    "nitrocefin": "!units[0 millimolar]"
+                },
+                "internal": {
+                    "nitrocefin": "!units[0 millimolar]"
+                },
+                "volume_global": {
+                    "volume": "!units[0.36 femtoliter]"
+                }
+            },
+            "molecules_to_diffuse": ["nitrocefin"],
+            "permeability": "!units[0.2e-6 centimeter / second]",
+            "surface_area_mass_ratio": "!units[132 centimeter ** 2 / milligram]",
+            "time_step": 1
+        },
+        "concentrations_deriver": {
+            "variables": ["EG10040-MONOMER[p]", "TRANS-CPLX-201[m]"]
+        },
+        "death": {
+            "detectors": {
+                "antibiotic": {
+                    "antibiotic_threshold": "!units[0.03 millimolar]",
+                    "antibiotic_key": "nitrocefin"
+                }
+            },
+            "targets": [
+                "ecoli-tf-binding_evolver",
+                "ecoli-transcript-initiation_evolver",
+                "ecoli-transcript-elongation_evolver",
+                "ecoli-rna-degradation_evolver",
+                "ecoli-polypeptide-initiation_evolver",
+                "ecoli-polypeptide-elongation_evolver",
+                "ecoli-complexation_evolver",
+                "ecoli-two-component-system_evolver",
+                "ecoli-equilibrium_evolver",
+                "ecoli-protein-degradation_evolver",
+                "ecoli-chromosome-replication_evolver",
+                "antibiotic_transport",
+                "antibiotic_hydrolysis",
+                "ecoli-tf-binding_requester",
+                "ecoli-transcript-initiation_requester",
+                "ecoli-transcript-elongation_requester",
+                "ecoli-rna-degradation_requester",
+                "ecoli-polypeptide-initiation_requester",
+                "ecoli-polypeptide-elongation_requester",
+                "ecoli-complexation_requester",
+                "ecoli-two-component-system_requester",
+                "ecoli-equilibrium_requester",
+                "ecoli-protein-degradation_requester",
+                "ecoli-chromosome-replication_requester",
+                "allocator",
+                "ecoli-chromosome-structure",
+                "ecoli-metabolism"
+            ]
+        }
+    },
+    "flow": {
+        "concentrations_deriver": [["ecoli-shape"]]
+    }
+}
