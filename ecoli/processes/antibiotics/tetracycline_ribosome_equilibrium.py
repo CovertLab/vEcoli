@@ -66,6 +66,11 @@ class TetracyclineRibosomeEquilibrium(Step):
                     '_updater': 'set',
                     '_emit': True,
                 },
+                'frac_ribosomes_bound_tetracycline': {
+                    '_default': 0,
+                    '_updater': 'set',
+                    '_emit': True,
+                },
             },
         }
 
@@ -143,6 +148,11 @@ class TetracyclineRibosomeEquilibrium(Step):
         count_30s_tc_target = (
             count_ribo_total_tc_target - count_70s_tc_target)
 
+        # For reporting, find the resulting fraction of ribosomes bound
+        # to tetracycline.
+        ribo_frac_tc_bound_expected = (count_70s_tc_target +
+            count_30s_tc_target) / count_ribo_total
+
         # Determine what needs to be done.
         count_70s_to_inhibit = int(count_70s_tc_target - count_70s_tc)
         count_30s_to_inhibit = int(count_30s_tc_target - count_30s_tc)
@@ -168,6 +178,8 @@ class TetracyclineRibosomeEquilibrium(Step):
             },
             'reports': {
                 'total_internal_tetracycline': conc_tc_total,
+                'frac_ribosomes_bound_tetracycline': (
+                    ribo_frac_tc_bound_expected),
             },
         }
 
