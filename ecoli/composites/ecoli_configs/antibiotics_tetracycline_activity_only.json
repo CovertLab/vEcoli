@@ -55,7 +55,8 @@
         "chemostat": {
             "targets": {
                 "tetracycline": "!units[0.01 millimolar]"
-            }
+            },
+            "delay": 10
         },
         "tetracycline-ribosome-equilibrium": {},
         "ecoli-mass-listener": {
