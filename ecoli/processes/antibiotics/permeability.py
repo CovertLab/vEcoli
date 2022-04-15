@@ -8,7 +8,7 @@ from vivarium.plots.simulation_output import plot_variables
 from vivarium.processes.timeline import TimelineProcess
 
 # To calculate SA_AVERAGE, we calculated the average surface area of the model up until division.
-SA_AVERAGE = 6.22200939450696
+SA_AVERAGE = 6.22200939450696 * units.micron ** 2
 # To calculate CEPH_OMPC_CON_PERM and CEPH_OMPF_CON_PERM, we calculated the average counts of ompC and ompF
 # in the model up until division and divided each by the average surface area to get the average concentrations
 # of ompC and ompF. We then divided the corresponding cephaloridine permeability coefficients from Nikaido, 1983
@@ -55,7 +55,7 @@ class Permeability(Step):
 
     def next_update(self, timestep, states):
         porins = states['porins']
-        surface_area = states['surface_area'] * units.micron ** 2
+        surface_area = states['surface_area']
         permeabilities = {}
         for molecule in self.diffusing_molecules:
             cell_permeability = 0

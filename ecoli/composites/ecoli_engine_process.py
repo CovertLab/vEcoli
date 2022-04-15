@@ -26,8 +26,6 @@ from ecoli.library.sim_data import RAND_MAX
 from ecoli.processes.engine_process import EngineProcess
 from ecoli.processes.environment.field_timeline import FieldTimeline
 from ecoli.processes.listeners.mass_listener import MassListener
-from ecoli.processes.antibiotics.fickian_diffusion import (
-    FickianDiffusion)
 from ecoli.processes.shape import Shape
 from ecoli.composites.environment.lattice import Lattice
 
