@@ -1,9 +1,11 @@
+from cProfile import label
 import os
 from sys import getsizeof
 from collections.abc import MutableMapping
 from functools import reduce
 from operator import __or__
 from time import perf_counter
+from attr import frozen
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -70,7 +72,7 @@ class HoleSizeDict(MutableMapping):
 
             if new_size > self.max:
                 self.max = new_size
-            
+
             self.roots.add(merged_hole)
 
         return merged_hole
@@ -178,7 +180,6 @@ def detect_holes(lattice, critical_size=None):
                 hole_sizes[new_id] = 1
                 next_hole_id += 1
             else:
-                new_id = neighbor_holes[0]
                 new_id = hole_sizes.merge(neighbor_holes)
                 hole_sizes[new_id] += 1
 
@@ -213,11 +214,24 @@ def detect_holes(lattice, critical_size=None):
 def test_hole_size_dict():
     hsd = HoleSizeDict({frozenset([1]): 1, frozenset([2]): 2})
 
+    # Merging
     hsd.merge([frozenset([1]), frozenset([2])])
     assert hsd[frozenset([1, 2])] == 3
 
+    # Mapping updates to correct destination
     hsd[frozenset([1])] += 5
     assert hsd[frozenset([1, 2])] == 8
+
+    # Subtree pruning
+    try:
+        hsd.prune_subtree(frozenset([1]))
+        assert False, "Expected ValueError (not pruning root node)"
+    except ValueError:
+        pass
+
+    hsd[frozenset([3])] = 1
+    hsd.prune_subtree(frozenset([1, 2]))
+    assert len(hsd) == 1 and frozenset([3]) in hsd
 
 
 def test_detect_holes():
@@ -278,7 +292,7 @@ def test_detect_holes():
 
 def test_runtime():
     # Runtime plot
-    fig, axs = plt.subplots(nrows=3, ncols=1)
+    fig, axs = plt.subplots(nrows=4, ncols=1)
 
     rng = np.random.default_rng(0)
     side_length = [10, 100, 200, 300, 400, 500]
@@ -288,6 +302,7 @@ def test_runtime():
         runtimes = []
         dict_sizes = []
         tree_depths = []
+        max_hole = []
         for s in side_length:
             a = rng.binomial(1, 1 - d, size=s * s).reshape((s, s))
 
@@ -298,6 +313,7 @@ def test_runtime():
             runtimes.append(tock - tick)
             dict_sizes.append(len(hole_sizes.mapping))
             tree_depths.append(hole_sizes.get_depth())
+            max_hole.append(hole_sizes.get_max())
 
             print(f"Runtime for side length {s}, density {d:.1f} : {tock-tick} seconds")
 
@@ -322,6 +338,13 @@ def test_runtime():
             color=(d, 0, 1 - (2 * d - 1) ** 2),
         )
 
+        axs[3].plot(
+            side_length,
+            max_hole,
+            label=f"Density={d:.1f}",
+            color=(d, (2 * d - 1) ** 2, (1 - d) / 2),
+        )
+
     axs[0].set_title("Runtime vs. Side Length, Density")
     axs[0].set_xlabel("Side length")
     axs[0].set_ylabel("Runtime (s)")
@@ -337,7 +360,18 @@ def test_runtime():
     axs[2].set_ylabel("Tree Depth")
     axs[2].legend()
 
-    fig.set_size_inches(8, 18)
+    axs[3].plot(
+        side_length,
+        np.repeat(np.pi * 20**2, len(side_length)),
+        "k--",
+        label="Critical Size",
+    )
+    axs[3].set_title("Max Hole Size vs. Side Length, Density")
+    axs[3].set_xlabel("Side Length")
+    axs[3].set_ylabel("Maximum Hole Size")
+    axs[3].legend()
+
+    fig.set_size_inches(8, 24)
     fig.tight_layout()
     fig.savefig("out/hole_detection/test_runtime.png")
 
