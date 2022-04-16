@@ -3,16 +3,16 @@
     "spatial_environment_config": {
         "multibody": {
             "bounds": [
-                "!units[10 micrometer]",
-                "!units[10 micrometer]"
+                "!units[50 micrometer]",
+                "!units[50 micrometer]"
             ]
         },
         "diffusion": {
             "molecules": ["GLC[p]"],
             "n_bins": [10, 10],
             "bounds": [
-                "!units[10 micrometer]",
-                "!units[10 micrometer]"
+                "!units[50 micrometer]",
+                "!units[50 micrometer]"
             ],
             "depth": "!units[3000.0 micrometer]",
             "diffusion": "!units[1e-2 micrometer ** 2 / second]",
@@ -53,8 +53,8 @@
       "local_field": {
         "n_bins": [10, 10],
         "bounds": [
-            "!units[10 micrometer]",
-            "!units[10 micrometer]"
+            "!units[50 micrometer]",
+            "!units[50 micrometer]"
         ]
       },
       "ecoli-shape": {}
