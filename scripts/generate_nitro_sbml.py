@@ -26,7 +26,7 @@ from biocrnpyler import (
 
 DATA_DIR = os.path.abspath(
     os.path.join(os.path.dirname(__file__), '..', 'data'))
-FILENAME = 'bioscrape_sbml.xml'
+FILENAME = 'nitro_sbml.xml'
 
 # A ProportionalHillPositive propensity generates a propensity:
 #

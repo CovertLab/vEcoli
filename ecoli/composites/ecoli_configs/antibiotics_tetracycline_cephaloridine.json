@@ -1,3 +1,39 @@
 {
-  "inherit_from": ["antibiotics.json"]
+  "inherit_from": ["antibiotics.json"],
+  "spatial_environment_config": {
+      "field_timeline": {
+          "timeline": [
+              [6000, {
+                  "cephaloridine": 0.1239,
+                  "tetracycline": 0.1239
+              }]
+          ]
+      }
+  },
+  "topology": {
+    "exchange-aware-bioscrape": {
+          "delta_species": ["delta_concs"],
+          "exchanges": ["boundary", "exchanges"],
+          "external": ["boundary", "external"],
+          "globals": ["global"],
+          "rates": {
+              "_path": ["kinetic_parameters"],
+              "mass": ["..", "boundary", "mass"],
+              "volume_p": ["..", "periplasm", "volume"],
+              "volume_c": ["..", "cytoplasm", "volume"]
+          },
+          "species": ["concs"]
+      }
+  },
+  "process_configs": {
+      "exchange-aware-bioscrape": {
+        "external_species": ["cephaloridine_environment", "tetracycline_environment"],
+        "name_map": [
+            [["external", "cephaloridine"], "cephaloridine_environment"],
+            [["external", "tetracycline"], "tetracycline_environment"]
+        ],
+        "sbml_file": "data/ceph_tet_sbml.xml",
+        "time_step": 0.5
+      }
+  }
 }
