@@ -27,6 +27,7 @@ from ecoli.processes.concentrations_deriver import ConcentrationsDeriver
 from ecoli.processes.antibiotics.death import DeathFreezeState
 from ecoli.processes.antibiotics.exchange_aware_bioscrape import (
     ExchangeAwareBioscrape)
+from ecoli.processes.antibiotics.permeability import Permeability
 from vivarium.processes.timeline import TimelineProcess
 
 
@@ -67,3 +68,6 @@ process_registry.register('timeline', TimelineProcess)
 process_registry.register(DeathFreezeState.name, DeathFreezeState)
 process_registry.register(
     ExchangeAwareBioscrape.name, ExchangeAwareBioscrape)
+process_registry.register(
+    Permeability.name, Permeability
+)
