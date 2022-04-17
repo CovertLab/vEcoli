@@ -55,7 +55,7 @@
         },
         "outer_tetracycline_permeability": {
           "concentration_perm": {
-            "CPLX0-7534[o]": "!units[2.2496838543752056 * 1e-9  centimeter * (micrometer ** 2)/ second]",
+            "CPLX0-7534[o]": "!units[2.2496838543752056 * 1e-9  centimeter * (micrometer ** 2)/ second]"
           },
           "bilayer_perm": "!units[1 * 1e-7 centimeter / second]"
         },
