@@ -179,6 +179,11 @@ def run_simulation():
         metadata=metadata,
         profile=config['profile'],
     )
+    # Assert that nothing got wired into `null`.
+    assert not engine.state.get_path(
+        ('agents', config['agent_id'], 'cell_process')
+    ).value.sim.state.get_path(('null',)).inner
+
     engine.update(config['total_time'])
     engine.end()
 
