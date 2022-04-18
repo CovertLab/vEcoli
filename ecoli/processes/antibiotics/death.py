@@ -129,7 +129,7 @@ class DeathFreezeState(Process):
 
     name = 'death'
     defaults = {
-        'detectors': {},
+        'detectors': tuple(),
     }
 
     def __init__(self, initial_parameters=None):
@@ -161,7 +161,7 @@ class DeathFreezeState(Process):
         super().__init__(initial_parameters)
         self.detectors = [
             DETECTOR_CLASSES[name](**config)
-            for name, config in self.parameters['detectors'].items()
+            for name, config in self.parameters['detectors']
         ]
         # List of names of processes that will be removed upon death
         self.targets = initial_parameters.get('targets', [])
@@ -216,11 +216,11 @@ class ToyDeath(Composer):
 
     def generate_processes(self, config):
         death_parameters = {
-            'detectors': {
-                'antibiotic': {
+            'detectors': [
+                ['antibiotic', {
                     'antibiotic_threshold': TOY_ANTIBIOTIC_THRESHOLD,
-                }
-            },
+                }]
+            ],
             'targets': ['injector', 'death'],
         }
         death_process = DeathFreezeState(death_parameters)

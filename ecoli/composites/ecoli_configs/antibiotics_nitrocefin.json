@@ -42,12 +42,12 @@
             ]
         },
         "death": {
-            "detectors": {
-                "antibiotic": {
+            "detectors": [
+                ["antibiotic", {
                     "antibiotic_threshold": "!units[0.03 millimolar]",
                     "antibiotic_key": "nitrocefin"
-                }
-            },
+                }]
+            ],
             "targets": [
                 "ecoli-tf-binding_evolver",
                 "ecoli-transcript-initiation_evolver",
