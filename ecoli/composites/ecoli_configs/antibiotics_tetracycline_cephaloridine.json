@@ -1,69 +1,70 @@
 {
-  "inherit_from": ["antibiotics.json"],
-  "add_processes": [
-    "permeability"
-  ],
-  "spatial_environment_config": {
-      "field_timeline": {
-          "timeline": [
-              [6000, {
-                  "cephaloridine": 0.1239,
-                  "tetracycline": 0.1239
-              }]
-          ]
-      }
-  },
-  "topology": {
-    "exchange-aware-bioscrape": {
-          "delta_species": ["delta_concs"],
-          "exchanges": ["boundary", "exchanges"],
-          "external": ["boundary", "external"],
-          "globals": ["global"],
-          "rates": {
-              "_path": ["kinetic_parameters"],
-              "mass": ["..", "boundary", "mass"],
-              "volume_p": ["..", "periplasm", "volume"],
-              "volume_c": ["..", "cytoplasm", "volume"]
-          },
-          "species": ["concs"]
-      },
-    "permeability": {
-      "porins": ["bulk"], 
-      "permeabilities": ["kinetic_parameters"],
-      "surface_area": ["boundary", "surface_area"]
-    }
-  },
-  "process_configs": {
-    "exchange-aware-bioscrape": {
-      "external_species": ["cephaloridine_environment", "tetracycline_environment"],
-      "name_map": [
-        [["external", "cephaloridine"], "cephaloridine_environment"],
-        [["external", "tetracycline"], "tetracycline_environment"]
-      ],
-      "sbml_file": "data/ceph_tet_sbml.xml",
-      "time_step": 0.5
-    },
-    "permeability": {
-      "porin_ids": ["CPLX0-7533[o]", "CPLX0-7534[o]"],
-      "diffusing_molecules": {
-        "outer_cephaloridine_permeability": {
-          "concentration_perm": {
-            "CPLX0-7533[o]": "!units[0.003521401200296894 * 1e-5  centimeter * (micrometer ** 2)/ second]",
-            "CPLX0-7534[o]": "!units[0.01195286573132685 * 1e-5  centimeter * (micrometer ** 2)/ second]"
-          },
-          "bilayer_perm": "!units[0 centimeter / second]"
-        },
-        "outer_tetracycline_permeability": {
-          "concentration_perm": {
-            "CPLX0-7534[o]": "!units[2.2496838543752056 * 1e-9  centimeter * (micrometer ** 2)/ second]"
-          },
-          "bilayer_perm": "!units[1 * 1e-7 centimeter / second]"
-        },
-        "inner_tetracycline_permeability": {
-          "concentration_perm": {},
-          "bilayer_perm": "!units[3 * 1e-6 centimeter / second]"
+    "inherit_from": ["antibiotics.json"],
+    "add_processes": [
+        "exchange-aware-bioscrape",
+        "permeability"
+    ],
+    "spatial_environment_config": {
+        "field_timeline": {
+            "timeline": [
+                [6000, {
+                    "cephaloridine": 0.1239,
+                    "tetracycline": 0.1239
+                }]
+            ]
         }
-      }
+    },
+    "topology": {
+        "exchange-aware-bioscrape": {
+            "delta_species": ["delta_concs"],
+            "exchanges": ["boundary", "exchanges"],
+            "external": ["boundary", "external"],
+            "globals": ["global"],
+            "rates": {
+                "_path": ["kinetic_parameters"],
+                "mass": ["..", "boundary", "mass"],
+                "volume_p": ["..", "periplasm", "volume"],
+                "volume_c": ["..", "cytoplasm", "volume"]
+            },
+            "species": ["concs"]
+        },
+        "permeability": {
+            "porins": ["bulk"],
+            "permeabilities": ["kinetic_parameters"],
+            "surface_area": ["boundary", "surface_area"]
+        }
+    },
+    "process_configs": {
+        "exchange-aware-bioscrape": {
+            "external_species": ["cephaloridine_environment", "tetracycline_environment"],
+            "name_map": [
+                [["external", "cephaloridine"], "cephaloridine_environment"],
+                [["external", "tetracycline"], "tetracycline_environment"]
+            ],
+            "sbml_file": "data/ceph_tet_sbml.xml",
+            "time_step": 0.5
+        },
+        "permeability": {
+            "porin_ids": ["CPLX0-7533[o]", "CPLX0-7534[o]"],
+            "diffusing_molecules": {
+                "outer_cephaloridine_permeability": {
+                    "concentration_perm": {
+                        "CPLX0-7533[o]": "!units[0.003521401200296894 * 1e-5  centimeter * (micrometer ** 2)/ second]",
+                        "CPLX0-7534[o]": "!units[0.01195286573132685 * 1e-5  centimeter * (micrometer ** 2)/ second]"
+                    },
+                    "bilayer_perm": "!units[0 centimeter / second]"
+                },
+                "outer_tetracycline_permeability": {
+                    "concentration_perm": {
+                        "CPLX0-7534[o]": "!units[2.2496838543752056 * 1e-9  centimeter * (micrometer ** 2)/ second]"
+                    },
+                    "bilayer_perm": "!units[1 * 1e-7 centimeter / second]"
+                },
+                "inner_tetracycline_permeability": {
+                    "concentration_perm": {},
+                    "bilayer_perm": "!units[3 * 1e-6 centimeter / second]"
+                }
+            }
+        }
     }
-  }
 }

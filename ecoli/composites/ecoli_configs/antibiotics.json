@@ -1,7 +1,6 @@
 {
     "inherit_from": ["spatial.json", "cloud.json"],
     "add_processes": [
-        "exchange-aware-bioscrape",
         "concentrations_deriver"
     ],
     "total_time": 12000,

@@ -1,6 +1,7 @@
 {
     "inherit_from": ["antibiotics.json"],
     "add_processes": [
+        "exchange-aware-bioscrape",
         "death"
     ],
     "spatial_environment_config": {
