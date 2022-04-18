@@ -60,8 +60,6 @@
                 "ecoli-equilibrium_evolver",
                 "ecoli-protein-degradation_evolver",
                 "ecoli-chromosome-replication_evolver",
-                "antibiotic_transport",
-                "antibiotic_hydrolysis",
                 "ecoli-tf-binding_requester",
                 "ecoli-transcript-initiation_requester",
                 "ecoli-transcript-elongation_requester",
@@ -75,9 +73,10 @@
                 "ecoli-chromosome-replication_requester",
                 "allocator",
                 "ecoli-chromosome-structure",
-                "ecoli-metabolism"
+                "ecoli-metabolism",
+                "death",
+                "exchange-aware-bioscrape"
             ]
         }
     }
 }
-

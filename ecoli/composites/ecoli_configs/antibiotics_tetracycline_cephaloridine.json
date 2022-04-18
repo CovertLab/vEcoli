@@ -2,7 +2,8 @@
     "inherit_from": ["antibiotics.json"],
     "add_processes": [
         "exchange-aware-bioscrape",
-        "permeability"
+        "permeability",
+        "death"
     ],
     "spatial_environment_config": {
         "field_timeline": {
@@ -16,22 +17,40 @@
     },
     "topology": {
         "exchange-aware-bioscrape": {
-            "delta_species": ["delta_concs"],
-            "exchanges": ["boundary", "exchanges"],
+            "delta_species": ["bioscrape_deltas"],
+            "exchanges": ["environment", "exchange"],
             "external": ["boundary", "external"],
-            "globals": ["global"],
+            "globals": ["boundary"],
             "rates": {
                 "_path": ["kinetic_parameters"],
                 "mass": ["..", "boundary", "mass"],
                 "volume_p": ["..", "periplasm", "volume"],
                 "volume_c": ["..", "cytoplasm", "volume"]
             },
-            "species": ["concs"]
+            "species": {
+                "_path": ["null"],
+                "AcrAB": ["..", "periplasm", "concentrations", "TRANS-CPLX0-201[m]"],
+                "beta_lactamase": ["..", "periplasm", "concentrations", "EG10040-MONOMER[p]"],
+                "cephaloridine_hydrolyzed": ["..", "periplasm", "concentrations", "cephaloridine_hydrolyzed"],
+                "cephaloridine_periplasm": ["..", "periplasm", "concentrations", "cephaloridine"],
+                "tetracycline_periplasm": ["..", "periplasm", "concentrations", "tetracycline"],
+                "tetracycline_cytoplasm": ["..", "cytoplasm", "concentrations", "tetracycline"]
+            }
         },
         "permeability": {
             "porins": ["bulk"],
             "permeabilities": ["kinetic_parameters"],
             "surface_area": ["boundary", "surface_area"]
+        },
+        "death": {
+            "global": ["boundary"],
+            "processes": [],
+            "internal": {
+                "_path": ["null"],
+                "tetracycline": ["..", "cytoplasm", "concentrations", "tetracycline"],
+                "cephaloridine": ["..", "periplasm", "concentrations", "tetracycline"]
+            }
+
         }
     },
     "process_configs": {
@@ -65,6 +84,47 @@
                     "bilayer_perm": "!units[3 * 1e-6 centimeter / second]"
                 }
             }
+        },
+        "death": {
+            "detectors": [
+                ["antibiotic", {
+                    "antibiotic_threshold": "!units[0.03 millimolar]",
+                    "antibiotic_key": "cephaloridine"
+                }],
+                ["antibiotic", {
+                    "antibiotic_threshold": "!units[0.03 millimolar]",
+                    "antibiotic_key": "tetracycline"
+                }]
+            ],
+            "targets": [
+                "ecoli-tf-binding_evolver",
+                "ecoli-transcript-initiation_evolver",
+                "ecoli-transcript-elongation_evolver",
+                "ecoli-rna-degradation_evolver",
+                "ecoli-polypeptide-initiation_evolver",
+                "ecoli-polypeptide-elongation_evolver",
+                "ecoli-complexation_evolver",
+                "ecoli-two-component-system_evolver",
+                "ecoli-equilibrium_evolver",
+                "ecoli-protein-degradation_evolver",
+                "ecoli-chromosome-replication_evolver",
+                "ecoli-tf-binding_requester",
+                "ecoli-transcript-initiation_requester",
+                "ecoli-transcript-elongation_requester",
+                "ecoli-rna-degradation_requester",
+                "ecoli-polypeptide-initiation_requester",
+                "ecoli-polypeptide-elongation_requester",
+                "ecoli-complexation_requester",
+                "ecoli-two-component-system_requester",
+                "ecoli-equilibrium_requester",
+                "ecoli-protein-degradation_requester",
+                "ecoli-chromosome-replication_requester",
+                "allocator",
+                "ecoli-chromosome-structure",
+                "ecoli-metabolism",
+                "death",
+                "exchange-aware-bioscrape"
+            ]
         }
     }
 }
