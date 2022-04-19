@@ -39,9 +39,9 @@
     "swap_processes" : {},
     "profile": false,
     "processes": [
+        "ecoli-tf-binding",
         "ecoli-chromosome-structure",
         "ecoli-metabolism",
-        "ecoli-tf-binding",
         "ecoli-transcript-initiation",
         "ecoli-transcript-elongation",
         "ecoli-rna-degradation",

@@ -17,7 +17,6 @@ ompA,2.06,EG10669_RNA,ompA,"[""ompA"", ""con"", ""tolG"", ""tut"", ""b0957"", ""
 marR,2.03,EG11435_RNA,marR,"[""marR"", ""cfxB"", ""inaR"", ""soxQ"", ""b1530"", ""ECK1523""]",mRNA,[],EG11435,"[""PD00364""]",,[],1395,['PD00364[c]'],[-2],['CPLX0-7710[c]'],['DNA-binding transcriptional repressor MarR']
 acrF,1.63,EG10267_RNA,acrF,"[""acrF"", ""envD"", ""b3266"", ""ECK3253""]",mRNA,[],EG10267,"[""ACRF-MONOMER""]",,[],260,['ACRF-MONOMER[m]'],[-3],['CPLX0-2141[i]'],['multidrug efflux pump AcrEF-TolC']
 acrE,1.5099999999999998,EG10266_RNA,acrE,"[""acrE"", ""envC"", ""b3265"", ""ECK3252""]",mRNA,[],EG10266,"[""EG10266-MONOMER""]",,[],259,['EG10266-MONOMER[i]'],[-6],['CPLX0-2141[i]'],['multidrug efflux pump AcrEF-TolC']
-acrE,1.5099999999999998,EG11704_RNA,acrB,"[""acrB"", ""acrE"", ""b0462"", ""ECK0456""]",mRNA,[],EG11704,"[""ACRB-MONOMER""]",,[],1642,['ACRB-MONOMER[p]'],[-3],['TRANS-CPLX-201[m]'],['multidrug efflux pump AcrAB-TolC']
 acrD,1.1,EG10014_RNA,acrD,"[""acrD"", ""yffA"", ""b2470"", ""ECK2465""]",mRNA,[],EG10014,"[""ACRD-MONOMER""]",,[],11,['ACRD-MONOMER[i]'],[-3],['CPLX0-3932[i]'],['multidrug efflux pump AcrAD-TolC']
 soxS,1.0299999999999998,EG10958_RNA,soxS,"[""soxS"", ""b4062"", ""ECK4054""]",mRNA,[],EG10958,"[""PD00406""]",,[],944,['PD00406[c]'],[],[],[]
 emrD,0.5,EG11693_RNA,emrD,"[""emrD"", ""yicQ"", ""b3673"", ""ECK3664""]",mRNA,[],EG11693,"[""EMRD-MONOMER""]",,[],1631,['EMRD-MONOMER[i]'],[],[],[]
