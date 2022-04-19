@@ -28,8 +28,6 @@ from ecoli.processes.antibiotics.death import DeathFreezeState
 from ecoli.processes.antibiotics.exchange_aware_bioscrape import (
     ExchangeAwareBioscrape)
 from ecoli.processes.antibiotics.permeability import Permeability
-from vivarium.processes.timeline import TimelineProcess
-
 
 
 # add to registry
@@ -60,9 +58,6 @@ process_registry.register(ConcentrationsDeriver.name,
 process_registry.register(Lysis.name, Lysis)
 process_registry.register(LocalField.name, LocalField)
 process_registry.register(FieldTimeline.name, FieldTimeline)
-
-# auxiliary processes
-process_registry.register('timeline', TimelineProcess)
 
 # antibiotic processes
 process_registry.register(DeathFreezeState.name, DeathFreezeState)
