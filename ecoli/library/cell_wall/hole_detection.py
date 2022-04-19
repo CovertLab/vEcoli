@@ -130,7 +130,7 @@ class HoleSizeDict(MutableMapping):
         return f"{type(self).__name__}({self.mapping})"
 
 
-def detect_holes(lattice, critical_size=None):
+def detect_holes(lattice, on_cylinder=True, critical_size=None):
     # Create "hole view" of lattice.
     # Each position contains a set of integers representing the id of the hole
     # containing that position (or an empty set if that position is not a hole).
@@ -201,7 +201,9 @@ def detect_holes(lattice, critical_size=None):
                 #     continue
 
                 # prune if none of its leaves/branches were seen
-                if not any(frozenset([primitive_id]) in ids_in_row for primitive_id in k):
+                if not any(
+                    frozenset([primitive_id]) in ids_in_row for primitive_id in k
+                ):
                     subtrees_to_prune.add(k)
 
             for subtree in subtrees_to_prune:
@@ -212,6 +214,16 @@ def detect_holes(lattice, critical_size=None):
         # Early stopping if reached critical size
         if critical_size and hole_sizes.get_max() >= critical_size:
             break
+
+    if on_cylinder:
+        # Merge holes at top and bottom
+
+        for c in range(cols):
+            # Skip non-holes
+            if lattice[0, c] == 1 or lattice[-1, c] == 1:
+                continue
+
+            hole_sizes.merge({hole_view[0, c], hole_view[-1, c]})
 
     return hole_sizes, hole_view
 
@@ -367,7 +379,7 @@ def test_runtime():
 
     axs[3].plot(
         side_length,
-        np.repeat(np.pi * 20**2, len(side_length)),
+        np.repeat(int((np.pi * 20**2) / 4), len(side_length)),
         "k--",
         label="Critical Size",
     )
