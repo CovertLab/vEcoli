@@ -4,18 +4,19 @@ TODO: references for parameters
 
 import os
 from random import choice
+
 import numpy as np
 from matplotlib import pyplot as plt
 
-from vivarium.library.units import units
-
 from vivarium.core.engine import Engine
-from vivarium.core.composition import simulate_process, simulate_composite
 from vivarium.core.process import Process
+from vivarium.library.units import units
 from vivarium.plots.simulation_output import plot_variables
 
-from ecoli.processes.registries import topology_registry
+from ecoli.library.cell_wall.hole_detection import detect_holes
 from ecoli.library.schema import bulk_schema
+from ecoli.processes.registries import topology_registry
+from vivarium.core.composition import simulate_composite, simulate_process
 
 
 # Register default topology for this process, associating it with process name
@@ -215,10 +216,10 @@ class CellWall(Process):
         return lattice, new_free, new_incorporated
 
     def get_largest_defect_area(self, lattice):
-        # TODO: generate hole-view from defects
-        max_size = 0
+        hole_sizes, _ = detect_holes(lattice)
+        max_size = hole_sizes.get_max()
 
-        # TODO: replace with actual area from literature
+        # TODO: replace with parameterized area from literature
         return max_size * 4 * units.nm**2
 
 
@@ -230,8 +231,8 @@ def plot_lattice(lattice):
 
 
 def main():
-    from vivarium.processes.timeline import TimelineProcess
     from vivarium.core.composer import Composite
+    from vivarium.processes.timeline import TimelineProcess
 
     # Stub for rest of cell (increasing murein)
     cell_stub = TimelineProcess({
