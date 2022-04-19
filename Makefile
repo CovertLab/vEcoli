@@ -1,5 +1,6 @@
 .PHONY: compile, clean, recompile
 
+compile: data/ceph_tet_diffusion_only_sbml.xml
 compile: data/nitro_sbml.xml
 compile: data/ceph_tet_sbml.xml
 compile:
@@ -21,6 +22,8 @@ clean:
 # make sbml files
 data/nitro_sbml.xml: scripts/generate_nitro_sbml.py
 	python scripts/generate_nitro_sbml.py
+data/ceph_tet_diffusion_only_sbml.xml: scripts/generate_ceph_tet_sbml.py
+	python scripts/generate_ceph_tet_sbml.py
 data/ceph_tet_sbml.xml: scripts/generate_ceph_tet_sbml.py
 	python scripts/generate_ceph_tet_sbml.py
 
