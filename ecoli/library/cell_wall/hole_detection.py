@@ -1,11 +1,8 @@
-from cProfile import label
 import os
-from sys import getsizeof
 from collections.abc import MutableMapping
 from functools import reduce
 from operator import __or__
 from time import perf_counter
-from attr import frozen
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -209,11 +206,11 @@ def detect_holes(lattice, critical_size=None):
 
             for subtree in subtrees_to_prune:
                 hole_sizes.prune_subtree(subtree)
-            
+
             next_prune_size = int(np.exp(np.ceil(np.log(len(hole_sizes)))))
 
         # Early stopping if reached critical size
-        if critical_size and hole_view.max >= critical_size:
+        if critical_size and hole_sizes.get_max() >= critical_size:
             break
 
     return hole_sizes, hole_view
