@@ -1,6 +1,7 @@
 import numpy as np
 from six.moves import cPickle
 from wholecell.utils import units
+from wholecell.utils.unit_struct_array import UnitStructArray
 from wholecell.utils.fitting import normalize
 
 from ecoli.processes.polypeptide_elongation import MICROMOLAR_UNITS
@@ -18,6 +19,7 @@ class LoadSimData:
         seed=0,
         trna_charging=False,
         ppgpp_regulation=False,
+        mar_regulon=False,
     ):
 
         self.seed = np.uint32(seed % np.iinfo(np.uint32).max)
@@ -25,6 +27,7 @@ class LoadSimData:
 
         self.trna_charging = trna_charging
         self.ppgpp_regulation = ppgpp_regulation
+        self.mar_regulon = mar_regulon
 
         self.submass_indexes = MASSDIFFS
 
@@ -35,7 +38,6 @@ class LoadSimData:
     def get_config_by_name(self, name, time_step=2, parallel=False):
         name_config_mapping = {
             'ecoli-tf-binding': self.get_tf_config,
-            'ecoli-tf-binding-marA': self.get_tf_marA_config,
             'ecoli-transcript-initiation': self.get_transcript_initiation_config,
             'ecoli-transcript-elongation': self.get_transcript_elongation_config,
             'ecoli-rna-degradation': self.get_rna_degradation_config,
@@ -101,46 +103,41 @@ class LoadSimData:
         return chromosome_replication_config
 
     def get_tf_config(self, time_step=2, parallel=False):
-        tf_binding_config = {
-            'time_step': time_step,
-            '_parallel': parallel,
-
-            'tf_ids': self.sim_data.process.transcription_regulation.tf_ids,
-            'delta_prob': self.sim_data.process.transcription_regulation.delta_prob,
-            'n_avogadro': self.sim_data.constants.n_avogadro,
-            'cell_density': self.sim_data.constants.cell_density,
-            'p_promoter_bound_tf': self.sim_data.process.transcription_regulation.p_promoter_bound_tf,
-            'tf_to_tf_type': self.sim_data.process.transcription_regulation.tf_to_tf_type,
-            'active_to_bound': self.sim_data.process.transcription_regulation.active_to_bound,
-            'get_unbound': self.sim_data.process.equilibrium.get_unbound,
-            'active_to_inactive_tf': self.sim_data.process.two_component_system.active_to_inactive_tf,
-            'bulk_molecule_ids': self.sim_data.internal_state.bulk_molecules.bulk_data["id"],
-            'bulk_mass_data': self.sim_data.internal_state.bulk_molecules.bulk_data["mass"],
-            'seed': self.random_state.randint(RAND_MAX)}
-
-        return tf_binding_config
-    
-    def get_tf_marA_config(self, time_step=2, parallel=False):
-        import json
-        self.sim_data.process.transcription_regulation.tf_ids += ["PD00365"]
-        self.sim_data.process.transcription_regulation.delta_prob["shape"] = (
-            self.sim_data.process.transcription_regulation.delta_prob["shape"][0], 
-            self.sim_data.process.transcription_regulation.delta_prob["shape"][1]+1)
-        self.sim_data.process.transcription_regulation.tf_to_tf_type["PD00365"] = "0CS"
-        with open("ecoli/experiments/marA_binding/TU_idx_to_FC.json") as f:
-            TU_idx_to_FC = json.load(f)
-        n_targets = len(TU_idx_to_FC)
-        new_deltaI = np.array(list(TU_idx_to_FC.keys())).astype(int)
-        new_deltaJ = np.array([24]*n_targets)
-        # Just change one gene at a time to see if that causes the desired effect
-        new_deltaV = np.array(list(TU_idx_to_FC.values()))/1000
+        if self.mar_regulon:
+            # Pretend marA controls all gene expression changes upon tetracycline exposure (Viveiros et al. 2007)
+            # Add marR to silence transcription of marA in the absence of tetracycline
+            self.sim_data.process.transcription_regulation.tf_ids += ["PD00365", "CPLX0-7710"]
+            self.sim_data.process.transcription_regulation.delta_prob["shape"] = (
+                self.sim_data.process.transcription_regulation.delta_prob["shape"][0], 
+                self.sim_data.process.transcription_regulation.delta_prob["shape"][1]+2)
+            self.sim_data.process.transcription_regulation.tf_to_tf_type["PD00365"] = "0CS"
+            self.sim_data.process.transcription_regulation.tf_to_tf_type["CPLX0-7710"] = "0CS"
+            
+            TU_idxs = [2011, 1641, 1394, 2112, 416, 1642, 1543, 662, 995, \
+                3289, 262, 1807, 2010, 659, 1395, 260, 259, 11, 944, 1631, 1330, \
+                660, 1399, 661, 1394]
+            new_deltaI = np.array(TU_idxs)
+            # First 25 genes are regulated by marA, last is regulated by marR
+            new_deltaJ = np.array([24]*24 + [25])
+            TU_fc = [9, 0.48, 0.07, 0.0054, 0.15, 0.18, 0.013, 0.01, 0.13, 0.0035, 0.0003, 0.007, 0.01, \
+                1, 0.0065, 0.0005, 0.0001, 0.00055, 0.01, 0.00002, 0.02, 0.01, -0.00045, -0.15, -1000]
+            new_deltaV = np.array(TU_fc)/1000
+            
+            self.sim_data.process.transcription_regulation.delta_prob["deltaI"] = np.concatenate(
+                [self.sim_data.process.transcription_regulation.delta_prob["deltaI"], new_deltaI])
+            self.sim_data.process.transcription_regulation.delta_prob["deltaJ"] = np.concatenate(
+                [self.sim_data.process.transcription_regulation.delta_prob["deltaJ"], new_deltaJ])
+            self.sim_data.process.transcription_regulation.delta_prob["deltaV"] = np.concatenate(
+                [self.sim_data.process.transcription_regulation.delta_prob["deltaV"], new_deltaV])
+            
+            # Add tetracycline for all other processes as well
+            bulk_data = self.sim_data.internal_state.bulk_molecules.bulk_data.fullArray().copy()
+            bulk_data.resize(bulk_data.shape[0]+2, refcheck=False)
+            bulk_data[-1] = ('tetracycline[c]', [0,0,0,0,0,0,444.44,0,0])
+            bulk_data[-2] = ('tet-marR[c]', [0,0,0,0,0,32120,444.44,0,0])
+            units = self.sim_data.internal_state.bulk_molecules.bulk_data.fullUnits()
+            self.sim_data.internal_state.bulk_molecules.bulk_data = UnitStructArray(bulk_data, units)
         
-        self.sim_data.process.transcription_regulation.delta_prob["deltaI"] = np.concatenate(
-            [self.sim_data.process.transcription_regulation.delta_prob["deltaI"], new_deltaI])
-        self.sim_data.process.transcription_regulation.delta_prob["deltaJ"] = np.concatenate(
-            [self.sim_data.process.transcription_regulation.delta_prob["deltaJ"], new_deltaJ])
-        self.sim_data.process.transcription_regulation.delta_prob["deltaV"] = np.concatenate(
-            [self.sim_data.process.transcription_regulation.delta_prob["deltaV"], new_deltaV])
         tf_binding_config = {
             'time_step': time_step,
             '_parallel': parallel,
@@ -390,6 +387,13 @@ class LoadSimData:
         return polypeptide_elongation_config
 
     def get_complexation_config(self, time_step=2, parallel=False):
+        if self.mar_regulon:
+            self.sim_data.process.complexation.molecule_names += ['tetracycline[c]', 'tet-marR[c]']
+            self.sim_data.process.complexation.rates = np.concatenate([self.sim_data.process.complexation.rates, [1000]])
+        else:
+            stoich_matrix = self.sim_data.process.complexation.stoich_matrix().astype(np.int64).T
+            stoich_matrix = stoich_matrix[:-1, :-2]
+
         complexation_config = {
             'time_step': time_step,
             '_parallel': parallel,
@@ -681,6 +685,16 @@ class LoadSimData:
             'equilibrium_stoich': self.sim_data.process.equilibrium.stoich_matrix_monomers(),
             'two_component_system_stoich': self.sim_data.process.two_component_system.stoich_matrix_monomers(),
         }
+        
+        if self.mar_regulon:
+            old_stoich = monomer_counts_config['complexation_stoich'].T
+            new_stoich = []
+            for row in old_stoich:
+                new_stoich.append(np.concatenate([row, [0,0]]))
+            remaining_cols = old_stoich.shape[1] - 1180
+            new_rxn = np.array([0]*1179 + [-1] + [0]*remaining_cols + [-1,1])
+            monomer_counts_config['complexation_stoich'] = np.vstack(new_stoich + [new_rxn]).T
+            monomer_counts_config['complexation_complex_ids'] += ['tet-marR[c]']
 
         return monomer_counts_config
 

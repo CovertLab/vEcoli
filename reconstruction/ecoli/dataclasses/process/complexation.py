@@ -114,6 +114,14 @@ class Complexation(object):
 		shape = (self._stoich_matrix_I.max() + 1, self._stoich_matrix_J.max() + 1)
 		out = np.zeros(shape, np.float64)
 		out[self._stoich_matrix_I, self._stoich_matrix_J] = self._stoich_matrix_V
+		# Add tetracycline-marR complexation rxn
+		out = out.T
+		new_stoich = []
+		for row in out:
+			new_stoich.append(np.concatenate([row, [0,0]]))
+		remaining_cols = self._stoich_matrix_I.max() + 1 - 1180
+		new_rxn = np.array([0]*1179 + [-1] + [0]*remaining_cols + [-1,1])
+		out = np.vstack(new_stoich + [new_rxn]).T
 		return out
 
 	def mass_matrix(self):

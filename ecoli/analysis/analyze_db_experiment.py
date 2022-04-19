@@ -30,6 +30,7 @@ ANALYSIS = [
 def access(
         experiment_id,
         query=None,
+        f=None,
 ):
     # mongo client
     config = {
@@ -40,7 +41,7 @@ def access(
 
     # access
     data, sim_config = data_from_database(
-        experiment_id, db, query)
+        experiment_id, db, query, f)
 
     return data, experiment_id, sim_config
 
