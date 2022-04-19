@@ -130,7 +130,7 @@ class HoleSizeDict(MutableMapping):
         return f"{type(self).__name__}({self.mapping})"
 
 
-def detect_holes(lattice, on_cylinder=True, critical_size=None):
+def detect_holes(lattice, on_cylinder=True, critical_size=None, prune_subtrees=True):
     # Create "hole view" of lattice.
     # Each position contains a set of integers representing the id of the hole
     # containing that position (or an empty set if that position is not a hole).
@@ -145,6 +145,9 @@ def detect_holes(lattice, on_cylinder=True, critical_size=None):
     # Subtree pruning to save memory will occur when
     # len(hole_sizes) exceeds this value
     next_prune_size = 100
+    # root nodes in this set are immune to pruning
+    # (used to protect top and bottom in cylindrical case)
+    prune_immune = set()
 
     next_hole_id = 1
     rows, cols = lattice.shape
@@ -188,18 +191,23 @@ def detect_holes(lattice, on_cylinder=True, critical_size=None):
             for primitive_id in new_id:
                 ids_in_row.add(frozenset([primitive_id]))
 
+        # Prune immunity
+        if on_cylinder and r == 0:
+            for id in ids_in_row:
+                prune_immune.add(hole_sizes.get_containing_hole(id))
+
         # prune the tree for memory efficiency
         # if a subtree was not seen in this row,
         # that hole/subtree is not coming back
         # (except due to cylindrical wraparound)
-        if len(hole_sizes) >= next_prune_size:
-            # print(f"Pruning because {len(hole_sizes)} >= {next_prune_size}")
-            subtrees_to_prune = set()
-            for k in hole_sizes.roots:  # hole_sizes.mapping.items():
-                # # look only at root nodes
-                # if not isinstance(v, int):
-                #     continue
+        if prune_subtrees and len(hole_sizes) >= next_prune_size and r != rows - 1:
 
+            prune_immune = {
+                hole_sizes.get_containing_hole(hole) for hole in prune_immune
+            }
+
+            subtrees_to_prune = set()
+            for k in hole_sizes.roots:
                 # prune if none of its leaves/branches were seen
                 if not any(
                     frozenset([primitive_id]) in ids_in_row for primitive_id in k
@@ -207,7 +215,8 @@ def detect_holes(lattice, on_cylinder=True, critical_size=None):
                     subtrees_to_prune.add(k)
 
             for subtree in subtrees_to_prune:
-                hole_sizes.prune_subtree(subtree)
+                if subtree not in prune_immune:
+                    hole_sizes.prune_subtree(subtree)
 
             next_prune_size = int(np.exp(np.ceil(np.log(len(hole_sizes)))))
 
@@ -220,10 +229,17 @@ def detect_holes(lattice, on_cylinder=True, critical_size=None):
 
         for c in range(cols):
             # Skip non-holes
-            if lattice[0, c] == 1 or lattice[-1, c] == 1:
+            if lattice[0, c] == 1:
                 continue
 
-            hole_sizes.merge({hole_view[0, c], hole_view[-1, c]})
+            neighbor_pos = {(0, c), (rows - 1, c - 1), (rows - 1, c), (rows - 1, c + 1)}
+            neighbor_holes = {
+                hole_view[n_r, n_c]
+                for n_r, n_c in neighbor_pos
+                if 0 <= n_r < rows and n_c < cols and len(hole_view[n_r, n_c]) > 0
+            }
+            if len(neighbor_holes) > 1:
+                hole_sizes.merge(neighbor_holes)
 
     return hole_sizes, hole_view
 
