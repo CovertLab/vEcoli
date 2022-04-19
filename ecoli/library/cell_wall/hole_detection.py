@@ -145,6 +145,10 @@ def detect_holes(lattice, critical_size=None):
     hole_view = np.full_like(lattice, frozenset(), dtype=object)
     hole_sizes = HoleSizeDict()
 
+    # Subtree pruning to save memory will occur when
+    # len(hole_sizes) exceeds this value
+    next_prune_size = 100
+
     next_hole_id = 1
     rows, cols = lattice.shape
     for r in range(rows):
@@ -191,18 +195,22 @@ def detect_holes(lattice, critical_size=None):
         # if a subtree was not seen in this row,
         # that hole/subtree is not coming back
         # (except due to cylindrical wraparound)
-        subtrees_to_prune = set()
-        for k in hole_sizes.roots:  # hole_sizes.mapping.items():
-            # # look only at root nodes
-            # if not isinstance(v, int):
-            #     continue
+        if len(hole_sizes) >= next_prune_size:
+            # print(f"Pruning because {len(hole_sizes)} >= {next_prune_size}")
+            subtrees_to_prune = set()
+            for k in hole_sizes.roots:  # hole_sizes.mapping.items():
+                # # look only at root nodes
+                # if not isinstance(v, int):
+                #     continue
 
-            # prune if none of its leaves/branches were seen
-            if not any(frozenset([primitive_id]) in ids_in_row for primitive_id in k):
-                subtrees_to_prune.add(k)
+                # prune if none of its leaves/branches were seen
+                if not any(frozenset([primitive_id]) in ids_in_row for primitive_id in k):
+                    subtrees_to_prune.add(k)
 
-        for subtree in subtrees_to_prune:
-            hole_sizes.prune_subtree(subtree)
+            for subtree in subtrees_to_prune:
+                hole_sizes.prune_subtree(subtree)
+            
+            next_prune_size = int(np.exp(np.ceil(np.log(len(hole_sizes)))))
 
         # Early stopping if reached critical size
         if critical_size and hole_view.max >= critical_size:
