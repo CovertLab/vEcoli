@@ -48,7 +48,7 @@
                     "antibiotic_key": "nitrocefin"
                 }]
             ],
-            "targets": [
+            "to_remove": [
                 "ecoli-tf-binding_evolver",
                 "ecoli-transcript-initiation_evolver",
                 "ecoli-transcript-elongation_evolver",

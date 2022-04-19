@@ -96,7 +96,7 @@
                     "antibiotic_key": "tetracycline"
                 }]
             ],
-            "targets": [
+            "to_remove": [
                 "ecoli-tf-binding_evolver",
                 "ecoli-transcript-initiation_evolver",
                 "ecoli-transcript-elongation_evolver",
@@ -124,7 +124,39 @@
                 "ecoli-metabolism",
                 "death",
                 "exchange-aware-bioscrape"
-            ]
+            ],
+            "to_add": {
+                "exchange-aware-bioscrape": [
+                    "exchange-aware-bioscrape",
+                    {
+                        "external_species": ["cephaloridine_environment", "tetracycline_environment"],
+                        "name_map": [
+                            [["external", "cephaloridine"], "cephaloridine_environment"],
+                            [["external", "tetracycline"], "tetracycline_environment"]
+                        ],
+                        "sbml_file": "data/ceph_tet_diffusion_only_sbml.xml",
+                        "time_step": 0.5
+                    },
+                    {
+                        "delta_species": ["bioscrape_deltas"],
+                        "exchanges": ["environment", "exchange"],
+                        "external": ["boundary", "external"],
+                        "globals": ["boundary"],
+                        "rates": {
+                            "_path": ["kinetic_parameters"],
+                            "mass": ["..", "boundary", "mass"],
+                            "volume_p": ["..", "periplasm", "volume"],
+                            "volume_c": ["..", "cytoplasm", "volume"]
+                        },
+                        "species": {
+                            "_path": ["null"],
+                            "cephaloridine_periplasm": ["..", "periplasm", "concentrations", "cephaloridine"],
+                            "tetracycline_periplasm": ["..", "periplasm", "concentrations", "tetracycline"],
+                            "tetracycline_cytoplasm": ["..", "cytoplasm", "concentrations", "tetracycline"]
+                        }
+                    }
+                ]
+            }
         }
     }
 }

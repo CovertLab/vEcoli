@@ -26,6 +26,7 @@ from biocrnpyler import (
 DATA_DIR = os.path.abspath(
     os.path.join(os.path.dirname(__file__), '..', 'data'))
 FILENAME = 'ceph_tet_sbml.xml'
+DIFFUSION_ONLY_FILENAME = 'ceph_tet_diffusion_only_sbml.xml'
 
 # Calculated by dividing V_max reported in (Nagano & Nikaido, 2009) by the model's initial pump concentration of
 # 20.179269875115253 counts / micron^2
@@ -232,10 +233,29 @@ def main() -> None:
         initial_concentration_dict=initial_concentrations,
     )
 
+
     path = os.path.join(DATA_DIR, FILENAME)
     print(f'Writing the following CRN to {path}:')
     print(crn.pretty_print(show_rates=True))
     crn.write_sbml_file(path)
+
+    diffusion_only_crn = ChemicalReactionNetwork(
+        species=[
+            cephaloridine_e, cephaloridine_p, tetracycline_e,
+            tetracycline_p, tetracycline_c],
+        reactions=[ceph_influx, tet_e_p_influx, tet_p_c_influx],
+        initial_concentration_dict={
+            cephaloridine_e: INITIAL_ENVIRONMENT_CEPH,
+            cephaloridine_p: INITIAL_PERIPLASM_CEPH,
+            tetracycline_e: INITIAL_ENVIRONMENT_TET,
+            tetracycline_p: INITIAL_PERIPLASM_TET,
+            tetracycline_c: INITIAL_CYTOPLASM_TET,
+        },
+    )
+    path = os.path.join(DATA_DIR, DIFFUSION_ONLY_FILENAME)
+    print(f'Writing the following CRN to {path}:')
+    print(diffusion_only_crn.pretty_print(show_rates=True))
+    diffusion_only_crn.write_sbml_file(path)
 
 
 if __name__ == '__main__':
