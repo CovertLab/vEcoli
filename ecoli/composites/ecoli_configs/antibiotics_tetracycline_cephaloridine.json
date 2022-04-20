@@ -29,7 +29,7 @@
             },
             "species": {
                 "_path": ["null"],
-                "AcrAB": ["..", "periplasm", "concentrations", "TRANS-CPLX0-201[m]"],
+                "AcrAB": ["..", "periplasm", "concentrations", "TRANS-CPLX-201[m]"],
                 "beta_lactamase": ["..", "periplasm", "concentrations", "EG10040-MONOMER[p]"],
                 "cephaloridine_hydrolyzed": ["..", "periplasm", "concentrations", "cephaloridine_hydrolyzed"],
                 "cephaloridine_periplasm": ["..", "periplasm", "concentrations", "cephaloridine"],
@@ -126,7 +126,7 @@
                 "exchange-aware-bioscrape"
             ],
             "to_add": {
-                "exchange-aware-bioscrape": [
+                "exchange-aware-bioscrape-diffusion-only": [
                     "exchange-aware-bioscrape",
                     {
                         "external_species": ["cephaloridine_environment", "tetracycline_environment"],
