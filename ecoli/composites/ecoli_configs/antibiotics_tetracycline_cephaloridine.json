@@ -9,8 +9,8 @@
         "field_timeline": {
             "timeline": [
                 [6000, {
-                    "cephaloridine": 0.1239,
-                    "tetracycline": 0.1239
+                    "cephaloridine": 0.01203,
+                    "tetracycline": 0.0025
                 }]
             ]
         }
@@ -88,11 +88,11 @@
         "death": {
             "detectors": [
                 ["antibiotic", {
-                    "antibiotic_threshold": "!units[0.03 millimolar]",
+                    "antibiotic_threshold": "!units[0.02 millimolar]",
                     "antibiotic_key": "cephaloridine"
                 }],
                 ["antibiotic", {
-                    "antibiotic_threshold": "!units[0.03 millimolar]",
+                    "antibiotic_threshold": "!units[0.003 millimolar]",
                     "antibiotic_key": "tetracycline"
                 }]
             ],
