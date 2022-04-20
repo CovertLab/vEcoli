@@ -166,10 +166,9 @@ def main() -> None:
     ceph_influx_propensity = GeneralPropensity(
         (
             'outer_x_am * outer_cephaloridine_permeability '
-            f'* ({cephaloridine_e} - {cephaloridine_p}) '
-            '* mass / (volume_p)'
+            f'* {cephaloridine_e} * mass / volume_p'
         ),
-        propensity_species=[cephaloridine_p, cephaloridine_e],
+        propensity_species=[cephaloridine_e],
         propensity_parameters=[
             periplasm_area_mass_ratio, cephaloridine_permeability, mass, volume_p],
     )
@@ -181,10 +180,9 @@ def main() -> None:
     ceph_influx_rev_propensity = GeneralPropensity(
         (
             'outer_x_am * outer_cephaloridine_permeability '
-            f'* ({cephaloridine_p} - {cephaloridine_e}) '
-            '* mass / (volume_p)'
+            f'* {cephaloridine_p} * mass / volume_p'
         ),
-        propensity_species=[cephaloridine_p, cephaloridine_e],
+        propensity_species=[cephaloridine_p],
         propensity_parameters=[
             periplasm_area_mass_ratio, cephaloridine_permeability, mass, volume_p],
     )
@@ -198,10 +196,9 @@ def main() -> None:
     tet_e_p_influx_propensity = GeneralPropensity(
         (
             'outer_x_am * outer_tetracycline_permeability '
-            f'* ({tetracycline_e} - {tetracycline_p}) '
-            '* mass / (volume_p)'
+            f'* {tetracycline_e} * mass / volume_p'
         ),
-        propensity_species=[tetracycline_p, tetracycline_e],
+        propensity_species=[tetracycline_e],
         propensity_parameters=[
             periplasm_area_mass_ratio, tetracycline_permeability, mass, volume_p],
     )
@@ -213,10 +210,9 @@ def main() -> None:
     tet_e_p_influx_rev_propensity = GeneralPropensity(
         (
             'outer_x_am * outer_tetracycline_permeability '
-            f'* ({tetracycline_p} - {tetracycline_e}) '
-            '* mass / (volume_p)'
+            f'* {tetracycline_p} * mass / volume_p'
         ),
-        propensity_species=[tetracycline_e, tetracycline_p],
+        propensity_species=[tetracycline_p],
         propensity_parameters=[
             periplasm_area_mass_ratio, tetracycline_permeability, mass, volume_p],
     )
@@ -236,10 +232,9 @@ def main() -> None:
     tet_p_c_influx_propensity = GeneralPropensity(
         (
             'inner_x_am * inner_tetracycline_permeability '
-            f'* ({tetracycline_p} - {tetracycline_c}) '
-            '* mass / (volume_c)'
+            f'* {tetracycline_p} * mass / volume_c'
         ),
-        propensity_species=[tetracycline_c, tetracycline_p],
+        propensity_species=[tetracycline_p],
         propensity_parameters=[
             cyto_area_mass_ratio, inner_tet_perm, mass, volume_c],
     )
@@ -251,10 +246,9 @@ def main() -> None:
     tet_p_c_influx_rev_propensity = GeneralPropensity(
         (
             'inner_x_am * inner_tetracycline_permeability '
-            f'* ({tetracycline_c} - {tetracycline_p}) '
-            '* mass / (volume_c)'
+            f'* {tetracycline_c} * mass / volume_c'
         ),
-        propensity_species=[tetracycline_c, tetracycline_p],
+        propensity_species=[tetracycline_c],
         propensity_parameters=[
             cyto_area_mass_ratio, inner_tet_perm, mass, volume_c],
     )
