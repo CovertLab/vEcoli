@@ -96,8 +96,7 @@ def main() -> None:
     volume = ParameterEntry('volume', 0.32e-12)  # mL
     influx_propensity = GeneralPropensity(
         (
-            f'x_am * perm * ({nitrocefin_out} - {nitrocefin_in}) '
-            '* mass / (volume)'
+            f'x_am * perm * {nitrocefin_out} * mass / volume'
         ),
         propensity_species=[nitrocefin_in, nitrocefin_out],
         propensity_parameters=[
@@ -106,6 +105,19 @@ def main() -> None:
     influx = Reaction(
         inputs=[nitrocefin_out],
         outputs=[nitrocefin_in],
+        propensity_type=influx_propensity
+    )
+    influx_rev_propensity = GeneralPropensity(
+        (
+            f'x_am * perm * {nitrocefin_in} * mass / volume'
+        ),
+        propensity_species=[nitrocefin_in, nitrocefin_out],
+        propensity_parameters=[
+            area_mass_ratio, permeability, mass, volume],
+    )
+    influx_rev = Reaction(
+        inputs=[nitrocefin_in],
+        outputs=[nitrocefin_out],
         propensity_type=influx_propensity
     )
 
@@ -119,7 +131,7 @@ def main() -> None:
 
     crn = ChemicalReactionNetwork(
         species=species,
-        reactions=[export, hydrolysis, influx],
+        reactions=[export, hydrolysis, influx, influx_rev],
         initial_concentration_dict=initial_concentrations,
     )
 
