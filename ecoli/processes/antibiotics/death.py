@@ -52,6 +52,17 @@ TOY_ANTIBIOTIC_THRESHOLD = 5.0 * units.mM
 TOY_INJECTION_RATE = 2.0 * units.mM  # implicitly per second
 
 
+def topology_list_to_tuple(topology):
+    if isinstance(topology, list):
+        return tuple(topology)
+    if not isinstance(topology, dict):
+        return topology
+    return {
+        key: topology_list_to_tuple(value)
+        for key, value in topology.items()
+    }
+
+
 class DetectorInterface:
     '''Interface that MUST be subclassed by all death detectors
 
@@ -223,7 +234,8 @@ class DeathFreezeState(Process):
                             f'Process {registry_key} not found in registry.')
                     process = process_class(config)
                     new_processes[name] = process
-                    new_topologies[name] = topology
+                    new_topologies[name] = topology_list_to_tuple(
+                        topology)
                 # kill the cell
                 update = {
                     'global': {
