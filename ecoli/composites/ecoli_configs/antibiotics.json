@@ -59,7 +59,9 @@
         ["bulk", "CPLX0-7533[o]"],
         ["bulk", "CPLX0-7534[o]"],
         ["periplasm"],
+        ["cytoplasm"],
         ["listeners", "mass"],
-        ["boundary"]
+        ["boundary"],
+        ["bioscrape_deltas"]
     ]
 }
