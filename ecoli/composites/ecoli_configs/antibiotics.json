@@ -48,6 +48,37 @@
     "process_configs": {
         "concentrations_deriver": {
             "variables": ["EG10040-MONOMER[p]", "TRANS-CPLX-201[m]"]
+        },
+        "death": {
+            "to_remove": [
+                "ecoli-tf-binding_evolver",
+                "ecoli-transcript-initiation_evolver",
+                "ecoli-transcript-elongation_evolver",
+                "ecoli-rna-degradation_evolver",
+                "ecoli-polypeptide-initiation_evolver",
+                "ecoli-polypeptide-elongation_evolver",
+                "ecoli-complexation_evolver",
+                "ecoli-two-component-system_evolver",
+                "ecoli-equilibrium_evolver",
+                "ecoli-protein-degradation_evolver",
+                "ecoli-chromosome-replication_evolver",
+                "ecoli-tf-binding_requester",
+                "ecoli-transcript-initiation_requester",
+                "ecoli-transcript-elongation_requester",
+                "ecoli-rna-degradation_requester",
+                "ecoli-polypeptide-initiation_requester",
+                "ecoli-polypeptide-elongation_requester",
+                "ecoli-complexation_requester",
+                "ecoli-two-component-system_requester",
+                "ecoli-equilibrium_requester",
+                "ecoli-protein-degradation_requester",
+                "ecoli-chromosome-replication_requester",
+                "allocator",
+                "ecoli-chromosome-structure",
+                "ecoli-metabolism",
+                "death",
+                "exchange-aware-bioscrape"
+            ]
         }
     },
     "flow": {
