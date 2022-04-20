@@ -380,15 +380,21 @@ def test_exchange_aware_bioscrape():
         'delta_species': {
             'b': {
                 '_default': 0.0 * units.mM,
-                '_emit': False,
+                '_emit': True,
                 '_updater': 'set',
             },
         },
         'exchanges': {
-            'a': {'_default': 0},
+            'a': {
+                '_default': 0,
+                '_emit': True,
+            },
         },
         'external': {
-            'a': {'_default': 0.0 * units.mM},
+            'a': {
+                '_default': 0.0 * units.mM,
+                '_emit': True,
+            },
         },
         'globals': {
             'mmol_to_counts': {'_default': 0},
