@@ -98,7 +98,7 @@ def main() -> None:
         (
             f'x_am * perm * {nitrocefin_out} * mass / volume'
         ),
-        propensity_species=[nitrocefin_in, nitrocefin_out],
+        propensity_species=[nitrocefin_out],
         propensity_parameters=[
             area_mass_ratio, permeability, mass, volume],
     )
@@ -111,7 +111,7 @@ def main() -> None:
         (
             f'x_am * perm * {nitrocefin_in} * mass / volume'
         ),
-        propensity_species=[nitrocefin_in, nitrocefin_out],
+        propensity_species=[nitrocefin_in],
         propensity_parameters=[
             area_mass_ratio, permeability, mass, volume],
     )
