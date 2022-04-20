@@ -165,7 +165,8 @@ def main() -> None:
     # Cephaloridine diffusion between environment and periplasm
     ceph_influx_propensity = GeneralPropensity(
         (
-            f'outer_x_am * outer_cephaloridine_permeability * ({cephaloridine_e} - {cephaloridine_p}) '
+            'outer_x_am * outer_cephaloridine_permeability '
+            f'* ({cephaloridine_e} - {cephaloridine_p}) '
             '* mass / (volume_p)'
         ),
         propensity_species=[cephaloridine_p, cephaloridine_e],
@@ -177,11 +178,27 @@ def main() -> None:
         outputs=[cephaloridine_p],
         propensity_type=ceph_influx_propensity
     )
+    ceph_influx_rev_propensity = GeneralPropensity(
+        (
+            'outer_x_am * outer_cephaloridine_permeability '
+            f'* ({cephaloridine_p} - {cephaloridine_e}) '
+            '* mass / (volume_p)'
+        ),
+        propensity_species=[cephaloridine_p, cephaloridine_e],
+        propensity_parameters=[
+            periplasm_area_mass_ratio, cephaloridine_permeability, mass, volume_p],
+    )
+    ceph_influx_rev = Reaction(
+        inputs=[cephaloridine_p],
+        outputs=[cephaloridine_e],
+        propensity_type=ceph_influx_rev_propensity,
+    )
 
     # Tetracycline diffusion between environment and periplasm
     tet_e_p_influx_propensity = GeneralPropensity(
         (
-            f'outer_x_am * outer_tetracycline_permeability * ({tetracycline_e} - {tetracycline_p}) '
+            'outer_x_am * outer_tetracycline_permeability '
+            f'* ({tetracycline_e} - {tetracycline_p}) '
             '* mass / (volume_p)'
         ),
         propensity_species=[tetracycline_p, tetracycline_e],
@@ -193,6 +210,21 @@ def main() -> None:
         outputs=[tetracycline_p],
         propensity_type=tet_e_p_influx_propensity
     )
+    tet_e_p_influx_rev_propensity = GeneralPropensity(
+        (
+            'outer_x_am * outer_tetracycline_permeability '
+            f'* ({tetracycline_p} - {tetracycline_e}) '
+            '* mass / (volume_p)'
+        ),
+        propensity_species=[tetracycline_e, tetracycline_p],
+        propensity_parameters=[
+            periplasm_area_mass_ratio, tetracycline_permeability, mass, volume_p],
+    )
+    tet_e_p_influx_rev = Reaction(
+        inputs=[tetracycline_p],
+        outputs=[tetracycline_e],
+        propensity_type=tet_e_p_influx_rev_propensity,
+    )
 
     # Tetracycline diffusion between periplasm and cytoplasm
     # dTp = D(Tp - Tc) / vol_p
@@ -203,7 +235,8 @@ def main() -> None:
     volume_c = ParameterEntry('volume_c', CYTOPLASM_VOLUME)
     tet_p_c_influx_propensity = GeneralPropensity(
         (
-            f'inner_x_am * inner_tetracycline_permeability * ({tetracycline_p} - {tetracycline_c})'
+            'inner_x_am * inner_tetracycline_permeability '
+            f'* ({tetracycline_p} - {tetracycline_c}) '
             '* mass / (volume_c)'
         ),
         propensity_species=[tetracycline_c, tetracycline_p],
@@ -214,6 +247,21 @@ def main() -> None:
         inputs=[tetracycline_p],
         outputs=[tetracycline_c],
         propensity_type=tet_p_c_influx_propensity
+    )
+    tet_p_c_influx_rev_propensity = GeneralPropensity(
+        (
+            'inner_x_am * inner_tetracycline_permeability '
+            f'* ({tetracycline_c} - {tetracycline_p}) '
+            '* mass / (volume_c)'
+        ),
+        propensity_species=[tetracycline_c, tetracycline_p],
+        propensity_parameters=[
+            cyto_area_mass_ratio, inner_tet_perm, mass, volume_c],
+    )
+    tet_p_c_influx_rev = Reaction(
+        inputs=[tetracycline_c],
+        outputs=[tetracycline_p],
+        propensity_type=tet_p_c_influx_rev_propensity
     )
 
     initial_concentrations = {
@@ -229,7 +277,11 @@ def main() -> None:
 
     crn = ChemicalReactionNetwork(
         species=species,
-        reactions=[ceph_export, tet_export, hydrolysis, ceph_influx, tet_e_p_influx, tet_p_c_influx],
+        reactions=[
+            ceph_export, tet_export, hydrolysis, ceph_influx,
+            ceph_influx_rev, tet_e_p_influx, tet_e_p_influx_rev,
+            tet_p_c_influx, tet_p_c_influx_rev,
+        ],
         initial_concentration_dict=initial_concentrations,
     )
 
@@ -243,7 +295,10 @@ def main() -> None:
         species=[
             cephaloridine_e, cephaloridine_p, tetracycline_e,
             tetracycline_p, tetracycline_c],
-        reactions=[ceph_influx, tet_e_p_influx, tet_p_c_influx],
+        reactions=[
+            ceph_influx, ceph_influx_rev, tet_e_p_influx,
+            tet_e_p_influx_rev, tet_p_c_influx, tet_p_c_influx_rev,
+        ],
         initial_concentration_dict={
             cephaloridine_e: INITIAL_ENVIRONMENT_CEPH,
             cephaloridine_p: INITIAL_PERIPLASM_CEPH,
