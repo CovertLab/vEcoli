@@ -144,6 +144,7 @@ class ExchangeAwareBioscrape(Bioscrape):
         schema['exchanges'] = {
             species: {
                 '_default': 0,
+                '_emit': True,
             }
             for species in self.external_species_bioscrape
         }
@@ -152,6 +153,7 @@ class ExchangeAwareBioscrape(Bioscrape):
         schema['external'] = {
             species: {
                 '_default': 0 * self.parameters['species_units'],
+                '_emit': True,
             }
             for species in self.external_species_bioscrape
         }
@@ -164,6 +166,7 @@ class ExchangeAwareBioscrape(Bioscrape):
         for species_id in schema['species'].keys():
             schema['species'][species_id]['_default'] *= self.parameters['species_units']
             schema['delta_species'][species_id]['_default'] *= self.parameters['species_units']
+            schema['delta_species'][species_id]['_emit'] = True
 
         assert 'mmol_to_counts' not in schema['globals']
         schema['globals']['mmol_to_counts'] = {
@@ -200,7 +203,7 @@ class ExchangeAwareBioscrape(Bioscrape):
                 converted_state[key] = value
 
         return converted_state, saved_units
-    
+
     def _add_units(self, state, saved_units):
         """add units back in"""
         unit_state = state.copy()
@@ -377,15 +380,21 @@ def test_exchange_aware_bioscrape():
         'delta_species': {
             'b': {
                 '_default': 0.0 * units.mM,
-                '_emit': False,
+                '_emit': True,
                 '_updater': 'set',
             },
         },
         'exchanges': {
-            'a': {'_default': 0},
+            'a': {
+                '_default': 0,
+                '_emit': True,
+            },
         },
         'external': {
-            'a': {'_default': 0.0 * units.mM},
+            'a': {
+                '_default': 0.0 * units.mM,
+                '_emit': True,
+            },
         },
         'globals': {
             'mmol_to_counts': {'_default': 0},

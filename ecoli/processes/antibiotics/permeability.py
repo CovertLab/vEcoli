@@ -30,6 +30,7 @@ INNER_BILAYER_TET_PERM = 3 * 1e-6 * units.cm / units.sec
 
 
 class Permeability(Step):
+    name = "permeability"
     defaults = {
         'porin_ids': [],
         'diffusing_molecules': [],

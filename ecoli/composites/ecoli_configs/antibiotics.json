@@ -1,9 +1,7 @@
 {
     "inherit_from": ["spatial.json", "cloud.json"],
     "add_processes": [
-        "exchange-aware-bioscrape",
-        "concentrations_deriver",
-        "death"
+        "concentrations_deriver"
     ],
     "total_time": 12000,
     "spatial_environment_config": {
@@ -14,7 +12,7 @@
             ]
         },
         "diffusion": {
-            "molecules": ["GLC[p]", "nitrocefin"],
+            "molecules": ["GLC[p]", "nitrocefin", "cephaloridine", "tetracycline"],
             "n_bins": [10, 10],
             "bounds": [
                 "!units[50 micrometer]",
@@ -26,15 +24,14 @@
                 "type": "uniform",
                 "molecules": {
                     "GLC[p]": 1.0,
-                    "nitrocefin": 0
+                    "nitrocefin": 0,
+                    "cephaloridine": 0,
+                    "tetracycline": 0
                 }
             }
         },
         "field_timeline": {
-            "bins": [10, 10],
-            "timeline": [
-                [6000, {"nitrocefin": 0.1239}]
-            ]
+            "bins": [10, 10]
         },
         "field_timeline_topology": {
             "global": ["global"],
@@ -42,51 +39,18 @@
         }
     },
     "topology": {
-        "exchange-aware-bioscrape": {
-            "species": ["periplasm", "concentrations"],
-            "delta_species": ["periplasm", "bioscrape_deltas"],
-            "exchanges": ["environment", "exchange"],
-            "external": ["boundary", "external"],
-            "globals": ["periplasm", "global"],
-            "rates": {
-                "_path": ["permeabilities"],
-                "mass": ["..", "boundary", "mass"],
-                "volume": ["..", "periplasm", "global", "volume"]
-            }
-        },
         "concentrations_deriver": {
             "counts": ["bulk"],
             "concentrations": ["periplasm", "concentrations"],
             "volume": ["periplasm", "global", "volume"]
-        },
-        "death": {
-            "global": ["boundary"],
-            "processes": [],
-            "internal": ["periplasm", "concentrations"]
         }
     },
     "process_configs": {
-        "exchange-aware-bioscrape": {
-            "sbml_file": "data/bioscrape_sbml.xml",
-            "external_species": ["nitrocefin"],
-            "name_map": [
-                [["species", "TRANS-CPLX-201[m]"], "pump"],
-                [["species", "EG10040-MONOMER[p]"], "beta_lactamase"],
-                [["species", "nitrocefin"], "nitrocefin_in"],
-                [["external", "nitrocefin"], "nitrocefin_out"]
-            ]
-        },
         "concentrations_deriver": {
             "variables": ["EG10040-MONOMER[p]", "TRANS-CPLX-201[m]"]
         },
         "death": {
-            "detectors": {
-                "antibiotic": {
-                    "antibiotic_threshold": "!units[0.03 millimolar]",
-                    "antibiotic_key": "nitrocefin"
-                }
-            },
-            "targets": [
+            "to_remove": [
                 "ecoli-tf-binding_evolver",
                 "ecoli-transcript-initiation_evolver",
                 "ecoli-transcript-elongation_evolver",
@@ -98,8 +62,6 @@
                 "ecoli-equilibrium_evolver",
                 "ecoli-protein-degradation_evolver",
                 "ecoli-chromosome-replication_evolver",
-                "antibiotic_transport",
-                "antibiotic_hydrolysis",
                 "ecoli-tf-binding_requester",
                 "ecoli-transcript-initiation_requester",
                 "ecoli-transcript-elongation_requester",
@@ -113,7 +75,9 @@
                 "ecoli-chromosome-replication_requester",
                 "allocator",
                 "ecoli-chromosome-structure",
-                "ecoli-metabolism"
+                "ecoli-metabolism",
+                "death",
+                "exchange-aware-bioscrape"
             ]
         }
     },
@@ -123,8 +87,12 @@
     "engine_process_reports": [
         ["bulk", "EG10040-MONOMER[p]"],
         ["bulk", "TRANS-CPLX-201[m]"],
+        ["bulk", "CPLX0-7533[o]"],
+        ["bulk", "CPLX0-7534[o]"],
         ["periplasm"],
+        ["cytoplasm"],
         ["listeners", "mass"],
-        ["boundary"]
+        ["boundary"],
+        ["bioscrape_deltas"]
     ]
 }
