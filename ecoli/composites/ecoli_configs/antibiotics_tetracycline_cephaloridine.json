@@ -78,7 +78,7 @@
             "internal": {
                 "_path": ["null"],
                 "tetracycline": ["..", "cytoplasm", "concentrations", "tetracycline"],
-                "cephaloridine": ["..", "periplasm", "concentrations", "tetracycline"]
+                "cephaloridine": ["..", "periplasm", "concentrations", "cephaloridine"]
             }
 
         }
