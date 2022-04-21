@@ -3,16 +3,16 @@
     "spatial_environment_config": {
         "multibody": {
             "bounds": [
-                "!units[10 micrometer]",
-                "!units[10 micrometer]"
+                "!units[50 micrometer]",
+                "!units[50 micrometer]"
             ]
         },
         "diffusion": {
             "molecules": ["GLC[p]"],
             "n_bins": [10, 10],
             "bounds": [
-                "!units[10 micrometer]",
-                "!units[10 micrometer]"
+                "!units[50 micrometer]",
+                "!units[50 micrometer]"
             ],
             "depth": "!units[3000.0 micrometer]",
             "diffusion": "!units[1e-2 micrometer ** 2 / second]",
@@ -32,16 +32,9 @@
         }
     },
     "add_processes": [
-      "local_field",
       "ecoli-shape"
     ],
     "topology": {
-      "local_field": {
-        "exchanges": ["environment", "exchange"],
-        "location": ["boundary", "location"],
-        "fields": ["..", "..", "fields"],
-        "dimensions": ["..", "..", "dimensions"]
-      },
       "ecoli-shape": {
         "cell_global": ["boundary"],
         "periplasm_global": ["periplasm", "global"],
@@ -50,13 +43,6 @@
       }
     },
     "process_configs": {
-      "local_field": {
-        "n_bins": [10, 10],
-        "bounds": [
-            "!units[10 micrometer]",
-            "!units[10 micrometer]"
-        ]
-      },
       "ecoli-shape": {}
     },
     "flow": {
