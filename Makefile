@@ -1,6 +1,7 @@
 .PHONY: compile, clean, recompile
 
-compile: data/bioscrape_sbml.xml
+compile: data/ceph_tet_diffusion_only_sbml.xml
+compile: data/nitro_sbml.xml
 compile: data/ceph_tet_sbml.xml
 compile:
 	python setup.py build_ext --inplace
@@ -19,8 +20,10 @@ clean:
 	rm -fr launcher_20* block_20*
 
 # make sbml files
-data/bioscrape_sbml.xml: scripts/generate_nitro_sbml.py
+data/nitro_sbml.xml: scripts/generate_nitro_sbml.py
 	python scripts/generate_nitro_sbml.py
+data/ceph_tet_diffusion_only_sbml.xml: scripts/generate_ceph_tet_sbml.py
+	python scripts/generate_ceph_tet_sbml.py
 data/ceph_tet_sbml.xml: scripts/generate_ceph_tet_sbml.py
 	python scripts/generate_ceph_tet_sbml.py
 
