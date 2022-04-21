@@ -32,16 +32,9 @@
         }
     },
     "add_processes": [
-      "local_field",
       "ecoli-shape"
     ],
     "topology": {
-      "local_field": {
-        "exchanges": ["environment", "exchange"],
-        "location": ["boundary", "location"],
-        "fields": ["..", "..", "fields"],
-        "dimensions": ["..", "..", "dimensions"]
-      },
       "ecoli-shape": {
         "cell_global": ["boundary"],
         "periplasm_global": ["periplasm", "global"],
@@ -50,13 +43,6 @@
       }
     },
     "process_configs": {
-      "local_field": {
-        "n_bins": [10, 10],
-        "bounds": [
-            "!units[50 micrometer]",
-            "!units[50 micrometer]"
-        ]
-      },
       "ecoli-shape": {}
     },
     "flow": {
