@@ -250,6 +250,12 @@ class EngineProcess(Process):
         # inner simulation to complete.
         force_complete = timestep != self.calculate_timestep({})
 
+        # Assert that nothing got wired into `null`.
+        miswired_vars = self.sim.state.get_path(('null',)).inner.keys()
+        if miswired_vars:
+            raise RuntimeError(
+                f'Variables mistakenly wired to ("null",): {miswired_vars}')
+
         # Update the internal state with tunnel data.
         for tunnel, path in self.tunnels_in.items():
             incoming_state = states[tunnel]
