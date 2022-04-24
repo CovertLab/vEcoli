@@ -490,13 +490,24 @@ class LoadSimData:
         stoichiometry = dict(self.sim_data.process.metabolism.reaction_stoich)
         stoichiometry = dict(sorted(stoichiometry.items()))
         rxns = list()
+        metabolite_names = set()
+
+        # TODO (Cyrus) Below operations are redundant (renaming, catalyst rearranging) and should just be removed.
+        #  from the metabolism dataclass. Are catalysts all required? Or all possible ways to catalyze. Latter.
+        reaction_catalysts = self.sim_data.process.metabolism.reaction_catalysts
+        catalyst_ids = self.sim_data.process.metabolism.catalyst_ids
+        reactions_with_catalyst = self.sim_data.process.metabolism.reactions_with_catalyst
 
         REVERSE_TAG = ' (reverse)'
 
         # TODO Consider moving separation of reactions into metabolism reaction. Is it even necessary?
+        # Also add check for stoichiometries being equal for removed reverse reactions
 
         # First pass. Add all reactions without tag.
+        # TODO (Cyrus) Investigate how many reactions are supposed to be reversible.
         for key, value in stoichiometry.items():
+            metabolite_names.update(list(value.keys()))
+
             if not key.endswith(REVERSE_TAG):
                 rxns.append({'reaction id': key,
                              'stoichiometry': value,
@@ -509,6 +520,14 @@ class LoadSimData:
                              'stoichiometry': value,
                              'is reversible': False})
 
+            if key in reactions_with_catalyst:
+                rxns[-1]['enzyme'] = reaction_catalysts[key]
+            else:
+                rxns[-1]['enzyme'] = []
+
+        # TODO Reconstruct catalysis and annotate.
+        # Required:
+
         metabolism_config = {
             'time_step': time_step,
             '_parallel': parallel,
@@ -516,12 +535,11 @@ class LoadSimData:
             # variables
             'stoichiometry': self.sim_data.process.metabolism.reaction_stoich,
             'stoichiometry_r': rxns,
+            'metabolite_names': metabolite_names,
             'reaction_catalysts': self.sim_data.process.metabolism.reaction_catalysts,
             'maintenance_reaction': self.sim_data.process.metabolism.maintenance_reaction,
             'aa_names': self.sim_data.molecule_groups.amino_acids,
             'media_id': self.sim_data.conditions[self.sim_data.condition]['nutrients'],
-            'nutrients': self.sim_data.conditions[self.sim_data.condition]['nutrients'],
-            # TODO (Cyrus) Replace with media_id.
             'avogadro': self.sim_data.constants.n_avogadro,
             'cell_density': self.sim_data.constants.cell_density,
             'nutrientToDoublingTime': self.sim_data.nutrient_to_doubling_time,
@@ -529,6 +547,7 @@ class LoadSimData:
             'non_growth_associated_maintenance': self.sim_data.constants.non_growth_associated_maintenance,
             'cell_dry_mass_fraction': self.sim_data.mass.cell_dry_mass_fraction,
             'seed': self.random_state.randint(RAND_MAX),
+            'reactions_with_catalyst': self.sim_data.process.metabolism.reactions_with_catalyst,
 
             # methods
             'concentration_updates': self.sim_data.process.metabolism.concentration_updates,

@@ -1,5 +1,8 @@
 .PHONY: compile, clean, recompile
 
+compile: data/ceph_tet_diffusion_only_sbml.xml
+compile: data/nitro_sbml.xml
+compile: data/ceph_tet_sbml.xml
 compile:
 	python setup.py build_ext --inplace
 	rm -fr build
@@ -10,11 +13,19 @@ compile:
 clean:
 	rm -fr fixtures
 	(cd reconstruction/ecoli/dataclasses/process && rm -f equilibrium_odes.py two_component_system_odes*.py)
-	find . -name "*.pyc" -exec rm -rf {} \;
-	find . -name "*.o" -exec rm -fr {} \;
-	find . -name "*.so" -exec rm -fr {} \;
+	find wholecell/ -name "*.pyc" -exec rm -rf {} \;
+	find wholecell/ -name "*.o" -exec rm -fr {} \;
+	find wholecell/ -name "*.so" -exec rm -fr {} \;
 	rm -fr build
 	rm -fr launcher_20* block_20*
+
+# make sbml files
+data/nitro_sbml.xml: scripts/generate_nitro_sbml.py
+	python scripts/generate_nitro_sbml.py
+data/ceph_tet_diffusion_only_sbml.xml: scripts/generate_ceph_tet_sbml.py
+	python scripts/generate_ceph_tet_sbml.py
+data/ceph_tet_sbml.xml: scripts/generate_ceph_tet_sbml.py
+	python scripts/generate_ceph_tet_sbml.py
 
 # Delete just the *.so libraries then (re)compile them.
 # This is useful when switching to a different Python virtualenv.
