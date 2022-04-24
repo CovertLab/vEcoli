@@ -138,6 +138,20 @@ class SteadyStateObjective(ObjectiveComponent):
         """Returns the subset of dm/dt affecting intermediates, which should all be zero."""
         return dm_dt[self.indices] * self.weight
 
+class FluxSumObjective(ObjectiveComponent):
+    """Minimizes futile cycles. """
+
+    def __init__(self, network: ReactionNetwork, weight: float = 1.0):
+        self.weight = weight
+
+    def prepare_targets(self, target_values: Optional[Mapping[str, Any]] = None) -> Optional[ArrayT]:
+        """FluxSumObjective does not use solve-time target values; always returns None."""
+        return None
+
+    def residual(self, velocities: ArrayT, dm_dt: ArrayT, targets: Optional[ArrayT] = None) -> ArrayT:
+        """Returns the subset of dm/dt affecting intermediates, which should all be zero."""
+        return jnp.array([jnp.sum(velocities) * self.weight])
+
 
 class VelocityBoundsObjective(ObjectiveComponent):
     """Penalizes reaction velocities outside of specified bounds."""
@@ -174,6 +188,44 @@ class VelocityBoundsObjective(ObjectiveComponent):
         lb, ub = targets
         shortfall = jnp.minimum(0, velocities[self.indices] - lb)
         excess = jnp.maximum(0, velocities[self.indices] - ub)
+        return shortfall + excess
+
+
+class DmdtBoundsObjective(ObjectiveComponent):
+    """Penalizes molecule dmdt's outside of specified bounds."""
+
+    def __init__(self, network: ReactionNetwork, bounds: Mapping[str, Tuple[float, float]], weight: float = 1.0):
+        """Initializes the objective with defined upper and lower bounds."""
+        self.network = network
+        self.indices = np.array([network.molecule_index(m) for m in bounds])
+        self.bounds = {molecule_id: (lb, ub) for molecule_id, (lb, ub) in bounds.items()}
+        self.weight = weight
+
+    def prepare_targets(self, target_values: Optional[Mapping[str, Any]] = None) -> Optional[ArrayT]:
+        """Prepares an array of upper and lower bounds.
+
+        Args:
+            target_values: {molecule_id: (lb, ub)} _overriding_ any bounds specified at initialization.
+
+        Returns:
+            2D numpy array with shape (2, #targets). Any molecule missing from target_values (including if
+            target_values is None) defaults to the bounds specified on initialization.
+        """
+        if target_values is not None:
+            # Copy initialized bounds and update with target values as specified.
+            bounds = dict(self.bounds)
+            bounds.update(target_values)
+        else:
+            # Safe to use initialized bounds without copying
+            bounds = self.bounds
+
+        return self.network.molecule_vector(bounds, (-np.inf, np.inf))[self.indices].T
+
+    def residual(self, velocities: ArrayT, dm_dt: ArrayT, targets: ArrayT) -> ArrayT:
+        """Returns a vector of numbers, zero within bounds, negative for below lb, or positive for above ub."""
+        lb, ub = targets
+        shortfall = jnp.minimum(0, dm_dt[self.indices] - lb)
+        excess = jnp.maximum(0, dm_dt[self.indices] - ub)
         return shortfall + excess
 
 
@@ -245,7 +297,7 @@ class FbaResult:
     seed: int
     velocities: Mapping[str, float]
     dm_dt: Mapping[str, float]
-    ss_residual: np.ndarray
+    residual: Mapping[str, np.ndarray]
 
 
 class GradientDescentFba:
@@ -363,10 +415,12 @@ class GradientDescentFba:
         soln = scipy.optimize.least_squares(jax.jit(loss), x0, jac=jac_wrap, **kwargs)
 
         # Perform the actual gradient descent, and extract the result.
-        #soln = scipy.optimize.least_squares(jax.jit(loss), x0, jac=jax.jit(jax.jacfwd(loss)), **kwargs)
-        dm_dt = self._s_sparse @ soln.x
-        ss_residual = self._objectives["steady-state"].residual(soln.x, dm_dt, None)
+        dm_dt = np.asarray(self._s_sparse @ soln.x)
+        residual = {
+            name: np.asarray(objective.residual(soln.x, dm_dt, target_values.get(name)))
+            for name, objective in self._objectives.items()
+        }
         return FbaResult(seed=rng_seed,
                          velocities=self.network.reaction_values(soln.x),
                          dm_dt=self.network.molecule_values(dm_dt),
-                         ss_residual=ss_residual)
+                         residual=residual)

@@ -2,12 +2,8 @@ import argparse
 import os
 import pickle
 
-from vivarium.core.emitter import (
-    data_from_database,
-    DatabaseEmitter,
-)
-
 from ecoli.composites.ecoli_nonpartition import SIM_DATA_PATH
+from ecoli.analysis.db import access
 from ecoli.analysis.compartment_mass_fraction_summary import Plot as CompartmentsMassFraction
 from ecoli.analysis.mass_fraction_summary import Plot as MassFraction
 from ecoli.analysis.mass_fractions_voronoi import Plot as VoronoiMassFraction
@@ -25,25 +21,6 @@ ANALYSIS = [
     mRNAcounts,
     ProteinCounts,
 ]
-
-
-def access(
-        experiment_id,
-        query=None,
-        f=None,
-):
-    # mongo client
-    config = {
-        'host': '{}:{}'.format('localhost', 27017),
-        'database': 'simulations'}
-    emitter = DatabaseEmitter(config)
-    db = emitter.db
-
-    # access
-    data, sim_config = data_from_database(
-        experiment_id, db, query, f)
-
-    return data, experiment_id, sim_config
 
 
 def make_plots(data, experiment_id='ecoli', sim_config={}):

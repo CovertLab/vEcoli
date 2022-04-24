@@ -14,12 +14,13 @@ import pstats
 import subprocess
 import json
 import warnings
-from copy import deepcopy
 from datetime import datetime
 from typing import Optional, Dict, Any
 
 from vivarium.core.engine import Engine
+from vivarium.core.serialize import deserialize_value
 from vivarium.library.dict_utils import deep_merge, deep_merge_combine_lists
+from vivarium.library.topology import assoc_path
 from ecoli.library.logging import write_json
 from ecoli.composites.ecoli_nonpartition import SIM_DATA_PATH
 # Two different Ecoli composers depending on partitioning
@@ -32,20 +33,6 @@ from ecoli.processes import process_registry
 from ecoli.processes.registries import topology_registry
 
 from ecoli.composites.ecoli_configs import CONFIG_DIR_PATH
-
-
-def _merge_files(config):
-    """merge specified files for any attributes not supplied"""
-    inherit_from = config.get('inherit_from') or []
-    for merge_filename in inherit_from:
-        with open(CONFIG_DIR_PATH + merge_filename) as merge_file:
-            merge_config = json.load(merge_file)
-
-        # recursive merge of files specified by merge_file
-        merge_config = _merge_files(merge_config)
-        config = deep_merge_combine_lists(
-            copy.deepcopy(merge_config), config)
-    return config
 
 
 def _tuplify_topology(topology):
@@ -138,7 +125,7 @@ class SimConfig:
         )
         self.parser.add_argument(
             '--emitter', '-e', action='store',
-            choices=["timeseries", "database", "print"],
+            choices=["timeseries", "database", "print", "null"],
             help=(
                 "Emitter to use. Timeseries uses RAMEmitter, database "
                 "emits to MongoDB, and print emits to stdout.")
@@ -185,19 +172,42 @@ class SimConfig:
             help="Agent ID."
         )
         self.parser.add_argument(
-            'sim_data_path', nargs="*", default=None,
+            '--sim_data_path', nargs="*", default=None,
             help="Path to the sim_data to use for this experiment."
         )
+        self.parser.add_argument(
+            '--parallel', action='store_true', default=None,
+            help='Run processes in parallel.')
+        self.parser.add_argument(
+            '--no_parallel', action='store_true', default=None,
+            help='Do not run processes in parallel.')
+        self.parser.add_argument(
+            '--profile', action='store_true', default=False,
+            help='Print profiling information at the end.')
+        self.parser.add_argument(
+            '--initial_state_file', action='store',
+            default='wcecoli_t0',
+            help='Name of initial state file (no ".json") under data/')
+
+    @staticmethod
+    def merge_config_dicts(d1, d2):
+        # Handle config keys that need special handling.
+        LIST_KEYS_TO_MERGE = (
+            'save_times', 'add_processes', 'exclude_processes',
+            'processes')
+        for key in LIST_KEYS_TO_MERGE:
+            d2.setdefault(key, [])
+            d2[key].extend(d1.get(key, []))
+        deep_merge(d1, d2)
 
     def update_from_json(self, path):
         with open(path, 'r') as f:
             new_config = json.load(f)
-
-        # merge specified files for any attributes not supplied
-        # this uses the `inherit_from` keyword arg.
-        new_config = _merge_files(new_config)
-
-        self._config.update(new_config)
+        new_config = deserialize_value(new_config)
+        for config_name in new_config.get('inherit_from', []):
+            config_path = os.path.join(CONFIG_DIR_PATH, config_name)
+            self.update_from_json(config_path)
+        self.merge_config_dicts(self._config, new_config)
 
     def update_from_cli(self, cli_args=None):
         args = self.parser.parse_args(cli_args)
@@ -210,12 +220,17 @@ class SimConfig:
         cli_config = {
             key: value
             for key, value in vars(args).items()
-            if value and key != 'config'
+            if value and key not in (
+                'config', 'parallel', 'no_parallel')
         }
-        self._config.update(cli_config)
+        if args.parallel:
+            cli_config['parallel'] = True
+        if args.no_parallel:
+            cli_config['parallel'] = False
+        self.merge_config_dicts(self._config, cli_config)
 
     def update_from_dict(self, dict_config):
-        self._config.update(dict_config)
+        self.merge_config_dicts(self._config, dict_config)
 
     def __getitem__(self, key):
         return self._config[key]
@@ -394,10 +409,10 @@ class EcoliSim:
         if initial_state_path.startswith('vivecoli'):
             time_str = initial_state_path[len('vivecoli_t'):]
             seed = int(float(time_str))
-            self.config['seed'] = seed
+            self.config['seed'] += seed
 
         # initialize the ecoli composer
-        config = deepcopy(self.config)
+        config = copy.deepcopy(self.config)
         if self.partition:
             ecoli_composer = ecoli.composites.ecoli_master.Ecoli(
                 config)
@@ -410,8 +425,10 @@ class EcoliSim:
             path = ('agents', self.agent_id,)
 
         # get initial state
-        self.initial_state = ecoli_composer.initial_state(
-            config=self.config, path=path)
+        self.initial_state = {}
+        initial_cell_state = ecoli_composer.initial_state(
+            config=self.config)
+        assoc_path(self.initial_state, path, initial_cell_state)
 
         # generate the composite at the path
         self.ecoli = ecoli_composer.generate(path=path)
@@ -428,6 +445,11 @@ class EcoliSim:
         """
         Runs the simulation while saving the states of specific timesteps to jsons.
         """
+        for time in self.save_times:
+            if time > self.total_time:
+                raise ValueError(
+                    f'Config contains save_time ({time}) > total '
+                    f'time ({self.total_time})')
         time_elapsed = self.save_times[0]
         for i in range(len(self.save_times)):
             if i == 0:

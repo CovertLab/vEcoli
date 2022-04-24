@@ -1,5 +1,5 @@
 {
-    "inherit_from": null,
+    "inherit_from": [],
     "experiment_id" : null,
     "suffix_time" : true,
     "description" : "",
@@ -32,7 +32,7 @@
     "spatial_environment_config": {},
 
     "save": false,
-    "save_times": [2, 10, 100, 1000, 2678],
+    "save_times": [],
 
     "add_processes" : [],
     "exclude_processes" : [],
@@ -50,7 +50,7 @@
         "ecoli-complexation",
         "ecoli-two-component-system",
         "ecoli-equilibrium",
-        "ecoli-protein-degradation",        
+        "ecoli-protein-degradation",
         "ecoli-chromosome-replication",
         "ecoli-mass-listener",
         "mRNA_counts_listener",
@@ -58,5 +58,6 @@
     ],
     "process_configs": {},
     "topology": {},
+    "flow": {},
     "_schema": {}
 }
