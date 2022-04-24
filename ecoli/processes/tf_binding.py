@@ -145,7 +145,7 @@ class TfBinding(PartitionedProcess):
             requests['active_tfs'][active_tf_key] = tf_count
             
         # NEW to vivarium-ecoli
-        # When marR is active (not complexed with tetracycline), it outcompetes marA
+        # When marR is not complexed with tetracycline, it silences marA expression/regulation
         if 'PD00365' in self.active_tfs:
             marR_count = states['active_tfs']['CPLX0-7710[c]']
             if marR_count > 0:

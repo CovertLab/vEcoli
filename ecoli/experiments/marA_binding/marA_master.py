@@ -1,3 +1,4 @@
+import gc
 import ast
 import json
 import pandas as pd
@@ -46,9 +47,9 @@ def includeTetracycline():
     if not exists('data/wcecoli_tet.json'):
         with open('data/wcecoli_marA.json') as f:
             initial_state = json.load(f)
-        # Pre-seed tetracycline and add tet-marR complex
+        # Pre-seed tetracycline and add marR-tet complex
         initial_state['bulk']['tetracycline[c]'] = 200
-        initial_state['bulk']['tet-marR[c]'] = 0
+        initial_state['bulk']['marR-tet[c]'] = 0
         with open('data/wcecoli_tet.json', 'w') as f:
             json.dump(initial_state, f)
     sim.initial_state_file = "wcecoli_tet"
@@ -147,8 +148,7 @@ def ids_of_interest():
 def extract_data(timeseries, variable_paths):
     fig = plot_variables(
         timeseries, 
-        variables=variable_paths,
-        # Get list of misbehaving molecules to report at meetings
+        variables=variable_paths
     )
     data = {}
     for axes in fig.axes:
@@ -212,43 +212,56 @@ def main():
     degenes = pd.read_csv("ecoli/experiments/marA_binding/model_degenes.csv")
     TU_idx = degenes["TU_idx"].to_list()
     genes = degenes["Gene name"]
-    fc = degenes["Fold change"] + 1
+    fc = degenes["Fold change"]
+    variable_paths = ids_of_interest()
 
     # f67f750e-afa4-11ec-b92c-9cfce8b9977c: control (500 seconds)
-    # 4a361a0e-b04f-11ec-80b7-9cfce8b9977c: control (2600 seconds)    
-    # cb78bdea-afa7-11ec-8c9a-9cfce8b9977c: deltaV = first guess (500 seconds)
-    # 060d0b24-b52e-11ec-8c7d-9cfce8b9977c: added marR to "cancel out" basal marA expression
-    # cf00d53c-b9f8-11ec-bb30-9cfce8b9977c: adjusted deltaVs, with marR
-    # 61e43714-ba02-11ec-a54c-9cfce8b9977c: adjusted deltas further and changed marA mRNA to marR in initial state
-    # 29947084-ba09-11ec-a834-9cfce8b9977c: account for random marA appearing at t=10 ruining things (recapitulate control!)
-    # 1cdc4df0-ba20-11ec-bc53-9cfce8b9977c: add tetracycline-marR complexation inactivation (50 sec)
-    # cc06c8a0-ba20-11ec-97e2-9cfce8b9977c: add tetracycline-marR complexation inactivation (500 sec, 12 tet)
-    # 27e76e74-ba6a-11ec-bac3-9cfce8b9977c: presence of active marR is binary switch for marA binding (500 sec, 12 tet)
-    # 2cecaae2-ba9c-11ec-9728-9cfce8b9977c: make adj to deltaV (500 sec, 12 tet)
-    # bf8dd480-baa0-11ec-9b39-9cfce8b9977c: even more adj to deltaV (500 sec, 200 tet)
-    # 7d119bc8-baa5-11ec-bf40-9cfce8b9977c: even, even more adj to deltaV (500 sec, 200 tet)
-    # f088e4ce-baa7-11ec-b7d6-9cfce8b9977c: final adj to deltaV (500 sec, 200 tet)
-    # 3d85657a-baaa-11ec-b38c-9cfce8b9977c: recapitulate control w/ final adj (500 sec)
+    # 4a361a0e-b04f-11ec-80b7-9cfce8b9977c: control (2600 seconds)  
     
-    marA_id = "3d85657a-baaa-11ec-b38c-9cfce8b9977c"
+    marA_id = "c8e0de60-c031-11ec-a169-9cfce8b9977c"
+    baseline_id = "f67f750e-afa4-11ec-b92c-9cfce8b9977c"
+    name = "equi_tet"
+    
+    # Perform regular garbage collection to free memory
+    
+    # Plot monomer counts (including monomers in complexes)
+    marA_bulk_data = access(marA_id, [("bulk",)])[0]
+    marA_bulk_timeseries = timeseries_from_data(marA_bulk_data)
+    del marA_bulk_data
+    gc.collect()
+    baseline_bulk_data = access(baseline_id, [("bulk",)])[0]
+    baseline_bulk_timeseries = timeseries_from_data(baseline_bulk_data)
+    del baseline_bulk_data
+    gc.collect()
+    plot_degenes(marA_bulk_timeseries, baseline_bulk_timeseries, f"genes_{name}", variable_paths)
+    del marA_bulk_timeseries, baseline_bulk_timeseries, variable_paths
+    gc.collect()
+    
+    # Plot mRNA counts
     marA_mrna_data = access(marA_id, [("unique", "RNA")], count_by_tu_idx)[0]
     marA_mrna_timeseries = timeseries_from_data(marA_mrna_data)
-    rna_synth_prob_data = access(marA_id, [("listeners", "rna_synth_prob", "rna_synth_prob")])[0]
-    rna_synth_prob_ts = timeseries_from_data(rna_synth_prob_data)
-    
-    baseline_id = "f67f750e-afa4-11ec-b92c-9cfce8b9977c"
+    del marA_mrna_data
+    gc.collect()
     baseline_mrna_data = access(baseline_id, [("unique", "RNA")], count_by_tu_idx)[0]
     baseline_mrna_timeseries = timeseries_from_data(baseline_mrna_data)
+    del baseline_mrna_data
+    gc.collect()
+    plot_mrnas(marA_mrna_timeseries, baseline_mrna_timeseries, f"mrna_{name}", TU_idx, genes, fc)
+    del marA_mrna_timeseries, baseline_mrna_timeseries
+    gc.collect()
+    
+    # Plot RNA synthesis probabilities
+    rna_synth_prob_data = access(marA_id, [("listeners", "rna_synth_prob", "rna_synth_prob")])[0]
+    rna_synth_prob_ts = timeseries_from_data(rna_synth_prob_data)
+    del rna_synth_prob_data
+    gc.collect()
     baseline_rna_synth_prob_data = access(baseline_id, [("listeners", "rna_synth_prob", "rna_synth_prob")])[0]
     baseline_rna_synth_prob_ts = timeseries_from_data(baseline_rna_synth_prob_data)
-    
-    tet_timeseries = access(marA_id, [("bulk", "tetracycline[c]")])[0]
-    marR_timeseries = access(marA_id, [("bulk", "CPLX0-7710[c]")])[0]
-    marA_timeseries = access(marA_id, [("bulk", "PD00365[c]")])[0]
-    tet_marR_timeseries = access(marA_id, [("bulk", "tet-marR[c]")])[0]
-    
-    plot_mrnas(marA_mrna_timeseries, baseline_mrna_timeseries, "mrna_no_tet", TU_idx, genes, fc)
-    plot_rna_synth_prob(rna_synth_prob_ts, baseline_rna_synth_prob_ts, "synth_prob_no_tet", TU_idx, genes, fc)
+    del baseline_rna_synth_prob_data
+    gc.collect()
+    plot_rna_synth_prob(rna_synth_prob_ts, baseline_rna_synth_prob_ts, f"synth_prob_{name}", TU_idx, genes, fc)
+    del rna_synth_prob_ts, baseline_rna_synth_prob_ts
+    gc.collect()
 
 if __name__=="__main__":
     main()

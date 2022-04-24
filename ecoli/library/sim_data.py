@@ -111,13 +111,17 @@ class LoadSimData:
                 self.sim_data.process.transcription_regulation.delta_prob["shape"][0], 
                 self.sim_data.process.transcription_regulation.delta_prob["shape"][1]+2)
             self.sim_data.process.transcription_regulation.tf_to_tf_type["PD00365"] = "0CS"
-            self.sim_data.process.transcription_regulation.tf_to_tf_type["CPLX0-7710"] = "0CS"
+            self.sim_data.process.transcription_regulation.tf_to_tf_type["CPLX0-7710"] = "1CS"
+            self.sim_data.process.transcription_regulation.active_to_bound["CPLX0-7710"] = "marR-tet"
             
+            # TU index of all genes that change upon tetracycline exposure
+            # Did not include ncRNA MicF because it is functionally inactive
             TU_idxs = [2011, 1641, 1394, 2112, 416, 1642, 1543, 662, 995, \
                 3289, 262, 1807, 2010, 659, 1395, 260, 259, 11, 944, 1631, 1330, \
                 660, 1399, 661, 1394]
             new_deltaI = np.array(TU_idxs)
-            # First 25 genes are regulated by marA, last is regulated by marR
+            # Implement as if all differentially expressed genes are regulated by marA
+            # Include that marR has a very strong repressive effect on marA
             new_deltaJ = np.array([24]*24 + [25])
             TU_fc = [9, 0.48, 0.07, 0.0054, 0.15, 0.18, 0.013, 0.01, 0.13, 0.0035, 0.0003, 0.007, 0.01, \
                 1, 0.0065, 0.0005, 0.0001, 0.00055, 0.01, 0.00002, 0.02, 0.01, -0.00045, -0.15, -1000]
@@ -133,10 +137,42 @@ class LoadSimData:
             # Add tetracycline for all other processes as well
             bulk_data = self.sim_data.internal_state.bulk_molecules.bulk_data.fullArray().copy()
             bulk_data.resize(bulk_data.shape[0]+2, refcheck=False)
-            bulk_data[-1] = ('tetracycline[c]', [0,0,0,0,0,0,444.44,0,0])
-            bulk_data[-2] = ('tet-marR[c]', [0,0,0,0,0,32120,444.44,0,0])
+            # Tetracyline mass from NIST Chemistry WebBook
+            bulk_data[-1] = ('tetracycline[c]', [0, 0, 0, 0, 0, 0, 444.4346, 0, 0])
+            # marR mass from EcoCyc (x2 becuause homodimer)
+            bulk_data[-2] = ('marR-tet[c]', [0, 0, 0, 0, 0, 32120, 444.4346, 0, 0])
             units = self.sim_data.internal_state.bulk_molecules.bulk_data.fullUnits()
             self.sim_data.internal_state.bulk_molecules.bulk_data = UnitStructArray(bulk_data, units)
+            
+            # Implement equilibrium of marR and tetracycline
+            equilibrium_proc = self.sim_data.process.equilibrium
+            equilibrium_proc._stoichMatrixI = np.concatenate(
+                [equilibrium_proc._stoichMatrixI, np.array([98, 99, 100])])
+            equilibrium_proc._stoichMatrixJ = np.concatenate(
+                [equilibrium_proc._stoichMatrixJ, np.array([34, 34, 34])])
+            equilibrium_proc._stoichMatrixV = np.concatenate(
+                [equilibrium_proc._stoichMatrixV, np.array([-1, -1, 1])])
+            equilibrium_proc.molecule_names += ['CPLX0-7710[c]', 'tetracycline[c]', 'marR-tet[c]']
+            equilibrium_proc.ids_complexes = [equilibrium_proc.molecule_names[i] for i in np.where(np.any(equilibrium_proc.stoich_matrix() > 0, axis=1))[0]]
+            equilibrium_proc.rxn_ids += ['marR-tet']
+            # All existing equilibrium reactions use a forward reaction rate of 1
+            equilibrium_proc.rates_fwd = np.concatenate([equilibrium_proc.rates_fwd, np.array([1])])
+            # TODO: Test a range of reverse reaction rates and starting tetracycline counts
+            equilibrium_proc.rates_rev = np.concatenate([equilibrium_proc.rates_rev, np.array([1E-09])])
+
+            # Mass balance matrix
+            equilibrium_proc._stoichMatrixMass = np.concatenate([equilibrium_proc._stoichMatrixMass, np.array([32130, 444.4346, 32574.4346])])
+            equilibrium_proc.balance_matrix = equilibrium_proc.stoich_matrix() * equilibrium_proc.mass_matrix()
+
+            # Find the mass balance of each equation in the balanceMatrix
+            massBalanceArray = equilibrium_proc.mass_balance()
+
+            # The stoichometric matrix should balance out to numerical zero.
+            assert np.max(np.absolute(massBalanceArray)) < 1e-9
+
+            # Build matrices
+            equilibrium_proc._populateDerivativeAndJacobian()
+            equilibrium_proc._stoichMatrix = equilibrium_proc.stoich_matrix()     
         
         tf_binding_config = {
             'time_step': time_step,
@@ -387,13 +423,7 @@ class LoadSimData:
         return polypeptide_elongation_config
 
     def get_complexation_config(self, time_step=2, parallel=False):
-        if self.mar_regulon:
-            self.sim_data.process.complexation.molecule_names += ['tetracycline[c]', 'tet-marR[c]']
-            self.sim_data.process.complexation.rates = np.concatenate([self.sim_data.process.complexation.rates, [1000]])
-        else:
-            stoich_matrix = self.sim_data.process.complexation.stoich_matrix().astype(np.int64).T
-            stoich_matrix = stoich_matrix[:-1, :-2]
-
+        stoich_matrix = self.sim_data.process.complexation.stoich_matrix().astype(np.int64).T
         complexation_config = {
             'time_step': time_step,
             '_parallel': parallel,
@@ -685,16 +715,6 @@ class LoadSimData:
             'equilibrium_stoich': self.sim_data.process.equilibrium.stoich_matrix_monomers(),
             'two_component_system_stoich': self.sim_data.process.two_component_system.stoich_matrix_monomers(),
         }
-        
-        if self.mar_regulon:
-            old_stoich = monomer_counts_config['complexation_stoich'].T
-            new_stoich = []
-            for row in old_stoich:
-                new_stoich.append(np.concatenate([row, [0,0]]))
-            remaining_cols = old_stoich.shape[1] - 1180
-            new_rxn = np.array([0]*1179 + [-1] + [0]*remaining_cols + [-1,1])
-            monomer_counts_config['complexation_stoich'] = np.vstack(new_stoich + [new_rxn]).T
-            monomer_counts_config['complexation_complex_ids'] += ['tet-marR[c]']
 
         return monomer_counts_config
 
