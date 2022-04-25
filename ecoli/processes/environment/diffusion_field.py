@@ -63,7 +63,9 @@ class DiffusionField(Process):
         'depth': 3000.0 * units.um,  # um
         'diffusion': 5e-1 * units.um**2 / units.sec,
         'gradient': {},
-        'boundary_path': ('boundary',)
+        'exchanges_path': ('boundary', 'exchanges'),
+        'external_path': ('boundary', 'external'),
+        'location_path': ('boundary', 'location'),
     }
 
     def __init__(self, parameters=None):
@@ -103,6 +105,10 @@ class DiffusionField(Process):
                 gradient, self.n_bins, unitless_bounds)
             self.initial.update(gradient_fields)
 
+        self.exchanges_path = tuple(self.parameters['exchanges_path'])
+        self.external_path = tuple(self.parameters['external_path'])
+        self.location_path = tuple(self.parameters['location_path'])
+
     def initial_state(self, config=None):
         return {
             'fields': {
@@ -112,28 +118,36 @@ class DiffusionField(Process):
         }
 
     def ports_schema(self):
-
-        # place the agent boundary schema at the configured boundary path
-        boundary_path = self.parameters['boundary_path']
-        boundary_schema = {
-            'location': {
-                '_default': [
-                    0.5 * bound
-                    for bound in self.bounds],
-                '_emit': True,
-            },
-            'external': {
-                molecule: {
-                    '_default': 0.0 * units.mM}
-                for molecule in self.molecule_ids
-            },
-            'exchanges': {
-                molecule: {
-                    '_default': 0.0}
-                for molecule in self.molecule_ids
-            },
+        # Place schemas at configured paths.
+        agent_schema = {}
+        location_schema = {
+            '_default': [
+                0.5 * bound
+                for bound in self.bounds],
+            '_emit': True,
         }
-        agent_schema = assoc_path({}, boundary_path, boundary_schema)
+        assoc_path(
+            agent_schema,
+            self.location_path,
+            location_schema)
+        external_schema = {
+            molecule: {
+                '_default': 0.0 * units.mM}
+            for molecule in self.molecule_ids
+        }
+        assoc_path(
+            agent_schema,
+            self.external_path,
+            external_schema)
+        exchanges_schema = {
+            molecule: {
+                '_default': 0.0}
+            for molecule in self.molecule_ids
+        }
+        assoc_path(
+            agent_schema,
+            self.exchanges_path,
+            exchanges_schema)
 
         # make the full schema
         schema = {
@@ -179,9 +193,13 @@ class DiffusionField(Process):
         # apply exchanges #
         ###################
         new_fields, agent_updates = apply_exchanges(
-            agents, new_fields,
-            self.parameters['boundary_path'],
-            self.n_bins, self.bounds, self.bin_volume)
+            agents,
+            new_fields,
+            self.exchanges_path,
+            self.location_path,
+            self.n_bins,
+            self.bounds,
+            self.bin_volume)
 
         # diffuse field
         new_fields = self.diffuse(new_fields, timestep)
@@ -194,9 +212,14 @@ class DiffusionField(Process):
         # get each agent's new local environment
         local_environments = self.get_local_environments(agents, new_fields)
 
-        update = {'fields': delta_fields}
+        update = {
+            'fields': delta_fields,
+            'agents': agent_updates,
+        }
         if local_environments:
             update.update({'agents': local_environments})
+
+        # {agents: {'0': {exchange: {...}}}}
 
         return update
 
@@ -208,8 +231,8 @@ class DiffusionField(Process):
     def get_bin_site(self, location):
         return get_bin_site(location, self.n_bins, self.bounds)
 
-    def get_single_local_environments(self, specs, fields):
-        bin_site = self.get_bin_site(specs['location'])
+    def get_single_local_environments(self, location, fields):
+        bin_site = self.get_bin_site(location)
         local_environment = {}
         for mol_id, field in fields.items():
             local_environment[mol_id] = {
@@ -221,9 +244,14 @@ class DiffusionField(Process):
         local_environments = {}
         if agents:
             for agent_id, specs in agents.items():
-                local_environments[agent_id] = {'boundary': {}}
-                local_environments[agent_id]['boundary']['external'] = \
-                    self.get_single_local_environments(specs['boundary'], fields)
+                assoc_path(
+                    local_environments,
+                    (agent_id,) + self.external_path,
+                    self.get_single_local_environments(
+                        get_in(specs, self.location_path),
+                        fields,
+                    ),
+                )
         return local_environments
 
     def ones_field(self):

@@ -66,7 +66,7 @@ from vivarium.core.engine import Engine
 from vivarium.core.process import Process, Step
 from vivarium.core.registry import updater_registry, divider_registry
 from vivarium.core.store import DEFAULT_SCHEMA
-from vivarium.library.topology import get_in, assoc_path
+from vivarium.library.topology import get_in
 
 from ecoli.library.sim_data import RAND_MAX
 from ecoli.library.updaters import inverse_updater_registry
