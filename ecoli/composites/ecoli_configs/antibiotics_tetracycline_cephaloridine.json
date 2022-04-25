@@ -104,7 +104,7 @@
                             [["external", "cephaloridine"], "cephaloridine_environment"]
                         ],
                         "sbml_file": "data/ceph_tet_diffusion_only_sbml.xml",
-                        "time_step": 0.5,
+                        "time_step": 0.5
                     },
                     {
                         "delta_species": ["bioscrape_deltas"],
