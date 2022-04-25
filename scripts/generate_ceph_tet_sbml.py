@@ -103,9 +103,9 @@ def main() -> None:
     species = [
         cephaloridine_p,
         cephaloridine_e,
-        tetracycline_p,
-        tetracycline_e,
-        tetracycline_c,
+        #tetracycline_p,
+        #tetracycline_e,
+        #tetracycline_c,
         cephaloridine_hydrolyzed,
         pump,
         beta_lactamase,
@@ -263,9 +263,9 @@ def main() -> None:
         cephaloridine_e: INITIAL_ENVIRONMENT_CEPH,
         cephaloridine_hydrolyzed: INITIAL_HYDROLYZED_CEPH,
         pump: INITIAL_PUMP,
-        tetracycline_p: INITIAL_PERIPLASM_TET,
-        tetracycline_e: INITIAL_ENVIRONMENT_TET,
-        tetracycline_c: INITIAL_CYTOPLASM_TET,
+        #tetracycline_p: INITIAL_PERIPLASM_TET,
+        #tetracycline_e: INITIAL_ENVIRONMENT_TET,
+        #tetracycline_c: INITIAL_CYTOPLASM_TET,
         beta_lactamase: INITIAL_BETA_LACTAMASE,
     }
 
@@ -273,14 +273,14 @@ def main() -> None:
         species=species,
         reactions=[
             ceph_export,
-            tet_export,
+            #tet_export,
             hydrolysis,
             ceph_influx,
             ceph_influx_rev,
-            tet_e_p_influx,
-            tet_e_p_influx_rev,
-            tet_p_c_influx,
-            tet_p_c_influx_rev,
+            #tet_e_p_influx,
+            #tet_e_p_influx_rev,
+            #tet_p_c_influx,
+            #tet_p_c_influx_rev,
         ],
         initial_concentration_dict=initial_concentrations,
     )
@@ -295,24 +295,24 @@ def main() -> None:
         species=[
             cephaloridine_e,
             cephaloridine_p,
-            tetracycline_e,
-            tetracycline_p,
-            tetracycline_c
+            #tetracycline_e,
+            #tetracycline_p,
+            #tetracycline_c
         ],
         reactions=[
             ceph_influx,
             ceph_influx_rev,
-            tet_e_p_influx,
-            tet_e_p_influx_rev,
-            tet_p_c_influx,
-            tet_p_c_influx_rev,
+            #tet_e_p_influx,
+            #tet_e_p_influx_rev,
+            #tet_p_c_influx,
+            #tet_p_c_influx_rev,
         ],
         initial_concentration_dict={
             cephaloridine_e: INITIAL_ENVIRONMENT_CEPH,
             cephaloridine_p: INITIAL_PERIPLASM_CEPH,
-            tetracycline_e: INITIAL_ENVIRONMENT_TET,
-            tetracycline_p: INITIAL_PERIPLASM_TET,
-            tetracycline_c: INITIAL_CYTOPLASM_TET,
+            #tetracycline_e: INITIAL_ENVIRONMENT_TET,
+            #tetracycline_p: INITIAL_PERIPLASM_TET,
+            #tetracycline_c: INITIAL_CYTOPLASM_TET,
         },
     )
     path = os.path.join(DATA_DIR, DIFFUSION_ONLY_FILENAME)
