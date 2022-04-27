@@ -237,7 +237,7 @@
                             "volume_c": ["..", "cytoplasm", "volume"],
                             "volume_c_r5": ["..", "cytoplasm", "volume"],
                             "volume_p": ["..", "periplasm", "global", "volume"],
-                            "volume_p_r1": ["..", "periplasm", "global", "global", "volume"],
+                            "volume_p_r1": ["..", "periplasm", "global", "volume"],
                             "volume_p_r2": ["..", "periplasm", "global", "volume"],
                             "volume_p_r3": ["..", "periplasm", "global", "volume"]
                         },
