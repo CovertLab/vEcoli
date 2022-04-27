@@ -71,6 +71,24 @@
             "name_map": [
                 [["external", "cephaloridine"], "cephaloridine_environment"]
             ],
+            "units_map": {
+                "rates": {
+                    "ceph_export_kcat__": "!units[1 / second]",
+                    "ceph_export_km__": "!units[millimolar]",
+                    "ceph_hydrolysis_kcat__": "!units[1 / second]",
+                    "ceph_hydrolysis_km__": "!units[millimolar]",
+                    "mass": "!units[milligram]",
+                    "mass_r3": "!units[milligram]",
+                    "n": "!units[count]",
+                    "n_r1": "!units[count]",
+                    "outer_cephaloridine_permeability": "!units[centimeter / second]",
+                    "outer_cephaloridine_permeability_r3": "!units[centimeter / second]",
+                    "outer_x_am": "!units[centimeter ** 2 / milligram]",
+                    "outer_x_am_r3": "!units[centimeter ** 2 / milligram]",
+                    "volume_p": "!units[milliliter]",
+                    "volume_p_r3":"!units[milliliter]"
+                }
+            },
             "sbml_file": "data/ceph_tet_sbml.xml",
             "time_step": 0.5
         },
