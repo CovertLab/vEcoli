@@ -38,8 +38,8 @@
                 "outer_cephaloridine_permeability_r3": ["..", "kinetic_parameters", "outer_cephaloridine_permeability"],
                 "outer_x_am": ["..", "kinetic_parameters", "outer_x_am"],
                 "outer_x_am_r3": ["..", "kinetic_parameters", "outer_x_am"],
-                "volume_p": ["..", "periplasm", "volume"],
-                "volume_p_r3": ["..", "periplasm", "volume"]
+                "volume_p": ["..", "periplasm", "global", "volume"],
+                "volume_p_r3": ["..", "periplasm", "global", "volume"]
             },
             "species": {
                 "_path": ["null"],
@@ -137,8 +137,8 @@
                             "outer_cephaloridine_permeability_r1": ["..", "kinetic_parameters", "outer_cephaloridine_permeability"],
                             "outer_x_am": ["..", "kinetic_parameters", "outer_x_am"],
                             "outer_x_am_r1": ["..", "kinetic_parameters", "outer_x_am"],
-                            "volume_p": ["..", "periplasm", "volume"],
-                            "volume_p_r1": ["..", "periplasm", "volume"]
+                            "volume_p": ["..", "periplasm", "global", "volume"],
+                            "volume_p_r1": ["..", "periplasm", "global", "volume"]
                         },
                         "species": {
                             "_path": ["null"],
