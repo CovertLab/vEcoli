@@ -5,15 +5,18 @@
         "permeability",
         "death"
     ],
-    "total_time": 30,
+    "total_time": 100,
     "emitter_arg": [
         ["host", "localhost:27017"]
     ],
     "spatial_environment_config": {
         "field_timeline": {
             "timeline": [
-                [0, {
+                [30, {
                     "cephaloridine": 0.01203
+                }],
+                [70, {
+                    "cephaloridine": 0.0
                 }]
             ]
         }
