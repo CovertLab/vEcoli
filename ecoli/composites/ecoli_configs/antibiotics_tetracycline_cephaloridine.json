@@ -161,7 +161,7 @@
         "death": {
             "detectors": [
                 ["antibiotic", {
-                    "antibiotic_threshold": "!units[0.02 millimolar]",
+                    "antibiotic_threshold": "!units[0.01 millimolar]",
                     "antibiotic_key": "cephaloridine"
                 }],
                 ["antibiotic", {
