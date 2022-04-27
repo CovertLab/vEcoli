@@ -26,6 +26,7 @@ from biocrnpyler import (
     Reaction,
     Species,
 )
+import numpy as np
 from vivarium.library.units import units, Quantity
 from vivarium_bioscrape.processes.bioscrape import Bioscrape
 
@@ -319,6 +320,9 @@ class ExchangeAwareBioscrape(Bioscrape):
 
         # Compute the update using the bioscrape process.
         update = super().next_update(timestep, prepared_state)
+
+        # Make sure there are no NANs in the update.
+        assert not np.any(np.isnan(list(update['species'].values())))
 
         # Add units back in
         species_update = update['species']
