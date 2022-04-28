@@ -422,7 +422,6 @@ class LoadSimData:
         return polypeptide_elongation_config
 
     def get_complexation_config(self, time_step=2, parallel=False):
-        stoich_matrix = self.sim_data.process.complexation.stoich_matrix().astype(np.int64).T
         complexation_config = {
             'time_step': time_step,
             '_parallel': parallel,

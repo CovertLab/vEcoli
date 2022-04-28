@@ -469,7 +469,7 @@ class EcoliSim:
         if time_remaining:
             self.ecoli_experiment.update(time_remaining)
 
-    def run(self, query=None):
+    def run(self):
         # build self.ecoli and self.initial_state
         self.build_ecoli()
 
