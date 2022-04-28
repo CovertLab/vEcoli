@@ -251,7 +251,14 @@ class EngineProcess(Process):
         force_complete = timestep != self.calculate_timestep({})
 
         # Assert that nothing got wired into `null`.
-        miswired_vars = self.sim.state.get_path(('null',)).inner.keys()
+        try:
+            miswired_vars = self.sim.state.get_path(('null',)).inner.keys()
+        except Exception as e:
+            # There might not be a ('null',) store, which is okay.
+            if str(e) == "('null',) is not a valid path from ()":
+                miswired_vars = tuple()
+            else:
+                raise e
         if miswired_vars:
             raise RuntimeError(
                 f'Variables mistakenly wired to ("null",): {miswired_vars}')
