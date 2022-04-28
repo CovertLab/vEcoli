@@ -3,8 +3,8 @@ import ast
 import json
 import pandas as pd
 import numpy as np
-from matplotlib import pyplot as plt
 from os.path import exists
+from matplotlib import pyplot as plt
 
 from vivarium.core.emitter import timeseries_from_data
 from vivarium.plots.simulation_output import plot_variables
@@ -15,44 +15,29 @@ from ecoli.experiments.ecoli_master_sim import EcoliSim
 def runDefault():
     sim = EcoliSim.from_file()
     sim.raw_output = False
-    sim.total_time = 500
+    sim.total_time = 3000
     sim.emitter = "database"
     
     sim.run()
-
-def includeMarA():
+    
+def includeTetracycline(tet=None):
     sim = EcoliSim.from_file()
     sim.raw_output = False
-    sim.total_time = 500
+    sim.total_time = 3000
     sim.emitter = "database"
     sim.config['mar_regulon'] = True
-    if not exists('data/wcecoli_marA.json'):
+    if tet != None:
         with open('data/wcecoli_t0.json') as f:
             initial_state = json.load(f)
+        # Pre-seed tetracycline and add marR-tet complex
+        initial_state['bulk']['tetracycline[c]'] = int(tet)
+        initial_state['bulk']['marR-tet[c]'] = 0
         # Add promoter binding data for marA and marR
         for promoter_data in initial_state['unique']['promoter'].values():
             promoter_data['bound_TF'] += [False, False]
         with open('data/wcecoli_marA.json', 'w') as f:
             json.dump(initial_state, f)
     sim.initial_state_file = "wcecoli_marA"
-    
-    sim.run()
-    
-def includeTetracycline():
-    sim = EcoliSim.from_file()
-    sim.raw_output = False
-    sim.total_time = 500
-    sim.emitter = "database"
-    sim.config['mar_regulon'] = True
-    if not exists('data/wcecoli_tet.json'):
-        with open('data/wcecoli_marA.json') as f:
-            initial_state = json.load(f)
-        # Pre-seed tetracycline and add marR-tet complex
-        initial_state['bulk']['tetracycline[c]'] = 200
-        initial_state['bulk']['marR-tet[c]'] = 0
-        with open('data/wcecoli_tet.json', 'w') as f:
-            json.dump(initial_state, f)
-    sim.initial_state_file = "wcecoli_tet"
     
     sim.run()
 
@@ -76,9 +61,10 @@ def plot_mrnas(mrna_ts, baseline_mrna_ts, name, idx, genes, fc):
         y = mrna_data[:,i]
         axes[i].plot(x, y, label="marA")
         x_exp = np.arange(start=0, stop=len(baseline_mrna_data[:,i])*2, step=2)
-        y_exp = baseline_mrna_data[:, i] * float(fc[i])
-        y_exp = baseline_mrna_data[:, i] 
+        y_exp = baseline_mrna_data[:, i]
         axes[i].plot(x_exp, y_exp, 'r--', label="base")
+        target = baseline_mrna_data[:, i] * float(fc[i])
+        axes[i].plot(x_exp, target, 'g--', label="target")
         axes[i].set_title(title)
     plt.tight_layout()
     plt.savefig(f"ecoli/experiments/marA_binding/{name}.png")
@@ -98,9 +84,10 @@ def plot_rna_synth_prob(timeseries, baseline_ts, name, idx, genes, fc):
         y = rna_synth_prob[:,i]
         axes[i].plot(x, y, label="marA")
         x_exp = np.arange(start=0, stop=len(baseline_rna_synth_prob[:,i])*2, step=2)
-        y_exp = baseline_rna_synth_prob[:, i] * float(fc[i])
         y_exp = baseline_rna_synth_prob[:, i]
         axes[i].plot(x_exp, y_exp, 'r--', label="base")
+        target = baseline_rna_synth_prob[:, i] * float(fc[i])
+        axes[i].plot(x_exp, target, 'g--', label="target")
         axes[i].set_title(title)
     plt.tight_layout()
     plt.savefig(f"ecoli/experiments/marA_binding/{name}.png")
@@ -122,25 +109,24 @@ def ids_of_interest():
                 bulk_names, common_names)
         ]
     complex_paths = []
-    for complex_names, monomers_used, common_id, complex_common_names in zip(
+    for complex_names, monomers_used, common_id in zip(
             model_degenes["complex_ids"], model_degenes["monomers_used"], 
-            model_degenes["common_name"], model_degenes["complex_common_names"]):
+            model_degenes["common_name"]):
         if len(complex_names) == 0:
             continue
         common_names = [common_id]*len(complex_names)
         complex_names = ast.literal_eval(complex_names)
         monomers_used = np.array(ast.literal_eval(monomers_used))
         monomers_used[monomers_used == None] = 0
-        complex_common_names = ast.literal_eval(complex_common_names)
         complex_paths += [
             {
                 "variable": ('bulk', complex_name),
                 "color": "tab:green",
-                "display": f"{complex_name} aka {complex_common_name[:45]} " +
+                "display": f"{complex_name} " +
                     f"({common_name} x {-monomer_used})"
             }
-            for complex_name, common_name, monomer_used, complex_common_name in zip(
-                complex_names, common_names, monomers_used, complex_common_names)
+            for complex_name, common_name, monomer_used in zip(
+                complex_names, common_names, monomers_used)
         ]
 
     return bulk_paths + complex_paths
@@ -181,6 +167,11 @@ def extract_data(timeseries, variable_paths):
 
 def plot_degenes(timeseries, baseline, name, variable_paths):
     data = extract_data(timeseries, variable_paths)
+    marR_tet = -1
+    for i, variable_path in enumerate(variable_paths):
+        if variable_path['variable'] == ('bulk', 'marR-tet[c]'):
+            marR_tet = i         
+    variable_paths.pop(marR_tet)
     baseline_data = extract_data(baseline, variable_paths)
     
     n_monomers = len(data)
@@ -191,45 +182,31 @@ def plot_degenes(timeseries, baseline, name, variable_paths):
         baseline_monomer_data = baseline_data[key]
         title = key
         x = monomer_data['x_data']
-        assert (x == baseline_monomer_data['x_data']).all()
         y = monomer_data['y_data']
         fold_change = monomer_data['fold_change']
-        assert fold_change == baseline_monomer_data['fold_change']
         y_exp = baseline_monomer_data['y_data']
         axes[i].plot(x, y, label="marA")
-        axes[i].plot(x, y_exp*float(fold_change), 'r--', label="base")
+        axes[i].plot(x, y_exp, 'r--', label="base")  
         axes[i].set_title(title)
     plt.tight_layout()
     plt.savefig(f"ecoli/experiments/marA_binding/{name}.png")
-
-def main():
-    # Generate baseline/experimental data
-    # runDefault()
-    # includeMarA()
-    # includeTetracycline()
     
+def all_plots(marA_id, baseline_id, name):
     # Get metadata
     degenes = pd.read_csv("ecoli/experiments/marA_binding/model_degenes.csv")
     TU_idx = degenes["TU_idx"].to_list()
     genes = degenes["Gene name"]
     fc = degenes["Fold change"]
     variable_paths = ids_of_interest()
-
-    # f67f750e-afa4-11ec-b92c-9cfce8b9977c: control (500 seconds)
-    # 4a361a0e-b04f-11ec-80b7-9cfce8b9977c: control (2600 seconds)  
-    
-    marA_id = "c8e0de60-c031-11ec-a169-9cfce8b9977c"
-    baseline_id = "f67f750e-afa4-11ec-b92c-9cfce8b9977c"
-    name = "equi_tet"
     
     # Perform regular garbage collection to free memory
-    
     # Plot monomer counts (including monomers in complexes)
-    marA_bulk_data = access(marA_id, [("bulk",)])[0]
+    paths = [i['variable'] for i in variable_paths]
+    marA_bulk_data = access(marA_id, paths)[0]
     marA_bulk_timeseries = timeseries_from_data(marA_bulk_data)
     del marA_bulk_data
     gc.collect()
-    baseline_bulk_data = access(baseline_id, [("bulk",)])[0]
+    baseline_bulk_data = access(baseline_id, paths)[0]
     baseline_bulk_timeseries = timeseries_from_data(baseline_bulk_data)
     del baseline_bulk_data
     gc.collect()
@@ -238,11 +215,12 @@ def main():
     gc.collect()
     
     # Plot mRNA counts
-    marA_mrna_data = access(marA_id, [("unique", "RNA")], count_by_tu_idx)[0]
+    # NOTE: Requires changes to `emitter.py` from the `memory` branch of vivarium-core
+    marA_mrna_data = access(marA_id, [("unique", "RNA")], f=count_by_tu_idx)[0]
     marA_mrna_timeseries = timeseries_from_data(marA_mrna_data)
     del marA_mrna_data
     gc.collect()
-    baseline_mrna_data = access(baseline_id, [("unique", "RNA")], count_by_tu_idx)[0]
+    baseline_mrna_data = access(baseline_id, [("unique", "RNA")], f=count_by_tu_idx)[0]
     baseline_mrna_timeseries = timeseries_from_data(baseline_mrna_data)
     del baseline_mrna_data
     gc.collect()
@@ -262,6 +240,31 @@ def main():
     plot_rna_synth_prob(rna_synth_prob_ts, baseline_rna_synth_prob_ts, f"synth_prob_{name}", TU_idx, genes, fc)
     del rna_synth_prob_ts, baseline_rna_synth_prob_ts
     gc.collect()
+
+def main():
+    # Generate baseline/experimental data
+    # runDefault()
+    # includeTetracycline(0)
+    # includeTetracycline(2200)
+    # includeTetracycline(15000)
+    
+    # Tetracycline counts to conc.
+    # 2200 ~ 1.5 mg/L
+    # 7300 ~ 5 mg/L
+    # 14500 ~ 10 mg/L
+    
+    # f4528e1c-c6a9-11ec-8d35-9cfce8b9977c: control
+    # fa3c1a64-c6a9-11ec-a2a9-9cfce8b9977c: 0 tet
+    # 00fbaf9a-c6aa-11ec-838d-9cfce8b9977c: 2200 tet
+    # 0583ea78-c6aa-11ec-b198-9cfce8b9977c: 15000 tet
+    
+    marA_id = "0583ea78-c6aa-11ec-b198-9cfce8b9977c"
+    baseline_id = "f4528e1c-c6a9-11ec-8d35-9cfce8b9977c"
+    name = "15000"
+    
+    # data = access(marA_id, [('bulk', 'tetracycline[c]'), ('bulk', 'CPLX0-7710[c]'), ('bulk', 'marR-tet[c]')])[0]
+    
+    all_plots(marA_id, baseline_id, name)
 
 if __name__=="__main__":
     main()

@@ -148,10 +148,21 @@ class TfBinding(PartitionedProcess):
         # When marR is not complexed with tetracycline, it silences marA expression/regulation
         if 'PD00365' in self.active_tfs:
             marR_count = states['active_tfs']['CPLX0-7710[c]']
-            if marR_count > 0:
+            marR_tet_count = states['inactive_tfs_total']['marR-tet[c]']
+            # marA activity ramps up as more marR is complexed off
+            marR_tet_vs_marR = marR_tet_count/(marR_count + marR_tet_count)
+            # 34 = # of promoters for genes that marA regulates
+            # Subtract out currently bound marA from active marA fraction
+            bound_TF = arrays_from(
+                states['promoters'].values(),
+                ['bound_TF'])[0]
+            n_bound_TF = bound_TF.sum(axis=0)
+            n_bound_marA = n_bound_TF[24]
+            marA_request = int(34 * marR_tet_vs_marR) - n_bound_marA
+            if marA_request < 0:
                 requests['active_tfs']['PD00365[c]'] = 0
             else:
-                requests['active_tfs']['PD00365[c]'] = states['active_tfs']['PD00365[c]']
+                requests['active_tfs']['PD00365[c]'] = marA_request
 
         return requests
         

@@ -45,14 +45,30 @@ with open("data/wcecoli_t0.json") as f:
 bulk_names = list(initial_state["bulk"].keys())
 
 # Include complexes
-comp_rxns = pd.read_table(
-    "reconstruction/ecoli/flat/complexation_reactions.tsv", comment = "#")
-removed_comp_rxns = pd.read_table(
-    "reconstruction/ecoli/flat/complexation_reactions_removed.tsv")
-removed_rxn_ids = removed_comp_rxns["id"].to_list()
-filter = [id not in removed_rxn_ids for id in comp_rxns["id"]]
-comp_rxns = comp_rxns.loc[filter,]
-comp_rxns["common_name"][comp_rxns["common_name"].isna()] = "No name"
+# These numpy arrays were saved directly from complexation sim data
+comp_stoich = np.load('ecoli/experiments/marA_binding/complexation_stoich.npy')
+comp_molecules = np.load('ecoli/experiments/marA_binding/complexation_molecules.npy')
+comp_rxns = pd.DataFrame(comp_stoich, columns=comp_molecules)
+
+def recursive_search(complex_name, monomers_used):
+    add_monomers_used = []
+    add_complex_names = []
+    if complex_name in comp_rxns.columns:
+        stoich = comp_rxns.loc[comp_rxns[complex_name]<0, :]
+        for i in range(stoich.shape[0]):
+            curr_stoich = stoich.iloc[i, :]
+            product = curr_stoich.loc[curr_stoich>0]
+            add_monomers_used.append(int(curr_stoich[complex_name]*np.abs(monomers_used)/product[0]))
+            add_complex_names.append(product.index.array[0])
+    
+    if len(add_complex_names) > 0:
+        for i, add_complex_name in enumerate(add_complex_names):
+            more_monomers_used, more_complex_names = recursive_search(add_complex_name, add_monomers_used[i])
+            add_monomers_used += more_monomers_used
+            add_complex_names += more_complex_names
+    
+    return add_monomers_used, add_complex_names
+    
 
 def get_IDs(monomer_id):
     monomer_id = json.loads(monomer_id)
@@ -68,35 +84,43 @@ def get_IDs(monomer_id):
 
     monomers_used = []
     complex_names = []
-    common_names = []
-    for i in range(comp_rxns.shape[0]):
-        stoich = json.loads(comp_rxns.iloc[i, 1])
-        if monomer_id in stoich:
-            monomers_used.append(stoich[monomer_id])
-            complex_names.append(list(stoich.keys())[0])
-            common_names.append(comp_rxns.iloc[i, 2])
+    for bulk_id in degene_bulk_ids:
+        if bulk_id in comp_rxns.columns:
+            stoich = comp_rxns.loc[comp_rxns[bulk_id]<0, :]
+            for i in range(len(stoich)):
+                curr_stoich = stoich.iloc[i,:]
+                monomers_used.append(curr_stoich[bulk_id])
+                complex_names.append(curr_stoich.loc[curr_stoich>0].index.array[0])
+            
+    for i, complex_name in enumerate(complex_names):
+        add_monomers_used, add_complex_names = recursive_search(complex_name, monomers_used[i])
+        monomers_used += add_monomers_used
+        complex_names += add_complex_names
     
     degene_complex_ids = []
     degene_monomers_used = []
-    degene_common_names = []
     for bulk_name in bulk_names:
-        for monomer_used, complex_name, common_name in zip(
-            monomers_used, complex_names, common_names):
+        for monomer_used, complex_name in zip(
+            monomers_used, complex_names):
             if complex_name in bulk_name:
                 degene_complex_ids.append(bulk_name)
                 degene_monomers_used.append(monomer_used)
-                degene_common_names.append(common_name)
     
-    return [degene_bulk_ids, degene_monomers_used, 
-            degene_complex_ids, degene_common_names]
+    return [degene_bulk_ids, degene_monomers_used, degene_complex_ids]
 
 # Protein IDs have varied suffixes: brute force search
 with ProcessPoolExecutor(multiprocessing.cpu_count()) as executor:
     all_ids = executor.map(get_IDs, model_degenes["monomer_ids"])
 
-(model_degenes["bulk_ids"], model_degenes["monomers_used"],
-    model_degenes["complex_ids"], model_degenes["complex_common_names"]) = zip(
+(model_degenes["bulk_ids"], model_degenes["monomers_used"], 
+    model_degenes["complex_ids"]) = zip(
         *[ids for ids in all_ids])
+    
+# Add marR-tet complex
+marR_complex_ids = model_degenes.loc[model_degenes['Gene name'] == 'marR', 'complex_ids'].to_numpy()[0]
+marR_complex_ids.append('marR-tet[c]')
+marR_monomers_used = model_degenes.loc[model_degenes['Gene name'] == 'marR', 'monomers_used'].to_numpy()[0]
+marR_monomers_used.append(-2)
     
 model_degenes.to_csv(
     "ecoli/experiments/marA_binding/model_degenes.csv", index=False)
