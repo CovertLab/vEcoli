@@ -3,7 +3,6 @@ import ast
 import json
 import pandas as pd
 import numpy as np
-from os.path import exists
 from matplotlib import pyplot as plt
 
 from vivarium.core.emitter import timeseries_from_data
@@ -183,7 +182,6 @@ def plot_degenes(timeseries, baseline, name, variable_paths):
         title = key
         x = monomer_data['x_data']
         y = monomer_data['y_data']
-        fold_change = monomer_data['fold_change']
         y_exp = baseline_monomer_data['y_data']
         axes[i].plot(x, y, label="marA")
         axes[i].plot(x, y_exp, 'r--', label="base")  
@@ -242,28 +240,17 @@ def all_plots(marA_id, baseline_id, name):
     gc.collect()
 
 def main():
-    # Generate baseline/experimental data
+    # Generate baseline/experimental data, save experimental ids for analysis
     # runDefault()
-    # includeTetracycline(0)
-    # includeTetracycline(2200)
     # includeTetracycline(15000)
     
-    # Tetracycline counts to conc.
-    # 2200 ~ 1.5 mg/L
-    # 7300 ~ 5 mg/L
-    # 14500 ~ 10 mg/L
-    
-    # f4528e1c-c6a9-11ec-8d35-9cfce8b9977c: control
-    # fa3c1a64-c6a9-11ec-a2a9-9cfce8b9977c: 0 tet
-    # 00fbaf9a-c6aa-11ec-838d-9cfce8b9977c: 2200 tet
-    # 0583ea78-c6aa-11ec-b198-9cfce8b9977c: 15000 tet
-    
-    marA_id = "0583ea78-c6aa-11ec-b198-9cfce8b9977c"
-    baseline_id = "f4528e1c-c6a9-11ec-8d35-9cfce8b9977c"
-    name = "15000"
-    
-    # data = access(marA_id, [('bulk', 'tetracycline[c]'), ('bulk', 'CPLX0-7710[c]'), ('bulk', 'marR-tet[c]')])[0]
-    
+    # Experimental id for marA simulation
+    marA_id = ""
+    # Experimental id for baseline simulation
+    baseline_id = ""
+    # Name for output graphs
+    name = ""
+        
     all_plots(marA_id, baseline_id, name)
 
 if __name__=="__main__":
