@@ -19,7 +19,7 @@ class LoadSimData:
         seed=0,
         trna_charging=False,
         ppgpp_regulation=False,
-        mar_regulon=False,
+        mar_regulon=False
     ):
 
         self.seed = np.uint32(seed % np.iinfo(np.uint32).max)
@@ -116,15 +116,14 @@ class LoadSimData:
             
             # TU index of all genes that change upon tetracycline exposure
             # Did not include ncRNA MicF because it is functionally inactive
-            TU_idxs = [2011, 1641, 1394, 2112, 416, 1642, 1543, 662, 995, \
+            TU_idxs = [2011, 1641, 1394, 2112, 1642, 1543, 662, 995, \
                 3289, 262, 1807, 2010, 659, 1395, 260, 259, 11, 944, 1631, 1330, \
-                660, 1399, 661, 1394]
+                660, 1399, 661]
             new_deltaI = np.array(TU_idxs)
             # Implement as if all differentially expressed genes are regulated by marA
-            # Include that marR has a very strong repressive effect on marA
-            new_deltaJ = np.array([24]*24 + [25])
-            TU_fc = [9, 0.48, 0.07, 0.0054, 0.15, 0.18, 0.013, 0.01, 0.13, 0.0035, 0.0003, 0.007, 0.01, \
-                1, 0.0065, 0.0005, 0.0001, 0.00055, 0.01, 0.00002, 0.02, 0.01, -0.00045, -0.15, -1000]
+            new_deltaJ = np.array([24]*23)
+            TU_fc = [10, 0.48, 0.07, 0.0054, 0.18, 0.013, 0.02, 0.13, 0.0035, 0.08, 0.007, 0.01, \
+                4, 0.0065, 0.0005, 0.0001, 0.00055, 0.025, 0.00002, 0.02, 0.01, -0.0006, -0.2]
             new_deltaV = np.array(TU_fc)/1000
             
             self.sim_data.process.transcription_regulation.delta_prob["deltaI"] = np.concatenate(
@@ -157,8 +156,8 @@ class LoadSimData:
             equilibrium_proc.rxn_ids += ['marR-tet']
             # All existing equilibrium reactions use a forward reaction rate of 1
             equilibrium_proc.rates_fwd = np.concatenate([equilibrium_proc.rates_fwd, np.array([1])])
-            # TODO: Test a range of reverse reaction rates and starting tetracycline counts
-            equilibrium_proc.rates_rev = np.concatenate([equilibrium_proc.rates_rev, np.array([1E-09])])
+            # Rev rate of 2E-6 (manually fit to precision of 5E-7) yields good range of marR/marR-tet ratios from 0 - 15000 tetracycline (0 - 10 mg/L) 
+            equilibrium_proc.rates_rev = np.concatenate([equilibrium_proc.rates_rev, np.array([2E-6])])
 
             # Mass balance matrix
             equilibrium_proc._stoichMatrixMass = np.concatenate([equilibrium_proc._stoichMatrixMass, np.array([32130, 444.4346, 32574.4346])])
