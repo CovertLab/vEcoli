@@ -95,6 +95,39 @@ class EcoliEngineProcess(Composer):
         return topology
 
 
+def colony_save_states(engine, config):
+    """
+    Runs the simulation while saving the states of the colony at specific timesteps to jsons.
+    """
+    for time in config["save_times"]:
+        if time > config["total_time"]:
+            raise ValueError(
+                f'Config contains save_time ({time}) > total '
+                f'time ({config["total_time"]})')
+    time_elapsed = config["save_times"][0]
+    for i in range(len(config["save_times"])):
+        if i == 0:
+            time_to_next_save = config["save_times"][i]
+        else:
+            time_to_next_save = config["save_times"][i] - config["save_times"][i - 1]
+            time_elapsed += time_to_next_save
+        engine.update(time_to_next_save)
+        state = engine.state.get_value()
+        # if config["divide"]:
+        #     state = state['agents'][self.agent_id]
+        # state_to_save = {key: state[key] for key in
+        #                  ['listeners', 'bulk', 'unique', 'environment', 'process_state']}
+        # write_json('data/vivecoli_t' + str(time_elapsed) + '.json', state_to_save)
+        from ecoli.library.logging import write_json
+        import ipdb;
+        ipdb.set_trace()
+        write_json('data/colony_t' + str(time_elapsed) + '.json', state)
+        print('Finished saving the state at t = ' + str(time_elapsed) + '\n')
+    time_remaining = config["total_time"] - config["save_times"][-1]
+    if time_remaining:
+        engine.update(time_remaining)
+
+
 def run_simulation():
     config = SimConfig()
     config.update_from_cli()
@@ -180,7 +213,11 @@ def run_simulation():
         profile=config['profile'],
     )
 
-    engine.update(config['total_time'])
+    # Save states while running if needed
+    if config["save"]:
+        colony_save_states(engine, config)
+    else:
+        engine.update(config['total_time'])
     engine.end()
 
     if config['profile']:
