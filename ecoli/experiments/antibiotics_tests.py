@@ -28,26 +28,49 @@ def test_antibiotics_tetracycline_cephaloridine():
 
 
 def test_lysis_rxn_dff_environment():
-    sim = EcoliSim.from_file(CONFIG_DIR_PATH + 'lysis.json')
+    beta_lactamase = 'EG10040-MONOMER[p]'
+    beta_lactam = 'beta-lactam'
+    lysis_time = 4
+
+    sim = EcoliSim.from_file(CONFIG_DIR_PATH + 'lysis_trigger.json')
     sim.emitter = 'timeseries'
     sim.total_time = 10
+
+    # add to the timeline, triggering burst
+    sim.process_configs['timeline'] = {
+        'timeline': [
+            (0, {
+                ('bulk', beta_lactamase): 100,
+                ('bulk', beta_lactam): 100,
+            }),
+            (lysis_time, {
+                ('burst',): True
+            })
+        ]
+    }
     sim.run()
 
-    # retrieve data
+    # retrieve data and pre-process for plotting
     query = [
         ('dimensions', 'bounds'),
-        ('fields', 'beta-lactam'),
-        ('fields', 'beta-lactamase'),
-        ('agents', '0', 'boundary')
+        ('fields', beta_lactamase),
+        ('fields', beta_lactam),
+        ('agents', '0', 'boundary'),
+        ('agents', '0', 'burst'),
+        ('agents', '0', 'bulk', beta_lactamase),
+        ('agents', '0', 'bulk', beta_lactam),
     ]
     data = sim.query(query=query)
     data = deserialize_value(data)
     data = remove_units(data)
+    for t, v in data.items():
+        if 'agents' not in v:
+            data[t]['agents'] = {}  # add empty agents back in
 
-    print(data[0.0]['fields'])
-    print(pf(data[0.0]['agents']))
-    # print(data[10.0]['dimensions'])
+    assert '0' in data[0.0]['agents']  # agent 0 is present at time=0
+    assert not data[lysis_time+2.0]['agents']  # not agents after lysis_time
 
+    # plot
     out_dir = os.path.join(EXPERIMENT_OUT_DIR, 'lysis_environment')
     if not os.path.exists(out_dir):
         os.makedirs(out_dir)
