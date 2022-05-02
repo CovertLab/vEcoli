@@ -42,5 +42,9 @@
         "field_timeline_topology": {
             "global": ["global"]
         }
+    },
+    "initial_state_config": {
+        "beta-lactam": 0.0,
+        "beta-lactamase": 0.0
     }
 }
