@@ -87,6 +87,11 @@ class ReactionDiffusion(Process):
                 mol_id: config.get(mol_id, 0.0) * self.ones_field()
                 for mol_id in self.molecule_ids
             },
+            'dimensions': {
+                'bounds': self.parameters['bounds'],
+                'n_bins': self.parameters['n_bins'],
+                'depth': self.parameters['depth']
+            }
         }
 
     def ports_schema(self):

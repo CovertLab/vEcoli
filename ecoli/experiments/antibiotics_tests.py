@@ -46,7 +46,7 @@ def test_lysis_rxn_dff_environment():
 
     print(data[0.0]['fields'])
     print(pf(data[0.0]['agents']))
-    print(data[10.0]['dimensions'])  # TODO -- why [1, 1]?
+    # print(data[10.0]['dimensions'])
     import ipdb; ipdb.set_trace()
 
     out_dir = os.path.join(EXPERIMENT_OUT_DIR, 'lysis_environment')
