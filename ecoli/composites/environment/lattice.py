@@ -15,6 +15,8 @@ from ecoli.processes.environment.multibody_physics import (
     Multibody, make_random_position)
 from ecoli.processes.environment.diffusion_field import (
     DiffusionField)
+from ecoli.processes.environment.reaction_diffusion_field import (
+    ReactionDiffusion)
 from ecoli.composites.environment.grow_divide import (
     GrowDivideExchange, GrowDivide)
 
@@ -106,26 +108,37 @@ class Lattice(Composer):
             'depth': 3000.0 * units.um,
             'diffusion': 1e-2 * units.um**2 / units.sec,
         },
+        'reaction_diffusion': {}
     }
 
     def generate_processes(self, config):
         processes = {
-            'multibody': Multibody(config['multibody']),
-            'diffusion': DiffusionField(config['diffusion']),
-        }
+            'multibody': Multibody(config['multibody'])}
+
+        if not config['reaction_diffusion']:
+            processes['diffusion'] = DiffusionField(config['diffusion'])
+        else:
+            processes['reaction_diffusion'] = ReactionDiffusion(config['reaction_diffusion'])
         return processes
 
     def generate_topology(self, config):
-        return {
-            'multibody': {
-                'agents': ('agents',),
-            },
-            'diffusion': {
+        topology = {
+            'multibody': {'agents': ('agents',)}}
+
+        if not config['reaction_diffusion']:
+            topology['diffusion'] = {
                 'agents': ('agents',),
                 'fields': ('fields',),
                 'dimensions': ('dimensions',),
-            },
-        }
+            }
+        else:
+            topology['reaction_diffusion'] = {
+                'agents': ('agents',),
+                'fields': ('fields',),
+                'dimensions': ('dimensions',),
+            }
+
+        return topology
 
 
 def test_lattice(

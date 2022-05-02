@@ -18,9 +18,21 @@ def test_antibiotics_tetracycline_cephaloridine():
     data = sim.query()
 
 
+def test_lysis_rxn_dff_environment():
+    # sim = EcoliSim.from_file(CONFIG_DIR_PATH + 'spatial.json')
+    sim = EcoliSim.from_file(CONFIG_DIR_PATH + 'lysis_environment.json')
+    sim.emitter = 'timeseries'
+    sim.total_time = 2
+    sim.run()
+    data = sim.query()
+
+    import ipdb; ipdb.set_trace()
+
+
 library = {
     '0': test_antibiotics_nitrocefin,
     '1': test_antibiotics_tetracycline_cephaloridine,
+    '2': test_lysis_rxn_dff_environment,
 }
 
 # python ecoli/experiments/antibiotics_tests.py -n library_id
