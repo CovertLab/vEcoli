@@ -6,8 +6,7 @@
       "molecules": [
         "GLC[p]",
         "EG10040-MONOMER[p]",
-        "beta-lactam",
-        "beta-lactamase"
+        "beta-lactam"
       ],
       "n_bins": [10, 10],
       "bounds": [
@@ -20,14 +19,14 @@
           "stoichiometry": {
             "beta-lactam": -1
           },
-          "catalyzed by": "beta-lactamase"
+          "catalyzed by": "EG10040-MONOMER[p]"
         }
       },
       "kinetic_parameters": {
         "antibiotic_hydrolysis": {
-          "beta-lactamase": {
-          "kcat_f": 10.0,
-          "beta-lactam": 0.1
+          "EG10040-MONOMER[p]": {
+            "kcat_f": 10.0,
+            "beta-lactam": 0.1
           }
         }
       }
@@ -46,7 +45,10 @@
   },
   "process_configs": {
     "lysis": {
-      "secreted_molecules": ["EG10040-MONOMER[p]"],
+      "secreted_molecules": [
+        "EG10040-MONOMER[p]",
+        "beta-lactam"
+      ],
       "agent_id": "0"
     }
   }
