@@ -1,0 +1,46 @@
+{
+    "inherit_from": ["lysis.json", "spatial.json"],
+    "spatial_environment_config": {
+        "multibody": {
+            "bounds": [
+                "!units[50 micrometer]",
+                "!units[50 micrometer]"
+            ]
+        },
+        "reaction_diffusion": {
+            "molecules": [
+                "beta-lactam",
+                "beta-lactamase"
+            ],
+            "n_bins": [10, 10],
+            "bounds": [
+                "!units[50 micrometer]",
+                "!units[50 micrometer]"
+            ],
+            "depth": "!units[3000.0 micrometer]",
+            "reactions": {
+                "antibiotic_hydrolysis": {
+                    "stoichiometry": {
+                        "beta-lactam": -1
+                    },
+                    "catalyzed by": "beta-lactamase"
+                }
+            },
+            "kinetic_parameters": {
+                "antibiotic_hydrolysis": {
+                    "beta-lactamase": {
+                        "kcat_f": 10.0,
+                        "beta-lactam": 0.1
+                    }
+                }
+            }
+        },
+        "field_timeline": {
+            "bins": [10, 10],
+            "timeline": []
+        },
+        "field_timeline_topology": {
+            "global": ["global"]
+        }
+    }
+}
