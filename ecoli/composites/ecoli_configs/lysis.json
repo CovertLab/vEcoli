@@ -2,12 +2,33 @@
   "inherit_from": ["spatial.json"],
   "agent_id": "0",
   "spatial_environment_config": {
-    "diffusion": {
-      "molecules": ["GLC[p]", "EG10040-MONOMER[p]"],
-      "gradient": {
-        "molecules": {
-          "GLC[p]": "!units[1.0 millimolar]",
-          "EG10040-MONOMER[p]": "!units[0.0 millimolar]"
+    "reaction_diffusion": {
+      "molecules": [
+        "GLC[p]",
+        "EG10040-MONOMER[p]",
+        "beta-lactam",
+        "beta-lactamase"
+      ],
+      "n_bins": [10, 10],
+      "bounds": [
+        "!units[50 micrometer]",
+        "!units[50 micrometer]"
+      ],
+      "depth": "!units[3000.0 micrometer]",
+      "reactions": {
+        "antibiotic_hydrolysis": {
+          "stoichiometry": {
+            "beta-lactam": -1
+          },
+          "catalyzed by": "beta-lactamase"
+        }
+      },
+      "kinetic_parameters": {
+        "antibiotic_hydrolysis": {
+          "beta-lactamase": {
+          "kcat_f": 10.0,
+          "beta-lactam": 0.1
+          }
         }
       }
     }
