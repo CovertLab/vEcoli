@@ -77,10 +77,11 @@ class ReactionDiffusion(Process):
         self.diffusion_dt = 0.01 * units.sec
         # self.diffusion_dt = 0.5 * dx ** 2 * dy ** 2 / (2 * self.diffusion * (dx ** 2 + dy ** 2))
 
-    def initial_state(self, config):
+    def initial_state(self, config=None):
         """
         sets uniform initial state at the concentration provided for each the molecule_id in `config`
         """
+        config = config or {}
         return {
             'fields': {
                 mol_id: config.get(mol_id, 0.0) * self.ones_field()
