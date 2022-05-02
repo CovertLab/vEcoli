@@ -28,7 +28,7 @@ def test_antibiotics_tetracycline_cephaloridine():
 
 
 def test_lysis_rxn_dff_environment():
-    sim = EcoliSim.from_file(CONFIG_DIR_PATH + 'lysis_environment.json')
+    sim = EcoliSim.from_file(CONFIG_DIR_PATH + 'lysis.json')
     sim.emitter = 'timeseries'
     sim.total_time = 10
     sim.run()
@@ -47,7 +47,6 @@ def test_lysis_rxn_dff_environment():
     print(data[0.0]['fields'])
     print(pf(data[0.0]['agents']))
     # print(data[10.0]['dimensions'])
-    import ipdb; ipdb.set_trace()
 
     out_dir = os.path.join(EXPERIMENT_OUT_DIR, 'lysis_environment')
     if not os.path.exists(out_dir):
