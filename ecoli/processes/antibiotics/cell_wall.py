@@ -8,6 +8,7 @@ from random import choice
 import numpy as np
 from matplotlib import pyplot as plt
 import mpl_toolkits.mplot3d.axes3d as axes3d
+from skimage.transform import resize
 
 from vivarium.core.engine import Engine
 from vivarium.core.process import Process
@@ -41,7 +42,7 @@ class CellWall(Process):
             "PBP1A": "CPLX0-7717[i]",  # transglycosylase-transpeptidase ~100
             "PBP1B": "CPLX0-3951[i]",  # transglycosylase-transpeptidase ~100
         },
-        "cephaloridine": "",
+        "cephaloridine": "",  # TODO: in concentration
         # Physical parameters
         "critical_radius": 20 * units.nm,
         "cell_radius": 0.25 * units.um,
@@ -240,6 +241,16 @@ def plot_lattice(lattice, on_cylinder=False):
         mappable = ax.imshow(lattice, interpolation="nearest")
         fig.colorbar(mappable, ax=ax)
     else:
+        print("Downscaling lattice...")
+        lattice = resize(
+            lattice,
+            (lattice.shape[0] // 10, lattice.shape[1] // 10),
+            preserve_range=True,
+            anti_aliasing=True,
+        )
+        lattice = lattice.T
+        print("Done.\nDrawing on cylinder...")
+
         h, w = lattice.shape
         theta, z = np.linspace(0, 2 * np.pi, w), np.linspace(0, 1, h)
         THETA, Z = np.meshgrid(theta, z)
@@ -247,19 +258,21 @@ def plot_lattice(lattice, on_cylinder=False):
         Y = np.sin(THETA)
         fig = plt.figure()
         ax = fig.add_subplot(1, 1, 1, projection="3d")
-        cmap = plt.get_cmap("bwr")
+        mappable = plt.cm.ScalarMappable(cmap=plt.cm.inferno)
+        mappable.set_clim(0, 1)
+        mappable.set_array(lattice)
         plot = ax.plot_surface(
             X,
             Y,
             Z,
             rstride=1,
             cstride=1,
-            facecolors=cmap(lattice),
+            facecolors=mappable.cmap(lattice),
             linewidth=0,
             antialiased=False,
             alpha=0.75,
         )
-        fig.colorbar(plot)
+        fig.colorbar(mappable)
 
     return fig, ax
 
@@ -284,7 +297,7 @@ def main():
     cell_wall = CellWall(params)
 
     settings = {
-        "total_time": 10,
+        "total_time": 1,
         "initial_state": {
             "bulk_murein": {"CPD-12261[p]": int(3e6)},
             "shape": {"length": 2 * units.um},
@@ -343,7 +356,7 @@ def main():
 
     for t, lattice in enumerate(data["wall_state"]["lattice"]):
         print(f"Plotting t={t}...")
-        fig, _ = plot_lattice(np.array(lattice), on_cylinder=False)
+        fig, _ = plot_lattice(np.array(lattice), on_cylinder=True)
         fig.tight_layout()
         fig.savefig(f"out/processes/cell_wall/cell_wall_t{t}.png")
         print("Done.\n")
