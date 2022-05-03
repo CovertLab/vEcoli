@@ -113,15 +113,21 @@ def colony_save_states(engine, config):
             time_elapsed += time_to_next_save
         engine.update(time_to_next_save)
         state = engine.state.get_value()
-        # if config["divide"]:
-        #     state = state['agents'][self.agent_id]
-        # state_to_save = {key: state[key] for key in
-        #                  ['listeners', 'bulk', 'unique', 'environment', 'process_state']}
-        # write_json('data/vivecoli_t' + str(time_elapsed) + '.json', state_to_save)
         from ecoli.library.logging import write_json
-        import ipdb;
-        ipdb.set_trace()
-        write_json('data/colony_t' + str(time_elapsed) + '.json', state)
+        state_to_save = {'agents': {}}
+        for agent_id in state['agents']:
+            state_to_save['agents'][agent_id] = {key: state['agents'][agent_id][key] for key in
+                                                 # Original: ['listeners', 'bulk', 'unique', 'environment', 'process_state']}
+                                                 # All agent keys: ['cell_process', 'listeners', 'boundary', 'bulk', 'environment']}
+                                                 ['listeners', 'boundary', 'bulk', 'environment']}
+        # Can completely save: fields, global
+        # Can partially save: agents
+        # Can't save: dimensions, multibody, diffusion, field_timeline
+        state_to_save['fields'] = state['fields']
+        state_to_save['global'] = state['global']
+        from vivarium.core.serialize import serialize_value
+        state_to_save = serialize_value(state_to_save)
+        write_json('data/colony_t' + str(time_elapsed) + '.json', state_to_save)
         print('Finished saving the state at t = ' + str(time_elapsed) + '\n')
     time_remaining = config["total_time"] - config["save_times"][-1]
     if time_remaining:
@@ -183,17 +189,24 @@ def run_simulation():
         'seed': config['seed'],
     })
     composite = composer.generate(path=('agents', config['agent_id']))
-    initial_state = {
-        'agents': {
-            config['agent_id']: composite.initial_state()
-        },
-    }
-
-    if config['spatial_environment']:
-        # Merge a lattice composite for the spatial environment.
-        initial_environment = environment_composite.initial_state()
-        composite.merge(environment_composite)
-        initial_state = deep_merge_check(initial_state, initial_environment)
+    # initial_state = {
+    #     'agents': {
+    #         config['agent_id']: composite.initial_state()
+    #     },
+    # }
+    if 'initial_colony_file' in config.keys():
+        from ecoli.states.wcecoli_state import get_state_from_file
+        # TODO(Matt): initial_state_file is wc_ecoli?
+        initial_state = get_state_from_file(path=f'data/{config["initial_colony_file"]}.json')
+        from vivarium.core.serialize import deserialize_value
+        initial_state = deserialize_value(initial_state)
+    else:
+        initial_state = composite.initial_state()
+        if config['spatial_environment']:
+            # Merge a lattice composite for the spatial environment.
+            initial_environment = environment_composite.initial_state()
+            composite.merge(environment_composite)
+            initial_state = deep_merge_check(initial_state, initial_environment)
 
     metadata = config.to_dict()
     metadata.pop('initial_state', None)
