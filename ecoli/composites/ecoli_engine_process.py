@@ -119,6 +119,7 @@ def colony_save_states(engine, config):
             state_to_save['agents'][agent_id] = {key: state['agents'][agent_id][key] for key in
                                                  # Original: ['listeners', 'bulk', 'unique', 'environment', 'process_state']}
                                                  # All agent keys: ['cell_process', 'listeners', 'boundary', 'bulk', 'environment']}
+                                                 # No unique?
                                                  ['listeners', 'boundary', 'bulk', 'environment']}
         # Can completely save: fields, global
         # Can partially save: agents
