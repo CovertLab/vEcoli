@@ -297,7 +297,7 @@ def main():
     cell_wall = CellWall(params)
 
     settings = {
-        "total_time": 1,
+        "total_time": 10,
         "initial_state": {
             "bulk_murein": {"CPD-12261[p]": int(3e6)},
             "shape": {"length": 2 * units.um},
