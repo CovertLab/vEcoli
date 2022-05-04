@@ -16,7 +16,10 @@ from vivarium.library.units import units
 
 from ecoli.library.lattice_utils import (
     get_bin_site,
-    get_bin_volume, apply_exchanges, ExchangeAgent,
+    get_bin_volume,
+    apply_exchanges,
+    ExchangeAgent,
+    make_diffusion_schema,
 )
 from vivarium.library.topology import get_in
 from ecoli.plots.snapshots import plot_snapshots
@@ -49,7 +52,9 @@ class ReactionDiffusion(Process):
         'reactions': {},
         'kinetic_parameters': {},
         'internal_time_step': 1,
-        'boundary_path': ('boundary',)
+        'exchanges_path': ('boundary', 'exchanges'),
+        'external_path': ('boundary', 'external'),
+        'location_path': ('boundary', 'location'),
     }
 
     def __init__(self, parameters=None):
@@ -76,6 +81,9 @@ class ReactionDiffusion(Process):
         self.diffusion = diffusion / dx2
         self.diffusion_dt = 0.01 * units.sec
         # self.diffusion_dt = 0.5 * dx ** 2 * dy ** 2 / (2 * self.diffusion * (dx ** 2 + dy ** 2))
+        self.exchanges_path = tuple(self.parameters['exchanges_path'])
+        self.external_path = tuple(self.parameters['external_path'])
+        self.location_path = tuple(self.parameters['location_path'])
 
     def initial_state(self, config=None):
         """
@@ -95,61 +103,16 @@ class ReactionDiffusion(Process):
         }
 
     def ports_schema(self):
-
-        # place the agent boundary schema at the configured boundary path
-        boundary_path = self.parameters['boundary_path']
-        boundary_schema = {
-            'location': {
-                '_default': [
-                    0.5 * bound
-                    for bound in self.bounds],
-                '_emit': True,
-            },
-            'external': {
-                molecule: {
-                    '_default': 0.0 * units.mM}
-                for molecule in self.molecule_ids
-            },
-            'exchanges': {
-                molecule: {
-                    '_default': 0.0}
-                for molecule in self.molecule_ids
-            },
-        }
-        agent_schema = assoc_path({}, boundary_path, boundary_schema)
-
-        # make the full schema
-        schema = {
-            'agents': {
-                '*': agent_schema
-            },
-            'fields': {
-                field: {
-                    '_default': self.ones_field(),
-                    '_updater': 'nonnegative_accumulate',
-                    '_emit': True,
-                }
-                for field in self.molecule_ids
-            },
-            'dimensions': {
-                'bounds': {
-                    '_default': self.parameters['bounds'],
-                    '_updater': 'set',
-                    '_emit': True,
-                },
-                'n_bins': {
-                    '_default': self.parameters['n_bins'],
-                    '_updater': 'set',
-                    '_emit': True,
-                },
-                'depth': {
-                    '_default': self.parameters['depth'],
-                    '_updater': 'set',
-                    '_emit': True,
-                }
-            },
-        }
-        return schema
+        return make_diffusion_schema(
+            self.exchanges_path,
+            self.external_path,
+            self.location_path,
+            self.parameters['bounds'],
+            self.parameters['n_bins'],
+            self.parameters['depth'],
+            self.molecule_ids,
+            self.ones_field(),
+        )
 
     def next_update(self, timestep, states):
         fields = states['fields']
@@ -171,9 +134,13 @@ class ReactionDiffusion(Process):
         # apply exchanges #
         ###################
         new_fields, agent_updates = apply_exchanges(
-            agents, new_fields,
-            self.parameters['boundary_path'],
-            self.n_bins, self.bounds, self.bin_volume)
+            agents,
+            new_fields,
+            self.exchanges_path,
+            self.location_path,
+            self.n_bins,
+            self.bounds,
+            self.bin_volume)
 
         #####################
         # react and diffuse #
@@ -198,8 +165,11 @@ class ReactionDiffusion(Process):
 
         return update
 
-    def get_single_local_environments(self, specs, fields):
-        bin_site = get_bin_site(specs['location'], self.n_bins, self.bounds)
+    def get_bin_site(self, location):
+        return get_bin_site(location, self.n_bins, self.bounds)
+
+    def get_single_local_environments(self, location, fields):
+        bin_site = self.get_bin_site(location)
         local_environment = {}
         for mol_id, field in fields.items():
             local_environment[mol_id] = {
@@ -211,11 +181,14 @@ class ReactionDiffusion(Process):
         local_environments = {}
         if agents:
             for agent_id, specs in agents.items():
-                local_environments[agent_id] = {'boundary': {}}
-                local_environments[agent_id]['boundary']['external'] = \
+                assoc_path(
+                    local_environments,
+                    (agent_id,) + self.external_path,
                     self.get_single_local_environments(
-                        get_in(specs, self.parameters['boundary_path']),
-                        fields)
+                        get_in(specs, self.location_path),
+                        fields,
+                    ),
+                )
         return local_environments
 
     def zeros_field(self):

@@ -7,7 +7,7 @@ Utilities for Lattice Environments
 import numpy as np
 from scipy import constants
 from vivarium.core.process import Process
-from vivarium.library.topology import get_in
+from vivarium.library.topology import get_in, assoc_path
 
 from vivarium.library.units import units, Quantity
 
@@ -271,13 +271,16 @@ def gaussian(deviation, distance):
     return np.exp(-np.power(distance, 2.) / (2 * np.power(deviation, 2.)))
 
 
-def apply_exchanges(agents, fields, boundary_path, n_bins, bounds, bin_volume):
+def apply_exchanges(
+        agents, fields, exchanges_path, location_path, n_bins, bounds,
+        bin_volume):
     # apply exchanges from each agent
     agent_updates = {}
     for agent_id, agent_state in agents.items():
-        boundary = get_in(agent_state, boundary_path)
-        exchanges = boundary['exchanges']
-        location = boundary['location']
+        exchanges = get_in(agent_state, exchanges_path)
+        assert exchanges is not None
+        location = get_in(agent_state, location_path)
+        assert location is not None
         bin_site = get_bin_site(location, n_bins, bounds)
 
         reset_exchanges = {}
@@ -297,7 +300,10 @@ def apply_exchanges(agents, fields, boundary_path, n_bins, bounds, bin_volume):
                 '_value': -value,
                 '_updater': 'accumulate'}
 
-        agent_updates[agent_id] = {'exchanges': reset_exchanges}
+        assoc_path(
+            agent_updates,
+            (agent_id,) + exchanges_path,
+            reset_exchanges)
 
     return fields, agent_updates
 
@@ -349,3 +355,70 @@ class ExchangeAgent(Process):
                 ],
             }
         }
+
+def make_diffusion_schema(
+        exchanges_path, external_path, location_path, bounds, n_bins,
+        depth, molecule_ids, default_field):
+    # Place schemas at configured paths.
+    agent_schema = {}
+    location_schema = {
+        '_default': [
+            0.5 * bound
+            for bound in bounds],
+        '_emit': True,
+    }
+    assoc_path(
+        agent_schema,
+        location_path,
+        location_schema)
+    external_schema = {
+        molecule: {
+            '_default': 0.0 * units.mM}
+        for molecule in molecule_ids
+    }
+    assoc_path(
+        agent_schema,
+        external_path,
+        external_schema)
+    exchanges_schema = {
+        molecule: {
+            '_default': 0.0}
+        for molecule in molecule_ids
+    }
+    assoc_path(
+        agent_schema,
+        exchanges_path,
+        exchanges_schema)
+
+    # make the full schema
+    schema = {
+        'agents': {
+            '*': agent_schema
+        },
+        'fields': {
+            field: {
+                '_default': default_field.copy(),
+                '_updater': 'nonnegative_accumulate',
+                '_emit': True,
+            }
+            for field in molecule_ids
+        },
+        'dimensions': {
+            'bounds': {
+                '_default': bounds,
+                '_updater': 'set',
+                '_emit': True,
+            },
+            'n_bins': {
+                '_default': n_bins,
+                '_updater': 'set',
+                '_emit': True,
+            },
+            'depth': {
+                '_default': depth,
+                '_updater': 'set',
+                '_emit': True,
+            }
+        },
+    }
+    return schema
