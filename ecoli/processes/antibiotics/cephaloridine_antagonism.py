@@ -18,9 +18,14 @@ class CephaloridineAntagonism(Step):
         },
         "kinetic_params": {
             "K_A": {
-                "PBP1A": 0.25 * units.ug / units.mL,  # Fontana et al. 2000
-                "PBP1B": 2.5 * units.ug / units.mL,  # Fontana et al. 2000
-                # TODO: convert to molar units using MM of cephaloridine = 415.49 g/mol
+                # From Fontana et al. 2000
+                #
+                # PBP1A: 0.25 ug / mL
+                # PBP1B: 2.5 ug / mL
+                #
+                # converted to molar units using molar mass of cephaloridine = 415.488 g/mol
+                "PBP1A": 0.6017020948860136 * units.micromolar,
+                "PBP1B": 6.017020948860137 * units.micromolar,
             },
             "Hill_n": {
                 "PBP1A": 1,
@@ -119,7 +124,7 @@ def test_cephaloridine_antagonism():
             "murein_state": ("murein_state",),
             "concentrations": ("concentrations",),
             "bulk": ("bulk",),
-            "listeners": ("listeners",)
+            "listeners": ("listeners",),
         }
     }
     add_timeline(
@@ -132,9 +137,9 @@ def test_cephaloridine_antagonism():
                     {
                         ("bulk", "CPD-12261[p]"): int(3e6 + 1000 * time),
                         ("concentrations", "cephaloridine"): (
-                            (time - 50) / 10000 * units.mg / units.mL
+                            (time - 50) / 10 * units.micromolar
                             if time > 50
-                            else 0 * units.mg / units.mL
+                            else 0 * units.micromolar
                         ),
                     },
                 )
@@ -152,7 +157,7 @@ def test_cephaloridine_antagonism():
                 "unincorporated_murein": 0,
             },
             "concentrations": {
-                "cephaloridine": 0 * units.mg / units.mL,
+                "cephaloridine": 0 * units.micromolar,
             },
             "bulk": {
                 "CPD-12261[p]": int(3e6),
@@ -167,7 +172,7 @@ def test_cephaloridine_antagonism():
     plot_variables(
         data,
         variables=[
-            ("concentrations", ("cephaloridine", "milligram / milliliter")),
+            ("concentrations", ("cephaloridine", "micromolar")),
             ("bulk", "CPD-12261[p]"),
             ("murein_state", "incorporated_murein"),
             ("murein_state", "unincorporated_murein"),
