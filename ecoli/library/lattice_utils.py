@@ -397,7 +397,7 @@ def make_diffusion_schema(
         },
         'fields': {
             field: {
-                '_default': default_field,
+                '_default': default_field.copy(),
                 '_updater': 'nonnegative_accumulate',
                 '_emit': True,
             }
