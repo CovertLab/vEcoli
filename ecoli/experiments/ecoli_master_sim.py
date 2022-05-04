@@ -194,7 +194,7 @@ class SimConfig:
         # Handle config keys that need special handling.
         LIST_KEYS_TO_MERGE = (
             'save_times', 'add_processes', 'exclude_processes',
-            'processes')
+            'processes', 'engine_process_reports')
         for key in LIST_KEYS_TO_MERGE:
             d2.setdefault(key, [])
             d2[key].extend(d1.get(key, []))
