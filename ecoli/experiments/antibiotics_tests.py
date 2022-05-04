@@ -67,8 +67,9 @@ def test_lysis_rxn_dff_environment():
         if 'agents' not in v:
             data[t]['agents'] = {}  # add empty agents back in
 
-    assert '0' in data[0.0]['agents']  # agent 0 is present at time=0
-    assert not data[lysis_time+2.0]['agents']  # not agents after lysis_time
+    assert '0' in data[0.0]['agents'] \
+           and len(data[0.0]['agents']) == 1  # agent 0 is present at time=0
+    assert len(data[lysis_time+2.0]['agents']) == 0  # no agents after lysis_time
 
     # plot
     out_dir = os.path.join(EXPERIMENT_OUT_DIR, 'lysis_environment')
