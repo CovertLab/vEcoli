@@ -85,14 +85,7 @@
         "concentrations_deriver": [["ecoli-shape"]]
     },
     "engine_process_reports": [
-        ["bulk", "EG10040-MONOMER[p]"],
-        ["bulk", "TRANS-CPLX-201[m]"],
-        ["bulk", "CPLX0-7533[o]"],
-        ["bulk", "CPLX0-7534[o]"],
-        ["periplasm"],
-        ["cytoplasm"],
-        ["listeners", "mass"],
-        ["boundary"],
-        ["bioscrape_deltas"]
+        ["bioscrape_deltas"],
+        ["periplasm"]
     ]
 }

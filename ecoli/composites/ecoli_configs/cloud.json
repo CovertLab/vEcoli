@@ -9,11 +9,12 @@
     "parallel": true,
     "save_times": [11550],
     "engine_process_reports": [
-        ["periplasm"],
         ["listeners", "mass"],
         ["boundary"],
         ["bulk", "TRANS-CPLX-201[m]"],
         ["bulk", "EG10040-MONOMER[p]"],
+        ["bulk", "CPLX0-7533[o]"],
+        ["bulk", "CPLX0-7534[o]"],
         ["bulk", "XAPB-MONOMER[m]"],
         ["bulk", "EG10011-MONOMER[c]"],
         ["bulk", "EG11511-MONOMER[c]"],
