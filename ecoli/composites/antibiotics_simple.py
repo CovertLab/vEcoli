@@ -36,7 +36,7 @@ class SimpleAntibioticsCell(Composer):
     simulate the diffusion of a beta-lactam and tetracycline into E. coli.
     '''
 
-    default = {
+    defaults = {
         'ceph_tet_bioscrape': {
             'sbml_file': 'data/ceph_tet_sbml.xml',
             'units_map': {
