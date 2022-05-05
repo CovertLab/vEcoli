@@ -13,10 +13,10 @@
         "field_timeline": {
             "timeline": [
                 [30, {
-                    "cephaloridine": 0.01203
+                    "tetracycline": 0.0025
                 }],
                 [70, {
-                    "cephaloridine": 0.0
+                    "tetracycline": 0.0
                 }]
             ]
         }
@@ -64,7 +64,12 @@
                 "volume_p": ["..", "periplasm", "global", "volume"],
                 "volume_p_r4": ["..", "periplasm", "global", "volume"],
                 "volume_p_r5": ["..", "periplasm", "global", "volume"],
-                "volume_p_r6": ["..", "periplasm", "global", "volume"]
+                "volume_p_r6": ["..", "periplasm", "global", "volume"],
+                "E": ["..", "kinetic_parameters", "E"],
+                "F": ["..", "kinetic_parameters", "F"],
+                "z": ["..", "kinetic_parameters", "z"],
+                "R": ["..", "kinetic_parameters", "R"],
+                "T": ["..", "kinetic_parameters", "T"]
             },
             "species": {
                 "_path": ["null"],
@@ -133,11 +138,16 @@
                     "volume_p": "!units[milliliter]",
                     "volume_p_r4": "!units[milliliter]",
                     "volume_p_r5": "!units[milliliter]",
-                    "volume_p_r6": "!units[milliliter]"
+                    "volume_p_r6": "!units[milliliter]",
+                    "E": "!units[volt]",
+                    "F": "!units[coulomb / mol]",
+                    "z": "!units[count]",
+                    "R": "!units[joule / mol / kelvin]",
+                    "T": "!units[kelvin]"
                 }
             },
             "sbml_file": "data/ceph_tet_sbml.xml",
-            "time_step": 0.5
+            "time_step": 1
         },
         "permeability": {
             "porin_ids": ["CPLX0-7533[o]", "CPLX0-7534[o]"],
@@ -168,7 +178,7 @@
                     "antibiotic_key": "cephaloridine"
                 }],
                 ["antibiotic", {
-                    "antibiotic_threshold": "!units[0.003 millimolar]",
+                    "antibiotic_threshold": "!units[0.001 millimolar]",
                     "antibiotic_key": "tetracycline"
                 }]
             ],
@@ -206,11 +216,16 @@
                                 "volume_p": "!units[milliliter]",
                                 "volume_p_r1": "!units[milliliter]",
                                 "volume_p_r2": "!units[milliliter]",
-                                "volume_p_r3": "!units[milliliter]"
+                                "volume_p_r3": "!units[milliliter]",
+                                "E": "!units[volt]",
+                                "F": "!units[coulomb / mol]",
+                                "z": "!units[count]",
+                                "R": "!units[joule / mol / kelvin]",
+                                "T": "!units[kelvin]"
                             }
                         },
                         "sbml_file": "data/ceph_tet_diffusion_only_sbml.xml",
-                        "time_step": 0.5
+                        "time_step": 1
                     },
                     {
                         "delta_species": ["bioscrape_deltas"],
@@ -242,7 +257,12 @@
                             "volume_p": ["..", "periplasm", "global", "volume"],
                             "volume_p_r1": ["..", "periplasm", "global", "volume"],
                             "volume_p_r2": ["..", "periplasm", "global", "volume"],
-                            "volume_p_r3": ["..", "periplasm", "global", "volume"]
+                            "volume_p_r3": ["..", "periplasm", "global", "volume"],
+                            "E": ["..", "kinetic_parameters", "E"],
+                            "F": ["..", "kinetic_parameters", "F"],
+                            "z": ["..", "kinetic_parameters", "z"],
+                            "R": ["..", "kinetic_parameters", "R"],
+                            "T": ["..", "kinetic_parameters", "T"]
                         },
                         "species": {
                             "_path": ["null"],
