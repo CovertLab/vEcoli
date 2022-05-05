@@ -22,6 +22,7 @@ from biocrnpyler import (
     Reaction,
     Species,
 )
+from scipy import constants
 
 DATA_DIR = os.path.abspath(
     os.path.join(os.path.dirname(__file__), '..', 'data'))
@@ -68,6 +69,14 @@ INITIAL_ENVIRONMENT_TET = 0.1239
 INITIAL_CYTOPLASM_TET = 0
 INITIAL_PUMP = 0.0004525
 INITIAL_BETA_LACTAMASE = 0.000525
+
+# Source: Berg, Howard C., E. coli in Motion. 1934. Page 105.
+MEMBRANE_POTENTIAL = 0.12  # 120 mV with the interior negative.
+# Source: Thanassi, Suh, and Nikaido 1995, page 999
+TETRACYCLINE_CHARGE = 1  # Chelated to Mg when entering cell.
+FARADAY_CONSTANT = constants.value('Faraday constant')  # C/mol
+GAS_CONSTANT = constants.R  # J/mol/K
+TEMPERATURE = 298  # K
 
 
 # A ProportionalHillPositive propensity generates a propensity:
@@ -156,17 +165,26 @@ def main() -> None:
     )
 
     # Creating diffusion parameters
-    periplasm_area_mass_ratio = ParameterEntry('outer_x_am', AREA_MASS_RATIO)  # cm^2/mg
-    cephaloridine_permeability = ParameterEntry('outer_cephaloridine_permeability', DEFAULT_CEPH_OUTER_PERM)  # cm/sec
-    tetracycline_permeability = ParameterEntry('outer_tetracycline_permeability', DEFAULT_TET_OUTER_PERM)  # cm/sec
+    periplasm_area_mass_ratio = ParameterEntry(
+        'outer_x_am', AREA_MASS_RATIO)  # cm^2/mg
+    cephaloridine_permeability = ParameterEntry(
+        'outer_cephaloridine_permeability', DEFAULT_CEPH_OUTER_PERM)  # cm/sec
+    tetracycline_permeability = ParameterEntry(
+        'outer_tetracycline_permeability', DEFAULT_TET_OUTER_PERM)  # cm/sec
+    membrane_potential = ParameterEntry(
+        'E', MEMBRANE_POTENTIAL)
+    faraday_constant = ParameterEntry('F', FARADAY_CONSTANT)
+    tetracycline_charge = ParameterEntry('z', TETRACYCLINE_CHARGE)
+    gas_constant = ParameterEntry('R', GAS_CONSTANT)
+    temperature = ParameterEntry('T', TEMPERATURE)
     mass = ParameterEntry('mass', CELL_MASS)  # mg
     volume_p = ParameterEntry('volume_p', PERIPLASM_VOLUME)  # mL
 
     # Cephaloridine diffusion between environment and periplasm
     ceph_influx_propensity = GeneralPropensity(
         (
-            'outer_x_am * outer_cephaloridine_permeability '
-            f'* {cephaloridine_e} * mass / volume_p'
+            'mass * outer_x_am * outer_cephaloridine_permeability '
+            f'* {cephaloridine_e} / volume_p'
         ),
         propensity_species=[cephaloridine_e],
         propensity_parameters=[
@@ -179,8 +197,8 @@ def main() -> None:
     )
     ceph_influx_rev_propensity = GeneralPropensity(
         (
-            'outer_x_am * outer_cephaloridine_permeability '
-            f'* {cephaloridine_p} * mass / volume_p'
+            'mass * outer_x_am * outer_cephaloridine_permeability '
+            f'* {cephaloridine_p} / volume_p'
         ),
         propensity_species=[cephaloridine_p],
         propensity_parameters=[
@@ -193,14 +211,27 @@ def main() -> None:
     )
 
     # Tetracycline diffusion between environment and periplasm
+
+    # From the Nernst Equation, we know that E = RT/(zF) ln(i/o) for
+    # membrane potential E, gas constant R, absolute temperature T,
+    # tetracycline charge z, Faraday constant F, internal tetracycline
+    # concentration i, and external tetracycline concentration o.
+    # Rearranging, we get i = o * exp(zFE/(RT)). Since we can assume the
+    # external concentrations are constant, the external concentraion in
+    # Fick's law is just the equilibrium internal concentration, so we
+    # can substitute in our expression for i like this:
+    #     di/dt = D (o exp(zFE/(RT)) - i)
+    # where D is the diffusivity, which we calculate as x_am * p * m.
     tet_e_p_influx_propensity = GeneralPropensity(
         (
-            'outer_x_am * outer_tetracycline_permeability '
-            f'* {tetracycline_e} * mass / volume_p'
+            'mass * outer_x_am * outer_tetracycline_permeability '
+            f'* {tetracycline_e} * exp(z * F * E / R / T) / volume_p'
         ),
         propensity_species=[tetracycline_e],
         propensity_parameters=[
-            periplasm_area_mass_ratio, tetracycline_permeability, mass, volume_p],
+            periplasm_area_mass_ratio, tetracycline_permeability, mass,
+            volume_p, membrane_potential, faraday_constant,
+            tetracycline_charge, gas_constant, temperature],
     )
     tet_e_p_influx = Reaction(
         inputs=[tetracycline_e],
@@ -209,8 +240,8 @@ def main() -> None:
     )
     tet_e_p_influx_rev_propensity = GeneralPropensity(
         (
-            'outer_x_am * outer_tetracycline_permeability '
-            f'* {tetracycline_p} * mass / volume_p'
+            'mass * outer_x_am * outer_tetracycline_permeability '
+            f'* {tetracycline_p} / volume_p'
         ),
         propensity_species=[tetracycline_p],
         propensity_parameters=[
