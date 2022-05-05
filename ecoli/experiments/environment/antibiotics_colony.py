@@ -57,7 +57,7 @@ def get_antibiotics_grow_lattice_composite(
     return env_composite
 
 
-def main():
+def test_antibiotics_colony():
     if not os.path.exists(OUT_DIR):
         os.makedirs(OUT_DIR)
 
@@ -117,7 +117,7 @@ def main():
 
 
 test_library = {
-    '0': main,
+    '0': test_antibiotics_colony,
 }
 
 # run experiments in test_library from the command line with:

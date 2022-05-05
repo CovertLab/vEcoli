@@ -38,6 +38,7 @@ class SimpleAntibioticsCell(Composer):
 
     default = {
         'ceph_tet_bioscrape': {
+            'sbml_file': 'data/ceph_tet_sbml.xml',
             'units_map': {
                 'rates': {
                     'mass': units.mg,
