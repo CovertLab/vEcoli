@@ -19,6 +19,7 @@ from ecoli.library.lattice_utils import (
     get_bin_volume,
     apply_exchanges,
     ExchangeAgent,
+    make_gradient,
     make_diffusion_schema,
 )
 from vivarium.library.topology import get_in
@@ -49,12 +50,19 @@ class ReactionDiffusion(Process):
         'bounds': [10 * units.um, 10 * units.um],
         'depth': 3000.0 * units.um,  # um
         'diffusion': 5e-1 * units.um**2 / units.sec,
-        'reactions': {},
-        'kinetic_parameters': {},
-        'internal_time_step': 1,
+
         'exchanges_path': ('boundary', 'exchanges'),
         'external_path': ('boundary', 'external'),
         'location_path': ('boundary', 'location'),
+
+        # these parameters are not in diffusion_field
+        'reactions': {},
+        'kinetic_parameters': {},
+        'internal_time_step': 1,
+
+        # these parameters are in diffusion_field
+        # 'initial_state': {},
+        'gradient': None,
     }
 
     def __init__(self, parameters=None):
@@ -90,17 +98,26 @@ class ReactionDiffusion(Process):
         sets uniform initial state at the concentration provided for each the molecule_id in `config`
         """
         config = config or {}
-        return {
-            'fields': {
-                mol_id: config.get(mol_id, 0.0) * self.ones_field()
-                for mol_id in self.molecule_ids
-            },
+        initial = {
+            'fields': {},
             'dimensions': {
                 'bounds': self.parameters['bounds'],
                 'n_bins': self.parameters['n_bins'],
-                'depth': self.parameters['depth']
-            }
-        }
+                'depth': self.parameters['depth']}}
+
+        # initialize gradient fields
+        gradient = self.parameters.get('gradient')
+        if gradient:
+            unitless_bounds = [
+                bound.to(units.um).magnitude for bound in self.bounds]
+            gradient_fields = make_gradient(
+                gradient, self.n_bins, unitless_bounds)
+            initial['fields'].update(gradient_fields)
+        else:
+            initial['fields'].update({
+                mol_id: config.get(mol_id, 0.0) * self.ones_field()
+                for mol_id in self.molecule_ids})
+        return initial
 
     def ports_schema(self):
         return make_diffusion_schema(

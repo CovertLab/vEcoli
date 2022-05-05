@@ -27,6 +27,23 @@ def test_antibiotics_tetracycline_cephaloridine():
     data = sim.query()
 
 
+def remove_empty_values(d):
+    """remove {key: value} pairs with values that are None"""
+    to_delete = []
+    for k, v in d.items():
+        if not v:
+            to_delete.append(k)
+        elif isinstance(v, dict):
+            v2 = remove_empty_values(v)
+            if not v2:
+                to_delete.append(k)
+            else:
+                d[k] = v2
+    for k in to_delete:
+        del d[k]
+    return d
+
+
 def test_lysis_rxn_dff_environment():
     beta_lactamase = 'EG10040-MONOMER[p]'
     beta_lactam = 'beta-lactam'
@@ -69,7 +86,8 @@ def test_lysis_rxn_dff_environment():
 
     assert '0' in data[0.0]['agents'] \
            and len(data[0.0]['agents']) == 1  # agent 0 is present at time=0
-    assert len(data[lysis_time+2.0]['agents']) == 0  # no agents after lysis_time
+    after_lysis = remove_empty_values(data[lysis_time + 2.0]['agents'])
+    assert len(after_lysis) == 0  # no agents after lysis_time
 
     # plot
     out_dir = os.path.join(EXPERIMENT_OUT_DIR, 'lysis_environment')
