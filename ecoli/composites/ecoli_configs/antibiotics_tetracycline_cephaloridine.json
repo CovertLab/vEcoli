@@ -99,7 +99,7 @@
     },
     "process_configs": {
         "exchange-aware-bioscrape": {
-            "external_species": ["cephaloridine_environment", "tetracycline_environment"],
+            "external_species": ["cephaloridine", "tetracycline"],
             "name_map": [
                 [["external", "cephaloridine"], "cephaloridine_environment"],
                 [["external", "tetracycline"], "tetracycline_environment"]
@@ -147,6 +147,12 @@
                 }
             },
             "sbml_file": "data/ceph_tet_sbml.xml",
+            "species_to_convert_to_counts": [
+                "cephaloridine_p",
+                "cephaloridine_hydrolyzed",
+                "tetracycline_p",
+                "tetracycline_c"
+            ],
             "time_step": 1
         },
         "permeability": {
@@ -186,7 +192,7 @@
                 "exchange-aware-bioscrape-diffusion-only": [
                     "exchange-aware-bioscrape",
                     {
-                        "external_species": ["cephaloridine_environment", "tetracycline_environment"],
+                        "external_species": ["cephaloridine", "tetracycline"],
                         "name_map": [
                             [["external", "cephaloridine"], "cephaloridine_environment"],
                             [["external", "tetracycline"], "tetracycline_environment"]
