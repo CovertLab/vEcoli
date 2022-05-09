@@ -33,11 +33,11 @@ DIFFUSION_ONLY_FILENAME = 'ceph_tet_diffusion_only_sbml.xml'
 # micron^2
 CEPH_PUMP_KCAT = 0.0956090147363198  # / units.sec
 # Reported in (Nagano & Nikaido, 2009)
-CEPH_PUMP_KM = 288e-6  # M
+CEPH_PUMP_KM = 288e-3  # mM
 # Reported in (Galleni et al., 1988)
 CEPH_BETA_LACTAMASE_KCAT = 130  # / units.sec
 # Reported in (Galleni et al., 1988)
-CEPH_BETA_LACTAMASE_KM = 170e-3  # M
+CEPH_BETA_LACTAMASE_KM = 170  # mM
 # Cephaloridine default permeability = ompF permeability + ompC
 # permeability (Nikaido, 1983)
 DEFAULT_CEPH_OUTER_PERM = 52.6e-5 + 4.5e-5  # cm/sec
@@ -47,7 +47,7 @@ DEFAULT_CEPH_OUTER_PERM = 52.6e-5 + 4.5e-5  # cm/sec
 # micron^2
 TET_PUMP_KCAT = 0.00015759727703788977  # / units.sec
 # Estimated in (Thanassi et al., 1995)
-TET_PUMP_KM = 200e-6  # M
+TET_PUMP_KM = 200e-3  # mM
 # Estimated in (Thanassi et al., 1995)
 DEFAULT_TET_OUTER_PERM = 1e-5  # cm/sec
 # Estimated in (Thanassi et al., 1995)
@@ -98,19 +98,6 @@ def main() -> None:
 
     pump = Species('AcrAB')
     beta_lactamase = Species('beta_lactamase')
-
-    species = [
-        cephaloridine_p,
-        cephaloridine_e,
-        cephaloridine_e_delta,
-        tetracycline_p,
-        tetracycline_e,
-        tetracycline_e_delta,
-        tetracycline_c,
-        cephaloridine_hydrolyzed,
-        pump,
-        beta_lactamase,
-    ]
 
     # DEFINE PARAMETERS.
 
@@ -353,7 +340,18 @@ def main() -> None:
     }
 
     crn = ChemicalReactionNetwork(
-        species=species,
+        species=[
+            cephaloridine_p,
+            cephaloridine_e,
+            cephaloridine_e_delta,
+            tetracycline_p,
+            tetracycline_e,
+            tetracycline_e_delta,
+            tetracycline_c,
+            cephaloridine_hydrolyzed,
+            pump,
+            beta_lactamase,
+        ],
         reactions=[
             ceph_export,
             tet_export,
