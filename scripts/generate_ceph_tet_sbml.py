@@ -29,23 +29,21 @@ FILENAME = 'ceph_tet_sbml.xml'
 DIFFUSION_ONLY_FILENAME = 'ceph_tet_diffusion_only_sbml.xml'
 
 # Calculated by dividing V_max reported in (Nagano & Nikaido, 2009) by
-# the model's initial pump concentration of 20.179269875115253 counts /
-# micron^2
-CEPH_PUMP_KCAT = 0.0956090147363198  # / units.sec
+# the model's initial pump concentration of 0.000675 mM.
+CEPH_PUMP_KCAT = 2965  # / units.sec
 # Reported in (Nagano & Nikaido, 2009)
 CEPH_PUMP_KM = 288e-3  # mM
 # Reported in (Galleni et al., 1988)
 CEPH_BETA_LACTAMASE_KCAT = 130  # / units.sec
 # Reported in (Galleni et al., 1988)
-CEPH_BETA_LACTAMASE_KM = 170  # mM
+CEPH_BETA_LACTAMASE_KM = 170e-3  # mM
 # Cephaloridine default permeability = ompF permeability + ompC
 # permeability (Nikaido, 1983)
 DEFAULT_CEPH_OUTER_PERM = 52.6e-5 + 4.5e-5  # cm/sec
 
 # Calculated by dividing V_max estimated in (Thanassi et al., 1995) by
-# the model's initial pump concentration of 20.179269875115253 counts /
-# micron^2
-TET_PUMP_KCAT = 0.00015759727703788977  # / units.sec
+# the model's initial pump concentration of 0.000675 mM.
+TET_PUMP_KCAT = 5.432099  # / units.sec
 # Estimated in (Thanassi et al., 1995)
 TET_PUMP_KM = 200e-3  # mM
 # Estimated in (Thanassi et al., 1995)
