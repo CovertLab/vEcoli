@@ -114,22 +114,41 @@ def colony_save_states(engine, config):
         engine.update(time_to_next_save)
         state = engine.state.get_value()
         from ecoli.library.logging import write_json
-        state_to_save = {'agents': {}}
-        for agent_id in state['agents']:
-            state_to_save['agents'][agent_id] = {key: state['agents'][agent_id][key] for key in
-                                                 # Original: ['listeners', 'bulk', 'unique', 'environment', 'process_state']}
-                                                 # All agent keys: ['cell_process', 'listeners', 'boundary', 'bulk', 'environment']}
-                                                 # No unique?
-                                                 ['listeners', 'boundary', 'bulk', 'environment']}
-        # Can completely save: fields, global
-        # Can partially save: agents
-        # Can't save: dimensions, multibody, diffusion, field_timeline
-        state_to_save['fields'] = state['fields']
-        state_to_save['global'] = state['global']
         from vivarium.core.serialize import serialize_value
+        state_to_save = copy.deepcopy(state)
+        del(state_to_save['agents'])
         state_to_save = serialize_value(state_to_save)
+        import ipdb; ipdb.set_trace()
+        for key in state_to_save.keys():
+            print(str(key) + ": " + str(state_to_save[key]) + '\n')
+        write_json('data/temp' + '.json', state_to_save)
+        state_to_save['agents'] = {}
+        for agent_id in state['agents']:
+            cell_state = state['agents'][agent_id]['cell_process'][0].sim.state.get_value()
+            state_to_save['agents'][agent_id] = {key: cell_state[key] for key in
+                                         ['listeners', 'bulk', 'unique', 'environment', 'process_state']}
         write_json('data/colony_t' + str(time_elapsed) + '.json', state_to_save)
-        print('Finished saving the state at t = ' + str(time_elapsed) + '\n')
+        # state_to_save = {'agents': {}}
+        # # import ipdb; ipdb.set_trace()
+        # state_to_save['fields'] = state['fields']
+        # state_to_save['global'] = state['global']
+        # from vivarium.core.serialize import serialize_value
+        # import ipdb; ipdb.set_trace()
+        # state_to_save = serialize_value(state_to_save)
+        # for agent_id in state['agents']:
+        #     cell_state = state['agents'][agent_id]['cell_process'][0].sim.state.get_value()
+        #     state_to_save['agents'][agent_id] = {key: cell_state[key] for key in
+        #                                          # Original: ['listeners', 'bulk', 'unique', 'environment', 'process_state']}
+        #                                          ['listeners', 'bulk', 'unique', 'environment', 'process_state']}
+        #                                          # All agent keys: ['cell_process', 'listeners', 'boundary', 'bulk', 'environment']}
+        #                                          # No unique?
+        #                                          #['listeners', 'boundary', 'bulk', 'environment']}
+
+
+        # Can save: fields, global, agents, dimensions
+        # Can't save: multibody, diffusion, field_timeline TODO: doesn't make sense to save tuples?
+        # write_json('data/colony_t' + str(time_elapsed) + '.json', state_to_save)
+        print('Finished saving the state at t = ' + str(time_elapsed))
     time_remaining = config["total_time"] - config["save_times"][-1]
     if time_remaining:
         engine.update(time_remaining)
