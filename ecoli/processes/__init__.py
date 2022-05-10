@@ -23,17 +23,13 @@ from ecoli.processes.environment.lysis import Lysis
 from ecoli.processes.environment.local_field import LocalField
 from ecoli.processes.environment.field_timeline import FieldTimeline
 from ecoli.processes.shape import Shape
-<<<<<<< HEAD
-from vivarium.processes.timeline import TimelineProcess
 from ecoli.processes.antibiotics.cell_wall import CellWall
 from ecoli.processes.antibiotics.cephaloridine_antagonism import CephaloridineAntagonism
-=======
 from ecoli.processes.concentrations_deriver import ConcentrationsDeriver
 from ecoli.processes.antibiotics.death import DeathFreezeState
 from ecoli.processes.antibiotics.exchange_aware_bioscrape import (
     ExchangeAwareBioscrape)
 from ecoli.processes.antibiotics.permeability import Permeability
->>>>>>> master
 
 
 # add to registry
@@ -57,13 +53,8 @@ process_registry.register(MonomerCounts.name, MonomerCounts)
 process_registry.register(ChromosomeStructure.name, ChromosomeStructure)
 process_registry.register(Allocator.name, Allocator)
 process_registry.register(Shape.name, Shape)
-<<<<<<< HEAD
-process_registry.register(CellWall.name, CellWall)
-process_registry.register(CephaloridineAntagonism.name, CephaloridineAntagonism)
-=======
 process_registry.register(ConcentrationsDeriver.name,
     ConcentrationsDeriver)
->>>>>>> master
 
 # environment processes
 process_registry.register(Lysis.name, Lysis)
@@ -77,3 +68,5 @@ process_registry.register(
 process_registry.register(
     Permeability.name, Permeability
 )
+process_registry.register(CellWall.name, CellWall)
+process_registry.register(CephaloridineAntagonism.name, CephaloridineAntagonism)
