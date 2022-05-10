@@ -8,8 +8,10 @@ process priorities.
 """
 import numpy as np
 from vivarium.core.process import Deriver
+from vivarium.library.dict_utils import make_path_dict
 
 from ecoli.processes.registries import topology_registry
+from ecoli.processes.partition import check_whether_evolvers_have_run
 from ecoli.library.convert_update import convert_numpy_to_builtins
 
 
@@ -69,8 +71,15 @@ class Allocator(Deriver):
                     'bulk': {
                         '*': {'_default': 0, '_updater': 'set'}}}
                 for process in self.processNames},
+            'evolvers_ran': {
+                '_default': True,
+            },
         }
         return ports
+
+    def update_condition(self, timestep, states):
+        return check_whether_evolvers_have_run(
+            states['evolvers_ran'], self.name)
 
     def next_update(self, timestep, states):
         total_counts = np.array([states['bulk'][molecule] for
@@ -135,7 +144,7 @@ class Allocator(Deriver):
         #             for molIndex in np.where(counts_unallocated < 0)[0]
         #             )
         #         )
-        
+
 
         update = {
             'request': {
@@ -150,7 +159,10 @@ class Allocator(Deriver):
                         self.mol_name_to_idx[molecule],
                         self.proc_name_to_idx[process]]
                     for molecule in states['request'][process]['bulk']}}
-                for process in states['request']}}
+                for process in states['request']
+            },
+            'evolvers_ran': False,
+        }
 
         return convert_numpy_to_builtins(update)
 

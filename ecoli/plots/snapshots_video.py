@@ -7,6 +7,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from vivarium.core.composition import TEST_OUT_DIR
+from vivarium.library.units import Quantity, units
 from vivarium.plots.agents_multigen import plot_agents_multigen
 
 from ecoli.composites.environment.lattice import test_lattice
@@ -189,6 +190,10 @@ def make_video(
     highlight_agents = highlight_agents or []
     show_timeseries = show_timeseries or []
 
+    # Strip units from bounds if present.
+    if isinstance(bounds[0], Quantity):
+        bounds = tuple(bound.to(units.um).magnitude for bound in bounds)
+
     # make images directory, remove if existing
     out_file = os.path.join(out_dir, f'{filename}.mp4')
     out_file2 = os.path.join(out_dir, f'{filename}_timeseries.mp4')
@@ -250,15 +255,6 @@ def make_video(
 
     # delete image folder
     shutil.rmtree(images_dir)
-
-
-
-# def make_interactive(data, bounds):
-#     plot_single_snapshot = make_snapshot_function(data, bounds)
-#
-#     interactive_plot = interactive(
-#         plot_single_snapshot,
-#         t_index=widgets.IntSlider(min=0, max=time_index_range, step=2, value=0))
 
 
 def main(total_time=2000, step=60, exchange=False):

@@ -17,6 +17,8 @@ class LocalField(Step):
         'initial_external': {},
         'nonspatial': False,
         'bin_volume': 1e-6 * units.L,
+        'n_bins': [1, 1],
+        'bounds': [1, 1] * units.um,
     }
 
     def __init__(self, parameters=None):
@@ -37,7 +39,10 @@ class LocalField(Step):
                 }
             },
             'location': {
-                '_default': [0.5, 0.5]
+                '_default': [
+                    0.5 * bound
+                    for bound in self.parameters['bounds']
+                ],
             },
             'fields': {
                 '*': {
@@ -46,19 +51,19 @@ class LocalField(Step):
             },
             'dimensions': {
                 'bounds': {
-                    '_default': [1, 1],
+                    '_default': self.parameters['bounds'],
                 },
                 'n_bins': {
-                    '_default': [1, 1],
+                    '_default': self.parameters['n_bins'],
                 },
                 'depth': {
-                    '_default': 1,
+                    '_default': 1 * units.um,
                 },
             }
         }
 
     def next_update(self, timestep, states):
-        location = remove_units(states['location'])
+        location = states['location']
         n_bins = states['dimensions']['n_bins']
         bounds = states['dimensions']['bounds']
         depth = states['dimensions']['depth']
@@ -69,7 +74,7 @@ class LocalField(Step):
             bin_volume = self.bin_volume
         else:
             bin_site = get_bin_site(location, n_bins, bounds)
-            bin_volume = get_bin_volume(n_bins, bounds, depth) * units.L
+            bin_volume = get_bin_volume(n_bins, bounds, depth)
 
         # apply exchanges
         delta_fields = {}
@@ -106,20 +111,20 @@ def test_local_fields():
     parameters = {}
     local_fields_process = LocalField(parameters)
 
-    bounds = [5, 5]
+    bounds = [5, 5] * units.um
     n_bins = [3, 3]
     initial_state = {
         'exchanges': {
             'A': 20
         },
-        'location': [0.5, 0.5],
+        'location': [0.5, 0.5] * units.um,
         'fields': {
             'A': np.ones((n_bins[0], n_bins[1]), dtype=np.float64)
         },
         'dimensions': {
             'bounds': bounds,
             'n_bins': n_bins,
-            'depth': 1,
+            'depth': 1 * units.um,
         }
     }
 

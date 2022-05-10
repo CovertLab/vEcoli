@@ -13,7 +13,7 @@ class Exchange(Process):
         'default_uptake_rate': 1e-1,
         'default_secrete_rate': 1e-4,
         # calculated in deriver_globals assuming mass = 1000 fg, density = 1100 g/L
-        'mmol_to_counts': 547467.342,  # units.L / units.mmol
+        'mmol_to_counts': 547467.342 * units.L / units.mmol
     }
 
     def __init__(self, parameters=None):
@@ -29,8 +29,8 @@ class Exchange(Process):
 
     def ports_schema(self):
         return {
-            'exchange': {
-                mol_id: {'_default': 0}
+            'exchanges': {
+                mol_id: {'_default': 0, '_updater': 'accumulate'}
                 for mol_id in self.parameters['molecules']},
             'external': {
                 mol_id: {
@@ -54,10 +54,12 @@ class Exchange(Process):
 
         # convert delta concentrations to exchange counts
         # assumes concentrations in mmol/L
-        exchange_counts = {}
+        exchanges_counts = {}
         for molecule, concentration in delta_in.items():
-            exchange_counts[molecule] = -int(concentration * self.parameters['mmol_to_counts'])
+            exchanges_counts[molecule] = -(
+                    concentration * self.parameters['mmol_to_counts']
+            ).to('counts').magnitude
 
         return {
             'internal': delta_in,
-            'exchange': exchange_counts}
+            'exchanges': exchanges_counts}
