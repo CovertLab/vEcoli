@@ -7,9 +7,20 @@ from vivarium.plots.simulation_output import plot_variables
 from vivarium.processes.timeline import TimelineProcess
 
 from ecoli.library.schema import bulk_schema
+from ecoli.processes.registries import topology_registry
+
+# Register default topology for this process, associating it with process name
+NAME = "ecoli-cephaloridine"
+TOPOLOGY = {
+    # TODO
+}
+topology_registry.register(NAME, TOPOLOGY)
 
 
 class CephaloridineAntagonism(Step):
+    name = NAME
+    topology = TOPOLOGY
+
     defaults = {
         "murein_name": "CPD-12261[p]",
         "PBP": {  # penicillin-binding proteins
@@ -52,7 +63,7 @@ class CephaloridineAntagonism(Step):
                 ["incorporated_murein", "unincorporated_murein"]
             ),
             "concentrations": {
-                "cephaloridine": {"_default": 0.0, "_emit": True},
+                "cephaloridine": {"_default": 0.0 * units.micromolar, "_emit": True},
             },
             "bulk": bulk_schema(list(self.parameters["PBP"].values())),
             "listeners": {

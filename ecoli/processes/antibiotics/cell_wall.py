@@ -3,14 +3,12 @@ TODO: references for parameters
 """
 
 import os
-from random import choice
 
 import numpy as np
 from matplotlib import pyplot as plt
 import mpl_toolkits.mplot3d.axes3d as axes3d
 from skimage.transform import resize
 
-from vivarium.core.engine import Engine
 from vivarium.core.process import Process
 from vivarium.library.units import units
 from vivarium.plots.simulation_output import plot_variables
@@ -18,7 +16,7 @@ from vivarium.plots.simulation_output import plot_variables
 from ecoli.library.cell_wall.hole_detection import detect_holes
 from ecoli.library.schema import bulk_schema
 from ecoli.processes.registries import topology_registry
-from vivarium.core.composition import simulate_composite, simulate_process
+from vivarium.core.composition import simulate_process
 
 
 # Register default topology for this process, associating it with process name
@@ -37,12 +35,10 @@ class CellWall(Process):
     defaults = {
         # Molecules
         "murein": "CPD-12261[p]",  # two crosslinked peptidoglycan units
-        "SLT": "",  # TBD
         "PBP": {  # penicillin-binding proteins
             "PBP1A": "CPLX0-7717[i]",  # transglycosylase-transpeptidase ~100
             "PBP1B": "CPLX0-3951[i]",  # transglycosylase-transpeptidase ~100
         },
-        "cephaloridine": "",  # TODO: in concentration
         # Physical parameters
         "critical_radius": 20 * units.nm,
         "cell_radius": 0.25 * units.um,
@@ -97,7 +93,7 @@ class CellWall(Process):
         return schema
 
     def next_update(self, timestep, states):
-        DEBUG = True
+        DEBUG = False
 
         # Unpack states
         length = states["shape"]["length"]

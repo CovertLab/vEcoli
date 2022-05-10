@@ -1,0 +1,20 @@
+{
+    "inherit_from": ["default.json"],
+    "add_processes": ["ecoli-cell-wall", "ecoli-cephaloridine"],
+    "topology": {
+        "ecoli-cell-wall": {
+
+        },
+        "ecoli-cephaloridine": {
+
+        }
+    },
+    "process_configs": {
+        "ecoli-cell-wall": {
+
+        },
+        "ecoli-cephaloridine": {
+
+        }
+    }
+}
