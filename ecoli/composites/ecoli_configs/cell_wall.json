@@ -6,7 +6,7 @@
     "add_processes": ["ecoli-cell-wall", "ecoli-cephaloridine", "ecoli-shape"],
     "topology": {
         "ecoli-cell-wall": {
-            "shape": ["global"],
+            "shape": ["boundary"],
             "bulk_murein": ["bulk"],
             "murein_state": ["murein_state"],
             "PBP": ["bulk"],
@@ -18,7 +18,13 @@
             "concentrations": ["concentrations"],
             "bulk": ["bulk"],
             "listeners": ["listeners"]
-        }
+        },
+        "ecoli-shape": {
+            "cell_global": ["boundary"],
+            "periplasm_global": ["periplasm", "global"],
+            "listener_cell_mass": ["listeners", "mass", "cell_mass"],
+            "listener_cell_volume": ["listeners", "mass", "volume"]
+          }
     },
     "process_configs": {
         "ecoli-cell-wall": {

@@ -126,7 +126,7 @@ class CellWall(Process):
         lattice_cols = states["wall_state"]["lattice_cols"]
 
         # Translate volume into length
-        length = length_from_volume(volume, self.parameters["cell_radius"]*2)
+        length = length_from_volume(volume, self.parameters["cell_radius"]*2).to("micrometer")
 
         update = {}
 
