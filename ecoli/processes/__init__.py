@@ -23,7 +23,8 @@ from ecoli.processes.environment.lysis import Lysis
 from ecoli.processes.environment.local_field import LocalField
 from ecoli.processes.shape import Shape
 from vivarium.processes.timeline import TimelineProcess
-
+from ecoli.processes.antibiotics.cell_wall import CellWall
+from ecoli.processes.antibiotics.cephaloridine_antagonism import CephaloridineAntagonism
 
 
 # add to registry
@@ -47,6 +48,8 @@ process_registry.register(MonomerCounts.name, MonomerCounts)
 process_registry.register(ChromosomeStructure.name, ChromosomeStructure)
 process_registry.register(Allocator.name, Allocator)
 process_registry.register(Shape.name, Shape)
+process_registry.register(CellWall.name, CellWall)
+process_registry.register(CephaloridineAntagonism.name, CephaloridineAntagonism)
 
 # environment processes
 process_registry.register(Lysis.name, Lysis)
