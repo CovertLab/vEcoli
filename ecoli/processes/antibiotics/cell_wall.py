@@ -17,16 +17,16 @@ from ecoli.library.cell_wall.hole_detection import detect_holes
 from ecoli.library.schema import bulk_schema
 from ecoli.processes.registries import topology_registry
 from vivarium.core.composition import simulate_process
+from ecoli.processes.shape import length_from_volume
 
 
 # Register default topology for this process, associating it with process name
 NAME = "ecoli-cell-wall"
 TOPOLOGY = {
-    "shape": ("shape",),
+    "shape": ("global",),
     "bulk_murein": ("bulk",),
     "murein_state": ("murein_state",),
     "PBP": ("bulk",),
-    "shape": ("shape",),
     "wall_state": ("wall_state")
 }
 topology_registry.register(NAME, TOPOLOGY)
@@ -81,7 +81,7 @@ class CellWall(Process):
                 },
             },
             "PBP": bulk_schema(self.parameters["PBP"].values()),
-            "shape": {"length": {"_default": 0 * units.um, "_emit": True}},
+            "shape": {"volume": {"_default": 0 * units.fL, "_emit": True}},
             "wall_state": {
                 "lattice": {
                     "_default": np.array([], dtype=int),
@@ -96,20 +96,43 @@ class CellWall(Process):
 
         return schema
 
+    def initial_state(self, config=None):
+        # TODO: better system for initial state - 
+        # work this into the state file?
+        # Need to incorporate shape process...
+        initial_state = {
+            "murein_state": {
+                "free_murein": 0,
+                "incorporated_murein": 12  # config["initial_murein"]
+            },
+            "shape": {
+                "volume": 1 * units.fL
+            },
+            "wall_state": {
+                "lattice": np.ones((1525, 1)),
+                "lattice_rows": 1525,
+                "lattice_cols": 1,
+            }
+        }
+        return initial_state
+
     def next_update(self, timestep, states):
         DEBUG = False
 
         # Unpack states
-        length = states["shape"]["length"]
+        volume = states["shape"]["volume"]
         lattice = states["wall_state"]["lattice"]
         lattice_rows = states["wall_state"]["lattice_rows"]
         lattice_cols = states["wall_state"]["lattice_cols"]
+
+        # Translate volume into length
+        length = length_from_volume(volume, self.parameters["cell_radius"]*2)
 
         update = {}
 
         if DEBUG:
             # states['bulk_murein'][self.murein] = 3000000
-            update["shape"] = {"length": 0.1 * units.um}
+            update["shape"] = {"volume": 0.1 * units.fL}
             assert (
                 states["bulk_murein"][self.murein]
                 == states["murein_state"]["free_murein"]
@@ -300,7 +323,7 @@ def main():
         "total_time": 10,
         "initial_state": {
             "bulk_murein": {"CPD-12261[p]": int(3e6)},
-            "shape": {"length": 2 * units.um},
+            "volume": 1 * units.fL,
             "murein_state": {"free_murein": 0, "incorporated_murein": 3000000},
             "wall_state": {
                 "lattice_rows": 1525,
@@ -344,7 +367,6 @@ def main():
         variables=[
             ("murein_state", "free_murein"),
             ("murein_state", "incorporated_murein"),
-            # ("shape", "length"),
             ("wall_state", "lattice_rows"),
             ("wall_state", "lattice_cols"),
         ],
