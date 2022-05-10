@@ -3,10 +3,18 @@
     "add_processes": ["ecoli-cell-wall", "ecoli-cephaloridine"],
     "topology": {
         "ecoli-cell-wall": {
-
+            "shape": ["shape"],
+            "bulk_murein": ["bulk"],
+            "murein_state": ["murein_state"],
+            "PBP": ["bulk"],
+            "wall_state": ["wall_state"]
         },
         "ecoli-cephaloridine": {
-
+            "total_murein": ["bulk"],
+            "murein_state": ["murein_state"],
+            "concentrations": ["concentrations"],
+            "bulk": ["bulk"],
+            "listeners": ["listeners"]
         }
     },
     "process_configs": {

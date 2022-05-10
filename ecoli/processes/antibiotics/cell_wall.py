@@ -24,6 +24,10 @@ NAME = "ecoli-cell-wall"
 TOPOLOGY = {
     "shape": ("shape",),
     "bulk_murein": ("bulk",),
+    "murein_state": ("murein_state",),
+    "PBP": ("bulk",),
+    "shape": ("shape",),
+    "wall_state": ("wall_state")
 }
 topology_registry.register(NAME, TOPOLOGY)
 
@@ -159,7 +163,7 @@ class CellWall(Process):
 
         # Calculate new lattice size
         columns = int(
-            cell_length
+            cell_length.to("nm")
             / (
                 self.parameters["crossbridge_length"]
                 + self.parameters["disaccharide_length"]

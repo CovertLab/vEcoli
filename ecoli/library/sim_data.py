@@ -629,54 +629,58 @@ class LoadSimData:
         return chromosome_structure_config
 
     def get_cell_wall_config(self, time_step=2, parallel=False):
-        cell_wall_config = {
-            'time_step': time_step,
-            '_parallel': parallel,
+        # cell_wall_config = {
+        #     'time_step': time_step,
+        #     '_parallel': parallel,
 
-            # Molecules
-            "murein": "CPD-12261[p]",  # two crosslinked peptidoglycan units
-            "PBP": {  # penicillin-binding proteins
-                "PBP1A": "CPLX0-7717[i]",  # transglycosylase-transpeptidase ~100
-                "PBP1B": "CPLX0-3951[i]",  # transglycosylase-transpeptidase ~100
-            },
-            # Physical parameters
-            "critical_radius": 20 * units.nm,
-            "cell_radius": 0.25 * units.um,
-            # 4.1 in maximally stretched configuration,
-            "disaccharide_length": 1.03 * units.nm,
-            # divided by 3 because the sacculus can be stretched threefold
-            "crossbridge_length": 4.1 * units.nm / 3,
-            "peptidoglycan_unit_area": 4 * units.nm**2,  # replace with precise literature value
-            # Simulation parameters
-            "seed": 0
-        }
-        return cell_wall_config
+        #     # Molecules
+        #     "murein": "CPD-12261[p]",  # two crosslinked peptidoglycan units
+        #     "PBP": {  # penicillin-binding proteins
+        #         "PBP1A": "CPLX0-7717[i]",  # transglycosylase-transpeptidase ~100
+        #         "PBP1B": "CPLX0-3951[i]",  # transglycosylase-transpeptidase ~100
+        #     },
+        #     # Physical parameters
+        #     "critical_radius": 20 * units.nm,
+        #     "cell_radius": 0.25 * units.um,
+        #     # 4.1 in maximally stretched configuration,
+        #     "disaccharide_length": 1.03 * units.nm,
+        #     # divided by 3 because the sacculus can be stretched threefold
+        #     "crossbridge_length": 4.1 * units.nm / 3,
+        #     "peptidoglycan_unit_area": 4 * units.nm**2,  # replace with precise literature value
+        #     # Simulation parameters
+        #     "seed": 0
+        # }
+        # return cell_wall_config
+
+        # TODO: incompatible units package?
+        return {}
 
     def get_cephaloridine_antagonism_config(self, time_step=2, parallel=False):
-        cephaloridine_antagonism_config = {
-            'time_step': time_step,
-            '_parallel': parallel,
+        # cephaloridine_antagonism_config = {
+        #     'time_step': time_step,
+        #     '_parallel': parallel,
 
-            "murein_name": "CPD-12261[p]",
-            "PBP": {  # penicillin-binding proteins
-                "PBP1A": "CPLX0-7717[i]",  # transglycosylase-transpeptidase ~100
-                "PBP1B": "CPLX0-3951[i]",  # transglycosylase-transpeptidase ~100
-            },
-            "kinetic_params": {
-                "K_A": {
-                    # From Fontana et al. 2000
-                    #
-                    # PBP1A: 0.25 ug / mL
-                    # PBP1B: 2.5 ug / mL
-                    #
-                    # converted to molar units using molar mass of cephaloridine = 415.488 g/mol
-                    "PBP1A": 0.6017020948860136 * units.micromolar,
-                    "PBP1B": 6.017020948860137 * units.micromolar,
-                },
-                "Hill_n": {
-                    "PBP1A": 1,
-                    "PBP1B": 1,
-                },
-            }
-        }
-        return cephaloridine_antagonism_config
+        #     "murein_name": "CPD-12261[p]",
+        #     "PBP": {  # penicillin-binding proteins
+        #         "PBP1A": "CPLX0-7717[i]",  # transglycosylase-transpeptidase ~100
+        #         "PBP1B": "CPLX0-3951[i]",  # transglycosylase-transpeptidase ~100
+        #     },
+        #     "kinetic_params": {
+        #         "K_A": {
+        #             # From Fontana et al. 2000
+        #             #
+        #             # PBP1A: 0.25 ug / mL
+        #             # PBP1B: 2.5 ug / mL
+        #             #
+        #             # converted to molar units using molar mass of cephaloridine = 415.488 g/mol
+        #             "PBP1A": 0.6017020948860136 * units.micromolar,
+        #             "PBP1B": 6.017020948860137 * units.micromolar,
+        #         },
+        #         "Hill_n": {
+        #             "PBP1A": 1,
+        #             "PBP1B": 1,
+        #         },
+        #     }
+        # }
+        # return cephaloridine_antagonism_config
+        return {}
