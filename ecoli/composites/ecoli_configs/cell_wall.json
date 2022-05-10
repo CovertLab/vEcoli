@@ -1,9 +1,12 @@
 {
     "inherit_from": ["default.json"],
-    "add_processes": ["ecoli-cell-wall", "ecoli-cephaloridine"],
+
+    "initial_state_file": "wcecoli_t0_reduced_murein",
+
+    "add_processes": ["ecoli-cell-wall", "ecoli-cephaloridine", "ecoli-shape"],
     "topology": {
         "ecoli-cell-wall": {
-            "shape": ["shape"],
+            "shape": ["global"],
             "bulk_murein": ["bulk"],
             "murein_state": ["murein_state"],
             "PBP": ["bulk"],
@@ -23,6 +26,15 @@
         },
         "ecoli-cephaloridine": {
 
+        },
+        "ecoli-shape": {
+            "global": {
+              "_path": "boundary",
+              "volume": ["..", "listeners", "mass", "volume"]
+            }
+        },
+        "ecoli-metabolism": {
+            "reduce_murein_objective" : true
         }
     }
 }

@@ -653,7 +653,8 @@ class LoadSimData:
         # return cell_wall_config
 
         # TODO: incompatible units package?
-        return {}
+        # - better solution for initial state?
+        return {}#{"initial_murein": 401871}
 
     def get_cephaloridine_antagonism_config(self, time_step=2, parallel=False):
         # cephaloridine_antagonism_config = {
