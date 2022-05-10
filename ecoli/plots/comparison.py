@@ -4,10 +4,20 @@ import os
 from matplotlib import pyplot as plt
 from matplotlib.ticker import FormatStrFormatter
 import numpy as np
+from scipy import constants
 
 from wholecell.utils import units
 
-from ecoli.processes.mass import mass_from_counts_array
+AVOGADRO = constants.N_A #* 1 / units.mol
+
+
+def mass_from_count(count, mw):
+    mol = count / AVOGADRO
+    return mw * mol
+
+
+def mass_from_counts_array(counts, mw):
+    return np.array([mass_from_count(count, mw) for count in counts])
 
 
 def mrna_scatter_comparison(data, config, out_dir='out'):

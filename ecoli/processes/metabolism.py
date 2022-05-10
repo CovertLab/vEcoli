@@ -13,22 +13,20 @@ NOTE:
 and internal states have been updated (deriver-like, no partitioning necessary)
 """
 
+from typing import Tuple
 
 import numpy as np
 from scipy.sparse import csr_matrix
-from typing import Tuple
-
+from six.moves import zip
 from vivarium.core.process import Step
 
+from ecoli.processes.registries import topology_registry
+from ecoli.processes.partition import check_whether_evolvers_have_run
+from ecoli.library.convert_update import convert_numpy_to_builtins
 from ecoli.library.schema import bulk_schema, array_from
-
 from wholecell.utils import units
 from wholecell.utils.random import stochasticRound
 from wholecell.utils.modular_fba import FluxBalanceAnalysis
-from six.moves import zip
-
-from ecoli.processes.registries import topology_registry
-from ecoli.library.convert_update import convert_numpy_to_builtins
 
 
 # Register default topology for this process, associating it with process name
@@ -43,7 +41,8 @@ TOPOLOGY = {
         "environment": ("environment",),
         "polypeptide_elongation": ("process_state", "polypeptide_elongation"),
         # Non-partitioned count
-        "amino_acids_total": ("bulk",)
+        "amino_acids_total": ("bulk",),
+        "evolvers_ran": ('evolvers_ran',),
     }
 topology_registry.register(NAME, TOPOLOGY)
 
@@ -122,9 +121,8 @@ class Metabolism(Step):
         self.linked_metabolites = self.parameters['linked_metabolites']
         doubling_time = self.nutrientToDoublingTime.get(
             self.media_id,
-            self.nutrientToDoublingTime['minimal'])
-        update_molecules = list(
-            self.model.getBiomassAsConcentrations(doubling_time).keys())
+            self.nutrientToDoublingTime[self.media_id],)
+        update_molecules = list(self.model.getBiomassAsConcentrations(doubling_time).keys())
         if self.use_trna_charging:
             update_molecules += [
                 aa for aa in self.aa_names if aa not in self.aa_targets_not_updated]
@@ -149,7 +147,7 @@ class Metabolism(Step):
         self.__init__(state)
 
     def ports_schema(self):
-        return {
+        ports = {
             'metabolites': bulk_schema(self.model.metaboliteNamesFromNutrients),
             'catalysts': bulk_schema(self.model.catalyst_ids),
             'kinetics_enzymes': bulk_schema(self.model.kinetic_constraint_enzymes),
@@ -166,7 +164,7 @@ class Metabolism(Step):
                     for element in self.model.fba.getExternalMoleculeIDs()},
                 'exchange_data': {
                     'unconstrained': {'_default': []},
-                    'constrained': {'_default': []}}},
+                    'constrained': {'_default': []}}}, # this is only GLC[p].
 
             'listeners': {
                 'mass': {
@@ -193,7 +191,13 @@ class Metabolism(Step):
                     'reducedCosts': {'_default': [], '_updater': 'set'},
                     'targetConcentrations': {'_default': [], '_updater': 'set'},
                     'homeostaticObjectiveValues': {'_default': [], '_updater': 'set'},
-                    'kineticObjectiveValues': {'_default': [], '_updater': 'set'}},
+                    'kineticObjectiveValues': {'_default': [], '_updater': 'set'},
+
+                    'estimated_fluxes': {'_default': {}, '_updater': 'set', '_emit': True},
+                    'estimated_dmdt': {'_default': {}, '_updater': 'set', '_emit': True},
+                    'target_dmdt': {'_default': {}, '_updater': 'set', '_emit': True},
+                    'estimated_exchange_dmdt': {'_default': {}, '_updater': 'set', '_emit': True},
+                },
 
                 'enzyme_kinetics': {
                     'metaboliteCountsInit': {'_default': 0, '_updater': 'set'},
@@ -213,7 +217,17 @@ class Metabolism(Step):
                 'gtp_to_hydrolyze': {
                     '_default': 0,
                     '_emit': True,
-                    '_divider': 'zero'}}}
+                    '_divider': 'zero',
+                },
+            },
+            'evolvers_ran': {'_default': True},
+        }
+
+        return ports
+
+    def update_condition(self, timestep, states):
+        return check_whether_evolvers_have_run(
+            states['evolvers_ran'], self.name)
 
     def next_update(self, timestep, states):
         # Skip t=0 if a deriver
@@ -247,9 +261,8 @@ class Metabolism(Step):
         # Coefficient to convert between flux (mol/g DCW/hr) basis and concentration (M) basis
         coefficient = dry_mass / cell_mass * self.cellDensity * timestep * units.s
 
-        # Determine updates to concentrations depending on the current state
-        doubling_time = self.nutrientToDoublingTime.get(
-            current_media_id, self.nutrientToDoublingTime['minimal'])
+        ## Determine updates to concentrations depending on the current state
+        doubling_time = self.nutrientToDoublingTime.get(current_media_id, self.nutrientToDoublingTime[self.media_id])
         conc_updates = self.model.getBiomassAsConcentrations(doubling_time)
         if self.use_trna_charging:
             conc_updates.update(self.update_amino_acid_targets(
@@ -303,6 +316,15 @@ class Metabolism(Step):
         unconstrained, constrained, uptake_constraints = self.get_import_constraints(
             unconstrained, constrained, GDCW_BASIS)
 
+        # used for comparing target and estimate between GD-FBA and LP-FBA
+        objective_counts = {key: int((self.model.homeostatic_objective[key] / counts_to_molar).asNumber())
+                            - int(states['metabolites'][key]) for key in fba.getHomeostaticTargetMolecules()}
+
+        fluxes = fba.getReactionFluxes() / timestep
+        names = fba.getReactionIDs()
+
+        flux_dict = {names[i]: fluxes[i] for i in range(len(names))}
+
         update = {
             'metabolites': {
                 metabolite: delta_metabolites_final[index]
@@ -333,7 +355,15 @@ class Metabolism(Step):
                         self.model.homeostatic_objective[mol]
                         for mol in fba.getHomeostaticTargetMolecules()],
                     'homeostaticObjectiveValues': fba.getHomeostaticObjectiveValues(),
-                    'kineticObjectiveValues': fba.getKineticObjectiveValues()},
+                    'kineticObjectiveValues': fba.getKineticObjectiveValues(),
+
+                    'estimated_fluxes': flux_dict ,
+                    'estimated_dmdt': {metabolite: delta_metabolites_final[index]
+                                       for index, metabolite in enumerate(self.model.metaboliteNamesFromNutrients)},
+                    'target_dmdt': objective_counts,
+                    'estimated_exchange_dmdt': {molecule: delta_nutrients[index]
+                                                for index, molecule in enumerate(fba.getExternalMoleculeIDs())},
+                },
 
                 'enzyme_kinetics': {
                     'metaboliteCountsInit': metabolite_counts_init,
@@ -719,7 +749,8 @@ def test_metabolism_listener():
     sim = EcoliSim.from_file()
     sim.total_time = 2
     sim.raw_output = False
-    data = sim.run()
+    sim.run()
+    data = sim.query()
     assert(type(data['listeners']['fba_results']['reactionFluxes'][0]) == list)
     assert(type(data['listeners']['fba_results']['reactionFluxes'][1]) == list)
 

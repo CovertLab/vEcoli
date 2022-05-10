@@ -16,7 +16,6 @@ from vivarium.plots.agents_multigen import plot_agents_multigen
 from ecoli.composites.environment.lattice import (
     Lattice, make_lattice_config)
 from ecoli.processes.environment.derive_globals import DeriveGlobals
-from ecoli.processes.environment.local_field import LocalField
 from ecoli.plots.snapshots import plot_snapshots
 
 from ecoli.composites.antibiotics_simple import SimpleAntibioticsCell
@@ -25,7 +24,7 @@ from ecoli.composites.antibiotics_simple import SimpleAntibioticsCell
 class GrowDivideAntibioticsCell(SimpleAntibioticsCell):
 
     defaults = copy.deepcopy(SimpleAntibioticsCell.defaults)
-    deep_merge(defaults, {
+    defaults = deep_merge(defaults, {
         'agent_id': 'agent',
         'boundary_path': ('boundary',),
         'agents_path': ('..', '..', 'agents'),
@@ -38,9 +37,6 @@ class GrowDivideAntibioticsCell(SimpleAntibioticsCell):
         },
         'divide_condition': {
             'threshold': 1339 * 2 * units.fg,
-        },
-        'local_field': {
-            'time_step': 0.1,
         },
         'daughter_path': tuple(),
     })
@@ -60,7 +56,6 @@ class GrowDivideAntibioticsCell(SimpleAntibioticsCell):
             'globals_deriver': DeriveGlobals(),
             'divide_condition': DivideCondition(config['divide_condition']),
             'division': MetaDivision(division_config),
-            'local_field': LocalField(config['local_field']),
         }
         assert set(processes) & set(added_processes) == set()
         processes.update(added_processes)
@@ -86,12 +81,6 @@ class GrowDivideAntibioticsCell(SimpleAntibioticsCell):
                 'global': boundary_path,
                 'agents': config['agents_path'],
             },
-            'local_field': {
-                'exchanges': boundary_path + ('exchanges',),
-                'location': boundary_path + ('location',),
-                'fields': config['fields_path'],
-                'dimensions': config['dimensions_path'],
-            }
         }
         assert set(topology) & set(added_topology) == set()
         topology.update(added_topology)
@@ -155,3 +144,8 @@ def demo():
     )
 
     return topology_fig, multigen_fig, snapshots_fig
+
+
+# python ecoli/composites/antibiotics_grow.py
+if __name__ == '__main__':
+    demo()

@@ -115,6 +115,12 @@ def test_division(
                 len(daughter_states[1]['unique'][key]),
                 custom_threshold=0.1))
 
+    # Assert that no RNA is in both daughters.
+    daughter1_rnas = daughter_states[0]['unique']['RNA'].keys()
+    daughter2_rnas = daughter_states[1]['unique']['RNA'].keys()
+    mother_rnas = mother_state['unique']['RNA'].keys()
+    assert not daughter1_rnas & daughter2_rnas
+
     # asserts
     final_agents = output[total_time]['agents'].keys()
     print(f"initial agent id: {agent_id}")
@@ -199,9 +205,9 @@ def test_lattice_lysis(plot=False):
     TODO: connect glucose! through local_field
     """
     sim = EcoliSim.from_file(CONFIG_DIR_PATH + 'lysis.json')
-    # sim = EcoliSim.from_file(CONFIG_DIR_PATH + 'spatial.json')
     sim.total_time = 60
-    data = sim.run()
+    sim.run()
+    data = sim.query()
 
     if plot:
         plot_spatial_snapshots(data, sim, experiment_dir='ecoli_lysis')

@@ -11,8 +11,8 @@ from ecoli.processes.two_component_system import TwoComponentSystem
 from ecoli.processes.equilibrium import Equilibrium
 from ecoli.processes.protein_degradation import ProteinDegradation
 from ecoli.processes.metabolism import Metabolism
+from ecoli.processes.metabolism_gd import MetabolismGD
 from ecoli.processes.chromosome_replication import ChromosomeReplication
-from ecoli.processes.mass import Mass
 from ecoli.processes.stubs.exchange_stub import Exchange
 from ecoli.processes.listeners.mass_listener import MassListener
 from ecoli.processes.listeners.mRNA_counts import mRNACounts
@@ -21,10 +21,19 @@ from ecoli.processes.chromosome_structure import ChromosomeStructure
 from ecoli.processes.allocator import Allocator
 from ecoli.processes.environment.lysis import Lysis
 from ecoli.processes.environment.local_field import LocalField
+from ecoli.processes.environment.field_timeline import FieldTimeline
 from ecoli.processes.shape import Shape
+<<<<<<< HEAD
 from vivarium.processes.timeline import TimelineProcess
 from ecoli.processes.antibiotics.cell_wall import CellWall
 from ecoli.processes.antibiotics.cephaloridine_antagonism import CephaloridineAntagonism
+=======
+from ecoli.processes.concentrations_deriver import ConcentrationsDeriver
+from ecoli.processes.antibiotics.death import DeathFreezeState
+from ecoli.processes.antibiotics.exchange_aware_bioscrape import (
+    ExchangeAwareBioscrape)
+from ecoli.processes.antibiotics.permeability import Permeability
+>>>>>>> master
 
 
 # add to registry
@@ -39,8 +48,8 @@ process_registry.register(TwoComponentSystem.name, TwoComponentSystem)
 process_registry.register(Equilibrium.name, Equilibrium)
 process_registry.register(ProteinDegradation.name, ProteinDegradation)
 process_registry.register(Metabolism.name, Metabolism)
+process_registry.register(MetabolismGD.name, MetabolismGD)
 process_registry.register(ChromosomeReplication.name, ChromosomeReplication)
-process_registry.register(Mass.name, Mass)
 process_registry.register(MassListener.name, MassListener)
 process_registry.register(Exchange.name, Exchange)
 process_registry.register(mRNACounts.name, mRNACounts)
@@ -48,12 +57,23 @@ process_registry.register(MonomerCounts.name, MonomerCounts)
 process_registry.register(ChromosomeStructure.name, ChromosomeStructure)
 process_registry.register(Allocator.name, Allocator)
 process_registry.register(Shape.name, Shape)
+<<<<<<< HEAD
 process_registry.register(CellWall.name, CellWall)
 process_registry.register(CephaloridineAntagonism.name, CephaloridineAntagonism)
+=======
+process_registry.register(ConcentrationsDeriver.name,
+    ConcentrationsDeriver)
+>>>>>>> master
 
 # environment processes
 process_registry.register(Lysis.name, Lysis)
 process_registry.register(LocalField.name, LocalField)
+process_registry.register(FieldTimeline.name, FieldTimeline)
 
-# auxiliary processes
-process_registry.register('timeline', TimelineProcess)
+# antibiotic processes
+process_registry.register(DeathFreezeState.name, DeathFreezeState)
+process_registry.register(
+    ExchangeAwareBioscrape.name, ExchangeAwareBioscrape)
+process_registry.register(
+    Permeability.name, Permeability
+)

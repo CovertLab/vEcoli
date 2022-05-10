@@ -44,6 +44,10 @@ Then install the remaining requirements:
     $ pip install -r requirements.txt 
     $ python setup.py install
 
+And build the Cython components
+
+    $ make clean compile
+
 ## Conda install
 
 To install using conda (first line creates a conda environment with numpy and Cython, the second activates the environment and the third installs WCM and remaining dependencies).
