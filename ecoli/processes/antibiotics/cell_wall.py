@@ -23,11 +23,11 @@ from ecoli.processes.shape import length_from_volume
 # Register default topology for this process, associating it with process name
 NAME = "ecoli-cell-wall"
 TOPOLOGY = {
-    "shape": ("global",),
+    "shape": ("cell_global",),
     "bulk_murein": ("bulk",),
     "murein_state": ("murein_state",),
     "PBP": ("bulk",),
-    "wall_state": ("wall_state")
+    "wall_state": ("wall_state"),
 }
 topology_registry.register(NAME, TOPOLOGY)
 
@@ -62,9 +62,14 @@ class CellWall(Process):
         # Get murein id and keep track of murein from last timestep
         self.murein = self.parameters["murein"]
 
-        self.critical_radius = 20 * units.nm
+        self.cell_radius = self.parameters["cell_radius"]
+        self.critical_radius = self.parameters["critical_radius"]
         self.critical_area = np.pi * self.critical_radius**2
+        self.circumference = 2 * np.pi * self.cell_radius
+
         self.peptidoglycan_unit_area = self.parameters["peptidoglycan_unit_area"]
+        self.disaccharide_length = self.parameters["disaccharide_length"]
+        self.crossbridge_length = self.parameters["crossbridge_length"]
 
         # Create pseudorandom number generator
         self.rng = np.random.default_rng(self.parameters["seed"])
@@ -97,22 +102,17 @@ class CellWall(Process):
         return schema
 
     def initial_state(self, config=None):
-        # TODO: better system for initial state - 
+        # TODO: better system for initial state -
         # work this into the state file?
         # Need to incorporate shape process...
         initial_state = {
-            "murein_state": {
-                "free_murein": 0,
-                "incorporated_murein": 12  # config["initial_murein"]
-            },
-            "shape": {
-                "volume": 1 * units.fL
-            },
+            "murein_state": {"free_murein": 0, "incorporated_murein": 401871},
+            "shape": {"volume": 1 * units.fL},
             "wall_state": {
                 "lattice": np.ones((1525, 1)),
                 "lattice_rows": 1525,
                 "lattice_cols": 1,
-            }
+            },
         }
         return initial_state
 
@@ -126,7 +126,7 @@ class CellWall(Process):
         lattice_cols = states["wall_state"]["lattice_cols"]
 
         # Translate volume into length
-        length = length_from_volume(volume, self.parameters["cell_radius"]*2).to("micrometer")
+        length = length_from_volume(volume, self.cell_radius * 2).to("micrometer")
 
         update = {}
 
@@ -142,7 +142,7 @@ class CellWall(Process):
         # Expand lattice size if necessary, depending on cell size
         print("resizing lattice")
         lattice, rows, columns = self.resize_lattice(
-            length, self.parameters["cell_radius"], lattice, lattice_rows, lattice_cols
+            length, lattice, lattice_rows, lattice_cols
         )
 
         # Cell wall construction/destruction
@@ -180,20 +180,19 @@ class CellWall(Process):
 
         return update
 
-    def resize_lattice(
-        self, cell_length, cell_radius, lattice, prev_rows=0, prev_cols=0
-    ):
-
+    def calculate_lattice_size(self, cell_length):
         # Calculate new lattice size
         columns = int(
-            cell_length.to("nm")
-            / (
-                self.parameters["crossbridge_length"]
-                + self.parameters["disaccharide_length"]
-            )
+            cell_length / (self.crossbridge_length + self.disaccharide_length)
         )
-        self.circumference = 2 * np.pi * cell_radius
-        rows = int(self.circumference / self.parameters["disaccharide_length"])
+
+        rows = int(self.circumference / self.disaccharide_length)
+
+        return rows, columns
+
+    def resize_lattice(self, cell_length, lattice, prev_rows=0, prev_cols=0):
+
+        rows, columns = self.calculate_lattice_size(cell_length)
 
         # Fill in new positions with defects initially
         lattice = np.pad(

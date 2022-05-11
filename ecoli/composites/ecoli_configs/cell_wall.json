@@ -42,5 +42,8 @@
         "ecoli-metabolism": {
             "reduce_murein_objective" : true
         }
-    }
+    },
+    "flow": {
+        "ecoli-shape": [["ecoli-mass-listener"]]
+      }
 }
