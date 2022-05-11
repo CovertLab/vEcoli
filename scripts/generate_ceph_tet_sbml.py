@@ -40,6 +40,7 @@ CEPH_BETA_LACTAMASE_KM = 170e-3  # mM
 # Cephaloridine default permeability = ompF permeability + ompC
 # permeability (Nikaido, 1983)
 DEFAULT_CEPH_OUTER_PERM = 52.6e-5 + 4.5e-5  # cm/sec
+CEPH_EXPORT_N = 1.75
 
 # Calculated by dividing V_max estimated in (Thanassi et al., 1995) by
 # the model's initial pump concentration of 0.000675 mM.
@@ -103,7 +104,7 @@ def main() -> None:
         'ceph_export_kcat', CEPH_PUMP_KCAT)  # Hz
     ceph_export_km = ParameterEntry(
         'ceph_export_km', CEPH_PUMP_KM)  # mM
-    ceph_export_n = ParameterEntry('ceph_export_n', 1.75)
+    ceph_export_n = ParameterEntry('ceph_export_n', CEPH_EXPORT_N)
 
     tet_export_kcat = ParameterEntry(
         'tet_export_kcat', TET_PUMP_KCAT)  #Hz
