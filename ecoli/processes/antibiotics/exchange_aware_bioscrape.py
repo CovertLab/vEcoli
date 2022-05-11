@@ -15,6 +15,7 @@ from bioscrape.simulator import (
 from bioscrape.types import Model
 import numpy as np
 from scipy.constants import N_A
+from scipy.integrate import odeint
 from vivarium.core.process import Process
 from vivarium.library.units import units, Quantity
 
@@ -389,12 +390,32 @@ class ExchangeAwareBioscrape(Process):
 
         return new_state
 
+    @staticmethod
+    def _derivative(state, t, simulator):
+        assert simulator.py_get_number_of_rules() == 0
+        derivative = np.empty(simulator.py_get_num_species(),)  # Buffer
+        # NOTE: This uses global variables declared in bioscrape.
+        simulator.py_calculate_deterministic_derivative(
+            state, derivative, t)
+        return derivative
+
     def _bioscrape_update(self, timestep, state):
         self.model.set_species(state['species'])
+        self.interface.py_set_initial_state(self.model.get_species_array())
         self.model.set_params(state['rates'])
-        output = self.simulator.py_simulate(
-            self.interface, np.array([0, timestep]))
-        bioscrape_final = output.py_get_result()[-1]
+
+        result = odeint(
+            self._derivative,
+            self.model.get_species_array(),
+            np.array([0, timestep]),
+            atol=1e-8,
+            rtol=1e-8,
+            mxstep=500,
+            hmax=0.01,
+            args=(self.interface,),
+        )
+
+        bioscrape_final = result[-1]
         vivarium_final = species_array_to_dict(
             bioscrape_final, self.model.get_species2index())
         species_delta = get_delta(state['species'], vivarium_final)
