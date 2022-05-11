@@ -16,6 +16,8 @@ from bioscrape.types import Model
 import numpy as np
 from scipy.constants import N_A
 from scipy.integrate import odeint
+from scipy.linalg import lstsq
+from scipy.optimize import root
 from vivarium.core.process import Process
 from vivarium.library.units import units, Quantity
 
@@ -119,6 +121,7 @@ class ExchangeAwareBioscrape(Process):
         'units_map': {},
         'species_units_conc': units.mM,
         'species_units_count': units.mmol,
+        'equilibrium_species': tuple(),
     }
 
     def __init__(self, parameters=None):
@@ -152,6 +155,12 @@ class ExchangeAwareBioscrape(Process):
           structure, with variables mapped to the expected unit. The
           conversion to these units happens before units are stripped
           and the magnitudes are passed to Bioscrape.
+        * ``equilibrium_species``: Sequence of species that should
+          essentially reach equilibrium in every timestep. The process
+          works by determining what fluxes are needed to get these
+          species to equilibrium then using those fluxes to determine
+          the updates for species that don't reach equilibrium. These
+          should be specified by their bioscrape names.
         '''
         super().__init__(parameters)
 
@@ -391,31 +400,116 @@ class ExchangeAwareBioscrape(Process):
         return new_state
 
     @staticmethod
-    def _derivative(state, t, simulator):
-        assert simulator.py_get_number_of_rules() == 0
-        derivative = np.empty(simulator.py_get_num_species(),)  # Buffer
+    def _compute_stoichiometry_loss(
+            reactions, derivatives, species_to_index):
+        '''Compute loss for the deviation of deltas from stoichiometry.
+
+        For example, suppose we have the following reactions:
+
+        .. code-block:: text
+
+            (rxn 1) A  -> B
+            (rxn 2) 2B -> A
+
+        Then we can write a stoichiometry matrix **N**:
+
+        .. code-block:: text
+
+                 rxn 1    rxn 2
+                +-           -+
+              A | -1       +1 |
+              B | +1       -2 |
+                +-           -+
+
+        Now if we have a derivatives vector **d** of the rates of change
+        of each species, we can solve for a rate vector **v**
+        representing the rates of each reaction needed to produce the
+        rates of change in **d**: **d** = **N** · **v**.
+
+        In this function, we compute **N** given a set of reactions and
+        use least-squares to find the best **v** to produce a provided
+        set of derivatives **d**. We then compute and return the loss as
+        the L1 norm of each component of the difference between **d**
+        and **N** · **v**.
+
+        Args:
+            reactions: Iterable of dictionaries with each dictionary
+                describing a reaction as key-value pairs where the key
+                is a species in the reaction and the value is the
+                coefficient of that species in the reaction.
+            derivatives: Iterable of the derivative for each species
+                across all reactions.
+            species_to_index: Dictionary mapping from species name to
+                that species' index in ``derivatives``.
+        '''
+        N = np.zeros((len(species_to_index), len(reactions)))
+        for i_rxn, reaction in enumerate(reactions):
+            for species, coefficient in reaction.items():
+                i_species = species_to_index[species]
+                assert N[i_species, i_rxn] == 0
+                N[i_species, i_rxn] = coefficient
+        d = np.array(derivatives)
+        v, *_ = lstsq(N, d)
+        return d - N @ v
+
+    def _derivative(self, state, t, interface):
+        assert interface.py_get_number_of_rules() == 0
+
+        derivative = np.empty(interface.py_get_num_species(),)  # Buffer
         # NOTE: This uses global variables declared in bioscrape.
-        simulator.py_calculate_deterministic_derivative(
+        interface.py_calculate_deterministic_derivative(
             state, derivative, t)
+        for species in self.external_species_bioscrape:
+            i = self.model.get_species2index()[species]
+            assert derivative[i] == 0
+
+        penalty = np.zeros_like(derivative)
+
+        # Penalize changes to species that should stay fixed.
+        initial_state = interface.py_get_initial_state()
+        for species in self.external_species_bioscrape:
+            i = self.model.get_species2index()[species]
+            # Set the derivative equal to the deviation of the current
+            # state from the expected (i.e. initial) value. Here we are
+            # acting as if the derivative function were just
+            #   f(x) = x - y0
+            # for initial state y0, so the root is when x = y0.
+            penalty[i] += state[i] - initial_state[i]
+
+        # Penalize stoichiometry errors. This has the added benefit of
+        # keeping the derivatives for non-equilibrium species correct.
+        reactions = tuple(tup[2] for tup in self.model.get_reactions())
+        delta = state - initial_state
+        stoich_loss = self._compute_stoichiometry_loss(
+            reactions, delta, self.model.get_species2index())
+        penalty += stoich_loss
+
+        # Zero-out derivative for variables we don't expect to reach
+        # equilibrium so that these don't affect the solver.
+        for species, i in self.model.get_species2index().items():
+            if species in self.parameters['equilibrium_species']:
+                continue
+            derivative[i] = 0
+
+        # Apply penalties. We do this after zeroing-out non-equilibrium
+        # variables because those variables should still be penalized
+        # for e.g. stoichiometry errors.
+        derivative += penalty
+
         return derivative
 
-    def _bioscrape_update(self, timestep, state):
+    def _bioscrape_update(self, state):
         self.model.set_species(state['species'])
         self.interface.py_set_initial_state(self.model.get_species_array())
         self.model.set_params(state['rates'])
 
-        result = odeint(
-            self._derivative,
+        result = root(
+            lambda y: self._derivative(y, 0, self.interface),
             self.model.get_species_array(),
-            np.array([0, timestep]),
-            atol=1e-8,
-            rtol=1e-8,
-            mxstep=500,
-            hmax=0.01,
-            args=(self.interface,),
         )
+        assert result.success
 
-        bioscrape_final = result[-1]
+        bioscrape_final = result.x
         vivarium_final = species_array_to_dict(
             bioscrape_final, self.model.get_species2index())
         species_delta = get_delta(state['species'], vivarium_final)
@@ -474,7 +568,7 @@ class ExchangeAwareBioscrape(Process):
             prepared_state['species'][species] = count.magnitude
 
         # Compute the update using the bioscrape process.
-        update = self._bioscrape_update(timestep, prepared_state)
+        update = self._bioscrape_update(prepared_state)
 
         # Make sure there are no NANs in the update.
         assert not np.any(np.isnan(list(update['species'].values())))
@@ -539,27 +633,37 @@ def test_exchange_aware_bioscrape():
     b = Species('B')
     species = [a, b, a_delta]
 
-    k = ParameterEntry('k', 1)
+    k1 = ParameterEntry('k1', 1)  # Diffusivity
+    k2 = ParameterEntry('k2', 1)  # Diffusivity
     v = ParameterEntry('v', 1)
 
     initial_concentrations = {
-        a: 10,
-        a_delta: 0,
-        b: 0,
+        a: 10,  # mM
+        a_delta: 0,  # mM
+        b: 0,  # mmol
     }
 
     propensity = GeneralPropensity(
-        f'k * {a} / v',
+        f'k1 * {a}',  # Flux in mmol
         propensity_species=[a],
-        propensity_parameters=[k, v])
+        propensity_parameters=[k1])
     reaction = Reaction(
         inputs=[a_delta],
         outputs=[b],
         propensity_type=propensity,
     )
+    propensity_rev = GeneralPropensity(
+        f'k2 * {b} / v',  # Flux in mmol
+        propensity_species=[b],
+        propensity_parameters=[k2, v])
+    reaction_rev = Reaction(
+        inputs=[b],
+        outputs=[a_delta],
+        propensity_type=propensity_rev,
+    )
     crn = ChemicalReactionNetwork(
         species=species,
-        reactions=[reaction],
+        reactions=[reaction, reaction_rev],
         initial_concentration_dict=initial_concentrations,
     )
     with tempfile.NamedTemporaryFile() as temp_file:
@@ -577,7 +681,8 @@ def test_exchange_aware_bioscrape():
             ),
             'units_map': {
                 'rates': {
-                    'k': 1 / units.sec,
+                    'k1': 1 / units.sec,
+                    'k2': 1 / units.sec,
                     'v': units.L,
                 }
             },
@@ -586,6 +691,7 @@ def test_exchange_aware_bioscrape():
             },
             'species_units_conc': units.mM,
             'species_units_count': units.mmol,
+            'equilibrium_species': ('B',),
         })
 
     schema = proc.get_schema()
@@ -610,7 +716,11 @@ def test_exchange_aware_bioscrape():
             },
         },
         'rates': {
-            'k': {
+            'k1': {
+                '_default': 1 / units.sec,
+                '_updater': 'set',
+            },
+            'k2': {
                 '_default': 1 / units.sec,
                 '_updater': 'set',
             },
@@ -638,25 +748,28 @@ def test_exchange_aware_bioscrape():
             'b': initial_concentrations[b] * units.mM,
         },
         'rates': {
-            'k': 1 / units.sec,
+            'k1': 1 / units.sec,
+            'k2': 1 / units.sec,
             'v': 10 * units.L,
         },
     }
     update = proc.next_update(1, initial_state)
 
     expected_update = {
+        # Update gets us to equilibrium with the fixed environmental
+        # species A.
         'species': {
-            'b': 0.1 * units.mM,
+            'b': 10 * units.mM,
         },
         'delta_species': {
-            'b': 0.1 * units.mM,
+            'b': 10 * units.mM,
         },
         'exchanges': {
             # Exchanges are in units of counts, but the species are in
             # units of mM with a volume of 1L.
             'a': (
-                -1 * units.mM
-                * 1 * units.L
+                -10 * units.mM
+                * initial_state['rates']['v']
                 * AVOGADRO).to(units.count).magnitude,
         },
     }
