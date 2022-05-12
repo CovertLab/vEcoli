@@ -18,6 +18,7 @@ from datetime import datetime
 from typing import Optional, Dict, Any
 
 from vivarium.core.engine import Engine
+from vivarium.core.process import Process
 from vivarium.core.serialize import deserialize_value
 from vivarium.library.dict_utils import deep_merge, deep_merge_combine_lists
 from vivarium.library.topology import assoc_path
@@ -461,8 +462,8 @@ class EcoliSim:
             state = self.ecoli_experiment.state.get_value()
             if self.divide:
                 state = state['agents'][self.agent_id]
-            state_to_save = {key: state[key] for key in
-                             ['listeners', 'bulk', 'unique', 'environment', 'process_state']}
+            state_to_save = {key: state[key] for key in state.keys() if
+                             not (isinstance(state[key], tuple) and isinstance(state[key][0], Process))}
             write_json('data/vivecoli_t' + str(time_elapsed) + '.json', state_to_save)
             print('Finished saving the state at t = ' + str(time_elapsed) + '\n')
         time_remaining = self.total_time - self.save_times[-1]
