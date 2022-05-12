@@ -16,8 +16,8 @@ from bioscrape.types import Model
 import numpy as np
 from scipy.constants import N_A
 from scipy.integrate import odeint
-from scipy.linalg import lstsq
-from scipy.optimize import root
+from scipy.linalg import lstsq, norm
+from scipy.optimize import root, minimize
 from vivarium.core.process import Process
 from vivarium.library.units import units, Quantity
 
@@ -399,6 +399,9 @@ class ExchangeAwareBioscrape(Process):
 
         return new_state
 
+    def _integrate_reactions(self):
+        pass
+
     @staticmethod
     def _compute_stoichiometry_loss(
             reactions, derivatives, species_to_index):
@@ -452,70 +455,153 @@ class ExchangeAwareBioscrape(Process):
         v, *_ = lstsq(N, d)
         return d - N @ v
 
-    def _derivative(self, state, t, interface):
+    @staticmethod
+    def _loss(
+            equilibrium_reaction_rates, timestep, interface,
+            species_to_index, external_species_bioscrape,
+            equilibrium_species, stoich, initial_state,
+            equilibrium_reactions, propensities, params):
         assert interface.py_get_number_of_rules() == 0
 
-        derivative = np.empty(interface.py_get_num_species(),)  # Buffer
+        initial_state = interface.py_get_initial_state()
+        reaction_rates = np.zeros(stoich.shape[1])
+
+        kinetic_reactions = set(
+            range(stoich.shape[1])) - equilibrium_reactions
+        assert len(equilibrium_reactions) == len(
+            equilibrium_reaction_rates)
+        for i, rate in zip(equilibrium_reactions,
+                equilibrium_reaction_rates):
+            assert reaction_rates[i] == 0
+            reaction_rates[i] = rate
+        reaction_rates[list(kinetic_reactions)] = 0
+
+        species_derivatives = stoich @ reaction_rates
+        species_deltas = species_derivatives * timestep
+
+        final_state = initial_state + species_deltas
+
+        derivative = np.empty(len(species_to_index))  # Buffer
         # NOTE: This uses global variables declared in bioscrape.
         interface.py_calculate_deterministic_derivative(
-            state, derivative, t)
-        for species in self.external_species_bioscrape:
-            i = self.model.get_species2index()[species]
+            final_state, derivative, 0)
+        for species in external_species_bioscrape:
+            i = species_to_index[species]
             assert derivative[i] == 0
-
-        penalty = np.zeros_like(derivative)
-
-        # Penalize changes to species that should stay fixed.
-        initial_state = interface.py_get_initial_state()
-        for species in self.external_species_bioscrape:
-            i = self.model.get_species2index()[species]
-            # Set the derivative equal to the deviation of the current
-            # state from the expected (i.e. initial) value. Here we are
-            # acting as if the derivative function were just
-            #   f(x) = x - y0
-            # for initial state y0, so the root is when x = y0.
-            penalty[i] += state[i] - initial_state[i]
-
-        # Penalize stoichiometry errors. This has the added benefit of
-        # keeping the derivatives for non-equilibrium species correct.
-        reactions = tuple(tup[2] for tup in self.model.get_reactions())
-        delta = state - initial_state
-        stoich_loss = self._compute_stoichiometry_loss(
-            reactions, delta, self.model.get_species2index())
-        penalty += stoich_loss
 
         # Zero-out derivative for variables we don't expect to reach
         # equilibrium so that these don't affect the solver.
-        for species, i in self.model.get_species2index().items():
-            if species in self.parameters['equilibrium_species']:
+        for species, i in species_to_index.items():
+            if species in equilibrium_species:
                 continue
             derivative[i] = 0
 
-        # Apply penalties. We do this after zeroing-out non-equilibrium
-        # variables because those variables should still be penalized
-        # for e.g. stoichiometry errors.
-        derivative += penalty
+        # Penalize negative reaction rates.
+        penalty = norm(reaction_rates[reaction_rates < 0])
 
-        return derivative
+        return norm(derivative) + penalty
 
-    def _bioscrape_update(self, state):
+    @staticmethod
+    def _derivative_final(
+            state, t, stoich, propensities, equilibrium_reactions,
+            params):
+        reaction_rates = np.zeros(stoich.shape[1])
+
+        kinetic_reactions = set(
+            range(stoich.shape[1])) - equilibrium_reactions
+        for i in kinetic_reactions:
+            assert reaction_rates[i] == 0
+            reaction_rates[i] = propensities[i].py_get_propensity(
+                state, params)
+        # We are assuming that we have already reached equilibrium, so
+        # the equilibrium reactions do nothing.
+
+        return stoich @ reaction_rates
+
+    def _bioscrape_update(self, state, timestep):
         self.model.set_species(state['species'])
         self.interface.py_set_initial_state(self.model.get_species_array())
         self.model.set_params(state['rates'])
 
-        result = root(
-            lambda y: self._derivative(y, 0, self.interface),
-            self.model.get_species_array(),
+        equilibrium_reactions = set([0])
+
+        reactions = tuple(tup[2] for tup in self.model.get_reactions())
+        initial_rates = np.zeros(len(equilibrium_reactions))
+        species_to_index = self.model.get_species2index()
+        propensities = self.model.get_propensities()
+        params = self.model.get_parameter_values()
+        initial_state = self.interface.py_get_initial_state()
+
+        stoich = np.zeros((len(species_to_index), len(reactions)))
+        for i_rxn, reaction in enumerate(reactions):
+            for species, coefficient in reaction.items():
+                i_species = species_to_index[species]
+                assert stoich[i_species, i_rxn] == 0
+                stoich[i_species, i_rxn] = coefficient
+
+        # Solve for the equilibrium reaction rates.
+        args = (
+            timestep,
+            self.interface,
+            species_to_index,
+            self.external_species_bioscrape,
+            self.parameters['equilibrium_species'],
+            stoich,
+            self.interface.py_get_initial_state(),
+            equilibrium_reactions,
+            propensities,
+            params,
+        )
+        result = minimize(
+            self._loss,
+            initial_rates,
+            args=args,
+            method='Nelder-Mead',
+            options={
+                'fatol': 1e-8,
+            },
         )
         assert result.success
+        equilibrium_reaction_rates = result.x
 
-        bioscrape_final = result.x
-        vivarium_final = species_array_to_dict(
-            bioscrape_final, self.model.get_species2index())
-        species_delta = get_delta(state['species'], vivarium_final)
+        # Simulate the equilibrium reactions at the computed rates.
+        reaction_rates = np.zeros(len(reactions))
+        kinetic_reactions = set(
+            range(stoich.shape[1])) - equilibrium_reactions
+        reaction_rates[list(kinetic_reactions)] = 0
+        assert len(equilibrium_reactions) == len(
+            equilibrium_reaction_rates)
+        for i, rate in zip(equilibrium_reactions,
+                equilibrium_reaction_rates):
+            assert reaction_rates[i] == 0
+            reaction_rates[i] = rate
+
+        equilibrium_derivatives = stoich @ reaction_rates
+        equilibrium_deltas = equilibrium_derivatives * timestep
+        equilibrium_final = initial_state + equilibrium_deltas
+
+        # Simulate the kinetic reactions assuming the equilibrium
+        # reactions have reached equilibrium.
+        species_timepoints = odeint(
+            self._derivative_final,
+            equilibrium_final,
+            np.array([0, timestep]),
+            args=(
+                stoich,
+                propensities,
+                equilibrium_reactions,
+                params,
+            ),
+        )
+
+        # Compute the final update.
+        species_final = species_timepoints[-1]
+        species_deltas = species_final - initial_state
+        deltas_dict = species_array_to_dict(
+            species_deltas, species_to_index)
         return {
-            'species': species_delta,
-            'delta_species': species_delta,
+            'species': deltas_dict,
+            'delta_species': deltas_dict,
         }
 
     def next_update(self, timestep, state):
@@ -568,7 +654,7 @@ class ExchangeAwareBioscrape(Process):
             prepared_state['species'][species] = count.magnitude
 
         # Compute the update using the bioscrape process.
-        update = self._bioscrape_update(prepared_state)
+        update = self._bioscrape_update(prepared_state, timestep)
 
         # Make sure there are no NANs in the update.
         assert not np.any(np.isnan(list(update['species'].values())))
@@ -631,7 +717,8 @@ def test_exchange_aware_bioscrape():
     a = Species('A')
     a_delta = Species('A_delta')
     b = Species('B')
-    species = [a, b, a_delta]
+    c = Species('C')
+    species = [a, b, a_delta, c]
 
     k1 = ParameterEntry('k1', 1)  # Diffusivity
     k2 = ParameterEntry('k2', 1)  # Diffusivity
@@ -641,6 +728,7 @@ def test_exchange_aware_bioscrape():
         a: 10,  # mM
         a_delta: 0,  # mM
         b: 0,  # mmol
+        c: 0,  # mmol
     }
 
     propensity = GeneralPropensity(
@@ -658,7 +746,7 @@ def test_exchange_aware_bioscrape():
         propensity_parameters=[k2, v])
     reaction_rev = Reaction(
         inputs=[b],
-        outputs=[a_delta],
+        outputs=[c],
         propensity_type=propensity_rev,
     )
     crn = ChemicalReactionNetwork(
@@ -678,6 +766,7 @@ def test_exchange_aware_bioscrape():
             'name_map': (
                 (('external', 'a'), str(a)),
                 (('species', 'b'), str(b)),
+                (('species', 'c'), str(c)),
             ),
             'units_map': {
                 'rates': {
@@ -688,6 +777,7 @@ def test_exchange_aware_bioscrape():
             },
             'species_to_convert_to_counts': {
                 'B': 'v',
+                'C': 'v',
             },
             'species_units_conc': units.mM,
             'species_units_count': units.mmol,
@@ -698,6 +788,11 @@ def test_exchange_aware_bioscrape():
     expected_schema = {
         'delta_species': {
             'b': {
+                '_default': 0.0 * units.mM,
+                '_emit': True,
+                '_updater': 'set',
+            },
+            'c': {
                 '_default': 0.0 * units.mM,
                 '_emit': True,
                 '_updater': 'set',
@@ -736,6 +831,12 @@ def test_exchange_aware_bioscrape():
                 '_emit': True,
                 '_updater': 'accumulate',
             },
+            'c': {
+                '_default': 0.0 * units.mM,
+                '_divider': 'set',
+                '_emit': True,
+                '_updater': 'accumulate',
+            },
         },
     }
     assert schema == expected_schema
@@ -746,6 +847,7 @@ def test_exchange_aware_bioscrape():
         },
         'species': {
             'b': initial_concentrations[b] * units.mM,
+            'c': initial_concentrations[c] * units.mM,
         },
         'rates': {
             'k1': 1 / units.sec,
@@ -760,9 +862,11 @@ def test_exchange_aware_bioscrape():
         # species A.
         'species': {
             'b': 10 * units.mM,
+            'c': 1 * units.mM,
         },
         'delta_species': {
             'b': 10 * units.mM,
+            'c': 1 * units.mM,
         },
         'exchanges': {
             # Exchanges are in units of counts, but the species are in
