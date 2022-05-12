@@ -11,6 +11,8 @@ import sys
 
 from vivarium.core.composer import Composer
 from vivarium.core.engine import Engine
+from vivarium.core.process import Process
+from vivarium.core.serialize import serialize_value
 from vivarium.library.topology import get_in, assoc_path
 from vivarium.library.dict_utils import deep_merge_check
 
@@ -21,6 +23,7 @@ from ecoli.experiments.ecoli_master_sim import (
     get_git_status,
     report_profiling,
 )
+from ecoli.library.logging import write_json
 from ecoli.library.schema import bulk_schema
 from ecoli.library.sim_data import RAND_MAX
 from ecoli.processes.engine_process import EngineProcess
@@ -113,41 +116,22 @@ def colony_save_states(engine, config):
             time_elapsed += time_to_next_save
         engine.update(time_to_next_save)
         state = engine.state.get_value()
-        from ecoli.library.logging import write_json
-        from vivarium.core.serialize import serialize_value
         state_to_save = copy.deepcopy(state)
+        # Delete processes
+        for key in state:
+            if isinstance(state[key], tuple) and isinstance(state[key][0], Process):
+                del(state_to_save[key])
+        # Replace 'agents' with agent states
         del(state_to_save['agents'])
-        state_to_save = serialize_value(state_to_save)
-        import ipdb; ipdb.set_trace()
-        for key in state_to_save.keys():
-            print(str(key) + ": " + str(state_to_save[key]) + '\n')
-        write_json('data/temp' + '.json', state_to_save)
         state_to_save['agents'] = {}
         for agent_id in state['agents']:
             cell_state = state['agents'][agent_id]['cell_process'][0].sim.state.get_value()
-            state_to_save['agents'][agent_id] = {key: cell_state[key] for key in
-                                         ['listeners', 'bulk', 'unique', 'environment', 'process_state']}
+            state_to_save['agents'][agent_id] = {key: cell_state[key] for key in cell_state.keys() if
+                                                 not (isinstance(cell_state[key], tuple)
+                                                      and isinstance(cell_state[key][0], Process))
+                                                 and key != 'environment'}  # environment is recreated when loading save state
+        state_to_save = serialize_value(state_to_save)
         write_json('data/colony_t' + str(time_elapsed) + '.json', state_to_save)
-        # state_to_save = {'agents': {}}
-        # # import ipdb; ipdb.set_trace()
-        # state_to_save['fields'] = state['fields']
-        # state_to_save['global'] = state['global']
-        # from vivarium.core.serialize import serialize_value
-        # import ipdb; ipdb.set_trace()
-        # state_to_save = serialize_value(state_to_save)
-        # for agent_id in state['agents']:
-        #     cell_state = state['agents'][agent_id]['cell_process'][0].sim.state.get_value()
-        #     state_to_save['agents'][agent_id] = {key: cell_state[key] for key in
-        #                                          # Original: ['listeners', 'bulk', 'unique', 'environment', 'process_state']}
-        #                                          ['listeners', 'bulk', 'unique', 'environment', 'process_state']}
-        #                                          # All agent keys: ['cell_process', 'listeners', 'boundary', 'bulk', 'environment']}
-        #                                          # No unique?
-        #                                          #['listeners', 'boundary', 'bulk', 'environment']}
-
-
-        # Can save: fields, global, agents, dimensions
-        # Can't save: multibody, diffusion, field_timeline TODO: doesn't make sense to save tuples?
-        # write_json('data/colony_t' + str(time_elapsed) + '.json', state_to_save)
         print('Finished saving the state at t = ' + str(time_elapsed))
     time_remaining = config["total_time"] - config["save_times"][-1]
     if time_remaining:
@@ -220,6 +204,12 @@ def run_simulation():
         initial_state = get_state_from_file(path=f'data/{config["initial_colony_file"]}.json')
         from vivarium.core.serialize import deserialize_value
         initial_state = deserialize_value(initial_state)
+        agent_states = initial_state.pop('agents')
+        for agent_id, agent_state in agent_states.items():
+            continue
+            # agent_state goes into a new engine process
+            # then add to composite.processes
+            # then add to composite.topology
     else:
         initial_state = composite.initial_state()
         if config['spatial_environment']:
