@@ -101,20 +101,20 @@ class CellWall(Process):
 
         return schema
 
-    def initial_state(self, config=None):
-        # TODO: better system for initial state -
-        # work this into the state file?
-        # Need to incorporate shape process...
-        initial_state = {
-            "murein_state": {"free_murein": 0, "incorporated_murein": 401871},
-            "shape": {"volume": 1 * units.fL},
-            "wall_state": {
-                "lattice": np.ones((1525, 1)),
-                "lattice_rows": 1525,
-                "lattice_cols": 1,
-            },
-        }
-        return initial_state
+    # def initial_state(self, config=None):
+    #     # TODO: better system for initial state -
+    #     # work this into the state file?
+    #     # Need to incorporate shape process...
+    #     initial_state = {
+    #         "murein_state": {"free_murein": 0, "incorporated_murein": 401871},
+    #         "shape": {"volume": 1 * units.fL},
+    #         "wall_state": {
+    #             "lattice": np.ones((1525, 1)),
+    #             "lattice_rows": 1525,
+    #             "lattice_cols": 1,
+    #         },
+    #     }
+    #     return initial_state
 
     def next_update(self, timestep, states):
         DEBUG = False
