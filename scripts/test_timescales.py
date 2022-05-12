@@ -2,6 +2,7 @@ from matplotlib import pyplot as plt
 import numpy as np
 import os
 from scipy.integrate import odeint
+from scipy.optimize import root_scalar, root
 
 from scripts.generate_ceph_tet_sbml import (
     CEPH_PUMP_KCAT,
@@ -50,7 +51,7 @@ def _get_michaelis_menten_derivative(
         rate_constant, michaelis_constant, hill_coefficient,
         enzyme_conc):
     def derivative(y0, _):
-        return rate_constant * enzyme_conc * y0**hill_coefficient / (
+        return -rate_constant * enzyme_conc * y0**hill_coefficient / (
             y0**hill_coefficient + michaelis_constant)
     return derivative
 
@@ -123,6 +124,41 @@ ODES = {
 }
 
 
+def cephaloridine_periplasm_derivative(y):
+    diffusion = ODES['cephaloridine']['Diffusion'][0]
+    efflux = ODES['cephaloridine']['Efflux'][0]
+    hydrolysis = ODES['cephaloridine']['Hydrolysis'][0]
+    return y + diffusion(y, 0) - efflux(y, 0) - hydrolysis(y, 0)
+
+
+def tetracycline_derivative(y):
+    periplasmic, cytoplasmic = y
+    inner_diffusion = ODES['tetracycline']['Inner Diffusion'][0]
+    outer_diffusion = ODES['tetracycline']['Outer Diffusion'][0]
+    efflux = ODES['tetracycline']['Efflux'][0]
+
+    periplasmic_derivative = (
+        outer_diffusion(periplasmic, 0) - efflux(periplasmic, 0)
+        - inner_diffusion(cytoplasmic, 0)
+    )
+    cytoplasmic_derivative = inner_diffusion(cytoplasmic, 0)
+    return periplasmic_derivative, cytoplasmic_derivative
+
+
+def find_equilibrium():
+    ceph = root_scalar(
+        cephaloridine_periplasm_derivative,
+        bracket=[0, INITIAL_ENVIRONMENT_CEPH])
+    assert ceph.converged
+    print('Periplasmic Cephaloridine Equilibrium (mM):', ceph.root)
+
+    tet = root(
+        tetracycline_derivative,
+        [INITIAL_ENVIRONMENT_TET, INITIAL_ENVIRONMENT_TET])
+    assert tet.success
+    print('Equilibrium (periplasmic, cytoplasmic) in mM:', tet.x)
+
+
 def test_cephaloridine_diffusion_timescale():
     derivative = ODES['cephaloridine']['Diffusion'][0]
     y0 = INITIAL_ENVIRONMENT_CEPH
@@ -135,28 +171,30 @@ def test_tetracycline_outer_diffusion_timescale():
 
 
 def main():
-    fig, axes = plt.subplots(
-        nrows=len(ODES) * 2, figsize=(6.4, 4.8 * len(ODES)))
-    t = np.linspace(0, 10, 100)
-    for i, (plot_name, ode_definitions) in enumerate(ODES.items()):
-        ax1 = axes[i * 2]
-        ax2 = axes[i * 2 + 1]
-        for label, (derivative_func, y0) in ode_definitions.items():
-            y = odeint(derivative_func, y0, t)[:,0]
-            ax1.plot(t, y, label=label, alpha=0.5)
-            ax2.plot(
-                t, (y - y[0]) / (y[-1] - y[0]), label=label, alpha=0.5)
-        ax1.legend()
-        ax2.legend()
-        ax1.set_ylabel('Amount')
-        ax2.set_ylabel('Amount (Normalized)')
-        ax1.set_xlabel('Time (s)')
-        ax2.set_xlabel('Time (s)')
-        ax1.set_title(plot_name)
-        ax2.set_title(plot_name)
-    fig.tight_layout()
-    fig.savefig(os.path.join(OUT_DIR, 'timescales.png'))
+    for duration in (0.1, 10, 1000):
+        fig, axes = plt.subplots(
+            nrows=len(ODES) * 2, figsize=(6.4, 4.8 * len(ODES)))
+        t = np.linspace(0, duration, 100)
+        for i, (plot_name, ode_definitions) in enumerate(ODES.items()):
+            ax1 = axes[i * 2]
+            ax2 = axes[i * 2 + 1]
+            for label, (derivative_func, y0) in ode_definitions.items():
+                y = odeint(derivative_func, y0, t)[:,0]
+                ax1.plot(t, y, label=label, alpha=0.5)
+                ax2.plot(
+                    t, (y - y[0]) / (y[-1] - y[0]), label=label, alpha=0.5)
+            ax1.legend()
+            ax2.legend()
+            ax1.set_ylabel('Amount')
+            ax2.set_ylabel('Amount (Normalized)')
+            ax1.set_xlabel('Time (s)')
+            ax2.set_xlabel('Time (s)')
+            ax1.set_title(plot_name)
+            ax2.set_title(plot_name)
+        fig.tight_layout()
+        fig.savefig(os.path.join(OUT_DIR, f'timescales_{duration}.png'))
 
 
 if __name__ == '__main__':
     main()
+    #find_equilibrium()
