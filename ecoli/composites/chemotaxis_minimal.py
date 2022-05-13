@@ -6,6 +6,8 @@ Minimal E. coli Chemotaxis
 
 import os
 
+import matplotlib.pyplot as plt
+
 from vivarium.core.composer import Composer
 from vivarium.core.composition import COMPOSITE_OUT_DIR, simulate_composite
 from vivarium.plots.simulation_output import plot_simulation_output
@@ -18,7 +20,9 @@ from ecoli.processes.chemotaxis.chemoreceptor_cluster import (
     get_exponential_random_timeline,
 )
 from ecoli.processes.chemotaxis.coarse_motor import MotorActivity
-from ecoli.processes.environment.static_field import StaticField, get_exponential_config
+from ecoli.processes.environment.static_field import StaticField, get_exponential_config, make_field
+from ecoli.processes.environment.multibody_physics import Multibody
+from ecoli.library.scan import Scan
 
 
 NAME = 'chemotaxis_minimal'
@@ -79,6 +83,54 @@ class ChemotaxisMinimal(Composer):
                 'internal': ('cell',)}}
 
 
+class ChemotaxisMinimalEnvironment(Composer):
+    defaults = {'initial_conc': 0, 'static_field': {'bounds': [100, 100]}, }
+
+    def __init__(self, config):
+        super().__init__(config)
+        initial_conc = self.config['initial_conc']
+        static_field_params = self.config['static_field']
+
+        environment_port = ('external',)
+        ligand_id = 'MeAsp'
+        time_step = 0.01
+
+        # make the compartment
+        chemotaxis_config = {
+            'external_path': (environment_port,),
+            'ligand_id': ligand_id,
+            'initial_ligand': initial_conc,
+            'time_step': time_step}
+        self.chemotaxis_composite = ChemotaxisMinimal(chemotaxis_config).generate(path=('agents', '1'))
+
+        static_field = StaticField(static_field_params)
+
+        parameters = {
+            'bounds': static_field_params['bounds'],
+            'time_step': time_step
+        }
+        multibody = Multibody(parameters)
+
+        # merge
+        self.chemotaxis_composite.merge(
+            processes={
+                'static_field': static_field,
+                'multibody': multibody,
+            },
+            topology={
+                'static_field': {
+                    'agents': ('agents',)},
+                'multibody': {
+                    'agents': ('agents',)
+                }
+            }
+        )
+
+    def generate_processes(self, config):
+        return self.chemotaxis_composite.processes
+
+    def generate_topology(self, config):
+        return self.chemotaxis_composite.topology
 
 def test_chemotaxis_minimal(total_time=10):
     environment_port = ('external',)
@@ -116,7 +168,7 @@ def test_chemotaxis_minimal(total_time=10):
 
     return timeseries
 
-def get_chemotaxis_static_envrionment_composite(initial_conc=1, static_field_params=None):
+def get_chemotaxis_static_envrironment_composite(initial_conc=1, static_field_params=None):
     environment_port = ('external',)
     ligand_id = 'MeAsp'
     time_step = 0.01
@@ -185,8 +237,8 @@ def run_in_static_field(initial_conc=1):
             }
         }
     }
-    chemotaxis_composite = get_chemotaxis_static_envrionment_composite(initial_conc=initial_conc,
-                                                                       static_field_params=static_field_params)
+    chemotaxis_composite = get_chemotaxis_static_envrironment_composite(initial_conc=initial_conc,
+                                                                        static_field_params=static_field_params)
 
     # Get initial state
     initial_state = chemotaxis_composite.initial_state()
@@ -340,69 +392,53 @@ def scan_chemotaxis(initial_conc=1):
     # add a static field process
     bounds = [1000, 1000]
     # static_field_params = get_exponential_config(molecule='MeAsp', bounds=bounds, scale=1000)  # TODO -- put in parameters!
-    static_field_params = {
-        'bounds': bounds,
-        'molecules': ['MeAsp'],
-        # 'gradient': {
-        #     'type': 'linear',
-        #     'molecules': {
-        #         'MeAsp': {
-        #             'center': [0,0],
-        #             'slope': 0,
-        #             'base': initial_conc
-        #         }
-        #     }
-        # }
-        'gradient': {
-            'type': 'exponential',
-            'molecules': {
-                'MeAsp': {
-                    'center': [0, 0],
-                    'scale': 1,
-                    'base': 0.05
-                }
-            }
-        }
-    }
-    chemotaxis_composite = get_chemotaxis_static_envrionment_composite(initial_conc=initial_conc,
-                                                                       static_field_params=static_field_params)
+
+    # chemotaxis_composite = get_chemotaxis_static_envrironment_composite(initial_conc=initial_conc,
+    #                                                                     static_field_params=static_field_params)
     parameter_sets = {
         '0': {
-            'static_field': {
-                'gradient': {
-                    'type': 'exponential',
-                    'molecules': {
-                        'MeAsp': {
-                            'center': [0, 0],
-                            'scale': 1,
-                            'base': 0.1
+            'parameters':{
+                'static_field': {
+                    'bounds': bounds,
+                    'gradient': {
+                        'type': 'exponential',
+                        'molecules': {
+                            'MeAsp': {
+                                'center': [0, 0],
+                                'scale': 1,
+                                'base': 0.1
+                            }
                         }
                     }
                 }
-            }
+            },
+            'states': {},
         },
         '1': {
-            'static_field': {
-                'gradient': {
-                    'type': 'exponential',
-                    'molecules': {
-                        'MeAsp': {
-                            'center': [0, 0],
-                            'scale': 1,
-                            'base': 1
+            'parameters': {
+                'static_field': {
+                    'bounds': bounds,
+                    'gradient': {
+                        'type': 'exponential',
+                        'molecules': {
+                            'MeAsp': {
+                                'center': [0, 0],
+                                'scale': 1,
+                                'base': 0.05
+                            }
                         }
                     }
                 }
-            }
+            },
+            'states': {},
         }
     }
-    metrics = [distance_from_center] #TODO: Add chemotaxis metric
-    scanner = Scan(simulator_class=chemotaxis_composite, parameter_sets=parameter_sets,
+    metrics = {'end_distance_from_center': distance_from_center} #TODO: Add chemotaxis metric
+    scanner = Scan(simulator_class=ChemotaxisMinimalEnvironment, parameter_sets=parameter_sets,
                    total_time=30, metrics=metrics)
     scanner.run_scan()
 
-def distance_from_center(paramter_sets):
-    center = paramter_sets['static_field']['gradient']['molecules']['MeAsp']['center']
+def distance_from_center(simulation_output, parameter_set):
     return 0
 
 
