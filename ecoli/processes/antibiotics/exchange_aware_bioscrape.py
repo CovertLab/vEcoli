@@ -16,7 +16,7 @@ from bioscrape.types import Model
 import numpy as np
 from scipy.constants import N_A
 from scipy.integrate import odeint
-from scipy.linalg import lstsq, norm
+from scipy.linalg import norm
 from scipy.optimize import root, minimize
 from vivarium.core.process import Process
 from vivarium.library.units import units, Quantity
@@ -122,6 +122,7 @@ class ExchangeAwareBioscrape(Process):
         'species_units_conc': units.mM,
         'species_units_count': units.mmol,
         'equilibrium_species': tuple(),
+        'equilibrium_reactions': tuple(),
     }
 
     def __init__(self, parameters=None):
@@ -161,6 +162,10 @@ class ExchangeAwareBioscrape(Process):
           species to equilibrium then using those fluxes to determine
           the updates for species that don't reach equilibrium. These
           should be specified by their bioscrape names.
+        * ``equilibrium_reactions``: Sequence of indices of the
+          reactions that can be assumed to reach equilibrium quickly.
+          The indices should correspond to the list of reactions from
+          the SBML model as loaded by bioscrape.
         '''
         super().__init__(parameters)
 
@@ -399,62 +404,6 @@ class ExchangeAwareBioscrape(Process):
 
         return new_state
 
-    def _integrate_reactions(self):
-        pass
-
-    @staticmethod
-    def _compute_stoichiometry_loss(
-            reactions, derivatives, species_to_index):
-        '''Compute loss for the deviation of deltas from stoichiometry.
-
-        For example, suppose we have the following reactions:
-
-        .. code-block:: text
-
-            (rxn 1) A  -> B
-            (rxn 2) 2B -> A
-
-        Then we can write a stoichiometry matrix **N**:
-
-        .. code-block:: text
-
-                 rxn 1    rxn 2
-                +-           -+
-              A | -1       +1 |
-              B | +1       -2 |
-                +-           -+
-
-        Now if we have a derivatives vector **d** of the rates of change
-        of each species, we can solve for a rate vector **v**
-        representing the rates of each reaction needed to produce the
-        rates of change in **d**: **d** = **N** · **v**.
-
-        In this function, we compute **N** given a set of reactions and
-        use least-squares to find the best **v** to produce a provided
-        set of derivatives **d**. We then compute and return the loss as
-        the L1 norm of each component of the difference between **d**
-        and **N** · **v**.
-
-        Args:
-            reactions: Iterable of dictionaries with each dictionary
-                describing a reaction as key-value pairs where the key
-                is a species in the reaction and the value is the
-                coefficient of that species in the reaction.
-            derivatives: Iterable of the derivative for each species
-                across all reactions.
-            species_to_index: Dictionary mapping from species name to
-                that species' index in ``derivatives``.
-        '''
-        N = np.zeros((len(species_to_index), len(reactions)))
-        for i_rxn, reaction in enumerate(reactions):
-            for species, coefficient in reaction.items():
-                i_species = species_to_index[species]
-                assert N[i_species, i_rxn] == 0
-                N[i_species, i_rxn] = coefficient
-        d = np.array(derivatives)
-        v, *_ = lstsq(N, d)
-        return d - N @ v
-
     @staticmethod
     def _loss(
             equilibrium_reaction_rates, timestep, interface,
@@ -523,7 +472,8 @@ class ExchangeAwareBioscrape(Process):
         self.interface.py_set_initial_state(self.model.get_species_array())
         self.model.set_params(state['rates'])
 
-        equilibrium_reactions = set([0])
+        equilibrium_reactions = set(
+            self.parameters['equilibrium_reactions'])
 
         reactions = tuple(tup[2] for tup in self.model.get_reactions())
         initial_rates = np.zeros(len(equilibrium_reactions))
@@ -532,6 +482,30 @@ class ExchangeAwareBioscrape(Process):
         params = self.model.get_parameter_values()
         initial_state = self.interface.py_get_initial_state()
 
+
+        # Build a stoichiometry matrix.
+        #
+        # For example, suppose we have the following reactions:
+
+        # .. code-block:: text
+
+        #     (rxn 1) A  -> B
+        #     (rxn 2) 2B -> A
+
+        # Then we can write a stoichiometry matrix **N**:
+
+        # .. code-block:: text
+
+        #          rxn 1    rxn 2
+        #         +-           -+
+        #       A | -1       +1 |
+        #       B | +1       -2 |
+        #         +-           -+
+
+        # Now if we have a derivatives vector **d** of the rates of change
+        # of each species, we can solve for a rate vector **v**
+        # representing the rates of each reaction needed to produce the
+        # rates of change in **d**: **d** = **N** · **v**.
         stoich = np.zeros((len(species_to_index), len(reactions)))
         for i_rxn, reaction in enumerate(reactions):
             for species, coefficient in reaction.items():
@@ -782,6 +756,7 @@ def test_exchange_aware_bioscrape():
             'species_units_conc': units.mM,
             'species_units_count': units.mmol,
             'equilibrium_species': ('B',),
+            'equilibrium_reactions': {0},
         })
 
     schema = proc.get_schema()
