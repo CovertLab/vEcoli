@@ -12,9 +12,9 @@ import sys
 from vivarium.core.composer import Composer
 from vivarium.core.engine import Engine
 from vivarium.core.process import Process
-from vivarium.core.serialize import serialize_value
+from vivarium.core.serialize import serialize_value, deserialize_value
 from vivarium.library.topology import get_in, assoc_path
-from vivarium.library.dict_utils import deep_merge_check
+from vivarium.library.dict_utils import deep_merge_check, deep_merge
 
 from ecoli.experiments.ecoli_master_sim import (
     EcoliSim,
@@ -26,6 +26,7 @@ from ecoli.experiments.ecoli_master_sim import (
 from ecoli.library.logging import write_json
 from ecoli.library.schema import bulk_schema
 from ecoli.library.sim_data import RAND_MAX
+from ecoli.states.wcecoli_state import get_state_from_file
 from ecoli.processes.engine_process import EngineProcess
 from ecoli.processes.environment.field_timeline import FieldTimeline
 from ecoli.processes.listeners.mass_listener import MassListener
@@ -177,46 +178,57 @@ def run_simulation():
             ('boundary',): multibody_schema['agents']['*']['boundary'],
         }
 
-    composer = EcoliEngineProcess({
-        'agent_id': config['agent_id'],
-        'tunnel_out_schemas': tunnel_out_schemas,
-        'stub_schemas': stub_schemas,
-        'parallel': config['parallel'],
-        'ecoli_sim_config': config.to_dict(),
-        'divide': config['divide'],
-        'division_threshold': config['division']['threshold'],
-        'division_variable': ('listeners', 'mass', 'cell_mass'),
-        'reports': tuple(
-            tuple(path) for path in
-            config.get('engine_process_reports', tuple())
-        ),
-        'seed': config['seed'],
-    })
-    composite = composer.generate(path=('agents', config['agent_id']))
-    # initial_state = {
-    #     'agents': {
-    #         config['agent_id']: composite.initial_state()
-    #     },
-    # }
+    composite = {}
     if 'initial_colony_file' in config.keys():
-        from ecoli.states.wcecoli_state import get_state_from_file
-        # TODO(Matt): initial_state_file is wc_ecoli?
-        initial_state = get_state_from_file(path=f'data/{config["initial_colony_file"]}.json')
-        from vivarium.core.serialize import deserialize_value
+        initial_state = get_state_from_file(path=f'data/{config["initial_colony_file"]}.json')  # TODO(Matt): initial_state_file is wc_ecoli?
         initial_state = deserialize_value(initial_state)
-        agent_states = initial_state.pop('agents')
+        agent_states = initial_state['agents']
         for agent_id, agent_state in agent_states.items():
-            continue
-            # agent_state goes into a new engine process
-            # then add to composite.processes
-            # then add to composite.topology
+            agent_composer = EcoliEngineProcess({
+                'agent_id': config['agent_id'],
+                'initial_cell_state': agent_state,
+                'tunnel_out_schemas': tunnel_out_schemas,
+                'stub_schemas': stub_schemas,
+                'parallel': config['parallel'],
+                'ecoli_sim_config': config.to_dict(),
+                'divide': config['divide'],
+                'division_threshold': config['division']['threshold'],
+                'division_variable': ('listeners', 'mass', 'cell_mass'),
+                'reports': tuple(
+                    tuple(path) for path in
+                    config.get('engine_process_reports', tuple())
+                ),
+                'seed': config['seed'],
+            })
+            agent_composite = agent_composer.generate(path=('agents', agent_id))
+            if not composite:
+                composite = agent_composite
+            composite.processes['agents'][agent_id] = agent_composite.processes['agents'][agent_id]
+            composite.topology['agents'][agent_id] = agent_composite.topology['agents'][agent_id]
     else:
+        composer = EcoliEngineProcess({
+            'agent_id': config['agent_id'],
+            'tunnel_out_schemas': tunnel_out_schemas,
+            'stub_schemas': stub_schemas,
+            'parallel': config['parallel'],
+            'ecoli_sim_config': config.to_dict(),
+            'divide': config['divide'],
+            'division_threshold': config['division']['threshold'],
+            'division_variable': ('listeners', 'mass', 'cell_mass'),
+            'reports': tuple(
+                tuple(path) for path in
+                config.get('engine_process_reports', tuple())
+            ),
+            'seed': config['seed'],
+        })
+        composite = composer.generate(path=('agents', config['agent_id']))
         initial_state = composite.initial_state()
-        if config['spatial_environment']:
-            # Merge a lattice composite for the spatial environment.
-            initial_environment = environment_composite.initial_state()
-            composite.merge(environment_composite)
-            initial_state = deep_merge_check(initial_state, initial_environment)
+
+    if config['spatial_environment']:
+        # Merge a lattice composite for the spatial environment.
+        initial_environment = environment_composite.initial_state()
+        composite.merge(environment_composite)
+        initial_state = deep_merge(initial_state, initial_environment)
 
     metadata = config.to_dict()
     metadata.pop('initial_state', None)
