@@ -433,6 +433,8 @@ def scan_chemotaxis(initial_conc=1):
             'states': {},
         }
     }
+
+    # test
     metrics = {'end_distance_from_center': distance_from_center} #TODO: Add chemotaxis metric
     scanner = Scan(simulator_class=ChemotaxisMinimalEnvironment, parameter_sets=parameter_sets,
                    total_time=30, metrics=metrics)
