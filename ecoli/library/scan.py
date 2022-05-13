@@ -10,7 +10,7 @@ class Scan:
         self.metrics = metrics
 
     def run_simulation(self, parameters):
-        simulator = self.simulator_class(parameters["parameters"]).generate()
+        simulator = self.simulator_class(parameters).generate(path=('agents', '1'))
         engine = Engine(
             processes=simulator["processes"],
             topology=simulator["topology"],

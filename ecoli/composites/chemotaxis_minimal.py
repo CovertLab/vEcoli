@@ -396,10 +396,14 @@ def scan_chemotaxis(initial_conc=1):
             }
         }
     }
-    metrics = [] #TODO: Add chemotaxis metric
+    metrics = [distance_from_center] #TODO: Add chemotaxis metric
     scanner = Scan(simulator_class=chemotaxis_composite, parameter_sets=parameter_sets,
                    total_time=30, metrics=metrics)
+    scanner.run_scan()
 
+def distance_from_center(paramter_sets):
+    center = paramter_sets['static_field']['gradient']['molecules']['MeAsp']['center']
+    return 0
 
 
 def main():
