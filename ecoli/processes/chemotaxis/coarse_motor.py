@@ -191,7 +191,9 @@ def tumble(tumble_jitter=120.0):
 def run():
     # average thrust = 0.5 pN according to:
     # Hughes MP & Morgan H. (1999) Measurement of bacterial flagellar thrust by negative dielectrophoresis.
-    thrust = 0.5  # (pN)
+    # NEW CITATION: Suddhashil Chattopadhyay, Radu Moldovan, Chuck Yeung, and X. L. Wu. (2006)
+    #               Swimming efficiency of bacterium Escherichia coli
+    thrust = 0.57  # (pN)
     torque = 0.0
     return [thrust, torque]
 

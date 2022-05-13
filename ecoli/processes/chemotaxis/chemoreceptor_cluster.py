@@ -30,7 +30,7 @@ from ecoli.plots.chemoreceptor_cluster import plot_receptor_output
 
 
 NAME = 'chemoreceptor_cluster'
-STEADY_STATE_DELTA = 1e-6
+STEADY_STATE_DELTA = 1e-12
 DEFAULT_ENVIRONMENT_PORT = ('external',)
 DEFAULT_LIGAND = 'MeAsp'
 DEFAULT_INITIAL_LIGAND = 1e-2
@@ -103,7 +103,7 @@ class ReceptorCluster(Process):
         'ligand_id': 'MeAsp',
         'initial_ligand': 5.0,
         'initial_internal_state': {
-            'n_methyl': 2.0,  # initial number of methyl groups on receptor cluster (0 to 8)
+            'n_methyl': 5.0,  # initial number of methyl groups on receptor cluster (0 to 8)
             'chemoreceptor_activity': 1./3.,  # initial probability of receptor cluster being on
             'CheR': 0.00016,  # (mM) wild type concentration. 0.16 uM = 0.00016 mM
             'CheB': 0.00028,  # (mM) wild type concentration. 0.28 uM = 0.00028 mM. [CheR]:[CheB]=0.16:0.28
@@ -128,10 +128,13 @@ class ReceptorCluster(Process):
         initial_internal_state = self.parameters['initial_internal_state']
         ligand_id = self.parameters['ligand_id']
         initial_ligand = self.parameters['initial_ligand']
-        self.initial_state = {
+        self.initial_steady_state = {
             'internal': initial_internal_state,
             'external': {ligand_id: initial_ligand}}
-        run_to_steady_state(self, self.initial_state, 1.0)
+        run_to_steady_state(self, self.initial_steady_state, 1.0)
+
+    def initial_state(self, config=None):
+        return self.initial_steady_state
 
     def ports_schema(self):
         """
@@ -144,16 +147,16 @@ class ReceptorCluster(Process):
         schema = {port: {} for port in ports}
 
         # external
-        for state in list(self.initial_state['external'].keys()):
+        for state in list(self.initial_steady_state['external'].keys()):
             schema['external'][state] = {
-                '_default': self.initial_state['external'][state],
+                '_default': self.initial_steady_state['external'][state],
                 '_emit': True}
 
         # internal
         set_update = ['chemoreceptor_activity', 'n_methyl']
-        for state in list(self.initial_state['internal'].keys()):
+        for state in list(self.initial_steady_state['internal'].keys()):
             schema['internal'][state] = {
-                '_default': self.initial_state['internal'][state],
+                '_default': self.initial_steady_state['internal'][state],
                 '_emit': True}
             if state in set_update:
                 schema['internal'][state]['_updater'] = 'set'
@@ -219,6 +222,7 @@ class ReceptorCluster(Process):
         # free energy of receptor clusters
         cluster_free_energy = Tar_free_energy + Tsr_free_energy
         P_on = 1.0/(1.0 + math.exp(cluster_free_energy))  # probability that receptor cluster is ON
+
 
         return {
             'internal': {

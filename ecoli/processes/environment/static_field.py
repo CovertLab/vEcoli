@@ -101,7 +101,7 @@ class StaticField(Deriver):
                 dx = location[0] - specs['center'][0] * self.bounds[0]
                 dy = location[1] - specs['center'][1] * self.bounds[1]
                 distance = np.sqrt(dx ** 2 + dy ** 2)
-                concentrations[molecule_id] = scale * base ** (distance/1000)
+                concentrations[molecule_id] = scale * base ** (distance/10000)
         return concentrations
 
 
