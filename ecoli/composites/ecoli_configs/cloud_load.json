@@ -1,5 +1,5 @@
 {
     "inherit_from": ["cloud.json"],
     "total_time": 20,
-    "initial_colony_file": "colony_t2"
+    "initial_colony_file": "colony_t4000",
 }
