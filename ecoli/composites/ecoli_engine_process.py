@@ -122,15 +122,15 @@ def colony_save_states(engine, config):
         for key in state:
             if isinstance(state[key], tuple) and isinstance(state[key][0], Process):
                 del(state_to_save[key])
-        # Replace 'agents' with agent states
-        del(state_to_save['agents'])
+
+        del(state_to_save['agents'])  # Replace 'agents' with agent states
         state_to_save['agents'] = {}
         for agent_id in state['agents']:
             cell_state = state['agents'][agent_id]['cell_process'][0].sim.state.get_value()
+            del (cell_state['environment']['exchange_data'])  # Can't save, but will be restored when loading state
             state_to_save['agents'][agent_id] = {key: cell_state[key] for key in cell_state.keys() if
                                                  not (isinstance(cell_state[key], tuple)
-                                                      and isinstance(cell_state[key][0], Process))
-                                                 and key != 'environment'}  # environment is recreated when loading save state
+                                                      and isinstance(cell_state[key][0], Process))}
         state_to_save = serialize_value(state_to_save)
         write_json('data/colony_t' + str(time_elapsed) + '.json', state_to_save)
         print('Finished saving the state at t = ' + str(time_elapsed))
@@ -257,6 +257,7 @@ def run_simulation():
 
     if config['profile']:
         report_profiling(engine.stats)
+
 
 if __name__ == '__main__':
     run_simulation()
