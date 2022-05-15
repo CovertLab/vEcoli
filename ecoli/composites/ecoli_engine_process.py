@@ -7,14 +7,12 @@
 '''
 
 import copy
-import sys
 
 from vivarium.core.composer import Composer
 from vivarium.core.engine import Engine
 from vivarium.core.process import Process
 from vivarium.core.serialize import serialize_value, deserialize_value
-from vivarium.library.topology import get_in, assoc_path
-from vivarium.library.dict_utils import deep_merge_check, deep_merge
+from vivarium.library.dict_utils import deep_merge
 
 from ecoli.experiments.ecoli_master_sim import (
     EcoliSim,
@@ -24,13 +22,10 @@ from ecoli.experiments.ecoli_master_sim import (
     report_profiling,
 )
 from ecoli.library.logging import write_json
-from ecoli.library.schema import bulk_schema
 from ecoli.library.sim_data import RAND_MAX
 from ecoli.states.wcecoli_state import get_state_from_file
 from ecoli.processes.engine_process import EngineProcess
 from ecoli.processes.environment.field_timeline import FieldTimeline
-from ecoli.processes.listeners.mass_listener import MassListener
-from ecoli.processes.shape import Shape
 from ecoli.composites.environment.lattice import Lattice
 
 

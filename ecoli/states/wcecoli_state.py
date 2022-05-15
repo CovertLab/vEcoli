@@ -20,12 +20,17 @@ def infinitize(value):
 def load_states(path):
     with open(path, 'r') as states_file:
         states = json.load(states_file)
-
-    if 'environment' in states:
+    if 'agents' in states.keys():
+        for agent_id in states['agents'].keys():
+            states['agents'][agent_id]['environment'] = {
+                key: infinitize(value)
+                for key, value in states['agents'][agent_id]['environment'].items()
+            }
+    else:
         states['environment'] = {
             key: infinitize(value)
-            for key, value in states['environment'].items()}
-
+            for key, value in states['environment'].items()
+        }
     return states
 
 
