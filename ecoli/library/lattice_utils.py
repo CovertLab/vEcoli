@@ -355,3 +355,70 @@ class ExchangeAgent(Process):
                 ],
             }
         }
+
+def make_diffusion_schema(
+        exchanges_path, external_path, location_path, bounds, n_bins,
+        depth, molecule_ids, default_field):
+    # Place schemas at configured paths.
+    agent_schema = {}
+    location_schema = {
+        '_default': [
+            0.5 * bound
+            for bound in bounds],
+        '_emit': True,
+    }
+    assoc_path(
+        agent_schema,
+        location_path,
+        location_schema)
+    external_schema = {
+        molecule: {
+            '_default': 0.0 * units.mM}
+        for molecule in molecule_ids
+    }
+    assoc_path(
+        agent_schema,
+        external_path,
+        external_schema)
+    exchanges_schema = {
+        molecule: {
+            '_default': 0.0}
+        for molecule in molecule_ids
+    }
+    assoc_path(
+        agent_schema,
+        exchanges_path,
+        exchanges_schema)
+
+    # make the full schema
+    schema = {
+        'agents': {
+            '*': agent_schema
+        },
+        'fields': {
+            field: {
+                '_default': default_field.copy(),
+                '_updater': 'nonnegative_accumulate',
+                '_emit': True,
+            }
+            for field in molecule_ids
+        },
+        'dimensions': {
+            'bounds': {
+                '_default': bounds,
+                '_updater': 'set',
+                '_emit': True,
+            },
+            'n_bins': {
+                '_default': n_bins,
+                '_updater': 'set',
+                '_emit': True,
+            },
+            'depth': {
+                '_default': depth,
+                '_updater': 'set',
+                '_emit': True,
+            }
+        },
+    }
+    return schema
