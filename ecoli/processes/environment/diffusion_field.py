@@ -22,12 +22,12 @@ from vivarium.library.units import units, remove_units
 from vivarium.library.topology import get_in
 
 from ecoli.library.lattice_utils import (
-    count_to_concentration,
     get_bin_site,
     get_bin_volume,
     make_gradient,
     apply_exchanges,
     ExchangeAgent,
+    make_diffusion_schema,
 )
 from ecoli.plots.snapshots import plot_snapshots
 
@@ -118,69 +118,16 @@ class DiffusionField(Process):
         }
 
     def ports_schema(self):
-        # Place schemas at configured paths.
-        agent_schema = {}
-        location_schema = {
-            '_default': [
-                0.5 * bound
-                for bound in self.bounds],
-            '_emit': True,
-        }
-        assoc_path(
-            agent_schema,
-            self.location_path,
-            location_schema)
-        external_schema = {
-            molecule: {
-                '_default': 0.0 * units.mM}
-            for molecule in self.molecule_ids
-        }
-        assoc_path(
-            agent_schema,
-            self.external_path,
-            external_schema)
-        exchanges_schema = {
-            molecule: {
-                '_default': 0.0}
-            for molecule in self.molecule_ids
-        }
-        assoc_path(
-            agent_schema,
+        return make_diffusion_schema(
             self.exchanges_path,
-            exchanges_schema)
-
-        # make the full schema
-        schema = {
-            'agents': {
-                '*': agent_schema
-            },
-            'fields': {
-                field: {
-                    '_default': self.ones_field(),
-                    '_updater': 'nonnegative_accumulate',
-                    '_emit': True,
-                }
-                for field in self.molecule_ids
-            },
-            'dimensions': {
-                'bounds': {
-                    '_default': self.parameters['bounds'],
-                    '_updater': 'set',
-                    '_emit': True,
-                },
-                'n_bins': {
-                    '_default': self.parameters['n_bins'],
-                    '_updater': 'set',
-                    '_emit': True,
-                },
-                'depth': {
-                    '_default': self.parameters['depth'],
-                    '_updater': 'set',
-                    '_emit': True,
-                }
-            },
-        }
-        return schema
+            self.external_path,
+            self.location_path,
+            self.parameters['bounds'],
+            self.parameters['n_bins'],
+            self.parameters['depth'],
+            self.molecule_ids,
+            self.ones_field(),
+        )
 
     def next_update(self, timestep, states):
         fields = states['fields']
@@ -219,14 +166,7 @@ class DiffusionField(Process):
         if local_environments:
             update.update({'agents': local_environments})
 
-        # {agents: {'0': {exchange: {...}}}}
-
         return update
-
-    def count_to_concentration(self, count):
-        return count_to_concentration(
-            count, self.bin_volume
-        ).to(units.mmol / units.L)
 
     def get_bin_site(self, location):
         return get_bin_site(location, self.n_bins, self.bounds)
