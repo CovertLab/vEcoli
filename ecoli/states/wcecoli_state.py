@@ -31,12 +31,12 @@ def load_states(path):
         for agent_id in states['agents'].keys():
             states['agents'][agent_id]['environment'] = {
                 key: infinitize(value)
-                for key, value in states['agents'][agent_id]['environment'].items()
+                for key, value in states['agents'][agent_id].get("environment", {}).items()
             }
     else:
         states['environment'] = {
             key: infinitize(value)
-            for key, value in states['environment'].items()
+            for key, value in states.get("environment", {}).items()
         }
     return states
 
@@ -85,7 +85,7 @@ def colony_initial_state(states, convert_unique_id_to_string):
                 'constrained': {
                     'GLC[p]': 20.0 * units.mmol / (units.g * units.h)}}
         states_to_return['agents'][agent_id]['unique'] = {}
-        update_unique(states_to_return['agents'][agent_id]['unique'], states['agents'][agent_id]['unique'],
+        update_unique(states_to_return['agents'][agent_id]['unique'], states['agents'][agent_id].get("unique", {}),
                       convert_unique_id_to_string)
     return states_to_return
 
@@ -140,6 +140,6 @@ def get_state_from_file(
 
     # process unique molecule state
     initial_state["unique"] = {}
-    update_unique(initial_state['unique'], states['unique'], convert_unique_id_to_string)
+    update_unique(initial_state['unique'], states.get("unique", {}), convert_unique_id_to_string)
 
     return initial_state
