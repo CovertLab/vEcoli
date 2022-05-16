@@ -145,17 +145,21 @@ class ReactionDiffusion(Process):
                 'depth': self.parameters['depth']}}
 
         # initialize gradient fields
+        gradient_molecules = []
         gradient = self.parameters.get('gradient')
         if gradient:
+            gradient_molecules = list(gradient['molecules'].keys())
             unitless_bounds = [
                 bound.to(units.um).magnitude for bound in self.bounds]
             gradient_fields = make_gradient(
                 gradient, self.n_bins, unitless_bounds)
             initial['fields'].update(gradient_fields)
-        else:
-            initial['fields'].update({
-                mol_id: config.get(mol_id, 0.0) * self.ones_field()
-                for mol_id in self.molecule_ids})
+
+        # uniform field for all molecules not in gradient
+        for mol_id in self.molecule_ids:
+            if mol_id not in gradient_molecules:
+                initial['fields'][mol_id] = config.get(mol_id, 0.0) * self.ones_field()
+
         return initial
 
     def ports_schema(self):
