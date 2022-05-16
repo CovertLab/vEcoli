@@ -290,8 +290,7 @@ class ReactionDiffusion(Process):
             # get the parameters
             kinetics = kinetic_parameters[rxn_id]
             stoich = rxn['stoichiometry']
-            # assert len(stoich.keys()) == 1, 'reactions can only do one substrate'
-            substrate_ids = list(stoich.keys())[0]
+            substrate_ids = list(stoich.keys())
 
             # catalyst
             catalyst_id = rxn['catalyzed by']
@@ -303,9 +302,13 @@ class ReactionDiffusion(Process):
                 substrate_field = fields[substrate_id]
 
                 if np.sum(catalyst_field) > 0.0 and np.sum(substrate_field) > 0.0:
+
                     # calculate flux and delta
-                    denominator = substrate_field + substrate_km
-                    flux = kcat * catalyst_field * substrate_field / denominator
+                    flux = kcat * catalyst_field * substrate_field
+                    # add km term if declared
+                    if substrate_km:
+                        denominator = substrate_field + substrate_km
+                        flux /= denominator
                     delta = stoich[substrate_id] * flux * timestep
 
                     # updates
