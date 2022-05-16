@@ -6,7 +6,8 @@
       "molecules": [
         "GLC[p]",
         "EG10040-MONOMER[p]",
-        "beta-lactam"
+        "beta-lactam",
+        "hydrolyzed-beta-lactam"
       ],
       "n_bins": [10, 10],
       "bounds": [
@@ -17,7 +18,8 @@
       "reactions": {
         "antibiotic_hydrolysis": {
           "stoichiometry": {
-            "beta-lactam": -1
+            "beta-lactam": -1,
+            "hydrolyzed-beta-lactam": 1
           },
           "catalyzed by": "EG10040-MONOMER[p]"
         }
@@ -47,7 +49,8 @@
     "lysis": {
       "secreted_molecules": [
         "EG10040-MONOMER[p]",
-        "beta-lactam"
+        "beta-lactam",
+        "hydrolyzed-beta-lactam"
       ],
       "agent_id": "0"
     }

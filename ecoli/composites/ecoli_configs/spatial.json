@@ -7,7 +7,7 @@
                 "!units[50 micrometer]"
             ]
         },
-        "diffusion": {
+        "reaction_diffusion": {
             "molecules": ["GLC[p]"],
             "n_bins": [10, 10],
             "bounds": [
