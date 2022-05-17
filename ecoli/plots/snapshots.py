@@ -250,8 +250,8 @@ def plot_agents(
         agent_colors = dict()
     for agent_id, agent_data in agents.items():
         color = agent_colors.get(agent_id, [DEFAULT_HUE]+DEFAULT_SV)
-        if dead_color and 'boundary' in agent_data and 'dead' in agent_data['boundary']:
-            if agent_data['boundary']['dead']:
+        if dead_color and 'boundary' in agent_data:
+            if agent_data['boundary'].get('dead'):
                 color = dead_color
         plot_agent(ax, agent_data, color, agent_shape, membrane_width,
                 membrane_color, alpha)
