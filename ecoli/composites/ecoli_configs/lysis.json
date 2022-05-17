@@ -11,10 +11,10 @@
       ],
       "n_bins": [10, 10],
       "bounds": [
-        "!units[50 micrometer]",
-        "!units[50 micrometer]"
+        "!units[10 micrometer]",
+        "!units[10 micrometer]"
       ],
-      "depth": "!units[3000.0 micrometer]",
+      "depth": "!units[1.0 micrometer]",
       "reactions": {
         "antibiotic_hydrolysis": {
           "stoichiometry": {
@@ -28,7 +28,7 @@
         "antibiotic_hydrolysis": {
           "EG10040-MONOMER[p]": {
             "kcat_f": 10.0,
-            "beta-lactam": 0.1
+            "beta-lactam": 0.01
           }
         }
       }
