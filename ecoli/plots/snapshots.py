@@ -253,8 +253,9 @@ def plot_agents(
         if dead_color and agent_data.get('boundary'):
             if agent_data['boundary'].get('dead'):
                 color = dead_color
-        plot_agent(ax, agent_data, color, agent_shape, membrane_width,
-                membrane_color, alpha)
+        if agent_data:
+            plot_agent(ax, agent_data, color, agent_shape, membrane_width,
+                       membrane_color, alpha)
 
     if len(agents) == 1:
         ax.set_title('1 agent', y=1.1)
