@@ -44,7 +44,7 @@ def remove_empty_values(d):
     return d
 
 
-def test_lysis_rxn_dff_environment():
+def test_lysis_rxn_dff_environment(total_time = 10):
     beta_lactamase = 'EG10040-MONOMER[p]'
     beta_lactam = 'beta-lactam'
     hydrolyzed_beta_lactam = 'hydrolyzed-beta-lactam'
@@ -52,7 +52,7 @@ def test_lysis_rxn_dff_environment():
 
     sim = EcoliSim.from_file(CONFIG_DIR_PATH + 'lysis_trigger.json')
     sim.emitter = 'timeseries'
-    sim.total_time = 10
+    sim.total_time = total_time
 
     # add to the timeline, triggering burst
     sim.process_configs['timeline'] = {
@@ -108,6 +108,7 @@ def test_lysis_rxn_dff_environment():
         },
         out_dir=out_dir,
         filename='snapshots',
+        colorbar_decimals=8,
     )
 
 
