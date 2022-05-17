@@ -1,21 +1,36 @@
+"""
+====================================
+Compile marA-Regulated Gene Metadata
+====================================
+
+This file contains functions to compile important metadata for genes that
+are designed to be regulated by marA when the `mar_regulon` option is enabled.
+For each gene, the output `model_degenes.csv` file contains the fold change,
+monomer ID, gene ID, TU index, bulk ID, and IDs of complexes containing that
+monomer as well as the number of monomers incorporated into each complex.
+
+Required files:
+- tetFC.tsv: fold change for each gene
+- complexation_stoich.npy: complexation stoichiometric matrix
+- complexation_molecules.npy: list of molecules used by complexation process
+- TU_id_to_index.json: dictionary mapping RNA names to TU indexes (Example: {"EG10001_RNA[c]": 0})
+"""
+
 import pandas as pd
 import json
 import numpy as np
-from concurrent.futures import ProcessPoolExecutor
-import multiprocessing
-
 
 def main():
     rnas = pd.read_table("reconstruction/ecoli/flat/rnas.tsv", comment='#')
     model_degenes = []
 
 
-    # Use fold change from direct exposure to tetracycline instead
+    # Use fold change from exposure to 1.5 mg/L tetracycline
     tet_FC = pd.read_table("ecoli/experiments/marA_binding/tet_FC.tsv")
-    tet_10_FC = tet_FC.loc[:,["Gene Name ", "10 mg/L tet."]]
-    tet_10_FC.rename(columns={
-        "Gene Name ": "Gene name", "10 mg/L tet.": "Fold change"}, inplace=True)
-    degenes = tet_10_FC.sort_values(
+    tet_FC = tet_FC.loc[:,["Gene Name ", "1.5 mg/L tet."]]
+    tet_FC.rename(columns={
+        "Gene Name ": "Gene name", "1.5 mg/L tet.": "Fold change"}, inplace=True)
+    degenes = tet_FC.sort_values(
         by="Fold change", ascending=False, ignore_index=True)
 
     for i, gene in enumerate(degenes["Gene name"]):
@@ -40,7 +55,6 @@ def main():
     # Get model RNAs names by appending the "[c]" suffix, then get TU index for RNA
     TU_idx = [TU_id_to_index[rna_id + "[c]"] for rna_id in model_degenes["id"]]
     model_degenes["TU_idx"] = TU_idx
-    TU_idx_to_FC = {}
 
     with open("data/wcecoli_t0.json") as f:
         initial_state = json.load(f)
@@ -111,8 +125,9 @@ def main():
         return [degene_bulk_ids, degene_monomers_used, degene_complex_ids]
 
     # Protein IDs have varied suffixes: brute force search
-    with ProcessPoolExecutor(multiprocessing.cpu_count()) as executor:
-        all_ids = executor.map(get_IDs, model_degenes["monomer_ids"])
+    all_ids = []
+    for monomer_id in model_degenes["monomer_ids"]:
+        all_ids.append(get_IDs(monomer_id))
 
     (model_degenes["bulk_ids"], model_degenes["monomers_used"], 
         model_degenes["complex_ids"]) = zip(

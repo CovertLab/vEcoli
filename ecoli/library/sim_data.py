@@ -27,13 +27,85 @@ class LoadSimData:
 
         self.trna_charging = trna_charging
         self.ppgpp_regulation = ppgpp_regulation
-        self.mar_regulon = mar_regulon
 
         self.submass_indexes = MASSDIFFS
 
         # load sim_data
         with open(sim_data_path, 'rb') as sim_data_file:
             self.sim_data = cPickle.load(sim_data_file)
+        
+        # NEW to vivarium-ecoli
+        # Changes gene expression upon tetracycline exposure
+        if mar_regulon:
+            # Assume marA (PD00365) controls the entire tetracycline gene expression program
+            # Assume marR (CPLX0-7710) is inactivated by complexation with tetracycline
+            self.sim_data.process.transcription_regulation.tf_ids += ["PD00365", "CPLX0-7710"]
+            self.sim_data.process.transcription_regulation.delta_prob["shape"] = (
+                self.sim_data.process.transcription_regulation.delta_prob["shape"][0], 
+                self.sim_data.process.transcription_regulation.delta_prob["shape"][1]+2)
+            self.sim_data.process.transcription_regulation.tf_to_tf_type["PD00365"] = "0CS"
+            self.sim_data.process.transcription_regulation.tf_to_tf_type["CPLX0-7710"] = "1CS"
+            self.sim_data.process.transcription_regulation.active_to_bound["CPLX0-7710"] = "marR-tet"
+            
+            # TU index of genes for outer membrane proteins, regulators, and inner membrane transporters
+            # NOTE: MicF (a ncRNA that destabilized ompF mRNA) was omitted for simplicity
+            TU_idxs = [2011, 1641, 1394, 2112, 1642, 1543, 662, 995, \
+                3289, 262, 1807, 2010, 659, 1395, 260, 259, 11, 944, 1631, 1330, \
+                660, 1399, 661]
+            new_deltaI = np.array(TU_idxs)
+            new_deltaJ = np.array([24]*23)
+            # Values were chosen to recapitulate mRNA fold change with 1.5 mg/L tetracycline (Viveiros et al. 2007)
+            # new_deltaV = np.array([10, 0.48, 0.07, 0.0054, 0.18, 0.013, 0.02, 0.13, 0.0035, 0.08, 0.007, 0.01, \
+            #     4, 0.0065, 0.0005, 0.0001, 0.00055, 0.025, 0.00002, 0.02, 0.01, -0.0006, -0.2]) / 1000
+            new_deltaV = np.array([0.145, 0.017, 0.0168, 0.00095, 0.01, -0.000101, 0.003422, 0.003846, 0.000155, 0.01, 0.0014, 0.00118, \
+                0.524, 0.003, 0.000034, -0.000002, 0.00006, 0.02, 0.000004, 0.00468, 0.03, 0.000257, 0.37]) / 1000
+            
+            self.sim_data.process.transcription_regulation.delta_prob["deltaI"] = np.concatenate(
+                [self.sim_data.process.transcription_regulation.delta_prob["deltaI"], new_deltaI])
+            self.sim_data.process.transcription_regulation.delta_prob["deltaJ"] = np.concatenate(
+                [self.sim_data.process.transcription_regulation.delta_prob["deltaJ"], new_deltaJ])
+            self.sim_data.process.transcription_regulation.delta_prob["deltaV"] = np.concatenate(
+                [self.sim_data.process.transcription_regulation.delta_prob["deltaV"], new_deltaV])
+            
+            # Add mass data for tetracycline and marR-tetracycline complex
+            bulk_data = self.sim_data.internal_state.bulk_molecules.bulk_data.fullArray().copy()
+            bulk_data.resize(bulk_data.shape[0]+2, refcheck=False)
+            # Tetracyline mass from NIST Chemistry WebBook
+            bulk_data[-1] = ('tetracycline[c]', [0, 0, 0, 0, 0, 0, 444.4346, 0, 0])
+            # marR mass from EcoCyc (x2 because homodimer)
+            bulk_data[-2] = ('marR-tet[c]', [0, 0, 0, 0, 0, 32120, 444.4346, 0, 0])
+            units = self.sim_data.internal_state.bulk_molecules.bulk_data.fullUnits()
+            self.sim_data.internal_state.bulk_molecules.bulk_data = UnitStructArray(bulk_data, units)
+            
+            # Add equilibrium reaction for marR-tetracycline and reinitialize self.sim_data.process.equilibrium variables
+            equilibrium_proc = self.sim_data.process.equilibrium
+            equilibrium_proc._stoichMatrixI = np.concatenate(
+                [equilibrium_proc._stoichMatrixI, np.array([98, 99, 100])])
+            equilibrium_proc._stoichMatrixJ = np.concatenate(
+                [equilibrium_proc._stoichMatrixJ, np.array([34, 34, 34])])
+            equilibrium_proc._stoichMatrixV = np.concatenate(
+                [equilibrium_proc._stoichMatrixV, np.array([-1, -1, 1])])
+            equilibrium_proc.molecule_names += ['CPLX0-7710[c]', 'tetracycline[c]', 'marR-tet[c]']
+            equilibrium_proc.ids_complexes = [equilibrium_proc.molecule_names[i] for i in np.where(np.any(equilibrium_proc.stoich_matrix() > 0, axis=1))[0]]
+            equilibrium_proc.rxn_ids += ['marR-tet']
+            # All existing equilibrium reactions use a forward reaction rate of 1
+            equilibrium_proc.rates_fwd = np.concatenate([equilibrium_proc.rates_fwd, np.array([1])])
+            # Rev rate of 4.5E-7 (+/- 5E-8) was manually fit to complex off all marR except 1 at 1.5 mg/L tetracycline 
+            equilibrium_proc.rates_rev = np.concatenate([equilibrium_proc.rates_rev, np.array([4.5E-7])])
+
+            # Mass balance matrix
+            equilibrium_proc._stoichMatrixMass = np.concatenate([equilibrium_proc._stoichMatrixMass, np.array([32130, 444.4346, 32574.4346])])
+            equilibrium_proc.balance_matrix = equilibrium_proc.stoich_matrix() * equilibrium_proc.mass_matrix()
+
+            # Find the mass balance of each equation in the balanceMatrix
+            massBalanceArray = equilibrium_proc.mass_balance()
+
+            # The stoichometric matrix should balance out to numerical zero.
+            assert np.max(np.absolute(massBalanceArray)) < 1e-9
+
+            # Build matrices
+            equilibrium_proc._populateDerivativeAndJacobian()
+            equilibrium_proc._stoichMatrix = equilibrium_proc.stoich_matrix()
 
     def get_config_by_name(self, name, time_step=2, parallel=False):
         name_config_mapping = {
@@ -102,77 +174,7 @@ class LoadSimData:
 
         return chromosome_replication_config
 
-    def get_tf_config(self, time_step=2, parallel=False):
-        if self.mar_regulon:
-            # Pretend marA controls all gene expression changes upon tetracycline exposure (Viveiros et al. 2007)
-            # Add marR to silence transcription of marA in the absence of tetracycline
-            self.sim_data.process.transcription_regulation.tf_ids += ["PD00365", "CPLX0-7710"]
-            self.sim_data.process.transcription_regulation.delta_prob["shape"] = (
-                self.sim_data.process.transcription_regulation.delta_prob["shape"][0], 
-                self.sim_data.process.transcription_regulation.delta_prob["shape"][1]+2)
-            self.sim_data.process.transcription_regulation.tf_to_tf_type["PD00365"] = "0CS"
-            self.sim_data.process.transcription_regulation.tf_to_tf_type["CPLX0-7710"] = "1CS"
-            self.sim_data.process.transcription_regulation.active_to_bound["CPLX0-7710"] = "marR-tet"
-            
-            # TU index of all genes that change upon tetracycline exposure
-            # Did not include ncRNA MicF because it is functionally inactive
-            TU_idxs = [2011, 1641, 1394, 2112, 1642, 1543, 662, 995, \
-                3289, 262, 1807, 2010, 659, 1395, 260, 259, 11, 944, 1631, 1330, \
-                660, 1399, 661]
-            new_deltaI = np.array(TU_idxs)
-            # Implement as if all differentially expressed genes are regulated by marA
-            new_deltaJ = np.array([24]*23)
-            TU_fc = [10, 0.48, 0.07, 0.0054, 0.18, 0.013, 0.02, 0.13, 0.0035, 0.08, 0.007, 0.01, \
-                4, 0.0065, 0.0005, 0.0001, 0.00055, 0.025, 0.00002, 0.02, 0.01, -0.0006, -0.2]
-            new_deltaV = np.array(TU_fc)/1000
-            
-            self.sim_data.process.transcription_regulation.delta_prob["deltaI"] = np.concatenate(
-                [self.sim_data.process.transcription_regulation.delta_prob["deltaI"], new_deltaI])
-            self.sim_data.process.transcription_regulation.delta_prob["deltaJ"] = np.concatenate(
-                [self.sim_data.process.transcription_regulation.delta_prob["deltaJ"], new_deltaJ])
-            self.sim_data.process.transcription_regulation.delta_prob["deltaV"] = np.concatenate(
-                [self.sim_data.process.transcription_regulation.delta_prob["deltaV"], new_deltaV])
-            
-            # Add tetracycline for all other processes as well
-            bulk_data = self.sim_data.internal_state.bulk_molecules.bulk_data.fullArray().copy()
-            bulk_data.resize(bulk_data.shape[0]+2, refcheck=False)
-            # Tetracyline mass from NIST Chemistry WebBook
-            bulk_data[-1] = ('tetracycline[c]', [0, 0, 0, 0, 0, 0, 444.4346, 0, 0])
-            # marR mass from EcoCyc (x2 becuause homodimer)
-            bulk_data[-2] = ('marR-tet[c]', [0, 0, 0, 0, 0, 32120, 444.4346, 0, 0])
-            units = self.sim_data.internal_state.bulk_molecules.bulk_data.fullUnits()
-            self.sim_data.internal_state.bulk_molecules.bulk_data = UnitStructArray(bulk_data, units)
-            
-            # Implement equilibrium of marR and tetracycline
-            equilibrium_proc = self.sim_data.process.equilibrium
-            equilibrium_proc._stoichMatrixI = np.concatenate(
-                [equilibrium_proc._stoichMatrixI, np.array([98, 99, 100])])
-            equilibrium_proc._stoichMatrixJ = np.concatenate(
-                [equilibrium_proc._stoichMatrixJ, np.array([34, 34, 34])])
-            equilibrium_proc._stoichMatrixV = np.concatenate(
-                [equilibrium_proc._stoichMatrixV, np.array([-1, -1, 1])])
-            equilibrium_proc.molecule_names += ['CPLX0-7710[c]', 'tetracycline[c]', 'marR-tet[c]']
-            equilibrium_proc.ids_complexes = [equilibrium_proc.molecule_names[i] for i in np.where(np.any(equilibrium_proc.stoich_matrix() > 0, axis=1))[0]]
-            equilibrium_proc.rxn_ids += ['marR-tet']
-            # All existing equilibrium reactions use a forward reaction rate of 1
-            equilibrium_proc.rates_fwd = np.concatenate([equilibrium_proc.rates_fwd, np.array([1])])
-            # Rev rate of 2E-6 (manually fit to precision of 5E-7) yields good range of marR/marR-tet ratios from 0 - 15000 tetracycline (0 - 10 mg/L) 
-            equilibrium_proc.rates_rev = np.concatenate([equilibrium_proc.rates_rev, np.array([2E-6])])
-
-            # Mass balance matrix
-            equilibrium_proc._stoichMatrixMass = np.concatenate([equilibrium_proc._stoichMatrixMass, np.array([32130, 444.4346, 32574.4346])])
-            equilibrium_proc.balance_matrix = equilibrium_proc.stoich_matrix() * equilibrium_proc.mass_matrix()
-
-            # Find the mass balance of each equation in the balanceMatrix
-            massBalanceArray = equilibrium_proc.mass_balance()
-
-            # The stoichometric matrix should balance out to numerical zero.
-            assert np.max(np.absolute(massBalanceArray)) < 1e-9
-
-            # Build matrices
-            equilibrium_proc._populateDerivativeAndJacobian()
-            equilibrium_proc._stoichMatrix = equilibrium_proc.stoich_matrix()     
-        
+    def get_tf_config(self, time_step=2, parallel=False):     
         tf_binding_config = {
             'time_step': time_step,
             '_parallel': parallel,

@@ -1,3 +1,16 @@
+"""
+====================================
+Tetracycline-Induced Gene Regulation
+====================================
+
+This file contains functions to plot the output of simulations where tetracycline 
+induces a change in gene expression via the enabling of the `mar_regulon` option.
+- runDefault(): run and save data for a default simulation for plotting
+- includeTetracycline(x): run a simulation with x molecules of tetracycline
+- allPlots(): plots graphs comparing protein, mRNA, and mRNA synthesis probabilities
+              of two saved experiment IDs
+- All other methods: helper functions to make plots
+"""
 import gc
 import ast
 import json
@@ -240,18 +253,17 @@ def all_plots(marA_id, baseline_id, name):
     gc.collect()
 
 def main():
-    # Generate baseline/experimental data, save experimental ids for analysis
+    # Generate baseline/experimental data
     # runDefault()
-    # includeTetracycline(15000)
-    
+    # includeTetracycline(2200)
     # Experimental id for marA simulation
     marA_id = ""
     # Experimental id for baseline simulation
     baseline_id = ""
-    # Name for output graphs
+    # Suffix for output graphs
     name = ""
         
-    all_plots(marA_id, baseline_id, name)
+    # all_plots(marA_id, baseline_id, name)
 
 if __name__=="__main__":
     main()
