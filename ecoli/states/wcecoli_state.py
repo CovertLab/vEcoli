@@ -27,13 +27,15 @@ def infinitize(value):
 def load_states(path):
     with open(path, "r") as states_file:
         states = json.load(states_file)
-    if 'agents' in states.keys():
-        for agent_id in states['agents'].keys():
+
+    # Apply infinitize() to every value in each agent's environment state dictionary
+    if 'agents' in states.keys():  # If the states of a colony
+        for agent_id in states['agents'].keys():  # Iterate over each agent in the colony
             states['agents'][agent_id]['environment'] = {
                 key: infinitize(value)
                 for key, value in states['agents'][agent_id].get("environment", {}).items()
             }
-    else:
+    else:  # If the states of a single agent
         states['environment'] = {
             key: infinitize(value)
             for key, value in states.get("environment", {}).items()
@@ -42,6 +44,12 @@ def load_states(path):
 
 
 def update_unique(modify_dict, source_dict, convert_unique_id_to_string):
+    """
+    update_unique initializes the unique molecules for a given agent.
+    Source_dict is the unique molecules state that was loaded in for that agent.
+    The data is reformatted and passed into modify_dict, which is the unique
+    molecules state that will be used for the agent.
+    """
     for mol_type, molecules in source_dict.items():
         modify_dict.update({mol_type: {}})
         for molecule_id, values in molecules.items():
@@ -61,6 +69,10 @@ def update_unique(modify_dict, source_dict, convert_unique_id_to_string):
 
 
 def colony_initial_state(states, convert_unique_id_to_string):
+    """
+    colony_initial_state modifies the states of a loaded colony simulation
+    to be suitable for initializing a colony simulation.
+    """
     states_to_return = deepcopy(states)
     for agent_id in states['agents'].keys():
         states['agents'][agent_id]['environment']['exchange_data'] = {

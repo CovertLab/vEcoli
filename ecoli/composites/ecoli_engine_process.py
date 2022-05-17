@@ -110,25 +110,32 @@ def colony_save_states(engine, config):
         else:
             time_to_next_save = config["save_times"][i] - config["save_times"][i - 1]
             time_elapsed += time_to_next_save
+        # Run engine to next save point
         engine.update(time_to_next_save)
+
+        # Save the full state of the super-simulation
         state = engine.state.get_value()
         state_to_save = copy.deepcopy(state)
-        # Delete processes
+
         for key in state:
             if isinstance(state[key], tuple) and isinstance(state[key][0], Process):
-                del(state_to_save[key])
+                del(state_to_save[key])  # Delete processes
 
         del(state_to_save['agents'])  # Replace 'agents' with agent states
         state_to_save['agents'] = {}
         for agent_id in state['agents']:
+            # Get internal state from the EngineProcess sub-simulation
             cell_state = state['agents'][agent_id]['cell_process'][0].sim.state.get_value()
             del (cell_state['environment']['exchange_data'])  # Can't save, but will be restored when loading state
             state_to_save['agents'][agent_id] = {key: cell_state[key] for key in cell_state.keys() if
                                                  not (isinstance(cell_state[key], tuple)
                                                       and isinstance(cell_state[key][0], Process))}
+
         state_to_save = serialize_value(state_to_save)
         write_json('data/colony_t' + str(time_elapsed) + '.json', state_to_save)
         print('Finished saving the state at t = ' + str(time_elapsed))
+
+    # Finish running the simulation
     time_remaining = config["total_time"] - config["save_times"][-1]
     if time_remaining:
         engine.update(time_remaining)
