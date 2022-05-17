@@ -133,6 +133,8 @@ def plot_agent(
         membrane_width (float): Width of drawn agent boundary.
         membrane_color (list): RGB color of drawn agent boundary.
     '''
+    if not data or not data.get('boundary'):
+        return
     x_center = data['boundary']['location'][0]
     y_center = data['boundary']['location'][1]
 
