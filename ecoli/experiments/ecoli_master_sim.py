@@ -451,14 +451,13 @@ class EcoliSim:
                 raise ValueError(
                     f'Config contains save_time ({time}) > total '
                     f'time ({self.total_time})')
-        time_elapsed = self.save_times[0]
         for i in range(len(self.save_times)):
             if i == 0:
                 time_to_next_save = self.save_times[i]
             else:
                 time_to_next_save = self.save_times[i] - self.save_times[i - 1]
-                time_elapsed += time_to_next_save
             self.ecoli_experiment.update(time_to_next_save)
+            time_elapsed = self.save_times[i]
             state = self.ecoli_experiment.state.get_value()
             if self.divide:
                 state = state['agents'][self.agent_id]
