@@ -200,8 +200,10 @@ def run_simulation():
         initial_state = deserialize_value(initial_state)
         agent_states = initial_state['agents']
         for agent_id, agent_state in agent_states.items():
-            base_config['initial_cell_state'] = agent_state
-            agent_composer = EcoliEngineProcess(base_config)
+            agent_config = copy.deepcopy(base_config)
+            agent_config['initial_cell_state'] = agent_state
+            agent_config['agent_id'] = agent_id
+            agent_composer = EcoliEngineProcess(agent_config)
             agent_composite = agent_composer.generate(path=('agents', agent_id))
             if not composite:
                 composite = agent_composite

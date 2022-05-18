@@ -49,6 +49,8 @@ def update_unique(modify_dict, source_dict, convert_unique_id_to_string):
     Source_dict is the unique molecules state that was loaded in for that agent.
     The data is reformatted and passed into modify_dict, which is the unique
     molecules state that will be used for the agent.
+    (This docstring was written by Matt, who did not originally write this code.
+    This description could be incorrect.)
     """
     for mol_type, molecules in source_dict.items():
         modify_dict.update({mol_type: {}})
