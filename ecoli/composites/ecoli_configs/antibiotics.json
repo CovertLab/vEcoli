@@ -86,6 +86,7 @@
     },
     "engine_process_reports": [
         ["bioscrape_deltas"],
-        ["periplasm"]
+        ["periplasm"],
+        ["kinetic_parameters"]
     ]
 }
