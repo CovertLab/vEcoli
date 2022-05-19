@@ -58,3 +58,5 @@ ecoli/composites/ecoli_configs/test_configs/test_export.json
 data/nitro_sbml.xml
 data/ceph_tet_sbml.xml
 data/ceph_tet_diffusion_only_sbml.xml
+data/amp_sbml.xml
+data/amp_diffusion_only_sbml.xml
