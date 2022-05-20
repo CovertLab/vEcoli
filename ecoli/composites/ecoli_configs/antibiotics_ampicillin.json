@@ -23,31 +23,39 @@
     },
     "topology": {
         "exchange-aware-bioscrape": {
-            "delta_species": ["bioscrape_deltas"],
-            "exchanges": ["environment", "exchange"],
-            "external": ["boundary", "external"],
-            "rates": {
-                "_path": ["null"],
-                "export_kcat": ["..", "kinetic_parameters", "export_kcat"],
-                "export_km": ["..", "kinetic_parameters", "export_km"],
-                "export_n": ["..", "kinetic_parameters", "export_n"],
-                "hydrolysis_kcat": ["..", "kinetic_parameters", "export_kcat"],
-                "hydrolysis_km": ["..", "kinetic_parameters", "export_km"],
-                "hydrolysis_n": ["..", "kinetic_parameters", "hydrolysis_n"],
-                "permeability": ["..", "kinetic_parameters", "outer_ampicillin_permeability"],
-                "permeability_r3": ["..", "kinetic_parameters", "outer_ampicillin_permeability"],
-                "volume_p": ["..", "periplasm", "global", "volume"],
-                "volume_p_r1": ["..", "periplasm", "global", "volume"],
-                "volume_p_r3": ["..", "periplasm", "global", "volume"],
-                "area": ["..", "boundary", "surface_area"],
-                "area_r3": ["..", "boundary", "surface_area"]
-            },
             "species": {
                 "_path": ["null"],
-                "acrab_tolc": ["..", "periplasm", "concentrations", "TRANS-CPLX-201[m]"],
-                "ampc": ["..", "periplasm", "concentrations", "EG10040-MONOMER[p]"],
-                "ampicillin_hydrolyzed": ["..", "periplasm", "concentrations", "ampicillin_hydrolyzed"],
-                "ampicillin_periplasm": ["..", "periplasm", "concentrations", "ampicillin"]
+                "hydrolyzed": ["..", "periplasm", "concentrations", "ampicillin_hydrolyzed"],
+                "internal": ["..", "periplasm", "concentrations", "ampicillin"]
+            },
+            "delta_species": ["bioscrape_deltas"],
+            "exchanges": {
+                "external": ["environment", "exchange", "ampicillin"]
+            },
+            "external": {
+                "external": ["boundary", "external", "ampicillin"]
+            },
+            "reaction_parameters": {
+                "diffusion": {
+                    "_path": ["null"],
+                    "permeability": ["..", "kinetic_parameters", "outer_ampicillin_permeability"],
+                    "area": ["..", "boundary", "surface_area"],
+                    "volume": ["..", "periplasm", "global", "volume"]
+                },
+                "export": {
+                    "_path": ["null"],
+                    "kcat": ["..", "kinetic_parameters", "export_kcat"],
+                    "km": ["..", "kinetic_parameters", "export_km"],
+                    "n": ["..", "kinetic_parameters", "export_n"],
+                    "enzyme_conc": ["..", "periplasm", "concentrations", "TRANS-CPLX-201[m]"]
+                },
+                "hydrolysis": {
+                    "_path": ["null"],
+                    "kcat": ["..", "kinetic_parameters", "hydrolysis_kcat"],
+                    "km": ["..", "kinetic_parameters", "hydrolysis_km"],
+                    "n": ["..", "kinetic_parameters", "hydrolysis_n"],
+                    "enzyme_conc": ["..", "periplasm", "concentrations", "EG10040-MONOMER[p]"]
+                }
             }
         },
         "permeability": {
@@ -67,33 +75,25 @@
     },
     "process_configs": {
         "exchange-aware-bioscrape": {
-            "external_species": ["ampicillin"],
-            "name_map": [
-                [["external", "ampicillin"], "ampicillin_environment"]
-            ],
-            "units_map": {
-                "rates": {
-                    "export_kcat": "!units[1 / second]",
-                    "export_km": "!units[millimolar]",
-                    "export_n": "!units[count]",
-                    "hydrolysis_kcat": "!units[1 / second]",
-                    "hydrolysis_km": "!units[millimolar]",
-                    "hydrolysis_n": "!units[count]",
-                    "permeability": "!units[centimeter / second]",
-                    "permeability_r3": "!units[centimeter / second]",
-                    "volume_p": "!units[milliliter]",
-                    "volume_p_r1": "!units[milliliter]",
-                    "volume_p_r3": "!units[milliliter]",
-                    "area": "!units[decimeter**2]",
-                    "area_r3": "!units[decimeter**2]"
+            "initial_reaction_parameters": {
+                "diffusion": {
+                    "permeability": "!units[0.28e-5 centimeter / second]",
+                    "area": "!units[4.5177 micrometer**2]",
+                    "volume": "!units[0.212799 femtoliter]"
+                },
+                "export": {
+                    "kcat": "!units[698 1 / second]",
+                    "km": "!units[2.16e-3 millimolar]",
+                    "n": "!units[1.9 count]",
+                    "enzyme_conc": "!units[6.7e-4 millimolar]"
+                },
+                "hydrolysis": {
+                    "kcat": "!units[6.5 1 / second]",
+                    "km": "!units[0.9e-3 millimolar]",
+                    "n": "!units[1 count]",
+                    "enzyme_conc": "!units[7.1e-4 millimolar]"
                 }
-            },
-            "sbml_file_path": "data/amp_sbml.xml",
-            "species_to_convert_to_counts": {
-                "ampicillin_periplasm": "volume_p",
-                "ampicillin_hydrolyzed": "volume_p"
-            },
-            "time_step": 1
+            }
         },
         "permeability": {
             "porin_ids": ["CPLX0-7533[o]", "CPLX0-7534[o]"],
@@ -110,7 +110,7 @@
         "death": {
             "detectors": [
                 ["antibiotic", {
-                    "antibiotic_threshold": "!units[0.01 millimolar]",
+                    "antibiotic_threshold": "!units[0.0025 millimolar]",
                     "antibiotic_key": "ampicillin"
                 }]
             ],
@@ -118,33 +118,61 @@
                 "exchange-aware-bioscrape-diffusion-only": [
                     "exchange-aware-bioscrape",
                     {
-                        "external_species": ["ampicillin"],
-                        "name_map": [
-                            [["external", "ampicillin"], "ampicillin_environment"]
-                        ],
-                        "units_map": {
-                            "rates": {
-                                "permeability": "!units[centimeter / second]",
-                                "volume_p": "!units[milliliter]",
-                                "area": "!units[decimeter**2]"
+                        "initial_reaction_parameters": {
+                            "diffusion": {
+                                "permeability": "!units[0.28e-5 centimeter / second]",
+                                "area": "!units[4.5177 micrometer**2]",
+                                "volume": "!units[0.212799 femtoliter]"
+                            },
+                            "export": {
+                                "kcat": "!units[698 1 / second]",
+                                "km": "!units[2.16e-3 millimolar]",
+                                "n": "!units[1.9 count]",
+                                "enzyme_conc": "!units[6.7e-4 millimolar]"
+                            },
+                            "hydrolysis": {
+                                "kcat": "!units[6.5 1 / second]",
+                                "km": "!units[0.9e-3 millimolar]",
+                                "n": "!units[1 count]",
+                                "enzyme_conc": "!units[7.1e-4 millimolar]"
                             }
                         },
-                        "sbml_file_path": "data/amp_diffusion_only_sbml.xml",
-                        "time_step": 1
+                        "diffusion_only": true
                     },
                     {
-                        "delta_species": ["bioscrape_deltas"],
-                        "exchanges": ["environment", "exchange"],
-                        "external": ["boundary", "external"],
-                        "rates": {
-                            "_path": ["null"],
-                            "permeability": ["..", "kinetic_parameters", "outer_ampicillin_permeability"],
-                            "volume_p": ["..", "periplasm", "global", "volume"],
-                            "area": ["..", "boundary", "surface_area"]
-                        },
                         "species": {
                             "_path": ["null"],
-                            "ampicillin_periplasm": ["..", "periplasm", "concentrations", "ampicillin"]
+                            "hydrolyzed": ["..", "periplasm", "concentrations", "ampicillin_hydrolyzed"],
+                            "internal": ["..", "periplasm", "concentrations", "ampicillin"]
+                        },
+                        "delta_species": ["bioscrape_deltas"],
+                        "exchanges": {
+                            "external": ["environment", "exchange", "ampicillin"]
+                        },
+                        "external": {
+                            "external": ["boundary", "external", "ampicillin"]
+                        },
+                        "reaction_parameters": {
+                            "diffusion": {
+                                "_path": ["null"],
+                                "permeability": ["..", "kinetic_parameters", "outer_ampicillin_permeability"],
+                                "area": ["..", "boundary", "surface_area"],
+                                "volume": ["..", "periplasm", "global", "volume"]
+                            },
+                            "export": {
+                                "_path": ["null"],
+                                "kcat": ["..", "kinetic_parameters", "export_kcat"],
+                                "km": ["..", "kinetic_parameters", "export_km"],
+                                "n": ["..", "kinetic_parameters", "export_n"],
+                                "enzyme_conc": ["..", "periplasm", "concentrations", "TRANS-CPLX-201[m]"]
+                            },
+                            "hydrolysis": {
+                                "_path": ["null"],
+                                "kcat": ["..", "kinetic_parameters", "hydrolysis_kcat"],
+                                "km": ["..", "kinetic_parameters", "hydrolysis_km"],
+                                "n": ["..", "kinetic_parameters", "hydrolysis_n"],
+                                "enzyme_conc": ["..", "periplasm", "concentrations", "EG10040-MONOMER[p]"]
+                            }
                         }
                     }
                 ]
