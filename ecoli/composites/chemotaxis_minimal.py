@@ -440,8 +440,23 @@ def scan_chemotaxis(initial_conc=1):
                    total_time=30, metrics=metrics)
     scanner.run_scan()
 
+
 def distance_from_center(simulation_output, parameter_set):
-    return 0
+    """
+    This function finds the total L2 distance of the cell from the center
+    summed over all timesteps.
+    :param simulation_output: dictionary with all timesteps
+    :param parameter_set: dictionary storing various parameters
+    :return: total L2 distance
+    """
+    # center / location are lists containing [x, y]
+    center_x, center_y = parameter_set['parameters']['static_field']['gradient']['molecules']['MeAsp']['center']
+    total_distance = 0
+    for timestep in simulation_output:
+        curr_x, curr_y = simulation_output[timestep]['agents']['1']['boundary']['location']
+        d_sq = (curr_x - center_x)**2 + (curr_y - center_y)**2
+        total_distance += d_sq
+    return total_distance
 
 
 def main():
