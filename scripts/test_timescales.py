@@ -1,17 +1,13 @@
+import os
+
 from matplotlib import pyplot as plt
 import numpy as np
-import os
 from scipy.integrate import odeint
 from scipy.optimize import root_scalar, root
+from vivarium.library.units import units
 
+from ecoli.parameters import param_store
 from scripts.generate_ceph_tet_sbml import (
-    CEPH_PUMP_KCAT,
-    CEPH_PUMP_KM,
-    CEPH_BETA_LACTAMASE_KCAT,
-    CEPH_BETA_LACTAMASE_KM,
-    CEPH_EXPORT_N,
-    DEFAULT_CEPH_OUTER_PERM,
-
     TET_PUMP_KCAT,
     TET_PUMP_KM,
     DEFAULT_TET_OUTER_PERM,
@@ -22,7 +18,6 @@ from scripts.generate_ceph_tet_sbml import (
     GAS_CONSTANT,
     TEMPERATURE,
 
-    INITIAL_ENVIRONMENT_CEPH,
     INITIAL_ENVIRONMENT_TET,
     INITIAL_PUMP,
     INITIAL_BETA_LACTAMASE,
@@ -68,23 +63,94 @@ ODES = {
         # Map from name to (derivative_func, y0)
         'Efflux': (
             _get_michaelis_menten_derivative(
-                CEPH_PUMP_KCAT, CEPH_PUMP_KM, CEPH_EXPORT_N, INITIAL_PUMP),
-            INITIAL_ENVIRONMENT_CEPH,  # Assume diffusion is fast.
+                param_store.get(('cephaloridine', 'efflux', 'kcat')).to(
+                    1 / units.sec).magnitude,
+                param_store.get(('cephaloridine', 'efflux', 'km')).to(
+                    units.mM).magnitude,
+                param_store.get(('cephaloridine', 'efflux', 'n')),
+                param_store.get(('concs', 'initial_pump')).to(
+                    units.mM).magnitude,
+            ),
+            # Assume diffusion is fast.
+            param_store.get(('cephaloridine', 'mic')).to(
+                units.mM).magnitude,
         ),
         'Hydrolysis': (
             _get_michaelis_menten_derivative(
-                CEPH_BETA_LACTAMASE_KCAT, CEPH_BETA_LACTAMASE_KM, 1,
-                INITIAL_BETA_LACTAMASE),
-            INITIAL_ENVIRONMENT_CEPH,    # Assume diffusion is fast.
+                param_store.get(
+                    ('cephaloridine', 'hydrolysis', 'kcat')
+                ).to(1 / units.sec).magnitude,
+                param_store.get(('cephaloridine', 'hydrolysis', 'km')).to(
+                    units.mM).magnitude,
+                param_store.get(('cephaloridine', 'hydrolysis', 'n')),
+                param_store.get(('concs', 'initial_hydrolase')).to(
+                    units.mM).magnitude,
+            ),
+            # Assume diffusion is fast.
+            param_store.get(('cephaloridine', 'mic')).to(
+                units.mM).magnitude,
         ),
         'Diffusion': (
             _get_fickian_derivative(
                 (
-                    CELL_MASS * AREA_MASS_RATIO * DEFAULT_CEPH_OUTER_PERM
-                    * 1e-3
-                ),
-                INITIAL_ENVIRONMENT_CEPH,
-                PERIPLASM_VOLUME,
+                    param_store.get(('shape', 'initial_area'))
+                    * param_store.get(
+                        ('cephaloridine', 'permeability', 'outer'))
+                    ).to(units.L / units.sec).magnitude,
+                param_store.get(('cephaloridine', 'mic')).to(
+                    units.mM).magnitude,
+                (
+                    param_store.get(('shape', 'initial_cell_volume'))
+                    * param_store.get(('shape', 'periplasm_fraction'))
+                ).to(units.L).magnitude,
+            ),
+            0,
+        ),
+    },
+    'ampicillin': {
+        # Map from name to (derivative_func, y0)
+        'Efflux': (
+            _get_michaelis_menten_derivative(
+                param_store.get(('ampicillin', 'efflux', 'kcat')).to(
+                    1 / units.sec).magnitude,
+                param_store.get(('ampicillin', 'efflux', 'km')).to(
+                    units.mM).magnitude,
+                param_store.get(('ampicillin', 'efflux', 'n')),
+                param_store.get(('concs', 'initial_pump')).to(
+                    units.mM).magnitude,
+            ),
+            # Assume diffusion is fast.
+            param_store.get(('ampicillin', 'mic')).to(
+                units.mM).magnitude,
+        ),
+        'Hydrolysis': (
+            _get_michaelis_menten_derivative(
+                param_store.get(
+                    ('ampicillin', 'hydrolysis', 'kcat')
+                ).to(1 / units.sec).magnitude,
+                param_store.get(('ampicillin', 'hydrolysis', 'km')).to(
+                    units.mM).magnitude,
+                param_store.get(('ampicillin', 'hydrolysis', 'n')),
+                param_store.get(('concs', 'initial_hydrolase')).to(
+                    units.mM).magnitude,
+            ),
+            # Assume diffusion is fast.
+            param_store.get(('ampicillin', 'mic')).to(
+                units.mM).magnitude,
+        ),
+        'Diffusion': (
+            _get_fickian_derivative(
+                (
+                    param_store.get(('shape', 'initial_area'))
+                    * param_store.get(
+                        ('ampicillin', 'permeability', 'outer'))
+                    ).to(units.L / units.sec).magnitude,
+                param_store.get(('ampicillin', 'mic')).to(
+                    units.mM).magnitude,
+                (
+                    param_store.get(('shape', 'initial_cell_volume'))
+                    * param_store.get(('shape', 'periplasm_fraction'))
+                ).to(units.L).magnitude,
             ),
             0,
         ),
@@ -148,7 +214,7 @@ def tetracycline_derivative(y):
 def find_equilibrium():
     ceph = root_scalar(
         cephaloridine_periplasm_derivative,
-        bracket=[0, INITIAL_ENVIRONMENT_CEPH])
+        bracket=[0, param_store.get(('cephaloridine', 'mic'))])
     assert ceph.converged
     print('Periplasmic Cephaloridine Equilibrium (mM):', ceph.root)
 
@@ -161,7 +227,7 @@ def find_equilibrium():
 
 def test_cephaloridine_diffusion_timescale():
     derivative = ODES['cephaloridine']['Diffusion'][0]
-    y0 = INITIAL_ENVIRONMENT_CEPH
+    y0 = param_store.get(('cephaloridine', 'mic'))
     _assert_timescale(derivative, y0, MAX_TIMESCALE)
 
 

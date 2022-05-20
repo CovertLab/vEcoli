@@ -46,6 +46,7 @@ PARAMETER_DICT = {
             2 * units.micrograms / units.mL,
             'Mazzariol, Cornaglia, and Nikaido (2000)',
             lambda x: (
+                # Divide by molecular weight from PubChem.
                 x / (349.4 * units.g / units.mol)
             ).to(units.mM),
         ),
@@ -75,6 +76,52 @@ PARAMETER_DICT = {
             'n': Parameter(
                 1,
                 'Mazzariol, Cornaglia, and Nikaido (2000)',
+            ),
+        },
+    },
+    'cephaloridine': {
+        'permeability': {
+            'outer': Parameter(
+                (52.6e-5 + 4.5e-5) * units.cm / units.sec,
+                'Nikaido, Rosenberg, and Foulds (1983)',
+                note='This is total, not per-porin, permeability',
+            ),
+        },
+        'mic': Parameter(
+            0.5 * units.micrograms / units.mL,
+            'Rolinson (1980)',
+            lambda x: (
+                # Divide by molecular weight from PubChem.
+                x / (415.5 * units.g / units.mol)
+            ).to(units.mM),
+        ),
+        'efflux': {
+            'vmax': Parameter(
+                1.82 * units.nmol / units.mg / units.sec,
+                'Nagano and Nikaido (2009)',
+            ),
+            'km': Parameter(
+                0.288 * units.mM,
+                'Nagano and Nikaido (2009)',
+            ),
+            'n': Parameter(
+                1.75,
+                'Nagano and Nikaido (2009)',
+            ),
+        },
+        'hydrolysis': {
+            'kcat': Parameter(
+                130 / units.sec,
+                'Galleni et al. (1988)',
+                note='Not confirmed',
+            ),
+            'km': Parameter(
+                0.17 * units.mM,
+                'Galleni et al. (1988)',
+                note='Not confirmed',
+            ),
+            'n': Parameter(
+                1
             ),
         },
     },
@@ -119,7 +166,15 @@ DERIVATION_RULES = {
         (
             params.get(('ampicillin', 'efflux', 'vmax'))
             / params.get(('concs', 'initial_pump'))
-            * params.get(('shape', 'initia_cell_mass'))
+            * params.get(('shape', 'initial_cell_mass'))
+            / params.get(('shape', 'initial_periplasm_volume'))
+        )
+    ),
+    ('cephaloridine', 'efflux', 'kcat'): lambda params: Parameter(
+        (
+            params.get(('cephaloridine', 'efflux', 'vmax'))
+            / params.get(('concs', 'initial_pump'))
+            * params.get(('shape', 'initial_cell_mass'))
             / params.get(('shape', 'initial_periplasm_volume'))
         )
     ),
