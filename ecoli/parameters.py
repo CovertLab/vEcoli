@@ -1,9 +1,9 @@
-from vivarium.library.topology import get_in
+from vivarium.library.topology import get_in, assoc_path
 from vivarium.library.units import units
 
 class Parameter:
 
-    def __init__(self, value, source, canonicalize=None, note=''):
+    def __init__(self, value, source='', canonicalize=None, note=''):
         self.value = value
         self.source = source
         self.canonicalize = canonicalize or (lambda x: x)
@@ -12,15 +12,25 @@ class Parameter:
 
 class ParameterStore:
 
-    def __init__(self, parameters):
-        self.parameters = parameters
+    def __init__(self, parameters, derivation_rules=None):
+        self._parameters = parameters
+        self.derive_parameters(derivation_rules or {})
 
     def get(self, path):
-        param_obj = get_in(self.parameters, path)
+        param_obj = get_in(self._parameters, path)
         if not param_obj:
             raise RuntimeError(
                 f'No parameter found at path {path}')
         return param_obj.canonicalize(param_obj.value)
+
+    def add(self, path, parameter):
+        assert get_in(self._parameters, path) is None
+        assoc_path(self._parameters, path, parameter)
+
+    def derive_parameters(self, derivation_rules):
+        for path, deriver in derivation_rules.items():
+            new_param = deriver(self)
+            self.add(path, new_param)
 
 
 PARAMETER_DICT = {
@@ -40,14 +50,9 @@ PARAMETER_DICT = {
             ).to(units.mM),
         ),
         'efflux': {
-            'kcat': Parameter(
-                0.085 * units.nmol / units.mg / units.sec,  # Vmax
+            'vmax': Parameter(
+                0.085 * units.nmol / units.mg / units.sec,
                 'Kojima and Nikaido (2013)',
-                lambda x: (
-                    x / (6.7e-4 * units.mM)  # Pump concentration
-                    * 1170 * units.fg  # Total cell mass
-                    / (0.212799 * units.fL)  # Periplasm volume
-                )
             ),
             'km': Parameter(
                 2.16e-3 * units.mM,
@@ -103,4 +108,21 @@ PARAMETER_DICT = {
     },
 }
 
-param_store = ParameterStore(PARAMETER_DICT)
+DERIVATION_RULES = {
+    ('shape', 'initial_periplasm_volume'): lambda params: Parameter(
+        (
+            params.get(('shape', 'initial_cell_volume'))
+            * params.get(('shape', 'periplasm_fraction'))
+        ),
+    ),
+    ('ampicillin', 'efflux', 'kcat'): lambda params: Parameter(
+        (
+            params.get(('ampicillin', 'efflux', 'vmax'))
+            / params.get(('concs', 'initial_pump'))
+            * params.get(('shape', 'initia_cell_mass'))
+            / params.get(('shape', 'initial_periplasm_volume'))
+        )
+    ),
+}
+
+param_store = ParameterStore(PARAMETER_DICT, DERIVATION_RULES)
