@@ -68,7 +68,7 @@ PARAMETER_DICT = {
         },
         'hydrolysis': {
             'kcat': Parameter(
-                6.5e-3 / units.sec,
+                6.5 / units.sec,
                 'Mazzariol, Cornaglia, and Nikaido (2000)',
             ),
             'km': Parameter(
