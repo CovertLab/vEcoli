@@ -15,43 +15,192 @@ from bioscrape.simulator import (
 from bioscrape.types import Model
 import numpy as np
 from scipy.constants import N_A
-from scipy.integrate import odeint
-from scipy.linalg import norm
-from scipy.optimize import root, minimize
+from scipy.integrate import solve_ivp
+from scipy.optimize import root_scalar
 from vivarium.core.process import Process
 from vivarium.library.units import units, Quantity
 
 
 AVOGADRO = N_A / units.mol
 
+# NOTE: These must match the math in species_derivatives().
+SPECIES = ('internal', 'external', 'external_delta', 'hydrolyzed')
+SPECIES_TO_INDEX = {
+    species: i
+    for i, species in enumerate(SPECIES)
+}
+EXTERNAL_SPECIES = ('external', 'external_delta')
+REACTIONS = {
+    'diffusion': (('external_delta',), ('internal',)),  # Diffusion
+    'export': (('internal',), ('external_delta',)),  # Efflux
+    'hydrolysis': (('internal',), ('hydrolyzed',)),  # Hydrolysis
+}
+REACTIONS_TO_INDEX = {
+    reaction: i
+    for i, reaction in enumerate(REACTIONS)
+}
+# Build a stoichiometry matrix.
+#
+# For example, suppose we have the following reactions:
 
-def _transform_dict_leaves(root, transform_func):
-    if not isinstance(root, dict):
-        # We are at a leaf node, so apply transformation function.
-        return transform_func(root)
-    # We are not at a leaf node, so recurse.
-    transformed = {
-        key: _transform_dict_leaves(value, transform_func)
-        for key, value in root.items()
-    }
-    return transformed
+# .. code-block:: text
 
+#     (rxn 1) A  -> B
+#     (rxn 2) 2B -> A
 
-def test_transform_dict_leaves():
-    root = {
-        'a': {
-            'b': 1,
+# Then we can write a stoichiometry matrix **N**:
+
+# .. code-block:: text
+
+#          rxn 1    rxn 2
+#         +-           -+
+#       A | -1       +1 |
+#       B | +1       -2 |
+#         +-           -+
+
+# Now if we have a derivatives vector **d** of the rates of change of
+# each species, we can solve for a rate vector **v** representing the
+# rates of each reaction needed to produce the rates of change in **d**:
+# **d** = **N** · **v**.
+STOICH = np.zeros((len(SPECIES), len(REACTIONS)))
+for i_reaction, (reactants, products) in enumerate(REACTIONS.values()):
+    for reactant in reactants:
+        i_reactant = SPECIES_TO_INDEX[reactant]
+        STOICH[i_reactant, i_reaction] -= 1
+    for product in products:
+        i_product = SPECIES_TO_INDEX[product]
+        STOICH[i_product, i_reaction] += 1
+UNITS = {
+    'species': {
+        species: units.mM
+        for species in SPECIES
+    },
+    'reaction_parameters': {
+        'diffusion': {
+            'permeability': units.dm / units.sec,
+            'area': units.dm**2,
+            'volume': units.L,
         },
-        'c': 2,
-    }
-    transformed = _transform_dict_leaves(root, lambda x: x + 1)
-    expected = {
-        'a': {
-            'b': 2,
+        'export': {
+            'kcat': 1 / units.sec,
+            'km': units.mM,
+            'enzyme_conc': units.mM,
+            'n': units.count,
         },
-        'c': 3,
+        'hydrolysis': {
+            'kcat': 1 / units.sec,
+            'km': units.mM,
+            'enzyme_conc': units.mM,
+            'n': units.count,
+        },
+    },
+}
+
+
+def species_derivatives(state_arr, reaction_params):
+    # Parse state
+    state = species_array_to_dict(state_arr, SPECIES_TO_INDEX)
+    internal = state['internal']
+    external = state['external']
+
+    # Parse reaction parameters
+    area = reaction_params['diffusion']['area']
+    permeability = reaction_params['diffusion']['permeability']
+    volume_p = reaction_params['diffusion']['volume']
+    # TODO: Pull the Michaelis-Menten logic into a separate function for
+    # reuse.
+    kcat_export = reaction_params['export']['kcat']
+    km_export = reaction_params['export']['km']
+    pump_conc = reaction_params['export']['enzyme_conc']
+    n_export = reaction_params['export']['n']
+    kcat_hydrolysis = reaction_params['hydrolysis']['kcat']
+    km_hydrolysis = reaction_params['hydrolysis']['km']
+    hydrolase_conc = reaction_params['hydrolysis']['enzyme_conc']
+    n_hydrolysis = reaction_params['hydrolysis']['n']
+
+    diffusion_rate = area * permeability * (external - internal) / (
+        volume_p)
+    export_rate = (
+        kcat_export * pump_conc * internal**n_export
+    ) / (
+        km_export + internal**n_export)
+    hydrolysis_rate = (
+        kcat_hydrolysis * hydrolase_conc * internal**n_hydrolysis
+    ) / (
+        km_hydrolysis + internal**n_hydrolysis)
+
+    reaction_rates = {
+        'diffusion': diffusion_rate,
+        'export': export_rate,
+        'hydrolysis': hydrolysis_rate,
     }
-    assert transformed == expected
+    reaction_rates_arr = species_dict_to_array(
+        reaction_rates, REACTIONS_TO_INDEX)
+
+    return STOICH @ reaction_rates_arr
+
+
+def internal_derivative(internal, external, reaction_params):
+    state = {
+        'internal': internal,
+        'external': external,
+        'external_delta': 0,
+        'hydrolyzed': 0,
+    }
+    state_arr = species_dict_to_array(state, SPECIES_TO_INDEX)
+    derivatives = species_derivatives(state_arr, reaction_params)
+    return derivatives[SPECIES_TO_INDEX['internal']]
+
+
+def find_steady_state(external, reaction_params):
+    args = (
+        external,
+        reaction_params,
+    )
+    result = root_scalar(
+        internal_derivative,
+        args=args,
+        bracket=[0, external],
+    )
+    assert result.converged
+    return result.root
+
+
+def update_from_steady_state(
+        internal_steady_state, initial_state, reaction_params,
+        timestep):
+    assert set(SPECIES) == initial_state.keys()
+
+    steady_state = initial_state.copy()
+    reaction_rates = np.zeros(len(REACTIONS))
+    # Assume that steady state is reached exclusively through diffusion
+    steady_state['internal'] = internal_steady_state
+    steady_state['external_delta'] = -(
+        internal_steady_state - initial_state['internal'])
+    steady_state_arr = species_dict_to_array(
+        steady_state, SPECIES_TO_INDEX)
+
+    args = (
+        reaction_params,
+    )
+    result = solve_ivp(
+        lambda t, state_arr, *args: species_derivatives(
+            state_arr, *args),
+        [0, timestep],
+        steady_state_arr,
+        args=args,
+    )
+    assert result.success
+    final_state_arr = result.y[:, -1].T
+
+    initial_state_arr = species_dict_to_array(
+        initial_state, SPECIES_TO_INDEX)
+    delta_arr = final_state_arr - initial_state_arr
+    delta = species_array_to_dict(delta_arr, SPECIES_TO_INDEX)
+    return {
+        'species': delta,
+        'delta_species': delta,
+    }
 
 
 def species_array_to_dict(array, species_to_index):
@@ -83,237 +232,126 @@ def species_array_to_dict(array, species_to_index):
     }
 
 
-def get_delta(before, after):
-    '''Calculate the differences between the values of two dictionaries.
+def species_dict_to_array(species_dict, species_to_index):
+    '''Convert species dict to an array based on an index map.
 
-    >>> before = {'a': 2, 'b': -5}
-    >>> after = {'b': 1, 'a': 3}
-    >>> get_delta(before, after)
-    {'a': 1, 'b': 6}
+    >>> d = {'C': 2, 'A': 1, 'B': 5}
+    >>> species_to_index = {
+    ...     'C': 2,
+    ...     'A': 0,
+    ...     'B': 1,
+    ... }
+    >>> species_dict_to_array(d, species_to_index)
+    array([1., 5., 2.])
 
     Args:
-        before: One of the dictionaries.
-        after: The other dictionary.
+        species_dict: The dictionary mapping species names to values.
+        species_to_index: Dictionary mapping from names to the index in
+            ``array`` of the value associated with each name.
 
     Returns:
-        A dictionary with the same keys as ``before`` and ``after``
-        where for each key ``k``, the value is equal to ``after[k] -
-        before[k]``.
+        An array with every value from ``species_dict`` at the index
+        specified by ``species_to_index``.
 
     Raises:
-        AssertionError: If ``before`` and ``after`` do not have the same
-            keys.
+        AssertionError: When the keys of ``species_dict`` and the keys
+            of ``species_to_index`` differ.
     '''
-    assert before.keys() == after.keys()
-    return {
-        key: after[key] - before_value
-        for key, before_value in before.items()
-    }
+    assert species_dict.keys() == species_to_index.keys()
+    array = np.zeros(len(species_dict))
+    for species, value in species_dict.items():
+        i = species_to_index[species]
+        array[i] = value
+    return array
 
 
 class ExchangeAwareBioscrape(Process):
     name = 'exchange-aware-bioscrape'
     defaults = {
-        'sbml_file_path': '',
-        'external_species': tuple(),
-        'species_to_convert_to_counts': {},
-        'name_map': tuple(),
-        'units_map': {},
-        'species_units_conc': units.mM,
-        'species_units_count': units.mmol,
-        'equilibrium_species': tuple(),
-        'equilibrium_reactions': tuple(),
+        'initial_reaction_parameters': {
+            'diffusion': {
+                'permeability': 0 * units.cm / units.sec,
+                'area': 0 * units.cm**2,
+                'volume': 0 * units.L,
+            },
+            'export': {
+                'kcat': 0 / units.sec,
+                'km': 0 * units.mM,
+                'enzyme_conc': 0 * units.mM,
+                'n': 0 * units.count,
+            },
+            'hydrolysis': {
+                'kcat': 0 / units.sec,
+                'km': 0 * units.mM,
+                'enzyme_conc': 0 * units.mM,
+                'n': 0 * units.count,
+            },
+        },
+        'diffusion_only': False,
     }
 
-    def __init__(self, parameters=None):
-        '''Sets the equilibrium state for a bioscrape SBML model.
-
-        Parameters:
-
-        * ``sbml_file_path``: Path to the SBML file to use.
-        * ``external_species``: Iterable of species names that exist in
-          the external environment. These species will be expected in
-          the ``external`` port, and their updates will be communicated
-          through the ``exchanges`` port. Species should be listed by
-          their Vivarium name, not their bioscrape name, if the two
-          names are different (see ``name_map`` below).
-        * ``species_to_convert_to_counts``: Mapping from species names
-          that are represented as concentrations in Vivarium but should
-          be passed to bioscrape as counts to the name of the variable
-          in ``rates`` that holds the volume to use for the conversion.
-          Species should be listed by their bioscrape name, not their
-          Vivarium name, if the two names are different (see
-          ``name_map`` below).
-        * ``name_map``: Iterable of tuples ``(vivarium, bioscrape)``
-          where ``vivarium`` is the path of the species in the state
-          provided to ``next_update()`` by Vivarium, and ``bioscrape``
-          is the name of the molecule to be used internally for
-          bioscrape. This conversion is needed because Vivarium supports
-          a larger set of variable names than bioscrape. See
-          https://github.com/biocircuits/bioscrape/wiki/BioSCRAPE-XML
-          for the bioscrape naming rules.
-        * ``units_map``: Dictionary reflecting the nested port
-          structure, with variables mapped to the expected unit. The
-          conversion to these units happens before units are stripped
-          and the magnitudes are passed to Bioscrape.
-        * ``equilibrium_species``: Sequence of species that should
-          essentially reach equilibrium in every timestep. The process
-          works by determining what fluxes are needed to get these
-          species to equilibrium then using those fluxes to determine
-          the updates for species that don't reach equilibrium. These
-          should be specified by their bioscrape names.
-        * ``equilibrium_reactions``: Sequence of indices of the
-          reactions that can be assumed to reach equilibrium quickly.
-          The indices should correspond to the list of reactions from
-          the SBML model as loaded by bioscrape.
-        '''
-        super().__init__(parameters)
-
-        self.model = Model(sbml_filename=self.parameters['sbml_file_path'])
-        self.interface = ModelCSimInterface(self.model)
-        self.interface.py_prep_deterministic_simulation()
-        self.simulator = DeterministicSimulator()
-
-        self.rename_vivarium_to_bioscrape = {}
-        for path, new_name in self.parameters['name_map']:
-            # Paths must be tuples so that they are hashable.
-            path = tuple(path)
-            self.rename_vivarium_to_bioscrape[path] = new_name
-            if 'species' in path:
-                delta_path = tuple(
-                    item if item != 'species' else 'delta_species'
-                    for item in path
-                )
-                self.rename_vivarium_to_bioscrape[
-                    delta_path] = new_name
-            if 'external' in path:
-                external_path = tuple(
-                    item if item != 'external' else 'exchanges'
-                    for item in path
-                )
-                self.rename_vivarium_to_bioscrape[
-                    external_path] = new_name
-
-        self.rename_bioscrape_to_vivarium = self._invert_map(
-            self.rename_vivarium_to_bioscrape)
-
-        self.external_species_bioscrape = [
-            self.rename_vivarium_to_bioscrape.get(
-                ('external', species), species)
-            for species in self.parameters['external_species']
-        ]
-
-    @staticmethod
-    def _invert_map(rename_map):
-        '''Invert a renaming map.
-
-        For example:
-
-        >>> renaming_map = {
-        ...     ('a', 'b'): 'B',
-        ...     ('a', 'c'): 'C'
-        ... }
-        >>> inverted_map = {
-        ...     ('a', 'B'): 'b',
-        ...     ('a', 'C'): 'c'
-        ... }
-        >>> inverted_map == ExchangeAwareBioscrape._invert_map(
-        ...     renaming_map)
-        True
-        '''
-        inverted_map = {
-            path[:-1] + (new_name,): path[-1]
-            for path, new_name in rename_map.items()
-        }
-        return inverted_map
-
     def initial_state(self, config=None):
-        initial_state = {
-            'species': species_array_to_dict(
-                self.model.get_species_array(),
-                self.model.get_species2index(),
-            )
+        state = {
+            'delta_species': {
+                species: 0 * units.mM
+                for species in SPECIES
+                if species not in EXTERNAL_SPECIES
+            },
+            'reaction_parameters': self.parameters[
+                'initial_reaction_parameters']
         }
-        for k in initial_state['species'].keys():
-            initial_state['species'][k] *= self.parameters[
-                'species_units_conc']
-        return initial_state
+        return state
 
     def ports_schema(self):
         schema = {
             'species': {
                 species: {
-                    '_default': 0.0 * self.parameters[
-                        'species_units_conc'],
+                    '_default': 0.0 * units.mM,
                     '_updater': 'accumulate',
                     '_emit': True,
                     '_divider': 'set',
                 }
-                for species in self.model.get_species()
-                if species not in self.external_species_bioscrape
-                if not (
-                    species.endswith('_delta')
-                    and species[:-len('_delta')]
-                    in self.external_species_bioscrape)
+                for species in SPECIES
+                if species not in EXTERNAL_SPECIES
             },
             'delta_species': {
                 species: {
-                    '_default': 0.0 * self.parameters[
-                        'species_units_conc'],
+                    '_default': 0.0 * units.mM,
                     '_updater': 'set',
                     '_emit': True,
                 }
-                for species in self.model.get_species()
-                if species not in self.external_species_bioscrape
-                if not (
-                    species.endswith('_delta')
-                    and species[:-len('_delta')]
-                    in self.external_species_bioscrape)
+                for species in SPECIES
+                if species not in EXTERNAL_SPECIES
             },
             'exchanges': {
                 species: {
                     '_default': 0,
                     '_emit': True,
                 }
-                for species in self.external_species_bioscrape
+                for species in EXTERNAL_SPECIES
+                if not species.endswith('_delta')
             },
             'external': {
                 species: {
-                    '_default': 0 * self.parameters[
-                        'species_units_conc'],
+                    '_default': 0 * units.mM,
                     '_emit': True,
                 }
-                for species in self.external_species_bioscrape
+                for species in EXTERNAL_SPECIES
+                if not species.endswith('_delta')
             },
-            'rates': {
-                p: {
-                    '_default': self.model.get_parameter_dictionary()[p],
-                    '_updater': 'set',
+            'reaction_parameters': {
+                reaction: {
+                    parameter: {
+                        '_default': 0 * unit,
+                        '_emit': True,
+                    }
+                    for parameter, unit in reaction_params.items()
                 }
-                for p in self.model.get_param_list()
+                for reaction, reaction_params in self.parameters[
+                    'initial_reaction_parameters'].items()
             },
         }
 
-        rename_schema_for_vivarium = {}
-        for path, new_name in self.rename_bioscrape_to_vivarium.items():
-            rename_schema_for_vivarium[path] = new_name
-            if 'exchanges' in path:
-                for store in ('delta_species', 'species'):
-                    other_path = tuple(
-                        item if item != 'exchanges' else store
-                        for item in path
-                    )
-                    rename_schema_for_vivarium[other_path] = new_name
-
-        # Apply units map.
-        units_map_for_schema = _transform_dict_leaves(
-            self.parameters['units_map'], lambda x: {'_default': x})
-        schema = self._add_units(schema, units_map_for_schema)
-
-        schema = self._rename_variables(
-            schema,
-            rename_schema_for_vivarium,
-        )
         return schema
 
     def _remove_units(self, state, units_map=None):
@@ -341,10 +379,12 @@ class ExchangeAwareBioscrape(Process):
 
         return converted_state, saved_units
 
-    def _add_units(self, state, saved_units):
+    def _add_units(self, state, saved_units, strict=True):
         """add units back in"""
         unit_state = state.copy()
         for key, value in saved_units.items():
+            if key not in unit_state and not strict:
+                continue
             before = unit_state[key]
             if isinstance(value, dict):
                 unit_state[key] = self._add_units(before, value)
@@ -352,316 +392,77 @@ class ExchangeAwareBioscrape(Process):
                 unit_state[key] = before * value
         return unit_state
 
-    @staticmethod
-    def _rename_variables(state, rename_map, path=tuple()):
-        '''Rename variables in a hierarchy dict per a renaming map.
-
-        For example:
-
-        >>> renaming_map = {
-        ...     ('a', 'b'): 'B',
-        ...     ('a', 'c'): 'C'
-        ... }
-        >>> state = {
-        ...     'a': {
-        ...         'b': 1,
-        ...         'c': 2,
-        ...     }
-        ... }
-        >>> renamed_state = {
-        ...     'a': {
-        ...         'B': 1,
-        ...         'C': 2,
-        ...     }
-        ... }
-        >>> renamed_state == ExchangeAwareBioscrape._rename_variables(
-        ...     state, renaming_map)
-        True
-
-        Args:
-            state: The hierarchy dict of variables to rename.
-            rename_map: The renaming map.
-            path: If ``state`` is a sub-dict, the path to the sub-dict.
-                Only used for recursive calls.
-
-        Returns:
-            The renamed hierarchy dict.
-        '''
-        # Base Case
-        if not isinstance(state, dict):
-            return state
-
-        # Recursive Case
-        new_state = {}
-        for key, value in state.items():
-            cur_path = path + (key,)
-            new_key = rename_map.get(cur_path, cur_path[-1])
-            new_state[new_key] = (
-                ExchangeAwareBioscrape._rename_variables(
-                    value, rename_map, cur_path
-                )
-            )
-
-        return new_state
-
-    @staticmethod
-    def _loss(
-            equilibrium_reaction_rates, timestep, interface,
-            species_to_index, external_species_bioscrape,
-            equilibrium_species, stoich, initial_state,
-            equilibrium_reactions, propensities, params):
-        assert interface.py_get_number_of_rules() == 0
-
-        initial_state = interface.py_get_initial_state()
-        reaction_rates = np.zeros(stoich.shape[1])
-
-        kinetic_reactions = set(
-            range(stoich.shape[1])) - equilibrium_reactions
-        assert len(equilibrium_reactions) == len(
-            equilibrium_reaction_rates)
-        for i, rate in zip(equilibrium_reactions,
-                equilibrium_reaction_rates):
-            assert reaction_rates[i] == 0
-            reaction_rates[i] = rate
-        reaction_rates[list(kinetic_reactions)] = 0
-
-        species_derivatives = stoich @ reaction_rates
-        species_deltas = species_derivatives * timestep
-
-        final_state = initial_state + species_deltas
-
-        derivative = np.empty(len(species_to_index))  # Buffer
-        # NOTE: This uses global variables declared in bioscrape.
-        interface.py_calculate_deterministic_derivative(
-            final_state, derivative, 0)
-        for species in external_species_bioscrape:
-            i = species_to_index[species]
-            assert derivative[i] == 0
-
-        # Zero-out derivative for variables we don't expect to reach
-        # equilibrium so that these don't affect the solver.
-        for species, i in species_to_index.items():
-            if species in equilibrium_species:
-                continue
-            derivative[i] = 0
-
-        # Penalize negative reaction rates.
-        penalty = norm(reaction_rates[reaction_rates < 0])
-
-        return norm(derivative) + penalty
-
-    @staticmethod
-    def _derivative_final(
-            state, t, stoich, propensities, equilibrium_reactions,
-            params):
-        reaction_rates = np.zeros(stoich.shape[1])
-
-        kinetic_reactions = set(
-            range(stoich.shape[1])) - equilibrium_reactions
-        for i in kinetic_reactions:
-            assert reaction_rates[i] == 0
-            reaction_rates[i] = propensities[i].py_get_propensity(
-                state, params)
-        # We are assuming that we have already reached equilibrium, so
-        # the equilibrium reactions do nothing.
-
-        return stoich @ reaction_rates
-
-    def _bioscrape_update(self, state, timestep):
-        self.model.set_species(state['species'])
-        self.interface.py_set_initial_state(self.model.get_species_array())
-        self.model.set_params(state['rates'])
-
-        equilibrium_reactions = set(
-            self.parameters['equilibrium_reactions'])
-
-        reactions = tuple(tup[2] for tup in self.model.get_reactions())
-        initial_rates = np.zeros(len(equilibrium_reactions))
-        species_to_index = self.model.get_species2index()
-        propensities = self.model.get_propensities()
-        params = self.model.get_parameter_values()
-        initial_state = self.interface.py_get_initial_state()
-
-
-        # Build a stoichiometry matrix.
-        #
-        # For example, suppose we have the following reactions:
-
-        # .. code-block:: text
-
-        #     (rxn 1) A  -> B
-        #     (rxn 2) 2B -> A
-
-        # Then we can write a stoichiometry matrix **N**:
-
-        # .. code-block:: text
-
-        #          rxn 1    rxn 2
-        #         +-           -+
-        #       A | -1       +1 |
-        #       B | +1       -2 |
-        #         +-           -+
-
-        # Now if we have a derivatives vector **d** of the rates of change
-        # of each species, we can solve for a rate vector **v**
-        # representing the rates of each reaction needed to produce the
-        # rates of change in **d**: **d** = **N** · **v**.
-        stoich = np.zeros((len(species_to_index), len(reactions)))
-        for i_rxn, reaction in enumerate(reactions):
-            for species, coefficient in reaction.items():
-                i_species = species_to_index[species]
-                assert stoich[i_species, i_rxn] == 0
-                stoich[i_species, i_rxn] = coefficient
-
-        # Solve for the equilibrium reaction rates.
-        args = (
-            timestep,
-            self.interface,
-            species_to_index,
-            self.external_species_bioscrape,
-            self.parameters['equilibrium_species'],
-            stoich,
-            self.interface.py_get_initial_state(),
-            equilibrium_reactions,
-            propensities,
-            params,
-        )
-        result = minimize(
-            self._loss,
-            initial_rates,
-            args=args,
-            method='Nelder-Mead',
-            options={
-                'fatol': 1e-8,
-            },
-        )
-        assert result.success
-        equilibrium_reaction_rates = result.x
-
-        # Simulate the equilibrium reactions at the computed rates.
-        reaction_rates = np.zeros(len(reactions))
-        kinetic_reactions = set(
-            range(stoich.shape[1])) - equilibrium_reactions
-        reaction_rates[list(kinetic_reactions)] = 0
-        assert len(equilibrium_reactions) == len(
-            equilibrium_reaction_rates)
-        for i, rate in zip(equilibrium_reactions,
-                equilibrium_reaction_rates):
-            assert reaction_rates[i] == 0
-            reaction_rates[i] = rate
-
-        equilibrium_derivatives = stoich @ reaction_rates
-        equilibrium_deltas = equilibrium_derivatives * timestep
-        equilibrium_final = initial_state + equilibrium_deltas
-
-        # Simulate the kinetic reactions assuming the equilibrium
-        # reactions have reached equilibrium.
-        species_timepoints = odeint(
-            self._derivative_final,
-            equilibrium_final,
-            np.array([0, timestep]),
-            args=(
-                stoich,
-                propensities,
-                equilibrium_reactions,
-                params,
-            ),
-        )
-
-        # Compute the final update.
-        species_final = species_timepoints[-1]
-        species_deltas = species_final - initial_state
-        deltas_dict = species_array_to_dict(
-            species_deltas, species_to_index)
-        return {
-            'species': deltas_dict,
-            'delta_species': deltas_dict,
-        }
-
     def next_update(self, timestep, state):
-        # NOTE: We assume species are in the units specified by the
-        # species_units_conc parameter.
-
         # Prepare the state for the bioscrape process by moving species
         # from 'external' to 'species' where the bioscrape process
         # expects them to be, renaming variables, and doing unit
         # conversions.
-        prepared_state = copy.deepcopy(state)
-        prepared_state = self._rename_variables(
-            prepared_state, self.rename_vivarium_to_bioscrape)
-        prepared_state, saved_units = self._remove_units(
-            prepared_state,
-            units_map=self.parameters['units_map'])
-
-        for species in self.external_species_bioscrape:
+        prepared_state = {
+            'species': copy.deepcopy(state['species']),
+            'external': copy.deepcopy(state['external']),
+            'reaction_parameters': copy.deepcopy(
+                state['reaction_parameters']),
+        }
+        for species in EXTERNAL_SPECIES:
+            if species.endswith('_delta'):
+                continue
             assert species not in prepared_state['species']
             prepared_state['species'][species] = prepared_state['external'].pop(species)
             # The delta species is just for tracking updates to the
             # external environment for later conversion to exchanges. We
-            # assume that `species` is not updated by bioscrape. Note
-            # that the `*_delta` convention must be obeyed by the
-            # bioscrape model for this to work correctly.
+            # assume that `species` is not updated. Note that the
+            # `*_delta` convention must be obeyed for this to work
+            # correctly.
             delta_species = f'{species}_delta'
             assert delta_species not in species
-            prepared_state['species'][delta_species] = 0
+            prepared_state['species'][delta_species] = 0 * units.mM
 
-        for species, volume_name in self.parameters[
-                'species_to_convert_to_counts'].items():
-            # We do this after the unit conversion and stripping because
-            # while it's annoying to add units back in for these
-            # calculations, we don't want to break the unit coversion
-            # and stripping by changing concentrations to counts first.
-            # Doing this after we have handled the external species also
-            # lets us convert external species to counts if for some
-            # reason that was desired.
-            if species in self.external_species_bioscrape:
-                conc_units = saved_units['external'][species]
-            else:
-                conc_units = saved_units['species'][species]
-            volume_units = saved_units['rates'][volume_name]
+        prepared_state, saved_units = self._remove_units(
+            prepared_state, units_map=UNITS)
 
-            conc = prepared_state['species'][species] * conc_units
-            volume = prepared_state['rates'][volume_name] * volume_units
-            # NOTE: We don't include Avogadro's number here because we
-            # expect the count units to be in mol, mmol, etc.
-            count = (conc * volume).to(self.parameters['species_units_count'])
-            prepared_state['species'][species] = count.magnitude
-
-        # Compute the update using the bioscrape process.
-        update = self._bioscrape_update(prepared_state, timestep)
+        # Compute the update.
+        internal_steady_state = find_steady_state(
+            prepared_state['species']['external'],
+            prepared_state['reaction_parameters'])
+        if self.parameters['diffusion_only']:
+            delta = (
+                internal_steady_state
+                - prepared_state['species']['internal'])
+            update = {
+                'species': {
+                    'internal': delta,
+                },
+                'delta_species': {
+                    'internal': delta,
+                },
+            }
+        else:
+            update = update_from_steady_state(
+                internal_steady_state,
+                prepared_state['species'],
+                prepared_state['reaction_parameters'],
+                timestep,
+            )
 
         # Make sure there are no NANs in the update.
         assert not np.any(np.isnan(list(update['species'].values())))
 
-        # Convert count updates back to concentrations.
-        for species, volume_name in self.parameters[
-                'species_to_convert_to_counts'].items():
-            if species in self.external_species_bioscrape:
-                conc_units = saved_units['external'][species]
-            else:
-                conc_units = saved_units['species'][species]
-            volume_units = saved_units['rates'][volume_name]
-            count_units = self.parameters['species_units_count']
-
-            count = update['species'][species] * count_units
-            volume = prepared_state['rates'][volume_name] * volume_units
-            # NOTE: We don't include Avogadro's number here because we
-            # expect the count units to be in mol, mmol, etc.
-            conc = (count / volume).to(conc_units)
-            update['species'][species] = conc.magnitude
-
         # Add units back in
-        species_update = update['species']
-        delta_species_update = update['delta_species']
         update['species'] = self._add_units(
-            species_update, saved_units['species'])
+            update['species'],
+            saved_units['species'],
+            strict=not self.parameters['diffusion_only'])
         update['delta_species'] = self._add_units(
-            delta_species_update, saved_units['species'])
+            update['delta_species'],
+            saved_units['species'],
+            strict=not self.parameters['diffusion_only'])
 
         # Postprocess the update to convert changes to external
         # molecules into exchanges.
         update.setdefault('exchanges', {})
-        for species in self.external_species_bioscrape:
+        for species in EXTERNAL_SPECIES:
+            if species.endswith('_delta'):
+                continue
             delta_species = f'{species}_delta'
             if species in update['species']:
                 assert update['species'][species] == 0
@@ -672,7 +473,7 @@ class ExchangeAwareBioscrape(Process):
             if delta_species in update['species']:
                 exchange = (
                     update['species'][delta_species]
-                    * self.parameters['species_units_count']
+                    * state['reaction_parameters']['diffusion']['volume']
                     * AVOGADRO)
                 assert species not in update['exchanges']
                 # Exchanges flowing out of the cell are positive.
@@ -681,174 +482,58 @@ class ExchangeAwareBioscrape(Process):
                 del update['species'][delta_species]
                 del update['delta_species'][delta_species]
 
-        update = self._rename_variables(
-            update, self.rename_bioscrape_to_vivarium)
-
         return update
 
 
 def test_exchange_aware_bioscrape():
-    a = Species('A')
-    a_delta = Species('A_delta')
-    b = Species('B')
-    c = Species('C')
-    species = [a, b, a_delta, c]
-
-    k1 = ParameterEntry('k1', 1)  # Diffusivity
-    k2 = ParameterEntry('k2', 1)  # Diffusivity
-    v = ParameterEntry('v', 1)
-
-    initial_concentrations = {
-        a: 10,  # mM
-        a_delta: 0,  # mM
-        b: 0,  # mmol
-        c: 0,  # mmol
-    }
-
-    propensity = GeneralPropensity(
-        f'k1 * {a}',  # Flux in mmol
-        propensity_species=[a],
-        propensity_parameters=[k1])
-    reaction = Reaction(
-        inputs=[a_delta],
-        outputs=[b],
-        propensity_type=propensity,
-    )
-    propensity_rev = GeneralPropensity(
-        f'k2 * {b} / v',  # Flux in mmol
-        propensity_species=[b],
-        propensity_parameters=[k2, v])
-    reaction_rev = Reaction(
-        inputs=[b],
-        outputs=[c],
-        propensity_type=propensity_rev,
-    )
-    crn = ChemicalReactionNetwork(
-        species=species,
-        reactions=[reaction, reaction_rev],
-        initial_concentration_dict=initial_concentrations,
-    )
-    with tempfile.NamedTemporaryFile() as temp_file:
-        crn.write_sbml_file(
-            file_name=temp_file.name,
-            for_bioscrape=True,
-            check_validity=True,
-        )
-        proc = ExchangeAwareBioscrape({
-            'sbml_file_path': temp_file.name,
-            'external_species': ('a',),
-            'name_map': (
-                (('external', 'a'), str(a)),
-                (('species', 'b'), str(b)),
-                (('species', 'c'), str(c)),
-            ),
-            'units_map': {
-                'rates': {
-                    'k1': 1 / units.sec,
-                    'k2': 1 / units.sec,
-                    'v': units.L,
-                }
-            },
-            'species_to_convert_to_counts': {
-                'B': 'v',
-                'C': 'v',
-            },
-            'species_units_conc': units.mM,
-            'species_units_count': units.mmol,
-            'equilibrium_species': ('B',),
-            'equilibrium_reactions': {0},
-        })
-
+    proc = ExchangeAwareBioscrape()
     schema = proc.get_schema()
-    expected_schema = {
-        'delta_species': {
-            'b': {
-                '_default': 0.0 * units.mM,
-                '_emit': True,
-                '_updater': 'set',
-            },
-            'c': {
-                '_default': 0.0 * units.mM,
-                '_emit': True,
-                '_updater': 'set',
-            },
-        },
-        'exchanges': {
-            'a': {
-                '_default': 0,
-                '_emit': True,
-            },
-        },
-        'external': {
-            'a': {
-                '_default': 0.0 * units.mM,
-                '_emit': True,
-            },
-        },
-        'rates': {
-            'k1': {
-                '_default': 1 / units.sec,
-                '_updater': 'set',
-            },
-            'k2': {
-                '_default': 1 / units.sec,
-                '_updater': 'set',
-            },
-            'v': {
-                '_default': 1 * units.L,
-                '_updater': 'set',
-            },
-        },
-        'species': {
-            'b': {
-                '_default': 0.0 * units.mM,
-                '_divider': 'set',
-                '_emit': True,
-                '_updater': 'accumulate',
-            },
-            'c': {
-                '_default': 0.0 * units.mM,
-                '_divider': 'set',
-                '_emit': True,
-                '_updater': 'accumulate',
-            },
-        },
-    }
-    assert schema == expected_schema
-
     initial_state = {
         'external': {
-            'a': initial_concentrations[a] * units.mM,
+            'external': 3 * units.mM,
         },
         'species': {
-            'b': initial_concentrations[b] * units.mM,
-            'c': initial_concentrations[c] * units.mM,
+            'internal': 0 * units.mM,
+            'hydrolyzed': 0 * units.mM,
         },
-        'rates': {
-            'k1': 1 / units.sec,
-            'k2': 1 / units.sec,
-            'v': 10 * units.L,
+        'reaction_parameters': {
+            'diffusion': {
+                'permeability': 2 * units.dm / units.sec,
+                'area': 3 * units.dm**2,
+                'volume': 2 * units.L,
+            },
+            'export': {
+                'kcat': 4 / units.sec,
+                'km': 2 * units.mM,
+                'enzyme_conc': 1 * units.mM,
+                'n': 1 * units.count,
+            },
+            'hydrolysis': {
+                'kcat': 4 / units.sec,
+                'km': 2 * units.mM,
+                'enzyme_conc': 0.5 * units.mM,
+                'n': 1 * units.count,
+            },
         },
     }
     update = proc.next_update(1, initial_state)
 
     expected_update = {
-        # Update gets us to equilibrium with the fixed environmental
-        # species A.
         'species': {
-            'b': 10 * units.mM,
-            'c': 1 * units.mM,
+            'internal': 2 * units.mM,
+            'hydrolyzed': 1 * units.mM,
         },
         'delta_species': {
-            'b': 10 * units.mM,
-            'c': 1 * units.mM,
+            'internal': 2 * units.mM,
+            'hydrolyzed': 1 * units.mM,
         },
         'exchanges': {
             # Exchanges are in units of counts, but the species are in
             # units of mM with a volume of 1L.
-            'a': (
-                -10 * units.mM
-                * initial_state['rates']['v']
+            'external': (
+                -3 * units.mM
+                * initial_state[
+                    'reaction_parameters']['diffusion']['volume']
                 * AVOGADRO).to(units.count).magnitude,
         },
     }
@@ -859,7 +544,7 @@ def test_exchange_aware_bioscrape():
             for species in expected_update[key]:
                 assert abs(
                     update[key][species] - expected_update[key][species]
-                ) <= 0.1 * abs(expected_update[key][species])
+                ) <= 1e-5 * abs(expected_update[key][species])
         else:
             assert update[key] == expected_update[key]
 
