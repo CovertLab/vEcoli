@@ -77,21 +77,21 @@
         "exchange-aware-bioscrape": {
             "initial_reaction_parameters": {
                 "diffusion": {
-                    "permeability": "!units[0.28e-5 centimeter / second]",
-                    "area": "!units[4.5177 micrometer**2]",
-                    "volume": "!units[0.212799 femtoliter]"
+                    "permeability": "!ParameterSerializer[ampicillin>permeability>outer]",
+                    "area": "!ParameterSerializer[shape>initial_area]",
+                    "volume": "!ParameterSerializer[shape>initial_periplasm_volume]"
                 },
                 "export": {
-                    "kcat": "!units[698 1 / second]",
-                    "km": "!units[2.16e-3 millimolar]",
-                    "n": "!units[1.9 count]",
-                    "enzyme_conc": "!units[6.7e-4 millimolar]"
+                    "kcat": "!ParameterSerializer[ampicillin>efflux>kcat]",
+                    "km": "!ParameterSerializer[ampicillin>efflux>km]",
+                    "n": "!ParameterSerializer[ampicillin>efflux>n]",
+                    "enzyme_conc": "!ParameterSerializer[concs>initial_pump]"
                 },
                 "hydrolysis": {
-                    "kcat": "!units[6.5 1 / second]",
-                    "km": "!units[0.9e-3 millimolar]",
-                    "n": "!units[1 count]",
-                    "enzyme_conc": "!units[7.1e-4 millimolar]"
+                    "kcat": "!ParameterSerializer[ampicillin>hydrolysis>kcat]",
+                    "km": "!ParameterSerializer[ampicillin>hydrolysis>km]",
+                    "n": "!ParameterSerializer[ampicillin>hydrolysis>n]",
+                    "enzyme_conc": "!ParameterSerializer[concs>initial_hydrolase]"
                 }
             }
         },
@@ -100,8 +100,8 @@
             "diffusing_molecules": {
                 "outer_ampicillin_permeability": {
                     "concentration_perm": {
-                        "CPLX0-7533[o]": "!units[0 centimeter * (micrometer ** 2)/ second]",
-                        "CPLX0-7534[o]": "!units[6.67 * 1e-10 decimeter * (micrometer ** 2)/ second]"
+                        "CPLX0-7533[o]": "!units[0 L / second]",
+                        "CPLX0-7534[o]": "!ParameterSerializer[ampicillin>per-porin-permeability>outer>ompf]"
                     },
                     "bilayer_perm": "!units[0 centimeter / second]"
                 }
@@ -120,21 +120,21 @@
                     {
                         "initial_reaction_parameters": {
                             "diffusion": {
-                                "permeability": "!units[0.28e-5 centimeter / second]",
-                                "area": "!units[4.5177 micrometer**2]",
-                                "volume": "!units[0.212799 femtoliter]"
+                                "permeability": "!ParameterSerializer[ampicillin>permeability>outer]",
+                                "area": "!ParameterSerializer[shape>initial_area]",
+                                "volume": "!ParameterSerializer[shape>initial_periplasm_volume]"
                             },
                             "export": {
-                                "kcat": "!units[698 1 / second]",
-                                "km": "!units[2.16e-3 millimolar]",
-                                "n": "!units[1.9 count]",
-                                "enzyme_conc": "!units[6.7e-4 millimolar]"
+                                "kcat": "!ParameterSerializer[ampicillin>efflux>kcat]",
+                                "km": "!ParameterSerializer[ampicillin>efflux>km]",
+                                "n": "!ParameterSerializer[ampicillin>efflux>n]",
+                                "enzyme_conc": "!ParameterSerializer[concs>initial_pump]"
                             },
                             "hydrolysis": {
-                                "kcat": "!units[6.5 1 / second]",
-                                "km": "!units[0.9e-3 millimolar]",
-                                "n": "!units[1 count]",
-                                "enzyme_conc": "!units[7.1e-4 millimolar]"
+                                "kcat": "!ParameterSerializer[ampicillin>hydrolysis>kcat]",
+                                "km": "!ParameterSerializer[ampicillin>hydrolysis>km]",
+                                "n": "!ParameterSerializer[ampicillin>hydrolysis>n]",
+                                "enzyme_conc": "!ParameterSerializer[concs>initial_hydrolase]"
                             }
                         },
                         "diffusion_only": true

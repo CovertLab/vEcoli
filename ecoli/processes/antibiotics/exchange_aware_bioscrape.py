@@ -1,18 +1,5 @@
 import copy
-import tempfile
 
-from biocrnpyler import (
-    ChemicalReactionNetwork,
-    Reaction,
-    Species,
-    ParameterEntry,
-    GeneralPropensity,
-)
-from bioscrape.simulator import (
-    ModelCSimInterface,
-    DeterministicSimulator,
-)
-from bioscrape.types import Model
 import numpy as np
 from scipy.constants import N_A
 from scipy.integrate import solve_ivp
