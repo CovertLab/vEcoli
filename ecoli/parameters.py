@@ -1,3 +1,5 @@
+from scipy import constants
+
 from vivarium.library.topology import get_in, assoc_path
 from vivarium.library.units import units
 
@@ -60,7 +62,7 @@ PARAMETER_DICT = {
                 'Kojima and Nikaido (2013)',
             ),
             'n': Parameter(
-                1.9,
+                1.9 * units.count,
                 'Kojima and Nikaido (2013)',
             ),
         },
@@ -74,7 +76,7 @@ PARAMETER_DICT = {
                 'Mazzariol, Cornaglia, and Nikaido (2000)',
             ),
             'n': Parameter(
-                1,
+                1 * units.count,
                 'Mazzariol, Cornaglia, and Nikaido (2000)',
             ),
         },
@@ -105,7 +107,7 @@ PARAMETER_DICT = {
                 'Nagano and Nikaido (2009)',
             ),
             'n': Parameter(
-                1.75,
+                1.75 * units.count,
                 'Nagano and Nikaido (2009)',
             ),
         },
@@ -121,7 +123,7 @@ PARAMETER_DICT = {
                 note='Not confirmed',
             ),
             'n': Parameter(
-                1
+                1 * units.count
             ),
         },
     },
@@ -146,13 +148,24 @@ PARAMETER_DICT = {
     'concs': {
         'initial_pump': Parameter(
             6.7e-4 * units.mM,
-            'Model',
+            'Simulation c33d8283af0bed4a6a598774ac5d8aec19d169bf',
         ),
         'initial_hydrolase': Parameter(
             7.1e-4 * units.mM,
-            'Model',
+            'Simulation c33d8283af0bed4a6a598774ac5d8aec19d169bf',
         ),
     },
+    'counts': {
+        'initial_ompf': Parameter(
+            18975 * units.count,
+            'Simulation c33d8283af0bed4a6a598774ac5d8aec19d169bf',
+        ),
+        'initial_ompc': Parameter(
+            5810 * units.count,
+            'Simulation c33d8283af0bed4a6a598774ac5d8aec19d169bf',
+        ),
+    },
+    'avogadro': constants.N_A / units.mol,
 }
 
 DERIVATION_RULES = {
@@ -177,6 +190,16 @@ DERIVATION_RULES = {
             * params.get(('shape', 'initial_cell_mass'))
             / params.get(('shape', 'initial_periplasm_volume'))
         )
+    ),
+    (
+        'ampicillin', 'per-porin-permeability', 'outer', 'ompf'
+    ): lambda params: Parameter(
+        (
+            params.get(('ampicillin', 'permeability', 'outer')) / (
+                params.get(('counts', 'initial_ompf'))
+                / params.get(('shape', 'initial_area'))
+            )
+        ),
     ),
 }
 
