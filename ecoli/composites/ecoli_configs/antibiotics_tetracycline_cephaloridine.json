@@ -167,20 +167,20 @@
             "diffusing_molecules": {
                 "outer_cephaloridine_permeability": {
                     "concentration_perm": {
-                        "CPLX0-7533[o]": "!units[0.003521401200296894 * 1e-5  centimeter * (micrometer ** 2)/ second]",
-                        "CPLX0-7534[o]": "!units[0.01195286573132685 * 1e-5  centimeter * (micrometer ** 2)/ second]"
+                        "CPLX0-7533[o]": "!ParameterSerializer[cephaloridine>per_porin_permeability>outer>ompc]",
+                        "CPLX0-7534[o]": "!ParameterSerializer[cephaloridine>per_porin_permeability>outer>ompf]"
                     },
                     "bilayer_perm": "!units[0 centimeter / second]"
                 },
                 "outer_tetracycline_permeability": {
                     "concentration_perm": {
-                        "CPLX0-7534[o]": "!units[2.2496838543752056 * 1e-9  centimeter * (micrometer ** 2)/ second]"
+                        "CPLX0-7534[o]": "!ParameterSerializer[tetracycline>per_porin_permeability>outer>ompf]"
                     },
-                    "bilayer_perm": "!units[1 * 1e-7 centimeter / second]"
+                    "bilayer_perm": "!ParameterSerializer[tetracycline>permeability>outer_without_porins]"
                 },
                 "inner_tetracycline_permeability": {
                     "concentration_perm": {},
-                    "bilayer_perm": "!units[3 * 1e-6 centimeter / second]"
+                    "bilayer_perm": "!ParameterSerializer[tetracycline>permeability>inner]"
                 }
             }
         },
