@@ -89,6 +89,19 @@ PARAMETER_DICT = {
                 note='This is total, not per-porin, permeability',
             ),
         },
+        # Cell-wide permeability with only one porin present.
+        'porin-specific-permeability': {
+            'outer': {
+                'ompf': Parameter(
+                    52.6e-5 * units.cm / units.sec,
+                    'Nikaido, Rosenberg, and Foulds (1983)',
+                ),
+                'ompc': Parameter(
+                    4.5e-5 * units.cm / units.sec,
+                    'Nikaido, Rosenberg, and Foulds (1983)',
+                ),
+            },
+        },
         'mic': Parameter(
             0.5 * units.micrograms / units.mL,
             'Rolinson (1980)',
@@ -127,10 +140,58 @@ PARAMETER_DICT = {
             ),
         },
     },
+    'tetracycline': {
+        'permeability': {
+            'outer_without_porins': Parameter(
+                0.7e-7 * units.cm / units.sec,
+                'Thananassi, Suh, and Nikaido (1995) p. 1004',
+            ),
+            'outer_with_porins': Parameter(
+                1e-5 * units.cm / units.sec,
+                'Thananassi, Suh, and Nikaido (1995) p. 1005',
+            ),
+            'inner': Parameter(
+                3e-6 * units.cm / units.sec,
+                'Thananassi, Suh, and Nikaido (1995) p. 1004',
+            ),
+        },
+        'potential': {
+            'membrane_potential': Parameter(
+                0.12 * units.volt,
+                'Berg, Howard C., E. coli in Mtion. 1934. Page 105',
+            ),
+            'tetracycline_charge': Parameter(
+                1,
+            ),
+            'faraday_constant': Parameter(
+                constants.value(
+                    'Faraday constant') * units.C / units.mol
+            ),
+            'gas_constant': Parameter(
+                constants.R * units.J / units.mol / units.K,
+            ),
+            'temperature': Parameter(
+                298 * units.K,
+            ),
+        },
+        'efflux': {
+            'vmax': Parameter(
+                0.2 * units.nmol / units.mg / units.min,
+                'Thananassi, Suh, and Nikaido (1995) p. 1004',
+            ),
+            'km': Parameter(
+                200 * units.uM,
+                'Thananassi, Suh, and Nikaido (1995) p. 1004',
+            ),
+            'n': Parameter(
+                1 * units.count,
+            ),
+        },
+    },
     'shape': {
         'periplasm_fraction': Parameter(
             0.2,
-            'Stock et al. (1977)'
+            'Stock et al. (1977)',
         ),
         'initial_cell_mass': Parameter(
             1170 * units.fg,
@@ -183,6 +244,16 @@ DERIVATION_RULES = {
             / params.get(('shape', 'initial_periplasm_volume'))
         )
     ),
+    (
+        'ampicillin', 'per_porin_permeability', 'outer', 'ompf'
+    ): lambda params: Parameter(
+        (
+            params.get(('ampicillin', 'permeability', 'outer')) / (
+                params.get(('counts', 'initial_ompf'))
+                / params.get(('shape', 'initial_area'))
+            )
+        ),
+    ),
     ('cephaloridine', 'efflux', 'kcat'): lambda params: Parameter(
         (
             params.get(('cephaloridine', 'efflux', 'vmax'))
@@ -192,10 +263,54 @@ DERIVATION_RULES = {
         )
     ),
     (
-        'ampicillin', 'per-porin-permeability', 'outer', 'ompf'
+        'cephaloridine', 'per_porin_permeability', 'outer', 'ompf'
     ): lambda params: Parameter(
         (
-            params.get(('ampicillin', 'permeability', 'outer')) / (
+            params.get((
+                'cephaloridine', 'porin-specific-permeability', 'outer',
+                'ompf'
+            )) / (
+                params.get(('counts', 'initial_ompf'))
+                / params.get(('shape', 'initial_area'))
+            )
+        ),
+    ),
+    (
+        'cephaloridine', 'per_porin_permeability', 'outer', 'ompc'
+    ): lambda params: Parameter(
+        (
+            params.get((
+                'cephaloridine', 'porin-specific-permeability', 'outer',
+                'ompc'
+            )) / (
+                params.get(('counts', 'initial_ompc'))
+                / params.get(('shape', 'initial_area'))
+            )
+        ),
+    ),
+    ('tetracycline', 'efflux', 'kcat'): lambda params: Parameter(
+        (
+            params.get(('tetracycline', 'efflux', 'vmax'))
+            / params.get(('concs', 'initial_pump'))
+            * params.get(('shape', 'initial_cell_mass'))
+            / params.get(('shape', 'initial_periplasm_volume'))
+        )
+    ),
+    ('tetracycline', 'permeability', 'outer', 'ompf'): lambda params: Parameter(
+        (
+            params.get((
+                'tetracycline', 'permeability', 'outer_with_porins'))
+            - params.get((
+                'tetracycline', 'permeability', 'outer_without_porins'))
+        ),
+    ),
+    (
+        'tetracycline', 'per_porin_permeability', 'outer', 'ompf'
+    ): lambda params: Parameter(
+        (
+            params.get((
+                'tetracycline', 'permeability', 'outer', 'ompf'
+            )) / (
                 params.get(('counts', 'initial_ompf'))
                 / params.get(('shape', 'initial_area'))
             )
