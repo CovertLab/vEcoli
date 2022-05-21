@@ -436,9 +436,12 @@ class EcoliSim:
 
         # merge a lattice composite for the spatial environment
         if self.spatial_environment:
+            initial_state_config = self.spatial_environment_config.get('initial_state_config')
             environment_composite = ecoli.composites.environment.lattice.Lattice(
                 self.spatial_environment_config).generate()
-            initial_environment = environment_composite.initial_state()
+            initial_environment = environment_composite.initial_state(
+                initial_state_config
+            )
             self.ecoli.merge(environment_composite)
             self.initial_state = deep_merge(self.initial_state, initial_environment)
 

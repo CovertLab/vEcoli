@@ -13,8 +13,8 @@ from vivarium.library.units import units, remove_units
 # processes
 from ecoli.processes.environment.multibody_physics import (
     Multibody, make_random_position)
-from ecoli.processes.environment.diffusion_field import (
-    DiffusionField)
+from ecoli.processes.environment.reaction_diffusion_field import (
+    ReactionDiffusion)
 from ecoli.composites.environment.grow_divide import (
     GrowDivideExchange, GrowDivide)
 
@@ -42,44 +42,44 @@ def make_lattice_config(
         set_config=None,
         parallel=None,
 ):
-    config = {'multibody': {}, 'diffusion': {}}
+    config = {'multibody': {}, 'reaction_diffusion': {}}
 
     if time_step:
         config['multibody']['time_step'] = time_step
-        config['diffusion']['time_step'] = time_step
+        config['reaction_diffusion']['time_step'] = time_step
     if bounds is not None:
         config['multibody']['bounds'] = bounds
-        config['diffusion']['bounds'] = bounds
-        config['diffusion']['n_bins'] = remove_units(bounds)
+        config['reaction_diffusion']['bounds'] = bounds
+        config['reaction_diffusion']['n_bins'] = remove_units(bounds)
     if n_bins is not None:
-        config['diffusion']['n_bins'] = n_bins
+        config['reaction_diffusion']['n_bins'] = n_bins
     if jitter_force:
         config['multibody']['jitter_force'] = jitter_force
     if depth:
-        config['diffusion']['depth'] = depth
+        config['reaction_diffusion']['depth'] = depth
     if diffusion:
-        config['diffusion']['diffusion'] = diffusion
+        config['reaction_diffusion']['diffusion'] = diffusion
     if concentrations:
-        config['diffusion']['gradient'] = {
+        config['reaction_diffusion']['gradient'] = {
             'type': 'uniform',
             'molecules': concentrations}
         if random_fields:
-            config['diffusion']['gradient']['type'] = 'random'
+            config['reaction_diffusion']['gradient']['type'] = 'random'
         molecules = list(concentrations.keys())
-        config['diffusion']['molecules'] = molecules
+        config['reaction_diffusion']['molecules'] = molecules
     elif molecules:
         # molecules are a list, assume uniform concentrations of 1
-        config['diffusion']['molecules'] = molecules
+        config['reaction_diffusion']['molecules'] = molecules
     if keep_fields_emit:
         # by default no fields are emitted
-        config['diffusion']['_schema'] = {
+        config['reaction_diffusion']['_schema'] = {
             'fields': {
                 field_id: {
                     '_emit': False}
                 for field_id in molecules
                 if field_id not in keep_fields_emit}}
     if parallel:
-        config['diffusion']['_parallel'] = True
+        config['reaction_diffusion']['_parallel'] = True
         config['multibody']['_parallel'] = True
     if set_config:
         config = deep_merge(config, set_config)
@@ -99,33 +99,36 @@ class Lattice(Composer):
         'multibody': {
             'bounds': [10, 10] * units.um,
         },
-        'diffusion': {
-            'molecules': ['glc'],
+        'reaction_diffusion': {
+            'molecules': [],
             'n_bins': [10, 10],
             'bounds': [10, 10] * units.um,
             'depth': 3000.0 * units.um,
-            'diffusion': 1e-2 * units.um**2 / units.sec,
-        },
+            'diffusion': 1e-2 * units.um ** 2 / units.sec,
+        }
     }
+
+    def __init__(self, config=None):
+        super().__init__(config)
 
     def generate_processes(self, config):
         processes = {
             'multibody': Multibody(config['multibody']),
-            'diffusion': DiffusionField(config['diffusion']),
+            'reaction_diffusion': ReactionDiffusion(
+                config['reaction_diffusion'])
         }
         return processes
 
     def generate_topology(self, config):
-        return {
-            'multibody': {
-                'agents': ('agents',),
-            },
-            'diffusion': {
+        topology = {
+            'multibody': {'agents': ('agents',)},
+            'reaction_diffusion': {
                 'agents': ('agents',),
                 'fields': ('fields',),
                 'dimensions': ('dimensions',),
-            },
+            }
         }
+        return topology
 
 
 def test_lattice(
