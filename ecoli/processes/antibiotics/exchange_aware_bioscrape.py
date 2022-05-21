@@ -255,92 +255,86 @@ def species_dict_to_array(species_dict, species_to_index):
 class ExchangeAwareBioscrape(Process):
     name = 'exchange-aware-bioscrape'
     defaults = {
-        'initial_reaction_parameters': {
-            'diffusion': {
-                'permeability': 0 * units.cm / units.sec,
-                'area': 0 * units.cm**2,
-                'volume': 0 * units.L,
-            },
-            'export': {
-                'kcat': 0 / units.sec,
-                'km': 0 * units.mM,
-                'enzyme_conc': 0 * units.mM,
-                'n': 0 * units.count,
-            },
-            'hydrolysis': {
-                'kcat': 0 / units.sec,
-                'km': 0 * units.mM,
-                'enzyme_conc': 0 * units.mM,
-                'n': 0 * units.count,
-            },
-        },
+        'initial_reaction_parameters': {},
         'diffusion_only': False,
     }
 
+    def __init__(self, parameters=None):
+        super().__init__(parameters)
+        self.antibiotics = self.parameters[
+            'initial_reaction_parameters'].keys()
+
     def initial_state(self, config=None):
         state = {
-            'delta_species': {
-                species: 0 * units.mM
-                for species in SPECIES
-                if species not in EXTERNAL_SPECIES
-            },
-            'reaction_parameters': self.parameters[
-                'initial_reaction_parameters']
+            antibiotic: {
+                'delta_species': {
+                    species: 0 * units.mM
+                    for species in SPECIES
+                    if species not in EXTERNAL_SPECIES
+                },
+                'reaction_parameters': self.parameters[
+                    'initial_reaction_parameters'][antibiotic]
+            }
+            for antibiotic in self.antibiotics
         }
         return state
 
     def ports_schema(self):
         schema = {
-            'species': {
-                species: {
-                    '_default': 0.0 * units.mM,
-                    '_updater': 'accumulate',
-                    '_emit': True,
-                    '_divider': 'set',
-                }
-                for species in SPECIES
-                if species not in EXTERNAL_SPECIES
-            },
-            'delta_species': {
-                species: {
-                    '_default': 0.0 * units.mM,
-                    '_updater': 'set',
-                    '_emit': True,
-                }
-                for species in SPECIES
-                if species not in EXTERNAL_SPECIES
-            },
-            'exchanges': {
-                species: {
-                    '_default': 0,
-                    '_emit': True,
-                }
-                for species in EXTERNAL_SPECIES
-                if not species.endswith('_delta')
-            },
-            'external': {
-                species: {
-                    '_default': 0 * units.mM,
-                    '_emit': True,
-                }
-                for species in EXTERNAL_SPECIES
-                if not species.endswith('_delta')
-            },
-            'reaction_parameters': {
-                reaction: {
-                    parameter: {
-                        '_default': 0 * unit,
+            antibiotic: {
+                'species': {
+                    species: {
+                        '_default': 0.0 * units.mM,
+                        '_updater': 'accumulate',
+                        '_emit': True,
+                        '_divider': 'set',
+                    }
+                    for species in SPECIES
+                    if species not in EXTERNAL_SPECIES
+                },
+                'delta_species': {
+                    species: {
+                        '_default': 0.0 * units.mM,
+                        '_updater': 'set',
                         '_emit': True,
                     }
-                    for parameter, unit in reaction_params.items()
-                }
-                for reaction, reaction_params in self.parameters[
-                    'initial_reaction_parameters'].items()
-            },
+                    for species in SPECIES
+                    if species not in EXTERNAL_SPECIES
+                },
+                'exchanges': {
+                    species: {
+                        '_default': 0,
+                        '_emit': True,
+                    }
+                    for species in EXTERNAL_SPECIES
+                    if not species.endswith('_delta')
+                },
+                'external': {
+                    species: {
+                        '_default': 0 * units.mM,
+                        '_emit': True,
+                    }
+                    for species in EXTERNAL_SPECIES
+                    if not species.endswith('_delta')
+                },
+                'reaction_parameters': {
+                    reaction: {
+                        parameter: {
+                            '_default': 0 * unit,
+                            '_emit': True,
+                        }
+                        for parameter, unit in reaction_params.items()
+                    }
+                    for reaction, reaction_params in self.parameters[
+                        'initial_reaction_parameters'][antibiotic].items()
+                },
+            }
+            for antibiotic in self.antibiotics
         }
 
         return schema
 
+    # TODO: Make this a general utility function.
     def _remove_units(self, state, units_map=None):
         units_map = units_map or {}
         converted_state = {}
@@ -366,6 +360,7 @@ class ExchangeAwareBioscrape(Process):
 
         return converted_state, saved_units
 
+    # TODO: Make this a general utility function.
     def _add_units(self, state, saved_units, strict=True):
         """add units back in"""
         unit_state = state.copy()
@@ -380,130 +375,139 @@ class ExchangeAwareBioscrape(Process):
         return unit_state
 
     def next_update(self, timestep, state):
-        # Prepare the state for the bioscrape process by moving species
-        # from 'external' to 'species' where the bioscrape process
-        # expects them to be, renaming variables, and doing unit
-        # conversions.
-        prepared_state = {
-            'species': copy.deepcopy(state['species']),
-            'external': copy.deepcopy(state['external']),
-            'reaction_parameters': copy.deepcopy(
-                state['reaction_parameters']),
-        }
-        for species in EXTERNAL_SPECIES:
-            if species.endswith('_delta'):
-                continue
-            assert species not in prepared_state['species']
-            prepared_state['species'][species] = prepared_state['external'].pop(species)
-            # The delta species is just for tracking updates to the
-            # external environment for later conversion to exchanges. We
-            # assume that `species` is not updated. Note that the
-            # `*_delta` convention must be obeyed for this to work
-            # correctly.
-            delta_species = f'{species}_delta'
-            assert delta_species not in species
-            prepared_state['species'][delta_species] = 0 * units.mM
-
-        prepared_state, saved_units = self._remove_units(
-            prepared_state, units_map=UNITS)
-
-        # Compute the update.
-        internal_steady_state = find_steady_state(
-            prepared_state['species']['external'],
-            prepared_state['reaction_parameters'])
-        if self.parameters['diffusion_only']:
-            delta = (
-                internal_steady_state
-                - prepared_state['species']['internal'])
-            update = {
-                'species': {
-                    'internal': delta,
-                },
-                'delta_species': {
-                    'internal': delta,
-                },
+        update = {}
+        for antibiotic in self.antibiotics:
+            antibiotic_state = state[antibiotic]
+            # Prepare the state for the bioscrape process by moving
+            # species from 'external' to 'species' where the bioscrape
+            # process expects them to be, renaming variables, and doing
+            # unit conversions.
+            prepared_state = {
+                'species': copy.deepcopy(antibiotic_state['species']),
+                'external': copy.deepcopy(antibiotic_state['external']),
+                'reaction_parameters': copy.deepcopy(
+                    antibiotic_state['reaction_parameters']),
             }
-        else:
-            update = update_from_steady_state(
-                internal_steady_state,
-                prepared_state['species'],
-                prepared_state['reaction_parameters'],
-                timestep,
-            )
+            for species in EXTERNAL_SPECIES:
+                if species.endswith('_delta'):
+                    continue
+                assert species not in prepared_state['species']
+                prepared_state['species'][species] = prepared_state['external'].pop(species)
+                # The delta species is just for tracking updates to the
+                # external environment for later conversion to exchanges. We
+                # assume that `species` is not updated. Note that the
+                # `*_delta` convention must be obeyed for this to work
+                # correctly.
+                delta_species = f'{species}_delta'
+                assert delta_species not in species
+                prepared_state['species'][delta_species] = 0 * units.mM
 
-        # Make sure there are no NANs in the update.
-        assert not np.any(np.isnan(list(update['species'].values())))
+            prepared_state, saved_units = self._remove_units(
+                prepared_state, units_map=UNITS)
 
-        # Add units back in
-        update['species'] = self._add_units(
-            update['species'],
-            saved_units['species'],
-            strict=not self.parameters['diffusion_only'])
-        update['delta_species'] = self._add_units(
-            update['delta_species'],
-            saved_units['species'],
-            strict=not self.parameters['diffusion_only'])
+            # Compute the update.
+            internal_steady_state = find_steady_state(
+                prepared_state['species']['external'],
+                prepared_state['reaction_parameters'])
+            if self.parameters['diffusion_only']:
+                delta = (
+                    internal_steady_state
+                    - prepared_state['species']['internal'])
+                antibiotic_update = {
+                    'species': {
+                        'internal': delta,
+                    },
+                    'delta_species': {
+                        'internal': delta,
+                    },
+                }
+            else:
+                antibiotic_update = update_from_steady_state(
+                    internal_steady_state,
+                    prepared_state['species'],
+                    prepared_state['reaction_parameters'],
+                    timestep,
+                )
 
-        # Postprocess the update to convert changes to external
-        # molecules into exchanges.
-        update.setdefault('exchanges', {})
-        for species in EXTERNAL_SPECIES:
-            if species.endswith('_delta'):
-                continue
-            delta_species = f'{species}_delta'
-            if species in update['species']:
-                assert update['species'][species] == 0
-                del update['species'][species]
-            if species in update['delta_species']:
-                assert update['delta_species'][species] == 0
-                del update['delta_species'][species]
-            if delta_species in update['species']:
-                exchange = (
-                    update['species'][delta_species]
-                    * state['reaction_parameters']['diffusion']['volume']
-                    * AVOGADRO)
-                assert species not in update['exchanges']
-                # Exchanges flowing out of the cell are positive.
-                update['exchanges'][species] = exchange.to(
-                    units.counts).magnitude
-                del update['species'][delta_species]
-                del update['delta_species'][delta_species]
+            # Make sure there are no NANs in the update.
+            assert not np.any(np.isnan(list(antibiotic_update['species'].values())))
 
+            # Add units back in
+            antibiotic_update['species'] = self._add_units(
+                antibiotic_update['species'],
+                saved_units['species'],
+                strict=not self.parameters['diffusion_only'])
+            antibiotic_update['delta_species'] = self._add_units(
+                antibiotic_update['delta_species'],
+                saved_units['species'],
+                strict=not self.parameters['diffusion_only'])
+
+            # Postprocess the update to convert changes to external
+            # molecules into exchanges.
+            antibiotic_update.setdefault('exchanges', {})
+            for species in EXTERNAL_SPECIES:
+                if species.endswith('_delta'):
+                    continue
+                delta_species = f'{species}_delta'
+                if species in antibiotic_update['species']:
+                    assert antibiotic_update['species'][species] == 0
+                    del antibiotic_update['species'][species]
+                if species in antibiotic_update['delta_species']:
+                    assert antibiotic_update['delta_species'][species] == 0
+                    del antibiotic_update['delta_species'][species]
+                if delta_species in antibiotic_update['species']:
+                    exchange = (
+                        antibiotic_update['species'][delta_species]
+                        * antibiotic_state['reaction_parameters']['diffusion']['volume']
+                        * AVOGADRO)
+                    assert species not in antibiotic_update['exchanges']
+                    # Exchanges flowing out of the cell are positive.
+                    antibiotic_update['exchanges'][species] = exchange.to(
+                        units.counts).magnitude
+                    del antibiotic_update['species'][delta_species]
+                    del antibiotic_update['delta_species'][delta_species]
+
+            update[antibiotic] = antibiotic_update
         return update
 
 
 def test_exchange_aware_bioscrape():
-    proc = ExchangeAwareBioscrape()
-    schema = proc.get_schema()
+    proc = ExchangeAwareBioscrape({
+        'initial_reaction_parameters': {
+            'antibiotic': {},
+        },
+    })
     initial_state = {
-        'external': {
-            'external': 3 * units.mM,
-        },
-        'species': {
-            'internal': 0 * units.mM,
-            'hydrolyzed': 0 * units.mM,
-        },
-        'reaction_parameters': {
-            'diffusion': {
-                'permeability': 2 * units.dm / units.sec,
-                'area': 3 * units.dm**2,
-                'volume': 2 * units.L,
+        'antibiotic': {
+            'external': {
+                'external': 3 * units.mM,
             },
-            'export': {
-                'kcat': 4 / units.sec,
-                'km': 2 * units.mM,
-                'enzyme_conc': 1 * units.mM,
-                'n': 1 * units.count,
+            'species': {
+                'internal': 0 * units.mM,
+                'hydrolyzed': 0 * units.mM,
             },
-            'hydrolysis': {
-                'kcat': 4 / units.sec,
-                'km': 2 * units.mM,
-                'enzyme_conc': 0.5 * units.mM,
-                'n': 1 * units.count,
+            'reaction_parameters': {
+                'diffusion': {
+                    'permeability': 2 * units.dm / units.sec,
+                    'area': 3 * units.dm**2,
+                    'volume': 2 * units.L,
+                },
+                'export': {
+                    'kcat': 4 / units.sec,
+                    'km': 2 * units.mM,
+                    'enzyme_conc': 1 * units.mM,
+                    'n': 1 * units.count,
+                },
+                'hydrolysis': {
+                    'kcat': 4 / units.sec,
+                    'km': 2 * units.mM,
+                    'enzyme_conc': 0.5 * units.mM,
+                    'n': 1 * units.count,
+                },
             },
         },
     }
-    update = proc.next_update(1, initial_state)
+    update = proc.next_update(1, initial_state)['antibiotic']
 
     expected_update = {
         'species': {
@@ -519,7 +523,7 @@ def test_exchange_aware_bioscrape():
             # units of mM with a volume of 1L.
             'external': (
                 -3 * units.mM
-                * initial_state[
+                * initial_state['antibiotic'][
                     'reaction_parameters']['diffusion']['volume']
                 * AVOGADRO).to(units.count).magnitude,
         },

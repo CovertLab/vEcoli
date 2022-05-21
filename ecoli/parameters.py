@@ -90,7 +90,7 @@ PARAMETER_DICT = {
             ),
         },
         # Cell-wide permeability with only one porin present.
-        'porin-specific-permeability': {
+        'porin_specific_permeability': {
             'outer': {
                 'ompf': Parameter(
                     52.6e-5 * units.cm / units.sec,
@@ -267,7 +267,7 @@ DERIVATION_RULES = {
     ): lambda params: Parameter(
         (
             params.get((
-                'cephaloridine', 'porin-specific-permeability', 'outer',
+                'cephaloridine', 'porin_specific_permeability', 'outer',
                 'ompf'
             )) / (
                 params.get(('counts', 'initial_ompf'))
@@ -280,7 +280,7 @@ DERIVATION_RULES = {
     ): lambda params: Parameter(
         (
             params.get((
-                'cephaloridine', 'porin-specific-permeability', 'outer',
+                'cephaloridine', 'porin_specific_permeability', 'outer',
                 'ompc'
             )) / (
                 params.get(('counts', 'initial_ompc'))
