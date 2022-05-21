@@ -26,59 +26,79 @@
     ],
     "topology": {
         "exchange-aware-bioscrape": {
-            "delta_species": ["bioscrape_deltas"],
-            "exchanges": ["environment", "exchange"],
-            "external": ["boundary", "external"],
-            "rates": {
-                "_path": ["null"],
-                "ceph_export_kcat": ["..", "kinetic_parameters", "ceph_export_kcat"],
-                "ceph_export_km": ["..", "kinetic_parameters", "ceph_export_km"],
-                "ceph_hydrolysis_kcat": ["..", "kinetic_parameters", "ceph_export_kcat"],
-                "ceph_hydrolysis_km": ["..", "kinetic_parameters", "ceph_export_km"],
-                "inner_tetracycline_permeability": ["..", "kinetic_parameters", "inner_tetracycline_permeability"],
-                "inner_tetracycline_permeability_r8": ["..", "kinetic_parameters", "inner_tetracycline_permeability"],
-                "inner_x_am": ["..", "kinetic_parameters", "inner_x_am"],
-                "inner_x_am_r8": ["..", "kinetic_parameters", "inner_x_am"],
-                "mass": ["..", "boundary", "mass"],
-                "mass_r4": ["..", "boundary", "mass"],
-                "mass_r5": ["..", "boundary", "mass"],
-                "mass_r6": ["..", "boundary", "mass"],
-                "mass_r7": ["..", "boundary", "mass"],
-                "mass_r8": ["..", "boundary", "mass"],
-                "ceph_export_n": ["..", "kinetic_parameters", "ceph_export_n"],
-                "ceph_hydrolysis_n": ["..", "kinetic_parameters", "ceph_hydrolysis_n"],
-                "tet_export_n": ["..", "kinetic_parameters", "tet_export_n"],
-                "outer_cephaloridine_permeability": ["..", "kinetic_parameters", "outer_cephaloridine_permeability"],
-                "outer_cephaloridine_permeability_r4": ["..", "kinetic_parameters", "outer_cephaloridine_permeability"],
-                "outer_tetracycline_permeability": ["..", "kinetic_parameters", "outer_tetracycline_permeability"],
-                "outer_tetracycline_permeability_r6": ["..", "kinetic_parameters", "outer_tetracycline_permeability"],
-                "outer_x_am": ["..", "kinetic_parameters", "outer_x_am"],
-                "outer_x_am_r4": ["..", "kinetic_parameters", "outer_x_am"],
-                "outer_x_am_r5": ["..", "kinetic_parameters", "outer_x_am"],
-                "outer_x_am_r6": ["..", "kinetic_parameters", "outer_x_am"],
-                "tet_export_kcat": ["..", "kinetic_parameters", "tet_export_kcat"],
-                "tet_export_km": ["..", "kinetic_parameters", "tet_export_km"],
-                "volume_c": ["..", "cytoplasm", "global", "volume"],
-                "volume_p": ["..", "periplasm", "global", "volume"],
-                "volume_p_r1": ["..", "periplasm", "global", "volume"],
-                "volume_p_r2": ["..", "periplasm", "global", "volume"],
-                "volume_p_r4": ["..", "periplasm", "global", "volume"],
-                "volume_p_r6": ["..", "periplasm", "global", "volume"],
-                "volume_p_r7": ["..", "periplasm", "global", "volume"],
-                "E": ["..", "kinetic_parameters", "E"],
-                "F": ["..", "kinetic_parameters", "F"],
-                "z": ["..", "kinetic_parameters", "z"],
-                "R": ["..", "kinetic_parameters", "R"],
-                "T": ["..", "kinetic_parameters", "T"]
+            "tetracycline": {
+                "species": {
+                    "_path": ["null"],
+                    "hydrolyzed": ["..", "periplasm", "concentrations", "tetracycline_hydrolyzed"],
+                    "internal": ["..", "periplasm", "concentrations", "tetracycline"]
+                },
+                "delta_species": ["bioscrape_deltas", "tetracycline"],
+                "exchanges": {
+                    "external": ["environment", "exchange", "tetracycline"]
+                },
+                "external": {
+                    "external": ["boundary", "external", "tetracycline"]
+                },
+                "reaction_parameters": {
+                    "diffusion": {
+                        "_path": ["null"],
+                        "permeability": ["..", "kinetic_parameters", "outer_tetracycline_permeability"],
+                        "area": ["..", "boundary", "surface_area"],
+                        "volume": ["..", "periplasm", "global", "volume"],
+                        "charge": ["..", "kinetic_parameters", "tetracycline", "charge"]
+                    },
+                    "export": {
+                        "_path": ["null"],
+                        "kcat": ["..", "kinetic_parameters", "tetracycline", "export_kcat"],
+                        "km": ["..", "kinetic_parameters", "tetracycline", "export_km"],
+                        "n": ["..", "kinetic_parameters", "tetracycline", "export_n"],
+                        "enzyme_conc": ["..", "periplasm", "concentrations", "TRANS-CPLX-201[m]"]
+                    },
+                    "hydrolysis": {
+                        "_path": ["null"],
+                        "kcat": ["..", "kinetic_parameters", "tetracycline", "hydrolysis_kcat"],
+                        "km": ["..", "kinetic_parameters", "tetracycline", "hydrolysis_km"],
+                        "n": ["..", "kinetic_parameters", "tetracycline", "hydrolysis_n"],
+                        "enzyme_conc": ["..", "periplasm", "concentrations", "EG10040-MONOMER[p]"]
+                    }
+                }
             },
-            "species": {
-                "_path": ["null"],
-                "AcrAB": ["..", "periplasm", "concentrations", "TRANS-CPLX-201[m]"],
-                "beta_lactamase": ["..", "periplasm", "concentrations", "EG10040-MONOMER[p]"],
-                "cephaloridine_hydrolyzed": ["..", "periplasm", "concentrations", "cephaloridine_hydrolyzed"],
-                "cephaloridine_periplasm": ["..", "periplasm", "concentrations", "cephaloridine"],
-                "tetracycline_periplasm": ["..", "periplasm", "concentrations", "tetracycline"],
-                "tetracycline_cytoplasm": ["..", "cytoplasm", "concentrations", "tetracycline"]
+            "cephaloridine": {
+                "species": {
+                    "_path": ["null"],
+                    "hydrolyzed": ["..", "periplasm", "concentrations", "cephaloridine"],
+                    "internal": ["..", "periplasm", "concentrations", "cephaloridine"]
+                },
+                "delta_species": ["bioscrape_deltas", "cephaloridine"],
+                "exchanges": {
+                    "external": ["environment", "exchange", "cephaloridine"]
+                },
+                "external": {
+                    "external": ["boundary", "external", "cephaloridine"]
+                },
+                "reaction_parameters": {
+                    "diffusion": {
+                        "_path": ["null"],
+                        "permeability": ["..", "kinetic_parameters", "outer_cephaloridine_permeability"],
+                        "area": ["..", "boundary", "surface_area"],
+                        "volume": ["..", "periplasm", "global", "volume"],
+                        "charge": ["..", "kinetic_parameters", "cephaloridine", "charge"]
+                    },
+                    "export": {
+                        "_path": ["null"],
+                        "kcat": ["..", "kinetic_parameters", "cephaloridine", "export_kcat"],
+                        "km": ["..", "kinetic_parameters", "cephaloridine", "export_km"],
+                        "n": ["..", "kinetic_parameters", "cephaloridine", "export_n"],
+                        "enzyme_conc": ["..", "periplasm", "concentrations", "TRANS-CPLX-201[m]"]
+                    },
+                    "hydrolysis": {
+                        "_path": ["null"],
+                        "kcat": ["..", "kinetic_parameters", "cephaloridine", "hydrolysis_kcat"],
+                        "km": ["..", "kinetic_parameters", "cephaloridine", "hydrolysis_km"],
+                        "n": ["..", "kinetic_parameters", "cephaloridine", "hydrolysis_n"],
+                        "enzyme_conc": ["..", "periplasm", "concentrations", "EG10040-MONOMER[p]"]
+                    }
+                }
             }
         },
         "permeability": {
@@ -99,68 +119,48 @@
     },
     "process_configs": {
         "exchange-aware-bioscrape": {
-            "external_species": ["cephaloridine", "tetracycline"],
-            "name_map": [
-                [["external", "cephaloridine"], "cephaloridine_environment"],
-                [["external", "tetracycline"], "tetracycline_environment"]
-            ],
-            "units_map": {
-                "rates": {
-                    "ceph_export_kcat": "!units[1 / second]",
-                    "ceph_export_km": "!units[millimolar]",
-                    "ceph_hydrolysis_kcat": "!units[1 / second]",
-                    "ceph_hydrolysis_km": "!units[millimolar]",
-                    "inner_tetracycline_permeability": "!units[centimeter / second]",
-                    "inner_tetracycline_permeability_r8": "!units[centimeter / second]",
-                    "inner_x_am": "!units[centimeter ** 2 / milligram]",
-                    "inner_x_am_r8": "!units[centimeter ** 2 / milligram]",
-                    "mass": "!units[milligram]",
-                    "mass_r4": "!units[milligram]",
-                    "mass_r5": "!units[milligram]",
-                    "mass_r6": "!units[milligram]",
-                    "mass_r7": "!units[milligram]",
-                    "mass_r8": "!units[milligram]",
-                    "ceph_export_n": "!units[count]",
-                    "ceph_hydrolysis_n": "!units[count]",
-                    "tet_export_n": "!units[count]",
-                    "outer_cephaloridine_permeability": "!units[centimeter / second]",
-                    "outer_cephaloridine_permeability_r4": "!units[centimeter / second]",
-                    "outer_tetracycline_permeability": "!units[centimeter / second]",
-                    "outer_tetracycline_permeability_r6": "!units[centimeter / second]",
-                    "outer_x_am": "!units[centimeter ** 2 / milligram]",
-                    "outer_x_am_r4": "!units[centimeter ** 2 / milligram]",
-                    "outer_x_am_r5": "!units[centimeter ** 2 / milligram]",
-                    "outer_x_am_r6": "!units[centimeter ** 2 / milligram]",
-                    "tet_export_kcat": "!units[1 / second]",
-                    "tet_export_km": "!units[1 / second]",
-                    "volume_c": "!units[milliliter]",
-                    "volume_p": "!units[milliliter]",
-                    "volume_p_r1": "!units[milliliter]",
-                    "volume_p_r2": "!units[milliliter]",
-                    "volume_p_r4": "!units[milliliter]",
-                    "volume_p_r6": "!units[milliliter]",
-                    "volume_p_r7": "!units[milliliter]",
-                    "E": "!units[volt]",
-                    "F": "!units[coulomb / mol]",
-                    "z": "!units[count]",
-                    "R": "!units[joule / mol / kelvin]",
-                    "T": "!units[kelvin]"
+            "initial_reaction_parameters": {
+                "tetracycline": {
+                    "diffusion": {
+                        "permeability": "!ParameterSerializer[tetracycline>permeability>outer_with_porins]",
+                        "area": "!ParameterSerializer[shape>initial_area]",
+                        "volume": "!ParameterSerializer[shape>initial_periplasm_volume]",
+                        "charge": "!ParameterSerializer[tetracycline>charge]"
+                    },
+                    "export": {
+                        "kcat": "!ParameterSerializer[tetracycline>efflux>kcat]",
+                        "km": "!ParameterSerializer[tetracycline>efflux>km]",
+                        "n": "!ParameterSerializer[tetracycline>efflux>n]",
+                        "enzyme_conc": "!ParameterSerializer[concs>initial_pump]"
+                    },
+                    "hydrolysis": {
+                        "kcat": "!units[0 1 / second]",
+                        "km": "!units[1 millimolar]",
+                        "n": "!units[1 count]",
+                        "enzyme_conc": "!units[0 millimolar]"
+                    }
+                },
+                "cephaloridine": {
+                    "diffusion": {
+                        "permeability": "!ParameterSerializer[cephaloridine>permeability>outer]",
+                        "area": "!ParameterSerializer[shape>initial_area]",
+                        "volume": "!ParameterSerializer[shape>initial_periplasm_volume]",
+                        "charge": "!units[0 count]"
+                    },
+                    "export": {
+                        "kcat": "!ParameterSerializer[cephaloridine>efflux>kcat]",
+                        "km": "!ParameterSerializer[cephaloridine>efflux>km]",
+                        "n": "!ParameterSerializer[cephaloridine>efflux>n]",
+                        "enzyme_conc": "!ParameterSerializer[concs>initial_pump]"
+                    },
+                    "hydrolysis": {
+                        "kcat": "!ParameterSerializer[cephaloridine>hydrolysis>kcat]",
+                        "km": "!ParameterSerializer[cephaloridine>hydrolysis>km]",
+                        "n": "!ParameterSerializer[cephaloridine>hydrolysis>n]",
+                        "enzyme_conc": "!ParameterSerializer[concs>initial_hydrolase]"
+                    }
                 }
-            },
-            "sbml_file_path": "data/ceph_tet_sbml.xml",
-            "species_to_convert_to_counts": {
-                "cephaloridine_periplasm": "volume_p",
-                "cephaloridine_hydrolyzed": "volume_p",
-                "tetracycline_periplasm": "volume_p",
-                "tetracycline_cytoplasm": "volume_c"
-            },
-            "equilibrium_species": [
-                "cephaloridine_periplasm",
-                "tetracycline_periplasm",
-                "tetracycline_cytoplasm"
-            ],
-            "equilibrium_reactions": [3, 4, 5, 6, 7, 8],
-            "time_step": 1
+            }
         },
         "permeability": {
             "porin_ids": ["CPLX0-7533[o]", "CPLX0-7534[o]"],
@@ -199,99 +199,123 @@
                 "exchange-aware-bioscrape-diffusion-only": [
                     "exchange-aware-bioscrape",
                     {
-                        "external_species": ["cephaloridine", "tetracycline"],
-                        "name_map": [
-                            [["external", "cephaloridine"], "cephaloridine_environment"],
-                            [["external", "tetracycline"], "tetracycline_environment"]
-                        ],
-                        "units_map": {
-                            "rates": {
-                                "inner_tetracycline_permeability": "!units[centimeter / second]",
-                                "inner_tetracycline_permeability_r5": "!units[centimeter / second]",
-                                "inner_x_am": "!units[centimeter ** 2 / milligram]",
-                                "inner_x_am_r5": "!units[centimeter ** 2 / milligram]",
-                                "mass": "!units[milligram]",
-                                "mass_r1": "!units[milligram]",
-                                "mass_r2": "!units[milligram]",
-                                "mass_r3": "!units[milligram]",
-                                "mass_r4": "!units[milligram]",
-                                "mass_r5": "!units[milligram]",
-                                "outer_cephaloridine_permeability": "!units[centimeter / second]",
-                                "outer_cephaloridine_permeability_r1": "!units[centimeter / second]",
-                                "outer_tetracycline_permeability": "!units[centimeter / second]",
-                                "outer_tetracycline_permeability_r3": "!units[centimeter / second]",
-                                "outer_x_am": "!units[centimeter ** 2 / milligram]",
-                                "outer_x_am_r1": "!units[centimeter ** 2 / milligram]",
-                                "outer_x_am_r2": "!units[centimeter ** 2 / milligram]",
-                                "outer_x_am_r3": "!units[centimeter ** 2 / milligram]",
-                                "volume_c": "!units[milliliter]",
-                                "volume_c_r5": "!units[milliliter]",
-                                "volume_p": "!units[milliliter]",
-                                "volume_p_r1": "!units[milliliter]",
-                                "volume_p_r2": "!units[milliliter]",
-                                "volume_p_r3": "!units[milliliter]",
-                                "E": "!units[volt]",
-                                "F": "!units[coulomb / mol]",
-                                "z": "!units[count]",
-                                "R": "!units[joule / mol / kelvin]",
-                                "T": "!units[kelvin]"
+                        "initial_reaction_parameters": {
+                            "tetracycline": {
+                                "diffusion": {
+                                    "permeability": "!ParameterSerializer[tetracycline>permeability>outer_with_porins]",
+                                    "area": "!ParameterSerializer[shape>initial_area]",
+                                    "volume": "!ParameterSerializer[shape>initial_periplasm_volume]",
+                                    "charge": "!ParameterSerializer[tetracycline>charge]"
+                                },
+                                "export": {
+                                    "kcat": "!ParameterSerializer[tetracycline>efflux>kcat]",
+                                    "km": "!ParameterSerializer[tetracycline>efflux>km]",
+                                    "n": "!ParameterSerializer[tetracycline>efflux>n]",
+                                    "enzyme_conc": "!ParameterSerializer[concs>initial_pump]"
+                                },
+                                "hydrolysis": {
+                                    "kcat": "!units[0 1 / second]",
+                                    "km": "!units[1 millimolar]",
+                                    "n": "!units[1 count]",
+                                    "enzyme_conc": "!units[0 millimolar]"
+                                }
+                            },
+                            "cephaloridine": {
+                                "diffusion": {
+                                    "permeability": "!ParameterSerializer[cephaloridine>permeability>outer]",
+                                    "area": "!ParameterSerializer[shape>initial_area]",
+                                    "volume": "!ParameterSerializer[shape>initial_periplasm_volume]",
+                                    "charge": "!units[0 count]"
+                                },
+                                "export": {
+                                    "kcat": "!ParameterSerializer[cephaloridine>efflux>kcat]",
+                                    "km": "!ParameterSerializer[cephaloridine>efflux>km]",
+                                    "n": "!ParameterSerializer[cephaloridine>efflux>n]",
+                                    "enzyme_conc": "!ParameterSerializer[concs>initial_pump]"
+                                },
+                                "hydrolysis": {
+                                    "kcat": "!ParameterSerializer[cephaloridine>hydrolysis>kcat]",
+                                    "km": "!ParameterSerializer[cephaloridine>hydrolysis>km]",
+                                    "n": "!ParameterSerializer[cephaloridine>hydrolysis>n]",
+                                    "enzyme_conc": "!ParameterSerializer[concs>initial_hydrolase]"
+                                }
                             }
-                        },
-                        "sbml_file_path": "data/ceph_tet_diffusion_only_sbml.xml",
-                        "species_to_convert_to_counts": {
-                            "cephaloridine_periplasm": "volume_p",
-                            "tetracycline_periplasm": "volume_p",
-                            "tetracycline_cytoplasm": "volume_c"
-                        },
-                        "equilibrium_species": [
-                            "cephaloridine_periplasm",
-                            "tetracycline_periplasm",
-                            "tetracycline_cytoplasm"
-                        ],
-                        "equilibrium_reactions": [0, 1, 2, 3, 4, 5],
-                        "time_step": 1
+                        }
                     },
                     {
-                        "delta_species": ["bioscrape_deltas"],
-                        "exchanges": ["environment", "exchange"],
-                        "external": ["boundary", "external"],
-                        "rates": {
-                            "_path": ["null"],
-                            "inner_tetracycline_permeability": ["..", "kinetic_parameters", "inner_tetracycline_permeability"],
-                            "inner_tetracycline_permeability_r5": ["..", "kinetic_parameters", "inner_tetracycline_permeability"],
-                            "inner_x_am": ["..", "kinetic_parameters", "inner_x_am"],
-                            "inner_x_am_r5": ["..", "kinetic_parameters", "inner_x_am"],
-                            "mass": ["..", "boundary", "mass"],
-                            "mass_r1": ["..", "boundary", "mass"],
-                            "mass_r2": ["..", "boundary", "mass"],
-                            "mass_r3": ["..", "boundary", "mass"],
-                            "mass_r4": ["..", "boundary", "mass"],
-                            "mass_r5": ["..", "boundary", "mass"],
-                            "outer_cephaloridine_permeability": ["..", "kinetic_parameters", "outer_cephaloridine_permeability"],
-                            "outer_cephaloridine_permeability_r1": ["..", "kinetic_parameters", "outer_cephaloridine_permeability"],
-                            "outer_tetracycline_permeability": ["..", "kinetic_parameters", "outer_tetracycline_permeability"],
-                            "outer_tetracycline_permeability_r3": ["..", "kinetic_parameters", "outer_tetracycline_permeability"],
-                            "outer_x_am": ["..", "kinetic_parameters", "outer_x_am"],
-                            "outer_x_am_r1": ["..", "kinetic_parameters", "outer_x_am"],
-                            "outer_x_am_r2": ["..", "kinetic_parameters", "outer_x_am"],
-                            "outer_x_am_r3": ["..", "kinetic_parameters", "outer_x_am"],
-                            "volume_c": ["..", "cytoplasm", "global", "volume"],
-                            "volume_c_r5": ["..", "cytoplasm", "global", "volume"],
-                            "volume_p": ["..", "periplasm", "global", "volume"],
-                            "volume_p_r1": ["..", "periplasm", "global", "volume"],
-                            "volume_p_r2": ["..", "periplasm", "global", "volume"],
-                            "volume_p_r3": ["..", "periplasm", "global", "volume"],
-                            "E": ["..", "kinetic_parameters", "E"],
-                            "F": ["..", "kinetic_parameters", "F"],
-                            "z": ["..", "kinetic_parameters", "z"],
-                            "R": ["..", "kinetic_parameters", "R"],
-                            "T": ["..", "kinetic_parameters", "T"]
+                        "tetracycline": {
+                            "species": {
+                                "_path": ["null"],
+                                "hydrolyzed": ["..", "periplasm", "concentrations", "tetracycline_hydrolyzed"],
+                                "internal": ["..", "periplasm", "concentrations", "tetracycline"]
+                            },
+                            "delta_species": ["bioscrape_deltas", "tetracycline"],
+                            "exchanges": {
+                                "external": ["environment", "exchange", "tetracycline"]
+                            },
+                            "external": {
+                                "external": ["boundary", "external", "tetracycline"]
+                            },
+                            "reaction_parameters": {
+                                "diffusion": {
+                                    "_path": ["null"],
+                                    "permeability": ["..", "kinetic_parameters", "outer_tetracycline_permeability"],
+                                    "area": ["..", "boundary", "surface_area"],
+                                    "volume": ["..", "periplasm", "global", "volume"],
+                                    "charge": ["..", "kinetic_parameters", "tetracycline", "charge"]
+                                },
+                                "export": {
+                                    "_path": ["null"],
+                                    "kcat": ["..", "kinetic_parameters", "tetracycline", "export_kcat"],
+                                    "km": ["..", "kinetic_parameters", "tetracycline", "export_km"],
+                                    "n": ["..", "kinetic_parameters", "tetracycline", "export_n"],
+                                    "enzyme_conc": ["..", "periplasm", "concentrations", "TRANS-CPLX-201[m]"]
+                                },
+                                "hydrolysis": {
+                                    "_path": ["null"],
+                                    "kcat": ["..", "kinetic_parameters", "tetracycline", "hydrolysis_kcat"],
+                                    "km": ["..", "kinetic_parameters", "tetracycline", "hydrolysis_km"],
+                                    "n": ["..", "kinetic_parameters", "tetracycline", "hydrolysis_n"],
+                                    "enzyme_conc": ["..", "periplasm", "concentrations", "EG10040-MONOMER[p]"]
+                                }
+                            }
                         },
-                        "species": {
-                            "_path": ["null"],
-                            "cephaloridine_periplasm": ["..", "periplasm", "concentrations", "cephaloridine"],
-                            "tetracycline_periplasm": ["..", "periplasm", "concentrations", "tetracycline"],
-                            "tetracycline_cytoplasm": ["..", "cytoplasm", "concentrations", "tetracycline"]
+                        "cephaloridine": {
+                            "species": {
+                                "_path": ["null"],
+                                "hydrolyzed": ["..", "periplasm", "concentrations", "cephaloridine"],
+                                "internal": ["..", "periplasm", "concentrations", "cephaloridine"]
+                            },
+                            "delta_species": ["bioscrape_deltas", "cephaloridine"],
+                            "exchanges": {
+                                "external": ["environment", "exchange", "cephaloridine"]
+                            },
+                            "external": {
+                                "external": ["boundary", "external", "cephaloridine"]
+                            },
+                            "reaction_parameters": {
+                                "diffusion": {
+                                    "_path": ["null"],
+                                    "permeability": ["..", "kinetic_parameters", "outer_cephaloridine_permeability"],
+                                    "area": ["..", "boundary", "surface_area"],
+                                    "volume": ["..", "periplasm", "global", "volume"],
+                                    "charge": ["..", "kinetic_parameters", "cephaloridine", "charge"]
+                                },
+                                "export": {
+                                    "_path": ["null"],
+                                    "kcat": ["..", "kinetic_parameters", "cephaloridine", "export_kcat"],
+                                    "km": ["..", "kinetic_parameters", "cephaloridine", "export_km"],
+                                    "n": ["..", "kinetic_parameters", "cephaloridine", "export_n"],
+                                    "enzyme_conc": ["..", "periplasm", "concentrations", "TRANS-CPLX-201[m]"]
+                                },
+                                "hydrolysis": {
+                                    "_path": ["null"],
+                                    "kcat": ["..", "kinetic_parameters", "cephaloridine", "hydrolysis_kcat"],
+                                    "km": ["..", "kinetic_parameters", "cephaloridine", "hydrolysis_km"],
+                                    "n": ["..", "kinetic_parameters", "cephaloridine", "hydrolysis_n"],
+                                    "enzyme_conc": ["..", "periplasm", "concentrations", "EG10040-MONOMER[p]"]
+                                }
+                            }
                         }
                     }
                 ]
