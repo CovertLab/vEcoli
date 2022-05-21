@@ -232,6 +232,12 @@ DERIVATION_RULES = {
             * params.get(('shape', 'periplasm_fraction'))
         ),
     ),
+    ('shape', 'initial_cytoplasm_volume'): lambda params: Parameter(
+        (
+            params.get(('shape', 'initial_cell_volume'))
+            * (1 - params.get(('shape', 'periplasm_fraction')))
+        ),
+    ),
     ('ampicillin', 'efflux', 'kcat'): lambda params: Parameter(
         (
             params.get(('ampicillin', 'efflux', 'vmax'))

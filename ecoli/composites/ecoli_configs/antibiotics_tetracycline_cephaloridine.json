@@ -29,8 +29,8 @@
             "tetracycline": {
                 "species": {
                     "_path": ["null"],
-                    "hydrolyzed": ["..", "periplasm", "concentrations", "tetracycline_hydrolyzed"],
-                    "internal": ["..", "periplasm", "concentrations", "tetracycline"]
+                    "hydrolyzed": ["..", "cytoplasm", "concentrations", "tetracycline_hydrolyzed"],
+                    "internal": ["..", "cytoplasm", "concentrations", "tetracycline"]
                 },
                 "delta_species": ["bioscrape_deltas", "tetracycline"],
                 "exchanges": {
@@ -44,7 +44,7 @@
                         "_path": ["null"],
                         "permeability": ["..", "kinetic_parameters", "outer_tetracycline_permeability"],
                         "area": ["..", "boundary", "surface_area"],
-                        "volume": ["..", "periplasm", "global", "volume"],
+                        "volume": ["..", "cytoplasm", "global", "volume"],
                         "charge": ["..", "kinetic_parameters", "tetracycline", "charge"]
                     },
                     "export": {
@@ -124,7 +124,7 @@
                     "diffusion": {
                         "permeability": "!ParameterSerializer[tetracycline>permeability>outer_with_porins]",
                         "area": "!ParameterSerializer[shape>initial_area]",
-                        "volume": "!ParameterSerializer[shape>initial_periplasm_volume]",
+                        "volume": "!ParameterSerializer[shape>initial_cytoplasm_volume]",
                         "charge": "!ParameterSerializer[tetracycline>charge]"
                     },
                     "export": {
@@ -246,8 +246,8 @@
                         "tetracycline": {
                             "species": {
                                 "_path": ["null"],
-                                "hydrolyzed": ["..", "periplasm", "concentrations", "tetracycline_hydrolyzed"],
-                                "internal": ["..", "periplasm", "concentrations", "tetracycline"]
+                                "hydrolyzed": ["..", "cytoplasm", "concentrations", "tetracycline_hydrolyzed"],
+                                "internal": ["..", "cytoplasm", "concentrations", "tetracycline"]
                             },
                             "delta_species": ["bioscrape_deltas", "tetracycline"],
                             "exchanges": {
