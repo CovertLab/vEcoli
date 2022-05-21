@@ -258,8 +258,8 @@ def species_dict_to_array(species_dict, species_to_index):
     return array
 
 
-class ExchangeAwareBioscrape(Process):
-    name = 'exchange-aware-bioscrape'
+class AntibioticTransportSteadyState(Process):
+    name = 'antibiotic-transport-steady-state'
     defaults = {
         'initial_reaction_parameters': {},
         'diffusion_only': False,
@@ -490,8 +490,8 @@ class ExchangeAwareBioscrape(Process):
         return update
 
 
-def test_exchange_aware_bioscrape():
-    proc = ExchangeAwareBioscrape({
+def test_antibiotic_transport_steady_state():
+    proc = AntibioticTransportSteadyState({
         'initial_reaction_parameters': {
             'antibiotic': {},
         },
