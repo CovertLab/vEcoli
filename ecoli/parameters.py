@@ -155,25 +155,7 @@ PARAMETER_DICT = {
                 'Thananassi, Suh, and Nikaido (1995) p. 1004',
             ),
         },
-        'potential': {
-            'membrane_potential': Parameter(
-                0.12 * units.volt,
-                'Berg, Howard C., E. coli in Mtion. 1934. Page 105',
-            ),
-            'tetracycline_charge': Parameter(
-                1,
-            ),
-            'faraday_constant': Parameter(
-                constants.value(
-                    'Faraday constant') * units.C / units.mol
-            ),
-            'gas_constant': Parameter(
-                constants.R * units.J / units.mol / units.K,
-            ),
-            'temperature': Parameter(
-                298 * units.K,
-            ),
-        },
+        'charge': Parameter(1 * units.count),
         'efflux': {
             'vmax': Parameter(
                 0.2 * units.nmol / units.mg / units.min,
@@ -227,6 +209,20 @@ PARAMETER_DICT = {
         ),
     },
     'avogadro': constants.N_A / units.mol,
+    'membrane_potential': Parameter(
+        0.12 * units.volt,
+        'Berg, Howard C., E. coli in Mtion. 1934. Page 105',
+    ),
+    'faraday_constant': Parameter(
+        constants.value(
+            'Faraday constant') * units.C / units.mol
+    ),
+    'gas_constant': Parameter(
+        constants.R * units.J / units.mol / units.K,
+    ),
+    'temperature': Parameter(
+        298 * units.K,
+    ),
 }
 
 DERIVATION_RULES = {

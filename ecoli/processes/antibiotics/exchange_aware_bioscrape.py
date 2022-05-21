@@ -7,6 +7,8 @@ from scipy.optimize import root_scalar
 from vivarium.core.process import Process
 from vivarium.library.units import units, Quantity
 
+from ecoli.parameters import param_store
+
 
 AVOGADRO = N_A / units.mol
 
@@ -67,6 +69,7 @@ UNITS = {
             'permeability': units.dm / units.sec,
             'area': units.dm**2,
             'volume': units.L,
+            'charge': units.count,
         },
         'export': {
             'kcat': 1 / units.sec,
@@ -84,7 +87,7 @@ UNITS = {
 }
 
 
-def species_derivatives(state_arr, reaction_params):
+def species_derivatives(state_arr, reaction_params, internal_bias):
     # Parse state
     state = species_array_to_dict(state_arr, SPECIES_TO_INDEX)
     internal = state['internal']
@@ -94,6 +97,7 @@ def species_derivatives(state_arr, reaction_params):
     area = reaction_params['diffusion']['area']
     permeability = reaction_params['diffusion']['permeability']
     volume_p = reaction_params['diffusion']['volume']
+
     # TODO: Pull the Michaelis-Menten logic into a separate function for
     # reuse.
     kcat_export = reaction_params['export']['kcat']
@@ -105,8 +109,8 @@ def species_derivatives(state_arr, reaction_params):
     hydrolase_conc = reaction_params['hydrolysis']['enzyme_conc']
     n_hydrolysis = reaction_params['hydrolysis']['n']
 
-    diffusion_rate = area * permeability * (external - internal) / (
-        volume_p)
+    diffusion_rate = area * permeability * (
+        external * internal_bias - internal) / (volume_p)
     export_rate = (
         kcat_export * pump_conc * internal**n_export
     ) / (
@@ -127,7 +131,8 @@ def species_derivatives(state_arr, reaction_params):
     return STOICH @ reaction_rates_arr
 
 
-def internal_derivative(internal, external, reaction_params):
+def internal_derivative(internal, external, reaction_params,
+        internal_bias):
     state = {
         'internal': internal,
         'external': external,
@@ -135,19 +140,21 @@ def internal_derivative(internal, external, reaction_params):
         'hydrolyzed': 0,
     }
     state_arr = species_dict_to_array(state, SPECIES_TO_INDEX)
-    derivatives = species_derivatives(state_arr, reaction_params)
+    derivatives = species_derivatives(
+        state_arr, reaction_params, internal_bias)
     return derivatives[SPECIES_TO_INDEX['internal']]
 
 
-def find_steady_state(external, reaction_params):
+def find_steady_state(external, reaction_params, internal_bias):
     args = (
         external,
         reaction_params,
+        internal_bias
     )
     result = root_scalar(
         internal_derivative,
         args=args,
-        bracket=[0, external],
+        bracket=[0, external * internal_bias],
     )
     assert result.converged
     return result.root
@@ -155,11 +162,9 @@ def find_steady_state(external, reaction_params):
 
 def update_from_steady_state(
         internal_steady_state, initial_state, reaction_params,
-        timestep):
+        internal_bias, timestep):
     assert set(SPECIES) == initial_state.keys()
-
     steady_state = initial_state.copy()
-    reaction_rates = np.zeros(len(REACTIONS))
     # Assume that steady state is reached exclusively through diffusion
     steady_state['internal'] = internal_steady_state
     steady_state['external_delta'] = -(
@@ -169,6 +174,7 @@ def update_from_steady_state(
 
     args = (
         reaction_params,
+        internal_bias,
     )
     result = solve_ivp(
         lambda t, state_arr, *args: species_derivatives(
@@ -406,9 +412,21 @@ class ExchangeAwareBioscrape(Process):
                 prepared_state, units_map=UNITS)
 
             # Compute the update.
+            charge = prepared_state['reaction_parameters']['diffusion']['charge']
+            faraday = param_store.get(('faraday_constant',)).to(
+                units.C / units.mol)
+            potential = param_store.get(('membrane_potential',)).to(units.V)
+            gas_constant = param_store.get(('gas_constant',)).to(
+                units.J / units.mol / units.K)
+            temperature = param_store.get(('temperature',)).to(units.K)
+            internal_bias = np.exp(
+                charge * faraday * potential / gas_constant / temperature)
+
             internal_steady_state = find_steady_state(
                 prepared_state['species']['external'],
-                prepared_state['reaction_parameters'])
+                prepared_state['reaction_parameters'],
+                internal_bias,
+            )
             if self.parameters['diffusion_only']:
                 delta = (
                     internal_steady_state
@@ -426,6 +444,7 @@ class ExchangeAwareBioscrape(Process):
                     internal_steady_state,
                     prepared_state['species'],
                     prepared_state['reaction_parameters'],
+                    internal_bias,
                     timestep,
                 )
 
@@ -491,6 +510,7 @@ def test_exchange_aware_bioscrape():
                     'permeability': 2 * units.dm / units.sec,
                     'area': 3 * units.dm**2,
                     'volume': 2 * units.L,
+                    'charge': 0 * units.count,
                 },
                 'export': {
                     'kcat': 4 / units.sec,
