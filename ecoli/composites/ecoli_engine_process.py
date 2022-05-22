@@ -103,6 +103,7 @@ def colony_save_states(engine, config):
             raise ValueError(
                 f'Config contains save_time ({time}) > total '
                 f'time ({config["total_time"]})')
+
     for i in range(len(config["save_times"])):
         if i == 0:
             time_to_next_save = config["save_times"][i]
