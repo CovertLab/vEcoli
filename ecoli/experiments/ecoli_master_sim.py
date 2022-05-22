@@ -199,6 +199,7 @@ class SimConfig:
         for key in LIST_KEYS_TO_MERGE:
             d2.setdefault(key, [])
             d2[key].extend(d1.get(key, []))
+            d2[key] = list(set(d2[key]))  # Ensures there are no duplicates in d2
         deep_merge(d1, d2)
 
     def update_from_json(self, path):
@@ -454,6 +455,7 @@ class EcoliSim:
                 raise ValueError(
                     f'Config contains save_time ({time}) > total '
                     f'time ({self.total_time})')
+
         for i in range(len(self.save_times)):
             if i == 0:
                 time_to_next_save = self.save_times[i]
@@ -461,6 +463,11 @@ class EcoliSim:
                 time_to_next_save = self.save_times[i] - self.save_times[i - 1]
             self.ecoli_experiment.update(time_to_next_save)
             time_elapsed = self.save_times[i]
+
+            # Save the state of one cell
+            # def not_a_process(value):
+            #     return not isinstance(value, Process)
+            # state = self.ecoli_experiment.state.get_value(condition=not_a_process)
             state = self.ecoli_experiment.state.get_value()
             if self.divide:
                 state = state['agents'][self.agent_id]
