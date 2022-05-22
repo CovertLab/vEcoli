@@ -1,0 +1,16 @@
+{
+    "inherit_from": ["lysis.json"],
+    "add_processes": ["timeline"],
+    "topology": {
+        "timeline": {
+            "global": ["global"],
+            "bulk": ["bulk"],
+            "burst": ["burst"]
+        }
+    },
+    "process_configs": {
+        "timeline": {
+            "timeline": []
+        }
+    }
+}
