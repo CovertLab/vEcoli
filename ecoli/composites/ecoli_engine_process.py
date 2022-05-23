@@ -10,8 +10,8 @@ import copy
 
 from vivarium.core.composer import Composer
 from vivarium.core.engine import Engine
-from vivarium.core.process import Process
 from vivarium.core.serialize import serialize_value, deserialize_value
+from vivarium.core.store import Store
 from vivarium.library.dict_utils import deep_merge
 
 from ecoli.experiments.ecoli_master_sim import (
@@ -114,13 +114,19 @@ def colony_save_states(engine, config):
         time_elapsed = config["save_times"][i]
 
         # Save the full state of the super-simulation
-        def not_a_process(value):
-            return not isinstance(value, Process)
-        state = engine.state.get_value(condition=not_a_process)
+        def save_cell_processes(value):
+            """
+            Excludes every process in the state except for the cell processes.
+            """
+            return not (isinstance(value, Store) and value.topology and not isinstance(value.value, EngineProcess))
+        state = engine.state.get_value(condition=save_cell_processes)
         state_to_save = copy.deepcopy(state)
 
         del state_to_save['agents']  # Replace 'agents' with agent states
         state_to_save['agents'] = {}
+
+        def not_a_process(value):
+            return not (isinstance(value, Store) and value.topology)
         for agent_id in state['agents']:
             # Get internal state from the EngineProcess sub-simulation
             cell_state = state['agents'][agent_id]['cell_process'][0].sim.state.get_value(condition=not_a_process)
