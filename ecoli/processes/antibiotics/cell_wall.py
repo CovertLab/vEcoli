@@ -14,6 +14,7 @@ from vivarium.library.units import units
 from vivarium.plots.simulation_output import plot_variables
 
 from ecoli.library.cell_wall.hole_detection import detect_holes
+from ecoli.library.cell_wall.column_sampler import sample_column
 from ecoli.library.schema import bulk_schema
 from ecoli.processes.registries import topology_registry
 from vivarium.core.composition import simulate_process
@@ -43,15 +44,17 @@ class CellWall(Process):
             "PBP1A": "CPLX0-7717[i]",  # transglycosylase-transpeptidase ~100
             "PBP1B": "CPLX0-3951[i]",  # transglycosylase-transpeptidase ~100
         },
+        "strand_length_distribution": [0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
         # Physical parameters
         "critical_radius": 20 * units.nm,
-        "cell_radius": 0.25 * units.um,
-        # 4.1 in maximally stretched configuration,
+        "cell_radius": 0.5 * units.um,
         "disaccharide_length": 1.03 * units.nm,
+        "crossbridge_length": 4.1
+        * units.nm
+        / 3,  # 4.1 in maximally stretched configuration,
         # divided by 3 because the sacculus can be stretched threefold
-        "crossbridge_length": 4.1 * units.nm / 3,
-        "peptidoglycan_unit_area": 4
-        * units.nm**2,  # replace with precise literature value
+        "peptidoglycan_unit_area": 4 * units.nm**2,  # replace with precise
+        # literature value
         # Simulation parameters
         "seed": 0,
     }
@@ -59,8 +62,8 @@ class CellWall(Process):
     def __init__(self, parameters=None):
         super().__init__(parameters)
 
-        # Get murein id and keep track of murein from last timestep
         self.murein = self.parameters["murein"]
+        self.strand_length_distribution = self.parameters["strand_length_distribution"]
 
         self.cell_radius = self.parameters["cell_radius"]
         self.critical_radius = self.parameters["critical_radius"]
@@ -101,61 +104,57 @@ class CellWall(Process):
 
         return schema
 
-    # def initial_state(self, config=None):
-    #     # TODO: better system for initial state -
-    #     # work this into the state file?
-    #     # Need to incorporate shape process...
-    #     initial_state = {
-    #         "murein_state": {"free_murein": 0, "incorporated_murein": 401871},
-    #         "shape": {"volume": 1 * units.fL},
-    #         "wall_state": {
-    #             "lattice": np.ones((1525, 1)),
-    #             "lattice_rows": 1525,
-    #             "lattice_cols": 1,
-    #         },
-    #     }
-    #     return initial_state
-
     def next_update(self, timestep, states):
-        DEBUG = False
-
         # Unpack states
         volume = states["shape"]["volume"]
         lattice = states["wall_state"]["lattice"]
         lattice_rows = states["wall_state"]["lattice_rows"]
         lattice_cols = states["wall_state"]["lattice_cols"]
+        free_murein = states["murein_state"]["free_murein"]
+        incorporated_murein = states["murein_state"]["incorporated_murein"]
+        PBPs = states["PBP"]
+
+        update = {}
+
+        # Get number of synthesis sites
+        # TODO: get this from cephaloridine antagonism (alpha * sum(PBPs))
+        n_sites = sum(PBPs.values())
 
         # Translate volume into length
         length = length_from_volume(volume, self.cell_radius * 2).to("micrometer")
 
-        update = {}
+        # Calculate new lattice dimensions
+        new_rows, new_columns = self.calculate_lattice_size(length)
 
-        if DEBUG:
-            # states['bulk_murein'][self.murein] = 3000000
-            update["shape"] = {"volume": 0.1 * units.fL}
-            assert (
-                states["bulk_murein"][self.murein]
-                == states["murein_state"]["free_murein"]
-                + states["murein_state"]["incorporated_murein"]
-            )
-
-        # Expand lattice size if necessary, depending on cell size
-        print("resizing lattice")
-        lattice, rows, columns = self.resize_lattice(
-            length, lattice, lattice_rows, lattice_cols
-        )
-
-        # Cell wall construction/destruction
-        print("assigning murein")
-        lattice, new_free_murein, new_incorporated_murein = self.assign_murein(
-            states["murein_state"]["free_murein"],
-            states["murein_state"]["incorporated_murein"],
+        # Update lattice to reflect new dimensions,
+        # change in murein, synthesis sites
+        lattice, new_free_murein, new_incorporated_murein = self.update_murein(
             lattice,
-            rows,
-            columns,
+            free_murein,
+            incorporated_murein,
+            new_rows,
+            new_columns,
+            n_sites,
+            self.strand_length_distribution,
         )
-        print(f"Lattice size: {lattice.shape}")
-        print(f"Holes: {lattice.size - lattice.sum()}")
+
+        # # Expand lattice size if necessary, depending on cell size
+        # print("resizing lattice")
+        # lattice, rows, columns = self.resize_lattice(
+        #     length, lattice, lattice_rows, lattice_cols
+        # )
+
+        # # Cell wall construction/destruction
+        # print("assigning murein")
+        # lattice, new_free_murein, new_incorporated_murein = self.assign_murein(
+        #     free_murein,
+        #     incorporated_murein,
+        #     lattice,
+        #     rows,
+        #     columns,
+        # )
+        # print(f"Lattice size: {lattice.shape}")
+        # print(f"Holes: {lattice.size - lattice.sum()}")
 
         update["wall_state"] = {
             "lattice": lattice,
@@ -176,7 +175,13 @@ class CellWall(Process):
         ):
             update["wall_state"]["cracked"] = True
 
+        # Testing (TODO: remove)
         assert new_incorporated_murein == lattice.sum()
+        assert (
+            states["bulk_murein"][self.murein]
+            == states["murein_state"]["free_murein"]
+            + states["murein_state"]["incorporated_murein"]
+        )
 
         return update
 
@@ -189,6 +194,51 @@ class CellWall(Process):
         rows = int(self.circumference / self.disaccharide_length)
 
         return rows, columns
+
+    def de_novo_lattice(self, rows, columns, free_murein, incorporated_murein):
+        def propose(current=None):
+            if current:
+                pass
+            else:
+                pass
+
+        assert lattice.sum() == incorporated_murein
+        return free_murein, incorporated_murein
+
+    def update_murein(
+        self,
+        lattice,
+        free_murein,
+        incorporated_murein,
+        new_rows,
+        new_columns,
+        n_sites,
+        strand_length_distribution,
+    ):
+        rows, columns = lattice.shape
+
+        # Grow lattice (if necessary) by inserting columns
+
+        # Create new lattice
+        new_lattice = np.zeros((new_rows, new_columns))
+
+        # Sample columns for synthesis sites
+        insertion_points = self.rng.integers(0, columns, size=n_sites)
+        insertion_size = np.repeat((new_columns - columns) // n_sites, n_sites)
+
+        # Add additional columns at random if necessary
+        while columns + insertion_size.sum() < new_columns:
+            insertion_size[self.rng.integers(0, n_sites)] += 1
+
+        # Get murein per column
+        current_incorporated = lattice.sum()
+        murein_to_allocate = incorporated_murein - current_incorporated
+        murein_per_column = murein_to_allocate / new_columns
+
+        total_murein = free_murein + incorporated_murein
+        new_incorporated = lattice.sum()
+        new_free = total_murein - new_incorporated
+        return new_lattice, new_free, new_incorporated
 
     def resize_lattice(self, cell_length, lattice, prev_rows=0, prev_cols=0):
 
