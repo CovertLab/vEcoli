@@ -472,7 +472,7 @@ class EcoliSim:
             if self.divide:
                 state = state['agents'][self.agent_id]
             write_json('data/vivecoli_t' + str(time_elapsed) + '.json', state)
-            print('Finished saving the state at t = ' + str(time_elapsed) + '\n')
+            print('Finished saving the state at t = ' + str(time_elapsed))
         time_remaining = self.total_time - self.save_times[-1]
         if time_remaining:
             self.ecoli_experiment.update(time_remaining)
