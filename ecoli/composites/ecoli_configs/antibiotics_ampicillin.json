@@ -1,7 +1,7 @@
 {
     "inherit_from": ["antibiotics.json"],
     "add_processes": [
-        "exchange-aware-bioscrape",
+        "antibiotic-transport-steady-state",
         "permeability",
         "death"
     ],
@@ -22,7 +22,7 @@
         }
     },
     "topology": {
-        "exchange-aware-bioscrape": {
+        "antibiotic-transport-steady-state": {
             "ampicillin": {
                 "species": {
                     "_path": ["null"],
@@ -76,7 +76,7 @@
         }
     },
     "process_configs": {
-        "exchange-aware-bioscrape": {
+        "antibiotic-transport-steady-state": {
             "initial_reaction_parameters": {
                 "ampicillin": {
                     "diffusion": {
@@ -119,8 +119,8 @@
                 }]
             ],
             "to_add": {
-                "exchange-aware-bioscrape-diffusion-only": [
-                    "exchange-aware-bioscrape",
+                "antibiotic-transport-steady-state-diffusion-only": [
+                    "antibiotic-transport-steady-state",
                     {
                         "initial_reaction_parameters": {
                             "ampicillin": {

@@ -1,7 +1,7 @@
 {
     "inherit_from": ["antibiotics.json"],
     "add_processes": [
-        "exchange-aware-bioscrape",
+        "antibiotic-transport-steady-state",
         "permeability",
         "death"
     ],
@@ -25,7 +25,7 @@
         ["cytoplasm"]
     ],
     "topology": {
-        "exchange-aware-bioscrape": {
+        "antibiotic-transport-steady-state": {
             "tetracycline": {
                 "species": {
                     "_path": ["null"],
@@ -118,7 +118,7 @@
         }
     },
     "process_configs": {
-        "exchange-aware-bioscrape": {
+        "antibiotic-transport-steady-state": {
             "initial_reaction_parameters": {
                 "tetracycline": {
                     "diffusion": {
@@ -196,8 +196,8 @@
                 }]
             ],
             "to_add": {
-                "exchange-aware-bioscrape-diffusion-only": [
-                    "exchange-aware-bioscrape",
+                "antibiotic-transport-steady-state-diffusion-only": [
+                    "antibiotic-transport-steady-state",
                     {
                         "initial_reaction_parameters": {
                             "tetracycline": {
