@@ -161,9 +161,8 @@ def run_simulation():
                 },
             },
         )
-
         diffusion_schema = environment_composite.processes[
-            'diffusion'].get_schema()
+            'reaction_diffusion'].get_schema()
         multibody_schema = environment_composite.processes[
             'multibody'].get_schema()
         tunnel_out_schemas['fields_tunnel'] = diffusion_schema['fields']
