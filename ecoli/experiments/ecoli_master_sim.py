@@ -201,6 +201,7 @@ class SimConfig:
             d2[key].extend(d1.get(key, []))
             if key == 'save_times':
                 d2[key] = list(set(d2[key]))  # Ensures there are no duplicates in d2
+                d2[key].sort()
         deep_merge(d1, d2)
 
     def update_from_json(self, path):
