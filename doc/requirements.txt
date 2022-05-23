@@ -84,7 +84,7 @@ typing-extensions==3.10.0.2
 Unum==4.1.4
 urllib3==1.26.4
 vivarium-convenience==0.0.3
-vivarium-core==1.2.8
+vivarium-core==0.4.1
 vivarium-multibody==0.0.16
 wcwidth==0.2.5
 webencodings==0.5.1
