@@ -18,8 +18,8 @@ from datetime import datetime
 from typing import Optional, Dict, Any
 
 from vivarium.core.engine import Engine
-from vivarium.core.process import Process
 from vivarium.core.serialize import deserialize_value
+from vivarium.core.store import Store
 from vivarium.library.dict_utils import deep_merge, deep_merge_combine_lists
 from vivarium.library.topology import assoc_path
 from ecoli.library.logging import write_json
@@ -199,7 +199,8 @@ class SimConfig:
         for key in LIST_KEYS_TO_MERGE:
             d2.setdefault(key, [])
             d2[key].extend(d1.get(key, []))
-            d2[key] = list(set(d2[key]))  # Ensures there are no duplicates in d2
+            if key == 'save_times':
+                d2[key] = list(set(d2[key]))  # Ensures there are no duplicates in d2
         deep_merge(d1, d2)
 
     def update_from_json(self, path):
@@ -464,16 +465,12 @@ class EcoliSim:
             self.ecoli_experiment.update(time_to_next_save)
             time_elapsed = self.save_times[i]
 
-            # Save the state of one cell
-            # def not_a_process(value):
-            #     return not isinstance(value, Process)
-            # state = self.ecoli_experiment.state.get_value(condition=not_a_process)
-            state = self.ecoli_experiment.state.get_value()
+            def not_a_process(value):
+                return not (isinstance(value, Store) and value.topology)
+            state = self.ecoli_experiment.state.get_value(condition=not_a_process)
             if self.divide:
                 state = state['agents'][self.agent_id]
-            state_to_save = {key: state[key] for key in state.keys() if
-                             not (isinstance(state[key], tuple) and isinstance(state[key][0], Process))}
-            write_json('data/vivecoli_t' + str(time_elapsed) + '.json', state_to_save)
+            write_json('data/vivecoli_t' + str(time_elapsed) + '.json', state)
             print('Finished saving the state at t = ' + str(time_elapsed) + '\n')
         time_remaining = self.total_time - self.save_times[-1]
         if time_remaining:
