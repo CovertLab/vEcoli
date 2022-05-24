@@ -88,6 +88,8 @@ class CephaloridineAntagonism(Step):
             states["murein_state"].values()
         )
 
+        print(f"Cephaloridine: Allocating {new_murein} to incorporated/unincorporated")
+
         # Calculate fraction of active PBP1a, PBP1b using Hill Equation
         # (calculating prop NOT bound, i.e. 1 - Hill eq value)
         ceph = states["concentrations"]["cephaloridine"]

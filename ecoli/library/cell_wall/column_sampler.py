@@ -1,9 +1,73 @@
+import argparse
 import os
 from collections import Counter
 from itertools import accumulate, chain, takewhile, tee
+from re import S
 
 import matplotlib.pyplot as plt
 import numpy as np
+from sympy import arg
+
+
+def poisson_sampler(rng, rate):
+    def sampler():
+        while True:
+            yield rng.poisson(rate)
+
+    return sampler
+
+
+def sample_column(rows, murein, strand_sampler, rng):
+    result = np.zeros(rows, dtype=int)
+
+    # Don't try to assign more murein than can fit in the column
+    murein = min(murein, rows)
+
+    # Create iterator for strand lengths, total accumulated length
+    strand_length, total_length = tee(strand_sampler())
+    total_length = accumulate(total_length)
+
+    # Sample strand lengths
+    strands = [
+        s
+        for s, _ in takewhile(lambda s: s[1] < murein, zip(strand_length, total_length))
+        if s > 0
+    ]
+    remaining = murein - sum(strands)
+    if remaining:
+        strands.append(remaining)
+
+    # Get probability for initiating a strand
+    total_gap = rows - sum(strands)
+    strand_starts = list(rng.integers(0, total_gap + 1, size=len(strands)))
+    strand_starts.sort(reverse=True)
+
+    result_i = 0
+    next_start = strand_starts.pop()
+    for gap_i in range(total_gap + 1):
+        while next_start == gap_i:
+            strand = strands.pop()
+            result[result_i:(result_i + strand)] = 1
+            result_i += strand
+            next_start = strand_starts.pop() if len(strands) > 0 else -1
+        result_i += 1
+
+    return result
+
+
+def sample_lattice(rows, columns, murein, strand_sampler, rng):
+    result = np.zeros((rows, columns), dtype=int)
+
+    # Get murein in each column, distributing extra murein uniformly at random
+    murein_per_column = np.repeat(murein // columns, repeats=columns)
+    extra_murein = murein % columns
+    for col in rng.integers(0, columns, size=extra_murein):
+        murein_per_column[col] += 1
+
+    for c, murein in enumerate(murein_per_column):
+        result[:, c] = sample_column(rows, murein, strand_sampler, rng)
+
+    return result
 
 
 def length_distributions(column):
@@ -21,49 +85,6 @@ def length_distributions(column):
             current_length = 1
 
     return strand_lengths, gap_lengths
-
-
-def poisson_sampler(rng, rate):
-    def sampler():
-        while True:
-            yield rng.poisson(rate)
-
-    return sampler
-
-
-def sample_column(rows, murein, strand_sampler, rng):
-    result = np.zeros(rows)
-
-    strand_length, total_length = tee(strand_sampler())
-    total_length = accumulate(total_length)
-
-    # Sample strand lengths
-    strands = [
-        s
-        for s, _ in takewhile(lambda s: s[1] < murein, zip(strand_length, total_length))
-        if s > 0
-    ]
-    remaining = murein - sum(strands)
-    if remaining:
-        strands.append(remaining)
-
-    total_gap = rows - sum(strands)
-    p_s = total_gap / len(strands)
-
-    result_i = 0
-    for i in range(rows):
-        if len(strands) == 0:
-            break
-
-        if rng.uniform() <= p_s:
-            # insert strand
-            strand = strands.pop()
-            result[result_i : (result_i + strand)] = 1
-            result_i += strand
-        else:
-            result_i += 1
-
-    return result
 
 
 def plot_length_distributions(strand_lengths, gap_lengths):
@@ -119,7 +140,7 @@ def test_column_sampler(outdir="out/murein_sampling"):
 
     N = 100
     for i in range(N):
-        col = sample_column(300, 200, poisson_sampler(rng, 0.5), rng)
+        col = sample_column(300, 200, poisson_sampler(rng, 1), rng)
         s, g = length_distributions(col)
         columns.append(col)
         strand_lengths.append(s)
@@ -140,7 +161,38 @@ def test_column_sampler(outdir="out/murein_sampling"):
 
 
 def main():
-    test_column_sampler()
+    parser = argparse.ArgumentParser(description="Sample lattice and run tests.")
+
+    parser.add_argument("--test", "-t", action="store_true", help="Run tests.")
+    parser.add_argument(
+        "--seed",
+        "-s",
+        type=int,
+        default=None,
+        help="Random seed for sampling (not fixed if None)",
+    )
+
+    parser.add_argument("rows", type=int, help="Number of rows to sample.")
+    parser.add_argument("cols", type=int, help="Number of cols to sample.")
+    parser.add_argument("murein", type=int, help="Murein limitation.")
+    parser.add_argument("rate", type=float, help="Rate for poisson distribution")
+    parser.add_argument("--file", "-f", type=str, default=None, help="File to output to.")
+
+    args = parser.parse_args()
+
+    if args.test:
+        test_column_sampler()
+    else:
+        rng = np.random.default_rng(args.seed)
+        lat = sample_lattice(
+            args.rows, args.cols, args.murein, poisson_sampler(rng, args.rate), rng
+        )
+        if args.file:
+            with open(args.file, "w") as f:
+                f.write("[")
+                for row in lat:
+                    f.write(f'{list(row)},\n')
+                f.write("]\n")
 
 
 if __name__ == "__main__":
