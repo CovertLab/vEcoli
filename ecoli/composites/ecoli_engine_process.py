@@ -205,6 +205,9 @@ def run_simulation():
             agent_config = copy.deepcopy(base_config)
             agent_config['initial_cell_state'] = agent_state
             agent_config['agent_id'] = agent_id
+            time_str = config['initial_colony_file'][len('colony_t'):]
+            agent_config['seed'] = (
+                agent_config['seed'] + int(float(time_str))) % RAND_MAX
             agent_composer = EcoliEngineProcess(agent_config)
             agent_composite = agent_composer.generate(path=('agents', agent_id))
             if not composite:
