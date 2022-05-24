@@ -12,7 +12,7 @@ from ecoli.experiments.ecoli_master_sim import EcoliSim, CONFIG_DIR_PATH
 
 
 RELATIVE_TOLERANCES = {
-    'mRnaMass': 0.006,
+    'mRnaMass': 0.005,
     'rRnaMass': 1e-4,
     'dry_mass': 0.01,
     'rnaMass': 0.001,
