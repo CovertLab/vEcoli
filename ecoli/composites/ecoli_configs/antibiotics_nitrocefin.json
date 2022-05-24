@@ -15,7 +15,7 @@
         "exchange-aware-bioscrape": {
             "species": ["periplasm", "concentrations"],
             "delta_species": ["periplasm", "bioscrape_deltas"],
-            "exchanges": ["environment", "exchange"],
+            "exchanges": ["boundary", "exchanges"],
             "external": ["boundary", "external"],
             "globals": ["periplasm", "global"],
             "rates": {

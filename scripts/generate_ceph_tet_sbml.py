@@ -272,9 +272,15 @@ def main() -> None:
     crn = ChemicalReactionNetwork(
         species=species,
         reactions=[
-            ceph_export, tet_export, hydrolysis, ceph_influx,
-            ceph_influx_rev, tet_e_p_influx, tet_e_p_influx_rev,
-            tet_p_c_influx, tet_p_c_influx_rev,
+            ceph_export,
+            tet_export,
+            hydrolysis,
+            ceph_influx,
+            ceph_influx_rev,
+            tet_e_p_influx,
+            tet_e_p_influx_rev,
+            tet_p_c_influx,
+            tet_p_c_influx_rev,
         ],
         initial_concentration_dict=initial_concentrations,
     )
@@ -287,11 +293,19 @@ def main() -> None:
 
     diffusion_only_crn = ChemicalReactionNetwork(
         species=[
-            cephaloridine_e, cephaloridine_p, tetracycline_e,
-            tetracycline_p, tetracycline_c],
+            cephaloridine_e,
+            cephaloridine_p,
+            tetracycline_e,
+            tetracycline_p,
+            tetracycline_c
+        ],
         reactions=[
-            ceph_influx, ceph_influx_rev, tet_e_p_influx,
-            tet_e_p_influx_rev, tet_p_c_influx, tet_p_c_influx_rev,
+            ceph_influx,
+            ceph_influx_rev,
+            tet_e_p_influx,
+            tet_e_p_influx_rev,
+            tet_p_c_influx,
+            tet_p_c_influx_rev,
         ],
         initial_concentration_dict={
             cephaloridine_e: INITIAL_ENVIRONMENT_CEPH,

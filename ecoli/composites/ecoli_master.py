@@ -84,7 +84,13 @@ class Ecoli(Composer):
         # Use initial state calculated with trna_charging and translationSupply disabled
         config = config or {}
         initial_state_file = config.get('initial_state_file', 'wcecoli_t0')
+        initial_state_overrides = config.get('initial_state_overrides', [])
         initial_state = get_state_from_file(path=f'data/{initial_state_file}.json')
+
+        for override_file in initial_state_overrides:
+            override = get_state_from_file(path=f"data/{override_file}.json")
+            deep_merge(initial_state, override)
+
         initial_state = super().initial_state({
             'initial_state': initial_state})
         return initial_state

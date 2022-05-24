@@ -18,6 +18,7 @@ from datetime import datetime
 from typing import Optional, Dict, Any
 
 from vivarium.core.engine import Engine
+from vivarium.core.process import Process
 from vivarium.core.serialize import deserialize_value
 from vivarium.library.dict_utils import deep_merge, deep_merge_combine_lists
 from vivarium.library.topology import assoc_path
@@ -194,7 +195,7 @@ class SimConfig:
         # Handle config keys that need special handling.
         LIST_KEYS_TO_MERGE = (
             'save_times', 'add_processes', 'exclude_processes',
-            'processes')
+            'processes', 'engine_process_reports')
         for key in LIST_KEYS_TO_MERGE:
             d2.setdefault(key, [])
             d2[key].extend(d1.get(key, []))
@@ -435,9 +436,12 @@ class EcoliSim:
 
         # merge a lattice composite for the spatial environment
         if self.spatial_environment:
+            initial_state_config = self.spatial_environment_config.get('initial_state_config')
             environment_composite = ecoli.composites.environment.lattice.Lattice(
                 self.spatial_environment_config).generate()
-            initial_environment = environment_composite.initial_state()
+            initial_environment = environment_composite.initial_state(
+                initial_state_config
+            )
             self.ecoli.merge(environment_composite)
             self.initial_state = deep_merge(self.initial_state, initial_environment)
 
@@ -450,19 +454,18 @@ class EcoliSim:
                 raise ValueError(
                     f'Config contains save_time ({time}) > total '
                     f'time ({self.total_time})')
-        time_elapsed = self.save_times[0]
         for i in range(len(self.save_times)):
             if i == 0:
                 time_to_next_save = self.save_times[i]
             else:
                 time_to_next_save = self.save_times[i] - self.save_times[i - 1]
-                time_elapsed += time_to_next_save
             self.ecoli_experiment.update(time_to_next_save)
+            time_elapsed = self.save_times[i]
             state = self.ecoli_experiment.state.get_value()
             if self.divide:
                 state = state['agents'][self.agent_id]
-            state_to_save = {key: state[key] for key in
-                             ['listeners', 'bulk', 'unique', 'environment', 'process_state']}
+            state_to_save = {key: state[key] for key in state.keys() if
+                             not (isinstance(state[key], tuple) and isinstance(state[key][0], Process))}
             write_json('data/vivecoli_t' + str(time_elapsed) + '.json', state_to_save)
             print('Finished saving the state at t = ' + str(time_elapsed) + '\n')
         time_remaining = self.total_time - self.save_times[-1]

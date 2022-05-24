@@ -5,16 +5,25 @@
         "permeability",
         "death"
     ],
+    "total_time": 100,
+    "emitter_arg": [
+        ["host", "localhost:27017"]
+    ],
     "spatial_environment_config": {
         "field_timeline": {
             "timeline": [
-                [6000, {
-                    "cephaloridine": 0.01203,
-                    "tetracycline": 0.0025
+                [30, {
+                    "cephaloridine": 0.01203
+                }],
+                [70, {
+                    "cephaloridine": 0.0
                 }]
             ]
         }
     },
+    "engine_process_reports": [
+        ["cytoplasm"]
+    ],
     "topology": {
         "exchange-aware-bioscrape": {
             "delta_species": ["bioscrape_deltas"],
@@ -22,10 +31,40 @@
             "external": ["boundary", "external"],
             "globals": ["boundary"],
             "rates": {
-                "_path": ["kinetic_parameters"],
+                "_path": ["null"],
+                "ceph_export_kcat__": ["..", "kinetic_parameters", "ceph_export_kcat"],
+                "ceph_export_km__": ["..", "kinetic_parameters", "ceph_export_km"],
+                "ceph_hydrolysis_kcat__": ["..", "kinetic_parameters", "ceph_export_kcat"],
+                "ceph_hydrolysis_km__": ["..", "kinetic_parameters", "ceph_export_km"],
+                "inner_tetracycline_permeability": ["..", "kinetic_parameters", "inner_tetracycline_permeability"],
+                "inner_tetracycline_permeability_r8": ["..", "kinetic_parameters", "inner_tetracycline_permeability"],
+                "inner_x_am": ["..", "kinetic_parameters", "inner_x_am"],
+                "inner_x_am_r8": ["..", "kinetic_parameters", "inner_x_am"],
                 "mass": ["..", "boundary", "mass"],
-                "volume_p": ["..", "periplasm", "volume"],
-                "volume_c": ["..", "cytoplasm", "volume"]
+                "mass_r4": ["..", "boundary", "mass"],
+                "mass_r5": ["..", "boundary", "mass"],
+                "mass_r6": ["..", "boundary", "mass"],
+                "mass_r7": ["..", "boundary", "mass"],
+                "mass_r8": ["..", "boundary", "mass"],
+                "n": ["..", "kinetic_parameters", "n"],
+                "n_r1": ["..", "kinetic_parameters", "n_r1"],
+                "n_r2": ["..", "kinetic_parameters", "n_r2"],
+                "outer_cephaloridine_permeability": ["..", "kinetic_parameters", "outer_cephaloridine_permeability"],
+                "outer_cephaloridine_permeability_r4": ["..", "kinetic_parameters", "outer_cephaloridine_permeability"],
+                "outer_tetracycline_permeability": ["..", "kinetic_parameters", "outer_tetracycline_permeability"],
+                "outer_tetracycline_permeability_r6": ["..", "kinetic_parameters", "outer_tetracycline_permeability"],
+                "outer_x_am": ["..", "kinetic_parameters", "outer_x_am"],
+                "outer_x_am_r4": ["..", "kinetic_parameters", "outer_x_am"],
+                "outer_x_am_r5": ["..", "kinetic_parameters", "outer_x_am"],
+                "outer_x_am_r6": ["..", "kinetic_parameters", "outer_x_am"],
+                "tet_export_kcat__": ["..", "kinetic_parameters", "tet_export_kcat"],
+                "tet_export_km__": ["..", "kinetic_parameters", "tet_export_km"],
+                "volume_c": ["..", "cytoplasm", "global", "volume"],
+                "volume_c_r8": ["..", "cytoplasm", "global", "volume"],
+                "volume_p": ["..", "periplasm", "global", "volume"],
+                "volume_p_r4": ["..", "periplasm", "global", "volume"],
+                "volume_p_r5": ["..", "periplasm", "global", "volume"],
+                "volume_p_r6": ["..", "periplasm", "global", "volume"]
             },
             "species": {
                 "_path": ["null"],
@@ -48,7 +87,7 @@
             "internal": {
                 "_path": ["null"],
                 "tetracycline": ["..", "cytoplasm", "concentrations", "tetracycline"],
-                "cephaloridine": ["..", "periplasm", "concentrations", "tetracycline"]
+                "cephaloridine": ["..", "periplasm", "concentrations", "cephaloridine"]
             }
 
         }
@@ -60,6 +99,43 @@
                 [["external", "cephaloridine"], "cephaloridine_environment"],
                 [["external", "tetracycline"], "tetracycline_environment"]
             ],
+            "units_map": {
+                "rates": {
+                    "ceph_export_kcat__": "!units[1 / second]",
+                    "ceph_export_km__": "!units[millimolar]",
+                    "ceph_hydrolysis_kcat__": "!units[1 / second]",
+                    "ceph_hydrolysis_km__": "!units[millimolar]",
+                    "inner_tetracycline_permeability": "!units[centimeter / second]",
+                    "inner_tetracycline_permeability_r8": "!units[centimeter / second]",
+                    "inner_x_am": "!units[centimeter ** 2 / milligram]",
+                    "inner_x_am_r8": "!units[centimeter ** 2 / milligram]",
+                    "mass": "!units[milligram]",
+                    "mass_r4": "!units[milligram]",
+                    "mass_r5": "!units[milligram]",
+                    "mass_r6": "!units[milligram]",
+                    "mass_r7": "!units[milligram]",
+                    "mass_r8": "!units[milligram]",
+                    "n": "!units[count]",
+                    "n_r1": "!units[count]",
+                    "n_r2": "!units[count]",
+                    "outer_cephaloridine_permeability": "!units[centimeter / second]",
+                    "outer_cephaloridine_permeability_r4": "!units[centimeter / second]",
+                    "outer_tetracycline_permeability": "!units[centimeter / second]",
+                    "outer_tetracycline_permeability_r6": "!units[centimeter / second]",
+                    "outer_x_am": "!units[centimeter ** 2 / milligram]",
+                    "outer_x_am_r4": "!units[centimeter ** 2 / milligram]",
+                    "outer_x_am_r5": "!units[centimeter ** 2 / milligram]",
+                    "outer_x_am_r6": "!units[centimeter ** 2 / milligram]",
+                    "tet_export_kcat__": "!units[1 / second]",
+                    "tet_export_km__": "!units[1 / second]",
+                    "volume_c": "!units[milliliter]",
+                    "volume_c_r8": "!units[milliliter]",
+                    "volume_p": "!units[milliliter]",
+                    "volume_p_r4": "!units[milliliter]",
+                    "volume_p_r5": "!units[milliliter]",
+                    "volume_p_r6": "!units[milliliter]"
+                }
+            },
             "sbml_file": "data/ceph_tet_sbml.xml",
             "time_step": 0.5
         },
@@ -88,7 +164,7 @@
         "death": {
             "detectors": [
                 ["antibiotic", {
-                    "antibiotic_threshold": "!units[0.02 millimolar]",
+                    "antibiotic_threshold": "!units[0.01 millimolar]",
                     "antibiotic_key": "cephaloridine"
                 }],
                 ["antibiotic", {
@@ -105,6 +181,34 @@
                             [["external", "cephaloridine"], "cephaloridine_environment"],
                             [["external", "tetracycline"], "tetracycline_environment"]
                         ],
+                        "units_map": {
+                            "rates": {
+                                "inner_tetracycline_permeability": "!units[centimeter / second]",
+                                "inner_tetracycline_permeability_r5": "!units[centimeter / second]",
+                                "inner_x_am": "!units[centimeter ** 2 / milligram]",
+                                "inner_x_am_r5": "!units[centimeter ** 2 / milligram]",
+                                "mass": "!units[milligram]",
+                                "mass_r1": "!units[milligram]",
+                                "mass_r2": "!units[milligram]",
+                                "mass_r3": "!units[milligram]",
+                                "mass_r4": "!units[milligram]",
+                                "mass_r5": "!units[milligram]",
+                                "outer_cephaloridine_permeability": "!units[centimeter / second]",
+                                "outer_cephaloridine_permeability_r1": "!units[centimeter / second]",
+                                "outer_tetracycline_permeability": "!units[centimeter / second]",
+                                "outer_tetracycline_permeability_r3": "!units[centimeter / second]",
+                                "outer_x_am": "!units[centimeter ** 2 / milligram]",
+                                "outer_x_am_r1": "!units[centimeter ** 2 / milligram]",
+                                "outer_x_am_r2": "!units[centimeter ** 2 / milligram]",
+                                "outer_x_am_r3": "!units[centimeter ** 2 / milligram]",
+                                "volume_c": "!units[milliliter]",
+                                "volume_c_r5": "!units[milliliter]",
+                                "volume_p": "!units[milliliter]",
+                                "volume_p_r1": "!units[milliliter]",
+                                "volume_p_r2": "!units[milliliter]",
+                                "volume_p_r3": "!units[milliliter]"
+                            }
+                        },
                         "sbml_file": "data/ceph_tet_diffusion_only_sbml.xml",
                         "time_step": 0.5
                     },
@@ -114,10 +218,31 @@
                         "external": ["boundary", "external"],
                         "globals": ["boundary"],
                         "rates": {
-                            "_path": ["kinetic_parameters"],
+                            "_path": ["null"],
+                            "inner_tetracycline_permeability": ["..", "kinetic_parameters", "inner_tetracycline_permeability"],
+                            "inner_tetracycline_permeability_r5": ["..", "kinetic_parameters", "inner_tetracycline_permeability"],
+                            "inner_x_am": ["..", "kinetic_parameters", "inner_x_am"],
+                            "inner_x_am_r5": ["..", "kinetic_parameters", "inner_x_am"],
                             "mass": ["..", "boundary", "mass"],
-                            "volume_p": ["..", "periplasm", "volume"],
-                            "volume_c": ["..", "cytoplasm", "volume"]
+                            "mass_r1": ["..", "boundary", "mass"],
+                            "mass_r2": ["..", "boundary", "mass"],
+                            "mass_r3": ["..", "boundary", "mass"],
+                            "mass_r4": ["..", "boundary", "mass"],
+                            "mass_r5": ["..", "boundary", "mass"],
+                            "outer_cephaloridine_permeability": ["..", "kinetic_parameters", "outer_cephaloridine_permeability"],
+                            "outer_cephaloridine_permeability_r1": ["..", "kinetic_parameters", "outer_cephaloridine_permeability"],
+                            "outer_tetracycline_permeability": ["..", "kinetic_parameters", "outer_tetracycline_permeability"],
+                            "outer_tetracycline_permeability_r3": ["..", "kinetic_parameters", "outer_tetracycline_permeability"],
+                            "outer_x_am": ["..", "kinetic_parameters", "outer_x_am"],
+                            "outer_x_am_r1": ["..", "kinetic_parameters", "outer_x_am"],
+                            "outer_x_am_r2": ["..", "kinetic_parameters", "outer_x_am"],
+                            "outer_x_am_r3": ["..", "kinetic_parameters", "outer_x_am"],
+                            "volume_c": ["..", "cytoplasm", "global", "volume"],
+                            "volume_c_r5": ["..", "cytoplasm", "global", "volume"],
+                            "volume_p": ["..", "periplasm", "global", "volume"],
+                            "volume_p_r1": ["..", "periplasm", "global", "volume"],
+                            "volume_p_r2": ["..", "periplasm", "global", "volume"],
+                            "volume_p_r3": ["..", "periplasm", "global", "volume"]
                         },
                         "species": {
                             "_path": ["null"],
