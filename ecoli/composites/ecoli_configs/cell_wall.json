@@ -45,6 +45,7 @@
         }
     },
     "flow": {
-        "ecoli-shape": [["ecoli-mass-listener"]]
+        "ecoli-shape": [["ecoli-mass-listener"]],
+        "ecoli-cephaloridine": [["ecoli-metabolism"]]
       }
 }
