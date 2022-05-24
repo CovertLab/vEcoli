@@ -55,6 +55,7 @@ class Ecoli(Composer):
             'threshold': 2220},  # fg
         'divide': False,
         'log_updates': False,
+        'mar_regulon': False,
         'flow': {},
     }
 
@@ -63,7 +64,8 @@ class Ecoli(Composer):
 
         self.load_sim_data = LoadSimData(
             sim_data_path=self.config['sim_data_path'],
-            seed=self.config['seed'])
+            seed=self.config['seed'],
+            mar_regulon=self.config['mar_regulon'])
 
         if not self.config.get('processes'):
             self.config['processes'] = deepcopy(ECOLI_DEFAULT_PROCESSES)
