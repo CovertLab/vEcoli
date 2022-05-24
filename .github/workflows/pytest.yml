@@ -28,7 +28,7 @@ jobs:
         pip install -r requirements.txt
     - name: Check dependencies
       run: |
-        python scripts/test_requirements.py
+        python -m scripts.test_requirements
     - name: Setup
       run: |
         python setup.py install
