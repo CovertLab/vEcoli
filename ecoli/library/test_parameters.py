@@ -1,4 +1,4 @@
-from ecoli.parameters import Parameter, ParameterStore
+from ecoli.library.parameters import Parameter, ParameterStore
 
 
 def test_simple():

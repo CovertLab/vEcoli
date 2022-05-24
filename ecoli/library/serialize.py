@@ -2,7 +2,7 @@ from unum import Unum
 from vivarium.core.registry import Serializer
 from vivarium.library.topology import convert_path_style, normalize_path
 
-from ecoli.parameters import param_store, Parameter
+from ecoli.library.parameters import param_store, Parameter
 
 
 class UnumSerializer(Serializer):

@@ -169,6 +169,10 @@ PARAMETER_DICT = {
                 1 * units.count,
             ),
         },
+        'mic': Parameter(
+            2.5 * units.micromolar,
+            'Thananassi, Suh, and Nikaido (1995) p. 1005',
+        ),
     },
     'shape': {
         'periplasm_fraction': Parameter(
