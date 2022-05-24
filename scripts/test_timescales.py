@@ -6,28 +6,7 @@ from scipy.integrate import odeint
 from scipy.optimize import root_scalar, root
 from vivarium.library.units import units
 
-from ecoli.parameters import param_store
-from scripts.generate_ceph_tet_sbml import (
-    TET_PUMP_KCAT,
-    TET_PUMP_KM,
-    DEFAULT_TET_OUTER_PERM,
-    DEFAULT_TET_INNER_PERM,
-    MEMBRANE_POTENTIAL,
-    TETRACYCLINE_CHARGE,
-    FARADAY_CONSTANT,
-    GAS_CONSTANT,
-    TEMPERATURE,
-
-    INITIAL_ENVIRONMENT_TET,
-    INITIAL_PUMP,
-    INITIAL_BETA_LACTAMASE,
-
-    AREA_MASS_RATIO,
-    CYTO_AREA_MASS_RATIO,
-    CELL_MASS,
-    PERIPLASM_VOLUME,
-    CYTOPLASM_VOLUME,
-)
+from ecoli.library.parameters import param_store
 
 
 CHANGE_RELATIVE_THRESHOLD = 0.0001  # 0.01% change acceptable
@@ -158,71 +137,68 @@ ODES = {
     'tetracycline': {
         'Efflux': (
             _get_michaelis_menten_derivative(
-                TET_PUMP_KCAT, TET_PUMP_KM, 1, INITIAL_PUMP),
-            INITIAL_ENVIRONMENT_TET,  # Assume diffusion is fast.
+                param_store.get(('tetracycline', 'efflux', 'kcat')).to(
+                    1 / units.sec).magnitude,
+                param_store.get(('tetracycline', 'efflux', 'km')).to(
+                    units.mM).magnitude,
+                param_store.get(('tetracycline', 'efflux', 'n')).to(
+                    units.count).magnitude,
+                param_store.get(('concs', 'initial_pump')).to(
+                    units.mM).magnitude,
+            ),
+            # Assume diffusion is fast.
+            param_store.get(('tetracycline', 'mic')).to(
+                units.mM).magnitude,
         ),
         'Outer Diffusion': (
             _get_fickian_derivative(
                 (
-                    CELL_MASS * AREA_MASS_RATIO
-                    * DEFAULT_TET_OUTER_PERM * 1e-3
-                ),
-                INITIAL_ENVIRONMENT_TET,
-                PERIPLASM_VOLUME,
-                np.exp(
-                    TETRACYCLINE_CHARGE * FARADAY_CONSTANT
-                    * MEMBRANE_POTENTIAL / GAS_CONSTANT / TEMPERATURE),
+                    param_store.get(('shape', 'initial_area'))
+                    * param_store.get((
+                        'tetracycline', 'permeability',
+                        'outer_with_porins'))
+                ).to(units.L / units.sec).magnitude,
+                param_store.get(('tetracycline', 'mic')).to(
+                    units.mM).magnitude,
+                param_store.get(
+                    ('shape', 'initial_periplasm_volume')
+                ).to(units.L).magnitude,
+                np.exp((
+                    param_store.get(('tetracycline', 'charge'))
+                    * param_store.get(('faraday_constant',))
+                    * param_store.get(('membrane_potential',))
+                    / param_store.get(('gas_constant',))
+                    / param_store.get(('temperature',))
+                ).to(units.count).magnitude),
             ),
             0,
         ),
         'Inner Diffusion': (
             _get_fickian_derivative(
                 (
-                    CELL_MASS * CYTO_AREA_MASS_RATIO
-                    * DEFAULT_TET_INNER_PERM * 1e-3
-                ),
-                INITIAL_ENVIRONMENT_TET,  # Assume outer diffusion fast.
-                CYTOPLASM_VOLUME,
+                    param_store.get(('shape', 'initial_area'))
+                    * param_store.get((
+                        'tetracycline', 'permeability', 'inner'))
+                ).to(units.L / units.sec).magnitude,
+                # Assume outer diffusion is fast.
+                (
+                    param_store.get(('tetracycline', 'mic'))
+                    * np.exp((
+                        param_store.get(('tetracycline', 'charge'))
+                        * param_store.get(('faraday_constant',))
+                        * param_store.get(('membrane_potential',))
+                        / param_store.get(('gas_constant',))
+                        / param_store.get(('temperature',))
+                    ).to(units.count).magnitude)
+                ).to(units.mM).magnitude,
+                param_store.get(
+                    ('shape', 'initial_cytoplasm_volume')
+                ).to(units.L).magnitude,
             ),
             0,
         ),
     },
 }
-
-
-def cephaloridine_periplasm_derivative(y):
-    diffusion = ODES['cephaloridine']['Diffusion'][0]
-    efflux = ODES['cephaloridine']['Efflux'][0]
-    hydrolysis = ODES['cephaloridine']['Hydrolysis'][0]
-    return y + diffusion(y, 0) - efflux(y, 0) - hydrolysis(y, 0)
-
-
-def tetracycline_derivative(y):
-    periplasmic, cytoplasmic = y
-    inner_diffusion = ODES['tetracycline']['Inner Diffusion'][0]
-    outer_diffusion = ODES['tetracycline']['Outer Diffusion'][0]
-    efflux = ODES['tetracycline']['Efflux'][0]
-
-    periplasmic_derivative = (
-        outer_diffusion(periplasmic, 0) - efflux(periplasmic, 0)
-        - inner_diffusion(cytoplasmic, 0)
-    )
-    cytoplasmic_derivative = inner_diffusion(cytoplasmic, 0)
-    return periplasmic_derivative, cytoplasmic_derivative
-
-
-def find_equilibrium():
-    ceph = root_scalar(
-        cephaloridine_periplasm_derivative,
-        bracket=[0, param_store.get(('cephaloridine', 'mic'))])
-    assert ceph.converged
-    print('Periplasmic Cephaloridine Equilibrium (mM):', ceph.root)
-
-    tet = root(
-        tetracycline_derivative,
-        [INITIAL_ENVIRONMENT_TET, INITIAL_ENVIRONMENT_TET])
-    assert tet.success
-    print('Equilibrium (periplasmic, cytoplasmic) in mM:', tet.x)
 
 
 def test_cephaloridine_diffusion_timescale():
@@ -263,4 +239,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-    #find_equilibrium()

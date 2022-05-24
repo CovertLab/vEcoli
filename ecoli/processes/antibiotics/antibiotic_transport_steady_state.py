@@ -7,7 +7,7 @@ from scipy.optimize import root_scalar
 from vivarium.core.process import Process
 from vivarium.library.units import units, Quantity
 
-from ecoli.parameters import param_store
+from ecoli.library.parameters import param_store
 
 
 AVOGADRO = N_A / units.mol
