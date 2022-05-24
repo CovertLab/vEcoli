@@ -7,12 +7,12 @@
 '''
 
 import copy
-import sys
 
 from vivarium.core.composer import Composer
 from vivarium.core.engine import Engine
-from vivarium.library.topology import get_in, assoc_path
-from vivarium.library.dict_utils import deep_merge_check
+from vivarium.core.process import Process
+from vivarium.core.serialize import serialize_value, deserialize_value
+from vivarium.library.dict_utils import deep_merge
 
 from ecoli.experiments.ecoli_master_sim import (
     EcoliSim,
@@ -21,12 +21,11 @@ from ecoli.experiments.ecoli_master_sim import (
     get_git_status,
     report_profiling,
 )
-from ecoli.library.schema import bulk_schema
+from ecoli.library.logging import write_json
 from ecoli.library.sim_data import RAND_MAX
+from ecoli.states.wcecoli_state import get_state_from_file
 from ecoli.processes.engine_process import EngineProcess
 from ecoli.processes.environment.field_timeline import FieldTimeline
-from ecoli.processes.listeners.mass_listener import MassListener
-from ecoli.processes.shape import Shape
 from ecoli.composites.environment.lattice import Lattice
 
 
@@ -95,6 +94,48 @@ class EcoliEngineProcess(Composer):
         return topology
 
 
+def colony_save_states(engine, config):
+    """
+    Runs the simulation while saving the states of the colony at specific timesteps to jsons.
+    """
+    for time in config["save_times"]:
+        if time > config["total_time"]:
+            raise ValueError(
+                f'Config contains save_time ({time}) > total '
+                f'time ({config["total_time"]})')
+    for i in range(len(config["save_times"])):
+        if i == 0:
+            time_to_next_save = config["save_times"][i]
+        else:
+            time_to_next_save = config["save_times"][i] - config["save_times"][i - 1]
+        # Run engine to next save point
+        engine.update(time_to_next_save)
+        time_elapsed = config["save_times"][i]
+
+        # Save the full state of the super-simulation
+        def not_a_process(value):
+            return not isinstance(value, Process)
+        state = engine.state.get_value(condition=not_a_process)
+        state_to_save = copy.deepcopy(state)
+
+        del state_to_save['agents']  # Replace 'agents' with agent states
+        state_to_save['agents'] = {}
+        for agent_id in state['agents']:
+            # Get internal state from the EngineProcess sub-simulation
+            cell_state = state['agents'][agent_id]['cell_process'][0].sim.state.get_value(condition=not_a_process)
+            del cell_state['environment']['exchange_data']  # Can't save, but will be restored when loading state
+            state_to_save['agents'][agent_id] = cell_state
+
+        state_to_save = serialize_value(state_to_save)
+        write_json('data/colony_t' + str(time_elapsed) + '.json', state_to_save)
+        print('Finished saving the state at t = ' + str(time_elapsed))
+
+    # Finish running the simulation
+    time_remaining = config["total_time"] - config["save_times"][-1]
+    if time_remaining:
+        engine.update(time_remaining)
+
+
 def run_simulation():
     config = SimConfig()
     config.update_from_cli()
@@ -121,7 +162,7 @@ def run_simulation():
         )
 
         diffusion_schema = environment_composite.processes[
-            'diffusion'].get_schema()
+            'reaction_diffusion'].get_schema()
         multibody_schema = environment_composite.processes[
             'multibody'].get_schema()
         tunnel_out_schemas['fields_tunnel'] = diffusion_schema['fields']
@@ -134,7 +175,7 @@ def run_simulation():
             ('boundary',): multibody_schema['agents']['*']['boundary'],
         }
 
-    composer = EcoliEngineProcess({
+    base_config = {
         'agent_id': config['agent_id'],
         'tunnel_out_schemas': tunnel_out_schemas,
         'stub_schemas': stub_schemas,
@@ -148,19 +189,32 @@ def run_simulation():
             config.get('engine_process_reports', tuple())
         ),
         'seed': config['seed'],
-    })
-    composite = composer.generate(path=('agents', config['agent_id']))
-    initial_state = {
-        'agents': {
-            config['agent_id']: composite.initial_state()
-        },
     }
+    composite = {}
+    if 'initial_colony_file' in config.keys():
+        initial_state = get_state_from_file(path=f'data/{config["initial_colony_file"]}.json')  # TODO(Matt): initial_state_file is wc_ecoli?
+        initial_state = deserialize_value(initial_state)
+        agent_states = initial_state['agents']
+        for agent_id, agent_state in agent_states.items():
+            agent_config = copy.deepcopy(base_config)
+            agent_config['initial_cell_state'] = agent_state
+            agent_config['agent_id'] = agent_id
+            agent_composer = EcoliEngineProcess(agent_config)
+            agent_composite = agent_composer.generate(path=('agents', agent_id))
+            if not composite:
+                composite = agent_composite
+            composite.processes['agents'][agent_id] = agent_composite.processes['agents'][agent_id]
+            composite.topology['agents'][agent_id] = agent_composite.topology['agents'][agent_id]
+    else:
+        composer = EcoliEngineProcess(base_config)
+        composite = composer.generate(path=('agents', config['agent_id']))
+        initial_state = composite.initial_state()
 
     if config['spatial_environment']:
         # Merge a lattice composite for the spatial environment.
         initial_environment = environment_composite.initial_state()
         composite.merge(environment_composite)
-        initial_state = deep_merge_check(initial_state, initial_environment)
+        initial_state = deep_merge(initial_state, initial_environment)
 
     metadata = config.to_dict()
     metadata.pop('initial_state', None)
@@ -179,16 +233,17 @@ def run_simulation():
         metadata=metadata,
         profile=config['profile'],
     )
-    # Assert that nothing got wired into `null`.
-    assert not engine.state.get_path(
-        ('agents', config['agent_id'], 'cell_process')
-    ).value.sim.state.get_path(('null',)).inner
 
-    engine.update(config['total_time'])
+    # Save states while running if needed
+    if config["save"]:
+        colony_save_states(engine, config)
+    else:
+        engine.update(config['total_time'])
     engine.end()
 
     if config['profile']:
         report_profiling(engine.stats)
+
 
 if __name__ == '__main__':
     run_simulation()

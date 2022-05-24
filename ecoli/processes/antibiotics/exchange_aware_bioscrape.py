@@ -26,8 +26,38 @@ from biocrnpyler import (
     Reaction,
     Species,
 )
+import numpy as np
 from vivarium.library.units import units, Quantity
 from vivarium_bioscrape.processes.bioscrape import Bioscrape
+
+
+def _transform_dict_leaves(root, transform_func):
+    if not isinstance(root, dict):
+        # We are at a leaf node, so apply transformation function.
+        return transform_func(root)
+    # We are not at a leaf node, so recurse.
+    transformed = {
+        key: _transform_dict_leaves(value, transform_func)
+        for key, value in root.items()
+    }
+    return transformed
+
+
+def test_transform_dict_leaves():
+    root = {
+        'a': {
+            'b': 1,
+        },
+        'c': 2,
+    }
+    transformed = _transform_dict_leaves(root, lambda x: x + 1)
+    expected = {
+        'a': {
+            'b': 2,
+        },
+        'c': 3,
+    }
+    assert transformed == expected
 
 
 class ExchangeAwareBioscrape(Bioscrape):
@@ -173,6 +203,11 @@ class ExchangeAwareBioscrape(Bioscrape):
             '_default': 0,
         }
 
+        # Apply units map.
+        units_map_for_schema = _transform_dict_leaves(
+            self.parameters['units_map'], lambda x: {'_default': x})
+        schema = self._add_units(schema, units_map_for_schema)
+
         schema = self._rename_variables(
             schema,
             rename_schema_for_vivarium,
@@ -286,6 +321,9 @@ class ExchangeAwareBioscrape(Bioscrape):
         # Compute the update using the bioscrape process.
         update = super().next_update(timestep, prepared_state)
 
+        # Make sure there are no NANs in the update.
+        assert not np.any(np.isnan(list(update['species'].values())))
+
         # Add units back in
         species_update = update['species']
         delta_species_update = update['delta_species']
@@ -368,9 +406,7 @@ def test_exchange_aware_bioscrape():
             ),
             'units_map': {
                 'rates': {
-                    'mass': units.mg,
-                    'volume_p': units.mL,
-                    'volume_c': units.mL,
+                    'k_forward': 1 / units.sec,
                 }
             }
         })
@@ -405,7 +441,7 @@ def test_exchange_aware_bioscrape():
         },
         'rates': {
             'k_forward': {
-                '_default': 1e-10,
+                '_default': 1e-10 / units.sec,
                 '_updater': 'set',
             },
         },
@@ -431,7 +467,9 @@ def test_exchange_aware_bioscrape():
             'mmol_to_counts': 10 / units.millimolar,
             'volume': 0.32e-12 * units.mL,
         },
-        'rates': {},
+        'rates': {
+            'k_forward': 1e-10 / units.sec,
+        },
     }
     update = proc.next_update(1, initial_state)
 

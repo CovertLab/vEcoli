@@ -7,7 +7,7 @@
                 "!units[50 micrometer]"
             ]
         },
-        "diffusion": {
+        "reaction_diffusion": {
             "molecules": ["GLC[p]"],
             "n_bins": [10, 10],
             "bounds": [
@@ -21,7 +21,10 @@
                 "molecules": {
                     "GLC[p]": "!units[1.0 millimolar]"
                 }
-            }
+            },
+            "exchanges_path": ["environment", "exchanges"],
+            "external_path": ["boundary", "external"],
+            "location_path": ["boundary", "location"]
         },
         "field_timeline": {
             "bins": [10, 10],
