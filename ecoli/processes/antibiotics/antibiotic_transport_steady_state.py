@@ -59,6 +59,9 @@ for i_reaction, (reactants, products) in enumerate(REACTIONS.values()):
     for product in products:
         i_product = SPECIES_TO_INDEX[product]
         STOICH[i_product, i_reaction] += 1
+#: Describes the expected units for each species and reaction parameter.
+#: AntibioticTransportSteadyState uses this dictionary to do unit
+#: conversions.
 UNITS = {
     'species': {
         species: units.mM
@@ -88,6 +91,20 @@ UNITS = {
 
 
 def species_derivatives(state_arr, reaction_params, internal_bias):
+    '''Compute the derivatives for each species.
+
+    Args:
+        state_arr: State (as an array) at which to evaluate the
+            derivative.
+        reaction_params: Dictionary of reaction parameters.
+        internal_bias: A positive bias that, when greater than one,
+            favors influx over efflux diffusion. This can be used to
+            model the effect of the membrane potential on diffusion
+            equilibrium.
+
+    Returns:
+        Derivatives of each species as an array.
+    '''
     # Parse state
     state = species_array_to_dict(state_arr, SPECIES_TO_INDEX)
     internal = state['internal']
@@ -131,8 +148,19 @@ def species_derivatives(state_arr, reaction_params, internal_bias):
     return STOICH @ reaction_rates_arr
 
 
-def internal_derivative(internal, external, reaction_params,
-        internal_bias):
+def internal_derivative(
+        internal, external, reaction_params, internal_bias):
+    '''Compute the derivative of only the ``internal`` species.
+
+    Args:
+        internal: Current concentration of ``internal`` species.
+        external: Current concentration of ``external`` species.
+        reaction_params: Dictionary of reaction parameters.
+        internal_bias: See :py:func:`species_derivatives`.
+
+    Returns:
+        Derivative of the internal species, as a float.
+    '''
     state = {
         'internal': internal,
         'external': external,
@@ -146,6 +174,16 @@ def internal_derivative(internal, external, reaction_params,
 
 
 def find_steady_state(external, reaction_params, internal_bias):
+    '''Find steady-state concentration of ``internal`` species.
+
+    Args:
+        external: Current concentration of ``external`` species.
+        reaction_params: Dictionary of reaction parameters.
+        internal_bias: See :py:func:`species_derivatives`.
+
+    Returns:
+        Steady-state concentration of the internal species, as a float.
+    '''
     args = (
         external,
         reaction_params,
@@ -163,6 +201,22 @@ def find_steady_state(external, reaction_params, internal_bias):
 def update_from_steady_state(
         internal_steady_state, initial_state, reaction_params,
         internal_bias, timestep):
+    '''Compute an update given a steady-state solution.
+
+    Beginning from the steady-state solution, numerically integrates the
+    species ODEs to find the final state.
+
+    Args:
+        internal_steady_state: Steady-state concentration of
+            ``internal`` species.
+        initial_state: Initial state dictionary.
+        reaction_params: Dictionary of reaction parameters.
+        internal_bias: See :py:func:`species_derivatives`.
+        timestep: Timestep for update.
+
+    Returns:
+        Update dictionary.
+    '''
     assert set(SPECIES) == initial_state.keys()
     steady_state = initial_state.copy()
     # Assume that steady state is reached exclusively through diffusion
@@ -419,6 +473,9 @@ class AntibioticTransportSteadyState(Process):
             gas_constant = param_store.get(('gas_constant',)).to(
                 units.J / units.mol / units.K)
             temperature = param_store.get(('temperature',)).to(units.K)
+            # Biases diffusion to favor higher internal concentrations
+            # according to the Nernst Equation. This results in our
+            # steady-state solution being for the Donnan Equilibrium.
             internal_bias = np.exp(
                 charge * faraday * potential / gas_constant / temperature)
 
