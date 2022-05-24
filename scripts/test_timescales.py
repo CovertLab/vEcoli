@@ -9,7 +9,7 @@ from vivarium.library.units import units
 from ecoli.library.parameters import param_store
 
 
-CHANGE_RELATIVE_THRESHOLD = 0.0001  # 0.01% change acceptable
+CHANGE_RELATIVE_THRESHOLD = 0.001  # 0.1% change acceptable
 MAX_TIMESCALE = 2  # Seconds
 OUT_DIR = os.path.join(
     os.path.dirname(__file__), '..', 'out')
