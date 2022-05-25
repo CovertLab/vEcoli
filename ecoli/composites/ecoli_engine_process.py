@@ -10,7 +10,7 @@ import copy
 
 from vivarium.core.composer import Composer
 from vivarium.core.engine import Engine
-from vivarium.core.serialize import serialize_value, deserialize_value
+from vivarium.core.serialize import serialize_value
 from vivarium.core.store import Store
 from vivarium.library.dict_utils import deep_merge
 
@@ -199,7 +199,6 @@ def run_simulation():
     composite = {}
     if 'initial_colony_file' in config.keys():
         initial_state = get_state_from_file(path=f'data/{config["initial_colony_file"]}.json')  # TODO(Matt): initial_state_file is wc_ecoli?
-        initial_state = deserialize_value(initial_state)
         agent_states = initial_state['agents']
         for agent_id, agent_state in agent_states.items():
             agent_config = copy.deepcopy(base_config)

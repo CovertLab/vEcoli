@@ -2,6 +2,8 @@ from copy import deepcopy
 import json
 import numpy as np
 
+from vivarium.core.serialize import deserialize_value
+
 from wholecell.utils import units
 
 MASSDIFFS = {
@@ -77,7 +79,7 @@ def colony_initial_state(states, convert_unique_id_to_string):
     """
     states_to_return = deepcopy(states)
     for agent_id in states['agents'].keys():
-        states['agents'][agent_id]['environment']['exchange_data'] = {
+        states_to_return['agents'][agent_id]['environment']['exchange_data'] = {
                 'unconstrained': {
                     'CL-[p]',
                     'FE+2[p]',
@@ -112,7 +114,7 @@ def get_state_from_file(
     # add mw property to bulk and unique molecules
     # and include any "submass" attributes from unique molecules
 
-    states = load_states(path)
+    states = deserialize_value(load_states(path))
 
     if 'agents' in states:
         return colony_initial_state(states, convert_unique_id_to_string)
