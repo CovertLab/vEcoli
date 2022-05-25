@@ -148,6 +148,8 @@ def run_ecoli_with_metabolism_gd(
     pathlib.Path(folder).mkdir(parents=True, exist_ok=True)
     np.save(folder + 'output.npy', output)
     np.save(folder + 'stoichiometry.npy', sim.ecoli['processes']['agents']['0']['ecoli-metabolism-gradient-descent'].stoichiometry)
+    np.save(folder + 's_matrix.npy',
+            sim.ecoli['processes']['agents']['0']['ecoli-metabolism-gradient-descent'].model.network.s_matrix)
 
 
 @pytest.mark.slow
