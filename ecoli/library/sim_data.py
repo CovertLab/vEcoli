@@ -1,4 +1,5 @@
 import numpy as np
+import networkx as nx
 from six.moves import cPickle
 from wholecell.utils import units
 from wholecell.utils.unit_struct_array import UnitStructArray
@@ -487,10 +488,14 @@ class LoadSimData:
 
     def get_metabolism_gd_config(self, time_step=2, parallel=False, deriver_mode=False):
         # Create reversible reactions from "reaction pairs" similar to original sim_data format.
-        stoichiometry = dict(self.sim_data.process.metabolism.reaction_stoich)
-        stoichiometry = dict(sorted(stoichiometry.items()))
+        stoichiometric_matrix_dict = dict(self.sim_data.process.metabolism.reaction_stoich)
+        stoichiometric_matrix_dict = dict(sorted(stoichiometric_matrix_dict.items()))
         rxns = list()
         metabolite_names = set()
+        homeostatic_obj_metabolites = \
+            self.sim_data.process.metabolism.concentration_updates.concentrations_based_on_nutrients(
+                self.sim_data.conditions[self.sim_data.condition]['nutrients']
+            ).keys()
 
         # TODO (Cyrus) Below operations are redundant (renaming, catalyst rearranging) and should just be removed.
         #  from the metabolism dataclass. Are catalysts all required? Or all possible ways to catalyze. Latter.
@@ -500,30 +505,50 @@ class LoadSimData:
 
         REVERSE_TAG = ' (reverse)'
 
+        # Pruning useless reactions:
+        G = nx.Graph()
+        unconnected_metabolites = set()
+
+        for reaction, stoichiometry in stoichiometric_matrix_dict.items():
+            for metabolite in list(stoichiometry.keys()):
+                G.add_node(metabolite)
+
+            for reactant in list(stoichiometry.keys()):
+                if stoichiometry[reactant] < 0:
+                    for product in list(stoichiometry.keys()):
+                        if stoichiometry[product] > 0:
+                            G.add_edge(reactant, product)
+
+        # checks that removed nodes do not contain homeostatic objective.
+        for subgraph in [G.subgraph(c) for c in nx.connected_components(G)]:
+            if subgraph.size() < 4 and set(subgraph.nodes()).isdisjoint(homeostatic_obj_metabolites):
+                unconnected_metabolites.update(subgraph.nodes())
+
         # TODO Consider moving separation of reactions into metabolism reaction. Is it even necessary?
         # Also add check for stoichiometries being equal for removed reverse reactions
 
         # First pass. Add all reactions without tag.
         # TODO (Cyrus) Investigate how many reactions are supposed to be reversible.
-        for key, value in stoichiometry.items():
-            metabolite_names.update(list(value.keys()))
+        for key, value in stoichiometric_matrix_dict.items():
+            if set(value.keys()).isdisjoint(unconnected_metabolites):
+                metabolite_names.update(list(value.keys()))
 
-            if not key.endswith(REVERSE_TAG):
-                rxns.append({'reaction id': key,
-                             'stoichiometry': value,
-                             'is reversible': False})
-            elif key.endswith(REVERSE_TAG) and rxns[-1]['reaction id'] == key[:-(len(REVERSE_TAG))]:
-                rxns[-1]['is reversible'] = True
-            # TODO (Cyrus) What to do about reactions with (reverse) tag that actually don't have the original reaction?
-            elif key.endswith(REVERSE_TAG):
-                rxns.append({'reaction id': key,
-                             'stoichiometry': value,
-                             'is reversible': False})
+                if not key.endswith(REVERSE_TAG):
+                    rxns.append({'reaction id': key,
+                                 'stoichiometry': value,
+                                 'is reversible': False})
+                elif key.endswith(REVERSE_TAG) and rxns[-1]['reaction id'] == key[:-(len(REVERSE_TAG))]:
+                    rxns[-1]['is reversible'] = True
+                # TODO (Cyrus) What to do about reactions with (reverse) tag that actually don't have the original reaction?
+                elif key.endswith(REVERSE_TAG):
+                    rxns.append({'reaction id': key,
+                                 'stoichiometry': value,
+                                 'is reversible': False})
 
-            if key in reactions_with_catalyst:
-                rxns[-1]['enzyme'] = reaction_catalysts[key]
-            else:
-                rxns[-1]['enzyme'] = []
+                if key in reactions_with_catalyst:
+                    rxns[-1]['enzyme'] = reaction_catalysts[key]
+                else:
+                    rxns[-1]['enzyme'] = []
 
         # TODO Reconstruct catalysis and annotate.
         # Required:
