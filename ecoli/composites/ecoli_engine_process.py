@@ -114,22 +114,20 @@ def colony_save_states(engine, config):
         time_elapsed = config["save_times"][i]
 
         # Save the full state of the super-simulation
-        def save_cell_processes(value):
-            """
-            Excludes every process in the state except for the cell processes.
-            """
-            return not (isinstance(value, Store) and value.topology and not isinstance(value.value, EngineProcess))
-        state = engine.state.get_value(condition=save_cell_processes)
+        def not_a_process(value):
+            return not (isinstance(value, Store) and value.topology)
+
+        state = engine.state.get_value(condition=not_a_process)
         state_to_save = copy.deepcopy(state)
 
         del state_to_save['agents']  # Replace 'agents' with agent states
         state_to_save['agents'] = {}
 
-        def not_a_process(value):
-            return not (isinstance(value, Store) and value.topology)
         for agent_id in state['agents']:
             # Get internal state from the EngineProcess sub-simulation
-            cell_state = state['agents'][agent_id]['cell_process'][0].sim.state.get_value(condition=not_a_process)
+            cell_state = engine.state.get_path(
+                ('agents', agent_id, 'cell_process')
+            ).value.sim.state.get_value(condition=not_a_process)
             del cell_state['environment']['exchange_data']  # Can't save, but will be restored when loading state
             state_to_save['agents'][agent_id] = cell_state
 
