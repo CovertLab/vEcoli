@@ -13,7 +13,7 @@ from ecoli.library.schema import bulk_schema
 from wholecell.utils import units
 
 from ecoli.library.fba_gd import GradientDescentFba, FbaResult, TargetDmdtObjective, \
-    TargetVelocityObjective, VelocityBoundsObjective, DmdtBoundsObjective, FluxSumObjective
+    TargetVelocityObjective, VelocityBoundsObjective, DmdtBoundsObjective, MinimizeFluxObjective
 from ecoli.processes.registries import topology_registry
 from ecoli.processes.partition import check_whether_evolvers_have_run
 
@@ -112,11 +112,18 @@ class MetabolismGD(Process):
                                                '/PTSH-MONOMER.66.',
                                                'TRANS-RXN-157-PTSH-PHOSPHORYLATED/GLC//GLC-6-P/PTSH-MONOMER.46.']
 
+        self.carbon_source_active_transport_duplicate = ['TRANS-RXN-320-GLC/ATP/WATER//ALPHA-GLUCOSE/ADP/Pi/PROTON.43.',
+                                                         'TRANS-RXN-320-GLC/ATP/WATER//GLC/ADP/Pi/PROTON.33.',
+                                                         'TRANS-RXN-320-GLC/ATP/WATER//Glucopyranose/ADP/Pi/PROTON.43.']
+
         self.carbon_source_facilitated_diffusion = ['RXN0-7077-GLC/PROTON//ALPHA-GLUCOSE/PROTON.33.',
                                                     'RXN0-7077-GLC/PROTON//Glucopyranose/PROTON.33.',
                                                     'RXN0-7077-GLC/PROTON//GLC/PROTON.23.',
                                                     'TRANS-RXN0-574-GLC//GLC.9.',
                                                     'TRANS-RXN0-574-GLC//Glucopyranose.19.']
+
+        self.disallowed_carbon_transport = self.carbon_source_active_transport_duplicate + \
+                                           self.carbon_source_facilitated_diffusion
 
         # Create model to use to solve metabolism updates
         self.model = GradientDescentFba(
@@ -126,24 +133,24 @@ class MetabolismGD(Process):
         self.model.add_objective('homeostatic', TargetDmdtObjective(self.model.network, self.homeostatic_objective))
         # self.model.add_objective('kinetic', TargetVelocityObjective(self.model.network, self.kinetic_objective))
         self.model.add_objective('maintenance',
-                                 TargetVelocityObjective(self.model.network, self.maintenance_objective, weight=20))
+                                 TargetVelocityObjective(self.model.network, self.maintenance_objective, weight=10))
         self.model.add_objective('diffusion',
                                  TargetVelocityObjective(self.model.network,
-                                                         self.carbon_source_facilitated_diffusion,
+                                                         self.disallowed_carbon_transport,
                                                          weight=5))
         self.model.add_objective('uptake_constraints',
                                  DmdtBoundsObjective(self.model.network,
                                                      {molecule_id: (0, np.inf)
                                                       for molecule_id in self.disallowed_exchange_uptake}, weight=5))
 
-        # self.model.add_objective('futile_cycle',
-        #                          FluxSumObjective(self.model.network, weight=0.02))
+        self.model.add_objective('futile_cycle',
+                                 MinimizeFluxObjective(self.model.network, weight=0.001))
 
-        # TODO (Cyrus): Reintroduce later.
-        self.model.add_objective("active_transport",
-                                 VelocityBoundsObjective(self.model.network,
-                                                         {reaction_id: (0, 0.6) for reaction_id
-                                                          in self.carbon_source_active_transport}, weight=10))
+        # # TODO (Cyrus): Reintroduce later.
+        # self.model.add_objective("active_transport",
+        #                          VelocityBoundsObjective(self.model.network,
+        #                                                  {reaction_id: (0, 1) for reaction_id
+        #                                                   in self.carbon_source_active_transport}, weight=5))
 
         # for ports schema
         self.metabolite_names_for_nutrients = self.get_port_metabolite_names(conc_dict)
@@ -275,7 +282,7 @@ class MetabolismGD(Process):
                                           - current_metabolite_concentrations[key]) / timestep).asNumber()
                                    for key, value in self.homeostatic_objective.items()}
 
-        diffusion_target = {reaction: 0 for reaction in self.carbon_source_facilitated_diffusion}
+        diffusion_target = {reaction: 0 for reaction in self.disallowed_carbon_transport}
 
         # reaction_bounds = np.inf * np.ones(len(self.reactions_with_catalyst))
         # no_rxn_mask = self.catalysis_matrix.dot(catalyst_counts) == 0
