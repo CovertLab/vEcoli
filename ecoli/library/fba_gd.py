@@ -138,19 +138,20 @@ class SteadyStateObjective(ObjectiveComponent):
         """Returns the subset of dm/dt affecting intermediates, which should all be zero."""
         return dm_dt[self.indices] * self.weight
 
-class FluxSumObjective(ObjectiveComponent):
-    """Minimizes futile cycles. """
+
+class MinimizeFluxObjective(ObjectiveComponent):
+    """Calculates the deviation of the system from steady state, for network intermediates."""
 
     def __init__(self, network: ReactionNetwork, weight: float = 1.0):
         self.weight = weight
 
     def prepare_targets(self, target_values: Optional[Mapping[str, Any]] = None) -> Optional[ArrayT]:
-        """FluxSumObjective does not use solve-time target values; always returns None."""
+        """SteadyStateObjective does not use solve-time target values; always returns None."""
         return None
 
     def residual(self, velocities: ArrayT, dm_dt: ArrayT, targets: Optional[ArrayT] = None) -> ArrayT:
         """Returns the subset of dm/dt affecting intermediates, which should all be zero."""
-        return jnp.array([jnp.sum(velocities) * self.weight])
+        return velocities * self.weight
 
 
 class VelocityBoundsObjective(ObjectiveComponent):
@@ -239,6 +240,7 @@ class TargetDmdtObjective(ObjectiveComponent):
 
     def prepare_targets(self, target_values: Mapping[str, Any]) -> Optional[ArrayT]:
         """Converts a dict {molecule_id: dmdt} into a vector of target values."""
+        # TODO (Cyrus) add functionality for stating target in initialization (e.g. zero flux)
         return self.network.molecule_vector(target_values)[self.indices]
 
     def residual(self, velocities: ArrayT, dm_dt: ArrayT, targets: ArrayT) -> ArrayT:

@@ -118,12 +118,13 @@ def run_metabolism_composite():
 
 def run_ecoli_with_metabolism_gd(
         filename='fba_gd_swap',
-        total_time=1000,
+        total_time=4,
         divide=True,
         initial_state_file='vivecoli_t2',
         progress_bar=True,
         log_updates=False,
         emitter='timeseries',
+        name='unconnected_mets'
 ):
     sim = EcoliSim.from_file(CONFIG_DIR_PATH + filename + '.json')
     sim.total_time = total_time
@@ -144,7 +145,7 @@ def run_ecoli_with_metabolism_gd(
     output = sim.query(query)
 
 
-    folder = f'out/fbagd/{total_time}/{datetime.datetime.now()}/'
+    folder = f'out/fbagd/{name}_{total_time}_{datetime.date.today()}/'
     pathlib.Path(folder).mkdir(parents=True, exist_ok=True)
     np.save(folder + 'output.npy', output)
     np.save(folder + 'stoichiometry.npy', sim.ecoli['processes']['agents']['0']['ecoli-metabolism-gradient-descent'].stoichiometry)

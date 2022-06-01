@@ -584,7 +584,7 @@ class LoadSimData:
 
             # ports schema
             'catalyst_ids': self.sim_data.process.metabolism.catalyst_ids,
-            'kinetic_constraint_enzymes': self.sim_data.process.metabolism.kinetic_constraint_reactions,
+            'kinetic_constraint_enzymes': self.sim_data.process.metabolism.kinetic_constraint_enzymes,
             'kinetic_constraint_substrates': self.sim_data.process.metabolism.kinetic_constraint_substrates,
             'deriver_mode': deriver_mode
 
