@@ -1,23 +1,3 @@
-'''A Bioscrape process that correctly handles environmental exchange.
-
-When we need to move molecules from an environment into a cell, we do so
-via "exchange", a count of the number of molecules to move. By
-convention, exchange is positive for efflux from the cell. This approach
-means that processes inside the cell do not have to know the volume of
-the environment (or, more commonly, the volume of the environment bin
-containing the cell).
-
-The Vivarium Bioscrape process does not work with exchanges.
-:py:class:`ExchangeAwareBioscrape` is a wrapper around Vivarium
-Bioscrape. It largely works just like Vivarium Bioscrape, except that it
-handles exchanges as follows:
-
-* External molecules' concentrations are read from the ``external``
-  port.
-* External molecules' updates are sent to the ``exchanges`` port (after
-  appropriate unit conversion).
-'''
-
 import copy
 import tempfile
 
@@ -25,10 +5,21 @@ from biocrnpyler import (
     ChemicalReactionNetwork,
     Reaction,
     Species,
+    ParameterEntry,
+    GeneralPropensity,
 )
+from bioscrape.simulator import (
+    ModelCSimInterface,
+    DeterministicSimulator,
+)
+from bioscrape.types import Model
 import numpy as np
+from scipy.constants import N_A
+from vivarium.core.process import Process
 from vivarium.library.units import units, Quantity
-from vivarium_bioscrape.processes.bioscrape import Bioscrape
+
+
+AVOGADRO = N_A / units.mol
 
 
 def _transform_dict_leaves(root, transform_func):
@@ -60,27 +51,94 @@ def test_transform_dict_leaves():
     assert transformed == expected
 
 
-class ExchangeAwareBioscrape(Bioscrape):
+def species_array_to_dict(array, species_to_index):
+    '''Convert an array of values to a map from name to value index.
+
+    >>> array = [1, 5, 2]
+    >>> species_to_index = {
+    ...     'C': 2,
+    ...     'A': 0,
+    ...     'B': 1,
+    ... }
+    >>> species_array_to_dict(array, species_to_index)
+    {'C': 2, 'A': 1, 'B': 5}
+
+    Args:
+        array: The array of values. Must be subscriptable with indices.
+        species_to_index: Dictionary mapping from names to the index in
+            ``array`` of the value associated with each name. The values
+            of the dictionary must be exactly the indices of ``array``
+            with no duplicates.
+
+    Returns:
+        A dictionary mapping from names (the keys of
+        ``species_to_index``) to the associated values in ``array``.
+    '''
+    return {
+        species: array[index]
+        for species, index in species_to_index.items()
+    }
+
+
+def get_delta(before, after):
+    '''Calculate the differences between the values of two dictionaries.
+
+    >>> before = {'a': 2, 'b': -5}
+    >>> after = {'b': 1, 'a': 3}
+    >>> get_delta(before, after)
+    {'a': 1, 'b': 6}
+
+    Args:
+        before: One of the dictionaries.
+        after: The other dictionary.
+
+    Returns:
+        A dictionary with the same keys as ``before`` and ``after``
+        where for each key ``k``, the value is equal to ``after[k] -
+        before[k]``.
+
+    Raises:
+        AssertionError: If ``before`` and ``after`` do not have the same
+            keys.
+    '''
+    assert before.keys() == after.keys()
+    return {
+        key: after[key] - before_value
+        for key, before_value in before.items()
+    }
+
+
+class ExchangeAwareBioscrape(Process):
     name = 'exchange-aware-bioscrape'
     defaults = {
-        **Bioscrape.defaults,
+        'sbml_file_path': '',
         'external_species': tuple(),
+        'species_to_convert_to_counts': {},
         'name_map': tuple(),
         'units_map': {},
-        'species_units': units.mM
+        'species_units_conc': units.mM,
+        'species_units_count': units.mmol,
     }
 
     def __init__(self, parameters=None):
-        '''Simulates a chemical reaction network (CRN) with Bioscrape.
+        '''Sets the equilibrium state for a bioscrape SBML model.
 
-        Supports all the parameters of Vivarium Bioscrape plus:
+        Parameters:
 
+        * ``sbml_file_path``: Path to the SBML file to use.
         * ``external_species``: Iterable of species names that exist in
           the external environment. These species will be expected in
           the ``external`` port, and their updates will be communicated
           through the ``exchanges`` port. Species should be listed by
-          their bioscrape name, not their Vivarium name, if the two
+          their Vivarium name, not their bioscrape name, if the two
           names are different (see ``name_map`` below).
+        * ``species_to_convert_to_counts``: Mapping from species names
+          that are represented as concentrations in Vivarium but should
+          be passed to bioscrape as counts to the name of the variable
+          in ``rates`` that holds the volume to use for the conversion.
+          Species should be listed by their bioscrape name, not their
+          Vivarium name, if the two names are different (see
+          ``name_map`` below).
         * ``name_map``: Iterable of tuples ``(vivarium, bioscrape)``
           where ``vivarium`` is the path of the species in the state
           provided to ``next_update()`` by Vivarium, and ``bioscrape``
@@ -95,6 +153,12 @@ class ExchangeAwareBioscrape(Bioscrape):
           and the magnitudes are passed to Bioscrape.
         '''
         super().__init__(parameters)
+
+        self.model = Model(sbml_filename=self.parameters['sbml_file_path'])
+        self.interface = ModelCSimInterface(self.model)
+        self.interface.py_prep_deterministic_simulation()
+        self.simulator = DeterministicSimulator()
+
         self.rename_vivarium_to_bioscrape = {}
         for path, new_name in self.parameters['name_map']:
             # Paths must be tuples so that they are hashable.
@@ -149,15 +213,71 @@ class ExchangeAwareBioscrape(Bioscrape):
         return inverted_map
 
     def initial_state(self, config=None):
-        initial_state = super().initial_state()
+        initial_state = {
+            'species': species_array_to_dict(
+                self.model.get_species_array(),
+                self.model.get_species2index(),
+            )
+        }
         for k in initial_state['species'].keys():
-            initial_state['species'][k] *= self.parameters['species_units']
+            initial_state['species'][k] *= self.parameters[
+                'species_units_conc']
         return initial_state
 
     def ports_schema(self):
-        schema = super().ports_schema()
-        schema['globals']['volume']['_default'] *= units.fL
-        schema['globals']['volume'].pop('_updater')  # don't use default updater
+        schema = {
+            'species': {
+                species: {
+                    '_default': 0.0 * self.parameters[
+                        'species_units_conc'],
+                    '_updater': 'accumulate',
+                    '_emit': True,
+                    '_divider': 'set',
+                }
+                for species in self.model.get_species()
+                if species not in self.external_species_bioscrape
+                if not (
+                    species.endswith('_delta')
+                    and species[:-len('_delta')]
+                    in self.external_species_bioscrape)
+            },
+            'delta_species': {
+                species: {
+                    '_default': 0.0 * self.parameters[
+                        'species_units_conc'],
+                    '_updater': 'set',
+                    '_emit': True,
+                }
+                for species in self.model.get_species()
+                if species not in self.external_species_bioscrape
+                if not (
+                    species.endswith('_delta')
+                    and species[:-len('_delta')]
+                    in self.external_species_bioscrape)
+            },
+            'exchanges': {
+                species: {
+                    '_default': 0,
+                    '_emit': True,
+                }
+                for species in self.external_species_bioscrape
+            },
+            'external': {
+                species: {
+                    '_default': 0 * self.parameters[
+                        'species_units_conc'],
+                    '_emit': True,
+                }
+                for species in self.external_species_bioscrape
+            },
+            'rates': {
+                p: {
+                    '_default': self.model.get_parameter_dictionary()[p],
+                    '_updater': 'set',
+                }
+                for p in self.model.get_param_list()
+            },
+        }
 
         rename_schema_for_vivarium = {}
         for path, new_name in self.rename_bioscrape_to_vivarium.items():
@@ -169,39 +289,6 @@ class ExchangeAwareBioscrape(Bioscrape):
                         for item in path
                     )
                     rename_schema_for_vivarium[other_path] = new_name
-
-        assert 'exchanges' not in schema
-        schema['exchanges'] = {
-            species: {
-                '_default': 0,
-                '_emit': True,
-            }
-            for species in self.external_species_bioscrape
-        }
-
-        assert 'external' not in schema
-        schema['external'] = {
-            species: {
-                '_default': 0 * self.parameters['species_units'],
-                '_emit': True,
-            }
-            for species in self.external_species_bioscrape
-        }
-
-        for species in self.external_species_bioscrape:
-            del schema['species'][species]
-            del schema['delta_species'][species]
-
-        # add units to species and delta_species
-        for species_id in schema['species'].keys():
-            schema['species'][species_id]['_default'] *= self.parameters['species_units']
-            schema['delta_species'][species_id]['_default'] *= self.parameters['species_units']
-            schema['delta_species'][species_id]['_emit'] = True
-
-        assert 'mmol_to_counts' not in schema['globals']
-        schema['globals']['mmol_to_counts'] = {
-            '_default': 0,
-        }
 
         # Apply units map.
         units_map_for_schema = _transform_dict_leaves(
@@ -302,11 +389,28 @@ class ExchangeAwareBioscrape(Bioscrape):
 
         return new_state
 
+    def _bioscrape_update(self, timestep, state):
+        self.model.set_species(state['species'])
+        self.model.set_params(state['rates'])
+        output = self.simulator.py_simulate(
+            self.interface, np.array([0, timestep]))
+        bioscrape_final = output.py_get_result()[-1]
+        vivarium_final = species_array_to_dict(
+            bioscrape_final, self.model.get_species2index())
+        species_delta = get_delta(state['species'], vivarium_final)
+        return {
+            'species': species_delta,
+            'delta_species': species_delta,
+        }
+
     def next_update(self, timestep, state):
-        # NOTE: We assume species are in mM.
+        # NOTE: We assume species are in the units specified by the
+        # species_units_conc parameter.
+
         # Prepare the state for the bioscrape process by moving species
         # from 'external' to 'species' where the bioscrape process
-        # expects them to be.
+        # expects them to be, renaming variables, and doing unit
+        # conversions.
         prepared_state = copy.deepcopy(state)
         prepared_state = self._rename_variables(
             prepared_state, self.rename_vivarium_to_bioscrape)
@@ -317,12 +421,59 @@ class ExchangeAwareBioscrape(Bioscrape):
         for species in self.external_species_bioscrape:
             assert species not in prepared_state['species']
             prepared_state['species'][species] = prepared_state['external'].pop(species)
+            # The delta species is just for tracking updates to the
+            # external environment for later conversion to exchanges. We
+            # assume that `species` is not updated by bioscrape. Note
+            # that the `*_delta` convention must be obeyed by the
+            # bioscrape model for this to work correctly.
+            delta_species = f'{species}_delta'
+            assert delta_species not in species
+            prepared_state['species'][delta_species] = 0
+
+        for species, volume_name in self.parameters[
+                'species_to_convert_to_counts'].items():
+            # We do this after the unit conversion and stripping because
+            # while it's annoying to add units back in for these
+            # calculations, we don't want to break the unit coversion
+            # and stripping by changing concentrations to counts first.
+            # Doing this after we have handled the external species also
+            # lets us convert external species to counts if for some
+            # reason that was desired.
+            if species in self.external_species_bioscrape:
+                conc_units = saved_units['external'][species]
+            else:
+                conc_units = saved_units['species'][species]
+            volume_units = saved_units['rates'][volume_name]
+
+            conc = prepared_state['species'][species] * conc_units
+            volume = prepared_state['rates'][volume_name] * volume_units
+            # NOTE: We don't include Avogadro's number here because we
+            # expect the count units to be in mol, mmol, etc.
+            count = (conc * volume).to(self.parameters['species_units_count'])
+            prepared_state['species'][species] = count.magnitude
 
         # Compute the update using the bioscrape process.
-        update = super().next_update(timestep, prepared_state)
+        update = self._bioscrape_update(timestep, prepared_state)
 
         # Make sure there are no NANs in the update.
         assert not np.any(np.isnan(list(update['species'].values())))
+
+        # Convert count updates back to concentrations.
+        for species, volume_name in self.parameters[
+                'species_to_convert_to_counts'].items():
+            if species in self.external_species_bioscrape:
+                conc_units = saved_units['external'][species]
+            else:
+                conc_units = saved_units['species'][species]
+            volume_units = saved_units['rates'][volume_name]
+            count_units = self.parameters['species_units_count']
+
+            count = update['species'][species] * count_units
+            volume = prepared_state['rates'][volume_name] * volume_units
+            # NOTE: We don't include Avogadro's number here because we
+            # expect the count units to be in mol, mmol, etc.
+            conc = (count / volume).to(conc_units)
+            update['species'][species] = conc.magnitude
 
         # Add units back in
         species_update = update['species']
@@ -335,57 +486,56 @@ class ExchangeAwareBioscrape(Bioscrape):
         # Postprocess the update to convert changes to external
         # molecules into exchanges.
         update.setdefault('exchanges', {})
-        mmol_to_counts = prepared_state['globals']['mmol_to_counts'] / units.mM
         for species in self.external_species_bioscrape:
+            delta_species = f'{species}_delta'
             if species in update['species']:
-                delta_internal_conc = (
-                    update['delta_species'][species]
-                    * self.parameters['species_units']
-                )
-                exchange = delta_internal_conc * mmol_to_counts
+                assert update['species'][species] == 0
+                del update['species'][species]
+            if species in update['delta_species']:
+                assert update['delta_species'][species] == 0
+                del update['delta_species'][species]
+            if delta_species in update['species']:
+                exchange = (
+                    update['species'][delta_species]
+                    * self.parameters['species_units_count']
+                    * AVOGADRO)
                 assert species not in update['exchanges']
                 # Exchanges flowing out of the cell are positive.
                 update['exchanges'][species] = exchange.to(
                     units.counts).magnitude
-                del update['species'][species]
-                del update['delta_species'][species]
-
-        # We don't want to change the rates nor the globals.
-        if 'rates' in update:
-            del update['rates']
-        if 'globals' in update:
-            del update['globals']
+                del update['species'][delta_species]
+                del update['delta_species'][delta_species]
 
         update = self._rename_variables(
             update, self.rename_bioscrape_to_vivarium)
 
-        # TODO (ERAN) -- this needs to be generalized
-        # To correct the diffusion between compartments with different volumes
-        if 'tetracycline_cytoplasm' in update['delta_species']:
-            # Net tetracycline diffusion from cytoplasm to periplasm
-            tet_c_to_p = - update['delta_species']['tetracycline_cytoplasm']
-            # Undoing tetracycline diffusion from cytoplasm to periplasm
-            update['delta_species']['tetracycline_periplasm'] += tet_c_to_p
-            update['species']['tetracycline_periplasm'] += tet_c_to_p
-            # Applying correct tetracycline concentration change in periplasm
-            update['delta_species']['tetracycline_periplasm'] -= tet_c_to_p * (
-                    prepared_state['rates']['volume_c'] / prepared_state['rates']['volume_p'])
-            update['species']['tetracycline_periplasm'] -= tet_c_to_p * (
-                    prepared_state['rates']['volume_c'] / prepared_state['rates']['volume_p'])
         return update
 
 
 def test_exchange_aware_bioscrape():
     a = Species('A')
+    a_delta = Species('A_delta')
     b = Species('B')
-    species = [a, b]
+    species = [a, b, a_delta]
+
+    k = ParameterEntry('k', 1)
+    v = ParameterEntry('v', 1)
 
     initial_concentrations = {
-        a: 1e5,
+        a: 10,
+        a_delta: 0,
         b: 0,
     }
 
-    reaction = Reaction.from_massaction([a], [b], k_forward=1e-10)
+    propensity = GeneralPropensity(
+        f'k * {a} / v',
+        propensity_species=[a],
+        propensity_parameters=[k, v])
+    reaction = Reaction(
+        inputs=[a_delta],
+        outputs=[b],
+        propensity_type=propensity,
+    )
     crn = ChemicalReactionNetwork(
         species=species,
         reactions=[reaction],
@@ -398,7 +548,7 @@ def test_exchange_aware_bioscrape():
             check_validity=True,
         )
         proc = ExchangeAwareBioscrape({
-            'sbml_file': temp_file.name,
+            'sbml_file_path': temp_file.name,
             'external_species': ('a',),
             'name_map': (
                 (('external', 'a'), str(a)),
@@ -406,9 +556,15 @@ def test_exchange_aware_bioscrape():
             ),
             'units_map': {
                 'rates': {
-                    'k_forward': 1 / units.sec,
+                    'k': 1 / units.sec,
+                    'v': units.L,
                 }
-            }
+            },
+            'species_to_convert_to_counts': {
+                'B': 'v',
+            },
+            'species_units_conc': units.mM,
+            'species_units_count': units.mmol,
         })
 
     schema = proc.get_schema()
@@ -432,16 +588,13 @@ def test_exchange_aware_bioscrape():
                 '_emit': True,
             },
         },
-        'globals': {
-            'mmol_to_counts': {'_default': 0},
-            'volume': {
-                '_default': 1.0 * units.fL,
-                '_emit': True,
-            },
-        },
         'rates': {
-            'k_forward': {
-                '_default': 1e-10 / units.sec,
+            'k': {
+                '_default': 1 / units.sec,
+                '_updater': 'set',
+            },
+            'v': {
+                '_default': 1 * units.L,
                 '_updater': 'set',
             },
         },
@@ -458,32 +611,32 @@ def test_exchange_aware_bioscrape():
 
     initial_state = {
         'external': {
-            'a': initial_concentrations[a],
+            'a': initial_concentrations[a] * units.mM,
         },
         'species': {
-            'b': initial_concentrations[b],
-        },
-        'globals': {
-            'mmol_to_counts': 10 / units.millimolar,
-            'volume': 0.32e-12 * units.mL,
+            'b': initial_concentrations[b] * units.mM,
         },
         'rates': {
-            'k_forward': 1e-10 / units.sec,
+            'k': 1 / units.sec,
+            'v': 10 * units.L,
         },
     }
     update = proc.next_update(1, initial_state)
 
     expected_update = {
         'species': {
-            'b': 1e-5,
+            'b': 0.1 * units.mM,
         },
         'delta_species': {
-            'b': 1e-5,
+            'b': 0.1 * units.mM,
         },
         'exchanges': {
-            # mmol_to_counts = AVOGADRO * volume, so the exchange is the
-            # concentration * mmol_to_counts
-            'a': -1e-4,
+            # Exchanges are in units of counts, but the species are in
+            # units of mM with a volume of 1L.
+            'a': (
+                -1 * units.mM
+                * 1 * units.L
+                * AVOGADRO).to(units.count).magnitude,
         },
     }
     assert update.keys() == expected_update.keys()
@@ -493,7 +646,7 @@ def test_exchange_aware_bioscrape():
             for species in expected_update[key]:
                 assert abs(
                     update[key][species] - expected_update[key][species]
-                ) <= 1e-6
+                ) <= 0.1 * abs(expected_update[key][species])
         else:
             assert update[key] == expected_update[key]
 
