@@ -3,9 +3,11 @@
 Minimal E. coli Chemotaxis
 ==========================
 """
-
+import math
 import os
+import copy
 
+import numpy as np
 import matplotlib.pyplot as plt
 
 from vivarium.core.composer import Composer
@@ -181,7 +183,6 @@ def get_chemotaxis_static_envrironment_composite(initial_conc=1, static_field_pa
         'time_step': time_step}
     chemotaxis_composite = ChemotaxisMinimal(chemotaxis_config).generate(path=('agents', '1'))
 
-
     static_field = StaticField(static_field_params)
 
     parameters = {
@@ -213,6 +214,7 @@ def run_in_static_field(initial_conc=1):
     # add a static field process
     bounds = [1000, 1000]
     # static_field_params = get_exponential_config(molecule='MeAsp', bounds=bounds, scale=1000)  # TODO -- put in parameters!
+
     static_field_params = {
         'bounds': bounds,
         'molecules': ['MeAsp'],
@@ -231,8 +233,8 @@ def run_in_static_field(initial_conc=1):
             'molecules': {
                 'MeAsp': {
                     'center': [0, 0],
-                    'scale': 1,
-                    'base': 0.05
+                    'scale': 0.1,
+                    'base': initial_conc
                 }
             }
         }
@@ -247,7 +249,7 @@ def run_in_static_field(initial_conc=1):
     sim = Engine(processes=chemotaxis_composite.processes,
                  topology=chemotaxis_composite.topology,
                  initial_state=initial_state)
-    sim.update(50, global_time_precision=5)
+    sim.update(200, global_time_precision=5)
 
     # get the data
     data = sim.emitter.get_data()
@@ -386,62 +388,76 @@ def run_in_static_field(initial_conc=1):
 
     #print(pf(data))
 
+def make_param_scan_dict(bounds=None,scan_values=None):
+    scan_values = scan_values or []
+    bounds = bounds or [1000, 1000]
+    base_config = {
+        'parameters':{
+                'static_field': {
+                    'bounds': bounds,
+                    'gradient': {
+                        'type': 'exponential',
+                        'molecules': {
+                            'MeAsp': {
+                                'center': [0, 0],
+                                'scale': 0.1,
+                                'base': 1
+                            }
+                        }
+                    }
+                }
+            },
+            'states': {}
+    }
+    scan_dict = {}
+    for scan_index,scan_value in enumerate(scan_values):
+        base_config_copy = copy.deepcopy(base_config)
+        base_config_copy['parameters']['static_field']['gradient']['molecules']['MeAsp']['scale'] = scan_value
+        scan_dict[scan_index] = base_config_copy
 
+    return scan_dict
 
 def scan_chemotaxis(initial_conc=1):
     # add a static field process
     bounds = [1000, 1000]
-    # static_field_params = get_exponential_config(molecule='MeAsp', bounds=bounds, scale=1000)  # TODO -- put in parameters!
 
     # chemotaxis_composite = get_chemotaxis_static_envrironment_composite(initial_conc=initial_conc,
     #                                                                     static_field_params=static_field_params)
-    parameter_sets = {
-        '0': {
-            'parameters':{
-                'static_field': {
-                    'bounds': bounds,
-                    'gradient': {
-                        'type': 'exponential',
-                        'molecules': {
-                            'MeAsp': {
-                                'center': [0, 0],
-                                'scale': 1,
-                                'base': 0.1
-                            }
-                        }
-                    }
-                }
-            },
-            'states': {},
-        },
-        '1': {
-            'parameters': {
-                'static_field': {
-                    'bounds': bounds,
-                    'gradient': {
-                        'type': 'exponential',
-                        'molecules': {
-                            'MeAsp': {
-                                'center': [0, 0],
-                                'scale': 1,
-                                'base': 0.05
-                            }
-                        }
-                    }
-                }
-            },
-            'states': {},
-        }
-    }
+    # scan_values = [0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1]
+    scan_values = [0.01, 0.1, 1]
+    parameter_sets = make_param_scan_dict(bounds, scan_values)
 
     # test
-    metrics = {'end_distance_from_center': distance_from_center} #TODO: Add chemotaxis metric
+    metrics = {'end_distance_from_center': distance_from_center,
+               'save_trajectory': save_trajectory_plot
+               } #TODO: Add chemotaxis metric
     scanner = Scan(simulator_class=ChemotaxisMinimalEnvironment, parameter_sets=parameter_sets,
-                   total_time=30, metrics=metrics)
-    scanner.run_scan()
+                   total_time=100, metrics=metrics)
+    results = scanner.run_scan()
+    metrics = {scan_id: result['metrics'] for scan_id, result in results.items()}
+    print(pf(metrics))
 
+def save_trajectory_plot(simulation_output, parameter_set, filename):
+    if not os.path.exists('out/scan_results'):
+        os.makedirs('out/scan_results')
 
-def distance_from_center(simulation_output, parameter_set):
+    static_field_params = parameter_set['parameters']['static_field']
+    field = make_field(config=static_field_params)
+    field = field.T
+
+    location = np.zeros([2, len(simulation_output.keys())])
+    for i, timepoint in enumerate(simulation_output.keys()):
+        location[:, i] = simulation_output[timepoint]['agents']['1']['boundary']['location']
+
+    shape = field.shape
+    fig2, ax = plt.subplots(1, 1)
+    im = ax.imshow(field, origin='lower', cmap='Greys', extent=[0, shape[1], 0, shape[0]])
+    cbar = plt.colorbar(im)
+    cbar.set_label('concentration')
+    ax.plot(location[0], location[1])
+    fig2.savefig(f'out/scan_results/{filename}.png')
+
+def distance_from_center(simulation_output, parameter_set, name):
     """
     This function finds the total L2 distance of the cell from the center
     summed over all timesteps.
@@ -453,8 +469,9 @@ def distance_from_center(simulation_output, parameter_set):
     center_x, center_y = parameter_set['parameters']['static_field']['gradient']['molecules']['MeAsp']['center']
     total_distance = 0
     for timestep in simulation_output:
-        curr_x, curr_y = simulation_output[timestep]['agents']['1']['boundary']['location']
-        d_sq = (curr_x - center_x)**2 + (curr_y - center_y)**2
+        cell_id = list(simulation_output[timestep]['agents'].keys())[0]
+        curr_x, curr_y = simulation_output[timestep]['agents'][cell_id]['boundary']['location']
+        d_sq = math.sqrt((curr_x - center_x)**2 + (curr_y - center_y)**2)
         total_distance += d_sq
     return total_distance
 

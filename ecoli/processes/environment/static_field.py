@@ -96,12 +96,12 @@ class StaticField(Deriver):
 
         elif self.gradient['type'] == 'exponential':
             for molecule_id, specs in self.gradient['molecules'].items():
-                base = specs['base']
-                scale = specs.get('scale', 1)
+                scale = specs['scale']
+                base = specs.get('base', 1)
                 dx = location[0] - specs['center'][0] * self.bounds[0]
                 dy = location[1] - specs['center'][1] * self.bounds[1]
                 distance = np.sqrt(dx ** 2 + dy ** 2)
-                concentrations[molecule_id] = scale * base ** (distance/10000)
+                concentrations[molecule_id] = base * scale ** (distance/10000)
         return concentrations
 
 
@@ -109,8 +109,8 @@ def get_exponential_config(
     molecule='glc',
     center=[0.1, 0.5],
     bounds=[20, 30],
-    scale=1,
-    base=0.1
+    scale=0.1,
+    base=1
 ):
 
     return {
@@ -127,7 +127,8 @@ def get_exponential_config(
 
 def make_field(config=get_exponential_config()):
     process = StaticField(config)
-    molecules = config['molecules']
+
+    molecules = list(config['gradient']['molecules'].keys())
     bounds = config['bounds']
     bins_per_micron = 1
     n_bins = [bound * bins_per_micron for bound in bounds]
