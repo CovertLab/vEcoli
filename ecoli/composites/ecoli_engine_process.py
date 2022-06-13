@@ -123,11 +123,15 @@ def colony_save_states(engine, config):
         del state_to_save['agents']  # Replace 'agents' with agent states
         state_to_save['agents'] = {}
 
+        # Get internal state from the EngineProcess sub-simulation
         for agent_id in state['agents']:
-            # Get internal state from the EngineProcess sub-simulation
+            engine.state.get_path(
+                ('agents', agent_id, 'cell_process')
+            ).value.send_command('get_inner_state')
+        for agent_id in state['agents']:
             cell_state = engine.state.get_path(
                 ('agents', agent_id, 'cell_process')
-            ).value.sim.state.get_value(condition=not_a_process)
+            ).value.get_command_result()
             del cell_state['environment']['exchange_data']  # Can't save, but will be restored when loading state
             state_to_save['agents'][agent_id] = cell_state
 
