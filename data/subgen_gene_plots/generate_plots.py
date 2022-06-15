@@ -17,6 +17,7 @@ RNAS_TSV_PATH = 'reconstruction/ecoli/flat/rnas.tsv'
 RESPONSE_GENES_FILE_PATH = 'data/subgen_gene_plots/antibiotic_response_genes.txt'
 # From wcEcoli paper
 PERCENT_GENERATIONAL = 0.355
+FUNCTIONAL_GENES = ['ampC', 'acrA', 'acrB', 'tolC', 'ompF', 'ompC', 'marA', 'marR', 'mrcA', 'mrcB']
 
 def main():
     with open(SIM_DATA_PATH, 'rb') as sim_data_file:
@@ -62,6 +63,15 @@ def main():
             break
         num_r_generational += 1
     num_r_sub_gen = len(r_gene_prob_tuples) - num_r_generational
+    functional_generational = []
+    functional_sub = []
+    for gene in FUNCTIONAL_GENES:
+        if gene_to_basal_prob[gene] < generational_prob_cutoff:
+            functional_sub.append(gene)
+        else:
+            functional_generational.append(gene)
+    print('Functional: Sub -> ' + str(functional_sub) + '\n'
+          'Functional: Generational -> ' + str(functional_generational))
 
     plt.plot(sorted(list(r_genes_to_basal_prob.values())))
     plt.title("Response Genes' Basal Probabilities (Sorted)")
