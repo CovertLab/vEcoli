@@ -540,6 +540,7 @@ class LoadSimData:
                 elif key.endswith(REVERSE_TAG) and rxns[-1]['reaction id'] == key[:-(len(REVERSE_TAG))]:
                     rxns[-1]['is reversible'] = True
                 # TODO (Cyrus) What to do about reactions with (reverse) tag that actually don't have the original reaction?
+                # probably from reactions with multiple forward reactions.
                 elif key.endswith(REVERSE_TAG):
                     rxns.append({'reaction id': key,
                                  'stoichiometry': value,
