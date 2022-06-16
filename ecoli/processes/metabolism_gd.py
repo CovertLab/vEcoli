@@ -132,7 +132,6 @@ class MetabolismGD(Process):
             exchanges=list(self.exchange_molecules),
             target_metabolites=self.homeostatic_objective)
         self.model.add_objective('homeostatic', TargetDmdtObjective(self.model.network, self.homeostatic_objective))
-        # self.model.add_objective('binary_kinetic', LenientTargetVelocityObjective(self.model.network, self.kinetic_objective, weight=0.01))
         self.model.add_objective('maintenance',
                                  TargetVelocityObjective(self.model.network, self.maintenance_objective, weight=10))
         self.model.add_objective('diffusion',
@@ -213,7 +212,7 @@ class MetabolismGD(Process):
                     'estimated_fluxes': {'_default': {}, '_updater': 'set', '_emit': True},
                     'estimated_homeostatic_dmdt': {'_default': {}, '_updater': 'set', '_emit': True},
                     'target_homeostatic_dmdt': {'_default': {}, '_updater': 'set', '_emit': True},
-                    'target_kinetic_fluxes': {'_default': {}, '_updater': 'set', '_emit': True},
+                    # 'target_kinetic_fluxes': {'_default': {}, '_updater': 'set', '_emit': True},
                     'estimated_exchange_dmdt': {'_default': {}, '_updater': 'set', '_emit': True},
                     'estimated_all_dmdt': {'_default': {}, '_updater': 'set', '_emit': True},
                     'maintenance_target': {'_default': {}, '_updater': 'set', '_emit': True},
@@ -271,6 +270,7 @@ class MetabolismGD(Process):
             if reaction['enzyme'] and sum([catalyst_counts[enzyme] for enzyme in reaction['enzyme']]) == 0:
                 binary_kinetic_targets[reaction['reaction id']] = 0
 
+
         maintenance_target = {}
         maintenance_target['maintenance_reaction'] = total_maintenance.asNumber()
 
@@ -288,6 +288,9 @@ class MetabolismGD(Process):
 
         # kinetic constraints
         # kinetic_constraints = get_kinetic_constraints(catalyst_counts, metabolite_counts) # kinetic
+
+        # adding dynamically sized objectives
+        self.model.add_objective('binary_kinetic', TargetVelocityObjective(self.model.network, binary_kinetic_targets.keys(), weight=1))
 
         # run FBA
         solution: FbaResult = self.model.solve(
@@ -329,7 +332,7 @@ class MetabolismGD(Process):
                     'estimated_fluxes': estimated_reaction_fluxes,
                     'estimated_homeostatic_dmdt': estimated_homeostatic_dmdt,
                     'target_homeostatic_dmdt': target_homeostatic_dmdt,
-                    'target_kinetic_fluxes': target_kinetic_dmdt,
+                    # 'target_kinetic_fluxes': target_kinetic_dmdt,
                     'estimated_exchange_dmdt': estimated_exchange_dmdt,
                     'estimated_all_dmdt': metabolite_dmdt_counts,
                     'maintenance_target': target_maintenance_flux,

@@ -279,7 +279,10 @@ class LenientTargetVelocityObjective(ObjectiveComponent):
 
     def residual(self, velocities: ArrayT, dm_dt: ArrayT, targets: ArrayT) -> ArrayT:
         """Returns the excess or shortfall of the actual velocity vs the target, for all target reactions."""
-        return (jnp.log(velocities[self.indices]+1) - jnp.log(targets+1)) * self.weight
+        diff = jnp.abs(jnp.log(velocities[self.indices]+1) - jnp.log(targets+1))
+        high_acc = jnp.minimum(1, diff)
+        low_acc = jnp.maximum(0, diff-1)
+        return (high_acc*0.1 + low_acc) * self.weight
 
 
 @dataclass
