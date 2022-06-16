@@ -265,6 +265,23 @@ class TargetVelocityObjective(ObjectiveComponent):
         return (velocities[self.indices] - targets) * self.weight
 
 
+class LenientTargetVelocityObjective(ObjectiveComponent):
+    """Calculates the deviation from target velocities for specified reactions."""
+
+    def __init__(self, network: ReactionNetwork, target_reactions: Iterable[str], weight: float = 1.0):
+        self.network = network
+        self.indices = np.array([network.reaction_index(r) for r in target_reactions])
+        self.weight = weight
+
+    def prepare_targets(self, target_values: Mapping[str, Any]) -> Optional[ArrayT]:
+        """Converts a dict {reaction_id: velocity} into a vector of target values."""
+        return self.network.reaction_vector(target_values)[self.indices]
+
+    def residual(self, velocities: ArrayT, dm_dt: ArrayT, targets: ArrayT) -> ArrayT:
+        """Returns the excess or shortfall of the actual velocity vs the target, for all target reactions."""
+        return (jnp.log(velocities[self.indices]+1) - jnp.log(targets+1)) * self.weight
+
+
 @dataclass
 class CooSparseMatrix:
     """Basic implementation of Coordinate-Format (COO) sparse matrix-vector multiplication with JAX primitives.

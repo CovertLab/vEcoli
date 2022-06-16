@@ -13,7 +13,7 @@ from ecoli.library.schema import bulk_schema
 from wholecell.utils import units
 
 from ecoli.library.fba_gd import GradientDescentFba, FbaResult, TargetDmdtObjective, \
-    TargetVelocityObjective, VelocityBoundsObjective, DmdtBoundsObjective, MinimizeFluxObjective
+    TargetVelocityObjective, VelocityBoundsObjective, DmdtBoundsObjective, MinimizeFluxObjective, LenientTargetVelocityObjective
 from ecoli.processes.registries import topology_registry
 from ecoli.processes.partition import check_whether_evolvers_have_run
 
@@ -95,6 +95,7 @@ class MetabolismGD(Process):
         self.exchange_molecules = exchange_molecules
         exchange_molecules = list(sorted(exchange_molecules))  # set vs list, unify?
 
+        # metabolites not in either set are constrained to zero uptake.
         self.allowed_exchange_uptake = UNCONSTRAINED_UPTAKE + list(CONSTRAINED_UPTAKE.keys())
         self.disallowed_exchange_uptake = list(set(exchange_molecules) - set(self.allowed_exchange_uptake))
 
@@ -131,7 +132,7 @@ class MetabolismGD(Process):
             exchanges=list(self.exchange_molecules),
             target_metabolites=self.homeostatic_objective)
         self.model.add_objective('homeostatic', TargetDmdtObjective(self.model.network, self.homeostatic_objective))
-        # self.model.add_objective('kinetic', TargetVelocityObjective(self.model.network, self.kinetic_objective))
+        # self.model.add_objective('binary_kinetic', LenientTargetVelocityObjective(self.model.network, self.kinetic_objective, weight=0.01))
         self.model.add_objective('maintenance',
                                  TargetVelocityObjective(self.model.network, self.maintenance_objective, weight=10))
         self.model.add_objective('diffusion',
@@ -154,10 +155,7 @@ class MetabolismGD(Process):
 
         # for ports schema
         self.metabolite_names_for_nutrients = self.get_port_metabolite_names(conc_dict)
-        # Include all concentrations that will be present in a sim for constant length listeners
-        for met in self.metabolite_names_for_nutrients:
-            if met not in self.homeostatic_objective:
-                self.homeostatic_objective[met] = 0.
+
 
         # for ports schema
         self.aa_names = self.parameters['aa_names']
@@ -267,11 +265,11 @@ class MetabolismGD(Process):
 
         total_maintenance = flux_gam + flux_ngam + flux_gtp
 
-        kinetic_targets = {}
+        binary_kinetic_targets = {}
         # # TODO (Cyrus) - Figure out how to implement catalysis. Can come later.
         for reaction in self.stoichiometry:
             if reaction['enzyme'] and sum([catalyst_counts[enzyme] for enzyme in reaction['enzyme']]) == 0:
-                kinetic_targets[reaction['reaction id']] = 0
+                binary_kinetic_targets[reaction['reaction id']] = 0
 
         maintenance_target = {}
         maintenance_target['maintenance_reaction'] = total_maintenance.asNumber()
@@ -282,11 +280,8 @@ class MetabolismGD(Process):
                                           - current_metabolite_concentrations[key]) / timestep).asNumber()
                                    for key, value in self.homeostatic_objective.items()}
 
-        diffusion_target = {reaction: 0 for reaction in self.disallowed_carbon_transport}
 
-        # reaction_bounds = np.inf * np.ones(len(self.reactions_with_catalyst))
-        # no_rxn_mask = self.catalysis_matrix.dot(catalyst_counts) == 0
-        # reaction_bounds[no_rxn_mask] = 0
+        diffusion_target = {reaction: 0 for reaction in self.disallowed_carbon_transport}
 
         # Need to run set_molecule_levels and set_reaction_bounds for homeostatic solution.
         # set molecule_levels requires exchange_constraints from dataclass.
@@ -297,7 +292,7 @@ class MetabolismGD(Process):
         # run FBA
         solution: FbaResult = self.model.solve(
             {'homeostatic': target_homeostatic_dmdt,
-             'kinetic': kinetic_targets,
+             'binary_kinetic': binary_kinetic_targets,
              'maintenance': maintenance_target,
              'diffusion': diffusion_target,
              },
@@ -312,9 +307,14 @@ class MetabolismGD(Process):
         # recalculate flux concentrations to counts
         estimated_reaction_fluxes = self.concentrationToCounts(self.reaction_fluxes)
         metabolite_dmdt_counts = self.concentrationToCounts(self.metabolite_dmdt)
-        target_kinetic_dmdt = self.concentrationToCounts(kinetic_targets)
+        target_kinetic_dmdt = self.concentrationToCounts(binary_kinetic_targets)
         target_maintenance_flux = self.concentrationToCounts(maintenance_target)
         target_homeostatic_dmdt = self.concentrationToCounts(target_homeostatic_dmdt)
+
+        # Include all concentrations that will be present in a sim for constant length listeners. doesn't affect fba.
+        for met in self.metabolite_names_for_nutrients:
+            if met not in target_homeostatic_dmdt:
+                target_homeostatic_dmdt[met] = 0.
 
         estimated_homeostatic_dmdt = {key: metabolite_dmdt_counts[key] for key in self.homeostatic_objective.keys()}
         estimated_exchange_dmdt = {key: metabolite_dmdt_counts[key] for key in self.exchange_molecules}
