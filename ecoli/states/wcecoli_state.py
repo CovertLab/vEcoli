@@ -79,6 +79,10 @@ def colony_initial_state(states, convert_unique_id_to_string):
     """
     states_to_return = deepcopy(states)
     for agent_id in states['agents'].keys():
+        # If evolvers_ran is False, we can get an infinite loop of
+        # neither evolvers nor requesters running. No saved state should
+        # include evolvers_ran=False.
+        assert states.get('evolvers_ran', True)
         states_to_return['agents'][agent_id]['environment']['exchange_data'] = {
                 'unconstrained': {
                     'CL-[p]',
@@ -118,6 +122,11 @@ def get_state_from_file(
 
     if 'agents' in states:
         return colony_initial_state(states, convert_unique_id_to_string)
+
+    # If evolvers_ran is False, we can get an infinite loop of
+    # neither evolvers nor requesters running. No saved state should
+    # include evolvers_ran=False.
+    assert states.get('evolvers_ran', True)
 
     # Shallow copy for processing state into correct form
     initial_state = states.copy()

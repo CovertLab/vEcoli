@@ -133,6 +133,7 @@ def colony_save_states(engine, config):
                 ('agents', agent_id, 'cell_process')
             ).value.get_command_result()
             del cell_state['environment']['exchange_data']  # Can't save, but will be restored when loading state
+            del cell_state['evolvers_ran']
             state_to_save['agents'][agent_id] = cell_state
 
         state_to_save = serialize_value(state_to_save)
