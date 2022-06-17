@@ -238,13 +238,10 @@ class EngineProcess(Process):
             return not (isinstance(value, Store) and value.topology)
         return self.sim.state.get_value(condition=not_a_process)
 
-    def send_command(self, command, args = None, kwargs = None) -> None:
-        if self._pending_command:
-            raise RuntimeError(
-                f'Trying to send command {(command, args, kwargs)} but '
-                f'command {self._pending_command} is still pending.')
-        self._pending_command = command, args, kwargs
-
+    def send_command(self, command, args = None, kwargs = None,
+            run_pre_check = True) -> None:
+        if run_pre_check:
+            self.pre_send_command(command, args, kwargs)
         args = args or tuple()
         kwargs = kwargs or {}
 
