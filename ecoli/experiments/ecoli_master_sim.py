@@ -471,6 +471,7 @@ class EcoliSim:
             state = self.ecoli_experiment.state.get_value(condition=not_a_process)
             if self.divide:
                 state = state['agents'][self.agent_id]
+            del cell_state['evolvers_ran']
             write_json('data/vivecoli_t' + str(time_elapsed) + '.json', state)
             print('Finished saving the state at t = ' + str(time_elapsed))
         time_remaining = self.total_time - self.save_times[-1]
