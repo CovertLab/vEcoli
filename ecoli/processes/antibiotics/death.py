@@ -43,12 +43,24 @@ from vivarium.core.composition import (
 )
 from vivarium.core.process import Process
 from vivarium.core.composer import Composer
+from vivarium.core.registry import process_registry
 from vivarium.processes.injector import Injector
 from vivarium.plots.simulation_output import plot_simulation_output
 from vivarium.library.units import units
 
 TOY_ANTIBIOTIC_THRESHOLD = 5.0 * units.mM
 TOY_INJECTION_RATE = 2.0 * units.mM  # implicitly per second
+
+
+def topology_list_to_tuple(topology):
+    if isinstance(topology, list):
+        return tuple(topology)
+    if not isinstance(topology, dict):
+        return topology
+    return {
+        key: topology_list_to_tuple(value)
+        for key, value in topology.items()
+    }
 
 
 class DetectorInterface:
@@ -129,7 +141,9 @@ class DeathFreezeState(Process):
 
     name = 'death'
     defaults = {
-        'detectors': {},
+        'detectors': tuple(),
+        'to_remove': tuple(),
+        'to_add': None,
     }
 
     def __init__(self, initial_parameters=None):
@@ -138,7 +152,9 @@ class DeathFreezeState(Process):
         This process class models death by, with a few exceptions,
         freezing the internal state of the cell. We implement this by
         removing from this process's :term:`compartment` all processes,
-        specified with the ``targets`` configuration.
+        specified with the ``swaps`` configuration, and optionally
+        replacing them with other, presumably less functional,
+        processes.
 
         Configuration:
 
@@ -146,9 +162,16 @@ class DeathFreezeState(Process):
           to include. Death will be triggered if any one of these
           triggers death. Names are specified in
           :py:const:`DETECTOR_CLASSES`.
-        * **``targets``**: A list of the names of the processes
+        * **``to_remove``**: A list of the names of the processes
           that will be removed when the cell dies. The names are
           specified in the compartment's :term:`topology`.
+        * **``to_add``**: A dictionary mapping from process names to
+          3-tuples ``(process, config, topology)`` where ``process`` is
+          the registry key of the process to add, ``config`` is a
+          configuration dictionary for that process's constructor, and
+          ``topology`` is the process's topology. The described
+          processes will be instantiated and added to the simulation
+          upon death.
 
         :term:`Ports`:
 
@@ -161,10 +184,8 @@ class DeathFreezeState(Process):
         super().__init__(initial_parameters)
         self.detectors = [
             DETECTOR_CLASSES[name](**config)
-            for name, config in self.parameters['detectors'].items()
+            for name, config in self.parameters['detectors']
         ]
-        # List of names of processes that will be removed upon death
-        self.targets = initial_parameters.get('targets', [])
 
 
     def ports_schema(self):
@@ -199,13 +220,34 @@ class DeathFreezeState(Process):
         '''
         for detector in self.detectors:
             if not detector.check_can_survive(states):
+                new_processes = {}
+                new_topologies = {}
+                to_add = self.parameters['to_add']
+                if len(set(to_add)) != len(to_add):
+                    raise RuntimeError(
+                        f'Duplicate processes in to_add: {to_add.keys()}')
+                for name, tup in to_add.items():
+                    registry_key, config, topology = tup
+                    process_class = process_registry.access(registry_key)
+                    if not process_class:
+                        raise RuntimeError(
+                            f'Process {registry_key} not found in registry.')
+                    process = process_class(config)
+                    new_processes[name] = process
+                    new_topologies[name] = topology_list_to_tuple(
+                        topology)
                 # kill the cell
                 update = {
                     'global': {
                         'dead': 1,
                     },
                     'processes': {
-                        '_delete': self.targets,
+                        '_delete': self.parameters['to_remove'],
+                        '_generate': [{
+                            'processes': new_processes,
+                            'topology': new_topologies,
+                            'initial_state': {},
+                        }],
                     },
                 }
                 return update
@@ -216,12 +258,25 @@ class ToyDeath(Composer):
 
     def generate_processes(self, config):
         death_parameters = {
-            'detectors': {
-                'antibiotic': {
+            'detectors': [
+                ['antibiotic', {
                     'antibiotic_threshold': TOY_ANTIBIOTIC_THRESHOLD,
-                }
-            },
-            'targets': ['injector', 'death'],
+                }]
+            ],
+            'to_remove': ['injector', 'death'],
+            'to_add': {
+                'new_injector': (
+                    'injector',
+                    {
+                        'substrate_rate_map': {
+                            'antibiotic': TOY_INJECTION_RATE / 2,
+                        },
+                    },
+                    {
+                        'internal': ('cell',),
+                    },
+                ),
+            }
         }
         death_process = DeathFreezeState(death_parameters)
         injector_parameters = {
@@ -303,6 +358,7 @@ def test_death_freeze_state(end_time=10, asserts=True):
                 # finished.
                 else (
                     (expected_death + 1) * TOY_INJECTION_RATE
+                    + (time - expected_death - 1) * TOY_INJECTION_RATE / 2
                 ).magnitude
             )
             expected_saved_states['cell'][

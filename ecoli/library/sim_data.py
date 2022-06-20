@@ -1,6 +1,7 @@
 import numpy as np
 from six.moves import cPickle
 from wholecell.utils import units
+from wholecell.utils.unit_struct_array import UnitStructArray
 from wholecell.utils.fitting import normalize
 
 from ecoli.processes.polypeptide_elongation import MICROMOLAR_UNITS
@@ -18,6 +19,7 @@ class LoadSimData:
         seed=0,
         trna_charging=False,
         ppgpp_regulation=False,
+        mar_regulon=False
     ):
 
         self.seed = np.uint32(seed % np.iinfo(np.uint32).max)
@@ -31,6 +33,79 @@ class LoadSimData:
         # load sim_data
         with open(sim_data_path, 'rb') as sim_data_file:
             self.sim_data = cPickle.load(sim_data_file)
+        
+        # NEW to vivarium-ecoli
+        # Changes gene expression upon tetracycline exposure
+        if mar_regulon:
+            # Assume marA (PD00365) controls the entire tetracycline gene expression program
+            # Assume marR (CPLX0-7710) is inactivated by complexation with tetracycline
+            self.sim_data.process.transcription_regulation.tf_ids += ["PD00365", "CPLX0-7710"]
+            self.sim_data.process.transcription_regulation.delta_prob["shape"] = (
+                self.sim_data.process.transcription_regulation.delta_prob["shape"][0], 
+                self.sim_data.process.transcription_regulation.delta_prob["shape"][1]+2)
+            self.sim_data.process.transcription_regulation.tf_to_tf_type["PD00365"] = "0CS"
+            self.sim_data.process.transcription_regulation.tf_to_tf_type["CPLX0-7710"] = "1CS"
+            self.sim_data.process.transcription_regulation.active_to_bound["CPLX0-7710"] = "marR-tet"
+            
+            # TU index of genes for outer membrane proteins, regulators, and inner membrane transporters
+            # NOTE: MicF (a ncRNA that destabilized ompF mRNA) was omitted for simplicity
+            TU_idxs = [2011, 1641, 1394, 2112, 1642, 1543, 662, 995, \
+                3289, 262, 1807, 2010, 659, 1395, 260, 259, 11, 944, 1631, 1330, \
+                660, 1399, 661]
+            new_deltaI = np.array(TU_idxs)
+            new_deltaJ = np.array([24]*23)
+            # Values were chosen to recapitulate mRNA fold change with 1.5 mg/L tetracycline (Viveiros et al. 2007)
+            # new_deltaV = np.array([10, 0.48, 0.07, 0.0054, 0.18, 0.013, 0.02, 0.13, 0.0035, 0.08, 0.007, 0.01, \
+            #     4, 0.0065, 0.0005, 0.0001, 0.00055, 0.025, 0.00002, 0.02, 0.01, -0.0006, -0.2]) / 1000
+            new_deltaV = np.array([0.145, 0.017, 0.0168, 0.00095, 0.01, -0.000101, 0.003422, 0.003846, 0.000155, 0.01, 0.0014, 0.00118, \
+                0.524, 0.003, 0.000034, -0.000002, 0.00006, 0.02, 0.000004, 0.00468, 0.03, 0.000257, 0.37]) / 1000
+            
+            self.sim_data.process.transcription_regulation.delta_prob["deltaI"] = np.concatenate(
+                [self.sim_data.process.transcription_regulation.delta_prob["deltaI"], new_deltaI])
+            self.sim_data.process.transcription_regulation.delta_prob["deltaJ"] = np.concatenate(
+                [self.sim_data.process.transcription_regulation.delta_prob["deltaJ"], new_deltaJ])
+            self.sim_data.process.transcription_regulation.delta_prob["deltaV"] = np.concatenate(
+                [self.sim_data.process.transcription_regulation.delta_prob["deltaV"], new_deltaV])
+            
+            # Add mass data for tetracycline and marR-tetracycline complex
+            bulk_data = self.sim_data.internal_state.bulk_molecules.bulk_data.fullArray().copy()
+            bulk_data.resize(bulk_data.shape[0]+2, refcheck=False)
+            # Tetracyline mass from NIST Chemistry WebBook
+            bulk_data[-1] = ('tetracycline[c]', [0, 0, 0, 0, 0, 0, 444.4346, 0, 0])
+            # marR mass from EcoCyc (x2 because homodimer)
+            bulk_data[-2] = ('marR-tet[c]', [0, 0, 0, 0, 0, 32120, 444.4346, 0, 0])
+            units = self.sim_data.internal_state.bulk_molecules.bulk_data.fullUnits()
+            self.sim_data.internal_state.bulk_molecules.bulk_data = UnitStructArray(bulk_data, units)
+            
+            # Add equilibrium reaction for marR-tetracycline and reinitialize self.sim_data.process.equilibrium variables
+            equilibrium_proc = self.sim_data.process.equilibrium
+            equilibrium_proc._stoichMatrixI = np.concatenate(
+                [equilibrium_proc._stoichMatrixI, np.array([98, 99, 100])])
+            equilibrium_proc._stoichMatrixJ = np.concatenate(
+                [equilibrium_proc._stoichMatrixJ, np.array([34, 34, 34])])
+            equilibrium_proc._stoichMatrixV = np.concatenate(
+                [equilibrium_proc._stoichMatrixV, np.array([-1, -1, 1])])
+            equilibrium_proc.molecule_names += ['CPLX0-7710[c]', 'tetracycline[c]', 'marR-tet[c]']
+            equilibrium_proc.ids_complexes = [equilibrium_proc.molecule_names[i] for i in np.where(np.any(equilibrium_proc.stoich_matrix() > 0, axis=1))[0]]
+            equilibrium_proc.rxn_ids += ['marR-tet']
+            # All existing equilibrium reactions use a forward reaction rate of 1
+            equilibrium_proc.rates_fwd = np.concatenate([equilibrium_proc.rates_fwd, np.array([1])])
+            # Rev rate of 4.5E-7 (+/- 5E-8) was manually fit to complex off all marR except 1 at 1.5 mg/L tetracycline 
+            equilibrium_proc.rates_rev = np.concatenate([equilibrium_proc.rates_rev, np.array([4.5E-7])])
+
+            # Mass balance matrix
+            equilibrium_proc._stoichMatrixMass = np.concatenate([equilibrium_proc._stoichMatrixMass, np.array([32130, 444.4346, 32574.4346])])
+            equilibrium_proc.balance_matrix = equilibrium_proc.stoich_matrix() * equilibrium_proc.mass_matrix()
+
+            # Find the mass balance of each equation in the balanceMatrix
+            massBalanceArray = equilibrium_proc.mass_balance()
+
+            # The stoichometric matrix should balance out to numerical zero.
+            assert np.max(np.absolute(massBalanceArray)) < 1e-9
+
+            # Build matrices
+            equilibrium_proc._populateDerivativeAndJacobian()
+            equilibrium_proc._stoichMatrix = equilibrium_proc.stoich_matrix()
 
     def get_config_by_name(self, name, time_step=2, parallel=False):
         name_config_mapping = {
@@ -99,7 +174,7 @@ class LoadSimData:
 
         return chromosome_replication_config
 
-    def get_tf_config(self, time_step=2, parallel=False):
+    def get_tf_config(self, time_step=2, parallel=False):     
         tf_binding_config = {
             'time_step': time_step,
             '_parallel': parallel,
@@ -415,13 +490,24 @@ class LoadSimData:
         stoichiometry = dict(self.sim_data.process.metabolism.reaction_stoich)
         stoichiometry = dict(sorted(stoichiometry.items()))
         rxns = list()
+        metabolite_names = set()
+
+        # TODO (Cyrus) Below operations are redundant (renaming, catalyst rearranging) and should just be removed.
+        #  from the metabolism dataclass. Are catalysts all required? Or all possible ways to catalyze. Latter.
+        reaction_catalysts = self.sim_data.process.metabolism.reaction_catalysts
+        catalyst_ids = self.sim_data.process.metabolism.catalyst_ids
+        reactions_with_catalyst = self.sim_data.process.metabolism.reactions_with_catalyst
 
         REVERSE_TAG = ' (reverse)'
 
         # TODO Consider moving separation of reactions into metabolism reaction. Is it even necessary?
+        # Also add check for stoichiometries being equal for removed reverse reactions
 
         # First pass. Add all reactions without tag.
+        # TODO (Cyrus) Investigate how many reactions are supposed to be reversible.
         for key, value in stoichiometry.items():
+            metabolite_names.update(list(value.keys()))
+
             if not key.endswith(REVERSE_TAG):
                 rxns.append({'reaction id': key,
                              'stoichiometry': value,
@@ -434,6 +520,14 @@ class LoadSimData:
                              'stoichiometry': value,
                              'is reversible': False})
 
+            if key in reactions_with_catalyst:
+                rxns[-1]['enzyme'] = reaction_catalysts[key]
+            else:
+                rxns[-1]['enzyme'] = []
+
+        # TODO Reconstruct catalysis and annotate.
+        # Required:
+
         metabolism_config = {
             'time_step': time_step,
             '_parallel': parallel,
@@ -441,12 +535,11 @@ class LoadSimData:
             # variables
             'stoichiometry': self.sim_data.process.metabolism.reaction_stoich,
             'stoichiometry_r': rxns,
+            'metabolite_names': metabolite_names,
             'reaction_catalysts': self.sim_data.process.metabolism.reaction_catalysts,
             'maintenance_reaction': self.sim_data.process.metabolism.maintenance_reaction,
             'aa_names': self.sim_data.molecule_groups.amino_acids,
             'media_id': self.sim_data.conditions[self.sim_data.condition]['nutrients'],
-            'nutrients': self.sim_data.conditions[self.sim_data.condition]['nutrients'],
-            # TODO (Cyrus) Replace with media_id.
             'avogadro': self.sim_data.constants.n_avogadro,
             'cell_density': self.sim_data.constants.cell_density,
             'nutrientToDoublingTime': self.sim_data.nutrient_to_doubling_time,
@@ -454,6 +547,7 @@ class LoadSimData:
             'non_growth_associated_maintenance': self.sim_data.constants.non_growth_associated_maintenance,
             'cell_dry_mass_fraction': self.sim_data.mass.cell_dry_mass_fraction,
             'seed': self.random_state.randint(RAND_MAX),
+            'reactions_with_catalyst': self.sim_data.process.metabolism.reactions_with_catalyst,
 
             # methods
             'concentration_updates': self.sim_data.process.metabolism.concentration_updates,
