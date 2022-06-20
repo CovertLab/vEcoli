@@ -21,7 +21,7 @@ def sample_column(rows, murein, strand_sampler, rng):
     result = np.zeros(rows, dtype=int)
 
     # Don't try to assign more murein than can fit in the column
-    murein = min(murein, rows)
+    murein = int(min(murein, rows))
 
     # Create iterator for strand lengths, total accumulated length
     strand_length, total_length = tee(strand_sampler())
