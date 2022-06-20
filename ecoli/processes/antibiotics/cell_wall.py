@@ -10,12 +10,14 @@ import mpl_toolkits.mplot3d.axes3d as axes3d
 from skimage.transform import resize
 
 from vivarium.core.process import Process
+from vivarium.core.composition import add_timeline, simulate_composite
 from vivarium.library.units import units
 from vivarium.plots.simulation_output import plot_variables
 
 from ecoli.library.cell_wall.hole_detection import detect_holes
 from ecoli.library.cell_wall.column_sampler import sample_column, poisson_sampler
 from ecoli.library.schema import bulk_schema
+from ecoli.processes.antibiotics.cephaloridine_antagonism import CephaloridineAntagonism
 from ecoli.processes.registries import topology_registry
 from vivarium.core.composition import simulate_process
 from ecoli.processes.shape import length_from_volume
@@ -28,7 +30,7 @@ TOPOLOGY = {
     "bulk_murein": ("bulk",),
     "murein_state": ("murein_state",),
     "PBP": ("bulk",),
-    "wall_state": ("wall_state"),
+    "wall_state": ("wall_state",),
 }
 topology_registry.register(NAME, TOPOLOGY)
 
@@ -122,6 +124,7 @@ class CellWall(Process):
         print(f"Cell Wall: Unincorporated murein = {unincorporated_murein}")
         print(f"Cell Wall: Incorporated murein = {incorporated_murein}")
         print(f"Cell Wall: Cell length = {length}")
+        print(f"Cell Wall: Lattice dimensions: {lattice.shape}")
 
         # Calculate new lattice dimensions
         new_rows, new_columns = self.calculate_lattice_size(length)
@@ -141,24 +144,6 @@ class CellWall(Process):
             n_sites,
             self.strand_length_distribution,
         )
-
-        # # Expand lattice size if necessary, depending on cell size
-        # print("resizing lattice")
-        # lattice, rows, columns = self.resize_lattice(
-        #     length, lattice, lattice_rows, lattice_cols
-        # )
-
-        # # Cell wall construction/destruction
-        # print("assigning murein")
-        # lattice, new_unincorporated_murein, new_incorporated_murein = self.assign_murein(
-        #     unincorporated_murein,
-        #     incorporated_murein,
-        #     lattice,
-        #     rows,
-        #     columns,
-        # )
-        # print(f"Lattice size: {lattice.shape}")
-        # print(f"Holes: {lattice.size - lattice.sum()}")
 
         update["wall_state"] = {
             "lattice": lattice,
@@ -193,8 +178,12 @@ class CellWall(Process):
         columns = int(
             cell_length / (self.crossbridge_length + self.disaccharide_length)
         )
+        print(
+            f"cols = {cell_length} / {self.crossbridge_length + self.disaccharide_length} = {columns}"
+        )
 
         rows = int(self.circumference / self.disaccharide_length)
+        print(f"rows = {self.circumference} / {self.disaccharide_length} = {rows}")
 
         return rows, columns
 
@@ -209,6 +198,7 @@ class CellWall(Process):
         strand_length_distribution,
     ):
         rows, columns = lattice.shape
+        d_columns = new_columns - columns
 
         # Create new lattice
         new_lattice = np.zeros((new_rows, new_columns))
@@ -217,27 +207,28 @@ class CellWall(Process):
         insertion_points = self.rng.choice(
             list(range(columns)), size=n_sites, replace=False
         )
-        insertion_size = np.repeat((new_columns - columns) // n_sites, n_sites)
+        insertion_size = np.repeat(d_columns // n_sites, n_sites)
 
         # Add additional columns at random if necessary
-        while columns + insertion_size.sum() < new_columns:
+        while insertion_size.sum() < d_columns:
             insertion_size[self.rng.integers(0, n_sites)] += 1
 
         # Get murein per column
         current_incorporated = lattice.sum()
         murein_to_allocate = incorporated_monomers - current_incorporated
-        murein_per_column = murein_to_allocate / new_columns
 
-        print(
-            f"Cell Wall: Assigning {murein_to_allocate} monomers to {new_columns} columns ({murein_per_column} per column)"
-        )
-
-        if murein_to_allocate == 0 or columns == new_columns:
+        if murein_to_allocate == 0 or d_columns == 0:
             new_lattice = lattice
             total_monomers = unincorporated_monomers + incorporated_monomers
             new_incorporated_monomers = new_lattice.sum()
             new_free_monomers = total_monomers - new_incorporated_monomers
             return new_lattice, new_free_monomers, new_incorporated_monomers
+
+        murein_per_column = murein_to_allocate / d_columns
+
+        print(
+            f"Cell Wall: Assigning {murein_to_allocate} monomers to {d_columns} columns ({murein_per_column} per column)"
+        )
 
         # Sample insertions
         insertions = []
@@ -264,70 +255,13 @@ class CellWall(Process):
             else:
                 insert_size = insertion_size[insert_i]
                 if insert_size > 0:
-                    new_lattice[:, c:(c + insert_size)] = insertions[insert_i].T
+                    new_lattice[:, c : (c + insert_size)] = insertions[insert_i].T
                 insert_i += 1
 
         total_monomers = unincorporated_monomers + incorporated_monomers
         new_incorporated_monomers = new_lattice.sum()
         new_free_monomers = total_monomers - new_incorporated_monomers
         return new_lattice, new_free_monomers, new_incorporated_monomers
-
-    # def resize_lattice(self, cell_length, lattice, prev_rows=0, prev_cols=0):
-
-    #     rows, columns = self.calculate_lattice_size(cell_length)
-
-    #     # Fill in new positions with defects initially
-    #     lattice = np.pad(
-    #         lattice,
-    #         ((0, max(0, rows - prev_rows)), (0, max(0, columns - prev_cols))),
-    #         mode="constant",
-    #         constant_values=0,
-    #     )
-
-    #     assert lattice.shape == (rows, columns)
-    #     return lattice, rows, columns
-
-    # def assign_murein(self, unincorporated_murein, incorporated_murein, lattice, rows, columns):
-    #     n_incorporated = lattice.sum()
-    #     n_holes = lattice.size - n_incorporated
-
-    #     # fill holes
-    #     # TODO: Replace random selection with strand extrusion
-    #     #       from a length distribution
-    #     fill_n = min(unincorporated_murein, n_holes)
-
-    #     if fill_n > 0:
-    #         fill_idx = self.rng.choice(
-    #             np.arange(lattice.size), size=fill_n, replace=False
-    #         )
-    #         for idx in fill_idx:
-    #             # Convert 1D index into row, column
-    #             r = idx // columns
-    #             c = idx - (r * columns)
-
-    #             # fill hole
-    #             lattice[r, c] = 1
-
-    #     # add holes
-    #     # TODO: Replace random selection with biased selection
-    #     #       based on existing holes/stress map
-    #     new_holes = lattice.sum() - incorporated_murein
-
-    #     # choose random occupied locations
-    #     if new_holes > 0:
-    #         idx_occupancies = np.array(np.where(lattice))
-    #         idx_new_holes = self.rng.choice(
-    #             idx_occupancies.T, size=new_holes, replace=False
-    #         )
-
-    #         for hole_r, hole_c in idx_new_holes:
-    #             lattice[hole_r, hole_c] = 0
-
-    #     total_murein = unincorporated_murein + incorporated_murein
-    #     new_incorporated = lattice.sum()
-    #     new_free = total_murein - new_incorporated
-
-    #     return lattice, new_free, new_incorporated
 
     def get_largest_defect_area(self, lattice):
         hole_sizes, _ = detect_holes(
@@ -379,6 +313,88 @@ def plot_lattice(lattice, on_cylinder=False):
         fig.colorbar(mappable)
 
     return fig, ax
+
+
+def test_cell_wall():
+    # Create composite with timeline
+    processes = {"cell_wall": CellWall({})}
+    topology = {
+        "cell_wall": {
+            "shape": ("cell_global",),
+            "bulk_murein": ("bulk",),
+            "murein_state": ("murein_state",),
+            "PBP": ("bulk",),
+            "wall_state": ("wall_state",),
+        }
+    }
+    add_timeline(
+        processes,
+        topology,
+        {
+            "timeline": [
+                (
+                    time,
+                    {
+                        ("bulk", "CPD-12261[p]"): int(383237 + 10 * time),
+                        ("murein_state", "incorporated_murein"): int(
+                            383237 + 10 * time
+                        ),
+                        ("cell_global", "volume"): (1 + time / 1000) * units.fL,
+                    },
+                )
+                for time in range(0, 10)
+            ]
+        },
+    )
+
+    # Run experiment
+    rng = np.random.default_rng(5)
+    initial_lattice = rng.binomial(1, 0.75, size=(3050, 670))
+    settings = {
+        "return_raw_data": True,
+        "total_time": 10,
+        "initial_state": {
+            "murein_state": {
+                "incorporated_murein": initial_lattice.sum() // 4,
+                "unincorporated_murein": 0,
+            },
+            "cell_global": {
+                "volume": 1 * units.fL,
+            },
+            "bulk": {
+                "CPD-12261[p]": initial_lattice.sum() // 4,
+                "CPLX0-7717[m]": 24,
+                "CPLX0-3951[i]": 0,
+            },
+            "wall_state": {
+                "lattice_rows": initial_lattice.shape[0],
+                "lattice_cols": initial_lattice.shape[1],
+                "lattice": initial_lattice,
+            },
+        },
+    }
+    data = simulate_composite({"processes": processes, "topology": topology}, settings)
+
+    # Plot output
+    # plot_variables(
+    #     data,
+    #     variables=[
+    #         ("bulk", "CPD-12261[p]"),
+    #         ("murein_state", "incorporated_murein"),
+    #         ("murein_state", "unincorporated_murein")
+    #     ],
+    #     out_dir="out/processes/cell_wall/",
+    #     filename="test.png",
+    # )
+
+    for t, data_t in data.items():
+        t = int(t)
+        print(f"Plotting t={t}...")
+        lattice = data_t["wall_state"]["lattice"]
+        fig, _ = plot_lattice(np.array(lattice), on_cylinder=False)
+        fig.tight_layout()
+        fig.savefig(f"out/processes/cell_wall/cell_wall_t{t}.png")
+        print("Done.\n")
 
 
 def main():
@@ -469,4 +485,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    test_cell_wall()
