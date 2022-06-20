@@ -54,6 +54,21 @@ def test_load_state():
     sim2.run()
 
 
+def test_initial_state_overrides():
+    sim_default = EcoliSim.from_file()
+    sim = EcoliSim.from_file(CONFIG_DIR_PATH + 'test_configs/test_initial_state_overrides.json')
+    sim_default.build_ecoli()
+    sim.build_ecoli()
+
+    assert sim.initial_state["bulk"]["CPD-12261[p]"] == 401871
+    assert ("murein_state" in sim.initial_state and
+            sim.initial_state["murein_state"] == {
+                "free_murein": 0,
+                "incorporated_murein": 401871
+            })
+    assert sim_default.initial_state["environment"] == sim.initial_state["environment"]
+
+
 def main():
     testDefault()
     testAddProcess()
@@ -61,6 +76,7 @@ def main():
     test_merge()
     test_export()
     test_load_state()
+    test_initial_state_overrides()
 
 
 if __name__ == "__main__":

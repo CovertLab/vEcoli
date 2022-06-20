@@ -1,6 +1,8 @@
 import argparse
 
 from vivarium.library.topology import convert_path_style
+from vivarium.core.serialize import deserialize_value
+from vivarium.library.units import remove_units
 
 from ecoli.analysis.analyze_db_experiment import access, OUT_DIR
 from ecoli.plots.snapshots_video import make_video
@@ -41,6 +43,8 @@ def main():
     tags = [convert_path_style(path) for path in args.tags]
     timeseries = [convert_path_style(path) for path in args.timeseries]
     data, _, sim_config = access(args.experiment_id, query, args.host, args.port)
+    data = deserialize_value(data)
+    data = remove_units(data)
     first_timepoint = data[min(data)]
 
     # Make the videos

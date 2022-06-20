@@ -16,7 +16,11 @@ from vivarium.library.units import units
 
 from ecoli.library.lattice_utils import (
     get_bin_site,
-    get_bin_volume, apply_exchanges, ExchangeAgent,
+    get_bin_volume,
+    apply_exchanges,
+    ExchangeAgent,
+    make_gradient,
+    make_diffusion_schema,
 )
 from vivarium.library.topology import get_in
 from ecoli.plots.snapshots import plot_snapshots
@@ -46,10 +50,19 @@ class ReactionDiffusion(Process):
         'bounds': [10 * units.um, 10 * units.um],
         'depth': 3000.0 * units.um,  # um
         'diffusion': 5e-1 * units.um**2 / units.sec,
+
+        'exchanges_path': ('boundary', 'exchanges'),
+        'external_path': ('boundary', 'external'),
+        'location_path': ('boundary', 'location'),
+
+        # these parameters are not in diffusion_field
         'reactions': {},
         'kinetic_parameters': {},
         'internal_time_step': 1,
-        'boundary_path': ('boundary',)
+
+        # these parameters are in diffusion_field
+        # 'initial_state': {},
+        'gradient': None,
     }
 
     def __init__(self, parameters=None):
@@ -76,74 +89,90 @@ class ReactionDiffusion(Process):
         self.diffusion = diffusion / dx2
         self.diffusion_dt = 0.01 * units.sec
         # self.diffusion_dt = 0.5 * dx ** 2 * dy ** 2 / (2 * self.diffusion * (dx ** 2 + dy ** 2))
+        self.exchanges_path = tuple(self.parameters['exchanges_path'])
+        self.external_path = tuple(self.parameters['external_path'])
+        self.location_path = tuple(self.parameters['location_path'])
 
-    def initial_state(self, config):
+        # check reactions
+        molecule_ids = set(self.molecule_ids)
+        for rxn_id, rxn_config in self.parameters['reactions'].items():
+            # check that 'stoichiometry' and 'catalyzed by' parameters
+            # are the only parameters in 'reactions', and that all declared
+            # reaction molecules are also in the declared molecule_ids
+            stoichiometry = rxn_config.get('stoichiometry')
+            catalyst = rxn_config.get('catalyzed by')
+            assert stoichiometry, f'reaction {rxn_id} is missing a stoichiometry'
+            assert catalyst, f'reaction {rxn_id} is missing a catalyst'
+            factors = set(stoichiometry.keys())
+            assert factors.issubset(molecule_ids), \
+                f'reaction {rxn_id} molecules {factors} ' \
+                f'are not in declared fields {molecule_ids}'
+            assert catalyst in molecule_ids, \
+                f'reaction {rxn_id} catalyst {catalyst} ' \
+                f'is not in declared fields {molecule_ids}'
+
+            # check corresponding kinetics. Each reaction must also have an entry
+            # under 'kinetic_parameters, with the catalyst id mapping to a kcat_f
+            # parameter and a km for one molecule in the environment
+            rxn_kinetics = self.parameters['kinetic_parameters'].get(rxn_id)
+            assert rxn_kinetics, \
+                'each reaction must have corresponding kinetic_parameters'
+            kinetics_catalyst = rxn_kinetics.keys()
+            assert len(kinetics_catalyst) == 1, \
+                'each kinetic_parameters reaction must have only one enzyme'
+            assert set(kinetics_catalyst).issubset(molecule_ids), \
+                f'kinetic_parameters reaction {rxn_id} catalyst {catalyst} ' \
+                f'is not in declared fields {molecule_ids}'
+            kinetics_params = list(rxn_kinetics[list(kinetics_catalyst)[0]].keys())
+            assert 'kcat_f' in kinetics_params, f'kinetic_parameters reaction {rxn_id} ' \
+                                                f'needs a kcat_f parameters'
+            kinetics_params.remove('kcat_f')
+            assert len(kinetics_params) == 1, f'only one km allowed'
+            assert set(kinetics_params).issubset(molecule_ids), \
+                f'kinetic_parameters reaction {rxn_id} substrate {kinetics_params} ' \
+                f'is not in declared fields {molecule_ids}'
+
+    def initial_state(self, config=None):
         """
         sets uniform initial state at the concentration provided for each the molecule_id in `config`
         """
-        return {
-            'fields': {
-                mol_id: config.get(mol_id, 0.0) * self.ones_field()
-                for mol_id in self.molecule_ids
-            },
-        }
+        config = config or {}
+        initial = {
+            'fields': {},
+            'dimensions': {
+                'bounds': self.parameters['bounds'],
+                'n_bins': self.parameters['n_bins'],
+                'depth': self.parameters['depth']}}
+
+        # initialize gradient fields
+        gradient_molecules = []
+        gradient = self.parameters.get('gradient')
+        if gradient:
+            gradient_molecules = list(gradient['molecules'].keys())
+            unitless_bounds = [
+                bound.to(units.um).magnitude for bound in self.bounds]
+            gradient_fields = make_gradient(
+                gradient, self.n_bins, unitless_bounds)
+            initial['fields'].update(gradient_fields)
+
+        # uniform field for all molecules not in gradient
+        for mol_id in self.molecule_ids:
+            if mol_id not in gradient_molecules:
+                initial['fields'][mol_id] = config.get(mol_id, 0.0) * self.ones_field()
+
+        return initial
 
     def ports_schema(self):
-
-        # place the agent boundary schema at the configured boundary path
-        boundary_path = self.parameters['boundary_path']
-        boundary_schema = {
-            'location': {
-                '_default': [
-                    0.5 * bound
-                    for bound in self.bounds],
-                '_emit': True,
-            },
-            'external': {
-                molecule: {
-                    '_default': 0.0 * units.mM}
-                for molecule in self.molecule_ids
-            },
-            'exchanges': {
-                molecule: {
-                    '_default': 0.0}
-                for molecule in self.molecule_ids
-            },
-        }
-        agent_schema = assoc_path({}, boundary_path, boundary_schema)
-
-        # make the full schema
-        schema = {
-            'agents': {
-                '*': agent_schema
-            },
-            'fields': {
-                field: {
-                    '_default': self.ones_field(),
-                    '_updater': 'nonnegative_accumulate',
-                    '_emit': True,
-                }
-                for field in self.molecule_ids
-            },
-            'dimensions': {
-                'bounds': {
-                    '_default': self.parameters['bounds'],
-                    '_updater': 'set',
-                    '_emit': True,
-                },
-                'n_bins': {
-                    '_default': self.parameters['n_bins'],
-                    '_updater': 'set',
-                    '_emit': True,
-                },
-                'depth': {
-                    '_default': self.parameters['depth'],
-                    '_updater': 'set',
-                    '_emit': True,
-                }
-            },
-        }
-        return schema
+        return make_diffusion_schema(
+            self.exchanges_path,
+            self.external_path,
+            self.location_path,
+            self.parameters['bounds'],
+            self.parameters['n_bins'],
+            self.parameters['depth'],
+            self.molecule_ids,
+            self.ones_field(),
+        )
 
     def next_update(self, timestep, states):
         fields = states['fields']
@@ -165,9 +194,13 @@ class ReactionDiffusion(Process):
         # apply exchanges #
         ###################
         new_fields, agent_updates = apply_exchanges(
-            agents, new_fields,
-            self.parameters['boundary_path'],
-            self.n_bins, self.bounds, self.bin_volume)
+            agents,
+            new_fields,
+            self.exchanges_path,
+            self.location_path,
+            self.n_bins,
+            self.bounds,
+            self.bin_volume)
 
         #####################
         # react and diffuse #
@@ -192,8 +225,11 @@ class ReactionDiffusion(Process):
 
         return update
 
-    def get_single_local_environments(self, specs, fields):
-        bin_site = get_bin_site(specs['location'], self.n_bins, self.bounds)
+    def get_bin_site(self, location):
+        return get_bin_site(location, self.n_bins, self.bounds)
+
+    def get_single_local_environments(self, location, fields):
+        bin_site = self.get_bin_site(location)
         local_environment = {}
         for mol_id, field in fields.items():
             local_environment[mol_id] = {
@@ -205,11 +241,14 @@ class ReactionDiffusion(Process):
         local_environments = {}
         if agents:
             for agent_id, specs in agents.items():
-                local_environments[agent_id] = {'boundary': {}}
-                local_environments[agent_id]['boundary']['external'] = \
+                assoc_path(
+                    local_environments,
+                    (agent_id,) + self.external_path,
                     self.get_single_local_environments(
-                        get_in(specs, self.parameters['boundary_path']),
-                        fields)
+                        get_in(specs, self.location_path),
+                        fields,
+                    ),
+                )
         return local_environments
 
     def zeros_field(self):
@@ -251,25 +290,29 @@ class ReactionDiffusion(Process):
             # get the parameters
             kinetics = kinetic_parameters[rxn_id]
             stoich = rxn['stoichiometry']
-            assert len(stoich.keys()) == 1, 'reactions can only do one substrate'
-            substrate_id = list(stoich.keys())[0]
+            substrate_ids = list(stoich.keys())
 
+            # catalyst
             catalyst_id = rxn['catalyzed by']
             kcat = kinetics[catalyst_id]['kcat_f']
-            km = kinetics[catalyst_id][substrate_id]
-
-            # get the state
             catalyst_field = fields[catalyst_id]
-            substrate_field = fields[substrate_id]
 
-            if np.sum(catalyst_field) > 0.0 and np.sum(substrate_field) > 0.0:
-                # calculate flux and delta
-                denominator = substrate_field + km
-                flux = kcat * catalyst_field * substrate_field / denominator
-                delta = stoich[substrate_id] * flux * timestep
+            for substrate_id in substrate_ids:
+                substrate_km = kinetics[catalyst_id].get(substrate_id)
+                substrate_field = fields[substrate_id]
 
-                # updates
-                new_fields[substrate_id] += delta
+                if np.sum(catalyst_field) > 0.0 and np.sum(substrate_field) > 0.0:
+
+                    # calculate flux and delta
+                    flux = kcat * catalyst_field * substrate_field
+                    # add km term if declared
+                    if substrate_km:
+                        denominator = substrate_field + substrate_km
+                        flux /= denominator
+                    delta = stoich[substrate_id] * flux * timestep
+
+                    # updates
+                    new_fields[substrate_id] += delta
 
         return new_fields
 

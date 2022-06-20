@@ -66,7 +66,7 @@ from vivarium.core.engine import Engine
 from vivarium.core.process import Process, Step
 from vivarium.core.registry import updater_registry, divider_registry
 from vivarium.core.store import DEFAULT_SCHEMA
-from vivarium.library.topology import get_in, assoc_path
+from vivarium.library.topology import get_in
 
 from ecoli.library.sim_data import RAND_MAX
 from ecoli.library.updaters import inverse_updater_registry
@@ -251,6 +251,19 @@ class EngineProcess(Process):
         # self.calculate_timestep(), we would not know to force the
         # inner simulation to complete.
         force_complete = timestep != self.calculate_timestep({})
+
+        # Assert that nothing got wired into `null`.
+        try:
+            miswired_vars = self.sim.state.get_path(('null',)).inner.keys()
+        except Exception as e:
+            # There might not be a ('null',) store, which is okay.
+            if str(e) == "('null',) is not a valid path from ()":
+                miswired_vars = tuple()
+            else:
+                raise e
+        if miswired_vars:
+            raise RuntimeError(
+                f'Variables mistakenly wired to ("null",): {miswired_vars}')
 
         # Update the internal state with tunnel data.
         for tunnel, path in self.tunnels_in.items():

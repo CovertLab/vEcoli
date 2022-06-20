@@ -24,18 +24,15 @@ from ecoli.processes.environment.local_field import LocalField
 from ecoli.processes.environment.field_timeline import FieldTimeline
 from ecoli.processes.shape import Shape
 from ecoli.processes.concentrations_deriver import ConcentrationsDeriver
-from ecoli.processes.antibiotics.antibiotic_hydrolysis import (
-    AntibioticHydrolysis)
-from ecoli.processes.antibiotics.antibiotic_transport import (
-    AntibioticTransport)
-from ecoli.processes.antibiotics.fickian_diffusion import (
-    FickianDiffusion)
 from ecoli.processes.antibiotics.death import DeathFreezeState
+from ecoli.processes.antibiotics.antibiotic_transport_steady_state import (
+    AntibioticTransportSteadyState)
+from ecoli.processes.antibiotics.exchange_aware_bioscrape import (
+    ExchangeAwareBioscrape)
+from ecoli.processes.antibiotics.permeability import Permeability
 from ecoli.processes.antibiotics.tetracycline_ribosome_equilibrium import (
     TetracyclineRibosomeEquilibrium)
 from ecoli.processes.chemostat import Chemostat
-from vivarium.processes.timeline import TimelineProcess
-
 
 
 # add to registry
@@ -68,17 +65,17 @@ process_registry.register(LocalField.name, LocalField)
 process_registry.register(FieldTimeline.name, FieldTimeline)
 
 # auxiliary processes
-process_registry.register('timeline', TimelineProcess)
 process_registry.register(Chemostat.name, Chemostat)
 
 # antibiotic processes
-process_registry.register(AntibioticHydrolysis.name,
-    AntibioticHydrolysis)
-process_registry.register(AntibioticTransport.name,
-    AntibioticTransport)
-process_registry.register(FickianDiffusion.name,
-    FickianDiffusion)
 process_registry.register(DeathFreezeState.name, DeathFreezeState)
 process_registry.register(
     TetracyclineRibosomeEquilibrium.name,
     TetracyclineRibosomeEquilibrium)
+process_registry.register(
+    ExchangeAwareBioscrape.name, ExchangeAwareBioscrape)
+process_registry.register(
+    AntibioticTransportSteadyState.name, AntibioticTransportSteadyState)
+process_registry.register(
+    Permeability.name, Permeability
+)

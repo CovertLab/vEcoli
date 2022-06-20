@@ -11,16 +11,8 @@
     },
     "_schema": {
         "ecoli-transcript-initiation": {
-            "RNAs": {
-                "*": {
-                  "transcript_length": {"_emit": false}
-                }
-            },
-            "active_RNAPs": {
-                "*": {
-                  "coordinates": {"_emit": false}
-                }
-            },
+            "RNAs": {"_emit": false},
+            "active_RNAPs": {"_emit": false},
             "listeners": {
                 "rna_synth_prob": {
                   "rna_synth_prob": {"_emit": false}
