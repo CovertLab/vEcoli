@@ -43,7 +43,6 @@ class EcoliEngineProcess(Composer):
         'division_threshold': 0,
         'division_variable': tuple(),
         'reports': tuple(),
-        'inner_store_schema': {},
     }
 
     def generate_processes(self, config):
@@ -75,7 +74,6 @@ class EcoliEngineProcess(Composer):
             'divide': config['divide'],
             'division_threshold': config['division_threshold'],
             'division_variable': config['division_variable'],
-            'inner_store_schema': config['inner_store_schema'],
             '_parallel': config['parallel'],
         }
         cell_process = EngineProcess(cell_process_config)
