@@ -149,7 +149,7 @@ class Multibody(Process):
             'jitter_force': jitter_force,
             'bounds': remove_units(self.bounds),
             'barriers': self.mother_machine,
-            'physics_dt': self.parameters['time_step'] / 10,
+            'physics_dt': self.parameters['timestep'] / 10,
         }
         self.physics = PymunkMultibody(multibody_config)
 
