@@ -24,7 +24,7 @@ from ecoli.library.updaters import (
     inverse_update_nonnegative_accumulate,
     inverse_update_dictionary,
 )
-from ecoli.library.serialize import UnumSerializer
+from ecoli.library.serialize import UnumSerializer, ParameterSerializer
 
 # register :term:`updaters`
 for unique_mol, defaults in UNIQUE_DEFAULTS.items():
@@ -55,4 +55,7 @@ divider_registry.register('divide_ribosomes', divide_ribosomes)
 divider_registry.register('set_none', divide_set_none)
 
 # register serializers
-serializer_registry.register('unum', UnumSerializer())
+for serializer_cls in (UnumSerializer, ParameterSerializer):
+    serializer = serializer_cls()
+    serializer_registry.register(
+        serializer.name, serializer, serializer.alternate_keys)

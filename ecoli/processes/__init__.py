@@ -27,6 +27,8 @@ from ecoli.processes.antibiotics.cell_wall import CellWall
 from ecoli.processes.antibiotics.cephaloridine_antagonism import CephaloridineAntagonism
 from ecoli.processes.concentrations_deriver import ConcentrationsDeriver
 from ecoli.processes.antibiotics.death import DeathFreezeState
+from ecoli.processes.antibiotics.antibiotic_transport_steady_state import (
+    AntibioticTransportSteadyState)
 from ecoli.processes.antibiotics.exchange_aware_bioscrape import (
     ExchangeAwareBioscrape)
 from ecoli.processes.antibiotics.permeability import Permeability
@@ -65,6 +67,8 @@ process_registry.register(FieldTimeline.name, FieldTimeline)
 process_registry.register(DeathFreezeState.name, DeathFreezeState)
 process_registry.register(
     ExchangeAwareBioscrape.name, ExchangeAwareBioscrape)
+process_registry.register(
+    AntibioticTransportSteadyState.name, AntibioticTransportSteadyState)
 process_registry.register(
     Permeability.name, Permeability
 )
