@@ -58,11 +58,10 @@ def custom_run_process(
 
     update = experiment._invoke_process(
         process,
-        path,
         total_time,
         states)
 
-    actual_update = update.get()
+    actual_update = update.get_command_result()
     return actual_update
 
 @pytest.mark.master
