@@ -7,7 +7,6 @@
         ["host", "10.138.0.75:27017"]
     ],
     "parallel": true,
-    "save_times": [11550],
     "engine_process_reports": [
         ["listeners", "mass"],
         ["boundary"],
