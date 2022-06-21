@@ -156,7 +156,6 @@ class EngineProcess(Process):
         'divide': False,
         'division_threshold': 0,
         'division_variable': tuple(),
-        'inner_store_schema': {}
     }
     # TODO: Handle name clashes between tunnels.
 
@@ -189,7 +188,6 @@ class EngineProcess(Process):
             emitter=self.parameters['inner_emitter'],
             display_info=False,
             progress_bar=False,
-            store_schema=self.parameters['inner_store_schema'],
         )
         self.random_state = np.random.RandomState(
             seed=self.parameters['seed'])
