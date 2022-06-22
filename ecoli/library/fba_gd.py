@@ -151,7 +151,7 @@ class MinimizeFluxObjective(ObjectiveComponent):
 
     def residual(self, velocities: ArrayT, dm_dt: ArrayT, targets: Optional[ArrayT] = None) -> ArrayT:
         """Returns the subset of dm/dt affecting intermediates, which should all be zero."""
-        return velocities * self.weight
+        return jnp.array([jnp.sum(jnp.abs(velocities))/len(velocities)]) * self.weight
 
 
 class VelocityBoundsObjective(ObjectiveComponent):

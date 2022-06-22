@@ -8,7 +8,7 @@ import time
 
 from vivarium.core.process import Process
 
-from ecoli.library.schema import bulk_schema
+from ecoli.library.schema import bulk_schema, array_from
 
 from wholecell.utils import units
 
@@ -87,6 +87,8 @@ class MetabolismGD(Process):
         self._getBiomassAsConcentrations = parameters['get_biomass_as_concentrations']
         concentration_updates = self.parameters['concentration_updates']
         self.exchange_constraints = self.parameters['exchange_constraints']
+        self.get_kinetic_constraints = self.parameters['get_kinetic_constraints']
+        self.kinetic_constraint_reactions = self.parameters['kinetic_constraint_reactions']
 
         # retrieve exchanged molecules
         exchange_molecules = set()
@@ -144,7 +146,7 @@ class MetabolismGD(Process):
                                                       for molecule_id in self.disallowed_exchange_uptake}, weight=5))
 
         self.model.add_objective('futile_cycle',
-                                 MinimizeFluxObjective(self.model.network, weight=0.001))
+                                 MinimizeFluxObjective(self.model.network, weight=0.05))
 
         # # TODO (Cyrus): Reintroduce later.
         # self.model.add_objective("active_transport",
@@ -236,10 +238,10 @@ class MetabolismGD(Process):
         # TODO (Cyrus) - Implement kinetic model
         # kinetic_flux_targets = states['kinetic_flux_targets']
         # needed for kinetics
-        catalyst_counts = states['catalysts']
-        # translation_gtp = states['polypeptide_elongation']['gtp_to_hydrolyze']
-        # kinetic_enzyme_counts = states['kinetics_enzymes'] # kinetics related
-        # kinetic_substrate_counts = states['kinetics_substrates']
+        current_catalyst_counts = states['catalysts']
+        translation_gtp = states['polypeptide_elongation']['gtp_to_hydrolyze']
+        kinetic_enzyme_counts = states['kinetics_enzymes'] # kinetics related
+        kinetic_substrate_counts = states['kinetics_substrates']
         # get_kinetic_constraints = self.parameters['get_kinetic_constraints']
 
         # cell mass difference for calculating GAM
@@ -252,9 +254,7 @@ class MetabolismGD(Process):
         coefficient = dry_mass / self.cell_mass * self.cell_density * timestep * units.s  # TODO (Cyrus) what's this?
         self.counts_to_molar = (1 / (self.nAvogadro * cell_volume)).asUnit(CONC_UNITS)
 
-        #
-        translation_gtp = states['polypeptide_elongation']['gtp_to_hydrolyze']
-
+        # maintenance target
         if self.previous_mass is not None:
             flux_gam = self.gam * (self.cell_mass - self.previous_mass) / VOLUME_UNITS
         else:
@@ -263,16 +263,13 @@ class MetabolismGD(Process):
         flux_gtp = (self.counts_to_molar * translation_gtp)
 
         total_maintenance = flux_gam + flux_ngam + flux_gtp
+        maintenance_target = {'maintenance_reaction': total_maintenance.asNumber()}
 
+        # binary kinetic targets
         binary_kinetic_targets = {}
-        # # TODO (Cyrus) - Figure out how to implement catalysis. Can come later.
         for reaction in self.stoichiometry:
-            if reaction['enzyme'] and sum([catalyst_counts[enzyme] for enzyme in reaction['enzyme']]) == 0:
+            if reaction['enzyme'] and sum([current_catalyst_counts[enzyme] for enzyme in reaction['enzyme']]) == 0:
                 binary_kinetic_targets[reaction['reaction id']] = 0
-
-
-        maintenance_target = {}
-        maintenance_target['maintenance_reaction'] = total_maintenance.asNumber()
 
         current_metabolite_concentrations = {key: value * self.counts_to_molar for key, value in
                                              current_metabolite_counts.items()}
@@ -280,14 +277,19 @@ class MetabolismGD(Process):
                                           - current_metabolite_concentrations[key]) / timestep).asNumber()
                                    for key, value in self.homeostatic_objective.items()}
 
-
+        # prevent disallowed carbon source uptake
         diffusion_target = {reaction: 0 for reaction in self.disallowed_carbon_transport}
 
         # Need to run set_molecule_levels and set_reaction_bounds for homeostatic solution.
         # set molecule_levels requires exchange_constraints from dataclass.
 
-        # kinetic constraints
-        # kinetic_constraints = get_kinetic_constraints(catalyst_counts, metabolite_counts) # kinetic
+        # kinetic constraints # TODO (Cyrus) eventually collect isozymes in single reactions, map enzymes to reacts
+        #  via stoich instead of kinetic_constraint_reactions
+        kinetic_enzyme_conc = self.counts_to_molar * array_from(kinetic_enzyme_counts)
+        kinetic_substrate_conc = self.counts_to_molar * array_from(kinetic_substrate_counts)
+        kinetic_constraints = self.get_kinetic_constraints(kinetic_enzyme_conc, kinetic_substrate_conc) # kinetic
+        kinetic_target_values = ((timestep * units.s) * kinetic_constraints).asNumber(CONC_UNITS)
+        kinetic_reacs = self.kinetic_constraint_reactions
 
         # adding dynamically sized objectives
         self.model.add_objective('binary_kinetic', TargetVelocityObjective(self.model.network, binary_kinetic_targets.keys(), weight=1))

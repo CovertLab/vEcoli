@@ -574,6 +574,7 @@ class LoadSimData:
             'cell_dry_mass_fraction': self.sim_data.mass.cell_dry_mass_fraction,
             'seed': self.random_state.randint(RAND_MAX),
             'reactions_with_catalyst': self.sim_data.process.metabolism.reactions_with_catalyst,
+            'kinetic_constraint_reactions': self.sim_data.process.metabolism.kinetic_constraint_reactions,
 
             # methods
             'concentration_updates': self.sim_data.process.metabolism.concentration_updates,
