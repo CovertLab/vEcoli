@@ -124,7 +124,7 @@ def run_ecoli_with_metabolism_gd(
         progress_bar=True,
         log_updates=False,
         emitter='timeseries',
-        name='unconnected_mets'
+        name='unpruned_metabolism'
 ):
     sim = EcoliSim.from_file(CONFIG_DIR_PATH + filename + '.json')
     sim.total_time = total_time
