@@ -77,19 +77,19 @@ def main():
     cutoff_tuple = prob_gene_tuples[CUTOFF_INDEX]
     generational_prob_cutoff = cutoff_tuple[0]
 
-    num_all_generational = 0
+    num_all_sub_gen = 0
     for prob, gene_id in rna_prob_tuples:
         if prob < generational_prob_cutoff:
             break
-        num_all_generational += 1
-    num_all_sub_gen = len(rna_prob_tuples) - num_all_generational
+        num_all_sub_gen += 1
+    num_all_generational = len(rna_prob_tuples) - num_all_sub_gen
 
-    num_r_generational = 0
+    num_r_sub_gen = 0
     for prob, gene_id in r_gene_prob_tuples:
         if prob < generational_prob_cutoff:
             break
-        num_r_generational += 1
-    num_r_sub_gen = len(r_gene_prob_tuples) - num_r_generational
+        num_r_sub_gen += 1
+    num_r_generational = len(r_gene_prob_tuples) - num_r_sub_gen
 
     data = {'All: Generational': num_all_generational, 'All: Sub': num_all_sub_gen,
             'Response: Generational': num_r_generational, 'Response: Sub': num_r_sub_gen}
