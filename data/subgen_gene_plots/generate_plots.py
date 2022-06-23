@@ -9,15 +9,19 @@ on EcoCyc.
 import csv
 import json
 import matplotlib.pyplot as plt
+import numpy as np
 from six.moves import cPickle
 
+CUTOFF_INDEX = 1546
 SIM_DATA_PATH = 'reconstruction/sim_data/kb/simData.cPickle'
 TU_TO_INDEX_PATH = 'ecoli/experiments/marA_binding/TU_id_to_index.json'
 RNAS_TSV_PATH = 'reconstruction/ecoli/flat/rnas.tsv'
 RESPONSE_GENES_FILE_PATH = 'data/subgen_gene_plots/antibiotic_response_genes.txt'
+RNA_SYNTH_PROB_PATH = 'data/subgen_gene_plots/release_rna_probs.txt'
+RELEASE_RNAS_TSV_PATH = 'data/subgen_gene_plots/release_rnas.tsv'
 # From wcEcoli paper
-PERCENT_GENERATIONAL = 0.355
 FUNCTIONAL_GENES = ['ampC', 'acrA', 'acrB', 'tolC', 'ompF', 'ompC', 'marA', 'marR', 'mrcA', 'mrcB']
+
 
 def main():
     with open(SIM_DATA_PATH, 'rb') as sim_data_file:
@@ -26,60 +30,68 @@ def main():
     with open(TU_TO_INDEX_PATH) as json_file:
         tu_to_index = json.load(json_file)
     tu_to_basal_prob = {tu.split('[')[0]: basal_probs[index] for tu, index in tu_to_index.items()}
-
-    tu_to_gene = {}
+    rna_obj_to_name = {}
     with open(RNAS_TSV_PATH) as file:
         tsv_file = csv.reader(file, delimiter='\t')
-        past_header = False
         for line in tsv_file:
-            if line[0] == 'id':
-                past_header = True
-            elif past_header:
-                tu_to_gene[line[0]] = line[1]
+            if len(line) > 1:
+                rna_obj_to_name[line[0]] = line[1]
+    # TUs are a subset of RNA object ids
+    rna_to_basal_prob = {rna_obj_to_name[tu]: basal_prob for tu, basal_prob in tu_to_basal_prob.items()}
 
-    gene_to_basal_prob = {tu_to_gene[tu]: basal_prob for tu, basal_prob in tu_to_basal_prob.items()}
     with open(RESPONSE_GENES_FILE_PATH) as response_genes_file:
         response_genes = response_genes_file.read().split('\n')
     r_genes_to_basal_prob = {}
+    # All response gene names are the same as their corresponding rna names
     for r_gene in response_genes:
-        r_genes_to_basal_prob[r_gene] = gene_to_basal_prob[r_gene]
+        r_genes_to_basal_prob[r_gene] = rna_to_basal_prob[r_gene]
     assert(len(r_genes_to_basal_prob.keys()) == len(response_genes))
 
-    gene_prob_tuples = []
-    for gene in gene_to_basal_prob.keys():
-        gene_prob_tuples.append((gene_to_basal_prob[gene], gene))
-    gene_prob_tuples = sorted(gene_prob_tuples, reverse=True)
+    rna_prob_tuples = []
+    for rna in rna_to_basal_prob.keys():
+        rna_prob_tuples.append((rna_to_basal_prob[rna], rna))
+    rna_prob_tuples = sorted(rna_prob_tuples, reverse=True)
     r_gene_prob_tuples = []
-    for gene in r_genes_to_basal_prob.keys():
-        r_gene_prob_tuples.append((r_genes_to_basal_prob[gene], gene))
+    for gene_id in r_genes_to_basal_prob.keys():
+        r_gene_prob_tuples.append((r_genes_to_basal_prob[gene_id], gene_id))
     r_gene_prob_tuples = sorted(r_gene_prob_tuples, reverse=True)
-    generational_index = int(len(gene_prob_tuples) * PERCENT_GENERATIONAL)
-    num_generational = generational_index
-    num_sub_gen = len(gene_prob_tuples) - num_generational
-    generational_prob_cutoff = gene_prob_tuples[generational_index][0]
+
+    # Get the basal probabilities from the release version of wcEcoli for the next section.
+    with open(RNA_SYNTH_PROB_PATH) as f:
+        rna_synth_probs = f.read().splitlines()
+        for i in range(len(rna_synth_probs)):
+            rna_synth_probs[i] = np.float64(rna_synth_probs[i])
+
+    # Here we find the probability cutoff separating generational and sub-generational genes. We do this by finding
+    # the probability of the most likely to be expressed sub-generational gene in wcEcoli and using that as the cutoff.
+    prob_gene_tuples = []
+    index = 0
+    with open(RELEASE_RNAS_TSV_PATH) as file:
+        tsv_file = csv.reader(file, delimiter='\t')
+        for line in tsv_file:
+            if line[3] == 'mRNA':
+                gene_id = line[11]
+                prob_gene_tuples.append((rna_synth_probs[index], gene_id))
+            index += 1
+    prob_gene_tuples = sorted(prob_gene_tuples, reverse=True)
+    cutoff_tuple = prob_gene_tuples[CUTOFF_INDEX]
+    generational_prob_cutoff = cutoff_tuple[0]
+
+    num_all_generational = 0
+    for prob, gene_id in rna_prob_tuples:
+        if prob < generational_prob_cutoff:
+            break
+        num_all_generational += 1
+    num_all_sub_gen = len(rna_prob_tuples) - num_all_generational
+
     num_r_generational = 0
-    for prob, gene in r_gene_prob_tuples:
+    for prob, gene_id in r_gene_prob_tuples:
         if prob < generational_prob_cutoff:
             break
         num_r_generational += 1
     num_r_sub_gen = len(r_gene_prob_tuples) - num_r_generational
-    functional_generational = []
-    functional_sub = []
-    for gene in FUNCTIONAL_GENES:
-        if gene_to_basal_prob[gene] < generational_prob_cutoff:
-            functional_sub.append(gene)
-        else:
-            functional_generational.append(gene)
-    print('Functional: Sub -> ' + str(functional_sub) + '\n'
-          'Functional: Generational -> ' + str(functional_generational))
 
-    plt.plot(sorted(list(r_genes_to_basal_prob.values())))
-    plt.title("Response Genes' Basal Probabilities (Sorted)")
-    plt.xlabel("Gene Index")
-    plt.savefig('data/subgen_gene_plots/r_genes_basal_probs.png')
-    plt.close()
-
-    data = {'All: Generational': num_generational, 'All: Sub': num_sub_gen,
+    data = {'All: Generational': num_all_generational, 'All: Sub': num_all_sub_gen,
             'Response: Generational': num_r_generational, 'Response: Sub': num_r_sub_gen}
     fig, ax = plt.subplots(figsize=(16, 9))
     bars = ax.barh(list(data.keys()), list(data.values()))
