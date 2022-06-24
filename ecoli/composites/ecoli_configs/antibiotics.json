@@ -12,7 +12,7 @@
             ]
         },
         "diffusion": {
-            "molecules": ["GLC[p]", "nitrocefin", "cephaloridine", "tetracycline"],
+            "molecules": ["GLC[p]", "nitrocefin", "cephaloridine", "tetracycline", "ampicillin"],
             "n_bins": [10, 10],
             "bounds": [
                 "!units[50 micrometer]",
@@ -26,7 +26,8 @@
                     "GLC[p]": 1.0,
                     "nitrocefin": 0,
                     "cephaloridine": 0,
-                    "tetracycline": 0
+                    "tetracycline": 0,
+                    "ampicillin": 0
                 }
             }
         },
@@ -86,6 +87,7 @@
     },
     "engine_process_reports": [
         ["bioscrape_deltas"],
-        ["periplasm"]
+        ["periplasm"],
+        ["kinetic_parameters"]
     ]
 }
