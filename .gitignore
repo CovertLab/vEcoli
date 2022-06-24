@@ -55,6 +55,3 @@ data/blame_test_data.json
 data/vivecoli_t2.json
 ecoli/composites/ecoli_configs/test_configs/test_export.json
 /notebooks/test_files/
-data/nitro_sbml.xml
-data/ceph_tet_sbml.xml
-data/ceph_tet_diffusion_only_sbml.xml

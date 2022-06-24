@@ -11,14 +11,6 @@ from ecoli.experiments.ecoli_master_sim import EcoliSim, CONFIG_DIR_PATH
 from ecoli.plots.snapshots import plot_snapshots
 
 
-def test_antibiotics_nitrocefin():
-    sim = EcoliSim.from_file(CONFIG_DIR_PATH + 'antibiotics_nitrocefin.json')
-    sim.emitter = 'timeseries'
-    sim.total_time = 2
-    sim.run()
-    data = sim.query()
-
-
 def test_antibiotics_tetracycline_cephaloridine():
     sim = EcoliSim.from_file(CONFIG_DIR_PATH + 'antibiotics_tetracycline_cephaloridine.json')
     sim.emitter = 'timeseries'
@@ -113,7 +105,6 @@ def test_lysis_rxn_dff_environment(total_time = 10):
 
 
 library = {
-    '0': test_antibiotics_nitrocefin,
     '1': test_antibiotics_tetracycline_cephaloridine,
     '2': test_lysis_rxn_dff_environment,
 }
