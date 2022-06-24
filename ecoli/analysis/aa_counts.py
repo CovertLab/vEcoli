@@ -5,7 +5,6 @@ Plot amino acid counts
 import pickle
 import os
 
-import numpy as np
 from matplotlib import pyplot as plt
 
 from ecoli.composites.ecoli_master import run_ecoli
