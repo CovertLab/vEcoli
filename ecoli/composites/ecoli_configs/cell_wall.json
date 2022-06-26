@@ -4,7 +4,7 @@
     "initial_state_file": "wcecoli_t0",
     "initial_state_overrides": ["overrides/reduced_murein"],
 
-    "add_processes": ["ecoli-cell-wall", "ecoli-cephaloridine", "ecoli-shape"],
+    "add_processes": ["ecoli-cell-wall", "ecoli-pbp-binding", "ecoli-shape"],
     "topology": {
         "ecoli-cell-wall": {
             "shape": ["boundary"],
@@ -13,7 +13,7 @@
             "PBP": ["bulk"],
             "wall_state": ["wall_state"]
         },
-        "ecoli-cephaloridine": {
+        "ecoli-pbp-binding": {
             "total_murein": ["bulk"],
             "murein_state": ["murein_state"],
             "concentrations": ["concentrations"],
@@ -31,7 +31,7 @@
         "ecoli-cell-wall": {
 
         },
-        "ecoli-cephaloridine": {
+        "ecoli-pbp-binding": {
 
         },
         "ecoli-shape": {
@@ -46,6 +46,6 @@
     },
     "flow": {
         "ecoli-shape": [["ecoli-mass-listener"]],
-        "ecoli-cephaloridine": [["ecoli-metabolism"]]
+        "ecoli-pbp-binding": [["ecoli-metabolism"]]
       }
 }
