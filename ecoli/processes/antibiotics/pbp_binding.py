@@ -1,47 +1,68 @@
-import os
 import numpy as np
-from vivarium.core.process import Step, Process
-from vivarium.library.units import units
-from vivarium.core.composition import simulate_process, simulate_composite, add_timeline
-from vivarium.plots.simulation_output import plot_variables
-from vivarium.processes.timeline import TimelineProcess
-
 from ecoli.library.schema import bulk_schema
 from ecoli.processes.registries import topology_registry
+from vivarium.core.composition import add_timeline, simulate_composite
+from vivarium.core.process import Step
+from vivarium.library.units import units
+from vivarium.plots.simulation_output import plot_variables
+
 
 # Register default topology for this process, associating it with process name
-NAME = "ecoli-cephaloridine"
+NAME = "ecoli-pbp-binding"
 TOPOLOGY = {
-    # TODO
+    "total_murein": ("bulk",),
+    "murein_state": ("murein_state",),
+    "concentrations": ("concentrations",),
+    "bulk": ("bulk",),
+    "listeners": ("listeners",),
 }
 topology_registry.register(NAME, TOPOLOGY)
 
 
-class CephaloridineAntagonism(Step):
+class PBPBinding(Step):
     name = NAME
     topology = TOPOLOGY
 
     defaults = {
         "murein_name": "CPD-12261[p]",
+        "beta_lactam": "cephaloridine",
         "PBP": {  # penicillin-binding proteins
             "PBP1A": "CPLX0-7717[m]",  # transglycosylase-transpeptidase ~100
             "PBP1B": "CPLX0-3951[i]",  # transglycosylase-transpeptidase ~100
         },
         "kinetic_params": {
-            "K_A": {
-                # From Fontana et al. 2000
-                #
-                # PBP1A: 0.25 ug / mL
-                # PBP1B: 2.5 ug / mL
-                #
-                # converted to molar units using molar mass of cephaloridine = 415.488 g/mol
-                "PBP1A": 0.6017020948860136 * units.micromolar,
-                "PBP1B": 6.017020948860137 * units.micromolar,
+            "cephaloridine": {
+                "K_A": {
+                    # From Curtis et al. 1979 (same values in Fontana et al. 2000)
+                    #
+                    # PBP1A: 0.25 ug / mL
+                    # PBP1B: 2.5 ug / mL
+                    #
+                    # converted to molar units using molar mass of cephaloridine = 415.488 g/mol
+                    "PBP1A": 0.6017020948860136 * units.micromolar,
+                    "PBP1B": 6.017020948860137 * units.micromolar,
+                },
+                "Hill_n": {
+                    "PBP1A": 1,
+                    "PBP1B": 1,
+                },
             },
-            "Hill_n": {
-                "PBP1A": 1,
-                "PBP1B": 1,
-            },
+            "ampicillin": {
+                "K_A": {
+                    # From Curtis et al. 1979
+                    #
+                    # PBP1A: 1.4 ug / mL
+                    # PBP1B: 3.9 ug / mL
+                    #
+                    # converted to molar units using molar mass of ampicillin = 349.406 g/mol
+                    "PBP1A": 4.00680011 * units.micromolar,
+                    "PBP1B": 11.1618003 * units.micromolar,
+                },
+                "Hill_n": {
+                    "PBP1A": 1,
+                    "PBP1B": 1,
+                },
+            }
         },
     }
 
@@ -49,12 +70,13 @@ class CephaloridineAntagonism(Step):
         super().__init__(parameters)
 
         self.murein = self.parameters["murein_name"]
+        self.beta_lactam = self.parameters["beta_lactam"]
         self.PBP1A = self.parameters["PBP"]["PBP1A"]
         self.PBP1B = self.parameters["PBP"]["PBP1B"]
-        self.K_A_1a = self.parameters["kinetic_params"]["K_A"]["PBP1A"]
-        self.n_1a = self.parameters["kinetic_params"]["Hill_n"]["PBP1A"]
-        self.K_A_1b = self.parameters["kinetic_params"]["K_A"]["PBP1B"]
-        self.n_1b = self.parameters["kinetic_params"]["Hill_n"]["PBP1B"]
+        self.K_A_1a = self.parameters["kinetic_params"][self.beta_lactam]["K_A"]["PBP1A"]
+        self.n_1a = self.parameters["kinetic_params"][self.beta_lactam]["Hill_n"]["PBP1A"]
+        self.K_A_1b = self.parameters["kinetic_params"][self.beta_lactam]["K_A"]["PBP1B"]
+        self.n_1b = self.parameters["kinetic_params"][self.beta_lactam]["Hill_n"]["PBP1B"]
 
     def ports_schema(self):
         return {
@@ -63,7 +85,7 @@ class CephaloridineAntagonism(Step):
                 ["incorporated_murein", "unincorporated_murein"]
             ),
             "concentrations": {
-                "cephaloridine": {"_default": 0.0 * units.micromolar, "_emit": True},
+                "beta_lactam": {"_default": 0.0 * units.micromolar, "_emit": True},
             },
             "bulk": bulk_schema(list(self.parameters["PBP"].values())),
             "listeners": {
@@ -88,13 +110,11 @@ class CephaloridineAntagonism(Step):
             states["murein_state"].values()
         )
 
-        print(f"Cephaloridine: Allocating {new_murein} to incorporated/unincorporated")
-
         # Calculate fraction of active PBP1a, PBP1b using Hill Equation
         # (calculating prop NOT bound, i.e. 1 - Hill eq value)
-        ceph = states["concentrations"]["cephaloridine"]
-        active_fraction_1a = 1 / (1 + (ceph / self.K_A_1a) ** self.n_1a)
-        active_fraction_1b = 1 / (1 + (ceph / self.K_A_1b) ** self.n_1b)
+        beta_lactam = states["concentrations"]["beta_lactam"]
+        active_fraction_1a = 1 / (1 + (beta_lactam / self.K_A_1a) ** self.n_1a)
+        active_fraction_1b = 1 / (1 + (beta_lactam / self.K_A_1b) ** self.n_1b)
 
         # Allocate incorporated vs. unincorporated based on
         # what fraction of PBPs are active
@@ -124,15 +144,15 @@ class CephaloridineAntagonism(Step):
         return update
 
 
-def test_cephaloridine_antagonism():
+def test_pbp_binding():
     # Create process
-    params = {}
-    process = CephaloridineAntagonism(params)
+    params = {"beta_lactam": "ampicillin"}
+    process = PBPBinding(params)
 
     # Create composite with timeline
-    processes = {"cephaloridine_antagonism": process}
+    processes = {"pbp_binding": process}
     topology = {
-        "cephaloridine_antagonism": {
+        "pbp_binding": {
             "total_murein": ("bulk",),
             "murein_state": ("murein_state",),
             "concentrations": ("concentrations",),
@@ -149,7 +169,7 @@ def test_cephaloridine_antagonism():
                     time,
                     {
                         ("bulk", "CPD-12261[p]"): int(3e6 + 1000 * time),
-                        ("concentrations", "cephaloridine"): (
+                        ("concentrations", "beta_lactam"): (
                             (time - 50) / 10 * units.micromolar
                             if time > 50
                             else 0 * units.micromolar
@@ -170,7 +190,7 @@ def test_cephaloridine_antagonism():
                 "unincorporated_murein": 0,
             },
             "concentrations": {
-                "cephaloridine": 0 * units.micromolar,
+                "beta_lactam": 0 * units.micromolar,
             },
             "bulk": {
                 "CPD-12261[p]": int(3e6),
@@ -182,19 +202,20 @@ def test_cephaloridine_antagonism():
     data = simulate_composite({"processes": processes, "topology": topology}, settings)
 
     # Plot output
-    plot_variables(
+    fig = plot_variables(
         data,
         variables=[
-            ("concentrations", ("cephaloridine", "micromolar")),
+            ("concentrations", ("beta_lactam", "micromolar")),
             ("bulk", "CPD-12261[p]"),
             ("murein_state", "incorporated_murein"),
             ("murein_state", "unincorporated_murein"),
             ("listeners", ("active_fraction_PBP1A", "dimensionless")),
             ("listeners", ("active_fraction_PBP1B", "dimensionless")),
-        ],
-        out_dir="out/processes/cephaloridine_antagonism/",
-        filename="test.png",
+        ]
     )
+    fig.get_axes()[-1].set_ylim(0, 1)
+    fig.get_axes()[-2].set_ylim(0, 1)
+    fig.savefig("out/processes/pbp_binding/test.png")
 
     # Validate output data
     total_murein = np.array(data["bulk"]["CPD-12261[p]"])
@@ -204,7 +225,7 @@ def test_cephaloridine_antagonism():
 
 
 def main():
-    test_cephaloridine_antagonism()
+    test_pbp_binding()
 
 
 if __name__ == "__main__":

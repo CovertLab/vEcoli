@@ -5,9 +5,6 @@ TODO: references for parameters
 import os
 
 import numpy as np
-from matplotlib import pyplot as plt
-import mpl_toolkits.mplot3d.axes3d as axes3d
-from skimage.transform import resize
 
 from vivarium.core.process import Process
 from vivarium.core.composition import add_timeline, simulate_composite
@@ -16,8 +13,10 @@ from vivarium.plots.simulation_output import plot_variables
 
 from ecoli.library.cell_wall.hole_detection import detect_holes
 from ecoli.library.cell_wall.column_sampler import sample_column, poisson_sampler
+from ecoli.library.cell_wall.lattice import calculate_lattice_size, plot_lattice
 from ecoli.library.schema import bulk_schema
-from ecoli.processes.antibiotics.cephaloridine_antagonism import CephaloridineAntagonism
+from ecoli.library.create_timeline import create_timeline_from_csv
+from ecoli.processes.antibiotics.cephaloridine_antagonism import PBPBinding
 from ecoli.processes.registries import topology_registry
 from vivarium.core.composition import simulate_process
 from ecoli.processes.shape import length_from_volume
@@ -36,7 +35,6 @@ topology_registry.register(NAME, TOPOLOGY)
 
 
 class CellWall(Process):
-
     name = NAME
     topology = TOPOLOGY
     defaults = {
@@ -59,6 +57,7 @@ class CellWall(Process):
         # literature value
         # Simulation parameters
         "seed": 0,
+        "timestep": 30,
     }
 
     def __init__(self, parameters=None):
@@ -127,7 +126,12 @@ class CellWall(Process):
         print(f"Cell Wall: Lattice dimensions: {lattice.shape}")
 
         # Calculate new lattice dimensions
-        new_rows, new_columns = self.calculate_lattice_size(length)
+        new_rows, new_columns = calculate_lattice_size(
+            length,
+            self.crossbridge_length,
+            self.disaccharide_length,
+            self.circumference,
+        )
 
         # Update lattice to reflect new dimensions,
         # change in murein, synthesis sites
@@ -172,20 +176,6 @@ class CellWall(Process):
         )
 
         return update
-
-    def calculate_lattice_size(self, cell_length):
-        # Calculate new lattice size
-        columns = int(
-            cell_length / (self.crossbridge_length + self.disaccharide_length)
-        )
-        print(
-            f"cols = {cell_length} / {self.crossbridge_length + self.disaccharide_length} = {columns}"
-        )
-
-        rows = int(self.circumference / self.disaccharide_length)
-        print(f"rows = {self.circumference} / {self.disaccharide_length} = {rows}")
-
-        return rows, columns
 
     def update_murein(
         self,
@@ -273,48 +263,6 @@ class CellWall(Process):
         return max_size * self.peptidoglycan_unit_area
 
 
-def plot_lattice(lattice, on_cylinder=False):
-    if not on_cylinder:
-        fig, ax = plt.subplots()
-        mappable = ax.imshow(lattice, interpolation="nearest")
-        fig.colorbar(mappable, ax=ax)
-    else:
-        print("Downscaling lattice...")
-        lattice = resize(
-            lattice,
-            (lattice.shape[0] // 10, lattice.shape[1] // 10),
-            preserve_range=True,
-            anti_aliasing=True,
-        )
-        lattice = lattice.T
-        print("Done.\nDrawing on cylinder...")
-
-        h, w = lattice.shape
-        theta, z = np.linspace(0, 2 * np.pi, w), np.linspace(0, 1, h)
-        THETA, Z = np.meshgrid(theta, z)
-        X = np.cos(THETA)
-        Y = np.sin(THETA)
-        fig = plt.figure()
-        ax = fig.add_subplot(1, 1, 1, projection="3d")
-        mappable = plt.cm.ScalarMappable(cmap=plt.cm.inferno)
-        mappable.set_clim(0, 1)
-        mappable.set_array(lattice)
-        plot = ax.plot_surface(
-            X,
-            Y,
-            Z,
-            rstride=1,
-            cstride=1,
-            facecolors=mappable.cmap(lattice),
-            linewidth=0,
-            antialiased=False,
-            alpha=0.75,
-        )
-        fig.colorbar(mappable)
-
-    return fig, ax
-
-
 def test_cell_wall():
     # Create composite with timeline
     processes = {"cell_wall": CellWall({})}
@@ -330,21 +278,29 @@ def test_cell_wall():
     add_timeline(
         processes,
         topology,
-        {
-            "timeline": [
-                (
-                    time,
-                    {
-                        ("bulk", "CPD-12261[p]"): int(383237 + 10 * time),
-                        ("murein_state", "incorporated_murein"): int(
-                            383237 + 10 * time
-                        ),
-                        ("cell_global", "volume"): (1 + time / 1000) * units.fL,
-                    },
-                )
-                for time in range(0, 10)
-            ]
-        },
+        create_timeline_from_csv(
+            "data/cell_wall/test_murein_21_06_2022_17_42_11.csv",
+            {
+                "CPD-12261[p]": ("bulk", "CPD-12261[p]"),
+                "CPLX0-7717[m]": ("bulk", "CPLX0-7717[m]"),
+                "CPLX0-3951[i]": ("bulk", "CPLX0-3951[i]"),
+            },
+        )
+        # {
+        #     "timeline": [
+        #         (
+        #             time,
+        #             {
+        #                 ("bulk", "CPD-12261[p]"): int(383237 + 10 * time),
+        #                 ("murein_state", "incorporated_murein"): int(
+        #                     383237 + 10 * time
+        #                 ),
+        #                 ("cell_global", "volume"): (1 + time / 1000) * units.fL,
+        #             },
+        #         )
+        #         for time in range(0, 10)
+        #     ]
+        # },
     )
 
     # Run experiment
