@@ -35,6 +35,7 @@ def run_ecoli(
 ):
     sim = EcoliSim.from_file(CONFIG_DIR_PATH + filename + '.json')
     sim.total_time = total_time
+    sim.raw_output = False
     sim.divide = divide
     sim.progress_bar = progress_bar
     sim.log_updates = log_updates
@@ -44,8 +45,15 @@ def run_ecoli(
     sim.run()
 
     query = []
-    output = sim.query()
-    print('a')
+    agents = sim.query()['agents'].keys()
+    for agent in agents:
+        query.extend([('agents', agent, 'listeners', 'fba_results'),
+                      ('agents', agent, 'bulk')])
+    output = sim.query(query)
+
+    folder = f'out/geneRxnVerifData'
+    pathlib.Path(folder).mkdir(parents=True, exist_ok=True)
+    np.save(folder + 'output.npy', output)
 
 
 experiment_library = {
