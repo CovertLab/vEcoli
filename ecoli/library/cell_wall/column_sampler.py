@@ -17,6 +17,14 @@ def poisson_sampler(rng, rate):
     return sampler
 
 
+def geom_sampler(rng, p):
+    def sampler():
+        while True:
+            yield rng.geometric(p)
+
+    return sampler
+
+
 def sample_column(rows, murein, strand_sampler, rng):
     result = np.zeros(rows, dtype=int)
 
