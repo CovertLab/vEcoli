@@ -10,8 +10,8 @@ import copy
 
 from vivarium.core.composer import Composer
 from vivarium.core.engine import Engine
-from vivarium.core.process import Process
-from vivarium.core.serialize import serialize_value, deserialize_value
+from vivarium.core.serialize import serialize_value
+from vivarium.core.store import Store
 from vivarium.library.dict_utils import deep_merge
 
 from ecoli.experiments.ecoli_master_sim import (
@@ -103,6 +103,7 @@ def colony_save_states(engine, config):
             raise ValueError(
                 f'Config contains save_time ({time}) > total '
                 f'time ({config["total_time"]})')
+
     for i in range(len(config["save_times"])):
         if i == 0:
             time_to_next_save = config["save_times"][i]
@@ -114,16 +115,25 @@ def colony_save_states(engine, config):
 
         # Save the full state of the super-simulation
         def not_a_process(value):
-            return not isinstance(value, Process)
+            return not (isinstance(value, Store) and value.topology)
+
         state = engine.state.get_value(condition=not_a_process)
         state_to_save = copy.deepcopy(state)
 
         del state_to_save['agents']  # Replace 'agents' with agent states
         state_to_save['agents'] = {}
+
+        # Get internal state from the EngineProcess sub-simulation
         for agent_id in state['agents']:
-            # Get internal state from the EngineProcess sub-simulation
-            cell_state = state['agents'][agent_id]['cell_process'][0].sim.state.get_value(condition=not_a_process)
+            engine.state.get_path(
+                ('agents', agent_id, 'cell_process')
+            ).value.send_command('get_inner_state')
+        for agent_id in state['agents']:
+            cell_state = engine.state.get_path(
+                ('agents', agent_id, 'cell_process')
+            ).value.get_command_result()
             del cell_state['environment']['exchange_data']  # Can't save, but will be restored when loading state
+            del cell_state['evolvers_ran']
             state_to_save['agents'][agent_id] = cell_state
 
         state_to_save = serialize_value(state_to_save)
@@ -160,7 +170,6 @@ def run_simulation():
                 },
             },
         )
-
         diffusion_schema = environment_composite.processes[
             'reaction_diffusion'].get_schema()
         multibody_schema = environment_composite.processes[
@@ -193,12 +202,14 @@ def run_simulation():
     composite = {}
     if 'initial_colony_file' in config.keys():
         initial_state = get_state_from_file(path=f'data/{config["initial_colony_file"]}.json')  # TODO(Matt): initial_state_file is wc_ecoli?
-        initial_state = deserialize_value(initial_state)
         agent_states = initial_state['agents']
         for agent_id, agent_state in agent_states.items():
             agent_config = copy.deepcopy(base_config)
             agent_config['initial_cell_state'] = agent_state
             agent_config['agent_id'] = agent_id
+            time_str = config['initial_colony_file'][len('colony_t'):]
+            agent_config['seed'] = (
+                agent_config['seed'] + int(float(time_str))) % RAND_MAX
             agent_composer = EcoliEngineProcess(agent_config)
             agent_composite = agent_composer.generate(path=('agents', agent_id))
             if not composite:
