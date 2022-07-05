@@ -472,6 +472,11 @@ class EcoliSim:
             if self.divide:
                 state = state['agents'][self.agent_id]
             del state['evolvers_ran']
+            # Saving the exchange data causes nondeterministic output
+            # because it includes sets, so avoid saving it since we
+            # set exchange_data in
+            # ecoli.states.wcecoli_state.get_state_from_file() anyway.
+            del state['environment']
             write_json('data/vivecoli_t' + str(time_elapsed) + '.json', state)
             print('Finished saving the state at t = ' + str(time_elapsed))
         time_remaining = self.total_time - self.save_times[-1]
