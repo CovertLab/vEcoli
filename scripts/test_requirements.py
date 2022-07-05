@@ -5,7 +5,7 @@ from setup import INSTALL_REQUIRES
 
 
 REQUIREMENTS_PATH = os.path.join(
-    os.path.dirname(__file__), 'requirements.txt')
+    os.path.dirname(__file__), '..', 'requirements.txt')
 
 
 def test_requirements():
