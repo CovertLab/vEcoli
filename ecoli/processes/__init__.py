@@ -24,7 +24,7 @@ from ecoli.processes.environment.local_field import LocalField
 from ecoli.processes.environment.field_timeline import FieldTimeline
 from ecoli.processes.shape import Shape
 from ecoli.processes.antibiotics.cell_wall import CellWall
-from ecoli.processes.antibiotics.cephaloridine_antagonism import PBPBinding
+from ecoli.processes.antibiotics.pbp_binding import PBPBinding
 from ecoli.processes.concentrations_deriver import ConcentrationsDeriver
 from ecoli.processes.antibiotics.death import DeathFreezeState
 from ecoli.processes.antibiotics.antibiotic_transport_steady_state import (
