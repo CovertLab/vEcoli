@@ -12,13 +12,11 @@ from vivarium.library.units import units
 from vivarium.plots.simulation_output import plot_variables
 
 from ecoli.library.cell_wall.hole_detection import detect_holes
-from ecoli.library.cell_wall.column_sampler import sample_column, poisson_sampler
+from ecoli.library.cell_wall.column_sampler import sample_column, geom_sampler
 from ecoli.library.cell_wall.lattice import calculate_lattice_size, plot_lattice
 from ecoli.library.schema import bulk_schema
 from ecoli.library.create_timeline import create_timeline_from_csv
-from ecoli.processes.antibiotics.cephaloridine_antagonism import PBPBinding
 from ecoli.processes.registries import topology_registry
-from vivarium.core.composition import simulate_process
 from ecoli.processes.shape import length_from_volume
 
 
@@ -44,7 +42,7 @@ class CellWall(Process):
             "PBP1A": "CPLX0-7717[m]",  # transglycosylase-transpeptidase ~100
             "PBP1B": "CPLX0-3951[i]",  # transglycosylase-transpeptidase ~100
         },
-        "strand_length_distribution": [0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+        "strand_term_p": .058,
         # Physical parameters
         "critical_radius": 20 * units.nm,
         "cell_radius": 0.5 * units.um,
@@ -57,14 +55,14 @@ class CellWall(Process):
         # literature value
         # Simulation parameters
         "seed": 0,
-        "timestep": 30,
+        "time_step": 10,
     }
 
     def __init__(self, parameters=None):
         super().__init__(parameters)
 
         self.murein = self.parameters["murein"]
-        self.strand_length_distribution = self.parameters["strand_length_distribution"]
+        self.strand_term_p = self.parameters["strand_term_p"]
 
         self.cell_radius = self.parameters["cell_radius"]
         self.critical_radius = self.parameters["critical_radius"]
@@ -82,7 +80,8 @@ class CellWall(Process):
         schema = {
             "bulk_murein": bulk_schema([self.parameters["murein"]]),
             "murein_state": bulk_schema(
-                ["incorporated_murein", "unincorporated_murein"]
+                ["incorporated_murein", "unincorporated_murein"],
+                updater="set"
             ),
             "PBP": bulk_schema(list(self.parameters["PBP"].values())),
             "shape": {"volume": {"_default": 0 * units.fL, "_emit": True}},
@@ -101,6 +100,8 @@ class CellWall(Process):
         return schema
 
     def next_update(self, timestep, states):
+        DEBUG = True
+
         # Unpack states
         volume = states["shape"]["volume"]
         lattice = np.array(states["wall_state"]["lattice"])
@@ -111,7 +112,7 @@ class CellWall(Process):
         update = {}
 
         # Get number of synthesis sites
-        # TODO: get this from cephaloridine antagonism (alpha * sum(PBPs))
+        # TODO: get this from pbp binding process (alpha * sum(PBPs))
         n_sites = sum(PBPs.values())
         if n_sites == 0:
             return {}
@@ -119,11 +120,12 @@ class CellWall(Process):
         # Translate volume into length
         length = length_from_volume(volume, self.cell_radius * 2).to("micrometer")
 
-        print(f"Cell Wall: Bulk murein = {states['bulk_murein'][self.murein]}")
-        print(f"Cell Wall: Unincorporated murein = {unincorporated_murein}")
-        print(f"Cell Wall: Incorporated murein = {incorporated_murein}")
-        print(f"Cell Wall: Cell length = {length}")
-        print(f"Cell Wall: Lattice dimensions: {lattice.shape}")
+        if DEBUG:
+            print(f"Cell Wall: Bulk murein = {states['bulk_murein'][self.murein]}")
+            print(f"Cell Wall: Unincorporated murein = {unincorporated_murein}")
+            print(f"Cell Wall: Incorporated murein = {incorporated_murein}")
+            print(f"Cell Wall: Cell length = {length}")
+            print(f"Cell Wall: Lattice dimensions: {lattice.shape}")
 
         # Calculate new lattice dimensions
         new_rows, new_columns = calculate_lattice_size(
@@ -146,7 +148,7 @@ class CellWall(Process):
             new_rows,
             new_columns,
             n_sites,
-            self.strand_length_distribution,
+            self.strand_term_p,
         )
 
         update["wall_state"] = {
@@ -155,10 +157,10 @@ class CellWall(Process):
             "lattice_cols": lattice.shape[1],
         }
 
-        # update["murein_state"] = {
-        #     "unincorporated_murein": new_unincorporated_monomers // 4,
-        #     "incorporated_murein": new_incorporated_monomers // 4,
-        # }
+        update["murein_state"] = {
+            "unincorporated_murein": new_unincorporated_monomers // 4,
+            "incorporated_murein": new_incorporated_monomers // 4,
+        }
 
         # Crack detection (cracking is irreversible)
         if (
@@ -167,13 +169,21 @@ class CellWall(Process):
         ):
             update["wall_state"]["cracked"] = True
 
-        # Testing (TODO: remove)
-        assert new_incorporated_monomers == lattice.sum()
-        assert (
-            states["bulk_murein"][self.murein]
-            == states["murein_state"]["unincorporated_murein"]
-            + states["murein_state"]["incorporated_murein"]
-        )
+        if DEBUG:
+            assert new_incorporated_monomers == lattice.sum()
+            assert (
+                states["bulk_murein"][self.murein]
+                == states["murein_state"]["unincorporated_murein"]
+                + states["murein_state"]["incorporated_murein"]
+            )
+
+            try:
+                self.time += timestep
+            except AttributeError:
+                self.time = 0
+
+            fig, _ = plot_lattice(lattice)
+            fig.savefig(f"out/processes/cell_wall/cell_wall_ecoli_t{self.time}")
 
         return update
 
@@ -185,7 +195,7 @@ class CellWall(Process):
         new_rows,
         new_columns,
         n_sites,
-        strand_length_distribution,
+        strand_term_p,
     ):
         rows, columns = lattice.shape
         d_columns = new_columns - columns
@@ -195,13 +205,13 @@ class CellWall(Process):
 
         # Sample columns for synthesis sites
         insertion_points = self.rng.choice(
-            list(range(columns)), size=n_sites, replace=False
+            list(range(columns)), size=min(n_sites, d_columns), replace=False
         )
-        insertion_size = np.repeat(d_columns // n_sites, n_sites)
+        insertion_size = np.repeat(d_columns // n_sites, insertion_points.size)
 
         # Add additional columns at random if necessary
         while insertion_size.sum() < d_columns:
-            insertion_size[self.rng.integers(0, n_sites)] += 1
+            insertion_size[self.rng.integers(0, insertion_size.size)] += 1
 
         # Get murein per column
         current_incorporated = lattice.sum()
@@ -229,7 +239,7 @@ class CellWall(Process):
                         sample_column(
                             rows,
                             murein_per_column,
-                            poisson_sampler(self.rng, 1),
+                            geom_sampler(self.rng, strand_term_p),
                             self.rng,
                         )
                         for _ in range(insert_size)
@@ -348,93 +358,6 @@ def test_cell_wall():
         print(f"Plotting t={t}...")
         lattice = data_t["wall_state"]["lattice"]
         fig, _ = plot_lattice(np.array(lattice), on_cylinder=False)
-        fig.tight_layout()
-        fig.savefig(f"out/processes/cell_wall/cell_wall_t{t}.png")
-        print("Done.\n")
-
-
-def main():
-    from vivarium.core.composer import Composite
-    from vivarium.processes.timeline import TimelineProcess
-
-    # Stub for rest of cell (increasing murein)
-    cell_stub = TimelineProcess(
-        {
-            "time_step": 2.0,
-            "timeline": [
-                (time, {("bulk_murein", "CPD-12261[p]"): int(3e6 + 1000 * time)})
-                for time in range(0, 10, 2)
-            ],
-        }
-    )
-
-    # Cell wall process
-    params = {}
-    cell_wall = CellWall(params)
-
-    settings = {
-        "total_time": 10,
-        "initial_state": {
-            "bulk_murein": {"CPD-12261[p]": int(3e6)},
-            "volume": 1 * units.fL,
-            "murein_state": {
-                "unincorporated_murein": 0,
-                "incorporated_murein": 3000000,
-            },
-            "wall_state": {
-                "lattice_rows": 1525,
-                "lattice_cols": 834,
-                "lattice": np.ones((1525, 834), dtype=int),
-            },
-        },
-    }
-
-    # sim = Engine(
-    #     processes={
-    #         # 'cell_stub': cell_stub,
-    #         "cell_wall": cell_wall
-    #     },
-    #     topology={
-    #         'cell_wall': {
-    #             'bulk_murein': ("bulk", 'CPD-12261[p]'),
-    #             'shape' : ("shape",)
-    #         },
-    #         # 'cell_stub': {
-    #         #     'global': ('global',),
-    #         #     'bulk_murein': ("bulk", 'CPD-12261[p]'),
-    #         # }
-    #     },
-    #     initial_state={
-    #         'bulk': {
-    #             'CPD-12261[p]': int(3e6),
-    #         },
-    #         'shape' : {
-    #             'length' : 2 * units.um,
-    #         }})
-    #
-    # sim.run_for(10)
-    # data = sim.emitter.get_data()
-
-    data = simulate_process(cell_wall, settings)
-    # data = simulate_process(cell_stub, settings)
-    # data = simulate_composite(test_composite, settings)
-    fig = plot_variables(
-        data,
-        variables=[
-            ("murein_state", "unincorporated_murein"),
-            ("murein_state", "incorporated_murein"),
-            ("wall_state", "lattice_rows"),
-            ("wall_state", "lattice_cols"),
-        ],
-    )
-    fig.tight_layout()
-
-    os.makedirs("out/processes/cell_wall/", exist_ok=True)
-    fig.savefig("out/processes/cell_wall/test.png")
-
-    for t, lattice in enumerate(data["wall_state"]["lattice"]):
-        print(f"Plotting t={t}...")
-        fig, _ = plot_lattice(np.array(lattice), on_cylinder=True)
         fig.tight_layout()
         fig.savefig(f"out/processes/cell_wall/cell_wall_t{t}.png")
         print("Done.\n")
