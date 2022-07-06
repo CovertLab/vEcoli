@@ -1,7 +1,23 @@
 import mpl_toolkits.mplot3d.axes3d as axes3d
 import numpy as np
+from ecoli.library.cell_wall.column_sampler import sample_column
 from matplotlib import pyplot as plt
 from skimage.transform import resize
+
+
+def de_novo_lattice(murein_monomers, rows, cols, strand_sampler, rng):
+    lattice = np.array(
+        [
+            sample_column(
+                rows,
+                murein_monomers / cols,
+                strand_sampler,
+                rng,
+            )
+            for _ in range(cols)
+        ]
+    )
+    return lattice
 
 
 def calculate_lattice_size(
