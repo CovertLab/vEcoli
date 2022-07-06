@@ -73,7 +73,7 @@ nest-asyncio==1.5.4
 networkx==2.6.3
 notebook==6.4.8
 numba==0.50.1
-numpy==1.23.0
+numpy==1.22.1
 opencv-python==4.5.4.60
 opt-einsum==3.3.0
 optlang==1.5.2
