@@ -4,7 +4,8 @@
     "emitter" : "database",
     "total_time" : 30,
 
-    "initial_state_file": "wcecoli_t0_reduced_murein",
+    "initial_state_file": "wcecoli_t0",
+    "initial_state_overrides": ["overrides/reduced_murein"],
 
     "process_configs": {
         "ecoli-metabolism": {
