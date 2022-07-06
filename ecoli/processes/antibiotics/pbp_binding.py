@@ -62,7 +62,7 @@ class PBPBinding(Step):
                     "PBP1A": 1,
                     "PBP1B": 1,
                 },
-            }
+            },
         },
     }
 
@@ -73,16 +73,24 @@ class PBPBinding(Step):
         self.beta_lactam = self.parameters["beta_lactam"]
         self.PBP1A = self.parameters["PBP"]["PBP1A"]
         self.PBP1B = self.parameters["PBP"]["PBP1B"]
-        self.K_A_1a = self.parameters["kinetic_params"][self.beta_lactam]["K_A"]["PBP1A"]
-        self.n_1a = self.parameters["kinetic_params"][self.beta_lactam]["Hill_n"]["PBP1A"]
-        self.K_A_1b = self.parameters["kinetic_params"][self.beta_lactam]["K_A"]["PBP1B"]
-        self.n_1b = self.parameters["kinetic_params"][self.beta_lactam]["Hill_n"]["PBP1B"]
+        self.K_A_1a = self.parameters["kinetic_params"][self.beta_lactam]["K_A"][
+            "PBP1A"
+        ]
+        self.n_1a = self.parameters["kinetic_params"][self.beta_lactam]["Hill_n"][
+            "PBP1A"
+        ]
+        self.K_A_1b = self.parameters["kinetic_params"][self.beta_lactam]["K_A"][
+            "PBP1B"
+        ]
+        self.n_1b = self.parameters["kinetic_params"][self.beta_lactam]["Hill_n"][
+            "PBP1B"
+        ]
 
     def ports_schema(self):
         return {
             "total_murein": bulk_schema([self.parameters["murein_name"]]),
             "murein_state": bulk_schema(
-                ["incorporated_murein", "unincorporated_murein"]
+                ["incorporated_murein", "unincorporated_murein"], updater="set"
             ),
             "concentrations": {
                 "beta_lactam": {"_default": 0.0 * units.micromolar, "_emit": True},
@@ -132,8 +140,14 @@ class PBPBinding(Step):
             )
         )
         update["murein_state"] = {
-            "incorporated_murein": incorporated,
-            "unincorporated_murein": new_murein - incorporated,
+            "incorporated_murein": (
+                incorporated + states["murein_state"]["incorporated_murein"]
+            ),
+            "unincorporated_murein": (
+                new_murein
+                - incorporated
+                + states["murein_state"]["unincorporated_murein"]
+            ),
         }
 
         update["listeners"] = {
@@ -211,7 +225,7 @@ def test_pbp_binding():
             ("murein_state", "unincorporated_murein"),
             ("listeners", ("active_fraction_PBP1A", "dimensionless")),
             ("listeners", ("active_fraction_PBP1B", "dimensionless")),
-        ]
+        ],
     )
     fig.get_axes()[-1].set_ylim(0, 1)
     fig.get_axes()[-2].set_ylim(0, 1)

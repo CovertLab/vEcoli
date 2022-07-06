@@ -1,4 +1,8 @@
 import os
+import numpy as np
+import pandas as pd
+from ecoli.library.cell_wall.column_sampler import geom_sampler
+from ecoli.library.cell_wall.lattice import de_novo_lattice
 
 from ecoli.library.create_timeline import add_computed_value, create_timeline_from_csv
 from ecoli.library.schema import bulk_schema
@@ -24,41 +28,18 @@ def create_composite():
         timeline,
         lambda t, value: {
             ("murein_state", "incorporated_murein"): value[("bulk", "CPD-12261[p]")],
-            ("cell_global", "volume"): (1 + t / 1000),
+            ("cell_global", "volume"): (1 + t / 1000) * units.fL,
         },
     )
 
-    # stub process to ensure updaters exist
-    class Stub(Process):
-        def __init__(self, parameters=None):
-            super().__init__(parameters)
-
-        def ports_schema(self):
-            return {
-                "bulk_murein": bulk_schema(["CPD-12261[p]"]),
-                "PBP": bulk_schema(["CPLX0-7717[m]", "CPLX0-3951[i]"]),
-                "murein_state": bulk_schema(
-                    ["incorporated_murein", "unincorporated_murein"]
-                ),
-                "shape": {
-                    "volume": {
-                        "_default": 0,
-                        "_updater": "set",
-                        "_emit": True,
-                    }
-                },
-            }
-
-        def next_update(self, timestep, states):
-            return {}
-
-    processes = {"stub": Stub({})}
+    processes = {"cell_wall": CellWall({})}
     topology = {
-        "stub": {
+        "cell_wall": {
+            "shape": ("cell_global",),
             "bulk_murein": ("bulk",),
-            "PBP": ("bulk",),
             "murein_state": ("murein_state",),
-            "shape": ("cell_global"),
+            "PBP": ("bulk",),
+            "wall_state": ("wall_state",),
         }
     }
 
@@ -75,7 +56,7 @@ def output_data(data, filepath="out/processes/cell_wall/test_cell_wall.png"):
             ("bulk", "CPLX0-7717[m]"),
             ("bulk", "CPLX0-3951[i]"),
             ("murein_state", "incorporated_murein"),
-            # ("murein_state", "unincorporated_murein")
+            ("murein_state", "unincorporated_murein"),
         ],
         out_dir=os.path.dirname(filepath),
         filename=os.path.basename(filepath),
@@ -85,10 +66,23 @@ def output_data(data, filepath="out/processes/cell_wall/test_cell_wall.png"):
 def test_cell_wall():
     composite = create_composite()
 
+    # Create initial state
+    df = pd.read_csv(DATA, skipinitialspace=True)
+    initial_murein = int(df.loc[0]["CPD-12261[p]"])
+    rng = np.random.default_rng(0)
+    inital_state = {
+        "bulk": {"CPD-12261[p]": initial_murein},
+        "wall_state": {
+            "lattice": de_novo_lattice(
+                initial_murein * 4, 3050, 700, geom_sampler(rng, 0.058), rng
+            )
+        },
+    }
+
     settings = {
-        "initial_state": {},
         "return_raw_data": False,
         "total_time": 500,
+        "inital_state": inital_state,
     }
     data = simulate_composite(composite, settings)
 
