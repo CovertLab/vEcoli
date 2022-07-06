@@ -1,8 +1,7 @@
 """
 This script creates a bar graph showing the number of antibiotic response genes and
 the number of all genes that are sub-generational vs. generational. We define
-sub-generational genes to be those that are transcribed at least once per
-generation.
+generational genes to be those that are transcribed at least once per generation.
 
 antibiotic_response_genes.txt was created by listing out all the genes EcoCyc
 considers related to antibiotic response in E. Coli
@@ -17,7 +16,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from six.moves import cPickle
 
-CUTOFF_INDEX = 1546  # Number of genes considered sub-generational in wcEcli minus one
+CUTOFF_INDEX = 1546  # Number of genes considered generational in wcEcli minus one
 FUNCTIONAL_GENES = ['ampC', 'acrA', 'acrB', 'tolC', 'ompF', 'ompC', 'marA', 'marR', 'mrcA', 'mrcB']
 RELEASE_RNA_PROB_PATH = 'data/subgen_gene_plots/release_rna_probs.txt'
 RELEASE_RNAS_TSV_PATH = 'data/subgen_gene_plots/release_rnas.tsv'
@@ -61,7 +60,7 @@ def main():
             release_rna_probs[i] = np.float64(release_rna_probs[i])
 
     # Here we find the probability cutoff separating generational and sub-generational genes. We do this by finding
-    # the probability of the most likely to be expressed sub-generational gene in wcEcoli and using that as the cutoff.
+    # the probability of the least likely to be expressed generational gene in wcEcoli and using that as the cutoff.
     release_prob_gene_tuples = []
     index = 0
     with open(RELEASE_RNAS_TSV_PATH) as file:
@@ -75,21 +74,20 @@ def main():
     cutoff_tuple = release_prob_gene_tuples[CUTOFF_INDEX]
     generational_prob_cutoff = cutoff_tuple[0]
 
-    def calc_num_sub(probs):
+    def calc_num_generational(probs):
         """
-        Calculates the number of sub-generational genes in a sorted list of
-        (prob, gene_id) tuples.
+        Calculates the number of generational genes in a sorted list of (prob, gene_id) tuples.
         """
-        num_sub_gen = 0
+        num_generational = 0
         for prob in probs:
             if prob < generational_prob_cutoff:
                 break
-            num_sub_gen += 1
-        return num_sub_gen
-    num_all_sub_gen = calc_num_sub(mrna_probs)
-    num_all_generational = len(mrna_probs) - num_all_sub_gen
-    num_response_sub_gen = calc_num_sub(response_gene_probs)
-    num_response_generational = len(response_gene_probs) - num_response_sub_gen
+            num_generational += 1
+        return num_generational
+    num_all_generational = calc_num_generational(mrna_probs)
+    num_all_sub_gen = len(mrna_probs) - num_all_generational
+    num_response_generational = calc_num_generational(response_gene_probs)
+    num_response_sub_gen = len(response_gene_probs) - num_response_generational
 
     data = {'All: Generational': num_all_generational, 'All: Sub': num_all_sub_gen,
             'Response: Generational': num_response_generational, 'Response: Sub': num_response_sub_gen}
