@@ -3,7 +3,6 @@ from collections.abc import MutableMapping
 from functools import reduce
 from operator import __or__
 from time import perf_counter
-from charset_normalizer import detect
 
 import matplotlib.pyplot as plt
 import numpy as np
