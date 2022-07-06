@@ -3,22 +3,23 @@ TODO: references for parameters
 """
 
 import os
+from time import perf_counter
 
 import numpy as np
-
-from vivarium.core.process import Process
-from vivarium.core.composition import add_timeline, simulate_composite
-from vivarium.library.units import units
-from vivarium.plots.simulation_output import plot_variables
-
-from ecoli.library.cell_wall.hole_detection import detect_holes
-from ecoli.library.cell_wall.column_sampler import sample_column, geom_sampler
-from ecoli.library.cell_wall.lattice import calculate_lattice_size, plot_lattice
-from ecoli.library.schema import bulk_schema
+from ecoli.library.cell_wall.column_sampler import geom_sampler, sample_column
+from ecoli.library.cell_wall.hole_detection import detect_holes_skimage
+from ecoli.library.cell_wall.lattice import (
+    calculate_lattice_size,
+    de_novo_lattice,
+    plot_lattice,
+)
 from ecoli.library.create_timeline import create_timeline_from_csv
+from ecoli.library.schema import bulk_schema
 from ecoli.processes.registries import topology_registry
 from ecoli.processes.shape import length_from_volume
-
+from vivarium.core.composition import add_timeline, simulate_composite
+from vivarium.core.process import Process
+from vivarium.library.units import units
 
 # Register default topology for this process, associating it with process name
 NAME = "ecoli-cell-wall"
@@ -42,20 +43,20 @@ class CellWall(Process):
             "PBP1A": "CPLX0-7717[m]",  # transglycosylase-transpeptidase ~100
             "PBP1B": "CPLX0-3951[i]",  # transglycosylase-transpeptidase ~100
         },
-        "strand_term_p": .058,
+        "strand_term_p": 0.058,
         # Physical parameters
         "critical_radius": 20 * units.nm,
         "cell_radius": 0.5 * units.um,
         "disaccharide_length": 1.03 * units.nm,
         "crossbridge_length": 4.1
-        * units.nm
-        / 3,  # 4.1 in maximally stretched configuration,
+        / 3
+        * units.nm,  # 4.1 in maximally stretched configuration,
         # divided by 3 because the sacculus can be stretched threefold
         "peptidoglycan_unit_area": 4 * units.nm**2,  # replace with precise
         # literature value
         # Simulation parameters
         "seed": 0,
-        "time_step": 10,
+        # "time_step": 10,
     }
 
     def __init__(self, parameters=None):
@@ -80,8 +81,7 @@ class CellWall(Process):
         schema = {
             "bulk_murein": bulk_schema([self.parameters["murein"]]),
             "murein_state": bulk_schema(
-                ["incorporated_murein", "unincorporated_murein"],
-                updater="set"
+                ["incorporated_murein", "unincorporated_murein"], updater="set"
             ),
             "PBP": bulk_schema(list(self.parameters["PBP"].values())),
             "shape": {"volume": {"_default": 0 * units.fL, "_emit": True}},
@@ -264,11 +264,11 @@ class CellWall(Process):
         return new_lattice, new_free_monomers, new_incorporated_monomers
 
     def get_largest_defect_area(self, lattice):
-        hole_sizes, _ = detect_holes(
-            lattice,
-            critical_size=int(self.critical_area / self.peptidoglycan_unit_area),
+        hole_sizes, _ = detect_holes_skimage(
+            lattice
+            # critical_size=int(self.critical_area / self.peptidoglycan_unit_area),
         )
-        max_size = hole_sizes.get_max()
+        max_size = hole_sizes.max()
 
         return max_size * self.peptidoglycan_unit_area
 
