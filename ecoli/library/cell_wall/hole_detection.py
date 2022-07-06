@@ -3,19 +3,21 @@ from collections.abc import MutableMapping
 from functools import reduce
 from operator import __or__
 from time import perf_counter
+from charset_normalizer import detect
 
 import matplotlib.pyplot as plt
 import numpy as np
+from skimage import measure
 
 
 class HoleSizeDict(MutableMapping):
     def __init__(self, data={}):
         self.mapping = {}
         self.roots = set()
-        self.max = 0
+        self.largest_hole = 0
         self.update(data)
         if len(data) > 0:
-            self.max = max(v for v in data.values() if isinstance(v, int))
+            self.largest_hole = max(v for v in data.values() if isinstance(v, int))
 
     def __getitem__(self, key: frozenset):
         result = self.mapping[key]
@@ -49,8 +51,8 @@ class HoleSizeDict(MutableMapping):
         # Store value, update maximum if necessary
         self.mapping[loc] = value
         self.roots.add(loc)
-        if value > self.max:
-            self.max = value
+        if value > self.largest_hole:
+            self.largest_hole = value
 
     def merge(self, holes):
         containing_holes = {self.get_containing_hole(hole) for hole in holes}
@@ -67,8 +69,8 @@ class HoleSizeDict(MutableMapping):
                 # No longer a root node after merge
                 self.roots.remove(hole)
 
-            if new_size > self.max:
-                self.max = new_size
+            if new_size > self.largest_hole:
+                self.largest_hole = new_size
 
             self.roots.add(merged_hole)
 
@@ -97,8 +99,8 @@ class HoleSizeDict(MutableMapping):
 
         return containing_hole
 
-    def get_max(self):
-        return self.max
+    def max(self):
+        return self.largest_hole
 
     def get_depth(self):
         # Returns the length of the longest branch in the tree.
@@ -221,7 +223,7 @@ def detect_holes(lattice, on_cylinder=True, critical_size=None, prune_subtrees=T
             next_prune_size = int(np.exp(np.ceil(np.log(len(hole_sizes)))))
 
         # Early stopping if reached critical size
-        if critical_size and hole_sizes.get_max() >= critical_size:
+        if critical_size and hole_sizes.max() >= critical_size:
             break
 
     if on_cylinder:
@@ -240,6 +242,33 @@ def detect_holes(lattice, on_cylinder=True, critical_size=None, prune_subtrees=T
             }
             if len(neighbor_holes) > 1:
                 hole_sizes.merge(neighbor_holes)
+
+    return hole_sizes, hole_view
+
+
+def detect_holes_skimage(lattice, on_cylinder=True):
+    hole_view = measure.label(lattice, background=1, connectivity=2)
+
+    if on_cylinder:
+        # merge holes bordering the bottom edge
+        # with holes bordering the top edge
+        for c in range(hole_view.shape[1]):
+            here = hole_view[0, c]
+
+            # skip non-holes
+            if here == 0:
+                continue
+
+            neighbors = {(-1, c - 1), (-1, c), (-1, c + 1)}
+            for n_r, n_c in neighbors:
+                if n_c >= 0 and n_c < hole_view.shape[1]:
+                    neighbor = hole_view[n_r, n_c]
+                    if neighbor != 0 and neighbor != here:
+                        hole_view[hole_view == neighbor] = here
+
+    # Get hole sizes, excluding count of background (murein, label=0)
+    values, counts = np.unique(hole_view.flatten(), return_counts=True)
+    hole_sizes = counts[values != 0]
 
     return hole_sizes, hole_view
 
@@ -287,39 +316,56 @@ def test_detect_holes():
             f"ecoli/library/cell_wall/test_cases/{test_case}", dtype=int, max_rows=1
         )
 
-        # Get hole view, size of largest hole
-        hole_sizes, hole_view = detect_holes(test_array)
-        max_hole = hole_sizes.get_max()
+        for method_name, detection_method in {
+            "detect_holes": detect_holes,
+            "detect_holes_skimage": detect_holes_skimage,
+        }.items():
 
-        # Prints and asserts
-        print(f"> Size of largest hole: {max_hole} (Expected {expected_max_size})")
+            print(f"Detection method: {method_name}")
 
-        passed = max_hole == expected_max_size
-        n_passed += int(passed)
-        print(f"> {'PASSED' if passed else 'FAILED'}")
-        print()
+            # Get hole view, size of largest hole
+            hole_sizes, hole_view = detection_method(test_array)
+            max_hole = hole_sizes.max()
 
-        # Plot test case, hole view
-        fig, ax = plt.subplots()
-        ax.imshow(test_array, interpolation="nearest", aspect="auto")
-        for r in range(hole_view.shape[0]):
-            for c in range(hole_view.shape[1]):
-                ax.text(
-                    c,
-                    r,
-                    f"{set(hole_view[r, c]) if len(hole_view[r,c]) > 0 else ''}",
-                    ha="center",
-                    va="center",
-                    color="w",
-                )
-        ax.set_title(f"Hole View (Max hole detected = {max_hole})")
+            # Prints and asserts
+            print(f"> Size of largest hole: {max_hole} (Expected {expected_max_size})")
 
-        # Save image
-        fig.tight_layout()
-        fig.savefig(f"out/hole_detection/test_{test_case}.png")
+            passed = max_hole == expected_max_size
+            n_passed += int(passed)
+            print(f"> {'PASSED' if passed else 'FAILED'}")
+            print()
+
+            # Plot test case, hole view
+            fig, ax = plt.subplots()
+            ax.imshow(test_array, interpolation="nearest", aspect="auto")
+            for r in range(hole_view.shape[0]):
+                for c in range(hole_view.shape[1]):
+                    if method_name == "detect_holes":
+                        ax.text(
+                            c,
+                            r,
+                            f"{set(hole_view[r, c]) if len(hole_view[r,c]) > 0 else ''}",
+                            ha="center",
+                            va="center",
+                            color="w",
+                        )
+                    elif method_name == "detect_holes_skimage":
+                        ax.text(
+                            c,
+                            r,
+                            str(hole_view[r, c]) if hole_view[r, c] != 0 else "",
+                            ha="center",
+                            va="center",
+                            color="w",
+                        )
+            ax.set_title(f"Hole View (Max hole detected = {max_hole})")
+
+            # Save image
+            fig.tight_layout()
+            fig.savefig(f"out/hole_detection/test_{test_case}[{method_name}].png")
 
     print("===============================================")
-    print(f"Passed {n_passed}/{len(test_files)} tests.")
+    print(f"Passed {n_passed}/{2 * len(test_files)} tests.")
     print()
 
 
@@ -327,86 +373,100 @@ def test_runtime():
     # Runtime plot
     fig, axs = plt.subplots(nrows=4, ncols=1)
 
-    rng = np.random.default_rng(0)
     side_length = [10, 100, 200, 300, 400, 500]
     density = np.arange(0, 1.1, 0.1)
 
-    for d in density:
-        runtimes = []
-        dict_sizes = []
-        tree_depths = []
-        max_hole = []
-        for s in side_length:
-            a = rng.binomial(1, 1 - d, size=s * s).reshape((s, s))
+    detection_methods = {
+        "detect_holes_skimage": detect_holes_skimage,
+        "detect_holes": detect_holes,
+    }
 
-            tick = perf_counter()
-            hole_sizes, _ = detect_holes(a)
-            tock = perf_counter()
+    for method_name, detection_method in detection_methods.items():
+        rng = np.random.default_rng(0)
 
-            runtimes.append(tock - tick)
-            dict_sizes.append(len(hole_sizes.mapping))
-            tree_depths.append(hole_sizes.get_depth())
-            max_hole.append(hole_sizes.get_max())
+        for d in density:
+            runtimes = []
+            dict_sizes = []
+            tree_depths = []
+            max_hole = []
+            for s in side_length:
+                a = rng.binomial(1, 1 - d, size=s * s).reshape((s, s))
 
-            print(f"Runtime for side length {s}, density {d:.1f} : {tock-tick} seconds")
+                tick = perf_counter()
+                hole_sizes, _ = detection_method(a)
+                tock = perf_counter()
 
-        axs[0].plot(
-            side_length,
-            runtimes,
-            label=f"Density={d:.1f}",
-            color=(0, 1 - (2 * d - 1) ** 2, d),
-        )
+                runtimes.append(tock - tick)
+                if method_name == "detect_holes":
+                    dict_sizes.append(len(hole_sizes.mapping))
+                    tree_depths.append(hole_sizes.get_depth())
+                else:
+                    dict_sizes.append(hole_sizes.size)
+                    tree_depths.append(0)
 
-        axs[1].plot(
-            side_length,
-            dict_sizes,
-            label=f"Density={d:.1f}",
-            color=(1 - (2 * d - 1) ** 2, d, 0),
-        )
+                max_hole.append(hole_sizes.max() if len(hole_sizes) > 0 else 0)
 
-        axs[2].plot(
-            side_length,
-            tree_depths,
-            label=f"Density={d:.1f}",
-            color=(d, 0, 1 - (2 * d - 1) ** 2),
-        )
+                print(
+                    f"[{method_name}] Runtime for side length {s}, density {d:.1f} : {tock-tick} seconds"
+                )
+
+            axs[0].plot(
+                side_length,
+                runtimes,
+                label=f"Density={d:.1f}",
+                color=(0, 1 - (2 * d - 1) ** 2, d),
+            )
+
+            axs[1].plot(
+                side_length,
+                dict_sizes,
+                label=f"Density={d:.1f}",
+                color=(1 - (2 * d - 1) ** 2, d, 0),
+            )
+
+            axs[2].plot(
+                side_length,
+                tree_depths,
+                label=f"Density={d:.1f}",
+                color=(d, 0, 1 - (2 * d - 1) ** 2),
+            )
+
+            axs[3].plot(
+                side_length,
+                max_hole,
+                label=f"Density={d:.1f}",
+                color=(d, (2 * d - 1) ** 2, (1 - d) / 2),
+            )
+
+        axs[0].set_title("Runtime vs. Side Length, Density")
+        axs[0].set_xlabel("Side length")
+        axs[0].set_ylabel("Runtime (s)")
+        axs[0].legend()
+
+        axs[1].set_title("Tree Size vs. Side Length, Density")
+        axs[1].set_xlabel("Side Length")
+        axs[1].set_ylabel("Size (nodes)")
+        axs[1].legend()
+
+        axs[2].set_title("Tree Depth vs. Side Length, Density")
+        axs[2].set_xlabel("Side Length")
+        axs[2].set_ylabel("Tree Depth")
+        axs[2].legend()
 
         axs[3].plot(
             side_length,
-            max_hole,
-            label=f"Density={d:.1f}",
-            color=(d, (2 * d - 1) ** 2, (1 - d) / 2),
+            np.repeat(int((np.pi * 20**2) / 4), len(side_length)),
+            "k--",
+            label="Critical Size",
         )
+        axs[3].set_title("Max Hole Size vs. Side Length, Density")
+        axs[3].set_xlabel("Side Length")
+        axs[3].set_ylabel("Maximum Hole Size")
+        axs[3].legend()
 
-    axs[0].set_title("Runtime vs. Side Length, Density")
-    axs[0].set_xlabel("Side length")
-    axs[0].set_ylabel("Runtime (s)")
-    axs[0].legend()
-
-    axs[1].set_title("Tree Size vs. Side Length, Density")
-    axs[1].set_xlabel("Side Length")
-    axs[1].set_ylabel("Size (nodes)")
-    axs[1].legend()
-
-    axs[2].set_title("Tree Depth vs. Side Length, Density")
-    axs[2].set_xlabel("Side Length")
-    axs[2].set_ylabel("Tree Depth")
-    axs[2].legend()
-
-    axs[3].plot(
-        side_length,
-        np.repeat(int((np.pi * 20**2) / 4), len(side_length)),
-        "k--",
-        label="Critical Size",
-    )
-    axs[3].set_title("Max Hole Size vs. Side Length, Density")
-    axs[3].set_xlabel("Side Length")
-    axs[3].set_ylabel("Maximum Hole Size")
-    axs[3].legend()
-
-    fig.set_size_inches(8, 24)
-    fig.tight_layout()
-    fig.savefig("out/hole_detection/test_runtime.png")
+        fig.set_size_inches(8, 24)
+        fig.tight_layout()
+        fig.savefig(f"out/hole_detection/test_runtime[{method_name}].png")
 
 
 def test_case(side_length, density, rng=np.random.default_rng(0)):
