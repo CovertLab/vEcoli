@@ -16,9 +16,12 @@ import matplotlib.pyplot as plt
 import numpy as np
 from six.moves import cPickle
 
-CUTOFF_INDEX = 1546  # Number of genes considered generational in wcEcli minus one
-FUNCTIONAL_GENES = ['ampC', 'acrA', 'acrB', 'tolC', 'ompF', 'ompC', 'marA', 'marR', 'mrcA', 'mrcB']
+# Number of genes considered generational in the wcEcoli Science paper (Fig 4c) minus one
+CUTOFF_INDEX = 1546
+# The RNA synthesization probabilites are from self.rnaSynthProb in the transcript_initiation process of the release
+# version of wcEcoli
 RELEASE_RNA_PROB_PATH = 'data/subgen_gene_plots/release_rna_probs.txt'
+# rnas.tsv file is from the release version of wcEcoli
 RELEASE_RNAS_TSV_PATH = 'data/subgen_gene_plots/release_rnas.tsv'
 RESPONSE_GENES_PATH = 'data/subgen_gene_plots/antibiotic_response_genes.txt'
 RNAS_TSV_PATH = 'reconstruction/ecoli/flat/rnas.tsv'
@@ -45,7 +48,7 @@ def main():
                           if tu in mrna_obj_to_mrna_name.keys()}
 
     # Transcription probabilities for all RNAs in vivarum-ecoli
-    mrna_probs = sorted(list(mrna_to_basal_prob.values()), reverse=True)
+    mrna_probs = sorted(mrna_to_basal_prob.values(), reverse=True)
     with open(RESPONSE_GENES_PATH) as response_genes_file:
         response_genes = response_genes_file.read().split('\n')
     # All response gene names are the same as their corresponding RNA names. Only include genes that encode mRNAs.
@@ -62,14 +65,12 @@ def main():
     # Here we find the probability cutoff separating generational and sub-generational genes. We do this by finding
     # the probability of the least likely to be expressed generational gene in wcEcoli and using that as the cutoff.
     release_prob_gene_tuples = []
-    index = 0
     with open(RELEASE_RNAS_TSV_PATH) as file:
         tsv_file = csv.reader(file, delimiter='\t')
-        for line in tsv_file:
+        for index, line in enumerate(tsv_file):
             if line[3] == 'mRNA':
                 gene_id = line[11]
                 release_prob_gene_tuples.append((release_rna_probs[index], gene_id))
-            index += 1
     release_prob_gene_tuples = sorted(release_prob_gene_tuples, reverse=True)
     cutoff_tuple = release_prob_gene_tuples[CUTOFF_INDEX]
     generational_prob_cutoff = cutoff_tuple[0]
