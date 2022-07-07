@@ -85,3 +85,4 @@ process_registry.register(
 process_registry.register(
     Permeability.name, Permeability
 )
+process_registry.register(ConcToCounts.name, ConcToCounts)

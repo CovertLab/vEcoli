@@ -3,16 +3,18 @@
     "add_processes": [
         "antibiotic-transport-odeint",
         "permeability",
-        "death"
+        "death",
+        "conc_to_counts"
     ],
-    "total_time": 100,
+    "total_time": 10,
     "emitter_arg": [
         ["host", "localhost:27017"]
     ],
+    "emitter": "timeseries",
     "spatial_environment_config": {
         "field_timeline": {
             "timeline": [
-                [30, {
+                [0, {
                     "tetracycline": 0.0025
                 }],
                 [70, {
@@ -34,7 +36,7 @@
                 },
                 "delta_species": ["bioscrape_deltas", "tetracycline"],
                 "exchanges": {
-                    "external": ["environment", "exchange", "tetracycline"]
+                    "external": ["environment", "exchanges", "tetracycline"]
                 },
                 "external": {
                     "external": ["boundary", "external", "tetracycline"]
@@ -77,6 +79,11 @@
                 "tetracycline": ["..", "cytoplasm", "concentrations", "tetracycline"]
             }
 
+        },
+        "conc_to_counts": {
+            "internal": ["cytoplasm", "concentrations"],
+            "bulk": ["bulk"],
+            "volume_global": ["cytoplasm", "global"]
         }
     },
     "process_configs": {
@@ -122,7 +129,11 @@
         "death": {
             "detectors": [
                 ["antibiotic", {
-                    "antibiotic_threshold": "!units[0.03 millimolar]",
+                    "antibiotic_threshold": "!units[0.01 millimolar]",
+                    "antibiotic_key": "cephaloridine"
+                }],
+                ["antibiotic", {
+                    "antibiotic_threshold": "!units[0.1 millimolar]",
                     "antibiotic_key": "tetracycline"
                 }]
             ],
@@ -135,7 +146,7 @@
                                 "diffusion": {
                                     "permeability": "!ParameterSerializer[tetracycline>permeability>outer_with_porins]",
                                     "area": "!ParameterSerializer[shape>initial_area]",
-                                    "volume": "!ParameterSerializer[shape>initial_periplasm_volume]",
+                                    "volume": "!ParameterSerializer[shape>initial_cytoplasm_volume]",
                                     "charge": "!ParameterSerializer[tetracycline>charge]"
                                 },
                                 "export": {
@@ -162,7 +173,7 @@
                             },
                             "delta_species": ["bioscrape_deltas", "tetracycline"],
                             "exchanges": {
-                                "external": ["environment", "exchange", "tetracycline"]
+                                "external": ["environment", "exchanges", "tetracycline"]
                             },
                             "external": {
                                 "external": ["boundary", "external", "tetracycline"]
@@ -172,7 +183,7 @@
                                     "_path": ["null"],
                                     "permeability": ["..", "kinetic_parameters", "outer_tetracycline_permeability"],
                                     "area": ["..", "boundary", "surface_area"],
-                                    "volume": ["..", "periplasm", "global", "volume"],
+                                    "volume": ["..", "cytoplasm", "global", "volume"],
                                     "charge": ["..", "kinetic_parameters", "tetracycline", "charge"]
                                 },
                                 "export": {
@@ -194,6 +205,9 @@
                     }
                 ]
             }
+        },
+        "conc_to_counts": {
+            "molecules_to_convert": ["tetracycline"]
         }
     }
 }

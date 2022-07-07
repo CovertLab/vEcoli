@@ -72,7 +72,7 @@ class LoadSimData:
             bulk_data = self.sim_data.internal_state.bulk_molecules.bulk_data.fullArray().copy()
             bulk_data.resize(bulk_data.shape[0]+2, refcheck=False)
             # Tetracyline mass from NIST Chemistry WebBook
-            bulk_data[-1] = ('tetracycline[c]', [0, 0, 0, 0, 0, 0, 444.4346, 0, 0])
+            bulk_data[-1] = ('tetracycline', [0, 0, 0, 0, 0, 0, 444.4346, 0, 0])
             # marR mass from EcoCyc (x2 because homodimer)
             bulk_data[-2] = ('marR-tet[c]', [0, 0, 0, 0, 0, 32120, 444.4346, 0, 0])
             units = self.sim_data.internal_state.bulk_molecules.bulk_data.fullUnits()
@@ -86,7 +86,7 @@ class LoadSimData:
                 [equilibrium_proc._stoichMatrixJ, np.array([34, 34, 34])])
             equilibrium_proc._stoichMatrixV = np.concatenate(
                 [equilibrium_proc._stoichMatrixV, np.array([-1, -1, 1])])
-            equilibrium_proc.molecule_names += ['CPLX0-7710[c]', 'tetracycline[c]', 'marR-tet[c]']
+            equilibrium_proc.molecule_names += ['CPLX0-7710[c]', 'tetracycline', 'marR-tet[c]']
             equilibrium_proc.ids_complexes = [equilibrium_proc.molecule_names[i] for i in np.where(np.any(equilibrium_proc.stoich_matrix() > 0, axis=1))[0]]
             equilibrium_proc.rxn_ids += ['marR-tet']
             # All existing equilibrium reactions use a forward reaction rate of 1

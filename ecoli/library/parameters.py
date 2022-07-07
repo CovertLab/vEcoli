@@ -221,6 +221,22 @@ PARAMETER_DICT = {
             4.52 * units.um**2,
             'Model',
         ),
+        'average_cell_mass': Parameter(
+            1640.6570410485792 * units.fg,
+            'Simulation 0a2cd6816d36d408470445ff654371f07cd3f9f8',
+        ),
+        'average_dry_mass': Parameter(
+            492.7365227132813 * units.fg,
+            'Simulation 0a2cd6816d36d408470445ff654371f07cd3f9f8',
+        ),
+        'average_cell_volume': Parameter(
+            1.4915064009532537 * units.fL,
+            'Simulation 0a2cd6816d36d408470445ff654371f07cd3f9f8',
+        ),
+        'average_area': Parameter(
+            6.227824991612169 * units.um**2,
+            'Simulation 0a2cd6816d36d408470445ff654371f07cd3f9f8',
+        ),
     },
     'concs': {
         'initial_pump': Parameter(
@@ -231,8 +247,20 @@ PARAMETER_DICT = {
             7.1e-4 * units.mM,
             'Simulation c33d8283af0bed4a6a598774ac5d8aec19d169bf',
         ),
+        # AcrAB-TolC: TRANS-CPLX-201[m]
+        'average_pump': Parameter(
+            0.0007157472280240362 * units.mM,
+            'Simulation 0a2cd6816d36d408470445ff654371f07cd3f9f8',
+        ),
+        # Beta-lactamase: EG10040-MONOMER[p]
+        'average_hydrolase': Parameter(
+            0.0008351114340588106 * units.mM,
+            'Simulation 0a2cd6816d36d408470445ff654371f07cd3f9f8',
+        ),
     },
     'counts': {
+        # ompC: CPLX0-7533[o]
+        # ompF: CPLX0-7534[o]
         'initial_ompf': Parameter(
             18975 * units.count,
             'Simulation c33d8283af0bed4a6a598774ac5d8aec19d169bf',
@@ -240,6 +268,14 @@ PARAMETER_DICT = {
         'initial_ompc': Parameter(
             5810 * units.count,
             'Simulation c33d8283af0bed4a6a598774ac5d8aec19d169bf',
+        ),
+        'average_ompf': Parameter(
+            26303.986572174563 * units.count,
+            'Simulation 0a2cd6816d36d408470445ff654371f07cd3f9f8',
+        ),
+        'average_ompc': Parameter(
+            7288.019395747855 * units.count,
+            'Simulation 0a2cd6816d36d408470445ff654371f07cd3f9f8',
         ),
     },
     'avogadro': constants.N_A / units.mol,
@@ -273,12 +309,24 @@ DERIVATION_RULES = {
             * (1 - params.get(('shape', 'periplasm_fraction')))
         ),
     ),
+    ('shape', 'average_periplasm_volume'): lambda params: Parameter(
+        (
+            params.get(('shape', 'average_cell_volume'))
+            * params.get(('shape', 'periplasm_fraction'))
+        ),
+    ),
+    ('shape', 'average_cytoplasm_volume'): lambda params: Parameter(
+        (
+            params.get(('shape', 'average_cell_volume'))
+            * (1 - params.get(('shape', 'periplasm_fraction')))
+        ),
+    ),
     ('ampicillin', 'efflux', 'kcat'): lambda params: Parameter(
         (
             params.get(('ampicillin', 'efflux', 'vmax'))
-            / params.get(('concs', 'initial_pump'))
-            * params.get(('shape', 'initial_cell_mass'))
-            / params.get(('shape', 'initial_periplasm_volume'))
+            / params.get(('concs', 'average_pump'))
+            * params.get(('shape', 'average_dry_mass'))
+            / params.get(('shape', 'average_periplasm_volume'))
         )
     ),
     (
@@ -286,17 +334,17 @@ DERIVATION_RULES = {
     ): lambda params: Parameter(
         (
             params.get(('ampicillin', 'permeability', 'outer')) / (
-                params.get(('counts', 'initial_ompf'))
-                / params.get(('shape', 'initial_area'))
+                params.get(('counts', 'average_ompf'))
+                / params.get(('shape', 'average_area'))
             )
         ),
     ),
     ('cephaloridine', 'efflux', 'kcat'): lambda params: Parameter(
         (
             params.get(('cephaloridine', 'efflux', 'vmax'))
-            / params.get(('concs', 'initial_pump'))
-            * params.get(('shape', 'initial_cell_mass'))
-            / params.get(('shape', 'initial_periplasm_volume'))
+            / params.get(('concs', 'average_pump'))
+            * params.get(('shape', 'average_dry_mass'))
+            / params.get(('shape', 'average_periplasm_volume'))
         )
     ),
     (
@@ -307,8 +355,8 @@ DERIVATION_RULES = {
                 'cephaloridine', 'porin_specific_permeability', 'outer',
                 'ompf'
             )) / (
-                params.get(('counts', 'initial_ompf'))
-                / params.get(('shape', 'initial_area'))
+                params.get(('counts', 'average_ompf'))
+                / params.get(('shape', 'average_area'))
             )
         ),
     ),
@@ -320,17 +368,17 @@ DERIVATION_RULES = {
                 'cephaloridine', 'porin_specific_permeability', 'outer',
                 'ompc'
             )) / (
-                params.get(('counts', 'initial_ompc'))
-                / params.get(('shape', 'initial_area'))
+                params.get(('counts', 'average_ompc'))
+                / params.get(('shape', 'average_area'))
             )
         ),
     ),
     ('tetracycline', 'efflux', 'kcat'): lambda params: Parameter(
         (
             params.get(('tetracycline', 'efflux', 'vmax'))
-            / params.get(('concs', 'initial_pump'))
-            * params.get(('shape', 'initial_cell_mass'))
-            / params.get(('shape', 'initial_periplasm_volume'))
+            / params.get(('concs', 'average_pump'))
+            * params.get(('shape', 'average_dry_mass'))
+            / params.get(('shape', 'average_cytoplasm_volume'))
         )
     ),
     ('tetracycline', 'permeability', 'outer', 'ompf'): lambda params: Parameter(
@@ -348,8 +396,8 @@ DERIVATION_RULES = {
             params.get((
                 'tetracycline', 'permeability', 'outer', 'ompf'
             )) / (
-                params.get(('counts', 'initial_ompf'))
-                / params.get(('shape', 'initial_area'))
+                params.get(('counts', 'average_ompf'))
+                / params.get(('shape', 'average_area'))
             )
         ),
     ),

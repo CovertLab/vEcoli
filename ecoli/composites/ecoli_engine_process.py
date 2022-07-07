@@ -170,6 +170,8 @@ def run_simulation(config):
         environment_composer = Lattice(
             config['spatial_environment_config'])
         environment_composite = environment_composer.generate()
+        # Must declare actual timeline under spatial_process_config > field_timeline
+        # for stores to properly initialize
         field_timeline = FieldTimeline(
             config['spatial_environment_config']['field_timeline'])
         environment_composite.merge(
