@@ -27,7 +27,6 @@ class ConcToCounts(Step):
                 'volume': 0 * units.fL
             }
         },
-        'time_step': 2.0,
         'n_avogadro': 6.0221409e23 / units.mol,  # 1/mol
     }
     
@@ -39,7 +38,7 @@ class ConcToCounts(Step):
         schema = {
             'internal': {
                 molecule: {
-                    '_default': 0 * units.mM,
+                    '_default': 0.0 * units.mM,
                     '_divider': 'set',
                     '_emit': True,
                 }
@@ -92,7 +91,7 @@ class ConcToCounts(Step):
         molar_to_counts = (self.nAvogadro * cellVolume).to(CONV_UNITS)
         update = {'bulk': {}}
         for molecule, conc in states['internal'].items():
-            update['bulk'][molecule] = (conc * molar_to_counts).to_reduced_units().magnitude
+            update['bulk'][molecule] = int((conc * molar_to_counts).to_reduced_units().magnitude)
 
         return update
 
