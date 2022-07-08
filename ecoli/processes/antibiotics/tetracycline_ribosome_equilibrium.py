@@ -29,8 +29,17 @@ class TetracyclineRibosomeEquilibrium(Step):
 
     name = 'tetracycline-ribosome-equilibrium'
     defaults = {
-        'K_Tc': 1e6,  # K_eq for tetracycline binding ribosome.
-        'K_tRNA': 1e6,  # K_eq for tRNA binding ribosome.
+        # K_eq for tetracycline binding ribosome.
+        # Source: Epe, B., & Woolley, P. (1984). The binding of
+        # 6-demethylchlortetracycline to 70S, 50S and 30S ribosomal
+        # particles: A quantitative study by fluorescence anisotropy.
+        # The EMBO Journal, 3(1), 121–126.
+        'K_Tc': 1e6,
+        # K_eq for tRNA binding ribosome.
+        # Source: Holschuh, K., Riesner, D., & Gassen, H. G. (1981).
+        # Steps of mRNA translocation in protein biosynthesis. Nature,
+        # 293(5834), 675–677. https://doi.org/10.1038/293675a0.
+        'K_tRNA': 1e6,
         'seed': 0,
     }
 
