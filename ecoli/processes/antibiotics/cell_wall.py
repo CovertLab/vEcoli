@@ -158,8 +158,8 @@ class CellWall(Process):
         }
 
         update["murein_state"] = {
-            "unincorporated_murein": new_unincorporated_monomers // 4,
-            "incorporated_murein": new_incorporated_monomers // 4,
+            "unincorporated_murein": int(new_unincorporated_monomers // 4),
+            "incorporated_murein": int(new_incorporated_monomers // 4),
         }
 
         # Crack detection (cracking is irreversible)
@@ -183,7 +183,7 @@ class CellWall(Process):
                 self.time = 0
 
             fig, _ = plot_lattice(lattice)
-            fig.savefig(f"out/processes/cell_wall/cell_wall_ecoli_t{self.time}")
+            fig.savefig(f"out/processes/cell_wall/cell_wall_ecoli_t{self.time}.png")
 
         return update
 
@@ -201,12 +201,13 @@ class CellWall(Process):
         d_columns = new_columns - columns
 
         # Create new lattice
-        new_lattice = np.zeros((new_rows, new_columns))
+        new_lattice = np.zeros((new_rows, new_columns), dtype=lattice.dtype)
 
         # Sample columns for synthesis sites
         insertion_points = self.rng.choice(
             list(range(columns)), size=min(n_sites, d_columns), replace=False
         )
+        insertion_points.sort()
         insertion_size = np.repeat(d_columns // n_sites, insertion_points.size)
 
         # Add additional columns at random if necessary
@@ -217,6 +218,7 @@ class CellWall(Process):
         current_incorporated = lattice.sum()
         murein_to_allocate = incorporated_monomers - current_incorporated
 
+        # Stop early is there is no murein to allocate, or if the cell has not grown
         if murein_to_allocate == 0 or d_columns == 0:
             new_lattice = lattice
             total_monomers = unincorporated_monomers + incorporated_monomers
@@ -230,7 +232,7 @@ class CellWall(Process):
             f"Cell Wall: Assigning {murein_to_allocate} monomers to {d_columns} columns ({murein_per_column} per column)"
         )
 
-        # Sample insertions
+        # Sample columns to insert
         insertions = []
         for insert_size in insertion_size:
             insertions.append(
@@ -244,19 +246,31 @@ class CellWall(Process):
                         )
                         for _ in range(insert_size)
                     ]
-                )
+                ).T
             )
 
         # Combine insertions and old material into new lattice
-        insert_i = 0
-        for c in range(columns):
-            if c not in insertion_points:
-                new_lattice[:, c] = lattice[:, c]
-            else:
-                insert_size = insertion_size[insert_i]
-                if insert_size > 0:
-                    new_lattice[:, c : (c + insert_size)] = insertions[insert_i].T
-                insert_i += 1
+        index_new = 0
+        index_old = 0
+        gaps_between_insertions = np.diff(insertion_points, prepend=0)
+        for insert_i, (gap, insert_size) in enumerate(
+            zip(gaps_between_insertions, insertion_size)
+        ):
+            # Copy from old lattice, from end of last insertion to start of next
+            new_lattice[:, index_new : (index_new + gap)] = lattice[
+                :, index_old : (index_old + gap)
+            ]
+            # Do insertion
+            new_lattice[
+                :, (index_new + gap) : (index_new + gap + insert_size)
+            ] = insertions[insert_i]
+
+            # update indices
+            index_new += gap + insert_size
+            index_old += gap
+
+        # Copy from last insertion to end
+        new_lattice[:, index_new:] = lattice[:, index_old:]
 
         total_monomers = unincorporated_monomers + incorporated_monomers
         new_incorporated_monomers = new_lattice.sum()
