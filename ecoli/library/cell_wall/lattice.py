@@ -16,7 +16,7 @@ def de_novo_lattice(murein_monomers, rows, cols, strand_sampler, rng):
             )
             for _ in range(cols)
         ]
-    )
+    ).T
     return lattice
 
 
