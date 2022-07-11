@@ -90,7 +90,8 @@ class PBPBinding(Step):
         return {
             "total_murein": bulk_schema([self.parameters["murein_name"]]),
             "murein_state": bulk_schema(
-                ["incorporated_murein", "unincorporated_murein"], updater="set"
+                ["incorporated_murein", "unincorporated_murein", "shadow_murein"],
+                updater="set",
             ),
             "concentrations": {
                 "beta_lactam": {"_default": 0.0 * units.micromolar, "_emit": True},
@@ -130,7 +131,7 @@ class PBPBinding(Step):
         PBP1B = states["bulk"][self.PBP1B]
         total_PBP = PBP1A + PBP1B
 
-        incorporated = int(
+        real_new_murein = int(
             round(
                 (
                     active_fraction_1a * (PBP1A / total_PBP)
@@ -140,13 +141,11 @@ class PBPBinding(Step):
             )
         )
         update["murein_state"] = {
-            "incorporated_murein": (
-                incorporated + states["murein_state"]["incorporated_murein"]
-            ),
             "unincorporated_murein": (
-                new_murein
-                - incorporated
-                + states["murein_state"]["unincorporated_murein"]
+                real_new_murein + states["murein_state"]["unincorporated_murein"]
+            ),
+            "shadow_murein": (
+                new_murein - real_new_murein + states["murein_state"]["shadow_murein"]
             ),
         }
 
@@ -202,6 +201,7 @@ def test_pbp_binding():
             "murein_state": {
                 "incorporated_murein": int(3e6),
                 "unincorporated_murein": 0,
+                "shadow_murein": 0,
             },
             "concentrations": {
                 "beta_lactam": 0 * units.micromolar,
@@ -223,6 +223,7 @@ def test_pbp_binding():
             ("bulk", "CPD-12261[p]"),
             ("murein_state", "incorporated_murein"),
             ("murein_state", "unincorporated_murein"),
+            ("murein_state", "shadow_murein"),
             ("listeners", ("active_fraction_PBP1A", "dimensionless")),
             ("listeners", ("active_fraction_PBP1B", "dimensionless")),
         ],
@@ -235,7 +236,8 @@ def test_pbp_binding():
     total_murein = np.array(data["bulk"]["CPD-12261[p]"])
     incorporated_murein = np.array(data["murein_state"]["incorporated_murein"])
     unincorporated_murein = np.array(data["murein_state"]["unincorporated_murein"])
-    assert all(total_murein == incorporated_murein + unincorporated_murein)
+    shadow_murein = np.array(data["murein_state"]["shadow_murein"])
+    assert all(total_murein == incorporated_murein + unincorporated_murein + shadow_murein)
 
 
 def main():
