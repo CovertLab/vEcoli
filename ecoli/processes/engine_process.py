@@ -160,6 +160,8 @@ class EngineProcess(Process):
     # TODO: Handle name clashes between tunnels.
 
     def __init__(self, parameters=None):
+        parameters = parameters or {}
+        parameters['_no_original_parameters'] = True
         super().__init__(parameters)
         composite = self.parameters['composite']
         self.tunnels_out = cap_tunneling_paths(
