@@ -81,7 +81,7 @@ class CellWall(Process):
         schema = {
             "bulk_murein": bulk_schema([self.parameters["murein"]]),
             "murein_state": bulk_schema(
-                ["incorporated_murein", "unincorporated_murein"], updater="set"
+                ["incorporated_murein", "unincorporated_murein", "shadow_murein"], updater="set"
             ),
             "PBP": bulk_schema(list(self.parameters["PBP"].values())),
             "shape": {"volume": {"_default": 0 * units.fL, "_emit": True}},
@@ -122,8 +122,9 @@ class CellWall(Process):
 
         if DEBUG:
             print(f"Cell Wall: Bulk murein = {states['bulk_murein'][self.murein]}")
-            print(f"Cell Wall: Unincorporated murein = {unincorporated_murein}")
             print(f"Cell Wall: Incorporated murein = {incorporated_murein}")
+            print(f"Cell Wall: Unincorporated murein = {unincorporated_murein}")
+            print(f"Cell Wall: Shadow murein = {states['murein_state']['shadow_murein']}")
             print(f"Cell Wall: Cell length = {length}")
             print(f"Cell Wall: Lattice dimensions: {lattice.shape}")
 
@@ -175,6 +176,7 @@ class CellWall(Process):
                 states["bulk_murein"][self.murein]
                 == states["murein_state"]["unincorporated_murein"]
                 + states["murein_state"]["incorporated_murein"]
+                + states["murein_state"]["shadow_murein"]
             )
 
             try:
@@ -214,22 +216,19 @@ class CellWall(Process):
         while insertion_size.sum() < d_columns:
             insertion_size[self.rng.integers(0, insertion_size.size)] += 1
 
-        # Get murein per column
-        current_incorporated = lattice.sum()
-        murein_to_allocate = incorporated_monomers - current_incorporated
-
         # Stop early is there is no murein to allocate, or if the cell has not grown
-        if murein_to_allocate == 0 or d_columns == 0:
+        if unincorporated_monomers == 0 or d_columns == 0:
             new_lattice = lattice
-            total_monomers = unincorporated_monomers + incorporated_monomers
+            total_real_monomers = unincorporated_monomers + incorporated_monomers
             new_incorporated_monomers = new_lattice.sum()
-            new_free_monomers = total_monomers - new_incorporated_monomers
-            return new_lattice, new_free_monomers, new_incorporated_monomers
+            new_unincorporated_monomers = total_real_monomers - new_incorporated_monomers
+            return new_lattice, new_unincorporated_monomers, new_incorporated_monomers
 
-        murein_per_column = murein_to_allocate / d_columns
+        murein_per_column = unincorporated_monomers / d_columns
 
         print(
-            f"Cell Wall: Assigning {murein_to_allocate} monomers to {d_columns} columns ({murein_per_column} per column)"
+            f"Cell Wall: Assigning {unincorporated_monomers} monomers to "
+            f"{d_columns} columns ({murein_per_column} per column)"
         )
 
         # Sample columns to insert
@@ -272,10 +271,10 @@ class CellWall(Process):
         # Copy from last insertion to end
         new_lattice[:, index_new:] = lattice[:, index_old:]
 
-        total_monomers = unincorporated_monomers + incorporated_monomers
+        total_real_monomers = unincorporated_monomers + incorporated_monomers
         new_incorporated_monomers = new_lattice.sum()
-        new_free_monomers = total_monomers - new_incorporated_monomers
-        return new_lattice, new_free_monomers, new_incorporated_monomers
+        new_unincorporated_monomers = total_real_monomers - new_incorporated_monomers
+        return new_lattice, new_unincorporated_monomers, new_incorporated_monomers
 
     def get_largest_defect_area(self, lattice):
         hole_sizes, _ = detect_holes_skimage(

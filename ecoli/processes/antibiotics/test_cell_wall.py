@@ -80,7 +80,8 @@ def test_cell_wall():
         "bulk": {"CPD-12261[p]": initial_murein},
         "murein_state": {
             "incorporated_murein": initial_murein,
-            "unincorporated_murein": 0
+            "unincorporated_murein": 0,
+            "shadow_murein": 0
         },
         "wall_state": {
             "lattice": de_novo_lattice(
