@@ -13,6 +13,8 @@ from vivarium.library.units import units
 from vivarium.plots.simulation_output import plot_variables
 from vivarium.plots.topology import plot_topology
 
+from ecoli.processes.antibiotics.pbp_binding import PBPBinding
+
 DATA = "data/cell_wall/test_murein_21_06_2022_17_42_11.csv"
 
 
@@ -36,8 +38,8 @@ def create_composite():
         },
     )
 
-    # Add cell wall process, timeline process into composite
-    processes = {"cell_wall": CellWall({})}
+    # Add cell wall process, pbp binding process, and timeline process into composite
+    processes = {"cell_wall": CellWall({}), "pbp_binding": PBPBinding({})}
     topology = {
         "cell_wall": {
             "shape": ("cell_global",),
@@ -45,7 +47,14 @@ def create_composite():
             "murein_state": ("murein_state",),
             "PBP": ("bulk",),
             "wall_state": ("wall_state",),
-        }
+        },
+        "pbp_binding": {
+            "total_murein": ("bulk",),
+            "murein_state": ("murein_state",),
+            "concentrations": ("concentrations",),
+            "bulk": ("bulk",),
+            "listeners": ("listeners",),
+        },
     }
 
     add_timeline(processes, topology, timeline)
@@ -57,11 +66,15 @@ def output_data(data, filepath="out/processes/cell_wall/test_cell_wall.png"):
     plot_variables(
         data,
         variables=[
+            ("concentrations", "beta_lactam"),
             ("bulk", "CPD-12261[p]"),
             ("bulk", "CPLX0-7717[m]"),
             ("bulk", "CPLX0-3951[i]"),
             ("murein_state", "incorporated_murein"),
             ("murein_state", "unincorporated_murein"),
+            ("murein_state", "shadow_murein"),
+            ("listeners", "active_fraction_PBP1A"),
+            ("listeners", "active_fraction_PBP1B")
         ],
         out_dir=os.path.dirname(filepath),
         filename=os.path.basename(filepath),
@@ -70,7 +83,9 @@ def output_data(data, filepath="out/processes/cell_wall/test_cell_wall.png"):
 
 def test_cell_wall():
     composite = create_composite()
-    plot_topology(composite, out_dir="out/processes/cell_wall/", filename="test_rig_topology.png")
+    plot_topology(
+        composite, out_dir="out/processes/cell_wall/", filename="test_rig_topology.png"
+    )
 
     # Create initial state
     df = pd.read_csv(DATA, skipinitialspace=True)
@@ -81,7 +96,7 @@ def test_cell_wall():
         "murein_state": {
             "incorporated_murein": initial_murein,
             "unincorporated_murein": 0,
-            "shadow_murein": 0
+            "shadow_murein": 0,
         },
         "wall_state": {
             "lattice": de_novo_lattice(

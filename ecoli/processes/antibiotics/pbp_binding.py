@@ -125,21 +125,25 @@ class PBPBinding(Step):
         active_fraction_1a = 1 / (1 + (beta_lactam / self.K_A_1a) ** self.n_1a)
         active_fraction_1b = 1 / (1 + (beta_lactam / self.K_A_1b) ** self.n_1b)
 
-        # Allocate incorporated vs. unincorporated based on
+        # Allocate real vs. shadow murein based on
         # what fraction of PBPs are active
         PBP1A = states["bulk"][self.PBP1A]
         PBP1B = states["bulk"][self.PBP1B]
         total_PBP = PBP1A + PBP1B
 
-        real_new_murein = int(
-            round(
-                (
-                    active_fraction_1a * (PBP1A / total_PBP)
-                    + active_fraction_1b * (PBP1B / total_PBP)
+        if total_PBP > 0:
+            real_new_murein = int(
+                round(
+                    (
+                        active_fraction_1a * (PBP1A / total_PBP)
+                        + active_fraction_1b * (PBP1B / total_PBP)
+                    )
+                    * new_murein
                 )
-                * new_murein
             )
-        )
+        else:
+            real_new_murein = new_murein
+
         update["murein_state"] = {
             "unincorporated_murein": (
                 real_new_murein + states["murein_state"]["unincorporated_murein"]
