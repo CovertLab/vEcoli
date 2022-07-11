@@ -26,7 +26,7 @@ import pathlib, datetime
 
 def run_ecoli(
         filename='default',
-        total_time=4,
+        total_time=60,
         divide=True,
         initial_state_file='vivecoli_t2',
         progress_bar=True,
@@ -53,7 +53,7 @@ def run_ecoli(
 
     folder = f'out/geneRxnVerifData'
     pathlib.Path(folder).mkdir(parents=True, exist_ok=True)
-    np.save(folder + 'output.npy', output)
+    np.save(folder + '/output.npy', output)
 
 
 experiment_library = {
