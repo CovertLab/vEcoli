@@ -179,10 +179,18 @@ def run_simulation():
             'dimensions']
         stub_schemas['diffusion'] = {
             ('boundary',): diffusion_schema['agents']['*']['boundary'],
+            ('environment',): diffusion_schema[
+                'agents']['*']['environment'],
         }
         stub_schemas['multibody'] = {
             ('boundary',): multibody_schema['agents']['*']['boundary'],
         }
+
+    reports = {
+        tuple(path) for path in
+        config.get('engine_process_reports', tuple())
+    }
+    reports |= {('environment',), ('boundary',)}
 
     base_config = {
         'agent_id': config['agent_id'],
@@ -193,10 +201,7 @@ def run_simulation():
         'divide': config['divide'],
         'division_threshold': config['division']['threshold'],
         'division_variable': ('listeners', 'mass', 'cell_mass'),
-        'reports': tuple(
-            tuple(path) for path in
-            config.get('engine_process_reports', tuple())
-        ),
+        'reports': tuple(reports),
         'seed': config['seed'],
     }
     composite = {}
