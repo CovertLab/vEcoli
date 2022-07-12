@@ -7,12 +7,15 @@
 '''
 
 import copy
+import os
 
+import numpy as np
 from vivarium.core.composer import Composer
 from vivarium.core.engine import Engine
 from vivarium.core.serialize import serialize_value
 from vivarium.core.store import Store
 from vivarium.library.dict_utils import deep_merge
+from vivarium.library.topology import get_in
 
 from ecoli.experiments.ecoli_master_sim import (
     EcoliSim,
@@ -27,6 +30,7 @@ from ecoli.states.wcecoli_state import get_state_from_file
 from ecoli.processes.engine_process import EngineProcess
 from ecoli.processes.environment.field_timeline import FieldTimeline
 from ecoli.composites.environment.lattice import Lattice
+from ecoli.composites.ecoli_configs import CONFIG_DIR_PATH
 
 
 class EcoliEngineProcess(Composer):
@@ -146,9 +150,7 @@ def colony_save_states(engine, config):
         engine.update(time_remaining)
 
 
-def run_simulation():
-    config = SimConfig()
-    config.update_from_cli()
+def run_simulation(config):
 
     tunnel_out_schemas = {}
     stub_schemas = {}
@@ -259,7 +261,37 @@ def run_simulation():
 
     if config['profile']:
         report_profiling(engine.stats)
+    return engine
+
+
+def test_run_simulation():
+    config = SimConfig()
+    spatial_config_path = os.path.join(CONFIG_DIR_PATH, 'spatial.json')
+    config.update_from_json(spatial_config_path)
+    config.update_from_dict({
+        'total_time': 4,
+        'divide': True,
+        'emitter' : 'timeseries',
+        'parallel': True,
+        'engine_process_reports': [
+            ('listeners', 'mass'),
+        ],
+        'progress_bar': False,
+    })
+    engine = run_simulation(config)
+    data = engine.emitter.get_data()
+
+    assert min(data.keys()) == 0
+    assert max(data.keys()) == 4
+
+    assert np.all(np.array(data[0]['fields']['GLC[p]']) == 1)
+    assert np.any(np.array(data[4]['fields']['GLC[p]']) != 1)
+    mass_path = ('agents', '0', 'listeners', 'mass', 'cell_mass')
+    assert get_in(data[4], mass_path) > get_in(data[0], mass_path)
 
 
 if __name__ == '__main__':
-    run_simulation()
+    #config = SimConfig()
+    #config.update_from_cli()
+    #run_simulation(config)
+    test_run_simulation()
