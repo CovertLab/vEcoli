@@ -153,7 +153,7 @@ class Metabolism(Step):
                 'media_id': {
                     '_default': '',
                     '_updater': 'set'},
-                'exchange': {
+                'exchanges': {
                     element: {'_default': 0}
                     for element in self.model.fba.getExternalMoleculeIDs()},
                 'exchange_data': {
@@ -325,7 +325,7 @@ class Metabolism(Step):
                 for index, metabolite in enumerate(self.model.metaboliteNamesFromNutrients)},
 
             'environment': {
-                'exchange': {
+                'exchanges': {
                     molecule: delta_nutrients[index]
                     for index, molecule in enumerate(fba.getExternalMoleculeIDs())}},
 
