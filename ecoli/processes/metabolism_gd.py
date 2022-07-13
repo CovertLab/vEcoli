@@ -13,7 +13,8 @@ from ecoli.library.schema import bulk_schema, array_from
 from wholecell.utils import units
 
 from ecoli.library.fba_gd import GradientDescentFba, FbaResult, TargetDmdtObjective, \
-    TargetVelocityObjective, VelocityBoundsObjective, DmdtBoundsObjective, MinimizeFluxObjective, LenientTargetVelocityObjective
+    TargetVelocityObjective, VelocityBoundsObjective, DmdtBoundsObjective, MinimizeFluxObjective, \
+    LenientTargetVelocityObjective, MinimizeExchangeObjective
 from ecoli.processes.registries import topology_registry
 from ecoli.processes.partition import check_whether_evolvers_have_run
 
@@ -146,7 +147,7 @@ class MetabolismGD(Process):
                                                       for molecule_id in self.disallowed_exchange_uptake}, weight=5))
 
         self.model.add_objective('futile_cycle',
-                                 MinimizeFluxObjective(self.model.network, weight=0.05))
+                                 MinimizeExchangeObjective(self.model.network, self.exchange_molecules, weight=0.001))
 
         # # TODO (Cyrus): Reintroduce later.
         # self.model.add_objective("active_transport",
