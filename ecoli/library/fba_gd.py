@@ -139,6 +139,22 @@ class SteadyStateObjective(ObjectiveComponent):
         return dm_dt[self.indices] * self.weight
 
 
+class MinimizeExchangeObjective(ObjectiveComponent):
+    """Calculates the deviation of the system from steady state, for network intermediates."""
+
+    def __init__(self, network: ReactionNetwork, exchanges: Iterable[str], weight: float = 1.0):
+        self.indices = np.array([network.molecule_index(m) for m in exchanges])
+        self.weight = weight
+
+    def prepare_targets(self, target_values: Optional[Mapping[str, Any]] = None) -> Optional[ArrayT]:
+        """SteadyStateObjective does not use solve-time target values; always returns None."""
+        return None
+
+    def residual(self, velocities: ArrayT, dm_dt: ArrayT, targets: Optional[ArrayT] = None) -> ArrayT:
+        """Returns the subset of dm/dt affecting intermediates, which should all be zero."""
+        return dm_dt[self.indices] * self.weight
+
+
 class MinimizeFluxObjective(ObjectiveComponent):
     """Calculates the deviation of the system from steady state, for network intermediates."""
 
