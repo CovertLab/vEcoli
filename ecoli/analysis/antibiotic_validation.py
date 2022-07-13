@@ -1,5 +1,4 @@
 import os
-import json
 import argparse
 import numpy as np
 from matplotlib import pyplot as plt
@@ -10,8 +9,7 @@ from vivarium.library.units import remove_units
 
 from ecoli.composites.ecoli_engine_process import run_simulation
 from ecoli.analysis.analyze_db_experiment import access
-from ecoli.experiments.ecoli_master_sim import CONFIG_DIR_PATH
-from ecoli.analysis.analyze_db_experiment import OUT_DIR
+from ecoli.experiments.ecoli_master_sim import CONFIG_DIR_PATH, SimConfig
 
 
 def do_plot(data, out_dir):
@@ -23,7 +21,7 @@ def do_plot(data, out_dir):
     expected = np.array(external) * 4
     plt.plot(time, tetracycline)
     plt.plot(time, expected, 'r--')
-    plt.savefig(os.path.join(OUT_DIR, 'tet_transport.png'))
+    plt.savefig(os.path.join(out_dir, 'tet_transport.png'))
     
 
 def run_plot():
@@ -34,7 +32,7 @@ def run_plot():
     )
     parser.add_argument(
         '--agent_id', '-a', type=str,
-        help='ID of agent. If not specified, assue single-cell sim.'
+        help='ID of agent. If not specified, assume single-cell sim.'
     )
     args = parser.parse_args()
     
@@ -58,7 +56,9 @@ def run_plot():
     do_plot(data, out_dir)
     
 def run_sim():
-    run_simulation(os.path.join(CONFIG_DIR_PATH, "antibiotics_tetracycline_cephaloridine.json"))
+    config = SimConfig()
+    config.update_from_json(os.path.join(CONFIG_DIR_PATH, "antibiotics_tetracycline_cephaloridine.json"))
+    run_simulation(config)
 
 if __name__ == "__main__":
     run_sim()

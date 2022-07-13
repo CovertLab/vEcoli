@@ -10,7 +10,7 @@
     "emitter_arg": [
         ["host", "localhost:27017"]
     ],
-    "emitter": "timeseries",
+    "emitter": "database",
     "spatial_environment_config": {
         "field_timeline": {
             "timeline": [
@@ -47,7 +47,8 @@
                         "permeability": ["..", "kinetic_parameters", "outer_tetracycline_permeability"],
                         "area": ["..", "boundary", "surface_area"],
                         "volume": ["..", "cytoplasm", "global", "volume"],
-                        "charge": ["..", "kinetic_parameters", "tetracycline", "charge"]
+                        "charge": ["..", "kinetic_parameters", "tetracycline", "charge"],
+                        "accumulation_factor": ["..", "kinetic_parameters", "tetracycline", "accumulation_factor"]
                     },
                     "export": {
                         "_path": ["null"],
@@ -94,7 +95,8 @@
                         "permeability": "!ParameterSerializer[tetracycline>permeability>outer_with_porins]",
                         "area": "!ParameterSerializer[shape>initial_area]",
                         "volume": "!ParameterSerializer[shape>initial_cytoplasm_volume]",
-                        "charge": "!ParameterSerializer[tetracycline>charge]"
+                        "charge": "!ParameterSerializer[tetracycline>charge]",
+                        "accumulation_factor": "!ParameterSerializer[tetracycline>permeability>accumulation_factor]"
                     },
                     "export": {
                         "kcat": "!ParameterSerializer[tetracycline>efflux>kcat]",

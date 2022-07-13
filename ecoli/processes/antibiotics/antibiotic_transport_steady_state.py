@@ -387,10 +387,10 @@ class AntibioticTransportSteadyState(Process):
                 'reaction_parameters': {
                     reaction: {
                         parameter: {
-                            '_default': value,
+                            '_default': 0 * unit,
                             '_emit': True,
                         }
-                        for parameter, value in reaction_params.items()
+                        for parameter, unit in reaction_params.items()
                     }
                     for reaction, reaction_params in self.parameters[
                         'initial_reaction_parameters'][antibiotic].items()
@@ -446,6 +446,7 @@ class AntibioticTransportSteadyState(Process):
             # the outer membrane has a potential from the Donnan equilibrium.
             internal_bias = charge * faraday * potential / gas_constant / temperature
 
+            # Compute the update.
             internal_steady_state = find_steady_state(
                 prepared_state['species']['external'],
                 prepared_state['reaction_parameters'],
