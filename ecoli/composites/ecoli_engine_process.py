@@ -291,7 +291,6 @@ def test_run_simulation():
 
 
 if __name__ == '__main__':
-    #config = SimConfig()
-    #config.update_from_cli()
-    #run_simulation(config)
-    test_run_simulation()
+    config = SimConfig()
+    config.update_from_cli()
+    run_simulation(config)
