@@ -4,7 +4,7 @@
         "chemostat",
         "tetracycline-ribosome-equilibrium"
     ],
-    "total_time": 100,
+    "total_time": 200,
     "spatial_environment_config": {
         "multibody": {
             "bounds": [
@@ -56,7 +56,7 @@
             "targets": {
                 "tetracycline": "!units[0.01 millimolar]"
             },
-            "delay": 10
+            "delay": 100
         },
         "tetracycline-ribosome-equilibrium": {},
         "ecoli-mass-listener": {
