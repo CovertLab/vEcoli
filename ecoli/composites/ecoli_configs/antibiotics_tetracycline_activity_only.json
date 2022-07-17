@@ -2,7 +2,8 @@
     "inherit_from": ["spatial.json", "cloud.json"],
     "add_processes": [
         "chemostat",
-        "tetracycline-ribosome-equilibrium"
+        "tetracycline-ribosome-equilibrium",
+        "unique_counts"
     ],
     "total_time": 200,
     "spatial_environment_config": {
@@ -42,6 +43,10 @@
             "volume": ["periplasm", "global", "volume"],
             "evolvers_ran": ["evolvers_ran"],
             "reports": ["boundary", "reports"]
+        },
+        "unique_counts": {
+            "unique": ["unique"],
+            "unique_counts": ["listeners", "unique_counts"]
         }
     },
     "process_configs": {
@@ -61,6 +66,12 @@
         "tetracycline-ribosome-equilibrium": {},
         "ecoli-mass-listener": {
             "add_tetracycline_masses": true
+        },
+        "unique_counts": {
+            "paths": [
+                ["unique", "active_ribosome_tetracycline"],
+                ["unique", "active_ribosome"]
+            ]
         }
     },
     "flow": {
@@ -71,6 +82,9 @@
         ["periplasm"],
         ["cytoplasm"],
         ["listeners", "mass"],
-        ["boundary"]
+        ["listeners", "unique_counts"],
+        ["boundary"],
+        ["bulk", "CPLX0-3953-tetracycline[c]"],
+        ["bulk", "CPLX0-3953[c]"]
     ]
 }
