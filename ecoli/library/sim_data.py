@@ -91,8 +91,10 @@ class LoadSimData:
             equilibrium_proc.rxn_ids += ['marR-tet']
             # All existing equilibrium reactions use a forward reaction rate of 1
             equilibrium_proc.rates_fwd = np.concatenate([equilibrium_proc.rates_fwd, np.array([1])])
-            # Rev rate of 4.5E-7 (+/- 5E-8) was manually fit to complex off all marR except 1 at 1.5 mg/L tetracycline 
-            equilibrium_proc.rates_rev = np.concatenate([equilibrium_proc.rates_rev, np.array([4.5E-7])])
+            # Rev rate to inactivate all marR at 1.5 mg/L external concentration
+            # 2.4942e-06: assuming artificial accumulation factor of 8.4
+            # 6.8411e-07: using Nernst-Planck eq. with membrane potential of 21.5 mV
+            equilibrium_proc.rates_rev = np.concatenate([equilibrium_proc.rates_rev, np.array([2.4942e-06])])
 
             # Mass balance matrix
             equilibrium_proc._stoichMatrixMass = np.concatenate([equilibrium_proc._stoichMatrixMass, np.array([32130, 444.4346, 32574.4346])])
