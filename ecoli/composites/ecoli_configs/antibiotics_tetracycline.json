@@ -10,7 +10,7 @@
     "emitter_arg": [
         ["host", "localhost:27017"]
     ],
-    "emitter": "database",
+    "emitter": "timeseries",
     "spatial_environment_config": {
         "field_timeline": {
             "timeline": [

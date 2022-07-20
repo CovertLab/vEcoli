@@ -7,7 +7,7 @@ from vivarium.core.emitter import timeseries_from_data
 
 from ecoli.library.schema import bulk_schema
 
-CONV_UNITS = units.L / units.mmol
+CONV_UNITS = 1 / units.mM
 
 
 class ConcToCounts(Step):
@@ -88,10 +88,10 @@ class ConcToCounts(Step):
         cellVolume = states['volume_global']['volume']
         
         # Calculate state values
-        molar_to_counts = (self.nAvogadro * cellVolume).to(CONV_UNITS)
+        molar_to_counts = self.nAvogadro * cellVolume * 1e-18
         update = {'bulk': {}}
         for molecule, conc in states['internal'].items():
-            update['bulk'][molecule] = int((conc * molar_to_counts).to_reduced_units().magnitude)
+            update['bulk'][molecule] = int((conc * molar_to_counts).magnitude)
 
         return update
 
