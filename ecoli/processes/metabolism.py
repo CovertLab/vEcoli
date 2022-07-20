@@ -318,7 +318,7 @@ class Metabolism(Step):
         names = fba.getReactionIDs()
 
         flux_dict = {names[i]: fluxes[i] for i in range(len(names))}
-
+        # np.save("out/stoichiometry.npy", self.parameters["stoichiometry"])
         update = {
             'metabolites': {
                 metabolite: delta_metabolites_final[index]
