@@ -52,8 +52,13 @@ def main():
     with open(RESPONSE_GENES_PATH) as response_genes_file:
         response_genes = response_genes_file.read().split('\n')
     # All response gene names are the same as their corresponding RNA names. Only include genes that encode mRNAs.
-    response_gene_probs = sorted([mrna_to_basal_prob[response_gene] for response_gene in response_genes
-                           if response_gene in mrna_to_basal_prob.keys()], reverse=True)
+    #response_gene_probs = sorted([mrna_to_basal_prob[response_gene] for response_gene in response_genes
+    #                       if response_gene in mrna_to_basal_prob.keys()], reverse=True)
+    mrna_to_basal_prob_response = {
+        mrna: prob
+        for mrna, prob in mrna_to_basal_prob.items()
+        if mrna in response_genes
+    }
 
     # Get the basal probabilities from the release version of wcEcoli for the next section.
     with open(RELEASE_RNA_PROB_PATH) as f:
@@ -75,28 +80,53 @@ def main():
     cutoff_tuple = release_prob_gene_tuples[CUTOFF_INDEX]
     generational_prob_cutoff = cutoff_tuple[0]
 
-    def calc_num_generational(probs):
-        """
-        Calculates the number of generational genes in a sorted list of (prob, gene_id) tuples.
-        """
-        num_generational = 0
-        for prob in probs:
-            if prob < generational_prob_cutoff:
-                break
-            num_generational += 1
-        return num_generational
-    num_all_generational = calc_num_generational(mrna_probs)
-    num_all_sub_gen = len(mrna_probs) - num_all_generational
-    num_response_generational = calc_num_generational(response_gene_probs)
-    num_response_sub_gen = len(response_gene_probs) - num_response_generational
+    table = [
+        ('gene', 'basal_transcription_prob', 'antibiotic_response',
+            'subgenerational'),
+    ]
+    num_subgen = 0
+    num_subgen_response = 0
+    num_gen = 0
+    num_gen_response = 0
+    for mrna, prob in mrna_to_basal_prob.items():
+        subgen = prob < generational_prob_cutoff
+        response = mrna in response_genes
+        row = mrna, prob, response, subgen
+        table.append(row)
 
-    data = {'All: Generational': num_all_generational, 'All: Sub': num_all_sub_gen,
-            'Response: Generational': num_response_generational, 'Response: Sub': num_response_sub_gen}
-    fig, ax = plt.subplots(figsize=(16, 9))
-    bars = ax.barh(list(data.keys()), list(data.values()))
-    ax.bar_label(bars)
-    plt.title("Number of Generational and Sub-Generational Genes")
-    plt.savefig('out/prob_bars.png')
+        if subgen:
+            num_subgen += 1
+            if response:
+                num_subgen_response += 1
+        else:
+            num_gen += 1
+            if response:
+                num_gen_response += 1
+
+    data = {
+        ('All Genes', 'gray'): (
+            ('Generational', num_gen),
+            ('Subgenerational', num_subgen),
+        ),
+        ('Antibiotic Response Genes', 'black'): (
+            ('Generational', num_gen_response),
+            ('Subgenerational', num_subgen_response),
+        ),
+    }
+
+    fig, ax = plt.subplots(figsize=(9, 2))
+    for (label, color), series in data.items():
+        y, width = zip(*series)
+        bars = ax.barh(y, width, color=color, label=label)
+        ax.bar_label(bars)
+    ax.legend()
+    fig.tight_layout()
+    fig.savefig('out/subgen_antibiotic_response_genes.png')
+
+    with open('out/subgen_antibiotic_response_genes.csv', 'w') as f:
+        writer = csv.writer(f)
+        for row in table:
+            writer.writerow(row)
 
 
 if __name__ == '__main__':
