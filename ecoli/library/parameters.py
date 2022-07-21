@@ -213,9 +213,9 @@ PARAMETER_DICT = {
         ),
     },
     'avogadro': constants.N_A / units.mol,
-    'membrane_potential': Parameter(
-        0.12 * units.volt,
-        'Berg, Howard C., E. coli in Mtion. 1934. Page 105',
+    'donnan_potential': Parameter(
+        0.026 * units.volt,
+        'Thananassi, Suh, and Nikaido (1995) p. 999',
     ),
     'faraday_constant': Parameter(
         constants.value(

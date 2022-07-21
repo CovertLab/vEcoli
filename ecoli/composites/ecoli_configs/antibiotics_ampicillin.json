@@ -41,7 +41,8 @@
                         "_path": ["null"],
                         "permeability": ["..", "kinetic_parameters", "outer_ampicillin_permeability"],
                         "area": ["..", "boundary", "surface_area"],
-                        "volume": ["..", "periplasm", "global", "volume"]
+                        "volume": ["..", "periplasm", "global", "volume"],
+                        "charge": ["..", "kinetic_parameters", "ampicillin_charge"]
                     },
                     "export": {
                         "_path": ["null"],
@@ -82,7 +83,8 @@
                     "diffusion": {
                         "permeability": "!ParameterSerializer[ampicillin>permeability>outer]",
                         "area": "!ParameterSerializer[shape>initial_area]",
-                        "volume": "!ParameterSerializer[shape>initial_periplasm_volume]"
+                        "volume": "!ParameterSerializer[shape>initial_periplasm_volume]",
+                        "charge": "!units[0 count]"
                     },
                     "export": {
                         "kcat": "!ParameterSerializer[ampicillin>efflux>kcat]",
@@ -127,7 +129,8 @@
                                 "diffusion": {
                                     "permeability": "!ParameterSerializer[ampicillin>permeability>outer]",
                                     "area": "!ParameterSerializer[shape>initial_area]",
-                                    "volume": "!ParameterSerializer[shape>initial_periplasm_volume]"
+                                    "volume": "!ParameterSerializer[shape>initial_periplasm_volume]",
+                                    "charge": "!units[0 count]"
                                 },
                                 "export": {
                                     "kcat": "!ParameterSerializer[ampicillin>efflux>kcat]",
@@ -164,7 +167,8 @@
                                     "_path": ["null"],
                                     "permeability": ["..", "kinetic_parameters", "outer_ampicillin_permeability"],
                                     "area": ["..", "boundary", "surface_area"],
-                                    "volume": ["..", "periplasm", "global", "volume"]
+                                    "volume": ["..", "periplasm", "global", "volume"],
+                                    "charge": ["..", "kinetic_parameters", "ampicillin_charge"]
                                 },
                                 "export": {
                                     "_path": ["null"],
