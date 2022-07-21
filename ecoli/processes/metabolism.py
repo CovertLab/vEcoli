@@ -95,6 +95,7 @@ class Metabolism(Step):
         # Use information from the environment and sim
         self.get_import_constraints = self.parameters['get_import_constraints']
         self.nutrientToDoublingTime = self.parameters['nutrientToDoublingTime']
+        self.nutrientToDoublingTime['minimal_fructose'] = self.nutrientToDoublingTime['minimal']
         self.use_trna_charging = self.parameters['use_trna_charging']
         self.include_ppgpp = self.parameters['include_ppgpp']
         self.current_timeline = self.parameters['current_timeline']
@@ -243,7 +244,7 @@ class Metabolism(Step):
         dry_mass = states['listeners']['mass']['dry_mass'] * units.fg
 
         # Get environment updates
-        current_media_id = states['environment']['media_id']
+        current_media_id = 'minimal_fructose' # states['environment']['media_id']
         unconstrained = states['environment']['exchange_data']['unconstrained']
         constrained = states['environment']['exchange_data']['constrained']
 
@@ -317,7 +318,7 @@ class Metabolism(Step):
         fluxes = fba.getReactionFluxes() / timestep
         names = fba.getReactionIDs()
 
-        flux_dict = {names[i]: fluxes[i] for i in range(len(names))}
+        flux_dict = {names[i]: int((fluxes[i] / counts_to_molar).asNumber()) for i in range(len(names))}
         # np.save("out/stoichiometry.npy", self.parameters["stoichiometry"])
         update = {
             'metabolites': {
@@ -350,7 +351,6 @@ class Metabolism(Step):
                         for mol in fba.getHomeostaticTargetMolecules()],
                     'homeostaticObjectiveValues': fba.getHomeostaticObjectiveValues(),
                     'kineticObjectiveValues': fba.getKineticObjectiveValues(),
-
                     'estimated_fluxes': flux_dict ,
                     'estimated_dmdt': {metabolite: delta_metabolites_final[index]
                                        for index, metabolite in enumerate(self.model.metaboliteNamesFromNutrients)},

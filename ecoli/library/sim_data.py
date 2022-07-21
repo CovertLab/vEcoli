@@ -592,9 +592,9 @@ class LoadSimData:
 
             # these values came from the initialized environment state
             'current_timeline': None,
-            'media_id': self.sim_data.conditions[self.sim_data.condition]['nutrients'],
+            'media_id': 'minimal_fructose', # self.sim_data.conditions[self.sim_data.condition]['nutrients'],
 
-            'condition': self.sim_data.condition,
+            'condition': 'minimal_fructose', # self.sim_data.condition,
             'nutrients': self.sim_data.conditions[self.sim_data.condition]['nutrients'],
             # TODO Replace this with media_id
             'metabolism': self.sim_data.process.metabolism,
