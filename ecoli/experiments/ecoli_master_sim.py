@@ -18,8 +18,8 @@ from datetime import datetime
 from typing import Optional, Dict, Any
 
 from vivarium.core.engine import Engine
-from vivarium.core.process import Process
 from vivarium.core.serialize import deserialize_value
+from vivarium.core.store import Store
 from vivarium.library.dict_utils import deep_merge, deep_merge_combine_lists
 from vivarium.library.topology import assoc_path
 from ecoli.library.logging import write_json
@@ -199,6 +199,9 @@ class SimConfig:
         for key in LIST_KEYS_TO_MERGE:
             d2.setdefault(key, [])
             d2[key].extend(d1.get(key, []))
+            if key == 'save_times':
+                d2[key] = list(set(d2[key]))  # Ensures there are no duplicates in d2
+                d2[key].sort()
         deep_merge(d1, d2)
 
     def update_from_json(self, path):
@@ -454,6 +457,7 @@ class EcoliSim:
                 raise ValueError(
                     f'Config contains save_time ({time}) > total '
                     f'time ({self.total_time})')
+
         for i in range(len(self.save_times)):
             if i == 0:
                 time_to_next_save = self.save_times[i]
@@ -461,13 +465,20 @@ class EcoliSim:
                 time_to_next_save = self.save_times[i] - self.save_times[i - 1]
             self.ecoli_experiment.update(time_to_next_save)
             time_elapsed = self.save_times[i]
-            state = self.ecoli_experiment.state.get_value()
+
+            def not_a_process(value):
+                return not (isinstance(value, Store) and value.topology)
+            state = self.ecoli_experiment.state.get_value(condition=not_a_process)
             if self.divide:
                 state = state['agents'][self.agent_id]
-            state_to_save = {key: state[key] for key in state.keys() if
-                             not (isinstance(state[key], tuple) and isinstance(state[key][0], Process))}
-            write_json('data/vivecoli_t' + str(time_elapsed) + '.json', state_to_save)
-            print('Finished saving the state at t = ' + str(time_elapsed) + '\n')
+            del state['evolvers_ran']
+            # Saving the exchange data causes nondeterministic output
+            # because it includes sets, so avoid saving it since we
+            # set exchange_data in
+            # ecoli.states.wcecoli_state.get_state_from_file() anyway.
+            del state['environment']
+            write_json('data/vivecoli_t' + str(time_elapsed) + '.json', state)
+            print('Finished saving the state at t = ' + str(time_elapsed))
         time_remaining = self.total_time - self.save_times[-1]
         if time_remaining:
             self.ecoli_experiment.update(time_remaining)

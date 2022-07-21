@@ -1,7 +1,10 @@
 import random
+from typing import List
 
 import numpy as np
 
+
+RAND_MAX = 2**31 - 1
 
 UNIQUE_DIVIDERS = {
     'active_ribosome': {
@@ -188,6 +191,7 @@ def arrays_to(n, attrs):
 
     return ds
 
+
 def bulk_schema(
         elements,
         updater=None,
@@ -243,17 +247,22 @@ def dict_value_schema(name):
 
 
 # :term:`dividers`
-def divide_binomial(state):
+def divide_binomial(state: float) -> List[float]:
     """Binomial Divider
-    """
-    try:
-        counts_1 = np.random.binomial(state, 0.5)
-        counts_2 = state - counts_1
-    except:
-        print(f"binomial_divider can not divide {state}.")
-        counts_1 = state
-        counts_2 = state
 
+    Args:
+        state: The value to divide.
+        config: Must contain a ``seed`` key with an integer seed. This
+            seed will be added to ``int(state)`` to seed a random number
+            generator used to calculate the binomial.
+
+    Returns:
+        The divided values.
+    """
+    seed = int(state) % RAND_MAX
+    random_state = np.random.RandomState(seed=seed)
+    counts_1 = random_state.binomial(state, 0.5)
+    counts_2 = state - counts_1
     return [counts_1, counts_2]
 
 
