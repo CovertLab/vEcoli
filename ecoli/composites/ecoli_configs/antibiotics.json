@@ -11,7 +11,7 @@
                 "!units[50 micrometer]"
             ]
         },
-        "diffusion": {
+        "reaction_diffusion": {
             "molecules": ["GLC[p]", "nitrocefin", "cephaloridine", "tetracycline", "ampicillin"],
             "n_bins": [10, 10],
             "bounds": [
