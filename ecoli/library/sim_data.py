@@ -20,7 +20,8 @@ class LoadSimData:
         seed=0,
         trna_charging=False,
         ppgpp_regulation=False,
-        mar_regulon=False
+        mar_regulon=False,
+        rnai_data=None,
     ):
 
         self.seed = np.uint32(seed % np.iinfo(np.uint32).max)
@@ -49,16 +50,15 @@ class LoadSimData:
             self.sim_data.process.transcription_regulation.active_to_bound["CPLX0-7710"] = "marR-tet"
             
             # TU index of genes for outer membrane proteins, regulators, and inner membrane transporters
-            # NOTE: MicF (a ncRNA that destabilized ompF mRNA) was omitted for simplicity
-            TU_idxs = [2011, 1641, 1394, 2112, 1642, 1543, 662, 995, \
+            TU_idxs = [2493, 2011, 1641, 1394, 2112, 1642, 1543, 662, 995, \
                 3289, 262, 1807, 2010, 659, 1395, 260, 259, 11, 944, 1631, 1330, \
                 660, 1399, 661]
             new_deltaI = np.array(TU_idxs)
-            new_deltaJ = np.array([24]*23)
+            new_deltaJ = np.array([24]*24)
             # Values were chosen to recapitulate mRNA fold change with 1.5 mg/L tetracycline (Viveiros et al. 2007)
             # new_deltaV = np.array([10, 0.48, 0.07, 0.0054, 0.18, 0.013, 0.02, 0.13, 0.0035, 0.08, 0.007, 0.01, \
             #     4, 0.0065, 0.0005, 0.0001, 0.00055, 0.025, 0.00002, 0.02, 0.01, -0.0006, -0.2]) / 1000
-            new_deltaV = np.array([0.145, 0.017, 0.0168, 0.00095, 0.01, -0.000101, 0.003422, 0.003846, 0.000155, 0.01, 0.0014, 0.00118, \
+            new_deltaV = np.array([0.0001, 0.145, 0.017, 0.0168, 0.00095, 0.01, -0.000101, 0.003422, 0.003846, 0.000155, 0.01, 0.0014, 0.00118, \
                 0.524, 0.003, 0.000034, -0.000002, 0.00006, 0.02, 0.000004, 0.00468, 0.03, 0.000257, 0.37]) / 1000
             
             self.sim_data.process.transcription_regulation.delta_prob["deltaI"] = np.concatenate(
@@ -75,8 +75,8 @@ class LoadSimData:
             bulk_data[-1] = ('tetracycline', [0, 0, 0, 0, 0, 0, 444.4346, 0, 0])
             # marR mass from EcoCyc (x2 because homodimer)
             bulk_data[-2] = ('marR-tet[c]', [0, 0, 0, 0, 0, 32120, 444.4346, 0, 0])
-            units = self.sim_data.internal_state.bulk_molecules.bulk_data.fullUnits()
-            self.sim_data.internal_state.bulk_molecules.bulk_data = UnitStructArray(bulk_data, units)
+            bulk_units = self.sim_data.internal_state.bulk_molecules.bulk_data.fullUnits()
+            self.sim_data.internal_state.bulk_molecules.bulk_data = UnitStructArray(bulk_data, bulk_units)
             
             # Add equilibrium reaction for marR-tetracycline and reinitialize self.sim_data.process.equilibrium variables
             equilibrium_proc = self.sim_data.process.equilibrium
@@ -109,6 +109,68 @@ class LoadSimData:
             # Build matrices
             equilibrium_proc._populateDerivativeAndJacobian()
             equilibrium_proc._stoichMatrix = equilibrium_proc.stoich_matrix()
+        
+        # Append new RNA IDs and degradation rates for sRNA-mRNA duplexes
+        if rnai_data:
+            duplex_ids = np.array(rnai_data['duplex_ids'])
+            n_duplex_rnas = len(duplex_ids)
+            duplex_deg_rates = np.array(rnai_data['duplex_deg_rates'])
+            duplex_km = np.array(rnai_data['duplex_km'])
+            duplex_is_mRNA = np.ones(n_duplex_rnas)
+            duplex_na = np.zeros(n_duplex_rnas)
+            
+            srna_ids = np.array(rnai_data['srna_ids'])
+            target_ids = np.array(rnai_data['target_ids'])
+            srna_tu_ids = np.array(rnai_data['srna_tu_ids'])
+            target_tu_ids = np.array(rnai_data['target_tu_ids'])
+            
+            # Get length, ACGU content, molecular weight, and sequence data for duplex
+            duplex_lengths = np.zeros(n_duplex_rnas)
+            duplex_ACGU = np.zeros((n_duplex_rnas, 4))
+            duplex_mw = np.zeros(n_duplex_rnas)
+            rna_data = self.sim_data.process.transcription.rna_data.fullArray().copy()
+            rna_units = self.sim_data.process.transcription.rna_data.fullUnits()
+            rna_sequences = self.sim_data.process.transcription.transcription_sequences
+            duplex_sequences = np.full((n_duplex_rnas, rna_sequences.shape[1]), -1)
+            for i, (srna_id, target_id, srna_tu_id, target_tu_id) in enumerate(
+                zip(srna_ids, target_ids, srna_tu_ids, target_tu_ids)):
+                duplex_ACGU[i] = (rna_data['counts_ACGU'][rna_data['id']==srna_id][0] + 
+                                  rna_data['counts_ACGU'][rna_data['id']==target_id][0])
+                duplex_mw[i] = (rna_data['mw'][rna_data['id']==srna_id][0] + 
+                                rna_data['mw'][rna_data['id']==target_id][0])
+                srna_length = rna_data['length'][rna_data['id']==srna_id][0]
+                target_length = rna_data['length'][rna_data['id']==target_id][0]
+                duplex_lengths[i] = srna_length + target_length
+                duplex_sequences[i, :srna_length] = rna_sequences[srna_tu_id][:srna_length] 
+                duplex_sequences[i, srna_length:srna_length+target_length] = rna_sequences[target_tu_id][:target_length]
+            
+            # Make duplex metadata visible to all RNA-related processes
+            rna_data.resize(rna_data.shape[0]+n_duplex_rnas, refcheck=False)
+            rna_sequences.resize((rna_sequences.shape[0]+n_duplex_rnas, rna_sequences.shape[1]), refcheck=False)
+            for i, new_rna in enumerate(zip(duplex_ids, duplex_deg_rates, duplex_lengths, duplex_ACGU,
+                               duplex_mw, duplex_is_mRNA, duplex_na, duplex_na, duplex_na,
+                               duplex_na, duplex_na, duplex_na, duplex_na, duplex_na, 
+                               duplex_na, duplex_km, duplex_na, duplex_na)):
+                rna_data[-i-1] = new_rna
+                rna_sequences[-i-1] = duplex_sequences[i]
+            self.sim_data.process.transcription.rna_data = UnitStructArray(rna_data, rna_units)
+            
+            # Add bulk mass data for duplexes to avoid errors (though mRNAs should never go to bulk)
+            bulk_data = self.sim_data.internal_state.bulk_molecules.bulk_data.fullArray().copy()
+            bulk_units = self.sim_data.internal_state.bulk_molecules.bulk_data.fullUnits()
+            bulk_data.resize(bulk_data.shape[0]+n_duplex_rnas, refcheck=False)
+            for i, duplex in enumerate(duplex_ids):
+                duplex_submasses = np.zeros(9)
+                duplex_submasses[2] = duplex_mw[i]
+                bulk_data[-i-1] = (duplex, duplex_submasses)
+            self.sim_data.internal_state.bulk_molecules.bulk_data = UnitStructArray(bulk_data, bulk_units)
+            
+            # Add filler transcription data for duplex RNAs to prevent errors
+            transcription_regulation = self.sim_data.process.transcription_regulation
+            transcription_regulation.basal_prob = np.append(transcription_regulation.basal_prob, 0)
+            transcription_regulation.delta_prob['shape'] = (
+                transcription_regulation.delta_prob['shape'][0] + 1,
+                transcription_regulation.delta_prob['shape'][1])
 
     def get_config_by_name(self, name, time_step=2, parallel=False):
         name_config_mapping = {
