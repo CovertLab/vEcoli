@@ -56,6 +56,7 @@ class Ecoli(Composer):
         'divide': False,
         'log_updates': False,
         'mar_regulon': False,
+        'rnai_data': None,
         'flow': {},
     }
 
@@ -65,7 +66,8 @@ class Ecoli(Composer):
         self.load_sim_data = LoadSimData(
             sim_data_path=self.config['sim_data_path'],
             seed=self.config['seed'],
-            mar_regulon=self.config['mar_regulon'])
+            mar_regulon=self.config['mar_regulon'],
+            rnai_data=self.config['process_configs']['ecoli-rna-interference'])
 
         if not self.config.get('processes'):
             self.config['processes'] = deepcopy(ECOLI_DEFAULT_PROCESSES)

@@ -4,7 +4,8 @@
         "antibiotic-transport-odeint",
         "permeability",
         "death",
-        "conc_to_counts"
+        "conc_to_counts",
+        "ecoli-rna-interference"
     ],
     "total_time": 10,
     "emitter_arg": [
@@ -210,6 +211,22 @@
         },
         "conc_to_counts": {
             "molecules_to_convert": ["tetracycline"]
+        },
+        "ecoli-rna-interference": {
+            "srna_ids": ["MICF-RNA[c]"],
+            "target_ids": ["EG10671_RNA[c]"],
+            "srna_tu_ids": [2493],
+            "target_tu_ids": [661],
+            "duplex_ids": ["micF-ompF[c]"],
+            "duplex_deg_rates": [0.00135911],
+            "duplex_lengths": [1182],
+            "duplex_ACGU": [[306, 273, 280, 323]],
+            "duplex_mw": [378762.459],
+            "duplex_km": [0.00034204],
+            "duplex_tu_ids": [4687],
+            "ribosome30S": "CPLX0-3953[c]",
+            "ribosome50S": "CPLX0-3962[c]",
+            "binding_probs": [1]
         }
     }
 }

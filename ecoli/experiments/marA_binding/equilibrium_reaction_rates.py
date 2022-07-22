@@ -61,18 +61,13 @@ def run_sim(tet_conc=0, accumulation=True):
                 'accumulation_factor')
     engine = run_simulation(config)
     
-    print(engine.emitter.saved_data[0.0]['agents']['0']['bulk']['tetracycline'])
-    print(engine.emitter.saved_data[2.0]['agents']['0']['bulk']['tetracycline'])
-    print(engine.emitter.saved_data[4.0]['agents']['0']['bulk']['tetracycline'])
-    print(engine.emitter.saved_data[0.0]['agents']['0']['bulk']['marR-tet[c]'])
-    print(engine.emitter.saved_data[2.0]['agents']['0']['bulk']['marR-tet[c]'])
-    print(engine.emitter.saved_data[4.0]['agents']['0']['bulk']['marR-tet[c]'])
-    print(engine.emitter.saved_data[0.0]['agents']['0']['bulk']['CPLX0-7710[c]'])
-    print(engine.emitter.saved_data[2.0]['agents']['0']['bulk']['CPLX0-7710[c]'])
-    print(engine.emitter.saved_data[4.0]['agents']['0']['bulk']['CPLX0-7710[c]'])
-    print(engine.emitter.saved_data[0.0]['agents']['0']['cytoplasm']['concentrations']['tetracycline'])
-    print(engine.emitter.saved_data[2.0]['agents']['0']['cytoplasm']['concentrations']['tetracycline'])
-    print(engine.emitter.saved_data[4.0]['agents']['0']['cytoplasm']['concentrations']['tetracycline'])
+    active = engine.emitter.saved_data[4.0]['agents']['0']['bulk']['CPLX0-7710[c]']
+    inactive = engine.emitter.saved_data[4.0]['agents']['0']['bulk']['marR-tet[c]']
+    print(tet_conc)
+    if active+inactive > 0:
+        print(inactive/(active+inactive))
+    else:
+        print(0)
 
 def test_rates():
     run_sim(0.003375, True)

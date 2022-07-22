@@ -66,7 +66,7 @@ PARAMETER_DICT = {
         ),
         'efflux': {
             'vmax': Parameter(
-                0.085 * units.nmol / units.mg / units.sec,
+                0.069 * units.nmol / units.mg / units.sec,
                 'Kojima and Nikaido (2013)',
                 latex_source='kojima2013permeation',
             ),
@@ -150,14 +150,12 @@ PARAMETER_DICT = {
         },
         'hydrolysis': {
             'kcat': Parameter(
-                130 / units.sec,
-                'Galleni et al. (1988)',
-                note='Not confirmed',
+                289 / units.sec,
+                'Jacoby (2009)'
             ),
             'km': Parameter(
                 0.17 * units.mM,
-                'Galleni et al. (1988)',
-                note='Not confirmed',
+                'Jacoby (2009)'
             ),
             'n': Parameter(
                 1 * units.count
