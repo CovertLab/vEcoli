@@ -216,7 +216,10 @@ def run_simulation(config):
             agent_config['agent_id'] = agent_id
             time_str = config['initial_colony_file'][len('colony_t'):]
             agent_config['seed'] = (
-                agent_config['seed'] + int(float(time_str))) % RAND_MAX
+                agent_config['seed']
+                + int(float(time_str))
+                + int(agent_id, base=2)
+            ) % RAND_MAX
             agent_composer = EcoliEngineProcess(agent_config)
             agent_composite = agent_composer.generate(path=('agents', agent_id))
             if not composite:
