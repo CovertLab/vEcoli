@@ -616,6 +616,8 @@ class LoadSimData:
             'deriver_mode': deriver_mode
         }
 
+        self.sim_data.external_state.exchange_data_from_media('minimal')
+
         return metabolism_config
 
     def get_mass_config(self, time_step=2, parallel=False):
