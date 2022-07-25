@@ -435,26 +435,6 @@ def divide_domain(values):
     return [daughter1, daughter2]
 
 
-def divide_unique(unique_molecules, **args):
-    """divide unique molecules binomially"""
-    # TODO (Matt): Set a seed
-    n_unique_molecules = len(unique_molecules)
-    unique_molecule_ids = list(unique_molecules.keys())
-
-    daughter1_counts = np.random.binomial(n_unique_molecules, 0.5)
-    daughter1_ids = random.sample(unique_molecule_ids, daughter1_counts)
-
-    daughter1 = {}
-    daughter2 = {}
-    for unique_id in unique_molecule_ids:
-        specs = unique_molecules[unique_id]
-        if unique_id in daughter1_ids:
-            daughter1[unique_id] = specs
-        else:
-            daughter2[unique_id] = specs
-    return [daughter1, daughter2]
-
-
 def divide_RNAs_by_domain(values, state):
     """
     divide a dictionary of unique RNAs into two daughters,
