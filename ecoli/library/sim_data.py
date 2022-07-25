@@ -551,6 +551,7 @@ class LoadSimData:
                 else:
                     rxns[-1]['enzyme'] = []
 
+
         # TODO Reconstruct catalysis and annotate.
         # Required:
 
