@@ -69,7 +69,13 @@ class Allocator(Deriver):
             'allocate': {
                 process: {
                     'bulk': {
-                        '*': {'_default': 0, '_updater': 'set'}}}
+                        '*': {
+                            '_default': 0,
+                            '_updater': 'set',
+                            '_divider': 'null',
+                        },
+                    },
+                }
                 for process in self.processNames},
             'evolvers_ran': {
                 '_default': True,
