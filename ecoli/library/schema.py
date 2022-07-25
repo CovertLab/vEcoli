@@ -352,8 +352,8 @@ def get_domain_index_to_daughter(chromosome_domain):
     daughter_ids.remove(-1)
     daughter_ids = list(daughter_ids)
     assert len(daughter_ids) == 2
-    daughter1_index = daughter_ids[0]
-    daughter2_index = daughter_ids[1]
+    daughter1_index = min(daughter_ids)
+    daughter2_index = max(daughter_ids)
 
     return index_to_daughter, daughter1_index, daughter2_index
 
