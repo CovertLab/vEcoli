@@ -129,6 +129,7 @@ class MetabolismGD(Process):
         self.disallowed_carbon_transport = self.carbon_source_active_transport_duplicate + \
                                            self.carbon_source_facilitated_diffusion
 
+
         # Create model to use to solve metabolism updates
         self.model = GradientDescentFba(
             reactions=self.stoichiometry,
@@ -289,10 +290,13 @@ class MetabolismGD(Process):
         kinetic_enzyme_conc = self.counts_to_molar * array_from(kinetic_enzyme_counts)
         kinetic_substrate_conc = self.counts_to_molar * array_from(kinetic_substrate_counts)
         kinetic_constraints = self.get_kinetic_constraints(kinetic_enzyme_conc, kinetic_substrate_conc) # kinetic
-        kinetic_target_values = ((timestep * units.s) * kinetic_constraints).asNumber(CONC_UNITS)
-        kinetic_reacs = self.kinetic_constraint_reactions
+        enzyme_kinetic_boundaries = ((timestep * units.s) * kinetic_constraints).asNumber(CONC_UNITS)
+        enzyme_kinetic_reactions = self.kinetic_constraint_reactions
+
+        enzyme_kinetic_targets = {enzyme_kinetic_reactions[i]: enzyme_kinetic_boundaries[i, 1] for i in range(len(enzyme_kinetic_reactions))}
 
         # adding dynamically sized objectives
+        self.model.add_objective('kinetic', TargetVelocityObjective(self.model.network, enzyme_kinetic_targets.keys(), weight=0.0001))
         self.model.add_objective('binary_kinetic', TargetVelocityObjective(self.model.network, binary_kinetic_targets.keys(), weight=1))
 
         # run FBA
@@ -301,6 +305,7 @@ class MetabolismGD(Process):
              'binary_kinetic': binary_kinetic_targets,
              'maintenance': maintenance_target,
              'diffusion': diffusion_target,
+             'kinetic': enzyme_kinetic_targets
              },
             initial_velocities=self.reaction_fluxes,
             tr_solver='lsmr', max_nfev=64, ftol=10 ** (-5), verbose=2, xtol=10 ** (-4),
