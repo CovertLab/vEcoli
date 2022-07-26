@@ -187,7 +187,7 @@ class SimConfig:
             help='Print profiling information at the end.')
         self.parser.add_argument(
             '--initial_state_file', action='store',
-            default='wcecoli_t0',
+            default='',
             help='Name of initial state file (no ".json") under data/')
 
     @staticmethod

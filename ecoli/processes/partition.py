@@ -30,27 +30,39 @@ def check_whether_evolvers_have_run(evolvers_ran, proc_name):
     return evolvers_ran
 
 
-def change_bulk_updater(schema, new_updater):
-    """Retrieve port schemas for all bulk molecules
-    and modify their updater
+def change_bulk_schema(
+        schema, new_updater='', new_divider='', new_emit=False):
+    """Retrieve and modify port schemas for all bulk molecules.
 
     Args:
         schema (Dict): The ports schema to change
-        new_updater (String): The new updater to use
+        new_updater (String): The new updater to use. Updater is
+            unchanged if this is an empty string.
+        new_divider (String): The new divider to use. Divider is
+            unchanged if this is an empty string.
+        new_emit (String): The new emitter to use. False by default.
 
     Returns:
         Dict: Ports schema that only includes bulk molecules
-        with the new updater
+        with the new schemas.
     """
     bulk_schema = {}
+    schema_updates = {
+        '_emit': new_emit,
+    }
+    if new_updater:
+        schema_updates['_updater'] = new_updater
+    if new_divider:
+        schema_updates['_divider'] = new_divider
     if '_properties' in schema:
         if schema['_properties']['bulk']:
             topo_copy = schema.copy()
-            topo_copy.update({'_updater': new_updater, '_emit': False})
+            topo_copy.update(schema_updates)
             return topo_copy
     for port, value in schema.items():
         if has_bulk_property(value):
-            bulk_schema[port] = change_bulk_updater(value, new_updater)
+            bulk_schema[port] = change_bulk_schema(
+                value, new_updater, new_divider, new_emit)
     return bulk_schema
 
 
@@ -136,7 +148,8 @@ class Requester(Step):
     def ports_schema(self):
         ports = self.process.get_schema()
         ports_copy = ports.copy()
-        ports['request'] = change_bulk_updater(ports_copy, 'set')
+        ports['request'] = change_bulk_schema(
+            ports_copy, new_updater='set', new_divider='null')
         ports['evolvers_ran'] = {'_default': True}
         return ports
 
@@ -192,7 +205,8 @@ class Evolver(Process):
     def ports_schema(self):
         ports = self.process.get_schema()
         ports_copy = ports.copy()
-        ports['allocate'] = change_bulk_updater(ports_copy, 'set')
+        ports['allocate'] = change_bulk_schema(
+            ports_copy, new_updater='set', new_divider='null')
         ports['evolvers_ran'] = {
             '_default': True,
             '_updater': 'set',
@@ -257,9 +271,6 @@ class PartitionedProcess(Process):
 
     This is the base class for all processes whose updates can be partitioned.
     """
-    name = None
-    topology = None
-    request_set = False
 
     def __init__(self, parameters=None):
         super().__init__(parameters)
@@ -267,6 +278,7 @@ class PartitionedProcess(Process):
         # set partition mode
         self.evolve_only = self.parameters.get('evolve_only', False)
         self.request_only = self.parameters.get('request_only', False)
+        self.request_set = False
 
         # register topology
         assert self.name
