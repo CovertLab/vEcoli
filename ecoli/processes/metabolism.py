@@ -244,8 +244,8 @@ class Metabolism(Step):
 
         # Get environment updates
         current_media_id = states['environment']['media_id']
-        unconstrained = states['environment']['exchange_data']['unconstrained'] # TODO (Aniketh) check that this is updated.
-        constrained = states['environment']['exchange_data']['constrained'] # TODO (Aniketh) check that this is updated.
+        unconstrained = states['environment']['exchange_data']['unconstrained']
+        constrained = states['environment']['exchange_data']['constrained']
 
         # Calculate state values
         cellVolume = cell_mass / self.cellDensity
@@ -317,8 +317,8 @@ class Metabolism(Step):
         fluxes = fba.getReactionFluxes() / timestep
         names = fba.getReactionIDs()
 
-        flux_dict = {names[i]: fluxes[i] for i in range(len(names))}
-
+        flux_dict = {names[i]: int((fluxes[i] / counts_to_molar).asNumber()) for i in range(len(names))}
+        # np.save("out/stoichiometry.npy", self.parameters["stoichiometry"])
         update = {
             'metabolites': {
                 metabolite: delta_metabolites_final[index]

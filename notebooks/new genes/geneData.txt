@@ -1,4 +1,4 @@
-,reactionID,stoichiometry,reversible,protein_complexes,protein_monomers,monomer_counts,genes
+reactionID,stoichiometry,reversible,protein_complexes,protein_monomers,monomer_counts,genes
 0,ISOCIT-CLEAV-RXN,"{'THREO-DS-ISO-CITRATE': -1, 'GLYOX': 1, 'SUC': 1}",True,['ISOCIT-LYASE'],['ISOCIT-LYASE-MONOMER'],[4],['EG10022']
 1,MALSYN-RXN,"{'ACETYL-COA': -1, 'WATER': -1, 'GLYOX': -1, 'PROTON': 1, 'MAL': 1, 'CO-A': 1}",False,"['MALSYNG-MONOMER', 'MALATE-SYNTHASE']",[],[],"['EG20080', 'EG10023']"
 2,TRANS-RXN-360,"{'Gentamycins': [-1, 1], 'PROTON': [-1, 1]}",False,['CPLX0-3932'],"['CPLX0-7964', 'ACRD-MONOMER', 'EG11703-MONOMER']","[1, 3, 6]","['EG11009', 'EG10014', 'EG11703']"
