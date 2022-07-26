@@ -244,8 +244,8 @@ class Metabolism(Step):
 
         # Get environment updates
         current_media_id = states['environment']['media_id']
-        unconstrained = states['environment']['exchange_data']['unconstrained']
-        constrained = states['environment']['exchange_data']['constrained']
+        unconstrained = states['environment']['exchange_data']['unconstrained'] # TODO (Aniketh) check that this is updated.
+        constrained = states['environment']['exchange_data']['constrained'] # TODO (Aniketh) check that this is updated.
 
         # Calculate state values
         cellVolume = cell_mass / self.cellDensity
@@ -469,7 +469,7 @@ class FluxBalanceAnalysisModel(object):
         # Setup homeostatic objective concentration targets
         # Determine concentrations based on starting environment
         conc_dict = metabolism.concentration_updates.concentrations_based_on_nutrients(
-            nutrients)
+            media_id)
         doubling_time = parameters['doubling_time']
         conc_dict.update(self.getBiomassAsConcentrations(doubling_time))
         if include_ppgpp:
