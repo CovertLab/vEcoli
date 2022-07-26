@@ -216,7 +216,10 @@ def run_simulation(config):
             agent_config['agent_id'] = agent_id
             time_str = config['initial_colony_file'][len('colony_t'):]
             agent_config['seed'] = (
-                agent_config['seed'] + int(float(time_str))) % RAND_MAX
+                agent_config['seed']
+                + int(float(time_str))
+                + int(agent_id, base=2)
+            ) % RAND_MAX
             agent_composer = EcoliEngineProcess(agent_config)
             agent_composite = agent_composer.generate(path=('agents', agent_id))
             if not composite:
@@ -224,6 +227,13 @@ def run_simulation(config):
             composite.processes['agents'][agent_id] = agent_composite.processes['agents'][agent_id]
             composite.topology['agents'][agent_id] = agent_composite.topology['agents'][agent_id]
     else:
+        if 'initial_state_file' in config.keys():
+            initial_state_path = config['initial_state_file']
+            base_config['initial_state_file'] = initial_state_path
+            if initial_state_path.startswith('vivecoli'):
+                time_str = initial_state_path[len('vivecoli_t'):]
+                seed = int(float(time_str))
+                base_config['seed'] += seed
         composer = EcoliEngineProcess(base_config)
         composite = composer.generate(path=('agents', config['agent_id']))
         initial_state = composite.initial_state()
