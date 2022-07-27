@@ -26,7 +26,7 @@ import pathlib, datetime
 
 def run_ecoli(
         filename='default',
-        total_time=60,
+        total_time=4,
         divide=True,
         initial_state_file='vivecoli_t2',
         progress_bar=True,
