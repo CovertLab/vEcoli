@@ -4,10 +4,39 @@ from vivarium.core.emitter import data_from_database, get_experiment_database
 
 
 def get_csv_from_database(
-    experiment_id, query, port=27017, database_name="simulations"
+    experiment_id,
+    query_to_colname_mapping,
+    outfile=None,
+    port=27017,
+    database_name="simulations",
 ):
     db = get_experiment_database(port, database_name)
-    data = data_from_database(experiment_id, db, query)
+    data, _ = data_from_database(
+        experiment_id, db, list(query_to_colname_mapping.keys())
+    )
+
+    colname_to_query_mapping = {v: k for k, v in query_to_colname_mapping.items()}
+
+    def query_dict(dictionary, query):
+        for elem in query:
+            dictionary = dictionary[elem]
+        return dictionary
+
+    df = pd.DataFrame(columns=["Time", *query_to_colname_mapping.values()])
+    for time, values in data.items():
+        df = df.append(
+            {
+                "Time": time,
+                **{
+                    col: query_dict(values, colname_to_query_mapping[col])
+                    for col in df.columns
+                    if col != "Time"
+                },
+            },
+            ignore_index=True,
+        )
+
+    return df.to_csv(outfile, index=False)
 
 
 def create_timeline_from_csv(filepath, column_path_mapping, time_column="Time"):
@@ -48,9 +77,15 @@ def add_computed_value(timeline, func):
 def test_add_timeline():
     TEST_FILE = "data/cell_wall/test_murein_21_06_2022_17_42_11.csv"
 
-    csv = get_csv_from_database(
-        "test_murein_21/06/2022 17:42:11", [("bulk", "CPD-12261[p]")]
-    )
+    # get_csv_from_database(
+    #     "test_murein_21/06/2022 17:42:11",
+    #     {
+    #         ("bulk", "CPD-12261[p]"): "CPD-12261[p]",
+    #         ("bulk", "CPLX0-7717[m]"): "CPLX0-7717[m]",
+    #         ("bulk", "CPLX0-3951[i]"): "CPLX0-3951[i]",
+    #     },
+    #     outfile=TEST_FILE
+    # )
 
     timeline = create_timeline_from_csv(
         TEST_FILE,
