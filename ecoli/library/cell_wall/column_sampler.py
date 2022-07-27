@@ -25,7 +25,7 @@ def geom_sampler(rng, p):
     return sampler
 
 
-def sample_column(rows, murein, strand_sampler, rng):
+def sample_column(rows, murein, strand_sampler, rng, shift=True):
     result = np.zeros(rows, dtype=int)
 
     # Don't try to assign more murein than can fit in the column
@@ -59,6 +59,9 @@ def sample_column(rows, murein, strand_sampler, rng):
             result_i += strand
             next_start = strand_starts.pop() if len(strands) > 0 else -1
         result_i += 1
+
+    if shift:
+        result = np.roll(result, rng.integers(len(result)))
 
     return result
 
@@ -99,6 +102,7 @@ def plot_length_distributions(strand_lengths, gap_lengths):
     fig, axs = plt.subplots(nrows=1, ncols=2)
     for c, data in enumerate([strand_lengths, gap_lengths]):
         flat_data = list(chain(*data))
+        N = len(flat_data)
 
         # Create histogram of each run in the data
         histograms = np.zeros((len(data), max(flat_data) + 1))
@@ -112,7 +116,7 @@ def plot_length_distributions(strand_lengths, gap_lengths):
 
         # Calculate means, error bars
         y = distributions.mean(axis=0)
-        err = distributions.std(axis=0)
+        err = distributions.std(axis=0) / np.sqrt(N)
         bincenters = np.arange(y.size)
         axs[c].bar(bincenters, y, yerr=err)
         axs[c].set_xticks(bincenters)
@@ -146,9 +150,11 @@ def test_column_sampler(outdir="out/murein_sampling"):
     strand_lengths = []
     gap_lengths = []
 
-    N = 100
-    for i in range(N):
-        col = sample_column(300, 200, poisson_sampler(rng, 1), rng)
+    rows = 3050
+    cols = 700
+    murein = 401898
+    for i in range(cols):
+        col = sample_column(rows, int(murein // cols), geom_sampler(rng, 0.058), rng)
         s, g = length_distributions(col)
         columns.append(col)
         strand_lengths.append(s)
