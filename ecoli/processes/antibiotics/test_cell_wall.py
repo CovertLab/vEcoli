@@ -1,10 +1,11 @@
 import os
+import re
 import numpy as np
 import pandas as pd
 from ecoli.library.cell_wall.column_sampler import geom_sampler
 from ecoli.library.cell_wall.lattice import de_novo_lattice
 
-from ecoli.library.create_timeline import add_computed_value, create_timeline_from_csv
+from ecoli.library.create_timeline import add_computed_value, create_timeline_from_df
 from ecoli.library.schema import bulk_schema
 from ecoli.processes.antibiotics.cell_wall import CellWall
 from vivarium.core.composition import add_timeline, simulate_composite
@@ -15,17 +16,23 @@ from vivarium.plots.topology import plot_topology
 
 from ecoli.processes.antibiotics.pbp_binding import PBPBinding
 
-DATA = "data/cell_wall/test_murein_21_06_2022_17_42_11.csv"
+DATA = "data/cell_wall/cell_wall_test_rig_13_07_2022_18_31_42.csv"
 
 
-def create_composite():
+def parse_unit_string(unit_str):
+    parse_result = re.search(r"!units\[(?P<value>\d+[.]\d+) (?P<units>\w+)\]", unit_str)
+    return float(parse_result["value"]) * units.parse_expression(parse_result["units"])
+
+
+def create_composite(timeline_data):
     # Create timeline process from saved simulation
-    timeline = create_timeline_from_csv(
-        DATA,
+    timeline = create_timeline_from_df(
+        timeline_data,
         {
             "CPD-12261[p]": ("bulk", "CPD-12261[p]"),
             "CPLX0-7717[m]": ("bulk", "CPLX0-7717[m]"),
             "CPLX0-3951[i]": ("bulk", "CPLX0-3951[i]"),
+            "Volume": ("cell_global", "volume"),
         },
     )
 
@@ -33,8 +40,12 @@ def create_composite():
     timeline = add_computed_value(
         timeline,
         lambda t, value: {
-            ("bulk", "CPD-12261[p]"): value[("bulk", "CPD-12261[p]")] // 3,
-            ("cell_global", "volume"): (1.06 + t / 1000) * units.fL,
+            ("cell_global", "volume"): parse_unit_string(
+                value[("cell_global", "volume")]
+            ),
+            ("concentrations", "beta_lactam"): (
+                0 * units.micromolar if t < 500 else 9.16 * units.micromolar
+            ),
         },
     )
 
@@ -47,6 +58,7 @@ def create_composite():
             "murein_state": ("murein_state",),
             "PBP": ("bulk",),
             "wall_state": ("wall_state",),
+            "listeners": ("listeners",),
         },
         "pbp_binding": {
             "total_murein": ("bulk",),
@@ -66,15 +78,17 @@ def output_data(data, filepath="out/processes/cell_wall/test_cell_wall.png"):
     plot_variables(
         data,
         variables=[
-            ("concentrations", "beta_lactam"),
+            ("concentrations", ("beta_lactam", "micromolar")),
+            ("wall_state", "cracked"),
             ("bulk", "CPD-12261[p]"),
             ("bulk", "CPLX0-7717[m]"),
             ("bulk", "CPLX0-3951[i]"),
             ("murein_state", "incorporated_murein"),
             ("murein_state", "unincorporated_murein"),
             ("murein_state", "shadow_murein"),
-            ("listeners", "active_fraction_PBP1A"),
-            ("listeners", "active_fraction_PBP1B")
+            ("listeners", ("active_fraction_PBP1A", "dimensionless")),
+            ("listeners", ("active_fraction_PBP1B", "dimensionless")),
+            ("listeners", "porosity"),
         ],
         out_dir=os.path.dirname(filepath),
         filename=os.path.basename(filepath),
@@ -82,17 +96,30 @@ def output_data(data, filepath="out/processes/cell_wall/test_cell_wall.png"):
 
 
 def test_cell_wall():
-    composite = create_composite()
+    timeline_data = pd.read_csv(DATA, skipinitialspace=True)
+
+    # Skip first line, until issue with volume dropping is solved
+    # TODO: fix volume dropping, remove
+    timeline_data = timeline_data[1:]
+    timeline_data["Time"] -= 2.0
+
+    composite = create_composite(timeline_data)
     plot_topology(
         composite, out_dir="out/processes/cell_wall/", filename="test_rig_topology.png"
     )
 
     # Create initial state
-    df = pd.read_csv(DATA, skipinitialspace=True)
-    initial_murein = int(df.loc[0]["CPD-12261[p]"]) // 3  # account for too much murein
+    initial_murein = int(timeline_data.iloc[0]["CPD-12261[p]"])
+    initial_PBP1A = int(timeline_data.iloc[0]["CPLX0-7717[m]"])
+    initial_PBP1B = int(timeline_data.iloc[0]["CPLX0-3951[i]"])
+    initial_volume = parse_unit_string(timeline_data.iloc[0]["Volume"])
     rng = np.random.default_rng(0)
     initial_state = {
-        "bulk": {"CPD-12261[p]": initial_murein},
+        "bulk": {
+            "CPD-12261[p]": initial_murein,
+            "CPLX0-7717[m]": initial_PBP1A,
+            "CPLX0-3951[i]": initial_PBP1B,
+        },
         "murein_state": {
             "incorporated_murein": initial_murein,
             "unincorporated_murein": 0,
@@ -100,18 +127,20 @@ def test_cell_wall():
         },
         "wall_state": {
             "lattice": de_novo_lattice(
-                initial_murein * 4, 3050, 700, geom_sampler(rng, 0.058), rng
+                initial_murein * 4, 3050, 598, geom_sampler(rng, 0.058), rng
             )
         },
+        "cell_global": {"volume": initial_volume},
     }
 
     settings = {
         "return_raw_data": False,
-        "total_time": 500,
+        "total_time": 2000,
         "initial_state": initial_state,
+        "emitter": "database",
     }
-    data = simulate_composite(composite, settings)
 
+    data = simulate_composite(composite, settings)
     output_data(data)
 
 

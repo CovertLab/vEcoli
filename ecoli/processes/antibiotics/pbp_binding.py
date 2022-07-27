@@ -25,7 +25,7 @@ class PBPBinding(Step):
 
     defaults = {
         "murein_name": "CPD-12261[p]",
-        "beta_lactam": "cephaloridine",
+        "beta_lactam": "ampicillin",  # Supports cephaloridine, ampicillin
         "PBP": {  # penicillin-binding proteins
             "PBP1A": "CPLX0-7717[m]",  # transglycosylase-transpeptidase ~100
             "PBP1B": "CPLX0-3951[i]",  # transglycosylase-transpeptidase ~100
