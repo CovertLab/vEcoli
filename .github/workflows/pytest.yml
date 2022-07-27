@@ -22,13 +22,13 @@ jobs:
         python-version: ${{ matrix.python-version }}
     - name: Install dependencies
       run: |
-        pip install --upgrade pip
+        pip install --upgrade pip wheel
         pip install numpy
         pip install Cython
         pip install -r requirements.txt
     - name: Check dependencies
       run: |
-        python test_requirements.py
+        python -m scripts.test_requirements
     - name: Setup
       run: |
         python setup.py install

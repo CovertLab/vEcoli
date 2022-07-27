@@ -38,7 +38,10 @@ TOPOLOGY = {
         "kinetics_substrates": ("bulk",),
         "amino_acids": ("bulk",),
         "listeners": ("listeners",),
-        "environment": ("environment",),
+        "environment": {
+            "_path": ("environment",),
+            "exchange": ("exchanges",),
+        },
         "polypeptide_elongation": ("process_state", "polypeptide_elongation"),
         # Non-partitioned count
         "amino_acids_total": ("bulk",),
