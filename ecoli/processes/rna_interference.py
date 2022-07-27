@@ -93,8 +93,10 @@ class RnaInterference(Process):
             if n_srna == 0:
                 continue
             
-            # Get mask for translatable target mRNAs
+            # Get mask for translatable, complete target mRNAs
+            # TODO: Is it worth it to account for duplexing of incomplete mRNAs?
             mrna_mask = np.logical_and(TU_index == mrna_index, can_translate)
+            mrna_mask = np.logical_and(mrna_mask, is_full_transcript)
             n_mrna = mrna_mask.sum()
             if n_mrna == 0:
                 continue

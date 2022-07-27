@@ -3,19 +3,17 @@ import json
 import numpy as np
 from matplotlib import pyplot as plt
 
-from vivarium.core.emitter import timeseries_from_data
-from vivarium.plots.simulation_output import plot_variables
-
-from ecoli.analysis.analyze_db_experiment import access
 from ecoli.composites.ecoli_engine_process import run_simulation
 from ecoli.experiments.ecoli_master_sim import CONFIG_DIR_PATH, SimConfig
+from ecoli.experiments.marA_binding.marA_master import ids_of_interest
 
 def run_sim(tet_conc=0, accumulation=True):
     config = SimConfig()
     config.update_from_json(os.path.join(
         CONFIG_DIR_PATH, "antibiotics_tetracycline_cephaloridine.json"))
     tetracycline_gradient = {
-        'total_time': 4,
+        'total_time': 100,
+        'emitter': 'database',
         'mar_regulon': True,
         'initial_state_file': f'wcecoli_marA_{int(tet_conc*1000)}',
         'spatial_environment_config': {
@@ -37,9 +35,12 @@ def run_sim(tet_conc=0, accumulation=True):
         'engine_process_reports': [
             ['bulk', 'tetracycline'],
             ['bulk', 'marR-tet[c]'],
-            ['bulk', 'CPLX0-7710[c]']
+            ['bulk', 'CPLX0-7710[c]'],
+            ['unique', 'RNA']
         ]
     }
+    marA_regulated = [monomer['variable'] for monomer in ids_of_interest()]
+    tetracycline_gradient['engine_process_reports'] += marA_regulated
     if not os.path.exists(f'data/wcecoli_marA_{int(tet_conc*1000)}.json'):
         with open('data/wcecoli_t0.json') as f:
             initial_state = json.load(f)
