@@ -218,11 +218,17 @@ class Evolver(Process):
         allocated_molecules = list(allocations.keys())
         states = deep_merge(states, allocations)
 
-        # if requester not yet run, skip evolver
-        # TODO(Matt): After division, request_set is true, but it should be false. Why?
+        # If the Requester has not run yet, skip the Evolver's update to
+        # let the Requester run in the next time step. This problem
+        # often arises fater division because after the step divider
+        # runs, Vivarium wants to run the Evolvers instead of re-running
+        # the Requesters. Skipping the Evolvers in this case means our
+        # timesteps are slightly off. However, the alternative is to run
+        # self.process.calculate_request and discard the result before
+        # running the Evolver this timestep, which means we skip the
+        # Allocator. Skipping the Allocator can cause the simulation to
+        # crash, so having a slightly off timestep is preferable.
         if not self.process.request_set:
-            # _ = self.process.calculate_request(timestep, states)
-            # self.process.request_set = True
             return {}
 
         update = copy.deepcopy(
