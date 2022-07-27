@@ -2,7 +2,7 @@
     "inherit_from": ["test_murein.json"],
     "experiment_id" : "cell_wall_test_rig",
     "emitter" : "database",
-    "total_time" : 2000,
+    "total_time" : 4,
 
     "add_processes": ["ecoli-shape"],
     "topology": {
@@ -15,11 +15,13 @@
     },
     "process_configs": {
         "ecoli-shape": {
-            "initial_cell_volume": "!units[1.057 femtoliter]",
             "global": {
               "_path": "boundary",
               "volume": ["..", "listeners", "mass", "volume"]
             }
         }
+    },
+    "flow": {
+        "ecoli-shape": [["ecoli-mass-listener"]]
     }
 }
