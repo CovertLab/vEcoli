@@ -82,9 +82,9 @@ def plot_mrnas(mrna_ts, baseline_mrna_ts, name, idx, genes, fc):
     plt.savefig(f"ecoli/experiments/marA_binding/{name}.png")
     
 def plot_rna_synth_prob(timeseries, baseline_ts, name, idx, genes, fc):
-    rna_synth_prob = timeseries["listeners"]["rna_synth_prob"]["rna_synth_prob"][1:]
+    rna_synth_prob = timeseries["listeners"]["rna_synth_prob"]["rna_synth_prob"][2:]
     rna_synth_prob = np.array(rna_synth_prob)[:, idx]
-    baseline_rna_synth_prob = baseline_ts["listeners"]["rna_synth_prob"]["rna_synth_prob"][1:]
+    baseline_rna_synth_prob = baseline_ts["listeners"]["rna_synth_prob"]["rna_synth_prob"][2:]
     baseline_rna_synth_prob = np.array(baseline_rna_synth_prob)[:, idx]
     
     n_mrnas = len(idx)
@@ -212,40 +212,48 @@ def all_plots(marA_id, baseline_id, name):
     
     # Perform regular garbage collection to free memory
     # Plot monomer counts (including monomers in complexes)
-    paths = [i['variable'] for i in variable_paths]
+    paths = [('agents', '0', ) + i['variable'] for i in variable_paths]
     marA_bulk_data = access(marA_id, paths)[0]
     marA_bulk_timeseries = timeseries_from_data(marA_bulk_data)
+    time = marA_bulk_timeseries['time']
+    marA_bulk_timeseries = marA_bulk_timeseries['agents']['0']
+    marA_bulk_timeseries['time'] = time
     del marA_bulk_data
     gc.collect()
     baseline_bulk_data = access(baseline_id, paths)[0]
     baseline_bulk_timeseries = timeseries_from_data(baseline_bulk_data)
+    time = baseline_bulk_timeseries['time']
+    baseline_bulk_timeseries = baseline_bulk_timeseries['agents']['0']
+    baseline_bulk_timeseries['time'] = time
     del baseline_bulk_data
     gc.collect()
     plot_degenes(marA_bulk_timeseries, baseline_bulk_timeseries, f"genes_{name}", variable_paths)
     del marA_bulk_timeseries, baseline_bulk_timeseries, variable_paths
     gc.collect()
     
-    # Plot mRNA counts
-    # NOTE: Requires changes to `emitter.py` from the `memory` branch of vivarium-core
-    marA_mrna_data = access(marA_id, [("unique", "RNA")], f=count_by_tu_idx)[0]
-    marA_mrna_timeseries = timeseries_from_data(marA_mrna_data)
-    del marA_mrna_data
-    gc.collect()
-    baseline_mrna_data = access(baseline_id, [("unique", "RNA")], f=count_by_tu_idx)[0]
-    baseline_mrna_timeseries = timeseries_from_data(baseline_mrna_data)
-    del baseline_mrna_data
-    gc.collect()
-    plot_mrnas(marA_mrna_timeseries, baseline_mrna_timeseries, f"mrna_{name}", TU_idx, genes, fc)
-    del marA_mrna_timeseries, baseline_mrna_timeseries
-    gc.collect()
+    # # Plot mRNA counts
+    # # NOTE: Requires changes to `emitter.py` from the `memory` branch of vivarium-core
+    # marA_mrna_data = access(marA_id, [("agents", "0", "unique", "RNA")], f=count_by_tu_idx)[0]
+    # marA_mrna_timeseries = timeseries_from_data(marA_mrna_data)
+    # del marA_mrna_data
+    # gc.collect()
+    # baseline_mrna_data = access(baseline_id, [("agents", "0", "unique", "RNA")], f=count_by_tu_idx)[0]
+    # baseline_mrna_timeseries = timeseries_from_data(baseline_mrna_data)
+    # del baseline_mrna_data
+    # gc.collect()
+    # plot_mrnas(marA_mrna_timeseries, baseline_mrna_timeseries, f"mrna_{name}", TU_idx, genes, fc)
+    # del marA_mrna_timeseries, baseline_mrna_timeseries
+    # gc.collect()
     
     # Plot RNA synthesis probabilities
-    rna_synth_prob_data = access(marA_id, [("listeners", "rna_synth_prob", "rna_synth_prob")])[0]
+    rna_synth_prob_data = access(marA_id, [("agents", "0", "listeners", "rna_synth_prob", "rna_synth_prob")])[0]
     rna_synth_prob_ts = timeseries_from_data(rna_synth_prob_data)
+    rna_synth_prob_ts = rna_synth_prob_ts['agents']['0']
     del rna_synth_prob_data
     gc.collect()
-    baseline_rna_synth_prob_data = access(baseline_id, [("listeners", "rna_synth_prob", "rna_synth_prob")])[0]
+    baseline_rna_synth_prob_data = access(baseline_id, [("agents", "0", "listeners", "rna_synth_prob", "rna_synth_prob")])[0]
     baseline_rna_synth_prob_ts = timeseries_from_data(baseline_rna_synth_prob_data)
+    baseline_rna_synth_prob_ts = baseline_rna_synth_prob_ts['agents']['0']
     del baseline_rna_synth_prob_data
     gc.collect()
     plot_rna_synth_prob(rna_synth_prob_ts, baseline_rna_synth_prob_ts, f"synth_prob_{name}", TU_idx, genes, fc)
@@ -257,13 +265,13 @@ def main():
     # runDefault()
     # includeTetracycline(2200)
     # Experimental id for marA simulation
-    marA_id = ""
+    marA_id = "eb39ea8a-09fe-11ed-ab2f-9cfce8b9977c"
     # Experimental id for baseline simulation
-    baseline_id = ""
+    baseline_id = "cf37764a-09fe-11ed-80ab-9cfce8b9977c"
     # Suffix for output graphs
-    name = ""
+    name = "full_integration"
         
-    # all_plots(marA_id, baseline_id, name)
+    all_plots(marA_id, baseline_id, name)
 
 if __name__=="__main__":
     main()

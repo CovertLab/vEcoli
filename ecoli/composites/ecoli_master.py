@@ -67,7 +67,7 @@ class Ecoli(Composer):
             sim_data_path=self.config['sim_data_path'],
             seed=self.config['seed'],
             mar_regulon=self.config['mar_regulon'],
-            rnai_data=self.config['process_configs']['ecoli-rna-interference'])
+            rnai_data=self.config['process_configs'].get('ecoli-rna-interference'))
 
         if not self.config.get('processes'):
             self.config['processes'] = deepcopy(ECOLI_DEFAULT_PROCESSES)
