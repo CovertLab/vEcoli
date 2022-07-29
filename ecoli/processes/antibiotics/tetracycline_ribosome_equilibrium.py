@@ -57,6 +57,9 @@ class TetracyclineRibosomeEquilibrium(Step):
             '30s-free': {
                 '_default': 0,
             },
+            '50s': {
+                '_default': 0,
+            },
             '70s-free': dict_value_schema('active_ribosome'),
             '70s-tetracycline': dict_value_schema('active_ribosome'),
             '30s-tetracycline': {
@@ -163,7 +166,10 @@ class TetracyclineRibosomeEquilibrium(Step):
             count_30s_tc_target) / count_ribo_total
 
         # Determine what needs to be done.
-        count_70s_to_inhibit = int(count_70s_tc_target - count_70s_tc)
+        count_70s_to_inhibit = max(
+            int(count_70s_tc_target - count_70s_tc),
+            0,  # We inactivate bound ribosomes, so can't un-bind them.
+        )
         count_30s_to_inhibit = int(count_30s_tc_target - count_30s_tc)
         count_ribos_to_inhibit = (
             count_70s_to_inhibit + count_30s_to_inhibit)
@@ -171,7 +177,7 @@ class TetracyclineRibosomeEquilibrium(Step):
 
         assert delta_tc + conc_tc_free >= 0
 
-        # Handle the easy updates: the concentration and bulk stores.
+        # Handle the easy updates: the concentrations and subunits.
         update = {
             'tetracycline': {
                 '_value': delta_tc,
@@ -192,7 +198,7 @@ class TetracyclineRibosomeEquilibrium(Step):
             },
         }
 
-        # Handle the more difficult updates: the dict_value stores.
+        # Handle the more difficult updates: the active ribosomes.
         if count_70s_to_inhibit > 0:
             # Randomly select which active ribosomes to inhibit.
             ids_70s_to_inhibit = self.random_state.choice(
@@ -212,38 +218,17 @@ class TetracyclineRibosomeEquilibrium(Step):
             for new_index, ribosome in zip(
                     new_unique_indexes, dicts_70s_to_inhibit):
                 ribosome['unique_index'] = new_index
+            # Assume that when ribosomes are inhibited, they also become
+            # inactive.
             update.update({
                 '70s-free': {
                     '_delete': list(ids_70s_to_inhibit),
                 },
-                '70s-tetracycline': add_elements(
-                    dicts_70s_to_inhibit, 'unique_index'),
-            })
-        elif count_70s_to_inhibit < 0:
-            # Randomly select which stalled ribosomes to reactivate.
-            count_70s_to_activate = -count_70s_to_inhibit
-            ids_70s_to_activate = self.random_state.choice(
-                np.array(list(states['70s-tetracycline'])),
-                count_70s_to_activate,
-                replace=False,
-            )
-            dicts_70s_to_activate = [
-                without_multi(
-                    states['70s-tetracycline'][key],
-                    RIBOSOME_KEYS_TO_REMOVE,
-                )
-                for key in ids_70s_to_activate
-            ]
-            new_unique_indexes = create_unique_indexes(
-                count_70s_to_activate, self.random_state)
-            for new_index, ribosome in zip(
-                    new_unique_indexes, dicts_70s_to_activate):
-                ribosome['unique_index'] = new_index
-            update.update({
-                '70s-free': add_elements(
-                    dicts_70s_to_activate, 'unique_index'),
-                '70s-tetracycline': {
-                    '_delete': list(ids_70s_to_activate),
+                '50s': {
+                    '_value': len(ids_70s_to_inhibit),
+                    '_updater': 'accumulate',
                 },
             })
+            update['30s-tetracycline']['_value'] += len(
+                ids_70s_to_inhibit)
         return update

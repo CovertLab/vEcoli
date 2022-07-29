@@ -5,7 +5,7 @@
         "tetracycline-ribosome-equilibrium",
         "unique_counts"
     ],
-    "total_time": 200,
+    "total_time": 9000,
     "spatial_environment_config": {
         "multibody": {
             "bounds": [

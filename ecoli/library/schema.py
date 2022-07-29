@@ -166,7 +166,10 @@ def type_of(array):
 
 def arrays_from(ds, keys):
     if not ds:
-        return np.array([])
+        return tuple(
+            np.array([])
+            for key in keys
+        )
 
     arrays = {
         key: []
