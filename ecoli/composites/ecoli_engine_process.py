@@ -8,6 +8,7 @@
 
 import copy
 import os
+import re
 
 import numpy as np
 from vivarium.core.composer import Composer
@@ -211,17 +212,19 @@ def run_simulation(config):
         initial_state = get_state_from_file(path=f'data/{config["initial_colony_file"]}.json')  # TODO(Matt): initial_state_file is wc_ecoli?
         agent_states = initial_state['agents']
         for agent_id, agent_state in agent_states.items():
-            agent_config = copy.deepcopy(base_config)
-            agent_config['initial_cell_state'] = agent_state
-            agent_config['agent_id'] = agent_id
-            time_str = config['initial_colony_file'][len('colony_t'):]
-            agent_config['seed'] = (
-                agent_config['seed']
+            time_str = re.fullmatch(r'.*_t([0-9]+)$', config['initial_colony_file']).group(1)
+            seed = (
+                base_config['seed']
                 + int(float(time_str))
                 + int(agent_id, base=2)
             ) % RAND_MAX
-            agent_composer = EcoliEngineProcess(agent_config)
-            agent_composite = agent_composer.generate(path=('agents', agent_id))
+            agent_config = {
+                'initial_cell_state': agent_state,
+                'agent_id': agent_id,
+                'seed': seed,
+            }
+            agent_composer = EcoliEngineProcess(base_config)
+            agent_composite = agent_composer.generate(agent_config, path=('agents', agent_id))
             if not composite:
                 composite = agent_composite
             composite.processes['agents'][agent_id] = agent_composite.processes['agents'][agent_id]
