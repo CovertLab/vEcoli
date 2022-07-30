@@ -16,7 +16,7 @@ from vivarium.plots.topology import plot_topology
 
 from ecoli.processes.antibiotics.pbp_binding import PBPBinding
 
-DATA = "data/cell_wall/cell_wall_test_rig_13_07_2022_18_31_42.csv"
+DATA = "data/cell_wall/cell_wall_test_rig_27_07_2022_02_32_34.csv"
 
 
 def parse_unit_string(unit_str):
@@ -46,6 +46,7 @@ def create_composite(timeline_data):
             ("concentrations", "beta_lactam"): (
                 0 * units.micromolar if t < 500 else 9.16 * units.micromolar
             ),
+            ("bulk", "CPD-12261[p]"): int(value[("bulk", "CPD-12261[p]")] * (3/2.68))
         },
     )
 
