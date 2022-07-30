@@ -571,16 +571,16 @@ class LoadSimData:
 
     def get_metabolism_config(self, time_step=2, parallel=False, deriver_mode=False):
 
-        self.sim_data.external_state.saved_media['minimal_fructose'] = self.sim_data.external_state.saved_media['minimal']
-        self.sim_data.external_state.saved_media['minimal_fructose']['FRU'] = self.sim_data.external_state.saved_media['minimal_fructose']['GLC']
-        self.sim_data.external_state.saved_media['minimal_fructose'].pop('GLC')
-
-        self.sim_data.process.metabolism.concentration_updates.exchange_fluxes['minimal_fructose'] = self.sim_data.process.metabolism.concentration_updates.exchange_fluxes['minimal']
-        self.sim_data.process.metabolism.concentration_updates.exchange_fluxes['minimal_fructose'].add('FRU[p]')
-        self.sim_data.process.metabolism.concentration_updates.exchange_fluxes['minimal_fructose'].remove('GLC[p]')
-
-        self.sim_data.external_state.env_to_exchange_map['FRU'] = 'FRU[p]'
-        self.sim_data.nutrient_to_doubling_time['minimal_fructose'] = self.sim_data.nutrient_to_doubling_time['minimal']
+        # self.sim_data.external_state.saved_media['minimal_fructose'] = self.sim_data.external_state.saved_media['minimal']
+        # self.sim_data.external_state.saved_media['minimal_fructose']['FRU'] = self.sim_data.external_state.saved_media['minimal_fructose']['GLC']
+        # self.sim_data.external_state.saved_media['minimal_fructose'].pop('GLC')
+        #
+        # self.sim_data.process.metabolism.concentration_updates.exchange_fluxes['minimal_fructose'] = self.sim_data.process.metabolism.concentration_updates.exchange_fluxes['minimal']
+        # self.sim_data.process.metabolism.concentration_updates.exchange_fluxes['minimal_fructose'].add('FRU[p]')
+        # self.sim_data.process.metabolism.concentration_updates.exchange_fluxes['minimal_fructose'].remove('GLC[p]')
+        #
+        # self.sim_data.external_state.env_to_exchange_map['FRU'] = 'FRU[p]'
+        # self.sim_data.nutrient_to_doubling_time['minimal_fructose'] = self.sim_data.nutrient_to_doubling_time['minimal']
 
         metabolism_config = {
             'time_step': time_step,
@@ -606,8 +606,8 @@ class LoadSimData:
             'current_timeline': None,
             'media_id': self.sim_data.conditions[self.sim_data.condition]['nutrients'],
 
-            'condition': self.sim_data.condition,
-            'nutrients': 'minimal_fructose', # self.sim_data.conditions[self.sim_data.condition]['nutrients'],
+            'condition': self.sim_data.condition, # 'minimal_fructose',
+            'nutrients': self.sim_data.conditions[self.sim_data.condition]['nutrients'],   # 'minimal_fructose'
             # TODO Replace this with media_id
             'metabolism': self.sim_data.process.metabolism,
             'non_growth_associated_maintenance': self.sim_data.constants.non_growth_associated_maintenance,
