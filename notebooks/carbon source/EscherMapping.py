@@ -112,5 +112,3 @@ for number in escherRxns:
 errors = []
 test = ['FADSYN-RXN']
 reactionDict = createDictFromName(test, errors)
-
-print(0)
