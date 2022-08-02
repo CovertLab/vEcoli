@@ -53,12 +53,12 @@ class CellWall(Process):
         / 3
         * units.nm,  # 4.1 in maximally stretched configuration,
         # divided by 3 because the sacculus can be stretched threefold
-        "stretch_factor": 1.17,
+        "initial_stretch_factor": 1.17,
         "peptidoglycan_unit_area": 4 * units.nm**2,  # replace with precise
         # literature value
         # Simulation parameters
         "seed": 0,
-        # "time_step": 10,
+        "time_step": 2,
     }
 
     def __init__(self, parameters=None):
@@ -71,7 +71,6 @@ class CellWall(Process):
         self.critical_radius = self.parameters["critical_radius"]
         self.critical_area = np.pi * self.critical_radius**2
         self.circumference = 2 * np.pi * self.cell_radius
-        self.stretch_factor = self.parameters["stretch_factor"]
 
         self.peptidoglycan_unit_area = self.parameters["peptidoglycan_unit_area"]
         self.disaccharide_length = self.parameters["disaccharide_length"]
@@ -97,6 +96,7 @@ class CellWall(Process):
                 },
                 "lattice_rows": {"_default": 0, "_updater": "set", "_emit": True},
                 "lattice_cols": {"_default": 0, "_updater": "set", "_emit": True},
+                "stretch_factor": {"_default": 1.17, "_updater": "set", "_emit": True},
                 "cracked": {"_default": False, "_updater": "set", "_emit": True},
             },
             "listeners": {
@@ -117,6 +117,7 @@ class CellWall(Process):
         # Unpack states
         volume = states["shape"]["volume"]
         lattice = states["wall_state"]["lattice"]
+        stretch_factor = states["wall_state"]["stretch_factor"]
         unincorporated_murein = states["murein_state"]["unincorporated_murein"]
         incorporated_murein = states["murein_state"]["incorporated_murein"]
         PBPs = states["PBP"]
@@ -133,6 +134,10 @@ class CellWall(Process):
         length = length_from_volume(volume, self.cell_radius * 2).to("micrometer")
 
         if DEBUG:
+            try:
+                print(f"Cell Wall: Time {self.time}")
+            except:
+                pass
             print(f"Cell Wall: Bulk murein = {states['bulk_murein'][self.murein]}")
             print(f"Cell Wall: Incorporated murein = {incorporated_murein}")
             print(f"Cell Wall: Unincorporated murein = {unincorporated_murein}")
@@ -148,7 +153,7 @@ class CellWall(Process):
             self.crossbridge_length,
             self.disaccharide_length,
             self.circumference,
-            self.stretch_factor
+            stretch_factor,
         )
 
         # Update lattice to reflect new dimensions,
@@ -159,8 +164,8 @@ class CellWall(Process):
             new_incorporated_monomers,
         ) = self.update_murein(
             lattice,
-            4 * unincorporated_murein,
-            4 * incorporated_murein,
+            unincorporated_murein,
+            incorporated_murein,
             new_rows,
             new_columns,
             n_sites,
@@ -174,18 +179,23 @@ class CellWall(Process):
         }
 
         update["murein_state"] = {
-            "unincorporated_murein": int(new_unincorporated_monomers // 4),
-            "incorporated_murein": int(new_incorporated_monomers // 4),
+            "unincorporated_murein": new_unincorporated_monomers,
+            "incorporated_murein": new_incorporated_monomers,
         }
 
         # Crack detection (cracking is irreversible)
         hole_sizes, hole_view = detect_holes_skimage(lattice)
-        max_size = hole_sizes.max() * self.peptidoglycan_unit_area
+        max_size = hole_sizes.max() * self.peptidoglycan_unit_area * stretch_factor
 
         if not states["wall_state"]["cracked"] and max_size > self.critical_area:
             update["wall_state"]["cracked"] = True
 
             if DEBUG:
+                try:
+                    print(f"Cell wall: Cracked at time {self.time}")
+                except:
+                    pass
+                
                 fig, axs = plt.subplots(1, 2)
 
                 hole_size_view = np.zeros_like(hole_view)
@@ -215,8 +225,8 @@ class CellWall(Process):
                     pass
 
                 fig.set_size_inches(
-                    2 * .01 * remove_units(width) * lattice.shape[1],
-                    .01 * remove_units(height) * lattice.shape[0],
+                    2 * 0.01 * remove_units(width) * lattice.shape[1],
+                    0.01 * remove_units(height) * lattice.shape[0],
                 )
                 fig.tight_layout()
                 fig.savefig("out/processes/cell_wall/cracked_hole_view.png")
@@ -230,7 +240,7 @@ class CellWall(Process):
         if DEBUG:
             assert new_incorporated_monomers == lattice.sum()
             assert (
-                states["bulk_murein"][self.murein]
+                4 * states["bulk_murein"][self.murein]
                 == states["murein_state"]["unincorporated_murein"]
                 + states["murein_state"]["incorporated_murein"]
                 + states["murein_state"]["shadow_murein"]
@@ -243,8 +253,20 @@ class CellWall(Process):
 
             if self.time % 100 == 0:
                 os.makedirs("out/processes/cell_wall/wall_frames", exist_ok=True)
-                fig, _ = plot_lattice(lattice)
-                fig.savefig(f"out/processes/cell_wall/wall_frames/cell_wall_ecoli_t{int(self.time)}.png")
+
+                width = self.crossbridge_length + self.disaccharide_length
+                height = self.disaccharide_length
+                aspect = height / width
+
+                fig, _ = plot_lattice(lattice, aspect=aspect)
+                fig.set_size_inches(
+                    2 * 0.01 * remove_units(width) * lattice.shape[1],
+                    0.01 * remove_units(height) * lattice.shape[0],
+                )
+                fig.tight_layout()
+                fig.savefig(
+                    f"out/processes/cell_wall/wall_frames/cell_wall_ecoli_t{int(self.time)}.png"
+                )
                 plt.close(fig)
 
         return update

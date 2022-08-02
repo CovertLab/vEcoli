@@ -25,16 +25,18 @@ def calculate_lattice_size(
     cell_length, crossbridge_length, disaccharide_length, circumference, stretch_factor
 ):
     # Calculate new lattice size
-    columns = int(cell_length / (stretch_factor * (crossbridge_length + disaccharide_length)))
+    columns = int(
+        cell_length / (stretch_factor * (crossbridge_length + disaccharide_length))
+    )
     rows = int(circumference / disaccharide_length)
 
     return rows, columns
 
 
-def plot_lattice(lattice, on_cylinder=False):
+def plot_lattice(lattice, on_cylinder=False, aspect=1):
     if not on_cylinder:
         fig, ax = plt.subplots()
-        mappable = ax.imshow(lattice, interpolation="nearest")
+        mappable = ax.imshow(lattice, interpolation="nearest", aspect=aspect)
         fig.colorbar(mappable, ax=ax)
     else:
         print("Downscaling lattice...")
