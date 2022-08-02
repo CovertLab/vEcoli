@@ -115,7 +115,7 @@ class PBPBinding(Step):
         update = {}
 
         # New murein to allocate
-        new_murein = states["total_murein"][self.murein] - sum(
+        new_murein = 4 * states["total_murein"][self.murein] - sum(
             states["murein_state"].values()
         )
 

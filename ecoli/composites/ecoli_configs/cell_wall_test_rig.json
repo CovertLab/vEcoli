@@ -2,7 +2,7 @@
     "inherit_from": ["test_murein.json"],
     "experiment_id" : "cell_wall_test_rig",
     "emitter" : "database",
-    "total_time" : 4,
+    "total_time" : 2000,
 
     "add_processes": ["ecoli-shape"],
     "topology": {

@@ -16,7 +16,7 @@ from vivarium.plots.topology import plot_topology
 
 from ecoli.processes.antibiotics.pbp_binding import PBPBinding
 
-DATA = "data/cell_wall/cell_wall_test_rig_27_07_2022_02_32_34.csv"
+DATA = "data/cell_wall/cell_wall_test_rig_31_07_2022_00_26_44.csv"
 
 
 def parse_unit_string(unit_str):
@@ -43,10 +43,10 @@ def create_composite(timeline_data):
             ("cell_global", "volume"): parse_unit_string(
                 value[("cell_global", "volume")]
             ),
-            ("concentrations", "beta_lactam"): (
-                0 * units.micromolar if t < 500 else 9.16 * units.micromolar
-            ),
-            ("bulk", "CPD-12261[p]"): int(value[("bulk", "CPD-12261[p]")] * (3/2.68))
+            # ("concentrations", "beta_lactam"): (
+            #     0 * units.micromolar if t < 500 else 9.16 * units.micromolar
+            # ),
+            ("bulk", "CPD-12261[p]"): int(value[("bulk", "CPD-12261[p]")]),
         },
     )
 
@@ -99,11 +99,6 @@ def output_data(data, filepath="out/processes/cell_wall/test_cell_wall.png"):
 def test_cell_wall():
     timeline_data = pd.read_csv(DATA, skipinitialspace=True)
 
-    # Skip first line, until issue with volume dropping is solved
-    # TODO: fix volume dropping, remove
-    timeline_data = timeline_data[1:]
-    timeline_data["Time"] -= 2.0
-
     composite = create_composite(timeline_data)
     plot_topology(
         composite, out_dir="out/processes/cell_wall/", filename="test_rig_topology.png"
@@ -115,6 +110,11 @@ def test_cell_wall():
     initial_PBP1B = int(timeline_data.iloc[0]["CPLX0-3951[i]"])
     initial_volume = parse_unit_string(timeline_data.iloc[0]["Volume"])
     rng = np.random.default_rng(0)
+
+    initial_lattice = de_novo_lattice(
+        initial_murein * 4, 3050, 599, geom_sampler(rng, 0.058), rng
+    )
+
     initial_state = {
         "bulk": {
             "CPD-12261[p]": initial_murein,
@@ -122,15 +122,11 @@ def test_cell_wall():
             "CPLX0-3951[i]": initial_PBP1B,
         },
         "murein_state": {
-            "incorporated_murein": initial_murein,
-            "unincorporated_murein": 0,
+            "incorporated_murein": initial_lattice.sum(),
+            "unincorporated_murein": int(4 * initial_murein - initial_lattice.sum()),
             "shadow_murein": 0,
         },
-        "wall_state": {
-            "lattice": de_novo_lattice(
-                initial_murein * 4, 3050, 598, geom_sampler(rng, 0.058), rng
-            )
-        },
+        "wall_state": {"lattice": initial_lattice},
         "cell_global": {"volume": initial_volume},
     }
 
@@ -142,6 +138,7 @@ def test_cell_wall():
     }
 
     data = simulate_composite(composite, settings)
+    # any(data["wall_state"]["cracked"])
     output_data(data)
 
 
