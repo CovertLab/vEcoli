@@ -54,6 +54,7 @@ class CellWall(Process):
         * units.nm,  # 4.1 in maximally stretched configuration,
         # divided by 3 because the sacculus can be stretched threefold
         "initial_stretch_factor": 1.17,
+        "max_stretch": 3,
         "peptidoglycan_unit_area": 4 * units.nm**2,  # replace with precise
         # literature value
         # Simulation parameters
@@ -65,6 +66,8 @@ class CellWall(Process):
         super().__init__(parameters)
 
         self.murein = self.parameters["murein"]
+        self.pbp1a = self.parameters["PBP"]["PBP1A"]
+        self.pbp1b = self.parameters["PBP"]["PBP1B"]
         self.strand_term_p = self.parameters["strand_term_p"]
 
         self.cell_radius = self.parameters["cell_radius"]
@@ -99,6 +102,10 @@ class CellWall(Process):
                 "stretch_factor": {"_default": 1.17, "_updater": "set", "_emit": True},
                 "cracked": {"_default": False, "_updater": "set", "_emit": True},
             },
+            "pbp_state": {
+                "active_fraction_PBP1A": {"_default": 0.0, "_updater": "set"},
+                "active_fraction_PBP1B": {"_default": 0.0, "_updater": "set"},
+            },
             "listeners": {
                 "porosity": {"_default": 0, "_updater": "set", "_emit": True},
                 "hole_size_distribution": {
@@ -121,14 +128,16 @@ class CellWall(Process):
         unincorporated_murein = states["murein_state"]["unincorporated_murein"]
         incorporated_murein = states["murein_state"]["incorporated_murein"]
         PBPs = states["PBP"]
+        active_fraction_PBP1a = states["pbp_state"]["active_fraction_PBP1A"]
+        active_fraction_PBP1b = states["pbp_state"]["active_fraction_PBP1B"]
 
         update = {}
 
         # Get number of synthesis sites
-        # TODO: get this from pbp binding process (alpha * sum(PBPs))
-        n_sites = sum(PBPs.values())
-        if n_sites == 0:
-            return {}
+        n_sites = int(remove_units(
+            PBPs[self.pbp1a] * active_fraction_PBP1a
+            + PBPs[self.pbp1b] * active_fraction_PBP1b
+        ))
 
         # Translate volume into length
         length = length_from_volume(volume, self.cell_radius * 2).to("micrometer")
@@ -195,7 +204,7 @@ class CellWall(Process):
                     print(f"Cell wall: Cracked at time {self.time}")
                 except:
                     pass
-                
+
                 fig, axs = plt.subplots(1, 2)
 
                 hole_size_view = np.zeros_like(hole_view)
