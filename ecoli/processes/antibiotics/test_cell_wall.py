@@ -88,6 +88,7 @@ def output_data(data, filepath="out/processes/cell_wall/test_cell_wall.png"):
             ("murein_state", "incorporated_murein"),
             ("murein_state", "unincorporated_murein"),
             ("murein_state", "shadow_murein"),
+            ("wall_state", "stretch_factor"),
             ("pbp_state", ("active_fraction_PBP1A", "dimensionless")),
             ("pbp_state", ("active_fraction_PBP1B", "dimensionless")),
             ("listeners", "porosity"),

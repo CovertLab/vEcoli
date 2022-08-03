@@ -78,6 +78,7 @@ class CellWall(Process):
         self.peptidoglycan_unit_area = self.parameters["peptidoglycan_unit_area"]
         self.disaccharide_length = self.parameters["disaccharide_length"]
         self.crossbridge_length = self.parameters["crossbridge_length"]
+        self.max_stretch = self.parameters["max_stretch"]
 
         # Create pseudorandom number generator
         self.rng = np.random.default_rng(self.parameters["seed"])
@@ -134,29 +135,16 @@ class CellWall(Process):
         update = {}
 
         # Get number of synthesis sites
-        n_sites = int(remove_units(
-            PBPs[self.pbp1a] * active_fraction_PBP1a
-            + PBPs[self.pbp1b] * active_fraction_PBP1b
-        ))
-
-        # Translate volume into length
-        length = length_from_volume(volume, self.cell_radius * 2).to("micrometer")
-
-        if DEBUG:
-            try:
-                print(f"Cell Wall: Time {self.time}")
-            except:
-                pass
-            print(f"Cell Wall: Bulk murein = {states['bulk_murein'][self.murein]}")
-            print(f"Cell Wall: Incorporated murein = {incorporated_murein}")
-            print(f"Cell Wall: Unincorporated murein = {unincorporated_murein}")
-            print(
-                f"Cell Wall: Shadow murein = {states['murein_state']['shadow_murein']}"
+        n_sites = int(
+            remove_units(
+                PBPs[self.pbp1a] * active_fraction_PBP1a
+                + PBPs[self.pbp1b] * active_fraction_PBP1b
             )
-            print(f"Cell Wall: Cell length = {length}")
-            print(f"Cell Wall: Lattice dimensions: {lattice.shape}")
+        )
 
+        # Translate volume into length,
         # Calculate new lattice dimensions
+        length = length_from_volume(volume, self.cell_radius * 2).to("micrometer")
         new_rows, new_columns = calculate_lattice_size(
             length,
             self.crossbridge_length,
@@ -168,7 +156,7 @@ class CellWall(Process):
         # Update lattice to reflect new dimensions,
         # change in murein, synthesis sites
         (
-            lattice,
+            new_lattice,
             new_unincorporated_monomers,
             new_incorporated_monomers,
         ) = self.update_murein(
@@ -181,20 +169,79 @@ class CellWall(Process):
             self.strand_term_p,
         )
 
+        # Crack detection (cracking is irreversible)
+        hole_sizes, hole_view = detect_holes_skimage(new_lattice)
+        max_size = hole_sizes.max() * self.peptidoglycan_unit_area * stretch_factor
+
+        # See if stretching will save from cracking
+        will_crack = max_size > self.critical_area
+        if will_crack and stretch_factor < self.max_stretch:
+            if DEBUG:
+                try:
+                    if self.time == 768:
+                        print("crack time...")
+                finally:
+                    pass
+
+            # stretch more and try again...
+            stretch_factor = remove_units(
+                (
+                    length
+                    / (
+                        lattice.shape[1]
+                        * (self.crossbridge_length + self.disaccharide_length)
+                    )
+                ).to("dimensionless")
+            )
+
+            new_rows, new_columns = calculate_lattice_size(
+                length,
+                self.crossbridge_length,
+                self.disaccharide_length,
+                self.circumference,
+                stretch_factor,
+            )
+
+            # Update lattice to reflect new dimensions,
+            # change in murein, synthesis sites
+            (
+                new_lattice,
+                new_unincorporated_monomers,
+                new_incorporated_monomers,
+            ) = self.update_murein(
+                lattice,
+                unincorporated_murein,
+                incorporated_murein,
+                new_rows,
+                new_columns,
+                n_sites,
+                self.strand_term_p,
+            )
+
+            # Crack detection (cracking is irreversible)
+            hole_sizes, hole_view = detect_holes_skimage(new_lattice)
+            max_size = hole_sizes.max() * self.peptidoglycan_unit_area * stretch_factor
+
+            will_crack = max_size > self.critical_area
+
+        # accept proposed new lattice
+        lattice = new_lattice
+
+        # Form updates to wall state, murein state, listeners
         update["wall_state"] = {
             "lattice": lattice,
             "lattice_rows": lattice.shape[0],
             "lattice_cols": lattice.shape[1],
+            "stretch_factor": stretch_factor,
         }
-
         update["murein_state"] = {
             "unincorporated_murein": new_unincorporated_monomers,
             "incorporated_murein": new_incorporated_monomers,
         }
-
-        # Crack detection (cracking is irreversible)
-        hole_sizes, hole_view = detect_holes_skimage(lattice)
-        max_size = hole_sizes.max() * self.peptidoglycan_unit_area * stretch_factor
+        update["listeners"] = {
+            "porosity": 1 - (lattice.sum() / lattice.size),
+            "hole_size_distribution": np.bincount(hole_sizes),
+        }
 
         if not states["wall_state"]["cracked"] and max_size > self.critical_area:
             update["wall_state"]["cracked"] = True
@@ -241,11 +288,6 @@ class CellWall(Process):
                 fig.savefig("out/processes/cell_wall/cracked_hole_view.png")
                 plt.close(fig)
 
-        update["listeners"] = {
-            "porosity": 1 - (lattice.sum() / lattice.size),
-            "hole_size_distribution": np.bincount(hole_sizes),
-        }
-
         if DEBUG:
             assert new_incorporated_monomers == lattice.sum()
             assert (
@@ -257,8 +299,21 @@ class CellWall(Process):
 
             try:
                 self.time += int(timestep)
+                print(f"Cell Wall: Time {self.time}")
             except AttributeError:
                 self.time = 0
+
+            bulk_murein = states['bulk_murein'][self.murein]
+            print(
+                f"Cell Wall: Bulk murein = {bulk_murein} * 4 = {bulk_murein * 4}"
+            )
+            print(f"Cell Wall: Incorporated murein = {incorporated_murein}")
+            print(f"Cell Wall: Unincorporated murein = {unincorporated_murein}")
+            print(
+                f"Cell Wall: Shadow murein = {states['murein_state']['shadow_murein']}"
+            )
+            print(f"Cell Wall: Cell length = {length}")
+            print(f"Cell Wall: Lattice dimensions: {lattice.shape}")
 
             if self.time % 100 == 0:
                 os.makedirs("out/processes/cell_wall/wall_frames", exist_ok=True)
@@ -292,6 +347,11 @@ class CellWall(Process):
     ):
         rows, columns = lattice.shape
         d_columns = new_columns - columns
+
+        if d_columns < 0:
+            raise ValueError(
+                f"Lattice shrinkage is currently not supported ({-d_columns} lost)."
+            )
 
         # Create new lattice
         new_lattice = np.zeros((new_rows, new_columns), dtype=lattice.dtype)
