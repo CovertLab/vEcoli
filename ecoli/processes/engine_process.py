@@ -72,6 +72,7 @@ from vivarium.core.store import DEFAULT_SCHEMA, Store
 from vivarium.library.topology import get_in, without
 
 from ecoli.library.sim_data import RAND_MAX
+from ecoli.library.schema import remove_subschemas, empty_dict_divider
 from ecoli.library.updaters import inverse_updater_registry
 from ecoli.processes.cell_division import daughter_phylogeny_id
 
@@ -236,6 +237,14 @@ class EngineProcess(Process):
             schema[tunnel] = copy.deepcopy(tunnel_schema)
         for tunnel, path in self.tunnels_in.items():
             tunnel_schema = self.sim.state.get_path(path).get_config()
+            # Don't waste time dividing outer sim state since it will be
+            # overwritten by inner daughter states (also removes need to 
+            # emit all unique molecules required certain dividers like 
+            # that for active_ribosome)
+            tunnel_schema['_divider'] = empty_dict_divider
+            # Internal sim state is fully defined, making subschemas
+            # redundant (also not properly parsed during store generation)
+            tunnel_schema = remove_subschemas(tunnel_schema)
             # We let the outer sim control the values of tunnels in.
             tunnel_schema.pop('_value', None)
             schema[tunnel] = tunnel_schema
@@ -309,10 +318,16 @@ class EngineProcess(Process):
 
         # Update the internal state with tunnel data.
         for tunnel, path in self.tunnels_in.items():
-            incoming_state = states[tunnel]
+            if isinstance(states[tunnel], dict):
+                incoming_state = copy.deepcopy(states[tunnel])
+            else:
+                incoming_state = states[tunnel]
             self.sim.state.get_path(path).set_value(incoming_state)
         for tunnel in self.tunnels_out.values():
-            incoming_state = states[tunnel]
+            if isinstance(states[tunnel], dict):
+                incoming_state = copy.deepcopy(states[tunnel])
+            else:
+                incoming_state = states[tunnel]
             self.sim.state.get_path((tunnel,)).set_value(incoming_state)
 
         # Emit data from inner simulation. We emit at the start of

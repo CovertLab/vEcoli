@@ -6,7 +6,7 @@ from vivarium.core.registry import (
 from ecoli.library.schema import (
     UNIQUE_DEFAULTS,
     divide_binomial,
-    make_dict_value_updater,
+    custom_dict_value_updater,
     divide_by_domain,
     divide_RNAs_by_domain,
     divide_domain,
@@ -28,7 +28,7 @@ from ecoli.library.serialize import UnumSerializer, ParameterSerializer
 # register :term:`updaters`
 for unique_mol, defaults in UNIQUE_DEFAULTS.items():
     updater_registry.register(f'{unique_mol}_updater',
-                              make_dict_value_updater(defaults))
+                              custom_dict_value_updater(defaults).dict_value_updater)
     # TODO: Handle defaults in inverse updater.
     inverse_updater_registry.register(
         f'{unique_mol}_updater', inverse_update_dictionary)
