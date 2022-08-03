@@ -607,7 +607,7 @@ class LoadSimData:
             'media_id': self.sim_data.conditions[self.sim_data.condition]['nutrients'],
 
             'condition': self.sim_data.condition, # 'minimal_fructose',
-            'nutrients': 'minimal_fructose', # self.sim_data.conditions[self.sim_data.condition]['nutrients'],
+            'nutrients': 'minimal_fructose', #self.sim_data.conditions[self.sim_data.condition]['nutrients']
             # TODO Replace this with media_id
             'metabolism': self.sim_data.process.metabolism,
             'non_growth_associated_maintenance': self.sim_data.constants.non_growth_associated_maintenance,

@@ -48,7 +48,7 @@ def run_ecoli(
     agents = sim.query()['agents'].keys()
     for agent in agents:
         query.extend([('agents', agent, 'listeners', 'fba_results'),
-                      ('agents', agent, 'bulk')])
+                      ('agents', agent, 'bulk'), ('agents', agent, 'listeners', 'mass')])
     output = sim.query(query)
 
     folder = f'out/geneRxnVerifData'
