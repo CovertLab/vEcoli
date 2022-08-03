@@ -58,7 +58,7 @@ class LoadSimData:
             # Values were chosen to recapitulate mRNA fold change with 1.5 mg/L tetracycline (Viveiros et al. 2007)
             # new_deltaV = np.array([10, 0.48, 0.07, 0.0054, 0.18, 0.013, 0.02, 0.13, 0.0035, 0.08, 0.007, 0.01, \
             #     4, 0.0065, 0.0005, 0.0001, 0.00055, 0.025, 0.00002, 0.02, 0.01, -0.0006, -0.2]) / 1000
-            new_deltaV = np.array([0.0001, 0.145, 0.017, 0.0168, 0.00095, 0.01, -0.000101, 0.003422, 0.003846, 0.000155, 0.01, 0.0014, 0.00118, \
+            new_deltaV = np.array([1.15, 0.145, 0.017, 0.0168, 0.00095, 0.01, -0.000101, 0.003422, 0.003846, 0.000155, 0.01, 0.0014, 0.00118, \
                 0.524, 0.003, 0.000034, -0.000002, 0.00006, 0.02, 0.000004, 0.00468, 0.03, 0.000257, 0.37]) / 1000
             
             self.sim_data.process.transcription_regulation.delta_prob["deltaI"] = np.concatenate(
@@ -92,9 +92,11 @@ class LoadSimData:
             # All existing equilibrium reactions use a forward reaction rate of 1
             equilibrium_proc.rates_fwd = np.concatenate([equilibrium_proc.rates_fwd, np.array([1])])
             # Rev rate to inactivate all marR at 1.5 mg/L external concentration
-            # 2.4942e-06: assuming artificial accumulation factor of 8.4
-            # 6.8411e-07: using Nernst-Planck eq. with membrane potential of 21.5 mV
-            equilibrium_proc.rates_rev = np.concatenate([equilibrium_proc.rates_rev, np.array([2.4942e-06])])
+            # 2.4e-06: internal (steady-state) = external * 8.4
+            # 7.1e-07: internal (steady_state) = external * (2 + Nernst-Planck bias) / (2 - Nernst-Planck bias)
+            # Nernst-Planck bias = charge * faraday * potential / gas_constant / temperature = 0.837
+            # Charge of tetracycline = 1, Donnan potential = 21.5 mV
+            equilibrium_proc.rates_rev = np.concatenate([equilibrium_proc.rates_rev, np.array([7.1e-07])])
 
             # Mass balance matrix
             equilibrium_proc._stoichMatrixMass = np.concatenate([equilibrium_proc._stoichMatrixMass, np.array([32130, 444.4346, 32574.4346])])
@@ -143,7 +145,11 @@ class LoadSimData:
                 duplex_lengths[i] = srna_length + target_length
                 duplex_sequences[i, :srna_length] = rna_sequences[srna_tu_id][:srna_length] 
                 duplex_sequences[i, srna_length:srna_length+target_length] = rna_sequences[target_tu_id][:target_length]
-            
+                # Mark sRNAs and targets as mRNAs to prevent automatic degradation
+                # There is a miscRNA key in sim_data that is not loaded into the sim
+                rna_data['is_mRNA'][rna_data['id']==srna_id] = True
+                rna_data['is_mRNA'][rna_data['id']==srna_id] = True
+
             # Make duplex metadata visible to all RNA-related processes
             rna_data.resize(rna_data.shape[0]+n_duplex_rnas, refcheck=False)
             rna_sequences.resize((rna_sequences.shape[0]+n_duplex_rnas, rna_sequences.shape[1]), refcheck=False)

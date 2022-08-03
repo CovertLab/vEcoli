@@ -140,7 +140,7 @@ class RnaInterference(Process):
                     'transcript_length': [duplex_length]*n_duplexed,
                     'is_mRNA': [True]*n_duplexed,
                     'is_full_transcript': [True]*n_duplexed,
-                    'can_translate': [False]*n_duplexed,
+                    'can_translate': [True]*n_duplexed,
                     'RNAP_index': [-1]*n_duplexed})
 
             update['RNAs']['_add'] += add_elements(new_RNAs, 'unique_index')['_add']

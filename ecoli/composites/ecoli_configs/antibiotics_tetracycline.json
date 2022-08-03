@@ -5,7 +5,9 @@
         "permeability",
         "death",
         "conc_to_counts",
-        "ecoli-rna-interference"
+        "ecoli-rna-interference",
+        "tetracycline-ribosome-equilibrium",
+        "unique_counts"
     ],
     "total_time": 10,
     "emitter_arg": [
@@ -25,7 +27,13 @@
         }
     },
     "engine_process_reports": [
-        ["cytoplasm"]
+        ["periplasm"],
+        ["cytoplasm"],
+        ["listeners", "mass"],
+        ["listeners", "unique_counts"],
+        ["boundary"],
+        ["bulk", "CPLX0-3953-tetracycline[c]"],
+        ["bulk", "CPLX0-3953[c]"]
     ],
     "topology": {
         "antibiotic-transport-odeint": {
@@ -48,9 +56,7 @@
                         "permeability": ["..", "kinetic_parameters", "outer_tetracycline_permeability"],
                         "area": ["..", "boundary", "surface_area"],
                         "volume": ["..", "cytoplasm", "global", "volume"],
-                        "charge": ["..", "kinetic_parameters", "tetracycline", "charge"],
-                        "accumulation_factor": ["..", "kinetic_parameters", "tetracycline", "accumulation_factor"]
-                    },
+                        "charge": ["..", "kinetic_parameters", "tetracycline", "charge"]                    },
                     "export": {
                         "_path": ["null"],
                         "kcat": ["..", "kinetic_parameters", "tetracycline", "export_kcat"],
@@ -86,6 +92,20 @@
             "internal": ["cytoplasm", "concentrations"],
             "bulk": ["bulk"],
             "volume_global": ["cytoplasm", "global"]
+        },
+        "tetracycline-ribosome-equilibrium": {
+            "tetracycline": ["cytoplasm", "concentrations", "tetracycline"],
+            "30s-free": ["bulk", "CPLX0-3953[c]"],
+            "70s-free": ["unique", "active_ribosome"],
+            "70s-tetracycline": ["unique", "active_ribosome_tetracycline"],
+            "30s-tetracycline": ["bulk", "CPLX0-3953-tetracycline[c]"],
+            "volume": ["periplasm", "global", "volume"],
+            "evolvers_ran": ["evolvers_ran"],
+            "reports": ["boundary", "reports"]
+        },
+        "unique_counts": {
+            "unique": ["unique"],
+            "unique_counts": ["listeners", "unique_counts"]
         }
     },
     "process_configs": {
@@ -96,9 +116,7 @@
                         "permeability": "!ParameterSerializer[tetracycline>permeability>outer_with_porins]",
                         "area": "!ParameterSerializer[shape>initial_area]",
                         "volume": "!ParameterSerializer[shape>initial_cytoplasm_volume]",
-                        "charge": "!ParameterSerializer[tetracycline>charge]",
-                        "accumulation_factor": "!ParameterSerializer[tetracycline>permeability>accumulation_factor]"
-                    },
+                        "charge": "!ParameterSerializer[tetracycline>charge]"                    },
                     "export": {
                         "kcat": "!ParameterSerializer[tetracycline>efflux>kcat]",
                         "km": "!ParameterSerializer[tetracycline>efflux>km]",
@@ -226,7 +244,21 @@
             "duplex_tu_ids": [4687],
             "ribosome30S": "CPLX0-3953[c]",
             "ribosome50S": "CPLX0-3962[c]",
-            "binding_probs": [1]
+            "binding_probs": [1],
+            "timestep": 2
+        },
+        "tetracycline-ribosome-equilibrium": {},
+        "ecoli-mass-listener": {
+            "add_tetracycline_masses": true
+        },
+        "unique_counts": {
+            "paths": [
+                ["unique", "active_ribosome_tetracycline"],
+                ["unique", "active_ribosome"]
+            ]
         }
+    },
+    "flow": {
+        "ecoli-polypeptide-initiation_requester": [["tetracycline-ribosome-equilibrium"]]
     }
 }

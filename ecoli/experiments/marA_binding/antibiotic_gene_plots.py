@@ -24,59 +24,30 @@ from vivarium.plots.simulation_output import plot_variables
 from ecoli.analysis.analyze_db_experiment import access
 from ecoli.experiments.ecoli_master_sim import EcoliSim
 
-def runDefault():
-    sim = EcoliSim.from_file()
-    sim.raw_output = False
-    sim.total_time = 3000
-    sim.emitter = "database"
-    
-    sim.run()
-    
-def includeTetracycline(tet=None):
-    sim = EcoliSim.from_file()
-    sim.raw_output = False
-    sim.total_time = 3000
-    sim.emitter = "database"
-    sim.config['mar_regulon'] = True
-    if tet != None:
-        with open('data/wcecoli_t0.json') as f:
-            initial_state = json.load(f)
-        # Pre-seed tetracycline and add marR-tet complex
-        initial_state['bulk']['tetracycline[c]'] = int(tet)
-        initial_state['bulk']['marR-tet[c]'] = 0
-        # Add promoter binding data for marA and marR
-        for promoter_data in initial_state['unique']['promoter'].values():
-            promoter_data['bound_TF'] += [False, False]
-        with open('data/wcecoli_marA.json', 'w') as f:
-            json.dump(initial_state, f)
-    sim.initial_state_file = "wcecoli_marA"
-    
-    sim.run()
-
 def count_by_tu_idx(data):
     tu_idx = np.zeros(len(data))
     for i, rna in enumerate(data.values()):
         tu_idx[i] = rna["TU_index"]
     tu_idx = tu_idx.astype(int)
-    return np.bincount(tu_idx, minlength=4687)
+    return np.bincount(tu_idx, minlength=4688)
 
 def plot_mrnas(mrna_ts, baseline_mrna_ts, name, idx, genes, fc):
     mrna_data = np.array(mrna_ts["unique"]["RNA"])[:, idx]
+    marA_time = np.array(mrna_ts["time"])
     baseline_mrna_data = np.array(baseline_mrna_ts["unique"]["RNA"])[:, idx]
+    baseline_time = np.array(baseline_mrna_ts["time"])
     
     n_mrnas = len(idx)
     fig, axes = plt.subplots(n_mrnas, 1, figsize=(8, 4 * n_mrnas), tight_layout=True)
 
     for i, gene in enumerate(genes):
         title = gene
-        x = np.arange(start=0, stop=len(mrna_data[:,i])*2, step=2)
         y = mrna_data[:,i]
-        axes[i].plot(x, y, label="marA")
-        x_exp = np.arange(start=0, stop=len(baseline_mrna_data[:,i])*2, step=2)
+        axes[i].plot(marA_time, y, label="marA")
         y_exp = baseline_mrna_data[:, i]
-        axes[i].plot(x_exp, y_exp, 'r--', label="base")
+        axes[i].plot(baseline_time, y_exp, 'r--', label="base")
         target = baseline_mrna_data[:, i] * float(fc[i])
-        axes[i].plot(x_exp, target, 'g--', label="target")
+        axes[i].plot(baseline_time, target, 'g--', label="target")
         axes[i].set_title(title)
     plt.tight_layout()
     plt.savefig(f"ecoli/experiments/marA_binding/{name}.png")
@@ -84,22 +55,23 @@ def plot_mrnas(mrna_ts, baseline_mrna_ts, name, idx, genes, fc):
 def plot_rna_synth_prob(timeseries, baseline_ts, name, idx, genes, fc):
     rna_synth_prob = timeseries["listeners"]["rna_synth_prob"]["rna_synth_prob"][2:]
     rna_synth_prob = np.array(rna_synth_prob)[:, idx]
+    marA_time = np.array(timeseries["time"][2:])
     baseline_rna_synth_prob = baseline_ts["listeners"]["rna_synth_prob"]["rna_synth_prob"][2:]
     baseline_rna_synth_prob = np.array(baseline_rna_synth_prob)[:, idx]
+    baseline_time = np.array(baseline_ts["time"][2:])
+    
     
     n_mrnas = len(idx)
     fig, axes = plt.subplots(n_mrnas, 1, figsize=(8, 4 * n_mrnas), tight_layout=True)
 
     for i, gene in enumerate(genes):
         title = gene
-        x = np.arange(start=0, stop=len(rna_synth_prob[:,i])*2, step=2)
         y = rna_synth_prob[:,i]
-        axes[i].plot(x, y, label="marA")
-        x_exp = np.arange(start=0, stop=len(baseline_rna_synth_prob[:,i])*2, step=2)
+        axes[i].plot(marA_time, y, label="marA")
         y_exp = baseline_rna_synth_prob[:, i]
-        axes[i].plot(x_exp, y_exp, 'r--', label="base")
+        axes[i].plot(baseline_time, y_exp, 'r--', label="base")
         target = baseline_rna_synth_prob[:, i] * float(fc[i])
-        axes[i].plot(x_exp, target, 'g--', label="target")
+        axes[i].plot(baseline_time, target, 'g--', label="target")
         axes[i].set_title(title)
     plt.tight_layout()
     plt.savefig(f"ecoli/experiments/marA_binding/{name}.png")
@@ -195,9 +167,10 @@ def plot_degenes(timeseries, baseline, name, variable_paths):
         title = key
         x = monomer_data['x_data']
         y = monomer_data['y_data']
+        x_exp = baseline_monomer_data['x_data']
         y_exp = baseline_monomer_data['y_data']
         axes[i].plot(x, y, label="marA")
-        axes[i].plot(x, y_exp, 'r--', label="base")  
+        axes[i].plot(x_exp, y_exp, 'r--', label="base")  
         axes[i].set_title(title)
     plt.tight_layout()
     plt.savefig(f"ecoli/experiments/marA_binding/{name}.png")
@@ -206,8 +179,8 @@ def all_plots(marA_id, baseline_id, name):
     # Get metadata
     degenes = pd.read_csv("ecoli/experiments/marA_binding/model_degenes.csv")
     TU_idx = degenes["TU_idx"].to_list()
-    genes = degenes["Gene name"]
-    fc = degenes["Fold change"]
+    genes = degenes["Gene name"].to_list()
+    fc = degenes["Fold change"].to_list()
     variable_paths = ids_of_interest()
     
     # Perform regular garbage collection to free memory
@@ -217,43 +190,57 @@ def all_plots(marA_id, baseline_id, name):
     marA_bulk_timeseries = timeseries_from_data(marA_bulk_data)
     time = marA_bulk_timeseries['time']
     marA_bulk_timeseries = marA_bulk_timeseries['agents']['0']
-    marA_bulk_timeseries['time'] = time
+    marA_agent_0_timesteps = len(marA_bulk_timeseries['bulk']['marR-tet[c]'])
+    marA_bulk_timeseries['time'] = time[:marA_agent_0_timesteps]
     del marA_bulk_data
     gc.collect()
     baseline_bulk_data = access(baseline_id, paths)[0]
     baseline_bulk_timeseries = timeseries_from_data(baseline_bulk_data)
     time = baseline_bulk_timeseries['time']
     baseline_bulk_timeseries = baseline_bulk_timeseries['agents']['0']
-    baseline_bulk_timeseries['time'] = time
+    baseline_agent_0_timesteps = len(baseline_bulk_timeseries['bulk']['marR-tet[c]'])
+    baseline_bulk_timeseries['time'] = time[:baseline_agent_0_timesteps]
     del baseline_bulk_data
     gc.collect()
     plot_degenes(marA_bulk_timeseries, baseline_bulk_timeseries, f"genes_{name}", variable_paths)
     del marA_bulk_timeseries, baseline_bulk_timeseries, variable_paths
     gc.collect()
     
-    # # Plot mRNA counts
-    # # NOTE: Requires changes to `emitter.py` from the `memory` branch of vivarium-core
-    # marA_mrna_data = access(marA_id, [("agents", "0", "unique", "RNA")], f=count_by_tu_idx)[0]
-    # marA_mrna_timeseries = timeseries_from_data(marA_mrna_data)
-    # del marA_mrna_data
-    # gc.collect()
-    # baseline_mrna_data = access(baseline_id, [("agents", "0", "unique", "RNA")], f=count_by_tu_idx)[0]
-    # baseline_mrna_timeseries = timeseries_from_data(baseline_mrna_data)
-    # del baseline_mrna_data
-    # gc.collect()
-    # plot_mrnas(marA_mrna_timeseries, baseline_mrna_timeseries, f"mrna_{name}", TU_idx, genes, fc)
-    # del marA_mrna_timeseries, baseline_mrna_timeseries
-    # gc.collect()
+    # Plot mRNA counts
+    marA_mrna_data = access(marA_id, [("agents", "0", "unique", "RNA")], f=count_by_tu_idx)[0]
+    marA_mrna_timeseries = timeseries_from_data(marA_mrna_data)
+    marA_mrna_time = marA_mrna_timeseries.pop('time')
+    marA_mrna_timeseries = marA_mrna_timeseries['agents']['0']
+    marA_mrna_timeseries['time'] = marA_mrna_time[:marA_agent_0_timesteps]
+    del marA_mrna_data
+    gc.collect()
+    baseline_mrna_data = access(baseline_id, [("agents", "0", "unique", "RNA")], f=count_by_tu_idx)[0]
+    baseline_mrna_timeseries = timeseries_from_data(baseline_mrna_data)
+    baseline_mrna_time = baseline_mrna_timeseries.pop('time')
+    baseline_mrna_timeseries = baseline_mrna_timeseries['agents']['0']
+    baseline_mrna_timeseries['time'] = baseline_mrna_time[:baseline_agent_0_timesteps]
+    del baseline_mrna_data
+    gc.collect()
+    TU_idx += [4687]
+    genes += ['micF-ompF duplex']
+    fc += [1]
+    plot_mrnas(marA_mrna_timeseries, baseline_mrna_timeseries, f"mrna_{name}", TU_idx, genes, fc)
+    del marA_mrna_timeseries, baseline_mrna_timeseries
+    gc.collect()
     
     # Plot RNA synthesis probabilities
     rna_synth_prob_data = access(marA_id, [("agents", "0", "listeners", "rna_synth_prob", "rna_synth_prob")])[0]
     rna_synth_prob_ts = timeseries_from_data(rna_synth_prob_data)
+    rna_synth_prob_time = rna_synth_prob_ts.pop('time')
     rna_synth_prob_ts = rna_synth_prob_ts['agents']['0']
+    rna_synth_prob_ts['time'] = rna_synth_prob_time[:marA_agent_0_timesteps]
     del rna_synth_prob_data
     gc.collect()
     baseline_rna_synth_prob_data = access(baseline_id, [("agents", "0", "listeners", "rna_synth_prob", "rna_synth_prob")])[0]
     baseline_rna_synth_prob_ts = timeseries_from_data(baseline_rna_synth_prob_data)
+    baseline_rna_synth_prob_time = baseline_rna_synth_prob_ts.pop('time')
     baseline_rna_synth_prob_ts = baseline_rna_synth_prob_ts['agents']['0']
+    baseline_rna_synth_prob_ts['time'] = baseline_rna_synth_prob_time[:baseline_agent_0_timesteps]
     del baseline_rna_synth_prob_data
     gc.collect()
     plot_rna_synth_prob(rna_synth_prob_ts, baseline_rna_synth_prob_ts, f"synth_prob_{name}", TU_idx, genes, fc)
@@ -261,15 +248,12 @@ def all_plots(marA_id, baseline_id, name):
     gc.collect()
 
 def main():
-    # Generate baseline/experimental data
-    # runDefault()
-    # includeTetracycline(2200)
-    # Experimental id for marA simulation
-    marA_id = "eb39ea8a-09fe-11ed-ab2f-9cfce8b9977c"
-    # Experimental id for baseline simulation
-    baseline_id = "cf37764a-09fe-11ed-80ab-9cfce8b9977c"
+    # transport (Nernst-Planck), regulation (micF 1.15), ribosome binding, 3.375 uM tetracycline, 3000 sec
+    marA_id = "f4767d70-1304-11ed-80e5-9cfce8b9977c"
+    # transport (Nernst-Planck, 21.5 mV), regulation (micF 1.15), ribosome binding, 0 uM tetracycline, 3000 sec
+    baseline_id = "09067748-1311-11ed-80e5-9cfce8b9977c"
     # Suffix for output graphs
-    name = "full_integration"
+    name = "full_integration_1_15"
         
     all_plots(marA_id, baseline_id, name)
 
