@@ -1,9 +1,12 @@
+from itertools import groupby
+
 import mpl_toolkits.mplot3d.axes3d as axes3d
 import numpy as np
-from ecoli.library.cell_wall.column_sampler import geom_sampler, sample_column
 from matplotlib import pyplot as plt
 from skimage.transform import resize
-from itertools import groupby
+
+from ecoli.library.cell_wall.column_sampler import geom_sampler, sample_column
+from vivarium.library.units import remove_units
 
 
 def de_novo_lattice(murein_monomers, rows, cols, strand_sampler, rng):
@@ -25,8 +28,13 @@ def calculate_lattice_size(
     cell_length, crossbridge_length, disaccharide_length, circumference, stretch_factor
 ):
     # Calculate new lattice size
-    columns = int(
-        cell_length / (stretch_factor * (crossbridge_length + disaccharide_length))
+    columns = round(
+        remove_units(
+            (
+                cell_length
+                / (stretch_factor * (crossbridge_length + disaccharide_length))
+            ).to("dimensionless")
+        )
     )
     rows = int(circumference / disaccharide_length)
 
