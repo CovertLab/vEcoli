@@ -43,9 +43,9 @@ def create_composite(timeline_data):
             ("cell_global", "volume"): parse_unit_string(
                 value[("cell_global", "volume")]
             ),
-            # ("concentrations", "beta_lactam"): (
-            #     0 * units.micromolar if t < 500 else 9.16 * units.micromolar
-            # ),
+            ("concentrations", "beta_lactam"): (
+                0 * units.micromolar if t < 500 else 9.16 * units.micromolar
+            ),
             ("bulk", "CPD-12261[p]"): int(value[("bulk", "CPD-12261[p]")]),
         },
     )
@@ -59,6 +59,7 @@ def create_composite(timeline_data):
             "murein_state": ("murein_state",),
             "PBP": ("bulk",),
             "wall_state": ("wall_state",),
+            "pbp_state": ("pbp_state",),
             "listeners": ("listeners",),
         },
         "pbp_binding": {
@@ -66,7 +67,7 @@ def create_composite(timeline_data):
             "murein_state": ("murein_state",),
             "concentrations": ("concentrations",),
             "bulk": ("bulk",),
-            "listeners": ("listeners",),
+            "pbp_state": ("pbp_state",),
         },
     }
 
@@ -87,8 +88,8 @@ def output_data(data, filepath="out/processes/cell_wall/test_cell_wall.png"):
             ("murein_state", "incorporated_murein"),
             ("murein_state", "unincorporated_murein"),
             ("murein_state", "shadow_murein"),
-            ("listeners", ("active_fraction_PBP1A", "dimensionless")),
-            ("listeners", ("active_fraction_PBP1B", "dimensionless")),
+            ("pbp_state", ("active_fraction_PBP1A", "dimensionless")),
+            ("pbp_state", ("active_fraction_PBP1B", "dimensionless")),
             ("listeners", "porosity"),
         ],
         out_dir=os.path.dirname(filepath),

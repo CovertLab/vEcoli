@@ -14,7 +14,7 @@ TOPOLOGY = {
     "murein_state": ("murein_state",),
     "concentrations": ("concentrations",),
     "bulk": ("bulk",),
-    "listeners": ("listeners",),
+    "pbp_state": ("pbp_state",),
 }
 topology_registry.register(NAME, TOPOLOGY)
 
@@ -97,7 +97,7 @@ class PBPBinding(Step):
                 "beta_lactam": {"_default": 0.0 * units.micromolar, "_emit": True},
             },
             "bulk": bulk_schema(list(self.parameters["PBP"].values())),
-            "listeners": {
+            "pbp_state": {
                 "active_fraction_PBP1A": {
                     "_default": 0.0,
                     "_updater": "set",
@@ -153,7 +153,7 @@ class PBPBinding(Step):
             ),
         }
 
-        update["listeners"] = {
+        update["pbp_state"] = {
             "active_fraction_PBP1A": active_fraction_1a,
             "active_fraction_PBP1B": active_fraction_1b,
         }
@@ -174,7 +174,7 @@ def test_pbp_binding():
             "murein_state": ("murein_state",),
             "concentrations": ("concentrations",),
             "bulk": ("bulk",),
-            "listeners": ("listeners",),
+            "pbp_state": ("pbp_state",),
         }
     }
     add_timeline(
@@ -228,8 +228,8 @@ def test_pbp_binding():
             ("murein_state", "incorporated_murein"),
             ("murein_state", "unincorporated_murein"),
             ("murein_state", "shadow_murein"),
-            ("listeners", ("active_fraction_PBP1A", "dimensionless")),
-            ("listeners", ("active_fraction_PBP1B", "dimensionless")),
+            ("pbp_state", ("active_fraction_PBP1A", "dimensionless")),
+            ("pbp_state", ("active_fraction_PBP1B", "dimensionless")),
         ],
     )
     fig.get_axes()[-1].set_ylim(0, 1)
