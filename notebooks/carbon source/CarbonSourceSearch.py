@@ -78,7 +78,7 @@ def searchForCarbon(molecule, finalList, searchedMetabols, level):
     if len(molrxns) == 0:
         return
 
-    if level >= 10:
+    if level >= 20:
         return
 
     for molreaction in molrxns:
@@ -87,7 +87,7 @@ def searchForCarbon(molecule, finalList, searchedMetabols, level):
             if mol not in searchedMetabols:
                 searchedMetabols.add(mol)
                 searchForCarbon(mol, finalList, searchedMetabols, level + 1)
-                if level == 9:
+                if level == 19:
                     finalList.update(molrxns)
                     return
 
