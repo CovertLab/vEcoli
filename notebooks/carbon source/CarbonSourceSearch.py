@@ -36,7 +36,7 @@ def filterTop5(flux):
 
     result = []
     x = 0
-    while x < len(flux) and len(result) < 3 and flux[x][1] / 100000 >= 1:
+    while x < len(flux) and len(result) < 5 and flux[x][1] / 100000 >= 1:
         result.append(flux[x][0])
         x += 1
     return result
@@ -72,13 +72,13 @@ def getSubstrates(rxnName):
     return substrates
 
 
-def searchForCarbon(molecule, finalList, searchedMetabols, level):
+def searchForCarbon(molecule, finalList, searchedMetabols, level, max_level):
     molrxns = getReactions(molecule)
 
     if len(molrxns) == 0:
         return
 
-    if level >= 20:
+    if level >= max_level:
         return
 
     for molreaction in molrxns:
@@ -86,8 +86,8 @@ def searchForCarbon(molecule, finalList, searchedMetabols, level):
         for mol in subs:
             if mol not in searchedMetabols:
                 searchedMetabols.add(mol)
-                searchForCarbon(mol, finalList, searchedMetabols, level + 1)
-                if level == 19:
+                searchForCarbon(mol, finalList, searchedMetabols, level + 1, max_level)
+                if level == max_level - 1:
                     finalList.update(molrxns)
                     return
 
@@ -96,6 +96,8 @@ finalList = set()
 searchedMetabols = set()
 searchedMetabols.add(startingMolecule)
 
-searchForCarbon(startingMolecule, finalList, searchedMetabols, 0)
+max_level = 29
+
+searchForCarbon(startingMolecule, finalList, searchedMetabols, 0, max_level)
 
 np.save("10thLevelCarbonReactions", finalList)
