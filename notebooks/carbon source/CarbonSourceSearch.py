@@ -18,29 +18,51 @@ complexes = simData.tolist()['agents']['0']['bulk']
 metabolData = np.load(r"../../out/geneRxnVerifData/stoichiometry.npy", allow_pickle=True, encoding='ASCII')
 rxn_metabolites = metabolData.tolist()
 
-rxns = list(rxn_metabolites.keys())
-glucoseRxns = {}
-fructoseRxns = {}
-for rxn in rxns:
-    metabolites = rxn_metabolites[rxn].keys()
-    for metabolite in metabolites:
-        if metabolite == 'CARBON-DIOXIDE[p]':
-            glucoseRxns[rxn] = rxn_metabolites[rxn]
-        if metabolite == 'CARBON-DIOXIDE[c]' and rxn_metabolites[rxn]['CARBON-DIOXIDE[c]'] == 1:
-            fructoseRxns[rxn] = rxn_metabolites[rxn]
+def zeroFlux(key1):
+    fluxes1 = fluxesWithCaption[key1]
+    for num in fluxes1:
+        if not num == 0:
+            return False
+    return True
 
-fluxes = {}
-for rKeys in fructoseRxns.keys():
-    fluxes[rKeys] = fluxesWithCaption[rKeys]
-createHeatMapFluxes(fluxes, 20, True)
-
-#helpful portion of createHeatMapFluxes
-zeroFluxReactions = []
-    nonZeroFlux = {}
-
+def filterNoFlux(reactions):
+    nonZeroFlux = []
     for key in reactions:
-        if zeroFlux(key, reactionDictionary):
-            zeroFluxReactions.append(key)
-        else:
-            res = [abs(ele) for ele in reactionDictionary[key]]
-            nonZeroFlux[key] = res
+        if not zeroFlux(key):
+            res = [abs(ele) for ele in fluxesWithCaption[key]]
+            nonZeroFlux.append((key, np.mean(res)))
+    return nonZeroFlux
+
+
+def filterTop5(flux):
+    if len(flux) == 0:
+        return []
+
+    flux.sort(key=lambda x: x[1], reverse=True)
+
+    if flux[0][1]/100000 < 1:
+        return [flux[0][0]]
+
+    result = []
+    x = 0
+    while len(result) < 5 and flux[x][1]/100000 >= 1:
+        result.append(flux[x][0])
+        x += 1
+    return result
+
+
+def getReactions(molecule):
+    rxns = list(rxn_metabolites.keys())
+    specificRxns = []
+    for rxn in rxns:
+        metabolites = rxn_metabolites[rxn].keys()
+        for metabolite in metabolites:
+            if metabolite == molecule and rxn_metabolites[rxn][molecule] == 1:
+                specificRxns.append(rxn)
+
+    flux = filterNoFlux(specificRxns)
+    top5 = filterTop5(flux)
+    return top5
+
+x = getReactions('CARBON-DIOXIDE[c]')
+print(x)
