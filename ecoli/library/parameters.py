@@ -1,3 +1,4 @@
+from collections import namedtuple
 from scipy import constants
 
 from vivarium.library.topology import get_in, assoc_path
@@ -5,11 +6,14 @@ from vivarium.library.units import units
 
 class Parameter:
 
-    def __init__(self, value, source='', canonicalize=None, note=''):
+    def __init__(
+            self, value, source='', canonicalize=None, note='',
+            latex_source=''):
         self.value = value
         self.source = source
         self.canonicalize = canonicalize or (lambda x: x)
         self.note = note
+        self.latex_source = latex_source
 
 
 class ParameterStore:
@@ -18,12 +22,19 @@ class ParameterStore:
         self._parameters = parameters
         self.derive_parameters(derivation_rules or {})
 
-    def get(self, path):
+    def get_parameter(self, path):
         param_obj = get_in(self._parameters, path)
         if not param_obj:
             raise RuntimeError(
                 f'No parameter found at path {path}')
+        return param_obj
+
+    def get_value(self, path):
+        param_obj = self.get_parameter(path)
         return param_obj.canonicalize(param_obj.value)
+
+    def get(self, path):
+        return self.get_value(path)
 
     def add(self, path, parameter):
         assert get_in(self._parameters, path) is None
@@ -42,6 +53,7 @@ PARAMETER_DICT = {
                 0.28e-5 * units.cm / units.sec,
                 'Kojima and Nikaido (2013)',
                 note='This is total, not per-porin, permeability.',
+                latex_source='kojima2013permeation',
             ),
         },
         'mic': Parameter(
@@ -56,14 +68,17 @@ PARAMETER_DICT = {
             'vmax': Parameter(
                 0.085 * units.nmol / units.mg / units.sec,
                 'Kojima and Nikaido (2013)',
+                latex_source='kojima2013permeation',
             ),
             'km': Parameter(
                 2.16e-3 * units.mM,
                 'Kojima and Nikaido (2013)',
+                latex_source='kojima2013permeation',
             ),
             'n': Parameter(
                 1.9 * units.count,
                 'Kojima and Nikaido (2013)',
+                latex_source='kojima2013permeation',
             ),
         },
         'hydrolysis': {
@@ -87,6 +102,7 @@ PARAMETER_DICT = {
                 (52.6e-5 + 4.5e-5) * units.cm / units.sec,
                 'Nikaido, Rosenberg, and Foulds (1983)',
                 note='This is total, not per-porin, permeability',
+                latex_source='nikaido1983porin',
             ),
         },
         # Cell-wide permeability with only one porin present.
@@ -95,10 +111,12 @@ PARAMETER_DICT = {
                 'ompf': Parameter(
                     52.6e-5 * units.cm / units.sec,
                     'Nikaido, Rosenberg, and Foulds (1983)',
+                    latex_source='nikaido1983porin',
                 ),
                 'ompc': Parameter(
                     4.5e-5 * units.cm / units.sec,
                     'Nikaido, Rosenberg, and Foulds (1983)',
+                    latex_source='nikaido1983porin',
                 ),
             },
         },
@@ -114,14 +132,17 @@ PARAMETER_DICT = {
             'vmax': Parameter(
                 1.82 * units.nmol / units.mg / units.sec,
                 'Nagano and Nikaido (2009)',
+                latex_source='nagano2009kinetic',
             ),
             'km': Parameter(
                 0.288 * units.mM,
                 'Nagano and Nikaido (2009)',
+                latex_source='nagano2009kinetic',
             ),
             'n': Parameter(
                 1.75 * units.count,
                 'Nagano and Nikaido (2009)',
+                latex_source='nagano2009kinetic',
             ),
         },
         'hydrolysis': {
@@ -145,14 +166,17 @@ PARAMETER_DICT = {
             'outer_without_porins': Parameter(
                 0.7e-7 * units.cm / units.sec,
                 'Thananassi, Suh, and Nikaido (1995) p. 1004',
+                latex_source='thanassi1995role',
             ),
             'outer_with_porins': Parameter(
                 1e-5 * units.cm / units.sec,
                 'Thananassi, Suh, and Nikaido (1995) p. 1005',
+                latex_source='thanassi1995role',
             ),
             'inner': Parameter(
                 3e-6 * units.cm / units.sec,
                 'Thananassi, Suh, and Nikaido (1995) p. 1004',
+                latex_source='thanassi1995role',
             ),
         },
         'charge': Parameter(1 * units.count),
@@ -160,10 +184,12 @@ PARAMETER_DICT = {
             'vmax': Parameter(
                 0.2 * units.nmol / units.mg / units.min,
                 'Thananassi, Suh, and Nikaido (1995) p. 1004',
+                latex_source='thanassi1995role',
             ),
             'km': Parameter(
                 200 * units.uM,
                 'Thananassi, Suh, and Nikaido (1995) p. 1004',
+                latex_source='thanassi1995role',
             ),
             'n': Parameter(
                 1 * units.count,
@@ -172,6 +198,7 @@ PARAMETER_DICT = {
         'mic': Parameter(
             2.5 * units.micromolar,
             'Thananassi, Suh, and Nikaido (1995) p. 1005',
+            latex_source='thanassi1995role',
         ),
     },
     'shape': {
@@ -216,6 +243,7 @@ PARAMETER_DICT = {
     'donnan_potential': Parameter(
         0.026 * units.volt,
         'Thananassi, Suh, and Nikaido (1995) p. 999',
+        latex_source='thanassi1995role',
     ),
     'faraday_constant': Parameter(
         constants.value(
@@ -325,3 +353,181 @@ DERIVATION_RULES = {
 }
 
 param_store = ParameterStore(PARAMETER_DICT, DERIVATION_RULES)
+
+
+TableRow = namedtuple(
+    'TableRow',
+    ['param_name', 'param', 'units', 'description'])
+TABLES = {
+    'Trans-membrane diffusion parameters': (
+        TableRow(
+            'P_{cep,outer}',
+            param_store.get_parameter(
+                ('cephaloridine', 'permeability', 'outer')),
+            'cm/sec',
+            'Outer membrane permeability to cephaloridine.'
+        ),
+        TableRow(
+            'P_{amp,outer}',
+            param_store.get_parameter(
+                ('ampicillin', 'permeability', 'outer')),
+            'cm/sec',
+            'Outer membrane permeability to ampicillin.'
+        ),
+        TableRow(
+            'P_{tet,outer}',
+            param_store.get_parameter(
+                ('tetracycline', 'permeability', 'outer_without_porins')),
+            'cm/sec',
+            'Outer membrane permeability to tetracycline without porins.'
+        ),
+        TableRow(
+            'P_{tet,inner}',
+            param_store.get_parameter(
+                ('tetracycline', 'permeability', 'inner')),
+            'cm/sec',
+            'Inner membrane permeability to tetracycline.'
+        ),
+        TableRow(
+            '\Delta \phi',
+            param_store.get_parameter(
+                ('donnan_potential',)),
+            'mV',
+            'Donnan potential across the outer membrane.',
+        ),
+    ),
+    'Antibiotic export parameters': (
+        TableRow(
+            '[E]_0',
+            param_store.get_parameter(
+                ('concs', 'initial_pump')),
+            'mM',
+            'Initial concentration of AcrAB-TolC.'
+        ),
+        TableRow(
+            'm_0',
+            param_store.get_parameter(
+                ('shape', 'initial_cell_mass')),
+            'fg',
+            'Initial mass of the cell.'
+        ),
+        TableRow(
+            'V_{p,0}',
+            param_store.get_parameter(
+                ('shape', 'initial_periplasm_volume')),
+            'fL',
+            'Initial volume of the periplasm.'
+        ),
+        TableRow(
+            'v_{max,e,amp}',
+            param_store.get_parameter(
+                ('ampicillin', 'efflux', 'vmax')),
+            'nmol/mg/sec',
+            'Maximum rate of ampicillin export.'
+        ),
+        TableRow(
+            'K_{M,e,amp}',
+            param_store.get_parameter(
+                ('ampicillin', 'efflux', 'km')),
+            'mM',
+            'Michaelis constant for ampicillin export.'
+        ),
+        TableRow(
+            'n_{e,amp}',
+            param_store.get_parameter(
+                ('ampicillin', 'efflux', 'n')),
+            '',
+            'Hill coefficient for ampicillin export.'
+        ),
+        TableRow(
+            'v_{max,e,cep}',
+            param_store.get_parameter(
+                ('cephaloridine', 'efflux', 'vmax')),
+            'nmol/mg/sec',
+            'Maximum rate of cephaloridine export.'
+        ),
+        TableRow(
+            'K_{M,e,cep}',
+            param_store.get_parameter(
+                ('cephaloridine', 'efflux', 'km')),
+            'mM',
+            'Michaelis constant for cephaloridine export.'
+        ),
+        TableRow(
+            'n_{e,cep}',
+            param_store.get_parameter(
+                ('cephaloridine', 'efflux', 'n')),
+            '',
+            'Hill coefficient for cephaloridine export.'
+        ),
+        TableRow(
+            'v_{max,e,tet}',
+            param_store.get_parameter(
+                ('tetracycline', 'efflux', 'vmax')),
+            'nmol/mg/sec',
+            'Maximum rate of tetracycline export.'
+        ),
+        TableRow(
+            'K_{M,e,tet}',
+            param_store.get_parameter(
+                ('tetracycline', 'efflux', 'km')),
+            'mM',
+            'Michaelis constant for tetracycline export.'
+        ),
+        TableRow(
+            'n_{e,tet}',
+            param_store.get_parameter(
+                ('tetracycline', 'efflux', 'n')),
+            '',
+            'Hill coefficient for tetracycline export.'
+        ),
+    ),
+}
+
+
+def main():
+    for table_name, rows in TABLES.items():
+        print(
+            r'\begin{tabular}{|'
+            r'p{0.15\columnwidth}'
+            r'p{0.3\columnwidth}'
+            r'p{0.5\columnwidth}'
+            r'|}'
+        )
+        print('\t' + r'\hline')
+        print('\t' + r'\multicolumn{3}{|c|}{%s} \\' % table_name)
+        print('\t' + r'\hline')
+        print('\t' + r'Parameter & Value & Description \\')
+        print('\t' + r'\hline')
+        for row in rows:
+            description = row.description
+            if description.endswith('.'):
+                description = description[:-1]
+            if row.param.latex_source:
+                description += r' \cite{%s}' % row.param.latex_source
+            description += '.'
+            value_str = '{:.2e}'.format(
+                row.param.value.to(row.units).magnitude)
+            if 'e' in value_str:
+                base, exponent = value_str.split('e')
+                exponent = exponent.strip('+-0')
+                base = base.strip('0')
+                if exponent:
+                    value_str = '%s \\times 10^{%s}' % (base, exponent)
+                else:
+                    value_str = base
+            value_str = f'${value_str}$'
+            row_str = '$%s$ & %s %s & %s' % (
+                row.param_name,
+                value_str,
+                row.units,
+                description,
+            )
+            print('\t' + r'%s\\' % row_str)
+        print('\t' + r'\hline')
+        print(r'\end{tabular}')
+        print()
+
+
+if __name__ == '__main__':
+    main()
