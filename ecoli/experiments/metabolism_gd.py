@@ -22,6 +22,7 @@ from ecoli.processes.registries import topology_registry
 
 import numpy as np
 import pathlib, datetime
+import dill
 
 # get topology from ecoli_master
 metabolism_topology = topology_registry.access('ecoli-metabolism')
@@ -118,13 +119,13 @@ def run_metabolism_composite():
 
 def run_ecoli_with_metabolism_gd(
         filename='fba_gd_swap',
-        total_time=10,
+        total_time=4000,
         divide=True,
         initial_state_file='vivecoli_t2',
         progress_bar=True,
         log_updates=False,
         emitter='timeseries',
-        name='unpruned_metabolism'
+        name='kinetics'
 ):
     sim = EcoliSim.from_file(CONFIG_DIR_PATH + filename + '.json')
     sim.total_time = total_time
@@ -148,9 +149,10 @@ def run_ecoli_with_metabolism_gd(
     folder = f'out/fbagd/{name}_{total_time}_{datetime.date.today()}/'
     pathlib.Path(folder).mkdir(parents=True, exist_ok=True)
     np.save(folder + 'output.npy', output)
-    np.save(folder + 'stoichiometry.npy', sim.ecoli['processes']['agents']['0']['ecoli-metabolism-gradient-descent'].stoichiometry)
-    np.save(folder + 's_matrix.npy',
-            sim.ecoli['processes']['agents']['0']['ecoli-metabolism-gradient-descent'].model.network.s_matrix)
+
+    f = open(folder + 'agent.pkl', 'wb')
+    dill.dump(sim.ecoli['processes']['agents'][agent], f)
+    f.close()
 
 
 @pytest.mark.slow

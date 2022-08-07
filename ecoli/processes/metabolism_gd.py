@@ -147,10 +147,10 @@ class MetabolismGD(Process):
                                                      {molecule_id: (0, np.inf)
                                                       for molecule_id in self.disallowed_exchange_uptake}, weight=5))
 
-        self.model.add_objective('futile_cycle',
-                                 MinimizeExchangeObjective(self.model.network, self.exchange_molecules, weight=0.001))
-
         # # TODO (Cyrus): Reintroduce later.
+        # self.model.add_objective('futile_cycle',
+        #                          MinimizeExchangeObjective(self.model.network, self.exchange_molecules, weight=0.01))
+
         # self.model.add_objective("active_transport",
         #                          VelocityBoundsObjective(self.model.network,
         #                                                  {reaction_id: (0, 1) for reaction_id
@@ -218,7 +218,7 @@ class MetabolismGD(Process):
                     'target_homeostatic_dmdt': {'_default': {}, '_updater': 'set', '_emit': True},
                     # 'target_kinetic_fluxes': {'_default': {}, '_updater': 'set', '_emit': True},
                     'estimated_exchange_dmdt': {'_default': {}, '_updater': 'set', '_emit': True},
-                    'estimated_all_dmdt': {'_default': {}, '_updater': 'set', '_emit': True},
+                    'estimated_intermediate_dmdt': {'_default': {}, '_updater': 'set', '_emit': True},
                     'maintenance_target': {'_default': {}, '_updater': 'set', '_emit': True},
                     'solution_fluxes': {'_default': {}, '_updater': 'set', '_emit': True},
                     'solution_dmdt': {'_default': {}, '_updater': 'set', '_emit': True},
@@ -293,10 +293,13 @@ class MetabolismGD(Process):
         enzyme_kinetic_boundaries = ((timestep * units.s) * kinetic_constraints).asNumber(CONC_UNITS)
         enzyme_kinetic_reactions = self.kinetic_constraint_reactions
 
+        # remove redundant kinetic reactions
+
+
         enzyme_kinetic_targets = {enzyme_kinetic_reactions[i]: enzyme_kinetic_boundaries[i, 1] for i in range(len(enzyme_kinetic_reactions))}
 
         # adding dynamically sized objectives
-        self.model.add_objective('kinetic', TargetVelocityObjective(self.model.network, enzyme_kinetic_targets.keys(), weight=0.0001))
+        self.model.add_objective('kinetic', TargetVelocityObjective(self.model.network, enzyme_kinetic_targets.keys(), weight=0.00005))
         self.model.add_objective('binary_kinetic', TargetVelocityObjective(self.model.network, binary_kinetic_targets.keys(), weight=1))
 
         # run FBA
@@ -318,7 +321,7 @@ class MetabolismGD(Process):
         # recalculate flux concentrations to counts
         estimated_reaction_fluxes = self.concentrationToCounts(self.reaction_fluxes)
         metabolite_dmdt_counts = self.concentrationToCounts(self.metabolite_dmdt)
-        target_kinetic_dmdt = self.concentrationToCounts(binary_kinetic_targets)
+        target_kinetic_flux = self.concentrationToCounts(binary_kinetic_targets)
         target_maintenance_flux = self.concentrationToCounts(maintenance_target)
         target_homeostatic_dmdt = self.concentrationToCounts(target_homeostatic_dmdt)
 
@@ -329,6 +332,8 @@ class MetabolismGD(Process):
 
         estimated_homeostatic_dmdt = {key: metabolite_dmdt_counts[key] for key in self.homeostatic_objective.keys()}
         estimated_exchange_dmdt = {key: metabolite_dmdt_counts[key] for key in self.exchange_molecules}
+        intermediates = list(set(metabolite_dmdt_counts.keys()) - set(self.exchange_molecules) - set(self.homeostatic_objective.keys()))
+        estimated_intermediate_dmdt = {key: metabolite_dmdt_counts[key] for key in intermediates}
 
         return {
             'metabolites': estimated_homeostatic_dmdt,  # changes to internal metabolites
@@ -340,9 +345,9 @@ class MetabolismGD(Process):
                     'estimated_fluxes': estimated_reaction_fluxes,
                     'estimated_homeostatic_dmdt': estimated_homeostatic_dmdt,
                     'target_homeostatic_dmdt': target_homeostatic_dmdt,
-                    # 'target_kinetic_fluxes': target_kinetic_dmdt,
+                    'target_kinetic_fluxes': target_kinetic_flux,
                     'estimated_exchange_dmdt': estimated_exchange_dmdt,
-                    'estimated_all_dmdt': metabolite_dmdt_counts,
+                    'estimated_intermediate_dmdt': estimated_intermediate_dmdt,
                     'maintenance_target': target_maintenance_flux,
                     'solution_fluxes': solution.velocities,
                     'solution_dmdt': solution.dm_dt,
