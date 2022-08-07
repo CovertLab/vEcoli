@@ -551,6 +551,9 @@ class LoadSimData:
                 else:
                     rxns[-1]['enzyme'] = []
 
+        rxn_names = [rxn['reaction id'] for rxn in rxns]
+        kinetic_reactions = [rxn for rxn in self.sim_data.process.metabolism.kinetic_constraint_reactions if rxn in rxn_names]
+
 
         # TODO Reconstruct catalysis and annotate.
         # Required:
@@ -575,7 +578,7 @@ class LoadSimData:
             'cell_dry_mass_fraction': self.sim_data.mass.cell_dry_mass_fraction,
             'seed': self.random_state.randint(RAND_MAX),
             'reactions_with_catalyst': self.sim_data.process.metabolism.reactions_with_catalyst,
-            'kinetic_constraint_reactions': self.sim_data.process.metabolism.kinetic_constraint_reactions,
+            'kinetic_constraint_reactions': kinetic_reactions,
 
             # methods
             'concentration_updates': self.sim_data.process.metabolism.concentration_updates,
