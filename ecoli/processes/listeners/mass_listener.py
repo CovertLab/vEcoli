@@ -278,4 +278,4 @@ class MassListener(Deriver):
                 'mass': mass_update
             }
         }
-        return convert_numpy_to_builtins(update)
+        return update

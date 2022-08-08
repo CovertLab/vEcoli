@@ -164,7 +164,7 @@ class MonomerCounts(Step):
                 'monomer_counts': monomer_counts
             }
         }
-        return convert_numpy_to_builtins(update)
+        return update
 
 
 def test_monomer_counts_listener():

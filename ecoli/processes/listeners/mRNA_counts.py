@@ -65,7 +65,7 @@ class mRNACounts(Step):
                 'mRNA_counts': mrna_counts
             }
         }
-        return convert_numpy_to_builtins(update)
+        return update
 
 
 def test_mrna_counts_listener():
