@@ -166,7 +166,7 @@ class Requester(Step):
         if listeners != None:
             update['listeners'] = listeners
 
-        return convert_numpy_to_builtins(update)
+        return update
 
     def update_condition(self, timestep, states):
         return check_whether_evolvers_have_run(
@@ -245,10 +245,9 @@ class Evolver(Process):
         if not self.process.request_set:
             return {}
 
-        update = copy.deepcopy(
-            self.process.evolve_state(timestep, states))
+        update = self.process.evolve_state(timestep, states)
         update['evolvers_ran'] = True
-        return convert_numpy_to_builtins(update)
+        return update
 
     def __getstate__(self) -> dict:
         """Return parameters

@@ -372,7 +372,7 @@ class Metabolism(Step):
                     'targetFluxesUpper': upper_targets / timestep,
                     'targetFluxesLower': lower_targets / timestep}}}
 
-        return convert_numpy_to_builtins(update)
+        return update
 
     def update_amino_acid_targets(self, counts_to_molar, count_diff, amino_acid_counts):
         """

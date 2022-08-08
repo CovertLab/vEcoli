@@ -170,7 +170,7 @@ class Allocator(Deriver):
             'evolvers_ran': False,
         }
 
-        return convert_numpy_to_builtins(update)
+        return update
 
 def calculatePartition(process_priorities, counts_requested, total_counts, random_state):
     priorityLevels = np.sort(np.unique(process_priorities))[::-1]
