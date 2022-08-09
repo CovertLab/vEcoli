@@ -1,5 +1,5 @@
 {
-    "inherit_from": ["test_murein.json"],
+    "inherit_from": ["reduced_murein.json"],
     "experiment_id" : "cell_wall_test_rig",
     "emitter" : "database",
     "total_time" : 2000,
