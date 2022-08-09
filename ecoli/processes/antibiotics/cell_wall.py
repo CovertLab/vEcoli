@@ -134,6 +134,10 @@ class CellWall(Process):
 
         update = {}
 
+        # Do not run process if the cell is already cracked
+        if states["wall_state"]["cracked"]:
+            return update
+
         # Get number of synthesis sites
         n_sites = int(
             remove_units(
@@ -243,7 +247,7 @@ class CellWall(Process):
             "hole_size_distribution": np.bincount(hole_sizes),
         }
 
-        if not states["wall_state"]["cracked"] and max_size > self.critical_area:
+        if max_size > self.critical_area:
             update["wall_state"]["cracked"] = True
 
             if DEBUG:

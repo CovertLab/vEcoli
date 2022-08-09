@@ -6,10 +6,8 @@ from ecoli.library.cell_wall.column_sampler import geom_sampler
 from ecoli.library.cell_wall.lattice import de_novo_lattice
 
 from ecoli.library.create_timeline import add_computed_value, create_timeline_from_df
-from ecoli.library.schema import bulk_schema
 from ecoli.processes.antibiotics.cell_wall import CellWall
 from vivarium.core.composition import add_timeline, simulate_composite
-from vivarium.core.process import Process
 from vivarium.library.units import units
 from vivarium.plots.simulation_output import plot_variables
 from vivarium.plots.topology import plot_topology
