@@ -8,12 +8,9 @@ process priorities.
 """
 import numpy as np
 from vivarium.core.process import Deriver
-from vivarium.library.dict_utils import make_path_dict
 
 from ecoli.processes.registries import topology_registry
 from ecoli.processes.partition import check_whether_evolvers_have_run
-from ecoli.library.convert_update import convert_numpy_to_builtins
-
 
 # Register default topology for this process, associating it with process name
 NAME = 'allocator'

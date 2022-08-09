@@ -8,13 +8,9 @@ Represents the total cellular mass.
 
 import numpy as np
 from vivarium.core.process import Deriver
-from vivarium.library.units import units
-from ecoli.library.schema import bulk_schema, arrays_from, array_from, dict_value_schema, submass_schema
-
-from vivarium.core.engine import pp
+from ecoli.library.schema import bulk_schema, array_from, dict_value_schema
 
 from ecoli.processes.registries import topology_registry
-from ecoli.library.convert_update import convert_numpy_to_builtins
 
 # Register default topology for this process, associating it with process name
 NAME = 'ecoli-mass-listener'

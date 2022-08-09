@@ -10,8 +10,6 @@ that maintains equilibrium.
 
 import numpy as np
 
-from vivarium.library.dict_utils import deep_merge
-
 from ecoli.library.schema import array_from, array_to, bulk_schema
 from ecoli.processes.registries import topology_registry
 from ecoli.processes.partition import PartitionedProcess

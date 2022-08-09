@@ -19,8 +19,6 @@ from ecoli.library.schema import (
     add_elements, arrays_from, bulk_schema, create_unique_indexes,
     arrays_to, array_to, dict_value_schema, listener_schema)
 from wholecell.utils.polymerize import buildSequences
-from ecoli.library.convert_update import convert_numpy_to_builtins
-
 
 # Register default topology for this process, associating it with process name
 NAME = 'ecoli-chromosome-structure'
