@@ -22,7 +22,6 @@ from vivarium.core.process import Step
 
 from ecoli.processes.registries import topology_registry
 from ecoli.processes.partition import check_whether_evolvers_have_run
-from ecoli.library.convert_update import convert_numpy_to_builtins
 from ecoli.library.schema import bulk_schema, array_from
 from wholecell.utils import units
 from wholecell.utils.random import stochasticRound
