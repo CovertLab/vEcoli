@@ -62,6 +62,7 @@ information with the outside simulation.
 import copy
 
 import numpy as np
+from vivarium.core.composer import Composer
 from vivarium.core.engine import Engine
 from vivarium.core.process import Process, Step
 from vivarium.core.registry import updater_registry, divider_registry
@@ -156,6 +157,8 @@ class EngineProcess(Process):
         'divide': False,
         'division_threshold': 0,
         'division_variable': tuple(),
+        'start_time': 0,
+        'experiment_id': '',
     }
     # TODO: Handle name clashes between tunnels.
 
@@ -181,15 +184,22 @@ class EngineProcess(Process):
             stub = SchemaStub({'ports_schema': stub_ports_schema})
             processes[stub_process_name] = stub
 
+        if isinstance(self.parameters['inner_emitter'], str):
+            self.emitter_config = {'type': self.parameters['inner_emitter']}
+        else:
+            self.emitter_config = self.parameters['inner_emitter']
+
         self.sim = Engine(
             processes=processes,
             steps=composite.get('steps'),
             flow=composite.get('flow'),
             topology=topology,
             initial_state=self.parameters['initial_inner_state'],
-            emitter=self.parameters['inner_emitter'],
+            experiment_id=self.parameters['experiment_id'],
+            emitter=self.emitter_config,
             display_info=False,
             progress_bar=False,
+            initial_global_time=self.parameters['start_time'],
         )
         self.random_state = np.random.RandomState(
             seed=self.parameters['seed'])
@@ -311,10 +321,14 @@ class EngineProcess(Process):
                 self.parameters['agent_id'])
             for daughter_id, inner_state in zip(
                     daughter_ids, daughter_states):
+                emitter_config = dict(self.emitter_config)
+                emitter_config['embed_path'] = ('agents', daughter_id)
                 composite = composer.generate({
                     'agent_id': daughter_id,
                     'initial_cell_state': inner_state,
                     'seed': self.random_state.randint(RAND_MAX),
+                    'start_time': self.sim.global_time,
+                    'inner_emitter': emitter_config,
                 })
                 daughter = {
                     'key': daughter_id,
@@ -392,7 +406,7 @@ def _inverse_update(
     return update
 
 
-class ProcA(Process):
+class _ProcA(Process):
 
     def ports_schema(self):
         return {
@@ -415,7 +429,7 @@ class ProcA(Process):
         }
 
 
-class ProcB(Process):
+class _ProcB(Process):
 
     def ports_schema(self):
         return {
@@ -437,7 +451,7 @@ class ProcB(Process):
         }
 
 
-class ProcC(Process):
+class _ProcC(Process):
 
     def ports_schema(self):
         return {
@@ -457,6 +471,27 @@ class ProcC(Process):
         '''Each timestep, ``port_c += port_b``.'''
         return {
             'port_c': states['port_b'],
+        }
+
+
+class _InnerComposer(Composer):
+
+    def generate_processes(self, config):
+        return {
+            'procA': _ProcA(),
+            'procB': _ProcB(),
+        }
+
+    def generate_topology(self, config):
+        return {
+            'procA': {
+                'port_a': ('a',),
+                'port_c': ('c',),
+            },
+            'procB': {
+                'port_b': ('..', 'b'),
+                'agents': ('agents',),
+            },
         }
 
 
@@ -490,29 +525,22 @@ def test_engine_process():
     inner store `c`, and ``b_tunnel`` is a tunnel out from inner process
     ``B`` to outer store ``b``.
     '''
-    inner_composite = {
-        'processes': {
-            'procA': ProcA(),
-            'procB': ProcB(),
-        },
-        'topology': {
-            'procA': {
-                'port_a': ('a',),
-                'port_c': ('c',),
-            },
-            'procB': {
-                'port_b': ('..', 'b'),
-                'agents': ('agents',),
-            },
-        },
-    }
+    experiment_id = 'test_experiment_id'
+    inner_composer = _InnerComposer()
+    inner_composite = inner_composer.generate()
     proc = EngineProcess({
         'composite': inner_composite,
+        'composer': inner_composer,
+        'agent_id': 'agent',
         'tunnels_in': {
             'c_tunnel': ('c',),
         },
         'time_step': 1,
-        'inner_emitter': 'timeseries',
+        'inner_emitter': {
+            'type': 'timeseries',
+            'embed_path': ('agents', 'agent')
+        },
+        'experiment_id': experiment_id,
     })
     schema = proc.get_schema()
     expected_schema = {
@@ -536,7 +564,7 @@ def test_engine_process():
 
     outer_composite = {
         'processes': {
-            'procC': ProcC(),
+            'procC': _ProcC(),
             'engine': proc,
         },
         'topology': {
@@ -551,7 +579,13 @@ def test_engine_process():
             },
         },
     }
-    engine = Engine(**outer_composite)
+    engine = Engine(
+        **outer_composite,
+        experiment_id=experiment_id,
+        emitter={
+            'type': 'timeseries',
+        },
+    )
     engine.update(4)
 
     outer_data = engine.emitter.get_timeseries()
@@ -567,9 +601,13 @@ def test_engine_process():
     # the beginning of the timestep before running the processes, so the
     # simulation is still functionally correct.
     expected_inner_data = {
-        'a': [0, 0, 0, 1, 4],
-        'b_tunnel': [0, 1, 2, 3, 4],
-        'c': [0, 0, 0, 1, 3],
+        'agents': {
+            'agent': {
+                'a': [0, 0, 0, 1, 4],
+                'b_tunnel': [0, 1, 2, 3, 4],
+                'c': [0, 0, 0, 1, 3],
+            },
+        },
         'time': [0.0, 1.0, 2.0, 3.0, 4.0],
     }
     assert outer_data == expected_outer_data
