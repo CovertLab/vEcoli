@@ -120,8 +120,6 @@ class CellWall(Process):
         return schema
 
     def next_update(self, timestep, states):
-        DEBUG = True
-
         # Unpack states
         volume = states["shape"]["volume"]
         lattice = states["wall_state"]["lattice"]
@@ -180,13 +178,6 @@ class CellWall(Process):
         # See if stretching will save from cracking
         will_crack = max_size > self.critical_area
         if will_crack and stretch_factor < self.max_stretch:
-            if DEBUG:
-                try:
-                    if self.time == 768:
-                        print("crack time...")
-                finally:
-                    pass
-
             # stretch more and try again...
             stretch_factor = remove_units(
                 (
@@ -228,10 +219,10 @@ class CellWall(Process):
 
             will_crack = max_size > self.critical_area
 
-        # accept proposed new lattice
+        # Accept proposed new lattice
         lattice = new_lattice
 
-        # Form updates to wall state, murein state, listeners
+        # Form updates
         update["wall_state"] = {
             "lattice": lattice,
             "lattice_rows": lattice.shape[0],
@@ -249,93 +240,6 @@ class CellWall(Process):
 
         if max_size > self.critical_area:
             update["wall_state"]["cracked"] = True
-
-            if DEBUG:
-                try:
-                    print(f"Cell wall: Cracked at time {self.time}")
-                except:
-                    pass
-
-                fig, axs = plt.subplots(1, 2)
-
-                hole_size_view = np.zeros_like(hole_view)
-
-                ids, counts = np.unique(hole_view.flatten(), return_counts=True)
-                for id, count in zip(ids, counts):
-                    if id != 0:
-                        hole_size_view[hole_view == id] = count
-
-                width = self.crossbridge_length + self.disaccharide_length
-                height = self.disaccharide_length
-                aspect = height / width
-                mappable = axs[0].imshow(
-                    lattice, interpolation="nearest", aspect=aspect
-                )
-                fig.colorbar(mappable, ax=axs[0])
-                mappable = axs[1].imshow(
-                    hole_size_view == hole_size_view.max(),
-                    interpolation="nearest",
-                    aspect=aspect,
-                )
-                fig.colorbar(mappable, ax=axs[1])
-
-                try:
-                    axs[1].set_title(f"Cracked at time {self.time}")
-                except:
-                    pass
-
-                fig.set_size_inches(
-                    2 * 0.01 * remove_units(width) * lattice.shape[1],
-                    0.01 * remove_units(height) * lattice.shape[0],
-                )
-                fig.tight_layout()
-                fig.savefig("out/processes/cell_wall/cracked_hole_view.png")
-                plt.close(fig)
-
-        if DEBUG:
-            assert new_incorporated_monomers == lattice.sum()
-            assert (
-                4 * states["bulk_murein"][self.murein]
-                == states["murein_state"]["unincorporated_murein"]
-                + states["murein_state"]["incorporated_murein"]
-                + states["murein_state"]["shadow_murein"]
-            )
-
-            try:
-                self.time += int(timestep)
-                print(f"Cell Wall: Time {self.time}")
-            except AttributeError:
-                self.time = 0
-
-            bulk_murein = states['bulk_murein'][self.murein]
-            print(
-                f"Cell Wall: Bulk murein = {bulk_murein} * 4 = {bulk_murein * 4}"
-            )
-            print(f"Cell Wall: Incorporated murein = {incorporated_murein}")
-            print(f"Cell Wall: Unincorporated murein = {unincorporated_murein}")
-            print(
-                f"Cell Wall: Shadow murein = {states['murein_state']['shadow_murein']}"
-            )
-            print(f"Cell Wall: Cell length = {length}")
-            print(f"Cell Wall: Lattice dimensions: {lattice.shape}")
-
-            if self.time % 100 == 0:
-                os.makedirs("out/processes/cell_wall/wall_frames", exist_ok=True)
-
-                width = self.crossbridge_length + self.disaccharide_length
-                height = self.disaccharide_length
-                aspect = height / width
-
-                fig, _ = plot_lattice(lattice, aspect=aspect)
-                fig.set_size_inches(
-                    2 * 0.01 * remove_units(width) * lattice.shape[1],
-                    0.01 * remove_units(height) * lattice.shape[0],
-                )
-                fig.tight_layout()
-                fig.savefig(
-                    f"out/processes/cell_wall/wall_frames/cell_wall_ecoli_t{int(self.time)}.png"
-                )
-                plt.close(fig)
 
         return update
 
