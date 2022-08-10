@@ -75,17 +75,7 @@ def add_computed_value(timeline, func):
 
 
 def test_add_timeline():
-    TEST_FILE = "data/cell_wall/test_murein_21_06_2022_17_42_11.csv"
-
-    # get_csv_from_database(
-    #     "test_murein_21/06/2022 17:42:11",
-    #     {
-    #         ("bulk", "CPD-12261[p]"): "CPD-12261[p]",
-    #         ("bulk", "CPLX0-7717[m]"): "CPLX0-7717[m]",
-    #         ("bulk", "CPLX0-3951[i]"): "CPLX0-3951[i]",
-    #     },
-    #     outfile=TEST_FILE
-    # )
+    TEST_FILE = "data/cell_wall/cell_wall_test_rig_31_07_2022_00_26_44.csv"
 
     timeline = create_timeline_from_csv(
         TEST_FILE,
