@@ -126,7 +126,8 @@ class SimConfig:
         )
         self.parser.add_argument(
             '--emitter', '-e', action='store',
-            choices=["timeseries", "database", "print", "null"],
+            choices=["timeseries", "database", "print", "null",
+                "shared_ram"],
             help=(
                 "Emitter to use. Timeseries uses RAMEmitter, database "
                 "emits to MongoDB, and print emits to stdout.")
