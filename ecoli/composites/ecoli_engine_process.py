@@ -7,6 +7,7 @@
 '''
 
 import copy
+from datetime import datetime, timezone
 import os
 import re
 
@@ -47,7 +48,8 @@ class EcoliEngineProcess(Composer):
         'divide': False,
         'division_threshold': 0,
         'division_variable': tuple(),
-        'reports': tuple(),
+        'tunnels_in': tuple(),
+        'emit_paths': tuple(),
         'start_time': 0,
         'experiment_id': '',
         'inner_emitter': 'null',
@@ -74,8 +76,9 @@ class EcoliEngineProcess(Composer):
             'initial_inner_state': initial_inner_state,
             'tunnels_in': dict({
                 f'{"-".join(path)}_tunnel': path
-                for path in config['reports']
+                for path in config['tunnels_in']
             }),
+            'emit_paths': config['emit_paths'],
             'tunnel_out_schemas': config['tunnel_out_schemas'],
             'stub_schemas': config['stub_schemas'],
             'seed': (config['seed'] + 1) % RAND_MAX,
@@ -100,7 +103,7 @@ class EcoliEngineProcess(Composer):
                 'dimensions_tunnel': ('..', '..', 'dimensions'),
             },
         }
-        for path in config['reports']:
+        for path in config['tunnels_in']:
             topology['cell_process'][f'{"-".join(path)}_tunnel'] = path
         return topology
 
@@ -195,12 +198,6 @@ def run_simulation(config):
             ('boundary',): multibody_schema['agents']['*']['boundary'],
         }
 
-    reports = {
-        tuple(path) for path in
-        config.get('engine_process_reports', tuple())
-    }
-    reports |= {('environment',), ('boundary',)}
-
     experiment_id = datetime.now(timezone.utc).strftime('%Y-%m-%d_%H-%M-%S.%f%z')
     emitter_config = {'type': config['emitter']}
     for key, value in config['emitter_arg']:
@@ -214,7 +211,13 @@ def run_simulation(config):
         'divide': config['divide'],
         'division_threshold': config['division']['threshold'],
         'division_variable': ('listeners', 'mass', 'cell_mass'),
-        'reports': tuple(reports),
+        'tunnels_in': (
+            ('environment',),
+            ('boundary',),
+        ),
+        'emit_paths': tuple(
+            tuple(path) for path in config['engine_process_reports']
+        ),
         'seed': config['seed'],
         'experiment_id': experiment_id,
     }

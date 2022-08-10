@@ -145,6 +145,7 @@ class EngineProcess(Process):
         'tunnels_in': {},
         # Map from tunnel name to schema. Schemas are optional.
         'tunnel_out_schemas': {},
+        'emit_paths': tuple(),
         # Map from process name to a map from path in the inner
         # simulation to the schema that should be stubbed in at that
         # path. A stub process will be added with a port for each
@@ -204,6 +205,12 @@ class EngineProcess(Process):
             progress_bar=False,
             initial_global_time=self.parameters['start_time'],
         )
+        if self.parameters['emit_paths']:
+            self.sim.state.set_emit_values([tuple()], False)
+            self.sim.state.set_emit_values(
+                self.parameters['emit_paths'],
+                True,
+            )
         self.random_state = np.random.RandomState(
             seed=self.parameters['seed'])
 
