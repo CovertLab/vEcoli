@@ -315,7 +315,6 @@ class EngineProcess(Process):
         # timestep to be applied before we emit data.
         data = self.sim.state.emit_data()
         data['time'] = self.sim.global_time
-        print(f'Emit from {self.parameters["agent_id"]} at t={self.sim.global_time}')
         emit_config = {
             'table': 'history',
             'data': serialize_value(data),
@@ -342,7 +341,6 @@ class EngineProcess(Process):
             daughter_states = self.sim.state.divide_value()
             daughter_ids = daughter_phylogeny_id(
                 self.parameters['agent_id'])
-            print(f'Divide {self.parameters["agent_id"]} -> {daughter_ids}')
             for daughter_id, inner_state in zip(
                     daughter_ids, daughter_states):
                 emitter_config = dict(self.emitter_config)
