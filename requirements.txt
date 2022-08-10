@@ -93,7 +93,7 @@ py==1.11.0
 pycparser==2.21
 pydantic==1.8.2
 Pygments==2.10.0
-pymongo==4.0.1
+pymongo==4.2.0
 pymunk==6.2.1
 pyparsing==3.0.6
 pyrsistent==0.18.1
