@@ -138,7 +138,6 @@ def test_cell_wall():
     }
 
     data = simulate_composite(composite, settings)
-    # any(data["wall_state"]["cracked"])
     output_data(data)
 
 
