@@ -19,7 +19,7 @@ class UnumSerializer(Serializer):
         # WARNING: This deserialization is lossy and drops the unit
         # information since there is no easy way to parse Unum's unit
         # strings.
-        return data.split(' ')[0]
+        return float(data.split(' ')[0])
 
 
 class ParameterSerializer(Serializer):
