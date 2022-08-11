@@ -198,7 +198,8 @@ def run_simulation(config):
             ('boundary',): multibody_schema['agents']['*']['boundary'],
         }
 
-    experiment_id = datetime.now(timezone.utc).strftime('%Y-%m-%d_%H-%M-%S.%f%z')
+    experiment_id = datetime.now(timezone.utc).strftime(
+        '%Y-%m-%d_%H-%M-%S_%f%z')
     emitter_config = {'type': config['emitter']}
     for key, value in config['emitter_arg']:
         emitter_config[key] = value
