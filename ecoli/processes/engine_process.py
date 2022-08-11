@@ -191,6 +191,8 @@ class EngineProcess(Process):
             self.emitter_config = {'type': self.parameters['inner_emitter']}
         else:
             self.emitter_config = self.parameters['inner_emitter']
+        self.emitter_config['experiment_id'] = self.parameters[
+            'experiment_id']
         self.emitter = get_emitter(self.emitter_config)
 
         self.sim = Engine(
