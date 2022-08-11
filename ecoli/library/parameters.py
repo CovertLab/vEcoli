@@ -85,14 +85,17 @@ PARAMETER_DICT = {
             'kcat': Parameter(
                 6.5 / units.sec,
                 'Mazzariol, Cornaglia, and Nikaido (2000)',
+                latex_source='mazzariol2000contributions',
             ),
             'km': Parameter(
                 0.9e-3 * units.mM,
                 'Mazzariol, Cornaglia, and Nikaido (2000)',
+                latex_source='mazzariol2000contributions',
             ),
             'n': Parameter(
                 1 * units.count,
                 'Mazzariol, Cornaglia, and Nikaido (2000)',
+                latex_source='mazzariol2000contributions',
             ),
         },
     },
@@ -480,6 +483,50 @@ TABLES = {
                 ('tetracycline', 'efflux', 'n')),
             '',
             'Hill coefficient for tetracycline export.'
+        ),
+    ),
+    'Antibiotic hydrolysis parameters': (
+        TableRow(
+            'k_{cat,h,amp}',
+            param_store.get_parameter(
+                ('ampicillin', 'hydrolysis', 'kcat')),
+            '1/s',
+            'Rate constant for ampicillin hydrolysis.'
+        ),
+        TableRow(
+            'K_{M,h,amp}',
+            param_store.get_parameter(
+                ('ampicillin', 'hydrolysis', 'km')),
+            'mM',
+            'Michaelis constant for ampicillin hydrolysis.'
+        ),
+        TableRow(
+            'n_{h,amp}',
+            param_store.get_parameter(
+                ('ampicillin', 'hydrolysis', 'n')),
+            '',
+            'Hill coefficient for ampicillin hydrolysis.'
+        ),
+        TableRow(
+            'k_{cat,h,cep}',
+            param_store.get_parameter(
+                ('cephaloridine', 'hydrolysis', 'kcat')),
+            '1/s',
+            'Rate constant for cephaloridine hydrolysis.'
+        ),
+        TableRow(
+            'K_{M,h,cep}',
+            param_store.get_parameter(
+                ('cephaloridine', 'hydrolysis', 'km')),
+            'mM',
+            'Michaelis constant for cephaloridine hydrolysis.'
+        ),
+        TableRow(
+            'n_{h,cep}',
+            param_store.get_parameter(
+                ('cephaloridine', 'hydrolysis', 'n')),
+            '',
+            'Hill coefficient for cephaloridine hydrolysis.'
         ),
     ),
 }
