@@ -110,6 +110,7 @@ rich==10.16.0
 ruamel.yaml==0.17.17
 ruamel.yaml.clib==0.2.6
 scipy==1.7.3
+scikit-image==0.19.2
 Send2Trash==1.8.0
 six==1.16.0
 sniffio==1.2.0
