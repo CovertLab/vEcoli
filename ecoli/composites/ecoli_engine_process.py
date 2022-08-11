@@ -7,12 +7,16 @@
 '''
 
 import copy
+import os
+import re
 
+import numpy as np
 from vivarium.core.composer import Composer
 from vivarium.core.engine import Engine
-from vivarium.core.process import Process
-from vivarium.core.serialize import serialize_value, deserialize_value
+from vivarium.core.serialize import serialize_value
+from vivarium.core.store import Store
 from vivarium.library.dict_utils import deep_merge
+from vivarium.library.topology import get_in
 
 from ecoli.experiments.ecoli_master_sim import (
     EcoliSim,
@@ -27,6 +31,7 @@ from ecoli.states.wcecoli_state import get_state_from_file
 from ecoli.processes.engine_process import EngineProcess
 from ecoli.processes.environment.field_timeline import FieldTimeline
 from ecoli.composites.environment.lattice import Lattice
+from ecoli.composites.ecoli_configs import CONFIG_DIR_PATH
 
 
 class EcoliEngineProcess(Composer):
@@ -103,6 +108,7 @@ def colony_save_states(engine, config):
             raise ValueError(
                 f'Config contains save_time ({time}) > total '
                 f'time ({config["total_time"]})')
+
     for i in range(len(config["save_times"])):
         if i == 0:
             time_to_next_save = config["save_times"][i]
@@ -114,16 +120,25 @@ def colony_save_states(engine, config):
 
         # Save the full state of the super-simulation
         def not_a_process(value):
-            return not isinstance(value, Process)
+            return not (isinstance(value, Store) and value.topology)
+
         state = engine.state.get_value(condition=not_a_process)
         state_to_save = copy.deepcopy(state)
 
         del state_to_save['agents']  # Replace 'agents' with agent states
         state_to_save['agents'] = {}
+
+        # Get internal state from the EngineProcess sub-simulation
         for agent_id in state['agents']:
-            # Get internal state from the EngineProcess sub-simulation
-            cell_state = state['agents'][agent_id]['cell_process'][0].sim.state.get_value(condition=not_a_process)
+            engine.state.get_path(
+                ('agents', agent_id, 'cell_process')
+            ).value.send_command('get_inner_state')
+        for agent_id in state['agents']:
+            cell_state = engine.state.get_path(
+                ('agents', agent_id, 'cell_process')
+            ).value.get_command_result()
             del cell_state['environment']['exchange_data']  # Can't save, but will be restored when loading state
+            del cell_state['evolvers_ran']
             state_to_save['agents'][agent_id] = cell_state
 
         state_to_save = serialize_value(state_to_save)
@@ -136,9 +151,7 @@ def colony_save_states(engine, config):
         engine.update(time_remaining)
 
 
-def run_simulation():
-    config = SimConfig()
-    config.update_from_cli()
+def run_simulation(config):
 
     tunnel_out_schemas = {}
     stub_schemas = {}
@@ -160,7 +173,6 @@ def run_simulation():
                 },
             },
         )
-
         diffusion_schema = environment_composite.processes[
             'reaction_diffusion'].get_schema()
         multibody_schema = environment_composite.processes[
@@ -170,10 +182,18 @@ def run_simulation():
             'dimensions']
         stub_schemas['diffusion'] = {
             ('boundary',): diffusion_schema['agents']['*']['boundary'],
+            ('environment',): diffusion_schema[
+                'agents']['*']['environment'],
         }
         stub_schemas['multibody'] = {
             ('boundary',): multibody_schema['agents']['*']['boundary'],
         }
+
+    reports = {
+        tuple(path) for path in
+        config.get('engine_process_reports', tuple())
+    }
+    reports |= {('environment',), ('boundary',)}
 
     base_config = {
         'agent_id': config['agent_id'],
@@ -184,28 +204,39 @@ def run_simulation():
         'divide': config['divide'],
         'division_threshold': config['division']['threshold'],
         'division_variable': ('listeners', 'mass', 'cell_mass'),
-        'reports': tuple(
-            tuple(path) for path in
-            config.get('engine_process_reports', tuple())
-        ),
+        'reports': tuple(reports),
         'seed': config['seed'],
     }
     composite = {}
     if 'initial_colony_file' in config.keys():
         initial_state = get_state_from_file(path=f'data/{config["initial_colony_file"]}.json')  # TODO(Matt): initial_state_file is wc_ecoli?
-        initial_state = deserialize_value(initial_state)
         agent_states = initial_state['agents']
         for agent_id, agent_state in agent_states.items():
-            agent_config = copy.deepcopy(base_config)
-            agent_config['initial_cell_state'] = agent_state
-            agent_config['agent_id'] = agent_id
-            agent_composer = EcoliEngineProcess(agent_config)
-            agent_composite = agent_composer.generate(path=('agents', agent_id))
+            time_str = re.fullmatch(r'.*_t([0-9]+)$', config['initial_colony_file']).group(1)
+            seed = (
+                base_config['seed']
+                + int(float(time_str))
+                + int(agent_id, base=2)
+            ) % RAND_MAX
+            agent_config = {
+                'initial_cell_state': agent_state,
+                'agent_id': agent_id,
+                'seed': seed,
+            }
+            agent_composer = EcoliEngineProcess(base_config)
+            agent_composite = agent_composer.generate(agent_config, path=('agents', agent_id))
             if not composite:
                 composite = agent_composite
             composite.processes['agents'][agent_id] = agent_composite.processes['agents'][agent_id]
             composite.topology['agents'][agent_id] = agent_composite.topology['agents'][agent_id]
     else:
+        if 'initial_state_file' in config.keys():
+            initial_state_path = config['initial_state_file']
+            base_config['initial_state_file'] = initial_state_path
+            if initial_state_path.startswith('vivecoli'):
+                time_str = initial_state_path[len('vivecoli_t'):]
+                seed = int(float(time_str))
+                base_config['seed'] += seed
         composer = EcoliEngineProcess(base_config)
         composite = composer.generate(path=('agents', config['agent_id']))
         initial_state = composite.initial_state()
@@ -243,7 +274,36 @@ def run_simulation():
 
     if config['profile']:
         report_profiling(engine.stats)
+    return engine
+
+
+def test_run_simulation():
+    config = SimConfig()
+    spatial_config_path = os.path.join(CONFIG_DIR_PATH, 'spatial.json')
+    config.update_from_json(spatial_config_path)
+    config.update_from_dict({
+        'total_time': 4,
+        'divide': True,
+        'emitter' : 'timeseries',
+        'parallel': True,
+        'engine_process_reports': [
+            ('listeners', 'mass'),
+        ],
+        'progress_bar': False,
+    })
+    engine = run_simulation(config)
+    data = engine.emitter.get_data()
+
+    assert min(data.keys()) == 0
+    assert max(data.keys()) == 4
+
+    assert np.all(np.array(data[0]['fields']['GLC[p]']) == 1)
+    assert np.any(np.array(data[4]['fields']['GLC[p]']) != 1)
+    mass_path = ('agents', '0', 'listeners', 'mass', 'cell_mass')
+    assert get_in(data[4], mass_path) > get_in(data[0], mass_path)
 
 
 if __name__ == '__main__':
-    run_simulation()
+    config = SimConfig()
+    config.update_from_cli()
+    run_simulation(config)
