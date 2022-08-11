@@ -254,7 +254,8 @@
         "unique_counts": {
             "paths": [
                 ["unique", "active_ribosome_tetracycline"],
-                ["unique", "active_ribosome"]
+                ["unique", "active_ribosome"],
+                ["unique", "active_RNAP"]
             ]
         }
     },
