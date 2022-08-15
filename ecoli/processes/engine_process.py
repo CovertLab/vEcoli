@@ -65,7 +65,7 @@ import numpy as np
 from vivarium.core.composer import Composer
 from vivarium.core.emitter import get_emitter
 from vivarium.core.engine import Engine
-from vivarium.core.process import Process, Step
+from vivarium.core.process import Process
 from vivarium.core.registry import updater_registry, divider_registry
 from vivarium.core.serialize import serialize_value
 from vivarium.core.store import DEFAULT_SCHEMA, Store

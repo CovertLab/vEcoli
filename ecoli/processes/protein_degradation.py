@@ -13,9 +13,7 @@ TODO:
 
 import numpy as np
 
-from vivarium.core.process import Process
 from vivarium.core.composition import simulate_process
-from vivarium.library.dict_utils import deep_merge
 
 from ecoli.library.data_predicates import (
     monotonically_increasing, monotonically_decreasing, all_nonnegative)
