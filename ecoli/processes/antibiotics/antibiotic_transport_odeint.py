@@ -9,207 +9,31 @@ from vivarium.library.units import units, Quantity
 
 from ecoli.library.parameters import param_store
 from ecoli.library.units import add_units, remove_units
+from ecoli.processes.antibiotics.antibiotic_transport_steady_state import (
+    SPECIES,
+    SPECIES_TO_INDEX,
+    EXTERNAL_SPECIES,
+    REACTIONS,
+    REACTIONS_TO_INDEX,
+    STOICH,
+    UNITS,
+    species_derivatives,
+    species_array_to_dict,
+    species_dict_to_array,
+)
 
 
 AVOGADRO = N_A / units.mol
 
-# NOTE: These must match the math in species_derivatives().
-SPECIES = ('internal', 'external', 'external_delta', 'hydrolyzed')
-SPECIES_TO_INDEX = {
-    species: i
-    for i, species in enumerate(SPECIES)
-}
-EXTERNAL_SPECIES = ('external', 'external_delta')
-REACTIONS = {
-    'diffusion': (('external_delta',), ('internal',)),  # Diffusion
-    'export': (('internal',), ('external_delta',)),  # Efflux
-    'hydrolysis': (('internal',), ('hydrolyzed',)),  # Hydrolysis
-}
-REACTIONS_TO_INDEX = {
-    reaction: i
-    for i, reaction in enumerate(REACTIONS)
-}
-# Build a stoichiometry matrix.
-#
-# For example, suppose we have the following reactions:
 
-# .. code-block:: text
-
-#     (rxn 1) A  -> B
-#     (rxn 2) 2B -> A
-
-# Then we can write a stoichiometry matrix **N**:
-
-# .. code-block:: text
-
-#          rxn 1    rxn 2
-#         +-           -+
-#       A | -1       +1 |
-#       B | +1       -2 |
-#         +-           -+
-
-# Now if we have a derivatives vector **d** of the rates of change of
-# each species, we can solve for a rate vector **v** representing the
-# rates of each reaction needed to produce the rates of change in **d**:
-# **d** = **N** · **v**.
-STOICH = np.zeros((len(SPECIES), len(REACTIONS)))
-for i_reaction, (reactants, products) in enumerate(REACTIONS.values()):
-    for reactant in reactants:
-        i_reactant = SPECIES_TO_INDEX[reactant]
-        STOICH[i_reactant, i_reaction] -= 1
-    for product in products:
-        i_product = SPECIES_TO_INDEX[product]
-        STOICH[i_product, i_reaction] += 1
-#: Describes the expected units for each species and reaction parameter.
-#: AntibioticTransportSteadyState uses this dictionary to do unit
-#: conversions.
-UNITS = {
-    'species': {
-        species: units.mM
-        for species in SPECIES
-    },
-    'reaction_parameters': {
-        'diffusion': {
-            'permeability': units.dm / units.sec,
-            'area': units.dm**2,
-            'volume': units.L,
-            'charge': units.count,
-        },
-        'export': {
-            'kcat': 1 / units.sec,
-            'km': units.mM,
-            'enzyme_conc': units.mM,
-            'n': units.count,
-        },
-        'hydrolysis': {
-            'kcat': 1 / units.sec,
-            'km': units.mM,
-            'enzyme_conc': units.mM,
-            'n': units.count,
-        },
-    },
-}
-
-
-def species_derivatives(state_arr, reaction_params, internal_bias):
-    '''Compute the derivatives for each species.
-
-    Args:
-        state_arr: State (as an array) at which to evaluate the
-            derivative.
-        reaction_params: Dictionary of reaction parameters.
-        internal_bias: A positive bias that, when greater than one,
-            favors influx over efflux diffusion. This can be used to
-            model the effect of the membrane potential on diffusion
-            equilibrium.
-
-    Returns:
-        Derivatives of each species as an array.
-    '''
-    # Parse state
-    state = species_array_to_dict(state_arr, SPECIES_TO_INDEX)
-    internal = state['internal']
-    external = state['external']
-
-    # Parse reaction parameters
-    area = reaction_params['diffusion']['area']
-    permeability = reaction_params['diffusion']['permeability']
-    volume_p = reaction_params['diffusion']['volume']
-
-    # TODO: Pull the Michaelis-Menten logic into a separate function for
-    # reuse.
-    kcat_export = reaction_params['export']['kcat']
-    km_export = reaction_params['export']['km']
-    pump_conc = reaction_params['export']['enzyme_conc']
-    n_export = reaction_params['export']['n']
-    kcat_hydrolysis = reaction_params['hydrolysis']['kcat']
-    km_hydrolysis = reaction_params['hydrolysis']['km']
-    hydrolase_conc = reaction_params['hydrolysis']['enzyme_conc']
-    n_hydrolysis = reaction_params['hydrolysis']['n']
-
-    diffusion_rate = area * permeability * (
-        external * internal_bias - internal) / (volume_p)
-    export_rate = (
-        kcat_export * pump_conc * internal**n_export
-    ) / (
-        km_export + internal**n_export)
-    hydrolysis_rate = (
-        kcat_hydrolysis * hydrolase_conc * internal**n_hydrolysis
-    ) / (
-        km_hydrolysis + internal**n_hydrolysis)
-
-    reaction_rates = {
-        'diffusion': diffusion_rate,
-        'export': export_rate,
-        'hydrolysis': hydrolysis_rate,
-    }
-    reaction_rates_arr = species_dict_to_array(
-        reaction_rates, REACTIONS_TO_INDEX)
-
-    return STOICH @ reaction_rates_arr
-
-
-def internal_derivative(
-        internal, external, reaction_params, internal_bias):
-    '''Compute the derivative of only the ``internal`` species.
-
-    Args:
-        internal: Current concentration of ``internal`` species.
-        external: Current concentration of ``external`` species.
-        reaction_params: Dictionary of reaction parameters.
-        internal_bias: See :py:func:`species_derivatives`.
-
-    Returns:
-        Derivative of the internal species, as a float.
-    '''
-    state = {
-        'internal': internal,
-        'external': external,
-        'external_delta': 0,
-        'hydrolyzed': 0,
-    }
-    state_arr = species_dict_to_array(state, SPECIES_TO_INDEX)
-    derivatives = species_derivatives(
-        state_arr, reaction_params, internal_bias)
-    return derivatives[SPECIES_TO_INDEX['internal']]
-
-
-def find_steady_state(external, reaction_params, internal_bias):
-    '''Find steady-state concentration of ``internal`` species.
-
-    Args:
-        external: Current concentration of ``external`` species.
-        reaction_params: Dictionary of reaction parameters.
-        internal_bias: See :py:func:`species_derivatives`.
-
-    Returns:
-        Steady-state concentration of the internal species, as a float.
-    '''
-    args = (
-        external,
-        reaction_params,
-        internal_bias
-    )
-    result = root_scalar(
-        internal_derivative,
-        args=args,
-        bracket=[0, external * internal_bias],
-    )
-    assert result.converged
-    return result.root
-
-
-def update_from_steady_state(
-        internal_steady_state, initial_state, reaction_params,
-        internal_bias, timestep):
+def update_from_odeint(
+        initial_state, reaction_params, internal_bias, timestep):
     '''Compute an update given a steady-state solution.
 
-    Beginning from the steady-state solution, numerically integrates the
+    Beginning from the initial state, numerically integrates the
     species ODEs to find the final state.
 
     Args:
-        internal_steady_state: Steady-state concentration of
-            ``internal`` species.
         initial_state: Initial state dictionary.
         reaction_params: Dictionary of reaction parameters.
         internal_bias: See :py:func:`species_derivatives`.
@@ -219,13 +43,8 @@ def update_from_steady_state(
         Update dictionary.
     '''
     assert set(SPECIES) == initial_state.keys()
-    steady_state = initial_state.copy()
-    # Assume that steady state is reached exclusively through diffusion
-    steady_state['internal'] = internal_steady_state
-    steady_state['external_delta'] = -(
-        internal_steady_state - initial_state['internal'])
-    steady_state_arr = species_dict_to_array(
-        steady_state, SPECIES_TO_INDEX)
+    initial_state_arr = species_dict_to_array(
+        initial_state, SPECIES_TO_INDEX)
 
     args = (
         reaction_params,
@@ -235,14 +54,12 @@ def update_from_steady_state(
         lambda t, state_arr, *args: species_derivatives(
             state_arr, *args),
         [0, timestep],
-        steady_state_arr,
+        initial_state_arr,
         args=args,
     )
     assert result.success
     final_state_arr = result.y[:, -1].T
 
-    initial_state_arr = species_dict_to_array(
-        initial_state, SPECIES_TO_INDEX)
     delta_arr = final_state_arr - initial_state_arr
     delta = species_array_to_dict(delta_arr, SPECIES_TO_INDEX)
     return {
@@ -251,70 +68,8 @@ def update_from_steady_state(
     }
 
 
-def species_array_to_dict(array, species_to_index):
-    '''Convert an array of values to a map from name to value index.
-
-    >>> array = [1, 5, 2]
-    >>> species_to_index = {
-    ...     'C': 2,
-    ...     'A': 0,
-    ...     'B': 1,
-    ... }
-    >>> species_array_to_dict(array, species_to_index)
-    {'C': 2, 'A': 1, 'B': 5}
-
-    Args:
-        array: The array of values. Must be subscriptable with indices.
-        species_to_index: Dictionary mapping from names to the index in
-            ``array`` of the value associated with each name. The values
-            of the dictionary must be exactly the indices of ``array``
-            with no duplicates.
-
-    Returns:
-        A dictionary mapping from names (the keys of
-        ``species_to_index``) to the associated values in ``array``.
-    '''
-    return {
-        species: array[index]
-        for species, index in species_to_index.items()
-    }
-
-
-def species_dict_to_array(species_dict, species_to_index):
-    '''Convert species dict to an array based on an index map.
-
-    >>> d = {'C': 2, 'A': 1, 'B': 5}
-    >>> species_to_index = {
-    ...     'C': 2,
-    ...     'A': 0,
-    ...     'B': 1,
-    ... }
-    >>> species_dict_to_array(d, species_to_index)
-    array([1., 5., 2.])
-
-    Args:
-        species_dict: The dictionary mapping species names to values.
-        species_to_index: Dictionary mapping from names to the index in
-            ``array`` of the value associated with each name.
-
-    Returns:
-        An array with every value from ``species_dict`` at the index
-        specified by ``species_to_index``.
-
-    Raises:
-        AssertionError: When the keys of ``species_dict`` and the keys
-            of ``species_to_index`` differ.
-    '''
-    assert species_dict.keys() == species_to_index.keys()
-    array = np.zeros(len(species_dict))
-    for species, value in species_dict.items():
-        i = species_to_index[species]
-        array[i] = value
-    return array
-
-
-class AntibioticTransportSteadyState(Process):
-    name = 'antibiotic-transport-steady-state'
+class AntibioticTransportOdeint(Process):
+    name = 'antibiotic-transport-odeint'
     defaults = {
         'initial_reaction_parameters': {},
         'diffusion_only': False,
@@ -435,31 +190,17 @@ class AntibioticTransportSteadyState(Process):
                 units.J / units.mol / units.K)
             temperature = param_store.get(('temperature',)).to(units.K)
             # Biases diffusion to favor higher internal concentrations
-            # according to the Nernst Equation. This results in our
-            # steady-state solution being for the Donnan Equilibrium.
+            # according to the Nernst Equation.
             internal_bias = np.exp(
                 charge * faraday * potential / gas_constant / temperature)
 
-            internal_steady_state = find_steady_state(
-                prepared_state['species']['external'],
-                prepared_state['reaction_parameters'],
-                internal_bias,
-            )
             if self.parameters['diffusion_only']:
-                delta = (
-                    internal_steady_state
-                    - prepared_state['species']['internal'])
-                antibiotic_update = {
-                    'species': {
-                        'internal': delta,
-                    },
-                    'delta_species': {
-                        'internal': delta,
-                    },
-                }
+                prepared_state['reaction_parameters']['export'][
+                    'kcat'] = 0 / units.sec
+                prepared_state['reaction_parameters']['hydrolysis'][
+                    'kcat'] = 0 / units.sec
             else:
-                antibiotic_update = update_from_steady_state(
-                    internal_steady_state,
+                antibiotic_update = update_from_odeint(
                     prepared_state['species'],
                     prepared_state['reaction_parameters'],
                     internal_bias,
@@ -507,9 +248,23 @@ class AntibioticTransportSteadyState(Process):
             update[antibiotic] = antibiotic_update
         return update
 
+def _dummy_derivative(_, y):
+    e, i, h = y
 
-def test_antibiotic_transport_steady_state():
-    proc = AntibioticTransportSteadyState({
+    # Note that we assume constant e
+    diffusion = 2 * 3 * (3 - i) / 2
+    export = 4 * 1 * i / (2 + i)
+    hydrolysis = 4 * 0.5 * i / (2 + i)
+
+    dedt = export - diffusion
+    didt = diffusion - export - hydrolysis
+    dhdt = hydrolysis
+
+    return dedt, didt, dhdt
+
+
+def test_antibiotic_transport_odeint():
+    proc = AntibioticTransportOdeint({
         'initial_reaction_parameters': {
             'antibiotic': {},
         },
@@ -547,20 +302,27 @@ def test_antibiotic_transport_steady_state():
     }
     update = proc.next_update(1, initial_state)['antibiotic']
 
+    # Compute expected update
+    initial_arr = np.array([3, 0, 0])
+    result = solve_ivp(_dummy_derivative, (0, 1), initial_arr)
+    assert result.success
+    final_arr = result.y[:,-1]
+    delta_arr = final_arr - initial_arr
+
     expected_update = {
         'species': {
-            'internal': 2 * units.mM,
-            'hydrolyzed': 1 * units.mM,
+            'internal': delta_arr[1] * units.mM,
+            'hydrolyzed': delta_arr[2] * units.mM,
         },
         'delta_species': {
-            'internal': 2 * units.mM,
-            'hydrolyzed': 1 * units.mM,
+            'internal': delta_arr[1] * units.mM,
+            'hydrolyzed': delta_arr[2] * units.mM,
         },
         'exchanges': {
             # Exchanges are in units of counts, but the species are in
             # units of mM with a volume of 1L.
             'external': (
-                -3 * units.mM
+                delta_arr[0] * units.mM
                 * initial_state['antibiotic'][
                     'reaction_parameters']['diffusion']['volume']
                 * AVOGADRO).to(units.count).magnitude,
@@ -573,6 +335,6 @@ def test_antibiotic_transport_steady_state():
             for species in expected_update[key]:
                 assert abs(
                     update[key][species] - expected_update[key][species]
-                ) <= 1e-5 * abs(expected_update[key][species])
+                ) <= 1e-4 * abs(expected_update[key][species])
         else:
             assert update[key] == expected_update[key]
