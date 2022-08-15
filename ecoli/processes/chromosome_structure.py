@@ -19,8 +19,6 @@ from ecoli.library.schema import (
     add_elements, arrays_from, bulk_schema, create_unique_indexes,
     arrays_to, array_to, dict_value_schema, listener_schema)
 from wholecell.utils.polymerize import buildSequences
-from ecoli.library.convert_update import convert_numpy_to_builtins
-
 
 # Register default topology for this process, associating it with process name
 NAME = 'ecoli-chromosome-structure'
@@ -581,7 +579,7 @@ class ChromosomeStructure(Step):
                 DnaA_box_coordinates[removed_DnaA_boxes_mask],
                 DnaA_box_domain_indexes[removed_DnaA_boxes_mask])
 
-            # Add new promoters with new domain indexes
+            # Add new DnaA boxes with new domain indexes
             DnaA_box_indices = create_unique_indexes(
                 n_new_DnaA_boxes, self.random_state)
             new_DnaA_boxes = arrays_to(
@@ -593,7 +591,7 @@ class ChromosomeStructure(Step):
             update['DnaA_boxes'].update(add_elements(
                 new_DnaA_boxes, 'unique_index'))
 
-        return convert_numpy_to_builtins(update)
+        return update
 
 
     def _compute_new_segment_attributes(self, old_boundary_molecule_indexes,
