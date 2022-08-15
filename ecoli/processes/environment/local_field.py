@@ -1,7 +1,7 @@
 import numpy as np
 
 from vivarium.core.process import Step
-from vivarium.library.units import units, remove_units
+from vivarium.library.units import units
 
 from ecoli.library.lattice_utils import (
     get_bin_site,

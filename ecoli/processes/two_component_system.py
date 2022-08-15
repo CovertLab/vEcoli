@@ -11,9 +11,6 @@ and back in response to counts of ligand stimulants.
 
 import numpy as np
 
-from vivarium.core.process import Process
-from vivarium.library.dict_utils import deep_merge
-
 from ecoli.library.schema import (
     array_from, array_to, bulk_schema)
 
