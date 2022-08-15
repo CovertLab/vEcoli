@@ -45,7 +45,6 @@ import numpy as np
 from ecoli.library.schema import (
     array_from, array_to, arrays_from, arrays_to, dict_value_schema, listener_schema, bulk_schema, array_to_nonzero)
 
-from wholecell.utils.constants import REQUEST_PRIORITY_DEGRADATION
 from wholecell.utils import units
 from six.moves import range, zip
 
