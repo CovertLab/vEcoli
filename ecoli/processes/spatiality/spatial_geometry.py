@@ -29,7 +29,7 @@ from vivarium.core.composition import (
     simulate_process,
     PROCESS_OUT_DIR,
 )
-from ecoli.library.schema import array_to, array_from
+from ecoli.library.schema import array_from
 
 
 NAME = 'spatial_geometry'

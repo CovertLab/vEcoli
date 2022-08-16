@@ -15,15 +15,11 @@ which reads the requests and allocates molecular counts for the evolve_state.
 """
 import abc
 import copy
-import os
-import pickle
 
-import numpy as np
 from vivarium.core.process import Step, Process
-from vivarium.library.dict_utils import deep_merge, make_path_dict
+from vivarium.library.dict_utils import deep_merge
 
 from ecoli.processes.registries import topology_registry
-from ecoli.library.convert_update import convert_numpy_to_builtins
 
 
 def check_whether_evolvers_have_run(evolvers_ran, proc_name):
@@ -166,7 +162,7 @@ class Requester(Step):
         if listeners != None:
             update['listeners'] = listeners
 
-        return convert_numpy_to_builtins(update)
+        return update
 
     def update_condition(self, timestep, states):
         return check_whether_evolvers_have_run(
@@ -245,10 +241,9 @@ class Evolver(Process):
         if not self.process.request_set:
             return {}
 
-        update = copy.deepcopy(
-            self.process.evolve_state(timestep, states))
+        update = self.process.evolve_state(timestep, states)
         update['evolvers_ran'] = True
-        return convert_numpy_to_builtins(update)
+        return update
 
     def __getstate__(self) -> dict:
         """Return parameters
