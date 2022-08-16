@@ -13,6 +13,7 @@ import re
 
 import numpy as np
 from vivarium.core.composer import Composer
+from vivarium.core.emitter import SharedRamEmitter
 from vivarium.core.engine import Engine
 from vivarium.core.serialize import serialize_value
 from vivarium.core.store import Store
@@ -302,6 +303,9 @@ def run_simulation(config):
 
 
 def test_run_simulation():
+    # Clear the emitter's data in case it has been filled by another
+    # test.
+    SharedRamEmitter.saved_data.clear()
     config = SimConfig()
     spatial_config_path = os.path.join(CONFIG_DIR_PATH, 'spatial.json')
     config.update_from_json(spatial_config_path)
