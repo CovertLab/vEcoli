@@ -3,7 +3,6 @@ import json
 
 from ecoli.composites.ecoli_engine_process import run_simulation
 from ecoli.experiments.ecoli_master_sim import CONFIG_DIR_PATH, SimConfig
-from ecoli.experiments.marA_binding.antibiotic_gene_plots import ids_of_interest
 
 def run_sim(tet_conc=0, baseline=False, seed=0):
     config = SimConfig()
@@ -23,7 +22,7 @@ def run_sim(tet_conc=0, baseline=False, seed=0):
             },
             'field_timeline': {
                 'timeline': [
-                    [4000, {
+                    [100000, {
                         "tetracycline": 0
                     }]
                 ]
@@ -32,8 +31,6 @@ def run_sim(tet_conc=0, baseline=False, seed=0):
         'engine_process_reports': [],
         'seed': seed
     }
-    marA_regulated = [monomer['variable'] for monomer in ids_of_interest()]
-    tetracycline_gradient['engine_process_reports'] += marA_regulated
     if not os.path.exists('data/wcecoli_tet.json'):
         with open('data/wcecoli_t0.json') as f:
             initial_state = json.load(f)
@@ -52,7 +49,6 @@ def run_sim(tet_conc=0, baseline=False, seed=0):
         config._config['add_processes'].remove('tetracycline-ribosome-equilibrium')
         config._config['process_configs'].pop('ecoli-rna-interference')
         config._config['engine_process_reports'].remove(['bulk', 'marR-tet[c]'])
-        config._config['engine_process_reports'].remove(('bulk', 'marR-tet[c]'))
         config._config['engine_process_reports'].remove(['bioscrape_deltas',])
         config._config['flow'].pop('ecoli-polypeptide-initiation_requester')
         config._config['mar_regulon'] = False
@@ -60,7 +56,9 @@ def run_sim(tet_conc=0, baseline=False, seed=0):
     run_simulation(config)
 
 def generate_data():
-    run_sim(0.003375, seed = 10000, baseline=True)
+    seeds = list(range(40))
+    for seed in seeds:
+        run_sim(0.003375, seed = seed)
         
 if __name__ == "__main__":
     generate_data()

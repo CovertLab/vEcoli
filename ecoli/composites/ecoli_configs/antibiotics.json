@@ -93,6 +93,7 @@
     "engine_process_reports": [
         ["bioscrape_deltas"],
         ["periplasm"],
+        ["cytoplasm"],
         ["kinetic_parameters"]
     ]
 }

@@ -481,9 +481,10 @@ def divide_set_none(values):
     return [None, None]
 
 
-def remove_subschemas(schema):
+def remove_properties(schema, properties):
     if isinstance(schema, dict):
-        schema.pop('_subschema', None)
+        for property in properties:
+            schema.pop(property, None)
         for key, value in schema.items():
-            schema[key] = remove_subschemas(value)
+            schema[key] = remove_properties(value, properties)
     return schema

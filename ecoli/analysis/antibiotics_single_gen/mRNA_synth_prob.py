@@ -21,7 +21,7 @@ class Plot:
     whose 95% CIs overlap for <60% the shortest simulation time.
     
     Also plots gene copy number for context. Set flag norm to normalize
-    by gene copy number. Supply parameters for Savitzky-Golary filter as:
+    by gene copy number. Supply parameters for Savitzky-Golay filter as:
         {
             'window_length': length of filter window,
             'polyorder': order of polynomial (must be < window_length)
@@ -61,7 +61,7 @@ class Plot:
                 synth_probs_norm = np.divide(synth_probs, gene_copy_num)
                 synth_probs = np.where(np.isfinite(synth_probs_norm),
                     synth_probs_norm, synth_probs)
-            # Smooth data using Savitsky-Golary filter
+            # Smooth data using Savitzky-Golay filter
             if savgol_args:
                 synth_probs = savgol_filter(
                     synth_probs,
@@ -214,27 +214,15 @@ class Plot:
     
 if __name__ == "__main__":
     Plot([
-        # 3.375 uM tet.
-        "2022-08-15_17-44-04_988625+0000",
-        "2022-08-15_18-33-06_362648+0000",
-        "2022-08-15_21-49-24_819030+0000",
-        "2022-08-17_00-30-10_058639+0000",
-        # 0 uM tet.
-        "2022-08-15_23-00-34_973906+0000",
-        "2022-08-16_16-00-40_928301+0000",
-        "2022-08-16_18-48-44_621220+0000",
-        "2022-08-16_19-42-37_994009+0000",
-        # Baseline
-        "2022-08-16_21-09-39_797440+0000",
-        "2022-08-16_22-04-54_797907+0000",
-        "2022-08-16_23-04-23_500547+0000",
-        "2022-08-17_00-21-24_422276+0000"
+            # 3.375 uM tet.
+            # 0 uM tet.
+            # Baseline
         ],
-        ["3.375 uM tet", "3.375 uM tet", 
-         "3.375 uM tet", "3.375 uM tet",
-         "0 uM tet", "0 uM tet", 
-         "0 uM tet", "0 uM tet",
-         "base", "base", "base", "base"],
+        [
+            # 3.375 uM tet.
+            # 0 uM tet.
+            # Baseline
+        ],
         savgol_args={
             'window_length': 50,
             'polyorder': 3
