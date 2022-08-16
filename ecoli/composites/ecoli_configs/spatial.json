@@ -40,6 +40,7 @@
     "topology": {
       "ecoli-shape": {
         "cell_global": ["boundary"],
+        "cytoplasm_global": ["cytoplasm", "global"],
         "periplasm_global": ["periplasm", "global"],
         "listener_cell_mass": ["listeners", "mass", "cell_mass"],
         "listener_cell_volume": ["listeners", "mass", "volume"]
@@ -50,5 +51,9 @@
     },
     "flow": {
       "ecoli-shape": [["ecoli-mass-listener"]]
-    }
+    },
+    "engine_process_reports": [
+        ["boundary"],
+        ["environment", "exchanges"]
+    ]
 }

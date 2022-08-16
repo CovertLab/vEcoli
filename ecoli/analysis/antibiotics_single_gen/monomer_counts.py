@@ -19,7 +19,7 @@ class Plot:
     groups (e.g. control, with tetracycline, etc.) and plots monomers
     whose 95% CIs overlap for <60% the shortest simulation time.
     
-    Supply parameters for Savitzky-Golary filter as:
+    Supply parameters for Savitzky-Golay filter as:
         {
             'window_length': length of filter window,
             'polyorder': order of polynomial (must be < window_length)
@@ -180,21 +180,12 @@ class Plot:
     
 if __name__ == "__main__":
     Plot([
-        # 0 uM tet.
-        "2022-08-15_23-00-34_973906+0000",
-        "2022-08-16_16-00-40_928301+0000",
-        "2022-08-16_18-48-44_621220+0000",
-        "2022-08-16_19-42-37_994009+0000",
-        # Baseline
-        "2022-08-16_21-09-39_797440+0000",
-        "2022-08-16_22-04-54_797907+0000",
-        "2022-08-16_23-04-23_500547+0000",
-        "2022-08-17_00-21-24_422276+0000"
+            # 0 uM tet.
+            # Baseline
         ],
         [
-            "0 uM tet", "0 uM tet", 
-            "0 uM tet", "0 uM tet",
-            "base", "base", "base", "base"
-         ],
+            # 0 uM tet.
+            # baseline
+        ],
         out_file='out/analysis/monomer_count.png'
     )

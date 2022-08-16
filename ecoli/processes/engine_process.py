@@ -72,7 +72,7 @@ from vivarium.core.store import DEFAULT_SCHEMA, Store
 from vivarium.library.topology import get_in, without
 
 from ecoli.library.sim_data import RAND_MAX
-from ecoli.library.schema import remove_subschemas, empty_dict_divider
+from ecoli.library.schema import remove_properties, empty_dict_divider
 from ecoli.library.updaters import inverse_updater_registry
 from ecoli.processes.cell_division import daughter_phylogeny_id
 
@@ -244,9 +244,9 @@ class EngineProcess(Process):
             tunnel_schema['_divider'] = empty_dict_divider
             # Internal sim state is fully defined, making subschemas
             # redundant (also not properly parsed during store generation)
-            tunnel_schema = remove_subschemas(tunnel_schema)
-            # We let the outer sim control the values of tunnels in.
-            tunnel_schema.pop('_value', None)
+            # This also avoids duplicated emits from the outer sim.
+            tunnel_schema = remove_properties(tunnel_schema, [
+                '_subschema', '_emit', '_value'])
             schema[tunnel] = tunnel_schema
         for tunnel, tunnel_schema in self.parameters[
                 'tunnel_out_schemas'].items():

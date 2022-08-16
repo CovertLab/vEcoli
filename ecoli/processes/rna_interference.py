@@ -10,8 +10,6 @@ import numpy as np
 
 from vivarium.core.process import Process
 from vivarium.core.composition import simulate_process
-from vivarium.plots.simulation_output import plot_variables
-from vivarium.core.emitter import timeseries_from_data
 
 from ecoli.library.schema import (
     create_unique_indexes, arrays_from, arrays_to, dict_value_schema, 
@@ -52,7 +50,6 @@ class RnaInterference(Process):
         self.ribosome30S = self.parameters['ribosome30S']
         self.ribosome50S = self.parameters['ribosome50S']
         self.duplex_tu_ids = self.parameters['duplex_tu_ids']
-        self.duplex_lengths = self.parameters['duplex_lengths']
         self.random_state = np.random.RandomState(seed = self.parameters['seed'])
     
     def ports_schema(self):
@@ -74,9 +71,12 @@ class RnaInterference(Process):
                 self.ribosome50S: 0
             }}
         
-        TU_index, can_translate, is_full_transcript = arrays_from(
-            states['RNAs'].values(),
-            ['TU_index', 'can_translate', 'is_full_transcript'])
+        TU_index, can_translate, is_full_transcript, transcript_length = (
+            arrays_from(
+                states['RNAs'].values(),
+                ['TU_index', 'can_translate', 
+                'is_full_transcript', 'transcript_length'])
+            )
         rna_indexes = np.array(list(states['RNAs'].keys()))
         
         mRNA_index, = arrays_from(
@@ -84,9 +84,9 @@ class RnaInterference(Process):
             ['mRNA_index'])
         ribosome_indexes = np.array(list(states['active_ribosome'].keys()))
         
-        for srna_index, mrna_index, binding_prob, duplex_index, duplex_length in zip(
+        for srna_index, mrna_index, binding_prob, duplex_index in zip(
             self.srna_tu_ids, self.target_tu_ids, self.binding_probs,
-            self.duplex_tu_ids, self.duplex_lengths):
+            self.duplex_tu_ids):
             # Get mask for complete sRNAs
             srna_mask = np.logical_and(TU_index == srna_index, is_full_transcript)
             n_srna = srna_mask.sum()
@@ -100,6 +100,11 @@ class RnaInterference(Process):
             n_mrna = mrna_mask.sum()
             if n_mrna == 0:
                 continue
+            
+            # Get duplex transcript length as sum of constituent lengths
+            srna_length = transcript_length[srna_mask][0]
+            target_length = transcript_length[mrna_mask][0]
+            duplex_length = srna_length + target_length
             
             # Each sRNA has probability binding_prob of binding a target mRNA
             n_duplexed = np.min([self.random_state.binomial(n_srna, binding_prob),
