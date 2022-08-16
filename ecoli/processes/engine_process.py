@@ -63,7 +63,7 @@ import copy
 
 import numpy as np
 from vivarium.core.composer import Composer
-from vivarium.core.emitter import get_emitter
+from vivarium.core.emitter import get_emitter, SharedRamEmitter
 from vivarium.core.engine import Engine
 from vivarium.core.process import Process
 from vivarium.core.registry import updater_registry, divider_registry
@@ -595,6 +595,10 @@ def test_engine_process():
     experiment_id = 'test_experiment_id'
     inner_composer = _InnerComposer()
     inner_composite = inner_composer.generate()
+
+    # Clear the emitter's data in case it has been filled by another
+    # test.
+    SharedRamEmitter.saved_data.clear()
 
     agent_path = ('agents', '0')
     outer_composer = _OuterComposer({
