@@ -37,4 +37,4 @@ jobs:
         make clean compile
     - name: Test with pytest
       run: |
-        pytest --cov=ecoli -m 'not (noci or master)'
+        python -m pytest --cov=ecoli -m 'not (noci or master)'

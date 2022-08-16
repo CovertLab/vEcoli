@@ -20,9 +20,7 @@ simulation.
 import numpy as np
 from arrow import StochasticSystem
 
-from vivarium.core.process import Process
 from vivarium.core.composition import simulate_process
-from vivarium.library.dict_utils import deep_merge
 
 from ecoli.library.schema import array_to, bulk_schema
 from ecoli.processes.registries import topology_registry

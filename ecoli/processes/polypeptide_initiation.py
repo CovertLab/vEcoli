@@ -348,23 +348,23 @@ def test_polypeptide_initiation():
             '30S': 2000,
             '50S': 3000},
         'RNA': {
-            0: {
+            '0': {
                 'TU_index': 0,
                 'can_translate': True,
                 'unique_index': 0},
-            1: {
+            '1': {
                 'TU_index': 0,
                 'can_translate': False,
                 'unique_index': 1},
-            2: {
+            '2': {
                 'TU_index': 1,
                 'can_translate': True,
                 'unique_index': 2},
-            3: {
+            '3': {
                 'TU_index': 2,
                 'can_translate': True,
                 'unique_index': 3},
-            4: {
+            '4': {
                 'TU_index': 2,
                 'can_translate': True,
                 'unique_index': 4}}}
