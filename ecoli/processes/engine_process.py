@@ -63,8 +63,8 @@ import copy
 
 import numpy as np
 from vivarium.core.engine import Engine
-from vivarium.core.process import Process, Step
-from vivarium.core.registry import updater_registry, divider_registry
+from vivarium.core.process import Process
+from vivarium.core.registry import updater_registry
 from vivarium.core.store import DEFAULT_SCHEMA, Store
 from vivarium.library.topology import get_in
 

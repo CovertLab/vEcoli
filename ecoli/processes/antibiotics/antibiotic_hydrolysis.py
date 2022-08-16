@@ -3,7 +3,7 @@ import copy
 from matplotlib import pyplot as plt
 import numpy as np
 
-from vivarium.library.units import units, Quantity
+from vivarium.library.units import units
 from vivarium.library.dict_utils import deep_merge, deep_merge_check
 from vivarium.core.composition import simulate_process
 from vivarium.plots.simulation_output import plot_variables
