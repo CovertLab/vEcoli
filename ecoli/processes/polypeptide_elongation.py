@@ -20,7 +20,6 @@ from wholecell.utils.random import stochasticRound
 from wholecell.utils import units
 
 # vivarium imports
-from vivarium.core.process import Process
 from vivarium.core.composition import simulate_process
 from vivarium.library.dict_utils import deep_merge
 from vivarium.plots.simulation_output import plot_variables

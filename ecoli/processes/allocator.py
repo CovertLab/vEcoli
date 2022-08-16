@@ -8,12 +8,9 @@ process priorities.
 """
 import numpy as np
 from vivarium.core.process import Deriver
-from vivarium.library.dict_utils import make_path_dict
 
 from ecoli.processes.registries import topology_registry
 from ecoli.processes.partition import check_whether_evolvers_have_run
-from ecoli.library.convert_update import convert_numpy_to_builtins
-
 
 # Register default topology for this process, associating it with process name
 NAME = 'allocator'
@@ -170,7 +167,7 @@ class Allocator(Deriver):
             'evolvers_ran': False,
         }
 
-        return convert_numpy_to_builtins(update)
+        return update
 
 def calculatePartition(process_priorities, counts_requested, total_counts, random_state):
     priorityLevels = np.sort(np.unique(process_priorities))[::-1]
