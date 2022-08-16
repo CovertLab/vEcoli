@@ -306,10 +306,10 @@ def test_run_simulation():
     spatial_config_path = os.path.join(CONFIG_DIR_PATH, 'spatial.json')
     config.update_from_json(spatial_config_path)
     config.update_from_dict({
-        'total_time': 4,
+        'total_time': 5,
         'divide': True,
-        'emitter' : 'timeseries',
-        'parallel': True,
+        'emitter' : 'shared_ram',
+        'parallel': False,
         'engine_process_reports': [
             ('listeners', 'mass'),
         ],
@@ -319,7 +319,7 @@ def test_run_simulation():
     data = engine.emitter.get_data()
 
     assert min(data.keys()) == 0
-    assert max(data.keys()) == 4
+    assert max(data.keys()) == 5
 
     assert np.all(np.array(data[0]['fields']['GLC[p]']) == 1)
     assert np.any(np.array(data[4]['fields']['GLC[p]']) != 1)
