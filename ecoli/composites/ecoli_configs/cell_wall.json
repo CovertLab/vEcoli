@@ -18,7 +18,7 @@
             "murein_state": ["murein_state"],
             "concentrations": ["concentrations"],
             "bulk": ["bulk"],
-            "listeners": ["listeners"]
+            "pbp_state": ["pbp_state"]
         },
         "ecoli-shape": {
             "cell_global": ["boundary"],

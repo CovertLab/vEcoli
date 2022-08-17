@@ -25,7 +25,7 @@ from vivarium.library.units import units, remove_units
 # Register default topology for this process, associating it with process name
 NAME = "ecoli-cell-wall"
 TOPOLOGY = {
-    "shape": ("cell_global",),
+    "shape": ("boundary",),
     "bulk_murein": ("bulk",),
     "murein_state": ("murein_state",),
     "PBP": ("bulk",),
@@ -123,6 +123,8 @@ class CellWall(Process):
         # Unpack states
         volume = states["shape"]["volume"]
         lattice = states["wall_state"]["lattice"]
+        if not isinstance(lattice, np.ndarray):
+            lattice = np.array(lattice)
         stretch_factor = states["wall_state"]["stretch_factor"]
         unincorporated_murein = states["murein_state"]["unincorporated_murein"]
         incorporated_murein = states["murein_state"]["incorporated_murein"]
