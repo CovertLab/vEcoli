@@ -11,8 +11,8 @@ from ecoli.experiments.ecoli_master_sim import EcoliSim, CONFIG_DIR_PATH
 from ecoli.plots.snapshots import plot_snapshots
 
 
-def test_antibiotics_tetracycline_cephaloridine():
-    sim = EcoliSim.from_file(CONFIG_DIR_PATH + 'antibiotics_tetracycline_cephaloridine.json')
+def test_antibiotics_tetracycline():
+    sim = EcoliSim.from_file(CONFIG_DIR_PATH + 'antibiotics_tetracycline.json')
     sim.emitter = 'timeseries'
     sim.total_time = 2
     sim.run()
@@ -105,7 +105,7 @@ def test_lysis_rxn_dff_environment(total_time = 10):
 
 
 library = {
-    '1': test_antibiotics_tetracycline_cephaloridine,
+    '1': test_antibiotics_tetracycline,
     '2': test_lysis_rxn_dff_environment,
 }
 
