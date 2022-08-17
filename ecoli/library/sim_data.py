@@ -49,15 +49,15 @@ class LoadSimData:
             
             # TU index of genes for outer membrane proteins, regulators, and inner membrane transporters
             # NOTE: MicF (a ncRNA that destabilized ompF mRNA) was omitted for simplicity
-            TU_idxs = [2011, 1641, 1394, 2112, 1642, 1543, 662, 995, \
-                3289, 262, 1807, 2010, 659, 1395, 260, 259, 11, 944, 1631, 1330, \
+            TU_idxs = [2011, 1641, 1394, 2112, 1642, 1543, 662, 995,
+                3289, 262, 1807, 2010, 659, 1395, 260, 259, 11, 944, 1631, 1330,
                 660, 1399, 661]
             new_deltaI = np.array(TU_idxs)
             new_deltaJ = np.array([24]*23)
             # Values were chosen to recapitulate mRNA fold change with 1.5 mg/L tetracycline (Viveiros et al. 2007)
             # new_deltaV = np.array([10, 0.48, 0.07, 0.0054, 0.18, 0.013, 0.02, 0.13, 0.0035, 0.08, 0.007, 0.01, \
             #     4, 0.0065, 0.0005, 0.0001, 0.00055, 0.025, 0.00002, 0.02, 0.01, -0.0006, -0.2]) / 1000
-            new_deltaV = np.array([0.145, 0.017, 0.0168, 0.00095, 0.01, -0.000101, 0.003422, 0.003846, 0.000155, 0.01, 0.0014, 0.00118, \
+            new_deltaV = np.array([0.145, 0.017, 0.0168, 0.00095, 0.01, -0.000101, 0.003422, 0.003846, 0.000155, 0.01, 0.0014, 0.00118,
                 0.524, 0.003, 0.000034, -0.000002, 0.00006, 0.02, 0.000004, 0.00468, 0.03, 0.000257, 0.37]) / 1000
             
             self.sim_data.process.transcription_regulation.delta_prob["deltaI"] = np.concatenate(
@@ -571,29 +571,29 @@ class LoadSimData:
 
     def get_metabolism_config(self, time_step=2, parallel=False, deriver_mode=False):
 
-        self.sim_data.external_state.saved_media['minimal_fructose'] = self.sim_data.external_state.saved_media['minimal']
-        self.sim_data.external_state.saved_media['minimal_fructose']['FRU'] = self.sim_data.external_state.saved_media['minimal_fructose']['GLC']
-        self.sim_data.external_state.saved_media['minimal_fructose'].pop('GLC')
-
-        self.sim_data.process.metabolism.concentration_updates.exchange_fluxes['minimal_fructose'] = self.sim_data.process.metabolism.concentration_updates.exchange_fluxes['minimal']
-        self.sim_data.process.metabolism.concentration_updates.exchange_fluxes['minimal_fructose'].add('FRU[p]')
-        self.sim_data.process.metabolism.concentration_updates.exchange_fluxes['minimal_fructose'].remove('GLC[p]')
-
-        self.sim_data.external_state.env_to_exchange_map['FRU'] = 'FRU[p]'
-        self.sim_data.external_state.exchange_to_env_map['FRU[p]'] = 'FRU'
-        self.sim_data.nutrient_to_doubling_time['minimal_fructose'] = self.sim_data.nutrient_to_doubling_time['minimal']
-
-        self.sim_data.external_state.carbon_sources.append('FRU[p]')
-        self.sim_data.external_state.all_external_exchange_molecules.append('FRU[p]')
-        self.sim_data.external_state.make_media.environment_molecules_fw['FRU'] = None
-
-        old = self.sim_data.external_state.saved_media['minimal_fructose']
-        new = {}
-
-        for key in old.keys():
-            new[self.sim_data.external_state.env_to_exchange_map[key]] = old[key]
-
-        self.sim_data.external_state.exchange_dict['minimal_fructose'] = new
+        # self.sim_data.external_state.saved_media['minimal_fructose'] = self.sim_data.external_state.saved_media['minimal']
+        # self.sim_data.external_state.saved_media['minimal_fructose']['FRU'] = self.sim_data.external_state.saved_media['minimal_fructose']['GLC']
+        # self.sim_data.external_state.saved_media['minimal_fructose'].pop('GLC')
+        #
+        # self.sim_data.process.metabolism.concentration_updates.exchange_fluxes['minimal_fructose'] = self.sim_data.process.metabolism.concentration_updates.exchange_fluxes['minimal']
+        # self.sim_data.process.metabolism.concentration_updates.exchange_fluxes['minimal_fructose'].add('FRU[p]')
+        # self.sim_data.process.metabolism.concentration_updates.exchange_fluxes['minimal_fructose'].remove('GLC[p]')
+        #
+        # self.sim_data.external_state.env_to_exchange_map['FRU'] = 'FRU[p]'
+        # self.sim_data.external_state.exchange_to_env_map['FRU[p]'] = 'FRU'
+        # self.sim_data.nutrient_to_doubling_time['minimal_fructose'] = self.sim_data.nutrient_to_doubling_time['minimal']
+        #
+        # self.sim_data.external_state.carbon_sources.append('FRU[p]')
+        # self.sim_data.external_state.all_external_exchange_molecules.append('FRU[p]')
+        # self.sim_data.external_state.make_media.environment_molecules_fw['FRU'] = None
+        #
+        # old = self.sim_data.external_state.saved_media['minimal_fructose']
+        # new = {}
+        #
+        # for key in old.keys():
+        #     new[self.sim_data.external_state.env_to_exchange_map[key]] = old[key]
+        #
+        # self.sim_data.external_state.exchange_dict['minimal_fructose'] = new
 
         metabolism_config = {
             'time_step': time_step,
@@ -619,10 +619,10 @@ class LoadSimData:
             'current_timeline': None,
             'media_id': self.sim_data.conditions[self.sim_data.condition]['nutrients'],
 
-            # 'condition': self.sim_data.condition,
-            # 'nutrients': self.sim_data.conditions[self.sim_data.condition]['nutrients'],
-            'condition': 'minimal_fructose',
-            'nutrients': 'minimal_fructose',
+            'condition': self.sim_data.condition,
+            'nutrients': self.sim_data.conditions[self.sim_data.condition]['nutrients'],
+            # 'condition': 'minimal_fructose',
+            # 'nutrients': 'minimal_fructose',
             # TODO Replace this with media_id
             'metabolism': self.sim_data.process.metabolism,
             'non_growth_associated_maintenance': self.sim_data.constants.non_growth_associated_maintenance,
