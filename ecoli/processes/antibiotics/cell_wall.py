@@ -2,23 +2,13 @@
 TODO: references for parameters
 """
 
-import os
-from time import perf_counter
-
 import numpy as np
-import matplotlib.pyplot as plt
 from ecoli.library.cell_wall.column_sampler import geom_sampler, sample_column
 from ecoli.library.cell_wall.hole_detection import detect_holes_skimage
-from ecoli.library.cell_wall.lattice import (
-    calculate_lattice_size,
-    de_novo_lattice,
-    plot_lattice,
-)
-from ecoli.library.create_timeline import create_timeline_from_csv
+from ecoli.library.cell_wall.lattice import calculate_lattice_size, get_strand_length_distribution
 from ecoli.library.schema import bulk_schema
 from ecoli.processes.registries import topology_registry
 from ecoli.processes.shape import length_from_volume
-from vivarium.core.composition import add_timeline, simulate_composite
 from vivarium.core.process import Process
 from vivarium.library.units import units, remove_units
 
@@ -30,6 +20,7 @@ TOPOLOGY = {
     "murein_state": ("murein_state",),
     "PBP": ("bulk",),
     "wall_state": ("wall_state",),
+    "listeners": ("listeners",)
 }
 topology_registry.register(NAME, TOPOLOGY)
 
@@ -39,20 +30,21 @@ class CellWall(Process):
     topology = TOPOLOGY
     defaults = {
         # Molecules
-        "murein": "CPD-12261[p]",  # two crosslinked peptidoglycan units
+        "murein": "CPD-12261[p]",  # four crosslinked peptidoglycan units
         "PBP": {  # penicillin-binding proteins
-            "PBP1A": "CPLX0-7717[m]",  # transglycosylase-transpeptidase ~100
-            "PBP1B": "CPLX0-3951[i]",  # transglycosylase-transpeptidase ~100
+            "PBP1A": "CPLX0-7717[m]",  # transglycosylase-transpeptidase
+            "PBP1B": "CPLX0-3951[i]",  # transglycosylase-transpeptidase
         },
+        # Probability of terminating a strand on the next monomer,
+        # fitted from data
         "strand_term_p": 0.058,
         # Physical parameters
         "critical_radius": 20 * units.nm,
         "cell_radius": 0.5 * units.um,
         "disaccharide_length": 1.03 * units.nm,
-        "crossbridge_length": 4.1
-        / 3
-        * units.nm,  # 4.1 in maximally stretched configuration,
+        # 4.1 in maximally stretched configuration,
         # divided by 3 because the sacculus can be stretched threefold
+        "crossbridge_length": (4.1 / 3) * units.nm,
         "initial_stretch_factor": 1.17,
         "max_stretch": 3,
         "peptidoglycan_unit_area": 4 * units.nm**2,  # replace with precise
@@ -111,6 +103,11 @@ class CellWall(Process):
                 "porosity": {"_default": 0, "_updater": "set", "_emit": True},
                 "hole_size_distribution": {
                     "_default": np.array([], int),
+                    "_updater": "set",
+                    "_emit": True,
+                },
+                "strand_length_distribution": {
+                    "_default": [],
                     "_updater": "set",
                     "_emit": True,
                 },
@@ -174,7 +171,7 @@ class CellWall(Process):
         )
 
         # Crack detection (cracking is irreversible)
-        hole_sizes, hole_view = detect_holes_skimage(new_lattice)
+        hole_sizes, _ = detect_holes_skimage(new_lattice)
         max_size = hole_sizes.max() * self.peptidoglycan_unit_area * stretch_factor
 
         # See if stretching will save from cracking
@@ -216,7 +213,7 @@ class CellWall(Process):
             )
 
             # Crack detection (cracking is irreversible)
-            hole_sizes, hole_view = detect_holes_skimage(new_lattice)
+            hole_sizes, _ = detect_holes_skimage(new_lattice)
             max_size = hole_sizes.max() * self.peptidoglycan_unit_area * stretch_factor
 
             will_crack = max_size > self.critical_area
@@ -238,6 +235,7 @@ class CellWall(Process):
         update["listeners"] = {
             "porosity": 1 - (lattice.sum() / lattice.size),
             "hole_size_distribution": np.bincount(hole_sizes),
+            "strand_length_distribution": get_strand_length_distribution(lattice),
         }
 
         if max_size > self.critical_area:

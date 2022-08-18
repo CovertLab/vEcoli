@@ -2,6 +2,7 @@ from itertools import groupby
 
 import mpl_toolkits.mplot3d.axes3d as axes3d
 import numpy as np
+import pandas as pd
 from matplotlib import pyplot as plt
 from skimage.transform import resize
 
@@ -83,25 +84,65 @@ def plot_lattice(lattice, on_cylinder=False, aspect=1):
     return fig, ax
 
 
-def plot_strand_length_distribution(lattice):
+def get_strand_length_distribution(lattice):
     lengths = []
     for c in range(lattice.shape[1]):
         column = lattice[:, c]
         # circular shift the column around until it starts with a 0
-
         shift = 1
         while column[0] != 0:
             column = np.roll(column, shift)
             shift += 1
 
-            for _, strand in groupby(column):
-                strand = list(strand)
-                lengths.append(len(strand))
+        for _, strand in groupby(column):
+            strand = list(strand)
+            lengths.append(len(strand))
+
+    return lengths
+
+
+def plot_strand_length_distribution(lengths):
+    # Plot experimental data first
+    df = pd.read_csv("data/cell_wall/murein_strand_length_distribution.csv")
 
     fig, ax = plt.subplots()
-    ax.hist(lengths, bins=range(100))
+    X = np.arange(1, 32, 1)
+    xlabels = list(map(str, X))
+    xlabels[-1] = ">30"
+
+    for strain in set(df["Strain"]):
+        strain_data = df[df["Strain"] == strain]
+        strain_data.index = strain_data["Length"]
+        heights = strain_data.loc[xlabels]["Percent"]
+        heights /= heights.sum()
+        ax.bar(X, heights, alpha=0.5, label=strain)
+    ax.set_xticks(X)
+    ax.set_xticklabels(xlabels, rotation=45)
+
+    # Skip plotting simulated data if none was given
+    if len(lengths) == 0:
+        ax.legend()
+        return fig, ax
+
+    # Plot simulated data in the same way as experimental data
+    # (aggregate strands >30 in length)
+    lengths = np.bincount(lengths)
+    try:
+        lengths[31] = lengths[31:].sum()
+        lengths = lengths[:32]
+    except IndexError:  # no strands > 30 in length
+        pass
+
+    # Normalize as proportions
+    lengths = lengths / lengths.sum()
+
+    # Eliminate "0-length" strands
+    lengths = lengths[1:]
+
+    ax.scatter(X, lengths, label="Simulation")
     ax.set_xlabel("Strand length")
-    ax.set_ylabel("Count")
+    ax.set_ylabel("Proportion")
+    ax.legend()
 
     return fig, ax
 
