@@ -7,6 +7,8 @@ from wholecell.utils.fitting import normalize
 from ecoli.processes.polypeptide_elongation import MICROMOLAR_UNITS
 from ecoli.states.wcecoli_state import MASSDIFFS
 
+from copy import deepcopy
+
 RAND_MAX = 2**31 - 1
 SIM_DATA_PATH = 'reconstruction/sim_data/kb/simData.cPickle'
 
@@ -571,11 +573,11 @@ class LoadSimData:
 
     def get_metabolism_config(self, time_step=2, parallel=False, deriver_mode=False):
 
-        self.sim_data.external_state.saved_media['minimal_fructose'] = self.sim_data.external_state.saved_media['minimal']
+        self.sim_data.external_state.saved_media['minimal_fructose'] = deepcopy(self.sim_data.external_state.saved_media['minimal'])
         self.sim_data.external_state.saved_media['minimal_fructose']['FRU'] = self.sim_data.external_state.saved_media['minimal_fructose']['GLC']
         self.sim_data.external_state.saved_media['minimal_fructose'].pop('GLC')
 
-        self.sim_data.process.metabolism.concentration_updates.exchange_fluxes['minimal_fructose'] = self.sim_data.process.metabolism.concentration_updates.exchange_fluxes['minimal']
+        self.sim_data.process.metabolism.concentration_updates.exchange_fluxes['minimal_fructose'] = deepcopy(self.sim_data.process.metabolism.concentration_updates.exchange_fluxes['minimal'])
         self.sim_data.process.metabolism.concentration_updates.exchange_fluxes['minimal_fructose'].add('FRU[p]')
         self.sim_data.process.metabolism.concentration_updates.exchange_fluxes['minimal_fructose'].remove('GLC[p]')
 
