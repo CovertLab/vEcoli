@@ -5,7 +5,11 @@ TODO: references for parameters
 import numpy as np
 from ecoli.library.cell_wall.column_sampler import geom_sampler, sample_column
 from ecoli.library.cell_wall.hole_detection import detect_holes_skimage
-from ecoli.library.cell_wall.lattice import calculate_lattice_size, get_strand_length_distribution
+from ecoli.library.cell_wall.lattice import (
+    calculate_lattice_size,
+    de_novo_lattice,
+    get_strand_length_distribution,
+)
 from ecoli.library.schema import bulk_schema
 from ecoli.processes.registries import topology_registry
 from ecoli.processes.shape import length_from_volume
@@ -20,7 +24,7 @@ TOPOLOGY = {
     "murein_state": ("murein_state",),
     "PBP": ("bulk",),
     "wall_state": ("wall_state",),
-    "listeners": ("listeners",)
+    "listeners": ("listeners",),
 }
 topology_registry.register(NAME, TOPOLOGY)
 
@@ -86,7 +90,7 @@ class CellWall(Process):
             "shape": {"volume": {"_default": 0 * units.fL, "_emit": True}},
             "wall_state": {
                 "lattice": {
-                    "_default": np.array([], dtype=int),
+                    "_default": None,
                     "_updater": "set",
                     "_emit": False,
                 },
@@ -119,15 +123,28 @@ class CellWall(Process):
     def next_update(self, timestep, states):
         # Unpack states
         volume = states["shape"]["volume"]
-        lattice = states["wall_state"]["lattice"]
-        if not isinstance(lattice, np.ndarray):
-            lattice = np.array(lattice)
         stretch_factor = states["wall_state"]["stretch_factor"]
         unincorporated_murein = states["murein_state"]["unincorporated_murein"]
         incorporated_murein = states["murein_state"]["incorporated_murein"]
         PBPs = states["PBP"]
         active_fraction_PBP1a = states["pbp_state"]["active_fraction_PBP1A"]
         active_fraction_PBP1b = states["pbp_state"]["active_fraction_PBP1B"]
+
+        # Get lattice, setting it to a newly sampled lattice
+        # if not yet initialized
+        rows = states["wall_state"]["lattice_rows"]
+        cols = states["wall_state"]["lattice_cols"]
+        lattice = states["wall_state"]["lattice"]
+        if lattice is None:
+            lattice = de_novo_lattice(
+                incorporated_murein * 4,
+                rows,
+                cols,
+                geom_sampler(self.rng, self.strand_term_p),
+                self.rng,
+            )
+        if not isinstance(lattice, np.ndarray):
+            lattice = np.array(lattice)
 
         update = {}
 

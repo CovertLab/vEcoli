@@ -89,12 +89,14 @@ def get_strand_length_distribution(lattice):
     for c in range(lattice.shape[1]):
         column = lattice[:, c]
         # circular shift the column around until it starts with a 0
-        shift = 1
-        while column[0] != 0:
+        shift = 0
+        while column[0] != 0 and shift < column.size:
             column = np.roll(column, shift)
             shift += 1
 
-        for _, strand in groupby(column):
+        for val, strand in groupby(column):
+            if val == 0:
+                continue
             strand = list(strand)
             lengths.append(len(strand))
 
