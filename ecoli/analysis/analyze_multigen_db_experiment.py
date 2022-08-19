@@ -30,6 +30,8 @@ def main():
         '--path', '-t', type=str, nargs='*', default=[])
     parser.add_argument(
         '--agent', '-a', type=str, nargs='*', default=[])
+    parser.add_argument(
+        '--sampling_rate', '-r', type=int, default=1)
     args = parser.parse_args()
 
     agents = get_agent_ids(
@@ -48,7 +50,8 @@ def main():
 
     # Retrieve all simulation data.
     data, experiment_id, sim_config = access(
-        args.experiment_id, query=query, host=args.host, port=args.port)
+        args.experiment_id, query=query, host=args.host, port=args.port,
+        sampling_rate=args.sampling_rate)
     data = deserialize_value(data)
     data = remove_units(data)
 
