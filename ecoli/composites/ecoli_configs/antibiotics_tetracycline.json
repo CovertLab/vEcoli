@@ -101,7 +101,7 @@
             "30s-tetracycline": ["bulk", "CPLX0-3953-tetracycline[c]"],
             "volume": ["periplasm", "global", "volume"],
             "evolvers_ran": ["evolvers_ran"],
-            "reports": ["boundary", "reports"]
+            "listeners": ["listeners"]
         },
         "unique_counts": {
             "unique": ["unique"],
