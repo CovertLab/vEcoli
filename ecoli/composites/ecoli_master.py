@@ -56,7 +56,7 @@ class Ecoli(Composer):
         'divide': False,
         'log_updates': False,
         'mar_regulon': False,
-        'rnai_data': None,
+        'process_configs': {},
         'flow': {},
     }
 
