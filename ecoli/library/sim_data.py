@@ -546,6 +546,7 @@ class LoadSimData:
                                  'stoichiometry': value,
                                  'is reversible': False})
 
+                # Add enzyme to reactions
                 if key in reactions_with_catalyst:
                     rxns[-1]['enzyme'] = reaction_catalysts[key]
                 else:

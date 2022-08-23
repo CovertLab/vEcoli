@@ -100,6 +100,11 @@ class MetabolismGD(Process):
 
         # metabolites not in either set are constrained to zero uptake.
         self.allowed_exchange_uptake = UNCONSTRAINED_UPTAKE + list(CONSTRAINED_UPTAKE.keys())
+
+        self.exchange_molecules.add('FRU[p]')
+        self.allowed_exchange_uptake.append('FRU[p]')
+        self.allowed_exchange_uptake.remove('GLC[p]')
+
         self.disallowed_exchange_uptake = list(set(exchange_molecules) - set(self.allowed_exchange_uptake))
 
         # retrieve conc dict and get homeostatic objective.
@@ -244,7 +249,6 @@ class MetabolismGD(Process):
         translation_gtp = states['polypeptide_elongation']['gtp_to_hydrolyze']
         kinetic_enzyme_counts = states['kinetics_enzymes'] # kinetics related
         kinetic_substrate_counts = states['kinetics_substrates']
-        # get_kinetic_constraints = self.parameters['get_kinetic_constraints']
 
         # cell mass difference for calculating GAM
         if self.cell_mass is not None:
