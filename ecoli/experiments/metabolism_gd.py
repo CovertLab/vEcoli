@@ -119,7 +119,7 @@ def run_metabolism_composite():
 
 def run_ecoli_with_metabolism_gd(
         filename='fba_gd_swap',
-        total_time=4000,
+        total_time=200,
         divide=True,
         initial_state_file='vivecoli_t2',
         progress_bar=True,
