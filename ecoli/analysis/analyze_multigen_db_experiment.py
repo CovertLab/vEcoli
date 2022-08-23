@@ -8,6 +8,10 @@ from vivarium.library.units import remove_units
 from ecoli.analysis.analyze_db_experiment import access, OUT_DIR
 
 AGENTS_PATH = ('agents',)
+SKIP_PATHS = [
+    ('listeners', 'rna_synth_prob'),
+    ('listeners', 'ribosome_data'),
+]
 
 
 def main():
@@ -33,6 +37,7 @@ def main():
         data,
         {
             'agents_key': 'agents',
+            'skip_paths': SKIP_PATHS,
         },
         out_dir=OUT_DIR,
         filename=f'{experiment_id}_multigen',

@@ -9,7 +9,6 @@ from ecoli.library.schema import bulk_schema, array_from
 from vivarium.core.process import Step
 
 from ecoli.processes.registries import topology_registry
-from ecoli.library.convert_update import convert_numpy_to_builtins
 
 
 NAME = 'monomer_counts_listener'
@@ -164,7 +163,7 @@ class MonomerCounts(Step):
                 'monomer_counts': monomer_counts
             }
         }
-        return convert_numpy_to_builtins(update)
+        return update
 
 
 def test_monomer_counts_listener():

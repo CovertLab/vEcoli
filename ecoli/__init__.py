@@ -8,7 +8,6 @@ from ecoli.library.schema import (
     divide_binomial,
     make_dict_value_updater,
     divide_by_domain,
-    divide_unique,
     divide_RNAs_by_domain,
     divide_domain,
     empty_dict_divider,
@@ -24,7 +23,7 @@ from ecoli.library.updaters import (
     inverse_update_nonnegative_accumulate,
     inverse_update_dictionary,
 )
-from ecoli.library.serialize import UnumSerializer
+from ecoli.library.serialize import UnumSerializer, ParameterSerializer
 
 # register :term:`updaters`
 for unique_mol, defaults in UNIQUE_DEFAULTS.items():
@@ -49,10 +48,12 @@ divider_registry.register('binomial_ecoli', divide_binomial)
 divider_registry.register('by_domain', divide_by_domain)
 divider_registry.register('divide_domain', divide_domain)
 divider_registry.register('rna_by_domain', divide_RNAs_by_domain)
-divider_registry.register('divide_unique', divide_unique)
 divider_registry.register('empty_dict', empty_dict_divider)
 divider_registry.register('divide_ribosomes', divide_ribosomes)
 divider_registry.register('set_none', divide_set_none)
 
 # register serializers
-serializer_registry.register('unum', UnumSerializer())
+for serializer_cls in (UnumSerializer, ParameterSerializer):
+    serializer = serializer_cls()
+    serializer_registry.register(
+        serializer.name, serializer, serializer.alternate_keys)
