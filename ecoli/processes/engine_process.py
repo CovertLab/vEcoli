@@ -63,9 +63,9 @@ import copy
 
 import numpy as np
 from vivarium.core.engine import Engine
-from vivarium.core.process import Process, Step
-from vivarium.core.registry import updater_registry, divider_registry
-from vivarium.core.store import DEFAULT_SCHEMA
+from vivarium.core.process import Process
+from vivarium.core.registry import updater_registry
+from vivarium.core.store import DEFAULT_SCHEMA, Store
 from vivarium.library.topology import get_in
 
 from ecoli.library.sim_data import RAND_MAX
@@ -160,6 +160,8 @@ class EngineProcess(Process):
     # TODO: Handle name clashes between tunnels.
 
     def __init__(self, parameters=None):
+        parameters = parameters or {}
+        parameters['_no_original_parameters'] = True
         super().__init__(parameters)
         composite = self.parameters['composite']
         self.tunnels_out = cap_tunneling_paths(
@@ -232,6 +234,24 @@ class EngineProcess(Process):
         for process in self.sim.processes.values():
             timestep = min(timestep, process.calculate_timestep({}))
         return timestep
+
+    def get_inner_state(self) -> None:
+        def not_a_process(value):
+            return not (isinstance(value, Store) and value.topology)
+        return self.sim.state.get_value(condition=not_a_process)
+
+    def send_command(self, command, args = None, kwargs = None,
+            run_pre_check = True) -> None:
+        if run_pre_check:
+            self.pre_send_command(command, args, kwargs)
+        args = args or tuple()
+        kwargs = kwargs or {}
+
+        if command == 'get_inner_state':
+            self._command_result = self.get_inner_state()
+        else:
+            self._pending_command = None
+            super().send_command(command, args, kwargs)
 
     def next_update(self, timestep, states):
         # Check whether we are being forced to finish early. This check

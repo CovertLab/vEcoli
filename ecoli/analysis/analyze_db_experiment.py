@@ -41,6 +41,9 @@ def main():
     parser.add_argument(
         '--experiment_id', '-e',
         type=str, default=False)
+    parser.add_argument(
+        '--agent_id', '-a', type=str, default='',
+        help='ID of agent. If unspecified, assume single-cell sim.')
     args = parser.parse_args()
     experiment_id = args.experiment_id
 
@@ -51,7 +54,15 @@ def main():
         ('listeners', 'monomer_counts'),
         ('bulk',),
     ]
+    if args.agent_id:
+        query = [('agents', args.agent_id) + path for path in query]
     data, experiment_id, sim_config = access(experiment_id, query)
+    if args.agent_id:
+        data = {
+            time: timepoint['agents'][args.agent_id]
+            for time, timepoint in data.items()
+            if args.agent_id in timepoint['agents']
+        }
 
     # run plots
     make_plots(data, experiment_id, sim_config)
