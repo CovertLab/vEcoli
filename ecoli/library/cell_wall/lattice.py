@@ -6,23 +6,8 @@ import pandas as pd
 from matplotlib import pyplot as plt
 from skimage.transform import resize
 
-from ecoli.library.cell_wall.column_sampler import geom_sampler, sample_column
+from ecoli.library.cell_wall.column_sampler import geom_sampler, sample_lattice
 from vivarium.library.units import remove_units
-
-
-def de_novo_lattice(murein_monomers, rows, cols, strand_sampler, rng):
-    lattice = np.array(
-        [
-            sample_column(
-                rows,
-                murein_monomers / cols,
-                strand_sampler,
-                rng,
-            )
-            for _ in range(cols)
-        ]
-    ).T
-    return lattice
 
 
 def calculate_lattice_size(
@@ -84,21 +69,22 @@ def plot_lattice(lattice, on_cylinder=False, aspect=1):
     return fig, ax
 
 
-def get_strand_length_distribution(lattice):
-    lengths = []
+def get_length_distributions(lattice):
+    strand_lengths = []
+    gap_lengths = []
+    lengths = (strand_lengths, gap_lengths)
     for c in range(lattice.shape[1]):
         column = lattice[:, c]
-        # circular shift the column around until it starts with a 0
+        # circular shift the column around
+        # until the wrap point represents a gap-strand boundary
         shift = 0
-        while column[0] != 0 and shift < column.size:
+        while column[0] == column[-1] and shift < column.size:
             column = np.roll(column, shift)
             shift += 1
 
-        for val, strand in groupby(column):
-            if val == 0:
-                continue
-            strand = list(strand)
-            lengths.append(len(strand))
+        for val, seq in groupby(column):
+            seq = list(seq)
+            lengths[val].append(len(seq))
 
     return lengths
 
@@ -160,9 +146,10 @@ def test_lattice():
 
 def test_strand_length_plot():
     rng = np.random.default_rng(0)
-    lattice = de_novo_lattice(1607480, 3050, 700, geom_sampler(rng, 0.058), rng)
+    lattice = sample_lattice(1607480, 3050, 700, geom_sampler(rng, 0.058), rng)
 
-    fig, _ = plot_strand_length_distribution(lattice)
+    strand_lengths, _ = get_length_distributions(lattice)
+    fig, _ = plot_strand_length_distribution(strand_lengths)
     fig.tight_layout()
     fig.savefig("out/processes/cell_wall/test_strand_length_plot.png")
 

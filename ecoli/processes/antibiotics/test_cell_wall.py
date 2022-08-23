@@ -2,8 +2,7 @@ import os
 import re
 import numpy as np
 import pandas as pd
-from ecoli.library.cell_wall.column_sampler import geom_sampler
-from ecoli.library.cell_wall.lattice import de_novo_lattice
+from ecoli.library.cell_wall.column_sampler import geom_sampler, sample_lattice
 
 from ecoli.library.create_timeline import add_computed_value, create_timeline_from_df
 from ecoli.processes.antibiotics.cell_wall import CellWall
@@ -111,7 +110,7 @@ def test_cell_wall():
     initial_volume = parse_unit_string(timeline_data.iloc[0]["Volume"])
     rng = np.random.default_rng(0)
 
-    initial_lattice = de_novo_lattice(
+    initial_lattice = sample_lattice(
         initial_murein * 4, 3050, 599, geom_sampler(rng, 0.058), rng
     )
 

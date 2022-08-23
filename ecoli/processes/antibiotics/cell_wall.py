@@ -3,12 +3,11 @@ TODO: references for parameters
 """
 
 import numpy as np
-from ecoli.library.cell_wall.column_sampler import geom_sampler, sample_column
+from ecoli.library.cell_wall.column_sampler import geom_sampler, sample_column, sample_lattice
 from ecoli.library.cell_wall.hole_detection import detect_holes_skimage
 from ecoli.library.cell_wall.lattice import (
     calculate_lattice_size,
-    de_novo_lattice,
-    get_strand_length_distribution,
+    get_length_distributions,
 )
 from ecoli.library.schema import bulk_schema
 from ecoli.processes.registries import topology_registry
@@ -136,7 +135,7 @@ class CellWall(Process):
         cols = states["wall_state"]["lattice_cols"]
         lattice = states["wall_state"]["lattice"]
         if lattice is None:
-            lattice = de_novo_lattice(
+            lattice = sample_lattice(
                 incorporated_murein * 4,
                 rows,
                 cols,
@@ -252,7 +251,7 @@ class CellWall(Process):
         update["listeners"] = {
             "porosity": 1 - (lattice.sum() / lattice.size),
             "hole_size_distribution": np.bincount(hole_sizes),
-            "strand_length_distribution": get_strand_length_distribution(lattice),
+            "strand_length_distribution": get_length_distributions(lattice)[0],
         }
 
         if max_size > self.critical_area:
