@@ -7,6 +7,8 @@ Represents the total cellular mass.
 """
 
 import numpy as np
+from scipy import constants
+
 from vivarium.core.process import Deriver
 from ecoli.library.schema import bulk_schema, array_from, dict_value_schema
 
@@ -74,20 +76,24 @@ class MassListener(Deriver):
         if self.parameters['add_tetracycline_masses']:
             self.unique_ids = np.append(
                 self.unique_ids, 'active_ribosome_tetracycline')
-            active_ribo_idx = np.where(
+            active_ribosome_idx = np.where(
                 self.unique_ids == 'active_ribosome')[0][0]
+            active_ribosome_tetracycline_mass = self.unique_masses[active_ribosome_idx].copy()
+            active_ribosome_tetracycline_mass[6] += 444.435 / constants.N_A * 1e15
             self.unique_masses = np.append(
                 self.unique_masses,
-                [self.unique_masses[active_ribo_idx]],
+                [active_ribosome_tetracycline_mass],
                 axis=0,
             )
             self.bulk_ids = np.append(
                 self.bulk_ids, 'CPLX0-3953-tetracycline[c]')
             bulk_30s_idx = np.where(
                 self.bulk_ids == 'CPLX0-3953[c]')[0][0]
+            bulk_30s_tetracycline_mass = self.bulk_masses[bulk_30s_idx].copy()
+            bulk_30s_tetracycline_mass[6] += 444.435 / constants.N_A * 1e15
             self.bulk_masses = np.append(
                 self.bulk_masses,
-                [self.bulk_masses[bulk_30s_idx]],
+                [bulk_30s_tetracycline_mass],
                 axis=0,
             )
         # End of newly-added code.
