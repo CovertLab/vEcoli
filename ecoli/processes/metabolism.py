@@ -90,6 +90,15 @@ class Metabolism(Step):
     }
 
     def __init__(self, parameters=None):
+
+        # add = {}
+        # for rxn in parameters['stoichiometry']:
+        #     newDict = {}
+        #     for metabolite in parameters['stoichiometry'][rxn]:
+        #         newDict[metabolite] = -1 * parameters['stoichiometry'][rxn][metabolite]
+        #     add[rxn + ' (DUP)'] = newDict
+        # parameters['stoichiometry'].update(add)
+
         super().__init__(parameters)
 
         # Use information from the environment and sim
@@ -682,7 +691,7 @@ class FluxBalanceAnalysisModel(object):
         # (infinite upper bound) or absence (upper bound of zero)
         reaction_bounds = np.inf * np.ones(len(self.reactions_with_catalyst))
         no_rxn_mask = self.catalysis_matrix.dot(catalyst_counts) == 0
-        reaction_bounds[no_rxn_mask] = 0
+        # reaction_bounds[no_rxn_mask] = 0
         self.fba.setReactionFluxBounds(self.reactions_with_catalyst,
                                        upperBounds=reaction_bounds, raiseForReversible=False)
 

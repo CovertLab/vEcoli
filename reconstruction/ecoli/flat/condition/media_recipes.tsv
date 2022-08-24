@@ -8,6 +8,7 @@
 "minimal_fumarate"	"M9"	1.0	""	0	["FUM"]	[Infinity]	[]	[]
 "minimal_malate"	"M9"	1.0	""	0	["MAL"]	[Infinity]	[]	[]
 "minimal_succinate"	"M9"	1.0	""	0	["SUC"]	[Infinity]	[]	[]
+"minimal_fructose"	"M9"	1.0	""	0	["FRU"]	[Infinity]	[]	[]
 "minimal_minus_calcium"	"M9_GLC"	1.0	""	0	["CA+2"]	[-Infinity]	[]	[]
 "minimal_minus_magnesium"	"M9_GLC"	1.0	""	0	["MG+2"]	[-Infinity]	[]	[]
 "minimal_minus_phosphate"	"M9_GLC"	1.0	""	0	["Pi"]	[-Infinity]	[]	[]
@@ -21,4 +22,3 @@
 "minimal_plus_quercetin"	"M9_GLC"	1.0	""	0	["CPD-520"]	[Infinity]	[]	[]
 "minimal_plus_sam"	"M9_GLC"	1.0	""	0	["S-ADENOSYLMETHIONINE"]	[Infinity]	[]	[]
 "minimal_plus_tungstate"	"M9_GLC"	1.0	""	0	["TUNGSTATE"]	[Infinity]	[]	[]
-"minimal_fructose"	"M9_FRUkj"	1.0	""	0	[]	[]	[]	[]
