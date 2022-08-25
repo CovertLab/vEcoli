@@ -7,11 +7,13 @@
 '''
 
 import copy
+from datetime import datetime, timezone
 import os
 import re
 
 import numpy as np
 from vivarium.core.composer import Composer
+from vivarium.core.emitter import SharedRamEmitter
 from vivarium.core.engine import Engine
 from vivarium.core.serialize import serialize_value
 from vivarium.core.store import Store
@@ -47,7 +49,11 @@ class EcoliEngineProcess(Composer):
         'divide': False,
         'division_threshold': 0,
         'division_variable': tuple(),
-        'reports': tuple(),
+        'tunnels_in': tuple(),
+        'emit_paths': tuple(),
+        'start_time': 0,
+        'experiment_id': '',
+        'inner_emitter': 'null',
     }
 
     def generate_processes(self, config):
@@ -71,15 +77,19 @@ class EcoliEngineProcess(Composer):
             'initial_inner_state': initial_inner_state,
             'tunnels_in': dict({
                 f'{"-".join(path)}_tunnel': path
-                for path in config['reports']
+                for path in config['tunnels_in']
             }),
+            'emit_paths': config['emit_paths'],
             'tunnel_out_schemas': config['tunnel_out_schemas'],
             'stub_schemas': config['stub_schemas'],
             'seed': (config['seed'] + 1) % RAND_MAX,
+            'inner_emitter': config['inner_emitter'],
             'divide': config['divide'],
             'division_threshold': config['division_threshold'],
             'division_variable': config['division_variable'],
             '_parallel': config['parallel'],
+            'start_time': config['start_time'],
+            'experiment_id': config['experiment_id'],
         }
         cell_process = EngineProcess(cell_process_config)
         return {
@@ -94,7 +104,7 @@ class EcoliEngineProcess(Composer):
                 'dimensions_tunnel': ('..', '..', 'dimensions'),
             },
         }
-        for path in config['reports']:
+        for path in config['tunnels_in']:
             topology['cell_process'][f'{"-".join(path)}_tunnel'] = path
         return topology
 
@@ -189,12 +199,11 @@ def run_simulation(config):
             ('boundary',): multibody_schema['agents']['*']['boundary'],
         }
 
-    reports = {
-        tuple(path) for path in
-        config.get('engine_process_reports', tuple())
-    }
-    reports |= {('environment',), ('boundary',)}
-
+    experiment_id = datetime.now(timezone.utc).strftime(
+        '%Y-%m-%d_%H-%M-%S_%f%z')
+    emitter_config = {'type': config['emitter']}
+    for key, value in config['emitter_arg']:
+        emitter_config[key] = value
     base_config = {
         'agent_id': config['agent_id'],
         'tunnel_out_schemas': tunnel_out_schemas,
@@ -204,8 +213,15 @@ def run_simulation(config):
         'divide': config['divide'],
         'division_threshold': config['division']['threshold'],
         'division_variable': ('listeners', 'mass', 'cell_mass'),
-        'reports': tuple(reports),
+        'tunnels_in': (
+            ('environment',),
+            ('boundary',),
+        ),
+        'emit_paths': tuple(
+            tuple(path) for path in config['engine_process_reports']
+        ),
         'seed': config['seed'],
+        'experiment_id': experiment_id,
     }
     composite = {}
     if 'initial_colony_file' in config.keys():
@@ -218,13 +234,19 @@ def run_simulation(config):
                 + int(float(time_str))
                 + int(agent_id, base=2)
             ) % RAND_MAX
+            agent_path = ('agents', agent_id)
             agent_config = {
                 'initial_cell_state': agent_state,
                 'agent_id': agent_id,
                 'seed': seed,
+                'inner_emitter': {
+                    **emitter_config,
+                    'embed_path': agent_path,
+                },
             }
             agent_composer = EcoliEngineProcess(base_config)
-            agent_composite = agent_composer.generate(agent_config, path=('agents', agent_id))
+            agent_composite = agent_composer.generate(
+                agent_config, path=agent_path)
             if not composite:
                 composite = agent_composite
             composite.processes['agents'][agent_id] = agent_composite.processes['agents'][agent_id]
@@ -237,8 +259,13 @@ def run_simulation(config):
                 time_str = initial_state_path[len('vivecoli_t'):]
                 seed = int(float(time_str))
                 base_config['seed'] += seed
+            agent_path = ('agents', config['agent_id'])
+            base_config['inner_emitter'] = {
+                **emitter_config,
+                'embed_path': agent_path
+            }
         composer = EcoliEngineProcess(base_config)
-        composite = composer.generate(path=('agents', config['agent_id']))
+        composite = composer.generate(path=agent_path)
         initial_state = composite.initial_state()
 
     if config['spatial_environment']:
@@ -252,13 +279,11 @@ def run_simulation(config):
     metadata['git_hash'] = get_git_revision_hash()
     metadata['git_status'] = get_git_status()
 
-    emitter_config = {'type': config['emitter']}
-    for key, value in config['emitter_arg']:
-        emitter_config[key] = value
     engine = Engine(
         processes=composite.processes,
         topology=composite.topology,
         initial_state=initial_state,
+        experiment_id=experiment_id,
         emitter=emitter_config,
         progress_bar=config['progress_bar'],
         metadata=metadata,
@@ -278,14 +303,17 @@ def run_simulation(config):
 
 
 def test_run_simulation():
+    # Clear the emitter's data in case it has been filled by another
+    # test.
+    SharedRamEmitter.saved_data.clear()
     config = SimConfig()
     spatial_config_path = os.path.join(CONFIG_DIR_PATH, 'spatial.json')
     config.update_from_json(spatial_config_path)
     config.update_from_dict({
-        'total_time': 4,
+        'total_time': 5,
         'divide': True,
-        'emitter' : 'timeseries',
-        'parallel': True,
+        'emitter' : 'shared_ram',
+        'parallel': False,
         'engine_process_reports': [
             ('listeners', 'mass'),
         ],
@@ -295,7 +323,7 @@ def test_run_simulation():
     data = engine.emitter.get_data()
 
     assert min(data.keys()) == 0
-    assert max(data.keys()) == 4
+    assert max(data.keys()) == 5
 
     assert np.all(np.array(data[0]['fields']['GLC[p]']) == 1)
     assert np.any(np.array(data[4]['fields']['GLC[p]']) != 1)
