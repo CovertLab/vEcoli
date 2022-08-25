@@ -122,7 +122,7 @@
         "death": {
             "detectors": [
                 ["antibiotic", {
-                    "antibiotic_threshold": "!units[0.001 millimolar]",
+                    "antibiotic_threshold": "!units[0.03 millimolar]",
                     "antibiotic_key": "tetracycline"
                 }]
             ],
