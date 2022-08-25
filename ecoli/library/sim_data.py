@@ -555,6 +555,22 @@ class LoadSimData:
         rxn_names = [rxn['reaction id'] for rxn in rxns]
         kinetic_reactions = [rxn for rxn in self.sim_data.process.metabolism.kinetic_constraint_reactions if rxn in rxn_names]
 
+        # Carbon source limitations.
+        carbon_source_active_transport = ['TRANS-RXN-157-PTSH-PHOSPHORYLATED/GLC//ALPHA-GLC-6-P/PTSH-MONOMER.52.',
+                                               'TRANS-RXN-157-PTSH-PHOSPHORYLATED/GLC//D-glucopyranose-6-phosphate'
+                                               '/PTSH-MONOMER.66.',
+                                               'TRANS-RXN-157-PTSH-PHOSPHORYLATED/GLC//GLC-6-P/PTSH-MONOMER.46.']
+
+        carbon_source_active_transport_duplicate = ['TRANS-RXN-320-GLC/ATP/WATER//ALPHA-GLUCOSE/ADP/Pi/PROTON.43.',
+                                                         'TRANS-RXN-320-GLC/ATP/WATER//GLC/ADP/Pi/PROTON.33.',
+                                                         'TRANS-RXN-320-GLC/ATP/WATER//Glucopyranose/ADP/Pi/PROTON.43.']
+
+        carbon_source_facilitated_diffusion = ['RXN0-7077-GLC/PROTON//ALPHA-GLUCOSE/PROTON.33.',
+                                                    'RXN0-7077-GLC/PROTON//Glucopyranose/PROTON.33.',
+                                                    'RXN0-7077-GLC/PROTON//GLC/PROTON.23.',
+                                                    'TRANS-RXN0-574-GLC//GLC.9.',
+                                                    'TRANS-RXN0-574-GLC//Glucopyranose.19.']
+
 
         # TODO Reconstruct catalysis and annotate.
         # Required:
@@ -593,7 +609,12 @@ class LoadSimData:
             'catalyst_ids': self.sim_data.process.metabolism.catalyst_ids,
             'kinetic_constraint_enzymes': self.sim_data.process.metabolism.kinetic_constraint_enzymes,
             'kinetic_constraint_substrates': self.sim_data.process.metabolism.kinetic_constraint_substrates,
-            'deriver_mode': deriver_mode
+            'deriver_mode': deriver_mode,
+
+            # new parameters
+            'carbon_source_active_transport': carbon_source_active_transport,
+            'carbon_source_active_transport_duplicate': carbon_source_active_transport_duplicate,
+            'carbon_source_facilitated_diffusion': carbon_source_facilitated_diffusion,
 
         }
 

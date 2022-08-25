@@ -91,6 +91,11 @@ class MetabolismGD(Process):
         self.get_kinetic_constraints = self.parameters['get_kinetic_constraints']
         self.kinetic_constraint_reactions = self.parameters['kinetic_constraint_reactions']
 
+        # carbon sources
+        self.carbon_source_active_transport = self.parameters['carbon_source_active_transport']
+        self.carbon_source_active_transport_duplicate = self.parameters['carbon_source_active_transport_duplicate']
+        self.carbon_source_facilitated_diffusion = self.parameters['carbon_source_facilitated_diffusion']
+
         # retrieve exchanged molecules
         exchange_molecules = set()
         exchanges = parameters['exchange_data_from_media'](self.media_id)
@@ -101,9 +106,9 @@ class MetabolismGD(Process):
         # metabolites not in either set are constrained to zero uptake.
         self.allowed_exchange_uptake = UNCONSTRAINED_UPTAKE + list(CONSTRAINED_UPTAKE.keys())
 
-        self.exchange_molecules.add('FRU[p]')
-        self.allowed_exchange_uptake.append('FRU[p]')
-        self.allowed_exchange_uptake.remove('GLC[p]')
+        # self.exchange_molecules.add('FRU[p]')
+        # self.allowed_exchange_uptake.append('FRU[p]')
+        # self.allowed_exchange_uptake.remove('GLC[p]')
 
         self.disallowed_exchange_uptake = list(set(exchange_molecules) - set(self.allowed_exchange_uptake))
 
@@ -115,21 +120,6 @@ class MetabolismGD(Process):
         self.homeostatic_objective = dict((key, conc_dict[key].asNumber(CONC_UNITS)) for key in conc_dict)
         self.kinetic_objective = [reaction['reaction id'] for reaction in self.stoichiometry if reaction['enzyme']]
         self.maintenance_objective = ['maintenance_reaction']
-
-        self.carbon_source_active_transport = ['TRANS-RXN-157-PTSH-PHOSPHORYLATED/GLC//ALPHA-GLC-6-P/PTSH-MONOMER.52.',
-                                               'TRANS-RXN-157-PTSH-PHOSPHORYLATED/GLC//D-glucopyranose-6-phosphate'
-                                               '/PTSH-MONOMER.66.',
-                                               'TRANS-RXN-157-PTSH-PHOSPHORYLATED/GLC//GLC-6-P/PTSH-MONOMER.46.']
-
-        self.carbon_source_active_transport_duplicate = ['TRANS-RXN-320-GLC/ATP/WATER//ALPHA-GLUCOSE/ADP/Pi/PROTON.43.',
-                                                         'TRANS-RXN-320-GLC/ATP/WATER//GLC/ADP/Pi/PROTON.33.',
-                                                         'TRANS-RXN-320-GLC/ATP/WATER//Glucopyranose/ADP/Pi/PROTON.43.']
-
-        self.carbon_source_facilitated_diffusion = ['RXN0-7077-GLC/PROTON//ALPHA-GLUCOSE/PROTON.33.',
-                                                    'RXN0-7077-GLC/PROTON//Glucopyranose/PROTON.33.',
-                                                    'RXN0-7077-GLC/PROTON//GLC/PROTON.23.',
-                                                    'TRANS-RXN0-574-GLC//GLC.9.',
-                                                    'TRANS-RXN0-574-GLC//Glucopyranose.19.']
 
         self.disallowed_carbon_transport = self.carbon_source_active_transport_duplicate + \
                                            self.carbon_source_facilitated_diffusion
