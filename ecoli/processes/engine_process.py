@@ -691,10 +691,6 @@ def test_engine_process():
             'b': 3,
             'c': 3
         },
-        # TODO: Here the values for b appear to stall because
-        # EngineProcess doesn't produce normal updates when it decides
-        # to divide. In this case, that means the updates to b (in outer
-        # sim) get lost.
         4.0: {
             'agents': {
                 '00': {'a': 2, 'b_tunnel': 4, 'c': 6, 'd': 0},
