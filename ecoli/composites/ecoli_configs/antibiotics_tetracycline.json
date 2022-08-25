@@ -44,7 +44,7 @@
                 },
                 "delta_species": ["bioscrape_deltas", "tetracycline"],
                 "exchanges": {
-                    "external": ["environment", "exchanges", "tetracycline"]
+                    "external": ["environment", "exchange", "tetracycline"]
                 },
                 "external": {
                     "external": ["boundary", "external", "tetracycline"]
@@ -195,7 +195,7 @@
                             },
                             "delta_species": ["bioscrape_deltas", "tetracycline"],
                             "exchanges": {
-                                "external": ["environment", "exchanges", "tetracycline"]
+                                "external": ["environment", "exchange", "tetracycline"]
                             },
                             "external": {
                                 "external": ["boundary", "external", "tetracycline"]

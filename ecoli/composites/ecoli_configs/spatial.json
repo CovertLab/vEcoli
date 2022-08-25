@@ -54,6 +54,6 @@
     },
     "engine_process_reports": [
         ["boundary"],
-        ["environment", "exchanges"]
+        ["environment", "exchange"]
     ]
 }
