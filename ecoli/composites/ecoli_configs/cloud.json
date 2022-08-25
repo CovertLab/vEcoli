@@ -4,7 +4,8 @@
     "divide": true,
     "emitter" : "database",
     "emitter_arg": [
-        ["host", "10.138.0.75:27017"]
+        ["host", "10.138.0.75:27017"],
+        ["emit_limit", 5000000]
     ],
     "parallel": true,
     "engine_process_reports": [
