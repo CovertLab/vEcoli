@@ -127,8 +127,12 @@ def species_derivatives(state_arr, reaction_params, internal_bias):
     hydrolase_conc = reaction_params['hydrolysis']['enzyme_conc']
     n_hydrolysis = reaction_params['hydrolysis']['n']
 
-    diffusion_rate = area * permeability / volume_p * internal_bias (external
-        - internal * np.exp(internal_bias)) / (np.exp(internal_bias) - 1)
+    if internal_bias != 0:
+        diffusion_rate = area * permeability / volume_p * internal_bias (external
+            - internal * np.exp(internal_bias)) / (np.exp(internal_bias) - 1)
+    # Goldman-Hodgkin-Katz equation simplfies to Fick's law when bias = 0
+    else:
+        diffusion_rate = area * permeability / volume_p * (external - internal)
     export_rate = (
         kcat_export * pump_conc * internal**n_export
     ) / (
