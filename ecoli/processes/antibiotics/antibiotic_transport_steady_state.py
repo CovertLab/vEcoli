@@ -198,7 +198,7 @@ def find_steady_state(external, reaction_params, internal_bias):
     result = root_scalar(
         internal_derivative,
         args=args,
-        bracket=[0, external * internal_bias],
+        bracket=[0, external * np.exp(internal_bias)],
     )
     assert result.converged
     return result.root
