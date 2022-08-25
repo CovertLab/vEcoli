@@ -190,9 +190,9 @@ class AntibioticTransportOdeint(Process):
                 units.J / units.mol / units.K)
             temperature = param_store.get(('temperature',)).to(units.K)
             # Biases diffusion to favor higher internal concentrations
-            # according to the Nernst Equation.
-            internal_bias = np.exp(
-                charge * faraday * potential / gas_constant / temperature)
+            # according to the Goldman-Hodgkin-Katz flux equation assuming
+            # the outer membrane has a potential from the Donnan equilibrium.
+            internal_bias = charge * faraday * potential / gas_constant / temperature
 
             if self.parameters['diffusion_only']:
                 prepared_state['reaction_parameters']['export'][

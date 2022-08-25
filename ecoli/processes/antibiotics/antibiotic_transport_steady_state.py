@@ -127,8 +127,8 @@ def species_derivatives(state_arr, reaction_params, internal_bias):
     hydrolase_conc = reaction_params['hydrolysis']['enzyme_conc']
     n_hydrolysis = reaction_params['hydrolysis']['n']
 
-    diffusion_rate = area * permeability * (
-        external * internal_bias - internal) / (volume_p)
+    diffusion_rate = area * permeability / volume_p * internal_bias (external
+        - internal * np.exp(internal_bias)) / (np.exp(internal_bias) - 1)
     export_rate = (
         kcat_export * pump_conc * internal**n_export
     ) / (
@@ -435,10 +435,9 @@ class AntibioticTransportSteadyState(Process):
                 units.J / units.mol / units.K)
             temperature = param_store.get(('temperature',)).to(units.K)
             # Biases diffusion to favor higher internal concentrations
-            # according to the Nernst Equation. This results in our
-            # steady-state solution being for the Donnan Equilibrium.
-            internal_bias = np.exp(
-                charge * faraday * potential / gas_constant / temperature)
+            # according to the Goldman-Hodgkin-Katz flux equation assuming
+            # the outer membrane has a potential from the Donnan equilibrium.
+            internal_bias = charge * faraday * potential / gas_constant / temperature
 
             internal_steady_state = find_steady_state(
                 prepared_state['species']['external'],
