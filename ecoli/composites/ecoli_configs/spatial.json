@@ -22,7 +22,7 @@
                     "GLC[p]": "!units[1.0 millimolar]"
                 }
             },
-            "exchanges_path": ["environment", "exchanges"],
+            "exchanges_path": ["environment", "exchange"],
             "external_path": ["boundary", "external"],
             "location_path": ["boundary", "location"]
         },
