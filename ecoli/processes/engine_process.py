@@ -405,10 +405,8 @@ class EngineProcess(Process):
 
 def _inverse_update(
         initial_state, final_state, store, updater_registry_reverse):
-    if store.updater:
-        # Handle the base case where we have an updater. Note that this
-        # could still be at a branch if we put an updater on a branch
-        # node.
+    if not store.inner:
+        # Handle the base case where we are on a leaf node.
         if isinstance(store.updater, str):
             updater_name = store.updater
         else:
