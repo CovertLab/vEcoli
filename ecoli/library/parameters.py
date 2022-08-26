@@ -168,17 +168,17 @@ PARAMETER_DICT = {
         'permeability': {
             'outer_without_porins': Parameter(
                 0.7e-7 * units.cm / units.sec,
-                'Thananassi, Suh, and Nikaido (1995) p. 1004',
+                'Thanassi, Suh, and Nikaido (1995) p. 1004',
                 latex_source='thanassi1995role',
             ),
             'outer_with_porins': Parameter(
                 1e-5 * units.cm / units.sec,
-                'Thananassi, Suh, and Nikaido (1995) p. 1005',
+                'Thanassi, Suh, and Nikaido (1995) p. 1005',
                 latex_source='thanassi1995role',
             ),
             'inner': Parameter(
                 3e-6 * units.cm / units.sec,
-                'Thananassi, Suh, and Nikaido (1995) p. 1004',
+                'Thanassi, Suh, and Nikaido (1995) p. 1004',
                 latex_source='thanassi1995role',
             ),
         },
@@ -186,12 +186,12 @@ PARAMETER_DICT = {
         'efflux': {
             'vmax': Parameter(
                 0.2 * units.nmol / units.mg / units.min,
-                'Thananassi, Suh, and Nikaido (1995) p. 1004',
+                'Thanassi, Suh, and Nikaido (1995) p. 1004',
                 latex_source='thanassi1995role',
             ),
             'km': Parameter(
                 200 * units.uM,
-                'Thananassi, Suh, and Nikaido (1995) p. 1004',
+                'Thanassi, Suh, and Nikaido (1995) p. 1004',
                 latex_source='thanassi1995role',
             ),
             'n': Parameter(
@@ -200,7 +200,7 @@ PARAMETER_DICT = {
         },
         'mic': Parameter(
             2.5 * units.micromolar,
-            'Thananassi, Suh, and Nikaido (1995) p. 1005',
+            'Thanassi, Suh, and Nikaido (1995) p. 1005',
             latex_source='thanassi1995role',
         ),
     },
@@ -244,9 +244,9 @@ PARAMETER_DICT = {
     },
     'avogadro': constants.N_A / units.mol,
     'donnan_potential': Parameter(
-        0.026 * units.volt,
-        'Thananassi, Suh, and Nikaido (1995) p. 999',
-        latex_source='thanassi1995role',
+        -0.0215 * units.volt,
+        'Sen, Hellman, and Nikaido (1988) p. 1184',
+        latex_source='sen1988porin',
     ),
     'faraday_constant': Parameter(
         constants.value(

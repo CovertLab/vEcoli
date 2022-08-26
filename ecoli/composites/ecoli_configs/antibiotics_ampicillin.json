@@ -1,7 +1,7 @@
 {
     "inherit_from": ["antibiotics.json"],
     "add_processes": [
-        "antibiotic-transport-steady-state",
+        "antibiotic-transport-odeint",
         "permeability",
         "death"
     ],
@@ -22,7 +22,7 @@
         }
     },
     "topology": {
-        "antibiotic-transport-steady-state": {
+        "antibiotic-transport-odeint": {
             "ampicillin": {
                 "species": {
                     "_path": ["null"],
@@ -77,7 +77,7 @@
         }
     },
     "process_configs": {
-        "antibiotic-transport-steady-state": {
+        "antibiotic-transport-odeint": {
             "initial_reaction_parameters": {
                 "ampicillin": {
                     "diffusion": {
@@ -121,8 +121,8 @@
                 }]
             ],
             "to_add": {
-                "antibiotic-transport-steady-state-diffusion-only": [
-                    "antibiotic-transport-steady-state",
+                "antibiotic-transport-odeint-diffusion-only": [
+                    "antibiotic-transport-odeint",
                     {
                         "initial_reaction_parameters": {
                             "ampicillin": {

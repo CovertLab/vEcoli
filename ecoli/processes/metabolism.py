@@ -39,7 +39,7 @@ TOPOLOGY = {
         "listeners": ("listeners",),
         "environment": {
             "_path": ("environment",),
-            "exchange": ("exchanges",),
+            "exchange": ("exchange",),
         },
         "polypeptide_elongation": ("process_state", "polypeptide_elongation"),
         # Non-partitioned count
