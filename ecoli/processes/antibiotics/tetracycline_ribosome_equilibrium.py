@@ -206,18 +206,6 @@ class TetracyclineRibosomeEquilibrium(Step):
                 count_70s_to_inhibit,
                 replace=False,
             )
-            dicts_70s_to_inhibit = [
-                without_multi(
-                    states['70s-free'][key],
-                    RIBOSOME_KEYS_TO_REMOVE,
-                )
-                for key in ids_70s_to_inhibit
-            ]
-            new_unique_indexes = create_unique_indexes(
-                count_70s_to_inhibit, self.random_state)
-            for new_index, ribosome in zip(
-                    new_unique_indexes, dicts_70s_to_inhibit):
-                ribosome['unique_index'] = new_index
             # Assume that when ribosomes are inhibited, they also become
             # inactive.
             update.update({
