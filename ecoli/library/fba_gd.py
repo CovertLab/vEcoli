@@ -138,19 +138,36 @@ class SteadyStateObjective(ObjectiveComponent):
         """Returns the subset of dm/dt affecting intermediates, which should all be zero."""
         return dm_dt[self.indices] * self.weight
 
-class FluxSumObjective(ObjectiveComponent):
-    """Minimizes futile cycles. """
+
+class MinimizeExchangeObjective(ObjectiveComponent):
+    """Calculates the deviation of the system from steady state, for network intermediates."""
+
+    def __init__(self, network: ReactionNetwork, exchanges: Iterable[str], weight: float = 1.0):
+        self.indices = np.array([network.molecule_index(m) for m in exchanges])
+        self.weight = weight
+
+    def prepare_targets(self, target_values: Optional[Mapping[str, Any]] = None) -> Optional[ArrayT]:
+        """SteadyStateObjective does not use solve-time target values; always returns None."""
+        return None
+
+    def residual(self, velocities: ArrayT, dm_dt: ArrayT, targets: Optional[ArrayT] = None) -> ArrayT:
+        """Returns the subset of dm/dt affecting intermediates, which should all be zero."""
+        return dm_dt[self.indices] * self.weight
+
+
+class MinimizeFluxObjective(ObjectiveComponent):
+    """Calculates the deviation of the system from steady state, for network intermediates."""
 
     def __init__(self, network: ReactionNetwork, weight: float = 1.0):
         self.weight = weight
 
     def prepare_targets(self, target_values: Optional[Mapping[str, Any]] = None) -> Optional[ArrayT]:
-        """FluxSumObjective does not use solve-time target values; always returns None."""
+        """SteadyStateObjective does not use solve-time target values; always returns None."""
         return None
 
     def residual(self, velocities: ArrayT, dm_dt: ArrayT, targets: Optional[ArrayT] = None) -> ArrayT:
         """Returns the subset of dm/dt affecting intermediates, which should all be zero."""
-        return jnp.array([jnp.sum(velocities) * self.weight])
+        return jnp.array([jnp.sum(jnp.abs(velocities))/len(velocities)]) * self.weight
 
 
 class VelocityBoundsObjective(ObjectiveComponent):
@@ -239,6 +256,7 @@ class TargetDmdtObjective(ObjectiveComponent):
 
     def prepare_targets(self, target_values: Mapping[str, Any]) -> Optional[ArrayT]:
         """Converts a dict {molecule_id: dmdt} into a vector of target values."""
+        # TODO (Cyrus) add functionality for stating target in initialization (e.g. zero flux)
         return self.network.molecule_vector(target_values)[self.indices]
 
     def residual(self, velocities: ArrayT, dm_dt: ArrayT, targets: ArrayT) -> ArrayT:
@@ -261,6 +279,26 @@ class TargetVelocityObjective(ObjectiveComponent):
     def residual(self, velocities: ArrayT, dm_dt: ArrayT, targets: ArrayT) -> ArrayT:
         """Returns the excess or shortfall of the actual velocity vs the target, for all target reactions."""
         return (velocities[self.indices] - targets) * self.weight
+
+
+class LenientTargetVelocityObjective(ObjectiveComponent):
+    """Calculates the deviation from target velocities for specified reactions."""
+
+    def __init__(self, network: ReactionNetwork, target_reactions: Iterable[str], weight: float = 1.0):
+        self.network = network
+        self.indices = np.array([network.reaction_index(r) for r in target_reactions])
+        self.weight = weight
+
+    def prepare_targets(self, target_values: Mapping[str, Any]) -> Optional[ArrayT]:
+        """Converts a dict {reaction_id: velocity} into a vector of target values."""
+        return self.network.reaction_vector(target_values)[self.indices]
+
+    def residual(self, velocities: ArrayT, dm_dt: ArrayT, targets: ArrayT) -> ArrayT:
+        """Returns the excess or shortfall of the actual velocity vs the target, for all target reactions."""
+        diff = jnp.abs(jnp.log(velocities[self.indices]+1) - jnp.log(targets+1))
+        high_acc = jnp.minimum(1, diff)
+        low_acc = jnp.maximum(0, diff-1)
+        return (high_acc*0.1 + low_acc) * self.weight
 
 
 @dataclass
