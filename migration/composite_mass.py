@@ -62,6 +62,8 @@ def test_composite_mass(total_time=30):
 def _make_assert(key):
     def custom_assert(a, b):
         rtol = RELATIVE_TOLERANCES.get(key, 0.01)
+        if np.isnan(a) and np.isnan(b):
+            return True
         close = np.isclose(a, b, rtol=rtol)
         if not close:
             rdiff = (np.absolute(a-b) / b).max()

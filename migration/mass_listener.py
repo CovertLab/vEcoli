@@ -1,85 +1,52 @@
 """
-tests that vivarium-ecoli process update are the same as saved wcEcoli updates
-
+tests that vivarium-ecoli mass_listener process update is the same as saved wcEcoli updates
 """
-
 import json
-import numpy as np
 import pytest
 
-from ecoli.library.schema import array_from
-from ecoli.experiments.ecoli_master_sim import EcoliSim, CONFIG_DIR_PATH
-from migration.migration_utils import ComparisonTestSuite, array_diffs_report, scalar_almost_equal
+from ecoli.library.sim_data import LoadSimData
+from ecoli.composites.ecoli_nonpartition import SIM_DATA_PATH
+from ecoli.processes.listeners.mass_listener import MassListener
+from migration.migration_utils import run_ecoli_process, recursive_compare
+from ecoli.states.wcecoli_state import get_state_from_file
 
+load_sim_data = LoadSimData(
+            sim_data_path=SIM_DATA_PATH,
+            seed=0)
+
+TOPOLOGY = MassListener.topology
 
 @pytest.mark.master
-def test_mass_listener():
-    ecoli_sim = EcoliSim.from_file(CONFIG_DIR_PATH + '/test_configs/test_mass_listener.json')
-    ecoli_sim.run()
-    actual_updates = ecoli_sim.query()
+def test_mass_listener_migration():
+    def test(initial_time):
+        # Set time parameters
+        total_time = 2
+        initial_time = initial_time
 
-    # actual_updates = run_ecoli(total_time=4, divide=False, blame=False, time_series=False)
+        # Create process, experiment, loading in initial state from file.
+        config = load_sim_data.get_mass_listener_config()
+        mass_listener_process = MassListener(config)
+        mass_listener_process.is_step = lambda: False
 
-    actual_update_t0 = actual_updates[0.0]['listeners']['mass']
-    actual_update_t2 = actual_updates[2.0]['listeners']['mass']
+        initial_state = get_state_from_file(
+            path=f'data/migration/wcecoli_t{initial_time}_before_post.json')
 
-    with open("data/mass_listener_update_t0.json") as f:
-        wc_update_t0 = json.load(f)
+        # run the process and get an update
+        actual_update = run_ecoli_process(
+            mass_listener_process, TOPOLOGY, initial_time=initial_time, 
+            initial_state=initial_state)
+        
+        with open(f"data/migration/mass_listener/update_t{total_time+initial_time}.json") as f:
+            wc_update = json.load(f)
+        assert recursive_compare(actual_update, wc_update, ignore_keys={
+            'dryMassFoldChange', 'proteinMassFoldChange', 'rnaMassFoldChange', 
+            'smallMoleculeFoldChange', 'expectedMassFoldChange', 'instantaniousGrowthRate',
+            'process_mass_diffs', 'growth'     
+        })
 
-    with open("data/mass_listener_update_t2.json") as f:
-        wc_update_t2 = json.load(f)
-
-    assertions(actual_update_t0, wc_update_t0, time=0)
-
-    #TODO: wcEcoli shrinks from time 0 to 2 for some reason...
-    #assertions(actual_update_t2, wc_update_t2, time=2)
-
-
-
-def assertions(actual_update, expected_update, time=0):
-    def both_nan(x, y):
-        return np.all(np.isnan([x, y]))
-
-    # TODO: mRNA and dna are affected by partitioning.
-    # See massDiffs in wcEcoli/wholecell/sim/unique_molecules.py.
-    # Also, add tests for compartment masses.
-    test_structure = {
-        'cell_mass': scalar_almost_equal,
-        'water_mass': scalar_almost_equal,
-        'dry_mass': scalar_almost_equal,
-        'rnaMass': scalar_almost_equal,
-        'rRnaMass': scalar_almost_equal,
-        'tRnaMass': scalar_almost_equal,
-        #'mRnaMass': scalar_almost_equal,
-        #'dnaMass': scalar_almost_equal,
-        'proteinMass': scalar_almost_equal,
-        'smallMoleculeMass': scalar_almost_equal,
-        'volume': scalar_almost_equal,
-        'proteinMassFraction': scalar_almost_equal,
-        'rnaMassFraction': scalar_almost_equal,
-        'growth': both_nan if time == 0 else scalar_almost_equal,
-        'instantaniousGrowthRate': both_nan if time == 0 else scalar_almost_equal,
-        'dryMassFoldChange': scalar_almost_equal,
-        'proteinMassFoldChange': scalar_almost_equal,
-        'rnaMassFoldChange': scalar_almost_equal,
-        'smallMoleculeFoldChange': scalar_almost_equal
-    }
-
-    with open(f'out/migration/mass_listener_diffs_t{time}.txt', 'w') as f:
-        f.write(array_diffs_report(array_from(actual_update),
-                                   [expected_update[k]
-                                       for k in actual_update.keys()],
-                                   names=list(actual_update.keys())))
-
-    tests = ComparisonTestSuite(test_structure, fail_loudly=False)
-    tests.run_tests(actual_update,
-                    expected_update,
-                    verbose=False)
-
-    #tests.dump_report()
-
-    tests.fail()
-
+    times = [0, 2072]
+    for initial_time in times:
+        test(initial_time)
 
 if __name__ == "__main__":
-    test_mass_listener()
+    test_mass_listener_migration()
