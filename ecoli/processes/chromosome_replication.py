@@ -273,11 +273,15 @@ class ChromosomeReplication(PartitionedProcess):
             # Add new oriC's, and reset attributes of existing oriC's
             # All oriC's must be assigned new domain indexes
             update['oriCs'] = {
-                '_add': [{
-                    'key': str(uuid.uuid1()),
-                    'state': {'domain_index': domain_index_new[index]}}
-                    for index in range(2*n_oriC)],
-                '_delete': [key for key in states['oriCs'].keys()]}
+                oric_id: {
+                    'domain_index': domain_index_new[index]
+                }
+                for index, oric_id in enumerate(states['oriCs'])
+            }
+            update['oriCs']['_add'] = [{
+                'key': str(uuid.uuid1()),
+                'state': {'domain_index': domain_index_new[n_oriC + index]}}
+                for index in range(n_oriC)]
 
             # Add and set attributes of newly created replisomes.
             # New replisomes inherit the domain indexes of the oriC's they

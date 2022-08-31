@@ -1,3 +1,4 @@
+import binascii
 import numpy as np
 import networkx as nx
 from six.moves import cPickle
@@ -8,9 +9,8 @@ from wholecell.utils.fitting import normalize
 from ecoli.processes.polypeptide_elongation import MICROMOLAR_UNITS
 from ecoli.states.wcecoli_state import MASSDIFFS
 
-RAND_MAX = 2**31 - 1
+RAND_MAX = 2**31
 SIM_DATA_PATH = 'reconstruction/sim_data/kb/simData.cPickle'
-
 
 class LoadSimData:
 
@@ -23,8 +23,9 @@ class LoadSimData:
         mar_regulon=False
     ):
 
-        self.seed = np.uint32(seed % np.iinfo(np.uint32).max)
-        self.random_state = np.random.RandomState(seed=self.seed)
+        self.seed = seed
+        # self.seed = np.uint32(seed % np.iinfo(np.uint32).max)
+        # self.random_state = np.random.RandomState(seed=self.seed)
 
         self.trna_charging = trna_charging
         self.ppgpp_regulation = ppgpp_regulation
@@ -168,7 +169,7 @@ class LoadSimData:
             'ppi': [self.sim_data.molecule_ids.ppi],
 
             # random state
-            'seed': self.random_state.randint(RAND_MAX),
+            'seed': self._seedFromName('ChromosomeReplication'),
 
             'submass_indexes': self.submass_indexes,
         }
@@ -191,7 +192,7 @@ class LoadSimData:
             'active_to_inactive_tf': self.sim_data.process.two_component_system.active_to_inactive_tf,
             'bulk_molecule_ids': self.sim_data.internal_state.bulk_molecules.bulk_data["id"],
             'bulk_mass_data': self.sim_data.internal_state.bulk_molecules.bulk_data["mass"],
-            'seed': self.random_state.randint(RAND_MAX)}
+            'seed': self._seedFromName('TfBinding')}
 
         return tf_binding_config
 
@@ -239,7 +240,7 @@ class LoadSimData:
             'attenuation_adjustments': self.sim_data.process.transcription.attenuation_basal_prob_adjustments,
 
             # random seed
-            'seed': self.random_state.randint(RAND_MAX)
+            'seed': self._seedFromName('TranscriptInitiation')
         }
 
         return transcript_initiation_config
@@ -278,7 +279,7 @@ class LoadSimData:
             'location_lookup': self.sim_data.process.transcription.attenuation_location,
 
             # random seed
-            'seed': self.random_state.randint(RAND_MAX),
+            'seed': self._seedFromName('TranscriptElongation'),
 
             'submass_indexes': self.submass_indexes,
         }
@@ -318,7 +319,7 @@ class LoadSimData:
             'EndoRNaseFunc': self.sim_data.constants.endoRNase_function,
             'ribosome30S': self.sim_data.molecule_ids.s30_full_complex,
             'ribosome50S': self.sim_data.molecule_ids.s50_full_complex,
-            'seed': self.random_state.randint(RAND_MAX)}
+            'seed': self._seedFromName('RnaDegradation')}
 
         return rna_degradation_config
 
@@ -338,10 +339,9 @@ class LoadSimData:
             'all_mRNA_ids': self.sim_data.process.translation.monomer_data['rna_id'],
             'ribosome30S': self.sim_data.molecule_ids.s30_full_complex,
             'ribosome50S': self.sim_data.molecule_ids.s50_full_complex,
-            'seed': self.random_state.randint(RAND_MAX),
+            'seed': self._seedFromName('PolypeptideInitiation'),
             'shuffle_indexes': self.sim_data.process.translation.monomer_deg_rate_shuffle_idxs if hasattr(
-                self.sim_data.process.translation, "monomer_deg_rate_shuffle_idxs") else None,
-            'seed': self.random_state.randint(RAND_MAX)}
+                self.sim_data.process.translation, "monomer_deg_rate_shuffle_idxs") else None}
 
         return polypeptide_initiation_config
 
@@ -418,7 +418,7 @@ class LoadSimData:
             'aa_enzymes': metabolism.aa_enzymes,
             'amino_acid_synthesis': metabolism.amino_acid_synthesis,
             'amino_acid_import': metabolism.amino_acid_import,
-            'seed': self.random_state.randint(RAND_MAX),
+            'seed': self._seedFromName('PolypeptideElongation'),
 
             'submass_indexes': self.submass_indexes, }
 
@@ -432,24 +432,24 @@ class LoadSimData:
             'stoichiometry': self.sim_data.process.complexation.stoich_matrix().astype(np.int64).T,
             'rates': self.sim_data.process.complexation.rates,
             'molecule_names': self.sim_data.process.complexation.molecule_names,
-            'seed': self.random_state.randint(RAND_MAX),
+            'seed': self._seedFromName('Complexation'),
             'numReactions': len(self.sim_data.process.complexation.rates),
         }
 
         return complexation_config
 
-    def get_two_component_system_config(self, time_step=2, parallel=False, random_seed=None):
+    def get_two_component_system_config(self, time_step=2, parallel=False):
         two_component_system_config = {
             'time_step': time_step,
             '_parallel': parallel,
 
-            'jit': False,
+            'jit': True,
             # TODO -- wcEcoli has this in 1/mmol, why?
             'n_avogadro': self.sim_data.constants.n_avogadro.asNumber(1 / units.mmol),
             'cell_density': self.sim_data.constants.cell_density.asNumber(units.g / units.L),
             'moleculesToNextTimeStep': self.sim_data.process.two_component_system.molecules_to_next_time_step,
             'moleculeNames': self.sim_data.process.two_component_system.molecule_names,
-            'seed': random_seed or self.random_state.randint(RAND_MAX)}
+            'seed': self._seedFromName('TwoComponentSystem')}
 
         # return two_component_system_config, stoichI, stoichJ, stoichV
         return two_component_system_config
@@ -459,13 +459,13 @@ class LoadSimData:
             'time_step': time_step,
             '_parallel': parallel,
 
-            'jit': False,
+            'jit': True,
             'n_avogadro': self.sim_data.constants.n_avogadro.asNumber(1 / units.mol),
             'cell_density': self.sim_data.constants.cell_density.asNumber(units.g / units.L),
             'stoichMatrix': self.sim_data.process.equilibrium.stoich_matrix().astype(np.int64),
             'fluxesAndMoleculesToSS': self.sim_data.process.equilibrium.fluxes_and_molecules_to_SS,
             'moleculeNames': self.sim_data.process.equilibrium.molecule_names,
-            'seed': self.random_state.randint(RAND_MAX)}
+            'seed': self._seedFromName('Equilibrium')}
 
         return equilibrium_config
 
@@ -482,7 +482,7 @@ class LoadSimData:
             'amino_acid_counts': self.sim_data.process.translation.monomer_data["aa_counts"].asNumber(),
             'protein_ids': self.sim_data.process.translation.monomer_data['id'],
             'protein_lengths': self.sim_data.process.translation.monomer_data['length'].asNumber(),
-            'seed': self.random_state.randint(RAND_MAX)}
+            'seed': self._seedFromName('ProteinDegradation')}
 
         return protein_degradation_config
 
@@ -663,7 +663,7 @@ class LoadSimData:
             'get_masses': self.sim_data.getter.get_masses,
             'doubling_time': self.sim_data.condition_to_doubling_time[self.sim_data.condition],
             'amino_acid_ids': sorted(self.sim_data.amino_acid_code_to_id_ordered.values()),
-            'seed': self.random_state.randint(RAND_MAX),
+            'seed': self._seedFromName('Metabolism'),
             'linked_metabolites': self.sim_data.process.metabolism.linked_metabolites,
             # Whether to use metabolism as a deriver (with t=0 skipped)
             'deriver_mode': deriver_mode
@@ -795,7 +795,8 @@ class LoadSimData:
             'time_step': time_step,
             '_parallel': parallel,
             'molecule_names': self.sim_data.internal_state.bulk_molecules.bulk_data['id'],
-            'seed': self.random_state.randint(2**31),
+            # Allocator is built into BulkMolecules container in wcEcoli
+            'seed': self._seedFromName('BulkMolecules'),
             'process_names': process_names,
             'custom_priorities': {
                 'ecoli-rna-degradation': 10,
@@ -840,6 +841,6 @@ class LoadSimData:
             'water': self.sim_data.molecule_ids.water,
 
             'deriver_mode': deriver_mode,
-            'seed': self.random_state.randint(RAND_MAX),
+            'seed': self._seedFromName('ChromosomeStructure'),
         }
         return chromosome_structure_config
