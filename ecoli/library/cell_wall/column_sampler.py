@@ -30,27 +30,40 @@ def sample_column(rows, murein, strand_sampler, rng, shift=True):
     strand_length, total_length = tee(strand_sampler())
     total_length = accumulate(total_length)
 
-    # Sample strand lengths
-    strands = [
-        s
-        for s, _ in takewhile(lambda s: s[1] < murein, zip(strand_length, total_length))
-        if s > 0
-    ]
-    remaining = murein - sum(strands)
-    if remaining:
-        strands.append(remaining)
+    # Sample strand lengths such that
+    # as much as possible of the available murein is used,
+    # while having at least one gap per strand
+    strands = []
+    for s in strand_length:
+        # Stop if adding this strand (and its associated minimum gap)
+        # would exceed murein or column length constraint
+        if s + sum(strands) > murein:
+            break
+        if s + 1 + sum(strands) + len(strands) >= rows:
+            break
+        strands.append(s)
+
+    # add remaining strand if there is space
+    remaining_strand = min(
+        murein - sum(strands), rows - sum(strands) - len(strands) - 1
+    )
+    assert remaining_strand >= 0
+    if remaining_strand:
+        strands.append(remaining_strand)
 
     # Get probability for initiating a strand
     total_gap = rows - sum(strands)
-    strand_starts = list(rng.integers(0, total_gap + 1, size=len(strands)))
+    strand_starts = list(rng.choice(total_gap, size=len(strands), replace=False))
     strand_starts.sort(reverse=True)
 
+    # Assemble the resulting column from strands, start positions, # rows
     result_i = 0
     next_start = strand_starts.pop()
+    # iterate over all gap, inserting when next strand start reached
     for gap_i in range(total_gap + 1):
-        while next_start == gap_i:
+        if next_start == gap_i:
             strand = strands.pop()
-            result[result_i:(result_i + strand)] = 1
+            result[result_i : (result_i + strand)] = 1
             result_i += strand
             next_start = strand_starts.pop() if len(strands) > 0 else -1
         result_i += 1
@@ -95,7 +108,7 @@ def plot_locational(columns):
 
 def test_column_sampler(outdir="out/murein_sampling"):
     rng = np.random.default_rng(0)
-    p = .058
+    p = 0.058
 
     columns = []
 

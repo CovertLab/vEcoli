@@ -1,9 +1,18 @@
 """
-TODO: references for parameters
+A coarse-grained model of the cell wall, aimed at predicting
+cracking (which leads irreversibly to lysis) under conditions limiting
+production of crosslinked murein.
+
+Parameters:
+- Probability of terminating a murein strand (p): fitted from data in ...
 """
 
 import numpy as np
-from ecoli.library.cell_wall.column_sampler import geom_sampler, sample_column, sample_lattice
+from ecoli.library.cell_wall.column_sampler import (
+    geom_sampler,
+    sample_column,
+    sample_lattice,
+)
 from ecoli.library.cell_wall.hole_detection import detect_holes_skimage
 from ecoli.library.cell_wall.lattice import (
     calculate_lattice_size,
@@ -50,8 +59,7 @@ class CellWall(Process):
         "crossbridge_length": (4.1 / 3) * units.nm,
         "initial_stretch_factor": 1.17,
         "max_stretch": 3,
-        "peptidoglycan_unit_area": 4 * units.nm**2,  # replace with precise
-        # literature value
+        "peptidoglycan_unit_area": 4 * units.nm**2,
         # Simulation parameters
         "seed": 0,
         "time_step": 2,
@@ -251,7 +259,7 @@ class CellWall(Process):
         update["listeners"] = {
             "porosity": 1 - (lattice.sum() / lattice.size),
             "hole_size_distribution": np.bincount(hole_sizes),
-            "strand_length_distribution": get_length_distributions(lattice)[0],
+            "strand_length_distribution": get_length_distributions(lattice)[1],
         }
 
         if max_size > self.critical_area:
@@ -302,11 +310,6 @@ class CellWall(Process):
             return new_lattice, new_unincorporated_monomers, new_incorporated_monomers
 
         murein_per_column = unincorporated_monomers / d_columns
-
-        print(
-            f"Cell Wall: Assigning {unincorporated_monomers} monomers to "
-            f"{d_columns} columns ({murein_per_column} per column)"
-        )
 
         # Sample columns to insert
         insertions = []

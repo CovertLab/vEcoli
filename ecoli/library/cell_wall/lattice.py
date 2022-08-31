@@ -72,7 +72,7 @@ def plot_lattice(lattice, on_cylinder=False, aspect=1):
 def get_length_distributions(lattice):
     strand_lengths = []
     gap_lengths = []
-    lengths = (strand_lengths, gap_lengths)
+    lengths = (gap_lengths, strand_lengths)
     for c in range(lattice.shape[1]):
         column = lattice[:, c]
         # circular shift the column around
@@ -86,7 +86,7 @@ def get_length_distributions(lattice):
             seq = list(seq)
             lengths[val].append(len(seq))
 
-    return lengths
+    return gap_lengths, strand_lengths
 
 
 def plot_strand_length_distribution(lengths):
@@ -108,29 +108,80 @@ def plot_strand_length_distribution(lengths):
     ax.set_xticklabels(xlabels, rotation=45)
 
     # Skip plotting simulated data if none was given
-    if len(lengths) == 0:
-        ax.legend()
-        return fig, ax
+    if len(lengths) > 0:
+        # Plot simulated data in the same way as experimental data
+        # (aggregate strands >30 in length)
+        lengths = np.bincount(lengths)
+        try:
+            lengths[31] = lengths[31:].sum()
+            lengths = lengths[:32]
+        except IndexError:  # no strands > 30 in length
+            pass
 
-    # Plot simulated data in the same way as experimental data
-    # (aggregate strands >30 in length)
-    lengths = np.bincount(lengths)
-    try:
-        lengths[31] = lengths[31:].sum()
-        lengths = lengths[:32]
-    except IndexError:  # no strands > 30 in length
-        pass
+        # Normalize as proportions
+        lengths = lengths / lengths.sum()
 
-    # Normalize as proportions
-    lengths = lengths / lengths.sum()
+        # Eliminate "0-length" strands
+        lengths = lengths[1:]
 
-    # Eliminate "0-length" strands
-    lengths = lengths[1:]
+        ax.scatter(X, lengths, label="Simulation")
+        ax.set_xlabel("Strand length")
+        ax.set_ylabel("Proportion")
 
-    ax.scatter(X, lengths, label="Simulation")
-    ax.set_xlabel("Strand length")
-    ax.set_ylabel("Proportion")
     ax.legend()
+    return fig, ax
+
+
+def plot_distributions_timeseries(distributions, every=1, yscale="linear"):
+    fig, ax = plt.subplots()
+
+    ax.set_yscale(yscale)
+    ax.boxplot(distributions[::every], vert=True)
+
+    return fig, ax
+
+
+def plot_length_vs_location(lattice):
+    lengths = []
+    start_positions = []
+
+    for c in range(lattice.shape[1]):
+        column = lattice[:, c]
+
+        # circular shift the column around
+        # until the wrap point represents a gap-strand boundary
+        shift = 0
+        while column[0] == column[-1] and shift < column.size:
+            column = np.roll(column, shift)
+            shift += 1
+
+        # Get start position and length of each strand
+        in_strand = bool(column[0])
+        len_current = 1
+        if in_strand:
+            start_positions.append(0)
+
+        for i, x in enumerate(column[1:]):
+            # Crossover point, end of gap/strand
+            if bool(x) != in_strand or i == len(column) - 1:
+                # Store length if we were in a strand
+                if in_strand:
+                    lengths.append(len_current)
+
+                len_current = 0
+                in_strand = not in_strand
+
+                # Store start position if we are NOW in a strand
+                if in_strand:
+                    start_positions.append((i - shift) % len(column))
+
+            len_current += 1
+
+    # Do plotting
+    fig, ax = plt.subplots()
+    ax.scatter(lengths, start_positions)
+    ax.set_xlabel("Length of strand")
+    ax.set_ylabel("Start position (row) of strand")
 
     return fig, ax
 
@@ -146,12 +197,16 @@ def test_lattice():
 
 def test_strand_length_plot():
     rng = np.random.default_rng(0)
-    lattice = sample_lattice(1607480, 3050, 700, geom_sampler(rng, 0.058), rng)
+    lattice = sample_lattice(450000 * 4, 3050, 700, geom_sampler(rng, 0.058), rng)
 
     strand_lengths, _ = get_length_distributions(lattice)
     fig, _ = plot_strand_length_distribution(strand_lengths)
     fig.tight_layout()
     fig.savefig("out/processes/cell_wall/test_strand_length_plot.png")
+
+    fig, _ = plot_length_vs_location(lattice)
+    fig.tight_layout()
+    fig.savefig("out/processes/cell_wall/test_length_vs_location.png")
 
 
 def main():
