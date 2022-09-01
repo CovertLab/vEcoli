@@ -225,7 +225,7 @@ class Ecoli(Composer):
                 requester_name = f'{name}_requester'
                 evolver_name = f'{name}_evolver'
                 flow[requester_name] = [
-                    ('ecoli-chromosome-structure',)]
+                    ('monomer_counts_listener',)]
                 if config['divide']:
                     flow[requester_name].append(('division',))
                 flow['allocator'].append((requester_name,))
@@ -234,7 +234,7 @@ class Ecoli(Composer):
                     evolver_name]
             elif name == 'division':
                 steps[name] = process
-                flow[name] = [('ecoli-chromosome-structure',)]
+                flow[name] = [('monomer_counts_listener',)]
             elif process.is_step():
                 steps[name] = process
                 flow[name] = []
