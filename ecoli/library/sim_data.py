@@ -108,6 +108,9 @@ class LoadSimData:
             # Build matrices
             equilibrium_proc._populateDerivativeAndJacobian()
             equilibrium_proc._stoichMatrix = equilibrium_proc.stoich_matrix()
+            
+    def _seedFromName(self, name):
+        return binascii.crc32(name.encode('utf-8'), self.seed) & 0xffffffff
 
     def get_config_by_name(self, name, time_step=2, parallel=False):
         name_config_mapping = {
