@@ -26,7 +26,8 @@
     "daughter_path": [],
     "agents_path": ["..", "..", "agents"],
     "division": {
-        "threshold": 2220},
+        "massDistribution": true
+    },
     "divide": false,
     "spatial_environment": false,
     "spatial_environment_config": {},
