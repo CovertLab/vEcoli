@@ -1,7 +1,9 @@
 {
     "inherit_from": ["spatial.json", "cloud.json"],
     "add_processes": [
-        "concentrations_deriver"
+        "concentrations_deriver",
+        "permeability",
+        "antibiotic-transport-odeint"
     ],
     "total_time": 12000,
     "spatial_environment_config": {
@@ -83,7 +85,8 @@
         }
     },
     "flow": {
-        "concentrations_deriver": [["ecoli-shape"]]
+        "concentrations_deriver": [["ecoli-shape"]],
+        "permeability": [["ecoli-shape"]]
     },
     "engine_process_reports": [
         ["bioscrape_deltas"],

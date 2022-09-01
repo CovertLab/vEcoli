@@ -58,6 +58,14 @@
     ],
     "process_configs": {},
     "topology": {},
-    "flow": {},
-    "_schema": {}
+    "flow": {
+        "ecoli-metabolism": [["ecoli-chromosome-structure"]],
+        "ecoli-mass-listener": [["ecoli-metabolism"]],
+        "mRNA_counts_listener": [["ecoli-mass-listener"]],
+        "monomer_counts_listener": [["mRNA_counts_listener"]]
+    },
+    "_schema": {},
+    "engine_process_reports": [
+        ["listeners"]
+    ]
 }

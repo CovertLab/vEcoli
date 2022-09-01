@@ -198,8 +198,7 @@ class MassListener(Deriver):
         return ports
 
     def next_update(self, timestep, states):
-        # Initialize update with 0's for each submass
-        mass_update = {key + "Mass": 0 for key in self.submass_indices}
+        mass_update = {}
 
         # Get previous dry mass, for calculating growth later
         old_dry_mass = states['listeners']['mass']['dry_mass']
