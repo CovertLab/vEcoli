@@ -1,11 +1,7 @@
 {
     "inherit_from": ["antibiotics.json"],
     "add_processes": [
-        "death",
-        "conc_to_counts",
-        "ecoli-rna-interference",
-        "tetracycline-ribosome-equilibrium",
-        "unique_counts"
+        "death"
     ],
     "total_time": 100,
     "emitter_arg": [
@@ -197,11 +193,5 @@
                 ]
             }
         }
-    },
-    "flow": {
-        "tetracycline-ribosome-equilibrium": [["ecoli-mass-listener"]],
-        "ecoli-polypeptide-initiation_requester": [["tetracycline-ribosome-equilibrium"]],
-        "conc_to_counts": [["ecoli-shape"]],
-        "unique_counts": [["ecoli-mass-listener"]]
     }
 }
