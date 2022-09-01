@@ -39,7 +39,6 @@ def test_composite_mass(total_time=30):
                             for key in actual_timeseries.keys()}
     vivarium_keys = set(actual_timeseries.keys())
     wcecoli_keys = 0
-    import ipdb; ipdb.set_trace()
     for index, time in enumerate(timeseries['time']):
         actual_update = {
             submass: data[index]

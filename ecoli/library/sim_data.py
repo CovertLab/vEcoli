@@ -24,8 +24,7 @@ class LoadSimData:
     ):
 
         self.seed = seed
-        # self.seed = np.uint32(seed % np.iinfo(np.uint32).max)
-        # self.random_state = np.random.RandomState(seed=self.seed)
+        self.random_state = np.random.RandomState(seed=self.seed)
 
         self.trna_charging = trna_charging
         self.ppgpp_regulation = ppgpp_regulation
