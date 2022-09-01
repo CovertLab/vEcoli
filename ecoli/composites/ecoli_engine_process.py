@@ -261,8 +261,11 @@ def run_simulation(config):
             else:
                 division_mass_multiplier = 1
             current_media_id = agent_state['environment']['media_id']
-            agent_config['division_threshold'] = (agent_state['listeners']['mass']['dry_mass'] + 
-                expectedDryMassIncreaseDict[current_media_id].asNumber(units.fg) * division_mass_multiplier)
+            if not config.get('division_threshold', None):
+                agent_config['division_threshold'] = (agent_state['listeners']['mass']['dry_mass'] + 
+                    expectedDryMassIncreaseDict[current_media_id].asNumber(units.fg) * division_mass_multiplier)
+            else:
+                agent_config['division_threshold'] = config['division_threshold']
 
             agent_composer = EcoliEngineProcess({**base_config, **agent_config})
             agent_composite = agent_composer.generate(path=agent_path)
@@ -292,8 +295,11 @@ def run_simulation(config):
             else:
                 division_mass_multiplier = 1
             current_media_id = initial_state['environment']['media_id']
-            agent_config['division_threshold'] = (initial_state['listeners']['mass']['dry_mass'] + 
-                expectedDryMassIncreaseDict[current_media_id].asNumber(units.fg) * division_mass_multiplier)
+            if not config.get('division_threshold', None):
+                agent_config['division_threshold'] = (initial_state['listeners']['mass']['dry_mass'] + 
+                    expectedDryMassIncreaseDict[current_media_id].asNumber(units.fg) * division_mass_multiplier)
+            else:
+                agent_config['division_threshold'] = config['division_threshold']
         composer = EcoliEngineProcess({**base_config, **agent_config})
         composite = composer.generate(path=agent_path)
         initial_state = composite.initial_state()

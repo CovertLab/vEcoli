@@ -26,8 +26,6 @@ class Plot:
             'window_length': length of filter window,
             'polyorder': order of polynomial (must be < window_length)
         }
-    
-    # TODO: Implement norm flag
     """
 
     def __init__(self, exp_ids, labels=None, colors=None, mrnas_to_plot=[], 

@@ -37,6 +37,7 @@ from ecoli.processes.antibiotics.tetracycline_ribosome_equilibrium import (
 from ecoli.processes.chemostat import Chemostat
 from ecoli.processes.listeners.unique_counts import UniqueCounts
 from ecoli.processes.rna_interference import RnaInterference
+from ecoli.processes.antibiotics.conc_to_counts import ConcToCounts
 
 
 # add to registry

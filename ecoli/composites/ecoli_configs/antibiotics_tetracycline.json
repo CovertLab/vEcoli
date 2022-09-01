@@ -15,6 +15,7 @@
     ],
     "emitter": "database",
     "mar_regulon": "True",
+    "initial_state_file": "wcecoli_tet",
     "spatial_environment_config": {
         "field_timeline": {
             "timeline": [
@@ -150,10 +151,6 @@
         },
         "death": {
             "detectors": [
-                ["antibiotic", {
-                    "antibiotic_threshold": "!units[0.01 millimolar]",
-                    "antibiotic_key": "cephaloridine"
-                }],
                 ["antibiotic", {
                     "antibiotic_threshold": "!units[0.1 millimolar]",
                     "antibiotic_key": "tetracycline"

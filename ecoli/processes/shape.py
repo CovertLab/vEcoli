@@ -29,7 +29,7 @@ def length_from_volume(volume, width):
     radius = width / 2
     cylinder_length = (volume - (4/3) * PI * radius**3) / (PI * radius**2)
     total_length = cylinder_length + 2 * radius
-    return total_length.to(units.um)
+    return total_length
 
 
 def volume_from_length(length, width):
@@ -39,7 +39,7 @@ def volume_from_length(length, width):
     radius = width / 2
     cylinder_length = length - width
     volume = cylinder_length * (PI * radius**2) + (4 / 3) * PI * radius**3
-    return volume.to(units.fL)
+    return volume
 
 
 def surface_area_from_length(length, width):
@@ -51,12 +51,12 @@ def surface_area_from_length(length, width):
     radius = width / 2
     cylinder_length = length - width
     surface_area = 3 * PI * radius**2 + 2 * PI * radius * cylinder_length
-    return surface_area.to(units.um**2)
+    return surface_area
 
 
 def mmol_to_counts_from_volume(volume):
     '''mmol_to_counts has units L/mmol'''
-    return (volume * AVOGADRO).to(1/units.mM)
+    return (volume * AVOGADRO).to(units.L/units.mmol)
 
 
 class Shape(Step):

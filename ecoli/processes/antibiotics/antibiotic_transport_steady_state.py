@@ -72,7 +72,7 @@ UNITS = {
         'diffusion': {
             'permeability': units.dm / units.sec,
             'area': units.dm**2,
-            'volume': units.fL,
+            'volume': units.L,
             'charge': units.count,
         },
         'export': {
@@ -236,7 +236,6 @@ def update_from_steady_state(
         reaction_params,
         internal_bias,
     )
-    print(steady_state_arr, reaction_params, internal_bias)
     result = solve_ivp(
         lambda t, state_arr, *args: species_derivatives(
             state_arr, *args),
@@ -403,7 +402,6 @@ class AntibioticTransportSteadyState(Process):
 
     def next_update(self, timestep, state):
         update = {}
-        print(state['tetracycline']['reaction_parameters'])
         for antibiotic in self.antibiotics:
             antibiotic_state = state[antibiotic]
             # Prepare the state for the bioscrape process by moving
@@ -583,8 +581,6 @@ def test_antibiotic_transport_steady_state():
                 ) <= 1e-5 * abs(expected_update[key][species])
         else:
             assert update[key] == expected_update[key]
-<<<<<<< HEAD
-=======
 
 
 if __name__ == '__main__':
