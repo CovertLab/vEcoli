@@ -88,10 +88,11 @@ class ConcToCounts(Step):
         cellVolume = states['volume_global']['volume']
         
         # Calculate state values
-        molar_to_counts = self.nAvogadro * cellVolume * 1e-18
+        molar_to_counts = (self.nAvogadro * cellVolume).to(CONV_UNITS)
         update = {'bulk': {}}
         for molecule, conc in states['internal'].items():
-            update['bulk'][molecule] = int((conc * molar_to_counts).magnitude)
+            update['bulk'][molecule] = int(
+                (conc * molar_to_counts).to(units.count).magnitude)
 
         return update
 

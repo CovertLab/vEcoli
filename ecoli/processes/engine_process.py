@@ -644,9 +644,8 @@ def test_engine_process():
         # the filled inner simulation hierarchy.
         'c_tunnel': {
             '_default': 0,
-            '_emit': True,
             '_updater': updater_registry.access('accumulate'),
-            '_divider': divider_registry.access('set'),
+            '_divider': divider_registry.access('empty_dict'),
         },
     }
     assert schema == expected_schema

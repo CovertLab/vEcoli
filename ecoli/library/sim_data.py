@@ -24,8 +24,8 @@ class LoadSimData:
         rnai_data=None,
     ):
 
-        self.seed = np.uint32(seed % np.iinfo(np.uint32).max)
-        self.random_state = np.random.RandomState(seed=self.seed)
+        self.seed = seed
+        self.random_state = np.random.RandomState(seed = seed)
 
         self.trna_charging = trna_charging
         self.ppgpp_regulation = ppgpp_regulation
@@ -91,11 +91,6 @@ class LoadSimData:
             equilibrium_proc.rxn_ids += ['marR-tet']
             # All existing equilibrium reactions use a forward reaction rate of 1
             equilibrium_proc.rates_fwd = np.concatenate([equilibrium_proc.rates_fwd, np.array([1])])
-            # Rev rate to inactivate all marR at 1.5 mg/L external concentration
-            # 2.4e-06: internal (steady-state) = external * 8.4
-            # 7.1e-07: internal (steady_state) = external * (2 + Nernst-Planck bias) / (2 - Nernst-Planck bias)
-            # Nernst-Planck bias = charge * faraday * potential / gas_constant / temperature = 0.837
-            # Charge of tetracycline = 1, Donnan potential = 21.5 mV
             equilibrium_proc.rates_rev = np.concatenate([equilibrium_proc.rates_rev, np.array([7.1e-07])])
 
             # Mass balance matrix

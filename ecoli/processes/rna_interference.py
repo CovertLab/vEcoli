@@ -157,17 +157,12 @@ def test_rna_interference():
         'time_step': 2,
         'ribosome30S': 'CPLX0-3953[c]',
         'ribosome50S': 'CPLX0-3962[c]',
-        'srna_ids': ['MICF-RNA[c]'],
-        'target_ids': ['EG10671_RNA[c]'],
         'srna_tu_ids': [2493],
+        'srna_ids': ['MICF-RNA[c]'],
         'target_tu_ids': [661],
-        'duplex_ids': ['micF-ompF[c]'],
-        'duplex_deg_rates': [0.00135911],
-        'duplex_lengths': [1182],
-        'duplex_ACGU': [[306, 273, 280, 323]],
-        'duplex_mw': [378762.459],
-        'duplex_km': [0.00034204],
+        'target_ids': ['EG10671_RNA[c]'],
         'duplex_tu_ids': [4687],
+        'duplex_ids': ['micF-ompF[c]'],
         'binding_probs': [0.5]
         }
 
@@ -184,13 +179,20 @@ def test_rna_interference():
             '3': {'mRNA_index': 1}
         },
         'RNAs': {
-            '1': {'TU_index': 661, 'can_translate': True, 'is_full_transcript': True},
-            '2': {'TU_index': 661, 'can_translate': True, 'is_full_transcript': True},
-            '3': {'TU_index': 661, 'can_translate': True, 'is_full_transcript': True},
-            '4': {'TU_index': 661, 'can_translate': True, 'is_full_transcript': False},
-            '5': {'TU_index': 2493, 'can_translate': False, 'is_full_transcript': True},
-            '6': {'TU_index': 2493, 'can_translate': False, 'is_full_transcript': True},
-            '7': {'TU_index': 2493, 'can_translate': False, 'is_full_transcript': True},
+            '1': {'TU_index': 661, 'can_translate': True, 
+                  'is_full_transcript': True, 'transcript_length': 1089},
+            '2': {'TU_index': 661, 'can_translate': True, 
+                  'is_full_transcript': True, 'transcript_length': 1089},
+            '3': {'TU_index': 661, 'can_translate': True,
+                  'is_full_transcript': True, 'transcript_length': 1089},
+            '4': {'TU_index': 661, 'can_translate': True,
+                  'is_full_transcript': True, 'transcript_length': 1089},
+            '5': {'TU_index': 2493, 'can_translate': False,
+                  'is_full_transcript': True, 'transcript_length': 93},
+            '6': {'TU_index': 2493, 'can_translate': False,
+                  'is_full_transcript': True, 'transcript_length': 93},
+            '7': {'TU_index': 2493, 'can_translate': False,
+                  'is_full_transcript': True, 'transcript_length': 93},
         }
     }
 

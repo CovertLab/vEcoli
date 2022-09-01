@@ -7,11 +7,9 @@ from ecoli.experiments.ecoli_master_sim import CONFIG_DIR_PATH, SimConfig
 def run_sim(tet_conc=0, baseline=False, seed=0):
     config = SimConfig()
     config.update_from_json(os.path.join(
-        CONFIG_DIR_PATH, "antibiotics_tetracycline_cephaloridine.json"))
+        CONFIG_DIR_PATH, "antibiotics_tetracycline.json"))
     tetracycline_gradient = {
         'total_time': 10000,
-        'initial_state_file': 'wcecoli_tet',
-        'emitter': 'database',
         'spatial_environment_config': {
             'reaction_diffusion': {
                 'gradient': {
@@ -28,7 +26,6 @@ def run_sim(tet_conc=0, baseline=False, seed=0):
                 ]
             }
         },
-        'engine_process_reports': [],
         'seed': seed
     }
     if not os.path.exists('data/wcecoli_tet.json'):
