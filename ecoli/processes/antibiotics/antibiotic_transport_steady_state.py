@@ -469,7 +469,7 @@ class AntibioticTransportSteadyState(Process):
             charge = prepared_state['reaction_parameters']['diffusion']['charge']
             faraday = param_store.get(('faraday_constant',)).to(
                 units.C / units.mol)
-            potential = param_store.get(('membrane_potential',)).to(units.V)
+            potential = param_store.get(('donnan_potential',)).to(units.V)
             gas_constant = param_store.get(('gas_constant',)).to(
                 units.J / units.mol / units.K)
             temperature = param_store.get(('temperature',)).to(units.K)

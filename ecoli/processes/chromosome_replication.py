@@ -328,7 +328,7 @@ class ChromosomeReplication(PartitionedProcess):
 
         # Write data from this module to a listener
         update['listeners']['replication_data']['criticalMassPerOriC'] = \
-            self.criticalMassPerOriC
+            self.criticalMassPerOriC.asNumber()
         update['listeners']['replication_data']['criticalInitiationMass'] = \
             self.criticalInitiationMass.asNumber(units.fg)
 

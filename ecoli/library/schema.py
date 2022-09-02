@@ -1,7 +1,10 @@
 import random
+from typing import List
 
 import numpy as np
 
+
+RAND_MAX = 2**31 - 1
 
 UNIQUE_DIVIDERS = {
     'active_ribosome': {
@@ -188,6 +191,7 @@ def arrays_to(n, attrs):
 
     return ds
 
+
 def bulk_schema(
         elements,
         updater=None,
@@ -243,17 +247,22 @@ def dict_value_schema(name):
 
 
 # :term:`dividers`
-def divide_binomial(state):
+def divide_binomial(state: float) -> List[float]:
     """Binomial Divider
-    """
-    try:
-        counts_1 = np.random.binomial(state, 0.5)
-        counts_2 = state - counts_1
-    except:
-        print(f"binomial_divider can not divide {state}.")
-        counts_1 = state
-        counts_2 = state
 
+    Args:
+        state: The value to divide.
+        config: Must contain a ``seed`` key with an integer seed. This
+            seed will be added to ``int(state)`` to seed a random number
+            generator used to calculate the binomial.
+
+    Returns:
+        The divided values.
+    """
+    seed = int(state) % RAND_MAX
+    random_state = np.random.RandomState(seed=seed)
+    counts_1 = random_state.binomial(state, 0.5)
+    counts_2 = state - counts_1
     return [counts_1, counts_2]
 
 
@@ -343,8 +352,8 @@ def get_domain_index_to_daughter(chromosome_domain):
     daughter_ids.remove(-1)
     daughter_ids = list(daughter_ids)
     assert len(daughter_ids) == 2
-    daughter1_index = daughter_ids[0]
-    daughter2_index = daughter_ids[1]
+    daughter1_index = min(daughter_ids)
+    daughter2_index = max(daughter_ids)
 
     return index_to_daughter, daughter1_index, daughter2_index
 
@@ -423,26 +432,6 @@ def divide_domain(values):
             daughter1[key] = values[key]
         elif key_daughter_cell == d2_index:
             daughter2[key] = values[key]
-    return [daughter1, daughter2]
-
-
-def divide_unique(unique_molecules, **args):
-    """divide unique molecules binomially"""
-    # TODO (Matt): Set a seed
-    n_unique_molecules = len(unique_molecules)
-    unique_molecule_ids = list(unique_molecules.keys())
-
-    daughter1_counts = np.random.binomial(n_unique_molecules, 0.5)
-    daughter1_ids = random.sample(unique_molecule_ids, daughter1_counts)
-
-    daughter1 = {}
-    daughter2 = {}
-    for unique_id in unique_molecule_ids:
-        specs = unique_molecules[unique_id]
-        if unique_id in daughter1_ids:
-            daughter1[unique_id] = specs
-        else:
-            daughter2[unique_id] = specs
     return [daughter1, daughter2]
 
 
