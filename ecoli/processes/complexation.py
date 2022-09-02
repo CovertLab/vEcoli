@@ -36,9 +36,6 @@ TOPOLOGY = {
 }
 topology_registry.register(NAME, TOPOLOGY)
 
-# Maximum unsigned int value + 1 for randint() to seed srand from C stdlib
-RAND_MAX = 2**31
-
 
 class Complexation(PartitionedProcess):
     """ Complexation PartitionedProcess """
