@@ -41,11 +41,12 @@ def run_sim(tet_conc=0, baseline=False, seed=0):
             json.dump(initial_state, f)
     config.update_from_dict(tetracycline_gradient)
     if baseline:
-        config._config['add_processes'].remove('antibiotic-transport-steady-state')
+        config._config['add_processes'].remove('antibiotic-transport-odeint')
         config._config['add_processes'].remove('ecoli-rna-interference')
         config._config['add_processes'].remove('tetracycline-ribosome-equilibrium')
         config._config['process_configs'].pop('ecoli-rna-interference')
         config._config['engine_process_reports'].remove(['bulk', 'marR-tet[c]'])
+        config._config['engine_process_reports'].remove(['bulk', 'CPLX0-3953-tetracycline[c]'])
         config._config['engine_process_reports'].remove(['bioscrape_deltas',])
         config._config['flow'].pop('ecoli-polypeptide-initiation_requester')
         config._config['mar_regulon'] = False
