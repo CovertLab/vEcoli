@@ -150,12 +150,12 @@ PARAMETER_DICT = {
         },
         'hydrolysis': {
             'kcat': Parameter(
-                289 / units.sec,
-                'Jacoby (2009)'
+                130 / units.sec,
+                'Galleni et al. (1988)',
             ),
             'km': Parameter(
                 0.17 * units.mM,
-                'Jacoby (2009)'
+                'Galleni et al. (1988)',
             ),
             'n': Parameter(
                 1 * units.count
