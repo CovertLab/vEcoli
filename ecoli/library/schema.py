@@ -246,7 +246,116 @@ def dict_value_schema(name):
         '_divider': UNIQUE_DIVIDERS[name],
         '_emit': True
     }
+   
+   
+NUMPY_DEFAULTS = {
+    'active_ribosome': 
+        np.array([(0, 0, 0, 0, 0, [0]*9, 0)],
+            dtype=[
+                ('protein_index', np.int64),
+                ('peptide_length', np.int64),
+                ('mRNA_index', np.int64),
+                ('unique_index', np.int64),
+                ('pos_on_mRNA', np.int64),
+                ('submass', np.float64, 9),
+                ('_entryState', np.bool_)
+            ]),
+    'RNAs': 
+        np.array([(0, 0, 0, 0, False, False, False, [0]*9, 0)],
+            dtype=[
+                ('TU_index', np.int64),
+                ('transcript_length', np.int64),
+                ('RNAP_index', np.int64),
+                ('unique_index', np.int64),
+                ('is_mRNA', np.bool_),
+                ('is_full_transcript', np.bool_),
+                ('can_translate', np.bool_),
+                ('submass', np.float64, 9),
+                ('_entryState', np.bool_)
+            ]),
+    'bulk': 
+        np.array([('', [0]*9, 0)],
+            dtype=[
+                ('id', 'U50'),
+                ('mass', np.float64, 9),
+                ('count', np.int64)
+            ])
+}
+ 
+def numpy_schema(name):
+    return {
+        '_default': NUMPY_DEFAULTS[name],
+        '_updater': custom_numpy_updater(
+            NUMPY_DEFAULTS[name]).numpy_updater,
+        '_emit': True
+    }
 
+def attrs(states, attributes):
+    mol_mask = states['_entryState']
+    return (states[attribute][mol_mask].copy() for attribute in attributes)
+
+def counts(states, idx):
+    return states['count'][idx].copy()
+
+class custom_numpy_updater:
+    '''
+    Returns an updater which translates updates
+    into operations on a Numpy structured array.
+    '''
+    def __init__(self, defaults):
+        self.defaults = defaults
+    
+    def _get_free_indices(self, result, n_objects):
+        free_indices = np.where(result['_entryState'] == 0)[0]
+        n_free_indices = free_indices.size
+        
+        if n_free_indices < n_objects:
+            old_size = result.size
+            n_new_entries = max(
+                np.int64(old_size * 0.1),
+                n_objects - n_free_indices
+                )
+            
+            result = np.append(
+                result,
+                np.zeros(int(n_new_entries), dtype=result.dtype)
+            )
+            
+            free_indices = np.concatenate((
+                free_indices,
+                old_size + np.arange(n_new_entries)
+            ))
+
+        return result, free_indices[:n_objects]
+        
+    def _add_new_objects(self, result, attributes):
+        result, obj_indices = self._get_free_indices(result, attributes['unique_index'].size)
+        result['_entryState'][obj_indices] = 1
+
+        for attrName, attrValue in attributes.items():
+            result[attrName][obj_indices] = attrValue
+        return result
+    
+    def numpy_updater(self, current, update):
+        result = current
+        for subupdate in update:
+            action = subupdate[0]
+            indices = subupdate[1]
+            attributes = subupdate[2]
+            if action == "new":
+                result = self._add_new_objects(result, attributes)
+            elif action == "del":
+                result[indices] = np.zeros(1, dtype=result.dtype)
+            elif action == "inc":
+                for attrName, attrValue in attributes.items():
+                    result[attrName][indices] += attrValue
+            elif action == "dec":
+                for attrName, attrValue in attributes.items():
+                    result[attrName][indices] -= attrValue
+            else:
+                for attrName, attrValue in attributes.items():
+                    result[attrName][indices] = attrValue
+        return result
 
 
 # :term:`dividers`
