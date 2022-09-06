@@ -238,6 +238,28 @@ class DictProcess(Process):
 
 def run_processes(add_del_ratio=1, scale=1000, bulk_ops=[(5000, ('dec',)), 
     (5000, ('inc',))], n_proc=1, validate=True, total_time=500):
+    """Run two functionally identical experiments, first using Numpy structured 
+    array stores and next using dictionary or traditional stores.
+
+    Args:
+        add_del_ratio (float, optional): Ratio of unique molecules added to 
+            deleted each timestep. Defaults to 1.
+        scale (int, optional): Number of unique molecules to delete each 
+            timestep. Defaults to 1000.
+        bulk_ops (list, optional): List of tuples where each tuple represents
+            a port to the bulk store. The first element in each tuple is the
+            number of molecules in that store and the second is a tuple containing
+            the types of operations to perform on that store: 'inc' to increment
+            or 'dec' to decrement. Defaults to [(5000, ('dec',)), (5000, ('inc',))].
+        n_proc (int, optional): Number of processes (all identical). Defaults to 1.
+        validate (bool, optional): Compare bulk and unique molecule counts at 
+            end of both experiments. Defaults to True.
+        total_time (int, optional): Simulation time (timestep=1). Defaults to 500.
+
+    Returns:
+        numpy_time (float): wallclock time of Numpy-based experiment
+        dict_time (float): wallclock time of dictionary-based experiment
+    """
     if not os.path.exists('out/numpy_init.pkl') or (
         not os.path.exists('out/dict_init.pkl')):
         numpy_init, dict_init = generate_initial_states()
