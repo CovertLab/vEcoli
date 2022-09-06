@@ -2,6 +2,8 @@ import copy
 import json
 import os
 
+from vivarium.library.dict_utils import deep_merge
+
 from ecoli.processes import process_registry
 from ecoli.processes.registries import topology_registry
 
@@ -65,8 +67,8 @@ for process in ECOLI_DEFAULT_PROCESSES:
 
 # Add log_update ports if log_updates is True
 if config['log_updates']:
-    for process, ports in result.items():
-        result[process]['log_update'] = ('log_update', process,)
+    for process, ports in ECOLI_DEFAULT_TOPOLOGY.items():
+        ECOLI_DEFAULT_TOPOLOGY[process]['log_update'] = ('log_update', process,)
 
 # add division
 if config['divide']:

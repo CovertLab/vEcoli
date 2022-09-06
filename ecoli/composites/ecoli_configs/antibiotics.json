@@ -76,11 +76,15 @@
                 "ecoli-equilibrium_requester",
                 "ecoli-protein-degradation_requester",
                 "ecoli-chromosome-replication_requester",
+                "monomer_counts_listener",
+                "mRNA_counts_listener",
                 "allocator",
                 "ecoli-chromosome-structure",
                 "ecoli-metabolism",
                 "death",
-                "exchange-aware-bioscrape"
+                "antibiotic-transport-steady-state",
+                "permeability",
+                "conc_to_counts"
             ]
         }
     },
@@ -91,6 +95,7 @@
     "engine_process_reports": [
         ["bioscrape_deltas"],
         ["periplasm"],
+        ["cytoplasm"],
         ["kinetic_parameters"]
     ]
 }
