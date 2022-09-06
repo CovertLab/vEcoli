@@ -12,7 +12,7 @@ class Exchange(Process):
         'secrete_rate': {},
         'default_uptake_rate': 1e-1,
         'default_secrete_rate': 1e-4,
-        # calculated in deriver_globals assuming mass = 1000 fg, density = 1100 g/L
+        # calculated in derive_globals assuming mass = 1000 fg, density = 1100 g/L
         'mmol_to_counts': 547467.342 * units.L / units.mmol
     }
 

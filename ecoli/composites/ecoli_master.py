@@ -6,11 +6,14 @@ NOTE: All ports with '_total' in their name are
 automatically exempt from partitioning
 """
 
+import binascii
+import numpy as np
 from copy import deepcopy
 
 # vivarium-core
 from vivarium.core.composer import Composer
 from vivarium.plots.topology import plot_topology
+from vivarium.library.units import units
 from vivarium.library.dict_utils import deep_merge
 from vivarium.core.control import run_library_cli
 
@@ -56,6 +59,7 @@ class Ecoli(Composer):
         'divide': False,
         'log_updates': False,
         'mar_regulon': False,
+        'process_configs': {},
         'flow': {},
     }
 
@@ -65,7 +69,8 @@ class Ecoli(Composer):
         self.load_sim_data = LoadSimData(
             sim_data_path=self.config['sim_data_path'],
             seed=self.config['seed'],
-            mar_regulon=self.config['mar_regulon'])
+            mar_regulon=self.config['mar_regulon'],
+            rnai_data=self.config['process_configs'].get('ecoli-rna-interference'))
 
         if not self.config.get('processes'):
             self.config['processes'] = deepcopy(ECOLI_DEFAULT_PROCESSES)
@@ -193,12 +198,26 @@ class Ecoli(Composer):
 
         processes.update(requesters)
         processes.update(evolvers)
-
+        
+        divide = config.get('divide', False)
         # add division process
-        if config['divide']:
+        if divide:
+            division_config = config.get('division', {})
+            expectedDryMassIncreaseDict = self.load_sim_data.sim_data.expectedDryMassIncreaseDict
             division_name = 'division'
+            if 'massDistribution' in division_config:
+                division_random_seed = binascii.crc32(b'CellDivision', config['seed']) & 0xffffffff
+                division_random_state = np.random.RandomState(seed=division_random_seed)
+                division_mass_multiplier = division_random_state.normal(loc=1.0, scale=0.1)
+            else:
+                division_mass_multiplier = 1
+            if 'threshold' not in division_config:
+                initial_state = self.initial_state(config)
+                current_media_id = initial_state['environment']['media_id']
+                division_config['threshold'] = (initial_state['listeners']['mass']['dry_mass'] + 
+                    expectedDryMassIncreaseDict[current_media_id].asNumber(units.fg) * division_mass_multiplier)
             division_config = dict(
-                config['division'],
+                division_config,
                 agent_id=config['agent_id'],
                 composer=self,
                 seed=self.load_sim_data.random_state.randint(RAND_MAX),
@@ -308,7 +327,7 @@ class Ecoli(Composer):
         # add division
         if config['divide']:
             topology['division'] = {
-                'variable': ('listeners', 'mass', 'cell_mass'),
+                'variable': ('listeners', 'mass', 'dry_mass'),
                 'agents': config['agents_path']}
 
         topology['allocator'] = {
