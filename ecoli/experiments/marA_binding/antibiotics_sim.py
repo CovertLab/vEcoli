@@ -18,21 +18,20 @@ def run_sim(tet_conc=0, baseline=False, seed=0):
                     }
                 }
             },
-            'field_timeline': {
-                'timeline': [
+            "field_timeline": {
+                "timeline": [
                     [100000, {
                         "tetracycline": 0
-                    }]
+                    }],
                 ]
-            }
+            },
         },
         'seed': seed
     }
     if not os.path.exists('data/wcecoli_tet.json'):
         with open('data/wcecoli_t0.json') as f:
             initial_state = json.load(f)
-        # Add bulk tetracycline and marR-tet complex
-        initial_state['bulk']['tetracycline[c]'] = 0
+        # Add initial count for marR-tet complex
         initial_state['bulk']['marR-tet[c]'] = 0
         # Add promoter binding data for marA and marR
         for promoter_data in initial_state['unique']['promoter'].values():

@@ -10,7 +10,7 @@ import copy
 from datetime import datetime, timezone
 import os
 import re
-from six.moves import cPickle
+import pickle
 import binascii
 
 import numpy as np
@@ -211,7 +211,7 @@ def run_simulation(config):
         emitter_config[key] = value
     
     with open(SIM_DATA_PATH, 'rb') as sim_data_file:
-        sim_data = cPickle.load(sim_data_file)
+        sim_data = pickle.load(sim_data_file)
     expectedDryMassIncreaseDict = sim_data.expectedDryMassIncreaseDict
 
     base_config = {
@@ -232,6 +232,7 @@ def run_simulation(config):
         'seed': config['seed'],
         'experiment_id': experiment_id,
     }
+    division_config = config.get('division', {})
     composite = {}
     if 'initial_colony_file' in config.keys():
         initial_state = get_state_from_file(path=f'data/{config["initial_colony_file"]}.json')  # TODO(Matt): initial_state_file is wc_ecoli?
@@ -254,21 +255,21 @@ def run_simulation(config):
                 },
             }
             
-            if config['massDistribution']:
+            if 'massDistribution' in division_config:
                 division_random_seed = binascii.crc32(b'CellDivision', config['seed']) & 0xffffffff
                 division_random_state = np.random.RandomState(seed=division_random_seed)
                 division_mass_multiplier = division_random_state.normal(loc=1.0, scale=0.1)
             else:
                 division_mass_multiplier = 1
-            current_media_id = agent_state['environment']['media_id']
-            if not config.get('division_threshold', None):
+            if 'threshold' not in division_config:
+                current_media_id = agent_state['environment']['media_id']
                 agent_config['division_threshold'] = (agent_state['listeners']['mass']['dry_mass'] + 
                     expectedDryMassIncreaseDict[current_media_id].asNumber(units.fg) * division_mass_multiplier)
             else:
-                agent_config['division_threshold'] = config['division_threshold']
+                agent_config['division_threshold'] = division_config['threshold']
 
-            agent_composer = EcoliEngineProcess({**base_config, **agent_config})
-            agent_composite = agent_composer.generate(path=agent_path)
+            agent_composer = EcoliEngineProcess(base_config)
+            agent_composite = agent_composer.generate(agent_config, path=agent_path)
             if not composite:
                 composite = agent_composite
             composite.processes['agents'][agent_id] = agent_composite.processes['agents'][agent_id]
@@ -288,20 +289,20 @@ def run_simulation(config):
                 **emitter_config,
                 'embed_path': agent_path
             }
-            if config['division']['massDistribution']:
+            if 'massDistribution' in division_config:
                 division_random_seed = binascii.crc32(b'CellDivision', config['seed']) & 0xffffffff
                 division_random_state = np.random.RandomState(seed=division_random_seed)
                 division_mass_multiplier = division_random_state.normal(loc=1.0, scale=0.1)
             else:
                 division_mass_multiplier = 1
-            current_media_id = initial_state['environment']['media_id']
-            if not config.get('division_threshold', None):
+            if 'threshold' not in division_config:
+                current_media_id = initial_state['environment']['media_id']
                 agent_config['division_threshold'] = (initial_state['listeners']['mass']['dry_mass'] + 
                     expectedDryMassIncreaseDict[current_media_id].asNumber(units.fg) * division_mass_multiplier)
             else:
-                agent_config['division_threshold'] = config['division_threshold']
-        composer = EcoliEngineProcess({**base_config, **agent_config})
-        composite = composer.generate(path=agent_path)
+                agent_config['division_threshold'] = division_config['threshold']
+        composer = EcoliEngineProcess(base_config)
+        composite = composer.generate(agent_config, path=agent_path)
         initial_state = composite.initial_state()
 
     if config['spatial_environment']:

@@ -74,7 +74,6 @@
                 "ecoli-equilibrium_requester",
                 "ecoli-protein-degradation_requester",
                 "ecoli-chromosome-replication_requester",
-                "ecoli-mass-listener",
                 "monomer_counts_listener",
                 "mRNA_counts_listener",
                 "allocator",

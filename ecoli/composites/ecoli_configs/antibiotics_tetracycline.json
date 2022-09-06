@@ -7,7 +7,7 @@
         "conc_to_counts",
         "ecoli-rna-interference",
         "tetracycline-ribosome-equilibrium",
-        "unique_counts"
+        "aggregator"
     ],
     "total_time": 100,
     "emitter_arg": [
@@ -56,7 +56,8 @@
                         "permeability": ["..", "kinetic_parameters", "outer_tetracycline_permeability"],
                         "area": ["..", "boundary", "surface_area"],
                         "volume": ["..", "cytoplasm", "global", "volume"],
-                        "charge": ["..", "kinetic_parameters", "tetracycline", "charge"]                    },
+                        "charge": ["..", "kinetic_parameters", "tetracycline", "charge"]
+                    },
                     "export": {
                         "_path": ["null"],
                         "kcat": ["..", "kinetic_parameters", "tetracycline", "export_kcat"],
@@ -104,9 +105,9 @@
             "evolvers_ran": ["evolvers_ran"],
             "listeners": ["listeners"]
         },
-        "unique_counts": {
+        "aggregator": {
             "unique": ["unique"],
-            "unique_counts": ["listeners", "unique_counts"]
+            "aggregated": ["listeners", "aggregated"]
         }
     },
     "process_configs": {
@@ -238,9 +239,9 @@
         },
         "tetracycline-ribosome-equilibrium": {},
         "ecoli-mass-listener": {
-            "add_tetracycline_masses": true
+            "tetracycline_mass": "!ParameterSerializer[tetracycline>mass]"
         },
-        "unique_counts": {
+        "aggregator": {
             "paths": [
                 ["unique", "active_ribosome_tetracycline"],
                 ["unique", "active_ribosome"],
