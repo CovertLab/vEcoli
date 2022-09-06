@@ -36,7 +36,7 @@ def test_division(
         'divide': True,
         'agent_id': agent_id,
         'division': {
-            'threshold': 2220},  # fg
+            'threshold': 668},  # fg
     }
     agent_path = ('agents', agent_id)
     ecoli_composer = Ecoli(config)
@@ -134,8 +134,8 @@ def test_division_topology():
 
     # get initial mass from Ecoli composer
     initial_state = Ecoli({}).initial_state({'initial_state_file': 'vivecoli_t2678'})
-    initial_mass = initial_state['listeners']['mass']['cell_mass']
-    division_mass = initial_mass + 4.5
+    initial_mass = initial_state['listeners']['mass']['dry_mass']
+    division_mass = initial_mass + 1.5
     print(f"DIVIDE AT {division_mass} fg")
 
     # make a new composer under an embedded path

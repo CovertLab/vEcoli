@@ -45,7 +45,7 @@ def test_tf_binding_migration():
         assert recursive_compare(actual_request, wc_request)
         
         with open(
-            f"data/migration/tf_binding/update_t{total_time+initial_time}.json"
+            f"data/migration/tf_binding/update_t{total_time+initial_time}.json",
             'r'
         ) as f:
             wc_update = json.load(f)

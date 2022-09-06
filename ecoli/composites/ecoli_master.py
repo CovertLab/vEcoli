@@ -269,6 +269,9 @@ class Ecoli(Composer):
     def generate_processes(self, config):
         if not self.processes_and_steps or self.seed != config['seed']:
             self.seed = config['seed']
+            self.load_sim_data.seed = config['seed']
+            self.load_sim_data.random_state = np.random.RandomState(
+                seed = config['seed'])
             self.processes_and_steps = (
                 self._generate_processes_and_steps(config))
         processes, _, _ = self.processes_and_steps
@@ -277,6 +280,9 @@ class Ecoli(Composer):
     def generate_steps(self, config):
         if not self.processes_and_steps or self.seed != config['seed']:
             self.seed = config['seed']
+            self.load_sim_data.seed = config['seed']
+            self.load_sim_data.random_state = np.random.RandomState(
+                seed = config['seed'])
             self.processes_and_steps = (
                 self._generate_processes_and_steps(config))
         _, steps, _ = self.processes_and_steps
@@ -285,6 +291,9 @@ class Ecoli(Composer):
     def generate_flow(self, config):
         if not self.processes_and_steps or self.seed != config['seed']:
             self.seed = config['seed']
+            self.load_sim_data.seed = config['seed']
+            self.load_sim_data.random_state = np.random.RandomState(
+                seed = config['seed'])
             self.processes_and_steps = (
                 self._generate_processes_and_steps(config))
         _, _, flow = self.processes_and_steps
