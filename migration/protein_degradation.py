@@ -36,12 +36,18 @@ def test_protein_degradation_migration():
             protein_degradation_process, TOPOLOGY, initial_time = initial_time, 
             initial_state=initial_state, folder_name='protein_degradation')
 
-        with open(f"data/migration/protein_degradation/request_t{total_time+initial_time}.json") as f:
+        with open(
+            f"data/migration/protein_degradation/request_t{total_time+initial_time}.json",
+            'r'
+        ) as f:
             wc_request = json.load(f)
         # Ignore differences in unique IDs
         assert recursive_compare(actual_request, wc_request)
         
-        with open(f"data/migration/protein_degradation/update_t{total_time+initial_time}.json") as f:
+        with open(
+            f"data/migration/protein_degradation/update_t{total_time+initial_time}.json",
+            'r'
+        ) as f:
             wc_update = json.load(f)
         assert recursive_compare(actual_update, wc_update)
 

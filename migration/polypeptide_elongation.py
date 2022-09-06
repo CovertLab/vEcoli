@@ -36,7 +36,10 @@ def test_polypeptide_elongation_migration():
             polypeptide_elongation_process, TOPOLOGY, initial_time = initial_time, 
             initial_state=initial_state, folder_name='polypeptide_elongation')
 
-        with open(f"data/migration/polypeptide_elongation/request_t{total_time+initial_time}.json") as f:
+        with open(
+            f"data/migration/polypeptide_elongation/request_t{total_time+initial_time}.json",
+            'r'
+        ) as f:
             wc_request = json.load(f)
         # Ignore differences in unique IDs
         assert recursive_compare(actual_request, wc_request)

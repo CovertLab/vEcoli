@@ -36,13 +36,19 @@ def test_transcript_elongation_migration():
             transcript_elongation_process, TOPOLOGY, initial_time = initial_time, 
             initial_state=initial_state, folder_name='transcript_elongation')
 
-        with open(f"data/migration/transcript_elongation/request_t{total_time+initial_time}.json") as f:
+        with open(
+            f"data/migration/transcript_elongation/request_t{total_time+initial_time}.json",
+            'r'
+        ) as f:
             wc_request = json.load(f)
         # Ignore differences in unique IDs
         assert recursive_compare(actual_request, wc_request, 
                                 ignore_keys={'key', 'unique_index', 'RNAP_index'})
         
-        with open(f"data/migration/transcript_elongation/update_t{total_time+initial_time}.json") as f:
+        with open(
+            f"data/migration/transcript_elongation/update_t{total_time+initial_time}.json",
+            'r'
+        ) as f:
             wc_update = json.load(f)
         assert recursive_compare(actual_update, wc_update, ignore_keys={'key', 
             'unique_index', 'RNAP_index', 'attenuation_probability', 

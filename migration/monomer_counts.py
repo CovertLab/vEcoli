@@ -36,7 +36,10 @@ def test_monomer_counts_migration():
             monomer_counts_process, TOPOLOGY, initial_time=initial_time, 
             initial_state=initial_state)
         
-        with open(f"data/migration/monomer_counts/update_t{total_time+initial_time}.json") as f:
+        with open(
+            f"data/migration/monomer_counts/update_t{total_time+initial_time}.json",
+            'r'
+        ) as f:
             wc_update = json.load(f)
         assert recursive_compare(actual_update, wc_update)
 

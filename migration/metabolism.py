@@ -37,7 +37,10 @@ def test_metabolism_migration():
             metabolism_process, TOPOLOGY, initial_time=initial_time, 
             initial_state=initial_state, folder_name='metabolism')
         
-        with open(f"data/migration/metabolism/update_t{total_time+initial_time}.json") as f:
+        with open(
+            f"data/migration/metabolism/update_t{total_time+initial_time}.json",
+            'r'
+        ) as f:
             wc_update = json.load(f)
         assert recursive_compare(actual_update, wc_update, ignore_keys={
             'estimated_fluxes', 'target_dmdt', 'estimated_dmdt', 'estimated_exchange_dmdt'})
