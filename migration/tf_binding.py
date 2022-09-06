@@ -36,12 +36,18 @@ def test_tf_binding_migration():
             tf_binding_process, TOPOLOGY, initial_time = initial_time, 
             initial_state=initial_state, folder_name='tf_binding')
 
-        with open(f"data/migration/tf_binding/request_t{total_time+initial_time}.json") as f:
+        with open(
+            f"data/migration/tf_binding/request_t{total_time+initial_time}.json",
+            'r'
+        ) as f:
             wc_request = json.load(f)
         # Ignore differences in unique IDs
         assert recursive_compare(actual_request, wc_request)
         
-        with open(f"data/migration/tf_binding/update_t{total_time+initial_time}.json") as f:
+        with open(
+            f"data/migration/tf_binding/update_t{total_time+initial_time}.json"
+            'r'
+        ) as f:
             wc_update = json.load(f)
         assert recursive_compare(actual_update, wc_update)
 

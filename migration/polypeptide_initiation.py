@@ -36,12 +36,18 @@ def test_polypeptide_initiation_migration():
             polypeptide_initiation_process, TOPOLOGY, initial_time = initial_time, 
             initial_state=initial_state, folder_name='polypeptide_initiation')
 
-        with open(f"data/migration/polypeptide_initiation/request_t{total_time+initial_time}.json") as f:
+        with open(
+            f"data/migration/polypeptide_initiation/request_t{total_time+initial_time}.json"
+            'r'
+        ) as f:
             wc_request = json.load(f)
         # Ignore differences in unique IDs
         assert recursive_compare(actual_request, wc_request)
         
-        with open(f"data/migration/polypeptide_initiation/update_t{total_time+initial_time}.json") as f:
+        with open(
+            f"data/migration/polypeptide_initiation/update_t{total_time+initial_time}.json",
+            'r'
+        ) as f:
             wc_update = json.load(f)
         assert recursive_compare(actual_update, wc_update, ignore_keys={'key', 'unique_index'})
 

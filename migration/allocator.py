@@ -45,7 +45,8 @@ def test_allocator_migration():
         
         with open(
             f'data/migration/allocator/request_t{total_time+initial_time}.json',
-            'r') as f:
+            'r'
+        ) as f:
             initial_request = json.load(f)
         
         actual_request = {'request': {}}
@@ -54,7 +55,8 @@ def test_allocator_migration():
         
         with open(
             f"data/migration/allocator/partitioned_t{total_time+initial_time}.json",
-            'w') as f:
+            'w'
+        ) as f:
             json.dump(actual_request, f)
 
         # run the process and get an update
@@ -66,7 +68,10 @@ def test_allocator_migration():
         for process in actual_update['allocate']:
             actual_allocated['allocate'][proc_to_name[process]] = actual_update['allocate'][process]
         
-        with open(f"data/migration/allocator/update_t{total_time+initial_time}.json") as f:
+        with open(
+            f"data/migration/allocator/update_t{total_time+initial_time}.json",
+            'r'
+        ) as f:
             wc_update = json.load(f)
         assert recursive_compare(actual_allocated, wc_update, check_keys_strict=False)
 

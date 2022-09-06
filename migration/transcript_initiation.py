@@ -36,13 +36,19 @@ def test_transcript_initiation_migration():
             transcript_initiation_process, TOPOLOGY, initial_time = initial_time, 
             initial_state=initial_state, folder_name='transcript_initiation')
 
-        with open(f"data/migration/transcript_initiation/request_t{total_time+initial_time}.json") as f:
+        with open(
+            f"data/migration/transcript_initiation/request_t{total_time+initial_time}.json",
+            'r'
+        ) as f:
             wc_request = json.load(f)
         # Ignore differences in unique IDs
         assert recursive_compare(actual_request, wc_request,
                                  ignore_keys={'key', 'unique_index', 'RNAP_index'})
         
-        with open(f"data/migration/transcript_initiation/update_t{total_time+initial_time}.json") as f:
+        with open(
+            f"data/migration/transcript_initiation/update_t{total_time+initial_time}.json",
+            'r'
+        ) as f:
             wc_update = json.load(f)
         assert recursive_compare(actual_update, wc_update, 
                                  ignore_keys={'key', 'unique_index', 'RNAP_index'})

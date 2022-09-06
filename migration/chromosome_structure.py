@@ -37,7 +37,10 @@ def test_chromosome_structure_migration():
             chromosome_structure_process, TOPOLOGY, initial_time = initial_time, 
             initial_state=initial_state)
         
-        with open(f"data/migration/chromosome_structure/update_t{total_time+initial_time}.json") as f:
+        with open(
+            f"data/migration/chromosome_structure/update_t{total_time+initial_time}.json",
+            'r'
+        ) as f:
             wc_update = json.load(f)
         assert recursive_compare(actual_update, wc_update, ignore_keys={'key', 'unique_index'})
 
