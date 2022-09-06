@@ -69,33 +69,34 @@ class LoadSimData:
                 [self.sim_data.process.transcription_regulation.delta_prob["deltaV"], new_deltaV])
             
             # Add mass data for tetracycline and marR-tetracycline complex
-            bulk_data = self.sim_data.internal_state.bulk_molecules.bulk_data.fullArray().copy()
-            bulk_data.resize(bulk_data.shape[0]+2, refcheck=False)
-            # Tetracyline mass from NIST Chemistry WebBook
-            bulk_data[-1] = ('tetracycline', [0, 0, 0, 0, 0, 0, 444.4346, 0, 0])
+            bulk_data = self.sim_data.internal_state.bulk_molecules.bulk_data.fullArray()
+            bulk_data = np.resize(bulk_data, bulk_data.shape[0]+2)
+            # Tetracyline mass from PubChem
+            bulk_data[-1] = ('tetracycline', [0, 0, 0, 0, 0, 0, 444.4, 0, 0])
             # marR mass from EcoCyc (x2 because homodimer)
-            bulk_data[-2] = ('marR-tet[c]', [0, 0, 0, 0, 0, 32120, 444.4346, 0, 0])
+            bulk_data[-2] = ('marR-tet[c]', [0, 0, 0, 0, 0, 32120, 444.4, 0, 0])
             bulk_units = self.sim_data.internal_state.bulk_molecules.bulk_data.fullUnits()
             self.sim_data.internal_state.bulk_molecules.bulk_data = UnitStructArray(bulk_data, bulk_units)
             
             # Add equilibrium reaction for marR-tetracycline and reinitialize self.sim_data.process.equilibrium variables
             equilibrium_proc = self.sim_data.process.equilibrium
-            equilibrium_proc._stoichMatrixI = np.concatenate(
+            self.sim_data.process.equilibrium._stoichMatrixI = np.concatenate(
                 [equilibrium_proc._stoichMatrixI, np.array([98, 99, 100])])
-            equilibrium_proc._stoichMatrixJ = np.concatenate(
+            self.sim_data.process.equilibrium._stoichMatrixJ = np.concatenate(
                 [equilibrium_proc._stoichMatrixJ, np.array([34, 34, 34])])
-            equilibrium_proc._stoichMatrixV = np.concatenate(
+            self.sim_data.process.equilibrium._stoichMatrixV = np.concatenate(
                 [equilibrium_proc._stoichMatrixV, np.array([-1, -1, 1])])
-            equilibrium_proc.molecule_names += ['CPLX0-7710[c]', 'tetracycline', 'marR-tet[c]']
-            equilibrium_proc.ids_complexes = [equilibrium_proc.molecule_names[i] for i in np.where(np.any(equilibrium_proc.stoich_matrix() > 0, axis=1))[0]]
-            equilibrium_proc.rxn_ids += ['marR-tet']
+            self.sim_data.process.equilibrium.molecule_names += ['CPLX0-7710[c]', 'tetracycline', 'marR-tet[c]']
+            self.sim_data.process.equilibrium.ids_complexes = [equilibrium_proc.molecule_names[i] for i in np.where(np.any(equilibrium_proc.stoich_matrix() > 0, axis=1))[0]]
+            self.sim_data.process.equilibrium.rxn_ids += ['marR-tet']
             # All existing equilibrium reactions use a forward reaction rate of 1
-            equilibrium_proc.rates_fwd = np.concatenate([equilibrium_proc.rates_fwd, np.array([1])])
-            equilibrium_proc.rates_rev = np.concatenate([equilibrium_proc.rates_rev, np.array([7.1e-07])])
+            self.sim_data.process.equilibrium.rates_fwd = np.concatenate([equilibrium_proc.rates_fwd, np.array([1])])
+            # Rev rate was manually fit to complex off all marR except 1 at 1.5 mg/L external tetracycline
+            self.sim_data.process.equilibrium.rates_rev = np.concatenate([equilibrium_proc.rates_rev, np.array([7.1e-07])])
 
             # Mass balance matrix
-            equilibrium_proc._stoichMatrixMass = np.concatenate([equilibrium_proc._stoichMatrixMass, np.array([32130, 444.4346, 32574.4346])])
-            equilibrium_proc.balance_matrix = equilibrium_proc.stoich_matrix() * equilibrium_proc.mass_matrix()
+            self.sim_data.process.equilibrium._stoichMatrixMass = np.concatenate([equilibrium_proc._stoichMatrixMass, np.array([32130, 444.4346, 32574.4346])])
+            self.sim_data.process.equilibrium.balance_matrix = equilibrium_proc.stoich_matrix() * equilibrium_proc.mass_matrix()
 
             # Find the mass balance of each equation in the balanceMatrix
             massBalanceArray = equilibrium_proc.mass_balance()
@@ -104,8 +105,8 @@ class LoadSimData:
             assert np.max(np.absolute(massBalanceArray)) < 1e-9
 
             # Build matrices
-            equilibrium_proc._populateDerivativeAndJacobian()
-            equilibrium_proc._stoichMatrix = equilibrium_proc.stoich_matrix()
+            self.sim_data.process.equilibrium._populateDerivativeAndJacobian()
+            self.sim_data.process.equilibrium._stoichMatrix = equilibrium_proc.stoich_matrix()
         
         # Append new RNA IDs and degradation rates for sRNA-mRNA duplexes
         if rnai_data:
@@ -127,7 +128,7 @@ class LoadSimData:
             duplex_lengths = np.zeros(n_duplex_rnas)
             duplex_ACGU = np.zeros((n_duplex_rnas, 4))
             duplex_mw = np.zeros(n_duplex_rnas)
-            rna_data = self.sim_data.process.transcription.rna_data.fullArray().copy()
+            rna_data = self.sim_data.process.transcription.rna_data.fullArray()
             rna_units = self.sim_data.process.transcription.rna_data.fullUnits()
             rna_sequences = self.sim_data.process.transcription.transcription_sequences
             duplex_sequences = np.full((n_duplex_rnas, rna_sequences.shape[1]), -1)
@@ -142,6 +143,18 @@ class LoadSimData:
                 srna_length = rna_data['length'][self.srna_tu_ids[i]]
                 target_length = rna_data['length'][self.target_tu_ids[i]]
                 duplex_lengths[i] = srna_length + target_length
+                if duplex_lengths[i] > duplex_sequences.shape[1]:
+                    # Extend number of columns in sequence arrays to accomodate duplexes
+                    # where the sum of the RNA lengths > # of columns
+                    extend_length = duplex_lengths[i] - duplex_sequences.shape[1]
+                    extend_duplex_sequences = np.full(
+                        (duplex_sequences.shape[0], extend_length), 
+                        -1, dtype=duplex_sequences.dtype)
+                    duplex_sequences = np.append(duplex_sequences, extend_duplex_sequences, axis=1)
+                    extend_rna_sequences = np.full(
+                        (rna_sequences.shape[0], extend_length), 
+                        -1, dtype=rna_sequences.dtype)
+                    rna_sequences = np.append(rna_sequences, extend_rna_sequences, axis=1)
                 duplex_sequences[i, :srna_length] = rna_sequences[self.srna_tu_ids[i]][:srna_length] 
                 duplex_sequences[i, srna_length:srna_length+target_length] = rna_sequences[self.target_tu_ids[i]][:target_length]
                 # Mark sRNAs and targets as mRNAs to prevent automatic degradation
@@ -152,25 +165,27 @@ class LoadSimData:
             self.duplex_tu_ids = np.zeros(len(duplex_ids), dtype=int)
             # Make duplex metadata visible to all RNA-related processes
             old_n_rnas = rna_data.shape[0]
-            rna_data.resize(old_n_rnas+n_duplex_rnas, refcheck=False)
-            rna_sequences.resize((old_n_rnas+n_duplex_rnas, rna_sequences.shape[1]), refcheck=False)
+            rna_data = np.resize(rna_data, old_n_rnas+n_duplex_rnas)
+            rna_sequences = np.resize(rna_sequences, (old_n_rnas+n_duplex_rnas, rna_sequences.shape[1]))
             for i, new_rna in enumerate(zip(duplex_ids, duplex_deg_rates, duplex_lengths, duplex_ACGU,
                                duplex_mw, duplex_is_mRNA, duplex_na, duplex_na, duplex_na,
                                duplex_na, duplex_na, duplex_na, duplex_na, duplex_na, 
                                duplex_na, duplex_km, duplex_na, duplex_na)):
-                rna_data[-i-1] = new_rna
-                rna_sequences[-i-1] = duplex_sequences[i]
-                self.duplex_tu_ids[i] = old_n_rnas+n_duplex_rnas-i-1
+                rna_data[old_n_rnas+i] = new_rna
+                rna_sequences[old_n_rnas+i] = duplex_sequences[i]
+                self.duplex_tu_ids[i] = old_n_rnas+i
+            self.sim_data.process.transcription.transcription_sequences = rna_sequences
             self.sim_data.process.transcription.rna_data = UnitStructArray(rna_data, rna_units)
             
             # Add bulk mass data for duplexes to avoid errors (though mRNAs should never go to bulk)
-            bulk_data = self.sim_data.internal_state.bulk_molecules.bulk_data.fullArray().copy()
+            bulk_data = self.sim_data.internal_state.bulk_molecules.bulk_data.fullArray()
             bulk_units = self.sim_data.internal_state.bulk_molecules.bulk_data.fullUnits()
-            bulk_data.resize(bulk_data.shape[0]+n_duplex_rnas, refcheck=False)
+            old_n_bulk = bulk_data.shape[0]
+            bulk_data = np.resize(bulk_data, bulk_data.shape[0]+n_duplex_rnas)
             for i, duplex in enumerate(duplex_ids):
                 duplex_submasses = np.zeros(9)
                 duplex_submasses[2] = duplex_mw[i]
-                bulk_data[-i-1] = (duplex, duplex_submasses)
+                bulk_data[old_n_bulk+i] = (duplex, duplex_submasses)
             self.sim_data.internal_state.bulk_molecules.bulk_data = UnitStructArray(bulk_data, bulk_units)
             
             # Add filler transcription data for duplex RNAs to prevent errors

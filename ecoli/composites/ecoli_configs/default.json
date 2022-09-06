@@ -60,8 +60,5 @@
     "process_configs": {},
     "topology": {},
     "flow": {},
-    "_schema": {},
-    "engine_process_reports": [
-        ["listeners"]
-    ]
+    "_schema": {}
 }

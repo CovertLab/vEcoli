@@ -269,7 +269,7 @@ def divide_binomial(state: float) -> List[float]:
     return [counts_1, counts_2]
 
 
-class custom_dict_value_updater:
+class DictValueUpdater:
     '''
     Returns an updater which translates _add and _delete -style updates
     into operations on a dictionary.

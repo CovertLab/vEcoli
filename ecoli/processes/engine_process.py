@@ -239,7 +239,7 @@ class EngineProcess(Process):
             tunnel_schema = self.sim.state.get_path(path).get_config()
             # Don't waste time dividing outer sim state since it will be
             # overwritten by inner daughter states (also removes need to 
-            # emit all unique molecules required certain dividers like 
+            # emit all unique molecules required by certain dividers like 
             # that for active_ribosome)
             tunnel_schema['_divider'] = empty_dict_divider
             # Internal sim state is fully defined, making subschemas
