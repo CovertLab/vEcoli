@@ -37,7 +37,7 @@ def test_mRNA_counts_migration():
             initial_state=initial_state)
         
         with open(
-            f"data/migration/mRNA_counts/update_t{total_time+initial_time}.json"
+            f"data/migration/mRNA_counts/update_t{total_time+initial_time}.json",
             'r'
         ) as f:
             wc_update = json.load(f)
