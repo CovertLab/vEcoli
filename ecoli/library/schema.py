@@ -283,28 +283,48 @@ NUMPY_DEFAULTS = {
 }
  
 def numpy_schema(name):
-    return {
-        '_default': NUMPY_DEFAULTS[name],
-        '_updater': custom_numpy_updater(
-            NUMPY_DEFAULTS[name]).numpy_updater,
-        '_emit': True
-    }
+    if name == 'bulk':
+        return {
+            '_default': [],
+            '_updater': BulkNumpyUpdater(
+                NUMPY_DEFAULTS['bulk']).numpy_updater,
+            '_emit': True
+        }   
+    else:
+        return {
+            '_default': [],
+            '_updater': UniqueNumpyUpdater(
+                NUMPY_DEFAULTS[name]).numpy_updater,
+            '_emit': True
+        }
 
 def attrs(states, attributes):
     mol_mask = states['_entryState']
-    return (states[attribute][mol_mask].copy() for attribute in attributes)
+    # mol_mask is a boolean array so advanced indexing applies (implicit copy)
+    return (states[attribute][mol_mask] for attribute in attributes)
 
 def counts(states, idx):
-    return states['count'][idx].copy()
+    # idx is an integer array so advancing indexing applies (implicit copy)
+    return states['count'][idx]
 
-class custom_numpy_updater:
+class UniqueNumpyUpdater:
     '''
-    Returns an updater which translates updates
-    into operations on a Numpy structured array.
+    Returns an updater which translates unique molecule updates
+    into operations on a Numpy structured array. Updates are
+    accumulated until an update is passed where the last entry
+    is the string 'last', at which point all updates are sorted
+    before being applied to prevent conflicts when adding and 
+    deleting molecules.
     '''
     def __init__(self, defaults):
         self.defaults = defaults
-    
+        self.update_order = {
+            "new": 0,
+            "set": 1,
+            "del": 2
+        }
+        self.accumulated_update = []
+
     def _get_free_indices(self, result, n_objects):
         free_indices = np.where(result['_entryState'] == 0)[0]
         n_free_indices = free_indices.size
@@ -337,21 +357,70 @@ class custom_numpy_updater:
         return result
     
     def numpy_updater(self, current, update):
+        if update[-1] != 'last':
+            # Do not apply updates until they have been collected from all processes
+            self.accumulated_update += update
+        else:
+            self.accumulated_update += update[:-1]
+            # Sort updates to prevent clashes when adding/deleting molecules
+            sorted_updates = sorted(self.accumulated_update, key=lambda k: self.update_order[k[0]])
+            result = current
+            for subupdate in sorted_updates:
+                action = subupdate[0]
+                indices = subupdate[1]
+                attributes = subupdate[2]
+                # Add new molecules
+                if action == "new":
+                    result = self._add_new_objects(result, attributes)
+                # Edit existing molecules
+                elif action == 'set':
+                    for attrName, attrValue in attributes.items():
+                        result[attrName][indices] = attrValue
+                # Delete molecules
+                elif action == "del":
+                    result[indices] = np.zeros(1, dtype=result.dtype)
+            # Reset accumulated updates
+            self.accumulated_update = []
+            return result
+        return current
+
+class BulkNumpyUpdater:
+    '''
+    Returns an updater which translates bulk molecule updates
+    into operations on a Numpy structured array.
+    
+    To implement partitioning, we need to initialize a structured 
+    array with the following fields for each molecule: the whole cell
+    total count, an array of shape (m,) for the count initially allocated 
+    to each of the m processes, and an array of shape (m,) for the counts 
+    remaining of (or added to) what was allocated after each process has run.
+    
+    Processes will have to keep track of their index into the initial 
+    and final allocated arrays.
+    
+    The allocator will need to know which processes correspond
+    to which indices for custom partitioning priorities to work.
+    '''
+    def __init__(self, defaults):
+        self.defaults = defaults
+    
+    def numpy_updater(self, current, update):
         result = current
+        # Apply updates in sequence. Note that this means updates
+        # earlier in the sequence can be overwritten.
         for subupdate in update:
             action = subupdate[0]
             indices = subupdate[1]
             attributes = subupdate[2]
-            if action == "new":
-                result = self._add_new_objects(result, attributes)
-            elif action == "del":
-                result[indices] = np.zeros(1, dtype=result.dtype)
-            elif action == "inc":
+            # Increase molecule counts
+            if action == "inc":
                 for attrName, attrValue in attributes.items():
                     result[attrName][indices] += attrValue
+            # Decrease molecule counts
             elif action == "dec":
                 for attrName, attrValue in attributes.items():
                     result[attrName][indices] -= attrValue
+            # Set value
             else:
                 for attrName, attrValue in attributes.items():
                     result[attrName][indices] = attrValue

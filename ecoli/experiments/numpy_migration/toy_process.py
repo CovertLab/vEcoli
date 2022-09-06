@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 from vivarium.core.process import Process
 from vivarium.core.engine import Engine
 from ecoli.library.schema import (add_elements, numpy_schema, attrs, 
-    counts, bulk_schema, dict_value_schema, NUMPY_DEFAULTS,
+    counts, dict_value_schema, NUMPY_DEFAULTS,
     arrays_from, array_from, arrays_to, array_to)
 
 
@@ -106,7 +106,7 @@ class NumpyProcess(Process):
         self.bulk_ports = self.parameters['bulk_ports']
         self.num_to_add = self.parameters['num_to_add']
         self.num_to_del = self.parameters['num_to_del']
-        self.unique_index = 15000
+        self.unique_index = self.parameters['unique_index']
     
     def ports_schema(self):
         return {
@@ -141,9 +141,37 @@ class NumpyProcess(Process):
         
         return update
     
+class LastNumpyProcess(NumpyProcess):
+    def next_update(self, timestep, states):
+        update = {'bulk': [], 'RNAs': [], 'active_ribosome': []}
+        for idx, actions in self.bulk_ports:
+            bulk_counts = counts(states[f'bulk'], idx)
+            update['bulk'] += [(action, idx, {'count': 1}) for action in actions]
+        
+        active_rna_idx = np.where(states['RNAs']['_entryState'])[0]
+        TU_index, can_translate, unique_index = attrs(states['RNAs'], np.array([
+            'TU_index', 'can_translate', 'unique_index']))
+        active_ribosome_idx = np.where(states['active_ribosome']['_entryState'])[0]
+        protein_index, peptide_length, pos_on_mRNA = attrs(
+            states['active_ribosome'], np.array(['protein_index', 
+                'peptide_length', 'pos_on_mRNA']))
+        update['RNAs'].append(('new', [], {
+            'can_translate': np.ones(self.num_to_add), 
+            'unique_index': np.arange(self.unique_index, self.unique_index+self.num_to_add)}))
+        update['RNAs'].append(('del', active_rna_idx[:self.num_to_del], {}))
+        update['RNAs'].append('last')
+        update['active_ribosome'].append(('new', [], {
+            'peptide_length': np.ones(self.num_to_add), 
+            'mRNA_index': np.ones(self.num_to_add),
+            'unique_index': np.arange(self.unique_index, self.unique_index+self.num_to_add)}))
+        self.unique_index += self.num_to_add
+        update['active_ribosome'].append(('del', active_ribosome_idx[:self.num_to_del], {}))
+        update['active_ribosome'].append('last')
+        
+        return update
 
-class NormalProcess(Process):
-    name = 'NormalProcess'
+class DictProcess(Process):
+    name = 'DictProcess'
     topology = {}
     
     def __init__(self, parameters=None):
@@ -151,7 +179,7 @@ class NormalProcess(Process):
         self.bulk_ports = self.parameters['bulk_ports']
         self.num_to_add = self.parameters['num_to_add']
         self.num_to_del = self.parameters['num_to_del']
-        self.unique_index = 15000
+        self.unique_index = self.parameters['unique_index']
         self.topology = {
             'RNAs': ('unique', 'RNA'),
             'active_ribosome': ('unique', 'active_ribosome')
@@ -161,7 +189,7 @@ class NormalProcess(Process):
     
     def ports_schema(self):
         bulk_ports = {
-            f'bulk_{i}': {idx: {'_default': 0, '_updater': 'set', '_emit': True} for idx in indices}
+            f'bulk_{i}': {idx: {'_default': 0, '_emit': True} for idx in indices}
             for i, (indices, _) in enumerate(self.bulk_ports)
         }
         unique_ports = {
@@ -175,14 +203,14 @@ class NormalProcess(Process):
         for i, (_, actions) in enumerate(self.bulk_ports):
             port_name = f'bulk_{i}'
             bulk_counts = array_from(states[port_name])
-            final_update = bulk_counts
+            final_update = np.zeros_like(bulk_counts, dtype=np.int64)
+            # Mixing in 'set' updates causes different behavior from
+            # Numpy update model
             for action in actions:
                 if action == 'inc':
                     final_update += 1
                 elif action == 'dec':
                     final_update -= 1
-                else:
-                    final_update = np.ones_like(bulk_counts)
             update[f'bulk_{i}'] = array_to(states[port_name], final_update)
         
         TU_index, can_translate, unique_index = arrays_from(
@@ -208,8 +236,8 @@ class NormalProcess(Process):
         return update 
 
 
-def run_processes(add_del_ratio=1, scale=1000, bulk_ops=[(5000, ('dec')), 
-    (5000, ('set')), (5000, ('inc'))], validate=True, total_time=3000):
+def run_processes(add_del_ratio=1, scale=1000, bulk_ops=[(5000, ('dec',)), 
+    (5000, ('inc',))], n_proc=1, validate=True, total_time=500):
     if not os.path.exists('out/numpy_init.pkl') or (
         not os.path.exists('out/dict_init.pkl')):
         numpy_init, dict_init = generate_initial_states()
@@ -219,20 +247,39 @@ def run_processes(add_del_ratio=1, scale=1000, bulk_ops=[(5000, ('dec')),
         with open('out/dict_init.pkl', 'rb') as f:
             dict_init = pickle.load(f) 
     
-    bulk_indices = np.arange(numpy_init['bulk'].size)
-    bulk_ports = [(np.random.choice(bulk_indices, n_molecules, replace=False), 
-                   action) for n_molecules, action in bulk_ops]
+    bulk_keys = np.array(list(dict_init['bulk'].keys()))
     
-    numpy_config = {
-        'bulk_ports': bulk_ports,
-        'num_to_add': int(scale*add_del_ratio),
-        'num_to_del': scale
-    }
-    numpy_proc = NumpyProcess(numpy_config)
-    numpy_composite = numpy_proc.generate()
+    numpy_processes = {}
+    numpy_topologies = {}
+    dict_processes = {}
+    dict_topologies = {}
+    for proc_idx in range(n_proc):
+        bulk_indices = np.arange(numpy_init['bulk'].size)
+        bulk_ports = [(np.random.choice(bulk_indices, n_molecules, replace=False), 
+                   action) for n_molecules, action in bulk_ops]
+        numpy_config = {
+            'bulk_ports': bulk_ports,
+            'num_to_add': int(scale*add_del_ratio),
+            'num_to_del': scale,
+            'name': str(proc_idx),
+            'unique_index': int(15000 + proc_idx*1000000000)
+        }
+        if n_proc - proc_idx == 1:
+            # Cap off unique updates
+            numpy_processes[str(proc_idx)] = LastNumpyProcess(numpy_config)
+        else:
+            numpy_processes[str(proc_idx)] = NumpyProcess(numpy_config)
+        numpy_topologies[str(proc_idx)] = numpy_processes[str(proc_idx)].topology
+        
+        dict_config = deepcopy(numpy_config)
+        dict_config['bulk_ports'] = [(bulk_keys[idx], action) 
+            for idx, action in dict_config['bulk_ports']]
+        dict_processes[str(proc_idx)] = DictProcess(dict_config)
+        dict_topologies[str(proc_idx)] = dict_processes[str(proc_idx)].topology
+    
     experiment = Engine(
-        processes=numpy_composite['processes'],
-        topology={numpy_proc.name: numpy_proc.topology},
+        processes=numpy_processes,
+        topology=numpy_topologies,
         initial_state=numpy_init,
         progress_bar=True
     )
@@ -241,15 +288,10 @@ def run_processes(add_del_ratio=1, scale=1000, bulk_ops=[(5000, ('dec')),
     np_time = time.time() - start_time
     numpy_data = experiment.emitter.saved_data[total_time]
     
-    normal_config = deepcopy(numpy_config)
-    bulk_keys = np.array(list(dict_init['bulk'].keys()))
-    normal_config['bulk_ports'] = [(bulk_keys[idx], action) 
-        for idx, action in normal_config['bulk_ports']]
-    normal_proc = NormalProcess(normal_config)
-    normal_composite = normal_proc.generate()
+    
     experiment = Engine(
-        processes=normal_composite['processes'],
-        topology={normal_proc.name: normal_proc.topology},
+        processes=dict_processes,
+        topology=dict_topologies,
         initial_state=dict_init,
         progress_bar=True
     ) 
@@ -305,8 +347,8 @@ def scan_bulk_ops(port_sizes=[1], n_ops=[1], n_ports=[1]):
     for i, port_size in enumerate(port_sizes):
         for j, n_op in enumerate(n_ops):
             for k, n_port in enumerate(n_ports):
-                n_op = int(n_op/3)
-                bulk_ops = [(port_size, ('dec',)*n_op + ('set',)*n_op + ('inc',)*n_op)]*n_port
+                n_op = int(n_op/2)
+                bulk_ops = [(port_size, ('dec',)*n_op + ('inc',)*n_op)]*n_port
                 np_times[i, j, k], dict_times[i, j, k] = run_processes(bulk_ops=bulk_ops, total_time=100)
     np.save('out/np_dict/np_bulk_ops.npy', np_times)
     np.save('out/np_dict/dict_bulk_ops.npy', dict_times)
