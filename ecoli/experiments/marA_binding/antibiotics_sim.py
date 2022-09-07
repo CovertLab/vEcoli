@@ -1,6 +1,7 @@
 import os
 import json
 
+from migration.migration_utils import recursive_compare
 from ecoli.composites.ecoli_engine_process import run_simulation
 from ecoli.experiments.ecoli_master_sim import CONFIG_DIR_PATH, SimConfig
 
@@ -28,16 +29,7 @@ def run_sim(tet_conc=0, baseline=False, seed=0):
         },
         'seed': seed
     }
-    if not os.path.exists('data/wcecoli_tet.json'):
-        with open('data/wcecoli_t0.json') as f:
-            initial_state = json.load(f)
-        # Add initial count for marR-tet complex
-        initial_state['bulk']['marR-tet[c]'] = 0
-        # Add promoter binding data for marA and marR
-        for promoter_data in initial_state['unique']['promoter'].values():
-            promoter_data['bound_TF'] += [False, False]
-        with open('data/wcecoli_tet.json', 'w') as f:
-            json.dump(initial_state, f)
+    test_initial_state()
     config.update_from_dict(tetracycline_gradient)
     if baseline:
         config._config['add_processes'].remove('antibiotic-transport-odeint')
@@ -51,6 +43,24 @@ def run_sim(tet_conc=0, baseline=False, seed=0):
         config._config['mar_regulon'] = False
         config._config['initial_state_file'] = 'wcecoli_t0'
     run_simulation(config)
+    
+def test_initial_state():
+    with open('data/wcecoli_t0.json') as f:
+        initial_state = json.load(f)
+    # Add initial count for marR-tet complex
+    initial_state['bulk']['marR-tet[c]'] = 0
+    # Add promoter binding data for marA and marR
+    for promoter_data in initial_state['unique']['promoter'].values():
+        promoter_data['bound_TF'] += [False, False]
+    if os.path.exists('data/wcecoli_tet.json'):
+        with open('data/wcecoli_tet.json') as f:
+            existing_initial_state = json.load(f)
+        if recursive_compare(initial_state, existing_initial_state):
+            return
+        else:
+            print('wcecoli_tet.json out of date, updating')
+    with open('data/wcecoli_tet.json', 'w') as f:
+        json.dump(initial_state, f)
 
 def generate_data():
     seeds = list(range(40))
