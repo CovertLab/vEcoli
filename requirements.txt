@@ -15,7 +15,6 @@ bleach==4.1.0
 certifi==2021.10.8
 cffi==1.15.0
 charset-normalizer==2.0.9
-cobra==0.22.1
 colorama==0.4.4
 commonmark==0.9.1
 cons==0.4.5
@@ -127,7 +126,6 @@ tornado==6.1
 traitlets==5.1.1
 typing_extensions==4.0.1
 Unum==4.1.4
-vivarium-convenience==0.0.3
 vivarium-core==1.5.2
 vivarium-multibody==0.0.16
 wcwidth==0.2.5
