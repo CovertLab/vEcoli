@@ -35,7 +35,9 @@ from ecoli.processes.antibiotics.permeability import Permeability
 from ecoli.processes.antibiotics.tetracycline_ribosome_equilibrium import (
     TetracyclineRibosomeEquilibrium)
 from ecoli.processes.chemostat import Chemostat
-from ecoli.processes.listeners.unique_counts import UniqueCounts
+from ecoli.processes.listeners.aggregator import Aggregator
+from ecoli.processes.rna_interference import RnaInterference
+from ecoli.processes.antibiotics.conc_to_counts import ConcToCounts
 
 
 # add to registry
@@ -61,7 +63,7 @@ process_registry.register(Allocator.name, Allocator)
 process_registry.register(Shape.name, Shape)
 process_registry.register(ConcentrationsDeriver.name,
     ConcentrationsDeriver)
-process_registry.register(UniqueCounts.name, UniqueCounts)
+process_registry.register(Aggregator.name, Aggregator)
 
 # environment processes
 process_registry.register(Lysis.name, Lysis)
@@ -85,3 +87,5 @@ process_registry.register(
 process_registry.register(
     Permeability.name, Permeability
 )
+process_registry.register(ConcToCounts.name, ConcToCounts)
+process_registry.register(RnaInterference.name, RnaInterference)
