@@ -60,6 +60,7 @@ These tunnels are the only way that the EngineProcess exchanges
 information with the outside simulation.
 '''
 import copy
+import binascii
 
 import numpy as np
 from vivarium.core.composer import Composer
@@ -69,8 +70,9 @@ from vivarium.core.process import Process
 from vivarium.core.registry import updater_registry, divider_registry
 from vivarium.core.serialize import serialize_value
 from vivarium.core.store import DEFAULT_SCHEMA, Store
-from vivarium.library.topology import get_in, without
+from vivarium.library.topology import get_in
 
+from wholecell.utils import units
 from ecoli.library.sim_data import RAND_MAX
 from ecoli.library.schema import remove_properties, empty_dict_divider
 from ecoli.library.updaters import inverse_updater_registry
@@ -208,6 +210,19 @@ class EngineProcess(Process):
             progress_bar=False,
             initial_global_time=self.parameters['start_time'],
         )
+        
+        if self.parameters['division_threshold'] == 'massDistribution':
+            expectedDryMassIncreaseDict = self.sim.steps[
+                'ecoli-mass-listener'].parameters['expectedDryMassIncreaseDict']
+            division_random_seed = binascii.crc32(b'CellDivision', self.parameters['seed']) & 0xffffffff
+            division_random_state = np.random.RandomState(seed=division_random_seed)
+            division_mass_multiplier = division_random_state.normal(loc=1.0, scale=0.1)
+            initial_state = self.parameters['initial_inner_state']
+            current_media_id = initial_state['environment']['media_id']
+            self.parameters['division_threshold'] = (
+                get_in(initial_state, self.parameters['division_variable']) + 
+                expectedDryMassIncreaseDict[current_media_id].asNumber(units.fg) * division_mass_multiplier)
+        
         if self.parameters['emit_paths']:
             self.sim.state.set_emit_values([tuple()], False)
             self.sim.state.set_emit_values(

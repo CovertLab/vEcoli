@@ -799,6 +799,7 @@ class LoadSimData:
                 'smallMolecule': self.sim_data.submass_name_to_index["metabolite"],
                 'water': self.sim_data.submass_name_to_index["water"]
             },
+            'expectedDryMassIncreaseDict': self.sim_data.expectedDryMassIncreaseDict,
             'compartment_indices': {
                 'projection': self.sim_data.compartment_id_to_index["CCO-CELL-PROJECTION"],
                 'cytosol': self.sim_data.compartment_id_to_index["CCO-CYTOSOL"],

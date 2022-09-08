@@ -35,8 +35,7 @@ def test_division(
     config = {
         'divide': True,
         'agent_id': agent_id,
-        'division': {
-            'threshold': 668},  # fg
+        'division_threshold': 668,  # fg
     }
     agent_path = ('agents', agent_id)
     ecoli_composer = Ecoli(config)
@@ -143,8 +142,7 @@ def test_division_topology():
     config = {
         'divide': True,
         'agent_id': agent_id,
-        'division': {
-            'threshold': division_mass},  # fg
+        'division_threshold': division_mass,  # fg
         'seed': 1,
     }
     agent_path = ('agents', agent_id)

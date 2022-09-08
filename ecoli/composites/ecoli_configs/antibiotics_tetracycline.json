@@ -1,7 +1,6 @@
 {
     "inherit_from": ["antibiotics.json"],
     "add_processes": [
-        "antibiotic-transport-odeint",
         "permeability",
         "death",
         "conc_to_counts",
