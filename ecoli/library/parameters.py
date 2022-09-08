@@ -214,7 +214,6 @@ PARAMETER_DICT = {
             'Thanassi, Suh, and Nikaido (1995) p. 1005',
             latex_source='thanassi1995role',
         ),
-        # Note: must update mass manually in LoadSimData.__init__ if changed
         'mass': Parameter(
             444.4 * units.g / units.mol,
             'Tetracycline PubChem',
