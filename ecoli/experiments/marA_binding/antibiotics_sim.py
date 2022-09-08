@@ -5,12 +5,13 @@ from migration.migration_utils import recursive_compare
 from ecoli.composites.ecoli_engine_process import run_simulation
 from ecoli.experiments.ecoli_master_sim import CONFIG_DIR_PATH, SimConfig
 
-def run_sim(tet_conc=0, baseline=False, seed=0):
+def run_sim(tet_conc=0, baseline=False, 
+    seed=0, total_time=10000, check_initial_state=True):
     config = SimConfig()
     config.update_from_json(os.path.join(
         CONFIG_DIR_PATH, "antibiotics_tetracycline.json"))
     tetracycline_gradient = {
-        'total_time': 10000,
+        'total_time': total_time,
         'spatial_environment_config': {
             'reaction_diffusion': {
                 'gradient': {
@@ -29,19 +30,25 @@ def run_sim(tet_conc=0, baseline=False, seed=0):
         },
         'seed': seed
     }
-    test_initial_state()
+    if check_initial_state:
+        test_initial_state()
     config.update_from_dict(tetracycline_gradient)
     if baseline:
         config._config['add_processes'].remove('antibiotic-transport-odeint')
         config._config['add_processes'].remove('ecoli-rna-interference')
         config._config['add_processes'].remove('tetracycline-ribosome-equilibrium')
         config._config['process_configs'].pop('ecoli-rna-interference')
+        config._config['process_configs'].pop('antibiotic-transport-odeint')
+        config._config['process_configs'].pop('tetracycline-ribosome-equilibrium')
+        config._config['topology'].pop('antibiotic-transport-odeint')
+        config._config['topology'].pop('tetracycline-ribosome-equilibrium')
         config._config['engine_process_reports'].remove(['bulk', 'marR-tet[c]'])
         config._config['engine_process_reports'].remove(['bulk', 'CPLX0-3953-tetracycline[c]'])
         config._config['engine_process_reports'].remove(['bioscrape_deltas',])
         config._config['flow'].pop('ecoli-polypeptide-initiation_requester')
         config._config['mar_regulon'] = False
-        config._config['initial_state_file'] = 'wcecoli_t0'
+        config._config['initial_state_file'] = 'vivecoli_t2678'
+        config._config['division_threshold'] = 668
     run_simulation(config)
     
 def test_initial_state():
@@ -63,9 +70,8 @@ def test_initial_state():
         json.dump(initial_state, f)
 
 def generate_data():
-    seeds = list(range(40))
-    for seed in seeds:
-        run_sim(0.003375, seed = seed)
+    run_sim(0.003375, seed = 0, baseline=True, check_initial_state=False)
+    run_sim(0.003375, seed = 0, check_initial_state=False)
         
 if __name__ == "__main__":
     generate_data()
