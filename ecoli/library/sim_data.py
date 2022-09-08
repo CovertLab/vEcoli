@@ -110,16 +110,15 @@ class LoadSimData:
         
         # Append new RNA IDs and degradation rates for sRNA-mRNA duplexes
         if rnai_data:
-            duplex_ids = np.array(rnai_data['duplex_ids'])
-            n_duplex_rnas = len(duplex_ids)
+            self.duplex_ids = np.array(rnai_data['duplex_ids'])
+            n_duplex_rnas = len(self.duplex_ids)
             duplex_deg_rates = np.array(rnai_data['duplex_deg_rates'])
             duplex_km = np.array(rnai_data['duplex_km'])
             duplex_is_mRNA = np.ones(n_duplex_rnas)
             duplex_na = np.zeros(n_duplex_rnas)
             
-            srna_ids = np.array(rnai_data['srna_ids'])
+            self.srna_ids = np.array(rnai_data['srna_ids'])
             target_ids = np.array(rnai_data['target_ids'])
-            self.srna_tu_ids = np.zeros(len(srna_ids), dtype=int)
             self.target_tu_ids = np.zeros(len(target_ids), dtype=int)
             
             self.binding_probs = np.array(rnai_data['binding_probs'])
@@ -132,15 +131,15 @@ class LoadSimData:
             rna_units = self.sim_data.process.transcription.rna_data.fullUnits()
             rna_sequences = self.sim_data.process.transcription.transcription_sequences
             duplex_sequences = np.full((n_duplex_rnas, rna_sequences.shape[1]), -1)
-            for i, (srna_id, target_id) in enumerate(zip(srna_ids, target_ids)):
+            for i, (srna_id, target_id) in enumerate(zip(self.srna_ids, target_ids)):
                 # Use first match for each sRNA and target mRNA
-                self.srna_tu_ids[i] = np.where(rna_data['id']==srna_id)[0][0]
+                srna_tu_id = np.where(rna_data['id']==srna_id)[0][0]
                 self.target_tu_ids[i] = np.where(rna_data['id']==target_id)[0][0]
-                duplex_ACGU[i] = (rna_data['counts_ACGU'][self.srna_tu_ids[i]] + 
+                duplex_ACGU[i] = (rna_data['counts_ACGU'][srna_tu_id] + 
                                   rna_data['counts_ACGU'][self.target_tu_ids[i]])
-                duplex_mw[i] = (rna_data['mw'][self.srna_tu_ids[i]] + 
+                duplex_mw[i] = (rna_data['mw'][srna_tu_id] + 
                                 rna_data['mw'][self.target_tu_ids[i]])
-                srna_length = rna_data['length'][self.srna_tu_ids[i]]
+                srna_length = rna_data['length'][srna_tu_id]
                 target_length = rna_data['length'][self.target_tu_ids[i]]
                 duplex_lengths[i] = srna_length + target_length
                 if duplex_lengths[i] > duplex_sequences.shape[1]:
@@ -155,25 +154,19 @@ class LoadSimData:
                         (rna_sequences.shape[0], extend_length), 
                         -1, dtype=rna_sequences.dtype)
                     rna_sequences = np.append(rna_sequences, extend_rna_sequences, axis=1)
-                duplex_sequences[i, :srna_length] = rna_sequences[self.srna_tu_ids[i]][:srna_length] 
+                duplex_sequences[i, :srna_length] = rna_sequences[srna_tu_id][:srna_length] 
                 duplex_sequences[i, srna_length:srna_length+target_length] = rna_sequences[self.target_tu_ids[i]][:target_length]
-                # Mark sRNAs and targets as mRNAs to prevent automatic degradation
-                # There is a miscRNA key in sim_data that is not loaded into the sim
-                rna_data['is_mRNA'][self.srna_tu_ids[i]] = True
-                rna_data['is_mRNA'][self.target_tu_ids[i]] = True
             
-            self.duplex_tu_ids = np.zeros(len(duplex_ids), dtype=int)
             # Make duplex metadata visible to all RNA-related processes
             old_n_rnas = rna_data.shape[0]
             rna_data = np.resize(rna_data, old_n_rnas+n_duplex_rnas)
             rna_sequences = np.resize(rna_sequences, (old_n_rnas+n_duplex_rnas, rna_sequences.shape[1]))
-            for i, new_rna in enumerate(zip(duplex_ids, duplex_deg_rates, duplex_lengths, duplex_ACGU,
+            for i, new_rna in enumerate(zip(self.duplex_ids, duplex_deg_rates, duplex_lengths, duplex_ACGU,
                                duplex_mw, duplex_is_mRNA, duplex_na, duplex_na, duplex_na,
                                duplex_na, duplex_na, duplex_na, duplex_na, duplex_na, 
                                duplex_na, duplex_km, duplex_na, duplex_na)):
                 rna_data[old_n_rnas+i] = new_rna
                 rna_sequences[old_n_rnas+i] = duplex_sequences[i]
-                self.duplex_tu_ids[i] = old_n_rnas+i
             self.sim_data.process.transcription.transcription_sequences = rna_sequences
             self.sim_data.process.transcription.rna_data = UnitStructArray(rna_data, rna_units)
             
@@ -182,7 +175,7 @@ class LoadSimData:
             bulk_units = self.sim_data.internal_state.bulk_molecules.bulk_data.fullUnits()
             old_n_bulk = bulk_data.shape[0]
             bulk_data = np.resize(bulk_data, bulk_data.shape[0]+n_duplex_rnas)
-            for i, duplex in enumerate(duplex_ids):
+            for i, duplex in enumerate(self.duplex_ids):
                 duplex_submasses = np.zeros(9)
                 duplex_submasses[2] = duplex_mw[i]
                 bulk_data[old_n_bulk+i] = (duplex, duplex_submasses)
@@ -937,10 +930,10 @@ class LoadSimData:
             'time_step': time_step,
             '_parallel': parallel,
             
-            'srna_tu_ids': self.srna_tu_ids,
+            'srna_ids': self.srna_ids,
             'target_tu_ids': self.target_tu_ids,
             'binding_probs': self.binding_probs,
-            'duplex_tu_ids': self.duplex_tu_ids,
+            'duplex_ids': self.duplex_ids,
             
             'ribosome30S': self.sim_data.molecule_ids.s30_full_complex,
             'ribosome50S': self.sim_data.molecule_ids.s50_full_complex,
