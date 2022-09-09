@@ -121,7 +121,7 @@ class ChromosomeStructure(Step):
     def ports_schema(self):
         ports = {
             'listeners': {
-                'RnapData': listener_schema({
+                'rnap_data': listener_schema({
                     'n_total_collisions': 0,
                     'n_headon_collisions': 0,
                     'n_codirectional_collisions': 0,
@@ -273,7 +273,7 @@ class ChromosomeStructure(Step):
         # Write values to listeners
         update = {
             'listeners': {
-                'RnapData': {
+                'rnap_data': {
                     'n_total_collisions': n_total_collisions,
                     'n_headon_collisions': n_headon_collisions,
                     'n_codirectional_collisions': n_codirectional_collisions,
@@ -505,7 +505,7 @@ class ChromosomeStructure(Step):
                     n_initiated_sequences - incomplete_sequence_lengths.sum())
 
         # Write to listener
-        update['listeners']['RnapData']['n_removed_ribosomes'] = n_removed_ribosomes
+        update['listeners']['rnap_data']['n_removed_ribosomes'] = n_removed_ribosomes
 
 
         def get_replicated_motif_attributes(old_coordinates, old_domain_indexes):
