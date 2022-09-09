@@ -127,7 +127,6 @@ class LoadSimData:
             n_duplex_rnas = len(self.duplex_ids)
             duplex_deg_rates = np.array(rnai_data['duplex_deg_rates'])
             duplex_km = np.array(rnai_data['duplex_km'])
-            duplex_is_mRNA = np.ones(n_duplex_rnas)
             duplex_na = np.zeros(n_duplex_rnas)
             
             self.srna_ids = np.array(rnai_data['srna_ids'])
@@ -175,7 +174,7 @@ class LoadSimData:
             rna_data = np.resize(rna_data, old_n_rnas+n_duplex_rnas)
             rna_sequences = np.resize(rna_sequences, (old_n_rnas+n_duplex_rnas, rna_sequences.shape[1]))
             for i, new_rna in enumerate(zip(self.duplex_ids, duplex_deg_rates, duplex_lengths, duplex_ACGU,
-                               duplex_mw, duplex_is_mRNA, duplex_na, duplex_na, duplex_na,
+                               duplex_mw, duplex_na, duplex_na, duplex_na, duplex_na,
                                duplex_na, duplex_na, duplex_na, duplex_na, duplex_na, 
                                duplex_na, duplex_km, duplex_na, duplex_na)):
                 rna_data[old_n_rnas+i] = new_rna
