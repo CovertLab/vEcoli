@@ -1,7 +1,6 @@
 import os
 import json
 
-from migration.migration_utils import recursive_compare
 from ecoli.composites.ecoli_engine_process import run_simulation
 from ecoli.experiments.ecoli_master_sim import CONFIG_DIR_PATH, SimConfig
 
@@ -47,11 +46,13 @@ def run_sim(tet_conc=0, baseline=False,
         config._config['engine_process_reports'].remove(['bioscrape_deltas',])
         config._config['flow'].pop('ecoli-polypeptide-initiation_requester')
         config._config['mar_regulon'] = False
-        config._config['initial_state_file'] = 'vivecoli_t2678'
+        config._config['initial_state_file'] = 'wcecoli_t0'
         config._config['division_threshold'] = 668
     run_simulation(config)
-    
+
+# Running this is slow (including the import statement)    
 def test_initial_state():
+    from migration.migration_utils import recursive_compare
     with open('data/wcecoli_t0.json') as f:
         initial_state = json.load(f)
     # Add initial count for marR-tet complex
@@ -71,8 +72,7 @@ def test_initial_state():
 
 def generate_data():
     run_sim(0.003375, seed = 0, baseline=True, check_initial_state=False)
-    run_sim(0.003375, seed = 0, check_initial_state=False)
+    run_sim(0.003375, seed = 0, check_initial_state=False, total_time=20000)
         
 if __name__ == "__main__":
     generate_data()
-    
