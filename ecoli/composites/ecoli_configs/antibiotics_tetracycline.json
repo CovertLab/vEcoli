@@ -249,7 +249,6 @@
         }
     },
     "flow": {
-        "ecoli-polypeptide-initiation_requester": [["tetracycline-ribosome-equilibrium"]],
         "ecoli-rna-interference": [["ecoli-metabolism"]],
         "tetracycline-ribosome-equilibrium": [["ecoli-rna-interference"]],
         "ecoli-mass-listener": [["tetracycline-ribosome-equilibrium"]],
