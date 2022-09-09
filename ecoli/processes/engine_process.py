@@ -68,7 +68,6 @@ from vivarium.core.emitter import get_emitter, SharedRamEmitter
 from vivarium.core.engine import Engine
 from vivarium.core.process import Process
 from vivarium.core.registry import updater_registry, divider_registry
-from vivarium.core.serialize import serialize_value
 from vivarium.core.store import DEFAULT_SCHEMA, Store
 from vivarium.library.topology import get_in
 
@@ -356,7 +355,7 @@ class EngineProcess(Process):
         data['time'] = self.sim.global_time
         emit_config = {
             'table': 'history',
-            'data': serialize_value(data),
+            'data': data,
         }
         self.emitter.emit(emit_config)
 
