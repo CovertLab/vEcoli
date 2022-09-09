@@ -44,10 +44,11 @@ def run_sim(tet_conc=0, baseline=False,
         config._config['engine_process_reports'].remove(['bulk', 'marR-tet[c]'])
         config._config['engine_process_reports'].remove(['bulk', 'CPLX0-3953-tetracycline[c]'])
         config._config['engine_process_reports'].remove(['bioscrape_deltas',])
-        config._config['flow'].pop('ecoli-polypeptide-initiation_requester')
+        config._config['flow']['ecoli-mass-listener'] = [('ecoli-metabolism',)]
+        config._config['flow'].pop('ecoli-rna-interference')
+        config._config['flow'].pop('tetracycline-ribosome-equilibrium')
         config._config['mar_regulon'] = False
         config._config['initial_state_file'] = 'wcecoli_t0'
-        config._config['division_threshold'] = 668
     run_simulation(config)
 
 # Running this is slow (including the import statement)    
@@ -71,8 +72,8 @@ def test_initial_state():
         json.dump(initial_state, f)
 
 def generate_data():
-    run_sim(0.003375, seed = 0, baseline=True, check_initial_state=False)
-    run_sim(0.003375, seed = 0, check_initial_state=False, total_time=20000)
+    run_sim(0.003375, seed = 0, baseline=True, check_initial_state=False, total_time=15000)
+    run_sim(0.003375, seed = 0, check_initial_state=False, total_time=15000)
         
 if __name__ == "__main__":
     generate_data()
