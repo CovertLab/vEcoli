@@ -14,16 +14,13 @@ import os
 # are listed in requirements.txt.
 INSTALL_REQUIRES = [
     'vivarium-core>=1.2.0',
-    'vivarium-convenience>=0.0.3',
     'biopython==1.77',
     'Unum==4.1.4',
-    'numba==0.50.1',
     'ipython>=7.16.1',
     'aesara>=2.3.8',
     'decorator',
     'iteround',
     'stochastic-arrow>=0.4.4',
-    'cobra',
     'matplotlib',
     'pytest',
     'jax',
