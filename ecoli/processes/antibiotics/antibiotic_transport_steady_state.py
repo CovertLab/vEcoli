@@ -444,6 +444,7 @@ class AntibioticTransportSteadyState(Process):
             # the outer membrane has a potential from the Donnan equilibrium.
             internal_bias = charge * faraday * potential / gas_constant / temperature
 
+            # Compute the update.
             internal_steady_state = find_steady_state(
                 prepared_state['species']['external'],
                 prepared_state['reaction_parameters'],
@@ -580,3 +581,7 @@ def test_antibiotic_transport_steady_state():
                 ) <= 1e-5 * abs(expected_update[key][species])
         else:
             assert update[key] == expected_update[key]
+
+
+if __name__ == '__main__':
+    test_antibiotic_transport_steady_state()

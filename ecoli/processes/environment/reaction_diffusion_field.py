@@ -13,6 +13,7 @@ from vivarium.core.process import Process, assoc_path
 from vivarium.core.composition import PROCESS_OUT_DIR
 from vivarium.core.engine import Engine
 from vivarium.library.units import units
+from vivarium.library.dict_utils import deep_merge
 
 from ecoli.library.lattice_utils import (
     get_bin_site,
@@ -222,6 +223,8 @@ class ReactionDiffusion(Process):
         update = {
             'fields': delta_fields,
             'agents': local_environments}
+        
+        deep_merge(update['agents'], agent_updates)
 
         return update
 
