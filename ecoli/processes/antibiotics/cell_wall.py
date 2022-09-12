@@ -5,6 +5,13 @@ production of crosslinked murein.
 
 Parameters:
 - Probability of terminating a murein strand (p): fitted from data in ...
+critical radius
+cell_radius
+- disaccharide length
+- cross_bridge_length
+- initial stretch factor
+- max stretch factor
+- peptidoglycan unit area (unstretched?)
 """
 
 import numpy as np
