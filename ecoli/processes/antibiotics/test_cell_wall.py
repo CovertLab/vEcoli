@@ -40,9 +40,9 @@ def create_composite(timeline_data):
             ("cell_global", "volume"): parse_unit_string(
                 value[("cell_global", "volume")]
             ),
-            ("concentrations", "beta_lactam"): (
-                0 * units.micromolar if t < 500 else 9.16 * units.micromolar
-            ),
+            # ("concentrations", "beta_lactam"): (
+            #     0 * units.micromolar if t < 500 else 9.16 * units.micromolar
+            # ),
             ("bulk", "CPD-12261[p]"): int(value[("bulk", "CPD-12261[p]")]),
         },
     )
