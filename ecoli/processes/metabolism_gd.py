@@ -14,7 +14,7 @@ from wholecell.utils import units
 
 from ecoli.library.fba_gd import GradientDescentFba, FbaResult, TargetDmdtObjective, \
     TargetVelocityObjective, VelocityBoundsObjective, DmdtBoundsObjective, MinimizeFluxObjective, \
-    LenientTargetVelocityObjective, MinimizeExchangeObjective
+    LenientTargetVelocityObjective
 from ecoli.processes.registries import topology_registry
 from ecoli.processes.partition import check_whether_evolvers_have_run
 
@@ -211,7 +211,7 @@ class MetabolismGD(Process):
                     'estimated_fluxes': {'_default': {}, '_updater': 'set', '_emit': True},
                     'estimated_homeostatic_dmdt': {'_default': {}, '_updater': 'set', '_emit': True},
                     'target_homeostatic_dmdt': {'_default': {}, '_updater': 'set', '_emit': True},
-                    # 'target_kinetic_fluxes': {'_default': {}, '_updater': 'set', '_emit': True},
+                    'target_kinetic_fluxes': {'_default': {}, '_updater': 'set', '_emit': True},
                     'estimated_exchange_dmdt': {'_default': {}, '_updater': 'set', '_emit': True},
                     'estimated_intermediate_dmdt': {'_default': {}, '_updater': 'set', '_emit': True},
                     'maintenance_target': {'_default': {}, '_updater': 'set', '_emit': True},
@@ -284,16 +284,19 @@ class MetabolismGD(Process):
         kinetic_enzyme_conc = self.counts_to_molar * array_from(kinetic_enzyme_counts)
         kinetic_substrate_conc = self.counts_to_molar * array_from(kinetic_substrate_counts)
         kinetic_constraints = self.get_kinetic_constraints(kinetic_enzyme_conc, kinetic_substrate_conc) # kinetic
-        enzyme_kinetic_boundaries = ((timestep * units.s) * kinetic_constraints).asNumber(CONC_UNITS)
+        enzyme_kinetic_boundaries = ((timestep * units.s) * kinetic_constraints).asNumber(CONC_UNITS).astype(float)
         enzyme_kinetic_reactions = self.kinetic_constraint_reactions
 
         # remove redundant kinetic reactions
+        target_kinetic_bounds = {enzyme_kinetic_reactions[i]: (enzyme_kinetic_boundaries[i, 0], enzyme_kinetic_boundaries[i, 2])
+                                  for i in range(len(enzyme_kinetic_reactions)) if enzyme_kinetic_reactions[i] is not None}
 
-
-        enzyme_kinetic_targets = {enzyme_kinetic_reactions[i]: enzyme_kinetic_boundaries[i, 1] for i in range(len(enzyme_kinetic_reactions))}
+        target_kinetic_values = {enzyme_kinetic_reactions[i]: enzyme_kinetic_boundaries[i, 1]
+                                  for i in range(len(enzyme_kinetic_reactions)) if enzyme_kinetic_reactions[i] is not None}
 
         # adding dynamically sized objectives
-        self.model.add_objective('kinetic', TargetVelocityObjective(self.model.network, enzyme_kinetic_targets.keys(), weight=0.00005))
+        self.model.add_objective('kinetic', VelocityBoundsObjective(self.model.network,
+                                                                    bounds=target_kinetic_bounds, weight=0.01))
         self.model.add_objective('binary_kinetic', TargetVelocityObjective(self.model.network, binary_kinetic_targets.keys(), weight=1))
 
         # run FBA
@@ -302,10 +305,10 @@ class MetabolismGD(Process):
              'binary_kinetic': binary_kinetic_targets,
              'maintenance': maintenance_target,
              'diffusion': diffusion_target,
-             'kinetic': enzyme_kinetic_targets
+             'kinetic': target_kinetic_bounds
              },
             initial_velocities=self.reaction_fluxes,
-            tr_solver='lsmr', max_nfev=64, ftol=10 ** (-5), verbose=2, xtol=10 ** (-4),
+            tr_solver='lsmr', max_nfev=256, ftol=10 ** (-4), verbose=2, xtol=10 ** (-4),
             tr_options={'atol': 10 ** (-8), 'btol': 10 ** (-8), 'conlim': 10 ** (10), 'show': False}
         )
 
@@ -315,7 +318,7 @@ class MetabolismGD(Process):
         # recalculate flux concentrations to counts
         estimated_reaction_fluxes = self.concentrationToCounts(self.reaction_fluxes)
         metabolite_dmdt_counts = self.concentrationToCounts(self.metabolite_dmdt)
-        target_kinetic_flux = self.concentrationToCounts(binary_kinetic_targets)
+        target_kinetic_flux = self.concentrationToCounts(target_kinetic_values)
         target_maintenance_flux = self.concentrationToCounts(maintenance_target)
         target_homeostatic_dmdt = self.concentrationToCounts(target_homeostatic_dmdt)
 

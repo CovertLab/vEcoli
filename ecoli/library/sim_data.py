@@ -553,13 +553,15 @@ class LoadSimData:
                     rxns[-1]['enzyme'] = []
 
         rxn_names = [rxn['reaction id'] for rxn in rxns]
-        kinetic_reactions = [rxn for rxn in self.sim_data.process.metabolism.kinetic_constraint_reactions if rxn in rxn_names]
+
+        # Avoids issues with index based recognition of reactions later
+        kinetic_reactions = [rxn if rxn in rxn_names else None for rxn in self.sim_data.process.metabolism.kinetic_constraint_reactions]
 
         # Carbon source limitations.
         carbon_source_active_transport = ['TRANS-RXN-157-PTSH-PHOSPHORYLATED/GLC//ALPHA-GLC-6-P/PTSH-MONOMER.52.',
-                                               'TRANS-RXN-157-PTSH-PHOSPHORYLATED/GLC//D-glucopyranose-6-phosphate'
-                                               '/PTSH-MONOMER.66.',
-                                               'TRANS-RXN-157-PTSH-PHOSPHORYLATED/GLC//GLC-6-P/PTSH-MONOMER.46.']
+                                           'TRANS-RXN-157-PTSH-PHOSPHORYLATED/GLC//D-glucopyranose-6-phosphate'
+                                           '/PTSH-MONOMER.66.',
+                                           'TRANS-RXN-157-PTSH-PHOSPHORYLATED/GLC//GLC-6-P/PTSH-MONOMER.46.']
 
         carbon_source_active_transport_duplicate = ['TRANS-RXN-320-GLC/ATP/WATER//ALPHA-GLUCOSE/ADP/Pi/PROTON.43.',
                                                          'TRANS-RXN-320-GLC/ATP/WATER//GLC/ADP/Pi/PROTON.33.',

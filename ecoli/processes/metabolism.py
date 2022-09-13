@@ -190,9 +190,10 @@ class Metabolism(Step):
                     'kineticObjectiveValues': {'_default': [], '_updater': 'set'},
 
                     'estimated_fluxes': {'_default': {}, '_updater': 'set', '_emit': True},
-                    'estimated_dmdt': {'_default': {}, '_updater': 'set', '_emit': True},
-                    'target_dmdt': {'_default': {}, '_updater': 'set', '_emit': True},
+                    'estimated_homeostatic_dmdt': {'_default': {}, '_updater': 'set', '_emit': True},
+                    'target_homeostatic_dmdt': {'_default': {}, '_updater': 'set', '_emit': True},
                     'estimated_exchange_dmdt': {'_default': {}, '_updater': 'set', '_emit': True},
+                    'target_kinetic_fluxes': {'_default': {}, '_updater': 'set', '_emit': True},
                 },
 
                 'enzyme_kinetics': {
@@ -316,10 +317,13 @@ class Metabolism(Step):
         objective_counts = {key: int((self.model.homeostatic_objective[key] / counts_to_molar).asNumber())
                             - int(states['metabolites'][key]) for key in fba.getHomeostaticTargetMolecules()}
 
+        kinetic_targets = {self.model.kinetics_constrained_reactions[i]: int((targets[i] / (counts_to_molar*timestep)).asNumber())
+                           for i in range(len(targets))}
+
         fluxes = fba.getReactionFluxes() / timestep
         names = fba.getReactionIDs()
 
-        flux_dict = {names[i]: fluxes[i] for i in range(len(names))}
+        flux_dict = {names[i]: int((fluxes[i] / (counts_to_molar*timestep)).asNumber()) for i in range(len(names))}
 
         update = {
             'metabolites': {
@@ -354,11 +358,12 @@ class Metabolism(Step):
                     'kineticObjectiveValues': fba.getKineticObjectiveValues(),
 
                     'estimated_fluxes': flux_dict ,
-                    'estimated_dmdt': {metabolite: delta_metabolites_final[index]
+                    'estimated_homeostatic_dmdt': {metabolite: delta_metabolites_final[index]
                                        for index, metabolite in enumerate(self.model.metaboliteNamesFromNutrients)},
-                    'target_dmdt': objective_counts,
+                    'target_homeostatic_dmdt': objective_counts,
                     'estimated_exchange_dmdt': {molecule: delta_nutrients[index]
                                                 for index, molecule in enumerate(fba.getExternalMoleculeIDs())},
+                    'target_kinetic_fluxes': kinetic_targets,
                 },
 
                 'enzyme_kinetics': {
