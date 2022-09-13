@@ -119,14 +119,18 @@ def run_metabolism_composite():
 
 def run_ecoli_with_metabolism_gd(
         filename='fba_gd_swap',
-        total_time=200,
+        total_time=10,
         divide=True,
-        initial_state_file='vivecoli_t2',
-        progress_bar=True,
+        initial_state_file='vivecoli_t2000',
+        progress_bar=False,
         log_updates=False,
         emitter='timeseries',
-        name='kinetics'
+        name='kinetics',
+        raw_output=False,
+        save=False,
+        save_times=None,
 ):
+    # filename = 'default'
     sim = EcoliSim.from_file(CONFIG_DIR_PATH + filename + '.json')
     sim.total_time = total_time
     sim.divide = divide
@@ -134,6 +138,10 @@ def run_ecoli_with_metabolism_gd(
     sim.log_updates = log_updates
     sim.emitter = emitter
     sim.initial_state = get_state_from_file(path=f'data/{initial_state_file}.json')
+    sim.raw_output = False
+    # sim.save = True
+    # sim.save_times = [1000, 2000, 2500, 3000, 3500]
+
 
     sim.run()
 
