@@ -212,6 +212,7 @@ class MetabolismGD(Process):
                     'estimated_homeostatic_dmdt': {'_default': {}, '_updater': 'set', '_emit': True},
                     'target_homeostatic_dmdt': {'_default': {}, '_updater': 'set', '_emit': True},
                     'target_kinetic_fluxes': {'_default': {}, '_updater': 'set', '_emit': True},
+                    'target_kinetic_bounds': {'_default': {}, '_updater': 'set', '_emit': True},
                     'estimated_exchange_dmdt': {'_default': {}, '_updater': 'set', '_emit': True},
                     'estimated_intermediate_dmdt': {'_default': {}, '_updater': 'set', '_emit': True},
                     'maintenance_target': {'_default': {}, '_updater': 'set', '_emit': True},
@@ -321,6 +322,7 @@ class MetabolismGD(Process):
         target_kinetic_flux = self.concentrationToCounts(target_kinetic_values)
         target_maintenance_flux = self.concentrationToCounts(maintenance_target)
         target_homeostatic_dmdt = self.concentrationToCounts(target_homeostatic_dmdt)
+        target_kinetic_bounds = self.concentrationToCounts(target_kinetic_bounds)
 
         # Include all concentrations that will be present in a sim for constant length listeners. doesn't affect fba.
         for met in self.metabolite_names_for_nutrients:
@@ -343,6 +345,7 @@ class MetabolismGD(Process):
                     'estimated_homeostatic_dmdt': estimated_homeostatic_dmdt,
                     'target_homeostatic_dmdt': target_homeostatic_dmdt,
                     'target_kinetic_fluxes': target_kinetic_flux,
+                    'target_kinetic_bounds': target_kinetic_bounds,
                     'estimated_exchange_dmdt': estimated_exchange_dmdt,
                     'estimated_intermediate_dmdt': estimated_intermediate_dmdt,
                     'maintenance_target': target_maintenance_flux,
@@ -355,9 +358,9 @@ class MetabolismGD(Process):
         }
 
     def concentrationToCounts(self, concentration_dict):
-        return {key: int(np.round(
-            (concentration_dict[key] * CONC_UNITS / self.counts_to_molar * self.timestep).asNumber()
-        )) for key in concentration_dict}
+        return {key: np.rint(
+            np.dot(concentration_dict[key], (CONC_UNITS / self.counts_to_molar * self.timestep).asNumber())
+        ) for key in concentration_dict}
 
     def getBiomassAsConcentrations(self, doubling_time):
         """
