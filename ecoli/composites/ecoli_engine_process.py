@@ -297,8 +297,9 @@ def run_simulation(config):
                 composite = agent_composite
             composite.processes['agents'][agent_id] = agent_composite.processes['agents'][agent_id]
             composite.topology['agents'][agent_id] = agent_composite.topology['agents'][agent_id]
-            del agent_path, agent_composer, agent_composite, base_config, agent_config
-        del agent_id, agent_state, agent_states
+        # Clean up namespace for garbage collector
+        del (agent_id, agent_state, agent_states, agent_path, agent_composer, 
+             agent_composite, base_config, agent_config)
     else:
         agent_config = {}
         if 'initial_state_file' in config.keys():
