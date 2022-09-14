@@ -57,7 +57,7 @@ class Allocator(Deriver):
     def ports_schema(self):
         ports = {
             'bulk': {
-                molecule: {'_default': 0}
+                str(molecule): {'_default': 0}
                 for molecule in self.moleculeNames},
             'request': {
                 process: {

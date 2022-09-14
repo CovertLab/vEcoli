@@ -399,7 +399,7 @@ class ChromosomeStructure(Step):
             n_segments, {
                 'unique_index': np.arange(
                     self.chromosome_segment_index, self.chromosome_segment_index +
-                    n_segments),
+                    n_segments).tolist(),
                 'boundary_molecule_indexes': all_new_boundary_molecule_indexes,
                 'boundary_coordinates': all_new_boundary_coordinates,
                 'domain_index': all_new_segment_domain_indexes,
@@ -548,7 +548,7 @@ class ChromosomeStructure(Step):
                 n_new_promoters, self.random_state)
             new_promoters = arrays_to(
                 n_new_promoters, {
-                    'unique_index': np.array(promoter_indices),
+                    'unique_index': promoter_indices,
                     'TU_index': promoter_TU_indexes_new,
                     'coordinates': promoter_coordinates_new,
                     'domain_index': promoter_domain_indexes_new,
@@ -579,7 +579,7 @@ class ChromosomeStructure(Step):
                 n_new_DnaA_boxes, self.random_state)
             new_DnaA_boxes = arrays_to(
                 n_new_DnaA_boxes, {
-                    'unique_index': np.array(DnaA_box_indices),
+                    'unique_index': DnaA_box_indices,
                     'coordinates': DnaA_box_coordinates_new,
                     'domain_index': DnaA_box_domain_indexes_new,
                     'DnaA_bound': np.zeros(n_new_DnaA_boxes, dtype=np.bool).tolist()})
