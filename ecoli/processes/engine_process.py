@@ -180,7 +180,8 @@ class EngineProcess(Process):
         if self.parameters['division_variable'] == None:
             self.parameters['division_variable'] = inner_composite[
                 'division_variable']
-        # If initial inner state not given in outer sim, use inner sim value
+        # If initial inner state not given in outer composite, 
+        # use initial state from inner composite
         if self.parameters['initial_inner_state'] == None:
             self.parameters['initial_inner_state'] = inner_composite[
                 'initial_inner_state']
@@ -579,15 +580,16 @@ class _OuterComposer(Composer):
 
     def generate_processes(self, config):
         proc = EngineProcess({
-            'outer_composer': _OuterComposer,
-            'outer_composer_config': config,
             'inner_composer': _InnerComposer,
             'inner_composer_config': {},
+            'outer_composer': _OuterComposer,
+            'outer_composer_config': config,
             'agent_id': config['agent_id'],
             'tunnels_in': {
                 'c_tunnel': ('c',),
             },
-            'initial_inner_state': config['initial_cell_state'],
+            'initial_inner_state': config['inner_composer_config'].get(
+                'initial_inner_state', {}),
             'time_step': 1,
             'divide': True,
             'division_threshold': 4,
@@ -650,7 +652,7 @@ def test_engine_process():
     outer_composer = _OuterComposer({
         'experiment_id': experiment_id,
         'agent_id': agent_path[-1],
-        'initial_cell_state': {},
+        'inner_composer_config': {},
         'start_time': 0,
         'inner_emitter': {
             'type': 'shared_ram',

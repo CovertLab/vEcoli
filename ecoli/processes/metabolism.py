@@ -161,7 +161,7 @@ class Metabolism(Step):
                     '_default': '',
                     '_updater': 'set'},
                 'exchange': {
-                    element: {'_default': 0}
+                    str(element): {'_default': 0}
                     for element in self.model.fba.getExternalMoleculeIDs()},
                 'exchange_data': {
                     'unconstrained': {'_default': []},
@@ -326,16 +326,16 @@ class Metabolism(Step):
         fluxes = fba.getReactionFluxes() / timestep
         names = fba.getReactionIDs()
 
-        flux_dict = {names[i]: fluxes[i] for i in range(len(names))}
+        flux_dict = {str(names[i]): fluxes[i] for i in range(len(names))}
 
         update = {
             'metabolites': {
-                metabolite: delta_metabolites_final[index]
+                str(metabolite): delta_metabolites_final[index]
                 for index, metabolite in enumerate(self.model.metaboliteNamesFromNutrients)},
 
             'environment': {
                 'exchange': {
-                    molecule: delta_nutrients[index]
+                    str(molecule): delta_nutrients[index]
                     for index, molecule in enumerate(fba.getExternalMoleculeIDs())}},
 
             'listeners': {
@@ -361,10 +361,10 @@ class Metabolism(Step):
                     'kineticObjectiveValues': fba.getKineticObjectiveValues(),
 
                     'estimated_fluxes': flux_dict ,
-                    'estimated_dmdt': {metabolite: delta_metabolites_final[index]
+                    'estimated_dmdt': {str(metabolite): delta_metabolites_final[index]
                                        for index, metabolite in enumerate(self.model.metaboliteNamesFromNutrients)},
                     'target_dmdt': objective_counts,
-                    'estimated_exchange_dmdt': {molecule: delta_nutrients[index]
+                    'estimated_exchange_dmdt': {str(molecule): delta_nutrients[index]
                                                 for index, molecule in enumerate(fba.getExternalMoleculeIDs())},
                 },
 

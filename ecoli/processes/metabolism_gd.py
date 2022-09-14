@@ -266,9 +266,9 @@ class MetabolismGD(Process):
             if reaction['enzyme'] and sum([current_catalyst_counts[enzyme] for enzyme in reaction['enzyme']]) == 0:
                 binary_kinetic_targets[reaction['reaction id']] = 0
 
-        current_metabolite_concentrations = {key: value * self.counts_to_molar for key, value in
+        current_metabolite_concentrations = {str(key): value * self.counts_to_molar for key, value in
                                              current_metabolite_counts.items()}
-        target_homeostatic_dmdt = {key: ((self.homeostatic_objective[key] * CONC_UNITS
+        target_homeostatic_dmdt = {str(key): ((self.homeostatic_objective[key] * CONC_UNITS
                                           - current_metabolite_concentrations[key]) / timestep).asNumber()
                                    for key, value in self.homeostatic_objective.items()}
 
@@ -321,12 +321,12 @@ class MetabolismGD(Process):
         # Include all concentrations that will be present in a sim for constant length listeners. doesn't affect fba.
         for met in self.metabolite_names_for_nutrients:
             if met not in target_homeostatic_dmdt:
-                target_homeostatic_dmdt[met] = 0.
+                target_homeostatic_dmdt[str(met)] = 0.
 
-        estimated_homeostatic_dmdt = {key: metabolite_dmdt_counts[key] for key in self.homeostatic_objective.keys()}
-        estimated_exchange_dmdt = {key: metabolite_dmdt_counts[key] for key in self.exchange_molecules}
+        estimated_homeostatic_dmdt = {str(key): metabolite_dmdt_counts[key] for key in self.homeostatic_objective.keys()}
+        estimated_exchange_dmdt = {str(key): metabolite_dmdt_counts[key] for key in self.exchange_molecules}
         intermediates = list(set(metabolite_dmdt_counts.keys()) - set(self.exchange_molecules) - set(self.homeostatic_objective.keys()))
-        estimated_intermediate_dmdt = {key: metabolite_dmdt_counts[key] for key in intermediates}
+        estimated_intermediate_dmdt = {str(key): metabolite_dmdt_counts[key] for key in intermediates}
 
         return {
             'metabolites': estimated_homeostatic_dmdt,  # changes to internal metabolites
