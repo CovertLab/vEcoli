@@ -153,7 +153,7 @@ class MassListener(Deriver):
         ports = {
             'bulk': bulk_schema(self.bulk_ids),
             'unique': {
-                mol_id: dict_value_schema(mol_id + 's')
+                str(mol_id): dict_value_schema(mol_id + 's')
                 for mol_id in self.unique_ids
                 if mol_id not in [
                     'DnaA_box',

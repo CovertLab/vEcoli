@@ -121,7 +121,7 @@ class MonomerCounts(Step):
             },
             'bulk': bulk_schema(self.bulk_molecule_ids),
             'unique': {
-                unique_mol: {
+                str(unique_mol): {
                     '_default': {}
                 } for unique_mol in self.parameters['unique_ids']
             },
