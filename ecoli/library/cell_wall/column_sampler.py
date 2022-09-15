@@ -1,15 +1,8 @@
+import os
 from itertools import accumulate, takewhile, tee
 
 import matplotlib.pyplot as plt
 import numpy as np
-
-
-def poisson_sampler(rng, rate):
-    def sampler():
-        while True:
-            yield rng.poisson(rate)
-
-    return sampler
 
 
 def geom_sampler(rng, p):
@@ -18,6 +11,26 @@ def geom_sampler(rng, p):
             yield rng.geometric(p)
 
     return sampler
+
+
+def fit_strand_term_p(df, upper_mean):
+    # Take only the wild-type strain
+    clean = df[df["Strain"] == "MC4100"].drop(columns=["Strain"]).set_index("Length")
+
+    # Normalize to sum to 1
+    clean["Percent"] /= clean["Percent"].sum()
+
+    # Get mean of strands <= 30 in length
+    lower_data = clean[clean.index != ">30"]
+    lower_mean = (np.array([int(x) for x in lower_data.index]) * lower_data["Percent"]).sum()
+
+    # Get overall mean
+    p_upper = clean.loc[">30"]
+    mean = (1 - p_upper) * lower_mean + (p_upper * upper_mean)
+
+    # return p for a geometric distribution with corresponding mean
+    return 1 / mean.values[0]
+
 
 
 def sample_column(rows, murein, strand_sampler, rng, shift=True):
