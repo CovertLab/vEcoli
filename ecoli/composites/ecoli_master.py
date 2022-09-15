@@ -96,8 +96,6 @@ class Ecoli(Composer):
             override = get_state_from_file(path=f"data/{override_file}.json")
             deep_merge(initial_state, override)
 
-        initial_state = super().initial_state({
-            'initial_state': initial_state})
         return initial_state
 
     def _generate_processes_and_steps(self, config):
