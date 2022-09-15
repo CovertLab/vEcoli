@@ -91,7 +91,6 @@ class CellWall(Process):
         # 4.1 in maximally stretched configuration,
         # divided by 3 because the sacculus can be stretched threefold
         "crossbridge_length": param_store.get(("cell_wall", "crossbridge_length")),
-        "initial_stretch_factor": 1.17,
         "max_expansion": param_store.get(("cell_wall", "max_expansion")),
         "peptidoglycan_unit_area": param_store.get(("cell_wall", "peptidoglycan_unit_area")),
         # Simulation parameters
@@ -115,7 +114,7 @@ class CellWall(Process):
         self.peptidoglycan_unit_area = self.parameters["peptidoglycan_unit_area"]
         self.disaccharide_length = self.parameters["disaccharide_length"]
         self.crossbridge_length = self.parameters["crossbridge_length"]
-        self.max_stretch = self.parameters["max_stretch"]
+        self.max_expansion = self.parameters["max_expansion"]
 
         # Create pseudorandom number generator
         self.rng = np.random.default_rng(self.parameters["seed"])
@@ -137,7 +136,7 @@ class CellWall(Process):
                 },
                 "lattice_rows": {"_default": 0, "_updater": "set", "_emit": True},
                 "lattice_cols": {"_default": 0, "_updater": "set", "_emit": True},
-                "stretch_factor": {"_default": 1.17, "_updater": "set", "_emit": True},
+                "expansion_factor": {"_default": 1, "_updater": "set", "_emit": True},
                 "cracked": {"_default": False, "_updater": "set", "_emit": True},
             },
             "pbp_state": {
@@ -164,7 +163,7 @@ class CellWall(Process):
     def next_update(self, timestep, states):
         # Unpack states
         volume = states["shape"]["volume"]
-        stretch_factor = states["wall_state"]["stretch_factor"]
+        expansion_factor = states["wall_state"]["expansion_factor"]
         unincorporated_murein = states["murein_state"]["unincorporated_murein"]
         incorporated_murein = states["murein_state"]["incorporated_murein"]
         PBPs = states["PBP"]
@@ -209,7 +208,7 @@ class CellWall(Process):
             self.crossbridge_length,
             self.disaccharide_length,
             self.circumference,
-            stretch_factor,
+            expansion_factor,
         )
 
         # Update lattice to reflect new dimensions,
@@ -230,13 +229,13 @@ class CellWall(Process):
 
         # Crack detection (cracking is irreversible)
         hole_sizes, _ = detect_holes_skimage(new_lattice)
-        max_size = hole_sizes.max() * self.peptidoglycan_unit_area * stretch_factor
+        max_size = hole_sizes.max() * self.peptidoglycan_unit_area * expansion_factor
 
         # See if stretching will save from cracking
         will_crack = max_size > self.critical_area
-        if will_crack and stretch_factor < self.max_stretch:
+        if will_crack and expansion_factor < self.max_expansion:  # TODO: use areal expansion
             # stretch more and try again...
-            stretch_factor = remove_units(
+            expansion_factor = remove_units(
                 (
                     length
                     / (
@@ -251,7 +250,7 @@ class CellWall(Process):
                 self.crossbridge_length,
                 self.disaccharide_length,
                 self.circumference,
-                stretch_factor,
+                expansion_factor,
             )
 
             # Update lattice to reflect new dimensions,
@@ -272,7 +271,7 @@ class CellWall(Process):
 
             # Crack detection (cracking is irreversible)
             hole_sizes, _ = detect_holes_skimage(new_lattice)
-            max_size = hole_sizes.max() * self.peptidoglycan_unit_area * stretch_factor
+            max_size = hole_sizes.max() * self.peptidoglycan_unit_area * expansion_factor
 
             will_crack = max_size > self.critical_area
 
@@ -284,7 +283,7 @@ class CellWall(Process):
             "lattice": lattice,
             "lattice_rows": lattice.shape[0],
             "lattice_cols": lattice.shape[1],
-            "stretch_factor": stretch_factor,
+            "expansion_factor": expansion_factor,
         }
         update["murein_state"] = {
             "unincorporated_murein": new_unincorporated_monomers,
