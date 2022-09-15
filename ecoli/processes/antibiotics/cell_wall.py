@@ -136,7 +136,7 @@ class CellWall(Process):
                 },
                 "lattice_rows": {"_default": 0, "_updater": "set", "_emit": True},
                 "lattice_cols": {"_default": 0, "_updater": "set", "_emit": True},
-                "expansion_factor": {"_default": 1, "_updater": "set", "_emit": True},
+                "extension_factor": {"_default": 1, "_updater": "set", "_emit": True},
                 "cracked": {"_default": False, "_updater": "set", "_emit": True},
             },
             "pbp_state": {
@@ -163,7 +163,7 @@ class CellWall(Process):
     def next_update(self, timestep, states):
         # Unpack states
         volume = states["shape"]["volume"]
-        expansion_factor = states["wall_state"]["expansion_factor"]
+        extension_factor = states["wall_state"]["extension_factor"]
         unincorporated_murein = states["murein_state"]["unincorporated_murein"]
         incorporated_murein = states["murein_state"]["incorporated_murein"]
         PBPs = states["PBP"]
@@ -208,7 +208,7 @@ class CellWall(Process):
             self.crossbridge_length,
             self.disaccharide_length,
             self.circumference,
-            expansion_factor,
+            extension_factor,
         )
 
         # Update lattice to reflect new dimensions,
@@ -229,13 +229,13 @@ class CellWall(Process):
 
         # Crack detection (cracking is irreversible)
         hole_sizes, _ = detect_holes_skimage(new_lattice)
-        max_size = hole_sizes.max() * self.peptidoglycan_unit_area * expansion_factor
+        max_size = hole_sizes.max() * self.peptidoglycan_unit_area * extension_factor
 
         # See if stretching will save from cracking
         will_crack = max_size > self.critical_area
-        if will_crack and expansion_factor < self.max_expansion:  # TODO: use areal expansion
+        if will_crack and extension_factor < self.max_expansion:  # TODO: use areal expansion
             # stretch more and try again...
-            expansion_factor = remove_units(
+            extension_factor = remove_units(
                 (
                     length
                     / (
@@ -250,7 +250,7 @@ class CellWall(Process):
                 self.crossbridge_length,
                 self.disaccharide_length,
                 self.circumference,
-                expansion_factor,
+                extension_factor,
             )
 
             # Update lattice to reflect new dimensions,
@@ -271,7 +271,7 @@ class CellWall(Process):
 
             # Crack detection (cracking is irreversible)
             hole_sizes, _ = detect_holes_skimage(new_lattice)
-            max_size = hole_sizes.max() * self.peptidoglycan_unit_area * expansion_factor
+            max_size = hole_sizes.max() * self.peptidoglycan_unit_area * extension_factor
 
             will_crack = max_size > self.critical_area
 
@@ -283,7 +283,7 @@ class CellWall(Process):
             "lattice": lattice,
             "lattice_rows": lattice.shape[0],
             "lattice_cols": lattice.shape[1],
-            "expansion_factor": expansion_factor,
+            "extension_factor": extension_factor,
         }
         update["murein_state"] = {
             "unincorporated_murein": new_unincorporated_monomers,
