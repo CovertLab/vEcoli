@@ -210,13 +210,17 @@ PARAMETER_DICT = {
             0.5 * units.um,
             "Cell shape process"
         ),
-        "disaccharide_length": Parameter(
+        "disaccharide_height": Parameter(
             1.03 * units.nm,
             "Vollmer, W., & Höltje, J.-V. (2004)."
         ),
-        "crossbridge_length": Parameter(
-            (4.1/3) * units.nm,
-            "Vollmer, W., & Höltje, J.-V. (2004)."
+        "disaccharide_width": Parameter(
+            1.4 * units.nm,
+            "Turner, R. D., Mesnage, S., Hobbs, J. K., & Foster, S. J. (2018)."
+        ),
+        "inter_strand_distance": Parameter(
+            2.7 * units.nm,
+            "Turner, R. D., Mesnage, S., Hobbs, J. K., & Foster, S. J. (2018)."
         ),
         "max_expansion": Parameter(
             3,
