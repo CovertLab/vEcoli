@@ -430,13 +430,14 @@ class EcoliSim:
             path = ('agents', self.agent_id,)
 
         # get initial state
-        self.initial_state = {}
         initial_cell_state = ecoli_composer.initial_state(
             config=self.config)
-        assoc_path(self.initial_state, path, initial_cell_state)
 
         # generate the composite at the path
         self.ecoli = ecoli_composer.generate(path=path)
+        # Fill in all stores missing in initial_cell_state
+        self.initial_state = assoc_path({}, path, self.ecoli.initial_state({
+            'initial_state': initial_cell_state}))
 
         # merge a lattice composite for the spatial environment
         if self.spatial_environment:

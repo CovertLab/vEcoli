@@ -10,6 +10,7 @@ import copy
 from datetime import datetime, timezone
 import os
 import re
+import binascii
 
 import numpy as np
 from vivarium.core.composer import Composer
@@ -37,45 +38,75 @@ from ecoli.composites.environment.lattice import Lattice
 from ecoli.composites.ecoli_configs import CONFIG_DIR_PATH
 
 
+class EcoliInnerSim(Composer):
+    defaults = {
+        'agent_id': '0',
+        'seed': 0,
+        'division_threshold': None,
+        'division_variable': None,
+        'initial_inner_state': {},
+    }
+    
+    def generate(self, config=None):
+        if config is None:
+            config = self.config
+        ecoli_sim = EcoliSim({
+            **self.config,
+            **config,
+            'divide': False,  # Division is handled by EngineProcess.
+            'spatial_environment': False,
+        })
+        ecoli_sim.build_ecoli()
+        initial_state = (config['initial_inner_state'] or ecoli_sim.initial_state)
+        if config['division_threshold'] == 'massDistribution':
+            expectedDryMassIncreaseDict = ecoli_sim.ecoli.steps[
+                'ecoli-mass-listener'].parameters['expectedDryMassIncreaseDict']
+            division_random_seed = (binascii.crc32(b'CellDivision', config['seed']) 
+                                    & 0xffffffff)
+            division_random_state = np.random.RandomState(seed=division_random_seed)
+            division_mass_multiplier = division_random_state.normal(loc=1.0, scale=0.1)
+            current_media_id = initial_state['environment']['media_id']
+            config['division_threshold'] = (
+                get_in(initial_state, config['division_variable']) + 
+                expectedDryMassIncreaseDict[current_media_id].asNumber(units.fg)
+                * division_mass_multiplier)
+        ecoli_sim.ecoli['division_threshold'] = config['division_threshold']
+        ecoli_sim.ecoli['division_variable'] = config['division_variable']
+        ecoli_sim.ecoli['initial_inner_state'] = initial_state
+        return ecoli_sim.ecoli
+    
+    # Not used
+    def generate_processes(self, config):
+        pass
+    def generate_topology(self, config):
+        pass
+
 class EcoliEngineProcess(Composer):
 
     defaults = {
         'agent_id': '0',
-        'initial_cell_state': {},
         'seed': 0,
         'tunnel_out_schemas': {},
         'stub_schemas': {},
         'parallel': False,
-        'ecoli_sim_config': {},
         'divide': False,
-        'division_threshold': 0,
-        'division_variable': tuple(),
+        'division_threshold': None,
+        'division_variable': None,
         'tunnels_in': tuple(),
         'emit_paths': tuple(),
         'start_time': 0,
         'experiment_id': '',
         'inner_emitter': 'null',
+        'inner_composer_config': {}
     }
 
     def generate_processes(self, config):
-        agent_id = config['agent_id']
-        self.ecoli_sim = EcoliSim({
-            **config['ecoli_sim_config'],
-            'seed': config['seed'],
-            'agent_id': agent_id,
-            'divide': False,  # Division is handled by EngineProcess.
-            'spatial_environment': False,
-        })
-        self.ecoli_sim.build_ecoli()
-        initial_inner_state = (
-            config['initial_cell_state']
-            or self.ecoli_sim.initial_state)
-
         cell_process_config = {
-            'agent_id': agent_id,
-            'composer': self,
-            'composite': self.ecoli_sim.ecoli,
-            'initial_inner_state': initial_inner_state,
+            'agent_id': config['agent_id'],
+            'outer_composer': EcoliEngineProcess,
+            'outer_composer_config': config,
+            'inner_composer': EcoliInnerSim,
+            'inner_composer_config': config['inner_composer_config'],
             'tunnels_in': dict({
                 f'{"-".join(path)}_tunnel': path
                 for path in config['tunnels_in']
@@ -171,6 +202,7 @@ def run_simulation(config):
         environment_composer = Lattice(
             config['spatial_environment_config'])
         environment_composite = environment_composer.generate()
+        del environment_composer
         # Must declare actual timeline under spatial_process_config > field_timeline
         # for stores to properly initialize
         field_timeline = FieldTimeline(
@@ -186,6 +218,7 @@ def run_simulation(config):
                 },
             },
         )
+        del field_timeline
         diffusion_schema = environment_composite.processes[
             'reaction_diffusion'].get_schema()
         multibody_schema = environment_composite.processes[
@@ -201,6 +234,7 @@ def run_simulation(config):
         stub_schemas['multibody'] = {
             ('boundary',): multibody_schema['agents']['*']['boundary'],
         }
+        del multibody_schema, diffusion_schema
 
     experiment_id = datetime.now(timezone.utc).strftime(
         '%Y-%m-%d_%H-%M-%S_%f%z')
@@ -218,10 +252,7 @@ def run_simulation(config):
         'tunnel_out_schemas': tunnel_out_schemas,
         'stub_schemas': stub_schemas,
         'parallel': config['parallel'],
-        'ecoli_sim_config': config.to_dict(),
         'divide': config['divide'],
-        'division_threshold': config['division_threshold'],
-        'division_variable': config['division_variable'],
         'tunnels_in': (
             ('environment',),
             ('boundary',),
@@ -231,6 +262,8 @@ def run_simulation(config):
         ),
         'seed': config['seed'],
         'experiment_id': experiment_id,
+        
+        'inner_composer_config': config.to_dict()
     }
 
     composite = {}
@@ -246,7 +279,11 @@ def run_simulation(config):
             ) % RAND_MAX
             agent_path = ('agents', agent_id)
             agent_config = {
-                'initial_cell_state': agent_state,
+                'inner_composer_config': {
+                    'agent_id': agent_id,
+                    'seed': seed,
+                    'initial_inner_state': agent_state
+                },
                 'agent_id': agent_id,
                 'seed': seed,
                 'inner_emitter': {
@@ -260,6 +297,8 @@ def run_simulation(config):
                 composite = agent_composite
             composite.processes['agents'][agent_id] = agent_composite.processes['agents'][agent_id]
             composite.topology['agents'][agent_id] = agent_composite.topology['agents'][agent_id]
+            del agent_path, agent_composer, agent_composite, base_config, agent_config
+        del agent_id, agent_state, agent_states, initial_state
     else:
         agent_config = {}
         if 'initial_state_file' in config.keys():
@@ -273,12 +312,14 @@ def run_simulation(config):
         composer = EcoliEngineProcess(base_config)
         composite = composer.generate(agent_config, path=agent_path)
         initial_state = composite.initial_state()
+        del agent_path, composer, agent_config, base_config
 
     if config['spatial_environment']:
         # Merge a lattice composite for the spatial environment.
         initial_environment = environment_composite.initial_state()
         composite.merge(environment_composite)
         initial_state = deep_merge(initial_state, initial_environment)
+        del environment_composite, initial_environment
 
     metadata = config.to_dict()
     metadata['division_threshold'] = [
@@ -297,6 +338,7 @@ def run_simulation(config):
         metadata=metadata,
         profile=config['profile'],
     )
+    del composite, initial_state, experiment_id, emitter_config
 
     # Save states while running if needed
     if config["save"]:
