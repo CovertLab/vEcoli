@@ -4,14 +4,34 @@ cracking (which leads irreversibly to lysis) under conditions limiting
 production of crosslinked murein.
 
 Parameters:
-- Probability of terminating a murein strand (p): fitted from data in ...
-critical radius
-cell_radius
-- disaccharide length
-- cross_bridge_length
+- Probability of terminating a murein strand (p): fitted from data in
+  Obermann, W., & Höltje, J. (1994).
+    Alterations of murein structure and of penicillin-binding proteins
+    in minicells from Escherichia coli. Microbiology.
+    https://doi.org/10.1099/13500872-140-1-79
+  Vollmer, W., Blanot, D., & De Pedro, M. A. (2008).
+    Peptidoglycan structure and architecture.
+    FEMS Microbiology Reviews, 32(2), 149-167.
+    https://doi.org/10.1111/j.1574-6976.2007.00094.x
+
+- critical radius:
+  Daly, K. E., Huang, K. C., Wingreen, N. S., & Mukhopadhyay, R. (2011).
+    Mechanics of membrane bulging during cell-wall disruption in
+    Gram-negative bacteria. Physical Review E, 83(4), 041922.
+    https://doi.org/10.1103/PhysRevE.83.041922
+
+- cell_radius: chosen to be consistent with value in  cell shape process
+
+- disaccharide length, cross_bridge_length:
+  Vollmer, W., & Höltje, J.-V. (2004).
+    The Architecture of the Murein (Peptidoglycan) in Gram-Negative
+    Bacteria: Vertical Scaffold or Horizontal Layer(s)?
+    Journal of Bacteriology, 186(18), 5978-5987.
+    https://doi.org/10.1128/JB.186.18.5978-5987.2004
+
 - initial stretch factor
 - max stretch factor
-- peptidoglycan unit area (unstretched?)
+- peptidoglycan unit area
 """
 
 import numpy as np
@@ -26,6 +46,7 @@ from ecoli.library.cell_wall.lattice import (
     get_length_distributions,
 )
 from ecoli.library.schema import bulk_schema
+from ecoli.library.parameters import param_store
 from ecoli.processes.registries import topology_registry
 from ecoli.processes.shape import length_from_volume
 from vivarium.core.process import Process
@@ -56,17 +77,17 @@ class CellWall(Process):
         },
         # Probability of terminating a strand on the next monomer,
         # fitted from data
-        "strand_term_p": 0.058,
+        "strand_term_p": param_store.get(("cell_wall", "strand_term_p")),
         # Physical parameters
-        "critical_radius": 20 * units.nm,
-        "cell_radius": 0.5 * units.um,
-        "disaccharide_length": 1.03 * units.nm,
+        "critical_radius": param_store.get(("cell_wall", "critical_radius")),
+        "cell_radius": param_store.get(("cell_wall", "cell_radius")),
+        "disaccharide_length": param_store.get(("cell_wall", "disaccharide_length")),
         # 4.1 in maximally stretched configuration,
         # divided by 3 because the sacculus can be stretched threefold
-        "crossbridge_length": (4.1 / 3) * units.nm,
+        "crossbridge_length": param_store.get(("cell_wall", "crossbridge_length")),
         "initial_stretch_factor": 1.17,
         "max_stretch": 3,
-        "peptidoglycan_unit_area": 4 * units.nm**2,
+        "peptidoglycan_unit_area": param_store.get(("cell_wall", "peptidoglycan_unit_area")),
         # Simulation parameters
         "seed": 0,
         "time_step": 2,
