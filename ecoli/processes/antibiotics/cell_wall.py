@@ -29,9 +29,15 @@ Parameters:
     Journal of Bacteriology, 186(18), 5978-5987.
     https://doi.org/10.1128/JB.186.18.5978-5987.2004
 
-- initial stretch factor
-- max stretch factor
-- peptidoglycan unit area
+- max expansion:
+  Koch, A. L., & Woeste, S. (1992).
+    Elasticity of the sacculus of Escherichia coli.
+    Journal of Bacteriology, 174(14), 4811-4819.
+
+- peptidoglycan unit area:
+  Wientjes, F. B., Woldringh, C. L., & Nanninga, N. (1991).
+    Amount of peptidoglycan in cell walls of gram-negative bacteria.
+    Journal of Bacteriology, 173(23), 7684-7691.
 """
 
 import numpy as np
@@ -86,7 +92,7 @@ class CellWall(Process):
         # divided by 3 because the sacculus can be stretched threefold
         "crossbridge_length": param_store.get(("cell_wall", "crossbridge_length")),
         "initial_stretch_factor": 1.17,
-        "max_stretch": 3,
+        "max_expansion": param_store.get(("cell_wall", "max_expansion")),
         "peptidoglycan_unit_area": param_store.get(("cell_wall", "peptidoglycan_unit_area")),
         # Simulation parameters
         "seed": 0,

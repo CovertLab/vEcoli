@@ -218,8 +218,13 @@ PARAMETER_DICT = {
             (4.1/3) * units.nm,
             "Vollmer, W., & Höltje, J.-V. (2004)."
         ),
+        "max_expansion": Parameter(
+            3,
+            "Koch, A. L., & Woeste, S. (1992)."
+        ),
         "peptidoglycan_unit_area": Parameter(
-            4 * units.nm**2
+            2.5 * units.nm**2,
+            "Wientjes, F. B., Woldringh, C. L., & Nanninga, N. (1991)."
         )
     },
     "concs": {
