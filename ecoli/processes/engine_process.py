@@ -60,7 +60,6 @@ These tunnels are the only way that the EngineProcess exchanges
 information with the outside simulation.
 '''
 import copy
-import binascii
 
 import numpy as np
 from vivarium.core.composer import Composer
@@ -71,7 +70,6 @@ from vivarium.core.registry import updater_registry, divider_registry
 from vivarium.core.store import DEFAULT_SCHEMA, Store
 from vivarium.library.topology import get_in
 
-from wholecell.utils import units
 from ecoli.library.sim_data import RAND_MAX
 from ecoli.library.schema import remove_properties, empty_dict_divider
 from ecoli.library.updaters import inverse_updater_registry
@@ -142,7 +140,6 @@ class SchemaStub(Process):
 
 class EngineProcess(Process):
     defaults = {
-        'composite': {},
         # Map from tunnel name to path to internal store.
         'tunnels_in': {},
         # Map from tunnel name to schema. Schemas are optional.
@@ -154,14 +151,17 @@ class EngineProcess(Process):
         # schema, and the topology will wire each port to the specified
         # path.
         'stub_schemas': {},
-        'initial_inner_state': {},
+        'initial_inner_state': None,
         'agent_id': '0',
-        'composer': None,
+        'inner_composer': None,
+        'outer_composer': None,
+        'inner_composer_config': {},
+        'outer_composer_config': {},
         'seed': 0,
         'inner_emitter': 'null',
         'divide': False,
-        'division_threshold': 0,
-        'division_variable': tuple(),
+        'division_threshold': None,
+        'division_variable': None,
         'start_time': 0,
         'experiment_id': '',
     }
@@ -171,13 +171,28 @@ class EngineProcess(Process):
         parameters = parameters or {}
         parameters['_no_original_parameters'] = True
         super().__init__(parameters)
-        composite = copy.deepcopy(self.parameters['composite'])
+        inner_composite = self.parameters['inner_composer'](
+            self.parameters['inner_composer_config']).generate()
+        # If division parameters not set in outer sim, use inner sim values
+        if self.parameters['division_threshold'] == None:
+            self.parameters['division_threshold'] = inner_composite[
+                'division_threshold']
+        if self.parameters['division_variable'] == None:
+            self.parameters['division_variable'] = inner_composite[
+                'division_variable']
+        # If initial inner state not given in outer sim, use inner sim value
+        if self.parameters['initial_inner_state'] == None:
+            self.parameters['initial_inner_state'] = inner_composite[
+                'initial_inner_state']
         self.tunnels_out = cap_tunneling_paths(
-            composite['topology'])
+            inner_composite['topology'])
         self.tunnels_in = self.parameters['tunnels_in']
+        # Save parameters so they are reloaded during unpickling
+        self.parameters['tunnels_out'] = self.tunnels_out
+        self.parameters['tunnels_in'] = self.tunnels_in
 
-        processes = composite['processes']
-        topology = composite['topology']
+        processes = inner_composite['processes']
+        topology = inner_composite['topology']
         for process, d in self.parameters['stub_schemas'].items():
             stub_ports_schema = {}
             stub_process_name = f'{process}_stub'
@@ -199,8 +214,8 @@ class EngineProcess(Process):
 
         self.sim = Engine(
             processes=processes,
-            steps=composite.get('steps'),
-            flow=composite.get('flow'),
+            steps=inner_composite.get('steps'),
+            flow=inner_composite.get('flow'),
             topology=topology,
             initial_state=self.parameters['initial_inner_state'],
             experiment_id=self.parameters['experiment_id'],
@@ -210,17 +225,7 @@ class EngineProcess(Process):
             initial_global_time=self.parameters['start_time'],
         )
         
-        if self.parameters['division_threshold'] == 'massDistribution':
-            expectedDryMassIncreaseDict = self.sim.steps[
-                'ecoli-mass-listener'].parameters['expectedDryMassIncreaseDict']
-            division_random_seed = binascii.crc32(b'CellDivision', self.parameters['seed']) & 0xffffffff
-            division_random_state = np.random.RandomState(seed=division_random_seed)
-            division_mass_multiplier = division_random_state.normal(loc=1.0, scale=0.1)
-            initial_state = self.parameters['initial_inner_state']
-            current_media_id = initial_state['environment']['media_id']
-            self.parameters['division_threshold'] = (
-                get_in(initial_state, self.parameters['division_variable']) + 
-                expectedDryMassIncreaseDict[current_media_id].asNumber(units.fg) * division_mass_multiplier)
+        self.parameters.pop('initial_inner_state')
         
         if self.parameters['emit_paths']:
             self.sim.state.set_emit_values([tuple()], False)
@@ -375,7 +380,6 @@ class EngineProcess(Process):
                 and division_variable >= division_threshold):
             # Perform division.
             daughters = []
-            composer = self.parameters['composer']
             daughter_states = self.sim.state.divide_value()
             daughter_ids = daughter_phylogeny_id(
                 self.parameters['agent_id'])
@@ -383,20 +387,28 @@ class EngineProcess(Process):
                     daughter_ids, daughter_states):
                 emitter_config = dict(self.emitter_config)
                 emitter_config['embed_path'] = ('agents', daughter_id)
-                composite = composer.generate({
+                new_seed = self.random_state.randint(RAND_MAX)
+                inner_composer_config = {
+                    **self.parameters['inner_composer_config'],
+                    'seed': new_seed,
                     'agent_id': daughter_id,
-                    'initial_cell_state': inner_state,
-                    'seed': self.random_state.randint(RAND_MAX),
+                    'initial_cell_state': inner_state
+                }
+                outer_composite = self.parameters['outer_composer']({
+                    **self.parameters['outer_composer_config'],
+                    'agent_id': daughter_id,
+                    'seed': new_seed,
                     'start_time': self.sim.global_time,
                     'inner_emitter': emitter_config,
-                })
+                    'inner_composer_config': inner_composer_config
+                }).generate()
                 daughter = {
                     'key': daughter_id,
-                    'processes': composite.processes,
-                    'steps': composite.steps,
-                    'flow': composite.flow,
-                    'topology': composite.topology,
-                    'initial_state': composite.initial_state(),
+                    'processes': outer_composite.processes,
+                    'steps': outer_composite.steps,
+                    'flow': outer_composite.flow,
+                    'topology': outer_composite.topology,
+                    'initial_state': outer_composite.initial_state(),
                 }
                 daughters.append(daughter)
             update['agents'] = {
@@ -560,8 +572,10 @@ class _OuterComposer(Composer):
 
     def generate_processes(self, config):
         proc = EngineProcess({
-            'composite': config['composite'],
-            'composer': self,
+            'outer_composer': _OuterComposer,
+            'outer_composer_config': config,
+            'inner_composer': _InnerComposer,
+            'inner_composer_config': {},
             'agent_id': config['agent_id'],
             'tunnels_in': {
                 'c_tunnel': ('c',),
@@ -620,8 +634,6 @@ def test_engine_process():
     ``B`` to outer store ``b``.
     '''
     experiment_id = 'test_experiment_id'
-    inner_composer = _InnerComposer()
-    inner_composite = inner_composer.generate()
 
     # Clear the emitter's data in case it has been filled by another
     # test.
@@ -631,7 +643,6 @@ def test_engine_process():
     outer_composer = _OuterComposer({
         'experiment_id': experiment_id,
         'agent_id': agent_path[-1],
-        'composite': inner_composite,
         'initial_cell_state': {},
         'start_time': 0,
         'inner_emitter': {
