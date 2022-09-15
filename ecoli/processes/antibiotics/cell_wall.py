@@ -22,12 +22,20 @@ Parameters:
 
 - cell_radius: chosen to be consistent with value in  cell shape process
 
-- disaccharide length, cross_bridge_length:
+- disaccharide height:
   Vollmer, W., & Höltje, J.-V. (2004).
     The Architecture of the Murein (Peptidoglycan) in Gram-Negative
     Bacteria: Vertical Scaffold or Horizontal Layer(s)?
     Journal of Bacteriology, 186(18), 5978-5987.
     https://doi.org/10.1128/JB.186.18.5978-5987.2004
+
+- disaccharide width, inter-strand distance:
+  Turner, R. D., Mesnage, S., Hobbs, J. K., & Foster, S. J. (2018).
+    Molecular imaging of glycan chains couples cell-wall polysaccharide
+    architecture to bacterial cell morphology.
+    Nature Communications, 9, 1263.
+    https://doi.org/10.1038/s41467-018-03551-y
+
 
 - max expansion:
   Koch, A. L., & Woeste, S. (1992).
@@ -54,7 +62,7 @@ from ecoli.library.cell_wall.lattice import (
 from ecoli.library.schema import bulk_schema
 from ecoli.library.parameters import param_store
 from ecoli.processes.registries import topology_registry
-from ecoli.processes.shape import length_from_volume
+from ecoli.processes.shape import length_from_volume, surface_area_from_length
 from vivarium.core.process import Process
 from vivarium.library.units import units, remove_units
 
@@ -87,12 +95,13 @@ class CellWall(Process):
         # Physical parameters
         "critical_radius": param_store.get(("cell_wall", "critical_radius")),
         "cell_radius": param_store.get(("cell_wall", "cell_radius")),
-        "disaccharide_length": param_store.get(("cell_wall", "disaccharide_length")),
-        # 4.1 in maximally stretched configuration,
-        # divided by 3 because the sacculus can be stretched threefold
-        "crossbridge_length": param_store.get(("cell_wall", "crossbridge_length")),
+        "disaccharide_height": param_store.get(("cell_wall", "disaccharide_height")),
+        "disaccharide_width": param_store.get(("cell_wall", "disaccharide_width")),
+        "inter_strand_distance": param_store.get(("cell_wall", "inter_strand_distance")),
         "max_expansion": param_store.get(("cell_wall", "max_expansion")),
-        "peptidoglycan_unit_area": param_store.get(("cell_wall", "peptidoglycan_unit_area")),
+        "peptidoglycan_unit_area": param_store.get(
+            ("cell_wall", "peptidoglycan_unit_area")
+        ),
         # Simulation parameters
         "seed": 0,
         "time_step": 2,
@@ -112,8 +121,9 @@ class CellWall(Process):
         self.circumference = 2 * np.pi * self.cell_radius
 
         self.peptidoglycan_unit_area = self.parameters["peptidoglycan_unit_area"]
-        self.disaccharide_length = self.parameters["disaccharide_length"]
-        self.crossbridge_length = self.parameters["crossbridge_length"]
+        self.disaccharide_height = self.parameters["disaccharide_height"]
+        self.disaccharide_width = self.parameters["disaccharide_width"]
+        self.inter_strand_distance = self.parameters["inter_strand_distance"]
         self.max_expansion = self.parameters["max_expansion"]
 
         # Create pseudorandom number generator
@@ -205,8 +215,9 @@ class CellWall(Process):
         length = length_from_volume(volume, self.cell_radius * 2).to("micrometer")
         new_rows, new_columns = calculate_lattice_size(
             length,
-            self.crossbridge_length,
-            self.disaccharide_length,
+            self.inter_strand_distance,
+            self.disaccharide_height,
+            self.disaccharide_width,
             self.circumference,
             extension_factor,
         )
@@ -233,22 +244,28 @@ class CellWall(Process):
 
         # See if stretching will save from cracking
         will_crack = max_size > self.critical_area
-        if will_crack and extension_factor < self.max_expansion:  # TODO: use areal expansion
+        resting_length = lattice.shape[1] * (self.inter_strand_distance + self.disaccharide_width)
+        can_stretch = (
+            surface_area_from_length(length) / surface_area_from_length(resting_length)
+            < self.max_expansion
+        )
+        if will_crack and can_stretch:
             # stretch more and try again...
             extension_factor = remove_units(
                 (
                     length
                     / (
                         lattice.shape[1]
-                        * (self.crossbridge_length + self.disaccharide_length)
+                        * (self.inter_strand_distance + self.disaccharide_width)
                     )
                 ).to("dimensionless")
             )
 
             new_rows, new_columns = calculate_lattice_size(
                 length,
-                self.crossbridge_length,
-                self.disaccharide_length,
+                self.inter_strand_distance,
+                self.disaccharide_height,
+                self.disaccharide_width,
                 self.circumference,
                 extension_factor,
             )
@@ -271,7 +288,9 @@ class CellWall(Process):
 
             # Crack detection (cracking is irreversible)
             hole_sizes, _ = detect_holes_skimage(new_lattice)
-            max_size = hole_sizes.max() * self.peptidoglycan_unit_area * extension_factor
+            max_size = (
+                hole_sizes.max() * self.peptidoglycan_unit_area * extension_factor
+            )
 
             will_crack = max_size > self.critical_area
 

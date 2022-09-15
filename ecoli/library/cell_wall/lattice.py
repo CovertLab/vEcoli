@@ -11,18 +11,18 @@ from vivarium.library.units import remove_units
 
 
 def calculate_lattice_size(
-    cell_length, crossbridge_length, disaccharide_length, circumference, extension_factor
+    cell_length, inter_strand_distance, disaccharide_height, disaccharide_width, circumference, extension_factor
 ):
     # Calculate new lattice size
     columns = round(
         remove_units(
             (
                 cell_length
-                / (extension_factor * (crossbridge_length + disaccharide_length))
+                / (extension_factor * (inter_strand_distance + disaccharide_width))
             ).to("dimensionless")
         )
     )
-    rows = int(circumference / disaccharide_length)
+    rows = int(circumference / disaccharide_height)
 
     return rows, columns
 
