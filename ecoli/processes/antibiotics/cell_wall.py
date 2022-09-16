@@ -97,7 +97,9 @@ class CellWall(Process):
         "cell_radius": param_store.get(("cell_wall", "cell_radius")),
         "disaccharide_height": param_store.get(("cell_wall", "disaccharide_height")),
         "disaccharide_width": param_store.get(("cell_wall", "disaccharide_width")),
-        "inter_strand_distance": param_store.get(("cell_wall", "inter_strand_distance")),
+        "inter_strand_distance": param_store.get(
+            ("cell_wall", "inter_strand_distance")
+        ),
         "max_expansion": param_store.get(("cell_wall", "max_expansion")),
         "peptidoglycan_unit_area": param_store.get(
             ("cell_wall", "peptidoglycan_unit_area")
@@ -174,8 +176,8 @@ class CellWall(Process):
         # Unpack states
         volume = states["shape"]["volume"]
         extension_factor = states["wall_state"]["extension_factor"]
-        unincorporated_murein = states["murein_state"]["unincorporated_murein"]
-        incorporated_murein = states["murein_state"]["incorporated_murein"]
+        unincorporated_monomers = states["murein_state"]["unincorporated_murein"]
+        incorporated_monomers = states["murein_state"]["incorporated_murein"]
         PBPs = states["PBP"]
         active_fraction_PBP1a = states["pbp_state"]["active_fraction_PBP1A"]
         active_fraction_PBP1b = states["pbp_state"]["active_fraction_PBP1B"]
@@ -186,8 +188,18 @@ class CellWall(Process):
         cols = states["wall_state"]["lattice_cols"]
         lattice = states["wall_state"]["lattice"]
         if lattice is None:
+            length = length_from_volume(volume, self.cell_radius * 2).to("micrometer")
+            rows, cols = calculate_lattice_size(
+                length,
+                self.inter_strand_distance,
+                self.disaccharide_height,
+                self.disaccharide_width,
+                self.circumference,
+                extension_factor,
+            )
+
             lattice = sample_lattice(
-                incorporated_murein * 4,
+                unincorporated_monomers,
                 rows,
                 cols,
                 geom_sampler(self.rng, self.strand_term_p),
@@ -230,8 +242,8 @@ class CellWall(Process):
             new_incorporated_monomers,
         ) = self.update_murein(
             lattice,
-            unincorporated_murein,
-            incorporated_murein,
+            unincorporated_monomers,
+            incorporated_monomers,
             new_rows,
             new_columns,
             n_sites,
@@ -244,10 +256,13 @@ class CellWall(Process):
 
         # See if stretching will save from cracking
         will_crack = max_size > self.critical_area
-        resting_length = lattice.shape[1] * (self.inter_strand_distance + self.disaccharide_width)
+        resting_length = lattice.shape[1] * (
+            self.inter_strand_distance + self.disaccharide_width
+        )
         can_stretch = (
-            surface_area_from_length(length) / surface_area_from_length(resting_length)
-            < self.max_expansion
+            surface_area_from_length(length, self.cell_radius * 2)
+            / surface_area_from_length(resting_length, self.cell_radius * 2)
+            <= self.max_expansion
         )
         if will_crack and can_stretch:
             # stretch more and try again...
@@ -278,8 +293,8 @@ class CellWall(Process):
                 new_incorporated_monomers,
             ) = self.update_murein(
                 lattice,
-                unincorporated_murein,
-                incorporated_murein,
+                unincorporated_monomers,
+                incorporated_monomers,
                 new_rows,
                 new_columns,
                 n_sites,
@@ -318,6 +333,7 @@ class CellWall(Process):
             update["wall_state"]["cracked"] = True
 
         return update
+        
 
     def update_murein(
         self,

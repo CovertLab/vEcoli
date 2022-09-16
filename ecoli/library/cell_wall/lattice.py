@@ -11,7 +11,12 @@ from vivarium.library.units import remove_units
 
 
 def calculate_lattice_size(
-    cell_length, inter_strand_distance, disaccharide_height, disaccharide_width, circumference, extension_factor
+    cell_length,
+    inter_strand_distance,
+    disaccharide_height,
+    disaccharide_width,
+    circumference,
+    extension_factor,
 ):
     # Calculate new lattice size
     columns = round(
