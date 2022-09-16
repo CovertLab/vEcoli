@@ -32,12 +32,11 @@ def fit_strand_term_p(df, upper_mean):
     return 1 / mean.values[0]
 
 
-
-def sample_column(rows, murein, strand_sampler, rng, shift=True):
+def sample_column(rows, murein_monomers, strand_sampler, rng, shift=True):
     result = np.zeros(rows, dtype=int)
 
     # Don't try to assign more murein than can fit in the column
-    murein = int(min(murein, rows))
+    murein_monomers = int(min(murein_monomers, rows))
 
     # Create iterator for strand lengths, total accumulated length
     strand_length, total_length = tee(strand_sampler())
@@ -50,7 +49,7 @@ def sample_column(rows, murein, strand_sampler, rng, shift=True):
     for s in strand_length:
         # Stop if adding this strand (and its associated minimum gap)
         # would exceed murein or column length constraint
-        if s + sum(strands) > murein:
+        if s + sum(strands) > murein_monomers:
             break
         if s + 1 + sum(strands) + len(strands) >= rows:
             break
@@ -58,7 +57,7 @@ def sample_column(rows, murein, strand_sampler, rng, shift=True):
 
     # add remaining strand if there is space
     remaining_strand = min(
-        murein - sum(strands), rows - sum(strands) - len(strands) - 1
+        murein_monomers - sum(strands), rows - sum(strands) - len(strands) - 1
     )
     assert remaining_strand >= 0
     if remaining_strand:
