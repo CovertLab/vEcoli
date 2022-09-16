@@ -4,11 +4,9 @@
     },
     "murein_state": {
         "shadow_murein": 0,
-        "unincorporated_murein": 0,
-        "incorporated_murein": 450000
+        "unincorporated_murein": 1800000,
+        "incorporated_murein": 0
     },
     "wall_state": {
-        "lattice_rows": 3050,
-        "lattice_cols": 599
     }
 }
