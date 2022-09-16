@@ -1,13 +1,16 @@
 import os
 import re
+from functools import reduce
 import numpy as np
+import matplotlib.pyplot as plt
 import pandas as pd
 from ecoli.library.cell_wall.column_sampler import geom_sampler, sample_lattice
 
 from ecoli.library.create_timeline import add_computed_value, create_timeline_from_df
 from ecoli.processes.antibiotics.cell_wall import CellWall
 from vivarium.core.composition import add_timeline, simulate_composite
-from vivarium.library.units import units
+from vivarium.library.units import units, remove_units
+from vivarium.core.serialize import deserialize_value
 from vivarium.plots.simulation_output import plot_variables
 from vivarium.plots.topology import plot_topology
 
@@ -40,9 +43,9 @@ def create_composite(timeline_data):
             ("cell_global", "volume"): parse_unit_string(
                 value[("cell_global", "volume")]
             ),
-            # ("concentrations", "beta_lactam"): (
-            #     0 * units.micromolar if t < 500 else 9.16 * units.micromolar
-            # ),
+            ("concentrations", "beta_lactam"): (
+                0 * units.micromolar if t < 0 else 9.16 * units.micromolar
+            ),
             ("bulk", "CPD-12261[p]"): int(value[("bulk", "CPD-12261[p]")]),
         },
     )
@@ -74,25 +77,41 @@ def create_composite(timeline_data):
 
 
 def output_data(data, filepath="out/processes/cell_wall/test_cell_wall.png"):
-    plot_variables(
-        data,
-        variables=[
-            ("concentrations", ("beta_lactam", "micromolar")),
-            ("wall_state", "cracked"),
-            ("bulk", "CPD-12261[p]"),
-            ("bulk", "CPLX0-7717[m]"),
-            ("bulk", "CPLX0-3951[i]"),
-            ("murein_state", "incorporated_murein"),
-            ("murein_state", "unincorporated_murein"),
-            ("murein_state", "shadow_murein"),
-            ("wall_state", "stretch_factor"),
-            ("pbp_state", ("active_fraction_PBP1A", "dimensionless")),
-            ("pbp_state", ("active_fraction_PBP1B", "dimensionless")),
-            ("listeners", "porosity"),
-        ],
-        out_dir=os.path.dirname(filepath),
-        filename=os.path.basename(filepath),
-    )
+    variables = [
+        ("concentrations", "beta_lactam"),
+        ("wall_state", "cracked"),
+        ("bulk", "CPD-12261[p]"),
+        ("bulk", "CPLX0-7717[m]"),
+        ("bulk", "CPLX0-3951[i]"),
+        ("murein_state", "incorporated_murein"),
+        ("murein_state", "unincorporated_murein"),
+        ("murein_state", "shadow_murein"),
+        ("wall_state", "extension_factor"),
+        ("pbp_state", "active_fraction_PBP1A"),
+        ("pbp_state", "active_fraction_PBP1B"),
+        ("listeners", "porosity"),
+    ]
+
+    fig, axs = plt.subplots(len(variables), 1)
+    T = sorted(data.keys())
+    for i, path in enumerate(variables):
+        # Get the data at the specified path for each timepoint t
+        # (reduce expression follows the path in data[t])
+        var_data = [
+            remove_units(
+                deserialize_value(
+                    reduce(lambda d, p: d[p], path, data[t])
+                    )
+                )
+            for t in T
+        ]
+
+        axs[i].plot(T, var_data)
+        axs[i].set_title(path[-1])
+
+    fig.set_size_inches(6, 1.5 * len(variables))
+    fig.tight_layout()
+    fig.savefig(filepath)
 
 
 def test_cell_wall():
@@ -108,11 +127,6 @@ def test_cell_wall():
     initial_PBP1A = int(timeline_data.iloc[0]["CPLX0-7717[m]"])
     initial_PBP1B = int(timeline_data.iloc[0]["CPLX0-3951[i]"])
     initial_volume = parse_unit_string(timeline_data.iloc[0]["Volume"])
-    rng = np.random.default_rng(0)
-
-    initial_lattice = sample_lattice(
-        initial_murein * 4, 3050, 599, geom_sampler(rng, 0.058), rng
-    )
 
     initial_state = {
         "bulk": {
@@ -121,19 +135,19 @@ def test_cell_wall():
             "CPLX0-3951[i]": initial_PBP1B,
         },
         "murein_state": {
-            "incorporated_murein": initial_lattice.sum(),
-            "unincorporated_murein": int(4 * initial_murein - initial_lattice.sum()),
+            "incorporated_murein": 0,
+            "unincorporated_murein": initial_murein * 4,
             "shadow_murein": 0,
         },
-        "wall_state": {"lattice": initial_lattice},
+        "wall_state": {},
         "cell_global": {"volume": initial_volume},
     }
 
     settings = {
-        "return_raw_data": False,
-        "total_time": 2000,
+        "return_raw_data": True,
+        "total_time": 2300,
         "initial_state": initial_state,
-        "emitter": "database",
+        "emitter": "timeseries",
     }
 
     data = simulate_composite(composite, settings)
