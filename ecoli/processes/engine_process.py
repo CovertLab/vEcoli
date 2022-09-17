@@ -63,7 +63,6 @@ import copy
 
 import numpy as np
 import os
-import psutil
 from vivarium.core.composer import Composer
 from vivarium.core.emitter import get_emitter, SharedRamEmitter
 from vivarium.core.engine import Engine
@@ -205,14 +204,8 @@ class EngineProcess(Process):
             stub = SchemaStub({'ports_schema': stub_ports_schema})
             processes[stub_process_name] = stub
 
-        if isinstance(self.parameters['inner_emitter'], str):
-            self.emitter_config = {'type': self.parameters['inner_emitter']}
-        else:
-            self.emitter_config = self.parameters['inner_emitter']
-        self.emitter_config['experiment_id'] = self.parameters[
-            'experiment_id']
-        self.emitter = get_emitter(self.emitter_config)
-
+        self.emitter = None
+        
         self.sim = Engine(
             processes=processes,
             steps=inner_composite.get('steps'),
@@ -241,6 +234,15 @@ class EngineProcess(Process):
             updater_registry.access(key): key
             for key in updater_registry.main_keys
         }
+        
+    def create_emitter(self):
+        if isinstance(self.parameters['inner_emitter'], str):
+            self.emitter_config = {'type': self.parameters['inner_emitter']}
+        else:
+            self.emitter_config = self.parameters['inner_emitter']
+        self.emitter_config['experiment_id'] = self.parameters[
+            'experiment_id']
+        self.emitter = get_emitter(self.emitter_config)
 
     def ports_schema(self):
         schema = {
@@ -308,6 +310,10 @@ class EngineProcess(Process):
             super().send_command(command, args, kwargs)
 
     def next_update(self, timestep, states):
+        # Create emitter only after all pickling/unpickling/forking
+        if not self.emitter:
+            self.create_emitter()
+        
         # Check whether we are being forced to finish early. This check
         # should happen before we mutate the inner simulation state to
         # make sure that self.calculate_timestep() returns the same
@@ -443,7 +449,6 @@ class EngineProcess(Process):
             if not (isinstance(inverted_update, dict)
                     and inverted_update == {}):
                 update[tunnel] = inverted_update
-        print(os.getpid(), psutil.Process(os.getpid()).memory_full_info().pss / 1024 ** 2)
         return update
 
 
