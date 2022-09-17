@@ -14,7 +14,6 @@ import numpy as np
 from vivarium.core.process import Step
 
 from ecoli.processes.registries import topology_registry
-from ecoli.processes.partition import check_whether_evolvers_have_run
 from ecoli.library.schema import (
     add_elements, arrays_from, bulk_schema, create_unique_indexes,
     arrays_to, array_to, dict_value_schema, listener_schema)
@@ -160,10 +159,6 @@ class ChromosomeStructure(Step):
                     'linking_number': {'_default': 0}}}
 
         return ports
-
-    def update_condition(self, timestep, states):
-        return check_whether_evolvers_have_run(
-            states['evolvers_ran'], self.name)
 
     def next_update(self, timestep, states):
         # Skip t=0 if a deriver

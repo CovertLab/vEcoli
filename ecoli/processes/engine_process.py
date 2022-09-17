@@ -62,6 +62,8 @@ information with the outside simulation.
 import copy
 
 import numpy as np
+import os
+import psutil
 from vivarium.core.composer import Composer
 from vivarium.core.emitter import get_emitter, SharedRamEmitter
 from vivarium.core.engine import Engine
@@ -169,7 +171,6 @@ class EngineProcess(Process):
 
     def __init__(self, parameters=None):
         parameters = parameters or {}
-        parameters['_no_original_parameters'] = True
         super().__init__(parameters)
         inner_composite = self.parameters['inner_composer'](
             self.parameters['inner_composer_config']).generate()
@@ -289,7 +290,8 @@ class EngineProcess(Process):
 
     def get_inner_state(self) -> None:
         def not_a_process(value):
-            return not (isinstance(value, Store) and value.topology)
+            return not (isinstance(value, Store) 
+                and value.topology and isinstance(value[0], Store))
         return self.sim.state.get_value(condition=not_a_process)
 
     def send_command(self, command, args = None, kwargs = None,
@@ -392,6 +394,8 @@ class EngineProcess(Process):
                     **self.parameters['inner_composer_config'],
                     'seed': new_seed,
                     'agent_id': daughter_id,
+                    # Force unhindered division
+                    # 'initial_inner_state': inner_state
                     'initial_cell_state': inner_state
                 }
                 outer_composite = self.parameters['outer_composer']({
@@ -441,6 +445,7 @@ class EngineProcess(Process):
             if not (isinstance(inverted_update, dict)
                     and inverted_update == {}):
                 update[tunnel] = inverted_update
+        print(os.getpid(), psutil.Process(os.getpid()).memory_full_info().pss / 1024 ** 2)
         return update
 
 

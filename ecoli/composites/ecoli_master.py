@@ -127,7 +127,6 @@ class Ecoli(Composer):
                     process_configs[process]['seed'] = (
                         process_configs[process]['seed'] +
                         config['seed']) % RAND_MAX
-            process_configs[process]['_no_original_parameters'] = True
 
         # make the processes
         processes = {
@@ -142,7 +141,6 @@ class Ecoli(Composer):
             process_names=[p for p in config['processes'].keys()
                            if not processes[p].is_deriver()],
         )
-        process_configs['allocator']['_no_original_parameters'] = True
 
         config['processes']['allocator'] = Allocator
         processes['allocator'] = Allocator(process_configs['allocator'])
@@ -171,7 +169,6 @@ class Ecoli(Composer):
             f'{process_name}_requester': Requester({
                 'time_step': time_step,
                 'process': process,
-                '_no_original_parameters': True,
             })
             for (process_name, process) in processes.items()
             if process_name in self.partitioned_processes
@@ -182,13 +179,11 @@ class Ecoli(Composer):
             f'{process_name}_evolver': Evolver({
                 'time_step': time_step,
                 'process': process,
-                '_no_original_parameters': True,
             })
             if not config['log_updates']
             else make_logging_process(Evolver)({
                 'time_step': time_step,
                 'process': process,
-                '_no_original_parameters': True,
             })
             for (process_name, process) in processes.items()
             if process_name in self.partitioned_processes
@@ -221,7 +216,6 @@ class Ecoli(Composer):
                 agent_id=config['agent_id'],
                 composer=self,
                 seed=self.load_sim_data.random_state.randint(RAND_MAX),
-                _no_original_parameters=True,
             )
             division_process = {division_name: Division(division_config)}
             processes.update(division_process)
@@ -325,6 +319,10 @@ class Ecoli(Composer):
                     'evolvers_ran'] = ('evolvers_ran',)
                 topology[f'{process_id}_evolver'][
                     'evolvers_ran'] = ('evolvers_ran',)
+                topology[f'{process_id}_requester'][
+                    'process'] = ('process', process_id,)
+                topology[f'{process_id}_evolver'][
+                    'process'] = ('process', process_id,)
 
             # make the non-partitioned processes' topologies
             else:

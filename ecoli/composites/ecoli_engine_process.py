@@ -6,9 +6,9 @@
     enabled.
 '''
 
-import copy
 from datetime import datetime, timezone
 import os
+import psutil
 import re
 import binascii
 
@@ -101,12 +101,13 @@ class EcoliEngineProcess(Composer):
     }
 
     def generate_processes(self, config):
+        inner_composer_config = config.pop('inner_composer_config')
         cell_process_config = {
             'agent_id': config['agent_id'],
             'outer_composer': EcoliEngineProcess,
             'outer_composer_config': config,
             'inner_composer': EcoliInnerSim,
-            'inner_composer_config': config['inner_composer_config'],
+            'inner_composer_config': inner_composer_config,
             'tunnels_in': dict({
                 f'{"-".join(path)}_tunnel': path
                 for path in config['tunnels_in']
@@ -164,18 +165,18 @@ def colony_save_states(engine, config):
         def not_a_process(value):
             return not (isinstance(value, Store) and value.topology)
 
-        state = engine.state.get_value(condition=not_a_process)
-        state_to_save = copy.deepcopy(state)
+        # Copy not needed because serialize_value no longer mutates with orjson
+        state_to_save = engine.state.get_value(condition=not_a_process)
 
         del state_to_save['agents']  # Replace 'agents' with agent states
         state_to_save['agents'] = {}
 
         # Get internal state from the EngineProcess sub-simulation
-        for agent_id in state['agents']:
+        for agent_id in state_to_save['agents']:
             engine.state.get_path(
                 ('agents', agent_id, 'cell_process')
             ).value.send_command('get_inner_state')
-        for agent_id in state['agents']:
+        for agent_id in state_to_save['agents']:
             cell_state = engine.state.get_path(
                 ('agents', agent_id, 'cell_process')
             ).value.get_command_result()
@@ -337,7 +338,9 @@ def run_simulation(config):
         metadata=metadata,
         profile=config['profile'],
     )
+    # Tidy up namespace
     del composite, initial_state, experiment_id, emitter_config
+    print(os.getpid(), psutil.Process(os.getpid()).memory_full_info().pss / 1024 ** 2)
 
     # Save states while running if needed
     if config["save"]:
@@ -345,6 +348,7 @@ def run_simulation(config):
     else:
         engine.update(config['total_time'])
     engine.end()
+    print(os.getpid(), psutil.Process(os.getpid()).memory_full_info().pss / 1024 ** 2)
 
     if config['profile']:
         report_profiling(engine.stats)
