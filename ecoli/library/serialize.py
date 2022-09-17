@@ -4,21 +4,20 @@ from bson.codec_options import TypeEncoder
 from vivarium.core.registry import Serializer
 from vivarium.library.topology import convert_path_style, normalize_path
 
-from ecoli.library.parameters import param_store
+from ecoli.library.parameters import Parameter, param_store
 
 
 class UnumSerializer(Serializer):
     
     def __init__(self):
         super().__init__()
-        self.regex_for_serialized = re.compile(f'!{self.name}\\[(.*)\\]')
+        self.regex_for_serialized = re.compile('!UnumSerializer\\[(.*)\\]')
 
-    class Codec(TypeEncoder):
-        python_type = Unum
-        def transform_python(self, value):
-            num = str(value.asNumber())
-            assert ' ' not in num
-            return f'!UnitsSerializer[{num} {value.strUnit()}]'
+    python_type = Unum
+    def serialize(self, value):
+        num = str(value.asNumber())
+        assert ' ' not in num
+        return f'!UnitsSerializer[{num} {value.strUnit()}]'
         
     def can_deserialize(self, data):
         if not isinstance(data, str):
@@ -39,7 +38,9 @@ class ParameterSerializer(Serializer):
     
     def __init__(self):
         super().__init__()
-        self.regex_for_serialized = re.compile(f'!{self.name}\\[(.*)\\]')
+        self.regex_for_serialized = re.compile('!ParameterSerializer\\[(.*)\\]')
+    
+    python_type = Parameter
         
     def can_deserialize(self, data):
         if not isinstance(data, str):
