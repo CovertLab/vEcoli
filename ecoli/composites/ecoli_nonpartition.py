@@ -145,7 +145,6 @@ class Ecoli(Composer):
                 agent_id=config['agent_id'],
                 composer=self,
                 seed=self.load_sim_data.random_state.randint(RAND_MAX),
-                _no_original_parameters=True,
             )
             division_process = {division_name: Division(division_config)}
             processes.update(division_process)
