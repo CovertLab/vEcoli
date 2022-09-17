@@ -394,9 +394,7 @@ class EngineProcess(Process):
                     **self.parameters['inner_composer_config'],
                     'seed': new_seed,
                     'agent_id': daughter_id,
-                    # Force unhindered division
-                    # 'initial_inner_state': inner_state
-                    'initial_cell_state': inner_state
+                    'initial_inner_state': inner_state
                 }
                 outer_composite = self.parameters['outer_composer']({
                     **self.parameters['outer_composer_config'],
