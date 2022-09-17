@@ -5,6 +5,7 @@ Reaction Diffusion Field
 '''
 import copy
 import os
+import psutil
 import numpy as np
 from scipy import constants
 from scipy.ndimage import convolve
@@ -225,6 +226,8 @@ class ReactionDiffusion(Process):
             'agents': local_environments}
         
         deep_merge(update['agents'], agent_updates)
+
+        print(os.getpid(), psutil.Process(os.getpid()).memory_full_info().pss / 1024 ** 2)
 
         return update
 

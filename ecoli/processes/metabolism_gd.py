@@ -16,7 +16,6 @@ from ecoli.library.fba_gd import GradientDescentFba, FbaResult, TargetDmdtObject
     TargetVelocityObjective, VelocityBoundsObjective, DmdtBoundsObjective, MinimizeFluxObjective, \
     LenientTargetVelocityObjective, MinimizeExchangeObjective
 from ecoli.processes.registries import topology_registry
-from ecoli.processes.partition import check_whether_evolvers_have_run
 
 COUNTS_UNITS = units.mmol
 VOLUME_UNITS = units.L

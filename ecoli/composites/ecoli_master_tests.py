@@ -40,6 +40,14 @@ def test_division(
     agent_path = ('agents', agent_id)
     ecoli_composer = Ecoli(config)
     ecoli_composite = ecoli_composer.generate(path=agent_path)
+    
+    # Get shared process instances for partitioned processes
+    process_states = {
+        process.parameters['process'].name: (process.parameters['process'],)
+        for process in ecoli_composite.processes['agents']['1'].values()
+        if 'process' in process.parameters
+    }
+    initial_state['process'] = process_states
 
     # make and run the experiment
     experiment = Engine(
@@ -148,6 +156,14 @@ def test_division_topology():
     agent_path = ('agents', agent_id)
     ecoli_composer = Ecoli(config)
     ecoli_composite = ecoli_composer.generate(path=agent_path)
+    
+    # Get shared process instances for partitioned processes
+    process_states = {
+        process.parameters['process'].name: (process.parameters['process'],)
+        for process in ecoli_composite.processes['agents']['0'].values()
+        if 'process' in process.parameters
+    }
+    initial_state['process'] = process_states
 
     # make experiment
     experiment = Engine(
