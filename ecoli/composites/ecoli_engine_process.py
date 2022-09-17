@@ -8,7 +8,6 @@
 
 from datetime import datetime, timezone
 import os
-import psutil
 import re
 import binascii
 
@@ -57,7 +56,9 @@ class EcoliInnerSim(Composer):
             'spatial_environment': False,
         })
         ecoli_sim.build_ecoli()
+        process_states = ecoli_sim.initial_state.pop('process')
         initial_state = (config['initial_inner_state'] or ecoli_sim.initial_state)
+        initial_state['process'] = process_states
         if config['division_threshold'] == 'massDistribution':
             expectedDryMassIncreaseDict = ecoli_sim.ecoli.steps[
                 'ecoli-mass-listener'].parameters['expectedDryMassIncreaseDict']
@@ -340,7 +341,6 @@ def run_simulation(config):
     )
     # Tidy up namespace
     del composite, initial_state, experiment_id, emitter_config
-    print(os.getpid(), psutil.Process(os.getpid()).memory_full_info().pss / 1024 ** 2)
 
     # Save states while running if needed
     if config["save"]:
@@ -348,7 +348,6 @@ def run_simulation(config):
     else:
         engine.update(config['total_time'])
     engine.end()
-    print(os.getpid(), psutil.Process(os.getpid()).memory_full_info().pss / 1024 ** 2)
 
     if config['profile']:
         report_profiling(engine.stats)
