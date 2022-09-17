@@ -58,6 +58,7 @@ class EcoliInnerSim(Composer):
         ecoli_sim.build_ecoli()
         process_states = ecoli_sim.initial_state.pop('process')
         initial_state = (config['initial_inner_state'] or ecoli_sim.initial_state)
+        # Shared partitioned process states are always initialized from scratch
         initial_state['process'] = process_states
         if config['division_threshold'] == 'massDistribution':
             expectedDryMassIncreaseDict = ecoli_sim.ecoli.steps[
@@ -168,9 +169,6 @@ def colony_save_states(engine, config):
 
         # Copy not needed because serialize_value no longer mutates with orjson
         state_to_save = engine.state.get_value(condition=not_a_process)
-
-        del state_to_save['agents']  # Replace 'agents' with agent states
-        state_to_save['agents'] = {}
 
         # Get internal state from the EngineProcess sub-simulation
         for agent_id in state_to_save['agents']:
@@ -300,7 +298,7 @@ def run_simulation(config):
             composite.processes['agents'][agent_id] = agent_composite.processes['agents'][agent_id]
             composite.topology['agents'][agent_id] = agent_composite.topology['agents'][agent_id]
             del agent_path, agent_composer, agent_composite, base_config, agent_config
-        del agent_id, agent_state, agent_states, initial_state
+        del agent_id, agent_state, agent_states
     else:
         agent_config = {}
         if 'initial_state_file' in config.keys():
