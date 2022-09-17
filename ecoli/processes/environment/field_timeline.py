@@ -24,7 +24,6 @@ class FieldTimeline(TimelineProcess):
         ]
         super().__init__({
             'timeline': timeline,
-            '_original_parameters': parameters,
             **parameters,
         })
 
