@@ -91,7 +91,6 @@ class AntibioticTransport(ConvenienceKinetics):
             },
             'port_ids': ['internal', 'external', 'pump_port'],
             'time_step': parameters['time_step'],
-            '_original_parameters': parameters,
         }
 
         super().__init__(kinetics_parameters)

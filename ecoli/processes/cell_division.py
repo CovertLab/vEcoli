@@ -55,13 +55,20 @@ class Division(Step):
                     'agent_id': daughter_id,
                     'seed': self.random_state.randint(0, RAND_MAX)
                 })
+                # Get shared process instances for partitioned processes
+                process_states = {
+                    process.parameters['process'].name: (process.parameters['process'],)
+                    for process in composer.processes.values()
+                    if 'process' in process.parameters
+                }
+                initial_state = {'process': process_states}
                 daughter_updates.append({
                     'key': daughter_id,
                     'processes': composer['processes'],
                     'steps': composer['steps'],
                     'flow': composer['flow'],
                     'topology': composer['topology'],
-                    'initial_state': {}})
+                    'initial_state': initial_state})
 
             print(f'DIVIDE! MOTHER {self.agent_id} -> DAUGHTERS {daughter_ids}')
 

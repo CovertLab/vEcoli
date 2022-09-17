@@ -21,11 +21,6 @@ from vivarium.library.dict_utils import deep_merge
 
 from ecoli.processes.registries import topology_registry
 
-
-def check_whether_evolvers_have_run(evolvers_ran, proc_name):
-    return evolvers_ran
-
-
 def change_bulk_schema(
         schema, new_updater='', new_divider='', new_emit=False):
     """Retrieve and modify port schemas for all bulk molecules.
@@ -133,31 +128,38 @@ class Requester(Step):
     defaults = {'process': None}
 
     def __init__(self, parameters=None):
-        self.process = parameters['process']
-        assert isinstance(self.process, PartitionedProcess)
-        if self.process.parallel:
+        assert isinstance(parameters["process"], PartitionedProcess)
+        if parameters["process"].parallel:
             raise RuntimeError(
                 'PartitionedProcess objects cannot be parallelized.')
-        parameters['name'] = f'{self.process.name}_requester'
+        parameters['name'] = f'{parameters["process"].name}_requester'
         super().__init__(parameters)
 
     def ports_schema(self):
-        ports = self.process.get_schema()
+        ports = self.parameters.pop('process').get_schema()
         ports_copy = ports.copy()
         ports['request'] = change_bulk_schema(
             ports_copy, new_updater='set', new_divider='null')
         ports['evolvers_ran'] = {'_default': True}
+        ports['process'] = {
+            '_default': tuple(),
+            '_updater': 'set',
+            '_divider': 'null',
+            '_emit': False
+        }
         return ports
 
     def next_update(self, timestep, states):
-        request = self.process.calculate_request(
+        process = states['process'][0]
+        request = process.calculate_request(
             self.parameters['time_step'], states)
-        self.process.request_set = True
+        process.request_set = True
 
         # Ensure listeners are updated if passed by calculate_request
         listeners = request.pop('listeners', None)
         update = {
             'request': request,
+            'process': (process,)
         }
         if listeners != None:
             update['listeners'] = listeners
@@ -165,23 +167,7 @@ class Requester(Step):
         return update
 
     def update_condition(self, timestep, states):
-        return check_whether_evolvers_have_run(
-            states['evolvers_ran'], self.name)
-
-    def __getstate__(self) -> dict:
-        """Return parameters
-
-        Unlike in vivarium.core.process.Process, here we return a
-        parameters dict that includes ``self.process`` instead of a
-        copy. This ensures that pickle will notice that the Requester
-        and Evolver in a pair share a process instance and will preserve
-        that shared object upon deserialization.
-        """
-        # Shallow copy since we just want to avoid changing
-        # `super()._original_parameters['process'].
-        state = copy.copy(super().__getstate__())
-        state['process'] = self.process
-        return state
+        return states['evolvers_ran']
 
 
 class Evolver(Process):
@@ -193,13 +179,12 @@ class Evolver(Process):
     defaults = {'process': None}
 
     def __init__(self, parameters=None):
-        self.process = parameters['process']
-        assert isinstance(self.process, PartitionedProcess)
-        parameters['name'] = f'{self.process.name}_evolver'
+        assert isinstance(parameters["process"], PartitionedProcess)
+        parameters['name'] = f'{parameters["process"].name}_evolver'
         super().__init__(parameters)
 
     def ports_schema(self):
-        ports = self.process.get_schema()
+        ports = self.parameters.pop('process').get_schema()
         ports_copy = ports.copy()
         ports['allocate'] = change_bulk_schema(
             ports_copy, new_updater='set', new_divider='null')
@@ -214,6 +199,12 @@ class Evolver(Process):
             },
             '_emit': False,
         }
+        ports['process'] = {
+            '_default': tuple(),
+            '_updater': 'set',
+            '_divider': 'null',
+            '_emit': False
+        }
         return ports
 
     # TODO(Matt): Have evolvers calculate timestep, returning zero if the requester hasn't run.
@@ -225,8 +216,8 @@ class Evolver(Process):
 
     def next_update(self, timestep, states):
         allocations = states.pop('allocate')
-        allocated_molecules = list(allocations.keys())
         states = deep_merge(states, allocations)
+        process = states['process'][0]
 
         # If the Requester has not run yet, skip the Evolver's update to
         # let the Requester run in the next time step. This problem
@@ -238,27 +229,13 @@ class Evolver(Process):
         # running the Evolver this timestep, which means we skip the
         # Allocator. Skipping the Allocator can cause the simulation to
         # crash, so having a slightly off timestep is preferable.
-        if not self.process.request_set:
+        if not process.request_set:
             return {}
 
-        update = self.process.evolve_state(timestep, states)
+        update = process.evolve_state(timestep, states)
+        update['process'] = (process,)
         update['evolvers_ran'] = True
         return update
-
-    def __getstate__(self) -> dict:
-        """Return parameters
-
-        Unlike in vivarium.core.process.Process, here we return a
-        parameters dict that includes ``self.process`` instead of a
-        copy. This ensures that pickle will notice that the Requester
-        and Evolver in a pair share a process instance and will preserve
-        that shared object upon deserialization.
-        """
-        # Shallow copy since we just want to avoid changing
-        # `super()._original_parameters['process'].
-        state = copy.copy(super().__getstate__())
-        state['process'] = self.process
-        return state
 
 
 class PartitionedProcess(Process):
