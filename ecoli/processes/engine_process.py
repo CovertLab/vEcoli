@@ -292,8 +292,7 @@ class EngineProcess(Process):
 
     def get_inner_state(self) -> None:
         def not_a_process(value):
-            return not (isinstance(value, Store) 
-                and value.topology and isinstance(value[0], Store))
+            return not (isinstance(value, Store) and value.topology)
         return self.sim.state.get_value(condition=not_a_process)
 
     def send_command(self, command, args = None, kwargs = None,
