@@ -222,8 +222,6 @@ class LoadSimData:
             'monomer_counts_listener': self.get_monomer_counts_listener_config,
             'allocator': self.get_allocator_config,
             'ecoli-chromosome-structure': self.get_chromosome_structure_config,
-            'ecoli-cell-wall': self.get_cell_wall_config,
-            'ecoli-cephaloridine-antagonism': self.get_cephaloridine_antagonism_config,
             'ecoli-rna-interference': self.get_rna_interference_config
         }
 
