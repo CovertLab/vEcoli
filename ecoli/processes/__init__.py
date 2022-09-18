@@ -29,9 +29,17 @@ from ecoli.processes.concentrations_deriver import ConcentrationsDeriver
 from ecoli.processes.antibiotics.death import DeathFreezeState
 from ecoli.processes.antibiotics.antibiotic_transport_steady_state import (
     AntibioticTransportSteadyState)
+from ecoli.processes.antibiotics.antibiotic_transport_odeint import (
+    AntibioticTransportOdeint)
 from ecoli.processes.antibiotics.exchange_aware_bioscrape import (
     ExchangeAwareBioscrape)
 from ecoli.processes.antibiotics.permeability import Permeability
+from ecoli.processes.antibiotics.tetracycline_ribosome_equilibrium import (
+    TetracyclineRibosomeEquilibrium)
+from ecoli.processes.chemostat import Chemostat
+from ecoli.processes.listeners.aggregator import Aggregator
+from ecoli.processes.rna_interference import RnaInterference
+from ecoli.processes.antibiotics.conc_to_counts import ConcToCounts
 
 
 # add to registry
@@ -57,20 +65,31 @@ process_registry.register(Allocator.name, Allocator)
 process_registry.register(Shape.name, Shape)
 process_registry.register(ConcentrationsDeriver.name,
     ConcentrationsDeriver)
+process_registry.register(Aggregator.name, Aggregator)
 
 # environment processes
 process_registry.register(Lysis.name, Lysis)
 process_registry.register(LocalField.name, LocalField)
 process_registry.register(FieldTimeline.name, FieldTimeline)
 
+# auxiliary processes
+process_registry.register(Chemostat.name, Chemostat)
+
 # antibiotic processes
 process_registry.register(DeathFreezeState.name, DeathFreezeState)
+process_registry.register(
+    TetracyclineRibosomeEquilibrium.name,
+    TetracyclineRibosomeEquilibrium)
 process_registry.register(
     ExchangeAwareBioscrape.name, ExchangeAwareBioscrape)
 process_registry.register(
     AntibioticTransportSteadyState.name, AntibioticTransportSteadyState)
 process_registry.register(
+    AntibioticTransportOdeint.name, AntibioticTransportOdeint)
+process_registry.register(
     Permeability.name, Permeability
 )
 process_registry.register(CellWall.name, CellWall)
 process_registry.register(PBPBinding.name, PBPBinding)
+process_registry.register(ConcToCounts.name, ConcToCounts)
+process_registry.register(RnaInterference.name, RnaInterference)

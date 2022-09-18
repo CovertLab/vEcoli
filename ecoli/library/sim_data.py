@@ -1,4 +1,5 @@
 import numpy as np
+import networkx as nx
 from six.moves import cPickle
 from wholecell.utils import units
 from wholecell.utils.unit_struct_array import UnitStructArray
@@ -6,6 +7,7 @@ from wholecell.utils.fitting import normalize
 
 from ecoli.processes.polypeptide_elongation import MICROMOLAR_UNITS
 from ecoli.states.wcecoli_state import MASSDIFFS
+from ecoli.library.parameters import param_store
 
 RAND_MAX = 2**31 - 1
 SIM_DATA_PATH = 'reconstruction/sim_data/kb/simData.cPickle'
@@ -19,11 +21,12 @@ class LoadSimData:
         seed=0,
         trna_charging=False,
         ppgpp_regulation=False,
-        mar_regulon=False
+        mar_regulon=False,
+        rnai_data=None,
     ):
 
-        self.seed = np.uint32(seed % np.iinfo(np.uint32).max)
-        self.random_state = np.random.RandomState(seed=self.seed)
+        self.seed = seed
+        self.random_state = np.random.RandomState(seed = seed)
 
         self.trna_charging = trna_charging
         self.ppgpp_regulation = ppgpp_regulation
@@ -48,16 +51,15 @@ class LoadSimData:
             self.sim_data.process.transcription_regulation.active_to_bound["CPLX0-7710"] = "marR-tet"
             
             # TU index of genes for outer membrane proteins, regulators, and inner membrane transporters
-            # NOTE: MicF (a ncRNA that destabilized ompF mRNA) was omitted for simplicity
-            TU_idxs = [2011, 1641, 1394, 2112, 1642, 1543, 662, 995, \
+            TU_idxs = [2493, 2011, 1641, 1394, 2112, 1642, 1543, 662, 995, \
                 3289, 262, 1807, 2010, 659, 1395, 260, 259, 11, 944, 1631, 1330, \
                 660, 1399, 661]
             new_deltaI = np.array(TU_idxs)
-            new_deltaJ = np.array([24]*23)
+            new_deltaJ = np.array([24]*24)
             # Values were chosen to recapitulate mRNA fold change with 1.5 mg/L tetracycline (Viveiros et al. 2007)
             # new_deltaV = np.array([10, 0.48, 0.07, 0.0054, 0.18, 0.013, 0.02, 0.13, 0.0035, 0.08, 0.007, 0.01, \
             #     4, 0.0065, 0.0005, 0.0001, 0.00055, 0.025, 0.00002, 0.02, 0.01, -0.0006, -0.2]) / 1000
-            new_deltaV = np.array([0.145, 0.017, 0.0168, 0.00095, 0.01, -0.000101, 0.003422, 0.003846, 0.000155, 0.01, 0.0014, 0.00118, \
+            new_deltaV = np.array([1.25, 0.145, 0.017, 0.0168, 0.00095, 0.01, -0.000101, 0.003422, 0.003846, 0.000155, 0.01, 0.0014, 0.00118, \
                 0.524, 0.003, 0.000034, -0.000002, 0.00006, 0.02, 0.000004, 0.00468, 0.03, 0.000257, 0.37]) / 1000
             
             self.sim_data.process.transcription_regulation.delta_prob["deltaI"] = np.concatenate(
@@ -68,16 +70,18 @@ class LoadSimData:
                 [self.sim_data.process.transcription_regulation.delta_prob["deltaV"], new_deltaV])
             
             # Add mass data for tetracycline and marR-tetracycline complex
-            bulk_data = self.sim_data.internal_state.bulk_molecules.bulk_data.fullArray().copy()
-            bulk_data.resize(bulk_data.shape[0]+2, refcheck=False)
-            # Tetracyline mass from NIST Chemistry WebBook
-            bulk_data[-1] = ('tetracycline[c]', [0, 0, 0, 0, 0, 0, 444.4346, 0, 0])
+            bulk_data = self.sim_data.internal_state.bulk_molecules.bulk_data.fullArray()
+            bulk_data = np.resize(bulk_data, bulk_data.shape[0]+2)
+            # Tetracyline mass from PubChem
+            tet_mass = param_store.get(('tetracycline', 'mass')).magnitude
+            bulk_data[-1] = ('tetracycline', [0, 0, 0, 0, 0, 0, tet_mass, 0, 0])
             # marR mass from EcoCyc (x2 because homodimer)
-            bulk_data[-2] = ('marR-tet[c]', [0, 0, 0, 0, 0, 32120, 444.4346, 0, 0])
-            units = self.sim_data.internal_state.bulk_molecules.bulk_data.fullUnits()
-            self.sim_data.internal_state.bulk_molecules.bulk_data = UnitStructArray(bulk_data, units)
+            bulk_data[-2] = ('marR-tet[c]', [0, 0, 0, 0, 0, 32120, tet_mass, 0, 0])
+            bulk_units = self.sim_data.internal_state.bulk_molecules.bulk_data.fullUnits()
+            self.sim_data.internal_state.bulk_molecules.bulk_data = UnitStructArray(bulk_data, bulk_units)
             
             # Add equilibrium reaction for marR-tetracycline and reinitialize self.sim_data.process.equilibrium variables
+            # Define alias
             equilibrium_proc = self.sim_data.process.equilibrium
             equilibrium_proc._stoichMatrixI = np.concatenate(
                 [equilibrium_proc._stoichMatrixI, np.array([98, 99, 100])])
@@ -85,17 +89,27 @@ class LoadSimData:
                 [equilibrium_proc._stoichMatrixJ, np.array([34, 34, 34])])
             equilibrium_proc._stoichMatrixV = np.concatenate(
                 [equilibrium_proc._stoichMatrixV, np.array([-1, -1, 1])])
-            equilibrium_proc.molecule_names += ['CPLX0-7710[c]', 'tetracycline[c]', 'marR-tet[c]']
-            equilibrium_proc.ids_complexes = [equilibrium_proc.molecule_names[i] for i in np.where(np.any(equilibrium_proc.stoich_matrix() > 0, axis=1))[0]]
+            equilibrium_proc.molecule_names += [
+                'CPLX0-7710[c]', 'tetracycline', 'marR-tet[c]']
+            equilibrium_proc.ids_complexes = [
+                equilibrium_proc.molecule_names[i] 
+                for i in np.where(np.any(
+                    equilibrium_proc.stoich_matrix() > 0, axis=1))[0]]
             equilibrium_proc.rxn_ids += ['marR-tet']
             # All existing equilibrium reactions use a forward reaction rate of 1
-            equilibrium_proc.rates_fwd = np.concatenate([equilibrium_proc.rates_fwd, np.array([1])])
-            # Rev rate of 4.5E-7 (+/- 5E-8) was manually fit to complex off all marR except 1 at 1.5 mg/L tetracycline 
-            equilibrium_proc.rates_rev = np.concatenate([equilibrium_proc.rates_rev, np.array([4.5E-7])])
+            equilibrium_proc.rates_fwd = np.concatenate(
+                [equilibrium_proc.rates_fwd, np.array([1])])
+            # Rev rate manually fit to complex off all marR except 1 
+            # at 1.5 mg/L external tetracycline
+            equilibrium_proc.rates_rev = np.concatenate(
+                [equilibrium_proc.rates_rev, np.array([7.1e-07])])
 
             # Mass balance matrix
-            equilibrium_proc._stoichMatrixMass = np.concatenate([equilibrium_proc._stoichMatrixMass, np.array([32130, 444.4346, 32574.4346])])
-            equilibrium_proc.balance_matrix = equilibrium_proc.stoich_matrix() * equilibrium_proc.mass_matrix()
+            equilibrium_proc._stoichMatrixMass = np.concatenate(
+                [equilibrium_proc._stoichMatrixMass, np.array(
+                    [32130, tet_mass, 32130+tet_mass])])
+            equilibrium_proc.balance_matrix = (
+                equilibrium_proc.stoich_matrix() * equilibrium_proc.mass_matrix())
 
             # Find the mass balance of each equation in the balanceMatrix
             massBalanceArray = equilibrium_proc.mass_balance()
@@ -106,6 +120,86 @@ class LoadSimData:
             # Build matrices
             equilibrium_proc._populateDerivativeAndJacobian()
             equilibrium_proc._stoichMatrix = equilibrium_proc.stoich_matrix()
+        
+        # Append new RNA IDs and degradation rates for sRNA-mRNA duplexes
+        if rnai_data:
+            self.duplex_ids = np.array(rnai_data['duplex_ids'])
+            n_duplex_rnas = len(self.duplex_ids)
+            duplex_deg_rates = np.array(rnai_data['duplex_deg_rates'])
+            duplex_km = np.array(rnai_data['duplex_km'])
+            duplex_is_mRNA = np.ones(n_duplex_rnas)
+            duplex_na = np.zeros(n_duplex_rnas)
+            
+            self.srna_ids = np.array(rnai_data['srna_ids'])
+            target_ids = np.array(rnai_data['target_ids'])
+            self.target_tu_ids = np.zeros(len(target_ids), dtype=int)
+            
+            self.binding_probs = np.array(rnai_data['binding_probs'])
+            
+            # Get length, ACGU content, molecular weight, and sequence data for duplex
+            duplex_lengths = np.zeros(n_duplex_rnas)
+            duplex_ACGU = np.zeros((n_duplex_rnas, 4))
+            duplex_mw = np.zeros(n_duplex_rnas)
+            rna_data = self.sim_data.process.transcription.rna_data.fullArray()
+            rna_units = self.sim_data.process.transcription.rna_data.fullUnits()
+            rna_sequences = self.sim_data.process.transcription.transcription_sequences
+            duplex_sequences = np.full((n_duplex_rnas, rna_sequences.shape[1]), -1)
+            for i, (srna_id, target_id) in enumerate(zip(self.srna_ids, target_ids)):
+                # Use first match for each sRNA and target mRNA
+                srna_tu_id = np.where(rna_data['id']==srna_id)[0][0]
+                self.target_tu_ids[i] = np.where(rna_data['id']==target_id)[0][0]
+                duplex_ACGU[i] = (rna_data['counts_ACGU'][srna_tu_id] + 
+                                  rna_data['counts_ACGU'][self.target_tu_ids[i]])
+                duplex_mw[i] = (rna_data['mw'][srna_tu_id] + 
+                                rna_data['mw'][self.target_tu_ids[i]])
+                srna_length = rna_data['length'][srna_tu_id]
+                target_length = rna_data['length'][self.target_tu_ids[i]]
+                duplex_lengths[i] = srna_length + target_length
+                if duplex_lengths[i] > duplex_sequences.shape[1]:
+                    # Extend number of columns in sequence arrays to accomodate duplexes
+                    # where the sum of the RNA lengths > # of columns
+                    extend_length = duplex_lengths[i] - duplex_sequences.shape[1]
+                    extend_duplex_sequences = np.full(
+                        (duplex_sequences.shape[0], extend_length), 
+                        -1, dtype=duplex_sequences.dtype)
+                    duplex_sequences = np.append(duplex_sequences, extend_duplex_sequences, axis=1)
+                    extend_rna_sequences = np.full(
+                        (rna_sequences.shape[0], extend_length), 
+                        -1, dtype=rna_sequences.dtype)
+                    rna_sequences = np.append(rna_sequences, extend_rna_sequences, axis=1)
+                duplex_sequences[i, :srna_length] = rna_sequences[srna_tu_id][:srna_length] 
+                duplex_sequences[i, srna_length:srna_length+target_length] = rna_sequences[self.target_tu_ids[i]][:target_length]
+            
+            # Make duplex metadata visible to all RNA-related processes
+            old_n_rnas = rna_data.shape[0]
+            rna_data = np.resize(rna_data, old_n_rnas+n_duplex_rnas)
+            rna_sequences = np.resize(rna_sequences, (old_n_rnas+n_duplex_rnas, rna_sequences.shape[1]))
+            for i, new_rna in enumerate(zip(self.duplex_ids, duplex_deg_rates, duplex_lengths, duplex_ACGU,
+                               duplex_mw, duplex_is_mRNA, duplex_na, duplex_na, duplex_na,
+                               duplex_na, duplex_na, duplex_na, duplex_na, duplex_na, 
+                               duplex_na, duplex_km, duplex_na, duplex_na)):
+                rna_data[old_n_rnas+i] = new_rna
+                rna_sequences[old_n_rnas+i] = duplex_sequences[i]
+            self.sim_data.process.transcription.transcription_sequences = rna_sequences
+            self.sim_data.process.transcription.rna_data = UnitStructArray(rna_data, rna_units)
+            
+            # Add bulk mass data for duplexes to avoid errors (though mRNAs should never go to bulk)
+            bulk_data = self.sim_data.internal_state.bulk_molecules.bulk_data.fullArray()
+            bulk_units = self.sim_data.internal_state.bulk_molecules.bulk_data.fullUnits()
+            old_n_bulk = bulk_data.shape[0]
+            bulk_data = np.resize(bulk_data, bulk_data.shape[0]+n_duplex_rnas)
+            for i, duplex in enumerate(self.duplex_ids):
+                duplex_submasses = np.zeros(9)
+                duplex_submasses[2] = duplex_mw[i]
+                bulk_data[old_n_bulk+i] = (duplex, duplex_submasses)
+            self.sim_data.internal_state.bulk_molecules.bulk_data = UnitStructArray(bulk_data, bulk_units)
+            
+            # Add filler transcription data for duplex RNAs to prevent errors
+            transcription_regulation = self.sim_data.process.transcription_regulation
+            transcription_regulation.basal_prob = np.append(transcription_regulation.basal_prob, 0)
+            transcription_regulation.delta_prob['shape'] = (
+                transcription_regulation.delta_prob['shape'][0] + 1,
+                transcription_regulation.delta_prob['shape'][1])
 
     def get_config_by_name(self, name, time_step=2, parallel=False):
         name_config_mapping = {
@@ -130,6 +224,7 @@ class LoadSimData:
             'ecoli-chromosome-structure': self.get_chromosome_structure_config,
             'ecoli-cell-wall': self.get_cell_wall_config,
             'ecoli-cephaloridine-antagonism': self.get_cephaloridine_antagonism_config,
+            'ecoli-rna-interference': self.get_rna_interference_config
         }
 
         try:
@@ -489,10 +584,14 @@ class LoadSimData:
 
     def get_metabolism_gd_config(self, time_step=2, parallel=False, deriver_mode=False):
         # Create reversible reactions from "reaction pairs" similar to original sim_data format.
-        stoichiometry = dict(self.sim_data.process.metabolism.reaction_stoich)
-        stoichiometry = dict(sorted(stoichiometry.items()))
+        stoichiometric_matrix_dict = dict(self.sim_data.process.metabolism.reaction_stoich)
+        stoichiometric_matrix_dict = dict(sorted(stoichiometric_matrix_dict.items()))
         rxns = list()
         metabolite_names = set()
+        homeostatic_obj_metabolites = \
+            self.sim_data.process.metabolism.concentration_updates.concentrations_based_on_nutrients(
+                self.sim_data.conditions[self.sim_data.condition]['nutrients']
+            ).keys()
 
         # TODO (Cyrus) Below operations are redundant (renaming, catalyst rearranging) and should just be removed.
         #  from the metabolism dataclass. Are catalysts all required? Or all possible ways to catalyze. Latter.
@@ -502,30 +601,72 @@ class LoadSimData:
 
         REVERSE_TAG = ' (reverse)'
 
+        # Pruning useless reactions:
+        G = nx.Graph()
+        unconnected_metabolites = set()
+
+        for reaction, stoichiometry in stoichiometric_matrix_dict.items():
+            for metabolite in list(stoichiometry.keys()):
+                G.add_node(metabolite)
+
+            for reactant in list(stoichiometry.keys()):
+                if stoichiometry[reactant] < 0:
+                    for product in list(stoichiometry.keys()):
+                        if stoichiometry[product] > 0:
+                            G.add_edge(reactant, product)
+
+        # checks that removed nodes do not contain homeostatic objective.
+        for subgraph in [G.subgraph(c) for c in nx.connected_components(G)]:
+            if subgraph.size() < 4 and set(subgraph.nodes()).isdisjoint(homeostatic_obj_metabolites):
+                unconnected_metabolites.update(subgraph.nodes())
+
         # TODO Consider moving separation of reactions into metabolism reaction. Is it even necessary?
         # Also add check for stoichiometries being equal for removed reverse reactions
 
         # First pass. Add all reactions without tag.
         # TODO (Cyrus) Investigate how many reactions are supposed to be reversible.
-        for key, value in stoichiometry.items():
-            metabolite_names.update(list(value.keys()))
+        for key, value in stoichiometric_matrix_dict.items():
+            if set(value.keys()).isdisjoint(unconnected_metabolites):
+                metabolite_names.update(list(value.keys()))
 
-            if not key.endswith(REVERSE_TAG):
-                rxns.append({'reaction id': key,
-                             'stoichiometry': value,
-                             'is reversible': False})
-            elif key.endswith(REVERSE_TAG) and rxns[-1]['reaction id'] == key[:-(len(REVERSE_TAG))]:
-                rxns[-1]['is reversible'] = True
-            # TODO (Cyrus) What to do about reactions with (reverse) tag that actually don't have the original reaction?
-            elif key.endswith(REVERSE_TAG):
-                rxns.append({'reaction id': key,
-                             'stoichiometry': value,
-                             'is reversible': False})
+                if not key.endswith(REVERSE_TAG):
+                    rxns.append({'reaction id': key,
+                                 'stoichiometry': value,
+                                 'is reversible': False})
+                elif key.endswith(REVERSE_TAG) and rxns[-1]['reaction id'] == key[:-(len(REVERSE_TAG))]:
+                    rxns[-1]['is reversible'] = True
+                # TODO (Cyrus) What to do about reactions with (reverse) tag that actually don't have the original reaction?
+                # probably from reactions with multiple forward reactions.
+                elif key.endswith(REVERSE_TAG):
+                    rxns.append({'reaction id': key,
+                                 'stoichiometry': value,
+                                 'is reversible': False})
 
-            if key in reactions_with_catalyst:
-                rxns[-1]['enzyme'] = reaction_catalysts[key]
-            else:
-                rxns[-1]['enzyme'] = []
+                # Add enzyme to reactions
+                if key in reactions_with_catalyst:
+                    rxns[-1]['enzyme'] = reaction_catalysts[key]
+                else:
+                    rxns[-1]['enzyme'] = []
+
+        rxn_names = [rxn['reaction id'] for rxn in rxns]
+        kinetic_reactions = [rxn for rxn in self.sim_data.process.metabolism.kinetic_constraint_reactions if rxn in rxn_names]
+
+        # Carbon source limitations.
+        carbon_source_active_transport = ['TRANS-RXN-157-PTSH-PHOSPHORYLATED/GLC//ALPHA-GLC-6-P/PTSH-MONOMER.52.',
+                                               'TRANS-RXN-157-PTSH-PHOSPHORYLATED/GLC//D-glucopyranose-6-phosphate'
+                                               '/PTSH-MONOMER.66.',
+                                               'TRANS-RXN-157-PTSH-PHOSPHORYLATED/GLC//GLC-6-P/PTSH-MONOMER.46.']
+
+        carbon_source_active_transport_duplicate = ['TRANS-RXN-320-GLC/ATP/WATER//ALPHA-GLUCOSE/ADP/Pi/PROTON.43.',
+                                                         'TRANS-RXN-320-GLC/ATP/WATER//GLC/ADP/Pi/PROTON.33.',
+                                                         'TRANS-RXN-320-GLC/ATP/WATER//Glucopyranose/ADP/Pi/PROTON.43.']
+
+        carbon_source_facilitated_diffusion = ['RXN0-7077-GLC/PROTON//ALPHA-GLUCOSE/PROTON.33.',
+                                                    'RXN0-7077-GLC/PROTON//Glucopyranose/PROTON.33.',
+                                                    'RXN0-7077-GLC/PROTON//GLC/PROTON.23.',
+                                                    'TRANS-RXN0-574-GLC//GLC.9.',
+                                                    'TRANS-RXN0-574-GLC//Glucopyranose.19.']
+
 
         # TODO Reconstruct catalysis and annotate.
         # Required:
@@ -550,6 +691,7 @@ class LoadSimData:
             'cell_dry_mass_fraction': self.sim_data.mass.cell_dry_mass_fraction,
             'seed': self.random_state.randint(RAND_MAX),
             'reactions_with_catalyst': self.sim_data.process.metabolism.reactions_with_catalyst,
+            'kinetic_constraint_reactions': kinetic_reactions,
 
             # methods
             'concentration_updates': self.sim_data.process.metabolism.concentration_updates,
@@ -561,9 +703,14 @@ class LoadSimData:
 
             # ports schema
             'catalyst_ids': self.sim_data.process.metabolism.catalyst_ids,
-            'kinetic_constraint_enzymes': self.sim_data.process.metabolism.kinetic_constraint_reactions,
+            'kinetic_constraint_enzymes': self.sim_data.process.metabolism.kinetic_constraint_enzymes,
             'kinetic_constraint_substrates': self.sim_data.process.metabolism.kinetic_constraint_substrates,
-            'deriver_mode': deriver_mode
+            'deriver_mode': deriver_mode,
+
+            # new parameters
+            'carbon_source_active_transport': carbon_source_active_transport,
+            'carbon_source_active_transport_duplicate': carbon_source_active_transport_duplicate,
+            'carbon_source_facilitated_diffusion': carbon_source_facilitated_diffusion,
 
         }
 
@@ -795,61 +942,31 @@ class LoadSimData:
             'seed': self.random_state.randint(RAND_MAX),
         }
         return chromosome_structure_config
+    
+    
+    def get_rna_interference_config(self, time_step=2, parallel=False):
+        rna_interference_config = {
+            'time_step': time_step,
+            '_parallel': parallel,
+            
+            'srna_ids': self.srna_ids,
+            'target_tu_ids': self.target_tu_ids,
+            'binding_probs': self.binding_probs,
+            'duplex_ids': self.duplex_ids,
+            
+            'ribosome30S': self.sim_data.molecule_ids.s30_full_complex,
+            'ribosome50S': self.sim_data.molecule_ids.s50_full_complex,
+            
+            'seed': self.random_state.randint(RAND_MAX)
+        }
+        return rna_interference_config
 
-    def get_cell_wall_config(self, time_step=2, parallel=False):
-        # cell_wall_config = {
-        #     'time_step': time_step,
-        #     '_parallel': parallel,
-
-        #     # Molecules
-        #     "murein": "CPD-12261[p]",  # two crosslinked peptidoglycan units
-        #     "PBP": {  # penicillin-binding proteins
-        #         "PBP1A": "CPLX0-7717[i]",  # transglycosylase-transpeptidase ~100
-        #         "PBP1B": "CPLX0-3951[i]",  # transglycosylase-transpeptidase ~100
-        #     },
-        #     # Physical parameters
-        #     "critical_radius": 20 * units.nm,
-        #     "cell_radius": 0.25 * units.um,
-        #     # 4.1 in maximally stretched configuration,
-        #     "disaccharide_length": 1.03 * units.nm,
-        #     # divided by 3 because the sacculus can be stretched threefold
-        #     "crossbridge_length": 4.1 * units.nm / 3,
-        #     "peptidoglycan_unit_area": 4 * units.nm**2,  # replace with precise literature value
-        #     # Simulation parameters
-        #     "seed": 0
-        # }
-        # return cell_wall_config
-
-        # TODO: incompatible units package?
-        # - better solution for initial state?
-        return {}
-
-    def get_cephaloridine_antagonism_config(self, time_step=2, parallel=False):
-        # cephaloridine_antagonism_config = {
-        #     'time_step': time_step,
-        #     '_parallel': parallel,
-
-        #     "murein_name": "CPD-12261[p]",
-        #     "PBP": {  # penicillin-binding proteins
-        #         "PBP1A": "CPLX0-7717[i]",  # transglycosylase-transpeptidase ~100
-        #         "PBP1B": "CPLX0-3951[i]",  # transglycosylase-transpeptidase ~100
-        #     },
-        #     "kinetic_params": {
-        #         "K_A": {
-        #             # From Fontana et al. 2000
-        #             #
-        #             # PBP1A: 0.25 ug / mL
-        #             # PBP1B: 2.5 ug / mL
-        #             #
-        #             # converted to molar units using molar mass of cephaloridine = 415.488 g/mol
-        #             "PBP1A": 0.6017020948860136 * units.micromolar,
-        #             "PBP1B": 6.017020948860137 * units.micromolar,
-        #         },
-        #         "Hill_n": {
-        #             "PBP1A": 1,
-        #             "PBP1B": 1,
-        #         },
-        #     }
-        # }
-        # return cephaloridine_antagonism_config
-        return {}
+    def get_tetracycline_ribosome_equilibrium_config(self, time_step=2, parallel=False):
+        tetracycline_ribosome_equilibrium_config = {
+            'time_step': time_step,
+            '_parallel': parallel,
+            
+            # Ensure that a new seed is set upon division
+            'seed': self.random_state.randint(RAND_MAX)
+        }
+        return tetracycline_ribosome_equilibrium_config
