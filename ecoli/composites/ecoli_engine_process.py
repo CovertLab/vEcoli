@@ -185,6 +185,8 @@ def colony_save_states(engine, config):
 
         state_to_save = serialize_value(state_to_save)
         write_json('data/colony_t' + str(time_elapsed) + '.json', state_to_save)
+        # Cleanup namespace (significant with high cell counts)
+        del state_to_save, cell_state
         print('Finished saving the state at t = ' + str(time_elapsed))
 
     # Finish running the simulation
@@ -297,6 +299,7 @@ def run_simulation(config):
                 composite = agent_composite
             composite.processes['agents'][agent_id] = agent_composite.processes['agents'][agent_id]
             composite.topology['agents'][agent_id] = agent_composite.topology['agents'][agent_id]
+        initial_state = composite.initial_state()
         # Clean up namespace for garbage collector
         del (agent_id, agent_state, agent_states, agent_path, agent_composer, 
              agent_composite, base_config, agent_config)
