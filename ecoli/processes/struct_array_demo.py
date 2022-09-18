@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 from vivarium.core.composition import simulate_process
 from vivarium.core.process import Process
 
-from ecoli.library.schema import add_elements, array_from
+from ecoli.library.schema import array_from
 
 
 def dict_value_updater(current, update):

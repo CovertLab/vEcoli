@@ -10,8 +10,8 @@ from scipy import constants
 
 from vivarium.core.process import Step, Process
 from vivarium.core.composer import Composer
-from vivarium.core.engine import Engine, pf
-from vivarium.library.units import units, remove_units
+from vivarium.core.engine import Engine
+from vivarium.library.units import units
 from ecoli.processes.environment.multibody_physics import PI
 from ecoli.processes.environment.local_field import LocalField
 from ecoli.library.lattice_utils import (

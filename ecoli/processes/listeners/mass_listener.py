@@ -7,14 +7,13 @@ Represents the total cellular mass.
 """
 
 import numpy as np
+from scipy import constants
+
 from vivarium.core.process import Deriver
 from vivarium.library.units import units
-from ecoli.library.schema import bulk_schema, arrays_from, array_from, dict_value_schema, submass_schema
-
-from vivarium.core.engine import pp
+from ecoli.library.schema import bulk_schema, array_from, dict_value_schema
 
 from ecoli.processes.registries import topology_registry
-from ecoli.library.convert_update import convert_numpy_to_builtins
 
 # Register default topology for this process, associating it with process name
 NAME = 'ecoli-mass-listener'
@@ -73,6 +72,34 @@ class MassListener(Deriver):
         self.unique_ids = self.parameters['unique_ids']
         self.unique_masses = self.parameters['unique_masses']
 
+        # NOTE: This code is newly added in vivarium-ecoli.
+        if 'tetracycline_mass' in self.parameters:
+            tet_molar_mass = self.parameters['tetracycline_mass']
+            tet_mass = (tet_molar_mass/(constants.N_A/units.mol)).to(units.fg)
+            self.unique_ids = np.append(
+                self.unique_ids, 'active_ribosome_tetracycline')
+            active_ribosome_idx = np.where(
+                self.unique_ids == 'active_ribosome')[0][0]
+            active_ribosome_tetracycline_mass = self.unique_masses[active_ribosome_idx].copy()
+            active_ribosome_tetracycline_mass[6] += tet_mass.magnitude
+            self.unique_masses = np.append(
+                self.unique_masses,
+                [active_ribosome_tetracycline_mass],
+                axis=0,
+            )
+            self.bulk_ids = np.append(
+                self.bulk_ids, 'CPLX0-3953-tetracycline[c]')
+            bulk_30s_idx = np.where(
+                self.bulk_ids == 'CPLX0-3953[c]')[0][0]
+            bulk_30s_tetracycline_mass = self.bulk_masses[bulk_30s_idx].copy()
+            bulk_30s_tetracycline_mass[6] += tet_mass.magnitude
+            self.bulk_masses = np.append(
+                self.bulk_masses,
+                [bulk_30s_tetracycline_mass],
+                axis=0,
+            )
+        # End of newly-added code.
+
         self.water_index = self.parameters['submass_indices']['water']
         self.submass_indices = {
             key: val
@@ -129,7 +156,13 @@ class MassListener(Deriver):
             'unique': {
                 mol_id: dict_value_schema(mol_id + 's')
                 for mol_id in self.unique_ids
-                if mol_id not in ['DnaA_box', 'active_ribosome']
+                if mol_id not in [
+                    'DnaA_box',
+                    'active_ribosome',
+                    # NOTE: This code is newly added in vivarium-ecoli.
+                    'active_ribosome_tetracycline',
+                    # End of newly-added code.
+                ]
             },
             'listeners': {
                 'mass': {
@@ -162,8 +195,15 @@ class MassListener(Deriver):
         }
         ports['unique'].update({
             'active_ribosome': dict_value_schema('active_ribosome'),
-            'DnaA_box': dict_value_schema('DnaA_boxes')
+            'DnaA_box': dict_value_schema('DnaA_boxes'),
         })
+        # NOTE: This code is newly added in vivarium-ecoli.
+        if 'tetracycline_mass' in self.parameters:
+            ports['unique'].update({
+                'active_ribosome_tetracycline': dict_value_schema(
+                    'active_ribosome'),
+            })
+        # End of newly-added code.
         return ports
 
     def get_compartment_submasses(self, states):
@@ -278,4 +318,4 @@ class MassListener(Deriver):
                 'mass': mass_update
             }
         }
-        return convert_numpy_to_builtins(update)
+        return update

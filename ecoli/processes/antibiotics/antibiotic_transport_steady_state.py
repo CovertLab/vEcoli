@@ -8,6 +8,7 @@ from vivarium.core.process import Process
 from vivarium.library.units import units, Quantity
 
 from ecoli.library.parameters import param_store
+from ecoli.library.units import add_units, remove_units
 
 
 AVOGADRO = N_A / units.mol
@@ -126,8 +127,13 @@ def species_derivatives(state_arr, reaction_params, internal_bias):
     hydrolase_conc = reaction_params['hydrolysis']['enzyme_conc']
     n_hydrolysis = reaction_params['hydrolysis']['n']
 
-    diffusion_rate = area * permeability * (
-        external * internal_bias - internal) / (volume_p)
+    if internal_bias != 0:
+        diffusion_rate = area * permeability / volume_p * internal_bias * (
+            external - internal * np.exp(internal_bias)) / (
+                np.exp(internal_bias) - 1)
+    # Goldman-Hodgkin-Katz equation simplfies to Fick's law when bias = 0
+    else:
+        diffusion_rate = area * permeability / volume_p * (external - internal)
     export_rate = (
         kcat_export * pump_conc * internal**n_export
     ) / (
@@ -192,7 +198,7 @@ def find_steady_state(external, reaction_params, internal_bias):
     result = root_scalar(
         internal_derivative,
         args=args,
-        bracket=[0, external * internal_bias],
+        bracket=[0, external * np.exp(internal_bias)],
     )
     assert result.converged
     return result.root
@@ -394,46 +400,6 @@ class AntibioticTransportSteadyState(Process):
 
         return schema
 
-    # TODO: Make this a general utility function.
-    def _remove_units(self, state, units_map=None):
-        units_map = units_map or {}
-        converted_state = {}
-        saved_units = {}
-        for key, value in state.items():
-            if isinstance(value, dict):
-                value_no_units, new_saved_units = self._remove_units(
-                    value, units_map=units_map.get(key)
-                )
-                converted_state[key] = value_no_units
-                saved_units[key] = new_saved_units
-            elif isinstance(value, Quantity):
-                saved_units[key] = value.units
-                expected_units = units_map.get(key)
-                if expected_units:
-                    value_no_units = value.to(expected_units).magnitude
-                else:
-                    value_no_units = value.magnitude
-                converted_state[key] = value_no_units
-            else:
-                assert not units_map.get(key), f'{key} does not have units'
-                converted_state[key] = value
-
-        return converted_state, saved_units
-
-    # TODO: Make this a general utility function.
-    def _add_units(self, state, saved_units, strict=True):
-        """add units back in"""
-        unit_state = state.copy()
-        for key, value in saved_units.items():
-            if key not in unit_state and not strict:
-                continue
-            before = unit_state[key]
-            if isinstance(value, dict):
-                unit_state[key] = self._add_units(before, value)
-            else:
-                unit_state[key] = before * value
-        return unit_state
-
     def next_update(self, timestep, state):
         update = {}
         for antibiotic in self.antibiotics:
@@ -462,8 +428,8 @@ class AntibioticTransportSteadyState(Process):
                 assert delta_species not in species
                 prepared_state['species'][delta_species] = 0 * units.mM
 
-            prepared_state, saved_units = self._remove_units(
-                prepared_state, units_map=UNITS)
+            prepared_state, saved_units = remove_units(
+                prepared_state, UNITS)
 
             # Compute the update.
             charge = prepared_state['reaction_parameters']['diffusion']['charge']
@@ -474,11 +440,11 @@ class AntibioticTransportSteadyState(Process):
                 units.J / units.mol / units.K)
             temperature = param_store.get(('temperature',)).to(units.K)
             # Biases diffusion to favor higher internal concentrations
-            # according to the Nernst Equation. This results in our
-            # steady-state solution being for the Donnan Equilibrium.
-            internal_bias = np.exp(
-                charge * faraday * potential / gas_constant / temperature)
+            # according to the Goldman-Hodgkin-Katz flux equation assuming
+            # the outer membrane has a potential from the Donnan equilibrium.
+            internal_bias = charge * faraday * potential / gas_constant / temperature
 
+            # Compute the update.
             internal_steady_state = find_steady_state(
                 prepared_state['species']['external'],
                 prepared_state['reaction_parameters'],
@@ -509,11 +475,11 @@ class AntibioticTransportSteadyState(Process):
             assert not np.any(np.isnan(list(antibiotic_update['species'].values())))
 
             # Add units back in
-            antibiotic_update['species'] = self._add_units(
+            antibiotic_update['species'] = add_units(
                 antibiotic_update['species'],
                 saved_units['species'],
                 strict=not self.parameters['diffusion_only'])
-            antibiotic_update['delta_species'] = self._add_units(
+            antibiotic_update['delta_species'] = add_units(
                 antibiotic_update['delta_species'],
                 saved_units['species'],
                 strict=not self.parameters['diffusion_only'])
@@ -618,4 +584,4 @@ def test_antibiotic_transport_steady_state():
 
 
 if __name__ == '__main__':
-    test_exchange_aware_bioscrape()
+    test_antibiotic_transport_steady_state()
