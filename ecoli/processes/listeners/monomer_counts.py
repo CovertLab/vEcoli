@@ -12,13 +12,13 @@ from ecoli.processes.registries import topology_registry
 
 
 NAME = 'monomer_counts_listener'
+TOPOLOGY = {
+    "listeners": ("listeners",),
+    "bulk": ("bulk",),
+    "unique": ("unique",),
+}
 topology_registry.register(
-    NAME,
-    {
-        "listeners": ("listeners",),
-        "bulk": ("bulk",),
-        "unique": ("unique",),
-    }
+    NAME, TOPOLOGY
 )
 
 class MonomerCounts(Step):
@@ -26,6 +26,7 @@ class MonomerCounts(Step):
     Listener for the counts of each protein monomer species.
     """
     name = NAME
+    topology = TOPOLOGY
 
     defaults = {
         'bulk_molecule_ids': [],

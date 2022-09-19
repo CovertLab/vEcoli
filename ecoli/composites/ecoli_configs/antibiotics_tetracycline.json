@@ -1,7 +1,6 @@
 {
     "inherit_from": ["antibiotics.json"],
     "add_processes": [
-        "antibiotic-transport-odeint",
         "permeability",
         "death",
         "conc_to_counts",
@@ -250,6 +249,9 @@
         }
     },
     "flow": {
-        "ecoli-polypeptide-initiation_requester": [["tetracycline-ribosome-equilibrium"]]
+        "ecoli-rna-interference": [["ecoli-metabolism"]],
+        "tetracycline-ribosome-equilibrium": [["ecoli-rna-interference"]],
+        "ecoli-mass-listener": [["tetracycline-ribosome-equilibrium"]],
+        "aggregator": [["ecoli-mass-listener"]]
     }
 }

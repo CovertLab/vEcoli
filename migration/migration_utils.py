@@ -1,7 +1,13 @@
+import json
+import copy
 import numpy as np
+from unum import Unum
+import numbers
 from scipy.stats import mannwhitneyu, chi2_contingency, ttest_ind, bartlett
 from vivarium.core.engine import Engine, view_values
+from vivarium.library.dict_utils import deep_merge
 
+from wholecell.utils import units
 from ecoli.states.wcecoli_state import get_state_from_file
 
 PERCENT_ERROR_THRESHOLD = 0.05
@@ -32,6 +38,7 @@ def run_ecoli_process(
         total_time=2,
         initial_time=0,
         initial_state=None,
+        folder_name=''
 ):
     """
     load a single ecoli process, run it, and return the update
@@ -64,6 +71,14 @@ def run_ecoli_process(
     # that this process expects, based on its declared topology
     topology_view = store.outer.schema_topology(process.schema, store.topology)
     states = view_values(topology_view)
+    
+    if folder_name:
+        # Merge partitioned counts or other data into process state
+        # (e.g. polypeptide elongation's gtp_to_hydrolyze listener)
+        with open(f"data/migration/{folder_name}/partitioned_t"
+                f"{2+initial_time}.json") as f:
+            partitioned_counts = json.load(f)
+        states = deep_merge(states, partitioned_counts)
 
     update = experiment._invoke_process(
         process,
@@ -72,6 +87,133 @@ def run_ecoli_process(
 
     actual_update = update.get_command_result()
     return actual_update
+
+
+def run_custom_partitioned_process(
+    process,
+    topology,
+    initial_time=0,
+    initial_state=None,
+    folder_name=""
+):
+    """Given an initial state dictionary, run the calculate_request method of
+    a process, then load a json of partitioned molecule counts to be merged
+    into the process state before running the evolve_state method."""
+    # make an experiment
+    experiment_config = {
+        'processes': {process.name: process},
+        'topology': {process.name: topology},
+        'initial_state': initial_state}
+    experiment = Engine(**experiment_config)
+
+    # Get update from process.
+    path, process = list(experiment.process_paths.items())[0]
+    store = experiment.state.get_path(path)
+
+    # translate the values from the tree structure into the form
+    # that this process expects, based on its declared topology
+    topology_view = store.outer.schema_topology(process.schema, store.topology)
+    states = view_values(topology_view)
+
+    # Make process see partitioned molecule counts
+    with open(f"data/migration/{folder_name}/partitioned_t"
+              f"{2+initial_time}.json") as f:
+        partitioned_counts = json.load(f)
+
+    process.request_only = True
+    process.evolve_only = False
+    # Set instance variables
+    requests = experiment._invoke_process(
+        process,
+        2,
+        states)
+    actual_requests = copy.deepcopy(requests.get_command_result())
+    states = deep_merge(states, partitioned_counts)
+    process.request_only = False
+    process.evolve_only = True
+    update = experiment._invoke_process(
+        process,
+        2,
+        states)
+
+    actual_update = update.get_command_result()
+    return actual_requests, actual_update
+
+
+def recursive_compare(d1, d2, level='root', include_callable=False, 
+                      ignore_keys=set(), check_keys_strict=True):
+    """Recursively compare 2 dictionaries, printing any differences
+    and their paths. Does not compare callable values by default.
+    Can exclude specific dictionary keys from comparison or prevent
+    failure when keys are missing."""
+    is_equal = True
+    if isinstance(d1, dict) and isinstance(d2, dict):
+        if d1.keys() != d2.keys():
+            s1 = set(d1.keys())
+            s2 = set(d2.keys())
+            print('{:<20} + {} - {}'.format(level, s1-s2, s2-s1))
+            common_keys = s1 & s2 - ignore_keys
+            if check_keys_strict:
+                if s1-s2-ignore_keys or s2-s1-ignore_keys:
+                    is_equal = False
+        else:
+            common_keys = set(d1.keys()) - ignore_keys
+
+        for k in common_keys:
+            is_equal = recursive_compare(d1[k], d2[k], 
+                level='{}.{}'.format(level, k), 
+                include_callable=include_callable, 
+                ignore_keys=ignore_keys,
+                check_keys_strict=check_keys_strict) and is_equal
+
+    elif isinstance(d1, list) and isinstance(d2, list):
+        if len(d1) != len(d2):
+            print('{:<20} len1={}; len2={}'.format(level, len(d1), len(d2)))
+            is_equal = False
+        common_len = min(len(d1), len(d2))
+
+        for i in range(common_len):
+            is_equal = recursive_compare(d1[i], d2[i], 
+                level='{}[{}]'.format(level, i),
+                include_callable=include_callable, 
+                ignore_keys=ignore_keys,
+                check_keys_strict=check_keys_strict) and is_equal
+            
+    elif isinstance(d1, np.ndarray) or isinstance(d2, np.ndarray):
+        if not np.array_equal(d1, d2):
+            print('{:<20} {} != {}'.format(level, d1, d2))
+            return False
+    
+    elif isinstance(d1, Unum) and isinstance(d2, Unum):
+        return recursive_compare(d1.asNumber(), d2.asNumber(), 
+            level='{}'.format(level), 
+            include_callable=include_callable, 
+            ignore_keys=ignore_keys,
+            check_keys_strict=check_keys_strict)
+    
+    elif isinstance(d1, numbers.Number) and isinstance(d2, numbers.Number):
+        # Floats are precise to 15 digits
+        if not np.isclose(d1, d2, equal_nan=True, rtol=1e-15):
+            print('{:<20} {} != {}'.format(level, d1, d2))
+            return False
+            
+    elif isinstance(d1, set) and isinstance(d2, set):
+        if len(d1 - d2) != 0:
+            print('{:<20} {} in 1st but not 2nd set'.format(level, d1 - d2))
+            return False
+    
+    elif callable(d1) and callable(d2) and not include_callable:
+        return
+    
+    else:
+        try:
+            if str(d1) != str(d2):
+                print('{:<20} {} != {}'.format(level, d1, d2))
+                return False
+        except ValueError:
+            print('{:<20} {} != {}'.format(level, d1, d2))
+            return False
+    return is_equal
 
 
 def array_diffs_report(a, b, names=None, sort_by="absolute", sort_with=np.abs):

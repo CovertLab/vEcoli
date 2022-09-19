@@ -12,12 +12,12 @@ from ecoli.processes.registries import topology_registry
 
 
 NAME = 'mRNA_counts_listener'
+TOPOLOGY = {
+    "listeners": ("listeners",),
+    "RNAs" : ("unique", "RNA"),
+}
 topology_registry.register(
-    NAME,
-    {
-        "listeners": ("listeners",),
-        "RNAs" : ("unique", "RNA"),
-    }
+    NAME, TOPOLOGY
 )
 
 class mRNACounts(Step):
@@ -25,6 +25,7 @@ class mRNACounts(Step):
     Listener for the counts of each mRNA species.
     """
     name = NAME
+    topology = TOPOLOGY
 
     defaults = {
         'rna_ids': [],

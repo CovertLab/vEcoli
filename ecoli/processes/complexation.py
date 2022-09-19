@@ -54,12 +54,10 @@ class Complexation(PartitionedProcess):
         self.stoichiometry = self.parameters['stoichiometry']
         self.rates = self.parameters['rates']
         self.molecule_names = self.parameters['molecule_names']
-        self.seed = self.parameters['seed']
 
+        self.randomState = np.random.RandomState(seed = self.parameters['seed'])
+        self.seed = self.randomState.randint(2**31)
         self.system = StochasticSystem(self.stoichiometry, random_seed=self.seed)
-
-        num_reactions = self.parameters['numReactions']
-        self.complexationEvents = np.zeros(num_reactions, np.int64)
 
     def ports_schema(self):
         return {
@@ -93,7 +91,7 @@ class Complexation(PartitionedProcess):
             substrate[index] = molecules[molecule]
 
         result = self.system.evolve(timestep, substrate, self.rates)
-        self.complexationEvents = result['occurrences']
+        complexationEvents = result['occurrences']
         outcome = result['outcome'] - substrate
         molecules_update = array_to(self.molecule_names, outcome)
 
@@ -101,7 +99,7 @@ class Complexation(PartitionedProcess):
         update = {
             'molecules': molecules_update,
             'listeners': {
-                'complexation_events': self.complexationEvents
+                'complexation_events': complexationEvents
             }
         }
 

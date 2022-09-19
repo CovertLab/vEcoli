@@ -254,7 +254,8 @@ class PolypeptideInitiation(PartitionedProcess):
             'listeners': {
                 'ribosome_data': {
                     'ribosomes_initialized': n_new_proteins.sum(),
-                    'prob_translation_per_transcript': protein_init_prob}}}
+                    'prob_translation_per_transcript': protein_init_prob,
+                    'ribosome_elongation_rate': self.ribosomeElongationRate}}}
 
         return update
 

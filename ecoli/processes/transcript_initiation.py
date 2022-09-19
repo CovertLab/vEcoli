@@ -377,7 +377,8 @@ class TranscriptInitiation(PartitionedProcess):
         update = {
             'listeners': {
                 'rna_synth_prob': {
-                    'rna_synth_prob': np.zeros(self.n_TUs)}}}
+                    'rna_synth_prob': np.zeros(self.n_TUs),
+                    'promoter_init_probs': self.promoter_init_probs.copy()}}}
 
         # no synthesis if no chromosome
         if len(states['full_chromosomes']) == 0:
@@ -397,6 +398,11 @@ class TranscriptInitiation(PartitionedProcess):
         # Compute synthesis probabilities of each transcription unit
         TU_synth_probs = TU_to_promoter.dot(self.promoter_init_probs)
         update['listeners']['rna_synth_prob']['rna_synth_prob'] = TU_synth_probs
+        
+        update = {
+            'listeners': {
+                'rna_synth_prob': {
+                    'rna_synth_prob': TU_synth_probs}}}
 
         # Shuffle synthesis probabilities if we're running the variant that
         # calls this (In general, this should lead to a cell which does not

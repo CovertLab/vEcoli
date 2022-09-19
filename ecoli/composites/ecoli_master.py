@@ -13,11 +13,11 @@ from copy import deepcopy
 # vivarium-core
 from vivarium.core.composer import Composer
 from vivarium.plots.topology import plot_topology
-from vivarium.library.units import units
 from vivarium.library.dict_utils import deep_merge
 from vivarium.core.control import run_library_cli
 
 # sim data
+from wholecell.utils import units
 from ecoli.library.sim_data import LoadSimData, RAND_MAX
 
 # logging
@@ -54,8 +54,8 @@ class Ecoli(Composer):
         'daughter_path': tuple(),
         'agent_id': '0',
         'agents_path': ('..', '..', 'agents',),
-        'division': {
-            'threshold': 2220},  # fg
+        'division_threshold': 668,  # fg
+        'division_variable': ('listeners', 'mass', 'dry_mass'),
         'divide': False,
         'log_updates': False,
         'mar_regulon': False,
@@ -199,23 +199,25 @@ class Ecoli(Composer):
         processes.update(requesters)
         processes.update(evolvers)
         
-        divide = config.get('divide', False)
         # add division process
-        if divide:
-            division_config = config.get('division', {})
+        if config['divide']:
             expectedDryMassIncreaseDict = self.load_sim_data.sim_data.expectedDryMassIncreaseDict
             division_name = 'division'
-            if 'massDistribution' in division_config:
+            division_config = {'threshold': config['division_threshold']}
+            if config['division_threshold'] == 'massDistribution':
                 division_random_seed = binascii.crc32(b'CellDivision', config['seed']) & 0xffffffff
                 division_random_state = np.random.RandomState(seed=division_random_seed)
                 division_mass_multiplier = division_random_state.normal(loc=1.0, scale=0.1)
-            else:
-                division_mass_multiplier = 1
-            if 'threshold' not in division_config:
-                initial_state = self.initial_state(config)
+                initial_state_file = config.get('initial_state_file', 'wcecoli_t0')
+                initial_state_overrides = config.get('initial_state_overrides', [])
+                initial_state = get_state_from_file(path=f'data/{initial_state_file}.json')
+                for override_file in initial_state_overrides:
+                    override = get_state_from_file(path=f"data/{override_file}.json")
+                    deep_merge(initial_state, override)
                 current_media_id = initial_state['environment']['media_id']
                 division_config['threshold'] = (initial_state['listeners']['mass']['dry_mass'] + 
-                    expectedDryMassIncreaseDict[current_media_id].asNumber(units.fg) * division_mass_multiplier)
+                    expectedDryMassIncreaseDict[current_media_id].asNumber(
+                        units.fg) * division_mass_multiplier)
             division_config = dict(
                 division_config,
                 agent_id=config['agent_id'],
@@ -244,7 +246,7 @@ class Ecoli(Composer):
                 requester_name = f'{name}_requester'
                 evolver_name = f'{name}_evolver'
                 flow[requester_name] = [
-                    ('ecoli-chromosome-structure',)]
+                    ('monomer_counts_listener',)]
                 if config['divide']:
                     flow[requester_name].append(('division',))
                 flow['allocator'].append((requester_name,))
@@ -253,7 +255,7 @@ class Ecoli(Composer):
                     evolver_name]
             elif name == 'division':
                 steps[name] = process
-                flow[name] = [('ecoli-chromosome-structure',)]
+                flow[name] = [('monomer_counts_listener',)]
             elif process.is_step():
                 steps[name] = process
                 flow[name] = []

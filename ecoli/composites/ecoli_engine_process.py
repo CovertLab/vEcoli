@@ -10,8 +10,6 @@ import copy
 from datetime import datetime, timezone
 import os
 import re
-import pickle
-import binascii
 
 import numpy as np
 from vivarium.core.composer import Composer
@@ -31,7 +29,7 @@ from ecoli.experiments.ecoli_master_sim import (
     report_profiling,
 )
 from ecoli.library.logging import write_json
-from ecoli.library.sim_data import RAND_MAX, SIM_DATA_PATH
+from ecoli.library.sim_data import RAND_MAX
 from ecoli.states.wcecoli_state import get_state_from_file
 from ecoli.processes.engine_process import EngineProcess
 from ecoli.processes.environment.field_timeline import FieldTimeline
@@ -210,9 +208,10 @@ def run_simulation(config):
     for key, value in config['emitter_arg']:
         emitter_config[key] = value
     
-    with open(SIM_DATA_PATH, 'rb') as sim_data_file:
-        sim_data = pickle.load(sim_data_file)
-    expectedDryMassIncreaseDict = sim_data.expectedDryMassIncreaseDict
+    if 'division_threshold' not in config._config:
+        config['division_threshold'] = 668
+    if 'division_variable' not in config._config:
+        config['division_variable'] = ('listeners', 'mass', 'dry_mass')
 
     base_config = {
         'agent_id': config['agent_id'],
@@ -221,7 +220,8 @@ def run_simulation(config):
         'parallel': config['parallel'],
         'ecoli_sim_config': config.to_dict(),
         'divide': config['divide'],
-        'division_variable': ('listeners', 'mass', 'dry_mass'),
+        'division_threshold': config['division_threshold'],
+        'division_variable': config['division_variable'],
         'tunnels_in': (
             ('environment',),
             ('boundary',),
@@ -232,7 +232,7 @@ def run_simulation(config):
         'seed': config['seed'],
         'experiment_id': experiment_id,
     }
-    division_config = config.get('division', {})
+
     composite = {}
     if 'initial_colony_file' in config.keys():
         initial_state = get_state_from_file(path=f'data/{config["initial_colony_file"]}.json')  # TODO(Matt): initial_state_file is wc_ecoli?
@@ -254,20 +254,6 @@ def run_simulation(config):
                     'embed_path': agent_path,
                 },
             }
-            
-            if 'massDistribution' in division_config:
-                division_random_seed = binascii.crc32(b'CellDivision', config['seed']) & 0xffffffff
-                division_random_state = np.random.RandomState(seed=division_random_seed)
-                division_mass_multiplier = division_random_state.normal(loc=1.0, scale=0.1)
-            else:
-                division_mass_multiplier = 1
-            if 'threshold' not in division_config:
-                current_media_id = agent_state['environment']['media_id']
-                agent_config['division_threshold'] = (agent_state['listeners']['mass']['dry_mass'] + 
-                    expectedDryMassIncreaseDict[current_media_id].asNumber(units.fg) * division_mass_multiplier)
-            else:
-                agent_config['division_threshold'] = division_config['threshold']
-
             agent_composer = EcoliEngineProcess(base_config)
             agent_composite = agent_composer.generate(agent_config, path=agent_path)
             if not composite:
@@ -277,30 +263,13 @@ def run_simulation(config):
     else:
         agent_config = {}
         if 'initial_state_file' in config.keys():
-            initial_state_path = config['initial_state_file']
-            base_config['initial_state_file'] = initial_state_path
-            initial_state = get_state_from_file(path=f'data/{config["initial_state_file"]}.json')
-            if initial_state_path.startswith('vivecoli'):
-                time_str = initial_state_path[len('vivecoli_t'):]
-                seed = int(float(time_str))
-                base_config['seed'] += seed
             agent_path = ('agents', config['agent_id'])
-            base_config['inner_emitter'] = {
-                **emitter_config,
-                'embed_path': agent_path
+            agent_config = {
+                'inner_emitter': {
+                    **emitter_config,
+                    'embed_path': agent_path,
+                },
             }
-            if 'massDistribution' in division_config:
-                division_random_seed = binascii.crc32(b'CellDivision', config['seed']) & 0xffffffff
-                division_random_state = np.random.RandomState(seed=division_random_seed)
-                division_mass_multiplier = division_random_state.normal(loc=1.0, scale=0.1)
-            else:
-                division_mass_multiplier = 1
-            if 'threshold' not in division_config:
-                current_media_id = initial_state['environment']['media_id']
-                agent_config['division_threshold'] = (initial_state['listeners']['mass']['dry_mass'] + 
-                    expectedDryMassIncreaseDict[current_media_id].asNumber(units.fg) * division_mass_multiplier)
-            else:
-                agent_config['division_threshold'] = division_config['threshold']
         composer = EcoliEngineProcess(base_config)
         composite = composer.generate(agent_config, path=agent_path)
         initial_state = composite.initial_state()
@@ -312,7 +281,7 @@ def run_simulation(config):
         initial_state = deep_merge(initial_state, initial_environment)
 
     metadata = config.to_dict()
-    metadata['division']['threshold'] = [
+    metadata['division_threshold'] = [
         agent['cell_process'].parameters['division_threshold'] for agent in composite.processes['agents'].values()]
     metadata.pop('initial_state', None)
     metadata['git_hash'] = get_git_revision_hash()
