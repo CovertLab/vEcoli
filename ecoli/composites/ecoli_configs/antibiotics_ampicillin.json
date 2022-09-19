@@ -1,8 +1,6 @@
 {
     "inherit_from": ["antibiotics.json"],
     "add_processes": [
-        "antibiotic-transport-odeint",
-        "permeability",
         "death"
     ],
     "total_time": 100,
