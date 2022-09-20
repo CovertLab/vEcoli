@@ -468,7 +468,7 @@ def test_runtime():
         fig.savefig(f"out/hole_detection/test_runtime[{method_name}].png")
 
 
-def test_case(side_length, density, rng=np.random.default_rng(0)):
+def run_test_case(side_length, density, rng=np.random.default_rng(0)):
     a = rng.binomial(1, 1 - density, size=side_length * side_length).reshape(
         (side_length, side_length)
     )
@@ -491,7 +491,7 @@ def test_merge_time():
         for c, d in enumerate(density):
             f = f"out/hole_detection/merge_profile/prof_{s}_{int(d*10)}"
             cProfile.run(
-                f"test_case({s}, {d})",
+                f"run_test_case({s}, {d})",
                 f,
             )
 
