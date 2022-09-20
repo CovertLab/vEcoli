@@ -33,22 +33,21 @@ def run_sim(tet_conc=0, baseline=False,
         test_initial_state()
     config.update_from_dict(tetracycline_gradient)
     if baseline:
-        config._config['add_processes'].remove('antibiotic-transport-odeint')
-        config._config['add_processes'].remove('ecoli-rna-interference')
-        config._config['add_processes'].remove('tetracycline-ribosome-equilibrium')
-        config._config['process_configs'].pop('ecoli-rna-interference')
-        config._config['process_configs'].pop('antibiotic-transport-odeint')
-        config._config['process_configs'].pop('tetracycline-ribosome-equilibrium')
-        config._config['topology'].pop('antibiotic-transport-odeint')
-        config._config['topology'].pop('tetracycline-ribosome-equilibrium')
-        config._config['engine_process_reports'].remove(['bulk', 'marR-tet[c]'])
-        config._config['engine_process_reports'].remove(['bulk', 'CPLX0-3953-tetracycline[c]'])
-        config._config['engine_process_reports'].remove(['bioscrape_deltas',])
-        config._config['flow']['ecoli-mass-listener'] = [('ecoli-metabolism',)]
-        config._config['flow'].pop('ecoli-rna-interference')
-        config._config['flow'].pop('tetracycline-ribosome-equilibrium')
-        config._config['mar_regulon'] = False
-        config._config['initial_state_file'] = 'wcecoli_t0'
+        config['add_processes'].remove('antibiotic-transport-odeint')
+        config['add_processes'].remove('ecoli-rna-interference')
+        config['add_processes'].remove('tetracycline-ribosome-equilibrium')
+        config['process_configs'].pop('ecoli-rna-interference')
+        config['process_configs'].pop('antibiotic-transport-odeint')
+        config['process_configs'].pop('tetracycline-ribosome-equilibrium')
+        config['topology'].pop('antibiotic-transport-odeint')
+        config['topology'].pop('tetracycline-ribosome-equilibrium')
+        config['engine_process_reports'].remove(['bulk', 'marR-tet[c]'])
+        config['engine_process_reports'].remove(['bulk', 'CPLX0-3953-tetracycline[c]'])
+        config['flow']['ecoli-mass-listener'] = [('ecoli-metabolism',)]
+        config['flow'].pop('ecoli-rna-interference')
+        config['flow'].pop('tetracycline-ribosome-equilibrium')
+        config['mar_regulon'] = False
+        config['initial_state_file'] = 'wcecoli_t0'
     run_simulation(config)
 
 # Running this is slow (including the import statement)    
