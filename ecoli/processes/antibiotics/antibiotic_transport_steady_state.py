@@ -1,29 +1,36 @@
-import copy
-
 import numpy as np
 from scipy.constants import N_A
 from scipy.integrate import solve_ivp
-from scipy.optimize import root_scalar
+from scipy.optimize import root
 from vivarium.core.process import Process
-from vivarium.library.units import units, Quantity
+from vivarium.library.units import units
 
 from ecoli.library.parameters import param_store
 from ecoli.library.units import add_units, remove_units
 
-
-AVOGADRO = N_A / units.mol
-
 # NOTE: These must match the math in species_derivatives().
-SPECIES = ('internal', 'external', 'external_delta', 'hydrolyzed')
+SPECIES = ('periplasm', 'cytoplasm', 'external', 
+    'hydrolyzed_periplasm', 'hydrolyzed_cytoplasm')
 SPECIES_TO_INDEX = {
     species: i
     for i, species in enumerate(SPECIES)
 }
-EXTERNAL_SPECIES = ('external', 'external_delta')
 REACTIONS = {
-    'diffusion': (('external_delta',), ('internal',)),  # Diffusion
-    'export': (('internal',), ('external_delta',)),  # Efflux
-    'hydrolysis': (('internal',), ('hydrolyzed',)),  # Hydrolysis
+    # Diffusion from environment into periplasm
+    # Note that external concentration is not included in
+    # stoichiometry because we assume it is constant for timestep
+    'periplasm_diffusion': (tuple(), ('periplasm',)),
+    # Diffusion from periplasm into cytoplasm
+    'cytoplasm_diffusion': (('periplasm',), ('cytoplasm',)),
+    # Active efflux from periplasm
+    # External concentration is assumed to be constant for timestep
+    'periplasm_export': (('periplasm',), tuple()),
+    # Active efflux from cytoplasm
+    'cytoplasm_export': (('cytoplasm',), ('periplasm',)),
+    # Hydrolysis in periplasm
+    'periplasm_hydrolysis': (('periplasm',), ('hydrolyzed_periplasm',)),
+    # Hydrolysis in cytoplasm
+    'cytoplasm_hydrolysis': (('cytoplasm',), ('hydrolyzed_cytoplasm',)),
 }
 REACTIONS_TO_INDEX = {
     reaction: i
@@ -55,11 +62,13 @@ REACTIONS_TO_INDEX = {
 STOICH = np.zeros((len(SPECIES), len(REACTIONS)))
 for i_reaction, (reactants, products) in enumerate(REACTIONS.values()):
     for reactant in reactants:
-        i_reactant = SPECIES_TO_INDEX[reactant]
-        STOICH[i_reactant, i_reaction] -= 1
+        if reactant:
+            i_reactant = SPECIES_TO_INDEX[reactant]
+            STOICH[i_reactant, i_reaction] -= 1
     for product in products:
-        i_product = SPECIES_TO_INDEX[product]
-        STOICH[i_product, i_reaction] += 1
+        if product:
+            i_product = SPECIES_TO_INDEX[product]
+            STOICH[i_product, i_reaction] += 1
 #: Describes the expected units for each species and reaction parameter.
 #: AntibioticTransportSteadyState uses this dictionary to do unit
 #: conversions.
@@ -68,39 +77,66 @@ UNITS = {
         species: units.mM
         for species in SPECIES
     },
+    # One set of parameters for outer membrane, another for inner
     'reaction_parameters': {
         'diffusion': {
-            'permeability': units.dm / units.sec,
-            'area': units.dm**2,
-            'volume': units.L,
+            'outer_permeability': units.dm / units.sec,
+            'outer_area': units.dm**2,
+            'periplasm_volume': units.L,
             'charge': units.count,
+            'inner_permeability': units.dm / units.sec,
+            'inner_area': units.dm**2,
+            'cytoplasm_volume': units.L,
         },
         'export': {
-            'kcat': 1 / units.sec,
-            'km': units.mM,
-            'enzyme_conc': units.mM,
-            'n': units.count,
+            'outer_kcat': 1 / units.sec,
+            'outer_km': units.mM,
+            'outer_enzyme_conc': units.mM,
+            'outer_n': units.count,
+            'inner_kcat': 1 / units.sec,
+            'inner_km': units.mM,
+            'inner_enzyme_conc': units.mM,
+            'inner_n': units.count,
         },
         'hydrolysis': {
-            'kcat': 1 / units.sec,
-            'km': units.mM,
-            'enzyme_conc': units.mM,
-            'n': units.count,
+            'outer_kcat': 1 / units.sec,
+            'outer_km': units.mM,
+            'outer_enzyme_conc': units.mM,
+            'outer_n': units.count,
+            'inner_kcat': 1 / units.sec,
+            'inner_km': units.mM,
+            'inner_enzyme_conc': units.mM,
+            'inner_n': units.count,
         },
     },
 }
 
+FARADAY = param_store.get(('faraday_constant',)).to(
+    units.C / units.mol)
+OUTER_POTENTIAL = param_store.get(('outer_potential',)).to(units.V)
+INNER_POTENTIAL = param_store.get(('inner_potential',)).to(units.V)
+GAS_CONSTANT = param_store.get(('gas_constant',)).to(
+    units.J / units.mol / units.K)
+TEMPERATURE = param_store.get(('temperature',)).to(units.K)
 
-def species_derivatives(state_arr, reaction_params, internal_bias):
+def species_derivatives(state_arr, reaction_params,
+    outer_internal_bias, inner_internal_bias):
     '''Compute the derivatives for each species.
 
     Args:
-        state_arr: State (as an array) at which to evaluate the
-            derivative.
+        state_arr: Array of molecule counts in periplasm, cytoplasm,
+            and environment at which to evaluate the derivative. Assumes that
+            environment concentration is relatively constant over the timestep
+            (reasonable if environment volume >> internal volume or if timestep
+            is short enough).
         reaction_params: Dictionary of reaction parameters.
-        internal_bias: A positive bias that, when greater than one,
-            favors influx over efflux diffusion. This can be used to
-            model the effect of the membrane potential on diffusion
+        outer_internal_bias: A positive bias that, when greater than one,
+            favors influx into the periplasm over efflux diffusion. This can
+            be used to model the effect of the membrane potential on diffusion
+            equilibrium.
+        inner_internal_bias: A positive bias that, when greater than one,
+            favors influx into the cytoplasm over efflux diffusion. This can
+            be used to model the effect of the membrane potential on diffusion
             equilibrium.
 
     Returns:
@@ -108,45 +144,80 @@ def species_derivatives(state_arr, reaction_params, internal_bias):
     '''
     # Parse state
     state = species_array_to_dict(state_arr, SPECIES_TO_INDEX)
-    internal = state['internal']
+    periplasm = state['periplasm']
+    cytoplasm = state['cytoplasm']
     external = state['external']
 
     # Parse reaction parameters
-    area = reaction_params['diffusion']['area']
-    permeability = reaction_params['diffusion']['permeability']
-    volume_p = reaction_params['diffusion']['volume']
+    outer_area = reaction_params['diffusion']['outer_area']
+    outer_permeability = reaction_params['diffusion']['outer_permeability']
+    periplasm_volume = reaction_params['diffusion']['periplasm_volume']
+    inner_area = reaction_params['diffusion']['inner_area']
+    inner_permeability = reaction_params['diffusion']['inner_permeability']
+    cytoplasm_volume = reaction_params['diffusion']['cytoplasm_volume']
 
     # TODO: Pull the Michaelis-Menten logic into a separate function for
     # reuse.
-    kcat_export = reaction_params['export']['kcat']
-    km_export = reaction_params['export']['km']
-    pump_conc = reaction_params['export']['enzyme_conc']
-    n_export = reaction_params['export']['n']
-    kcat_hydrolysis = reaction_params['hydrolysis']['kcat']
-    km_hydrolysis = reaction_params['hydrolysis']['km']
-    hydrolase_conc = reaction_params['hydrolysis']['enzyme_conc']
-    n_hydrolysis = reaction_params['hydrolysis']['n']
+    outer_kcat_export = reaction_params['export']['outer_kcat']
+    outer_km_export = reaction_params['export']['outer_km']
+    outer_pump_conc = reaction_params['export']['outer_enzyme_conc']
+    outer_n_export = reaction_params['export']['outer_n']
+    outer_kcat_hydrolysis = reaction_params['hydrolysis']['outer_kcat']
+    outer_km_hydrolysis = reaction_params['hydrolysis']['outer_km']
+    outer_hydrolase_conc = reaction_params['hydrolysis']['outer_enzyme_conc']
+    outer_n_hydrolysis = reaction_params['hydrolysis']['outer_n']
+    inner_kcat_export = reaction_params['export']['inner_kcat']
+    inner_km_export = reaction_params['export']['inner_km']
+    inner_pump_conc = reaction_params['export']['inner_enzyme_conc']
+    inner_n_export = reaction_params['export']['inner_n']
+    inner_kcat_hydrolysis = reaction_params['hydrolysis']['inner_kcat']
+    inner_km_hydrolysis = reaction_params['hydrolysis']['inner_km']
+    inner_hydrolase_conc = reaction_params['hydrolysis']['inner_enzyme_conc']
+    inner_n_hydrolysis = reaction_params['hydrolysis']['inner_n']
 
-    if internal_bias != 0:
-        diffusion_rate = area * permeability / volume_p * internal_bias * (
-            external - internal * np.exp(internal_bias)) / (
-                np.exp(internal_bias) - 1)
+    if outer_internal_bias != 0:
+        periplasm_diffusion_rate = outer_area * outer_permeability / (
+            periplasm_volume) * (outer_internal_bias * (external - periplasm * 
+            np.exp(outer_internal_bias)) / (np.exp(
+                outer_internal_bias) - 1))
     # Goldman-Hodgkin-Katz equation simplfies to Fick's law when bias = 0
     else:
-        diffusion_rate = area * permeability / volume_p * (external - internal)
-    export_rate = (
-        kcat_export * pump_conc * internal**n_export
-    ) / (
-        km_export + internal**n_export)
-    hydrolysis_rate = (
-        kcat_hydrolysis * hydrolase_conc * internal**n_hydrolysis
-    ) / (
-        km_hydrolysis + internal**n_hydrolysis)
+        periplasm_diffusion_rate = outer_area * outer_permeability / (
+            periplasm_volume) * (external - periplasm)
 
+    if inner_internal_bias != 0:
+        cytoplasm_diffusion_rate = inner_area * inner_permeability / (
+            cytoplasm_volume) * (inner_internal_bias * (periplasm - cytoplasm * 
+            np.exp(inner_internal_bias)) / (np.exp(
+                inner_internal_bias) - 1))
+    # Goldman-Hodgkin-Katz equation simplfies to Fick's law when bias = 0
+    else:
+        cytoplasm_diffusion_rate = inner_area * inner_permeability / (
+            cytoplasm_volume) * (periplasm - cytoplasm)
+
+    periplasm_export_rate = (
+        outer_kcat_export * outer_pump_conc * periplasm**outer_n_export
+    ) / (
+        outer_km_export + periplasm**outer_n_export)
+    periplasm_hydrolysis_rate = (
+        outer_kcat_hydrolysis * outer_hydrolase_conc * periplasm**outer_n_hydrolysis
+    ) / (
+        outer_km_hydrolysis + periplasm**outer_n_hydrolysis)
+    cytoplasm_export_rate = (
+        inner_kcat_export * inner_pump_conc * cytoplasm**inner_n_export
+    ) / (
+        inner_km_export + cytoplasm**inner_n_export)
+    cytoplasm_hydrolysis_rate = (
+        inner_kcat_hydrolysis * inner_hydrolase_conc * cytoplasm**inner_n_hydrolysis
+    ) / (
+        inner_km_hydrolysis + cytoplasm**inner_n_hydrolysis)
     reaction_rates = {
-        'diffusion': diffusion_rate,
-        'export': export_rate,
-        'hydrolysis': hydrolysis_rate,
+        'periplasm_diffusion': periplasm_diffusion_rate,
+        'cytoplasm_diffusion': cytoplasm_diffusion_rate,
+        'periplasm_export': periplasm_export_rate,
+        'cytoplasm_export': cytoplasm_export_rate,
+        'periplasm_hydrolysis': periplasm_hydrolysis_rate,
+        'cytoplasm_hydrolysis': cytoplasm_hydrolysis_rate,
     }
     reaction_rates_arr = species_dict_to_array(
         reaction_rates, REACTIONS_TO_INDEX)
@@ -155,69 +226,80 @@ def species_derivatives(state_arr, reaction_params, internal_bias):
 
 
 def internal_derivative(
-        internal, external, reaction_params, internal_bias):
-    '''Compute the derivative of only the ``internal`` species.
+        internal, external, reaction_params, 
+        outer_internal_bias, inner_internal_bias):
+    '''Compute the derivatives of the ``periplasm`` and ``cytoplasm``
+    concentrations.
 
     Args:
-        internal: Current concentration of ``internal`` species.
+        internal: Vector of the form [``periplasm``, ``cytoplasm``].
         external: Current concentration of ``external`` species.
-        reaction_params: Dictionary of reaction parameters.
-        internal_bias: See :py:func:`species_derivatives`.
+        reaction_params: See :py:func:`species_derivatives`.
+        inner_internal_bias: See :py:func:`species_derivatives`.
+        outer_internal_bias: See :py:func:`species_derivatives`.
 
     Returns:
         Derivative of the internal species, as a float.
     '''
     state = {
-        'internal': internal,
+        'periplasm': internal[0],
+        'cytoplasm': internal[1],
         'external': external,
-        'external_delta': 0,
-        'hydrolyzed': 0,
+        'hydrolyzed_periplasm': 0,
+        'hydrolyzed_cytoplasm': 0
     }
     state_arr = species_dict_to_array(state, SPECIES_TO_INDEX)
     derivatives = species_derivatives(
-        state_arr, reaction_params, internal_bias)
-    return derivatives[SPECIES_TO_INDEX['internal']]
+        state_arr, reaction_params, outer_internal_bias, inner_internal_bias)
+    return [derivatives[SPECIES_TO_INDEX['periplasm']], 
+        derivatives[SPECIES_TO_INDEX['cytoplasm']]]
 
 
-def find_steady_state(external, reaction_params, internal_bias):
-    '''Find steady-state concentration of ``internal`` species.
+def find_steady_state(external, reaction_params, outer_internal_bias, 
+    inner_internal_bias):
+    '''Find steady-state concentration of species in periplasm and cytoplasm.
 
     Args:
         external: Current concentration of ``external`` species.
-        reaction_params: Dictionary of reaction parameters.
-        internal_bias: See :py:func:`species_derivatives`.
+        reaction_params: See :py:func:`species_derivatives`.
+        outer_internal_bias: See :py:func:`species_derivatives`.
+        inner_internal_bias: See :py:func:`species_derivatives`.
 
     Returns:
-        Steady-state concentration of the internal species, as a float.
+        Steady-state concentrations of the internal species, as a 
+        vector of the form [``periplasm``, ``cytoplasm``].
     '''
     args = (
         external,
         reaction_params,
-        internal_bias
+        outer_internal_bias,
+        inner_internal_bias
     )
-    result = root_scalar(
+    result = root(
         internal_derivative,
+        [external*outer_internal_bias, 
+        external*outer_internal_bias*inner_internal_bias],
         args=args,
-        bracket=[0, external * np.exp(internal_bias)],
     )
-    assert result.converged
-    return result.root
+    assert result.success
+    return result.x
 
 
 def update_from_steady_state(
         internal_steady_state, initial_state, reaction_params,
-        internal_bias, timestep):
+        outer_internal_bias, inner_internal_bias, timestep):
     '''Compute an update given a steady-state solution.
 
     Beginning from the steady-state solution, numerically integrates the
     species ODEs to find the final state.
 
     Args:
-        internal_steady_state: Steady-state concentration of
-            ``internal`` species.
+        internal_steady_state: Vector of steady-state concentrations
+            [``periplasm``, ``cytoplasm``].
         initial_state: Initial state dictionary.
         reaction_params: Dictionary of reaction parameters.
-        internal_bias: See :py:func:`species_derivatives`.
+        outer_internal_bias: See :py:func:`species_derivatives`.
+        inner_internal_bias: See :py:func:`species_derivatives`.
         timestep: Timestep for update.
 
     Returns:
@@ -226,15 +308,15 @@ def update_from_steady_state(
     assert set(SPECIES) == initial_state.keys()
     steady_state = initial_state.copy()
     # Assume that steady state is reached exclusively through diffusion
-    steady_state['internal'] = internal_steady_state
-    steady_state['external_delta'] = -(
-        internal_steady_state - initial_state['internal'])
+    steady_state['periplasm'] = internal_steady_state[0]
+    steady_state['cytoplasm'] = internal_steady_state[1]
     steady_state_arr = species_dict_to_array(
         steady_state, SPECIES_TO_INDEX)
 
     args = (
         reaction_params,
-        internal_bias,
+        outer_internal_bias,
+        inner_internal_bias
     )
     result = solve_ivp(
         lambda t, state_arr, *args: species_derivatives(
@@ -252,7 +334,6 @@ def update_from_steady_state(
     delta = species_array_to_dict(delta_arr, SPECIES_TO_INDEX)
     return {
         'species': delta,
-        'delta_species': delta,
     }
 
 
@@ -333,11 +414,6 @@ class AntibioticTransportSteadyState(Process):
     def initial_state(self, config=None):
         state = {
             antibiotic: {
-                'delta_species': {
-                    species: 0 * units.mM
-                    for species in SPECIES
-                    if species not in EXTERNAL_SPECIES
-                },
                 'reaction_parameters': self.parameters[
                     'initial_reaction_parameters'][antibiotic]
             }
@@ -356,32 +432,12 @@ class AntibioticTransportSteadyState(Process):
                         '_divider': 'set',
                     }
                     for species in SPECIES
-                    if species not in EXTERNAL_SPECIES
-                },
-                'delta_species': {
-                    species: {
-                        '_default': 0.0 * units.mM,
-                        '_updater': 'set',
-                        '_emit': True,
-                    }
-                    for species in SPECIES
-                    if species not in EXTERNAL_SPECIES
                 },
                 'exchanges': {
-                    species: {
+                    'external': {
                         '_default': 0,
                         '_emit': True,
                     }
-                    for species in EXTERNAL_SPECIES
-                    if not species.endswith('_delta')
-                },
-                'external': {
-                    species: {
-                        '_default': 0 * units.mM,
-                        '_emit': True,
-                    }
-                    for species in EXTERNAL_SPECIES
-                    if not species.endswith('_delta')
                 },
                 'reaction_parameters': {
                     reaction: {
@@ -409,105 +465,78 @@ class AntibioticTransportSteadyState(Process):
             # process expects them to be, renaming variables, and doing
             # unit conversions.
             prepared_state = {
-                'species': copy.deepcopy(antibiotic_state['species']),
-                'external': copy.deepcopy(antibiotic_state['external']),
-                'reaction_parameters': copy.deepcopy(
-                    antibiotic_state['reaction_parameters']),
+                'species': antibiotic_state['species'],
+                'reaction_parameters': antibiotic_state['reaction_parameters'],
             }
-            for species in EXTERNAL_SPECIES:
-                if species.endswith('_delta'):
-                    continue
-                assert species not in prepared_state['species']
-                prepared_state['species'][species] = prepared_state['external'].pop(species)
-                # The delta species is just for tracking updates to the
-                # external environment for later conversion to exchanges. We
-                # assume that `species` is not updated. Note that the
-                # `*_delta` convention must be obeyed for this to work
-                # correctly.
-                delta_species = f'{species}_delta'
-                assert delta_species not in species
-                prepared_state['species'][delta_species] = 0 * units.mM
-
             prepared_state, saved_units = remove_units(
                 prepared_state, UNITS)
 
+            # Save initial total count
+            periplasm_counts = (prepared_state['species']['periplasm'] + 
+                prepared_state['species']['hydrolyzed_periplasm'])/1000 * (
+                    N_A * prepared_state['reaction_parameters'][
+                        'diffusion']['periplasm_volume'])
+            cytoplasm_counts = (prepared_state['species']['cytoplasm'] + 
+                prepared_state['species']['hydrolyzed_cytoplasm'])/1000 * (
+                    N_A * prepared_state['reaction_parameters'][
+                        'diffusion']['cytoplasm_volume'])
+            initial_internal_counts = periplasm_counts + cytoplasm_counts
+
             # Compute the update.
             charge = prepared_state['reaction_parameters']['diffusion']['charge']
-            faraday = param_store.get(('faraday_constant',)).to(
-                units.C / units.mol)
-            potential = param_store.get(('donnan_potential',)).to(units.V)
-            gas_constant = param_store.get(('gas_constant',)).to(
-                units.J / units.mol / units.K)
-            temperature = param_store.get(('temperature',)).to(units.K)
             # Biases diffusion to favor higher internal concentrations
             # according to the Goldman-Hodgkin-Katz flux equation assuming
             # the outer membrane has a potential from the Donnan equilibrium.
-            internal_bias = charge * faraday * potential / gas_constant / temperature
-
+            outer_internal_bias = (charge * FARADAY * OUTER_POTENTIAL / 
+                GAS_CONSTANT / TEMPERATURE).magnitude
+            inner_internal_bias = (charge * FARADAY * INNER_POTENTIAL / 
+                GAS_CONSTANT / TEMPERATURE).magnitude
+            
+            # No export or hydrolysis if modelling diffusion only
+            if self.parameters['diffusion_only']:
+                prepared_state['reaction_parameters']['export'][
+                    'kcat'] = 0 / units.sec
+                prepared_state['reaction_parameters']['hydrolysis'][
+                    'kcat'] = 0 / units.sec
             # Compute the update.
             internal_steady_state = find_steady_state(
                 prepared_state['species']['external'],
                 prepared_state['reaction_parameters'],
-                internal_bias,
+                outer_internal_bias,
+                inner_internal_bias,
             )
-            if self.parameters['diffusion_only']:
-                delta = (
-                    internal_steady_state
-                    - prepared_state['species']['internal'])
-                antibiotic_update = {
-                    'species': {
-                        'internal': delta,
-                    },
-                    'delta_species': {
-                        'internal': delta,
-                    },
-                }
-            else:
-                antibiotic_update = update_from_steady_state(
-                    internal_steady_state,
-                    prepared_state['species'],
-                    prepared_state['reaction_parameters'],
-                    internal_bias,
-                    timestep,
-                )
+            antibiotic_update = update_from_steady_state(
+                internal_steady_state,
+                prepared_state['species'],
+                prepared_state['reaction_parameters'],
+                outer_internal_bias,
+                inner_internal_bias,
+                timestep,
+            )
 
             # Make sure there are no NANs in the update.
             assert not np.any(np.isnan(list(antibiotic_update['species'].values())))
+
+            # Change in external counts = -(Change in internal counts)
+            periplasm_counts = (antibiotic_update['species']['periplasm'] + 
+                antibiotic_update['species']['hydrolyzed_periplasm'])/1000 * (
+                    N_A * prepared_state['reaction_parameters'][
+                        'diffusion']['periplasm_volume'])
+            cytoplasm_counts = (antibiotic_update['species']['cytoplasm'] + 
+                antibiotic_update['species']['hydrolyzed_cytoplasm'])/1000 * (
+                    N_A * prepared_state['reaction_parameters'][
+                        'diffusion']['cytoplasm_volume'])
+            final_internal_counts = periplasm_counts + cytoplasm_counts
 
             # Add units back in
             antibiotic_update['species'] = add_units(
                 antibiotic_update['species'],
                 saved_units['species'],
                 strict=not self.parameters['diffusion_only'])
-            antibiotic_update['delta_species'] = add_units(
-                antibiotic_update['delta_species'],
-                saved_units['species'],
-                strict=not self.parameters['diffusion_only'])
 
-            # Postprocess the update to convert changes to external
-            # molecules into exchanges.
-            antibiotic_update.setdefault('exchanges', {})
-            for species in EXTERNAL_SPECIES:
-                if species.endswith('_delta'):
-                    continue
-                delta_species = f'{species}_delta'
-                if species in antibiotic_update['species']:
-                    assert antibiotic_update['species'][species] == 0
-                    del antibiotic_update['species'][species]
-                if species in antibiotic_update['delta_species']:
-                    assert antibiotic_update['delta_species'][species] == 0
-                    del antibiotic_update['delta_species'][species]
-                if delta_species in antibiotic_update['species']:
-                    exchange = (
-                        antibiotic_update['species'][delta_species]
-                        * antibiotic_state['reaction_parameters']['diffusion']['volume']
-                        * AVOGADRO)
-                    assert species not in antibiotic_update['exchanges']
-                    # Exchanges flowing out of the cell are positive.
-                    antibiotic_update['exchanges'][species] = exchange.to(
-                        units.counts).magnitude
-                    del antibiotic_update['species'][delta_species]
-                    del antibiotic_update['delta_species'][delta_species]
+            antibiotic_update['exchanges'] = {
+                'external': -(final_internal_counts - initial_internal_counts)
+            }
 
             update[antibiotic] = antibiotic_update
         return update
@@ -521,45 +550,60 @@ def test_antibiotic_transport_steady_state():
     })
     initial_state = {
         'antibiotic': {
-            'external': {
-                'external': 3 * units.mM,
-            },
             'species': {
-                'internal': 0 * units.mM,
-                'hydrolyzed': 0 * units.mM,
+                'periplasm': 0 * units.mM,
+                'hydrolyzed_periplasm': 0 * units.mM,
+                'cytoplasm': 0 * units.mM,
+                'hydrolyzed_cytoplasm': 0 * units.mM,
+                'external': 3 * units.mM,
             },
             'reaction_parameters': {
                 'diffusion': {
-                    'permeability': 2 * units.dm / units.sec,
-                    'area': 3 * units.dm**2,
-                    'volume': 2 * units.L,
+                    'outer_permeability': 2 * units.dm / units.sec,
+                    'outer_area': 3 * units.dm**2,
+                    'periplasm_volume': 2 * units.L,
                     'charge': 0 * units.count,
+                    'inner_permeability': 0 * units.dm / units.sec,
+                    'inner_area': 3 * units.dm**2,
+                    'cytoplasm_volume': 2 * units.L,
                 },
                 'export': {
-                    'kcat': 4 / units.sec,
-                    'km': 2 * units.mM,
-                    'enzyme_conc': 1 * units.mM,
-                    'n': 1 * units.count,
+                    'outer_kcat': 4 / units.sec,
+                    'outer_km': 2 * units.mM,
+                    'outer_enzyme_conc': 1 * units.mM,
+                    'outer_n': 1 * units.count,
+                    'inner_kcat': 0 / units.sec,
+                    'inner_km': 2 * units.mM,
+                    'inner_enzyme_conc': 1 * units.mM,
+                    'inner_n': 1 * units.count,
                 },
                 'hydrolysis': {
-                    'kcat': 4 / units.sec,
-                    'km': 2 * units.mM,
-                    'enzyme_conc': 0.5 * units.mM,
-                    'n': 1 * units.count,
+                    'outer_kcat': 4 / units.sec,
+                    'outer_km': 2 * units.mM,
+                    'outer_enzyme_conc': 0.5 * units.mM,
+                    'outer_n': 1 * units.count,
+                    'inner_kcat': 0 / units.sec,
+                    'inner_km': 2 * units.mM,
+                    'inner_enzyme_conc': 0.5 * units.mM,
+                    'inner_n': 1 * units.count,
                 },
             },
         },
     }
-    update = proc.next_update(1, initial_state)['antibiotic']
+    update = proc.next_update(5, initial_state)['antibiotic']
 
     expected_update = {
         'species': {
-            'internal': 2 * units.mM,
-            'hydrolyzed': 1 * units.mM,
+            'periplasm': 2 * units.mM,
+            'hydrolyzed_periplasm': 1 * units.mM,
+            'cytoplasm': 0 * units.mM,
+            'hydrolyzed_cytoplasm': 0 * units.mM,
         },
         'delta_species': {
-            'internal': 2 * units.mM,
-            'hydrolyzed': 1 * units.mM,
+            'periplasm': 2 * units.mM,
+            'hydrolyzed_periplasm': 1 * units.mM,
+            'cytoplasm': 0 * units.mM,
+            'hydrolyzed_cytoplasm': 0 * units.mM,
         },
         'exchanges': {
             # Exchanges are in units of counts, but the species are in
@@ -567,8 +611,8 @@ def test_antibiotic_transport_steady_state():
             'external': (
                 -3 * units.mM
                 * initial_state['antibiotic'][
-                    'reaction_parameters']['diffusion']['volume']
-                * AVOGADRO).to(units.count).magnitude,
+                    'reaction_parameters']['diffusion']['periplasm_volume']
+                * N_A / units.mol).to(units.count).magnitude,
         },
     }
     assert update.keys() == expected_update.keys()
