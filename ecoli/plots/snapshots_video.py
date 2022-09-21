@@ -271,7 +271,7 @@ def main(total_time=2000, step=60, exchange=False):
     highlight_agents = ['0', '00', '000']
 
     # GrowDivide agents
-    bounds = [30, 30]
+    bounds = [30, 30] * units.um
     n_bins = [20, 20]
     initial_field = np.zeros((n_bins[0], n_bins[1]))
     initial_field[:, -1] = 100
