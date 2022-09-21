@@ -111,6 +111,7 @@ UNITS = {
     },
 }
 
+# Cache these values so no additional units conversions are necessary
 FARADAY = param_store.get(('faraday_constant',)).to(
     units.C / units.mol)
 OUTER_POTENTIAL = param_store.get(('outer_potential',)).to(units.V)
@@ -518,6 +519,7 @@ class AntibioticTransportSteadyState(Process):
             assert not np.any(np.isnan(list(antibiotic_update['species'].values())))
 
             # Change in external counts = -(Change in internal counts)
+            # Divide concentrations by 1000 to convert mM to M
             periplasm_counts = (antibiotic_update['species']['periplasm'] + 
                 antibiotic_update['species']['hydrolyzed_periplasm'])/1000 * (
                     N_A * prepared_state['reaction_parameters'][
@@ -590,18 +592,13 @@ def test_antibiotic_transport_steady_state():
             },
         },
     }
-    update = proc.next_update(5, initial_state)['antibiotic']
+    update = proc.next_update(1, initial_state)['antibiotic']
 
     expected_update = {
         'species': {
             'periplasm': 2 * units.mM,
             'hydrolyzed_periplasm': 1 * units.mM,
-            'cytoplasm': 0 * units.mM,
-            'hydrolyzed_cytoplasm': 0 * units.mM,
-        },
-        'delta_species': {
-            'periplasm': 2 * units.mM,
-            'hydrolyzed_periplasm': 1 * units.mM,
+            'external': 0 * units.mM,
             'cytoplasm': 0 * units.mM,
             'hydrolyzed_cytoplasm': 0 * units.mM,
         },

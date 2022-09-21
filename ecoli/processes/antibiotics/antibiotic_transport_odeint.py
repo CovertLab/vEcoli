@@ -161,6 +161,7 @@ class AntibioticTransportOdeint(Process):
             assert not np.any(np.isnan(list(antibiotic_update['species'].values())))
 
             # Change in external counts = -(Change in internal counts)
+            # Divide concentrations by 1000 to convert mM to M
             delta_periplasm_counts = (antibiotic_update['species']['periplasm'] + 
                 antibiotic_update['species']['hydrolyzed_periplasm'])/1000 * (
                     N_A * prepared_state['reaction_parameters'][
@@ -192,11 +193,11 @@ def _dummy_derivative(_, y):
     export = 4 * 1 * i / (2 + i)
     hydrolysis = 4 * 0.5 * i / (2 + i)
 
-    # dedt = export - diffusion
+    dedt = export - diffusion
     didt = diffusion - export - hydrolysis
     dhdt = hydrolysis
 
-    return 0, didt, dhdt
+    return dedt, didt, dhdt
 
 
 def test_antibiotic_transport_odeint():
@@ -267,16 +268,11 @@ def test_antibiotic_transport_odeint():
         'exchanges': {
             # Exchanges are in units of counts, but the species are in
             # units of mM with a volume of 1L.
-            'external': -((
-                delta_arr[1] * units.mM
+            'external': (
+                delta_arr[0] * units.mM
                 * initial_state['antibiotic'][
                     'reaction_parameters']['diffusion']['periplasm_volume']
-                * N_A / units.mol).to(units.count).magnitude + \
-                (
-                delta_arr[2] * units.mM
-                * initial_state['antibiotic'][
-                    'reaction_parameters']['diffusion']['cytoplasm_volume']
-                * N_A / units.mol).to(units.count).magnitude),
+                * N_A / units.mol).to(units.count).magnitude,
         },
     }
     assert update.keys() == expected_update.keys()
