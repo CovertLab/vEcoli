@@ -238,6 +238,11 @@ class CellWall(Process):
         cols = states["wall_state"]["lattice_cols"]
         lattice = states["wall_state"]["lattice"]
         if lattice is None:
+            # Make sure that all murein is initiailly unincorporated
+            unincorporated_monomers = states["bulk_murein"][self.murein]
+            incorporated_monomers = 0
+
+            # Get dimensions of the lattice
             length = length_from_volume(volume, self.cell_radius * 2).to("micrometer")
             rows, cols = calculate_lattice_size(
                 length,
@@ -248,6 +253,7 @@ class CellWall(Process):
                 extension_factor,
             )
 
+            # Populate the lattice
             lattice = sample_lattice(
                 unincorporated_monomers,
                 rows,

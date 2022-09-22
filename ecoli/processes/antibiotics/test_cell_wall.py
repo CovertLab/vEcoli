@@ -9,6 +9,7 @@ from ecoli.library.cell_wall.column_sampler import geom_sampler, sample_lattice
 from ecoli.library.create_timeline import add_computed_value, create_timeline_from_df
 from ecoli.processes.antibiotics.cell_wall import CellWall
 from vivarium.core.composition import add_timeline, simulate_composite
+from vivarium.processes.divide_condition import DivideCondition
 from vivarium.library.units import units, remove_units
 from vivarium.core.serialize import deserialize_value
 from vivarium.plots.simulation_output import plot_variables
@@ -16,7 +17,7 @@ from vivarium.plots.topology import plot_topology
 
 from ecoli.processes.antibiotics.pbp_binding import PBPBinding
 
-DATA = "data/cell_wall/cell_wall_test_rig_31_07_2022_00_26_44.csv"
+DATA = "data/cell_wall/cell_wall_test_rig_17_09_2022_00_41_51.csv"  # "data/cell_wall/cell_wall_test_rig_31_07_2022_00_26_44.csv"
 
 
 def parse_unit_string(unit_str):
@@ -24,7 +25,7 @@ def parse_unit_string(unit_str):
     return float(parse_result["value"]) * units.parse_expression(parse_result["units"])
 
 
-def create_composite(timeline_data):
+def create_composite(timeline_data, antibiotics=True, divide_time=None):
     # Create timeline process from saved simulation
     timeline = create_timeline_from_df(
         timeline_data,
@@ -44,14 +45,21 @@ def create_composite(timeline_data):
                 value[("cell_global", "volume")]
             ),
             ("concentrations", "beta_lactam"): (
-                0 * units.micromolar if t < 0 else 9.16 * units.micromolar
+                9.16 * units.micromolar
+                if antibiotics and t > 0
+                else 0 * units.micromolar
             ),
             ("bulk", "CPD-12261[p]"): int(value[("bulk", "CPD-12261[p]")]),
+            ("should_divide",): divide_time is not None and t >= divide_time,
         },
     )
 
     # Add cell wall process, pbp binding process, and timeline process into composite
-    processes = {"cell_wall": CellWall({}), "pbp_binding": PBPBinding({})}
+    processes = {
+        "cell_wall": CellWall({}),
+        "pbp_binding": PBPBinding({}),
+        "divider": DivideCondition({"threshold": True}),
+    }
     topology = {
         "cell_wall": {
             "shape": ("cell_global",),
@@ -69,6 +77,10 @@ def create_composite(timeline_data):
             "bulk": ("bulk",),
             "pbp_state": ("pbp_state",),
         },
+        "divider": {
+            "variable": ("should_divide",),
+            "divide": (".",)
+        }
     }
 
     add_timeline(processes, topology, timeline)
@@ -98,11 +110,7 @@ def output_data(data, filepath="out/processes/cell_wall/test_cell_wall.png"):
         # Get the data at the specified path for each timepoint t
         # (reduce expression follows the path in data[t])
         var_data = [
-            remove_units(
-                deserialize_value(
-                    reduce(lambda d, p: d[p], path, data[t])
-                    )
-                )
+            remove_units(deserialize_value(reduce(lambda d, p: d[p], path, data[t])))
             for t in T
         ]
 
@@ -117,7 +125,7 @@ def output_data(data, filepath="out/processes/cell_wall/test_cell_wall.png"):
 def test_cell_wall():
     timeline_data = pd.read_csv(DATA, skipinitialspace=True)
 
-    composite = create_composite(timeline_data)
+    composite = create_composite(timeline_data, antibiotics=True, divide_time=None)
     plot_topology(
         composite, out_dir="out/processes/cell_wall/", filename="test_rig_topology.png"
     )
@@ -141,6 +149,7 @@ def test_cell_wall():
         },
         "wall_state": {},
         "cell_global": {"volume": initial_volume},
+        "should_divide": False
     }
 
     settings = {
