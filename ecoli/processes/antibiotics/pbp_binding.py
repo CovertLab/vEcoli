@@ -89,10 +89,11 @@ class PBPBinding(Step):
     def ports_schema(self):
         return {
             "total_murein": bulk_schema([self.parameters["murein_name"]]),
-            "murein_state": bulk_schema(
-                ["incorporated_murein", "unincorporated_murein", "shadow_murein"],
-                updater="set",
-            ),
+            "murein_state": {
+                "incorporated_murein": {"_default": 0, "_updater": "set"},
+                "unincorporated_murein": {"_default": 0, "_updater": "set"},
+                "shadow_murein": {"_default": 0, "_updater": "set"},
+            },
             "concentrations": {
                 "beta_lactam": {"_default": 0.0 * units.micromolar, "_emit": True},
             },
@@ -102,23 +103,13 @@ class PBPBinding(Step):
                     "_default": 1.0,
                     "_updater": "set",
                     "_emit": True,
-                    "_divider": {
-                        "divider": "set_value",
-                        "config": {
-                            "value": 1.0
-                        }
-                    }
+                    "_divider": {"divider": "set_value", "config": {"value": 1.0}},
                 },
                 "active_fraction_PBP1B": {
                     "_default": 1.0,
                     "_updater": "set",
                     "_emit": True,
-                    "_divider": {
-                        "divider": "set_value",
-                        "config": {
-                            "value": 1.0
-                        }
-                    }
+                    "_divider": {"divider": "set_value", "config": {"value": 1.0}},
                 },
             },
         }
@@ -253,7 +244,9 @@ def test_pbp_binding():
     incorporated_murein = np.array(data["murein_state"]["incorporated_murein"])
     unincorporated_murein = np.array(data["murein_state"]["unincorporated_murein"])
     shadow_murein = np.array(data["murein_state"]["shadow_murein"])
-    assert all(total_murein == incorporated_murein + unincorporated_murein + shadow_murein)
+    assert all(
+        total_murein == incorporated_murein + unincorporated_murein + shadow_murein
+    )
 
 
 def main():
