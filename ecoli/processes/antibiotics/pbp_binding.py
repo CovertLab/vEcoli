@@ -99,14 +99,26 @@ class PBPBinding(Step):
             "bulk": bulk_schema(list(self.parameters["PBP"].values())),
             "pbp_state": {
                 "active_fraction_PBP1A": {
-                    "_default": 0.0,
+                    "_default": 1.0,
                     "_updater": "set",
                     "_emit": True,
+                    "_divider": {
+                        "divider": "set_value",
+                        "config": {
+                            "value": 1.0
+                        }
+                    }
                 },
                 "active_fraction_PBP1B": {
-                    "_default": 0.0,
+                    "_default": 1.0,
                     "_updater": "set",
                     "_emit": True,
+                    "_divider": {
+                        "divider": "set_value",
+                        "config": {
+                            "value": 1.0
+                        }
+                    }
                 },
             },
         }

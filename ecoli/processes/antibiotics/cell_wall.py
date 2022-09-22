@@ -49,6 +49,7 @@ Parameters:
 """
 
 import numpy as np
+from ecoli import divider_registry
 from ecoli.library.cell_wall.column_sampler import (
     geom_sampler,
     sample_column,
@@ -134,10 +135,28 @@ class CellWall(Process):
     def ports_schema(self):
         schema = {
             "bulk_murein": bulk_schema([self.parameters["murein"]]),
-            "murein_state": bulk_schema(
-                ["incorporated_murein", "unincorporated_murein", "shadow_murein"],
-                updater="set",
-            ),
+            "murein_state": {
+                # Divider sets to zero because the correct value is initialized
+                # from the bulk store the first timestep after division.
+                "incorporated_murein": {
+                    "_default": 0,
+                    "_updater": "set",
+                    "_emit": True,
+                    "_divider": {"divider": "set_value", "config": {"value": 0}},
+                },
+                "unincorporated_murein": {
+                    "_default": 0,
+                    "_updater": "set",
+                    "_emit": True,
+                    "_divider": {"divider": "set_value", "config": {"value": 0}},
+                },
+                "shadow_murein": {
+                    "_default": 0,
+                    "_updater": "set",
+                    "_emit": True,
+                    "_divider": {"divider": "set_value", "config": {"value": 0}},
+                },
+            },
             "PBP": bulk_schema(list(self.parameters["PBP"].values())),
             "shape": {"volume": {"_default": 0 * units.fL, "_emit": True}},
             "wall_state": {
@@ -145,27 +164,58 @@ class CellWall(Process):
                     "_default": None,
                     "_updater": "set",
                     "_emit": False,
+                    "_divider": "set_none",
                 },
-                "lattice_rows": {"_default": 0, "_updater": "set", "_emit": True},
-                "lattice_cols": {"_default": 0, "_updater": "set", "_emit": True},
-                "extension_factor": {"_default": 1, "_updater": "set", "_emit": True},
-                "cracked": {"_default": False, "_updater": "set", "_emit": True},
+                "lattice_rows": {
+                    "_default": 0,
+                    "_updater": "set",
+                    "_emit": True,
+                    "_divider": {"divider": "set_value", "config": {"value": 0}},
+                },
+                "lattice_cols": {
+                    "_default": 0,
+                    "_updater": "set",
+                    "_emit": True,
+                    "_divider": {"divider": "set_value", "config": {"value": 0}},
+                },
+                "extension_factor": {
+                    "_default": 1,
+                    "_updater": "set",
+                    "_emit": True,
+                    "_divider": {"divider": "set_value", "config": {"value": 1}},
+                },
+                "cracked": {
+                    "_default": False,
+                    "_updater": "set",
+                    "_emit": True,
+                    "_divider": {"divider": "set_value", "config": {"value": False}},
+                },
             },
             "pbp_state": {
                 "active_fraction_PBP1A": {"_default": 0.0, "_updater": "set"},
                 "active_fraction_PBP1B": {"_default": 0.0, "_updater": "set"},
             },
             "listeners": {
-                "porosity": {"_default": 0, "_updater": "set", "_emit": True},
+                "porosity": {
+                    "_default": 0,
+                    "_updater": "set",
+                    "_emit": True,
+                    "_divider": {"divider": "set_value", "config": {"value": 0}},
+                },
                 "hole_size_distribution": {
                     "_default": np.array([], int),
                     "_updater": "set",
                     "_emit": True,
+                    "_divider": {
+                        "divider": "set_value",
+                        "config": {"value": np.array([], int)},
+                    },
                 },
                 "strand_length_distribution": {
                     "_default": [],
                     "_updater": "set",
                     "_emit": True,
+                    "_divider": {"divider": "set_value", "config": {"value": []}},
                 },
             },
         }
@@ -333,7 +383,6 @@ class CellWall(Process):
             update["wall_state"]["cracked"] = True
 
         return update
-        
 
     def update_murein(
         self,
