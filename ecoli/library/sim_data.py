@@ -1,3 +1,4 @@
+import re
 import binascii
 import numpy as np
 import networkx as nx
@@ -199,6 +200,30 @@ class LoadSimData:
             transcription_regulation.delta_prob['shape'] = (
                 transcription_regulation.delta_prob['shape'][0] + 1,
                 transcription_regulation.delta_prob['shape'][1])
+
+    def get_monomer_counts_indices(self, names):
+        """Given a list of monomer names without location tags, this returns
+        the indices of those monomers in the monomer_counts listener array.
+        The "id" column of reconstruction/ecoli/flat/proteins.tsv contains
+        nearly all supported monomer names."""
+        monomer_ids = self.sim_data.process.translation.monomer_data["id"]
+        # Strip location string (e.g. [c])
+        monomer_ids = np.array([re.split(r'\[.\]', monomer)[0]
+                                for monomer in monomer_ids])
+        return [int(np.where(monomer_ids==name)[0][0]) for name in names]
+
+    def get_mrna_counts_indices(self, names):
+        """Given a list of mRNA names without location tags, this returns
+        the indices of those mRNAs in the mRNA_counts listener array.
+        The "id" column of reconstruction/ecoli/flat/rnas.tsv contains
+        nearly all supported mRNA names."""
+        is_mrna = self.sim_data.process.transcription.rna_data['is_mRNA']
+        mrna_ids = self.sim_data.process.transcription.rna_data[
+            'id'][is_mrna]
+        # Strip location string (e.g. [c])
+        mrna_ids = np.array([re.split(r'\[.\]', mrna)[0]
+                            for mrna in mrna_ids])
+        return [int(np.where(mrna_ids==name)[0][0]) for name in names]
             
     def _seedFromName(self, name):
         return binascii.crc32(name.encode('utf-8'), self.seed) & 0xffffffff
