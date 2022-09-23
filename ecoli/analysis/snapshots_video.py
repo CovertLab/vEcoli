@@ -1,11 +1,18 @@
 import argparse
+import concurrent.futures
 
+from tqdm import tqdm
 from vivarium.library.topology import convert_path_style
 from vivarium.core.serialize import deserialize_value
 from vivarium.library.units import remove_units
 
-from ecoli.analysis.analyze_db_experiment import access, OUT_DIR
+from ecoli.analysis.db import access_counts
+from ecoli.analysis.analyze_db_experiment import OUT_DIR
 from ecoli.plots.snapshots_video import make_video
+
+
+def deserialize_and_remove_units(d):
+    return remove_units(deserialize_value(d))
 
 
 def main():
@@ -35,16 +42,17 @@ def main():
     args = parser.parse_args()
 
     # Get the required data
-    query = [
-        ('fields',),
-        ('agents',),
-        ('dimensions',),
-    ]
     tags = [convert_path_style(path) for path in args.tags]
+    monomers = [path[-1] for path in tags if path[-2]=='bulk']
+    mrnas = [path[-1] for path in tags if path[-2]=='unique']
     timeseries = [convert_path_style(path) for path in args.timeseries]
-    data, _, sim_config = access(args.experiment_id, query, args.host, args.port)
-    data = deserialize_value(data)
-    data = remove_units(data)
+    data = access_counts(args.experiment_id, monomers, mrnas, args.host, 
+        args.port, sampling_rate=args.step)
+    
+    with concurrent.futures.ProcessPoolExecutor(12) as executor:
+        data_deserialized = list(tqdm(executor.map(
+            deserialize_and_remove_units, data.values()), total=len(data)))
+    data = dict(zip(data.keys(), data_deserialized))
     first_timepoint = data[min(data)]
 
     # Make the videos
@@ -53,7 +61,7 @@ def main():
             data,
             first_timepoint['dimensions']['bounds'],
             plot_type='fields',
-            step=args.step,
+            step=1,
             out_dir=OUT_DIR,
             filename=f'{args.experiment_id}_snapshots',
             highlight_agents=args.highlight_agents,
@@ -64,7 +72,7 @@ def main():
             data,
             first_timepoint['dimensions']['bounds'],
             plot_type='tags',
-            step=args.step,
+            step=1,
             out_dir=OUT_DIR,
             filename=f'{args.experiment_id}_tags',
             highlight_agents=args.highlight_agents,
