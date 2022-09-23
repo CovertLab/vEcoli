@@ -4,6 +4,8 @@ import copy
 
 import cv2
 import numpy as np
+import matplotlib
+matplotlib.use('agg')
 import matplotlib.pyplot as plt
 
 from vivarium.core.composition import TEST_OUT_DIR
@@ -22,92 +24,6 @@ from ecoli.plots.snapshots import (
 
 DEFAULT_HIGHLIGHT_COLOR = [0, 1, 1]
 PLOT_WIDTH = 7
-
-
-def make_snapshot_function(
-        data,
-        bounds,
-        agent_colors=None,
-        **kwargs):
-    agent_colors = agent_colors or {}
-    multibody_agents, multibody_fields = format_snapshot_data(data)
-
-    # make the snapshot plot function
-    time_vec = list(multibody_agents.keys())
-
-    # get fields and agent colors
-    multibody_field_range = get_field_range(multibody_fields, time_vec)
-    multibody_agent_colors = get_agent_colors(multibody_agents)
-    multibody_agent_colors.update(agent_colors)
-
-    def plot_single_snapshot(t_index):
-        time_indices = np.array([t_index])
-        snapshot_time = [time_vec[t_index]]
-        fig = make_snapshots_figure(
-            time_indices=time_indices,
-            snapshot_times=snapshot_time,
-            agents=multibody_agents,
-            agent_colors=multibody_agent_colors,
-            fields=multibody_fields,
-            field_range=multibody_field_range,
-            n_snapshots=1,
-            bounds=bounds,
-            default_font_size=12,
-            plot_width=PLOT_WIDTH,
-            scale_bar_length=0,
-            **kwargs)
-        return fig
-
-    return plot_single_snapshot, time_vec
-
-
-def make_tags_function(
-        data,
-        bounds,
-        agent_colors=None,
-        tagged_molecules=None,
-        tag_colors=None,
-        convert_to_concs=False,
-        **kwargs
-):
-    agent_colors = agent_colors or {}
-    tag_colors = tag_colors or {}
-    multibody_agents, multibody_fields = format_snapshot_data(data)
-
-    # make the snapshot plot function
-    time_vec = list(multibody_agents.keys())
-    time_indices = np.array(range(0, len(time_vec)))
-
-    # get agent colors, and ranges
-    tag_ranges, tag_colors = get_tag_ranges(
-        agents=multibody_agents,
-        tagged_molecules=tagged_molecules,
-        time_indices=time_indices,
-        convert_to_concs=convert_to_concs,
-        tag_colors=tag_colors)
-
-    # make the function for a single snapshot
-    def plot_single_tags(t_index):
-        time_index = np.array([t_index])
-        snapshot_time = [time_vec[t_index]]
-        fig = make_tags_figure(
-            time_indices=time_index,
-            snapshot_times=snapshot_time,
-            agents=multibody_agents,
-            agent_colors=agent_colors,
-            tagged_molecules=tagged_molecules,
-            convert_to_concs=convert_to_concs,
-            tag_ranges=tag_ranges,
-            tag_colors=tag_colors,
-            n_snapshots=1,
-            bounds=bounds,
-            default_font_size=12,
-            plot_width=PLOT_WIDTH,
-            scale_bar_length=0,
-            **kwargs)
-        return fig
-
-    return plot_single_tags, time_vec
 
 
 def make_timeseries_function(
@@ -154,6 +70,97 @@ def make_timeseries_function(
     return plot_timeseries
 
 
+def make_snapshot_saver(
+    multibody_agent_colors,
+    multibody_field_range,
+    bounds,
+    images_dir,
+    **kwargs
+):
+    # Must be global for multiprocessing to work
+    global save_snapshot_figure
+    def save_snapshot_figure(data_at_time):
+        time = data_at_time[0]
+        fig_path = os.path.join(images_dir, f"img{time}.jpg")
+        multibody_agents, multibody_fields = format_snapshot_data(
+            {time: data_at_time[1]})
+        fig = make_snapshots_figure(
+            agents=multibody_agents,
+            fields=multibody_fields,
+            bounds=bounds,
+            n_snapshots=1,
+            time_indices=[time],
+            snapshot_times=[time],
+            agent_colors=multibody_agent_colors,
+            field_range=multibody_field_range,
+            default_font_size=12,
+            plot_width=PLOT_WIDTH,
+            scale_bar_length=0,
+            **kwargs)
+        fig.savefig(fig_path, bbox_inches='tight')
+        plt.close()
+        return fig_path
+    return save_snapshot_figure
+
+
+def make_tags_saver(
+    agent_colors,
+    tag_ranges,
+    tag_colors,
+    bounds,
+    images_dir,
+    convert_to_concs=False,
+    **kwargs
+):
+    # Must be global for multiprocessing to work
+    global save_tags_figure
+    def save_tags_figure(data_at_time):
+        time = data_at_time[0]
+        fig_path = os.path.join(images_dir, f"img{time}.jpg")
+        agents = {time: data_at_time[1].get('agents', {})}
+        fig = make_tags_figure(
+            time_indices=[time],
+            snapshot_times=[time],
+            agents=agents,
+            agent_colors=agent_colors,
+            tag_ranges=tag_ranges,
+            tag_colors=tag_colors,
+            n_snapshots=1,
+            bounds=bounds,
+            default_font_size=12,
+            plot_width=PLOT_WIDTH,
+            scale_bar_length=0,
+            convert_to_concs=convert_to_concs,
+            **kwargs)
+        fig.savefig(fig_path, bbox_inches='tight')
+        plt.close()
+        return fig_path
+    return save_tags_figure
+
+
+def make_timeseries_saver(
+    data,
+    show_timeseries,
+    highlight_agents,
+    highlight_color,
+    images_dir
+):
+    timeseries_plotter = make_timeseries_function(
+        data,
+        show_timeseries,
+        highlight_agents,
+        highlight_color)
+    # Must be global for multiprocessing to work
+    global save_timeseries_figure
+    def save_timeseries_figure(t_index):
+        fig_path = os.path.join(images_dir, f"timeseries{t_index}.jpg")
+        fig = timeseries_plotter(t_index)
+        fig.savefig(fig_path, bbox_inches='tight')
+        plt.close()
+        return fig_path
+    return save_timeseries_figure
+
+
 def video_from_images(img_paths, out_file):
     # make the video
     img_array = []
@@ -187,6 +194,8 @@ def make_video(
     Args:
         plot_type: (str) select either 'fields' or 'tags'. 'fields' is the default
     """
+    # Remove last timestep since data may be empty
+    data = dict(list(data.items())[:-1])
     highlight_agents = highlight_agents or []
     show_timeseries = show_timeseries or []
 
@@ -202,52 +211,61 @@ def make_video(
         shutil.rmtree(images_dir)
     os.makedirs(images_dir)
 
-    agent_colors = None
+    agent_colors = {}
     if highlight_agents:
         agent_colors = {
             agent_id: highlight_color
             for agent_id in highlight_agents}
 
     # get the single snapshots function
+    multibody_agents, multibody_fields = format_snapshot_data(data)
+    time_vec = list(multibody_agents.keys())
     if plot_type == 'fields':
-        snapshot_fun, time_vec = make_snapshot_function(
-            data,
+        multibody_field_range = get_field_range(multibody_fields, time_vec)
+        multibody_agent_colors = get_agent_colors(multibody_agents)
+        multibody_agent_colors.update(agent_colors)
+
+        do_plot = make_snapshot_saver(
+            multibody_agent_colors, 
+            multibody_field_range, 
             bounds,
-            agent_colors=agent_colors,
-            **kwargs)
-    elif plot_type == 'tags':
-        snapshot_fun, time_vec = make_tags_function(
-            data,
-            bounds,
-            agent_colors=agent_colors,
+            images_dir,
             **kwargs)
 
-    timeseries_fun = None
+    elif plot_type == 'tags':
+        time_indices = np.array(range(0, len(time_vec)))
+        tag_ranges, tag_colors = get_tag_ranges(
+            agents=multibody_agents,
+            tagged_molecules=kwargs.get('tagged_molecules', None),
+            time_indices=time_indices,
+            convert_to_concs=kwargs.get('convert_to_concs', False),
+            tag_colors=kwargs.get('tag_colors', {}))
+
+        do_plot = make_tags_saver(
+            agent_colors, 
+            tag_ranges,
+            tag_colors, 
+            bounds,
+            images_dir,
+            **kwargs)
+
+    from tqdm import tqdm
+    import concurrent.futures
+    with concurrent.futures.ProcessPoolExecutor() as executor:
+        img_paths = list(tqdm(executor.map(do_plot, data.items()), total=len(data)))
+
+    img_paths_2 = []
     if show_timeseries:
-        timeseries_fun = make_timeseries_function(
+        timeseries_fun = make_timeseries_saver(
             data,
             show_timeseries=show_timeseries,
             highlight_agents=highlight_agents,
-            highlight_color=highlight_color)
-
-    # make the individual snapshot figures
-    img_paths = []
-    img_paths_2 = []
-    for t_index in range(0, len(time_vec) - 1, step):
-        fig_path = os.path.join(images_dir, f"img{t_index}.jpg")
-        img_paths.append(fig_path)
-
-        fig = snapshot_fun(t_index)
-        fig.savefig(fig_path, bbox_inches='tight')
-        plt.close()
-
-        if show_timeseries:
-            fig_path2 = os.path.join(images_dir, f"timeseries{t_index}.jpg")
-            img_paths_2.append(fig_path2)
-
-            fig2 = timeseries_fun(t_index)
-            fig2.savefig(fig_path2, bbox_inches='tight')
-            plt.close()
+            highlight_color=highlight_color,
+            images_dir=images_dir)
+        time_indices = list(range(0, len(time_vec)))
+        with concurrent.futures.ProcessPoolExecutor() as executor:
+            img_paths_2 = list(tqdm(executor.map(
+                timeseries_fun, time_indices), total=len(time_indices)))
 
     # make the video
     video_from_images(img_paths, out_file)
