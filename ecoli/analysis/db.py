@@ -128,6 +128,8 @@ def access_counts(experiment_id, monomer_names, mrna_names,
         }
         for mrna, mrna_index in zip(mrna_names, mrna_idx)
     })
+    projection['$project']['data.agents.v.listeners.mass'] = 1
+    projection['$project']['data.agents.v.boundary'] = 1
     projection['$project']['data.agents.k'] = 1
     projection['$project']['data.time'] = 1
     projection['$project']['data.fields'] = 1
