@@ -88,10 +88,14 @@ class Ecoli(Composer):
     def initial_state(self, config=None):
         # Use initial state calculated with trna_charging and translationSupply disabled
         config = config or {}
-        initial_state_file = config.get('initial_state_file', 'wcecoli_t0')
-        initial_state_overrides = config.get('initial_state_overrides', [])
-        initial_state = get_state_from_file(path=f'data/{initial_state_file}.json')
+        # Allow initial state to be directly supplied instead of a file name (useful when
+        # loading individual cells in a colony save file)
+        initial_state = config.get('initial_state', None)
+        if not initial_state:
+            initial_state_file = config.get('initial_state_file', 'wcecoli_t0')
+            initial_state = get_state_from_file(path=f'data/{initial_state_file}.json')
 
+        initial_state_overrides = config.get('initial_state_overrides', [])
         for override_file in initial_state_overrides:
             override = get_state_from_file(path=f"data/{override_file}.json")
             deep_merge(initial_state, override)
