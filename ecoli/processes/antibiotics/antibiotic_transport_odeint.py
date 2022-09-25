@@ -72,8 +72,8 @@ class AntibioticTransportOdeint(Process):
 
     def __init__(self, parameters=None):
         super().__init__(parameters)
-        self.antibiotics = self.parameters[
-            'initial_reaction_parameters'].keys()
+        self.antibiotics = list(self.parameters[
+            'initial_reaction_parameters'].keys())
 
     def initial_state(self, config=None):
         state = {

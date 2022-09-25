@@ -442,9 +442,9 @@ class EcoliSim:
             if 'process' in process.parameters
         }}
         # Fill in all stores missing in initial_cell_state
+        process_states = deep_merge(process_states, self.ecoli.initial_state({
+            'initial_state': initial_cell_state}))
         self.initial_state = assoc_path({}, path, process_states)
-        get_in(self.initial_state, path).update(
-            self.ecoli.initial_state({'initial_state': initial_cell_state}))
 
         # merge a lattice composite for the spatial environment
         if self.spatial_environment:
