@@ -43,12 +43,13 @@ class EcoliInnerSim(Composer):
         'seed': 0,
         'division_threshold': None,
         'division_variable': None,
-        'initial_inner_state': {},
+        'initial_inner_state': None,
     }
     
     def generate(self, config=None):
         if config is None:
             config = self.config
+        config['initial_state'] = config.pop('initial_inner_state')
         ecoli_sim = EcoliSim({
             **self.config,
             **config,
@@ -56,10 +57,7 @@ class EcoliInnerSim(Composer):
             'spatial_environment': False,
         })
         ecoli_sim.build_ecoli()
-        process_states = ecoli_sim.initial_state.pop('process')
-        initial_state = (config['initial_inner_state'] or ecoli_sim.initial_state)
-        # Shared partitioned process states are always initialized from scratch
-        initial_state['process'] = process_states
+        initial_state = ecoli_sim.initial_state
         if config['division_threshold'] == 'massDistribution':
             expectedDryMassIncreaseDict = ecoli_sim.ecoli.steps[
                 'ecoli-mass-listener'].parameters['expectedDryMassIncreaseDict']
@@ -187,7 +185,7 @@ def colony_save_states(engine, config):
             state_to_save['agents'][agent_id] = cell_state
 
         state_to_save = serialize_value(state_to_save)
-        write_json('data/colony_t' + str(time_elapsed) + '.json', state_to_save)
+        write_json('data/tet_seed_0_colony_t' + str(time_elapsed) + '.json', state_to_save)
         # Cleanup namespace (significant with high cell counts)
         del state_to_save, cell_state
         print('Finished saving the state at t = ' + str(time_elapsed))
@@ -267,7 +265,7 @@ def run_simulation(config):
         ),
         'seed': config['seed'],
         'experiment_id': experiment_id,
-        
+        'start_time': config.get('start_time', 0),
         'inner_composer_config': config.to_dict()
     }
 
@@ -346,9 +344,11 @@ def run_simulation(config):
         progress_bar=config['progress_bar'],
         metadata=metadata,
         profile=config['profile'],
+        initial_global_time=config.get('start_time', 0)
     )
-    # Tidy up namespace
+    # Tidy up namespace and free memory
     del composite, initial_state, experiment_id, emitter_config
+    gc.collect()
 
     # Save states while running if needed
     if config["save"]:
