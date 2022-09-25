@@ -9,7 +9,7 @@ from ecoli.library.cell_wall.column_sampler import geom_sampler, sample_lattice
 from ecoli.library.create_timeline import add_computed_value, create_timeline_from_df
 from ecoli.processes.antibiotics.cell_wall import CellWall
 from vivarium.core.composition import add_timeline, simulate_composite
-from vivarium.processes.divide_condition import DivideCondition
+from vivarium.core.process import Step
 from vivarium.library.units import units, remove_units
 from vivarium.core.serialize import deserialize_value
 from vivarium.plots.simulation_output import plot_variables
@@ -25,7 +25,29 @@ def parse_unit_string(unit_str):
     return float(parse_result["value"]) * units.parse_expression(parse_result["units"])
 
 
-def create_composite(timeline_data, antibiotics=True, divide_time=None):
+class Divide(Step):
+    defaults = {"id": "0"}
+
+    def __init__(self, parameters=None):
+        super().__init__(parameters)
+
+    def ports_schema(self):
+        return {"variable": {"_default": False}, "agents": {}}
+
+    def next_update(self, timestep, states):
+        if states["variable"]:
+            return {
+                "agents": {
+                    "_divide": {
+                        "mother": self.parameters["id"],
+                        "daughters": [{"key": "1"}, {"key": "2"}],
+                    }
+                }
+            }
+        return {}
+
+
+def create_composite(timeline_data, antibiotics=True, divide_time=None, agent_id="0"):
     # Create timeline process from saved simulation
     timeline = create_timeline_from_df(
         timeline_data,
@@ -58,7 +80,6 @@ def create_composite(timeline_data, antibiotics=True, divide_time=None):
     processes = {
         "cell_wall": CellWall({}),
         "pbp_binding": PBPBinding({}),
-        "divider": DivideCondition({"threshold": True}),
     }
     topology = {
         "cell_wall": {
@@ -77,13 +98,21 @@ def create_composite(timeline_data, antibiotics=True, divide_time=None):
             "bulk": ("bulk",),
             "pbp_state": ("pbp_state",),
         },
-        "divider": {
-            "variable": ("should_divide",),
-            "divide": (".",)
-        }
     }
 
     add_timeline(processes, topology, timeline)
+
+    if divide_time is not None:
+        processes["divider"] = Divide({"id": agent_id})
+        topology["divider"] = {
+            "variable": ("should_divide",),
+            "agents": ("..", "..", "agents"),
+        }
+
+        return {
+            "processes": {"agents": {agent_id: processes}},
+            "topology": {"agents": {agent_id: topology}},
+        }
 
     return {"processes": processes, "topology": topology}
 
@@ -122,10 +151,12 @@ def output_data(data, filepath="out/processes/cell_wall/test_cell_wall.png"):
     fig.savefig(filepath)
 
 
-def test_cell_wall():
+def test_cell_wall(divide_time=None):
     timeline_data = pd.read_csv(DATA, skipinitialspace=True)
 
-    composite = create_composite(timeline_data, antibiotics=True, divide_time=None)
+    composite = create_composite(
+        timeline_data, antibiotics=True, divide_time=divide_time
+    )
     plot_topology(
         composite, out_dir="out/processes/cell_wall/", filename="test_rig_topology.png"
     )
@@ -149,12 +180,13 @@ def test_cell_wall():
         },
         "wall_state": {},
         "cell_global": {"volume": initial_volume},
-        "should_divide": False
     }
+    if divide_time:
+        initial_state = {"agents": {"0": initial_state}}
 
     settings = {
         "return_raw_data": True,
-        "total_time": 2300,
+        "total_time": 10,
         "initial_state": initial_state,
         "emitter": "timeseries",
     }
@@ -164,7 +196,7 @@ def test_cell_wall():
 
 
 def main():
-    test_cell_wall()
+    test_cell_wall(2)
 
 
 if __name__ == "__main__":

@@ -1,0 +1,13 @@
+{
+    "inherit_from": ["cell_wall.json"],
+    "experiment_id": "cell_wall_division",
+    "emitter": "timeseries",
+    "divide": true,
+    
+    "division": {
+        "threshold": 343.95
+    },
+    "process_configs": {
+        
+    }
+}
