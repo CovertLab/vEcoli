@@ -39,7 +39,7 @@ def validate_division(data):
         assert cell_data["wall_state"]["lattice_rows"] > 0
         assert cell_data["wall_state"]["lattice_cols"] > 0
         assert cell_data["wall_state"]["cracked"] == False
-        assert sum(cell_data["murein_state"].values()) == cell_data["bulk"]["CPD-12261[p]"]
+        assert sum(cell_data["murein_state"].values()) == 4 * cell_data["bulk"]["CPD-12261[p]"]
 
 
 def test_cell_wall_division():

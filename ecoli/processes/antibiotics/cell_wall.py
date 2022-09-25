@@ -239,7 +239,7 @@ class CellWall(Process):
         lattice = states["wall_state"]["lattice"]
         if lattice is None:
             # Make sure that all murein is initiailly unincorporated
-            unincorporated_monomers = states["bulk_murein"][self.murein]
+            unincorporated_monomers = 4 * states["bulk_murein"][self.murein]
             incorporated_monomers = 0
 
             # Get dimensions of the lattice
@@ -261,6 +261,10 @@ class CellWall(Process):
                 geom_sampler(self.rng, self.strand_term_p),
                 self.rng,
             )
+
+            incorporated_monomers = lattice.sum()
+            unincorporated_monomers -= incorporated_monomers
+
         if not isinstance(lattice, np.ndarray):
             lattice = np.array(lattice)
 
