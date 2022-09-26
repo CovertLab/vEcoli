@@ -163,7 +163,7 @@ class Ecoli(Composer):
         # add division
         if self.config['divide']:
             topology['division'] = {
-                'variable': ('listeners', 'mass', 'cell_mass'),
+                'variable': config['division_variable'],
                 'agents': config['agents_path']}
 
         return topology
