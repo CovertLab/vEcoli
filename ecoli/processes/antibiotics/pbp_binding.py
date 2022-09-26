@@ -90,9 +90,9 @@ class PBPBinding(Step):
         return {
             "total_murein": bulk_schema([self.parameters["murein_name"]]),
             "murein_state": {
-                "incorporated_murein": {"_default": 0, "_updater": "set"},
-                "unincorporated_murein": {"_default": 0, "_updater": "set"},
-                "shadow_murein": {"_default": 0, "_updater": "set"},
+                "incorporated_murein": {"_default": 0, "_updater": "set", "_emit": True},
+                "unincorporated_murein": {"_default": 0, "_updater": "set", "_emit": True},
+                "shadow_murein": {"_default": 0, "_updater": "set", "_emit": True},
             },
             "concentrations": {
                 "beta_lactam": {"_default": 0.0 * units.micromolar, "_emit": True},
@@ -170,6 +170,7 @@ def test_pbp_binding():
     process = PBPBinding(params)
 
     # Create composite with timeline
+    initial_murein = 450000
     processes = {"pbp_binding": process}
     topology = {
         "pbp_binding": {
@@ -188,7 +189,7 @@ def test_pbp_binding():
                 (
                     time,
                     {
-                        ("bulk", "CPD-12261[p]"): int(3e6 + 1000 * time),
+                        ("bulk", "CPD-12261[p]"): int(initial_murein + 1000 * time),
                         ("concentrations", "beta_lactam"): (
                             (time - 50) / 10 * units.micromolar
                             if time > 50
@@ -206,7 +207,7 @@ def test_pbp_binding():
         "total_time": 100,
         "initial_state": {
             "murein_state": {
-                "incorporated_murein": int(3e6),
+                "incorporated_murein": initial_murein * 4,
                 "unincorporated_murein": 0,
                 "shadow_murein": 0,
             },
@@ -214,7 +215,7 @@ def test_pbp_binding():
                 "beta_lactam": 0 * units.micromolar,
             },
             "bulk": {
-                "CPD-12261[p]": int(3e6),
+                "CPD-12261[p]": initial_murein,
                 "CPLX0-7717[m]": 100,
                 "CPLX0-3951[i]": 100,
             },
@@ -245,7 +246,7 @@ def test_pbp_binding():
     unincorporated_murein = np.array(data["murein_state"]["unincorporated_murein"])
     shadow_murein = np.array(data["murein_state"]["shadow_murein"])
     assert all(
-        total_murein == incorporated_murein + unincorporated_murein + shadow_murein
+        4 * total_murein == incorporated_murein + unincorporated_murein + shadow_murein
     )
 
 
