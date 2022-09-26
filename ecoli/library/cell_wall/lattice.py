@@ -1,3 +1,4 @@
+import os
 from itertools import groupby
 
 import mpl_toolkits.mplot3d.axes3d as axes3d
@@ -203,6 +204,8 @@ def test_lattice():
 def test_strand_length_plot():
     rng = np.random.default_rng(0)
     lattice = sample_lattice(450000 * 4, 3050, 700, geom_sampler(rng, 0.058), rng)
+
+    os.makedirs("out/processes/cell_wall/", exist_ok=True)
 
     strand_lengths, _ = get_length_distributions(lattice)
     fig, _ = plot_strand_length_distribution(strand_lengths)
