@@ -179,6 +179,9 @@ def colony_save_states(engine, config):
             cell_state = engine.state.get_path(
                 ('agents', agent_id, 'cell_process')
             ).value.get_command_result()
+            cell_state['division_threshold'] = engine.state.get_path(
+                ('agents', agent_id, 'cell_process')
+            ).value.parameters['division_threshold']
             del cell_state['environment']['exchange_data']  # Can't save, but will be restored when loading state
             del cell_state['evolvers_ran']
             state_to_save['agents'][agent_id] = cell_state
@@ -280,6 +283,7 @@ def run_simulation(config):
                 + int(agent_id, base=2)
             ) % RAND_MAX
             agent_path = ('agents', agent_id)
+            division_threshold = agent_state.pop('division_threshold', None)
             agent_config = {
                 'inner_composer_config': {
                     'agent_id': agent_id,
@@ -292,6 +296,7 @@ def run_simulation(config):
                     **emitter_config,
                     'embed_path': agent_path,
                 },
+                'division_threshold': division_threshold
             }
             agent_composer = EcoliEngineProcess(base_config)
             agent_composite = agent_composer.generate(agent_config, path=agent_path)
