@@ -6,6 +6,7 @@ from time import perf_counter
 
 import matplotlib.pyplot as plt
 import numpy as np
+import pytest
 from skimage import measure
 
 
@@ -475,6 +476,7 @@ def run_test_case(side_length, density, rng=np.random.default_rng(0)):
     detect_holes(a)
 
 
+@pytest.mark.skip(reason="Not designed to work on the cloud (for local testing only)")
 def test_merge_time():
     import cProfile
     import pstats
