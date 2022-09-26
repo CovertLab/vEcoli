@@ -13,9 +13,10 @@ def run_experiment():
 def validate_division(data):
     # Expectations:
     # - there are two cells at the end
-    # - immediately after dividing, wall state and pbp state are reset to their
-    #   defaults. Murein state...
-    # - on the next timestep, these are updated to be reasonable values.add()
+    # - immediately after dividing, wall state, pbp state, and murein state
+    #   are reset to their defaults.
+    # - on the next timestep, these are updated to be reasonable values.
+    #   Murein state should sum to bulk murein * 4.
 
     time = sorted(data.keys())
 
