@@ -82,7 +82,39 @@ def create_composite(timeline_data, antibiotics=True):
     return {"processes": processes, "topology": topology, "steps": {}}
 
 
-def output_data(data, filepath="out/processes/cell_wall/test_cell_wall.png"):
+def create_experiment_settings(timeline_data):
+    # Create initial state
+    initial_murein = int(timeline_data.iloc[0]["CPD-12261[p]"])
+    initial_PBP1A = int(timeline_data.iloc[0]["CPLX0-7717[m]"])
+    initial_PBP1B = int(timeline_data.iloc[0]["CPLX0-3951[i]"])
+    initial_volume = parse_unit_string(timeline_data.iloc[0]["Volume"])
+
+    initial_state = {
+        "bulk": {
+            "CPD-12261[p]": initial_murein,
+            "CPLX0-7717[m]": initial_PBP1A,
+            "CPLX0-3951[i]": initial_PBP1B,
+        },
+        "murein_state": {
+            "incorporated_murein": 0,
+            "unincorporated_murein": initial_murein * 4,
+            "shadow_murein": 0,
+        },
+        "wall_state": {},
+        "cell_global": {"volume": initial_volume},
+    }
+
+    settings = {
+        "return_raw_data": True,
+        "total_time": 2000,
+        "initial_state": initial_state,
+        "emitter": "timeseries",
+    }
+
+    return settings
+
+
+def output_data(data, filepath):
     variables = [
         ("concentrations", "beta_lactam"),
         ("wall_state", "cracked"),
@@ -119,41 +151,26 @@ def output_data(data, filepath="out/processes/cell_wall/test_cell_wall.png"):
 def test_cell_wall():
     timeline_data = pd.read_csv(DATA, skipinitialspace=True)
 
-    composite = create_composite(timeline_data, antibiotics=True)
-    plot_topology(
-        composite, out_dir="out/processes/cell_wall/", filename="test_rig_topology.png"
-    )
+    for antibiotics in [False, True]:
+        # Create and run experiment
+        composite = create_composite(timeline_data, antibiotics=antibiotics)
+        plot_topology(
+            composite,
+            out_dir="out/processes/cell_wall/",
+            filename="test_rig_topology.png",
+        )
+        settings = create_experiment_settings(timeline_data)
 
-    # Create initial state
-    initial_murein = int(timeline_data.iloc[0]["CPD-12261[p]"])
-    initial_PBP1A = int(timeline_data.iloc[0]["CPLX0-7717[m]"])
-    initial_PBP1B = int(timeline_data.iloc[0]["CPLX0-3951[i]"])
-    initial_volume = parse_unit_string(timeline_data.iloc[0]["Volume"])
+        # Get and plot data
+        data = simulate_composite(composite, settings)
+        output_data(
+            data,
+            f"out/processes/cell_wall/test_cell_wall [{'no' if not antibiotics else ''} antibiotics].png",
+        )
 
-    initial_state = {
-        "bulk": {
-            "CPD-12261[p]": initial_murein,
-            "CPLX0-7717[m]": initial_PBP1A,
-            "CPLX0-3951[i]": initial_PBP1B,
-        },
-        "murein_state": {
-            "incorporated_murein": 0,
-            "unincorporated_murein": initial_murein * 4,
-            "shadow_murein": 0,
-        },
-        "wall_state": {},
-        "cell_global": {"volume": initial_volume},
-    }
-
-    settings = {
-        "return_raw_data": True,
-        "total_time": 2000,
-        "initial_state": initial_state,
-        "emitter": "timeseries",
-    }
-
-    data = simulate_composite(composite, settings)
-    output_data(data)
+        # Validate data
+        time = sorted(data.keys())
+        assert data[time[-1]]["wall_state"]["cracked"] == antibiotics
 
 
 def main():
