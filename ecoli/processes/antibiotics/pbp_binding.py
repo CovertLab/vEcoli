@@ -90,8 +90,16 @@ class PBPBinding(Step):
         return {
             "total_murein": bulk_schema([self.parameters["murein_name"]]),
             "murein_state": {
-                "incorporated_murein": {"_default": 0, "_updater": "set", "_emit": True},
-                "unincorporated_murein": {"_default": 0, "_updater": "set", "_emit": True},
+                "incorporated_murein": {
+                    "_default": 0,
+                    "_updater": "set",
+                    "_emit": True,
+                },
+                "unincorporated_murein": {
+                    "_default": 0,
+                    "_updater": "set",
+                    "_emit": True,
+                },
                 "shadow_murein": {"_default": 0, "_updater": "set", "_emit": True},
             },
             "concentrations": {
@@ -221,7 +229,9 @@ def test_pbp_binding():
             },
         },
     }
-    data = simulate_composite({"processes": processes, "topology": topology}, settings)
+    data = simulate_composite(
+        {"processes": processes, "topology": topology, "steps": {}}, settings
+    )
 
     # Plot output
     fig = plot_variables(
