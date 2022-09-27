@@ -162,26 +162,13 @@ def plot_length_vs_location(lattice):
             shift += 1
 
         # Get start position and length of each strand
-        in_strand = bool(column[0])
-        len_current = 1
-        if in_strand:
-            start_positions.append(0)
-
-        for i, x in enumerate(column[1:]):
-            # Crossover point, end of gap/strand
-            if bool(x) != in_strand or i == len(column) - 1:
-                # Store length if we were in a strand
-                if in_strand:
-                    lengths.append(len_current)
-
-                len_current = 0
-                in_strand = not in_strand
-
-                # Store start position if we are NOW in a strand
-                if in_strand:
-                    start_positions.append((i - shift) % len(column))
-
-            len_current += 1
+        i = 0
+        for val, group in groupby(column):
+            run_length = len(list(group))
+            if val == 1:
+                lengths.append(run_length)
+                start_positions.append((i - shift) % len(column))
+            i += run_length
 
     # Do plotting
     fig, ax = plt.subplots()
