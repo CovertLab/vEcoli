@@ -184,11 +184,7 @@ def porosity(lattice):
     return (lattice.size - lattice.sum()) / lattice.size
 
 
-def test_lattice():
-    test_strand_length_plot()
-
-
-def test_strand_length_plot():
+def test_strand_length_plots():
     rng = np.random.default_rng(0)
     lattice = sample_lattice(450000 * 4, 3050, 700, geom_sampler(rng, 0.058), rng)
 
@@ -205,7 +201,7 @@ def test_strand_length_plot():
 
 
 def main():
-    test_strand_length_plot()
+    test_strand_length_plots()
 
 
 if __name__ == "__main__":
