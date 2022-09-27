@@ -34,18 +34,12 @@ class PBPBinding(Step):
         "kinetic_params": {
             "cephaloridine": {
                 "K_A": {
-                    # From Curtis et al. 1979 (same values in Fontana et al. 2000)
-                    #
-                    # PBP1A: 0.25 ug / mL
-                    # PBP1B: 2.5 ug / mL
-                    #
-                    # converted to molar units using molar mass of cephaloridine = 415.488 g/mol
                     "PBP1A": param_store.get(
                         ("cephaloridine", "pbp_binding", "K_A (micromolar)", "PBP1A")
-                    ),  # 0.6017020948860136 * units.micromolar,
+                    ),
                     "PBP1B": param_store.get(
                         ("cephaloridine", "pbp_binding", "K_A (micromolar)", "PBP1B")
-                    ),  # 6.017020948860137 * units.micromolar,
+                    ),
                 },
                 "Hill_n": {
                     "PBP1A": 1,
@@ -54,18 +48,12 @@ class PBPBinding(Step):
             },
             "ampicillin": {
                 "K_A": {
-                    # From Curtis et al. 1979
-                    #
-                    # PBP1A: 1.4 ug / mL
-                    # PBP1B: 3.9 ug / mL
-                    #
-                    # converted to molar units using molar mass of ampicillin = 349.406 g/mol
                     "PBP1A": param_store.get(
                         ("ampicillin", "pbp_binding", "K_A (micromolar)", "PBP1A")
-                    ),  # 4.00680011 * units.micromolar,
+                    ),
                     "PBP1B": param_store.get(
                         ("ampicillin", "pbp_binding", "K_A (micromolar)", "PBP1B")
-                    ),  # 11.1618003 * units.micromolar
+                    ),
                 },
                 "Hill_n": {
                     "PBP1A": 1,
