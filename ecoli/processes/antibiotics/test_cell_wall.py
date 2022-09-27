@@ -79,7 +79,7 @@ def create_composite(timeline_data, antibiotics=True):
 
     add_timeline(processes, topology, timeline)
 
-    return {"processes": processes, "topology": topology}
+    return {"processes": processes, "topology": topology, "steps": {}}
 
 
 def output_data(data, filepath="out/processes/cell_wall/test_cell_wall.png"):
@@ -147,7 +147,7 @@ def test_cell_wall():
 
     settings = {
         "return_raw_data": True,
-        "total_time": 10,
+        "total_time": 2000,
         "initial_state": initial_state,
         "emitter": "timeseries",
     }
