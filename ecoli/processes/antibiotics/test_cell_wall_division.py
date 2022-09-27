@@ -5,7 +5,7 @@ from ecoli.experiments.ecoli_master_sim import EcoliSim, CONFIG_DIR_PATH
 
 def run_experiment():
     ecoli = EcoliSim.from_file(os.path.join(CONFIG_DIR_PATH, "cell_wall_division.json"))
-    ecoli.total_time = 10
+    ecoli.total_time = 20
     ecoli.run()
     return ecoli.query()
 
