@@ -25,29 +25,7 @@ def parse_unit_string(unit_str):
     return float(parse_result["value"]) * units.parse_expression(parse_result["units"])
 
 
-class Divide(Step):
-    defaults = {"id": "0"}
-
-    def __init__(self, parameters=None):
-        super().__init__(parameters)
-
-    def ports_schema(self):
-        return {"variable": {"_default": False}, "agents": {}}
-
-    def next_update(self, timestep, states):
-        if states["variable"]:
-            return {
-                "agents": {
-                    "_divide": {
-                        "mother": self.parameters["id"],
-                        "daughters": [{"key": "1"}, {"key": "2"}],
-                    }
-                }
-            }
-        return {}
-
-
-def create_composite(timeline_data, antibiotics=True, divide_time=None, agent_id="0"):
+def create_composite(timeline_data, antibiotics=True):
     # Create timeline process from saved simulation
     timeline = create_timeline_from_df(
         timeline_data,
@@ -72,7 +50,6 @@ def create_composite(timeline_data, antibiotics=True, divide_time=None, agent_id
                 else 0 * units.micromolar
             ),
             ("bulk", "CPD-12261[p]"): int(value[("bulk", "CPD-12261[p]")]),
-            ("should_divide",): divide_time is not None and t >= divide_time,
         },
     )
 
@@ -101,18 +78,6 @@ def create_composite(timeline_data, antibiotics=True, divide_time=None, agent_id
     }
 
     add_timeline(processes, topology, timeline)
-
-    if divide_time is not None:
-        processes["divider"] = Divide({"id": agent_id})
-        topology["divider"] = {
-            "variable": ("should_divide",),
-            "agents": ("..", "..", "agents"),
-        }
-
-        return {
-            "processes": {"agents": {agent_id: processes}},
-            "topology": {"agents": {agent_id: topology}},
-        }
 
     return {"processes": processes, "topology": topology}
 
@@ -151,12 +116,10 @@ def output_data(data, filepath="out/processes/cell_wall/test_cell_wall.png"):
     fig.savefig(filepath)
 
 
-def test_cell_wall(divide_time=None):
+def test_cell_wall():
     timeline_data = pd.read_csv(DATA, skipinitialspace=True)
 
-    composite = create_composite(
-        timeline_data, antibiotics=True, divide_time=divide_time
-    )
+    composite = create_composite(timeline_data, antibiotics=True)
     plot_topology(
         composite, out_dir="out/processes/cell_wall/", filename="test_rig_topology.png"
     )
@@ -181,8 +144,6 @@ def test_cell_wall(divide_time=None):
         "wall_state": {},
         "cell_global": {"volume": initial_volume},
     }
-    if divide_time:
-        initial_state = {"agents": {"0": initial_state}}
 
     settings = {
         "return_raw_data": True,
@@ -196,7 +157,7 @@ def test_cell_wall(divide_time=None):
 
 
 def main():
-    test_cell_wall(2)
+    test_cell_wall()
 
 
 if __name__ == "__main__":
