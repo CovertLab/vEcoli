@@ -1,4 +1,4 @@
-'''
+r'''
 =============
 EngineProcess
 =============
@@ -175,16 +175,16 @@ class EngineProcess(Process):
             self.parameters['inner_composer_config']).generate()
         # If division parameters not set in outer sim, use inner sim values
         if self.parameters['division_threshold'] == None:
-            self.parameters['division_threshold'] = inner_composite[
-                'division_threshold']
+            self.parameters['division_threshold'] = inner_composite.pop(
+                'division_threshold')
         if self.parameters['division_variable'] == None:
-            self.parameters['division_variable'] = inner_composite[
-                'division_variable']
+            self.parameters['division_variable'] = inner_composite.pop(
+                'division_variable')
         # If initial inner state not given in outer composite, 
         # use initial state from inner composite
         if self.parameters['initial_inner_state'] == None:
-            self.parameters['initial_inner_state'] = inner_composite[
-                'initial_inner_state']
+            self.parameters['initial_inner_state'] = inner_composite.pop(
+                'initial_inner_state')
         self.tunnels_out = cap_tunneling_paths(
             inner_composite['topology'])
         self.tunnels_in = self.parameters['tunnels_in']
@@ -219,7 +219,8 @@ class EngineProcess(Process):
             progress_bar=False,
             initial_global_time=self.parameters['start_time'],
         )
-        
+        # Unneccesary references to initial_state
+        self.sim.initial_state = None
         self.parameters.pop('initial_inner_state')
         
         if self.parameters['emit_paths']:
