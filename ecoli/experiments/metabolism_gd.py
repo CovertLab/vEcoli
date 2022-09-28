@@ -173,17 +173,13 @@ def test_ecoli_with_metabolism_gd(
     sim.log_updates = log_updates
     sim.emitter = emitter
 
-    # assert that the processes were swapped
-    sim.build_ecoli()
+    # run simulation and add asserts to output
+    sim.run()
 
     assert 'ecoli-metabolism-gradient-descent' in sim.ecoli['processes']
     assert 'ecoli-metabolism' not in sim.ecoli['processes']
     assert 'ecoli-metabolism-gradient-descent' in sim.ecoli['topology']
     assert 'ecoli-metabolism' not in sim.ecoli['topology']
-
-
-    # run simulation and add asserts to output
-    sim.run()
 
 
 
@@ -202,15 +198,13 @@ def test_ecoli_with_metabolism_gd_div(
     sim.divide = divide
     sim.emitter = emitter
 
-    # assert that the processes were swapped
-    sim.build_ecoli()
-
-    assert 'ecoli-metabolism-gradient-descent' in sim.processes
-    assert 'ecoli-metabolism' not in sim.processes
-    assert 'ecoli-metabolism-gradient-descent' in sim.processes
-    assert 'ecoli-metabolism' not in sim.processes
-
     sim.run()
+    
+    # assert that the processes were swapped
+    assert 'ecoli-metabolism-gradient-descent' in sim.processes
+    assert 'ecoli-metabolism' not in sim.processes
+    assert 'ecoli-metabolism-gradient-descent' in sim.processes
+    assert 'ecoli-metabolism' not in sim.processes
 
     query = []
     agents = sim.query()['agents'].keys()

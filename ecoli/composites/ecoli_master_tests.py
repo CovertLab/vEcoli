@@ -24,7 +24,7 @@ from migration.migration_utils import scalar_almost_equal
 @pytest.mark.slow
 def test_division(
         agent_id='1',
-        total_time=60
+        total_time=4
 ):
     """tests that a cell can be divided and keep running"""
 
@@ -35,7 +35,7 @@ def test_division(
     config = {
         'divide': True,
         'agent_id': agent_id,
-        'division_threshold': 668,  # fg
+        'division_threshold': 667.8,  # fg
     }
     agent_path = ('agents', agent_id)
     ecoli_composer = Ecoli(config)
@@ -57,6 +57,9 @@ def test_division(
         topology=ecoli_composite.topology,
         initial_state={'agents': {agent_id: initial_state}},
     )
+    # Clean up unneccesary references
+    experiment.initial_state = None
+    del initial_state, process_states, ecoli_composer, ecoli_composite
     experiment.update(total_time)
 
     # retrieve output
@@ -142,7 +145,7 @@ def test_division_topology():
     # get initial mass from Ecoli composer
     initial_state = Ecoli({}).initial_state({'initial_state_file': 'vivecoli_t2678'})
     initial_mass = initial_state['listeners']['mass']['dry_mass']
-    division_mass = initial_mass + 1.5
+    division_mass = initial_mass + 0.5
     print(f"DIVIDE AT {division_mass} fg")
 
     # make a new composer under an embedded path
@@ -173,6 +176,9 @@ def test_division_topology():
         topology=ecoli_composite.topology,
         initial_state={'agents': {agent_id: initial_state}},
     )
+    # Clean up unneccesary references
+    experiment.initial_state = None
+    del initial_state, process_states, ecoli_composer, ecoli_composite
 
     full_topology = experiment.state.get_topology()
     mother_topology = full_topology['agents'][agent_id].copy()
@@ -219,7 +225,7 @@ def test_lattice_lysis(plot=False):
     TODO: connect glucose! through local_field
     """
     sim = EcoliSim.from_file(CONFIG_DIR_PATH + 'lysis.json')
-    sim.total_time = 60
+    sim.total_time = 10
     sim.run()
     data = sim.query()
 
