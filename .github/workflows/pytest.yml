@@ -37,4 +37,4 @@ jobs:
         make clean compile
     - name: Test with pytest
       run: |
-        python -m pytest --cov=ecoli -m 'not (noci or master)'
+        python -m pytest ecoli/processes/antibiotics/test_cell_wall_division.py
