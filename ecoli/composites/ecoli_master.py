@@ -347,6 +347,9 @@ class Ecoli(Composer):
             'bulk': ('bulk',),
             'evolvers_ran': ('evolvers_ran',),
         }
+        
+        # Do not keep an unneccesary reference to these
+        self.processes_and_steps = None
 
         return topology
 

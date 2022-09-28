@@ -7,6 +7,7 @@ Utilities for Lattice Environments
 import numpy as np
 from scipy import constants
 from vivarium.core.process import Process
+from vivarium.library.units import remove_units
 from vivarium.library.topology import get_in, assoc_path
 
 from vivarium.library.units import units, Quantity
@@ -262,7 +263,8 @@ def make_gradient(gradient, n_bins, size):
 
     elif gradient.get('type') == 'uniform':
         for molecule_id, fill_value in gradient['molecules'].items():
-            fields[molecule_id] = np.full((bins_x, bins_y), fill_value, dtype=np.float64)
+            fields[molecule_id] = np.full(
+                (bins_x, bins_y), remove_units(fill_value), dtype=np.float64)
 
     return fields
 

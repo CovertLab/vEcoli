@@ -207,7 +207,7 @@ class ChromosomeStructure(Step):
             Computes the boolean mask of unique molecules that should be
             removed based on the progression of the replication forks.
             """
-            mask = np.zeros_like(domain_indexes, dtype=np.bool)
+            mask = np.zeros_like(domain_indexes, dtype=np.bool_)
 
             # Loop through all domains
             for domain_index in np.unique(domain_indexes):
@@ -552,7 +552,7 @@ class ChromosomeStructure(Step):
                     'TU_index': promoter_TU_indexes_new,
                     'coordinates': promoter_coordinates_new,
                     'domain_index': promoter_domain_indexes_new,
-                    'bound_TF': np.zeros((n_new_promoters, self.n_TFs), dtype=np.bool).tolist()})
+                    'bound_TF': np.zeros((n_new_promoters, self.n_TFs), dtype=np.bool_).tolist()})
             update['promoters'].update(add_elements(
                 new_promoters, 'unique_index'))
 
@@ -582,7 +582,7 @@ class ChromosomeStructure(Step):
                     'unique_index': DnaA_box_indices,
                     'coordinates': DnaA_box_coordinates_new,
                     'domain_index': DnaA_box_domain_indexes_new,
-                    'DnaA_bound': np.zeros(n_new_DnaA_boxes, dtype=np.bool).tolist()})
+                    'DnaA_bound': np.zeros(n_new_DnaA_boxes, dtype=np.bool_).tolist()})
             update['DnaA_boxes'].update(add_elements(
                 new_DnaA_boxes, 'unique_index'))
 
