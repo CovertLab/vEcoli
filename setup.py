@@ -29,6 +29,7 @@ INSTALL_REQUIRES = [
     'jax',
     'jaxlib',
     'jupyter',
+    'tqdm'
 ]
 
 if __name__ == '__main__':
