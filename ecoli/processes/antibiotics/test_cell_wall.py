@@ -79,7 +79,7 @@ def create_composite(timeline_data, antibiotics=True):
 
     add_timeline(processes, topology, timeline)
 
-    return {"processes": processes, "topology": topology, "steps": {}}
+    return {"processes": processes, "topology": topology, "steps": {}, "flow": {}}
 
 
 def create_experiment_settings(timeline_data):

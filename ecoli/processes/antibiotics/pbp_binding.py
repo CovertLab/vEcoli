@@ -227,7 +227,7 @@ def test_pbp_binding():
         },
     }
     data = simulate_composite(
-        {"processes": processes, "topology": topology, "steps": {}}, settings
+        {"processes": processes, "topology": topology, "steps": {}, "flow": {}}, settings
     )
 
     # Plot output
