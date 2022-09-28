@@ -4,9 +4,7 @@
     "emitter": "timeseries",
     "divide": true,
     
-    "division": {
-        "threshold": 343.95
-    },
+    "division_threshold": 343.95,
     "process_configs": {
         
     }
