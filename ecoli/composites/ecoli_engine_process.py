@@ -9,6 +9,7 @@
 from datetime import datetime, timezone
 import os
 import re
+import gc
 import binascii
 
 import numpy as np
@@ -346,6 +347,8 @@ def run_simulation(config):
         profile=config['profile'],
         initial_global_time=config.get('start_time', 0)
     )
+    # Unneccesary reference to initial_state
+    engine.initial_state = None
     # Tidy up namespace and free memory
     del composite, initial_state, experiment_id, emitter_config
     gc.collect()
@@ -392,6 +395,7 @@ def test_run_simulation():
 
 
 if __name__ == '__main__':
-    config = SimConfig()
-    config.update_from_cli()
-    run_simulation(config)
+    # config = SimConfig()
+    # config.update_from_cli()
+    # run_simulation(config)
+    test_run_simulation()

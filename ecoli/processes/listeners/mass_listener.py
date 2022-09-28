@@ -252,11 +252,6 @@ class MassListener(Deriver):
 
         mass_update['volume'] = mass_update['cell_mass'] / self.cellDensity
 
-        mass_update['proteinMassFraction'] = (
-                mass_update['proteinMass'] / mass_update['dry_mass'])
-        mass_update['rnaMassFraction'] = (
-                mass_update['rnaMass'] / mass_update['dry_mass'])
-
         if self.first_time_step:
             mass_update['growth'] = 0
             self.dryMassInitial = mass_update['dry_mass']
@@ -265,9 +260,6 @@ class MassListener(Deriver):
             self.smallMoleculeMassInitial = mass_update['smallMoleculeMass']
         else:
             mass_update['growth'] = mass_update['dry_mass'] - old_dry_mass
-
-        mass_update['instantaniousGrowthRate'] = (
-                mass_update['growth'] / self.time_step / mass_update['dry_mass'])
 
         # Compartment submasses
         compartment_submasses = bulk_compartment_masses + unique_compartment_masses
@@ -286,16 +278,23 @@ class MassListener(Deriver):
         # mass_update['processMassDifferences'] = sum(
         #     state.process_mass_diffs() for state in self.internal_states.values()
         # ).sum(axis=1)
-
-        # These are "logged quantities" in wcEcoli - keep separate?
-        mass_update['dryMassFoldChange'] = mass_update['dry_mass'] / \
-                                           self.dryMassInitial
-        mass_update['proteinMassFoldChange'] = mass_update['proteinMass'] / \
-                                               self.proteinMassInitial
-        mass_update['rnaMassFoldChange'] = mass_update['rnaMass'] / \
-                                           self.rnaMassInitial
-        mass_update['smallMoleculeFoldChange'] = mass_update['smallMoleculeMass'] / \
-                                                 self.smallMoleculeMassInitial
+        
+        if mass_update['dry_mass'] != 0:
+            mass_update['proteinMassFraction'] = (
+                mass_update['proteinMass'] / mass_update['dry_mass'])
+            mass_update['rnaMassFraction'] = (
+                mass_update['rnaMass'] / mass_update['dry_mass'])
+            mass_update['instantaniousGrowthRate'] = (
+                mass_update['growth'] / self.time_step / mass_update['dry_mass'])
+            # These are "logged quantities" in wcEcoli - keep separate?
+            mass_update['dryMassFoldChange'] = mass_update['dry_mass'] / \
+                                            self.dryMassInitial
+            mass_update['proteinMassFoldChange'] = mass_update['proteinMass'] / \
+                                                self.proteinMassInitial
+            mass_update['rnaMassFoldChange'] = mass_update['rnaMass'] / \
+                                            self.rnaMassInitial
+            mass_update['smallMoleculeFoldChange'] = mass_update['smallMoleculeMass'] / \
+                                                    self.smallMoleculeMassInitial
 
         self.first_time_step = False
 
