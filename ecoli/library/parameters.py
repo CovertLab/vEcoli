@@ -569,7 +569,7 @@ TABLES = {
             "Inner membrane permeability to tetracycline.",
         ),
         TableRow(
-            "\Delta \phi",
+            "\\Delta \\phi",
             param_store.get_parameter(("outer_potential",)),
             "mV",
             "Donnan potential across the outer membrane.",

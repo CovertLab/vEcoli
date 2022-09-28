@@ -393,6 +393,7 @@ class EcoliSim:
     def build_ecoli(self):
         """
         Build self.ecoli, the Ecoli composite, and self.initial_state, from current settings.
+        Do NOT call this before using run() without setting self.initial_state back to None.
         """
 
         # build processes, topology, configs
@@ -547,6 +548,11 @@ class EcoliSim:
         experiment_config['profile'] = self.profile
 
         self.ecoli_experiment = Engine(**experiment_config)
+        
+        # Clean up unneccesary references
+        self.initial_state = None
+        self.ecoli_experiment.initial_state = None
+        del metadata
 
         # run the experiment
         if self.save:

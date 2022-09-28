@@ -201,10 +201,12 @@ class TranscriptElongation(PartitionedProcess):
                         '_emit': True
                     },
                     'attenuation_probability': {
+                        '_default': np.zeros(len(self.rnaIds)),
                         '_updater': 'set',
                         '_emit': True
                     },
                     'counts_attenuated': {
+                        '_default': np.zeros(len(self.rnaIds)),
                         '_updater': 'set',
                         '_emit': True
                     },
@@ -640,7 +642,7 @@ def test_transcript_elongation():
                            'is_mRNA': test_config['is_mRNA'][i],
                            'is_full_transcript': False,
                            'can_translate': True,
-                           'RNAP_index': i,
+                           'RNAP_index': str(i),
                            'submass': np.zeros(9)}
                  for i in range(len(test_config['rnaIds']))},
 

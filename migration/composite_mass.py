@@ -84,6 +84,8 @@ def assertions(actual_update, expected_update, keys):
     tests.fail()
 
 def plots(actual_timeseries, wcecoli_timeseries, keys):
+    # Pytest gives warnings about overlapping axes without this
+    plt.close('all')
     n_keys = len(keys)
     rows = int(np.ceil(n_keys/3))
     for index, key in enumerate(keys):
