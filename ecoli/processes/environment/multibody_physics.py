@@ -106,7 +106,7 @@ class Multibody(Process):
               $ MPLBACKEND=TKAgg python vivarium/processes/snapshots.py
 
     Notes:
-        * rotational diffusion in liquid medium with viscosity = 1 mPa.s: :math:`Dr = 3.5 \pm0.3 rad^{2}/s`
+        * rotational diffusion in liquid medium with viscosity = 1 mPa.s: :math:`Dr = 3.5 \\pm0.3 rad^{2}/s`
           (Saragosti, et al. 2012. Modeling E. coli tumbles by rotational diffusion.)
         * translational diffusion in liquid medium with viscosity = 1 mPa.s: :math:`Dt = 100 um^{2}/s`
           (Saragosti, et al. 2012. Modeling E. coli tumbles by rotational diffusion.)
