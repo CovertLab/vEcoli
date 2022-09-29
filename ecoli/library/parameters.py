@@ -66,7 +66,7 @@ PARAMETER_DICT = {
         ),
         'efflux': {
             'vmax': Parameter(
-                0.085 * units.nmol / units.mg / units.sec,
+                0.069 * units.nmol / units.mg / units.sec,
                 'Kojima and Nikaido (2013)',
                 latex_source='kojima2013permeation',
             ),
@@ -152,12 +152,10 @@ PARAMETER_DICT = {
             'kcat': Parameter(
                 130 / units.sec,
                 'Galleni et al. (1988)',
-                note='Not confirmed',
             ),
             'km': Parameter(
                 0.17 * units.mM,
                 'Galleni et al. (1988)',
-                note='Not confirmed',
             ),
             'n': Parameter(
                 1 * units.count
@@ -181,6 +179,19 @@ PARAMETER_DICT = {
                 'Thanassi, Suh, and Nikaido (1995) p. 1004',
                 latex_source='thanassi1995role',
             ),
+            # 'accumulation_factor': Parameter(
+            #     8.4,
+            #     """15- to 17-fold gross accumulation [1, 2] 
+            #     reduced by 37% to account for bound fraction [2]
+            #     then reduced by 17% to account for higher Mg2+ in medium [3]
+            #     [1] https://doi.org/10.1128/jb.177.4.998-1007.1995
+            #     [2] https://doi.org/10.1007/BF00408069
+            #     [3] https://doi.org/10.1128/AAC.35.1.53
+            #     Current tetracycline accumulation models do not match
+            #     experimental accumulation data. This factor abstracts
+            #     away the mechanism of accumulation with the goal of 
+            #     achieving an accurate steady state tetracycline conc."""
+            # ),
         },
         'charge': Parameter(1 * units.count),
         'efflux': {
@@ -203,6 +214,11 @@ PARAMETER_DICT = {
             'Thanassi, Suh, and Nikaido (1995) p. 1005',
             latex_source='thanassi1995role',
         ),
+        'mass': Parameter(
+            444.4 * units.g / units.mol,
+            'Tetracycline PubChem',
+            note='https://pubchem.ncbi.nlm.nih.gov/compound/Tetracycline'
+        )
     },
     'shape': {
         'periplasm_fraction': Parameter(
@@ -221,6 +237,22 @@ PARAMETER_DICT = {
             4.52 * units.um**2,
             'Model',
         ),
+        'average_cell_mass': Parameter(
+            1640.6570410485792 * units.fg,
+            'Simulation 0a2cd6816d36d408470445ff654371f07cd3f9f8',
+        ),
+        'average_dry_mass': Parameter(
+            492.7365227132813 * units.fg,
+            'Simulation 0a2cd6816d36d408470445ff654371f07cd3f9f8',
+        ),
+        'average_cell_volume': Parameter(
+            1.4915064009532537 * units.fL,
+            'Simulation 0a2cd6816d36d408470445ff654371f07cd3f9f8',
+        ),
+        'average_area': Parameter(
+            6.227824991612169 * units.um**2,
+            'Simulation 0a2cd6816d36d408470445ff654371f07cd3f9f8',
+        ),
     },
     'concs': {
         'initial_pump': Parameter(
@@ -231,8 +263,20 @@ PARAMETER_DICT = {
             7.1e-4 * units.mM,
             'Simulation c33d8283af0bed4a6a598774ac5d8aec19d169bf',
         ),
+        # AcrAB-TolC: TRANS-CPLX-201[m]
+        'average_pump': Parameter(
+            0.0007157472280240362 * units.mM,
+            'Simulation 0a2cd6816d36d408470445ff654371f07cd3f9f8',
+        ),
+        # Beta-lactamase: EG10040-MONOMER[p]
+        'average_hydrolase': Parameter(
+            0.0008351114340588106 * units.mM,
+            'Simulation 0a2cd6816d36d408470445ff654371f07cd3f9f8',
+        ),
     },
     'counts': {
+        # ompC: CPLX0-7533[o]
+        # ompF: CPLX0-7534[o]
         'initial_ompf': Parameter(
             18975 * units.count,
             'Simulation c33d8283af0bed4a6a598774ac5d8aec19d169bf',
@@ -240,6 +284,14 @@ PARAMETER_DICT = {
         'initial_ompc': Parameter(
             5810 * units.count,
             'Simulation c33d8283af0bed4a6a598774ac5d8aec19d169bf',
+        ),
+        'average_ompf': Parameter(
+            26303.986572174563 * units.count,
+            'Simulation 0a2cd6816d36d408470445ff654371f07cd3f9f8',
+        ),
+        'average_ompc': Parameter(
+            7288.019395747855 * units.count,
+            'Simulation 0a2cd6816d36d408470445ff654371f07cd3f9f8',
         ),
     },
     'lysis_initiation': {
@@ -279,12 +331,24 @@ DERIVATION_RULES = {
             * (1 - params.get(('shape', 'periplasm_fraction')))
         ),
     ),
+    ('shape', 'average_periplasm_volume'): lambda params: Parameter(
+        (
+            params.get(('shape', 'average_cell_volume'))
+            * params.get(('shape', 'periplasm_fraction'))
+        ),
+    ),
+    ('shape', 'average_cytoplasm_volume'): lambda params: Parameter(
+        (
+            params.get(('shape', 'average_cell_volume'))
+            * (1 - params.get(('shape', 'periplasm_fraction')))
+        ),
+    ),
     ('ampicillin', 'efflux', 'kcat'): lambda params: Parameter(
         (
             params.get(('ampicillin', 'efflux', 'vmax'))
-            / params.get(('concs', 'initial_pump'))
-            * params.get(('shape', 'initial_cell_mass'))
-            / params.get(('shape', 'initial_periplasm_volume'))
+            / params.get(('concs', 'average_pump'))
+            * params.get(('shape', 'average_dry_mass'))
+            / params.get(('shape', 'average_periplasm_volume'))
         )
     ),
     (
@@ -292,17 +356,17 @@ DERIVATION_RULES = {
     ): lambda params: Parameter(
         (
             params.get(('ampicillin', 'permeability', 'outer')) / (
-                params.get(('counts', 'initial_ompf'))
-                / params.get(('shape', 'initial_area'))
+                params.get(('counts', 'average_ompf'))
+                / params.get(('shape', 'average_area'))
             )
         ),
     ),
     ('cephaloridine', 'efflux', 'kcat'): lambda params: Parameter(
         (
             params.get(('cephaloridine', 'efflux', 'vmax'))
-            / params.get(('concs', 'initial_pump'))
-            * params.get(('shape', 'initial_cell_mass'))
-            / params.get(('shape', 'initial_periplasm_volume'))
+            / params.get(('concs', 'average_pump'))
+            * params.get(('shape', 'average_dry_mass'))
+            / params.get(('shape', 'average_periplasm_volume'))
         )
     ),
     (
@@ -313,8 +377,8 @@ DERIVATION_RULES = {
                 'cephaloridine', 'porin_specific_permeability', 'outer',
                 'ompf'
             )) / (
-                params.get(('counts', 'initial_ompf'))
-                / params.get(('shape', 'initial_area'))
+                params.get(('counts', 'average_ompf'))
+                / params.get(('shape', 'average_area'))
             )
         ),
     ),
@@ -326,17 +390,17 @@ DERIVATION_RULES = {
                 'cephaloridine', 'porin_specific_permeability', 'outer',
                 'ompc'
             )) / (
-                params.get(('counts', 'initial_ompc'))
-                / params.get(('shape', 'initial_area'))
+                params.get(('counts', 'average_ompc'))
+                / params.get(('shape', 'average_area'))
             )
         ),
     ),
     ('tetracycline', 'efflux', 'kcat'): lambda params: Parameter(
         (
             params.get(('tetracycline', 'efflux', 'vmax'))
-            / params.get(('concs', 'initial_pump'))
-            * params.get(('shape', 'initial_cell_mass'))
-            / params.get(('shape', 'initial_periplasm_volume'))
+            / params.get(('concs', 'average_pump'))
+            * params.get(('shape', 'average_dry_mass'))
+            / params.get(('shape', 'average_cytoplasm_volume'))
         )
     ),
     ('tetracycline', 'permeability', 'outer', 'ompf'): lambda params: Parameter(
@@ -354,8 +418,8 @@ DERIVATION_RULES = {
             params.get((
                 'tetracycline', 'permeability', 'outer', 'ompf'
             )) / (
-                params.get(('counts', 'initial_ompf'))
-                / params.get(('shape', 'initial_area'))
+                params.get(('counts', 'average_ompf'))
+                / params.get(('shape', 'average_area'))
             )
         ),
     ),

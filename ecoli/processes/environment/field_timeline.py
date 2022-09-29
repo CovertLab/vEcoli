@@ -16,7 +16,7 @@ class FieldTimeline(TimelineProcess):
         bins = parameters.pop('bins', self.defaults['bins'])
         timeline = [
             (time, {
-                ('fields', molecule): np.full(bins, concentration)
+                ('fields', molecule): np.full(bins, concentration, dtype=np.float64)
                 for molecule, concentration in change.items()
             })
             for time, change in parameters.pop(

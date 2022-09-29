@@ -20,6 +20,7 @@ from vivarium.core.composition import (
 )
 from vivarium.library.units import units, remove_units
 from vivarium.library.topology import get_in
+from vivarium.library.dict_utils import deep_merge
 
 from ecoli.library.lattice_utils import (
     get_bin_site,
@@ -163,8 +164,7 @@ class DiffusionField(Process):
             'fields': delta_fields,
             'agents': agent_updates,
         }
-        if local_environments:
-            update.update({'agents': local_environments})
+        deep_merge(update['agents'], local_environments)
 
         return update
 

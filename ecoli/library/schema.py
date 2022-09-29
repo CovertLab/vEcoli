@@ -269,7 +269,7 @@ def divide_binomial(state: float) -> List[float]:
     return [counts_1, counts_2]
 
 
-def make_dict_value_updater(defaults):
+class DictValueUpdater:
     '''
     Returns an updater which translates _add and _delete -style updates
     into operations on a dictionary.
@@ -278,8 +278,10 @@ def make_dict_value_updater(defaults):
     can have a subset of the provided defaults as its keys;
     entries not provided will have values supplied by the defaults.
     '''
-
-    def custom_dict_value_updater(current, update):
+    def __init__(self, defaults):
+        self.defaults = defaults
+    
+    def dict_value_updater(self, current, update):
         result = current
         for key, value in update.items():
             if key == "_add":
@@ -289,10 +291,10 @@ def make_dict_value_updater(defaults):
                     added_state = added_value["state"]
                     if added_key in current:
                         raise Exception(f"Cannot add {added_key}, already in state")
-                    elif not added_state.keys() <= defaults.keys():
-                        raise Exception(f"State has keys not in defaults: "
-                                        f"{added_state.keys() - defaults.keys()}")
-                    result[added_key] = {**defaults, **added_state}
+                    elif not added_state.keys() <= self.defaults.keys():
+                        raise Exception(f"State has keys not in self.defaults: "
+                                        f"{added_state.keys() - self.defaults.keys()}")
+                    result[added_key] = {**self.defaults, **added_state}
             elif key == "_delete":
                 assert isinstance(value, list)
                 for k in value:
@@ -309,8 +311,6 @@ def make_dict_value_updater(defaults):
                 # TODO -- fix processes to not updater invalid keys
                 # print(f"Invalid update key: {key}")
         return result
-
-    return custom_dict_value_updater
 
 
 def get_cell_for_index(index_to_children, domain_index_to_add, root_index):
@@ -481,3 +481,10 @@ def divide_set_none(values):
     return [None, None]
 
 
+def remove_properties(schema, properties):
+    if isinstance(schema, dict):
+        for property in properties:
+            schema.pop(property, None)
+        for key, value in schema.items():
+            schema[key] = remove_properties(value, properties)
+    return schema

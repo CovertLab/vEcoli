@@ -5,6 +5,8 @@ E. coli master composite
 """
 import copy
 import os
+import binascii
+import numpy as np
 
 import pytest
 
@@ -13,6 +15,8 @@ from vivarium.library.topology import assoc_path
 from vivarium.library.dict_utils import deep_merge
 from vivarium.core.control import run_library_cli
 from vivarium.core.engine import pf
+
+from wholecell.utils import units
 
 # sim data
 from ecoli.library.sim_data import LoadSimData
@@ -56,8 +60,8 @@ class Ecoli(Composer):
         'daughter_path': tuple(),
         'agent_id': '0',
         'agents_path': ('..', '..', 'agents',),
-        'division': {
-            'threshold': 2220},  # fg
+        'division_threshold': 668,  # fg
+        'division_variable': ('listeners', 'mass', 'dry_mass'),
         'divide': False,
         'log_updates': False
     }
@@ -117,13 +121,34 @@ class Ecoli(Composer):
             for (process_name, process) in self.processes.items()
         }
 
-        # add division
-        if self.config['divide']:
+        # add division process
+        if config['divide']:
+            expectedDryMassIncreaseDict = self.load_sim_data.sim_data.expectedDryMassIncreaseDict
+            division_name = 'division'
+            division_config = {'threshold': config['division_threshold']}
+            if config['division_threshold'] == 'massDistribution':
+                division_random_seed = binascii.crc32(b'CellDivision', config['seed']) & 0xffffffff
+                division_random_state = np.random.RandomState(seed=division_random_seed)
+                division_mass_multiplier = division_random_state.normal(loc=1.0, scale=0.1)
+                initial_state_file = config.get('initial_state_file', 'wcecoli_t0')
+                initial_state_overrides = config.get('initial_state_overrides', [])
+                initial_state = get_state_from_file(path=f'data/{initial_state_file}.json')
+                for override_file in initial_state_overrides:
+                    override = get_state_from_file(path=f"data/{override_file}.json")
+                    deep_merge(initial_state, override)
+                current_media_id = initial_state['environment']['media_id']
+                division_config['threshold'] = (initial_state['listeners']['mass']['dry_mass'] + 
+                    expectedDryMassIncreaseDict[current_media_id].asNumber(
+                        units.fg) * division_mass_multiplier)
             division_config = dict(
-                config['division'],
-                agent_id=self.config['agent_id'],
-                composer=self)
-            processes['division'] = Division(division_config)
+                division_config,
+                agent_id=config['agent_id'],
+                composer=self,
+                seed=self.load_sim_data.random_state.randint(RAND_MAX),
+                _no_original_parameters=True,
+            )
+            division_process = {division_name: Division(division_config)}
+            processes.update(division_process)
 
         return processes
 
