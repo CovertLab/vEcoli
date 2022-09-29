@@ -37,4 +37,4 @@ jobs:
         make clean compile
     - name: Test with pytest
       run: |
-        python -m pytest ecoli/processes/antibiotics/pbp_binding.py ecoli/processes/antibiotics/test_cell_wall.py
+        python -m pytest ecoli/processes/antibiotics/pbp_binding.py
