@@ -549,7 +549,7 @@ class EcoliSim:
 
         self.ecoli_experiment = Engine(**experiment_config)
         
-        # Clean up unneccesary references
+        # Clean up unnecessary references
         self.initial_state = None
         self.ecoli_experiment.initial_state = None
         del metadata
