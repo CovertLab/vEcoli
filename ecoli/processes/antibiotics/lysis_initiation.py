@@ -1,12 +1,9 @@
 import numpy as np
 
-from vivarium.core.composer import Composite
-from vivarium.core.engine import Engine
 from vivarium.core.process import Process
 
 from ecoli.library.parameters import param_store
 from ecoli.processes.registries import topology_registry
-from ecoli.processes.environment.lysis import Lysis
 
 NAME = "ecoli-lysis-initiation"
 TOPOLOGY = {
@@ -41,45 +38,3 @@ class LysisInitiation(Process):
                 return {"lysis_trigger": True}
 
         return {}
-
-
-def test_lysis_initiation():
-    lysis_initiation = LysisInitiation()
-    lysis = Lysis({"agent_id": 0})
-
-    composite = Composite(
-        {
-            "processes": {"lysis_initiation": lysis_initiation, "lysis": lysis},
-            "topology": {
-                "lysis_initiation": TOPOLOGY,
-                "lysis": {
-                    "trigger": ("lysis_trigger",),
-                    "agents": ("agents",),
-                    "internal": ("bulk",),
-                    "fields": ("fields",),
-                    "location": ("location",),
-                    "dimensions": {
-                        "bounds": ("dimensions", "bounds"),
-                        "n_bins": ("dimensions", "n_bins"),
-                        "depth": ("dimensions", "depth"),
-                    },
-                },
-            },
-        }
-    )
-
-    sim = Engine(composite=composite, initial_state={"wall_state": {"cracked": True}})
-    sim.update(100)
-    data = sim.emitter.get_data()
-
-    # Validate data
-    # expect lysis to have occurred
-    print(data)
-
-
-def main():
-    test_lysis_initiation()
-
-
-if __name__ == "__main__":
-    main()

@@ -1,4 +1,5 @@
 from vivarium import process_registry
+from ecoli.processes.antibiotics.lysis_initiation import LysisInitiation
 
 from ecoli.processes.tf_binding import TfBinding
 from ecoli.processes.transcript_initiation import TranscriptInitiation
@@ -84,4 +85,7 @@ process_registry.register(
     AntibioticTransportOdeint.name, AntibioticTransportOdeint)
 process_registry.register(
     Permeability.name, Permeability
+)
+process_registry.register(
+    LysisInitiation.name, LysisInitiation
 )
