@@ -1,0 +1,18 @@
+{
+    "inherit_from": ["lysis.json"],
+
+    "initial_state_overrides": ["overrides/start_cracked"],
+
+    "add_processes": ["ecoli-lysis-initiation"],
+    "topology": {
+        "ecoli-lysis-initiation": {
+            "cracked": ["wall_state", "cracked"],
+            "lysis_trigger": ["burst"]
+        }
+      },
+      "process_configs": {
+        "ecoli-lysis-initiation": {
+          "mean_lysis_time": 2.0
+        }
+      }
+}
