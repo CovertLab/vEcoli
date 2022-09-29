@@ -49,6 +49,7 @@ Parameters:
 """
 
 import numpy as np
+import warnings
 from ecoli import divider_registry
 from ecoli.library.cell_wall.column_sampler import (
     geom_sampler,
@@ -133,6 +134,26 @@ class CellWall(Process):
         self.rng = np.random.default_rng(self.parameters["seed"])
 
     def ports_schema(self):
+        def divide_murein_state(mother):
+            RAND_MAX = 2**31 - 1
+            seed = int(mother["shadow_murein"]) % RAND_MAX
+            rng = np.random.default_rng(seed)
+            shadow_1 = rng.binomial(mother["shadow_murein"], 0.5)
+            shadow_2 = mother["shadow_murein"] - shadow_1
+
+            return [
+                {
+                    "incorporated_murein": 0,
+                    "unincorporated_murein": 0,
+                    "shadow_murein": shadow_1,
+                },
+                {
+                    "incorporated_murein": 0,
+                    "unincorporated_murein": 0,
+                    "shadow_murein": shadow_2,
+                },
+            ]
+
         schema = {
             "bulk_murein": bulk_schema([self.parameters["murein"]]),
             "murein_state": {
@@ -142,20 +163,21 @@ class CellWall(Process):
                     "_default": 0,
                     "_updater": "set",
                     "_emit": True,
-                    "_divider": {"divider": "set_value", "config": {"value": 0}},
+                    # "_divider": {"divider": "set_value", "config": {"value": 0}},
                 },
                 "unincorporated_murein": {
                     "_default": 0,
                     "_updater": "set",
                     "_emit": True,
-                    "_divider": {"divider": "set_value", "config": {"value": 0}},
+                    # "_divider": {"divider": "set_value", "config": {"value": 0}},
                 },
                 "shadow_murein": {
                     "_default": 0,
                     "_updater": "set",
                     "_emit": True,
-                    "_divider": {"divider": "set_value", "config": {"value": 0}},
+                    # "_divider": {"divider": "set_value", "config": {"value": 0}},
                 },
+                "_divider": divide_murein_state,
             },
             "PBP": bulk_schema(list(self.parameters["PBP"].values())),
             "shape": {"volume": {"_default": 0 * units.fL, "_emit": True}},
@@ -238,8 +260,11 @@ class CellWall(Process):
         cols = states["wall_state"]["lattice_cols"]
         lattice = states["wall_state"]["lattice"]
         if lattice is None:
-            # Make sure that all murein is initiailly unincorporated
-            unincorporated_monomers = 4 * states["bulk_murein"][self.murein]
+            # Make sure that all usable murein is initiailly unincorporated
+            unincorporated_monomers = (
+                4 * states["bulk_murein"][self.murein]
+                - states["murein_state"]["shadow_murein"]
+            )
             incorporated_monomers = 0
 
             # Get dimensions of the lattice
@@ -408,9 +433,13 @@ class CellWall(Process):
         d_columns = new_columns - columns
 
         if d_columns < 0:
-            raise ValueError(
+            warnings.warn(
                 f"Lattice shrinkage is currently not supported ({-d_columns} lost)."
             )
+            return lattice, unincorporated_monomers, incorporated_monomers
+            # raise ValueError(
+            #     f"Lattice shrinkage is currently not supported ({-d_columns} lost)."
+            # )
 
         # Create new lattice
         new_lattice = np.zeros((new_rows, new_columns), dtype=lattice.dtype)
