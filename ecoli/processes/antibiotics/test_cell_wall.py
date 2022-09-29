@@ -153,7 +153,7 @@ def test_cell_wall():
         )
 
         # Get and plot data
-        sim = Engine(composite=composite)
+        sim = Engine(composite=composite, emitter="database")
         sim.update(2000)
         data = sim.emitter.get_data()
         output_data(
