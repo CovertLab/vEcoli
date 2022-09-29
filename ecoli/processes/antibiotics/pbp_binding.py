@@ -1,3 +1,4 @@
+import os
 import numpy as np
 from ecoli.library.parameters import param_store
 from ecoli.library.schema import bulk_schema
@@ -255,6 +256,7 @@ def test_pbp_binding():
     )
     fig.get_axes()[-1].set_ylim(0, 1)
     fig.get_axes()[-2].set_ylim(0, 1)
+    os.makedirs("out/processes/pbp_binding", exist_ok=True)
     fig.savefig("out/processes/pbp_binding/test.png")
 
     # Validate output data
