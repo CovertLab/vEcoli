@@ -92,9 +92,12 @@ class Ecoli(Composer):
         if not initial_state:
             initial_state_file = config.get('initial_state_file', 'wcecoli_t0')
             initial_state = get_state_from_file(path=f'data/{initial_state_file}.json')
+        
+        initial_state_overrides = config.get('initial_state_overrides', [])
+        for override_file in initial_state_overrides:
+            override = get_state_from_file(path=f"data/{override_file}.json")
+            deep_merge(initial_state, override)
 
-        initial_time = config.get('initial_state_file', 'wcecoli_t0')
-        initial_state = get_state_from_file(path=f'data/{initial_time}.json')
         embedded_state = {}
         assoc_path(embedded_state, path, initial_state)
         return embedded_state
