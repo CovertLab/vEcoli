@@ -60,6 +60,7 @@ These tunnels are the only way that the EngineProcess exchanges
 information with the outside simulation.
 '''
 import copy
+import binascii
 
 import numpy as np
 from vivarium.core.composer import Composer
@@ -67,11 +68,12 @@ from vivarium.core.emitter import get_emitter, SharedRamEmitter
 from vivarium.core.engine import Engine
 from vivarium.core.process import Process
 from vivarium.core.registry import updater_registry, divider_registry
-from vivarium.core.serialize import serialize_value
 from vivarium.core.store import DEFAULT_SCHEMA, Store
-from vivarium.library.topology import get_in, without
+from vivarium.library.topology import get_in
 
+from wholecell.utils import units
 from ecoli.library.sim_data import RAND_MAX
+from ecoli.library.schema import remove_properties, empty_dict_divider
 from ecoli.library.updaters import inverse_updater_registry
 from ecoli.processes.cell_division import daughter_phylogeny_id
 
@@ -207,6 +209,19 @@ class EngineProcess(Process):
             progress_bar=False,
             initial_global_time=self.parameters['start_time'],
         )
+        
+        if self.parameters['division_threshold'] == 'massDistribution':
+            expectedDryMassIncreaseDict = self.sim.steps[
+                'ecoli-mass-listener'].parameters['expectedDryMassIncreaseDict']
+            division_random_seed = binascii.crc32(b'CellDivision', self.parameters['seed']) & 0xffffffff
+            division_random_state = np.random.RandomState(seed=division_random_seed)
+            division_mass_multiplier = division_random_state.normal(loc=1.0, scale=0.1)
+            initial_state = self.parameters['initial_inner_state']
+            current_media_id = initial_state['environment']['media_id']
+            self.parameters['division_threshold'] = (
+                get_in(initial_state, self.parameters['division_variable']) + 
+                expectedDryMassIncreaseDict[current_media_id].asNumber(units.fg) * division_mass_multiplier)
+        
         if self.parameters['emit_paths']:
             self.sim.state.set_emit_values([tuple()], False)
             self.sim.state.set_emit_values(
@@ -236,8 +251,16 @@ class EngineProcess(Process):
             schema[tunnel] = copy.deepcopy(tunnel_schema)
         for tunnel, path in self.tunnels_in.items():
             tunnel_schema = self.sim.state.get_path(path).get_config()
-            # We let the outer sim control the values of tunnels in.
-            tunnel_schema.pop('_value', None)
+            # Don't waste time dividing outer sim state since it will be
+            # overwritten by inner daughter states (also removes need to 
+            # emit all unique molecules required by certain dividers like 
+            # that for active_ribosome)
+            tunnel_schema['_divider'] = empty_dict_divider
+            # Internal sim state is fully defined, making subschemas
+            # redundant (also not properly parsed during store generation)
+            # This also avoids duplicated emits from the outer sim.
+            tunnel_schema = remove_properties(tunnel_schema, [
+                '_subschema', '_emit', '_value'])
             schema[tunnel] = tunnel_schema
         for tunnel, tunnel_schema in self.parameters[
                 'tunnel_out_schemas'].items():
@@ -309,10 +332,16 @@ class EngineProcess(Process):
 
         # Update the internal state with tunnel data.
         for tunnel, path in self.tunnels_in.items():
-            incoming_state = states[tunnel]
+            if isinstance(states[tunnel], dict):
+                incoming_state = copy.deepcopy(states[tunnel])
+            else:
+                incoming_state = states[tunnel]
             self.sim.state.get_path(path).set_value(incoming_state)
         for tunnel in self.tunnels_out.values():
-            incoming_state = states[tunnel]
+            if isinstance(states[tunnel], dict):
+                incoming_state = copy.deepcopy(states[tunnel])
+            else:
+                incoming_state = states[tunnel]
             self.sim.state.get_path((tunnel,)).set_value(incoming_state)
 
         # Emit data from inner simulation. We emit at the start of
@@ -326,7 +355,7 @@ class EngineProcess(Process):
         data['time'] = self.sim.global_time
         emit_config = {
             'table': 'history',
-            'data': serialize_value(data),
+            'data': data,
         }
         self.emitter.emit(emit_config)
 
@@ -629,9 +658,8 @@ def test_engine_process():
         # the filled inner simulation hierarchy.
         'c_tunnel': {
             '_default': 0,
-            '_emit': True,
             '_updater': updater_registry.access('accumulate'),
-            '_divider': divider_registry.access('set'),
+            '_divider': divider_registry.access('empty_dict'),
         },
     }
     assert schema == expected_schema

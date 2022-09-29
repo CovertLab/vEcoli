@@ -3,7 +3,7 @@
     "add_processes": [
         "chemostat",
         "tetracycline-ribosome-equilibrium",
-        "unique_counts"
+        "aggregator"
     ],
     "total_time": 9000,
     "spatial_environment_config": {
@@ -45,9 +45,9 @@
             "evolvers_ran": ["evolvers_ran"],
             "reports": ["boundary", "reports"]
         },
-        "unique_counts": {
+        "aggregator": {
             "unique": ["unique"],
-            "unique_counts": ["listeners", "unique_counts"]
+            "aggregated": ["listeners", "aggregated"]
         }
     },
     "process_configs": {
@@ -68,7 +68,7 @@
         "ecoli-mass-listener": {
             "add_tetracycline_masses": true
         },
-        "unique_counts": {
+        "aggregator": {
             "paths": [
                 ["unique", "active_ribosome_tetracycline"],
                 ["unique", "active_ribosome"]
@@ -82,8 +82,6 @@
     "engine_process_reports": [
         ["periplasm"],
         ["cytoplasm"],
-        ["listeners", "mass"],
-        ["listeners", "unique_counts"],
         ["boundary"],
         ["bulk", "CPLX0-3953-tetracycline[c]"],
         ["bulk", "CPLX0-3953[c]"]

@@ -6,6 +6,8 @@ NOTE: All ports with '_total' in their name are
 automatically exempt from partitioning
 """
 
+import binascii
+import numpy as np
 from copy import deepcopy
 
 # vivarium-core
@@ -15,6 +17,7 @@ from vivarium.library.dict_utils import deep_merge
 from vivarium.core.control import run_library_cli
 
 # sim data
+from wholecell.utils import units
 from ecoli.library.sim_data import LoadSimData, RAND_MAX
 
 # logging
@@ -51,11 +54,12 @@ class Ecoli(Composer):
         'daughter_path': tuple(),
         'agent_id': '0',
         'agents_path': ('..', '..', 'agents',),
-        'division': {
-            'threshold': 2220},  # fg
+        'division_threshold': 668,  # fg
+        'division_variable': ('listeners', 'mass', 'dry_mass'),
         'divide': False,
         'log_updates': False,
         'mar_regulon': False,
+        'process_configs': {},
         'flow': {},
     }
 
@@ -65,7 +69,8 @@ class Ecoli(Composer):
         self.load_sim_data = LoadSimData(
             sim_data_path=self.config['sim_data_path'],
             seed=self.config['seed'],
-            mar_regulon=self.config['mar_regulon'])
+            mar_regulon=self.config['mar_regulon'],
+            rnai_data=self.config['process_configs'].get('ecoli-rna-interference'))
 
         if not self.config.get('processes'):
             self.config['processes'] = deepcopy(ECOLI_DEFAULT_PROCESSES)
@@ -193,12 +198,28 @@ class Ecoli(Composer):
 
         processes.update(requesters)
         processes.update(evolvers)
-
+        
         # add division process
         if config['divide']:
+            expectedDryMassIncreaseDict = self.load_sim_data.sim_data.expectedDryMassIncreaseDict
             division_name = 'division'
+            division_config = {'threshold': config['division_threshold']}
+            if config['division_threshold'] == 'massDistribution':
+                division_random_seed = binascii.crc32(b'CellDivision', config['seed']) & 0xffffffff
+                division_random_state = np.random.RandomState(seed=division_random_seed)
+                division_mass_multiplier = division_random_state.normal(loc=1.0, scale=0.1)
+                initial_state_file = config.get('initial_state_file', 'wcecoli_t0')
+                initial_state_overrides = config.get('initial_state_overrides', [])
+                initial_state = get_state_from_file(path=f'data/{initial_state_file}.json')
+                for override_file in initial_state_overrides:
+                    override = get_state_from_file(path=f"data/{override_file}.json")
+                    deep_merge(initial_state, override)
+                current_media_id = initial_state['environment']['media_id']
+                division_config['threshold'] = (initial_state['listeners']['mass']['dry_mass'] + 
+                    expectedDryMassIncreaseDict[current_media_id].asNumber(
+                        units.fg) * division_mass_multiplier)
             division_config = dict(
-                config['division'],
+                division_config,
                 agent_id=config['agent_id'],
                 composer=self,
                 seed=self.load_sim_data.random_state.randint(RAND_MAX),
@@ -225,7 +246,7 @@ class Ecoli(Composer):
                 requester_name = f'{name}_requester'
                 evolver_name = f'{name}_evolver'
                 flow[requester_name] = [
-                    ('ecoli-chromosome-structure',)]
+                    ('monomer_counts_listener',)]
                 if config['divide']:
                     flow[requester_name].append(('division',))
                 flow['allocator'].append((requester_name,))
@@ -234,7 +255,7 @@ class Ecoli(Composer):
                     evolver_name]
             elif name == 'division':
                 steps[name] = process
-                flow[name] = [('ecoli-chromosome-structure',)]
+                flow[name] = [('monomer_counts_listener',)]
             elif process.is_step():
                 steps[name] = process
                 flow[name] = []
@@ -250,6 +271,9 @@ class Ecoli(Composer):
     def generate_processes(self, config):
         if not self.processes_and_steps or self.seed != config['seed']:
             self.seed = config['seed']
+            self.load_sim_data.seed = config['seed']
+            self.load_sim_data.random_state = np.random.RandomState(
+                seed = config['seed'])
             self.processes_and_steps = (
                 self._generate_processes_and_steps(config))
         processes, _, _ = self.processes_and_steps
@@ -258,6 +282,9 @@ class Ecoli(Composer):
     def generate_steps(self, config):
         if not self.processes_and_steps or self.seed != config['seed']:
             self.seed = config['seed']
+            self.load_sim_data.seed = config['seed']
+            self.load_sim_data.random_state = np.random.RandomState(
+                seed = config['seed'])
             self.processes_and_steps = (
                 self._generate_processes_and_steps(config))
         _, steps, _ = self.processes_and_steps
@@ -266,6 +293,9 @@ class Ecoli(Composer):
     def generate_flow(self, config):
         if not self.processes_and_steps or self.seed != config['seed']:
             self.seed = config['seed']
+            self.load_sim_data.seed = config['seed']
+            self.load_sim_data.random_state = np.random.RandomState(
+                seed = config['seed'])
             self.processes_and_steps = (
                 self._generate_processes_and_steps(config))
         _, _, flow = self.processes_and_steps
@@ -308,7 +338,7 @@ class Ecoli(Composer):
         # add division
         if config['divide']:
             topology['division'] = {
-                'variable': ('listeners', 'mass', 'cell_mass'),
+                'variable': ('listeners', 'mass', 'dry_mass'),
                 'agents': config['agents_path']}
 
         topology['allocator'] = {

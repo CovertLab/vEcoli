@@ -1,36 +1,54 @@
+import re
 from unum import Unum
+from bson.codec_options import TypeEncoder
 from vivarium.core.registry import Serializer
 from vivarium.library.topology import convert_path_style, normalize_path
 
-from ecoli.library.parameters import param_store, Parameter
+from ecoli.library.parameters import param_store
 
 
 class UnumSerializer(Serializer):
+    
+    def __init__(self):
+        super().__init__()
+        self.regex_for_serialized = re.compile(f'!{self.name}\\[(.*)\\]')
 
-    def can_serialize(self, data):
-        return isinstance(data, Unum)
+    class Codec(TypeEncoder):
+        python_type = Unum
+        def transform_python(self, value):
+            num = str(value.asNumber())
+            assert ' ' not in num
+            return f'!UnitsSerializer[{num} {value.strUnit()}]'
+        
+    def can_deserialize(self, data):
+        if not isinstance(data, str):
+            return False
+        return bool(self.regex_for_serialized.fullmatch(data))
 
-    def serialize_to_string(self, data):
-        num = str(data.asNumber())
-        assert ' ' not in num
-        return f'{num} {data.strUnit()}'
-
-    def deserialize_from_string(self, data):
+    def deserialize(self, data):
         # WARNING: This deserialization is lossy and drops the unit
         # information since there is no easy way to parse Unum's unit
         # strings.
+        matched_regex = self.regex_for_serialized.fullmatch(data)
+        if matched_regex:
+            data = matched_regex.group(1)
         return float(data.split(' ')[0])
 
 
 class ParameterSerializer(Serializer):
+    
+    def __init__(self):
+        super().__init__()
+        self.regex_for_serialized = re.compile(f'!{self.name}\\[(.*)\\]')
+        
+    def can_deserialize(self, data):
+        if not isinstance(data, str):
+            return False
+        return bool(self.regex_for_serialized.fullmatch(data))
 
-    def can_serialize(self, _):
-        return False
-
-    def serialize_to_string(self, data):
-        raise NotImplementedError(
-            'The ParameterSerializer does not support serialization.')
-
-    def deserialize_from_string(self, data):
+    def deserialize(self, data):
+        matched_regex = self.regex_for_serialized.fullmatch(data)
+        if matched_regex:
+            data = matched_regex.group(1)
         path = normalize_path(convert_path_style(data))
         return param_store.get(path)

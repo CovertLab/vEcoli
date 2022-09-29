@@ -2,10 +2,8 @@ import numpy as np
 from scipy.constants import N_A
 from vivarium.core.process import Step
 from vivarium.library.units import units
-from vivarium.library.topology import without
 
-from ecoli.library.schema import (
-    dict_value_schema, add_elements, create_unique_indexes)
+from ecoli.library.schema import dict_value_schema
 from ecoli.processes.partition import check_whether_evolvers_have_run
 
 
@@ -17,12 +15,6 @@ RIBOSOME_KEYS_TO_REMOVE = ('_globalIndex', '_entryState')
 # 10.1006/jmbi.1996.0428. See Chris's 2022-04-05-2 lab notebook entry
 # for calculation details.
 TRNAS_PER_RIBOSOME = 0.38953800000000005
-
-
-def without_multi(d, to_remove):
-    for key in to_remove:
-        d = without(d, key)
-    return d
 
 
 class TetracyclineRibosomeEquilibrium(Step):
@@ -72,7 +64,7 @@ class TetracyclineRibosomeEquilibrium(Step):
             'evolvers_ran': {
                 '_default': True,
             },
-            'reports': {
+            'listeners': {
                 'total_internal_tetracycline': {
                     '_default': 0 * units.mM,
                     '_updater': 'set',

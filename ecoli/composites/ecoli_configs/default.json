@@ -25,8 +25,7 @@
     "parallel": false,
     "daughter_path": [],
     "agents_path": ["..", "..", "agents"],
-    "division": {
-        "threshold": 2220},
+    "division_threshold": "massDistribution",
     "divide": false,
     "spatial_environment": false,
     "spatial_environment_config": {},
@@ -58,6 +57,14 @@
     ],
     "process_configs": {},
     "topology": {},
-    "flow": {},
-    "_schema": {}
+    "flow": {
+        "ecoli-metabolism": [["ecoli-chromosome-structure"]],
+        "ecoli-mass-listener": [["ecoli-metabolism"]],
+        "mRNA_counts_listener": [["ecoli-mass-listener"]],
+        "monomer_counts_listener": [["mRNA_counts_listener"]]
+    },
+    "_schema": {},
+    "engine_process_reports": [
+        ["listeners"]
+    ]
 }
