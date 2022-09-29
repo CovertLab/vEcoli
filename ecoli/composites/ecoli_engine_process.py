@@ -346,7 +346,7 @@ def run_simulation(config):
         profile=config['profile'],
         initial_global_time=config.get('start_time', 0)
     )
-    # Unneccesary reference to initial_state
+    # Unnecessary reference to initial_state
     engine.initial_state = None
     # Tidy up namespace and free memory
     del composite, initial_state, experiment_id, emitter_config

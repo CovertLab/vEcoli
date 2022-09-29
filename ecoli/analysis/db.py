@@ -1,7 +1,15 @@
+import copy
+import itertools
+from bson import MinKey, MaxKey
+from functools import partial
+from concurrent.futures import ProcessPoolExecutor
+
 from vivarium.core.emitter import (
     data_from_database,
     DatabaseEmitter,
-    assemble_data
+    assemble_data,
+    get_local_client,
+    get_data_chunks
 )
 from vivarium.library.dict_utils import deep_merge
 
@@ -44,8 +52,17 @@ def get_agent_ids(experiment_id, host='localhost', port=27017):
             agents.add(sub_document['k'])
     return agents
 
+
+def get_aggregation(host, port, aggregation):
+    """Helper function for parallel aggregations"""
+    history_collection = get_local_client(host, port, 'simulations').history
+    return list(history_collection.aggregate(
+        aggregation, hint={'experiment_id':1, 'data.time':1, '_id':1}))
+
+
 def access_counts(experiment_id, monomer_names, mrna_names, 
-    host='localhost', port=27017, sampling_rate=1
+    host='localhost', port=27017, sampling_rate=1, start_time=MinKey(),
+    end_time=MaxKey(), cpus=1
 ):
     config = {
         'host': f'{host}:{port}',
@@ -72,7 +89,8 @@ def access_counts(experiment_id, monomer_names, mrna_names,
 
     aggregation = [{'$match': {
         **experiment_query,
-        'data.time': {'$mod': [sampling_rate, 0]}}}]
+        'data.time': {'$gte': start_time, '$lte': end_time, 
+                      '$mod': [sampling_rate, 0]}}}]
     aggregation.append({'$project': {
         'data.agents': {'$objectToArray': '$data.agents'},
         'data.time': 1,
@@ -144,8 +162,28 @@ def access_counts(experiment_id, monomer_names, mrna_names,
         'data.dimensions': 1,
         'assembly_id': 1,
     }})
-
-    result = db.history.aggregate(aggregation)
+    
+    if cpus > 1:
+        chunks = get_data_chunks(
+            db.history, experiment_id, start_time, end_time, cpus)
+        aggregations = []
+        for chunk in chunks:
+            agg_chunk = copy.deepcopy(aggregation)
+            agg_chunk[0]['$match'] = {
+                **experiment_query,
+                '_id': {'$gte': chunk[0], '$lt': chunk[1]},
+                'data.time': {'$gte': start_time, '$lte': end_time, 
+                              '$mod': [sampling_rate, 0]}
+            }
+            aggregations.append(agg_chunk)
+        partial_get_agg = partial(get_aggregation, host, port)
+        with ProcessPoolExecutor(cpus) as executor:
+            queried_chunks = executor.map(partial_get_agg, aggregations)
+        result = itertools.chain.from_iterable(queried_chunks)
+    else:
+        result = db.history.aggregate(
+            aggregation, 
+            hint={'experiment_id':1, 'data.time':1, '_id':1})
 
     # re-assemble data
     assembly = assemble_data(list(result))
