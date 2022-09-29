@@ -219,7 +219,7 @@ class EngineProcess(Process):
             progress_bar=False,
             initial_global_time=self.parameters['start_time'],
         )
-        # Unneccesary references to initial_state
+        # Unnecessary references to initial_state
         self.sim.initial_state = None
         self.parameters.pop('initial_inner_state')
         

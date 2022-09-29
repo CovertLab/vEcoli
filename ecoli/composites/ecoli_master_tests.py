@@ -57,7 +57,7 @@ def test_division(
         topology=ecoli_composite.topology,
         initial_state={'agents': {agent_id: initial_state}},
     )
-    # Clean up unneccesary references
+    # Clean up unnecessary references
     experiment.initial_state = None
     del initial_state, process_states, ecoli_composer, ecoli_composite
     experiment.update(total_time)
@@ -176,7 +176,7 @@ def test_division_topology():
         topology=ecoli_composite.topology,
         initial_state={'agents': {agent_id: initial_state}},
     )
-    # Clean up unneccesary references
+    # Clean up unnecessary references
     experiment.initial_state = None
     del initial_state, process_states, ecoli_composer, ecoli_composite
 
