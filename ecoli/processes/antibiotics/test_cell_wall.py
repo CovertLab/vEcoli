@@ -9,7 +9,8 @@ from ecoli.library.cell_wall.column_sampler import geom_sampler, sample_lattice
 from ecoli.library.create_timeline import add_computed_value, create_timeline_from_df
 from ecoli.processes.antibiotics.cell_wall import CellWall
 from vivarium.core.composition import add_timeline, simulate_composite
-from vivarium.core.process import Step
+from vivarium.core.composer import Composite
+from vivarium.core.engine import Engine
 from vivarium.library.units import units, remove_units
 from vivarium.core.serialize import deserialize_value
 from vivarium.plots.simulation_output import plot_variables
@@ -17,7 +18,7 @@ from vivarium.plots.topology import plot_topology
 
 from ecoli.processes.antibiotics.pbp_binding import PBPBinding
 
-DATA = "data/cell_wall/cell_wall_test_rig_17_09_2022_00_41_51.csv"  # "data/cell_wall/cell_wall_test_rig_31_07_2022_00_26_44.csv"
+DATA = "data/cell_wall/cell_wall_test_rig_17_09_2022_00_41_51.csv"
 
 
 def parse_unit_string(unit_str):
@@ -79,10 +80,6 @@ def create_composite(timeline_data, antibiotics=True):
 
     add_timeline(processes, topology, timeline)
 
-    return {"processes": processes, "topology": topology, "steps": {}, "flow": {}}
-
-
-def create_experiment_settings(timeline_data):
     # Create initial state
     initial_murein = int(timeline_data.iloc[0]["CPD-12261[p]"])
     initial_PBP1A = int(timeline_data.iloc[0]["CPLX0-7717[m]"])
@@ -104,14 +101,9 @@ def create_experiment_settings(timeline_data):
         "cell_global": {"volume": initial_volume},
     }
 
-    settings = {
-        "return_raw_data": True,
-        "total_time": 2000,
-        "initial_state": initial_state,
-        "emitter": "timeseries",
-    }
-
-    return settings
+    return Composite(
+        {"processes": processes, "topology": topology, "state": initial_state}
+    )
 
 
 def output_data(data, filepath):
@@ -159,13 +151,15 @@ def test_cell_wall():
             out_dir="out/processes/cell_wall/",
             filename="test_rig_topology.png",
         )
-        settings = create_experiment_settings(timeline_data)
 
         # Get and plot data
-        data = simulate_composite(composite, settings)
+        sim = Engine(composite=composite)
+        sim.update(2000)
+        data = sim.emitter.get_data()
         output_data(
             data,
-            f"out/processes/cell_wall/test_cell_wall [{'no' if not antibiotics else ''} antibiotics].png",
+            "out/processes/cell_wall/test_cell_wall ["
+            f"{'no' if not antibiotics else ''} antibiotics].png",
         )
 
         # Validate data

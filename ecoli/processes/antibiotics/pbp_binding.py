@@ -3,6 +3,8 @@ from ecoli.library.parameters import param_store
 from ecoli.library.schema import bulk_schema
 from ecoli.processes.registries import topology_registry
 from vivarium.core.composition import add_timeline, simulate_composite
+from vivarium.core.composer import Composite
+from vivarium.core.engine import Engine
 from vivarium.core.process import Step
 from vivarium.library.units import units
 from vivarium.plots.simulation_output import plot_variables
@@ -226,9 +228,17 @@ def test_pbp_binding():
             },
         },
     }
-    data = simulate_composite(
-        {"processes": processes, "topology": topology, "steps": {}, "flow": {}}, settings
+    composite = Composite(
+        {
+            "processes": processes,
+            "topology": topology,
+            "state": settings["initial_state"],
+        }
     )
+
+    sim = Engine(composite=composite)
+    sim.update(settings["total_time"])
+    data = sim.emitter.get_timeseries()
 
     # Plot output
     fig = plot_variables(
