@@ -162,20 +162,17 @@ class CellWall(Process):
                 "incorporated_murein": {
                     "_default": 0,
                     "_updater": "set",
-                    "_emit": True,
-                    # "_divider": {"divider": "set_value", "config": {"value": 0}},
+                    "_emit": True
                 },
                 "unincorporated_murein": {
                     "_default": 0,
                     "_updater": "set",
-                    "_emit": True,
-                    # "_divider": {"divider": "set_value", "config": {"value": 0}},
+                    "_emit": True
                 },
                 "shadow_murein": {
                     "_default": 0,
                     "_updater": "set",
-                    "_emit": True,
-                    # "_divider": {"divider": "set_value", "config": {"value": 0}},
+                    "_emit": True
                 },
                 "_divider": divide_murein_state,
             },

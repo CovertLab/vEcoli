@@ -149,7 +149,7 @@ def test_cell_wall():
         plot_topology(
             composite,
             out_dir="out/processes/cell_wall/",
-            filename="test_rig_topology.png",
+            filename="test_rig_topology.png"
         )
 
         # Get and plot data
