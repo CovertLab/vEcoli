@@ -183,6 +183,7 @@ def colony_save_states(engine, config):
             ).value.parameters['division_threshold']
             del cell_state['environment']['exchange_data']  # Can't save, but will be restored when loading state
             del cell_state['evolvers_ran']
+            del cell_state['process'] # Shared processes are re-initialized on load
             state_to_save['agents'][agent_id] = cell_state
 
         state_to_save = serialize_value(state_to_save)
@@ -190,6 +191,7 @@ def colony_save_states(engine, config):
         # Cleanup namespace (significant with high cell counts)
         del state_to_save, cell_state
         print('Finished saving the state at t = ' + str(time_elapsed))
+        gc.collect()
     # Finish running the simulation
     time_remaining = config["total_time"] - config["save_times"][-1]
     if time_remaining:
@@ -394,7 +396,6 @@ def test_run_simulation():
 
 
 if __name__ == '__main__':
-    # config = SimConfig()
-    # config.update_from_cli()
-    # run_simulation(config)
-    test_run_simulation()
+    config = SimConfig()
+    config.update_from_cli()
+    run_simulation(config)
