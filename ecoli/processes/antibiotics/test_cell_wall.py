@@ -153,7 +153,7 @@ def test_cell_wall():
         )
 
         # Get and plot data
-        sim = Engine(composite=composite, emitter="database")
+        sim = Engine(composite=composite)
         sim.update(2000)
         data = sim.emitter.get_data()
         output_data(
@@ -165,6 +165,10 @@ def test_cell_wall():
         # Validate data
         time = sorted(data.keys())
         assert data[time[-1]]["wall_state"]["cracked"] == antibiotics
+
+        del composite
+        del sim
+        del data
 
 
 def main():
