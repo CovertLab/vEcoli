@@ -17,46 +17,6 @@ def run_experiment():
     ecoli = EcoliSim.from_file(os.path.join(CONFIG_DIR_PATH, "test_configs/cell_wall_division.json"))
     ecoli.total_time = total_time
 
-    # # Add antibiotics timeline
-    # time = list(range(0, total_time + 1, 2))
-    # timeline = {
-    #     "timeline": [
-    #         (t, {("agents", "0", "concentrations", "beta_lactam"): 9.16 * units.micromolar})
-    #         for t in time
-    #     ]
-    # }
-    # ecoli.process_configs["timeline"] = {}
-
-    # # Stub since timeline can only write to stores created by other processes
-    # NAME = "ecoli-antibiotics-stub"
-    # TOPOLOGY = {"concentrations": ("concentrations",)}
-
-    # class AntibioticsStub(Process):
-    #     name = NAME
-    #     topology = TOPOLOGY
-    #     defaults = {}
-
-    #     def __init__(self, parameters=None) -> None:
-    #         super().__init__(parameters)
-
-    #     def ports_schema(self):
-    #         return {
-    #             "concentrations": {
-    #                 "beta_lactam": {"_default": 0.0, "_updater": "set", "_emit": True}
-    #             }
-    #         }
-
-    #     def next_update(self, timestep, states):
-    #         return {}
-
-    # from vivarium.core.registry import process_registry
-    # process_registry.register(NAME, AntibioticsStub)
-    # ecoli.processes[NAME] = NAME
-    # ecoli.topology[NAME] = TOPOLOGY
-    # ecoli.process_configs[NAME] = {}
-
-    # add_timeline(ecoli.processes, ecoli.topology, timeline)
-
     ecoli.run()
     return ecoli.query()
 
