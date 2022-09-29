@@ -56,4 +56,4 @@ divider_registry.register('set_none', divide_set_none)
 for serializer_cls in (UnumSerializer, ParameterSerializer):
     serializer = serializer_cls()
     serializer_registry.register(
-        serializer.name, serializer, serializer.alternate_keys)
+        serializer.name, serializer)

@@ -15,8 +15,10 @@ from ecoli.processes.partition import check_whether_evolvers_have_run
 # Register default topology for this process, associating it with process name
 NAME = 'allocator'
 TOPOLOGY = {
-    "molecules": ("bulk",),
-    "listeners": ("listeners",)
+    'request': ('request',),
+    'allocate': ('allocate',),
+    'bulk': ('bulk',),
+    'evolvers_ran': ('evolvers_ran',),
 }
 topology_registry.register(NAME, TOPOLOGY)
 

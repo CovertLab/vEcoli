@@ -259,16 +259,13 @@ class RnaDegradation(PartitionedProcess):
             )
         endornase_per_rna = total_endornase_counts / np.sum(total_RNA_counts)
 
-        requests = {'listeners': {}}
-        requests['listeners'].update({"rna_degradation_listener": {
-                                    "fraction_active_endo_rnases":
-                                        np.sum(frac_endornase_saturated)}})
-        requests['listeners'].update({"rna_degradation_listener": {
-                                    "diff_relative_first_oder_decay":
-                                        diff_relative_first_order_decay.asNumber()}})
-        requests['listeners'].update({"rna_degradation_listener": {
-                                    "fract_endo_rrna_counts":
-                                        endornase_per_rna}})
+        requests = {'listeners': {'rna_degradation_listener' : {}}}
+        requests['listeners']['rna_degradation_listener'][
+            "fraction_active_endo_rnases"] = np.sum(frac_endornase_saturated)
+        requests['listeners']['rna_degradation_listener'][
+            "diff_relative_first_order_decay"] = diff_relative_first_order_decay.asNumber()
+        requests['listeners']['rna_degradation_listener'][
+            "fract_endo_rrna_counts"] = endornase_per_rna
 
         if self.EndoRNaseFunc:
             # Dissect RNAse specificity into mRNA, tRNA, and rRNA

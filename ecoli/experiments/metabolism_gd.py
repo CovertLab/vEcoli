@@ -165,6 +165,8 @@ def test_ecoli_with_metabolism_gd(
         emitter='timeseries',
 ):
     sim = EcoliSim.from_file(CONFIG_DIR_PATH + filename + '.json')
+    sim.config['flow'].pop('ecoli-metabolism', None)
+    sim.config['flow']['ecoli-mass-listener'] = [('ecoli-chromosome-structure',)]
     sim.total_time = total_time
     sim.divide = divide
     sim.progress_bar = progress_bar
@@ -194,6 +196,8 @@ def test_ecoli_with_metabolism_gd_div(
 ):
     # TODO (Cyrus) - Add test that affirms structure of output query.
     sim = EcoliSim.from_file(CONFIG_DIR_PATH + filename + '.json')
+    sim.config['flow'].pop('ecoli-metabolism', None)
+    sim.config['flow']['ecoli-mass-listener'] = [('ecoli-chromosome-structure',)]
     sim.total_time = total_time
     sim.divide = divide
     sim.emitter = emitter
