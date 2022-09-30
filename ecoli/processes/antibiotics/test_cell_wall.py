@@ -12,6 +12,7 @@ from vivarium.core.composition import add_timeline, simulate_composite
 from vivarium.core.composer import Composite
 from vivarium.core.engine import Engine
 from vivarium.library.units import units, remove_units
+from vivarium.library.dict_utils import get_value_from_path
 from vivarium.core.serialize import deserialize_value
 from vivarium.plots.simulation_output import plot_variables
 from vivarium.plots.topology import plot_topology
@@ -126,9 +127,8 @@ def output_data(data, filepath):
     T = sorted(data.keys())
     for i, path in enumerate(variables):
         # Get the data at the specified path for each timepoint t
-        # (reduce expression follows the path in data[t])
         var_data = [
-            remove_units(deserialize_value(reduce(lambda d, p: d[p], path, data[t])))
+            remove_units(deserialize_value(get_value_from_path(data[t], path)))
             for t in T
         ]
 
@@ -149,7 +149,7 @@ def test_cell_wall():
         plot_topology(
             composite,
             out_dir="out/processes/cell_wall/",
-            filename="test_rig_topology.png"
+            filename="test_rig_topology.png",
         )
 
         # Get and plot data
