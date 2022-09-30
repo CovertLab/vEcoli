@@ -62,13 +62,11 @@ REACTIONS_TO_INDEX = {
 STOICH = np.zeros((len(SPECIES), len(REACTIONS)))
 for i_reaction, (reactants, products) in enumerate(REACTIONS.values()):
     for reactant in reactants:
-        if reactant:
-            i_reactant = SPECIES_TO_INDEX[reactant]
-            STOICH[i_reactant, i_reaction] -= 1
+        i_reactant = SPECIES_TO_INDEX[reactant]
+        STOICH[i_reactant, i_reaction] -= 1
     for product in products:
-        if product:
-            i_product = SPECIES_TO_INDEX[product]
-            STOICH[i_product, i_reaction] += 1
+        i_product = SPECIES_TO_INDEX[product]
+        STOICH[i_product, i_reaction] += 1
 #: Describes the expected units for each species and reaction parameter.
 #: AntibioticTransportSteadyState uses this dictionary to do unit
 #: conversions.
