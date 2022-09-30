@@ -340,17 +340,20 @@ class Metabolism(Step):
                     'constrained_molecules': constrained,
                     'uptake_constraints': uptake_constraints,
                     'deltaMetabolites': delta_metabolites_final,
+                    # 104 KB, quite large, comment out to reduce emit size
                     'reactionFluxes': fba.getReactionFluxes() / timestep,
                     'externalExchangeFluxes': converted_exchange_fluxes,
                     'objectiveValue': fba.getObjectiveValue(),
                     'shadowPrices': fba.getShadowPrices(self.model.metaboliteNamesFromNutrients),
+                    # 104 KB, quite large, comment out to reduce emit size
                     'reducedCosts': fba.getReducedCosts(fba.getReactionIDs()),
                     'targetConcentrations': [
                         self.model.homeostatic_objective[mol]
                         for mol in fba.getHomeostaticTargetMolecules()],
                     'homeostaticObjectiveValues': fba.getHomeostaticObjectiveValues(),
                     'kineticObjectiveValues': fba.getKineticObjectiveValues(),
-
+                    
+                    # Quite large, comment out to reduce emit size
                     'estimated_fluxes': flux_dict ,
                     'estimated_dmdt': {str(metabolite): delta_metabolites_final[index]
                                        for index, metabolite in enumerate(self.model.metaboliteNamesFromNutrients)},
