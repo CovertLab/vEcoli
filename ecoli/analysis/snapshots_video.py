@@ -2,6 +2,7 @@ import argparse
 import concurrent.futures
 
 from tqdm import tqdm
+from bson import MinKey, MaxKey
 from vivarium.library.topology import convert_path_style
 from vivarium.core.serialize import deserialize_value
 from vivarium.library.units import remove_units
@@ -30,7 +31,7 @@ def main():
         '--highlight_agents', '-a', nargs='*',
         help='IDs of agents to highlight')
     parser.add_argument(
-        '--step', '-s', type=int, default=1,
+        '--sampling_rate', '-r', type=int, default=1,
         help='Number of timepoints to step between frames.')
     parser.add_argument(
         '--fields', '-f', action='store_true',
@@ -39,6 +40,12 @@ def main():
         '--host', '-o', default='localhost', type=str)
     parser.add_argument(
         '--port', '-p', default=27017, type=int)
+    parser.add_argument(
+        '--start_time', '-s', type=int, default=MinKey())
+    parser.add_argument(
+        '--end_time', '-e', type=int, default=MaxKey())
+    parser.add_argument(
+        '--cpus', '-c', type=int, default=1)
     args = parser.parse_args()
 
     # Get the required data
@@ -47,7 +54,8 @@ def main():
     mrnas = [path[-1] for path in tags if path[-2]=='unique']
     timeseries = [convert_path_style(path) for path in args.timeseries]
     data = access_counts(args.experiment_id, monomers, mrnas, args.host, 
-        args.port, sampling_rate=args.step)
+        args.port, sampling_rate=args.step, start_time=args.start_time,
+        end_time=args.end_time, cpus=args.cpus)
     
     with concurrent.futures.ProcessPoolExecutor(12) as executor:
         data_deserialized = list(tqdm(executor.map(
