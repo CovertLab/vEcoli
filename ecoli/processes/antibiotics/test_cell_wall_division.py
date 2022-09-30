@@ -1,11 +1,7 @@
 import os
-import pandas as pd
-from vivarium.core.process import Process
-from vivarium.core.composition import add_timeline
+
 from vivarium.core.serialize import deserialize_value
-from vivarium.library.units import units, remove_units
-from ecoli.experiments.ecoli_master_sim import EcoliSim, CONFIG_DIR_PATH
-from ecoli.library.create_timeline import add_computed_value
+from ecoli.experiments.ecoli_master_sim import CONFIG_DIR_PATH, EcoliSim
 
 
 DATA = "data/cell_wall/cell_wall_test_rig_17_09_2022_00_41_51.csv"
@@ -14,7 +10,9 @@ DATA = "data/cell_wall/cell_wall_test_rig_17_09_2022_00_41_51.csv"
 def run_experiment():
     total_time = 10
 
-    ecoli = EcoliSim.from_file(os.path.join(CONFIG_DIR_PATH, "test_configs/cell_wall_division.json"))
+    ecoli = EcoliSim.from_file(
+        os.path.join(CONFIG_DIR_PATH, "test_configs/cell_wall_division.json")
+    )
     ecoli.total_time = total_time
 
     ecoli.run()
