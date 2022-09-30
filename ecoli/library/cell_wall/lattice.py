@@ -74,6 +74,17 @@ def plot_lattice(lattice, on_cylinder=False, aspect=1):
     return fig, ax
 
 
+def shift_column_to_boundary(column):
+    # circular shift the column around
+    # until the wrap point represents a gap-strand boundary
+    total_shift = 0
+    while column[0] == column[-1] and total_shift < column.size:
+        column = np.roll(column, 1)
+        total_shift += 1
+
+    return column, total_shift
+
+
 def get_length_distributions(lattice):
     strand_lengths = []
     gap_lengths = []
@@ -82,10 +93,7 @@ def get_length_distributions(lattice):
         column = lattice[:, c]
         # circular shift the column around
         # until the wrap point represents a gap-strand boundary
-        total_shift = 0
-        while column[0] == column[-1] and total_shift < column.size:
-            column = np.roll(column, 1)
-            total_shift += 1
+        column, _ = shift_column_to_boundary(column)
 
         for val, seq in groupby(column):
             seq = list(seq)
@@ -155,10 +163,7 @@ def plot_length_vs_location(lattice):
 
         # circular shift the column around
         # until the wrap point represents a gap-strand boundary
-        total_shift = 0
-        while column[0] == column[-1] and total_shift < column.size:
-            column = np.roll(column, 1)
-            total_shift += 1
+        column, total_shift = shift_column_to_boundary(column)
 
         # Get start position and length of each strand
         i = 0
