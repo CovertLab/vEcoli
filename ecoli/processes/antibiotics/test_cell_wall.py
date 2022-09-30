@@ -1,23 +1,22 @@
-import os
 import re
-from functools import reduce
-import numpy as np
-import matplotlib.pyplot as plt
-import pandas as pd
-from ecoli.library.cell_wall.column_sampler import geom_sampler, sample_lattice
 
-from ecoli.library.create_timeline import add_computed_value, create_timeline_from_df
-from ecoli.processes.antibiotics.cell_wall import CellWall
-from vivarium.core.composition import add_timeline, simulate_composite
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+
 from vivarium.core.composer import Composite
+from vivarium.core.composition import add_timeline
 from vivarium.core.engine import Engine
-from vivarium.library.units import units, remove_units
-from vivarium.library.dict_utils import get_value_from_path
 from vivarium.core.serialize import deserialize_value
-from vivarium.plots.simulation_output import plot_variables
+from vivarium.library.dict_utils import get_value_from_path
+from vivarium.library.units import remove_units, units
 from vivarium.plots.topology import plot_topology
 
+from ecoli.library.create_timeline import (add_computed_value,
+                                           create_timeline_from_df)
+from ecoli.processes.antibiotics.cell_wall import CellWall
 from ecoli.processes.antibiotics.pbp_binding import PBPBinding
+
 
 DATA = "data/cell_wall/cell_wall_test_rig_17_09_2022_00_41_51.csv"
 

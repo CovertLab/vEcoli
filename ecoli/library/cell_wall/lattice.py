@@ -1,14 +1,13 @@
 import os
 from itertools import groupby
 
-import mpl_toolkits.mplot3d.axes3d as axes3d
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from matplotlib import pyplot as plt
 from skimage.transform import resize
+from vivarium.library.units import remove_units
 
 from ecoli.library.cell_wall.column_sampler import geom_sampler, sample_lattice
-from vivarium.library.units import remove_units
 
 
 def calculate_lattice_size(

@@ -1,14 +1,16 @@
 import os
+
 import numpy as np
-from ecoli.library.parameters import param_store
-from ecoli.library.schema import bulk_schema
-from ecoli.processes.registries import topology_registry
-from vivarium.core.composition import add_timeline, simulate_composite
 from vivarium.core.composer import Composite
+from vivarium.core.composition import add_timeline
 from vivarium.core.engine import Engine
 from vivarium.core.process import Step
 from vivarium.library.units import units
 from vivarium.plots.simulation_output import plot_variables
+
+from ecoli.library.parameters import param_store
+from ecoli.library.schema import bulk_schema
+from ecoli.processes.registries import topology_registry
 
 
 # Register default topology for this process, associating it with process name
