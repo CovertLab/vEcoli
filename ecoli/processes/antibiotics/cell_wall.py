@@ -411,7 +411,7 @@ class CellWall(Process):
             "strand_length_distribution": get_length_distributions(lattice)[1],
         }
 
-        if max_size > self.critical_area:
+        if will_crack:
             update["wall_state"]["cracked"] = True
 
         return update
