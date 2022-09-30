@@ -38,15 +38,11 @@ def sample_column(rows, murein_monomers, strand_sampler, rng, shift=True):
     # Don't try to assign more murein than can fit in the column
     murein_monomers = int(min(murein_monomers, rows))
 
-    # Create iterator for strand lengths, total accumulated length
-    strand_length, total_length = tee(strand_sampler())
-    total_length = accumulate(total_length)
-
     # Sample strand lengths such that
     # as much as possible of the available murein is used,
     # while having at least one gap per strand
     strands = []
-    for s in strand_length:
+    for s in strand_sampler():
         # Stop if adding this strand (and its associated minimum gap)
         # would exceed murein or column length constraint
         if s + sum(strands) > murein_monomers:
