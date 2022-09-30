@@ -17,8 +17,10 @@ from ecoli.library.sim_data import LoadSimData
 
 
 def access(
-        experiment_id, query=None, host='localhost', port=27017,
-        func_dict=None, f=None, sampling_rate=1):
+    experiment_id, query=None, host='localhost', port=27017,
+    func_dict=None, f=None, sampling_rate=1, start_time=MinKey(),
+    end_time=MaxKey(), cpus=1
+):
     config = {
         'host': '{}:{}'.format(host, port),
         'database': 'simulations'}
@@ -27,7 +29,8 @@ def access(
 
     filters={'data.time': {'$mod': [sampling_rate, 0]}}
     data, sim_config = data_from_database(
-        experiment_id, db, query, func_dict, f, filters)
+        experiment_id, db, query, func_dict, f, filters,
+        start_time, end_time, cpus)
 
     return data, experiment_id, sim_config
 
