@@ -88,6 +88,8 @@ class Metabolism(Step):
         'amino_acid_ids': {},
         'linked_metabolites': None,
         'seed': 0,
+        # TODO: For testing, remove later (perhaps after modifying sim data)
+        'reduce_murein_objective': False
     }
 
     def __init__(self, parameters=None):
@@ -134,6 +136,10 @@ class Metabolism(Step):
         self.random_state = np.random.RandomState(seed=self.seed)
 
         self.first_update = True
+
+        # TODO: For testing, remove later (perhaps after modifying sim data)
+        self.reduce_murein_objective = self.parameters['reduce_murein_objective']
+
 
     def __getstate__(self):
         return self.parameters
@@ -272,6 +278,9 @@ class Metabolism(Step):
         conc_updates = {
             met: conc.asNumber(CONC_UNITS)
             for met, conc in conc_updates.items()}
+        
+        if self.parameters['reduce_murein_objective']:
+            conc_updates['CPD-12261[p]'] /= 2.68
 
         # Update FBA problem based on current state
         # Set molecule availability (internal and external)
@@ -479,6 +488,10 @@ class FluxBalanceAnalysisModel(object):
             conc_dict[self.ppgpp_id] = self.getppGppConc(doubling_time)
         self.homeostatic_objective = dict(
             (key, conc_dict[key].asNumber(CONC_UNITS)) for key in conc_dict)
+
+        # TODO: For testing, remove later (perhaps after modifying sim data)
+        if parameters["reduce_murein_objective"]:
+            self.homeostatic_objective['CPD-12261[p]'] /= 2.68
 
         # Include all concentrations that will be present in a sim for constant length listeners
         for met in self.metaboliteNamesFromNutrients:
