@@ -10,19 +10,19 @@ def testDefault():
 
 
 def testAddProcess():
-    sim = EcoliSim.from_file(CONFIG_DIR_PATH + 'test_configs/test_add_process.json')
+    sim = EcoliSim.from_file(CONFIG_DIR_PATH + "test_configs/test_add_process.json")
     sim.total_time = 2
     sim.run()
     data = sim.query()
 
-    assert 'clock' in sim.ecoli.processes.keys()
-    assert 'global_time' in data.keys()
-    assert np.array_equal(data['global_time'], [0, 2])
-    assert sim.ecoli.processes['clock'].parameters['test'] == "Hello vivarium"
+    assert "clock" in sim.ecoli.processes.keys()
+    assert "global_time" in data.keys()
+    assert np.array_equal(data["global_time"], [0, 2])
+    assert sim.ecoli.processes["clock"].parameters["test"] == "Hello vivarium"
 
 
 def testExcludeProcess():
-    sim = EcoliSim.from_file(CONFIG_DIR_PATH + 'test_configs/test_exclude_process.json')
+    sim = EcoliSim.from_file(CONFIG_DIR_PATH + "test_configs/test_exclude_process.json")
     sim.total_time = 2
     sim.run()
     assert "ecoli-polypeptide-elongation" not in sim.ecoli.processes.keys()
@@ -48,24 +48,28 @@ def test_export():
 
 
 def test_load_state():
-    sim1 = EcoliSim.from_file(CONFIG_DIR_PATH + 'test_configs/test_save_state.json')
+    sim1 = EcoliSim.from_file(CONFIG_DIR_PATH + "test_configs/test_save_state.json")
     sim1.run()
-    sim2 = EcoliSim.from_file(CONFIG_DIR_PATH + 'test_configs/test_load_state.json')
+    sim2 = EcoliSim.from_file(CONFIG_DIR_PATH + "test_configs/test_load_state.json")
     sim2.run()
 
 
 def test_initial_state_overrides():
     sim_default = EcoliSim.from_file()
-    sim = EcoliSim.from_file(CONFIG_DIR_PATH + 'test_configs/test_initial_state_overrides.json')
+    sim = EcoliSim.from_file(
+        CONFIG_DIR_PATH + "test_configs/test_initial_state_overrides.json"
+    )
     sim_default.build_ecoli()
     sim.build_ecoli()
 
-    assert sim.initial_state["bulk"]["CPD-12261[p]"] == 401871
-    assert ("murein_state" in sim.initial_state and
-            sim.initial_state["murein_state"] == {
-                "free_murein": 0,
-                "incorporated_murein": 401871
-            })
+    assert sim.initial_state["bulk"]["CPD-12261[p]"] == 450000
+    assert "murein_state" in sim.initial_state and sim.initial_state[
+        "murein_state"
+    ] == {
+        "shadow_murein": 0,
+        "unincorporated_murein": 1800000,
+        "incorporated_murein": 0,
+    }
     assert sim_default.initial_state["environment"] == sim.initial_state["environment"]
 
 
