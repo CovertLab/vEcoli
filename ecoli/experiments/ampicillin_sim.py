@@ -20,6 +20,8 @@ def run_sim(
     config.update_from_json(
         os.path.join(CONFIG_DIR_PATH, "antibiotics_tetracycline.json")
     )
+    config["initial_colony_file"] = initial_colony_file
+
     ampicillin_gradient = {
         "total_time": total_time,
         "spatial_environment_config": {
@@ -36,6 +38,7 @@ def run_sim(
         "seed": seed,
         "start_time": start_time,
     }
+
     if cloud:
         ampicillin_gradient["save"] = True
         if baseline:
