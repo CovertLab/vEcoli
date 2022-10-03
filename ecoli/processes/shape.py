@@ -91,6 +91,8 @@ class Shape(Step):
 
     def __init__(self, parameters=None):
         super().__init__(parameters)
+        self.outer_to_inner_area = math.pow(self.parameters[
+            'cytoplasm_fraction'], 1/3)**2
 
     def ports_schema(self):
 
@@ -114,7 +116,13 @@ class Shape(Step):
                     '_emit': True,
                     '_divider': 'split',
                 },
-                'surface_area': {
+                'outer_surface_area': {
+                    '_default': 0 * units.um**2,
+                    '_updater': 'set',
+                    '_emit': True,
+                    '_divider': 'split',
+                },
+                'inner_surface_area': {
                     '_default': 0 * units.um**2,
                     '_updater': 'set',
                     '_emit': True,
@@ -176,7 +184,8 @@ class Shape(Step):
         width = self.parameters['width']
         assert isinstance(width, Quantity)
         length = length_from_volume(cell_volume, width)
-        surface_area = surface_area_from_length(length, width)
+        outer_surface_area = surface_area_from_length(length, width)
+        inner_surface_area = self.outer_to_inner_area * outer_surface_area
 
         assert self.parameters['periplasm_fraction'] + self.parameters['cytoplasm_fraction'] == 1
         periplasm_volume = cell_volume * self.parameters['periplasm_fraction']
@@ -189,7 +198,8 @@ class Shape(Step):
                 'volume': cell_volume,
                 'width': width,
                 'length': length,
-                'surface_area': surface_area,
+                'outer_surface_area': outer_surface_area,
+                'inner_surface_area': inner_surface_area,
                 'mmol_to_counts': mmol_to_counts_from_volume(
                     cell_volume),
                 'mass': mass,
@@ -223,12 +233,14 @@ class Shape(Step):
 
         # calculate length and surface area
         length = length_from_volume(cell_volume, width)
-        surface_area = surface_area_from_length(length, width)
+        outer_surface_area = surface_area_from_length(length, width)
+        inner_surface_area = self.outer_to_inner_area * outer_surface_area
 
         update = {
             'cell_global': {
                 'length': length,
-                'surface_area': surface_area,
+                'outer_surface_area': outer_surface_area,
+                'inner_surface_area': inner_surface_area,
                 'mmol_to_counts': mmol_to_counts_from_volume(
                     cell_volume),
                 'mass': states['listener_cell_mass'] * units.fg,
