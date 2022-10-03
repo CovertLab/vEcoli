@@ -1,8 +1,9 @@
 import os
-import json
+import argparse
 
 from ecoli.composites.ecoli_engine_process import run_simulation
 from ecoli.experiments.ecoli_master_sim import CONFIG_DIR_PATH, SimConfig
+from ecoli.library.parameters import param_store
 from migration.migration_utils import recursive_compare
 
 
@@ -25,17 +26,16 @@ def run_sim(
             "reaction_diffusion": {"gradient": {"molecules": {"ampicillin": amp_conc}}},
             "field_timeline": {
                 "timeline": [
-                    [100000, {"ampicillin": 0}],
+                    [
+                        100000,
+                        {"ampicillin": 0},
+                    ],  # using 100000 sec because we don't actually want to set ampicillin to 0
                 ]
             },
         },
         "seed": seed,
         "start_time": start_time,
     }
-    if initial_colony_file:
-        config["initial_colony_file"] = f"tet_{initial_colony_file}"
-    # if tet_conc > 0:
-    #     make_tet_initial_state(initial_colony_file)
     if cloud:
         ampicillin_gradient["save"] = True
         if baseline:
@@ -94,16 +94,33 @@ def run_sim(
 #         json.dump(initial_state, f)
 
 
-def generate_data():
+def generate_data(seed, cloud):
     # run_sim(0, seed = 0, baseline=True, cloud=True)
     run_sim(
-        0.003375,
-        seed=0,
-        cloud=True,
+        param_store.get(("ampicillin", "mic")),  # 0.003375,
+        seed=seed,
+        cloud=cloud,
         initial_colony_file="seed_0_colony_t11550",
         start_time=11550,
     )
 
 
+def cli():
+    parser = argparse.ArgumentParser("Run ampicillin simulations.")
+
+    parser.add_argument(
+        "-s", "--seed", default=0, type=int, help="Random seed for simulation."
+    )
+    parser.add_argument("-l", "--local", action="store_true")
+
+    args = parser.parse_args()
+
+    generate_data(args.seed, cloud=(not args.local))
+
+
+def main():
+    cli()
+
+
 if __name__ == "__main__":
-    generate_data()
+    cli()
