@@ -335,6 +335,12 @@ PARAMETER_DICT = {
             "Simulation 0a2cd6816d36d408470445ff654371f07cd3f9f8",
         ),
     },
+    'lysis_initiation': {
+        'mean_lysis_time': Parameter(
+            192.8,
+            "Wong and Amir 2019"
+        )
+    },
     "avogadro": constants.N_A / units.mol,
     "donnan_potential": Parameter(
         -0.0215 * units.volt,
