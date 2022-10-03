@@ -16,18 +16,22 @@
     "initial_state_file": "wcecoli_t0",
     "initial_state_overrides": ["overrides/reduced_murein"],
 
-    "spatial_environment_config": {
-        "field_timeline": {
-            "timeline": [
-                [30, {
-                    "ampicillin": 0.0057
-                }],
-                [70, {
-                    "ampicillin": 0.0
-                }]
-            ]
-        }
-    },
+    "engine_process_reports": [
+        ["bulk", "CPD-12261[p]"],
+        ["bulk", "CPLX0-7717[m]"],
+        ["bulk", "CPLX0-3951[i]"],
+        ["murein_state", "incorporated_murein"],
+        ["murein_state", "unincorporated_murein"],
+        ["murein_state", "shadow_murein"],
+        ["shape", "volume"],
+        ["wall_state", "lattice_rows"],
+        ["wall_state", "lattice_cols"],
+        ["wall_state", "extension_factor"],
+        ["wall_state", "cracked"],
+        ["pbp_state", "active_fraction_PBP1A"],
+        ["pbp_state", "active_fraction_PBP1B"]
+    ],
+
     "topology": {
         "antibiotic-transport-odeint": {
             "ampicillin": {
