@@ -761,7 +761,10 @@ class LoadSimData:
             'seed': self._seedFromName('Metabolism'),
             'linked_metabolites': self.sim_data.process.metabolism.linked_metabolites,
             # Whether to use metabolism as a deriver (with t=0 skipped)
-            'deriver_mode': deriver_mode
+            'deriver_mode': deriver_mode,
+
+            # TODO: testing, remove later (perhaps after moving change to sim_data)
+            'reduce_murein_objective': False
         }
 
         return metabolism_config
@@ -940,6 +943,7 @@ class LoadSimData:
             'seed': self._seedFromName('ChromosomeStructure'),
         }
         return chromosome_structure_config
+    
     
     def get_rna_interference_config(self, time_step=2, parallel=False):
         rna_interference_config = {
