@@ -170,7 +170,7 @@ def test_blame_timeseries():
         sim.log_updates = True
         sim.emit_topology = False
         sim.emit_processes = False
-        sim.total_time = 4
+        sim.total_time = 100
         # sim.exclude_processes = ["ecoli-two-component-system",
         #                          "ecoli-chromosome-structure",]
         #                          #"ecoli-polypeptide-elongation"]
@@ -190,8 +190,8 @@ def test_blame_timeseries():
     ]
 
     blame_timeseries(data, topo,
-                     ['WATER[c]', 'APORNAP-CPLX[c]', 'TRP[c]'] + molecules,
-                     'out/ecoli_master/test_blame_timeseries.png',
+                     ['CPD-12261[p]'],# + molecules,
+                     'out/ecoli_master/murein_blame.png',
                      yscale="linear")
 
 
