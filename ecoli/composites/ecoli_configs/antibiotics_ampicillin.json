@@ -1,12 +1,21 @@
 {
     "inherit_from": ["antibiotics.json"],
     "add_processes": [
-        "death"
+        "death",
+        "ecoli-cell-wall",
+        "ecoli-pbp-binding",
+        "ecoli-shape"
     ],
     "total_time": 100,
+    
     "emitter_arg": [
         ["host", "localhost:27017"]
     ],
+    "emitter": "database",
+
+    "initial_state_file": "wcecoli_t0",
+    "initial_state_overrides": ["overrides/reduced_murein"],
+
     "spatial_environment_config": {
         "field_timeline": {
             "timeline": [
@@ -72,7 +81,28 @@
                 "ampicillin": ["..", "periplasm", "concentrations", "ampicillin"]
             }
 
-        }
+        },
+        "ecoli-cell-wall": {
+            "shape": ["boundary"],
+            "bulk_murein": ["bulk"],
+            "murein_state": ["murein_state"],
+            "PBP": ["bulk"],
+            "wall_state": ["wall_state"],
+            "listeners": ["listeners"]
+        },
+        "ecoli-pbp-binding": {
+            "total_murein": ["bulk"],
+            "murein_state": ["murein_state"],
+            "concentrations": ["concentrations"],
+            "bulk": ["bulk"],
+            "pbp_state": ["pbp_state"]
+        },
+        "ecoli-shape": {
+            "cell_global": ["boundary"],
+            "periplasm_global": ["periplasm", "global"],
+            "listener_cell_mass": ["listeners", "mass", "cell_mass"],
+            "listener_cell_volume": ["listeners", "mass", "volume"]
+          }
     },
     "process_configs": {
         "antibiotic-transport-odeint": {
@@ -187,6 +217,26 @@
                     }
                 ]
             }
+        },
+        "ecoli-cell-wall": {
+
+        },
+        "ecoli-pbp-binding": {
+
+        },
+        "ecoli-shape": {
+            "global": {
+              "_path": "boundary",
+              "volume": ["..", "listeners", "mass", "volume"]
+            }
+        },
+        "ecoli-metabolism": {
+            "reduce_murein_objective" : true
         }
-    }
+    },
+
+    "flow": {
+        "ecoli-shape": [["ecoli-mass-listener"]],
+        "ecoli-pbp-binding": [["ecoli-metabolism"]]
+      }
 }
