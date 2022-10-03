@@ -50,14 +50,19 @@ def main():
 
     # Get the required data
     tags = [convert_path_style(path) for path in args.tags]
-    monomers = [path[-1] for path in tags if path[-2]=='bulk']
-    mrnas = [path[-1] for path in tags if path[-2]=='unique']
+    monomers = [path[-1] for path in tags if path[-2]=='monomer']
+    mrnas = [path[-1] for path in tags if path[-2]=='mrna']
+    inner_paths = [path for path in tags 
+        if path[-1] not in mrnas and path[-1] not in monomers]
     timeseries = [convert_path_style(path) for path in args.timeseries]
-    data = access_counts(args.experiment_id, monomers, mrnas, args.host, 
-        args.port, sampling_rate=args.step, start_time=args.start_time,
-        end_time=args.end_time, cpus=args.cpus)
+    outer_paths = [('data', 'dimensions')]
+    if args.fields:
+        outer_paths += [('data', 'fields')]
+    data = access_counts(args.experiment_id, monomers, mrnas, inner_paths, 
+        outer_paths, args.host, args.port, sampling_rate=args.sampling_rate, 
+        start_time=args.start_time, end_time=args.end_time, cpus=args.cpus)
     
-    with concurrent.futures.ProcessPoolExecutor(12) as executor:
+    with concurrent.futures.ProcessPoolExecutor(args.cpus) as executor:
         data_deserialized = list(tqdm(executor.map(
             deserialize_and_remove_units, data.values()), total=len(data)))
     data = dict(zip(data.keys(), data_deserialized))
@@ -74,6 +79,7 @@ def main():
             filename=f'{args.experiment_id}_snapshots',
             highlight_agents=args.highlight_agents,
             show_timeseries=timeseries,
+            cpus=args.cpus
         )
     if args.tags:
         make_video(
@@ -87,6 +93,7 @@ def main():
             tagged_molecules=tags,
             show_timeseries=timeseries,
             background_color='white',
+            cpus=args.cpus
         )
 
 
