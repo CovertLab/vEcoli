@@ -1,5 +1,5 @@
 {
-    "inherit_from": ["antibiotics.json"],
+    "inherit_from": ["antibiotics.json", "lysis_initiation.json"],
     "add_processes": [
         "death",
         "ecoli-cell-wall",
