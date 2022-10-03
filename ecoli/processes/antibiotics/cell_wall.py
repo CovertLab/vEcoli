@@ -429,6 +429,16 @@ class CellWall(Process):
         rows, columns = lattice.shape
         d_columns = new_columns - columns
 
+        # Stop early is there is no murein to allocate, or if the cell has not grown
+        if unincorporated_monomers == 0 or d_columns == 0:
+            new_lattice = lattice
+            total_real_monomers = unincorporated_monomers + incorporated_monomers
+            new_incorporated_monomers = new_lattice.sum()
+            new_unincorporated_monomers = (
+                total_real_monomers - new_incorporated_monomers
+            )
+            return new_lattice, new_unincorporated_monomers, new_incorporated_monomers
+
         if d_columns < 0:
             warnings.warn(
                 f"Lattice shrinkage is currently not supported ({-d_columns} lost)."
@@ -451,16 +461,6 @@ class CellWall(Process):
         # Add additional columns at random if necessary
         while insertion_size.sum() < d_columns:
             insertion_size[self.rng.integers(0, insertion_size.size)] += 1
-
-        # Stop early is there is no murein to allocate, or if the cell has not grown
-        if unincorporated_monomers == 0 or d_columns == 0:
-            new_lattice = lattice
-            total_real_monomers = unincorporated_monomers + incorporated_monomers
-            new_incorporated_monomers = new_lattice.sum()
-            new_unincorporated_monomers = (
-                total_real_monomers - new_incorporated_monomers
-            )
-            return new_lattice, new_unincorporated_monomers, new_incorporated_monomers
 
         murein_per_column = unincorporated_monomers / d_columns
 
