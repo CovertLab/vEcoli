@@ -155,7 +155,6 @@ def colony_save_states(engine, config):
         state_to_save = serialize_value(state_to_save)
         write_json('data/colony_t' + str(time_elapsed) + '.json', state_to_save)
         print('Finished saving the state at t = ' + str(time_elapsed))
-
     # Finish running the simulation
     time_remaining = config["total_time"] - config["save_times"][-1]
     if time_remaining:

@@ -1,5 +1,6 @@
 import pandas as pd
 from collections import namedtuple
+import numpy as np
 from scipy import constants
 
 from vivarium.library.topology import get_in, assoc_path
@@ -166,7 +167,6 @@ PARAMETER_DICT = {
                 "Galleni et al. (1988)",
             ),
             "n": Parameter(1 * units.count),
-            "n": Parameter(1 * units.count),
         },
         "pbp_binding": {
             "K_A": {
@@ -247,7 +247,7 @@ PARAMETER_DICT = {
             1.2 * units.fL,
             "Model",
         ),
-        "initial_area": Parameter(
+        "initial_outer_area": Parameter(
             4.52 * units.um**2,
             "Model",
         ),
@@ -263,7 +263,7 @@ PARAMETER_DICT = {
             1.4915064009532537 * units.fL,
             "Simulation 0a2cd6816d36d408470445ff654371f07cd3f9f8",
         ),
-        "average_area": Parameter(
+        "average_outer_area": Parameter(
             6.227824991612169 * units.um**2,
             "Simulation 0a2cd6816d36d408470445ff654371f07cd3f9f8",
         ),
@@ -342,10 +342,18 @@ PARAMETER_DICT = {
         )
     },
     "avogadro": constants.N_A / units.mol,
-    "donnan_potential": Parameter(
+    "outer_potential": Parameter(
         -0.0215 * units.volt,
         "Sen, Hellman, and Nikaido (1988) p. 1184",
         latex_source="sen1988porin",
+        note="Donnan potential"
+    ),
+    "inner_potential": Parameter(
+        0 * units.volt,
+        note="Assume no bias for diffusion from periplasm to cytoplasm"
+        # -0.1185 * units.volt,
+        # "Felle et al. (1980) p. 3587",
+        # note="Assume -140 mV resting potential"
     ),
     "faraday_constant": Parameter(
         constants.value("Faraday constant") * units.C / units.mol
@@ -383,6 +391,12 @@ DERIVATION_RULES = {
             * (1 - params.get(("shape", "periplasm_fraction")))
         ),
     ),
+    ("shape", "initial_inner_area"): lambda params: Parameter(
+        (
+            np.cbrt((1 - params.get(("shape", "periplasm_fraction"))))**2
+            * params.get(("shape", "initial_outer_area"))
+        ),
+    ),
     ("ampicillin", "efflux", "kcat"): lambda params: Parameter(
         (
             params.get(("ampicillin", "efflux", "vmax"))
@@ -396,7 +410,7 @@ DERIVATION_RULES = {
             params.get(("ampicillin", "permeability", "outer"))
             / (
                 params.get(("counts", "average_ompf"))
-                / params.get(("shape", "average_area"))
+                / params.get(("shape", "average_outer_area"))
             )
         ),
     ),
@@ -442,7 +456,7 @@ DERIVATION_RULES = {
             )
             / (
                 params.get(("counts", "average_ompf"))
-                / params.get(("shape", "average_area"))
+                / params.get(("shape", "average_outer_area"))
             )
         ),
     ),
@@ -458,7 +472,7 @@ DERIVATION_RULES = {
             )
             / (
                 params.get(("counts", "average_ompc"))
-                / params.get(("shape", "average_area"))
+                / params.get(("shape", "average_outer_area"))
             )
         ),
     ),
@@ -508,7 +522,7 @@ DERIVATION_RULES = {
             params.get(("tetracycline", "permeability", "outer", "ompf"))
             / (
                 params.get(("counts", "average_ompf"))
-                / params.get(("shape", "average_area"))
+                / params.get(("shape", "average_outer_area"))
             )
         ),
     ),
@@ -556,7 +570,7 @@ TABLES = {
         ),
         TableRow(
             "\Delta \phi",
-            param_store.get_parameter(("donnan_potential",)),
+            param_store.get_parameter(("outer_potential",)),
             "mV",
             "Donnan potential across the outer membrane.",
         ),
