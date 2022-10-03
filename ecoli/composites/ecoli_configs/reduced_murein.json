@@ -1,0 +1,14 @@
+{
+    "inherit_from": ["default.json"],
+    "experiment_id" : "test_murein",
+    "emitter" : "database",
+
+    "initial_state_file": "wcecoli_t0",
+    "initial_state_overrides": ["overrides/reduced_murein"],
+
+    "process_configs": {
+        "ecoli-metabolism": {
+            "reduce_murein_objective" : true
+        }
+    }
+}
