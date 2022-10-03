@@ -1,12 +1,14 @@
 import os
 import shutil
 import copy
+import concurrent.futures
 
 import cv2
 import numpy as np
 import matplotlib
 matplotlib.use('agg')
 import matplotlib.pyplot as plt
+from tqdm import tqdm
 
 from vivarium.core.composition import TEST_OUT_DIR
 from vivarium.library.units import Quantity, units
@@ -24,50 +26,6 @@ from ecoli.plots.snapshots import (
 
 DEFAULT_HIGHLIGHT_COLOR = [0, 1, 1]
 PLOT_WIDTH = 7
-
-
-def make_timeseries_function(
-        data,
-        show_timeseries=None,
-        highlight_agents=None,
-        highlight_color=DEFAULT_HIGHLIGHT_COLOR,
-        agents_key='agents',
-        **kwargs,
-):
-    agent_data = copy.deepcopy(data)
-    time_vec = list(agent_data.keys())
-
-    plot_settings = {
-        'column_width': 6,
-        'row_height': 1.5,
-        'stack_column': True,
-        'tick_label_size': 10,
-        'linewidth': 2,
-        'title_size': 10}
-
-    if show_timeseries:
-        plot_settings.update({'include_paths': show_timeseries})
-
-    # remove agents not included in highlight_agents
-    if highlight_agents:
-        for time, state in data.items():
-            agents = state[agents_key]
-            for agent_id, agent_state in agents.items():
-                if agent_id not in highlight_agents:
-                    del agent_data[time][agents_key][agent_id]
-        agent_colors = {agent_id: highlight_color for agent_id in highlight_agents}
-        plot_settings.update({'agent_colors': agent_colors})
-
-    # make the function
-    def plot_timeseries(t_index):
-        time_indices = np.array(range(0, t_index+1))
-        current_data = {
-            time_vec[index]: agent_data[time_vec[index]]
-            for index in time_indices}
-        fig = plot_agents_multigen(current_data, dict(plot_settings, **kwargs))
-        return fig
-
-    return plot_timeseries
 
 
 def make_snapshot_saver(
@@ -145,16 +103,38 @@ def make_timeseries_saver(
     highlight_color,
     images_dir
 ):
-    timeseries_plotter = make_timeseries_function(
-        data,
-        show_timeseries,
-        highlight_agents,
-        highlight_color)
     # Must be global for multiprocessing to work
     global save_timeseries_figure
     def save_timeseries_figure(t_index):
+        time_vec = list(data.keys())
+
+        plot_settings = {
+            'column_width': 6,
+            'row_height': 2,
+            'stack_column': True,
+            'tick_label_size': 10,
+            'linewidth': 2,
+            'title_size': 10}
+
+        if show_timeseries:
+            plot_settings.update({'include_paths': show_timeseries})
+
+        # remove agents not included in highlight_agents
+        if highlight_agents:
+            for time, state in data.items():
+                agents = state['agents']
+                for agent_id, agent_state in agents.items():
+                    if agent_id not in highlight_agents:
+                        del data[time]['agents'][agent_id]
+            agent_colors = {agent_id: highlight_color for agent_id in highlight_agents}
+            plot_settings.update({'agent_colors': agent_colors})
+
         fig_path = os.path.join(images_dir, f"timeseries{t_index}.jpg")
-        fig = timeseries_plotter(t_index)
+        time_indices = np.array(range(0, t_index+1))
+        current_data = {
+            time_vec[index]: data[time_vec[index]]
+            for index in time_indices}
+        fig = plot_agents_multigen(current_data, dict(plot_settings))
         fig.savefig(fig_path, bbox_inches='tight')
         plt.close()
         return fig_path
@@ -187,6 +167,7 @@ def make_video(
         highlight_color=DEFAULT_HIGHLIGHT_COLOR,
         out_dir='out',
         filename='snapshot_vid',
+        cpus=1,
         **kwargs
 ):
     """Make a video with snapshots across time
@@ -249,9 +230,17 @@ def make_video(
             images_dir,
             **kwargs)
 
-    from tqdm import tqdm
-    import concurrent.futures
-    with concurrent.futures.ProcessPoolExecutor() as executor:
+    # Only plot data for every `step` timepoints
+    if step != 1:
+        filtered_data = {}
+        time_counter = 0
+        for timepoint in time_vec:
+            if time_counter % step == 0:
+                filtered_data[timepoint] = data[timepoint]
+            time_counter += 1
+        data = filtered_data
+
+    with concurrent.futures.ProcessPoolExecutor(cpus) as executor:
         img_paths = list(tqdm(executor.map(do_plot, data.items()), total=len(data)))
 
     img_paths_2 = []
