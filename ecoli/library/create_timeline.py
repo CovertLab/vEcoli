@@ -75,7 +75,7 @@ def add_computed_value(timeline, func):
 
 
 def test_add_timeline():
-    TEST_FILE = "data/cell_wall/cell_wall_test_rig_31_07_2022_00_26_44.csv"
+    TEST_FILE = "data/cell_wall/cell_wall_test_rig_17_09_2022_00_41_51.csv"
 
     timeline = create_timeline_from_csv(
         TEST_FILE,
