@@ -303,7 +303,7 @@ class CellWall(Process):
         # Translate volume into length,
         # Calculate new lattice dimensions
         length = length_from_volume(volume, self.cell_radius * 2).to("micrometer")
-        new_rows, new_columns = calculate_lattice_size(
+        _, new_columns = calculate_lattice_size(
             length,
             self.inter_strand_distance,
             self.disaccharide_height,
@@ -322,7 +322,6 @@ class CellWall(Process):
             lattice,
             unincorporated_monomers,
             incorporated_monomers,
-            new_rows,
             new_columns,
             n_sites,
             self.strand_term_p,
@@ -354,7 +353,7 @@ class CellWall(Process):
                 ).to("dimensionless")
             )
 
-            new_rows, new_columns = calculate_lattice_size(
+            _, new_columns = calculate_lattice_size(
                 length,
                 self.inter_strand_distance,
                 self.disaccharide_height,
@@ -373,7 +372,6 @@ class CellWall(Process):
                 lattice,
                 unincorporated_monomers,
                 incorporated_monomers,
-                new_rows,
                 new_columns,
                 n_sites,
                 self.strand_term_p,
@@ -417,7 +415,6 @@ class CellWall(Process):
         lattice,
         unincorporated_monomers,
         incorporated_monomers,
-        new_rows,
         new_columns,
         n_sites,
         strand_term_p,
@@ -440,12 +437,9 @@ class CellWall(Process):
                 f"Lattice shrinkage is currently not supported ({-d_columns} lost)."
             )
             return lattice, unincorporated_monomers, incorporated_monomers
-            # raise ValueError(
-            #     f"Lattice shrinkage is currently not supported ({-d_columns} lost)."
-            # )
 
         # Create new lattice
-        new_lattice = np.zeros((new_rows, new_columns), dtype=lattice.dtype)
+        new_lattice = np.zeros((rows, new_columns), dtype=lattice.dtype)
 
         # Sample columns for synthesis sites
         # First choose positions:
@@ -472,7 +466,7 @@ class CellWall(Process):
                 np.array(
                     [
                         sample_column(
-                            new_rows,
+                            rows,
                             murein_per_column,
                             geom_sampler(self.rng, strand_term_p),
                             self.rng,
