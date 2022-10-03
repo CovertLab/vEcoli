@@ -162,18 +162,14 @@ class CellWall(Process):
                 "incorporated_murein": {
                     "_default": 0,
                     "_updater": "set",
-                    "_emit": True
+                    "_emit": True,
                 },
                 "unincorporated_murein": {
                     "_default": 0,
                     "_updater": "set",
-                    "_emit": True
+                    "_emit": True,
                 },
-                "shadow_murein": {
-                    "_default": 0,
-                    "_updater": "set",
-                    "_emit": True
-                },
+                "shadow_murein": {"_default": 0, "_updater": "set", "_emit": True},
                 "_divider": divide_murein_state,
             },
             "PBP": bulk_schema(list(self.parameters["PBP"].values())),
@@ -452,15 +448,20 @@ class CellWall(Process):
         new_lattice = np.zeros((new_rows, new_columns), dtype=lattice.dtype)
 
         # Sample columns for synthesis sites
+        # First choose positions:
+        n_points = min(n_sites, d_columns)
         insertion_points = self.rng.choice(
-            list(range(columns)), size=min(n_sites, d_columns), replace=False
+            list(range(columns)), size=n_points, replace=False
         )
         insertion_points.sort()
-        insertion_size = np.repeat(d_columns // n_sites, insertion_points.size)
 
-        # Add additional columns at random if necessary
-        while insertion_size.sum() < d_columns:
-            insertion_size[self.rng.integers(0, insertion_size.size)] += 1
+        # Assign insert sizes to positions (at least one column per position):
+        insertion_size = np.ones(n_points, dtype=int)
+        N_remaining = d_columns - n_points
+        if N_remaining > 0:
+            insertion_size += self.rng.multinomial(
+                N_remaining, np.repeat([1 / N_remaining], n_points)
+            )
 
         murein_per_column = unincorporated_monomers / d_columns
 
@@ -471,7 +472,7 @@ class CellWall(Process):
                 np.array(
                     [
                         sample_column(
-                            rows,
+                            new_rows,
                             murein_per_column,
                             geom_sampler(self.rng, strand_term_p),
                             self.rng,
