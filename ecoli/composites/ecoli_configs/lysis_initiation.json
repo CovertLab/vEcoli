@@ -9,5 +9,6 @@
         }
       },
       "process_configs": {
+        "ecoli-lysis-initiation": {}
       }
 }
