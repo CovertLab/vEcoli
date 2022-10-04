@@ -18,7 +18,7 @@ def run_sim(
 ):
     config = SimConfig()
     config.update_from_json(
-        os.path.join(CONFIG_DIR_PATH, "antibiotics_tetracycline.json")
+        os.path.join(CONFIG_DIR_PATH, "antibiotics_ampicillin.json")
     )
     config["initial_colony_file"] = initial_colony_file
 
@@ -103,7 +103,7 @@ def generate_data(seed, cloud, total_time, initial_colony_file):
     print(f"Ampicillin concentration: {param_store.get(('ampicillin', 'mic'))}")
 
     run_sim(
-        param_store.get(("ampicillin", "mic")),  # check that units are millimolar,
+        param_store.get(("ampicillin", "mic")),
         seed=seed,
         cloud=cloud,
         initial_colony_file=initial_colony_file,
