@@ -407,7 +407,7 @@ def geneSearch(gene, reactionStore):
 
 # %%
 geneData = pd.DataFrame()
-genesList = list(pd.read_csv("/Users/anikethiyengar/summerResearch/vivarium-ecoli/out/Genes.txt", header=None).loc[:, 0])
+genesList = list(pd.read_csv("Genes.txt", header=None).loc[:, 0])
 reactionStore = set()
 genesThatDontWork = []
 done = 0
