@@ -140,6 +140,7 @@ def output_data(data, filepath):
 
 
 def test_cell_wall():
+    total_time = 1200
     timeline_data = pd.read_csv(DATA, skipinitialspace=True)
 
     for antibiotics in [False, True]:
@@ -153,7 +154,7 @@ def test_cell_wall():
 
         # Get and plot data
         sim = Engine(composite=composite)
-        sim.update(2000)
+        sim.update(total_time)
         data = sim.emitter.get_data()
         output_data(
             data,
