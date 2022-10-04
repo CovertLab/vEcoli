@@ -221,8 +221,8 @@ class Shape(Step):
     def next_update(self, timestep, states):
         for port in (
                 'cell_global', 'periplasm_global', 'cytoplasm_global'):
-            for variable in states[port].values():
-                assert isinstance(variable, Quantity)
+            for variable, value in states[port].items():
+                assert isinstance(value, Quantity), f"{variable}={value} is not a Quantity"
 
         width = states['cell_global']['width']
         cell_volume = states['listener_cell_volume'] * units.fL
