@@ -99,11 +99,14 @@ def run_sim(
 
 def generate_data(seed, cloud, total_time, initial_colony_file):
     # run_sim(0, seed = 0, baseline=True, cloud=True)
+
+    print(f"Ampicillin concentration: {param_store.get(('ampicillin', 'mic'))}")
+
     run_sim(
-        param_store.get(("ampicillin", "mic")),  # 0.003375,
+        param_store.get(("ampicillin", "mic")),  # check that units are millimolar,
         seed=seed,
         cloud=cloud,
-        initial_colony_file="glc_reduced_murein_seed_0_colony_t11550",
+        initial_colony_file=initial_colony_file,
         start_time=11550,
         total_time=total_time,
     )
@@ -131,6 +134,10 @@ def cli():
     )
 
     args = parser.parse_args()
+
+    print(f"""Running ampicillin simulation with simulation with
+              seed = {args.seed}
+              for {args.total_time} seconds.""")
 
     generate_data(
         args.seed,
