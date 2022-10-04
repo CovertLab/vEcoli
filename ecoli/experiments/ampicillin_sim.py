@@ -97,13 +97,13 @@ def run_sim(
 #         json.dump(initial_state, f)
 
 
-def generate_data(seed, cloud, total_time):
+def generate_data(seed, cloud, total_time, initial_colony_file):
     # run_sim(0, seed = 0, baseline=True, cloud=True)
     run_sim(
         param_store.get(("ampicillin", "mic")),  # 0.003375,
         seed=seed,
         cloud=cloud,
-        initial_colony_file="seed_0_colony_t11550",
+        initial_colony_file="glc_reduced_murein_seed_0_colony_t11550",
         start_time=11550,
         total_time=total_time,
     )
@@ -117,6 +117,12 @@ def cli():
     )
     parser.add_argument("-l", "--local", action="store_true")
     parser.add_argument(
+        "-i",
+        "--initial_file",
+        default="glc_reduced_murein_seed_0_colony_t11550",
+        help="colony save state to run the simulation off of",
+    )
+    parser.add_argument(
         "-t",
         "--total_time",
         default=10000,
@@ -126,7 +132,12 @@ def cli():
 
     args = parser.parse_args()
 
-    generate_data(args.seed, cloud=(not args.local), total_time=args.total_time)
+    generate_data(
+        args.seed,
+        cloud=(not args.local),
+        total_time=args.total_time,
+        initial_colony_file=args.initial_file,
+    )
 
 
 def main():
