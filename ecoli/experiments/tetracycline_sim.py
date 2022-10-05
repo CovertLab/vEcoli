@@ -1,5 +1,6 @@
 import os
 import json
+import argparse
 
 from ecoli.composites.ecoli_engine_process import run_simulation
 from ecoli.experiments.ecoli_master_sim import CONFIG_DIR_PATH, SimConfig
@@ -22,6 +23,8 @@ def run_sim(tet_conc=0, baseline=False, seed=0, total_time=10000,
                 }
             },
             "field_timeline": {
+                # Set timeline with arbitrarily high time
+                # so that it is not used
                 "timeline": [
                     [100000, {
                         "tetracycline": 0
@@ -43,7 +46,7 @@ def run_sim(tet_conc=0, baseline=False, seed=0, total_time=10000,
             tetracycline_gradient['total_time'] = 27000
         else:
             tetracycline_gradient['save_times'] = [11550]
-            tetracycline_gradient['total_time'] = 15540
+            tetracycline_gradient['total_time'] = 15450
         tetracycline_gradient['emitter_arg'] = [
             ["host", "10.138.0.75:27017"],
             ["emit_limit", 5000000]
@@ -67,6 +70,7 @@ def run_sim(tet_conc=0, baseline=False, seed=0, total_time=10000,
         config['initial_state_file'] = 'wcecoli_t0'
     run_simulation(config)
 
+
 def add_mar_tf(data):
     # Add initial count for marR-tet complex
     data['bulk']['marR-tet[c]'] = 0
@@ -74,6 +78,7 @@ def add_mar_tf(data):
     for promoter_data in data['unique']['promoter'].values():
         promoter_data['bound_TF'] += [False, False]
     return data
+
 
 def make_tet_initial_state(initial_colony_file):
     with open(f'data/{initial_colony_file}.json') as f:
@@ -90,10 +95,72 @@ def make_tet_initial_state(initial_colony_file):
     with open(f'data/tet_{initial_colony_file}.json', 'w') as f:
         json.dump(initial_state, f)
 
-def generate_data():
-    # run_sim(0, seed = 0, baseline=True, cloud=True)
-    run_sim(0.003375, seed = 0, cloud=True, 
-        initial_colony_file='seed_0_colony_t11550', start_time=11550)
-        
+
+def generate_data(seed, cloud, conc, total_time, initial_colony_file, baseline):
+    if baseline:
+        print('Running baseline sim.')
+        run_sim(
+            0,
+            seed=seed,
+            cloud=cloud,
+            start_time=0,
+            total_time=27000,
+            baseline=baseline)
+    else:
+        print(f"Tetracycline concentration: {conc}")
+        run_sim(
+            conc,
+            seed=seed,
+            cloud=cloud,
+            initial_colony_file=initial_colony_file,
+            start_time=11550,
+            total_time=total_time,
+        )
+
+
+def main():
+    parser = argparse.ArgumentParser("Run tetracycline simulations.")
+
+    parser.add_argument(
+        "-s", "--seed", default=0, type=int, help="Random seed for simulation."
+    )
+    parser.add_argument("-l", "--local", action="store_true")
+    parser.add_argument("-b", "--baseline", action="store_true")
+    parser.add_argument(
+        "-i",
+        "--initial_file",
+        help="colony save state to run the simulation off of",
+    )
+    parser.add_argument(
+        "-t",
+        "--total_time",
+        default=15450,
+        type=int,
+        help="total time to run the simulation",
+    )
+    parser.add_argument(
+        "-c",
+        "--concentration",
+        default=0.003375,
+        type=float,
+        help="Starting tetracycline concentration"
+    )
+
+    args = parser.parse_args()
+
+    print(f"""Running tetracycline simulation with simulation with
+              seed = {args.seed}
+              for {args.total_time} seconds.""")
+
+    generate_data(
+        args.seed,
+        cloud=(not args.local),
+        conc=args.concentration,
+        total_time=args.total_time,
+        initial_colony_file=args.initial_file,
+        baseline=args.baseline
+    )
+
+
 if __name__ == "__main__":
-    generate_data()
+    main()

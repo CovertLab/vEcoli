@@ -1,11 +1,47 @@
 {
-    "inherit_from": ["antibiotics.json", "lysis_initiation.json"],
+    "inherit_from": ["antibiotics.json"],
     "add_processes": [
         "ecoli-cell-wall",
         "ecoli-pbp-binding",
-        "ecoli-shape"
+        "ecoli-lysis-initiation",
+        "conc_to_counts"
     ],
     "total_time": 100,
+
+    "spatial_environment_config": {
+        "reaction_diffusion": {
+            "molecules": [
+                "GLC[p]",
+                "EG10040-MONOMER[p]",
+                "ampicillin[p]",
+                "ampicillin_hydrolyzed[p]"
+            ],
+            "gradient": {
+                "molecules": {
+                    "EG10040-MONOMER[p]": "!units[0 millimolar]",
+                    "ampicillin[p]": "!units[0 millimolar]",
+                    "ampicillin_hydrolyzed[p]": "!units[0 millimolar]"
+                }
+            },
+            "reactions": {
+                "antibiotic_hydrolysis": {
+                    "stoichiometry": {
+                        "ampicillin[p]": -1,
+                        "ampicillin_hydrolyzed[p]": 1
+                    },
+                    "catalyzed by": "EG10040-MONOMER[p]"
+                }
+            },
+            "kinetic_parameters": {
+                "antibiotic_hydrolysis": {
+                    "EG10040-MONOMER[p]": {
+                        "kcat_f": 10.0,
+                        "ampicillin[p]": 0.01
+                    }
+                }
+            }
+        }
+    },
     
     "emitter_arg": [
         ["host", "localhost:27017"]
@@ -106,7 +142,22 @@
             "periplasm_global": ["periplasm", "global"],
             "listener_cell_mass": ["listeners", "mass", "cell_mass"],
             "listener_cell_volume": ["listeners", "mass", "volume"]
-          }
+        },
+        "ecoli-lysis-initiation": {
+            "cracked": ["wall_state", "cracked"],
+            "lysis_trigger": ["burst"]
+        },
+        "conc_to_counts": {
+            "ampicillin[p]": {
+                "conc": ["periplasm", "concentrations", "ampicillin"],
+                "volume": ["periplasm", "global", "volume"]
+            },
+            "ampicillin_hydrolyzed[p]": {
+                "conc": ["periplasm", "concentrations", "ampicillin_hydrolyzed"],
+                "volume": ["periplasm", "global", "volume"]
+            },
+            "bulk": ["bulk"]
+        }
     },
     "process_configs": {
         "antibiotic-transport-odeint": {
@@ -156,25 +207,26 @@
                 }
             }
         },
-        "ecoli-cell-wall": {
-
-        },
-        "ecoli-pbp-binding": {
-
-        },
-        "ecoli-shape": {
-            "global": {
-              "_path": "boundary",
-              "volume": ["..", "listeners", "mass", "volume"]
-            }
-        },
+        "ecoli-cell-wall": {},
+        "ecoli-pbp-binding": {},
         "ecoli-metabolism": {
             "reduce_murein_objective" : true
+        },
+        "ecoli-lysis-initiation": {},
+        "conc_to_counts": {
+            "molecules_to_convert": ["ampicillin[p]", "ampicillin_hydrolyzed[p]"]
         }
     },
 
+    "lysis_config": {
+        "secreted_molecules": [
+          "EG10040-MONOMER[p]",
+          "ampicillin[p]",
+          "ampicillin_hydrolyzed[p]"
+        ]
+    },
+
     "flow": {
-        "ecoli-shape": [["ecoli-mass-listener"]],
         "ecoli-pbp-binding": [["ecoli-metabolism"]]
       }
 }

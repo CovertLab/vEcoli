@@ -34,6 +34,7 @@ from ecoli.library.sim_data import RAND_MAX
 from ecoli.states.wcecoli_state import get_state_from_file
 from ecoli.processes.engine_process import EngineProcess
 from ecoli.processes.environment.field_timeline import FieldTimeline
+from ecoli.processes.environment.lysis import Lysis
 from ecoli.composites.environment.lattice import Lattice
 from ecoli.composites.ecoli_configs import CONFIG_DIR_PATH
 
@@ -98,10 +99,24 @@ class EcoliEngineProcess(Composer):
         'start_time': 0,
         'experiment_id': '',
         'inner_emitter': 'null',
-        'inner_composer_config': {}
+        'inner_composer_config': {},
+        'lysis_config': {}
     }
 
     def generate_processes(self, config):
+        processes = {}
+        if config['lysis_config']:
+            secreted_molecules = config['lysis_config']['secreted_molecules']
+            config['tunnels_in'] += tuple([
+                ('bulk', secreted_molecule)
+                for secreted_molecule in secreted_molecules
+            ])
+            config['tunnels_in'] += (('burst',),)
+            config['lysis_config']['agent_id'] = config['agent_id']
+            processes = {
+                'lysis': Lysis(config['lysis_config'])
+            }
+
         inner_composer_config = config.pop('inner_composer_config')
         cell_process_config = {
             'agent_id': config['agent_id'],
@@ -126,9 +141,8 @@ class EcoliEngineProcess(Composer):
             'experiment_id': config['experiment_id'],
         }
         cell_process = EngineProcess(cell_process_config)
-        return {
-            'cell_process': cell_process,
-        }
+        processes.update({'cell_process': cell_process})
+        return processes
 
     def generate_topology(self, config):
         topology = {
@@ -140,6 +154,15 @@ class EcoliEngineProcess(Composer):
         }
         for path in config['tunnels_in']:
             topology['cell_process'][f'{"-".join(path)}_tunnel'] = path
+        if config['lysis_config']:
+            topology['lysis'] = {
+                'trigger': ('burst'),
+                'internal': ('bulk'),
+                'agents': ('..',),
+                'fields': ('..', '..', 'fields'),
+                'location': ('boundary', 'location'),
+                'dimensions': ('..', '..', 'dimensions')
+            }
         return topology
 
 
@@ -246,11 +269,6 @@ def run_simulation(config):
     emitter_config = {'type': config['emitter']}
     for key, value in config['emitter_arg']:
         emitter_config[key] = value
-    
-    if 'division_threshold' not in config._config:
-        config['division_threshold'] = 668
-    if 'division_variable' not in config._config:
-        config['division_variable'] = ('listeners', 'mass', 'dry_mass')
 
     base_config = {
         'agent_id': config['agent_id'],
@@ -268,7 +286,8 @@ def run_simulation(config):
         'seed': config['seed'],
         'experiment_id': experiment_id,
         'start_time': config.get('start_time', 0),
-        'inner_composer_config': config.to_dict()
+        'inner_composer_config': config.to_dict(),
+        'lysis_config': config.get('lysis_config', {})
     }
 
     composite = {}

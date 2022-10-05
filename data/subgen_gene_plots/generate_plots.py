@@ -26,7 +26,7 @@ RELEASE_RNAS_TSV_PATH = 'data/subgen_gene_plots/release_rnas.tsv'
 RESPONSE_GENES_PATH = 'data/subgen_gene_plots/antibiotic_response_genes.txt'
 RNAS_TSV_PATH = 'reconstruction/ecoli/flat/rnas.tsv'
 SIM_DATA_PATH = 'reconstruction/sim_data/kb/simData.cPickle'
-TU_TO_INDEX_PATH = 'ecoli/experiments/marA_binding/TU_id_to_index.json'
+TU_TO_INDEX_PATH = 'data/marA_binding/TU_id_to_index.json'
 
 
 def main():

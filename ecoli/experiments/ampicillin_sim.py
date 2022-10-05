@@ -72,38 +72,11 @@ def run_sim(
     run_simulation(config)
 
 
-# def add_mar_tf(data):
-#     # Add initial count for marR-tet complex
-#     data["bulk"]["marR-tet[c]"] = 0
-#     # Add promoter binding data for marA and marR
-#     for promoter_data in data["unique"]["promoter"].values():
-#         promoter_data["bound_TF"] += [False, False]
-#     return data
-
-
-# def make_tet_initial_state(initial_colony_file):
-#     with open(f"data/{initial_colony_file}.json") as f:
-#         initial_state = json.load(f)
-#     for agent_id, agent_data in initial_state["agents"].items():
-#         initial_state["agents"][agent_id] = add_mar_tf(agent_data)
-#     if os.path.exists(f"data/tet_{initial_colony_file}.json"):
-#         with open(f"data/tet_{initial_colony_file}.json") as f:
-#             existing_initial_state = json.load(f)
-#         if recursive_compare(initial_state, existing_initial_state):
-#             return
-#         else:
-#             print(f"tet_{initial_colony_file}.json out of date, updating")
-#     with open(f"data/tet_{initial_colony_file}.json", "w") as f:
-#         json.dump(initial_state, f)
-
-
-def generate_data(seed, cloud, total_time, initial_colony_file):
-    # run_sim(0, seed = 0, baseline=True, cloud=True)
-
-    print(f"Ampicillin concentration: {param_store.get(('ampicillin', 'mic'))}")
+def generate_data(seed, cloud, conc, total_time, initial_colony_file):
+    print(f"Ampicillin concentration: {conc}")
 
     run_sim(
-        param_store.get(("ampicillin", "mic")),
+        conc,
         seed=seed,
         cloud=cloud,
         initial_colony_file=initial_colony_file,
@@ -132,6 +105,13 @@ def cli():
         type=int,
         help="total time to run the simulation",
     )
+    parser.add_argument(
+        "-c",
+        "--concentration",
+        default=param_store.get(("ampicillin", "mic")),
+        type=float,
+        help="Starting tetracycline concentration"
+    )
 
     args = parser.parse_args()
 
@@ -142,6 +122,7 @@ def cli():
     generate_data(
         args.seed,
         cloud=(not args.local),
+        conc=args.concentration,
         total_time=args.total_time,
         initial_colony_file=args.initial_file,
     )
