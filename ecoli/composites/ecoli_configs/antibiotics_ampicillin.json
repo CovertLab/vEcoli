@@ -22,7 +22,7 @@
         ["murein_state", "incorporated_murein"],
         ["murein_state", "unincorporated_murein"],
         ["murein_state", "shadow_murein"],
-        ["shape", "volume"],
+        ["boundary", "volume"],
         ["wall_state", "lattice_rows"],
         ["wall_state", "lattice_cols"],
         ["wall_state", "extension_factor"],
