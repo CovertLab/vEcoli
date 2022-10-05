@@ -81,6 +81,27 @@ TOPOLOGY = {
 topology_registry.register(NAME, TOPOLOGY)
 
 
+def divide_murein_state(mother):
+    RAND_MAX = 2**31 - 1
+    seed = int(mother["shadow_murein"]) % RAND_MAX
+    rng = np.random.default_rng(seed)
+    shadow_1 = rng.binomial(mother["shadow_murein"], 0.5)
+    shadow_2 = mother["shadow_murein"] - shadow_1
+
+    return [
+        {
+            "incorporated_murein": 0,
+            "unincorporated_murein": 0,
+            "shadow_murein": shadow_1,
+        },
+        {
+            "incorporated_murein": 0,
+            "unincorporated_murein": 0,
+            "shadow_murein": shadow_2,
+        },
+    ]
+
+
 class CellWall(Process):
     name = NAME
     topology = TOPOLOGY
@@ -134,26 +155,6 @@ class CellWall(Process):
         self.rng = np.random.default_rng(self.parameters["seed"])
 
     def ports_schema(self):
-        def divide_murein_state(mother):
-            RAND_MAX = 2**31 - 1
-            seed = int(mother["shadow_murein"]) % RAND_MAX
-            rng = np.random.default_rng(seed)
-            shadow_1 = rng.binomial(mother["shadow_murein"], 0.5)
-            shadow_2 = mother["shadow_murein"] - shadow_1
-
-            return [
-                {
-                    "incorporated_murein": 0,
-                    "unincorporated_murein": 0,
-                    "shadow_murein": shadow_1,
-                },
-                {
-                    "incorporated_murein": 0,
-                    "unincorporated_murein": 0,
-                    "shadow_murein": shadow_2,
-                },
-            ]
-
         schema = {
             "bulk_murein": bulk_schema([self.parameters["murein"]]),
             "murein_state": {
