@@ -26,7 +26,7 @@ def main():
 
 
     # Use fold change from exposure to 1.5 mg/L tetracycline
-    tet_FC = pd.read_table("ecoli/experiments/marA_binding/tet_FC.tsv")
+    tet_FC = pd.read_table("data/marA_binding/tet_FC.tsv")
     tet_FC = tet_FC.loc[:,["Gene Name ", "1.5 mg/L tet."]]
     tet_FC.rename(columns={
         "Gene Name ": "Gene name", "1.5 mg/L tet.": "Fold change"}, inplace=True)
@@ -49,7 +49,7 @@ def main():
     # Delete these two duplicates that are the incorrect genes
     model_degenes = model_degenes.loc[~((model_degenes['Gene name']=="acrE") & (model_degenes['common_name']=='acrB'))]
     model_degenes = model_degenes.loc[~((model_degenes['Gene name']=="acrB") & (model_degenes['common_name']=='gyrB'))]
-    with open("ecoli/experiments/marA_binding/TU_id_to_index.json") as f:
+    with open("data/marA_binding/TU_id_to_index.json") as f:
         TU_id_to_index = json.load(f)
 
     # Get model RNAs names by appending the "[c]" suffix, then get TU index for RNA
@@ -62,8 +62,8 @@ def main():
 
     # Include complexes
     # These numpy arrays were saved directly from complexation sim data
-    comp_stoich = np.load('ecoli/experiments/marA_binding/complexation_stoich.npy')
-    comp_molecules = np.load('ecoli/experiments/marA_binding/complexation_molecules.npy')
+    comp_stoich = np.load('data/marA_binding/complexation_stoich.npy')
+    comp_molecules = np.load('data/marA_binding/complexation_molecules.npy')
     comp_rxns = pd.DataFrame(comp_stoich, columns=comp_molecules)
 
     def recursive_search(complex_name, monomers_used):
@@ -140,7 +140,7 @@ def main():
     marR_monomers_used.append(-2)
         
     model_degenes.to_csv(
-        "ecoli/experiments/marA_binding/model_degenes.csv", index=False)
+        "data/marA_binding/model_degenes.csv", index=False)
 
 if __name__=="__main__":
     main()
