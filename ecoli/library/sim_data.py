@@ -72,17 +72,16 @@ class LoadSimData:
             
             # Add mass data for tetracycline and marR-tetracycline complex
             bulk_data = self.sim_data.internal_state.bulk_molecules.bulk_data.fullArray()
-            bulk_data = np.resize(bulk_data, bulk_data.shape[0]+2)
-            # Tetracyline mass from PubChem
+            bulk_data = np.resize(bulk_data, bulk_data.shape[0]+3)
             tet_mass = param_store.get(('tetracycline', 'mass')).magnitude
-            bulk_data[-1] = ('tetracycline', [0, 0, 0, 0, 0, 0, tet_mass, 0, 0])
-            # marR mass from EcoCyc (x2 because homodimer)
-            bulk_data[-2] = ('marR-tet[c]', [0, 0, 0, 0, 0, 32120, tet_mass, 0, 0])
+            bulk_data[-1] = ('tetracycline[c]', [0, 0, 0, 0, 0, 0, tet_mass, 0, 0])
+            bulk_data[-2] = ('tetracycline[p]', [0, 0, 0, 0, 0, 0, tet_mass, 0, 0])
+            marR_mass = bulk_data[bulk_data['id'] == 'CPLX0-7710[c]'][0][1][5]
+            bulk_data[-3] = ('marR-tet[c]', [0, 0, 0, 0, 0, marR_mass, tet_mass, 0, 0])
             bulk_units = self.sim_data.internal_state.bulk_molecules.bulk_data.fullUnits()
             self.sim_data.internal_state.bulk_molecules.bulk_data = UnitStructArray(bulk_data, bulk_units)
             
             # Add equilibrium reaction for marR-tetracycline and reinitialize self.sim_data.process.equilibrium variables
-            # Define alias
             equilibrium_proc = self.sim_data.process.equilibrium
             equilibrium_proc._stoichMatrixI = np.concatenate(
                 [equilibrium_proc._stoichMatrixI, np.array([98, 99, 100])])
@@ -91,7 +90,7 @@ class LoadSimData:
             equilibrium_proc._stoichMatrixV = np.concatenate(
                 [equilibrium_proc._stoichMatrixV, np.array([-1, -1, 1])])
             equilibrium_proc.molecule_names += [
-                'CPLX0-7710[c]', 'tetracycline', 'marR-tet[c]']
+                'CPLX0-7710[c]', 'tetracycline[c]', 'marR-tet[c]']
             equilibrium_proc.ids_complexes = [
                 equilibrium_proc.molecule_names[i] 
                 for i in np.where(np.any(
@@ -101,14 +100,14 @@ class LoadSimData:
             equilibrium_proc.rates_fwd = np.concatenate(
                 [equilibrium_proc.rates_fwd, np.array([1])])
             # Rev rate manually fit to complex off all marR except 1 
-            # at 1.5 mg/L external tetracycline
+            # at 1.5 mg/L external tetracycline when running from wcecoli_t0
             equilibrium_proc.rates_rev = np.concatenate(
                 [equilibrium_proc.rates_rev, np.array([7.1e-07])])
 
             # Mass balance matrix
             equilibrium_proc._stoichMatrixMass = np.concatenate(
                 [equilibrium_proc._stoichMatrixMass, np.array(
-                    [32130, tet_mass, 32130+tet_mass])])
+                    [marR_mass, tet_mass, marR_mass+tet_mass])])
             equilibrium_proc.balance_matrix = (
                 equilibrium_proc.stoich_matrix() * equilibrium_proc.mass_matrix())
 
@@ -121,6 +120,7 @@ class LoadSimData:
             # Build matrices
             equilibrium_proc._populateDerivativeAndJacobian()
             equilibrium_proc._stoichMatrix = equilibrium_proc.stoich_matrix()
+            self.sim_data.process.equilibrium = equilibrium_proc
         
         # Append new RNA IDs and degradation rates for sRNA-mRNA duplexes
         if rnai_data:
