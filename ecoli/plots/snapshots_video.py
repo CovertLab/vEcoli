@@ -148,11 +148,19 @@ def video_from_images(img_paths, out_file):
     for img_file in img_paths:
         img = cv2.imread(img_file)
         height, width, layers = img.shape
-        size = (width, height)
+        if size:
+            if width < size[0]:
+                size[0] = width
+            if height < size[0]:
+                size[1] = height
+        else:
+            size = (width, height)
         img_array.append(img)
 
     out = cv2.VideoWriter(out_file, cv2.VideoWriter_fourcc(*'mp4v'), 15, size)
     for i in range(len(img_array)):
+        # Crop all images to smallest size to avoid frame skips
+        img_array[i] = img_array[i][0:size[1], 0:size[0]]
         out.write(img_array[i])
     out.release()
 
