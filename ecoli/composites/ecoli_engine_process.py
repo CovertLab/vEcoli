@@ -156,8 +156,8 @@ class EcoliEngineProcess(Composer):
             topology['cell_process'][f'{"-".join(path)}_tunnel'] = path
         if config['lysis_config']:
             topology['lysis'] = {
-                'trigger': ('burst'),
-                'internal': ('bulk'),
+                'trigger': ('burst',),
+                'internal': ('bulk',),
                 'agents': ('..',),
                 'fields': ('..', '..', 'fields'),
                 'location': ('boundary', 'location'),
