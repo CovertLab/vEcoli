@@ -132,7 +132,7 @@
         "ecoli-pbp-binding": {
             "total_murein": ["bulk"],
             "murein_state": ["murein_state"],
-            "concentrations": ["concentrations"],
+            "concentrations": ["periplasm", "concentrations"],
             "bulk": ["bulk"],
             "pbp_state": ["pbp_state"]
         },
