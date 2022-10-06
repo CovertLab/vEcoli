@@ -325,6 +325,7 @@ class Metabolism(Step):
 
         fluxes = fba.getReactionFluxes() / timestep
         names = fba.getReactionIDs()
+        print("hey")
 
         flux_dict = {names[i]: int((fluxes[i] / counts_to_molar).asNumber()) for i in range(len(names))}
         # np.save("out/stoichiometry.npy", self.parameters["stoichiometry"])
