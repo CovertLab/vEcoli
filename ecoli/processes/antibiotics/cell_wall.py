@@ -479,7 +479,7 @@ class CellWall(Process):
                 )
         # If no active PBPs, assume empty column(s) inserted at center of wall
         else:
-            insertion_points = [np.mean(range(columns))]
+            insertion_points = [int(np.mean(range(columns)))]
             insertion_size = [d_columns]
             insertions = [
                 np.zeros(rows, dtype=int)
