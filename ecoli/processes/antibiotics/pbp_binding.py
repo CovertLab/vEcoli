@@ -105,7 +105,7 @@ class PBPBinding(Step):
                 "shadow_murein": {"_default": 0, "_updater": "set", "_emit": True},
             },
             "concentrations": {
-                "beta_lactam": {"_default": 0.0 * units.micromolar, "_emit": True},
+                self.beta_lactam: {"_default": 0.0 * units.micromolar, "_emit": True},
             },
             "bulk": bulk_schema(list(self.parameters["PBP"].values())),
             "pbp_state": {
@@ -134,7 +134,7 @@ class PBPBinding(Step):
 
         # Calculate fraction of active PBP1a, PBP1b using Hill Equation
         # (calculating prop NOT bound, i.e. 1 - Hill eq value)
-        beta_lactam = states["concentrations"]["beta_lactam"]
+        beta_lactam = states["concentrations"][self.beta_lactam]
         active_fraction_1a = 1 / (1 + (beta_lactam / self.K_A_1a) ** self.n_1a)
         active_fraction_1b = 1 / (1 + (beta_lactam / self.K_A_1b) ** self.n_1b)
 
@@ -200,7 +200,7 @@ def test_pbp_binding():
                     time,
                     {
                         ("bulk", "CPD-12261[p]"): int(initial_murein + 1000 * time),
-                        ("concentrations", "beta_lactam"): (
+                        ("concentrations", "ampicillin"): (
                             (time - 50) / 10 * units.micromolar
                             if time > 50
                             else 0 * units.micromolar
@@ -222,7 +222,7 @@ def test_pbp_binding():
                 "shadow_murein": 0,
             },
             "concentrations": {
-                "beta_lactam": 0 * units.micromolar,
+                "ampicillin": 0 * units.micromolar,
             },
             "bulk": {
                 "CPD-12261[p]": initial_murein,
@@ -247,7 +247,7 @@ def test_pbp_binding():
     fig = plot_variables(
         data,
         variables=[
-            ("concentrations", ("beta_lactam", "micromolar")),
+            ("concentrations", ("ampicillin", "micromolar")),
             ("bulk", "CPD-12261[p]"),
             ("murein_state", "incorporated_murein"),
             ("murein_state", "unincorporated_murein"),
