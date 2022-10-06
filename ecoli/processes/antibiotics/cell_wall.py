@@ -481,10 +481,10 @@ class CellWall(Process):
         else:
             insertion_points = [int(np.mean(range(columns)))]
             insertion_size = [d_columns]
-            insertions = [
+            insertions = np.array([
                 np.zeros(rows, dtype=int)
                 for _ in range(d_columns)
-            ]
+            ]).T
 
         # Combine insertions and old material into new lattice
         index_new = 0
