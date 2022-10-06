@@ -287,6 +287,8 @@ class EngineProcess(Process):
         return state
 
     def calculate_timestep(self, states):
+        if 'outer_time_step' in self.parameters:
+            return self.parameters['outer_time_step']
         timestep = np.inf
         for process in self.sim.processes.values():
             timestep = min(timestep, process.calculate_timestep({}))
