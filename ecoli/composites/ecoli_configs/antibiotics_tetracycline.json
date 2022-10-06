@@ -105,7 +105,7 @@
             "70s-free": ["unique", "active_ribosome"],
             "70s-tetracycline": ["unique", "active_ribosome_tetracycline"],
             "30s-tetracycline": ["bulk", "CPLX0-3953-tetracycline[c]"],
-            "volume": ["periplasm", "global", "volume"],
+            "volume": ["cytoplasm", "global", "volume"],
             "evolvers_ran": ["evolvers_ran"],
             "listeners": ["listeners"]
         },
