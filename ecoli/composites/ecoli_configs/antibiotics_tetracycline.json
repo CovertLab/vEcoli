@@ -148,7 +148,8 @@
                         "inner_enzyme_conc": "!units[0 millimolar]"
                     }
                 }
-            }
+            },
+            "timestep": 0.1
         },
         "permeability": {
             "porin_ids": ["CPLX0-7533[o]", "CPLX0-7534[o]"],
@@ -172,7 +173,7 @@
             "duplex_km": [0.00034204],
             "binding_probs": [1]
         },
-        "tetracycline-ribosome-equilibrium": {},
+        "tetracycline-ribosome-equilibrium": {"time_step": 0.1},
         "ecoli-mass-listener": {
             "tetracycline_mass": "!ParameterSerializer[tetracycline>mass]"
         },
