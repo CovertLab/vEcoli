@@ -116,7 +116,7 @@ class TetracyclineRibosomeEquilibrium(Step):
         # bound to tetracycline (Tc) and the concentration bound to
         # tRNA.
         tc_trna_binding_ratio = (
-            self.parameters['K_Tc'] * conc_tc_total
+            self.parameters['K_Tc'] * conc_tc_free
             / self.parameters['K_tRNA'] / conc_trna
         )
         # Why this works: Let r be the binding ratio, tc be the
