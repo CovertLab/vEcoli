@@ -100,7 +100,8 @@ class EcoliEngineProcess(Composer):
         'experiment_id': '',
         'inner_emitter': 'null',
         'inner_composer_config': {},
-        'lysis_config': {}
+        'lysis_config': {},
+        'outer_time_step': 1
     }
 
     def generate_processes(self, config):
@@ -139,6 +140,7 @@ class EcoliEngineProcess(Composer):
             '_parallel': config['parallel'],
             'start_time': config['start_time'],
             'experiment_id': config['experiment_id'],
+            'outer_time_step': config['outer_time_step']
         }
         cell_process = EngineProcess(cell_process_config)
         processes.update({'cell_process': cell_process})
@@ -287,7 +289,9 @@ def run_simulation(config):
         'experiment_id': experiment_id,
         'start_time': config.get('start_time', 0),
         'inner_composer_config': config.to_dict(),
-        'lysis_config': config.get('lysis_config', {})
+        'lysis_config': config.get('lysis_config', {}),
+        # Emit data and apply updates to outer environment every second
+        'outer_time_step': 1
     }
 
     composite = {}
