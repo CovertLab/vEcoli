@@ -25,12 +25,12 @@ def run_sim(
     ampicillin_gradient = {
         "total_time": total_time,
         "spatial_environment_config": {
-            "reaction_diffusion": {"gradient": {"molecules": {"ampicillin": amp_conc}}},
+            "reaction_diffusion": {"gradient": {"molecules": {"ampicillin[p]": amp_conc}}},
             "field_timeline": {
                 "timeline": [
                     [
                         100000,
-                        {"ampicillin": 0},
+                        {"ampicillin[p]": 0},
                     ],  # using 100000 sec because we don't actually want to set ampicillin to 0
                 ]
             },
@@ -69,6 +69,7 @@ def run_sim(
         config["flow"].pop("ecoli-pbp-binding")
 
         config["initial_state_file"] = "wcecoli_t0"
+        config["initial_state_overrides"] = ["overrides/reduced_murein"]
     run_simulation(config)
 
 

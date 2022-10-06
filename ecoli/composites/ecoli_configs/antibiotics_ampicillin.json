@@ -49,7 +49,6 @@
     "emitter": "database",
 
     "initial_state_file": "wcecoli_t0",
-    "initial_state_overrides": ["overrides/reduced_murein"],
 
     "engine_process_reports": [
         ["bulk", "CPD-12261[p]"],
@@ -76,10 +75,10 @@
                     "hydrolyzed_cytoplasm": ["..", "cytoplasm", "concentrations", "ampicillin_hydrolyzed"],
                     "cytoplasm": ["..", "cytoplasm", "concentrations", "ampicillin"],
                     "periplasm": ["..", "periplasm", "concentrations", "ampicillin"],
-                    "external": ["..", "boundary", "external", "ampicillin"]
+                    "external": ["..", "boundary", "external", "ampicillin[p]"]
                 },
                 "exchanges": {
-                    "external": ["environment", "exchange", "ampicillin"]
+                    "external": ["environment", "exchange", "ampicillin[p]"]
                 },
                 "reaction_parameters": {
                     "diffusion": {
