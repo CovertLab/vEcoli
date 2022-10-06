@@ -445,37 +445,46 @@ class CellWall(Process):
         # Sample columns for synthesis sites
         # First choose positions:
         n_points = min(n_sites, d_columns)
-        insertion_points = self.rng.choice(
-            list(range(columns)), size=n_points, replace=False
-        )
-        insertion_points.sort()
-
-        # Assign insert sizes to positions (at least one column per position):
-        insertion_size = np.ones(n_points, dtype=int)
-        N_remaining = d_columns - n_points
-        if N_remaining > 0:
-            insertion_size += self.rng.multinomial(
-                N_remaining, np.repeat([1 / N_remaining], n_points)
+        if n_points > 0:
+            insertion_points = self.rng.choice(
+                list(range(columns)), size=n_points, replace=False
             )
+            insertion_points.sort()
 
-        murein_per_column = unincorporated_monomers / d_columns
+            # Assign insert sizes to positions (at least one column per position):
+            insertion_size = np.ones(n_points, dtype=int)
+            N_remaining = d_columns - n_points
+            if N_remaining > 0:
+                insertion_size += self.rng.multinomial(
+                    N_remaining, np.repeat([1 / n_points], n_points)
+                )
 
-        # Sample columns to insert
-        insertions = []
-        for insert_size in insertion_size:
-            insertions.append(
-                np.array(
-                    [
-                        sample_column(
-                            rows,
-                            murein_per_column,
-                            geom_sampler(self.rng, strand_term_p),
-                            self.rng,
-                        )
-                        for _ in range(insert_size)
-                    ]
-                ).T
-            )
+            murein_per_column = unincorporated_monomers / d_columns
+
+            # Sample columns to insert
+            insertions = []
+            for insert_size in insertion_size:
+                insertions.append(
+                    np.array(
+                        [
+                            sample_column(
+                                rows,
+                                murein_per_column,
+                                geom_sampler(self.rng, strand_term_p),
+                                self.rng,
+                            )
+                            for _ in range(insert_size)
+                        ]
+                    ).T
+                )
+        # If no active PBPs, assume empty column(s) inserted at center of wall
+        else:
+            insertion_points = [np.mean(range(columns))]
+            insertion_size = [d_columns]
+            insertions = [
+                np.zeros(rows, dtype=int)
+                for _ in range(d_columns)
+            ]
 
         # Combine insertions and old material into new lattice
         index_new = 0
