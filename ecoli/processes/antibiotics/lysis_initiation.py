@@ -29,7 +29,7 @@ class LysisInitiation(Process):
         self.remaining_time = rng.exponential(mean_lysis_time)
 
     def ports_schema(self):
-        return {"cracked": {"_default": False}, "lysis_trigger": {"_default": True}}
+        return {"cracked": {"_default": False}, "lysis_trigger": {"_default": False}}
 
     def next_update(self, timestep, states):
         if states["cracked"] and not states["lysis_trigger"]:
