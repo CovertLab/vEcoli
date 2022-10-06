@@ -181,7 +181,7 @@ class TetracyclineRibosomeEquilibrium(Step):
                 '_value': count_30s_to_inhibit,
                 '_updater': 'accumulate',
             },
-            'reports': {
+            'listeners': {
                 'total_internal_tetracycline': conc_tc_total,
                 'frac_ribosomes_bound_tetracycline': (
                     ribo_frac_tc_bound_expected),
