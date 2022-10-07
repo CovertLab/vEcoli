@@ -250,8 +250,6 @@ class CellWall(Process):
 
         # Get lattice, setting it to a newly sampled lattice
         # if not yet initialized
-        rows = states["wall_state"]["lattice_rows"]
-        cols = states["wall_state"]["lattice_cols"]
         lattice = states["wall_state"]["lattice"]
         if lattice is None:
             # Make sure that all usable murein is initiailly unincorporated
