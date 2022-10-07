@@ -11,6 +11,14 @@ from vivarium.plots.simulation_output import plot_variables
 from ecoli.library.parameters import param_store
 from ecoli.library.schema import bulk_schema
 from ecoli.processes.registries import topology_registry
+from ecoli.processes.shape import length_from_volume
+from ecoli.library.cell_wall.column_sampler import (
+    geom_sampler,
+    sample_lattice,
+)
+from ecoli.library.cell_wall.lattice import (
+    calculate_lattice_size,
+)
 
 
 # Register default topology for this process, associating it with process name
@@ -21,6 +29,8 @@ TOPOLOGY = {
     "concentrations": ("concentrations",),
     "bulk": ("bulk",),
     "pbp_state": ("pbp_state",),
+    "wall_state": ("wall_state",),
+    "volume": ("boundary", "volume")
 }
 topology_registry.register(NAME, TOPOLOGY)
 
@@ -66,6 +76,16 @@ class PBPBinding(Step):
                 },
             },
         },
+        # Parameters to initialize cell wall after division (see cell_wall.py)
+        "strand_term_p": param_store.get(("cell_wall", "strand_term_p")),
+        "cell_radius": param_store.get(("cell_wall", "cell_radius")),
+        "disaccharide_height": param_store.get(("cell_wall", "disaccharide_height")),
+        "disaccharide_width": param_store.get(("cell_wall", "disaccharide_width")),
+        "inter_strand_distance": param_store.get(
+            ("cell_wall", "inter_strand_distance")
+        ),
+        # Simulation parameters
+        "seed": 0,
     }
 
     def __init__(self, parameters=None):
@@ -87,6 +107,15 @@ class PBPBinding(Step):
         self.n_1b = self.parameters["kinetic_params"][self.beta_lactam]["Hill_n"][
             "PBP1B"
         ]
+
+        # Parameters to initialize cell wall after division
+        self.strand_term_p = self.parameters["strand_term_p"]
+        self.cell_radius = self.parameters["cell_radius"]
+        self.circumference = 2 * np.pi * self.cell_radius
+        self.disaccharide_height = self.parameters["disaccharide_height"]
+        self.disaccharide_width = self.parameters["disaccharide_width"]
+        self.inter_strand_distance = self.parameters["inter_strand_distance"]
+        self.rng = np.random.default_rng(self.parameters["seed"])
 
     def ports_schema(self):
         return {
@@ -122,10 +151,70 @@ class PBPBinding(Step):
                     "_divider": {"divider": "set_value", "config": {"value": 1.0}},
                 },
             },
+            "wall_state": {
+                "lattice": {
+                    "_default": None,
+                    "_updater": "set",
+                    "_emit": False,
+                    "_divider": "set_none",
+                },
+                "extension_factor": {
+                    "_default": 1,
+                    "_updater": "set",
+                    "_emit": True,
+                    "_divider": {"divider": "set_value", "config": {"value": 1}},
+                },
+            },
+            "volume": {"_default": 1 * units.fL, "_emit": True}
         }
 
     def next_update(self, timestep, states):
-        update = {}
+        update = {"murein_state": {}}
+        
+        # CellWall normally calculates the un/incorporated murein counts after
+        # division but before this runs. When running inside an EngineProcess,
+        # a new instance of Engine is created after division, causing all steps
+        # (including this one) to run before any processes (like CellWall). If
+        # so, create lattice and calculate un/incorporated murein counts here.
+        if states["wall_state"]["lattice"] is None:
+            # Make sure that all usable murein is initiailly unincorporated
+            unincorporated_monomers = (
+                4 * states["total_murein"][self.murein]
+                - states["murein_state"]["shadow_murein"]
+            )
+            incorporated_monomers = 0
+
+            # Get dimensions of the lattice
+            length = length_from_volume(states["volume"],
+                self.cell_radius * 2).to("micrometer")
+            rows, cols = calculate_lattice_size(
+                length,
+                self.inter_strand_distance,
+                self.disaccharide_height,
+                self.disaccharide_width,
+                self.circumference,
+                states["wall_state"]["extension_factor"],
+            )
+
+            # Populate the lattice
+            lattice = sample_lattice(
+                unincorporated_monomers,
+                rows,
+                cols,
+                geom_sampler(self.rng, self.strand_term_p),
+                self.rng,
+            )
+
+            incorporated_monomers = lattice.sum()
+            unincorporated_monomers -= incorporated_monomers
+            states["murein_state"][
+                "incorporated_murein"] = incorporated_monomers
+            states["murein_state"][
+                "unincorporated_murein"] = unincorporated_monomers
+            update.update({
+                "wall_state": {"lattice": lattice},
+                "murein_state": {"incorporated_murein": incorporated_monomers}
+            })
 
         # New murein to allocate
         new_murein = 4 * states["total_murein"][self.murein] - sum(
@@ -157,14 +246,14 @@ class PBPBinding(Step):
         else:
             real_new_murein = new_murein
 
-        update["murein_state"] = {
+        update["murein_state"].update({
             "unincorporated_murein": (
                 real_new_murein + states["murein_state"]["unincorporated_murein"]
             ),
             "shadow_murein": (
                 new_murein - real_new_murein + states["murein_state"]["shadow_murein"]
             ),
-        }
+        })
 
         update["pbp_state"] = {
             "active_fraction_PBP1A": active_fraction_1a,
