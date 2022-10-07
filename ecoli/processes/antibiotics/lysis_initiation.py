@@ -19,6 +19,7 @@ class LysisInitiation(Process):
     defaults = {
         "mean_lysis_time": param_store.get(("lysis_initiation", "mean_lysis_time")),
         "seed": 0,
+        "time_step": 2
     }
 
     def __init__(self, parameters=None):
