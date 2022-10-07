@@ -66,7 +66,7 @@ import os
 from vivarium.core.composer import Composer
 from vivarium.core.emitter import get_emitter, SharedRamEmitter
 from vivarium.core.engine import Engine
-from vivarium.core.process import Process
+from vivarium.core.process import Process, Step
 from vivarium.core.registry import updater_registry, divider_registry
 from vivarium.core.store import DEFAULT_SCHEMA, Store
 from vivarium.library.topology import get_in
@@ -114,8 +114,9 @@ def cap_tunneling_paths(topology, outer=tuple()):
     return tunnels
 
 
-class SchemaStub(Process):
-    '''Stub process for providing schemas to an inner simulation.
+class SchemaStub(Step):
+    '''Stub process for providing schemas to an inner simulation. Run as
+    a Step to not influence the times at which other Steps run.
 
     When using :py:class:`ecoli.processes.engine_process.EngineProcess`,
     there may be processes in the outer simulation whose schemas you are
@@ -165,6 +166,7 @@ class EngineProcess(Process):
         'division_variable': None,
         'start_time': 0,
         'experiment_id': '',
+        'inner_same_timestep': False,
     }
     # TODO: Handle name clashes between tunnels.
 
@@ -194,6 +196,7 @@ class EngineProcess(Process):
 
         processes = inner_composite['processes']
         topology = inner_composite['topology']
+        steps = inner_composite.get('steps')
         for process, d in self.parameters['stub_schemas'].items():
             stub_ports_schema = {}
             stub_process_name = f'{process}_stub'
@@ -203,13 +206,13 @@ class EngineProcess(Process):
                 stub_ports_schema[port] = schema
                 topology[stub_process_name][port] = path
             stub = SchemaStub({'ports_schema': stub_ports_schema})
-            processes[stub_process_name] = stub
+            steps[stub_process_name] = stub
 
         self.emitter = None
         
         self.sim = Engine(
             processes=processes,
-            steps=inner_composite.get('steps'),
+            steps=steps,
             flow=inner_composite.get('flow'),
             topology=topology,
             initial_state=self.parameters['initial_inner_state'],
@@ -287,10 +290,15 @@ class EngineProcess(Process):
         return state
 
     def calculate_timestep(self, states):
-        if 'outer_time_step' in self.parameters:
-            return self.parameters['outer_time_step']
         timestep = np.inf
         for process in self.sim.processes.values():
+            if self.parameters['inner_same_timestep']:
+                # Ensure that all processes in inner sim have same timestep
+                if (timestep != process.calculate_timestep({})
+                    and timestep != np.inf):
+                    raise Exception("Time step mismatch for process "
+                                    f"{process.name}: {timestep} != " +
+                                    str(process.calculate_timestep({})))
             timestep = min(timestep, process.calculate_timestep({}))
         return timestep
 
