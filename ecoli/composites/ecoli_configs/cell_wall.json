@@ -21,7 +21,9 @@
             "murein_state": ["murein_state"],
             "concentrations": ["concentrations"],
             "bulk": ["bulk"],
-            "pbp_state": ["pbp_state"]
+            "pbp_state": ["pbp_state"],
+            "wall_state": ["wall_state"],
+            "volume": ["boundary", "volume"]
         },
         "ecoli-shape": {
             "cell_global": ["boundary"],
@@ -49,6 +51,6 @@
     },
     "flow": {
         "ecoli-shape": [["ecoli-mass-listener"]],
-        "ecoli-pbp-binding": [["ecoli-metabolism"]]
+        "ecoli-pbp-binding": [["ecoli-shape"]]
       }
 }

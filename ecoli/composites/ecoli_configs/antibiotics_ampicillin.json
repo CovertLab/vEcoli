@@ -226,6 +226,6 @@
     },
 
     "flow": {
-        "ecoli-pbp-binding": [["ecoli-metabolism"]]
+        "ecoli-pbp-binding": [["ecoli-shape"]]
       }
 }
