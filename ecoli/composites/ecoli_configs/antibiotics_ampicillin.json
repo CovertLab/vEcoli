@@ -192,7 +192,8 @@
                         "inner_enzyme_conc": "!units[0 millimolar]"
                     }
                 }
-            }
+            },
+            "time_step": 2
         },
         "permeability": {
             "porin_ids": ["CPLX0-7533[o]", "CPLX0-7534[o]"],
