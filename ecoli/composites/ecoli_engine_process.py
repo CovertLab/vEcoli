@@ -211,7 +211,12 @@ def colony_save_states(engine, config):
             state_to_save['agents'][agent_id] = cell_state
 
         state_to_save = serialize_value(state_to_save)
-        write_json('data/tet_seed_0_colony_t' + str(time_elapsed) + '.json', state_to_save)
+        if config.get('colony_save_prefix', None):
+            write_json('data/' + str(config['colony_save_prefix']) + '_seed_' + str(config['seed'])
+                + '_colony_t' + str(time_elapsed) + '.json', state_to_save)
+        else:
+            write_json('data/seed_' + str(config['seed'])
+                + '_colony_t' + str(time_elapsed) + '.json', state_to_save)
         # Cleanup namespace (significant with high cell counts)
         del state_to_save, cell_state
         print('Finished saving the state at t = ' + str(time_elapsed))
