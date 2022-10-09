@@ -42,11 +42,12 @@ def run_sim(
     if cloud:
         ampicillin_gradient["save"] = True
         if baseline:
-            ampicillin_gradient["save_times"] = [11550, 23100, 27000]
-            ampicillin_gradient["total_time"] = 27000
+            ampicillin_gradient["save_times"] = [11550, 23100, 26000]
+            # 26000 seconds catches the start of the 9th round of division
+            ampicillin_gradient["total_time"] = 26000
         else:
             ampicillin_gradient["save_times"] = [11550]
-            ampicillin_gradient["total_time"] = 15540
+            ampicillin_gradient["total_time"] = 14450
         ampicillin_gradient["emitter_arg"] = [
             ["host", "10.138.0.75:27017"],
             ["emit_limit", 5000000],

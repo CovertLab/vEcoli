@@ -42,11 +42,12 @@ def run_sim(tet_conc=0, baseline=False, seed=0, total_time=10000,
     if cloud:
         tetracycline_gradient['save'] = True
         if baseline:
-            tetracycline_gradient['save_times'] = [11550, 23100, 27000]
-            tetracycline_gradient['total_time'] = 27000
+            tetracycline_gradient['save_times'] = [11550, 23100, 26000]
+            # 26000 catches the start of the 9th round of division
+            tetracycline_gradient['total_time'] = 26000
         else:
             tetracycline_gradient['save_times'] = [11550]
-            tetracycline_gradient['total_time'] = 15450
+            tetracycline_gradient['total_time'] = 14450
         tetracycline_gradient['emitter_arg'] = [
             ["host", "10.138.0.75:27017"],
             ["emit_limit", 5000000]
