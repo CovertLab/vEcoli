@@ -69,6 +69,7 @@ def run_sim(tet_conc=0, baseline=False, seed=0, total_time=10000,
         config['flow'].pop('tetracycline-ribosome-equilibrium')
         config['mar_regulon'] = False
         config['initial_state_file'] = 'wcecoli_t0'
+        config["initial_state_overrides"] = ["overrides/reduced_murein"]
     run_simulation(config)
 
 
