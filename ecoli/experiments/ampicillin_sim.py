@@ -37,6 +37,7 @@ def run_sim(
         },
         "seed": seed,
         "start_time": start_time,
+        "colony_save_prefix": "amp"
     }
 
     if cloud:
@@ -71,6 +72,7 @@ def run_sim(
 
         config["initial_state_file"] = "wcecoli_t0"
         config["initial_state_overrides"] = ["overrides/reduced_murein"]
+        config["colony_save_prefix"] = "glc"
     run_simulation(config)
 
 

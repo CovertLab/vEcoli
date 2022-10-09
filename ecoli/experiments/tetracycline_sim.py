@@ -33,7 +33,8 @@ def run_sim(tet_conc=0, baseline=False, seed=0, total_time=10000,
             },
         },
         'seed': seed,
-        'start_time': start_time
+        'start_time': start_time,
+        'colony_save_prefix': 'tet'
     }
     if initial_colony_file:
         config['initial_colony_file'] = f'tet_{initial_colony_file}'
@@ -70,6 +71,7 @@ def run_sim(tet_conc=0, baseline=False, seed=0, total_time=10000,
         config['mar_regulon'] = False
         config['initial_state_file'] = 'wcecoli_t0'
         config["initial_state_overrides"] = ["overrides/reduced_murein"]
+        config["colony_save_prefix"] = "glc"
     run_simulation(config)
 
 
