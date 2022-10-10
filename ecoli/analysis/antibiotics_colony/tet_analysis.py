@@ -1,3 +1,4 @@
+import os
 import argparse
 import concurrent.futures
 import matplotlib.pyplot as plt
@@ -42,8 +43,11 @@ def multigen_traces(outfile, data, timeseries_paths, highlight_agents, highlight
     }
 
     fig = plot_agents_multigen(data, dict(plot_settings))
+
+    # Create directory if it does not exist
+    os.makedirs(os.path.dirname(outfile), exist_ok=True)
     fig.savefig(outfile, bbox_inches="tight")
-    plt.close()
+    plt.close(fig)
 
 
 def run_analysis(
@@ -58,12 +62,6 @@ def run_analysis(
     cpus,
     verbose,
 ):
-
-    if verbose:
-        print(f"Plotting the following timeseries into {outfile}:")
-        for path in tags:
-            print(f"\t{path}")
-
     # Get the required data
     tags = [convert_path_style(path) for path in tags]
     monomers = [path[-1] for path in tags if path[-2] == "monomer"]
@@ -73,6 +71,21 @@ def run_analysis(
     ]
     timeseries = [convert_path_style(path) for path in tags]
     outer_paths = [("data", "dimensions")]
+
+    if verbose:
+        print(f"Plotting the following timeseries into {outfile}:")
+        for path in tags:
+            line = f"\t{path}"
+
+            if path[-2] == "monomer":
+                line += "\t(monomer)"
+            elif path[-2] == "mrna":
+                line += "\t(mrna)"
+
+            print(line)
+
+        print()
+        print("Accessing data...")
 
     data = access_counts(
         experiment_id,
@@ -92,6 +105,7 @@ def run_analysis(
         data_deserialized = list(
             tqdm(
                 executor.map(deserialize_and_remove_units, data.values()),
+                desc="Deserializing data",
                 total=len(data),
             )
         )
@@ -156,4 +170,6 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    # main()
+
+    print("\n\n\n\nwhat")
