@@ -11,7 +11,9 @@ from skimage import measure
 
 
 class HoleSizeDict(MutableMapping):
-    def __init__(self, data={}):
+    def __init__(self, data=None):
+        if not data:
+            data = {}
         self.mapping = {}
         self.roots = set()
         self.largest_hole = 0

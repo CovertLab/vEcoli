@@ -10,10 +10,12 @@ from vivarium.core.emitter import timeseries_from_data
 
 def plot_activity(
         data,
-        settings={},
+        settings=None,
         out_dir='out',
         filename='motor_control',
 ):
+    if not settings:
+        settings = {}
     if settings.get('data_type') == 'timeseries':
         timeseries = data
     else:
