@@ -163,11 +163,11 @@ def access_counts(experiment_id, monomer_names, mrna_names, inner_paths=[],
     experiment_config = experiment_assembly[assembly_id]['metadata']
     # Load sim_data using parameters from experiment_config
     rnai_data = experiment_config['process_configs'].get(
-        'ecoli-rna-interference')
+        'ecoli-rna-interference', None)
     sim_data = LoadSimData(
         sim_data_path=experiment_config['sim_data_path'],
         seed=experiment_config['seed'],
-        mar_regulon=experiment_config['mar_regulon'],
+        mar_regulon=experiment_config.get('mar_regulon', False),
         rnai_data=rnai_data)
 
     time_filter = {'data.time': {'$gte': start_time, '$lte': end_time}}
