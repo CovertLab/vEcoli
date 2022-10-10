@@ -88,13 +88,13 @@ def run_analysis(
         print("Accessing data...")
 
     data = access_counts(
-        experiment_id,
-        monomers,
-        mrnas,
-        inner_paths,
-        outer_paths,
-        host,
-        port,
+        experiment_id=experiment_id,
+        monomer_names=monomers,
+        mrna_names=mrnas,
+        inner_paths=inner_paths,
+        outer_paths=outer_paths,
+        host=host,
+        port=port,
         sampling_rate=sampling_rate,
         start_time=start_time,
         end_time=end_time,
