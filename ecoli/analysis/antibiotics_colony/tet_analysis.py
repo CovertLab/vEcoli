@@ -59,14 +59,13 @@ def run_analysis(
     verbose,
 ):
 
-    # Get the required data
-    tags = [convert_path_style(path) for path in tags]
-
     if verbose:
         print(f"Plotting the following timeseries into {outfile}:")
         for path in tags:
-            print(f"> {path}")
+            print(f"\t{path}")
 
+    # Get the required data
+    tags = [convert_path_style(path) for path in tags]
     monomers = [path[-1] for path in tags if path[-2] == "monomer"]
     mrnas = [path[-1] for path in tags if path[-2] == "mrna"]
     inner_paths = [
