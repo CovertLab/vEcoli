@@ -122,9 +122,9 @@ def get_aggregation(host, port, aggregation):
         aggregation, hint={'experiment_id':1, 'data.time':1, '_id':1}))
 
 
-def access_counts(experiment_id, monomer_names, mrna_names, inner_paths=[],
-    outer_paths=[], host='localhost', port=27017, sampling_rate=None,
-    start_time=MinKey(), end_time=MaxKey(), cpus=1
+def access_counts(experiment_id, monomer_names=None, mrna_names=None, inner_paths=None,
+    outer_paths=None, host='localhost', port=27017, sampling_rate=None,
+    start_time=None, end_time=None, cpus=1
 ):
     """Retrieve monomer/mRNA counts or any other data from MongoDB.
     
@@ -147,6 +147,18 @@ def access_counts(experiment_id, monomer_names, mrna_names, inner_paths=[],
         end_time: Time to stop pulling data
         cpus: Number of chunks to split aggregation into to be run in parallel
     """
+    if not monomer_names:
+        monomer_names = []
+    if not mrna_names:
+        mrna_names = []
+    if not inner_paths:
+        inner_paths = []
+    if not outer_paths:
+        outer_paths = []
+    if not start_time:
+        start_time = MinKey()
+    if not end_time:
+        end_time = MaxKey()
     config = {
         'host': f'{host}:{port}',
         'database': 'simulations'

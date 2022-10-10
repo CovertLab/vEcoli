@@ -914,7 +914,9 @@ class LoadSimData:
 
         return monomer_counts_config
 
-    def get_allocator_config(self, time_step=2, parallel=False, process_names=[]):
+    def get_allocator_config(self, time_step=2, parallel=False, process_names=None):
+        if not process_names:
+            process_names = []
         allocator_config = {
             'time_step': time_step,
             '_parallel': parallel,
