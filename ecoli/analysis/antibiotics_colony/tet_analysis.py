@@ -32,26 +32,41 @@ def deserialize_and_remove_units(d):
 
 def multigen_traces(outfile, data, timeseries_paths, highlight_agents, highlight_color):
     plot_settings = {
-            'column_width': 6,
-            'row_height': 2,
-            'stack_column': True,
-            'tick_label_size': 10,
-            'linewidth': 2,
-            'title_size': 10,
-            'include_paths': timeseries_paths
-            }
+        "column_width": 6,
+        "row_height": 2,
+        "stack_column": True,
+        "tick_label_size": 10,
+        "linewidth": 2,
+        "title_size": 10,
+        "include_paths": timeseries_paths,
+    }
 
     fig = plot_agents_multigen(data, dict(plot_settings))
-    fig.savefig(outfile, bbox_inches='tight')
+    fig.savefig(outfile, bbox_inches="tight")
     plt.close()
 
 
 def run_analysis(
-    experiment_id, outfile, tags, sampling_rate, host, port, start_time, end_time, cpus
+    experiment_id,
+    outfile,
+    tags,
+    sampling_rate,
+    host,
+    port,
+    start_time,
+    end_time,
+    cpus,
+    verbose,
 ):
 
     # Get the required data
     tags = [convert_path_style(path) for path in tags]
+
+    if verbose:
+        print(f"Plotting the following timeseries into {outfile}:")
+        for path in tags:
+            print(f"> {path}")
+
     monomers = [path[-1] for path in tags if path[-2] == "monomer"]
     mrnas = [path[-1] for path in tags if path[-2] == "mrna"]
     inner_paths = [
@@ -88,6 +103,9 @@ def run_analysis(
 
     multigen_traces(outfile, data, timeseries, None, None)
 
+    if verbose:
+        print("Done.")
+
 
 def cli():
     parser = argparse.ArgumentParser("")
@@ -116,6 +134,7 @@ def cli():
     parser.add_argument("--start_time", "-s", type=int, default=MinKey())
     parser.add_argument("--end_time", "-e", type=int, default=MaxKey())
     parser.add_argument("--cpus", "-c", type=int, default=1)
+    parser.add_argument("--verbose", "-v", action="store_true")
     args = parser.parse_args()
 
     args = parser.parse_args()
@@ -130,6 +149,7 @@ def cli():
         args.start_time,
         args.end_time,
         args.cpus,
+        args.verbose,
     )
 
 
