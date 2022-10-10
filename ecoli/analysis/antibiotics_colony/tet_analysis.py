@@ -135,7 +135,6 @@ def cli():
     parser.add_argument("--end_time", "-e", type=int, default=MaxKey())
     parser.add_argument("--cpus", "-c", type=int, default=1)
     parser.add_argument("--verbose", "-v", action="store_true")
-    args = parser.parse_args()
 
     args = parser.parse_args()
 
