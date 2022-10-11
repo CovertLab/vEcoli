@@ -30,7 +30,9 @@
         ["bulk", "CPLX0-3953[c]"],
         ["bulk", "marR-tet[c]"],
         ["bulk", "tetracycline[c]"],
-        ["bulk", "CPLX0-7710[c]"]
+        ["bulk", "CPLX0-7710[c]"],
+        ["bulk", "MICF-RNA[c]"],
+        ["bulk", "micF-ompF[c]"]
     ],
     "topology": {
         "antibiotic-transport-odeint": {
