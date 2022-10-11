@@ -65,6 +65,7 @@ def run_sim(tet_conc=0, baseline=False, seed=0, total_time=10000,
         config['topology'].pop('tetracycline-ribosome-equilibrium')
         config['engine_process_reports'].remove(['bulk', 'marR-tet[c]'])
         config['engine_process_reports'].remove(['bulk', 'CPLX0-3953-tetracycline[c]'])
+        config['engine_process_reports'].remove(['bulk', 'micF-ompF[c]'],)
         config['flow']['ecoli-mass-listener'] = [('ecoli-metabolism',)]
         config['flow'].pop('ecoli-rna-interference')
         config['flow'].pop('tetracycline-ribosome-equilibrium')
