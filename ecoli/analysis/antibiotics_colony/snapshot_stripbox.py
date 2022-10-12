@@ -124,7 +124,7 @@ def plot_boxstrip(
     colors = data["color"].unique()
     palette = {color: color for color in colors}
     for column in data.columns:
-        if column not in ["color", "Condition"]:
+        if column not in ["color", "Condition", "time"]:
             g = sns.catplot(
                 data=data, kind="box",
                 x="Condition", y=column, col="time",
