@@ -1,0 +1,29 @@
+{
+    "paths_dict": {
+        "Murein (counts)": ["bulk", "CPD-12261[p]"],
+        "PBP1A (counts)": ["mrna", "EG10671_RNA"],
+        "PBP1B (counts)": ["bulk", "CPLX0-3951[i]"],
+        "Growth (fg dry mass / s)": ["listeners", "mass", "growth"],
+        "AcrAB-TolC (mM)": ["periplasm", "concentrations", "TRANS-CPLX-201[m]"],
+        "Ampicillin (mM)": ["periplasm", "concentrations", "ampicillin"],
+        "Hydrolyzed amp (mM)": ["periplasm", "concentrations", "ampicillin_hydrolyzed"],
+        "Periplasm Volume (fL)": ["periplasm", "global", "volume"],
+        "Wall cracked": ["wall_state", "cracked"],
+        "Wall extension factor": ["wall_state", "extension_factor"],
+        "Incorporated murein (counts)": ["murein_state", "incorporated_murein"],
+        "Unincorporated murein (counts)": ["murein_state", "unincorporated_murein"],
+        "OmpF monomer (counts)": ["monomer", "EG10671-MONOMER"],
+        "Amp. permeability (cm/s)": ["kinetic_parameters", "outer_ampicillin_permeability"]
+    },
+    "experiments": [
+        {
+            "experiment_id": "2022-10-11_19-58-13_430004+0000",
+            "start_time": 11550,
+            "end_time": 26000,
+            "sampling_rate": 1445,
+            "host": "10.138.0.75",
+            "port": 27017
+        }
+    ],
+    "condition": "Amp. (2 mg/L)"
+}

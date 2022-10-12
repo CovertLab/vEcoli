@@ -107,11 +107,11 @@ def retrieve_data(
     return data
 
 
-def plot_beeswarm(
+def plot_boxstrip(
     data: pd.DataFrame,
     out: str
 ) -> None:
-    '''Plot data as a collection of beeswarm plots with overlaid boxplots.
+    '''Plot data as a collection of strip plots with overlaid boxplots.
 
     Args:
         data: DataFrame where each column is a variable to plot and each row
@@ -130,8 +130,8 @@ def plot_beeswarm(
                 x="Condition", y=column, col="time",
                 boxprops={'facecolor':'None'}, showfliers=False,
                 aspect=0.5, legend=False)
-            g.map_dataframe(sns.swarmplot, x="Condition", y=column,
-                hue="color", palette=palette, size=3)
+            g.map_dataframe(sns.stripplot, x="Condition", y=column,
+                hue="color", palette=palette, alpha=0.5, size=3)
             g.savefig('out/analysis/antibiotics_colony/' + 
                 f'{out}_{column.replace("/", "_")}.png')
 
@@ -173,7 +173,7 @@ def main():
         data = retrieve_data(args.configs, baseline_colors)
 
     os.makedirs('out/analysis/antibiotics_colony/', exist_ok=True)
-    plot_beeswarm(data, args.out)
+    plot_boxstrip(data, args.out)
 
 
 if __name__ == "__main__":
