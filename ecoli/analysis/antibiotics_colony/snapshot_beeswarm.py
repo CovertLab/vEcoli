@@ -124,15 +124,15 @@ def plot_beeswarm(
     colors = data["color"].unique()
     palette = {color: color for color in colors}
     for column in data.columns:
-        if column not in ["color", "baseline"]:
+        if column not in ["color", "Condition"]:
             g = sns.catplot(
-                data=data, kind="swarm",
-                x="Condition", y=column, hue="color", col="time",
-                palette=palette, aspect=0.5, legend=False)
-            g.map_dataframe(sns.boxplot, x="Condition", y=column,
-                boxprops={'facecolor':'None'}, showfliers=False)
+                data=data, kind="box",
+                x="Condition", y=column, col="time",
+                boxprops={'facecolor':'None'}, showfliers=False,
+                aspect=0.5, legend=False)
+            g.map_dataframe(sns.swarmplot, x="Condition", y=column,
+                hue="color", palette=palette)
             g.savefig(f'out/analysis/antibiotics_colony/{out}_{column}.png')
-            import ipdb; ipdb.set_trace()
 
 
 def main():
