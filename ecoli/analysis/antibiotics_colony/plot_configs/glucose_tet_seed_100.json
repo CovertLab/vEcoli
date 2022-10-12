@@ -12,14 +12,15 @@
         "MarR (counts)": ["bulk", "CPLX0-7710[c]"],
         "MarR-tetracycline complex (counts)": ["bulk", "marR-tet[c]"],
         "micF-ompF duplex (counts)": ["bulk", "micF-ompF[c]"],
-        "30S-tetracycline complex (counts)": ["bulk", "CPLX0-3953-tetracycline[c]"]
+        "30S-tetracycline complex (counts)": ["bulk", "CPLX0-3953-tetracycline[c]"],
+        "Outer tet. permeability (cm/s)": ["kinetic_parameters", "outer_tetracycline_permeability"]
     },
     "experiments": [
         {
-            "experiment_id": "2022-10-12_13-54-10_531462+0000",
-            "start_time": 0,
+            "experiment_id": "2022-10-11_19-58-25_900543+0000",
+            "start_time": 11550,
             "end_time": 26000,
-            "sampling_rate": 5200,
+            "sampling_rate": 1445,
             "host": "10.138.0.75",
             "port": 27017
         }
