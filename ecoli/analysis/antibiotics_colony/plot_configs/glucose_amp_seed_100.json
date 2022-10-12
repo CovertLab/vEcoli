@@ -25,5 +25,5 @@
             "port": 27017
         }
     ],
-    "condition": "Amp. (2 mg/L)"
+    "condition": "Glucose"
 }
