@@ -131,8 +131,9 @@ def plot_beeswarm(
                 boxprops={'facecolor':'None'}, showfliers=False,
                 aspect=0.5, legend=False)
             g.map_dataframe(sns.swarmplot, x="Condition", y=column,
-                hue="color", palette=palette)
-            g.savefig(f'out/analysis/antibiotics_colony/{out}_{column}.png')
+                hue="color", palette=palette, size=3)
+            g.savefig('out/analysis/antibiotics_colony/' + 
+                f'{out}_{column.replace("/", "_")}.png')
 
 
 def main():
