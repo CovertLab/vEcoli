@@ -123,6 +123,7 @@ class Multibody(Process):
         'boundary_key': 'boundary',
         'mother_machine': False,
         'animate': False,
+        'seed': 0,
     }
 
     def __init__(self, parameters=None):
@@ -150,6 +151,7 @@ class Multibody(Process):
             'bounds': remove_units(self.bounds),
             'barriers': self.mother_machine,
             'physics_dt': self.parameters['timestep'] / 10,
+            'seed': self.parameters['seed']
         }
         self.physics = PymunkMultibody(multibody_config)
 
