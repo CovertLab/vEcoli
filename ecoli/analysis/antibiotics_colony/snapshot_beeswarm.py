@@ -69,7 +69,9 @@ def retrieve_data(
     data = pd.DataFrame()
     condition = None
     for i, config_file in enumerate(configs):
-        with open(config_file, 'r') as config_json:
+        config_path = "ecoli/analysis/antibiotics_colony/" + \
+            f"plot_configs/{config_file}.json"
+        with open(config_path, 'r') as config_json:
             config = json.load(config_json)
         if condition == None:
                 condition = config.get("condition", None)
