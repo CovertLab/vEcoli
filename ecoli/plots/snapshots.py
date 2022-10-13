@@ -269,12 +269,14 @@ def color_phylogeny(
         ancestor_id,
         phylogeny,
         baseline_hsv,
-        phylogeny_colors={}
+        phylogeny_colors=None
 ):
     """
     get colors for all descendants of the ancestor
     through recursive calls to each generation
     """
+    if not phylogeny_colors:
+        phylogeny_colors = {}
     phylogeny_colors.update({ancestor_id: baseline_hsv})
     daughter_ids = phylogeny.get(ancestor_id)
     if daughter_ids:
@@ -326,8 +328,10 @@ def get_field_range(
         fields,
         time_vec,
         include_fields=None,
-        skip_fields=[],
+        skip_fields=None,
 ):
+    if not skip_fields:
+        skip_fields = []
     field_range = {}
     if fields:
         if include_fields is None:
@@ -380,14 +384,14 @@ def get_agent_colors(
 
 def plot_snapshots(
         bounds,
-        agents={},
-        fields={},
+        agents=None,
+        fields=None,
         n_snapshots=5,
         snapshot_times=None,
         agent_fill_color=None,
         agent_colors=None,
         phylogeny_names=True,
-        skip_fields=[],
+        skip_fields=None,
         include_fields=None,
         out_dir=None,
         filename='snapshots',
@@ -429,6 +433,12 @@ def plot_snapshots(
             * **filename** (:py:class:`str`): Base name of output file.
               ``snapshots`` by default.
     '''
+    if not agents:
+        agents = {}
+    if not fields:
+        fields = {}
+    if not skip_fields:
+        skip_fields = []
     # Strip units from bounds if present.
     if isinstance(bounds[0], Quantity):
         bounds = tuple(bound.to(units.um).magnitude for bound in bounds)

@@ -224,6 +224,17 @@ class LoadSimData:
         mrna_ids = np.array([re.split(r'\[.\]', mrna)[0]
                             for mrna in mrna_ids])
         return [int(np.where(mrna_ids==name)[0][0]) for name in names]
+    
+    def get_rna_init_indices(self, names):
+        """Given a list of RNA names without location tags, this returns
+        the indices of those RNAs in the rnaInitEvents listener array.
+        The "id" column of reconstruction/ecoli/flat/rnas.tsv contains
+        nearly all supported RNA names."""
+        rna_ids = self.sim_data.process.transcription.rna_data['id']
+        # Strip location string (e.g. [c])
+        rna_ids = np.array([re.split(r'\[.\]', mrna)[0]
+                            for mrna in rna_ids])
+        return [int(np.where(rna_ids==name)[0][0]) for name in names]
             
     def _seedFromName(self, name):
         return binascii.crc32(name.encode('utf-8'), self.seed) & 0xffffffff
@@ -914,7 +925,9 @@ class LoadSimData:
 
         return monomer_counts_config
 
-    def get_allocator_config(self, time_step=2, parallel=False, process_names=[]):
+    def get_allocator_config(self, time_step=2, parallel=False, process_names=None):
+        if not process_names:
+            process_names = []
         allocator_config = {
             'time_step': time_step,
             '_parallel': parallel,
