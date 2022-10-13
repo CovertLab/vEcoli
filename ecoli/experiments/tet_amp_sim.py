@@ -45,13 +45,12 @@ def run_sim(tet_conc=0, amp_conc=0, baseline=False, seed=0,
     config.update_from_dict(add_opts)
     if initial_colony_file:
         config._config.pop('initial_state_file')
-        make_tet_initial_state(initial_colony_file)
-        config['initial_colony_file'] = f'tet_{initial_colony_file}'
+        config['initial_colony_file'] = initial_colony_file
     else:
         make_tet_initial_state('wcecoli_t0')
     if baseline:
         print(f'Running baseline sim (seed = {seed}).')
-        config["colony_save_prefix"] = "glc"
+        config["colony_save_prefix"] = "glc_combined"
         config['save_times'] = [11550, 23100, 26000]
         # 26000 catches the start of the 9th round of division
         # Run for one timestep past that to catch inner sim emits at 26000
