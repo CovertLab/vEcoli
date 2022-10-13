@@ -23,7 +23,6 @@ import os
 import copy
 import random
 import math
-import uuid
 
 import numpy as np
 
@@ -32,6 +31,7 @@ from vivarium.core.composition import simulate_process, PROCESS_OUT_DIR
 from vivarium.core.emitter import timeseries_from_data
 from vivarium.plots.simulation_output import plot_simulation_output
 
+from ecoli.library.schema import create_unique_indexes
 # plots
 from ecoli.plots.flagella_activity import plot_activity
 
@@ -102,11 +102,16 @@ class FlagellaMotor(Process):
                 'thrust': 0,
                 'torque': 0,
             }
-        }
+        },
+
+        # seed for unique ID generation
+        'seed': 0,
     }
 
     def __init__(self, parameters=None):
         super().__init__(parameters)
+        self.random_state = np.random.RandomState(
+            seed=self.parameters['seed'])
 
     def ports_schema(self):
         ports = [
@@ -212,8 +217,10 @@ class FlagellaMotor(Process):
 
         elif new_flagella > 0:
             flagella_update['_add'] = []
+            new_flagella_indexes = create_unique_indexes(
+                new_flagella, self.random_state)
             for index in range(new_flagella):
-                flagella_id = str(uuid.uuid1())
+                flagella_id = new_flagella_indexes[index]
                 flagella_update['_add'].append({
                     'key': flagella_id,
                     'state': random.choice([-1, 1])})

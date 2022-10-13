@@ -122,16 +122,19 @@ def get_aggregation(host, port, aggregation):
         aggregation, hint={'experiment_id':1, 'data.time':1, '_id':1}))
 
 
-def access_counts(experiment_id, monomer_names, mrna_names, inner_paths=[],
-    outer_paths=[], host='localhost', port=27017, sampling_rate=None,
-    start_time=MinKey(), end_time=MaxKey(), cpus=1
+def access_counts(experiment_id, monomer_names=None, mrna_names=None,
+    rna_init=None, inner_paths=None, outer_paths=None, host='localhost',
+    port=27017, sampling_rate=None, start_time=None, end_time=None, cpus=1
 ):
-    """Retrieve monomer/mRNA counts or any other data from MongoDB.
+    """Retrieve monomer/mRNA counts or any other data from MongoDB. Note that
+    this only works for experiments run using EcoliEngineProcess (each cell
+    emits separately).
     
     Args:
         experiment_id: Experiment ID for simulation
         monomer_names: Refer to reconstruction/ecoli/flat/rnas.tsv
         mrna_names: Refer to reconstruction/ecoli/flat/rnas.tsv
+        rna_init: List of RNAs to get # of initiations / timestep for
         inner_paths: Paths to stores inside each agent. For example,
             if you want to get the surface area of each cell, putting
             [('surface_area',)] here would retrieve:
@@ -147,6 +150,20 @@ def access_counts(experiment_id, monomer_names, mrna_names, inner_paths=[],
         end_time: Time to stop pulling data
         cpus: Number of chunks to split aggregation into to be run in parallel
     """
+    if not monomer_names:
+        monomer_names = []
+    if not mrna_names:
+        mrna_names = []
+    if not rna_init:
+        rna_init = []
+    if not inner_paths:
+        inner_paths = []
+    if not outer_paths:
+        outer_paths = []
+    if not start_time:
+        start_time = MinKey()
+    if not end_time:
+        end_time = MaxKey()
     config = {
         'host': f'{host}:{port}',
         'database': 'simulations'
@@ -230,10 +247,32 @@ def access_counts(experiment_id, monomer_names, mrna_names, inner_paths=[],
         }
         for mrna, mrna_index in zip(mrna_names, mrna_idx)
     })
-    if inner_paths:
-        for inner_path in inner_paths:
-            inner_path = ('data', 'agents', 'v') + inner_path
-            projection['$project']['.'.join(inner_path)] = 1
+    rna_idx = sim_data.get_rna_init_indices(rna_init)
+    projection['$project'].update({
+        f'data.agents.v.rna_init.{rna}': {
+            # Flatten array of length 1 into single count
+            '$reduce': {
+                # Get monomer count at specified index with $slice
+                'input': {'$slice': [
+                    # $objectToArray makes all embedded document fields 
+                    # into arrays so we flatten here before slicing
+                    {'$reduce': {
+                        'input': '$data.agents.v.listeners.rnap_data.rnaInitEvent',
+                        'initialValue': None,
+                        'in': '$$this'
+                    }},
+                    rna_index,
+                    1
+                ]},
+                'initialValue': None,
+                'in': '$$this'
+            }
+        }
+        for rna, rna_index in zip(rna_init, rna_idx)
+    })
+    for inner_path in inner_paths:
+        inner_path = ('data', 'agents', 'v') + inner_path
+        projection['$project']['.'.join(inner_path)] = 1
     # Boundary data necessary for snapshot plots
     projection['$project']['data.agents.v.boundary'] = 1
     projection['$project']['data.fields'] = 1
@@ -248,9 +287,8 @@ def access_counts(experiment_id, monomer_names, mrna_names, inner_paths=[],
         'data.time': 1,
         'assembly_id': 1,
     }}
-    if outer_paths:
-        for outer_path in outer_paths:
-            final_projection['$project']['.'.join(outer_path)] = 1
+    for outer_path in outer_paths:
+        final_projection['$project']['.'.join(outer_path)] = 1
     aggregation.append(final_projection)
     
     if cpus > 1:

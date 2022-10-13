@@ -386,7 +386,9 @@ def run_ecoli(
     return sim.query()
 
 
-def ecoli_topology_plot(config={}):
+def ecoli_topology_plot(config=None):
+    if not config:
+        config = {}
     """Make a topology plot of Ecoli"""
     agent_id_config = {'agent_id': '1'}
     ecoli = Ecoli({**agent_id_config, **config})

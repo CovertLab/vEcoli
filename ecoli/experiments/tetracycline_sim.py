@@ -45,10 +45,11 @@ def run_sim(tet_conc=0, baseline=False, seed=0, total_time=10000,
         if baseline:
             tetracycline_gradient['save_times'] = [11550, 23100, 26000]
             # 26000 catches the start of the 9th round of division
-            tetracycline_gradient['total_time'] = 26000
+            # Run for one timestep past that to catch inner sim emits at 26000
+            tetracycline_gradient['total_time'] = 26002
         else:
             tetracycline_gradient['save_times'] = [11550]
-            tetracycline_gradient['total_time'] = 14450
+            tetracycline_gradient['total_time'] = 14452
         tetracycline_gradient['emitter_arg'] = [
             ["host", "10.138.0.75:27017"],
             ["emit_limit", 5000000]
@@ -65,6 +66,7 @@ def run_sim(tet_conc=0, baseline=False, seed=0, total_time=10000,
         config['topology'].pop('tetracycline-ribosome-equilibrium')
         config['engine_process_reports'].remove(['bulk', 'marR-tet[c]'])
         config['engine_process_reports'].remove(['bulk', 'CPLX0-3953-tetracycline[c]'])
+        config['engine_process_reports'].remove(['bulk', 'micF-ompF[c]'],)
         config['flow']['ecoli-mass-listener'] = [('ecoli-metabolism',)]
         config['flow'].pop('ecoli-rna-interference')
         config['flow'].pop('tetracycline-ribosome-equilibrium')

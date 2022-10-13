@@ -8,7 +8,7 @@ bound ribosomes. Decreases ompF translation during micF overexpression.
 """
 import numpy as np
 
-from vivarium.core.process import Step
+from vivarium.core.process import Process
 from vivarium.core.composition import simulate_process
 
 from ecoli.library.schema import arrays_from, dict_value_schema, bulk_schema
@@ -24,7 +24,7 @@ TOPOLOGY = {
 }
 topology_registry.register(NAME, TOPOLOGY)
 
-class RnaInterference(Step):
+class RnaInterference(Process):
     name = NAME
     topology = TOPOLOGY
     defaults = {
@@ -35,6 +35,7 @@ class RnaInterference(Step):
         'ribosome50S': 'ribosome50S',
         'duplex_ids': [],
         'seed': 0,
+        'time_step': 2
     }
 
     def __init__(self, parameters=None):
