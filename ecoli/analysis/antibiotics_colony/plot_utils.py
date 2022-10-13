@@ -32,11 +32,11 @@ def agent_data_table(
         Dataframe where each column is a path and each row is an agent."""
     collected_data = {'Agent ID': []}
     agents_at_time = raw_data['agents']
-    for name, path in paths_dict.items():
-        if name not in collected_data:
-            collected_data[name] = []
-        for agent_id, agent_at_time in agents_at_time.items():
-            collected_data['Agent ID'].append(agent_id)
+    for agent_id, agent_at_time in agents_at_time.items():
+        collected_data['Agent ID'].append(agent_id)
+        for name, path in paths_dict.items():
+            if name not in collected_data:
+                collected_data[name] = []
             value_in_agent = get_value_from_path(agent_at_time, path)
             # Replace missing values with 0
             if value_in_agent == None:
