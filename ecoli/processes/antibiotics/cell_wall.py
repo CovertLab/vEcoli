@@ -265,6 +265,19 @@ class CellWall(Process):
             )
             incorporated_monomers = 0
 
+            # Get cell size information
+            length = length_from_volume(states["shape"]["volume"], self.cell_radius * 2).to(
+                "micrometer"
+            )
+            surface_area = surface_area_from_length(length, self.cell_radius * 2)
+
+            # Set extension factor such that the available murein covers
+            # the surface area of the cell
+            extension_factor = surface_area / (
+                unincorporated_monomers
+                * param_store.get(("cell_wall", "peptidoglycan_unit_area"))
+            )
+
             # Get dimensions of the lattice
             length = length_from_volume(volume, self.cell_radius * 2).to("micrometer")
             rows, cols = calculate_lattice_size(
@@ -323,7 +336,7 @@ class CellWall(Process):
             new_lattice,
             new_unincorporated_monomers,
             new_incorporated_monomers,
-            attempted_shrinkage
+            attempted_shrinkage,
         ) = self.update_murein(
             lattice,
             unincorporated_monomers,
@@ -374,7 +387,7 @@ class CellWall(Process):
                 new_lattice,
                 new_unincorporated_monomers,
                 new_incorporated_monomers,
-                attempted_shrinkage
+                attempted_shrinkage,
             ) = self.update_murein(
                 lattice,
                 unincorporated_monomers,
@@ -401,7 +414,7 @@ class CellWall(Process):
             "lattice_rows": lattice.shape[0],
             "lattice_cols": lattice.shape[1],
             "extension_factor": extension_factor,
-            "attempted_shrinkage": attempted_shrinkage
+            "attempted_shrinkage": attempted_shrinkage,
         }
         update["murein_state"] = {
             "unincorporated_murein": new_unincorporated_monomers,
@@ -429,7 +442,7 @@ class CellWall(Process):
     ):
         rows, columns = lattice.shape
         d_columns = new_columns - columns
-        
+
         attempted_shrinkage = False
 
         # Stop early is there is no murein to allocate, or if the cell has not grown
@@ -440,16 +453,24 @@ class CellWall(Process):
             new_unincorporated_monomers = (
                 total_real_monomers - new_incorporated_monomers
             )
-            return (new_lattice, new_unincorporated_monomers,
-                    new_incorporated_monomers, attempted_shrinkage)
+            return (
+                new_lattice,
+                new_unincorporated_monomers,
+                new_incorporated_monomers,
+                attempted_shrinkage,
+            )
 
         if d_columns < 0:
             warnings.warn(
                 f"Lattice shrinkage is currently not supported ({-d_columns} lost)."
             )
             attempted_shrinkage = True
-            return (lattice, unincorporated_monomers,
-                    incorporated_monomers, attempted_shrinkage)
+            return (
+                lattice,
+                unincorporated_monomers,
+                incorporated_monomers,
+                attempted_shrinkage,
+            )
 
         # Create new lattice
         new_lattice = np.zeros((rows, new_columns), dtype=lattice.dtype)
@@ -495,10 +516,9 @@ class CellWall(Process):
         else:
             insertion_points = [int(np.mean(range(columns)))]
             insertion_size = [d_columns]
-            insertions = np.array([
-                np.zeros(rows, dtype=int)
-                for _ in range(d_columns)
-            ]).T
+            insertions = np.array(
+                [np.zeros(rows, dtype=int) for _ in range(d_columns)]
+            ).T
 
         # Combine insertions and old material into new lattice
         index_new = 0
@@ -526,5 +546,9 @@ class CellWall(Process):
         total_real_monomers = unincorporated_monomers + incorporated_monomers
         new_incorporated_monomers = new_lattice.sum()
         new_unincorporated_monomers = total_real_monomers - new_incorporated_monomers
-        return (new_lattice, new_unincorporated_monomers,
-                new_incorporated_monomers, attempted_shrinkage)
+        return (
+            new_lattice,
+            new_unincorporated_monomers,
+            new_incorporated_monomers,
+            attempted_shrinkage,
+        )

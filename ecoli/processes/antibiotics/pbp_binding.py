@@ -11,7 +11,7 @@ from vivarium.plots.simulation_output import plot_variables
 from ecoli.library.parameters import param_store
 from ecoli.library.schema import bulk_schema
 from ecoli.processes.registries import topology_registry
-from ecoli.processes.shape import length_from_volume
+from ecoli.processes.shape import length_from_volume, surface_area_from_length
 from ecoli.library.cell_wall.column_sampler import (
     geom_sampler,
     sample_lattice,
@@ -30,7 +30,7 @@ TOPOLOGY = {
     "bulk": ("bulk",),
     "pbp_state": ("pbp_state",),
     "wall_state": ("wall_state",),
-    "volume": ("boundary", "volume")
+    "volume": ("boundary", "volume"),
 }
 topology_registry.register(NAME, TOPOLOGY)
 
@@ -165,12 +165,12 @@ class PBPBinding(Step):
                     "_divider": {"divider": "set_value", "config": {"value": 1}},
                 },
             },
-            "volume": {"_default": 1 * units.fL, "_emit": True}
+            "volume": {"_default": 1 * units.fL, "_emit": True},
         }
 
     def next_update(self, timestep, states):
         update = {"murein_state": {}}
-        
+
         # CellWall normally calculates the un/incorporated murein counts after
         # division but before this runs. When running inside an EngineProcess,
         # a new instance of Engine is created after division, causing all steps
@@ -184,16 +184,25 @@ class PBPBinding(Step):
             )
             incorporated_monomers = 0
 
+            # Get cell size information
+            length = length_from_volume(states["volume"], self.cell_radius * 2).to("micrometer")
+            surface_area = surface_area_from_length(length, self.cell_radius * 2)
+
+            # Set extension factor such that the available murein covers
+            # the surface area of the cell
+            extension = surface_area / (
+                unincorporated_monomers
+                * param_store.get(("cell_wall", "peptidoglycan_unit_area"))
+            )
+
             # Get dimensions of the lattice
-            length = length_from_volume(states["volume"],
-                self.cell_radius * 2).to("micrometer")
             rows, cols = calculate_lattice_size(
                 length,
                 self.inter_strand_distance,
                 self.disaccharide_height,
                 self.disaccharide_width,
                 self.circumference,
-                states["wall_state"]["extension_factor"],
+                extension,
             )
 
             # Populate the lattice
@@ -207,14 +216,14 @@ class PBPBinding(Step):
 
             incorporated_monomers = lattice.sum()
             unincorporated_monomers -= incorporated_monomers
-            states["murein_state"][
-                "incorporated_murein"] = incorporated_monomers
-            states["murein_state"][
-                "unincorporated_murein"] = unincorporated_monomers
-            update.update({
-                "wall_state": {"lattice": lattice},
-                "murein_state": {"incorporated_murein": incorporated_monomers}
-            })
+            states["murein_state"]["incorporated_murein"] = incorporated_monomers
+            states["murein_state"]["unincorporated_murein"] = unincorporated_monomers
+            update.update(
+                {
+                    "wall_state": {"lattice": lattice, "extension_factor": extension},
+                    "murein_state": {"incorporated_murein": incorporated_monomers},
+                }
+            )
 
         # New murein to allocate
         new_murein = 4 * states["total_murein"][self.murein] - sum(
@@ -246,14 +255,18 @@ class PBPBinding(Step):
         else:
             real_new_murein = new_murein
 
-        update["murein_state"].update({
-            "unincorporated_murein": (
-                real_new_murein + states["murein_state"]["unincorporated_murein"]
-            ),
-            "shadow_murein": (
-                new_murein - real_new_murein + states["murein_state"]["shadow_murein"]
-            ),
-        })
+        update["murein_state"].update(
+            {
+                "unincorporated_murein": (
+                    real_new_murein + states["murein_state"]["unincorporated_murein"]
+                ),
+                "shadow_murein": (
+                    new_murein
+                    - real_new_murein
+                    + states["murein_state"]["shadow_murein"]
+                ),
+            }
+        )
 
         update["pbp_state"] = {
             "active_fraction_PBP1A": active_fraction_1a,
