@@ -48,6 +48,7 @@
         ["wall_state", "lattice_cols"],
         ["wall_state", "extension_factor"],
         ["wall_state", "cracked"],
+        ["wall_state", "attempted_shrinkage"],
         ["burst"],
         ["pbp_state", "active_fraction_PBP1A"],
         ["pbp_state", "active_fraction_PBP1B"]
