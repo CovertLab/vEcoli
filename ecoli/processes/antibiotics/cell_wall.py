@@ -206,6 +206,12 @@ class CellWall(Process):
                     "_emit": True,
                     "_divider": {"divider": "set_value", "config": {"value": False}},
                 },
+                "attempted_shrinkage": {
+                    "_default": False,
+                    "_updater": "set",
+                    "_emit": True,
+                    "_divider": {"divider": "set_value", "config": {"value": False}},
+                },
             },
             "pbp_state": {
                 "active_fraction_PBP1A": {"_default": 0.0, "_updater": "set"},
@@ -317,6 +323,7 @@ class CellWall(Process):
             new_lattice,
             new_unincorporated_monomers,
             new_incorporated_monomers,
+            attempted_shrinkage
         ) = self.update_murein(
             lattice,
             unincorporated_monomers,
@@ -367,6 +374,7 @@ class CellWall(Process):
                 new_lattice,
                 new_unincorporated_monomers,
                 new_incorporated_monomers,
+                attempted_shrinkage
             ) = self.update_murein(
                 lattice,
                 unincorporated_monomers,
@@ -393,6 +401,7 @@ class CellWall(Process):
             "lattice_rows": lattice.shape[0],
             "lattice_cols": lattice.shape[1],
             "extension_factor": extension_factor,
+            "attempted_shrinkage": attempted_shrinkage
         }
         update["murein_state"] = {
             "unincorporated_murein": new_unincorporated_monomers,
@@ -420,6 +429,8 @@ class CellWall(Process):
     ):
         rows, columns = lattice.shape
         d_columns = new_columns - columns
+        
+        attempted_shrinkage = False
 
         # Stop early is there is no murein to allocate, or if the cell has not grown
         if unincorporated_monomers == 0 or d_columns == 0:
@@ -429,13 +440,16 @@ class CellWall(Process):
             new_unincorporated_monomers = (
                 total_real_monomers - new_incorporated_monomers
             )
-            return new_lattice, new_unincorporated_monomers, new_incorporated_monomers
+            return (new_lattice, new_unincorporated_monomers,
+                    new_incorporated_monomers, attempted_shrinkage)
 
         if d_columns < 0:
             warnings.warn(
                 f"Lattice shrinkage is currently not supported ({-d_columns} lost)."
             )
-            return lattice, unincorporated_monomers, incorporated_monomers
+            attempted_shrinkage = True
+            return (lattice, unincorporated_monomers,
+                    incorporated_monomers, attempted_shrinkage)
 
         # Create new lattice
         new_lattice = np.zeros((rows, new_columns), dtype=lattice.dtype)
@@ -510,4 +524,5 @@ class CellWall(Process):
         total_real_monomers = unincorporated_monomers + incorporated_monomers
         new_incorporated_monomers = new_lattice.sum()
         new_unincorporated_monomers = total_real_monomers - new_incorporated_monomers
-        return new_lattice, new_unincorporated_monomers, new_incorporated_monomers
+        return (new_lattice, new_unincorporated_monomers,
+                new_incorporated_monomers, attempted_shrinkage)
