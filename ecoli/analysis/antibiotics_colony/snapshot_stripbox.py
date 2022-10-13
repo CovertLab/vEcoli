@@ -27,14 +27,14 @@ def plot_boxstrip(
     colors = data["Color"].unique()
     palette = {color: color for color in colors}
     for column in data.columns:
-        if column not in ["Color", "Condition", "Time", "Division", "Death"]:
+        if column not in ["Color", "Condition", "Time", "Division", "Death", "Agent ID"]:
             g = sns.catplot(
                 data=data, kind="box",
-                x="Condition", y=column, col="time",
+                x="Condition", y=column, col="Time",
                 boxprops={'facecolor':'None'}, showfliers=False,
                 aspect=0.5, legend=False)
             g.map_dataframe(sns.stripplot, x="Condition", y=column,
-                hue="color", palette=palette, alpha=0.5, size=3)
+                hue="Color", palette=palette, alpha=0.5, size=3)
             g.savefig('out/analysis/antibiotics_colony/' + 
                 f'{out}_{column.replace("/", "_")}.png')
 
