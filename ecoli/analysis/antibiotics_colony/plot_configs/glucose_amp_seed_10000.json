@@ -2,7 +2,7 @@
     "paths_dict": {
         "Murein (counts)": ["bulk", "CPD-12261[p]"],
         "PBP1A (counts)": ["mrna", "EG10671_RNA"],
-        "PBP1B (counts)": ["bulk", "CPLX0-3951[i]"],
+        "PBP1A Active Fraction": ["pbp_state", "active_fraction_PBP1A"],
         "Growth (fg dry mass / s)": ["listeners", "mass", "growth"],
         "AcrAB-TolC (mM)": ["periplasm", "concentrations", "TRANS-CPLX-201[m]"],
         "Ampicillin (mM)": ["periplasm", "concentrations", "ampicillin"],
