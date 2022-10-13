@@ -82,7 +82,7 @@
         }
     },
     "process_configs": {
-        "ecoli-cell-wall": {},
+        "ecoli-cell-wall": {"time_step": 10},
         "ecoli-pbp-binding": {},
         "ecoli-metabolism": {
             "reduce_murein_objective" : true
