@@ -45,7 +45,7 @@ def create_composite(timeline_data, antibiotics=True):
             ("cell_global", "volume"): parse_unit_string(
                 value[("cell_global", "volume")]
             ),
-            ("concentrations", "beta_lactam"): (
+            ("concentrations", "ampicillin"): (
                 9.16 * units.micromolar
                 if antibiotics and t > 0
                 else 0 * units.micromolar
@@ -108,7 +108,7 @@ def create_composite(timeline_data, antibiotics=True):
 
 def output_data(data, filepath):
     variables = [
-        ("concentrations", "beta_lactam"),
+        ("concentrations", "ampicillin"),
         ("wall_state", "cracked"),
         ("bulk", "CPD-12261[p]"),
         ("bulk", "CPLX0-7717[m]"),
@@ -117,6 +117,7 @@ def output_data(data, filepath):
         ("murein_state", "unincorporated_murein"),
         ("murein_state", "shadow_murein"),
         ("wall_state", "extension_factor"),
+        ("wall_state", "lattice_cols"),
         ("pbp_state", "active_fraction_PBP1A"),
         ("pbp_state", "active_fraction_PBP1B"),
         ("listeners", "porosity"),

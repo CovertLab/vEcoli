@@ -5,7 +5,7 @@ from vivarium.core.composer import Composite
 from vivarium.core.composition import add_timeline
 from vivarium.core.engine import Engine
 from vivarium.core.process import Step
-from vivarium.library.units import units
+from vivarium.library.units import units, remove_units
 from vivarium.plots.simulation_output import plot_variables
 
 from ecoli.library.parameters import param_store
@@ -185,15 +185,21 @@ class PBPBinding(Step):
             incorporated_monomers = 0
 
             # Get cell size information
-            length = length_from_volume(states["volume"], self.cell_radius * 2).to("micrometer")
+            length = length_from_volume(states["volume"], self.cell_radius * 2).to(
+                "micrometer"
+            )
             surface_area = surface_area_from_length(length, self.cell_radius * 2)
 
             # Set extension factor such that the available murein covers
             # the surface area of the cell
-            extension = surface_area / (
-                unincorporated_monomers
-                * param_store.get(("cell_wall", "peptidoglycan_unit_area"))
-            )
+            extension = (
+                surface_area
+                / (
+                    unincorporated_monomers
+                    * param_store.get(("cell_wall", "peptidoglycan_unit_area"))
+                )
+            ).to(units.dimensionless)
+            extension = remove_units(extension)
 
             # Get dimensions of the lattice
             rows, cols = calculate_lattice_size(
