@@ -129,7 +129,7 @@ class CellWall(Process):
         ),
         # Simulation parameters
         "seed": 0,
-        "time_step": 2,
+        "time_step": 10,
     }
 
     def __init__(self, parameters=None):
@@ -508,11 +508,11 @@ class CellWall(Process):
                         [
                             sample_column(
                                 rows,
-                                murein_per_column,
+                                murein_per_column[i],
                                 geom_sampler(self.rng, strand_term_p),
                                 self.rng,
                             )
-                            for _ in range(insert_size)
+                            for i in range(insert_size)
                         ]
                     ).T
                 )
