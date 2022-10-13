@@ -70,7 +70,8 @@
             "duplex_ids": ["micF-ompF[c]"],
             "duplex_deg_rates": [0.00135911],
             "duplex_km": [0.00034204],
-            "binding_probs": [1]
+            "binding_probs": [1],
+            "time_step": 2
         },
         "tetracycline-ribosome-equilibrium": {},
         "ecoli-mass-listener": {
@@ -85,9 +86,7 @@
         }
     },
     "flow": {
-        "ecoli-rna-interference": [["ecoli-metabolism"]],
-        "tetracycline-ribosome-equilibrium": [["ecoli-rna-interference"]],
-        "ecoli-mass-listener": [["tetracycline-ribosome-equilibrium"]],
-        "aggregator": [["ecoli-mass-listener"]]
+        "tetracycline-ribosome-equilibrium": [["ecoli-shape"]],
+        "aggregator": [["tetracycline-ribosome-equilibrium"]]
     }
 }
