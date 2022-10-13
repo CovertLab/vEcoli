@@ -273,10 +273,14 @@ class CellWall(Process):
 
             # Set extension factor such that the available murein covers
             # the surface area of the cell
-            extension_factor = surface_area / (
-                unincorporated_monomers
-                * param_store.get(("cell_wall", "peptidoglycan_unit_area"))
-            )
+            extension_factor = (
+                surface_area
+                / (
+                    unincorporated_monomers
+                    * param_store.get(("cell_wall", "peptidoglycan_unit_area"))
+                )
+            ).to(units.dimensionless)
+            extension_factor = remove_units(extension_factor)
 
             # Get dimensions of the lattice
             length = length_from_volume(volume, self.cell_radius * 2).to("micrometer")
