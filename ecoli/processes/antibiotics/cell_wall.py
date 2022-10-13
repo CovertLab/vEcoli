@@ -471,7 +471,9 @@ class CellWall(Process):
                     N_remaining, np.repeat([1 / n_points], n_points)
                 )
 
-            murein_per_column = unincorporated_monomers / d_columns
+            murein_per_column = self.rng.multinomial(
+                unincorporated_monomers, np.repeat([1 / d_columns], d_columns)
+            )
 
             # Sample columns to insert
             insertions = []
