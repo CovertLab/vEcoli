@@ -56,6 +56,8 @@ def run_sim(tet_conc=0, amp_conc=0, baseline=False, seed=0,
         # 26000 catches the start of the 9th round of division
         # Run for one timestep past that to catch inner sim emits at 26000
         config['total_time'] = 26002
+        # Ensure that sim starts with correctly reduced murein counts
+        config["initial_state_overrides"] = ["overrides/reduced_murein"]
     else:
         print(f"Seed: {seed}")
         print(f"Tetracycline concentration: {tet_conc}")
