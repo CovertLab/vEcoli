@@ -20,7 +20,8 @@
             "experiment_id": "2022-10-11_19-58-13_430004+0000",
             "start_time": 11550,
             "host": "10.138.0.75",
-            "port": 27017
+            "port": 27017,
+            "cpus": 24
         }
     ],
     "condition": "Glucose"

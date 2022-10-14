@@ -22,7 +22,7 @@
             "end_time": 26000,
             "host": "10.138.0.75",
             "port": 27017,
-            "cpus": 8
+            "cpus": 24
         }
     ],
     "condition": "Glucose"
