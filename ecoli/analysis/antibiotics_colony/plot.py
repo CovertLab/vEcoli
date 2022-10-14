@@ -14,6 +14,7 @@ from vivarium.library.units import remove_units
 from vivarium.library.dict_utils import get_value_from_path
 
 from ecoli.analysis.db import access_counts
+from ecoli.analysis.snapshots_video import deserialize_and_remove_units
 from ecoli.analysis.antibiotics_colony.timeseries import plot_timeseries
 from ecoli.analysis.antibiotics_colony.snapshot_stripbox import plot_stripbox
 
@@ -152,16 +153,23 @@ def retrieve_data(
             if "cpus" not in data_config:
                 data_config["cpus"] = 24
             data_config["sampling_rate"] = sampling_rate
-            exp_data = remove_units(
-                deserialize_value(access_counts(**data_config)))
+            exp_data = access_counts(**data_config)
             rep_data.update(exp_data)
         agent_df_paths = partial(agent_data_table, paths_dict=paths_dict,
             color=colors[i])
         with ProcessPoolExecutor(cpus) as executor:
-            data = list(tqdm(executor.map(agent_df_paths, rep_data.items())))
+            print("Deserializing data and removing units...")
+            data_deserialized = list(tqdm(executor.map(
+                deserialize_and_remove_units, data.values()),
+                total=len(data)))
+            data = dict(zip(data.keys(), data_deserialized))
+            print("Converting data to DataFrame...")
+            data = list(tqdm(executor.map(agent_df_paths, rep_data.items()),
+                total=len(rep_data)))
         data = pd.concat(data, ignore_index=True)
         data["Condition"] = [condition] * len(data)
     if div_and_death:
+        print("Marking agent death and division...")
         data = mark_death_and_division(data)
     return data
 
@@ -208,6 +216,7 @@ def make_plots(
         cpus=cpus)
     data = pd.concat([data, exp_data], ignore_index=True)
     os.makedirs('out/analysis/antibiotics_colony/', exist_ok=True)
+    print("Calling plotting function...")
     plot_fun(data, out)
 
 
