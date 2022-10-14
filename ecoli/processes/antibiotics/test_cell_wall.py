@@ -46,7 +46,7 @@ def create_composite(timeline_data, antibiotics=True):
                 value[("cell_global", "volume")]
             ),
             ("concentrations", "ampicillin"): (
-                9.16 * units.micromolar
+                3.7 * units.micromolar
                 if antibiotics and t > 0
                 else 0 * units.micromolar
             ),
