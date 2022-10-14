@@ -515,7 +515,7 @@ class CellWall(Process):
                             self.rng,
                         )
                     )
-                    columns_to_insert += 1
+                    columns_sampled += 1
                 insertions.append(np.array(columns_to_insert).T)
         # If no active PBPs, assume empty column(s) inserted at center of wall
         else:
