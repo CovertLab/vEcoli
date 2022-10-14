@@ -9,14 +9,12 @@ from tqdm import tqdm
 import numpy as np
 import pandas as pd
 import seaborn as sns
-from vivarium.core.serialize import deserialize_value
-from vivarium.library.units import remove_units
 from vivarium.library.dict_utils import get_value_from_path
 
 from ecoli.analysis.db import access_counts
 from ecoli.analysis.snapshots_video import deserialize_and_remove_units
 from ecoli.analysis.antibiotics_colony.timeseries import plot_timeseries
-from ecoli.analysis.antibiotics_colony.snapshot_stripbox import plot_stripbox
+from ecoli.analysis.antibiotics_colony.stripbox import plot_stripbox
 
 SPECIAL_PATH_PREFIXES = {
     'monomer': 'monomer_names',
@@ -275,7 +273,7 @@ def main():
             plot_fun=plot_fun,
             div_and_death=args.division_and_death,
             cpus=args.cpus,
-            out='tetracycline_sb')
+            out=f'tetracycline_{args.plot_type}')
     if args.ampicillin:
         make_plots(
             baseline_configs=glc_amp_configs,
@@ -286,7 +284,7 @@ def main():
             plot_fun=plot_fun,
             div_and_death=args.division_and_death,
             cpus=args.cpus,
-            out='ampicillin_sb')
+            out=f'ampicillin__{args.plot_type}')
 
 
 if __name__ == "__main__":

@@ -1,5 +1,6 @@
 from typing import Union, Tuple
 
+import numpy as np
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
@@ -28,7 +29,7 @@ def plot_timeseries(
         if column not in metadata_columns:
             g = sns.lineplot(
                 data=data, x="Time", y=column, hue="Color", palette=palette,
-                    errorbar=("pi", 50), legend=False)
+                    errorbar=("pi", 50), legend=False, estimator=np.median)
             if "Death" in data.columns:
                 death = data[data["Death"]]
                 g = sns.scatterplot(
