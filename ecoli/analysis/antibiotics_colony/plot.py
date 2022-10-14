@@ -30,6 +30,11 @@ PLOT_NAME_TO_FUN = {
     "stripbox": plot_stripbox,
 }
 
+PLOT_NAME_TO_SAMPLING_RATE = {
+    "timeseries": 2,
+    "stripbox": 2600,
+}
+
 
 def get_config_names(prefix):
     return [f'{prefix}_seed_{seed}' for seed in ('0', '100', '10000')]
@@ -228,6 +233,11 @@ def main():
         help="""Compare ampicillin sims with glucose sims."""
     )
     parser.add_argument(
+        '--sampling_rate', '-s', type=int, default=None,
+        help="""Custom sampling rate. See default sampling rates
+        by plot type in ``PLOT_NAME_TO_SAMPLING_RATE``"""
+    )
+    parser.add_argument(
         '--division_and_death', '-d', type=bool, default=True,
         help="""Mark values for agents right before cell division with
             a "+" sign. Mark values for agents right before cell death
@@ -243,13 +253,17 @@ def main():
     # Shades of blue-green for experimental distributions (up to 3 replicates)
     colors = ('#5F9EA0', '#088F8F', '#008080')
     plot_fun = PLOT_NAME_TO_FUN[args.plot_type]
+    if args.sampling_rate:
+        sampling_rate = args.sampling_rate
+    else:
+        sampling_rate = PLOT_NAME_TO_SAMPLING_RATE[args.plot_type]
     if args.tetracycline:
         make_plots(
             baseline_configs=glc_tet_configs,
             exp_configs=tet_configs,
             baseline_colors=baseline_colors,
             exp_colors=colors,
-            sampling_rate=args.sampling_rate,
+            sampling_rate=sampling_rate,
             plot_fun=plot_fun,
             div_and_death=args.division_and_death,
             cpus=args.cpus,
@@ -260,7 +274,7 @@ def main():
             exp_configs=amp_configs,
             baseline_colors=baseline_colors,
             exp_colors=colors,
-            sampling_rate=args.sampling_rate,
+            sampling_rate=sampling_rate,
             plot_fun=plot_fun,
             div_and_death=args.division_and_death,
             cpus=args.cpus,
