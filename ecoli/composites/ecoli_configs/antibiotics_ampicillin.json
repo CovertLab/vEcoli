@@ -100,5 +100,6 @@
 
     "flow": {
         "ecoli-pbp-binding": [["ecoli-shape"]]
-      }
+    },
+    "inner_same_timestep": false
 }
