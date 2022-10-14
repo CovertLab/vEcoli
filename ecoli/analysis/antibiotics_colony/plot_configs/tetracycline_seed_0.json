@@ -20,7 +20,6 @@
             "experiment_id": "2022-10-12_13-55-45_291713+0000",
             "start_time": 11550,
             "end_time": 26000,
-            "sampling_rate": 2890,
             "host": "10.138.0.75",
             "port": 27017
         }

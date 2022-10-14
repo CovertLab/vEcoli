@@ -6,17 +6,15 @@ import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 
-from ecoli.analysis.antibiotics_colony.plot_utils import (
-    retrieve_data,
-    get_config_names
-)
+from ecoli.analysis.antibiotics_colony.plot_utils import retrieve_data, get_config_names
 
 Color = Union[str, Tuple[float, float, float, float]]
 
 
-def plot_boxstrip(
+def plot_timeseries(
     data: pd.DataFrame,
-    out: str
+    out: str,
+    div_and_death: bool = False,
 ) -> None:
     '''Plot data as a collection of strip plots with overlaid boxplots.
 
@@ -24,35 +22,45 @@ def plot_boxstrip(
         data: DataFrame where each column is a variable to plot and each row
             is an agent. Data from all replicates is concatenated into this
             single DataFrame and labelled with a different hex color in
-            the "Color" column. The DataFrame also has a "Condition" column
+            the "color" column. The DataFrame also has a "Condition" column
             that labels each experimental condition with a unique string.
         out: Prefix for ouput filenames in out/analysis/antibiotics_colony/
+        div_and_death: If DataFrame contains the boolean "Division" and
+            "Death" columns to mark timepoint where agent divides/dies,
+            mark those values with a "+" and "x", respectively.
     '''
+    metadata_columns = ["Color", "Condition", "Time", "Division", "Death"]
     colors = data["Color"].unique()
     palette = {color: color for color in colors}
     for column in data.columns:
-        if column not in ["Color", "Condition", "Time", "Division", "Death", "Agent ID"]:
-            g = sns.catplot(
-                data=data, kind="box",
-                x="Condition", y=column, col="Time",
-                boxprops={'facecolor':'None'}, showfliers=False,
-                aspect=0.5, legend=False)
-            g.map_dataframe(sns.stripplot, x="Condition", y=column,
-                hue="Color", palette=palette, alpha=0.5, size=3)
+        if column not in metadata_columns:
+            g = sns.lineplot(
+                data=data, x="Time", y=column, hue="Color", palette=palette,
+                    errorbar=("pi", 50), legend=False)
+            if div_and_death:
+                death = data[data["Death"]]
+                g = sns.scatterplot(
+                    data=death, x="Time", y=column, hue="Color", ax=g,
+                    palette=palette, markers=["X"], style="Death", legend=False)
+                divide = data[data["Division"]]
+                g = sns.scatterplot(
+                    data=divide, x="Time", y=column, hue="Color", ax=g, 
+                    palette=palette, markers=["P"], style="Division", legend=False)
+            fig = g.get_figure()
             plt.tight_layout()
-            g.savefig('out/analysis/antibiotics_colony/' + 
+            fig.savefig('out/analysis/antibiotics_colony/' + 
                 f'{out}_{column.replace("/", "_")}.png')
-            plt.close(g)
+            plt.close(fig)
 
 
-def make_stripbox_plots(
+def make_timeseries_plots(
     baseline_configs: List[str],
     exp_configs: List[str],
     baseline_colors: List[str],
     exp_colors: List[str],
-    sampling_rate: int,
+    div_and_death: bool = False,
     cpus: int = 8,
-    out: str = 'stripbox'
+    out: str = 'timeseries'
 ):
     """Helper function to retrieve and plot timeseries data.
     
@@ -65,21 +73,14 @@ def make_stripbox_plots(
         exp_colors: Hex colors for experimental replicates.
         div_and_death: Mark death and division on plots (X and +)
         cpus: Number of CPU cores to use.
-        out: Prefix for output plot filenames
     """
-    data = retrieve_data(
-        configs=baseline_configs,
-        colors=baseline_colors, 
-        sampling_rate=sampling_rate,
-        cpus=cpus)
-    exp_data = retrieve_data(
-        configs=exp_configs,
-        colors=exp_colors, 
-        sampling_rate=sampling_rate,
-        cpus=cpus)
+    data = retrieve_data(baseline_configs, baseline_colors,
+        div_and_death, cpus)
+    exp_data = retrieve_data(exp_configs, exp_colors,
+        div_and_death, cpus)
     data = pd.concat([data, exp_data], ignore_index=True)
     os.makedirs('out/analysis/antibiotics_colony/', exist_ok=True)
-    plot_boxstrip(data, out)
+    plot_timeseries(data, out, div_and_death)
 
 
 def main():
@@ -113,23 +114,22 @@ def main():
     # Shades of blue-green for experimental distributions (up to 3 replicates)
     colors = ('#5F9EA0', '#088F8F', '#008080')
     if args.tetracycline:
-        make_stripbox_plots(
+        make_timeseries_plots(
             baseline_configs=glc_tet_configs,
             exp_configs=tet_configs,
             baseline_colors=baseline_colors,
             exp_colors=colors,
             div_and_death=args.division_and_death,
             cpus=args.cpus,
-            out='tetracycline_sb')
+            out='tetracycline_ts')
     if args.ampicillin:
-        make_stripbox_plots(
+        make_timeseries_plots(
             baseline_configs=glc_amp_configs,
             exp_configs=amp_configs,
             baseline_colors=baseline_colors,
             exp_colors=colors,
             div_and_death=args.division_and_death,
-            cpus=args.cpus,
-            out='ampicillin_sb')
+            cpus='ampicillin_ts')
 
 
 if __name__ == "__main__":

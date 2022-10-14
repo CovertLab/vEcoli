@@ -1,6 +1,9 @@
+from functools import partial
 import json
-from typing import Dict, List, Any
+from typing import Dict, List, Any, Tuple
+from concurrent.futures import ProcessPoolExecutor
 
+from tqdm import tqdm
 import numpy as np
 import pandas as pd
 from vivarium.core.serialize import deserialize_value
@@ -16,20 +19,29 @@ SPECIAL_PATH_PREFIXES = {
     'data': 'outer_paths'
 }
 
+
+def get_config_names(prefix):
+    return [f'{prefix}_seed_{seed}' for seed in ('0', '100', '10000')]
+
+
 def agent_data_table(
-    raw_data: Dict[float, Dict[str, Any]],
-    paths_dict: Dict[str, Dict[str, Any]]
+    raw_data: Tuple[float, Dict[float, Dict[str, Any]]],
+    paths_dict: Dict[str, Dict[str, Any]],
+    color: str
 ) -> Dict[float, pd.DataFrame]:
     """Combine data from all agents into a nested dictionary with
     list leaf values.
     
     Args:
-        raw_data: Raw data from a single timepoint.
+        raw_data: Tuple of (time, dictionary at time for one replicate).
         paths_dict: Dictionary mapping paths within each agent to names
             that will be used the keys in the returned dictionary.
+        color: Hex color for all data from this replicate.
     
     Returns:
         Dataframe where each column is a path and each row is an agent."""
+    time = raw_data[0]
+    raw_data = raw_data[1]
     collected_data = {'Agent ID': []}
     agents_at_time = raw_data['agents']
     for agent_id, agent_at_time in agents_at_time.items():
@@ -42,7 +54,10 @@ def agent_data_table(
             if value_in_agent == None:
                 value_in_agent = 0
             collected_data[name].append(value_in_agent)
-    return pd.DataFrame(collected_data)
+    collected_data = pd.DataFrame(collected_data)
+    collected_data["Color"] = [color] * len(collected_data)
+    collected_data["Time"] = [time] * len(collected_data)
+    return collected_data
 
 
 def mark_death_and_division(data: pd.DataFrame):
@@ -58,18 +73,21 @@ def mark_death_and_division(data: pd.DataFrame):
         grouped_agents = rep_data.groupby("Agent ID")
         final_times = grouped_agents["Time"].max().reset_index().to_numpy()
         for agent_id, final_time in final_times:
-            mask = (data["Color"]==rep_color and data["Agent ID"]==agent_id
-                and data["Time"]==final_time)
-            if agent_id+'0' in rep_data["Agent ID"]:
+            mask = ((data["Color"]==rep_color) & (data["Agent ID"]==agent_id)
+                & (data["Time"]==final_time))
+            if agent_id+'0' in rep_data["Agent ID"].to_list():
                 data.loc[mask, "Division"] = True
             else:
                 data.loc[mask, "Death"] = True
     return data
 
+
 def retrieve_data(
     configs: str,
     colors: List[str],
-    div_and_death: bool = False):
+    sampling_rate: int,
+    div_and_death: bool = False,
+    cpus: int = 8):
     """Retrieves data for each replicate (config file).
     
     Args:
@@ -118,15 +136,15 @@ def retrieve_data(
             if "cpus" not in data_config:
                 # Assume only retrieving a few timepoints
                 data_config["cpus"] = 1
+            data_config["sampling_rate"] = sampling_rate
             exp_data = remove_units(
                 deserialize_value(access_counts(**data_config)))
             rep_data.update(exp_data)
-        for time, rep_data_at_time in rep_data.items():
-            data_combined = agent_data_table(
-                rep_data_at_time, paths_dict)
-            data_combined["Color"] = [colors[i]] * len(data_combined)
-            data_combined["Time"] = [time] * len(data_combined)
-            data = pd.concat([data, data_combined], ignore_index=True)
+        agent_df_paths = partial(agent_data_table, paths_dict=paths_dict,
+            color=colors[i])
+        with ProcessPoolExecutor(cpus) as executor:
+            data = list(tqdm(executor.map(agent_df_paths, rep_data.items())))
+        data = pd.concat(data, ignore_index=True)
         data["Condition"] = [condition] * len(data)
     if div_and_death:
         data = mark_death_and_division(data)
