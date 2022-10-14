@@ -160,9 +160,9 @@ def retrieve_data(
         with ProcessPoolExecutor(cpus) as executor:
             print("Deserializing data and removing units...")
             data_deserialized = list(tqdm(executor.map(
-                deserialize_and_remove_units, data.values()),
-                total=len(data)))
-            data = dict(zip(data.keys(), data_deserialized))
+                deserialize_and_remove_units, rep_data.values()),
+                total=len(rep_data)))
+            rep_data = dict(zip(rep_data.keys(), data_deserialized))
             print("Converting data to DataFrame...")
             data = list(tqdm(executor.map(agent_df_paths, rep_data.items()),
                 total=len(rep_data)))
