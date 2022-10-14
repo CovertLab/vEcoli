@@ -500,22 +500,23 @@ class CellWall(Process):
                 unincorporated_monomers, np.repeat([1 / d_columns], d_columns)
             )
 
-            # Sample columns to insert
+            # Sample columns to insert. Columns to insert together are sampled
+            # as a chunk (an "insertion").
             insertions = []
+            columns_sampled = 0
             for insert_size in insertion_size:
-                insertions.append(
-                    np.array(
-                        [
-                            sample_column(
-                                rows,
-                                murein_per_column[i],
-                                geom_sampler(self.rng, strand_term_p),
-                                self.rng,
-                            )
-                            for i in range(insert_size)
-                        ]
-                    ).T
-                )
+                columns_to_insert = []
+                for _ in range(insert_size):
+                    columns_to_insert.append(
+                        sample_column(
+                            rows,
+                            murein_per_column[columns_sampled],
+                            geom_sampler(self.rng, strand_term_p),
+                            self.rng,
+                        )
+                    )
+                    columns_to_insert += 1
+                insertions.append(np.array(columns_to_insert).T)
         # If no active PBPs, assume empty column(s) inserted at center of wall
         else:
             insertion_points = [int(np.mean(range(columns)))]
