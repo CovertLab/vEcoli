@@ -33,6 +33,10 @@ def fit_strand_term_p(df, upper_mean):
 
 def sample_column(rows, murein_monomers, strand_sampler, rng, shift=True):
     result = np.zeros(rows, dtype=int)
+    
+    # If no murein available, return full column hole
+    if murein_monomers == 0:
+        return result
 
     # Don't try to assign more murein than can fit in the column
     murein_monomers = int(min(murein_monomers, rows))
@@ -84,11 +88,10 @@ def sample_column(rows, murein_monomers, strand_sampler, rng, shift=True):
 def sample_lattice(murein_monomers, rows, cols, strand_sampler, rng):
     result = np.zeros((rows, cols), dtype=int)
 
-    # Get murein in each column, distributing extra murein uniformly at random
-    murein_per_column = np.repeat(murein_monomers // cols, repeats=cols)
-    extra_murein = murein_monomers % cols
-    for col in rng.integers(0, cols, size=extra_murein):
-        murein_per_column[col] += 1
+    # Get murein in each column
+    murein_per_column = rng.multinomial(
+        murein_monomers, np.repeat([1 / cols], cols)
+    )
 
     for c, murein in enumerate(murein_per_column):
         result[:, c] = sample_column(rows, murein, strand_sampler, rng)

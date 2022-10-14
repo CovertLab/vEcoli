@@ -60,6 +60,7 @@ These tunnels are the only way that the EngineProcess exchanges
 information with the outside simulation.
 '''
 import copy
+import warnings
 
 import numpy as np
 import os
@@ -293,12 +294,12 @@ class EngineProcess(Process):
         timestep = np.inf
         for process in self.sim.processes.values():
             if self.parameters['inner_same_timestep']:
-                # Ensure that all processes in inner sim have same timestep
+                # Warn user if inner process has different timestep from rest
                 if (timestep != process.calculate_timestep({})
                     and timestep != np.inf):
-                    raise Exception("Time step mismatch for process "
-                                    f"{process.name}: {timestep} != " +
-                                    str(process.calculate_timestep({})))
+                    warnings.warn("Time step mismatch for process "
+                                f"{process.name}: {timestep} != " +
+                                str(process.calculate_timestep({})))
             timestep = min(timestep, process.calculate_timestep({}))
         return timestep
 
