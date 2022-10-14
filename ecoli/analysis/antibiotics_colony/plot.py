@@ -150,8 +150,7 @@ def retrieve_data(
                 else:
                     data_config[path_key].append(path[-1])
             if "cpus" not in data_config:
-                # Assume only retrieving a few timepoints
-                data_config["cpus"] = 1
+                data_config["cpus"] = 24
             data_config["sampling_rate"] = sampling_rate
             exp_data = remove_units(
                 deserialize_value(access_counts(**data_config)))
