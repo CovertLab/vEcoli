@@ -123,8 +123,9 @@ def get_aggregation(host, port, aggregation):
 
 
 def access_counts(experiment_id, monomer_names=None, mrna_names=None,
-    rna_init=None, inner_paths=None, outer_paths=None, host='localhost',
-    port=27017, sampling_rate=None, start_time=None, end_time=None, cpus=1
+    rna_init=None, rna_synth_prob=None, inner_paths=None, outer_paths=None,
+    host='localhost', port=27017, sampling_rate=None, start_time=None,
+    end_time=None, cpus=1
 ):
     """Retrieve monomer/mRNA counts or any other data from MongoDB. Note that
     this only works for experiments run using EcoliEngineProcess (each cell
@@ -135,6 +136,7 @@ def access_counts(experiment_id, monomer_names=None, mrna_names=None,
         monomer_names: Refer to reconstruction/ecoli/flat/rnas.tsv
         mrna_names: Refer to reconstruction/ecoli/flat/rnas.tsv
         rna_init: List of RNAs to get # of initiations / timestep for
+        rna_synth_prob: List of RNAs to get synthesis probabilities for
         inner_paths: Paths to stores inside each agent. For example,
             if you want to get the surface area of each cell, putting
             [('surface_area',)] here would retrieve:
@@ -156,6 +158,8 @@ def access_counts(experiment_id, monomer_names=None, mrna_names=None,
         mrna_names = []
     if not rna_init:
         rna_init = []
+    if not rna_synth_prob:
+        rna_synth_prob = []
     if not inner_paths:
         inner_paths = []
     if not outer_paths:
@@ -247,7 +251,7 @@ def access_counts(experiment_id, monomer_names=None, mrna_names=None,
         }
         for mrna, mrna_index in zip(mrna_names, mrna_idx)
     })
-    rna_idx = sim_data.get_rna_init_indices(rna_init)
+    rna_idx = sim_data.get_rna_indices(rna_init)
     projection['$project'].update({
         f'data.agents.v.rna_init.{rna}': {
             # Flatten array of length 1 into single count
@@ -269,6 +273,29 @@ def access_counts(experiment_id, monomer_names=None, mrna_names=None,
             }
         }
         for rna, rna_index in zip(rna_init, rna_idx)
+    })
+    rna_idx = sim_data.get_rna_indices(rna_synth_prob)
+    projection['$project'].update({
+        f'data.agents.v.rna_synth_prob.{rna}': {
+            # Flatten array of length 1 into single count
+            '$reduce': {
+                # Get monomer count at specified index with $slice
+                'input': {'$slice': [
+                    # $objectToArray makes all embedded document fields 
+                    # into arrays so we flatten here before slicing
+                    {'$reduce': {
+                        'input': '$data.agents.v.listeners.rna_synth_prob.rna_synth_prob',
+                        'initialValue': None,
+                        'in': '$$this'
+                    }},
+                    rna_index,
+                    1
+                ]},
+                'initialValue': None,
+                'in': '$$this'
+            }
+        }
+        for rna, rna_index in zip(rna_synth_prob, rna_idx)
     })
     for inner_path in inner_paths:
         inner_path = ('data', 'agents', 'v') + inner_path

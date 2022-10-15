@@ -225,9 +225,9 @@ class LoadSimData:
                             for mrna in mrna_ids])
         return [int(np.where(mrna_ids==name)[0][0]) for name in names]
     
-    def get_rna_init_indices(self, names):
+    def get_rna_indices(self, names):
         """Given a list of RNA names without location tags, this returns
-        the indices of those RNAs in the rnaInitEvents listener array.
+        the TU indices of those RNAs (for rnaInitEvents and rna_synth_prob).
         The "id" column of reconstruction/ecoli/flat/rnas.tsv contains
         nearly all supported RNA names."""
         rna_ids = self.sim_data.process.transcription.rna_data['id']
