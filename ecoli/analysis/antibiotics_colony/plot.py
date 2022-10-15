@@ -15,11 +15,13 @@ from ecoli.analysis.db import access_counts
 from ecoli.analysis.snapshots_video import deserialize_and_remove_units
 from ecoli.analysis.antibiotics_colony.timeseries import plot_timeseries
 from ecoli.analysis.antibiotics_colony.stripbox import plot_stripbox
+from ecoli.analysis.antibiotics_colony.final_dists import plot_final_dists
 
 SPECIAL_PATH_PREFIXES = {
     'monomer': 'monomer_names',
     'mrna': 'mrna_names',
     'rna_init': 'rna_init',
+    'rna_ynth_prob': 'rna_synth_prob',
     'data': 'outer_paths'
 }
 
@@ -27,11 +29,13 @@ SPECIAL_PATH_PREFIXES = {
 PLOT_NAME_TO_FUN = {
     "timeseries": plot_timeseries,
     "stripbox": plot_stripbox,
+    "final_dists": plot_final_dists
 }
 
 PLOT_NAME_TO_SAMPLING_RATE = {
     "timeseries": 2,
     "stripbox": 2600,
+    "plot_final_dists": 26000
 }
 
 
@@ -172,13 +176,22 @@ def retrieve_data(
     return data
 
 
+def apply_sampling_rate(
+    data: pd.DataFrame,
+    sampling_rate: int
+):
+    """Takes a DataFrame from ``retrieve_data`` and applies further
+    downsampling."""
+    return data.loc[(data["Time"] % sampling_rate) == 0, :]
+
+
 def make_plots(
     baseline_configs: List[str],
     exp_configs: List[str],
     baseline_colors: List[str],
     exp_colors: List[str],
-    sampling_rate: int,
-    plot_fun: Callable,
+    sampling_rates: List[int],
+    plot_funcs: List[Callable],
     div_and_death: bool = False,
     cpus: int = 8,
     out: str = 'stripbox'
@@ -200,6 +213,7 @@ def make_plots(
         cpus: Number of CPU cores to use.
         out: Prefix for output plot filenames
     """
+    sampling_rate = min(sampling_rates)
     data = retrieve_data(
         configs=baseline_configs,
         colors=baseline_colors, 
@@ -214,8 +228,10 @@ def make_plots(
         cpus=cpus)
     data = pd.concat([data, exp_data], ignore_index=True)
     os.makedirs('out/analysis/antibiotics_colony/', exist_ok=True)
-    print("Calling plotting function...")
-    plot_fun(data, out)
+    for sampling_rate, plot_func in plot_funcs, sampling_rates:
+        print(f"Calling {plot_func.__name__}...")
+        downsampled_data = apply_sampling_rate(data, sampling_rate)
+        plot_func(downsampled_data, f"{out}_{plot_func.__name__}")
 
 
 def main():
@@ -226,8 +242,8 @@ def main():
     glc_amp_configs = get_config_names('glucose_amp')
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        '--plot_type', '-n', type=str, default="timeseries",
-        help="""Type of plot. See keys of ``PLOT_NAME_TO_FUN``
+        '--plot_types', '-p', type=str, nargs="+", default=["timeseries"],
+        help="""Types of plots to make. See keys of ``PLOT_NAME_TO_FUN``
         dictionary in this file for valid types."""
     )
     parser.add_argument(
@@ -239,8 +255,8 @@ def main():
         help="""Compare ampicillin sims with glucose sims."""
     )
     parser.add_argument(
-        '--sampling_rate', '-s', type=int, default=None,
-        help="""Custom sampling rate. See default sampling rates
+        '--sampling_rates', '-s', type=int, nargs="+", default=[],
+        help="""Custom sampling rates. See default sampling rates
         by plot type in ``PLOT_NAME_TO_SAMPLING_RATE``"""
     )
     parser.add_argument(
@@ -250,7 +266,7 @@ def main():
             with a "x" sign."""
     )
     parser.add_argument(
-        '--cpus', '-p', type=int, default=1,
+        '--cpus', '-c', type=int, default=1,
         help="""Number of CPU cores to use."""
     )
     args = parser.parse_args()
@@ -258,33 +274,35 @@ def main():
     baseline_colors = ('#333333', '#777777', '#BBBBBB')
     # Shades of blue-green for experimental distributions (up to 3 replicates)
     colors = ('#5F9EA0', '#088F8F', '#008080')
-    plot_fun = PLOT_NAME_TO_FUN[args.plot_type]
-    if args.sampling_rate:
-        sampling_rate = args.sampling_rate
-    else:
-        sampling_rate = PLOT_NAME_TO_SAMPLING_RATE[args.plot_type]
+    plot_funcs = []
+    sampling_rates = []
+    for plot_type in args.plot_types:
+        plot_funcs.append(PLOT_NAME_TO_FUN[plot_type])
+        sampling_rates.append(PLOT_NAME_TO_SAMPLING_RATE[plot_type])
+    if args.sampling_rates:
+        sampling_rates = args.sampling_rates
     if args.tetracycline:
         make_plots(
             baseline_configs=glc_tet_configs,
             exp_configs=tet_configs,
             baseline_colors=baseline_colors,
             exp_colors=colors,
-            sampling_rate=sampling_rate,
-            plot_fun=plot_fun,
+            sampling_rates=sampling_rates,
+            plot_funcs=plot_funcs,
             div_and_death=args.division_and_death,
             cpus=args.cpus,
-            out=f'tetracycline_{args.plot_type}')
+            out=f'tetracycline')
     if args.ampicillin:
         make_plots(
             baseline_configs=glc_amp_configs,
             exp_configs=amp_configs,
             baseline_colors=baseline_colors,
             exp_colors=colors,
-            sampling_rate=sampling_rate,
-            plot_fun=plot_fun,
+            sampling_rates=sampling_rates,
+            plot_funcs=plot_funcs,
             div_and_death=args.division_and_death,
             cpus=args.cpus,
-            out=f'ampicillin__{args.plot_type}')
+            out=f'ampicillin')
 
 
 if __name__ == "__main__":

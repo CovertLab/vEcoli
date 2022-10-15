@@ -6,12 +6,12 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 
 
-def plot_timeseries(
+def plot_lineage_trace(
     data: pd.DataFrame,
     out: str = None,
-    axes: List[plt.Axes] = None,
+    axes: List[plt.Axes] = None
 ) -> None:
-    '''Plot data as a collection of timeseries with IQRs.
+    '''Plot multi-generational trace for a single lineage.
 
     Args:
         data: DataFrame where each column is a variable to plot and each row
@@ -25,32 +25,24 @@ def plot_timeseries(
     '''
     metadata_columns = ["Color", "Condition", "Time", "Division", "Death", "Agent ID"]
     colors = data["Color"].unique()
+    conditions = data["Condition"].unique()
     palette = {color: color for color in colors}
-    n_variables = len(data.columns) - len(metadata_columns)
+    grouped_data = data.groupby(by=["Condition", "Color"])
+    rep_to_plot = grouped_data.get_group((conditions[0], colors[0]))
+    n_variables = len(rep_to_plot.columns) - len(metadata_columns)
     if not axes:
         _, fresh_axes = plt.subplots(nrows=n_variables, ncols=1, 
             sharex=True, figsize=(2*n_variables, 8))
         axes = np.ravel(fresh_axes)
-    ax_idx = 0
-    for column in data.columns:
+    for column in rep_to_plot.columns:
         if column not in metadata_columns:
             curr_ax = axes[ax_idx]
             ax_idx += 1
-            g = sns.lineplot(
-                data=data, x="Time", y=column, hue="Color", palette=palette,
+            sns.lineplot(
+                data=rep_to_plot, x="Time", y=column, hue="Color", palette=palette,
                 errorbar=("pi", 50), legend=False, estimator=np.median, ax=curr_ax)
-            if "Death" in data.columns:
-                death = data[data["Death"]]
-                g = sns.scatterplot(
-                    data=death, x="Time", y=column, hue="Color", ax=g,
-                    palette=palette, markers=["X"], style="Death", legend=False)
-            if "Division" in data.columns:
-                divide = data[data["Division"]]
-                g = sns.scatterplot(
-                    data=divide, x="Time", y=column, hue="Color", ax=g, 
-                    palette=palette, markers=["P"], style="Division", legend=False)
             if out:
-                fig = g.get_figure()
+                fig = curr_ax.get_figure()
                 plt.tight_layout()
                 fig.savefig('out/analysis/antibiotics_colony/' + 
                     f'{out}_{column.replace("/", "_")}.png')
