@@ -1,15 +1,11 @@
-from typing import Union, Tuple
-
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 
-Color = Union[str, Tuple[float, float, float, float]]
-
 
 def plot_stripbox(
     data: pd.DataFrame,
-    out: str
+    out: str = "stripbox"
 ) -> None:
     '''Plot data as a collection of strip plots with overlaid boxplots.
 
@@ -19,12 +15,13 @@ def plot_stripbox(
             single DataFrame and labelled with a different hex color in
             the "Color" column. The DataFrame also has a "Condition" column
             that labels each experimental condition with a unique string.
-        out: Prefix for ouput filenames in out/analysis/antibiotics_colony/
+        out: Prefix for output plot filename.
     '''
+    metadata_columns = ["Color", "Condition", "Time", "Division", "Death", "Agent ID"]
     colors = data["Color"].unique()
     palette = {color: color for color in colors}
     for column in data.columns:
-        if column not in ["Color", "Condition", "Time", "Division", "Death", "Agent ID"]:
+        if column not in metadata_columns:
             g = sns.catplot(
                 data=data, kind="box",
                 x="Condition", y=column, col="Time",
