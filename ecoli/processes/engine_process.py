@@ -226,6 +226,8 @@ class EngineProcess(Process):
         # Unnecessary references to initial_state
         self.sim.initial_state = None
         self.parameters.pop('initial_inner_state')
+        self.parameters['inner_composer_config'].pop(
+            'initial_inner_state', None)
         
         if self.parameters['emit_paths']:
             self.sim.state.set_emit_values([tuple()], False)
