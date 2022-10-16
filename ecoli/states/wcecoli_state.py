@@ -1,6 +1,7 @@
 from copy import deepcopy
 import json
 import numpy as np
+import concurrent.futures
 
 from vivarium.core.serialize import deserialize_value
 
@@ -117,12 +118,19 @@ def get_state_from_file(
     # TODO(Eran): deal with mass
     # add mw property to bulk and unique molecules
     # and include any "submass" attributes from unique molecules
-
-    states = deserialize_value(load_states(path))
-
-    if 'agents' in states:
+    serialized_state = load_states(path)
+    if 'agents' in serialized_state:
+        agents = serialized_state.pop('agents')
+        n_agents = len(agents)
+        with concurrent.futures.ProcessPoolExecutor(n_agents) as executor:
+            deserialized_agents = executor.map(
+                deserialize_value, agents.values())
+        agents = dict(zip(agents.keys(), deserialized_agents))
+        states = deserialize_value(serialized_state)
+        states['agents'] = agents
         return colony_initial_state(states, convert_unique_id_to_string)
-
+    
+    states = deserialize_value(serialized_state)
     # If evolvers_ran is False, we can get an infinite loop of
     # neither evolvers nor requesters running. No saved state should
     # include evolvers_ran=False.
