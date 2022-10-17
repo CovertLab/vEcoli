@@ -229,6 +229,11 @@ class EngineProcess(Process):
         self.parameters['inner_composer_config'].pop(
             'initial_inner_state', None)
         
+        # Only apply murein override to first cell
+        if 'initial_state_overrides' in self.parameters['inner_composer_config']:
+            self.parameters['inner_composer_config'][
+                'initial_state_overrides'].remove('overrides/reduced_murein') 
+        
         if self.parameters['emit_paths']:
             self.sim.state.set_emit_values([tuple()], False)
             self.sim.state.set_emit_values(
