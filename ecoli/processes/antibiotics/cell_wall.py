@@ -275,6 +275,33 @@ class CellWall(Process):
             self.circumference,
             extension_factor,
         )
+        
+        # Shrink extension factor when excess murein is available
+        potential_full_columns = unincorporated_monomers // lattice.shape[0]
+        if new_columns - lattice.shape[0] < potential_full_columns:
+            _, resting_column_count = calculate_lattice_size(
+                length,
+                self.inter_strand_distance,
+                self.disaccharide_height,
+                self.disaccharide_width,
+                self.circumference,
+                1,
+            )
+            new_columns = min(
+                lattice.shape[0] + potential_full_columns,
+                resting_column_count
+            )
+            extension_factor = remove_units(
+                (
+                    length
+                    / (
+                        new_columns
+                        * (self.inter_strand_distance + self.disaccharide_width)
+                    )
+                ).to("dimensionless")
+            )
+            # Minimum extension factor of 1
+            extension_factor = max(extension_factor, 1)
 
         # Update lattice to reflect new dimensions,
         # change in murein, synthesis sites
