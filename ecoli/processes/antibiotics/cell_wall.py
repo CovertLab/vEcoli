@@ -72,7 +72,6 @@ from vivarium.library.units import units, remove_units
 NAME = "ecoli-cell-wall"
 TOPOLOGY = {
     "shape": ("boundary",),
-    "bulk_murein": ("bulk",),
     "murein_state": ("murein_state",),
     "PBP": ("bulk",),
     "wall_state": ("wall_state",),
@@ -81,25 +80,8 @@ TOPOLOGY = {
 topology_registry.register(NAME, TOPOLOGY)
 
 
-def divide_murein_state(mother):
-    RAND_MAX = 2**31 - 1
-    seed = int(mother["shadow_murein"]) % RAND_MAX
-    rng = np.random.default_rng(seed)
-    shadow_1 = rng.binomial(mother["shadow_murein"], 0.5)
-    shadow_2 = mother["shadow_murein"] - shadow_1
-
-    return [
-        {
-            "incorporated_murein": 0,
-            "unincorporated_murein": 0,
-            "shadow_murein": shadow_1,
-        },
-        {
-            "incorporated_murein": 0,
-            "unincorporated_murein": 0,
-            "shadow_murein": shadow_2,
-        },
-    ]
+def divide_lattice(lattice):
+    return np.array_split(lattice, 2, axis=1)
 
 
 class CellWall(Process):
@@ -156,22 +138,25 @@ class CellWall(Process):
 
     def ports_schema(self):
         schema = {
-            "bulk_murein": bulk_schema([self.parameters["murein"]]),
             "murein_state": {
                 # Divider sets to zero because the correct value is initialized
                 # from the bulk store the first timestep after division.
                 "incorporated_murein": {
                     "_default": 0,
-                    "_updater": "set",
                     "_emit": True,
+                    "_updater": "set",
+                    "_divider": "zero"
                 },
                 "unincorporated_murein": {
                     "_default": 0,
-                    "_updater": "set",
                     "_emit": True,
+                    "_divider": "binomial_ecoli"
                 },
-                "shadow_murein": {"_default": 0, "_updater": "set", "_emit": True},
-                "_divider": divide_murein_state,
+                "shadow_murein": {
+                    "_default": 0,
+                    "_emit": True,
+                    "_divider": "binomial_ecoli"
+                },
             },
             "PBP": bulk_schema(list(self.parameters["PBP"].values())),
             "shape": {"volume": {"_default": 0 * units.fL, "_emit": True}},
@@ -180,19 +165,19 @@ class CellWall(Process):
                     "_default": None,
                     "_updater": "set",
                     "_emit": False,
-                    "_divider": "set_none",
+                    "_divider": divide_lattice,
                 },
                 "lattice_rows": {
                     "_default": 0,
                     "_updater": "set",
                     "_emit": True,
-                    "_divider": {"divider": "set_value", "config": {"value": 0}},
+                    "_divider": "zero",
                 },
                 "lattice_cols": {
                     "_default": 0,
                     "_updater": "set",
                     "_emit": True,
-                    "_divider": {"divider": "set_value", "config": {"value": 0}},
+                    "_divider": "zero",
                 },
                 "extension_factor": {
                     "_default": 1,
@@ -245,6 +230,8 @@ class CellWall(Process):
         return schema
 
     def next_update(self, timestep, states):
+        update = {}
+        
         # Unpack states
         volume = states["shape"]["volume"]
         extension_factor = states["wall_state"]["extension_factor"]
@@ -254,61 +241,16 @@ class CellWall(Process):
         active_fraction_PBP1a = states["pbp_state"]["active_fraction_PBP1A"]
         active_fraction_PBP1b = states["pbp_state"]["active_fraction_PBP1B"]
 
-        # Get lattice, setting it to a newly sampled lattice
-        # if not yet initialized
+        # Get lattice
         lattice = states["wall_state"]["lattice"]
-        if lattice is None:
-            # Make sure that all usable murein is initiailly unincorporated
-            unincorporated_monomers = (
-                4 * states["bulk_murein"][self.murein]
-                - states["murein_state"]["shadow_murein"]
-            )
-            incorporated_monomers = 0
-
-            # Get cell size information
-            length = length_from_volume(states["shape"]["volume"], self.cell_radius * 2).to(
-                "micrometer"
-            )
-            surface_area = surface_area_from_length(length, self.cell_radius * 2)
-
-            # Set extension factor such that the available murein covers
-            # the surface area of the cell
-            extension_factor = (
-                surface_area
-                / (
-                    unincorporated_monomers
-                    * param_store.get(("cell_wall", "peptidoglycan_unit_area"))
-                )
-            ).to(units.dimensionless)
-            extension_factor = remove_units(extension_factor)
-
-            # Get dimensions of the lattice
-            length = length_from_volume(volume, self.cell_radius * 2).to("micrometer")
-            rows, cols = calculate_lattice_size(
-                length,
-                self.inter_strand_distance,
-                self.disaccharide_height,
-                self.disaccharide_width,
-                self.circumference,
-                extension_factor,
-            )
-
-            # Populate the lattice
-            lattice = sample_lattice(
-                unincorporated_monomers,
-                rows,
-                cols,
-                geom_sampler(self.rng, self.strand_term_p),
-                self.rng,
-            )
-
-            incorporated_monomers = lattice.sum()
-            unincorporated_monomers -= incorporated_monomers
+        
+        # When run out of an EngineProcess, this process sets the incorporated
+        # murein count before MureinDivision and PBPBinding run after division
+        if states["murein_state"]["incorporated_murein"] == 0:
+            incorporated_monomers = np.sum(lattice)
 
         if not isinstance(lattice, np.ndarray):
             lattice = np.array(lattice)
-
-        update = {}
 
         # Do not run process if the cell is already cracked
         if states["wall_state"]["cracked"]:
@@ -421,7 +363,7 @@ class CellWall(Process):
             "attempted_shrinkage": attempted_shrinkage,
         }
         update["murein_state"] = {
-            "unincorporated_murein": new_unincorporated_monomers,
+            "unincorporated_murein": new_unincorporated_monomers - unincorporated_monomers,
             "incorporated_murein": new_incorporated_monomers,
         }
         update["listeners"] = {

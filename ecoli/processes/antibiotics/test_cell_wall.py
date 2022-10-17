@@ -16,6 +16,7 @@ from ecoli.library.create_timeline import (add_computed_value,
                                            create_timeline_from_df)
 from ecoli.processes.antibiotics.cell_wall import CellWall
 from ecoli.processes.antibiotics.pbp_binding import PBPBinding
+from ecoli.processes.antibiotics.murein_division import MureinDivision
 
 
 DATA = "data/cell_wall/cell_wall_test_rig_17_09_2022_00_41_51.csv"
@@ -58,11 +59,11 @@ def create_composite(timeline_data, antibiotics=True):
     processes = {
         "cell_wall": CellWall({}),
         "pbp_binding": PBPBinding({}),
+        "murein-division": MureinDivision({})
     }
     topology = {
         "cell_wall": {
             "shape": ("cell_global",),
-            "bulk_murein": ("bulk",),
             "murein_state": ("murein_state",),
             "PBP": ("bulk",),
             "wall_state": ("wall_state",),
@@ -76,6 +77,11 @@ def create_composite(timeline_data, antibiotics=True):
             "bulk": ("bulk",),
             "pbp_state": ("pbp_state",),
         },
+        "murein-division": {
+            "total_murein": ("bulk",),
+            "murein_state": ("murein_state",),
+            "wall_state": ("wall_state",),
+        }
     }
 
     add_timeline(processes, topology, timeline)

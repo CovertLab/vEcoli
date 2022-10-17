@@ -3,7 +3,8 @@
     "add_processes": [
         "ecoli-cell-wall",
         "ecoli-pbp-binding",
-        "ecoli-lysis-initiation"
+        "ecoli-lysis-initiation",
+        "murein-division"
     ],
     "total_time": 100,
 
@@ -57,7 +58,6 @@
     "topology": {
         "ecoli-cell-wall": {
             "shape": ["boundary"],
-            "bulk_murein": ["bulk"],
             "murein_state": ["murein_state"],
             "PBP": ["bulk"],
             "wall_state": ["wall_state"],
@@ -87,7 +87,8 @@
         "ecoli-metabolism": {
             "reduce_murein_objective" : true
         },
-        "ecoli-lysis-initiation": {}
+        "ecoli-lysis-initiation": {},
+        "murein-division": {}
     },
 
     "lysis_config": {

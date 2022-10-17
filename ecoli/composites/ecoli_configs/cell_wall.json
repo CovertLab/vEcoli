@@ -6,11 +6,15 @@
     "initial_state_file": "wcecoli_t0",
     "initial_state_overrides": ["overrides/reduced_murein"],
 
-    "add_processes": ["ecoli-cell-wall", "ecoli-pbp-binding", "ecoli-shape"],
+    "add_processes": [
+        "ecoli-cell-wall",
+        "ecoli-pbp-binding",
+        "ecoli-shape",
+        "murein-division"
+    ],
     "topology": {
         "ecoli-cell-wall": {
             "shape": ["boundary"],
-            "bulk_murein": ["bulk"],
             "murein_state": ["murein_state"],
             "PBP": ["bulk"],
             "wall_state": ["wall_state"],
@@ -28,6 +32,7 @@
         "ecoli-shape": {
             "cell_global": ["boundary"],
             "periplasm_global": ["periplasm", "global"],
+            "cytoplasm_global": ["cytoplasm", "global"],
             "listener_cell_mass": ["listeners", "mass", "cell_mass"],
             "listener_cell_volume": ["listeners", "mass", "volume"]
           }
@@ -40,14 +45,12 @@
 
         },
         "ecoli-shape": {
-            "global": {
-              "_path": "boundary",
-              "volume": ["..", "listeners", "mass", "volume"]
-            }
+
         },
         "ecoli-metabolism": {
             "reduce_murein_objective" : true
-        }
+        },
+        "murein-division": {}
     },
     "flow": {
         "ecoli-shape": [["ecoli-mass-listener"]],
