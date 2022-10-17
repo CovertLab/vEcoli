@@ -47,7 +47,7 @@ def create_composite(timeline_data, antibiotics=True):
                 value[("cell_global", "volume")]
             ),
             ("concentrations", "ampicillin"): (
-                3.7 * units.micromolar
+                10 * units.micromolar
                 if antibiotics and t > 0
                 else 0 * units.micromolar
             ),
@@ -76,6 +76,7 @@ def create_composite(timeline_data, antibiotics=True):
             "concentrations": ("concentrations",),
             "bulk": ("bulk",),
             "pbp_state": ("pbp_state",),
+            "wall_state": ("wall_state",),
         },
         "murein-division": {
             "total_murein": ("bulk",),
@@ -124,6 +125,7 @@ def output_data(data, filepath):
         ("murein_state", "shadow_murein"),
         ("wall_state", "extension_factor"),
         ("wall_state", "lattice_cols"),
+        ("listeners", "hole_size_distribution"),
         ("pbp_state", "active_fraction_PBP1A"),
         ("pbp_state", "active_fraction_PBP1B"),
         ("listeners", "porosity"),
@@ -137,6 +139,8 @@ def output_data(data, filepath):
             remove_units(deserialize_value(get_value_from_path(data[t], path)))
             for t in T
         ]
+        if path == ("listeners", "hole_size_distribution"):
+            var_data = [len(data_at_time) for data_at_time in var_data]
 
         axs[i].plot(T, var_data)
         axs[i].set_title(path[-1])

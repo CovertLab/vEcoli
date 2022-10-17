@@ -46,7 +46,6 @@ def validate_division(data):
         assert cell_data["wall_state"]["extension_factor"] == 1
         assert cell_data["wall_state"]["cracked"] == False
         assert cell_data["murein_state"]["incorporated_murein"] == 0
-        assert cell_data["murein_state"]["unincorporated_murein"] == 0
         assert deserialize_value(cell_data["pbp_state"]["active_fraction_PBP1A"]) == 1
         assert deserialize_value(cell_data["pbp_state"]["active_fraction_PBP1B"]) == 1
 
