@@ -116,6 +116,8 @@ class PBPBinding(Step):
         self.disaccharide_width = self.parameters["disaccharide_width"]
         self.inter_strand_distance = self.parameters["inter_strand_distance"]
         self.rng = np.random.default_rng(self.parameters["seed"])
+        
+        self.first_timestep = True
 
     def ports_schema(self):
         return {
@@ -128,10 +130,12 @@ class PBPBinding(Step):
                 },
                 "unincorporated_murein": {
                     "_default": 0,
-                    "_updater": "set",
                     "_emit": True,
                 },
-                "shadow_murein": {"_default": 0, "_updater": "set", "_emit": True},
+                "shadow_murein": {
+                    "_default": 0, 
+                    "_emit": True
+                },
             },
             "concentrations": {
                 self.beta_lactam: {"_default": 0.0 * units.micromolar, "_emit": True},
@@ -156,7 +160,18 @@ class PBPBinding(Step):
                     "_default": None,
                     "_updater": "set",
                     "_emit": False,
-                    "_divider": "set_none",
+                },
+                "lattice_rows": {
+                    "_default": 0,
+                    "_updater": "set",
+                    "_emit": True,
+                    "_divider": "zero",
+                },
+                "lattice_cols": {
+                    "_default": 0,
+                    "_updater": "set",
+                    "_emit": True,
+                    "_divider": "zero",
                 },
                 "extension_factor": {
                     "_default": 1,
@@ -170,77 +185,117 @@ class PBPBinding(Step):
 
     def next_update(self, timestep, states):
         update = {"murein_state": {}}
-
-        # CellWall normally calculates the un/incorporated murein counts after
-        # division but before this runs. When running inside an EngineProcess,
-        # a new instance of Engine is created after division, causing all steps
-        # (including this one) to run before any processes (like CellWall). If
-        # so, create lattice and calculate un/incorporated murein counts here.
-        if states["wall_state"]["lattice"] is None:
-            # Make sure that all usable murein is initiailly unincorporated
-            unincorporated_monomers = (
-                4 * states["total_murein"][self.murein]
-                - states["murein_state"]["shadow_murein"]
-            )
-            incorporated_monomers = 0
-
-            # Get cell size information
-            length = length_from_volume(states["volume"], self.cell_radius * 2).to(
-                "micrometer"
-            )
-            surface_area = surface_area_from_length(length, self.cell_radius * 2)
-
-            # Set extension factor such that the available murein covers
-            # the surface area of the cell
-            extension = (
-                surface_area
-                / (
-                    unincorporated_monomers
-                    * param_store.get(("cell_wall", "peptidoglycan_unit_area"))
-                )
-            ).to(units.dimensionless)
-            extension = remove_units(extension)
-
-            # Get dimensions of the lattice
-            rows, cols = calculate_lattice_size(
-                length,
-                self.inter_strand_distance,
-                self.disaccharide_height,
-                self.disaccharide_width,
-                self.circumference,
-                extension,
-            )
-
-            # Populate the lattice
-            lattice = sample_lattice(
-                unincorporated_monomers,
-                rows,
-                cols,
-                geom_sampler(self.rng, self.strand_term_p),
-                self.rng,
-            )
-
-            incorporated_monomers = lattice.sum()
-            unincorporated_monomers -= incorporated_monomers
-            states["murein_state"]["incorporated_murein"] = incorporated_monomers
-            states["murein_state"]["unincorporated_murein"] = unincorporated_monomers
-            update.update(
-                {
-                    "wall_state": {"lattice": lattice, "extension_factor": extension},
-                    "murein_state": {"incorporated_murein": incorporated_monomers},
-                }
-            )
-
-        # New murein to allocate
-        new_murein = 4 * states["total_murein"][self.murein] - sum(
-            states["murein_state"].values()
-        )
-
+        
         # Calculate fraction of active PBP1a, PBP1b using Hill Equation
         # (calculating prop NOT bound, i.e. 1 - Hill eq value)
         beta_lactam = states["concentrations"][self.beta_lactam]
         active_fraction_1a = 1 / (1 + (beta_lactam / self.K_A_1a) ** self.n_1a)
         active_fraction_1b = 1 / (1 + (beta_lactam / self.K_A_1b) ** self.n_1b)
+        
+        update["pbp_state"] = {
+            "active_fraction_PBP1A": active_fraction_1a,
+            "active_fraction_PBP1B": active_fraction_1b,
+        }
+        
+        if self.first_timestep:
+            self.first_timestep = False
+            # Initialize cell wall if necessary (first cell in sim)
+            if states["wall_state"]["lattice"] is None:
+                # Make sure that all usable murein is initiailly unincorporated
+                unincorporated_monomers = (
+                    4 * states["total_murein"][self.murein]
+                    - states["murein_state"]["shadow_murein"]
+                )
+                incorporated_monomers = 0
+
+                # Get cell size information
+                length = length_from_volume(states["volume"], self.cell_radius * 2).to(
+                    "micrometer"
+                )
+                surface_area = surface_area_from_length(length, self.cell_radius * 2)
+
+                # Set extension factor such that the available murein covers
+                # the surface area of the cell
+                extension = (
+                    surface_area
+                    / (
+                        unincorporated_monomers
+                        * param_store.get(("cell_wall", "peptidoglycan_unit_area"))
+                    )
+                ).to(units.dimensionless)
+                extension = remove_units(extension)
+
+                # Get dimensions of the lattice
+                rows, cols = calculate_lattice_size(
+                    length,
+                    self.inter_strand_distance,
+                    self.disaccharide_height,
+                    self.disaccharide_width,
+                    self.circumference,
+                    extension,
+                )
+
+                # Populate the lattice
+                lattice = sample_lattice(
+                    unincorporated_monomers,
+                    rows,
+                    cols,
+                    geom_sampler(self.rng, self.strand_term_p),
+                    self.rng,
+                )
+
+                incorporated_monomers = lattice.sum()
+                unincorporated_monomers -= incorporated_monomers
+                update.update(
+                    {
+                        "wall_state": {"lattice": lattice, "extension_factor": extension},
+                        "murein_state": {
+                            "incorporated_murein": incorporated_monomers,
+                            "unincorporated_murein": -incorporated_monomers
+                        },
+                    }
+                )
+                return update
+            
+            # Set lattice rows, cols, extension factor, and incorporated murein
+            # immediately after division
+            elif states["wall_state"]["lattice_rows"] == 0:
+                # Get cell size information
+                length = length_from_volume(states["volume"], self.cell_radius * 2).to(
+                    "micrometer"
+                )
+                surface_area = surface_area_from_length(length, self.cell_radius * 2)
+
+                # Set extension factor such that lattice covers the cell
+                lattice = states["wall_state"]["lattice"]
+                extension = remove_units(
+                    (
+                        length
+                        / (lattice.shape[1] * (self.inter_strand_distance 
+                                                + self.disaccharide_width))
+                    ).to("dimensionless")
+                )
+                
+                incorporated_monomers = np.sum(lattice)
+                update.update(
+                    {
+                        "murein_state": {
+                            "incorporated_murein": incorporated_monomers
+                        },
+                        "wall_state":
+                            {
+                                "lattice_rows": lattice.shape[0],
+                                "lattice_cols": lattice.shape[1],
+                                "extension_factor": extension
+                            }
+                    }
+                )
+                return update
+
+        # New murein to allocate
+        new_murein = 4 * states["total_murein"][self.murein] - sum(
+            states["murein_state"].values()
+        )
 
         # Allocate real vs. shadow murein based on
         # what fraction of PBPs are active
@@ -263,21 +318,10 @@ class PBPBinding(Step):
 
         update["murein_state"].update(
             {
-                "unincorporated_murein": (
-                    real_new_murein + states["murein_state"]["unincorporated_murein"]
-                ),
-                "shadow_murein": (
-                    new_murein
-                    - real_new_murein
-                    + states["murein_state"]["shadow_murein"]
-                ),
+                "unincorporated_murein": real_new_murein,
+                "shadow_murein": new_murein - real_new_murein,
             }
         )
-
-        update["pbp_state"] = {
-            "active_fraction_PBP1A": active_fraction_1a,
-            "active_fraction_PBP1B": active_fraction_1b,
-        }
 
         return update
 

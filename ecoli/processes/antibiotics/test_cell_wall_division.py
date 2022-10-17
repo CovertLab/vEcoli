@@ -8,6 +8,12 @@ DATA = "data/cell_wall/cell_wall_test_rig_17_09_2022_00_41_51.csv"
 
 
 def run_experiment():
+    # TODO: Run all colony sims with EngineProcess because otherwise Processes
+    # will run before Steps after division and timesteps are counter-intuitive
+    # (e.g. if a cell divides at t=4 and has a CellWall process w/ a time step
+    # of 10, the CellWall process will run using the state after t=4 and apply
+    # its update at t=10 instead of at t=14)
+    
     total_time = 10
 
     ecoli = EcoliSim.from_file(

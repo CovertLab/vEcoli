@@ -433,6 +433,7 @@ class EcoliSim:
         # get initial state
         initial_cell_state = ecoli_composer.initial_state(
             config=self.config)
+        initial_cell_state = assoc_path({}, path, initial_cell_state)
 
         # generate the composite at the path
         self.ecoli = ecoli_composer.generate(path=path)
@@ -442,10 +443,10 @@ class EcoliSim:
             for process in get_in(self.ecoli.processes, path).values()
             if 'process' in process.parameters
         }}
+        process_states = assoc_path({}, path, process_states)
         # Fill in all stores missing in initial_cell_state
-        process_states = deep_merge(process_states, self.ecoli.initial_state({
+        self.initial_state = deep_merge(process_states, self.ecoli.initial_state({
             'initial_state': initial_cell_state}))
-        self.initial_state = assoc_path({}, path, process_states)
 
         # merge a lattice composite for the spatial environment
         if self.spatial_environment:

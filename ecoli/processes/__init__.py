@@ -41,6 +41,7 @@ from ecoli.processes.chemostat import Chemostat
 from ecoli.processes.listeners.aggregator import Aggregator
 from ecoli.processes.rna_interference import RnaInterference
 from ecoli.processes.antibiotics.conc_to_counts import ConcToCounts
+from ecoli.processes.antibiotics.murein_division import MureinDivision
 
 
 # add to registry
@@ -97,3 +98,4 @@ process_registry.register(CellWall.name, CellWall)
 process_registry.register(PBPBinding.name, PBPBinding)
 process_registry.register(ConcToCounts.name, ConcToCounts)
 process_registry.register(RnaInterference.name, RnaInterference)
+process_registry.register(MureinDivision.name, MureinDivision)
