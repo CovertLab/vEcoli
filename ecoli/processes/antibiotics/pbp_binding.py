@@ -248,7 +248,12 @@ class PBPBinding(Step):
                 unincorporated_monomers -= incorporated_monomers
                 update.update(
                     {
-                        "wall_state": {"lattice": lattice, "extension_factor": extension},
+                        "wall_state": {
+                            "lattice": lattice,
+                            "extension_factor": extension,
+                            "lattice_rows": lattice.shape[0],
+                            "lattice_cols": lattice.shape[1],
+                        },
                         "murein_state": {
                             "incorporated_murein": incorporated_monomers,
                             "unincorporated_murein": -incorporated_monomers
@@ -341,6 +346,7 @@ def test_pbp_binding():
             "concentrations": ("concentrations",),
             "bulk": ("bulk",),
             "pbp_state": ("pbp_state",),
+            "wall_state": ("wall_state",),
         }
     }
     add_timeline(
