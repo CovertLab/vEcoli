@@ -69,7 +69,7 @@ class MureinDivision(Step):
             if states["murein_state"]["incorporated_murein"] == 0:
                 incorporated_murein = np.sum(states["wall_state"]["lattice"])
                 update["murein_state"][
-                    "unincorporated_murein"] = incorporated_murein
+                    "incorporated_murein"] = incorporated_murein
                 accounted_murein_monomers += incorporated_murein
             remainder = accounted_murein_monomers % 4
             if remainder != 0:
