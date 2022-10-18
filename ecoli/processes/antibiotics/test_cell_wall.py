@@ -151,7 +151,7 @@ def output_data(data, filepath):
 
 
 def test_cell_wall():
-    total_time = 1200
+    total_time = 1300
     timeline_data = pd.read_csv(DATA, skipinitialspace=True)
 
     for antibiotics in [False, True]:
