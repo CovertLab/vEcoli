@@ -106,9 +106,6 @@ class CellWall(Process):
             ("cell_wall", "inter_strand_distance")
         ),
         "max_expansion": param_store.get(("cell_wall", "max_expansion")),
-        "peptidoglycan_unit_area": param_store.get(
-            ("cell_wall", "peptidoglycan_unit_area")
-        ),
         # Simulation parameters
         "seed": 0,
         "time_step": 10,
@@ -127,11 +124,13 @@ class CellWall(Process):
         self.critical_area = np.pi * self.critical_radius**2
         self.circumference = 2 * np.pi * self.cell_radius
 
-        self.peptidoglycan_unit_area = self.parameters["peptidoglycan_unit_area"]
         self.disaccharide_height = self.parameters["disaccharide_height"]
         self.disaccharide_width = self.parameters["disaccharide_width"]
         self.inter_strand_distance = self.parameters["inter_strand_distance"]
         self.max_expansion = self.parameters["max_expansion"]
+        self.peptidoglycan_unit_area = ((
+            self.inter_strand_distance + self.disaccharide_width) * 
+            self.disaccharide_height)
 
         # Create pseudorandom number generator
         self.rng = np.random.default_rng(self.parameters["seed"])

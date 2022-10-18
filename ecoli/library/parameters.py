@@ -288,12 +288,8 @@ PARAMETER_DICT = {
             1.4 * units.nm,
             "Turner, R. D., Mesnage, S., Hobbs, J. K., & Foster, S. J. (2018).",
         ),
-        "inter_strand_distance": Parameter(1.2 * units.nm, "Parameter scan"),
+        "inter_strand_distance": Parameter(0.93 * units.nm, "Parameter scan"),
         "max_expansion": Parameter(3, "Koch, A. L., & Woeste, S. (1992)."),
-        "peptidoglycan_unit_area": Parameter(
-            2.5 * units.nm**2,
-            "Wientjes, F. B., Woldringh, C. L., & Nanninga, N. (1991).",
-        ),
     },
     "concs": {
         "initial_pump": Parameter(

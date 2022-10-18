@@ -220,7 +220,8 @@ class PBPBinding(Step):
                     surface_area
                     / (
                         unincorporated_monomers
-                        * param_store.get(("cell_wall", "peptidoglycan_unit_area"))
+                        * ((self.inter_strand_distance + self.disaccharide_width) * 
+                        self.disaccharide_height)
                     )
                 ).to(units.dimensionless)
                 extension = remove_units(extension)
