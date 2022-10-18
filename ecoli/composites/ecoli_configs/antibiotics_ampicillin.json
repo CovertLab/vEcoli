@@ -22,8 +22,8 @@
             "kinetic_parameters": {
                 "antibiotic_hydrolysis": {
                     "EG10040-MONOMER[p]": {
-                        "kcat_f": 10.0,
-                        "ampicillin[p]": 0.01
+                        "kcat_f": "!ParameterSerializer[ampicillin>hydrolysis>kcat]",
+                        "ampicillin[p]": "!ParameterSerializer[ampicillin>hydrolysis>km]"
                     }
                 }
             }
