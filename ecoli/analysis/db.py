@@ -12,8 +12,14 @@ from vivarium.core.emitter import (
     get_local_client,
     get_data_chunks
 )
+from vivarium.core.serialize import deserialize_value
+from vivarium.library.units import remove_units
 
 from ecoli.library.sim_data import LoadSimData
+
+
+def deserialize_and_remove_units(d):
+    return remove_units(deserialize_value(d))
 
 
 def custom_deep_merge_check(
