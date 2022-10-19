@@ -46,7 +46,7 @@ class MureinDivision(Step):
                     "_emit": True,
                 },
                 "shadow_murein": {
-                    "_default": 0, 
+                    "_default": 0,
                     "_emit": True
                 },
             },
