@@ -280,7 +280,7 @@ class Metabolism(Step):
             for met, conc in conc_updates.items()}
         
         if self.parameters['reduce_murein_objective']:
-            conc_updates['CPD-12261[p]'] /= 2.53
+            conc_updates['CPD-12261[p]'] /= 2.27
 
         # Update FBA problem based on current state
         # Set molecule availability (internal and external)
