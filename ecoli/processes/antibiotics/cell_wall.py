@@ -276,20 +276,9 @@ class CellWall(Process):
         )
         
         # Shrink extension factor when excess murein is available
-        potential_full_columns = unincorporated_monomers // lattice.shape[0]
-        if new_columns - lattice.shape[1] < potential_full_columns:
-            _, resting_column_count = calculate_lattice_size(
-                length,
-                self.inter_strand_distance,
-                self.disaccharide_height,
-                self.disaccharide_width,
-                self.circumference,
-                1,
-            )
-            new_columns = min(
-                lattice.shape[1] + potential_full_columns,
-                resting_column_count
-            )
+        if extension_factor > 1:
+            potential_full_columns = unincorporated_monomers // lattice.shape[0]
+            new_columns = lattice.shape[1] + potential_full_columns
             extension_factor = remove_units(
                 (
                     length
@@ -300,7 +289,16 @@ class CellWall(Process):
                 ).to("dimensionless")
             )
             # Minimum extension factor of 1
-            extension_factor = max(extension_factor, 1)
+            if extension_factor < 1:
+                _, new_columns = calculate_lattice_size(
+                    length,
+                    self.inter_strand_distance,
+                    self.disaccharide_height,
+                    self.disaccharide_width,
+                    self.circumference,
+                    1,
+                )
+                extension_factor = 1
 
         # Update lattice to reflect new dimensions,
         # change in murein, synthesis sites
@@ -417,18 +415,12 @@ class CellWall(Process):
 
         attempted_shrinkage = False
 
-        # Stop early is there is no murein to allocate, or if the cell has not grown
-        if unincorporated_monomers == 0 or d_columns == 0:
-            new_lattice = lattice
-            total_real_monomers = unincorporated_monomers + incorporated_monomers
-            new_incorporated_monomers = new_lattice.sum()
-            new_unincorporated_monomers = (
-                total_real_monomers - new_incorporated_monomers
-            )
+        # Stop early if the cell has not grown
+        if d_columns == 0:
             return (
-                new_lattice,
-                new_unincorporated_monomers,
-                new_incorporated_monomers,
+                lattice,
+                unincorporated_monomers,
+                incorporated_monomers,
                 attempted_shrinkage,
             )
 
