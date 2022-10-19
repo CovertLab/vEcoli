@@ -277,11 +277,7 @@ class CellWall(Process):
         
         # Shrink extension factor when excess murein is available
         d_full_columns = unincorporated_monomers // lattice.shape[0]
-<<<<<<< HEAD
-        d_columns = new_columns - lattice.shape[0]
-=======
         d_columns = new_columns - lattice.shape[1]
->>>>>>> a0b2ef7a2c684fe460103232d56b356e65d1b2f6
         if d_full_columns > d_columns and extension_factor > 1:
             new_columns = lattice.shape[1] + d_full_columns
             extension_factor = remove_units(
