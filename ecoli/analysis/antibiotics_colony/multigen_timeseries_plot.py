@@ -6,10 +6,8 @@ import matplotlib.pyplot as plt
 from bson import MaxKey, MinKey
 from tqdm import tqdm
 from vivarium.library.topology import convert_path_style
-from vivarium.core.serialize import deserialize_value
-from vivarium.library.units import remove_units
 
-from ecoli.analysis.db import access_counts
+from ecoli.analysis.db import access_counts, deserialize_and_remove_units
 from ecoli.analysis.analyze_multigen_db_experiment import plot_agents_multigen
 
 
@@ -25,10 +23,6 @@ MOLECULES = [
     # "Inhibited 30S Subunits",
     # "Uninhibited 30S Subunits"
 ]
-
-
-def deserialize_and_remove_units(d):
-    return remove_units(deserialize_value(d))
 
 
 def multigen_traces(outfile, data, timeseries_paths, highlight_agents, highlight_color):

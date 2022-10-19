@@ -8,6 +8,9 @@ Glucose Figure
 [F] [F] [F] [F] [F]
 """
 import argparse
+import concurrent.futures
+
+from tqdm import tqdm
 
 import matplotlib
 import numpy as np
@@ -16,6 +19,8 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
 from vivarium.library.units import units
+
+from ecoli.analysis.db import access_counts, deserialize_and_remove_units
 from ecoli.plots.snapshots import format_snapshot_data, make_tags_figure
 
 
@@ -81,14 +86,45 @@ def make_layout(width=8, height=8):
     return fig, axs
 
 
+def get_data(experiment_ids, sampling_rate, start_time, end_time, cpus):
+
+    result = []
+
+    for exp_id in experiment_ids:
+        data = access_counts(
+            experiment_id=exp_id,
+            monomer_names=monomers,
+            mrna_names=mrnas,
+            inner_paths=inner_paths,
+            outer_paths=outer_paths,
+            host=args.host,
+            port=args.port,
+            sampling_rate=sampling_rate,
+            start_time=start_time,
+            end_time=end_time,
+            cpus=cpus)
+        
+        with concurrent.futures.ProcessPoolExecutor(cpus) as executor:
+            data_deserialized = list(tqdm(executor.map(
+                deserialize_and_remove_units, data.values()), total=len(data)))
+        data = dict(zip(data.keys(), data_deserialized))
+        first_timepoint = data[min(data)]
+
+        result.append(data)
+
+    return result
+
+
 def make_figure(experiment_ids, section=None):
     if section is None:
         section = ["A", "B", "C", "D", "E", "F"]
 
+    data = get_data()
+
     fig, axs = make_layout(width=8, height=8)
 
     if "A" in section:
-        make_figure_A([ax for k, ax in axs.items() if k.startswith("A")])
+        make_figure_A(fig, [ax for k, ax in axs.items() if k.startswith("A")], data)
     if "B" in section:
         pass
     if "C" in section:
