@@ -7,22 +7,50 @@ Glucose Figure
 [F] [F] [F] [F] [F]
 [F] [F] [F] [F] [F]
 """
-
 import argparse
 
-
-import numpy as np
 import matplotlib
+import numpy as np
 
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
-from ecoli.plots.snapshots import make_snapshots_figure
+from vivarium.library.units import units
+from ecoli.plots.snapshots import format_snapshot_data, make_tags_figure
 
 
-def make_figure_A(axs):
-    for ax in axs:
-        make_snapshots_figure()
+def make_figure_A(
+    fig,
+    axs,
+    data,
+    **kwargs,
+):
+    agents, fields = format_snapshot_data(data)
+    time_vec = list(agents.keys())
+    bounds = [30, 30] * units.um
+
+    n_snapshots = len(axs)
+
+    # get time data
+    time_indices = np.round(np.linspace(0, len(time_vec) - 1, n_snapshots)).astype(int)
+    snapshot_times = [time_vec[i] for i in time_indices]
+
+    tags_fig = make_tags_figure(
+        agents=agents,
+        bounds=bounds,
+        n_snapshots=n_snapshots,
+        time_indices=time_indices,
+        snapshot_times=snapshot_times,
+        **kwargs,
+    )
+    for tag_ax, ax in zip(tags_fig.axes, axs):
+        tag_ax.remove()
+        fig.axes.append(tag_ax)
+        fig.add_axes(tag_ax)
+
+        tag_ax.set_position(ax.get_position())
+        ax.remove()
+    plt.close(tags_fig)
 
 
 def make_layout(width=8, height=8):
