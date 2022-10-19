@@ -212,19 +212,6 @@ class PBPBinding(Step):
                 length = length_from_volume(states["volume"], self.cell_radius * 2).to(
                     "micrometer"
                 )
-                surface_area = surface_area_from_length(length, self.cell_radius * 2)
-
-                # Set extension factor such that the available murein covers
-                # the surface area of the cell
-                extension = (
-                    surface_area
-                    / (
-                        unincorporated_monomers
-                        * ((self.inter_strand_distance + self.disaccharide_width) * 
-                        self.disaccharide_height)
-                    )
-                ).to(units.dimensionless)
-                extension = remove_units(extension)
 
                 # Get dimensions of the lattice
                 rows, cols = calculate_lattice_size(
@@ -233,7 +220,7 @@ class PBPBinding(Step):
                     self.disaccharide_height,
                     self.disaccharide_width,
                     self.circumference,
-                    extension,
+                    1,
                 )
 
                 # Populate the lattice
@@ -251,7 +238,7 @@ class PBPBinding(Step):
                     {
                         "wall_state": {
                             "lattice": lattice,
-                            "extension_factor": extension,
+                            "extension_factor": 1,
                             "lattice_rows": lattice.shape[0],
                             "lattice_cols": lattice.shape[1],
                         },
@@ -270,7 +257,6 @@ class PBPBinding(Step):
                 length = length_from_volume(states["volume"], self.cell_radius * 2).to(
                     "micrometer"
                 )
-                surface_area = surface_area_from_length(length, self.cell_radius * 2)
 
                 # Set extension factor such that lattice covers the cell
                 lattice = states["wall_state"]["lattice"]
