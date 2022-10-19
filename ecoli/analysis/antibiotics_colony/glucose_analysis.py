@@ -112,6 +112,7 @@ def main():
         default=None,
         choices=[None, "A", "B", "C", "D", "E", "F"],
         help="Generate a particular sub-figure (defaults to generating all figures)",
+        required=False
     )
 
     parser.add_argument(
@@ -119,6 +120,7 @@ def main():
         "-e",
         nargs="+",
         help="Ids of the experiments to use for the figure",
+        required=True
     )
 
     args = parser.parse_args()
