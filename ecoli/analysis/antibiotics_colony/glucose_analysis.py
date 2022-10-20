@@ -10,29 +10,29 @@ Glucose Figure
 import argparse
 import concurrent.futures
 
-from tqdm import tqdm
-
 import matplotlib
 import numpy as np
+from bson import MaxKey, MinKey
+from tqdm import tqdm
 
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-
+from ecoli.analysis.db import access_counts, deserialize_and_remove_units
+from ecoli.plots.snapshots import format_snapshot_data, make_tags_figure, plot_tags
 from vivarium.library.units import units
 
-from ecoli.analysis.db import access_counts, deserialize_and_remove_units
-from ecoli.plots.snapshots import format_snapshot_data, make_tags_figure
+
+MOLECULES = [("monomer", "PD00365"), ("monomer", "PD00406")]
 
 
 def make_figure_A(
     fig,
     axs,
     data,
-    **kwargs,
+    bounds
 ):
     agents, fields = format_snapshot_data(data)
     time_vec = list(agents.keys())
-    bounds = [30, 30] * units.um
 
     n_snapshots = len(axs)
 
@@ -40,22 +40,25 @@ def make_figure_A(
     time_indices = np.round(np.linspace(0, len(time_vec) - 1, n_snapshots)).astype(int)
     snapshot_times = [time_vec[i] for i in time_indices]
 
-    tags_fig = make_tags_figure(
-        agents=agents,
-        bounds=bounds,
-        n_snapshots=n_snapshots,
-        time_indices=time_indices,
-        snapshot_times=snapshot_times,
-        **kwargs,
-    )
-    for tag_ax, ax in zip(tags_fig.axes, axs):
-        tag_ax.remove()
-        fig.axes.append(tag_ax)
-        fig.add_axes(tag_ax)
+    for i, d in enumerate(data):
+        fig = plot_tags(
+            d,
+            bounds,
+            snapshot_times=time_vec[-1],
+            tagged_molecules=MOLECULES,
+        )
 
-        tag_ax.set_position(ax.get_position())
-        ax.remove()
-    plt.close(tags_fig)
+        fig.subplots_adjust(wspace=0.7, hspace=0.1)
+        fig.savefig("out/test_tag_fig_{i}.png")
+
+    # for tag_ax, ax in zip(tags_fig.axes, axs):
+    #     tag_ax.remove()
+    #     fig.axes.append(tag_ax)
+    #     fig.add_axes(tag_ax)
+
+    #     tag_ax.set_position(ax.get_position())
+    #     ax.remove()
+    # plt.close(tags_fig)
 
 
 def make_layout(width=8, height=8):
@@ -86,9 +89,17 @@ def make_layout(width=8, height=8):
     return fig, axs
 
 
-def get_data(experiment_ids, sampling_rate, start_time, end_time, cpus):
+def get_data(experiment_ids, sampling_rate, start_time, end_time, host, port, cpus):
 
-    result = []
+    experiment_data = []
+    bounds = []
+
+    monomers = [m[-1] for m in MOLECULES if m[-2] == "monomer"]
+    mrnas = [m[-1] for m in MOLECULES if m[-2] == "mrna"]
+    inner_paths = [
+        path for path in MOLECULES if path[-1] not in mrnas and path[-1] not in monomers
+    ]
+    outer_paths = [("data", "dimensions")]
 
     for exp_id in experiment_ids:
         data = access_counts(
@@ -97,34 +108,38 @@ def get_data(experiment_ids, sampling_rate, start_time, end_time, cpus):
             mrna_names=mrnas,
             inner_paths=inner_paths,
             outer_paths=outer_paths,
-            host=args.host,
-            port=args.port,
+            host=host,
+            port=port,
             sampling_rate=sampling_rate,
             start_time=start_time,
             end_time=end_time,
-            cpus=cpus)
-        
+            cpus=cpus,
+        )
+
         with concurrent.futures.ProcessPoolExecutor(cpus) as executor:
-            data_deserialized = list(tqdm(executor.map(
-                deserialize_and_remove_units, data.values()), total=len(data)))
+            data_deserialized = list(
+                tqdm(
+                    executor.map(deserialize_and_remove_units, data.values()),
+                    total=len(data),
+                )
+            )
         data = dict(zip(data.keys(), data_deserialized))
         first_timepoint = data[min(data)]
 
-        result.append(data)
+        experiment_data.append(data)
+        bounds.append(first_timepoint['dimensions']['bounds'])
 
-    return result
+    return experiment_data, bounds
 
 
-def make_figure(experiment_ids, section=None):
+def make_figure(data, bounds, section=None):
     if section is None:
         section = ["A", "B", "C", "D", "E", "F"]
-
-    data = get_data()
 
     fig, axs = make_layout(width=8, height=8)
 
     if "A" in section:
-        make_figure_A(fig, [ax for k, ax in axs.items() if k.startswith("A")], data)
+        make_figure_A(fig, [ax for k, ax in axs.items() if k.startswith("A")], data. bounds)
     if "B" in section:
         pass
     if "C" in section:
@@ -148,7 +163,7 @@ def main():
         default=None,
         choices=[None, "A", "B", "C", "D", "E", "F"],
         help="Generate a particular sub-figure (defaults to generating all figures)",
-        required=False
+        required=False,
     )
 
     parser.add_argument(
@@ -156,12 +171,35 @@ def main():
         "-e",
         nargs="+",
         help="Ids of the experiments to use for the figure",
-        required=True
+        required=True,
     )
+
+    parser.add_argument(
+        "--sampling_rate",
+        "-r",
+        type=int,
+        default=1,
+        help="Number of timepoints to step between frames.",
+    )
+    parser.add_argument("--host", "-o", default="localhost", type=str)
+    parser.add_argument("--port", "-p", default=27017, type=int)
+    parser.add_argument("--start_time", "-s", type=int, default=MinKey())
+    parser.add_argument("--end_time", "-e", type=int, default=MaxKey())
+    parser.add_argument("--cpus", "-c", type=int, default=1)
+    parser.add_argument("--verbose", "-v", action="store_true")
 
     args = parser.parse_args()
 
-    make_figure(args.experiment_ids, args.section)
+    data, bounds = get_data(
+        experiment_ids=args.experiment_ids,
+        sampling_rate=args.sampling_rate,
+        start_time=args.start_time,
+        end_time=args.end_time,
+        host=args.host,
+        port=args.port,
+        cpus=args.cpus,
+    )
+    make_figure(data, bounds, args.section)
 
 
 if __name__ == "__main__":
