@@ -31,8 +31,6 @@ def make_snapshot_and_kde_plot(
     time_vec = list(data.keys())
     data = data[time_vec[timepoint]]
 
-    agents, fields = format_snapshot_data(data)
-
     fig = plot_tags(
         data,
         bounds,
@@ -45,8 +43,7 @@ def make_figure_A(fig, axs, data, bounds):
     data = data[0]
     bounds = bounds[0]
 
-    agents, fields = format_snapshot_data(data)
-    time_vec = list(agents.keys())
+    time_vec = list(data.keys())
 
     n_snapshots = len(axs)
 
@@ -74,6 +71,10 @@ def make_figure_A(fig, axs, data, bounds):
     #     ax.remove()
     # plt.close(tags_fig)
 
+
+def make_figure_F(fig, axs, data, bounds):
+    # make_snapshot_and_kde_plot(data, bounds, )
+    pass
 
 def make_layout(width=8, height=8):
     gs_kw = {"width_ratios": [1, 1, 1, 1, 1], "height_ratios": [1, 1, 1, 1, 1]}
