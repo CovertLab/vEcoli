@@ -68,16 +68,16 @@ def make_snapshot_and_kde_plot(data, bounds, molecule, timepoint=-1):
     # Reposition axes, preparing to add kde plot below
     grid = plt.GridSpec(2, 2, wspace=0.2, hspace=0.2)
 
-    snapshot_ax, conc_ax = fig.get_axes()
-    snapshot_ax.set_position(grid[0, 0].get_position(fig))
-    conc_ax.set_position(grid[0, 1].get_position(fig))
-    snapshot_ax.set_subplotspec(grid[0, 0])
-    conc_ax.set_subplotspec(grid[0, 1])
+    # snapshot_ax, conc_ax = fig.get_axes()
+    # snapshot_ax.set_position(grid[0, 0].get_position(fig))
+    # conc_ax.set_position(grid[0, 1].get_position(fig))
+    # snapshot_ax.set_subplotspec(grid[0, 0])
+    # conc_ax.set_subplotspec(grid[0, 1])
 
-    # Add KDE plot
-    kde_ax = fig.add_subplot(grid[1, 0])
-    kde_ax.set(aspect=1)
-    kde_ax.plot(np.arange(10))
+    # # Add KDE plot
+    # kde_ax = fig.add_subplot(grid[1, 0])
+    # kde_ax.set(aspect=1)
+    # kde_ax.plot(np.arange(10))
 
     # import ipdb; ipdb.set_trace()
     # d = data[list(data.keys()[-1])]
