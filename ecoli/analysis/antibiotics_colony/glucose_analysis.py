@@ -123,7 +123,7 @@ def make_figure_A(fig, axs, data, bounds):
     # plt.close(tags_fig)
 
 
-def make_figure_F(fig, axs, data, bounds):
+def make_figure_F(fig, axs, data, bounds, verbose):
     bounds = bounds[0]
 
     for exp_data in data:
@@ -228,7 +228,7 @@ def make_figure(data, bounds, verbose):
     if verbose:
         print("Making subfigure F...")
 
-    make_figure_F(fig, [ax for k, ax in axs.items() if k.startswith("F")], data, bounds)
+    make_figure_F(fig, [ax for k, ax in axs.items() if k.startswith("F")], data, bounds, verbose)
 
     fig.savefig("out/glucose_figure.png")
 
