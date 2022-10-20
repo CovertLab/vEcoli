@@ -322,6 +322,8 @@ def access_counts(experiment_id, monomer_names=None, mrna_names=None,
     }}
     for outer_path in outer_paths:
         final_projection['$project']['.'.join(outer_path)] = 1
+    final_projection['$project']['data.fields'] = 1
+    final_projection['$project']['data.dimensions'] = 1
     aggregation.append(final_projection)
     
     if cpus > 1:
