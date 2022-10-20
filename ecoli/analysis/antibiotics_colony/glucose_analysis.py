@@ -25,9 +25,7 @@ from vivarium.library.units import units
 MOLECULES = [("monomer", "PD00365"), ("monomer", "PD00406")]
 
 
-def make_snapshot_and_kde_plot(
-    data, bounds, molecule, snapshot_ax, kde_ax, timepoint=-1
-):
+def make_snapshot_and_kde_plot(data, bounds, molecule, timepoint=-1):
     time_vec = list(data.keys())
     data = data[time_vec[timepoint]]
 
@@ -35,12 +33,16 @@ def make_snapshot_and_kde_plot(
         data,
         bounds,
         snapshot_times=time_vec[-1],
-        tagged_molecules=MOLECULES,
+        tagged_molecules=molecule,
     )
+
+    kde_ax = fig.add_subplot(2, 1, 2)
+    kde_ax.plot(np.arange(10))
+
+    return fig, fig.get_axes()
 
 
 def make_figure_A(fig, axs, data, bounds):
-    data = data[0]
     bounds = bounds[0]
 
     time_vec = list(data.keys())
@@ -60,7 +62,7 @@ def make_figure_A(fig, axs, data, bounds):
         )
 
         fig.subplots_adjust(wspace=0.7, hspace=0.1)
-        fig.savefig("out/test_tag_fig_{i}.png")
+        fig.savefig(f"out/test_tag_fig_{i}.png")
 
     # for tag_ax, ax in zip(tags_fig.axes, axs):
     #     tag_ax.remove()
@@ -73,8 +75,15 @@ def make_figure_A(fig, axs, data, bounds):
 
 
 def make_figure_F(fig, axs, data, bounds):
-    # make_snapshot_and_kde_plot(data, bounds, )
-    pass
+    bounds = bounds[0]
+
+    for exp_data in data:
+        for molecule in MOLECULES:
+            fig, axs = make_snapshot_and_kde_plot(exp_data, bounds, molecule)
+
+            fig.subplots_adjust(wspace=0.7, hspace=0.1)
+            fig.savefig(f"out/test_tag_fig_{molecule}.png")
+
 
 def make_layout(width=8, height=8):
     gs_kw = {"width_ratios": [1, 1, 1, 1, 1], "height_ratios": [1, 1, 1, 1, 1]}
@@ -159,7 +168,8 @@ def make_figure(data, bounds, verbose):
     if verbose:
         print("Making subfigure A...")
 
-    make_figure_A(fig, [ax for k, ax in axs.items() if k.startswith("A")], data, bounds)
+    # make_figure_A(fig, [ax for k, ax in axs.items() if k.startswith("A")], data, bounds)
+    make_figure_F(fig, [ax for k, ax in axs.items() if k.startswith("K")], data, bounds)
 
     fig.savefig("out/glucose_figure.png")
 
