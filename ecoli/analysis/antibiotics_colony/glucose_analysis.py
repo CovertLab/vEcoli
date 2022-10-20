@@ -81,8 +81,7 @@ def make_figure_F(fig, axs, data, bounds):
             fig, axs = make_snapshot_and_kde_plot(exp_data, bounds, molecule)
 
             # fig.subplots_adjust(wspace=0.7, hspace=0.1)
-            fig.tight_layout()
-            fig.savefig(f"out/test_tag_fig_{molecule[-1]}.png")
+            fig.savefig(f"out/test_tag_fig_{molecule[-1]}.png", bbox_inches='tight')
 
 
 def make_layout(width=8, height=8):
