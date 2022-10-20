@@ -9,9 +9,12 @@ Glucose Figure
 """
 import argparse
 import concurrent.futures
+import os
 
 import matplotlib
+import seaborn
 import numpy as np
+from scipy.stats import gaussian_kde
 from bson import MaxKey, MinKey
 from tqdm import tqdm
 
@@ -22,21 +25,66 @@ from ecoli.plots.snapshots import format_snapshot_data, make_tags_figure, plot_t
 from vivarium.library.units import units
 
 
-MOLECULES = [("monomer", "PD00365"), ("monomer", "PD00406")]
+MOLECULES = [# ("bulk", "MICF-RNA"),
+             ("monomer", "PD00365"),
+             ("monomer", "PD00406"),
+             ("monomer", "YHIV-MONOMER"),
+             ("monomer", "PD00364"),
+             ("monomer", "OMPR-MONOMER"),
+             ("monomer", "EG10671-MONOMER"),
+             ("monomer", "ENVZ-MONOMER"),
+             ("monomer", "TEHA-MONOMER"),
+             ("monomer", "EG11703-MONOMER"),
+             ("monomer", "ACRB-MONOMER"),
+             ("monomer", "EG12117-MONOMER"),
+             ("monomer", "EG10670-MONOMER"),
+             ("monomer", "EG10669-MONOMER"),
+             ("monomer", "EG12116-MONOMER"),
+             ("monomer", "CMR-MONOMER"),
+             ("monomer", "ACRD-MONOMER"),
+             ("monomer", "EMRB-MONOMER"),
+             ("monomer", "PD04418"),
+             ("monomer", "EMRD-MONOMER"),
+             ("monomer", "ACRF-MONOMER"),
+             ("monomer", "EG11009-MONOMER"),
+             ("monomer", "EG10266-MONOMER"),
+             ("monomer", "EG11599-MONOMER"),
+             ]
 
 
 def make_snapshot_and_kde_plot(data, bounds, molecule, timepoint=-1):
     time_vec = list(data.keys())
 
+    # Get snapshot figure from plot_tags
     fig = plot_tags(
         data,
         bounds,
-        snapshot_times=[time_vec[-1]],
+        snapshot_times=[time_vec[timepoint]],
         tagged_molecules=[molecule],
+        show_timeline=False,
     )
 
-    kde_ax = fig.add_subplot(2, 1, 2)
+    # Reposition axes, preparing to add kde plot below
+    grid = plt.GridSpec(2, 2, wspace=0.2, hspace=0.2)
+
+    snapshot_ax, conc_ax = fig.get_axes()
+    snapshot_ax.set_position(grid[0, 0].get_position(fig))
+    conc_ax.set_position(grid[0, 1].get_position(fig))
+    snapshot_ax.set_subplotspec(grid[0, 0])
+    conc_ax.set_subplotspec(grid[0, 1])
+
+    # Add KDE plot
+    kde_ax = fig.add_subplot(grid[1, 0])
+    kde_ax.set(aspect=1)
     kde_ax.plot(np.arange(10))
+
+    # import ipdb; ipdb.set_trace()
+    # d = data[list(data.keys()[-1])]
+    # for agent_data in d["agents"].values():
+    #     get_value_at_path
+
+
+    # pdf = gaussian_kde(data)
 
     return fig, fig.get_axes()
 
@@ -61,7 +109,8 @@ def make_figure_A(fig, axs, data, bounds):
         )
 
         fig.subplots_adjust(wspace=0.7, hspace=0.1)
-        fig.savefig(f"out/test_tag_fig_{i}.png")
+        fig.savefig(f"out/figure_2/test_tag_fig_{i}.png")
+        plt.close(fig)
 
     # for tag_ax, ax in zip(tags_fig.axes, axs):
     #     tag_ax.remove()
@@ -76,12 +125,14 @@ def make_figure_A(fig, axs, data, bounds):
 def make_figure_F(fig, axs, data, bounds):
     bounds = bounds[0]
 
+    time_vec
+
     for exp_data in data:
         for molecule in MOLECULES:
             fig, axs = make_snapshot_and_kde_plot(exp_data, bounds, molecule)
 
             # fig.subplots_adjust(wspace=0.7, hspace=0.1)
-            fig.savefig(f"out/test_tag_fig_{molecule[-1]}.png", bbox_inches='tight')
+            fig.savefig(f"out/figure_2/test_tag_fig_{molecule[-1]}.png", bbox_inches="tight")
 
 
 def make_layout(width=8, height=8):
@@ -164,10 +215,15 @@ def get_data(
 def make_figure(data, bounds, verbose):
     fig, axs = make_layout(width=8, height=8)
 
+    os.makedirs("out/figure_2", exist_ok=True)
+
     if verbose:
         print("Making subfigure A...")
 
     # make_figure_A(fig, [ax for k, ax in axs.items() if k.startswith("A")], data, bounds)
+
+    if verbose:
+        print("Making subfigure F...")
     make_figure_F(fig, [ax for k, ax in axs.items() if k.startswith("F")], data, bounds)
 
     fig.savefig("out/glucose_figure.png")
