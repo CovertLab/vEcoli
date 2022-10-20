@@ -125,14 +125,13 @@ def make_figure_A(fig, axs, data, bounds):
 def make_figure_F(fig, axs, data, bounds):
     bounds = bounds[0]
 
-    time_vec
-
     for exp_data in data:
         for molecule in MOLECULES:
             fig, axs = make_snapshot_and_kde_plot(exp_data, bounds, molecule)
 
             # fig.subplots_adjust(wspace=0.7, hspace=0.1)
             fig.savefig(f"out/figure_2/test_tag_fig_{molecule[-1]}.png", bbox_inches="tight")
+            plt.close(fig)
 
 
 def make_layout(width=8, height=8):
@@ -224,6 +223,7 @@ def make_figure(data, bounds, verbose):
 
     if verbose:
         print("Making subfigure F...")
+
     make_figure_F(fig, [ax for k, ax in axs.items() if k.startswith("F")], data, bounds)
 
     fig.savefig("out/glucose_figure.png")
@@ -247,6 +247,8 @@ def main():
         default=10,
         help="Number of timepoints to step between frames.",
     )
+    parser.add_argument("--start_time", "-s", type=int, default=MinKey())
+    parser.add_argument("--end_time", "-f", type=int, default=MaxKey())
     parser.add_argument("--host", "-o", default="localhost", type=str)
     parser.add_argument("--port", "-p", default=27017, type=int)
     parser.add_argument("--cpus", "-c", type=int, default=1)
@@ -257,8 +259,8 @@ def main():
     data, bounds = get_data(
         experiment_ids=args.experiment_ids,
         sampling_rate=args.sampling_rate,
-        start_time=MinKey(),
-        end_time=MaxKey(),
+        start_time=args.start_time,
+        end_time=args.end_time,
         host=args.host,
         port=args.port,
         cpus=args.cpus,
