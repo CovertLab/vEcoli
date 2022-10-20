@@ -25,6 +25,22 @@ from vivarium.library.units import units
 MOLECULES = [("monomer", "PD00365"), ("monomer", "PD00406")]
 
 
+def make_snapshot_and_kde_plot(
+    data, bounds, molecule, snapshot_ax, kde_ax, timepoint=-1
+):
+    time_vec = list(data.keys())
+    data = data[time_vec[timepoint]]
+
+    agents, fields = format_snapshot_data(data)
+
+    fig = plot_tags(
+        data,
+        bounds,
+        snapshot_times=time_vec[-1],
+        tagged_molecules=MOLECULES,
+    )
+
+
 def make_figure_A(fig, axs, data, bounds):
     agents, fields = format_snapshot_data(data)
     time_vec = list(agents.keys())
@@ -84,7 +100,9 @@ def make_layout(width=8, height=8):
     return fig, axs
 
 
-def get_data(experiment_ids, sampling_rate, start_time, end_time, host, port, cpus, verbose):
+def get_data(
+    experiment_ids, sampling_rate, start_time, end_time, host, port, cpus, verbose
+):
 
     experiment_data = []
     bounds = []
@@ -175,9 +193,9 @@ def main():
         host=args.host,
         port=args.port,
         cpus=args.cpus,
-        verbose=args.verbose
+        verbose=args.verbose,
     )
-    make_figure(data, bounds)
+    make_figure(data, bounds, args.verbose)
 
 
 if __name__ == "__main__":
