@@ -25,12 +25,7 @@ from vivarium.library.units import units
 MOLECULES = [("monomer", "PD00365"), ("monomer", "PD00406")]
 
 
-def make_figure_A(
-    fig,
-    axs,
-    data,
-    bounds
-):
+def make_figure_A(fig, axs, data, bounds):
     agents, fields = format_snapshot_data(data)
     time_vec = list(agents.keys())
 
@@ -127,7 +122,7 @@ def get_data(experiment_ids, sampling_rate, start_time, end_time, host, port, cp
         first_timepoint = data[min(data)]
 
         experiment_data.append(data)
-        bounds.append(first_timepoint['dimensions']['bounds'])
+        bounds.append(first_timepoint["dimensions"]["bounds"])
 
     return experiment_data, bounds
 
@@ -135,7 +130,7 @@ def get_data(experiment_ids, sampling_rate, start_time, end_time, host, port, cp
 def make_figure(data, bounds):
     fig, axs = make_layout(width=8, height=8)
 
-    make_figure_A(fig, [ax for k, ax in axs.items() if k.startswith("A")], data. bounds)
+    make_figure_A(fig, [ax for k, ax in axs.items() if k.startswith("A")], data.bounds)
 
     fig.savefig("out/glucose_figure.png")
 
@@ -155,13 +150,11 @@ def main():
         "--sampling_rate",
         "-r",
         type=int,
-        default=1,
+        default=10,
         help="Number of timepoints to step between frames.",
     )
     parser.add_argument("--host", "-o", default="localhost", type=str)
     parser.add_argument("--port", "-p", default=27017, type=int)
-    parser.add_argument("--start_time", "-s", type=int, default=MinKey())
-    parser.add_argument("--end_time", "-e", type=int, default=MaxKey())
     parser.add_argument("--cpus", "-c", type=int, default=1)
     parser.add_argument("--verbose", "-v", action="store_true")
 
@@ -170,8 +163,8 @@ def main():
     data, bounds = get_data(
         experiment_ids=args.experiment_ids,
         sampling_rate=args.sampling_rate,
-        start_time=args.start_time,
-        end_time=args.end_time,
+        start_time=MinKey(),
+        end_time=MaxKey(),
         host=args.host,
         port=args.port,
         cpus=args.cpus,
