@@ -10,7 +10,6 @@ Glucose Figure
 import argparse
 import concurrent.futures
 import os
-from tabnanny import verbose
 
 import matplotlib
 import seaborn
@@ -22,11 +21,11 @@ from tqdm import tqdm
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from ecoli.analysis.db import access_counts, deserialize_and_remove_units
-from ecoli.plots.snapshots import format_snapshot_data, make_tags_figure, plot_tags
+from ecoli.plots.snapshots import plot_tags
 from vivarium.library.units import units
 
 
-MOLECULES = [# ("bulk", "MICF-RNA"),
+MOLECULES = [("bulk", "MICF-RNA[c]"),
              ("monomer", "PD00365"),
              ("monomer", "PD00406"),
              ("monomer", "YHIV-MONOMER"),
@@ -63,6 +62,7 @@ def make_snapshot_and_kde_plot(data, bounds, molecule, timepoint=-1):
         snapshot_times=[time_vec[timepoint]],
         tagged_molecules=[molecule],
         show_timeline=False,
+        background_color="white"
     )
 
     # Reposition axes, preparing to add kde plot below
