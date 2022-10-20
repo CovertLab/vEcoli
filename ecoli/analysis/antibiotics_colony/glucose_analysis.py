@@ -27,13 +27,12 @@ MOLECULES = [("monomer", "PD00365"), ("monomer", "PD00406")]
 
 def make_snapshot_and_kde_plot(data, bounds, molecule, timepoint=-1):
     time_vec = list(data.keys())
-    data = data[time_vec[timepoint]]
 
     fig = plot_tags(
         data,
         bounds,
-        snapshot_times=time_vec[-1],
-        tagged_molecules=molecule,
+        snapshot_times=[time_vec[-1]],
+        tagged_molecules=[molecule],
     )
 
     kde_ax = fig.add_subplot(2, 1, 2)
@@ -169,7 +168,7 @@ def make_figure(data, bounds, verbose):
         print("Making subfigure A...")
 
     # make_figure_A(fig, [ax for k, ax in axs.items() if k.startswith("A")], data, bounds)
-    make_figure_F(fig, [ax for k, ax in axs.items() if k.startswith("K")], data, bounds)
+    make_figure_F(fig, [ax for k, ax in axs.items() if k.startswith("F")], data, bounds)
 
     fig.savefig("out/glucose_figure.png")
 
