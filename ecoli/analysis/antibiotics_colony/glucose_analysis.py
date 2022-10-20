@@ -42,6 +42,9 @@ def make_snapshot_and_kde_plot(
 
 
 def make_figure_A(fig, axs, data, bounds):
+    data = data[0]
+    bounds = bounds[0]
+
     agents, fields = format_snapshot_data(data)
     time_vec = list(agents.keys())
 
