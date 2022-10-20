@@ -10,6 +10,7 @@ Glucose Figure
 import argparse
 import concurrent.futures
 import os
+from tabnanny import verbose
 
 import matplotlib
 import seaborn
@@ -127,6 +128,9 @@ def make_figure_F(fig, axs, data, bounds):
 
     for exp_data in data:
         for molecule in MOLECULES:
+            if verbose:
+                print(f"Making snapshot and KDE plot for {molecule}...")
+
             fig, axs = make_snapshot_and_kde_plot(exp_data, bounds, molecule)
 
             # fig.subplots_adjust(wspace=0.7, hspace=0.1)
