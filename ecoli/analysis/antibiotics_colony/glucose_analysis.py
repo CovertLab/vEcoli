@@ -84,7 +84,7 @@ def make_layout(width=8, height=8):
     return fig, axs
 
 
-def get_data(experiment_ids, sampling_rate, start_time, end_time, host, port, cpus):
+def get_data(experiment_ids, sampling_rate, start_time, end_time, host, port, cpus, verbose):
 
     experiment_data = []
     bounds = []
@@ -97,6 +97,9 @@ def get_data(experiment_ids, sampling_rate, start_time, end_time, host, port, cp
     outer_paths = [("data", "dimensions")]
 
     for exp_id in experiment_ids:
+        if verbose:
+            print(f"Accessing data for experiment {exp_id}...")
+
         data = access_counts(
             experiment_id=exp_id,
             monomer_names=monomers,
@@ -115,6 +118,7 @@ def get_data(experiment_ids, sampling_rate, start_time, end_time, host, port, cp
             data_deserialized = list(
                 tqdm(
                     executor.map(deserialize_and_remove_units, data.values()),
+                    desc="Deserializing data",
                     total=len(data),
                 )
             )
@@ -127,10 +131,13 @@ def get_data(experiment_ids, sampling_rate, start_time, end_time, host, port, cp
     return experiment_data, bounds
 
 
-def make_figure(data, bounds):
+def make_figure(data, bounds, verbose):
     fig, axs = make_layout(width=8, height=8)
 
-    make_figure_A(fig, [ax for k, ax in axs.items() if k.startswith("A")], data.bounds)
+    if verbose:
+        print("Making subfigure A...")
+
+    make_figure_A(fig, [ax for k, ax in axs.items() if k.startswith("A")], data, bounds)
 
     fig.savefig("out/glucose_figure.png")
 
@@ -168,6 +175,7 @@ def main():
         host=args.host,
         port=args.port,
         cpus=args.cpus,
+        verbose=args.verbose
     )
     make_figure(data, bounds)
 
