@@ -13,7 +13,7 @@ from vivarium.library.dict_utils import get_value_from_path
 
 from ecoli.analysis.db import access_counts
 from ecoli.analysis.snapshots_video import deserialize_and_remove_units
-from ecoli.analysis.antibiotics_colony.timeseries import plot_timeseries
+from ecoli.analysis.antibiotics_colony.generational_timeseries import plot_timeseries
 from ecoli.analysis.antibiotics_colony.stripbox import plot_stripbox
 from ecoli.analysis.antibiotics_colony.final_dists import plot_final_dists
 from ecoli.analysis.antibiotics_colony.lineage import plot_lineage_trace
@@ -54,8 +54,7 @@ def agent_data_table(
     paths_dict: Dict[str, Dict[str, Any]],
     color: str
 ) -> Dict[float, pd.DataFrame]:
-    """Combine data from all agents into a nested dictionary with
-    list leaf values.
+    """Combine data from all agents into DataFrames for each timestep.
     
     Args:
         raw_data: Tuple of (time, dictionary at time for one replicate).
@@ -298,7 +297,7 @@ def main():
     glc_amp_configs = get_config_names('glucose_amp')
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        '--plot_types', '-p', type=str, nargs="+", default=["lineage", "final_dists", "death_dists"],
+        '--plot_types', '-p', type=str, nargs="+", default=["timeseries"],
         help="""Types of plots to make. See keys of ``PLOT_NAME_TO_FUN``
         dictionary in this file for valid types."""
     )
@@ -337,28 +336,38 @@ def main():
         sampling_rates.append(PLOT_NAME_TO_SAMPLING_RATE[plot_type])
     if args.sampling_rates:
         sampling_rates = args.sampling_rates
-    if args.tetracycline:
-        make_plots(
-            baseline_configs=glc_tet_configs,
-            exp_configs=tet_configs,
-            baseline_colors=baseline_colors,
-            exp_colors=colors,
-            sampling_rates=sampling_rates,
-            plot_funcs=plot_funcs,
-            div_and_death=args.division_and_death,
-            cpus=args.cpus,
-            out=f'tetracycline')
-    if args.ampicillin:
-        make_plots(
-            baseline_configs=glc_amp_configs,
-            exp_configs=amp_configs,
-            baseline_colors=baseline_colors,
-            exp_colors=colors,
-            sampling_rates=sampling_rates,
-            plot_funcs=plot_funcs,
-            div_and_death=args.division_and_death,
-            cpus=args.cpus,
-            out=f'ampicillin')
+    make_plots(
+        baseline_configs=["local_test"],
+        exp_configs=["local_test"],
+        baseline_colors=baseline_colors,
+        exp_colors=colors,
+        sampling_rates=sampling_rates,
+        plot_funcs=plot_funcs,
+        div_and_death=args.division_and_death,
+        cpus=args.cpus,
+        out=f'local')
+    # if args.tetracycline:
+    #     make_plots(
+    #         baseline_configs=glc_tet_configs,
+    #         exp_configs=tet_configs,
+    #         baseline_colors=baseline_colors,
+    #         exp_colors=colors,
+    #         sampling_rates=sampling_rates,
+    #         plot_funcs=plot_funcs,
+    #         div_and_death=args.division_and_death,
+    #         cpus=args.cpus,
+    #         out=f'tetracycline')
+    # if args.ampicillin:
+    #     make_plots(
+    #         baseline_configs=glc_amp_configs,
+    #         exp_configs=amp_configs,
+    #         baseline_colors=baseline_colors,
+    #         exp_colors=colors,
+    #         sampling_rates=sampling_rates,
+    #         plot_funcs=plot_funcs,
+    #         div_and_death=args.division_and_death,
+    #         cpus=args.cpus,
+    #         out=f'ampicillin')
 
 
 if __name__ == "__main__":

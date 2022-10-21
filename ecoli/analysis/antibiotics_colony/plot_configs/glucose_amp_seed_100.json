@@ -13,7 +13,8 @@
         "Incorporated murein (counts)": ["murein_state", "incorporated_murein"],
         "Unincorporated murein (counts)": ["murein_state", "unincorporated_murein"],
         "OmpF monomer (counts)": ["monomer", "EG10671-MONOMER"],
-        "Amp. permeability (cm/s)": ["kinetic_parameters", "outer_ampicillin_permeability"]
+        "Amp. permeability (cm/s)": ["kinetic_parameters", "outer_ampicillin_permeability"],
+        "Death": ["burst"]
     },
     "experiments": [
         {

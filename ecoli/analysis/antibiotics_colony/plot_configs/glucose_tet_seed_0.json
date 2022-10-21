@@ -13,7 +13,8 @@
         "MarR-tetracycline complex (counts)": ["bulk", "marR-tet[c]"],
         "micF-ompF duplex (counts)": ["bulk", "micF-ompF[c]"],
         "30S-tetracycline complex (counts)": ["bulk", "CPLX0-3953-tetracycline[c]"],
-        "Outer tet. permeability (cm/s)": ["kinetic_parameters", "outer_tetracycline_permeability"]
+        "Outer tet. permeability (cm/s)": ["kinetic_parameters", "outer_tetracycline_permeability"],
+        "Death": ["burst"]
     },
     "experiments": [
         {
