@@ -394,7 +394,7 @@ class CellWall(Process):
         update["listeners"] = {
             "porosity": 1 - (lattice.sum() / lattice.size),
             "hole_size_distribution": np.bincount(hole_sizes),
-            "strand_length_distribution": get_length_distributions(lattice)[1],
+            "strand_length_distribution": np.bincount(get_length_distributions(lattice)[1]),
         }
 
         if will_crack:
