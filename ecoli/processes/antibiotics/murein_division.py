@@ -10,7 +10,8 @@ NAME = "murein-division"
 TOPOLOGY = {
     "total_murein": ("bulk",),
     "murein_state": ("murein_state",),
-    "wall_state": ("wall_state",)
+    "wall_state": ("wall_state",),
+    "first_update": ("deriver_skips", "murein_division",)
 }
 topology_registry.register(NAME, TOPOLOGY)
 
@@ -56,13 +57,14 @@ class MureinDivision(Step):
                     "_updater": "set",
                     "_emit": False,
                 }
-            }
+            },
+            "first_update": {"_default": True, '_updater': 'set'}
         }
 
     def next_update(self, timestep, states):
         update = {"murein_state": {}, "total_murein": {}}
         # Only run right after division (cell has half of mother lattice)
-        if self.first_timestep and states["wall_state"]["lattice"] is not None:
+        if states["first_update"] and states["wall_state"]["lattice"] is not None:
             accounted_murein_monomers = sum(states["murein_state"].values())
             # When run in an EngineProcess, this Step sets the incorporated
             # murein count before CellWall or PBPBinding run after division
@@ -83,5 +85,5 @@ class MureinDivision(Step):
                 update["total_murein"][self.parameters["murein_name"]] = (
                     accounted_murein - states["total_murein"][
                         self.parameters["murein_name"]])
-        self.first_timestep = False
+        update["first_update"] = False
         return update

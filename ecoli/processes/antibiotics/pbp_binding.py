@@ -31,6 +31,7 @@ TOPOLOGY = {
     "pbp_state": ("pbp_state",),
     "wall_state": ("wall_state",),
     "volume": ("boundary", "volume"),
+    "first_update": ("deriver_skips", "pbp_binding",)
 }
 topology_registry.register(NAME, TOPOLOGY)
 
@@ -116,8 +117,6 @@ class PBPBinding(Step):
         self.disaccharide_width = self.parameters["disaccharide_width"]
         self.inter_strand_distance = self.parameters["inter_strand_distance"]
         self.rng = np.random.default_rng(self.parameters["seed"])
-        
-        self.first_timestep = True
 
     def ports_schema(self):
         return {
@@ -181,6 +180,7 @@ class PBPBinding(Step):
                 },
             },
             "volume": {"_default": 1 * units.fL, "_emit": True},
+            "first_update": {"_default": True, '_updater': 'set'}
         }
 
     def next_update(self, timestep, states):
@@ -197,8 +197,8 @@ class PBPBinding(Step):
             "active_fraction_PBP1B": active_fraction_1b,
         }
         
-        if self.first_timestep:
-            self.first_timestep = False
+        if states["first_update"]:
+            update["first_update"] = False
             # Initialize cell wall if necessary (first cell in sim)
             if states["wall_state"]["lattice"] is None:
                 # Make sure that all usable murein is initiailly unincorporated
