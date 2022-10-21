@@ -44,6 +44,7 @@ TOPOLOGY = {
         # Non-partitioned count
         "amino_acids_total": ("bulk",),
         "evolvers_ran": ('evolvers_ran',),
+        "first_update": ("deriver_skips", "metabolism",)
     }
 topology_registry.register(NAME, TOPOLOGY)
 
@@ -135,8 +136,6 @@ class Metabolism(Step):
         self.seed = self.parameters['seed']
         self.random_state = np.random.RandomState(seed=self.seed)
 
-        self.first_update = True
-
         # TODO: For testing, remove later (perhaps after modifying sim data)
         self.reduce_murein_objective = self.parameters['reduce_murein_objective']
 
@@ -222,6 +221,7 @@ class Metabolism(Step):
                 },
             },
             'evolvers_ran': {'_default': True},
+            'first_update': {'_default': True, '_updater': 'set'},
         }
 
         return ports
@@ -231,9 +231,8 @@ class Metabolism(Step):
 
     def next_update(self, timestep, states):
         # Skip t=0 if a deriver
-        if self.first_update:
-            self.first_update = False
-            return {}
+        if states['first_update']:
+            return {'first_update': False}
 
         timestep = self.parameters['time_step']
 
