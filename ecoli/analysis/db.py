@@ -231,43 +231,39 @@ def access_counts(experiment_id, monomer_names=None, mrna_names=None,
     monomer_idx = sim_data.get_monomer_counts_indices(monomer_names)
     projection = {
         '$project': {
-            f'data.agents.v.monomer.{monomer}': {
+            f'data.agents.v.monomer.{monomer}':
                 val_at_idx_in_path(
                     monomer_index, 
                     "data.agents.v.listeners.monomer_counts"
                 )
-            }
             for monomer, monomer_index in zip(monomer_names, monomer_idx)
         }
     }
     mrna_idx = sim_data.get_mrna_counts_indices(mrna_names)
     projection['$project'].update({
-        f'data.agents.v.mrna.{mrna}': {
+        f'data.agents.v.mrna.{mrna}':
             val_at_idx_in_path(
                 mrna_index,
                 'data.agents.v.listeners.mRNA_counts'
             )
-        }
         for mrna, mrna_index in zip(mrna_names, mrna_idx)
     })
     rna_idx = sim_data.get_rna_indices(rna_init)
     projection['$project'].update({
-        f'data.agents.v.rna_init.{rna}': {
+        f'data.agents.v.rna_init.{rna}':
             val_at_idx_in_path(
                 rna_index,
                 'data.agents.v.listeners.rnap_data.rnaInitEvent'
             )
-        }
         for rna, rna_index in zip(rna_init, rna_idx)
     })
     rna_idx = sim_data.get_rna_indices(rna_synth_prob)
     projection['$project'].update({
-        f'data.agents.v.rna_synth_prob.{rna}': {
+        f'data.agents.v.rna_synth_prob.{rna}':
             val_at_idx_in_path(
                 rna_index,
                 'data.agents.v.listeners.rna_synth_prob.rna_synth_prob'
             )
-        }
         for rna, rna_index in zip(rna_synth_prob, rna_idx)
     })
     for inner_path in inner_paths:
