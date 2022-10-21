@@ -26,7 +26,6 @@ def test_metabolism_migration():
         # Create process, experiment, loading in initial state from file.
         config = load_sim_data.get_metabolism_config()
         metabolism_process = Metabolism(config)
-        metabolism_process.first_update = False
         metabolism_process.is_step = lambda: False
 
         initial_state = get_state_from_file(

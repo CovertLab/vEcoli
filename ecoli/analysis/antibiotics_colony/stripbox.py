@@ -2,6 +2,15 @@ import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 
+METADATA_AGG = {
+    "Color": "first",
+    "Condition": "first",
+    "Time": "max",
+    "Division": "max",
+    "Death": "max",
+    "Agent ID": "first",
+    "Boundary": "first"
+}
 
 def plot_stripbox(
     data: pd.DataFrame,
@@ -17,19 +26,18 @@ def plot_stripbox(
             that labels each experimental condition with a unique string.
         out: Prefix for output plot filename.
     '''
-    metadata_columns = ["Color", "Condition", "Time", "Division", "Death", "Agent ID"]
     colors = data["Color"].unique()
     palette = {color: color for color in colors}
-    for column in data.columns:
-        if column not in metadata_columns:
-            g = sns.catplot(
-                data=data, kind="box",
-                x="Condition", y=column, col="Time",
-                boxprops={'facecolor':'None'}, showfliers=False,
-                aspect=0.5, legend=False)
-            g.map_dataframe(sns.stripplot, x="Condition", y=column,
-                hue="Color", palette=palette, alpha=0.5, size=3)
-            plt.tight_layout()
-            g.savefig('out/analysis/antibiotics_colony/' + 
-                f'{out}_{column.replace("/", "_")}.png')
-            plt.close(g)
+    columns_to_plot = set(data.columns) - METADATA_AGG.keys()
+    for column in columns_to_plot:
+        g = sns.catplot(
+            data=data, kind="box",
+            x="Condition", y=column, col="Time",
+            boxprops={'facecolor':'None'}, showfliers=False,
+            aspect=0.5, legend=False)
+        g.map_dataframe(sns.stripplot, x="Condition", y=column,
+            hue="Color", palette=palette, alpha=0.5, size=3)
+        plt.tight_layout()
+        g.savefig('out/analysis/antibiotics_colony/' + 
+            f'{out}_{column.replace("/", "_")}.png')
+        plt.close(g)

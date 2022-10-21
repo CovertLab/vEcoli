@@ -128,6 +128,25 @@ def get_aggregation(host, port, aggregation):
         aggregation, hint={'experiment_id':1, 'data.time':1, '_id':1}))
 
 
+def val_at_idx_in_path(idx, path):
+    """Helper function that returns MongoDB aggregation expression
+    which evaluates to the value at idx in the array at path after
+    an $objectToArray projection."""
+    return {
+        # Flatten array of length 1 into single count
+        '$first': {
+            # Get monomer count at specified index with $slice
+            '$slice': [
+                # $objectToArray turns all embedded document fields 
+                # into arrays so we flatten here before slicing
+                {'$first': f"${path}"},
+                idx,
+                1
+            ]
+        },
+    }
+
+
 def access_counts(experiment_id, monomer_names=None, mrna_names=None,
     rna_init=None, rna_synth_prob=None, inner_paths=None, outer_paths=None,
     host='localhost', port=27017, sampling_rate=None, start_time=None,
@@ -212,95 +231,39 @@ def access_counts(experiment_id, monomer_names=None, mrna_names=None,
     monomer_idx = sim_data.get_monomer_counts_indices(monomer_names)
     projection = {
         '$project': {
-            f'data.agents.v.monomer.{monomer}': {
-                # Flatten array of length 1 into single count
-                '$reduce': {
-                    # Get monomer count at specified index with $slice
-                    'input': {'$slice': [
-                        # $objectToArray makes all embedded document fields 
-                        # into arrays so we flatten here before slicing
-                        {'$reduce': {
-                            'input': '$data.agents.v.listeners.monomer_counts',
-                            'initialValue': None,
-                            'in': '$$this'
-                        }},
-                        monomer_index,
-                        1
-                    ]},
-                    'initialValue': None,
-                    'in': '$$this'
-                }
-            }
+            f'data.agents.v.monomer.{monomer}':
+                val_at_idx_in_path(
+                    monomer_index, 
+                    "data.agents.v.listeners.monomer_counts"
+                )
             for monomer, monomer_index in zip(monomer_names, monomer_idx)
         }
     }
     mrna_idx = sim_data.get_mrna_counts_indices(mrna_names)
     projection['$project'].update({
-        f'data.agents.v.mrna.{mrna}': {
-            # Flatten array of length 1 into single count
-            '$reduce': {
-                # Get monomer count at specified index with $slice
-                'input': {'$slice': [
-                    # $objectToArray makes all embedded document fields 
-                    # into arrays so we flatten here before slicing
-                    {'$reduce': {
-                        'input': '$data.agents.v.listeners.mRNA_counts',
-                        'initialValue': None,
-                        'in': '$$this'
-                    }},
-                    mrna_index,
-                    1
-                ]},
-                'initialValue': None,
-                'in': '$$this'
-            }
-        }
+        f'data.agents.v.mrna.{mrna}':
+            val_at_idx_in_path(
+                mrna_index,
+                'data.agents.v.listeners.mRNA_counts'
+            )
         for mrna, mrna_index in zip(mrna_names, mrna_idx)
     })
     rna_idx = sim_data.get_rna_indices(rna_init)
     projection['$project'].update({
-        f'data.agents.v.rna_init.{rna}': {
-            # Flatten array of length 1 into single count
-            '$reduce': {
-                # Get monomer count at specified index with $slice
-                'input': {'$slice': [
-                    # $objectToArray makes all embedded document fields 
-                    # into arrays so we flatten here before slicing
-                    {'$reduce': {
-                        'input': '$data.agents.v.listeners.rnap_data.rnaInitEvent',
-                        'initialValue': None,
-                        'in': '$$this'
-                    }},
-                    rna_index,
-                    1
-                ]},
-                'initialValue': None,
-                'in': '$$this'
-            }
-        }
+        f'data.agents.v.rna_init.{rna}':
+            val_at_idx_in_path(
+                rna_index,
+                'data.agents.v.listeners.rnap_data.rnaInitEvent'
+            )
         for rna, rna_index in zip(rna_init, rna_idx)
     })
     rna_idx = sim_data.get_rna_indices(rna_synth_prob)
     projection['$project'].update({
-        f'data.agents.v.rna_synth_prob.{rna}': {
-            # Flatten array of length 1 into single count
-            '$reduce': {
-                # Get monomer count at specified index with $slice
-                'input': {'$slice': [
-                    # $objectToArray makes all embedded document fields 
-                    # into arrays so we flatten here before slicing
-                    {'$reduce': {
-                        'input': '$data.agents.v.listeners.rna_synth_prob.rna_synth_prob',
-                        'initialValue': None,
-                        'in': '$$this'
-                    }},
-                    rna_index,
-                    1
-                ]},
-                'initialValue': None,
-                'in': '$$this'
-            }
-        }
+        f'data.agents.v.rna_synth_prob.{rna}':
+            val_at_idx_in_path(
+                rna_index,
+                'data.agents.v.listeners.rna_synth_prob.rna_synth_prob'
+            )
         for rna, rna_index in zip(rna_synth_prob, rna_idx)
     })
     for inner_path in inner_paths:
@@ -322,6 +285,8 @@ def access_counts(experiment_id, monomer_names=None, mrna_names=None,
     }}
     for outer_path in outer_paths:
         final_projection['$project']['.'.join(outer_path)] = 1
+    final_projection['$project']['data.fields'] = 1
+    final_projection['$project']['data.dimensions'] = 1
     aggregation.append(final_projection)
     
     if cpus > 1:

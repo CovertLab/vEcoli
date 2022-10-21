@@ -26,7 +26,6 @@ def test_chromosome_structure_migration():
         # Create process, experiment, loading in initial state from file.
         config = load_sim_data.get_chromosome_structure_config()
         chromosome_structure_process = ChromosomeStructure(config)
-        chromosome_structure_process.first_update = False
         chromosome_structure_process.is_step = lambda: False
 
         initial_state = get_state_from_file(

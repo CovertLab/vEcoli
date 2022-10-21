@@ -13,29 +13,35 @@ from vivarium.library.dict_utils import get_value_from_path
 
 from ecoli.analysis.db import access_counts
 from ecoli.analysis.snapshots_video import deserialize_and_remove_units
-from ecoli.analysis.antibiotics_colony.timeseries import plot_timeseries
+from ecoli.analysis.antibiotics_colony.generational_timeseries import plot_timeseries
 from ecoli.analysis.antibiotics_colony.stripbox import plot_stripbox
 from ecoli.analysis.antibiotics_colony.final_dists import plot_final_dists
+from ecoli.analysis.antibiotics_colony.lineage import plot_lineage_trace
+from ecoli.analysis.antibiotics_colony.death_dists import plot_death_dists
+
 
 SPECIAL_PATH_PREFIXES = {
     'monomer': 'monomer_names',
     'mrna': 'mrna_names',
     'rna_init': 'rna_init',
-    'rna_ynth_prob': 'rna_synth_prob',
+    'rna_synth_prob': 'rna_synth_prob',
     'data': 'outer_paths'
 }
-
 
 PLOT_NAME_TO_FUN = {
     "timeseries": plot_timeseries,
     "stripbox": plot_stripbox,
-    "final_dists": plot_final_dists
+    "final_dists": plot_final_dists,
+    "lineage": plot_lineage_trace,
+    "death_dists": plot_death_dists
 }
 
 PLOT_NAME_TO_SAMPLING_RATE = {
     "timeseries": 2,
     "stripbox": 2600,
-    "plot_final_dists": 26000
+    "final_dists": 26000,
+    "lineage": 2,
+    "death_dists": 2
 }
 
 
@@ -48,8 +54,7 @@ def agent_data_table(
     paths_dict: Dict[str, Dict[str, Any]],
     color: str
 ) -> Dict[float, pd.DataFrame]:
-    """Combine data from all agents into a nested dictionary with
-    list leaf values.
+    """Combine data from all agents into DataFrames for each timestep.
     
     Args:
         raw_data: Tuple of (time, dictionary at time for one replicate).
@@ -98,6 +103,9 @@ def mark_death_and_division(data: pd.DataFrame):
                 data.loc[mask, "Division"] = True
             else:
                 data.loc[mask, "Death"] = True
+        # Cells that exist at last timestep have no daughters but are alive
+        max_time = rep_data["Time"].max()
+        data.loc[data["Time"] == max_time, "Death"] = False
     return data
 
 
@@ -117,17 +125,24 @@ def retrieve_data(
             timestep when agent divides or dies.
     
     Returns:
-        DataFrame where each row is an agents and each column is a variable
-        to plot, with the following exceptions. The "Color" column labels each
-        replicate with a different hex color. The "Condition" column labels
-        all entries in the DataFrame with the value of the "condition" key in
-        the configs (should be consistent across configs if specified in >1).
-        The "Time" column indicates the timestep that the data for that agent
-        came from. The "Division" column indicates the timestep that an agent
-        divides. The "Death" column indicates the timestep that an agent dies.
+        data: DataFrame where each row is an agents and each column is a variable
+            to plot, with the following exceptions. The "Color" column labels each
+            replicate with a different hex color. The "Condition" column labels
+            all entries in the DataFrame with the value of the "condition" key in
+            the configs (should be consistent across configs if specified in >1).
+            The "Time" column indicates the timestep that the data for that agent
+            came from. The "Division" column indicates the timestep that an agent
+            divides. The "Death" column indicates the timestep that an agent dies.
+            The "Boundary" column contains dictionaries that holds the data in the
+            "boundary" store (e.g. for snapshot plots)
+        bounds: Bounds of spatial environment
+        fields: Dictionary containing concentration arrays for each molecule in
+            the spatial environment
     """
     data = pd.DataFrame()
     condition = None
+    bounds = None
+    fields = {}
     for i, config_file in enumerate(configs):
         config_path = "ecoli/analysis/antibiotics_colony/" + \
             f"plot_configs/{config_file}.json"
@@ -140,6 +155,7 @@ def retrieve_data(
         paths_dict = config.pop('paths_dict', None)
         if not paths_dict:
             raise Exception(f'No paths_dict in {config_file}')
+        paths_dict["Boundary"] = ["boundary"]
         rep_data = {}
         for data_config in config['experiments']:
             for path in paths_dict.values():
@@ -165,6 +181,15 @@ def retrieve_data(
                 deserialize_and_remove_units, rep_data.values()),
                 total=len(rep_data)))
             rep_data = dict(zip(rep_data.keys(), data_deserialized))
+        print("Extracting spatial environment data...")
+        if bounds == None:
+            # Assume all experiments use same spatial environment dimensions
+            bounds = rep_data[min(rep_data)]["dimensions"]["bounds"]
+        fields.setdefault(colors[i], {})
+        fields[colors[i]].update({
+            time: data_at_time["fields"] for time, data_at_time in rep_data.items()
+        })
+        with ProcessPoolExecutor(cpus) as executor:
             print("Converting data to DataFrame...")
             data = list(tqdm(executor.map(agent_df_paths, rep_data.items()),
                 total=len(rep_data)))
@@ -173,7 +198,7 @@ def retrieve_data(
     if div_and_death:
         print("Marking agent death and division...")
         data = mark_death_and_division(data)
-    return data
+    return data, bounds, fields
 
 
 def apply_sampling_rate(
@@ -183,6 +208,21 @@ def apply_sampling_rate(
     """Takes a DataFrame from ``retrieve_data`` and applies further
     downsampling."""
     return data.loc[(data["Time"] % sampling_rate) == 0, :]
+
+
+def dict_sampling_rate(
+    data: Dict,
+    sampling_rate: int
+):
+    """Takes a timeseries dictionary and applies further downsampling."""
+    current_times = list(data.keys())
+    timepoints_to_keep = [
+        time for time in current_times if float(time) % sampling_rate == 0]
+    downsampled_data = {
+        time: data[time]
+        for time in timepoints_to_keep
+    }
+    return downsampled_data
 
 
 def make_plots(
@@ -214,24 +254,39 @@ def make_plots(
         out: Prefix for output plot filenames
     """
     sampling_rate = min(sampling_rates)
-    data = retrieve_data(
+    ctl_data, ctl_bounds, ctl_fields = retrieve_data(
         configs=baseline_configs,
         colors=baseline_colors, 
         sampling_rate=sampling_rate,
         div_and_death=div_and_death,
         cpus=cpus)
-    exp_data = retrieve_data(
+    exp_data, exp_bounds, exp_fields = retrieve_data(
         configs=exp_configs,
         colors=exp_colors, 
         sampling_rate=sampling_rate,
         div_and_death=div_and_death,
         cpus=cpus)
-    data = pd.concat([data, exp_data], ignore_index=True)
+    assert exp_bounds == ctl_bounds
+    data = pd.concat([ctl_data, exp_data], ignore_index=True)
+    fields = {**exp_fields, **ctl_fields}
     os.makedirs('out/analysis/antibiotics_colony/', exist_ok=True)
-    for sampling_rate, plot_func in plot_funcs, sampling_rates:
+    for sampling_rate, plot_func in zip(sampling_rates, plot_funcs):
         print(f"Calling {plot_func.__name__}...")
         downsampled_data = apply_sampling_rate(data, sampling_rate)
-        plot_func(downsampled_data, f"{out}_{plot_func.__name__}")
+        if plot_func == plot_lineage_trace:
+            downsampled_fields = {
+                color: dict_sampling_rate(fields[color], sampling_rate)
+                for color in fields
+            }
+            plot_func(
+                data=downsampled_data, 
+                out=f"{out}_{plot_func.__name__}",
+                bounds=ctl_bounds,
+                fields=downsampled_fields)
+        else:
+            plot_func(
+                data=downsampled_data,
+                out=f"{out}_{plot_func.__name__}")
 
 
 def main():
@@ -251,7 +306,7 @@ def main():
         help="""Compare tetracycline sims with glucose sims."""
     )
     parser.add_argument(
-        '--ampicillin', '-a', type=bool, default=True,
+        '--ampicillin', '-a', type=bool, default=False,
         help="""Compare ampicillin sims with glucose sims."""
     )
     parser.add_argument(
@@ -281,28 +336,38 @@ def main():
         sampling_rates.append(PLOT_NAME_TO_SAMPLING_RATE[plot_type])
     if args.sampling_rates:
         sampling_rates = args.sampling_rates
-    if args.tetracycline:
-        make_plots(
-            baseline_configs=glc_tet_configs,
-            exp_configs=tet_configs,
-            baseline_colors=baseline_colors,
-            exp_colors=colors,
-            sampling_rates=sampling_rates,
-            plot_funcs=plot_funcs,
-            div_and_death=args.division_and_death,
-            cpus=args.cpus,
-            out=f'tetracycline')
-    if args.ampicillin:
-        make_plots(
-            baseline_configs=glc_amp_configs,
-            exp_configs=amp_configs,
-            baseline_colors=baseline_colors,
-            exp_colors=colors,
-            sampling_rates=sampling_rates,
-            plot_funcs=plot_funcs,
-            div_and_death=args.division_and_death,
-            cpus=args.cpus,
-            out=f'ampicillin')
+    make_plots(
+        baseline_configs=["local_test"],
+        exp_configs=["local_test"],
+        baseline_colors=baseline_colors,
+        exp_colors=colors,
+        sampling_rates=sampling_rates,
+        plot_funcs=plot_funcs,
+        div_and_death=args.division_and_death,
+        cpus=args.cpus,
+        out=f'local')
+    # if args.tetracycline:
+    #     make_plots(
+    #         baseline_configs=glc_tet_configs,
+    #         exp_configs=tet_configs,
+    #         baseline_colors=baseline_colors,
+    #         exp_colors=colors,
+    #         sampling_rates=sampling_rates,
+    #         plot_funcs=plot_funcs,
+    #         div_and_death=args.division_and_death,
+    #         cpus=args.cpus,
+    #         out=f'tetracycline')
+    # if args.ampicillin:
+    #     make_plots(
+    #         baseline_configs=glc_amp_configs,
+    #         exp_configs=amp_configs,
+    #         baseline_colors=baseline_colors,
+    #         exp_colors=colors,
+    #         sampling_rates=sampling_rates,
+    #         plot_funcs=plot_funcs,
+    #         div_and_death=args.division_and_death,
+    #         cpus=args.cpus,
+    #         out=f'ampicillin')
 
 
 if __name__ == "__main__":
