@@ -40,6 +40,7 @@ TOPOLOGY = {
     "evolvers_ran": ("evolvers_ran",),
     # TODO(vivarium): Only include if superhelical density flag is passed
     # "chromosomal_segments": ("unique", "chromosomal_segment")
+    "first_update": ("deriver_skips", "chromosome_structure",)
 }
 topology_registry.register(NAME, TOPOLOGY)
 
@@ -112,7 +113,6 @@ class ChromosomeStructure(Step):
         self.chromosome_segment_index = 0
         self.promoter_index = 60000
         self.DnaA_box_index = 60000
-        self.first_update = True
 
         self.random_state = np.random.RandomState(
             seed=self.parameters['seed'])
@@ -148,6 +148,7 @@ class ChromosomeStructure(Step):
             'promoters': dict_value_schema('promoters'),
             'DnaA_boxes': dict_value_schema('DnaA_boxes'),
             'evolvers_ran': {'_default': True},
+            'first_update': {'_default': True, '_updater': 'set'},
         }
 
         if self.calculate_superhelical_densities:
@@ -162,9 +163,8 @@ class ChromosomeStructure(Step):
 
     def next_update(self, timestep, states):
         # Skip t=0 if a deriver
-        if self.first_update:
-            self.first_update = False
-            return {}
+        if states['first_update']:
+            return {'first_update': False}
 
         # Read unique molecule attributes
         if states['active_replisomes'].values():
