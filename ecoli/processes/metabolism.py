@@ -221,7 +221,11 @@ class Metabolism(Step):
                 },
             },
             'evolvers_ran': {'_default': True},
-            'first_update': {'_default': True, '_updater': 'set'},
+            'first_update': {
+                '_default': True,
+                '_updater': 'set',
+                '_divider': {'divider': 'set_value', 'config': {'value': True}},
+            }
         }
 
         return ports

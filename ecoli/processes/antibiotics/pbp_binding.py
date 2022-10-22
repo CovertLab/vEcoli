@@ -180,7 +180,11 @@ class PBPBinding(Step):
                 },
             },
             "volume": {"_default": 1 * units.fL, "_emit": True},
-            "first_update": {"_default": True, '_updater': 'set'}
+            "first_update": {
+                "_default": True,
+                "_updater": "set",
+                "_divider": {"divider": "set_value", "config": {"value": True}},
+            }
         }
 
     def next_update(self, timestep, states):

@@ -148,7 +148,11 @@ class ChromosomeStructure(Step):
             'promoters': dict_value_schema('promoters'),
             'DnaA_boxes': dict_value_schema('DnaA_boxes'),
             'evolvers_ran': {'_default': True},
-            'first_update': {'_default': True, '_updater': 'set'},
+            'first_update': {
+                '_default': True,
+                '_updater': 'set',
+                '_divider': {'divider': 'set_value', 'config': {'value': True}},
+            }
         }
 
         if self.calculate_superhelical_densities:
