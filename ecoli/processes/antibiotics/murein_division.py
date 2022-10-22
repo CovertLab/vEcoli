@@ -67,6 +67,11 @@ class MureinDivision(Step):
 
     def next_update(self, timestep, states):
         update = {"murein_state": {}, "total_murein": {}}
+        # Ensure that lattice is a numpy array so divider works properly
+        if not isinstance(states["wall_state"]["lattice"], np.ndarray):
+            update["wall_state"] = {
+                "lattice": np.array(states["wall_state"]["lattice"])
+            }
         # Only run right after division (cell has half of mother lattice)
         if states["first_update"] and states["wall_state"]["lattice"] is not None:
             accounted_murein_monomers = sum(states["murein_state"].values())
