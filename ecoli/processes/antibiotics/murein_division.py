@@ -68,7 +68,8 @@ class MureinDivision(Step):
     def next_update(self, timestep, states):
         update = {"murein_state": {}, "total_murein": {}}
         # Ensure that lattice is a numpy array so divider works properly
-        if not isinstance(states["wall_state"]["lattice"], np.ndarray):
+        if ((not isinstance(states["wall_state"]["lattice"], np.ndarray)) and 
+            (states["wall_state"]["lattice"] != None)):
             update["wall_state"] = {
                 "lattice": np.array(states["wall_state"]["lattice"])
             }
