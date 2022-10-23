@@ -314,6 +314,9 @@ class EngineProcess(Process):
 
     def get_inner_state(self) -> None:
         def not_a_process(value):
+            # Do not retrieve partitioned process shared state
+            if isinstance(value.value, tuple) and len(value.value)==1:
+                return not value.value[0].topology
             return not (isinstance(value, Store) and value.topology)
         return self.sim.state.get_value(condition=not_a_process)
 
