@@ -279,6 +279,8 @@
     "engine_process_reports": [
         ["periplasm"],
         ["cytoplasm"],
-        ["kinetic_parameters"]
+        ["kinetic_parameters"],
+        ["bulk", "TRANS-CPLX-201[m]"],
+        ["bulk", "CPLX0-7534[o]"]
     ]
 }
