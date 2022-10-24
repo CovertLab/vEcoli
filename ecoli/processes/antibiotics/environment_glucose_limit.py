@@ -1,5 +1,5 @@
 from vivarium.core.process import Step
-from vivarium.library.units import units
+from wholecell.utils import units
 
 from ecoli.processes.registries import topology_registry
 
