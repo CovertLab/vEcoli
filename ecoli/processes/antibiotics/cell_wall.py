@@ -50,11 +50,9 @@ Parameters:
 
 import numpy as np
 import warnings
-from ecoli import divider_registry
 from ecoli.library.cell_wall.column_sampler import (
     geom_sampler,
     sample_column,
-    sample_lattice,
 )
 from ecoli.library.cell_wall.hole_detection import detect_holes_skimage
 from ecoli.library.cell_wall.lattice import (

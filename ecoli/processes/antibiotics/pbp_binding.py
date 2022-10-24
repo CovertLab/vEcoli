@@ -11,7 +11,7 @@ from vivarium.plots.simulation_output import plot_variables
 from ecoli.library.parameters import param_store
 from ecoli.library.schema import bulk_schema
 from ecoli.processes.registries import topology_registry
-from ecoli.processes.shape import length_from_volume, surface_area_from_length
+from ecoli.processes.shape import length_from_volume
 from ecoli.library.cell_wall.column_sampler import (
     geom_sampler,
     sample_lattice,
