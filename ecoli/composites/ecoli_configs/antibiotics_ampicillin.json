@@ -41,6 +41,7 @@
         ["bulk", "CPD-12261[p]"],
         ["bulk", "CPLX0-7717[m]"],
         ["bulk", "CPLX0-3951[i]"],
+        ["bulk", "CPLX0-8300[c]"],
         ["murein_state", "incorporated_murein"],
         ["murein_state", "unincorporated_murein"],
         ["murein_state", "shadow_murein"],

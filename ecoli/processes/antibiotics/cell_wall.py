@@ -92,7 +92,10 @@ class CellWall(Process):
         "murein": "CPD-12261[p]",  # four crosslinked peptidoglycan units
         "PBP": {  # penicillin-binding proteins
             "PBP1A": "CPLX0-7717[m]",  # transglycosylase-transpeptidase
-            "PBP1B": "CPLX0-3951[i]",  # transglycosylase-transpeptidase
+            # PBP1B has three isoforms: α (currently not produced by model),
+            # β (degradation product of α, not in vivo), and γ (made by model)
+            "PBP1B_alpha": "CPLX0-3951[i]",
+            "PBP1B_gamma": "CPLX0-8300[c]",
         },
         # Probability of terminating a strand on the next monomer,
         # fitted from data
@@ -116,7 +119,8 @@ class CellWall(Process):
 
         self.murein = self.parameters["murein"]
         self.pbp1a = self.parameters["PBP"]["PBP1A"]
-        self.pbp1b = self.parameters["PBP"]["PBP1B"]
+        self.pbp1b_alpha = self.parameters["PBP"]["PBP1B_alpha"]
+        self.pbp1b_gamma = self.parameters["PBP"]["PBP1B_gamma"]
         self.strand_term_p = self.parameters["strand_term_p"]
 
         self.cell_radius = self.parameters["cell_radius"]
@@ -259,7 +263,8 @@ class CellWall(Process):
         n_sites = int(
             remove_units(
                 PBPs[self.pbp1a] * active_fraction_PBP1a
-                + PBPs[self.pbp1b] * active_fraction_PBP1b
+                + PBPs[self.pbp1b_alpha] * active_fraction_PBP1b
+                + PBPs[self.pbp1b_gamma] * active_fraction_PBP1b
             )
         )
 

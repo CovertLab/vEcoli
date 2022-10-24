@@ -45,7 +45,10 @@ class PBPBinding(Step):
         "beta_lactam": "ampicillin",  # Supports cephaloridine, ampicillin
         "PBP": {  # penicillin-binding proteins
             "PBP1A": "CPLX0-7717[m]",  # transglycosylase-transpeptidase ~100
-            "PBP1B": "CPLX0-3951[i]",  # transglycosylase-transpeptidase ~100
+            # PBP1B has three isoforms: α (currently not produced by model),
+            # β (degradation product of α, not in vivo), and γ (made by model)
+            "PBP1B_alpha": "CPLX0-3951[i]",
+            "PBP1B_gamma": "CPLX0-8300[c]",
         },
         "kinetic_params": {
             "cephaloridine": {
@@ -95,7 +98,8 @@ class PBPBinding(Step):
         self.murein = self.parameters["murein_name"]
         self.beta_lactam = self.parameters["beta_lactam"]
         self.PBP1A = self.parameters["PBP"]["PBP1A"]
-        self.PBP1B = self.parameters["PBP"]["PBP1B"]
+        self.PBP1B_alpha = self.parameters["PBP"]["PBP1B_alpha"]
+        self.PBP1B_gamma = self.parameters["PBP"]["PBP1B_gamma"]
         self.K_A_1a = self.parameters["kinetic_params"][self.beta_lactam]["K_A"][
             "PBP1A"
         ]
@@ -296,15 +300,17 @@ class PBPBinding(Step):
         # Allocate real vs. shadow murein based on
         # what fraction of PBPs are active
         PBP1A = states["bulk"][self.PBP1A]
-        PBP1B = states["bulk"][self.PBP1B]
-        total_PBP = PBP1A + PBP1B
+        PBP1B_alpha = states["bulk"][self.PBP1B_alpha]
+        PBP1B_gamma = states["bulk"][self.PBP1B_gamma]
+        total_PBP = PBP1A + PBP1B_alpha + PBP1B_gamma
 
         if total_PBP > 0:
             real_new_murein = int(
                 round(
                     (
                         active_fraction_1a * (PBP1A / total_PBP)
-                        + active_fraction_1b * (PBP1B / total_PBP)
+                        + active_fraction_1b * (PBP1B_alpha / total_PBP)
+                        + active_fraction_1b * (PBP1B_gamma / total_PBP)
                     )
                     * new_murein
                 )
