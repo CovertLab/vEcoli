@@ -5,7 +5,8 @@ from ecoli.processes.registries import topology_registry
 
 TOPOLOGY = {
     "external_glucose": ("boundary", "external", "GLC[p]"),
-    "glucose_constraint": ("environment", "exchange_data", "constrained", "GLC[p]")
+    "glucose_constraint": ("environment", "exchange_data", "constrained", "GLC[p]"),
+    "first_update": ("deriver_skips", "environment-glucose-limit",)
 }
 NAME = "environment-glucose-limit"
 
@@ -23,11 +24,16 @@ class EnvironmentGlucoseLimit(Step):
             "glucose_constraint": {
                 "default": 20.0 * units.mmol / (units.g * units.h),
                 "_updater": "set"
+            },
+            "first_update": {
+                "_default": True,
+                "_updater": "set",
+                "_divider": {"divider": "set_value", "config": {"value": True}},
             }
         }
     
     def next_update(self, timestep, states):
-        if states["external_glucose"] == 0:
+        if states["external_glucose"]==0 and not states["first_update"]:
             return {
                 "glucose_constraint": 0.0 * units.mmol / (units.g * units.h)
             }
