@@ -4,7 +4,8 @@
         "concentrations_deriver",
         "permeability",
         "antibiotic-transport-odeint",
-        "conc_to_counts"
+        "conc_to_counts",
+        "environment-glucose-limit"
     ],
     "total_time": 12000,
     "spatial_environment_config": {
@@ -270,7 +271,8 @@
                     "bilayer_perm": "!ParameterSerializer[tetracycline>permeability>outer_without_porins]"
                 }
             }
-        }
+        },
+        "environment-glucose-limit": {}
     },
     "flow": {
         "concentrations_deriver": [["ecoli-shape"]],

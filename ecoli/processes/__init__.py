@@ -42,6 +42,8 @@ from ecoli.processes.listeners.aggregator import Aggregator
 from ecoli.processes.rna_interference import RnaInterference
 from ecoli.processes.antibiotics.conc_to_counts import ConcToCounts
 from ecoli.processes.antibiotics.murein_division import MureinDivision
+from ecoli.processes.antibiotics.environment_glucose_limit import (
+    EnvironmentGlucoseLimit)
 
 
 # add to registry
@@ -99,3 +101,5 @@ process_registry.register(PBPBinding.name, PBPBinding)
 process_registry.register(ConcToCounts.name, ConcToCounts)
 process_registry.register(RnaInterference.name, RnaInterference)
 process_registry.register(MureinDivision.name, MureinDivision)
+process_registry.register(
+    EnvironmentGlucoseLimit.name, EnvironmentGlucoseLimit)
