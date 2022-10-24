@@ -51,8 +51,8 @@ def run_sim(tet_conc=0, amp_conc=0, baseline=False, seed=0,
     if baseline:
         print(f'Running baseline sim (seed = {seed}).')
         config["colony_save_prefix"] = "glc_combined"
-        config['save_times'] = [11550, 23100, 26000]
-        # 26000 catches the start of the 9th round of division
+        config['save_times'] = [11550, 23100]
+        # 26000 allows 8th round of division to mostly complete
         # Run for one timestep past that to catch inner sim emits at 26000
         config['total_time'] = 26002
         # Ensure that sim starts with correctly reduced murein counts
@@ -62,8 +62,10 @@ def run_sim(tet_conc=0, amp_conc=0, baseline=False, seed=0,
         print(f"Tetracycline concentration: {tet_conc}")
         print(f"Ampicillin concentration: {amp_conc}")
         config["colony_save_prefix"] = f"amp_{amp_conc}_tet_{tet_conc}"
-        config['save_times'] = [11550]
-        config['total_time'] = 14452
+        # Save states at t = 6, 12, 18 hrs
+        config['save_times'] = [10050, 31650, 53250]
+        # 74850 + 11550 = 86400 sec = 24 hrs (standard incubation for MIC)
+        config['total_time'] = 74852
     if cloud:
         config['emitter_arg'] = [
             ["host", "10.138.0.75:27017"],
