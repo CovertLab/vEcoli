@@ -366,12 +366,12 @@ class Metabolism(Step):
                     'kineticObjectiveValues': fba.getKineticObjectiveValues(),
                     
                     # Quite large, comment out to reduce emit size
-                    'estimated_fluxes': flux_dict ,
-                    'estimated_dmdt': {str(metabolite): delta_metabolites_final[index]
-                                       for index, metabolite in enumerate(self.model.metaboliteNamesFromNutrients)},
-                    'target_dmdt': objective_counts,
-                    'estimated_exchange_dmdt': {str(molecule): delta_nutrients[index]
-                                                for index, molecule in enumerate(fba.getExternalMoleculeIDs())},
+                    # 'estimated_fluxes': flux_dict ,
+                    # 'estimated_dmdt': {str(metabolite): delta_metabolites_final[index]
+                    #                    for index, metabolite in enumerate(self.model.metaboliteNamesFromNutrients)},
+                    # 'target_dmdt': objective_counts,
+                    # 'estimated_exchange_dmdt': {str(molecule): delta_nutrients[index]
+                    #                             for index, molecule in enumerate(fba.getExternalMoleculeIDs())},
                 },
 
                 'enzyme_kinetics': {
