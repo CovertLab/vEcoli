@@ -62,10 +62,10 @@ def run_sim(tet_conc=0, amp_conc=0, baseline=False, seed=0,
         print(f"Tetracycline concentration: {tet_conc}")
         print(f"Ampicillin concentration: {amp_conc}")
         config["colony_save_prefix"] = f"amp_{amp_conc}_tet_{tet_conc}"
-        # Save states at t = 6, 12, 18 hrs
-        config['save_times'] = [10050, 31650, 53250]
-        # 74850 + 11550 = 86400 sec = 24 hrs (standard incubation for MIC)
-        config['total_time'] = 74852
+        # Save states at t = 6, 12 hrs
+        config['save_times'] = [10050, 31650]
+        # 46052 + 11550 = 57600 sec = 16 hrs (standard incubation for MIC)
+        config['total_time'] = 46052
     if cloud:
         config['emitter_arg'] = [
             ["host", "10.138.0.75:27017"],
