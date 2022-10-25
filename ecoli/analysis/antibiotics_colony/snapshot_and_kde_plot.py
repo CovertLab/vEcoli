@@ -69,6 +69,7 @@ def make_snapshot_and_kde_plot(timepoint_data, bounds, molecule, title=None):
         show_timeline=False,
         background_color="white",
         default_font_size=plt.rcParams["font.size"],
+        scale_bar_length=None,  # TODO: scale bar length looks wrong?
     )
     tag_axes = fig.get_axes()
     snapshot_ax, conc_ax = tag_axes[:2]
@@ -85,15 +86,27 @@ def make_snapshot_and_kde_plot(timepoint_data, bounds, molecule, title=None):
     snapshot_ax.set_subplotspec(grid[0, 0])
     conc_ax.set_subplotspec(grid[0, 1])
 
-    # Reposition scale bar if present
-    # import ipdb; ipdb.set_trace()
+    # Remove and re-create scale bar if present
     for a in conc_ax.get_children():
         if isinstance(a, AnchoredSizeBar):
-            #  TODO: this does not move the artist :(
-            a.set_transform(conc_ax.transData)
+            a.remove()
+
+            scale_bar_length = 1
+            scale_bar = AnchoredSizeBar(
+                conc_ax.transData,
+                scale_bar_length,
+                f"{scale_bar_length} μm",
+                "lower left",
+                color="black",
+                frameon=False,
+                sep=scale_bar_length,
+                size_vertical=scale_bar_length / 20,
+            )
+            conc_ax.add_artist(scale_bar)
+            break
 
     # Add KDE plot
-    kde_ax = fig.add_subplot(grid[1, 0], aspect=1)
+    kde_ax = fig.add_subplot(grid[1, 0])
 
     # Get distribution of concentration across agents
     kde_data = {
@@ -110,6 +123,7 @@ def make_snapshot_and_kde_plot(timepoint_data, bounds, molecule, title=None):
     sns.kdeplot(data=kde_data, x=molecule[-1], ax=kde_ax)
     sns.rugplot(data=kde_data, x=molecule[-1], ax=kde_ax)
     kde_ax.set(xlabel=None)
+    kde_ax.set_box_aspect(1)
 
     return fig, fig.get_axes()
 
@@ -203,6 +217,14 @@ def main():
     # Get max time if no time specified
     time = args.time
     if time is None:
+        if args.verbose:
+            print(
+                "No timepoint given, trying to infer and use final timepoint from database."
+            )
+            print(
+                "Note that this sometimes fails, in which case, consider specifying an explicit timepoint."
+            )
+
         config = {"host": f"{args.host}:{args.port}", "database": "simulations"}
         emitter = DatabaseEmitter(config)
         db = emitter.db
