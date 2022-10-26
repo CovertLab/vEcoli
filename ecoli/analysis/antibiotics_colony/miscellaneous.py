@@ -25,7 +25,7 @@ def plot_colony_growth_rates(
         out: Immediately save and close current figure if True.
         axes: If supplied, columns are plotted sequentially on these Axes.
     '''
-    columns_to_plot = ['Dry mass', 'Growth']
+    columns_to_plot = ['Dry mass']
     # Get total dry mass and growth at each time point for each replicate
     glc = [seed_data['df'].loc[:, columns_to_plot + ['Condition', 'Time']
         ].groupby(['Condition', 'Time']).sum()
@@ -81,7 +81,6 @@ def plot_final_fold_changes(
         out: Immediately save and close current figure if True.
         ax: Single Matplotlib axes instance to plot on
     '''
-    # Plot PBP1 mRNA fold change as a control (should not change significantly)
     mrnas = [column for column in CONCENTRATION_COLUMNS
         if 'mRNA' in column]
     monomers = [column for column in CONCENTRATION_COLUMNS
@@ -91,36 +90,31 @@ def plot_final_fold_changes(
     glc_max_time = data['Glucose'][0]['df'].loc[:, 'Time'].max()
     glc = [seed_data['df'].loc[
             seed_data['df']['Time']==glc_max_time,
-            columns_to_plot+['Volume', 'Seed']]
+            columns_to_plot+['Volume']].mean()
         for seed_data in data['Glucose'].values()]
-    glc = pd.concat([glc_rep.divide(glc_rep['Volume'], axis=0).drop(
-        ['Volume'], axis=1) for glc_rep in glc])
-    glc = glc.groupby('Seed').mean()
+    glc = pd.concat(glc, axis=1).T
+    glc = glc.divide(glc['Volume'], axis=0).drop(['Volume'], axis=1)
     tet_max_time = data['Tetracycline (1.5 mg/L)'][0]['df'].loc[:, 'Time'].max()
     tet = [seed_data['df'].loc[
             seed_data['df']['Time']==tet_max_time,
-            columns_to_plot+['Volume', 'Seed']]
+            columns_to_plot+['Volume']].mean()
         for seed_data in data['Tetracycline (1.5 mg/L)'].values()]
-    tet = pd.concat([tet_rep.divide(tet_rep['Volume'], axis=0).drop(
-        ['Volume'], axis=1) for tet_rep in tet])
-    tet = tet.groupby('Seed').mean()
+    tet = pd.concat(tet, axis=1).T
+    tet = tet.divide(tet['Volume'], axis=0).drop(['Volume'], axis=1)
     # Convert to fold change over glucose control
     data = tet / glc
-    data = pd.melt(data, var_name='Gene/Monomer',
+    data = pd.melt(data, var_name='Gene name',
         value_name='Fold change (Tet./ Glc.)')
     data['Source'] = 'Simulated'
 
     # Get literature fold change where applicable
-    tet_degenes = DE_GENES.loc[:, ['Gene name', 'Fold change']].rename(
-        columns={
-            rna_id: f'{rna_id} mRNA'
-            for rna_id in DE_GENES['Gene name']
-            if rna_id != 'MicF'
-        }
-    )
-    tet_degenes = pd.melt(tet_degenes, var_name='Gene/Monomer',
-        value_name='Fold change (Tet./ Glc.)')
+    tet_degenes = DE_GENES.loc[:, ['Gene name', 'Fold change']].set_index(
+        'Gene name').drop('MicF', axis=0).reset_index()
+    tet_degenes = pd.melt(tet_degenes, id_vars=['Gene name'],
+        value_name='Fold change (Tet./ Glc.)').drop('variable', axis=1)
     tet_degenes['Source'] = 'Literature'
+    tet_degenes = tet_degenes.set_index('Gene name')
+    tet_degenes.index = [f'{gene_name} mRNA' for gene_name in tet_degenes.index]
     data = pd.concat([data, tet_degenes])
 
     if not ax:
