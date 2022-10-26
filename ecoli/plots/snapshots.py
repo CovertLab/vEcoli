@@ -282,7 +282,8 @@ def color_phylogeny(
     if daughter_ids:
         for daughter_id in daughter_ids:
             daughter_color = mutate_color(baseline_hsv)
-            color_phylogeny(daughter_id, phylogeny, daughter_color)
+            color_phylogeny(daughter_id, phylogeny,
+                daughter_color, phylogeny_colors)
     return phylogeny_colors
 
 
