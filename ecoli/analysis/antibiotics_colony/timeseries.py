@@ -49,12 +49,12 @@ def plot_generational_timeseries(
     for generation in range(1, n_generations +  1):
         generation_data = data.loc[agent_id_lengths == generation, :]
         grouped_data = generation_data.groupby(['Condition', 'Seed', 'Agent ID'])
-        real_start_time = generation_data.aggregate({'Time': 'min'})
+        real_start_time = grouped_data.aggregate({'Time': 'min'})
         target_start_time = previous_end_time
         real_gen_length = grouped_data.aggregate({'Time': 'max'}) - real_start_time
         target_end_time = int(target_start_time + real_gen_length.median())
-        for _, agent_data in grouped_data:
-            agent_start_time =  int(agent_data.aggregate({'Time': 'min'}))
+        for agent_id, agent_data in grouped_data:
+            agent_start_time =  int(real_start_time.loc[agent_id])
             agent_data.loc[:, 'Time'] -= agent_start_time - target_start_time
             agent_data = agent_data.loc[agent_data['Time'] <= target_end_time, :]
             aligned_data.append(agent_data)
@@ -74,8 +74,12 @@ def plot_generational_timeseries(
         data = aligned_data.loc[grouping]
         # For antibiotic sims, limit glucose data to antibiotic run time
         if len(grouping) > 1:
-            data.loc[:, 'Glucose'] = data['Glucose'].loc[
-                data['Time'] >= SPLIT_TIME, :]
+            condition_1_data = aligned_data.loc[grouping[0]].loc[
+                aligned_data.loc[grouping[0]]['Time'] >= SPLIT_TIME, :]
+            condition_2_data = aligned_data.loc[grouping[1]].loc[
+                aligned_data.loc[grouping[1]]['Time'] >= SPLIT_TIME, :]
+            aligned_data = pd.concat([condition_1_data, condition_2_data])
+            
         for column in columns_to_plot:
             curr_ax = axes[ax_idx]
             ax_idx += 1
