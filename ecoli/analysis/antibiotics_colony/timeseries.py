@@ -71,23 +71,23 @@ def plot_generational_timeseries(
     columns_to_plot = list(set(columns_to_plot) - METADATA)
     # Plot glucose alone but plot it with each antibiotic as control
     for grouping in CONDITION_GROUPINGS:
-        data = aligned_data.loc[grouping]
+        curr_data = aligned_data.loc[grouping]
         # For antibiotic sims, limit glucose data to antibiotic run time
         if len(grouping) > 1:
             condition_1_data = aligned_data.loc[grouping[0]].loc[
                 aligned_data.loc[grouping[0]]['Time'] >= SPLIT_TIME, :]
             condition_2_data = aligned_data.loc[grouping[1]].loc[
                 aligned_data.loc[grouping[1]]['Time'] >= SPLIT_TIME, :]
-            aligned_data = pd.concat([condition_1_data, condition_2_data])
+            curr_data = pd.concat([condition_1_data, condition_2_data])
             
         for column in columns_to_plot:
             curr_ax = axes[ax_idx]
             ax_idx += 1
             g = sns.lineplot(
-                data=data, x='Time', y=column, hue='Condition', ax=curr_ax,
+                data=curr_data, x='Time', y=column, hue='Condition', ax=curr_ax,
                 errorbar=("pi", 95), estimator=np.median, legend=False)
             # Mark values where cell died
-            death = data.loc[data['Death'], :]
+            death = curr_data.loc[curr_data['Death'], :]
             g = sns.scatterplot(
                 data=death, x='Time', y=column, hue='Condition', ax=g,
                 markers=['X'], style='Death', legend=False)

@@ -122,7 +122,7 @@ def plot_final_fold_changes(
         _, ax = plt.subplots(nrows=1, ncols=1, 
             figsize=(8, 2*n_variables))
     sns.histplot(data=data, x='Fold change (Tet./ Glc.)',
-        y='Gene/Monomer', hue='Source', ax=ax)
+        y='Gene name', hue='Source', ax=ax)
     if out:
         fig = ax.get_figure()
         plt.tight_layout()
