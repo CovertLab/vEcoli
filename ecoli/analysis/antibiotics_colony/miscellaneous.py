@@ -91,17 +91,19 @@ def plot_final_fold_changes(
     glc_max_time = data['Glucose'][0]['df'].loc[:, 'Time'].max()
     glc = [seed_data['df'].loc[
             seed_data['df']['Time']==glc_max_time,
-            columns_to_plot+['Volume']]
+            columns_to_plot+['Volume', 'Seed']]
         for seed_data in data['Glucose'].values()]
     glc = pd.concat([glc_rep.divide(glc_rep['Volume'], axis=0).drop(
         ['Volume'], axis=1) for glc_rep in glc])
+    glc = glc.groupby('Seed').mean()
     tet_max_time = data['Tetracycline (1.5 mg/L)'][0]['df'].loc[:, 'Time'].max()
     tet = [seed_data['df'].loc[
             seed_data['df']['Time']==tet_max_time,
-            columns_to_plot+['Volume']]
+            columns_to_plot+['Volume', 'Seed']]
         for seed_data in data['Tetracycline (1.5 mg/L)'].values()]
     tet = pd.concat([tet_rep.divide(tet_rep['Volume'], axis=0).drop(
         ['Volume'], axis=1) for tet_rep in tet])
+    tet = tet.groupby('Seed').mean()
     # Convert to fold change over glucose control
     data = tet / glc
     data = pd.melt(data, var_name='Gene/Monomer',

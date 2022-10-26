@@ -62,10 +62,8 @@ def run_sim(tet_conc=0, amp_conc=0, baseline=False, seed=0,
         print(f"Tetracycline concentration: {tet_conc}")
         print(f"Ampicillin concentration: {amp_conc}")
         config["colony_save_prefix"] = f"amp_{amp_conc}_tet_{tet_conc}"
-        # Save states at t = 3, 6 hrs post-antibiotic addition
-        config['save_times'] = [22350, 33150]
-        # Run with antibiotics for 6 hrs
-        config['total_time'] = 21602
+        config['save_times'] = [11550]
+        config['total_time'] = 14452
     if cloud:
         config['emitter_arg'] = [
             ["host", "10.138.0.75:27017"],

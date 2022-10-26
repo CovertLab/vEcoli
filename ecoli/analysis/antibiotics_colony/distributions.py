@@ -48,18 +48,15 @@ def plot_death_distributions(
     if not axes:
         nrows = int(np.ceil(len(columns_to_plot) / 2))
         _, fresh_axes = plt.subplots(nrows=nrows, ncols=2, 
-            sharex=True, figsize=(8, 3*nrows))
+            figsize=(8, 3*nrows))
         axes = np.ravel(fresh_axes)
     ax_idx = 0
     for column in columns_to_plot:
         curr_ax = axes[ax_idx]
         ax_idx += 1
-        sns.kdeplot(
-            data=data, x=column, hue='Death', legend=False,
-            ax=curr_ax)
-        sns.rugplot(
-            data=data, x=column, hue='Death', legend=False,
-            ax=curr_ax)
+        sns.histplot(
+            data=data, x=column, hue='Death', ax=curr_ax,
+            stat='percent', common_norm=False, element='step')
     if out:
         fig = curr_ax.get_figure()
         plt.tight_layout()
@@ -104,21 +101,20 @@ def plot_final_distributions(
     amp_final = pd.concat(amp_final + glc_final)
     tet_final = pd.concat(tet_final + glc_final)
     glc_final = pd.concat(glc_final)
-    columns_to_plot = set(data.columns) - METADATA
+    columns_to_plot = set(glc_final.columns) - METADATA
     if not axes:
         nrows = int(np.ceil(len(columns_to_plot) / 2)) * 3
         _, fresh_axes = plt.subplots(nrows=nrows, ncols=2, 
-            sharex=True, figsize=(8, 3*nrows))
+            figsize=(8, 3*nrows))
         axes = np.ravel(fresh_axes)
     ax_idx = 0
     for data in [glc_final, amp_final, tet_final]:
         for column in columns_to_plot:
             curr_ax = axes[ax_idx]
             ax_idx += 1
-            sns.kdeplot(
-                data=data, x=column, hue='Condition', ax=curr_ax)
-            sns.rugplot(
-                data=data, x=column, hue='Condition', ax=curr_ax)
+            sns.histplot(
+                data=data, x=column, hue='Condition', ax=curr_ax,
+                stat='percent', common_norm=False, element='step')
     if out:
         fig = curr_ax.get_figure()
         plt.tight_layout()

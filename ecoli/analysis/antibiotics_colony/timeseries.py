@@ -60,14 +60,15 @@ def plot_generational_timeseries(
             aligned_data.append(agent_data)
         previous_end_time = target_end_time
     aligned_data = pd.concat(aligned_data)
+    aligned_data = aligned_data.set_index(['Condition'])
 
-    columns_to_plot = set(data.columns) - METADATA
     n_variables = len(columns_to_plot)
     if not axes:
         _, fresh_axes = plt.subplots(nrows=n_variables * 3, ncols=1, 
             sharex=True, figsize=(8, 2*n_variables))
         axes = np.ravel(fresh_axes)
     ax_idx = 0
+    columns_to_plot = list(set(columns_to_plot) - METADATA)
     # Plot glucose alone but plot it with each antibiotic as control
     for grouping in CONDITION_GROUPINGS:
         data = aligned_data.loc[grouping]
