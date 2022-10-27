@@ -100,7 +100,7 @@ PARAMETER_DICT = {
             ),
         },
         "pbp_binding": {
-            "K_A": {
+            "K_A (micromolar)": {
                 "PBP1A": Parameter(2 * units.uM, "Kocaoglu and Carlson 2015"),
                 "PBP1B": Parameter(2 * units.uM, "Catherwood et al. 2020"),
             }
@@ -409,28 +409,6 @@ DERIVATION_RULES = {
                 / params.get(("shape", "average_outer_area"))
             )
         ),
-    ),
-    (
-        "ampicillin",
-        "pbp_binding",
-        "K_A (micromolar)",
-        "PBP1A",
-    ): lambda params: Parameter(
-        (
-            params.get(("ampicillin", "pbp_binding", "K_A", "PBP1A"))
-            / params.get(("ampicillin", "molar_mass"))
-        ).to("micromolar")
-    ),
-    (
-        "ampicillin",
-        "pbp_binding",
-        "K_A (micromolar)",
-        "PBP1B",
-    ): lambda params: Parameter(
-        (
-            params.get(("ampicillin", "pbp_binding", "K_A", "PBP1B"))
-            / params.get(("ampicillin", "molar_mass"))
-        ).to("micromolar")
     ),
     ("cephaloridine", "efflux", "kcat"): lambda params: Parameter(
         (
