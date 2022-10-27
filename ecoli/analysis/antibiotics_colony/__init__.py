@@ -21,3 +21,4 @@ CONDITION_GROUPINGS = [
     ['Tetracycline (1.5 mg/L)', 'Glucose']
 ]
 SPLIT_TIME = 11550
+MAX_TIME = 26000
