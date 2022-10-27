@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 from ecoli.plots.snapshots import plot_snapshots
 
 from ecoli.analysis.antibiotics_colony import (
-    CONDITION_GROUPINGS, METADATA, CONCENTRATION_COLUMNS, SPLIT_TIME)
+    CONDITION_GROUPINGS, MAX_TIME, METADATA, CONCENTRATION_COLUMNS, SPLIT_TIME)
 
 def plot_generational_timeseries(
     data: Dict[str, Dict[int, pd.DataFrame]],
@@ -72,12 +72,18 @@ def plot_generational_timeseries(
     # Plot glucose alone but plot it with each antibiotic as control
     for grouping in CONDITION_GROUPINGS:
         curr_data = aligned_data.loc[grouping]
-        # For antibiotic sims, limit glucose data to antibiotic run time
+        # Only plot data between SPLIT_TIME and MAX_TIME for antibiotics
         if len(grouping) > 1:
+            condition_1_mask = ((aligned_data.loc[grouping[0]]['Time'] 
+                >= SPLIT_TIME) & (aligned_data.loc[grouping[0]]['Time'] 
+                <= MAX_TIME))
             condition_1_data = aligned_data.loc[grouping[0]].loc[
-                aligned_data.loc[grouping[0]]['Time'] >= SPLIT_TIME, :]
+                condition_1_mask, :]
+            condition_2_mask = ((aligned_data.loc[grouping[1]]['Time'] 
+                >= SPLIT_TIME) & (aligned_data.loc[grouping[1]]['Time'] 
+                <= MAX_TIME))
             condition_2_data = aligned_data.loc[grouping[1]].loc[
-                aligned_data.loc[grouping[1]]['Time'] >= SPLIT_TIME, :]
+                condition_2_mask, :]
             curr_data = pd.concat([condition_1_data, condition_2_data])
             
         for column in columns_to_plot:
@@ -147,7 +153,7 @@ def plot_snapshot_timeseries(
             bounds=condition_bounds,
             # Glucose is the only significantly depleted molecule
             include_fields=['GLC[p]'],
-            default_font_size=16,
+            default_font_size=12,
             field_label_size=20,
             scale_bar_length=10,
             plot_width=2
