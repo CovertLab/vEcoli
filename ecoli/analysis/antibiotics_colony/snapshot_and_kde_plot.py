@@ -17,33 +17,6 @@ from vivarium.library.topology import convert_path_style
 from ecoli.analysis.db import access_counts, deserialize_and_remove_units
 from ecoli.plots.snapshots import plot_tags
 
-MOLECULES = [
-    ("bulk", "MICF-RNA[c]"),
-    ("monomer", "PD00365"),
-    ("monomer", "PD00406"),
-    ("monomer", "YHIV-MONOMER"),
-    ("monomer", "PD00364"),
-    ("monomer", "OMPR-MONOMER"),
-    ("monomer", "EG10671-MONOMER"),
-    ("monomer", "ENVZ-MONOMER"),
-    ("monomer", "TEHA-MONOMER"),
-    ("monomer", "EG11703-MONOMER"),
-    ("monomer", "ACRB-MONOMER"),
-    ("monomer", "EG12117-MONOMER"),
-    ("monomer", "EG10670-MONOMER"),
-    ("monomer", "EG10669-MONOMER"),
-    ("monomer", "EG12116-MONOMER"),
-    ("monomer", "CMR-MONOMER"),
-    ("monomer", "ACRD-MONOMER"),
-    ("monomer", "EMRB-MONOMER"),
-    ("monomer", "PD04418"),
-    ("monomer", "EMRD-MONOMER"),
-    ("monomer", "ACRF-MONOMER"),
-    ("monomer", "EG11009-MONOMER"),
-    ("monomer", "EG10266-MONOMER"),
-    ("monomer", "EG11599-MONOMER"),
-]
-
 
 def make_snapshot_and_kde_plot(timepoint_data, bounds, molecule, title=None):
     """Generates a figure with a snapshot plot tagging the specified molecule,
@@ -120,8 +93,9 @@ def make_snapshot_and_kde_plot(timepoint_data, bounds, molecule, title=None):
     }
 
     # Plot KDE, rugplot
-    sns.kdeplot(data=kde_data, x=molecule[-1], ax=kde_ax)
-    sns.rugplot(data=kde_data, x=molecule[-1], ax=kde_ax)
+    sns.histplot(data=kde_data, x=molecule[-1], ax=kde_ax)
+    # sns.kdeplot(data=kde_data, x=molecule[-1], ax=kde_ax)
+    # sns.rugplot(data=kde_data, x=molecule[-1], ax=kde_ax)
     kde_ax.set(xlabel=None)
     kde_ax.set_box_aspect(1)
 
@@ -250,14 +224,14 @@ def main():
         verbose=args.verbose,
     )
 
+    os.makedirs(args.outdir, exist_ok=True)
+
     # Generate one figure per molecule
     for molecule in molecules:
         if args.verbose:
             print(f"Plotting snapshot + KDE for {molecule[-1]}...")
 
         fig, _ = make_snapshot_and_kde_plot(data, bounds, molecule)
-
-        os.makedirs(args.outdir, exist_ok=True)
 
         fig.set_size_inches(6, 6)
         fig.savefig(
