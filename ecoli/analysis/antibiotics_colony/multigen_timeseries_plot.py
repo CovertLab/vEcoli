@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 
 from bson import MaxKey, MinKey
 from tqdm import tqdm
+from vivarium.library.dict_utils import get_value_from_path
 from vivarium.library.topology import convert_path_style
 
 from ecoli.analysis.db import access_counts, deserialize_and_remove_units
@@ -48,6 +49,7 @@ def run_analysis(
     experiment_id,
     outfile,
     tags,
+    lengths,
     sampling_rate,
     host,
     port,
@@ -60,10 +62,11 @@ def run_analysis(
     tags = [convert_path_style(path) for path in tags]
     monomers = [path[-1] for path in tags if path[-2] == "monomer"]
     mrnas = [path[-1] for path in tags if path[-2] == "mrna"]
+    lengths = [convert_path_style(path) for path in lengths]
     inner_paths = [
         path for path in tags if path[-1] not in mrnas and path[-1] not in monomers
-    ]
-    timeseries = [convert_path_style(path) for path in tags]
+    ] + lengths
+    timeseries = [convert_path_style(path) for path in tags] + lengths
     outer_paths = [("data", "dimensions")]
 
     if verbose:
@@ -108,6 +111,18 @@ def run_analysis(
     # Remove last timestep since data may be empty
     data = dict(list(data.items())[:-1])
 
+    # Turn arrays at length paths into lengths
+    for timepoint_data in data.values():
+        for agent_data in timepoint_data["agents"].values():
+            for path in lengths:
+                # Follow path and convert array to length
+                d = agent_data
+                for i, elem in enumerate(path):
+                    if i == len(path) - 1:
+                        d[elem] = len(d[elem])
+                    else:
+                        d = d[elem]
+
     multigen_traces(outfile, data, timeseries, None, None)
 
     if verbose:
@@ -130,6 +145,13 @@ def cli():
         help='Paths (e.g. "a>b>c") to variables to tag.',
     )
     parser.add_argument(
+        "--lengths",
+        "-l",
+        nargs="*",
+        default=[],
+        help="Paths of arrays for which to plot their length",
+    )
+    parser.add_argument(
         "--sampling_rate",
         "-r",
         type=int,
@@ -149,6 +171,7 @@ def cli():
         args.experiment_id,
         args.outfile,
         args.tags,
+        args.lengths,
         args.sampling_rate,
         args.host,
         args.port,
