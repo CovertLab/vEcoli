@@ -101,8 +101,8 @@ PARAMETER_DICT = {
         },
         "pbp_binding": {
             "K_A (micromolar)": {
-                "PBP1A": Parameter(2 * units.uM, "Kocaoglu and Carlson 2015"),
-                "PBP1B": Parameter(2 * units.uM, "Catherwood et al. 2020"),
+                "PBP1A": Parameter(0.7 * units.uM, "Kocaoglu and Carlson 2015"),
+                "PBP1B": Parameter(1.27 * units.uM, "Catherwood et al. 2020"),
             }
         },
         "molar_mass": Parameter(349.406 * units.g / units.mol),
