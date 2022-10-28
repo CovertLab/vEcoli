@@ -148,9 +148,8 @@ class LoadSimData:
             duplex_deg_rates = np.array(rnai_data['duplex_deg_rates'])
             duplex_km = np.array(rnai_data['duplex_km'])
             duplex_na = np.zeros(n_duplex_rnas)
-            # Mark duplexes as mRNAs so they are degraded appropriately
-            # when self.sim_data.constants.endoRNase_function is True
-            duplex_is_mRNA = np.ones(n_duplex_rnas, dtype=np.bool_)
+            # Mark duplexes as miscRNAs so they are degraded appropriately
+            duplex_is_miscRNA = np.ones(n_duplex_rnas, dtype=np.bool_)
             
             self.srna_ids = np.array(rnai_data['srna_ids'])
             target_ids = np.array(rnai_data['target_ids'])
@@ -206,8 +205,8 @@ class LoadSimData:
             rna_sequences = np.resize(rna_sequences, (
                 old_n_rnas+n_duplex_rnas, rna_sequences.shape[1]))
             for i, new_rna in enumerate(zip(self.duplex_ids, duplex_deg_rates,
-                duplex_lengths, duplex_ACGU, duplex_mw, duplex_is_mRNA,
-                duplex_na, duplex_na, duplex_na, duplex_na, duplex_na,
+                duplex_lengths, duplex_ACGU, duplex_mw, duplex_na,
+                duplex_is_miscRNA, duplex_na, duplex_na, duplex_na, duplex_na,
                 duplex_na, duplex_na, duplex_na, duplex_na, duplex_km,
                 duplex_na, duplex_na)
             ):
@@ -468,6 +467,8 @@ class LoadSimData:
             'is_mRNA': self.sim_data.process.transcription.rna_data['is_mRNA'].astype(np.int64),
             'is_rRNA': self.sim_data.process.transcription.rna_data['is_rRNA'].astype(np.int64),
             'is_tRNA': self.sim_data.process.transcription.rna_data['is_tRNA'].astype(np.int64),
+            # NEW to vivarium-ecoli, used to degrade duplexes from RNAi
+            'is_miscRNA': self.sim_data.process.transcription.rna_data['is_miscRNA'].astype(np.int64),
             'rna_lengths': self.sim_data.process.transcription.rna_data['length'].asNumber(),
             'polymerized_ntp_ids': self.sim_data.molecule_groups.polymerized_ntps,
             'water_id': self.sim_data.molecule_ids.water,
