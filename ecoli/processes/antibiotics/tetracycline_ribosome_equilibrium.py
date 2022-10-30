@@ -27,7 +27,7 @@ class TetracyclineRibosomeEquilibrium(Step):
         # 6-demethylchlortetracycline to 70S, 50S and 30S ribosomal
         # particles: A quantitative study by fluorescence anisotropy.
         # The EMBO Journal, 3(1), 121–126.
-        'K_Tc': 1e6,
+        'K_Tc': 0.5e6,
         # K_eq for tRNA binding ribosome.
         # Source: Holschuh, K., Riesner, D., & Gassen, H. G. (1981).
         # Steps of mRNA translocation in protein biosynthesis. Nature,
