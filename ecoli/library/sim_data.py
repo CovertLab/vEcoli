@@ -292,7 +292,8 @@ class LoadSimData:
             'monomer_counts_listener': self.get_monomer_counts_listener_config,
             'allocator': self.get_allocator_config,
             'ecoli-chromosome-structure': self.get_chromosome_structure_config,
-            'ecoli-rna-interference': self.get_rna_interference_config
+            'ecoli-rna-interference': self.get_rna_interference_config,
+            'tetracycline-ribosome-equilibrium': self.get_tetracycline_ribosome_equilibrium_config
         }
 
         try:
@@ -1035,10 +1036,12 @@ class LoadSimData:
         return rna_interference_config
 
     def get_tetracycline_ribosome_equilibrium_config(self, time_step=2, parallel=False):
+        rna_ids = self.sim_data.process.transcription.rna_data['id']
+        is_trna = self.sim_data.process.transcription.rna_data['is_tRNA'].astype(np.bool_)
         tetracycline_ribosome_equilibrium_config = {
             'time_step': time_step,
             '_parallel': parallel,
-            
+            'trna_ids': rna_ids[is_trna],
             # Ensure that a new seed is set upon division
             'seed': self.random_state.randint(RAND_MAX)
         }

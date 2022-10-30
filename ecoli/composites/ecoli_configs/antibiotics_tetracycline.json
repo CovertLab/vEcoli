@@ -52,8 +52,8 @@
             "30s-free": ["bulk", "CPLX0-3953[c]"],
             "50s": ["bulk", "CPLX0-3962[c]"],
             "70s-free": ["unique", "active_ribosome"],
-            "70s-tetracycline": ["unique", "active_ribosome_tetracycline"],
             "30s-tetracycline": ["bulk", "CPLX0-3953-tetracycline[c]"],
+            "trnas": ["bulk"],
             "volume": ["cytoplasm", "global", "volume"],
             "evolvers_ran": ["evolvers_ran"],
             "listeners": ["listeners"]
@@ -73,7 +73,6 @@
             "binding_probs": [1],
             "time_step": 2
         },
-        "tetracycline-ribosome-equilibrium": {},
         "ecoli-mass-listener": {
             "tetracycline_mass": "!ParameterSerializer[tetracycline>mass]"
         },
