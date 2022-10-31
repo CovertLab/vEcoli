@@ -1,108 +1,89 @@
 from typing import List, Dict
 
-import numpy as np
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 
-from ecoli.analysis.antibiotics_colony import (
-    CONDITION_GROUPINGS, CONCENTRATION_COLUMNS, DE_GENES)
+from ecoli.analysis.antibiotics_colony import MAX_TIME, SPLIT_TIME, DE_GENES
 
 def plot_colony_growth_rates(
-    data: Dict[str, Dict[int, pd.DataFrame]],
-    out: bool = True,
-    axes: List[plt.Axes] = None,
+    data: pd.DataFrame,
+    ax: plt.Axes = None,
+    palette: Dict[str, tuple] = None,
 ) -> None:
     '''Plot traces of total colony mass and total colony growth rate.
 
     Args:
-        data: Nested dictionary with experimental condition on outer level and
-            initial seed on inner level. Each seed has a DataFrame where each
-            row is an agent and each column is a variable of interest (e.g.
-            count of an mRNA). All DataFrames contain some metadata columns:
-            'Time', 'Death' (True if agent about to die), 'Agent ID', and
-            'Boundary' (only used for snapshot plots), 'Condition', and 'Seed'.
-        out: Immediately save and close current figure if True.
-        axes: If supplied, columns are plotted sequentially on these Axes.
+        data: DataFrame where each row is an agent and each column is a variable
+            of interest. Must have these columns: 'Time', 'Condition', and
+            'Dry Mass'. The first experimental condition in the 'Condition'
+            column is treated as a control (default gray). Include at most
+            2 conditions and 1 seed per condition.
+        axes: Instance of Matplotlib Axes to plot on
+        palette: Dictionary mapping experimental conditions to RGB color tuples
     '''
-    columns_to_plot = ['Dry mass']
-    # Get total dry mass and growth at each time point for each replicate
-    glc = [seed_data['df'].loc[:, columns_to_plot + ['Condition', 'Time']
-        ].groupby(['Condition', 'Time']).sum()
-        for seed_data in data['Glucose'].values()]
-    amp = [seed_data['df'].loc[:, columns_to_plot + ['Condition', 'Time']
-        ].groupby(['Condition', 'Time']).sum()
-        for seed_data in data['Ampicillin (2 mg/L)'].values()]
-    tet = [seed_data['df'].loc[:, columns_to_plot + ['Condition', 'Time']
-        ].groupby(['Condition', 'Time']).sum()
-        for seed_data in data['Tetracycline (1.5 mg/L)'].values()]
-    data = pd.concat(glc + amp + tet)
+    columns_to_include = ['Dry mass', 'Condition', 'Time']
+    data = data.loc[:, columns_to_include]
+    data = data.set_index(['Condition'])
 
-    if not axes:
-        n_variables = 2 * len(CONDITION_GROUPINGS)
-        _, fresh_axes = plt.subplots(nrows=n_variables, ncols=1, 
-            sharex=True, figsize=(8, 2*n_variables))
-        axes = np.ravel(fresh_axes)
-    ax_idx = 0
-    for grouping in CONDITION_GROUPINGS:
-        condition_data = data.loc[grouping]
-        condition_data = condition_data.reset_index()
-        for column in columns_to_plot:
-            curr_ax = axes[ax_idx]
-            ax_idx += 1
-            sns.lineplot(
-                data=condition_data, x='Time', y=column,
-                hue='Condition', ax=curr_ax)
-            # Log scale so linear means exponential growth
-            curr_ax.set(yscale='log')
-    if out:
-        fig = curr_ax.get_figure()
-        plt.tight_layout()
-        fig.savefig('out/analysis/antibiotics_colony/' + 
-            'growth_rate_timeseries.png')
-        plt.close(fig)
+    # Only plot data between SPLIT_TIME and MAX_TIME if multiple
+    # conditions in supplied data
+    conditions = data.index.unique()
+    if len(conditions) > 1:
+        condition_1_mask = ((data.loc[conditions[0]]['Time'] 
+            >= SPLIT_TIME) & (data.loc[conditions[0]]['Time'] 
+            <= MAX_TIME))
+        condition_1_data = data.loc[conditions[0]].loc[
+            condition_1_mask, :]
+        condition_2_mask = ((data.loc[conditions[1]]['Time'] 
+            >= SPLIT_TIME) & (data.loc[conditions[1]]['Time'] 
+            <= MAX_TIME))
+        condition_2_data = data.loc[conditions[1]].loc[
+            condition_2_mask, :]
+        data = pd.concat([condition_1_data, condition_2_data])
+    data = data.reset_index()
+    
+    # By default, plot first condition in gray and second in red
+    if not palette:
+        palette = {conditions[0]: (128, 128, 128)}
+        if len(conditions) > 1:
+            palette[conditions[1]] = (255, 0, 0)
+    sns.lineplot(
+        data=data, x='Time', y='Dry mass',
+        hue='Condition', ax=ax, palette=palette)
+    # Log scale so linear means exponential growth
+    ax.set(yscale='log')
 
 
 def plot_final_fold_changes(
-    data: Dict[str, Dict[int, pd.DataFrame]],
-    out: bool = True,
+    data: pd.DataFrame,
     ax: plt.Axes = None,
+    genes_to_plot: List[str] = None,
 ) -> None:
     '''Plot bar charts of final gene and monomer fold change for key genes
     regulated as part of tetracycline response.
 
     Args:
-        data: Nested dictionary with experimental condition on outer level and
-            initial seed on inner level. Each seed has a DataFrame where each
-            row is an agent and each column is a variable of interest (e.g.
-            count of an mRNA). All DataFrames contain some metadata columns:
-            'Time', 'Death' (True if agent about to die), 'Agent ID', and
-            'Boundary' (only used for snapshot plots), 'Condition', and 'Seed'.
-        out: Immediately save and close current figure if True.
-        ax: Single Matplotlib axes instance to plot on
+        data: DataFrame where each row is an agent and each column is a variable
+            of interest. Must have these columns: 'Time', 'Condition', 'Seed',
+            and 'Dry Mass'. The first experimental condition in the 'Condition'
+            column is treated as a control. Include >1 seed for error bars.
+        axes: Single instance of Matplotlib Axes to plot on.
+        genes_to_plot: List of gene names to include in plot.
     '''
-    mrnas = [column for column in CONCENTRATION_COLUMNS
-        if 'mRNA' in column]
-    monomers = [column for column in CONCENTRATION_COLUMNS
-        if 'monomer' in column]
+    mrnas = [f'{gene} mRNA' for gene in genes_to_plot]
+    monomers = [f'{gene.capitalize()} monomer' for gene in genes_to_plot]
     columns_to_plot = mrnas + monomers
-    # Get average expression as concentration at final time point per replicate
-    glc_max_time = data['Glucose'][0]['df'].loc[:, 'Time'].max()
-    glc = [seed_data['df'].loc[
-            seed_data['df']['Time']==glc_max_time,
-            columns_to_plot+['Volume']].mean()
-        for seed_data in data['Glucose'].values()]
-    glc = pd.concat(glc, axis=1).T
-    glc = glc.divide(glc['Volume'], axis=0).drop(['Volume'], axis=1)
-    tet_max_time = data['Tetracycline (1.5 mg/L)'][0]['df'].loc[:, 'Time'].max()
-    tet = [seed_data['df'].loc[
-            seed_data['df']['Time']==tet_max_time,
-            columns_to_plot+['Volume']].mean()
-        for seed_data in data['Tetracycline (1.5 mg/L)'].values()]
-    tet = pd.concat(tet, axis=1).T
-    tet = tet.divide(tet['Volume'], axis=0).drop(['Volume'], axis=1)
+    columns_to_include = list(set(columns_to_plot) +
+        {'Condition', 'Volume', 'Seed'})
+    data = data.loc[:, columns_to_include]
+    data = data.set_index(['Condition', 'Seed'])
+    data = data.divide(data['Volume'], axis=0).drop(['Volume'], axis=1)
+    data = data.reset_index()
+    # Get average expression as concentration per condition
+    data = data.groupby(['Condition', 'Seed']).mean()
     # Convert to fold change over glucose control
-    data = tet / glc
+    data = data.loc[data.index[1]] / data.loc[data.index[0]]
     data = pd.melt(data, var_name='Gene name',
         value_name='Fold change (Tet./ Glc.)')
     data['Source'] = 'Simulated'
@@ -117,15 +98,5 @@ def plot_final_fold_changes(
     tet_degenes.index = [f'{gene_name} mRNA' for gene_name in tet_degenes.index]
     data = pd.concat([data, tet_degenes])
 
-    if not ax:
-        n_variables = len(columns_to_plot)
-        _, ax = plt.subplots(nrows=1, ncols=1, 
-            figsize=(8, 2*n_variables))
-    sns.histplot(data=data, x='Fold change (Tet./ Glc.)',
-        y='Gene name', hue='Source', ax=ax)
-    if out:
-        fig = ax.get_figure()
-        plt.tight_layout()
-        fig.savefig('out/analysis/antibiotics_colony/' + 
-            'fold_change.png')
-        plt.close(fig)
+    sns.barplot(data=data, x='Fold change (Tet./ Glc.)',
+        y='Gene name', hue='Source', ax=ax, errorbar='sd')

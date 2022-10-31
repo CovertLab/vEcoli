@@ -3,10 +3,12 @@ from concurrent.futures import ProcessPoolExecutor
 from functools import partial
 import matplotlib
 matplotlib.use('agg')
+import matplotlib.pyplot as plt
 import os
 import pandas as pd
 import seaborn as sns
 from tqdm import tqdm
+import pickle
 
 from vivarium.library.dict_utils import get_value_from_path
 
@@ -20,91 +22,59 @@ from ecoli.analysis.antibiotics_colony.distributions import (
     plot_death_distributions)
 from ecoli.analysis.antibiotics_colony.miscellaneous import (
     plot_colony_growth_rates,
-    # plot_environment_concentrations,
     plot_final_fold_changes
 )
-from ecoli.analysis.antibiotics_colony import DE_GENES
-
-FIGURE_MAPPING = {
-    '2B': plot_snapshot_timeseries,
-    '2C': plot_concentration_timeseries,
-    '2D': plot_generational_timeseries,
-    '2E': plot_final_distributions,
-    '2F': plot_colony_growth_rates,
-    # '2G': plot_environment_concentrations,
-    '3B': plot_snapshot_timeseries,
-    '3C': plot_concentration_timeseries,
-    '3D': plot_generational_timeseries,
-    '3E': plot_final_distributions,
-    '3F': plot_colony_growth_rates,
-    '3G': plot_final_fold_changes,
-    '4B': plot_snapshot_timeseries,
-    '4C': plot_concentration_timeseries,
-    '4D': plot_generational_timeseries,
-    '4E': plot_final_distributions,
-    '4F': plot_colony_growth_rates,
-    '4G': plot_death_distributions,
-    # Figure 5 exploring longer running sims for antibiotics
-    # since MIC is typically measured after 24 hr incubation?
-}
+from ecoli.analysis.antibiotics_colony import DE_GENES, MAX_TIME
 
 # Condition -> Seed -> Experiment ID
 EXPERIMENT_ID_MAPPING = {
     'Glucose': {
         0: '2022-10-25_04-55-23_505282+0000',
-        # 100: '2022-10-25_04-55-42_566175+0000',
-        # 10000: '2022-10-25_04-55-58_237473+0000',
+        100: '2022-10-25_04-55-42_566175+0000',
+        10000: '2022-10-25_04-55-58_237473+0000',
     },
     'Tetracycline (1.5 mg/L)': {
-        0: '2022-10-26_04-50-26_679331+0000',
-        # 100: '2022-10-26_04-50-44_985109+0000',
-        # 10000: '2022-10-26_04-51-09_119248+0000',
+        0: '2022-10-30_08-46-46_378082+0000',
+        100: '2022-10-30_08-46-56_187346+0000',
+        10000: '2022-10-30_08-47-08_473173+0000',
     },
-    # 'Tetracycline (1 mg/L)': {
-    #     0: '2022-10-26_16-14-20_340871+0000',
-    # },
-    # 'Tetracycline (0.5 mg/L)': {
-    #     0: '2022-10-26_16-12-59_155560+0000',
-    # },
-    # 'Tetracycline (0.1 mg/L)': {
-    #     0: '2022-10-26_16-13-30_275056+0000',
-    # },
+    'Tetracycline (4 mg/L)': {
+        0: '2022-10-30_08-47-15_257703+0000',
+    },
+    'Tetracycline (2 mg/L)': {
+        0: '2022-10-30_08-47-21_656090+0000',
+    },
+    'Tetracycline (1 mg/L)': {
+        0: '2022-10-30_08-47-27_295650+0000',
+    },
+    'Tetracycline (0.5 mg/L)': {
+        0: '2022-10-30_08-47-34_723561+0000',
+    },
     'Ampicillin (2 mg/L)': {
-        0: '2022-10-25_23-34-42_953042+0000',
-        # 100: '2022-10-25_23-35-09_774093+0000',
-        # 10000: '2022-10-25_23-35-33_067785+0000',
+        0: '2022-10-28_05-47-52_977686+0000',
+        100: '2022-10-28_05-48-14_864394+0000',
+        10000: '2022-10-29_04-41-58_544174+0000',
     },
-    # 'Ampicillin (4 mg/L)': {
-    #     0: '2022-10-26_16-09-20_929686+0000',
-    # },
-    # 'Ampicillin (6 mg/L)': {
-    #     0: '2022-10-26_16-10-03_405620+0000',
-    # },
-    # 'Ampicillin (8 mg/L)': {
-    #     0: '2022-10-26_16-10-38_989889+0000',
-    # },
-    # 'Ampicillin (10 mg/L)': {
-    #     0: '2022-10-26_16-11-10_712722+0000',
-    # },
+    'Ampicillin (4 mg/L)': {
+        0: '2022-10-28_05-51-55_482567+0000',
+    },
+    'Ampicillin (1.5 mg/L)': {
+        0: '2022-10-28_05-52-43_927562+0000',
+    },
+    'Ampicillin (1 mg/L)': {
+        0: '2022-10-28_05-53-09_174585+0000',
+    },
+    'Ampicillin (0.5 mg/L)': {
+        0: '2022-10-28_05-53-53_873981+0000',
+    },
 }
-
-# EXPERIMENT_ID_MAPPING = {
-#     'Glucose': {
-#         0: '2022-10-21_00-01-40_803264+0000',
-#     },
-#     'Tetracycline (1.5 mg/L)': {
-#         0: '2022-10-21_02-22-25_372025+0000',
-#     },
-#     'Ampicillin (2 mg/L)': {
-#         0: '2022-10-21_02-22-25_372025+0000',
-#     },
-# }
 
 PATHS_TO_LOAD = {
     'Dry mass': ('listeners', 'mass', 'dry_mass'),
     'AcrAB-TolC': ('bulk', 'TRANS-CPLX-201[m]'),
     'Periplasmic tetracycline': ('periplasm', 'concentrations', 'tetracycline'),
     'Cytoplasmic tetracycline': ('cytoplasm', 'concentrations', 'tetracycline'),
+    'Periplasmic ampicillin': ('periplasm', 'concentrations', 'ampicillin'),
     'Active MarR': ('bulk', 'CPLX0-7710[c]'),
     'Inactive MarR': ('bulk', 'marR-tet[c]'),
     'micF-ompF duplex': ('bulk', 'micF-ompF[c]'),
@@ -133,6 +103,23 @@ for gene_data in DE_GENES[['Gene name', 'id', 'monomer_ids']].values:
         monomer_name = gene_data[0][0].upper() + gene_data[0][1:]
         PATHS_TO_LOAD[f'{monomer_name} monomer'] = (
             'monomer', gene_data[2][0])
+
+
+def make_figure_1a(data, metadata):
+    columns_to_plot = {
+        'ompF mRNA': (255, 0, 0),
+        'OmpF monomer': (255, 0, 0),
+        'marA mRNA': (0, 0, 255),
+        'MarA monomer': (0, 0, 255)}
+    _, axes = plt.subplots(2, 2, sharex='col')
+    mask = (data.loc['Condition']=='Glucose') & (data.loc['Seed']==0)
+    data = data.loc[mask, :]
+    agent_ids = data.loc[data.loc[:, 'Time']==MAX_TIME, 'Agent ID']
+    highlight_agent = agent_ids[0]
+    plot_generational_timeseries(
+        data=data, axes=axes, columns_to_plot=columns_to_plot,
+        highlight_lineage=highlight_agent, colony_scale=False)
+    print('Done with Figure 1A.')
 
 
 def agent_data_table(raw_data, paths_dict, condition, seed):
@@ -175,12 +162,13 @@ def load_data(cpus=8, sampling_rate=2, host="10.138.0.75", port=27017):
     inner_paths = [path for path in PATHS_TO_LOAD.values() 
         if path[-1] not in mrnas and path[-1] not in monomers]
     outer_paths = [('data', 'dimensions'), ('data', 'fields')]
-    all_data = {}
+    metadata = {}
+    data = []
     for condition, seeds in EXPERIMENT_ID_MAPPING.items():
-        all_data.setdefault(condition, {})
+        metadata.setdefault(condition, {})
         for seed, experiment_id in seeds.items():
-            all_data[condition].setdefault(seed, {})
-            data = access_counts(
+            metadata[condition].setdefault(seed, {})
+            rep_data = access_counts(
                 experiment_id=experiment_id,
                 monomer_names=monomers,
                 mrna_names=mrnas,
@@ -193,26 +181,27 @@ def load_data(cpus=8, sampling_rate=2, host="10.138.0.75", port=27017):
             with ProcessPoolExecutor(cpus) as executor:
                 print('Deserializing data and removing units...')
                 deserialized_data = list(tqdm(executor.map(
-                    deserialize_and_remove_units, data.values()),
-                    total=len(data)))
-            data = dict(zip(data.keys(), deserialized_data))
+                    deserialize_and_remove_units, rep_data.values()),
+                    total=len(rep_data)))
+            rep_data = dict(zip(rep_data.keys(), deserialized_data))
             # Get spatial environment data for snapshot plots
             print('Extracting spatial environment data...')
-            all_data[condition][seed]['bounds'] = data[
-                min(data)]['dimensions']['bounds']
-            all_data[condition][seed]['fields'] = {
+            metadata[condition][seed]['bounds'] = rep_data[
+                min(rep_data)]['dimensions']['bounds']
+            metadata[condition][seed]['fields'] = {
                 time: data_at_time['fields'] 
-                for time, data_at_time in data.items()
+                for time, data_at_time in rep_data.items()
             }
             agent_df_paths = partial(agent_data_table,
                 paths_dict=PATHS_TO_LOAD, condition=condition, seed=seed)
             with ProcessPoolExecutor(cpus) as executor:
                 print('Converting data to DataFrame...')
-                data = list(tqdm(executor.map(agent_df_paths, data.items()),
-                    total=len(data)))
-            data = pd.concat(data, ignore_index=True)
-            all_data[condition][seed]['df'] = data
-    return all_data
+                rep_dfs = list(tqdm(executor.map(
+                    agent_df_paths, rep_data.items()),
+                    total=len(rep_data)))
+            data.extend(rep_dfs)
+    data = pd.concat(data)
+    return data, metadata
 
 
 def main():
@@ -240,18 +229,14 @@ def main():
         help="""Port for MongoDB."""
     )
     args = parser.parse_args()
-    data = load_data(
+    data, metadata = load_data(
         cpus=args.cpus,
         sampling_rate=args.sampling_rate,
         host=args.hostname,
         port=args.port)
-    figure_ids = args.figure_ids
-    if len(figure_ids) == 0:
-        figure_ids = FIGURE_MAPPING.keys()
-    os.makedirs('out/analysis/antibiotics_colony/', exist_ok=True)
-    for figure_id in figure_ids:
-        print(f'Making Figure {figure_id}...')
-        FIGURE_MAPPING[figure_id](data)
+    data.to_pickle('data/antibiotics_colonies_df_data.pkl')
+    with open('data/antibiotics_colonies_metadata.pkl', 'w') as f:
+        pickle.dump(metadata, f)
 
 
 if __name__ == '__main__':
