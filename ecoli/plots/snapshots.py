@@ -943,15 +943,16 @@ def make_tags_figure(
                     level = level / volume if volume else 0
                 if min_tag != max_tag:
                     intensity = (level - min_tag) / (max_tag - min_tag)
-                    # agent_color = tag_h, tag_s, intensity
+
+                    # linear interpolation between tag_color_rgb and min_color
                     agent_color = matplotlib.colors.rgb_to_hsv(
                         tag_color_rgb * intensity + min_color * (1 - intensity)
                     )
                 else:
+                    # set to min color if no dynamic range
                     agent_color = matplotlib.colors.rgb_to_hsv(
                         matplotlib.colors.to_rgb(min_color)
                     )
-                    # agent_color = tag_h, tag_s, 0
 
                 agent_tag_colors[agent_id] = agent_color
 
@@ -982,7 +983,7 @@ def make_tags_figure(
                 # make colormap
                 # min_color = tag_h, tag_s, 0
                 max_color = tag_h, tag_s, 1
-                min_rgb = matplotlib.colors.hsv_to_rgb(min_color)
+                min_rgb = matplotlib.colors.to_rgb(min_color)
                 max_rgb = matplotlib.colors.hsv_to_rgb(max_color)
                 cmap = matplotlib.colors.LinearSegmentedColormap.from_list(
                     "row_{}".format(row_idx), [np.array(min_rgb), np.array(max_rgb)]
