@@ -43,6 +43,7 @@ def make_snapshot_and_kde_plot(timepoint_data, bounds, molecule, title=None):
         background_color="white",
         default_font_size=plt.rcParams["font.size"],
         scale_bar_length=None,  # TODO: scale bar length looks wrong?
+        min_color="white"
     )
     tag_axes = fig.get_axes()
     snapshot_ax, conc_ax = tag_axes[:2]
@@ -116,7 +117,6 @@ def get_data(experiment_id, time, molecules, host, port, cpus, verbose):
         print(f"Accessing data for experiment {experiment_id}...")
 
     # Query database
-    import ipdb; ipdb.set_trace()
     data = access_counts(
         experiment_id=experiment_id,
         monomer_names=monomers,
