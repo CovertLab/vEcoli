@@ -18,7 +18,9 @@ from ecoli.analysis.db import access_counts, deserialize_and_remove_units
 from ecoli.plots.snapshots import plot_tags
 
 
-def make_snapshot_and_kde_plot(timepoint_data, bounds, molecule, title=None):
+def make_snapshot_and_kde_plot(
+    timepoint_data, bounds, molecule, title=None, tag_hsv=[0.6, 1, 1]
+):
     """Generates a figure with a snapshot plot tagging the specified molecule,
     and a smoothed density plot (using KDE) of the distribution of counts for that molecule
     at that time.
@@ -43,6 +45,8 @@ def make_snapshot_and_kde_plot(timepoint_data, bounds, molecule, title=None):
         background_color="white",
         default_font_size=plt.rcParams["font.size"],
         scale_bar_length=None,  # TODO: scale bar length looks wrong?
+        min_color="white",
+        tag_colors={molecule: tag_hsv},
     )
     tag_axes = fig.get_axes()
     snapshot_ax, conc_ax = tag_axes[:2]
@@ -93,7 +97,12 @@ def make_snapshot_and_kde_plot(timepoint_data, bounds, molecule, title=None):
     }
 
     # Plot KDE, rugplot
-    sns.histplot(data=kde_data, x=molecule[-1], ax=kde_ax)
+    sns.histplot(
+        data=kde_data,
+        x=molecule[-1],
+        ax=kde_ax,
+        color=matplotlib.colors.hsv_to_rgb(tag_hsv),
+    )
     # sns.kdeplot(data=kde_data, x=molecule[-1], ax=kde_ax)
     # sns.rugplot(data=kde_data, x=molecule[-1], ax=kde_ax)
     kde_ax.set(xlabel=None)
@@ -163,7 +172,8 @@ def main():
         "-m",
         nargs="+",
         required=True,
-        help="Paths (in A>B>C form) of the molecule(s) for which to generate figure(s).",
+        help="Paths (in A>B>C form) of the molecule(s) for which to generate figure(s). "
+        'Can be preceded by an alias for that molecule, e.g. "OmpF=monomer>EG10671-MONOMER".',
     )
     parser.add_argument(
         "--time",
@@ -185,8 +195,18 @@ def main():
 
     args = parser.parse_args()
 
-    # Covert molecule path styles
-    molecules = [convert_path_style(p) for p in args.molecule_paths]
+    # Covert molecule path styles, get names
+    molecules = []
+    molecule_names = []
+    for path in args.molecule_paths:
+        p = path.split("=")
+        if len(p) == 1:  # no alias given
+            p = convert_path_style(p[0])
+            molecules.append(p)
+            molecule_names.append(p[-1])
+        else:
+            molecules.append(convert_path_style(p[-1]))
+            molecule_names.append(p[0])
 
     # Get max time if no time specified
     time = args.time
@@ -227,11 +247,11 @@ def main():
     os.makedirs(args.outdir, exist_ok=True)
 
     # Generate one figure per molecule
-    for molecule in molecules:
+    for name, molecule in zip(molecule_names, molecules):
         if args.verbose:
             print(f"Plotting snapshot + KDE for {molecule[-1]}...")
 
-        fig, _ = make_snapshot_and_kde_plot(data, bounds, molecule)
+        fig, _ = make_snapshot_and_kde_plot(data, bounds, molecule, name)
 
         fig.set_size_inches(6, 6)
         fig.savefig(
