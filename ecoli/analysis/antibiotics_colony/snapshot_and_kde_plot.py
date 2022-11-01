@@ -116,6 +116,7 @@ def get_data(experiment_id, time, molecules, host, port, cpus, verbose):
         print(f"Accessing data for experiment {experiment_id}...")
 
     # Query database
+    import ipdb; ipdb.set_trace()
     data = access_counts(
         experiment_id=experiment_id,
         monomer_names=monomers,
@@ -163,7 +164,8 @@ def main():
         "-m",
         nargs="+",
         required=True,
-        help="Paths (in A>B>C form) of the molecule(s) for which to generate figure(s).",
+        help="Paths (in A>B>C form) of the molecule(s) for which to generate figure(s). "
+        'Can be preceded by an alias for that molecule, e.g. "OmpF=monomer>EG10671-MONOMER".',
     )
     parser.add_argument(
         "--time",
@@ -185,8 +187,18 @@ def main():
 
     args = parser.parse_args()
 
-    # Covert molecule path styles
-    molecules = [convert_path_style(p) for p in args.molecule_paths]
+    # Covert molecule path styles, get names
+    molecules = []
+    molecule_names = []
+    for path in args.molecule_paths:
+        p = path.split("=")
+        if len(p) == 1:  # no alias given
+            p = convert_path_style(p[0])
+            molecules.append(p)
+            molecule_names.append(p[-1])
+        else:
+            molecules.append(convert_path_style(p[-1]))
+            molecule_names.append(p[0])
 
     # Get max time if no time specified
     time = args.time
@@ -227,11 +239,11 @@ def main():
     os.makedirs(args.outdir, exist_ok=True)
 
     # Generate one figure per molecule
-    for molecule in molecules:
+    for name, molecule in zip(molecule_names, molecules):
         if args.verbose:
             print(f"Plotting snapshot + KDE for {molecule[-1]}...")
 
-        fig, _ = make_snapshot_and_kde_plot(data, bounds, molecule)
+        fig, _ = make_snapshot_and_kde_plot(data, bounds, molecule, name)
 
         fig.set_size_inches(6, 6)
         fig.savefig(
