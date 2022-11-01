@@ -2,7 +2,7 @@ import argparse
 from concurrent.futures import ProcessPoolExecutor
 from functools import partial
 import matplotlib
-matplotlib.use('agg')
+matplotlib.use('svg')
 import matplotlib.pyplot as plt
 import os
 import pandas as pd
@@ -13,6 +13,7 @@ import pickle
 from vivarium.library.dict_utils import get_value_from_path
 
 from ecoli.analysis.db import access_counts, deserialize_and_remove_units
+from ecoli.plots.snapshots import plot_tags
 from ecoli.analysis.antibiotics_colony.timeseries import (
     plot_snapshot_timeseries,
     plot_generational_timeseries,
@@ -106,20 +107,132 @@ for gene_data in DE_GENES[['Gene name', 'id', 'monomer_ids']].values:
 
 
 def make_figure_1a(data, metadata):
+    # Generational (ompF) vs sub-generational (marR) expression
     columns_to_plot = {
         'ompF mRNA': (255, 0, 0),
         'OmpF monomer': (255, 0, 0),
-        'marA mRNA': (0, 0, 255),
-        'MarA monomer': (0, 0, 255)}
-    _, axes = plt.subplots(2, 2, sharex='col')
+        'marR mRNA': (0, 0, 255),
+        'MarR monomer': (0, 0, 255)}
+    _, axes = plt.subplots(2, 2, sharex='col', figsize=(6, 6))
+    # Only plot first seed glucose sim data
     mask = (data.loc['Condition']=='Glucose') & (data.loc['Seed']==0)
     data = data.loc[mask, :]
     agent_ids = data.loc[data.loc[:, 'Time']==MAX_TIME, 'Agent ID']
+    # Arbitrarily pick a surviving agent to plot trace of
     highlight_agent = agent_ids[0]
     plot_generational_timeseries(
         data=data, axes=axes, columns_to_plot=columns_to_plot,
         highlight_lineage=highlight_agent, colony_scale=False)
+    plt.tight_layout()
+    plt.savefig('out/analysis/paper_figures/fig_1a.svg')
+    plt.close()
     print('Done with Figure 1A.')
+
+def make_figure_1c(data, metadata):
+    # Single-cell vs colony-scale data
+    columns_to_plot = {
+        'Active ribosomes': (0, 0, 255)
+    }
+    _, ax = plt.subplots(1, 1, figsize=(4, 4))
+    # Only plot first seed glucose sim data
+    mask = (data.loc['Condition']=='Glucose') & (data.loc['Seed']==0)
+    data = data.loc[mask, :]
+    final_timestep = data.loc[data.loc[:, 'Time']==MAX_TIME, :]
+    # Arbitrarily pick a surviving agent to plot trace of
+    agent_ids = final_timestep.loc[:, 'Agent ID']
+    highlight_agent = agent_ids[0]
+    plot_generational_timeseries(
+        data=data, axes=[ax], columns_to_plot=columns_to_plot,
+        highlight_lineage=highlight_agent, colony_scale=False)
+    plt.tight_layout()
+    plt.savefig('out/analysis/paper_figures/fig_1c_timeseries.svg')
+    plt.close()
+    
+    # Convert DataFrame data back to dictionary form for tag plot
+    snapshot_data = {
+        final_timestep.loc[:, 'Time']: {
+            agent_id: {
+                'boundary': boundary,
+                'Active ribosomes': active_ribosomes
+            }
+            for agent_id, boundary, active_ribosomes in zip(
+                final_timestep.loc[:, 'Agent ID'],
+                final_timestep.loc[:, 'Boundary'],
+                final_timestep.loc[:, 'Active ribosomes']
+            )
+        }
+    }
+    plot_tags(
+        data=snapshot_data,
+        bounds=metadata['Glucose'][0]['bounds'],
+        snapshot_times=MAX_TIME,
+        n_snapshots=1,
+        background_color='white',
+        tagged_molecules=[('Dry mass',)],
+        tag_colors={('Dry mass',): (0, 0, 255)},
+        plot_width=6
+    )
+    plt.tight_layout()
+    plt.savefig('out/analysis/paper_figures/fig_1c_snapshot.svg')
+    plt.close()
+    print('Done with Figure 1C.')
+
+
+def make_figure_2(data, metadata):
+    # Overview of glucose data for seed 0 (can put other seeds in supp.)
+    mask = (data.loc['Condition']=='Glucose') & (data.loc['Seed']==0)
+    data = data.loc[mask, :]
+    final_timestep = data.loc[data.loc[:, 'Time']==MAX_TIME, :]
+    agent_ids = final_timestep.loc[:, 'Agent ID']
+    highlight_agent = agent_ids[0]
+    # 5 equidistant snapshot plots in a row (Fig. 2a)
+    plot_snapshot_timeseries(
+        data=data, metadata=metadata, highlight_lineage=highlight_agent)
+    plt.tight_layout()
+    plt.savefig('out/analysis/paper_figures/fig_2a_snapshots.svg')
+    plt.close()
+
+    # Set up subplot layout for timeseries plots
+    gs_kw = {"width_ratios": [1, 1, 1, 1, 1], "height_ratios": [1, 1, 1, 1, 1]}
+    fig, axes = plt.subplot_mosaic(
+        [
+            ["B__", "B__", "B__", "B__"],
+            ["C1_", "C2_", "C3_", "C4_"],
+            ["D1_", "D2_", "D3_", "D4_"],
+        ],
+        gridspec_kw=gs_kw,
+        figsize=(8, 6),
+        layout="constrained",
+    )
+    # Make sure squares are squares
+    for i in range(1, 5):
+        axes[f"C{i}_"].set_box_aspect(1)
+        axes[f"D{i}_"].set_box_aspect(1)
+
+    columns_to_plot = {
+        'Dry mass': (0, 0, 255)
+    }
+    plot_generational_timeseries(
+        data=data, axes=axes, columns_to_plot=columns_to_plot,
+        highlight_lineage=highlight_agent, colony_scale=False)
+    columns_to_plot = {
+        'ompF mRNA': (255, 0, 0),
+        'marR mRNA': (0, 0, 255),
+        'ampC mRNA': (255, 140, 0),
+        'tolC mRNA': (128, 0, 128),
+        'OmpF monomer': (255, 0, 0),
+        'MarR monomer': (0, 0, 255),
+        'AmpC monomer': (255, 140, 0),
+        'TolC monomer': (128, 0, 128),
+    }
+    plot_concentration_timeseries(
+        data=data, axes=axes[1:], columns_to_plot=columns_to_plot,
+        highlight_lineage=highlight_agent, colony_scale=True)
+    
+    plt.tight_layout()
+    plt.savefig('out/analysis/paper_figures/fig_2b_d_snapshot.svg')
+    plt.close()
+    print('Done with Figure 2.')
 
 
 def agent_data_table(raw_data, paths_dict, condition, seed):
@@ -155,19 +268,20 @@ def agent_data_table(raw_data, paths_dict, condition, seed):
     return collected_data
 
 
-def load_data(cpus=8, sampling_rate=2, host="10.138.0.75", port=27017):
-    # Get the required data
+def load_data(experiment_id=None, cpus=8, sampling_rate=2,
+    host="10.138.0.75", port=27017
+):
+    # Get data for the specified experiment_id
     monomers = [path[-1] for path in PATHS_TO_LOAD.values() if path[0]=='monomer']
     mrnas = [path[-1] for path in PATHS_TO_LOAD.values() if path[0]=='mrna']
     inner_paths = [path for path in PATHS_TO_LOAD.values() 
         if path[-1] not in mrnas and path[-1] not in monomers]
     outer_paths = [('data', 'dimensions'), ('data', 'fields')]
-    metadata = {}
-    data = []
     for condition, seeds in EXPERIMENT_ID_MAPPING.items():
-        metadata.setdefault(condition, {})
-        for seed, experiment_id in seeds.items():
-            metadata[condition].setdefault(seed, {})
+        for seed, curr_experiment_id in seeds.items():
+            if curr_experiment_id != experiment_id:
+                continue
+            metadata = {condition: {seed: {}}}
             rep_data = access_counts(
                 experiment_id=experiment_id,
                 monomer_names=monomers,
@@ -199,9 +313,10 @@ def load_data(cpus=8, sampling_rate=2, host="10.138.0.75", port=27017):
                 rep_dfs = list(tqdm(executor.map(
                     agent_df_paths, rep_data.items()),
                     total=len(rep_data)))
-            data.extend(rep_dfs)
-    data = pd.concat(data)
-    return data, metadata
+            # Save data for each experiment as local pickle
+            pd.concat(rep_dfs).to_pickle(f'data/{experiment_id}.pkl')
+            with open(f'data/{experiment_id}_metadata.pkl', 'wb') as f:
+                pickle.dump(metadata, f)
 
 
 def main():
@@ -212,31 +327,8 @@ def main():
         help="""List of Figure IDs to make. See keys of ``FIGURE_MAPPING``
         for valid types."""
     )
-    parser.add_argument(
-        '--sampling_rate', '-s', type=int, default=2,
-        help="""Custom sampling rate for pulling data from MongoDB"""
-    )
-    parser.add_argument(
-        '--cpus', '-c', type=int, default=8,
-        help="""Number of CPU cores to use."""
-    )
-    parser.add_argument(
-        '--hostname', '-n', type=str, default="10.138.0.75",
-        help="""Hostname for MongoDB."""
-    )
-    parser.add_argument(
-        '--port', '-p', type=int, default=27017,
-        help="""Port for MongoDB."""
-    )
     args = parser.parse_args()
-    data, metadata = load_data(
-        cpus=args.cpus,
-        sampling_rate=args.sampling_rate,
-        host=args.hostname,
-        port=args.port)
-    data.to_pickle('data/antibiotics_colonies_df_data.pkl')
-    with open('data/antibiotics_colonies_metadata.pkl', 'w') as f:
-        pickle.dump(metadata, f)
+    os.makedirs('out/analysis/paper_figures/', exist_ok=True)
 
 
 if __name__ == '__main__':
