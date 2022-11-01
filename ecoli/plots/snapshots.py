@@ -944,8 +944,8 @@ def make_tags_figure(
                 if min_tag != max_tag:
                     intensity = (level - min_tag) / (max_tag - min_tag)
                     # agent_color = tag_h, tag_s, intensity
-                    agent_color = tag_color_rgb * intensity + min_color * (
-                        1 - intensity
+                    agent_color = matplotlib.colors.rgb_to_hsv(
+                        tag_color_rgb * intensity + min_color * (1 - intensity)
                     )
                 else:
                     agent_color = matplotlib.colors.rgb_to_hsv(
