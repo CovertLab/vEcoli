@@ -5,10 +5,12 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
+from matplotlib.colors import rgb_to_hsv
 
 from ecoli.plots.snapshots import plot_snapshots
 
-from ecoli.analysis.antibiotics_colony import MAX_TIME, SPLIT_TIME
+from ecoli.analysis.antibiotics_colony import (
+    MAX_TIME, SPLIT_TIME, COUNTS_PER_FL_TO_NANOMOLAR)
 
 def plot_generational_timeseries(
     data: pd.DataFrame,
@@ -40,6 +42,10 @@ def plot_generational_timeseries(
     columns_to_include = list(columns_to_plot.keys() |
         {'Agent ID', 'Condition', 'Time', 'Death'})
     data = data.loc[:, columns_to_include]
+    # For '010010', return ['0', '01', '010', '0100', '010010']
+    lineage_ids = list(itertools.accumulate(highlight_lineage))
+    highlight_data = data.loc[
+        np.isin(data.loc[:, 'Agent ID'], lineage_ids), :]
     agent_id_lengths = np.array([len(agent_id) for agent_id in data['Agent ID']])
     n_generations = max(agent_id_lengths)
     previous_end_time = 0
@@ -81,10 +87,9 @@ def plot_generational_timeseries(
         aligned_data = pd.concat([condition_1_data, condition_2_data])
         aligned_data = aligned_data.reset_index()
 
-    # For '010010', return ['0', '01', '010', '0100', '010010']
-    lineage_ids = list(itertools.accumulate(highlight_lineage))
-    highlight_data = aligned_data.loc[
-        np.isin(aligned_data.loc[:, 'Agent ID'], lineage_ids), :]
+    # Convert time to minutes
+    highlight_data.loc[:, 'Time'] /= 60
+    aligned_data.loc[:, 'Time'] /= 60
     dead_data = aligned_data.loc[aligned_data['Death'], :]
     # Plot first condition in gray
     for column, color in columns_to_plot.items():
@@ -117,10 +122,19 @@ def plot_generational_timeseries(
                 palette[conditions[0]] = highlight_color
             else:
                 palette[conditions[0]] = color
-        # Plot highligted lineage
-        g = sns.lineplot(
-            data=highlight_data, x='Time', y=column, hue='Condition',
-            ax=curr_ax, legend=False, palette=palette)
+        # Plot each agent in highlighted lineage individually so
+        # subsequent generations are discontinuous
+        for highlighted_agent in lineage_ids:
+            sns.lineplot(
+                data=highlight_data.loc[highlight_data.loc[
+                    :, 'Agent ID']==highlighted_agent, :],
+                x='Time', y=column, hue='Condition', linewidth=1,
+                ax=curr_ax, legend=False, palette=palette)
+        curr_ax.autoscale(enable=True, axis='both', tight='both')
+        curr_ax.set_yticks(ticks=np.ceil(curr_ax.get_ylim()))
+        curr_ax.set_xticks(ticks=np.ceil(curr_ax.get_xlim()))
+        curr_ax.set_xlabel('Time (min)')
+        sns.despine(ax=curr_ax, offset=3, trim=True)
 
 
 def plot_snapshot_timeseries(
@@ -150,13 +164,13 @@ def plot_snapshot_timeseries(
     lineage_ids = list(itertools.accumulate(highlight_lineage))
     # Color all agents white except for highlighted lineage
     agent_colors = {
-        agent_id: (0, 0, 0) for agent_id in agent_ids
+        agent_id: (0, 0, 1) for agent_id in agent_ids
         if agent_id not in lineage_ids
     }
     for agent_id in lineage_ids:
-        agent_colors[agent_id] = highlight_color
-    condition = data.loc[0, 'Condition']
-    seed = data.loc[0, 'Condition']
+        agent_colors[agent_id] = rgb_to_hsv(highlight_color)
+    condition = data.loc[:, 'Condition'].unique()[0]
+    seed = data.loc[:, 'Seed'].unique()[0]
     data = data.sort_values('Time')
     # Get data at five equidistant time points
     time_chunks = np.array_split(data['Time'].unique(), 4)
@@ -186,14 +200,11 @@ def plot_snapshot_timeseries(
         fields=condition_fields,
         bounds=condition_bounds,
         include_fields=['GLC[p]'],
-        default_font_size=12,
-        field_label_size=20,
         scale_bar_length=10,
-        plot_width=2,
+        membrane_color=(0, 0, 0),
     )
     snapshots_fig.subplots_adjust(wspace=0.7, hspace=0.1)
-    plt.tight_layout()
-    snapshots_fig.savefig('out/analysis/antibiotics_colony/' + 
+    snapshots_fig.savefig('out/analysis/paper_figures/' + 
         f'{condition.replace("/", "_")}_seed_{seed}_snapshots.svg',
         bbox_inches='tight')
     plt.close(snapshots_fig)
@@ -229,6 +240,7 @@ def plot_concentration_timeseries(
     # Convert to concentrations
     data = data.set_index(['Condition', 'Time', 'Death', 'Agent ID'])
     data = data.divide(data['Volume'], axis=0).drop(['Volume'], axis=1)
+    data = data * COUNTS_PER_FL_TO_NANOMOLAR
     data = data.reset_index()
     data = data.set_index(['Condition'])
     
@@ -250,10 +262,13 @@ def plot_concentration_timeseries(
         data = pd.concat([condition_1_data, condition_2_data])
     data = data.reset_index()
 
+    # Convert time to minutes
+    data.loc[:, 'Time'] /= 60
     # For '010010', return ['0', '01', '010', '0100', '010010']
     lineage_ids = list(itertools.accumulate(highlight_lineage))
     highlight_data = data.loc[
         np.isin(data.loc[:, 'Agent ID'], lineage_ids), :]
+    death_data = data.loc[data.loc[:, 'Death'], :]
     for column, color in columns_to_plot.items():
         curr_ax = axes[ax_idx]
         ax_idx += 1
@@ -269,8 +284,8 @@ def plot_concentration_timeseries(
                 palette=palette)
             # Mark values where cell died
             g = sns.scatterplot(
-                data=data, x='Time', y=column, hue='Condition', ax=g,
-                markers=['X'], style='Death', legend=False)
+                data=death_data, x='Time', y=column, hue='Condition', ax=g,
+                markers=['X'], style='Death', legend=False, palette=palette)
         # If no highlight color is specified, use the color for that column
         if len(conditions) > 1:
             palette = {conditions[0]: (0.5, 0.5, 0.5)}
@@ -284,7 +299,17 @@ def plot_concentration_timeseries(
                 palette[conditions[0]] = highlight_color
             else:
                 palette[conditions[0]] = color
-        # Plot highligted lineage
-        g = sns.lineplot(
-            data=highlight_data, x='Time', y=column, hue='Condition',
-            ax=curr_ax, legend=False, palette=palette)
+        # Plot each agent in highlighted lineage individually so
+        # subsequent generations are discontinuous
+        for highlighted_agent in lineage_ids:
+            sns.lineplot(
+                data=highlight_data.loc[highlight_data.loc[
+                    :, 'Agent ID']==highlighted_agent, :],
+                x='Time', y=column, hue='Condition',
+                ax=curr_ax, legend=False, palette=palette,
+                linewidth=1)
+        curr_ax.autoscale(enable=True, axis='both', tight='both')
+        curr_ax.set_yticks(ticks=np.ceil(curr_ax.get_ylim()))
+        curr_ax.set_xticks(ticks=np.ceil(curr_ax.get_xlim()))
+        curr_ax.set_xlabel('Time (min)')
+        sns.despine(ax=curr_ax, offset=3, trim=True)
