@@ -18,7 +18,9 @@ from ecoli.analysis.db import access_counts, deserialize_and_remove_units
 from ecoli.plots.snapshots import plot_tags
 
 
-def make_snapshot_and_kde_plot(timepoint_data, bounds, molecule, title=None):
+def make_snapshot_and_kde_plot(
+    timepoint_data, bounds, molecule, title=None, tag_hsv=[0.6, 1, 1]
+):
     """Generates a figure with a snapshot plot tagging the specified molecule,
     and a smoothed density plot (using KDE) of the distribution of counts for that molecule
     at that time.
@@ -43,7 +45,8 @@ def make_snapshot_and_kde_plot(timepoint_data, bounds, molecule, title=None):
         background_color="white",
         default_font_size=plt.rcParams["font.size"],
         scale_bar_length=None,  # TODO: scale bar length looks wrong?
-        min_color="white"
+        min_color="white",
+        tag_colors={molecule: tag_hsv},
     )
     tag_axes = fig.get_axes()
     snapshot_ax, conc_ax = tag_axes[:2]
@@ -94,7 +97,12 @@ def make_snapshot_and_kde_plot(timepoint_data, bounds, molecule, title=None):
     }
 
     # Plot KDE, rugplot
-    sns.histplot(data=kde_data, x=molecule[-1], ax=kde_ax)
+    sns.histplot(
+        data=kde_data,
+        x=molecule[-1],
+        ax=kde_ax,
+        color=matplotlib.colors.hsv_to_rgb(tag_hsv),
+    )
     # sns.kdeplot(data=kde_data, x=molecule[-1], ax=kde_ax)
     # sns.rugplot(data=kde_data, x=molecule[-1], ax=kde_ax)
     kde_ax.set(xlabel=None)
