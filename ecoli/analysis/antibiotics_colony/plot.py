@@ -4,6 +4,7 @@ from functools import partial
 import matplotlib
 matplotlib.use('svg')
 import matplotlib.pyplot as plt
+import numpy as np
 import os
 import pandas as pd
 import seaborn as sns
@@ -109,13 +110,14 @@ for gene_data in DE_GENES[['Gene name', 'id', 'monomer_ids']].values:
 def make_figure_1a(data, metadata):
     # Generational (ompF) vs sub-generational (marR) expression
     columns_to_plot = {
-        'ompF mRNA': (255, 0, 0),
-        'OmpF monomer': (255, 0, 0),
-        'marR mRNA': (0, 0, 255),
-        'MarR monomer': (0, 0, 255)}
+        'ompF mRNA': (1, 0, 0),
+        'OmpF monomer': (1, 0, 0),
+        'marR mRNA': (0, 0, 1),
+        'MarR monomer': (0, 0, 1)}
     _, axes = plt.subplots(2, 2, sharex='col', figsize=(6, 6))
+    axes = np.ravel(axes)
     # Only plot first seed glucose sim data
-    mask = (data.loc['Condition']=='Glucose') & (data.loc['Seed']==0)
+    mask = (data.loc[:, 'Condition']=='Glucose') & (data.loc[:, 'Seed']==0)
     data = data.loc[mask, :]
     agent_ids = data.loc[data.loc[:, 'Time']==MAX_TIME, 'Agent ID']
     # Arbitrarily pick a surviving agent to plot trace of
@@ -131,11 +133,11 @@ def make_figure_1a(data, metadata):
 def make_figure_1c(data, metadata):
     # Single-cell vs colony-scale data
     columns_to_plot = {
-        'Active ribosomes': (0, 0, 255)
+        'Active ribosomes': (0, 0, 1)
     }
     _, ax = plt.subplots(1, 1, figsize=(4, 4))
     # Only plot first seed glucose sim data
-    mask = (data.loc['Condition']=='Glucose') & (data.loc['Seed']==0)
+    mask = (data.loc[:, 'Condition']=='Glucose') & (data.loc[:, 'Seed']==0)
     data = data.loc[mask, :]
     final_timestep = data.loc[data.loc[:, 'Time']==MAX_TIME, :]
     # Arbitrarily pick a surviving agent to plot trace of
@@ -180,7 +182,7 @@ def make_figure_1c(data, metadata):
 
 def make_figure_2(data, metadata):
     # Overview of glucose data for seed 0 (can put other seeds in supp.)
-    mask = (data.loc['Condition']=='Glucose') & (data.loc['Seed']==0)
+    mask = (data.loc[:, 'Condition']=='Glucose') & (data.loc[:, 'Seed']==0)
     data = data.loc[mask, :]
     final_timestep = data.loc[data.loc[:, 'Time']==MAX_TIME, :]
     agent_ids = final_timestep.loc[:, 'Agent ID']
@@ -216,14 +218,14 @@ def make_figure_2(data, metadata):
         data=data, axes=axes, columns_to_plot=columns_to_plot,
         highlight_lineage=highlight_agent, colony_scale=False)
     columns_to_plot = {
-        'ompF mRNA': (255, 0, 0),
-        'marR mRNA': (0, 0, 255),
-        'ampC mRNA': (255, 140, 0),
-        'tolC mRNA': (128, 0, 128),
-        'OmpF monomer': (255, 0, 0),
-        'MarR monomer': (0, 0, 255),
-        'AmpC monomer': (255, 140, 0),
-        'TolC monomer': (128, 0, 128),
+        'ompF mRNA': (1, 0, 0),
+        'marR mRNA': (0, 0, 1),
+        'ampC mRNA': (1, 140/255, 0),
+        'tolC mRNA': (0.5, 0, 0.5),
+        'OmpF monomer': (0.5, 0, 0),
+        'MarR monomer': (0, 0, 1),
+        'AmpC monomer': (1, 140/255, 0),
+        'TolC monomer': (0.5, 0, 0.5),
     }
     plot_concentration_timeseries(
         data=data, axes=axes[1:], columns_to_plot=columns_to_plot,

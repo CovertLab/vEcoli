@@ -15,7 +15,7 @@ def plot_generational_timeseries(
     axes: List[plt.Axes] = None,
     columns_to_plot: Dict[str, tuple] = None,
     highlight_lineage: str = None,
-    highlight_color: tuple = (255, 0, 0),
+    highlight_color: tuple = (1, 0, 0),
     colony_scale: bool = True,
 ) -> None:
     '''For each generation of cells (identified by length of their agent ID),
@@ -37,7 +37,7 @@ def plot_generational_timeseries(
         highlight_color: Color to plot highlighted lineage with (default red)
         colony_scale: Whether to plot 95% percentile interval
     '''
-    columns_to_include = list(columns_to_plot.keys() +
+    columns_to_include = list(columns_to_plot.keys() |
         {'Agent ID', 'Condition', 'Time', 'Death'})
     data = data.loc[:, columns_to_include]
     agent_id_lengths = np.array([len(agent_id) for agent_id in data['Agent ID']])
@@ -49,7 +49,7 @@ def plot_generational_timeseries(
     # that exceeds that. Start time + median gen. length = new gen. start time
     for generation in range(1, n_generations +  1):
         generation_data = data.loc[agent_id_lengths == generation, :]
-        grouped_data = generation_data.groupby(['Condition', 'Seed', 'Agent ID'])
+        grouped_data = generation_data.groupby(['Condition', 'Agent ID'])
         real_start_time = grouped_data.aggregate({'Time': 'min'})
         target_start_time = previous_end_time
         real_gen_length = grouped_data.aggregate({'Time': 'max'}) - real_start_time
@@ -65,7 +65,7 @@ def plot_generational_timeseries(
     ax_idx = 0
     # Only plot data between SPLIT_TIME and MAX_TIME if multiple
     # conditions in supplied data
-    conditions = aligned_data.index.unique()
+    conditions = aligned_data.loc[:, 'Condition'].unique()
     if len(conditions) > 1:
         aligned_data = aligned_data.set_index(['Condition'])
         condition_1_mask = ((aligned_data.loc[conditions[0]]['Time'] 
@@ -92,7 +92,7 @@ def plot_generational_timeseries(
         ax_idx += 1
         if colony_scale:
             if len(conditions) > 1:
-                palette = {conditions[0]: (128, 128, 128), conditions[1]: color}
+                palette = {conditions[0]: (0.5, 0.5, 0.5), conditions[1]: color}
             else:
                 palette = {conditions[0]: color}
             # Plot colony-scale error bars
@@ -106,12 +106,13 @@ def plot_generational_timeseries(
                 markers=['X'], style='Death', legend=False)
         # If no highlight color is specified, use the color for that column
         if len(conditions) > 1:
-            palette = {conditions[0]: (128, 128, 128)}
+            palette = {conditions[0]: (0.5, 0.5, 0.5)}
             if highlight_color:
                 palette[conditions[1]] = highlight_color
             else:
                 palette[conditions[1]] = color
         else:
+            palette = {}
             if highlight_color:
                 palette[conditions[0]] = highlight_color
             else:
@@ -126,7 +127,7 @@ def plot_snapshot_timeseries(
     data: pd.DataFrame,
     metadata: Dict[str, Dict[int, Dict[str, Any]]],
     highlight_lineage: str = None,
-    highlight_color: tuple = (255, 0, 0),
+    highlight_color: tuple = (1, 0, 0),
 ) -> None:
     '''Plot a row of snapshot images that span a replicate for each condition.
     In each of these images, the cell corresponding to a highlighted lineage
@@ -153,7 +154,7 @@ def plot_snapshot_timeseries(
         if agent_id not in lineage_ids
     }
     for agent_id in lineage_ids:
-        agent_colors[agent_id] = highlight_color / 255
+        agent_colors[agent_id] = highlight_color
     condition = data.loc[0, 'Condition']
     seed = data.loc[0, 'Condition']
     data = data.sort_values('Time')
@@ -203,7 +204,7 @@ def plot_concentration_timeseries(
     axes: List[plt.Axes],
     columns_to_plot: Dict[str, tuple] = None,
     highlight_lineage: str = None,
-    highlight_color: tuple = (255, 0, 0),
+    highlight_color: tuple = (1, 0, 0),
     colony_scale: bool = True,
 ) -> None:
     '''Normalize variables by volume to create bulk timeseries plot of
@@ -221,7 +222,7 @@ def plot_concentration_timeseries(
         highlight_color: Color to plot highlighted lineage with (default red)
         colony_scale: Whether to plot 95% percentile interval
     '''
-    columns_to_include = list(set(columns_to_plot) + {
+    columns_to_include = list(set(columns_to_plot) | {
         'Volume', 'Condition', 'Time', 'Death', 'Agent ID'})
     data = data.loc[:, columns_to_include]
 
@@ -258,7 +259,7 @@ def plot_concentration_timeseries(
         ax_idx += 1
         if colony_scale:
             if len(conditions) > 1:
-                palette = {conditions[0]: (128, 128, 128), conditions[1]: color}
+                palette = {conditions[0]: (0.5, 0.5, 0.5), conditions[1]: color}
             else:
                 palette = {conditions[0]: color}
             # Plot colony-scale error bars
@@ -272,12 +273,13 @@ def plot_concentration_timeseries(
                 markers=['X'], style='Death', legend=False)
         # If no highlight color is specified, use the color for that column
         if len(conditions) > 1:
-            palette = {conditions[0]: (128, 128, 128)}
+            palette = {conditions[0]: (0.5, 0.5, 0.5)}
             if highlight_color:
                 palette[conditions[1]] = highlight_color
             else:
                 palette[conditions[1]] = color
         else:
+            palette = {}
             if highlight_color:
                 palette[conditions[0]] = highlight_color
             else:

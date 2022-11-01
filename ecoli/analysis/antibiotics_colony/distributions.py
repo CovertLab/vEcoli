@@ -42,7 +42,7 @@ def plot_death_distributions(
     for column, color in columns_to_plot.items():
         curr_ax = axes[ax_idx]
         ax_idx += 1
-        palette = {True: (128, 128, 128), False: color}
+        palette = {True: (0.5, 0.5, 0.5), False: color}
         sns.histplot(
             data=data, x=column, hue='Death', ax=curr_ax,
             stat='percent', common_norm=False, element='step',
@@ -73,7 +73,7 @@ def plot_final_distributions(
         curr_ax = axes[ax_idx]
         ax_idx += 1
         palette = {
-            conditions[0]: (128, 128, 128),
+            conditions[0]: (0.5, 0.5, 0.5),
             conditions[1]: color}
         sns.histplot(
             data=data, x=column, hue='Condition', ax=curr_ax,
