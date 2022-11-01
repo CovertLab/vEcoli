@@ -983,7 +983,7 @@ def make_tags_figure(
                 # make colormap
                 # min_color = tag_h, tag_s, 0
                 max_color = tag_h, tag_s, 1
-                min_rgb = matplotlib.colors.to_rgb(min_color)
+                min_rgb = min_color
                 max_rgb = matplotlib.colors.hsv_to_rgb(max_color)
                 cmap = matplotlib.colors.LinearSegmentedColormap.from_list(
                     "row_{}".format(row_idx), [np.array(min_rgb), np.array(max_rgb)]
