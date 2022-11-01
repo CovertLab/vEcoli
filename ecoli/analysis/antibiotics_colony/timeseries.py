@@ -193,7 +193,7 @@ def plot_snapshot_timeseries(
     snapshots_fig.subplots_adjust(wspace=0.7, hspace=0.1)
     plt.tight_layout()
     snapshots_fig.savefig('out/analysis/antibiotics_colony/' + 
-        f'{condition.replace("/", "_")}_seed_{seed}_snapshots.png',
+        f'{condition.replace("/", "_")}_seed_{seed}_snapshots.svg',
         bbox_inches='tight')
     plt.close(snapshots_fig)
 
