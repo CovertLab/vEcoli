@@ -10,7 +10,8 @@ from vivarium.core.emitter import (
     DatabaseEmitter,
     assemble_data,
     get_local_client,
-    get_data_chunks
+    get_data_chunks,
+    apply_func
 )
 from vivarium.core.serialize import deserialize_value
 from vivarium.library.units import remove_units
@@ -150,7 +151,7 @@ def val_at_idx_in_path(idx, path):
 def access_counts(experiment_id, monomer_names=None, mrna_names=None,
     rna_init=None, rna_synth_prob=None, inner_paths=None, outer_paths=None,
     host='localhost', port=27017, sampling_rate=None, start_time=None,
-    end_time=None, cpus=1
+    end_time=None, cpus=1, func_dict=None
 ):
     """Retrieve monomer/mRNA counts or any other data from MongoDB. Note that
     this only works for experiments run using EcoliEngineProcess (each cell
@@ -176,6 +177,10 @@ def access_counts(experiment_id, monomer_names=None, mrna_names=None,
         start_time: Time to start pulling data
         end_time: Time to stop pulling data
         cpus: Number of chunks to split aggregation into to be run in parallel
+        func_dict: a dict which maps the given query paths to a function that
+            operates on the retrieved values and returns the results. If None
+            then the raw values are returned.
+            In the format: {('path', 'to', 'field1'): function}
     """
     if not monomer_names:
         monomer_names = []
@@ -310,9 +315,21 @@ def access_counts(experiment_id, monomer_names=None, mrna_names=None,
         result = db.history.aggregate(
             aggregation, 
             hint={'experiment_id':1, 'data.time':1, '_id':1})
+    
+    if func_dict:
+        raw_data = []
+        for document in result:
+            assert document.get('assembly_id'), \
+                "all database documents require an assembly_id"
+            for field, func in func_dict.items():
+                document["data"] = apply_func(
+                    document["data"], field, func)
+            raw_data.append(document)
+    else:
+        raw_data = result
 
     # re-assemble data
-    assembly = assemble_data(list(result))
+    assembly = assemble_data(list(raw_data))
 
     # restructure by time
     data = {}
