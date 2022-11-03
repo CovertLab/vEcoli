@@ -1,7 +1,7 @@
 from concurrent.futures import ProcessPoolExecutor
 from functools import partial
 import matplotlib
-matplotlib.use('svg')
+# matplotlib.use('svg')
 import matplotlib.pyplot as plt
 plt.rcParams['svg.fonttype'] = 'none'
 plt.rcParams['font.family'] = 'Arial'
@@ -28,7 +28,8 @@ from ecoli.analysis.antibiotics_colony.miscellaneous import (
     plot_colony_growth_rates,
     plot_final_fold_changes
 )
-from ecoli.analysis.antibiotics_colony import DE_GENES, MAX_TIME
+from ecoli.analysis.antibiotics_colony import (
+    DE_GENES, MAX_TIME, COUNTS_PER_FL_TO_NANOMOLAR)
 
 # Condition -> Seed -> Experiment ID
 EXPERIMENT_ID_MAPPING = {
@@ -112,10 +113,10 @@ for gene_data in DE_GENES[['Gene name', 'id', 'monomer_ids']].values:
 def make_figure_1a(data, metadata):
     # Generational (ompF) vs sub-generational (marR) expression
     columns_to_plot = {
-        'ompF mRNA': (1, 0, 0),
-        'marR mRNA': (0, 0, 1),
-        'OmpF monomer': (1, 0, 0),
-        'MarR monomer': (0, 0, 1)}
+        'ompF mRNA': '0.8',
+        'marR mRNA': '0.4',
+        'OmpF monomer': '0.8',
+        'MarR monomer': '0.4'}
     fig, axes = plt.subplots(2, 2, sharex='col', figsize=(6, 6))
     axes = np.ravel(axes)
     # Only plot first seed glucose sim data
@@ -135,14 +136,16 @@ def make_figure_1a(data, metadata):
     axes[2].set_ylabel('Monomer (counts)')
     axes[0].set_title(f'Exponential: {gene_1}')
     axes[1].set_title(f'Sub-generational: {gene_2}')
+    axes[0].yaxis.set_label_coords(-0.3, 0.5)
+    axes[2].yaxis.set_label_coords(-0.3, 0.5)
     axes[1].yaxis.label.set_visible(False)
     axes[3].yaxis.label.set_visible(False)
     for ax in axes:
-        [item.set_fontsize(9) for item in ax.get_xticklabels()]
+        [item.set_fontsize(8) for item in ax.get_xticklabels()]
         [item.set_fontsize(8) for item in ax.get_yticklabels()]
-        ax.xaxis.label.set_fontsize(12)
-        ax.yaxis.label.set_fontsize(12)
-    ax.tick_params(axis='both', which='major')
+        ax.xaxis.label.set_fontsize(10)
+        ax.yaxis.label.set_fontsize(10)
+        ax.tick_params(axis='both', which='major')
     plt.draw()
     plt.tight_layout()
     plt.savefig('out/analysis/paper_figures/fig_1a.svg')
@@ -152,7 +155,7 @@ def make_figure_1a(data, metadata):
 def make_figure_1c(data, metadata):
     # Single-cell vs colony-scale data
     columns_to_plot = {
-        'Active ribosomes': (0, 0, 1)
+        'Active ribosomes': (0, 0.4, 1)
     }
     fig, ax = plt.subplots(1, 1, figsize=(4, 4))
     # Only plot first seed glucose sim data
@@ -183,7 +186,10 @@ def make_figure_1c(data, metadata):
             'agents': {
                 agent_id: {
                     'boundary': boundary,
-                    'Active ribosomes': active_ribosomes
+                    # Convert from counts to nM
+                    'Active ribosomes': (
+                        active_ribosomes / boundary['volume'] *
+                        COUNTS_PER_FL_TO_NANOMOLAR)
                 }
                 for agent_id, boundary, active_ribosomes in zip(
                     final_timestep.loc[:, 'Agent ID'],
@@ -202,14 +208,35 @@ def make_figure_1c(data, metadata):
         background_color='white',
         tagged_molecules=[('Active ribosomes',)],
         tag_colors={
-            ('Active ribosomes',): rgb_to_hsv((0, 0, 1))
+            ('Active ribosomes',): rgb_to_hsv((0, 0.4, 1))
         },
-        default_font_size=36,
-        tag_label_size=20,
+        default_font_size=30,
+        tag_label_size=30,
         membrane_color=(0, 0, 0),
         min_color='white',
-        scale_bar_length=0
+        scale_bar_length=0,
+        colorbar_decimals=0,
+        convert_to_concs=False
     )
+    # Snapshot figure axes
+    # 0: time axis
+    # 1: colony snapshot
+    # 2: subplot for colorbar
+    # 3: colorbar
+    fig.set_size_inches(12, 10)
+    fig.axes[2].set_position([0.8, 0.1, 0.8, 0.8])
+    ylimits = np.round(fig.axes[3].get_ylim())
+    fig.axes[3].set_yticks([])
+    fig.axes[3].set_title(int(ylimits[1]), fontsize=20)
+    fig.axes[3].text(0.5, -0.01, int(ylimits[0]),
+        horizontalalignment='center', verticalalignment='top',
+        transform=fig.axes[3].transAxes, fontsize=20)
+    fig.axes[1].set_position([0.1, 0.05, 0.65, 0.9])
+    fig.axes[0].set_position([0.1, 0.1, 0.65, 0.9])
+    fig.axes[0].tick_params(labelsize=20)
+    fig.axes[0].set_xlabel('Time (s)', labelpad=0, fontsize=24)
+    fig.axes[1].set_title('Active ribosomes (nM)', y=1.05, fontsize=24)
+    fig.axes[1].set_ylabel(None)
     fig.savefig('out/analysis/paper_figures/fig_1c_snapshot.svg')
     plt.close()
     print('Done with Figure 1C.')
@@ -217,15 +244,13 @@ def make_figure_1c(data, metadata):
 
 def make_figure_2(data, metadata):
     # Overview of glucose data for seed 0 (can put other seeds in supp.)
-    mask = (data.loc[:, 'Condition']=='Glucose') & (data.loc[:, 'Seed']==0)
-    data = data.loc[mask, :]
     final_timestep = data.loc[data.loc[:, 'Time']==MAX_TIME, :]
     agent_ids = final_timestep.loc[:, 'Agent ID']
     highlight_agent = agent_ids[1]
     # 5 equidistant snapshot plots in a row (Fig. 2a)
     plot_snapshot_timeseries(
         data=data, metadata=metadata, highlight_lineage=highlight_agent,
-        highlight_color=(0, 0, 1))
+        highlight_color=(0, 0.4, 1))
 
     # Set up subplot layout for timeseries plots
     fig = plt.figure()
@@ -237,32 +262,38 @@ def make_figure_2(data, metadata):
         axes.append(fig.add_subplot(gs[1, i], sharex=axes[i+1]))
 
     columns_to_plot = {
-        'Dry mass': (0, 0, 1)
+        'Dry mass': (0, 0.4, 1),
     }
     plot_generational_timeseries(
         data=data, axes=axes, columns_to_plot=columns_to_plot,
         highlight_lineage=highlight_agent, highlight_color=None,
-        colony_scale=False)
+        colony_scale=False, align=False)
     columns_to_plot = {
-        'OmpF monomer': (0.5, 0.5, 0.5),
-        'MarR monomer': (0.5, 0.5, 0.5),
-        'AmpC monomer': (0.5, 0.5, 0.5),
-        'TolC monomer': (0.5, 0.5, 0.5),
-        'ompF mRNA': (0.5, 0.5, 0.5),
-        'marR mRNA': (0.5, 0.5, 0.5),
-        'ampC mRNA': (0.5, 0.5, 0.5),
-        'tolC mRNA': (0.5, 0.5, 0.5),
+        'OmpF monomer': (0, 0.4, 1),
+        'MarR monomer': (0, 0.4, 1),
+        'AmpC monomer': (0, 0.4, 1),
+        'TolC monomer': (0, 0.4, 1),
+        'ompF mRNA': (0, 0.4, 1),
+        'marR mRNA': (0, 0.4, 1),
+        'ampC mRNA': (0, 0.4, 1),
+        'tolC mRNA': (0, 0.4, 1),
     }
     plot_concentration_timeseries(
         data=data, axes=axes[1:], columns_to_plot=columns_to_plot,
         highlight_lineage=highlight_agent, highlight_color=(0, 0, 1),
         colony_scale=True)
-    
+    # Add more regularly spaced tick marks to top row
+    time_ticks = axes[0].get_xticks()
+    time_ticks = time_ticks.tolist() + np.arange(
+        time_ticks[0], time_ticks[1], 50).tolist()
+    time_ticks = [int(time) for time in time_ticks]
+    axes[0].set_xticks(time_ticks)
     # Put gene name on top and remove superfluous axes labels
     gene = axes[1].get_ylabel().split(' ')[0]
-    axes[5].set_title(gene)
+    axes[5].set_title(gene, fontsize=16)
     axes[5].set_ylabel('mRNA (nM)')
     axes[1].set_ylabel('Monomer (nM)')
+    axes[1].yaxis.set_label_coords(-0.2, 0.5)
     for i in range(2, 5):
         gene = axes[i].get_ylabel().split(' ')[0]
         axes[i].yaxis.label.set_visible(False)
@@ -271,16 +302,161 @@ def make_figure_2(data, metadata):
     for ax in axes[5:]:
         ax.xaxis.label.set_visible(False)
     for ax in axes:
-        [item.set_fontsize(8) for item in ax.get_xticklabels()]
-        [item.set_fontsize(8) for item in ax.get_yticklabels()]
-        ax.xaxis.label.set_fontsize(12)
-        ax.yaxis.label.set_fontsize(12)
-    ax.tick_params(axis='both', which='major')
-    plt.draw()
+        [item.set_fontsize(12) for item in ax.get_xticklabels()]
+        [item.set_fontsize(12) for item in ax.get_yticklabels()]
+        ax.xaxis.label.set_fontsize(14)
+        ax.yaxis.label.set_fontsize(14)
+        ax.tick_params(axis='both', which='major')
+    fig.set_size_inches(16, 8)
     plt.tight_layout()
     plt.savefig('out/analysis/paper_figures/fig_2b_d_snapshot.svg')
     plt.close()
     print('Done with Figure 2.')
+
+
+def make_figure_3(data, metadata):
+    # Overview of tetracycline data for seed 0 (can put other seeds in supp.)
+    final_timestep = data.loc[data.loc[:, 'Time']==MAX_TIME, :]
+    agent_ids = final_timestep.loc[:, 'Agent ID']
+    highlight_agent = agent_ids[1]
+    # 5 equidistant snapshot plots in a row (Fig. 2a)
+    plot_snapshot_timeseries(
+        data=data, metadata=metadata, highlight_lineage=highlight_agent,
+        highlight_color=(0, 0, 1))
+
+    # Set up subplot layout for timeseries plots
+    fig = plt.figure()
+    gs = fig.add_gridspec(4, 4)
+    axes = [fig.add_subplot(gs[1, :])]
+    axes.append(fig.add_subplot(gs[0, :], sharex=axes[0]))
+    for i in range(4):
+        axes.append(fig.add_subplot(gs[3, i]))
+    for i in range(4):
+        axes.append(fig.add_subplot(gs[2, i], sharex=axes[i+2]))
+
+    # Convert to micromolar
+    data.loc[:, 'Cytoplasmic tetracycline'] *= 1000
+    data = data.rename(columns={'Cytoplasmic tetracycline': 'Tetracycline (uM)'})
+    columns_to_plot = {
+        'Tetracycline (uM)': (0, 0, 1),
+        'Dry mass': (0, 0, 1),
+    }
+    plot_generational_timeseries(
+        data=data, axes=axes, columns_to_plot=columns_to_plot,
+        highlight_lineage=highlight_agent, highlight_color=None,
+        colony_scale=False, align=False)
+    columns_to_plot = {
+        'OmpF monomer': (0, 0, 1),
+        'MarA monomer': (0, 0, 1),
+        'Active ribosomes': (0, 0, 1),
+        'AcrAB-TolC': (0, 0, 1),
+        'ompF mRNA': (0, 0, 1),
+        'marA mRNA': (0, 0, 1),
+        'Inactive 30S subunit': (0, 0, 1),
+        'micF-ompF duplex': (0, 0, 1),        
+    }
+    plot_concentration_timeseries(
+        data=data, axes=axes[2:], columns_to_plot=columns_to_plot,
+        highlight_lineage=highlight_agent, highlight_color=(0, 0, 1),
+        colony_scale=True)
+    
+    # Add more regularly spaced tick marks to top row
+    time_ticks = axes[0].get_xticks()
+    rounded_time_ticks = np.ceil(time_ticks/50) * 50
+    time_ticks = time_ticks.tolist() + np.arange(
+        rounded_time_ticks[0], rounded_time_ticks[1], 50).tolist()
+    time_ticks = [int(time) for time in time_ticks]
+    axes[0].set_xticks(time_ticks)
+    axes[1].set_xticks(time_ticks)
+    for ax in axes:
+        [item.set_fontsize(12) for item in ax.get_xticklabels()]
+        [item.set_fontsize(12) for item in ax.get_yticklabels()]
+        ax.xaxis.label.set_fontsize(14)
+        ax.yaxis.label.set_fontsize(14)
+        ax.tick_params(axis='both', which='major')
+    for ax in axes[-4:]:
+        ax.xaxis.label.set_visible(False)
+    for ax in axes[:2]:
+        ax.xaxis.label.set_visible(False)
+    fig.set_size_inches(16, 10)
+    plt.tight_layout()
+    plt.savefig('out/analysis/paper_figures/fig_3b_d_snapshot.svg')
+    plt.close()
+    print('Done with Figure 3.')
+
+
+def make_figure_4(data, metadata):
+    # Overview of ampicillin data for seed 0 (can put other seeds in supp.)
+    final_timestep = data.loc[data.loc[:, 'Time']==MAX_TIME, :]
+    agent_ids = final_timestep.loc[:, 'Agent ID']
+    highlight_agent = agent_ids[1]
+    # 5 equidistant snapshot plots in a row (Fig. 2a)
+    plot_snapshot_timeseries(
+        data=data, metadata=metadata, highlight_lineage=highlight_agent,
+        highlight_color=(0, 0, 1))
+
+    # Set up subplot layout for timeseries plots
+    fig = plt.figure()
+    gs = fig.add_gridspec(4, 4)
+    axes = [fig.add_subplot(gs[1, :])]
+    axes.append(fig.add_subplot(gs[0, :], sharex=axes[0]))
+    for i in range(4):
+        axes.append(fig.add_subplot(gs[3, i]))
+    for i in range(4):
+        axes.append(fig.add_subplot(gs[2, i], sharex=axes[i+2]))
+
+    # Convert to micromolar
+    data.loc[:, 'Periplasmic ampicillin'] *= 1000
+    data = data.rename(columns={
+        'Periplasmic ampicillin': 'Ampicillin (uM)',
+        'PBP1b gamma complex': 'PBP1b complex'
+    })
+    columns_to_plot = {
+        'Ampicillin (uM)': (0, 0, 1),
+        'Dry mass': (0, 0, 1),
+    }
+    plot_generational_timeseries(
+        data=data, axes=axes, columns_to_plot=columns_to_plot,
+        highlight_lineage=highlight_agent, highlight_color=None,
+        colony_scale=False, align=False)
+    columns_to_plot = {
+        'PBP1a complex': (0, 0, 1),
+        'PBP1b complex': (0, 0, 1),
+        'AmpC monomer': (0, 0, 1),
+        'Wall cracked': (0, 0, 1),
+        'PBP1a mRNA': (0, 0, 1),
+        'PBP1b mRNA': (0, 0, 1),
+        'ampC mRNA': (0, 0, 1),
+        'Murein tetramer': (0, 0, 1),        
+    }
+    plot_concentration_timeseries(
+        data=data, axes=axes[2:], columns_to_plot=columns_to_plot,
+        highlight_lineage=highlight_agent, highlight_color=(0, 0, 1),
+        colony_scale=True)
+    
+    # Add more regularly spaced tick marks to top row
+    time_ticks = axes[0].get_xticks()
+    rounded_time_ticks = np.ceil(time_ticks/50) * 50
+    time_ticks = time_ticks.tolist() + np.arange(
+        rounded_time_ticks[0], rounded_time_ticks[1], 50).tolist()
+    time_ticks = [int(time) for time in time_ticks]
+    axes[0].set_xticks(time_ticks)
+    axes[1].set_xticks(time_ticks)
+    for ax in axes:
+        [item.set_fontsize(12) for item in ax.get_xticklabels()]
+        [item.set_fontsize(12) for item in ax.get_yticklabels()]
+        ax.xaxis.label.set_fontsize(14)
+        ax.yaxis.label.set_fontsize(14)
+        ax.tick_params(axis='both', which='major')
+    for ax in axes[-4:]:
+        ax.xaxis.label.set_visible(False)
+    for ax in axes[:2]:
+        ax.xaxis.label.set_visible(False)
+    fig.set_size_inches(16, 10)
+    plt.tight_layout()
+    plt.savefig('out/analysis/paper_figures/fig_4b_d_snapshot.svg')
+    plt.close()
+    print('Done with Figure 4.')
 
 
 def agent_data_table(raw_data, paths_dict, condition, seed):
@@ -369,13 +545,23 @@ def load_data(experiment_id=None, cpus=8, sampling_rate=2,
 
 def main():
     os.makedirs('out/analysis/paper_figures/', exist_ok=True)
-    with open('data/2022-10-25_04-55-23_505282+0000.pkl', 'rb') as f:
-        data = pickle.load(f)
-    with open('data/2022-10-25_04-55-23_505282+0000_metadata.pkl', 'rb') as f:
-        metadata = pickle.load(f)
-    make_figure_1a(data, metadata)
-    make_figure_1c(data, metadata)
-    make_figure_2(data, metadata)
+    # with open('data/sim_data_dfs/2022-10-25_04-55-23_505282+0000.pkl', 'rb') as f:
+    #     data = pickle.load(f)
+    # with open('data/sim_data_dfs/2022-10-25_04-55-23_505282+0000_metadata.pkl', 'rb') as f:
+    #     metadata = pickle.load(f)
+    # make_figure_1a(data, metadata)
+    # make_figure_1c(data, metadata)
+    # make_figure_2(data, metadata)
+    # with open('data/sim_data_dfs/2022-10-30_08-46-46_378082+0000.pkl', 'rb') as f:
+    #     tet_data = pickle.load(f)
+    # with open('data/sim_data_dfs/2022-10-30_08-46-46_378082+0000_metadata.pkl', 'rb') as f:
+    #     tet_metadata = pickle.load(f)
+    # make_figure_3(tet_data, tet_metadata)
+    with open('data/sim_data_dfs/2022-10-28_05-47-52_977686+0000.pkl', 'rb') as f:
+        amp_data = pickle.load(f)
+    with open('data/sim_data_dfs/2022-10-28_05-47-52_977686+0000_metadata.pkl', 'rb') as f:
+        amp_metadata = pickle.load(f)
+    make_figure_4(amp_data, amp_metadata)
 
 
 if __name__ == '__main__':
