@@ -19,7 +19,8 @@ from vivarium.library.dict_utils import get_value_from_path
 from ecoli.analysis.db import access_counts, deserialize_and_remove_units
 from ecoli.plots.snapshots import plot_tags
 from ecoli.analysis.antibiotics_colony.timeseries import (
-    plot_snapshot_timeseries,
+    plot_field_snapshots,
+    plot_tag_snapshots,
     plot_timeseries)
 from ecoli.analysis.antibiotics_colony.distributions import (
     plot_final_distributions,
@@ -140,7 +141,9 @@ def make_figure_1a(data, metadata):
     highlight_agent = agent_ids[1]
     plot_timeseries(
         data=data, axes=axes, columns_to_plot=columns_to_plot,
-        highlight_lineage=highlight_agent)
+        highlight_lineage=highlight_agent, background_lineages=False)
+    axes[0].set_xlabel(None)
+    axes[1].set_xlabel(None)
     # Put gene name on top and remove superfluous axes labels
     gene_1 = axes[0].get_ylabel().split(' ')[0]
     gene_2 = axes[1].get_ylabel().split(' ')[0]
@@ -152,6 +155,10 @@ def make_figure_1a(data, metadata):
     axes[2].yaxis.set_label_coords(-0.3, 0.5)
     axes[1].yaxis.label.set_visible(False)
     axes[3].yaxis.label.set_visible(False)
+    axes[0].xaxis.set_visible(False)
+    axes[0].spines.bottom.set_visible(False)
+    axes[1].xaxis.set_visible(False)
+    axes[1].spines.bottom.set_visible(False)
     for ax in axes:
         [item.set_fontsize(8) for item in ax.get_xticklabels()]
         [item.set_fontsize(8) for item in ax.get_yticklabels()]
@@ -259,7 +266,7 @@ def make_figure_2(data, metadata):
     agent_ids = final_timestep.loc[:, 'Agent ID']
     highlight_agent = agent_ids[1]
     # 5 equidistant snapshot plots in a row (Fig. 2a)
-    plot_snapshot_timeseries(
+    plot_field_snapshots(
         data=data, metadata=metadata, highlight_lineage=highlight_agent,
         highlight_color=(0, 0.4, 1))
 
@@ -294,22 +301,23 @@ def make_figure_2(data, metadata):
     # Add more regularly spaced tick marks to top row
     time_ticks = axes[0].get_xticks()
     time_ticks = time_ticks.tolist() + np.arange(
-        time_ticks[0], time_ticks[1], 1).astype(int).tolist()
-    time_ticks = [int(time) for time in time_ticks]
-    axes[0].set_xticks(time_ticks)
+        1, np.ceil(time_ticks[1]), 1).astype(int).tolist()
+    time_ticks[0] = 0
+    axes[0].set_xticks(ticks=time_ticks, labels=time_ticks)
     # Put gene name on top and remove superfluous axes labels
     gene = axes[1].get_ylabel().split(' ')[0]
-    axes[5].set_title(gene, fontsize=16)
+    axes[5].set_title(gene, fontsize=16, fontweight='bold')
     axes[5].set_ylabel('mRNA (nM)')
     axes[1].set_ylabel('Monomer (nM)')
     axes[1].yaxis.set_label_coords(-0.2, 0.5)
     for i in range(2, 5):
         gene = axes[i].get_ylabel().split(' ')[0]
         axes[i].yaxis.label.set_visible(False)
-        axes[4+i].set_title(gene)
+        axes[4+i].set_title(gene, fontsize=16, fontweight='bold')
         axes[4+i].yaxis.label.set_visible(False)
     for ax in axes[5:]:
-        ax.xaxis.label.set_visible(False)
+        ax.xaxis.set_visible(False)
+        ax.spines.bottom.set_visible(False)
     for ax in axes:
         [item.set_fontsize(12) for item in ax.get_xticklabels()]
         [item.set_fontsize(12) for item in ax.get_yticklabels()]
@@ -318,9 +326,33 @@ def make_figure_2(data, metadata):
         ax.tick_params(axis='both', which='major')
     fig.set_size_inches(16, 8)
     plt.tight_layout()
-    plt.savefig('out/analysis/paper_figures/fig_2b_d_snapshot.svg')
+    for ax in axes[1:5]:
+        left, bottom, width, height = ax.get_position().bounds
+        ax.set_position((left, bottom+0.05, width, height))
+    plt.savefig('out/analysis/paper_figures/fig_2b_d_timeseries.svg',
+        bbox_inches='tight')
     plt.close()
     print('Done with Figure 2.')
+
+
+def make_figure_3(data, metadata):
+    glucose_data = data.loc[data.loc[:, 'Condition']=='Glucose', :]
+    avg_growth_rate = glucose_data.loc[:, ['Growth rate', 'Time']].groupby(
+        'Time').mean()
+    fc_col = 'Growth rate\n$\mathregular{Log_2}$ fold change'
+    data[fc_col] = data.loc[:, 'Growth rate']
+    for time in avg_growth_rate.index:
+        data.loc[data.loc[:, 'Time']==time, fc_col] = data.loc[data.loc[
+            :, 'Time']==time, fc_col] / avg_growth_rate.loc[time, 'Growth rate']
+    data.loc[:, fc_col] = np.log2(data.loc[:, fc_col])
+    # 5 equidistant snapshot plots in a row (Fig. 2a)
+    plot_tag_snapshots(
+        data=data, metadata=metadata, highlight_column=fc_col,
+        highlight_color=(0, 0.4, 1), snapshot_times=np.array([
+            1.9, 3.2, 4.5, 5.8, 7.1]) * 3600, min_color='firebrick')
+
+    # Set up subplot layout for timeseries plots
+    fig, axes = plt.subplots(5, 2)
 
 
 def agent_data_table(raw_data, paths_dict, condition, seed):
@@ -409,31 +441,33 @@ def load_data(experiment_id=None, cpus=8, sampling_rate=2,
 
 
 def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "--experiment_id",
-        "-e",
-        help="Experiment ID to load data for",
-        required=True,
-    )
-    args = parser.parse_args()
-    load_data(args.experiment_id, cpus=30)
-    # os.makedirs('out/analysis/paper_figures/', exist_ok=True)
-    # with open('data/sim_data_dfs/2022-10-25_04-55-23_505282+0000.pkl', 'rb') as f:
-    #     data = pickle.load(f)
-    # with open('data/sim_data_dfs/2022-10-25_04-55-23_505282+0000_metadata.pkl', 'rb') as f:
-    #     metadata = pickle.load(f)
+    # parser = argparse.ArgumentParser()
+    # parser.add_argument(
+    #     "--experiment_id",
+    #     "-e",
+    #     help="Experiment ID to load data for",
+    #     required=True,
+    # )
+    # args = parser.parse_args()
+    # load_data(args.experiment_id, cpus=30)
+    os.makedirs('out/analysis/paper_figures/', exist_ok=True)
+    with open('data/sim_dfs/2022-10-25_04-55-23_505282+0000.pkl', 'rb') as f:
+        data = pickle.load(f)
+    with open('data/sim_dfs/2022-10-25_04-55-23_505282+0000_metadata.pkl', 'rb') as f:
+        metadata = pickle.load(f)
     # make_figure_1a(data, metadata)
     # make_figure_1c(data, metadata)
     # make_figure_2(data, metadata)
-    # with open('data/sim_data_dfs/2022-10-30_08-46-46_378082+0000.pkl', 'rb') as f:
-    #     tet_data = pickle.load(f)
-    # with open('data/sim_data_dfs/2022-10-30_08-46-46_378082+0000_metadata.pkl', 'rb') as f:
-    #     tet_metadata = pickle.load(f)
-    # make_figure_3(tet_data, tet_metadata)
-    # with open('data/sim_data_dfs/2022-10-28_05-47-52_977686+0000.pkl', 'rb') as f:
+    with open('data/sim_dfs/2022-10-30_08-46-46_378082+0000.pkl', 'rb') as f:
+        tet_data = pickle.load(f)
+    with open('data/sim_dfs/2022-10-30_08-46-46_378082+0000_metadata.pkl', 'rb') as f:
+        tet_metadata = pickle.load(f)
+    
+    tet_glc_data = pd.concat([data, tet_data])
+    make_figure_3(tet_glc_data, tet_metadata)
+    # with open('data/sim_dfs/2022-10-28_05-47-52_977686+0000.pkl', 'rb') as f:
     #     amp_data = pickle.load(f)
-    # with open('data/sim_data_dfs/2022-10-28_05-47-52_977686+0000_metadata.pkl', 'rb') as f:
+    # with open('data/sim_dfs/2022-10-28_05-47-52_977686+0000_metadata.pkl', 'rb') as f:
     #     amp_metadata = pickle.load(f)
 
 
