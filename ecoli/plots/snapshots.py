@@ -829,6 +829,8 @@ def make_tags_figure(
     convert_to_concs=True,
     membrane_width=0.1,
     membrane_color=None,
+    xlim=None,
+    ylim=None,
 ):
     """Plot snapshots of the simulation over time
 
@@ -966,6 +968,10 @@ def make_tags_figure(
                 membrane_width,
                 membrane_color,
             )
+            if xlim:
+                ax.set_xlim(*xlim)
+            if ylim:
+                ax.set_ylim(*ylim)
 
             # colorbar in new column after final snapshot
             if col_idx == n_snapshots - 1 and show_colorbar:
