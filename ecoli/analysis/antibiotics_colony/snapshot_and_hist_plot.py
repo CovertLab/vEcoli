@@ -18,7 +18,7 @@ from ecoli.analysis.db import access_counts, deserialize_and_remove_units
 from ecoli.plots.snapshots import plot_tags
 
 
-def make_snapshot_and_kde_plot(
+def make_snapshot_and_hist_plot(
     timepoint_data, bounds, molecule, title=None, tag_hsv=[0.6, 1, 1]
 ):
     """Generates a figure with a snapshot plot tagging the specified molecule,
@@ -55,13 +55,13 @@ def make_snapshot_and_kde_plot(
     snapshot_ax.set(ylabel=None)
     snapshot_ax.set_title(molecule[-1] if title is None else title)
 
-    grid = fig.add_gridspec(2, 2, width_ratios=[2, 1], wspace=0.1, hspace=0.2)
+    grid = fig.add_gridspec(2, 2, width_ratios=[2, 1], wspace=0, hspace=0.2)
 
-    # Reposition axes, preparing to add kde plot below
+    # Reposition axes, preparing to add hist plot below
     snapshot_ax.set_position(grid[0, 0].get_position(fig))
-    conc_ax.set_position(grid[0, 1].get_position(fig))
+    # conc_ax.set_position(grid[0, 1].get_position(fig))
     snapshot_ax.set_subplotspec(grid[0, 0])
-    conc_ax.set_subplotspec(grid[0, 1])
+    # conc_ax.set_subplotspec(grid[0, 1])
 
     # Remove and re-create scale bar if present
     for a in conc_ax.get_children():
@@ -81,12 +81,13 @@ def make_snapshot_and_kde_plot(
             )
             conc_ax.add_artist(scale_bar)
             break
+    
 
     # Add KDE plot
-    kde_ax = fig.add_subplot(grid[1, 0])
+    hist_ax = fig.add_subplot(grid[1, 0])
 
     # Get distribution of concentration across agents
-    kde_data = {
+    hist_data = {
         molecule[-1]: [
             (
                 get_value_from_path(agent_data, molecule)
@@ -98,15 +99,15 @@ def make_snapshot_and_kde_plot(
 
     # Plot KDE, rugplot
     sns.histplot(
-        data=kde_data,
+        data=hist_data,
         x=molecule[-1],
-        ax=kde_ax,
+        ax=hist_ax,
         color=matplotlib.colors.hsv_to_rgb(tag_hsv),
     )
-    # sns.kdeplot(data=kde_data, x=molecule[-1], ax=kde_ax)
-    # sns.rugplot(data=kde_data, x=molecule[-1], ax=kde_ax)
-    kde_ax.set(xlabel=None)
-    kde_ax.set_box_aspect(1)
+    # sns.kdeplot(data=hist_data, x=molecule[-1], ax=hist_ax)
+    # sns.rugplot(data=hist_data, x=molecule[-1], ax=hist_ax)
+    hist_ax.set(xlabel=None)
+    hist_ax.set_box_aspect(1)
 
     return fig, fig.get_axes()
 
@@ -160,7 +161,7 @@ def get_data(experiment_id, time, molecules, host, port, cpus, verbose):
 
 def main():
     parser = argparse.ArgumentParser(
-        "Generate snapshot and kde figures for specified molecules."
+        "Generate snapshot and histogram figures for specified molecules."
     )
 
     parser.add_argument(
@@ -185,7 +186,7 @@ def main():
     parser.add_argument(
         "--outdir",
         "-d",
-        default="out/snapshot_kde_plots",
+        default="out/snapshot_hist_plots",
         help="Directory in which to output the generated figures.",
     )
     parser.add_argument("--host", "-o", default="localhost", type=str)
@@ -251,11 +252,11 @@ def main():
         if args.verbose:
             print(f"Plotting snapshot + KDE for {molecule[-1]}...")
 
-        fig, _ = make_snapshot_and_kde_plot(data, bounds, molecule, name)
+        fig, _ = make_snapshot_and_hist_plot(data, bounds, molecule, name)
 
         fig.set_size_inches(6, 6)
         fig.savefig(
-            os.path.join(args.outdir, f"snapshot_and_kde_{molecule[-1]}.png"),
+            os.path.join(args.outdir, f"snapshot_and_hist_{molecule[-1]}.png"),
             bbox_inches="tight",
         )
         plt.close(fig)
