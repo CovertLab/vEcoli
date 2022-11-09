@@ -1,10 +1,12 @@
 from typing import List, Dict
 
+import numpy as np
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 
-from ecoli.analysis.antibiotics_colony import MAX_TIME, SPLIT_TIME, DE_GENES
+from ecoli.analysis.antibiotics_colony import (
+    MAX_TIME, SPLIT_TIME, DE_GENES, restrict_data)
 
 def plot_colony_growth_rates(
     data: pd.DataFrame,
@@ -24,35 +26,32 @@ def plot_colony_growth_rates(
     '''
     columns_to_include = ['Dry mass', 'Condition', 'Time']
     data = data.loc[:, columns_to_include]
-    data = data.set_index(['Condition'])
-
-    # Only plot data between SPLIT_TIME and MAX_TIME if multiple
-    # conditions in supplied data
-    conditions = data.index.unique()
-    if len(conditions) > 1:
-        condition_1_mask = ((data.loc[conditions[0]]['Time'] 
-            >= SPLIT_TIME) & (data.loc[conditions[0]]['Time'] 
-            <= MAX_TIME))
-        condition_1_data = data.loc[conditions[0]].loc[
-            condition_1_mask, :]
-        condition_2_mask = ((data.loc[conditions[1]]['Time'] 
-            >= SPLIT_TIME) & (data.loc[conditions[1]]['Time'] 
-            <= MAX_TIME))
-        condition_2_data = data.loc[conditions[1]].loc[
-            condition_2_mask, :]
-        data = pd.concat([condition_1_data, condition_2_data])
-    data = data.reset_index()
+    mask = (data.loc[:, 'Condition']=='Glucose') & (
+        data.loc[:, 'Time'] > SPLIT_TIME) & (
+        data.loc[:, 'Time'] <= MAX_TIME)
+    remaining_glucose_data = data.loc[mask, :]
+    data = restrict_data(data)
+    data = pd.concat([data, remaining_glucose_data])
+    data = data.groupby(['Condition', 'Time']).sum().reset_index()
     
-    # By default, plot first condition in gray and second in red
-    if not palette:
-        palette = {conditions[0]: (128, 128, 128)}
-        if len(conditions) > 1:
-            palette[conditions[1]] = (255, 0, 0)
+    # Convert time to hours
+    data.loc[:, 'Time'] = data.loc[:, 'Time'] / 3600
+
     sns.lineplot(
         data=data, x='Time', y='Dry mass',
-        hue='Condition', ax=ax, palette=palette)
+        hue='Condition', ax=ax, palette='viridis', errorbar=None)
+    # Set y-limits so that major ticks surround data
+    curr_ylimits = np.log10([
+        data.loc[:, 'Dry mass'].min(),
+        data.loc[:, 'Dry mass'].max()])
+    ax.set_ylim(10**np.floor(curr_ylimits[0]), 10**np.ceil(curr_ylimits[1]))
+    max_x = np.round(data.loc[:, 'Time'].max(), 1)
+    ticks = list(np.arange(0, max_x, 2, dtype=int)) + [max_x]
+    labels = [str(tick) for tick in ticks]
+    ax.set_xticks(ticks=ticks, labels=labels)
     # Log scale so linear means exponential growth
     ax.set(yscale='log')
+    sns.despine(ax=ax, offset=3, trim=True)
 
 
 def plot_final_fold_changes(
@@ -100,3 +99,29 @@ def plot_final_fold_changes(
 
     sns.barplot(data=data, x='Fold change (Tet./ Glc.)',
         y='Gene name', hue='Source', ax=ax, errorbar='sd')
+
+
+def plot_vs_distance_from_center(
+    data: pd.DataFrame,
+    bounds: tuple = None,
+    ax: plt.Axes = None,
+    column_to_plot: str = None,
+):
+    '''Plot scatter plot of a given column vs distance from environment center.
+
+    Args:
+        data: DataFrame where each row is an agent and each column is a variable
+            of interest. Supply at most 1 condition. Multiple seeds are OK.
+        bounds: Tuple representing width and height of environment.
+        axes: Single instance of Matplotlib Axes to plot on.
+        column_to_plot: Column to plot against distance from center.
+    '''
+    data = data.loc[data.loc[:, column_to_plot] > 0, :]
+    if len(data) == 0:
+        return
+    center = np.array(bounds) / 2
+    locations = np.array(data.loc[:, 'Boundary'].apply(
+        lambda x: x['location']).tolist())
+    data['Distance'] = np.linalg.norm(locations-center, axis=1)
+
+    sns.regplot(data=data, x='Distance', y=column_to_plot, ax=ax)
