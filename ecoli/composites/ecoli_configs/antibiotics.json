@@ -29,7 +29,7 @@
                 "!units[50 micrometer]"
             ],
             "depth": "!units[3000.0 micrometer]",
-            "diffusion": "!units[1e-2 micrometer ** 2 / second]",
+            "diffusion": "!units[600 micrometer ** 2 / second]",
             "gradient": {
                 "type": "uniform",
                 "molecules": {
