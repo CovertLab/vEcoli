@@ -282,7 +282,7 @@ def make_figure_3(data, metadata):
     # Submasses separately
     # PCA
     # Validation: gene expression, protein synthesis inhibition
-    # at varying tetracycline concentrations
+    # at varying tetracycline concentrations, mass fraction
     fig, ax = plt.subplots(1, 1, figsize=(3, 3))
     plot_colony_growth_rates(data, ax)
     ax.legend(labels=['0', '0.5', '1', '1.5', '2', '4'], frameon=False,
@@ -451,6 +451,9 @@ def make_figure_3(data, metadata):
     plt.close()
 
 
+
+
+
 def agent_data_table(raw_data, paths_dict, condition, seed):
     """Combine data from all agents into DataFrames for each timestep.
 
@@ -547,6 +550,7 @@ def main():
     parser.add_argument(
         "--cpus",
         "-c",
+        type=int,
         help="# of CPUs to use for deserializing",
         required=True,
     )
