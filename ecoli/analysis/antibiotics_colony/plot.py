@@ -9,7 +9,7 @@ import numpy as np
 import os
 import pandas as pd
 import pickle
-from sklearn.decomposition import PCA
+# from sklearn.decomposition import PCA
 from tqdm import tqdm
 
 from vivarium.library.dict_utils import get_value_from_path
@@ -524,8 +524,14 @@ def main():
         help="Experiment ID to load data for",
         required=True,
     )
+    parser.add_argument(
+        "--cpus",
+        "-c",
+        help="# of CPUs to use for deserializing",
+        required=True,
+    )
     args = parser.parse_args()
-    load_data(args.experiment_id, cpus=30)
+    load_data(args.experiment_id, cpus=args.cpus)
 
     # Uncomment to create Figures 1 and 2 (seed 10000 looks best)
     # os.makedirs('out/analysis/paper_figures/', exist_ok=True)
