@@ -75,6 +75,8 @@ EXPERIMENT_ID_MAPPING = {
 
 PATHS_TO_LOAD = {
     'Dry mass': ('listeners', 'mass', 'dry_mass'),
+    'Protein mass': ('listeners', 'mass', 'proteinMass'),
+    'Mass listener': ('listeners', 'mass'),
     'Growth rate': ('listeners', 'mass', 'growth'),
     'AcrAB-TolC': ('bulk', 'TRANS-CPLX-201[m]'),
     'Periplasmic tetracycline': ('periplasm', 'concentrations', 'tetracycline'),
@@ -106,10 +108,6 @@ PATHS_TO_LOAD = {
     'Active fraction PBP1b': ('pbp_state', 'active_fraction_PBP1B'),
     'Boundary': ('boundary',),
     'Volume': ('listeners', 'mass', 'volume')
-}
-
-FUNC_DICT = {
-    ('listeners', 'hole_size_distribution'): len
 }
 
 for gene_data in DE_GENES[['Gene name', 'id', 'monomer_ids']].values:
@@ -263,7 +261,8 @@ def make_figure_3(data, metadata):
     # Active ribosome concentration against growth rate
     # Submasses separately
     # PCA
-    # Validation: gene expression,
+    # Validation: gene expression, protein synthesis inhibition
+    # at varying tetracycline concentrations
     fig, ax = plt.subplots(1, 1, figsize=(3, 3))
     plot_colony_growth_rates(data, ax)
     ax.legend(labels=['0', '0.5', '1', '1.5', '2', '4'], frameon=False,
@@ -488,8 +487,7 @@ def load_data(experiment_id=None, cpus=8, sampling_rate=2,
                 host=host,
                 port=port,
                 sampling_rate=sampling_rate,
-                cpus=36,
-                func_dict=FUNC_DICT)
+                cpus=36)
             with ProcessPoolExecutor(cpus) as executor:
                 print('Deserializing data and removing units...')
                 deserialized_data = list(tqdm(executor.map(
@@ -519,15 +517,15 @@ def load_data(experiment_id=None, cpus=8, sampling_rate=2,
 
 def main():
     # Uncomment to create DataFrame pickle for experiment ID
-    # parser = argparse.ArgumentParser()
-    # parser.add_argument(
-    #     "--experiment_id",
-    #     "-e",
-    #     help="Experiment ID to load data for",
-    #     required=True,
-    # )
-    # args = parser.parse_args()
-    # load_data(args.experiment_id, cpus=30)
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--experiment_id",
+        "-e",
+        help="Experiment ID to load data for",
+        required=True,
+    )
+    args = parser.parse_args()
+    load_data(args.experiment_id, cpus=30)
 
     # Uncomment to create Figures 1 and 2 (seed 10000 looks best)
     # os.makedirs('out/analysis/paper_figures/', exist_ok=True)
@@ -539,23 +537,23 @@ def main():
     # make_figure_2(data, metadata)
 
     # Uncomment to create Figure 3 (seed 0 required for multiple concentrations)
-    seed_0_tet_ids = [
-        EXPERIMENT_ID_MAPPING['Glucose'][0],
-        EXPERIMENT_ID_MAPPING['Tetracycline (4 mg/L)'][0],
-        EXPERIMENT_ID_MAPPING['Tetracycline (2 mg/L)'][0],
-        EXPERIMENT_ID_MAPPING['Tetracycline (1.5 mg/L)'][0],
-        EXPERIMENT_ID_MAPPING['Tetracycline (1 mg/L)'][0],
-        EXPERIMENT_ID_MAPPING['Tetracycline (0.5 mg/L)'][0],
-    ]
-    tet_data = []
-    tet_metadata = {}
-    for exp_id in seed_0_tet_ids:
-        with open(f'data/sim_dfs/{exp_id}.pkl', 'rb') as f:
-            tet_data.append(pickle.load(f))
-        with open(f'data/sim_dfs/{exp_id}_metadata.pkl', 'rb') as f:
-            tet_metadata.update(pickle.load(f))
-    tet_data = pd.concat(tet_data)
-    make_figure_3(tet_data, tet_metadata)
+    # seed_0_tet_ids = [
+    #     EXPERIMENT_ID_MAPPING['Glucose'][0],
+    #     EXPERIMENT_ID_MAPPING['Tetracycline (4 mg/L)'][0],
+    #     EXPERIMENT_ID_MAPPING['Tetracycline (2 mg/L)'][0],
+    #     EXPERIMENT_ID_MAPPING['Tetracycline (1.5 mg/L)'][0],
+    #     EXPERIMENT_ID_MAPPING['Tetracycline (1 mg/L)'][0],
+    #     EXPERIMENT_ID_MAPPING['Tetracycline (0.5 mg/L)'][0],
+    # ]
+    # tet_data = []
+    # tet_metadata = {}
+    # for exp_id in seed_0_tet_ids:
+    #     with open(f'data/sim_dfs/{exp_id}.pkl', 'rb') as f:
+    #         tet_data.append(pickle.load(f))
+    #     with open(f'data/sim_dfs/{exp_id}_metadata.pkl', 'rb') as f:
+    #         tet_metadata.update(pickle.load(f))
+    # tet_data = pd.concat(tet_data)
+    # make_figure_3(tet_data, tet_metadata)
 
     # Uncomment to create Figure 4 (seed 0 required for multiple concentrations)
     # with open('data/sim_dfs/2022-10-28_05-47-52_977686+0000.pkl', 'rb') as f:
