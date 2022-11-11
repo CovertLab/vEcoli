@@ -7,7 +7,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 from matplotlib.lines import Line2D
-from matplotlib.colors import hsv_to_rgb
+from matplotlib.colors import hsv_to_rgb, rgb_to_hsv
 from mpl_toolkits.axes_grid1 import make_axes_locatable, anchored_artists
 import numpy as np
 
@@ -871,7 +871,11 @@ def make_tags_figure(
             * **membrane_color** (:py:class:`list`): RGB color to use
                 for drawing agent edges.
             * **tag_colors** (:py:class:`dict`): Mapping from tag ID to
-                the HSV color to use for that tag as a list.
+                the HSV color to use for that tag as a list. Alternatively,
+                each tag ID is mapped to a dictionary containing the `cmp`
+                and `norm` keys with the :py:class:`matplotlib.colors.Colormap`
+                and the :py:class:`matplotlib.colors.Normalize` instance to use
+                for that tag. Using dictionaries will override ``min_color``
     """
 
     membrane_color = membrane_color or [1, 1, 1]
@@ -932,31 +936,30 @@ def make_tags_figure(
             # update agent colors based on tag_level
             min_tag, max_tag = tag_ranges[tag_id]
             agent_tag_colors = {}
-            tag_h, tag_s, tag_v = tag_colors[tag_id]
-            tag_color_rgb = np.array(
-                matplotlib.colors.hsv_to_rgb([tag_h, tag_s, tag_v])
-            )
-            min_color = np.array(matplotlib.colors.to_rgb(min_color))
+            if isinstance(tag_colors[tag_id], dict):
+                cmap = tag_colors[tag_id]['cmp']
+                norm = tag_colors[tag_id]['norm']
+                mappable = matplotlib.cm.ScalarMappable(
+                    norm=norm, cmap=cmap)
+            else:
+                tag_h, tag_s, tag_v = tag_colors[tag_id]
+                tag_color_rgb = np.array(
+                    matplotlib.colors.hsv_to_rgb([tag_h, tag_s, tag_v])
+                )
+                min_color = np.array(matplotlib.colors.to_rgb(min_color))
+                cmap = matplotlib.colors.LinearSegmentedColormap.from_list(
+                    name=f'row_{row_idx}', colors=[min_color, tag_color_rgb])
+                norm = matplotlib.colors.Normalize(vmin=min_tag, vmax=max_tag)
+                mappable = matplotlib.cm.ScalarMappable(
+                    norm=norm, cmap=cmap)
             for agent_id, agent_data in agents[time].items():
                 # get current tag concentration, and determine color
                 level = get_value_from_path(agent_data, tag_id)
                 if convert_to_concs:
                     volume = agent_data.get("boundary", {}).get("volume", 0)
                     level = level / volume if volume else 0
-                if min_tag != max_tag:
-                    intensity = (level - min_tag) / (max_tag - min_tag)
-
-                    # linear interpolation between tag_color_rgb and min_color
-                    agent_color = matplotlib.colors.rgb_to_hsv(
-                        tag_color_rgb * intensity + min_color * (1 - intensity)
-                    )
-                else:
-                    # set to min color if no dynamic range
-                    agent_color = matplotlib.colors.rgb_to_hsv(
-                        matplotlib.colors.to_rgb(min_color)
-                    )
-
-                agent_tag_colors[agent_id] = agent_color
+                agent_tag_colors[agent_id] = rgb_to_hsv(
+                    mappable.to_rgba(level)[:3])
 
             agent_tag_colors.update(agent_colors)
             plot_agents(
@@ -973,6 +976,7 @@ def make_tags_figure(
             if ylim:
                 ax.set_ylim(*ylim)
 
+<<<<<<< HEAD
             # colorbar in new column after final snapshot
             if col_idx == n_snapshots - 1 and show_colorbar:
                 cbar_col = col_idx + 1
@@ -996,6 +1000,8 @@ def make_tags_figure(
                 mappable = matplotlib.cm.ScalarMappable(norm, cmap)
                 fig.colorbar(mappable, cax=cax, format=f"%.{colorbar_decimals}f")
 
+=======
+>>>>>>> 248eb2f2d661106a567477f0a37adf1f50a1d96c
             # Scale bar in first snapshot of each row
             if col_idx == 0 and scale_bar_length:
                 scale_bar = anchored_artists.AnchoredSizeBar(
@@ -1009,6 +1015,20 @@ def make_tags_figure(
                     size_vertical=scale_bar_length / 20,
                 )
                 ax.add_artist(scale_bar)
+
+            # colorbar in new column after final snapshot
+            if col_idx == n_snapshots - 1 and show_colorbar:
+                cbar_col = col_idx + 1
+                ax = fig.add_subplot(grid[row_idx, cbar_col])
+                if row_idx == 0:
+                    if convert_to_concs:
+                        ax.set_title("Concentration\n(counts/fL)", y=1.08)
+                ax.axis("off")
+                if min_tag == max_tag:
+                    continue
+                divider = make_axes_locatable(ax)
+                cax = divider.append_axes("left", size="5%", pad=0.0)
+                fig.colorbar(mappable, cax=cax, format=f"%.{colorbar_decimals}f")
 
     plt.rcParams.update({"font.size": original_fontsize})
     if out_dir:

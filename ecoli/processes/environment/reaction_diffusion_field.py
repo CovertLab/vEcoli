@@ -51,7 +51,8 @@ class ReactionDiffusion(Process):
         'n_bins': [10, 10],
         'bounds': [10 * units.um, 10 * units.um],
         'depth': 3000.0 * units.um,  # um
-        'diffusion': 5e-1 * units.um**2 / units.sec,
+        # Diffusion coefficient: 10.1016/j.cej.2015.01.130
+        'diffusion': 600 * units.um**2 / units.sec,
 
         'exchanges_path': ('boundary', 'exchanges'),
         'external_path': ('boundary', 'external'),
