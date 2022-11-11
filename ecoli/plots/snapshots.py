@@ -987,8 +987,7 @@ def make_tags_figure(
                 cax = divider.append_axes("left", size="5%", pad=0.0)
                 norm = matplotlib.colors.Normalize(vmin=min_tag, vmax=max_tag)
                 # make colormap
-                # min_color = tag_h, tag_s, 0
-                max_color = tag_h, tag_s, 1
+                max_color = tag_h, tag_s, tag_v
                 min_rgb = min_color
                 max_rgb = matplotlib.colors.hsv_to_rgb(max_color)
                 cmap = matplotlib.colors.LinearSegmentedColormap.from_list(
