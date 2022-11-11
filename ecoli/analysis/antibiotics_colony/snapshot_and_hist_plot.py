@@ -1,113 +1,165 @@
 import argparse
 import concurrent.futures
 import os
+import pickle
+import warnings
 
 import matplotlib
 import numpy as np
+import pandas as pd
 import seaborn as sns
 from tqdm import tqdm
 
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 from mpl_toolkits.axes_grid1.anchored_artists import AnchoredSizeBar
 from vivarium.core.emitter import DatabaseEmitter
 from vivarium.library.dict_utils import get_value_from_path
 from vivarium.library.topology import convert_path_style
 
 from ecoli.analysis.db import access_counts, deserialize_and_remove_units
-from ecoli.plots.snapshots import plot_tags
+from ecoli.plots.snapshots import format_snapshot_data, get_tag_ranges, plot_tags
+
+from ecoli.analysis.antibiotics_colony.plot import PATHS_TO_LOAD
+from ecoli.analysis.antibiotics_colony import COUNTS_PER_FL_TO_NANOMOLAR
 
 
 def make_snapshot_and_hist_plot(
-    timepoint_data, bounds, molecule, title=None, tag_hsv=[0.6, 1, 1]
+    timepoint_data, metadata, bounds, molecule, title=None, tag_hsv=[0.6, 1, 1]
 ):
     """Generates a figure with a snapshot plot tagging the specified molecule,
-    and a smoothed density plot (using KDE) of the distribution of counts for that molecule
+    and a smoothed density plot (using histogram) of the distribution of counts for that molecule
     at that time.
     Args:
         timepoint_data: data from one timepoint, in the form {time : {...data...}}
         bounds: physical bounds for the snapshot plot
-        molecule: molecule to tag in the snapshot plot / KDE plot.
+        molecule: molecule to tag in the snapshot plot / histogram plot.
     Returns:
         fig, axes"""
 
-    time = list(timepoint_data.keys())
+    # time = list(timepoint_data.keys())
+    time = timepoint_data["Time"].unique()
     assert len(time) == 1, f"Expected only one timepoint, got {time}"
     time = time[0]
+
+    condition = list(metadata.keys())
+    assert len(condition) == 1
+    condition = condition[0]
+
+    seed = list(metadata[condition].keys())
+    assert len(seed) == 1
+    seed = seed[0]
+
+    # Convert DataFrame data back to dictionary form for tag plot
+    timepoint_data = {
+        time: {
+            "agents": {
+                agent_id: {
+                    "boundary": boundary,
+                    # Convert from counts to nM
+                    molecule: (
+                        (molecule_count / boundary["volume"]) * COUNTS_PER_FL_TO_NANOMOLAR
+                    ),
+                }
+                for agent_id, boundary, molecule_count in zip(
+                    timepoint_data.loc[:, "Agent ID"],
+                    timepoint_data.loc[:, "Boundary"],
+                    timepoint_data.loc[:, molecule],
+                )
+            },
+            "fields": metadata[condition][seed]["fields"][time],
+        }
+    }
 
     # Get snapshot figure from plot_tags
     fig = plot_tags(
         timepoint_data,
         bounds,
         snapshot_times=[time],
-        tagged_molecules=[molecule],
+        tagged_molecules=[(molecule,)],
         show_timeline=False,
         background_color="white",
         default_font_size=plt.rcParams["font.size"],
         scale_bar_length=None,  # TODO: scale bar length looks wrong?
         min_color="white",
-        tag_colors={molecule: tag_hsv},
+        tag_colors={(molecule,): tag_hsv},
+        convert_to_concs=False,
     )
     tag_axes = fig.get_axes()
-    snapshot_ax, conc_ax = tag_axes[:2]
+    snapshot_ax = tag_axes[0]
 
     # Prettify axis labels
     snapshot_ax.set(ylabel=None)
     snapshot_ax.set_title(molecule[-1] if title is None else title)
 
-    grid = fig.add_gridspec(2, 2, width_ratios=[2, 1], wspace=0, hspace=0.2)
+    grid = fig.add_gridspec(2, 2, width_ratios=[2, 1], height_ratios=[3, 1], wspace=0, hspace=0)
 
     # Reposition axes, preparing to add hist plot below
     snapshot_ax.set_position(grid[0, 0].get_position(fig))
-    # conc_ax.set_position(grid[0, 1].get_position(fig))
     snapshot_ax.set_subplotspec(grid[0, 0])
-    # conc_ax.set_subplotspec(grid[0, 1])
 
-    # Remove and re-create scale bar if present
-    for a in conc_ax.get_children():
-        if isinstance(a, AnchoredSizeBar):
-            a.remove()
+    # Remove colorbar axes (recreating is easier than re-positioning)
+    for ax in fig.get_axes():
+        if ax != snapshot_ax:
+            ax.remove()
 
-            scale_bar_length = 1
-            scale_bar = AnchoredSizeBar(
-                conc_ax.transData,
-                scale_bar_length,
-                f"{scale_bar_length} μm",
-                "lower left",
-                color="black",
-                frameon=False,
-                sep=scale_bar_length,
-                size_vertical=scale_bar_length / 20,
-            )
-            conc_ax.add_artist(scale_bar)
-            break
-    
+    # re-create colorbar
+    divider = make_axes_locatable(snapshot_ax)
+    cax = divider.append_axes("bottom", size="5%", pad=0.05)
 
-    # Add KDE plot
+    agents, _ = format_snapshot_data(timepoint_data)
+    tag_ranges, _ = get_tag_ranges(
+        agents, [(molecule,)], [0], False, {(molecule,): tag_hsv}
+    )
+    min_tag, max_tag = tag_ranges[(molecule,)]
+    norm = matplotlib.colors.Normalize(vmin=min_tag, vmax=max_tag)
+    cmap = matplotlib.colors.LinearSegmentedColormap.from_list(
+        "", ["white", np.array(matplotlib.colors.hsv_to_rgb(tag_hsv))]
+    )
+    mappable = matplotlib.cm.ScalarMappable(norm, cmap)
+
+    cbar = fig.colorbar(
+        mappable,
+        cax=cax,
+        orientation="horizontal",
+        ticks=[min_tag, max_tag],
+    )
+    cbar.ax.set_xticklabels([f"{min_tag:.0f} nM", f"{max_tag:.0f} nM"])
+
+    # Add histogram plot
     hist_ax = fig.add_subplot(grid[1, 0])
 
     # Get distribution of concentration across agents
     hist_data = {
         molecule[-1]: [
-            (
-                get_value_from_path(agent_data, molecule)
-                / agent_data.get("boundary", {}).get("volume", 0)
-            )
+            get_value_from_path(agent_data, (molecule,))
             for agent_data in timepoint_data[time]["agents"].values()
         ]
     }
+    hist_data = pd.DataFrame(hist_data)
 
-    # Plot KDE, rugplot
+    # Plot histogram
     sns.histplot(
         data=hist_data,
         x=molecule[-1],
         ax=hist_ax,
         color=matplotlib.colors.hsv_to_rgb(tag_hsv),
     )
-    # sns.kdeplot(data=hist_data, x=molecule[-1], ax=hist_ax)
-    # sns.rugplot(data=hist_data, x=molecule[-1], ax=hist_ax)
-    hist_ax.set(xlabel=None)
-    hist_ax.set_box_aspect(1)
+
+    # Aesthetics
+    hist, bins = np.histogram(hist_data, bins="auto")
+    sns.despine(ax=hist_ax, offset=3)
+    hist_ax.set_xlabel(None)
+    hist_ax.set_ylabel("Cells", fontsize=12, labelpad=-5)
+    hist_ax.set(
+        xticks=[bins[0], bins[-1]],
+        xticklabels=[f"{bins[0]:.0f} nM", f"{bins[-1]:.0f} nM"],
+        xlim=[bins[0], bins[-1]],
+        yticks=[0, max(hist)],
+        ylim=[0, max(hist)],
+    )
+    # hist_ax.set_box_aspect(1)
 
     return fig, fig.get_axes()
 
@@ -189,8 +241,17 @@ def main():
         default="out/snapshot_hist_plots",
         help="Directory in which to output the generated figures.",
     )
+    parser.add_argument("--svg", "-s", action="store_true", help="Save as svg.")
     parser.add_argument("--host", "-o", default="localhost", type=str)
     parser.add_argument("--port", "-p", default=27017, type=int)
+    parser.add_argument(
+        "--local",
+        "-l",
+        default=None,
+        type=str,
+        help="Locally saved dataframe file to run the plots on (if provided). "
+        "Setting this option overrides database options (experiment_id, host, port).",
+    )
     parser.add_argument("--cpus", "-c", type=int, default=1)
     parser.add_argument("--verbose", "-v", action="store_true")
 
@@ -209,54 +270,106 @@ def main():
             molecules.append(convert_path_style(p[-1]))
             molecule_names.append(p[0])
 
-    # Get max time if no time specified
-    time = args.time
-    if time is None:
+    if args.local:
+        # Load data
+        with open(args.local, "rb") as f:
+            data = pickle.load(f)
+
+        # Get only desired columns
+        paths_to_columns = {v: k for k, v in PATHS_TO_LOAD.items() if v in molecules}
+        for missing in [p for p in molecules if p not in paths_to_columns]:
+            warnings.warn(f"Path {missing} is missing from locally saved dataframe.")
+        keep_columns = [
+            "Agent ID",
+            "Dry mass",
+            "Growth rate",
+            "Time",
+            "Seed",
+            "Condition",
+            "Boundary",
+            *paths_to_columns.values(),
+        ]
+        data = data[keep_columns]
+
+        # Load metadata
         if args.verbose:
             print(
-                "No timepoint given, trying to infer and use final timepoint from database."
-            )
-            print(
-                "Note that this sometimes fails, in which case, consider specifying an explicit timepoint."
+                "Loading metadata; filename must have the form <data_filename>_metadata.<data_ext>"
             )
 
-        config = {"host": f"{args.host}:{args.port}", "database": "simulations"}
-        emitter = DatabaseEmitter(config)
-        db = emitter.db
+        filename, ext = os.path.splitext(args.local)
+        with open(f"{filename}_metadata{ext}", "rb") as f:
+            metadata = pickle.load(f)
 
-        time = list(
-            db.history.aggregate(
-                [
-                    {"$match": {"experiment_id": args.experiment_id}},
-                    {"$project": {"data.time": 1}},
-                    {"$group": {"_id": None, "time": {"$max": "$data.time"}}},
-                ]
-            )
-        )[0]["time"]
+        # Get environmental bounds
+        condition = list(metadata.keys())[0]
+        seed = list(metadata[condition].keys())[0]
+        bounds = metadata[condition][seed]["bounds"]
 
-    # Get data from database
-    data, bounds = get_data(
-        experiment_id=args.experiment_id,
-        time=2 * (time // 2),  # only even timesteps have the data necessary
-        molecules=molecules,
-        host=args.host,
-        port=args.port,
-        cpus=args.cpus,
-        verbose=args.verbose,
-    )
+        # Get max time if no time specified
+        time = args.time
+        if time is None:
+            if args.verbose:
+                print(
+                    "No timepoint given, trying to infer and use final timepoint from data.\n"
+                    "If this fails, consider specifying an explicit timepoint."
+                )
+            time = data["Time"].max()
 
-    os.makedirs(args.outdir, exist_ok=True)
+        # Restrict data to come from only one timepoint
+        data = data[data["Time"] == time]
+    else:
+        # Get max time if no time specified
+        time = args.time
+        if time is None:
+            if args.verbose:
+                print(
+                    "No timepoint given, trying to infer and use final timepoint from data.\n"
+                    "If this fails, consider specifying an explicit timepoint."
+                )
+
+            config = {"host": f"{args.host}:{args.port}", "database": "simulations"}
+            emitter = DatabaseEmitter(config)
+            db = emitter.db
+
+            time = list(
+                db.history.aggregate(
+                    [
+                        {"$match": {"experiment_id": args.experiment_id}},
+                        {"$project": {"data.time": 1}},
+                        {"$group": {"_id": None, "time": {"$max": "$data.time"}}},
+                    ]
+                )
+            )[0]["time"]
+
+        # Get data from database
+        data, bounds = get_data(
+            experiment_id=args.experiment_id,
+            time=2 * (time // 2),  # only even timesteps have the data necessary
+            molecules=molecules,
+            host=args.host,
+            port=args.port,
+            cpus=args.cpus,
+            verbose=args.verbose,
+        )
 
     # Generate one figure per molecule
+    plt.rcParams["svg.fonttype"] = "none"
+    os.makedirs(args.outdir, exist_ok=True)
     for name, molecule in zip(molecule_names, molecules):
         if args.verbose:
-            print(f"Plotting snapshot + KDE for {molecule[-1]}...")
+            print(f"Plotting snapshot + histogram for {name}={molecule[-1]}...")
 
-        fig, _ = make_snapshot_and_hist_plot(data, bounds, molecule, name)
+        fig, _ = make_snapshot_and_hist_plot(
+            data, metadata, bounds, paths_to_columns[molecule], title=name
+        )
 
-        fig.set_size_inches(6, 6)
+        fig.set_size_inches(1.353, 2.25)
         fig.savefig(
-            os.path.join(args.outdir, f"snapshot_and_hist_{molecule[-1]}.png"),
+            os.path.join(
+                args.outdir,
+                f"snapshot_and_hist_{molecule[-1]}.{'svg' if args.svg else 'png'}",
+            ),
             bbox_inches="tight",
         )
         plt.close(fig)
