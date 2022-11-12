@@ -976,32 +976,6 @@ def make_tags_figure(
             if ylim:
                 ax.set_ylim(*ylim)
 
-<<<<<<< HEAD
-            # colorbar in new column after final snapshot
-            if col_idx == n_snapshots - 1 and show_colorbar:
-                cbar_col = col_idx + 1
-                ax = fig.add_subplot(grid[row_idx, cbar_col])
-                if row_idx == 0:
-                    if convert_to_concs:
-                        ax.set_title("Concentration\n(counts/fL)", y=1.08)
-                ax.axis("off")
-                if min_tag == max_tag:
-                    continue
-                divider = make_axes_locatable(ax)
-                cax = divider.append_axes("left", size="5%", pad=0.0)
-                norm = matplotlib.colors.Normalize(vmin=min_tag, vmax=max_tag)
-                # make colormap
-                max_color = tag_h, tag_s, tag_v
-                min_rgb = min_color
-                max_rgb = matplotlib.colors.hsv_to_rgb(max_color)
-                cmap = matplotlib.colors.LinearSegmentedColormap.from_list(
-                    "row_{}".format(row_idx), [np.array(min_rgb), np.array(max_rgb)]
-                )
-                mappable = matplotlib.cm.ScalarMappable(norm, cmap)
-                fig.colorbar(mappable, cax=cax, format=f"%.{colorbar_decimals}f")
-
-=======
->>>>>>> 248eb2f2d661106a567477f0a37adf1f50a1d96c
             # Scale bar in first snapshot of each row
             if col_idx == 0 and scale_bar_length:
                 scale_bar = anchored_artists.AnchoredSizeBar(

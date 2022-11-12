@@ -10,6 +10,8 @@ import pandas as pd
 import seaborn as sns
 from tqdm import tqdm
 
+from ecoli.analysis.antibiotics_colony.plot_utils import prettify_axis
+
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
@@ -59,7 +61,8 @@ def make_snapshot_and_hist_plot(
                     "boundary": boundary,
                     # Convert from counts to nM
                     molecule: (
-                        (molecule_count / boundary["volume"]) * COUNTS_PER_FL_TO_NANOMOLAR
+                        (molecule_count / boundary["volume"])
+                        * COUNTS_PER_FL_TO_NANOMOLAR
                     ),
                 }
                 for agent_id, boundary, molecule_count in zip(
@@ -80,11 +83,13 @@ def make_snapshot_and_hist_plot(
         tagged_molecules=[(molecule,)],
         show_timeline=False,
         background_color="white",
-        default_font_size=plt.rcParams["font.size"],
+        default_font_size=10,
         scale_bar_length=None,  # TODO: scale bar length looks wrong?
         min_color="white",
         tag_colors={(molecule,): tag_hsv},
         convert_to_concs=False,
+        xlim=[8, 42],
+        ylim=[8, 42],
     )
     tag_axes = fig.get_axes()
     snapshot_ax = tag_axes[0]
@@ -93,7 +98,9 @@ def make_snapshot_and_hist_plot(
     snapshot_ax.set(ylabel=None)
     snapshot_ax.set_title(molecule[-1] if title is None else title)
 
-    grid = fig.add_gridspec(2, 2, width_ratios=[2, 1], height_ratios=[3, 1], wspace=0, hspace=0)
+    grid = fig.add_gridspec(
+        2, 2, width_ratios=[2, 1], height_ratios=[3, 1], wspace=0, hspace=0
+    )
 
     # Reposition axes, preparing to add hist plot below
     snapshot_ax.set_position(grid[0, 0].get_position(fig))
@@ -149,7 +156,6 @@ def make_snapshot_and_hist_plot(
 
     # Aesthetics
     hist, bins = np.histogram(hist_data, bins="auto")
-    sns.despine(ax=hist_ax, offset=3)
     hist_ax.set_xlabel(None)
     hist_ax.set_ylabel("Cells", fontsize=12, labelpad=-5)
     hist_ax.set(
@@ -158,6 +164,13 @@ def make_snapshot_and_hist_plot(
         xlim=[bins[0], bins[-1]],
         yticks=[0, max(hist)],
         ylim=[0, max(hist)],
+    )
+    prettify_axis(
+        hist_ax,
+        label_fontsize=12,
+        ticklabel_fontsize=10,
+        tick_format_x="{:.0f} nM",
+        tick_format_y="{:.0f}",
     )
     # hist_ax.set_box_aspect(1)
 
@@ -353,7 +366,10 @@ def main():
             verbose=args.verbose,
         )
 
+        # TODO: Get this in Dataframe format (see plot.py?)
+
     # Generate one figure per molecule
+    plt.rcParams["font.family"] = "Arial"
     plt.rcParams["svg.fonttype"] = "none"
     os.makedirs(args.outdir, exist_ok=True)
     for name, molecule in zip(molecule_names, molecules):
@@ -364,7 +380,7 @@ def main():
             data, metadata, bounds, paths_to_columns[molecule], title=name
         )
 
-        fig.set_size_inches(1.353, 2.25)
+        fig.set_size_inches(2.706, 4.5)
         fig.savefig(
             os.path.join(
                 args.outdir,

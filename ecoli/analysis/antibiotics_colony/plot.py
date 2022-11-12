@@ -3,6 +3,8 @@ from concurrent.futures import ProcessPoolExecutor
 from functools import partial
 import matplotlib
 import matplotlib.pyplot as plt
+
+from ecoli.analysis.antibiotics_colony.plot_utils import prettify_axis
 plt.rcParams['svg.fonttype'] = 'none'
 plt.rcParams['font.family'] = 'Arial'
 import numpy as np
@@ -242,7 +244,7 @@ def make_figure_2(data, metadata):
     axes[0].set_ylabel('Dry mass (fg)')
     axes[5].set_title(gene, fontsize=12, fontweight='bold')
     axes[5].set_ylabel('mRNA (nM)')
-    axes[1].set_ylabel('Monomer (nM)')
+    axes[1].set_ylabel('Protein (nM)')
     for i in range(2, 5):
         gene = axes[i].get_ylabel().split(' ')[0]
         axes[i].yaxis.label.set_visible(False)
@@ -269,6 +271,30 @@ def make_figure_2(data, metadata):
     axes[0].xaxis.set_label_coords(0.5, -0.3)
     axes[0].yaxis.set_label_coords(-0.09, 0.5)
     axes[5].yaxis.set_label_coords(-0.5, 0.5)
+
+    # Prettify axes (moving axis titles in to save space)
+    for ax in axes[1:5]:
+        xmin, xmax = ax.get_xlim()
+        ax.set_xticks([(xmin + xmax) / 2], labels=[ax.get_xlabel()], minor=True)
+        ax.set_xlabel(None)
+        ax.tick_params(
+            which="minor",
+            width=0,
+            length=ax.xaxis.get_major_ticks()[0].get_tick_padding(),
+            labelsize=10
+        )
+    # for ax in (axes[0], axes[1], axes[5]):
+    #     ymin, ymax = ax.get_ylim()
+    #     ax.set_yticks([(ymin + ymax) / 2], labels=[ax.get_ylabel()], minor=True)
+    #     ax.yaxis.get_minor_ticks()[0].label.set(rotation=90, va="center")
+    #     ax.set_ylabel(None)
+    #     ax.tick_params(
+    #         which="minor",
+    #         width=0,
+    #         length=ax.xaxis.get_major_ticks()[0].get_tick_padding(),
+    #         labelsize=10
+    #     )
+
     plt.savefig('out/analysis/paper_figures/fig_2c_timeseries.svg',
         bbox_inches='tight')
     plt.close()
@@ -540,31 +566,31 @@ def load_data(experiment_id=None, cpus=8, sampling_rate=2,
 
 def main():
     # Uncomment to create DataFrame pickle for experiment ID
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "--experiment_id",
-        "-e",
-        help="Experiment ID to load data for",
-        required=True,
-    )
-    parser.add_argument(
-        "--cpus",
-        "-c",
-        type=int,
-        help="# of CPUs to use for deserializing",
-        required=True,
-    )
-    args = parser.parse_args()
-    load_data(args.experiment_id, cpus=args.cpus)
+    # parser = argparse.ArgumentParser()
+    # parser.add_argument(
+    #     "--experiment_id",
+    #     "-e",
+    #     help="Experiment ID to load data for",
+    #     required=True,
+    # )
+    # parser.add_argument(
+    #     "--cpus",
+    #     "-c",
+    #     type=int,
+    #     help="# of CPUs to use for deserializing",
+    #     required=True,
+    # )
+    # args = parser.parse_args()
+    # load_data(args.experiment_id, cpus=args.cpus)
 
     # Uncomment to create Figures 1 and 2 (seed 10000 looks best)
-    # os.makedirs('out/analysis/paper_figures/', exist_ok=True)
-    # with open('data/sim_dfs/2022-10-25_04-55-58_237473+0000.pkl', 'rb') as f:
-    #     data = pickle.load(f)
-    # with open('data/sim_dfs/2022-10-25_04-55-58_237473+0000_metadata.pkl', 'rb') as f:
-    #     metadata = pickle.load(f)
+    os.makedirs('out/analysis/paper_figures/', exist_ok=True)
+    with open('data/glc_10000/2022-10-25_04-55-58_237473+0000.pkl', 'rb') as f:
+        data = pickle.load(f)
+    with open('data/glc_10000/2022-10-25_04-55-58_237473+0000_metadata.pkl', 'rb') as f:
+        metadata = pickle.load(f)
     # make_figure_1(data, metadata)
-    # make_figure_2(data, metadata)
+    make_figure_2(data, metadata)
 
     # Uncomment to create Figure 3 (seed 0 required for multiple concentrations)
     # seed_0_tet_ids = [
