@@ -1,7 +1,9 @@
+import math
 from collections import defaultdict
 from typing import List, Any
 from xml.etree import ElementTree
 import seaborn as sns
+import matplotlib.pyplot as plt
 
 import pandas as pd
 import requests
@@ -93,9 +95,51 @@ for gene in notFound:
         'Kcat': None
     }
 
+data_dict = {
+    'Km_&_Kcat': {
+        'count': 0,
+        'genes': []
+    },
+    'Km_Only': {
+        'count': 0,
+        'genes': []
+    },
+    'Kcat_Only': {
+        'count': 0,
+        'genes': []
+    },
+    'None': {
+        'count': 0,
+        'genes': []
+    }
+}
 
+for gene in gene_to_Km_Kcat:
+    if (gene_to_Km_Kcat[gene]['Km'] is not None and
+            gene_to_Km_Kcat[gene]['Kcat'] is not None):
+        data_dict['Km_&_Kcat']['count'] += 1
+        data_dict['Km_&_Kcat']['genes'].append(gene)
+    elif gene_to_Km_Kcat[gene]['Km'] is not None:
+        data_dict['Km_Only']['count'] += 1
+        data_dict['Km_Only']['genes'].append(gene)
+    elif gene_to_Km_Kcat[gene]['Kcat'] is not None:
+        data_dict['Kcat_Only']['count'] += 1
+        data_dict['Kcat_Only']['genes'].append(gene)
+    else:
+        data_dict['None']['count'] += 1
+        data_dict['None']['genes'].append(gene)
 
+counts = [data_dict[val]['count'] for val in data_dict]
+labels = [val for val in data_dict]
+df = pd.DataFrame(zip(labels, counts))
+df = df.T
+new_header = df.iloc[0]
+df = df[1:]
+df.columns = new_header
 
-
-
-
+ax = sns.barplot(data=df)
+plt.xlabel("Kinetic Data Available")
+plt.ylabel("Number of Genes (From New Gene List)")
+ax.bar_label(ax.containers[0])
+plt.show()
+print(1)
