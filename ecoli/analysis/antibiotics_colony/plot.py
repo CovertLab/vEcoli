@@ -26,7 +26,8 @@ from ecoli.analysis.antibiotics_colony.distributions import (
     plot_death_distributions)
 from ecoli.analysis.antibiotics_colony.miscellaneous import (
     plot_colony_growth_rates,
-    plot_vs_distance_from_center
+    plot_vs_distance_from_center,
+    plot_final_fold_changes
 )
 from ecoli.analysis.antibiotics_colony import (
     DE_GENES, MAX_TIME, SPLIT_TIME, restrict_data,
@@ -140,6 +141,8 @@ for gene_data in DE_GENES[['Gene name', 'id', 'monomer_ids']].values:
         monomer_name = gene_data[0][0].upper() + gene_data[0][1:]
         PATHS_TO_LOAD[f'{monomer_name} monomer'] = (
             'monomer', gene_data[2][0])
+# Housekeeping gene GAPDH for normalization between samples
+PATHS_TO_LOAD['GAPDH mRNA'] = ('mrna', 'EG10367_RNA')
 
 
 def make_figure_1(data, metadata):
@@ -477,7 +480,10 @@ def make_figure_3(data, metadata):
     plt.close()
 
 
-
+def make_figure_3_validation(data):
+    genes_to_plot = DE_GENES.loc[:, 'Gene name']
+    fig, ax = plt.subplots(1, 1)
+    plot_final_fold_changes(data, ax, genes_to_plot)
 
 
 def agent_data_table(raw_data, paths_dict, condition, seed):
@@ -566,40 +572,40 @@ def load_data(experiment_id=None, cpus=8, sampling_rate=2,
 
 def main():
     # Uncomment to create DataFrame pickle for experiment ID
-    # parser = argparse.ArgumentParser()
-    # parser.add_argument(
-    #     "--experiment_id",
-    #     "-e",
-    #     help="Experiment ID to load data for",
-    #     required=True,
-    # )
-    # parser.add_argument(
-    #     "--cpus",
-    #     "-c",
-    #     type=int,
-    #     help="# of CPUs to use for deserializing",
-    #     required=True,
-    # )
-    # args = parser.parse_args()
-    # load_data(args.experiment_id, cpus=args.cpus)
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--experiment_id",
+        "-e",
+        help="Experiment ID to load data for",
+        required=True,
+    )
+    parser.add_argument(
+        "--cpus",
+        "-c",
+        type=int,
+        help="# of CPUs to use for deserializing",
+        required=True,
+    )
+    args = parser.parse_args()
+    load_data(args.experiment_id, cpus=args.cpus)
 
     # Uncomment to create Figures 1 and 2 (seed 10000 looks best)
-    os.makedirs('out/analysis/paper_figures/', exist_ok=True)
-    with open('data/glc_10000/2022-10-25_04-55-58_237473+0000.pkl', 'rb') as f:
-        data = pickle.load(f)
-    with open('data/glc_10000/2022-10-25_04-55-58_237473+0000_metadata.pkl', 'rb') as f:
-        metadata = pickle.load(f)
+    # os.makedirs('out/analysis/paper_figures/', exist_ok=True)
+    # with open('data/glc_10000/2022-10-25_04-55-58_237473+0000.pkl', 'rb') as f:
+    #     data = pickle.load(f)
+    # with open('data/glc_10000/2022-10-25_04-55-58_237473+0000_metadata.pkl', 'rb') as f:
+    #     metadata = pickle.load(f)
     # make_figure_1(data, metadata)
-    make_figure_2(data, metadata)
+    # make_figure_2(data, metadata)
 
     # Uncomment to create Figure 3 (seed 0 required for multiple concentrations)
     # seed_0_tet_ids = [
     #     EXPERIMENT_ID_MAPPING['Glucose'][0],
-    #     EXPERIMENT_ID_MAPPING['Tetracycline (4 mg/L)'][0],
-    #     EXPERIMENT_ID_MAPPING['Tetracycline (2 mg/L)'][0],
+    #     # EXPERIMENT_ID_MAPPING['Tetracycline (4 mg/L)'][0],
+    #     # EXPERIMENT_ID_MAPPING['Tetracycline (2 mg/L)'][0],
     #     EXPERIMENT_ID_MAPPING['Tetracycline (1.5 mg/L)'][0],
-    #     EXPERIMENT_ID_MAPPING['Tetracycline (1 mg/L)'][0],
-    #     EXPERIMENT_ID_MAPPING['Tetracycline (0.5 mg/L)'][0],
+    #     # EXPERIMENT_ID_MAPPING['Tetracycline (1 mg/L)'][0],
+    #     # EXPERIMENT_ID_MAPPING['Tetracycline (0.5 mg/L)'][0],
     # ]
     # tet_data = []
     # tet_metadata = {}
@@ -610,6 +616,7 @@ def main():
     #         tet_metadata.update(pickle.load(f))
     # tet_data = pd.concat(tet_data)
     # make_figure_3(tet_data, tet_metadata)
+    # make_figure_3_validation(tet_data)
 
     # Uncomment to create Figure 4 (seed 0 required for multiple concentrations)
     # with open('data/sim_dfs/2022-10-28_05-47-52_977686+0000.pkl', 'rb') as f:
