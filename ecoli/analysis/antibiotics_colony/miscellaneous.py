@@ -67,24 +67,24 @@ def plot_final_fold_changes(
             of interest. Must have these columns: 'Time', 'Condition', 'Seed',
             and 'Dry Mass'. The first experimental condition in the 'Condition'
             column is treated as a control. Include >1 seed for error bars.
-        axes: Single instance of Matplotlib Axes to plot on.
+        ax: Single instance of Matplotlib Axes to plot on.
         genes_to_plot: List of gene names to include in plot.
     '''
-    mrnas = [f'{gene} mRNA' for gene in genes_to_plot]
-    monomers = [f'{gene.capitalize()} monomer' for gene in genes_to_plot]
+    data = data.loc[data.loc[:, 'Time'] <= MAX_TIME, :]
+    mrnas = [f'{gene} mRNA' for gene in genes_to_plot if gene != 'MicF']
+    monomers = [f'{gene[0].upper() + gene[1:]} monomer'
+        for gene in genes_to_plot if gene != 'MicF']
     columns_to_plot = mrnas + monomers
-    columns_to_include = list(set(columns_to_plot) +
-        {'Condition', 'Volume', 'Seed'})
+    columns_to_include = list(set(columns_to_plot) |
+        {'Condition', 'Seed'})
     data = data.loc[:, columns_to_include]
-    data = data.set_index(['Condition', 'Seed'])
-    data = data.divide(data['Volume'], axis=0).drop(['Volume'], axis=1)
-    data = data.reset_index()
+    # data = data.set_index(['Condition', 'Seed'])
+    # data = data.divide(data['Volume'], axis=0).drop(['Volume'], axis=1)
+    # data = data.reset_index()
     # Get average expression as concentration per condition
     data = data.groupby(['Condition', 'Seed']).mean()
     # Convert to fold change over glucose control
     data = data.loc[data.index[1]] / data.loc[data.index[0]]
-    data = pd.melt(data, var_name='Gene name',
-        value_name='Fold change (Tet./ Glc.)')
     data['Source'] = 'Simulated'
 
     # Get literature fold change where applicable
