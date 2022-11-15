@@ -33,48 +33,93 @@ from ecoli.analysis.antibiotics_colony import (
     DE_GENES, MAX_TIME, SPLIT_TIME, restrict_data,
     COUNTS_PER_FL_TO_NANOMOLAR)
 
-# Condition -> Seed -> Experiment ID
+# Mapping: Condition -> Seed -> Experiment ID
+# Old sims: diffusion coefficient of 0.01 sq. microns/s
+# EXPERIMENT_ID_MAPPING = {
+#     'Glucose': {
+#         0: '2022-10-25_04-55-23_505282+0000',
+#         100: '2022-10-25_04-55-42_566175+0000',
+#         10000: '2022-10-25_04-55-58_237473+0000',
+#     },
+#     'Tetracycline (1.5 mg/L)': {
+#         0: '2022-10-30_08-46-46_378082+0000',
+#         100: '2022-10-30_08-46-56_187346+0000',
+#         10000: '2022-10-30_08-47-08_473173+0000',
+#     },
+#     'Tetracycline (4 mg/L)': {
+#         0: '2022-10-30_08-47-15_257703+0000',
+#     },
+#     'Tetracycline (2 mg/L)': {
+#         0: '2022-10-30_08-47-21_656090+0000',
+#     },
+#     'Tetracycline (1 mg/L)': {
+#         0: '2022-10-30_08-47-27_295650+0000',
+#     },
+#     'Tetracycline (0.5 mg/L)': {
+#         0: '2022-10-30_08-47-34_723561+0000',
+#     },
+#     'Ampicillin (2 mg/L)': {
+#         0: '2022-10-28_05-47-52_977686+0000',
+#         100: '2022-10-28_05-48-14_864394+0000',
+#         10000: '2022-10-29_04-41-58_544174+0000',
+#     },
+#     'Ampicillin (4 mg/L)': {
+#         0: '2022-10-28_05-51-55_482567+0000',
+#     },
+#     'Ampicillin (1.5 mg/L)': {
+#         0: '2022-10-28_05-52-43_927562+0000',
+#     },
+#     'Ampicillin (1 mg/L)': {
+#         0: '2022-10-28_05-53-09_174585+0000',
+#     },
+#     'Ampicillin (0.5 mg/L)': {
+#         0: '2022-10-28_05-53-53_873981+0000',
+#     },
+# }
+
+# New sims: diffusion coefficient of 600 sq. microns/s
 EXPERIMENT_ID_MAPPING = {
     'Glucose': {
-        0: '2022-10-25_04-55-23_505282+0000',
-        100: '2022-10-25_04-55-42_566175+0000',
-        10000: '2022-10-25_04-55-58_237473+0000',
+        0: '2022-11-10_22-59-58_926494+0000',
+        100: '2022-11-14_19-50-06_054775+0000',
+        10000: '2022-11-14_19-50-16_749154+0000',
     },
     'Tetracycline (1.5 mg/L)': {
-        0: '2022-10-30_08-46-46_378082+0000',
-        100: '2022-10-30_08-46-56_187346+0000',
-        10000: '2022-10-30_08-47-08_473173+0000',
+        0: '2022-11-14_19-50-38_525470+0000',
+        100: '2022-11-15_01-04-39_779433+0000',
+        10000: '2022-11-15_01-04-59_836488+0000'
     },
     'Tetracycline (4 mg/L)': {
-        0: '2022-10-30_08-47-15_257703+0000',
+        0: '2022-11-14_19-54-54_782399+0000',
     },
     'Tetracycline (2 mg/L)': {
-        0: '2022-10-30_08-47-21_656090+0000',
+        0: '2022-11-14_19-54-10_566285+0000',
     },
     'Tetracycline (1 mg/L)': {
-        0: '2022-10-30_08-47-27_295650+0000',
+        0: '2022-11-14_19-53-26_207289+0000',
     },
     'Tetracycline (0.5 mg/L)': {
-        0: '2022-10-30_08-47-34_723561+0000',
+        0: '2022-11-14_19-52-55_570927+0000',
     },
     'Ampicillin (2 mg/L)': {
-        0: '2022-10-28_05-47-52_977686+0000',
-        100: '2022-10-28_05-48-14_864394+0000',
-        10000: '2022-10-29_04-41-58_544174+0000',
+        0: '2022-11-14_19-51-23_936218+0000',
+        100: '2022-11-15_01-03-12_768439+0000',
+        10000: '2022-11-15_01-04-33_112906+0000'
     },
     'Ampicillin (4 mg/L)': {
-        0: '2022-10-28_05-51-55_482567+0000',
+        0: '2022-11-15_15-11-42_429817+0000',
     },
     'Ampicillin (1.5 mg/L)': {
-        0: '2022-10-28_05-52-43_927562+0000',
+        0: '2022-11-15_15-11-12_708430+0000',
     },
     'Ampicillin (1 mg/L)': {
-        0: '2022-10-28_05-53-09_174585+0000',
+        0: '2022-11-15_15-10-51_725904+0000',
     },
     'Ampicillin (0.5 mg/L)': {
-        0: '2022-10-28_05-53-53_873981+0000',
+        0: '2022-11-15_15-10-37_359379+0000',
     },
 }
+
 
 PATHS_TO_LOAD = {
     'Dry mass': ('listeners', 'mass', 'dry_mass'),
@@ -143,6 +188,7 @@ for gene_data in DE_GENES[['Gene name', 'id', 'monomer_ids']].values:
             'monomer', gene_data[2][0])
 # Housekeeping gene GAPDH for normalization between samples
 PATHS_TO_LOAD['GAPDH mRNA'] = ('mrna', 'EG10367_RNA')
+PATHS_TO_LOAD['GAPDH monomer'] = ('monomer', 'GAPDH-A-MONOMER')
 
 
 def make_figure_1(data, metadata):
@@ -599,17 +645,25 @@ def main():
     # make_figure_2(data, metadata)
 
     # Uncomment to create Figure 3 (seed 0 required for multiple concentrations)
-    # seed_0_tet_ids = [
+    # tet_ids = [
     #     EXPERIMENT_ID_MAPPING['Glucose'][0],
-    #     # EXPERIMENT_ID_MAPPING['Tetracycline (4 mg/L)'][0],
-    #     # EXPERIMENT_ID_MAPPING['Tetracycline (2 mg/L)'][0],
+    #     EXPERIMENT_ID_MAPPING['Tetracycline (4 mg/L)'][0],
+    #     EXPERIMENT_ID_MAPPING['Tetracycline (2 mg/L)'][0],
     #     EXPERIMENT_ID_MAPPING['Tetracycline (1.5 mg/L)'][0],
-    #     # EXPERIMENT_ID_MAPPING['Tetracycline (1 mg/L)'][0],
-    #     # EXPERIMENT_ID_MAPPING['Tetracycline (0.5 mg/L)'][0],
+    #     EXPERIMENT_ID_MAPPING['Tetracycline (1 mg/L)'][0],
+    #     EXPERIMENT_ID_MAPPING['Tetracycline (0.5 mg/L)'][0],
+    # ]
+    # tet_ids = [
+    #     EXPERIMENT_ID_MAPPING['Glucose'][0],
+    #     EXPERIMENT_ID_MAPPING['Glucose'][100],
+    #     EXPERIMENT_ID_MAPPING['Glucose'][10000],
+    #     EXPERIMENT_ID_MAPPING['Tetracycline (1.5 mg/L)'][0],
+    #     EXPERIMENT_ID_MAPPING['Tetracycline (1.5 mg/L)'][100],
+    #     EXPERIMENT_ID_MAPPING['Tetracycline (1.5 mg/L)'][10000],
     # ]
     # tet_data = []
     # tet_metadata = {}
-    # for exp_id in seed_0_tet_ids:
+    # for exp_id in tet_ids:
     #     with open(f'data/sim_dfs/{exp_id}.pkl', 'rb') as f:
     #         tet_data.append(pickle.load(f))
     #     with open(f'data/sim_dfs/{exp_id}_metadata.pkl', 'rb') as f:
