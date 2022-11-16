@@ -251,7 +251,7 @@ def make_figure_2(data, metadata):
     # 5 equidistant snapshot plots in a row (Fig. 2b)
     plot_field_snapshots(
         data=data, metadata=metadata, highlight_lineage=highlight_agent,
-        highlight_color=(0, 0.4, 1))
+        highlight_color=(0, 0.4, 1), min_pct=0.8, colorbar_decimals=2)
 
     # Set up subplot layout for timeseries plots
     fig = plt.figure()
@@ -498,17 +498,21 @@ def make_figure_3(data, metadata):
     glc_data = data.loc[data.loc[:, 'Condition']=='Glucose', :]
     early_glc_mask = ((glc_data.loc[:, 'Time'] > 11550) &
         (glc_data.loc[:, 'Time'] < 12550))
+    early_glc_mask = (glc_data.loc[:, 'Time'] == 11550)
     early_glc_data = glc_data.loc[early_glc_mask, :]
     late_glc_mask = ((glc_data.loc[:, 'Time'] > 25500) &
         (glc_data.loc[:, 'Time'] < 26000))
+    late_glc_mask = (glc_data.loc[:, 'Time'] == 26000)
     late_glc_data = glc_data.loc[late_glc_mask, :]
     tet_data = data.loc[data.loc[
         :, 'Condition']=='Tetracycline (1.5 mg/L)', :]
     early_tet_mask = ((tet_data.loc[:, 'Time'] > 11550) &
         (tet_data.loc[:, 'Time'] < 12550))
+    early_tet_mask = (tet_data.loc[:, 'Time'] == 11550)
     early_tet_data = tet_data.loc[early_tet_mask, :]
     late_tet_mask = ((tet_data.loc[:, 'Time'] > 25500) &
         (tet_data.loc[:, 'Time'] < 26000))
+    late_tet_mask = (tet_data.loc[:, 'Time'] == 26000)
     late_tet_data = tet_data.loc[late_tet_mask, :]
     columns_to_plot = ['Growth rate', 'Active ribosomes',
         'Cytoplasmic tetracycline']
@@ -583,6 +587,7 @@ def load_data(experiment_id=None, cpus=8, sampling_rate=2,
                 experiment_id=experiment_id,
                 monomer_names=monomers,
                 mrna_names=mrnas,
+                rna_synth_prob=mrnas,
                 inner_paths=inner_paths,
                 outer_paths=outer_paths,
                 host=host,
@@ -637,9 +642,9 @@ def main():
 
     # Uncomment to create Figures 1 and 2 (seed 10000 looks best)
     # os.makedirs('out/analysis/paper_figures/', exist_ok=True)
-    # with open('data/glc_10000/2022-10-25_04-55-58_237473+0000.pkl', 'rb') as f:
+    # with open(f'data/sim_dfs/{EXPERIMENT_ID_MAPPING["Glucose"][10000]}.pkl', 'rb') as f:
     #     data = pickle.load(f)
-    # with open('data/glc_10000/2022-10-25_04-55-58_237473+0000_metadata.pkl', 'rb') as f:
+    # with open(f'data/sim_dfs/{EXPERIMENT_ID_MAPPING["Glucose"][10000]}_metadata.pkl', 'rb') as f:
     #     metadata = pickle.load(f)
     # make_figure_1(data, metadata)
     # make_figure_2(data, metadata)
