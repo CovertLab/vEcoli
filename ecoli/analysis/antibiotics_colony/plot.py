@@ -181,6 +181,8 @@ PATHS_TO_LOAD = {
 for gene_data in DE_GENES[['Gene name', 'id', 'monomer_ids']].values:
     if gene_data[0] != 'MicF':
         PATHS_TO_LOAD[f'{gene_data[0]} mRNA'] = ('mrna', gene_data[1])
+        PATHS_TO_LOAD[f'{gene_data[0]} synth prob'] = ('rna_synth_prob',
+            gene_data[1])
     gene_data[2] = eval(gene_data[2])
     if len(gene_data[2]) > 0:
         monomer_name = gene_data[0][0].upper() + gene_data[0][1:]
