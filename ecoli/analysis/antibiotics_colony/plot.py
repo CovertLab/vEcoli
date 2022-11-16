@@ -11,7 +11,7 @@ import numpy as np
 import os
 import pandas as pd
 import pickle
-# from sklearn.decomposition import PCA
+import warnings
 from tqdm import tqdm
 
 from vivarium.library.dict_utils import get_value_from_path
@@ -555,16 +555,21 @@ def agent_data_table(raw_data, paths_dict, condition, seed):
     raw_data = raw_data[1]
     collected_data = {'Agent ID': []}
     agents_at_time = raw_data['agents']
-    for agent_id, agent_at_time in agents_at_time.items():
-        collected_data['Agent ID'].append(agent_id)
-        for name, path in paths_dict.items():
-            if name not in collected_data:
-                collected_data[name] = []
-            value_in_agent = get_value_from_path(agent_at_time, path)
-            # Replace missing values with 0
-            if value_in_agent == None:
-                value_in_agent = 0
-            collected_data[name].append(value_in_agent)
+    # Silence warnings for missing values
+    # This is expected for the final timestep of EngineProcess sims
+    # because emits are delayed by a timestep
+    with warnings.catch_warnings():
+        warnings.simplefilter('ignore')
+        for agent_id, agent_at_time in agents_at_time.items():
+            collected_data['Agent ID'].append(agent_id)
+            for name, path in paths_dict.items():
+                if name not in collected_data:
+                    collected_data[name] = []
+                    value_in_agent = get_value_from_path(agent_at_time, path)
+                # Replace missing values with 0
+                if value_in_agent == None:
+                    value_in_agent = 0
+                collected_data[name].append(value_in_agent)
     collected_data = pd.DataFrame(collected_data)
     collected_data['Time'] = [time] * len(collected_data)
     collected_data['Seed'] = [seed] * len(collected_data)
