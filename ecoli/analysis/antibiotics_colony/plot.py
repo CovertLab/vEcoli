@@ -190,6 +190,7 @@ for gene_data in DE_GENES[['Gene name', 'id', 'monomer_ids']].values:
             'monomer', gene_data[2][0])
 # Housekeeping gene GAPDH for normalization between samples
 PATHS_TO_LOAD['GAPDH mRNA'] = ('mrna', 'EG10367_RNA')
+PATHS_TO_LOAD['GAPDH synth prob'] = ('rna_synth_prob', 'EG10367_RNA')
 PATHS_TO_LOAD['GAPDH monomer'] = ('monomer', 'GAPDH-A-MONOMER')
 
 
