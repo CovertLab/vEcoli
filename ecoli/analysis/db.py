@@ -135,7 +135,7 @@ def val_at_idx_in_path(idx, path):
     an $objectToArray projection."""
     return {
         '$cond': {
-            # If path does not point to an array, return 0
+            # If path does not point to an array, return null
             'if': {'$isArray': {'$first': f"${path}"}},
             'then': {
                 # Flatten array of length 1 into single count
@@ -150,7 +150,7 @@ def val_at_idx_in_path(idx, path):
                     ]
                 },
             },
-            'else': 0
+            'else': None
         }
         
     }
