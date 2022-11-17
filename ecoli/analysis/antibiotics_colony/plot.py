@@ -536,6 +536,9 @@ def make_figure_3_validation(data):
     genes_to_plot = DE_GENES.loc[:, 'Gene name']
     fig, ax = plt.subplots(1, 1)
     plot_final_fold_changes(data, ax, genes_to_plot)
+    plt.tight_layout()
+    fig.savefig('out/analysis/paper_figures/tet_synth_prob.svg')
+    plt.close()
 
 
 def agent_data_table(raw_data, paths_dict, condition, seed):
@@ -557,13 +560,12 @@ def agent_data_table(raw_data, paths_dict, condition, seed):
     for agent_id, agent_at_time in agents_at_time.items():
         collected_data['Agent ID'].append(agent_id)
         for name, path in paths_dict.items():
-            if name not in collected_data:
-                collected_data[name] = []
-                value_in_agent = get_value_from_path(agent_at_time, path)
+            value_in_agent = get_value_from_path(agent_at_time, path)
             # Replace missing values with 0
             if value_in_agent == None:
                 value_in_agent = 0
-            collected_data[name].append(value_in_agent)
+            path_data = collected_data.setdefault(name, [])
+            path_data.append(value_in_agent)
     collected_data = pd.DataFrame(collected_data)
     collected_data['Time'] = [time] * len(collected_data)
     collected_data['Seed'] = [seed] * len(collected_data)
