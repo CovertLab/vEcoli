@@ -134,17 +134,25 @@ def val_at_idx_in_path(idx, path):
     which evaluates to the value at idx in the array at path after
     an $objectToArray projection."""
     return {
-        # Flatten array of length 1 into single count
-        '$first': {
-            # Get monomer count at specified index with $slice
-            '$slice': [
-                # $objectToArray turns all embedded document fields 
-                # into arrays so we flatten here before slicing
-                {'$first': f"${path}"},
-                idx,
-                1
-            ]
-        },
+        '$cond': {
+            # If path does not point to an array, return 0
+            'if': {'$isArray': {'$first': f"${path}"}},
+            'then': {
+                # Flatten array of length 1 into single count
+                '$first': {
+                    # Get monomer count at specified index with $slice
+                    '$slice': [
+                        # $objectToArray turns all embedded document fields 
+                        # into arrays so we flatten here before slicing
+                        {'$first': f"${path}"},
+                        idx,
+                        1
+                    ]
+                },
+            },
+            'else': 0
+        }
+        
     }
 
 
@@ -227,7 +235,12 @@ def access_counts(experiment_id, monomer_names=None, mrna_names=None,
     aggregation = [{'$match': {
         **experiment_query, **time_filter}}]
     aggregation.append({'$project': {
-        'data.agents': {'$objectToArray': '$data.agents'},
+        'data.agents': {
+            '$objectToArray': {
+                # Add fail-safe for sims with no live agents
+                '$ifNull': ['$data.agents', {}]
+            }
+        },
         'data.time': 1,
         'data.fields': 1,
         'data.dimensions': 1,
