@@ -10,7 +10,7 @@ from migration.migration_utils import recursive_compare
 from ecoli.library.parameters import param_store
 
 def run_sim(tet_conc=0, amp_conc=0, baseline=False, seed=0,
-    cloud=False, initial_colony_file=None, start_time=0
+    cloud=False, initial_colony_file=None, start_time=0, runtime=None,
     ):
     config = SimConfig()
     config.update_from_json(os.path.join(
@@ -51,10 +51,12 @@ def run_sim(tet_conc=0, amp_conc=0, baseline=False, seed=0,
     if baseline:
         print(f'Running baseline sim (seed = {seed}).')
         config["colony_save_prefix"] = "glc_combined"
-        config['save_times'] = [11550, 23100]
         # 26000 allows 8th round of division to mostly complete
         # Run for one timestep past that to catch inner sim emits at 26000
-        config['total_time'] = 26002
+        if not runtime:
+            runtime = 26002
+            config['save_times'] = [11550, 23100]
+        config['total_time'] = runtime
         # Ensure that sim starts with correctly reduced murein counts
         config["initial_state_overrides"] = ["overrides/reduced_murein"]
     else:
@@ -62,8 +64,10 @@ def run_sim(tet_conc=0, amp_conc=0, baseline=False, seed=0,
         print(f"Tetracycline concentration: {tet_conc}")
         print(f"Ampicillin concentration: {amp_conc}")
         config["colony_save_prefix"] = f"amp_{amp_conc}_tet_{tet_conc}"
-        config['save_times'] = [11550]
-        config['total_time'] = 14452
+        if not runtime:
+            runtime = 14452
+            config['save_times'] = [11550]
+        config['total_time'] = runtime
     if cloud:
         config['emitter_arg'] = [
             ["host", "10.138.0.75:27017"],
@@ -103,7 +107,7 @@ def make_tet_initial_state(initial_file):
 
 
 def generate_data(seed, cloud, tet_conc, amp_conc,
-                  initial_colony_file, baseline):
+    initial_colony_file, baseline, runtime):
     if baseline:
         run_sim(
             tet_conc=0,
@@ -111,7 +115,8 @@ def generate_data(seed, cloud, tet_conc, amp_conc,
             seed=seed,
             cloud=cloud,
             start_time=0,
-            baseline=baseline)
+            baseline=baseline,
+            runtime=runtime)
     else:
         run_sim(
             tet_conc=tet_conc,
@@ -120,6 +125,7 @@ def generate_data(seed, cloud, tet_conc, amp_conc,
             cloud=cloud,
             initial_colony_file=initial_colony_file,
             start_time=11550,
+            runtime=runtime
         )
 
 
@@ -150,6 +156,13 @@ def main():
         type=float,
         help="Starting external ampicillin concentration (mM)"
     )
+    parser.add_argument(
+        "-r",
+        "--runtime",
+        default=None,
+        type=int,
+        help="Custom simulation run time."
+    )
 
     args = parser.parse_args()
 
@@ -159,7 +172,8 @@ def main():
         tet_conc=args.tet_conc,
         amp_conc=args.amp_conc,
         initial_colony_file=args.initial_file,
-        baseline=args.baseline
+        baseline=args.baseline,
+        runtime=args.runtime
     )
 
 
