@@ -91,6 +91,7 @@ def plot_timeseries(
             agent_data = group[1].reset_index()
             condition_data = data.loc[condition, :]
             # Cell did not die if at least one daughter exists
+            import ipdb; ipdb.set_trace()
             if ((agent_id + '0' in condition_data.loc[:, 'Agent ID'].values) or
                 (agent_id + '1' in condition_data.loc[:, 'Agent ID'].values)
             ):
