@@ -3,10 +3,13 @@ import seaborn as sns
 
 
 HIGHLIGHT_BLUE = (0, 0.4, 1)
+BG_GRAY = "0.4"
 
 
 def prettify_axis(
     ax,
+    xlim=None,
+    ylim=None,
     title_fontsize=12,
     label_fontsize=10,
     ticklabel_fontsize=8,
@@ -20,8 +23,10 @@ def prettify_axis(
     - sets all fonts to Arial, font sizes to the given font sizes, bolds the title
     """
     # Restrict ticks to only min and max
-    xmin, xmax = ax.get_xlim()
-    ymin, ymax = ax.get_ylim()
+    xmin, xmax = xlim if xlim is not None else ax.get_xlim()
+    ymin, ymax = ylim if ylim is not None else ax.get_ylim()
+    ax.set_xlim(xmin, xmax)
+    ax.set_ylim(ymin, ymax)
     ax.set_xticks(
         [xmin, xmax],
         labels=[tick_format_x.format(xmin), tick_format_x.format(xmax)],
