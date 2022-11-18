@@ -350,6 +350,8 @@ def get_field_range(
     time_vec,
     include_fields=None,
     skip_fields=None,
+    min_pct=0.95,
+    max_pct=1,
 ):
     if not skip_fields:
         skip_fields = []
@@ -363,10 +365,10 @@ def get_field_range(
         field_ids -= set(skip_fields)
         for field_id in field_ids:
             field_min = min(
-                [min(min(field_data[field_id])) for t, field_data in fields.items()]
+                [min(min(field_data[field_id])) * min_pct for t, field_data in fields.items()]
             )
             field_max = max(
-                [max(max(field_data[field_id])) for t, field_data in fields.items()]
+                [max(max(field_data[field_id])) * max_pct for t, field_data in fields.items()]
             )
             field_range[field_id] = [field_min, field_max]
     return field_range
@@ -415,6 +417,8 @@ def plot_snapshots(
     include_fields=None,
     out_dir=None,
     filename="snapshots",
+    min_pct=0.95,
+    max_pct=1,
     **kwargs,
 ):
     """Plot snapshots of the simulation over time
@@ -452,6 +456,10 @@ def plot_snapshots(
               ``out`` by default.
             * **filename** (:py:class:`str`): Base name of output file.
               ``snapshots`` by default.
+            * **min_pct** (:py:class:`float`): Percent of minimum value
+              to use as minimum in colorbar (1 = 100%)
+            * **max_pct** (:py:class:`float`): Percent of maximum value
+              to use as maximum in colorbar (1 = 100%)
     """
     if not agents:
         agents = {}
@@ -477,7 +485,8 @@ def plot_snapshots(
         raise Exception("No agents or field data")
 
     # get fields id and range
-    field_range = get_field_range(fields, time_vec, include_fields, skip_fields)
+    field_range = get_field_range(fields, time_vec, include_fields, skip_fields,
+        min_pct, max_pct)
 
     # get agent ids
     if not agent_colors:

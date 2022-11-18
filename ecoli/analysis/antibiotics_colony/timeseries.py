@@ -139,7 +139,10 @@ def plot_field_snapshots(
     data: pd.DataFrame,
     metadata: Dict[str, Dict[int, Dict[str, Any]]],
     highlight_lineage: str = None,
-    highlight_color: tuple = (1, 0, 0)
+    highlight_color: tuple = (1, 0, 0),
+    min_pct=1,
+    max_pct=1,
+    colorbar_decimals=1,
 ) -> None:
     '''Plot a row of snapshot images that span a replicate for each condition.
     In each of these images, the cell corresponding to a highlighted lineage
@@ -156,6 +159,11 @@ def plot_field_snapshots(
             the 'fields' Store for that condition and initial seed
         highlight_lineage: Agent ID to plot lineage trace for
         highlight_color: Color to plot highlight lineage with (default red)
+        min_pct: Percent of minimum field concentration to use as minimum value
+            in colorbar (1 = 100%)
+        max_pct: Percent of maximum field concentration to use as maximum value
+            in colorbar (1 = 100%)
+        colorbar_decimals: Number of decimals to include in colorbar labels.
     '''
     # Last snapshot at last tenth of an hour
     max_time_hrs = np.around(data.loc[:, 'Time'].max()/3600, decimals=1)
@@ -202,8 +210,10 @@ def plot_field_snapshots(
         scale_bar_length=10,
         membrane_color=(0, 0, 0),
         membrane_width=0.01,
-        colorbar_decimals=1,
-        default_font_size=48
+        colorbar_decimals=colorbar_decimals,
+        default_font_size=48,
+        min_pct=min_pct,
+        max_pct=max_pct,
     )
     snapshots_fig.subplots_adjust(wspace=0.7, hspace=0.1)
     snapshots_fig.axes[1].set_ylabel(None)
