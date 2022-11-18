@@ -187,22 +187,6 @@ def timeseries_death_plot(data, var, highlight_lineage=None, ax=None):
     if ax is None:
         _, ax = plt.subplots()
 
-    # data["Highlight"] = (
-    #     data["Agent ID"].map(lambda id: highlight_lineage[: len(id)] == id)
-    #     if highlight_lineage is not None
-    #     else False
-    # )
-
-    # sns.lineplot(
-    #     x="Time",
-    #     y=var,
-    #     hue="Highlight",
-    #     # palette={False: BG_GRAY, True: HIGHLIGHT_BLUE},
-    #     legend=False,
-    #     data=data,
-    #     ax=ax,
-    # )
-
     # TODO: Check if scaling time messes with background traces? Seems like it...
     plot_timeseries(
         data,
@@ -212,6 +196,12 @@ def timeseries_death_plot(data, var, highlight_lineage=None, ax=None):
         conc=False,
         mark_death=True,
     )
+
+    # Add vertical bar showing where ampicillin is added
+    amp_time = data["Time"][data["Condition"] == "Ampicillin"].min()
+    amp_time /= 3600
+
+    ax.vlines(amp_time, ymin=0, linestyles="dashed")
 
     return ax
 
