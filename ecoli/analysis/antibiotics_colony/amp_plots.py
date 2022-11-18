@@ -21,18 +21,26 @@ from ecoli.analysis.antibiotics_colony.plot_utils import (
 
 def load_data(glc_data, glc_metadata, amp_data, amp_metadata, verbose):
     # Load glc data
+    if verbose:
+        print("Loading Glucose data...")
     with open(glc_data, "rb") as f:
         glc_data = pickle.load(f)
 
     # Load glc metadata
+    if verbose:
+        print("Loading Glucose metadata...")
     with open(glc_metadata, "rb") as f:
         glc_metadata = pickle.load(f)
 
     # Load amp data
+    if verbose:
+        print("Loading Ampicillin data...")
     with open(amp_data, "rb") as f:
         amp_data = pickle.load(f)
 
     # Load amp metadata
+    if verbose:
+        print("Loading Ampicillin metadata...")
     with open(amp_metadata, "rb") as f:
         amp_metadata = pickle.load(f)
 
@@ -40,7 +48,10 @@ def load_data(glc_data, glc_metadata, amp_data, amp_metadata, verbose):
     # - glc_data, glc_metadata must be in Glucose condition,
     #   amp_data, amp_metadata must be in (one of) Ampicillin condition(s)
     # - Condition must match exactly between amp_data and amp_metadata (including dosage)
-    # - seed must match across glc_data, glc_metadata, amp_data, amp_metadata
+    # - seed must match across glc_data, glc_metadata, amp_data, amp_metadata\
+    if verbose:
+        print("Validating and cleaning data...")
+
     assert isinstance(glc_data, pd.DataFrame)
     assert isinstance(amp_data, pd.DataFrame)
     assert isinstance(glc_metadata, dict)
@@ -136,6 +147,9 @@ def make_figures(data, metadata, verbose):
     # snapshots
 
     # mass vs time with deaths
+    if verbose:
+        print("Making multigen plot...")
+
     timeseries_death_plot(
         data,
         "Dry mass",
@@ -147,6 +161,9 @@ def make_figures(data, metadata, verbose):
     conc_format = ["{:.1f}", "{:.2e}", "{:.1f}", "{:.1f}"]
 
     for ax, factor, fmt in zip(death_factor_axes, death_factors, conc_format):
+        if verbose:
+            print(f"Making histogram plot for {factor}...")
+
         _, _, bins = hist_by_death_plot(data, factor, counts_to_conc=True, ax=ax)
 
         prettify_axis(
