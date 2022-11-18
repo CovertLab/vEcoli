@@ -77,6 +77,7 @@ def plot_timeseries(
         highlight_data = restrict_data(highlight_data)
     
     # Convert time to hours
+    data.loc[:, 'Time'] /= 3600
     highlight_data.loc[:, 'Time'] /= 3600
     background_data.loc[:, 'Time'] /= 3600
     # Collect data for timesteps before agent death
@@ -90,8 +91,8 @@ def plot_timeseries(
             agent_data = group[1].reset_index()
             condition_data = data.loc[condition, :]
             # Cell did not die if at least one daughter exists
-            if ((agent_id + '0' in condition_data.index) or
-                (agent_id + '1' in condition_data.index)
+            if ((agent_id + '0' in condition_data.loc[:, 'Agent ID']) or
+                (agent_id + '1' in condition_data.loc[:, 'Agent ID'])
             ):
                 continue
             max_group_time = agent_data.loc[:, 'Time'].max()
@@ -119,7 +120,7 @@ def plot_timeseries(
             # Mark values where cell died with a red "X"
             curr_ax.scatter(
                 x=death_data.loc[:, 'Time'], y=death_data.loc[:, column],
-                c='maroon', markers='X')
+                c='maroon', marker='X')
         curr_ax.autoscale(enable=True, axis='both', tight='both')
         curr_ax.set_yticks(ticks=np.around(
             curr_ax.get_ylim(), decimals=0))
