@@ -23,10 +23,12 @@ from ecoli.analysis.antibiotics_colony.timeseries import (
 from ecoli.analysis.antibiotics_colony.distributions import (
     plot_final_distributions,
     plot_death_distributions)
-from ecoli.analysis.antibiotics_colony.miscellaneous import (
+from ecoli.analysis.antibiotics_colony.validation import (
     plot_colony_growth_rates,
     plot_vs_distance_from_center,
-    plot_final_fold_changes
+    plot_synth_prob_fc,
+    plot_mrna_fc,
+    plot_protein_synth_inhib,
 )
 from ecoli.analysis.antibiotics_colony import (
     DE_GENES, MAX_TIME, SPLIT_TIME, restrict_data,
@@ -117,6 +119,16 @@ EXPERIMENT_ID_MAPPING = {
     'Ampicillin (0.5 mg/L)': {
         0: '2022-11-15_15-10-37_359379+0000',
     },
+    'OmpF KO (tet MIC)': {
+        0: '',
+        100: '',
+        10000: '',
+    },
+    'AcrAB-TolC KO (tet MIC)': {
+        0: '',
+        100: '',
+        10000: '',
+    }
 }
 
 
@@ -154,6 +166,7 @@ PATHS_TO_LOAD = {
     'micF-ompF duplex': ('bulk', 'micF-ompF[c]'),
     'Inactive 30S subunit': ('bulk', 'CPLX0-3953-tetracycline[c]'),
     'Active ribosomes': ('listeners', 'aggregated', 'active_ribosome_len'),
+    'Active RNAP': ('listeners', 'aggregated', 'active_RNAP_len'),
     'Outer tet. permeability (cm/s)': ('kinetic_parameters', 'outer_tetracycline_permeability'),
     'Murein tetramer': ('bulk', 'CPD-12261[p]'),
     'PBP1a complex': ('bulk', 'CPLX0-7717[m]'),
@@ -534,8 +547,9 @@ def make_figure_3(data, metadata):
 
 def make_figure_3_validation(data):
     genes_to_plot = DE_GENES.loc[:, 'Gene name']
-    fig, ax = plt.subplots(1, 1)
-    plot_final_fold_changes(data, ax, genes_to_plot)
+    fig, ax = plt.subplots(2, 1)
+    plot_synth_prob_fc(data, ax[0], genes_to_plot)
+    plot_mrna_fc(data, ax[1], genes_to_plot)
     plt.tight_layout()
     fig.savefig('out/analysis/paper_figures/tet_synth_prob.svg')
     plt.close()
@@ -597,7 +611,7 @@ def load_data(experiment_id=None, cpus=8, sampling_rate=2,
                 host=host,
                 port=port,
                 sampling_rate=sampling_rate,
-                cpus=36,
+                cpus=cpus,
                 start_time=0,
                 end_time=26000)
             with ProcessPoolExecutor(cpus) as executor:
