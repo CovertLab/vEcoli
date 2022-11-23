@@ -45,6 +45,7 @@ class LoadSimData:
             treg_alias = self.sim_data.process.transcription_regulation
             bulk_mol_alias =  self.sim_data.internal_state.bulk_molecules
             eq_alias = self.sim_data.process.equilibrium
+            trans_alias = self.sim_data.process.translation
 
             # Assume marA (PD00365) controls the entire tetracycline
             # gene expression program and marR (CPLX0-7710) is inactivated
@@ -134,6 +135,13 @@ class LoadSimData:
             # Build matrices
             eq_alias._populateDerivativeAndJacobian()
             eq_alias._stoichMatrix = eq_alias.stoich_matrix()
+
+            # Ensure that marR-tet complex is properly degraded
+            monomer_data = trans_alias.monomer_data.fullArray()
+            monomer_data = np.resize(monomer_data, monomer_data.shape[0]+3)
+            marR_tet_data = monomer_data[monomer_data['id'] == 'PD00364[c]']
+            marR_tet_data['id'] = 'marR-tet[c]'
+            monomer_data[-1] = marR_tet_data
         
         # NEW to vivarium-ecoli
         # Append new RNA IDs and degradation rates for sRNA-mRNA duplexes
@@ -180,7 +188,7 @@ class LoadSimData:
                 target_length = rna_data['length'][self.target_tu_ids[i]]
                 duplex_lengths[i] = srna_length + target_length
                 if duplex_lengths[i] > duplex_sequences.shape[1]:
-                    # Extend  columns in sequence arrays to accomodate duplexes
+                    # Extend columns in sequence arrays to accomodate duplexes
                     # where the sum of the RNA lengths > # of columns
                     extend_length = (
                         duplex_lengths[i] - duplex_sequences.shape[1])
