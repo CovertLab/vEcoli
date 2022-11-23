@@ -110,13 +110,14 @@ class LoadSimData:
                 for i in np.where(np.any(
                     eq_alias.stoich_matrix() > 0, axis=1))[0]]
             eq_alias.rxn_ids += ['marR-tet']
-            # All existing equilibrium rxns use a forward reaction rate of 1
+            # All existing equilibrium rxns use a forward rate of 1
             eq_alias.rates_fwd = np.concatenate(
                 [eq_alias.rates_fwd, np.array([1])])
-            # Rev rate manually fit to complex off all marR except 1 
-            # at 1.5 mg/L external tetracycline when running from wcecoli_t0
+            # Existing equilibrium rxns use a default reverse rate of 1e-6
+            # This happens to nearly perfectly yield full MarR inactivation
+            # at 1.5 mg/L external tetracycline
             eq_alias.rates_rev = np.concatenate(
-                [eq_alias.rates_rev, np.array([7.1e-07])])
+                [eq_alias.rates_rev, np.array([1e-6])])
 
             # Mass balance matrix
             eq_alias._stoichMatrixMass = np.concatenate(
