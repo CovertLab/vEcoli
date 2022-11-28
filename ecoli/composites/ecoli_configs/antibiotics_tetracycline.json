@@ -28,7 +28,8 @@
         ["bulk", "tetracycline[c]"],
         ["bulk", "CPLX0-7710[c]"],
         ["bulk", "MICF-RNA[c]"],
-        ["bulk", "micF-ompF[c]"]
+        ["bulk", "micF-ompF[c]"],
+        ["bulk", "APORNAP-CPLX[c]"]
     ],
     "topology": {
         "permeability": {
