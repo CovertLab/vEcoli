@@ -41,7 +41,8 @@ def plot_timeseries(
         columns_to_plot: Dictionary of columns in data to plot sequentially on
             axes. Each column name corresponds to a RGB tuple to color the trace
             of the highlighted lineage on that plot.
-        highlight_lineage: Agent ID to plot lineage trace for.
+        highlight_lineage: Agent ID to plot lineage trace for. Alternatively,
+            one of 'mean' or 'median'.
         conc: Whether to normalize data by volume and convert to nM
         mark_death: Mark cells that die with red X on time step of death
         background_lineages: Whether to plot traces for other lineages (gray).
@@ -65,11 +66,22 @@ def plot_timeseries(
         data = data.reset_index()
     # Sort values by time for ease of plotting later
     data = data.sort_values('Time')
-    # For '010010', return ['0', '01', '010', '0100', '010010']
-    lineage_ids = list(itertools.accumulate(highlight_lineage))
-    lineage_mask = np.isin(data.loc[:, 'Agent ID'], lineage_ids)
-    highlight_data = data.loc[lineage_mask, :]
-    background_data = data.loc[~lineage_mask, :]
+    if highlight_lineage == 'mean':
+        highlight_data = data.groupby(['Condition', 'Time']
+            ).mean().reset_index()
+        highlight_data['Agent ID'] = highlight_lineage
+        background_data = data.copy()
+    elif highlight_lineage == 'median':
+        highlight_data = data.groupby(['Condition', 'Time']
+            ).median().reset_index()
+        highlight_data['Agent ID'] = highlight_lineage
+        background_data = data.copy()
+    else:
+        # For '010010', return ['0', '01', '010', '0100', '010010']
+        lineage_ids = list(itertools.accumulate(highlight_lineage))
+        lineage_mask = np.isin(data.loc[:, 'Agent ID'], lineage_ids)
+        highlight_data = data.loc[lineage_mask, :]
+        background_data = data.loc[~lineage_mask, :]
     # Plot up to SPLIT_TIME with first condition and between SPLIT_TIME
     # and MAX_TIME with second condition
     if filter_time:

@@ -164,6 +164,8 @@ PATHS_TO_LOAD = {
     'Active MarR': ('bulk', 'CPLX0-7710[c]'),
     'Inactive MarR': ('bulk', 'marR-tet[c]'),
     'micF-ompF duplex': ('bulk', 'micF-ompF[c]'),
+    'micF RNA': ('bulk', 'MICF-RNA[c]',),
+    '30S subunit': ('bulk', 'CPLX0-3953[c]'),
     'Inactive 30S subunit': ('bulk', 'CPLX0-3953-tetracycline[c]'),
     'Active ribosomes': ('listeners', 'aggregated', 'active_ribosome_len'),
     'Active RNAP': ('listeners', 'aggregated', 'active_RNAP_len'),
@@ -204,6 +206,13 @@ for gene_data in DE_GENES[['Gene name', 'id', 'monomer_ids']].values:
 PATHS_TO_LOAD['GAPDH mRNA'] = ('mrna', 'EG10367_RNA')
 PATHS_TO_LOAD['GAPDH synth prob'] = ('rna_synth_prob', 'EG10367_RNA')
 PATHS_TO_LOAD['GAPDH monomer'] = ('monomer', 'GAPDH-A-MONOMER')
+# RNAP monomers and mRNAs
+PATHS_TO_LOAD['rpoA mRNA'] = ('mrna', 'EG10893_RNA')
+PATHS_TO_LOAD['rpoB mRNA'] = ('mrna', 'EG10894_RNA')
+PATHS_TO_LOAD['rpoC mRNA'] = ('mrna', 'EG10895_RNA')
+PATHS_TO_LOAD['RpoA monomer'] = ('monomer', 'EG10893-MONOMER')
+PATHS_TO_LOAD['RpoB monomer'] = ('monomer', 'RPOB-MONOMER')
+PATHS_TO_LOAD['RpoC monomer'] = ('monomer', 'RPOC-MONOMER')
 
 
 def make_figure_1(data, metadata):
@@ -369,10 +378,6 @@ def make_figure_3(data, metadata):
     # Ideas
     # Growth rate against distance from center
     # Active ribosome concentration against growth rate
-    # Submasses separately
-    # PCA
-    # Validation: gene expression, protein synthesis inhibition
-    # at varying tetracycline concentrations, mass fraction
     fig, ax = plt.subplots(1, 1, figsize=(3, 3))
     plot_colony_growth_rates(data, ax)
     ax.legend(labels=['0', '0.5', '1', '1.5', '2', '4'], frameon=False,
@@ -383,10 +388,6 @@ def make_figure_3(data, metadata):
 
     main_conditions = ['Glucose', 'Tetracycline (1.5 mg/L)']
     data = data.loc[np.isin(data.loc[:, 'Condition'], main_conditions), :]
-    # Pick same agent as in Figure 2 to highlight lineage for
-    final_timestep = data.loc[data.loc[:, 'Time']==MAX_TIME, :]
-    agent_ids = final_timestep.loc[:, 'Agent ID']
-    highlight_agent = agent_ids[100]
     data = data.loc[data.loc[:, 'Time']<=MAX_TIME, :]
     data = data.sort_values(['Condition', 'Agent ID', 'Time'])
 
@@ -434,7 +435,7 @@ def make_figure_3(data, metadata):
     # Convert tetracycline concentrations to uM
     transition_data.loc[:, 'Periplasmic tetracycline'] *= 1000
     transition_data.loc[:, 'Cytoplasmic tetracycline'] *= 1000
-    fig, axes = plt.subplots(1, 3, figsize=(7, 2))
+    fig, axes = plt.subplots(1, 3, figsize=(7, 3))
     short_term_columns = {
         'Periplasmic tetracycline': (False, 0),
         'Cytoplasmic tetracycline': (False, 1),
@@ -445,7 +446,7 @@ def make_figure_3(data, metadata):
             data=transition_data,
             axes=[axes.flat[ax_idx]],
             columns_to_plot={column: (0, 0.4, 1)},
-            highlight_lineage=highlight_agent,
+            highlight_lineage='median',
             filter_time=False,
             background_alpha=0.5,
             background_linewidth=0.3,
@@ -475,14 +476,17 @@ def make_figure_3(data, metadata):
         'micF-ompF duplex': 0,
         'ompF mRNA': 1,
         'OmpF monomer': 2,
+        'acrA mRNA': 3,
+        'AcrA monomer': 4,
+        'AcrAB-TolC': 5,
     }
-    fig, axes = plt.subplots(1, 3, figsize=(7, 2))
+    fig, axes = plt.subplots(2, 3, figsize=(7, 6))
     for column, ax_idx in long_term_columns.items():
         plot_timeseries(
             data=long_transition_data,
             axes=[axes.flat[ax_idx]],
             columns_to_plot={column: (0, 0.4, 1)},
-            highlight_lineage=highlight_agent,
+            highlight_lineage='median',
             filter_time=False,
             background_alpha=0.5,
             background_linewidth=0.3,
@@ -547,9 +551,10 @@ def make_figure_3(data, metadata):
 
 def make_figure_3_validation(data):
     genes_to_plot = DE_GENES.loc[:, 'Gene name']
-    fig, ax = plt.subplots(2, 1)
+    fig, ax = plt.subplots(3, 1, figsize=(4, 7))
     plot_synth_prob_fc(data, ax[0], genes_to_plot)
     plot_mrna_fc(data, ax[1], genes_to_plot)
+    plot_protein_synth_inhib(data, ax)
     plt.tight_layout()
     fig.savefig('out/analysis/paper_figures/tet_synth_prob.svg')
     plt.close()

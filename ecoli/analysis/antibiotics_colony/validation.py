@@ -174,8 +174,6 @@ def plot_vs_distance_from_center(
     sns.regplot(data=data, x='Distance', y=column_to_plot, ax=ax)
 
 
-# Validation of transport model is perhaps best done with knockout simulations
-
 def plot_protein_synth_inhib(
     data: pd.DataFrame,
     ax: plt.Axes = None,
@@ -190,7 +188,26 @@ def plot_protein_synth_inhib(
             column is treated as a control.
         ax: Single instance of Matplotlib Axes to plot on.
     '''
+    # Normalize by ribosome count so synthesis rates are comparable
+    # with those from in vitro transcription/translation systems, where
+    # count should be nearly constant over the course of the assay
+    data = data.sort_values(by=['Condition', 'Seed', 'Agent ID', 'Time'])
+    data['Total ribosomes'] = (data.loc[:, 'Active ribosomes'] +
+        data.loc[:, 'Inactive 30S subunit'])
+    data.loc[:, 'Cytoplasmic tetracycline'] *= 1000
+    data['Protein delta'] = np.append([0], np.diff(data.loc[:, 'Protein mass']))
+    data['Normed delta'] = data.loc[:, 'Protein delta'] / data.loc[
+        :, 'Total ribosomes']
+    columns_to_include = ['Normed delta', 'Cytoplasmic tetracycline',
+        'Condition', 'Seed', 'Agent ID']
+    normed_deltas = data.loc[:, columns_to_include].groupby([
+        'Condition', 'Seed', 'Agent ID']).agg(
+        lambda x: np.mean(x[1:])).reset_index()
+    normed_deltas = normed_deltas.groupby(['Condition']).mean()
+    normed_deltas['Percent inhibition'] = 1 - (normed_deltas.loc[
+        :, 'Normed delta'] / normed_deltas.loc['Glucose', 'Normed delta'])
+    sns.scatterplot(data=normed_deltas, x='Cytoplasmic tetracycline',
+        y='Percent inhibition', ax=ax)
+    ax.set_xscale('log')
+    sns.despine(ax=ax, offset=3, trim=True)
     
-    ribo_conc = (data.loc[:, 'Active ribosomes'] +
-        data.loc[:, 'Inactive 30S subunit'])/(data.loc[:, 'Volume'])
-    return
