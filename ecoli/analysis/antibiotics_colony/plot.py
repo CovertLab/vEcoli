@@ -29,6 +29,7 @@ from ecoli.analysis.antibiotics_colony.validation import (
     plot_synth_prob_fc,
     plot_mrna_fc,
     plot_protein_synth_inhib,
+    plot_mass_fraction
 )
 from ecoli.analysis.antibiotics_colony import (
     DE_GENES, MAX_TIME, SPLIT_TIME, restrict_data,
@@ -119,15 +120,8 @@ EXPERIMENT_ID_MAPPING = {
     'Ampicillin (0.5 mg/L)': {
         0: '2022-11-15_15-10-37_359379+0000',
     },
-    'OmpF KO (tet MIC)': {
-        0: '',
-        100: '',
-        10000: '',
-    },
-    'AcrAB-TolC KO (tet MIC)': {
-        0: '',
-        100: '',
-        10000: '',
+    'Tet 1': {
+        0: '2022-11-23_18-23-36_315483+0000',
     }
 }
 
@@ -374,7 +368,79 @@ def make_figure_2(data, metadata):
     print('Done with Figure 2.')
 
 
+def plot_exp_growth_rate(data, metadata):
+    grouped_agents = data.groupby(['Condition', 'Agent ID'])
+    new_data = []
+    for _, agent_data in grouped_agents:
+        delta_t = np.diff(agent_data.loc[:, 'Time'], append=0)
+        if len(delta_t) < 2:
+            continue
+        delta_t[-1] = delta_t[-2]
+        dry_mass = agent_data.loc[:, 'Dry mass']
+        mass_ratio = dry_mass[1:].to_numpy() / dry_mass[:-1].to_numpy()
+        mass_ratio = np.append(mass_ratio, mass_ratio[-1])
+        agent_data['Exp. growth rate'] = np.log(mass_ratio) / delta_t
+        new_data.append(agent_data)
+    data = pd.concat(new_data)
+    
+    # Get median glucose growth rate at each timestep
+    glucose_data = data.loc[data.loc[:, 'Condition']=='Glucose', :]
+    med_growth_rate = glucose_data.loc[:, ['Exp. growth rate', 'Time']].groupby(
+        'Time').median()
+    fc_col = 'Growth rate\n($\mathregular{log_2}$ fold change)'
+    data[fc_col] = data.loc[:, 'Exp. growth rate']
+
+    # Get log 2 fold change over median glucose growth rate at each timestep
+    for time in med_growth_rate.index:
+        data.loc[data.loc[:, 'Time']==time, fc_col] = data.loc[data.loc[
+            :, 'Time']==time, fc_col] / med_growth_rate.loc[time, 'Exp. growth rate']
+    data.loc[:, fc_col] = np.log2(data.loc[:, fc_col])
+    # Set up custom divergent colormap
+    cmp = matplotlib.colors.LinearSegmentedColormap.from_list(
+        'divergent', [(0, 0.4, 1), (1, 1, 1), (0.678, 0, 0.125)])
+    norm = matplotlib.colors.Normalize(vmin=-2.5, vmax=2.5)
+    plot_tag_snapshots(
+        data=data, metadata=metadata, tag_colors={fc_col: {
+            'cmp': cmp, 'norm': norm}}, snapshot_times=np.array([
+            1.9, 3.2, 4.5, 5.8, 7.1]) * 3600, show_membrane=True)
+
+
+def plot_raw_growth_rate(data, metadata):
+    # Fill in zeros in growth rate with growth at next timestep
+    zero_not_max = (data.loc[:, 'Growth rate']==0) & (data.loc[:, 'Time']<MAX_TIME)
+    next_timestep = np.append([False], zero_not_max[:-1])
+    data.loc[zero_not_max, 'Growth rate'] = data.loc[
+        next_timestep, 'Growth rate'].to_numpy()
+    # Fill in zero growth at final timestep with growth at previous timestep
+    zero_max = (data.loc[:, 'Growth rate']==0) & (data.loc[:, 'Time']==MAX_TIME)
+    previous_timestep = np.append(zero_max[1:], [False])
+    data.loc[zero_max, 'Growth rate'] = data.loc[
+        previous_timestep, 'Growth rate'].to_numpy()
+
+    # Get median glucose growth rate at each timestep
+    glucose_data = data.loc[data.loc[:, 'Condition']=='Glucose', :]
+    med_growth_rate = glucose_data.loc[:, ['Growth rate', 'Time']].groupby(
+        'Time').median()
+    fc_col = 'Growth rate\n($\mathregular{log_2}$ fold change)'
+    data[fc_col] = data.loc[:, 'Growth rate']
+
+    # Get log 2 fold change over median glucose growth rate at each timestep
+    for time in med_growth_rate.index:
+        data.loc[data.loc[:, 'Time']==time, fc_col] = data.loc[data.loc[
+            :, 'Time']==time, fc_col] / med_growth_rate.loc[time, 'Growth rate']
+    data.loc[:, fc_col] = np.log2(data.loc[:, fc_col])
+    # Set up custom divergent colormap
+    cmp = matplotlib.colors.LinearSegmentedColormap.from_list(
+        'divergent', [(0, 0.4, 1), (1, 1, 1), (0.678, 0, 0.125)])
+    norm = matplotlib.colors.Normalize(vmin=-2.5, vmax=2.5)
+    plot_tag_snapshots(
+        data=data, metadata=metadata, tag_colors={fc_col: {
+            'cmp': cmp, 'norm': norm}}, snapshot_times=np.array([
+            1.9, 3.2, 4.5, 5.8, 7.1]) * 3600, show_membrane=True)
+
+
 def make_figure_3(data, metadata):
+    # plot_mass_fraction(data)
     # Ideas
     # Growth rate against distance from center
     # Active ribosome concentration against growth rate
@@ -391,37 +457,8 @@ def make_figure_3(data, metadata):
     data = data.loc[data.loc[:, 'Time']<=MAX_TIME, :]
     data = data.sort_values(['Condition', 'Agent ID', 'Time'])
 
-    # Fill in zeros in growth rate with growth at next timestep
-    zero_not_max = (data.loc[:, 'Growth rate']==0) & (data.loc[:, 'Time']<MAX_TIME)
-    next_timestep = np.append([False], zero_not_max[:-1])
-    data.loc[zero_not_max, 'Growth rate'] = data.loc[
-        next_timestep, 'Growth rate'].to_numpy()
-    # Fill in zero growth at final timestep with growth at previous timestep
-    zero_max = (data.loc[:, 'Growth rate']==0) & (data.loc[:, 'Time']==MAX_TIME)
-    previous_timestep = np.append(zero_max[1:], [False])
-    data.loc[zero_max, 'Growth rate'] = data.loc[
-        previous_timestep, 'Growth rate'].to_numpy()
-
-    # Get average glucose growth rate at each timestep
-    glucose_data = data.loc[data.loc[:, 'Condition']=='Glucose', :]
-    avg_growth_rate = glucose_data.loc[:, ['Growth rate', 'Time']].groupby(
-        'Time').mean()
-    fc_col = 'Growth rate\n($\mathregular{log_2}$ fold change)'
-    data[fc_col] = data.loc[:, 'Growth rate']
-
-    # Get log 2 fold change over avg. glucose growth rate at each timestep
-    for time in avg_growth_rate.index:
-        data.loc[data.loc[:, 'Time']==time, fc_col] = data.loc[data.loc[
-            :, 'Time']==time, fc_col] / avg_growth_rate.loc[time, 'Growth rate']
-    data.loc[:, fc_col] = np.log2(data.loc[:, fc_col])
-    # Set up custom divergent colormap
-    cmp = matplotlib.colors.LinearSegmentedColormap.from_list(
-        'divergent', [(0, 0.4, 1), (1, 1, 1), (0.678, 0, 0.125)])
-    norm = matplotlib.colors.Normalize(vmin=-2.5, vmax=2.5)
-    plot_tag_snapshots(
-        data=data, metadata=metadata, tag_colors={fc_col: {
-            'cmp': cmp, 'norm': norm}}, snapshot_times=np.array([
-            1.9, 3.2, 4.5, 5.8, 7.1]) * 3600, show_membrane=True)
+    data = plot_exp_growth_rate(data, metadata)
+    # data = plot_raw_growth_rate(data, metadata)
 
     # Top row of plots show short-term changes to tet. exposure
     # Filter data to only include 150 seconds before and after
