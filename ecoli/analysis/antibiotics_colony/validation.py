@@ -1,5 +1,5 @@
 from typing import List, Dict
-
+import os
 import numpy as np
 import pandas as pd
 import seaborn as sns
@@ -210,4 +210,48 @@ def plot_protein_synth_inhib(
         y='Percent inhibition', ax=ax)
     ax.set_xscale('log')
     sns.despine(ax=ax, offset=3, trim=True)
-    
+
+
+def plot_mass_fraction(
+    data: pd.DataFrame,
+):
+    '''Plot line plots of submass fold changes over generation time.
+
+    Args:
+        data: DataFrame where each row is an agent and each column is a variable
+            of interest.
+    '''
+    submasses = ['Cell', 'Dry', 'Water', 'Protein', 'rRNA', 
+        'mRNA', 'tRNA', 'DNA', 'Small molecule']
+    submass_data = data.loc[:, [
+        f'{submass} mass' for submass in submasses] + [
+        'Condition', 'Volume']].set_index('Condition')
+    submass_data = submass_data.divide(submass_data.loc[:, 'Volume'], axis=0)
+    submass_medians = submass_data.reset_index().groupby('Condition').median()
+    grouped_agents = data.groupby(['Condition', 'Seed', 'Agent ID'])
+    for (condition, seed, agent_id), agent_data in grouped_agents:
+        # Start all agents at t = 0 min
+        times = agent_data.loc[:, 'Time'] - agent_data.loc[:, 'Time'].iloc[0]
+        times = times / 60
+        gen_length = len(times)
+        for submass in submasses:
+            # agent_data[f'{submass} conc.'] = agent_data.loc[
+            #     :, f'{submass} mass'] / agent_data.loc[:, 'Volume']
+            # plt.plot(times, agent_data.loc[:, f'{submass} conc.'] / 
+            #     np.repeat(submass_medians.loc[condition, f'{submass} mass'],
+            #     gen_length), label=f'{submass}')
+            agent_data[f'{submass} fold change'] = agent_data.loc[
+                :, f'{submass} mass'] / agent_data.loc[
+                    :, f'{submass} mass'].iloc[0]
+            plt.plot(times, agent_data.loc[:, f'{submass} fold change'],
+                label=f'{submass}')
+        plt.legend()
+        plt.xlabel('Time (min)')
+        # plt.ylabel('Concentration fold change (normalized to median)')
+        plt.ylabel('Mass fold change (normalized to t = 0 min)')
+        out_dir = f'out/analysis/paper_figures/{condition}/{seed}'
+        os.makedirs(out_dir, exist_ok=True)
+        plt.tight_layout()
+        plt.savefig(f'{out_dir}/{agent_id}.svg')
+        plt.close()
+
