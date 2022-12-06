@@ -266,6 +266,13 @@ def access_counts(experiment_id, monomer_names=None, mrna_names=None,
             )
         for mrna, mrna_index in zip(mrna_names, mrna_idx)
     })
+    projection['$project'].update({
+        'data.agents.v.total_mrna': {
+            '$sum': {
+                '$first': 'data.agents.v.listeners.mRNA_counts'
+            }
+        }
+    })
     rna_idx = sim_data.get_rna_indices(rna_init)
     projection['$project'].update({
         f'data.agents.v.rna_init.{rna}':
