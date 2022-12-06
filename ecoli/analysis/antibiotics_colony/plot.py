@@ -183,7 +183,8 @@ PATHS_TO_LOAD = {
     'Active fraction PBP1a': ('pbp_state', 'active_fraction_PBP1A'),
     'Active fraction PBP1b': ('pbp_state', 'active_fraction_PBP1B'),
     'Boundary': ('boundary',),
-    'Volume': ('listeners', 'mass', 'volume')
+    'Volume': ('listeners', 'mass', 'volume'),
+    'Total mRNA': ('total_mrna',)
 }
 
 for gene_data in DE_GENES[['Gene name', 'id', 'monomer_ids']].values:
