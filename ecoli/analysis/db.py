@@ -268,8 +268,15 @@ def access_counts(experiment_id, monomer_names=None, mrna_names=None,
     })
     projection['$project'].update({
         'data.agents.v.total_mrna': {
-            '$sum': {
-                '$first': 'data.agents.v.listeners.mRNA_counts'
+            '$cond': {
+                # If path does not point to an array, return null
+                'if': {'$isArray': {'$first': '$data.agents.v.listeners.mRNA_counts'}},
+                'then': {
+                    '$sum': {
+                        '$first': '$data.agents.v.listeners.mRNA_counts'
+                    }
+                },
+                'else': None
             }
         }
     })

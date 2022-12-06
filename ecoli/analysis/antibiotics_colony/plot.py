@@ -637,7 +637,8 @@ def load_data(experiment_id=None, cpus=8, sampling_rate=2,
     monomers = [path[-1] for path in PATHS_TO_LOAD.values() if path[0]=='monomer']
     mrnas = [path[-1] for path in PATHS_TO_LOAD.values() if path[0]=='mrna']
     inner_paths = [path for path in PATHS_TO_LOAD.values()
-        if path[-1] not in mrnas and path[-1] not in monomers]
+        if path[-1] not in mrnas and path[-1] not in monomers
+        and path != ('total_mrna',)]
     outer_paths = [('data', 'dimensions'), ('data', 'fields')]
     for condition, seeds in EXPERIMENT_ID_MAPPING.items():
         for seed, curr_experiment_id in seeds.items():
