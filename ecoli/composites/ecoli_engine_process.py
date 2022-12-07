@@ -46,6 +46,7 @@ class EcoliInnerSim(Composer):
         'division_threshold': None,
         'division_variable': None,
         'initial_inner_state': None,
+        'chromosome_path': None,
     }
     
     def generate(self, config=None):
@@ -66,6 +67,8 @@ class EcoliInnerSim(Composer):
             division_random_seed = (binascii.crc32(b'CellDivision', config['seed']) 
                                     & 0xffffffff)
             division_random_state = np.random.RandomState(seed=division_random_seed)
+            # TODO: Does it make sense to set standard deviation according to CV from
+            # 10.1016/j.cell.2014.11.022?
             division_mass_multiplier = division_random_state.normal(loc=1.0, scale=0.1)
             current_media_id = initial_state['environment']['media_id']
             config['division_threshold'] = (
@@ -75,6 +78,7 @@ class EcoliInnerSim(Composer):
         ecoli_sim.ecoli['division_threshold'] = config['division_threshold']
         ecoli_sim.ecoli['division_variable'] = config['division_variable']
         ecoli_sim.ecoli['initial_inner_state'] = initial_state
+        ecoli_sim.ecoli['chromosome_path'] = config['chromosome_path']
         return ecoli_sim.ecoli
     
     # Not used
@@ -94,6 +98,7 @@ class EcoliEngineProcess(Composer):
         'divide': False,
         'division_threshold': None,
         'division_variable': None,
+        'chromosome_path': None,
         'tunnels_in': tuple(),
         'emit_paths': tuple(),
         'start_time': 0,
