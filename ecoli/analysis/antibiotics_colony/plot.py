@@ -11,6 +11,7 @@ import numpy as np
 import os
 import pandas as pd
 import pickle
+import seaborn as sns
 from tqdm import tqdm
 
 from vivarium.library.dict_utils import get_value_from_path
@@ -36,93 +37,46 @@ from ecoli.analysis.antibiotics_colony import (
     COUNTS_PER_FL_TO_NANOMOLAR)
 
 # Mapping: Condition -> Seed -> Experiment ID
-# Old sims: diffusion coefficient of 0.01 sq. microns/s
-# EXPERIMENT_ID_MAPPING = {
-#     'Glucose': {
-#         0: '2022-10-25_04-55-23_505282+0000',
-#         100: '2022-10-25_04-55-42_566175+0000',
-#         10000: '2022-10-25_04-55-58_237473+0000',
-#     },
-#     'Tetracycline (1.5 mg/L)': {
-#         0: '2022-10-30_08-46-46_378082+0000',
-#         100: '2022-10-30_08-46-56_187346+0000',
-#         10000: '2022-10-30_08-47-08_473173+0000',
-#     },
-#     'Tetracycline (4 mg/L)': {
-#         0: '2022-10-30_08-47-15_257703+0000',
-#     },
-#     'Tetracycline (2 mg/L)': {
-#         0: '2022-10-30_08-47-21_656090+0000',
-#     },
-#     'Tetracycline (1 mg/L)': {
-#         0: '2022-10-30_08-47-27_295650+0000',
-#     },
-#     'Tetracycline (0.5 mg/L)': {
-#         0: '2022-10-30_08-47-34_723561+0000',
-#     },
-#     'Ampicillin (2 mg/L)': {
-#         0: '2022-10-28_05-47-52_977686+0000',
-#         100: '2022-10-28_05-48-14_864394+0000',
-#         10000: '2022-10-29_04-41-58_544174+0000',
-#     },
-#     'Ampicillin (4 mg/L)': {
-#         0: '2022-10-28_05-51-55_482567+0000',
-#     },
-#     'Ampicillin (1.5 mg/L)': {
-#         0: '2022-10-28_05-52-43_927562+0000',
-#     },
-#     'Ampicillin (1 mg/L)': {
-#         0: '2022-10-28_05-53-09_174585+0000',
-#     },
-#     'Ampicillin (0.5 mg/L)': {
-#         0: '2022-10-28_05-53-53_873981+0000',
-#     },
-# }
-
-# New sims: diffusion coefficient of 600 sq. microns/s
 EXPERIMENT_ID_MAPPING = {
     'Glucose': {
-        0: '2022-11-10_22-59-58_926494+0000',
-        100: '2022-11-14_19-50-06_054775+0000',
-        10000: '2022-11-14_19-50-16_749154+0000',
+        0: '',
+        100: '',
+        10000: '',
     },
     'Tetracycline (1.5 mg/L)': {
-        0: '2022-11-14_19-50-38_525470+0000',
-        100: '2022-11-15_01-04-39_779433+0000',
-        10000: '2022-11-15_01-04-59_836488+0000'
+        0: '2022-12-06_18-03-41_270533+0000',
+        100: '2022-12-06_18-04-09_769516+0000',
+        10000: '2022-12-06_18-04-37_780937+0000'
     },
     'Tetracycline (4 mg/L)': {
-        0: '2022-11-14_19-54-54_782399+0000',
+        0: '2022-12-06_18-25-13_806449+0000',
     },
     'Tetracycline (2 mg/L)': {
-        0: '2022-11-14_19-54-10_566285+0000',
+        0: '2022-12-06_18-24-49_284601+0000',
     },
     'Tetracycline (1 mg/L)': {
-        0: '2022-11-14_19-53-26_207289+0000',
+        0: '2022-12-06_19-15-28_403400+0000',
     },
     'Tetracycline (0.5 mg/L)': {
-        0: '2022-11-14_19-52-55_570927+0000',
+        0: '2022-12-06_19-15-55_553165+0000',
     },
     'Ampicillin (2 mg/L)': {
-        0: '2022-11-14_19-51-23_936218+0000',
-        100: '2022-11-15_01-03-12_768439+0000',
-        10000: '2022-11-15_01-04-33_112906+0000'
+        0: '',
+        100: '',
+        10000: ''
     },
     'Ampicillin (4 mg/L)': {
-        0: '2022-11-15_15-11-42_429817+0000',
+        0: '',
     },
     'Ampicillin (1.5 mg/L)': {
-        0: '2022-11-15_15-11-12_708430+0000',
+        0: '',
     },
     'Ampicillin (1 mg/L)': {
-        0: '2022-11-15_15-10-51_725904+0000',
+        0: '',
     },
     'Ampicillin (0.5 mg/L)': {
-        0: '2022-11-15_15-10-37_359379+0000',
+        0: '',
     },
-    'Tet 1': {
-        0: '2022-11-23_18-23-36_315483+0000',
-    }
 }
 
 
@@ -372,6 +326,9 @@ def make_figure_2(data, metadata):
 def plot_exp_growth_rate(data, metadata):
     grouped_agents = data.groupby(['Condition', 'Agent ID'])
     new_data = []
+    active_ribo_concs = []
+    growth_rates = []
+    tet_concs = []
     for _, agent_data in grouped_agents:
         delta_t = np.diff(agent_data.loc[:, 'Time'], append=0)
         if len(delta_t) < 2:
@@ -380,21 +337,35 @@ def plot_exp_growth_rate(data, metadata):
         dry_mass = agent_data.loc[:, 'Dry mass']
         mass_ratio = dry_mass[1:].to_numpy() / dry_mass[:-1].to_numpy()
         mass_ratio = np.append(mass_ratio, mass_ratio[-1])
-        agent_data['Exp. growth rate'] = np.log(mass_ratio) / delta_t
+        agent_data['Doubling rate'] = np.log2(mass_ratio) / delta_t * 3600
         new_data.append(agent_data)
+        active_ribo_concs.append((agent_data.loc[:, 'Active ribosomes'] /
+            agent_data.loc[:, 'Volume']).mean() *
+            COUNTS_PER_FL_TO_NANOMOLAR / 1000)
+        growth_rates.append(agent_data.loc[:, 'Doubling rate'].mean())
+        tet_concs.append(agent_data.loc[:, 'Cytoplasmic tetracycline'].mean() * 1000)
     data = pd.concat(new_data)
+    plt.scatter(active_ribo_concs, growth_rates, alpha=0.5, c=tet_concs)
+    sns.despine(offset=0.1, trim=True)
+    cbar = plt.colorbar()
+    cbar.ax.set_label('Tetracycline (cytoplasm, uM)')
+    plt.xlabel('Active ribosomes (mM)')
+    plt.ylabel('Doubling rate (1/hr)')
+    plt.tight_layout()
+    plt.savefig('out/analysis/paper_figures/growth_rate_variation.svg')
+    plt.close()
     
     # Get median glucose growth rate at each timestep
     glucose_data = data.loc[data.loc[:, 'Condition']=='Glucose', :]
-    med_growth_rate = glucose_data.loc[:, ['Exp. growth rate', 'Time']].groupby(
+    med_growth_rate = glucose_data.loc[:, ['Doubling rate', 'Time']].groupby(
         'Time').median()
     fc_col = 'Growth rate\n($\mathregular{log_2}$ fold change)'
-    data[fc_col] = data.loc[:, 'Exp. growth rate']
+    data[fc_col] = data.loc[:, 'Doubling rate']
 
     # Get log 2 fold change over median glucose growth rate at each timestep
     for time in med_growth_rate.index:
         data.loc[data.loc[:, 'Time']==time, fc_col] = data.loc[data.loc[
-            :, 'Time']==time, fc_col] / med_growth_rate.loc[time, 'Exp. growth rate']
+            :, 'Time']==time, fc_col] / med_growth_rate.loc[time, 'Doubling rate']
     data.loc[:, fc_col] = np.log2(data.loc[:, fc_col])
     # Set up custom divergent colormap
     cmp = matplotlib.colors.LinearSegmentedColormap.from_list(
@@ -442,9 +413,6 @@ def plot_raw_growth_rate(data, metadata):
 
 def make_figure_3(data, metadata):
     # plot_mass_fraction(data)
-    # Ideas
-    # Growth rate against distance from center
-    # Active ribosome concentration against growth rate
     fig, ax = plt.subplots(1, 1, figsize=(3, 3))
     plot_colony_growth_rates(data, ax)
     ax.legend(labels=['0', '0.5', '1', '1.5', '2', '4'], frameon=False,
@@ -453,8 +421,6 @@ def make_figure_3(data, metadata):
     fig.savefig('out/analysis/paper_figures/tet_growth_rate.svg')
     plt.close()
 
-    main_conditions = ['Glucose', 'Tetracycline (1.5 mg/L)']
-    data = data.loc[np.isin(data.loc[:, 'Condition'], main_conditions), :]
     data = data.loc[data.loc[:, 'Time']<=MAX_TIME, :]
     data = data.sort_values(['Condition', 'Agent ID', 'Time'])
 
@@ -592,7 +558,7 @@ def make_figure_3_validation(data):
     fig, ax = plt.subplots(3, 1, figsize=(4, 7))
     plot_synth_prob_fc(data, ax[0], genes_to_plot)
     plot_mrna_fc(data, ax[1], genes_to_plot)
-    plot_protein_synth_inhib(data, ax)
+    plot_protein_synth_inhib(data, ax[2])
     plt.tight_layout()
     fig.savefig('out/analysis/paper_figures/tet_synth_prob.svg')
     plt.close()
