@@ -188,16 +188,16 @@ def plot_protein_synth_inhib(
             column is treated as a control.
         ax: Single instance of Matplotlib Axes to plot on.
     '''
-    # Normalize by ribosome count so synthesis rates are comparable
-    # with those from in vitro transcription/translation systems, where
-    # count should be nearly constant over the course of the assay
+    # Normalize by ribosome count and total mRNA count so synthesis rates are
+    # comparable with those from in vitro transcription/translation systems,
+    # where these counts should be nearly constant over the course of the assay
     data = data.sort_values(by=['Condition', 'Seed', 'Agent ID', 'Time'])
     data['Total ribosomes'] = (data.loc[:, 'Active ribosomes'] +
         data.loc[:, 'Inactive 30S subunit'])
     data.loc[:, 'Cytoplasmic tetracycline'] *= 1000
     data['Protein delta'] = np.append([0], np.diff(data.loc[:, 'Protein mass']))
     data['Normed delta'] = data.loc[:, 'Protein delta'] / data.loc[
-        :, 'Total ribosomes']
+        :, 'Total ribosomes'] / data.loc[:, 'Total mRNA']
     columns_to_include = ['Normed delta', 'Cytoplasmic tetracycline',
         'Condition', 'Seed', 'Agent ID']
     normed_deltas = data.loc[:, columns_to_include].groupby([
@@ -223,23 +223,12 @@ def plot_mass_fraction(
     '''
     submasses = ['Cell', 'Dry', 'Water', 'Protein', 'rRNA', 
         'mRNA', 'tRNA', 'DNA', 'Small molecule']
-    submass_data = data.loc[:, [
-        f'{submass} mass' for submass in submasses] + [
-        'Condition', 'Volume']].set_index('Condition')
-    submass_data = submass_data.divide(submass_data.loc[:, 'Volume'], axis=0)
-    submass_medians = submass_data.reset_index().groupby('Condition').median()
     grouped_agents = data.groupby(['Condition', 'Seed', 'Agent ID'])
     for (condition, seed, agent_id), agent_data in grouped_agents:
         # Start all agents at t = 0 min
         times = agent_data.loc[:, 'Time'] - agent_data.loc[:, 'Time'].iloc[0]
         times = times / 60
-        gen_length = len(times)
         for submass in submasses:
-            # agent_data[f'{submass} conc.'] = agent_data.loc[
-            #     :, f'{submass} mass'] / agent_data.loc[:, 'Volume']
-            # plt.plot(times, agent_data.loc[:, f'{submass} conc.'] / 
-            #     np.repeat(submass_medians.loc[condition, f'{submass} mass'],
-            #     gen_length), label=f'{submass}')
             agent_data[f'{submass} fold change'] = agent_data.loc[
                 :, f'{submass} mass'] / agent_data.loc[
                     :, f'{submass} mass'].iloc[0]
@@ -247,7 +236,6 @@ def plot_mass_fraction(
                 label=f'{submass}')
         plt.legend()
         plt.xlabel('Time (min)')
-        # plt.ylabel('Concentration fold change (normalized to median)')
         plt.ylabel('Mass fold change (normalized to t = 0 min)')
         out_dir = f'out/analysis/paper_figures/{condition}/{seed}'
         os.makedirs(out_dir, exist_ok=True)
