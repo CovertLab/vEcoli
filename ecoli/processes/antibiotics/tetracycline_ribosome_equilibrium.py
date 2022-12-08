@@ -34,10 +34,9 @@ class TetracyclineRibosomeEquilibrium(Step):
         # for the ribosomal A, P, and E sites. The Journal of biological
         # chemistry, 267(7), 4693–4702. doi: 10.1016/S0021-9258(18)42889-X
         # 1e8 for enzymatic binding at 37°C and 10 mM Mg2+
-        # 6e6 yields much more appropriate experimental results and
-        # is much closer to the association constants calculated for
-        # non-enzymatic binding
-        'K_tRNA': 6e6,
+        # 4.5e6 yields a much more accurate protein synthesis IC50 but
+        # is even lower than the K for non-enzymatic binding
+        'K_tRNA': 4.5e6,
         'seed': 0,
     }
 
