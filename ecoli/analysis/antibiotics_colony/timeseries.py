@@ -248,7 +248,7 @@ def plot_tag_snapshots(
     tag_colors: Dict[str, Any] = None,
     conc: bool = False,
     snapshot_times: List = None,
-    min_color: Any = None,
+    min_color: Any = (1, 1, 1),
     out_prefix: str = None,
     show_membrane: bool = False,
 ) -> None:
@@ -305,8 +305,9 @@ def plot_tag_snapshots(
         condition_bounds = metadata[min(metadata)][seed]['bounds']
         # Convert data back to dictionary form for snapshot plot
         snapshot_data = {}
-        magnitude = data[highlight_column].abs().max()
-        tag_ranges = {(highlight_column,): [-magnitude, magnitude]}
+        data_max = data[highlight_column].max()
+        data_min = data[highlight_column].min()
+        tag_ranges = {(highlight_column,): [data_min, data_max]}
         for time, agent_id, boundary, column in zip(
             data['Time'], data['Agent ID'], data['Boundary'],
             data[highlight_column]
