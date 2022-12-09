@@ -76,23 +76,23 @@ def plot_synth_prob_fc(
     # Get average synthesis probability per condition
     mrna_data = mrna_data.groupby(['Condition']).mean()
     # Convert to relative amounts assuming that first condition is control
-    relative_data = (mrna_data.loc[conditions[1]] /
+    relative_data = np.log2(mrna_data.loc[conditions[1]] /
         mrna_data.loc[conditions[0]])
     relative_data.index = [mrna_name.split(' synth prob')[0] for mrna_name in relative_data.index]
-    relative_data = pd.DataFrame(relative_data).rename(columns={0: 'Simulated'})
+    relative_data = pd.DataFrame(relative_data).rename(columns={0: 'Sim. RNA synth. prob. $\mathregular{log_2 FC}$'})
     # Compare against literature relative amounts
     tet_degenes = DE_GENES.loc[:, ['Gene name', 'Fold change']].set_index(
         'Gene name').drop(['MicF', 'ompF'], axis=0).rename(columns={
-            'Fold change': 'Viveiros et al. 2007'})
-    # tet_degenes.loc[:, 'Viveiros et al. 2007'] = np.log2(
-    #     tet_degenes.loc[:, 'Viveiros et al. 2007'])
+            'Fold change': 'Literature RNA $\mathregular{log_2 FC}$'})
+    tet_degenes.loc[:, 'Literature RNA $\mathregular{log_2 FC}$'] = np.log2(
+        tet_degenes.loc[:, 'Literature RNA $\mathregular{log_2 FC}$'])
     relative_data = relative_data.join(tet_degenes, how='inner').reset_index()
     relative_data = relative_data.rename(columns={'index': 'Gene'})
 
-    sns.scatterplot(data=relative_data, x='Viveiros et al. 2007',
-        y='Simulated', ax=ax)
-    min_fc = relative_data.loc[:, 'Viveiros et al. 2007'].min()
-    max_fc = relative_data.loc[:, 'Viveiros et al. 2007'].max()
+    sns.scatterplot(data=relative_data, x='Literature RNA $\mathregular{log_2 FC}$',
+        y='Sim. RNA synth. prob. $\mathregular{log_2 FC}$', ax=ax)
+    min_fc = relative_data.loc[:, 'Literature RNA $\mathregular{log_2 FC}$'].min()
+    max_fc = relative_data.loc[:, 'Literature RNA $\mathregular{log_2 FC}$'].max()
     validation_line = np.linspace(min_fc, max_fc, 2)
     ax.plot(validation_line, validation_line, '--')
     sns.despine(ax=ax, offset=3, trim=True)
@@ -129,20 +129,20 @@ def plot_mrna_fc(
     relative_data = pd.DataFrame(np.log2(mrna_data.loc[conditions[1]] /
             mrna_data.loc[conditions[0]]))
     relative_data.index = [mrna_name.split(' mRNA')[0] for mrna_name in relative_data.index]
-    relative_data = relative_data.rename(columns={0: 'Simulated'})
+    relative_data = relative_data.rename(columns={0: 'Sim. RNA $\mathregular{log_2 FC}$'})
     # Compare against literature relative amounts
     tet_degenes = DE_GENES.loc[:, ['Gene name', 'Fold change']].set_index(
         'Gene name').drop(['MicF', 'ompF'], axis=0).rename(columns={
-            'Fold change': 'Viveiros et al. 2007'})
-    tet_degenes.loc[:, 'Viveiros et al. 2007'] = np.log2(
-        tet_degenes.loc[:, 'Viveiros et al. 2007'])
+            'Fold change': 'Literature RNA $\mathregular{log_2 FC}$'})
+    tet_degenes.loc[:, 'Literature RNA $\mathregular{log_2 FC}$'] = np.log2(
+        tet_degenes.loc[:, 'Literature RNA $\mathregular{log_2 FC}$'])
     relative_data = relative_data.join(tet_degenes, how='inner').reset_index()
     relative_data = relative_data.rename(columns={'index': 'Gene'})
 
-    sns.scatterplot(data=relative_data, x='Viveiros et al. 2007',
-        y='Simulated', ax=ax)
-    min_fc = relative_data.loc[:, 'Viveiros et al. 2007'].min()
-    max_fc = relative_data.loc[:, 'Viveiros et al. 2007'].max()
+    sns.scatterplot(data=relative_data, x='Literature RNA $\mathregular{log_2 FC}$',
+        y='Sim. RNA $\mathregular{log_2 FC}$', ax=ax)
+    min_fc = relative_data.loc[:, 'Literature RNA $\mathregular{log_2 FC}$'].min()
+    max_fc = relative_data.loc[:, 'Literature RNA $\mathregular{log_2 FC}$'].max()
     validation_line = np.linspace(min_fc, max_fc, 2)
     ax.plot(validation_line, validation_line, '--')
     sns.despine(ax=ax, offset=3, trim=True)

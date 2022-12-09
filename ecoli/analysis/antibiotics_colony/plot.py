@@ -39,43 +39,43 @@ from ecoli.analysis.antibiotics_colony import (
 # Mapping: Condition -> Seed -> Experiment ID
 EXPERIMENT_ID_MAPPING = {
     'Glucose': {
-        0: '',
-        100: '',
-        10000: '',
+        0: '2022-12-08_00-33-56_581605+0000',
+        100: '2022-12-08_00-35-12_754291+0000',
+        10000: '2022-12-08_00-35-28_562633+0000',
     },
     'Tetracycline (1.5 mg/L)': {
-        0: '2022-12-06_18-03-41_270533+0000',
-        100: '2022-12-06_18-04-09_769516+0000',
-        10000: '2022-12-06_18-04-37_780937+0000'
+        0: '2022-12-08_16-59-07_475301+0000',
+        100: '2022-12-08_16-59-45_444261+0000',
+        10000: '2022-12-08_17-00-22_717139+0000'
     },
     'Tetracycline (4 mg/L)': {
-        0: '2022-12-06_18-25-13_806449+0000',
+        0: '2022-12-08_17-02-51_119565+0000',
     },
     'Tetracycline (2 mg/L)': {
-        0: '2022-12-06_18-24-49_284601+0000',
+        0: '2022-12-08_17-02-27_685764+0000',
     },
     'Tetracycline (1 mg/L)': {
-        0: '2022-12-06_19-15-28_403400+0000',
+        0: '2022-12-08_17-01-58_435913+0000',
     },
     'Tetracycline (0.5 mg/L)': {
-        0: '2022-12-06_19-15-55_553165+0000',
+        0: '2022-12-08_17-01-21_665551+0000',
     },
     'Ampicillin (2 mg/L)': {
-        0: '',
-        100: '',
-        10000: ''
+        0: '2022-12-08_17-03-56_357734+0000',
+        100: '2022-12-08_17-04-20_544970+0000',
+        10000: '2022-12-08_17-04-52_137662+0000'
     },
     'Ampicillin (4 mg/L)': {
-        0: '',
+        0: '2022-12-08_17-08-04_777218+0000',
     },
     'Ampicillin (1.5 mg/L)': {
-        0: '',
+        0: '2022-12-08_17-07-14_437731+0000',
     },
     'Ampicillin (1 mg/L)': {
-        0: '',
+        0: '2022-12-08_17-06-35_367185+0000',
     },
     'Ampicillin (0.5 mg/L)': {
-        0: '',
+        0: '2022-12-08_19-13-14_431590+0000',
     },
 }
 
@@ -326,10 +326,8 @@ def make_figure_2(data, metadata):
 def plot_exp_growth_rate(data, metadata):
     grouped_agents = data.groupby(['Condition', 'Agent ID'])
     new_data = []
-    active_ribo_concs = []
-    growth_rates = []
-    tet_concs = []
-    for _, agent_data in grouped_agents:
+    aggregate_data = {}
+    for (condition, _), agent_data in grouped_agents:
         delta_t = np.diff(agent_data.loc[:, 'Time'], append=0)
         if len(delta_t) < 2:
             continue
@@ -339,34 +337,44 @@ def plot_exp_growth_rate(data, metadata):
         mass_ratio = np.append(mass_ratio, mass_ratio[-1])
         agent_data['Doubling rate'] = np.log2(mass_ratio) / delta_t * 3600
         new_data.append(agent_data)
-        active_ribo_concs.append((agent_data.loc[:, 'Active ribosomes'] /
+        aggregate_data.setdefault(condition, {
+            'active_ribo_concs': [],
+            'growth_rates': [],
+            'tet_concs': []
+        })
+        aggregate_data[condition]['active_ribo_concs'].append(
+            (agent_data.loc[:, 'Active ribosomes'] /
             agent_data.loc[:, 'Volume']).mean() *
             COUNTS_PER_FL_TO_NANOMOLAR / 1000)
-        growth_rates.append(agent_data.loc[:, 'Doubling rate'].mean())
-        tet_concs.append(agent_data.loc[:, 'Cytoplasmic tetracycline'].mean() * 1000)
+        aggregate_data[condition]['growth_rates'].append(
+            agent_data.loc[:, 'Doubling rate'].mean())
+        aggregate_data[condition]['tet_concs'].append(
+            agent_data.loc[:, 'Initial external tet.'].mean() * 1000)
     data = pd.concat(new_data)
-    plt.scatter(active_ribo_concs, growth_rates, alpha=0.5, c=tet_concs)
+    cmap = matplotlib.colormaps['viridis']
+    norm = matplotlib.colors.Normalize(vmin=0, vmax=9)
+    for condition, cond_data in aggregate_data.items():
+        color = cmap(norm(cond_data['tet_concs'][0]))
+        plt.scatter(
+            cond_data['active_ribo_concs'],
+            cond_data['growth_rates'], alpha=0.5,
+            c=color, label=np.round(cond_data['tet_concs'][0], 3))
+    plt.ylim(0, plt.ylim()[1])
     sns.despine(offset=0.1, trim=True)
-    cbar = plt.colorbar()
-    cbar.ax.set_label('Tetracycline (cytoplasm, uM)')
+    legend = plt.legend(frameon=False)
+    legend.set_title('Tetracycline (uM)')
     plt.xlabel('Active ribosomes (mM)')
     plt.ylabel('Doubling rate (1/hr)')
     plt.tight_layout()
     plt.savefig('out/analysis/paper_figures/growth_rate_variation.svg')
     plt.close()
-    
-    # Get median glucose growth rate at each timestep
-    glucose_data = data.loc[data.loc[:, 'Condition']=='Glucose', :]
-    med_growth_rate = glucose_data.loc[:, ['Doubling rate', 'Time']].groupby(
-        'Time').median()
-    fc_col = 'Growth rate\n($\mathregular{log_2}$ fold change)'
-    data[fc_col] = data.loc[:, 'Doubling rate']
 
-    # Get log 2 fold change over median glucose growth rate at each timestep
-    for time in med_growth_rate.index:
-        data.loc[data.loc[:, 'Time']==time, fc_col] = data.loc[data.loc[
-            :, 'Time']==time, fc_col] / med_growth_rate.loc[time, 'Doubling rate']
-    data.loc[:, fc_col] = np.log2(data.loc[:, fc_col])
+    # Get log 2 fold change over mean glucose growth rate
+    glucose_data = data.loc[data.loc[:, 'Condition'] == 'Glucose', :]
+    mean_growth_rate = glucose_data.loc[:, 'Doubling rate'].mean()
+    fc_col = 'Growth rate\n($\mathregular{log_2}$ fold change)'
+    data.loc[:, fc_col] = np.log2(data.loc[:, 'Doubling rate'] / mean_growth_rate)
+
     # Set up custom divergent colormap
     cmp = matplotlib.colors.LinearSegmentedColormap.from_list(
         'divergent', [(0, 0.4, 1), (1, 1, 1), (0.678, 0, 0.125)])
@@ -555,12 +563,50 @@ def make_figure_3(data, metadata):
 
 def make_figure_3_validation(data):
     genes_to_plot = DE_GENES.loc[:, 'Gene name']
-    fig, ax = plt.subplots(3, 1, figsize=(4, 7))
+    fig, ax = plt.subplots(2, 1, figsize=(4, 6))
     plot_synth_prob_fc(data, ax[0], genes_to_plot)
     plot_mrna_fc(data, ax[1], genes_to_plot)
-    plot_protein_synth_inhib(data, ax[2])
     plt.tight_layout()
     fig.savefig('out/analysis/paper_figures/tet_synth_prob.svg')
+    plt.close()
+
+
+def make_figure_4(data, metadata):
+    # Get fold change over average glucose porosity
+    data['Relative porosity'] = data.loc[:, 'Porosity'] * data.loc[:, 'Extension factor']
+    mean_glc_porosity = data.loc[data.loc[:, 'Condition'] == 'Glucose', 
+        'Relative porosity'].mean()
+    fc_col = 'Porosity\n($\mathregular{log_2}$ fold change)'
+    data.loc[:, fc_col] = np.log2(data.loc[:, 'Relative porosity'] / mean_glc_porosity)
+    data.loc[data.loc[:, fc_col]==-np.inf, fc_col] = 0
+
+    # Set up custom divergent colormap
+    cmp = matplotlib.colors.LinearSegmentedColormap.from_list(
+        'divergent', [(0, 0.4, 1), (1, 1, 1), (0.678, 0, 0.125)])
+    magnitude = data.loc[:, fc_col].abs().max()
+    norm = matplotlib.colors.Normalize(vmin=-magnitude, vmax=magnitude)
+    plot_tag_snapshots(
+        data=data, metadata=metadata, tag_colors={fc_col: {'cmp': cmp, 'norm': norm}},
+        snapshot_times=np.array([1.9, 3.2, 4.5, 5.8, 7.1]) * 3600)
+
+    data['AmpC conc'] = data.loc[:, 'AmpC monomer'] / data.loc[:, 'Volume'] * COUNTS_PER_FL_TO_NANOMOLAR
+    data['OmpF conc'] = data.loc[:, 'OmpF monomer'] / data.loc[:, 'Volume'] * COUNTS_PER_FL_TO_NANOMOLAR
+    amp_data = data.loc[data.loc[:, 'Condition'] == 'Ampicillin (2 mg/L)', :]
+    grouped_agents = amp_data.groupby(['Condition', 'Agent ID'])
+    plt.scatter(grouped_agents['AmpC conc'].mean(), grouped_agents['Periplasmic ampicillin'].mean() * 1000)
+    plt.xlabel('AmpC concentration (nM)')
+    plt.ylabel('Ampicillin (periplasm, uM)')
+    plt.savefig('out/analysis/paper_figures/ampc_var.svg')
+    plt.close()
+    plt.scatter(grouped_agents['AcrAB-TolC'].mean(), grouped_agents['Periplasmic ampicillin'].mean() * 1000)
+    plt.xlabel('AcrAB-TolC concentration (nM)')
+    plt.ylabel('Ampicillin (periplasm, uM)')
+    plt.savefig('out/analysis/paper_figures/efflux_var.svg')
+    plt.close()
+    plt.scatter(grouped_agents['OmpF conc'].mean(), grouped_agents['Periplasmic ampicillin'].mean() * 1000)
+    plt.xlabel('OmpF concentration (nM)')
+    plt.ylabel('Ampicillin (periplasm, uM)')
+    plt.savefig('out/analysis/paper_figures/porin_var.svg')
     plt.close()
 
 
@@ -680,13 +726,11 @@ def main():
     # make_figure_2(data, metadata)
 
     # Uncomment to create Figure 3 (seed 0 required for multiple concentrations)
+    # conditions = ['Glucose', 'Tetracycline (4 mg/L)', 'Tetracycline (2 mg/L)',
+    #     'Tetracycline (1.5 mg/L)', 'Tetracycline (1 mg/L)', 'Tetracycline (0.5 mg/L)']
     # tet_ids = [
-    #     EXPERIMENT_ID_MAPPING['Glucose'][0],
-    #     EXPERIMENT_ID_MAPPING['Tetracycline (4 mg/L)'][0],
-    #     EXPERIMENT_ID_MAPPING['Tetracycline (2 mg/L)'][0],
-    #     EXPERIMENT_ID_MAPPING['Tetracycline (1.5 mg/L)'][0],
-    #     EXPERIMENT_ID_MAPPING['Tetracycline (1 mg/L)'][0],
-    #     EXPERIMENT_ID_MAPPING['Tetracycline (0.5 mg/L)'][0],
+    #     EXPERIMENT_ID_MAPPING[condition][0]
+    #     for condition in conditions
     # ]
     # tet_ids = [
     #     EXPERIMENT_ID_MAPPING['Glucose'][0],
@@ -699,19 +743,32 @@ def main():
     # tet_data = []
     # tet_metadata = {}
     # for exp_id in tet_ids:
-    #     with open(f'data/sim_dfs/{exp_id}.pkl', 'rb') as f:
+    #     with open(f'data/tet_fails/{exp_id}.pkl', 'rb') as f:
     #         tet_data.append(pickle.load(f))
-    #     with open(f'data/sim_dfs/{exp_id}_metadata.pkl', 'rb') as f:
+    #     with open(f'data/tet_fails/{exp_id}_metadata.pkl', 'rb') as f:
     #         tet_metadata.update(pickle.load(f))
     # tet_data = pd.concat(tet_data)
+    # tet_data = tet_data.sort_values(['Condition', 'Seed', 'Time'])
+    # initial_external_tet = []
+    # for condition in tet_data['Condition'].unique():
+    #     cond_data = tet_data.loc[tet_data.loc[:, 'Condition'] == condition, :]
+    #     initial_external_tet += [cond_data.loc[:, 'Boundary'].iloc[9]['external'][
+    #         'tetracycline']] * len(cond_data)
+    # tet_data['Initial external tet.'] = initial_external_tet
     # make_figure_3(tet_data, tet_metadata)
     # make_figure_3_validation(tet_data)
 
     # Uncomment to create Figure 4 (seed 0 required for multiple concentrations)
-    # with open('data/sim_dfs/2022-10-28_05-47-52_977686+0000.pkl', 'rb') as f:
-    #     amp_data = pickle.load(f)
-    # with open('data/sim_dfs/2022-10-28_05-47-52_977686+0000_metadata.pkl', 'rb') as f:
-    #     amp_metadata = pickle.load(f)
+    # amp_ids = [EXPERIMENT_ID_MAPPING['Glucose'][0], '2022-11-14_19-51-23_936218+0000']
+    # amp_data = []
+    # amp_metadata = {}
+    # for exp_id in amp_ids:
+    #     with open(f'data/sim_dfs/{exp_id}.pkl', 'rb') as f:
+    #         amp_data.append(pickle.load(f))
+    #     with open(f'data/sim_dfs/{exp_id}_metadata.pkl', 'rb') as f:
+    #         amp_metadata.update(pickle.load(f))
+    # amp_data = pd.concat(amp_data)
+    # make_figure_4(amp_data, amp_metadata)
 
 
 if __name__ == '__main__':
