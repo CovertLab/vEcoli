@@ -1,14 +1,18 @@
-from typing import List, Dict
 import os
+from typing import List
+
+import matplotlib
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
-import matplotlib.pyplot as plt
+from scipy.optimize import curve_fit, root_scalar
 
-from ecoli.analysis.antibiotics_colony import (
-    MAX_TIME, SPLIT_TIME, DE_GENES, restrict_data)
+from ecoli.analysis.antibiotics_colony import (DE_GENES, MAX_TIME, SPLIT_TIME,
+                                               restrict_data)
 
-def plot_colony_growth_rates(
+
+def plot_colony_growth(
     data: pd.DataFrame,
     ax: plt.Axes = None,
 ) -> None:
@@ -22,22 +26,32 @@ def plot_colony_growth_rates(
             2 conditions and 1 seed per condition.
         axes: Instance of Matplotlib Axes to plot on
     '''
-    columns_to_include = ['Dry mass', 'Condition', 'Time']
+    data['tet_conc'] = np.round(data.loc[:, 'Initial external tet.'] * 1000, 3)
+    columns_to_include = ['Dry mass', 'Time', 'tet_conc', 'Condition']
     data = data.loc[:, columns_to_include]
-    mask = (data.loc[:, 'Condition']=='Glucose') & (
+    mask = (data.loc[:, 'tet_conc']==0) & (
         data.loc[:, 'Time'] > SPLIT_TIME) & (
         data.loc[:, 'Time'] <= MAX_TIME)
     remaining_glucose_data = data.loc[mask, :]
     data = restrict_data(data)
     data = pd.concat([data, remaining_glucose_data])
-    data = data.groupby(['Condition', 'Time']).sum().reset_index()
+    data = data.groupby(['tet_conc', 'Time']).sum().reset_index()
     
     # Convert time to hours
     data.loc[:, 'Time'] = data.loc[:, 'Time'] / 3600
 
+    cmap = matplotlib.colormaps['Greys']
+    tet_min = data.loc[:, 'tet_conc'].min()
+    tet_max = data.loc[:, 'tet_conc'].max()
+    norm = matplotlib.colors.Normalize(
+        vmin=1.5*tet_min-0.5*tet_max, vmax=tet_max)
+    tet_concs = data.loc[:, 'tet_conc'].unique()
+    palette = {tet_conc: cmap(norm(tet_conc)) for tet_conc in tet_concs}
+    palette[3.375] = (0, 0.4, 1)
+
     sns.lineplot(
         data=data, x='Time', y='Dry mass',
-        hue='Condition', ax=ax, palette='viridis', errorbar=None)
+        hue='tet_conc', ax=ax, palette=palette, errorbar=None)
     # Set y-limits so that major ticks surround data
     curr_ylimits = np.log10([
         data.loc[:, 'Dry mass'].min(),
@@ -49,6 +63,7 @@ def plot_colony_growth_rates(
     ax.set_xticks(ticks=ticks, labels=labels)
     # Log scale so linear means exponential growth
     ax.set(yscale='log')
+    ax.legend(frameon=False, title='Tetracycline (uM)', fontsize=8, title_fontsize=8)
     sns.despine(ax=ax, offset=3, trim=True)
 
 
@@ -148,35 +163,10 @@ def plot_mrna_fc(
     sns.despine(ax=ax, offset=3, trim=True)
 
 
-def plot_vs_distance_from_center(
-    data: pd.DataFrame,
-    bounds: tuple = None,
-    ax: plt.Axes = None,
-    column_to_plot: str = None,
-):
-    '''Plot scatter plot of a given column vs distance from environment center.
-
-    Args:
-        data: DataFrame where each row is an agent and each column is a variable
-            of interest. Supply at most 1 condition. Multiple seeds are OK.
-        bounds: Tuple representing width and height of environment.
-        axes: Single instance of Matplotlib Axes to plot on.
-        column_to_plot: Column to plot against distance from center.
-    '''
-    data = data.loc[data.loc[:, column_to_plot] > 0, :]
-    if len(data) == 0:
-        return
-    center = np.array(bounds) / 2
-    locations = np.array(data.loc[:, 'Boundary'].apply(
-        lambda x: x['location']).tolist())
-    data['Distance'] = np.linalg.norm(locations-center, axis=1)
-
-    sns.regplot(data=data, x='Distance', y=column_to_plot, ax=ax)
-
-
 def plot_protein_synth_inhib(
     data: pd.DataFrame,
     ax: plt.Axes = None,
+    literature: pd.DataFrame = None,
 ):
     '''Plot scatter plot of normalized % protein synthesis inhibition across a 
     variety of tetracycline concentrations.
@@ -184,32 +174,87 @@ def plot_protein_synth_inhib(
     Args:
         data: DataFrame where each row is an agent and each column is a variable
             of interest. Must have these columns: 'Time', 'Condition', 'Seed',
-            and 'Dry Mass'. The first experimental condition in the 'Condition'
-            column is treated as a control.
+            and 'Dry Mass'.
         ax: Single instance of Matplotlib Axes to plot on.
+        literature: DataFrames with 3 columns: 'Tetracycline', 'Percent inhibition',
+            and 'Source'
     '''
-    # Normalize by ribosome count and total mRNA count so synthesis rates are
-    # comparable with those from in vitro transcription/translation systems,
-    # where these counts should be nearly constant over the course of the assay
-    data = data.sort_values(by=['Condition', 'Seed', 'Agent ID', 'Time'])
-    data['Total ribosomes'] = (data.loc[:, 'Active ribosomes'] +
-        data.loc[:, 'Inactive 30S subunit'])
-    data.loc[:, 'Cytoplasmic tetracycline'] *= 1000
-    data['Protein delta'] = np.append([0], np.diff(data.loc[:, 'Protein mass']))
-    data['Normed delta'] = data.loc[:, 'Protein delta'] / data.loc[
-        :, 'Total ribosomes'] / data.loc[:, 'Total mRNA']
-    columns_to_include = ['Normed delta', 'Cytoplasmic tetracycline',
-        'Condition', 'Seed', 'Agent ID']
-    normed_deltas = data.loc[:, columns_to_include].groupby([
-        'Condition', 'Seed', 'Agent ID']).agg(
-        lambda x: np.mean(x[1:])).reset_index()
-    normed_deltas = normed_deltas.groupby(['Condition']).mean()
-    normed_deltas['Percent inhibition'] = 1 - (normed_deltas.loc[
-        :, 'Normed delta'] / normed_deltas.loc['Glucose', 'Normed delta'])
-    sns.scatterplot(data=normed_deltas, x='Cytoplasmic tetracycline',
-        y='Percent inhibition', ax=ax)
+    # Assume tetracycline is added at t = 0 (reached equilibrium by 400 s)
+    sampled_time = data.loc[(data.loc[:, 'Time'] > 400) & (data.loc[:, 'Time'] < 500), :]
+    sampled_time['Total ribosomes'] = (sampled_time.loc[:, 'Active ribosomes'] +
+        sampled_time.loc[:, 'Inactive 30S subunit'])
+    sampled_time.loc[:, 'Cytoplasmic tetracycline'] *= 1000
+    sampled_time = sampled_time.sort_values('Time')
+
+    grouped_agents = sampled_time.groupby(['Condition', 'Seed', 'Agent ID'])
+    normed_data = {
+        'Condition': [],
+        'Normed delta': [],
+        'Tetracycline': []
+    }
+    for (condition, seed, agent_id), agent_data in grouped_agents:
+        protein_deltas = np.diff(agent_data.loc[:, 'Protein mass'])
+        # Ignore final timestep (protein mass deltas require two timepoints)
+        agent_data = agent_data.iloc[:-1, :]
+        # Normalize by ribosome and RNA counts to match cell-free system
+        normed_deltas = protein_deltas / agent_data.loc[:,
+            'Total ribosomes'] / agent_data.loc[:, 'Total mRNA']
+        normed_data['Condition'].append(condition)
+        normed_data['Normed delta'].append(normed_deltas.mean())
+        normed_data['Tetracycline'].append(agent_data.loc[
+            :, 'Cytoplasmic tetracycline'].mean())
+    normed_data = pd.DataFrame(normed_data)
+    normed_data = normed_data.groupby(['Condition']).mean()
+    control = normed_data.index[normed_data['Tetracycline']==0]
+    normed_data['Percent inhibition'] = 1 - (normed_data.loc[
+        :, 'Normed delta'] / normed_data.loc[control, 'Normed delta'].to_numpy())
+    normed_data['Source'] = ['Simulation'] * len(normed_data)
+    normed_data = normed_data.loc[:, ['Percent inhibition',
+        'Tetracycline', 'Source']]
+    normed_data = normed_data.loc[normed_data.loc[:, 'Tetracycline']>0, :]
+    palette = {'Simulation': (0, 0.4, 1)}
+    if literature is not None:
+        gray = 0.3
+        for source in literature.loc[:, 'Source'].unique():
+            palette[source] = str(gray)
+            gray += 0.3
+        normed_data = pd.concat([normed_data, literature])
+    fig, ax = plt.subplots(1, 1)
+    def func(x, a, b, c):
+        return  a * np.power(x, b) / (np.power(c, b) + np.power(x, b))
+
+    
+    ic_50 = []
+    normed_data = normed_data.sort_values('Source')
+    for i, source in enumerate(normed_data.loc[:, 'Source'].unique()):
+        source_data = normed_data.loc[normed_data.loc[:, 'Source']==source, :]
+        fittedParameters, pcov = curve_fit(func, source_data['Tetracycline'], source_data['Percent inhibition'])
+        x = np.linspace(source_data['Tetracycline'].min(), source_data['Tetracycline'].max(), 10000)
+        pred = func(x, *(fittedParameters))
+        ax.plot(x, pred, c=palette[source])
+        sol = root_scalar(lambda x: func(x, *fittedParameters) - 0.5, x0=10, x1=5)
+        ic_50 += [' (' + r'$\mathregular{IC_{50}} = $' + str(np.round(sol.root, 1)) + ' uM)'] * len(source_data)
+    normed_data.loc[:, 'Source'] = normed_data.loc[:, 'Source'].str.cat(ic_50)
+
+    new_palette = {}
+    sources_new = normed_data.loc[:, 'Source'].unique()
+    for source in sources_new:
+        for orig_source in palette:
+            if orig_source in source:
+                new_palette[source] = palette[orig_source]
+    palette = new_palette
+
+    sns.scatterplot(data=normed_data, x='Tetracycline',
+        y='Percent inhibition', hue='Source', ax=ax, palette=palette)
     ax.set_xscale('log')
-    sns.despine(ax=ax, offset=3, trim=True)
+    sns.despine(offset=3, trim=True)
+    plt.legend(frameon=False)
+    ax.set_xticks(ax.get_xticks(minor=True)[16:40], minor=True)
+    ax.set_ylabel(r'% inhibtion protein synthesis')
+    ax.set_xlabel('Tetracycline (cytoplasm, uM)')
+
+    plt.savefig('out/analysis/paper_figures/synth_inhib.svg')
+    plt.close()
 
 
 def plot_mass_fraction(

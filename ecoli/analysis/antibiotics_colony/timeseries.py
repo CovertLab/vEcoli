@@ -1,17 +1,16 @@
-from typing import List, Dict, Any
 import itertools
-
 import os
+from typing import Any, Dict, List
+
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
-import matplotlib.pyplot as plt
 from matplotlib.colors import rgb_to_hsv
 
+from ecoli.analysis.antibiotics_colony import (COUNTS_PER_FL_TO_NANOMOLAR,
+                                               restrict_data)
 from ecoli.plots.snapshots import plot_snapshots, plot_tags
-
-from ecoli.analysis.antibiotics_colony import (
-    COUNTS_PER_FL_TO_NANOMOLAR, restrict_data)
 
 
 def plot_timeseries(
@@ -157,6 +156,7 @@ def plot_field_snapshots(
     min_pct=1,
     max_pct=1,
     colorbar_decimals=1,
+    return_fig=False
 ) -> None:
     '''Plot a row of snapshot images that span a replicate for each condition.
     In each of these images, the cell corresponding to a highlighted lineage
@@ -178,6 +178,7 @@ def plot_field_snapshots(
         max_pct: Percent of maximum field concentration to use as maximum value
             in colorbar (1 = 100%)
         colorbar_decimals: Number of decimals to include in colorbar labels.
+        return_fig: Whether to return the Figure
     '''
     # Last snapshot at last tenth of an hour
     max_time_hrs = np.around(data.loc[:, 'Time'].max()/3600, decimals=1)
@@ -239,6 +240,8 @@ def plot_field_snapshots(
     snapshots_fig.savefig('out/analysis/paper_figures/' + 
         f'{condition.replace("/", "_")}_seed_{seed}_fields.svg',
         bbox_inches='tight')
+    if return_fig:
+        return snapshots_fig
     plt.close(snapshots_fig)
 
 
