@@ -15,6 +15,9 @@ from ecoli.analysis.antibiotics_colony import (DE_GENES, MAX_TIME, SPLIT_TIME,
 def plot_colony_growth(
     data: pd.DataFrame,
     ax: plt.Axes = None,
+    antibiotic: str = 'Tetracycline',
+    antibiotic_col: str = 'Initial external tet.',
+    mic: float = 3.375
 ) -> None:
     '''Plot traces of total colony mass and total colony growth rate.
 
@@ -25,33 +28,37 @@ def plot_colony_growth(
             column is treated as a control (default gray). Include at most
             2 conditions and 1 seed per condition.
         axes: Instance of Matplotlib Axes to plot on
+        antibiotic: Name of antibiotic to put as legend title
+        antibiotic_col: Name of column with initial external antibiotic concs.
+        mic: Minimum inhibitory concentration (uM, rounded to 3 decimal places)
     '''
-    data['tet_conc'] = np.round(data.loc[:, 'Initial external tet.'] * 1000, 3)
-    columns_to_include = ['Dry mass', 'Time', 'tet_conc', 'Condition']
+    data['antibiotic_conc'] = np.round(data.loc[:, antibiotic_col] * 1000, 3)
+    columns_to_include = ['Dry mass', 'Time', 'antibiotic_conc', 'Condition']
     data = data.loc[:, columns_to_include]
-    mask = (data.loc[:, 'tet_conc']==0) & (
+    mask = (data.loc[:, 'antibiotic_conc']==0) & (
         data.loc[:, 'Time'] > SPLIT_TIME) & (
         data.loc[:, 'Time'] <= MAX_TIME)
     remaining_glucose_data = data.loc[mask, :]
     data = restrict_data(data)
     data = pd.concat([data, remaining_glucose_data])
-    data = data.groupby(['tet_conc', 'Time']).sum().reset_index()
+    data = data.groupby(['antibiotic_conc', 'Time']).sum().reset_index()
     
     # Convert time to hours
     data.loc[:, 'Time'] = data.loc[:, 'Time'] / 3600
 
     cmap = matplotlib.colormaps['Greys']
-    tet_min = data.loc[:, 'tet_conc'].min()
-    tet_max = data.loc[:, 'tet_conc'].max()
+    tet_min = data.loc[:, 'antibiotic_conc'].min()
+    tet_max = data.loc[:, 'antibiotic_conc'].max()
     norm = matplotlib.colors.Normalize(
         vmin=1.5*tet_min-0.5*tet_max, vmax=tet_max)
-    tet_concs = data.loc[:, 'tet_conc'].unique()
-    palette = {tet_conc: cmap(norm(tet_conc)) for tet_conc in tet_concs}
-    palette[3.375] = (0, 0.4, 1)
+    antibiotic_concs = data.loc[:, 'antibiotic_conc'].unique()
+    palette = {antibiotic_conc: cmap(norm(antibiotic_conc))
+        for antibiotic_conc in antibiotic_concs}
+    palette[mic] = (0, 0.4, 1)
 
     sns.lineplot(
         data=data, x='Time', y='Dry mass',
-        hue='tet_conc', ax=ax, palette=palette, errorbar=None)
+        hue='antibiotic_conc', ax=ax, palette=palette, errorbar=None)
     # Set y-limits so that major ticks surround data
     curr_ylimits = np.log10([
         data.loc[:, 'Dry mass'].min(),
@@ -63,7 +70,7 @@ def plot_colony_growth(
     ax.set_xticks(ticks=ticks, labels=labels)
     # Log scale so linear means exponential growth
     ax.set(yscale='log')
-    ax.legend(frameon=False, title='Tetracycline (uM)', fontsize=8, title_fontsize=8)
+    ax.legend(frameon=False, title=f'{antibiotic} (uM)', fontsize=8, title_fontsize=8)
     sns.despine(ax=ax, offset=3, trim=True)
 
 
@@ -71,9 +78,11 @@ def plot_synth_prob_fc(
     data: pd.DataFrame,
     ax: plt.Axes = None,
     genes_to_plot: List[str] = None,
+    filter: float = 0.0
 ) -> None:
     '''Plot scatter plot of simulated and experimental log2 fold change for
     synthesis probabilities of key genes regulated during tetracycline exposure.
+    Uses log-scale colormap to show relative mRNA counts.
 
     Args:
         data: DataFrame where each row is an agent and each column is a variable
@@ -82,34 +91,51 @@ def plot_synth_prob_fc(
             column is treated as a control.
         ax: Single instance of Matplotlib Axes to plot on.
         genes_to_plot: List of gene names to include in plot.
+        filter: Minimum average instantaneous mRNA count that will still be plotted.
     '''
     data = data.loc[data.loc[:, 'Time'] <= MAX_TIME, :]
-    mrna_ids = [f'{gene} synth prob' for gene in genes_to_plot
-        if gene not in ['MicF', 'ompF']] + ['GAPDH synth prob']
-    mrna_data = data.loc[:, mrna_ids + ['Condition']]
+    data.loc[:, 'ompF mRNA'] += data.loc[:, 'micF-ompF duplex']
+    synth_probs = [f'{gene} synth prob' for gene in genes_to_plot
+        if gene not in ['MicF']]
+    mrna_cols = [f'{gene} mRNA' for gene in genes_to_plot
+        if gene not in ['MicF']]
+    mrna_data = data.loc[:, synth_probs + mrna_cols + ['Condition']]
     conditions = mrna_data.loc[:, 'Condition'].unique()
-    # Get average synthesis probability per condition
+    # Get average synthesis probabilities and mRNA counts per condition
     mrna_data = mrna_data.groupby(['Condition']).mean()
-    # Convert to relative amounts assuming that first condition is control
-    relative_data = np.log2(mrna_data.loc[conditions[1]] /
-        mrna_data.loc[conditions[0]])
+    # Convert to relative synth probs assuming that first condition is control
+    relative_data = np.log2(mrna_data.loc[conditions[1], synth_probs] /
+        mrna_data.loc[conditions[0], synth_probs])
     relative_data.index = [mrna_name.split(' synth prob')[0] for mrna_name in relative_data.index]
-    relative_data = pd.DataFrame(relative_data).rename(columns={0: 'Sim. RNA synth. prob. $\mathregular{log_2 FC}$'})
+    relative_data = pd.DataFrame(relative_data).rename(columns={
+        0: 'Sim. RNA synth. prob. $\mathregular{log_2 FC}$'})
+    relative_data['Avg. sim. mRNA'] = mrna_data.loc[conditions[1], mrna_cols].to_numpy()
     # Compare against literature relative amounts
     tet_degenes = DE_GENES.loc[:, ['Gene name', 'Fold change']].set_index(
-        'Gene name').drop(['MicF', 'ompF'], axis=0).rename(columns={
+        'Gene name').drop(['MicF'], axis=0).rename(columns={
             'Fold change': 'Literature RNA $\mathregular{log_2 FC}$'})
     tet_degenes.loc[:, 'Literature RNA $\mathregular{log_2 FC}$'] = np.log2(
         tet_degenes.loc[:, 'Literature RNA $\mathregular{log_2 FC}$'])
     relative_data = relative_data.join(tet_degenes, how='inner').reset_index()
     relative_data = relative_data.rename(columns={'index': 'Gene'})
 
-    sns.scatterplot(data=relative_data, x='Literature RNA $\mathregular{log_2 FC}$',
-        y='Sim. RNA synth. prob. $\mathregular{log_2 FC}$', ax=ax)
+    # Filter extremely low counts
+    relative_data = relative_data.loc[relative_data.loc[:, 'Avg. sim. mRNA'] >= filter]
+    norm = matplotlib.colors.LogNorm(vmin=relative_data.loc[:, 'Avg. sim. mRNA'].min(),
+        vmax=relative_data.loc[:, 'Avg. sim. mRNA'].max())
+    ompf_filter = (relative_data.loc[:, 'Gene'] == 'ompF')
+    sns.scatterplot(data=relative_data[ompf_filter],
+        x='Literature RNA $\mathregular{log_2 FC}$',
+        y='Sim. RNA synth. prob. $\mathregular{log_2 FC}$', ax=ax, 
+        c=(0, 0.4, 1), legend=False, edgecolor='k')
+    sns.scatterplot(data=relative_data[~ompf_filter],
+        x='Literature RNA $\mathregular{log_2 FC}$',
+        y='Sim. RNA synth. prob. $\mathregular{log_2 FC}$', ax=ax, hue='Avg. sim. mRNA',
+        hue_norm=norm, palette='binary', legend=False, edgecolor='k')
     min_fc = relative_data.loc[:, 'Literature RNA $\mathregular{log_2 FC}$'].min()
     max_fc = relative_data.loc[:, 'Literature RNA $\mathregular{log_2 FC}$'].max()
     validation_line = np.linspace(min_fc, max_fc, 2)
-    ax.plot(validation_line, validation_line, '--')
+    ax.plot(validation_line, validation_line, '--', c='0.4')
     sns.despine(ax=ax, offset=3, trim=True)
 
 
@@ -117,6 +143,7 @@ def plot_mrna_fc(
     data: pd.DataFrame,
     ax: plt.Axes = None,
     genes_to_plot: List[str] = None,
+    filter: float = 0.0
 ) -> None:
     '''Plot scatter plot of simulated and experimental log2 fold change for
     final mRNA concentrations of key genes regulated during tetracycline exposure.
@@ -127,17 +154,20 @@ def plot_mrna_fc(
             The first experimental condition in the 'Condition' column is treated as
             a control.
         genes_to_plot: List of gene names to include in plot.
+        filter: Minimum average instantaneous mRNA count that will still be plotted.
     '''
     data = data.loc[data.loc[:, 'Time'] <= MAX_TIME, :]
-    mrna_ids = [f'{gene} mRNA' for gene in genes_to_plot
-        if gene not in ['MicF', 'ompF']] + ['GAPDH mRNA']
-    mrna_data = data.loc[:, mrna_ids + ['Condition', 'Volume']]
+    data.loc[:, 'ompF mRNA'] += data.loc[:, 'micF-ompF duplex']
+    mrna_cols = [f'{gene} mRNA' for gene in genes_to_plot
+        if gene not in ['MicF']] + ['GAPDH mRNA']
+    mrna_data = data.loc[:, mrna_cols + ['Condition', 'Volume']]
     conditions = mrna_data.loc[:, 'Condition'].unique()
     # Get mRNA concentrations aggregated over entire final colonies
     mrna_data = mrna_data.set_index(['Condition'])
+    avg_inst_rna = mrna_data.loc[conditions[1], mrna_cols].mean().to_numpy()
     mrna_data = mrna_data.divide(mrna_data.loc[:, 'Volume'], axis=0).drop(
         ['Volume'], axis=1).reset_index()
-    mrna_data = mrna_data.groupby(['Condition']).sum()
+    mrna_data = mrna_data.groupby(['Condition']).mean()
     # Normalize by housekeeping gene expression
     mrna_data = mrna_data.divide(mrna_data.loc[:, 'GAPDH mRNA'], axis=0)
     # Convert to relative amounts assuming that first condition is control
@@ -145,21 +175,38 @@ def plot_mrna_fc(
             mrna_data.loc[conditions[0]]))
     relative_data.index = [mrna_name.split(' mRNA')[0] for mrna_name in relative_data.index]
     relative_data = relative_data.rename(columns={0: 'Sim. RNA $\mathregular{log_2 FC}$'})
+    relative_data['Avg. sim. mRNA'] = avg_inst_rna
     # Compare against literature relative amounts
     tet_degenes = DE_GENES.loc[:, ['Gene name', 'Fold change']].set_index(
-        'Gene name').drop(['MicF', 'ompF'], axis=0).rename(columns={
+        'Gene name').drop(['MicF'], axis=0).rename(columns={
             'Fold change': 'Literature RNA $\mathregular{log_2 FC}$'})
     tet_degenes.loc[:, 'Literature RNA $\mathregular{log_2 FC}$'] = np.log2(
         tet_degenes.loc[:, 'Literature RNA $\mathregular{log_2 FC}$'])
     relative_data = relative_data.join(tet_degenes, how='inner').reset_index()
     relative_data = relative_data.rename(columns={'index': 'Gene'})
 
-    sns.scatterplot(data=relative_data, x='Literature RNA $\mathregular{log_2 FC}$',
-        y='Sim. RNA $\mathregular{log_2 FC}$', ax=ax)
+    # Filter extremely low counts
+    relative_data = relative_data.loc[relative_data.loc[:, 'Avg. sim. mRNA'] >= filter]
+    norm = matplotlib.colors.LogNorm(vmin=relative_data.loc[:, 'Avg. sim. mRNA'].min(),
+        vmax=relative_data.loc[:, 'Avg. sim. mRNA'].max())
+    # Highlight ompF in blue
+    ompf_filter = (relative_data.loc[:, 'Gene'] == 'ompF')
+    sns.scatterplot(data=relative_data[ompf_filter],
+        x='Literature RNA $\mathregular{log_2 FC}$',
+        y='Sim. RNA $\mathregular{log_2 FC}$', ax=ax, 
+        c=(0, 0.4, 1), legend=False, edgecolor='k')
+    sns.scatterplot(data=relative_data[~ompf_filter],
+        x='Literature RNA $\mathregular{log_2 FC}$',
+        y='Sim. RNA $\mathregular{log_2 FC}$', ax=ax, hue='Avg. sim. mRNA',
+        hue_norm=norm, palette='binary', legend=False, edgecolor='k')
+    sm = plt.cm.ScalarMappable(cmap='binary', norm=norm)
+    sm.set_array([])
+    ax.figure.colorbar(sm, ax=ax.figure.axes, pad=0.01,
+        label='Avg. instantaneous mRNAs/cell')
     min_fc = relative_data.loc[:, 'Literature RNA $\mathregular{log_2 FC}$'].min()
     max_fc = relative_data.loc[:, 'Literature RNA $\mathregular{log_2 FC}$'].max()
     validation_line = np.linspace(min_fc, max_fc, 2)
-    ax.plot(validation_line, validation_line, '--')
+    ax.plot(validation_line, validation_line, '--', c='0.4')
     sns.despine(ax=ax, offset=3, trim=True)
 
 
