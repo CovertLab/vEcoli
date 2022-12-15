@@ -3,6 +3,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
+import statsmodels.formula.api as smf
+from statsmodels.stats.api import anova_lm
 
 from ecoli.analysis.antibiotics_colony import COUNTS_PER_FL_TO_NANOMOLAR
 from ecoli.analysis.antibiotics_colony.timeseries import plot_tag_snapshots
@@ -11,52 +13,103 @@ from ecoli.analysis.antibiotics_colony.timeseries import plot_tag_snapshots
 def plot_exp_growth_rate(data, metadata):
     grouped_agents = data.groupby(['Condition', 'Agent ID'])
     new_data = []
-    aggregate_data = {
-        'active_ribo_concs': [],
-        'growth_rates': [],
-        'tet_concs': [],
-    }
     for _, agent_data in grouped_agents:
         delta_t = np.diff(agent_data.loc[:, 'Time'], append=0)
-        # Ignore cells for which less than 100 timepoints of data exist
-        if len(delta_t) < 100:
+        # Ignore cells for which less than 10 timepoints of data exist
+        # to avoid outliers from instability in first few timesteps
+        if len(delta_t) < 10:
             continue
         delta_t[-1] = delta_t[-2]
         dry_mass = agent_data.loc[:, 'Dry mass']
         mass_ratio = dry_mass[1:].to_numpy() / dry_mass[:-1].to_numpy()
         mass_ratio = np.append(mass_ratio, mass_ratio[-1])
         agent_data['Doubling rate'] = np.log2(mass_ratio) / delta_t * 3600
-        new_data.append(agent_data)
-        aggregate_data['active_ribo_concs'].append(
-            (agent_data.loc[:, 'Active ribosomes'] /
-            agent_data.loc[:, 'Volume']).mean() *
+        agent_data['active_ribo_concs'] = (agent_data.loc[
+            :, 'Active ribosomes'] / agent_data.loc[:, 'Volume'] *
             COUNTS_PER_FL_TO_NANOMOLAR / 1000)
-        aggregate_data['growth_rates'].append(
-            agent_data.loc[:, 'Doubling rate'].mean())
-        aggregate_data['tet_concs'].append(np.round(
-            agent_data.loc[:, 'Initial external tet.'].mean() * 1000, 3))
-    aggregate_data = pd.DataFrame(aggregate_data)
+        agent_data['active_rnap_concs'] = (agent_data.loc[
+            :, 'Active RNAP'] / agent_data.loc[:, 'Volume'] *
+            COUNTS_PER_FL_TO_NANOMOLAR / 1000)
+        agent_data['tet_concs'] = np.round(
+            agent_data.loc[:, 'Initial external tet.'] * 1000, 3)
+        new_data.append(agent_data)
+
     data = pd.concat(new_data)
     cmap = matplotlib.colormaps['Greys']
-    tet_min = aggregate_data.loc[:, 'tet_concs'].min()
-    tet_max = aggregate_data.loc[:, 'tet_concs'].max()
+    tet_min = data.loc[:, 'tet_concs'].min()
+    tet_max = data.loc[:, 'tet_concs'].max()
     norm = matplotlib.colors.Normalize(
         vmin=1.5*tet_min-0.5*tet_max, vmax=tet_max)
-    tet_concs = aggregate_data.loc[:, 'tet_concs'].unique()
+    tet_concs = data.loc[:, 'tet_concs'].unique()
     palette = {tet_conc: cmap(norm(tet_conc)) for tet_conc in tet_concs}
     palette[3.375] = (0, 0.4, 1)
-    joint = sns.jointplot(data=aggregate_data, x='active_ribo_concs',
-        y='growth_rates', hue='tet_concs', palette=palette, marginal_kws={
-            'common_norm': False}, joint_kws={'edgecolors': 'face'})
-    joint.ax_joint.set_ylim(0, joint.ax_joint.get_ylim()[1])
-    sns.despine(offset=0.1, trim=True, ax=joint.ax_joint)
-    legend = joint.ax_joint.legend(frameon=False)
-    legend.set_title('Tetracycline (uM)')
-    joint.ax_joint.set_xlabel('Active ribosomes (mM)')
-    joint.ax_joint.set_ylabel('Doubling rate (1/hr)')
-    plt.tight_layout()
-    plt.savefig('out/analysis/paper_figures/growth_rate_variation.svg')
-    plt.close()
+    
+    time_boundaries = np.linspace(11550, 26000, 4)
+    time_boundaries[-1] = 26002
+    cols_to_plot = ['active_ribo_concs', 'active_rnap_concs', 
+        'Doubling rate', 'tet_concs', 'Agent ID', 'Condition']
+    ylim = (0, 1.41)
+    xlim = (4, 26)
+    for i in range(3):
+        time_filter = ((data.loc[:, 'Time'] >= time_boundaries[i]) &
+            (data.loc[:, 'Time'] < time_boundaries[i+1]))
+        filtered_data = data.loc[time_filter, cols_to_plot]
+        mean_data = filtered_data.groupby(['Condition', 'Agent ID']).mean()
+        joint = sns.jointplot(data=mean_data, x='active_ribo_concs',
+            y='Doubling rate', hue='tet_concs', palette=palette, marginal_kws={
+                'common_norm': False}, joint_kws={'edgecolors': 'face'}, height=4)
+        joint.ax_joint.set_ylim(ylim)
+        joint.ax_joint.set_xlim(xlim)
+        if i == 0:
+            sns.despine(offset=0.1, trim=True, ax=joint.ax_joint)
+            sns.despine(trim=True, ax=joint.ax_marg_x, left=True)
+            sns.despine(trim=True, ax=joint.ax_marg_y, bottom=True)
+            legend = joint.ax_joint.legend(frameon=False, loc='lower left')
+            legend.set_title('Tetracycline (uM)')
+            joint.ax_joint.set_xlabel('Active ribosomes (mM)')
+            joint.ax_joint.set_ylabel('Doubling rate (1/hr)')
+        else:
+            sns.despine(offset=0.1, left=True, trim=True, ax=joint.ax_joint)
+            sns.despine(trim=True, ax=joint.ax_marg_x, left=True)
+            sns.despine(trim=True, ax=joint.ax_marg_y, bottom=True)
+            joint.ax_joint.set_xlabel('Active ribosomes (mM)')
+            joint.ax_joint.yaxis.set_visible(False)
+        plt.savefig(f'out/analysis/paper_figures/growth_rate_var_ribo_{i}.svg')
+        plt.close()
+    
+    xlim = (0, 10)
+    ylim = (0, 0.09)
+    for i in range(3):
+        time_filter = ((data.loc[:, 'Time'] >= time_boundaries[i]) &
+            (data.loc[:, 'Time'] < time_boundaries[i+1]))
+        filtered_data = data.loc[time_filter, cols_to_plot]
+        mean_data = filtered_data.groupby(['Condition', 'Agent ID']).mean()
+        mean_data['Ribo-normed doubling rate'] = (
+            mean_data.loc[:, 'Doubling rate'] / 
+            mean_data.loc[:, 'active_ribo_concs'])
+        joint = sns.jointplot(data=mean_data, x='active_rnap_concs',
+            y='Ribo-normed doubling rate', hue='tet_concs', palette=palette,
+            marginal_kws={'common_norm': False}, joint_kws={
+                'edgecolors': 'face'}, height=4)
+        joint.ax_joint.set_ylim(ylim)
+        joint.ax_joint.set_xlim(xlim)
+        if i == 0:
+            sns.despine(offset=3, trim=True, ax=joint.ax_joint)
+            sns.despine(trim=True, ax=joint.ax_marg_x, left=True)
+            sns.despine(trim=True, ax=joint.ax_marg_y, bottom=True)
+            legend = joint.ax_joint.legend(frameon=False, loc='upper right')
+            legend.set_title('Tetracycline (uM)')
+            joint.ax_joint.set_xlabel('mRNA (mM)')
+            joint.ax_joint.set_ylabel('Adj. doubling rate (1/hr/mM ribosome)')
+        else:
+            sns.despine(offset=3, left=True, trim=True, ax=joint.ax_joint)
+            sns.despine(trim=True, ax=joint.ax_marg_x, left=True)
+            sns.despine(trim=True, ax=joint.ax_marg_y, bottom=True)
+            joint.ax_joint.legend().remove()
+            joint.ax_joint.set_xlabel('mRNA (mM)')
+            joint.ax_joint.yaxis.set_visible(False)
+        plt.savefig(f'out/analysis/paper_figures/growth_rate_var_mrna_{i}.svg')
+        plt.close()
 
     # Get log 2 fold change over mean glucose growth rate
     glucose_data = data.loc[data.loc[:, 'Condition'] == 'Glucose', :]
