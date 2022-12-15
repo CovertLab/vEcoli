@@ -69,8 +69,8 @@
             "srna_ids": ["MICF-RNA[c]"],
             "target_ids": ["EG10671_RNA[c]"],
             "duplex_ids": ["micF-ompF[c]"],
-            "duplex_deg_rates": [8.6e-3],
-            "duplex_km": [5.4e-5],
+            "duplex_deg_rates": [0.00135911],
+            "duplex_km": [0.00034204],
             "binding_probs": [1],
             "time_step": 2
         },
