@@ -322,14 +322,15 @@ class RnaDegradation(PartitionedProcess):
             
             # NEW to vivarium-ecoli
             # Degrade miscRNAs, including RNA duplexes from RNA interference
-            n_existing_miscrnas = np.dot(self.is_miscRNA, rna_exists)
-            if n_existing_miscrnas > 0:
+            if np.dot(self.is_miscRNA, rna_exists) > 0:
                 miscrna_specificity = np.dot(frac_endornase_saturated, self.is_miscRNA)
                 n_total_miscrnas_to_degrade = self._calculate_total_n_to_degrade(
                     timestep,
                     miscrna_specificity,
                     total_kcat_endornase)
-                miscrna_deg_probs = 1. / n_existing_miscrnas * self.is_miscRNA * rna_exists
+                miscrna_deg_probs = (1. / np.dot(miscrna_specificity,
+                    self.is_miscRNA * rna_exists) * miscrna_specificity *
+                    self.is_miscRNA * rna_exists)
                 miscrna_counts = total_RNA_counts * self.is_miscRNA
                 n_miscrnas_to_degrade = self._get_rnas_to_degrade(
                     n_total_miscrnas_to_degrade, miscrna_deg_probs, miscrna_counts)
