@@ -328,7 +328,7 @@ class RnaDegradation(PartitionedProcess):
                     timestep,
                     miscrna_specificity,
                     total_kcat_endornase)
-                miscrna_deg_probs = (1. / np.dot(miscrna_specificity,
+                miscrna_deg_probs = (1. / np.dot(rna_specificity,
                     self.is_miscRNA * rna_exists) * miscrna_specificity *
                     self.is_miscRNA * rna_exists)
                 miscrna_counts = total_RNA_counts * self.is_miscRNA
