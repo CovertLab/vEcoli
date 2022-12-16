@@ -33,6 +33,10 @@ class LoadSimData:
         self.ppgpp_regulation = ppgpp_regulation
 
         self.submass_indexes = MASSDIFFS
+        
+        # NEW to vivarium-ecoli: Whether to lump miscRNA with mRNAs
+        # when calculated degradation
+        self.degrade_misc = False
 
         # load sim_data
         with open(sim_data_path, 'rb') as sim_data_file:
@@ -67,10 +71,10 @@ class LoadSimData:
             new_deltaJ = np.array([24]*24)
             # Values were chosen to recapitulate mRNA fold change when exposed 
             # to 1.5 mg/L tetracycline (Viveiros et al. 2007)
-            new_deltaV = np.array([6.3e-1, 1.5e-1, 2.5e-2, 2.1e-2, 2.0e-3, 1.7e-2, 
-                -1e-4, 7.9e-3, 3.8e-2, 9.5e-5, 8.1e-3, 1.3e-3, 1.7e-3,
-                2.2e-1, 3.8e-3, 1.6e-4, -2.5e-7, 6.7e-5, 2.2e-2, 2.8e-2, 
-                2.8e-2, 4.2e-2, 8.6e-4, 1.4e-1]) / 1000
+            new_deltaV = np.array([1.4e-3, 1.7e-4, 2.7e-5, 2.1e-5, 2.0e-6, 1.8e-5, 
+                -1e-4, 7.1e-6, 7.2e-6, 1.2e-7, 6.7e-6, 1.4e-6, 1.8e-6,
+                2.2e-4, 3.9e-6, 8.4e-8, -2.5e-7, 7.8e-8, 2.2e-5, 6.5e-9, 
+                7.7e-6, 4.8e-5, 6.9e-7, 4.2e-4])
             
             treg_alias.delta_prob["deltaI"] = np.concatenate(
                 [treg_alias.delta_prob["deltaI"], new_deltaI])
@@ -241,6 +245,9 @@ class LoadSimData:
             treg_alias.delta_prob['shape'] = (
                 treg_alias.delta_prob['shape'][0] + 1,
                 treg_alias.delta_prob['shape'][1])
+
+            # Set flag so miscRNA duplexes are degraded together with mRNAs
+            self.degrade_misc = True
 
     def get_monomer_counts_indices(self, names):
         """Given a list of monomer names without location tags, this returns
@@ -479,6 +486,7 @@ class LoadSimData:
             'is_tRNA': self.sim_data.process.transcription.rna_data['is_tRNA'].astype(np.int64),
             # NEW to vivarium-ecoli, used to degrade duplexes from RNAi
             'is_miscRNA': self.sim_data.process.transcription.rna_data['is_miscRNA'].astype(np.int64),
+            'degrade_misc': self.degrade_misc,
             'rna_lengths': self.sim_data.process.transcription.rna_data['length'].asNumber(),
             'polymerized_ntp_ids': self.sim_data.molecule_groups.polymerized_ntps,
             'water_id': self.sim_data.molecule_ids.water,
