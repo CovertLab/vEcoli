@@ -14,7 +14,7 @@ from ecoli.analysis.antibiotics_colony import (COUNTS_PER_FL_TO_NANOMOLAR,
                                                MAX_TIME, SPLIT_TIME,
                                                restrict_data)
 from ecoli.analysis.antibiotics_colony.exploration import (
-    plot_exp_growth_rate)
+    plot_exp_growth_rate, plot_ampc_phylo)
 from ecoli.analysis.antibiotics_colony.timeseries import (plot_field_snapshots,
                                                           plot_tag_snapshots,
                                                           plot_timeseries)
@@ -378,6 +378,10 @@ def make_figure_4b(data, metadata):
         snapshot_times=np.array([1.9, 3.2, 4.5, 5.8, 7.1]) * 3600)
 
 
+def make_figure_4c(data, metadata):
+    plot_ampc_phylo(data)
+
+
 def load_pickles(experiment_ids):
     data = []
     metadata = {}
@@ -459,7 +463,8 @@ def main():
         '3f': [str(i) for i in range(11)],
         '4a': ['Glucose', 'Ampicillin (0.5 mg/L)', 'Ampicillin (1 mg/L)',
             'Ampicillin (1.5 mg/L)', 'Ampicillin (2 mg/L)',],
-        '4b': ['Glucose', 'Ampicillin (2 mg/L)']
+        '4b': ['Glucose', 'Ampicillin (2 mg/L)'],
+        '4c': ['Glucose', 'Ampicillin (2 mg/L)'],
     }
     seeds = {
         '1a': [10000],
@@ -469,10 +474,11 @@ def main():
         '3b': [0],
         '3c': [0],
         '3d': [0],
-        '3e': [0, 100, 10000],
+        '3e': [0, 10000],
         '3f': [0],
         '4a': [0],
         '4b': [0],
+        '4c': [0],
     }
     if args.fig_ids is None:
         args.fig_ids = conditions.keys()
