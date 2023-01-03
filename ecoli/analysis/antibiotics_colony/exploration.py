@@ -3,8 +3,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
-import statsmodels.formula.api as smf
-from statsmodels.stats.api import anova_lm
 
 from ecoli.analysis.antibiotics_colony import COUNTS_PER_FL_TO_NANOMOLAR
 from ecoli.analysis.antibiotics_colony.timeseries import plot_tag_snapshots
