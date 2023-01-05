@@ -71,10 +71,10 @@ class LoadSimData:
             new_deltaJ = np.array([24]*24)
             # Values were chosen to recapitulate mRNA fold change when exposed 
             # to 1.5 mg/L tetracycline (Viveiros et al. 2007)
-            new_deltaV = np.array([1.8e-3, 1.96e-4, 2.95e-5, 2.21e-5, 2.1e-6,
-                2.02e-5, -2.3e-7, 7.8e-6, 5.3e-5, 1.58e-7, 7.42e-6, 1.51e-6,
-                2.04e-6, 2.34e-4, 4.11e-6, 2.4e-7, 0, 8.89e-8, 2.44e-5,
-                1.68e-8, 3e-5, 5.77e-5, 8.52e-7, 5.4e-4])
+            new_deltaV = np.array([1.76e-3, 1.96e-4, 2.95e-5, 2.21e-5, 2.1e-6,
+                2.02e-5, -5.3e-7, 7.8e-6, 8.08e-6, 1.58e-7, 7.42e-6, 1.51e-6,
+                2.04e-6, 2.34e-4, 4.11e-6, 7.17e-8, 1.4e-8, 8.89e-8, 2.44e-5,
+                1.68e-8, 8.09e-6, 5.77e-5, 8.52e-7, 5.4e-4])
             
             treg_alias.delta_prob["deltaI"] = np.concatenate(
                 [treg_alias.delta_prob["deltaI"], new_deltaI])
