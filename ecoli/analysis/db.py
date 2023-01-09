@@ -238,7 +238,7 @@ def access_counts(experiment_id, monomer_names=None, mrna_names=None,
         'data.agents': {
             '$objectToArray': {
                 # Add fail-safe for sims with no live agents
-                '$ifNull': ['$data.agents', None]
+                '$ifNull': ['$data.agents', {}]
             }
         },
         'data.time': 1,
