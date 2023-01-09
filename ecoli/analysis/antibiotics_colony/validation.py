@@ -121,8 +121,9 @@ def plot_synth_prob_fc(
 
     # Filter extremely low counts
     relative_data = relative_data.loc[relative_data.loc[:, 'Avg. sim. mRNA'] >= filter]
-    norm = matplotlib.colors.LogNorm(vmin=relative_data.loc[:, 'Avg. sim. mRNA'].min(),
-        vmax=relative_data.loc[:, 'Avg. sim. mRNA'].max())
+    mrna_counts = relative_data.loc[:, 'Avg. sim. mRNA'].sort_values().to_numpy()
+    min_nonzero = mrna_counts[mrna_counts!=0][0]
+    norm = matplotlib.colors.LogNorm(vmin=min_nonzero, vmax=mrna_counts[-1])
     ompf_filter = (relative_data.loc[:, 'Gene'] == 'ompF')
     sns.scatterplot(data=relative_data[ompf_filter],
         x='Literature RNA $\mathregular{log_2 FC}$',
@@ -187,8 +188,9 @@ def plot_mrna_fc(
 
     # Filter extremely low counts
     relative_data = relative_data.loc[relative_data.loc[:, 'Avg. sim. mRNA'] >= filter]
-    norm = matplotlib.colors.LogNorm(vmin=relative_data.loc[:, 'Avg. sim. mRNA'].min(),
-        vmax=relative_data.loc[:, 'Avg. sim. mRNA'].max())
+    mrna_counts = relative_data.loc[:, 'Avg. sim. mRNA'].sort_values().to_numpy()
+    min_nonzero = mrna_counts[mrna_counts!=0][0]
+    norm = matplotlib.colors.LogNorm(vmin=min_nonzero, vmax=mrna_counts[-1])
     # Highlight ompF in blue
     ompf_filter = (relative_data.loc[:, 'Gene'] == 'ompF')
     sns.scatterplot(data=relative_data[ompf_filter],
