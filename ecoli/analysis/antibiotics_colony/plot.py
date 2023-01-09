@@ -196,6 +196,7 @@ def make_figure_3a(data, metadata):
     plt.tight_layout()
     fig.savefig('out/analysis/paper_figures/tet_colony_growth.svg')
     plt.close()
+    print('Done with Figure 3A.')
 
 
 def make_figure_3b(data, metadata):
@@ -203,6 +204,7 @@ def make_figure_3b(data, metadata):
     data = data.sort_values(['Condition', 'Agent ID', 'Time'])
     plot_exp_growth_rate(data, metadata)
     plt.close()
+    print('Done with Figure 3B.')
 
 
 def make_figure_3c(data, metadata):
@@ -254,6 +256,7 @@ def make_figure_3c(data, metadata):
     plt.tight_layout()
     fig.savefig('out/analysis/paper_figures/tet_short_term.svg')
     plt.close()
+    print('Done with Figure 3C.')
 
 
 def make_figure_3d(data, metadata):
@@ -308,26 +311,20 @@ def make_figure_3d(data, metadata):
     plt.tight_layout()
     fig.savefig('out/analysis/paper_figures/tet_long_term.svg')
     plt.close()
+    print('Done with Figure 3D.')
 
 
 def make_figure_3e(data, metadata):
     genes_to_plot = DE_GENES.loc[:, 'Gene name']
     fig, axs = plt.subplots(1, 2, figsize=(7, 3))
-    plot_synth_prob_fc(data, axs[0], genes_to_plot, 0.01)
-    plot_mrna_fc(data, axs[1], genes_to_plot, 0.01)
-    axs[0].set_xticks([0, 0.5, 1, 1.5])
-    axs[0].set_yticks([0, 0.5, 1, 1.5])
-    axs[1].set_yticks([0, 0.5, 1, 1.5])
-    fig.savefig('out/analysis/paper_figures/tet_synth_prob_filtered.svg', bbox_inches='tight')
-    plt.close()
-
-    fig, axs = plt.subplots(1, 2, figsize=(7, 3))
     plot_synth_prob_fc(data, axs[0], genes_to_plot, 0)
     plot_mrna_fc(data, axs[1], genes_to_plot, 0)
     axs[0].set_yticks([0, 0.5, 1, 1.5])
-    axs[1].spines['left'].set_bounds((-3.0, 1.5))
+    axs[1].spines['left'].set_bounds((-1, 1.5))
+    axs[1].set_yticks([-1, -0.5, 0, 0.5, 1, 1.5])
     fig.savefig('out/analysis/paper_figures/tet_synth_prob_unfiltered.svg', bbox_inches='tight')
     plt.close()
+    print('Done with Figure 3E.')
 
 
 def make_figure_3f(data, metadata):
@@ -345,6 +342,7 @@ def make_figure_3f(data, metadata):
     plt.tight_layout()
     plt.savefig('out/analysis/paper_figures/protein_synth_inhib.svg')
     plt.close()
+    print('Done with Figure 3F.')
 
 
 def make_figure_4a(data, metadata):
@@ -354,6 +352,7 @@ def make_figure_4a(data, metadata):
     plt.tight_layout()
     fig.savefig('out/analysis/paper_figures/amp_colony_growth.svg')
     plt.close()
+    print('Done with Figure 4A.')
 
 
 def make_figure_4b(data, metadata):
@@ -376,10 +375,12 @@ def make_figure_4b(data, metadata):
     plot_tag_snapshots(
         data=data, metadata=metadata, tag_colors={fc_col: {'cmp': cmp, 'norm': norm}},
         snapshot_times=np.array([1.9, 3.2, 4.5, 5.8, 7.1]) * 3600)
+    print('Done with Figure 4B.')
 
 
 def make_figure_4c(data, metadata):
     plot_ampc_phylo(data)
+    print('Done with Figure 4C.')
 
 
 def load_pickles(experiment_ids):
@@ -462,7 +463,8 @@ def main():
         '3e': ['Glucose', 'Tetracycline (1.5 mg/L)'],
         '3f': [str(i) for i in range(11)],
         '4a': ['Glucose', 'Ampicillin (0.5 mg/L)', 'Ampicillin (1 mg/L)',
-            'Ampicillin (1.5 mg/L)', 'Ampicillin (2 mg/L)',],
+            'Ampicillin (1.5 mg/L)', 'Ampicillin (2 mg/L)',
+            'Ampicillin (4 mg/L)'],
         '4b': ['Glucose', 'Ampicillin (2 mg/L)'],
         '4c': ['Glucose', 'Ampicillin (2 mg/L)'],
     }
@@ -481,7 +483,7 @@ def main():
         '4c': [0],
     }
     if args.fig_ids is None:
-        args.fig_ids = conditions.keys()
+        args.fig_ids = conditions.keys() - {'3f'}
 
     ids_to_load = []
     for fig_id in args.fig_ids:

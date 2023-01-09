@@ -79,41 +79,8 @@ def plot_exp_growth_rate(data, metadata):
             sns.despine(trim=True, ax=joint.ax_marg_y, bottom=True)
             joint.ax_joint.set_xlabel('Active ribosomes (mM)')
             joint.ax_joint.yaxis.set_visible(False)
-        plt.savefig(f'out/analysis/paper_figures/growth_rate_var_ribo_{i}.svg')
-        plt.close()
-    
-    xlim = (0, 10)
-    ylim = (0, 0.09)
-    for i in range(3):
-        time_filter = ((data.loc[:, 'Time'] >= time_boundaries[i]) &
-            (data.loc[:, 'Time'] < time_boundaries[i+1]))
-        filtered_data = data.loc[time_filter, cols_to_plot]
-        mean_data = filtered_data.groupby(['Condition', 'Agent ID']).mean()
-        mean_data['Ribo-normed doubling rate'] = (
-            mean_data.loc[:, 'Doubling rate'] / 
-            mean_data.loc[:, 'active_ribo_concs'])
-        joint = sns.jointplot(data=mean_data, x='active_rnap_concs',
-            y='Ribo-normed doubling rate', hue='tet_concs', palette=palette,
-            marginal_kws={'common_norm': False}, joint_kws={
-                'edgecolors': 'face'}, height=4)
-        joint.ax_joint.set_ylim(ylim)
-        joint.ax_joint.set_xlim(xlim)
-        if i == 0:
-            sns.despine(offset=3, trim=True, ax=joint.ax_joint)
-            sns.despine(trim=True, ax=joint.ax_marg_x, left=True)
-            sns.despine(trim=True, ax=joint.ax_marg_y, bottom=True)
-            legend = joint.ax_joint.legend(frameon=False, loc='upper right')
-            legend.set_title('Tetracycline (uM)')
-            joint.ax_joint.set_xlabel('mRNA (mM)')
-            joint.ax_joint.set_ylabel('Adj. doubling rate (1/hr/mM ribosome)')
-        else:
-            sns.despine(offset=3, left=True, trim=True, ax=joint.ax_joint)
-            sns.despine(trim=True, ax=joint.ax_marg_x, left=True)
-            sns.despine(trim=True, ax=joint.ax_marg_y, bottom=True)
             joint.ax_joint.legend().remove()
-            joint.ax_joint.set_xlabel('mRNA (mM)')
-            joint.ax_joint.yaxis.set_visible(False)
-        plt.savefig(f'out/analysis/paper_figures/growth_rate_var_mrna_{i}.svg')
+        plt.savefig(f'out/analysis/paper_figures/growth_rate_var_ribo_{i}.svg')
         plt.close()
 
     # Get log 2 fold change over mean glucose growth rate
