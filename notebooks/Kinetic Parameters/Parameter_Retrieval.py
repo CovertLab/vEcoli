@@ -55,7 +55,7 @@ response = requests.get("https://websvc.biocyc.org/st-service-get?id=biocyc17-56
 tree = ElementTree.fromstring(response.content)
 dicte = etree_to_dict(tree)['GROUP']['ROWS']['ROW']
 
-genesList = list(pd.read_csv("Gene_List.csv", header=None).loc[1:, 0])
+genesList = list(pd.read_csv("New Liste - Sheet.csv", header=None).loc[1:, 0])
 gene_to_Km_Kcat = {}
 
 names = getnames(dicte)
