@@ -37,12 +37,44 @@ def etree_to_dict(t):
             d[t.tag] = text
     return d
 
+def getReactions(gene):
+    response = requests.get("https://websvc.biocyc.org/apixml?fn=reactions-of-gene&id=ECOLI:" + gene + "&detail=low")
+    tree = ElementTree.fromstring(response.content)
+    dicte = etree_to_dict(tree)
+    return dicte['ptools-xml']['Gene']['@frameid']
 
 def getGenes(reaction):
-    response = requests.get("https://websvc.biocyc.org/apixml?fn=genes-of-reaction&id=ECOLI:" + reaction + "detail=low")
+    response = requests.get("https://websvc.biocyc.org/apixml?fn=genes-of-reaction&id=ECOLI:" + reaction + "&detail=low")
     tree = ElementTree.fromstring(response.content)
     dicte = etree_to_dict(tree)
     return dicte['ptools-xml']['Gene']['@frameid']
 
 
-def g
+def getEnzymes(reaction):
+    response = s.get("https://websvc.biocyc.org/apixml?fn=enzymes-of-reaction&id=ECOLI:" + reaction + "&detail=low")
+    tree = ElementTree.fromstring(response.content)
+    dicte = etree_to_dict(tree)
+    return dicte['ptools-xml']['Protein']['@frameid']
+
+
+def getKms(gene):
+    response = s.get("https://websvc.biocyc.org/apixml?fn=reactions-of-gene&id=ECOLI:" + gene + "&detail=full")
+    tree = ElementTree.fromstring(response.content)
+    dicte = etree_to_dict(tree)
+    enzymeRxn = dicte['ptools-xml']['Reaction']['enzymatic-reaction']['Enzymatic-Reaction']['@frameid']
+    response = s.get("https://websvc.biocyc.org/getxml?id=ECOLI:" + enzymeRxn + "&detail=full")
+    tree = ElementTree.fromstring(response.content)
+    dicte = etree_to_dict(tree)
+
+    new = dicte['ptools-xml']['Enzymatic-Reaction']
+    res = []
+
+    if 'km' in new:
+        new = new['km']
+
+        for dicte in new:
+            val = dicte['value']['#text']
+            res.append(float(val))
+
+    return res
+
