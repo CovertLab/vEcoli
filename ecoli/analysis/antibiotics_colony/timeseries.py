@@ -90,11 +90,12 @@ def plot_timeseries(
             agent_id = group[0][1]
             agent_data = group[1].reset_index()
             condition_data = data.loc[condition, :]
-            # Cell did not die if at least one daughter exists
-            import ipdb; ipdb.set_trace()
+            # Cell did not die if at least one daughter exists,
+            # or if the cell was present at the final timepoint
+            final_agents = condition_data['Agent ID'][condition_data.Time == condition_data.Time.max()].values
             if ((agent_id + '0' in condition_data.loc[:, 'Agent ID'].values) or
                 (agent_id + '1' in condition_data.loc[:, 'Agent ID'].values)
-            ):
+            ) or agent_id  in final_agents:
                 continue
             max_group_time = agent_data.loc[:, 'Time'].max()
             death_data.append(agent_data.loc[agent_data.loc[:, 'Time']
@@ -177,7 +178,7 @@ def plot_field_snapshots(
     ])
     agent_ids = data.loc[:, 'Agent ID'].unique()
     # For '010010', return ['0', '01', '010', '0100', '010010']
-    lineage_ids = list(itertools.accumulate(highlight_lineage))
+    lineage_ids = list(itertools.accumulate(highlight_lineage)) if highlight_lineage else []
     # Color all agents white except for highlighted lineage
     agent_colors = {
         agent_id: (0, 0, 1) for agent_id in agent_ids

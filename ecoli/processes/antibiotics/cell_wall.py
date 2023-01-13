@@ -131,7 +131,7 @@ class CellWall(Process):
         self.inter_strand_distance = self.parameters["inter_strand_distance"]
         self.max_expansion = self.parameters["max_expansion"]
         self.peptidoglycan_unit_area = ((
-            self.inter_strand_distance + self.disaccharide_width) * 
+            self.inter_strand_distance + self.disaccharide_width) *
             self.disaccharide_height)
 
         # Create pseudorandom number generator
