@@ -111,7 +111,8 @@ PATHS_TO_LOAD = {
     'Active fraction PBP1b': ('pbp_state', 'active_fraction_PBP1B'),
     'Boundary': ('boundary',),
     'Volume': ('listeners', 'mass', 'volume'),
-    'Total mRNA': ('total_mrna',)
+    'Total mRNA': ('total_mrna',),
+    'OmpF complex': ('bulk', 'CPLX0-7534[o]')
 }
 for gene_data in DE_GENES[['Gene name', 'id', 'monomer_ids']].values:
     if gene_data[0] != 'MicF':
