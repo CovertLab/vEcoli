@@ -33,6 +33,10 @@ class LoadSimData:
         self.ppgpp_regulation = ppgpp_regulation
 
         self.submass_indexes = MASSDIFFS
+        
+        # NEW to vivarium-ecoli: Whether to lump miscRNA with mRNAs
+        # when calculated degradation
+        self.degrade_misc = False
 
         # load sim_data
         with open(sim_data_path, 'rb') as sim_data_file:
@@ -45,6 +49,7 @@ class LoadSimData:
             treg_alias = self.sim_data.process.transcription_regulation
             bulk_mol_alias =  self.sim_data.internal_state.bulk_molecules
             eq_alias = self.sim_data.process.equilibrium
+            trans_alias = self.sim_data.process.translation
 
             # Assume marA (PD00365) controls the entire tetracycline
             # gene expression program and marR (CPLX0-7710) is inactivated
@@ -66,10 +71,10 @@ class LoadSimData:
             new_deltaJ = np.array([24]*24)
             # Values were chosen to recapitulate mRNA fold change when exposed 
             # to 1.5 mg/L tetracycline (Viveiros et al. 2007)
-            new_deltaV = np.array([1.25, 0.145, 0.017, 0.0168, 0.00095, 0.01, 
-                -0.000101, 0.003422, 0.003846, 0.000155, 0.01, 0.0014, 0.00118,
-                0.524, 0.003, 0.000034, -0.000002, 0.00006, 0.02, 0.000004, 
-                0.00468, 0.03, 0.000257, 0.37]) / 1000
+            new_deltaV = np.array([1.76e-3, 1.96e-4, 2.95e-5, 2.21e-5, 2.1e-6,
+                2.02e-5, -5.3e-7, 7.8e-6, 8.08e-6, 1.58e-7, 7.42e-6, 1.51e-6,
+                2.04e-6, 2.34e-4, 4.11e-6, 7.17e-8, 1.4e-8, 8.89e-8, 2.44e-5,
+                1.68e-8, 8.09e-6, 5.77e-5, 8.52e-7, 5.4e-4])
             
             treg_alias.delta_prob["deltaI"] = np.concatenate(
                 [treg_alias.delta_prob["deltaI"], new_deltaI])
@@ -109,13 +114,14 @@ class LoadSimData:
                 for i in np.where(np.any(
                     eq_alias.stoich_matrix() > 0, axis=1))[0]]
             eq_alias.rxn_ids += ['marR-tet']
-            # All existing equilibrium rxns use a forward reaction rate of 1
+            # All existing equilibrium rxns use a forward rate of 1
             eq_alias.rates_fwd = np.concatenate(
                 [eq_alias.rates_fwd, np.array([1])])
-            # Rev rate manually fit to complex off all marR except 1 
-            # at 1.5 mg/L external tetracycline when running from wcecoli_t0
+            # Existing equilibrium rxns use a default reverse rate of 1e-6
+            # This happens to nearly perfectly yield full MarR inactivation
+            # at 1.5 mg/L external tetracycline
             eq_alias.rates_rev = np.concatenate(
-                [eq_alias.rates_rev, np.array([7.1e-07])])
+                [eq_alias.rates_rev, np.array([1e-6])])
 
             # Mass balance matrix
             eq_alias._stoichMatrixMass = np.concatenate(
@@ -134,6 +140,13 @@ class LoadSimData:
             # Build matrices
             eq_alias._populateDerivativeAndJacobian()
             eq_alias._stoichMatrix = eq_alias.stoich_matrix()
+
+            # Ensure that marR-tet complex is properly degraded
+            monomer_data = trans_alias.monomer_data.fullArray()
+            monomer_data = np.resize(monomer_data, monomer_data.shape[0]+3)
+            marR_tet_data = monomer_data[monomer_data['id'] == 'PD00364[c]']
+            marR_tet_data['id'] = 'marR-tet[c]'
+            monomer_data[-1] = marR_tet_data
         
         # NEW to vivarium-ecoli
         # Append new RNA IDs and degradation rates for sRNA-mRNA duplexes
@@ -180,7 +193,7 @@ class LoadSimData:
                 target_length = rna_data['length'][self.target_tu_ids[i]]
                 duplex_lengths[i] = srna_length + target_length
                 if duplex_lengths[i] > duplex_sequences.shape[1]:
-                    # Extend  columns in sequence arrays to accomodate duplexes
+                    # Extend columns in sequence arrays to accomodate duplexes
                     # where the sum of the RNA lengths > # of columns
                     extend_length = (
                         duplex_lengths[i] - duplex_sequences.shape[1])
@@ -232,6 +245,9 @@ class LoadSimData:
             treg_alias.delta_prob['shape'] = (
                 treg_alias.delta_prob['shape'][0] + 1,
                 treg_alias.delta_prob['shape'][1])
+
+            # Set flag so miscRNA duplexes are degraded together with mRNAs
+            self.degrade_misc = True
 
     def get_monomer_counts_indices(self, names):
         """Given a list of monomer names without location tags, this returns
@@ -470,6 +486,7 @@ class LoadSimData:
             'is_tRNA': self.sim_data.process.transcription.rna_data['is_tRNA'].astype(np.int64),
             # NEW to vivarium-ecoli, used to degrade duplexes from RNAi
             'is_miscRNA': self.sim_data.process.transcription.rna_data['is_miscRNA'].astype(np.int64),
+            'degrade_misc': self.degrade_misc,
             'rna_lengths': self.sim_data.process.transcription.rna_data['length'].asNumber(),
             'polymerized_ntp_ids': self.sim_data.molecule_groups.polymerized_ntps,
             'water_id': self.sim_data.molecule_ids.water,
