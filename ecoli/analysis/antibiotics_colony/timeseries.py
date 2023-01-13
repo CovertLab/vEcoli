@@ -1,17 +1,16 @@
-from typing import List, Dict, Any
 import itertools
-
 import os
+from typing import Any, Dict, List
+
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
-import matplotlib.pyplot as plt
 from matplotlib.colors import rgb_to_hsv
 
+from ecoli.analysis.antibiotics_colony import (COUNTS_PER_FL_TO_NANOMOLAR,
+                                               restrict_data)
 from ecoli.plots.snapshots import plot_snapshots, plot_tags
-
-from ecoli.analysis.antibiotics_colony import (
-    COUNTS_PER_FL_TO_NANOMOLAR, restrict_data)
 
 
 def plot_timeseries(
@@ -41,7 +40,8 @@ def plot_timeseries(
         columns_to_plot: Dictionary of columns in data to plot sequentially on
             axes. Each column name corresponds to a RGB tuple to color the trace
             of the highlighted lineage on that plot.
-        highlight_lineage: Agent ID to plot lineage trace for.
+        highlight_lineage: Agent ID to plot lineage trace for. Alternatively,
+            one of 'mean' or 'median'.
         conc: Whether to normalize data by volume and convert to nM
         mark_death: Mark cells that die with red X on time step of death
         background_lineages: Whether to plot traces for other lineages (gray).
@@ -65,11 +65,22 @@ def plot_timeseries(
         data = data.reset_index()
     # Sort values by time for ease of plotting later
     data = data.sort_values('Time')
-    # For '010010', return ['0', '01', '010', '0100', '010010']
-    lineage_ids = list(itertools.accumulate(highlight_lineage))
-    lineage_mask = np.isin(data.loc[:, 'Agent ID'], lineage_ids)
-    highlight_data = data.loc[lineage_mask, :]
-    background_data = data.loc[~lineage_mask, :]
+    if highlight_lineage == 'mean':
+        highlight_data = data.groupby(['Condition', 'Time']
+            ).mean().reset_index()
+        highlight_data['Agent ID'] = highlight_lineage
+        background_data = data.copy()
+    elif highlight_lineage == 'median':
+        highlight_data = data.groupby(['Condition', 'Time']
+            ).median().reset_index()
+        highlight_data['Agent ID'] = highlight_lineage
+        background_data = data.copy()
+    else:
+        # For '010010', return ['0', '01', '010', '0100', '010010']
+        lineage_ids = list(itertools.accumulate(highlight_lineage))
+        lineage_mask = np.isin(data.loc[:, 'Agent ID'], lineage_ids)
+        highlight_data = data.loc[lineage_mask, :]
+        background_data = data.loc[~lineage_mask, :]
     # Plot up to SPLIT_TIME with first condition and between SPLIT_TIME
     # and MAX_TIME with second condition
     if filter_time:
@@ -146,6 +157,7 @@ def plot_field_snapshots(
     min_pct=1,
     max_pct=1,
     colorbar_decimals=1,
+    return_fig=False
 ) -> None:
     '''Plot a row of snapshot images that span a replicate for each condition.
     In each of these images, the cell corresponding to a highlighted lineage
@@ -167,6 +179,7 @@ def plot_field_snapshots(
         max_pct: Percent of maximum field concentration to use as maximum value
             in colorbar (1 = 100%)
         colorbar_decimals: Number of decimals to include in colorbar labels.
+        return_fig: Whether to return the Figure
     '''
     # Last snapshot at last tenth of an hour
     max_time_hrs = np.around(data.loc[:, 'Time'].max()/3600, decimals=1)
@@ -228,6 +241,8 @@ def plot_field_snapshots(
     snapshots_fig.savefig('out/analysis/paper_figures/' + 
         f'{condition.replace("/", "_")}_seed_{seed}_fields.svg',
         bbox_inches='tight')
+    if return_fig:
+        return snapshots_fig
     plt.close(snapshots_fig)
 
 
@@ -237,7 +252,7 @@ def plot_tag_snapshots(
     tag_colors: Dict[str, Any] = None,
     conc: bool = False,
     snapshot_times: List = None,
-    min_color: Any = None,
+    min_color: Any = (1, 1, 1),
     out_prefix: str = None,
     show_membrane: bool = False,
 ) -> None:
@@ -294,8 +309,9 @@ def plot_tag_snapshots(
         condition_bounds = metadata[min(metadata)][seed]['bounds']
         # Convert data back to dictionary form for snapshot plot
         snapshot_data = {}
-        magnitude = data[highlight_column].abs().max()
-        tag_ranges = {(highlight_column,): [-magnitude, magnitude]}
+        data_max = data[highlight_column].max()
+        data_min = data[highlight_column].min()
+        tag_ranges = {(highlight_column,): [data_min, data_max]}
         for time, agent_id, boundary, column in zip(
             data['Time'], data['Agent ID'], data['Boundary'],
             data[highlight_column]

@@ -238,7 +238,7 @@ def access_counts(experiment_id, monomer_names=None, mrna_names=None,
         'data.agents': {
             '$objectToArray': {
                 # Add fail-safe for sims with no live agents
-                '$ifNull': ['$data.agents', None]
+                '$ifNull': ['$data.agents', {}]
             }
         },
         'data.time': 1,
@@ -265,6 +265,20 @@ def access_counts(experiment_id, monomer_names=None, mrna_names=None,
                 'data.agents.v.listeners.mRNA_counts'
             )
         for mrna, mrna_index in zip(mrna_names, mrna_idx)
+    })
+    projection['$project'].update({
+        'data.agents.v.total_mrna': {
+            '$cond': {
+                # If path does not point to an array, return null
+                'if': {'$isArray': {'$first': '$data.agents.v.listeners.mRNA_counts'}},
+                'then': {
+                    '$sum': {
+                        '$first': '$data.agents.v.listeners.mRNA_counts'
+                    }
+                },
+                'else': None
+            }
+        }
     })
     rna_idx = sim_data.get_rna_indices(rna_init)
     projection['$project'].update({
