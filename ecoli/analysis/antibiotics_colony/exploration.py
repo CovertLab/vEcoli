@@ -6,13 +6,14 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
-from ete3 import CircleFace, NodeStyle, TextFace, TreeNode, TreeStyle, faces
+from sklearn.preprocessing import StandardScaler
+from statsmodels.formula.api import logit
+from ete3 import NodeStyle, TreeNode, TreeStyle
 
 from ecoli.analysis.antibiotics_colony import (COUNTS_PER_FL_TO_NANOMOLAR,
     restrict_data)
 from ecoli.analysis.antibiotics_colony.timeseries import plot_tag_snapshots
 from ecoli.library.cell_wall.hole_detection import detect_holes_skimage
-from ecoli.library.sim_data import LoadSimData
 
 
 def plot_exp_growth_rate(data, metadata):
@@ -49,37 +50,45 @@ def plot_exp_growth_rate(data, metadata):
     palette = {tet_conc: cmap(norm(tet_conc)) for tet_conc in tet_concs}
     palette[3.375] = (0, 0.4, 1)
     
-    time_boundaries = np.linspace(11550, 26000, 4)
-    time_boundaries[-1] = 26002
+    time_boundaries = [(11550, 11550+3600), (26000-3600, 26002)]
     cols_to_plot = ['active_ribo_concs', 'active_rnap_concs', 
         'Doubling rate', 'tet_concs', 'Agent ID', 'Condition']
-    ylim = (0, 1.41)
+    ylim = (0, 1.45)
     xlim = (4, 26)
-    for i in range(3):
-        time_filter = ((data.loc[:, 'Time'] >= time_boundaries[i]) &
-            (data.loc[:, 'Time'] < time_boundaries[i+1]))
+    for i, boundaries in enumerate(time_boundaries):
+        time_filter = ((data.loc[:, 'Time'] >= boundaries[0])
+            & (data.loc[:, 'Time'] < boundaries[1]))
         filtered_data = data.loc[time_filter, cols_to_plot]
         mean_data = filtered_data.groupby(['Condition', 'Agent ID']).mean()
         joint = sns.jointplot(data=mean_data, x='active_ribo_concs',
             y='Doubling rate', hue='tet_concs', palette=palette, marginal_kws={
-                'common_norm': False}, joint_kws={'edgecolors': 'face'}, height=4)
-        joint.ax_joint.set_ylim(ylim)
-        joint.ax_joint.set_xlim(xlim)
+                'common_norm': False}, joint_kws={'edgecolors': 'face'})
+        ax = joint.ax_joint
+        ax.set_ylim(ylim)
+        ax.set_xlim(xlim)
+        sns.despine(offset=0.1, trim=True, ax=ax)
+        sns.despine(trim=True, ax=joint.ax_marg_x, left=True)
+        sns.despine(trim=True, ax=joint.ax_marg_y, bottom=True)
+        ax.set_xlabel('Active ribosomes (mM)', size=8)
+        xticks = [5, 10, 15, 20, 25]
+        ax.set_xticks(xticks, xticks, size=8)
+        ax.legend().remove()
         if i == 0:
-            sns.despine(offset=0.1, trim=True, ax=joint.ax_joint)
-            sns.despine(trim=True, ax=joint.ax_marg_x, left=True)
-            sns.despine(trim=True, ax=joint.ax_marg_y, bottom=True)
-            legend = joint.ax_joint.legend(frameon=False, loc='lower left')
-            legend.set_title('Tetracycline (uM)')
-            joint.ax_joint.set_xlabel('Active ribosomes (mM)')
-            joint.ax_joint.set_ylabel('Doubling rate (1/hr)')
+            ax.text(0.1, 0.9, 'Tet. (\u03BCM)', size=8, transform=ax.transAxes)
+            for conc_idx, (conc, color) in enumerate(palette.items()):
+                ax.text(0.1, 0.8-0.1*conc_idx, conc, size=8,
+                    transform=ax.transAxes, c=color)
+            ax.set_ylabel('Doubling rate (1/hr)', size=8)
+            yticks = np.round(ax.get_yticks(), 1)
+            ax.set_yticks(yticks, yticks, size=8)
+            joint.ax_marg_x.set_title(r'$1^{\mathrm{st}}$ hr. post-tet.',
+                size=8, pad=2, weight='bold')
         else:
-            sns.despine(offset=0.1, left=True, trim=True, ax=joint.ax_joint)
-            sns.despine(trim=True, ax=joint.ax_marg_x, left=True)
-            sns.despine(trim=True, ax=joint.ax_marg_y, bottom=True)
-            joint.ax_joint.set_xlabel('Active ribosomes (mM)')
-            joint.ax_joint.yaxis.set_visible(False)
-            joint.ax_joint.legend().remove()
+            sns.despine(ax=ax, left=True)
+            ax.yaxis.set_visible(False)
+            joint.ax_marg_x.set_title(r'$4^{\mathrm{th}}$ hr. post-tet.',
+                size=8, pad=2, weight='bold')
+        joint.figure.set_size_inches(1.4, 2)
         plt.savefig(f'out/analysis/paper_figures/growth_rate_var_ribo_{i}.svg')
         plt.close()
 
@@ -97,18 +106,18 @@ def plot_exp_growth_rate(data, metadata):
     cmp = matplotlib.colors.LinearSegmentedColormap.from_list(
         'divergent', [(0, 0.4, 1), (1, 1, 1), (0.678, 0, 0.125)])
     norm = matplotlib.colors.Normalize(vmin=-2.5, vmax=2.5)
-    plot_tag_snapshots(
+    fig = plot_tag_snapshots(
         data=data, metadata=metadata, tag_colors={fc_col: {
             'cmp': cmp, 'norm': norm}}, snapshot_times=np.array([
-            1.9, 3.2, 4.5, 5.8, 7.1]) * 3600, show_membrane=True)
+            3.2, 4.5, 5.8, 7.1]) * 3600, show_membrane=True,
+        return_fig=True, figsize=(6, 1.5))
+    fig.axes[0].set_xticklabels(
+        np.abs(np.round(fig.axes[0].get_xticks()/3600 - 11550/3600, 1)))
+    fig.axes[0].set_xlabel('Hours after tetracycline addition')
+    fig.savefig('out/analysis/paper_figures/fig_3b_tet_snapshots.svg',
+        bbox_inches='tight')
+    plt.close()
 
-
-def plot_mara_micf_reg():
-    return
-
-
-def plot_mara_effect(data):
-    return
 
 def plot_lattice_timeseries():
     with open('data/lattice_df.pkl', 'rb') as f:
@@ -146,9 +155,9 @@ def make_ete_trees(agent_ids):
 def plot_ampc_phylo(data):
     data = restrict_data(data)
     agent_ids = data.loc[:, 'Agent ID'].unique().tolist()
-    # n_generations = max([len(agent_id) for agent_id in agent_ids])
-    final_agents = [agent_id for agent_id in agent_ids
-        if agent_id + '0' not in agent_ids]
+    final_agents = data.loc[data.loc[:, 'Time'] == 26000, 'Agent ID'].unique()
+    dead_agents = [agent_id for agent_id in agent_ids
+        if (agent_id + '0' not in agent_ids) and (agent_id not in final_agents)]
     trees = make_ete_trees(agent_ids)
     assert len(trees) == 1
     tree = trees[0]
@@ -163,62 +172,41 @@ def plot_ampc_phylo(data):
 
     # Color nodes by AmpC concentration
     data['AmpC conc'] = data.loc[:, 'AmpC monomer'] / (
-        data.loc[:, 'Volume'] * 0.2)
+        data.loc[:, 'Volume'] * 0.2) * COUNTS_PER_FL_TO_NANOMOLAR
     cmp = matplotlib.colors.LinearSegmentedColormap.from_list(
         'blue', [(0, 0, 0), (0, 0.4, 1)])
     ampc_concs = data[['AmpC conc', 'Agent ID']].groupby(
         'Agent ID').mean().to_numpy()
     min_conc = ampc_concs.min()
     max_conc = ampc_concs.max()
-    norm = matplotlib.colors.LogNorm(vmin=min_conc, vmax=max_conc)
+    # norm = matplotlib.colors.LogNorm(vmin=min_conc, vmax=max_conc)
+    norm = matplotlib.colors.Normalize(vmin=min_conc, vmax=max_conc)
     agent_data = data.groupby('Agent ID').mean()
     # Set styles for each node
     for node in tree.traverse():
         nstyle=NodeStyle()
-        nstyle['size'] = 10
-        nstyle['vt_line_width'] = 1
-        nstyle['hz_line_width'] = 1
+        nstyle['size'] = 20
+        nstyle['vt_line_width'] = 3
+        nstyle['hz_line_width'] = 3
         nstyle['fgcolor'] = matplotlib.colors.to_hex(
             cmp(norm(agent_data.loc[node.name, 'AmpC conc'])))
+        if node.name in dead_agents:
+            nstyle['bgcolor'] = 'Silver'
+            # nstyle['shape'] = 'square'
         node.set_style(nstyle)
-    tree.render('out/analysis/paper_figures/ampc_phylo.svg', tree_style=tstyle, w=400)
-    fig, ax = plt.subplots(figsize=(4, 1))
-    fig.subplots_adjust(bottom=0.3)
+    tstyle.scale = 10
+    tree.render('out/analysis/paper_figures/ampc_phylo.svg', tree_style=tstyle,
+        units='in', h=1.5, w=1.5)
+    fig, ax = plt.subplots(figsize=(2, 0.25))
+    fig.subplots_adjust(bottom=0.6)
     fig.colorbar(matplotlib.cm.ScalarMappable(norm=norm, cmap=cmp), cax=ax,
-        orientation='horizontal', label='AmpC (periplasm, uM)')
-    fig.text(0, 0.4, int(np.round(min_conc, 1)))
-    fig.text(0.92, 0.4, int(np.round(max_conc, 1)))
-    plt.tight_layout()
+        orientation='horizontal', label='AmpC (periplasm, nM)')
+    xticks = [int(np.round(min_conc, 1)), int(np.round(max_conc, 1))]
+    ax.set_xticks(xticks, xticks, size=8)
+    ax.set_xlabel(ax.get_xlabel(), size=8, labelpad=-7)
     fig.savefig('out/analysis/paper_figures/ampc_cbar.svg')
 
-    # Color nodes by cell wall relative porosity
-    # Get fold change over average glucose porosity
-    data['Relative porosity'] = data.loc[:, 'Porosity'] * data.loc[:, 'Extension factor']
-    mean_glc_porosity = data.loc[data.loc[:, 'Condition'] == 'Glucose', 
-        'Relative porosity'].mean()
-    fc_col = 'Porosity\n($\mathregular{log_2}$ fold change)'
-    data.loc[:, fc_col] = np.log2(data.loc[:, 'Relative porosity'] / mean_glc_porosity)
-    data.loc[data.loc[:, fc_col]==-np.inf, fc_col] = 0
-    # Set up custom divergent colormap
-    cmp = matplotlib.colors.LinearSegmentedColormap.from_list(
-        'divergent', [(0, 0.4, 1), (0, 0, 0), (0.678, 0, 0.125)])
-    magnitude = data.loc[:, fc_col].abs().max()
-    norm = matplotlib.colors.Normalize(vmin=-magnitude, vmax=magnitude)
-    agent_data = data.groupby('Agent ID').mean()
-    # Set styles for each node
-    for node in tree.traverse():
-        nstyle=NodeStyle()
-        nstyle['size'] = 10
-        nstyle['vt_line_width'] = 1
-        nstyle['hz_line_width'] = 1
-        nstyle['fgcolor'] = matplotlib.colors.to_hex(
-            cmp(norm(agent_data.loc[node.name, fc_col])))
-        node.set_style(nstyle)
-    tstyle._scale = None
-    tree.render('out/analysis/paper_figures/porosity_phylo.svg', tree_style=tstyle, w=400)
-    fig, ax = plt.subplots(figsize=(4, 1))
-    fig.subplots_adjust(bottom=0.3)
-    fig.colorbar(matplotlib.cm.ScalarMappable(norm=norm, cmap=cmp), cax=ax,
-        orientation='horizontal', label='Relative Porosity ($\mathregular{log_2 FC}$)')
-    plt.tight_layout()
-    fig.savefig('out/analysis/paper_figures/porosity_cbar.svg')
+    # Export Newick file for phylogenetic signal analysis
+    tree.write(outfile='out/analysis/paper_figures/amp_tree.nw')
+    agent_data.loc[tree.get_leaf_names(), :].to_csv(
+        'out/analysis/paper_figures/agent_data.csv')
