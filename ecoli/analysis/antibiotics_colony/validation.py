@@ -15,7 +15,7 @@ from ecoli.analysis.antibiotics_colony import (DE_GENES, MAX_TIME, SPLIT_TIME,
 def plot_colony_growth(
     data: pd.DataFrame,
     ax: plt.Axes = None,
-    antibiotic: str = 'Tetracycline',
+    antibiotic: str = 'Tet.',
     antibiotic_col: str = 'Initial external tet.',
     mic: float = 3.375
 ) -> None:
@@ -47,10 +47,10 @@ def plot_colony_growth(
     data.loc[:, 'Time'] = data.loc[:, 'Time'] / 3600
 
     cmap = matplotlib.colormaps['Greys']
-    tet_min = data.loc[:, 'antibiotic_conc'].min()
-    tet_max = data.loc[:, 'antibiotic_conc'].max()
+    antibiotic_min = data.loc[:, 'antibiotic_conc'].min()
+    antibiotic_max = data.loc[:, 'antibiotic_conc'].max()
     norm = matplotlib.colors.Normalize(
-        vmin=1.5*tet_min-0.5*tet_max, vmax=tet_max)
+        vmin=1.5*antibiotic_min-0.5*antibiotic_max, vmax=antibiotic_max)
     antibiotic_concs = data.loc[:, 'antibiotic_conc'].unique()
     palette = {antibiotic_conc: cmap(norm(antibiotic_conc))
         for antibiotic_conc in antibiotic_concs}
@@ -60,17 +60,26 @@ def plot_colony_growth(
         data=data, x='Time', y='Dry mass',
         hue='antibiotic_conc', ax=ax, palette=palette, errorbar=None)
     # Set y-limits so that major ticks surround data
-    curr_ylimits = np.log10([
+    log_ylim = 10**np.round(np.log10([
         data.loc[:, 'Dry mass'].min(),
-        data.loc[:, 'Dry mass'].max()])
-    ax.set_ylim(10**np.floor(curr_ylimits[0]), 10**np.ceil(curr_ylimits[1]))
+        data.loc[:, 'Dry mass'].max()]), 0)
+    new_ymin = min(log_ylim[0], data.loc[:, 'Dry mass'].min())
+    new_ymax = max(log_ylim[1], data.loc[:, 'Dry mass'].max())
+    ax.set_ylim(new_ymin, new_ymax)
     max_x = np.round(data.loc[:, 'Time'].max(), 1)
     ticks = list(np.arange(0, max_x, 2, dtype=int)) + [max_x]
     labels = [str(tick) for tick in ticks]
     ax.set_xticks(ticks=ticks, labels=labels)
     # Log scale so linear means exponential growth
     ax.set(yscale='log')
-    ax.legend(frameon=False, title=f'{antibiotic} (uM)', fontsize=8, title_fontsize=8)
+    ax.text(0, 1, f'{antibiotic} (\u03BCM)', transform=ax.transAxes, size=8)
+    ypos = [0.9, 0.8, 0.7, 0.6, 0.5, 0.4]
+    concs = list(palette.keys())
+    colors = list(palette.values())
+    for i, y in enumerate(ypos):
+        ax.text(0, y, concs[i], c=colors[i],
+            transform=ax.transAxes, size=8)
+    ax.legend().remove()
     sns.despine(ax=ax, offset=3, trim=True)
 
 
@@ -124,12 +133,7 @@ def plot_synth_prob_fc(
     mrna_counts = relative_data.loc[:, 'Avg. sim. mRNA'].sort_values().to_numpy()
     min_nonzero = mrna_counts[mrna_counts!=0][0]
     norm = matplotlib.colors.LogNorm(vmin=min_nonzero, vmax=mrna_counts[-1])
-    ompf_filter = (relative_data.loc[:, 'Gene'] == 'ompF')
-    sns.scatterplot(data=relative_data[ompf_filter],
-        x='Literature RNA $\mathregular{log_2 FC}$',
-        y='Sim. RNA synth. prob. $\mathregular{log_2 FC}$', ax=ax, 
-        c=(0, 0.4, 1), legend=False, edgecolor='k')
-    sns.scatterplot(data=relative_data[~ompf_filter],
+    sns.scatterplot(data=relative_data,
         x='Literature RNA $\mathregular{log_2 FC}$',
         y='Sim. RNA synth. prob. $\mathregular{log_2 FC}$', ax=ax, hue='Avg. sim. mRNA',
         hue_norm=norm, palette='binary', legend=False, edgecolor='k')
@@ -191,13 +195,7 @@ def plot_mrna_fc(
     mrna_counts = relative_data.loc[:, 'Avg. sim. mRNA'].sort_values().to_numpy()
     min_nonzero = mrna_counts[mrna_counts!=0][0]
     norm = matplotlib.colors.LogNorm(vmin=min_nonzero, vmax=mrna_counts[-1])
-    # Highlight ompF in blue
-    ompf_filter = (relative_data.loc[:, 'Gene'] == 'ompF')
-    sns.scatterplot(data=relative_data[ompf_filter],
-        x='Literature RNA $\mathregular{log_2 FC}$',
-        y='Sim. RNA $\mathregular{log_2 FC}$', ax=ax, 
-        c=(0, 0.4, 1), legend=False, edgecolor='k')
-    sns.scatterplot(data=relative_data[~ompf_filter],
+    sns.scatterplot(data=relative_data,
         x='Literature RNA $\mathregular{log_2 FC}$',
         y='Sim. RNA $\mathregular{log_2 FC}$', ax=ax, hue='Avg. sim. mRNA',
         hue_norm=norm, palette='binary', legend=False, edgecolor='k')
@@ -257,33 +255,30 @@ def plot_protein_synth_inhib(
     control = normed_data.index[normed_data['Tetracycline']==0]
     normed_data['Percent inhibition'] = 1 - (normed_data.loc[
         :, 'Normed delta'] / normed_data.loc[control, 'Normed delta'].to_numpy())
-    normed_data['Source'] = ['Simulation'] * len(normed_data)
+    normed_data['Source'] = ['This model'] * len(normed_data)
     normed_data = normed_data.loc[:, ['Percent inhibition',
         'Tetracycline', 'Source']]
     normed_data = normed_data.loc[normed_data.loc[:, 'Tetracycline']>0, :]
-    palette = {'Simulation': (0, 0.4, 1)}
+    palette = {'This model': (0, 0.4, 1)}
     if literature is not None:
         gray = 0.3
         for source in literature.loc[:, 'Source'].unique():
             palette[source] = str(gray)
             gray += 0.3
         normed_data = pd.concat([normed_data, literature])
-    fig, ax = plt.subplots(1, 1)
+    # 3-parameter sigmoid function used to fit inhibition curves
     def func(x, a, b, c):
         return  a * np.power(x, b) / (np.power(c, b) + np.power(x, b))
-
-    
-    ic_50 = []
+    ic_50 = {}
     normed_data = normed_data.sort_values('Source')
     for i, source in enumerate(normed_data.loc[:, 'Source'].unique()):
         source_data = normed_data.loc[normed_data.loc[:, 'Source']==source, :]
         fittedParameters, pcov = curve_fit(func, source_data['Tetracycline'], source_data['Percent inhibition'])
         x = np.linspace(source_data['Tetracycline'].min(), source_data['Tetracycline'].max(), 10000)
         pred = func(x, *(fittedParameters))
-        ax.plot(x, pred, c=palette[source])
+        ax.plot(x, pred, c=palette[source], linewidth=1)
         sol = root_scalar(lambda x: func(x, *fittedParameters) - 0.5, x0=10, x1=5)
-        ic_50 += [' (' + r'$\mathregular{IC_{50}} = $' + str(np.round(sol.root, 1)) + ' uM)'] * len(source_data)
-    normed_data.loc[:, 'Source'] = normed_data.loc[:, 'Source'].str.cat(ic_50)
+        ic_50[source] = str(np.round(sol.root, 1)) + ' \u03BCM'
 
     new_palette = {}
     sources_new = normed_data.loc[:, 'Source'].unique()
@@ -292,18 +287,28 @@ def plot_protein_synth_inhib(
             if orig_source in source:
                 new_palette[source] = palette[orig_source]
     palette = new_palette
+    markers = {source: 'o' for source in sources_new}
+    markers['This model'] = '^'
 
     sns.scatterplot(data=normed_data, x='Tetracycline',
-        y='Percent inhibition', hue='Source', ax=ax, palette=palette)
+        y='Percent inhibition', hue='Source', ax=ax, palette=palette,
+        style='Source', markers=markers, legend=False, s=16)
     ax.set_xscale('log')
+    ax.set_xticks([0.1, 100])
     sns.despine(offset=3, trim=True)
-    plt.legend(frameon=False)
-    ax.set_xticks(ax.get_xticks(minor=True)[16:40], minor=True)
-    ax.set_ylabel(r'% inhibtion protein synthesis')
-    ax.set_xlabel('Tetracycline (cytoplasm, uM)')
-
-    plt.savefig('out/analysis/paper_figures/synth_inhib.svg')
-    plt.close()
+    xticks = np.array([0.1, 1, 10, 100])
+    xticklabels = [f'$10^{{{int(exp)}}}$' for exp in np.log10(xticks)]
+    ax.set_xticks(xticks, xticklabels, size=8)
+    ax.set_yticks([0, 0.5, 1], [0, 0.5, 1], size=8)
+    ax.text(0, 0.9, 'This model', c=palette['This model'],
+        size=8, transform=ax.transAxes, weight='bold')
+    for i, source in enumerate(palette):
+        if source != 'This model':
+            ax.text(0, 0.8-0.1*i, source, c=palette[source],
+                size=8, transform=ax.transAxes)
+    ax.legend().remove()
+    ax.set_ylabel('% protein synth. inhib.', size=9)
+    ax.set_xlabel('Tetracycline (\u03BCM)', size=9)
 
 
 def plot_mass_fraction(
