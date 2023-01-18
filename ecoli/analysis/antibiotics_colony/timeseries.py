@@ -293,7 +293,8 @@ def plot_tag_snapshots(
     out_prefix: str = None,
     show_membrane: bool = False,
     return_fig: bool = False,
-    figsize=(9, 1.75)
+    figsize=(9, 1.75),
+    highlight_agent=None
 ) -> None:
     '''Plot a row of snapshot images that span a replicate for each condition.
     In each of these images, cells will be will be colored with highlight_color
@@ -320,6 +321,8 @@ def plot_tag_snapshots(
         show_membrane: Whether to draw outline for agents
         return_fig: Whether to return figure. Only use with one tag.
         figsize: Desired size of entire figure
+        highlight_agent: Mapping of agent IDs to `membrane_color` and `membrane_width`.
+            Useful for highlighting specific agents, with rest using defaults
     '''
     for highlight_column, tag_color in tag_colors.items():
         if snapshot_times is None:
@@ -384,7 +387,8 @@ def plot_tag_snapshots(
             ylim=[15, 35],
             n_snapshots=len(snapshot_times),
             tag_ranges=tag_ranges,
-            figsize=figsize
+            figsize=figsize,
+            highlight_agent=highlight_agent
         )
         # New scale bar with reduced space between bar and label
         snapshots_fig.axes[1].artists[0].remove()

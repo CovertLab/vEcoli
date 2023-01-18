@@ -249,6 +249,7 @@ def plot_agents(
     membrane_width=0.1,
     membrane_color=[1, 1, 1],
     alpha=1,
+    highlight_agent=None,
 ):
     """Plot agents.
 
@@ -265,6 +266,9 @@ def plot_agents(
         membrane_color (list): List of 3 floats that define the RGB
             color to use for agent outlines.
         alpha: Alpha value for agents.
+        highlight_agent: Mapping of agent ID to `membrane_color` and
+            `membrane_width`. Useful for highlighting specific agents,
+            with rest using default `membrane_width` and `membrane_color`
     """
 
     if not agent_colors:
@@ -275,13 +279,21 @@ def plot_agents(
             if agent_data["boundary"].get("dead"):
                 color = dead_color
         if agent_data:
+            if agent_id in highlight_agent:
+                agent_membrane_width = highlight_agent[
+                    agent_id]['membrane_width']
+                agent_membrane_color = highlight_agent[
+                    agent_id]['membrane_color']
+            else:
+                agent_membrane_width = membrane_width
+                agent_membrane_color = membrane_color
             plot_agent(
                 ax,
                 agent_data,
                 color,
                 agent_shape,
-                membrane_width,
-                membrane_color,
+                agent_membrane_width,
+                agent_membrane_color,
                 alpha,
             )
 
@@ -845,6 +857,7 @@ def make_tags_figure(
     xlim=None,
     ylim=None,
     figsize=None,
+    highlight_agent=None,
 ):
     """Plot snapshots of the simulation over time
 
@@ -892,6 +905,9 @@ def make_tags_figure(
                 for that tag. Using dictionaries will override ``min_color``
             * **figsize** (:py:class:`tuple`): Dimensions of figure in
                 inches (takes precedence over `plot_width`)
+            * **highlight_agent** (:py:class:`dict`): Mapping of agent IDs to
+                `membrane_color` and `membrane_width`. Useful for highlighting
+                specific agents, with rest using default color / width
     """
 
     membrane_color = membrane_color or [1, 1, 1]
@@ -987,6 +1003,7 @@ def make_tags_figure(
                 None,
                 membrane_width,
                 membrane_color,
+                highlight_agent=highlight_agent
             )
             if xlim:
                 ax.set_xlim(*xlim)
