@@ -412,14 +412,23 @@ def make_figure_4b(data, metadata):
 
     # Set up custom divergent colormap
     cmp = matplotlib.colors.LinearSegmentedColormap.from_list(
-        'divergent', [(0, 0.4, 1), (1, 1, 1), (0.678, 0, 0.125)])
+        'divergent', [(0, 0, 0), (1, 1, 1), (0.678, 0, 0.125)])
     magnitude = data.loc[:, fc_col].abs().max()
     norm = matplotlib.colors.Normalize(vmin=-magnitude, vmax=magnitude)
     snapshot_times = np.array([1.9, 3.2, 4.5, 5.8, 7.1]) * 3600
     snapshot_times = np.array([3.2, 4.5, 5.8, 7.1]) * 3600
+
+    # Draw blue border around highlighted agent lineage
+    highlight_agent_id = '001111111'
+    highlight_agent_ids = [highlight_agent_id[:i+1] for i  in range(len(highlight_agent_id))]
+    highlight_agent = {agent_id: {
+        'membrane_width': 0.5, 'membrane_color': (0, 0.4, 1)}
+        for agent_id in highlight_agent_ids}
+
     fig = plot_tag_snapshots(
         data=data, metadata=metadata, tag_colors={fc_col: {'cmp': cmp, 'norm': norm}},
-        snapshot_times=snapshot_times, return_fig=True, figsize=(6, 1.5))
+        snapshot_times=snapshot_times, return_fig=True, figsize=(6, 1.5),
+        highlight_agent=highlight_agent)
     fig.axes[0].set_xticklabels(
         np.abs(np.round(fig.axes[0].get_xticks()/3600 - SPLIT_TIME/3600, 1)))
     fig.axes[0].set_xlabel('Hours after ampicillin addition')
