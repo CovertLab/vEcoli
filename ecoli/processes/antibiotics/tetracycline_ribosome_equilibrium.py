@@ -112,8 +112,14 @@ class TetracyclineRibosomeEquilibrium(Step):
             # If there is no tetracycline, do nothing.
             return {}
 
+        # Cache old counts for checking later
+        old_count_tc_free = count_tc_free
+        old_count_30s_tc = count_30s_tc
+        old_count_70s_free = count_70s_free
+        old_count_30s_free = count_30s_free
+
         # Solve for change in free tetracycline concentration (by binding
-        # or unbinding from 30s) that results in stable tetracycline conc.
+        # or unbinding from 30S) that results in stable tetracycline conc.
         sol = root_scalar(
             f=self.get_delta_tc_free_count,
             args=(
@@ -129,10 +135,13 @@ class TetracyclineRibosomeEquilibrium(Step):
         assert sol.converged
         delta_tc_free_count = int(sol.root)
         delta_tc = delta_tc_free_count / AVOGADRO / volume
-        
-        # Cache old counts for checking later
-        old_count_tc_free = count_tc_free
-        old_count_30s_tc = count_30s_tc
+
+        # If trying to bind more tetracycline than free 30S subunits (e.g.
+        # after dramatic increase in tetracycline count), make up difference
+        # by dissociating 70S subunits into 50S and 30S-Tc
+        overflow_30s_tc = -(delta_tc_free_count + count_30s_free)
+        if overflow_30s_tc > 0:
+            count_70s_free -= overflow_30s_tc
         
         # Apply change in free tetracycline concentration
         count_tc_free += delta_tc_free_count
@@ -146,15 +155,26 @@ class TetracyclineRibosomeEquilibrium(Step):
                 count_30s_tc
             )
         # Remember that calculation is predicated on free tetracycline
-        # count changing by delta_tc_count from 30s binding/unbinding
+        # count changing by delta_tc_count from 30S binding/unbinding,
+        # potentially with some overflow into the 70S count
         count_30s_to_inhibit -= delta_tc_free_count
+        if overflow_30s_tc > 0:
+            count_30s_to_inhibit = min(count_30s_to_inhibit, count_30s_free)
+            count_70s_to_inhibit += overflow_30s_tc
 
         assert delta_tc + conc_tc_free >= 0
         # Ensure total count of tetracycline in cell is not changing
-        # aside from some rounding errors
         assert np.isclose(old_count_tc_free + old_count_30s_tc,
             count_30s_to_inhibit + count_70s_to_inhibit
-            + count_tc_free + states['30s-tetracycline'], atol=10)
+            + count_tc_free + states['30s-tetracycline'], atol=1)
+        
+        # Ensure that total count of ribosomes in cell is not changing
+        new_70s_count = old_count_70s_free - count_70s_to_inhibit
+        new_30s_count = old_count_30s_free - count_30s_to_inhibit 
+        new_30s_tc_count = (old_count_30s_tc + count_30s_to_inhibit
+            + count_70s_to_inhibit)
+        assert (count_ribo_total == new_70s_count + new_30s_count +
+            new_30s_tc_count)
 
         # Handle the easy updates: the concentrations and subunits.
         update = {
@@ -207,11 +227,19 @@ class TetracyclineRibosomeEquilibrium(Step):
         count_trna,
         count_ribo_total,
         count_70s_free,
-        count_30s_tc
+        count_30s_tc,
     ):
         # See what happens if free tetracycline changes by delta_tc_count
         count_tc_free += delta_tc_count
         count_30s_tc -= delta_tc_count
+
+        count_30s_free = count_ribo_total - count_30s_tc - count_70s_free
+        # If trying to bind more tetracycline than free 30S subunits (e.g.
+        # after dramatic increase in tetracycline count), make up difference
+        # by dissociating 70S subunits into 50S and 30S-Tc
+        overflow_30s_tc = -(delta_tc_count + count_30s_free)
+        if overflow_30s_tc > 0:
+            count_70s_free -= overflow_30s_tc
         
         delta_tc_free_count, _, _, _ = self.calculate_delta(
             count_tc_free,
