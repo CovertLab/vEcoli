@@ -20,7 +20,7 @@ from ecoli.analysis.antibiotics_colony.timeseries import (plot_field_snapshots,
                                                           plot_timeseries)
 from ecoli.analysis.antibiotics_colony.validation import (
     plot_colony_growth, plot_mrna_fc, plot_protein_synth_inhib,
-    plot_synth_prob_fc)
+    plot_synth_prob_fc, plot_death_timescale_analysis)
 
 
 def make_figure_1a(data, metadata):
@@ -443,6 +443,14 @@ def make_figure_4c(data, metadata):
     print('Done with Figure 4C.')
 
 
+def make_figure_4d(data, metadata):
+    fig, axs = plt.subplots(1, 2, figsize=(4, 2))
+    plot_death_timescale_analysis(data, axs)
+    plt.savefig('out/analysis/paper_figures/fig_4d_misc.svg')
+    plt.close()
+    print('Done with Figure 4D.')
+
+
 def load_pickles(experiment_ids):
     data = []
     metadata = {}
@@ -527,6 +535,9 @@ def main():
             'Ampicillin (4 mg/L)'],
         '4b': ['Glucose', 'Ampicillin (2 mg/L)'],
         '4c': ['Glucose', 'Ampicillin (2 mg/L)'],
+        '4d': ['Ampicillin (0.5 mg/L)', 'Ampicillin (1 mg/L)',
+            'Ampicillin (1.5 mg/L)', 'Ampicillin (2 mg/L)',
+            'Ampicillin (4 mg/L)'],
     }
     seeds = {
         '1a': [10000],
@@ -536,11 +547,12 @@ def main():
         '3b': [0],
         '3c': [0],
         '3d': [0],
-        '3e': [0, 10000],
+        '3e': [0, 100, 10000],
         '3f': [0],
         '4a': [0],
         '4b': [0],
         '4c': [0],
+        '4d': [0],
     }
     if args.fig_ids is None:
         args.fig_ids = conditions.keys() - {'3f'}
@@ -564,6 +576,7 @@ def main():
         fig_data = data.loc[filter, :].copy()
         globals()[f'make_figure_{fig_id}'](fig_data, metadata)
 
+# TODO: Figure to show that environmental ampicillin concentration does not change much over time
 
 if __name__ == '__main__':
     main()
