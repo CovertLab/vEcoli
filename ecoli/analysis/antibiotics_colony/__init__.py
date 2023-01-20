@@ -10,6 +10,11 @@ SPLIT_TIME = 11550
 MAX_TIME = 26000
 COUNTS_PER_FL_TO_NANOMOLAR = 1 / (1e-15) / N_A * (1e9)
 
+# Average generation time (average of all cells except those
+# in final generation of simulation IDs: '2022-12-08_00-33-56_581605+0000',
+# '2022-12-08_00-35-12_754291+0000', '2022-12-08_00-35-28_562633+0000')
+AVG_GEN_TIME = 3137.0669216061187
+
 # Mapping: Condition -> Seed -> Experiment ID
 EXPERIMENT_ID_MAPPING = {
     'Glucose': {
