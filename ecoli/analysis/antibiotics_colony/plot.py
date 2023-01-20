@@ -20,7 +20,7 @@ from ecoli.analysis.antibiotics_colony.timeseries import (plot_field_snapshots,
                                                           plot_timeseries)
 from ecoli.analysis.antibiotics_colony.validation import (
     plot_colony_growth, plot_mrna_fc, plot_protein_synth_inhib,
-    plot_synth_prob_fc)
+    plot_synth_prob_fc, plot_death_timescale_analysis)
 
 
 def make_figure_1a(data, metadata):
@@ -191,10 +191,23 @@ def make_figure_2c(data, metadata):
 
 
 def make_figure_3a(data, metadata):
-    fig, ax = plt.subplots(1, 1, figsize=(3, 3))
+    fig, ax = plt.subplots(1, 1, figsize=(1.75, 2))
     plot_colony_growth(data, ax)
+    offset_time = SPLIT_TIME/3600
+    min_time = np.round(-offset_time, 1)
+    max_time = np.round(MAX_TIME/3600-offset_time, 1)
+    ticks = np.array([int(min_time), 0, int(max_time)])
+    ax.set_xticks(ticks+offset_time, ticks, size=8)
+    ax.spines['bottom'].set_bounds(0, MAX_TIME/3600)
+    ax.spines['left'].set_bounds(ax.get_ylim())
+    ax.set_xlabel('Hours after tet. addition', size=8)
+    ax.set_ylabel('Colony mass', size=8)
+    yticklabels = [f'$10^{int(exp)}$' for exp in np.log10(ax.get_yticks())]
+    ax.set_yticks(ax.get_yticks(), yticklabels, size=9)
     plt.tight_layout()
-    fig.savefig('out/analysis/paper_figures/tet_colony_growth.svg')
+    fig.subplots_adjust(top=0.95, bottom=0.2, left=0.31, right=1)
+    fig.savefig('out/analysis/paper_figures/fig_3a_tet_colony_mass.svg',
+        bbox_inches='tight')
     plt.close()
     print('Done with Figure 3A.')
 
@@ -220,16 +233,21 @@ def make_figure_3c(data, metadata):
     # Convert tetracycline concentrations to uM
     transition_data.loc[:, 'Periplasmic tetracycline'] *= 1000
     transition_data.loc[:, 'Cytoplasmic tetracycline'] *= 1000
-    fig, axes = plt.subplots(1, 3, figsize=(7, 2))
-    short_term_columns = {
-        'Periplasmic tetracycline': 0,
-        'Cytoplasmic tetracycline': 1,
-        'Active ribosomes': 2,
-    }
     # Convert to concentration using cytoplasmic volume
     transition_data.loc[:, 'Active ribosomes'] /= (
         transition_data.loc[:, 'Volume'] * 0.8)
-    transition_data.loc[:, 'Active ribosomes'] *= COUNTS_PER_FL_TO_NANOMOLAR
+    transition_data.loc[:, 'Active ribosomes'] *= COUNTS_PER_FL_TO_NANOMOLAR / 1000
+    transition_data.rename(columns={
+        'Periplasmic tetracycline': 'Tetracycline\n(periplasm)',
+        'Cytoplasmic tetracycline': 'Tetracycline\n(cytoplasm)',
+        'Active ribosomes': 'Active\nribosomes',
+    }, inplace=True)
+    fig, axes = plt.subplots(1, 3, figsize=(5, 1.5))
+    short_term_columns = {
+        'Tetracycline\n(periplasm)': 0,
+        'Tetracycline\n(cytoplasm)': 1,
+        'Active\nribosomes': 2,
+    }
     for column, ax_idx in short_term_columns.items():
         plot_timeseries(
             data=transition_data,
@@ -241,20 +259,27 @@ def make_figure_3c(data, metadata):
             background_linewidth=0.3)
     for ax in axes.flat:
         ylim = ax.get_ylim()
-        ax.set_yticks(np.round(ylim, 0).astype(int))
+        yticks = np.round(ylim, 0).astype(int)
+        ax.set_yticks(yticks, yticks, size=9)
         ax.set_xlabel(None)
         # Mark minutes since tetracycline addition
         ax.set_xticks(ticks=[11430/3600, 11490/3600, 11550/3600,
-            11610/3600, 11670/3600], labels=[-2, -1, 0, 1, 2])
+            11610/3600, 11670/3600], labels=[-2, -1, 0, 1, 2], size=9)
         ax.spines.bottom.set(bounds=(11400/3600, 11700/3600), linewidth=1,
             visible=True, color=(0, 0, 0), alpha=1)
         ylabel = ax.get_ylabel()
         ax.set_ylabel(None)
-        ax.set_title(ylabel)
-    axes.flat[0].set_ylabel('Conc. (uM)')
-    fig.supxlabel('Minutes Since Tetracycline Addition')
+        ax.set_title(ylabel, size=9)
+    axes.flat[0].set_ylabel('\u03BCM', size=9, labelpad=0)
+    axes.flat[1].set_xlabel('Minutes after tetracycline addition', size=9)
+    # Use scientific notation for high active ribosome concentrations
+    new_ylim = np.round(axes.flat[-1].get_ylim(), 0).astype(int)
+    axes.flat[-1].set_yticks(new_ylim, new_ylim, size=9)
+    axes.flat[-1].spines.left.set(bounds=new_ylim, linewidth=1,
+        visible=True, color=(0, 0, 0), alpha=1)
     plt.tight_layout()
-    fig.savefig('out/analysis/paper_figures/tet_short_term.svg')
+    fig.subplots_adjust(left=0.08, right=0.99, top=0.8, bottom=0.3, wspace=0.35)
+    fig.savefig('out/analysis/paper_figures/fig_3c_tet_short_term.svg')
     plt.close()
     print('Done with Figure 3C.')
 
@@ -268,12 +293,9 @@ def make_figure_3d(data, metadata):
         'micF-ompF duplex': 0,
         'ompF mRNA': 1,
         'OmpF monomer': 2,
-        'acrA mRNA': 3,
-        'AcrA monomer': 4,
-        'AcrAB-TolC': 5,
     }
     # Convert to concentrations using periplasmic or cytoplasmic volume
-    periplasmic = ['OmpF monomer', 'AcrAB-TolC', 'AcrA monomer']
+    periplasmic = ['OmpF monomer']
     for column in long_term_columns:
         if column in periplasmic:
             long_transition_data.loc[:, column] /= (
@@ -282,7 +304,7 @@ def make_figure_3d(data, metadata):
             long_transition_data.loc[:, column] /= (
                 long_transition_data.loc[:, 'Volume'] * 0.8)
         long_transition_data.loc[:, column] *= COUNTS_PER_FL_TO_NANOMOLAR
-    fig, axes = plt.subplots(2, 3, figsize=(7, 4))
+    fig, axes = plt.subplots(1, 3, figsize=(5, 1.5))
     for column, ax_idx in long_term_columns.items():
         plot_timeseries(
             data=long_transition_data,
@@ -294,22 +316,30 @@ def make_figure_3d(data, metadata):
             background_linewidth=0.3)
     for ax in axes.flat:
         ylim = ax.get_ylim()
-        ax.set_yticks(np.round(ylim, 0).astype(int))
+        yticks = np.round(ylim, 0).astype(int)
+        ax.set_yticks(yticks, yticks, size=9)
         # Mark hours since tetracycline addition
         xlim = np.array(ax.get_xlim())
         xticks = np.append(xlim, 11550/3600)
         xtick_labels = np.trunc(xticks-11550/3600).astype(int)
-        ax.set_xticks(ticks=xticks, labels=xtick_labels)
+        ax.set_xticks(ticks=xticks, labels=xtick_labels, size=9)
         ax.set_xlabel(None)
         ax.spines.bottom.set(bounds=(0, MAX_TIME/3600), linewidth=1,
             visible=True, color=(0, 0, 0), alpha=1)
         ylabel = ax.get_ylabel()
         ax.set_ylabel(None)
-        ax.set_title(ylabel)
-    fig.supylabel('Concentration (uM)')
-    fig.supxlabel('Hours Since Tetracycline Addition')
+        ax.set_title(ylabel, size=9, pad=12)
+    axes.flat[0].set_ylabel('nM', size=9, labelpad=-6)
+    fig.supxlabel('Hours after tetracycline addition', size=9)
+    # Use scientific notation for high OmpF monomer concentrations
+    new_ylim = np.round(np.array(axes.flat[-1].get_ylim())/10000, 0) * 10000
+    axes.flat[-1].set_yticks(new_ylim, (new_ylim/10000).astype(int), size=9)
+    axes.flat[-1].spines.left.set(bounds=new_ylim, linewidth=1,
+        visible=True, color=(0, 0, 0), alpha=1)
+    axes.flat[-1].text(0, 1, r'x$10^4$', transform=axes.flat[-1].transAxes, size=8)
     plt.tight_layout()
-    fig.savefig('out/analysis/paper_figures/tet_long_term.svg')
+    fig.subplots_adjust(left=0.08, right=0.99, top=0.8, bottom=0.3, wspace=0.35)
+    fig.savefig('out/analysis/paper_figures/fig_3d_tet_long_term.svg')
     plt.close()
     print('Done with Figure 3D.')
 
@@ -322,7 +352,7 @@ def make_figure_3e(data, metadata):
     axs[0].set_yticks([0, 0.5, 1, 1.5])
     axs[1].spines['left'].set_bounds((-1, 1.5))
     axs[1].set_yticks([-1, -0.5, 0, 0.5, 1, 1.5])
-    fig.savefig('out/analysis/paper_figures/tet_synth_prob_unfiltered.svg', bbox_inches='tight')
+    fig.savefig('out/analysis/paper_figures/fig_3f_tet_gene_exp.svg', bbox_inches='tight')
     plt.close()
     print('Done with Figure 3E.')
 
@@ -337,20 +367,33 @@ def make_figure_3f(data, metadata):
     olson.loc[:, 'Percent inhibition'] /= 100
     olson['Source'] = ['Olson et al. 2006'] * len(olson) 
     literature = pd.concat([jenner, olson])
-    fig, ax = plt.subplots(1, 1, figsize=(4,4))
+    fig, ax = plt.subplots(1, 1, figsize=(1.75,2))
     plot_protein_synth_inhib(data, ax, literature)
     plt.tight_layout()
-    plt.savefig('out/analysis/paper_figures/protein_synth_inhib.svg')
+    plt.subplots_adjust(top=1, bottom=0.25, left=0.2, right=1)
+    plt.savefig('out/analysis/paper_figures/protein_synth_inhib.svg', bbox_inches='tight')
     plt.close()
     print('Done with Figure 3F.')
 
 
 def make_figure_4a(data, metadata):
-    fig, ax = plt.subplots(1, 1, figsize=(3, 3))
+    fig, ax = plt.subplots(1, 1, figsize=(1.75, 2))
     plot_colony_growth(data, ax, antibiotic_col='Initial external amp.',
-        mic=5.724, antibiotic='Ampicillin')
+        mic=5.724, antibiotic='Amp.')
+    offset_time = SPLIT_TIME/3600
+    min_time = np.round(-offset_time, 1)
+    max_time = np.round(MAX_TIME/3600-offset_time, 1)
+    ticks = np.array([int(min_time), 0, int(max_time)])
+    ax.set_xticks(ticks+offset_time, ticks, size=8)
+    ax.spines['bottom'].set_bounds(0, MAX_TIME/3600)
+    ax.spines['left'].set_bounds(ax.get_ylim())
+    ax.set_xlabel('Hours after amp. addition', size=8)
+    ax.set_ylabel('Colony mass', size=8)
+    yticklabels = [f'$10^{int(exp)}$' for exp in np.log10(ax.get_yticks())]
+    ax.set_yticks(ax.get_yticks(), yticklabels, size=9)
     plt.tight_layout()
-    fig.savefig('out/analysis/paper_figures/amp_colony_growth.svg')
+    fig.subplots_adjust(top=0.95, bottom=0.2, left=0.31, right=1)
+    fig.savefig('out/analysis/paper_figures/fig_4a_amp_colony_mass.svg')
     plt.close()
     print('Done with Figure 4A.')
 
@@ -369,18 +412,43 @@ def make_figure_4b(data, metadata):
 
     # Set up custom divergent colormap
     cmp = matplotlib.colors.LinearSegmentedColormap.from_list(
-        'divergent', [(0, 0.4, 1), (1, 1, 1), (0.678, 0, 0.125)])
+        'divergent', [(0, 0, 0), (1, 1, 1), (0.678, 0, 0.125)])
     magnitude = data.loc[:, fc_col].abs().max()
     norm = matplotlib.colors.Normalize(vmin=-magnitude, vmax=magnitude)
-    plot_tag_snapshots(
+    snapshot_times = np.array([1.9, 3.2, 4.5, 5.8, 7.1]) * 3600
+    snapshot_times = np.array([3.2, 4.5, 5.8, 7.1]) * 3600
+
+    # Draw blue border around highlighted agent lineage
+    highlight_agent_id = '001111111'
+    highlight_agent_ids = [highlight_agent_id[:i+1] for i  in range(len(highlight_agent_id))]
+    highlight_agent = {agent_id: {
+        'membrane_width': 0.5, 'membrane_color': (0, 0.4, 1)}
+        for agent_id in highlight_agent_ids}
+
+    fig = plot_tag_snapshots(
         data=data, metadata=metadata, tag_colors={fc_col: {'cmp': cmp, 'norm': norm}},
-        snapshot_times=np.array([1.9, 3.2, 4.5, 5.8, 7.1]) * 3600)
+        snapshot_times=snapshot_times, return_fig=True, figsize=(6, 1.5),
+        highlight_agent=highlight_agent)
+    fig.axes[0].set_xticklabels(
+        np.abs(np.round(fig.axes[0].get_xticks()/3600 - SPLIT_TIME/3600, 1)))
+    fig.axes[0].set_xlabel('Hours after ampicillin addition')
+    fig.savefig('out/analysis/paper_figures/fig_4b_amp_snapshots.svg',
+        bbox_inches='tight')
+    plt.close()
     print('Done with Figure 4B.')
 
 
 def make_figure_4c(data, metadata):
     plot_ampc_phylo(data)
     print('Done with Figure 4C.')
+
+
+def make_figure_4d(data, metadata):
+    fig, axs = plt.subplots(1, 2, figsize=(4, 2))
+    plot_death_timescale_analysis(data, axs)
+    plt.savefig('out/analysis/paper_figures/fig_4d_misc.svg')
+    plt.close()
+    print('Done with Figure 4D.')
 
 
 def load_pickles(experiment_ids):
@@ -467,6 +535,9 @@ def main():
             'Ampicillin (4 mg/L)'],
         '4b': ['Glucose', 'Ampicillin (2 mg/L)'],
         '4c': ['Glucose', 'Ampicillin (2 mg/L)'],
+        '4d': ['Ampicillin (0.5 mg/L)', 'Ampicillin (1 mg/L)',
+            'Ampicillin (1.5 mg/L)', 'Ampicillin (2 mg/L)',
+            'Ampicillin (4 mg/L)'],
     }
     seeds = {
         '1a': [10000],
@@ -476,11 +547,12 @@ def main():
         '3b': [0],
         '3c': [0],
         '3d': [0],
-        '3e': [0, 10000],
+        '3e': [0, 100, 10000],
         '3f': [0],
         '4a': [0],
         '4b': [0],
         '4c': [0],
+        '4d': [0],
     }
     if args.fig_ids is None:
         args.fig_ids = conditions.keys() - {'3f'}
@@ -504,6 +576,7 @@ def main():
         fig_data = data.loc[filter, :].copy()
         globals()[f'make_figure_{fig_id}'](fig_data, metadata)
 
+# TODO: Figure to show that environmental ampicillin concentration does not change much over time
 
 if __name__ == '__main__':
     main()

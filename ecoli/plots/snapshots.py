@@ -249,6 +249,7 @@ def plot_agents(
     membrane_width=0.1,
     membrane_color=[1, 1, 1],
     alpha=1,
+    highlight_agent=None,
 ):
     """Plot agents.
 
@@ -265,6 +266,9 @@ def plot_agents(
         membrane_color (list): List of 3 floats that define the RGB
             color to use for agent outlines.
         alpha: Alpha value for agents.
+        highlight_agent: Mapping of agent ID to `membrane_color` and
+            `membrane_width`. Useful for highlighting specific agents,
+            with rest using default `membrane_width` and `membrane_color`
     """
 
     if not agent_colors:
@@ -275,13 +279,21 @@ def plot_agents(
             if agent_data["boundary"].get("dead"):
                 color = dead_color
         if agent_data:
+            if agent_id in highlight_agent:
+                agent_membrane_width = highlight_agent[
+                    agent_id]['membrane_width']
+                agent_membrane_color = highlight_agent[
+                    agent_id]['membrane_color']
+            else:
+                agent_membrane_width = membrane_width
+                agent_membrane_color = membrane_color
             plot_agent(
                 ax,
                 agent_data,
                 color,
                 agent_shape,
-                membrane_width,
-                membrane_color,
+                agent_membrane_width,
+                agent_membrane_color,
                 alpha,
             )
 
@@ -545,6 +557,7 @@ def make_snapshots_figure(
     max_color="gray",
     out_dir=None,
     filename="snapshots",
+    figsize=None,
 ):
     """
     Args:
@@ -579,6 +592,8 @@ def make_snapshots_figure(
           ``out`` by default.
         * **filename** (:py:class:`str`): Base name of output file.
           ``snapshots`` by default.
+        * **figsize** (:py:class:`tuple`): Dimensions of figure in
+          inches (takes precedence over `plot_width`)
     """
     edge_length_x = bounds[0]
     edge_length_y = bounds[1]
@@ -587,7 +602,8 @@ def make_snapshots_figure(
     field_ids = list(field_range.keys())
     n_rows = max(len(field_ids), 1)
     n_cols = n_snapshots + 1  # one column for the colorbar
-    figsize = (plot_width * n_cols, plot_width * n_rows)
+    if not figsize:
+        figsize = (plot_width * n_cols, plot_width * n_rows)
     max_dpi = min([2**16 // dim for dim in figsize]) - 1
     fig = plt.figure(figsize=figsize, dpi=min(max_dpi, 100))
     grid = plt.GridSpec(n_rows, n_cols, wspace=0.2, hspace=0.2)
@@ -840,6 +856,8 @@ def make_tags_figure(
     membrane_color=None,
     xlim=None,
     ylim=None,
+    figsize=None,
+    highlight_agent=None,
 ):
     """Plot snapshots of the simulation over time
 
@@ -885,6 +903,11 @@ def make_tags_figure(
                 and `norm` keys with the :py:class:`matplotlib.colors.Colormap`
                 and the :py:class:`matplotlib.colors.Normalize` instance to use
                 for that tag. Using dictionaries will override ``min_color``
+            * **figsize** (:py:class:`tuple`): Dimensions of figure in
+                inches (takes precedence over `plot_width`)
+            * **highlight_agent** (:py:class:`dict`): Mapping of agent IDs to
+                `membrane_color` and `membrane_width`. Useful for highlighting
+                specific agents, with rest using default color / width
     """
 
     membrane_color = membrane_color or [1, 1, 1]
@@ -905,7 +928,8 @@ def make_tags_figure(
     # make the figure
     n_rows = len(tagged_molecules)
     n_cols = n_snapshots + 1  # one column for the colorbar
-    figsize = (plot_width * n_cols, plot_width * n_rows)
+    if not figsize:
+        figsize = (plot_width * n_cols, plot_width * n_rows)
     max_dpi = min([2**16 // dim for dim in figsize]) - 1
     fig = plt.figure(figsize=figsize, dpi=min(max_dpi, 100))
     grid = plt.GridSpec(n_rows, n_cols, wspace=0.2, hspace=0.2)
@@ -979,6 +1003,7 @@ def make_tags_figure(
                 None,
                 membrane_width,
                 membrane_color,
+                highlight_agent=highlight_agent
             )
             if xlim:
                 ax.set_xlim(*xlim)

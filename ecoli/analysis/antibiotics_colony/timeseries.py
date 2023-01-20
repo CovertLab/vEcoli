@@ -7,6 +7,7 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 from matplotlib.colors import rgb_to_hsv
+from mpl_toolkits.axes_grid1 import anchored_artists
 
 from ecoli.analysis.antibiotics_colony import (COUNTS_PER_FL_TO_NANOMOLAR,
                                                restrict_data)
@@ -157,7 +158,9 @@ def plot_field_snapshots(
     min_pct=1,
     max_pct=1,
     colorbar_decimals=1,
-    return_fig=False
+    return_fig=False,
+    n_snapshots=5,
+    figsize=(9, 1.75)
 ) -> None:
     '''Plot a row of snapshot images that span a replicate for each condition.
     In each of these images, the cell corresponding to a highlighted lineage
@@ -180,10 +183,12 @@ def plot_field_snapshots(
             in colorbar (1 = 100%)
         colorbar_decimals: Number of decimals to include in colorbar labels.
         return_fig: Whether to return the Figure
+        n_snapshots: Number of equally-spaced (temporally) snapshots
+        figsize: Desired size of entire figure
     '''
     # Last snapshot at last tenth of an hour
     max_time_hrs = np.around(data.loc[:, 'Time'].max()/3600, decimals=1)
-    snapshot_times_hrs = np.around(np.linspace(0, max_time_hrs, 5),
+    snapshot_times_hrs = np.around(np.linspace(0, max_time_hrs, n_snapshots),
         decimals=1)
     snapshot_times = snapshot_times_hrs * 3600
     data = pd.concat([
@@ -227,22 +232,54 @@ def plot_field_snapshots(
         membrane_color=(0, 0, 0),
         membrane_width=0.01,
         colorbar_decimals=colorbar_decimals,
-        default_font_size=48,
+        default_font_size=10,
+        field_label_size=0,
         min_pct=min_pct,
         max_pct=max_pct,
+        n_snapshots=n_snapshots,
+        figsize=figsize
     )
-    snapshots_fig.subplots_adjust(wspace=0.7, hspace=0.1)
+    # New scale bar with reduced space between bar and label
+    snapshots_fig.axes[1].artists[0].remove()
+    scale_bar = anchored_artists.AnchoredSizeBar(
+        snapshots_fig.axes[1].transData,
+        10,
+        "10 μm",
+        "lower left",
+        frameon=False,
+        size_vertical=0.5,
+        fontproperties={'size': 9}
+    )
+    snapshots_fig.axes[1].add_artist(scale_bar)
+    # Move time axis up to save space
+    bounds = list(snapshots_fig.axes[0].get_position().bounds)
+    bounds[1] += 0.05
+    snapshots_fig.axes[0].set_position(bounds)
+    # Resize colorbar to save space and for looks
+    upper_lim = snapshots_fig.axes[-3].get_position().y1
+    bounds = list(snapshots_fig.axes[-2].get_position().bounds)
+    bounds[1] += 0.05
+    bounds[-1] = upper_lim - bounds[1]
+    bounds[-2] += 0.1
+    snapshots_fig.axes[-2].set_position(bounds)
     snapshots_fig.axes[1].set_ylabel(None)
     snapshots_fig.axes[-2].set_title(None)
+    snapshots_fig.axes[-1].set_yticks([0.7, 0.8, 0.9, 1], size=9)
+    snapshots_fig.axes[-1].yaxis.set_major_formatter(
+        lambda x, pos: str(np.round(x, 1)))
     snapshots_fig.axes[-1].set_title(
-        'External Glucose\n(mM)', y=1.1, fontsize=48)
+        'Glucose (mM)', y=1.05, fontsize=10, loc='left')
     snapshots_fig.axes[0].set_xticklabels(snapshot_times_hrs)
-    snapshots_fig.axes[0].set_xlabel('Time (hr)')
+    snapshots_fig.axes[0].set_xlabel('Time (hr)', labelpad=4, size=10)
+    snapshots_fig.axes[0].xaxis.set_tick_params(width=1, length=4)
+    snapshots_fig.axes[0].spines["bottom"].set_linewidth(1)
+    for ax in snapshots_fig.axes[1:-2]:
+        ax.set_title(ax.get_title(), y=1.05, size=10)
+    if return_fig:
+        return snapshots_fig
     snapshots_fig.savefig('out/analysis/paper_figures/' + 
         f'{condition.replace("/", "_")}_seed_{seed}_fields.svg',
         bbox_inches='tight')
-    if return_fig:
-        return snapshots_fig
     plt.close(snapshots_fig)
 
 
@@ -255,6 +292,9 @@ def plot_tag_snapshots(
     min_color: Any = (1, 1, 1),
     out_prefix: str = None,
     show_membrane: bool = False,
+    return_fig: bool = False,
+    figsize=(9, 1.75),
+    highlight_agent=None
 ) -> None:
     '''Plot a row of snapshot images that span a replicate for each condition.
     In each of these images, cells will be will be colored with highlight_color
@@ -279,6 +319,10 @@ def plot_tag_snapshots(
         min_color: Color for cells with lowest highlight_column value (default white)
         out_prefix: Prefix for output filename
         show_membrane: Whether to draw outline for agents
+        return_fig: Whether to return figure. Only use with one tag.
+        figsize: Desired size of entire figure
+        highlight_agent: Mapping of agent IDs to `membrane_color` and `membrane_width`.
+            Useful for highlighting specific agents, with rest using defaults
     '''
     for highlight_column, tag_color in tag_colors.items():
         if snapshot_times is None:
@@ -336,20 +380,53 @@ def plot_tag_snapshots(
             min_color=min_color,
             tag_colors={(highlight_column,): tag_color},
             tagged_molecules=[(highlight_column,)],
-            default_font_size=48,
+            default_font_size=9,
             convert_to_concs=False,
             tag_path_name_map={(highlight_column,): highlight_column},
             xlim=[15, 35],
             ylim=[15, 35],
             n_snapshots=len(snapshot_times),
-            tag_ranges=tag_ranges
+            tag_ranges=tag_ranges,
+            figsize=figsize,
+            highlight_agent=highlight_agent
         )
-        snapshots_fig.subplots_adjust(wspace=0.7, hspace=0.1)
+        # New scale bar with reduced space between bar and label
+        snapshots_fig.axes[1].artists[0].remove()
+        scale_bar = anchored_artists.AnchoredSizeBar(
+            snapshots_fig.axes[1].transData,
+            5,
+            "5 μm",
+            "lower left",
+            frameon=False,
+            size_vertical=0.5,
+            fontproperties={'size': 9},
+            sep=3
+        )
+        snapshots_fig.axes[1].add_artist(scale_bar)
+        # Move time axis up to save space
+        bounds = list(snapshots_fig.axes[0].get_position().bounds)
+        bounds[1] += 0.05
+        snapshots_fig.axes[0].set_position(bounds)
+        # Resize colorbar to save space and for looks
+        upper_lim = snapshots_fig.axes[-3].get_position().y1
+        bounds = list(snapshots_fig.axes[-2].get_position().bounds)
+        bounds[1] += 0.05
+        bounds[-1] = upper_lim - bounds[1]
+        bounds[-2] += 0.1
+        snapshots_fig.axes[-2].set_position(bounds)
         snapshots_fig.axes[1].set_ylabel(None)
+        snapshots_fig.axes[-2].set_title(None)
         snapshots_fig.axes[-1].set_title(None)
-        snapshots_fig.axes[-1].set_title(highlight_column, fontsize=48, y=1.05)
-        snapshots_fig.axes[0].set_xticklabels(snapshot_times_hrs, fontsize=48)
-        snapshots_fig.axes[0].set_xlabel('Time (hr)', fontsize=48)
+        snapshots_fig.axes[-1].set_title(
+            highlight_column, y=1.05, fontsize=8, loc='left')
+        snapshots_fig.axes[0].set_xticklabels(snapshot_times_hrs)
+        snapshots_fig.axes[0].set_xlabel('Time (hr)', labelpad=4, size=9)
+        snapshots_fig.axes[0].xaxis.set_tick_params(width=1, length=4)
+        snapshots_fig.axes[0].spines["bottom"].set_linewidth(1)
+        for ax in snapshots_fig.axes[1:-2]:
+            ax.set_title(ax.get_title(), y=1.05, size=9)
+        if return_fig and len(tag_colors)==1:
+            return snapshots_fig
         out_name = f'{condition.replace("/", "_")}_seed_{seed}_tags.svg'
         out_name = highlight_column.replace("/", "_") + '_' + out_name
         if out_prefix:
