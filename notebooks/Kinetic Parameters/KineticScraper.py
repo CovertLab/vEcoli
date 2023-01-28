@@ -51,42 +51,144 @@ def getEnzyme_Rxns(gene, res, no):
         for val in dicte:
             res.add(val['@frameid'])
 
+
 def getReaction(dicte):
     if 'Enzymatic-Reaction' in dicte['ptools-xml']:
         return dicte['ptools-xml']['Enzymatic-Reaction']['reaction']['Reaction']['@frameid']
+
 
 def getEnzyme(dicte):
     if 'Enzymatic-Reaction' in dicte['ptools-xml']:
         return dicte['ptools-xml']['Enzymatic-Reaction']['enzyme']['Protein']['@frameid']
 
-def getKms(enzyme_rxn_dict):
-    return 0
 
-def getSubstrates(enzyme_rxn_dict):
-    return 0
+def updateKms(source, substrate, km, params):
+    if source not in params:
+        params[source] = {}
+
+    if substrate in params[source]:
+        params[source][substrate]['km'] = float(km)
+    else:
+        params[source][substrate] = {
+            'km': float(km),
+            'kcat': -1
+        }
 
 
+def updateKcats(source, substrate, kcat, params):
+    if source not in params:
+        params[source] = {}
 
-def getKms(gene):
-    response = s.get("https://websvc.biocyc.org/apixml?fn=reactions-of-gene&id=ECOLI:" + gene + "&detail=full")
-    tree = ElementTree.fromstring(response.content)
-    dicte = etree_to_dict(tree)
-    enzymeRxn = dicte['ptools-xml']['Reaction']['enzymatic-reaction']['Enzymatic-Reaction']['@frameid']
-    response = s.get("https://websvc.biocyc.org/getxml?id=ECOLI:" + enzymeRxn + "&detail=full")
-    tree = ElementTree.fromstring(response.content)
-    dicte = etree_to_dict(tree)
+    if substrate in params[source]:
+        params[source][substrate]['kcat'] = float(kcat)
+    else:
+        params[source][substrate] = {
+            'km': -1,
+            'kcat': float(kcat)
+        }
 
-    new = dicte['ptools-xml']['Enzymatic-Reaction']
-    res = []
 
-    if 'km' in new:
-        new = new['km']
+def findSources(val, sources):
+    if 'citation' in val:
+        val1 = val['citation']
+    else:
+        return tuple("None")
 
-        for dicte in new:
-            val = dicte['value']['#text']
-            res.append(float(val))
+    if type(val1) is list:
+        for pub in val1:
+            sources.append(pub['Publication']['@frameid'])
+    else:
+        sources.append(val1['Publication']['@frameid'])
 
-    return res
+    sources = tuple(sorted(sources))
+
+    return sources
+
+
+def revaluateSize(dicte, reactions, rxn_index, enzymes, enz_index, params):
+    if 'km' in dicte:
+        dict_km = dicte['km']
+        if type(dict_km) is list:
+            for val in dict_km:
+                sources = []
+                sources = findSources(val, sources)
+
+                substrate = val['substrate']
+                if 'Compound' in substrate:
+                    substrate = substrate['Compound']['@frameid']
+                else:
+                    substrate = substrate['Protein']['@frameid']
+
+                km = val['value']['#text']
+                updateKms(sources, substrate, km, params)
+        else:
+            substrate = dict_km['substrate']
+            if 'Compound' in substrate:
+                substrate = substrate['Compound']['@frameid']
+            else:
+                substrate = substrate['Protein']['@frameid']
+
+            km = dict_km['value']['#text']
+            sources = []
+            sources = findSources(dict_km, sources)
+            updateKms(sources, substrate, km, params)
+
+    if 'kcat' in dicte:
+        dict_kcat = dicte['kcat']
+        if type(dict_kcat) is list:
+            for val in dict_kcat:
+                sources = []
+                sources = findSources(val, sources)
+
+                substrate = val['substrate']
+                if 'Compound' in substrate:
+                    substrate = substrate['Compound']['@frameid']
+                else:
+                    substrate = substrate['Protein']['@frameid']
+
+                kcat = val['value']['#text']
+                updateKcats(sources, substrate, kcat, params)
+        else:
+            substrate = dict_kcat['substrate']
+            if 'Compound' in substrate:
+                substrate = substrate['Compound']['@frameid']
+            else:
+                substrate = substrate['Protein']['@frameid']
+
+            kcat = dict_kcat['value']['#text']
+            sources = []
+            sources = findSources(dict_kcat, sources)
+            updateKcats(sources, substrate, kcat, params)
+
+    if 'km' not in dicte and 'kcat' not in dicte:
+        del reactions[rxn_index]
+        del enzymes[enz_index]
+
+    size = len(params)
+
+    for x in range(size - 1):
+        reactions.insert(rxn_index, reactions[rxn_index])
+        enzymes.insert(enz_index, enzymes[enz_index])
+
+
+def updateKinetics(substrates, kcats, kms, dicte, reactions, rxn_index, enzymes, enz_index):
+    if 'Enzymatic-Reaction' in dicte['ptools-xml']:
+        dicte = dicte['ptools-xml']['Enzymatic-Reaction']
+
+    params = {}
+
+    revaluateSize(dicte, reactions, rxn_index, enzymes, enz_index, params)
+
+    for source in params:
+        temp_substrates = list(params[source].keys())
+        temp_km = []
+        temp_kcat = []
+        for substrate in temp_substrates:
+            temp_km.append(params[source][substrate]['km'])
+            temp_kcat.append(params[source][substrate]['kcat'])
+        substrates.append(temp_substrates)
+        kcats.append(temp_kcat)
+        kms.append(temp_km)
 
 
 # Establish Session
@@ -100,29 +202,33 @@ genes = list(pd.read_csv("New Liste - Sheet.csv")["Gene ID (EcoCyc)"])
 
 # Create Set of New Enzymes:
 enzyme_rxns = set({})
-not_found = []
+not_found_genes = []
 for gene in genes:
-    getEnzyme_Rxns(gene, enzyme_rxns, not_found)
+    getEnzyme_Rxns(gene, enzyme_rxns, not_found_genes)
 
-reactions = []
-enzymes = []
+reactions, enzymes, kms, kcats, substrates, temperatures = [], [], [], [], [], []
+
 
 # Extract Information
-info = {
-    'genes': genes,
-
-}
-
 for rxn in enzyme_rxns:
     response = s.get("https://websvc.biocyc.org/getxml?id=ECOLI:" + rxn + "&detail=full")
     tree = ElementTree.fromstring(response.content)
     dicte = etree_to_dict(tree)
     reactions.append(getReaction(dicte))
     enzymes.append([getEnzyme(dicte)])
+    updateKinetics(substrates, kcats, kms, dicte, reactions, len(reactions) - 1, enzymes, len(enzymes) - 1)
+    temperatures.append([])
+
+    if len(reactions) + len(enzymes) + len(kms) + len(kcats) != 4 * len(reactions):
+        print(1)
 
 information = {
     'reactionID': reactions,
-    'enzymeID': enzymes
+    'enzymeID': enzymes,
+    'substrateIDs': substrates,
+    'kcat (1/s)': kcats,
+    'kM (uM)': kms,
+    'Temp': temperatures
 }
 
 df = pd.DataFrame.from_dict(information)
