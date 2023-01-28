@@ -105,7 +105,7 @@ def findSources(val, sources):
     return sources
 
 
-def revaluateSize(dicte, reactions, rxn_index, enzymes, enz_index, params):
+def revaluateSize(dicte, reactions, rxn_index, enzymes, enz_index, params, no_params):
     if 'km' in dicte:
         dict_km = dicte['km']
         if type(dict_km) is list:
@@ -161,6 +161,7 @@ def revaluateSize(dicte, reactions, rxn_index, enzymes, enz_index, params):
             updateKcats(sources, substrate, kcat, params)
 
     if 'km' not in dicte and 'kcat' not in dicte:
+        no_params.append([reactions[rxn_index], enzymes[enz_index]])
         del reactions[rxn_index]
         del enzymes[enz_index]
 
@@ -171,13 +172,13 @@ def revaluateSize(dicte, reactions, rxn_index, enzymes, enz_index, params):
         enzymes.insert(enz_index, enzymes[enz_index])
 
 
-def updateKinetics(substrates, kcats, kms, dicte, reactions, rxn_index, enzymes, enz_index):
+def updateKinetics(substrates, kcats, kms, dicte, reactions, rxn_index, enzymes, enz_index, no_params):
     if 'Enzymatic-Reaction' in dicte['ptools-xml']:
         dicte = dicte['ptools-xml']['Enzymatic-Reaction']
 
     params = {}
 
-    revaluateSize(dicte, reactions, rxn_index, enzymes, enz_index, params)
+    revaluateSize(dicte, reactions, rxn_index, enzymes, enz_index, params, no_params)
 
     for source in params:
         temp_substrates = list(params[source].keys())
@@ -209,13 +210,14 @@ for gene in genes:
 reactions, enzymes, kms, kcats, substrates, temperatures = [], [], [], [], [], []
 
 # Extract Information
+no_params = []
 for rxn in enzyme_rxns:
     response = s.get("https://websvc.biocyc.org/getxml?id=ECOLI:" + rxn + "&detail=full")
     tree = ElementTree.fromstring(response.content)
     dicte = etree_to_dict(tree)
     reactions.append(getReaction(dicte))
     enzymes.append([getEnzyme(dicte)])
-    updateKinetics(substrates, kcats, kms, dicte, reactions, len(reactions) - 1, enzymes, len(enzymes) - 1)
+    updateKinetics(substrates, kcats, kms, dicte, reactions, len(reactions) - 1, enzymes, len(enzymes) - 1, no_params)
 
     if len(reactions) + len(enzymes) + len(kms) + len(kcats) != 4 * len(reactions):
         print(1)
