@@ -8,11 +8,6 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import requests
 
-# Establish Session
-s = requests.Session()
-
-# Post login credentials to session:
-s.post('https://websvc.biocyc.org/credentials/login/', data={'email':'aniketh@stanford.edu', 'password':'1324Ai22@4'})
 
 # Helper Functions
 def etree_to_dict(t):
@@ -37,24 +32,39 @@ def etree_to_dict(t):
             d[t.tag] = text
     return d
 
-def getReactions(gene):
-    response = requests.get("https://websvc.biocyc.org/apixml?fn=reactions-of-gene&id=ECOLI:" + gene + "&detail=low")
+
+def getEnzyme_Rxns(gene, res, no):
+    response = s.get("https://websvc.biocyc.org/apixml?fn=enzymes-of-gene&id=ECOLI:" + gene + "&detail=low")
     tree = ElementTree.fromstring(response.content)
     dicte = etree_to_dict(tree)
-    return dicte['ptools-xml']['Gene']['@frameid']
+    dicte = dicte['ptools-xml']['Protein']
 
-def getGenes(reaction):
-    response = requests.get("https://websvc.biocyc.org/apixml?fn=genes-of-reaction&id=ECOLI:" + reaction + "&detail=low")
-    tree = ElementTree.fromstring(response.content)
-    dicte = etree_to_dict(tree)
-    return dicte['ptools-xml']['Gene']['@frameid']
+    if type(dicte) is list:
+        no.append(gene)
+        return
+    else:
+        dicte = dicte['catalyzes']['Enzymatic-Reaction']
 
+    if type(dicte) is dict:
+        res.add(dicte['@frameid'])
+    else:
+        for val in dicte:
+            res.add(val['@frameid'])
 
-def getEnzymes(reaction):
-    response = s.get("https://websvc.biocyc.org/apixml?fn=enzymes-of-reaction&id=ECOLI:" + reaction + "&detail=low")
-    tree = ElementTree.fromstring(response.content)
-    dicte = etree_to_dict(tree)
-    return dicte['ptools-xml']['Protein']['@frameid']
+def getReaction(dicte):
+    if 'Enzymatic-Reaction' in dicte['ptools-xml']:
+        return dicte['ptools-xml']['Enzymatic-Reaction']['reaction']['Reaction']['@frameid']
+
+def getEnzyme(dicte):
+    if 'Enzymatic-Reaction' in dicte['ptools-xml']:
+        return dicte['ptools-xml']['Enzymatic-Reaction']['enzyme']['Protein']['@frameid']
+
+def getKms(enzyme_rxn_dict):
+    return 0
+
+def getSubstrates(enzyme_rxn_dict):
+    return 0
+
 
 
 def getKms(gene):
@@ -78,3 +88,43 @@ def getKms(gene):
 
     return res
 
+
+# Establish Session
+s = requests.Session()
+
+# Post login credentials to session:
+s.post('https://websvc.biocyc.org/credentials/login/', data={'email': 'aniketh@stanford.edu', 'password': '1324Ai22@4'})
+
+# Create Gene List:
+genes = list(pd.read_csv("New Liste - Sheet.csv")["Gene ID (EcoCyc)"])
+
+# Create Set of New Enzymes:
+enzyme_rxns = set({})
+not_found = []
+for gene in genes:
+    getEnzyme_Rxns(gene, enzyme_rxns, not_found)
+
+reactions = []
+enzymes = []
+
+# Extract Information
+info = {
+    'genes': genes,
+
+}
+
+for rxn in enzyme_rxns:
+    response = s.get("https://websvc.biocyc.org/getxml?id=ECOLI:" + rxn + "&detail=full")
+    tree = ElementTree.fromstring(response.content)
+    dicte = etree_to_dict(tree)
+    reactions.append(getReaction(dicte))
+    enzymes.append([getEnzyme(dicte)])
+
+information = {
+    'reactionID': reactions,
+    'enzymeID': enzymes
+}
+
+df = pd.DataFrame.from_dict(information)
+
+print(1)
