@@ -208,7 +208,6 @@ for gene in genes:
 
 reactions, enzymes, kms, kcats, substrates, temperatures = [], [], [], [], [], []
 
-
 # Extract Information
 for rxn in enzyme_rxns:
     response = s.get("https://websvc.biocyc.org/getxml?id=ECOLI:" + rxn + "&detail=full")
@@ -217,7 +216,6 @@ for rxn in enzyme_rxns:
     reactions.append(getReaction(dicte))
     enzymes.append([getEnzyme(dicte)])
     updateKinetics(substrates, kcats, kms, dicte, reactions, len(reactions) - 1, enzymes, len(enzymes) - 1)
-    temperatures.append([])
 
     if len(reactions) + len(enzymes) + len(kms) + len(kcats) != 4 * len(reactions):
         print(1)
@@ -227,8 +225,7 @@ information = {
     'enzymeID': enzymes,
     'substrateIDs': substrates,
     'kcat (1/s)': kcats,
-    'kM (uM)': kms,
-    'Temp': temperatures
+    'kM (uM)': kms
 }
 
 df = pd.DataFrame.from_dict(information)
