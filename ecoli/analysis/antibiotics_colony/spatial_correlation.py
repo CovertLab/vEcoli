@@ -1,6 +1,7 @@
 import argparse
 import os
 import pickle
+from itertools import combinations
 
 import matplotlib
 import numpy as np
@@ -74,7 +75,33 @@ def make_threshold_sweep_plot(glc_data, column, to_conc=False):
 
 
 def make_relatedness_vs_distance_plot(glc_data):
-    pass
+    def relatedness(A, B):
+        common_ancestor = os.path.commonprefix([A, B])
+        return len(A) + len(B) - 2 * len(common_ancestor)
+
+    max_t = glc_data.Time.max()
+    endpoint_data = glc_data[glc_data.Time == max_t]
+    endpoint_data.loc[:, "Location"] = endpoint_data["Boundary"].apply(
+        lambda b: np.array(b["location"])
+    )
+    final_agents = {
+        agent: location
+        for agent, location in zip(endpoint_data["Agent ID"], endpoint_data["Location"])
+    }
+
+    relatednesses = []
+    distances = []
+    for A, B in combinations(final_agents.keys(), 2):
+        relatednesses.append(relatedness(A, B))
+        distances.append((final_agents[A] @ final_agents[B])**0.5)
+
+    fig, ax = plt.subplots()
+    # ax.hist2d(distances, np.array(relatednesses), bins=(50, 16), cmap="Greys")
+    ax.scatter(distances, np.array(relatednesses), color=HIGHLIGHT_BLUE, alpha=0.05, linewidths=0)
+    ax.set_xlabel("Distance")
+    ax.set_ylabel("Relatedness")
+
+    return fig, ax
 
 
 def load_data(
@@ -153,6 +180,13 @@ def main():
         "TolC monomer": True,
     }
 
+    # Plot relatedness vs. distance
+    if options.verbose:
+            print("Plotting distance vs. relatedness:")
+    fig, _ = make_relatedness_vs_distance_plot(glc_data)
+    fig.set_size_inches(8, 6)
+    fig.savefig(os.path.join(options.outdir, f"relatedness_vs_distance{ext}"))
+
     # Compute and plot spatial autocorrelations
     moran_results = {}
     for col, to_conc in spatial_vars.items():
@@ -167,7 +201,7 @@ def main():
         fig.set_size_inches(6, 4)
         fig.tight_layout()
         fig.savefig(os.path.join(options.outdir, f"{col} Moran plot{ext}"))
-    
+
     # Plot threshold param sweep
     fig, _ = make_threshold_sweep_plot(glc_data, column="OmpF monomer", to_conc=True)
     fig.set_size_inches(4, 4)
