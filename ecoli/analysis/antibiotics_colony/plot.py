@@ -7,6 +7,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from scipy.constants import N_A
 from vivarium.library.dict_utils import deep_merge
 
 from ecoli.analysis.antibiotics_colony import (COUNTS_PER_FL_TO_NANOMOLAR,
@@ -77,6 +78,80 @@ def make_figure_1a(data, metadata):
     print('Done with Figure 1A.')
 
 
+def make_figure_1b(data, metadata):
+    doubling_times = []
+    grouped_data = data.groupby(['Seed'])
+    for condition, condition_data in grouped_data:
+        final_agents = condition_data.loc[condition_data.loc[:, 'Time']==26000, 'Agent ID'].tolist()
+        grouped_agents = condition_data.groupby(['Agent ID'])
+        for agent, agent_data in grouped_agents:
+            # Total of 4 cells die across all 3 seeds, exclude them
+            if (agent not in final_agents) and (agent_data.loc[:, 'Wall cracked'].sum()==0):
+                doubling_time = (agent_data.loc[:, 'Time'].max()
+                    - agent_data.loc[:, 'Time'].min())
+                if doubling_time < 40*60:
+                    print(condition, agent)
+                doubling_times.append(doubling_time)
+    fig, ax = plt.subplots(figsize=(2,2))
+    ax.vlines(44, 0, 350, colors=['tab:orange'])
+    ax.text(45, 350, 'experiment\n\u03C4 = 44 min.', verticalalignment='top',
+        horizontalalignment='left', c='tab:orange',fontsize=8)
+    doubling_times = np.array(doubling_times) / 60
+    ax.hist(doubling_times)
+    ax.set_xlabel('Doubling time (min)')
+    ax.set_ylabel('# of simulated cells')
+    ax.set_ylim()
+    sim_avg = doubling_times.mean()
+    ax.vlines(sim_avg, ax.get_ylim()[0], 275, linestyles=['dashed'], colors=['k'])
+    ax.text(sim_avg+2, 275, f'simulation\n\u03C4 = {np.round(sim_avg, 1)} min.',
+        verticalalignment='top', horizontalalignment='left', c='tab:blue', fontsize=8)
+    ax.spines.right.set_visible(False)
+    ax.spines.top.set_visible(False)
+    plt.tight_layout()
+    plt.savefig(f'out/analysis/paper_figures/fig_1b_doubling_time.svg',
+        bbox_inches='tight')
+    plt.close()
+
+
+def make_figure_1c(data, metadata):
+    submass_fc = {
+        'Protein': [],
+        'Small molecule': [],
+        'Water': [],
+        'rRNA': [],
+        'tRNA': [],
+        'mRNA': [],
+        'DNA': [],
+    }
+    grouped_data = data.groupby(['Seed'])
+    for condition, condition_data in grouped_data:
+        final_agents = condition_data.loc[condition_data.loc[:, 'Time']==26000, 'Agent ID'].tolist()
+        grouped_agents = condition_data.groupby(['Agent ID'])
+        for agent, agent_data in grouped_agents:
+            # Total of 4 cells die across all 3 seeds, exclude them
+            if (agent not in final_agents) and (agent_data.loc[:, 'Wall cracked'].sum()==0):
+                birth_time = agent_data.loc[:, 'Time'].min()
+                birth_data = agent_data.loc[agent_data.loc[:, 'Time']==birth_time, :]
+                death_time = agent_data.loc[:, 'Time'].max()
+                death_data = agent_data.loc[agent_data.loc[:, 'Time']==death_time, :]
+                for submass in submass_fc: 
+                    birth_submass = birth_data.loc[:, f'{submass} mass'].to_numpy()[0]
+                    submass_fc[submass].append(
+                        death_data.loc[:, f'{submass} mass'].to_numpy()[0] / 
+                        birth_submass
+                    )
+    submass_fc = pd.DataFrame(submass_fc)
+    submass_fc = submass_fc.rename(columns={'Small molecule': 'Small\nmolecule'})
+    import seaborn as sns
+    fig, ax = plt.subplots(figsize=(5, 3))
+    sns.violinplot(data=submass_fc, color=(0, 0.4, 1)) 
+    ax.set_ylabel(r'$\frac{\mathrm{Mass~at~division}}{\mathrm{Initial~mass}}$', fontsize=12)
+    plt.tight_layout()
+    plt.savefig(f'out/analysis/paper_figures/fig_1c_submass_fc.svg',
+        bbox_inches='tight')
+    plt.close()
+
+
 def make_figure_2b(data, metadata):
     # Overview of glucose data for seed 0 (can put other seeds in supp.)
     final_timestep = data.loc[data.loc[:, 'Time']==MAX_TIME, :]
@@ -114,13 +189,13 @@ def make_figure_2c(data, metadata):
         highlight_lineage=highlight_agent)
     columns_to_plot = {
         'OmpF monomer': (0, 0.4, 1),
-        'MarR monomer': (0, 0.4, 1),
-        'AmpC monomer': (0, 0.4, 1),
         'TolC monomer': (0, 0.4, 1),
+        'AmpC monomer': (0, 0.4, 1),
+        'MarR monomer': (0, 0.4, 1),
         'ompF mRNA': (0, 0.4, 1),
-        'marR mRNA': (0, 0.4, 1),
-        'ampC mRNA': (0, 0.4, 1),
         'tolC mRNA': (0, 0.4, 1),
+        'ampC mRNA': (0, 0.4, 1),
+        'marR mRNA': (0, 0.4, 1),
     }
     # Convert to concentrations using periplasmic or cytoplasmic volume
     periplasmic = ['OmpF monomer', 'AmpC monomer', 'TolC monomer']
@@ -130,6 +205,9 @@ def make_figure_2c(data, metadata):
         else:
             data.loc[:, column] /= (data.loc[:, 'Volume'] * 0.8)
         data.loc[:, column] *= COUNTS_PER_FL_TO_NANOMOLAR
+    monomer_cols = list(columns_to_plot)[:4]
+    # Convert monomer concentrations to mM
+    data.loc[:, monomer_cols] /= 1000
     plot_timeseries(
         data=data, axes=axes[1:], columns_to_plot=columns_to_plot,
         highlight_lineage=highlight_agent)
@@ -145,7 +223,7 @@ def make_figure_2c(data, metadata):
     axes[0].set_ylabel('Dry mass (fg)')
     axes[5].set_title(gene, fontsize=12, fontweight='bold')
     axes[5].set_ylabel('mRNA (nM)')
-    axes[1].set_ylabel('Protein (nM)')
+    axes[1].set_ylabel('Protein (\u03BCM)')
     for i in range(2, 5):
         gene = axes[i].get_ylabel().split(' ')[0]
         axes[i].yaxis.label.set_visible(False)
@@ -172,6 +250,13 @@ def make_figure_2c(data, metadata):
     axes[0].xaxis.set_label_coords(0.5, -0.3)
     axes[0].yaxis.set_label_coords(-0.09, 0.5)
     axes[5].yaxis.set_label_coords(-0.5, 0.5)
+    axes[1].yaxis.set_label_coords(-0.5, 0.5)
+
+    # Get fractional upper limit for MarR monomer expression
+    marR_max = np.round(data.loc[:, 'MarR monomer'].max(), 1)
+    axes[4].set_ylim([0, marR_max])
+    axes[4].set_yticks([0, marR_max], [0, marR_max], fontsize=8)
+    axes[4].spines.left.set_bounds([0, marR_max])
 
     # Prettify axes (moving axis titles in to save space)
     for ax in axes[1:5]:
@@ -191,12 +276,13 @@ def make_figure_2c(data, metadata):
 
 
 def make_figure_3a(data, metadata):
-    fig, ax = plt.subplots(1, 1, figsize=(1.75, 2))
-    plot_colony_growth(data, ax)
+    fig, axs = plt.subplots(1, 2, figsize=(3.5, 2))
+    plot_colony_growth(data, axs)
     offset_time = SPLIT_TIME/3600
     min_time = np.round(-offset_time, 1)
     max_time = np.round(MAX_TIME/3600-offset_time, 1)
     ticks = np.array([int(min_time), 0, int(max_time)])
+    ax = axs[0]
     ax.set_xticks(ticks+offset_time, ticks, size=8)
     ax.spines['bottom'].set_bounds(0, MAX_TIME/3600)
     ax.spines['left'].set_bounds(ax.get_ylim())
@@ -215,7 +301,9 @@ def make_figure_3a(data, metadata):
 def make_figure_3b(data, metadata):
     data = data.loc[data.loc[:, 'Time']<=MAX_TIME, :]
     data = data.sort_values(['Condition', 'Agent ID', 'Time'])
-    plot_exp_growth_rate(data, metadata)
+    # Draw blue border around highlighted agent lineage
+    highlight_agent_id = '0011111'
+    plot_exp_growth_rate(data, metadata, highlight_agent_id)
     plt.close()
     print('Done with Figure 3B.')
 
@@ -253,7 +341,7 @@ def make_figure_3c(data, metadata):
             data=transition_data,
             axes=[axes.flat[ax_idx]],
             columns_to_plot={column: (0, 0.4, 1)},
-            highlight_lineage='mean',
+            highlight_lineage='0011111',
             filter_time=False,
             background_alpha=0.5,
             background_linewidth=0.3)
@@ -310,18 +398,22 @@ def make_figure_3d(data, metadata):
             data=long_transition_data,
             axes=[axes.flat[ax_idx]],
             columns_to_plot={column: (0, 0.4, 1)},
-            highlight_lineage='mean',
+            highlight_lineage='0011111',
             filter_time=False,
             background_alpha=0.5,
             background_linewidth=0.3)
+    split_hours = SPLIT_TIME/3600
+    rounded_split_hours = np.round(split_hours, 1)
     for ax in axes.flat:
         ylim = ax.get_ylim()
         yticks = np.round(ylim, 0).astype(int)
         ax.set_yticks(yticks, yticks, size=9)
         # Mark hours since tetracycline addition
         xlim = np.array(ax.get_xlim())
-        xticks = np.append(xlim, 11550/3600)
-        xtick_labels = np.trunc(xticks-11550/3600).astype(int)
+        xticks = np.append(xlim, split_hours)
+        xtick_labels = np.trunc(xticks-split_hours).astype(int).tolist()
+        xtick_labels = [label if label!=int(-split_hours) else -rounded_split_hours 
+            for label in xtick_labels]
         ax.set_xticks(ticks=xticks, labels=xtick_labels, size=9)
         ax.set_xlabel(None)
         ax.spines.bottom.set(bounds=(0, MAX_TIME/3600), linewidth=1,
@@ -376,14 +468,66 @@ def make_figure_3f(data, metadata):
     print('Done with Figure 3F.')
 
 
+def make_figure_3g(data, metadata):
+    final_data = data.loc[data.loc[:, 'Time']==MAX_TIME, :]
+    final_data['External Tetracycline (\u03BCM)'] = np.round(
+        final_data.loc[:, 'Initial external tet.'] * 1000, 3)
+    
+    mM_fL_to_mol = 1e-18
+    peri_tet = (final_data.loc[:, 'Periplasmic tetracycline'] * final_data.loc[
+        :, 'Volume'] * 0.2 * mM_fL_to_mol)
+    cyto_tet = (final_data.loc[:, 'Cytoplasmic tetracycline'] * final_data.loc[
+        :, 'Volume'] * 0.8 * mM_fL_to_mol)
+    tet_30s = final_data.loc[:, 'Inactive 30S subunit'] / N_A
+    total_tet = peri_tet + cyto_tet + tet_30s
+    mol_per_fL_to_uM = 1e21
+    final_data['Internal Tetracycline (\u03BCM)'] = (total_tet /
+        final_data.loc[:, 'Volume'] * mol_per_fL_to_uM)
+
+    fig, ax = plt.subplots()
+    grouped_data = final_data.groupby('Condition')
+    avg_data = grouped_data.mean()
+    std_dev = grouped_data.std()
+    ax.scatter(avg_data['External Tetracycline (\u03BCM)'],
+        avg_data['Internal Tetracycline (\u03BCM)'], c='k')
+    plt.errorbar(avg_data['External Tetracycline (\u03BCM)'],
+        avg_data['Internal Tetracycline (\u03BCM)'], yerr=
+        std_dev['Internal Tetracycline (\u03BCM)'], fmt='o', c='k')
+    best_fit = np.polynomial.Polynomial.fit(
+        avg_data['External Tetracycline (\u03BCM)'],
+        avg_data['Internal Tetracycline (\u03BCM)'], 1, window=(
+        min(avg_data['External Tetracycline (\u03BCM)']),
+        max(avg_data['External Tetracycline (\u03BCM)'])))
+    xx, yy = best_fit.linspace()
+    ax.plot(xx, yy, 'k--')
+    # Tetracycline accumulation measured by Thanassi et al. 1995
+    ax.scatter([5], [75])
+    ax.text(5.5, 75, 'Thanassi et al. 1995\n5.7x predicted', c='tab:blue')
+    # Calculate concentration from Argast and Beck 1985
+    avg_cell_volume = data.loc[data.loc[:, 'Condition']=='Glucose', 'Volume'].mean()
+    argast = 7.6e-20 / avg_cell_volume * mol_per_fL_to_uM
+    ax.scatter([5], [argast])
+    ax.text(5.5, argast, 'Argast and Beck 1985\n4.1x predicted', c='tab:orange')
+    ax.set_xlabel('External Tetracycline (\u03BCM)')
+    ax.set_ylabel('Internal Tetracycline (\u03BCM)')
+    import seaborn as sns
+    sns.despine(ax=ax, offset=3, trim=True)
+    plt.tight_layout()
+    plt.subplots_adjust(top=1, bottom=0.25, left=0.2, right=1)
+    plt.savefig('out/analysis/paper_figures/supp_tet_ompf_acrab.svg', bbox_inches='tight')
+    plt.close()
+    print('Done with Figure 3G.')
+
+
 def make_figure_4a(data, metadata):
-    fig, ax = plt.subplots(1, 1, figsize=(1.75, 2))
-    plot_colony_growth(data, ax, antibiotic_col='Initial external amp.',
+    fig, axs = plt.subplots(1, 2, figsize=(3.5, 2))
+    plot_colony_growth(data, axs, antibiotic_col='Initial external amp.',
         mic=5.724, antibiotic='Amp.')
     offset_time = SPLIT_TIME/3600
     min_time = np.round(-offset_time, 1)
     max_time = np.round(MAX_TIME/3600-offset_time, 1)
     ticks = np.array([int(min_time), 0, int(max_time)])
+    ax = axs[0]
     ax.set_xticks(ticks+offset_time, ticks, size=8)
     ax.spines['bottom'].set_bounds(0, MAX_TIME/3600)
     ax.spines['left'].set_bounds(ax.get_ylim())
@@ -428,7 +572,7 @@ def make_figure_4b(data, metadata):
     fig = plot_tag_snapshots(
         data=data, metadata=metadata, tag_colors={fc_col: {'cmp': cmp, 'norm': norm}},
         snapshot_times=snapshot_times, return_fig=True, figsize=(6, 1.5),
-        highlight_agent=highlight_agent)
+        highlight_agent=highlight_agent, show_membrane=True)
     fig.axes[0].set_xticklabels(
         np.abs(np.round(fig.axes[0].get_xticks()/3600 - SPLIT_TIME/3600, 1)))
     fig.axes[0].set_xlabel('Hours after ampicillin addition')
@@ -444,7 +588,8 @@ def make_figure_4c(data, metadata):
 
 
 def make_figure_4d(data, metadata):
-    fig, axs = plt.subplots(1, 2, figsize=(4, 2))
+    fig, ax = plt.subplots(1, 1, figsize=(2, 2))
+    axs = [ax]
     plot_death_timescale_analysis(data, axs)
     plt.savefig('out/analysis/paper_figures/fig_4d_misc.svg')
     plt.close()
@@ -518,6 +663,7 @@ def main():
     ]
     conditions = {
         '1a': ['Glucose'],
+        '1b': ['Glucose'],
         '2b': ['Glucose'],
         '2c': ['Glucose'],
         '3a': ['Glucose', 'Tetracycline (0.5 mg/L)', 'Tetracycline (1 mg/L)',
@@ -530,6 +676,9 @@ def main():
         '3d': ['Glucose', 'Tetracycline (1.5 mg/L)'],
         '3e': ['Glucose', 'Tetracycline (1.5 mg/L)'],
         '3f': [str(i) for i in range(11)],
+        '3g': ['Glucose', 'Tetracycline (0.5 mg/L)', 'Tetracycline (1 mg/L)',
+            'Tetracycline (1.5 mg/L)', 'Tetracycline (2 mg/L)',
+            'Tetracycline (4 mg/L)'],
         '4a': ['Glucose', 'Ampicillin (0.5 mg/L)', 'Ampicillin (1 mg/L)',
             'Ampicillin (1.5 mg/L)', 'Ampicillin (2 mg/L)',
             'Ampicillin (4 mg/L)'],
@@ -541,14 +690,16 @@ def main():
     }
     seeds = {
         '1a': [10000],
+        '1b': [0, 100, 10000],
         '2b': [10000],
         '2c': [10000],
         '3a': [0],
         '3b': [0],
         '3c': [0],
-        '3d': [0],
+        '3d': [100],
         '3e': [0, 100, 10000],
         '3f': [0],
+        '3g': [0],
         '4a': [0],
         '4b': [0],
         '4c': [0],

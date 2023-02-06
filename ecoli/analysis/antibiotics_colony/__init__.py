@@ -117,7 +117,8 @@ PATHS_TO_LOAD = {
     'Boundary': ('boundary',),
     'Volume': ('listeners', 'mass', 'volume'),
     'Total mRNA': ('total_mrna',),
-    'OmpF complex': ('bulk', 'CPLX0-7534[o]')
+    'OmpF complex': ('bulk', 'CPLX0-7534[o]'),
+    'Exchanges': ('environment', 'exchange')
 }
 for gene_data in DE_GENES[['Gene name', 'id', 'monomer_ids']].values:
     if gene_data[0] != 'MicF':
