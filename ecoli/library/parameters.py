@@ -224,8 +224,9 @@ PARAMETER_DICT = {
             ),
         },
         "mic": Parameter(
-            2.5 * units.micromolar,
-            "Thanassi, Suh, and Nikaido (1995) p. 1005",
+            1.5 * units.mg / units.L,
+            """Middle of values reported by Thanassi, Suh, and Nikaido (1995)
+            p. 1005, Cuisa et al. (2022), and Prochnow et al. (2019)""",
             latex_source="thanassi_role_1995",
         ),
         "mass": Parameter(

@@ -14,12 +14,14 @@ from ecoli.analysis.antibiotics_colony import (DE_GENES, MAX_TIME, SPLIT_TIME,
 
 def plot_colony_growth(
     data: pd.DataFrame,
-    ax: plt.Axes = None,
+    axs: plt.Axes = None,
     antibiotic: str = 'Tet.',
     antibiotic_col: str = 'Initial external tet.',
     mic: float = 3.375
 ) -> None:
-    '''Plot traces of total colony mass and total colony growth rate.
+    '''Plot traces of total colony mass and total colony growth rate. Also uses
+    methodology described in Lambert and Pearson 2000 to empirically calculate
+    MIC from simulated data.
 
     Args:
         data: DataFrame where each row is an agent and each column is a variable
@@ -27,7 +29,7 @@ def plot_colony_growth(
             'Dry Mass'. The first experimental condition in the 'Condition'
             column is treated as a control (default gray). Include at most
             2 conditions and 1 seed per condition.
-        axes: Instance of Matplotlib Axes to plot on
+        axs: List of 2 Matplotlib Axes, one for colony mass and other for MIC
         antibiotic: Name of antibiotic to put as legend title
         antibiotic_col: Name of column with initial external antibiotic concs.
         mic: Minimum inhibitory concentration (uM, rounded to 3 decimal places)
@@ -56,6 +58,7 @@ def plot_colony_growth(
         for antibiotic_conc in antibiotic_concs}
     palette[mic] = (0, 0.4, 1)
 
+    ax = axs[0]
     sns.lineplot(
         data=data, x='Time', y='Dry mass',
         hue='antibiotic_conc', ax=ax, palette=palette, errorbar=None)
@@ -81,6 +84,55 @@ def plot_colony_growth(
             transform=ax.transAxes, size=8)
     ax.legend().remove()
     sns.despine(ax=ax, offset=3, trim=True)
+
+    # Calculate MIC according to method from Lambert and Pearson 2000
+    background_auc = data.loc[data.loc[:, 'Time'] == SPLIT_TIME/3600,
+        'Dry mass'].iloc[0] * SPLIT_TIME/3600
+    post_tet_data = data.loc[data.loc[:, 'Time'] >= SPLIT_TIME/3600, :]
+    treatment_groups = post_tet_data.groupby('antibiotic_conc')
+    auc_dict = {}
+    for antibiotic_conc, treatment_data in treatment_groups:
+        if antibiotic_conc != 0:
+            auc_dict[antibiotic_conc] = max(np.trapz(treatment_data['Dry mass'],
+                x=treatment_data['Time']) - background_auc, 0)
+        else:
+            baseline_auc = np.trapz(treatment_data['Dry mass'],
+                x=treatment_data['Time']) - background_auc
+    antibiotic_concs = np.log10(np.array(list(auc_dict.keys())))
+    areas_under_curve = np.array(list(auc_dict.values())) / baseline_auc
+
+    def altered_gomperts(x, b, m):
+        return np.exp(-np.exp(b*(x-m)))
+    
+    popt, _ = curve_fit(altered_gomperts, antibiotic_concs, areas_under_curve)
+
+    ax_2 = axs[1]
+    ax_2.scatter(10**antibiotic_concs, areas_under_curve, c='k')
+    fit_x = np.linspace(antibiotic_concs.min()-1, antibiotic_concs.max()+1, 1000000)
+    ax_2.plot(10**fit_x, np.apply_along_axis(
+        lambda x: altered_gomperts(x, *popt), 0, fit_x), 'k')
+    ax_2.set(xscale='log')
+    ax_2.set_xlabel(f'{antibiotic} (\u03BCM)', fontsize=8)
+    ax_2.set_ylabel(f'Fractional AUC', fontsize=8)
+    # Set x-limits so that major ticks surround data
+    ax_2.set_xlim(0.1, 100)
+
+    def inflection_tangent(x, b, m):
+        return -b * np.exp(-1) * (x- (m + 1/b))
+    
+    log10_mic = popt[-1]+1/popt[-2]
+    inflection_x = np.linspace(antibiotic_concs.min()-1, log10_mic, 1000000)
+    ax_2.plot(10**inflection_x, np.apply_along_axis(
+        lambda x: inflection_tangent(x, *popt), 0, inflection_x), 'k--', linewidth=1)
+    ax_2.scatter([10**log10_mic], [0], c=(0, 0.4, 1), facecolors='none')
+    ax_2.set_ylim(-0.01, 1.01)
+    ax_2.set_xticks(np.append(ax_2.get_xticks(), 10**log10_mic),
+        np.append(ax_2.get_xticklabels(), [f'MIC:\n{np.round(10**log10_mic, 1)}']))
+    for ticklabel in ax_2.get_xticklabels():
+        if ticklabel.get_text() == f'MIC:\n{np.round(10**log10_mic, 1)}':
+            ticklabel.set_color((0, 0.4, 1))
+    print(f'{antibiotic} MIC: {str(10**(popt[-1]+1/popt[-2]))}')
+    sns.despine(ax=ax_2, offset=3, trim=True)
 
 
 def plot_synth_prob_fc(
@@ -394,7 +446,7 @@ def plot_death_timescale_analysis(
                         death_times[condition]['exposure'].append(
                             death_time - SPLIT_TIME)
     
-    # Plot avg # of generations to death for each condition
+    # Plot avg # of generations to death vs amp conc (inc. reg. line)
     avg_times = []
     amp_concs = []
     for condition in death_times:
@@ -402,72 +454,116 @@ def plot_death_timescale_analysis(
         amp_concs.append(float(condition.split('Ampicillin (')[
             1].split(' mg/L)')[0]))
     avg_gens = np.array(avg_times) / AVG_GEN_TIME
-    axs[0].scatter(amp_concs, avg_gens, c=(0, 0, 0))
-    best_fit = np.polynomial.Polynomial.fit(amp_concs, avg_gens, 1, window=(
-        min(amp_concs), max(amp_concs)))
-    xx, yy = best_fit.linspace()
-    axs[0].plot(xx, yy, c=(0, 0, 0))
-    # Get amp. conc. for lysis in 1 generation
-    liog = np.polynomial.polynomial.polyroots((best_fit-1).coef)[0]
-    # LIOG from Boman and Ericksson 1963
-    lit_liog = 6
-    axs[0].hlines(1, 0, 8, linestyles='dashed', colors=[
-        (0, 0, 0, 0.5)], linewidths=1)
-    ylim = axs[0].get_ylim()
-    axs[0].vlines([liog, lit_liog], 0, ylim[1], linestyles='dashed', colors=[
-        (0, 0.4, 1, 1), (0, 0, 0, 1)], linewidths=[1, 1])
-    axs[0].text(liog-0.4, ylim[1], 'This model', color=(0, 0.4, 1, 1), size=8,
-        rotation=90, verticalalignment='top', horizontalalignment='center')
-    axs[0].text(liog+0.6, ylim[1], 'MIC: 2 mg/L', color=(0, 0.4, 1, 1), size=8,
-        rotation=90, verticalalignment='top', horizontalalignment='center')
-    axs[0].text(lit_liog-0.4, ylim[1], 'Boman 1963', color=(0, 0, 0, 1), size=8,
-        rotation=90, verticalalignment='top', horizontalalignment='center')
-    axs[0].text(lit_liog+0.6, ylim[1], 'MIC: 4 mg/L', color=(0, 0, 0, 1), size=8,
-        rotation=90, verticalalignment='top', horizontalalignment='center')
-    axs[0].set_xlabel('Ampicillin (mg/L)', fontsize=9)
+    amp_concs = np.array(amp_concs)
+    conc_sort_idx = amp_concs.argsort()
+    amp_concs = amp_concs[conc_sort_idx]
+    avg_gens = avg_gens[conc_sort_idx]
+    axs[0].scatter(amp_concs, avg_gens, c=(0, 0.4, 1))
+    axs[0].plot(amp_concs, avg_gens, c=(0, 0.4, 1))
+    # Calculate intercept with 1 generation to lysis
+    def calc_intercept(amp_concs, avg_gens):
+        slow_lysis_idx = np.where(avg_gens>1)[0][-1]
+        fast_lysis_idx = np.where(avg_gens<1)[0][0]
+        gen_0 = avg_gens[slow_lysis_idx]
+        gen_1 = avg_gens[fast_lysis_idx]
+        amp_0 = amp_concs[slow_lysis_idx]
+        amp_1 = amp_concs[fast_lysis_idx]
+        m = (gen_1 - gen_0) / (amp_1 - amp_0)
+        return amp_0 + (1 - gen_0) / m
+    liog = calc_intercept(amp_concs, avg_gens)
+    
+    # Calculate regression line and intercept with 1 generation to lysis
+    # best_fit = np.polynomial.Polynomial.fit(amp_concs, avg_gens, 1, window=(
+    #     min(amp_concs), max(amp_concs)))
+    # xx, yy = best_fit.linspace()
+    # axs[0].plot(xx, yy, c=(0, 0.4, 1))
+    # liog = np.polynomial.polynomial.polyroots((best_fit-1).coef)[0]
+    
+    # Plot Boman and Ericksson 1963 data (inc. reg. line)
+    lit_data = pd.read_csv('data/sim_dfs/lysis_ratios.csv', header=None)
+    lit_data = lit_data.rename(columns={0: 'Ampicillin (mg/L)', 
+        1: 'Avg. generations to lysis'})
+    lit_data['Avg. generations to lysis'] = 1/lit_data['Avg. generations to lysis']
+    lit_data = lit_data.loc[(lit_data.loc[:, 'Ampicillin (mg/L)'] > 1) & 
+        (lit_data.loc[:, 'Ampicillin (mg/L)'] < 9), :]
+    lit_data = lit_data.sort_values(by='Ampicillin (mg/L)')
+    axs[0].scatter(lit_data['Ampicillin (mg/L)'],
+        lit_data['Avg. generations to lysis'],
+        color=(0.5, 0.5, 0.5))
+    axs[0].plot(lit_data['Ampicillin (mg/L)'],
+        lit_data['Avg. generations to lysis'],
+        color=(0.5, 0.5, 0.5))
+    lit_liog = calc_intercept(lit_data['Ampicillin (mg/L)'],
+        lit_data['Avg. generations to lysis'])
+    # Calculate regression line and intercept with 1 generation to lysis
+    # best_fit = np.polynomial.Polynomial.fit(lit_data['Ampicillin (mg/L)'], 
+    #     lit_data['Avg. generations to lysis'], 1, window=(
+    #     min(lit_data['Ampicillin (mg/L)']), max(lit_data['Ampicillin (mg/L)'])))
+    # xx, yy = best_fit.linspace()
+    # axs[0].plot(xx, yy, c=(0, 0, 0))
+    # lit_liog = np.polynomial.polynomial.polyroots((best_fit-1).coef)[0]
+    
+    # axs[0].hlines(1, 0, 8, linestyles='dashed', colors=[
+    #     (0, 0, 0)], linewidths=1)
+    axs[0].set_xlabel('Ampicillin (mg/L)', fontsize=8)
     axs[0].set_ylabel('Avg. generations to lysis', fontsize=8)
-    axs[0].set_yticks([0, 1, 2, 3], [0, 1, 2, 3], fontsize=9)
-    axs[0].set_xticks([0, 2, 4, 6, 8], [0, 2, 4, 6, 8], fontsize=9)
-    sns.despine(ax=axs[0], offset=1, trim=True)
+    axs[0].set_yticks([0, 1, 2, 3, 4], [0, 1, 2, 3, 4], fontsize=8)
+    axs[0].set_xticks([0, 2, 4, 6, 8], [0, 2, 4, 6, 8], fontsize=8)
+    ylim = axs[0].get_ylim()
+    # axs[0].vlines([liog, lit_liog], 0, ylim[1], linestyles='dashed', colors=[
+    #     (0, 0.4, 1, 1), (0.5, 0.5, 0.5)], linewidths=[1, 1])
+    axs[0].text(8, ylim[1], 'Boman and Ericksson 1963', color=(0.5, 0.5, 0.5), size=8,
+        verticalalignment='top', horizontalalignment='right')
+    axs[0].text(8, ylim[1]-0.3, 'MIC: 4 mg/L', color=(0.5, 0.5, 0.5), size=8,
+        verticalalignment='top', horizontalalignment='right')
+    axs[0].text(0.3, ylim[0]+0.6, 'This model', color=(0, 0.4, 1, 1), size=8,
+        verticalalignment='top', horizontalalignment='left')
+    axs[0].text(0.3, ylim[0]+0.3, 'MIC: 2 mg/L', color=(0, 0.4, 1, 1), size=8,
+        verticalalignment='top', horizontalalignment='left')
+    sns.despine(ax=axs[0], offset=3, trim=True)
+    axs[0].set_yticks([0, 1, 2, 3, 4], [0, 1, 2, 3, 4], fontsize=8)
+    axs[0].set_xticks([0, 2, 4, 6, 8], [0, 2, 4, 6, 8], fontsize=8)
 
     # Plot histogram of cell age at time of death
-    cmap = matplotlib.colormaps['Greys']
-    antibiotic_min = data.loc[:, 'antibiotic_conc'].min()
-    antibiotic_max = data.loc[:, 'antibiotic_conc'].max()
-    norm = matplotlib.colors.Normalize(
-        vmin=1.5*antibiotic_min-0.5*antibiotic_max, vmax=antibiotic_max)
-    antibiotic_concs = data.loc[:, 'antibiotic_conc'].unique()
-    palette = {antibiotic_conc: cmap(norm(antibiotic_conc))
-        for antibiotic_conc in antibiotic_concs}
-    palette[mic] = (0, 0.4, 1)
-    death_df = {'External ampicillin (\u03BCM)': [], 'Age at death (min)': []}
-    for condition, condition_data in death_times.items():
-        death_df['External ampicillin (\u03BCM)'].extend(
-            len(condition_data['age']) * [condition_data['amp']])
-        death_df['Age at death (min)'].extend(np.array(condition_data[
-            'age']) / 60)
-    death_df = pd.DataFrame(death_df)
-    sns.histplot(data=death_df, x='Age at death (min)',
-        hue='External ampicillin (\u03BCM)', common_norm=False,
-        stat='density', ax=axs[1], legend=False, palette=palette,
-        multiple='stack', binwidth=5)
-    axs[1].text(1, 1, f'Ampicillin (\u03BCM)',
-        transform=axs[1].transAxes, size=8,
-        horizontalalignment='right', verticalalignment='top')
-    ypos = [0.9, 0.8, 0.7, 0.6, 0.5]
-    concs = list(palette.keys())
-    colors = list(palette.values())
-    for i, y in enumerate(ypos):
-        axs[1].text(1, y, concs[i], c=colors[i],
-            transform=axs[1].transAxes, size=8,
-            horizontalalignment='right', verticalalignment='top')
-    axs[1].legend().remove()
-    axs[1].set_xlabel('Age at death (min)', fontsize=9)
-    axs[1].set_ylabel('Density', fontsize=9)
-    axs[1].set_yticks([0, 0.1, 0.2, 0.3, 0.4],
-        [0, 0.1, 0.2, 0.3, 0.4], fontsize=9)
-    xticks = np.arange(0, 70, 20, dtype=int)
-    axs[1].set_xticks(xticks, xticks, fontsize=9)
-    sns.despine(ax=axs[1], offset=1, trim=True)
+    # cmap = matplotlib.colormaps['Greys']
+    # antibiotic_min = data.loc[:, 'antibiotic_conc'].min()
+    # antibiotic_max = data.loc[:, 'antibiotic_conc'].max()
+    # norm = matplotlib.colors.Normalize(
+    #     vmin=1.5*antibiotic_min-0.5*antibiotic_max, vmax=antibiotic_max)
+    # antibiotic_concs = data.loc[:, 'antibiotic_conc'].unique()
+    # palette = {antibiotic_conc: cmap(norm(antibiotic_conc))
+    #     for antibiotic_conc in antibiotic_concs}
+    # palette[mic] = (0, 0.4, 1)
+    # death_df = {'External ampicillin (\u03BCM)': [], 'Age at death (min)': []}
+    # for condition, condition_data in death_times.items():
+    #     death_df['External ampicillin (\u03BCM)'].extend(
+    #         len(condition_data['age']) * [condition_data['amp']])
+    #     death_df['Age at death (min)'].extend(np.array(condition_data[
+    #         'age']) / 60)
+    # death_df = pd.DataFrame(death_df)
+    # death_ages = death_df.loc[:, 'Age at death (min)']
+    # death_ages[death_ages > 25] -= AVG_GEN_TIME / 60
+    # death_df['Minutes since division'] = death_ages
+    # sns.histplot(data=death_df, x='Minutes since division',
+    #     hue='External ampicillin (\u03BCM)', common_norm=False,
+    #     stat='density', ax=axs[1], legend=False, palette=palette,
+    #     multiple='stack', binwidth=5)
+    # axs[1].text(1, 1, f'Amp. (\u03BCM)',
+    #     transform=axs[1].transAxes, size=8,
+    #     horizontalalignment='right', verticalalignment='top')
+    # ypos = [0.9, 0.8, 0.7, 0.6, 0.5]
+    # concs = list(palette.keys())
+    # colors = list(palette.values())
+    # for i, y in enumerate(ypos):
+    #     axs[1].text(1, y, concs[i], c=colors[i],
+    #         transform=axs[1].transAxes, size=8,
+    #         horizontalalignment='right', verticalalignment='top')
+    # axs[1].legend().remove()
+    # axs[1].set_xlabel('Minutes since division', fontsize=9)
+    # axs[1].set_ylabel('Density', fontsize=9)
+    # axs[1].set_yticks([0, 0.1, 0.2, 0.3, 0.4],
+    #     [0, 0.1, 0.2, 0.3, 0.4], fontsize=8)
+    # xticks = np.arange(-30, 45, 15, dtype=int)
+    # axs[1].set_xticks(xticks, xticks, fontsize=8)
+    # sns.despine(ax=axs[1], offset=1, trim=True)
     plt.tight_layout()
-    
