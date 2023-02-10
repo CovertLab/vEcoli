@@ -373,3 +373,94 @@ def access_counts(experiment_id, monomer_names=None, mrna_names=None,
         )
 
     return data
+
+
+def get_proteome_avgs(experiment_id, host='localhost', port=27017, cpus=1):
+    """Calculate per-agent average monomer counts for all agents in a sim.
+    
+    Args:
+        experiment_id: Experiment ID for simulation
+        host: Host name of MongoDB
+        port: Port of MongoDB
+        cpus: Number of chunks to split aggregation into to be run in parallel
+    """
+    config = {
+        'host': f'{host}:{port}',
+        'database': 'simulations'
+    }
+    emitter = DatabaseEmitter(config)
+    db = emitter.db
+
+    # Retrieve and re-assemble experiment config
+    experiment_query = {'experiment_id': experiment_id}
+    experiment_config = db.configuration.find(experiment_query)
+    experiment_assembly = assemble_data(experiment_config)
+    assert len(experiment_assembly) == 1
+    assembly_id = list(experiment_assembly.keys())[0]
+    experiment_config = experiment_assembly[assembly_id]['metadata']
+
+    aggregation = [
+        {'$match': {'experiment_id': '2023-01-18_21-26-23_456358+0000'}},
+        {'$project': {
+            'agentArray': {'$objectToArray': '$data.agents'}
+        }},
+        {'$unwind': {
+            'path': '$agentArray',
+        }},
+        {'$unwind': {
+            'path': '$agentArray.v.listeners.monomer_counts',
+            'includeArrayIndex': 'arr_idx'
+        }},
+        {'$group': {
+            '_id': {'arr_idx': '$arr_idx', 'agent_id': '$agentArray.k'},
+            'avgMonomerCount': {'$avg': '$agentArray.v.listeners.monomer_counts'}
+        }},
+        {'$sort': {
+            '_id.arr_idx': 1
+        }},
+        {'$group': {
+            '_id': '$_id.agent_id',
+            'avgMonomerCount': {'$push': '$avgMonomerCount'}
+        }}
+    ]
+
+    if cpus > 1:
+        start_time = MinKey()
+        end_time = MaxKey()
+        chunks = get_data_chunks(
+            db.history, experiment_id, 25900, end_time, cpus)
+        aggregations = []
+        for chunk in chunks:
+            agg_chunk = copy.deepcopy(aggregation)
+            agg_chunk[0]['$match'] = {
+                **experiment_query,
+                '_id': {'$gte': chunk[0], '$lt': chunk[1]}
+            }
+            aggregations.append(agg_chunk)
+        partial_get_agg = partial(get_aggregation, host, port)
+        with ProcessPoolExecutor(cpus) as executor:
+            queried_chunks = executor.map(partial_get_agg, aggregations)
+        result = itertools.chain.from_iterable(queried_chunks)
+    else:
+        result = db.history.aggregate(
+            aggregation, 
+            hint={'experiment_id':1, 'data.time':1, '_id':1})
+    
+    # re-assemble data
+    assembly = assemble_data(list(result))
+
+    # restructure by time
+    data = {}
+    for datum in assembly.values():
+        time = datum['time']
+        datum = datum.copy()
+        datum.pop('_id', None)
+        datum.pop('time', None)
+        custom_deep_merge_check(
+            data,
+            {time: datum},
+            check_equality=True,
+            overwrite_none=True
+        )
+
+    return data
