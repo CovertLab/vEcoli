@@ -378,8 +378,8 @@ def access_counts(experiment_id, monomer_names=None, mrna_names=None,
     return data
 
 
-def get_proteome_avgs(experiment_id, host='localhost', port=27017, cpus=1):
-    """Calculate per-agent average monomer counts for all agents in a sim.
+def get_proteome_data(experiment_id, host='localhost', port=27017, cpus=1):
+    """Get monomer counts for all agents in a sim.
     
     Args:
         experiment_id: Experiment ID for simulation
@@ -405,55 +405,31 @@ def get_proteome_avgs(experiment_id, host='localhost', port=27017, cpus=1):
                     }
                 },
                 'data.time': 1,
-                'data.fields': 1,
-                'data.dimensions': 1,
+                'assembly_id': 1,
+            }
+        },
+        {
+            '$project': {
+                'data.agents.v.listeners.monomer_counts': 1,
+                'data.agents.k': 1,
+                'data.time': 1,
+                'assembly_id': 1
+            }
+        },
+        {
+            '$project': {
+                'data.agents': {'$arrayToObject': '$data.agents'},
+                'data.time': 1,
                 'assembly_id': 1,
             }
         }
-        # Slow code to calculate average using pipeline
-        # {'$project': {
-        #     'agentArray': {'$objectToArray': '$data.agents'}
-        # }},
-        # {'$unwind': {
-        #     'path': '$agentArray',
-        # }},
-        # {'$unwind': {
-        #     'path': '$agentArray.v.listeners.monomer_counts',
-        #     'includeArrayIndex': 'arr_idx'
-        # }},
-        # {'$group': {
-        #     '_id': {'arr_idx': '$arr_idx', 'agent_id': '$agentArray.k'},
-        #     'avgMonomerCount': {'$avg': '$agentArray.v.listeners.monomer_counts'}
-        # }},
-        # {'$sort': {
-        #     '_id.arr_idx': 1
-        # }},
-        # {'$group': {
-        #     '_id': '$_id.agent_id',
-        #     'avgMonomerCount': {'$push': '$avgMonomerCount'}
-        # }}
     ]
-    projection = {
-        '$project': {
-            'data.agents.v.listeners.monomer_counts': 1,
-            'data.agents.k': 1,
-            'data.time': 1,
-            'assembly_id': 1
-        }
-    }
-    aggregation.append(projection)
-    final_projection = {'$project': {
-        'data.agents': {'$arrayToObject': '$data.agents'},
-        'data.time': 1,
-        'assembly_id': 1,
-    }}
-    aggregation.append(final_projection)
 
     if cpus > 1:
         start_time = MinKey()
         end_time = MaxKey()
         chunks = get_data_chunks(
-            db.history, experiment_id, 25900, end_time, cpus)
+            db.history, experiment_id, start_time, end_time, cpus)
         aggregations = []
         for chunk in chunks:
             agg_chunk = copy.deepcopy(aggregation)
@@ -491,8 +467,8 @@ def get_proteome_avgs(experiment_id, host='localhost', port=27017, cpus=1):
     return data
 
 
-def get_fluxome_avgs(experiment_id, host='localhost', port=27017, cpus=1):
-    """Calculate per-agent average monomer counts for all agents in a sim.
+def get_fluxome_data(experiment_id, host='localhost', port=27017, cpus=1):
+    """Get central carbon metabolism fluxes for all agents in a sim.
     
     Args:
         experiment_id: Experiment ID for simulation
@@ -515,11 +491,13 @@ def get_fluxome_avgs(experiment_id, host='localhost', port=27017, cpus=1):
     assembly_id = list(experiment_assembly.keys())[0]
     experiment_config = experiment_assembly[assembly_id]['metadata']
     # Load sim_data and validation data to get metabolic rxn ids
-    with open(experiment_config['sim_data_path'], 'rb') as sim_data_file:
+    with open('reconstruction/sim_data/kb/simData.cPickle', 'rb') as sim_data_file:
         sim_data = pickle.load(sim_data_file)
+    
     with open('reconstruction/sim_data/kb/validationData.cPickle',
         'rb') as validation_data_file:
         validation_data = pickle.load(validation_data_file)
+    
     rxn_ids = np.array(sorted(
         sim_data.process.metabolism.reaction_stoich))
     toya_reactions = validation_data.reactionFlux.toya2010fluxes["reactionID"]
@@ -551,12 +529,12 @@ def get_fluxome_avgs(experiment_id, host='localhost', port=27017, cpus=1):
     ]
     projection = {
         '$project': {
-            f'data.agents.v.fluxome.{rxn_name}':
+            f'data.agents.v.fluxome.{rxn_index}':
                 val_at_idx_in_path(
                     rxn_index, 
                     "data.agents.v.listeners.fba_results.reactionFluxes"
                 )
-            for rxn_name, rxn_index in zip(common_ids, sim_rxn_indices)
+            for rxn_index in sim_rxn_indices
         }
     }
 
