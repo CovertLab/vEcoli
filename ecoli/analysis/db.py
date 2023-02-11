@@ -4,6 +4,8 @@ import collections
 from bson import MinKey, MaxKey
 from functools import partial
 from concurrent.futures import ProcessPoolExecutor
+import numpy as np
+import pickle
 
 from vivarium.core.emitter import (
     data_from_database,
@@ -17,6 +19,7 @@ from vivarium.core.serialize import deserialize_value
 from vivarium.library.units import remove_units
 
 from ecoli.library.sim_data import LoadSimData
+from wholecell.utils import toya
 
 
 def deserialize_and_remove_units(d):
@@ -391,6 +394,119 @@ def get_proteome_avgs(experiment_id, host='localhost', port=27017, cpus=1):
     emitter = DatabaseEmitter(config)
     db = emitter.db
 
+    aggregation = [
+        {'$match': {'experiment_id': experiment_id}},
+        {
+            '$project': {
+                'data.agents': {
+                    '$objectToArray': {
+                        # Add fail-safe for sims with no live agents
+                        '$ifNull': ['$data.agents', {}]
+                    }
+                },
+                'data.time': 1,
+                'data.fields': 1,
+                'data.dimensions': 1,
+                'assembly_id': 1,
+            }
+        }
+        # Slow code to calculate average using pipeline
+        # {'$project': {
+        #     'agentArray': {'$objectToArray': '$data.agents'}
+        # }},
+        # {'$unwind': {
+        #     'path': '$agentArray',
+        # }},
+        # {'$unwind': {
+        #     'path': '$agentArray.v.listeners.monomer_counts',
+        #     'includeArrayIndex': 'arr_idx'
+        # }},
+        # {'$group': {
+        #     '_id': {'arr_idx': '$arr_idx', 'agent_id': '$agentArray.k'},
+        #     'avgMonomerCount': {'$avg': '$agentArray.v.listeners.monomer_counts'}
+        # }},
+        # {'$sort': {
+        #     '_id.arr_idx': 1
+        # }},
+        # {'$group': {
+        #     '_id': '$_id.agent_id',
+        #     'avgMonomerCount': {'$push': '$avgMonomerCount'}
+        # }}
+    ]
+    projection = {
+        '$project': {
+            'data.agents.v.listeners.monomer_counts': 1,
+            'data.agents.k': 1,
+            'data.time': 1,
+            'assembly_id': 1
+        }
+    }
+    aggregation.append(projection)
+    final_projection = {'$project': {
+        'data.agents': {'$arrayToObject': '$data.agents'},
+        'data.time': 1,
+        'assembly_id': 1,
+    }}
+    aggregation.append(final_projection)
+
+    if cpus > 1:
+        start_time = MinKey()
+        end_time = MaxKey()
+        chunks = get_data_chunks(
+            db.history, experiment_id, 25900, end_time, cpus)
+        aggregations = []
+        for chunk in chunks:
+            agg_chunk = copy.deepcopy(aggregation)
+            agg_chunk[0]['$match'] = {
+                'experiment_id': experiment_id,
+                '_id': {'$gte': chunk[0], '$lt': chunk[1]}
+            }
+            aggregations.append(agg_chunk)
+        partial_get_agg = partial(get_aggregation, host, port)
+        with ProcessPoolExecutor(cpus) as executor:
+            queried_chunks = executor.map(partial_get_agg, aggregations)
+        result = itertools.chain.from_iterable(queried_chunks)
+    else:
+        result = db.history.aggregate(
+            aggregation, 
+            hint={'experiment_id':1, 'data.time':1, '_id':1})
+    
+    # re-assemble data
+    assembly = assemble_data(list(result))
+
+    # restructure by time
+    data = {}
+    for datum in assembly.values():
+        time = datum['time']
+        datum = datum.copy()
+        datum.pop('_id', None)
+        datum.pop('time', None)
+        custom_deep_merge_check(
+            data,
+            {time: datum},
+            check_equality=True,
+            overwrite_none=True
+        )
+
+    return data
+
+
+def get_fluxome_avgs(experiment_id, host='localhost', port=27017, cpus=1):
+    """Calculate per-agent average monomer counts for all agents in a sim.
+    
+    Args:
+        experiment_id: Experiment ID for simulation
+        host: Host name of MongoDB
+        port: Port of MongoDB
+        cpus: Number of chunks to split aggregation into to be run in parallel
+    """
+    config = {
+        'host': f'{host}:{port}',
+        'database': 'simulations'
+    }
+    emitter = DatabaseEmitter(config)
+    db = emitter.db
+
     # Retrieve and re-assemble experiment config
     experiment_query = {'experiment_id': experiment_id}
     experiment_config = db.configuration.find(experiment_query)
@@ -398,37 +514,69 @@ def get_proteome_avgs(experiment_id, host='localhost', port=27017, cpus=1):
     assert len(experiment_assembly) == 1
     assembly_id = list(experiment_assembly.keys())[0]
     experiment_config = experiment_assembly[assembly_id]['metadata']
+    # Load sim_data and validation data to get metabolic rxn ids
+    with open(experiment_config['sim_data_path'], 'rb') as sim_data_file:
+        sim_data = pickle.load(sim_data_file)
+    with open('reconstruction/sim_data/kb/validationData.cPickle',
+        'rb') as validation_data_file:
+        validation_data = pickle.load(validation_data_file)
+    rxn_ids = np.array(sorted(
+        sim_data.process.metabolism.reaction_stoich))
+    toya_reactions = validation_data.reactionFlux.toya2010fluxes["reactionID"]
+    root_to_id_indices_map = toya.get_root_to_id_indices_map(
+        rxn_ids)
+    common_ids = toya.get_common_ids(
+        toya_reactions, root_to_id_indices_map)
+    
+    sim_rxn_indices = []
+    for common_id in common_ids:
+        sim_rxn_indices += root_to_id_indices_map[common_id]
 
     aggregation = [
-        {'$match': {'experiment_id': '2023-01-18_21-26-23_456358+0000'}},
-        {'$project': {
-            'agentArray': {'$objectToArray': '$data.agents'}
-        }},
-        {'$unwind': {
-            'path': '$agentArray',
-        }},
-        {'$unwind': {
-            'path': '$agentArray.v.listeners.monomer_counts',
-            'includeArrayIndex': 'arr_idx'
-        }},
-        {'$group': {
-            '_id': {'arr_idx': '$arr_idx', 'agent_id': '$agentArray.k'},
-            'avgMonomerCount': {'$avg': '$agentArray.v.listeners.monomer_counts'}
-        }},
-        {'$sort': {
-            '_id.arr_idx': 1
-        }},
-        {'$group': {
-            '_id': '$_id.agent_id',
-            'avgMonomerCount': {'$push': '$avgMonomerCount'}
-        }}
+        {'$match': {'experiment_id': experiment_id}},
+        {
+            '$project': {
+                'data.agents': {
+                    '$objectToArray': {
+                        # Add fail-safe for sims with no live agents
+                        '$ifNull': ['$data.agents', {}]
+                    }
+                },
+                'data.time': 1,
+                'data.fields': 1,
+                'data.dimensions': 1,
+                'assembly_id': 1,
+            }
+        }
     ]
+    projection = {
+        '$project': {
+            f'data.agents.v.fluxome.{rxn_name}':
+                val_at_idx_in_path(
+                    rxn_index, 
+                    "data.agents.v.listeners.fba_results.reactionFluxes"
+                )
+            for rxn_name, rxn_index in zip(common_ids, sim_rxn_indices)
+        }
+    }
+
+    projection['$project']['data.agents.k'] = 1
+    projection['$project']['data.time'] = 1
+    projection['$project']['assembly_id'] = 1
+    aggregation.append(projection)
+
+    final_projection = {'$project': {
+        'data.agents': {'$arrayToObject': '$data.agents'},
+        'data.time': 1,
+        'assembly_id': 1,
+    }}
+    aggregation.append(final_projection)
 
     if cpus > 1:
         start_time = MinKey()
         end_time = MaxKey()
         chunks = get_data_chunks(
-            db.history, experiment_id, 25900, end_time, cpus)
+            db.history, experiment_id, start_time, end_time, cpus)
         aggregations = []
         for chunk in chunks:
             agg_chunk = copy.deepcopy(aggregation)
