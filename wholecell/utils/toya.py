@@ -8,7 +8,7 @@ from typing import Any, Dict, Iterable, List, Tuple
 
 from unum import Unum
 
-from models.ecoli.processes.metabolism import (
+from ecoli.processes.metabolism import (
 	COUNTS_UNITS,
 	VOLUME_UNITS,
 	TIME_UNITS,

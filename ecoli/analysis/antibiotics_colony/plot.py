@@ -2,12 +2,16 @@
 import argparse
 import os
 import pickle
+from itertools import combinations
 
 import matplotlib
 import matplotlib.pyplot as plt
+from mpl_toolkits.axes_grid1 import anchored_artists
 import numpy as np
 import pandas as pd
 from scipy.constants import N_A
+from scipy.stats import pearsonr
+import statsmodels.formula.api as smf
 from vivarium.library.dict_utils import deep_merge
 
 from ecoli.analysis.antibiotics_colony import (COUNTS_PER_FL_TO_NANOMOLAR,
@@ -22,6 +26,7 @@ from ecoli.analysis.antibiotics_colony.timeseries import (plot_field_snapshots,
 from ecoli.analysis.antibiotics_colony.validation import (
     plot_colony_growth, plot_mrna_fc, plot_protein_synth_inhib,
     plot_synth_prob_fc, plot_death_timescale_analysis)
+from ecoli.plots.snapshots import plot_snapshots
 
 
 def make_figure_1a(data, metadata):
@@ -273,6 +278,217 @@ def make_figure_2c(data, metadata):
         bbox_inches='tight')
     plt.close()
     print('Done with Figure 2C.')
+
+
+def make_figure_2d(data, metadata):
+    # Make plots describing glucose depletion from environment
+    # Convert glucose uptake to units of mmol / g DCW / hr
+    exchange_data = data.loc[:, ['Dry mass', 'Exchanges']]
+    glc_flux = exchange_data.apply(lambda x: x['Exchanges']['GLC[p]'] / N_A * 
+        1000 / (x['Dry mass'] * 1e-15) / 2 * 3600, axis=1)
+    data['Glucose intake'] = -glc_flux
+    grouped_data = data.groupby('Agent ID').mean()
+    print(f'Mean glucose intake (mmol/g DCW/hr): {grouped_data.loc[:, "Glucose intake"].mean()}')
+    print(f'Std. dev. glucose intake (mmol/g DCW/hr): {grouped_data.loc[:, "Glucose intake"].std()}')
+    import seaborn as sns
+    fig, ax = plt.subplots(figsize=(3, 3))
+    sns.histplot(grouped_data.loc[:, "Glucose intake"], color=(0, 0.4, 1),
+        ax=ax, linewidth=1)
+    ax.set_xlabel('Glucose intake\n(mmol/g DCW/hr)', fontsize=10)
+    ax.set_ylabel('Simulated cells', fontsize=10)
+    ax.set_xticks(ax.get_xticks(), ax.get_xticks().astype(int), fontsize=10)
+    ax.set_yticks(ax.get_yticks(), ax.get_yticks().astype(int), fontsize=10)
+    plt.tight_layout()
+    plt.savefig('out/analysis/paper_figures/fig_2d_glc_intake.svg',
+        bbox_inches='tight')
+    plt.close()
+
+    field_data = metadata['Glucose'][10000]['fields']
+    xticks = np.arange(0, 50, 5)
+    xcoords = xticks + 2.5
+    sample_times = [10400, 15600, 20800, 26000]
+    cmap = matplotlib.colormaps['Greys']
+    norm = matplotlib.colors.Normalize(
+        vmin=0, vmax=26000)
+    fig, ax = plt.subplots(figsize=(3,3))
+    for sample_time in sample_times:
+        cross_sec = np.array((field_data[sample_time]['GLC[p]'])).T[4]
+        color = cmap(norm(sample_time))
+        ax.plot(xcoords, cross_sec, c=color)
+        ax.scatter(xcoords, cross_sec, c=color)
+        ax.text(51, cross_sec.mean(), f'{np.round(sample_time/3600, 1)} hr',
+            horizontalalignment='left', verticalalignment='center',
+            c=color)
+    ax.set_xlabel('Distance from left edge\nof environment (\u03BCm)')
+    ax.set_ylabel('Cross-sectional glucose (mM)')
+    plt.savefig('out/analysis/paper_figures/fig_2d_env_cross.svg',
+        bbox_inches='tight')
+    plt.close()
+
+
+def make_figure_2e(data, metadata):
+    # Create colormap where agents that are more related are closer on viridis colormap
+    locations = np.array([agent['location'] for agent in data.loc[:, 'Boundary']])
+    data['x'] = locations[:, 0]
+    data['y'] = locations[:, 1]
+    grouped_data = data.loc[:, ['Agent ID', 'x', 'y']].groupby('Agent ID')
+    cmap = matplotlib.colormaps['viridis']
+    norm = matplotlib.colors.Normalize(vmin=0, vmax=2**7)
+    agent_colors = {}
+    for agent_id, agent_data in grouped_data:
+        if len(agent_id) > 1:
+            parent_id = agent_id[:-1]
+            exp = 8 - len(parent_id)
+        else:
+            parent_id = '0'
+            exp = 8
+        binary_agent = int(parent_id, 2) * 2**exp
+        color = cmap(norm(binary_agent))
+        agent_colors[agent_id] = matplotlib.colors.rgb_to_hsv(color[:-1])
+    plt.close()
+
+    final_agents = data.loc[data.loc[:, 'Time']==26000, ['Agent ID', 'Boundary']]
+    final_agents.rename(columns={'Boundary': 'boundary'}, inplace=True)
+    agent_data = final_agents.set_index('Agent ID').T.to_dict()
+    seed = data.loc[:, 'Seed'].unique()[0]
+    snapshot_data = {
+        'bounds': metadata['Glucose'][seed]['bounds'],
+        'agents': {
+            26000: agent_data
+        },
+        'fields': {26000: metadata['Glucose'][seed]['fields'][26000]},
+        'snapshot_times': [26000],
+        'agent_colors': agent_colors,
+        'scale_bar_length': 5,
+        'membrane_width': 0,
+        'colorbar_decimals': 1,
+        'default_font_size': 12,
+        'figsize': (2, 2),
+        'include_fields': [],
+        'field_label_size': 0,
+        'xlim': [10, 40],
+        'ylim': [10, 40]
+    }
+    snapshots_fig = plot_snapshots(**snapshot_data)
+    # New scale bar with reduced space between bar and label
+    snapshots_fig.axes[1].artists[0].remove()
+    scale_bar = anchored_artists.AnchoredSizeBar(
+        snapshots_fig.axes[1].transData,
+        5,
+        "5 μm",
+        "lower left",
+        frameon=False,
+        size_vertical=0.5,
+        fontproperties={'size': 9}
+    )
+    snapshots_fig.axes[1].add_artist(scale_bar)
+    # Remove time axis
+    snapshots_fig.axes[0].remove()
+    # Clean up tick marks
+    snapshots_fig.axes[0].set_yticks([])
+    snapshots_fig.axes[0].set_xticks([])
+    # Resize subplot layout to fill space
+    gs = matplotlib.gridspec.GridSpec(1, 1)
+    snapshots_fig.axes[0].set_subplotspec(gs[0])
+    title = snapshots_fig.axes[0].get_title()
+    snapshots_fig.axes[0].set_title(title, pad=10, fontsize=12)
+    plt.tight_layout()
+    plt.savefig(f'out/analysis/paper_figures/fig_2e_snapshot_relatedness_{seed}.svg',
+        bbox_inches='tight')
+    plt.close()
+
+    fig, ax = plt.subplots(figsize=(0.25, 2))
+    fig.subplots_adjust(right=0.4)
+    fig.colorbar(matplotlib.cm.ScalarMappable(norm=norm, cmap=cmap), cax=ax,
+        orientation='vertical', label='Relatedness')
+    ax.set_yticks([])
+    ax.set_ylabel(ax.get_ylabel(), size=8)
+    fig.savefig('out/analysis/paper_figures/fig_2e_cbar.svg')
+
+
+def make_figure_2f(data, metadata):
+    final_agents = data.loc[data.loc[:,'Time']==26000, 'Agent ID'].unique()
+    # Convert glucose uptake to units of mmol / g DCW / hr
+    exchange_data = data.loc[:, ['Dry mass', 'Exchanges']]
+    glc_flux = exchange_data.apply(lambda x: x['Exchanges']['GLC[p]'] / N_A * 
+        1000 / (x['Dry mass'] * 1e-15) / 2 * 3600, axis=1)
+    data['Glucose intake'] = -glc_flux
+    agent_data = data.groupby('Agent ID')
+    df = {
+        'doubling_times': [],
+        'glucose_intake': [],
+        'ribosome_conc': [],
+        'initial_mass': [],
+        'delta_mass': []
+    }
+    fig, ax = plt.subplots(figsize=(10, 2))
+    for agent_id, agent in agent_data:
+        if agent_id in final_agents:
+            continue
+        plt_data = agent.loc[agent.loc[:, 'Time']>agent.loc[:,'Time'].min(), :]
+        ax.plot(plt_data.loc[:, 'Time'], plt_data.loc[:, 'Glucose intake'])
+        df['doubling_times'].append(agent.loc[:, 'Time'].max() -
+            agent.loc[:, 'Time'].min())
+        df['glucose_intake'].append(agent.loc[:, 'Glucose intake'].mean())
+        ribo_conc = (agent.loc[:, 'Active ribosomes']/agent.loc[:, 'Volume']
+            * COUNTS_PER_FL_TO_NANOMOLAR)
+        df['ribosome_conc'].append(ribo_conc.mean())
+        df['initial_mass'].append(agent.loc[agent.loc[:, 'Time']==agent.loc[
+            :, 'Time'].min(), 'Cell mass'].iloc[0])
+        df['delta_mass'].append(agent.loc[agent.loc[:, 'Time']==agent.loc[
+            :, 'Time'].max(), 'Dry mass'].iloc[0] - agent.loc[agent.loc[
+                :, 'Time']==agent.loc[:, 'Time'].min(), 'Dry mass'].iloc[0])
+
+    ax.set_ylabel('Glucose intake\n(mmol/g DCW/hr)')
+    ax.set_xlabel('Time (sec.)')
+    plt.savefig('out/glucose_intake_over_time.svg', bbox_inches='tight')
+    plt.close()
+
+    df = pd.DataFrame(df)
+    res = smf.ols(formula='doubling_times ~ glucose_intake + ribosome_conc'
+        '+ initial_mass + delta_mass', data=df).fit()
+    print(res.summary())
+    # Standardize regression coefficients
+    std_beta = res.params[1:] * df.std()[1:] / df.std()[0]
+    for var in std_beta.index:
+        pearson_r = np.corrcoef(df['doubling_times'], df[var])[0, 1]
+        print(f'Pratt index for {var} (std. coef = {std_beta[var]}, p = '
+            f'{res.pvalues[var]}): {std_beta[var] * pearson_r}')
+
+    # Confirm good model fit
+    plt.scatter(df['doubling_times'], res.predict(df.iloc[:, 1:]))
+
+    lit_data = pd.read_csv('/home/covertlab/Downloads/wpd_datasets.csv')
+    plt.plot(lit_data.iloc[1:22, 0].astype(float), lit_data.iloc[1:22, 1].astype(float))
+    plt.plot(lit_data.iloc[1:, 2].astype(float), lit_data.iloc[1:, 3].astype(float))
+    ax = plt.gca()
+    ax.set_xlim(min(lit_data.iloc[1:22, 0].astype(float)), 6.5)
+    ax2 = ax.twiny()
+    ax2.set_xlim(min(df['Initial lengths']), max(df['Final lengths']))
+    import seaborn as sns
+    sns.kdeplot(data=df[['Initial lengths', 'Final lengths']])
+
+
+def make_figure_2g(data, metadata):
+    # Perform linear regression on protein expression at final time point for
+    # all possible pairs of the four antibiotic resistance genes
+    data = restrict_data(data)
+    monomers = ['OmpF monomer', 'AmpC monomer', 'TolC monomer',
+        'MarR monomer']
+    data.loc[:, monomers] = (data.loc[:, monomers].divide(data.loc[:, 'Volume'],
+        axis=0) * COUNTS_PER_FL_TO_NANOMOLAR)
+    avg_concs = data.loc[:, monomers + ['Agent ID']].groupby('Agent ID').mean()
+    import seaborn as sns
+    sns.pairplot(avg_concs, kind='reg')
+    
+    combos = list(combinations(monomers, 2))
+    for monomer_1, monomer_2 in combos:
+        r, p = pearsonr(avg_concs[monomer_1], avg_concs[monomer_2])
+        adj_p = p * len(combos)
+        print(f'{monomer_1} vs. {monomer_2}: r = {r},'
+            f' Bonferroni corrected p = {adj_p}')
+
+    print()
 
 
 def make_figure_3a(data, metadata):
@@ -666,6 +882,10 @@ def main():
         '1b': ['Glucose'],
         '2b': ['Glucose'],
         '2c': ['Glucose'],
+        '2d': ['Glucose'],
+        '2e': ['Glucose'],
+        '2f': ['Glucose'],
+        '2g': ['Glucose'],
         '3a': ['Glucose', 'Tetracycline (0.5 mg/L)', 'Tetracycline (1 mg/L)',
             'Tetracycline (1.5 mg/L)', 'Tetracycline (2 mg/L)',
             'Tetracycline (4 mg/L)'],
@@ -693,10 +913,14 @@ def main():
         '1b': [0, 100, 10000],
         '2b': [10000],
         '2c': [10000],
+        '2d': [10000],
+        '2e': [10000],
+        '2f': [10000],
+        '2g': [10000],
         '3a': [0],
         '3b': [0],
         '3c': [0],
-        '3d': [100],
+        '3d': [0],
         '3e': [0, 100, 10000],
         '3f': [0],
         '3g': [0],
@@ -731,3 +955,26 @@ def main():
 
 if __name__ == '__main__':
     main()
+
+"""
+Antibiotic simulation data stats
+{
+  db: 'simulations',
+  collections: 3,
+  views: 0,
+  objects: 6883245,
+  avgObjSize: 1590217.76253642,
+  dataSize: 10945858462890,
+  storageSize: 3095633932288,
+  freeStorageSize: 439554437120,
+  indexes: 7,
+  indexSize: 435052544,
+  indexFreeStorageSize: 81178624,
+  totalSize: 3096068984832,
+  totalFreeStorageSize: 439635615744,
+  scaleFactor: 1,
+  fsUsedSize: 3102315601920,
+  fsTotalSize: 3112330854400,
+  ok: 1
+}
+"""
