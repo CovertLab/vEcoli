@@ -78,32 +78,38 @@ class Plot():
         root_to_id_indices_map = get_toya_flux_rxns(simDataFile)
 
         fluxes = {common_id: [] for common_id in common_ids}
+        empty = ()
         for time_data in raw_data.values():       
             for agent_data in time_data['agents'].values():
                 if next(iter(agent_data['fluxome'].values())) is None:
                     continue
                 for common_id in common_ids:
-                    # Handle cases where there is a (potentially reversible) reaction
+                    # Handle cases of (potentially reversible) reactions
                     flux = 0
-                    for i_rxn_id in root_to_id_indices_map.get(common_id):
+                    for i_rxn_id in root_to_id_indices_map.get(common_id, empty):
                         flux += agent_data['fluxome'][str(i_rxn_id)]
-                    for i_rxn_id in root_to_id_indices_map.get(f'{common_id} (reverse)'):
+                    for i_rxn_id in root_to_id_indices_map.get(
+                        f'{common_id} (reverse)', empty):
                         flux -= agent_data['fluxome'][str(i_rxn_id)]
                     if flux != 0:
                         fluxes[common_id].append(flux)
                         continue
                     
-                    # Handle cases where two reactions are combined into a single flux
-                    # Take the smaller of the two fluxes at each time step
+                    # Handle cases where two reactions are combined into a
+                    # single flux (use smaller flux at each time step)
                     flux_1 = 0
-                    for i_rxn_id in root_to_id_indices_map.get(f'{common_id}_1'):
+                    for i_rxn_id in root_to_id_indices_map.get(
+                        f'{common_id}_1', empty):
                         flux_1 += agent_data['fluxome'][str(i_rxn_id)]
-                    for i_rxn_id in root_to_id_indices_map.get(f'{common_id}_1 (reverse)'):
+                    for i_rxn_id in root_to_id_indices_map.get(
+                        f'{common_id}_1 (reverse)', empty):
                         flux_1 -= agent_data['fluxome'][str(i_rxn_id)]
                     flux_2 = 0
-                    for i_rxn_id in root_to_id_indices_map.get(f'{common_id}_2'):
+                    for i_rxn_id in root_to_id_indices_map.get(
+                        f'{common_id}_2', empty):
                         flux_2 += agent_data['fluxome'][str(i_rxn_id)]
-                    for i_rxn_id in root_to_id_indices_map.get(f'{common_id}_2 (reverse)'):
+                    for i_rxn_id in root_to_id_indices_map.get(
+                        f'{common_id}_2 (reverse)', empty):
                         flux_2 -= agent_data['fluxome'][str(i_rxn_id)]
                     fluxes[common_id].append(min(flux_1, flux_2))
 
@@ -115,6 +121,12 @@ class Plot():
             common_ids, toya_reactions, toya_fluxes)
         toya_flux_stdevs = toya.process_toya_data(
             common_ids, toya_reactions, toya_stdevs)
+        
+        # Include PTS system flux in pyruvate kinase flux as done in
+        # parentheses next in Fig 4 of Toya 2010
+        common_ids = np.array(common_ids)
+        toya_flux_means[common_ids=='PEPDEPHOS-RXN'] += toya_flux_means[
+            common_ids=='TRANS-RXN-157']
 
         correlation_coefficient = np.corrcoef(
             sim_flux_means,
@@ -133,6 +145,8 @@ class Plot():
         )
         plt.ylabel("Mean WCM Reaction Flux {}".format(FLUX_UNITS.strUnit()))
         plt.xlabel("Toya 2010 Reaction Flux {}".format(FLUX_UNITS.strUnit()))
+
+        plt.plot(np.linspace(0, 2), np.linspace(0,2))
 
         plt.savefig(outFile, bbox_inches='tight')
         plt.close("all")
@@ -168,9 +182,6 @@ def get_toya_flux_rxns(simDataFile):
         'FUMHYDR-RXN': {
             'FUM[c]': -1,
             'MAL[c]': 1},
-        'GLU6PDEHYDROG-RXN': {
-            'D-glucopyranose-6-phosphate[c]': -1, 
-            'D-6-P-GLUCONO-DELTA-LACTONE[c]': 1},
         'ISOCITDEH-RXN': {
             'THREO-DS-ISO-CITRATE[c]': -1,
             '2-KETOGLUTARATE[c]': 1,
@@ -210,8 +221,8 @@ def get_toya_flux_rxns(simDataFile):
             'ERYTHROSE-4P[c]': 1,
             'FRUCTOSE-6P[c]': 1},
         'TRIOSEPISOMERIZATION-RXN': {
-            'DIHYDROXY-ACETONE-PHOSPHATE[c]': 1,
-            'GAP[c]': -1}
+            'DIHYDROXY-ACETONE-PHOSPHATE[c]': -1,
+            'GAP[c]': 1}
     }
     rxn_ids = {}
     for rxn, stoich in normal_reaction_mapping.items():
@@ -273,8 +284,16 @@ def get_toya_flux_rxns(simDataFile):
             rxn_ids[f'{rxn}_{i} (reverse)'] = np.where(condition)[0]
 
     mix_and_match_rxns = {
+        # Mix and match 1 starting reactant and 1 product
+        'GLU6PDEHYDROG-RXN': {
+            'reactants': [
+                'D-glucopyranose-6-phosphate[c]',
+                'ALPHA-GLC-6-P[c]',
+                'GLC-6-P[c]',
+            ],
+            'products': ['D-6-P-GLUCONO-DELTA-LACTONE[c]']
+        },
         'TRANS-RXN-157': {
-            # Mix and match 1 starting reactant and 1 product
             'reactants': [
                 'Glucopyranose[p]',
                 'Glucopyranose[c]',

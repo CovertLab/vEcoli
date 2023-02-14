@@ -483,7 +483,7 @@ def get_fluxome_data(experiment_id, host='localhost', port=27017, cpus=1):
     db = emitter.db
     
     rxn_ids = get_toya_flux_rxns(SIM_DATA_PATH)
-    sim_rxn_indices = list(itertools.chain.from_iterable(list(rxn_ids.values())))
+    sim_rxn_indices = [int(i) for i in itertools.chain.from_iterable(list(rxn_ids.values()))]
 
     aggregation = [
         {'$match': {'experiment_id': experiment_id}},
