@@ -4,8 +4,6 @@ import collections
 from bson import MinKey, MaxKey
 from functools import partial
 from concurrent.futures import ProcessPoolExecutor
-import numpy as np
-import pickle
 
 from vivarium.core.emitter import (
     data_from_database,
@@ -18,7 +16,8 @@ from vivarium.core.emitter import (
 from vivarium.core.serialize import deserialize_value
 from vivarium.library.units import remove_units
 
-from ecoli.library.sim_data import LoadSimData
+from ecoli.analysis.centralCarbonMetabolismScatter import get_toya_flux_rxns
+from ecoli.library.sim_data import LoadSimData, SIM_DATA_PATH
 from wholecell.utils import toya
 
 
@@ -482,33 +481,9 @@ def get_fluxome_data(experiment_id, host='localhost', port=27017, cpus=1):
     }
     emitter = DatabaseEmitter(config)
     db = emitter.db
-
-    # Retrieve and re-assemble experiment config
-    experiment_query = {'experiment_id': experiment_id}
-    experiment_config = db.configuration.find(experiment_query)
-    experiment_assembly = assemble_data(experiment_config)
-    assert len(experiment_assembly) == 1
-    assembly_id = list(experiment_assembly.keys())[0]
-    experiment_config = experiment_assembly[assembly_id]['metadata']
-    # Load sim_data and validation data to get metabolic rxn ids
-    with open('reconstruction/sim_data/kb/simData.cPickle', 'rb') as sim_data_file:
-        sim_data = pickle.load(sim_data_file)
     
-    with open('reconstruction/sim_data/kb/validationData.cPickle',
-        'rb') as validation_data_file:
-        validation_data = pickle.load(validation_data_file)
-    
-    rxn_ids = np.array(sorted(
-        sim_data.process.metabolism.reaction_stoich))
-    toya_reactions = validation_data.reactionFlux.toya2010fluxes["reactionID"]
-    root_to_id_indices_map = toya.get_root_to_id_indices_map(
-        rxn_ids)
-    common_ids = toya.get_common_ids(
-        toya_reactions, root_to_id_indices_map)
-    
-    sim_rxn_indices = []
-    for common_id in common_ids:
-        sim_rxn_indices += root_to_id_indices_map[common_id]
+    rxn_ids = get_toya_flux_rxns(SIM_DATA_PATH)
+    sim_rxn_indices = list(itertools.chain.from_iterable(list(rxn_ids.values())))
 
     aggregation = [
         {'$match': {'experiment_id': experiment_id}},
@@ -559,7 +534,7 @@ def get_fluxome_data(experiment_id, host='localhost', port=27017, cpus=1):
         for chunk in chunks:
             agg_chunk = copy.deepcopy(aggregation)
             agg_chunk[0]['$match'] = {
-                **experiment_query,
+                'experiment_id': experiment_id,
                 '_id': {'$gte': chunk[0], '$lt': chunk[1]}
             }
             aggregations.append(agg_chunk)
