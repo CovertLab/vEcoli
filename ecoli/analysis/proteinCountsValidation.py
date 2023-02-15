@@ -58,7 +58,7 @@ class Plot():
         ax[0].text(
             x=0.5,
             y=1.1,
-            s="count $\geq$ 30: $R^2$: %0.3f, n = %i" % (
+            s="count $\geq$ 30: $R^2$ = %0.3f, n = %i" % (
                 r_over_30**2, over_30.sum()),
             transform=ax[0].transAxes,
             ha='center',
@@ -67,7 +67,7 @@ class Plot():
         ax[0].text(
             x=0.5,
             y=1,
-            s="count < 30: $R^2$: %0.3f, n = %i" % (
+            s="count < 30: $R^2$ = %0.3f, n = %i" % (
                 r_under_30**2, len(over_30) - over_30.sum()),
             transform=ax[0].transAxes,
             ha='center',
@@ -98,7 +98,7 @@ class Plot():
         ax[1].text(
             x=0.5,
             y=1,
-            s="count $\geq$ 30: $R^2$: %0.3f, n = %i" % (
+            s="count $\geq$ 30: $R^2$ = %0.3f, n = %i" % (
                 r_over_30**2, over_30.sum()),
             transform=ax[1].transAxes,
             ha='center',
@@ -107,7 +107,7 @@ class Plot():
         ax[1].text(
             x=0.5,
             y=0.9,
-            s="count < 30: $R^2$: %0.3f, n = %i" % (
+            s="count < 30: $R^2$ = %0.3f, n = %i" % (
                 r_under_30**2, len(over_30) - over_30.sum()),
             transform=ax[1].transAxes,
             ha='center',
