@@ -7,6 +7,8 @@ from typing import List, Optional, Tuple
 import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
+from scipy.stats import pearsonr
+import seaborn as sns
 from unum import Unum
 
 from wholecell.utils import units, toya
@@ -29,98 +31,96 @@ class Plot():
 
         Arguments:
             validation_data_file: Path to cPickle with validation data.
-            sim_data_file: Path to cPickle with simulation data.
             sim_df: Dataframe from ecoli.analysis.antibiotics_colony.load_data,
                 must contain 'Dry mass' and 'Cell mass' columns 
 
         Returns:
-            Tuple of reaction IDs, fluxes, standard deviations, and simulation
-            reaction IDs. Fluxes and standard deviations appear in the same
-            order as their associated reactions do in the reaction ID list.
-            Fluxes and standard deviations are numpy arrays with units
-            FLUX_UNITS. Simulation reaction IDs are ordered in the same
-            order used to retrieve data in ecoli.analysis.db.get_fluxome_data
+            Tuple of reaction IDs, fluxes, and standard deviations. Fluxes and
+            standard deviations appear in the same order as their associated
+            reactions do in the reaction ID list. Fluxes and standard deviations
+            are numpy arrays with units FLUX_UNITS.
         """
         validation_data = cPickle.load(open(validation_data_file, "rb"))
-        sim_data = cPickle.load(open(sim_data_file, "rb"))
-        cell_density = sim_data.constants.cell_density
-
-        cell_masses = sim_df.loc[:, "Cell mass"] * units.fg
-        dry_masses = sim_df.loc[:, "Dry mass"] * units.fg
-
         toya_reactions = validation_data.reactionFlux.toya2010fluxes["reactionID"]
-        toya_fluxes = toya.adjust_toya_data(
-            validation_data.reactionFlux.toya2010fluxes["reactionFlux"],
-            cell_masses,
-            dry_masses,
-            cell_density,
-        )
+        toya_fluxes = validation_data.reactionFlux.toya2010fluxes["reactionFlux"]
         # Treat all Toya fluxes as positive (moving forward under physiological
         # conditions)
         toya_fluxes = np.abs(toya_fluxes)
-        toya_stdevs = toya.adjust_toya_data(
-            validation_data.reactionFlux.toya2010fluxes["reactionFluxStdev"],
-            cell_masses,
-            dry_masses,
-            cell_density,
-        )
-        sim_reaction_ids = np.array(sorted(sim_data.process.metabolism.reaction_stoich))
-        return toya_reactions, toya_fluxes, toya_stdevs, sim_reaction_ids
+        toya_stdevs = validation_data.reactionFlux.toya2010fluxes["reactionFluxStdev"],
+        return toya_reactions, toya_fluxes, toya_stdevs
 
-    def do_plot(self, raw_data, sim_df, simDataFile,
+    def do_plot(self, raw_data, arrData, sim_df, simDataFile,
             validationDataFile, outFile):
         # Tool to find all reaction pathways that start with a certain set of reactants
         # and end with a certain set of products
-        # type: (str, str, str, str, str, Optional[dict]) -> None
-        toya_reactions, toya_fluxes, toya_stdevs, reaction_ids = Plot.load_toya_data(
+        toya_reactions, toya_fluxes, toya_stdevs = Plot.load_toya_data(
             validationDataFile, simDataFile, sim_df)
+
         common_ids = sorted(toya_reactions.copy())
         root_to_id_indices_map = get_toya_flux_rxns(simDataFile)
 
-        fluxes = {common_id: [] for common_id in common_ids}
-        empty = ()
-        for time_data in raw_data.values():       
-            for agent_data in time_data['agents'].values():
-                if next(iter(agent_data['fluxome'].values())) is None:
-                    continue
-                for common_id in common_ids:
-                    # Handle cases of (potentially reversible) reactions
-                    flux = 0
-                    for i_rxn_id in root_to_id_indices_map.get(common_id, empty):
-                        flux += agent_data['fluxome'][str(i_rxn_id)]
-                    for i_rxn_id in root_to_id_indices_map.get(
-                        f'{common_id} (reverse)', empty):
-                        flux -= agent_data['fluxome'][str(i_rxn_id)]
-                    if flux != 0:
-                        fluxes[common_id].append(flux)
+        # Using raw data input from a long colony sim is very slow (~15 min.)
+        if raw_data:
+            fluxes = {common_id: [] for common_id in common_ids}
+            empty = ()
+            for time_data in raw_data.values():       
+                for agent_data in time_data['agents'].values():
+                    if next(iter(agent_data['fluxome'].values())) is None:
                         continue
-                    
-                    # Handle cases where two reactions are combined into a
-                    # single flux (use smaller flux at each time step)
-                    flux_1 = 0
-                    for i_rxn_id in root_to_id_indices_map.get(
-                        f'{common_id}_1', empty):
-                        flux_1 += agent_data['fluxome'][str(i_rxn_id)]
-                    for i_rxn_id in root_to_id_indices_map.get(
-                        f'{common_id}_1 (reverse)', empty):
-                        flux_1 -= agent_data['fluxome'][str(i_rxn_id)]
-                    flux_2 = 0
-                    for i_rxn_id in root_to_id_indices_map.get(
-                        f'{common_id}_2', empty):
-                        flux_2 += agent_data['fluxome'][str(i_rxn_id)]
-                    for i_rxn_id in root_to_id_indices_map.get(
-                        f'{common_id}_2 (reverse)', empty):
-                        flux_2 -= agent_data['fluxome'][str(i_rxn_id)]
-                    fluxes[common_id].append(min(flux_1, flux_2))
+                    for common_id in common_ids:
+                        # Handle cases of (potentially reversible) reactions
+                        flux = 0
+                        for i_rxn_id in root_to_id_indices_map.get(
+                            common_id, empty):
+                            flux += agent_data['fluxome'][str(i_rxn_id)]
+                        for i_rxn_id in root_to_id_indices_map.get(
+                            f'{common_id} (reverse)', empty):
+                            flux -= agent_data['fluxome'][str(i_rxn_id)]
+                        if flux != 0:
+                            fluxes[common_id].append(flux)
+                            continue
+                        
+                        # Handle cases where two reactions are combined into a
+                        # single flux (use smaller flux at each time step)
+                        flux_1 = 0
+                        for i_rxn_id in root_to_id_indices_map.get(
+                            f'{common_id}_1', empty):
+                            flux_1 += agent_data['fluxome'][str(i_rxn_id)]
+                        for i_rxn_id in root_to_id_indices_map.get(
+                            f'{common_id}_1 (reverse)', empty):
+                            flux_1 -= agent_data['fluxome'][str(i_rxn_id)]
+                        flux_2 = 0
+                        for i_rxn_id in root_to_id_indices_map.get(
+                            f'{common_id}_2', empty):
+                            flux_2 += agent_data['fluxome'][str(i_rxn_id)]
+                        for i_rxn_id in root_to_id_indices_map.get(
+                            f'{common_id}_2 (reverse)', empty):
+                            flux_2 -= agent_data['fluxome'][str(i_rxn_id)]
+                        fluxes[common_id].append(min(flux_1, flux_2))
+            all_fluxes = np.array(list(fluxes.values()))
+        else:
+            all_fluxes = arr_data
 
-        all_fluxes = np.array(list(fluxes.values()))
-        sim_flux_means = np.mean(all_fluxes, axis=1)
-        sim_flux_stdevs = np.std(all_fluxes, axis=1)
+        # Convert from mmol/L/hr to mmol/g DCW/hr
+        sim_data = cPickle.load(open(simDataFile, "rb"))
+        cell_density = sim_data.constants.cell_density.asNumber(units.g/units.L)
+        cell_masses = sim_df.loc[:, "Cell mass"]
+        dry_masses = sim_df.loc[:, "Dry mass"]
+        dry_mass_frac_average = np.mean(dry_masses / cell_masses)
+        converted_fluxes = all_fluxes / dry_mass_frac_average / cell_density * 3600
+        sim_flux_means = np.mean(converted_fluxes, axis=1)
+        sim_flux_stdevs = np.std(converted_fluxes, axis=1)
         
-        toya_flux_means = toya.process_toya_data(
-            common_ids, toya_reactions, toya_fluxes)
-        toya_flux_stdevs = toya.process_toya_data(
-            common_ids, toya_reactions, toya_stdevs)
+        data_dict = dict(zip(toya_reactions, toya_fluxes))
+        toya_flux_means = np.array([
+            data_dict[common_id].asNumber(units.mmol/units.g/units.h)
+            for common_id in common_ids
+        ])
+        data_dict = dict(zip(toya_reactions, toya_stdevs))
+        toya_flux_stdevs = np.array([
+            data_dict[common_id].asNumber(units.mmol/units.g/units.h)
+            for common_id in common_ids
+        ])
         
         # Include PTS system flux in pyruvate kinase flux as done in
         # parentheses next in Fig 4 of Toya 2010
@@ -128,25 +128,30 @@ class Plot():
         toya_flux_means[common_ids=='PEPDEPHOS-RXN'] += toya_flux_means[
             common_ids=='TRANS-RXN-157']
 
-        correlation_coefficient = np.corrcoef(
+        correlation_coefficient, p = pearsonr(
             sim_flux_means,
-            toya_flux_means.asNumber(FLUX_UNITS),
-        )[0, 1]
-        plt.figure()
+            toya_flux_means,
+        )
+        plt.figure(figsize=(4,4))
 
-        plt.title("Central Carbon Metabolism Flux, Pearson R = {:.2}".format(
-            correlation_coefficient))
+        plt.title("Central Carbon Metabolism Flux", size=12)
+        plt.text(x=0.5, y=0.97, s='$R^2$ = {:.3}, p = {:.0e}'.format(
+            correlation_coefficient**2, p).replace('e-0', 'e-'),
+            transform=plt.gca().transAxes, ha='center', va='center',
+            fontsize=10)
         plt.errorbar(
-            toya_flux_means.asNumber(FLUX_UNITS),
+            toya_flux_means,
             sim_flux_means,
-            xerr=toya_flux_stdevs.asNumber(FLUX_UNITS),
+            xerr=toya_flux_stdevs,
             yerr=sim_flux_stdevs,
             fmt="o", ecolor="k"
         )
-        plt.ylabel("Mean WCM Reaction Flux {}".format(FLUX_UNITS.strUnit()))
-        plt.xlabel("Toya 2010 Reaction Flux {}".format(FLUX_UNITS.strUnit()))
+        plt.ylabel("Simulated fluxome\n(mmol/g DCW/hr)")
+        plt.xlabel("Measured fluxome\n(mmol/g DCW/hr)")
 
-        plt.plot(np.linspace(0, 2), np.linspace(0,2))
+        plt.plot(np.linspace(0, 20), np.linspace(0,20), c='k')
+        sns.despine(trim=True, offset=3)
+        plt.tight_layout()
 
         plt.savefig(outFile, bbox_inches='tight')
         plt.close("all")
@@ -329,11 +334,16 @@ def get_toya_flux_rxns(simDataFile):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument(
+    group = parser.add_mutually_exclusive_group(required=True)
+    group.add_argument(
         '--raw_data',
         '-r',
-        help='Path to saved pickle from ecoli.analysis.db.get_fluxome_data',
-        required=True
+        help='Path to saved pickle from ecoli.analysis.db.get_fluxome_data'
+    )
+    group.add_argument(
+        '--numpy_data',
+        '-n',
+        help='Path to saved .npy array from running this once on raw_data'
     )
     parser.add_argument(
         '--sim_df',
@@ -362,11 +372,15 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
-    with open(args.raw_data, 'rb') as f:
-        raw_data = cPickle.load(f)
+    if args.raw_data:
+        with open(args.raw_data, 'rb') as f:
+            raw_data = cPickle.load(f)
+    else:
+        arr_data = np.load(args.numpy_data)
+        raw_data = None
     with open(args.sim_df, 'rb') as f:
         sim_df = cPickle.load(f)
 
     plot = Plot()
-    plot.do_plot(raw_data, sim_df, args.sim_data,
+    plot.do_plot(raw_data, arr_data, sim_df, args.sim_data,
         args.validation_data, args.out_file)

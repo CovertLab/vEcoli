@@ -11,6 +11,7 @@ from six.moves import cPickle
 import numpy as np
 from matplotlib import pyplot as plt
 from scipy.stats import pearsonr
+import seaborn as sns
 
 from ecoli.library.sim_data import SIM_DATA_PATH
 from wholecell.utils.protein_counts import get_simulated_validation_counts
@@ -34,44 +35,94 @@ class Plot():
             schmidt_counts, monomer_counts, schmidt_ids, sim_monomer_ids)
 
         # noinspection PyTypeChecker
-        fig, ax = plt.subplots(2, sharey=True, figsize=(8.5, 11))
+        fig, ax = plt.subplots(2, figsize=(4, 6))
 
         # Wisniewski Counts
+        val_wisniewski_log = np.log10(val_wisniewski_counts + 1)
+        sim_wisniewski_log = np.log10(sim_wisniewski_counts + 1)
         ax[0].scatter(
-            np.log10(val_wisniewski_counts + 1),
-            np.log10(sim_wisniewski_counts + 1),
-            c='w', edgecolor='k', alpha=.7
+            val_wisniewski_log,
+            sim_wisniewski_log,
+            c='k', edgecolor='k', alpha=.05
         )
-        ax[0].set_xlabel("log10(Wisniewski 2014 Counts + 1)")
-        ax[0].set_ylabel("log10(Simulation Average Counts + 1)")
-        ax[0].set_title(
-            "Pearson r: %0.2f" %
-            pearsonr(
-                np.log10(sim_wisniewski_counts + 1),
-                np.log10(val_wisniewski_counts + 1)
-            )[0]
+        ax[0].set_xlabel("Measurement\n$\mathrm{log}_{10}$(protein counts + 1)")
+        ax[0].set_ylabel("Simulation\n$\mathrm{log}_{10}$(protein counts + 1)")
+        ax[0].set_title('Wiśniewski et al. 2014', pad=22)
+        over_30 = val_wisniewski_log>=np.log10(30)
+        r_over_30 = pearsonr(
+            sim_wisniewski_log[over_30], val_wisniewski_log[over_30]
+        )[0]
+        r_under_30 = pearsonr(
+            sim_wisniewski_log[~over_30], val_wisniewski_log[~over_30]
+        )[0]
+        ax[0].text(
+            x=0.5,
+            y=1.1,
+            s="count $\geq$ 30: $R^2$: %0.3f, n = %i" % (
+                r_over_30**2, over_30.sum()),
+            transform=ax[0].transAxes,
+            ha='center',
+            va='center'
         )
+        ax[0].text(
+            x=0.5,
+            y=1,
+            s="count < 30: $R^2$: %0.3f, n = %i" % (
+                r_under_30**2, len(over_30) - over_30.sum()),
+            transform=ax[0].transAxes,
+            ha='center',
+            va='center'
+        )
+        reference_line = np.linspace(0, 5)
+        ax[0].plot(reference_line, reference_line, c='k')
+        sns.despine(ax=ax[0], trim=True, offset=3)
 
         # Schmidt Counts
+        val_schmidt_log = np.log10(val_schmidt_counts + 1)
+        sim_schmidt_log = np.log10(sim_schmidt_counts + 1)
         ax[1].scatter(
-            np.log10(val_schmidt_counts + 1),
-            np.log10(sim_schmidt_counts + 1),
-            c='w', edgecolor='k', alpha=.7
+            val_schmidt_log,
+            sim_schmidt_log,
+            c='k', edgecolor='k', alpha=.05
         )
-        ax[1].set_xlabel("log10(Schmidt 2015 Counts + 1)")
-        ax[1].set_ylabel("log10(Simulation Average Counts + 1)")
-        ax[1].set_title(
-            "Pearson r: %0.2f" %
-            pearsonr(
-                np.log10(sim_schmidt_counts + 1), np.log10(val_schmidt_counts + 1)
-            )[0]
+        ax[1].set_xlabel("Measurement\n$\mathrm{log}_{10}$(protein counts + 1)")
+        ax[1].set_ylabel("Simulation\n$\mathrm{log}_{10}$(protein counts + 1)")
+        ax[1].set_title('Schmidt et al. 2016', pad=10)
+        over_30 = val_schmidt_log>=np.log10(30)
+        r_over_30 = pearsonr(
+            sim_schmidt_log[over_30], val_schmidt_log[over_30]
+        )[0]
+        r_under_30 = pearsonr(
+            sim_schmidt_log[~over_30], val_schmidt_log[~over_30]
+        )[0]
+        ax[1].text(
+            x=0.5,
+            y=1,
+            s="count $\geq$ 30: $R^2$: %0.3f, n = %i" % (
+                r_over_30**2, over_30.sum()),
+            transform=ax[1].transAxes,
+            ha='center',
+            va='center'
         )
+        ax[1].text(
+            x=0.5,
+            y=0.9,
+            s="count < 30: $R^2$: %0.3f, n = %i" % (
+                r_under_30**2, len(over_30) - over_30.sum()),
+            transform=ax[1].transAxes,
+            ha='center',
+            va='center'
+        )
+        reference_line = np.linspace(0, 6)
+        ax[1].plot(reference_line, reference_line, c='k')
+        sns.despine(ax=ax[1], trim=True, offset=3)
 
         # NOTE: This Pearson correlation goes up (at the time of
         # writing) about 0.05 if you only include proteins that you have
         # translational efficiencies for
-        plt.xlim(xmin=0)
-        plt.ylim(ymin=0)
+        plt.xlim(xmin=-0.1)
+        plt.ylim(ymin=-0.1)
+        plt.tight_layout()
         plt.savefig(outFile, bbox_inches='tight')
         plt.close("all")
 
