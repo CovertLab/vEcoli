@@ -555,6 +555,95 @@ def get_transcriptome_data(experiment_id, host='localhost', port=27017, cpus=1):
     return data
 
 
+def get_gene_expression_data(experiment_id, host='localhost', port=27017, cpus=1):
+    """Get expression events for each mRNAs at each timestep for each agent.
+    
+    Args:
+        experiment_id: Experiment ID for simulation
+        host: Host name of MongoDB
+        port: Port of MongoDB
+        cpus: Number of chunks to split aggregation into to be run in parallel
+    """
+    config = {
+        'host': f'{host}:{port}',
+        'database': 'simulations'
+    }
+    emitter = DatabaseEmitter(config)
+    db = emitter.db
+
+    aggregation = [
+        {'$match': {'experiment_id': experiment_id}},
+        {
+            '$project': {
+                'data.agents': {
+                    '$objectToArray': {
+                        # Add fail-safe for sims with no live agents
+                        '$ifNull': ['$data.agents', {}]
+                    }
+                },
+                'data.time': 1,
+                'assembly_id': 1,
+            }
+        },
+        {
+            '$project': {
+                'data.agents.v.listeners.transcript_elongation_listener.countRnaSynthesized': 1,
+                'data.agents.k': 1,
+                'data.time': 1,
+                'assembly_id': 1
+            }
+        },
+        {
+            '$project': {
+                'data.agents': {'$arrayToObject': '$data.agents'},
+                'data.time': 1,
+                'assembly_id': 1,
+            }
+        }
+    ]
+
+    if cpus > 1:
+        start_time = MinKey()
+        end_time = MaxKey()
+        chunks = get_data_chunks(
+            db.history, experiment_id, start_time, end_time, cpus)
+        aggregations = []
+        for chunk in chunks:
+            agg_chunk = copy.deepcopy(aggregation)
+            agg_chunk[0]['$match'] = {
+                'experiment_id': experiment_id,
+                '_id': {'$gte': chunk[0], '$lt': chunk[1]}
+            }
+            aggregations.append(agg_chunk)
+        partial_get_agg = partial(get_aggregation, host, port)
+        with ProcessPoolExecutor(cpus) as executor:
+            queried_chunks = executor.map(partial_get_agg, aggregations)
+        result = itertools.chain.from_iterable(queried_chunks)
+    else:
+        result = db.history.aggregate(
+            aggregation, 
+            hint={'experiment_id':1, 'data.time':1, '_id':1})
+    
+    # re-assemble data
+    assembly = assemble_data(list(result))
+
+    # restructure by time
+    data = {}
+    for datum in assembly.values():
+        time = datum['time']
+        datum = datum.copy()
+        datum.pop('_id', None)
+        datum.pop('time', None)
+        custom_deep_merge_check(
+            data,
+            {time: datum},
+            check_equality=True,
+            overwrite_none=True
+        )
+
+    return data
+
+
 def get_fluxome_data(experiment_id, host='localhost', port=27017, cpus=1):
     """Get central carbon metabolism fluxes for all agents in a sim.
     
