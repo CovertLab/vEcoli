@@ -150,6 +150,11 @@ def make_figure_1c(data, metadata):
     import seaborn as sns
     fig, ax = plt.subplots(figsize=(5, 3))
     sns.violinplot(data=submass_fc, color=(0, 0.4, 1)) 
+    print('Means:')
+    print(submass_fc.mean())
+    print('Std devs:')
+    print(submass_fc.std())
+    
     ax.set_ylabel(r'$\frac{\mathrm{Mass~at~division}}{\mathrm{Initial~mass}}$', fontsize=12)
     plt.tight_layout()
     plt.savefig(f'out/analysis/paper_figures/fig_1c_submass_fc.svg',
@@ -880,6 +885,7 @@ def main():
     conditions = {
         '1a': ['Glucose'],
         '1b': ['Glucose'],
+        '1c': ['Glucose'],
         '2b': ['Glucose'],
         '2c': ['Glucose'],
         '2d': ['Glucose'],
@@ -911,6 +917,7 @@ def main():
     seeds = {
         '1a': [10000],
         '1b': [0, 100, 10000],
+        '1c': [0, 100, 10000],
         '2b': [10000],
         '2c': [10000],
         '2d': [10000],
