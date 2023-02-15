@@ -62,36 +62,55 @@ def make_antibiotic_subgen_plot(data):
     data = pd.concat(time_dfs)
     data.to_pickle(f'data/glc_10000_transcriptome_df.pkl')
 
-    grouped_agents = data.groupby('Agent ID')
-    mRNA_expression = np.zeros_like(mrna_indices)
-    n_agents = 0
-    for _, agent_data in grouped_agents:
-        agent_data = agent_data.sort_values('Time')
-        agent_data = agent_data.diff()
-        mRNA_expression[(agent_data>0).any(axis='rows').to_numpy()] += 1
-        n_agents += 1
+    data_columns = ~np.isin(data.columns, ['Agent ID', 'Time'])
+    n_agents = len(data.loc[:, 'Agent ID'].unique())
+
+    mRNA_expression = data.loc[:, data_columns].sum(axis=0) / n_agents
     
-    generational = (mRNA_expression==n_agents).sum()
+    generational = (mRNA_expression>=1).sum()
     subgenerational = len(mRNA_expression) - generational
-    assert subgenerational == (mRNA_expression!=n_agents).sum()
+    assert subgenerational == (mRNA_expression<1).sum()
     print(f'Generational genes (total): {generational}')
     print(f'Sub-generational genes (total): {subgenerational}')
 
     response_expression = mRNA_expression[response_mRNA_indices]
-    response_generational = (response_expression==n_agents).sum()
+    response_generational = (response_expression>=1).sum()
     response_subgenerational = len(response_expression) - response_generational
-    assert response_subgenerational == (response_expression!=n_agents).sum()
+    assert response_subgenerational == (response_expression<1).sum()
     print('Generational genes (antibiotic response): '
         f'{response_generational}')
     print('Sub-generational genes (antibiotic response): '
         f'{response_subgenerational}')
+
+    # grouped_agents = data.groupby('Agent ID')
+    # mRNA_expression = np.zeros_like(mrna_indices)
+    # n_agents = 0
+    # for _, agent_data in grouped_agents:
+    #     agent_data = agent_data.sort_values('Time')
+    #     agent_data = agent_data.loc[:, data_columns]
+    #     mRNA_expression[(agent_data>0).any(axis='rows').to_numpy()] += 1
+    #     n_agents += 1
+    # generational = (mRNA_expression==n_agents).sum()
+    # subgenerational = len(mRNA_expression) - generational
+    # assert subgenerational == (mRNA_expression!=n_agents).sum()
+    # print(f'Generational genes (total): {generational}')
+    # print(f'Sub-generational genes (total): {subgenerational}')
+
+    # response_expression = mRNA_expression[response_mRNA_indices]
+    # response_generational = (response_expression==n_agents).sum()
+    # response_subgenerational = len(response_expression) - response_generational
+    # assert response_subgenerational == (response_expression!=n_agents).sum()
+    # print('Generational genes (antibiotic response): '
+    #     f'{response_generational}')
+    # print('Sub-generational genes (antibiotic response): '
+    #     f'{response_subgenerational}')
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "-d",
         "--data",
-        help="Saved transcriptome pickle from ecoli.analysis.db.get_transcriptome_data"
+        help="Saved from ecoli.analysis.db.get_gene_expression_data"
     )
     args = parser.parse_args()
     data = pickle.load(open(args.data, 'rb'))
