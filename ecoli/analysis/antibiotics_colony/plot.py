@@ -98,8 +98,8 @@ def make_figure_1b(data, metadata):
                     print(condition, agent)
                 doubling_times.append(doubling_time)
     fig, ax = plt.subplots(figsize=(2,2))
-    ax.vlines(44, 0, 350, colors=['tab:orange'])
-    ax.text(45, 350, 'experiment\n\u03C4 = 44 min.', verticalalignment='top',
+    ax.vlines(44, 0, 150, colors=['tab:orange'])
+    ax.text(45, 150, 'experiment\n\u03C4 = 44 min.', verticalalignment='top',
         horizontalalignment='left', c='tab:orange',fontsize=8)
     doubling_times = np.array(doubling_times) / 60
     ax.hist(doubling_times)
@@ -107,8 +107,8 @@ def make_figure_1b(data, metadata):
     ax.set_ylabel('# of simulated cells')
     ax.set_ylim()
     sim_avg = doubling_times.mean()
-    ax.vlines(sim_avg, ax.get_ylim()[0], 275, linestyles=['dashed'], colors=['k'])
-    ax.text(sim_avg+2, 275, f'simulation\n\u03C4 = {np.round(sim_avg, 1)} min.',
+    ax.vlines(sim_avg, ax.get_ylim()[0], 100, linestyles=['dashed'], colors=['k'])
+    ax.text(sim_avg+2, 100, f'simulation\n\u03C4 = {np.round(sim_avg, 1)} min.',
         verticalalignment='top', horizontalalignment='left', c='tab:blue', fontsize=8)
     ax.spines.right.set_visible(False)
     ax.spines.top.set_visible(False)
@@ -133,18 +133,22 @@ def make_figure_1c(data, metadata):
         final_agents = condition_data.loc[condition_data.loc[:, 'Time']==26000, 'Agent ID'].tolist()
         grouped_agents = condition_data.groupby(['Agent ID'])
         for agent, agent_data in grouped_agents:
-            # Total of 4 cells die across all 3 seeds, exclude them
-            if (agent not in final_agents) and (agent_data.loc[:, 'Wall cracked'].sum()==0):
-                birth_time = agent_data.loc[:, 'Time'].min()
-                birth_data = agent_data.loc[agent_data.loc[:, 'Time']==birth_time, :]
-                death_time = agent_data.loc[:, 'Time'].max()
-                death_data = agent_data.loc[agent_data.loc[:, 'Time']==death_time, :]
-                for submass in submass_fc: 
-                    birth_submass = birth_data.loc[:, f'{submass} mass'].to_numpy()[0]
-                    submass_fc[submass].append(
-                        death_data.loc[:, f'{submass} mass'].to_numpy()[0] / 
-                        birth_submass
-                    )
+            if agent in final_agents:
+                continue
+            # Some cells died, exclude them
+            if agent_data.loc[:, 'Wall cracked'].sum()>0:
+                if agent + '0' not in grouped_agents.groups.keys():
+                    continue 
+            birth_time = agent_data.loc[:, 'Time'].min()
+            birth_data = agent_data.loc[agent_data.loc[:, 'Time']==birth_time, :]
+            death_time = agent_data.loc[:, 'Time'].max()
+            death_data = agent_data.loc[agent_data.loc[:, 'Time']==death_time, :]
+            for submass in submass_fc: 
+                birth_submass = birth_data.loc[:, f'{submass} mass'].to_numpy()[0]
+                submass_fc[submass].append(
+                    death_data.loc[:, f'{submass} mass'].to_numpy()[0] / 
+                    birth_submass
+                )
     submass_fc = pd.DataFrame(submass_fc)
     submass_fc = submass_fc.rename(columns={'Small molecule': 'Small\nmolecule'})
     import seaborn as sns
@@ -916,8 +920,8 @@ def main():
     }
     seeds = {
         '1a': [10000],
-        '1b': [0, 100, 10000],
-        '1c': [0, 100, 10000],
+        '1b': [10000],
+        '1c': [10000],
         '2b': [10000],
         '2c': [10000],
         '2d': [10000],
@@ -962,26 +966,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
-"""
-Antibiotic simulation data stats
-{
-  db: 'simulations',
-  collections: 3,
-  views: 0,
-  objects: 6883245,
-  avgObjSize: 1590217.76253642,
-  dataSize: 10945858462890,
-  storageSize: 3095633932288,
-  freeStorageSize: 439554437120,
-  indexes: 7,
-  indexSize: 435052544,
-  indexFreeStorageSize: 81178624,
-  totalSize: 3096068984832,
-  totalFreeStorageSize: 439635615744,
-  scaleFactor: 1,
-  fsUsedSize: 3102315601920,
-  fsTotalSize: 3112330854400,
-  ok: 1
-}
-"""
