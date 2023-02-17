@@ -11,6 +11,8 @@ import numpy as np
 import pandas as pd
 from scipy.constants import N_A
 from scipy.stats import pearsonr
+from scipy.optimize import curve_fit
+import seaborn as sns
 import statsmodels.formula.api as smf
 from vivarium.library.dict_utils import deep_merge
 
@@ -497,26 +499,22 @@ def make_figure_2g(data, metadata):
         print(f'{monomer_1} vs. {monomer_2}: r = {r},'
             f' Bonferroni corrected p = {adj_p}')
 
-    print()
-
 
 def make_figure_3a(data, metadata):
-    fig, axs = plt.subplots(1, 2, figsize=(3.5, 2))
-    plot_colony_growth(data, axs)
+    fig, ax = plt.subplots(figsize=(1.75, 2))
+    plot_colony_growth(data, ax)
     offset_time = SPLIT_TIME/3600
     min_time = np.round(-offset_time, 1)
     max_time = np.round(MAX_TIME/3600-offset_time, 1)
     ticks = np.array([int(min_time), 0, int(max_time)])
-    ax = axs[0]
     ax.set_xticks(ticks+offset_time, ticks, size=8)
     ax.spines['bottom'].set_bounds(0, MAX_TIME/3600)
     ax.spines['left'].set_bounds(ax.get_ylim())
     ax.set_xlabel('Hours after tet. addition', size=8)
-    ax.set_ylabel('Colony mass', size=8)
+    ax.set_ylabel('Colony mass (fg)', size=8)
     yticklabels = [f'$10^{int(exp)}$' for exp in np.log10(ax.get_yticks())]
     ax.set_yticks(ax.get_yticks(), yticklabels, size=9)
     plt.tight_layout()
-    fig.subplots_adjust(top=0.95, bottom=0.2, left=0.31, right=1)
     fig.savefig('out/analysis/paper_figures/fig_3a_tet_colony_mass.svg',
         bbox_inches='tight')
     plt.close()
@@ -744,24 +742,85 @@ def make_figure_3g(data, metadata):
     print('Done with Figure 3G.')
 
 
+def make_figure_3h(data, metadata):
+    # Plot MarR inactivation and MarA activation over time
+    marR_tet_count = data.loc[:, 'Inactive MarR']
+    marR_count = data.loc[:, 'Active MarR']
+    data['MarA promoters bound (%)'] = marR_tet_count/np.maximum(
+        marR_count+marR_tet_count, 1) * 100
+    data['Cytoplasmic tetracycline'] *= 1000
+    data['Initial external tet.'] *= 1000
+
+    # Get average cytoplasmic concentration and MarA activity
+    # for each initial external concentration of tetracycline
+    condition_data = data.loc[:, ['Agent ID', 'MarA promoters bound (%)',
+        'Cytoplasmic tetracycline', 'Initial external tet.']].groupby(
+            ['Initial external tet.']).mean().reset_index()
+    condition_data.rename(columns={'Initial external tet.':
+        'External tet.\n(\u03BCM)', 'Cytoplasmic tetracycline': 
+        'Cytoplasmic tetracycline (\u03BCM)'}, inplace=True)
+    
+    fig, ax = plt.subplots(figsize=(3,3))
+    cmap = matplotlib.colormaps['Greys']
+    antibiotic_concs = condition_data.loc[:, 'External tet.\n(\u03BCM)'].unique()
+    antibiotic_min = antibiotic_concs.min()
+    antibiotic_max = antibiotic_concs.max()
+    norm = matplotlib.colors.Normalize(
+        vmin=1.5*antibiotic_min-0.5*antibiotic_max, vmax=antibiotic_max)
+    palette = {antibiotic_conc: cmap(norm(antibiotic_conc))
+        for antibiotic_conc in antibiotic_concs}
+    palette[3.375] = (0, 0.4, 1)
+    sns.scatterplot(data=condition_data, x='Cytoplasmic tetracycline (\u03BCM)',
+        y='MarA promoters bound (%)', hue='External tet.\n(\u03BCM)', ax=ax,
+        palette=palette)
+    ax.set_ylim(-5, 100)
+    ax.set_xlim(-1, 21)
+    sns.despine(trim=True, offset=3)
+    
+    def michaelis_menten(s, k):
+        return s / (k + s) * 100
+    popt, _ = curve_fit(michaelis_menten, condition_data[
+        'Cytoplasmic tetracycline (\u03BCM)'], condition_data[
+            'MarA promoters bound (%)'])
+    xdata = np.linspace(condition_data[
+        'Cytoplasmic tetracycline (\u03BCM)'].min(), condition_data[
+        'Cytoplasmic tetracycline (\u03BCM)'].max())
+    ax.plot(xdata, michaelis_menten(xdata, *popt), zorder=0, linewidth=1.5,
+        linestyle='dashed', c=palette[0.0])
+    l = ax.legend(loc='lower right', title='External tet.\n(\u03BCM)')
+    l.get_title().set_ha("center") 
+    plt.tight_layout()
+    plt.savefig('out/analysis/paper_figures/marA_activity.svg')
+
+
+def make_figure_3i(data, metadata):
+    glc_data = data.loc[(data.loc[:, 'Condition']=='Glucose'), :].copy()
+    glc_data['Active ribosomes (\u03BCM)'] = (glc_data['Active ribosomes'] / (
+        glc_data['Volume'] * 0.8) * COUNTS_PER_FL_TO_NANOMOLAR)
+    agent_data = glc_data.loc[:, ['Active ribosomes (\u03BCM)', 'Agent ID']]
+    print(f'Mean: {agent_data.mean()}')
+    print(f'Std dev: {agent_data.std()}')
+    sns.histplot(data=agent_data, x='Active ribosomes (\u03BCM)')
+    sns.despine(trim=True)
+    plt.savefig('out/analysis/paper_figures/active_ribosome_glc.svg')
+
+
 def make_figure_4a(data, metadata):
-    fig, axs = plt.subplots(1, 2, figsize=(3.5, 2))
-    plot_colony_growth(data, axs, antibiotic_col='Initial external amp.',
+    fig, ax = plt.subplots(figsize=(1.75, 2))
+    plot_colony_growth(data, ax, antibiotic_col='Initial external amp.',
         mic=5.724, antibiotic='Amp.')
     offset_time = SPLIT_TIME/3600
     min_time = np.round(-offset_time, 1)
     max_time = np.round(MAX_TIME/3600-offset_time, 1)
     ticks = np.array([int(min_time), 0, int(max_time)])
-    ax = axs[0]
     ax.set_xticks(ticks+offset_time, ticks, size=8)
     ax.spines['bottom'].set_bounds(0, MAX_TIME/3600)
     ax.spines['left'].set_bounds(ax.get_ylim())
     ax.set_xlabel('Hours after amp. addition', size=8)
-    ax.set_ylabel('Colony mass', size=8)
+    ax.set_ylabel('Colony mass (fg)', size=8)
     yticklabels = [f'$10^{int(exp)}$' for exp in np.log10(ax.get_yticks())]
     ax.set_yticks(ax.get_yticks(), yticklabels, size=9)
     plt.tight_layout()
-    fig.subplots_adjust(top=0.95, bottom=0.2, left=0.31, right=1)
     fig.savefig('out/analysis/paper_figures/fig_4a_amp_colony_mass.svg')
     plt.close()
     print('Done with Figure 4A.')
@@ -909,6 +968,10 @@ def main():
         '3g': ['Glucose', 'Tetracycline (0.5 mg/L)', 'Tetracycline (1 mg/L)',
             'Tetracycline (1.5 mg/L)', 'Tetracycline (2 mg/L)',
             'Tetracycline (4 mg/L)'],
+        '3h': ['Glucose', 'Tetracycline (0.5 mg/L)', 'Tetracycline (1 mg/L)',
+            'Tetracycline (1.5 mg/L)', 'Tetracycline (2 mg/L)',
+            'Tetracycline (4 mg/L)'],
+        '3i': ['Glucose'],
         '4a': ['Glucose', 'Ampicillin (0.5 mg/L)', 'Ampicillin (1 mg/L)',
             'Ampicillin (1.5 mg/L)', 'Ampicillin (2 mg/L)',
             'Ampicillin (4 mg/L)'],
@@ -935,6 +998,8 @@ def main():
         '3e': [0, 100, 10000],
         '3f': [0],
         '3g': [0],
+        '3i': [10000],
+        '3h': [0],
         '4a': [0],
         '4b': [0],
         '4c': [0],

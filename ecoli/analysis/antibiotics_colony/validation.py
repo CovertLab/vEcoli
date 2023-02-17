@@ -14,14 +14,15 @@ from ecoli.analysis.antibiotics_colony import (DE_GENES, MAX_TIME, SPLIT_TIME,
 
 def plot_colony_growth(
     data: pd.DataFrame,
-    axs: plt.Axes = None,
+    ax: plt.Axes = None,
+    axs: List[plt.Axes] = None,
     antibiotic: str = 'Tet.',
     antibiotic_col: str = 'Initial external tet.',
     mic: float = 3.375
 ) -> None:
-    '''Plot traces of total colony mass and total colony growth rate. Also uses
+    '''Plot traces of total colony mass and total colony growth rate. Can use
     methodology described in Lambert and Pearson 2000 to empirically calculate
-    MIC from simulated data.
+    MIC from simulated data if a list of two axes is provided using `axs`
 
     Args:
         data: DataFrame where each row is an agent and each column is a variable
@@ -29,6 +30,7 @@ def plot_colony_growth(
             'Dry Mass'. The first experimental condition in the 'Condition'
             column is treated as a control (default gray). Include at most
             2 conditions and 1 seed per condition.
+        ax: List of 2 Matplotlib Axes, one for colony mass and other for MIC
         axs: List of 2 Matplotlib Axes, one for colony mass and other for MIC
         antibiotic: Name of antibiotic to put as legend title
         antibiotic_col: Name of column with initial external antibiotic concs.
@@ -58,7 +60,8 @@ def plot_colony_growth(
         for antibiotic_conc in antibiotic_concs}
     palette[mic] = (0, 0.4, 1)
 
-    ax = axs[0]
+    if axs:
+        ax = axs[0]
     sns.lineplot(
         data=data, x='Time', y='Dry mass',
         hue='antibiotic_conc', ax=ax, palette=palette, errorbar=None)
@@ -85,54 +88,55 @@ def plot_colony_growth(
     ax.legend().remove()
     sns.despine(ax=ax, offset=3, trim=True)
 
-    # Calculate MIC according to method from Lambert and Pearson 2000
-    background_auc = data.loc[data.loc[:, 'Time'] == SPLIT_TIME/3600,
-        'Dry mass'].iloc[0] * SPLIT_TIME/3600
-    post_tet_data = data.loc[data.loc[:, 'Time'] >= SPLIT_TIME/3600, :]
-    treatment_groups = post_tet_data.groupby('antibiotic_conc')
-    auc_dict = {}
-    for antibiotic_conc, treatment_data in treatment_groups:
-        if antibiotic_conc != 0:
-            auc_dict[antibiotic_conc] = max(np.trapz(treatment_data['Dry mass'],
-                x=treatment_data['Time']) - background_auc, 0)
-        else:
-            baseline_auc = np.trapz(treatment_data['Dry mass'],
-                x=treatment_data['Time']) - background_auc
-    antibiotic_concs = np.log10(np.array(list(auc_dict.keys())))
-    areas_under_curve = np.array(list(auc_dict.values())) / baseline_auc
+    if axs:
+        # Calculate MIC according to method from Lambert and Pearson 2000
+        background_auc = data.loc[data.loc[:, 'Time'] == SPLIT_TIME/3600,
+            'Dry mass'].iloc[0] * SPLIT_TIME/3600
+        post_tet_data = data.loc[data.loc[:, 'Time'] >= SPLIT_TIME/3600, :]
+        treatment_groups = post_tet_data.groupby('antibiotic_conc')
+        auc_dict = {}
+        for antibiotic_conc, treatment_data in treatment_groups:
+            if antibiotic_conc != 0:
+                auc_dict[antibiotic_conc] = max(np.trapz(treatment_data['Dry mass'],
+                    x=treatment_data['Time']) - background_auc, 0)
+            else:
+                baseline_auc = np.trapz(treatment_data['Dry mass'],
+                    x=treatment_data['Time']) - background_auc
+        antibiotic_concs = np.log10(np.array(list(auc_dict.keys())))
+        areas_under_curve = np.array(list(auc_dict.values())) / baseline_auc
 
-    def altered_gomperts(x, b, m):
-        return np.exp(-np.exp(b*(x-m)))
-    
-    popt, _ = curve_fit(altered_gomperts, antibiotic_concs, areas_under_curve)
+        def altered_gomperts(x, b, m):
+            return np.exp(-np.exp(b*(x-m)))
+        
+        popt, _ = curve_fit(altered_gomperts, antibiotic_concs, areas_under_curve)
 
-    ax_2 = axs[1]
-    ax_2.scatter(10**antibiotic_concs, areas_under_curve, c='k')
-    fit_x = np.linspace(antibiotic_concs.min()-1, antibiotic_concs.max()+1, 1000000)
-    ax_2.plot(10**fit_x, np.apply_along_axis(
-        lambda x: altered_gomperts(x, *popt), 0, fit_x), 'k')
-    ax_2.set(xscale='log')
-    ax_2.set_xlabel(f'{antibiotic} (\u03BCM)', fontsize=8)
-    ax_2.set_ylabel(f'Fractional AUC', fontsize=8)
-    # Set x-limits so that major ticks surround data
-    ax_2.set_xlim(0.1, 100)
+        ax_2 = axs[1]
+        ax_2.scatter(10**antibiotic_concs, areas_under_curve, c='k')
+        fit_x = np.linspace(antibiotic_concs.min()-1, antibiotic_concs.max()+1, 1000000)
+        ax_2.plot(10**fit_x, np.apply_along_axis(
+            lambda x: altered_gomperts(x, *popt), 0, fit_x), 'k')
+        ax_2.set(xscale='log')
+        ax_2.set_xlabel(f'{antibiotic} (\u03BCM)', fontsize=8)
+        ax_2.set_ylabel(f'Fractional AUC', fontsize=8)
+        # Set x-limits so that major ticks surround data
+        ax_2.set_xlim(0.1, 100)
 
-    def inflection_tangent(x, b, m):
-        return -b * np.exp(-1) * (x- (m + 1/b))
-    
-    log10_mic = popt[-1]+1/popt[-2]
-    inflection_x = np.linspace(antibiotic_concs.min()-1, log10_mic, 1000000)
-    ax_2.plot(10**inflection_x, np.apply_along_axis(
-        lambda x: inflection_tangent(x, *popt), 0, inflection_x), 'k--', linewidth=1)
-    ax_2.scatter([10**log10_mic], [0], c=(0, 0.4, 1), facecolors='none')
-    ax_2.set_ylim(-0.01, 1.01)
-    ax_2.set_xticks(np.append(ax_2.get_xticks(), 10**log10_mic),
-        np.append(ax_2.get_xticklabels(), [f'MIC:\n{np.round(10**log10_mic, 1)}']))
-    for ticklabel in ax_2.get_xticklabels():
-        if ticklabel.get_text() == f'MIC:\n{np.round(10**log10_mic, 1)}':
-            ticklabel.set_color((0, 0.4, 1))
-    print(f'{antibiotic} MIC: {str(10**(popt[-1]+1/popt[-2]))}')
-    sns.despine(ax=ax_2, offset=3, trim=True)
+        def inflection_tangent(x, b, m):
+            return -b * np.exp(-1) * (x- (m + 1/b))
+        
+        log10_mic = popt[-1]+1/popt[-2]
+        inflection_x = np.linspace(antibiotic_concs.min()-1, log10_mic, 1000000)
+        ax_2.plot(10**inflection_x, np.apply_along_axis(
+            lambda x: inflection_tangent(x, *popt), 0, inflection_x), 'k--', linewidth=1)
+        ax_2.scatter([10**log10_mic], [0], c=(0, 0.4, 1), facecolors='none')
+        ax_2.set_ylim(-0.01, 1.01)
+        ax_2.set_xticks(np.append(ax_2.get_xticks(), 10**log10_mic),
+            np.append(ax_2.get_xticklabels(), [f'MIC:\n{np.round(10**log10_mic, 1)}']))
+        for ticklabel in ax_2.get_xticklabels():
+            if ticklabel.get_text() == f'MIC:\n{np.round(10**log10_mic, 1)}':
+                ticklabel.set_color((0, 0.4, 1))
+        print(f'{antibiotic} MIC: {str(10**(popt[-1]+1/popt[-2]))}')
+        sns.despine(ax=ax_2, offset=3, trim=True)
 
 
 def plot_synth_prob_fc(

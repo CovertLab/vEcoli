@@ -44,15 +44,12 @@ def make_antibiotic_subgen_plot(data):
     sim_data = pickle.load(open(SIM_DATA_PATH, 'rb'))
     # Get indices of antibiotic response genes in mRNA count array
     all_TU_ids = sim_data.process.transcription.rna_data['id']
-    mrna_indices = np.where(sim_data.process.transcription.rna_data[
-        'is_mRNA'])[0]
     rnas = pd.read_csv(RNAS_TSV_PATH, sep='\t', comment='#')
     response_genes = pd.read_csv(RESPONSE_GENES_PATH, header=None)
     response_genes.rename(columns={0: 'common_name'}, inplace=True)
     response_rnas = rnas.merge(response_genes, how='inner', on='common_name')
     response_rnas['id'] = response_rnas['id'].apply(lambda x: f'{x}[c]')
     response_TU_ids = np.where(np.isin(all_TU_ids, response_rnas['id']))[0]
-    response_mRNA_indices = np.where(np.isin(mrna_indices, response_TU_ids))[0]
 
     with ProcessPoolExecutor(30) as executor:
         print('Converting data to DataFrame...')
@@ -72,7 +69,7 @@ def make_antibiotic_subgen_plot(data):
     print(f'Generational genes (total): {generational}')
     print(f'Sub-generational genes (total): {subgenerational}')
 
-    response_expression = mRNA_expression[response_mRNA_indices]
+    response_expression = mRNA_expression[response_TU_ids]
     response_generational = (response_expression>=1).sum()
     response_subgenerational = len(response_expression) - response_generational
     assert response_subgenerational == (response_expression<1).sum()
