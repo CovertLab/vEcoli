@@ -69,7 +69,7 @@ def plot_exp_growth_rate(data, metadata, highlight_agent_id):
         sns.despine(offset=0.1, trim=True, ax=ax)
         sns.despine(trim=True, ax=joint.ax_marg_x, left=True)
         sns.despine(trim=True, ax=joint.ax_marg_y, bottom=True)
-        ax.set_xlabel('Active ribosomes (mM)', size=8)
+        ax.set_xlabel('Active ribosomes (mM)', size=9)
         xticks = [5, 10, 15, 20, 25]
         ax.set_xticks(xticks, xticks, size=8)
         ax.legend().remove()
@@ -78,17 +78,17 @@ def plot_exp_growth_rate(data, metadata, highlight_agent_id):
             for conc_idx, (conc, color) in enumerate(palette.items()):
                 ax.text(0.1, 0.8-0.1*conc_idx, conc, size=8,
                     transform=ax.transAxes, c=color)
-            ax.set_ylabel('Doubling rate (1/hr)', size=8)
+            ax.set_ylabel('Doubling rate (1/hr)', size=9)
             yticks = np.round(ax.get_yticks(), 1)
             ax.set_yticks(yticks, yticks, size=8)
             joint.ax_marg_x.set_title(r'$1^{\mathrm{st}}$ hr. post-tet.',
-                size=8, pad=2, weight='bold')
+                size=9, pad=2, weight='bold')
         else:
             sns.despine(ax=ax, left=True)
             ax.yaxis.set_visible(False)
             joint.ax_marg_x.set_title(r'$4^{\mathrm{th}}$ hr. post-tet.',
-                size=8, pad=2, weight='bold')
-        joint.figure.set_size_inches(2.35, 2)
+                size=9, pad=2, weight='bold')
+        joint.figure.set_size_inches(2.5, 2)
         plt.savefig(f'out/analysis/paper_figures/growth_rate_var_ribo_{i}.svg')
         plt.close()
 

@@ -501,17 +501,17 @@ def make_figure_2g(data, metadata):
 
 
 def make_figure_3a(data, metadata):
-    fig, ax = plt.subplots(figsize=(1.75, 2))
+    fig, ax = plt.subplots(figsize=(2.1, 2.35))
     plot_colony_growth(data, ax)
     offset_time = SPLIT_TIME/3600
     min_time = np.round(-offset_time, 1)
     max_time = np.round(MAX_TIME/3600-offset_time, 1)
-    ticks = np.array([int(min_time), 0, int(max_time)])
-    ax.set_xticks(ticks+offset_time, ticks, size=8)
+    ticks = [min_time, 0, int(max_time)]
+    ax.set_xticks(np.array(ticks)+offset_time, ticks, size=8)
     ax.spines['bottom'].set_bounds(0, MAX_TIME/3600)
     ax.spines['left'].set_bounds(ax.get_ylim())
-    ax.set_xlabel('Hours after tet. addition', size=8)
-    ax.set_ylabel('Colony mass (fg)', size=8)
+    ax.set_xlabel('Hours after tet. addition', size=9)
+    ax.set_ylabel('Colony mass (fg)', size=9)
     yticklabels = [f'$10^{int(exp)}$' for exp in np.log10(ax.get_yticks())]
     ax.set_yticks(ax.get_yticks(), yticklabels, size=9)
     plt.tight_layout()
@@ -794,30 +794,106 @@ def make_figure_3h(data, metadata):
 
 
 def make_figure_3i(data, metadata):
-    glc_data = data.loc[(data.loc[:, 'Condition']=='Glucose'), :].copy()
-    glc_data['Active ribosomes (\u03BCM)'] = (glc_data['Active ribosomes'] / (
-        glc_data['Volume'] * 0.8) * COUNTS_PER_FL_TO_NANOMOLAR)
-    agent_data = glc_data.loc[:, ['Active ribosomes (\u03BCM)', 'Agent ID']]
-    print(f'Mean: {agent_data.mean()}')
-    print(f'Std dev: {agent_data.std()}')
-    sns.histplot(data=agent_data, x='Active ribosomes (\u03BCM)')
-    sns.despine(trim=True)
-    plt.savefig('out/analysis/paper_figures/active_ribosome_glc.svg')
+    tet_data = restrict_data(data)
+    tet_data = tet_data.loc[tet_data.loc[:, 'Time']>=11550+120, :]
+    tet_data['Cytoplasmic tetracycline'] *= 1000
+    tet_data['Periplasmic tetracycline'] *= 1000
+    tet_data['AcrAB-TolC (\u03BCM)'] = (tet_data['AcrAB-TolC'] / (
+        tet_data['Volume'] * 0.2) * COUNTS_PER_FL_TO_NANOMOLAR * 1000)
+    tet_data['Time'] -= SPLIT_TIME
+    tet_data['Time'] /= 60
+    tet_data = tet_data.rename(columns={
+        'Cytoplasmic tetracycline': 'Cytoplasmic tetracycline (\u03BCM)',
+        'Periplasmic tetracycline': 'Periplasmic tetracycline (\u03BCM)',
+        'Time': 'Minutes after tetracycline addition'})
+    fig, ax = plt.subplots(figsize=(3, 3))
+    sns.lineplot(tet_data, x='Minutes after tetracycline addition',
+        y='Cytoplasmic tetracycline (\u03BCM)',
+        errorbar='sd', ax=ax)
+    max_time = np.round((MAX_TIME - SPLIT_TIME)/60, 0)
+    ax.set_xlim(2, int(max_time))
+    xticks = ax.get_xticks()[:-1]
+    xticks = np.insert(xticks[xticks!=0], 0, 2)
+    xticks = np.append(xticks, int(max_time))
+    ax.set_xticks(xticks, xticks.astype(int))
+    plt.tight_layout()
+    sns.despine(ax=ax, trim=True, offset=3)
+    plt.savefig('out/analysis/paper_figures/cyto_tet.svg')
+    plt.close()
+
+    fig, ax = plt.subplots(figsize=(3, 3))
+    sns.lineplot(tet_data, x='Minutes after tetracycline addition',
+        y='Periplasmic tetracycline (\u03BCM)',
+        errorbar='sd', ax=ax)
+    max_time = np.round((MAX_TIME - SPLIT_TIME)/60, 0)
+    ax.set_xlim(2, int(max_time))
+    xticks = ax.get_xticks()[:-1]
+    xticks = np.insert(xticks[xticks!=0], 0, 2)
+    xticks = np.append(xticks, int(max_time))
+    ax.set_xticks(xticks, xticks.astype(int))
+    plt.tight_layout()
+    sns.despine(ax=ax, trim=True, offset=3)
+    plt.savefig('out/analysis/paper_figures/peri_tet.svg')
+    plt.close()
+
+    fig, ax = plt.subplots(figsize=(3, 3))
+    sns.lineplot(tet_data, x='Minutes after tetracycline addition',
+        y='AcrAB-TolC (\u03BCM)',
+        errorbar='sd', ax=ax)
+    max_time = np.round((MAX_TIME - SPLIT_TIME)/60, 0)
+    ax.set_xlim(2, int(max_time))
+    xticks = ax.get_xticks()[:-1]
+    xticks = np.insert(xticks[xticks!=0], 0, 2)
+    xticks = np.append(xticks, int(max_time))
+    ax.set_xticks(xticks, xticks.astype(int))
+    plt.tight_layout()
+    sns.despine(ax=ax, trim=True, offset=3)
+    plt.savefig('out/analysis/paper_figures/acrab_tet.svg')
+    plt.close()
+
+    data['AcrAB-TolC (\u03BCM)'] = (data['AcrAB-TolC'] / (
+    data['Volume'] * 0.2) * COUNTS_PER_FL_TO_NANOMOLAR * 1000)
+
+
+def make_figure_3j(data, metadata):
+    data['AcrAB-TolC (\u03BCM)'] = (data['AcrAB-TolC'] / (
+        data['Volume'] * 0.2) * COUNTS_PER_FL_TO_NANOMOLAR * 1000)
+    data['Time'] -= SPLIT_TIME
+    data['Time'] /= 60
+    data['Initial external tet.'] *= 1000
+    data = data.rename(columns={
+        'Time': 'Minutes after tetracycline addition',
+        'Initial external tet.': 'External tet. (\u03BCM)'})
+    fig, ax = plt.subplots(figsize=(3, 3))
+    sns.lineplot(data, x='Minutes after tetracycline addition',
+        y='AcrAB-TolC (\u03BCM)', hue='External tet. (\u03BCM)',
+        errorbar='sd', ax=ax)
+    max_time = np.round((MAX_TIME - SPLIT_TIME)/60, 0)
+    ax.set_xlim(2, int(max_time))
+    xticks = ax.get_xticks()[:-1]
+    xticks = np.insert(xticks[xticks!=0], 0, 2)
+    xticks = np.append(xticks, int(max_time))
+    ax.set_xticks(xticks, xticks.astype(int))
+    plt.tight_layout()
+    ax.legend(bbox_to_anchor=(1.1, 1))
+    sns.despine(ax=ax, trim=True, offset=3)
+    plt.savefig('out/analysis/paper_figures/acrab_tet_concs.svg', bbox_inches='tight')
+    plt.close()
 
 
 def make_figure_4a(data, metadata):
-    fig, ax = plt.subplots(figsize=(1.75, 2))
+    fig, ax = plt.subplots(figsize=(2.1, 2.1))
     plot_colony_growth(data, ax, antibiotic_col='Initial external amp.',
         mic=5.724, antibiotic='Amp.')
     offset_time = SPLIT_TIME/3600
     min_time = np.round(-offset_time, 1)
     max_time = np.round(MAX_TIME/3600-offset_time, 1)
-    ticks = np.array([int(min_time), 0, int(max_time)])
-    ax.set_xticks(ticks+offset_time, ticks, size=8)
+    ticks = [min_time, 0, int(max_time)]
+    ax.set_xticks(np.array(ticks)+offset_time, ticks, size=8)
     ax.spines['bottom'].set_bounds(0, MAX_TIME/3600)
     ax.spines['left'].set_bounds(ax.get_ylim())
-    ax.set_xlabel('Hours after amp. addition', size=8)
-    ax.set_ylabel('Colony mass (fg)', size=8)
+    ax.set_xlabel('Hours after amp. addition', size=9)
+    ax.set_ylabel('Colony mass (fg)', size=9)
     yticklabels = [f'$10^{int(exp)}$' for exp in np.log10(ax.get_yticks())]
     ax.set_yticks(ax.get_yticks(), yticklabels, size=9)
     plt.tight_layout()
@@ -834,7 +910,7 @@ def make_figure_4b(data, metadata):
     data['Relative porosity'] = data.loc[:, 'Porosity'] * data.loc[:, 'Extension factor']
     mean_glc_porosity = data.loc[data.loc[:, 'Condition'] == 'Glucose', 
         'Relative porosity'].mean()
-    fc_col = 'Porosity\n($\mathregular{log_2}$ fold change)'
+    fc_col = 'Total defect area\n($\mathregular{log_2}$ fold change)'
     data.loc[:, fc_col] = np.log2(data.loc[:, 'Relative porosity'] / mean_glc_porosity)
     data.loc[data.loc[:, fc_col]==-np.inf, fc_col] = 0
 
@@ -872,7 +948,7 @@ def make_figure_4c(data, metadata):
 
 
 def make_figure_4d(data, metadata):
-    fig, ax = plt.subplots(1, 1, figsize=(2, 2))
+    fig, ax = plt.subplots(1, 1, figsize=(2.2, 2.25))
     axs = [ax]
     plot_death_timescale_analysis(data, axs)
     plt.savefig('out/analysis/paper_figures/fig_4d_misc.svg')
@@ -971,7 +1047,10 @@ def main():
         '3h': ['Glucose', 'Tetracycline (0.5 mg/L)', 'Tetracycline (1 mg/L)',
             'Tetracycline (1.5 mg/L)', 'Tetracycline (2 mg/L)',
             'Tetracycline (4 mg/L)'],
-        '3i': ['Glucose'],
+        '3i': ['Tetracycline (1.5 mg/L)'],
+        '3j': ['Glucose', 'Tetracycline (0.5 mg/L)', 'Tetracycline (1 mg/L)',
+            'Tetracycline (1.5 mg/L)', 'Tetracycline (2 mg/L)',
+            'Tetracycline (4 mg/L)'],
         '4a': ['Glucose', 'Ampicillin (0.5 mg/L)', 'Ampicillin (1 mg/L)',
             'Ampicillin (1.5 mg/L)', 'Ampicillin (2 mg/L)',
             'Ampicillin (4 mg/L)'],
@@ -998,8 +1077,9 @@ def main():
         '3e': [0, 100, 10000],
         '3f': [0],
         '3g': [0],
-        '3i': [10000],
         '3h': [0],
+        '3i': [0],
+        '3j': [0],
         '4a': [0],
         '4b': [0],
         '4c': [0],
