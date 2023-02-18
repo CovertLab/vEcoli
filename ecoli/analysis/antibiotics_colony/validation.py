@@ -509,8 +509,8 @@ def plot_death_timescale_analysis(
     
     # axs[0].hlines(1, 0, 8, linestyles='dashed', colors=[
     #     (0, 0, 0)], linewidths=1)
-    axs[0].set_xlabel('Ampicillin (mg/L)', fontsize=8)
-    axs[0].set_ylabel('Avg. generations to lysis', fontsize=8)
+    axs[0].set_xlabel('Ampicillin (mg/L)', fontsize=9)
+    axs[0].set_ylabel('Avg. generations to lysis', fontsize=9)
     axs[0].set_yticks([0, 1, 2, 3, 4], [0, 1, 2, 3, 4], fontsize=8)
     axs[0].set_xticks([0, 2, 4, 6, 8], [0, 2, 4, 6, 8], fontsize=8)
     ylim = axs[0].get_ylim()
