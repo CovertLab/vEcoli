@@ -583,11 +583,11 @@ def make_figure_3c(data, metadata):
         ax.set_title(ylabel, size=9)
     axes.flat[0].set_ylabel('\u03BCM', size=9, labelpad=0)
     axes.flat[1].set_xlabel('Minutes after tetracycline addition', size=9)
-    # Use scientific notation for high active ribosome concentrations
-    new_ylim = np.round(axes.flat[-1].get_ylim(), 0).astype(int)
-    axes.flat[-1].set_yticks(new_ylim, new_ylim, size=9)
-    axes.flat[-1].spines.left.set(bounds=new_ylim, linewidth=1,
-        visible=True, color=(0, 0, 0), alpha=1)
+    # Ensure that active ribosomes plot starts at y = 0
+    axes.flat[-1].set_ylim(0, axes.flat[-1].get_ylim()[1])
+    new_yticks = [0, axes.flat[-1].get_yticks()[-1]]
+    axes.flat[-1].set_yticks(new_yticks, new_yticks)
+    axes.flat[-1].spines['left'].set_bounds(new_yticks)
     plt.tight_layout()
     fig.subplots_adjust(left=0.08, right=0.99, top=0.8, bottom=0.3, wspace=0.35)
     fig.savefig('out/analysis/paper_figures/fig_3c_tet_short_term.svg')
@@ -605,7 +605,7 @@ def make_figure_3d(data, metadata):
         'ompF mRNA': 1,
         'OmpF monomer': 2,
     }
-    # Convert to concentrations using periplasmic or cytoplasmic volume
+    # Convert to uM using periplasmic or cytoplasmic volume
     periplasmic = ['OmpF monomer']
     for column in long_term_columns:
         if column in periplasmic:
@@ -614,7 +614,7 @@ def make_figure_3d(data, metadata):
         else:
             long_transition_data.loc[:, column] /= (
                 long_transition_data.loc[:, 'Volume'] * 0.8)
-        long_transition_data.loc[:, column] *= COUNTS_PER_FL_TO_NANOMOLAR
+        long_transition_data.loc[:, column] *= COUNTS_PER_FL_TO_NANOMOLAR/1000
     fig, axes = plt.subplots(1, 3, figsize=(5, 1.5))
     for column, ax_idx in long_term_columns.items():
         plot_timeseries(
@@ -644,14 +644,18 @@ def make_figure_3d(data, metadata):
         ylabel = ax.get_ylabel()
         ax.set_ylabel(None)
         ax.set_title(ylabel, size=9, pad=12)
-    axes.flat[0].set_ylabel('nM', size=9, labelpad=-6)
+    axes.flat[0].set_ylabel('\u03BCM', size=9, labelpad=-6)
     fig.supxlabel('Hours after tetracycline addition', size=9)
-    # Use scientific notation for high OmpF monomer concentrations
-    new_ylim = np.round(np.array(axes.flat[-1].get_ylim())/10000, 0) * 10000
-    axes.flat[-1].set_yticks(new_ylim, (new_ylim/10000).astype(int), size=9)
-    axes.flat[-1].spines.left.set(bounds=new_ylim, linewidth=1,
-        visible=True, color=(0, 0, 0), alpha=1)
-    axes.flat[-1].text(0, 1, r'x$10^4$', transform=axes.flat[-1].transAxes, size=8)
+    # Ensure that OmpF monomer plot starts at y = 0
+    for i in range(2):
+        y_max = np.round(axes.flat[i].get_ylim()[-1], 2)
+        new_yticks = [0, y_max]
+        axes.flat[i].set_yticks(new_yticks, new_yticks)
+        axes.flat[i].spines['left'].set_bounds(new_yticks)
+    axes.flat[-1].set_ylim(0, axes.flat[-1].get_ylim()[1])
+    new_yticks = [0, axes.flat[-1].get_yticks()[-1]]
+    axes.flat[-1].set_yticks(new_yticks, new_yticks)
+    axes.flat[-1].spines['left'].set_bounds(new_yticks)
     plt.tight_layout()
     fig.subplots_adjust(left=0.08, right=0.99, top=0.8, bottom=0.3, wspace=0.35)
     fig.savefig('out/analysis/paper_figures/fig_3d_tet_long_term.svg')
