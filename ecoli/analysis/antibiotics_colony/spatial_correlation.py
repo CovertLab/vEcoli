@@ -6,6 +6,7 @@ from itertools import combinations
 import matplotlib
 import numpy as np
 import pandas as pd
+import seaborn as sns
 from esda.moran import Moran
 from libpysal.weights import KNN, DistanceBand
 from splot.esda import plot_moran
@@ -101,19 +102,37 @@ def make_relatedness_vs_distance_plot(glc_data):
     distances = []
     for A, B in combinations(final_agents.keys(), 2):
         relatednesses.append(relatedness(A, B))
-        distances.append((final_agents[A] @ final_agents[B]) ** 0.5)
+        distances.append(np.linalg.norm(final_agents[A] - final_agents[B]))
 
-    fig, ax = plt.subplots()
-    # ax.hist2d(distances, np.array(relatednesses), bins=(50, 16), cmap="Greys")
-    ax.scatter(
-        distances,
-        np.array(relatednesses),
-        color=HIGHLIGHT_BLUE,
-        alpha=0.05,
-        linewidths=0,
-    )
-    ax.set_xlabel("Distance")
-    ax.set_ylabel("Relatedness")
+    # Order relatedness from most (bottom) to least (top)
+    order = [str(i) for i in list(range(19))[:1:-1]]
+    df = pd.DataFrame({'Distance': np.array(distances), 'Relatedness': np.array(relatednesses, dtype=np.str_)})
+    fig, ax = plt.subplots(figsize=(3,3))
+    for relatedness_score in order:
+        filtered_dist = df.loc[df.loc[:, 'Relatedness']==relatedness_score, 'Distance']
+        quantiles = np.quantile(filtered_dist, [0.25, 0.50, 0.75])
+        median = quantiles[1]
+        iqr = quantiles[2] - quantiles[0]
+        lower_bound = quantiles[0] - 1.5*iqr
+        lower_outliers = filtered_dist[filtered_dist < lower_bound]
+        if len(lower_outliers) == 0:
+            lower_bound = filtered_dist.min()
+        upper_bound = quantiles[2] + 1.5*iqr
+        upper_outliers = filtered_dist[filtered_dist > upper_bound]
+        if len(upper_outliers) == 0:
+            upper_bound = filtered_dist.max()
+        
+        ax.hlines(int(relatedness_score), lower_bound, upper_bound, colors=['k'], linewidth=1, zorder=1)
+        ax.hlines(int(relatedness_score), quantiles[0], quantiles[2], colors=['k'], linewidth=3, zorder=2)
+        ax.scatter(median, int(relatedness_score), c='w', s=2, zorder=3)
+        ax.scatter(upper_outliers, [int(relatedness_score)]*len(upper_outliers), s=4, c='k', marker='d')
+        ax.scatter(lower_outliers, [int(relatedness_score)]*len(lower_outliers), s=4, c='k', marker='d')
+    ax.set_xlabel('Distance (\u03BCm)', fontsize=9)
+    ax.set_ylabel('Relatedness', fontsize=9)
+    ax.set_yticks([3,6,9,12,15,18], [3,6,9,12,15,18], fontsize=8)
+    ax.set_xticks([0,5,10,15,20,25,30], [0,5,10,15,20,25,30], fontsize=8)
+    sns.despine(ax=ax)
+    plt.tight_layout()
 
     return fig, ax
 
@@ -181,6 +200,24 @@ def main():
         options.verbose,
     )
 
+    agent_ids = glc_data.loc[glc_data.loc[:, 'Time']==glc_data.loc[:, 'Time'], 'Agent ID']
+    norm_agent_ids = {}
+    for agent_id in agent_ids:
+        if len(agent_id) > 1:
+            parent_id = agent_id[:-1]
+            exp = 8 - len(parent_id)
+        else:
+            parent_id = '0'
+            exp = 8
+        binary_agent = int(parent_id, 2) * 2**exp
+        norm_agent_ids[agent_id] = binary_agent
+    norm_agent_id_col = [
+        norm_agent_ids[agent_id] 
+        if agent_id in norm_agent_ids else '0'
+        for agent_id in glc_data.loc[:, 'Agent ID']
+    ]
+    glc_data['Lineage'] = norm_agent_id_col
+
     # Ensure output directory exists
     os.makedirs(options.outdir, exist_ok=True)
 
@@ -192,14 +229,15 @@ def main():
         "MarR monomer": True,
         "AmpC conc": False,
         "TolC monomer": True,
+        "Lineage": False,
     }
 
     # Plot relatedness vs. distance
-    if options.verbose:
-        print("Plotting distance vs. relatedness:")
-    fig, _ = make_relatedness_vs_distance_plot(glc_data)
-    fig.set_size_inches(8, 6)
-    fig.savefig(os.path.join(options.outdir, f"relatedness_vs_distance{ext}"))
+    # if options.verbose:
+    #         print("Plotting distance vs. relatedness:")
+    # fig, _ = make_relatedness_vs_distance_plot(glc_data)
+    # fig.set_size_inches(8, 6)
+    # fig.savefig(os.path.join(options.outdir, f"relatedness_vs_distance{ext}"))
 
     # Compute and plot spatial autocorrelations
     moran_results = {}
@@ -217,11 +255,12 @@ def main():
         fig.savefig(os.path.join(options.outdir, f"{col} Moran plot{ext}"))
 
     # Plot threshold param sweep
-    fig, _ = make_threshold_sweep_plot(glc_data, column="OmpF monomer", to_conc=True)
-    fig.set_size_inches(4, 4)
-    fig.savefig(os.path.join(options.outdir, f"threshold_sweep{ext}"))
-
-    with open(os.path.join(options.outdir, "Moran tests.txt"), "w") as f:
+    # fig, _ = make_threshold_sweep_plot(glc_data, column="OmpF monomer", to_conc=True)
+    # fig.set_size_inches(4, 4)
+    # fig.savefig(os.path.join(options.outdir, f"threshold_sweep{ext}"))
+    
+    seed = glc_data.loc[:, 'Seed'].iloc[0]
+    with open(os.path.join(options.outdir, f"Moran tests_{seed}.txt"), "w") as f:
         for col, moran in moran_results.items():
             f.write(f"\n{col}\n=============\n")
             f.write(f"I = {moran.I}\n")

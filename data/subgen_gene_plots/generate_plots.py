@@ -1,133 +1,91 @@
 """
-This script creates a bar graph showing the number of antibiotic response genes and
-the number of all genes that are sub-generational vs. generational. We define
-generational genes to be those that are transcribed at least once per generation.
-
-antibiotic_response_genes.txt was created by listing out all the genes EcoCyc
-considers related to antibiotic response in E. Coli
-(https://ecocyc.org/ECOLI/NEW-IMAGE?type=ECOCYC-CLASS&object=GO:0046677). ompF and
-ompC (porins) were also included in this txt file even though they were not listed
-on EcoCyc.
+This script creates a bar graph showing the number of antibiotic response genes
+and the number of all genes that are sub-generational vs. generational. We
+define generational genes as those that are expressed at least once per agent,
+on average.
 """
-
-import csv
-import json
-import matplotlib.pyplot as plt
+import argparse
+from concurrent.futures import ProcessPoolExecutor
 import numpy as np
-from six.moves import cPickle
+import pandas as pd
+import pickle
+from tqdm import tqdm
 
-# Number of genes considered generational in the wcEcoli Science paper (Fig 4c) minus one
-CUTOFF_INDEX = 1546
-# The RNA synthesization probabilites are from self.rnaSynthProb in the transcript_initiation process of the release
-# version of wcEcoli
-RELEASE_RNA_PROB_PATH = 'data/subgen_gene_plots/release_rna_probs.txt'
-# rnas.tsv file is from the release version of wcEcoli
-RELEASE_RNAS_TSV_PATH = 'data/subgen_gene_plots/release_rnas.tsv'
+# antibiotic_response_genes.txt was created by listing out all the genes EcoCyc
+# considers related to antibiotic response in E. Coli
+# (https://ecocyc.org/ECOLI/NEW-IMAGE?type=ECOCYC-CLASS&object=GO:0046677).
+# ompF and ompC (porins) were also included in this txt file even though they
+# were not listed on EcoCyc.
 RESPONSE_GENES_PATH = 'data/subgen_gene_plots/antibiotic_response_genes.txt'
+# rnas.tsv file is from the release version of wcEcoli
 RNAS_TSV_PATH = 'reconstruction/ecoli/flat/rnas.tsv'
 SIM_DATA_PATH = 'reconstruction/sim_data/kb/simData.cPickle'
-TU_TO_INDEX_PATH = 'data/marA_binding/TU_id_to_index.json'
+
+def convert_dict_to_df(data):
+    mRNA_counts = []
+    times = []
+    agent_ids = []
+    time = data[0]
+    time_data = data[1]
+    for agent_id, agent_data in time_data['agents'].items():
+        if 'listeners' not in agent_data:
+            continue
+        agent_ids.append(agent_id)
+        times.append(time)
+        mRNA_counts.append(agent_data['listeners'][
+            'transcript_elongation_listener']['countRnaSynthesized'])
+    df = pd.DataFrame(mRNA_counts)
+    df['Time'] = times
+    df['Agent ID'] = agent_ids
+    return df
 
 
-def main():
-    with open(SIM_DATA_PATH, 'rb') as sim_data_file:
-        sim_data = cPickle.load(sim_data_file)
-    # Basal TU probabilities in vivarium-ecoli
-    basal_probs = sim_data.process.transcription_regulation.basal_prob
-    with open(TU_TO_INDEX_PATH) as json_file:
-        tu_to_index = json.load(json_file)
-    tu_to_basal_prob = {tu.split('[')[0]: basal_probs[index] for tu, index in tu_to_index.items()}
-    mrna_obj_to_mrna_name = {}
-    with open(RNAS_TSV_PATH) as file:
-        tsv_file = csv.reader(file, delimiter='\t')
-        for line in tsv_file:
-            if len(line) > 1 and line[3] == 'mRNA':
-                mrna_obj_to_mrna_name[line[0]] = line[1]
-    # TUs are a subset of RNA object ids. Only include the TUs of mRNAs.
-    mrna_to_basal_prob = {mrna_obj_to_mrna_name[tu]: basal_prob for tu, basal_prob in tu_to_basal_prob.items()
-                          if tu in mrna_obj_to_mrna_name.keys()}
+def make_antibiotic_subgen_plot(data):
+    sim_data = pickle.load(open(SIM_DATA_PATH, 'rb'))
+    # Get indices of antibiotic response genes in mRNA count array
+    all_TU_ids = sim_data.process.transcription.rna_data['id']
+    rnas = pd.read_csv(RNAS_TSV_PATH, sep='\t', comment='#')
+    response_genes = pd.read_csv(RESPONSE_GENES_PATH, header=None)
+    response_genes.rename(columns={0: 'common_name'}, inplace=True)
+    response_rnas = rnas.merge(response_genes, how='inner', on='common_name')
+    response_rnas['id'] = response_rnas['id'].apply(lambda x: f'{x}[c]')
+    response_TU_ids = np.where(np.isin(all_TU_ids, response_rnas['id']))[0]
 
-    # Transcription probabilities for all RNAs in vivarum-ecoli
-    mrna_probs = sorted(mrna_to_basal_prob.values(), reverse=True)
-    with open(RESPONSE_GENES_PATH) as response_genes_file:
-        response_genes = response_genes_file.read().split('\n')
-    # All response gene names are the same as their corresponding RNA names. Only include genes that encode mRNAs.
-    #response_gene_probs = sorted([mrna_to_basal_prob[response_gene] for response_gene in response_genes
-    #                       if response_gene in mrna_to_basal_prob.keys()], reverse=True)
-    mrna_to_basal_prob_response = {
-        mrna: prob
-        for mrna, prob in mrna_to_basal_prob.items()
-        if mrna in response_genes
-    }
+    with ProcessPoolExecutor(30) as executor:
+        print('Converting data to DataFrame...')
+        time_dfs = list(tqdm(executor.map(convert_dict_to_df, data.items()),
+            total=len(data)))
+    data = pd.concat(time_dfs)
+    data.to_pickle(f'data/glc_10000_expressome_df.pkl')
 
-    # Get the basal probabilities from the release version of wcEcoli for the next section.
-    with open(RELEASE_RNA_PROB_PATH) as f:
-        release_rna_probs = f.read().splitlines()
-        for i in range(len(release_rna_probs)):
-            # RNA probabilities are in the same order as the corresponding RNAs are listed in release_rnas.tsv
-            release_rna_probs[i] = np.float64(release_rna_probs[i])
+    data_columns = ~np.isin(data.columns, ['Agent ID', 'Time'])
+    n_agents = len(data.loc[:, 'Agent ID'].unique())
+    mRNA_expression = data.loc[:, data_columns].sum(axis=0) / n_agents
+    
+    # Genes that are expressed on average 1+ times per agent are generational
+    generational = (mRNA_expression>=1).sum()
+    subgenerational = len(mRNA_expression) - generational
+    assert subgenerational == (mRNA_expression<1).sum()
+    print(f'Generational genes (total): {generational}')
+    print(f'Sub-generational genes (total): {subgenerational}')
 
-    # Here we find the probability cutoff separating generational and sub-generational genes. We do this by finding
-    # the probability of the least likely to be expressed generational gene in wcEcoli and using that as the cutoff.
-    release_prob_gene_tuples = []
-    with open(RELEASE_RNAS_TSV_PATH) as file:
-        tsv_file = csv.reader(file, delimiter='\t')
-        for index, line in enumerate(tsv_file):
-            if line[3] == 'mRNA':
-                gene_id = line[11]
-                release_prob_gene_tuples.append((release_rna_probs[index], gene_id))
-    release_prob_gene_tuples = sorted(release_prob_gene_tuples, reverse=True)
-    cutoff_tuple = release_prob_gene_tuples[CUTOFF_INDEX]
-    generational_prob_cutoff = cutoff_tuple[0]
-
-    table = [
-        ('gene', 'basal_transcription_prob', 'antibiotic_response',
-            'subgenerational'),
-    ]
-    num_subgen = 0
-    num_subgen_response = 0
-    num_gen = 0
-    num_gen_response = 0
-    for mrna, prob in mrna_to_basal_prob.items():
-        subgen = prob < generational_prob_cutoff
-        response = mrna in response_genes
-        row = mrna, prob, response, subgen
-        table.append(row)
-
-        if subgen:
-            num_subgen += 1
-            if response:
-                num_subgen_response += 1
-        else:
-            num_gen += 1
-            if response:
-                num_gen_response += 1
-
-    data = {
-        ('All Genes', 'gray'): (
-            ('Generational', num_gen),
-            ('Subgenerational', num_subgen),
-        ),
-        ('Antibiotic Response Genes', 'black'): (
-            ('Generational', num_gen_response),
-            ('Subgenerational', num_subgen_response),
-        ),
-    }
-
-    fig, ax = plt.subplots(figsize=(9, 2))
-    for (label, color), series in data.items():
-        y, width = zip(*series)
-        bars = ax.barh(y, width, color=color, label=label)
-        ax.bar_label(bars)
-    ax.legend()
-    fig.tight_layout()
-    fig.savefig('out/subgen_antibiotic_response_genes.png')
-
-    with open('out/subgen_antibiotic_response_genes.csv', 'w') as f:
-        writer = csv.writer(f)
-        for row in table:
-            writer.writerow(row)
+    response_expression = mRNA_expression[response_TU_ids]
+    response_generational = (response_expression>=1).sum()
+    response_subgenerational = len(response_expression) - response_generational
+    assert response_subgenerational == (response_expression<1).sum()
+    print('Generational genes (antibiotic response): '
+        f'{response_generational}')
+    print('Sub-generational genes (antibiotic response): '
+        f'{response_subgenerational}')
 
 
 if __name__ == '__main__':
-    main()
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "-d",
+        "--data",
+        help="Saved from ecoli.analysis.db.get_gene_expression_data"
+    )
+    args = parser.parse_args()
+    data = pickle.load(open(args.data, 'rb'))
+    make_antibiotic_subgen_plot(data)

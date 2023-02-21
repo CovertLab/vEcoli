@@ -273,6 +273,8 @@ def plot_agents(
 
     if not agent_colors:
         agent_colors = dict()
+    if not highlight_agent:
+        highlight_agent = []
     for agent_id, agent_data in agents.items():
         color = agent_colors.get(agent_id, [DEFAULT_HUE] + DEFAULT_SV)
         if dead_color and agent_data.get("boundary"):
