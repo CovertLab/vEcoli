@@ -7,7 +7,7 @@ from typing import Any, Iterable, Iterator, Mapping, Optional, Tuple, Union
 import jax
 import jax.ops
 import jax.numpy as jnp
-jax.config.update("jax_enable_x64", True)
+# jax.config.update("jax_enable_x64", True)
 
 import numpy as np
 import scipy.optimize
@@ -431,10 +431,12 @@ class GradientDescentFba:
             return jnp.concatenate(list(self.residuals(v, target_values).values()))
 
         jac = jax.jit(jax.jacfwd(loss))
-        jac_wrap = lambda x: csr_matrix(jac(x))
+
+        def jac_wrap(x):
+            return csr_matrix(jac(x))
 
         # Perform the actual gradient descent, and extract the result.
-        soln = scipy.optimize.least_squares(jax.jit(loss), x0, jac=jac_wrap, **kwargs)
+        soln = scipy.optimize.least_squares(fun=jax.jit(loss), x0=x0, jac=jac_wrap, **kwargs)
 
         # Perform the actual gradient descent, and extract the result.
         dm_dt = np.asarray(self._s_sparse @ soln.x)

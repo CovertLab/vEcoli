@@ -13,8 +13,7 @@ from ecoli.library.schema import bulk_schema, array_from
 from wholecell.utils import units
 
 from ecoli.library.fba_gd import GradientDescentFba, FbaResult, TargetDmdtObjective, \
-    TargetVelocityObjective, VelocityBoundsObjective, DmdtBoundsObjective, MinimizeFluxObjective, \
-    LenientTargetVelocityObjective
+    TargetVelocityObjective, VelocityBoundsObjective, DmdtBoundsObjective
 from ecoli.processes.registries import topology_registry
 from ecoli.processes.partition import check_whether_evolvers_have_run
 
@@ -310,7 +309,7 @@ class MetabolismGD(Process):
              },
             initial_velocities=self.reaction_fluxes,
             tr_solver='lsmr', max_nfev=256, ftol=10 ** (-4), verbose=2, xtol=10 ** (-4),
-            tr_options={'atol': 10 ** (-8), 'btol': 10 ** (-8), 'conlim': 10 ** (10), 'show': False}
+            tr_options={'atol': 10 ** (-5), 'btol': 10 ** (-5), 'conlim': 10 ** (10), 'show': False}
         )
 
         self.reaction_fluxes = solution.velocities

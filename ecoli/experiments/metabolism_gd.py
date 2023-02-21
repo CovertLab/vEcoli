@@ -125,7 +125,7 @@ def run_ecoli_with_metabolism_gd(
         progress_bar=False,
         log_updates=False,
         emitter='timeseries',
-        name='kinetics',
+        name='balance-gd',
         raw_output=False,
         save=False,
         save_times=None,
@@ -158,8 +158,12 @@ def run_ecoli_with_metabolism_gd(
     pathlib.Path(folder).mkdir(parents=True, exist_ok=True)
     np.save(folder + 'output.npy', output)
 
-    f = open(folder + 'agent.pkl', 'wb')
+    f = open(folder + 'agent_processes.pkl', 'wb')
     dill.dump(sim.ecoli['processes']['agents'][agent], f)
+    f.close()
+
+    f = open(folder + 'agent_steps.pkl', 'wb')
+    dill.dump(sim.ecoli['steps']['agents'][agent], f)
     f.close()
 
 
