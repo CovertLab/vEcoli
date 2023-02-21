@@ -12,7 +12,7 @@ def prettify_axis(
     xlim=None,
     ylim=None,
     title_fontsize=12,
-    label_fontsize=10,
+    label_fontsize=9,
     ticklabel_fontsize=8,
     tick_format_x="{:.1f}",
     tick_format_y="{:.2f}",

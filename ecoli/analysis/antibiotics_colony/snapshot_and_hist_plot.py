@@ -23,8 +23,11 @@ from vivarium.library.topology import convert_path_style
 from ecoli.analysis.db import access_counts, deserialize_and_remove_units
 from ecoli.plots.snapshots import format_snapshot_data, get_tag_ranges, plot_tags
 
-from ecoli.analysis.antibiotics_colony.plot import PATHS_TO_LOAD
-from ecoli.analysis.antibiotics_colony import COUNTS_PER_FL_TO_NANOMOLAR
+from ecoli.analysis.antibiotics_colony import COUNTS_PER_FL_TO_NANOMOLAR, PATHS_TO_LOAD
+
+
+PERIPLASMIC_VOLUME_FRACTION = 0.2
+PERIPLASMIC_VARS = ["OmpF monomer", "TolC monomer", "AmpC monomer"]
 
 
 def make_snapshot_and_hist_plot(
@@ -59,10 +62,21 @@ def make_snapshot_and_hist_plot(
             "agents": {
                 agent_id: {
                     "boundary": boundary,
-                    # Convert from counts to nM
+                    # Convert from counts to uM
                     molecule: (
-                        (molecule_count / boundary["volume"])
+                        (
+                            molecule_count
+                            / (
+                                boundary["volume"]
+                                * (
+                                    PERIPLASMIC_VOLUME_FRACTION
+                                    if molecule in PERIPLASMIC_VARS
+                                    else 1 - PERIPLASMIC_VOLUME_FRACTION
+                                )
+                            )
+                        )
                         * COUNTS_PER_FL_TO_NANOMOLAR
+                        / 10**3  # Convert to uM
                     ),
                 }
                 for agent_id, boundary, molecule_count in zip(
@@ -132,7 +146,13 @@ def make_snapshot_and_hist_plot(
         orientation="horizontal",
         ticks=[min_tag, max_tag],
     )
-    cbar.ax.set_xticklabels([f"{min_tag:.0f} nM", f"{max_tag:.0f} nM"])
+    format_tick = (
+        lambda tick: f"{tick:.0f}" if tick == 0 or tick > 100 else f"{tick:.1f}"
+    )
+
+    cbar.ax.set_xticklabels(
+        [f"{format_tick(min_tag)} μM", f"{format_tick(max_tag)} μM"], fontsize=8
+    )
 
     # Add histogram plot
     hist_ax = fig.add_subplot(grid[1, 0])
@@ -157,20 +177,24 @@ def make_snapshot_and_hist_plot(
     # Aesthetics
     hist, bins = np.histogram(hist_data, bins="auto")
     hist_ax.set_xlabel(None)
-    hist_ax.set_ylabel("Cells", fontsize=12, labelpad=-5)
+    hist_ax.set_ylabel("Cells", fontsize=9, labelpad=-5)
     hist_ax.set(
         xticks=[bins[0], bins[-1]],
-        xticklabels=[f"{bins[0]:.0f} nM", f"{bins[-1]:.0f} nM"],
+        xticklabels=[f"{format_tick(bins[0])} μM", f"{format_tick(bins[-1])} μM"],
         xlim=[bins[0], bins[-1]],
         yticks=[0, max(hist)],
         ylim=[0, max(hist)],
     )
     prettify_axis(
         hist_ax,
-        label_fontsize=12,
-        ticklabel_fontsize=10,
-        tick_format_x="{:.0f} nM",
+        label_fontsize=9,
+        ticklabel_fontsize=8,
+        tick_format_x="{:.1f} μM",
         tick_format_y="{:.0f}",
+    )
+    hist_ax.set_xticks(
+        [min_tag, max_tag],
+        labels=[f"{format_tick(min_tag)} μM", f"{format_tick(max_tag)} μM"],
     )
     # hist_ax.set_box_aspect(1)
 
@@ -377,16 +401,16 @@ def main():
             print(f"Plotting snapshot + histogram for {name}={molecule[-1]}...")
 
         fig, _ = make_snapshot_and_hist_plot(
-            data, metadata, bounds, paths_to_columns[molecule], title=name
+            data, metadata, bounds, paths_to_columns[molecule], title=""
         )
 
-        fig.set_size_inches(2.706, 4.5)
+        fig.set_size_inches(2.25, 2.9)
+        fig.tight_layout()
         fig.savefig(
             os.path.join(
                 args.outdir,
-                f"snapshot_and_hist_{molecule[-1]}.{'svg' if args.svg else 'png'}",
-            ),
-            bbox_inches="tight",
+                f"snapshot_and_hist_{name}.{'svg' if args.svg else 'png'}",
+            )
         )
         plt.close(fig)
 
