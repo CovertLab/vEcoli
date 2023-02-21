@@ -252,223 +252,228 @@ def make_figures(
     ].min()
     max_time = amp_data["Time"].max()
 
-    if False:
-        # Plot snapshots ==============================================================================
-        # if verbose:
-        #     print("Making fields plot...")
-        # plot_field_snapshots(amp_data, metadata, highlight_color=HIGHLIGHT_BLUE)
 
-        # Plot colony mass vs time with deaths ========================================================
+    # Plot snapshots ==============================================================================
+    # if verbose:
+    #     print("Making fields plot...")
+    # plot_field_snapshots(amp_data, metadata, highlight_color=HIGHLIGHT_BLUE)
+
+    # Plot colony mass vs time with deaths ========================================================
+    if verbose:
+        print("Making colony mass vs. time (with marked deaths) plot...")
+
+    fig, ax = plt.subplots()
+    ax.tick_params("both", labelsize=8)
+    timeseries_death_plot(
+        amp_data,
+        "Dry mass",
+        highlight_lineage=str(amp_data["Agent ID"].iloc[-1]),
+        ax=ax,
+    )
+    ax.set_ylabel(ax.get_ylabel(), fontsize=9)
+    yticks = ax.get_yticks()
+    ax.set_yticks(yticks, [f"{y:.0f} fg" for y in yticks])
+
+    # Relabel time axis to use time after addition of ampicillin
+    amp_time_hrs, max_time_hrs = amp_time / 3600, max_time / 3600
+    # new_ticks = np.concatenate(
+    #     (
+    #         [0],
+    #         np.arange(amp_time_hrs, 1, -1)[::-1],
+    #         np.arange(amp_time_hrs, max_time_hrs, 1)[1:],
+    #         # [max_time_hrs],
+    #     )
+    # )
+    new_ticks = np.array([0, amp_time_hrs, max_time_hrs])
+    new_tick_labels = [f"{t - amp_time_hrs:.0f}" for t in new_ticks]
+    new_tick_labels[0] = f"{-amp_time_hrs:.1f}"
+    ax.set_xticks(new_ticks, labels=new_tick_labels)
+    ax.set_xlabel("")
+
+    fig.set_size_inches(4, 1.125)
+    fig.tight_layout()
+    fig.savefig(os.path.join(outdir, f"colony_mass_timeseries.{ext}"))
+
+    # Plot minute-scale timeseries ================================================================
+    minute_vars = {
+        "Periplasmic ampicillin": ("Periplasmic\n ampicillin (μM)", False),
+        "AmpC conc": ("AmpC (μM)", False),
+        "Active fraction PBP1a": (
+            r"$\frac{\mathrm{active}}{\mathrm{total}}$ PBP1A",
+            False,
+        ),  # ("Frac active\n PBP1a", False),
+    }
+
+    # Scale periplasmic ampicillin, AmpC to be in micromolar
+    minute_data = amp_data.transform(
+        {
+            **{c: lambda x: x for c in amp_data.columns},
+            **{"Periplasmic ampicillin": lambda s: s * 10**3},
+            **{"AmpC conc": lambda s: s / 10**3},
+        }
+    )
+
+    fig, axs = plt.subplots(1, len(minute_vars))
+    for ax, (minute_var, (label, to_conc)) in zip(axs, minute_vars.items()):
         if verbose:
-            print("Making colony mass vs. time (with marked deaths) plot...")
+            print(f"Plotting {minute_var} timeseries...")
 
-        fig, ax = plt.subplots()
-        timeseries_death_plot(
-            amp_data,
-            "Dry mass",
-            highlight_lineage=str(amp_data["Agent ID"].iloc[-1]),
+        minute_scale_plot(
+            minute_data,
+            minute_var,
+            dt=2,
             ax=ax,
+            to_conc=to_conc,
+            highlight_lineage=HIGHLIGHT_LINEAGE,
+        )
+        ticklabs = [lab.get_text() for lab in ax.get_xticklabels()]
+
+        # Remove x label, make sure axis visible
+        xaxis = ax.axes.get_xaxis()
+        xaxis.set_visible(True)
+        xaxis.get_label().set_visible(False)
+
+        ax.set_ylabel(label)
+        prettify_axis(
+            ax,
+            xticks=ax.get_xticks(),
+            xlabel_as_tick=False,
+            ylabel_as_tick=False,
+            tick_format_y="{:.1f}",
+        )
+        ax.set_xticklabels(ticklabs)
+        ax.spines.bottom.set(bounds=ax.get_xlim(), visible=True, color="0", alpha=1)
+        ax.spines.left.set(bounds=ax.get_ylim(), visible=True, color="0", alpha=1)
+
+    fig.set_size_inches(5, 1.5)
+    fig.tight_layout()
+    fig.savefig(os.path.join(outdir, f"minute_scale_timeseries.{ext}"))
+
+    # Plot hour-scale timeseries ==================================================================
+
+    # Clean data
+    amp_data["Max hole area (nm^2)"] = [len(x) for x in amp_data["Max hole size"]]
+    basal_area = (
+        param_store.get(("cell_wall", "inter_strand_distance"))
+        + param_store.get(("cell_wall", "disaccharide_width"))
+    ) * param_store.get(("cell_wall", "disaccharide_height"))
+    amp_data["Max hole area (nm^2)"] = (
+        amp_data["Max hole area (nm^2)"] * amp_data["Extension factor"] * basal_area
+    )
+    amp_data["Max hole area (um^2)"] = amp_data["Max hole area (nm^2)"] / 10**3
+
+    hour_variables = {
+        "Porosity": ("Porosity", "{:.2f}"),
+        "Max hole area (um^2)": ("Max hole area ($\mathrm{\mu m^2}$)", "{:.1f}"),
+        "Extension factor": (
+            r"$\frac{\mathrm{Length}}{\mathrm{Resting\ length}}$",
+            "{:.1f}",
+        ),
+    }
+    fig, axs = plt.subplots(1, len(hour_variables))
+    for ax, (hour_variable, (label, ytickformat)) in zip(
+        axs, hour_variables.items()
+    ):
+        if verbose:
+            print(f"Plotting {hour_variable} timeseries...")
+
+        # Remove artifacts - porosity and hole area take five timesteps (dt=10s) to
+        # be recalculated after division.
+        hour_plot_data = amp_data
+        if hour_variable in ["Porosity", "Max hole area (um^2)"]:
+            agent_initial_times = (
+                amp_data.groupby("Agent ID")["Time"].min().to_dict()
+            )
+            hour_plot_data = amp_data[
+                amp_data.apply(
+                    lambda r: r["Time"] >= 10 + agent_initial_times[r["Agent ID"]],
+                    axis=1,
+                )
+            ]
+
+        hour_scale_plot(
+            hour_plot_data,
+            hour_variable,
+            ax=ax,
+            to_conc=False,
+            highlight_lineage=HIGHLIGHT_LINEAGE,
         )
 
-        # Relabel time axis to use time after addition of ampicillin
-        amp_time_hrs, max_time_hrs = amp_time / 3600, max_time / 3600
-        new_ticks = np.concatenate(
-            (
-                [0],
-                np.arange(amp_time_hrs, 1, -1)[::-1],
-                np.arange(amp_time_hrs, max_time_hrs, 1)[1:],
-                # [max_time_hrs],
-            )
+        xaxis = ax.axes.get_xaxis()
+        xaxis.get_label().set_visible(False)
+
+        ax.set_ylabel(label)
+
+        prettify_axis(
+            ax,
+            xticks=ax.get_xticks(),
+            xlabel_as_tick=False,
+            ylabel_as_tick=False,
+            tick_format_y=ytickformat,
         )
+
+        new_ticks = np.array([0, amp_time_hrs, max_time_hrs])
         new_tick_labels = [f"{t - amp_time_hrs:.0f}" for t in new_ticks]
         new_tick_labels[0] = f"{-amp_time_hrs:.1f}"
         ax.set_xticks(new_ticks, labels=new_tick_labels)
-        ax.set_xlabel("Hours after ampicillin addition")
 
-        fig.set_size_inches(4, 1.25)
-        fig.tight_layout()
-        fig.savefig(os.path.join(outdir, f"colony_mass_timeseries.{ext}"))
+        ax.spines.bottom.set(bounds=ax.get_xlim(), visible=True, color="0", alpha=1)
+        ax.spines.left.set(bounds=ax.get_ylim(), visible=True, color="0", alpha=1)
 
-        # Plot minute-scale timeseries ================================================================
-        minute_vars = {
-            "Periplasmic ampicillin": ("Periplasmic\n ampicillin (μM)", False),
-            "AmpC conc": ("AmpC (μM)", False),
-            "Active fraction PBP1a": (
-                r"$\frac{active}{inactive}$ PBP1A",
-                False,
-            ),  # ("Frac active\n PBP1a", False),
-        }
+    fig.set_size_inches(5, 1.5)
+    fig.tight_layout()
+    fig.savefig(os.path.join(outdir, f"hour_scale_timeseries.{ext}"))
 
-        # Scale periplasmic ampicillin, AmpC to be in micromolar
-        minute_data = amp_data.transform(
-            {
-                **{c: lambda x: x for c in amp_data.columns},
-                **{"Periplasmic ampicillin": lambda s: s * 10**3},
-                **{"AmpC conc": lambda s: s / 10**3},
-            }
-        )
+    # Plot beta-lactamase, AcrAB-TolC... vs. death ================================================
 
-        fig, axs = plt.subplots(1, len(minute_vars))
-        for ax, (minute_var, (label, to_conc)) in zip(axs, minute_vars.items()):
-            if verbose:
-                print(f"Plotting {minute_var} timeseries...")
-
-            minute_scale_plot(
-                minute_data,
-                minute_var,
-                dt=2,
-                ax=ax,
-                to_conc=to_conc,
-                highlight_lineage=HIGHLIGHT_LINEAGE,
-            )
-            ticklabs = [lab.get_text() for lab in ax.get_xticklabels()]
-
-            # Remove x label, make sure axis visible
-            xaxis = ax.axes.get_xaxis()
-            xaxis.set_visible(True)
-            xaxis.get_label().set_visible(False)
-
-            ax.set_ylabel(label)
-            prettify_axis(
-                ax,
-                xticks=ax.get_xticks(),
-                xlabel_as_tick=False,
-                ylabel_as_tick=False,
-                tick_format_y="{:.1f}",
-            )
-            ax.set_xticklabels(ticklabs)
-            ax.spines.bottom.set(bounds=ax.get_xlim(), visible=True, color="0", alpha=1)
-            ax.spines.left.set(bounds=ax.get_ylim(), visible=True, color="0", alpha=1)
-
-        fig.set_size_inches(5, 1.5)
-        fig.tight_layout()
-        fig.savefig(os.path.join(outdir, f"minute_scale_timeseries.{ext}"))
-
-        # Plot hour-scale timeseries ==================================================================
-
-        # Clean data
-        amp_data["Max hole area (nm^2)"] = [len(x) for x in amp_data["Max hole size"]]
-        basal_area = (
-            param_store.get(("cell_wall", "inter_strand_distance"))
-            + param_store.get(("cell_wall", "disaccharide_width"))
-        ) * param_store.get(("cell_wall", "disaccharide_height"))
-        amp_data["Max hole area (nm^2)"] = (
-            amp_data["Max hole area (nm^2)"] * amp_data["Extension factor"] * basal_area
-        )
-        amp_data["Max hole area (um^2)"] = amp_data["Max hole area (nm^2)"] / 10**3
-
-        hour_variables = {
-            "Porosity": ("Porosity", "{:.2f}"),
-            "Max hole area (um^2)": ("Max hole area ($\mu m^2$)", "{:.1f}"),
-            "Extension factor": (
-                r"$\frac{Length}{Resting\ length}$",
-                "{:.1f}",
-            ),
-        }
-        fig, axs = plt.subplots(1, len(hour_variables))
-        for ax, (hour_variable, (label, ytickformat)) in zip(
-            axs, hour_variables.items()
-        ):
-            if verbose:
-                print(f"Plotting {hour_variable} timeseries...")
-
-            # Remove artifacts - porosity and hole area take five timesteps (dt=10s) to
-            # be recalculated after division.
-            hour_plot_data = amp_data
-            if hour_variable in ["Porosity", "Max hole area (um^2)"]:
-                agent_initial_times = (
-                    amp_data.groupby("Agent ID")["Time"].min().to_dict()
-                )
-                hour_plot_data = amp_data[
-                    amp_data.apply(
-                        lambda r: r["Time"] >= 10 + agent_initial_times[r["Agent ID"]],
-                        axis=1,
-                    )
-                ]
-
-            hour_scale_plot(
-                hour_plot_data,
-                hour_variable,
-                ax=ax,
-                to_conc=False,
-                highlight_lineage=HIGHLIGHT_LINEAGE,
-            )
-
-            xaxis = ax.axes.get_xaxis()
-            xaxis.get_label().set_visible(False)
-
-            ax.set_ylabel(label)
-
-            prettify_axis(
-                ax,
-                xticks=ax.get_xticks(),
-                xlabel_as_tick=False,
-                ylabel_as_tick=False,
-                tick_format_y=ytickformat,
-            )
-
-            new_ticks = np.array([0, amp_time_hrs, max_time_hrs])
-            new_tick_labels = [f"{t - amp_time_hrs:.0f}" for t in new_ticks]
-            new_tick_labels[0] = f"{-amp_time_hrs:.1f}"
-            ax.set_xticks(new_ticks, labels=new_tick_labels)
-
-            ax.spines.bottom.set(bounds=ax.get_xlim(), visible=True, color="0", alpha=1)
-            ax.spines.left.set(bounds=ax.get_ylim(), visible=True, color="0", alpha=1)
-
-        fig.set_size_inches(5, 1.5)
-        fig.tight_layout()
-        fig.savefig(os.path.join(outdir, f"hour_scale_timeseries.{ext}"))
-
-        # Plot beta-lactamase, AcrAB-TolC... vs. death ================================================
-
-        death_factor_formatting = {
-            "AmpC conc": ("{:.1f}", False),
-            "Periplasmic ampicillin": ("{:.2e}", False),
-            "PBP1a complex": ("{:.1f}", True),
-            "PBP1b gamma complex": ("{:.1f}", True),
-        }
-        for factor, (fmt, to_conc) in death_factor_formatting.items():
-            if verbose:
-                print(f"Making histogram plot for {factor}...")
-
-            fig, ax = plt.subplots()
-            _, _, bins = hist_by_death_plot(
-                amp_data, factor, counts_to_conc=to_conc, ax=ax
-            )
-
-            # prettify_axis(
-            #     ax,
-            #     xlim=[bins[0], bins[-1]],
-            #     ylim=np.round(ax.get_ylim()),
-            #     tick_format_x=fmt,
-            #     tick_format_y="{:.0f}",
-            # )
-            leg = ax.get_legend()
-            if leg:
-                leg.remove()
-
-            fig.set_size_inches(1.25, 1.75)
-            fig.savefig(
-                os.path.join(outdir, f"{factor}.{ext}"),
-                bbox_inches="tight",
-            )
-
-        # Plot colony mass vs concentration => MIC ====================================================
-
+    death_factor_formatting = {
+        "AmpC conc": ("{:.1f}", False),
+        "Periplasmic ampicillin": ("{:.2e}", False),
+        "PBP1a complex": ("{:.1f}", True),
+        "PBP1b gamma complex": ("{:.1f}", True),
+    }
+    for factor, (fmt, to_conc) in death_factor_formatting.items():
         if verbose:
-            print("Plotting colony mass vs. time by ampicillin concentration...")
+            print(f"Making histogram plot for {factor}...")
 
         fig, ax = plt.subplots()
-        amp_conc_sweep(glc_data, amp_data, add_amp_data, ax=ax)
-        ax.set_xticks(new_ticks, labels=new_tick_labels)
-        prettify_axis(ax, ylabel_as_tick=False)
-        ax.set_yscale("log")
+        _, _, bins = hist_by_death_plot(
+            amp_data, factor, counts_to_conc=to_conc, ax=ax
+        )
+
+        # prettify_axis(
+        #     ax,
+        #     xlim=[bins[0], bins[-1]],
+        #     ylim=np.round(ax.get_ylim()),
+        #     tick_format_x=fmt,
+        #     tick_format_y="{:.0f}",
+        # )
         leg = ax.get_legend()
         if leg:
             leg.remove()
-        fig.set_size_inches(2, 2)
-        fig.tight_layout()
-        fig.savefig(os.path.join(outdir, f"amp_conc_sweep.{ext}"))
+
+        fig.set_size_inches(1.25, 1.75)
+        fig.savefig(
+            os.path.join(outdir, f"{factor}.{ext}"),
+            bbox_inches="tight",
+        )
+
+    # Plot colony mass vs concentration => MIC ====================================================
+
+    if verbose:
+        print("Plotting colony mass vs. time by ampicillin concentration...")
+
+    fig, ax = plt.subplots()
+    amp_conc_sweep(glc_data, amp_data, add_amp_data, ax=ax)
+    ax.set_xticks(new_ticks, labels=new_tick_labels)
+    prettify_axis(ax, ylabel_as_tick=False)
+    ax.set_yscale("log")
+    leg = ax.get_legend()
+    if leg:
+        leg.remove()
+    fig.set_size_inches(2, 2)
+    fig.tight_layout()
+    fig.savefig(os.path.join(outdir, f"amp_conc_sweep.{ext}"))
 
     # Run logistic regression to explain death ====================================================
 
@@ -662,10 +667,15 @@ def make_figures(
                 violin_data[violin_data["Died"] == True][var],
             )
 
-            pvalues[var] = p
+            p_bonferroni = p * len(violin_vars)
+
+            pvalues[var] = p_bonferroni
 
             f.write(
-                f"{var}\n" "========\n" "Two-sided t-test,\n" f"t = {t}, p = {p}\n\n"
+                f"{var}\n"
+                "========\n"
+                "Two-sided t-test,\n"
+                f"t = {t}, p = {p}\nBonferroni-corrected p = {p_bonferroni}\n"
             )
 
     # center data for each molecule about its mean (use z-score)
@@ -717,7 +727,7 @@ def make_figures(
     # Add significance stars
     def convert_pvalue_to_asterisks(pvalue):
         return ["****", "***", "**", "*", ""][
-            np.digitize(pvalue, [0, 0.0001, 0.001, 0.01, 0.05, 1]) - 1
+            np.digitize(pvalue, [0, 0.0001, 0.001, 0.01, 0.05, 100000]) - 1
         ]
 
     for i, var in enumerate(reordered_vars.keys()):
@@ -725,7 +735,7 @@ def make_figures(
         print(f"{var}: {p} => {convert_pvalue_to_asterisks(p)}")
         ax.text(
             i,
-            5,
+            4.95,
             convert_pvalue_to_asterisks(p),
             fontsize=8,
             horizontalalignment="center",
@@ -945,10 +955,6 @@ def pairplot(
         [summarizer(var, data) for var, summarizer in variable_transform_map.items()],
         axis=1,
     )
-
-    import ipdb
-
-    ipdb.set_trace()
 
     grid = sns.pairplot(
         agent_summary_data,

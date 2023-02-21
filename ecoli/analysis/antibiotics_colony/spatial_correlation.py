@@ -38,7 +38,7 @@ def make_spatial_correlation_plot(glc_data, column, to_conc=False):
     location = data[["X", "Y"]].values
 
     # weights = KNN(location, k=2)
-    weights = DistanceBand(location, 50, alpha=-2.0, binary=False)
+    weights = DistanceBand(location, 3, alpha=-2.0, binary=False)
     moran = Moran(data[column], weights, permutations=9999)
 
     fig, ax = plot_moran(moran)
@@ -62,14 +62,22 @@ def make_threshold_sweep_plot(glc_data, column, to_conc=False):
 
     thresholds = np.linspace(0, 50, 50)
     i_values = []
+    max_i = 0
+    max_d = 0
     for d in thresholds:
         weights = DistanceBand(location, d, alpha=-2.0, binary=False)
         moran = Moran(data[column], weights, permutations=9999)
         i_values.append(moran.I)
+        if moran.I > max_i:
+            max_i = moran.I
+            max_d = d
 
     fig, ax = plt.subplots()
     ax.plot(thresholds, i_values)
     ax.set_ylim(0, 0.06)
+    ax.set_title(
+        f"I vs. distance threshold (max I attained at d={max_d})"
+    )
 
     return fig, ax
 
@@ -93,11 +101,17 @@ def make_relatedness_vs_distance_plot(glc_data):
     distances = []
     for A, B in combinations(final_agents.keys(), 2):
         relatednesses.append(relatedness(A, B))
-        distances.append((final_agents[A] @ final_agents[B])**0.5)
+        distances.append((final_agents[A] @ final_agents[B]) ** 0.5)
 
     fig, ax = plt.subplots()
     # ax.hist2d(distances, np.array(relatednesses), bins=(50, 16), cmap="Greys")
-    ax.scatter(distances, np.array(relatednesses), color=HIGHLIGHT_BLUE, alpha=0.05, linewidths=0)
+    ax.scatter(
+        distances,
+        np.array(relatednesses),
+        color=HIGHLIGHT_BLUE,
+        alpha=0.05,
+        linewidths=0,
+    )
     ax.set_xlabel("Distance")
     ax.set_ylabel("Relatedness")
 
@@ -182,7 +196,7 @@ def main():
 
     # Plot relatedness vs. distance
     if options.verbose:
-            print("Plotting distance vs. relatedness:")
+        print("Plotting distance vs. relatedness:")
     fig, _ = make_relatedness_vs_distance_plot(glc_data)
     fig.set_size_inches(8, 6)
     fig.savefig(os.path.join(options.outdir, f"relatedness_vs_distance{ext}"))
