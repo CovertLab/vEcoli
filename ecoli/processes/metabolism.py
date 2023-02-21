@@ -194,6 +194,7 @@ class Metabolism(Step):
                     'target_homeostatic_dmdt': {'_default': {}, '_updater': 'set', '_emit': True},
                     'estimated_exchange_dmdt': {'_default': {}, '_updater': 'set', '_emit': True},
                     'target_kinetic_fluxes': {'_default': {}, '_updater': 'set', '_emit': True},
+                    'target_kinetic_bounds': {'_default': {}, '_updater': 'set', '_emit': True},
                 },
 
                 'enzyme_kinetics': {
@@ -313,12 +314,18 @@ class Metabolism(Step):
         unconstrained, constrained, uptake_constraints = self.get_import_constraints(
             unconstrained, constrained, GDCW_BASIS)
 
-        # used for comparing target and estimate between GD-FBA and LP-FBA
+
+        # below is used for comparing target and estimate between GD-FBA and LP-FBA, no effect on model
         objective_counts = {key: int((self.model.homeostatic_objective[key] / counts_to_molar).asNumber())
                             - int(states['metabolites'][key]) for key in fba.getHomeostaticTargetMolecules()}
 
         kinetic_targets = {self.model.kinetics_constrained_reactions[i]: int((targets[i] / (counts_to_molar*timestep)).asNumber())
                            for i in range(len(targets))}
+
+        target_kinetic_bounds = {
+            self.model.kinetics_constrained_reactions[i]: (int((lower_targets[i] / (counts_to_molar*timestep)).asNumber()),
+                                                           int((upper_targets[i] / (counts_to_molar*timestep)).asNumber()))
+            for i in range(len(targets))}
 
         fluxes = fba.getReactionFluxes() / timestep
         names = fba.getReactionIDs()
@@ -364,6 +371,7 @@ class Metabolism(Step):
                     'estimated_exchange_dmdt': {molecule: delta_nutrients[index]
                                                 for index, molecule in enumerate(fba.getExternalMoleculeIDs())},
                     'target_kinetic_fluxes': kinetic_targets,
+                    'target_kinetic_bounds': target_kinetic_bounds,
                 },
 
                 'enzyme_kinetics': {
