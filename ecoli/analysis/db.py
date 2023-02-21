@@ -16,7 +16,9 @@ from vivarium.core.emitter import (
 from vivarium.core.serialize import deserialize_value
 from vivarium.library.units import remove_units
 
-from ecoli.library.sim_data import LoadSimData
+from ecoli.analysis.centralCarbonMetabolismScatter import get_toya_flux_rxns
+from ecoli.library.sim_data import LoadSimData, SIM_DATA_PATH
+from wholecell.utils import toya
 
 
 def deserialize_and_remove_units(d):
@@ -357,6 +359,374 @@ def access_counts(experiment_id, monomer_names=None, mrna_names=None,
 
     # re-assemble data
     assembly = assemble_data(list(raw_data))
+
+    # restructure by time
+    data = {}
+    for datum in assembly.values():
+        time = datum['time']
+        datum = datum.copy()
+        datum.pop('_id', None)
+        datum.pop('time', None)
+        custom_deep_merge_check(
+            data,
+            {time: datum},
+            check_equality=True,
+            overwrite_none=True
+        )
+
+    return data
+
+
+def get_proteome_data(experiment_id, host='localhost', port=27017, cpus=1):
+    """Get monomer counts for all agents in a sim.
+    
+    Args:
+        experiment_id: Experiment ID for simulation
+        host: Host name of MongoDB
+        port: Port of MongoDB
+        cpus: Number of chunks to split aggregation into to be run in parallel
+    """
+    config = {
+        'host': f'{host}:{port}',
+        'database': 'simulations'
+    }
+    emitter = DatabaseEmitter(config)
+    db = emitter.db
+
+    aggregation = [
+        {'$match': {'experiment_id': experiment_id}},
+        {
+            '$project': {
+                'data.agents': {
+                    '$objectToArray': {
+                        # Add fail-safe for sims with no live agents
+                        '$ifNull': ['$data.agents', {}]
+                    }
+                },
+                'data.time': 1,
+                'assembly_id': 1,
+            }
+        },
+        {
+            '$project': {
+                'data.agents.v.listeners.monomer_counts': 1,
+                'data.agents.k': 1,
+                'data.time': 1,
+                'assembly_id': 1
+            }
+        },
+        {
+            '$project': {
+                'data.agents': {'$arrayToObject': '$data.agents'},
+                'data.time': 1,
+                'assembly_id': 1,
+            }
+        }
+    ]
+
+    if cpus > 1:
+        start_time = MinKey()
+        end_time = MaxKey()
+        chunks = get_data_chunks(
+            db.history, experiment_id, start_time, end_time, cpus)
+        aggregations = []
+        for chunk in chunks:
+            agg_chunk = copy.deepcopy(aggregation)
+            agg_chunk[0]['$match'] = {
+                'experiment_id': experiment_id,
+                '_id': {'$gte': chunk[0], '$lt': chunk[1]}
+            }
+            aggregations.append(agg_chunk)
+        partial_get_agg = partial(get_aggregation, host, port)
+        with ProcessPoolExecutor(cpus) as executor:
+            queried_chunks = executor.map(partial_get_agg, aggregations)
+        result = itertools.chain.from_iterable(queried_chunks)
+    else:
+        result = db.history.aggregate(
+            aggregation, 
+            hint={'experiment_id':1, 'data.time':1, '_id':1})
+    
+    # re-assemble data
+    assembly = assemble_data(list(result))
+
+    # restructure by time
+    data = {}
+    for datum in assembly.values():
+        time = datum['time']
+        datum = datum.copy()
+        datum.pop('_id', None)
+        datum.pop('time', None)
+        custom_deep_merge_check(
+            data,
+            {time: datum},
+            check_equality=True,
+            overwrite_none=True
+        )
+
+    return data
+
+
+def get_transcriptome_data(experiment_id, host='localhost', port=27017, cpus=1):
+    """Get mRNA counts for all agents in a sim.
+    
+    Args:
+        experiment_id: Experiment ID for simulation
+        host: Host name of MongoDB
+        port: Port of MongoDB
+        cpus: Number of chunks to split aggregation into to be run in parallel
+    """
+    config = {
+        'host': f'{host}:{port}',
+        'database': 'simulations'
+    }
+    emitter = DatabaseEmitter(config)
+    db = emitter.db
+
+    aggregation = [
+        {'$match': {'experiment_id': experiment_id}},
+        {
+            '$project': {
+                'data.agents': {
+                    '$objectToArray': {
+                        # Add fail-safe for sims with no live agents
+                        '$ifNull': ['$data.agents', {}]
+                    }
+                },
+                'data.time': 1,
+                'assembly_id': 1,
+            }
+        },
+        {
+            '$project': {
+                'data.agents.v.listeners.mRNA_counts': 1,
+                'data.agents.k': 1,
+                'data.time': 1,
+                'assembly_id': 1
+            }
+        },
+        {
+            '$project': {
+                'data.agents': {'$arrayToObject': '$data.agents'},
+                'data.time': 1,
+                'assembly_id': 1,
+            }
+        }
+    ]
+
+    if cpus > 1:
+        start_time = MinKey()
+        end_time = MaxKey()
+        chunks = get_data_chunks(
+            db.history, experiment_id, start_time, end_time, cpus)
+        aggregations = []
+        for chunk in chunks:
+            agg_chunk = copy.deepcopy(aggregation)
+            agg_chunk[0]['$match'] = {
+                'experiment_id': experiment_id,
+                '_id': {'$gte': chunk[0], '$lt': chunk[1]}
+            }
+            aggregations.append(agg_chunk)
+        partial_get_agg = partial(get_aggregation, host, port)
+        with ProcessPoolExecutor(cpus) as executor:
+            queried_chunks = executor.map(partial_get_agg, aggregations)
+        result = itertools.chain.from_iterable(queried_chunks)
+    else:
+        result = db.history.aggregate(
+            aggregation, 
+            hint={'experiment_id':1, 'data.time':1, '_id':1})
+    
+    # re-assemble data
+    assembly = assemble_data(list(result))
+
+    # restructure by time
+    data = {}
+    for datum in assembly.values():
+        time = datum['time']
+        datum = datum.copy()
+        datum.pop('_id', None)
+        datum.pop('time', None)
+        custom_deep_merge_check(
+            data,
+            {time: datum},
+            check_equality=True,
+            overwrite_none=True
+        )
+
+    return data
+
+
+def get_gene_expression_data(experiment_id, host='localhost', port=27017, cpus=1):
+    """Get expression events for each mRNAs at each timestep for each agent.
+    
+    Args:
+        experiment_id: Experiment ID for simulation
+        host: Host name of MongoDB
+        port: Port of MongoDB
+        cpus: Number of chunks to split aggregation into to be run in parallel
+    """
+    config = {
+        'host': f'{host}:{port}',
+        'database': 'simulations'
+    }
+    emitter = DatabaseEmitter(config)
+    db = emitter.db
+
+    aggregation = [
+        {'$match': {'experiment_id': experiment_id}},
+        {
+            '$project': {
+                'data.agents': {
+                    '$objectToArray': {
+                        # Add fail-safe for sims with no live agents
+                        '$ifNull': ['$data.agents', {}]
+                    }
+                },
+                'data.time': 1,
+                'assembly_id': 1,
+            }
+        },
+        {
+            '$project': {
+                'data.agents.v.listeners.transcript_elongation_listener.countRnaSynthesized': 1,
+                'data.agents.k': 1,
+                'data.time': 1,
+                'assembly_id': 1
+            }
+        },
+        {
+            '$project': {
+                'data.agents': {'$arrayToObject': '$data.agents'},
+                'data.time': 1,
+                'assembly_id': 1,
+            }
+        }
+    ]
+
+    if cpus > 1:
+        start_time = MinKey()
+        end_time = MaxKey()
+        chunks = get_data_chunks(
+            db.history, experiment_id, start_time, end_time, cpus)
+        aggregations = []
+        for chunk in chunks:
+            agg_chunk = copy.deepcopy(aggregation)
+            agg_chunk[0]['$match'] = {
+                'experiment_id': experiment_id,
+                '_id': {'$gte': chunk[0], '$lt': chunk[1]}
+            }
+            aggregations.append(agg_chunk)
+        partial_get_agg = partial(get_aggregation, host, port)
+        with ProcessPoolExecutor(cpus) as executor:
+            queried_chunks = executor.map(partial_get_agg, aggregations)
+        result = itertools.chain.from_iterable(queried_chunks)
+    else:
+        result = db.history.aggregate(
+            aggregation, 
+            hint={'experiment_id':1, 'data.time':1, '_id':1})
+    
+    # re-assemble data
+    assembly = assemble_data(list(result))
+
+    # restructure by time
+    data = {}
+    for datum in assembly.values():
+        time = datum['time']
+        datum = datum.copy()
+        datum.pop('_id', None)
+        datum.pop('time', None)
+        custom_deep_merge_check(
+            data,
+            {time: datum},
+            check_equality=True,
+            overwrite_none=True
+        )
+
+    return data
+
+
+def get_fluxome_data(experiment_id, host='localhost', port=27017, cpus=1):
+    """Get central carbon metabolism fluxes for all agents in a sim.
+    
+    Args:
+        experiment_id: Experiment ID for simulation
+        host: Host name of MongoDB
+        port: Port of MongoDB
+        cpus: Number of chunks to split aggregation into to be run in parallel
+    """
+    config = {
+        'host': f'{host}:{port}',
+        'database': 'simulations'
+    }
+    emitter = DatabaseEmitter(config)
+    db = emitter.db
+    
+    rxn_ids = get_toya_flux_rxns(SIM_DATA_PATH)
+    sim_rxn_indices = [int(i) for i in itertools.chain.from_iterable(list(rxn_ids.values()))]
+
+    aggregation = [
+        {'$match': {'experiment_id': experiment_id}},
+        {
+            '$project': {
+                'data.agents': {
+                    '$objectToArray': {
+                        # Add fail-safe for sims with no live agents
+                        '$ifNull': ['$data.agents', {}]
+                    }
+                },
+                'data.time': 1,
+                'data.fields': 1,
+                'data.dimensions': 1,
+                'assembly_id': 1,
+            }
+        }
+    ]
+    projection = {
+        '$project': {
+            f'data.agents.v.fluxome.{rxn_index}':
+                val_at_idx_in_path(
+                    rxn_index, 
+                    "data.agents.v.listeners.fba_results.reactionFluxes"
+                )
+            for rxn_index in sim_rxn_indices
+        }
+    }
+
+    projection['$project']['data.agents.k'] = 1
+    projection['$project']['data.time'] = 1
+    projection['$project']['assembly_id'] = 1
+    aggregation.append(projection)
+
+    final_projection = {'$project': {
+        'data.agents': {'$arrayToObject': '$data.agents'},
+        'data.time': 1,
+        'assembly_id': 1,
+    }}
+    aggregation.append(final_projection)
+
+    if cpus > 1:
+        start_time = MinKey()
+        end_time = MaxKey()
+        chunks = get_data_chunks(
+            db.history, experiment_id, start_time, end_time, cpus)
+        aggregations = []
+        for chunk in chunks:
+            agg_chunk = copy.deepcopy(aggregation)
+            agg_chunk[0]['$match'] = {
+                'experiment_id': experiment_id,
+                '_id': {'$gte': chunk[0], '$lt': chunk[1]}
+            }
+            aggregations.append(agg_chunk)
+        partial_get_agg = partial(get_aggregation, host, port)
+        with ProcessPoolExecutor(cpus) as executor:
+            queried_chunks = executor.map(partial_get_agg, aggregations)
+        result = itertools.chain.from_iterable(queried_chunks)
+    else:
+        result = db.history.aggregate(
+            aggregation, 
+            hint={'experiment_id':1, 'data.time':1, '_id':1})
+    
+    # re-assemble data
+    assembly = assemble_data(list(result))
 
     # restructure by time
     data = {}

@@ -16,7 +16,7 @@ from ecoli.analysis.antibiotics_colony.timeseries import plot_tag_snapshots
 from ecoli.library.cell_wall.hole_detection import detect_holes_skimage
 
 
-def plot_exp_growth_rate(data, metadata):
+def plot_exp_growth_rate(data, metadata, highlight_agent_id):
     grouped_agents = data.groupby(['Condition', 'Agent ID'])
     new_data = []
     for _, agent_data in grouped_agents:
@@ -69,7 +69,7 @@ def plot_exp_growth_rate(data, metadata):
         sns.despine(offset=0.1, trim=True, ax=ax)
         sns.despine(trim=True, ax=joint.ax_marg_x, left=True)
         sns.despine(trim=True, ax=joint.ax_marg_y, bottom=True)
-        ax.set_xlabel('Active ribosomes (mM)', size=8)
+        ax.set_xlabel('Active ribosomes (mM)', size=9)
         xticks = [5, 10, 15, 20, 25]
         ax.set_xticks(xticks, xticks, size=8)
         ax.legend().remove()
@@ -78,17 +78,17 @@ def plot_exp_growth_rate(data, metadata):
             for conc_idx, (conc, color) in enumerate(palette.items()):
                 ax.text(0.1, 0.8-0.1*conc_idx, conc, size=8,
                     transform=ax.transAxes, c=color)
-            ax.set_ylabel('Doubling rate (1/hr)', size=8)
+            ax.set_ylabel('Doubling rate (1/hr)', size=9)
             yticks = np.round(ax.get_yticks(), 1)
             ax.set_yticks(yticks, yticks, size=8)
             joint.ax_marg_x.set_title(r'$1^{\mathrm{st}}$ hr. post-tet.',
-                size=8, pad=2, weight='bold')
+                size=9, pad=2, weight='bold')
         else:
             sns.despine(ax=ax, left=True)
             ax.yaxis.set_visible(False)
             joint.ax_marg_x.set_title(r'$4^{\mathrm{th}}$ hr. post-tet.',
-                size=8, pad=2, weight='bold')
-        joint.figure.set_size_inches(1.4, 2)
+                size=9, pad=2, weight='bold')
+        joint.figure.set_size_inches(2.5, 2)
         plt.savefig(f'out/analysis/paper_figures/growth_rate_var_ribo_{i}.svg')
         plt.close()
 
@@ -103,14 +103,18 @@ def plot_exp_growth_rate(data, metadata):
         ['Glucose', 'Tetracycline (1.5 mg/L)']), :]
 
     # Set up custom divergent colormap
+    highlight_agent_ids = [highlight_agent_id[:i+1] for i  in range(len(highlight_agent_id))]
+    highlight_agent = {agent_id: {
+        'membrane_width': 0.5, 'membrane_color': (0, 0.4, 1)}
+        for agent_id in highlight_agent_ids}
     cmp = matplotlib.colors.LinearSegmentedColormap.from_list(
-        'divergent', [(0, 0.4, 1), (1, 1, 1), (0.678, 0, 0.125)])
+        'divergent', [(0.678, 0, 0.125), (1, 1, 1), (0, 0, 0)])
     norm = matplotlib.colors.Normalize(vmin=-2.5, vmax=2.5)
     fig = plot_tag_snapshots(
         data=data, metadata=metadata, tag_colors={fc_col: {
             'cmp': cmp, 'norm': norm}}, snapshot_times=np.array([
             3.2, 4.5, 5.8, 7.1]) * 3600, show_membrane=True,
-        return_fig=True, figsize=(6, 1.5))
+        return_fig=True, figsize=(6, 1.5), highlight_agent=highlight_agent)
     fig.axes[0].set_xticklabels(
         np.abs(np.round(fig.axes[0].get_xticks()/3600 - 11550/3600, 1)))
     fig.axes[0].set_xlabel('Hours after tetracycline addition')
@@ -174,7 +178,7 @@ def plot_ampc_phylo(data):
     data['AmpC conc'] = data.loc[:, 'AmpC monomer'] / (
         data.loc[:, 'Volume'] * 0.2) * COUNTS_PER_FL_TO_NANOMOLAR
     cmp = matplotlib.colors.LinearSegmentedColormap.from_list(
-        'blue', [(0, 0, 0), (0, 0.4, 1)])
+        'blue', [(0, 0, 0), (0, 0.4, 1), (1, 1, 1)])
     ampc_concs = data[['AmpC conc', 'Agent ID']].groupby(
         'Agent ID').mean().to_numpy()
     min_conc = ampc_concs.min()
@@ -191,8 +195,7 @@ def plot_ampc_phylo(data):
         nstyle['fgcolor'] = matplotlib.colors.to_hex(
             cmp(norm(agent_data.loc[node.name, 'AmpC conc'])))
         if node.name in dead_agents:
-            nstyle['bgcolor'] = 'Silver'
-            # nstyle['shape'] = 'square'
+            nstyle['bgcolor'] = 'Gainsboro'
         node.set_style(nstyle)
     tstyle.scale = 10
     tree.render('out/analysis/paper_figures/ampc_phylo.svg', tree_style=tstyle,
