@@ -7,6 +7,7 @@ import matplotlib
 import numpy as np
 import pandas as pd
 import seaborn as sns
+from scipy.stats import spearmanr
 from esda.moran import Moran
 from libpysal.weights import KNN, DistanceBand
 from splot.esda import plot_moran
@@ -126,6 +127,9 @@ def make_relatedness_vs_distance_plot(glc_data):
     sns.despine(ax=ax)
     plt.tight_layout()
 
+    r, p = spearmanr(df['Distance'], df['Relatedness'])
+    print(f'Relatedness vs distance: Spearman r = {r}, p = {p}')
+
     return fig, ax
 
 
@@ -225,11 +229,11 @@ def main():
     }
 
     # Plot relatedness vs. distance
-    # if options.verbose:
-    #         print("Plotting distance vs. relatedness:")
-    # fig, _ = make_relatedness_vs_distance_plot(glc_data)
-    # fig.set_size_inches(8, 6)
-    # fig.savefig(os.path.join(options.outdir, f"relatedness_vs_distance{ext}"))
+    if options.verbose:
+        print("Plotting distance vs. relatedness:")
+    fig, _ = make_relatedness_vs_distance_plot(glc_data)
+    fig.set_size_inches(8, 6)
+    fig.savefig(os.path.join(options.outdir, f"relatedness_vs_distance{ext}"))
 
     # Compute and plot spatial autocorrelations
     moran_results = {}
@@ -247,9 +251,9 @@ def main():
         fig.savefig(os.path.join(options.outdir, f"{col} Moran plot{ext}"))
 
     # Plot threshold param sweep
-    # fig, _ = make_threshold_sweep_plot(glc_data, column="OmpF monomer", to_conc=True)
-    # fig.set_size_inches(4, 4)
-    # fig.savefig(os.path.join(options.outdir, f"threshold_sweep{ext}"))
+    fig, _ = make_threshold_sweep_plot(glc_data, column="OmpF monomer", to_conc=True)
+    fig.set_size_inches(4, 4)
+    fig.savefig(os.path.join(options.outdir, f"threshold_sweep{ext}"))
     
     seed = glc_data.loc[:, 'Seed'].iloc[0]
     with open(os.path.join(options.outdir, f"Moran tests_{seed}.txt"), "w") as f:
