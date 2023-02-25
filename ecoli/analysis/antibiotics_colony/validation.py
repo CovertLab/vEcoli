@@ -143,7 +143,8 @@ def plot_synth_prob_fc(
     data: pd.DataFrame,
     ax: plt.Axes = None,
     genes_to_plot: List[str] = None,
-    filter: float = 0.0
+    filter: float = 0.0,
+    highlight_genes: List[str] = None,
 ) -> None:
     '''Plot scatter plot of simulated and experimental log2 fold change for
     synthesis probabilities of key genes regulated during tetracycline exposure.
@@ -157,6 +158,7 @@ def plot_synth_prob_fc(
         ax: Single instance of Matplotlib Axes to plot on.
         genes_to_plot: List of gene names to include in plot.
         filter: Minimum average instantaneous mRNA count that will still be plotted.
+        highlight_genes: List of gene names to plot as stars instead of circles
     '''
     data = data.loc[data.loc[:, 'Time'] <= MAX_TIME, :]
     data.loc[:, 'ompF mRNA'] += data.loc[:, 'micF-ompF duplex']
@@ -189,10 +191,14 @@ def plot_synth_prob_fc(
     mrna_counts = relative_data.loc[:, 'Avg. sim. mRNA'].sort_values().to_numpy()
     min_nonzero = mrna_counts[mrna_counts!=0][0]
     norm = matplotlib.colors.LogNorm(vmin=min_nonzero, vmax=mrna_counts[-1])
+    if highlight_genes is None:
+        highlight_genes = []
+    relative_data['Style'] = np.isin(relative_data['Gene'], highlight_genes)
     sns.scatterplot(data=relative_data,
         x='Literature RNA $\mathregular{log_2 FC}$',
         y='Sim. RNA synth. prob. $\mathregular{log_2 FC}$', ax=ax, hue='Avg. sim. mRNA',
-        hue_norm=norm, palette='binary', legend=False, edgecolor='k')
+        hue_norm=norm, palette='binary', legend=False, edgecolor='k',
+        style='Style', markers={True: '*', False: '.'}, s=200)
     min_fc = relative_data.loc[:, 'Literature RNA $\mathregular{log_2 FC}$'].min()
     max_fc = relative_data.loc[:, 'Literature RNA $\mathregular{log_2 FC}$'].max()
     validation_line = np.linspace(min_fc, max_fc, 2)
@@ -204,7 +210,8 @@ def plot_mrna_fc(
     data: pd.DataFrame,
     ax: plt.Axes = None,
     genes_to_plot: List[str] = None,
-    filter: float = 0.0
+    filter: float = 0.0,
+    highlight_genes: List[str] = None,
 ) -> None:
     '''Plot scatter plot of simulated and experimental log2 fold change for
     final mRNA concentrations of key genes regulated during tetracycline exposure.
@@ -216,6 +223,7 @@ def plot_mrna_fc(
             a control.
         genes_to_plot: List of gene names to include in plot.
         filter: Minimum average instantaneous mRNA count that will still be plotted.
+        highlight_genes: List of gene names to plot as stars instead of circles.
     '''
     data = data.loc[data.loc[:, 'Time'] <= MAX_TIME, :]
     data.loc[:, 'ompF mRNA'] += data.loc[:, 'micF-ompF duplex']
@@ -251,10 +259,15 @@ def plot_mrna_fc(
     mrna_counts = relative_data.loc[:, 'Avg. sim. mRNA'].sort_values().to_numpy()
     min_nonzero = mrna_counts[mrna_counts!=0][0]
     norm = matplotlib.colors.LogNorm(vmin=min_nonzero, vmax=mrna_counts[-1])
+
+    if highlight_genes is None:
+        highlight_genes = []
+    relative_data['Style'] = np.isin(relative_data['Gene'], highlight_genes)
     sns.scatterplot(data=relative_data,
         x='Literature RNA $\mathregular{log_2 FC}$',
         y='Sim. RNA $\mathregular{log_2 FC}$', ax=ax, hue='Avg. sim. mRNA',
-        hue_norm=norm, palette='binary', legend=False, edgecolor='k')
+        hue_norm=norm, palette='binary', legend=False, edgecolor='k',
+        style='Style', markers={True: '*', False: '.'}, s=200)
     sm = plt.cm.ScalarMappable(cmap='binary', norm=norm)
     sm.set_array([])
     ax.figure.colorbar(sm, ax=ax.figure.axes, pad=0.01,
@@ -417,10 +430,7 @@ def plot_death_timescale_analysis(
         mic: Minimum inhibitory concentration (uM, rounded to 3 decimal places)
     '''
     data['antibiotic_conc'] = np.round(data.loc[:, antibiotic_col] * 1000, 3)
-    # Remove data for truncated first generation of cells post-antibiotic addition
-    discard_ids = data.loc[data.loc[:, 'Time'] == 11550, 'Agent ID'].unique()
-    grouped_data = data.loc[~np.isin(data.loc[:, 'Agent ID'], discard_ids), :].groupby(
-        'Condition')
+    grouped_data = data.groupby('Condition')
     
     # Compile condition-specific lists of age of cell and total time that cell's
     # lineage was exposed to ampicillin at time of cracking and death
@@ -464,24 +474,6 @@ def plot_death_timescale_analysis(
     avg_gens = avg_gens[conc_sort_idx]
     axs[0].scatter(amp_concs, avg_gens, c=(0, 0.4, 1))
     axs[0].plot(amp_concs, avg_gens, c=(0, 0.4, 1))
-    # Calculate intercept with 1 generation to lysis
-    def calc_intercept(amp_concs, avg_gens):
-        slow_lysis_idx = np.where(avg_gens>1)[0][-1]
-        fast_lysis_idx = np.where(avg_gens<1)[0][0]
-        gen_0 = avg_gens[slow_lysis_idx]
-        gen_1 = avg_gens[fast_lysis_idx]
-        amp_0 = amp_concs[slow_lysis_idx]
-        amp_1 = amp_concs[fast_lysis_idx]
-        m = (gen_1 - gen_0) / (amp_1 - amp_0)
-        return amp_0 + (1 - gen_0) / m
-    liog = calc_intercept(amp_concs, avg_gens)
-    
-    # Calculate regression line and intercept with 1 generation to lysis
-    # best_fit = np.polynomial.Polynomial.fit(amp_concs, avg_gens, 1, window=(
-    #     min(amp_concs), max(amp_concs)))
-    # xx, yy = best_fit.linspace()
-    # axs[0].plot(xx, yy, c=(0, 0.4, 1))
-    # liog = np.polynomial.polynomial.polyroots((best_fit-1).coef)[0]
     
     # Plot Boman and Ericksson 1963 data (inc. reg. line)
     lit_data = pd.read_csv('data/sim_dfs/lysis_ratios.csv', header=None)
@@ -497,25 +489,11 @@ def plot_death_timescale_analysis(
     axs[0].plot(lit_data['Ampicillin (mg/L)'],
         lit_data['Avg. generations to lysis'],
         color=(0.5, 0.5, 0.5))
-    lit_liog = calc_intercept(lit_data['Ampicillin (mg/L)'],
-        lit_data['Avg. generations to lysis'])
-    # Calculate regression line and intercept with 1 generation to lysis
-    # best_fit = np.polynomial.Polynomial.fit(lit_data['Ampicillin (mg/L)'], 
-    #     lit_data['Avg. generations to lysis'], 1, window=(
-    #     min(lit_data['Ampicillin (mg/L)']), max(lit_data['Ampicillin (mg/L)'])))
-    # xx, yy = best_fit.linspace()
-    # axs[0].plot(xx, yy, c=(0, 0, 0))
-    # lit_liog = np.polynomial.polynomial.polyroots((best_fit-1).coef)[0]
-    
-    # axs[0].hlines(1, 0, 8, linestyles='dashed', colors=[
-    #     (0, 0, 0)], linewidths=1)
     axs[0].set_xlabel('Ampicillin (mg/L)', fontsize=9)
     axs[0].set_ylabel('Avg. generations to lysis', fontsize=9)
     axs[0].set_yticks([0, 1, 2, 3, 4], [0, 1, 2, 3, 4], fontsize=8)
     axs[0].set_xticks([0, 2, 4, 6, 8], [0, 2, 4, 6, 8], fontsize=8)
     ylim = axs[0].get_ylim()
-    # axs[0].vlines([liog, lit_liog], 0, ylim[1], linestyles='dashed', colors=[
-    #     (0, 0.4, 1, 1), (0.5, 0.5, 0.5)], linewidths=[1, 1])
     axs[0].text(8, ylim[1], 'Boman and Ericksson 1963', color=(0.5, 0.5, 0.5), size=8,
         verticalalignment='top', horizontalalignment='right')
     axs[0].text(8, ylim[1]-0.3, 'MIC: 4 mg/L', color=(0.5, 0.5, 0.5), size=8,
@@ -527,47 +505,4 @@ def plot_death_timescale_analysis(
     sns.despine(ax=axs[0], offset=3, trim=True)
     axs[0].set_yticks([0, 1, 2, 3, 4], [0, 1, 2, 3, 4], fontsize=8)
     axs[0].set_xticks([0, 2, 4, 6, 8], [0, 2, 4, 6, 8], fontsize=8)
-
-    # Plot histogram of cell age at time of death
-    # cmap = matplotlib.colormaps['Greys']
-    # antibiotic_min = data.loc[:, 'antibiotic_conc'].min()
-    # antibiotic_max = data.loc[:, 'antibiotic_conc'].max()
-    # norm = matplotlib.colors.Normalize(
-    #     vmin=1.5*antibiotic_min-0.5*antibiotic_max, vmax=antibiotic_max)
-    # antibiotic_concs = data.loc[:, 'antibiotic_conc'].unique()
-    # palette = {antibiotic_conc: cmap(norm(antibiotic_conc))
-    #     for antibiotic_conc in antibiotic_concs}
-    # palette[mic] = (0, 0.4, 1)
-    # death_df = {'External ampicillin (\u03BCM)': [], 'Age at death (min)': []}
-    # for condition, condition_data in death_times.items():
-    #     death_df['External ampicillin (\u03BCM)'].extend(
-    #         len(condition_data['age']) * [condition_data['amp']])
-    #     death_df['Age at death (min)'].extend(np.array(condition_data[
-    #         'age']) / 60)
-    # death_df = pd.DataFrame(death_df)
-    # death_ages = death_df.loc[:, 'Age at death (min)']
-    # death_ages[death_ages > 25] -= AVG_GEN_TIME / 60
-    # death_df['Minutes since division'] = death_ages
-    # sns.histplot(data=death_df, x='Minutes since division',
-    #     hue='External ampicillin (\u03BCM)', common_norm=False,
-    #     stat='density', ax=axs[1], legend=False, palette=palette,
-    #     multiple='stack', binwidth=5)
-    # axs[1].text(1, 1, f'Amp. (\u03BCM)',
-    #     transform=axs[1].transAxes, size=8,
-    #     horizontalalignment='right', verticalalignment='top')
-    # ypos = [0.9, 0.8, 0.7, 0.6, 0.5]
-    # concs = list(palette.keys())
-    # colors = list(palette.values())
-    # for i, y in enumerate(ypos):
-    #     axs[1].text(1, y, concs[i], c=colors[i],
-    #         transform=axs[1].transAxes, size=8,
-    #         horizontalalignment='right', verticalalignment='top')
-    # axs[1].legend().remove()
-    # axs[1].set_xlabel('Minutes since division', fontsize=9)
-    # axs[1].set_ylabel('Density', fontsize=9)
-    # axs[1].set_yticks([0, 0.1, 0.2, 0.3, 0.4],
-    #     [0, 0.1, 0.2, 0.3, 0.4], fontsize=8)
-    # xticks = np.arange(-30, 45, 15, dtype=int)
-    # axs[1].set_xticks(xticks, xticks, fontsize=8)
-    # sns.despine(ax=axs[1], offset=1, trim=True)
     plt.tight_layout()

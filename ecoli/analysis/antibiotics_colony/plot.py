@@ -10,7 +10,7 @@ from mpl_toolkits.axes_grid1 import anchored_artists
 import numpy as np
 import pandas as pd
 from scipy.constants import N_A
-from scipy.stats import pearsonr
+from scipy.stats import zscore, spearmanr
 from scipy.optimize import curve_fit
 import seaborn as sns
 import statsmodels.formula.api as smf
@@ -404,14 +404,14 @@ def make_figure_2e(data, metadata):
     title = snapshots_fig.axes[0].get_title()
     snapshots_fig.axes[0].set_title(title, pad=10, fontsize=12)
     plt.tight_layout()
-    plt.savefig(f'out/analysis/paper_figures/fig_2e_snapshot_relatedness_{seed}.svg',
+    plt.savefig(f'out/analysis/paper_figures/fig_2e_snapshot_agent_placement_{seed}.svg',
         bbox_inches='tight')
     plt.close()
 
     fig, ax = plt.subplots(figsize=(0.25, 2))
     fig.subplots_adjust(right=0.4)
     fig.colorbar(matplotlib.cm.ScalarMappable(norm=norm, cmap=cmap), cax=ax,
-        orientation='vertical', label='Relatedness')
+        orientation='vertical', label='Agent ID')
     ax.set_yticks([])
     ax.set_ylabel(ax.get_ylabel(), size=8)
     fig.savefig('out/analysis/paper_figures/fig_2e_cbar.svg')
@@ -487,17 +487,62 @@ def make_figure_2g(data, metadata):
     monomers = ['OmpF monomer', 'AmpC monomer', 'TolC monomer',
         'MarR monomer']
     data.loc[:, monomers] = (data.loc[:, monomers].divide(data.loc[:, 'Volume'],
-        axis=0) * COUNTS_PER_FL_TO_NANOMOLAR)
+        axis=0) * COUNTS_PER_FL_TO_NANOMOLAR/1000)
     avg_concs = data.loc[:, monomers + ['Agent ID']].groupby('Agent ID').mean()
-    import seaborn as sns
-    sns.pairplot(avg_concs, kind='reg')
+    new_colnames = {col: col+' (\u03BCM)' for col in monomers}
+    avg_concs.rename(columns=new_colnames, inplace=True)
+    g = sns.pairplot(avg_concs, kind='reg', corner=True)
     
-    combos = list(combinations(monomers, 2))
+    combos = list(combinations(new_colnames.values(), 2))
+    plot_xvars = np.array(g.x_vars)
+    plot_yvars = np.array(g.y_vars)
     for monomer_1, monomer_2 in combos:
-        r, p = pearsonr(avg_concs[monomer_1], avg_concs[monomer_2])
+        r, p = spearmanr(avg_concs[monomer_1], avg_concs[monomer_2])
         adj_p = p * len(combos)
+        adj_p = min(adj_p, 1)
+        x_idx = np.where(plot_xvars==monomer_1)[0][0]
+        y_idx = np.where(plot_yvars==monomer_2)[0][0]
+        if x_idx > y_idx:
+            x_idx = np.where(plot_xvars==monomer_2)[0][0]
+            y_idx = np.where(plot_yvars==monomer_1)[0][0]
+        ax = g.axes[y_idx, x_idx]
+        ax.text(s=f'r = {np.round(r, 2)}', y=1, x=1, ha='right', va='top',
+            transform=ax.transAxes)
+        if adj_p < 0.05:
+            ax.text(s=f'p = {np.format_float_scientific(adj_p, 1)}*', y=0.9, x=1,
+                ha='right', va='top', transform=ax.transAxes, weight='bold')
+        else:
+            ax.text(s=f'p = {np.format_float_scientific(adj_p, 1)}', y=0.9, x=1,
+                ha='right', va='top', transform=ax.transAxes)
         print(f'{monomer_1} vs. {monomer_2}: r = {r},'
             f' Bonferroni corrected p = {adj_p}')
+    plt.savefig('out/analysis/paper_figures/fig_2g_supp_protein_pairplot.svg')
+
+
+def make_figure_2h(data, metadata):
+    agent_data = data.groupby('Agent ID')
+    start_times = []
+    for agent_id, agent in agent_data:
+        # Exclude final generation of cells because we do not have all of their
+        # start times
+        if len(agent_id) > 9:
+            continue
+        start_times.append((len(agent_id), agent['Time'].min()))
+    start_times = pd.DataFrame(start_times)    
+    start_times.rename(columns={0:'Generation', 1:'Start time (s)'},
+        inplace=True)
+    std_start_times = start_times.groupby('Generation').std()
+    fig, ax = plt.subplots(figsize=(2, 2))
+    ax.scatter(std_start_times.index, std_start_times['Start time (s)'])
+    ax.set_xlabel('Generation', fontsize=9)
+    ax.set_ylabel('Birth time std. dev. (s)', fontsize=9)
+    ax.set_xticks(range(2,10), range(2,10), fontsize=8)
+    ax.set_yticks(range(0, 600, 100), range(0, 600, 100), fontsize=8)
+    sns.despine(ax=ax, trim=True, offset=3)
+    ax.set_xticks(range(2,10), range(2,10), fontsize=8)
+    ax.set_yticks(range(0, 600, 100), range(0, 600, 100), fontsize=8)
+    plt.savefig('out/analysis/paper_figures/fig_2h_birth_time_std_dev.svg')
+    
 
 
 def make_figure_3a(data, metadata):
@@ -666,8 +711,9 @@ def make_figure_3d(data, metadata):
 def make_figure_3e(data, metadata):
     genes_to_plot = DE_GENES.loc[:, 'Gene name']
     fig, axs = plt.subplots(1, 2, figsize=(7, 3))
-    plot_synth_prob_fc(data, axs[0], genes_to_plot, 0)
-    plot_mrna_fc(data, axs[1], genes_to_plot, 0)
+    genes = ['acrA', 'acrB', 'tolC']
+    plot_synth_prob_fc(data, axs[0], genes_to_plot, 0, highlight_genes=genes)
+    plot_mrna_fc(data, axs[1], genes_to_plot, 0, highlight_genes=genes)
     axs[0].set_yticks([0, 0.5, 1, 1.5])
     axs[1].spines['left'].set_bounds((-1, 1.5))
     axs[1].set_yticks([-1, -0.5, 0, 0.5, 1, 1.5])
@@ -884,6 +930,116 @@ def make_figure_3j(data, metadata):
     plt.savefig('out/analysis/paper_figures/acrab_tet_concs.svg', bbox_inches='tight')
     plt.close()
 
+    data['Cytoplasmic tetracycline'] *= 1000
+    data.rename(columns={'Cytoplasmic tetracycline':
+        'Cytoplasmic tetracycline (\u03BCM)'}, inplace=True)
+    tet_concs = data['External tet. (\u03BCM)'].unique()
+    for conc in tet_concs:
+        if conc == 0:
+            continue
+        fig, ax = plt.subplots(figsize=(3, 3))
+        conc_data = data.loc[data['External tet. (\u03BCM)']==conc, :]
+        conc_data = conc_data.loc[conc_data[
+            'Minutes after tetracycline addition'] > 2]
+        sns.lineplot(conc_data, x='Minutes after tetracycline addition',
+            y='Cytoplasmic tetracycline (\u03BCM)', errorbar='sd', ax=ax)
+        max_time = np.round((MAX_TIME - SPLIT_TIME)/60, 0)
+        ax.set_xlim(2, int(max_time))
+        xticks = ax.get_xticks()[:-1]
+        xticks = np.insert(xticks[xticks!=0], 0, 2)
+        xticks = np.append(xticks, int(max_time))
+        ax.set_xticks(xticks, xticks.astype(int))
+        plt.tight_layout()
+        sns.despine(ax=ax, trim=True, offset=3)
+        plt.savefig(f'out/analysis/paper_figures/tet_conc_{int(conc)}.svg', bbox_inches='tight')
+        plt.close()
+
+
+def make_figure_3k(data, metadata):
+    # Long-term positive feedback in growth inhibition
+    # Filter data to include glucose for first 11550 seconds and
+    # tetracycline data for remainder of simulation
+    long_transition_data = restrict_data(data)
+    long_term_columns = {
+        'Active RNAP': 0,
+        'mRNA mass': 1
+    }
+    # Convert RNAP count to uM using cytoplasmic volume
+    long_transition_data.loc[:, 'Active RNAP'] /= (
+        long_transition_data.loc[:, 'Volume'] * 0.8)
+    long_transition_data.loc[:, 'Active RNAP'] *= COUNTS_PER_FL_TO_NANOMOLAR/1000
+    fig, axes = plt.subplots(1, 2, figsize=(5, 1.5))
+    for column, ax_idx in long_term_columns.items():
+        plot_timeseries(
+            data=long_transition_data,
+            axes=[axes.flat[ax_idx]],
+            columns_to_plot={column: (0, 0.4, 1)},
+            highlight_lineage='0011111',
+            filter_time=False,
+            background_alpha=0.5,
+            background_linewidth=0.3)
+    split_hours = SPLIT_TIME/3600
+    rounded_split_hours = np.round(split_hours, 1)
+    for ax in axes.flat:
+        ylim = ax.get_ylim()
+        yticks = np.round(ylim, 0).astype(int)
+        ax.set_yticks(yticks, yticks, size=9)
+        # Mark hours since tetracycline addition
+        xlim = np.array(ax.get_xlim())
+        xticks = np.append(xlim, split_hours)
+        xtick_labels = np.trunc(xticks-split_hours).astype(int).tolist()
+        xtick_labels = [label if label!=int(-split_hours) else -rounded_split_hours 
+            for label in xtick_labels]
+        ax.set_xticks(ticks=xticks, labels=xtick_labels, size=9)
+        ax.set_xlabel(None)
+        ax.spines.bottom.set(bounds=(0, MAX_TIME/3600), linewidth=1,
+            visible=True, color=(0, 0, 0), alpha=1)
+        ylabel = ax.get_ylabel()
+        ax.set_ylabel(None)
+        ax.set_title(ylabel, size=9, pad=12)
+    axes.flat[0].set_ylabel('\u03BCM', size=9, labelpad=-6)
+    fig.supxlabel('Hours after tetracycline addition', size=9)
+    # Ensure that OmpF monomer plot starts at y = 0
+    for i in range(2):
+        y_max = np.round(axes.flat[i].get_ylim()[-1], 2)
+        new_yticks = [0, y_max]
+        axes.flat[i].set_yticks(new_yticks, new_yticks)
+        axes.flat[i].spines['left'].set_bounds(new_yticks)
+    axes.flat[-1].set_ylim(0, axes.flat[-1].get_ylim()[1])
+    new_yticks = [0, axes.flat[-1].get_yticks()[-1]]
+    axes.flat[-1].set_yticks(new_yticks, new_yticks)
+    axes.flat[-1].spines['left'].set_bounds(new_yticks)
+    # mRNA mass has units fg
+    axes[-1].set_ylabel('fg', size=9, labelpad=-6)
+    plt.tight_layout()
+    fig.subplots_adjust(left=0.08, right=0.99, top=0.8, bottom=0.3, wspace=0.35)
+    fig.savefig('out/analysis/paper_figures/fig_3k_tet_supp_feedback.svg')
+    plt.close()
+    print('Done with Figure 3K.')
+
+
+def make_figure_3l(data, metadata):
+    data = restrict_data(data)
+    data['Time'] -= SPLIT_TIME
+    column = 'Outer tet. permeability (cm/s)'
+    # Convert to nm / s for readability
+    data[column] /= 1e7
+
+    fig, ax = plt.subplots(figsize=(2,2))
+    plot_timeseries(
+        data=data,
+        axes=[ax],
+        columns_to_plot={column: (0, 0.4, 1)},
+        highlight_lineage='0011111',
+        filter_time=False,
+        background_alpha=0.5,
+        background_linewidth=0.3)
+    data[column].max() * 1e7
+    ax.set_ylabel('OM tet. perm. (nm/s)')
+    ax.set_xticks(np.append(ax.get_xticks(), 0), np.append(ax.get_xticks(), 0))
+    plt.savefig('out/analysis/paper_figures/tet_om_perm.svg', bbox_inches='tight')
+    plt.close()
+
 
 def make_figure_4a(data, metadata):
     fig, ax = plt.subplots(figsize=(2.1, 2.1))
@@ -958,6 +1114,79 @@ def make_figure_4d(data, metadata):
     plt.savefig('out/analysis/paper_figures/fig_4d_misc.svg')
     plt.close()
     print('Done with Figure 4D.')
+
+
+def make_figure_4e(data, metadata):
+    data = restrict_data(data)
+    data = data.loc[data.loc[:, 'Time']>=SPLIT_TIME, :]
+    protein_names = ['AmpC monomer', 'OmpF monomer', 'PBP1a complex',
+        'PBP1b gamma complex']
+    complex_names = ['AcrAB-TolC']
+
+    # Convert everything into uM
+    data[protein_names] = data[protein_names].divide(
+        data['Volume']*0.8, axis=0) * COUNTS_PER_FL_TO_NANOMOLAR/1000
+    data[complex_names] = data[complex_names].divide(
+        data['Volume']*0.2, axis=0) * COUNTS_PER_FL_TO_NANOMOLAR/1000
+    data['Periplasmic ampicillin'] *= 1000
+    agent_ids = data.loc[:, 'Agent ID'].unique()
+    final_agents = data.loc[data.loc[:, 'Time']==MAX_TIME, 'Agent ID'].unique()
+
+    # Return True if cell died
+    dead_dict = {}
+    def check_death(agent_id):
+        status = dead_dict.get(agent_id)
+        if status: 
+            return status
+        if agent_id + '0' not in agent_ids:
+            if agent_id not in final_agents:
+                dead_dict[agent_id] = True
+                return True
+        dead_dict[agent_id] = False
+        return False
+
+    data['Dead'] = data['Agent ID'].apply(check_death)
+    add_vars = ['Agent ID', 'Dead', 'Periplasmic ampicillin']
+    avg_data = data[protein_names + complex_names + add_vars].groupby(
+        'Agent ID').mean()
+    avg_data['Dead'] = avg_data['Dead'].astype(bool)
+    
+    rename_cols = {curr_name: curr_name + ' (\u03BCM)'
+        for curr_name in protein_names + complex_names}
+    rename_cols['Periplasmic ampicillin'] = 'Periplasmic ampicillin (\u03BCM)'
+    avg_data = avg_data.rename(columns=rename_cols)
+
+    fig, axs = plt.subplots(2, 3, sharey=True)
+    columns = protein_names + complex_names
+    for i, column in enumerate(columns):
+        column += ' (\u03BCM)'
+        plot_legend = False
+        if i == len(columns) - 1:
+            plot_legend = True
+        sns.scatterplot(avg_data, x=column,
+            y='Periplasmic ampicillin (\u03BCM)',
+            hue='Dead', ax=axs.flat[i], legend=plot_legend)
+        r, p = spearmanr(avg_data[column], avg_data[
+            'Periplasmic ampicillin (\u03BCM)'])
+        p = p * len(columns)
+        if p > 1:
+            p = 1
+        print(f'{column}: r = {r}, p = {p}')
+        sns.despine(ax=axs.flat[i])
+        axs.flat[i].text(s=f'r = {np.round(r, 2)}', y=1, x=1, ha='right', va='top',
+            transform=axs.flat[i].transAxes)
+        if p < 0.05:
+            axs.flat[i].text(s=f'p = {np.format_float_scientific(p, 1)}*', y=0.9, x=1,
+                ha='right', va='top', transform=axs.flat[i].transAxes, weight='bold')
+        else:
+            axs.flat[i].text(s=f'p = {np.format_float_scientific(p, 1)}', y=0.9, x=1,
+                ha='right', va='top', transform=axs.flat[i].transAxes)
+    plt.tight_layout()
+    sns.move_legend(axs.flat[-2], 'center right', bbox_to_anchor=(2.0, 0.5))
+    axs.flat[-1].remove()
+    plt.savefig('out/analysis/paper_figures/fig_4e_protein_amp_corr.svg')
+    plt.close()
+    print('Done with Figure 4E.')
 
 
 def load_pickles(experiment_ids):
@@ -1035,6 +1264,7 @@ def main():
         '2e': ['Glucose'],
         '2f': ['Glucose'],
         '2g': ['Glucose'],
+        '2h': ['Glucose'],
         '3a': ['Glucose', 'Tetracycline (0.5 mg/L)', 'Tetracycline (1 mg/L)',
             'Tetracycline (1.5 mg/L)', 'Tetracycline (2 mg/L)',
             'Tetracycline (4 mg/L)'],
@@ -1055,6 +1285,8 @@ def main():
         '3j': ['Glucose', 'Tetracycline (0.5 mg/L)', 'Tetracycline (1 mg/L)',
             'Tetracycline (1.5 mg/L)', 'Tetracycline (2 mg/L)',
             'Tetracycline (4 mg/L)'],
+        '3k': ['Glucose', 'Tetracycline (1.5 mg/L)'],
+        '3l': ['Glucose', 'Tetracycline (1.5 mg/L)'],
         '4a': ['Glucose', 'Ampicillin (0.5 mg/L)', 'Ampicillin (1 mg/L)',
             'Ampicillin (1.5 mg/L)', 'Ampicillin (2 mg/L)',
             'Ampicillin (4 mg/L)'],
@@ -1063,6 +1295,7 @@ def main():
         '4d': ['Ampicillin (0.5 mg/L)', 'Ampicillin (1 mg/L)',
             'Ampicillin (1.5 mg/L)', 'Ampicillin (2 mg/L)',
             'Ampicillin (4 mg/L)'],
+        '4e': ['Glucose', 'Ampicillin (2 mg/L)']
     }
     seeds = {
         '1a': [10000],
@@ -1074,6 +1307,7 @@ def main():
         '2e': [10000],
         '2f': [10000],
         '2g': [10000],
+        '2h': [10000],
         '3a': [0],
         '3b': [0],
         '3c': [0],
@@ -1084,10 +1318,13 @@ def main():
         '3h': [0],
         '3i': [0],
         '3j': [0],
+        '3k': [0],
+        '3l': [0],
         '4a': [0],
         '4b': [0],
         '4c': [0],
         '4d': [0],
+        '4e': [0],
     }
     if args.fig_ids is None:
         args.fig_ids = conditions.keys() - {'3f'}
