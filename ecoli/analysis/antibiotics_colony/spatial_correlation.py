@@ -40,7 +40,7 @@ def make_spatial_correlation_plot(glc_data, column, to_conc=False):
     location = data[["X", "Y"]].values
 
     # weights = KNN(location, k=2)
-    weights = DistanceBand(location, 50, alpha=-2.0, binary=False)
+    weights = DistanceBand(location, 3, alpha=-2.0, binary=False)
     moran = Moran(data[column], weights, permutations=9999)
 
     fig, ax = plot_moran(moran)
@@ -64,14 +64,22 @@ def make_threshold_sweep_plot(glc_data, column, to_conc=False):
 
     thresholds = np.linspace(0, 50, 50)
     i_values = []
+    max_i = 0
+    max_d = 0
     for d in thresholds:
         weights = DistanceBand(location, d, alpha=-2.0, binary=False)
         moran = Moran(data[column], weights, permutations=9999)
         i_values.append(moran.I)
+        if moran.I > max_i:
+            max_i = moran.I
+            max_d = d
 
     fig, ax = plt.subplots()
     ax.plot(thresholds, i_values)
     ax.set_ylim(0, 0.06)
+    ax.set_title(
+        f"I vs. distance threshold (max I attained at d={max_d})"
+    )
 
     return fig, ax
 
