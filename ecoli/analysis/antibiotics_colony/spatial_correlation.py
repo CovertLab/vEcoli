@@ -129,7 +129,7 @@ def make_relatedness_vs_distance_plot(glc_data):
         ax.scatter(upper_outliers, [int(relatedness_score)]*len(upper_outliers), s=4, c='k', marker='d')
         ax.scatter(lower_outliers, [int(relatedness_score)]*len(lower_outliers), s=4, c='k', marker='d')
     ax.set_xlabel('Distance (\u03BCm)', fontsize=9)
-    ax.set_ylabel('Relatedness', fontsize=9)
+    ax.set_ylabel('Phylogenetic distance', fontsize=9)
     ax.set_yticks([3,6,9,12,15,18], [3,6,9,12,15,18], fontsize=8)
     ax.set_xticks([0,5,10,15,20,25,30], [0,5,10,15,20,25,30], fontsize=8)
     sns.despine(ax=ax)
@@ -240,7 +240,7 @@ def main():
     if options.verbose:
         print("Plotting distance vs. relatedness:")
     fig, _ = make_relatedness_vs_distance_plot(glc_data)
-    fig.set_size_inches(8, 6)
+    fig.set_size_inches(3, 3)
     fig.savefig(os.path.join(options.outdir, f"relatedness_vs_distance{ext}"))
 
     # Compute and plot spatial autocorrelations
