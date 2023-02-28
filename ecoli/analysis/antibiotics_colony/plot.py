@@ -481,7 +481,7 @@ def make_figure_2f(data, metadata):
 
 
 def make_figure_2g(data, metadata):
-    # Perform linear regression on protein expression at final time point for
+    # Perform linear regression on average per-cell protein expression for
     # all possible pairs of the four antibiotic resistance genes
     data = restrict_data(data)
     monomers = ['OmpF monomer', 'AmpC monomer', 'TolC monomer',
@@ -533,7 +533,7 @@ def make_figure_2h(data, metadata):
         inplace=True)
     std_start_times = start_times.groupby('Generation').std()
     fig, ax = plt.subplots(figsize=(2, 2))
-    ax.scatter(std_start_times.index, std_start_times['Start time (s)'])
+    ax.scatter(std_start_times.index, std_start_times['Start time (s)'], c='k')
     ax.set_xlabel('Generation', fontsize=9)
     ax.set_ylabel('Birth time std. dev. (s)', fontsize=9)
     ax.set_xticks(range(2,10), range(2,10), fontsize=8)
@@ -541,8 +541,8 @@ def make_figure_2h(data, metadata):
     sns.despine(ax=ax, trim=True, offset=3)
     ax.set_xticks(range(2,10), range(2,10), fontsize=8)
     ax.set_yticks(range(0, 600, 100), range(0, 600, 100), fontsize=8)
-    plt.savefig('out/analysis/paper_figures/fig_2h_birth_time_std_dev.svg')
-    
+    plt.savefig('out/analysis/paper_figures/fig_2h_birth_time_std_dev.svg',
+        bbox_inches='tight')
 
 
 def make_figure_3a(data, metadata):
@@ -907,17 +907,28 @@ def make_figure_3i(data, metadata):
 
 def make_figure_3j(data, metadata):
     data['AcrAB-TolC (\u03BCM)'] = (data['AcrAB-TolC'] / (
-        data['Volume'] * 0.2) * COUNTS_PER_FL_TO_NANOMOLAR * 1000)
+        data['Volume'] * 0.2) * COUNTS_PER_FL_TO_NANOMOLAR / 1000)
     data['Time'] -= SPLIT_TIME
     data['Time'] /= 60
     data['Initial external tet.'] *= 1000
     data = data.rename(columns={
         'Time': 'Minutes after tetracycline addition',
         'Initial external tet.': 'External tet. (\u03BCM)'})
+
+    cmap = matplotlib.colormaps['Greys']
+    antibiotic_min = data.loc[:, 'External tet. (\u03BCM)'].min()
+    antibiotic_max = data.loc[:, 'External tet. (\u03BCM)'].max()
+    norm = matplotlib.colors.Normalize(
+        vmin=1.5*antibiotic_min-0.5*antibiotic_max, vmax=antibiotic_max)
+    antibiotic_concs = data.loc[:, 'External tet. (\u03BCM)'].unique()
+    palette = {antibiotic_conc: cmap(norm(antibiotic_conc))
+        for antibiotic_conc in antibiotic_concs}
+    palette[3.375] = (0, 0.4, 1)
+
     fig, ax = plt.subplots(figsize=(3, 3))
     sns.lineplot(data, x='Minutes after tetracycline addition',
         y='AcrAB-TolC (\u03BCM)', hue='External tet. (\u03BCM)',
-        errorbar='sd', ax=ax)
+        ax=ax, palette=palette, errorbar=None)
     max_time = np.round((MAX_TIME - SPLIT_TIME)/60, 0)
     ax.set_xlim(2, int(max_time))
     xticks = ax.get_xticks()[:-1]
@@ -925,34 +936,60 @@ def make_figure_3j(data, metadata):
     xticks = np.append(xticks, int(max_time))
     ax.set_xticks(xticks, xticks.astype(int))
     plt.tight_layout()
-    ax.legend(bbox_to_anchor=(1.1, 1))
+    ax.legend(bbox_to_anchor=(1.1, 1), title='Ext. tet. (\u03BCM)')
     sns.despine(ax=ax, trim=True, offset=3)
     plt.savefig('out/analysis/paper_figures/acrab_tet_concs.svg', bbox_inches='tight')
     plt.close()
 
     data['Cytoplasmic tetracycline'] *= 1000
     data.rename(columns={'Cytoplasmic tetracycline':
-        'Cytoplasmic tetracycline (\u03BCM)'}, inplace=True)
-    tet_concs = data['External tet. (\u03BCM)'].unique()
-    for conc in tet_concs:
-        if conc == 0:
-            continue
-        fig, ax = plt.subplots(figsize=(3, 3))
-        conc_data = data.loc[data['External tet. (\u03BCM)']==conc, :]
-        conc_data = conc_data.loc[conc_data[
-            'Minutes after tetracycline addition'] > 2]
-        sns.lineplot(conc_data, x='Minutes after tetracycline addition',
-            y='Cytoplasmic tetracycline (\u03BCM)', errorbar='sd', ax=ax)
-        max_time = np.round((MAX_TIME - SPLIT_TIME)/60, 0)
-        ax.set_xlim(2, int(max_time))
-        xticks = ax.get_xticks()[:-1]
-        xticks = np.insert(xticks[xticks!=0], 0, 2)
-        xticks = np.append(xticks, int(max_time))
-        ax.set_xticks(xticks, xticks.astype(int))
-        plt.tight_layout()
-        sns.despine(ax=ax, trim=True, offset=3)
-        plt.savefig(f'out/analysis/paper_figures/tet_conc_{int(conc)}.svg', bbox_inches='tight')
-        plt.close()
+        'Cytoplasmic tetracycline (\u03BCM)',
+        'Periplasmic tetracycline':
+        'Periplasmic tetracycline (\u03BCM)'}, inplace=True)
+    
+    tet_data = data.loc[data[
+        'Minutes after tetracycline addition']>=2, [
+        'External tet. (\u03BCM)',
+        'Cytoplasmic tetracycline (\u03BCM)',
+        'Periplasmic tetracycline (\u03BCM)',
+        'Minutes after tetracycline addition']]
+    initial_steady_tet = tet_data.loc[tet_data[
+        'Minutes after tetracycline addition']==2,:].groupby(
+            'External tet. (\u03BCM)').mean()
+    tet_data = (tet_data.set_index('External tet. (\u03BCM)')
+        - initial_steady_tet).reset_index()
+
+    fig, ax = plt.subplots(figsize=(3, 3))
+    sns.lineplot(tet_data, x='Minutes after tetracycline addition',
+        y='Cytoplasmic tetracycline (\u03BCM)', ax=ax, hue='External tet. (\u03BCM)',
+        palette=palette, errorbar=None, legend=None)
+    max_time = np.round((MAX_TIME - SPLIT_TIME)/60, 0)
+    ax.set_xlim(2, int(max_time))
+    xticks = ax.get_xticks()[:-1]
+    xticks = np.insert(xticks[xticks!=0], 0, 2)
+    xticks = np.append(xticks, int(max_time))
+    ax.set_xticks(xticks, xticks.astype(int))
+    ax.set_ylabel('Increase in cyto. tet. (\u03BCM)')
+    plt.tight_layout()
+    sns.despine(ax=ax, trim=True, offset=3)
+    plt.savefig(f'out/analysis/paper_figures/tet_conc_cyto.svg', bbox_inches='tight')
+    plt.close()
+
+    fig, ax = plt.subplots(figsize=(3, 3))
+    sns.lineplot(tet_data, x='Minutes after tetracycline addition',
+        y='Periplasmic tetracycline (\u03BCM)', ax=ax, hue='External tet. (\u03BCM)',
+        palette=palette, errorbar=None, legend=None)
+    max_time = np.round((MAX_TIME - SPLIT_TIME)/60, 0)
+    ax.set_xlim(2, int(max_time))
+    xticks = ax.get_xticks()[:-1]
+    xticks = np.insert(xticks[xticks!=0], 0, 2)
+    xticks = np.append(xticks, int(max_time))
+    ax.set_xticks(xticks, xticks.astype(int))
+    ax.set_ylabel('Increase in peri. tet. (\u03BCM)')
+    plt.tight_layout()
+    sns.despine(ax=ax, trim=True, offset=3)
+    plt.savefig(f'out/analysis/paper_figures/tet_conc_peri.svg', bbox_inches='tight')
+    plt.close()
 
 
 def make_figure_3k(data, metadata):
@@ -1188,6 +1225,10 @@ def make_figure_4e(data, metadata):
     plt.close()
     print('Done with Figure 4E.')
 
+
+def make_figure_4f(data, metadata):
+    # Run ANOVA to figure out the per feature contribution to death
+    return
 
 def load_pickles(experiment_ids):
     data = []
