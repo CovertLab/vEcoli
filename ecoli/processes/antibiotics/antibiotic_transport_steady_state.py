@@ -112,7 +112,7 @@ UNITS = {
 # Cache these values so no additional units conversions are necessary
 FARADAY = param_store.get(('faraday_constant',)).to(
     units.C / units.mol)
-OUTER_POTENTIAL = param_store.get(('donnan_potential',)).to(units.V)
+OUTER_POTENTIAL = param_store.get(('outer_potential',)).to(units.V)
 INNER_POTENTIAL = param_store.get(('inner_potential',)).to(units.V)
 GAS_CONSTANT = param_store.get(('gas_constant',)).to(
     units.J / units.mol / units.K)
