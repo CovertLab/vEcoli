@@ -23,6 +23,9 @@ jobs:
           pip install -r requirements.txt
           python setup.py install
           pip install -r doc/requirements.txt
+      - name: Compile Cython components
+        run: |
+          make clean compile
       - name: Build documentation
         run: |
           cd doc
