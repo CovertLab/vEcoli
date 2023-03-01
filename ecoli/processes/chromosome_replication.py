@@ -291,7 +291,7 @@ class ChromosomeReplication(PartitionedProcess):
             # the right replichore, and one on the left.
             coordinates_replisome = np.zeros(n_new_replisome, dtype=np.int64)
             right_replichore = np.tile(
-                np.array([True, False], dtype=np.bool), n_oriC)
+                np.array([True, False], dtype=np.bool_), n_oriC)
             right_replichore = right_replichore.tolist()
             domain_index_new_replisome = np.repeat(
                 domain_index_existing_oric, 2)
@@ -440,7 +440,7 @@ class ChromosomeReplication(PartitionedProcess):
                 ['domain_index'])
 
             # Initialize array of replisomes that should be deleted
-            replisomes_to_delete = np.zeros_like(domain_index_replisome, dtype=np.bool)
+            replisomes_to_delete = np.zeros_like(domain_index_replisome, dtype=np.bool_)
 
             # Count number of new full chromosomes that should be created
             n_new_chromosomes = 0

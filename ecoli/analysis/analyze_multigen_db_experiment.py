@@ -1,13 +1,14 @@
 import argparse
+from concurrent.futures import ProcessPoolExecutor
 
-from vivarium.core.serialize import deserialize_value
+from tqdm import tqdm
+from bson import MinKey, MaxKey
 from vivarium.plots.agents_multigen import plot_agents_multigen
-from vivarium.library.topology import (
-    get_in, assoc_path, convert_path_style)
-from vivarium.library.units import remove_units
+from vivarium.library.topology import convert_path_style
 
 from ecoli.analysis.db import access, get_agent_ids
 from ecoli.analysis.analyze_db_experiment import OUT_DIR
+from ecoli.analysis.snapshots_video import deserialize_and_remove_units
 
 AGENTS_PATH = ('agents',)
 SKIP_PATHS = [
@@ -32,6 +33,12 @@ def main():
         '--agent', '-a', type=str, nargs='*', default=[])
     parser.add_argument(
         '--sampling_rate', '-r', type=int, default=1)
+    parser.add_argument(
+        '--start_time', '-s', type=int, default=MinKey())
+    parser.add_argument(
+        '--end_time', '-e', type=int, default=MaxKey())
+    parser.add_argument(
+        '--cpus', '-c', type=int, default=1)
     args = parser.parse_args()
 
     agents = get_agent_ids(
@@ -51,9 +58,13 @@ def main():
     # Retrieve all simulation data.
     data, experiment_id, sim_config = access(
         args.experiment_id, query=query, host=args.host, port=args.port,
-        sampling_rate=args.sampling_rate)
-    data = deserialize_value(data)
-    data = remove_units(data)
+        sampling_rate=args.sampling_rate, start_time=args.start_time,
+        end_time=args.end_time, cpus=args.cpus)
+    
+    with ProcessPoolExecutor() as executor:
+        data_deserialized = list(tqdm(executor.map(
+            deserialize_and_remove_units, data.values()), total=len(data)))
+    data = dict(zip(data.keys(), data_deserialized))
 
     plot_agents_multigen(
         data,

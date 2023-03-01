@@ -48,7 +48,7 @@ class RnaInterference(Step):
         self.binding_probs = self.parameters['binding_probs']
         self.ribosome30S = self.parameters['ribosome30S']
         self.ribosome50S = self.parameters['ribosome50S']
-        self.duplex_ids = self.parameters['duplex_ids']
+        self.duplex_ids = list(self.parameters['duplex_ids'])
         self.bulk_rna_ids = self.srna_ids + self.duplex_ids
         self.random_state = np.random.RandomState(seed = self.parameters['seed'])
     

@@ -220,7 +220,7 @@ class RnaDegradation(PartitionedProcess):
             self.ribosome50S]
         bulk_RNA_counts[[self.rrlaIdx, self.rrfaIdx, self.rrsaIdx]] \
             += len(states['active_ribosome'])
-        bulk_RNA_counts[self.is_tRNA.astype(np.bool)] \
+        bulk_RNA_counts[self.is_tRNA.astype(np.bool_)] \
             += array_from(states['charged_trna'])
 
         TU_index, can_translate, is_full_transcript = arrays_from(

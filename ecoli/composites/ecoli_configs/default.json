@@ -26,6 +26,7 @@
     "daughter_path": [],
     "agents_path": ["..", "..", "agents"],
     "division_threshold": "massDistribution",
+    "division_variable": ["listeners", "mass", "dry_mass"],
     "divide": false,
     "spatial_environment": false,
     "spatial_environment_config": {},

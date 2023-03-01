@@ -473,7 +473,7 @@ class PolypeptideElongation(PartitionedProcess):
 
         update['monomers'] = {}
         for index, count in enumerate(terminatedProteins):
-            update['monomers'][self.proteinIds[index]] = count
+            update['monomers'][str(self.proteinIds[index])] = count
 
         nTerminated = didTerminate.sum()
         nInitialized = didInitialize.sum()

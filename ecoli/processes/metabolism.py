@@ -21,7 +21,6 @@ from six.moves import zip
 from vivarium.core.process import Step
 
 from ecoli.processes.registries import topology_registry
-from ecoli.processes.partition import check_whether_evolvers_have_run
 from ecoli.library.schema import bulk_schema, array_from
 from wholecell.utils import units
 from wholecell.utils.random import stochasticRound
@@ -162,7 +161,7 @@ class Metabolism(Step):
                     '_default': '',
                     '_updater': 'set'},
                 'exchange': {
-                    element: {'_default': 0}
+                    str(element): {'_default': 0}
                     for element in self.model.fba.getExternalMoleculeIDs()},
                 'exchange_data': {
                     'unconstrained': {'_default': []},
@@ -228,8 +227,7 @@ class Metabolism(Step):
         return ports
 
     def update_condition(self, timestep, states):
-        return check_whether_evolvers_have_run(
-            states['evolvers_ran'], self.name)
+        return states['evolvers_ran']
 
     def next_update(self, timestep, states):
         # Skip t=0 if a deriver
@@ -328,16 +326,16 @@ class Metabolism(Step):
         fluxes = fba.getReactionFluxes() / timestep
         names = fba.getReactionIDs()
 
-        flux_dict = {names[i]: fluxes[i] for i in range(len(names))}
+        flux_dict = {str(names[i]): fluxes[i] for i in range(len(names))}
 
         update = {
             'metabolites': {
-                metabolite: delta_metabolites_final[index]
+                str(metabolite): delta_metabolites_final[index]
                 for index, metabolite in enumerate(self.model.metaboliteNamesFromNutrients)},
 
             'environment': {
                 'exchange': {
-                    molecule: delta_nutrients[index]
+                    str(molecule): delta_nutrients[index]
                     for index, molecule in enumerate(fba.getExternalMoleculeIDs())}},
 
             'listeners': {
@@ -351,22 +349,25 @@ class Metabolism(Step):
                     'constrained_molecules': constrained,
                     'uptake_constraints': uptake_constraints,
                     'deltaMetabolites': delta_metabolites_final,
+                    # 104 KB, quite large, comment out to reduce emit size
                     'reactionFluxes': fba.getReactionFluxes() / timestep,
                     'externalExchangeFluxes': converted_exchange_fluxes,
                     'objectiveValue': fba.getObjectiveValue(),
                     'shadowPrices': fba.getShadowPrices(self.model.metaboliteNamesFromNutrients),
+                    # 104 KB, quite large, comment out to reduce emit size
                     'reducedCosts': fba.getReducedCosts(fba.getReactionIDs()),
                     'targetConcentrations': [
                         self.model.homeostatic_objective[mol]
                         for mol in fba.getHomeostaticTargetMolecules()],
                     'homeostaticObjectiveValues': fba.getHomeostaticObjectiveValues(),
                     'kineticObjectiveValues': fba.getKineticObjectiveValues(),
-
+                    
+                    # Quite large, comment out to reduce emit size
                     'estimated_fluxes': flux_dict ,
-                    'estimated_dmdt': {metabolite: delta_metabolites_final[index]
+                    'estimated_dmdt': {str(metabolite): delta_metabolites_final[index]
                                        for index, metabolite in enumerate(self.model.metaboliteNamesFromNutrients)},
                     'target_dmdt': objective_counts,
-                    'estimated_exchange_dmdt': {molecule: delta_nutrients[index]
+                    'estimated_exchange_dmdt': {str(molecule): delta_nutrients[index]
                                                 for index, molecule in enumerate(fba.getExternalMoleculeIDs())},
                 },
 

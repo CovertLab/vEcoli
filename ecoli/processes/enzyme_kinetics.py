@@ -104,7 +104,7 @@ class EnzymeKinetics(Process):
         schema = {
             'bulk': bulk_schema(self.molecules_ids),  # metabolites and catalysts
             'fluxes': {
-                rxn_id: {
+                str(rxn_id): {
                     '_default': 0.0,
                     '_updater': 'set',
                 } for rxn_id in self.kinetic_rate_laws.reaction_ids

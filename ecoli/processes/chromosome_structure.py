@@ -14,7 +14,6 @@ import numpy as np
 from vivarium.core.process import Step
 
 from ecoli.processes.registries import topology_registry
-from ecoli.processes.partition import check_whether_evolvers_have_run
 from ecoli.library.schema import (
     add_elements, arrays_from, bulk_schema, create_unique_indexes,
     arrays_to, array_to, dict_value_schema, listener_schema)
@@ -161,10 +160,6 @@ class ChromosomeStructure(Step):
 
         return ports
 
-    def update_condition(self, timestep, states):
-        return check_whether_evolvers_have_run(
-            states['evolvers_ran'], self.name)
-
     def next_update(self, timestep, states):
         # Skip t=0 if a deriver
         if self.first_update:
@@ -212,7 +207,7 @@ class ChromosomeStructure(Step):
             Computes the boolean mask of unique molecules that should be
             removed based on the progression of the replication forks.
             """
-            mask = np.zeros_like(domain_indexes, dtype=np.bool)
+            mask = np.zeros_like(domain_indexes, dtype=np.bool_)
 
             # Loop through all domains
             for domain_index in np.unique(domain_indexes):
@@ -404,7 +399,7 @@ class ChromosomeStructure(Step):
             n_segments, {
                 'unique_index': np.arange(
                     self.chromosome_segment_index, self.chromosome_segment_index +
-                    n_segments),
+                    n_segments).tolist(),
                 'boundary_molecule_indexes': all_new_boundary_molecule_indexes,
                 'boundary_coordinates': all_new_boundary_coordinates,
                 'domain_index': all_new_segment_domain_indexes,
@@ -553,11 +548,11 @@ class ChromosomeStructure(Step):
                 n_new_promoters, self.random_state)
             new_promoters = arrays_to(
                 n_new_promoters, {
-                    'unique_index': np.array(promoter_indices),
+                    'unique_index': promoter_indices,
                     'TU_index': promoter_TU_indexes_new,
                     'coordinates': promoter_coordinates_new,
                     'domain_index': promoter_domain_indexes_new,
-                    'bound_TF': np.zeros((n_new_promoters, self.n_TFs), dtype=np.bool).tolist()})
+                    'bound_TF': np.zeros((n_new_promoters, self.n_TFs), dtype=np.bool_).tolist()})
             update['promoters'].update(add_elements(
                 new_promoters, 'unique_index'))
 
@@ -584,10 +579,10 @@ class ChromosomeStructure(Step):
                 n_new_DnaA_boxes, self.random_state)
             new_DnaA_boxes = arrays_to(
                 n_new_DnaA_boxes, {
-                    'unique_index': np.array(DnaA_box_indices),
+                    'unique_index': DnaA_box_indices,
                     'coordinates': DnaA_box_coordinates_new,
                     'domain_index': DnaA_box_domain_indexes_new,
-                    'DnaA_bound': np.zeros(n_new_DnaA_boxes, dtype=np.bool).tolist()})
+                    'DnaA_bound': np.zeros(n_new_DnaA_boxes, dtype=np.bool_).tolist()})
             update['DnaA_boxes'].update(add_elements(
                 new_DnaA_boxes, 'unique_index'))
 

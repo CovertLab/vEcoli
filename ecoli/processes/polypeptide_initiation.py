@@ -237,7 +237,6 @@ class PolypeptideInitiation(PartitionedProcess):
         # Create active 70S ribosomes and assign their attributes
         ribosome_indices = create_unique_indexes(
             n_ribosomes_to_activate, self.random_state)
-        ribosome_indices = np.array(ribosome_indices)
         new_ribosomes = arrays_to(
             n_ribosomes_to_activate, {
                 'unique_index': ribosome_indices,

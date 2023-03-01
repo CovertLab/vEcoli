@@ -7,7 +7,7 @@ from ecoli.library.schema import array_from, key_array_from
 from ecoli.composites.ecoli_nonpartition import run_ecoli
 
 from ecoli.analysis.tablereader_utils import (
-    warn_incomplete, replace_scalars, replace_scalars_2d, camel_case_to_underscored)
+    replace_scalars, replace_scalars_2d, camel_case_to_underscored)
 
 ANY_STRING = (bytes, str)
 
@@ -21,21 +21,21 @@ MAPPING = {
         'objectNames': ("bulk", key_array_from),
     },
     'EnzymeKinetics': {
-        'actualFluxes': None,
-        'metaboliteCountsFinal': None,
-        'targetFluxesLower': None,
-        'metaboliteCountsInit': None,
-        'targetFluxesUpper': None,
-        'countsToMolar': None,
+        'actualFluxes': ('listeners', 'enzyme_kinetics', 'actualFluxes'),
+        'metaboliteCountsFinal': ('listeners', 'enzyme_kinetics', 'metaboliteCountsFinal'),
+        'targetFluxesLower': ('listeners', 'enzyme_kinetics', 'targetFluxesLower'),
+        'metaboliteCountsInit': ('listeners', 'enzyme_kinetics', 'metaboliteCountsInit'),
+        'targetFluxesUpper': ('listeners', 'enzyme_kinetics', 'targetFluxesUpper'),
+        'countsToMolar': ('listeners', 'enzyme_kinetics', 'countsToMolar'),
         'simulationStep': None,
         'time': ('time', ),
-        'enzymeCountsInit': None,
-        'targetFluxes': None,
+        'enzymeCountsInit': ('listeners', 'enzyme_kinetics', 'enzymeCountsInit'),
+        'targetFluxes': ('listeners', 'enzyme_kinetics', 'targetFluxes'),
         'attributes': None
     },
     'GrowthLimits': {
         'aaAllocated': None,
-        'aasUsed': None,
+        'aasUsed': ('listeners', 'growth_limits', 'aasUsed'),
         'ntpRequestSize': None,
         'aaPoolSize': None,
         'activeRibosomeAllocated': None,
@@ -46,7 +46,7 @@ MAPPING = {
         'fraction_trna_charged': None,
         'simulationStep': None,
         'aa_supply_aa_conc': None,
-        'net_charged': ('listeners', 'growth_limits', warn_incomplete),
+        'net_charged': ('listeners', 'growth_limits', 'net_charged', replace_scalars),
         'spot_deg': None,
         'aa_supply_enzymes': None,
         'ntpAllocated': None,
@@ -69,12 +69,14 @@ MAPPING = {
         'active_rnap_domain_indexes': None,
         'active_rnap_n_bound_ribosomes': None,
         'active_rnap_unique_indexes': None,
-        'actualElongations': None,
-        'codirectional_collision_coordinates': None,
-        'didInitialize': None,
-        'didStall': None,
-        'didTerminate': None,
-        'headon_collision_coordinates': None,
+        'actualElongations': ('listeners', 'rnap_data', 'actualElongations'),
+        'codirectional_collision_coordinates': (
+            'listeners', 'rnap_data', 'codirectional_collision_coordinates', replace_scalars),
+        'didInitialize': ('listeners', 'rnap_data', 'didInitialize'),
+        'didStall': ('listeners', 'rnap_data', 'didStall'),
+        'didTerminate': ('listeners', 'rnap_data', 'didTerminate'),
+        'headon_collision_coordinates': (
+            'listeners', 'rnap_data', 'headon_collision_coordinates', replace_scalars),
         'n_codirectional_collisions': None,
         'n_headon_collisions': None,
         'n_removed_ribosomes': None,
@@ -92,13 +94,13 @@ MAPPING = {
         'attributes': None
     },
     'ComplexationListener': {
-        'complexationEvents': None,
+        'complexationEvents': ('listeners', 'complexation_events', replace_scalars),
         'simulationStep': None,
         'time': ('time', ),
         'attributes': None
     },
     'EquilibriumListener': {
-        'reactionRates': ('listeners', 'equilibrium_listener', warn_incomplete),
+        'reactionRates': ('listeners', 'equilibrium_listener', 'reaction_rates', replace_scalars),
         'simulationStep': None,
         'time': ('time', ),
         'attributes': None
@@ -111,27 +113,28 @@ MAPPING = {
     'ReplicationData': {
         'fork_coordinates': None,
         'free_DnaA_boxes': None,
-        'criticalInitiationMass': None,
+        'criticalInitiationMass': ('listeners', 'replication_data', 'criticalInitiationMass'),
         'fork_domains': None,
         'numberOfOric': None,
-        'criticalMassPerOriC': None,
+        'criticalMassPerOriC': ('listeners', 'replication_data', 'criticalInitMassPerOriC'),
         'fork_unique_index': None,
         'total_DnaA_boxes': None,
         'attributes': {}
     },
     'RnaSynthProb': {
-        'nActualBound': None,
+        'nActualBound': ('listeners', 'rna_synth_prob', 'nActualBound', replace_scalars),
         'rnaSynthProb': ('listeners', 'rna_synth_prob', 'rna_synth_prob', replace_scalars),
         'bound_TF_coordinates': None,
-        'n_available_promoters': None,
+        'n_available_promoters': (
+            'listeners', 'rna_synth_prob', 'n_available_promoters', replace_scalars),
         'simulationStep': None,
         'bound_TF_domains': None,
         'n_bound_TF_per_TU': ('listeners', 'rna_synth_prob', 'n_bound_TF_per_TU', replace_scalars_2d),
         'time': ('time', ),
         'bound_TF_indexes': None,
-        'nPromoterBound': None,
-        'gene_copy_number': None,
-        'pPromoterBound': None,
+        'nPromoterBound': ('listeners', 'rna_synth_prob', 'nPromoterBound', replace_scalars),
+        'gene_copy_number': ('listeners', 'rna_synth_prob', 'gene_copy_number', replace_scalars),
+        'pPromoterBound': ('listeners', 'rna_synth_prob', 'pPromoterBound', replace_scalars),
         'attributes': None
     },
     'UniqueMolecules': {
@@ -172,9 +175,9 @@ MAPPING = {
         'inner_membrane_mass': ('listeners', 'mass', 'inner_membrane_mass'),
         'proteinMass': ('listeners', 'mass', 'proteinMass'),
         'cellMass': ('listeners', 'mass', 'cell_mass'),
-        'instantaniousGrowthRate': None,
+        'instantaniousGrowthRate': ('listeners', 'mass', 'instantaniousGrowthRate'),
         'rnaMass': ('listeners', 'mass', 'rnaMass'),
-        'cellVolume': None,
+        'cellVolume': ('listeners', 'mass', 'volume'),
         'membrane_mass': ('listeners', 'mass', 'membrane_mass'),
         'rRnaMass': ('listeners', 'mass', 'rRnaMass'),
         'cytosol_mass': ('listeners', 'mass', 'cytosol_mass'),
@@ -197,17 +200,21 @@ MAPPING = {
         'attributes': None
     },
     'RibosomeData': {
-        'aaCountInSequence': None,
-        'aaCounts': None,
-        'actualElongationHist': None,
-        'actualElongations': None,
+        'aaCountInSequence': (
+            'listeners', 'ribosome_data', 'aaCountInSequence', replace_scalars),
+        'aaCounts': (
+            'listeners', 'ribosome_data', 'aaCounts', replace_scalars),
+        'actualElongationHist': (
+            'listeners', 'ribosome_data', 'actualElongationHist', replace_scalars),
+        'actualElongations': ('listeners', 'ribosome_data', 'actualElongations'),
         'didInitialize': None,
-        'didTerminate': None,
-        'effectiveElongationRate': None,
-        'elongationsNonTerminatingHist': None,
+        'didTerminate': ('listeners', 'ribosome_data', 'didTerminate'),
+        'effectiveElongationRate': ('listeners', 'ribosome_data', 'effectiveElongationRate'),
+        'elongationsNonTerminatingHist': (
+            'listeners', 'ribosome_data', 'elongationsNonTerminatingHist', replace_scalars),
         'n_ribosomes_on_partial_mRNA_per_transcript': None,
         'n_ribosomes_per_transcript': None,
-        'numTrpATerminated': None,
+        'numTrpATerminated': ('listeners', 'ribosome_data', 'numTrpATerminated'),
         'probTranslationPerTranscript': ('listeners',
                                          'ribosome_data',
                                          'prob_translation_per_transcript',
@@ -223,7 +230,8 @@ MAPPING = {
         'terminationLoss': None,
         'time': ('time', ),
         'total_rna_init': None,
-        'translationSupply': None,
+        'translationSupply': (
+            'listeners', 'ribosome_data', 'translationSupply'),
         'attributes': None
     },
     'Environment': {
@@ -232,25 +240,33 @@ MAPPING = {
         'attributes': None
     },
     'FBAResults': {
-        'objectiveValue': None,
-        'catalyst_counts': None,
-        'reactionFluxes': ('listeners', 'fba_results', warn_incomplete),
+        'objectiveValue': ('listeners', 'fba_results', 'objectiveValue', replace_scalars),
+        'catalyst_counts': ('listeners', 'fba_results', 'catalyst_counts', replace_scalars),
+        'reactionFluxes': ('listeners', 'fba_results', 'reactionFluxes', replace_scalars),
         'coefficient': None,
-        'reducedCosts': None,
-        'conc_updates': None,
-        'shadowPrices': None,
-        'constrained_molecules': None,
+        'reducedCosts': ('listeners', 'fba_results', 'reducedCosts', replace_scalars),
+        'conc_updates': ('listeners', 'fba_results', 'conc_updates', replace_scalars),
+        'shadowPrices': ('listeners', 'fba_results', 'shadowPrices', replace_scalars),
+        'constrained_molecules': (
+            'listeners', 'fba_results', 'constrained_molecules', replace_scalars),
         'simulationStep': None,
-        'deltaMetabolites': None,
-        'targetConcentrations': None,
-        'externalExchangeFluxes': None,
+        'deltaMetabolites': (
+            'listeners', 'fba_results', 'deltaMetabolites', replace_scalars),
+        'targetConcentrations': (
+            'listeners', 'fba_results', 'targetConcentrations', replace_scalars),
+        'externalExchangeFluxes': (
+            'listeners', 'fba_results', 'externalExchangeFluxes', replace_scalars),
         'time': ('time', ),
-        'homeostaticObjectiveValues': None,
+        'homeostaticObjectiveValues': (
+            'listeners', 'fba_results', 'homeostaticObjectiveValues', replace_scalars),
         'translation_gtp': None,
-        'kineticObjectiveValues': None,
-        'unconstrained_molecules': None,
+        'kineticObjectiveValues': (
+            'listeners', 'fba_results', 'kineticObjectiveValues', replace_scalars),
+        'unconstrained_molecules': (
+            'listeners', 'fba_results', 'unconstrained_molecules', replace_scalars),
         'media_id': None,
-        'uptake_constraints': None,
+        'uptake_constraints': (
+            'listeners', 'fba_results', 'uptake_constraints', replace_scalars),
         'attributes': None
     },
     'MonomerCounts': {
@@ -261,21 +277,28 @@ MAPPING = {
     },
     'RnaDegradationListener': {
         'fragmentBasesDigested': None,
-        'countRnaDegraded': None,
+        'countRnaDegraded': (
+            'listeners', 'rna_degradation_listener', 'count_rna_degraded', replace_scalars),
         'nucleotidesFromDegradation': None,
         'DiffRelativeFirstOrderDecay': None,
         'simulationStep': None,
-        'FractEndoRRnaCounts': None,
+        'FractEndoRRnaCounts': (
+            'listeners', 'rna_degradation_listener', 'fract_endo_rrna_counts'),
         'time': ('time', ),
-        'FractionActiveEndoRNases': None,
+        'FractionActiveEndoRNases': (
+            'listeners', 'rna_degradation_listener', 'fraction_active_endo_rrnases'),
         'attributes': None
     },
     'TranscriptElongationListener': {
-        'attenuation_probability': None,
-        'countRnaSynthesized': None,
+        'attenuation_probability': (
+            'listeners', 'transcript_elongation_listener', 'attentuation_probability', replace_scalars),
+        'countRnaSynthesized': (
+            'listeners', 'transcript_elongation_listener', 'countRnaSynthesized', replace_scalars),
         'time': ('time', ),
-        'counts_attenuated': None,
-        'countNTPsUSed': None,
+        'counts_attenuated': (
+            'listeners', 'transcript_elongation_listener', 'counts_attenuated', replace_scalars),
+        'countNTPsUSed': (
+            'listeners', 'transcript_elongation_listener', 'countNTPsUsed'),
         'simulationStep': None,
         'attributes': None
     }
@@ -520,7 +543,7 @@ def test_table_reader():
 
     rna_synth_tb = TableReader("RnaSynthProb", data)
     tf_per_tu = rna_synth_tb.readColumn("n_bound_TF_per_TU")
-    #gene_copies = rna_synth_tb.readColumn("gene_copy_number")
+    gene_copies = rna_synth_tb.readColumn("gene_copy_number")
     rna_synth_prob = rna_synth_tb.readColumn("rnaSynthProb")
 
     ribosome_tb = TableReader("RibosomeData", data)

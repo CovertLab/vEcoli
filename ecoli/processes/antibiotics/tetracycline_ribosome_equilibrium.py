@@ -4,7 +4,6 @@ from vivarium.core.process import Step
 from vivarium.library.units import units
 
 from ecoli.library.schema import dict_value_schema
-from ecoli.processes.partition import check_whether_evolvers_have_run
 
 
 AVOGADRO = N_A / units.mol
@@ -79,8 +78,7 @@ class TetracyclineRibosomeEquilibrium(Step):
         }
 
     def update_condition(self, timestep, states):
-        return check_whether_evolvers_have_run(
-            states['evolvers_ran'], self.name)
+        return states['evolvers_ran']
 
     def next_update(self, _, states):
         volume = states['volume']

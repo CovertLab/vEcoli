@@ -204,7 +204,7 @@ ODES = {
 def test_cephaloridine_diffusion_timescale():
     derivative = ODES['cephaloridine']['Diffusion'][0]
     y0 = param_store.get(('cephaloridine', 'mic'))
-    _assert_timescale(derivative, y0, MAX_TIMESCALE)
+    _assert_timescale(derivative, y0.magnitude, MAX_TIMESCALE)
 
 
 def test_tetracycline_outer_diffusion_timescale():

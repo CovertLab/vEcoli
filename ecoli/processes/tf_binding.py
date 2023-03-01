@@ -262,6 +262,7 @@ class TfBinding(PartitionedProcess):
                 'nPromoterBound': nPromotersBound,
                 'nActualBound': nActualBound,
                 'n_available_promoters': n_promoters,
+                # 900 KB, very large, comment out to halve emit size
                 'n_bound_TF_per_TU': n_bound_TF_per_TU,
                 'gene_copy_number': np.bincount(TU_index, minlength=self.n_TU)},
         }
