@@ -10,7 +10,6 @@ import numpy as np
 from vivarium.core.process import Deriver
 
 from ecoli.processes.registries import topology_registry
-from ecoli.processes.partition import check_whether_evolvers_have_run
 
 # Register default topology for this process, associating it with process name
 NAME = 'allocator'
@@ -58,7 +57,7 @@ class Allocator(Deriver):
     def ports_schema(self):
         ports = {
             'bulk': {
-                molecule: {'_default': 0}
+                str(molecule): {'_default': 0}
                 for molecule in self.moleculeNames},
             'request': {
                 process: {
@@ -83,8 +82,7 @@ class Allocator(Deriver):
         return ports
 
     def update_condition(self, timestep, states):
-        return check_whether_evolvers_have_run(
-            states['evolvers_ran'], self.name)
+        return states['evolvers_ran']
 
     def next_update(self, timestep, states):
         total_counts = np.array([states['bulk'][molecule] for

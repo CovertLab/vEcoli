@@ -88,16 +88,18 @@ class Ecoli(Composer):
     def initial_state(self, config=None):
         # Use initial state calculated with trna_charging and translationSupply disabled
         config = config or {}
-        initial_state_file = config.get('initial_state_file', 'wcecoli_t0')
-        initial_state_overrides = config.get('initial_state_overrides', [])
-        initial_state = get_state_from_file(path=f'data/{initial_state_file}.json')
+        # Allow initial state to be directly supplied instead of a file name (useful when
+        # loading individual cells in a colony save file)
+        initial_state = config.get('initial_state', None)
+        if not initial_state:
+            initial_state_file = config.get('initial_state_file', 'wcecoli_t0')
+            initial_state = get_state_from_file(path=f'data/{initial_state_file}.json')
 
+        initial_state_overrides = config.get('initial_state_overrides', [])
         for override_file in initial_state_overrides:
             override = get_state_from_file(path=f"data/{override_file}.json")
             deep_merge(initial_state, override)
 
-        initial_state = super().initial_state({
-            'initial_state': initial_state})
         return initial_state
 
     def _generate_processes_and_steps(self, config):
@@ -129,7 +131,6 @@ class Ecoli(Composer):
                     process_configs[process]['seed'] = (
                         process_configs[process]['seed'] +
                         config['seed']) % RAND_MAX
-            process_configs[process]['_no_original_parameters'] = True
 
         # make the processes
         processes = {
@@ -144,7 +145,6 @@ class Ecoli(Composer):
             process_names=[p for p in config['processes'].keys()
                            if not processes[p].is_deriver()],
         )
-        process_configs['allocator']['_no_original_parameters'] = True
 
         config['processes']['allocator'] = Allocator
         processes['allocator'] = Allocator(process_configs['allocator'])
@@ -173,7 +173,6 @@ class Ecoli(Composer):
             f'{process_name}_requester': Requester({
                 'time_step': time_step,
                 'process': process,
-                '_no_original_parameters': True,
             })
             for (process_name, process) in processes.items()
             if process_name in self.partitioned_processes
@@ -184,13 +183,11 @@ class Ecoli(Composer):
             f'{process_name}_evolver': Evolver({
                 'time_step': time_step,
                 'process': process,
-                '_no_original_parameters': True,
             })
             if not config['log_updates']
             else make_logging_process(Evolver)({
                 'time_step': time_step,
                 'process': process,
-                '_no_original_parameters': True,
             })
             for (process_name, process) in processes.items()
             if process_name in self.partitioned_processes
@@ -223,7 +220,6 @@ class Ecoli(Composer):
                 agent_id=config['agent_id'],
                 composer=self,
                 seed=self.load_sim_data.random_state.randint(RAND_MAX),
-                _no_original_parameters=True,
             )
             division_process = {division_name: Division(division_config)}
             processes.update(division_process)
@@ -327,6 +323,10 @@ class Ecoli(Composer):
                     'evolvers_ran'] = ('evolvers_ran',)
                 topology[f'{process_id}_evolver'][
                     'evolvers_ran'] = ('evolvers_ran',)
+                topology[f'{process_id}_requester'][
+                    'process'] = ('process', process_id,)
+                topology[f'{process_id}_evolver'][
+                    'process'] = ('process', process_id,)
 
             # make the non-partitioned processes' topologies
             else:
@@ -338,7 +338,7 @@ class Ecoli(Composer):
         # add division
         if config['divide']:
             topology['division'] = {
-                'variable': ('listeners', 'mass', 'dry_mass'),
+                'variable': config['division_variable'],
                 'agents': config['agents_path']}
 
         topology['allocator'] = {
@@ -347,6 +347,9 @@ class Ecoli(Composer):
             'bulk': ('bulk',),
             'evolvers_ran': ('evolvers_ran',),
         }
+        
+        # Do not keep an unnecessary reference to these
+        self.processes_and_steps = None
 
         return topology
 
