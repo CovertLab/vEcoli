@@ -98,6 +98,7 @@ class Plot():
                             flux_2 -= agent_data['fluxome'][str(i_rxn_id)]
                         fluxes[common_id].append(min(flux_1, flux_2))
             all_fluxes = np.array(list(fluxes.values()))
+            np.savetxt('out/fluxome.csv', all_fluxes)
         else:
             all_fluxes = arr_data
 

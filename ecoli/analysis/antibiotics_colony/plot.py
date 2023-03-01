@@ -10,7 +10,7 @@ from mpl_toolkits.axes_grid1 import anchored_artists
 import numpy as np
 import pandas as pd
 from scipy.constants import N_A
-from scipy.stats import zscore, spearmanr
+from scipy.stats import spearmanr
 from scipy.optimize import curve_fit
 import seaborn as sns
 import statsmodels.formula.api as smf
@@ -27,7 +27,7 @@ from ecoli.analysis.antibiotics_colony.timeseries import (plot_field_snapshots,
                                                           plot_timeseries)
 from ecoli.analysis.antibiotics_colony.validation import (
     plot_colony_growth, plot_mrna_fc, plot_protein_synth_inhib,
-    plot_synth_prob_fc, plot_death_timescale_analysis)
+    plot_death_timescale_analysis)
 from ecoli.plots.snapshots import plot_snapshots
 
 
@@ -332,6 +332,8 @@ def make_figure_2d(data, metadata):
             c=color)
     ax.set_xlabel('Distance from left edge\nof environment (\u03BCm)')
     ax.set_ylabel('Cross-sectional glucose (mM)')
+    xticks = np.append(xticks, 50).astype(int)
+    ax.set_xticks(xticks)
     plt.savefig('out/analysis/paper_figures/fig_2d_env_cross.svg',
         bbox_inches='tight')
     plt.close()
@@ -710,14 +712,14 @@ def make_figure_3d(data, metadata):
 
 def make_figure_3e(data, metadata):
     genes_to_plot = DE_GENES.loc[:, 'Gene name']
-    fig, axs = plt.subplots(1, 2, figsize=(7, 3))
+    fig, ax = plt.subplots(1, 1, figsize=(3, 3))
     genes = ['acrA', 'acrB', 'tolC']
-    plot_synth_prob_fc(data, axs[0], genes_to_plot, 0, highlight_genes=genes)
-    plot_mrna_fc(data, axs[1], genes_to_plot, 0, highlight_genes=genes)
-    axs[0].set_yticks([0, 0.5, 1, 1.5])
-    axs[1].spines['left'].set_bounds((-1, 1.5))
-    axs[1].set_yticks([-1, -0.5, 0, 0.5, 1, 1.5])
-    fig.savefig('out/analysis/paper_figures/fig_3f_tet_gene_exp.svg', bbox_inches='tight')
+    highlight_genes = {gene: (0, 0.4, 1) for gene in genes}
+    plot_mrna_fc(data, ax, genes_to_plot, highlight_genes=highlight_genes)
+    ax.spines['left'].set_bounds((-1, 1.5))
+    ax.set_yticks([-1, -0.5, 0, 0.5, 1, 1.5])
+    fig.savefig('out/analysis/paper_figures/fig_3f_tet_gene_exp.svg',
+        bbox_inches='tight')
     plt.close()
     print('Done with Figure 3E.')
 
@@ -726,17 +728,25 @@ def make_figure_3f(data, metadata):
     jenner = pd.read_csv('data/sim_dfs/jenner_2013.csv', header=None).rename(
         columns={0: 'Tetracycline', 1: 'Percent inhibition'})
     jenner['Source'] = ['Jenner et al. 2013'] * len(jenner)
-    jenner.loc[:, 'Percent inhibition'] = 1 - (jenner.loc[:, 'Percent inhibition'] / 100)
+    jenner.loc[:, 'Percent inhibition'] = 100 - (jenner.loc[
+        :, 'Percent inhibition'])
     olson = pd.read_csv('data/sim_dfs/olson_2006.csv', header=None).rename(
         columns={0: 'Tetracycline', 1: 'Percent inhibition'})
-    olson.loc[:, 'Percent inhibition'] /= 100
     olson['Source'] = ['Olson et al. 2006'] * len(olson) 
     literature = pd.concat([jenner, olson])
-    fig, ax = plt.subplots(1, 1, figsize=(1.75,2))
+    fig, ax = plt.subplots(1, 1, figsize=(3, 3))
     plot_protein_synth_inhib(data, ax, literature)
     plt.tight_layout()
     plt.subplots_adjust(top=1, bottom=0.25, left=0.2, right=1)
-    plt.savefig('out/analysis/paper_figures/protein_synth_inhib.svg', bbox_inches='tight')
+    ax.set_xlabel('Tetracycline (\u03BCM)', size=10)
+    ax.set_ylabel('Protein synthesis inhibition (%)', size=10)
+    ax.tick_params(axis='both', which='major', labelsize=10)
+    ax.spines['bottom'].set_bounds((0.08, 300))
+    children = ax.get_children()
+    for i in [4, 5, 6]:
+        children[i].set_fontsize(10)
+    plt.savefig('out/analysis/paper_figures/protein_synth_inhib.svg',
+        bbox_inches='tight')
     plt.close()
     print('Done with Figure 3F.')
 
@@ -1060,9 +1070,9 @@ def make_figure_3l(data, metadata):
     data['Time'] -= SPLIT_TIME
     column = 'Outer tet. permeability (cm/s)'
     # Convert to nm / s for readability
-    data[column] /= 1e7
+    data[column] *= 1e7
 
-    fig, ax = plt.subplots(figsize=(2,2))
+    fig, ax = plt.subplots(figsize=(3,3))
     plot_timeseries(
         data=data,
         axes=[ax],
@@ -1073,6 +1083,7 @@ def make_figure_3l(data, metadata):
         background_linewidth=0.3)
     data[column].max() * 1e7
     ax.set_ylabel('OM tet. perm. (nm/s)')
+    ax.set_xlabel('Hours after tetracycline addition')
     ax.set_xticks(np.append(ax.get_xticks(), 0), np.append(ax.get_xticks(), 0))
     plt.savefig('out/analysis/paper_figures/tet_om_perm.svg', bbox_inches='tight')
     plt.close()
