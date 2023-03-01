@@ -100,7 +100,7 @@ intersphinx_mapping = {
 autodoc_inherit_docstrings = False
 # The Python dependencies aren't really required for building the docs
 autodoc_mock_imports = [
-    'cobra', 'arrow', 'IPython', 'numba', 'line-profiler', 'sympy', 'iteround',
+    'cobra', 'arrow', 'IPython', 'numba', 'line-profiler', 'iteround',
     'pytest',
     # Runs code on import and fails due to missing solvers.
     'wholecell.utils.modular_fba',
