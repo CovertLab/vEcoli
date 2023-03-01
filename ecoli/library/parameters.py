@@ -193,19 +193,6 @@ PARAMETER_DICT = {
                 "Thanassi, Suh, and Nikaido (1995) p. 1004",
                 latex_source="thanassi1995role",
             ),
-            # 'accumulation_factor': Parameter(
-            #     8.4,
-            #     """15- to 17-fold gross accumulation [1, 2]
-            #     reduced by 37% to account for bound fraction [2]
-            #     then reduced by 17% to account for higher Mg2+ in medium [3]
-            #     [1] https://doi.org/10.1128/jb.177.4.998-1007.1995
-            #     [2] https://doi.org/10.1007/BF00408069
-            #     [3] https://doi.org/10.1128/AAC.35.1.53
-            #     Current tetracycline accumulation models do not match
-            #     experimental accumulation data. This factor abstracts
-            #     away the mechanism of accumulation with the goal of
-            #     achieving an accurate steady state tetracycline conc."""
-            # ),
         },
         "charge": Parameter(1 * units.count),
         "efflux": {
@@ -342,7 +329,7 @@ PARAMETER_DICT = {
         )
     },
     "avogadro": constants.N_A / units.mol,
-    "outer_potential": Parameter(
+    "donnan_potential": Parameter(
         -0.0215 * units.volt,
         "Sen, Hellman, and Nikaido (1988) p. 1184",
         latex_source="sen1988porin",
