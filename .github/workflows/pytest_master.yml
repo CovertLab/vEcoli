@@ -30,4 +30,4 @@ jobs:
         make clean compile
     - name: Test with pytest
       run: |
-        python -m pytest --cov=ecoli -m master
+        python -m pytest --cov=ecoli --durations=0 -m master
