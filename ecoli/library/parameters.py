@@ -329,7 +329,7 @@ PARAMETER_DICT = {
         )
     },
     "avogadro": constants.N_A / units.mol,
-    "donnan_potential": Parameter(
+    "outer_potential": Parameter(
         -0.0215 * units.volt,
         "Sen, Hellman, and Nikaido (1988) p. 1184",
         latex_source="sen1988porin",
@@ -557,7 +557,7 @@ TABLES = {
         ),
         TableRow(
             "\\Delta \\phi",
-            param_store.get_parameter(("donnan_potential",)),
+            param_store.get_parameter(("outer_potential",)),
             "mV",
             "Donnan potential across the outer membrane.",
         ),

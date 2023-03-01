@@ -166,7 +166,7 @@ ODES = {
                 np.exp((
                     param_store.get(('tetracycline', 'charge'))
                     * param_store.get(('faraday_constant',))
-                    * param_store.get(('donnan_potential',))
+                    * param_store.get(('outer_potential',))
                     / param_store.get(('gas_constant',))
                     / param_store.get(('temperature',))
                 ).to(units.count).magnitude),
@@ -186,7 +186,7 @@ ODES = {
                     * np.exp((
                         param_store.get(('tetracycline', 'charge'))
                         * param_store.get(('faraday_constant',))
-                        * param_store.get(('donnan_potential',))
+                        * param_store.get(('outer_potential',))
                         / param_store.get(('gas_constant',))
                         / param_store.get(('temperature',))
                     ).to(units.count).magnitude)
