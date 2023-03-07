@@ -1,22 +1,21 @@
 import os
-import pickle
 
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
-from sklearn.preprocessing import StandardScaler
-from statsmodels.formula.api import logit
 from ete3 import NodeStyle, TreeNode, TreeStyle
 
 from ecoli.analysis.antibiotics_colony import (COUNTS_PER_FL_TO_NANOMOLAR,
     restrict_data)
 from ecoli.analysis.antibiotics_colony.timeseries import plot_tag_snapshots
-from ecoli.library.cell_wall.hole_detection import detect_holes_skimage
 
 
 def plot_exp_growth_rate(data, metadata, highlight_agent_id):
+    # Create two scatterplots of average doubling rate
+    # against active ribosome concentration for cells in the first
+    # and fourth hours of tetracycline exposure (3M) 
     grouped_agents = data.groupby(['Condition', 'Agent ID'])
     new_data = []
     for _, agent_data in grouped_agents:
@@ -89,9 +88,13 @@ def plot_exp_growth_rate(data, metadata, highlight_agent_id):
             joint.ax_marg_x.set_title(r'$4^{\mathrm{th}}$ hr. post-tet.',
                 size=9, pad=2, weight='bold')
         joint.figure.set_size_inches(2.5, 2)
-        plt.savefig(f'out/analysis/paper_figures/growth_rate_var_ribo_{i}.svg')
+        plt.savefig('out/analysis/paper_figures/' + 
+            f'fig_3m_growth_rate_var_ribo_{i}.svg')
         plt.close()
+    print('Done with Figure 3M.')
 
+    # Plot snapshots with intervals of 1.3 hours of decrease in
+    # instantaneous growth rate after tetracycline addition (3D)
     # Get log 2 fold change over mean glucose growth rate
     glucose_data = data.loc[data.loc[:, 'Condition'] == 'Glucose', :]
     mean_growth_rate = glucose_data.loc[:, 'Doubling rate'].mean()
@@ -118,24 +121,10 @@ def plot_exp_growth_rate(data, metadata, highlight_agent_id):
     fig.axes[0].set_xticklabels(
         np.abs(np.round(fig.axes[0].get_xticks()/3600 - 11550/3600, 1)))
     fig.axes[0].set_xlabel('Hours after tetracycline addition')
+    os.makedirs('out/analysis/paper_figures/', exist_ok=True)
     fig.savefig('out/analysis/paper_figures/fig_3b_tet_snapshots.svg',
         bbox_inches='tight')
     plt.close()
-
-
-def plot_lattice_timeseries():
-    with open('data/lattice_df.pkl', 'rb') as f:
-        lattice_data = pickle.load(f)
-    snapshot_times = [0, 400, 600, 1200]
-    fig, axs = plt.subplots(1, 4)
-    for i, ax in enumerate(axs.flat):
-        lattice = np.array(lattice_data[snapshot_times[i]]['agents']['0'][
-            'wall_state']['lattice'])
-        hole_sizes, hole_view = detect_holes_skimage(lattice)
-        biggest_hole = np.argmax(hole_sizes) + 1
-        lattice[hole_view==biggest_hole] = 2
-        ax.imshow(lattice, interpolation='nearest', aspect='auto')
-        ax.set_title(hole_sizes[biggest_hole-1])
 
 
 def make_ete_trees(agent_ids):
@@ -208,6 +197,7 @@ def plot_ampc_phylo(data):
     ax.set_xticks(xticks, xticks, size=8)
     ax.set_xlabel(ax.get_xlabel(), size=8, labelpad=-7)
     fig.savefig('out/analysis/paper_figures/ampc_cbar.svg')
+    plt.close()
 
     # Export Newick file for phylogenetic signal analysis
     tree.write(outfile='out/analysis/paper_figures/amp_tree.nw')

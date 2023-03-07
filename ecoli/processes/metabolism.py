@@ -494,7 +494,7 @@ class FluxBalanceAnalysisModel(object):
 
         # TODO: For testing, remove later (perhaps after modifying sim data)
         if parameters["reduce_murein_objective"]:
-            self.homeostatic_objective['CPD-12261[p]'] /= 2.68
+            self.homeostatic_objective['CPD-12261[p]'] /= 2.27
 
         # Include all concentrations that will be present in a sim for constant length listeners
         for met in self.metaboliteNamesFromNutrients:

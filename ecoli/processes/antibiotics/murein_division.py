@@ -67,13 +67,17 @@ class MureinDivision(Step):
 
     def next_update(self, timestep, states):
         update = {"murein_state": {}, "total_murein": {}}
-        # Ensure that lattice is a numpy array so divider works properly
+        # Ensure that lattice is a numpy array so divider works properly.
+        # Used when loading from a saved state.
         if ((not isinstance(states["wall_state"]["lattice"], np.ndarray)) and 
             (states["wall_state"]["lattice"] != None)):
             update["wall_state"] = {
                 "lattice": np.array(states["wall_state"]["lattice"])
             }
         # Only run right after division (cell has half of mother lattice)
+        # TODO: Calculate porosity, hole size/strand length dists
+        # Note: This mechanism does not perfectly conserve murein mass between
+        # mother and daughter cells (can at most gain the mass of 1 CPD-12261).
         if states["first_update"] and states["wall_state"]["lattice"] is not None:
             accounted_murein_monomers = sum(states["murein_state"].values())
             # When run in an EngineProcess, this Step sets the incorporated

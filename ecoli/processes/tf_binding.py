@@ -191,7 +191,10 @@ class TfBinding(PartitionedProcess):
                 marR_count = states['active_tfs_total']['CPLX0-7710[c]']
                 marR_tet_count = states['inactive_tfs_total']['marR-tet[c]']
                 # marA activity ramps up as more marR is complexed off
-                ratio = marR_tet_count/ max(marR_count+marR_tet_count, 1)
+                # TODO: Figure out how to modify ParCa so MarA/R are included
+                # as active TFs so no need to compromise basal or tetracycline
+                # behavior when total MarR count is zero
+                ratio = marR_tet_count/max(marR_count+marR_tet_count, 1)
                 # 34 = # of promoters for genes that marA regulates
                 n_available_active_tfs = int(34 * ratio)
 

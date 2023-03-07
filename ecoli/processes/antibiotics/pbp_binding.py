@@ -258,13 +258,12 @@ class PBPBinding(Step):
                 )
                 return update
             
-            # Set lattice rows, cols, extension factor, and incorporated murein
-            # immediately after division
+            # Set lattice rows, cols, and extension factor after division when
+            # running in EngineProcess
             elif states["wall_state"]["lattice_rows"] == 0:
                 # Get cell size information
-                length = length_from_volume(states["volume"], self.cell_radius * 2).to(
-                    "micrometer"
-                )
+                length = length_from_volume(states["volume"],
+                    self.cell_radius * 2).to("micrometer")
 
                 # Set extension factor such that lattice covers the cell
                 lattice = states["wall_state"]["lattice"]
@@ -276,12 +275,8 @@ class PBPBinding(Step):
                     ).to("dimensionless")
                 )
                 
-                incorporated_monomers = np.sum(lattice)
                 update.update(
                     {
-                        "murein_state": {
-                            "incorporated_murein": incorporated_monomers
-                        },
                         "wall_state":
                             {
                                 "lattice_rows": lattice.shape[0],

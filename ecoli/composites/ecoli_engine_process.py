@@ -67,8 +67,6 @@ class EcoliInnerSim(Composer):
             division_random_seed = (binascii.crc32(b'CellDivision', config['seed']) 
                                     & 0xffffffff)
             division_random_state = np.random.RandomState(seed=division_random_seed)
-            # TODO: Does it make sense to set standard deviation according to CV from
-            # 10.1016/j.cell.2014.11.022?
             division_mass_multiplier = division_random_state.normal(loc=1.0, scale=0.1)
             current_media_id = initial_state['environment']['media_id']
             config['division_threshold'] = (

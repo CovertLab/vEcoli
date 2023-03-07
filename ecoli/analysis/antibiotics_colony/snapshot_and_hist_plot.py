@@ -1,9 +1,9 @@
 import argparse
+import ast
 import concurrent.futures
 import os
-import pickle
 import warnings
-
+import json
 import matplotlib
 import numpy as np
 import pandas as pd
@@ -309,8 +309,9 @@ def main():
 
     if args.local:
         # Load data
-        with open(args.local, "rb") as f:
-            data = pickle.load(f)
+        data = pd.read_csv(args.local, dtype={'Agent ID': str}, index_col=0)
+        # Convert string to dictionary
+        data['Boundary'] = data['Boundary'].apply(ast.literal_eval)
 
         # Get only desired columns
         paths_to_columns = {v: k for k, v in PATHS_TO_LOAD.items() if v in molecules}
@@ -335,8 +336,8 @@ def main():
             )
 
         filename, ext = os.path.splitext(args.local)
-        with open(f"{filename}_metadata{ext}", "rb") as f:
-            metadata = pickle.load(f)
+        with open(f"{filename}_metadata.json", "r") as f:
+            metadata = json.load(f)
 
         # Get environmental bounds
         condition = list(metadata.keys())[0]

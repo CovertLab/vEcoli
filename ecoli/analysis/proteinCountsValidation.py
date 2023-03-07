@@ -1,14 +1,16 @@
 """
-Compare protein counts to Wisniewski 2014 and Schmidt 2015 data sets
+Compare protein counts to Wiśniewski 2014 and Schmidt 2015 data sets
 """
 
 from __future__ import absolute_import, division, print_function
 
 import argparse
 import os
+import json
 from six.moves import cPickle
 
 import numpy as np
+import pandas as pd
 from matplotlib import pyplot as plt
 from scipy.stats import pearsonr
 import seaborn as sns
@@ -140,10 +142,8 @@ def save_agent_avgs(data):
     agent_avgs = {}
     for agent_id, monomer_counts in agent_monomer_counts.items():
         agent_avgs[agent_id] = np.mean(monomer_counts, axis=0)
-    
-    with open(f'{args.data.split(".pkl")[0]}_agent_avgs.pkl', 'wb') as f:
-        cPickle.dump(agent_avgs, f)
-    
+    agent_avgs = pd.DataFrame(agent_avgs)
+    agent_avgs.to_csv(f'{args.data.split(".pkl")[0]}_agent_avgs.csv')
     return agent_avgs
 
 
@@ -152,12 +152,12 @@ if __name__ == "__main__":
     parser.add_argument(
         '--raw_data',
         '-r',
-        help='Path to saved pickle from ecoli.analysis.db.get_proteome_data'
+        help='Path to saved JSON from ecoli.analysis.db.get_proteome_data'
     )
     parser.add_argument(
         '--avg_data',
         '-d',
-        help='Path to saved pickle of average monomer counts per agent '
+        help='Path to saved CSV of average monomer counts per agent '
             '(ecoli.analysis.db.get_proteome_data output that was processed '
             'by the save_agent_avgs from running this module with raw_data).'
     )
@@ -165,7 +165,7 @@ if __name__ == "__main__":
         '--out_file',
         '-o',
         help='Path to output file.',
-        default='out/analysis/proteinCountsValidation.svg'
+        default='out/analysis/paper_figures/fig_s2a_proteomeValidation.svg'
     )
     parser.add_argument(
         '--sim_data',
@@ -180,19 +180,16 @@ if __name__ == "__main__":
         default='reconstruction/sim_data/kb/validationData.cPickle'
     )
     args = parser.parse_args()
-
     if args.raw_data:
-        with open(args.data, 'rb') as f:
-            data = cPickle.load(f)
-        
+        with open(args.raw_data, 'r') as f:
+            data = json.load(f)
         avg_data = save_agent_avgs(data)
+    else:
+        avg_data = pd.read_csv(args.avg_data, index_col=0)
     
-    elif args.avg_data:
-        with open(args.avg_data, 'rb') as f:
-            avg_data = cPickle.load(f)
-    
-    agent_monomer_counts = np.array(list(avg_data.values()))
+    agent_monomer_counts = avg_data.to_numpy()
 
+    os.makedirs(args.out_file)
     plot = Plot()
     plot.do_plot(agent_monomer_counts, args.sim_data,
         args.validation_data, args.out_file)

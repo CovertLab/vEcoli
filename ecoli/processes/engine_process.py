@@ -114,10 +114,12 @@ def cap_tunneling_paths(topology, outer=tuple()):
         topology[cap_key] = cap_path
     return tunnels
 
-
 class SchemaStub(Step):
     '''Stub process for providing schemas to an inner simulation. Run as
-    a Step to not influence the times at which other Steps run.
+    a Step otherwise its timestep could influence when other Steps run.
+    For example, if a SchemaStub was a process with timestep 1 while all
+    other processes had timestep 2, Steps like mass listener would run
+    after every second instead of every 2 seconds, wasting time.
 
     When using :py:class:`ecoli.processes.engine_process.EngineProcess`,
     there may be processes in the outer simulation whose schemas you are

@@ -35,7 +35,7 @@ class LoadSimData:
         self.submass_indexes = MASSDIFFS
         
         # NEW to vivarium-ecoli: Whether to lump miscRNA with mRNAs
-        # when calculated degradation
+        # when calculating degradation
         self.degrade_misc = False
 
         # load sim_data
@@ -49,7 +49,6 @@ class LoadSimData:
             treg_alias = self.sim_data.process.transcription_regulation
             bulk_mol_alias =  self.sim_data.internal_state.bulk_molecules
             eq_alias = self.sim_data.process.equilibrium
-            trans_alias = self.sim_data.process.translation
 
             # Assume marA (PD00365) controls the entire tetracycline
             # gene expression program and marR (CPLX0-7710) is inactivated
@@ -91,7 +90,7 @@ class LoadSimData:
                 [0, 0, 0, 0, 0, 0, tet_mass, 0, 0])
             bulk_data[-2] = ('tetracycline[p]', 
                 [0, 0, 0, 0, 0, 0, tet_mass, 0, 0])
-            # Small molecule mass is 6th element in 2nd column of each row in
+            # Protein mass is 6th element in 2nd column of each row in
             # the Numpy structured array bulk_data
             marR_mass = bulk_data[bulk_data['id'] == 'CPLX0-7710[c]'][0][1][5]
             bulk_data[-3] = ('marR-tet[c]', 
@@ -140,13 +139,6 @@ class LoadSimData:
             # Build matrices
             eq_alias._populateDerivativeAndJacobian()
             eq_alias._stoichMatrix = eq_alias.stoich_matrix()
-
-            # Ensure that marR-tet complex is properly degraded
-            monomer_data = trans_alias.monomer_data.fullArray()
-            monomer_data = np.resize(monomer_data, monomer_data.shape[0]+3)
-            marR_tet_data = monomer_data[monomer_data['id'] == 'PD00364[c]']
-            marR_tet_data['id'] = 'marR-tet[c]'
-            monomer_data[-1] = marR_tet_data
         
         # NEW to vivarium-ecoli
         # Append new RNA IDs and degradation rates for sRNA-mRNA duplexes
