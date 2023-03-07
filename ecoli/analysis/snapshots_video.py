@@ -12,6 +12,10 @@ from ecoli.analysis.analyze_db_experiment import OUT_DIR
 from ecoli.plots.snapshots_video import make_video
 
 
+def deserialize_and_remove_units(d):
+    return remove_units(deserialize_value(d))
+
+
 def main():
     # Parse arguments
     parser = argparse.ArgumentParser(

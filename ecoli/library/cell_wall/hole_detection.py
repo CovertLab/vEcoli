@@ -371,6 +371,7 @@ def test_detect_holes():
     print()
 
 
+@pytest.mark.skip(reason="Used locally to compare skimage and hand-rolled algo.")
 def test_runtime():
     # Runtime plot
     fig, axs = plt.subplots(nrows=4, ncols=1)
