@@ -367,8 +367,8 @@ def test_pbp_binding():
         "total_time": 100,
         "initial_state": {
             "murein_state": {
-                "incorporated_murein": initial_murein * 4,
-                "unincorporated_murein": 0,
+                "incorporated_murein": 0,
+                "unincorporated_murein": initial_murein * 4,
                 "shadow_murein": 0,
             },
             "concentrations": {

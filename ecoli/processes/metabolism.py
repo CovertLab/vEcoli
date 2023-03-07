@@ -234,7 +234,7 @@ class Metabolism(Step):
         return states['evolvers_ran']
 
     def next_update(self, timestep, states):
-        # Skip t=0 if a deriver
+        # Skip t=0
         if states['first_update']:
             return {'first_update': False}
 

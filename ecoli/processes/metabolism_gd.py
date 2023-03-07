@@ -220,13 +220,21 @@ class MetabolismGD(Process):
                     'time_per_step': {'_default': 0.0, '_updater': 'set', '_emit': True},
                 },
             },
-
+            'first_update': {
+                '_default': True,
+                '_updater': 'set',
+                '_divider': {'divider': 'set_value', 'config': {'value': True}},
+            },
             'evolvers_ran': {'_default': True},
         }
 
+    def update_condition(self, timestep, states):
+        return states['evolvers_ran']
 
     def next_update(self, timestep, states):
-
+        # Skip t=0
+        if states['first_update']:
+            return {'first_update': False}
         # extract the states from the ports
         current_metabolite_counts = states['metabolites']
         self.timestep = timestep

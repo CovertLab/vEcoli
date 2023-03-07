@@ -38,15 +38,9 @@
           }
     },
     "process_configs": {
-        "ecoli-cell-wall": {
-
-        },
-        "ecoli-pbp-binding": {
-
-        },
-        "ecoli-shape": {
-
-        },
+        "ecoli-cell-wall": {},
+        "ecoli-pbp-binding": {},
+        "ecoli-shape": {},
         "ecoli-metabolism": {
             "reduce_murein_objective" : true
         },

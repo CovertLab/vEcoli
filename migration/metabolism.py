@@ -30,6 +30,10 @@ def test_metabolism_migration():
 
         initial_state = get_state_from_file(
             path=f'data/migration/wcecoli_t{initial_time}_before_layer_2.json')
+
+        # Override first timestep skip
+        initial_state['deriver_skips'] = {
+            'metabolism': False}
         
         # run the process and get an update
         actual_update = run_ecoli_process(
