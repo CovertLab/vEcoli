@@ -125,12 +125,12 @@ def run_ecoli_with_metabolism_gd(
         progress_bar=False,
         log_updates=False,
         emitter='timeseries',
-        name='balance-gd',
+        name='balance',
         raw_output=False,
         save=False,
         save_times=None,
 ):
-    # filename = 'default'
+    filename = 'default'
     sim = EcoliSim.from_file(CONFIG_DIR_PATH + filename + '.json')
     sim.total_time = total_time
     sim.divide = divide
