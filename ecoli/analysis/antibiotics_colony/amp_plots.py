@@ -1,7 +1,5 @@
 import argparse
 import os
-import pickle
-
 import matplotlib
 import numpy as np
 import pandas as pd
@@ -12,7 +10,6 @@ from sklearn.decomposition import PCA
 from sklearn.metrics import confusion_matrix
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
-from tqdm import tqdm
 
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
@@ -25,7 +22,6 @@ from ecoli.analysis.antibiotics_colony.plot_utils import (
     prettify_axis,
 )
 from ecoli.analysis.antibiotics_colony.timeseries import (
-    plot_field_snapshots,
     plot_timeseries,
 )
 from ecoli.library.parameters import param_store
@@ -39,139 +35,48 @@ HIGHLIGHT_LINEAGE = "001111111"
 
 def load_data(
     glc_data,
-    glc_metadata,
     amp_data,
-    amp_metadata,
-    additional_amp_concs=None,
     verbose=False,
 ):
-    # Load data from additional ampicillin concentrations
-    # (Do this first to try and avoid memory usage issues)
-    add_amp_data = None
-    KEEP_COLS = ["Time", "Seed", "Condition", "Agent ID", "Dry mass"]
-    if additional_amp_concs:
-        add_amp_data = []
-        for file in tqdm(
-            additional_amp_concs, desc="Loading additional Ampicillin data..."
-        ):
-            with open(file, "rb") as f:
-                add_amp_data.append(pickle.load(f)[KEEP_COLS])
-
-        add_amp_data = pd.concat(add_amp_data)
-
     # Load glc data
     if verbose:
-        print("Loading Glucose data...")
-    with open(glc_data, "rb") as f:
-        glc_data = pickle.load(f)
-
-    # Load glc metadata
-    if verbose:
-        print("Loading Glucose metadata...")
-    with open(glc_metadata, "rb") as f:
-        glc_metadata = pickle.load(f)
+        print("Loading glucose data...")
+    glc_data = pd.read_csv(glc_data, dtype={'Agent ID': str}, index_col=0)
 
     # Load amp data
     if verbose:
-        print("Loading Ampicillin data...")
-    with open(amp_data, "rb") as f:
-        amp_data = pickle.load(f)
-
-    # Load amp metadata
-    if verbose:
-        print("Loading Ampicillin metadata...")
-    with open(amp_metadata, "rb") as f:
-        amp_metadata = pickle.load(f)
+        print("Loading ampicillin data...")
+    amp_data = pd.read_csv(amp_data, dtype={'Agent ID': str}, index_col=0)
 
     # Validate data:
-    # - glc_data, glc_metadata must be in Glucose condition,
-    #   amp_data, amp_metadata, additional amp data must be in (one of) Ampicillin condition(s)
-    # - Condition must match exactly between amp_data and amp_metadata (including dosage)
-    # - Conditions in additional amp data must not match condition of amp_data, amp_metadata
-    # - seed must match across glc_data, glc_metadata, amp_data, amp_metadata, additional amp data
+    # - glc_data must be in Glucose condition,
+    # - amp_data must be in (one of) ampicillin condition(s)
+    # - seed must match across glc_data and amp_data
     if verbose:
         print("Validating and cleaning data...")
 
     assert isinstance(glc_data, pd.DataFrame)
     assert isinstance(amp_data, pd.DataFrame)
-    assert isinstance(glc_metadata, dict)
-    assert isinstance(amp_metadata, dict)
-    assert (
-        glc_data["Condition"].unique().size
-        == amp_data["Condition"].unique().size
-        == len(glc_metadata.keys())
-        == len(amp_metadata.keys())
-        == 1
-    ), "One of glc_data, amp_data, glc_metadata, amp_data has data for more than one condition!"
-
-    # - glc_data, glc_metadata must be in Glucose condition,
-    #   amp_data, amp_metadata additional amp data must be in (one of) Ampicillin condition(s)
-
     glc_data_condition = glc_data["Condition"].unique()[0]
-    glc_metadata_condition = list(glc_metadata.keys())[0]
     amp_data_condition = amp_data["Condition"].unique()[0]
-    amp_metadata_condition = list(amp_metadata.keys())[0]
-    add_amp_conditions = (
-        add_amp_data["Condition"].unique() if add_amp_data is not None else []
-    )
-
     assert "Glucose" in glc_data_condition, "glc_data was not from Glucose condition!"
-    assert (
-        "Glucose" in glc_metadata_condition
-    ), "glc_metadata was not from Glucose condition!"
     assert (
         "Ampicillin" in amp_data_condition
     ), "amp_data was not from Ampicillin condition!"
     assert (
-        "Ampicillin" in amp_metadata_condition
-    ), "amp_metadata was not from Ampicillin condition!"
-    for condition in add_amp_conditions:
-        assert "Ampicillin" in condition, (
-            f"Condition {condition} in additional ampicillin"
-            "data was not from Ampicillin condition!"
-        )
-
-    # - Condition must match exactly between amp_data and amp_metadata (including dosage)
-
-    assert (
-        amp_data_condition == amp_metadata_condition
-    ), "Condition does not match between amp_data and amp_metadata!"
-
-    # - Conditions in additional amp data must not match condition of amp_data, amp_metadata
-    assert (
-        amp_data_condition not in add_amp_conditions
-    ), "Additional ampicillin data cannot contain the original condition!"
-
-    # - seed must match across glc_data, glc_metadata, amp_data, amp_metadata, additional amp data
-    assert (
         glc_data["Seed"].unique().size
         == amp_data["Seed"].unique().size
-        == (add_amp_data["Seed"].unique().size if add_amp_data is not None else 1)
-        == len(glc_metadata[glc_data_condition].keys())
-        == len(amp_metadata[amp_data_condition].keys())
         == 1
     ), (
-        "One of glc_data, amp_data, glc_metadata, amp_data, additional amp data "
-        "has data for more than one seed!"
+        "One of glc_data or amp_data has data for more than one seed!"
     )
-
     glc_data_seed = glc_data["Seed"].unique()[0]
     amp_data_seed = amp_data["Seed"].unique()[0]
-    add_amp_seed = (
-        add_amp_data["Seed"].unique()[0] if add_amp_data is not None else amp_data_seed
-    )
-    glc_metadata_seed = list(glc_metadata[glc_metadata_condition].keys())[0]
-    amp_metadata_seed = list(amp_metadata[amp_metadata_condition].keys())[0]
-
     assert (
         glc_data_seed
         == amp_data_seed
-        == add_amp_seed
-        == glc_metadata_seed
-        == amp_metadata_seed
     ), (
-        "Seeds do not match across glc_data, glc_metadata, "
-        "amp_data, amp_metadata, additional amp data!"
+        "Seeds do not match across glc_data and amp_data!"
     )
 
     # Merge dataframes from before/after addition of ampicillin
@@ -210,7 +115,7 @@ def load_data(
             data["AmpC monomer"] / data["Periplasmic Volume"]
         ) * COUNTS_PER_FL_TO_NANOMOLAR
 
-    return glc_data, amp_data, {**glc_metadata, **amp_metadata}, add_amp_data
+    return glc_data, amp_data
 
 
 def agent_summary(data, var_summarizers):
@@ -234,13 +139,10 @@ def agent_summary(data, var_summarizers):
 
 
 def make_figures(
-    glc_data,
     amp_data,
-    metadata,
-    add_amp_data,
     verbose,
     as_svg=False,
-    outdir="out/figure_4",
+    outdir="out/analysis/paper_figures/figure_4/",
 ):
     # Prepare to output figures
     os.makedirs(outdir, exist_ok=True)
@@ -251,12 +153,6 @@ def make_figures(
         amp_data["Condition"].map(lambda s: "Ampicillin" in s)
     ].min()
     max_time = amp_data["Time"].max()
-
-
-    # Plot snapshots ==============================================================================
-    # if verbose:
-    #     print("Making fields plot...")
-    # plot_field_snapshots(amp_data, metadata, highlight_color=HIGHLIGHT_BLUE)
 
     # Plot colony mass vs time with deaths ========================================================
     if verbose:
@@ -276,14 +172,6 @@ def make_figures(
 
     # Relabel time axis to use time after addition of ampicillin
     amp_time_hrs, max_time_hrs = amp_time / 3600, max_time / 3600
-    # new_ticks = np.concatenate(
-    #     (
-    #         [0],
-    #         np.arange(amp_time_hrs, 1, -1)[::-1],
-    #         np.arange(amp_time_hrs, max_time_hrs, 1)[1:],
-    #         # [max_time_hrs],
-    #     )
-    # )
     new_ticks = np.array([0, amp_time_hrs, max_time_hrs])
     new_tick_labels = [f"{t - amp_time_hrs:.0f}" for t in new_ticks]
     new_tick_labels[0] = f"{-amp_time_hrs:.1f}"
@@ -347,7 +235,7 @@ def make_figures(
 
     fig.set_size_inches(5, 1.5)
     fig.tight_layout()
-    fig.savefig(os.path.join(outdir, f"minute_scale_timeseries.{ext}"))
+    fig.savefig(os.path.join(outdir, f"fig_4e_g_minute_scale_timeseries.{ext}"))
 
     # Plot hour-scale timeseries ==================================================================
 
@@ -422,7 +310,7 @@ def make_figures(
 
     fig.set_size_inches(5, 1.5)
     fig.tight_layout()
-    fig.savefig(os.path.join(outdir, f"hour_scale_timeseries.{ext}"))
+    fig.savefig(os.path.join(outdir, f"fig_4h_j_hour_scale_timeseries.{ext}"))
 
     # Plot beta-lactamase, AcrAB-TolC... vs. death ================================================
 
@@ -441,13 +329,6 @@ def make_figures(
             amp_data, factor, counts_to_conc=to_conc, ax=ax
         )
 
-        # prettify_axis(
-        #     ax,
-        #     xlim=[bins[0], bins[-1]],
-        #     ylim=np.round(ax.get_ylim()),
-        #     tick_format_x=fmt,
-        #     tick_format_y="{:.0f}",
-        # )
         leg = ax.get_legend()
         if leg:
             leg.remove()
@@ -457,23 +338,6 @@ def make_figures(
             os.path.join(outdir, f"{factor}.{ext}"),
             bbox_inches="tight",
         )
-
-    # Plot colony mass vs concentration => MIC ====================================================
-
-    if verbose:
-        print("Plotting colony mass vs. time by ampicillin concentration...")
-
-    fig, ax = plt.subplots()
-    amp_conc_sweep(glc_data, amp_data, add_amp_data, ax=ax)
-    ax.set_xticks(new_ticks, labels=new_tick_labels)
-    prettify_axis(ax, ylabel_as_tick=False)
-    ax.set_yscale("log")
-    leg = ax.get_legend()
-    if leg:
-        leg.remove()
-    fig.set_size_inches(2, 2)
-    fig.tight_layout()
-    fig.savefig(os.path.join(outdir, f"amp_conc_sweep.{ext}"))
 
     # Run logistic regression to explain death ====================================================
 
@@ -742,7 +606,6 @@ def make_figures(
         )
 
     # Remove legend
-    # ax.legend(labels=["Survived", "Died"], title=None, frameon=False)
     ax.legend([], [], frameon=False)
 
     ax.set_ylabel("Concentration z-score")
@@ -757,7 +620,7 @@ def make_figures(
     ax.set_xticklabels(tick_labels)
     fig.set_size_inches(3.25, 2.25)
     fig.tight_layout()
-    fig.savefig(os.path.join(outdir, f"violin_plot.{ext}"))
+    fig.savefig(os.path.join(outdir, f"fig_4l_violin_plot.{ext}"))
 
 
 def timeseries_death_plot(data, var, highlight_lineage=None, ax=None):
@@ -899,7 +762,7 @@ def ampicillin_pca(
 
     # Convert from counts to concentration if requested
     if counts_to_conc:
-        data[var] = (data[var] / data["Volume"]) * COUNTS_PER_FL_TO_NANOMOLAR
+        data[vars] = (data[vars] / data["Volume"]) * COUNTS_PER_FL_TO_NANOMOLAR
 
     # Summarize timeseries data for each agent using the specified R^T => R summarizer,
     # using maximum for the "outcome" variable unless specified
@@ -1027,34 +890,13 @@ def cli():
     parser.add_argument(
         "glc_data",
         type=str,
-        help="Locally saved dataframe file for glucose (before addition of ampicillin.)",
-    )
-
-    parser.add_argument(
-        "glc_metadata",
-        type=str,
-        help="Locally saved metadata file for glucose (before addition of ampicillin.)",
+        help="Locally saved dataframe file for data from baseline glucose simulation.",
     )
 
     parser.add_argument(
         "amp_data",
         type=str,
         help="Locally saved dataframe file for data following addition of ampicillin.",
-    )
-
-    parser.add_argument(
-        "amp_metadata",
-        type=str,
-        help="Locally saved metadata file for data following addition of ampicillin.",
-    )
-
-    parser.add_argument(
-        "--additional_amp_concs",
-        "-a",
-        nargs="+",
-        default=None,
-        type=str,
-        help="Data following addition of ampicillin at alternative concentrations.",
     )
 
     parser.add_argument(
@@ -1077,20 +919,14 @@ def main():
 
     options = cli()
 
-    glc_data, amp_data, metadata, add_amp_data = load_data(
+    amp_data = load_data(
         options.glc_data,
-        options.glc_metadata,
         options.amp_data,
-        options.amp_metadata,
-        options.additional_amp_concs,
         options.verbose,
     )
 
     make_figures(
-        glc_data,
         amp_data,
-        metadata,
-        add_amp_data,
         options.verbose,
         as_svg=options.svg,
         outdir=options.outdir,

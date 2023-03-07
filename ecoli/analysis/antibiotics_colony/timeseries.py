@@ -277,6 +277,7 @@ def plot_field_snapshots(
         ax.set_title(ax.get_title(), y=1.05, size=10)
     if return_fig:
         return snapshots_fig
+    os.makedirs('out/analysis/paper_figures/', exist_ok=True)
     snapshots_fig.savefig('out/analysis/paper_figures/' + 
         f'{condition.replace("/", "_")}_seed_{seed}_fields.svg',
         bbox_inches='tight')

@@ -228,6 +228,11 @@ PARAMETER_DICT = {
             """Middle of values reported by Thanassi, Suh, and Nikaido (1995)
             p. 1005, Cuisa et al. (2022), and Prochnow et al. (2019)""",
             latex_source="thanassi_role_1995",
+            canonicalize=lambda x: (
+                # Divide by molecular weight from PubChem.
+                x
+                / (444.4 * units.g / units.mol)
+            ).to(units.mM),
         ),
         "mass": Parameter(
             444.4 * units.g / units.mol,

@@ -1,5 +1,6 @@
 import argparse
-import pickle
+import json
+import os
 from concurrent.futures import ProcessPoolExecutor
 from functools import partial
 
@@ -93,10 +94,13 @@ def load_data(experiment_id=None, cpus=8, sampling_rate=2,
                 rep_dfs = list(tqdm(executor.map(
                     agent_df_paths, rep_data.items()),
                     total=len(rep_data)))
-            # Save data for each experiment as local pickle
-            pd.concat(rep_dfs).to_pickle(f'data/{experiment_id}.pkl')
-            with open(f'data/{experiment_id}_metadata.pkl', 'wb') as f:
-                pickle.dump(metadata, f)
+            # Save data for each experiment as local csv
+            pd.concat(rep_dfs).to_csv(
+                f'data/colony_data/sim_dfs/{experiment_id}.csv')
+            with open(f'data/colony_data/sim_dfs{experiment_id}_metadata.json',
+                'wb'
+            ) as f:
+                json.dump(metadata, f)
 
 
 def main():
@@ -115,6 +119,7 @@ def main():
         required=True,
     )
     args = parser.parse_args()
+    os.makedirs('data/colony_data/sim_dfs/', exist_ok=True)
     load_data(args.experiment_id, cpus=args.cpus)
 
 if __name__ == '__main__':

@@ -40,7 +40,7 @@ def convert_dict_to_df(data):
     return df
 
 
-def make_antibiotic_subgen_plot(data):
+def count_antibiotic_subgen(data):
     sim_data = pickle.load(open(SIM_DATA_PATH, 'rb'))
     # Get indices of antibiotic response genes in mRNA count array
     all_TU_ids = sim_data.process.transcription.rna_data['id']
@@ -50,13 +50,6 @@ def make_antibiotic_subgen_plot(data):
     response_rnas = rnas.merge(response_genes, how='inner', on='common_name')
     response_rnas['id'] = response_rnas['id'].apply(lambda x: f'{x}[c]')
     response_TU_ids = np.where(np.isin(all_TU_ids, response_rnas['id']))[0]
-
-    with ProcessPoolExecutor(30) as executor:
-        print('Converting data to DataFrame...')
-        time_dfs = list(tqdm(executor.map(convert_dict_to_df, data.items()),
-            total=len(data)))
-    data = pd.concat(time_dfs)
-    data.to_pickle(f'data/glc_10000_expressome_df.pkl')
 
     data_columns = ~np.isin(data.columns, ['Agent ID', 'Time'])
     n_agents = len(data.loc[:, 'Agent ID'].unique())
@@ -81,11 +74,26 @@ def make_antibiotic_subgen_plot(data):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "-d",
-        "--data",
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument(
+        "-r",
+        "--raw_data",
         help="Saved from ecoli.analysis.db.get_gene_expression_data"
     )
+    group.add_argument(
+        "-d",
+        "--data",
+        help="Saved csv file from running this script once with raw data"
+    )
     args = parser.parse_args()
-    data = pickle.load(open(args.data, 'rb'))
-    make_antibiotic_subgen_plot(data)
+    if args.raw_data:
+        data = pickle.load(open(args.data, 'rb'))
+        with ProcessPoolExecutor(30) as executor:
+            print('Converting data to DataFrame...')
+            time_dfs = list(tqdm(executor.map(convert_dict_to_df, data.items()),
+                total=len(data)))
+        data = pd.concat(time_dfs)
+        data.to_pickle(f'data/glc_10000_expressome_df.pkl')
+    else:
+        data = pd.read_csv(args.data, dtype={'Agent ID': str}, index_col=0)
+    count_antibiotic_subgen(data)

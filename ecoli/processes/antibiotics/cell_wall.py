@@ -245,7 +245,7 @@ class CellWall(Process):
         # Get lattice
         lattice = states["wall_state"]["lattice"]
         
-        # When run out of an EngineProcess, this process sets the incorporated
+        # When not run in an EngineProcess, this process sets the incorporated
         # murein count before MureinDivision and PBPBinding run after division
         if states["murein_state"]["incorporated_murein"] == 0:
             incorporated_monomers = np.sum(lattice)

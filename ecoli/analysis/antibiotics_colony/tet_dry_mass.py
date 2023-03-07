@@ -11,8 +11,8 @@ from ecoli.analysis.antibiotics_colony.timeseries import plot_timeseries
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
-GLC_DATA = "data/glc_0/2022-12-08_00-33-56_581605+0000.pkl"
-TET_DATA = "data/tet_0/2023-01-05_01-00-44_215314+0000.pkl"
+GLC_DATA = "data/colony_data/sim_dfs/2022-12-08_00-33-56_581605+0000.csv"
+TET_DATA = "data/colony_data/sim_dfs/2023-01-05_01-00-44_215314+0000.csv"
 OUTDIR = "out/figure_3"
 HIGHLIGHT_LINEAGE = "0011111"
 
@@ -48,11 +48,8 @@ def make_tet_dry_mass_plot(glc_data, tet_data):
 
 
 def main():
-    with open(GLC_DATA, "rb") as f:
-        glc_data = pickle.load(f)
-
-    with open(TET_DATA, "rb") as f:
-        tet_data = pickle.load(f)
+    glc_data = pd.read_csv(GLC_DATA, dtype={'Agent ID': str}, index_col=0)
+    tet_data = pd.read_csv(TET_DATA, dtype={'Agent ID': str}, index_col=0)
 
     os.makedirs(OUTDIR, exist_ok=True)
 

@@ -1,6 +1,6 @@
 import argparse
+import ast
 import os
-import pickle
 from itertools import combinations
 
 import matplotlib
@@ -9,7 +9,7 @@ import pandas as pd
 import seaborn as sns
 from scipy.stats import spearmanr
 from esda.moran import Moran
-from libpysal.weights import KNN, DistanceBand
+from libpysal.weights import DistanceBand
 from splot.esda import plot_moran
 
 matplotlib.use("Agg")
@@ -17,12 +17,6 @@ import matplotlib.pyplot as plt
 
 from ecoli.analysis.antibiotics_colony import COUNTS_PER_FL_TO_NANOMOLAR
 from ecoli.analysis.antibiotics_colony.amp_plots import PERIPLASMIC_VOLUME_FRACTION
-from ecoli.analysis.antibiotics_colony.plot_utils import (
-    BG_GRAY,
-    HIGHLIGHT_BLUE,
-    HIGHLIGHT_RED,
-    prettify_axis,
-)
 
 
 def make_spatial_correlation_plot(glc_data, column, to_conc=False):
@@ -39,7 +33,6 @@ def make_spatial_correlation_plot(glc_data, column, to_conc=False):
 
     location = data[["X", "Y"]].values
 
-    # weights = KNN(location, k=2)
     weights = DistanceBand(location, 3, alpha=-2.0, binary=False)
     moran = Moran(data[column], weights, permutations=9999)
 
@@ -148,8 +141,9 @@ def load_data(
     # Load glc data
     if verbose:
         print("Loading Glucose data...")
-    with open(glc_data, "rb") as f:
-        glc_data = pickle.load(f)
+    glc_data = pd.read_csv(glc_data, dtype={'Agent ID': str}, index_col=0)
+    # Convert string to actual dictionary
+    glc_data['Boundary'] = glc_data['Boundary'].apply(ast.literal_eval)
 
     # Validate data:
     # - glc_data must be in Glucose condition
@@ -182,7 +176,7 @@ def cli():
     parser.add_argument(
         "--outdir",
         "-d",
-        default="out/figure_2",
+        default="out/analysis/paper_figures/figure_s4",
         help="Directory in which to output the generated figures.",
     )
     parser.add_argument("--svg", "-s", action="store_true", help="Save as svg.")
@@ -241,7 +235,7 @@ def main():
         print("Plotting distance vs. relatedness:")
     fig, _ = make_relatedness_vs_distance_plot(glc_data)
     fig.set_size_inches(3, 3)
-    fig.savefig(os.path.join(options.outdir, f"relatedness_vs_distance{ext}"))
+    fig.savefig(os.path.join(options.outdir, f"fig_s4_relatedness_vs_distance{ext}"))
 
     # Compute and plot spatial autocorrelations
     moran_results = {}

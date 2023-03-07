@@ -1,9 +1,11 @@
 from __future__ import absolute_import, division, print_function
 
 import argparse
+import ast
 from six.moves import cPickle
-from typing import List, Optional, Tuple
-
+from typing import List, Tuple
+import json
+import os
 import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
@@ -11,7 +13,7 @@ from scipy.stats import pearsonr
 import seaborn as sns
 from unum import Unum
 
-from wholecell.utils import units, toya
+from wholecell.utils import units
 from ecoli.library.sim_data import SIM_DATA_PATH
 from ecoli.processes.metabolism import (
     COUNTS_UNITS,
@@ -339,17 +341,17 @@ if __name__ == "__main__":
     group.add_argument(
         '--raw_data',
         '-r',
-        help='Path to saved pickle from ecoli.analysis.db.get_fluxome_data'
+        help='Path to saved JSON from ecoli.analysis.db.get_fluxome_data'
     )
     group.add_argument(
         '--numpy_data',
         '-n',
-        help='Path to saved .npy array from running this once on raw_data'
+        help='Path to saved CSV from running this once on raw_data'
     )
     parser.add_argument(
         '--sim_df',
         '-d',
-        help='Path to dataframe from ecoli.analysis.antibiotics_colony.load_data '
+        help='Path to saved CSV from ecoli.analysis.antibiotics_colony.load_data '
             'must contain "Dry mass" and "Cell mass" columns.',
         required=True
     )
@@ -357,7 +359,7 @@ if __name__ == "__main__":
         '--out_file',
         '-o',
         help='Path to output file.',
-        default='out/analysis/centralCarbonMetabolismScatter.svg'
+        default='out/analysis/paper_figures/fig_s2b_fluxomeScatter.svg'
     )
     parser.add_argument(
         '--sim_data',
@@ -374,14 +376,17 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.raw_data:
-        with open(args.raw_data, 'rb') as f:
-            raw_data = cPickle.load(f)
+        with open(args.raw_data, 'r') as f:
+            raw_data = json.load(f)
     else:
-        arr_data = np.load(args.numpy_data)
+        arr_data = np.loadtxt(args.numpy_data)
         raw_data = None
-    with open(args.sim_df, 'rb') as f:
-        sim_df = cPickle.load(f)
 
+    sim_df = pd.read_csv(args.sim_df, dtype={'Agent ID': str}, index_col=0)
+    # Convert string to dictionary
+    sim_df['Boundary'] = sim_df['Boundary'].apply(ast.literal_eval)
+
+    os.makedirs(args.out_file)
     plot = Plot()
     plot.do_plot(raw_data, arr_data, sim_df, args.sim_data,
         args.validation_data, args.out_file)

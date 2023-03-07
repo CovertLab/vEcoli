@@ -118,6 +118,7 @@ class ReactionDiffusion(Process):
             # under 'kinetic_parameters, with the catalyst id mapping to a kcat_f
             # parameter and a km for one molecule in the environment
             rxn_kinetics = self.parameters['kinetic_parameters'].get(rxn_id)
+            # TODO: Need better way to handle units
             for rxn_kinetic_params in rxn_kinetics.values():
                 for param_name, rxn_kinetic_param in rxn_kinetic_params.items():
                     if isinstance(rxn_kinetic_param, Quantity):

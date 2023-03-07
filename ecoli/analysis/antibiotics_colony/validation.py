@@ -407,7 +407,7 @@ def plot_death_timescale_analysis(
     axs[0].plot(amp_concs, avg_gens, c=(0, 0.4, 1))
     
     # Plot Boman and Ericksson 1963 data (inc. reg. line)
-    lit_data = pd.read_csv('data/sim_dfs/lysis_ratios.csv', header=None)
+    lit_data = pd.read_csv('data/colony_data/lysis_ratios.csv', header=None)
     lit_data = lit_data.rename(columns={0: 'Ampicillin (mg/L)', 
         1: 'Avg. generations to lysis'})
     lit_data['Avg. generations to lysis'] = 1/lit_data['Avg. generations to lysis']
@@ -416,18 +416,18 @@ def plot_death_timescale_analysis(
     lit_data = lit_data.sort_values(by='Ampicillin (mg/L)')
     axs[0].scatter(lit_data['Ampicillin (mg/L)'],
         lit_data['Avg. generations to lysis'],
-        color=(0.5, 0.5, 0.5))
+        color=(1, 100/255, 0))
     axs[0].plot(lit_data['Ampicillin (mg/L)'],
         lit_data['Avg. generations to lysis'],
-        color=(0.5, 0.5, 0.5))
+        color=(1, 100/255, 0))
     axs[0].set_xlabel('Ampicillin (mg/L)', fontsize=9)
     axs[0].set_ylabel('Avg. generations to lysis', fontsize=9)
     axs[0].set_yticks([0, 1, 2, 3, 4], [0, 1, 2, 3, 4], fontsize=8)
     axs[0].set_xticks([0, 2, 4, 6, 8], [0, 2, 4, 6, 8], fontsize=8)
     ylim = axs[0].get_ylim()
-    axs[0].text(8, ylim[1], 'Boman and Ericksson 1963', color=(0.5, 0.5, 0.5), size=8,
+    axs[0].text(8, ylim[1], 'Boman and Ericksson 1963', color=(1, 100/255, 0), size=8,
         verticalalignment='top', horizontalalignment='right')
-    axs[0].text(8, ylim[1]-0.3, 'MIC: 4 mg/L', color=(0.5, 0.5, 0.5), size=8,
+    axs[0].text(8, ylim[1]-0.3, 'MIC: 4 mg/L', color=(1, 100/255, 0), size=8,
         verticalalignment='top', horizontalalignment='right')
     axs[0].text(0.3, ylim[0]+0.6, 'This model', color=(0, 0.4, 1, 1), size=8,
         verticalalignment='top', horizontalalignment='left')
