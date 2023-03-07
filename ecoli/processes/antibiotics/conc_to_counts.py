@@ -113,20 +113,21 @@ def main():
 
     sim = Engine(processes={'conc_to_counts': conv_process,
                             'timeline': timeline_process},
-                 topology={
-                     'conc_to_counts': {
-                        'antibiotic': {
-                            'conc': ('boundary', 'internal', 'antibiotic'),
-                            'volume': ('listeners', 'mass', 'volume')
-                        },
-                        'bulk': ('bulk',),
-                     },
-                     'timeline': {
-                        'global': ('global',),
-                        'antibiotic': ('boundary', 'internal', 'antibiotic'),
-                     }
-                 },
-                 initial_state=initial_state)
+                topology={
+                    'conc_to_counts': {
+                    'antibiotic': {
+                        'conc': ('boundary', 'internal', 'antibiotic'),
+                        'volume': ('listeners', 'mass', 'volume')
+                    },
+                    'bulk': ('bulk',),
+                    },
+                    'timeline': {
+                    'global': ('global',), # The global time is read here
+                    # This port is based on the declared timeline
+                    'antibiotic': ('boundary', 'internal', 'antibiotic'),
+                    }
+                },
+                initial_state=initial_state)
     sim.update(sim_time)
     timeseries_data = timeseries_from_data(sim.emitter.get_data())
     antibiotic_str_to_float = []

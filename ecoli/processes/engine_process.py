@@ -188,7 +188,7 @@ class EngineProcess(Process):
                 'division_variable')
         if self.parameters['chromosome_path'] == None:
             self.parameters['chromosome_path'] = inner_composite.pop(
-                'chromosome_path')
+                'chromosome_path', None)
         # If initial inner state not given in outer composite, 
         # use initial state from inner composite
         if self.parameters['initial_inner_state'] == None:
@@ -416,6 +416,9 @@ class EngineProcess(Process):
         # Two full chromosomes required for division
         full_chromosomes = self.sim.state.get_path(
             self.parameters['chromosome_path']).get_value()
+        # If no chromosome_path is supplied, allow division to proceed
+        if full_chromosomes is None:
+            full_chromosomes = [0, 1]
         if (
                 self.parameters['divide']
                 and division_variable >= division_threshold
