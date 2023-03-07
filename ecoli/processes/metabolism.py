@@ -101,6 +101,8 @@ class Metabolism(Step):
         self.include_ppgpp = self.parameters['include_ppgpp']
         self.current_timeline = self.parameters['current_timeline']
         self.media_id = self.parameters['media_id']
+        self.ngam = self.parameters['non_growth_associated_maintenance']
+        self.gam = parameters['dark_atp'] * parameters['cell_dry_mass_fraction']
 
         # Create model to use to solve metabolism updates
         self.model = FluxBalanceAnalysisModel(
@@ -176,9 +178,9 @@ class Metabolism(Step):
                     'catalyst_counts': {'_default': 0, '_updater': 'set'},
                     'translation_gtp': {'_default': 0, '_updater': 'set'},
                     'coefficient': {'_default': 0.0, '_updater': 'set'},
-                    'unconstrained_molecules': {'_default': [], '_updater': 'set'},
-                    'constrained_molecules': {'_default': [], '_updater': 'set'},
-                    'uptake_constraints': {'_default': [], '_updater': 'set'},
+                    'unconstrained_molecules': {'_default': [], '_updater': 'set', '_emit': True},
+                    'constrained_molecules': {'_default': {}, '_updater': 'set', '_emit': True},
+                    #'uptake_constraints': {'_default': [], '_updater': 'set'},
                     'deltaMetabolites': {'_default': [], '_updater': 'set'},
                     'reactionFluxes': {'_default': [], '_updater': 'set', '_emit': True},
                     'externalExchangeFluxes': {'_default': [], '_updater': 'set'},
@@ -195,6 +197,7 @@ class Metabolism(Step):
                     'estimated_exchange_dmdt': {'_default': {}, '_updater': 'set', '_emit': True},
                     'target_kinetic_fluxes': {'_default': {}, '_updater': 'set', '_emit': True},
                     'target_kinetic_bounds': {'_default': {}, '_updater': 'set', '_emit': True},
+                    'target_maintenance_flux': {'_default': 0.0, '_updater': 'set', '_emit': True},
                 },
 
                 'enzyme_kinetics': {
@@ -248,7 +251,7 @@ class Metabolism(Step):
 
         # Get environment updates
         current_media_id = states['environment']['media_id']
-        unconstrained = states['environment']['exchange_data']['unconstrained']
+        unconstrained = list(states['environment']['exchange_data']['unconstrained'])
         constrained = states['environment']['exchange_data']['constrained']
 
         # Calculate state values
@@ -311,11 +314,17 @@ class Metabolism(Step):
                            exchange_fluxes).asNumber().astype(int)
 
         # Write outputs to listeners
-        unconstrained, constrained, uptake_constraints = self.get_import_constraints(
-            unconstrained, constrained, GDCW_BASIS)
+        # unconstrained, constrained, uptake_constraints = self.get_import_constraints(
+        #     unconstrained, constrained, GDCW_BASIS)
 
 
         # below is used for comparing target and estimate between GD-FBA and LP-FBA, no effect on model
+        maintenance_ngam = ((self.ngam * coefficient) / (counts_to_molar*timestep)).asNumber()
+        maintenance_gam = (self.gam).asNumber() # TODO (Cyrus) Add change in mass when implementing, currently counts/mass.
+        maintenance_gam_active = translation_gtp/timestep
+        maintenance_target = maintenance_ngam + maintenance_gam + maintenance_gam_active
+
+
         objective_counts = {key: int((self.model.homeostatic_objective[key] / counts_to_molar).asNumber())
                             - int(states['metabolites'][key]) for key in fba.getHomeostaticTargetMolecules()}
 
@@ -351,7 +360,7 @@ class Metabolism(Step):
                     'coefficient': coefficient.asNumber(CONVERSION_UNITS),
                     'unconstrained_molecules': unconstrained,
                     'constrained_molecules': constrained,
-                    'uptake_constraints': uptake_constraints,
+                    #'uptake_constraints': uptake_constraints,
                     'deltaMetabolites': delta_metabolites_final,
                     'reactionFluxes': fba.getReactionFluxes() / timestep,
                     'externalExchangeFluxes': converted_exchange_fluxes,
@@ -372,6 +381,7 @@ class Metabolism(Step):
                                                 for index, molecule in enumerate(fba.getExternalMoleculeIDs())},
                     'target_kinetic_fluxes': kinetic_targets,
                     'target_kinetic_bounds': target_kinetic_bounds,
+                    'target_maintenance_flux': maintenance_target,
                 },
 
                 'enzyme_kinetics': {
@@ -457,6 +467,8 @@ class FluxBalanceAnalysisModel(object):
         gam = parameters['dark_atp'] * parameters['cell_dry_mass_fraction']
 
         self.exchange_constraints = metabolism.exchange_constraints
+        self.stoichiometry = metabolism.reaction_stoich
+        self.maintenance_reaction = metabolism.maintenance_reaction
 
         self._biomass_concentrations = {}  # type: dict
         self._getBiomassAsConcentrations = parameters['get_biomass_as_concentrations']
