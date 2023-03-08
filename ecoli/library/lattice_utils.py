@@ -7,11 +7,15 @@ Utilities for Lattice Environments
 import numpy as np
 from scipy import constants
 from vivarium.core.process import Process
+from vivarium.library.units import remove_units
 from vivarium.library.topology import get_in, assoc_path
 
-from vivarium.library.units import units, Quantity
+from vivarium.library.units import units
 
 AVOGADRO = constants.N_A / units.mol
+# Cache units to save time
+UNITS_UM = units.um
+UNITS_MM = units.mM
 
 
 def get_bin_site(location, n_bins, bounds):
@@ -31,11 +35,11 @@ def get_bin_site(location, n_bins, bounds):
         lattice.
     '''
     location = [
-        coordinate.to(units.um).magnitude
+        coordinate.to(UNITS_UM).magnitude
         for coordinate in location
     ]
     bounds = [
-        bound.to(units.um).magnitude
+        bound.to(UNITS_UM).magnitude
         for bound in bounds
     ]
     bin_site_no_rounding = np.array([
@@ -262,7 +266,8 @@ def make_gradient(gradient, n_bins, size):
 
     elif gradient.get('type') == 'uniform':
         for molecule_id, fill_value in gradient['molecules'].items():
-            fields[molecule_id] = np.full((bins_x, bins_y), fill_value, dtype=np.float64)
+            fields[molecule_id] = np.full(
+                (bins_x, bins_y), remove_units(fill_value), dtype=np.float64)
 
     return fields
 
@@ -286,10 +291,9 @@ def apply_exchanges(
         reset_exchanges = {}
         for mol_id, value in exchanges.items():
             # delta concentration
-            exchange = value * units.count
-            bin_volume = bin_volume
+            exchange = value
             concentration = count_to_concentration(exchange, bin_volume).to(
-                units.mmol / units.L).magnitude
+                UNITS_MM).magnitude
 
             delta_field = np.zeros((n_bins[0], n_bins[1]), dtype=np.float64)
             delta_field[bin_site[0], bin_site[1]] += concentration

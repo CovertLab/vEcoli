@@ -12,13 +12,13 @@ from ecoli.processes.registries import topology_registry
 
 
 NAME = 'monomer_counts_listener'
+TOPOLOGY = {
+    "listeners": ("listeners",),
+    "bulk": ("bulk",),
+    "unique": ("unique",),
+}
 topology_registry.register(
-    NAME,
-    {
-        "listeners": ("listeners",),
-        "bulk": ("bulk",),
-        "unique": ("unique",),
-    }
+    NAME, TOPOLOGY
 )
 
 class MonomerCounts(Step):
@@ -26,6 +26,7 @@ class MonomerCounts(Step):
     Listener for the counts of each protein monomer species.
     """
     name = NAME
+    topology = TOPOLOGY
 
     defaults = {
         'bulk_molecule_ids': [],
@@ -120,7 +121,7 @@ class MonomerCounts(Step):
             },
             'bulk': bulk_schema(self.bulk_molecule_ids),
             'unique': {
-                unique_mol: {
+                str(unique_mol): {
                     '_default': {}
                 } for unique_mol in self.parameters['unique_ids']
             },
@@ -143,17 +144,17 @@ class MonomerCounts(Step):
         two_component_monomer_counts = np.dot(self.two_component_system_stoich,
                                               np.negative(bulkMoleculeCounts[self.two_component_system_complex_idx]))
 
-        bulkMoleculeCounts[self.complexation_molecule_idx] += complex_monomer_counts.astype(np.int)
-        bulkMoleculeCounts[self.equilibrium_molecule_idx] += equilibrium_monomer_counts.astype(np.int)
-        bulkMoleculeCounts[self.two_component_system_molecule_idx] += two_component_monomer_counts.astype(np.int)
+        bulkMoleculeCounts[self.complexation_molecule_idx] += complex_monomer_counts.astype(np.int32)
+        bulkMoleculeCounts[self.equilibrium_molecule_idx] += equilibrium_monomer_counts.astype(np.int32)
+        bulkMoleculeCounts[self.two_component_system_molecule_idx] += two_component_monomer_counts.astype(np.int32)
 
         # Account for monomers in unique molecule complexes
         n_ribosome_subunit = n_active_ribosome * self.ribosome_stoich
         n_rnap_subunit = n_active_rnap * self.rnap_stoich
         n_replisome_subunit = n_active_replisome * self.replisome_stoich
-        bulkMoleculeCounts[self.ribosome_subunit_idx] += n_ribosome_subunit.astype(np.int)
-        bulkMoleculeCounts[self.rnap_subunit_idx] += n_rnap_subunit.astype(np.int)
-        bulkMoleculeCounts[self.replisome_subunit_idx] += n_replisome_subunit.astype(np.int)
+        bulkMoleculeCounts[self.ribosome_subunit_idx] += n_ribosome_subunit.astype(np.int32)
+        bulkMoleculeCounts[self.rnap_subunit_idx] += n_rnap_subunit.astype(np.int32)
+        bulkMoleculeCounts[self.replisome_subunit_idx] += n_replisome_subunit.astype(np.int32)
 
         # Update monomerCounts
         monomer_counts = bulkMoleculeCounts[self.monomer_idx]

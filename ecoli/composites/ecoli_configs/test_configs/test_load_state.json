@@ -22,8 +22,7 @@
     "parallel": false,
     "daughter_path": [],
     "agents_path": ["..", "..", "agents"],
-    "division": {
-        "threshold": 2220},
+    "division_threshold": 2220,
     "divide": false,
 
     "save": false,

@@ -10,12 +10,12 @@ def warn_incomplete(array):
 
 def replace_scalars(array):
     for value in array:
-        if value != [] and type(value) in {list, np.array}:
+        if value != [] and type(value) in {list, np.ndarray}:
             array_len = len(value)
             break
 
     for i in range(len(array)):
-        if array[i] == [] or type(array[i]) not in {list, np.array}:
+        if array[i] == [] or type(array[i]) not in {list, np.ndarray}:
             array[i] = [0 for i in range(array_len)]
 
     array = np.array(array)
@@ -24,13 +24,13 @@ def replace_scalars(array):
 
 def replace_scalars_2d(array):
     for value in array:
-        if value != [] and type(value) in {list, np.array}:
+        if value != [] and type(value) in {list, np.ndarray}:
             rows = len(value)
             cols = len(value[0])
             break
 
     for i in range(len(array)):
-        if array[i] == [] or type(array[i]) not in {list, np.array}:
+        if array[i] == [] or type(array[i]) not in {list, np.ndarray}:
             array[i] = [[0 for i in range(cols)] for i in range(rows)]
 
     array = np.array(array)

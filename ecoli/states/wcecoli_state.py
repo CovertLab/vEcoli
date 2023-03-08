@@ -1,6 +1,7 @@
 from copy import deepcopy
 import json
 import numpy as np
+import concurrent.futures
 
 from vivarium.core.serialize import deserialize_value
 
@@ -70,6 +71,7 @@ def update_unique(modify_dict, source_dict, convert_unique_id_to_string):
                     modify_dict[mol_type][molecule_id][key] = str(value)
                 else:
                     modify_dict[mol_type][molecule_id][key] = value
+    return modify_dict
 
 
 def colony_initial_state(states, convert_unique_id_to_string):
@@ -77,13 +79,12 @@ def colony_initial_state(states, convert_unique_id_to_string):
     colony_initial_state modifies the states of a loaded colony simulation
     to be suitable for initializing a colony simulation.
     """
-    states_to_return = deepcopy(states)
     for agent_id in states['agents'].keys():
         # If evolvers_ran is False, we can get an infinite loop of
         # neither evolvers nor requesters running. No saved state should
         # include evolvers_ran=False.
         assert states.get('evolvers_ran', True)
-        states_to_return['agents'][agent_id]['environment']['exchange_data'] = {
+        states['agents'][agent_id]['environment']['exchange_data'] = {
                 'unconstrained': {
                     'CL-[p]',
                     'FE+2[p]',
@@ -104,10 +105,10 @@ def colony_initial_state(states, convert_unique_id_to_string):
                     'AMMONIUM[c]'},
                 'constrained': {
                     'GLC[p]': 20.0 * units.mmol / (units.g * units.h)}}
-        states_to_return['agents'][agent_id]['unique'] = {}
-        update_unique(states_to_return['agents'][agent_id]['unique'], states['agents'][agent_id].get("unique", {}),
-                      convert_unique_id_to_string)
-    return states_to_return
+        states['agents'][agent_id]['unique'] = update_unique({}, 
+            states['agents'][agent_id].get("unique", {}),
+            convert_unique_id_to_string)
+    return states
 
 
 def get_state_from_file(
@@ -117,12 +118,19 @@ def get_state_from_file(
     # TODO(Eran): deal with mass
     # add mw property to bulk and unique molecules
     # and include any "submass" attributes from unique molecules
-
-    states = deserialize_value(load_states(path))
-
-    if 'agents' in states:
+    serialized_state = load_states(path)
+    if 'agents' in serialized_state:
+        agents = serialized_state.pop('agents')
+        n_agents = len(agents)
+        with concurrent.futures.ProcessPoolExecutor(n_agents) as executor:
+            deserialized_agents = executor.map(
+                deserialize_value, agents.values())
+        agents = dict(zip(agents.keys(), deserialized_agents))
+        states = deserialize_value(serialized_state)
+        states['agents'] = agents
         return colony_initial_state(states, convert_unique_id_to_string)
-
+    
+    states = deserialize_value(serialized_state)
     # If evolvers_ran is False, we can get an infinite loop of
     # neither evolvers nor requesters running. No saved state should
     # include evolvers_ran=False.

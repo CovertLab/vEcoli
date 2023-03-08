@@ -32,25 +32,25 @@ def corner_from_center(width, length, center_position, angle):
     return np.array([corner_position[0], corner_position[1], angle])
 
 
-def random_body_position(body):
+def random_body_position(body, rng):
     ''' pick a random point along the boundary'''
     width, length = body.dimensions
-    if random.randint(0, 1) == 0:
+    if rng.integers(0, 2) == 0:
         # force along ends
-        if random.randint(0, 1) == 0:
+        if rng.integers(0, 2) == 0:
             # force on the left end
-            location = (random.uniform(0, width), 0)
+            location = (rng.uniform(0, width), 0)
         else:
             # force on the right end
-            location = (random.uniform(0, width), length)
+            location = (rng.uniform(0, width), length)
     else:
         # force along length
-        if random.randint(0, 1) == 0:
+        if rng.integers(0, 2) == 0:
             # force on the bottom end
-            location = (0, random.uniform(0, length))
+            location = (0, rng.uniform(0, length))
         else:
             # force on the top end
-            location = (width, random.uniform(0, length))
+            location = (width, rng.uniform(0, length))
     return location
 
 
@@ -82,9 +82,14 @@ class PymunkMultibody(object):
         'initial_agents': {},
         # for debugging
         'screen': None,
+        'seed': 0,
     }
 
     def __init__(self, config):
+        # PRNG for jitter force
+        self.rng = np.random.default_rng(
+            seed=config.get('seed', self.defaults['seed']))
+
         # hardcoded parameters
         self.elasticity = self.defaults['elasticity']
         self.friction = self.defaults['friction']
@@ -158,10 +163,10 @@ class PymunkMultibody(object):
         body.apply_impulse_at_local_point(scaled_motile_force, motile_location)
 
     def apply_jitter_force(self, body):
-        jitter_location = random_body_position(body)
+        jitter_location = random_body_position(body, self.rng)
         jitter_force = [
-            random.normalvariate(0, self.jitter_force),
-            random.normalvariate(0, self.jitter_force)]
+            self.rng.normal(0, self.jitter_force),
+            self.rng.normal(0, self.jitter_force)]
         scaled_jitter_force = [
             force * self.force_scaling
             for force in jitter_force]

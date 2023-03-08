@@ -1,15 +1,19 @@
 import argparse
 import json
-
-import matplotlib.pyplot as plt
-import os
 import pytest
 
 from vivarium.core.engine import pf
+
+from ecoli.library.sim_data import LoadSimData
+from ecoli.composites.ecoli_nonpartition import SIM_DATA_PATH
+from ecoli.states.wcecoli_state import get_state_from_file
 from ecoli.processes.chromosome_replication import ChromosomeReplication
-from ecoli.states.wcecoli_state import MASSDIFFS
+
 from migration.migration_utils import *
-from migration import load_sim_data
+
+load_sim_data = LoadSimData(
+            sim_data_path=SIM_DATA_PATH,
+            seed=0)
 
 
 TOPOLOGY = ChromosomeReplication.topology
@@ -17,221 +21,41 @@ TOPOLOGY = ChromosomeReplication.topology
 
 @pytest.mark.master
 def test_actual_update():
-    config = load_sim_data.get_chromosome_replication_config()
-    chromosome_replication = ChromosomeReplication(config)
-    total_time = 2
-    initial_times = [0, 1438, 1440, 2140, 3142]
-    for initial_time in initial_times:
+    def test(initial_time):
+        # Set time parameters
+        total_time = 2
+        initial_time = initial_time
+
+        # Create process, experiment, loading in initial state from file.
+        config = load_sim_data.get_chromosome_replication_config()
+        chromosome_replication_process = ChromosomeReplication(config)
+
+        initial_state = get_state_from_file(
+            path=f'data/migration/wcecoli_t{initial_time}_before_layer_0.json')
+
         # run the process and get an update
-        actual_update = run_ecoli_process(
-            chromosome_replication,
-            TOPOLOGY,
-            total_time=total_time,
-            initial_time=initial_time)
+        actual_request, actual_update = run_custom_partitioned_process(
+            chromosome_replication_process, TOPOLOGY, initial_time = initial_time, 
+            initial_state=initial_state, folder_name='chromosome_replication')
 
-        with open(f"data/chromosome_replication_update_t{initial_time + total_time}.json") as f:
+        with open(
+            f"data/migration/chromosome_replication/request_t{total_time+initial_time}.json",
+            'r'
+        ) as f:
+            wc_request = json.load(f)
+        # Ignore differences in unique IDs
+        assert recursive_compare(actual_request, wc_request)
+        
+        with open(
+            f"data/migration/chromosome_replication/update_t{total_time+initial_time}.json",
+            'r'
+        ) as f:
             wc_update = json.load(f)
+        assert recursive_compare(actual_update, wc_update, ignore_keys={'key'})
 
-        print(pf(actual_update))
-        plots(actual_update, wc_update, total_time + initial_time)
-        assertions(actual_update, wc_update)
-
-
-def plots(actual_update, expected_update, time):
-    os.makedirs("out/migration/chromosome_replication/", exist_ok=True)
-
-    # Plots ============================================================================
-
-    for key in actual_update:
-
-        if key == 'replisome_trimers':
-            plt.subplot(3, 3, 1)
-            plt.bar(np.arange(len(actual_update[key].keys())) - 0.1, actual_update[key].values(), 0.2, label="Vivarium")
-            plt.bar(np.arange(len(expected_update[key].keys())) + 0.1, expected_update[key].values(), 0.2,
-                    label="wcEcoli")
-            plt.xticks(ticks=np.arange(len(actual_update[key].keys())), labels=actual_update[key].keys(), rotation=90)
-            plt.ylabel('Change in Replisome Trimers')
-            plt.title('Replisome Trimer Deltas')
-            plt.legend()
-
-        if key == 'replisome_monomers':
-            plt.subplot(3, 3, 2)
-            plt.bar(np.arange(len(actual_update[key].keys())) - 0.1, actual_update[key].values(), 0.2, label="Vivarium")
-            plt.bar(np.arange(len(expected_update[key].keys())) + 0.1, expected_update[key].values(), 0.2,
-                    label="wcEcoli")
-            plt.xticks(ticks=np.arange(len(actual_update[key].keys())), labels=actual_update[key].keys(), rotation=90)
-            plt.ylabel('Change in Replisome Monomers')
-            plt.title('Replisome Monomer Deltas')
-            plt.legend()
-
-        if key == 'active_replisomes':
-            plt.subplot(3, 3, 3)
-            actual_coords = []
-            expected_coords = []
-            actual_dna_mass = []
-            expected_dna_mass = []
-            rep_labels = []
-            for unique_index in actual_update[key]:
-                if unique_index != '_add' and unique_index != '_delete':
-                    actual_coords.append(actual_update[key][unique_index]['coordinates'])
-                    expected_coords.append(expected_update[key][unique_index]['coordinates'])
-                    actual_dna_mass.append(actual_update[key][unique_index]['submass'][MASSDIFFS['massDiff_DNA']])
-                    expected_dna_mass.append(expected_update[key][unique_index]['dna_mass'])
-                    rep_labels.append(unique_index)
-
-            plt.bar(np.arange(len(actual_coords)) - 0.1, actual_coords, 0.2,
-                    label="Vivarium")
-            plt.bar(np.arange(len(expected_coords)) + 0.1, expected_coords, 0.2,
-                    label="wcEcoli")
-            plt.xticks(ticks=np.arange(len(rep_labels)), labels=rep_labels, rotation=90)
-            plt.ylabel('Change in Active Replisomes Coordinates')
-            plt.title('Active Replisomes Coordinates Deltas')
-            plt.legend()
-
-            plt.subplot(3, 3, 4)
-            plt.bar(np.arange(len(actual_dna_mass)) - 0.1, actual_dna_mass, 0.2, label="Vivarium")
-            plt.bar(np.arange(len(expected_dna_mass)) + 0.1, expected_dna_mass, 0.2,
-                    label="wcEcoli")
-            plt.xticks(ticks=np.arange(len(rep_labels)),
-                       labels=rep_labels, rotation=90)
-            plt.ylabel('Change in Active Replisomes DNA Mass')
-            plt.title('Active Replisomes DNA Mass Deltas')
-            plt.legend()
-
-        if key == 'dntps':
-            plt.subplot(3, 3, 5)
-            plt.bar(np.arange(len(actual_update[key].keys())) - 0.1, actual_update[key].values(), 0.2, label="Vivarium")
-            plt.bar(np.arange(len(expected_update[key].keys())) + 0.1, expected_update[key].values(), 0.2,
-                    label="wcEcoli")
-            plt.xticks(ticks=np.arange(len(actual_update[key].keys())), labels=actual_update[key].keys(), rotation=90)
-            plt.ylabel('Change in DNTPs')
-            plt.title('DNTPs Deltas')
-            plt.legend()
-
-    plt.gcf().set_size_inches(16, 12)
-    plt.tight_layout()
-    plt.savefig(f"out/migration/chromosome_replication/chromosome_replication_figures_t{time}.png")
-
-
-def assertions(actual_update, expected_update):
-    test_structure = {
-        'replisome_trimers': {key: scalar_equal for key in actual_update['replisome_trimers'].keys()},
-        'replisome_monomers': {key: scalar_equal for key in actual_update['replisome_monomers'].keys()},
-        'listeners': {
-            'replication_data': {},
-        }
-    }
-    if 'criticalMassPerOriC' in actual_update['listeners']['replication_data']:
-        test_structure['listeners']['replication_data']['criticalMassPerOriC'] = scalar_equal
-    if 'criticalInitiationMass' in actual_update['listeners']['replication_data']:
-        test_structure['listeners']['replication_data']['criticalInitiationMass'] = scalar_equal
-    if 'dntps' in actual_update:
-        test_structure['dntps'] = {key: scalar_equal for key in actual_update['dntps'].keys()}
-    if 'ppi' in actual_update:
-        test_structure['ppi'] = {key: scalar_equal for key in actual_update['ppi'].keys()}
-    tests = ComparisonTestSuite(test_structure, fail_loudly=False)
-    tests.run_tests(actual_update, expected_update, verbose=True)
-
-    def compare_dict_data(actual_dicts, expected_dicts, comparison, keys, data_type=None):
-        actual_data = []
-        expected_data = []
-        for i in range(len(actual_dicts)):
-            actual_value = actual_dicts[i]
-            for key in keys:
-                actual_value = actual_value[key]
-            if data_type:
-                actual_value = data_type(actual_value)
-            actual_data.append(actual_value)
-        for j in range(len(expected_dicts)):
-            expected_value = expected_dicts[j]
-            for key in keys:
-                expected_value = expected_value[key]
-            if data_type:
-                expected_value = data_type(expected_value)
-            expected_data.append(expected_value)
-        assert comparison(np.array(actual_data), expected_data)
-
-    if '_delete' in actual_update['active_replisomes']:
-        assert scalar_equal(len(actual_update['active_replisomes']['_delete']),
-                            len(expected_update['active_replisomes']['_delete']))
-    if '_add' in actual_update['active_replisomes']:
-        assert scalar_equal(len(actual_update['active_replisomes']['_add']),
-                            len(expected_update['active_replisomes']['_add']))
-        compare_dict_data(actual_update['active_replisomes']['_add'], expected_update['active_replisomes']['_add'],
-                          array_equal, ['state', 'coordinates'])
-        compare_dict_data(actual_update['active_replisomes']['_add'], expected_update['active_replisomes']['_add'],
-                          array_equal, ['state', 'right_replichore'], int)
-
-    def compare_index_data(actual_dict, expected_dict, comparison, data_key, data_type):
-        actual_data = []
-        expected_data = []
-        for key in actual_dict:
-            if key != '_add' and key != '_delete':
-                actual_data.append(data_type(actual_dict[key][data_key]))
-        for key in expected_dict:
-            if key != '_add' and key != '_delete':
-                expected_data.append(data_type(actual_dict[key][data_key]))
-        if actual_data and expected_data:
-            assert comparison(np.array(actual_data), expected_data)
-
-    compare_index_data(actual_update['active_replisomes'], expected_update['active_replisomes'],
-                       array_almost_equal, 'coordinates', int)
-    for id in actual_update['active_replisomes']:
-        if id not in ['_delete', '_add']:
-            assert scalar_equal(actual_update['active_replisomes'][id]['submass'][MASSDIFFS['massDiff_DNA']],
-                                expected_update['active_replisomes'][id]['dna_mass'])
-
-    if 'oriCs' in actual_update:
-        assert scalar_equal(len(actual_update['oriCs']['_delete']), len(expected_update['oriCs']['_delete']))
-        assert scalar_equal(len(actual_update['oriCs']['_add']), len(actual_update['oriCs']['_add']))
-
-    if 'full_chromosomes' in actual_update:
-        num_chromosome_keys = 0
-        for key in actual_update['full_chromosomes']:
-            if key != '_add':
-                num_chromosome_keys += 1
-        num_wc_chromosome_keys = 0
-        for key in expected_update['full_chromosomes']:
-            if key != '_add':
-                num_wc_chromosome_keys += 1
-        assert scalar_equal(num_chromosome_keys, num_wc_chromosome_keys)
-        if '_add' in actual_update['full_chromosomes']:
-            compare_dict_data(actual_update['full_chromosomes']['_add'], expected_update['full_chromosomes']['_add'],
-                              array_equal, ['state', 'division_time'])
-            compare_dict_data(actual_update['full_chromosomes']['_add'], expected_update['full_chromosomes']['_add'],
-                              scalar_equal, ['state', 'has_triggered_division'], int)
-
-    if 'chromosome_domains' in actual_update:
-        # TODO: use compare_index_data
-        compare_index_data(actual_update['active_replisomes'], expected_update['active_replisomes'],
-                           array_almost_equal, 'coordinates', int)
-        chromo_dom_keys = []
-        chromo_dom_children = []
-        for key in actual_update['chromosome_domains']:
-            if key != '_add':
-                chromo_dom_keys.append(int(key))
-                for i in range(len(actual_update['chromosome_domains'][key]['child_domains'])):
-                    chromo_dom_children.append(int(actual_update['chromosome_domains'][key]['child_domains'][i]))
-        wc_chromo_dom_keys = []
-        wc_chromo_dom_children = []
-        for key in expected_update['chromosome_domains']:
-            if key != '_add':
-                wc_chromo_dom_keys.append(int(key))
-                for i in range(len(expected_update['chromosome_domains'][key]['child_domains'])):
-                    wc_chromo_dom_children.append(int(expected_update['chromosome_domains'][key]['child_domains'][i]))
-        assert array_equal(np.array(chromo_dom_keys), wc_chromo_dom_keys)
-        assert array_equal(np.array(chromo_dom_children), wc_chromo_dom_children)
-
-        def create_child_list(add_dict):
-            total_child_domains = []
-            for i in range(len(add_dict)):
-                child_domains = add_dict[i]['state']['child_domains']
-                for j in range(len(child_domains)):
-                    total_child_domains.append(int(child_domains[j]))
-            return total_child_domains
-
-        assert array_equal(np.array(create_child_list(actual_update['chromosome_domains']['_add'])),
-                           create_child_list(expected_update['chromosome_domains']['_add']))
+    times = [0, 2072]
+    for initial_time in times:
+        test(initial_time)
 
 
 @pytest.mark.master

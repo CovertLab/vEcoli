@@ -14,7 +14,6 @@ import numpy as np
 from vivarium.core.process import Step
 
 from ecoli.processes.registries import topology_registry
-from ecoli.processes.partition import check_whether_evolvers_have_run
 from ecoli.library.schema import (
     add_elements, arrays_from, bulk_schema, create_unique_indexes,
     arrays_to, array_to, dict_value_schema, listener_schema)
@@ -41,6 +40,7 @@ TOPOLOGY = {
     "evolvers_ran": ("evolvers_ran",),
     # TODO(vivarium): Only include if superhelical density flag is passed
     # "chromosomal_segments": ("unique", "chromosomal_segment")
+    "first_update": ("deriver_skips", "chromosome_structure",)
 }
 topology_registry.register(NAME, TOPOLOGY)
 
@@ -113,7 +113,6 @@ class ChromosomeStructure(Step):
         self.chromosome_segment_index = 0
         self.promoter_index = 60000
         self.DnaA_box_index = 60000
-        self.first_update = True
 
         self.random_state = np.random.RandomState(
             seed=self.parameters['seed'])
@@ -121,7 +120,7 @@ class ChromosomeStructure(Step):
     def ports_schema(self):
         ports = {
             'listeners': {
-                'RnapData': listener_schema({
+                'rnap_data': listener_schema({
                     'n_total_collisions': 0,
                     'n_headon_collisions': 0,
                     'n_codirectional_collisions': 0,
@@ -149,6 +148,11 @@ class ChromosomeStructure(Step):
             'promoters': dict_value_schema('promoters'),
             'DnaA_boxes': dict_value_schema('DnaA_boxes'),
             'evolvers_ran': {'_default': True},
+            'first_update': {
+                '_default': True,
+                '_updater': 'set',
+                '_divider': {'divider': 'set_value', 'config': {'value': True}},
+            }
         }
 
         if self.calculate_superhelical_densities:
@@ -161,15 +165,10 @@ class ChromosomeStructure(Step):
 
         return ports
 
-    def update_condition(self, timestep, states):
-        return check_whether_evolvers_have_run(
-            states['evolvers_ran'], self.name)
-
     def next_update(self, timestep, states):
         # Skip t=0 if a deriver
-        if self.first_update:
-            self.first_update = False
-            return {}
+        if states['first_update']:
+            return {'first_update': False}
 
         # Read unique molecule attributes
         if states['active_replisomes'].values():
@@ -212,7 +211,7 @@ class ChromosomeStructure(Step):
             Computes the boolean mask of unique molecules that should be
             removed based on the progression of the replication forks.
             """
-            mask = np.zeros_like(domain_indexes, dtype=np.bool)
+            mask = np.zeros_like(domain_indexes, dtype=np.bool_)
 
             # Loop through all domains
             for domain_index in np.unique(domain_indexes):
@@ -273,7 +272,7 @@ class ChromosomeStructure(Step):
         # Write values to listeners
         update = {
             'listeners': {
-                'RnapData': {
+                'rnap_data': {
                     'n_total_collisions': n_total_collisions,
                     'n_headon_collisions': n_headon_collisions,
                     'n_codirectional_collisions': n_codirectional_collisions,
@@ -404,7 +403,7 @@ class ChromosomeStructure(Step):
             n_segments, {
                 'unique_index': np.arange(
                     self.chromosome_segment_index, self.chromosome_segment_index +
-                    n_segments),
+                    n_segments).tolist(),
                 'boundary_molecule_indexes': all_new_boundary_molecule_indexes,
                 'boundary_coordinates': all_new_boundary_coordinates,
                 'domain_index': all_new_segment_domain_indexes,
@@ -505,7 +504,7 @@ class ChromosomeStructure(Step):
                     n_initiated_sequences - incomplete_sequence_lengths.sum())
 
         # Write to listener
-        update['listeners']['RnapData']['n_removed_ribosomes'] = n_removed_ribosomes
+        update['listeners']['rnap_data']['n_removed_ribosomes'] = n_removed_ribosomes
 
 
         def get_replicated_motif_attributes(old_coordinates, old_domain_indexes):
@@ -553,11 +552,11 @@ class ChromosomeStructure(Step):
                 n_new_promoters, self.random_state)
             new_promoters = arrays_to(
                 n_new_promoters, {
-                    'unique_index': np.array(promoter_indices),
+                    'unique_index': promoter_indices,
                     'TU_index': promoter_TU_indexes_new,
                     'coordinates': promoter_coordinates_new,
                     'domain_index': promoter_domain_indexes_new,
-                    'bound_TF': np.zeros((n_new_promoters, self.n_TFs), dtype=np.bool).tolist()})
+                    'bound_TF': np.zeros((n_new_promoters, self.n_TFs), dtype=np.bool_).tolist()})
             update['promoters'].update(add_elements(
                 new_promoters, 'unique_index'))
 
@@ -584,10 +583,10 @@ class ChromosomeStructure(Step):
                 n_new_DnaA_boxes, self.random_state)
             new_DnaA_boxes = arrays_to(
                 n_new_DnaA_boxes, {
-                    'unique_index': np.array(DnaA_box_indices),
+                    'unique_index': DnaA_box_indices,
                     'coordinates': DnaA_box_coordinates_new,
                     'domain_index': DnaA_box_domain_indexes_new,
-                    'DnaA_bound': np.zeros(n_new_DnaA_boxes, dtype=np.bool).tolist()})
+                    'DnaA_bound': np.zeros(n_new_DnaA_boxes, dtype=np.bool_).tolist()})
             update['DnaA_boxes'].update(add_elements(
                 new_DnaA_boxes, 'unique_index'))
 

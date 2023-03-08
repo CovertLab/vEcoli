@@ -308,7 +308,7 @@ class PolypeptideElongation(PartitionedProcess):
 
         # If there are no active ribosomes, return immediately
         if len(states['active_ribosome']) == 0:
-            return {'listeners': {}}
+            return {'listeners': {'ribosome_data': {}, 'growth_limits': {}}}
 
         # Build sequences to request appropriate amount of amino acids to
         # polymerize for next timestep
@@ -383,6 +383,7 @@ class PolypeptideElongation(PartitionedProcess):
         # Get number of active ribosomes
         n_active_ribosomes = len(states['active_ribosome'])
         update['listeners']['growth_limits']['active_ribosomes_allocated'] = n_active_ribosomes
+        update['listeners']['growth_limits']['aa_allocated'] = array_from(states['amino_acids'])
 
         # If there are no active ribosomes, return immediately
         if n_active_ribosomes == 0:
@@ -472,7 +473,7 @@ class PolypeptideElongation(PartitionedProcess):
 
         update['monomers'] = {}
         for index, count in enumerate(terminatedProteins):
-            update['monomers'][self.proteinIds[index]] = count
+            update['monomers'][str(self.proteinIds[index])] = count
 
         nTerminated = didTerminate.sum()
         nInitialized = didInitialize.sum()

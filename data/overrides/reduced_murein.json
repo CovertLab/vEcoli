@@ -1,9 +1,12 @@
 {
-    "murein_state" : {
-        "free_murein": 0,
-        "incorporated_murein": 401871
+    "bulk": {
+        "CPD-12261[p]": 558735
     },
-    "bulk" : {
-        "CPD-12261[p]": 401871
+    "murein_state": {
+        "shadow_murein": 0,
+        "unincorporated_murein": 2234940,
+        "incorporated_murein": 0
+    },
+    "wall_state": {
     }
 }

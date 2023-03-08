@@ -22,8 +22,8 @@
     "parallel": false,
     "daughter_path": [],
     "agents_path": ["..", "..", "agents"],
-    "division": {
-        "threshold": 2220},
+    "division_threshold": "massDistribution",
+    "division_variable": ["listeners", "mass", "dry_mass"],
     "divide": false,
 
     "save": false,

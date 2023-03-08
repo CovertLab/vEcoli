@@ -7,6 +7,7 @@
     "sim_data_path": "reconstruction/sim_data/kb/simData.cPickle",
     "emitter" : "timeseries",
     "emitter_arg": [
+        ["emit_limit", 4100000]
     ],
     "emit_topology" : true,
     "emit_processes" : false,
@@ -25,8 +26,9 @@
     "parallel": false,
     "daughter_path": [],
     "agents_path": ["..", "..", "agents"],
-    "division": {
-        "threshold": 2220},
+    "division_threshold": "massDistribution",
+    "division_variable": ["listeners", "mass", "dry_mass"],
+    "chromosome_path": ["unique", "full_chromosome"],
     "divide": false,
     "spatial_environment": false,
     "spatial_environment_config": {},
@@ -58,6 +60,14 @@
     ],
     "process_configs": {},
     "topology": {},
-    "flow": {},
-    "_schema": {}
+    "flow": {
+        "ecoli-metabolism": [["ecoli-chromosome-structure"]],
+        "ecoli-mass-listener": [["ecoli-metabolism"]],
+        "mRNA_counts_listener": [["ecoli-mass-listener"]],
+        "monomer_counts_listener": [["mRNA_counts_listener"]]
+    },
+    "_schema": {},
+    "engine_process_reports": [
+        ["listeners"]
+    ]
 }
