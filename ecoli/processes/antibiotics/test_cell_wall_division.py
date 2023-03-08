@@ -10,7 +10,7 @@ DATA = "data/cell_wall/cell_wall_test_rig_17_09_2022_00_41_51.csv"
 def run_experiment():
     # Note: Processes will run before Steps after division, resulting in 
     # a one timestep gap in accurate cell wall data. This problem goes
-    # away when running in an EngineProcess, where rhe MureinDivision and
+    # away when running in an EngineProcess, where the MureinDivision and
     # PBPBinding Steps immediately update all the relevant stores.
     total_time = 10
 
