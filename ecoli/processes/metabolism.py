@@ -21,7 +21,6 @@ from six.moves import zip
 from vivarium.core.process import Step
 
 from ecoli.processes.registries import topology_registry
-from ecoli.processes.partition import check_whether_evolvers_have_run
 from ecoli.library.schema import bulk_schema, array_from
 from wholecell.utils import units
 from wholecell.utils.random import stochasticRound
@@ -39,12 +38,13 @@ TOPOLOGY = {
         "listeners": ("listeners",),
         "environment": {
             "_path": ("environment",),
-            "exchange": ("exchanges",),
+            "exchange": ("exchange",),
         },
         "polypeptide_elongation": ("process_state", "polypeptide_elongation"),
         # Non-partitioned count
         "amino_acids_total": ("bulk",),
         "evolvers_ran": ('evolvers_ran',),
+        "first_update": ("deriver_skips", "metabolism",)
     }
 topology_registry.register(NAME, TOPOLOGY)
 
@@ -89,6 +89,8 @@ class Metabolism(Step):
         'amino_acid_ids': {},
         'linked_metabolites': None,
         'seed': 0,
+        # TODO: For testing, remove later (perhaps after modifying sim data)
+        'reduce_murein_objective': False
     }
 
     def __init__(self, parameters=None):
@@ -136,7 +138,9 @@ class Metabolism(Step):
         self.seed = self.parameters['seed']
         self.random_state = np.random.RandomState(seed=self.seed)
 
-        self.first_update = True
+        # TODO: For testing, remove later (perhaps after modifying sim data)
+        self.reduce_murein_objective = self.parameters['reduce_murein_objective']
+
 
     def __getstate__(self):
         return self.parameters
@@ -158,7 +162,7 @@ class Metabolism(Step):
                     '_default': '',
                     '_updater': 'set'},
                 'exchange': {
-                    element: {'_default': 0}
+                    str(element): {'_default': 0}
                     for element in self.model.fba.getExternalMoleculeIDs()},
                 'exchange_data': {
                     'unconstrained': {'_default': []},
@@ -222,19 +226,22 @@ class Metabolism(Step):
                 },
             },
             'evolvers_ran': {'_default': True},
+            'first_update': {
+                '_default': True,
+                '_updater': 'set',
+                '_divider': {'divider': 'set_value', 'config': {'value': True}},
+            }
         }
 
         return ports
 
     def update_condition(self, timestep, states):
-        return check_whether_evolvers_have_run(
-            states['evolvers_ran'], self.name)
+        return states['evolvers_ran']
 
     def next_update(self, timestep, states):
-        # Skip t=0 if a deriver
-        if self.first_update:
-            self.first_update = False
-            return {}
+        # Skip t=0
+        if states['first_update']:
+            return {'first_update': False}
 
         timestep = self.parameters['time_step']
 
@@ -279,6 +286,9 @@ class Metabolism(Step):
         conc_updates = {
             met: conc.asNumber(CONC_UNITS)
             for met, conc in conc_updates.items()}
+
+        if self.parameters['reduce_murein_objective']:
+            conc_updates['CPD-12261[p]'] /= 2.27
 
         # Update FBA problem based on current state
         # Set molecule availability (internal and external)
@@ -343,12 +353,12 @@ class Metabolism(Step):
 
         update = {
             'metabolites': {
-                metabolite: delta_metabolites_final[index]
+                str(metabolite): delta_metabolites_final[index]
                 for index, metabolite in enumerate(self.model.metaboliteNamesFromNutrients)},
 
             'environment': {
                 'exchange': {
-                    molecule: delta_nutrients[index]
+                    str(molecule): delta_nutrients[index]
                     for index, molecule in enumerate(fba.getExternalMoleculeIDs())}},
 
             'listeners': {
@@ -362,10 +372,12 @@ class Metabolism(Step):
                     'constrained_molecules': constrained,
                     #'uptake_constraints': uptake_constraints,
                     'deltaMetabolites': delta_metabolites_final,
+                    # 104 KB, quite large, comment out to reduce emit size
                     'reactionFluxes': fba.getReactionFluxes() / timestep,
                     'externalExchangeFluxes': converted_exchange_fluxes,
                     'objectiveValue': fba.getObjectiveValue(),
                     'shadowPrices': fba.getShadowPrices(self.model.metaboliteNamesFromNutrients),
+                    # 104 KB, quite large, comment out to reduce emit size
                     'reducedCosts': fba.getReducedCosts(fba.getReactionIDs()),
                     'targetConcentrations': [
                         self.model.homeostatic_objective[mol]
@@ -503,6 +515,10 @@ class FluxBalanceAnalysisModel(object):
             conc_dict[self.ppgpp_id] = self.getppGppConc(doubling_time)
         self.homeostatic_objective = dict(
             (key, conc_dict[key].asNumber(CONC_UNITS)) for key in conc_dict)
+
+        # TODO: For testing, remove later (perhaps after modifying sim data)
+        if parameters["reduce_murein_objective"]:
+            self.homeostatic_objective['CPD-12261[p]'] /= 2.27
 
         # Include all concentrations that will be present in a sim for constant length listeners
         for met in self.metaboliteNamesFromNutrients:

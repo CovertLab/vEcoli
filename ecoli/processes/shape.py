@@ -46,11 +46,11 @@ def surface_area_from_length(length, width):
     """
     get surface area from length and width, using 3D capsule geometry
 
-    :math:`SA = 3*PI*r^2 + 2*PI*r*a`
+    :math:`SA = 4*PI*r^2 + 2*PI*r*a`
     """
     radius = width / 2
     cylinder_length = length - width
-    surface_area = 3 * PI * radius**2 + 2 * PI * radius * cylinder_length
+    surface_area = 4 * PI * radius**2 + 2 * PI * radius * cylinder_length
     return surface_area
 
 
@@ -91,6 +91,8 @@ class Shape(Step):
 
     def __init__(self, parameters=None):
         super().__init__(parameters)
+        self.outer_to_inner_area = math.pow(self.parameters[
+            'cytoplasm_fraction'], 1/3)**2
 
     def ports_schema(self):
 
@@ -114,7 +116,13 @@ class Shape(Step):
                     '_emit': True,
                     '_divider': 'split',
                 },
-                'surface_area': {
+                'outer_surface_area': {
+                    '_default': 0 * units.um**2,
+                    '_updater': 'set',
+                    '_emit': True,
+                    '_divider': 'split',
+                },
+                'inner_surface_area': {
                     '_default': 0 * units.um**2,
                     '_updater': 'set',
                     '_emit': True,
@@ -176,7 +184,8 @@ class Shape(Step):
         width = self.parameters['width']
         assert isinstance(width, Quantity)
         length = length_from_volume(cell_volume, width)
-        surface_area = surface_area_from_length(length, width)
+        outer_surface_area = surface_area_from_length(length, width)
+        inner_surface_area = self.outer_to_inner_area * outer_surface_area
 
         assert self.parameters['periplasm_fraction'] + self.parameters['cytoplasm_fraction'] == 1
         periplasm_volume = cell_volume * self.parameters['periplasm_fraction']
@@ -189,7 +198,8 @@ class Shape(Step):
                 'volume': cell_volume,
                 'width': width,
                 'length': length,
-                'surface_area': surface_area,
+                'outer_surface_area': outer_surface_area,
+                'inner_surface_area': inner_surface_area,
                 'mmol_to_counts': mmol_to_counts_from_volume(
                     cell_volume),
                 'mass': mass,
@@ -211,8 +221,8 @@ class Shape(Step):
     def next_update(self, timestep, states):
         for port in (
                 'cell_global', 'periplasm_global', 'cytoplasm_global'):
-            for variable in states[port].values():
-                assert isinstance(variable, Quantity)
+            for variable, value in states[port].items():
+                assert isinstance(value, Quantity), f"{variable}={value} is not a Quantity"
 
         width = states['cell_global']['width']
         cell_volume = states['listener_cell_volume'] * units.fL
@@ -223,12 +233,14 @@ class Shape(Step):
 
         # calculate length and surface area
         length = length_from_volume(cell_volume, width)
-        surface_area = surface_area_from_length(length, width)
+        outer_surface_area = surface_area_from_length(length, width)
+        inner_surface_area = self.outer_to_inner_area * outer_surface_area
 
         update = {
             'cell_global': {
                 'length': length,
-                'surface_area': surface_area,
+                'outer_surface_area': outer_surface_area,
+                'inner_surface_area': inner_surface_area,
                 'mmol_to_counts': mmol_to_counts_from_volume(
                     cell_volume),
                 'mass': states['listener_cell_mass'] * units.fg,

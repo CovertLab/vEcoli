@@ -201,10 +201,12 @@ class TranscriptElongation(PartitionedProcess):
                         '_emit': True
                     },
                     'attenuation_probability': {
+                        '_default': np.zeros(len(self.rnaIds)),
                         '_updater': 'set',
                         '_emit': True
                     },
                     'counts_attenuated': {
+                        '_default': np.zeros(len(self.rnaIds)),
                         '_updater': 'set',
                         '_emit': True
                     },
@@ -278,6 +280,13 @@ class TranscriptElongation(PartitionedProcess):
 
         requests = {'ntps': array_to(states['ntps'],
                                      maxFractionalReactionLimit * sequenceComposition)}
+        
+        requests['listeners'] = {
+            'growth_limits': {
+                'ntp_pool_size': np.array(list(states['ntps'].values())),
+                'ntp_request_size': maxFractionalReactionLimit * sequenceComposition
+            }
+        }
 
         return requests
 
@@ -285,20 +294,20 @@ class TranscriptElongation(PartitionedProcess):
         # If there are no active RNA polymerases, return immediately
         if len(states['active_RNAPs']) == 0:
             return {
-                       'listeners': {
-                           'transcript_elongation_listener': {
-                               'countNTPsUsed': 0,
-                               'countRnaSynthesized': np.zeros(len(self.rnaIds))
-                           },
-                           'growth_limits': {
-                               'ntpUsed': np.zeros(len(self.ntp_ids))
-                           },
-                           'rnap_data': {
-                              'actualElongations': 0,
-                              'didTerminate': 0,
-                              'terminationLoss': 0
-                           }
-                       }
+                'listeners': {
+                    'transcript_elongation_listener': {
+                        'countNTPsUsed': 0,
+                        'countRnaSynthesized': np.zeros(len(self.rnaIds))
+                    },
+                    'growth_limits': {
+                        'ntpUsed': np.zeros(len(self.ntp_ids))
+                    },
+                    'rnap_data': {
+                        'actualElongations': 0,
+                        'didTerminate': 0,
+                        'terminationLoss': 0
+                    }
+                }
             }
 
         # Determine total possible sequences of nucleotides that can be
@@ -324,7 +333,7 @@ class TranscriptElongation(PartitionedProcess):
 
         # TODO(vivarium): Attenuation: need access to mass, charged_trna stores
         if self.trna_attenuation:
-            cell_mass = states['listeners']['cell_mass']
+            cell_mass = states['listeners']['mass']['cell_mass']
             cellVolume = cell_mass / self.cell_density
             counts_to_molar = 1 / (self.n_avogadro * cellVolume)
             attenuation_probability = self.stop_probabilities(counts_to_molar * self.charged_trna.total_counts())
@@ -633,7 +642,7 @@ def test_transcript_elongation():
                            'is_mRNA': test_config['is_mRNA'][i],
                            'is_full_transcript': False,
                            'can_translate': True,
-                           'RNAP_index': i,
+                           'RNAP_index': str(i),
                            'submass': np.zeros(9)}
                  for i in range(len(test_config['rnaIds']))},
 

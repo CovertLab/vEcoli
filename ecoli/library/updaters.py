@@ -115,9 +115,7 @@ def inverse_update_dictionary(initial_state, final_state):
     for key in final_state.keys():
         if key not in initial_state:
             continue
-        if initial_state[key] != final_state[key]:
-            update[key] = _reverse_dict_update(
-                initial_state[key], final_state[key])
+        update[key] = final_state[key]
 
     deleted = initial_state.keys() - final_state.keys()
     if deleted:
@@ -125,7 +123,7 @@ def inverse_update_dictionary(initial_state, final_state):
 
     added = final_state.keys() - initial_state.keys()
     if added:
-        # TODO: How do I figure out the path, especially when that path
-        # is beyond the state seen by the updater?
-        pass
+        update['_add'] = [
+            {'key': key, 'state': final_state[key]} 
+            for key in added]
     return update

@@ -145,12 +145,12 @@ def key_array_from(d):
 
 def array_to(keys, array):
     return {
-        key: array[index]
+        str(key): array[index]
         for index, key in enumerate(keys)}
 
 def array_to_nonzero(keys, array):
     return {
-        key: array[index]
+        str(key): array[index]
         for index, key in enumerate(keys)
         if array[index] != 0}
 
@@ -166,7 +166,10 @@ def type_of(array):
 
 def arrays_from(ds, keys):
     if not ds:
-        return np.array([])
+        return tuple(
+            np.array([])
+            for key in keys
+        )
 
     arrays = {
         key: []
@@ -206,7 +209,7 @@ def bulk_schema(
     if updater:
         schema['_updater'] = updater
     return {
-        element: schema
+        str(element): schema
         for element in elements}
 
 def mw_schema(mass_dict):
@@ -266,7 +269,7 @@ def divide_binomial(state: float) -> List[float]:
     return [counts_1, counts_2]
 
 
-def make_dict_value_updater(defaults):
+class DictValueUpdater:
     '''
     Returns an updater which translates _add and _delete -style updates
     into operations on a dictionary.
@@ -275,21 +278,23 @@ def make_dict_value_updater(defaults):
     can have a subset of the provided defaults as its keys;
     entries not provided will have values supplied by the defaults.
     '''
-
-    def custom_dict_value_updater(current, update):
+    def __init__(self, defaults):
+        self.defaults = defaults
+    
+    def dict_value_updater(self, current, update):
         result = current
         for key, value in update.items():
             if key == "_add":
                 assert isinstance(value, list)
                 for added_value in value:
-                    added_key = added_value["key"]
+                    added_key = str(added_value["key"])
                     added_state = added_value["state"]
                     if added_key in current:
                         raise Exception(f"Cannot add {added_key}, already in state")
-                    elif not added_state.keys() <= defaults.keys():
-                        raise Exception(f"State has keys not in defaults: "
-                                        f"{added_state.keys() - defaults.keys()}")
-                    result[added_key] = {**defaults, **added_state}
+                    elif not added_state.keys() <= self.defaults.keys():
+                        raise Exception(f"State has keys not in self.defaults: "
+                                        f"{added_state.keys() - self.defaults.keys()}")
+                    result[added_key] = {**self.defaults, **added_state}
             elif key == "_delete":
                 assert isinstance(value, list)
                 for k in value:
@@ -306,8 +311,6 @@ def make_dict_value_updater(defaults):
                 # TODO -- fix processes to not updater invalid keys
                 # print(f"Invalid update key: {key}")
         return result
-
-    return custom_dict_value_updater
 
 
 def get_cell_for_index(index_to_children, domain_index_to_add, root_index):
@@ -381,6 +384,7 @@ def divide_ribosomes(ribosomes, state):
 
     for ribo_index, specs in ribosomes.items():
         ribo_mrna = ribosomes[ribo_index]['mRNA_index']
+        ribo_index = str(ribo_index)
         if ribo_mrna in daughter_1_indexes:
             daughter1[ribo_index] = specs
         elif ribo_mrna in daughter_2_indexes:
@@ -409,6 +413,7 @@ def divide_by_domain(values, state):
 
     for state_id, value in values.items():
         domain_index = value['domain_index']
+        state_id = str(state_id)
         if index_to_daughter[domain_index] == d1_index:
             daughter1[state_id] = value
         elif index_to_daughter[domain_index] == d2_index:
@@ -428,6 +433,7 @@ def divide_domain(values):
     for key in values:
         key_domain_index = values[key]['domain_index']
         key_daughter_cell = index_to_daughter[key_domain_index]
+        key = str(key)
         if key_daughter_cell == d1_index:
             daughter1[key] = values[key]
         elif key_daughter_cell == d2_index:
@@ -449,6 +455,7 @@ def divide_RNAs_by_domain(values, state):
 
     # divide partial transcripts by domain_index
     for unique_id, specs in values.items():
+        unique_id = str(unique_id)
         associated_rnap_key = str(values[unique_id]['RNAP_index'])
         if not specs['is_full_transcript']:
             domain_index = state['active_RNAP'][associated_rnap_key]['domain_index']
@@ -463,8 +470,10 @@ def divide_RNAs_by_domain(values, state):
     # divide full transcripts with get_full_transcript_rnas_to_daughter
     daughter_1_indexes, daughter_2_indexes = get_full_transcript_rnas_to_daughter(full_transcript_ids)
     for index in daughter_1_indexes:
+        index = str(index)
         daughter1[index] = values[index]
     for index in daughter_2_indexes:
+        index = str(index)
         daughter2[index] = values[index]
 
     return [daughter1, daughter2]
@@ -478,3 +487,10 @@ def divide_set_none(values):
     return [None, None]
 
 
+def remove_properties(schema, properties):
+    if isinstance(schema, dict):
+        for property in properties:
+            schema.pop(property, None)
+        for key, value in schema.items():
+            schema[key] = remove_properties(value, properties)
+    return schema

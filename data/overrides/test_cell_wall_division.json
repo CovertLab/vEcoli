@@ -1,0 +1,12 @@
+{
+    "bulk": {
+        "CPD-12261[p]": 450000
+    },
+    "murein_state": {
+        "shadow_murein": 100000,
+        "unincorporated_murein": 1700000,
+        "incorporated_murein": 0
+    },
+    "wall_state": {
+    }
+}

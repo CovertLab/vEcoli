@@ -72,7 +72,7 @@ ODES = {
         'Diffusion': (
             _get_fickian_derivative(
                 (
-                    param_store.get(('shape', 'initial_area'))
+                    param_store.get(('shape', 'initial_outer_area'))
                     * param_store.get(
                         ('cephaloridine', 'permeability', 'outer'))
                     ).to(units.L / units.sec).magnitude,
@@ -120,7 +120,7 @@ ODES = {
         'Diffusion': (
             _get_fickian_derivative(
                 (
-                    param_store.get(('shape', 'initial_area'))
+                    param_store.get(('shape', 'initial_outer_area'))
                     * param_store.get(
                         ('ampicillin', 'permeability', 'outer'))
                     ).to(units.L / units.sec).magnitude,
@@ -153,7 +153,7 @@ ODES = {
         'Outer Diffusion': (
             _get_fickian_derivative(
                 (
-                    param_store.get(('shape', 'initial_area'))
+                    param_store.get(('shape', 'initial_outer_area'))
                     * param_store.get((
                         'tetracycline', 'permeability',
                         'outer_with_porins'))
@@ -166,7 +166,7 @@ ODES = {
                 np.exp((
                     param_store.get(('tetracycline', 'charge'))
                     * param_store.get(('faraday_constant',))
-                    * param_store.get(('donnan_potential',))
+                    * param_store.get(('outer_potential',))
                     / param_store.get(('gas_constant',))
                     / param_store.get(('temperature',))
                 ).to(units.count).magnitude),
@@ -176,7 +176,7 @@ ODES = {
         'Inner Diffusion': (
             _get_fickian_derivative(
                 (
-                    param_store.get(('shape', 'initial_area'))
+                    param_store.get(('shape', 'initial_outer_area'))
                     * param_store.get((
                         'tetracycline', 'permeability', 'inner'))
                 ).to(units.L / units.sec).magnitude,
@@ -186,7 +186,7 @@ ODES = {
                     * np.exp((
                         param_store.get(('tetracycline', 'charge'))
                         * param_store.get(('faraday_constant',))
-                        * param_store.get(('donnan_potential',))
+                        * param_store.get(('outer_potential',))
                         / param_store.get(('gas_constant',))
                         / param_store.get(('temperature',))
                     ).to(units.count).magnitude)
@@ -204,7 +204,7 @@ ODES = {
 def test_cephaloridine_diffusion_timescale():
     derivative = ODES['cephaloridine']['Diffusion'][0]
     y0 = param_store.get(('cephaloridine', 'mic'))
-    _assert_timescale(derivative, y0, MAX_TIMESCALE)
+    _assert_timescale(derivative, y0.magnitude, MAX_TIMESCALE)
 
 
 def test_tetracycline_outer_diffusion_timescale():

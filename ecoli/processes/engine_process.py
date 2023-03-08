@@ -1,4 +1,4 @@
-'''
+r'''
 =============
 EngineProcess
 =============
@@ -60,15 +60,20 @@ These tunnels are the only way that the EngineProcess exchanges
 information with the outside simulation.
 '''
 import copy
+import warnings
 
 import numpy as np
+import os
+from vivarium.core.composer import Composer
+from vivarium.core.emitter import get_emitter, SharedRamEmitter
 from vivarium.core.engine import Engine
-from vivarium.core.process import Process
-from vivarium.core.registry import updater_registry
+from vivarium.core.process import Process, Step
+from vivarium.core.registry import updater_registry, divider_registry
 from vivarium.core.store import DEFAULT_SCHEMA, Store
 from vivarium.library.topology import get_in
 
 from ecoli.library.sim_data import RAND_MAX
+from ecoli.library.schema import remove_properties, empty_dict_divider
 from ecoli.library.updaters import inverse_updater_registry
 from ecoli.processes.cell_division import daughter_phylogeny_id
 
@@ -109,9 +114,12 @@ def cap_tunneling_paths(topology, outer=tuple()):
         topology[cap_key] = cap_path
     return tunnels
 
-
-class SchemaStub(Process):
-    '''Stub process for providing schemas to an inner simulation.
+class SchemaStub(Step):
+    '''Stub process for providing schemas to an inner simulation. Run as
+    a Step otherwise its timestep could influence when other Steps run.
+    For example, if a SchemaStub was a process with timestep 1 while all
+    other processes had timestep 2, Steps like mass listener would run
+    after every second instead of every 2 seconds, wasting time.
 
     When using :py:class:`ecoli.processes.engine_process.EngineProcess`,
     there may be processes in the outer simulation whose schemas you are
@@ -137,39 +145,65 @@ class SchemaStub(Process):
 
 class EngineProcess(Process):
     defaults = {
-        'composite': {},
         # Map from tunnel name to path to internal store.
         'tunnels_in': {},
         # Map from tunnel name to schema. Schemas are optional.
         'tunnel_out_schemas': {},
+        'emit_paths': tuple(),
         # Map from process name to a map from path in the inner
         # simulation to the schema that should be stubbed in at that
         # path. A stub process will be added with a port for each
         # schema, and the topology will wire each port to the specified
         # path.
         'stub_schemas': {},
-        'initial_inner_state': {},
+        'initial_inner_state': None,
         'agent_id': '0',
-        'composer': None,
+        'inner_composer': None,
+        'outer_composer': None,
+        'inner_composer_config': {},
+        'outer_composer_config': {},
         'seed': 0,
         'inner_emitter': 'null',
         'divide': False,
-        'division_threshold': 0,
-        'division_variable': tuple(),
+        'division_threshold': None,
+        'division_variable': None,
+        'chromosome_path': None,
+        'start_time': 0,
+        'experiment_id': '',
+        'inner_same_timestep': False,
     }
     # TODO: Handle name clashes between tunnels.
 
     def __init__(self, parameters=None):
         parameters = parameters or {}
-        parameters['_no_original_parameters'] = True
         super().__init__(parameters)
-        composite = self.parameters['composite']
+        inner_composite = self.parameters['inner_composer'](
+            self.parameters['inner_composer_config']).generate()
+        # If division parameters not set in outer sim, use inner sim values
+        if self.parameters['division_threshold'] == None:
+            self.parameters['division_threshold'] = inner_composite.pop(
+                'division_threshold')
+        if self.parameters['division_variable'] == None:
+            self.parameters['division_variable'] = inner_composite.pop(
+                'division_variable')
+        if self.parameters['chromosome_path'] == None:
+            self.parameters['chromosome_path'] = inner_composite.pop(
+                'chromosome_path', None)
+        # If initial inner state not given in outer composite, 
+        # use initial state from inner composite
+        if self.parameters['initial_inner_state'] == None:
+            self.parameters['initial_inner_state'] = inner_composite.pop(
+                'initial_inner_state')
         self.tunnels_out = cap_tunneling_paths(
-            composite['topology'])
+            inner_composite['topology'])
         self.tunnels_in = self.parameters['tunnels_in']
+        # Save parameters so they are reloaded during unpickling
+        self.parameters['tunnels_out'] = self.tunnels_out
+        self.parameters['tunnels_in'] = self.tunnels_in
 
-        processes = composite['processes']
-        topology = composite['topology']
+        processes = inner_composite['processes']
+        topology = inner_composite['topology']
+        steps = inner_composite.get('steps')
         for process, d in self.parameters['stub_schemas'].items():
             stub_ports_schema = {}
             stub_process_name = f'{process}_stub'
@@ -179,18 +213,41 @@ class EngineProcess(Process):
                 stub_ports_schema[port] = schema
                 topology[stub_process_name][port] = path
             stub = SchemaStub({'ports_schema': stub_ports_schema})
-            processes[stub_process_name] = stub
+            steps[stub_process_name] = stub
 
+        self.emitter = None
+        
         self.sim = Engine(
             processes=processes,
-            steps=composite.get('steps'),
-            flow=composite.get('flow'),
+            steps=steps,
+            flow=inner_composite.get('flow'),
             topology=topology,
             initial_state=self.parameters['initial_inner_state'],
-            emitter=self.parameters['inner_emitter'],
+            experiment_id=self.parameters['experiment_id'],
+            emitter='null',
             display_info=False,
             progress_bar=False,
+            initial_global_time=self.parameters['start_time'],
         )
+        # Unnecessary references to initial_state
+        self.sim.initial_state = None
+        self.parameters.pop('initial_inner_state')
+        self.parameters['inner_composer_config'].pop(
+            'initial_inner_state', None)
+        
+        # Only apply murein override to first cell
+        if 'initial_state_overrides' in self.parameters['inner_composer_config']:
+            overrides = self.parameters['inner_composer_config'][
+                'initial_state_overrides']
+            if 'overrides/reduced_murein' in overrides:
+                overrides.remove('overrides/reduced_murein')
+        
+        if self.parameters['emit_paths']:
+            self.sim.state.set_emit_values([tuple()], False)
+            self.sim.state.set_emit_values(
+                self.parameters['emit_paths'],
+                True,
+            )
         self.random_state = np.random.RandomState(
             seed=self.parameters['seed'])
 
@@ -198,6 +255,15 @@ class EngineProcess(Process):
             updater_registry.access(key): key
             for key in updater_registry.main_keys
         }
+        
+    def create_emitter(self):
+        if isinstance(self.parameters['inner_emitter'], str):
+            self.emitter_config = {'type': self.parameters['inner_emitter']}
+        else:
+            self.emitter_config = self.parameters['inner_emitter']
+        self.emitter_config['experiment_id'] = self.parameters[
+            'experiment_id']
+        self.emitter = get_emitter(self.emitter_config)
 
     def ports_schema(self):
         schema = {
@@ -214,6 +280,16 @@ class EngineProcess(Process):
             schema[tunnel] = copy.deepcopy(tunnel_schema)
         for tunnel, path in self.tunnels_in.items():
             tunnel_schema = self.sim.state.get_path(path).get_config()
+            # Don't waste time dividing outer sim state since it will be
+            # overwritten by inner daughter states (also removes need to 
+            # emit all unique molecules required by certain dividers like 
+            # that for active_ribosome)
+            tunnel_schema['_divider'] = empty_dict_divider
+            # Internal sim state is fully defined, making subschemas
+            # redundant (also not properly parsed during store generation)
+            # This also avoids duplicated emits from the outer sim.
+            tunnel_schema = remove_properties(tunnel_schema, [
+                '_subschema', '_emit', '_value'])
             schema[tunnel] = tunnel_schema
         for tunnel, tunnel_schema in self.parameters[
                 'tunnel_out_schemas'].items():
@@ -232,11 +308,21 @@ class EngineProcess(Process):
     def calculate_timestep(self, states):
         timestep = np.inf
         for process in self.sim.processes.values():
+            if self.parameters['inner_same_timestep']:
+                # Warn user if inner process has different timestep from rest
+                if (timestep != process.calculate_timestep({})
+                    and timestep != np.inf):
+                    warnings.warn("Time step mismatch for process "
+                                f"{process.name}: {timestep} != " +
+                                str(process.calculate_timestep({})))
             timestep = min(timestep, process.calculate_timestep({}))
         return timestep
 
     def get_inner_state(self) -> None:
         def not_a_process(value):
+            # Do not retrieve partitioned process shared state
+            if isinstance(value.value, tuple) and len(value.value)==1:
+                return not value.value[0].topology
             return not (isinstance(value, Store) and value.topology)
         return self.sim.state.get_value(condition=not_a_process)
 
@@ -254,6 +340,10 @@ class EngineProcess(Process):
             super().send_command(command, args, kwargs)
 
     def next_update(self, timestep, states):
+        # Create emitter only after all pickling/unpickling/forking
+        if not self.emitter:
+            self.create_emitter()
+        
         # Check whether we are being forced to finish early. This check
         # should happen before we mutate the inner simulation state to
         # make sure that self.calculate_timestep() returns the same
@@ -285,57 +375,95 @@ class EngineProcess(Process):
 
         # Update the internal state with tunnel data.
         for tunnel, path in self.tunnels_in.items():
-            incoming_state = states[tunnel]
+            if isinstance(states[tunnel], dict):
+                incoming_state = copy.deepcopy(states[tunnel])
+            else:
+                incoming_state = states[tunnel]
             self.sim.state.get_path(path).set_value(incoming_state)
         for tunnel in self.tunnels_out.values():
-            incoming_state = states[tunnel]
+            if isinstance(states[tunnel], dict):
+                incoming_state = copy.deepcopy(states[tunnel])
+            else:
+                incoming_state = states[tunnel]
             self.sim.state.get_path((tunnel,)).set_value(incoming_state)
+
+        # Emit data from inner simulation. We emit at the start of
+        # next_update() because the inner simulation is in-sync with the
+        # outer simulation here after the internal state has been
+        # synchronized with the tunnels from the outer simulation. In
+        # other words, since we rely on the outer Engine to apply the
+        # updates, we have to wait for those updates from the previous
+        # timestep to be applied before we emit data.
+        data = self.sim.state.emit_data()
+        data['time'] = self.sim.global_time
+        emit_config = {
+            'table': 'history',
+            'data': data,
+        }
+        self.emitter.emit(emit_config)
 
         # Run inner simulation for timestep.
         self.sim.run_for(timestep)
         if force_complete:
             self.sim.complete()
 
+        update = {}
+
         # Check for division and perform if needed.
         division_threshold = self.parameters['division_threshold']
         division_variable = self.sim.state.get_path(
             self.parameters['division_variable']).get_value()
+        # Two full chromosomes required for division
+        full_chromosomes = self.sim.state.get_path(
+            self.parameters['chromosome_path']).get_value()
+        # If no chromosome_path is supplied, allow division to proceed
+        if full_chromosomes is None:
+            full_chromosomes = [0, 1]
         if (
                 self.parameters['divide']
-                and division_variable >= division_threshold):
+                and division_variable >= division_threshold
+                and len(full_chromosomes) >= 2):
             # Perform division.
             daughters = []
-            composer = self.parameters['composer']
             daughter_states = self.sim.state.divide_value()
             daughter_ids = daughter_phylogeny_id(
                 self.parameters['agent_id'])
             for daughter_id, inner_state in zip(
                     daughter_ids, daughter_states):
-                composite = composer.generate({
+                emitter_config = dict(self.emitter_config)
+                emitter_config['embed_path'] = ('agents', daughter_id)
+                new_seed = self.random_state.randint(RAND_MAX)
+                inner_composer_config = {
+                    **self.parameters['inner_composer_config'],
+                    'seed': new_seed,
                     'agent_id': daughter_id,
-                    'initial_cell_state': inner_state,
-                    'seed': self.random_state.randint(RAND_MAX),
-                })
+                    'initial_inner_state': inner_state
+                }
+                outer_composite = self.parameters['outer_composer']({
+                    **self.parameters['outer_composer_config'],
+                    'agent_id': daughter_id,
+                    'seed': new_seed,
+                    'start_time': self.sim.global_time,
+                    'inner_emitter': emitter_config,
+                    'inner_composer_config': inner_composer_config
+                }).generate()
                 daughter = {
                     'key': daughter_id,
-                    'processes': composite.processes,
-                    'steps': composite.steps,
-                    'flow': composite.flow,
-                    'topology': composite.topology,
-                    'initial_state': composite.initial_state(),
+                    'processes': outer_composite.processes,
+                    'steps': outer_composite.steps,
+                    'flow': outer_composite.flow,
+                    'topology': outer_composite.topology,
+                    'initial_state': outer_composite.initial_state(),
                 }
                 daughters.append(daughter)
-            return {
-                'agents': {
-                    '_divide': {
-                        'mother': self.parameters['agent_id'],
-                        'daughters': daughters,
-                    },
+            update['agents'] = {
+                '_divide': {
+                    'mother': self.parameters['agent_id'],
+                    'daughters': daughters,
                 },
             }
 
         # Craft an update to pass data back out through the tunnels.
-        update = {}
         for tunnel, path in self.tunnels_in.items():
             store = self.sim.state.get_path(path)
             inverted_update = _inverse_update(
@@ -363,10 +491,8 @@ class EngineProcess(Process):
 
 def _inverse_update(
         initial_state, final_state, store, updater_registry_reverse):
-    if store.updater:
-        # Handle the base case where we have an updater. Note that this
-        # could still be at a branch if we put an updater on a branch
-        # node.
+    if not store.inner:
+        # Handle the base case where we are on a leaf node.
         if isinstance(store.updater, str):
             updater_name = store.updater
         else:
@@ -392,7 +518,7 @@ def _inverse_update(
     return update
 
 
-class ProcA(Process):
+class _ProcA(Process):
 
     def ports_schema(self):
         return {
@@ -400,11 +526,19 @@ class ProcA(Process):
                 '_default': 0,
                 '_updater': 'accumulate',
                 '_emit': True,
+                '_divider': 'split',
             },
             'port_c': {
                 '_default': 0,
                 '_updater': 'accumulate',
                 '_emit': True,
+                '_divider': 'set',
+            },
+            'port_d': {
+                '_default': 0,
+                '_updater': 'accumulate',
+                '_emit': True,
+                '_divider': 'zero',
             },
         }
 
@@ -412,10 +546,11 @@ class ProcA(Process):
         '''Each timestep, ``port_a += port_c``.'''
         return {
             'port_a': states['port_c'],
+            'port_d': 1,
         }
 
 
-class ProcB(Process):
+class _ProcB(Process):
 
     def ports_schema(self):
         return {
@@ -423,11 +558,8 @@ class ProcB(Process):
                 '_default': 0,
                 '_updater': 'accumulate',
                 '_emit': True,
+                '_divider': 'set',
             },
-            'agents': {
-                '_default': {},
-                '_emit': False,
-            }
         }
 
     def next_update(self, timestep, states):
@@ -437,7 +569,7 @@ class ProcB(Process):
         }
 
 
-class ProcC(Process):
+class _ProcC(Process):
 
     def ports_schema(self):
         return {
@@ -457,6 +589,63 @@ class ProcC(Process):
         '''Each timestep, ``port_c += port_b``.'''
         return {
             'port_c': states['port_b'],
+        }
+
+
+class _InnerComposer(Composer):
+
+    def generate_processes(self, config):
+        return {
+            'procA': _ProcA(),
+            'procB': _ProcB(),
+        }
+
+    def generate_topology(self, config):
+        return {
+            'procA': {
+                'port_a': ('a',),
+                'port_c': ('c',),
+                'port_d': ('d',),
+            },
+            'procB': {
+                'port_b': ('..', 'b'),
+            },
+        }
+
+
+class _OuterComposer(Composer):
+
+    def generate_processes(self, config):
+        proc = EngineProcess({
+            'inner_composer': _InnerComposer,
+            'inner_composer_config': {},
+            'outer_composer': _OuterComposer,
+            'outer_composer_config': config,
+            'agent_id': config['agent_id'],
+            'tunnels_in': {
+                'c_tunnel': ('c',),
+            },
+            'initial_inner_state': config['inner_composer_config'].get(
+                'initial_inner_state', {}),
+            'time_step': 1,
+            'divide': True,
+            'division_threshold': 4,
+            'division_variable': ('d',),
+            'inner_emitter': config['inner_emitter'],
+            'start_time': config['start_time'],
+            'experiment_id': config['experiment_id'],
+        })
+        return {
+            'engine': proc,
+        }
+
+    def generate_topology(self, config):
+        return {
+            'engine': {
+                'b_tunnel': ('..', '..', 'b',),
+                'c_tunnel': ('..', '..', 'c',),
+                'agents': ('..', '..', 'agents'),
+            },
         }
 
 
@@ -490,90 +679,145 @@ def test_engine_process():
     inner store `c`, and ``b_tunnel`` is a tunnel out from inner process
     ``B`` to outer store ``b``.
     '''
-    inner_composite = {
-        'processes': {
-            'procA': ProcA(),
-            'procB': ProcB(),
+    experiment_id = 'test_experiment_id'
+
+    # Clear the emitter's data in case it has been filled by another
+    # test.
+    SharedRamEmitter.saved_data.clear()
+
+    agent_path = ('agents', '0')
+    outer_composer = _OuterComposer({
+        'experiment_id': experiment_id,
+        'agent_id': agent_path[-1],
+        'inner_composer_config': {},
+        'start_time': 0,
+        'inner_emitter': {
+            'type': 'shared_ram',
+            'embed_path': agent_path,
         },
-        'topology': {
-            'procA': {
-                'port_a': ('a',),
-                'port_c': ('c',),
-            },
-            'procB': {
-                'port_b': ('..', 'b'),
-                'agents': ('agents',),
-            },
-        },
-    }
-    proc = EngineProcess({
-        'composite': inner_composite,
-        'tunnels_in': {
-            'c_tunnel': ('c',),
-        },
-        'time_step': 1,
-        'inner_emitter': 'timeseries',
     })
-    schema = proc.get_schema()
+    outer_composite = outer_composer.generate(path=agent_path)
+
+    schema = get_in(
+        outer_composite.processes,
+        ('agents', '0', 'engine'),
+    ).get_schema()
     expected_schema = {
         'agents': {},
         'b_tunnel': {
             '_default': 0,
             '_updater': 'accumulate',
             '_emit': True,
+            '_divider': 'set',
         },
         # The schema for c_tunnel is complete, even though we only
         # specified a partial schema, because this schema is pulled from
         # the filled inner simulation hierarchy.
         'c_tunnel': {
             '_default': 0,
-            '_emit': True,
             '_updater': updater_registry.access('accumulate'),
-            '_value': 0,
+            '_divider': divider_registry.access('empty_dict'),
         },
     }
     assert schema == expected_schema
 
-    outer_composite = {
+    enviro_composite = {
         'processes': {
-            'procC': ProcC(),
-            'engine': proc,
+            'procC': _ProcC(),
         },
+        'steps': {},
+        'flow': {},
         'topology': {
             'procC': {
                 'port_b': ('b',),
                 'port_c': ('c',),
             },
-            'engine': {
-                'b_tunnel': ('b',),
-                'c_tunnel': ('c',),
-                'agents': ('agents',),
-            },
         },
     }
-    engine = Engine(**outer_composite)
-    engine.update(4)
+    outer_composite.merge(enviro_composite)
+    engine = Engine(
+        composite=outer_composite,
+        experiment_id=experiment_id,
+        emitter={
+            'type': 'shared_ram',
+        },
+    )
+    engine.update(8)
 
-    outer_data = engine.emitter.get_timeseries()
-    inner_data = proc.sim.emitter.get_timeseries()
-    expected_outer_data = {
-        'b': [0, 1, 2, 3, 4],
-        'c': [0, 0, 1, 3, 6],
-        'time': [0.0, 1.0, 2.0, 3.0, 4.0],
+    data = engine.emitter.get_data()
+    expected_data = {
+        0: {
+            'agents': {
+                '0': {'a': 0, 'b_tunnel': 0, 'c': 0, 'd': 0},
+            },
+            'b': 0,
+            'c': 0,
+        },
+        1.0: {
+            'agents': {
+                '0': {'a': 0, 'b_tunnel': 1, 'c': 0, 'd': 1},
+            },
+            'b': 1,
+            'c': 0,
+        },
+        2.0: {
+            'agents': {
+                '0': {'a': 0, 'b_tunnel': 2, 'c': 1, 'd': 2},
+            },
+            'b': 2,
+            'c': 1,
+        },
+        3.0: {
+            'agents': {
+                '0': {'a': 1, 'b_tunnel': 3, 'c': 3, 'd': 3},
+            },
+            'b': 3,
+            'c': 3
+        },
+        4.0: {
+            'agents': {
+                '00': {'a': 2, 'b_tunnel': 4, 'c': 6, 'd': 0},
+                '01': {'a': 2, 'b_tunnel': 4, 'c': 6, 'd': 0},
+            },
+            'b': 4,
+            'c': 6,
+        },
+        # Note that now b is incrementing by 2 because it's getting +1
+        # updates from both cells.
+        5.0: {
+            'agents': {
+                '00': {'a': 8, 'b_tunnel': 6, 'c': 10, 'd': 1},
+                '01': {'a': 8, 'b_tunnel': 6, 'c': 10, 'd': 1},
+            },
+            'b': 6,
+            'c': 10,
+        },
+        6.0: {
+            'agents': {
+                '00': {'a': 18, 'b_tunnel': 8, 'c': 16, 'd': 2},
+                '01': {'a': 18, 'b_tunnel': 8, 'c': 16, 'd': 2},
+            },
+            'b': 8,
+            'c': 16},
+        7.0: {
+            'agents': {
+                '00': {'a': 34, 'b_tunnel': 10, 'c': 24, 'd': 3},
+                '01': {'a': 34, 'b_tunnel': 10, 'c': 24, 'd': 3},
+            },
+            'b': 10,
+            'c': 24},
+        8.0: {
+            'agents': {
+                '000': {},
+                '001': {},
+                '010': {},
+                '011': {},
+            },
+            'b': 12,
+            'c': 34,
+        },
     }
-    # Note that these outputs appear "behind" for stores a and c because
-    # the EngineProcess doesn't see the impact of its updates until the
-    # start of the following timestep. We update the internal state at
-    # the beginning of the timestep before running the processes, so the
-    # simulation is still functionally correct.
-    expected_inner_data = {
-        'a': [0, 0, 0, 1, 4],
-        'b_tunnel': [0, 1, 2, 3, 4],
-        'c': [0, 0, 0, 1, 3],
-        'time': [0.0, 1.0, 2.0, 3.0, 4.0],
-    }
-    assert outer_data == expected_outer_data
-    assert inner_data == expected_inner_data
+    assert data == expected_data
 
 
 def test_cap_tunneling_paths():

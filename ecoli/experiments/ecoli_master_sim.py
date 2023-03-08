@@ -21,7 +21,7 @@ from vivarium.core.engine import Engine
 from vivarium.core.serialize import deserialize_value
 from vivarium.core.store import Store
 from vivarium.library.dict_utils import deep_merge, deep_merge_combine_lists
-from vivarium.library.topology import assoc_path
+from vivarium.library.topology import assoc_path, get_in
 from ecoli.library.logging import write_json
 from ecoli.composites.ecoli_nonpartition import SIM_DATA_PATH
 # Two different Ecoli composers depending on partitioning
@@ -126,7 +126,8 @@ class SimConfig:
         )
         self.parser.add_argument(
             '--emitter', '-e', action='store',
-            choices=["timeseries", "database", "print", "null"],
+            choices=["timeseries", "database", "print", "null",
+                "shared_ram"],
             help=(
                 "Emitter to use. Timeseries uses RAMEmitter, database "
                 "emits to MongoDB, and print emits to stdout.")
@@ -375,7 +376,7 @@ class EcoliSim:
         # add division
         if divide:
             result['division'] = {
-                'variable': ('listeners', 'mass', 'cell_mass'),
+                'variable': ('listeners', 'mass', 'dry_mass'),
                 'agents': self.agents_path}
 
         return result
@@ -392,6 +393,7 @@ class EcoliSim:
     def build_ecoli(self):
         """
         Build self.ecoli, the Ecoli composite, and self.initial_state, from current settings.
+        Do NOT call this before using run() without setting self.initial_state back to None.
         """
 
         # build processes, topology, configs
@@ -429,13 +431,22 @@ class EcoliSim:
             path = ('agents', self.agent_id,)
 
         # get initial state
-        self.initial_state = {}
         initial_cell_state = ecoli_composer.initial_state(
             config=self.config)
-        assoc_path(self.initial_state, path, initial_cell_state)
+        initial_cell_state = assoc_path({}, path, initial_cell_state)
 
         # generate the composite at the path
         self.ecoli = ecoli_composer.generate(path=path)
+        # Get shared process instances for partitioned processes
+        process_states = {'process': {
+            process.parameters['process'].name: (process.parameters['process'],)
+            for process in get_in(self.ecoli.processes, path).values()
+            if 'process' in process.parameters
+        }}
+        process_states = assoc_path({}, path, process_states)
+        # Fill in all stores missing in initial_cell_state
+        self.initial_state = deep_merge(process_states, self.ecoli.initial_state({
+            'initial_state': initial_cell_state}))
 
         # merge a lattice composite for the spatial environment
         if self.spatial_environment:
@@ -477,6 +488,7 @@ class EcoliSim:
             # set exchange_data in
             # ecoli.states.wcecoli_state.get_state_from_file() anyway.
             del state['environment']
+            del state['process']
             write_json('data/vivecoli_t' + str(time_elapsed) + '.json', state)
             print('Finished saving the state at t = ' + str(time_elapsed))
         time_remaining = self.total_time - self.save_times[-1]
@@ -537,6 +549,11 @@ class EcoliSim:
         experiment_config['profile'] = self.profile
 
         self.ecoli_experiment = Engine(**experiment_config)
+        
+        # Clean up unnecessary references
+        self.initial_state = None
+        self.ecoli_experiment.initial_state = None
+        del metadata
 
         # run the experiment
         if self.save:

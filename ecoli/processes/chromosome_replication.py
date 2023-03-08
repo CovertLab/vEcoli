@@ -15,10 +15,10 @@ replication forks terminate once they reach the end of their template strand and
 the chromosome immediately decatenates forming two separate chromosome molecules.
 """
 
-import uuid
 import numpy as np
 
-from ecoli.library.schema import array_to, array_from, arrays_from, arrays_to, bulk_schema, dict_value_schema
+from ecoli.library.schema import (array_to, array_from, arrays_from, arrays_to,
+    bulk_schema, create_unique_indexes, dict_value_schema)
 from ecoli.states.wcecoli_state import MASSDIFFS
 
 from wholecell.utils import units
@@ -273,11 +273,17 @@ class ChromosomeReplication(PartitionedProcess):
             # Add new oriC's, and reset attributes of existing oriC's
             # All oriC's must be assigned new domain indexes
             update['oriCs'] = {
-                '_add': [{
-                    'key': str(uuid.uuid1()),
-                    'state': {'domain_index': domain_index_new[index]}}
-                    for index in range(2*n_oriC)],
-                '_delete': [key for key in states['oriCs'].keys()]}
+                oric_id: {
+                    'domain_index': domain_index_new[index]
+                }
+                for index, oric_id in enumerate(states['oriCs'])
+            }
+            new_oric_indexes = create_unique_indexes(
+                n_oriC, self.random_state)
+            update['oriCs']['_add'] = [{
+                'key': new_oric_indexes[index],
+                'state': {'domain_index': domain_index_new[n_oriC + index]}}
+                for index in range(n_oriC)]
 
             # Add and set attributes of newly created replisomes.
             # New replisomes inherit the domain indexes of the oriC's they
@@ -285,13 +291,14 @@ class ChromosomeReplication(PartitionedProcess):
             # the right replichore, and one on the left.
             coordinates_replisome = np.zeros(n_new_replisome, dtype=np.int64)
             right_replichore = np.tile(
-                np.array([True, False], dtype=np.bool), n_oriC)
+                np.array([True, False], dtype=np.bool_), n_oriC)
             right_replichore = right_replichore.tolist()
             domain_index_new_replisome = np.repeat(
                 domain_index_existing_oric, 2)
-
+            new_replisome_indexes = create_unique_indexes(
+                n_new_replisome, self.random_state)
             update['active_replisomes']['_add'] = [{
-                    'key': str(uuid.uuid1()),
+                    'key': new_replisome_indexes[index],
                     'state': {
                         'coordinates': coordinates_replisome[index],
                         'right_replichore': right_replichore[index],
@@ -303,9 +310,11 @@ class ChromosomeReplication(PartitionedProcess):
             # should have have no children domains.
             new_child_domains = np.full(
                 (n_new_domain, 2), self.no_child_place_holder, dtype=np.int32)
+            new_domain_indexes = create_unique_indexes(
+                n_new_domain, self.random_state)
             new_domains_update = {
                 '_add': [{
-                    'key': str(uuid.uuid1()),
+                    'key': new_domain_indexes[index],
                     'state': {
                         'domain_index': domain_index_new[index].tolist(),
                         'child_domains': new_child_domains[index].tolist(),
@@ -431,7 +440,7 @@ class ChromosomeReplication(PartitionedProcess):
                 ['domain_index'])
 
             # Initialize array of replisomes that should be deleted
-            replisomes_to_delete = np.zeros_like(domain_index_replisome, dtype=np.bool)
+            replisomes_to_delete = np.zeros_like(domain_index_replisome, dtype=np.bool_)
 
             # Count number of new full chromosomes that should be created
             n_new_chromosomes = 0
@@ -482,10 +491,11 @@ class ChromosomeReplication(PartitionedProcess):
 
             # Generate new full chromosome molecules
             if n_new_chromosomes > 0:
-
+                new_chromosome_indexes = create_unique_indexes(
+                    n_new_chromosomes, self.random_state)
                 chromosome_add_update = {
                     '_add': [{
-                        'key': str(uuid.uuid1()),
+                        'key': new_chromosome_indexes[index],
                         'state': {
                             'domain_index': domain_index_new_full_chroms[index],
                             'division_time': self.D_period,  # TODO(vivarium-ecoli): How is division_time used?

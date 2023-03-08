@@ -191,8 +191,10 @@ class TfBinding(PartitionedProcess):
                 marR_count = states['active_tfs_total']['CPLX0-7710[c]']
                 marR_tet_count = states['inactive_tfs_total']['marR-tet[c]']
                 # marA activity ramps up as more marR is complexed off
-                # Allow for 1 free marR due to chemical equilibrium
-                ratio = marR_tet_count/(marR_count + marR_tet_count - 1)
+                # TODO: Figure out how to modify ParCa so MarA/R are included
+                # as active TFs so no need to compromise basal or tetracycline
+                # behavior when total MarR count is zero
+                ratio = marR_tet_count/max(marR_count+marR_tet_count, 1)
                 # 34 = # of promoters for genes that marA regulates
                 n_available_active_tfs = int(34 * ratio)
 
@@ -262,16 +264,11 @@ class TfBinding(PartitionedProcess):
                 'nPromoterBound': nPromotersBound,
                 'nActualBound': nActualBound,
                 'n_available_promoters': n_promoters,
+                # 900 KB, very large, comment out to halve emit size
                 'n_bound_TF_per_TU': n_bound_TF_per_TU,
                 'gene_copy_number': np.bincount(TU_index, minlength=self.n_TU)},
         }
 
-        return update
-    
-    def next_update(self, timestep, states):
-        requests = self.calculate_request(timestep, states)
-        states = deep_merge(states, requests)
-        update = self.evolve_state(timestep, states)
         return update
 
 
