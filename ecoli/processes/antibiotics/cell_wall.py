@@ -50,11 +50,9 @@ Parameters:
 
 import numpy as np
 import warnings
-from ecoli import divider_registry
 from ecoli.library.cell_wall.column_sampler import (
     geom_sampler,
     sample_column,
-    sample_lattice,
 )
 from ecoli.library.cell_wall.hole_detection import detect_holes_skimage
 from ecoli.library.cell_wall.lattice import (
@@ -72,13 +70,16 @@ from vivarium.library.units import units, remove_units
 NAME = "ecoli-cell-wall"
 TOPOLOGY = {
     "shape": ("boundary",),
-    "bulk_murein": ("bulk",),
     "murein_state": ("murein_state",),
     "PBP": ("bulk",),
     "wall_state": ("wall_state",),
     "listeners": ("listeners",),
 }
 topology_registry.register(NAME, TOPOLOGY)
+
+
+def divide_lattice(lattice):
+    return np.array_split(lattice, 2, axis=1)
 
 
 class CellWall(Process):
@@ -89,7 +90,10 @@ class CellWall(Process):
         "murein": "CPD-12261[p]",  # four crosslinked peptidoglycan units
         "PBP": {  # penicillin-binding proteins
             "PBP1A": "CPLX0-7717[m]",  # transglycosylase-transpeptidase
-            "PBP1B": "CPLX0-3951[i]",  # transglycosylase-transpeptidase
+            # PBP1B has three isoforms: α (currently not produced by model),
+            # β (degradation product of α, not in vivo), and γ (made by model)
+            "PBP1B_alpha": "CPLX0-3951[i]",
+            "PBP1B_gamma": "CPLX0-8300[c]",
         },
         # Probability of terminating a strand on the next monomer,
         # fitted from data
@@ -103,12 +107,9 @@ class CellWall(Process):
             ("cell_wall", "inter_strand_distance")
         ),
         "max_expansion": param_store.get(("cell_wall", "max_expansion")),
-        "peptidoglycan_unit_area": param_store.get(
-            ("cell_wall", "peptidoglycan_unit_area")
-        ),
         # Simulation parameters
         "seed": 0,
-        "time_step": 2,
+        "time_step": 10,
     }
 
     def __init__(self, parameters=None):
@@ -116,7 +117,8 @@ class CellWall(Process):
 
         self.murein = self.parameters["murein"]
         self.pbp1a = self.parameters["PBP"]["PBP1A"]
-        self.pbp1b = self.parameters["PBP"]["PBP1B"]
+        self.pbp1b_alpha = self.parameters["PBP"]["PBP1B_alpha"]
+        self.pbp1b_gamma = self.parameters["PBP"]["PBP1B_gamma"]
         self.strand_term_p = self.parameters["strand_term_p"]
 
         self.cell_radius = self.parameters["cell_radius"]
@@ -124,53 +126,38 @@ class CellWall(Process):
         self.critical_area = np.pi * self.critical_radius**2
         self.circumference = 2 * np.pi * self.cell_radius
 
-        self.peptidoglycan_unit_area = self.parameters["peptidoglycan_unit_area"]
         self.disaccharide_height = self.parameters["disaccharide_height"]
         self.disaccharide_width = self.parameters["disaccharide_width"]
         self.inter_strand_distance = self.parameters["inter_strand_distance"]
         self.max_expansion = self.parameters["max_expansion"]
+        self.peptidoglycan_unit_area = ((
+            self.inter_strand_distance + self.disaccharide_width) *
+            self.disaccharide_height)
 
         # Create pseudorandom number generator
         self.rng = np.random.default_rng(self.parameters["seed"])
 
     def ports_schema(self):
-        def divide_murein_state(mother):
-            RAND_MAX = 2**31 - 1
-            seed = int(mother["shadow_murein"]) % RAND_MAX
-            rng = np.random.default_rng(seed)
-            shadow_1 = rng.binomial(mother["shadow_murein"], 0.5)
-            shadow_2 = mother["shadow_murein"] - shadow_1
-
-            return [
-                {
-                    "incorporated_murein": 0,
-                    "unincorporated_murein": 0,
-                    "shadow_murein": shadow_1,
-                },
-                {
-                    "incorporated_murein": 0,
-                    "unincorporated_murein": 0,
-                    "shadow_murein": shadow_2,
-                },
-            ]
-
         schema = {
-            "bulk_murein": bulk_schema([self.parameters["murein"]]),
             "murein_state": {
                 # Divider sets to zero because the correct value is initialized
                 # from the bulk store the first timestep after division.
                 "incorporated_murein": {
                     "_default": 0,
-                    "_updater": "set",
                     "_emit": True,
+                    "_updater": "set",
+                    "_divider": "zero"
                 },
                 "unincorporated_murein": {
                     "_default": 0,
-                    "_updater": "set",
                     "_emit": True,
+                    "_divider": "binomial_ecoli"
                 },
-                "shadow_murein": {"_default": 0, "_updater": "set", "_emit": True},
-                "_divider": divide_murein_state,
+                "shadow_murein": {
+                    "_default": 0,
+                    "_emit": True,
+                    "_divider": "binomial_ecoli"
+                },
             },
             "PBP": bulk_schema(list(self.parameters["PBP"].values())),
             "shape": {"volume": {"_default": 0 * units.fL, "_emit": True}},
@@ -179,19 +166,19 @@ class CellWall(Process):
                     "_default": None,
                     "_updater": "set",
                     "_emit": False,
-                    "_divider": "set_none",
+                    "_divider": divide_lattice,
                 },
                 "lattice_rows": {
                     "_default": 0,
                     "_updater": "set",
                     "_emit": True,
-                    "_divider": {"divider": "set_value", "config": {"value": 0}},
+                    "_divider": "zero",
                 },
                 "lattice_cols": {
                     "_default": 0,
                     "_updater": "set",
                     "_emit": True,
-                    "_divider": {"divider": "set_value", "config": {"value": 0}},
+                    "_divider": "zero",
                 },
                 "extension_factor": {
                     "_default": 1,
@@ -200,6 +187,12 @@ class CellWall(Process):
                     "_divider": {"divider": "set_value", "config": {"value": 1}},
                 },
                 "cracked": {
+                    "_default": False,
+                    "_updater": "set",
+                    "_emit": True,
+                    "_divider": {"divider": "set_value", "config": {"value": False}},
+                },
+                "attempted_shrinkage": {
                     "_default": False,
                     "_updater": "set",
                     "_emit": True,
@@ -238,6 +231,8 @@ class CellWall(Process):
         return schema
 
     def next_update(self, timestep, states):
+        update = {}
+        
         # Unpack states
         volume = states["shape"]["volume"]
         extension_factor = states["wall_state"]["extension_factor"]
@@ -247,46 +242,16 @@ class CellWall(Process):
         active_fraction_PBP1a = states["pbp_state"]["active_fraction_PBP1A"]
         active_fraction_PBP1b = states["pbp_state"]["active_fraction_PBP1B"]
 
-        # Get lattice, setting it to a newly sampled lattice
-        # if not yet initialized
-        rows = states["wall_state"]["lattice_rows"]
-        cols = states["wall_state"]["lattice_cols"]
+        # Get lattice
         lattice = states["wall_state"]["lattice"]
-        if lattice is None:
-            # Make sure that all usable murein is initiailly unincorporated
-            unincorporated_monomers = (
-                4 * states["bulk_murein"][self.murein]
-                - states["murein_state"]["shadow_murein"]
-            )
-            incorporated_monomers = 0
-
-            # Get dimensions of the lattice
-            length = length_from_volume(volume, self.cell_radius * 2).to("micrometer")
-            rows, cols = calculate_lattice_size(
-                length,
-                self.inter_strand_distance,
-                self.disaccharide_height,
-                self.disaccharide_width,
-                self.circumference,
-                extension_factor,
-            )
-
-            # Populate the lattice
-            lattice = sample_lattice(
-                unincorporated_monomers,
-                rows,
-                cols,
-                geom_sampler(self.rng, self.strand_term_p),
-                self.rng,
-            )
-
-            incorporated_monomers = lattice.sum()
-            unincorporated_monomers -= incorporated_monomers
+        
+        # When not run in an EngineProcess, this process sets the incorporated
+        # murein count before MureinDivision and PBPBinding run after division
+        if states["murein_state"]["incorporated_murein"] == 0:
+            incorporated_monomers = np.sum(lattice)
 
         if not isinstance(lattice, np.ndarray):
             lattice = np.array(lattice)
-
-        update = {}
 
         # Do not run process if the cell is already cracked
         if states["wall_state"]["cracked"]:
@@ -296,7 +261,8 @@ class CellWall(Process):
         n_sites = int(
             remove_units(
                 PBPs[self.pbp1a] * active_fraction_PBP1a
-                + PBPs[self.pbp1b] * active_fraction_PBP1b
+                + PBPs[self.pbp1b_alpha] * active_fraction_PBP1b
+                + PBPs[self.pbp1b_gamma] * active_fraction_PBP1b
             )
         )
 
@@ -311,6 +277,32 @@ class CellWall(Process):
             self.circumference,
             extension_factor,
         )
+        
+        # Shrink extension factor when excess murein and PBPs are available
+        d_full_columns = unincorporated_monomers // lattice.shape[0]
+        d_columns = new_columns - lattice.shape[1]
+        if d_full_columns > d_columns and extension_factor > 1 and n_sites > 0:
+            new_columns = lattice.shape[1] + d_full_columns
+            extension_factor = remove_units(
+                (
+                    length
+                    / (
+                        new_columns
+                        * (self.inter_strand_distance + self.disaccharide_width)
+                    )
+                ).to("dimensionless")
+            )
+            # Minimum extension factor of 1
+            if extension_factor < 1:
+                _, new_columns = calculate_lattice_size(
+                    length,
+                    self.inter_strand_distance,
+                    self.disaccharide_height,
+                    self.disaccharide_width,
+                    self.circumference,
+                    1,
+                )
+                extension_factor = 1
 
         # Update lattice to reflect new dimensions,
         # change in murein, synthesis sites
@@ -318,6 +310,7 @@ class CellWall(Process):
             new_lattice,
             new_unincorporated_monomers,
             new_incorporated_monomers,
+            attempted_shrinkage,
         ) = self.update_murein(
             lattice,
             unincorporated_monomers,
@@ -368,6 +361,7 @@ class CellWall(Process):
                 new_lattice,
                 new_unincorporated_monomers,
                 new_incorporated_monomers,
+                attempted_shrinkage,
             ) = self.update_murein(
                 lattice,
                 unincorporated_monomers,
@@ -394,15 +388,16 @@ class CellWall(Process):
             "lattice_rows": lattice.shape[0],
             "lattice_cols": lattice.shape[1],
             "extension_factor": extension_factor,
+            "attempted_shrinkage": attempted_shrinkage,
         }
         update["murein_state"] = {
-            "unincorporated_murein": new_unincorporated_monomers,
+            "unincorporated_murein": new_unincorporated_monomers - unincorporated_monomers,
             "incorporated_murein": new_incorporated_monomers,
         }
         update["listeners"] = {
             "porosity": 1 - (lattice.sum() / lattice.size),
             "hole_size_distribution": np.bincount(hole_sizes),
-            "strand_length_distribution": get_length_distributions(lattice)[1],
+            "strand_length_distribution": np.bincount(get_length_distributions(lattice)[1]),
         }
 
         if will_crack:
@@ -422,21 +417,28 @@ class CellWall(Process):
         rows, columns = lattice.shape
         d_columns = new_columns - columns
 
-        # Stop early is there is no murein to allocate, or if the cell has not grown
-        if unincorporated_monomers == 0 or d_columns == 0:
-            new_lattice = lattice
-            total_real_monomers = unincorporated_monomers + incorporated_monomers
-            new_incorporated_monomers = new_lattice.sum()
-            new_unincorporated_monomers = (
-                total_real_monomers - new_incorporated_monomers
+        attempted_shrinkage = False
+
+        # Stop early if the cell has not grown
+        if d_columns == 0:
+            return (
+                lattice,
+                unincorporated_monomers,
+                incorporated_monomers,
+                attempted_shrinkage,
             )
-            return new_lattice, new_unincorporated_monomers, new_incorporated_monomers
 
         if d_columns < 0:
             warnings.warn(
                 f"Lattice shrinkage is currently not supported ({-d_columns} lost)."
             )
-            return lattice, unincorporated_monomers, incorporated_monomers
+            attempted_shrinkage = True
+            return (
+                lattice,
+                unincorporated_monomers,
+                incorporated_monomers,
+                attempted_shrinkage,
+            )
 
         # Create new lattice
         new_lattice = np.zeros((rows, new_columns), dtype=lattice.dtype)
@@ -444,37 +446,48 @@ class CellWall(Process):
         # Sample columns for synthesis sites
         # First choose positions:
         n_points = min(n_sites, d_columns)
-        insertion_points = self.rng.choice(
-            list(range(columns)), size=n_points, replace=False
-        )
-        insertion_points.sort()
+        if n_points > 0:
+            insertion_points = self.rng.choice(
+                list(range(columns)), size=n_points, replace=False
+            )
+            insertion_points.sort()
 
-        # Assign insert sizes to positions (at least one column per position):
-        insertion_size = np.ones(n_points, dtype=int)
-        N_remaining = d_columns - n_points
-        if N_remaining > 0:
-            insertion_size += self.rng.multinomial(
-                N_remaining, np.repeat([1 / N_remaining], n_points)
+            # Assign insert sizes to positions (at least one column per position):
+            insertion_size = np.ones(n_points, dtype=int)
+            N_remaining = d_columns - n_points
+            if N_remaining > 0:
+                insertion_size += self.rng.multinomial(
+                    N_remaining, np.repeat([1 / n_points], n_points)
+                )
+
+            murein_per_column = self.rng.multinomial(
+                unincorporated_monomers, np.repeat([1 / d_columns], d_columns)
             )
 
-        murein_per_column = unincorporated_monomers / d_columns
-
-        # Sample columns to insert
-        insertions = []
-        for insert_size in insertion_size:
-            insertions.append(
-                np.array(
-                    [
+            # Sample columns to insert. Columns to insert together are sampled
+            # as a chunk (an "insertion").
+            insertions = []
+            columns_sampled = 0
+            for insert_size in insertion_size:
+                columns_to_insert = []
+                for _ in range(insert_size):
+                    columns_to_insert.append(
                         sample_column(
                             rows,
-                            murein_per_column,
+                            murein_per_column[columns_sampled],
                             geom_sampler(self.rng, strand_term_p),
                             self.rng,
                         )
-                        for _ in range(insert_size)
-                    ]
-                ).T
-            )
+                    )
+                    columns_sampled += 1
+                insertions.append(np.array(columns_to_insert).T)
+        # If no active PBPs, assume empty column(s) inserted at center of wall
+        else:
+            insertion_points = [int(np.mean(range(columns)))]
+            insertion_size = [d_columns]
+            insertions = np.array(
+                [np.zeros(rows, dtype=int) for _ in range(d_columns)]
+            ).T
 
         # Combine insertions and old material into new lattice
         index_new = 0
@@ -502,4 +515,9 @@ class CellWall(Process):
         total_real_monomers = unincorporated_monomers + incorporated_monomers
         new_incorporated_monomers = new_lattice.sum()
         new_unincorporated_monomers = total_real_monomers - new_incorporated_monomers
-        return new_lattice, new_unincorporated_monomers, new_incorporated_monomers
+        return (
+            new_lattice,
+            new_unincorporated_monomers,
+            new_incorporated_monomers,
+            attempted_shrinkage,
+        )

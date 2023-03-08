@@ -44,6 +44,7 @@ TOPOLOGY = {
         # Non-partitioned count
         "amino_acids_total": ("bulk",),
         "evolvers_ran": ('evolvers_ran',),
+        "first_update": ("deriver_skips", "metabolism",)
     }
 topology_registry.register(NAME, TOPOLOGY)
 
@@ -135,8 +136,6 @@ class Metabolism(Step):
         self.seed = self.parameters['seed']
         self.random_state = np.random.RandomState(seed=self.seed)
 
-        self.first_update = True
-
         # TODO: For testing, remove later (perhaps after modifying sim data)
         self.reduce_murein_objective = self.parameters['reduce_murein_objective']
 
@@ -222,6 +221,11 @@ class Metabolism(Step):
                 },
             },
             'evolvers_ran': {'_default': True},
+            'first_update': {
+                '_default': True,
+                '_updater': 'set',
+                '_divider': {'divider': 'set_value', 'config': {'value': True}},
+            }
         }
 
         return ports
@@ -230,10 +234,9 @@ class Metabolism(Step):
         return states['evolvers_ran']
 
     def next_update(self, timestep, states):
-        # Skip t=0 if a deriver
-        if self.first_update:
-            self.first_update = False
-            return {}
+        # Skip t=0
+        if states['first_update']:
+            return {'first_update': False}
 
         timestep = self.parameters['time_step']
 
@@ -280,7 +283,7 @@ class Metabolism(Step):
             for met, conc in conc_updates.items()}
         
         if self.parameters['reduce_murein_objective']:
-            conc_updates['CPD-12261[p]'] /= 2.68
+            conc_updates['CPD-12261[p]'] /= 2.27
 
         # Update FBA problem based on current state
         # Set molecule availability (internal and external)
@@ -363,12 +366,12 @@ class Metabolism(Step):
                     'kineticObjectiveValues': fba.getKineticObjectiveValues(),
                     
                     # Quite large, comment out to reduce emit size
-                    'estimated_fluxes': flux_dict ,
-                    'estimated_dmdt': {str(metabolite): delta_metabolites_final[index]
-                                       for index, metabolite in enumerate(self.model.metaboliteNamesFromNutrients)},
-                    'target_dmdt': objective_counts,
-                    'estimated_exchange_dmdt': {str(molecule): delta_nutrients[index]
-                                                for index, molecule in enumerate(fba.getExternalMoleculeIDs())},
+                    # 'estimated_fluxes': flux_dict ,
+                    # 'estimated_dmdt': {str(metabolite): delta_metabolites_final[index]
+                    #                    for index, metabolite in enumerate(self.model.metaboliteNamesFromNutrients)},
+                    # 'target_dmdt': objective_counts,
+                    # 'estimated_exchange_dmdt': {str(molecule): delta_nutrients[index]
+                    #                             for index, molecule in enumerate(fba.getExternalMoleculeIDs())},
                 },
 
                 'enzyme_kinetics': {
@@ -491,7 +494,7 @@ class FluxBalanceAnalysisModel(object):
 
         # TODO: For testing, remove later (perhaps after modifying sim data)
         if parameters["reduce_murein_objective"]:
-            self.homeostatic_objective['CPD-12261[p]'] /= 2.68
+            self.homeostatic_objective['CPD-12261[p]'] /= 2.27
 
         # Include all concentrations that will be present in a sim for constant length listeners
         for met in self.metaboliteNamesFromNutrients:

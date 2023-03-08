@@ -16,6 +16,7 @@ from ecoli.library.create_timeline import (add_computed_value,
                                            create_timeline_from_df)
 from ecoli.processes.antibiotics.cell_wall import CellWall
 from ecoli.processes.antibiotics.pbp_binding import PBPBinding
+from ecoli.processes.antibiotics.murein_division import MureinDivision
 
 
 DATA = "data/cell_wall/cell_wall_test_rig_17_09_2022_00_41_51.csv"
@@ -45,8 +46,8 @@ def create_composite(timeline_data, antibiotics=True):
             ("cell_global", "volume"): parse_unit_string(
                 value[("cell_global", "volume")]
             ),
-            ("concentrations", "beta_lactam"): (
-                9.16 * units.micromolar
+            ("concentrations", "ampicillin"): (
+                10 * units.micromolar
                 if antibiotics and t > 0
                 else 0 * units.micromolar
             ),
@@ -58,11 +59,11 @@ def create_composite(timeline_data, antibiotics=True):
     processes = {
         "cell_wall": CellWall({}),
         "pbp_binding": PBPBinding({}),
+        "murein-division": MureinDivision({})
     }
     topology = {
         "cell_wall": {
             "shape": ("cell_global",),
-            "bulk_murein": ("bulk",),
             "murein_state": ("murein_state",),
             "PBP": ("bulk",),
             "wall_state": ("wall_state",),
@@ -75,7 +76,15 @@ def create_composite(timeline_data, antibiotics=True):
             "concentrations": ("concentrations",),
             "bulk": ("bulk",),
             "pbp_state": ("pbp_state",),
+            "wall_state": ("wall_state",),
+            "first_update": ("deriver_skips", "pbp_binding",)
         },
+        "murein-division": {
+            "total_murein": ("bulk",),
+            "murein_state": ("murein_state",),
+            "wall_state": ("wall_state",),
+            "first_update": ("deriver_skips", "murein_division",)
+        }
     }
 
     add_timeline(processes, topology, timeline)
@@ -108,7 +117,7 @@ def create_composite(timeline_data, antibiotics=True):
 
 def output_data(data, filepath):
     variables = [
-        ("concentrations", "beta_lactam"),
+        ("concentrations", "ampicillin"),
         ("wall_state", "cracked"),
         ("bulk", "CPD-12261[p]"),
         ("bulk", "CPLX0-7717[m]"),
@@ -117,6 +126,8 @@ def output_data(data, filepath):
         ("murein_state", "unincorporated_murein"),
         ("murein_state", "shadow_murein"),
         ("wall_state", "extension_factor"),
+        ("wall_state", "lattice_cols"),
+        ("listeners", "hole_size_distribution"),
         ("pbp_state", "active_fraction_PBP1A"),
         ("pbp_state", "active_fraction_PBP1B"),
         ("listeners", "porosity"),
@@ -130,6 +141,8 @@ def output_data(data, filepath):
             remove_units(deserialize_value(get_value_from_path(data[t], path)))
             for t in T
         ]
+        if path == ("listeners", "hole_size_distribution"):
+            var_data = [len(data_at_time) for data_at_time in var_data]
 
         axs[i].plot(T, var_data)
         axs[i].set_title(path[-1])
@@ -140,7 +153,7 @@ def output_data(data, filepath):
 
 
 def test_cell_wall():
-    total_time = 1200
+    total_time = 1300
     timeline_data = pd.read_csv(DATA, skipinitialspace=True)
 
     for antibiotics in [False, True]:

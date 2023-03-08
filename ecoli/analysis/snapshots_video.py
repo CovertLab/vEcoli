@@ -7,7 +7,7 @@ from vivarium.library.topology import convert_path_style
 from vivarium.core.serialize import deserialize_value
 from vivarium.library.units import remove_units
 
-from ecoli.analysis.db import access_counts
+from ecoli.analysis.db import access_counts, deserialize_and_remove_units
 from ecoli.analysis.analyze_db_experiment import OUT_DIR
 from ecoli.plots.snapshots_video import make_video
 
@@ -58,9 +58,18 @@ def main():
     outer_paths = [('data', 'dimensions')]
     if args.fields:
         outer_paths += [('data', 'fields')]
-    data = access_counts(args.experiment_id, monomers, mrnas, inner_paths, 
-        outer_paths, args.host, args.port, sampling_rate=args.sampling_rate, 
-        start_time=args.start_time, end_time=args.end_time, cpus=args.cpus)
+    data = access_counts(
+        experiment_id=args.experiment_id,
+        monomer_names=monomers,
+        mrna_names=mrnas,
+        inner_paths=inner_paths,
+        outer_paths=outer_paths,
+        host=args.host,
+        port=args.port,
+        sampling_rate=args.sampling_rate,
+        start_time=args.start_time,
+        end_time=args.end_time,
+        cpus=args.cpus)
     
     with concurrent.futures.ProcessPoolExecutor(args.cpus) as executor:
         data_deserialized = list(tqdm(executor.map(

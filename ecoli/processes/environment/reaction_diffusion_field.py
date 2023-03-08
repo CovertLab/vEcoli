@@ -6,6 +6,7 @@ Reaction Diffusion Field
 import copy
 import os
 import numpy as np
+from pint import Quantity
 from scipy import constants
 from scipy.ndimage import convolve
 
@@ -50,7 +51,8 @@ class ReactionDiffusion(Process):
         'n_bins': [10, 10],
         'bounds': [10 * units.um, 10 * units.um],
         'depth': 3000.0 * units.um,  # um
-        'diffusion': 5e-1 * units.um**2 / units.sec,
+        # Diffusion coefficient: 10.1016/j.cej.2015.01.130
+        'diffusion': 600 * units.um**2 / units.sec,
 
         'exchanges_path': ('boundary', 'exchanges'),
         'external_path': ('boundary', 'external'),
@@ -116,6 +118,11 @@ class ReactionDiffusion(Process):
             # under 'kinetic_parameters, with the catalyst id mapping to a kcat_f
             # parameter and a km for one molecule in the environment
             rxn_kinetics = self.parameters['kinetic_parameters'].get(rxn_id)
+            # TODO: Need better way to handle units
+            for rxn_kinetic_params in rxn_kinetics.values():
+                for param_name, rxn_kinetic_param in rxn_kinetic_params.items():
+                    if isinstance(rxn_kinetic_param, Quantity):
+                        rxn_kinetic_params[param_name] = rxn_kinetic_param.magnitude
             assert rxn_kinetics, \
                 'each reaction must have corresponding kinetic_parameters'
             kinetics_catalyst = rxn_kinetics.keys()

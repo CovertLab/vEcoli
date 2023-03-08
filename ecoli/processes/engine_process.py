@@ -60,13 +60,14 @@ These tunnels are the only way that the EngineProcess exchanges
 information with the outside simulation.
 '''
 import copy
+import warnings
 
 import numpy as np
 import os
 from vivarium.core.composer import Composer
 from vivarium.core.emitter import get_emitter, SharedRamEmitter
 from vivarium.core.engine import Engine
-from vivarium.core.process import Process
+from vivarium.core.process import Process, Step
 from vivarium.core.registry import updater_registry, divider_registry
 from vivarium.core.store import DEFAULT_SCHEMA, Store
 from vivarium.library.topology import get_in
@@ -113,9 +114,12 @@ def cap_tunneling_paths(topology, outer=tuple()):
         topology[cap_key] = cap_path
     return tunnels
 
-
-class SchemaStub(Process):
-    '''Stub process for providing schemas to an inner simulation.
+class SchemaStub(Step):
+    '''Stub process for providing schemas to an inner simulation. Run as
+    a Step otherwise its timestep could influence when other Steps run.
+    For example, if a SchemaStub was a process with timestep 1 while all
+    other processes had timestep 2, Steps like mass listener would run
+    after every second instead of every 2 seconds, wasting time.
 
     When using :py:class:`ecoli.processes.engine_process.EngineProcess`,
     there may be processes in the outer simulation whose schemas you are
@@ -163,8 +167,10 @@ class EngineProcess(Process):
         'divide': False,
         'division_threshold': None,
         'division_variable': None,
+        'chromosome_path': None,
         'start_time': 0,
         'experiment_id': '',
+        'inner_same_timestep': False,
     }
     # TODO: Handle name clashes between tunnels.
 
@@ -180,6 +186,9 @@ class EngineProcess(Process):
         if self.parameters['division_variable'] == None:
             self.parameters['division_variable'] = inner_composite.pop(
                 'division_variable')
+        if self.parameters['chromosome_path'] == None:
+            self.parameters['chromosome_path'] = inner_composite.pop(
+                'chromosome_path', None)
         # If initial inner state not given in outer composite, 
         # use initial state from inner composite
         if self.parameters['initial_inner_state'] == None:
@@ -194,6 +203,7 @@ class EngineProcess(Process):
 
         processes = inner_composite['processes']
         topology = inner_composite['topology']
+        steps = inner_composite.get('steps')
         for process, d in self.parameters['stub_schemas'].items():
             stub_ports_schema = {}
             stub_process_name = f'{process}_stub'
@@ -203,13 +213,13 @@ class EngineProcess(Process):
                 stub_ports_schema[port] = schema
                 topology[stub_process_name][port] = path
             stub = SchemaStub({'ports_schema': stub_ports_schema})
-            processes[stub_process_name] = stub
+            steps[stub_process_name] = stub
 
         self.emitter = None
         
         self.sim = Engine(
             processes=processes,
-            steps=inner_composite.get('steps'),
+            steps=steps,
             flow=inner_composite.get('flow'),
             topology=topology,
             initial_state=self.parameters['initial_inner_state'],
@@ -222,6 +232,15 @@ class EngineProcess(Process):
         # Unnecessary references to initial_state
         self.sim.initial_state = None
         self.parameters.pop('initial_inner_state')
+        self.parameters['inner_composer_config'].pop(
+            'initial_inner_state', None)
+        
+        # Only apply murein override to first cell
+        if 'initial_state_overrides' in self.parameters['inner_composer_config']:
+            overrides = self.parameters['inner_composer_config'][
+                'initial_state_overrides']
+            if 'overrides/reduced_murein' in overrides:
+                overrides.remove('overrides/reduced_murein')
         
         if self.parameters['emit_paths']:
             self.sim.state.set_emit_values([tuple()], False)
@@ -289,11 +308,21 @@ class EngineProcess(Process):
     def calculate_timestep(self, states):
         timestep = np.inf
         for process in self.sim.processes.values():
+            if self.parameters['inner_same_timestep']:
+                # Warn user if inner process has different timestep from rest
+                if (timestep != process.calculate_timestep({})
+                    and timestep != np.inf):
+                    warnings.warn("Time step mismatch for process "
+                                f"{process.name}: {timestep} != " +
+                                str(process.calculate_timestep({})))
             timestep = min(timestep, process.calculate_timestep({}))
         return timestep
 
     def get_inner_state(self) -> None:
         def not_a_process(value):
+            # Do not retrieve partitioned process shared state
+            if isinstance(value.value, tuple) and len(value.value)==1:
+                return not value.value[0].topology
             return not (isinstance(value, Store) and value.topology)
         return self.sim.state.get_value(condition=not_a_process)
 
@@ -384,9 +413,16 @@ class EngineProcess(Process):
         division_threshold = self.parameters['division_threshold']
         division_variable = self.sim.state.get_path(
             self.parameters['division_variable']).get_value()
+        # Two full chromosomes required for division
+        full_chromosomes = self.sim.state.get_path(
+            self.parameters['chromosome_path']).get_value()
+        # If no chromosome_path is supplied, allow division to proceed
+        if full_chromosomes is None:
+            full_chromosomes = [0, 1]
         if (
                 self.parameters['divide']
-                and division_variable >= division_threshold):
+                and division_variable >= division_threshold
+                and len(full_chromosomes) >= 2):
             # Perform division.
             daughters = []
             daughter_states = self.sim.state.divide_value()

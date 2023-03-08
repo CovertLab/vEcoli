@@ -5,12 +5,20 @@ from vivarium.core.composer import Composite
 from vivarium.core.composition import add_timeline
 from vivarium.core.engine import Engine
 from vivarium.core.process import Step
-from vivarium.library.units import units
+from vivarium.library.units import units, remove_units
 from vivarium.plots.simulation_output import plot_variables
 
 from ecoli.library.parameters import param_store
 from ecoli.library.schema import bulk_schema
 from ecoli.processes.registries import topology_registry
+from ecoli.processes.shape import length_from_volume
+from ecoli.library.cell_wall.column_sampler import (
+    geom_sampler,
+    sample_lattice,
+)
+from ecoli.library.cell_wall.lattice import (
+    calculate_lattice_size,
+)
 
 
 # Register default topology for this process, associating it with process name
@@ -21,6 +29,9 @@ TOPOLOGY = {
     "concentrations": ("concentrations",),
     "bulk": ("bulk",),
     "pbp_state": ("pbp_state",),
+    "wall_state": ("wall_state",),
+    "volume": ("boundary", "volume"),
+    "first_update": ("deriver_skips", "pbp_binding",)
 }
 topology_registry.register(NAME, TOPOLOGY)
 
@@ -34,7 +45,10 @@ class PBPBinding(Step):
         "beta_lactam": "ampicillin",  # Supports cephaloridine, ampicillin
         "PBP": {  # penicillin-binding proteins
             "PBP1A": "CPLX0-7717[m]",  # transglycosylase-transpeptidase ~100
-            "PBP1B": "CPLX0-3951[i]",  # transglycosylase-transpeptidase ~100
+            # PBP1B has three isoforms: α (currently not produced by model),
+            # β (degradation product of α, not in vivo), and γ (made by model)
+            "PBP1B_alpha": "CPLX0-3951[i]",
+            "PBP1B_gamma": "CPLX0-8300[c]",
         },
         "kinetic_params": {
             "cephaloridine": {
@@ -66,6 +80,16 @@ class PBPBinding(Step):
                 },
             },
         },
+        # Parameters to initialize cell wall after division (see cell_wall.py)
+        "strand_term_p": param_store.get(("cell_wall", "strand_term_p")),
+        "cell_radius": param_store.get(("cell_wall", "cell_radius")),
+        "disaccharide_height": param_store.get(("cell_wall", "disaccharide_height")),
+        "disaccharide_width": param_store.get(("cell_wall", "disaccharide_width")),
+        "inter_strand_distance": param_store.get(
+            ("cell_wall", "inter_strand_distance")
+        ),
+        # Simulation parameters
+        "seed": 0,
     }
 
     def __init__(self, parameters=None):
@@ -74,7 +98,8 @@ class PBPBinding(Step):
         self.murein = self.parameters["murein_name"]
         self.beta_lactam = self.parameters["beta_lactam"]
         self.PBP1A = self.parameters["PBP"]["PBP1A"]
-        self.PBP1B = self.parameters["PBP"]["PBP1B"]
+        self.PBP1B_alpha = self.parameters["PBP"]["PBP1B_alpha"]
+        self.PBP1B_gamma = self.parameters["PBP"]["PBP1B_gamma"]
         self.K_A_1a = self.parameters["kinetic_params"][self.beta_lactam]["K_A"][
             "PBP1A"
         ]
@@ -88,6 +113,15 @@ class PBPBinding(Step):
             "PBP1B"
         ]
 
+        # Parameters to initialize cell wall after division
+        self.strand_term_p = self.parameters["strand_term_p"]
+        self.cell_radius = self.parameters["cell_radius"]
+        self.circumference = 2 * np.pi * self.cell_radius
+        self.disaccharide_height = self.parameters["disaccharide_height"]
+        self.disaccharide_width = self.parameters["disaccharide_width"]
+        self.inter_strand_distance = self.parameters["inter_strand_distance"]
+        self.rng = np.random.default_rng(self.parameters["seed"])
+
     def ports_schema(self):
         return {
             "total_murein": bulk_schema([self.parameters["murein_name"]]),
@@ -99,13 +133,15 @@ class PBPBinding(Step):
                 },
                 "unincorporated_murein": {
                     "_default": 0,
-                    "_updater": "set",
                     "_emit": True,
                 },
-                "shadow_murein": {"_default": 0, "_updater": "set", "_emit": True},
+                "shadow_murein": {
+                    "_default": 0, 
+                    "_emit": True
+                },
             },
             "concentrations": {
-                "beta_lactam": {"_default": 0.0 * units.micromolar, "_emit": True},
+                self.beta_lactam: {"_default": 0.0 * units.micromolar, "_emit": True},
             },
             "bulk": bulk_schema(list(self.parameters["PBP"].values())),
             "pbp_state": {
@@ -122,34 +158,154 @@ class PBPBinding(Step):
                     "_divider": {"divider": "set_value", "config": {"value": 1.0}},
                 },
             },
+            "wall_state": {
+                "lattice": {
+                    "_default": None,
+                    "_updater": "set",
+                    "_emit": False,
+                },
+                "lattice_rows": {
+                    "_default": 0,
+                    "_updater": "set",
+                    "_emit": True,
+                    "_divider": "zero",
+                },
+                "lattice_cols": {
+                    "_default": 0,
+                    "_updater": "set",
+                    "_emit": True,
+                    "_divider": "zero",
+                },
+                "extension_factor": {
+                    "_default": 1,
+                    "_updater": "set",
+                    "_emit": True,
+                    "_divider": {"divider": "set_value", "config": {"value": 1}},
+                },
+            },
+            "volume": {"_default": 1 * units.fL, "_emit": True},
+            "first_update": {
+                "_default": True,
+                "_updater": "set",
+                "_divider": {"divider": "set_value", "config": {"value": True}},
+            }
         }
 
     def next_update(self, timestep, states):
-        update = {}
+        update = {"murein_state": {}}
+        
+        # Calculate fraction of active PBP1a, PBP1b using Hill Equation
+        # (calculating prop NOT bound, i.e. 1 - Hill eq value)
+        beta_lactam = states["concentrations"][self.beta_lactam]
+        active_fraction_1a = 1 / (1 + (beta_lactam / self.K_A_1a) ** self.n_1a)
+        active_fraction_1b = 1 / (1 + (beta_lactam / self.K_A_1b) ** self.n_1b)
+        
+        update["pbp_state"] = {
+            "active_fraction_PBP1A": active_fraction_1a,
+            "active_fraction_PBP1B": active_fraction_1b,
+        }
+        
+        if states["first_update"]:
+            update["first_update"] = False
+            # Initialize cell wall if necessary (first cell in sim)
+            if states["wall_state"]["lattice"] is None:
+                # Make sure that all usable murein is initiailly unincorporated
+                unincorporated_monomers = (
+                    4 * states["total_murein"][self.murein]
+                    - states["murein_state"]["shadow_murein"]
+                )
+                incorporated_monomers = 0
+
+                # Get cell size information
+                length = length_from_volume(states["volume"], self.cell_radius * 2).to(
+                    "micrometer"
+                )
+
+                # Get dimensions of the lattice
+                rows, cols = calculate_lattice_size(
+                    length,
+                    self.inter_strand_distance,
+                    self.disaccharide_height,
+                    self.disaccharide_width,
+                    self.circumference,
+                    1,
+                )
+
+                # Populate the lattice
+                lattice = sample_lattice(
+                    unincorporated_monomers,
+                    rows,
+                    cols,
+                    geom_sampler(self.rng, self.strand_term_p),
+                    self.rng,
+                )
+
+                incorporated_monomers = lattice.sum()
+                unincorporated_monomers -= incorporated_monomers
+                update.update(
+                    {
+                        "wall_state": {
+                            "lattice": lattice,
+                            "extension_factor": 1,
+                            "lattice_rows": lattice.shape[0],
+                            "lattice_cols": lattice.shape[1],
+                        },
+                        "murein_state": {
+                            "incorporated_murein": incorporated_monomers,
+                            "unincorporated_murein": -incorporated_monomers
+                        },
+                    }
+                )
+                return update
+            
+            # Set lattice rows, cols, and extension factor after division when
+            # running in EngineProcess
+            elif states["wall_state"]["lattice_rows"] == 0:
+                # Get cell size information
+                length = length_from_volume(states["volume"],
+                    self.cell_radius * 2).to("micrometer")
+
+                # Set extension factor such that lattice covers the cell
+                lattice = states["wall_state"]["lattice"]
+                extension = remove_units(
+                    (
+                        length
+                        / (lattice.shape[1] * (self.inter_strand_distance 
+                                                + self.disaccharide_width))
+                    ).to("dimensionless")
+                )
+                
+                update.update(
+                    {
+                        "wall_state":
+                            {
+                                "lattice_rows": lattice.shape[0],
+                                "lattice_cols": lattice.shape[1],
+                                "extension_factor": extension
+                            }
+                    }
+                )
+                return update
 
         # New murein to allocate
         new_murein = 4 * states["total_murein"][self.murein] - sum(
             states["murein_state"].values()
         )
 
-        # Calculate fraction of active PBP1a, PBP1b using Hill Equation
-        # (calculating prop NOT bound, i.e. 1 - Hill eq value)
-        beta_lactam = states["concentrations"]["beta_lactam"]
-        active_fraction_1a = 1 / (1 + (beta_lactam / self.K_A_1a) ** self.n_1a)
-        active_fraction_1b = 1 / (1 + (beta_lactam / self.K_A_1b) ** self.n_1b)
-
         # Allocate real vs. shadow murein based on
         # what fraction of PBPs are active
         PBP1A = states["bulk"][self.PBP1A]
-        PBP1B = states["bulk"][self.PBP1B]
-        total_PBP = PBP1A + PBP1B
+        PBP1B_alpha = states["bulk"][self.PBP1B_alpha]
+        PBP1B_gamma = states["bulk"][self.PBP1B_gamma]
+        total_PBP = PBP1A + PBP1B_alpha + PBP1B_gamma
 
         if total_PBP > 0:
             real_new_murein = int(
                 round(
                     (
                         active_fraction_1a * (PBP1A / total_PBP)
-                        + active_fraction_1b * (PBP1B / total_PBP)
+                        + active_fraction_1b * (PBP1B_alpha / total_PBP)
+                        + active_fraction_1b * (PBP1B_gamma / total_PBP)
                     )
                     * new_murein
                 )
@@ -157,19 +313,12 @@ class PBPBinding(Step):
         else:
             real_new_murein = new_murein
 
-        update["murein_state"] = {
-            "unincorporated_murein": (
-                real_new_murein + states["murein_state"]["unincorporated_murein"]
-            ),
-            "shadow_murein": (
-                new_murein - real_new_murein + states["murein_state"]["shadow_murein"]
-            ),
-        }
-
-        update["pbp_state"] = {
-            "active_fraction_PBP1A": active_fraction_1a,
-            "active_fraction_PBP1B": active_fraction_1b,
-        }
+        update["murein_state"].update(
+            {
+                "unincorporated_murein": real_new_murein,
+                "shadow_murein": new_murein - real_new_murein,
+            }
+        )
 
         return update
 
@@ -189,6 +338,7 @@ def test_pbp_binding():
             "concentrations": ("concentrations",),
             "bulk": ("bulk",),
             "pbp_state": ("pbp_state",),
+            "wall_state": ("wall_state",),
         }
     }
     add_timeline(
@@ -200,7 +350,7 @@ def test_pbp_binding():
                     time,
                     {
                         ("bulk", "CPD-12261[p]"): int(initial_murein + 1000 * time),
-                        ("concentrations", "beta_lactam"): (
+                        ("concentrations", "ampicillin"): (
                             (time - 50) / 10 * units.micromolar
                             if time > 50
                             else 0 * units.micromolar
@@ -217,12 +367,12 @@ def test_pbp_binding():
         "total_time": 100,
         "initial_state": {
             "murein_state": {
-                "incorporated_murein": initial_murein * 4,
-                "unincorporated_murein": 0,
+                "incorporated_murein": 0,
+                "unincorporated_murein": initial_murein * 4,
                 "shadow_murein": 0,
             },
             "concentrations": {
-                "beta_lactam": 0 * units.micromolar,
+                "ampicillin": 0 * units.micromolar,
             },
             "bulk": {
                 "CPD-12261[p]": initial_murein,
@@ -247,7 +397,7 @@ def test_pbp_binding():
     fig = plot_variables(
         data,
         variables=[
-            ("concentrations", ("beta_lactam", "micromolar")),
+            ("concentrations", ("ampicillin", "micromolar")),
             ("bulk", "CPD-12261[p]"),
             ("murein_state", "incorporated_murein"),
             ("murein_state", "unincorporated_murein"),
