@@ -382,7 +382,8 @@ if __name__ == "__main__":
         arr_data = np.loadtxt(args.numpy_data)
         raw_data = None
 
-    sim_df = pd.read_csv(args.sim_df, dtype={'Agent ID': str}, index_col=0)
+    sim_df = pd.read_csv(args.sim_df, dtype={
+        'Agent ID': str, 'Seed': str}, index_col=0)
     # Convert string to dictionary
     sim_df['Boundary'] = sim_df['Boundary'].apply(ast.literal_eval)
 

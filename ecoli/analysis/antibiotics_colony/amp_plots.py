@@ -41,12 +41,14 @@ def load_data(
     # Load glc data
     if verbose:
         print("Loading glucose data...")
-    glc_data = pd.read_csv(glc_data, dtype={'Agent ID': str}, index_col=0)
+    glc_data = pd.read_csv(glc_data, dtype={
+        'Agent ID': str, 'Seed': str}, index_col=0)
 
     # Load amp data
     if verbose:
         print("Loading ampicillin data...")
-    amp_data = pd.read_csv(amp_data, dtype={'Agent ID': str}, index_col=0)
+    amp_data = pd.read_csv(amp_data, dtype={
+        'Agent ID': str, 'Seed': str}, index_col=0)
 
     # Validate data:
     # - glc_data must be in Glucose condition,

@@ -141,7 +141,8 @@ def load_data(
     # Load glc data
     if verbose:
         print("Loading Glucose data...")
-    glc_data = pd.read_csv(glc_data, dtype={'Agent ID': str}, index_col=0)
+    glc_data = pd.read_csv(glc_data, dtype={
+        'Agent ID': str, 'Seed': str}, index_col=0)
     # Convert string to actual dictionary
     glc_data['Boundary'] = glc_data['Boundary'].apply(ast.literal_eval)
 

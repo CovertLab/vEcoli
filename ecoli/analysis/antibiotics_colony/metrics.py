@@ -1,5 +1,5 @@
+import ast
 import os
-import pickle
 
 import numpy as np
 import pandas as pd
@@ -7,18 +7,19 @@ from scipy.stats import variation
 
 from ecoli.analysis.antibiotics_colony import COUNTS_PER_FL_TO_NANOMOLAR
 
-GLUCOSE_DATA = "data/glc_10000/2022-12-08_00-35-28_562633+0000.pkl"
-TET_DATA = "data/tet_0/2023-01-05_01-00-44_215314+0000.pkl"
-AMP_DATA = "data/amp_0/2 mg_L/2022-12-08_17-03-56_357734+0000.pkl"
+GLUCOSE_DATA = "data/colony_data/sim_dfs/2022-12-08_00-35-28_562633+0000.csv"
+TET_DATA = "data/colony_data/sim_dfs/2023-01-05_01-00-44_215314+0000.csv"
+AMP_DATA = "data/colony_data/sim_dfs/2022-12-08_17-03-56_357734+0000.csv"
 PERIPLASMIC_VOLUME_FRACTION = 0.2
 
 
-def calculate_glucose_metrics(data, out="out/figure_2/glc_metrics.txt"):
+def calculate_glucose_metrics(data,
+    out="out/analysis/paper_figures/metrics/glc_metrics.txt"
+):
     metrics = {}
     max_time = data.Time.max()
 
-    # get birth, end time for each agent (excluding those present at end
-    # of simulation)
+    # get birth, end time for each agent
     agent_lifetimes = data.groupby("Agent ID").agg(
         birth_time=("Time", "min"), end_time=("Time", "max")
     )
@@ -28,8 +29,10 @@ def calculate_glucose_metrics(data, out="out/figure_2/glc_metrics.txt"):
     agent_lifetimes["generation"] = agent_lifetimes.index.map(len)
 
     # get mean, std. dev generation time
+    # exclude cells present at end of sim and those that died
     non_final_agent_lifetimes = agent_lifetimes[
-        data.groupby("Agent ID").Time.max() != max_time
+        [(agent_id+'0' in agent_lifetimes.index)
+        for agent_id in agent_lifetimes.index]
     ]
     metrics[
         "Mean doubling time"
@@ -96,13 +99,15 @@ def calculate_glucose_metrics(data, out="out/figure_2/glc_metrics.txt"):
             f.write(f"{metric} = {value}\n")
 
 
-def calculate_tet_metrics(data, out="out/figure_3/tet_metrics.txt"):
+def calculate_tet_metrics(data,
+    out="out/analysis/paper_figures/metrics/tet_metrics.txt"
+):
     metrics = {}
 
     min_time = data.Time.min()
 
-    # Mean, std dev in OmpF, AcrAB-TolC, active ribosome, micF-ompF duplex concentration
-    # (immediately when tet added)
+    # Mean, std dev, CV in OmpF, AcrAB-TolC, active ribosome, micF-ompF duplex
+    # concentrations when tet first added
     data_t0 = data[data.Time == min_time]
     for molecule, periplasmic in {
         "OmpF complex": True,
@@ -131,6 +136,37 @@ def calculate_tet_metrics(data, out="out/figure_3/tet_metrics.txt"):
         metrics[
             f"Std. dev. in {molecule} {'periplasmic' if periplasmic else 'cytoplasmic'} concentration at instant tet added (μM)"
         ] = molecule_t0.std()
+        metrics[
+            f"CV in {molecule} {'periplasmic' if periplasmic else 'cytoplasmic'} concentration at instant tet added (μM)"
+        ] = molecule_t0.std() / molecule_t0.mean()
+
+    # Mean, std. dev., CV in outer membrane permeability when tet. first added
+    om_perm = data.loc[data.Time==min_time, "Outer tet. permeability (cm/s)"]
+    metrics["Mean OM perm. when tet. first added (nm/s)"
+        ] = om_perm.mean() * 1e7
+    metrics["Std. dev. OM perm. when tet. first added (nm/s)"
+        ] = om_perm.std() * 1e7
+    metrics["CV OM perm. when tet. first added"
+        ] = om_perm.std() / om_perm.mean()
+
+    # Mean, std. dev., CV in outer membrane permeability 4 hours post-tet.
+    om_perm = data.loc[data.Time==min_time+3600*4, "Outer tet. permeability (cm/s)"]
+    metrics["Mean OM perm. 4 hrs after tet. added (nm/s)"
+        ] = om_perm.mean() * 1e7
+    metrics["Std. dev. OM perm. 4 hrs after tet. added (nm/s)"
+        ] = om_perm.std() * 1e7
+    metrics["CV OM perm. 4 hrs after tet. added"
+        ] = om_perm.std() / om_perm.mean()
+    
+    # Mean, std. dev., CV in periplasmic tetracycline conc. 8 sec after tet. added
+    peri_tet = data.loc[data.Time==min_time+8, "Periplasmic tetracycline"]
+    metrics["Mean periplasmic tetracycline concentration 8 sec. after tet. added (μM)"
+        ] = peri_tet.mean()
+    metrics["Std. dev. periplasmic tetracycline concentration 8 sec. after tet. added (μM)"
+        ] = peri_tet.std()
+    metrics["CV periplasmic tetracycline concentration 8 sec. after tet. added"
+        ] = peri_tet.std() / peri_tet.mean()
+
 
     # Time to reach equilbrium in periplasmic, cytoplasmic tet conc
     epsilon = 1e-7
@@ -172,25 +208,23 @@ def calculate_tet_metrics(data, out="out/figure_3/tet_metrics.txt"):
         + discard
     ) * DT
 
-    # Mean, std. dev. ribosome concentration
-    # 1.5 (2? may line up with a division event, have outlier(s)) minutes after
-    # tet added
-    data_t1_5 = data[data.Time == data.Time.min() + 1.5 * 60]
+    # Mean, std. dev. ribosome concentration 2 minutes after tet added
+    data_t2 = data[data.Time == data.Time.min() + 2 * 60]
 
-    ribosomes_t1_5 = (
+    ribosomes_t2 = (
         (
-            data_t1_5["Active ribosomes"]
-            / ((1 - PERIPLASMIC_VOLUME_FRACTION) * data_t1_5["Volume"])
+            data_t2["Active ribosomes"]
+            / ((1 - PERIPLASMIC_VOLUME_FRACTION) * data_t2["Volume"])
         )
         * COUNTS_PER_FL_TO_NANOMOLAR
         / 10**3
     )
     metrics[
-        "Mean ribosome concentration 1.5 mins after tet added (μM)"
-    ] = ribosomes_t1_5.mean()
+        "Mean ribosome concentration 2 mins after tet added (μM)"
+    ] = ribosomes_t2.mean()
     metrics[
-        "Std. dev. in ribosome concentration 1.5 mins after tet added (μM)"
-    ] = ribosomes_t1_5.std()
+        "Std. dev. in ribosome concentration 2 mins after tet added (μM)"
+    ] = ribosomes_t2.std()
 
     # Mean, std. dev. in micF-ompF duplex concentration
     # 10 minutes after tet added
@@ -238,26 +272,74 @@ def calculate_tet_metrics(data, out="out/figure_3/tet_metrics.txt"):
             f.write(f"{metric} = {value}\n")
 
 
-def calculate_amp_metrics(data, out="out/figure_4/amp_metrics.txt"):
-    pass
+def calculate_amp_metrics(data,
+    out="out/analysis/paper_figures/metrics/amp_metrics.txt"
+):
+    metrics = {}
+
+    min_time = data.Time.min()
+    data_t60 = data[data.Time==min_time+60]
+
+    # Mean, std. dev., CV in AmpC concentration 1 min. post-amp.
+    ampc_data = data_t60["AmpC monomer"] / (data_t60["Volume"] *
+        PERIPLASMIC_VOLUME_FRACTION) * COUNTS_PER_FL_TO_NANOMOLAR / 1000
+    metrics["Mean AmpC when amp. first added (μM)"] = ampc_data.mean()
+    metrics["Std. dev. AmpC when amp. first added (μM)"] = ampc_data.std()
+    metrics["CV AmpC when amp. first added"] = ampc_data.std() / ampc_data.mean()
+
+    # Mean, std. dev., CV in ampicillin 1 min. post-amp.
+    amp_conc = data_t60["Periplasmic ampicillin"]
+    metrics["Mean amp. 1 min after amp. added (μM)"] = amp_conc.mean() * 1000
+    metrics["Std. dev. amp. 1 min after amp. added (μM)"] = amp_conc.std() * 1000
+    metrics["CV amp. 1 min after amp. added"] = amp_conc.std() / amp_conc.mean()
+
+    # Mean, std. dev., CV in PBP1A active frac. 1 min. post-amp.
+    pbp1a = data_t60["Active fraction PBP1a"]
+    metrics["Mean PBP1A active frac. 1 min after amp. added"] = pbp1a.mean()
+    metrics["Std. dev. PBP1A active frac. 1 min after amp. added"] = pbp1a.std()
+    metrics["CV PBP1A active frac. 1 min after amp. added"] = pbp1a.std() / pbp1a.mean()
+
+    # Mean, std. dev., CV in PBP1B active frac. 1 min. post-amp.
+    pbp1b = data_t60["Active fraction PBP1b"]
+    metrics["Mean PBP1B active frac. 1 min after amp. added"] = pbp1b.mean()
+    metrics["Std. dev. PBP1B active frac. 1 min after amp. added"] = pbp1b.std()
+    metrics["CV PBP1B active frac. 1 min after amp. added"] = pbp1b.std() / pbp1b.mean()
+
+    # Mean, std. dev., CV in ampicillin 15 min. post-amp.
+    amp_conc = data.loc[data.Time==min_time+60*15, "Periplasmic ampicillin"]
+    metrics["Mean amp. 15 min after amp. added (μM)"] = amp_conc.mean() * 1000
+    metrics["Std. dev. amp. 15 min after amp. added (μM)"] = amp_conc.std() * 1000
+    metrics["CV amp. 15 min after amp. added"] = amp_conc.std() / amp_conc.mean()
+
+    # Output results
+    with open(out, "w") as f:
+        for metric, value in metrics.items():
+            f.write(f"{metric} = {value}\n")
 
 
 def main():
+    os.makedirs("out/analysis/paper_figures/metrics/", exist_ok=True)
     print("Calculating glucose metrics...")
-    with open(GLUCOSE_DATA, "rb") as f:
-        glc_data = pickle.load(f)
+    glc_data = pd.read_csv(GLUCOSE_DATA,
+        dtype={'Agent ID': str, 'Seed': str}, index_col=0)
+    glc_data['Boundary'] = glc_data['Boundary'].apply(
+        ast.literal_eval)
     calculate_glucose_metrics(glc_data)
     del glc_data
 
     print("Calculating tetracycline metrics...")
-    with open(TET_DATA, "rb") as f:
-        tet_data = pickle.load(f)
+    tet_data = pd.read_csv(TET_DATA,
+        dtype={'Agent ID': str, 'Seed': str}, index_col=0)
+    tet_data['Boundary'] = tet_data['Boundary'].apply(
+        ast.literal_eval)
     calculate_tet_metrics(tet_data)
     del tet_data
 
     print("Calculating ampicillin metrics...")
-    with open(AMP_DATA, "rb") as f:
-        amp_data = pickle.load(f)
+    amp_data = pd.read_csv(AMP_DATA,
+        dtype={'Agent ID': str, 'Seed': str}, index_col=0)
+    amp_data['Boundary'] = amp_data['Boundary'].apply(
+        ast.literal_eval)
     calculate_amp_metrics(amp_data)
     del amp_data
 
