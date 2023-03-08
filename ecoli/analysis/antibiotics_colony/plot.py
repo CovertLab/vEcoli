@@ -110,15 +110,13 @@ def make_figure_s3a(data, metadata):
     doubling_times = []
     grouped_data = data.groupby(['Seed'])
     for condition, condition_data in grouped_data:
-        final_agents = condition_data.loc[
-            condition_data.loc[:, 'Time']==26000, 'Agent ID'].tolist()
+        agent_ids = condition_data.loc[:, 'Agent ID'].unique()
         grouped_agents = condition_data.groupby(['Agent ID'])
         for agent, agent_data in grouped_agents:
             # Exclude cells alive at final time point because they
             # have not completed their cell cycle. Also exclude cells
             # that died prematurely from cell wall defects
-            if (agent not in final_agents) and (
-                agent_data.loc[:, 'Wall cracked'].sum()==0):
+            if agent + '0' in agent_ids:
                 doubling_time = (agent_data.loc[:, 'Time'].max()
                     - agent_data.loc[:, 'Time'].min())
                 doubling_times.append(doubling_time)
@@ -1014,7 +1012,7 @@ def load_exp_data(experiment_ids):
     metadata = {}
     for exp_id in experiment_ids:
         exp_data = pd.read_csv(f'data/colony_data/sim_dfs/{exp_id}.csv',
-            dtype={'Agent ID': str}, index_col=0)
+            dtype={'Agent ID': str, 'Seed': str}, index_col=0)
         if exp_data.loc[:, 'Dry mass'].iloc[-1]==0:
             exp_data = exp_data.iloc[:-1, :]
         data.append(exp_data)
@@ -1079,7 +1077,7 @@ def main():
         '3l': ['Glucose', 'Tetracycline (0.5 mg/L)', 'Tetracycline (1 mg/L)',
             'Tetracycline (1.5 mg/L)', 'Tetracycline (2 mg/L)',
             'Tetracycline (4 mg/L)'],
-        '3d': ['Glucose', 'Tetracycline (0.5 mg/L)', 'Tetracycline (1 mg/L)',
+        '3d_and_3m': ['Glucose', 'Tetracycline (0.5 mg/L)', 'Tetracycline (1 mg/L)',
             'Tetracycline (1.5 mg/L)', 'Tetracycline (2 mg/L)',
             'Tetracycline (4 mg/L)'],
         '3f_h': ['Glucose', 'Tetracycline (1.5 mg/L)'],
@@ -1109,7 +1107,7 @@ def main():
         's5': [10000],
         's3b': [10000],
         '3l': [0],
-        '3d': [0],
+        '3d_and_3m': [0],
         '3f_h': [0],
         '3i_k': [0],
         's6b': [0, 100, 10000],

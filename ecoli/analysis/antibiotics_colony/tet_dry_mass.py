@@ -48,8 +48,10 @@ def make_tet_dry_mass_plot(glc_data, tet_data):
 
 
 def main():
-    glc_data = pd.read_csv(GLC_DATA, dtype={'Agent ID': str}, index_col=0)
-    tet_data = pd.read_csv(TET_DATA, dtype={'Agent ID': str}, index_col=0)
+    glc_data = pd.read_csv(GLC_DATA, dtype={
+        'Agent ID': str, 'Seed': str}, index_col=0)
+    tet_data = pd.read_csv(TET_DATA, dtype={
+        'Agent ID': str, 'Seed': str}, index_col=0)
 
     os.makedirs(OUTDIR, exist_ok=True)
 

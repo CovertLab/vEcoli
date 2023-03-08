@@ -309,7 +309,8 @@ def main():
 
     if args.local:
         # Load data
-        data = pd.read_csv(args.local, dtype={'Agent ID': str}, index_col=0)
+        data = pd.read_csv(args.local, dtype={
+            'Agent ID': str, 'Seed': str}, index_col=0)
         # Convert string to dictionary
         data['Boundary'] = data['Boundary'].apply(ast.literal_eval)
 

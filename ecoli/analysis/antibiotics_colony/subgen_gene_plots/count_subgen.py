@@ -98,5 +98,6 @@ if __name__ == '__main__':
         os.makedirs('data/colony_data/', exist_ok=True)
         data.to_csv(f'data/colony_data/glc_10000_expressome_df.csv')
     else:
-        data = pd.read_csv(args.data, dtype={'Agent ID': str}, index_col=0)
+        data = pd.read_csv(args.data, dtype={
+            'Agent ID': str, 'Seed': str}, index_col=0)
     count_antibiotic_subgen(data)

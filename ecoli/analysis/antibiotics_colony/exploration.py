@@ -126,6 +126,12 @@ def plot_exp_growth_rate(data, metadata, highlight_agent_id):
         bbox_inches='tight')
     plt.close()
 
+    # Print ratio of final instantaneous doubling rate in tet. sim. vs glc. sim.
+    data = restrict_data(data)
+    final_ratios = data.loc[data.Time==26000, 'Doubling rate'] / mean_growth_rate
+    print(f'Mean doubling rate at t=26000 of tet. vs glc. sim.: {final_ratios.mean()*100}%')
+    print(f'Std. dev. doubling rate at t=26000 of tet. vs glc. sim.: {final_ratios.std()*100}%')
+
 
 def make_ete_trees(agent_ids):
     stem = os.path.commonprefix(list(agent_ids))
