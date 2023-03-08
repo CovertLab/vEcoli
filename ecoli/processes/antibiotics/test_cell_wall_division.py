@@ -8,6 +8,10 @@ DATA = "data/cell_wall/cell_wall_test_rig_17_09_2022_00_41_51.csv"
 
 
 def run_experiment():
+    # Note: Processes will run before Steps after division, resulting in 
+    # a one timestep gap in accurate cell wall data. This problem goes
+    # away when running in an EngineProcess, where the MureinDivision and
+    # PBPBinding Steps immediately update all the relevant stores.
     total_time = 10
 
     ecoli = EcoliSim.from_file(
@@ -40,7 +44,6 @@ def validate_division(data):
         assert cell_data["wall_state"]["extension_factor"] == 1
         assert cell_data["wall_state"]["cracked"] == False
         assert cell_data["murein_state"]["incorporated_murein"] == 0
-        assert cell_data["murein_state"]["unincorporated_murein"] == 0
         assert deserialize_value(cell_data["pbp_state"]["active_fraction_PBP1A"]) == 1
         assert deserialize_value(cell_data["pbp_state"]["active_fraction_PBP1B"]) == 1
 

@@ -378,7 +378,24 @@ class TranscriptInitiation(PartitionedProcess):
             'listeners': {
                 'rna_synth_prob': {
                     'rna_synth_prob': np.zeros(self.n_TUs),
-                    'promoter_init_probs': self.promoter_init_probs.copy()}}}
+                    'promoter_init_probs': self.promoter_init_probs.copy()
+                },
+                'ribosome_data': {
+                    'rrn16S_produced': 0,
+                    'rrn23S_produced': 0,
+                    'rrn5S_produced': 0,
+
+                    'rrn16S_init_prob': 0,
+                    'rrn23S_init_prob': 0,
+                    'rrn5S_init_prob': 0,
+                    'total_rna_init': 0
+                },
+                'rnap_data': {
+                    'didInitialize': 0,
+                    'rnaInitEvent': np.zeros(self.n_TUs),
+                }
+            }
+        }
 
         # no synthesis if no chromosome
         if len(states['full_chromosomes']) == 0:

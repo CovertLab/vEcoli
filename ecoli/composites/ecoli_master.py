@@ -245,13 +245,15 @@ class Ecoli(Composer):
                     ('monomer_counts_listener',)]
                 if config['divide']:
                     flow[requester_name].append(('division',))
+                if 'ecoli-shape' in config['processes']:
+                    flow[requester_name].append(('ecoli-shape',))
                 flow['allocator'].append((requester_name,))
                 steps[requester_name] = processes[requester_name]
                 processes_not_steps[evolver_name] = processes[
                     evolver_name]
             elif name == 'division':
                 steps[name] = process
-                flow[name] = [('monomer_counts_listener',)]
+                flow[name] = [('ecoli-mass-listener',)]
             elif process.is_step():
                 steps[name] = process
                 flow[name] = []
@@ -384,7 +386,9 @@ def run_ecoli(
     return sim.query()
 
 
-def ecoli_topology_plot(config={}):
+def ecoli_topology_plot(config=None):
+    if not config:
+        config = {}
     """Make a topology plot of Ecoli"""
     agent_id_config = {'agent_id': '1'}
     ecoli = Ecoli({**agent_id_config, **config})

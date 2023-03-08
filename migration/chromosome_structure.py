@@ -26,11 +26,14 @@ def test_chromosome_structure_migration():
         # Create process, experiment, loading in initial state from file.
         config = load_sim_data.get_chromosome_structure_config()
         chromosome_structure_process = ChromosomeStructure(config)
-        chromosome_structure_process.first_update = False
         chromosome_structure_process.is_step = lambda: False
 
         initial_state = get_state_from_file(
             path=f'data/migration/wcecoli_t{initial_time}_before_layer_1.json')
+
+        # Override first timestep skip
+        initial_state['deriver_skips'] = {
+            'chromosome_structure': False}
 
         # run the process and get an update
         actual_update = run_ecoli_process(

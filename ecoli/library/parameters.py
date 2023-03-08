@@ -53,7 +53,7 @@ PARAMETER_DICT = {
                 0.28e-5 * units.cm / units.sec,
                 "Kojima and Nikaido (2013)",
                 note="This is total, not per-porin, permeability.",
-                latex_source="kojima2013permeation",
+                latex_source="kojima_permeation_2013",
             ),
         },
         "mic": Parameter(
@@ -69,40 +69,40 @@ PARAMETER_DICT = {
             "vmax": Parameter(
                 0.069 * units.nmol / units.mg / units.sec,
                 "Kojima and Nikaido (2013)",
-                latex_source="kojima2013permeation",
+                latex_source="kojima_permeation_2013",
             ),
             "km": Parameter(
                 2.16e-3 * units.mM,
                 "Kojima and Nikaido (2013)",
-                latex_source="kojima2013permeation",
+                latex_source="kojima_permeation_2013",
             ),
             "n": Parameter(
                 1.9 * units.count,
                 "Kojima and Nikaido (2013)",
-                latex_source="kojima2013permeation",
+                latex_source="kojima_permeation_2013",
             ),
         },
         "hydrolysis": {
             "kcat": Parameter(
                 6.5 / units.sec,
                 "Mazzariol, Cornaglia, and Nikaido (2000)",
-                latex_source="mazzariol2000contributions",
+                latex_source="mazzariol_contributions_2000",
             ),
             "km": Parameter(
                 0.9e-3 * units.mM,
                 "Mazzariol, Cornaglia, and Nikaido (2000)",
-                latex_source="mazzariol2000contributions",
+                latex_source="mazzariol_contributions_2000",
             ),
             "n": Parameter(
                 1 * units.count,
                 "Mazzariol, Cornaglia, and Nikaido (2000)",
-                latex_source="mazzariol2000contributions",
+                latex_source="mazzariol_contributions_2000",
             ),
         },
         "pbp_binding": {
-            "K_A": {
-                "PBP1A": Parameter(1.4 * (units.ug / units.mL), "Curtis et al. 1979"),
-                "PBP1B": Parameter(3.9 * (units.ug / units.mL), "Curtis et al. 1979"),
+            "K_A (micromolar)": {
+                "PBP1A": Parameter(0.7 * units.uM, "Kocaoglu and Carlson 2015"),
+                "PBP1B": Parameter(1.27 * units.uM, "Catherwood et al. 2020"),
             }
         },
         "molar_mass": Parameter(349.406 * units.g / units.mol),
@@ -113,7 +113,7 @@ PARAMETER_DICT = {
                 (52.6e-5 + 4.5e-5) * units.cm / units.sec,
                 "Nikaido, Rosenberg, and Foulds (1983)",
                 note="This is total, not per-porin, permeability",
-                latex_source="nikaido1983porin",
+                latex_source="nikaido_porin_1983",
             ),
         },
         # Cell-wide permeability with only one porin present.
@@ -122,12 +122,12 @@ PARAMETER_DICT = {
                 "ompf": Parameter(
                     52.6e-5 * units.cm / units.sec,
                     "Nikaido, Rosenberg, and Foulds (1983)",
-                    latex_source="nikaido1983porin",
+                    latex_source="nikaido_porin_1983",
                 ),
                 "ompc": Parameter(
                     4.5e-5 * units.cm / units.sec,
                     "Nikaido, Rosenberg, and Foulds (1983)",
-                    latex_source="nikaido1983porin",
+                    latex_source="nikaido_porin_1983",
                 ),
             },
         },
@@ -144,17 +144,17 @@ PARAMETER_DICT = {
             "vmax": Parameter(
                 1.82 * units.nmol / units.mg / units.sec,
                 "Nagano and Nikaido (2009)",
-                latex_source="nagano2009kinetic",
+                latex_source="nagano_kinetic_2009",
             ),
             "km": Parameter(
                 0.288 * units.mM,
                 "Nagano and Nikaido (2009)",
-                latex_source="nagano2009kinetic",
+                latex_source="nagano_kinetic_2009",
             ),
             "n": Parameter(
                 1.75 * units.count,
                 "Nagano and Nikaido (2009)",
-                latex_source="nagano2009kinetic",
+                latex_source="nagano_kinetic_2009",
             ),
         },
         "hydrolysis": {
@@ -181,17 +181,17 @@ PARAMETER_DICT = {
             "outer_without_porins": Parameter(
                 0.7e-7 * units.cm / units.sec,
                 "Thanassi, Suh, and Nikaido (1995) p. 1004",
-                latex_source="thanassi1995role",
+                latex_source="thanassi_role_1995",
             ),
             "outer_with_porins": Parameter(
                 1e-5 * units.cm / units.sec,
                 "Thanassi, Suh, and Nikaido (1995) p. 1005",
-                latex_source="thanassi1995role",
+                latex_source="thanassi_role_1995",
             ),
             "inner": Parameter(
                 3e-6 * units.cm / units.sec,
                 "Thanassi, Suh, and Nikaido (1995) p. 1004",
-                latex_source="thanassi1995role",
+                latex_source="thanassi_role_1995",
             ),
         },
         "charge": Parameter(1 * units.count),
@@ -199,21 +199,27 @@ PARAMETER_DICT = {
             "vmax": Parameter(
                 0.2 * units.nmol / units.mg / units.min,
                 "Thanassi, Suh, and Nikaido (1995) p. 1004",
-                latex_source="thanassi1995role",
+                latex_source="thanassi_role_1995",
             ),
             "km": Parameter(
                 200 * units.uM,
                 "Thanassi, Suh, and Nikaido (1995) p. 1004",
-                latex_source="thanassi1995role",
+                latex_source="thanassi_role_1995",
             ),
             "n": Parameter(
                 1 * units.count,
             ),
         },
         "mic": Parameter(
-            2.5 * units.micromolar,
-            "Thanassi, Suh, and Nikaido (1995) p. 1005",
-            latex_source="thanassi1995role",
+            1.5 * units.mg / units.L,
+            """Middle of values reported by Thanassi, Suh, and Nikaido (1995)
+            p. 1005, Cuisa et al. (2022), and Prochnow et al. (2019)""",
+            latex_source="thanassi_role_1995",
+            canonicalize=lambda x: (
+                # Divide by molecular weight from PubChem.
+                x
+                / (444.4 * units.g / units.mol)
+            ).to(units.mM),
         ),
         "mass": Parameter(
             444.4 * units.g / units.mol,
@@ -275,12 +281,8 @@ PARAMETER_DICT = {
             1.4 * units.nm,
             "Turner, R. D., Mesnage, S., Hobbs, J. K., & Foster, S. J. (2018).",
         ),
-        "inter_strand_distance": Parameter(1.2 * units.nm, "Parameter scan"),
+        "inter_strand_distance": Parameter(0.6 * units.nm, "Parameter scan"),
         "max_expansion": Parameter(3, "Koch, A. L., & Woeste, S. (1992)."),
-        "peptidoglycan_unit_area": Parameter(
-            2.5 * units.nm**2,
-            "Wientjes, F. B., Woldringh, C. L., & Nanninga, N. (1991).",
-        ),
     },
     "concs": {
         "initial_pump": Parameter(
@@ -332,7 +334,7 @@ PARAMETER_DICT = {
     "outer_potential": Parameter(
         -0.0215 * units.volt,
         "Sen, Hellman, and Nikaido (1988) p. 1184",
-        latex_source="sen1988porin",
+        latex_source="sen_porin_1988",
         note="Donnan potential"
     ),
     "inner_potential": Parameter(
@@ -400,28 +402,6 @@ DERIVATION_RULES = {
                 / params.get(("shape", "average_outer_area"))
             )
         ),
-    ),
-    (
-        "ampicillin",
-        "pbp_binding",
-        "K_A (micromolar)",
-        "PBP1A",
-    ): lambda params: Parameter(
-        (
-            params.get(("ampicillin", "pbp_binding", "K_A", "PBP1A"))
-            / params.get(("ampicillin", "molar_mass"))
-        ).to("micromolar")
-    ),
-    (
-        "ampicillin",
-        "pbp_binding",
-        "K_A (micromolar)",
-        "PBP1B",
-    ): lambda params: Parameter(
-        (
-            params.get(("ampicillin", "pbp_binding", "K_A", "PBP1B"))
-            / params.get(("ampicillin", "molar_mass"))
-        ).to("micromolar")
     ),
     ("cephaloridine", "efflux", "kcat"): lambda params: Parameter(
         (
@@ -530,24 +510,26 @@ TableRow = namedtuple("TableRow", ["param_name", "param", "units", "description"
 TABLES = {
     "Trans-membrane diffusion parameters": (
         TableRow(
-            "P_{cep,outer}",
-            param_store.get_parameter(("cephaloridine", "permeability", "outer")),
-            "cm/sec",
-            "Outer membrane permeability to cephaloridine.",
-        ),
-        TableRow(
             "P_{amp,outer}",
             param_store.get_parameter(("ampicillin", "permeability", "outer")),
             "cm/sec",
             "Outer membrane permeability to ampicillin.",
         ),
         TableRow(
-            "P_{tet,outer}",
+            "P_{tet,outer,np}",
             param_store.get_parameter(
                 ("tetracycline", "permeability", "outer_without_porins")
             ),
             "cm/sec",
             "Outer membrane permeability to tetracycline without porins.",
+        ),
+        TableRow(
+            "P_{tet,outer,p}",
+            param_store.get_parameter(
+                ("tetracycline", "permeability", "outer_with_porins")
+            ),
+            "cm/sec",
+            "Outer membrane permeability to tetracycline with porins.",
         ),
         TableRow(
             "P_{tet,inner}",
@@ -600,24 +582,6 @@ TABLES = {
             "Hill coefficient for ampicillin export.",
         ),
         TableRow(
-            "v_{max,e,cep}",
-            param_store.get_parameter(("cephaloridine", "efflux", "vmax")),
-            "nmol/mg/sec",
-            "Maximum rate of cephaloridine export.",
-        ),
-        TableRow(
-            "K_{M,e,cep}",
-            param_store.get_parameter(("cephaloridine", "efflux", "km")),
-            "mM",
-            "Michaelis constant for cephaloridine export.",
-        ),
-        TableRow(
-            "n_{e,cep}",
-            param_store.get_parameter(("cephaloridine", "efflux", "n")),
-            "",
-            "Hill coefficient for cephaloridine export.",
-        ),
-        TableRow(
             "v_{max,e,tet}",
             param_store.get_parameter(("tetracycline", "efflux", "vmax")),
             "nmol/mg/sec",
@@ -647,31 +611,13 @@ TABLES = {
             "K_{M,h,amp}",
             param_store.get_parameter(("ampicillin", "hydrolysis", "km")),
             "mM",
-            "Michaelis constant for ampicillin hydrolysis.",
+            "Michaelis const. for ampicillin hydrolysis.",
         ),
         TableRow(
             "n_{h,amp}",
             param_store.get_parameter(("ampicillin", "hydrolysis", "n")),
             "",
             "Hill coefficient for ampicillin hydrolysis.",
-        ),
-        TableRow(
-            "k_{cat,h,cep}",
-            param_store.get_parameter(("cephaloridine", "hydrolysis", "kcat")),
-            "1/s",
-            "Rate constant for cephaloridine hydrolysis.",
-        ),
-        TableRow(
-            "K_{M,h,cep}",
-            param_store.get_parameter(("cephaloridine", "hydrolysis", "km")),
-            "mM",
-            "Michaelis constant for cephaloridine hydrolysis.",
-        ),
-        TableRow(
-            "n_{h,cep}",
-            param_store.get_parameter(("cephaloridine", "hydrolysis", "n")),
-            "",
-            "Hill coefficient for cephaloridine hydrolysis.",
         ),
     ),
 }

@@ -37,7 +37,6 @@ def test_allocator_migration():
         # Create process, experiment, loading in initial state from file.
         config = load_sim_data.get_allocator_config(process_names=process_names)
         allocator_process = Allocator(config)
-        allocator_process.first_update = False
         allocator_process.is_step = lambda: False
 
         initial_state = get_state_from_file(

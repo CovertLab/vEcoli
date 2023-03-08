@@ -62,12 +62,12 @@ def test_initial_state_overrides():
     sim_default.build_ecoli()
     sim.build_ecoli()
 
-    assert sim.initial_state["bulk"]["CPD-12261[p]"] == 450000
+    assert sim.initial_state["bulk"]["CPD-12261[p]"] == 558735
     assert "murein_state" in sim.initial_state and sim.initial_state[
         "murein_state"
     ] == {
         "shadow_murein": 0,
-        "unincorporated_murein": 1800000,
+        "unincorporated_murein": 2234940,
         "incorporated_murein": 0,
     }
     assert sim_default.initial_state["environment"] == sim.initial_state["environment"]

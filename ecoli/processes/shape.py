@@ -46,11 +46,11 @@ def surface_area_from_length(length, width):
     """
     get surface area from length and width, using 3D capsule geometry
 
-    :math:`SA = 3*PI*r^2 + 2*PI*r*a`
+    :math:`SA = 4*PI*r^2 + 2*PI*r*a`
     """
     radius = width / 2
     cylinder_length = length - width
-    surface_area = 3 * PI * radius**2 + 2 * PI * radius * cylinder_length
+    surface_area = 4 * PI * radius**2 + 2 * PI * radius * cylinder_length
     return surface_area
 
 
@@ -221,8 +221,8 @@ class Shape(Step):
     def next_update(self, timestep, states):
         for port in (
                 'cell_global', 'periplasm_global', 'cytoplasm_global'):
-            for variable in states[port].values():
-                assert isinstance(variable, Quantity)
+            for variable, value in states[port].items():
+                assert isinstance(value, Quantity), f"{variable}={value} is not a Quantity"
 
         width = states['cell_global']['width']
         cell_volume = states['listener_cell_volume'] * units.fL

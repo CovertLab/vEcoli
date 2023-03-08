@@ -27,7 +27,7 @@ class Aggregator(Step):
         variables = []
         for path, func in zip(self.paths, self.funcs):
             assoc_path(schema, path, {'_default': {}})
-            variable = f'{path[-1]}.{func.__name__}'
+            variable = f'{path[-1]}_{func.__name__}'
             assert variable not in variables
             variables.append(variable)
         assert 'aggregated' not in schema
@@ -45,7 +45,7 @@ class Aggregator(Step):
     def next_update(self, timestep, states):
         counts = {}
         for path, func in zip(self.paths, self.funcs):
-            variable = f'{path[-1]}.{func.__name__}'
+            variable = f'{path[-1]}_{func.__name__}'
             assert variable not in counts
             counts[variable] = func(get_in(states, path))
             assert counts[variable] is not None
@@ -89,19 +89,19 @@ def test_aggregator():
             },
         },
         'aggregated': {
-            'b.len_squared': {
+            'b_len_squared': {
                 '_default': 0,
                 '_divider': 'zero',
                 '_updater': 'set',
                 '_emit': True,
             },
-            'c.len_plus_one': {
+            'c_len_plus_one': {
                 '_default': 0,
                 '_divider': 'zero',
                 '_updater': 'set',
                 '_emit': True,
             },
-            'b.len_plus_one': {
+            'b_len_plus_one': {
                 '_default': 0,
                 '_divider': 'zero',
                 '_updater': 'set',
@@ -113,9 +113,9 @@ def test_aggregator():
     update = proc.next_update(0, state)
     expected_update = {
         'aggregated': {
-            'b.len_squared': 9,
-            'c.len_plus_one': 1,
-            'b.len_plus_one': 4,
+            'b_len_squared': 9,
+            'c_len_plus_one': 1,
+            'b_len_plus_one': 4,
         }
     }
     assert update == expected_update

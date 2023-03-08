@@ -1,0 +1,14 @@
+{
+    "inherit_from": ["lysis.json"],
+
+    "add_processes": ["ecoli-lysis-initiation"],
+    "topology": {
+        "ecoli-lysis-initiation": {
+            "cracked": ["wall_state", "cracked"],
+            "lysis_trigger": ["burst"]
+        }
+      },
+      "process_configs": {
+        "ecoli-lysis-initiation": {}
+      }
+}

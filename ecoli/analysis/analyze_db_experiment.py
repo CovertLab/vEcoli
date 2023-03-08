@@ -23,7 +23,9 @@ ANALYSIS = [
 ]
 
 
-def make_plots(data, experiment_id='ecoli', sim_config={}):
+def make_plots(data, experiment_id='ecoli', sim_config=None):
+    if not sim_config:
+        sim_config = {}
     out_dir = os.path.join(OUT_DIR, str(experiment_id))
 
     with open(SIM_DATA_PATH, 'rb') as sim_data_file:
