@@ -7,9 +7,10 @@ The __init__ file also constructs a dictionary of all columns in the saved
 CSV files (and gives their paths in the simulation store hierarchy).
 
 Refer to these other scripts for the code to create remaining figures:
-    - data/subgen_gene_plots/generate_plots.py: counts for Fig. 1B
-        - Run with "--data data/colony_data/glc_10000_expressome.csv"
-    - ecoli/analysis/antibiotics_colony/make_fig_1b.py: Fig. 1B
+    - ecoli/analysis/antibiotics_colony/subgen_gene_plots/
+        - count_subgen.py: counts for Fig. 1B
+            - Run with "--data data/colony_data/glc_10000_expressome.csv"
+        - make_fig_1b.py: create Fig. 1B
     - ecoli/analysis/antibiotics_colony/snapshot_and_hist_plot.py: Fig. 2E-F
         - Run with "--local data/colony_data/2022-12-08_00-35-28_562633+0000.csv"
     - ecoli/analysis/antibiotics_colony/tet_dry_mass.py: Fig. 3E
