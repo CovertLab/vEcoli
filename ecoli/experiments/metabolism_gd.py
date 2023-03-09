@@ -125,7 +125,7 @@ def run_ecoli_with_metabolism_gd(
         progress_bar=False,
         log_updates=False,
         emitter='timeseries',
-        name='balance',
+        name='balance-fix',
         raw_output=False,
         save=False,
         save_times=None,
