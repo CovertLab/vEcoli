@@ -335,21 +335,21 @@ class Metabolism(Step):
         maintenance_target = maintenance_ngam + maintenance_gam + maintenance_gam_active
 
 
-        objective_counts = {key: int((self.model.homeostatic_objective[key] / counts_to_molar).asNumber())
+        objective_counts = {str(key): int((self.model.homeostatic_objective[key] / counts_to_molar).asNumber())
                             - int(states['metabolites'][key]) for key in fba.getHomeostaticTargetMolecules()}
 
-        kinetic_targets = {self.model.kinetics_constrained_reactions[i]: int((targets[i] / (counts_to_molar*timestep)).asNumber())
+        kinetic_targets = {str(self.model.kinetics_constrained_reactions[i]): int((targets[i] / (counts_to_molar*timestep)).asNumber())
                            for i in range(len(targets))}
 
         target_kinetic_bounds = {
-            self.model.kinetics_constrained_reactions[i]: (int((lower_targets[i] / (counts_to_molar*timestep)).asNumber()),
+            str(self.model.kinetics_constrained_reactions[i]): (int((lower_targets[i] / (counts_to_molar*timestep)).asNumber()),
                                                            int((upper_targets[i] / (counts_to_molar*timestep)).asNumber()))
             for i in range(len(targets))}
 
         fluxes = fba.getReactionFluxes() / timestep
         names = fba.getReactionIDs()
 
-        flux_dict = {names[i]: int((fluxes[i] / (counts_to_molar*timestep)).asNumber()) for i in range(len(names))}
+        flux_dict = {str(names[i]): int((fluxes[i] / (counts_to_molar*timestep)).asNumber()) for i in range(len(names))}
 
         update = {
             'metabolites': {
@@ -723,11 +723,11 @@ class FluxBalanceAnalysisModel(object):
 
         # Set hard upper bounds constraints based on enzyme presence
         # (infinite upper bound) or absence (upper bound of zero)
-        reaction_bounds = np.inf * np.ones(len(self.reactions_with_catalyst))
-        no_rxn_mask = self.catalysis_matrix.dot(catalyst_counts) == 0
-        reaction_bounds[no_rxn_mask] = 0
-        self.fba.setReactionFluxBounds(self.reactions_with_catalyst,
-                                       upperBounds=reaction_bounds, raiseForReversible=False)
+        # reaction_bounds = np.inf * np.ones(len(self.reactions_with_catalyst))
+        # no_rxn_mask = self.catalysis_matrix.dot(catalyst_counts) == 0
+        # reaction_bounds[no_rxn_mask] = 0
+        # self.fba.setReactionFluxBounds(self.reactions_with_catalyst,
+        #                                upperBounds=reaction_bounds, raiseForReversible=False)
 
     def set_reaction_targets(self, kinetic_enzyme_counts,
                              kinetic_substrate_counts, counts_to_molar, time_step):
