@@ -35,7 +35,7 @@ TOPOLOGY = {
         "listeners": ("listeners",),
         "active_ribosome": ("unique", "active_ribosome"),
         "RNA": ("unique", "RNA"),
-        "subunits": ("bulk",)
+        # "subunits": ("bulk",)
 }
 topology_registry.register(NAME, TOPOLOGY)
 
@@ -132,9 +132,10 @@ class PolypeptideInitiation(PartitionedProcess):
             'RNA': dict_value_schema('RNAs'),
             'subunits': bulk_schema([
                 self.ribosome30S,
-                self.ribosome50S])}
+                self.ribosome50S])}#find their indices
 
     def calculate_request(self, timestep, states):
+        #pull out the two rows for subunit ids, states['bulk']
         current_media_id = states['environment']['media_id']
 
         requests = {'subunits': states['subunits']}
