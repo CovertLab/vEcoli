@@ -67,7 +67,7 @@ class MassListener(Deriver):
 
         # molecule indexes and masses
         self.bulk_ids = self.parameters['bulk_ids']
-        self.bulk_masses = self.parameters['bulk_masses']
+        self.bulk_masses = self.parameters['bulk_masses'] #do we need to have this since submasses is in array?
         self.unique_ids = self.parameters['unique_ids']
         self.unique_masses = self.parameters['unique_masses']
 

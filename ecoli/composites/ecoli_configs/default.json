@@ -56,9 +56,10 @@
         "ecoli-chromosome-replication",
         "ecoli-mass-listener",
         "mRNA_counts_listener",
-        "monomer_counts_listener"
+        "monomer_counts_listener",
+        "clock"
     ],
-    "process_configs": {},
+    "process_configs": {"clock": {}},
     "topology": {},
     "flow": {
         "ecoli-metabolism": [["ecoli-chromosome-structure"]],

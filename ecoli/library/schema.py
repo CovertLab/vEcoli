@@ -212,6 +212,81 @@ def bulk_schema(
         str(element): schema
         for element in elements}
 
+def numpy_schema(name):
+    if name == 'bulk':
+        return {
+            '_default': [],
+            '_updater': bulk_numpy_updater,
+            '_emit': True
+        }
+    else:
+        return {
+            '_default': [],
+            '_updater': unique_numpy_updater,
+            '_emit': True
+        }
+
+def bulk_numpy_updater(current, update):
+    result = current
+    idx = update[0] #list of indices to update
+    value = update[1] #list of values to add
+    result['count'][idx] += value
+    return result
+
+def unique_numpy_updater(current, update):
+    #unique update contains a dictionary with keys of all sets and then two subdictionaries for add and delete
+    def get_free_indices(result, n_objects):
+        free_indices = np.where(result['_entryState'] == 0)[0]
+        n_free_indices = free_indices.size
+
+        if n_free_indices < n_objects:
+            old_size = result.size
+            n_new_entries = max(
+                np.int64(old_size * 0.1),
+                n_objects - n_free_indices
+                )
+
+            result = np.append(
+                result,
+                np.zeros(int(n_new_entries), dtype=result.dtype)
+            )
+
+            free_indices = np.concatenate((
+                free_indices,
+                old_size + np.arange(n_new_entries)
+            ))
+
+        return result, free_indices[:n_objects]
+
+    result = current
+    current_time = current['time'][0]
+    update_time = update['time']
+
+    if current_time != update_time:
+        result['time'][:] = update_time # replace to updated time
+        result['_cached_entryState'][:] = current['_entryState'][:] # reset cached entryState
+
+    if 'set' in update.keys():
+        set_array = update['set']
+        set_array = set_array[set_array['_cached_entryState'] > 0]
+        result['cached_entryState' == 1] = set_array[set_array['cached_entryState'] == 1]
+
+    if 'delete' in update.keys():
+        delete_indices = update['delete']
+        result[delete_indices][:-3] = np.zeros(1, dtype=result.dtype) #sets everything but delete, cached and original to 0
+        result[delete_indices]['cached_entryState'] = 2
+
+    if 'add' in update.keys():
+        add_array = update['add'] #structured as numpy array where update is per row
+        result, obj_indices = get_free_indices(result, add_array.shape[0])
+        for col in add_array.keys(): #loop through column of add array, then index to update
+            for i in range(len(add_array[col])):
+                result[obj_indices[i]][col] = list(add_array[col].values())[i]
+        result[obj_indices]['_entryState'] = 1 # set entry state to 1
+
+    return result
+
+
 def mw_schema(mass_dict):
     return {
         element: {

@@ -424,7 +424,6 @@ class EcoliSim:
                 config)
         else:
             ecoli_composer = ecoli.composites.ecoli_nonpartition.Ecoli(config)
-
         # set path at which agent is initialized
         path = tuple()
         if self.divide or self.spatial_environment:

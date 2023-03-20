@@ -41,6 +41,7 @@ from ecoli.processes.chemostat import Chemostat
 from ecoli.processes.listeners.aggregator import Aggregator
 from ecoli.processes.rna_interference import RnaInterference
 from ecoli.processes.antibiotics.conc_to_counts import ConcToCounts
+from vivarium.processes.clock import Clock
 from ecoli.processes.antibiotics.murein_division import MureinDivision
 from ecoli.processes.antibiotics.environment_glucose_limit import (
     EnvironmentGlucoseLimit)
@@ -100,6 +101,7 @@ process_registry.register(CellWall.name, CellWall)
 process_registry.register(PBPBinding.name, PBPBinding)
 process_registry.register(ConcToCounts.name, ConcToCounts)
 process_registry.register(RnaInterference.name, RnaInterference)
+process_registry.register(Clock.name, Clock)
 process_registry.register(MureinDivision.name, MureinDivision)
 process_registry.register(
     EnvironmentGlucoseLimit.name, EnvironmentGlucoseLimit)
