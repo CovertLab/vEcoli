@@ -431,13 +431,10 @@ class Ecoli(Composer):
         # Do not keep an unnecessary reference to these
         self.processes_and_steps = None
 
+        # Add clock process to facilitate unique molecule updates
         topology['clock'] = {
             'global_time': ('global_time',)
         }
-        #
-        # for process in topology.values():
-        #     process['global_time'] = ('global_time',)
-
 
         return topology
 

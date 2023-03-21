@@ -194,6 +194,9 @@ def arrays_to(n, attrs):
 
     return ds
 
+def counts(states, idx):
+    # idx is an integer array so advancing indexing applies (implicit copy)
+    return states['count'][idx]
 
 def bulk_schema(
         elements,
@@ -226,63 +229,106 @@ def numpy_schema(name):
             '_emit': True
         }
 
+def bulk_name_to_idx(names, bulk_names):
+    # Convert from string names to indices in bulk array
+    if isinstance(names, np.ndarray):
+        # Big brain solution from https://stackoverflow.com/a/32191125
+        sorter = np.argsort(bulk_names)
+        return sorter[np.searchsorted(bulk_names, names, sorter=sorter)]
+    else:
+        return np.where(bulk_names == names)[0][0]
+
 def bulk_numpy_updater(current, update):
+    # Bulk updates are lists of tuples, where first value
+    # in each tuple is an array of indices to update and
+    # second value is array of updates to apply
     result = current
-    idx = update[0] #list of indices to update
-    value = update[1] #list of values to add
-    result['count'][idx] += value
+    for (idx, value) in update:
+        result['count'][idx] += value
     return result
 
-def unique_numpy_updater(current, update):
-    #unique update contains a dictionary with keys of all sets and then two subdictionaries for add and delete
-    def get_free_indices(result, n_objects):
-        free_indices = np.where(result['_entryState'] == 0)[0]
-        n_free_indices = free_indices.size
+def attrs(states, attributes):
+    mol_mask = states['_entryState']
+    # mol_mask is a boolean array so advanced indexing applies (implicit copy)
+    return (states[attribute][mol_mask] for attribute in attributes)
 
-        if n_free_indices < n_objects:
-            old_size = result.size
-            n_new_entries = max(
-                np.int64(old_size * 0.1),
-                n_objects - n_free_indices
-                )
+def get_free_indices(result, n_objects):
+    # Find inactive rows for new molecules and expand array
+    # by at least 10% to create more rows when necessary
+    free_indices = np.where(result['_entryState'] == 0)[0]
+    n_free_indices = free_indices.size
 
-            result = np.append(
-                result,
-                np.zeros(int(n_new_entries), dtype=result.dtype)
+    if n_free_indices < n_objects:
+        old_size = result.size
+        n_new_entries = max(
+            np.int64(old_size * 0.1),
+            n_objects - n_free_indices
             )
 
-            free_indices = np.concatenate((
-                free_indices,
-                old_size + np.arange(n_new_entries)
-            ))
+        result = np.append(
+            result,
+            np.zeros(int(n_new_entries), dtype=result.dtype)
+        )
 
-        return result, free_indices[:n_objects]
+        free_indices = np.concatenate((
+            free_indices,
+            old_size + np.arange(n_new_entries)
+        ))
 
+    return result, free_indices[:n_objects]
+
+def unique_numpy_updater(current, update):
     result = current
     current_time = current['time'][0]
     update_time = update['time']
 
+    # If new timestep, update time and _cached_entryState
     if current_time != update_time:
-        result['time'][:] = update_time # replace to updated time
-        result['_cached_entryState'][:] = current['_entryState'][:] # reset cached entryState
+        result['time'] = update_time
+        result['_cached_entryState'] = current['_entryState']
+    
+    cached_state = current['_cached_entryState']
 
     if 'set' in update.keys():
-        set_array = update['set']
-        set_array = set_array[set_array['_cached_entryState'] > 0]
-        result['cached_entryState' == 1] = set_array[set_array['cached_entryState'] == 1]
+        # Set updates are dictionaries where each key is a column and
+        # each value is an array. They are designed to apply to all rows
+        # (molecules) that were active at the beginning of a timestep (e.g.
+        # length of update arrays == # of rows where _cached_entryState > 0)
+        set_update = update['set']
+        # Skip updates for rows with molecules that were initially active
+        # (cached_state > 0) but deleted in same timestep (cached_state == 2)
+        safe_rows = (cached_state[cached_state > 0] == 1)
+        # Only apply updates to rows that were initially and still are active
+        initial_still_active = (cached_state == 1)
+        for col, col_values in set_update:
+            result[col][initial_still_active] = col_values[safe_rows]
 
     if 'delete' in update.keys():
+        # Delete updates are arrays of row indices to delete in unique
+        # molecule array after filtering to only include initially active rows
         delete_indices = update['delete']
-        result[delete_indices][:-3] = np.zeros(1, dtype=result.dtype) #sets everything but delete, cached and original to 0
-        result[delete_indices]['cached_entryState'] = 2
+        # Convert from indices for filtered (active) array to indices for
+        # complete (active + inactive) internal array
+        initially_active_idx = np.nonzero(cached_state > 0)[0]
+        rows_to_delete = initially_active_idx[delete_indices]
+        # Only delete rows that were not previously deleted in same timestep
+        rows_to_delete = rows_to_delete[cached_state[rows_to_delete]==1]
+        result['_entryState'][rows_to_delete] = 0
+        # Ensure that additional updates in same timestep skip deleted rows
+        result['_cached_entryState'][rows_to_delete] = 2
 
     if 'add' in update.keys():
-        add_array = update['add'] #structured as numpy array where update is per row
-        result, obj_indices = get_free_indices(result, add_array.shape[0])
-        for col in add_array.keys(): #loop through column of add array, then index to update
-            for i in range(len(add_array[col])):
-                result[obj_indices[i]][col] = list(add_array[col].values())[i]
-        result[obj_indices]['_entryState'] = 1 # set entry state to 1
+        # Add updates are dictionaries where each key is a column and
+        # each value is an array. The nth element of each array is the value
+        # for the corresponding column of the nth new molecule to be added.
+        add_update = update['add']
+        # All arrays have same length so can get length of first to figure
+        # out how many new unique molecules are being added
+        n_new_molecules = next(iter(add_update.values())).shape[0]
+        result, free_indices = get_free_indices(result, n_new_molecules)
+        for col, col_values in add_update.items():
+            result[col][free_indices] = col_values
+        result['_entryState'][free_indices] = 1
 
     return result
 
