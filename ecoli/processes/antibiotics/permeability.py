@@ -7,6 +7,7 @@ from vivarium.library.units import units
 from vivarium.plots.simulation_output import plot_variables
 from vivarium.processes.timeline import TimelineProcess
 
+# TODO: Recompute average surface area with corrected formula 
 # To calculate SA_AVERAGE, we calculated the average surface area of the model up until division.
 SA_AVERAGE = 6.22200939450696 * units.micron ** 2
 # To calculate CEPH_OMPC_CON_PERM and CEPH_OMPF_CON_PERM, we calculated the average counts of ompC and ompF

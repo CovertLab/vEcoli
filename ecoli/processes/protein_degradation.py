@@ -10,14 +10,13 @@ TODO:
  - protein complexes
  - add protease functionality
 """
-import numpy
 import numpy as np
 
 from vivarium.core.composition import simulate_process
 
 from ecoli.library.data_predicates import (
     monotonically_increasing, monotonically_decreasing, all_nonnegative)
-from ecoli.library.schema import array_to, array_from, numpy_schema
+from ecoli.library.schema import numpy_schema, counts, bulk_name_to_idx
 
 from ecoli.processes.registries import topology_registry
 from ecoli.processes.partition import PartitionedProcess
@@ -81,74 +80,50 @@ class ProteinDegradation(PartitionedProcess):
             self.degradation_matrix[self.amino_acid_indexes, :], axis=0) - 1)
 
     def ports_schema(self):
-        return {'bulk': numpy_schema('bulk')} #right now a dictionary, now need to connect to entire bulk store
-    #replace them both with a single port called bulk, and have entire bulk array and want to pull out specific protein counts
+        return {'bulk': numpy_schema('bulk')}
 
     def calculate_request(self, timestep, states):
-        #have to do water id if it's not a string then do.. self.water_id = bulk_array idx
-        # Determine how many proteins to degrade based on the degradation rates and counts of each protein
+        # In first timestep, convert all strings to indices
         if isinstance(self.water_id, str):
-            self.water_id = np.where(states[
-                'bulk']['id'] == self.water_id)[0][0]
-        if isinstance(self.protein_ids, numpy.ndarray):
-            protein_list = self.protein_ids.tolist()
-            self.protein_ids = []
-            for protein in protein_list:
-                self.protein_ids.append(np.where(states['bulk']['id'] == protein)[0][0])
+            self.water_id = bulk_name_to_idx(self.water_id, states['bulk']['id'])
+            self.protein_ids = bulk_name_to_idx(
+                self.protein_ids, states['bulk']['id'])
+            self.metabolite_ids = bulk_name_to_idx(
+                self.metabolite_ids, states['bulk']['id'])
 
-        #protein_data = array_from(states['proteins']) #get the rows for protein ids and want to make sure that the proteins are in order!
-        protein_data = states['bulk'][self.protein_ids]['count'] #protein_ids is currently a list of row numbers, which one to index?
+        protein_data = counts(states['bulk'], self.protein_ids)
+        # Determine how many proteins to degrade based on the degradation rates
+        # and counts of each protein
         nProteinsToDegrade = np.fmin(
-            self.random_state.poisson(self._proteinDegRates(timestep) * protein_data),
+            self.random_state.poisson(
+                self._proteinDegRates(timestep) * protein_data),
             protein_data
             )
 
         # Determine the number of hydrolysis reactions
         # TODO(vivarium): Missing asNumber() and other unit-related things
-        nReactions = np.dot(self.protein_lengths, nProteinsToDegrade) #protein_lengths already numpy array
+        nReactions = np.dot(self.protein_lengths, nProteinsToDegrade)
 
         # Determine the amount of water required to degrade the selected proteins
         # Assuming one N-1 H2O is required per peptide chain length N
-        # requests = {'metabolites': {self.water_id: nReactions - np.sum(nProteinsToDegrade)},
-        #             'proteins': (array_to(states['proteins'], nProteinsToDegrade))}
-        #switch to just giving indices array and update array to pass in indexes
-        index_update = self.protein_ids.append(self.water_id)
-        parameter_update = nProteinsToDegrade.tolist().append(nReactions - np.sum(nProteinsToDegrade))
-        requests = {'bulk': tuple((index_update, parameter_update))}
+        requests = {'bulk': [
+            (self.protein_ids, nProteinsToDegrade),
+            (self.water_id, nReactions - np.sum(nProteinsToDegrade))]}
         return requests
 
     def evolve_state(self, timestep, states):
-        # Degrade selected proteins, release amino acids from those proteins back into the cell, 
-        # and consume H_2O that is required for the degradation process
-        if isinstance(self.protein_ids, numpy.ndarray):
-            protein_list = self.protein_ids.tolist()
-            self.protein_ids = []
-            for protein in protein_list:
-                self.protein_ids.append(np.where(states['bulk']['id'] == protein)[0][0])
-        if isinstance(self.metabolite_ids, numpy.ndarray):
-            metabolite_list = self.metabolite_ids.tolist()
-            self.metabolite_ids = []
-            for metabolite in metabolite_list:
-                self.metabolite_ids.append(np.where(states['bulk']['id'] == metabolite)[0][0])
-        #allocated_proteins = array_from(states['proteins'])
-        allocated_proteins = states['bulk'][self.protein_ids]['count']
+        # Degrade selected proteins, release amino acids from those proteins
+        # back into the cell, and consume H_2O that is required for the
+        # degradation process
+        allocated_proteins = counts(states['bulk'], self.protein_ids)
         metabolites_delta = np.dot(
             self.degradation_matrix,
             allocated_proteins).astype(int)
 
-        index_update = self.metabolite_ids + self.protein_ids
-        value_update = metabolites_delta.tolist() + (-allocated_proteins).tolist()
-
-
-        update = {'bulk': tuple((index_update, value_update))}
-
-        # update = {
-        #     'metabolites': {
-        #         metabolite: metabolites_delta[index]
-        #         for index, metabolite in enumerate(self.metabolite_ids)},
-        #     'proteins': {
-        #         protein: -allocated_proteins[index]
-        #         for index, protein in enumerate(states['proteins'])}}
+        update = {'bulk': [
+            (self.metabolite_ids, metabolites_delta),
+            (self.protein_ids, -allocated_proteins)
+        ]}
 
         return update
 
