@@ -15,7 +15,7 @@ from vivarium.core.process import Step
 
 from ecoli.processes.registries import topology_registry
 from ecoli.library.schema import (
-    add_elements, arrays_from, bulk_schema, create_unique_indexes,
+  arrays_from, bulk_schema, create_unique_indexes,
     arrays_to, array_to, dict_value_schema, listener_schema, numpy_schema)
 from wholecell.utils.polymerize import buildSequences
 
@@ -34,7 +34,7 @@ TOPOLOGY = {
     "promoters": ("unique", "promoter"),
     "DnaA_boxes": ("unique", "DnaA_box"),
     "evolvers_ran": ("evolvers_ran",),
-    "global_time": ("global_time",)
+    "global_time": ("global_time",),
     # TODO(vivarium): Only include if superhelical density flag is passed
     # "chromosomal_segments": ("unique", "chromosomal_segment")
     "first_update": ("deriver_skips", "chromosome_structure",)
@@ -150,7 +150,7 @@ class ChromosomeStructure(Step):
                 '_default': True,
                 '_updater': 'set',
                 '_divider': {'divider': 'set_value', 'config': {'value': True}},
-            }
+            },
             'global_time': {'_default': 0}
         }
 
