@@ -10,6 +10,7 @@ import numpy as np
 from vivarium.core.process import Deriver
 
 from ecoli.processes.registries import topology_registry
+from ecoli.library.schema import counts, numpy_schema, bulk_name_to_idx
 
 # Register default topology for this process, associating it with process name
 NAME = 'allocator'
@@ -56,23 +57,16 @@ class Allocator(Deriver):
 
     def ports_schema(self):
         ports = {
-            'bulk': {
-                str(molecule): {'_default': 0}
-                for molecule in self.moleculeNames},
+            'bulk': numpy_schema('bulk'),
             'request': {
                 process: {
-                    'bulk': {
-                        '*': {'_default': 0, '_updater': 'set'}}}
+                    'bulk': {'_default': [], '_emit': False,
+                        '_divider': 'null', '_updater': 'set'}}
                 for process in self.processNames},
             'allocate': {
                 process: {
-                    'bulk': {
-                        '*': {
-                            '_default': 0,
-                            '_updater': 'set',
-                            '_divider': 'null',
-                        },
-                    },
+                    'bulk': {'_default': [], '_emit': False,
+                        '_divider': 'null', '_updater': 'set'}
                 }
                 for process in self.processNames},
             'evolvers_ran': {
@@ -85,15 +79,16 @@ class Allocator(Deriver):
         return states['evolvers_ran']
 
     def next_update(self, timestep, states):
-        total_counts = np.array([states['bulk'][molecule] for
-                                 molecule in self.mol_idx_to_name.values()])
+        if isinstance(self.moleculeNames[0], str):
+            self.moleculeNames = bulk_name_to_idx(self.moleculeNames)
+        total_counts = counts(states['bulk'], self.moleculeNames)
         original_totals = total_counts.copy()
-        counts_requested = np.zeros((self.n_molecules, self.n_processes), dtype=int)
+        counts_requested = np.zeros((self.n_molecules, self.n_processes),
+            dtype=int)
         for process in states['request']:
             proc_idx = self.proc_name_to_idx[process]
-            for molecule, count in states['request'][process]['bulk'].items():
-                mol_idx = self.mol_name_to_idx[molecule]
-                counts_requested[mol_idx][proc_idx] += count
+            counts_requested[:, proc_idx] = counts(
+                states['request'][process]['bulk'], self.moleculeNames)
 
         if ASSERT_POSITIVE_COUNTS and np.any(counts_requested < 0):
             raise NegativeCountsError(
@@ -152,16 +147,12 @@ class Allocator(Deriver):
         update = {
             'request': {
                 process: {
-                    'bulk': {
-                        molecule: 0
-                        for molecule in states['request'][process]['bulk']}}
+                    'bulk': np.zeros_like(original_totals)}
                 for process in states['request']},
             'allocate': {
                 process: {
-                    'bulk': {molecule: partitioned_counts[
-                        self.mol_name_to_idx[molecule],
-                        self.proc_name_to_idx[process]]
-                    for molecule in states['request'][process]['bulk']}}
+                    'bulk': partitioned_counts[
+                        :, self.proc_name_to_idx[process]]}
                 for process in states['request']
             },
             'evolvers_ran': False,

@@ -32,7 +32,7 @@ from ecoli.processes.allocator import Allocator
 from ecoli.processes.partition import PartitionedProcess
 
 # state
-from ecoli.processes.partition import get_bulk_topo, Requester, Evolver
+from ecoli.processes.partition import filter_bulk_ports, Requester, Evolver
 from ecoli.states.wcecoli_state import get_state_from_file
 
 
@@ -392,7 +392,7 @@ class Ecoli(Composer):
                         'log_update', process_id,)
                     topology[f'{process_id}_requester']['log_update'] = (
                         'log_update', process_id,)
-                bulk_topo = get_bulk_topo(ports)
+                bulk_topo = filter_bulk_ports(ports)
                 topology[f'{process_id}_requester']['request'] = {
                     '_path': ('request', process_id,),
                     **bulk_topo}
