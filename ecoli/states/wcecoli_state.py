@@ -1,4 +1,4 @@
-from copy import deepcopy
+import ast
 import json
 import numpy as np
 import concurrent.futures
@@ -105,10 +105,27 @@ def colony_initial_state(states, convert_unique_id_to_string):
                     'AMMONIUM[c]'},
                 'constrained': {
                     'GLC[p]': 20.0 * units.mmol / (units.g * units.h)}}
-        states['agents'][agent_id]['unique'] = update_unique({}, 
-            states['agents'][agent_id].get("unique", {}),
-            convert_unique_id_to_string)
+        # states['agents'][agent_id]['unique'] = update_unique({}, 
+        #     states['agents'][agent_id].get("unique", {}),
+        #     convert_unique_id_to_string)
     return states
+
+
+def numpy_molecules(states):
+    """
+    Loads unique and bulk molecule data as Numpy structured arrays
+    """
+    bulk_dtypes = ast.literal_eval(states.pop('bulk_dtypes'))
+    bulk_tuples = [tuple(mol) for mol in states['bulk']]
+    states['bulk'] = np.array(bulk_tuples, dtype=bulk_dtypes)
+    
+    for key, dtypes in states.pop('unique_dtypes').items():
+        dtypes = ast.literal_eval(dtypes)
+        dtypes.extend([('time', 'i'), ('_cached_entryState', 'i')])
+        unique_tuples = [tuple(mol) + (0, 0) for mol in states['unique'][key]]
+        states['unique'][key] = np.array(unique_tuples, dtype=dtypes)
+    
+    return states 
 
 
 def get_state_from_file(
@@ -125,12 +142,15 @@ def get_state_from_file(
         with concurrent.futures.ProcessPoolExecutor(n_agents) as executor:
             deserialized_agents = executor.map(
                 deserialize_value, agents.values())
-        agents = dict(zip(agents.keys(), deserialized_agents))
+            numpy_agents = executor.map(
+                numpy_molecules, deserialized_agents)
+        agents = dict(zip(agents.keys(), numpy_agents))
         states = deserialize_value(serialized_state)
         states['agents'] = agents
         return colony_initial_state(states, convert_unique_id_to_string)
     
-    states = deserialize_value(serialized_state)
+    deserialized_states = deserialize_value(serialized_state)
+    states = numpy_molecules(deserialized_states)
     # If evolvers_ran is False, we can get an infinite loop of
     # neither evolvers nor requesters running. No saved state should
     # include evolvers_ran=False.
@@ -172,7 +192,7 @@ def get_state_from_file(
     initial_state["process_state"] = {"polypeptide_elongation": {}}
 
     # process unique molecule state
-    initial_state["unique"] = {}
-    update_unique(initial_state['unique'], states.get("unique", {}), convert_unique_id_to_string)
+    # initial_state["unique"] = {}
+    # update_unique(initial_state['unique'], states.get("unique", {}), convert_unique_id_to_string)
 
     return initial_state
