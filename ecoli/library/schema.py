@@ -194,10 +194,6 @@ def arrays_to(n, attrs):
 
     return ds
 
-def counts(states, idx):
-    # idx is an integer array so advancing indexing applies (implicit copy)
-    return states['count'][idx]
-
 def bulk_schema(
         elements,
         updater=None,
@@ -214,6 +210,10 @@ def bulk_schema(
     return {
         str(element): schema
         for element in elements}
+
+def counts(states, idx):
+    # idx is an integer array so advancing indexing applies (implicit copy)
+    return states['count'][idx]
 
 def numpy_schema(name):
     if name == 'bulk':
