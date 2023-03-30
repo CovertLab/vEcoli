@@ -22,14 +22,14 @@ from arrow import StochasticSystem
 
 from vivarium.core.composition import simulate_process
 
-from ecoli.library.schema import array_to, bulk_schema
+from ecoli.library.schema import numpy_schema, bulk_name_to_idx, counts
 from ecoli.processes.registries import topology_registry
 from ecoli.processes.partition import PartitionedProcess
 
 # Register default topology for this process, associating it with process name
 NAME = 'ecoli-complexation'
 TOPOLOGY = {
-    "molecules": ("bulk",),
+    "bulk": ("bulk",),
     "listeners": ("listeners",)
 }
 topology_registry.register(NAME, TOPOLOGY)
@@ -54,6 +54,7 @@ class Complexation(PartitionedProcess):
         self.stoichiometry = self.parameters['stoichiometry']
         self.rates = self.parameters['rates']
         self.molecule_names = self.parameters['molecule_names']
+        self.molecule_idx = None
 
         self.randomState = np.random.RandomState(seed = self.parameters['seed'])
         self.seed = self.randomState.randint(2**31)
@@ -61,7 +62,7 @@ class Complexation(PartitionedProcess):
 
     def ports_schema(self):
         return {
-            'molecules': bulk_schema(self.molecule_names),
+            'bulk': numpy_schema('bulk'),
             'listeners': {
                 'complexation_events': {
                         '_default': [],
@@ -71,33 +72,30 @@ class Complexation(PartitionedProcess):
         }
 
     def calculate_request(self, timestep, states):
-        # The int64 dtype is important (can break otherwise)
-        moleculeCounts = np.array(list(states['molecules'].values()),
-                                  dtype = np.int64)
+        if self.molecule_idx is None:
+            self.molecule_idx = bulk_name_to_idx(
+                self.molecule_names, states['bulk'])
+        # TODO: Ensure that this is a np.int64
+        moleculeCounts = counts(states['bulk'], self.molecule_idx)
 
         result = self.system.evolve(
             timestep, moleculeCounts, self.rates)
         updatedMoleculeCounts = result['outcome']
         requests = {}
-        requests['molecules'] = array_to(states['molecules'], np.fmax(
-            moleculeCounts - updatedMoleculeCounts, 0))
+        requests['bulk'] = [(self.molecule_idx, np.fmax(moleculeCounts -
+            updatedMoleculeCounts, 0))]
         return requests
 
     def evolve_state(self, timestep, states):
-        molecules = states['molecules']
-
-        substrate = np.zeros(len(molecules), dtype=np.int64)
-        for index, molecule in enumerate(self.molecule_names):
-            substrate[index] = molecules[molecule]
+        substrate = counts(states['bulk'], self.molecule_idx)
 
         result = self.system.evolve(timestep, substrate, self.rates)
         complexationEvents = result['occurrences']
         outcome = result['outcome'] - substrate
-        molecules_update = array_to(self.molecule_names, outcome)
 
         # Write outputs to listeners
         update = {
-            'molecules': molecules_update,
+            'bulk': [(self.molecule_idx, outcome)],
             'listeners': {
                 'complexation_events': complexationEvents
             }

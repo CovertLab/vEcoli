@@ -40,6 +40,7 @@ class Allocator(Deriver):
     def __init__(self, parameters=None):
         super().__init__(parameters)
         self.moleculeNames = self.parameters['molecule_names']
+        self.molecule_idx = None
         self.n_molecules = len(self.moleculeNames)
         self.mol_name_to_idx = {name: idx for idx, name in enumerate(self.moleculeNames)}
         self.mol_idx_to_name = {idx: name for idx, name in enumerate(self.moleculeNames)}
@@ -79,16 +80,16 @@ class Allocator(Deriver):
         return states['evolvers_ran']
 
     def next_update(self, timestep, states):
-        if isinstance(self.moleculeNames[0], str):
-            self.moleculeNames = bulk_name_to_idx(self.moleculeNames)
-        total_counts = counts(states['bulk'], self.moleculeNames)
+        if self.molecule_idx is None:
+            self.molecule_idx = bulk_name_to_idx(self.moleculeNames, states['bulk']['id'])
+        total_counts = counts(states['bulk'], self.molecule_idx)
         original_totals = total_counts.copy()
         counts_requested = np.zeros((self.n_molecules, self.n_processes),
             dtype=int)
         for process in states['request']:
             proc_idx = self.proc_name_to_idx[process]
             counts_requested[:, proc_idx] = counts(
-                states['request'][process]['bulk'], self.moleculeNames)
+                states['request'][process]['bulk'], self.molecule_idx)
 
         if ASSERT_POSITIVE_COUNTS and np.any(counts_requested < 0):
             raise NegativeCountsError(
