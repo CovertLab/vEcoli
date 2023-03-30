@@ -21,7 +21,7 @@ from six.moves import zip
 from vivarium.core.process import Step
 
 from ecoli.processes.registries import topology_registry
-from ecoli.library.schema import bulk_schema, array_from
+from ecoli.library.schema import numpy_schema, bulk_name_to_idx, counts
 from wholecell.utils import units
 from wholecell.utils.random import stochasticRound
 from wholecell.utils.modular_fba import FluxBalanceAnalysis
@@ -30,21 +30,17 @@ from wholecell.utils.modular_fba import FluxBalanceAnalysis
 # Register default topology for this process, associating it with process name
 NAME = 'ecoli-metabolism'
 TOPOLOGY = {
-        "metabolites": ("bulk",),
-        "catalysts": ("bulk",),
-        "kinetics_enzymes": ("bulk",),
-        "kinetics_substrates": ("bulk",),
-        "amino_acids": ("bulk",),
-        "listeners": ("listeners",),
-        "environment": {
-            "_path": ("environment",),
-            "exchange": ("exchange",),
-        },
-        "polypeptide_elongation": ("process_state", "polypeptide_elongation"),
-        # Non-partitioned count
-        "amino_acids_total": ("bulk",),
-        "evolvers_ran": ('evolvers_ran',),
-        "first_update": ("deriver_skips", "metabolism",)
+    "bulk": ("bulk",),
+    # Non-partitioned counts
+    "bulk_total": ("bulk",),
+    "listeners": ("listeners",),
+    "environment": {
+        "_path": ("environment",),
+        "exchange": ("exchange",),
+    },
+    "polypeptide_elongation": ("process_state", "polypeptide_elongation"),
+    "evolvers_ran": ('evolvers_ran',),
+    "first_update": ("deriver_skips", "metabolism",)
     }
 topology_registry.register(NAME, TOPOLOGY)
 
@@ -148,12 +144,8 @@ class Metabolism(Step):
 
     def ports_schema(self):
         ports = {
-            'metabolites': bulk_schema(self.model.metaboliteNamesFromNutrients),
-            'catalysts': bulk_schema(self.model.catalyst_ids),
-            'kinetics_enzymes': bulk_schema(self.model.kinetic_constraint_enzymes),
-            'kinetics_substrates': bulk_schema(self.model.kinetic_constraint_substrates),
-            'amino_acids': bulk_schema(self.aa_names),
-            'amino_acids_total': bulk_schema(self.aa_names, partition=False),
+            'bulk': numpy_schema('bulk'),
+            'bulk_total': numpy_schema('bulk', partition=False),
 
             'environment': {
                 'media_id': {
@@ -236,16 +228,25 @@ class Metabolism(Step):
     def next_update(self, timestep, states):
         # Skip t=0
         if states['first_update']:
+            self.metabolite_idx = bulk_name_to_idx(
+                self.model.metaboliteNamesFromNutrients, states['bulk']['id'])
+            self.catalyst_idx = bulk_name_to_idx(
+                self.model.catalyst_ids, states['bulk']['id'])
+            self.kinetics_enzymes_idx = bulk_name_to_idx(
+                self.model.kinetic_constraint_enzymes, states['bulk']['id'])
+            self.kinetics_substrates_idx = bulk_name_to_idx(
+                self.model.kinetic_constraint_substrates, states['bulk']['id'])
+            self.aa_idx = bulk_name_to_idx(self.aa_names, states['bulk']['id'])
             return {'first_update': False}
 
         timestep = self.parameters['time_step']
 
         # Load current state of the sim
         # Get internal state variables
-        metabolite_counts_init = array_from(states['metabolites'])
-        catalyst_counts = array_from(states['catalysts'])
-        kinetic_enzyme_counts = array_from(states['kinetics_enzymes'])
-        kinetic_substrate_counts = array_from(states['kinetics_substrates'])
+        metabolite_counts_init = counts(states['bulk'], self.metabolite_idx)
+        catalyst_counts = counts(states['bulk'], self.catalyst_idx)
+        kinetic_enzyme_counts = counts(states['bulk'], self.kinetics_enzymes_idx)
+        kinetic_substrate_counts = counts(states['bulk'], self.kinetics_substrates_idx)
 
         translation_gtp = states['polypeptide_elongation']['gtp_to_hydrolyze']
         cell_mass = states['listeners']['mass']['cell_mass'] * units.fg
@@ -323,18 +324,16 @@ class Metabolism(Step):
             unconstrained, constrained, GDCW_BASIS)
 
         # used for comparing target and estimate between GD-FBA and LP-FBA
-        objective_counts = {key: int((self.model.homeostatic_objective[key] / counts_to_molar).asNumber())
-                            - int(states['metabolites'][key]) for key in fba.getHomeostaticTargetMolecules()}
+        # objective_counts = {key: int((self.model.homeostatic_objective[key] / counts_to_molar).asNumber())
+        #                     - int(states['metabolites'][key]) for key in fba.getHomeostaticTargetMolecules()}
 
         fluxes = fba.getReactionFluxes() / timestep
         names = fba.getReactionIDs()
 
-        flux_dict = {str(names[i]): fluxes[i] for i in range(len(names))}
+        # flux_dict = {str(names[i]): fluxes[i] for i in range(len(names))}
 
         update = {
-            'metabolites': {
-                str(metabolite): delta_metabolites_final[index]
-                for index, metabolite in enumerate(self.model.metaboliteNamesFromNutrients)},
+            'bulk': [(self.metabolite_idx, delta_metabolites_final)],
 
             'environment': {
                 'exchange': {

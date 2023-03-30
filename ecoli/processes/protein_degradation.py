@@ -69,6 +69,8 @@ class ProteinDegradation(PartitionedProcess):
         self.seed = self.parameters['seed']
         self.random_state = np.random.RandomState(seed=self.seed)
 
+        self.metabolite_idx = None
+
         # Build S matrix
         self.degradation_matrix = np.zeros((
             len(self.metabolite_ids),
@@ -84,14 +86,14 @@ class ProteinDegradation(PartitionedProcess):
 
     def calculate_request(self, timestep, states):
         # In first timestep, convert all strings to indices
-        if isinstance(self.water_id, str):
-            self.water_id = bulk_name_to_idx(self.water_id, states['bulk']['id'])
-            self.protein_ids = bulk_name_to_idx(
+        if self.metabolite_idx is None:
+            self.water_idx = bulk_name_to_idx(self.water_id, states['bulk']['id'])
+            self.protein_idx = bulk_name_to_idx(
                 self.protein_ids, states['bulk']['id'])
-            self.metabolite_ids = bulk_name_to_idx(
+            self.metabolite_idx = bulk_name_to_idx(
                 self.metabolite_ids, states['bulk']['id'])
 
-        protein_data = counts(states['bulk'], self.protein_ids)
+        protein_data = counts(states['bulk'], self.protein_idx)
         # Determine how many proteins to degrade based on the degradation rates
         # and counts of each protein
         nProteinsToDegrade = np.fmin(
@@ -107,22 +109,22 @@ class ProteinDegradation(PartitionedProcess):
         # Determine the amount of water required to degrade the selected proteins
         # Assuming one N-1 H2O is required per peptide chain length N
         requests = {'bulk': [
-            (self.protein_ids, nProteinsToDegrade),
-            (self.water_id, nReactions - np.sum(nProteinsToDegrade))]}
+            (self.protein_idx, nProteinsToDegrade),
+            (self.water_idx, nReactions - np.sum(nProteinsToDegrade))]}
         return requests
 
     def evolve_state(self, timestep, states):
         # Degrade selected proteins, release amino acids from those proteins
         # back into the cell, and consume H_2O that is required for the
         # degradation process
-        allocated_proteins = counts(states['bulk'], self.protein_ids)
+        allocated_proteins = counts(states['bulk'], self.protein_idx)
         metabolites_delta = np.dot(
             self.degradation_matrix,
             allocated_proteins).astype(int)
 
         update = {'bulk': [
-            (self.metabolite_ids, metabolites_delta),
-            (self.protein_ids, -allocated_proteins)
+            (self.metabolite_idx, metabolites_delta),
+            (self.protein_idx, -allocated_proteins)
         ]}
 
         return update

@@ -364,7 +364,8 @@ class LoadSimData:
             'active_to_inactive_tf': self.sim_data.process.two_component_system.active_to_inactive_tf,
             'bulk_molecule_ids': self.sim_data.internal_state.bulk_molecules.bulk_data["id"],
             'bulk_mass_data': self.sim_data.internal_state.bulk_molecules.bulk_data["mass"],
-            'seed': self._seedFromName('TfBinding')}
+            'seed': self._seedFromName('TfBinding'),
+            'submass_to_idx': self.sim_data.submass_name_to_index}
 
         return tf_binding_config
 
@@ -439,6 +440,8 @@ class LoadSimData:
             'ntp_ids': ["ATP[c]", "CTP[c]", "GTP[c]", "UTP[c]"],
             'variable_elongation': False,
             'make_elongation_rates': self.sim_data.process.transcription.make_elongation_rates,
+            'fragmentBases': self.sim_data.molecule_groups.polymerized_ntps,
+            'charged_trnas': self.sim_data.process.transcription.charged_trna_names,
 
             # attenuation
             'trna_attenuation': False,

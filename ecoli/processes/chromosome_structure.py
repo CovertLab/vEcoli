@@ -101,6 +101,8 @@ class ChromosomeStructure(Step):
         self.amino_acids = self.parameters['amino_acids']
         self.water = self.parameters['water']
 
+        self.inactive_RNAPs_idx = None
+
         self.emit_unique = self.parameters.get('emit_unique', True)
 
         self.chromosome_segment_index = 0
@@ -154,22 +156,22 @@ class ChromosomeStructure(Step):
 
     def next_update(self, timestep, states):
         # In first timestep, convert all strings to indices
-        if isinstance(self.ribosome_30S_subunit, str):
-            self.fragmentBases = bulk_name_to_idx(
+        if self.inactive_RNAPs_idx is None:
+            self.fragmentBasesIdx = bulk_name_to_idx(
                 self.fragmentBases, states['bulk']['id'])
-            self.active_tfs = bulk_name_to_idx(
+            self.active_tfs_idx = bulk_name_to_idx(
                 self.active_tfs, states['bulk']['id'])
-            self.ribosome_30S_subunit = bulk_name_to_idx(
+            self.ribosome_30S_subunit_idx = bulk_name_to_idx(
                 self.ribosome_30S_subunit, states['bulk']['id'])
-            self.ribosome_50S_subunit = bulk_name_to_idx(
+            self.ribosome_50S_subunit_idx = bulk_name_to_idx(
                 self.ribosome_50S_subunit, states['bulk']['id'])
-            self.amino_acids = bulk_name_to_idx(
+            self.amino_acids_idx = bulk_name_to_idx(
                 self.amino_acids, states['bulk']['id'])
-            self.water = bulk_name_to_idx(
+            self.water_idx = bulk_name_to_idx(
                 self.water, states['bulk']['id'])
-            self.ppi = bulk_name_to_idx(
+            self.ppi_idx = bulk_name_to_idx(
                 self.ppi, states['bulk']['id'])
-            self.inactive_RNAPs = bulk_name_to_idx(
+            self.inactive_RNAPs_idx = bulk_name_to_idx(
                 self.inactive_RNAPs, states['bulk']['id'])
 
         # Skip t=0 if a deriver
@@ -418,7 +420,7 @@ class ChromosomeStructure(Step):
                 update['RNAs'] = {'delete': np.where(removed_RNAs_mask)[0]}
 
             # Increment counts of inactive RNAPs
-            update['bulk'].append((self.inactive_RNAPs, n_total_collisions))
+            update['bulk'].append((self.inactive_RNAPs_idx, n_total_collisions))
 
             # Get sequences of incomplete transcripts
             incomplete_sequence_lengths = transcript_lengths[
@@ -438,8 +440,8 @@ class ChromosomeStructure(Step):
                     base_counts += np.bincount(seq[:sl], minlength=self.n_fragment_bases)
 
                 # Increment counts of fragment NTPs and phosphates
-                update['bulk'].append((self.fragmentBases, base_counts))
-                update['bulk'].append((self.ppi, n_initiated_sequences))
+                update['bulk'].append((self.fragmentBasesIdx, base_counts))
+                update['bulk'].append((self.ppi_idx, n_initiated_sequences))
 
         # Get mask for ribosomes that are bound to nonexisting mRNAs
         remaining_RNA_unique_indexes = RNA_unique_indexes[
@@ -457,8 +459,8 @@ class ChromosomeStructure(Step):
 
             # Increment counts of inactive ribosomal subunits
             update['bulk'].append(
-                (self.ribosome_30S_subunit, n_removed_ribosomes),
-                (self.ribosome_50S_subunit, n_removed_ribosomes))
+                (self.ribosome_30S_subunit_idx, n_removed_ribosomes),
+                (self.ribosome_50S_subunit_idx, n_removed_ribosomes))
 
             # Get amino acid sequences of incomplete polypeptides
             incomplete_sequence_lengths = ribosome_peptide_lengths[
@@ -481,8 +483,8 @@ class ChromosomeStructure(Step):
 
                 # Increment counts of free amino acids and decrease counts of
                 # free water molecules
-                update['bulk'].append((self.amino_acids, amino_acid_counts))
-                update['bulk'].append((self.water, (
+                update['bulk'].append((self.amino_acids_idx, amino_acid_counts))
+                update['bulk'].append((self.water_idx, (
                     n_initiated_sequences - incomplete_sequence_lengths.sum())))
 
         # Write to listener
@@ -518,7 +520,7 @@ class ChromosomeStructure(Step):
                     'delete': np.where(removed_promoters_mask)[0]}
 
             # Add freed active tfs
-            update['bulk'].append((self.active_tfs,
+            update['bulk'].append((self.active_tfs_idx,
                 promoter_bound_TFs[removed_promoters_mask, :].sum(axis=0)))
 
             # Set up attributes for the replicated promoters

@@ -10,7 +10,7 @@ that maintains equilibrium.
 
 import numpy as np
 
-from ecoli.library.schema import array_from, array_to, bulk_schema
+from ecoli.library.schema import numpy_schema, bulk_name_to_idx, counts
 from ecoli.processes.registries import topology_registry
 from ecoli.processes.partition import PartitionedProcess
 
@@ -21,8 +21,8 @@ from six.moves import range
 # Register default topology for this process, associating it with process name
 NAME = 'ecoli-equilibrium'
 TOPOLOGY = {
-        "listeners": ("listeners",),
-        "molecules": ("bulk",)
+    "listeners": ("listeners",),
+    "bulk": ("bulk",)
 }
 topology_registry.register(NAME, TOPOLOGY)
 
@@ -50,7 +50,8 @@ class Equilibrium(PartitionedProcess):
         super().__init__(parameters)
 
         # Simulation options
-        self.jit = self.parameters['jit']  # utilized in the fluxes and molecules function
+        # utilized in the fluxes and molecules function
+        self.jit = self.parameters['jit']
 
         # Get constants
         self.n_avogadro = self.parameters['n_avogadro']
@@ -60,31 +61,37 @@ class Equilibrium(PartitionedProcess):
         # stoichMatrix: (94, 33), molecule counts are (94,).
         self.stoichMatrix = self.parameters['stoichMatrix']
 
-        # fluxesAndMoleculesToSS: solves ODES to get to steady state based off of cell density,
-        # volumes and molecule counts
+        # fluxesAndMoleculesToSS: solves ODES to get to steady state based off
+        # of cell density, volumes and molecule counts
         self.fluxesAndMoleculesToSS = self.parameters['fluxesAndMoleculesToSS']
 
-        self.product_indices = [idx for idx in np.where(np.any(self.stoichMatrix > 0, axis=1))[0]]
+        self.product_indices = [idx for idx in
+            np.where(np.any(self.stoichMatrix > 0, axis=1))[0]]
 
         # Build views
         # moleculeNames: list of molecules that are being iterated over size: 94
         self.moleculeNames = self.parameters['moleculeNames']
+        self.molecule_idx = None
 
         self.seed = self.parameters['seed']
         self.random_state = np.random.RandomState(seed = self.seed)
 
     def ports_schema(self):
         return {
-            'molecules': bulk_schema(self.moleculeNames),
+            'bulk': numpy_schema('bulk'),
             'listeners': {
                 'mass': {
                     'cell_mass': {'_default': 0}},
                 'equilibrium_listener': {
-                    'reaction_rates': {'_default': [], '_updater': 'set', '_emit': True}}}}
+                    'reaction_rates': {
+                        '_default': [], '_updater': 'set', '_emit': True}}}}
 
     def calculate_request(self, timestep, states):
+        if self.molecule_idx is None:
+            self.molecule_idx = bulk_name_to_idx(
+                self.moleculeNames, states['bulk']['id'])
         # Get molecule counts
-        moleculeCounts = array_from(states['molecules'])
+        moleculeCounts = counts(states['bulk'], self.molecule_idx)
 
         # Get cell mass and volume
         cellMass = (states['listeners']['mass']['cell_mass'] * units.fg).asNumber(units.g)
@@ -97,13 +104,14 @@ class Equilibrium(PartitionedProcess):
             )
 
         # Request counts of molecules needed
-        requests = {}
-        requests['molecules'] = array_to(states['molecules'], self.req)
+        requests = {
+            'bulk': [(self.molecule_idx, self.req)]
+        }
         return requests
 
     def evolve_state(self, timestep, states):
         # Get molecule counts
-        moleculeCounts = array_from(states['molecules'])
+        moleculeCounts = counts(states['bulk'], self.molecule_idx)
 
         # Get counts of molecules allocated to this process
         rxnFluxes = self.rxnFluxes.copy()
@@ -136,7 +144,7 @@ class Equilibrium(PartitionedProcess):
         deltaMolecules = np.dot(self.stoichMatrix, rxnFluxes).astype(int)
 
         update = {
-            'molecules': array_to(self.moleculeNames, deltaMolecules),
+            'bulk': [(self.molecule_idx, deltaMolecules)],
             'listeners': {
                 'equilibrium_listener': {
                     'reaction_rates': deltaMolecules[self.product_indices] / timestep}}}

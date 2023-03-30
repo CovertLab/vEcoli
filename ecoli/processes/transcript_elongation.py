@@ -21,7 +21,7 @@ from wholecell.utils.polymerize import buildSequences, polymerize, computeMassIn
 from wholecell.utils import units
 
 from ecoli.library.schema import (
-    arrays_from, arrays_to, array_from, array_to, bulk_schema, dict_value_schema)
+    counts, attrs, numpy_schema, bulk_name_to_idx)
 from ecoli.library.data_predicates import monotonically_increasing
 from ecoli.states.wcecoli_state import MASSDIFFS
 from ecoli.processes.registries import topology_registry
@@ -31,13 +31,12 @@ from ecoli.processes.partition import PartitionedProcess
 # Register default topology for this process, associating it with process name
 NAME = 'ecoli-transcript-elongation'
 TOPOLOGY = {
-        "environment": ("environment",),
-        "RNAs": ("unique", "RNA"),
-        "active_RNAPs": ("unique", "active_RNAP"),
-        "molecules": ("bulk",),
-        "bulk_RNAs": ("bulk",),
-        "ntps": ("bulk",),
-        "listeners": ("listeners",)
+    "environment": ("environment",),
+    "RNAs": ("unique", "RNA"),
+    "active_RNAPs": ("unique", "active_RNAP"),
+    "bulk": ("bulk",),
+    "bulk_total": ("bulk",),
+    "listeners": ("listeners",)
 }
 topology_registry.register(NAME, TOPOLOGY)
 
@@ -55,19 +54,20 @@ class TranscriptElongation(PartitionedProcess):
 
     defaults:
         - max_time_step (float) : ???
-        - rnaPolymeraseElongationRateDict (dict): Array with elongation rate set points
-                                                  for different media environments.
+        - rnaPolymeraseElongationRateDict (dict): Array with elongation rate
+            set points for different media environments.
         - rnaIds (array[str]) : array of names for each TU
-        - rnaLengths (array[int]) : array of lengths for each TU (in nucleotides?)
-        - rnaSequences (2D array[int]) : Array with the nucleotide sequences of each TU.
-                                         This is in the form of a 2D array where
-                                         each row is a TU, and each column is a position in
-                                         the TU's sequence. Nucleotides are stored as an index
-                                         {0, 1, 2, 3}, and the row is padded with -1's on the right
-                                         to indicate where the sequence ends.
+        - rnaLengths (array[int]) : array of lengths for each TU
+            (in nucleotides?)
+        - rnaSequences (2D array[int]) : Array with the nucleotide sequences
+            of each TU. This is in the form of a 2D array where each row is a
+            TU, and each column is a position in the TU's sequence. Nucleotides
+            are stored as an index {0, 1, 2, 3}, and the row is padded with
+            -1's on the right to indicate where the sequence ends.
         - ntWeights (array[float]): Array of nucleotide weights
         - endWeight (array[float]): ???,
-        - replichore_lengths (array[int]): lengths of replichores (in nucleotides?),
+        - replichore_lengths (array[int]): lengths of replichores
+            (in nucleotides?),
         - idx_16S_rRNA (array[int]): indexes of TUs for 16SrRNA
         - idx_23S_rRNA (array[int]): indexes of TUs for 23SrRNA
         - idx_5S_rRNA (array[int]): indexes of TUs for 5SrRNA
@@ -77,8 +77,8 @@ class TranscriptElongation(PartitionedProcess):
         - ntp_ids list[str]: IDs of ntp's (A, C, G, U)
         - variable_elongation (bool): Whether to use variable elongation.
                                       False by default.
-        - make_elongation_rates: Function to make elongation rates, of the form:
-                                 lambda random, rates, timestep, variable: rates
+        - make_elongation_rates: Function to make elongation rates, of the
+            form: lambda random, rates, timestep, variable: rates
     """
 
     name = NAME
@@ -125,19 +125,23 @@ class TranscriptElongation(PartitionedProcess):
         self.max_time_step = self.parameters['max_time_step']
 
         # Load parameters
-        self.rnaPolymeraseElongationRateDict = self.parameters['rnaPolymeraseElongationRateDict']
+        self.rnaPolymeraseElongationRateDict = self.parameters[
+            'rnaPolymeraseElongationRateDict']
         self.rnaIds = self.parameters['rnaIds']
         self.rnaLengths = self.parameters['rnaLengths']
         self.rnaSequences = self.parameters['rnaSequences']
         self.ppi = self.parameters['ppi']
         self.inactive_RNAP = self.parameters['inactive_RNAP']
+        self.fragmentBases = self.parameters['fragmentBases']
+        self.charged_trnas = self.parameters['charged_trnas']
         self.ntp_ids = self.parameters['ntp_ids']
         self.ntWeights = self.parameters['ntWeights']
         self.endWeight = self.parameters['endWeight']
         self.replichore_lengths = self.parameters['replichore_lengths']
         self.chromosome_length = self.replichore_lengths.sum()
         self.n_fragment_bases = self.parameters['n_fragment_bases']
-        self.recycle_stalled_elongation = self.parameters['recycle_stalled_elongation']
+        self.recycle_stalled_elongation = self.parameters[
+            'recycle_stalled_elongation']
 
         # ID Groups of rRNAs
         self.idx_16S_rRNA = self.parameters['idx_16S_rRNA']
@@ -146,7 +150,6 @@ class TranscriptElongation(PartitionedProcess):
 
         # Mask for mRNAs
         self.is_mRNA = self.parameters['is_mRNA']
-        self.molecule_ids = [self.ppi, self.inactive_RNAP]
 
         self.variable_elongation = self.parameters['variable_elongation']
         self.make_elongation_rates = self.parameters['make_elongation_rates']
@@ -158,9 +161,11 @@ class TranscriptElongation(PartitionedProcess):
         self.trna_attenuation = self.parameters['trna_attenuation']
         self.cell_density = self.parameters['cell_density']
         self.n_avogadro = self.parameters['n_avogadro']
-        self.stop_probabilities = self.parameters['get_attenuation_stop_probabilities']
+        self.stop_probabilities = self.parameters[
+            'get_attenuation_stop_probabilities']
         self.attenuated_rna_indices = self.parameters['attenuated_rna_indices']
-        self.attenuated_rna_indices_lookup = {idx: i for i, idx in enumerate(self.attenuated_rna_indices)}
+        self.attenuated_rna_indices_lookup = {idx: i
+            for i, idx in enumerate(self.attenuated_rna_indices)}
         self.location_lookup = self.parameters['attenuation_location']
 
         # random seed
@@ -168,8 +173,13 @@ class TranscriptElongation(PartitionedProcess):
         self.random_state = np.random.RandomState(seed=self.seed)
 
         # Index of relevant submasses in submass vector
-        self.nsRNA_submass_idx = self.parameters['submass_indexes']['massDiff_nonspecific_RNA']
-        self.mRNA_submass_idx = self.parameters['submass_indexes']['massDiff_mRNA']
+        self.nsRNA_submass_idx = self.parameters['submass_indexes'][
+            'massDiff_nonspecific_RNA']
+        self.mRNA_submass_idx = self.parameters['submass_indexes'][
+            'massDiff_mRNA']
+
+        # Helper indices for Numpy indexing
+        self.bulk_RNA_idx = None
 
     def ports_schema(self):
         return {
@@ -177,12 +187,11 @@ class TranscriptElongation(PartitionedProcess):
                 'media_id': {'_default': ''}
             },
 
-            'RNAs': dict_value_schema('RNAs'),
-            'active_RNAPs': dict_value_schema('active_RNAPs'),
+            'RNAs': numpy_schema('RNAs'),
+            'active_RNAPs': numpy_schema('active_RNAPs'),
 
-            'bulk_RNAs': bulk_schema(self.rnaIds),
-            'ntps': bulk_schema(self.ntp_ids),
-            'molecules': bulk_schema(self.molecule_ids),
+            'bulk': numpy_schema('bulk'),
+            'bulk_total': numpy_schema('bulk', partition=False),
 
             'listeners': {
                 'mass': {
@@ -239,6 +248,18 @@ class TranscriptElongation(PartitionedProcess):
             }}
 
     def calculate_request(self, timestep, states):
+        if self.bulk_RNA_idx is None:
+            bulk_ids = states['bulk']['id']
+            self.bulk_RNA_idx = bulk_name_to_idx(self.rnaIds, bulk_ids)
+            self.ntps_idx = bulk_name_to_idx(self.ntp_ids, bulk_ids)
+            self.ppi_idx = bulk_name_to_idx(self.ppi, bulk_ids)
+            self.inactive_RNAP_idx = bulk_name_to_idx(
+                self.inactive_RNAP, bulk_ids)
+            self.fragmentBases_idx = bulk_name_to_idx(
+                self.fragmentBases, bulk_ids)
+            self.charged_trnas_idx = bulk_name_to_idx(
+                self.charged_trnas, bulk_ids)
+
         # Calculate elongation rate based on the current media
         current_media_id = states['environment']['media_id']
 
@@ -252,14 +273,14 @@ class TranscriptElongation(PartitionedProcess):
             self.variable_elongation)
 
         # If there are no active RNA polymerases, return immediately
-        if len(states['active_RNAPs']) == 0:
+        if states['active_RNAPs']['_entryState'].sum() == 0:
             return {}
 
         # Determine total possible sequences of nucleotides that can be
         # transcribed in this time step for each partial transcript
-        TU_indexes, transcript_lengths, is_full_transcript = arrays_from(
-            states['RNAs'].values(), ['TU_index', 'transcript_length', 'is_full_transcript']
-        )
+        TU_indexes, transcript_lengths, is_full_transcript = attrs(
+            states['RNAs'],
+            ['TU_index', 'transcript_length', 'is_full_transcript'])
         is_partial_transcript = np.logical_not(is_full_transcript)
         TU_indexes_partial = TU_indexes[is_partial_transcript]
         transcript_lengths_partial = transcript_lengths[is_partial_transcript]
@@ -275,16 +296,18 @@ class TranscriptElongation(PartitionedProcess):
 
         # Calculate if any nucleotides are limited and request up to the number
         # in the sequences or number available
-        ntpsTotal = array_from(states['ntps'])
-        maxFractionalReactionLimit = np.fmin(1, ntpsTotal / sequenceComposition)
+        ntpsTotal = counts(states['bulk'], self.ntps_idx)
+        maxFractionalReactionLimit = np.fmin(
+            1, ntpsTotal / sequenceComposition)
 
-        requests = {'ntps': array_to(states['ntps'],
-                                     maxFractionalReactionLimit * sequenceComposition)}
-        
+        requests = {'bulk': [(self.ntps_idx,
+            maxFractionalReactionLimit * sequenceComposition)]}
+
         requests['listeners'] = {
             'growth_limits': {
-                'ntp_pool_size': np.array(list(states['ntps'].values())),
-                'ntp_request_size': maxFractionalReactionLimit * sequenceComposition
+                'ntp_pool_size': counts(states['bulk'], self.ntps_idx),
+                'ntp_request_size': (maxFractionalReactionLimit 
+                    * sequenceComposition)
             }
         }
 
@@ -292,7 +315,7 @@ class TranscriptElongation(PartitionedProcess):
 
     def evolve_state(self, timestep, states):
         # If there are no active RNA polymerases, return immediately
-        if len(states['active_RNAPs']) == 0:
+        if states['active_RNAPs']['_entryState'].sum() == 0:
             return {
                 'listeners': {
                     'transcript_elongation_listener': {
@@ -313,38 +336,39 @@ class TranscriptElongation(PartitionedProcess):
         # Determine total possible sequences of nucleotides that can be
         # transcribed in this time step for each partial transcript
         # Get attributes from existing RNAs
-        TU_index_all_RNAs, length_all_RNAs, is_full_transcript, is_mRNA_all_RNAs, \
-            RNAP_index_all_RNAs = arrays_from(states['RNAs'].values(), ['TU_index',
-                'transcript_length', 'is_full_transcript', 'is_mRNA', 'RNAP_index'])
+        TU_index_all_RNAs, length_all_RNAs, is_full_transcript, \
+            is_mRNA_all_RNAs, RNAP_index_all_RNAs = attrs(states['RNAs'],
+                ['TU_index', 'transcript_length', 'is_full_transcript',
+                'is_mRNA', 'RNAP_index'])
 
         update = {
             'listeners': {
                 'growth_limits': {}}}
 
-        ntpCounts = array_from(states['ntps'])
+        ntpCounts = counts(states['bulk'], self.ntps_idx)
 
         # Determine sequences of RNAs that should be elongated
-        is_partial_transcript = np.logical_not(is_full_transcript) # redundant
+        is_partial_transcript = np.logical_not(is_full_transcript)
         partial_transcript_indexes = np.where(is_partial_transcript)[0]
         TU_index_partial_RNAs = TU_index_all_RNAs[is_partial_transcript]
         length_partial_RNAs = length_all_RNAs[is_partial_transcript]
         is_mRNA_partial_RNAs = is_mRNA_all_RNAs[is_partial_transcript]
         RNAP_index_partial_RNAs = RNAP_index_all_RNAs[is_partial_transcript]
 
-        # TODO(vivarium): Attenuation: need access to mass, charged_trna stores
         if self.trna_attenuation:
             cell_mass = states['listeners']['mass']['cell_mass']
             cellVolume = cell_mass / self.cell_density
             counts_to_molar = 1 / (self.n_avogadro * cellVolume)
-            attenuation_probability = self.stop_probabilities(counts_to_molar * self.charged_trna.total_counts())
-            prob_lookup = {tu: prob for tu, prob in zip(self.attenuated_rna_indices,
-                                                        attenuation_probability)}
-            tu_stop_probability = np.array([
-                prob_lookup.get(idx, 0) * (length < self.location_lookup.get(idx, 0))
-                for idx, length in zip(TU_index_partial_RNAs, length_partial_RNAs)
+            attenuation_probability = self.stop_probabilities(counts_to_molar
+                * counts(states['bulk_total'], self.charged_trnas_idx))
+            prob_lookup = {tu: prob for tu, prob in zip(
+                self.attenuated_rna_indices, attenuation_probability)}
+            tu_stop_probability = np.array([prob_lookup.get(idx, 0) *
+                (length < self.location_lookup.get(idx, 0)) for idx, length
+                in zip(TU_index_partial_RNAs, length_partial_RNAs)
             ])
-            rna_to_attenuate = stochasticRound(self.random_state,
-                                               tu_stop_probability).astype(bool)
+            rna_to_attenuate = stochasticRound(
+                self.random_state, tu_stop_probability).astype(bool)
         else:
             attenuation_probability = np.zeros(len(self.attenuated_rna_indices))
             rna_to_attenuate = np.zeros(len(TU_index_partial_RNAs), bool)
@@ -382,9 +406,9 @@ class TranscriptElongation(PartitionedProcess):
         updated_transcript_lengths = length_partial_RNAs + sequence_elongations
 
         # Get attributes of active RNAPs
-        coordinates, domain_index, direction, RNAP_unique_index = arrays_from(
-            states['active_RNAPs'].values(),
-            ['coordinates', 'domain_index', 'direction', 'unique_index'])
+        coordinates, direction, RNAP_unique_index = attrs(
+            states['active_RNAPs'],
+            ['coordinates', 'direction', 'unique_index'])
 
         # Active RNAP count should equal partial transcript count
         assert len(RNAP_unique_index) == len(RNAP_index_partial_RNAs)
@@ -393,7 +417,7 @@ class TranscriptElongation(PartitionedProcess):
         assert (np.count_nonzero(RNAP_index_partial_RNAs == '-1') == 0)
 
         # Get mapping indexes between partial RNAs to RNAPs
-        partial_RNA_to_RNAP_mapping, RNAP_to_partial_RNA_mapping = get_mapping_arrays(
+        partial_RNA_to_RNAP_mapping, _ = get_mapping_arrays(
             RNAP_index_partial_RNAs, RNAP_unique_index)
 
         # Rescale boolean array of directions to an array of 1's and -1's.
@@ -403,8 +427,8 @@ class TranscriptElongation(PartitionedProcess):
         # Compute the updated coordinates of RNAPs. Coordinates of RNAPs
         # moving in the positive direction are increased, whereas coordinates
         # of RNAPs moving in the negative direction are decreased.
-        updated_coordinates = coordinates + np.multiply(
-            direction_rescaled, sequence_elongations[partial_RNA_to_RNAP_mapping])
+        updated_coordinates = coordinates + np.multiply(direction_rescaled,
+            sequence_elongations[partial_RNA_to_RNAP_mapping])
 
         # Reset coordinates of RNAPs that cross the boundaries between right
         # and left replichores
@@ -466,59 +490,59 @@ class TranscriptElongation(PartitionedProcess):
         n_new_bulk_RNAs = terminated_RNAs.copy()
         n_new_bulk_RNAs[self.is_mRNA] = 0
 
-        added_submass = np.zeros((len(states['RNAs']), 9))
-        added_submass[:, self.nsRNA_submass_idx] = added_nsRNA_mass_all_RNAs
-        added_submass[:, self.mRNA_submass_idx] = added_mRNA_mass_all_RNAs
-
-        rna_indexes = list(states['RNAs'].keys())
-        current_submass = np.zeros((len(rna_indexes), 9))
-        for index, value in enumerate(states['RNAs'].values()):
-            current_submass[index] = value['submass']
-        rnas_update = arrays_to(
-            len(states['RNAs']), {
+        update['RNAs'] = {
+            'set': {
                 'transcript_length': length_all_RNAs,
                 'is_full_transcript': is_full_transcript_updated,
-                'submass': current_submass + added_submass})
+                'nonspecific_RNA_submass': attrs(states['RNAs'],
+                    ['nonspecific_RNA_submass'])[0] + added_nsRNA_mass_all_RNAs,
+                'mRNA_submass': attrs(states['RNAs'],
+                    ['mRNA_submass'])[0] + added_mRNA_mass_all_RNAs
+            },
+            'delete': partial_transcript_indexes[np.logical_and(
+                did_terminate_mask, np.logical_not(is_mRNA_partial_RNAs))]
+        }
+        update['active_RNAPs'] = {
+            'set': {
+                'coordinates': updated_coordinates
+            },
+            'delete': np.where(did_terminate_mask[
+                partial_RNA_to_RNAP_mapping])[0]
+        }
 
-        delete_rnas = partial_transcript_indexes[np.logical_and(
-            did_terminate_mask, np.logical_not(is_mRNA_partial_RNAs))]
-
-        update = {
-            'listeners': {},
-            'RNAs': {
-                rna_indexes[index]: rna
-                for index, rna in enumerate(rnas_update)}}
-        update['RNAs']['_delete'] = [rna_indexes[index] for index in delete_rnas]
-
-        rnap_indexes = list(states['active_RNAPs'].keys())
-        rnaps_update = arrays_to(
-            len(states['active_RNAPs']), {
-                'coordinates': updated_coordinates})
-
-        delete_rnaps = np.where(did_terminate_mask[partial_RNA_to_RNAP_mapping])[0]
-
-        # Attenuation removes RNAs and RNAPs (NON-FUNCTIONAL)
+        # Attenuation removes RNAs and RNAPs
         counts_attenuated = np.zeros(len(self.attenuated_rna_indices))
         if np.any(rna_to_attenuate):
             for idx in TU_index_partial_RNAs[rna_to_attenuate]:
                 counts_attenuated[self.attenuated_rna_indices_lookup[idx]] += 1
-            self.RNAs.delByIndexes(partial_transcript_indexes[rna_to_attenuate])
-            self.active_RNAPs.delByIndexes(np.where(rna_to_attenuate[partial_RNA_to_RNAP_mapping]))
+            update['RNAs']['delete'] = np.append(
+                update['RNAs']['delete'],
+                partial_transcript_indexes[rna_to_attenuate]
+            )
+            update['active_RNAPs']['delete'] = np.append(
+                update['active_RNAPs']['delete'],
+                np.where(rna_to_attenuate[partial_RNA_to_RNAP_mapping])[0]
+            )
         n_attenuated = rna_to_attenuate.sum()
 
-        # Handle stalled elongation (NON-FUNCTIONAL)
+        # Handle stalled elongation
         n_total_stalled = did_stall_mask.sum()
         if self.recycle_stalled_elongation and (n_total_stalled > 0):
             # Remove RNAPs that were bound to stalled elongation transcripts
             # and increment counts of inactive RNAPs
-            self.active_RNAPs.delByIndexes(
-                np.where(did_stall_mask[partial_RNA_to_RNAP_mapping])[0])
-            self.inactive_RNAPs.countInc(n_total_stalled)
+            update['active_RNAPs']['delete'] = np.append(
+                update['active_RNAPs']['delete'],
+                np.where(did_stall_mask[partial_RNA_to_RNAP_mapping])[0]
+            )
+            update['bulk'].append((self.inactive_RNAP_idx, n_total_stalled))
 
             # Remove partial transcripts from stalled elongation
-            self.RNAs.delByIndexes(
-                partial_transcript_indexes[did_stall_mask])
-            stalled_sequence_lengths = updated_transcript_lengths[did_stall_mask]
+            update['RNAs']['delete'] = np.append(
+                update['RNAs']['delete'],
+                partial_transcript_indexes[did_stall_mask]
+            )
+            stalled_sequence_lengths = updated_transcript_lengths[
+                did_stall_mask]
             n_initiated_sequences = np.count_nonzero(stalled_sequence_lengths)
 
             if n_initiated_sequences > 0:
@@ -529,28 +553,24 @@ class TranscriptElongation(PartitionedProcess):
                     np.zeros(n_total_stalled, dtype=np.int64),
                     np.full(n_total_stalled, updated_transcript_lengths.max()))
 
-                # Count the number of fragment bases in these transcripts up until the stalled length
+                # Count the number of fragment bases in these transcripts up
+                # until the stalled length
                 base_counts = np.zeros(self.n_fragment_bases, dtype=np.int64)
-                for sl, seq in zip(stalled_sequence_lengths, stalled_sequences):
-                    base_counts += np.bincount(seq[:sl], minlength=self.n_fragment_bases)
+                for sl, seq in zip(stalled_sequence_lengths,
+                    stalled_sequences
+                ):
+                    base_counts += np.bincount(seq[:sl],
+                        minlength=self.n_fragment_bases)
 
                 # Increment counts of fragment NTPs and phosphates
-                self.fragmentBases.countsInc(base_counts)
-                self.ppi.countInc(n_initiated_sequences)
+                update['bulk'].append((self.fragmentBases_idx, base_counts))
+                update['bulk'].append((self.ppi_idx, n_initiated_sequences))
 
-
-        update['active_RNAPs'] = {
-            rnap_indexes[index]: rnap
-            for index, rnap in enumerate(rnaps_update)}
-
-        update['active_RNAPs']['_delete'] = [rnap_indexes[index]
-                                             for index in delete_rnaps]
-
-        update['ntps'] = array_to(self.ntp_ids, -ntps_used)
-        update['bulk_RNAs'] = array_to(self.rnaIds, n_new_bulk_RNAs)
-        update['molecules'] = array_to(self.molecule_ids, [
-            n_elongations - n_initialized,  # ppi
-            n_terminated + n_attenuated])   # inactve RNAPs
+        update.setdefault('bulk', []).append((self.ntps_idx, -ntps_used))
+        update['bulk'].append((self.bulk_RNA_idx, n_new_bulk_RNAs))
+        update['bulk'].append((self.ppi_idx, n_elongations - n_initialized))
+        update['bulk'].append((self.fragmentBases_idx,
+            n_terminated + n_attenuated))
 
         # Write outputs to listeners
         update['listeners']['transcript_elongation_listener'] = {

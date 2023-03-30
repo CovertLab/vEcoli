@@ -215,19 +215,20 @@ def counts(states, idx):
     # idx is an integer array so advancing indexing applies (implicit copy)
     return states['count'][idx]
 
-def numpy_schema(name):
+def numpy_schema(name, partition=True, divider=None):
+    schema = {
+        '_default': [],
+        '_emit': True
+    }
+    if divider:
+        schema['_divider'] = divider
     if name == 'bulk':
-        return {
-            '_default': [],
-            '_updater': bulk_numpy_updater,
-            '_emit': True
-        }
+        if partition:
+            schema['_properties'] = {'bulk': True}
+        schema['_updater'] = bulk_numpy_updater
     else:
-        return {
-            '_default': [],
-            '_updater': unique_numpy_updater,
-            '_emit': True
-        }
+        schema['_updater'] = unique_numpy_updater
+    return schema
 
 def bulk_name_to_idx(names, bulk_names):
     # Convert from string names to indices in bulk array

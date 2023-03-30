@@ -17,8 +17,8 @@ the chromosome immediately decatenates forming two separate chromosome molecules
 
 import numpy as np
 
-from ecoli.library.schema import (array_to, array_from, arrays_from, arrays_to,
-    bulk_schema, create_unique_indexes, dict_value_schema)
+from ecoli.library.schema import (create_unique_indexes,
+    numpy_schema, counts, attrs, bulk_name_to_idx)
 from ecoli.states.wcecoli_state import MASSDIFFS
 
 from wholecell.utils import units
@@ -31,16 +31,13 @@ from ecoli.processes.partition import PartitionedProcess
 # Register default topology for this process, associating it with process name
 NAME = 'ecoli-chromosome-replication'
 TOPOLOGY = {
-        "replisome_trimers": ("bulk",),
-        "replisome_monomers": ("bulk",),
-        "dntps": ("bulk",),
-        "ppi": ("bulk",),
-        "active_replisomes": ("unique", "active_replisome"),
-        "oriCs": ("unique", "oriC"),
-        "chromosome_domains": ("unique", "chromosome_domain"),
-        "full_chromosomes": ("unique", "full_chromosome"),
-        "listeners": ("listeners",),
-        "environment": ("environment",)
+    "bulk": ("bulk",),
+    "active_replisomes": ("unique", "active_replisome"),
+    "oriCs": ("unique", "oriC"),
+    "chromosome_domains": ("unique", "chromosome_domain"),
+    "full_chromosomes": ("unique", "full_chromosome"),
+    "listeners": ("listeners",),
+    "environment": ("environment",)
 }
 topology_registry.register(NAME, TOPOLOGY)
 
@@ -107,14 +104,19 @@ class ChromosomeReplication(PartitionedProcess):
 
         self.emit_unique = self.parameters.get('emit_unique', True)
 
+        # Bulk molecule names
+        self.replisome_trimers_subunits = self.parameters['replisome_trimers_subunits']
+        self.replisome_monomers_subunits = self.parameters['replisome_monomers_subunits']
+        self.dntps = self.parameters['dtnps']
+        self.ppi = self.parameters['ppi']
+
+        self.ppi_idx = None
+
     def ports_schema(self):
 
         return {
             # bulk molecules
-            'replisome_trimers': bulk_schema(self.parameters['replisome_trimers_subunits']),
-            'replisome_monomers': bulk_schema(self.parameters['replisome_monomers_subunits']),
-            'dntps': bulk_schema(self.parameters['dntps']),
-            'ppi': bulk_schema(self.parameters['ppi']),
+            'bulk': numpy_schema('bulk'),
             'listeners': {
                 'mass': {
                     'cell_mass': {'_default': 0.0, '_emit': True}},
@@ -128,16 +130,23 @@ class ChromosomeReplication(PartitionedProcess):
                     '_default': '',
                     '_updater': 'set'},
                 },
-            'active_replisomes': dict_value_schema('active_replisomes'),
-            'oriCs': dict_value_schema('oriCs'),
-            'chromosome_domains': dict_value_schema('chromosome_domains'),
-            'full_chromosomes': dict_value_schema('full_chromosomes')
+            'active_replisomes': numpy_schema('active_replisomes'),
+            'oriCs': numpy_schema('oriCs'),
+            'chromosome_domains': numpy_schema('chromosome_domains'),
+            'full_chromosomes': numpy_schema('full_chromosomes')
             }
 
     def calculate_request(self, timestep, states):
+        if self.ppi_idx is None:
+            self.ppi_idx = bulk_name_to_idx(self.ppi, states['bulk']['id'])
+            self.replisome_trimers_idx = bulk_name_to_idx(
+                self.replisome_trimers_subunits, states['bulk']['id'])
+            self.replisome_monomers_idx = bulk_name_to_idx(
+                self.replisome_monomers_subunits, states['bulk']['id'])
+            self.dtnps_idx = bulk_name_to_idx(self.dtnps, states['bulk']['id'])
         requests = {}
         # Get total count of existing oriC's
-        n_oriC = len(states['oriCs'])
+        n_oriC = states['oriCs']['_entryState'].sum()
         # If there are no origins, return immediately
         if n_oriC == 0:
             return requests
@@ -160,21 +169,18 @@ class ChromosomeReplication(PartitionedProcess):
         # If replication should be initiated, request subunits required for
         # building two replisomes per one origin of replication, and edit
         # access to oriC and chromosome domain attributes
+        requests['bulk'] = []
         if self.criticalMassPerOriC >= 1.0:
-            requests['replisome_trimers'] = {rep_trimer: 6*n_oriC
-                                   for rep_trimer in states['replisome_trimers']}
-            requests['replisome_monomers'] = {rep_monomer: 2*n_oriC for rep_monomer
-                                        in states['replisome_monomers']}
+            requests['bulk'].append((self.replisome_trimers_idx, 6*n_oriC))
+            requests['bulk'].append((self.replisome_monomers_idx, 2*n_oriC))
 
         # If there are no active forks return
-        n_active_replisomes = len(states['active_replisomes'])
+        n_active_replisomes = states['active_replisomes']['_entryState'].sum()
         if n_active_replisomes == 0:
             return requests
 
         # Get current locations of all replication forks
-        fork_coordinates = arrays_from(
-                states['active_replisomes'].values(),
-                ['coordinates'])
+        fork_coordinates, = attrs(states['active_replisomes'], ['coordinates'])
         sequence_length = np.abs(np.repeat(fork_coordinates, 2))
 
         self.elongation_rates = self.make_elongation_rates(
@@ -195,49 +201,43 @@ class ChromosomeReplication(PartitionedProcess):
 
         # If one dNTP is limiting then limit the request for the other three by
         # the same ratio
-        dNtpsTotal = array_from(states['dntps'])
+        dNtpsTotal = counts(states['bulk'], self.dtnps_idx)
         maxFractionalReactionLimit = (np.fmin(1, dNtpsTotal / sequenceComposition)).min()
 
         # Request dNTPs
-        requests['dntps'] = array_to(states['dntps'], maxFractionalReactionLimit
-            * sequenceComposition)
+        requests['bulk'].append((self.dtnps_idx, maxFractionalReactionLimit
+            * sequenceComposition))
 
         return requests
 
     def evolve_state(self, timestep, states):
         # Initialize the update dictionary
         update = {
-            'replisome_trimers': {
-                    mol: 0
-                    for mol in self.parameters['replisome_trimers_subunits']},
-            'replisome_monomers': {
-                    mol: 0
-                    for mol in self.parameters['replisome_monomers_subunits']},
-            # 'oriCs': {},
+            'bulk': [],
             'active_replisomes': {},
             'listeners': {
-                'replication_data': {},
-            }}
+                'replication_data': {}
+            }
+        }
 
         # Module 1: Replication initiation
         # Get number of existing replisomes and oriCs
-        n_active_replisomes = len(states['active_replisomes'])
-        n_oriC = len(states['oriCs'])
+        n_active_replisomes = states['active_replisomes']['_entryState'].sum()
+        n_oriC = states['oriCs']['_entryState'].sum()
 
         # If there are no origins, return immediately
         if n_oriC == 0:
             return update
 
         # Get attributes of existing chromosome domains
-        domain_index_existing_domain, child_domains = arrays_from(
-            states['chromosome_domains'].values(),
-            ['domain_index', 'child_domains'])
+        domain_index_existing_domain, child_domains = attrs(
+            states['chromosome_domains'], ['domain_index', 'child_domains'])
 
         initiate_replication = False
         if self.criticalMassPerOriC >= 1.0:
             # Get number of available replisome subunits
-            n_replisome_trimers = array_from(states['replisome_trimers'])
-            n_replisome_monomers = array_from(states['replisome_monomers'])
+            n_replisome_trimers = counts(states['bulk'], self.replisome_trimers_idx)
+            n_replisome_monomers = counts(states['bulk'], self.replisome_monomers_idx)
             # Initiate replication only when
             # 1) The cell has reached the critical mass per oriC
             # 2) If mechanistic replisome option is on, there are enough replisome
@@ -251,9 +251,7 @@ class ChromosomeReplication(PartitionedProcess):
         # origin of replication
         if initiate_replication:
             # Get attributes of existing oriCs and domains
-            domain_index_existing_oric, = arrays_from(
-                states['oriCs'].values(),
-                ['domain_index'])
+            domain_index_existing_oric, = attrs(states['oriCs'], ['domain_index'])
 
             # Get indexes of the domains that would be getting child domains
             # (domains that contain an origin)
@@ -272,18 +270,14 @@ class ChromosomeReplication(PartitionedProcess):
 
             # Add new oriC's, and reset attributes of existing oriC's
             # All oriC's must be assigned new domain indexes
-            update['oriCs'] = {
-                oric_id: {
-                    'domain_index': domain_index_new[index]
-                }
-                for index, oric_id in enumerate(states['oriCs'])
-            }
+            update['oriCs'] = {'set': {
+                'domain_index': domain_index_new[:n_oriC]}}
             new_oric_indexes = create_unique_indexes(
                 n_oriC, self.random_state)
-            update['oriCs']['_add'] = [{
-                'key': new_oric_indexes[index],
-                'state': {'domain_index': domain_index_new[n_oriC + index]}}
-                for index in range(n_oriC)]
+            update['oriCs']['add'] = {
+                'unique_index': new_oric_indexes,
+                'domain_index': domain_index_new[n_oriC:]
+            }
 
             # Add and set attributes of newly created replisomes.
             # New replisomes inherit the domain indexes of the oriC's they
@@ -297,14 +291,12 @@ class ChromosomeReplication(PartitionedProcess):
                 domain_index_existing_oric, 2)
             new_replisome_indexes = create_unique_indexes(
                 n_new_replisome, self.random_state)
-            update['active_replisomes']['_add'] = [{
-                    'key': new_replisome_indexes[index],
-                    'state': {
-                        'coordinates': coordinates_replisome[index],
-                        'right_replichore': right_replichore[index],
-                        'domain_index': domain_index_new_replisome[index],
-                    }}
-                    for index in range(n_new_replisome)]
+            update['active_replisomes']['add'] = {
+                'unique_index': new_replisome_indexes,
+                'coordinates': coordinates_replisome,
+                'right_replichore': right_replichore,
+                'domain_index': domain_index_new_replisome
+            }
 
             # Add and set attributes of new chromosome domains. All new domains
             # should have have no children domains.
@@ -313,27 +305,25 @@ class ChromosomeReplication(PartitionedProcess):
             new_domain_indexes = create_unique_indexes(
                 n_new_domain, self.random_state)
             new_domains_update = {
-                '_add': [{
-                    'key': new_domain_indexes[index],
-                    'state': {
-                        'domain_index': domain_index_new[index].tolist(),
-                        'child_domains': new_child_domains[index].tolist(),
-                    }}
-                    for index in range(n_new_domain)]}
+                'add': {
+                    'unique_index': new_domain_indexes,
+                    'domain_index': domain_index_new,
+                    'child_domains': new_child_domains,
+                }
+            }
 
             # Add new domains as children of existing domains
             child_domains[new_parent_domains] = domain_index_new.reshape(-1, 2)
             existing_domains_update = {
-                domain: {'child_domains': child_domains[index].tolist()}
-                for index, domain in enumerate(states['chromosome_domains'].keys())}
-            update['chromosome_domains'] = {**new_domains_update, **existing_domains_update}
+                'set': {'child_domains': child_domains}
+            }
+            update['chromosome_domains'] = {
+                **new_domains_update, **existing_domains_update}
 
             # Decrement counts of replisome subunits
             if self.mechanistic_replisome:
-                for mol in self.parameters['replisome_trimers_subunits']:
-                    update['replisome_trimers'][mol] -= 6 * n_oriC
-                for mol in self.parameters['replisome_monomers_subunits']:
-                    update['replisome_monomers'][mol] -= 2 * n_oriC
+                update['bulk'].append((self.replisome_trimers_idx, -6*n_oriC))
+                update['bulk'].append((self.replisome_monomers_idx, -2*n_oriC))
 
         # Write data from this module to a listener
         update['listeners']['replication_data']['criticalMassPerOriC'] = \
@@ -349,12 +339,13 @@ class ChromosomeReplication(PartitionedProcess):
             return update
 
         # Get allocated counts of dNTPs
-        dNtpCounts = array_from(states['dntps'])
+        dNtpCounts = counts(states['bulk'], self.dtnps_idx)
 
         # Get attributes of existing replisomes
-        domain_index_replisome, right_replichore, coordinates_replisome, = arrays_from(
-            states['active_replisomes'].values(),
-            ['domain_index', 'right_replichore', 'coordinates'])
+        domain_index_replisome, right_replichore, coordinates_replisome, = attrs(
+            states['active_replisomes'],
+            ['domain_index', 'right_replichore', 'coordinates']
+        )
 
         # Build sequences to polymerize
         sequence_length = np.abs(np.repeat(coordinates_replisome, 2))
@@ -399,25 +390,17 @@ class ChromosomeReplication(PartitionedProcess):
         updated_coordinates[~right_replichore] = -updated_coordinates[~right_replichore]
 
         # Update attributes and submasses of replisomes
-        active_replisomes_indexes = list(states['active_replisomes'].keys())
-        added_submass = np.zeros((len(states['active_replisomes']), 9))
-        added_submass[:, self.DNA_submass_idx] = added_dna_mass
-        current_submass = np.zeros((n_active_replisomes, 9))
-        for index, value in enumerate(states['active_replisomes'].values()):
-            current_submass[index] = value['submass']
-        active_replisomes_update = arrays_to(
-            len(states['active_replisomes']),
-            {
-                'coordinates': updated_coordinates,
-                'submass': current_submass + added_submass,
-             })
+        current_dna_mass, = attrs(states['active_replisomes'], ['dna_submass'])
         update['active_replisomes'] = {
-                active_replisomes_indexes[index]: active_replisomes
-                for index, active_replisomes in enumerate(active_replisomes_update)}
+            'set': {
+                'coordinates': updated_coordinates,
+                'dna_submass': current_dna_mass + added_dna_mass
+            }
+        }
 
         # Update counts of polymerized metabolites
-        update['dntps'] = array_to(self.parameters['dntps'], -dNtpsUsed)
-        update['ppi'] = array_to(self.parameters['ppi'], [dNtpsUsed.sum()])
+        update['bulk'].append((self.dtnps_idx, -dNtpsUsed))
+        update['bulk'].append((self.ppi_idx, dNtpsUsed.sum()))
 
         # Module 3: replication termination
         # Determine if any forks have reached the end of their sequences. If
@@ -432,11 +415,11 @@ class ChromosomeReplication(PartitionedProcess):
             terminated_domains = np.unique(domain_index_replisome[terminated_replisomes])
 
             # Get attributes of existing domains and full chromosomes
-            domain_index_domains, child_domains, = arrays_from(
-                states['chromosome_domains'].values(),
+            domain_index_domains, child_domains, = attrs(
+                states['chromosome_domains'],
                 ['domain_index', 'child_domains'])
-            domain_index_full_chroms, = arrays_from(
-                states['full_chromosomes'].values(),
+            domain_index_full_chroms, = attrs(
+                states['full_chromosomes'],
                 ['domain_index'])
 
             # Initialize array of replisomes that should be deleted
@@ -483,40 +466,35 @@ class ChromosomeReplication(PartitionedProcess):
                     domain_index_new_full_chroms.append(child_domains_this_domain[1])
 
             # Delete terminated replisomes
-            replisome_delete_update = [
-                key for index, key in enumerate(states['active_replisomes'].keys())
-                if replisomes_to_delete[index]]
-            if replisome_delete_update:
-                update['active_replisomes']['_delete'] = replisome_delete_update
+            update['active_replisomes']['delete'] = np.where(replisomes_to_delete)[0]
 
             # Generate new full chromosome molecules
             if n_new_chromosomes > 0:
                 new_chromosome_indexes = create_unique_indexes(
                     n_new_chromosomes, self.random_state)
                 chromosome_add_update = {
-                    '_add': [{
-                        'key': new_chromosome_indexes[index],
-                        'state': {
-                            'domain_index': domain_index_new_full_chroms[index],
-                            'division_time': self.D_period,  # TODO(vivarium-ecoli): How is division_time used?
-                            'has_triggered_division': False}
-                    } for index in range(n_new_chromosomes)]
+                    'add': {
+                        'unqiue_index': new_chromosome_indexes,
+                        'domain_index': domain_index_new_full_chroms,
+                        'division_time': self.D_period, # TODO(vivarium-ecoli): How is division_time used?
+                        'has_triggered_division': False
+                    }
                 }
 
                 # Reset domain index of existing chromosomes that have finished
                 # replication
                 chromosome_existing_update = {
-                    key: {'domain_index': domain_index_full_chroms[index]}
-                    for index, key in enumerate(states['full_chromosomes'].keys())}
+                    'set': {'domain_index': domain_index_full_chroms}
+                }
 
                 update['full_chromosomes'] = {**chromosome_add_update, **chromosome_existing_update}
 
             # Increment counts of replisome subunits
             if self.mechanistic_replisome:
-                for mol in self.parameters['replisome_trimers_subunits']:
-                    update['replisome_trimers'][mol] += 3 * replisomes_to_delete.sum()
-                for mol in self.parameters['replisome_monomers_subunits']:
-                    update['replisome_monomers'][mol] += replisomes_to_delete.sum()
+                update['bulk'].append((self.replisome_trimers_idx,
+                    3*replisomes_to_delete.sum()))
+                update['bulk'].append((self.replisome_monomers_idx,
+                    replisomes_to_delete.sum()))
 
         return update
 
