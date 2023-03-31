@@ -17,8 +17,7 @@ import numpy as np
 
 from vivarium.core.composition import simulate_process
 from ecoli.library.schema import (
-    arrays_from, arrays_to, add_elements,
-    bulk_schema, dict_value_schema, create_unique_indexes,
+    create_unique_indexes, numpy_schema, attrs, counts, bulk_name_to_idx
 )
 
 from wholecell.utils import units
@@ -31,11 +30,12 @@ from ecoli.processes.partition import PartitionedProcess
 # Register default topology for this process, associating it with process name
 NAME = 'ecoli-polypeptide-initiation'
 TOPOLOGY = {
-        "environment": ("environment",),
-        "listeners": ("listeners",),
-        "active_ribosome": ("unique", "active_ribosome"),
-        "RNA": ("unique", "RNA"),
-        # "subunits": ("bulk",)
+    "environment": ("environment",),
+    "listeners": ("listeners",),
+    "active_ribosome": ("unique", "active_ribosome"),
+    "RNA": ("unique", "RNA"),
+    # "subunits": ("bulk",)
+    "bulk": ("bulk",),
 }
 topology_registry.register(NAME, TOPOLOGY)
 
@@ -66,14 +66,18 @@ class PolypeptideInitiation(PartitionedProcess):
 
         # Load parameters
         self.protein_lengths = self.parameters['protein_lengths']
-        self.translation_efficiencies = self.parameters['translation_efficiencies']
-        self.active_ribosome_fraction = self.parameters['active_ribosome_fraction']
-        self.ribosome_elongation_rates_dict = self.parameters['elongation_rates']
+        self.translation_efficiencies = self.parameters[
+            'translation_efficiencies']
+        self.active_ribosome_fraction = self.parameters[
+            'active_ribosome_fraction']
+        self.ribosome_elongation_rates_dict = self.parameters[
+            'elongation_rates']
         self.variable_elongation = self.parameters['variable_elongation']
         self.make_elongation_rates = self.parameters['make_elongation_rates']
 
         # Get indexes from proteins to transcription units
-        self.protein_index_to_TU_index = self.parameters['protein_index_to_TU_index']
+        self.protein_index_to_TU_index = self.parameters[
+            'protein_index_to_TU_index']
 
         # Build matrix to convert transcription unit counts to mRNA counts
         self.all_TU_ids = self.parameters['all_TU_ids']
@@ -84,14 +88,16 @@ class PolypeptideInitiation(PartitionedProcess):
         self.TU_counts_to_mRNA_counts = np.zeros(
             (self.n_mRNAs, self.n_TUs), dtype=np.float64)
 
-        self.TU_id_to_index = {TU_id: i for i, TU_id in enumerate(self.all_TU_ids)}
+        self.TU_id_to_index = {TU_id: i
+            for i, TU_id in enumerate(self.all_TU_ids)}
         for i, mRNA_id in enumerate(self.all_mRNA_ids):
             self.TU_counts_to_mRNA_counts[i, self.TU_id_to_index[mRNA_id]] = 1
 
         # Determine changes from parameter shuffling variant
         self.shuffle_indexes = self.parameters['shuffle_indexes']
         if self.shuffle_indexes:
-            self.translation_efficiencies = self.translation_efficiencies[self.shuffle_indexes]
+            self.translation_efficiencies = self.translation_efficiencies[
+                self.shuffle_indexes]
 
         self.ribosome30S = self.parameters['ribosome30S']
         self.ribosome50S = self.parameters['ribosome50S']
@@ -105,6 +111,9 @@ class PolypeptideInitiation(PartitionedProcess):
                 'ribosome_data': {
                     'ribosomes_initialized': 0,
                     'prob_translation_per_transcript': 0.0}}}
+        
+        # Helper indices for Numpy indexing
+        self.ribosome30S_idx = None
 
     def ports_schema(self):
         return {
@@ -127,20 +136,29 @@ class PolypeptideInitiation(PartitionedProcess):
                         '_updater': 'set',
                         '_emit': True}}},
 
-            'active_ribosome': dict_value_schema('active_ribosome'),
-
-            'RNA': dict_value_schema('RNAs'),
-            'subunits': bulk_schema([
-                self.ribosome30S,
-                self.ribosome50S])}#find their indices
+            'active_ribosome': numpy_schema('active_ribosome'),
+            'RNA': numpy_schema('RNAs'),
+            'subunits': numpy_schema('bulk')
+        }
 
     def calculate_request(self, timestep, states):
-        #pull out the two rows for subunit ids, states['bulk']
+        if self.ribosome30S_idx is None:
+            bulk_ids = states['bulk']['id']
+            self.ribosome30S_idx = bulk_name_to_idx(self.ribosome30S, bulk_ids)
+            self.ribosome50S_idx = bulk_name_to_idx(self.ribosome50S, bulk_ids)
+
         current_media_id = states['environment']['media_id']
 
-        requests = {'subunits': states['subunits']}
+        # requests = {'subunits': states['subunits']}
+        requests = {'bulk': [
+            (self.ribosome30S_idx, counts(
+                states['bulk'], self.ribosome30S_idx)),
+            (self.ribosome50S_idx, counts(
+                states['bulk'], self.ribosome50S_idx))
+        ]}
 
-        self.fracActiveRibosome = self.active_ribosome_fraction[current_media_id]
+        self.fracActiveRibosome = self.active_ribosome_fraction[
+            current_media_id]
 
         # Read ribosome elongation rate from last timestep
         self.ribosomeElongationRate = states['listeners']['ribosome_data'][
@@ -166,12 +184,13 @@ class PolypeptideInitiation(PartitionedProcess):
         # Calculate number of ribosomes that could potentially be initialized
         # based on counts of free 30S and 50S subunits
         inactive_ribosome_count = np.min([
-            states['subunits'][self.ribosome30S],
-            states['subunits'][self.ribosome50S]])
+            counts(states['bulk'], self.ribosome30S_idx),
+            counts(states['bulk'], self.ribosome50S_idx)
+        ])
 
         # Get attributes of active (translatable) mRNAs
-        TU_index_RNAs, can_translate, unique_index_RNAs = arrays_from(
-            states['RNA'].values(),
+        TU_index_RNAs, can_translate, unique_index_RNAs = attrs(
+            states['RNA'],
             ['TU_index', 'can_translate', 'unique_index'])
         TU_index_active_mRNAs = TU_index_RNAs[can_translate]
         unique_index_active_mRNAs = unique_index_RNAs[can_translate]
@@ -194,7 +213,8 @@ class PolypeptideInitiation(PartitionedProcess):
             protein_init_prob,
             timestep)
 
-        n_ribosomes_to_activate = np.int64(activation_prob * inactive_ribosome_count)
+        n_ribosomes_to_activate = np.int64(activation_prob
+            * inactive_ribosome_count)
 
         if n_ribosomes_to_activate == 0:
             return self.empty_update
@@ -222,7 +242,8 @@ class PolypeptideInitiation(PartitionedProcess):
             protein_indexes[start_index:start_index+counts] = protein_index
 
             # Get mask for active mRNA molecules that produce this protein
-            mask = (TU_index_active_mRNAs == self.protein_index_to_TU_index[protein_index])
+            mask = (TU_index_active_mRNAs ==
+                self.protein_index_to_TU_index[protein_index])
             n_mRNAs = np.count_nonzero(mask)
 
             # Distribute ribosomes among these mRNAs
@@ -238,19 +259,22 @@ class PolypeptideInitiation(PartitionedProcess):
         # Create active 70S ribosomes and assign their attributes
         ribosome_indices = create_unique_indexes(
             n_ribosomes_to_activate, self.random_state)
-        new_ribosomes = arrays_to(
-            n_ribosomes_to_activate, {
-                'unique_index': ribosome_indices,
-                'protein_index': protein_indexes,
-                'peptide_length': np.zeros(cast(int, n_ribosomes_to_activate), dtype=np.int64),
-                'mRNA_index': mRNA_indexes,
-                'pos_on_mRNA': np.zeros(cast(int, n_ribosomes_to_activate), dtype=np.int64)})
-
         update = {
-            'subunits': {
-                self.ribosome30S: -n_new_proteins.sum(),
-                self.ribosome50S: -n_new_proteins.sum()},
-            'active_ribosome': add_elements(new_ribosomes, 'unique_index'),
+            'bulk': [
+                (self.ribosome30S_idx, -n_new_proteins.sum()),
+                (self.ribosome50S_idx, -n_new_proteins.sum())
+            ],
+            'active_ribosome': {
+                'add': {
+                    'unique_index': ribosome_indices,
+                    'protein_index': protein_indexes,
+                    'peptide_length': np.zeros(cast(int(
+                        n_ribosomes_to_activate), dtype=np.int64)),
+                    'mRNA_index': mRNA_indexes,
+                    'pos_on_mRNA': np.zeros(cast(int, n_ribosomes_to_activate),
+                        dtype=np.int64)
+                }
+            },
             'listeners': {
                 'ribosome_data': {
                     'ribosomes_initialized': n_new_proteins.sum(),

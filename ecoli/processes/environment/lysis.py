@@ -19,6 +19,7 @@ from ecoli.library.lattice_utils import (
     get_bin_volume,
     count_to_concentration,
 )
+from ecoli.library.schema import bulk_name_to_idx, counts, numpy_schema
 
 
 
@@ -39,6 +40,9 @@ class Lysis(Step):
         self.nonspatial = self.parameters['nonspatial']
         self.bin_volume = self.parameters['bin_volume']
 
+        # Helper indices for Numpy indexing
+        self.secreted_mol_idx = None
+
     def ports_schema(self):
         fields_schema = {
                 mol_id: {
@@ -51,12 +55,7 @@ class Lysis(Step):
                 '_default': False
             },
             'agents': {},
-            'internal': {
-                mol_id: {
-                    '_default': 1,  # Counts
-                    '_emit': True,
-                } for mol_id in self.parameters['secreted_molecules']
-            },
+            'internal': numpy_schema('bulk'),
             'fields': {
                 **fields_schema,
                 '_output': True,
@@ -78,6 +77,12 @@ class Lysis(Step):
         }
 
     def next_update(self, timestep, states):
+        if self.secreted_mol_idx is None:
+            self.secreted_mol_idx = {
+                mol_name: bulk_name_to_idx(mol_name, states['internal']['id'])
+                for mol_name in self.parameters['secreted_molecules']
+            }
+
         if states['trigger']:
             location = states['location']
             n_bins = states['dimensions']['n_bins']
@@ -94,7 +99,8 @@ class Lysis(Step):
             # apply internal states to fields
             internal = states['internal']
             delta_fields = {}
-            for mol_id, value in internal.items():
+            for mol_id, mol_idx in self.secreted_mol_idx.items():
+                value = counts(internal, mol_idx)
 
                 # delta concentration
                 exchange = value

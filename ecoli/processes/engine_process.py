@@ -418,11 +418,11 @@ class EngineProcess(Process):
             self.parameters['chromosome_path']).get_value()
         # If no chromosome_path is supplied, allow division to proceed
         if full_chromosomes is None:
-            full_chromosomes = [0, 1]
+            full_chromosomes = np.ones(2)
         if (
                 self.parameters['divide']
                 and division_variable >= division_threshold
-                and len(full_chromosomes) >= 2):
+                and full_chromosomes['_entryState'].sum() >= 2):
             # Perform division.
             daughters = []
             daughter_states = self.sim.state.divide_value()
