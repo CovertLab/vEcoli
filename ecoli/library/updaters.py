@@ -66,6 +66,13 @@ def inverse_update_nonnegative_accumulate(initial_state, final_state):
     return final_state - initial_state
 
 
+def inverse_update_bulk_numpy(initial_state, final_state):
+    diff = final_state['count'] - initial_state['count']
+    if np.all(diff == 0):
+        return initial_state
+    return [(np.arange(len(initial_state)), diff),]
+
+
 def _reverse_dict_update(initial, final):
     '''
     Return an update such that ``initial.update(update) == final``.

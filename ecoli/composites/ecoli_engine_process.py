@@ -63,16 +63,19 @@ class EcoliInnerSim(Composer):
         initial_state = ecoli_sim.initial_state
         if config['division_threshold'] == 'massDistribution':
             expectedDryMassIncreaseDict = ecoli_sim.ecoli.steps[
-                'ecoli-mass-listener'].parameters['expectedDryMassIncreaseDict']
-            division_random_seed = (binascii.crc32(b'CellDivision', config['seed']) 
-                                    & 0xffffffff)
-            division_random_state = np.random.RandomState(seed=division_random_seed)
-            division_mass_multiplier = division_random_state.normal(loc=1.0, scale=0.1)
+                'ecoli-mass-listener'].parameters[
+                    'expectedDryMassIncreaseDict']
+            division_random_seed = (binascii.crc32(
+                b'CellDivision', config['seed']) & 0xffffffff)
+            division_random_state = np.random.RandomState(
+                seed=division_random_seed)
+            division_mass_multiplier = division_random_state.normal(
+                loc=1.0, scale=0.1)
             current_media_id = initial_state['environment']['media_id']
             config['division_threshold'] = (
                 get_in(initial_state, config['division_variable']) + 
-                expectedDryMassIncreaseDict[current_media_id].asNumber(units.fg)
-                * division_mass_multiplier)
+                expectedDryMassIncreaseDict[current_media_id].asNumber(
+                    units.fg) * division_mass_multiplier)
         ecoli_sim.ecoli['division_threshold'] = config['division_threshold']
         ecoli_sim.ecoli['division_variable'] = config['division_variable']
         ecoli_sim.ecoli['initial_inner_state'] = initial_state
@@ -110,11 +113,7 @@ class EcoliEngineProcess(Composer):
     def generate_processes(self, config):
         processes = {}
         if config['lysis_config']:
-            secreted_molecules = config['lysis_config']['secreted_molecules']
-            config['tunnels_in'] += tuple([
-                ('bulk', secreted_molecule)
-                for secreted_molecule in secreted_molecules
-            ])
+            config['tunnels_in'] += (('bulk',),)
             config['tunnels_in'] += (('burst',),)
             config['lysis_config']['agent_id'] = config['agent_id']
             processes = {
@@ -173,7 +172,8 @@ class EcoliEngineProcess(Composer):
 
 def colony_save_states(engine, config):
     """
-    Runs the simulation while saving the states of the colony at specific timesteps to jsons.
+    Runs the simulation while saving the states of the colony at specific
+    timesteps to jsons.
     """
     for time in config["save_times"]:
         if time > config["total_time"]:
@@ -185,7 +185,8 @@ def colony_save_states(engine, config):
         if i == 0:
             time_to_next_save = config["save_times"][i]
         else:
-            time_to_next_save = config["save_times"][i] - config["save_times"][i - 1]
+            time_to_next_save = config["save_times"][i] - config[
+                "save_times"][i - 1]
         # Run engine to next save point
         engine.update(time_to_next_save)
         time_elapsed = config["save_times"][i]
@@ -209,15 +210,18 @@ def colony_save_states(engine, config):
             cell_state['division_threshold'] = engine.state.get_path(
                 ('agents', agent_id, 'cell_process')
             ).value.parameters['division_threshold']
-            del cell_state['environment']['exchange_data']  # Can't save, but will be restored when loading state
+            # Can't save, but will be restored when loading state
+            del cell_state['environment']['exchange_data']  
             del cell_state['evolvers_ran']
-            del cell_state['process'] # Shared processes are re-initialized on load
+            # Shared processes are re-initialized on load
+            del cell_state['process']
             state_to_save['agents'][agent_id] = cell_state
 
         state_to_save = serialize_value(state_to_save)
         if config.get('colony_save_prefix', None):
-            write_json('data/' + str(config['colony_save_prefix']) + '_seed_' + str(config['seed'])
-                + '_colony_t' + str(time_elapsed) + '.json', state_to_save)
+            write_json('data/' + str(config['colony_save_prefix']) + '_seed_' \
+                + str(config['seed']) + '_colony_t' + str(time_elapsed) \
+                + '.json', state_to_save)
         else:
             write_json('data/seed_' + str(config['seed'])
                 + '_colony_t' + str(time_elapsed) + '.json', state_to_save)
@@ -241,8 +245,8 @@ def run_simulation(config):
             config['spatial_environment_config'])
         environment_composite = environment_composer.generate()
         del environment_composer
-        # Must declare actual timeline under spatial_process_config > field_timeline
-        # for stores to properly initialize
+        # Must declare actual timeline under ('spatial_process_config',
+        # 'field_timeline',) for stores to properly initialize
         field_timeline = FieldTimeline(
             config['spatial_environment_config']['field_timeline'])
         environment_composite.merge(
@@ -303,10 +307,12 @@ def run_simulation(config):
 
     composite = {}
     if 'initial_colony_file' in config.keys():
-        initial_state = get_state_from_file(path=f'data/{config["initial_colony_file"]}.json')  # TODO(Matt): initial_state_file is wc_ecoli?
+        initial_state = get_state_from_file(path='data/' \
+            + config["initial_colony_file"] + '.json')
         agent_states = initial_state['agents']
         for agent_id, agent_state in agent_states.items():
-            time_str = re.fullmatch(r'.*_t([0-9]+)$', config['initial_colony_file']).group(1)
+            time_str = re.fullmatch(r'.*_t([0-9]+)$',
+                config['initial_colony_file']).group(1)
             seed = (
                 base_config['seed']
                 + int(float(time_str))
@@ -329,11 +335,14 @@ def run_simulation(config):
                 'division_threshold': division_threshold
             }
             agent_composer = EcoliEngineProcess(base_config)
-            agent_composite = agent_composer.generate(agent_config, path=agent_path)
+            agent_composite = agent_composer.generate(
+                agent_config, path=agent_path)
             if not composite:
                 composite = agent_composite
-            composite.processes['agents'][agent_id] = agent_composite.processes['agents'][agent_id]
-            composite.topology['agents'][agent_id] = agent_composite.topology['agents'][agent_id]
+            composite.processes['agents'][agent_id] = \
+                agent_composite.processes['agents'][agent_id]
+            composite.topology['agents'][agent_id] = \
+                agent_composite.topology['agents'][agent_id]
         initial_state = composite.initial_state()
         # Clean up namespace for garbage collector
         del (agent_id, agent_state, agent_states, agent_path, agent_composer, 
@@ -362,7 +371,8 @@ def run_simulation(config):
 
     metadata = config.to_dict()
     metadata['division_threshold'] = [
-        agent['cell_process'].parameters['division_threshold'] for agent in composite.processes['agents'].values()]
+        agent['cell_process'].parameters['division_threshold']
+        for agent in composite.processes['agents'].values()]
     metadata.pop('initial_state', None)
     metadata['git_hash'] = get_git_revision_hash()
     metadata['git_status'] = get_git_status()
@@ -397,8 +407,7 @@ def run_simulation(config):
 
 
 def test_run_simulation():
-    # Clear the emitter's data in case it has been filled by another
-    # test.
+    # Clear the emitter's data in case it has been filled by another test.
     SharedRamEmitter.saved_data.clear()
     config = SimConfig()
     spatial_config_path = os.path.join(CONFIG_DIR_PATH, 'spatial.json')
