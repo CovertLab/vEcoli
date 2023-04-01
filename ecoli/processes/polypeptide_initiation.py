@@ -34,8 +34,8 @@ TOPOLOGY = {
     "listeners": ("listeners",),
     "active_ribosome": ("unique", "active_ribosome"),
     "RNA": ("unique", "RNA"),
-    # "subunits": ("bulk",)
     "bulk": ("bulk",),
+    "global_time": ("global_time",),
 }
 topology_registry.register(NAME, TOPOLOGY)
 
@@ -138,7 +138,8 @@ class PolypeptideInitiation(PartitionedProcess):
 
             'active_ribosome': numpy_schema('active_ribosome'),
             'RNA': numpy_schema('RNAs'),
-            'subunits': numpy_schema('bulk')
+            'bulk': numpy_schema('bulk'),
+            'global_time': {'_default': 0}
         }
 
     def calculate_request(self, timestep, states):
@@ -217,6 +218,8 @@ class PolypeptideInitiation(PartitionedProcess):
             * inactive_ribosome_count)
 
         if n_ribosomes_to_activate == 0:
+            update = dict(self.empty_update)
+            update['active_ribosome'] = {'time': states['global_time']}
             return self.empty_update
 
         # Sample multinomial distribution to determine which mRNAs have full
@@ -234,12 +237,13 @@ class PolypeptideInitiation(PartitionedProcess):
         nonzero_count = (n_new_proteins > 0)
         start_index = 0
 
-        for protein_index, counts in zip(
+        for protein_index, protein_counts in zip(
                 np.arange(n_new_proteins.size)[nonzero_count],
                 n_new_proteins[nonzero_count]):
 
             # Set protein index
-            protein_indexes[start_index:start_index+counts] = protein_index
+            protein_indexes[start_index:start_index+protein_counts
+                ] = protein_index
 
             # Get mask for active mRNA molecules that produce this protein
             mask = (TU_index_active_mRNAs ==
@@ -248,13 +252,13 @@ class PolypeptideInitiation(PartitionedProcess):
 
             # Distribute ribosomes among these mRNAs
             n_ribosomes_per_RNA = self.random_state.multinomial(
-                counts, np.full(n_mRNAs, 1./n_mRNAs))
+                protein_counts, np.full(n_mRNAs, 1./n_mRNAs))
 
             # Get unique indexes of each mRNA
-            mRNA_indexes[start_index:start_index + counts] = np.repeat(
+            mRNA_indexes[start_index:start_index + protein_counts] = np.repeat(
                 unique_index_active_mRNAs[mask], n_ribosomes_per_RNA)
 
-            start_index += counts
+            start_index += protein_counts
 
         # Create active 70S ribosomes and assign their attributes
         ribosome_indices = create_unique_indexes(
@@ -268,12 +272,13 @@ class PolypeptideInitiation(PartitionedProcess):
                 'add': {
                     'unique_index': ribosome_indices,
                     'protein_index': protein_indexes,
-                    'peptide_length': np.zeros(cast(int(
-                        n_ribosomes_to_activate), dtype=np.int64)),
+                    'peptide_length': np.zeros(cast(int,
+                        n_ribosomes_to_activate), dtype=np.int64),
                     'mRNA_index': mRNA_indexes,
                     'pos_on_mRNA': np.zeros(cast(int, n_ribosomes_to_activate),
                         dtype=np.int64)
-                }
+                },
+                'time': states['global_time']
             },
             'listeners': {
                 'ribosome_data': {

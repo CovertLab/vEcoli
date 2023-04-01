@@ -32,7 +32,8 @@ def filter_bulk_ports(schema, update=None):
         Dict: Ports schema that only includes bulk molecules
         with the new schemas.
     """
-    if schema.get('bulk', False):
+    # All bulk ports will have {'bulk': True} somewhere in schema
+    if schema.get('bulk', False) == True:
         # Do not modify input schema
         schema = dict(schema)
         if update:
@@ -44,6 +45,30 @@ def filter_bulk_ports(schema, update=None):
             sub_filtered = filter_bulk_ports(v)
             if sub_filtered:
                 filtered[k] = sub_filtered
+    return filtered
+
+
+def filter_bulk_topology(topology):
+    """Retrieve only topology for partitioned bulk molecules.
+    Assumes all ports with '_total' in name are not partitioned.
+
+    Args:
+        topology (Dict): The topology to filter
+
+    Returns:
+        Dict: Topology that only includes bulk molecules
+        with the new schemas.
+    """
+    filtered = {}
+    for k, v in topology.items():
+        if '_total' in k:
+            continue
+        if isinstance(v, dict):
+            sub_filtered = filter_bulk_topology(v)
+            if sub_filtered:
+                filtered[k] = sub_filtered
+        elif isinstance(v, tuple) and 'bulk' in v:
+            filtered[k] = v
     return filtered
 
 

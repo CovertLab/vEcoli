@@ -55,10 +55,11 @@ from ecoli.processes.partition import PartitionedProcess
 # Register default topology for this process, associating it with process name
 NAME = 'ecoli-rna-degradation'
 TOPOLOGY = {
-        "bulk": ("bulk",),
-        "RNAs": ("unique", "RNA"),
-        "active_ribosome": ("unique", "active_ribosome"),
-        "listeners": ("listeners",)
+    "bulk": ("bulk",),
+    "RNAs": ("unique", "RNA"),
+    "active_ribosome": ("unique", "active_ribosome"),
+    "listeners": ("listeners",),
+    "global_time": ("global_time",),
 }
 topology_registry.register(NAME, TOPOLOGY)
 
@@ -196,6 +197,7 @@ class RnaDegradation(PartitionedProcess):
                     'fragment_bases_digested': 0,
                 }),
             },
+            'global_time': {'_default': 0}
         }
 
     def calculate_request(self, timestep, states):
@@ -375,7 +377,7 @@ class RnaDegradation(PartitionedProcess):
             counts(states['bulk'], self.endoRnases_idx)))
         requests['bulk'].append((self.exoRnases_idx,
             counts(states['bulk'], self.exoRnases_idx)))
-        requests['bulk'].append((self.fragmentBases_idx,
+        requests['bulk'].append((self.fragment_bases_idx,
             counts(states['bulk'], self.fragment_bases_idx)))
 
         # Calculate the amount of water required for total RNA hydrolysis by
@@ -436,7 +438,8 @@ class RnaDegradation(PartitionedProcess):
                     'can_translate': can_translate
                 },
                 # Degrade full mRNAs that are inactive
-                'delete': np.where(self.unique_mRNAs_to_degrade)[0]
+                'delete': np.where(self.unique_mRNAs_to_degrade)[0],
+                'time': states['global_time']
             }
         }
 
@@ -459,7 +462,7 @@ class RnaDegradation(PartitionedProcess):
         update['bulk'].append((self.fragment_metabolites_idx,
             metabolitesEndoCleavage))
         # fragmentMetabolites overlaps with fragmentBases
-        bulk_count_copy = states['bulk']['count'].copy()
+        bulk_count_copy = states['bulk'].copy()
         bulk_count_copy[self.fragment_metabolites_idx] \
             += metabolitesEndoCleavage
         fragmentBases = bulk_count_copy[self.fragment_bases_idx]
@@ -490,8 +493,8 @@ class RnaDegradation(PartitionedProcess):
 
         if exornase_capacity >= n_fragment_bases_sum:
             update['bulk'].append((self.nmps_idx, n_fragment_bases))
-            update['bulk'].append((self.water_id, -n_fragment_bases_sum))
-            update['bulk'].append((self.proton_id, n_fragment_bases_sum))
+            update['bulk'].append((self.water_idx, -n_fragment_bases_sum))
+            update['bulk'].append((self.proton_idx, n_fragment_bases_sum))
             update['bulk'].append((self.fragment_bases_idx, -n_fragment_bases))
             total_fragment_bases_digested = n_fragment_bases_sum
 

@@ -475,7 +475,10 @@ class LoadSimData:
             'KcatEndoRNases': self.sim_data.process.rna_decay.kcats,
             'charged_trna_names': self.sim_data.process.transcription.charged_trna_names,
             'rnaDegRates': self.sim_data.process.transcription.rna_data['deg_rate'],
-            'shuffle_indexes': self.sim_data.process.transcription.rnaDegRateShuffleIdxs if hasattr(self.sim_data.process.transcription, "rnaDegRateShuffleIdxs") and self.sim_data.process.transcription.rnaDegRateShuffleIdxs is not None else None,
+            'shuffle_indexes': self.sim_data.process.transcription.rnaDegRateShuffleIdxs
+                if hasattr(self.sim_data.process.transcription, "rnaDegRateShuffleIdxs")
+                and self.sim_data.process.transcription.rnaDegRateShuffleIdxs is not None
+                else None,
             'is_mRNA': self.sim_data.process.transcription.rna_data['is_mRNA'].astype(np.int64),
             'is_rRNA': self.sim_data.process.transcription.rna_data['is_rRNA'].astype(np.int64),
             'is_tRNA': self.sim_data.process.transcription.rna_data['is_tRNA'].astype(np.int64),
@@ -884,19 +887,6 @@ class LoadSimData:
             'unique_masses': self.sim_data.internal_state.unique_molecule.unique_molecule_masses['mass'].asNumber(
                 units.fg / units.mol) / self.sim_data.constants.n_avogadro.asNumber(1/units.mol),
             'compartment_abbrev_to_index': self.sim_data.compartment_abbrev_to_index,
-            'submass_indices': {
-                'rna': np.array([
-                    self.sim_data.submass_name_to_index[name]
-                    for name in ["rRNA", "tRNA", "mRNA", "miscRNA", "nonspecific_RNA"]
-                ]),
-                'rRna': self.sim_data.submass_name_to_index["rRNA"],
-                'tRna': self.sim_data.submass_name_to_index["tRNA"],
-                'mRna': self.sim_data.submass_name_to_index["mRNA"],
-                'dna': self.sim_data.submass_name_to_index["DNA"],
-                'protein': self.sim_data.submass_name_to_index["protein"],
-                'smallMolecule': self.sim_data.submass_name_to_index["metabolite"],
-                'water': self.sim_data.submass_name_to_index["water"]
-            },
             'expectedDryMassIncreaseDict': self.sim_data.expectedDryMassIncreaseDict,
             'compartment_indices': {
                 'projection': self.sim_data.compartment_id_to_index["CCO-CELL-PROJECTION"],
@@ -911,7 +901,8 @@ class LoadSimData:
             },
             'compartment_id_to_index': self.sim_data.compartment_id_to_index,
             'n_avogadro': self.sim_data.constants.n_avogadro,  # 1/mol
-            'time_step': time_step
+            'time_step': time_step,
+            'submass_to_idx': self.sim_data.submass_name_to_index
         }
 
         return mass_config

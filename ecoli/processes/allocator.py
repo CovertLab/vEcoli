@@ -42,12 +42,16 @@ class Allocator(Deriver):
         self.moleculeNames = self.parameters['molecule_names']
         self.molecule_idx = None
         self.n_molecules = len(self.moleculeNames)
-        self.mol_name_to_idx = {name: idx for idx, name in enumerate(self.moleculeNames)}
-        self.mol_idx_to_name = {idx: name for idx, name in enumerate(self.moleculeNames)}
+        self.mol_name_to_idx = {name: idx
+            for idx, name in enumerate(self.moleculeNames)}
+        self.mol_idx_to_name = {idx: name
+            for idx, name in enumerate(self.moleculeNames)}
         self.processNames = self.parameters['process_names']
         self.n_processes = len(self.processNames)
-        self.proc_name_to_idx = {name: idx for idx, name in enumerate(self.processNames)}
-        self.proc_idx_to_name = {idx: name for idx, name in enumerate(self.processNames)}
+        self.proc_name_to_idx = {name: idx
+            for idx, name in enumerate(self.processNames)}
+        self.proc_idx_to_name = {idx: name
+            for idx, name in enumerate(self.processNames)}
         self.processPriorities = np.zeros(len(self.processNames))
         for process, custom_priority in self.parameters['custom_priorities'].items():
             if process not in self.proc_name_to_idx.keys():
@@ -81,15 +85,16 @@ class Allocator(Deriver):
 
     def next_update(self, timestep, states):
         if self.molecule_idx is None:
-            self.molecule_idx = bulk_name_to_idx(self.moleculeNames, states['bulk']['id'])
+            self.molecule_idx = bulk_name_to_idx(self.moleculeNames,
+                states['bulk']['id'])
         total_counts = counts(states['bulk'], self.molecule_idx)
         original_totals = total_counts.copy()
         counts_requested = np.zeros((self.n_molecules, self.n_processes),
             dtype=int)
         for process in states['request']:
             proc_idx = self.proc_name_to_idx[process]
-            counts_requested[:, proc_idx] = counts(
-                states['request'][process]['bulk'], self.molecule_idx)
+            for req_idx, req in states['request'][process]['bulk']:
+                counts_requested[req_idx, proc_idx] = req
 
         if ASSERT_POSITIVE_COUNTS and np.any(counts_requested < 0):
             raise NegativeCountsError(
@@ -100,7 +105,8 @@ class Allocator(Deriver):
                         self.proc_idx_to_name[processIndex],
                         counts_requested[molIndex, processIndex]
                         )
-                    for molIndex, processIndex in zip(*np.where(counts_requested < 0))
+                    for molIndex, processIndex in zip(
+                        *np.where(counts_requested < 0))
                     )
                 )
 
@@ -123,7 +129,8 @@ class Allocator(Deriver):
                         self.proc_idx_to_name[processIndex],
                         counts_requested[molIndex, processIndex]
                         )
-                    for molIndex, processIndex in zip(*np.where(partitioned_counts < 0))
+                    for molIndex, processIndex in zip(*np.where(
+                        partitioned_counts < 0))
                     )
                 )
 
@@ -148,7 +155,7 @@ class Allocator(Deriver):
         update = {
             'request': {
                 process: {
-                    'bulk': np.zeros_like(original_totals)}
+                    'bulk': []}
                 for process in states['request']},
             'allocate': {
                 process: {
@@ -161,7 +168,9 @@ class Allocator(Deriver):
 
         return update
 
-def calculatePartition(process_priorities, counts_requested, total_counts, random_state):
+def calculatePartition(process_priorities, counts_requested, total_counts,
+    random_state
+):
     priorityLevels = np.sort(np.unique(process_priorities))[::-1]
 
     partitioned_counts = np.zeros_like(counts_requested)
@@ -172,12 +181,14 @@ def calculatePartition(process_priorities, counts_requested, total_counts, rando
         requests = counts_requested[:, processHasPriority].copy()
 
         total_requested = requests.sum(axis=1)
-        excess_request_mask = (total_requested > total_counts) & (total_requested > 0)
+        excess_request_mask = (total_requested > total_counts) & (
+            total_requested > 0)
 
         # Get fractional request for molecules that have excess request
         # compared to available counts
         fractional_requests = (
-            requests[excess_request_mask, :] * total_counts[excess_request_mask, np.newaxis]
+            requests[excess_request_mask, :] * total_counts[
+                excess_request_mask, np.newaxis]
             / total_requested[excess_request_mask, np.newaxis]
             )
 
@@ -199,7 +210,8 @@ def calculatePartition(process_priorities, counts_requested, total_counts, rando
             total_remainder = remainder.sum()
             count = int(np.round(total_remainder))
             if count > 0:
-                allocated_indices = random_state.choice(options, size=count, p=remainder/total_remainder, replace=False)
+                allocated_indices = random_state.choice(options, size=count,
+                    p=remainder/total_remainder, replace=False)
                 fractional_requests[idx, allocated_indices] += 1
         requests[excess_request_mask, :] = fractional_requests
 

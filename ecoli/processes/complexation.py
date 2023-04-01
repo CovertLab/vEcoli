@@ -74,8 +74,8 @@ class Complexation(PartitionedProcess):
     def calculate_request(self, timestep, states):
         if self.molecule_idx is None:
             self.molecule_idx = bulk_name_to_idx(
-                self.molecule_names, states['bulk'])
-        # TODO: Ensure that this is a np.int64
+                self.molecule_names, states['bulk']['id'])
+
         moleculeCounts = counts(states['bulk'], self.molecule_idx)
 
         result = self.system.evolve(

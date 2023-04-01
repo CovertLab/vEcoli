@@ -37,7 +37,8 @@ TOPOLOGY = {
     "chromosome_domains": ("unique", "chromosome_domain"),
     "full_chromosomes": ("unique", "full_chromosome"),
     "listeners": ("listeners",),
-    "environment": ("environment",)
+    "environment": ("environment",),
+    "global_time": ("global_time",),
 }
 topology_registry.register(NAME, TOPOLOGY)
 
@@ -107,7 +108,7 @@ class ChromosomeReplication(PartitionedProcess):
         # Bulk molecule names
         self.replisome_trimers_subunits = self.parameters['replisome_trimers_subunits']
         self.replisome_monomers_subunits = self.parameters['replisome_monomers_subunits']
-        self.dntps = self.parameters['dtnps']
+        self.dntps = self.parameters['dntps']
         self.ppi = self.parameters['ppi']
 
         self.ppi_idx = None
@@ -133,8 +134,9 @@ class ChromosomeReplication(PartitionedProcess):
             'active_replisomes': numpy_schema('active_replisomes'),
             'oriCs': numpy_schema('oriCs'),
             'chromosome_domains': numpy_schema('chromosome_domains'),
-            'full_chromosomes': numpy_schema('full_chromosomes')
-            }
+            'full_chromosomes': numpy_schema('full_chromosomes'),
+            'global_time': {'_default': 0}
+        }
 
     def calculate_request(self, timestep, states):
         if self.ppi_idx is None:
@@ -143,7 +145,7 @@ class ChromosomeReplication(PartitionedProcess):
                 self.replisome_trimers_subunits, states['bulk']['id'])
             self.replisome_monomers_idx = bulk_name_to_idx(
                 self.replisome_monomers_subunits, states['bulk']['id'])
-            self.dtnps_idx = bulk_name_to_idx(self.dtnps, states['bulk']['id'])
+            self.dtnps_idx = bulk_name_to_idx(self.dntps, states['bulk']['id'])
         requests = {}
         # Get total count of existing oriC's
         n_oriC = states['oriCs']['_entryState'].sum()
@@ -214,7 +216,10 @@ class ChromosomeReplication(PartitionedProcess):
         # Initialize the update dictionary
         update = {
             'bulk': [],
-            'active_replisomes': {},
+            'active_replisomes': {'time': states['global_time']},
+            'oriCs': {'time': states['global_time']},
+            'chromosome_domains': {'time': states['global_time']},
+            'full_chromosome': {'time': states['global_time']},
             'listeners': {
                 'replication_data': {}
             }
@@ -270,8 +275,8 @@ class ChromosomeReplication(PartitionedProcess):
 
             # Add new oriC's, and reset attributes of existing oriC's
             # All oriC's must be assigned new domain indexes
-            update['oriCs'] = {'set': {
-                'domain_index': domain_index_new[:n_oriC]}}
+            update['oriCs']['set'] = {
+                'domain_index': domain_index_new[:n_oriC]}
             new_oric_indexes = create_unique_indexes(
                 n_oriC, self.random_state)
             update['oriCs']['add'] = {
@@ -317,8 +322,8 @@ class ChromosomeReplication(PartitionedProcess):
             existing_domains_update = {
                 'set': {'child_domains': child_domains}
             }
-            update['chromosome_domains'] = {
-                **new_domains_update, **existing_domains_update}
+            update['chromosome_domains'].update({
+                **new_domains_update, **existing_domains_update})
 
             # Decrement counts of replisome subunits
             if self.mechanistic_replisome:
@@ -390,13 +395,13 @@ class ChromosomeReplication(PartitionedProcess):
         updated_coordinates[~right_replichore] = -updated_coordinates[~right_replichore]
 
         # Update attributes and submasses of replisomes
-        current_dna_mass, = attrs(states['active_replisomes'], ['dna_submass'])
-        update['active_replisomes'] = {
+        current_dna_mass, = attrs(states['active_replisomes'], ['massDiff_DNA'])
+        update['active_replisomes'].update({
             'set': {
                 'coordinates': updated_coordinates,
-                'dna_submass': current_dna_mass + added_dna_mass
+                'massDiff_DNA': current_dna_mass + added_dna_mass
             }
-        }
+        })
 
         # Update counts of polymerized metabolites
         update['bulk'].append((self.dtnps_idx, -dNtpsUsed))
@@ -487,7 +492,8 @@ class ChromosomeReplication(PartitionedProcess):
                     'set': {'domain_index': domain_index_full_chroms}
                 }
 
-                update['full_chromosomes'] = {**chromosome_add_update, **chromosome_existing_update}
+                update['full_chromosomes'].update({**chromosome_add_update,
+                    **chromosome_existing_update})
 
             # Increment counts of replisome subunits
             if self.mechanistic_replisome:

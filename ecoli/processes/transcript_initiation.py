@@ -50,7 +50,8 @@ TOPOLOGY = {
     "active_RNAPs": ("unique", "active_RNAP"),
     "promoters": ("unique", "promoter"),
     "bulk": ("bulk",),
-    "listeners": ("listeners",)
+    "listeners": ("listeners",),
+    "global_time": ("global_time",),
 }
 topology_registry.register(NAME, TOPOLOGY)
 
@@ -314,7 +315,10 @@ class TranscriptInitiation(PartitionedProcess):
                     'total_rna_init': 0}),
                 'rnap_data': listener_schema({
                     'didInitialize': 0,
-                    'rnaInitEvent': 0})}}
+                    'rnaInitEvent': 0})},
+            
+            'global_time': {'_default': 0}
+        }
 
     def calculate_request(self, timestep, states):
         if self.ppgpp_idx is None:
@@ -438,7 +442,11 @@ class TranscriptInitiation(PartitionedProcess):
                     'didInitialize': 0,
                     'rnaInitEvent': np.zeros(self.n_TUs),
                 }
-            }
+            },
+            'active_RNAPs': {'time': states['global_time']},
+            'full_chromosomes': {'time': states['global_time']},
+            'promoters': {'time': states['global_time']},
+            'RNAs': {'time': states['global_time']}
         }
 
         # no synthesis if no chromosome
@@ -502,14 +510,14 @@ class TranscriptInitiation(PartitionedProcess):
         # new RNAPs
         RNAP_indexes = create_unique_indexes(
             n_RNAPs_to_activate, self.random_state)
-        update['active_RNAPs'] = {
+        update['active_RNAPs'].update({
             'add': {
                 'unique_index': RNAP_indexes,
                 'domain_index': domain_index_rnap,
                 'coordinates': coordinates,
                 'direction': direction,
             }
-        }
+        })
 
         # Decrement counts of inactive RNAPs
         update['bulk'] = [(self.inactive_RNAP_idx, -n_initiations.sum())]
@@ -518,7 +526,7 @@ class TranscriptInitiation(PartitionedProcess):
         is_mRNA = np.isin(TU_index_partial_RNAs, self.idx_mRNA)
         rna_indices = create_unique_indexes(
             n_RNAPs_to_activate, self.random_state)
-        update['RNAs'] = {
+        update['RNAs'].update({
             'add': {
                 'unique_index': rna_indices,
                 'TU_index': TU_index_partial_RNAs,
@@ -529,7 +537,7 @@ class TranscriptInitiation(PartitionedProcess):
                 'can_translate': is_mRNA,
                 'RNAP_index': RNAP_indexes,
             }
-        }
+        })
 
         # Create masks for ribosomal RNAs
         is_5Srrna = np.isin(TU_index, self.idx_5SrRNA)

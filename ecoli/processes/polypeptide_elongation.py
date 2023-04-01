@@ -46,6 +46,7 @@ TOPOLOGY = {
     "polypeptide_elongation": ("process_state", "polypeptide_elongation"),
     # Non-partitioned counts
     "bulk_total": ("bulk",),
+    "global_time": ("global_time",),
 }
 topology_registry.register(NAME, TOPOLOGY)
 
@@ -260,7 +261,10 @@ class PolypeptideElongation(PartitionedProcess):
                 'gtp_to_hydrolyze': {
                     '_default': 0,
                     '_updater': 'set',
-                    '_emit': True}}}
+                    '_emit': True}},
+            
+            'global_time': {'_default': 0}
+        }
 
     def calculate_request(self, timestep, states):
         """
@@ -368,7 +372,10 @@ class PolypeptideElongation(PartitionedProcess):
             'listeners': {
                 'ribosome_data': {},
                 'growth_limits': {}},
-            'polypeptide_elongation': {}}
+            'polypeptide_elongation': {},
+            'active_ribosome': {'time': states['global_time']},
+            'bulk': []
+        }
 
         # Begin wcEcoli evolveState()
         # Set value to 0 for metabolism in case of early return
@@ -408,7 +415,6 @@ class PolypeptideElongation(PartitionedProcess):
         # MODEL SPECIFIC: Get amino acid counts
         aa_counts_for_translation = self.elongation_model.final_amino_acids(
             total_aa_counts)
-        aa_counts_for_translation = aa_counts_for_translation.astype(int)
 
         # Using polymerization algorithm elongate each ribosome up to the limits
         # of amino acids, sequence, and GTP
@@ -460,15 +466,15 @@ class PolypeptideElongation(PartitionedProcess):
             protein_indexes[didTerminate],
             minlength = self.proteinSequences.shape[0])
 
-        protein_mass, = attrs(states['active_ribosome'], ['protein_submass'])
-        update['active_ribosome'] = {
+        protein_mass, = attrs(states['active_ribosome'], ['massDiff_protein'])
+        update['active_ribosome'].update({
             'delete': np.where(didTerminate)[0],
             'set': {
-                'protein_submass': protein_mass + added_protein_mass,
+                'massDiff_protein': protein_mass + added_protein_mass,
                 'peptide_length': updated_lengths,
                 'pos_on_mRNA': updated_positions_on_mRNA,
             }
-        }
+        })
 
         update['bulk'].append((self.monomer_idx, terminatedProteins))
 
