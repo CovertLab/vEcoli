@@ -32,7 +32,7 @@ from ecoli.processes.allocator import Allocator
 from ecoli.processes.partition import PartitionedProcess
 
 # state
-from ecoli.processes.partition import filter_bulk_ports, Requester, Evolver
+from ecoli.processes.partition import filter_bulk_topology, Requester, Evolver
 from ecoli.states.wcecoli_state import get_state_from_file
 
 
@@ -100,84 +100,6 @@ class Ecoli(Composer):
             override = get_state_from_file(path=f"data/{override_file}.json")
             deep_merge(initial_state, override)
 
-        # initial_cell_state_list = list(initial_state["bulk"].items())
-        # total_tuple_list = []
-        # name_list = []
-        # for i in range(len(initial_cell_state_list)):
-        #     name_list.append(initial_cell_state_list[i][0])
-        #     total_tuple_list.append(tuple(list(initial_cell_state_list[i]) + [
-        #         self.load_sim_data.sim_data.internal_state.bulk_molecules.bulk_data.fullArray()[i][
-        #             1].tolist()]))
-        # string_length = 'U' + str(len(max(name_list, key=len)))
-        # total_bulk_array = np.array(total_tuple_list,
-        #                             dtype=[('id', string_length), ('count', 'i'), ('submasses', 'd', (9,))])
-        # initial_state['bulk'] = total_bulk_array
-        # unique_DnaA_dt = [('submasses', 'd', (9,)), ('DnaA_bound', '?'), ('_entryState', 'i'), ('_globalIndex', 'i'),
-        #                   ('coordinates', 'i'), ('domain_index', 'i'), ('unique_index', 'U4'), ('time', 'i'), ('_cached_entryState', 'i')]
-        # unique_DnaA_array = np.array(
-        #     [tuple(list(i.values()) + [0, 0]) for i in list(initial_state['unique']["DnaA_box"].values())], dtype=unique_DnaA_dt)
-        # initial_state['unique']["DnaA_box"] = unique_DnaA_array
-        # unique_RNA_dt = [('submasses', 'd', (9,)), ('RNAP_index', 'U4'), ('TU_index', 'i'), ('_entryState', 'i'),
-        #                  ('_globalIndex', 'i'), ('can_translate', '?'), ('is_full_transcript', '?'), ('is_mRNA', '?'),
-        #                  ('transcript_length', 'i'), ('unique_index', 'U4'), ('time', 'i'), ('_cached_entryState', 'i')]
-        # unique_RNA_array = np.array(
-        #     [tuple(list(i.values()) + [0, 0]) for i in list(initial_state['unique']["RNA"].values())], dtype=unique_RNA_dt) #worried about the extend in order to add time and cached entryState
-        # initial_state['unique']["RNA"] = unique_RNA_array
-        # unique_active_RNAP_dt = [('submasses', 'd', (9,)), ('_entryState', 'i'), ('_globalIndex', 'i'),
-        #                          ('_coordinates', 'i'),
-        #                          ('direction', '?'), ('domain_index', 'i'), ('unique_index', 'U4'), ('time', 'i'), ('_cached_entryState', 'i')]
-        # unique_active_RNAP_array = np.array(
-        #     [tuple(list(i.values()) + [0, 0]) for i in list(initial_state['unique']["active_RNAP"].values())],
-        #     dtype=unique_active_RNAP_dt)
-        # initial_state['unique']["active_RNAP"] = unique_active_RNAP_array
-        # unique_active_replisome_dt = [('submasses', 'd', (9,)), ('_entryState', 'i'), ('_globalIndex', 'i'),
-        #                               ('_coordinates', 'i'),
-        #                               ('domain_index', 'i'), ('right_replichore', '?'), ('unique_index', 'U1'), ('time', 'i'), ('_cached_entryState', 'i')]
-        # unique_active_replisome_array = np.array(
-        #     [tuple(list(i.values()) + [0, 0]) for i in list(initial_state['unique']["active_replisome"].values())],
-        #     dtype=unique_active_replisome_dt)
-        # initial_state['unique']["active_replisome"] = unique_active_replisome_array
-        # unique_active_ribosome_dt = [('submasses', 'd', (9,)), ('_entryState', 'i'), ('_globalIndex', 'i'),
-        #                              ('mRNA_index', 'U5'),
-        #                              ('peptide_length', 'i'), ('pos_on_mRNA', 'i'), ('protein_index', 'i'),
-        #                              ('unique_index', 'U5'), ('time', 'i'), ('_cached_entryState', 'i')]
-        # unique_active_ribosome_array = np.array(
-        #     [tuple(list(i.values()) + [0, 0]) for i in list(initial_state['unique']["active_ribosome"].values())],
-        #     dtype=unique_active_ribosome_dt)
-        # initial_state['unique']["active_ribosome"] = unique_active_ribosome_array
-        # unique_chromosomal_segment_dt = [('submasses', 'd', (9,)), ('unique_index', 'U5'), ('time', 'i'), ('_cached_entryState', 'i')]
-        # unique_chromosomal_segment_array = np.empty(shape=(4,), dtype=unique_chromosomal_segment_dt)
-        # initial_state['unique']["chromosomal_segment"] = unique_chromosomal_segment_array
-        # unique_chromosome_domain_dt = [('submasses', 'd', (9,)), ('_entryState', 'i'), ('_globalIndex', 'i'),
-        #                                ('child_domains', 'O'),
-        #                                ('domain_index', 'i'), ('unique_index', 'i'), ('time', 'i'), ('_cached_entryState', 'i')]
-        # unique_chromosome_domain_array = np.array(
-        #     [tuple(list(i.values()) + [0, 0]) for i in list(initial_state['unique']["chromosome_domain"].values())],
-        #     dtype=unique_chromosome_domain_dt)
-        # initial_state['unique']["chromosome_domain"] = unique_chromosome_domain_array
-        # unique_full_chromosome_dt = [('submasses', 'd', (9,)), ('_entryState', 'i'), ('_globalIndex', 'i'),
-        #                              ('division_time', 'float'),
-        #                              ('domain_index', 'i'), ('has_triggered_division', '?'), ('unique_index', 'U1'), ('time', 'i'), ('_cached_entryState', 'i')]
-        # unique_full_chromosome_array = np.array(
-        #     [tuple(list(i.values()) + [0, 0]) for i in list(initial_state['unique']["full_chromosome"].values())],
-        #     dtype=unique_full_chromosome_dt)
-        # initial_state['unique']["full_chromosome"] = unique_full_chromosome_array
-        # unique_oriC_dt = [('submasses', 'd', (9,)), ('_entryState', 'i'), ('_globalIndex', 'i'),
-        #                   ('domain_index', 'i'), ('unique_index', 'U1'), ('time', 'i'), ('_cached_entryState', 'i')]
-        # unique_oriC_array = np.array(
-        #     [tuple(list(i.values()) + [0, 0]) for i in list(initial_state['unique']["oriC"].values())],
-        #     dtype=unique_oriC_dt)
-        # initial_state['unique']["oriC"] = unique_oriC_array
-        # unique_promoter_dt = [('submasses', 'd', (9,)), ('TU_index', 'i'), ('_entryState', 'i'), ('_globalIndex', 'i'),
-        #                       ('bound_TF', 'O'),
-        #                       ('coordinates', 'i'), ('domain_index', 'i'), ('unique_index', 'U1'), ('time', 'i'), ('_cached_entryState', 'i')]
-        # unique_promoter_array = np.array(
-        #     [tuple(list(i.values()) + [0, 0]) for i in list(initial_state['unique']["promoter"].values())],
-        #     dtype=unique_promoter_dt)
-        # initial_state['unique']["promoter"] = unique_promoter_array
-
-        # initial_state = super().initial_state({
-        #     'initial_state': initial_state})
         return initial_state
 
     def _generate_processes_and_steps(self, config):
@@ -392,7 +314,7 @@ class Ecoli(Composer):
                         'log_update', process_id,)
                     topology[f'{process_id}_requester']['log_update'] = (
                         'log_update', process_id,)
-                bulk_topo = filter_bulk_ports(ports)
+                bulk_topo = filter_bulk_topology(ports)
                 topology[f'{process_id}_requester']['request'] = {
                     '_path': ('request', process_id,),
                     **bulk_topo}

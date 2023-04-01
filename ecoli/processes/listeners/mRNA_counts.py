@@ -5,7 +5,7 @@ mRNA Counts Listener
 """
 
 import numpy as np
-from ecoli.library.schema import arrays_from, dict_value_schema
+from ecoli.library.schema import numpy_schema, attrs
 from vivarium.core.process import Step
 
 from ecoli.processes.registries import topology_registry
@@ -47,13 +47,13 @@ class mRNACounts(Step):
                     '_updater': 'set',
                     '_emit': True}
             },
-            'RNAs': dict_value_schema('RNAs')
+            'RNAs': numpy_schema('RNAs')
         }
 
     def next_update(self, timestep, states):
         # Get attributes of mRNAs
-        tu_indexes, can_translate = arrays_from(
-            states['RNAs'].values(), ['TU_index', 'can_translate'])
+        tu_indexes, can_translate = attrs(
+            states['RNAs'], ['TU_index', 'can_translate'])
 
         # Get counts of all mRNAs
         mrna_counts = np.bincount(

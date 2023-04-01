@@ -120,7 +120,7 @@ class ProteinDegradation(PartitionedProcess):
         allocated_proteins = counts(states['bulk'], self.protein_idx)
         metabolites_delta = np.dot(
             self.degradation_matrix,
-            allocated_proteins).astype(int)
+            allocated_proteins)
 
         update = {'bulk': [
             (self.metabolite_idx, metabolites_delta),

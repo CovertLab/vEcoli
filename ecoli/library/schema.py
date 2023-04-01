@@ -213,7 +213,9 @@ def bulk_schema(
 
 def counts(states, idx):
     # idx is an integer array so advancing indexing applies (implicit copy)
-    return states['count'][idx]
+    if len(states.dtype) > 1:
+        return states['count'][idx]
+    return states[idx]
 
 def numpy_schema(name, partition=True, divider=None):
     schema = {
@@ -232,7 +234,7 @@ def numpy_schema(name, partition=True, divider=None):
 
 def bulk_name_to_idx(names, bulk_names):
     # Convert from string names to indices in bulk array
-    if isinstance(names, np.ndarray):
+    if isinstance(names, np.ndarray) or isinstance(names, list):
         # Big brain solution from https://stackoverflow.com/a/32191125
         sorter = np.argsort(bulk_names)
         return sorter[np.searchsorted(bulk_names, names, sorter=sorter)]
@@ -249,9 +251,10 @@ def bulk_numpy_updater(current, update):
     return result
 
 def attrs(states, attributes):
-    mol_mask = states['_entryState']
+    # _entryState has dtype int8 so this works
+    mol_mask = states['_entryState'].view(np.bool_)
     # mol_mask is a boolean array so advanced indexing applies (implicit copy)
-    return (states[attribute][mol_mask] for attribute in attributes)
+    return [states[attribute][mol_mask] for attribute in attributes]
 
 def get_free_indices(result, n_objects):
     # Find inactive rows for new molecules and expand array
@@ -279,6 +282,9 @@ def get_free_indices(result, n_objects):
     return result, free_indices[:n_objects]
 
 def unique_numpy_updater(current, update):
+    if len(update) == 0:
+        return current
+
     result = current
     current_time = current['time'][0]
     update_time = update['time']
@@ -301,7 +307,7 @@ def unique_numpy_updater(current, update):
         safe_rows = (cached_state[cached_state > 0] == 1)
         # Only apply updates to rows that were initially and still are active
         initial_still_active = (cached_state == 1)
-        for col, col_values in set_update:
+        for col, col_values in set_update.items():
             result[col][initial_still_active] = col_values[safe_rows]
 
     if 'delete' in update.keys():
@@ -325,7 +331,7 @@ def unique_numpy_updater(current, update):
         add_update = update['add']
         # All arrays have same length so can get length of first to figure
         # out how many new unique molecules are being added
-        n_new_molecules = next(iter(add_update.values())).shape[0]
+        n_new_molecules = len(next(iter(add_update.values())))
         result, free_indices = get_free_indices(result, n_new_molecules)
         for col, col_values in add_update.items():
             result[col][free_indices] = col_values

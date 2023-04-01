@@ -36,7 +36,8 @@ TOPOLOGY = {
     "active_RNAPs": ("unique", "active_RNAP"),
     "bulk": ("bulk",),
     "bulk_total": ("bulk",),
-    "listeners": ("listeners",)
+    "listeners": ("listeners",),
+    "global_time": ("global_time",),
 }
 topology_registry.register(NAME, TOPOLOGY)
 
@@ -245,7 +246,9 @@ class TranscriptElongation(PartitionedProcess):
                         '_emit': True
                     }
                 }
-            }}
+            },
+            'global_time': {'_default': 0}
+        }
 
     def calculate_request(self, timestep, states):
         if self.bulk_RNA_idx is None:
@@ -330,7 +333,9 @@ class TranscriptElongation(PartitionedProcess):
                         'didTerminate': 0,
                         'terminationLoss': 0
                     }
-                }
+                },
+                'active_RNAPs': {'time': states['global_time']},
+                'RNAs': {'time': states['global_time']}
             }
 
         # Determine total possible sequences of nucleotides that can be
@@ -494,20 +499,23 @@ class TranscriptElongation(PartitionedProcess):
             'set': {
                 'transcript_length': length_all_RNAs,
                 'is_full_transcript': is_full_transcript_updated,
-                'nonspecific_RNA_submass': attrs(states['RNAs'],
-                    ['nonspecific_RNA_submass'])[0] + added_nsRNA_mass_all_RNAs,
-                'mRNA_submass': attrs(states['RNAs'],
-                    ['mRNA_submass'])[0] + added_mRNA_mass_all_RNAs
+                'massDiff_nonspecific_RNA': attrs(states['RNAs'],
+                    ['massDiff_nonspecific_RNA'])[0] \
+                        + added_nsRNA_mass_all_RNAs,
+                'massDiff_mRNA': attrs(states['RNAs'],
+                    ['massDiff_mRNA'])[0] + added_mRNA_mass_all_RNAs
             },
             'delete': partial_transcript_indexes[np.logical_and(
-                did_terminate_mask, np.logical_not(is_mRNA_partial_RNAs))]
+                did_terminate_mask, np.logical_not(is_mRNA_partial_RNAs))],
+            'time': states['global_time']
         }
         update['active_RNAPs'] = {
             'set': {
                 'coordinates': updated_coordinates
             },
             'delete': np.where(did_terminate_mask[
-                partial_RNA_to_RNAP_mapping])[0]
+                partial_RNA_to_RNAP_mapping])[0],
+            'time': states['global_time']
         }
 
         # Attenuation removes RNAs and RNAPs

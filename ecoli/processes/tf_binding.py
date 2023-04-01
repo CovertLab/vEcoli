@@ -26,7 +26,8 @@ TOPOLOGY = {
     "promoters": ("unique", "promoter"),
     "bulk": ("bulk",),
     "bulk_total": ("bulk",),
-    "listeners": ("listeners",)
+    "listeners": ("listeners",),
+    "global_time": ("global_time",),
 }
 topology_registry.register(NAME, TOPOLOGY)
 
@@ -49,7 +50,11 @@ class TfBinding(PartitionedProcess):
         'active_to_inactive_tf': {},
         'bulk_molecule_ids': [],
         'bulk_mass_data': np.array([[]]) * units.g / units.mol,
-        'seed': 0}
+        'seed': 0,
+        'submass_to_idx': {'rRNA': 0, 'tRNA': 1, 'mRNA': 2, 'miscRNA': 3,
+            'nonspecific_RNA': 4, 'protein': 5, 'metabolite': 6,
+            'water': 7, 'DNA': 8}
+    }
 
     # Constructor
     def __init__(self, parameters=None):
@@ -111,7 +116,7 @@ class TfBinding(PartitionedProcess):
         if "PD00365" in self.tf_ids:
             self.marR_name = "CPLX0-7710[c]"
             self.marR_tet = "marR-tet[c]"
-        self.submass_name_to_idx = self.parameters['submass_name_to_idx']
+        self.submass_to_idx = self.parameters['submass_to_idx']
         
     def ports_schema(self):
         return {
@@ -127,8 +132,10 @@ class TfBinding(PartitionedProcess):
                     'nActualBound': 0,
                     'n_available_promoters': 0,
                     'n_bound_TF_per_TU': 0,
-                    'gene_copy_number': []})}
-            }
+                    'gene_copy_number': []})},
+            
+            'global_time': {'_default': 0}
+        }
         
     def calculate_request(self, timestep, states):
         if self.active_tf_idx is None:
@@ -148,15 +155,15 @@ class TfBinding(PartitionedProcess):
         # request all active tfs
         requests = {'bulk': []}
         active_tf_idx = list(self.active_tf_idx.values())
-        requests['bulk'].append([
-            (active_tf_idx, counts(states['bulk'], active_tf_idx))])
+        requests['bulk'].append(
+            (active_tf_idx, counts(states['bulk'], active_tf_idx)))
 
         return requests
         
     def evolve_state(self, timestep, states):
         # If there are no promoters, return immediately
         if states['promoters']['_entryState'].sum() == 0:
-            return {}
+            return {'promoters': {'time': states['global_time']}}
 
         # Get attributes of all promoters
         TU_index, bound_TF = attrs(states['promoters'],
@@ -261,15 +268,16 @@ class TfBinding(PartitionedProcess):
         mass_diffs = delta_TF.dot(self.active_tf_masses)
 
         submass_update = {
-            f'{submass}_submass': attrs(states['promoters'],
-                [f'{submass}_submass'])[0] + mass_diffs[:, i]
-            for submass, i in self.submass_name_to_idx.items()
+            f'massDiff_{submass}': attrs(states['promoters'],
+                [f'massDiff_{submass}'])[0] + mass_diffs[:, i]
+            for submass, i in self.submass_to_idx.items()
         }
         update['promoters'] = {
             'set': {
                 'bound_TF': bound_TF_new,
                 **submass_update
-            }
+            },
+            'time': states['global_time']
         }
 
         update['listeners'] = {

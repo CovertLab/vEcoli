@@ -77,7 +77,7 @@ class TwoComponentSystem(PartitionedProcess):
 
     def calculate_request(self, timestep, states):
         if self.molecule_idx is None:
-            self.molecule_idx = bulk_name_to_idx(self.molecule_idx,
+            self.molecule_idx = bulk_name_to_idx(self.moleculeNames,
                 states['bulk']['id'])
 
         # Get molecule counts
@@ -112,7 +112,7 @@ class TwoComponentSystem(PartitionedProcess):
                 jit=self.jit)
         # Increment changes in molecule counts
         update = {
-            'bulk': [(self.molecule_idx, self.all_molecule_changes)]
+            'bulk': [(self.molecule_idx, self.all_molecule_changes.astype(int))]
         }
 
         return update
