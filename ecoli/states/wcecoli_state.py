@@ -124,6 +124,8 @@ def numpy_molecules(states):
         dtypes.extend([('time', 'i'), ('_cached_entryState', 'i1')])
         unique_tuples = [tuple(mol) + (0, 0) for mol in states['unique'][key]]
         states['unique'][key] = np.array(unique_tuples, dtype=dtypes)
+        states['unique'][key]['_cached_entryState'] = states['unique'][key][
+            '_entryState']
     
     return states 
 

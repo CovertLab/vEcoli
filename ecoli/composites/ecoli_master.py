@@ -30,6 +30,7 @@ from ecoli.plots.topology import get_ecoli_partition_topology_settings
 from ecoli.processes.cell_division import Division
 from ecoli.processes.allocator import Allocator
 from ecoli.processes.partition import PartitionedProcess
+from ecoli.processes.cache_update import CacheUpdate
 
 # state
 from ecoli.processes.partition import filter_bulk_topology, Requester, Evolver
@@ -263,6 +264,24 @@ class Ecoli(Composer):
         for name, dependencies in config['flow'].items():
             flow.setdefault(name, [])
             flow[name].extend([tuple(dep) for dep in dependencies])
+    
+        # Update _cached_entryState before any Steps run
+        for dependencies in flow.values():
+            dependencies.append(('cache-update-0',))
+        unique_dict = processes['ecoli-chromosome-structure'].topology
+        unique_dict = unique_dict.copy()
+        unique_dict.pop('bulk')
+        unique_dict.pop('listeners')
+        unique_dict.pop('evolvers_ran')
+        unique_dict.pop('first_update')
+        params = {'unique_dict': unique_dict}
+        steps['cache-update-0'] = CacheUpdate(params)
+        flow['cache-update-0'] = []
+        flow_keys = list(flow.keys())
+        # Update _cached_entryState after each Step runs
+        for i in range(len(flow)):
+            flow[f'cache-update-{i+1}'] = [(flow_keys[i],)]
+            steps[f'cache-update-{i+1}'] = CacheUpdate(params)
 
         return processes_not_steps, steps, flow
 
@@ -349,6 +368,17 @@ class Ecoli(Composer):
             'bulk': ('bulk',),
             'evolvers_ran': ('evolvers_ran',),
         }
+
+        _, steps, flow = self.processes_and_steps
+        
+        # Adding cache update before and after each Step (even when Steps
+        # are in the same priority "layer") does not add significantly to
+        # runtime (<1%) and could prevent issues down the line
+        topology['cache-update-0'] = steps['cache-update-0'
+          ].unique_dict.copy()
+        for i in range(len(flow)):
+            topology[f'cache-update-{i+1}'] = steps['cache-update-0'
+                ].unique_dict.copy()
 
         # Do not keep an unnecessary reference to these
         self.processes_and_steps = None

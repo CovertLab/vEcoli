@@ -197,10 +197,11 @@ def calculatePartition(process_priorities, counts_requested, total_counts,
         # test = np.true_divide(requests_counts_product, requests_with_mask,
         #                  out=np.zeros_like(requests_counts_product), where=requests_with_mask != [0], casting='unsafe')
         # TODO(Matt): Incorporate this fix into the line of code above. Commented code a start, but only returns ints.
-        for lst_index in range(len(fractional_requests)):
-            for value_index in range(len(fractional_requests[lst_index])):
-                if np.isnan(fractional_requests[lst_index][value_index]):
-                    fractional_requests[lst_index][value_index] = 0
+        # TODO: This doesn't seem necessary. Monitor to ensure nothing breaks.
+        # for lst_index in range(len(fractional_requests)):
+        #     for value_index in range(len(fractional_requests[lst_index])):
+        #         if np.isnan(fractional_requests[lst_index][value_index]):
+        #             fractional_requests[lst_index][value_index] = 0
 
         # Distribute fractional counts to ensure full allocation of excess
         # request molecules

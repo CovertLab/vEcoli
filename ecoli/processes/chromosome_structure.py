@@ -30,7 +30,6 @@ TOPOLOGY = {
     "promoters": ("unique", "promoter"),
     "DnaA_boxes": ("unique", "DnaA_box"),
     "evolvers_ran": ("evolvers_ran",),
-    "global_time": ("global_time",),
     # TODO(vivarium): Only include if superhelical density flag is passed
     # "chromosomal_segments": ("unique", "chromosomal_segment")
     "first_update": ("deriver_skips", "chromosome_structure",)
@@ -125,7 +124,7 @@ class ChromosomeStructure(Step):
                     'codirectional_collision_coordinates': 0,
                     'n_removed_ribosomes': 0})},
             'bulk': numpy_schema('bulk'),
-            'active_replisomes': numpy_schema('activate_replisomes'),
+            'active_replisomes': numpy_schema('active_replisomes'),
 
             # Unique molecules
             'oriCs': numpy_schema('oriCs'),
@@ -143,7 +142,6 @@ class ChromosomeStructure(Step):
                 '_divider': {'divider': 'set_value',
                     'config': {'value': True}},
             },
-            'global_time': {'_default': 0}
         }
 
         # TODO: Work on this functionality
@@ -282,6 +280,7 @@ class ChromosomeStructure(Step):
         n_codirectional_collisions = np.count_nonzero(
             RNAP_codirectional_collision_mask)
 
+        curr_unique_time = states['RNAs']['time'][0]
         # Write values to listeners
         update = {
             'listeners': {
@@ -296,15 +295,17 @@ class ChromosomeStructure(Step):
                 }
             },
             'bulk': [],
-            'active_replisomes': {'time': states['global_time']},
-            'oriCs': {'time': states['global_time']},
-            'chromosome_domains': {'time': states['global_time']},
-            'active_RNAPs': {'time': states['global_time']},
-            'RNAs': {'time': states['global_time']},
-            'active_ribosome': {'time': states['global_time']},
-            'full_chromosomes': {'time': states['global_time']},
-            'promoters': {'time': states['global_time']},
-            'DnaA_boxes': {'time': states['global_time']},
+            # CacheUpdate updates the _cached_entryState before
+            # and after each Step runs so the Steps don't have to. 
+            'active_replisomes': {'time': curr_unique_time},
+            'oriCs': {'time': curr_unique_time},
+            'chromosome_domains': {'time': curr_unique_time},
+            'active_RNAPs': {'time': curr_unique_time},
+            'RNAs': {'time': curr_unique_time},
+            'active_ribosome': {'time': curr_unique_time},
+            'full_chromosomes': {'time': curr_unique_time},
+            'promoters': {'time': curr_unique_time},
+            'DnaA_boxes': {'time': curr_unique_time},
         }
 
         if self.calculate_superhelical_densities:

@@ -219,7 +219,7 @@ class ChromosomeReplication(PartitionedProcess):
             'active_replisomes': {'time': states['global_time']},
             'oriCs': {'time': states['global_time']},
             'chromosome_domains': {'time': states['global_time']},
-            'full_chromosome': {'time': states['global_time']},
+            'full_chromosomes': {'time': states['global_time']},
             'listeners': {
                 'replication_data': {}
             }
