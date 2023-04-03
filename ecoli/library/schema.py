@@ -1,4 +1,3 @@
-import random
 from typing import List
 
 import numpy as np
@@ -133,7 +132,7 @@ def create_unique_indexes(n_indexes, random_state):
         List of indexes. Each index is a string representing a number in
         the range :math:`[0, 2^{63})`.
     """
-    return [str(num) for num in random_state.randint(0, 2**63, n_indexes)]
+    return [num for num in random_state.randint(0, 2**63, n_indexes)]
 
 def array_from(d):
     """Returns an array with the dictionary values"""
@@ -217,6 +216,15 @@ def counts(states, idx):
         return states['count'][idx]
     return states[idx]
 
+class get_bulk_counts():
+    def serialize(bulk):
+        return np.ascontiguousarray(bulk['count'])
+
+class get_unique_fields():
+    def serialize(unique):
+        return [np.ascontiguousarray(unique[field])
+            for field in unique.dtype.names]
+
 def numpy_schema(name, partition=True, divider=None):
     schema = {
         '_default': [],
@@ -228,8 +236,15 @@ def numpy_schema(name, partition=True, divider=None):
         if partition:
             schema['_properties'] = {'bulk': True}
         schema['_updater'] = bulk_numpy_updater
+        # Only pull out counts to be serialized (save space and time)
+        schema['_serializer'] = get_bulk_counts
     else:
         schema['_updater'] = unique_numpy_updater
+        # These are some big and slow emits
+        schema['_emit'] = False
+        # Convert to list of contiguous Numpy arrays for faster and more
+        # efficient serialization (still do not recommend emitting unique)
+        schema['_serializer'] = get_unique_fields
     return schema
 
 def bulk_name_to_idx(names, bulk_names):
@@ -320,9 +335,11 @@ def unique_numpy_updater(current, update):
         rows_to_delete = initially_active_idx[delete_indices]
         # Only delete rows that were not previously deleted in same timestep
         rows_to_delete = rows_to_delete[cached_state[rows_to_delete]==1]
-        result['_entryState'][rows_to_delete] = 0
+        result[rows_to_delete] = np.zeros(1, dtype=result.dtype)
         # Ensure that additional updates in same timestep skip deleted rows
         result['_cached_entryState'][rows_to_delete] = 2
+        # Do not overwrite time with zeros
+        result['time'][rows_to_delete] = update_time
 
     if 'add' in update.keys():
         # Add updates are dictionaries where each key is a column and

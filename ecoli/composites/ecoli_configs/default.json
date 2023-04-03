@@ -59,7 +59,7 @@
         "monomer_counts_listener",
         "clock"
     ],
-    "process_configs": {"clock": {}},
+    "process_configs": {"clock": {"time_step": 2}},
     "topology": {},
     "flow": {
         "ecoli-metabolism": [["ecoli-chromosome-structure"]],
