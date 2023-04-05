@@ -925,7 +925,7 @@ class LoadSimData:
 
             # Get IDs of all bulk molecules
             'bulk_molecule_ids': self.sim_data.internal_state.bulk_molecules.bulk_data["id"],
-            'unique_ids': self.sim_data.internal_state.unique_molecule.unique_molecule_masses['id'],
+            'unique_ids': self.sim_data.internal_state.unique_molecule.unique_molecule_masses["id"],
 
             # Get IDs of molecules involved in complexation and equilibrium
             'complexation_molecule_ids': self.sim_data.process.complexation.molecule_names,

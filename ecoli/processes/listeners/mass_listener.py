@@ -145,9 +145,8 @@ class MassListener(Deriver):
         self.time_step = self.parameters['time_step']
         self.first_time_step = True
 
-        self.submass_to_idx = self.parameters['submass_to_idx']
         self.massDiff_names = ['massDiff_' + submass
-            for submass in self.submass_to_idx]
+            for submass in self.parameters['submass_to_idx']]
 
         # Helper indices for Numpy indexing
         self.bulk_idx = None
@@ -181,8 +180,8 @@ class MassListener(Deriver):
                     'cell_mass': split_divider_schema,
                     'water_mass': split_divider_schema,
                     'dry_mass': split_divider_schema,
-                    **{submass + 'Mass': split_divider_schema
-                       for submass in self.submass_to_idx.keys()},
+                    **{submass + '_mass': split_divider_schema
+                       for submass in self.submass_listener_indices.keys()},
                     'volume': split_divider_schema,
                     'proteinMassFraction': set_divider_schema,
                     'rnaMassFraction': set_divider_schema,
@@ -233,8 +232,7 @@ class MassListener(Deriver):
         bulk_submasses = np.dot(bulk_counts, self.bulk_masses)
         bulk_compartment_masses = np.dot(
             bulk_counts * self._bulk_molecule_by_compartment, self.bulk_masses)
-
-        unique_submasses = np.zeros(len(self.submass_to_idx))
+        unique_submasses = np.zeros(len(self.massDiff_names))
         unique_compartment_masses = np.zeros_like(bulk_compartment_masses)
         for unique_id, unique_mass in zip(self.unique_ids, self.unique_masses):
             molecules = states['unique'].get(unique_id)
@@ -258,22 +256,22 @@ class MassListener(Deriver):
         # save cell mass, water mass, dry mass
         mass_update['cell_mass'] = all_submasses.sum()
         mass_update['water_mass'] = all_submasses[
-            self.submass_to_idx['water']]
+            self.submass_listener_indices['water']]
         mass_update['dry_mass'] = (
                 mass_update['cell_mass'] - mass_update['water_mass'])
 
         # Store submasses
         for submass, indices in self.submass_listener_indices.items():
-            mass_update[submass + "Mass"] = all_submasses[indices].sum()
+            mass_update[submass + "_mass"] = all_submasses[indices].sum()
 
         mass_update['volume'] = mass_update['cell_mass'] / self.cellDensity
 
         if self.first_time_step:
             mass_update['growth'] = 0
             self.dryMassInitial = mass_update['dry_mass']
-            self.proteinMassInitial = mass_update['proteinMass']
-            self.rnaMassInitial = mass_update['rnaMass']
-            self.smallMoleculeMassInitial = mass_update['smallMoleculeMass']
+            self.proteinMassInitial = mass_update['protein_mass']
+            self.rnaMassInitial = mass_update['rna_mass']
+            self.smallMoleculeMassInitial = mass_update['smallMolecule_mass']
         else:
             mass_update['growth'] = mass_update['dry_mass'] - old_dry_mass
 
@@ -307,20 +305,20 @@ class MassListener(Deriver):
         
         if mass_update['dry_mass'] != 0:
             mass_update['proteinMassFraction'] = (
-                mass_update['proteinMass'] / mass_update['dry_mass'])
+                mass_update['protein_mass'] / mass_update['dry_mass'])
             mass_update['rnaMassFraction'] = (
-                mass_update['rnaMass'] / mass_update['dry_mass'])
+                mass_update['rna_mass'] / mass_update['dry_mass'])
             mass_update['instantaniousGrowthRate'] = (mass_update['growth'] /
                 self.time_step / mass_update['dry_mass'])
             # These are "logged quantities" in wcEcoli - keep separate?
             mass_update['dryMassFoldChange'] = (mass_update['dry_mass'] / 
                 self.dryMassInitial)
-            mass_update['proteinMassFoldChange'] = (mass_update['proteinMass'] / 
-                self.proteinMassInitial)
-            mass_update['rnaMassFoldChange'] = (mass_update['rnaMass'] / 
+            mass_update['proteinMassFoldChange'] = (mass_update[
+                'protein_mass'] / self.proteinMassInitial)
+            mass_update['rnaMassFoldChange'] = (mass_update['rna_mass'] / 
                 self.rnaMassInitial)
             mass_update['smallMoleculeFoldChange'] = mass_update[
-                'smallMoleculeMass'] / self.smallMoleculeMassInitial
+                'smallMolecule_mass'] / self.smallMoleculeMassInitial
 
         self.first_time_step = False
 

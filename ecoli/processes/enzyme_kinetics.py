@@ -3,12 +3,11 @@
 Convenience Kinetics
 ====================
 '''
-
+import numpy as np
 from vivarium.core.process import Process
 from vivarium.core.composition import simulate_process
 from ecoli.library.kinetic_rate_laws import KineticFluxModel
-from ecoli.library.schema import bulk_schema
-from vivarium.library.dict_utils import tuplify_port_dicts
+from ecoli.library.schema import numpy_schema, bulk_name_to_idx, counts
 
 
 NAME = 'enzyme_kinetics'
@@ -93,6 +92,8 @@ class EnzymeKinetics(Process):
         # remove "bulk" from the name
         self.molecules_ids = [mol_id[1] for mol_id in self.kinetic_rate_laws.molecule_ids]
 
+        self.molecules_idx = None
+
     # def initial_state(self, config):
     #     # TODO (Cyrus) - test if this works
     #     initial_conc = config['initial_concentrations']
@@ -102,7 +103,7 @@ class EnzymeKinetics(Process):
 
     def ports_schema(self):
         schema = {
-            'bulk': bulk_schema(self.molecules_ids),  # metabolites and catalysts
+            'bulk': numpy_schema('bulk'),
             'fluxes': {
                 str(rxn_id): {
                     '_default': 0.0,
@@ -114,9 +115,16 @@ class EnzymeKinetics(Process):
         return schema
 
     def next_update(self, timestep, states):
+        if self.molecules_idx is None:
+            bulk_ids = states['bulk']['id']
+            self.molecules_idx = bulk_name_to_idx(self.molecules_ids, bulk_ids)
 
         # TODO (Cyrus) -- convert molecules to concentrations
-        tuplified_states = tuplify_port_dicts(states)
+        molecule_counts = counts(states['bulk'], self.molecules_idx)
+        tuplified_states = {
+            ('bulk', mol): molecule_counts[i]
+            for i, mol in enumerate(self.molecules_ids)
+        }
 
         # get flux, which is in units of mmol / L
         fluxes = self.kinetic_rate_laws.get_fluxes(tuplified_states)
@@ -154,11 +162,12 @@ def test_enzyme_kinetics(end_time=100):
     kinetic_process = EnzymeKinetics(config)
 
     initial_state = {
-        'bulk': {
-            'A': 1.0,
-            'B': 1.0,
-            'enzyme1': 1.0,
-    }}
+        'bulk': np.array([
+            ('A', 1.0),
+            ('B', 1.0),
+            ('enzyme1', 1.0)
+        ], dtype=[('id', 'U7'), ('count', 'f')])
+    }
     settings = {
         'total_time': end_time,
         'initial_state': initial_state}

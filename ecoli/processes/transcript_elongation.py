@@ -419,7 +419,7 @@ class TranscriptElongation(PartitionedProcess):
         assert len(RNAP_unique_index) == len(RNAP_index_partial_RNAs)
 
         # All partial RNAs must be linked to an RNAP
-        assert (np.count_nonzero(RNAP_index_partial_RNAs == '-1') == 0)
+        assert (np.count_nonzero(RNAP_index_partial_RNAs == -1) == 0)
 
         # Get mapping indexes between partial RNAs to RNAPs
         partial_RNA_to_RNAP_mapping, _ = get_mapping_arrays(
@@ -576,9 +576,9 @@ class TranscriptElongation(PartitionedProcess):
 
         update.setdefault('bulk', []).append((self.ntps_idx, -ntps_used))
         update['bulk'].append((self.bulk_RNA_idx, n_new_bulk_RNAs))
-        update['bulk'].append((self.ppi_idx, n_elongations - n_initialized))
-        update['bulk'].append((self.fragmentBases_idx,
+        update['bulk'].append((self.inactive_RNAP_idx,
             n_terminated + n_attenuated))
+        update['bulk'].append((self.ppi_idx, n_elongations - n_initialized))
 
         # Write outputs to listeners
         update['listeners']['transcript_elongation_listener'] = {
