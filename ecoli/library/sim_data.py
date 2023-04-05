@@ -845,12 +845,12 @@ class LoadSimData:
 
     def get_metabolism_config(self, time_step=2, parallel=False, deriver_mode=False):
 
-        bad_rxns = ["RXN-12440", "TRANS-RXN-121", "TRANS-RXN-300"]
-        for rxn in bad_rxns:
-            self.sim_data.process.metabolism.reaction_stoich.pop(rxn, None)
-            self.sim_data.process.metabolism.reaction_catalysts.pop(rxn, None)
-            self.sim_data.process.metabolism.reactions_with_catalyst.remove(rxn) \
-                if rxn in self.sim_data.process.metabolism.reactions_with_catalyst else None
+        # bad_rxns = ["RXN-12440", "TRANS-RXN-121", "TRANS-RXN-300"]
+        # for rxn in bad_rxns:
+        #     self.sim_data.process.metabolism.reaction_stoich.pop(rxn, None)
+        #     self.sim_data.process.metabolism.reaction_catalysts.pop(rxn, None)
+        #     self.sim_data.process.metabolism.reactions_with_catalyst.remove(rxn) \
+        #         if rxn in self.sim_data.process.metabolism.reactions_with_catalyst else None
 
 
         metabolism_config = {
