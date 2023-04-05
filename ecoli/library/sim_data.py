@@ -782,7 +782,25 @@ class LoadSimData:
 
     def get_metabolism_redux_config(self, time_step=2, parallel=False, deriver_mode=False):
 
+        stoichiometric_matrix_dict = dict(self.sim_data.process.metabolism.reaction_stoich)
+        stoichiometric_matrix_dict = dict(sorted(stoichiometric_matrix_dict.items()))
+
+        reaction_catalysts = self.sim_data.process.metabolism.reaction_catalysts
+        catalyst_ids = self.sim_data.process.metabolism.catalyst_ids
+        reactions_with_catalyst = self.sim_data.process.metabolism.reactions_with_catalyst
+
+        rxns = list()
+
         # TODO Reconstruct catalysis and annotate.
+        for key, value in stoichiometric_matrix_dict.items():
+
+            rxns.append({'reaction id': key, 'stoichiometry': value})
+
+            # Add enzyme to reactions
+            if key in reactions_with_catalyst:
+                rxns[-1]['enzyme'] = reaction_catalysts[key]
+            else:
+                rxns[-1]['enzyme'] = []
         # Required:
 
         metabolism_config = {
@@ -790,7 +808,8 @@ class LoadSimData:
             '_parallel': parallel,
 
             # variables
-            'stoichiometry': self.sim_data.process.metabolism.reaction_stoich,
+            # 'stoichiometry': self.sim_data.process.metabolism.reaction_stoich,
+            'stoichiometry': rxns, # upseparates rxns and catalysts.
             'reaction_catalysts': self.sim_data.process.metabolism.reaction_catalysts,
             'maintenance_reaction': self.sim_data.process.metabolism.maintenance_reaction,
             'aa_names': self.sim_data.molecule_groups.amino_acids,
