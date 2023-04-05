@@ -118,9 +118,10 @@ class MonomerCounts(Step):
             },
             'bulk': numpy_schema('bulk'),
             'unique': {
-                str(unique_mol): numpy_schema(str(unique_mol))
-                for unique_mol in self.parameters['unique_ids']
-            },
+                'active_ribosome': numpy_schema('active_ribosome'),
+                'active_RNAP': numpy_schema('active_RNAPs'),
+                'active_replisome': numpy_schema('active_replisomes')
+            }
         }
 
     def next_update(self, timestep, states):

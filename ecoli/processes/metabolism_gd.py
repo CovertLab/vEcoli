@@ -8,13 +8,14 @@ import time
 
 from vivarium.core.process import Process
 
-from ecoli.library.schema import bulk_schema, array_from
+from ecoli.library.schema import numpy_schema, bulk_name_to_idx, counts
 
 from wholecell.utils import units
 
-from ecoli.library.fba_gd import GradientDescentFba, FbaResult, TargetDmdtObjective, \
-    TargetVelocityObjective, VelocityBoundsObjective, DmdtBoundsObjective, MinimizeFluxObjective, \
-    LenientTargetVelocityObjective, MinimizeExchangeObjective
+from ecoli.library.fba_gd import GradientDescentFba, FbaResult, \
+    TargetDmdtObjective, TargetVelocityObjective, VelocityBoundsObjective, \
+    DmdtBoundsObjective, MinimizeFluxObjective, \
+    LenientTargetVelocityObjective,MinimizeExchangeObjective
 from ecoli.processes.registries import topology_registry
 
 COUNTS_UNITS = units.mmol
@@ -25,11 +26,12 @@ CONC_UNITS = COUNTS_UNITS / VOLUME_UNITS
 CONVERSION_UNITS = MASS_UNITS * TIME_UNITS / VOLUME_UNITS
 GDCW_BASIS = units.mmol / units.g / units.h
 
-# TODO (Cyrus) Move this into data file. Used to just come from states? Should be in constant file until environment
-#  is added.
-UNCONSTRAINED_UPTAKE = ["K+[p]", "MN+2[p]", "WATER[p]", "AMMONIUM[c]", "NI+2[p]", "NA+[p]", "Pi[p]", "MG+2[p]",
-                        "CL-[p]", "FE+2[p]", "L-SELENOCYSTEINE[c]", "CA+2[p]", "CARBON-DIOXIDE[p]", "ZN+2[p]",
-                        "CO+2[p]", "OXYGEN-MOLECULE[p]", "SULFATE[p]"]
+# TODO (Cyrus) Move this into data file. Used to just come from states?
+# Should be in constant file until environment is added.
+UNCONSTRAINED_UPTAKE = ["K+[p]", "MN+2[p]", "WATER[p]", "AMMONIUM[c]",
+    "NI+2[p]", "NA+[p]", "Pi[p]", "MG+2[p]", "CL-[p]", "FE+2[p]",
+    "L-SELENOCYSTEINE[c]", "CA+2[p]", "CARBON-DIOXIDE[p]", "ZN+2[p]",
+    "CO+2[p]", "OXYGEN-MOLECULE[p]", "SULFATE[p]"]
 CONSTRAINED_UPTAKE = {"GLC[p]": 20}
 
 NAME = 'ecoli-metabolism-gradient-descent'
@@ -47,7 +49,9 @@ class MetabolismGD(Process):
         'stoichiometry': [],
         'reaction_catalysts': [],
         'catalyst_ids': [],
-        'kinetic_rates': [],  # TODO (Cyrus) -- get these passed in, these are a subset of the stoichimetry
+        # TODO (Cyrus) -- get these passed in, these are a subset of
+        # the stoichimetry
+        'kinetic_rates': [], 
         'media_id': 'minimal',
         'objective_type': 'homeostatic',
         'cell_density': 1100 * units.g / units.L,
@@ -62,18 +66,19 @@ class MetabolismGD(Process):
         maintenance_reaction = self.parameters['maintenance_reaction']
         self.stoichiometry = self.parameters['stoichiometry_r']
         self.stoichiometry.append({'reaction id': 'maintenance_reaction',
-                                   'stoichiometry': parameters['maintenance_reaction'],
-                                   'is reversible': False,
-                                   'enzyme': []})
+            'stoichiometry': parameters['maintenance_reaction'],
+            'is reversible': False, 'enzyme': []})
 
         self.metabolite_names = self.parameters['metabolite_names']
         self.media_id = self.parameters['media_id']
         objective_type = self.parameters['objective_type']
         self.cell_density = self.parameters['cell_density']
         self.nAvogadro = self.parameters['avogadro']
-        self.nutrient_to_doubling_time = self.parameters['nutrientToDoublingTime']
+        self.nutrient_to_doubling_time = self.parameters[
+            'nutrientToDoublingTime']
         self.ngam = parameters['non_growth_associated_maintenance']
-        self.gam = parameters['dark_atp'] * parameters['cell_dry_mass_fraction']
+        self.gam = parameters['dark_atp'] * parameters[
+            'cell_dry_mass_fraction']
         self.random_state = np.random.RandomState(seed=self.parameters['seed'])
 
 
@@ -84,44 +89,57 @@ class MetabolismGD(Process):
 
         # methods from config
         self._biomass_concentrations = {}  # type: dict
-        self._getBiomassAsConcentrations = parameters['get_biomass_as_concentrations']
+        self._getBiomassAsConcentrations = parameters[
+            'get_biomass_as_concentrations']
         concentration_updates = self.parameters['concentration_updates']
         self.exchange_constraints = self.parameters['exchange_constraints']
-        self.get_kinetic_constraints = self.parameters['get_kinetic_constraints']
-        self.kinetic_constraint_reactions = self.parameters['kinetic_constraint_reactions']
+        self.get_kinetic_constraints = self.parameters[
+            'get_kinetic_constraints']
+        self.kinetic_constraint_reactions = self.parameters[
+            'kinetic_constraint_reactions']
 
         # carbon sources
-        self.carbon_source_active_transport = self.parameters['carbon_source_active_transport']
-        self.carbon_source_active_transport_duplicate = self.parameters['carbon_source_active_transport_duplicate']
-        self.carbon_source_facilitated_diffusion = self.parameters['carbon_source_facilitated_diffusion']
+        self.carbon_source_active_transport = self.parameters[
+            'carbon_source_active_transport']
+        self.carbon_source_active_transport_duplicate = self.parameters[
+            'carbon_source_active_transport_duplicate']
+        self.carbon_source_facilitated_diffusion = self.parameters[
+            'carbon_source_facilitated_diffusion']
 
         # retrieve exchanged molecules
         exchange_molecules = set()
         exchanges = parameters['exchange_data_from_media'](self.media_id)
         exchange_molecules.update(exchanges['externalExchangeMolecules'])
         self.exchange_molecules = exchange_molecules
-        exchange_molecules = list(sorted(exchange_molecules))  # set vs list, unify?
+        # set vs list, unify?
+        exchange_molecules = list(sorted(exchange_molecules))  
 
         # metabolites not in either set are constrained to zero uptake.
-        self.allowed_exchange_uptake = UNCONSTRAINED_UPTAKE + list(CONSTRAINED_UPTAKE.keys())
+        self.allowed_exchange_uptake = UNCONSTRAINED_UPTAKE + list(
+            CONSTRAINED_UPTAKE.keys())
 
         # self.exchange_molecules.add('FRU[p]')
         # self.allowed_exchange_uptake.append('FRU[p]')
         # self.allowed_exchange_uptake.remove('GLC[p]')
 
-        self.disallowed_exchange_uptake = list(set(exchange_molecules) - set(self.allowed_exchange_uptake))
+        self.disallowed_exchange_uptake = list(set(exchange_molecules)
+            - set(self.allowed_exchange_uptake))
 
         # retrieve conc dict and get homeostatic objective.
-        conc_dict = concentration_updates.concentrations_based_on_nutrients(self.media_id)
+        conc_dict = concentration_updates.concentrations_based_on_nutrients(
+            self.media_id)
         doubling_time = parameters['doubling_time']
         conc_dict.update(self.getBiomassAsConcentrations(doubling_time))
 
-        self.homeostatic_objective = dict((key, conc_dict[key].asNumber(CONC_UNITS)) for key in conc_dict)
-        self.kinetic_objective = [reaction['reaction id'] for reaction in self.stoichiometry if reaction['enzyme']]
+        self.homeostatic_objective = dict((key, conc_dict[key].asNumber(
+            CONC_UNITS)) for key in conc_dict)
+        self.kinetic_objective = [reaction['reaction id'] for reaction
+            in self.stoichiometry if reaction['enzyme']]
         self.maintenance_objective = ['maintenance_reaction']
 
-        self.disallowed_carbon_transport = self.carbon_source_active_transport_duplicate + \
-                                           self.carbon_source_facilitated_diffusion
+        self.disallowed_carbon_transport = \
+            self.carbon_source_active_transport_duplicate + \
+            self.carbon_source_facilitated_diffusion
 
 
         # Create model to use to solve metabolism updates
@@ -129,36 +147,40 @@ class MetabolismGD(Process):
             reactions=self.stoichiometry,
             exchanges=list(self.exchange_molecules),
             target_metabolites=self.homeostatic_objective)
-        self.model.add_objective('homeostatic', TargetDmdtObjective(self.model.network, self.homeostatic_objective))
+        self.model.add_objective('homeostatic', TargetDmdtObjective(
+            self.model.network, self.homeostatic_objective))
         self.model.add_objective('maintenance',
-                                 TargetVelocityObjective(self.model.network, self.maintenance_objective, weight=10))
+            TargetVelocityObjective(self.model.network,
+                self.maintenance_objective, weight=10))
         self.model.add_objective('diffusion',
-                                 TargetVelocityObjective(self.model.network,
-                                                         self.disallowed_carbon_transport,
-                                                         weight=5))
+            TargetVelocityObjective(self.model.network,
+                self.disallowed_carbon_transport, weight=5))
         self.model.add_objective('uptake_constraints',
-                                 DmdtBoundsObjective(self.model.network,
-                                                     {molecule_id: (0, np.inf)
-                                                      for molecule_id in self.disallowed_exchange_uptake}, weight=5))
+            DmdtBoundsObjective(self.model.network, {molecule_id: (0, np.inf)
+                for molecule_id in self.disallowed_exchange_uptake}, weight=5))
 
         # # TODO (Cyrus): Reintroduce later.
         # self.model.add_objective('futile_cycle',
-        #                          MinimizeExchangeObjective(self.model.network, self.exchange_molecules, weight=0.01))
+        #     MinimizeExchangeObjective(self.model.network,
+        #     self.exchange_molecules, weight=0.01))
 
         # self.model.add_objective("active_transport",
-        #                          VelocityBoundsObjective(self.model.network,
-        #                                                  {reaction_id: (0, 1) for reaction_id
-        #                                                   in self.carbon_source_active_transport}, weight=5))
+        #     VelocityBoundsObjective(self.model.network,
+        #         {reaction_id: (0, 1) for reaction_id
+        #         in self.carbon_source_active_transport}, weight=5))
 
         # for ports schema
-        self.metabolite_names_for_nutrients = self.get_port_metabolite_names(conc_dict)
+        self.metabolite_names_for_nutrients = self.get_port_metabolite_names(
+            conc_dict)
 
 
         # for ports schema
         self.aa_names = self.parameters['aa_names']
         self.catalyst_ids = self.parameters['catalyst_ids']
-        self.kinetic_constraint_enzymes = self.parameters['kinetic_constraint_enzymes']
-        self.kinetic_constraint_substrates = self.parameters['kinetic_constraint_substrates']
+        self.kinetic_constraint_enzymes = self.parameters[
+            'kinetic_constraint_enzymes']
+        self.kinetic_constraint_substrates = self.parameters[
+            'kinetic_constraint_substrates']
 
     def get_port_metabolite_names(self, conc_dict):
         metabolite_names_from_nutrients = set()
@@ -166,22 +188,22 @@ class MetabolismGD(Process):
         return list(sorted(metabolite_names_from_nutrients))
 
     def ports_schema(self):
-
+        dict_schema = {'_default': {}, '_updater': 'set', '_emit': True}
         return {
             # TODO (Cyrus) Add internal metabolites as bulk schema.
-            'metabolites': bulk_schema(self.metabolite_names_for_nutrients),
-            'catalysts': bulk_schema(self.catalyst_ids),
-            'kinetics_enzymes': bulk_schema(self.kinetic_constraint_enzymes),
-            'kinetics_substrates': bulk_schema(self.kinetic_constraint_substrates),
-            'amino_acids': bulk_schema(self.aa_names),
-            'amino_acids_total': bulk_schema(self.aa_names, partition=False),
-            # 'kinetic_flux_targets': {reaction_id: {} for reaction_id in self.parameters['kinetic_rates']},
+            'bulk': numpy_schema('bulk'),
+            'bulk_total': numpy_schema('bulk', partition=False),
+            # 'kinetic_flux_targets': {reaction_id: {}
+            #     for reaction_id in self.parameters['kinetic_rates']},
 
             'environment': {
                 'media_id': {
                     '_default': '',
                     '_updater': 'set'},
-                'exchange': bulk_schema(self.exchange_molecules),
+                'exchange': {
+                    str(element): {'_default': 0}
+                    for element in self.exchange_molecules
+                },
                 # can probably remove, identical to exchanges except tuple.
                 'exchange_data': {
                     'unconstrained': {'_default': []},
@@ -200,30 +222,33 @@ class MetabolismGD(Process):
 
             'listeners': {
                 'mass': {
-                    # TODO (Matt -> Cyrus): These should not be using a divider. Mass listener should run before metabolism after division.
+                    # TODO (Matt -> Cyrus): These should not be using a divider
+                    # Mass listener should run before metabolism after division
                     'cell_mass': {'_default': 0.0,
                                   '_divider': 'split'},
                     'dry_mass': {'_default': 0.0,
                                  '_divider': 'split'}},
 
                 'fba_results': {
-                    'estimated_fluxes': {'_default': {}, '_updater': 'set', '_emit': True},
-                    'estimated_homeostatic_dmdt': {'_default': {}, '_updater': 'set', '_emit': True},
-                    'target_homeostatic_dmdt': {'_default': {}, '_updater': 'set', '_emit': True},
-                    # 'target_kinetic_fluxes': {'_default': {}, '_updater': 'set', '_emit': True},
-                    'estimated_exchange_dmdt': {'_default': {}, '_updater': 'set', '_emit': True},
-                    'estimated_intermediate_dmdt': {'_default': {}, '_updater': 'set', '_emit': True},
-                    'maintenance_target': {'_default': {}, '_updater': 'set', '_emit': True},
-                    'solution_fluxes': {'_default': {}, '_updater': 'set', '_emit': True},
-                    'solution_dmdt': {'_default': {}, '_updater': 'set', '_emit': True},
-                    'solution_residuals': {'_default': {}, '_updater': 'set', '_emit': True},
-                    'time_per_step': {'_default': 0.0, '_updater': 'set', '_emit': True},
+                    'estimated_fluxes': dict_schema,
+                    'estimated_homeostatic_dmdt': dict_schema,
+                    'target_homeostatic_dmdt': dict_schema,
+                    # 'target_kinetic_fluxes': dict_schema,
+                    'estimated_exchange_dmdt': dict_schema,
+                    'estimated_intermediate_dmdt': dict_schema,
+                    'maintenance_target': dict_schema,
+                    'solution_fluxes': dict_schema,
+                    'solution_dmdt': dict_schema,
+                    'solution_residuals': dict_schema,
+                    'time_per_step': {'_default': 0.0,
+                        '_updater': 'set', '_emit': True},
                 },
             },
             'first_update': {
                 '_default': True,
                 '_updater': 'set',
-                '_divider': {'divider': 'set_value', 'config': {'value': True}},
+                '_divider': {'divider': 'set_value',
+                    'config': {'value': True}},
             },
             'evolvers_ran': {'_default': True},
         }
@@ -234,18 +259,32 @@ class MetabolismGD(Process):
     def next_update(self, timestep, states):
         # Skip t=0
         if states['first_update']:
+            bulk_ids = states['bulk']['id']
+            self.metabolite_idx = bulk_name_to_idx(
+                self.metabolite_names_for_nutrients, bulk_ids)
+            self.catalyst_idx = bulk_name_to_idx(
+                self.catalyst_ids, bulk_ids)
+            self.kinetics_enzymes_idx = bulk_name_to_idx(
+                self.kinetic_constraint_enzymes, bulk_ids)
+            self.kinetics_substrates_idx = bulk_name_to_idx(
+                self.kinetic_constraint_substrates, bulk_ids)
+            self.aa_idx = bulk_name_to_idx(self.aa_names, bulk_ids)
             return {'first_update': False}
+
         # extract the states from the ports
-        current_metabolite_counts = states['metabolites']
+        # current_metabolite_counts = states['metabolites']
+        current_metabolite_counts = counts(states['bulk'], self.metabolite_idx)
         self.timestep = timestep
 
         # TODO (Cyrus) - Implement kinetic model
         # kinetic_flux_targets = states['kinetic_flux_targets']
         # needed for kinetics
-        current_catalyst_counts = states['catalysts']
+        current_catalyst_counts = counts(states['bulk'], self.catalyst_idx)
         translation_gtp = states['polypeptide_elongation']['gtp_to_hydrolyze']
-        kinetic_enzyme_counts = states['kinetics_enzymes'] # kinetics related
-        kinetic_substrate_counts = states['kinetics_substrates']
+        kinetic_enzyme_counts = counts(states['bulk'],
+            self.kinetics_enzymes_idx) # kinetics related
+        kinetic_substrate_counts = counts(states['bulk'],
+            self.kinetics_substrates_idx) 
 
         # cell mass difference for calculating GAM
         if self.cell_mass is not None:
@@ -254,54 +293,70 @@ class MetabolismGD(Process):
         dry_mass = states['listeners']['mass']['dry_mass'] * units.fg
 
         cell_volume = self.cell_mass / self.cell_density
-        coefficient = dry_mass / self.cell_mass * self.cell_density * timestep * units.s  # TODO (Cyrus) what's this?
-        self.counts_to_molar = (1 / (self.nAvogadro * cell_volume)).asUnit(CONC_UNITS)
+        coefficient = (dry_mass / self.cell_mass * self.cell_density
+            * timestep * units.s)  # TODO (Cyrus) what's this?
+        self.counts_to_molar = (1 / (self.nAvogadro * cell_volume)).asUnit(
+            CONC_UNITS)
 
         # maintenance target
         if self.previous_mass is not None:
-            flux_gam = self.gam * (self.cell_mass - self.previous_mass) / VOLUME_UNITS
+            flux_gam = self.gam * (self.cell_mass - self.previous_mass
+                ) / VOLUME_UNITS
         else:
             flux_gam = 0 * CONC_UNITS
         flux_ngam = (self.ngam * coefficient)
         flux_gtp = (self.counts_to_molar * translation_gtp)
 
         total_maintenance = flux_gam + flux_ngam + flux_gtp
-        maintenance_target = {'maintenance_reaction': total_maintenance.asNumber()}
+        maintenance_target = {'maintenance_reaction':
+            total_maintenance.asNumber()}
 
         # binary kinetic targets
         binary_kinetic_targets = {}
         for reaction in self.stoichiometry:
-            if reaction['enzyme'] and sum([current_catalyst_counts[enzyme] for enzyme in reaction['enzyme']]) == 0:
+            if reaction['enzyme'] and sum([current_catalyst_counts[enzyme]
+                for enzyme in reaction['enzyme']]) == 0:
                 binary_kinetic_targets[reaction['reaction id']] = 0
 
-        current_metabolite_concentrations = {str(key): value * self.counts_to_molar for key, value in
-                                             current_metabolite_counts.items()}
-        target_homeostatic_dmdt = {str(key): ((self.homeostatic_objective[key] * CONC_UNITS
-                                          - current_metabolite_concentrations[key]) / timestep).asNumber()
-                                   for key, value in self.homeostatic_objective.items()}
+        current_metabolite_concentrations = {str(key):
+            value * self.counts_to_molar
+            for key, value in current_metabolite_counts.items()}
+        target_homeostatic_dmdt = {str(key):
+            ((self.homeostatic_objective[key] * CONC_UNITS -
+                current_metabolite_concentrations[key]) / timestep).asNumber()
+            for key, value in self.homeostatic_objective.items()}
 
         # prevent disallowed carbon source uptake
-        diffusion_target = {reaction: 0 for reaction in self.disallowed_carbon_transport}
+        diffusion_target = {reaction: 0 for reaction
+            in self.disallowed_carbon_transport}
 
-        # Need to run set_molecule_levels and set_reaction_bounds for homeostatic solution.
-        # set molecule_levels requires exchange_constraints from dataclass.
+        # Need to run set_molecule_levels and set_reaction_bounds for
+        # homeostatic solution. set molecule_levels requires
+        # exchange_constraints from dataclass.
 
-        # kinetic constraints # TODO (Cyrus) eventually collect isozymes in single reactions, map enzymes to reacts
-        #  via stoich instead of kinetic_constraint_reactions
-        kinetic_enzyme_conc = self.counts_to_molar * array_from(kinetic_enzyme_counts)
-        kinetic_substrate_conc = self.counts_to_molar * array_from(kinetic_substrate_counts)
-        kinetic_constraints = self.get_kinetic_constraints(kinetic_enzyme_conc, kinetic_substrate_conc) # kinetic
-        enzyme_kinetic_boundaries = ((timestep * units.s) * kinetic_constraints).asNumber(CONC_UNITS)
+        # kinetic constraints # TODO (Cyrus) eventually collect isozymes in
+        # single reactions, map enzymes to reacts via stoich instead of
+        # kinetic_constraint_reactions
+        kinetic_enzyme_conc = self.counts_to_molar * kinetic_enzyme_counts
+        kinetic_substrate_conc = self.counts_to_molar * kinetic_substrate_counts
+        kinetic_constraints = self.get_kinetic_constraints(kinetic_enzyme_conc,
+            kinetic_substrate_conc) # kinetic
+        enzyme_kinetic_boundaries = ((timestep * units.s) *
+            kinetic_constraints).asNumber(CONC_UNITS)
         enzyme_kinetic_reactions = self.kinetic_constraint_reactions
 
         # remove redundant kinetic reactions
 
 
-        enzyme_kinetic_targets = {enzyme_kinetic_reactions[i]: enzyme_kinetic_boundaries[i, 1] for i in range(len(enzyme_kinetic_reactions))}
+        enzyme_kinetic_targets = {enzyme_kinetic_reactions[i]:
+            enzyme_kinetic_boundaries[i, 1]
+            for i in range(len(enzyme_kinetic_reactions))}
 
         # adding dynamically sized objectives
-        self.model.add_objective('kinetic', TargetVelocityObjective(self.model.network, enzyme_kinetic_targets.keys(), weight=0.00005))
-        self.model.add_objective('binary_kinetic', TargetVelocityObjective(self.model.network, binary_kinetic_targets.keys(), weight=1))
+        self.model.add_objective('kinetic', TargetVelocityObjective(
+            self.model.network, enzyme_kinetic_targets.keys(), weight=0.00005))
+        self.model.add_objective('binary_kinetic', TargetVelocityObjective(
+            self.model.network, binary_kinetic_targets.keys(), weight=1))
 
         # run FBA
         solution: FbaResult = self.model.solve(
@@ -312,34 +367,49 @@ class MetabolismGD(Process):
              'kinetic': enzyme_kinetic_targets
              },
             initial_velocities=self.reaction_fluxes,
-            tr_solver='lsmr', max_nfev=64, ftol=10 ** (-5), verbose=2, xtol=10 ** (-4),
-            tr_options={'atol': 10 ** (-8), 'btol': 10 ** (-8), 'conlim': 10 ** (10), 'show': False}
+            tr_solver='lsmr', max_nfev=64, ftol=10 ** (-5), verbose=2,
+                xtol=10 ** (-4),
+            tr_options={'atol': 10 ** (-8), 'btol': 10 ** (-8),
+                'conlim': 10 ** (10), 'show': False}
         )
 
         self.reaction_fluxes = solution.velocities
         self.metabolite_dmdt = solution.dm_dt
 
         # recalculate flux concentrations to counts
-        estimated_reaction_fluxes = self.concentrationToCounts(self.reaction_fluxes)
-        metabolite_dmdt_counts = self.concentrationToCounts(self.metabolite_dmdt)
-        target_kinetic_flux = self.concentrationToCounts(binary_kinetic_targets)
-        target_maintenance_flux = self.concentrationToCounts(maintenance_target)
-        target_homeostatic_dmdt = self.concentrationToCounts(target_homeostatic_dmdt)
+        estimated_reaction_fluxes = self.concentrationToCounts(
+            self.reaction_fluxes)
+        metabolite_dmdt_counts = self.concentrationToCounts(
+            self.metabolite_dmdt)
+        target_kinetic_flux = self.concentrationToCounts(
+            binary_kinetic_targets)
+        target_maintenance_flux = self.concentrationToCounts(
+            maintenance_target)
+        target_homeostatic_dmdt = self.concentrationToCounts(
+            target_homeostatic_dmdt)
 
-        # Include all concentrations that will be present in a sim for constant length listeners. doesn't affect fba.
+        # Include all concentrations that will be present in a sim for constant
+        # length listeners. doesn't affect fba.
         for met in self.metabolite_names_for_nutrients:
             if met not in target_homeostatic_dmdt:
                 target_homeostatic_dmdt[str(met)] = 0.
 
-        estimated_homeostatic_dmdt = {str(key): metabolite_dmdt_counts[key] for key in self.homeostatic_objective.keys()}
-        estimated_exchange_dmdt = {str(key): metabolite_dmdt_counts[key] for key in self.exchange_molecules}
-        intermediates = list(set(metabolite_dmdt_counts.keys()) - set(self.exchange_molecules) - set(self.homeostatic_objective.keys()))
-        estimated_intermediate_dmdt = {str(key): metabolite_dmdt_counts[key] for key in intermediates}
+        estimated_homeostatic_dmdt = {str(key): metabolite_dmdt_counts[key]
+            for key in self.homeostatic_objective.keys()}
+        estimated_exchange_dmdt = {str(key): metabolite_dmdt_counts[key]
+            for key in self.exchange_molecules}
+        intermediates = list(set(metabolite_dmdt_counts.keys())
+            - set(self.exchange_molecules)
+            - set(self.homeostatic_objective.keys()))
+        estimated_intermediate_dmdt = {str(key): metabolite_dmdt_counts[key]
+            for key in intermediates}
 
         return {
-            'metabolites': estimated_homeostatic_dmdt,  # changes to internal metabolites
+            # changes to internal metabolites
+            'bulk': [(self.metabolite_idx, estimated_homeostatic_dmdt)],
             'environment': {
-                'exchanges': estimated_exchange_dmdt  # changes to external metabolites
+                # changes to external metabolites
+                'exchanges': estimated_exchange_dmdt  
             },
             'listeners': {
                 'fba_results': {
@@ -360,29 +430,33 @@ class MetabolismGD(Process):
 
     def concentrationToCounts(self, concentration_dict):
         return {key: int(np.round(
-            (concentration_dict[key] * CONC_UNITS / self.counts_to_molar * self.timestep).asNumber()
+            (concentration_dict[key] * CONC_UNITS / self.counts_to_molar
+                * self.timestep).asNumber()
         )) for key in concentration_dict}
 
     def getBiomassAsConcentrations(self, doubling_time):
         """
-        Caches the result of the sim_data function to improve performance since
-        function requires computation but won't change for a given doubling_time.
+        Caches the result of the sim_data function to improve performance
+        since function requires computation but won't change for a given
+        doubling_time.
 
         Args:
-            doubling_time (float with time units): doubling time of the cell to
-                get the metabolite concentrations for
+            doubling_time (float with time units): doubling time of the cell
+                to get the metabolite concentrations for
 
         Returns:
-            dict {str : float with concentration units}: dictionary with metabolite
-                IDs as keys and concentrations as values
+            dict {str : float with concentration units}: dictionary with
+                metabolite IDs as keys and concentrations as values
 
         """
 
-        # TODO (Cyrus) Repeats code found in processes/metabolism.py Should think of a way to share.
+        # TODO (Cyrus) Repeats code found in processes/metabolism.py.
+        # Should think of a way to share.
 
         minutes = doubling_time.asNumber(units.min)  # hashable
         if minutes not in self._biomass_concentrations:
-            self._biomass_concentrations[minutes] = self._getBiomassAsConcentrations(doubling_time)
+            self._biomass_concentrations[minutes] = \
+                self._getBiomassAsConcentrations(doubling_time)
 
         return self._biomass_concentrations[minutes]
 

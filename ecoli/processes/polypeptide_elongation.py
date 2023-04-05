@@ -494,7 +494,9 @@ class PolypeptideElongation(PartitionedProcess):
             nElongations,
             nInitialized)
 
+        evolve_bulk_update = evolve_update.pop('bulk')
         update = deep_merge(update, evolve_update)
+        update['bulk'].extend(evolve_bulk_update)
 
         update['polypeptide_elongation']['aa_count_diff'] = aa_count_diff
         # GTP hydrolysis is carried out in Metabolism process for growth
