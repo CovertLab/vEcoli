@@ -16,7 +16,7 @@ from ecoli.experiments.ecoli_master_sim import EcoliSim, CONFIG_DIR_PATH
 from ecoli.library.sim_data import LoadSimData
 from ecoli.states.wcecoli_state import get_state_from_file
 from ecoli.composites.ecoli_master import SIM_DATA_PATH
-from ecoli.processes.metabolism_gd import MetabolismGD
+from ecoli.processes.metabolism_redux import MetabolismRedux
 from ecoli.processes.stubs.exchange_stub import Exchange
 from ecoli.processes.registries import topology_registry
 
@@ -47,9 +47,9 @@ class MetabolismExchange(Composer):
 
     def generate_processes(self, config):
         # configure metabolism
-        metabolism_config = self.load_sim_data.get_metabolism_gd_config()
+        metabolism_config = self.load_sim_data.get_metabolism_redux_config()
         metabolism_config = deep_merge(metabolism_config, config['metabolism'])
-        metabolism_process = MetabolismGD(metabolism_config)
+        metabolism_process = MetabolismRedux(metabolism_config)
 
         example_update = {'ATP[c]': 9064, 'DATP[c]': 2222, 'DCTP[c]': 1649, 'DGTP[c]': 1647, 'FAD[c]': 171,
                           'GTP[c]': 20122, 'LEU[c]': 325, 'METHYLENE-THF[c]': 223, 'NAD[c]': 769,
@@ -81,8 +81,8 @@ def run_metabolism():
         seed=0)
 
     # Create process, experiment, loading in initial state from file.
-    config = load_sim_data.get_metabolism_gd_config()
-    metabolism_process = MetabolismGD(config)
+    config = load_sim_data.get_metabolism_redux_config()
+    metabolism_process = MetabolismRedux(config)
 
     initial_state = get_state_from_file(
         path=f'data/wcecoli_t1000.json')
@@ -117,7 +117,7 @@ def run_metabolism_composite():
     data = experiment.emitter.get_data()
 
 
-def run_ecoli_with_metabolism_gd(
+def run_ecoli_with_metabolism_redux(
         filename='fba_redux',
         total_time=10,
         divide=True,
@@ -141,6 +141,14 @@ def run_ecoli_with_metabolism_gd(
     sim.raw_output = False
     # sim.save = True
     # sim.save_times = [1000, 2000, 2500, 3000, 3500]
+
+    # simplify working with uptake
+    sim.initial_state['environment']['exchange_data']['constrained'] = {}
+    sim.initial_state['environment']['exchange_data']['unconstrained'].add('GLC[p]')
+
+    # in sim.initial_state['environment']['exchange_data']['unconstrained'], edit the set of molecules to be exchanged
+    sim.initial_state['environment']['exchange_data']['unconstrained'].remove('GLC[p]')
+    sim.initial_state['environment']['exchange_data']['unconstrained'].add('FRU[p]')
 
 
     sim.run()
@@ -194,7 +202,7 @@ def test_ecoli_with_metabolism_redux(
 
 
 @pytest.mark.slow
-def test_ecoli_with_metabolism_gd_div(
+def test_ecoli_with_metabolism_redux_div(
         filename='fba_redux_div',
         total_time=4,
         divide=True,
@@ -254,13 +262,13 @@ def run_ecoli_with_default_metabolism(
 experiment_library = {
     '0': run_metabolism,
     '1': run_metabolism_composite,
-    '2': run_ecoli_with_metabolism_gd,
+    '2': run_ecoli_with_metabolism_redux,
     '3': test_ecoli_with_metabolism_redux,
-    '4': test_ecoli_with_metabolism_gd_div,
+    '4': test_ecoli_with_metabolism_redux_div,
     '5': run_ecoli_with_default_metabolism,
 }
 
-# run experiments with command line arguments: python ecoli/experiments/metabolism_gd.py -n exp_id
+# run experiments with command line arguments: python ecoli/experiments/metabolism_redux_sim.py -n exp_id
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='metabolism with gd')
     parser.add_argument('--name', '-n', default=[], nargs='+', help='test ids to run')
