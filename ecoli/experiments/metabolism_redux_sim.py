@@ -138,8 +138,8 @@ def run_ecoli_with_metabolism_redux(
     sim.log_updates = log_updates
     sim.emitter = emitter
     sim.initial_state = get_state_from_file(path=f'data/{initial_state_file}.json')
-    sim.raw_output = False
-    # sim.save = True
+    sim.raw_output = raw_output
+    # sim.save = save
     # sim.save_times = [1000, 2000, 2500, 3000, 3500]
 
     # simplify working with uptake
@@ -154,25 +154,9 @@ def run_ecoli_with_metabolism_redux(
     sim.run()
 
     query = []
-    agents = sim.query()['agents'].keys()
-    for agent in agents:
-        query.extend([('agents', agent, 'listeners', 'fba_results'),
-                      ('agents', agent, 'listeners', 'mass'),
-                      ('agents', agent, 'bulk')])
-    output = sim.query(query)
-
-
     folder = f'out/fbagd/{name}_{total_time}_{datetime.date.today()}/'
-    pathlib.Path(folder).mkdir(parents=True, exist_ok=True)
-    np.save(folder + 'output.npy', output)
+    save_sim_output(folder, query, sim)
 
-    f = open(folder + 'agent_processes.pkl', 'wb')
-    dill.dump(sim.ecoli['processes']['agents'][agent], f)
-    f.close()
-
-    f = open(folder + 'agent_steps.pkl', 'wb')
-    dill.dump(sim.ecoli['steps']['agents'][agent], f)
-    f.close()
 
 
 @pytest.mark.slow
@@ -267,6 +251,25 @@ experiment_library = {
     '4': test_ecoli_with_metabolism_redux_div,
     '5': run_ecoli_with_default_metabolism,
 }
+
+
+def save_sim_output(folder, query, sim):
+    agents = sim.query()['agents'].keys()
+    for agent in agents:
+        query.extend([('agents', agent, 'listeners', 'fba_results'),
+                      ('agents', agent, 'listeners', 'mass'),
+                      ('agents', agent, 'bulk')])
+    output = sim.query(query)
+    pathlib.Path(folder).mkdir(parents=True, exist_ok=True)
+    np.save(folder + 'output.npy', output)
+
+    f = open(folder + 'agent_processes.pkl', 'wb')
+    dill.dump(sim.ecoli['processes']['agents'][agent], f)
+    f.close()
+
+    f = open(folder + 'agent_steps.pkl', 'wb')
+    dill.dump(sim.ecoli['steps']['agents'][agent], f)
+    f.close()
 
 # run experiments with command line arguments: python ecoli/experiments/metabolism_redux_sim.py -n exp_id
 if __name__ == "__main__":
