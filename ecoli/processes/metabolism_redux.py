@@ -281,6 +281,7 @@ class MetabolismRedux(Step):
         solution: FlowResult = self.network_flow_model.solve(homeostatic_targets=target_homeostatic_dmdt,
                                                              maintenance_target=maintenance_target['maintenance_reaction'],
                                                              kinetic_targets=target_kinetic_values,
+                                                             binary_kinetic_targets=binary_kinetic_targets,
                                                              objective_weights=objective_weights)
 
         self.reaction_fluxes = solution.velocities
@@ -427,6 +428,7 @@ class NetworkFlowModel:
               homeostatic_targets: Mapping[str, float],
               maintenance_target: float,
               kinetic_targets: Mapping[str, float],
+              binary_kinetic_targets: Mapping[str, float],
               objective_weights: Mapping[str, float],
               **kwargs) -> FlowResult:
 
@@ -441,6 +443,9 @@ class NetworkFlowModel:
         kinetic_array = [[self.rxns.index(met), target] for met, target in kinetic_targets.items()]
         kinetic_idx, kinetic_target = np.array(kinetic_array, dtype=np.int64)[:, 0], np.array(kinetic_array)[:, 1]
 
+        binary_kinetic_array = [self.rxns.index(met) for met in binary_kinetic_targets.keys()]
+        binary_kinetic_idx = np.array(binary_kinetic_array, dtype=np.int64)
+
         maintenance_idx = self.rxns.index("maintenance_reaction")  # TODO (Cyrus) - use name provided
 
         # set up variables
@@ -452,6 +457,7 @@ class NetworkFlowModel:
         constr = []
         constr.append(dm[self.intermediates_idx] == 0)
         constr.append(v[maintenance_idx] == maintenance_target)
+        constr.append(v[binary_kinetic_idx] == 0)
         # constr.append(dm[homeostatic_idx[]] == homeostatic_target)
         constr.extend([v >= 0, v <= 100, e >= 0, e <= 100]) # TODO (Cyrus) - remove hard-coded bounds
 
