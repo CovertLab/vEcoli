@@ -215,7 +215,7 @@ class MetabolismRedux(Step):
 
         # extract the states from the ports
         current_metabolite_counts = states['metabolites']
-        self.timestep = self.calculate_timestep(states) # TODO Check that this works. (Cyrus)
+        self.timestep = self.calculate_timestep(states)
 
         # TODO (Cyrus) - Implement kinetic model
         # kinetic_flux_targets = states['kinetic_flux_targets']
