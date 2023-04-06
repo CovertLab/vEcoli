@@ -28,10 +28,10 @@ GDCW_BASIS = units.mmol / units.g / units.h
 
 # TODO (Cyrus) Move this into data file. Used to just come from states? Should be in constant file until environment
 #  is added.
-UNCONSTRAINED_UPTAKE = ["K+[p]", "MN+2[p]", "WATER[p]", "AMMONIUM[c]", "NI+2[p]", "NA+[p]", "Pi[p]", "MG+2[p]",
-                        "CL-[p]", "FE+2[p]", "L-SELENOCYSTEINE[c]", "CA+2[p]", "CARBON-DIOXIDE[p]", "ZN+2[p]",
-                        "CO+2[p]", "OXYGEN-MOLECULE[p]", "SULFATE[p]"]
-CONSTRAINED_UPTAKE = {"GLC[p]": 20}
+# UNCONSTRAINED_UPTAKE = ["K+[p]", "MN+2[p]", "WATER[p]", "AMMONIUM[c]", "NI+2[p]", "NA+[p]", "Pi[p]", "MG+2[p]",
+#                         "CL-[p]", "FE+2[p]", "L-SELENOCYSTEINE[c]", "CA+2[p]", "CARBON-DIOXIDE[p]", "ZN+2[p]",
+#                         "CO+2[p]", "OXYGEN-MOLECULE[p]", "SULFATE[p]"]
+# CONSTRAINED_UPTAKE = {"GLC[p]": 20}
 
 NAME = 'ecoli-metabolism-redux'
 TOPOLOGY = topology_registry.access('ecoli-metabolism')
@@ -95,12 +95,7 @@ class MetabolismRedux(Step):
         exchange_molecules = set()
         exchanges = parameters['exchange_data_from_media'](self.media_id)
         exchange_molecules.update(exchanges['externalExchangeMolecules'])
-        self.exchange_molecules = exchange_molecules
-        exchange_molecules = list(sorted(exchange_molecules))  # set vs list, unify?
-
-        # metabolites not in either set are constrained to zero uptake.
-        self.allowed_exchange_uptake = UNCONSTRAINED_UPTAKE + list(CONSTRAINED_UPTAKE.keys())
-        self.disallowed_exchange_uptake = list(set(exchange_molecules) - set(self.allowed_exchange_uptake))
+        self.exchange_molecules = list(sorted(exchange_molecules))
 
         # retrieve conc dict and get homeostatic objective.
         conc_dict = concentration_updates.concentrations_based_on_nutrients(self.media_id)
@@ -119,8 +114,7 @@ class MetabolismRedux(Step):
         for rxn in bad_rxns:
             stoichiometric_matrix_dict.pop(rxn, None)
 
-        self.network_flow_model = NetworkFlowModel(stoichiometric_matrix_dict, exchange_molecules,
-                                                   self.allowed_exchange_uptake, self.homeostatic_objective)
+        self.network_flow_model = NetworkFlowModel(stoichiometric_matrix_dict, self.homeostatic_objective)
 
         # for ports schema
         self.metabolite_names_for_nutrients = self.get_port_metabolite_names(conc_dict)
@@ -208,6 +202,17 @@ class MetabolismRedux(Step):
         # Skip t=0
         if states['first_update']:
             return {'first_update': False}
+
+        # metabolites not in either set are constrained to zero uptake.
+        UNCONSTRAINED_UPTAKE = states['environment']['exchange_data']['unconstrained']
+        CONSTRAINED_UPTAKE =  states['environment']['exchange_data']['constrained']
+        self.allowed_exchange_uptake = list(UNCONSTRAINED_UPTAKE) + list(CONSTRAINED_UPTAKE.keys())
+        self.disallowed_exchange_uptake = list(set(self.exchange_molecules) - set(self.allowed_exchange_uptake))
+        self.exchange_molecules = list(set(self.exchange_molecules).union(set(self.allowed_exchange_uptake)))
+
+        # set up network flow model exchanges and uptakes
+        self.network_flow_model.set_up_exchanges(self.exchange_molecules, self.allowed_exchange_uptake)
+
         # extract the states from the ports
         current_metabolite_counts = states['metabolites']
         self.timestep = self.calculate_timestep(states) # TODO Check that this works. (Cyrus)
@@ -272,10 +277,11 @@ class MetabolismRedux(Step):
                                   for i in range(len(enzyme_kinetic_reactions)) if enzyme_kinetic_reactions[i] is not None}
 
         # TODO (Cyrus) solve network flow problem to get fluxes
+        objective_weights = {'secretion': 0.01, 'efficiency': 0.0001, 'kinetics': 0.000001}
         solution: FlowResult = self.network_flow_model.solve(homeostatic_targets=target_homeostatic_dmdt,
                                                              maintenance_target=maintenance_target['maintenance_reaction'],
-                                                             kinetic_targets=target_kinetic_values,)
-
+                                                             kinetic_targets=target_kinetic_values,
+                                                             objective_weights=objective_weights)
 
         self.reaction_fluxes = solution.velocities
         self.metabolite_dmdt = solution.dm_dt
@@ -367,8 +373,6 @@ class NetworkFlowModel:
 
     def __init__(self,
                  reactions: Iterable[dict],
-                 exchanges: Iterable[str],
-                 uptakes: Iterable[str],
                  homeostatic_metabolites: Iterable[str]):
 
         # inputs: reactions: dict of dict
@@ -381,42 +385,49 @@ class NetworkFlowModel:
         # reversibility is not needed as matrix already does it
 
         # pandas automatically creates S matrix from dict of dicts, then we fill zeros in remainder
-        Sd = pd.DataFrame.from_dict(reactions, dtype=np.int8).fillna(0).astype(np.int8)
-        self.n_mets, self.n_orig_rxns = Sd.shape
+        self.Sd = pd.DataFrame.from_dict(reactions, dtype=np.int8).fillna(0).astype(np.int8)
+        self.n_mets, self.n_orig_rxns = self.Sd.shape
 
         # extract names of mets and rxns
-        self.mets = list(Sd.index)
-        self.rxns = list(Sd.columns)
+        self.mets = list(self.Sd.index)
+        self.rxns = list(self.Sd.columns)
         self.intermediates = list(set(self.mets) - set(homeostatic_metabolites))
-
-        all_exchanges = exchanges.copy()
-        all_exchanges.extend(uptakes)
-
-        # Set up exchange rxns df
-        Se = pd.DataFrame(index=Sd.index)
-
-        for met in all_exchanges:
-            exch_name = met + " exchange"
-            if met in uptakes:
-                Se[exch_name] = np.zeros(self.n_mets).astype(np.int8)
-                Se.at[met, exch_name] = 1
-
-            Se[exch_name + " rev"] = np.zeros(self.n_mets).astype(np.int8)
-            Se.at[met, exch_name + " rev"] = -1
-
-        self.S_orig = np.array(Sd, dtype=np.float64)
-        self.S_exch = np.array(Se, dtype=np.float64)
-
-        _, self.n_exch_rxns = self.S_exch.shape
 
         # steady state indices, secretion indices
         self.intermediates_idx = [self.mets.index(met) for met in self.intermediates]
+
+
+    def set_up_exchanges(self,
+                         exchanges: Iterable[str],
+                         uptakes: Iterable[str]):
+
+        # explain what this does
+        all_exchanges = exchanges.copy()
+        all_exchanges.extend(uptakes)
+
+
+        self.Se = pd.DataFrame(index=self.Sd.index)
+        for met in all_exchanges:
+            exch_name = met + " exchange"
+            if met in uptakes:
+                self.Se[exch_name] = np.zeros(self.n_mets).astype(np.int8)
+                self.Se.at[met, exch_name] = 1
+
+            self.Se[exch_name + " rev"] = np.zeros(self.n_mets).astype(np.int8)
+            self.Se.at[met, exch_name + " rev"] = -1
+
+        self.S_orig = np.array(self.Sd, dtype=np.float64)
+        self.S_exch = np.array(self.Se, dtype=np.float64)
+
+        _, self.n_exch_rxns = self.S_exch.shape
+
         self.secretion_idx = np.where(self.S_exch.sum(axis=0) == -1)[0]
 
     def solve(self,
               homeostatic_targets: Mapping[str, float],
               maintenance_target: float,
               kinetic_targets: Mapping[str, float],
+              objective_weights: Mapping[str, float],
               **kwargs) -> FlowResult:
 
         # objective targets: dict of dicts to floats, for now
@@ -442,13 +453,13 @@ class NetworkFlowModel:
         constr.append(dm[self.intermediates_idx] == 0)
         constr.append(v[maintenance_idx] == maintenance_target)
         # constr.append(dm[homeostatic_idx[]] == homeostatic_target)
-        constr.extend([v >= 0, v <= 1000, e >= 0, e <= 1000])
+        constr.extend([v >= 0, v <= 100, e >= 0, e <= 100]) # TODO (Cyrus) - remove hard-coded bounds
 
         loss = 0
         loss += cp.norm1(dm[homeostatic_idx] - homeostatic_target)
-        loss += 0.01 * (cp.sum(e[self.secretion_idx]))
-        loss += 0.0001 * (cp.sum(v))
-        loss += 0.000001 * cp.norm1(v[kinetic_idx] - kinetic_target)
+        loss += objective_weights['secretion'] * (cp.sum(e[self.secretion_idx]))
+        loss += objective_weights['efficiency'] * (cp.sum(v))
+        loss += objective_weights['kinetics'] * cp.norm1(v[kinetic_idx] - kinetic_target)
 
         p = cp.Problem(
             cp.Minimize(loss),
