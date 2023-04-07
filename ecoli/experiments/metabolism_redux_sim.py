@@ -119,7 +119,7 @@ def run_metabolism_composite():
 
 def run_ecoli_with_metabolism_redux(
         filename='fba_redux',
-        total_time=10,
+        total_time=100,
         divide=True,
         initial_state_file='vivecoli_t2000',
         progress_bar=False,
@@ -142,20 +142,20 @@ def run_ecoli_with_metabolism_redux(
     # sim.save = save
     # sim.save_times = [1000, 2000, 2500, 3000, 3500]
 
-    # simplify working with uptake
-    sim.initial_state['environment']['exchange_data']['constrained'] = {}
-    sim.initial_state['environment']['exchange_data']['unconstrained'].add('GLC[p]')
-
-    # in sim.initial_state['environment']['exchange_data']['unconstrained'], edit the set of molecules to be exchanged
-    sim.initial_state['environment']['exchange_data']['unconstrained'].remove('GLC[p]')
-    sim.initial_state['environment']['exchange_data']['unconstrained'].add('FRU[p]')
+    # # simplify working with uptake
+    # sim.initial_state['environment']['exchange_data']['constrained'] = {}
+    # sim.initial_state['environment']['exchange_data']['unconstrained'].add('GLC[p]')
+    #
+    # # in sim.initial_state['environment']['exchange_data']['unconstrained'], edit the set of molecules to be exchanged
+    # sim.initial_state['environment']['exchange_data']['unconstrained'].remove('GLC[p]')
+    # sim.initial_state['environment']['exchange_data']['unconstrained'].add('FRU[p]')
 
 
     sim.run()
 
     query = []
     folder = f'out/fbagd/{name}_{total_time}_{datetime.date.today()}/'
-    save_sim_output(folder, query, sim)
+    # save_sim_output(folder, query, sim)
 
 
 
