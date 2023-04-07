@@ -5,6 +5,7 @@ MetabolismRedux
 import numpy as np
 import json
 import time
+from scipy.sparse import csr_matrix
 
 from vivarium.core.process import Process, Step
 
@@ -417,8 +418,8 @@ class NetworkFlowModel:
             self.Se[exch_name + " rev"] = np.zeros(self.n_mets).astype(np.int8)
             self.Se.at[met, exch_name + " rev"] = -1
 
-        self.S_orig = np.array(self.Sd, dtype=np.float64)
-        self.S_exch = np.array(self.Se, dtype=np.float64)
+        self.S_orig = csr_matrix(np.array(self.Sd, dtype=np.float64))
+        self.S_exch = csr_matrix(np.array(self.Se, dtype=np.float64))
 
         _, self.n_exch_rxns = self.S_exch.shape
 
