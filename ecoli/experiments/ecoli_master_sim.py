@@ -8,9 +8,7 @@ Run simulations of Ecoli Master
 
 import argparse
 import copy
-import cProfile
 import os
-import pstats
 import subprocess
 import json
 import warnings
@@ -18,12 +16,10 @@ from datetime import datetime
 from typing import Optional, Dict, Any
 
 from vivarium.core.engine import Engine
-from vivarium.core.serialize import deserialize_value
-from vivarium.core.store import Store
-from vivarium.library.dict_utils import deep_merge, deep_merge_combine_lists
-from vivarium.library.topology import assoc_path, get_in
+from vivarium.core.serialize import deserialize_value, serialize_value
+from vivarium.library.dict_utils import deep_merge
+from vivarium.library.topology import assoc_path
 from ecoli.library.logging import write_json
-from ecoli.composites.ecoli_nonpartition import SIM_DATA_PATH
 # Two different Ecoli composers depending on partitioning
 import ecoli.composites.ecoli_nonpartition
 import ecoli.composites.ecoli_master
@@ -62,7 +58,8 @@ def get_git_status():
 
 
 def report_profiling(stats):
-    _, stats_keys = stats.get_print_list(('(next_update)|(calculate_request)|(evolve_state)',))
+    _, stats_keys = stats.get_print_list(
+        ('(next_update)|(calculate_request)|(evolve_state)',))
     summed_stats = {}
     for key in stats_keys:
         key_stats = stats.stats[key]
@@ -115,74 +112,59 @@ class SimConfig:
             default=self.default_config_path,
             help=(
                 'Path to configuration file for the simulation. '
-                'Defaults to {self.default_config_path}.')
-        )
+                f'Defaults to {self.default_config_path}.'))
         self.parser.add_argument(
             '--experiment_id', '-id', action="store",
             help=(
                 'ID for this experiment. A UUID will be generated if '
                 'this argument is not used and "experiment_id" is null '
-                'in the configuration file.')
-        )
+                'in the configuration file.'))
         self.parser.add_argument(
             '--emitter', '-e', action='store',
             choices=["timeseries", "database", "print", "null",
                 "shared_ram"],
             help=(
                 "Emitter to use. Timeseries uses RAMEmitter, database "
-                "emits to MongoDB, and print emits to stdout.")
-        )
+                "emits to MongoDB, and print emits to stdout."))
         self.parser.add_argument(
             '--emitter_arg', '-ea', action='store', nargs='*',
             type=key_value_pair,
             help=(
                 'Key-value pairs, separated by `=`, to include in '
-                'emitter config.')
-        )
+                'emitter config.'))
         self.parser.add_argument(
             '--seed', '-s', action="store", type=int,
-            help="Random seed."
-        )
+            help="Random seed.")
         self.parser.add_argument(
             '--initial_state', '-t0', action="store",
             help=(
                 "Name of the initial state to load from (corresponding "
-                "initial state file must be present in data folder).")
-        )
+                "initial state file must be present in data folder)."))
         self.parser.add_argument(
             '--total_time', '-t', action="store", type=float,
-            help="Time to run the simulation for."
-        )
+            help="Time to run the simulation for.")
         self.parser.add_argument(
             '--generations', '-g', action="store", type=int,
-            help="Number of generations to run the simulation for."
-        )
+            help="Number of generations to run the simulation for.")
         self.parser.add_argument(
             '--log_updates', '-u', action="store_true",
             help=(
                 "Save updates from each process if this flag is set, "
-                "e.g. for use with blame plot.")
-        )
+                "e.g. for use with blame plot."))
         self.parser.add_argument(
             '--raw_output', action="store_true",
             help=(
                 "Whether to return data in raw format (dictionary "
-                "where keys are times, values are states).")
-        )
+                "where keys are times, values are states)."))
         self.parser.add_argument(
             "--agent_id", action="store", type=str,
-            help="Agent ID."
-        )
+            help="Agent ID.")
         self.parser.add_argument(
             '--sim_data_path', nargs="*", default=None,
-            help="Path to the sim_data to use for this experiment."
-        )
+            help="Path to the sim_data to use for this experiment.")
         self.parser.add_argument(
-            '--parallel', action='store_true', default=None,
+            '--parallel', action='store_true', default=False,
             help='Run processes in parallel.')
-        self.parser.add_argument(
-            '--no_parallel', action='store_true', default=None,
-            help='Do not run processes in parallel.')
         self.parser.add_argument(
             '--profile', action='store_true', default=False,
             help='Print profiling information at the end.')
@@ -190,20 +172,28 @@ class SimConfig:
             '--initial_state_file', action='store',
             default='',
             help='Name of initial state file (no ".json") under data/')
+        self.parser.add_argument(
+            '--initial_state_overrides', action='store', nargs='*',
+            help='Name of initial state overrides (no ".json") under '
+                'data/overrides')
+
 
     @staticmethod
     def merge_config_dicts(d1, d2):
         # Handle config keys that need special handling.
         LIST_KEYS_TO_MERGE = (
             'save_times', 'add_processes', 'exclude_processes',
-            'processes', 'engine_process_reports')
+            'processes', 'engine_process_reports', 'initial_state_overrides')
         for key in LIST_KEYS_TO_MERGE:
             d2.setdefault(key, [])
             d2[key].extend(d1.get(key, []))
-            if key == 'save_times':
-                d2[key] = list(set(d2[key]))  # Ensures there are no duplicates in d2
-                d2[key].sort()
+            if key == 'engine_process_reports':
+                d2[key] = [tuple(path) for path in d2[key]]
+            # Ensures there are no duplicates in d2
+            d2[key] = list(set(d2[key])) 
+            d2[key].sort()
         deep_merge(d1, d2)
+
 
     def update_from_json(self, path):
         with open(path, 'r') as f:
@@ -213,6 +203,7 @@ class SimConfig:
             config_path = os.path.join(CONFIG_DIR_PATH, config_name)
             self.update_from_json(config_path)
         self.merge_config_dicts(self._config, new_config)
+
 
     def update_from_cli(self, cli_args=None):
         args = self.parser.parse_args(cli_args)
@@ -228,26 +219,29 @@ class SimConfig:
             if value and key not in (
                 'config', 'parallel', 'no_parallel')
         }
-        if args.parallel:
-            cli_config['parallel'] = True
-        if args.no_parallel:
-            cli_config['parallel'] = False
+        cli_config['parallel'] = args.parallel
         self.merge_config_dicts(self._config, cli_config)
+
 
     def update_from_dict(self, dict_config):
         self.merge_config_dicts(self._config, dict_config)
 
+
     def __getitem__(self, key):
         return self._config[key]
+
 
     def get(self, key, default=None):
         return self._config.get(key, default)
 
+
     def __setitem__(self, key, val):
         self._config[key] = val
 
+
     def keys(self):
         return self._config.keys()
+
 
     def to_dict(self):
         return copy.deepcopy(self._config)
@@ -263,7 +257,6 @@ class EcoliSim:
         # Keep track of base experiment id
         # in case multiple simulations are run with suffix_time = True.
         self.experiment_id_base = config['experiment_id']
-
         self.config = config
 
         # Unpack config using Descriptor protocol:
@@ -298,17 +291,20 @@ class EcoliSim:
         if self.generations:
             warnings.warn("generations option is not yet implemented!")
 
+
     @staticmethod
     def from_file(filepath=CONFIG_DIR_PATH + 'default.json'):
         config = SimConfig()
         config.update_from_json(filepath)
         return EcoliSim(config.to_dict())
 
+
     @staticmethod
     def from_cli(cli_args=None):
         config = SimConfig()
         config.update_from_cli(cli_args)
         return EcoliSim(config.to_dict())
+
 
     def _retrieve_processes(self,
                             processes,
@@ -320,19 +316,17 @@ class EcoliSim:
         for process_name in list(processes.keys()) + list(add_processes):
             if process_name in exclude_processes:
                 continue
-
             if process_name in swap_processes:
                 process_name = swap_processes[process_name]
-
             process_class = process_registry.access(process_name)
-
             if not process_class:
                 raise ValueError(f"Unknown process with name {process_name}. "
-                                 "Did you call process_registry.register() in ecoli/processes/__init__.py?")
-
+                    "Did you call process_registry.register() in "
+                    "ecoli/processes/__init__.py?")
             result[process_name] = process_class
 
         return result
+
 
     def _retrieve_topology(self,
                            topology,
@@ -342,30 +336,25 @@ class EcoliSim:
                            divide,
                            ):
         result = {}
-
         original_processes = {v: k for k, v in swap_processes.items()}
         for process in processes:
             # Start from default topology if it exists
             original_process = (process
                                 if process not in swap_processes.values()
                                 else original_processes[process])
-
             process_topology = topology_registry.access(original_process)
             if process_topology:
                 process_topology = copy.deepcopy(process_topology)
             else:
                 process_topology = {}
-
             # Allow the user to override default topology
             if original_process in topology.keys():
                 deep_merge(process_topology, _tuplify_topology(
                     topology[original_process]))
-
-            # For swapped processes, do additional overrides if they are provided
+            # For swapped processes, do additional overrides if provided
             if process != original_process and process in topology.keys():
-                deep_merge(process_topology, {k: tuple(v)
-                           for k, v in topology[process].items()})
-
+                deep_merge(process_topology, _tuplify_topology(
+                    topology[process]))
             result[process] = process_topology
 
         # Add log_update ports if log_updates is True
@@ -381,36 +370,32 @@ class EcoliSim:
 
         return result
 
+
     def _retrieve_process_configs(self, process_configs, processes):
         result = {}
         for process in processes:
             result[process] = process_configs.get(process)
-
-            if result[process] == None:
+            if result[process] is None:
                 result[process] = "sim_data"
         return result
 
+
     def build_ecoli(self):
         """
-        Build self.ecoli, the Ecoli composite, and self.initial_state, from current settings.
-        Do NOT call this before using run() without setting self.initial_state back to None.
+        Build self.ecoli, the Ecoli composite, and self.generated_initial_state
         """
-
         # build processes, topology, configs
-        self.processes = self._retrieve_processes(self.processes,
-                                                  self.add_processes,
-                                                  self.exclude_processes,
-                                                  self.swap_processes,
-                                                  )
-        self.topology = self._retrieve_topology(self.topology,
-                                                self.processes,
-                                                self.swap_processes,
-                                                self.log_updates,
-                                                self.divide,
-                                                )
-        self.process_configs = self._retrieve_process_configs(self.process_configs,
-                                                              self.processes)
+        self.processes = self._retrieve_processes(
+            self.processes, self.add_processes, self.exclude_processes,
+            self.swap_processes)
+        self.topology = self._retrieve_topology(
+            self.topology, self.processes, self.swap_processes,
+            self.log_updates, self.divide)
+        self.process_configs = self._retrieve_process_configs(
+            self.process_configs, self.processes)
 
+        # Prevent clashing unique indices by reseeding when loading
+        # a saved state (assumed to have name 'vivecoli_t{save time}')
         initial_state_path = self.config.get('initial_state_file', '')
         if initial_state_path.startswith('vivecoli'):
             time_str = initial_state_path[len('vivecoli_t'):]
@@ -418,49 +403,48 @@ class EcoliSim:
             self.config['seed'] += seed
 
         # initialize the ecoli composer
-        config = copy.deepcopy(self.config)
         if self.partition:
             ecoli_composer = ecoli.composites.ecoli_master.Ecoli(
-                config)
+                self.config)
         else:
-            ecoli_composer = ecoli.composites.ecoli_nonpartition.Ecoli(config)
+            ecoli_composer = ecoli.composites.ecoli_nonpartition.Ecoli(
+                self.config)
+
         # set path at which agent is initialized
         path = tuple()
         if self.divide or self.spatial_environment:
             path = ('agents', self.agent_id,)
 
         # get initial state
-        initial_cell_state = ecoli_composer.initial_state(
-            config=self.config)
+        initial_cell_state = ecoli_composer.initial_state()
         initial_cell_state = assoc_path({}, path, initial_cell_state)
-
+        # Remove unnecessary reference
+        self.initial_state = None
         # generate the composite at the path
         self.ecoli = ecoli_composer.generate(path=path)
-        # Get shared process instances for partitioned processes
-        process_states = {'process': {
-            process.parameters['process'].name: (process.parameters['process'],)
-            for process in get_in(self.ecoli.processes, path).values()
-            if 'process' in process.parameters
-        }}
-        process_states = assoc_path({}, path, process_states)
-        # Fill in all stores missing in initial_cell_state
-        self.initial_state = deep_merge(process_states, self.ecoli.initial_state({
-            'initial_state': initial_cell_state}))
+        # Some processes define their own initial_state methods
+        # Incoporate them into the generated initial state
+        self.generated_initial_state = self.ecoli.initial_state({
+            'initial_state': initial_cell_state})
 
         # merge a lattice composite for the spatial environment
         if self.spatial_environment:
-            initial_state_config = self.spatial_environment_config.get('initial_state_config')
-            environment_composite = ecoli.composites.environment.lattice.Lattice(
-                self.spatial_environment_config).generate()
+            initial_state_config = self.spatial_environment_config.get(
+                'initial_state_config')
+            environment_composite = \
+                ecoli.composites.environment.lattice.Lattice(
+                    self.spatial_environment_config).generate()
             initial_environment = environment_composite.initial_state(
-                initial_state_config
-            )
+                initial_state_config)
             self.ecoli.merge(environment_composite)
-            self.initial_state = deep_merge(self.initial_state, initial_environment)
+            self.generated_initial_state = deep_merge(
+                self.generated_initial_state, initial_environment)
+
 
     def save_states(self):
         """
-        Runs the simulation while saving the states of specific timesteps to jsons.
+        Runs the simulation while saving the states of specific
+        timesteps to jsons.
         """
         for time in self.save_times:
             if time > self.total_time:
@@ -472,51 +456,32 @@ class EcoliSim:
             if i == 0:
                 time_to_next_save = self.save_times[i]
             else:
-                time_to_next_save = self.save_times[i] - self.save_times[i - 1]
+                time_to_next_save = self.save_times[i] - self.save_times[i-1]
             self.ecoli_experiment.update(time_to_next_save)
             time_elapsed = self.save_times[i]
-
-            def not_a_process(value):
-                return not (isinstance(value, Store) and value.topology)
-            state = self.ecoli_experiment.state.get_value(condition=not_a_process)
+            state = self.ecoli_experiment.state.get_value()
             if self.divide:
-                state = state['agents'][self.agent_id]
-            del state['evolvers_ran']
-            # Saving the exchange data causes nondeterministic output
-            # because it includes sets, so avoid saving it since we
-            # set exchange_data in
-            # ecoli.states.wcecoli_state.get_state_from_file() anyway.
-            del state['environment']
-            del state['process']
+                for agent_state in state['agents']:
+                    # Set to true when starting sim
+                    del agent_state['evolvers_ran']
+                    # Sets are nondeterministic
+                    del agent_state['environment']
+                    # Processes can't be serialized
+                    del agent_state['process']
+            else:
+                del state['evolvers_ran']
+                del state['environment']
+                del state['process']
             write_json('data/vivecoli_t' + str(time_elapsed) + '.json', state)
             print('Finished saving the state at t = ' + str(time_elapsed))
         time_remaining = self.total_time - self.save_times[-1]
         if time_remaining:
             self.ecoli_experiment.update(time_remaining)
 
+
     def run(self):
-        # build self.ecoli and self.initial_state
-        self.build_ecoli()
-
-        # create metadata of this experiment to be emitted,
-        # namely the config of this EcoliSim object
-        # with an additional key for the current git hash.
-        # Goal is to save enough information to reproduce the experiment.
-        metadata = dict(self.config)
-
-        # Initial state file is large and should not be serialized;
-        # output maintains a 'initial_state_file' key that can
-        # be used instead
-        metadata.pop('initial_state', None)
-
-        try:
-            metadata["git_hash"] = get_git_revision_hash()
-        except:
-            warnings.warn("Unable to retrieve current git revision hash. "
-                          "Try making a note of this manually if your experiment may need to be replicated.")
-
-        metadata['processes'] = [k for k in metadata['processes'].keys()]
-
+        """Create and run an EcoliSim experiment. Must run build_ecoli first!"""
+        metadata = self.get_metadata()
         # make the experiment
         emitter_config = {'type': self.emitter}
         for key, value in self.emitter_arg:
@@ -528,7 +493,7 @@ class EcoliSim:
             'steps': self.ecoli.steps,
             'flow': self.ecoli.flow,
             'topology': self.ecoli.topology,
-            'initial_state': self.initial_state,
+            'initial_state': self.generated_initial_state,
             'progress_bar': self.progress_bar,
             'emit_topology': self.emit_topology,
             'emit_processes': self.emit_processes,
@@ -541,16 +506,15 @@ class EcoliSim:
             # with suffix_time = True.
             if not self.experiment_id_base:
                 self.experiment_id_base = self.experiment_id
-
             if self.suffix_time:
-                self.experiment_id = datetime.now().strftime(f"{self.experiment_id_base}_%d/%m/%Y %H:%M:%S")
+                self.experiment_id = datetime.now().strftime(
+                    f"{self.experiment_id_base}_%d/%m/%Y %H:%M:%S")
             experiment_config['experiment_id'] = self.experiment_id
         experiment_config['profile'] = self.profile
-
         self.ecoli_experiment = Engine(**experiment_config)
         
         # Clean up unnecessary references
-        self.initial_state = None
+        self.generated_initial_state = None
         self.ecoli_experiment.initial_state = None
         del metadata
 
@@ -559,10 +523,10 @@ class EcoliSim:
             self.save_states()
         else:
             self.ecoli_experiment.update(self.total_time)
-
         self.ecoli_experiment.end()
         if self.profile:
             report_profiling(self.ecoli_experiment.stats)
+
 
     def query(self, query=None):
         # Retrieve queried data (all if not specified)
@@ -570,6 +534,7 @@ class EcoliSim:
             return self.ecoli_experiment.emitter.get_data(query)
         else:
             return self.ecoli_experiment.emitter.get_timeseries(query)
+
 
     def merge(self, other):
         """
@@ -579,23 +544,24 @@ class EcoliSim:
         deep_merge(self.config, other.config)
 
 
-    def to_json_string(self, include_git_hash=False):
-        result = dict(self.config)
-
-        # Initial state file is large and should not be serialized;
-        # output maintains a 'initial_state_file' key that can
-        # be used instead
-        result.pop('initial_state', None)
-
+    def get_metadata(self):
+        # create metadata of this experiment to be emitted,
+        # namely the config of this EcoliSim object
+        # with an additional key for the current git hash.
+        # Goal is to save enough information to reproduce the experiment.
+        metadata = dict(self.config)
         try:
-            result["git_hash"] = get_git_revision_hash()
+            metadata["git_hash"] = get_git_revision_hash()
         except:
             warnings.warn("Unable to retrieve current git revision hash. "
-                          "Try making a note of this manually if your experiment may need to be replicated.")
+                "Try making a note of this manually if your experiment may "
+                "need to be replicated.")
+        metadata['processes'] = [k for k in metadata['processes'].keys()]
+        return metadata
 
-        result['processes'] = [k for k in result['processes'].keys()]
 
-        return json.dumps(result)
+    def to_json_string(self):
+        return serialize_value(self.get_metadata())
 
 
     def export_json(self, filename=CONFIG_DIR_PATH + "export.json"):
@@ -605,6 +571,7 @@ class EcoliSim:
 
 def main():
     ecoli_sim = EcoliSim.from_cli()
+    ecoli_sim.build_ecoli()
     ecoli_sim.run()
 
 

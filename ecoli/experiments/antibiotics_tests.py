@@ -15,6 +15,7 @@ def test_antibiotics_tetracycline():
     sim = EcoliSim.from_file(CONFIG_DIR_PATH + 'antibiotics_tetracycline.json')
     sim.emitter = 'timeseries'
     sim.total_time = 2
+    sim.build_ecoli()
     sim.run()
     data = sim.query()
 
@@ -58,6 +59,7 @@ def test_lysis_rxn_dff_environment(total_time = 10):
             })
         ]
     }
+    sim.build_ecoli()
     sim.run()
 
     # retrieve data and pre-process for plotting

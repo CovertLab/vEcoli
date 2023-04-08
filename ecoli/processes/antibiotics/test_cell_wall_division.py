@@ -18,6 +18,7 @@ def run_experiment():
         os.path.join(CONFIG_DIR_PATH, "test_configs/cell_wall_division.json")
     )
     ecoli.total_time = total_time
+    ecoli.build_ecoli()
 
     ecoli.run()
     return ecoli.query()

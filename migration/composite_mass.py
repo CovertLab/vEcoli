@@ -28,6 +28,7 @@ RELATIVE_TOLERANCES = {
 def test_composite_mass(total_time=30):
     sim = EcoliSim.from_file(CONFIG_DIR_PATH + "default.json")
     sim.total_time = total_time
+    sim.build_ecoli()
 
     # run the composite and save specified states
     sim.run()

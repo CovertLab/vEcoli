@@ -226,6 +226,7 @@ def test_lattice_lysis(plot=False):
     """
     sim = EcoliSim.from_file(CONFIG_DIR_PATH + 'lysis.json')
     sim.total_time = 10
+    sim.build_ecoli()
     sim.run()
     data = sim.query()
 

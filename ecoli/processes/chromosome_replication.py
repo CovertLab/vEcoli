@@ -20,7 +20,6 @@ import numpy as np
 
 from ecoli.library.schema import (create_unique_indexes,
     numpy_schema, counts, attrs, bulk_name_to_idx)
-from ecoli.states.wcecoli_state import MASSDIFFS
 
 from wholecell.utils import units
 from wholecell.utils.polymerize import (
@@ -75,7 +74,7 @@ class ChromosomeReplication(PartitionedProcess):
         # random seed
         'seed': 0,
 
-        'submass_indexes': MASSDIFFS,
+        'submass_indexes': {},
     }
 
     def __init__(self, parameters=None):

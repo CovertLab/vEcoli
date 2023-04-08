@@ -5,10 +5,12 @@ Cell Division
 """
 from typing import Any, Dict
 
+import binascii
 import numpy as np
 from vivarium.core.process import Step
 
 from ecoli.library.sim_data import RAND_MAX
+from wholecell.utils import units
 
 NAME = 'ecoli-cell-division'
 
@@ -35,39 +37,71 @@ class Division(Step):
         # must provide a composer to generate new daughters
         self.agent_id = self.parameters['agent_id']
         self.composer = self.parameters['composer']
+        self.composer_config = self.parameters['composer_config']
         self.random_state = np.random.RandomState(
             seed=self.parameters['seed'])
 
+        self.division_mass_multiplier = 1
+        if self.parameters['division_threshold'] == 'massDistribution':
+            division_random_seed = binascii.crc32(b'CellDivision',
+                self.parameters['seed']) & 0xffffffff
+            division_random_state = np.random.RandomState(
+                seed=division_random_seed)
+            self.division_mass_multiplier = division_random_state.normal(
+                loc=1.0, scale=0.1)
+        self.dry_mass_inc_dict = self.parameters['dry_mass_inc_dict']
+            
     def ports_schema(self):
         return {
-            'variable': {},
+            'division_variable': {},
+            'full_chromosome': {},
             'agents': {
-                '*': {}}}
+                '*': {}},
+            'media_id': {},
+            'division_threshold': {
+                '_default': self.parameters['division_threshold'],
+                '_updater': 'set',
+                '_divider': {'divider': 'set_value',
+                    'config': {'value': self.parameters['division_threshold']}}
+            }
+        }
 
     def next_update(self, timestep, states):
-        variable = states['variable']
+        # Figure out division threshold at first timestep if
+        # using massDistribution setting
+        if states['division_threshold'] == 'massDistribution':
+            current_media_id = states['media_id']
+            return {'division_threshold': (states['division_variable'] + 
+                self.dry_mass_inc_dict[current_media_id].asNumber(
+                    units.fg) * self.division_mass_multiplier)}
 
-        if variable >= self.parameters['threshold']:
+        division_variable = states['division_variable']
+
+        if (division_variable >= self.parameters['threshold']) and (
+            states['full_chromosome']['_entryState'].sum() >= 2
+        ):
             daughter_ids = self.parameters['daughter_ids_function'](self.agent_id)
             daughter_updates = []
             for daughter_id in daughter_ids:
-                composer = self.composer.generate({
-                    'agent_id': daughter_id,
-                    'seed': self.random_state.randint(0, RAND_MAX)
-                })
+                config = dict(self.composer_config)
+                config['agent_id'] = daughter_id
+                config['seed'] = self.random_state.randint(0, RAND_MAX)
+                # Regenerate composite to avoid unforeseen shared states
+                composite = self.composer(config).generate()
                 # Get shared process instances for partitioned processes
                 process_states = {
-                    process.parameters['process'].name: (process.parameters['process'],)
-                    for process in composer.processes.values()
+                    process.parameters['process'].name: (
+                        process.parameters['process'],)
+                    for process in composite.processes.values()
                     if 'process' in process.parameters
                 }
                 initial_state = {'process': process_states}
                 daughter_updates.append({
                     'key': daughter_id,
-                    'processes': composer['processes'],
-                    'steps': composer['steps'],
-                    'flow': composer['flow'],
-                    'topology': composer['topology'],
+                    'processes': composite['processes'],
+                    'steps': composite['steps'],
+                    'flow': composite['flow'],
+                    'topology': composite['topology'],
                     'initial_state': initial_state})
 
             print(f'DIVIDE! MOTHER {self.agent_id} -> DAUGHTERS {daughter_ids}')

@@ -157,6 +157,7 @@ def test_equilibrium_listener():
     sim = EcoliSim.from_file()
     sim.total_time = 2
     sim.raw_output = False
+    sim.build_ecoli()
     sim.run()
     data = sim.query()
     assert(type(data['listeners']['equilibrium_listener']['reaction_rates'][0]) == list)

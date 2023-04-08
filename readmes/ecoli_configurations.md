@@ -186,7 +186,8 @@ sim = EcoliSim.from_file()  # Can also pass in a path to JSON config
 sim.experiment_id = "Demo"
 sim.total_time = 10
 ...
-
+# Build and run the experiment
+sim.build_ecoli()
 sim.run()
 data_out = sim.query()
 ```

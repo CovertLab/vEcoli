@@ -73,6 +73,7 @@ def test_mrna_counts_listener():
     sim = EcoliSim.from_file()
     sim.total_time = 2
     sim.raw_output = False
+    sim.build_ecoli()
     sim.run()
     data = sim.query()
     assert(type(data['listeners']['mRNA_counts'][0]) == list)

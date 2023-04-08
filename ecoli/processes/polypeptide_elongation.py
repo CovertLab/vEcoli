@@ -31,7 +31,6 @@ from ecoli.library.schema import (listener_schema, numpy_schema, counts, attrs,
 from ecoli.models.polypeptide_elongation_models import (BaseElongationModel,
     TranslationSupplyElongationModel, SteadyStateElongationModel,
     MICROMOLAR_UNITS)
-from ecoli.states.wcecoli_state import MASSDIFFS
 from ecoli.processes.registries import topology_registry
 from ecoli.processes.partition import PartitionedProcess
 
@@ -125,7 +124,7 @@ class PolypeptideElongation(PartitionedProcess):
         'KI_SpoT': 20.0,
         'aa_supply_scaling': lambda aa_conc, aa_in_media: 0,
         'seed': 0,
-        'submass_indexes': MASSDIFFS,
+        'submass_indexes': {},
     }
 
     def __init__(self, parameters=None):
@@ -588,7 +587,7 @@ def test_polypeptide_elongation():
         },
         'active_ribosome': {
             '1': {'unique_index': 1, 'protein_index': 0, 'peptide_length': 1, 'pos_on_mRNA': 1,
-                  'submass': np.zeros(len(MASSDIFFS))}
+                  'submass': np.zeros(9)}
         },
         'listeners': {
             'mass': {

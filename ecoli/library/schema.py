@@ -375,7 +375,7 @@ def divide_domains(state):
 
     return {
         'd1_all_domain_indexes': d1_all_domain_indexes,
-        'd2_all_domain_indexes': d1_all_domain_indexes,
+        'd2_all_domain_indexes': d2_all_domain_indexes,
     }
 
 
@@ -386,6 +386,7 @@ def divide_by_domain(values, state):
         domain_division['d1_all_domain_indexes'])
     d2_bool = np.isin(values['domain_index'],
         domain_division['d2_all_domain_indexes'])
+    assert d1_bool.sum() + d2_bool.sum() == len(values)
     return [values[d1_bool], values[d2_bool]]
 
 
