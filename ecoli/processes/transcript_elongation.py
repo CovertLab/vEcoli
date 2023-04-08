@@ -23,7 +23,6 @@ from wholecell.utils import units
 from ecoli.library.schema import (
     counts, attrs, numpy_schema, bulk_name_to_idx)
 from ecoli.library.data_predicates import monotonically_increasing
-from ecoli.states.wcecoli_state import MASSDIFFS
 from ecoli.processes.registries import topology_registry
 from ecoli.processes.partition import PartitionedProcess
 
@@ -117,7 +116,7 @@ class TranscriptElongation(PartitionedProcess):
         'attenuation_location': {},
 
         'seed': 0,
-        'submass_indexes': MASSDIFFS,
+        'submass_indexes': {},
     }
 
     def __init__(self, parameters=None):

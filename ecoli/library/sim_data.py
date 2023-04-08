@@ -8,7 +8,6 @@ from wholecell.utils.unit_struct_array import UnitStructArray
 from wholecell.utils.fitting import normalize
 
 from ecoli.processes.polypeptide_elongation import MICROMOLAR_UNITS
-from ecoli.states.wcecoli_state import MASSDIFFS
 from ecoli.library.parameters import param_store
 
 RAND_MAX = 2**31
@@ -31,8 +30,6 @@ class LoadSimData:
 
         self.trna_charging = trna_charging
         self.ppgpp_regulation = ppgpp_regulation
-
-        self.submass_indexes = MASSDIFFS
         
         # NEW to vivarium-ecoli: Whether to lump miscRNA with mRNAs
         # when calculating degradation
@@ -41,6 +38,11 @@ class LoadSimData:
         # load sim_data
         with open(sim_data_path, 'rb') as sim_data_file:
             self.sim_data = cPickle.load(sim_data_file)
+
+        self.submass_indexes = {
+            f'massDiff_{submass}': idx
+            for submass, idx in self.sim_data.submass_name_to_index.items()
+        }
         
         # NEW to vivarium-ecoli
         # Changes gene expression upon tetracycline exposure

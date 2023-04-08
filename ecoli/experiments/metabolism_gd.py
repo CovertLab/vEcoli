@@ -135,6 +135,7 @@ def run_ecoli_with_metabolism_gd(
     sim.emitter = emitter
     sim.initial_state = get_state_from_file(path=f'data/{initial_state_file}.json')
 
+    sim.build_ecoli()
     sim.run()
 
     query = []
@@ -172,6 +173,7 @@ def test_ecoli_with_metabolism_gd(
     sim.progress_bar = progress_bar
     sim.log_updates = log_updates
     sim.emitter = emitter
+    sim.build_ecoli()
 
     # run simulation and add asserts to output
     sim.run()
@@ -197,6 +199,7 @@ def test_ecoli_with_metabolism_gd_div(
     sim.total_time = total_time
     sim.divide = divide
     sim.emitter = emitter
+    sim.build_ecoli()
 
     sim.run()
     
@@ -231,6 +234,7 @@ def run_ecoli_with_default_metabolism(
     sim.progress_bar = progress_bar
     sim.log_updates = log_updates
     sim.emitter = emitter
+    sim.build_ecoli()
 
     sim.run()
     output = sim.query()

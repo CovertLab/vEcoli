@@ -246,6 +246,7 @@ def run_division(
     sim.divide = True
     sim.progress_bar = False
     sim.raw_output = True
+    sim.build_ecoli()
 
     # run simulation
     sim.run()

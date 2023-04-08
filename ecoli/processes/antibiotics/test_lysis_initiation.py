@@ -9,6 +9,7 @@ def test_lysis_initiation():
         os.path.join(CONFIG_DIR_PATH, "test_configs/test_lysis_initiation.json")
     )
     ecoli.total_time = 20
+    ecoli.build_ecoli()
     ecoli.run()
 
     data = ecoli.query()
