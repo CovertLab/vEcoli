@@ -431,6 +431,7 @@ class NetworkFlowModel:
               kinetic_targets: Mapping[str, float],
               binary_kinetic_targets: Mapping[str, float],
               objective_weights: Mapping[str, float],
+              upper_flux_bound: float = 100,
               **kwargs) -> FlowResult:
 
         # objective targets: dict of dicts to floats, for now
@@ -444,8 +445,10 @@ class NetworkFlowModel:
         kinetic_array = [[self.rxns.index(met), target] for met, target in kinetic_targets.items()]
         kinetic_idx, kinetic_target = np.array(kinetic_array, dtype=np.int64)[:, 0], np.array(kinetic_array)[:, 1]
 
-        binary_kinetic_array = [self.rxns.index(met) for met in binary_kinetic_targets.keys()]
-        binary_kinetic_idx = np.array(binary_kinetic_array, dtype=np.int64)
+        if binary_kinetic_targets:
+            binary_kinetic_idx = np.array([self.rxns.index(met) for met in binary_kinetic_targets.keys()], dtype=np.int64)
+        else :
+            binary_kinetic_idx = None
 
         maintenance_idx = self.rxns.index("maintenance_reaction")  # TODO (Cyrus) - use name provided
 
@@ -458,9 +461,11 @@ class NetworkFlowModel:
         constr = []
         constr.append(dm[self.intermediates_idx] == 0)
         constr.append(v[maintenance_idx] == maintenance_target)
-        constr.append(v[binary_kinetic_idx] == 0)
+        # check if binary_kinetic_idx is empty
+        if binary_kinetic_idx is not None:
+            constr.append(v[binary_kinetic_idx] == 0)
         # constr.append(dm[homeostatic_idx[]] == homeostatic_target)
-        constr.extend([v >= 0, v <= 100, e >= 0, e <= 100]) # TODO (Cyrus) - remove hard-coded bounds
+        constr.extend([v >= 0, v <= upper_flux_bound, e >= 0, e <= upper_flux_bound]) # TODO (Cyrus) - remove hard-coded bounds
 
         loss = 0
         loss += cp.norm1(dm[homeostatic_idx] - homeostatic_target)
@@ -474,6 +479,8 @@ class NetworkFlowModel:
         )
 
         p.solve(solver=cp.GLOP, verbose=False)
+        if p.status != "optimal":
+            raise ValueError("Problem not optimal")
 
 
         velocities, dm_dt, exchanges = np.array(v.value), np.array(dm.value), np.array(exch.value)
