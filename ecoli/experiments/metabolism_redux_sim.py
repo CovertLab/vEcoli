@@ -119,18 +119,18 @@ def run_metabolism_composite():
 
 def run_ecoli_with_metabolism_redux(
         filename='fba_redux',
-        total_time=100,
+        total_time=10,
         divide=True,
         initial_state_file='vivecoli_t2000',
         progress_bar=False,
         log_updates=False,
         emitter='timeseries',
-        name='fba-redux',
+        name='fba-redux-standard',
         raw_output=False,
         save=False,
-        save_times=None,
+        # save_times=4,
 ):
-    # filename = 'default'
+    filename = 'default'
     sim = EcoliSim.from_file(CONFIG_DIR_PATH + filename + '.json')
     sim.total_time = total_time
     sim.divide = divide
@@ -139,8 +139,8 @@ def run_ecoli_with_metabolism_redux(
     sim.emitter = emitter
     sim.initial_state = get_state_from_file(path=f'data/{initial_state_file}.json')
     sim.raw_output = raw_output
-    # sim.save = save
-    # sim.save_times = [1000, 2000, 2500, 3000, 3500]
+    sim.save = save
+    # sim.save_times = [4]
 
     # # simplify working with uptake
     # sim.initial_state['environment']['exchange_data']['constrained'] = {}
@@ -155,7 +155,7 @@ def run_ecoli_with_metabolism_redux(
 
     query = []
     folder = f'out/fbagd/{name}_{total_time}_{datetime.date.today()}/'
-    # save_sim_output(folder, query, sim)
+    save_sim_output(folder, query, sim)
 
 
 
