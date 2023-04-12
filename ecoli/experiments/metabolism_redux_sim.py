@@ -130,7 +130,7 @@ def run_ecoli_with_metabolism_redux(
         save=False,
         # save_times=4,
 ):
-    filename = 'default'
+    # filename = 'default'
     sim = EcoliSim.from_file(CONFIG_DIR_PATH + filename + '.json')
     sim.total_time = total_time
     sim.divide = divide

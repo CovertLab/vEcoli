@@ -27,12 +27,6 @@ CONC_UNITS = COUNTS_UNITS / VOLUME_UNITS
 CONVERSION_UNITS = MASS_UNITS * TIME_UNITS / VOLUME_UNITS
 GDCW_BASIS = units.mmol / units.g / units.h
 
-# TODO (Cyrus) Move this into data file. Used to just come from states? Should be in constant file until environment
-#  is added.
-# UNCONSTRAINED_UPTAKE = ["K+[p]", "MN+2[p]", "WATER[p]", "AMMONIUM[c]", "NI+2[p]", "NA+[p]", "Pi[p]", "MG+2[p]",
-#                         "CL-[p]", "FE+2[p]", "L-SELENOCYSTEINE[c]", "CA+2[p]", "CARBON-DIOXIDE[p]", "ZN+2[p]",
-#                         "CO+2[p]", "OXYGEN-MOLECULE[p]", "SULFATE[p]"]
-# CONSTRAINED_UPTAKE = {"GLC[p]": 20}
 
 NAME = 'ecoli-metabolism-redux'
 TOPOLOGY = topology_registry.access('ecoli-metabolism')
