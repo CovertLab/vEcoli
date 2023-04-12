@@ -233,7 +233,8 @@ class MetabolismRedux(Step):
         dry_mass = states['listeners']['mass']['dry_mass'] * units.fg
 
         cell_volume = self.cell_mass / self.cell_density
-        coefficient = dry_mass / self.cell_mass * self.cell_density * timestep * units.s  # TODO (Cyrus) what's this?
+        # Coefficient to convert between flux (mol/g DCW/hr) basis and concentration (M) basis
+        conversion_coefficient = dry_mass / self.cell_mass * self.cell_density * timestep * units.s
         self.counts_to_molar = (1 / (self.nAvogadro * cell_volume)).asUnit(CONC_UNITS)
 
         # maintenance target
@@ -241,7 +242,7 @@ class MetabolismRedux(Step):
             flux_gam = self.gam * (self.cell_mass - self.previous_mass) / VOLUME_UNITS
         else:
             flux_gam = 0 * CONC_UNITS
-        flux_ngam = (self.ngam * coefficient)
+        flux_ngam = (self.ngam * conversion_coefficient)
         flux_gtp = (self.counts_to_molar * translation_gtp)
 
         total_maintenance = flux_gam + flux_ngam + flux_gtp
@@ -308,6 +309,8 @@ class MetabolismRedux(Step):
         estimated_homeostatic_dmdt = {str(key): metabolite_dmdt_counts[key] for key in self.homeostatic_objective.keys()}
         intermediates = list(set(metabolite_dmdt_counts.keys()) - set(self.exchange_molecules) - set(self.homeostatic_objective.keys()))
         estimated_intermediate_dmdt = {str(key): metabolite_dmdt_counts[key] for key in intermediates}
+
+        # make dict of fluxes for intermediates:
 
 
         return {
@@ -429,7 +432,7 @@ class NetworkFlowModel:
               homeostatic_targets: Mapping[str, float],
               maintenance_target: float,
               kinetic_targets: Mapping[str, float],
-              binary_kinetic_targets: Mapping[str, float],
+              binary_kinetic_targets: Iterable[str],
               objective_weights: Mapping[str, float],
               upper_flux_bound: float = 100,
               **kwargs) -> FlowResult:
@@ -446,7 +449,7 @@ class NetworkFlowModel:
         kinetic_idx, kinetic_target = np.array(kinetic_array, dtype=np.int64)[:, 0], np.array(kinetic_array)[:, 1]
 
         if binary_kinetic_targets:
-            binary_kinetic_idx = np.array([self.rxns.index(met) for met in binary_kinetic_targets.keys()], dtype=np.int64)
+            binary_kinetic_idx = np.array([self.rxns.index(met) for met in binary_kinetic_targets], dtype=np.int64)
         else :
             binary_kinetic_idx = None
 
@@ -465,7 +468,7 @@ class NetworkFlowModel:
         if binary_kinetic_idx is not None:
             constr.append(v[binary_kinetic_idx] == 0)
         # constr.append(dm[homeostatic_idx[]] == homeostatic_target)
-        constr.extend([v >= 0, v <= upper_flux_bound, e >= 0, e <= upper_flux_bound]) # TODO (Cyrus) - remove hard-coded bounds
+        constr.extend([v >= 0, v <= upper_flux_bound, e >= 0, e <= upper_flux_bound]) # TODO (Cyrus) - make this a parameter
 
         loss = 0
         loss += cp.norm1(dm[homeostatic_idx] - homeostatic_target)
