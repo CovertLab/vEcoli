@@ -3,7 +3,6 @@ MetabolismRedux
 """
 
 import numpy as np
-import json
 import time
 from scipy.sparse import csr_matrix
 
@@ -16,7 +15,7 @@ from wholecell.utils import units
 from ecoli.processes.registries import topology_registry
 import pandas as pd
 import cvxpy as cp
-from typing import Any, Iterable, Iterator, Mapping, Optional, Tuple, Union
+from typing import Iterable, Mapping
 from dataclasses import dataclass
 
 COUNTS_UNITS = units.mmol
@@ -60,17 +59,13 @@ class MetabolismRedux(Step):
         self.stoichiometry.append({'reaction id': 'maintenance_reaction',
                                    'stoichiometry': maintenance_reaction, 'enzyme': []})
 
-
-
         self.media_id = self.parameters['media_id']
-        objective_type = self.parameters['objective_type']
         self.cell_density = self.parameters['cell_density']
         self.nAvogadro = self.parameters['avogadro']
         self.nutrient_to_doubling_time = self.parameters['nutrientToDoublingTime']
         self.ngam = parameters['non_growth_associated_maintenance']
         self.gam = parameters['dark_atp'] * parameters['cell_dry_mass_fraction']
         self.random_state = np.random.RandomState(seed=self.parameters['seed'])
-
 
         # new variables for the model
         self.cell_mass = None
@@ -111,11 +106,8 @@ class MetabolismRedux(Step):
 
         self.network_flow_model = NetworkFlowModel(stoichiometric_matrix_dict, self.homeostatic_objective)
 
-        # for ports schema
+        # for ports schema # TODO (Cyrus) - Remove some of these. They are not used.
         self.metabolite_names_for_nutrients = self.get_port_metabolite_names(conc_dict)
-
-
-        # for ports schema
         self.aa_names = self.parameters['aa_names']
         self.catalyst_ids = self.parameters['catalyst_ids']
         self.kinetic_constraint_enzymes = self.parameters['kinetic_constraint_enzymes']
@@ -199,9 +191,9 @@ class MetabolismRedux(Step):
             return {'first_update': False}
 
         # metabolites not in either set are constrained to zero uptake.
-        UNCONSTRAINED_UPTAKE = states['environment']['exchange_data']['unconstrained']
-        CONSTRAINED_UPTAKE =  states['environment']['exchange_data']['constrained']
-        self.allowed_exchange_uptake = list(UNCONSTRAINED_UPTAKE) + list(CONSTRAINED_UPTAKE.keys())
+        unconstrained_uptake = states['environment']['exchange_data']['unconstrained']
+        constrained_uptake =  states['environment']['exchange_data']['constrained']
+        self.allowed_exchange_uptake = list(unconstrained_uptake) + list(constrained_uptake.keys())
         self.disallowed_exchange_uptake = list(set(self.exchange_molecules) - set(self.allowed_exchange_uptake))
         self.exchange_molecules = list(set(self.exchange_molecules).union(set(self.allowed_exchange_uptake)))
 
@@ -285,7 +277,7 @@ class MetabolismRedux(Step):
         self.metabolite_exchange = solution.exchanges
 
 
-        # recalculate flux concentrations to counts
+        # recalculate flux concentrations to counts # TODO Put these into update
         estimated_reaction_fluxes = self.concentrationToCounts(self.reaction_fluxes)
         metabolite_dmdt_counts = self.concentrationToCounts(self.metabolite_dmdt)
         target_kinetic_flux = self.concentrationToCounts(target_kinetic_values)
@@ -303,9 +295,6 @@ class MetabolismRedux(Step):
         estimated_homeostatic_dmdt = {str(key): metabolite_dmdt_counts[key] for key in self.homeostatic_objective.keys()}
         intermediates = list(set(metabolite_dmdt_counts.keys()) - set(self.exchange_molecules) - set(self.homeostatic_objective.keys()))
         estimated_intermediate_dmdt = {str(key): metabolite_dmdt_counts[key] for key in intermediates}
-
-        # make dict of fluxes for intermediates:
-
 
         return {
             'metabolites': estimated_homeostatic_dmdt,  # changes to internal metabolites
@@ -365,23 +354,15 @@ class FlowResult:
     dm_dt: Mapping[str, float]
     exchanges: Mapping[str, float]
     objective: float
-    # residual: Mapping[str, np.ndarray]
 
 
 class NetworkFlowModel:
-
+    # TODO Documentation
+    """A network flow model for estimating fluxes in the metabolic network based on network structure. Flow is mainly
+    driven by precursor demand (homeostatic objective) and availability of nutrients."""
     def __init__(self,
                  reactions: Iterable[dict],
                  homeostatic_metabolites: Iterable[str]):
-
-        # inputs: reactions: dict of dict
-        # exchanges: list(set)
-        # homeostatic: dict of str:floats (concs)
-
-        # set up S matrix
-        # homeostatic objective keys
-        # exchange keys? if possible
-        # reversibility is not needed as matrix already does it
 
         # pandas automatically creates S matrix from dict of dicts, then we fill zeros in remainder
         self.Sd = pd.DataFrame.from_dict(reactions, dtype=np.int8).fillna(0).astype(np.int8)
@@ -399,8 +380,8 @@ class NetworkFlowModel:
     def set_up_exchanges(self,
                          exchanges: Iterable[str],
                          uptakes: Iterable[str]):
-
-        # explain what this does
+        """Set up exchange reactions for the network flow model. Exchanges allow certain metabolites to have flow out of
+        the system. Uptakes allow certain metabolites to also have flow into the system."""
         all_exchanges = exchanges.copy()
         all_exchanges.extend(uptakes)
 
@@ -428,13 +409,9 @@ class NetworkFlowModel:
               kinetic_targets: Mapping[str, float],
               binary_kinetic_targets: Iterable[str],
               objective_weights: Mapping[str, float],
-              upper_flux_bound: float = 100,
-              **kwargs) -> FlowResult:
-
-        # objective targets: dict of dicts to floats, for now
-        ## binary kinetic
-        # starting fluxes: optional for now, could reintroduce
-        #
+              upper_flux_bound: float = 100
+              ) -> FlowResult:
+        """Solve the network flow model for fluxes and dm/dt values."""
 
         homeostatic_arr = [[self.mets.index(met), target] for met, target in homeostatic_targets.items()]
         homeostatic_idx, homeostatic_target = np.array(homeostatic_arr, dtype=np.int64)[:, 0], np.array(homeostatic_arr)[:, 1]
@@ -444,7 +421,7 @@ class NetworkFlowModel:
 
         if binary_kinetic_targets:
             binary_kinetic_idx = np.array([self.rxns.index(met) for met in binary_kinetic_targets], dtype=np.int64)
-        else :
+        else:
             binary_kinetic_idx = None
 
         maintenance_idx = self.rxns.index("maintenance_reaction")  # TODO (Cyrus) - use name provided
@@ -477,16 +454,13 @@ class NetworkFlowModel:
 
         p.solve(solver=cp.GLOP, verbose=False)
         if p.status != "optimal":
-            raise ValueError("Problem not optimal")
-
+            raise ValueError("Network flow model of metabolism did not converge to an optimal solution.")
 
         velocities, dm_dt, exchanges = np.array(v.value), np.array(dm.value), np.array(exch.value)
         velocities = {self.rxns[i]: velocities[i] for i in range(len(velocities))}
         dm_dt = {self.mets[i]: dm_dt[i] for i in range(len(dm_dt))}
-        # write a dict comprehension for exchanges with an if statement that only includes nonzero values
         exchanges = {self.mets[i]: exchanges[i] for i in range(len(exchanges)) if exchanges[i] != 0}
         objective = p.value
-
 
         return FlowResult(velocities=velocities,
                           dm_dt=dm_dt,
