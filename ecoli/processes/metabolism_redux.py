@@ -62,10 +62,8 @@ class MetabolismRedux(Step):
         self.media_id = self.parameters['media_id']
         self.cell_density = self.parameters['cell_density']
         self.nAvogadro = self.parameters['avogadro']
-        self.nutrient_to_doubling_time = self.parameters['nutrientToDoublingTime']
         self.ngam = parameters['non_growth_associated_maintenance']
         self.gam = parameters['dark_atp'] * parameters['cell_dry_mass_fraction']
-        self.random_state = np.random.RandomState(seed=self.parameters['seed'])
 
         # new variables for the model
         self.cell_mass = None
@@ -79,7 +77,6 @@ class MetabolismRedux(Step):
         self.exchange_constraints = self.parameters['exchange_constraints']
         self.get_kinetic_constraints = self.parameters['get_kinetic_constraints']
         self.kinetic_constraint_reactions = self.parameters['kinetic_constraint_reactions']
-
 
         # retrieve exchanged molecules
         exchange_molecules = set()
