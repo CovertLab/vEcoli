@@ -96,8 +96,9 @@ class MetabolismRedux(Step):
         stoichiometric_matrix_dict = {item["reaction id"]: item["stoichiometry"] for item in self.stoichiometry}
 
         # TODO (Cyrus) - Remove this when we have a better way to handle these reactions.
+        # generate carbon mistake in parca, efflux/influx proton gen, mass gen
         bad_rxns = ["RXN-12440", "TRANS-RXN-121", "TRANS-RXN-300",
-                    "TRANS-RXN-8"]  # generate carbon mistake in parca, efflux/influx proton gen
+                    "TRANS-RXN-8", "R15-RXN-MET/CPD-479//CPD-479/MET.25."]
         for rxn in bad_rxns:
             stoichiometric_matrix_dict.pop(rxn, None)
 
