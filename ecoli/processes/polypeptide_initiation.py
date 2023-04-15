@@ -16,9 +16,8 @@ from typing import cast
 import numpy as np
 
 from vivarium.core.composition import simulate_process
-from ecoli.library.schema import (
-    create_unique_indexes, numpy_schema, attrs, counts, bulk_name_to_idx
-)
+from ecoli.library.schema import (create_unique_indexes, numpy_schema, attrs,
+    counts, bulk_name_to_idx, listener_schema)
 
 from wholecell.utils import units
 from wholecell.utils.fitting import normalize
@@ -122,20 +121,11 @@ class PolypeptideInitiation(PartitionedProcess):
                     '_default': '',
                     '_updater': 'set'}},
             'listeners': {
-                'ribosome_data': {
-                    'ribosomes_initialized': {
-                        '_default': 0,
-                        '_updater': 'set',
-                        '_emit': True},
-                    'prob_translation_per_transcript': {
-                        '_default': [],
-                        '_updater': 'set',
-                        '_emit': True},
-                    'effective_elongation_rate': {
-                        '_default': 0.0,
-                        '_updater': 'set',
-                        '_emit': True}}},
-
+                'ribosome_data': listener_schema({
+                    'ribosomes_initialized': 0,
+                    'prob_translation_per_transcript': [],
+                    'effective_elongation_rate': 0.0}),
+            },
             'active_ribosome': numpy_schema('active_ribosome'),
             'RNA': numpy_schema('RNAs'),
             'bulk': numpy_schema('bulk'),
@@ -233,7 +223,7 @@ class PolypeptideInitiation(PartitionedProcess):
         # corresponds to the polypeptide it will polymerize. This is done in
         # blocks of protein ids for efficiency.
         protein_indexes = np.empty(n_ribosomes_to_activate, np.int64)
-        mRNA_indexes = np.empty(n_ribosomes_to_activate, dtype="U40")
+        mRNA_indexes = np.empty(n_ribosomes_to_activate, np.int64)
         nonzero_count = (n_new_proteins > 0)
         start_index = 0
 

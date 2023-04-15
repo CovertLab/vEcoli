@@ -127,9 +127,9 @@ class TfBinding(PartitionedProcess):
 
             'listeners': {
                 'rna_synth_prob': listener_schema({
-                    'pPromoterBound': 0,
-                    'nPromoterBound': 0,
-                    'nActualBound': 0,
+                    'p_promoter_bound': 0,
+                    'n_promoter_bound': 0,
+                    'n_actual_bound': 0,
                     'n_available_promoters': 0,
                     'n_bound_TF_per_TU': 0,
                     'gene_copy_number': []})},
@@ -282,9 +282,9 @@ class TfBinding(PartitionedProcess):
 
         update['listeners'] = {
             'rna_synth_prob': {
-                'pPromoterBound': pPromotersBound,
-                'nPromoterBound': nPromotersBound,
-                'nActualBound': nActualBound,
+                'p_promoter_bound': pPromotersBound,
+                'n_promoter_bound': nPromotersBound,
+                'n_actual_bound': nActualBound,
                 'n_available_promoters': n_promoters,
                 # 900 KB, very large, comment out to halve emit size
                 'n_bound_TF_per_TU': n_bound_TF_per_TU,

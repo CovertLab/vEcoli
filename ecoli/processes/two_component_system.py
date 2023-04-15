@@ -98,7 +98,7 @@ class TwoComponentSystem(PartitionedProcess):
                 timestep, self.random_state, method="BDF", jit=self.jit,
             )
         requests = {
-            'bulk': [(self.molecule_idx, self.molecules_required)]
+            'bulk': [(self.molecule_idx, self.molecules_required.astype(int))]
         }
         return requests
 

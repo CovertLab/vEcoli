@@ -5,7 +5,7 @@ mRNA Counts Listener
 """
 
 import numpy as np
-from ecoli.library.schema import numpy_schema, attrs
+from ecoli.library.schema import numpy_schema, attrs, listener_schema
 from vivarium.core.process import Step
 
 from ecoli.processes.registries import topology_registry
@@ -41,28 +41,32 @@ class mRNACounts(Step):
 
     def ports_schema(self):
         return {
-            'listeners': {
-                'mRNA_counts': {
-                    '_default': [],
-                    '_updater': 'set',
-                    '_emit': True}
-            },
+            'listeners': listener_schema({
+                'mRNA_counts': [],
+                'full_mRNA_counts': [],
+                'partial_mRNA_counts': []}),
             'RNAs': numpy_schema('RNAs')
         }
 
     def next_update(self, timestep, states):
         # Get attributes of mRNAs
-        tu_indexes, can_translate = attrs(
-            states['RNAs'], ['TU_index', 'can_translate'])
+        tu_indexes, can_translate, is_full_transcript = attrs(
+            states['RNAs'], ['TU_index', 'can_translate', 'is_full_transcript'])
 
         # Get counts of all mRNAs
         mrna_counts = np.bincount(
             tu_indexes[can_translate],
             minlength=len(self.all_RNA_ids))[self.mRNA_indexes]
+        full_mRNA_counts = np.bincount(
+            tu_indexes[np.logical_and(can_translate, is_full_transcript)],
+            minlength=len(self.all_RNA_ids))[self.mRNA_indexes]
+        partial_mRNA_counts = mrna_counts - full_mRNA_counts
 
         update = {
             'listeners': {
-                'mRNA_counts': mrna_counts
+                'mRNA_counts': mrna_counts,
+                'full_mRNA_counts': full_mRNA_counts,
+                'partial_mRNA_counts': partial_mRNA_counts,
             }
         }
         return update

@@ -10,17 +10,18 @@ import numpy as np
 from scipy import constants
 
 from vivarium.core.process import Deriver
-from vivarium.library.units import units
+from vivarium.library.units import units as viv_units
 from ecoli.library.schema import numpy_schema, counts, attrs, bulk_name_to_idx
-
 from ecoli.processes.registries import topology_registry
+from wholecell.utils import units
 
 # Register default topology for this process, associating it with process name
 NAME = 'ecoli-mass-listener'
 TOPOLOGY = {
     "bulk": ("bulk",),
     "unique": ("unique",),
-    "listeners": ("listeners",)
+    "listeners": ("listeners",),
+    "global_time": ("global_time",)
 }
 topology_registry.register(NAME, TOPOLOGY)
 
@@ -67,7 +68,8 @@ class MassListener(Deriver):
         # NOTE: This code is newly added in vivarium-ecoli.
         if 'tetracycline_mass' in self.parameters:
             tet_molar_mass = self.parameters['tetracycline_mass']
-            tet_mass = (tet_molar_mass/(constants.N_A/units.mol)).to(units.fg)
+            tet_mass = (tet_molar_mass/(constants.N_A/viv_units.mol)).to(
+                viv_units.fg)
             self.unique_ids = np.append(
                 self.unique_ids, 'active_ribosome_tetracycline')
             active_ribosome_idx = np.where(
@@ -147,6 +149,9 @@ class MassListener(Deriver):
 
         self.massDiff_names = ['massDiff_' + submass
             for submass in self.parameters['submass_to_idx']]
+        
+        self.cell_cycle_len = self.parameters['condition_to_doubling_time'][
+            self.parameters['condition']].asNumber(units.s)
 
         # Helper indices for Numpy indexing
         self.bulk_idx = None
@@ -186,7 +191,7 @@ class MassListener(Deriver):
                     'proteinMassFraction': set_divider_schema,
                     'rnaMassFraction': set_divider_schema,
                     'growth': set_divider_schema,
-                    'instantaniousGrowthRate': set_divider_schema,
+                    'instantaneousGrowthRate': set_divider_schema,
                     'dryMassFoldChange': set_divider_schema,
                     'proteinMassFoldChange': set_divider_schema,
                     'rnaMassFoldChange': set_divider_schema,
@@ -201,8 +206,10 @@ class MassListener(Deriver):
                     'periplasm_mass': split_divider_schema,
                     'pilus_mass': split_divider_schema,
                     'inner_membrane_mass': split_divider_schema,
+                    'expectedMassFoldChange': split_divider_schema
                 }
-            }
+            },
+            'global_time': {'_default': 0}
         }
         ports['unique'].update({
             'active_ribosome': numpy_schema('active_ribosome'),
@@ -272,6 +279,7 @@ class MassListener(Deriver):
             self.proteinMassInitial = mass_update['protein_mass']
             self.rnaMassInitial = mass_update['rna_mass']
             self.smallMoleculeMassInitial = mass_update['smallMolecule_mass']
+            self.timeInitial = states['global_time']
         else:
             mass_update['growth'] = mass_update['dry_mass'] - old_dry_mass
 
@@ -308,9 +316,8 @@ class MassListener(Deriver):
                 mass_update['protein_mass'] / mass_update['dry_mass'])
             mass_update['rnaMassFraction'] = (
                 mass_update['rna_mass'] / mass_update['dry_mass'])
-            mass_update['instantaniousGrowthRate'] = (mass_update['growth'] /
+            mass_update['instantaneousGrowthRate'] = (mass_update['growth'] /
                 self.time_step / mass_update['dry_mass'])
-            # These are "logged quantities" in wcEcoli - keep separate?
             mass_update['dryMassFoldChange'] = (mass_update['dry_mass'] / 
                 self.dryMassInitial)
             mass_update['proteinMassFoldChange'] = (mass_update[
@@ -319,6 +326,9 @@ class MassListener(Deriver):
                 self.rnaMassInitial)
             mass_update['smallMoleculeFoldChange'] = mass_update[
                 'smallMolecule_mass'] / self.smallMoleculeMassInitial
+            mass_update['expectedMoleculeFoldChange'] = np.exp(np.log(2)
+                * (states['global_time'] - self.timeInitial)
+                / self.cell_cycle_len)
 
         self.first_time_step = False
 

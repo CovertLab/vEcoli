@@ -218,9 +218,9 @@ class PolypeptideElongation(PartitionedProcess):
                     '_updater': 'set'},
             },
             'listeners': {
-                'mass': {
-                    'cell_mass': {'_default': 0.0},
-                    'dry_mass': {'_default': 0.0}},
+                'mass': listener_schema({
+                    'cell_mass': 0.0,
+                    'dry_mass': 0.0}),
 
                 'growth_limits': listener_schema({
                     'fraction_trna_charged': 0,
@@ -237,15 +237,15 @@ class PolypeptideElongation(PartitionedProcess):
                 'ribosome_data': listener_schema({
                     'translation_supply': 0,
                     'effective_elongation_rate': 0,
-                    'aaCountInSequence': 0,
-                    'aaCounts': 0,
-                    'actualElongations': 0,
-                    'actualElongationHist': 0,
-                    'elongationsNonTerminatingHist': 0,
-                    'didTerminate': 0,
-                    'terminationLoss': 0,
-                    'numTrpATerminated': 0,
-                    'processElongationRate': 0})},
+                    'aa_count_in_sequence': 0,
+                    'aa_counts': 0,
+                    'actual_elongations': 0,
+                    'actual_elongation_hist': 0,
+                    'elongations_non_terminating_hist': 0,
+                    'did_terminate': 0,
+                    'termination_loss': 0,
+                    'num_trpA_terminated': 0,
+                    'process_elongation_rate': 0})},
 
             'bulk': numpy_schema('bulk'),
             'bulk_total': numpy_schema('bulk', partition=False),
@@ -505,21 +505,21 @@ class PolypeptideElongation(PartitionedProcess):
 
         # Write data to listeners
         update['listeners']['growth_limits']['net_charged'] = net_charged
-        update['listeners']['growth_limits']['aasUsed'] = aas_used
+        update['listeners']['growth_limits']['aas_used'] = aas_used
         
         ribosome_data = {'effective_elongation_rate': currElongRate}
-        ribosome_data['aaCountInSequence'] = aaCountInSequence
-        ribosome_data['aaCounts'] = aa_counts_for_translation
-        ribosome_data['actualElongations'] = sequence_elongations.sum()
-        ribosome_data['actualElongationHist'] = np.histogram(
+        ribosome_data['aa_count_in_sequence'] = aaCountInSequence
+        ribosome_data['aa_counts'] = aa_counts_for_translation
+        ribosome_data['actual_elongations'] = sequence_elongations.sum()
+        ribosome_data['actual_elongation_hist'] = np.histogram(
             sequence_elongations, bins = np.arange(0,23))[0]
-        ribosome_data['elongationsNonTerminatingHist'] = np.histogram(
+        ribosome_data['elongations_non_terminating_hist'] = np.histogram(
             sequence_elongations[~didTerminate], bins=np.arange(0,23))[0]
-        ribosome_data['didTerminate'] = didTerminate.sum()
-        ribosome_data['terminationLoss'] = (terminalLengths - peptide_lengths)[
+        ribosome_data['did_terminate'] = didTerminate.sum()
+        ribosome_data['termination_loss'] = (terminalLengths - peptide_lengths)[
             didTerminate].sum()
-        ribosome_data['numTrpATerminated'] = terminatedProteins[self.trpAIndex]
-        ribosome_data['processElongationRate'] = (self.ribosomeElongationRate /
+        ribosome_data['num_trpA_terminated'] = terminatedProteins[self.trpAIndex]
+        ribosome_data['process_elongation_rate'] = (self.ribosomeElongationRate /
             timestep)
         update['listeners']['ribosome_data'] = ribosome_data
 

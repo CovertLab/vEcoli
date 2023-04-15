@@ -21,7 +21,8 @@ from six.moves import zip
 from vivarium.core.process import Step
 
 from ecoli.processes.registries import topology_registry
-from ecoli.library.schema import numpy_schema, bulk_name_to_idx, counts
+from ecoli.library.schema import (
+    numpy_schema, bulk_name_to_idx, counts, listener_schema)
 from wholecell.utils import units
 from wholecell.utils.random import stochasticRound
 from wholecell.utils.modular_fba import FluxBalanceAnalysis
@@ -135,6 +136,9 @@ class Metabolism(Step):
         # TODO: For testing, remove later (perhaps after modifying sim data)
         self.reduce_murein_objective = self.parameters['reduce_murein_objective']
 
+        # Helper indices for Numpy indexing
+        self.metabolite_idx = None
+
 
     def __getstate__(self):
         return self.parameters
@@ -159,47 +163,44 @@ class Metabolism(Step):
                     'constrained': {'_default': []}}}, # this is only GLC[p].
 
             'listeners': {
-                'mass': {
-                    # TODO(Matt): These should not be using a divider. Mass listener should run before metabolism after division.
-                    'cell_mass': {'_default': 0.0,
-                                  '_divider': 'split'},
-                    'dry_mass': {'_default': 0.0,
-                                 '_divider': 'split'}},
+                'mass': listener_schema({
+                    'cell_mass': 0.0,
+                    'dry_mass': 0.0}),
 
-                'fba_results': {
-                    'media_id': {'_default': '', '_updater': 'set'},
-                    'conc_updates': {'_default': [], '_updater': 'set'},
-                    'catalyst_counts': {'_default': 0, '_updater': 'set'},
-                    'translation_gtp': {'_default': 0, '_updater': 'set'},
-                    'coefficient': {'_default': 0.0, '_updater': 'set'},
-                    'unconstrained_molecules': {'_default': [], '_updater': 'set'},
-                    'constrained_molecules': {'_default': [], '_updater': 'set'},
-                    'uptake_constraints': {'_default': [], '_updater': 'set'},
-                    'deltaMetabolites': {'_default': [], '_updater': 'set'},
-                    'reactionFluxes': {'_default': [], '_updater': 'set', '_emit': True},
-                    'externalExchangeFluxes': {'_default': [], '_updater': 'set'},
-                    'objectiveValue': {'_default': [], '_updater': 'set'},
-                    'shadowPrices': {'_default': [], '_updater': 'set'},
-                    'reducedCosts': {'_default': [], '_updater': 'set'},
-                    'targetConcentrations': {'_default': [], '_updater': 'set'},
-                    'homeostaticObjectiveValues': {'_default': [], '_updater': 'set'},
-                    'kineticObjectiveValues': {'_default': [], '_updater': 'set'},
+                'fba_results': listener_schema({
+                    'media_id': '',
+                    'conc_updates': [],
+                    'catalyst_counts': 0,
+                    'translation_gtp': 0,
+                    'coefficient': 0.0,
+                    'unconstrained_molecules': [],
+                    'constrained_molecules': [],
+                    'uptake_constraints': [],
+                    'delta_metabolites': [],
+                    'reaction_fluxes': [],
+                    'external_exchange_fluxes': [],
+                    'objective_value': [],
+                    'shadow_prices': [],
+                    'reduced_costs': [],
+                    'target_concentrations': [],
+                    'homeostatic_objective_values': [],
+                    'kinetic_objective_values': [],
+                    'estimated_fluxes': {},
+                    'estimated_dmdt': {},
+                    'target_dmdt': {},
+                    'estimated_exchange_dmdt': {},
+                }),
 
-                    'estimated_fluxes': {'_default': {}, '_updater': 'set', '_emit': True},
-                    'estimated_dmdt': {'_default': {}, '_updater': 'set', '_emit': True},
-                    'target_dmdt': {'_default': {}, '_updater': 'set', '_emit': True},
-                    'estimated_exchange_dmdt': {'_default': {}, '_updater': 'set', '_emit': True},
-                },
-
-                'enzyme_kinetics': {
-                    'metaboliteCountsInit': {'_default': 0, '_updater': 'set'},
-                    'metaboliteCountsFinal': {'_default': 0, '_updater': 'set'},
-                    'enzymeCountsInit': {'_default': 0, '_updater': 'set'},
-                    'countsToMolar': {'_default': 1.0, '_updater': 'set'},
-                    'actualFluxes': {'_default': [], '_updater': 'set'},
-                    'targetFluxes': {'_default': [], '_updater': 'set'},
-                    'targetFluxesUpper': {'_default': [], '_updater': 'set'},
-                    'targetFluxesLower': {'_default': [], '_updater': 'set'}}},
+                'enzyme_kinetics': listener_schema({
+                    'metabolite_counts_init': 0,
+                    'metabolite_counts_final': 0,
+                    'enzyme_counts_init': 0,
+                    'counts_to_molar': 1.0,
+                    'actual_fluxes': [],
+                    'target_fluxes': [],
+                    'target_fluxes_upper': [],
+                    'target_fluxes_lower': []})
+            },
 
             'polypeptide_elongation': {
                 'aa_count_diff': {
@@ -228,6 +229,9 @@ class Metabolism(Step):
     def next_update(self, timestep, states):
         # Skip t=0
         if states['first_update']:
+            return {'first_update': False}
+        
+        if self.metabolite_idx is None:
             self.metabolite_idx = bulk_name_to_idx(
                 self.model.metaboliteNamesFromNutrients, states['bulk']['id'])
             self.catalyst_idx = bulk_name_to_idx(
@@ -237,7 +241,6 @@ class Metabolism(Step):
             self.kinetics_substrates_idx = bulk_name_to_idx(
                 self.model.kinetic_constraint_substrates, states['bulk']['id'])
             self.aa_idx = bulk_name_to_idx(self.aa_names, states['bulk']['id'])
-            return {'first_update': False}
 
         timestep = self.parameters['time_step']
 
@@ -350,19 +353,19 @@ class Metabolism(Step):
                     'unconstrained_molecules': unconstrained,
                     'constrained_molecules': constrained,
                     'uptake_constraints': uptake_constraints,
-                    'deltaMetabolites': delta_metabolites_final,
+                    'delta_metabolites': delta_metabolites_final,
                     # 104 KB, quite large, comment out to reduce emit size
-                    'reactionFluxes': fba.getReactionFluxes() / timestep,
-                    'externalExchangeFluxes': converted_exchange_fluxes,
-                    'objectiveValue': fba.getObjectiveValue(),
-                    'shadowPrices': fba.getShadowPrices(self.model.metaboliteNamesFromNutrients),
+                    'reaction_fluxes': fba.getReactionFluxes() / timestep,
+                    'external_exchange_fluxes': converted_exchange_fluxes,
+                    'objective_value': fba.getObjectiveValue(),
+                    'shadow_prices': fba.getShadowPrices(self.model.metaboliteNamesFromNutrients),
                     # 104 KB, quite large, comment out to reduce emit size
-                    'reducedCosts': fba.getReducedCosts(fba.getReactionIDs()),
-                    'targetConcentrations': [
+                    'reduced_costs': fba.getReducedCosts(fba.getReactionIDs()),
+                    'target_concentrations': [
                         self.model.homeostatic_objective[mol]
                         for mol in fba.getHomeostaticTargetMolecules()],
-                    'homeostaticObjectiveValues': fba.getHomeostaticObjectiveValues(),
-                    'kineticObjectiveValues': fba.getKineticObjectiveValues(),
+                    'homeostatic_objective_values': fba.getHomeostaticObjectiveValues(),
+                    'kinetic_objective_values': fba.getKineticObjectiveValues(),
                     
                     # Quite large, comment out to reduce emit size
                     # 'estimated_fluxes': flux_dict ,
@@ -374,14 +377,14 @@ class Metabolism(Step):
                 },
 
                 'enzyme_kinetics': {
-                    'metaboliteCountsInit': metabolite_counts_init,
-                    'metaboliteCountsFinal': metabolite_counts_init + delta_metabolites_final,
-                    'enzymeCountsInit': kinetic_enzyme_counts,
-                    'countsToMolar': counts_to_molar.asNumber(CONC_UNITS),
-                    'actualFluxes': fba.getReactionFluxes(self.model.kinetics_constrained_reactions) / timestep,
-                    'targetFluxes': targets / timestep,
-                    'targetFluxesUpper': upper_targets / timestep,
-                    'targetFluxesLower': lower_targets / timestep}}}
+                    'metabolite_counts_init': metabolite_counts_init,
+                    'metabolite_counts_final': metabolite_counts_init + delta_metabolites_final,
+                    'enzyme_counts_init': kinetic_enzyme_counts,
+                    'counts_to_molar': counts_to_molar.asNumber(CONC_UNITS),
+                    'actual_fluxes': fba.getReactionFluxes(self.model.kinetics_constrained_reactions) / timestep,
+                    'target_fluxes': targets / timestep,
+                    'target_fluxes_upper': upper_targets / timestep,
+                    'target_fluxes_lower': lower_targets / timestep}}}
 
         return update
 
