@@ -185,11 +185,11 @@ class RnaDegradation(PartitionedProcess):
             'active_ribosome': numpy_schema('active_ribosome'),
             'RNAs': numpy_schema('RNAs'),
             'listeners': {
-                'mass': {
-                    'cell_mass': {'_default': 0.0},
-                    'dry_mass': {'_default': 0.0}},
+                'mass': listener_schema({
+                    'cell_mass': 0.0,
+                    'dry_mass': 0.0}),
                 'rna_degradation_listener': listener_schema({
-                    'fraction_active_endo_rnases': 0,
+                    'fraction_active_endornases': 0,
                     'diff_relative_first_order_decay': 0,
                     'fract_endo_rrna_counts': 0,
                     'count_rna_degraded': 0,

@@ -22,7 +22,8 @@ from arrow import StochasticSystem
 
 from vivarium.core.composition import simulate_process
 
-from ecoli.library.schema import numpy_schema, bulk_name_to_idx, counts
+from ecoli.library.schema import (
+    numpy_schema, bulk_name_to_idx, counts, listener_schema)
 from ecoli.processes.registries import topology_registry
 from ecoli.processes.partition import PartitionedProcess
 
@@ -64,10 +65,8 @@ class Complexation(PartitionedProcess):
         return {
             'bulk': numpy_schema('bulk'),
             'listeners': {
-                'complexation_events': {
-                        '_default': [],
-                        '_updater': 'set',
-                        '_emit': True},
+                'complexation_listener': listener_schema({
+                    'complexation_events': []}),
             },
         }
 
@@ -97,7 +96,9 @@ class Complexation(PartitionedProcess):
         update = {
             'bulk': [(self.molecule_idx, outcome)],
             'listeners': {
-                'complexation_events': complexationEvents
+                'complexation_listener': {
+                    'complexation_events': complexationEvents
+                }
             }
         }
 

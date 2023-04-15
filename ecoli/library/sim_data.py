@@ -904,7 +904,9 @@ class LoadSimData:
             'compartment_id_to_index': self.sim_data.compartment_id_to_index,
             'n_avogadro': self.sim_data.constants.n_avogadro,  # 1/mol
             'time_step': time_step,
-            'submass_to_idx': self.sim_data.submass_name_to_index
+            'submass_to_idx': self.sim_data.submass_name_to_index,
+            'condition_to_doubling_time': self.sim_data.condition_to_doubling_time,
+            'condition': self.sim_data.condition
         }
 
         return mass_config

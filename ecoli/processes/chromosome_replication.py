@@ -19,7 +19,7 @@ molecules.
 import numpy as np
 
 from ecoli.library.schema import (create_unique_indexes,
-    numpy_schema, counts, attrs, bulk_name_to_idx)
+    numpy_schema, counts, attrs, bulk_name_to_idx, listener_schema)
 
 from wholecell.utils import units
 from wholecell.utils.polymerize import (
@@ -125,12 +125,11 @@ class ChromosomeReplication(PartitionedProcess):
             # bulk molecules
             'bulk': numpy_schema('bulk'),
             'listeners': {
-                'mass': {
-                    'cell_mass': {'_default': 0.0, '_emit': True}},
-                'replication_data': {
-                    'criticalInitiationMass': {'_default': 0.0},
-                    'criticalMassPerOriC': {'_default': 0.0},
-                }
+                'mass': listener_schema({
+                    'cell_mass': 0.0}),
+                'replication_data': listener_schema({
+                    'critical_initiation_mass': 0.0,
+                    'critical_mass_per_oriC': 0.0}),
             },
             'environment': {
                 'media_id': {
@@ -151,7 +150,7 @@ class ChromosomeReplication(PartitionedProcess):
                 self.replisome_trimers_subunits, states['bulk']['id'])
             self.replisome_monomers_idx = bulk_name_to_idx(
                 self.replisome_monomers_subunits, states['bulk']['id'])
-            self.dtnps_idx = bulk_name_to_idx(self.dntps, states['bulk']['id'])
+            self.dntps_idx = bulk_name_to_idx(self.dntps, states['bulk']['id'])
         requests = {}
         # Get total count of existing oriC's
         n_oriC = states['oriCs']['_entryState'].sum()
@@ -209,13 +208,13 @@ class ChromosomeReplication(PartitionedProcess):
 
         # If one dNTP is limiting then limit the request for the other three by
         # the same ratio
-        dNtpsTotal = counts(states['bulk'], self.dtnps_idx)
+        dNtpsTotal = counts(states['bulk'], self.dntps_idx)
         maxFractionalReactionLimit = (np.fmin(1, dNtpsTotal
             / sequenceComposition)).min()
 
         # Request dNTPs
-        requests['bulk'].append((self.dtnps_idx, maxFractionalReactionLimit
-            * sequenceComposition))
+        requests['bulk'].append((self.dntps_idx, (maxFractionalReactionLimit
+            * sequenceComposition).astype(int)))
 
         return requests
 
@@ -342,9 +341,9 @@ class ChromosomeReplication(PartitionedProcess):
                 update['bulk'].append((self.replisome_monomers_idx, -2*n_oriC))
 
         # Write data from this module to a listener
-        update['listeners']['replication_data']['criticalMassPerOriC'] = \
+        update['listeners']['replication_data']['critical_mass_per_oriC'] = \
             self.criticalMassPerOriC.asNumber()
-        update['listeners']['replication_data']['criticalInitiationMass'] = \
+        update['listeners']['replication_data']['critical_initiation_mass'] = \
             self.criticalInitiationMass.asNumber(units.fg)
 
         # Module 2: replication elongation
@@ -355,7 +354,7 @@ class ChromosomeReplication(PartitionedProcess):
             return update
 
         # Get allocated counts of dNTPs
-        dNtpCounts = counts(states['bulk'], self.dtnps_idx)
+        dNtpCounts = counts(states['bulk'], self.dntps_idx)
 
         # Get attributes of existing replisomes
         domain_index_replisome, right_replichore, coordinates_replisome, = \
@@ -416,7 +415,7 @@ class ChromosomeReplication(PartitionedProcess):
         })
 
         # Update counts of polymerized metabolites
-        update['bulk'].append((self.dtnps_idx, -dNtpsUsed))
+        update['bulk'].append((self.dntps_idx, -dNtpsUsed))
         update['bulk'].append((self.ppi_idx, dNtpsUsed.sum()))
 
         # Module 3: replication termination

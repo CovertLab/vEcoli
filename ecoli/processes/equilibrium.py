@@ -10,7 +10,8 @@ that maintains equilibrium.
 
 import numpy as np
 
-from ecoli.library.schema import numpy_schema, bulk_name_to_idx, counts
+from ecoli.library.schema import (
+    numpy_schema, bulk_name_to_idx, counts, listener_schema)
 from ecoli.processes.registries import topology_registry
 from ecoli.processes.partition import PartitionedProcess
 
@@ -80,11 +81,11 @@ class Equilibrium(PartitionedProcess):
         return {
             'bulk': numpy_schema('bulk'),
             'listeners': {
-                'mass': {
-                    'cell_mass': {'_default': 0}},
-                'equilibrium_listener': {
-                    'reaction_rates': {
-                        '_default': [], '_updater': 'set', '_emit': True}}}}
+                'mass': listener_schema({
+                    'cell_mass': 0}),
+                'equilibrium_listener': listener_schema({
+                    'reaction_rates': []})}
+        }
 
     def calculate_request(self, timestep, states):
         if self.molecule_idx is None:
@@ -105,7 +106,7 @@ class Equilibrium(PartitionedProcess):
 
         # Request counts of molecules needed
         requests = {
-            'bulk': [(self.molecule_idx, self.req)]
+            'bulk': [(self.molecule_idx, self.req.astype(int))]
         }
         return requests
 

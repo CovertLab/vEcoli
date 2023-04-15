@@ -21,7 +21,7 @@ from wholecell.utils.polymerize import buildSequences, polymerize, computeMassIn
 from wholecell.utils import units
 
 from ecoli.library.schema import (
-    counts, attrs, numpy_schema, bulk_name_to_idx)
+    counts, attrs, numpy_schema, bulk_name_to_idx, listener_schema)
 from ecoli.library.data_predicates import monotonically_increasing
 from ecoli.processes.registries import topology_registry
 from ecoli.processes.partition import PartitionedProcess
@@ -194,57 +194,19 @@ class TranscriptElongation(PartitionedProcess):
             'bulk_total': numpy_schema('bulk', partition=False),
 
             'listeners': {
-                'mass': {
-                    'cell_mass': {
-                        '_default': 0.0},
-                },
-                'transcript_elongation_listener': {
-                    'countNTPsUsed': {
-                        '_default': 0,
-                        '_updater': 'set',
-                        '_emit': True
-                    },
-                    'countRnaSynthesized': {
-                        '_default': np.zeros(len(self.rnaIds)),
-                        '_updater': 'set',
-                        '_emit': True
-                    },
-                    'attenuation_probability': {
-                        '_default': np.zeros(len(self.rnaIds)),
-                        '_updater': 'set',
-                        '_emit': True
-                    },
-                    'counts_attenuated': {
-                        '_default': np.zeros(len(self.rnaIds)),
-                        '_updater': 'set',
-                        '_emit': True
-                    },
-                },
-                'growth_limits': {
-                    'ntpUsed': {
-                        '_default': np.zeros(len(self.ntp_ids)),
-                        '_updater': 'set',
-                        '_emit': True
-                    }
-                },
-                'rnap_data': {
-                    'actualElongations': {
-                        '_default': 0,
-                        '_updater': 'set',
-                        '_emit': True},
-                    'didTerminate': {
-                        '_default': 0,
-                        '_updater': 'set',
-                        '_emit': True},
-                    'terminationLoss': {
-                        '_default': 0,
-                        '_updater': 'set',
-                        '_emit': True},
-                    'didStall': {
-                        '_updater': 'set',
-                        '_emit': True
-                    }
-                }
+                'mass': listener_schema({'cell_mass': 0.0}),
+                'transcript_elongation_listener': listener_schema({
+                    'count_NTPs_used': 0,
+                    'count_rna_synthesized': np.zeros(len(self.rnaIds)),
+                    'attenuation_probability': np.zeros(len(self.rnaIds)),
+                    'counts_attenuated': np.zeros(len(self.rnaIds))}),
+                'growth_limits': listener_schema({
+                    'ntp_used': np.zeros(len(self.ntp_ids))}),
+                'rnap_data': listener_schema({
+                    'actual_elongations': 0,
+                    'did_terminate': 0,
+                    'termination_loss': 0,
+                    'did_stall': 0})
             },
             'global_time': {'_default': 0}
         }
@@ -303,7 +265,7 @@ class TranscriptElongation(PartitionedProcess):
             1, ntpsTotal / sequenceComposition)
 
         requests = {'bulk': [(self.ntps_idx,
-            maxFractionalReactionLimit * sequenceComposition)]}
+            (maxFractionalReactionLimit * sequenceComposition).astype(int))]}
 
         requests['listeners'] = {
             'growth_limits': {
@@ -321,16 +283,16 @@ class TranscriptElongation(PartitionedProcess):
             return {
                 'listeners': {
                     'transcript_elongation_listener': {
-                        'countNTPsUsed': 0,
-                        'countRnaSynthesized': np.zeros(len(self.rnaIds))
+                        'count_NTPs_used': 0,
+                        'count_rna_synthesized': np.zeros(len(self.rnaIds))
                     },
                     'growth_limits': {
-                        'ntpUsed': np.zeros(len(self.ntp_ids))
+                        'ntp_used': np.zeros(len(self.ntp_ids))
                     },
                     'rnap_data': {
-                        'actualElongations': 0,
-                        'didTerminate': 0,
-                        'terminationLoss': 0
+                        'actual_elongations': 0,
+                        'did_terminate': 0,
+                        'termination_loss': 0
                     }
                 },
                 'active_RNAPs': {'time': states['global_time']},
@@ -581,18 +543,18 @@ class TranscriptElongation(PartitionedProcess):
 
         # Write outputs to listeners
         update['listeners']['transcript_elongation_listener'] = {
-            "countRnaSynthesized": terminated_RNAs,
-            "countNTPsUsed": n_elongations,
+            "count_rna_synthesized": terminated_RNAs,
+            "count_NTPs_used": n_elongations,
             "attenuation_probability": attenuation_probability,
             "counts_attenuated": counts_attenuated}
         update['listeners']['growth_limits'] = {
-            "ntpUsed": ntps_used}
+            "ntp_used": ntps_used}
         update['listeners']['rnap_data'] = {
-            "actualElongations": sequence_elongations.sum(),
-            "didTerminate": did_terminate_mask.sum(),
-            "terminationLoss": (terminal_lengths - length_partial_RNAs)[
+            "actual_elongations": sequence_elongations.sum(),
+            "did_terminate": did_terminate_mask.sum(),
+            "termination_loss": (terminal_lengths - length_partial_RNAs)[
                 did_terminate_mask].sum(),
-            "didStall": n_total_stalled}
+            "did_stall": n_total_stalled}
 
         return update
 

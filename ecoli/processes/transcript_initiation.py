@@ -439,8 +439,8 @@ class TranscriptInitiation(PartitionedProcess):
                     'total_rna_init': 0
                 },
                 'rnap_data': {
-                    'didInitialize': 0,
-                    'rnaInitEvent': np.zeros(self.n_TUs),
+                    'did_initialize': 0,
+                    'rna_init_event': np.zeros(self.n_TUs),
                 }
             },
             'active_RNAPs': {'time': states['global_time']},
@@ -559,8 +559,8 @@ class TranscriptInitiation(PartitionedProcess):
             'total_rna_init': n_RNAPs_to_activate}
 
         update['listeners']['rnap_data'] = {
-            'didInitialize': n_RNAPs_to_activate,
-            'rnaInitEvent': TU_to_promoter.dot(n_initiations)}
+            'did_initialize': n_RNAPs_to_activate,
+            'rna_init_event': TU_to_promoter.dot(n_initiations)}
 
         return update
 
