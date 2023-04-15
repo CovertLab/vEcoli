@@ -52,9 +52,6 @@ def run_non_partitioned_process(
     Returns:
         an update from the perspective of the Process.
     """
-    if initial_state is None:
-        initial_state = {}
-
     # make an experiment
     experiment_config = {
         'processes': {process.name: process},
@@ -131,7 +128,6 @@ def run_partitioned_process(
     store, states = experiment._process_state(path)
     # Make process see wcEcoli partitioned molecule counts but
     # do not modify bulk_total port values
-    states['bulk_total'] = states['bulk'].copy()
     states['bulk_total'] = bulk_total
     with open(f"data/migration/bulk_partitioned_t"
               f"{initial_time}.json") as f:
@@ -161,10 +157,6 @@ def run_and_compare(init_time, process_class, partition=True, layer=0, post=Fals
     config = LOAD_SIM_DATA.get_config_by_name(process_class.name)
     config['seed'] = 0
     process = process_class(config)
-    # Complexation sets seed weirdly
-    if process_class.__name__ == 'Complexation':
-        from arrow import StochasticSystem
-        process.system = StochasticSystem(process.stoichiometry, random_seed=0)
 
     process.is_step = lambda: False
     
@@ -179,6 +171,27 @@ def run_and_compare(init_time, process_class, partition=True, layer=0, post=Fals
         'metabolism': False,
     }
 
+    # Complexation sets seed weirdly
+    if process_class.__name__ == 'Complexation':
+        from arrow import StochasticSystem
+        process.system = StochasticSystem(process.stoichiometry, random_seed=0)
+    # Polypeptide initiation requires effective_elongation_rate listener
+    elif process_class.__name__ == 'PolypeptideInitiation':
+        listener_file = f'data/migration/wcecoli_listeners_t{init_time}.json'
+        with open(listener_file, 'r') as f:
+            listeners = json.load(f)
+        elong_rate = listeners['ribosome_data']['effective_elongation_rate']
+        initial_state['listeners']['ribosome_data'] = {
+            'effective_elongation_rate': elong_rate}
+    # Metabolism requires gtp_to_hydrolyze
+    elif process_class.__name__ == 'Metabolism':
+        updates_file = f'data/migration/process_updates_t{init_time}.json'
+        with open(updates_file, 'r') as f:
+            proc_updates = json.load(f)
+        gtp_hydro = proc_updates['PolypeptideElongation']['gtp_to_hydrolyze']
+        initial_state['process_state'] = {'polypeptide_elongation': {
+            'gtp_to_hydrolyze': gtp_hydro}}
+
     if partition:
         # run the process and get an update
         actual_request, actual_update = run_partitioned_process(
@@ -191,7 +204,8 @@ def run_and_compare(init_time, process_class, partition=True, layer=0, post=Fals
         assert np.all(actual_request == wc_request[process_class.__name__])
     else:
         actual_update = run_non_partitioned_process(
-            process, process_class.topology, initial_state=initial_state)
+            process, process_class.topology,
+            initial_time=init_time, initial_state=initial_state)
     # Compare unique molecule updates
     with open(f"data/migration/process_updates_t{init_time}.json", 'r') as f:
         wc_update = json.load(f)
