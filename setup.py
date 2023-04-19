@@ -25,8 +25,6 @@ INSTALL_REQUIRES = [
     'cobra',
     'matplotlib',
     'pytest',
-    'jax',
-    'jaxlib',
     'jupyter',
     'tqdm'
 ]

@@ -3,6 +3,7 @@ import cvxpy as cp
 import itertools
 from scipy.special import logsumexp
 
+
 class ConvexKineticsNew:
 
     def __init__(self):
@@ -64,10 +65,7 @@ class ConvexKineticsNew:
         crev = cp.Variable(n_rxn)
 
         # define y vecs
-        y_s_t = []
-        y_p_t = []
-        y_i_t = []
-        y_a_t = []
+        y_s_t, y_p_t, y_i_t, y_a_t = [], [], [], []
 
         # define Km positions by nonzero S matrix concentrations. Activation is reverse val of inhibition.
         # TODO Add molecularity here.
