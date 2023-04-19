@@ -10,7 +10,8 @@ import numpy as np
 from vivarium.core.process import Deriver
 
 from ecoli.processes.registries import topology_registry
-from ecoli.library.schema import counts, numpy_schema, bulk_name_to_idx
+from ecoli.library.schema import (counts, numpy_schema, bulk_name_to_idx,
+    listener_schema)
 
 # Register default topology for this process, associating it with process name
 NAME = 'allocator'
@@ -19,6 +20,7 @@ TOPOLOGY = {
     'allocate': ('allocate',),
     'bulk': ('bulk',),
     'evolvers_ran': ('evolvers_ran',),
+    'listeners': ('listeners',)
 }
 topology_registry.register(NAME, TOPOLOGY)
 
@@ -40,7 +42,6 @@ class Allocator(Deriver):
     def __init__(self, parameters=None):
         super().__init__(parameters)
         self.moleculeNames = self.parameters['molecule_names']
-        self.molecule_idx = None
         self.n_molecules = len(self.moleculeNames)
         self.mol_name_to_idx = {name: idx
             for idx, name in enumerate(self.moleculeNames)}
@@ -60,6 +61,9 @@ class Allocator(Deriver):
         self.seed = self.parameters['seed']
         self.random_state = np.random.RandomState(seed = self.seed)
 
+        # Helper indices for Numpy indexing
+        self.molecule_idx = None
+
     def ports_schema(self):
         ports = {
             'bulk': numpy_schema('bulk'),
@@ -77,6 +81,14 @@ class Allocator(Deriver):
             'evolvers_ran': {
                 '_default': True,
             },
+            'listeners': listener_schema({
+                # Requests and initial allocations are one timestep "behind"
+                # Example: counts at t=4 go towards update at t=6
+                'atp_requested': [],
+                'atp_allocated_initial': [],
+                # Use blame functionality to get ATP consumed per process
+                # 'atp_allocated_final': []
+            })
         }
         return ports
 
@@ -87,6 +99,7 @@ class Allocator(Deriver):
         if self.molecule_idx is None:
             self.molecule_idx = bulk_name_to_idx(self.moleculeNames,
                 states['bulk']['id'])
+            self.atp_idx = bulk_name_to_idx('ATP[c]', states['bulk']['id'])
         total_counts = counts(states['bulk'], self.molecule_idx)
         original_totals = total_counts.copy()
         counts_requested = np.zeros((self.n_molecules, self.n_processes),
@@ -134,22 +147,21 @@ class Allocator(Deriver):
                     )
                 )
 
-        # Record unpartitioned counts for later merging
+        # Ensure we are not overdrafting any molecules
         counts_unallocated = original_totals - np.sum(
             partitioned_counts, axis=-1)
 
-        # TODO (Cyrus) -- Reintroduce this later (or ignore it until allocation is removed)
-        # if ASSERT_POSITIVE_COUNTS and np.any(counts_unallocated < 0):
-        #     raise NegativeCountsError(
-        #             "Negative value(s) in counts_unallocated:\n"
-        #             + "\n".join(
-        #             "{} ({})".format(
-        #                 self.mol_idx_to_name[molIndex],
-        #                 counts_unallocated[molIndex]
-        #                 )
-        #             for molIndex in np.where(counts_unallocated < 0)[0]
-        #             )
-        #         )
+        if ASSERT_POSITIVE_COUNTS and np.any(counts_unallocated < 0):
+            raise NegativeCountsError(
+                    "Negative value(s) in counts_unallocated:\n"
+                    + "\n".join(
+                    "{} ({})".format(
+                        self.mol_idx_to_name[molIndex],
+                        counts_unallocated[molIndex]
+                        )
+                    for molIndex in np.where(counts_unallocated < 0)[0]
+                    )
+                )
 
 
         update = {
@@ -164,6 +176,10 @@ class Allocator(Deriver):
                 for process in states['request']
             },
             'evolvers_ran': False,
+            'listeners': {
+                'atp_requested': counts_requested[self.atp_idx, :],
+                'atp_allocated_initial': partitioned_counts[self.atp_idx, :]
+            }
         }
 
         return update

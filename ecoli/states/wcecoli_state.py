@@ -60,13 +60,13 @@ def numpy_molecules(states):
     bulk_dtypes = ast.literal_eval(states.pop('bulk_dtypes'))
     bulk_tuples = [tuple(mol) for mol in states['bulk']]
     states['bulk'] = np.array(bulk_tuples, dtype=bulk_dtypes)
+    # Numpy arrays are read-only outside of updater
+    states['bulk'].flags.writeable = False
     for key, dtypes in states.pop('unique_dtypes').items():
         dtypes = ast.literal_eval(dtypes)
-        dtypes.extend([('time', 'i'), ('_cached_entryState', 'i1')])
-        unique_tuples = [tuple(mol) + (0, 0) for mol in states['unique'][key]]
+        unique_tuples = [tuple(mol) for mol in states['unique'][key]]
         states['unique'][key] = np.array(unique_tuples, dtype=dtypes)
-        states['unique'][key]['_cached_entryState'] = states['unique'][key][
-            '_entryState']
+        states['unique'][key].flags.writeable = False
     return states 
 
 
