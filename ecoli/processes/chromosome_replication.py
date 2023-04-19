@@ -101,6 +101,9 @@ class ChromosomeReplication(PartitionedProcess):
         # random state
         self.seed = self.parameters['seed']
         self.random_state = np.random.RandomState(seed=self.seed)
+        # Use separate random state instance to create unique indices
+        # so results are directly comparable with wcEcoli
+        self.unique_idx_random_state = np.random.RandomState(seed=self.seed)
 
         # Index of DNA submass in submass vector
         self.DNA_submass_idx = self.parameters['submass_indexes'][
@@ -286,7 +289,7 @@ class ChromosomeReplication(PartitionedProcess):
             update['oriCs']['set'] = {
                 'domain_index': domain_index_new[:n_oriC]}
             new_oric_indexes = create_unique_indexes(
-                n_oriC, self.random_state)
+                n_oriC, self.unique_idx_random_state)
             update['oriCs']['add'] = {
                 'unique_index': new_oric_indexes,
                 'domain_index': domain_index_new[n_oriC:]
@@ -303,7 +306,7 @@ class ChromosomeReplication(PartitionedProcess):
             domain_index_new_replisome = np.repeat(
                 domain_index_existing_oric, 2)
             new_replisome_indexes = create_unique_indexes(
-                n_new_replisome, self.random_state)
+                n_new_replisome, self.unique_idx_random_state)
             update['active_replisomes']['add'] = {
                 'unique_index': new_replisome_indexes,
                 'coordinates': coordinates_replisome,
@@ -316,7 +319,7 @@ class ChromosomeReplication(PartitionedProcess):
             new_child_domains = np.full(
                 (n_new_domain, 2), self.no_child_place_holder, dtype=np.int32)
             new_domain_indexes = create_unique_indexes(
-                n_new_domain, self.random_state)
+                n_new_domain, self.unique_idx_random_state)
             new_domains_update = {
                 'add': {
                     'unique_index': new_domain_indexes,
@@ -491,7 +494,7 @@ class ChromosomeReplication(PartitionedProcess):
             # Generate new full chromosome molecules
             if n_new_chromosomes > 0:
                 new_chromosome_indexes = create_unique_indexes(
-                    n_new_chromosomes, self.random_state)
+                    n_new_chromosomes, self.unique_idx_random_state)
                 chromosome_add_update = {
                     'add': {
                         'unique_index': new_chromosome_indexes,
