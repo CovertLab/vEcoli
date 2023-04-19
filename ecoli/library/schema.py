@@ -83,24 +83,23 @@ def create_unique_indexes(n_indexes, random_state):
     return [num for num in random_state.randint(0, 2**63, n_indexes)]
 
 
-def array_from(d):
-    """Returns an array with the dictionary values"""
-    return np.array(list(d.values()))
-
-
 def counts(states, idx):
-    # idx is an integer array so advancing indexing applies (implicit copy)
+    # Helper function to pull out counts at given indices
     if len(states.dtype) > 1:
         return states['count'][idx]
+    # evolve_state reads from ('allocate', process_name, 'bulk')
+    # which is a simple Numpy array (not structured)
     return states[idx]
 
 
 class get_bulk_counts():
+    # orjson requires contiguous arrays for serialization
     def serialize(bulk):
         return np.ascontiguousarray(bulk['count'])
 
 
 class get_unique_fields():
+    # orjson requires contiguous arrays for serialization
     def serialize(unique):
         return [np.ascontiguousarray(unique[field])
             for field in unique.dtype.names]
@@ -111,8 +110,6 @@ def numpy_schema(name, partition=True, divider=None):
         '_default': [],
         '_emit': True
     }
-    if divider:
-        schema['_divider'] = divider
     if name == 'bulk':
         if partition:
             schema['_properties'] = {'bulk': True}
@@ -130,6 +127,8 @@ def numpy_schema(name, partition=True, divider=None):
         # efficient serialization (still do not recommend emitting unique)
         schema['_serializer'] = get_unique_fields
         schema['_divider'] = UNIQUE_DIVIDERS[name]
+    if divider:
+        schema['_divider'] = divider
     return schema
 
 
@@ -148,15 +147,19 @@ def bulk_numpy_updater(current, update):
     # in each tuple is an array of indices to update and
     # second value is array of updates to apply
     result = current
+    # Numpy arrays are read-only outside of updater
+    result.flags.writeable = True
     for (idx, value) in update:
         result['count'][idx] += value
+    result.flags.writeable = False
     return result
 
 
 def attrs(states, attributes):
+    # Helper function to pull out individual arrays for a set of
+    # unique molecule attributes
     # _entryState has dtype int8 so this works
     mol_mask = states['_entryState'].view(np.bool_)
-    # mol_mask is a boolean array so advanced indexing applies (implicit copy)
     return [states[attribute][mol_mask] for attribute in attributes]
 
 
@@ -211,7 +214,12 @@ class UniqueNumpyUpdater:
             return current
 
         result = current
-        active_mask = result['_entryState'].view(np.bool_).copy()
+        # Numpy arrays are read-only outside of updater
+        result.flags.writeable = True
+        active_mask = result['_entryState'].view(np.bool_)
+        # Generate array of active indices for delete updates only
+        if len(self.delete_updates) > 0:
+            initially_active_idx = np.nonzero(active_mask)[0]
         for set_update in self.set_updates:
             # Set updates are dictionaries where each key is a column and
             # each value is an array. They are designed to apply to all rows
@@ -229,14 +237,13 @@ class UniqueNumpyUpdater:
             result['_entryState'][free_indices] = 1
         for delete_indices in self.delete_updates:
             # Delete updates are arrays of active row indices to delete
-            initially_active_idx = np.nonzero(active_mask)[0]
             rows_to_delete = initially_active_idx[delete_indices]
             result[rows_to_delete] = np.zeros(1, dtype=result.dtype)
         
         self.add_updates = []
         self.delete_updates = []
         self.set_updates = []
-
+        result.flags.writeable = False
         return result
 
 def listener_schema(elements):

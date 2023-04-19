@@ -1,7 +1,7 @@
 import numpy as np
 from scipy.integrate import odeint
 
-from ecoli.library.schema import array_from, counts
+from ecoli.library.schema import counts
 from wholecell.utils import units
 from wholecell.utils.random import stochasticRound
 
@@ -210,7 +210,9 @@ class SteadyStateElongationModel(TranslationSupplyElongationModel):
         # Adjust aa_supply higher if amino acid concentrations are low
         # Improves stability of charging and mimics amino acid synthesis
         # inhibition and export
-        aa_in_media = array_from(states['environment']['amino_acids'])
+        
+        aa_in_media = np.array(list(states['environment'][
+            'amino_acids'].values()))
         synthesis, enzyme_counts, saturation = self.amino_acid_synthesis(
             counts(states['bulk'], self.process.aa_enzyme_idx), aa_conc)
         if self.process.mechanistic_supply:

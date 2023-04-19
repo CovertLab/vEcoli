@@ -3,7 +3,6 @@ import numpy as np
 
 from vivarium.core.emitter import timeseries_from_data
 
-from ecoli.library.schema import array_from, key_array_from
 from ecoli.composites.ecoli_nonpartition import run_ecoli
 
 from ecoli.analysis.tablereader_utils import (
@@ -13,30 +12,28 @@ ANY_STRING = (bytes, str)
 
 MAPPING = {
     'BulkMolecules': {
+        # Use Blame to get ATP used per process
         'atpAllocatedFinal': None,
-        'atpRequested': None,
-        'counts': ("bulk", array_from),
-        'atpAllocatedInitial': None,
-        'attributes': None,
-        'objectNames': ("bulk", key_array_from),
+        'counts': ('bulk',),
+        'atpRequested': ('listeners', 'atp_requested',),
+        'atpAllocatedInitial': ('listeners', 'atp_allocated_initial',),
     },
     'EnzymeKinetics': {
-        'actualFluxes': ('listeners', 'enzyme_kinetics', 'actualFluxes'),
-        'metaboliteCountsFinal': ('listeners', 'enzyme_kinetics', 'metaboliteCountsFinal'),
-        'targetFluxesLower': ('listeners', 'enzyme_kinetics', 'targetFluxesLower'),
-        'metaboliteCountsInit': ('listeners', 'enzyme_kinetics', 'metaboliteCountsInit'),
-        'targetFluxesUpper': ('listeners', 'enzyme_kinetics', 'targetFluxesUpper'),
-        'countsToMolar': ('listeners', 'enzyme_kinetics', 'countsToMolar'),
+        'actualFluxes': ('listeners', 'enzyme_kinetics', 'actual_fluxes'),
+        'metaboliteCountsFinal': ('listeners', 'enzyme_kinetics', 'metabolite_counts_final'),
+        'targetFluxesLower': ('listeners', 'enzyme_kinetics', 'target_fluxes_lower'),
+        'metaboliteCountsInit': ('listeners', 'enzyme_kinetics', 'metabolite_counts_init'),
+        'targetFluxesUpper': ('listeners', 'enzyme_kinetics', 'target_fluxes_upper'),
+        'countsToMolar': ('listeners', 'enzyme_kinetics', 'counts_to_molar'),
         'simulationStep': None,
-        'time': ('time', ),
-        'enzymeCountsInit': ('listeners', 'enzyme_kinetics', 'enzymeCountsInit'),
-        'targetFluxes': ('listeners', 'enzyme_kinetics', 'targetFluxes'),
-        'attributes': None
+        'time': ('time',),
+        'enzymeCountsInit': ('listeners', 'enzyme_kinetics', 'enzyme_counts_init'),
+        'targetFluxes': ('listeners', 'enzyme_kinetics', 'target_fluxes'),
     },
     'GrowthLimits': {
-        'aaAllocated': None,
-        'aasUsed': ('listeners', 'growth_limits', 'aasUsed'),
-        'ntpRequestSize': None,
+        'aaAllocated': ('listeners', 'growth_limits', 'aa_allocated'),
+        'aasUsed': ('listeners', 'growth_limits', 'aas_used'),
+        'ntpRequestSize': ('listeners', 'growth_limits', 'ntp_request_size'),
         'aaPoolSize': None,
         'activeRibosomeAllocated': None,
         'ntpUsed': None,
@@ -304,6 +301,35 @@ MAPPING = {
     }
 }
 
+class TableReaderError(Exception):
+	"""
+	Base exception class for TableReader-associated exceptions.
+	"""
+	pass
+
+
+class VersionError(TableReaderError):
+	"""
+	An error raised when the input files claim to be from a different format or
+	version of the file specification.
+	"""
+	pass
+
+
+class DoesNotExistError(TableReaderError):
+	"""
+	An error raised when a column or attribute does not seem to exist.
+	"""
+	pass
+
+
+class VariableLengthColumnError(TableReaderError):
+	"""
+	An error raised when the user tries to access subcolumns of a variable
+	length column.
+	"""
+	pass
+
 
 class TableReader(object):
     """
@@ -313,8 +339,8 @@ class TableReader(object):
     this class provides a way to retrieve data as if it were structured in the same way as it is in wcEcoli.
 
     Parameters:
-            wc_path (str): Which wcEcoli table this TableReader would be reading from.
-            data: timeseries data from a vivarium-ecoli experiment (to be read as if it were structured as in wcEcoli.)
+        wc_path (str): Which wcEcoli table this TableReader would be reading from.
+        data: timeseries data from a vivarium-ecoli experiment (to be read as if it were structured as in wcEcoli.)
     """
 
     def __init__(self, path, data, timeseries_data=False):
@@ -346,10 +372,10 @@ class TableReader(object):
         Return an attribute value.
 
         Parameters:
-                name: The attribute name.
+            name: The attribute name.
 
         Returns:
-                value: The attribute value, JSON-deserialized from a string.
+            value: The attribute value, JSON-deserialized from a string.
         """
 
         if name not in self._attributes:
@@ -368,23 +394,21 @@ class TableReader(object):
         filler value for the empty entries of each row.
 
         Parameters:
-                name: The name of the column.
-                indices: The subcolumn indices to select from each entry. This can
-                        be any value that works to index an ndarray along 1 dimension,
-                        or None for all the data. Specifying this argument
-                        for variable-length columns will throw an error.
-                squeeze: If True, the resulting NumPy array is squeezed into a 0D,
-                        1D, or 2D array, depending on the number of rows and subcolumns
-                        it has.
-                        1 row x 1 subcolumn => 0D.
-                        n rows x 1 subcolumn or 1 row x m subcolumns => 1D.
-                        n rows x m subcolumns => 2D.
+            name: The name of the column.
+            indices: The subcolumn indices to select from each entry. This can
+                be any value that works to index an ndarray along 1 dimension,
+                or None for all the data. Specifying this argument
+                for variable-length columns will throw an error.
+            squeeze: If True, the resulting NumPy array is squeezed into a 0D,
+                1D, or 2D array, depending on the number of rows and subcolumns
+                it has.
+                1 row x 1 subcolumn => 0D.
+                n rows x 1 subcolumn or 1 row x m subcolumns => 1D.
+                n rows x m subcolumns => 2D.
 
         Returns:
-                ndarray: A writable 0D, 1D, or 2D array.
+            ndarray: A writable 0D, 1D, or 2D array.
         """
-
-
         # Squeeze if flag is set to True
         viv_path = self._mapping[name]
         if callable(viv_path):
@@ -431,12 +455,12 @@ class TableReader(object):
         subcolumn.
 
         Arguments:
-                column: Name of the column.
-                subcolumn_name: Name of the ID or object associated with the
-                        desired subcolumn.
+            column: Name of the column.
+            subcolumn_name: Name of the ID or object associated with the
+                    desired subcolumn.
 
         Returns:
-                The subcolumn, as a 1-dimensional array.
+            The subcolumn, as a 1-dimensional array.
         """
         # subcol_name_map = self.readAttribute(SUBCOLUMNS_KEY)
         # subcols = self.readAttribute(subcol_name_map[column])
