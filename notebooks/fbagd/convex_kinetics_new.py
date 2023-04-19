@@ -266,17 +266,16 @@ class ConvexKineticsNew:
 
         return loss
 
-
     def set_parameter_bounds(self, cfwd, crev, c, Km_s, Km_p, Km_i, Km_a, lower_bound=-12, upper_bound=12):
 
-        constr = [cp.hstack([cfwd, crev, cp.vec(c), Km_s, Km_p]) >= -lower_bound,
+        constr = [cp.hstack([cfwd, crev, cp.vec(c), Km_s, Km_p]) >= lower_bound,
                   cp.hstack([cfwd, crev, cp.vec(c), Km_s, Km_p]) <= upper_bound,
                   ]
 
         if Km_i:
-            constr.extend([Km_i >= -lower_bound, Km_i <= upper_bound])
+            constr.extend([Km_i >= lower_bound, Km_i <= upper_bound])
         if Km_a:
-            constr.extend([Km_a >= -lower_bound, Km_a <= upper_bound])
+            constr.extend([Km_a >= lower_bound, Km_a <= upper_bound])
 
         return constr
 
