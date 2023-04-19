@@ -119,18 +119,18 @@ def run_metabolism_composite():
 
 def run_ecoli_with_metabolism_redux(
         filename='fba_redux',
-        total_time=10,
+        total_time=100,
         divide=True,
-        initial_state_file='vivecoli_t2000',
-        progress_bar=False,
+        initial_state_file='vivecoli_t2678',
+        progress_bar=True,
         log_updates=False,
         emitter='timeseries',
-        name='fba-redux-standard',
+        name='fba-redux-long',
         raw_output=False,
         save=False,
         # save_times=4,
 ):
-    filename = 'default'
+    # filename = 'default'
     sim = EcoliSim.from_file(CONFIG_DIR_PATH + filename + '.json')
     sim.total_time = total_time
     sim.divide = divide
