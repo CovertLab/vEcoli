@@ -7,7 +7,7 @@ class ConvexKinetics:
 
     def __init__(self, S_matrix):
 
-        self.regulation = False # TODO make this in a better way
+        self.regulation, self.Km_i, self.Km_a = False, None, None # TODO make this in a better way
         self.loss = 0
         self.constraints = []
 
@@ -80,8 +80,8 @@ class ConvexKinetics:
         for i in range(self.n_flux_set):
             y_s_t.append(cp.multiply(self.S_s_mol, self.c[self.met_s_nz, i] - self.Km_s))
             y_p_t.append(cp.multiply(self.S_p_mol, self.c[self.met_p_nz, i] - self.Km_p))
-            y_i_t.append(self.c[self.met_i_nz, i] - self.Km_i if self.Km_i else None)
-            y_a_t.append(-(self.c[self.met_a_nz, i] - self.Km_a) if self.Km_a else None)
+            y_i_t.append(self.c[self.met_i_nz, i] - self.Km_i if self.regulation and self.Km_i else None)
+            y_a_t.append(-(self.c[self.met_a_nz, i] - self.Km_a) if self.regulation and self.Km_a else None)
 
         self.y_s, self.y_p, self.y_i, self.y_a = cp.vstack(y_s_t), cp.vstack(y_p_t), cp.vstack(y_i_t), cp.vstack(y_a_t)
 
@@ -107,8 +107,12 @@ class ConvexKinetics:
         n_beta = np.sum(np.power(2, np.sign(S_p_comb).sum(axis=0)) - 1)
 
         # saturation matrix setup, first sub, then inhib, then act.
-        C_alpha = np.zeros([n_alpha, len(self.met_s_nz) + len(self.met_i_nz) + len(self.met_a_nz)])
-        C_beta = np.zeros([n_beta, len(self.met_p_nz) + len(self.met_i_nz) + len(self.met_a_nz)])
+        if self.regulation: # TODO make this cleaner
+            C_alpha = np.zeros([n_alpha, len(self.met_s_nz) + len(self.met_i_nz) + len(self.met_a_nz)])
+            C_beta = np.zeros([n_beta, len(self.met_p_nz) + len(self.met_i_nz) + len(self.met_a_nz)])
+        else:
+            C_alpha = np.zeros([n_alpha, len(self.met_s_nz)])
+            C_beta = np.zeros([n_beta, len(self.met_p_nz)])
 
         # to separate different reactions saturation terms to their individual reaction equations.
         d_alpha, d_beta = np.zeros(n_alpha, dtype=np.int8), np.zeros(n_beta, dtype=np.int8)
@@ -117,8 +121,12 @@ class ConvexKinetics:
 
         for i in range(self.n_rxn):
             # pick one reaction at a time (get substrate indicies)
-            idx_s_cur_rxn = np.concatenate((self.rxn_s_nz == i, self.rxn_i_nz == i, self.rxn_a_nz == i))
-            idx_p_cur_rxn = np.concatenate((self.rxn_p_nz == i, self.rxn_i_nz == i, self.rxn_a_nz == i))
+            if self.regulation:
+                idx_s_cur_rxn = np.concatenate((self.rxn_s_nz == i, self.rxn_i_nz == i, self.rxn_a_nz == i))
+                idx_p_cur_rxn = np.concatenate((self.rxn_p_nz == i, self.rxn_i_nz == i, self.rxn_a_nz == i))
+            else:
+                idx_s_cur_rxn = self.rxn_s_nz == i
+                idx_p_cur_rxn = self.rxn_p_nz == i
 
             # generates all binary permutations minus the first one since that would result in -1
             s_sat_perm = np.array(list(itertools.product([0, 1], repeat=sum(idx_s_cur_rxn))))[1:, :]
@@ -139,6 +147,8 @@ class ConvexKinetics:
 
         # TODO Use return instead of setting as attribute
         self.C_alpha, self.C_beta, self.d_alpha, self.d_beta = C_alpha, C_beta, d_alpha, d_beta
+
+        print(f"Shape of C_alpha: {C_alpha.shape}, Shape of C_beta: {C_beta.shape}")
 
     def construct_kinetic_objective(self):
 
@@ -189,13 +199,80 @@ class ConvexKinetics:
 
                     denom_expr.append(-expr_denom)
 
+                    print(f"LSE_expr: {expr}, denom_expr: {expr_denom}", end='\n\n')
+
             self.LSE_expr, self.denom_expr = LSE_expr, denom_expr
+
+    def construct_kinetic_objective_old(self):
+
+        self.LSE_expr = []
+        self.denom_expr = []
+
+        sign = np.sign(self.flow_data)
+        lvE = np.log(sign * self.flow_data)
+
+        for j in range(self.n_flux_set):
+            for i in range(self.n_rxn):
+                # sum terms are separate in logsumexp. one per saturation term (row in C_alpha, C_beta)
+
+                n_term_s = np.sum(self.d_alpha == i)
+                n_term_p = np.sum(self.d_beta == i)
+                n_term = n_term_s + n_term_p
+
+                Km_s_idx = np.nonzero(self.S_s_nz[1, :] == i)
+                S_s_idx = self.S_s_nz[0, self.S_s_nz[1, :] == i]  # negate -1 entries
+
+                Km_p_idx = np.nonzero(self.S_p_nz[1, :] == i)
+                S_p_idx = self.S_p_nz[0, self.S_p_nz[1, :] == i]
+
+                if sign[j, i] == 1:
+                    self.LSE_expr.append(cp.hstack([
+                        lvE[j, i] + (self.C_alpha @ cp.vec(self.y_f[j, :]))[self.d_alpha == i]
+                        - cp.multiply(np.ones(n_term_s), - self.S.T[i, S_s_idx] @ cp.vec(self.y_s[j, Km_s_idx])) - self.cfwd[i],
+                        lvE[j, i] + (self.C_beta @ cp.vec(self.y_r[j, :]))[self.d_beta == i]
+                        - cp.multiply(np.ones(n_term_p), - self.S.T[i, S_s_idx] @ cp.vec(self.y_s[j, Km_s_idx])) - self.cfwd[i],
+
+                        lvE[j, i] + 0 - cp.multiply(np.ones(1), - self.S.T[i, S_s_idx] @ cp.vec(self.y_s[j, Km_s_idx])) - self.cfwd[i],
+
+                        cp.multiply(np.ones(1), self.S.T[i, S_p_idx] @ cp.vec(self.y_p[j, Km_p_idx])) + self.crev[i]
+                        - cp.multiply(np.ones(1), -self.S.T[i, S_s_idx] @ cp.vec(self.y_s[j, Km_s_idx])) - self.cfwd[i],
+
+                    ]
+                    )
+                    )  # remove +1 here, could also have cfwd outside objec.
+
+                    self.denom_expr.append(cp.multiply(np.ones(1), -self.S.T[i, S_s_idx] @ cp.vec(self.y_s[j, Km_s_idx])) + self.cfwd[i], )
+
+                # keep saturation term the same, switch around fwd and rev terms. flip all signs with S matrix since it's signed.
+                if sign[j, i] == -1:
+                    self.LSE_expr.append(cp.hstack([lvE[j, i] + (self.C_alpha @ cp.vec(self.y_f[j, :]))[self.d_alpha == i]
+                                               - cp.multiply(np.ones(n_term_s),
+                                                             self.S.T[i, S_p_idx] @ cp.vec(self.y_p[j, Km_p_idx])) - self.crev[i],
+
+                                               lvE[j, i] + (self.C_beta @ cp.vec(self.y_r[j, :]))[self.d_beta == i]
+                                               - cp.multiply(np.ones(n_term_p),
+                                                             self.S.T[i, S_p_idx] @ cp.vec(self.y_p[j, Km_p_idx])) - self.crev[i],
+
+                                               lvE[j, i] + 0 - cp.multiply(np.ones(1),
+                                                                           self.S.T[i, S_p_idx] @ cp.vec(self.y_p[j, Km_p_idx])) -
+                                               self.crev[i],
+
+                                               cp.multiply(np.ones(1), - self.S.T[i, S_s_idx] @ cp.vec(self.y_s[j, Km_s_idx])) +
+                                               self.cfwd[i]
+                                               - cp.multiply(np.ones(1), self.S.T[i, S_p_idx] @ cp.vec(self.y_p[j, Km_p_idx])) -
+                                               self.crev[i],
+
+                                               ]
+                                              )
+                                    )
+
+                    self.denom_expr.append(cp.multiply(np.ones(1), self.S.T[i, S_p_idx] @ cp.vec(self.y_p[j, Km_p_idx])) + self.crev[i])
 
     def create_objective_function(self, prior_weight = 0.001, l1_weight = 0.001, denom_weight = 0.01):
 
         p = prior_weight
         l1 = l1_weight
-        l1_term =  cp.sum(cp.hstack([self.cfwd, self.crev, cp.vec(self.c)])) + cp.sum(cp.hstack([-self.Km_s, -self.Km_p])) # regularization (l1 because geometric)
+        l1_term = cp.sum(cp.hstack([self.cfwd, self.crev, cp.vec(self.c)])) + cp.sum(cp.hstack([-self.Km_s, -self.Km_p])) # regularization (l1 because geometric)
         p_term = cp.norm1(cp.hstack([self.cfwd, self.crev, cp.vec(self.c)])) + cp.norm1(cp.hstack([-self.Km_s, -self.Km_p])) # regularization # TODO these are conflicting also prior
 
         if self.Km_i is not None:
@@ -209,6 +286,28 @@ class ConvexKinetics:
             self.loss += denom_weight * self.denom_expr[i]
 
         self.loss += l1 * l1_term + p * p_term
+
+    def create_objective_function_old(self):
+        l = 0.001
+        e = 0.001
+        f = 0.000001
+        reg = cp.sum(cp.hstack([self.cfwd, self.crev, cp.vec(self.c)])) + cp.sum(cp.hstack([-self.Km_s, -self.Km_p]))  # regularization
+        reg2 = cp.norm1(cp.hstack([self.cfwd, self.crev, cp.vec(self.c)])) + cp.norm1(cp.hstack([-self.Km_s, -self.Km_p]))  # regularization
+        reg3 = cp.sum(cp.huber(cp.hstack([self.y_s, self.y_p]), 1))  # issue with matrix
+
+        if self.Km_i:
+            reg += cp.sum(cp.hstack([-self.Km_i]))
+        if self.Km_a:
+            reg += cp.sum(cp.hstack([-self.Km_a]))
+        # reg3 = cp.norm1(cp.hstack([y_s, y_p])) # take a look at this
+
+        self.loss = 0
+        for i in range(len(self.LSE_expr)):
+            self.loss += cp.norm1(cp.pos(cp.log_sum_exp(self.LSE_expr[i])))
+        for i in range(len(self.denom_expr)):
+            self.loss += 0.01 * self.denom_expr[i]
+        self.loss += l * reg
+        self.loss += e * reg2
 
     def set_parameter_bounds(self, lower_bound = -12, upper_bound = 12):
 
@@ -293,7 +392,6 @@ class ConvexKinetics:
                 Km_p_idx = np.nonzero(self.rxn_p_nz == i)
                 S_p_idx = self.S_p_nz[0, self.rxn_p_nz == i]
 
-                #S_s_idx = S_s_nz[0, S_s_nz[1, :] == i]
 
                 sat_expr.append(           [ (self.C_alpha @ self.y_f.value[j, :].flatten())[self.d_alpha == i] ,
                                              (self.C_beta @ self.y_r.value[j, :].flatten())[self.d_beta == i],
