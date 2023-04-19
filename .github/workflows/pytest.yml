@@ -26,6 +26,7 @@ jobs:
         pip install numpy
         pip install Cython
         pip install -r requirements.txt
+        pip install -r requirements_antibiotics.txt
     - name: Check dependencies
       run: |
         python -m scripts.test_requirements
