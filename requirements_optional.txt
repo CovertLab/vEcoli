@@ -1,0 +1,11 @@
+ete3==3.1.2
+giddy==2.3.3
+llvmlite==0.33.0
+PyQt5==5.15.9
+pysal==23.1
+python-libsbml==5.19.0
+qtconsole==5.2.2
+QtPy==2.0.1
+soupsieve==2.3.2.post1
+statsmodels==0.13.5
+swiglpk==5.0.3
