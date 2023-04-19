@@ -511,6 +511,11 @@ class EcoliSim:
                     f"{self.experiment_id_base}_%d/%m/%Y %H:%M:%S")
             experiment_config['experiment_id'] = self.experiment_id
         experiment_config['profile'] = self.profile
+
+        # Since unique numpy updater is an class method, internal
+        # deepcopying in vivarium-core causes this warning to appear
+        warnings.filterwarnings("ignore",
+            message="Incompatible schema assignment at ")
         self.ecoli_experiment = Engine(**experiment_config)
         
         # Clean up unnecessary references

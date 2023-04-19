@@ -1,11 +1,11 @@
 from vivarium.core.process import Step
 from ecoli.library.schema import numpy_schema
 
-class CacheUpdate(Step):
-    """Placed before and after every Step to ensure that _cached_entryState
-    is up to date (as if each Step was running in its own timestep)"""
+class UniqueUpdate(Step):
+    """Placed after before and after all Steps to ensure that
+    unique molecules are completely up-to-date"""
 
-    name = 'cache-update'
+    name = 'unique-update'
 
     def __init__(self, parameters=None):
         super().__init__(parameters)
@@ -20,6 +20,6 @@ class CacheUpdate(Step):
     
     def next_update(self, timestep, states):
         return {
-            unique_mol: {'time': states[unique_mol]['time'][0] - 1}
+            unique_mol: {'update': True}
             for unique_mol in self.unique_dict.keys()
         }

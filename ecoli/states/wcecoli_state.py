@@ -98,6 +98,8 @@ def get_state_from_file(
     # Shallow copy for processing state into correct form
     initial_state = states.copy()
     # process environment state
+    env_data = states.get("environment", {})
+    exchange_data = env_data.pop("exchange", {})
     initial_state["environment"] = {
         "media_id": "minimal",
         # TODO(Ryan): pull in environmental amino acid levels
@@ -109,7 +111,8 @@ def get_state_from_file(
                 'CA+2[p]', 'Pi[p]', 'NI+2[p]', 'WATER[p]', 'AMMONIUM[c]'},
             'constrained': {
                 'GLC[p]': 20.0 * units.mmol / (units.g * units.h)}},
-        "external_concentrations": states.get("environment", {}),
+        "external_concentrations": env_data,
+        "exchange": exchange_data
     }
     initial_state["process_state"] = {"polypeptide_elongation": {}}
     return initial_state

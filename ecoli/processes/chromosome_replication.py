@@ -38,8 +38,7 @@ TOPOLOGY = {
     "chromosome_domains": ("unique", "chromosome_domain"),
     "full_chromosomes": ("unique", "full_chromosome"),
     "listeners": ("listeners",),
-    "environment": ("environment",),
-    "global_time": ("global_time",),
+    "environment": ("environment",)
 }
 topology_registry.register(NAME, TOPOLOGY)
 
@@ -139,8 +138,7 @@ class ChromosomeReplication(PartitionedProcess):
             'active_replisomes': numpy_schema('active_replisomes'),
             'oriCs': numpy_schema('oriCs'),
             'chromosome_domains': numpy_schema('chromosome_domains'),
-            'full_chromosomes': numpy_schema('full_chromosomes'),
-            'global_time': {'_default': 0}
+            'full_chromosomes': numpy_schema('full_chromosomes')
         }
 
     def calculate_request(self, timestep, states):
@@ -222,10 +220,10 @@ class ChromosomeReplication(PartitionedProcess):
         # Initialize the update dictionary
         update = {
             'bulk': [],
-            'active_replisomes': {'time': states['global_time']},
-            'oriCs': {'time': states['global_time']},
-            'chromosome_domains': {'time': states['global_time']},
-            'full_chromosomes': {'time': states['global_time']},
+            'active_replisomes': {},
+            'oriCs': {},
+            'chromosome_domains': {},
+            'full_chromosomes': {},
             'listeners': {
                 'replication_data': {}
             }

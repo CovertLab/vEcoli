@@ -50,8 +50,7 @@ TOPOLOGY = {
     "active_RNAPs": ("unique", "active_RNAP"),
     "promoters": ("unique", "promoter"),
     "bulk": ("bulk",),
-    "listeners": ("listeners",),
-    "global_time": ("global_time",),
+    "listeners": ("listeners",)
 }
 topology_registry.register(NAME, TOPOLOGY)
 
@@ -316,8 +315,6 @@ class TranscriptInitiation(PartitionedProcess):
                 'rnap_data': listener_schema({
                     'didInitialize': 0,
                     'rnaInitEvent': 0})},
-            
-            'global_time': {'_default': 0}
         }
 
     def calculate_request(self, timestep, states):
@@ -443,10 +440,10 @@ class TranscriptInitiation(PartitionedProcess):
                     'rna_init_event': np.zeros(self.n_TUs),
                 }
             },
-            'active_RNAPs': {'time': states['global_time']},
-            'full_chromosomes': {'time': states['global_time']},
-            'promoters': {'time': states['global_time']},
-            'RNAs': {'time': states['global_time']}
+            'active_RNAPs': {},
+            'full_chromosomes': {},
+            'promoters': {},
+            'RNAs': {}
         }
 
         # no synthesis if no chromosome

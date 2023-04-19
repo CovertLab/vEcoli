@@ -59,7 +59,6 @@ TOPOLOGY = {
     "RNAs": ("unique", "RNA"),
     "active_ribosome": ("unique", "active_ribosome"),
     "listeners": ("listeners",),
-    "global_time": ("global_time",),
 }
 topology_registry.register(NAME, TOPOLOGY)
 
@@ -197,7 +196,6 @@ class RnaDegradation(PartitionedProcess):
                     'fragment_bases_digested': 0,
                 }),
             },
-            'global_time': {'_default': 0}
         }
 
     def calculate_request(self, timestep, states):
@@ -438,8 +436,7 @@ class RnaDegradation(PartitionedProcess):
                     'can_translate': can_translate
                 },
                 # Degrade full mRNAs that are inactive
-                'delete': np.where(self.unique_mRNAs_to_degrade)[0],
-                'time': states['global_time']
+                'delete': np.where(self.unique_mRNAs_to_degrade)[0]
             }
         }
 

@@ -28,7 +28,7 @@ from ecoli.plots.topology import get_ecoli_partition_topology_settings
 from ecoli.processes.cell_division import Division
 from ecoli.processes.allocator import Allocator
 from ecoli.processes.partition import PartitionedProcess
-from ecoli.processes.cache_update import CacheUpdate
+from ecoli.processes.unique_update import UniqueUpdate
 
 # state
 from ecoli.processes.partition import filter_bulk_topology, Requester, Evolver, Step
@@ -122,7 +122,7 @@ class Ecoli(Composer):
         """Instantiates all processes and steps, creates separate Requester
         and Evolver for each PartitionedProcess as well as Allocator, adds
         division process if configured, ensures that Requesters run after
-        all listeners and allocator after all Requesters, adds CacheUpdate
+        all listeners and allocator after all Requesters, adds UniqueUpdate
         Steps to ensure that unique molecule states are updated before and
         after running each Step"""
         time_step = config['time_step']
@@ -174,6 +174,8 @@ class Ecoli(Composer):
                 self.partitioned_processes.append(process_name)
             elif isinstance(process, Step):
                 steps[process_name] = process
+            else:
+                processes[process_name] = process
             
         # Add allocator Step
         allocator_config = self.load_sim_data.get_allocator_config(
@@ -221,16 +223,15 @@ class Ecoli(Composer):
                 # Division runs after mass listener
                 flow[name] = [('ecoli-mass-listener',)]
             else:
-                flow[name] = []
+                flow.setdefault(name, [])
+            # Update unique molecules before any Steps run
+            flow[name].append(('unique-update',))
 
         # Add Step dependecies specified in config
         for name, dependencies in config['flow'].items():
             flow.setdefault(name, [])
             flow[name].extend([tuple(dep) for dep in dependencies])
 
-        # Update _cached_entryState before any Steps run
-        for dependencies in flow.values():
-            dependencies.append(('cache-update-0',))
         # TODO: Find a more robust way to get topology containing all
         # unique molecules
         unique_dict = steps['ecoli-chromosome-structure'].topology
@@ -241,12 +242,12 @@ class Ecoli(Composer):
         unique_dict.pop('first_update')
         flow_keys = list(flow.keys())
         params = {'unique_dict': unique_dict}
-        steps['cache-update-0'] = CacheUpdate(params)
-        flow['cache-update-0'] = []
-        # Update _cached_entryState after each Step runs
+        steps['unique-update'] = UniqueUpdate(params)
+        flow['unique-update'] = []
+        # Update unique molecules after each Step runs
         for i in range(len(flow_keys)):
-            flow[f'cache-update-{i+1}'] = [(flow_keys[i],)]
-            steps[f'cache-update-{i+1}'] = CacheUpdate(params)
+            flow[f'unique-update-{i+1}'] = [(flow_keys[i],)]
+            steps[f'unique-update-{i+1}'] = UniqueUpdate(params)
         # Free memory by removing reference to sim_data object
         del self.load_sim_data
         return processes, steps, flow
@@ -320,13 +321,12 @@ class Ecoli(Composer):
             'evolvers_ran': ('evolvers_ran',),
         }
 
-        # Adding cache update before and after each Step (even when Steps
-        # are in the same priority "layer") does not add significantly to
-        # runtime (<1%) and could prevent issues down the line
         _, steps, _ = self.processes_and_steps
+        # UniqueUpdate signals for collected unique molecule updates
+        # to be applied before and after all Steps run
         for step_name in steps.keys():
-            if 'cache-update' in step_name:
-                topology[step_name] = steps['cache-update-0'
+            if 'unique-update' in step_name:
+                topology[step_name] = steps['unique-update'
                     ].unique_dict.copy()
         # Do not keep an unnecessary reference to these
         self.processes_and_steps = None

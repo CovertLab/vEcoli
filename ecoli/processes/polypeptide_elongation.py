@@ -44,8 +44,7 @@ TOPOLOGY = {
     "bulk": ("bulk",),
     "polypeptide_elongation": ("process_state", "polypeptide_elongation"),
     # Non-partitioned counts
-    "bulk_total": ("bulk",),
-    "global_time": ("global_time",),
+    "bulk_total": ("bulk",)
 }
 topology_registry.register(NAME, TOPOLOGY)
 
@@ -261,8 +260,6 @@ class PolypeptideElongation(PartitionedProcess):
                     '_default': 0,
                     '_updater': 'set',
                     '_emit': True}},
-            
-            'global_time': {'_default': 0}
         }
 
     def calculate_request(self, timestep, states):
@@ -372,7 +369,7 @@ class PolypeptideElongation(PartitionedProcess):
                 'ribosome_data': {},
                 'growth_limits': {}},
             'polypeptide_elongation': {},
-            'active_ribosome': {'time': states['global_time']},
+            'active_ribosome': {},
             'bulk': []
         }
 
