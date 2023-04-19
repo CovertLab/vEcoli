@@ -19,6 +19,7 @@
 
     "initial_state_file": "wcecoli_t0",
     "initial_state_overrides": [],
+    "initial_state": {},
     "time_step": 2.0,
     "total_time": 100.0,
     "generations": null,
