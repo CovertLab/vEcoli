@@ -35,8 +35,7 @@ TOPOLOGY = {
     "active_RNAPs": ("unique", "active_RNAP"),
     "bulk": ("bulk",),
     "bulk_total": ("bulk",),
-    "listeners": ("listeners",),
-    "global_time": ("global_time",),
+    "listeners": ("listeners",)
 }
 topology_registry.register(NAME, TOPOLOGY)
 
@@ -207,8 +206,7 @@ class TranscriptElongation(PartitionedProcess):
                     'did_terminate': 0,
                     'termination_loss': 0,
                     'did_stall': 0})
-            },
-            'global_time': {'_default': 0}
+            }
         }
 
     def calculate_request(self, timestep, states):
@@ -295,8 +293,8 @@ class TranscriptElongation(PartitionedProcess):
                         'termination_loss': 0
                     }
                 },
-                'active_RNAPs': {'time': states['global_time']},
-                'RNAs': {'time': states['global_time']}
+                'active_RNAPs': {},
+                'RNAs': {}
             }
 
         # Determine total possible sequences of nucleotides that can be
@@ -468,7 +466,7 @@ class TranscriptElongation(PartitionedProcess):
             },
             'delete': partial_transcript_indexes[np.logical_and(
                 did_terminate_mask, np.logical_not(is_mRNA_partial_RNAs))],
-            'time': states['global_time']
+            
         }
         update['active_RNAPs'] = {
             'set': {
@@ -476,7 +474,7 @@ class TranscriptElongation(PartitionedProcess):
             },
             'delete': np.where(did_terminate_mask[
                 partial_RNA_to_RNAP_mapping])[0],
-            'time': states['global_time']
+            
         }
 
         # Attenuation removes RNAs and RNAPs

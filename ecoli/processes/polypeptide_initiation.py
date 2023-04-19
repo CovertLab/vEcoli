@@ -34,7 +34,6 @@ TOPOLOGY = {
     "active_ribosome": ("unique", "active_ribosome"),
     "RNA": ("unique", "RNA"),
     "bulk": ("bulk",),
-    "global_time": ("global_time",),
 }
 topology_registry.register(NAME, TOPOLOGY)
 
@@ -122,14 +121,13 @@ class PolypeptideInitiation(PartitionedProcess):
                     '_updater': 'set'}},
             'listeners': {
                 'ribosome_data': listener_schema({
-                    'ribosomes_initialized': 0,
+                    'did_initialize': 0,
                     'prob_translation_per_transcript': [],
                     'effective_elongation_rate': 0.0}),
             },
             'active_ribosome': numpy_schema('active_ribosome'),
             'RNA': numpy_schema('RNAs'),
-            'bulk': numpy_schema('bulk'),
-            'global_time': {'_default': 0}
+            'bulk': numpy_schema('bulk')
         }
 
     def calculate_request(self, timestep, states):
@@ -209,7 +207,7 @@ class PolypeptideInitiation(PartitionedProcess):
 
         if n_ribosomes_to_activate == 0:
             update = dict(self.empty_update)
-            update['active_ribosome'] = {'time': states['global_time']}
+            update['active_ribosome'] = {}
             return self.empty_update
 
         # Sample multinomial distribution to determine which mRNAs have full
@@ -268,13 +266,11 @@ class PolypeptideInitiation(PartitionedProcess):
                     'pos_on_mRNA': np.zeros(cast(int, n_ribosomes_to_activate),
                         dtype=np.int64)
                 },
-                'time': states['global_time']
             },
             'listeners': {
                 'ribosome_data': {
-                    'ribosomes_initialized': n_new_proteins.sum(),
-                    'prob_translation_per_transcript': protein_init_prob,
-                    'ribosome_elongation_rate': self.ribosomeElongationRate}}}
+                    'did_initialize': n_new_proteins.sum(),
+                    'prob_translation_per_transcript': protein_init_prob}}}
 
         return update
 

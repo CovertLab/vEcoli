@@ -121,7 +121,9 @@ def numpy_schema(name, partition=True, divider=None):
         schema['_serializer'] = get_bulk_counts
         schema['_divider'] = 'bulk_binomial'
     else:
-        schema['_updater'] = unique_numpy_updater
+        # Since vivarium-core ensures that each store will only have a single
+        # updater, it's OK to create new UniqueNumpyUpdater objects each time
+        schema['_updater'] = UniqueNumpyUpdater().updater
         # These are some big and slow emits
         schema['_emit'] = False
         # Convert to list of contiguous Numpy arrays for faster and more
@@ -183,67 +185,59 @@ def get_free_indices(result, n_objects):
 
     return result, free_indices[:n_objects]
 
+class UniqueNumpyUpdater:
+    def __init__(self):
+        self.add_updates = []
+        self.set_updates = []
+        self.delete_updates = []
 
-def unique_numpy_updater(current, update):
-    if len(update) == 0:
-        return current
+    def updater(self, current, update):
+        if len(update) == 0:
+            return current
+        
+        # Store updates in class instance variables until all
+        # evolvers have finished running. The UniqueUpdate process
+        # then signals for all the updates to be applied in the
+        # following order: set, add, delete (prevents overwriting)
+        for update_type, update_val in update.items():
+            if update_type == 'add':
+                self.add_updates.append(update_val)
+            elif update_type == 'set':
+                self.set_updates.append(update_val)
+            elif update_type == 'delete':
+                self.delete_updates.append(update_val)
+        
+        if not update.get('update', False):
+            return current
 
-    result = current
-    current_time = current['time'][0]
-    update_time = update['time']
+        result = current
+        active_mask = result['_entryState'].view(np.bool_).copy()
+        for set_update in self.set_updates:
+            # Set updates are dictionaries where each key is a column and
+            # each value is an array. They are designed to apply to all rows
+            # (molecules) that were active at the beginning of a timestep
+            for col, col_values in set_update.items():
+                result[col][active_mask] = col_values
+        for add_update in self.add_updates:
+            # Add updates are dictionaries where each key is a column and
+            # each value is an array. The nth element of each array is the value
+            # for the corresponding column of the nth new molecule to be added.
+            n_new_molecules = len(next(iter(add_update.values())))
+            result, free_indices = get_free_indices(result, n_new_molecules)
+            for col, col_values in add_update.items():
+                result[col][free_indices] = col_values
+            result['_entryState'][free_indices] = 1
+        for delete_indices in self.delete_updates:
+            # Delete updates are arrays of active row indices to delete
+            initially_active_idx = np.nonzero(active_mask)[0]
+            rows_to_delete = initially_active_idx[delete_indices]
+            result[rows_to_delete] = np.zeros(1, dtype=result.dtype)
+        
+        self.add_updates = []
+        self.delete_updates = []
+        self.set_updates = []
 
-    # If new timestep, update time and _cached_entryState
-    if current_time != update_time:
-        result['time'] = update_time
-        result['_cached_entryState'] = current['_entryState']
-    
-    cached_state = current['_cached_entryState']
-
-    if 'set' in update.keys():
-        # Set updates are dictionaries where each key is a column and
-        # each value is an array. They are designed to apply to all rows
-        # (molecules) that were active at the beginning of a timestep (e.g.
-        # length of update arrays == # of rows where _cached_entryState > 0)
-        set_update = update['set']
-        # Skip updates for rows with molecules that were initially active
-        # (cached_state > 0) but deleted in same timestep (cached_state == 2)
-        safe_rows = (cached_state[cached_state > 0] == 1)
-        # Only apply updates to rows that were initially and still are active
-        initial_still_active = (cached_state == 1)
-        for col, col_values in set_update.items():
-            result[col][initial_still_active] = col_values[safe_rows]
-
-    if 'delete' in update.keys():
-        # Delete updates are arrays of row indices to delete in unique
-        # molecule array after filtering to only include initially active rows
-        delete_indices = update['delete']
-        # Convert from indices for filtered (active) array to indices for
-        # complete (active + inactive) internal array
-        initially_active_idx = np.nonzero(cached_state > 0)[0]
-        rows_to_delete = initially_active_idx[delete_indices]
-        # Only delete rows that were not previously deleted in same timestep
-        rows_to_delete = rows_to_delete[cached_state[rows_to_delete]==1]
-        result[rows_to_delete] = np.zeros(1, dtype=result.dtype)
-        # Ensure that additional updates in same timestep skip deleted rows
-        result['_cached_entryState'][rows_to_delete] = 2
-        # Do not overwrite time with zeros
-        result['time'][rows_to_delete] = update_time
-
-    if 'add' in update.keys():
-        # Add updates are dictionaries where each key is a column and
-        # each value is an array. The nth element of each array is the value
-        # for the corresponding column of the nth new molecule to be added.
-        add_update = update['add']
-        # All arrays have same length so can get length of first to figure
-        # out how many new unique molecules are being added
-        n_new_molecules = len(next(iter(add_update.values())))
-        result, free_indices = get_free_indices(result, n_new_molecules)
-        for col, col_values in add_update.items():
-            result[col][free_indices] = col_values
-        result['_entryState'][free_indices] = 1
-
-    return result
-
+        return result
 
 def listener_schema(elements):
     return {

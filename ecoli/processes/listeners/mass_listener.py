@@ -188,14 +188,14 @@ class MassListener(Deriver):
                     **{submass + '_mass': split_divider_schema
                        for submass in self.submass_listener_indices.keys()},
                     'volume': split_divider_schema,
-                    'proteinMassFraction': set_divider_schema,
-                    'rnaMassFraction': set_divider_schema,
+                    'protein_mass_fraction': set_divider_schema,
+                    'rna_mass_fraction': set_divider_schema,
                     'growth': set_divider_schema,
-                    'instantaneousGrowthRate': set_divider_schema,
-                    'dryMassFoldChange': set_divider_schema,
-                    'proteinMassFoldChange': set_divider_schema,
-                    'rnaMassFoldChange': set_divider_schema,
-                    'smallMoleculeFoldChange': set_divider_schema,
+                    'instantaneous_growth_rate': set_divider_schema,
+                    'dry_mass_fold_change': set_divider_schema,
+                    'protein_mass_fold_change': set_divider_schema,
+                    'rna_mass_fold_change': set_divider_schema,
+                    'small_molecule_fold_change': set_divider_schema,
                     # compartment mass
                     'projection_mass': split_divider_schema,
                     'cytosol_mass': split_divider_schema,
@@ -206,7 +206,7 @@ class MassListener(Deriver):
                     'periplasm_mass': split_divider_schema,
                     'pilus_mass': split_divider_schema,
                     'inner_membrane_mass': split_divider_schema,
-                    'expectedMassFoldChange': split_divider_schema
+                    'expected_mass_fold_change': split_divider_schema
                 }
             },
             'global_time': {'_default': 0}
@@ -312,21 +312,21 @@ class MassListener(Deriver):
         # ).sum(axis=1)
         
         if mass_update['dry_mass'] != 0:
-            mass_update['proteinMassFraction'] = (
+            mass_update['protein_mass_fraction'] = (
                 mass_update['protein_mass'] / mass_update['dry_mass'])
-            mass_update['rnaMassFraction'] = (
+            mass_update['rna_mass_fraction'] = (
                 mass_update['rna_mass'] / mass_update['dry_mass'])
-            mass_update['instantaneousGrowthRate'] = (mass_update['growth'] /
+            mass_update['instantaneous_growth_rate'] = (mass_update['growth'] /
                 self.time_step / mass_update['dry_mass'])
-            mass_update['dryMassFoldChange'] = (mass_update['dry_mass'] / 
+            mass_update['dry_mass_fold_change'] = (mass_update['dry_mass'] / 
                 self.dryMassInitial)
-            mass_update['proteinMassFoldChange'] = (mass_update[
+            mass_update['protein_mass_fold_change'] = (mass_update[
                 'protein_mass'] / self.proteinMassInitial)
-            mass_update['rnaMassFoldChange'] = (mass_update['rna_mass'] / 
+            mass_update['rna_mass_fold_change'] = (mass_update['rna_mass'] / 
                 self.rnaMassInitial)
-            mass_update['smallMoleculeFoldChange'] = mass_update[
+            mass_update['small_molecule_fold_change'] = mass_update[
                 'smallMolecule_mass'] / self.smallMoleculeMassInitial
-            mass_update['expectedMoleculeFoldChange'] = np.exp(np.log(2)
+            mass_update['expected_mass_fold_change'] = np.exp(np.log(2)
                 * (states['global_time'] - self.timeInitial)
                 / self.cell_cycle_len)
 

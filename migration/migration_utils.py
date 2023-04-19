@@ -175,20 +175,13 @@ def run_and_compare(init_time, process_class, partition=True, layer=0, post=Fals
     if process_class.__name__ == 'Complexation':
         from arrow import StochasticSystem
         process.system = StochasticSystem(process.stoichiometry, random_seed=0)
-    # Polypeptide initiation requires effective_elongation_rate listener
-    elif process_class.__name__ == 'PolypeptideInitiation':
-        listener_file = f'data/migration/wcecoli_listeners_t{init_time}.json'
-        with open(listener_file, 'r') as f:
-            listeners = json.load(f)
-        elong_rate = listeners['ribosome_data']['effective_elongation_rate']
-        initial_state['listeners']['ribosome_data'] = {
-            'effective_elongation_rate': elong_rate}
     # Metabolism requires gtp_to_hydrolyze
     elif process_class.__name__ == 'Metabolism':
         updates_file = f'data/migration/process_updates_t{init_time}.json'
         with open(updates_file, 'r') as f:
             proc_updates = json.load(f)
-        gtp_hydro = proc_updates['PolypeptideElongation']['gtp_to_hydrolyze']
+        gtp_hydro = proc_updates['PolypeptideElongation']['process_state'][
+            'gtp_to_hydrolyze']
         initial_state['process_state'] = {'polypeptide_elongation': {
             'gtp_to_hydrolyze': gtp_hydro}}
 

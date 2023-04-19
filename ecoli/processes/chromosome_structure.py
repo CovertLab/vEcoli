@@ -280,7 +280,6 @@ class ChromosomeStructure(Step):
         n_codirectional_collisions = np.count_nonzero(
             RNAP_codirectional_collision_mask)
 
-        curr_unique_time = states['RNAs']['time'][0]
         # Write values to listeners
         update = {
             'listeners': {
@@ -295,17 +294,15 @@ class ChromosomeStructure(Step):
                 }
             },
             'bulk': [],
-            # CacheUpdate updates the _cached_entryState before
-            # and after each Step runs so the Steps don't have to. 
-            'active_replisomes': {'time': curr_unique_time},
-            'oriCs': {'time': curr_unique_time},
-            'chromosome_domains': {'time': curr_unique_time},
-            'active_RNAPs': {'time': curr_unique_time},
-            'RNAs': {'time': curr_unique_time},
-            'active_ribosome': {'time': curr_unique_time},
-            'full_chromosomes': {'time': curr_unique_time},
-            'promoters': {'time': curr_unique_time},
-            'DnaA_boxes': {'time': curr_unique_time},
+            'active_replisomes': {},
+            'oriCs': {},
+            'chromosome_domains': {},
+            'active_RNAPs': {},
+            'RNAs': {},
+            'active_ribosome': {},
+            'full_chromosomes': {},
+            'promoters': {},
+            'DnaA_boxes': {},
         }
 
         if self.calculate_superhelical_densities:
@@ -745,7 +742,7 @@ class ChromosomeStructure(Step):
         # Add up linking numbers of each segment until each retained boundary
         ln_this_fragment = 0.
         for retained, ln in zip(right_boundaries_retained,
-            old_linking_numbers_sorte
+            old_linking_numbers_sorted
         ):
             ln_this_fragment += ln
 

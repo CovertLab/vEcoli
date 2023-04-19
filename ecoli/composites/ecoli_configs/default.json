@@ -66,8 +66,7 @@
         "ecoli-metabolism": [["ecoli-chromosome-structure"]],
         "ecoli-mass-listener": [["ecoli-metabolism"]],
         "mRNA_counts_listener": [["ecoli-mass-listener"]],
-        "monomer_counts_listener": [["mRNA_counts_listener"]],
-        "clock": [["monomer_counts_listener"]]
+        "monomer_counts_listener": [["mRNA_counts_listener"]]
     },
     "_schema": {},
     "engine_process_reports": [

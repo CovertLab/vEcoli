@@ -26,8 +26,7 @@ TOPOLOGY = {
     "promoters": ("unique", "promoter"),
     "bulk": ("bulk",),
     "bulk_total": ("bulk",),
-    "listeners": ("listeners",),
-    "global_time": ("global_time",),
+    "listeners": ("listeners",)
 }
 topology_registry.register(NAME, TOPOLOGY)
 
@@ -133,8 +132,6 @@ class TfBinding(PartitionedProcess):
                     'n_available_promoters': 0,
                     'n_bound_TF_per_TU': 0,
                     'gene_copy_number': []})},
-            
-            'global_time': {'_default': 0}
         }
         
     def calculate_request(self, timestep, states):
@@ -163,7 +160,7 @@ class TfBinding(PartitionedProcess):
     def evolve_state(self, timestep, states):
         # If there are no promoters, return immediately
         if states['promoters']['_entryState'].sum() == 0:
-            return {'promoters': {'time': states['global_time']}}
+            return {'promoters': {}}
 
         # Get attributes of all promoters
         TU_index, bound_TF = attrs(states['promoters'],
@@ -276,8 +273,7 @@ class TfBinding(PartitionedProcess):
             'set': {
                 'bound_TF': bound_TF_new,
                 **submass_update
-            },
-            'time': states['global_time']
+            }
         }
 
         update['listeners'] = {

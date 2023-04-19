@@ -10,8 +10,6 @@ from ecoli.library.schema import (
     empty_dict_divider,
     divide_ribosomes_by_RNA,
     divide_set_none,
-    bulk_numpy_updater,
-    unique_numpy_updater,
     divide_bulk
 )
 from ecoli.library.updaters import (
@@ -27,9 +25,6 @@ from ecoli.library.updaters import (
 from ecoli.library.serialize import UnumSerializer, ParameterSerializer
 
 # register :term:`updaters`
-updater_registry.register('bulk_numpy', bulk_numpy_updater)
-updater_registry.register('unique_numpy', unique_numpy_updater)
-
 inverse_updater_registry.register(
     'accumulate', inverse_update_accumulate)
 inverse_updater_registry.register('set', inverse_update_set)
