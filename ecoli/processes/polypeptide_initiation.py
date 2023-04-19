@@ -102,7 +102,9 @@ class PolypeptideInitiation(PartitionedProcess):
 
         self.seed = self.parameters['seed']
         self.random_state = np.random.RandomState(seed = self.seed)
-        self.ribosome_index = 30000
+        # Use separate random state instance to create unique indices
+        # so results are directly comparable with wcEcoli
+        self.unique_idx_random_state = np.random.RandomState(seed=self.seed)
 
         self.empty_update = {
             'listeners': {
@@ -250,7 +252,7 @@ class PolypeptideInitiation(PartitionedProcess):
 
         # Create active 70S ribosomes and assign their attributes
         ribosome_indices = create_unique_indexes(
-            n_ribosomes_to_activate, self.random_state)
+            n_ribosomes_to_activate, self.unique_idx_random_state)
         update = {
             'bulk': [
                 (self.ribosome30S_idx, -n_new_proteins.sum()),

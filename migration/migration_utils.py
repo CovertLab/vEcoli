@@ -163,6 +163,8 @@ def run_and_compare(init_time, process_class, partition=True, layer=0, post=Fals
     if post:
         initial_state = get_state_from_file(
             path=f'data/migration/wcecoli_t{init_time}_before_post.json')
+        # By this point the clock process would have advanced the global time
+        initial_state['global_time'] = init_time + 2
     else:
         initial_state = get_state_from_file(
             path=f'data/migration/wcecoli_t{init_time}_before_layer_{layer}.json')
@@ -184,6 +186,18 @@ def run_and_compare(init_time, process_class, partition=True, layer=0, post=Fals
             'gtp_to_hydrolyze']
         initial_state['process_state'] = {'polypeptide_elongation': {
             'gtp_to_hydrolyze': gtp_hydro}}
+    # MassListener needs initial masses to calculate fold changes
+    elif process_class.__name__ == 'MassListener':
+        t0_file = 'data/migration/wcecoli_t0.json'
+        with open(t0_file, 'r') as f:
+            t0_data = json.load(f)
+        t0_mass = t0_data['listeners']['mass']
+        process.first_time_step = False
+        process.dryMassInitial = t0_mass['dry_mass']
+        process.proteinMassInitial = t0_mass['protein_mass']
+        process.rnaMassInitial = t0_mass['rna_mass']
+        process.smallMoleculeMassInitial = t0_mass['smallMolecule_mass']
+        process.timeInitial = 0
 
     if partition:
         # run the process and get an update

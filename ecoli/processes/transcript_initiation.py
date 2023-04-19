@@ -276,9 +276,9 @@ class TranscriptInitiation(PartitionedProcess):
 
         self.seed = self.parameters['seed']
         self.random_state = np.random.RandomState(seed=self.seed)
-
-        self.rnap_index = 6000000
-        self.rna_index = 7000000
+        # Use separate random state instance to create unique indices
+        # so results are directly comparable with wcEcoli
+        self.unique_idx_random_state = np.random.RandomState(seed=self.seed)
 
         # Helper indices for Numpy indexing
         self.ppgpp_idx = None
@@ -506,7 +506,7 @@ class TranscriptInitiation(PartitionedProcess):
 
         # new RNAPs
         RNAP_indexes = create_unique_indexes(
-            n_RNAPs_to_activate, self.random_state)
+            n_RNAPs_to_activate, self.unique_idx_random_state)
         update['active_RNAPs'].update({
             'add': {
                 'unique_index': RNAP_indexes,
@@ -522,7 +522,7 @@ class TranscriptInitiation(PartitionedProcess):
         # Add partially transcribed RNAs
         is_mRNA = np.isin(TU_index_partial_RNAs, self.idx_mRNA)
         rna_indices = create_unique_indexes(
-            n_RNAPs_to_activate, self.random_state)
+            n_RNAPs_to_activate, self.unique_idx_random_state)
         update['RNAs'].update({
             'add': {
                 'unique_index': rna_indices,
