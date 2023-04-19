@@ -24,7 +24,6 @@ jobs:
         pip install numpy
         pip install Cython
         pip install -r requirements.txt
-        pip install -r requirements_optional.txt
         python setup.py install
     - name: Compile Cython components
       run: |
