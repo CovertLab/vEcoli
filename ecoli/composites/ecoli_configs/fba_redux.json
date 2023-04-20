@@ -1,0 +1,14 @@
+{
+    "experiment_id" : "fba_redux",
+    "total_time" : 10,
+    "swap_processes" : {
+        "ecoli-metabolism" : "ecoli-metabolism-redux"
+    },
+    "flow": {
+        "ecoli-metabolism-redux": [["ecoli-chromosome-structure"]],
+        "ecoli-mass-listener": [["ecoli-metabolism-redux"]],
+        "mRNA_counts_listener": [["ecoli-mass-listener"]],
+        "monomer_counts_listener": [["mRNA_counts_listener"]]
+    },
+    "raw_output" : false
+}
