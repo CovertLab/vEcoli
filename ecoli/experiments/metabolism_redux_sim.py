@@ -125,12 +125,12 @@ def run_ecoli_with_metabolism_redux(
         progress_bar=False,
         log_updates=False,
         emitter='timeseries',
-        name='fba-redux-standard',
+        name='fba-redux',
         raw_output=False,
         save=False,
         # save_times=4,
 ):
-    filename = 'default'
+    # filename = 'default'
     sim = EcoliSim.from_file(CONFIG_DIR_PATH + filename + '.json')
     sim.total_time = total_time
     sim.divide = divide
@@ -143,12 +143,12 @@ def run_ecoli_with_metabolism_redux(
     # sim.save_times = [4]
 
     # # simplify working with uptake
-    # sim.initial_state['environment']['exchange_data']['constrained'] = {}
-    # sim.initial_state['environment']['exchange_data']['unconstrained'].add('GLC[p]')
+    sim.initial_state['environment']['exchange_data']['constrained'] = {}
+    sim.initial_state['environment']['exchange_data']['unconstrained'].add('GLC[p]')
     #
     # # in sim.initial_state['environment']['exchange_data']['unconstrained'], edit the set of molecules to be exchanged
-    # sim.initial_state['environment']['exchange_data']['unconstrained'].remove('GLC[p]')
-    # sim.initial_state['environment']['exchange_data']['unconstrained'].add('FRU[p]')
+    sim.initial_state['environment']['exchange_data']['unconstrained'].remove('GLC[p]')
+    sim.initial_state['environment']['exchange_data']['unconstrained'].add('FRU[p]')
 
 
     sim.run()

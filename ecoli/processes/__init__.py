@@ -25,26 +25,26 @@ from ecoli.processes.environment.lysis import Lysis
 from ecoli.processes.environment.local_field import LocalField
 from ecoli.processes.environment.field_timeline import FieldTimeline
 from ecoli.processes.shape import Shape
-from ecoli.processes.antibiotics.cell_wall import CellWall
-from ecoli.processes.antibiotics.pbp_binding import PBPBinding
+# from ecoli.processes.antibiotics.cell_wall import CellWall
+# from ecoli.processes.antibiotics.pbp_binding import PBPBinding
 from ecoli.processes.concentrations_deriver import ConcentrationsDeriver
-from ecoli.processes.antibiotics.death import DeathFreezeState
-from ecoli.processes.antibiotics.antibiotic_transport_steady_state import (
-    AntibioticTransportSteadyState)
-from ecoli.processes.antibiotics.antibiotic_transport_odeint import (
-    AntibioticTransportOdeint)
-from ecoli.processes.antibiotics.exchange_aware_bioscrape import (
-    ExchangeAwareBioscrape)
-from ecoli.processes.antibiotics.permeability import Permeability
-from ecoli.processes.antibiotics.tetracycline_ribosome_equilibrium import (
-    TetracyclineRibosomeEquilibrium)
+# from ecoli.processes.antibiotics.death import DeathFreezeState
+# from ecoli.processes.antibiotics.antibiotic_transport_steady_state import (
+#     AntibioticTransportSteadyState)
+# from ecoli.processes.antibiotics.antibiotic_transport_odeint import (
+#     AntibioticTransportOdeint)
+# from ecoli.processes.antibiotics.exchange_aware_bioscrape import (
+#     ExchangeAwareBioscrape)
+# from ecoli.processes.antibiotics.permeability import Permeability
+# from ecoli.processes.antibiotics.tetracycline_ribosome_equilibrium import (
+#     TetracyclineRibosomeEquilibrium)
 from ecoli.processes.chemostat import Chemostat
 from ecoli.processes.listeners.aggregator import Aggregator
 from ecoli.processes.rna_interference import RnaInterference
-from ecoli.processes.antibiotics.conc_to_counts import ConcToCounts
-from ecoli.processes.antibiotics.murein_division import MureinDivision
-from ecoli.processes.antibiotics.environment_glucose_limit import (
-    EnvironmentGlucoseLimit)
+# from ecoli.processes.antibiotics.conc_to_counts import ConcToCounts
+# from ecoli.processes.antibiotics.murein_division import MureinDivision
+# from ecoli.processes.antibiotics.environment_glucose_limit import (
+#     EnvironmentGlucoseLimit)
 
 
 # add to registry
@@ -82,26 +82,26 @@ process_registry.register(FieldTimeline.name, FieldTimeline)
 process_registry.register(Chemostat.name, Chemostat)
 
 # antibiotic processes
-process_registry.register(DeathFreezeState.name, DeathFreezeState)
-process_registry.register(
-    TetracyclineRibosomeEquilibrium.name,
-    TetracyclineRibosomeEquilibrium)
-process_registry.register(
-    ExchangeAwareBioscrape.name, ExchangeAwareBioscrape)
-process_registry.register(
-    AntibioticTransportSteadyState.name, AntibioticTransportSteadyState)
-process_registry.register(
-    AntibioticTransportOdeint.name, AntibioticTransportOdeint)
-process_registry.register(
-    Permeability.name, Permeability
-)
-process_registry.register(
-    LysisInitiation.name, LysisInitiation
-)
-process_registry.register(CellWall.name, CellWall)
-process_registry.register(PBPBinding.name, PBPBinding)
-process_registry.register(ConcToCounts.name, ConcToCounts)
-process_registry.register(RnaInterference.name, RnaInterference)
-process_registry.register(MureinDivision.name, MureinDivision)
-process_registry.register(
-    EnvironmentGlucoseLimit.name, EnvironmentGlucoseLimit)
+# process_registry.register(DeathFreezeState.name, DeathFreezeState)
+# process_registry.register(
+#     TetracyclineRibosomeEquilibrium.name,
+#     TetracyclineRibosomeEquilibrium)
+# process_registry.register(
+#     ExchangeAwareBioscrape.name, ExchangeAwareBioscrape)
+# process_registry.register(
+#     AntibioticTransportSteadyState.name, AntibioticTransportSteadyState)
+# process_registry.register(
+#     AntibioticTransportOdeint.name, AntibioticTransportOdeint)
+# process_registry.register(
+#     Permeability.name, Permeability
+# )
+# process_registry.register(
+#     LysisInitiation.name, LysisInitiation
+# )
+# process_registry.register(CellWall.name, CellWall)
+# process_registry.register(PBPBinding.name, PBPBinding)
+# process_registry.register(ConcToCounts.name, ConcToCounts)
+# process_registry.register(RnaInterference.name, RnaInterference)
+# process_registry.register(MureinDivision.name, MureinDivision)
+# process_registry.register(
+#     EnvironmentGlucoseLimit.name, EnvironmentGlucoseLimit)
