@@ -1,7 +1,6 @@
 import re
 import binascii
 import numpy as np
-import networkx as nx
 from six.moves import cPickle
 from wholecell.utils import units
 from wholecell.utils.unit_struct_array import UnitStructArray
@@ -294,7 +293,6 @@ class LoadSimData:
             'ecoli-equilibrium': self.get_equilibrium_config,
             'ecoli-protein-degradation': self.get_protein_degradation_config,
             'ecoli-metabolism': self.get_metabolism_config,
-            'ecoli-metabolism-gradient-descent': self.get_metabolism_gd_config,
             'ecoli-metabolism-redux': self.get_metabolism_redux_config,
             'ecoli-chromosome-replication': self.get_chromosome_replication_config,
             'ecoli-mass': self.get_mass_config,
@@ -670,173 +668,59 @@ class LoadSimData:
 
         return protein_degradation_config
 
-    def get_metabolism_gd_config(self, time_step=2, parallel=False, deriver_mode=False):
-        # Create reversible reactions from "reaction pairs" similar to original sim_data format.
-        stoichiometric_matrix_dict = dict(self.sim_data.process.metabolism.reaction_stoich)
-        stoichiometric_matrix_dict = dict(sorted(stoichiometric_matrix_dict.items()))
-        rxns = list()
-        metabolite_names = set()
-        homeostatic_obj_metabolites = \
-            self.sim_data.process.metabolism.concentration_updates.concentrations_based_on_nutrients(
-                self.sim_data.conditions[self.sim_data.condition]['nutrients']
-            ).keys()
-
-        # TODO (Cyrus) Below operations are redundant (renaming, catalyst rearranging) and should just be removed.
-        #  from the metabolism dataclass. Are catalysts all required? Or all possible ways to catalyze. Latter.
-        reaction_catalysts = self.sim_data.process.metabolism.reaction_catalysts
-        catalyst_ids = self.sim_data.process.metabolism.catalyst_ids
-        reactions_with_catalyst = self.sim_data.process.metabolism.reactions_with_catalyst
-
-        REVERSE_TAG = ' (reverse)'
-
-        # TODO Consider moving separation of reactions into metabolism reaction. Is it even necessary?
-        # Also add check for stoichiometries being equal for removed reverse reactions
-
-        # First pass. Add all reactions without tag.
-        # TODO (Cyrus) Investigate how many reactions are supposed to be reversible.
-        for key, value in stoichiometric_matrix_dict.items():
-            metabolite_names.update(list(value.keys()))
-
-            if not key.endswith(REVERSE_TAG):
-                rxns.append({'reaction id': key,
-                             'stoichiometry': value,
-                             'is reversible': False})
-            elif key.endswith(REVERSE_TAG) and rxns[-1]['reaction id'] == key[:-(len(REVERSE_TAG))]:
-                rxns[-1]['is reversible'] = True
-            # TODO (Cyrus) What to do about reactions with (reverse) tag that actually don't have the original reaction?
-            # probably from reactions with multiple forward reactions.
-            elif key.endswith(REVERSE_TAG):
-                rxns.append({'reaction id': key,
-                             'stoichiometry': value,
-                             'is reversible': False})
-
-            # Add enzyme to reactions
-            if key in reactions_with_catalyst:
-                rxns[-1]['enzyme'] = reaction_catalysts[key]
-            else:
-                rxns[-1]['enzyme'] = []
-
-        rxn_names = [rxn['reaction id'] for rxn in rxns]
-
-        # Avoids issues with index based recognition of reactions later
-        kinetic_reactions = [rxn if rxn in rxn_names else None for rxn in self.sim_data.process.metabolism.kinetic_constraint_reactions]
-
-        # Carbon source limitations.
-        carbon_source_active_transport = ['TRANS-RXN-157-PTSH-PHOSPHORYLATED/GLC//ALPHA-GLC-6-P/PTSH-MONOMER.52.',
-                                           'TRANS-RXN-157-PTSH-PHOSPHORYLATED/GLC//D-glucopyranose-6-phosphate'
-                                           '/PTSH-MONOMER.66.',
-                                           'TRANS-RXN-157-PTSH-PHOSPHORYLATED/GLC//GLC-6-P/PTSH-MONOMER.46.']
-
-        carbon_source_active_transport_duplicate = ['TRANS-RXN-320-GLC/ATP/WATER//ALPHA-GLUCOSE/ADP/Pi/PROTON.43.',
-                                                         'TRANS-RXN-320-GLC/ATP/WATER//GLC/ADP/Pi/PROTON.33.',
-                                                         'TRANS-RXN-320-GLC/ATP/WATER//Glucopyranose/ADP/Pi/PROTON.43.']
-
-        carbon_source_facilitated_diffusion = ['RXN0-7077-GLC/PROTON//ALPHA-GLUCOSE/PROTON.33.',
-                                                    'RXN0-7077-GLC/PROTON//Glucopyranose/PROTON.33.',
-                                                    'RXN0-7077-GLC/PROTON//GLC/PROTON.23.',
-                                                    'TRANS-RXN0-574-GLC//GLC.9.',
-                                                    'TRANS-RXN0-574-GLC//Glucopyranose.19.']
-
-
-        # TODO Reconstruct catalysis and annotate.
-        # Required:
-
-        metabolism_config = {
-            'time_step': time_step,
-            '_parallel': parallel,
-
-            # variables
-            'stoichiometry': self.sim_data.process.metabolism.reaction_stoich,
-            'stoichiometry_r': rxns,
-            'metabolite_names': metabolite_names,
-            'reaction_catalysts': self.sim_data.process.metabolism.reaction_catalysts,
-            'maintenance_reaction': self.sim_data.process.metabolism.maintenance_reaction,
-            'aa_names': self.sim_data.molecule_groups.amino_acids,
-            'media_id': self.sim_data.conditions[self.sim_data.condition]['nutrients'],
-            'avogadro': self.sim_data.constants.n_avogadro,
-            'cell_density': self.sim_data.constants.cell_density,
-            'nutrientToDoublingTime': self.sim_data.nutrient_to_doubling_time,
-            'dark_atp': self.sim_data.constants.darkATP,
-            'non_growth_associated_maintenance': self.sim_data.constants.non_growth_associated_maintenance,
-            'cell_dry_mass_fraction': self.sim_data.mass.cell_dry_mass_fraction,
-            'seed': self.random_state.randint(RAND_MAX),
-            'reactions_with_catalyst': self.sim_data.process.metabolism.reactions_with_catalyst,
-            'kinetic_constraint_reactions': kinetic_reactions,
-
-            # methods
-            'concentration_updates': self.sim_data.process.metabolism.concentration_updates,
-            'get_biomass_as_concentrations': self.sim_data.mass.getBiomassAsConcentrations,
-            'exchange_data_from_media': self.sim_data.external_state.exchange_data_from_media,
-            'doubling_time': self.sim_data.condition_to_doubling_time[self.sim_data.condition],
-            'get_kinetic_constraints': self.sim_data.process.metabolism.get_kinetic_constraints,
-            'exchange_constraints': self.sim_data.process.metabolism.exchange_constraints,
-
-            # ports schema
-            'catalyst_ids': self.sim_data.process.metabolism.catalyst_ids,
-            'kinetic_constraint_enzymes': self.sim_data.process.metabolism.kinetic_constraint_enzymes,
-            'kinetic_constraint_substrates': self.sim_data.process.metabolism.kinetic_constraint_substrates,
-            'deriver_mode': deriver_mode,
-
-            # new parameters
-            'carbon_source_active_transport': carbon_source_active_transport,
-            'carbon_source_active_transport_duplicate': carbon_source_active_transport_duplicate,
-            'carbon_source_facilitated_diffusion': carbon_source_facilitated_diffusion,
-
-        }
-
-        # TODO Create new config-get with only necessary parts.
-
-        return metabolism_config
-
     def get_metabolism_redux_config(self, time_step=2, parallel=False, deriver_mode=False):
-
-        stoichiometric_matrix_dict = dict(self.sim_data.process.metabolism.reaction_stoich)
-        stoichiometric_matrix_dict = dict(sorted(stoichiometric_matrix_dict.items()))
-
+        # Convert stoichiometric dictionary to array
+        stoich_dict = dict(sorted(
+            self.sim_data.process.metabolism.reaction_stoich.items()))
+        # Add maintenance reaction
+        stoich_dict['maintenance_reaction'] = self.sim_data.process.metabolism.maintenance_reaction
+        species = set()
+        for reaction, stoich in stoich_dict.items():
+            species.update(stoich.keys())
+        species = sorted(list(species))
+        n_species = len(species)
+        n_reactions = len(stoich_dict)
+        stoich_arr = np.zeros((n_species, n_reactions), dtype=np.int8)
+        species_idx = {species: i for i, species in enumerate(species)}
+        # Also get indices of catalysts for each reaction
         reaction_catalysts = self.sim_data.process.metabolism.reaction_catalysts
         catalyst_ids = self.sim_data.process.metabolism.catalyst_ids
-        reactions_with_catalyst = self.sim_data.process.metabolism.reactions_with_catalyst
-
-        rxns = list()
-
-        # TODO Reconstruct catalysis and annotate.
-        for key, value in stoichiometric_matrix_dict.items():
-
-            rxns.append({'reaction id': key, 'stoichiometry': value})
-
-            # Add enzyme to reactions
-            if key in reactions_with_catalyst:
-                rxns[-1]['enzyme'] = reaction_catalysts[key]
-            else:
-                rxns[-1]['enzyme'] = []
-        # Required:
+        catalyst_idx = {catalyst: i for i, catalyst in enumerate(catalyst_ids)}
+        reactions = {}
+        for col_idx, (reaction, stoich) in enumerate(stoich_dict.items()):
+            for species, coefficient in stoich.items():
+                i = species_idx[species]
+                stoich_arr[i, col_idx] = coefficient
+            reactions[reaction] = np.array([catalyst_idx[catalyst] 
+                for catalyst in reaction_catalysts.get(reaction, [])],
+                dtype=np.int8)
 
         metabolism_config = {
             'time_step': time_step,
             '_parallel': parallel,
 
+            # stoich
+            'stoichiometry': stoich_arr,
+            'reactions': reactions,
+            'species': species,
+
             # variables
-            # 'stoichiometry': self.sim_data.process.metabolism.reaction_stoich,
-            'stoichiometry': rxns, # upseparates rxns and catalysts.
-            'reaction_catalysts': self.sim_data.process.metabolism.reaction_catalysts,
-            'maintenance_reaction': self.sim_data.process.metabolism.maintenance_reaction,
-            'aa_names': self.sim_data.molecule_groups.amino_acids,
             'media_id': self.sim_data.conditions[self.sim_data.condition]['nutrients'],
             'avogadro': self.sim_data.constants.n_avogadro,
             'cell_density': self.sim_data.constants.cell_density,
-            'nutrientToDoublingTime': self.sim_data.nutrient_to_doubling_time,
+            'nutrient_to_doubling_time': self.sim_data.nutrient_to_doubling_time,
             'dark_atp': self.sim_data.constants.darkATP,
             'non_growth_associated_maintenance': self.sim_data.constants.non_growth_associated_maintenance,
             'cell_dry_mass_fraction': self.sim_data.mass.cell_dry_mass_fraction,
             'seed': self.random_state.randint(RAND_MAX),
-            'reactions_with_catalyst': self.sim_data.process.metabolism.reactions_with_catalyst,
             'kinetic_constraint_reactions': self.sim_data.process.metabolism.kinetic_constraint_reactions,
+            'doubling_time': self.sim_data.condition_to_doubling_time[self.sim_data.condition],
+            'get_biomass_as_concentrations': self.sim_data.mass.getBiomassAsConcentrations,
+            'aa_names': self.sim_data.molecule_groups.amino_acids,
 
             # methods
             'concentration_updates': self.sim_data.process.metabolism.concentration_updates,
-            'get_biomass_as_concentrations': self.sim_data.mass.getBiomassAsConcentrations,
             'exchange_data_from_media': self.sim_data.external_state.exchange_data_from_media,
-            'doubling_time': self.sim_data.condition_to_doubling_time[self.sim_data.condition],
             'get_kinetic_constraints': self.sim_data.process.metabolism.get_kinetic_constraints,
             'exchange_constraints': self.sim_data.process.metabolism.exchange_constraints,
 
