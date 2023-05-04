@@ -668,41 +668,18 @@ class LoadSimData:
 
         return protein_degradation_config
 
-    def get_metabolism_redux_config(self, time_step=2, parallel=False, deriver_mode=False):
-        # Convert stoichiometric dictionary to array
-        stoich_dict = dict(sorted(
-            self.sim_data.process.metabolism.reaction_stoich.items()))
-        # Add maintenance reaction
-        stoich_dict['maintenance_reaction'] = self.sim_data.process.metabolism.maintenance_reaction
-        species = set()
-        for reaction, stoich in stoich_dict.items():
-            species.update(stoich.keys())
-        species = sorted(list(species))
-        n_species = len(species)
-        n_reactions = len(stoich_dict)
-        stoich_arr = np.zeros((n_species, n_reactions), dtype=np.int8)
-        species_idx = {species: i for i, species in enumerate(species)}
-        # Also get indices of catalysts for each reaction
-        reaction_catalysts = self.sim_data.process.metabolism.reaction_catalysts
-        catalyst_ids = self.sim_data.process.metabolism.catalyst_ids
-        catalyst_idx = {catalyst: i for i, catalyst in enumerate(catalyst_ids)}
-        reactions = {}
-        for col_idx, (reaction, stoich) in enumerate(stoich_dict.items()):
-            for species, coefficient in stoich.items():
-                i = species_idx[species]
-                stoich_arr[i, col_idx] = coefficient
-            reactions[reaction] = np.array([catalyst_idx[catalyst] 
-                for catalyst in reaction_catalysts.get(reaction, [])],
-                dtype=np.int8)
-
+    def get_metabolism_redux_config(self, time_step=2, parallel=False,
+        deriver_mode=False):
         metabolism_config = {
             'time_step': time_step,
             '_parallel': parallel,
 
             # stoich
-            'stoichiometry': stoich_arr,
-            'reactions': reactions,
-            'species': species,
+            'stoich_dict': self.sim_data.process.metabolism.reaction_stoich,
+            'maintenance_reaction': (self.sim_data.process.metabolism.
+                maintenance_reaction),
+            'reaction_catalysts': (self.sim_data.process.metabolism.
+                reaction_catalysts),
 
             # variables
             'media_id': self.sim_data.conditions[self.sim_data.condition]['nutrients'],

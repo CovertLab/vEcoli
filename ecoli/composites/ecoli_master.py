@@ -229,8 +229,8 @@ class Ecoli(Composer):
 
         # Add Step dependecies specified in config
         for name, dependencies in config['flow'].items():
-            flow.setdefault(name, [])
-            flow[name].extend([tuple(dep) for dep in dependencies])
+            if name in steps:
+                flow[name].extend([tuple(dep) for dep in dependencies])
 
         # TODO: Find a more robust way to get topology containing all
         # unique molecules
