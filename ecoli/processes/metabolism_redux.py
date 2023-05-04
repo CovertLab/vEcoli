@@ -194,18 +194,18 @@ class MetabolismRedux(Step):
                     'dry_mass': 0.0}),
 
                 'fba_results': listener_schema({
-                    'solution_fluxes': {},
-                    'solution_dmdt': {},
-                    'solution_residuals': {},
+                    'solution_fluxes': [],
+                    'solution_dmdt': [],
+                    'solution_residuals': [],
                     'time_per_step': 0.0,
-                    'estimated_fluxes': {},
-                    'estimated_homeostatic_dmdt': {},
-                    'target_homeostatic_dmdt': {},
+                    'estimated_fluxes': [],
+                    'estimated_homeostatic_dmdt': [],
+                    'target_homeostatic_dmdt': [],
                     'estimated_exchange_dmdt': {},
-                    'estimated_intermediate_dmdt': {},
-                    'target_kinetic_fluxes': {},
-                    'target_kinetic_bounds': {},
-                    'maintenance_target': {}
+                    'estimated_intermediate_dmdt': [],
+                    'target_kinetic_fluxes': [],
+                    'target_kinetic_bounds': [],
+                    'maintenance_target': []
                 }),
 
                 'enzyme_kinetics': listener_schema({
@@ -386,7 +386,7 @@ class MetabolismRedux(Step):
                     'target_homeostatic_dmdt': target_homeostatic_dmdt,
                     'target_kinetic_fluxes': target_kinetic_flux,
                     'target_kinetic_bounds': target_kinetic_bounds,
-                    'estimated_exchange_dmdt': estimated_exchange_array,
+                    'estimated_exchange_dmdt': estimated_exchange_dmdt,
                     'estimated_intermediate_dmdt': estimated_intermediate_dmdt,
                     'maintenance_target': target_maintenance_flux,
                     'solution_fluxes': solution.velocities,

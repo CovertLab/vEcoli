@@ -11,7 +11,7 @@ a spatially defined model of E. coli. Currently, this composite is only
 set up to run a diffusion model on three nodes, the two cytosol poles and the
 nucleoid, which are connected by two edges between the poles and the nucleoid.
 Furthermore, since vivarium-ecoli is not yet fully migrated, this composite
-initializes molecule counts from a snapshot of wcEcoli at t=1,000 s. This model
+initializes molecule counts from a snapshot of wcEcoli at t=0 s. This model
 can be run with bulk molecules, polyribosomes, or both together. If only
 polyribosomes are of interest, it is recommended to not include bulk
 molecules for faster runtime.
@@ -141,7 +141,7 @@ class EcoliSpatial(Composer):
         include_bulk = config['include_bulk']
         include_polyribosomes = config['include_polyribosomes']
         initial_state = get_state_from_file(
-            path='data/wcecoli_t1000.json',
+            path='data/wcecoli_t0.json',
             convert_unique_id_to_string=False,
         )
         bulk = {}
