@@ -136,6 +136,7 @@ def bulk_name_to_idx(names, bulk_names):
     # Convert from string names to indices in bulk array
     if isinstance(names, np.ndarray) or isinstance(names, list):
         # Big brain solution from https://stackoverflow.com/a/32191125
+        # One downside: all values in names MUST be in bulk_names
         sorter = np.argsort(bulk_names)
         return sorter[np.searchsorted(bulk_names, names, sorter=sorter)]
     else:

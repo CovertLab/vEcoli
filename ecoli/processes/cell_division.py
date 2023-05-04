@@ -77,10 +77,11 @@ class Division(Step):
 
         division_variable = states['division_variable']
 
-        if (division_variable >= self.parameters['threshold']) and (
+        if (division_variable >= states['division_threshold']) and (
             states['full_chromosome']['_entryState'].sum() >= 2
         ):
-            daughter_ids = self.parameters['daughter_ids_function'](self.agent_id)
+            daughter_ids = self.parameters['daughter_ids_function'](
+                self.agent_id)
             daughter_updates = []
             for daughter_id in daughter_ids:
                 config = dict(self.composer_config)
