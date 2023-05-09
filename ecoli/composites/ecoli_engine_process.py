@@ -16,11 +16,9 @@ from vivarium.core.composer import Composer, Composite
 from vivarium.core.emitter import SharedRamEmitter
 from vivarium.core.engine import Engine
 from vivarium.core.serialize import serialize_value
-from vivarium.core.store import Store
 from vivarium.library.dict_utils import deep_merge
 from vivarium.library.topology import get_in
 
-from wholecell.utils import units
 from ecoli.experiments.ecoli_master_sim import (
     EcoliSim,
     SimConfig,
@@ -29,8 +27,9 @@ from ecoli.experiments.ecoli_master_sim import (
     report_profiling,
     _tuplify_topology
 )
-from ecoli.library.logging import write_json
+from ecoli.library.logging_tools import write_json
 from ecoli.library.sim_data import RAND_MAX
+from ecoli.library.schema import not_a_process
 from ecoli.states.wcecoli_state import get_state_from_file
 from ecoli.processes.engine_process import EngineProcess
 from ecoli.processes.environment.field_timeline import FieldTimeline
@@ -210,7 +209,7 @@ def colony_save_states(engine, config):
         time_elapsed = config["save_times"][i]
 
         # Save the full state of the super-simulation
-        state_to_save = engine.state.get_value()
+        state_to_save = engine.state.get_value(condition=not_a_process)
 
         # Get internal state from the EngineProcess sub-simulation
         for agent_id in state_to_save['agents']:
@@ -226,6 +225,11 @@ def colony_save_states(engine, config):
             del cell_state['evolvers_ran']
             # Shared processes are re-initialized on load
             del cell_state['process']
+            # Save bulk and unique dtypes
+            cell_state['bulk_dtypes'] = str(cell_state['bulk'].dtype)
+            cell_state['unique_dtypes'] = {}
+            for name, mols in cell_state['unique'].items():
+                cell_state['unique_dtypes'][name] = str(mols.dtype)
             state_to_save['agents'][agent_id] = cell_state
 
         state_to_save = serialize_value(state_to_save)

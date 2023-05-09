@@ -1,6 +1,7 @@
 from typing import List
 
 import numpy as np
+from vivarium.core.store import Store
 
 RAND_MAX = 2**31 - 1
 
@@ -9,7 +10,8 @@ UNIQUE_DIVIDERS = {
         'divider': 'ribosome_by_RNA',
         'topology': {'RNA': ('..', 'RNA'),
             'full_chromosome': ('..', 'full_chromosome'),
-            'chromosome_domain': ('..', 'chromosome_domain')}
+            'chromosome_domain': ('..', 'chromosome_domain'),
+            'active_RNAP': ('..', 'active_RNAP',)}
     },
     'full_chromosomes': {
         'divider': 'by_domain',
@@ -81,6 +83,10 @@ def create_unique_indexes(n_indexes, random_state):
         the range :math:`[0, 2^{63})`.
     """
     return [num for num in random_state.randint(0, 2**63, n_indexes)]
+
+
+def not_a_process(value):
+    return not (isinstance(value, Store) and value.topology)
 
 
 def counts(states, idx):
@@ -388,7 +394,11 @@ def divide_by_domain(values, state):
         domain_division['d1_all_domain_indexes'])
     d2_bool = np.isin(values['domain_index'],
         domain_division['d2_all_domain_indexes'])
-    assert d1_bool.sum() + d2_bool.sum() == len(values)
+    # Some chromosome domains may be left behind because
+    # they no longer exist after chromosome division. Skip
+    # this assert when checking division of domains
+    if 'child_domains' not in values.dtype.names:
+        assert d1_bool.sum() + d2_bool.sum() == len(values)
     return [values[d1_bool], values[d2_bool]]
 
 

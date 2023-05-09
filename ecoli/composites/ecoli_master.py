@@ -19,7 +19,7 @@ from vivarium.core.control import run_library_cli
 from ecoli.library.sim_data import LoadSimData, RAND_MAX
 
 # logging
-from ecoli.library.logging import make_logging_process
+from ecoli.library.logging_tools import make_logging_process
 
 # vivarium-ecoli processes
 from ecoli.composites.ecoli_configs import (
@@ -83,7 +83,7 @@ class Ecoli(Composer):
 
         self.processes = self.config['processes']
         self.topology = self.config['topology']
-        self.processes_and_steps = self._generate_processes_and_steps(config)
+        self.processes_and_steps = self._generate_processes_and_steps(self.config)
 
         self.seed = None
 
@@ -104,8 +104,17 @@ class Ecoli(Composer):
                 path=f'data/{initial_state_file}.json')
 
         initial_state_overrides = config.get('initial_state_overrides', [])
+        if initial_state_overrides:
+            bulk_map = {bulk_id: row_id for row_id, bulk_id
+                in enumerate(initial_state['bulk']['id'])}
         for override_file in initial_state_overrides:
             override = get_state_from_file(path=f"data/{override_file}.json")
+            # Apply bulk overrides of the form {molecule: count} to Numpy array
+            bulk_overrides = override.pop('bulk', {})
+            initial_state['bulk'].flags.writeable = True
+            for molecule, count in bulk_overrides.items():
+                initial_state['bulk']['count'][bulk_map[molecule]] = count
+            initial_state['bulk'].flags.writeable = False
             deep_merge(initial_state, override)
 
         # Put shared process instances for partitioned processes into state
