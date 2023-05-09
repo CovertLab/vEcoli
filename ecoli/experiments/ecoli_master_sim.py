@@ -19,7 +19,7 @@ from vivarium.core.engine import Engine
 from vivarium.core.serialize import deserialize_value, serialize_value
 from vivarium.library.dict_utils import deep_merge
 from vivarium.library.topology import assoc_path
-from ecoli.library.logging import write_json
+from ecoli.library.logging_tools import write_json
 # Two different Ecoli composers depending on partitioning
 import ecoli.composites.ecoli_nonpartition
 import ecoli.composites.ecoli_master
@@ -30,6 +30,7 @@ from ecoli.processes import process_registry
 from ecoli.processes.registries import topology_registry
 
 from ecoli.composites.ecoli_configs import CONFIG_DIR_PATH
+from ecoli.library.schema import not_a_process
 
 
 def _tuplify_topology(topology):
@@ -459,19 +460,31 @@ class EcoliSim:
                 time_to_next_save = self.save_times[i] - self.save_times[i-1]
             self.ecoli_experiment.update(time_to_next_save)
             time_elapsed = self.save_times[i]
-            state = self.ecoli_experiment.state.get_value()
+            state = self.ecoli_experiment.state.get_value(
+                condition=not_a_process)
             if self.divide:
-                for agent_state in state['agents']:
-                    # Set to true when starting sim
+                for agent_state in state['agents'].values():
+                    # Will be set to true when starting sim
                     del agent_state['evolvers_ran']
+                    del agent_state['dervier_skips']
                     # Sets are nondeterministic
                     del agent_state['environment']
                     # Processes can't be serialized
                     del agent_state['process']
+                    # Save bulk and unique dtypes
+                    agent_state['bulk_dtypes'] = str(agent_state['bulk'].dtype)
+                    agent_state['unique_dtypes'] = {}
+                    for name, mols in agent_state['unique'].items():
+                        agent_state['unique_dtypes'][name] = str(mols.dtype)
             else:
                 del state['evolvers_ran']
+                del agent_state['dervier_skips']
                 del state['environment']
                 del state['process']
+                state['bulk_dtypes'] = str(state['bulk'].dtype)
+                state['unique_dtypes'] = {}
+                for name, mols in state['unique'].items():
+                    state['unique_dtypes'][name] = str(mols.dtype)
             write_json('data/vivecoli_t' + str(time_elapsed) + '.json', state)
             print('Finished saving the state at t = ' + str(time_elapsed))
         time_remaining = self.total_time - self.save_times[-1]
@@ -517,6 +530,14 @@ class EcoliSim:
         warnings.filterwarnings("ignore",
             message="Incompatible schema assignment at ")
         self.ecoli_experiment = Engine(**experiment_config)
+
+        # Only emit designated stores if specified
+        if self.config['emit_paths']:
+            self.ecoli_experiment.state.set_emit_values([tuple()], False)
+            self.ecoli_experiment.state.set_emit_values(
+                self.config['emit_paths'],
+                True,
+            )
         
         # Clean up unnecessary references
         self.generated_initial_state = None
@@ -566,7 +587,7 @@ class EcoliSim:
 
 
     def to_json_string(self):
-        return serialize_value(self.get_metadata())
+        return str(serialize_value(self.get_metadata()))
 
 
     def export_json(self, filename=CONFIG_DIR_PATH + "export.json"):

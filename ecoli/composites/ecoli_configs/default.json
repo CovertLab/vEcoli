@@ -72,5 +72,6 @@
     "_schema": {},
     "engine_process_reports": [
         ["listeners"]
-    ]
+    ],
+    "emit_paths": []
 }

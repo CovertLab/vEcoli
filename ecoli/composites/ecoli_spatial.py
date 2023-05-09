@@ -2,6 +2,7 @@
 =========================
 E. coli spatial composite
 =========================
+**NOTE: Has not been updated to work with new Numpy internal states**
 
 This composite is intended to run a spatial model of E. coli, where each
 cellular compartment is designated as a node. These nodes are connected by
@@ -142,7 +143,6 @@ class EcoliSpatial(Composer):
         include_polyribosomes = config['include_polyribosomes']
         initial_state = get_state_from_file(
             path='data/wcecoli_t0.json',
-            convert_unique_id_to_string=False,
         )
         bulk = {}
 

@@ -72,7 +72,8 @@ from vivarium.core.store import DEFAULT_SCHEMA
 from vivarium.library.topology import get_in
 
 from ecoli.library.sim_data import RAND_MAX
-from ecoli.library.schema import remove_properties, empty_dict_divider
+from ecoli.library.schema import (
+    remove_properties, empty_dict_divider, not_a_process)
 from ecoli.library.updaters import inverse_updater_registry
 from ecoli.processes.cell_division import daughter_phylogeny_id
 
@@ -316,7 +317,8 @@ class EngineProcess(Process):
         kwargs = kwargs or {}
 
         if command == 'get_inner_state':
-            self._command_result = self.sim.state.get_value()
+            self._command_result = self.sim.state.get_value(
+                condition=not_a_process)
         else:
             self._pending_command = None
             super().send_command(command, args, kwargs)

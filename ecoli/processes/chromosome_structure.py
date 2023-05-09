@@ -124,9 +124,9 @@ class ChromosomeStructure(Step):
                     'codirectional_collision_coordinates': 0,
                     'n_removed_ribosomes': 0})},
             'bulk': numpy_schema('bulk'),
-            'active_replisomes': numpy_schema('active_replisomes'),
 
             # Unique molecules
+            'active_replisomes': numpy_schema('active_replisomes'),
             'oriCs': numpy_schema('oriCs'),
             'chromosome_domains': numpy_schema('chromosome_domains'),
             'active_RNAPs': numpy_schema('active_RNAPs'),

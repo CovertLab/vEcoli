@@ -94,8 +94,17 @@ class Ecoli(Composer):
             initial_state = get_state_from_file(path=f'data/{initial_state_file}.json')
         
         initial_state_overrides = config.get('initial_state_overrides', [])
+        if initial_state_overrides:
+            bulk_map = {bulk_id: row_id for row_id, bulk_id
+                in enumerate(initial_state['bulk']['id'])}
         for override_file in initial_state_overrides:
             override = get_state_from_file(path=f"data/{override_file}.json")
+            # Apply bulk overrides of the form {molecule: count} to Numpy array
+            bulk_overrides = override.pop('bulk', {})
+            initial_state['bulk'].flags.writeable = True
+            for molecule, count in bulk_overrides.items():
+                initial_state['bulk']['count'][bulk_map[molecule]] = count
+            initial_state['bulk'].flags.writeable = False
             deep_merge(initial_state, override)
 
         embedded_state = {}
