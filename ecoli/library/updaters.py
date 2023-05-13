@@ -97,7 +97,7 @@ def inverse_update_merge(initial_state, final_state):
 def inverse_update_bulk_numpy(initial_state, final_state):
     diff = final_state['count'] - initial_state['count']
     if np.all(diff == 0):
-        return initial_state
+        return []
     return [(np.arange(len(initial_state)), diff),]
 
 

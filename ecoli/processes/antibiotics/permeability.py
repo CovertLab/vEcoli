@@ -1,11 +1,12 @@
-from ecoli.library.schema import bulk_schema
+import numpy as np
+from ecoli.library.schema import numpy_schema, bulk_name_to_idx, counts
 from ecoli.states.wcecoli_state import get_state_from_file
+from ecoli.processes.bulk_timeline import BulkTimelineProcess
 from vivarium.core.emitter import timeseries_from_data
 from vivarium.core.engine import Engine
 from vivarium.core.process import Step
 from vivarium.library.units import units
 from vivarium.plots.simulation_output import plot_variables
-from vivarium.processes.timeline import TimelineProcess
 
 # TODO: Recompute average surface area with corrected formula 
 # To calculate SA_AVERAGE, we calculated the average surface area of the model up until division.
@@ -41,10 +42,12 @@ class Permeability(Step):
         super().__init__(parameters)
         self.porin_ids = self.parameters['porin_ids']
         self.diffusing_molecules = self.parameters['diffusing_molecules']
+        # Helper indices for Numpy arrays
+        self.porin_idx = None
 
     def ports_schema(self):
         return {
-            'porins': bulk_schema(self.porin_ids),
+            'bulk': numpy_schema('bulk', partition=False),
             'permeabilities': {mol_id: {
                 '_default': 1e-5 * units.cm / units.sec,
                 '_emit': True,
@@ -56,7 +59,11 @@ class Permeability(Step):
         }
 
     def next_update(self, timestep, states):
-        porins = states['porins']
+        if self.porin_idx is None:
+            self.porin_idx = bulk_name_to_idx(
+                self.porin_ids, states['bulk']['id'])
+        porins = counts(states['bulk'], self.porin_idx)
+        porins = dict(zip(self.porin_ids, porins))
         surface_area = states['surface_area']
         permeabilities = {}
         for molecule in self.diffusing_molecules:
@@ -71,9 +78,13 @@ class Permeability(Step):
 def main():
     sim_time = 10
 
-    initial_state = get_state_from_file(path='data/vivecoli_t1000.json')
+    initial_state = get_state_from_file(path='data/vivecoli_t2600.json')
     initial_state['boundary'] = {}
     initial_state['boundary']['surface_area'] = SA_AVERAGE
+    porin_idx_1 = np.where(initial_state['bulk']['id'] == 'CPLX0-7533[o]')[0]
+    porin_idx_2 = np.where(initial_state['bulk']['id'] == 'CPLX0-7534[o]')[0]
+    porin_count_1 = initial_state['bulk']['count'][porin_idx_1]
+    porin_count_2 = initial_state['bulk']['count'][porin_idx_2]
 
     porin_parameters = {
         'porin_ids': ['CPLX0-7533[o]', 'CPLX0-7534[o]'],
@@ -96,31 +107,29 @@ def main():
     porin_process = Permeability(porin_parameters)
 
 
-    timeline = []
+    timeline = {}
     for i in range(5):
-        timeline.append(
-            (i * 2, {
-                ('porins', 'CPLX0-7533[o]'): initial_state['bulk']['CPLX0-7533[o]'] + ((i + 1) * 500),
-                ('porins', 'CPLX0-7534[o]'): initial_state['bulk']['CPLX0-7534[o]'] + ((i + 1) * 500),
-            })
-        )
+        timeline[i * 2] = {
+            ('bulk', 'CPLX0-7533[o]'): porin_count_1 + ((i + 1) * 500),
+            ('bulk', 'CPLX0-7534[o]'): porin_count_2 + ((i + 1) * 500),
+        }
     timeline_params = {
         'time_step': 2.0,
         'timeline': timeline,
     }
-    timeline_process = TimelineProcess(timeline_params)
+    timeline_process = BulkTimelineProcess(timeline_params)
 
     sim = Engine(processes={'porin_permeability': porin_process,
                             'timeline': timeline_process},
                  topology={
                      'porin_permeability': {
-                         'porins': ('bulk',),
+                         'bulk': ('bulk',),
                          'permeabilities': ('boundary', 'permeabilities',),
                          'surface_area': ('boundary', 'surface_area',)
                      },
                      'timeline': {
-                         'global': ('global',),  # The global time is read here
-                         'porins': ('bulk',),  # This port is based on the declared timeline
+                         'global': ('global',),
+                         'bulk': ('bulk',),
                      }
                  },
                  initial_state=initial_state)
@@ -134,6 +143,11 @@ def main():
     for string in timeseries_data['boundary']['permeabilities']['tetracycline']:
         tet_str_to_float.append(units(string).magnitude)
     timeseries_data['boundary']['permeabilities']['tetracycline'] = tet_str_to_float
+    bulk_array = np.array(timeseries_data['bulk'])
+    timeseries_data['bulk'] = {
+        'CPLX0-7533[o]': bulk_array[:, porin_process.porin_idx[0]],
+        'CPLX0-7534[o]': bulk_array[:, porin_process.porin_idx[1]],
+    }
     plot_variables(timeseries_data, [('bulk', 'CPLX0-7533[o]'), ('bulk', 'CPLX0-7534[o]'),
                                      ('boundary', 'permeabilities', 'cephaloridine'),
                                      ('boundary', 'permeabilities', 'tetracycline')],

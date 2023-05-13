@@ -33,8 +33,9 @@ class EnvironmentGlucoseLimit(Step):
         }
     
     def next_update(self, timestep, states):
-        if states["external_glucose"]==0 and not states["first_update"]:
+        if states["first_update"]:
+            return {"first_update": False}
+        if states["external_glucose"]==0:
             return {
                 "glucose_constraint": 0.0 * units.mmol / (units.g * units.h)
             }
-        return {}

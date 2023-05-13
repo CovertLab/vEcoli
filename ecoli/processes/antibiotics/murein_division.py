@@ -2,13 +2,13 @@ import numpy as np
 
 from vivarium.core.process import Step
 
-from ecoli.library.schema import bulk_schema
+from ecoli.library.schema import numpy_schema, bulk_name_to_idx, counts
 from ecoli.processes.registries import topology_registry
 
 # Register default topology for this process, associating it with process name
 NAME = "murein-division"
 TOPOLOGY = {
-    "total_murein": ("bulk",),
+    "bulk": ("bulk",),
     "murein_state": ("murein_state",),
     "wall_state": ("wall_state",),
     "first_update": ("deriver_skips", "murein_division",)
@@ -33,9 +33,12 @@ class MureinDivision(Step):
         self.murein = self.parameters["murein_name"]
         self.first_timestep = True
 
+        # Helper indices for Numpy array
+        self.murein_idx = None
+
     def ports_schema(self):
         return {
-            "total_murein": bulk_schema([self.parameters["murein_name"]]),
+            "bulk": numpy_schema("bulk", partition=False),
             "murein_state": {
                 "incorporated_murein": {
                     "_default": 0,
@@ -66,7 +69,11 @@ class MureinDivision(Step):
         }
 
     def next_update(self, timestep, states):
-        update = {"murein_state": {}, "total_murein": {}}
+        if self.murein_idx is None:
+            self.murin_idx = bulk_name_to_idx(
+                self.parameters["murein_name"], states["bulk"]["id"])
+
+        update = {"murein_state": {}, "bulk": []}
         # Ensure that lattice is a numpy array so divider works properly.
         # Used when loading from a saved state.
         if ((not isinstance(states["wall_state"]["lattice"], np.ndarray)) and 
@@ -94,10 +101,10 @@ class MureinDivision(Step):
                 update["murein_state"]["unincorporated_murein"] = 4 - remainder
                 accounted_murein_monomers += 4 - remainder
             accounted_murein = accounted_murein_monomers // 4
-            if accounted_murein != states["total_murein"][
-                self.parameters["murein_name"]]:
-                update["total_murein"][self.parameters["murein_name"]] = (
+            total_murein = counts(states["bulk"], self.murein_idx)
+            if accounted_murein != total_murein:
+                update["bulk"].append((self.murein_idx, (
                     accounted_murein - states["total_murein"][
-                        self.parameters["murein_name"]])
+                        self.parameters["murein_name"]])))
         update["first_update"] = False
         return update

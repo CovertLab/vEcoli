@@ -70,6 +70,10 @@ UNIQUE_DIVIDERS = {
 }
 
 
+def array_from(d):
+    return np.array(list(d.values()))
+
+
 def create_unique_indexes(n_indexes, random_state):
     """Creates a list of unique indexes by making them random.
 
@@ -292,16 +296,6 @@ def divide_bulk(state):
     daughter_1['count'] = random_state.binomial(counts, 0.5)
     daughter_2['count'] = counts - daughter_1['count']
     return [daughter_1, daughter_2]
-
-# TODO: Remove once all processes have been converted
-def bulk_schema():
-    return
-
-def dict_value_schema():
-    return
-
-def arrays_from():
-    return
 
 # TODO: Create a store for growth rate noise simulation parameter
 
