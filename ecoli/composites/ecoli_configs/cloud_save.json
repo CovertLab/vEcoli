@@ -1,6 +1,0 @@
-{
-    "inherit_from": ["cloud.json"],
-    "total_time": 4002,
-    "save": true,
-    "save_times": [4000]
-}

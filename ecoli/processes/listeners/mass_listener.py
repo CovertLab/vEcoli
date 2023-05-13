@@ -65,36 +65,6 @@ class MassListener(Deriver):
         self.unique_ids = self.parameters['unique_ids']
         self.unique_masses = self.parameters['unique_masses']
 
-        # NOTE: This code is newly added in vivarium-ecoli.
-        if 'tetracycline_mass' in self.parameters:
-            tet_molar_mass = self.parameters['tetracycline_mass']
-            tet_mass = (tet_molar_mass/(constants.N_A/viv_units.mol)).to(
-                viv_units.fg)
-            self.unique_ids = np.append(
-                self.unique_ids, 'active_ribosome_tetracycline')
-            active_ribosome_idx = np.where(
-                self.unique_ids == 'active_ribosome')[0][0]
-            active_ribosome_tetracycline_mass = self.unique_masses[
-                active_ribosome_idx].copy()
-            active_ribosome_tetracycline_mass[6] += tet_mass.magnitude
-            self.unique_masses = np.append(
-                self.unique_masses,
-                [active_ribosome_tetracycline_mass],
-                axis=0,
-            )
-            self.bulk_ids = np.append(
-                self.bulk_ids, 'CPLX0-3953-tetracycline[c]')
-            bulk_30s_idx = np.where(
-                self.bulk_ids == 'CPLX0-3953[c]')[0][0]
-            bulk_30s_tetracycline_mass = self.bulk_masses[bulk_30s_idx].copy()
-            bulk_30s_tetracycline_mass[6] += tet_mass.magnitude
-            self.bulk_masses = np.append(
-                self.bulk_masses,
-                [bulk_30s_tetracycline_mass],
-                axis=0,
-            )
-        # End of newly-added code.
-
         self.submass_listener_indices = {
             'rna': np.array([
                 self.parameters['submass_to_idx'][name]
@@ -215,13 +185,6 @@ class MassListener(Deriver):
             'active_ribosome': numpy_schema('active_ribosome'),
             'DnaA_box': numpy_schema('DnaA_boxes'),
         })
-        # NOTE: This code is newly added in vivarium-ecoli.
-        if 'tetracycline_mass' in self.parameters:
-            ports['unique'].update({
-                'active_ribosome_tetracycline': numpy_schema(
-                    'active_ribosome'),
-            })
-        # End of newly-added code.
         return ports
 
     def next_update(self, timestep, states):

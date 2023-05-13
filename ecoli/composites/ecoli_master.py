@@ -41,8 +41,6 @@ MINIMAL_MEDIA_ID = 'minimal'
 AA_MEDIA_ID = 'minimal_plus_amino_acids'
 ANAEROBIC_MEDIA_ID = 'minimal_minus_oxygen'
 
-COUNT_THRESHOLD = 20
-
 
 class Ecoli(Composer):
 
@@ -59,6 +57,7 @@ class Ecoli(Composer):
         'divide': False,
         'log_updates': False,
         'mar_regulon': False,
+        'amp_lysis': False,
         'process_configs': {},
         'flow': {},
     }
@@ -71,7 +70,8 @@ class Ecoli(Composer):
             seed=self.config['seed'],
             mar_regulon=self.config['mar_regulon'],
             rnai_data=self.config['process_configs'].get(
-                'ecoli-rna-interference'))
+                'ecoli-rna-interference'),
+            amp_lysis=self.config['amp_lysis'])
 
         if not self.config.get('processes'):
             self.config['processes'] = deepcopy(ECOLI_DEFAULT_PROCESSES)

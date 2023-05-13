@@ -6,7 +6,7 @@
         "ecoli-lysis-initiation",
         "murein-division"
     ],
-    "total_time": 100,
+    "amp_lysis": true,
 
     "spatial_environment_config": {
         "reaction_diffusion": {
@@ -29,19 +29,8 @@
             }
         }
     },
-    
-    "emitter_arg": [
-        ["host", "localhost:27017"]
-    ],
-    "emitter": "database",
-
-    "initial_state_file": "wcecoli_t0",
 
     "engine_process_reports": [
-        ["bulk", "CPD-12261[p]"],
-        ["bulk", "CPLX0-7717[m]"],
-        ["bulk", "CPLX0-3951[i]"],
-        ["bulk", "CPLX0-8300[c]"],
         ["murein_state", "incorporated_murein"],
         ["murein_state", "unincorporated_murein"],
         ["murein_state", "shadow_murein"],
@@ -60,22 +49,15 @@
         "ecoli-cell-wall": {
             "shape": ["boundary"],
             "murein_state": ["murein_state"],
-            "PBP": ["bulk"],
+            "bulk": ["bulk"],
             "wall_state": ["wall_state"],
             "listeners": ["listeners"]
         },
         "ecoli-pbp-binding": {
-            "total_murein": ["bulk"],
             "murein_state": ["murein_state"],
             "concentrations": ["periplasm", "concentrations"],
             "bulk": ["bulk"],
             "pbp_state": ["pbp_state"]
-        },
-        "ecoli-shape": {
-            "cell_global": ["boundary"],
-            "periplasm_global": ["periplasm", "global"],
-            "listener_cell_mass": ["listeners", "mass", "cell_mass"],
-            "listener_cell_volume": ["listeners", "mass", "volume"]
         },
         "ecoli-lysis-initiation": {
             "cracked": ["wall_state", "cracked"],

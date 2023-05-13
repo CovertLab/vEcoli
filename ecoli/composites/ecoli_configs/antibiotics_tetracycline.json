@@ -5,56 +5,14 @@
         "tetracycline-ribosome-equilibrium",
         "aggregator"
     ],
-    "total_time": 100,
-    "emitter_arg": [
-        ["host", "localhost:27017"]
-    ],
-    "emitter": "database",
     "mar_regulon": "True",
-    "initial_state_file": "wcecoli_tet",
-    "spatial_environment_config": {
-        "field_timeline": {
-            "timeline": [
-                [1000000, {
-                    "tetracycline": 0
-                }]
-            ]
-        }
-    },
-    "engine_process_reports": [
-        ["bulk", "CPLX0-3953-tetracycline[c]"],
-        ["bulk", "CPLX0-3953[c]"],
-        ["bulk", "marR-tet[c]"],
-        ["bulk", "tetracycline[c]"],
-        ["bulk", "CPLX0-7710[c]"],
-        ["bulk", "MICF-RNA[c]"],
-        ["bulk", "micF-ompF[c]"],
-        ["bulk", "APORNAP-CPLX[c]"]
-    ],
+    "initial_state_file": "tet_wcecoli_t0",
+    "spatial_environment_config": {},
     "topology": {
-        "permeability": {
-            "porins": ["bulk"],
-            "permeabilities": ["kinetic_parameters"],
-            "surface_area": ["boundary", "outer_surface_area"]
-        },
-        "conc_to_counts": {
-            "tetracycline[c]": {
-                "conc" : ["cytoplasm", "concentrations", "tetracycline"],
-                "volume": ["cytoplasm", "global", "volume"]
-            },
-            "tetracycline[p]": {
-                "conc" : ["periplasm", "concentrations", "tetracycline"],
-                "volume": ["periplasm", "global", "volume"]
-            },
-            "bulk": ["bulk"]
-        },
         "tetracycline-ribosome-equilibrium": {
+            "bulk": ["bulk"],
             "tetracycline": ["cytoplasm", "concentrations", "tetracycline"],
-            "30s-free": ["bulk", "CPLX0-3953[c]"],
-            "50s": ["bulk", "CPLX0-3962[c]"],
             "70s-free": ["unique", "active_ribosome"],
-            "30s-tetracycline": ["bulk", "CPLX0-3953-tetracycline[c]"],
-            "trnas": ["bulk"],
             "volume": ["cytoplasm", "global", "volume"],
             "evolvers_ran": ["evolvers_ran"],
             "listeners": ["listeners"]
@@ -74,12 +32,8 @@
             "binding_probs": [1],
             "time_step": 2
         },
-        "ecoli-mass-listener": {
-            "tetracycline_mass": "!ParameterSerializer[tetracycline>mass]"
-        },
         "aggregator": {
             "paths": [
-                ["unique", "active_ribosome_tetracycline"],
                 ["unique", "active_ribosome"],
                 ["unique", "active_RNAP"]
             ]

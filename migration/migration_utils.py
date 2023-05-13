@@ -68,7 +68,9 @@ def run_non_partitioned_process(
             bulk_partitioned = json.load(f)
         proc_name = type(process).__name__
         if proc_name in bulk_partitioned:
+            bulk_array.flags.writeable = True
             bulk_array['count'] = bulk_partitioned[proc_name]
+            bulk_array.flags.writeable = False
         bulk_exists = True
     except:
         bulk_exists = False
@@ -118,7 +120,9 @@ def run_partitioned_process(
     requests, store = experiment._calculate_update(path, process, 2)
     bulk_array = experiment.state.get_path(('bulk',)).get_value()
     # Set bulk counts to 0 for requested count after applying update
+    bulk_array.flags.writeable = True
     bulk_array['count'] = 0
+    bulk_array.flags.writeable = False
     experiment.apply_update(requests.get(), store)
     actual_requests = bulk_array['count'].copy()
 
@@ -132,7 +136,9 @@ def run_partitioned_process(
     with open(f"data/migration/bulk_partitioned_t"
               f"{initial_time}.json") as f:
         bulk_partitioned = json.load(f)
+    bulk_array.flags.writeable = True
     bulk_array['count'] = bulk_partitioned[type(process).__name__]
+    bulk_array.flags.writeable = False
     update, store = experiment._process_update(
         path, process, store, states, 2)
     update = update.get()

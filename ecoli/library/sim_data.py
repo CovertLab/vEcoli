@@ -22,6 +22,7 @@ class LoadSimData:
         ppgpp_regulation=False,
         mar_regulon=False,
         rnai_data=None,
+        amp_lysis=False,
     ):
 
         self.seed = seed
@@ -83,19 +84,20 @@ class LoadSimData:
             treg_alias.delta_prob["deltaV"] = np.concatenate(
                 [treg_alias.delta_prob["deltaV"], new_deltaV])
             
-            # Add mass data for tetracycline and marR-tetracycline complex
+            # Add mass data for tetracycline, marR-tet, and 30s-tet
             bulk_data = bulk_mol_alias.bulk_data.fullArray()
-            bulk_data = np.resize(bulk_data, bulk_data.shape[0]+3)
+            marR_mass = np.array(bulk_data[bulk_data[
+                'id'] == 'CPLX0-7710[c]'][0][1])
+            free_30s_mass = np.array(bulk_data[bulk_data[
+                'id'] == 'CPLX0-3953[c]'][0][1])
             tet_mass = param_store.get(('tetracycline', 'mass')).magnitude
-            bulk_data[-1] = ('tetracycline[c]', 
-                [0, 0, 0, 0, 0, 0, tet_mass, 0, 0])
-            bulk_data[-2] = ('tetracycline[p]', 
-                [0, 0, 0, 0, 0, 0, tet_mass, 0, 0])
-            # Protein mass is 6th element in 2nd column of each row in
-            # the Numpy structured array bulk_data
-            marR_mass = bulk_data[bulk_data['id'] == 'CPLX0-7710[c]'][0][1][5]
-            bulk_data[-3] = ('marR-tet[c]', 
-                [0, 0, 0, 0, 0, marR_mass, tet_mass, 0, 0])
+            tet_mass = np.array([0, 0, 0, 0, 0, 0, tet_mass, 0, 0])
+            bulk_data = np.append(bulk_data, np.array([
+                ("marR-tet[c]",) + (marR_mass + tet_mass,),
+                ("tetracycline[p]",) + (tet_mass,),
+                ("tetracycline[c]",) + (tet_mass,),
+                ("CPLX0-3953-tetracycline[c]",) + (free_30s_mass + tet_mass,)
+            ], dtype=bulk_data.dtype))
             bulk_units = bulk_mol_alias.bulk_data.fullUnits()
             bulk_mol_alias.bulk_data = UnitStructArray(bulk_data, bulk_units)
             
@@ -126,7 +128,7 @@ class LoadSimData:
             # Mass balance matrix
             eq_alias._stoichMatrixMass = np.concatenate(
                 [eq_alias._stoichMatrixMass, np.array(
-                    [marR_mass, tet_mass, marR_mass+tet_mass])])
+                    [marR_mass.sum(), tet_mass.sum(), (marR_mass+tet_mass).sum()])])
             eq_alias.balance_matrix = (
                 eq_alias.stoich_matrix() * 
                 eq_alias.mass_matrix())
@@ -221,8 +223,7 @@ class LoadSimData:
             ts_alias.transcription_sequences = rna_sequences
             ts_alias.rna_data = UnitStructArray(rna_data, rna_units)
             
-            # Add bulk mass data for duplexes to avoid errors (though mRNAs
-            # should never go to bulk)
+            # Add bulk mass data for duplexes
             bulk_data = bulk_mol_alias.bulk_data.fullArray()
             bulk_units = bulk_mol_alias.bulk_data.fullUnits()
             old_n_bulk = bulk_data.shape[0]
@@ -241,6 +242,25 @@ class LoadSimData:
 
             # Set flag so miscRNA duplexes are degraded together with mRNAs
             self.degrade_misc = True
+        
+        # NEW to vivarium-ecoli
+        # Add ampicillin to bulk molecules
+        if amp_lysis:
+            bulk_mol_alias =  self.sim_data.internal_state.bulk_molecules
+            # Add mass data for ampicillin and hydrolyzed ampicillin
+            bulk_data = bulk_mol_alias.bulk_data.fullArray()
+            amp_mass = param_store.get(("ampicillin", "molar_mass")).magnitude
+            amp_mass = np.array([0, 0, 0, 0, 0, 0, amp_mass, 0, 0])
+            amp_hydro_mass = amp_mass.copy()
+            # Include molar mass of water added during hydrolysis
+            amp_hydro_mass[6] += 18
+            bulk_data = np.append(bulk_data, np.array([
+                ("ampicillin[p]",) + (amp_mass,),
+                ("ampicillin_hydrolyzed[p]",) + (amp_hydro_mass,)
+            ], dtype=bulk_data.dtype))
+            bulk_units = bulk_mol_alias.bulk_data.fullUnits()
+            bulk_mol_alias.bulk_data = UnitStructArray(bulk_data, bulk_units)
+
 
     def get_monomer_counts_indices(self, names):
         """Given a list of monomer names without location tags, this returns

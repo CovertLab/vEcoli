@@ -45,6 +45,7 @@ from vivarium.processes.clock import Clock
 from ecoli.processes.antibiotics.murein_division import MureinDivision
 from ecoli.processes.antibiotics.environment_glucose_limit import (
     EnvironmentGlucoseLimit)
+from ecoli.processes.bulk_timeline import BulkTimelineProcess
 
 
 # add to registry
@@ -105,3 +106,4 @@ process_registry.register(Clock.name, Clock)
 process_registry.register(MureinDivision.name, MureinDivision)
 process_registry.register(
     EnvironmentGlucoseLimit.name, EnvironmentGlucoseLimit)
+process_registry.register(BulkTimelineProcess.name, BulkTimelineProcess)
