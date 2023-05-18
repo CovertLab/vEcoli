@@ -6,8 +6,8 @@
 
     "initial_state_overrides": ["overrides/test_cell_wall_division"],
     
-    "division_threshold": 343.95,
+    "division_threshold": 349.5,
     "process_configs": {
-        
+        "division": {"chromosome_check": false}
     }
 }

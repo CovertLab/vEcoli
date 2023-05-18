@@ -227,6 +227,12 @@ class PartitionedProcess(Process):
             return self.evolve_state(timestep, states)
 
         requests = self.calculate_request(timestep, states)
+        bulk_requests = requests.pop('bulk', [])
+        if bulk_requests:
+            bulk_copy = states['bulk'].copy()
+            for bulk_idx, request in bulk_requests:
+                bulk_copy[bulk_idx] = request
+            states['bulk'] = bulk_copy
         states = deep_merge(states, requests)
         update = self.evolve_state(timestep, states)
         if 'listeners' in requests:

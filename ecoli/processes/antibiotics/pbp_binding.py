@@ -2,7 +2,6 @@ import os
 
 import numpy as np
 from vivarium.core.composer import Composite
-from vivarium.core.composition import add_timeline
 from vivarium.core.engine import Engine
 from vivarium.core.process import Step
 from vivarium.library.units import units, remove_units
@@ -12,6 +11,7 @@ from ecoli.library.parameters import param_store
 from ecoli.library.schema import numpy_schema, bulk_name_to_idx, counts
 from ecoli.processes.registries import topology_registry
 from ecoli.processes.shape import length_from_volume
+from ecoli.processes.bulk_timeline import BulkTimelineProcess
 from ecoli.library.cell_wall.column_sampler import (
     geom_sampler,
     sample_lattice,
@@ -334,40 +334,32 @@ def test_pbp_binding():
     # Create process
     params = {"beta_lactam": "ampicillin"}
     process = PBPBinding(params)
+    initial_murein = 450000
+    timeline_params = {
+        "timeline": {
+            time: {
+                ("bulk", "CPD-12261[p]"): int(initial_murein + 1000 * time),
+                ("concentrations", "ampicillin"): (
+                    (time - 50) / 10 * units.micromolar
+                    if time > 50
+                    else 0 * units.micromolar
+                ),
+            }
+            for time in range(0, 100)}
+    }
+    timeline_process = BulkTimelineProcess(timeline_params)
 
     # Create composite with timeline
-    initial_murein = 450000
-    processes = {"pbp_binding": process}
+    processes = {
+        "pbp_binding": process,
+        "bulk-timeline": timeline_process}
     topology = {
-        "pbp_binding": {
-            "total_murein": ("bulk",),
-            "murein_state": ("murein_state",),
-            "concentrations": ("concentrations",),
+        "pbp_binding": TOPOLOGY,
+        "bulk-timeline": {
             "bulk": ("bulk",),
-            "pbp_state": ("pbp_state",),
-            "wall_state": ("wall_state",),
+            "concentrations": ("concentrations",)
         }
     }
-    add_timeline(
-        processes,
-        topology,
-        {
-            "timeline": [
-                (
-                    time,
-                    {
-                        ("bulk", "CPD-12261[p]"): int(initial_murein + 1000 * time),
-                        ("concentrations", "ampicillin"): (
-                            (time - 50) / 10 * units.micromolar
-                            if time > 50
-                            else 0 * units.micromolar
-                        ),
-                    },
-                )
-                for time in range(0, 100)
-            ]
-        },
-    )
 
     # Run experiment
     settings = {
@@ -381,11 +373,12 @@ def test_pbp_binding():
             "concentrations": {
                 "ampicillin": 0 * units.micromolar,
             },
-            "bulk": {
-                "CPD-12261[p]": initial_murein,
-                "CPLX0-7717[m]": 100,
-                "CPLX0-3951[i]": 100,
-            },
+            "bulk": np.array([
+                ("CPD-12261[p]", initial_murein),
+                ("CPLX0-7717[m]", 100),
+                ("CPLX0-3951[i]", 100),
+                ("CPLX0-8300[c]", 0)
+            ], dtype=[('id', 'U40'), ('count', int)])
         },
     }
     composite = Composite(
@@ -399,6 +392,9 @@ def test_pbp_binding():
     sim = Engine(composite=composite)
     sim.update(settings["total_time"])
     data = sim.emitter.get_timeseries()
+
+    bulk_array = np.array(data["bulk"])
+    data["bulk"] = {"CPD-12261[p]": bulk_array[:, 0]}
 
     # Plot output
     fig = plot_variables(

@@ -10,6 +10,7 @@ from datetime import datetime, timezone
 import os
 import re
 import gc
+import warnings
 
 import numpy as np
 from vivarium.core.composer import Composer, Composite
@@ -385,6 +386,8 @@ def run_simulation(config):
     metadata['git_hash'] = get_git_revision_hash()
     metadata['git_status'] = get_git_status()
 
+    warnings.filterwarnings("ignore",
+        message="Incompatible schema assignment at ")
     engine = Engine(
         processes=composite.processes,
         topology=composite.topology,

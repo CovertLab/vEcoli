@@ -224,8 +224,11 @@ def run_and_compare(init_time, process_class, partition=True, layer=0, post=Fals
         wc_update = json.load(f)
     if process_class.__name__ in wc_update:
         # wcEcoli and viv-ecoli generate unique indices very differently
+        # Also do not compare metabolism exchanges because wcEcoli accumulates
+        # those over entire runtime but migration test runs for one timestep
         assert recursive_compare(actual_update, wc_update[process_class.__name__],
-            check_keys_strict=False, ignore_keys={'unique_index', 'RNAP_index'})
+            check_keys_strict=False, ignore_keys={'unique_index', 'RNAP_index',
+                'exchange'})
     # Compare listener values
     with open(f"data/migration/wcecoli_listeners_t{init_time}.json", 'r') as f:
         wc_listeners = json.load(f)

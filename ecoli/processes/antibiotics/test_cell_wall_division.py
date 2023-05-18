@@ -1,4 +1,5 @@
 import os
+import numpy as np
 
 from vivarium.core.serialize import deserialize_value
 from ecoli.experiments.ecoli_master_sim import CONFIG_DIR_PATH, EcoliSim
@@ -19,12 +20,29 @@ def run_experiment():
     )
     ecoli.total_time = total_time
     ecoli.build_ecoli()
+    # Add second fake chromosome, domain, and promoters to pass division check
+    unique = ecoli.generated_initial_state['agents']['0']['unique']
+    unique['full_chromosome'] = np.resize(unique['full_chromosome'], (2,))
+    unique['full_chromosome']['domain_index'][-1] = 3
+    unique['full_chromosome']['unique_index'][-1] = 1
+    unique['chromosome_domain'] = np.resize(unique['chromosome_domain'], (4,))
+    unique['chromosome_domain']['child_domains'][-1] = [-1, -1]
+    unique['chromosome_domain']['domain_index'][-1] = 3
+    unique['chromosome_domain']['unique_index'][-1] = 6
+    add_prom = np.append(
+        unique['promoter'][unique['promoter']['domain_index']==0],
+        unique['promoter'][unique['promoter']['domain_index']==1])
+    add_prom['domain_index'] = 3
+    add_prom['unique_index'] += 10000
+    unique['promoter'] = np.append(unique['promoter'], add_prom)
+    # Save list of bulk indices to index bulk emits
+    bulk_ids = ecoli.generated_initial_state['agents']['0']['bulk']['id']
 
     ecoli.run()
-    return ecoli.query()
+    return ecoli.query(), bulk_ids
 
 
-def validate_division(data):
+def validate_division(data, bulk_ids):
     # Expectations:
     # - there are two cells at the end
     # - immediately after dividing, wall state, pbp state, incorporated murein
@@ -58,18 +76,19 @@ def validate_division(data):
     )
 
     next_timestep = time[divide_index + 1]
+    murein_idx = np.where(bulk_ids == "CPD-12261[p]")[0][0]
     for _, cell_data in data[next_timestep]["agents"].items():
         assert cell_data["wall_state"]["lattice_rows"] > 0
         assert cell_data["wall_state"]["lattice_cols"] > 0
         assert cell_data["wall_state"]["cracked"] == False
         assert (
             sum(cell_data["murein_state"].values())
-            == 4 * cell_data["bulk"]["CPD-12261[p]"]
+            == 4 * cell_data["bulk"][murein_idx]
         )
 
 
 def test_cell_wall_division():
-    validate_division(run_experiment())
+    validate_division(*run_experiment())
 
 
 def main():

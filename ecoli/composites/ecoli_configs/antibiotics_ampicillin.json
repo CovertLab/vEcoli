@@ -6,7 +6,6 @@
         "ecoli-lysis-initiation",
         "murein-division"
     ],
-    "amp_lysis": true,
 
     "spatial_environment_config": {
         "reaction_diffusion": {

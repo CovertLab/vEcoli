@@ -229,8 +229,8 @@ class Ecoli(Composer):
                 # Allocator runs after all Requesters
                 flow['allocator'].append((name,))
             elif name == 'division':
-                # Division runs after mass listener
-                flow[name] = [('ecoli-mass-listener',)]
+                # Division runs after all other listeners
+                flow[name] = [('monomer_counts_listener',)]
             else:
                 flow.setdefault(name, [])
             # Update unique molecules before any Steps run

@@ -89,6 +89,7 @@ from ecoli.plots.ecoli_spatial_plots import (
 )
 
 from ecoli.states.wcecoli_state import get_state_from_file
+from ecoli.library.schema import numpy_schema, counts, attrs, bulk_name_to_idx
 
 SIM_DATA_PATH = 'reconstruction/sim_data/kb/simData.cPickle'
 RIBOSOME_SIZE = 21      # in nm
@@ -204,19 +205,10 @@ class EcoliSpatial(Composer):
 
 def add_polyribosomes(unique, unique_masses, polyribosome_assumption, save_output=False):
         # pull polyribosome building blocks from unique initial state
-        is_full_transcript_rna = np.asarray([unique['RNA'][
-                                                 unique_index]['is_full_transcript']
-                                             for unique_index in
-                                             unique['RNA'].keys()])
-        is_mrna = np.asarray([unique['RNA'][
-                                  unique_index]['is_mRNA']
-                              for unique_index in
-                              unique['RNA'].keys()])
+        is_full_transcript_rna, is_mrna, unique_index_rna = attrs(unique['RNA'], [
+            'is_full_transcript', 'is_mRNA', 'unique_index'])
 
-        unique_index_rna = np.asarray(list(unique['RNA'].keys()))
-        mrna_index_ribosomes = np.asarray(
-            [unique['active_ribosome'][unique_index]['mRNA_index']
-             for unique_index in unique['active_ribosome'].keys()])
+        mrna_index_ribosomes, = attrs(unique['active_ribosome'], ['mRNA_index'])
 
         # This line removes ghost mrna indexes
         mrna_index_ribosomes = mrna_index_ribosomes[

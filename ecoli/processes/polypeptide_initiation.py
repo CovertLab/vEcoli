@@ -362,30 +362,19 @@ def test_polypeptide_initiation():
         'listeners': {
             'ribosome_data': {
                 'effective_elongation_rate': 11}},
-        'subunits': {
-            '30S': 2000,
-            '50S': 3000},
-        'RNA': {
-            '0': {
-                'TU_index': 0,
-                'can_translate': True,
-                'unique_index': 0},
-            '1': {
-                'TU_index': 0,
-                'can_translate': False,
-                'unique_index': 1},
-            '2': {
-                'TU_index': 1,
-                'can_translate': True,
-                'unique_index': 2},
-            '3': {
-                'TU_index': 2,
-                'can_translate': True,
-                'unique_index': 3},
-            '4': {
-                'TU_index': 2,
-                'can_translate': True,
-                'unique_index': 4}}}
+        'bulk': np.array([
+            ('30S', 2000),
+            ('50S', 3000),
+        ], dtype=[('id', 'U40'), ('count', int)]),
+        'RNA': np.array([
+            (1, 0, True, 0),
+            (1, 0, True, 1),
+            (1, 1, True, 2),
+            (1, 2, True, 3),
+            (1, 2, True, 4),
+        ], dtype=[('_entryState', np.bool_), ('TU_index', int),
+            ('can_translate', np.bool_), ('unique_index', int)])
+    }
 
     settings = {
         'total_time': 10,

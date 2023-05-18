@@ -49,7 +49,7 @@ def run_sim(tet_conc=0, amp_conc=0, baseline=False, seed=0,
     elif initial_state_file:
         config["initial_state_file"] = initial_state_file
     else:
-        make_tet_initial_state("wcecoli_t0", rnai_data=config[
+        make_initial_state("wcecoli_t0", rnai_data=config[
             "process_configs"]["ecoli-rna-interference"])
     if baseline:
         print(f"Running baseline sim (seed = {seed}).")
@@ -82,12 +82,14 @@ def run_sim(tet_conc=0, amp_conc=0, baseline=False, seed=0,
     run_simulation(config)
 
 
-def update_agent_tet(data, rnai_data=None):
+def update_agent(data, rnai_data=None):
     new_bulk = [
         ("marR-tet[c]", 0),
         ("tetracycline[p]", 0),
         ("tetracycline[c]", 0),
-        ("CPLX0-3953-tetracycline[c]", 0)
+        ("CPLX0-3953-tetracycline[c]", 0),
+        ("ampicillin[p]", 0),
+        ("ampicillin_hydrolyzed[p]", 0)
     ]
     # Add RNA duplexes
     if rnai_data:
@@ -108,17 +110,17 @@ def update_agent_tet(data, rnai_data=None):
     return data
 
 
-def make_tet_initial_state(initial_file, rnai_data=None):
+def make_initial_state(initial_file, rnai_data=None):
     with open(f"data/{initial_file}.json") as f:
         initial_state = json.load(f)
     # Modify each cell in colony individually
     if "agents" in initial_state:
         for agent_id, agent_data in initial_state["agents"].items():
-            initial_state["agents"][agent_id] = update_agent_tet(
+            initial_state["agents"][agent_id] = update_agent(
                 agent_data, rnai_data)
     else:
-        initial_state = update_agent_tet(initial_state, rnai_data)
-    with open(f"data/tet_{initial_file}.json", "w") as f:
+        initial_state = update_agent(initial_state, rnai_data)
+    with open(f"data/antibiotics_{initial_file}.json", "w") as f:
         json.dump(initial_state, f)
 
 

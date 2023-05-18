@@ -460,6 +460,8 @@ class RnaDegradation(PartitionedProcess):
             metabolitesEndoCleavage))
         # fragmentMetabolites overlaps with fragmentBases
         bulk_count_copy = states['bulk'].copy()
+        if len(bulk_count_copy.dtype) > 1:
+            bulk_count_copy = bulk_count_copy['count']
         bulk_count_copy[self.fragment_metabolites_idx] \
             += metabolitesEndoCleavage
         fragmentBases = bulk_count_copy[self.fragment_bases_idx]
