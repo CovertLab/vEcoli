@@ -122,18 +122,21 @@ def test_complexation():
     complexation = Complexation(test_config)
 
     state = {
-        'molecules': {
-            'A': 10,
-            'B': 20,
-            'C': 30}}
+        'bulk': np.array([
+            ('A', 10),
+            ('B', 20),
+            ('C', 30),
+        ], dtype=[('id', 'U40'), ('count', int)])}
 
     settings = {
         'total_time': 10,
         'initial_state': state}
 
     data = simulate_process(complexation, settings)
-    assert (type(data['listeners']['complexation_events'][0]) == list)
-    assert (type(data['listeners']['complexation_events'][1]) == list)
+    complexation_events = data['listeners'][
+        'complexation_listener']['complexation_events']
+    assert (type(complexation_events[0]) == list)
+    assert (type(complexation_events[1]) == list)
     print(data)
 
 

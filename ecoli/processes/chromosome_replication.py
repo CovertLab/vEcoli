@@ -72,8 +72,6 @@ class ChromosomeReplication(PartitionedProcess):
 
         # random seed
         'seed': 0,
-
-        'submass_indexes': {},
     }
 
     def __init__(self, parameters=None):
@@ -104,10 +102,6 @@ class ChromosomeReplication(PartitionedProcess):
         # Use separate random state instance to create unique indices
         # so results are directly comparable with wcEcoli
         self.unique_idx_random_state = np.random.RandomState(seed=self.seed)
-
-        # Index of DNA submass in submass vector
-        self.DNA_submass_idx = self.parameters['submass_indexes'][
-            'massDiff_DNA']
 
         self.emit_unique = self.parameters.get('emit_unique', True)
 

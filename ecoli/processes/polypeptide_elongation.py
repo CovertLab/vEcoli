@@ -123,7 +123,6 @@ class PolypeptideElongation(PartitionedProcess):
         'KI_SpoT': 20.0,
         'aa_supply_scaling': lambda aa_conc, aa_in_media: 0,
         'seed': 0,
-        'submass_indexes': {},
     }
 
     def __init__(self, parameters=None):
@@ -201,10 +200,6 @@ class PolypeptideElongation(PartitionedProcess):
         self.charging_molecule_names = self.parameters[
             'charging_molecule_names']
         self.synthetase_names = self.parameters['synthetase_names']
-
-        # Index of protein submass in submass vector
-        self.protein_submass_idx = self.parameters['submass_indexes'][
-            'massDiff_protein']
 
         self.seed = self.parameters['seed']
         self.random_state = np.random.RandomState(seed = self.seed)
@@ -572,19 +567,28 @@ def test_polypeptide_elongation():
 
     initial_state = {
         'environment': {'media_id': 'minimal'},
-        'subunits': {
-            'CPLX0-3953[c]': 100,
-            'CPLX0-3962[c]': 100
-        },
-        'monomers': {
-            'TRYPSYN-APROTEIN[c]': 0,
-        },
-        'amino_acids': {
-            aa: 100 for aa in DEFAULT_AA_NAMES
-        },
-        'active_ribosome': {
-            '1': {'unique_index': 1, 'protein_index': 0, 'peptide_length': 1, 'pos_on_mRNA': 1,
-                  'submass': np.zeros(9)}
+        'bulk': np.array([
+            ('CPLX0-3953[c]', 100),
+            ('CPLX0-3962[c]', 100),
+            ('TRYPSYN-APROTEIN[c]', 0),
+            ('RELA', 0),
+            ('SPOT', 0),
+            ('H2O', 0),
+            ('PROTON', 0),
+            ('ppGpp', 0),
+            ] + [(aa, 100) for aa in DEFAULT_AA_NAMES],
+            dtype=[('id', 'U40'), ('count', int)]),
+        'unique': {
+            'active_ribosome': np.array([
+                (1, 1, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+            ], dtype=[
+                ('_entryState', np.bool_), ('unique_index', int),
+                ('protein_index', int), ('peptide_length', int),
+                ('pos_on_mRNA', int), ('massDiff_DNA', '<f8'),
+                ('massDiff_mRNA', '<f8'), ('massDiff_metabolite', '<f8'),
+                ('massDiff_miscRNA', '<f8'), ('massDiff_nonspecific_RNA',
+                '<f8'), ('massDiff_protein', '<f8'), ('massDiff_rRNA',
+                '<f8'), ('massDiff_tRNA', '<f8'), ('massDiff_water', '<f8')])
         },
         'listeners': {
             'mass': {
@@ -592,10 +596,11 @@ def test_polypeptide_elongation():
             }
         }
     }
-
+    
     settings = {
         'total_time': 200,
-        'initial_state': initial_state}
+        'initial_state': initial_state,
+        'topology': TOPOLOGY}
     data = simulate_process(polypep_elong, settings)
 
     return data, test_config
@@ -604,9 +609,15 @@ def test_polypeptide_elongation():
 def run_plot(data, config):
 
     # plot a list of variables
-    proteins = [('monomers', prot_id) for prot_id in config['proteinIds']]
-    aa = [('amino_acids', aa) for aa in DEFAULT_AA_NAMES]
-    variables = proteins + aa
+    bulk_ids = ['CPLX0-3953[c]', 'CPLX0-3962[c]', 'TRYPSYN-APROTEIN[c]',
+        'RELA', 'SPOT', 'H2O', 'PROTON', 'ppGpp'] + [
+            aa for aa in DEFAULT_AA_NAMES]
+    variables = [(bulk_id,) for bulk_id in bulk_ids]
+
+    # format data
+    bulk_timeseries = np.array(data['bulk'])
+    for i, bulk_id in enumerate(bulk_ids):
+        data[bulk_id] = bulk_timeseries[:, i]
 
     plot_variables(
         data,

@@ -13,8 +13,9 @@ once a RNA polymerase has reached the end of the annotated gene.
 
 from os import makedirs
 import numpy as np
+from copy import deepcopy
 
-from vivarium.core.composition import simulate_process
+from vivarium.core.engine import Engine
 
 from wholecell.utils.random import stochasticRound
 from wholecell.utils.polymerize import buildSequences, polymerize, computeMassIncrease
@@ -25,6 +26,7 @@ from ecoli.library.schema import (
 from ecoli.library.data_predicates import monotonically_increasing
 from ecoli.processes.registries import topology_registry
 from ecoli.processes.partition import PartitionedProcess
+from ecoli.processes.unique_update import UniqueUpdate
 
 
 # Register default topology for this process, associating it with process name
@@ -113,9 +115,10 @@ class TranscriptElongation(PartitionedProcess):
             get_attenuation_stop_probabilities),
         'attenuated_rna_indices': np.array([]),
         'attenuation_location': {},
+        'fragmentBases': [],
+        'charged_trnas': [],
 
         'seed': 0,
-        'submass_indexes': {},
     }
 
     def __init__(self, parameters=None):
@@ -170,12 +173,6 @@ class TranscriptElongation(PartitionedProcess):
         # random seed
         self.seed = self.parameters['seed']
         self.random_state = np.random.RandomState(seed=self.seed)
-
-        # Index of relevant submasses in submass vector
-        self.nsRNA_submass_idx = self.parameters['submass_indexes'][
-            'massDiff_nonspecific_RNA']
-        self.mRNA_submass_idx = self.parameters['submass_indexes'][
-            'massDiff_mRNA']
 
         # Helper indices for Numpy indexing
         self.bulk_RNA_idx = None
@@ -584,6 +581,21 @@ def get_mapping_arrays(x, y):
     return x_to_y, y_to_x
 
 
+def format_data(data, bulk_ids, rna_dtypes, rnap_dtypes, submass_dtypes):
+    # Format unique and bulk data for assertions
+    data['unique']['RNA'] = [np.array(list(map(tuple, zip(*val))),
+        dtype=rna_dtypes + submass_dtypes) for val in data['unique']['RNA']]
+    data['unique']['active_RNAP'] = [np.array(list(map(tuple, zip(*val))),
+            dtype=rnap_dtypes + submass_dtypes)
+        for val in data['unique']['active_RNAP']]
+    bulk_timeseries = np.array(data['bulk'])
+    data['bulk'] = {
+        bulk_id: bulk_timeseries[:, i]
+        for i, bulk_id in enumerate(bulk_ids)
+    }
+    return data
+
+
 def test_transcript_elongation():
     def make_elongation_rates(random, base, time_step, variable_elongation=False):
         size = 9  # number of TUs
@@ -597,6 +609,11 @@ def test_transcript_elongation():
 
     with open('data/elongation_sequences.npy', 'rb') as f:
         sequences = np.load(f)
+
+    rna_schema = numpy_schema('RNAs')
+    rna_schema['_emit'] = True
+    rnap_schema = numpy_schema('active_RNAPs')
+    rnap_schema['_emit'] = True
 
     test_config = {
         'max_time_step': 2.0,
@@ -616,62 +633,122 @@ def test_transcript_elongation():
         'ntp_ids': ['ATP[c]', 'CTP[c]', 'GTP[c]', 'UTP[c]'],
         'variable_elongation': False,
         'make_elongation_rates': make_elongation_rates,
-        'seed': 0}
+        'seed': 0,
+        # Make sure to emit RNA and RNAP data
+        '_schema': {'RNAs': rna_schema, 'active_RNAPs': rnap_schema}}
 
     transcript_elongation = TranscriptElongation(test_config)
+    # Need to add UniqueUpdate Step so unique molecule are updated each timestep
+    unique_dict = {
+        'RNAs': ('unique', 'RNA'),
+        'active_RNAPs': ('unique', 'active_RNAP')
+    }
+    unique_update = UniqueUpdate({'unique_dict': unique_dict})
 
+    submass_dtypes = [('massDiff_DNA', '<f8'), ('massDiff_mRNA', '<f8'),
+        ('massDiff_metabolite', '<f8'), ('massDiff_miscRNA', '<f8'),
+        ('massDiff_nonspecific_RNA', '<f8'), ('massDiff_protein', '<f8'),
+        ('massDiff_rRNA', '<f8'), ('massDiff_tRNA', '<f8'),
+        ('massDiff_water', '<f8')]
+    rna_dtypes = [('_entryState', np.bool_), ('unique_index', int),
+        ('TU_index', int), ('transcript_length', int),
+        ('is_mRNA', np.bool_), ('is_full_transcript', np.bool_),
+        ('can_translate', np.bool_), ('RNAP_index', int)]
+    rnap_dtypes = [('_entryState', np.bool_), ('unique_index', int),
+        ('domain_index', int), ('coordinates', int), 
+        ('direction', np.bool_)]
     initial_state = {
         'environment': {'media_id': 'minimal'},
+        'unique': {
+            'RNA': np.array([
+                (1, i, i, 0, test_config['is_mRNA'][i], False, True, i) + \
+                (0,) * 9
+                for i in range(len(test_config['rnaIds']))
+            ], dtype=rna_dtypes + submass_dtypes),
 
-        'RNAs': {str(i): {'unique_index': i,
-                           'TU_index': i,
-                           'transcript_length': 0,
-                           'is_mRNA': test_config['is_mRNA'][i],
-                           'is_full_transcript': False,
-                           'can_translate': True,
-                           'RNAP_index': str(i),
-                           'submass': np.zeros(9)}
-                 for i in range(len(test_config['rnaIds']))},
+            'active_RNAP': np.array([
+                (1, i, 2, i*1000, True) + (0,) * 9
+                for i in range(4)
+            ], dtype=rnap_dtypes + submass_dtypes),
+        },
 
-        'active_RNAPs': {str(i): {'unique_index': i,
-                                   'domain_index': 2,
-                                   'coordinates': i * 1000,
-                                   'direction': True,
-                                   'submass': np.zeros(9)}
-                         for i in range(4)},
-
-        'bulk_RNAs': {'16S rRNA': 0,
-                      '23S rRNA': 0,
-                      '5S rRNA': 0,
-                      'mRNA': 0
-                      },
-        'ntps': {'ATP[c]': 6178058, 'CTP[c]': 1152211, 'GTP[c]': 1369694, 'UTP[c]': 3024874},
-        'molecules': {'PPI[c]': 320771, 'APORNAP-CPLX[c]': 2768}
+        'bulk': np.array([
+            ('16S rRNA', 0),
+            ('23S rRNA', 0),
+            ('5S rRNA', 0),
+            ('mRNA', 0),
+            ('ATP[c]', 6178058),
+            ('CTP[c]', 1152211),
+            ('GTP[c]', 1369694),
+            ('UTP[c]', 3024874),
+            ('PPI[c]', 320771),
+            ('APORNAP-CPLX[c]', 2768)
+        ], dtype=[('id', 'U40'), ('count', int)]),
     }
 
     settings = {
-        'total_time': 100,
-        'initial_state': initial_state}
+        'processes': {
+            'unique-update': unique_update,
+            'ecoli-transcript-elongation': transcript_elongation,
+        },
+        'topology': {
+            'unique-update': unique_dict,
+            'ecoli-transcript-elongation': TOPOLOGY}}
 
-    data = simulate_process(transcript_elongation, settings)
+    engine = Engine(**settings, initial_state=deepcopy(initial_state))
+    engine.run_for(100)
+    data = engine.emitter.get_timeseries()
+    bulk_ids = initial_state['bulk']['id']
+    data = format_data(data, bulk_ids, rna_dtypes,
+        rnap_dtypes, submass_dtypes)
 
     plots(data)
     assertions(test_config, data)
 
     # Test running out of ntps
 
-    initial_state['ntps'] = {'ATP[c]': 100, 'CTP[c]': 100, 'GTP[c]': 100, 'UTP[c]': 100}
+    initial_state['bulk'] = np.array([
+            ('16S rRNA', 0),
+            ('23S rRNA', 0),
+            ('5S rRNA', 0),
+            ('mRNA', 0),
+            ('ATP[c]', 100),
+            ('CTP[c]', 100),
+            ('GTP[c]', 100),
+            ('UTP[c]', 100),
+            ('PPI[c]', 320771),
+            ('APORNAP-CPLX[c]', 2768)
+        ], dtype=[('id', 'U40'), ('count', int)])
 
-    data = simulate_process(transcript_elongation, settings)
+    engine = Engine(**settings, initial_state=deepcopy(initial_state))
+    engine.run_for(100)
+    data = engine.emitter.get_timeseries()
+    data = format_data(data, bulk_ids, rna_dtypes,
+        rnap_dtypes, submass_dtypes)
 
     plots(data, "transcript_elongation_toymodel_100_ntps.png")
     assertions(test_config, data)
 
     # Test no ntps
 
-    initial_state['ntps'] = {'ATP[c]': 0, 'CTP[c]': 0, 'GTP[c]': 0, 'UTP[c]': 0}
+    initial_state['bulk'] = np.array([
+            ('16S rRNA', 0),
+            ('23S rRNA', 0),
+            ('5S rRNA', 0),
+            ('mRNA', 0),
+            ('ATP[c]', 0),
+            ('CTP[c]', 0),
+            ('GTP[c]', 0),
+            ('UTP[c]', 0),
+            ('PPI[c]', 320771),
+            ('APORNAP-CPLX[c]', 2768)
+        ], dtype=[('id', 'U40'), ('count', int)])
 
-    data = simulate_process(transcript_elongation, settings)
+    engine = Engine(**settings, initial_state=deepcopy(initial_state))
+    engine.run_for(100)
+    data = engine.emitter.get_timeseries()
+    data = format_data(data, bulk_ids, rna_dtypes,
+        rnap_dtypes, submass_dtypes)
 
     plots(data, "transcript_elongation_toymodel_no_ntps.png")
     assertions(test_config, data)
@@ -681,11 +758,9 @@ def plots(actual_update, filename="transcript_elongation_toymodel.png"):
     import matplotlib.pyplot as plt
 
     # unpack update
-    rnas_synthesized = actual_update['listeners']['transcript_elongation_listener']['countRnaSynthesized']
-    ntps_used = actual_update['listeners']['growth_limits']['ntpUsed']
-    total_ntps_used = actual_update['listeners']['transcript_elongation_listener']['countNTPsUsed']
-
-    ntps = actual_update['ntps']
+    rnas_synthesized = actual_update['listeners'][
+        'transcript_elongation_listener']['count_rna_synthesized']
+    ntps_used = actual_update['listeners']['growth_limits']['ntp_used']
 
     plt.figure()
 
@@ -712,38 +787,37 @@ def plots(actual_update, filename="transcript_elongation_toymodel.png"):
 
 def assertions(config, actual_update):
     # unpack update
-    trans_lengths = [r['transcript_length'] for r in actual_update["RNAs"].values()]
-    rnas_synthesized = actual_update['listeners']['transcript_elongation_listener']['countRnaSynthesized']
-    bulk_16SrRNA = actual_update['bulk_RNAs']['16S rRNA']
-    bulk_5SrRNA = actual_update['bulk_RNAs']['5S rRNA']
-    bulk_23SrRNA = actual_update['bulk_RNAs']['23S rRNA']
-    bulk_mRNA = actual_update['bulk_RNAs']['mRNA']
+    trans_lengths = np.array([r['transcript_length'] for r in actual_update['unique']['RNA']]).T
+    rnas_synthesized = actual_update['listeners']['transcript_elongation_listener']['count_rna_synthesized']
+    bulk_16SrRNA = actual_update['bulk']['16S rRNA']
+    bulk_5SrRNA = actual_update['bulk']['5S rRNA']
+    bulk_23SrRNA = actual_update['bulk']['23S rRNA']
+    bulk_mRNA = actual_update['bulk']['mRNA']
 
-    ntps_used = actual_update['listeners']['growth_limits']['ntpUsed']
-    total_ntps_used = actual_update['listeners']['transcript_elongation_listener']['countNTPsUsed']
-    ntps = actual_update['ntps']
+    ntps_used = actual_update['listeners']['growth_limits']['ntp_used']
+    total_ntps_used = actual_update['listeners']['transcript_elongation_listener']['count_NTPs_used']
 
-    RNAP_coordinates = [v['coordinates'] for v in actual_update['active_RNAPs'].values()]
-    RNAP_elongations = actual_update['listeners']['rnap_data']['actualElongations']
-    terminations = actual_update['listeners']['rnap_data']['didTerminate']
+    RNAP_coordinates = np.array([v['coordinates'] for v in actual_update['unique']['active_RNAP']]).T
+    RNAP_elongations = actual_update['listeners']['rnap_data']['actual_elongations']
+    terminations = actual_update['listeners']['rnap_data']['did_terminate']
 
-    ppi = actual_update['molecules']['PPI[c]']
-    inactive_RNAP = actual_update['molecules']['APORNAP-CPLX[c]']
+    ppi = actual_update['bulk']['PPI[c]']
+    inactive_RNAP = actual_update['bulk']['APORNAP-CPLX[c]']
 
 
     # transcript lengths are monotonically increasing
-    assert np.all(list(map(monotonically_increasing, trans_lengths)))
+    assert np.all(list(map(lambda x: monotonically_increasing(x[x!=0]), trans_lengths)))
 
     # RNAP positions are monotonically increasing
-    assert np.all(list(map(monotonically_increasing, RNAP_coordinates)))
+    assert np.all(list(map(lambda x: monotonically_increasing(x[x!=0]), RNAP_coordinates)))
 
     # RNAP positions match transcript lengths?
-    RNAP_coordinates_realigned = [np.array(v) - v[0] for v in RNAP_coordinates]
+    RNAP_coordinates_realigned = []
+    for v in RNAP_coordinates:
+        diff = np.array(v) - v[0]
+        RNAP_coordinates_realigned.append(diff[diff >= 0])
     for t_length, expect, mRNA in zip(trans_lengths, RNAP_coordinates_realigned, config['is_mRNA']):
-        # truncate lengths arrays of terminated mRNAs, since these stay
-        # in the unique molecules pool after termination
-        if mRNA:
-            t_length = t_length[:len(expect)]
+        t_length = t_length[:len(expect)]
         np.testing.assert_array_equal(t_length, expect)
 
     # bulk RNAs monotonically increasing?
@@ -779,7 +853,7 @@ def assertions(config, actual_update):
     np.testing.assert_array_equal(d_23SrRNA, np.array(rnas_synthesized)[:, config['idx_23S_rRNA']].transpose()[0, 1:])
 
     # bulk NTP counts decrease by numbers used
-    ntps_arr = np.array([v for v in ntps.values()])
+    ntps_arr = np.array([actual_update['bulk'][ntp] for ntp in ['ATP[c]', 'CTP[c]', 'GTP[c]', 'UTP[c]']])
     d_ntps = ntps_arr[:, 1:] - ntps_arr[:, :-1]
 
     np.testing.assert_array_equal(d_ntps, -np.array(ntps_used[1:]).transpose())

@@ -51,19 +51,12 @@ def test_exchanger():
     parameters = {
         'exchanges': {
             'A': -1.0,
-        },
-        # override emit
-        '_schema': {
-            'molecules': {
-                'A': {'_emit': True}
-        }}}
+        }}
     process = Exchange(parameters)
 
     # declare the initial state
-    initial_state = {
-        'molecules': {
-            'A': 10.0
-        }}
+    initial_state = {'bulk': np.array([('A', 10.0)],
+        dtype=[('id', 'U40'), ('count', float)])}
 
     # run the simulation
     sim_settings = {

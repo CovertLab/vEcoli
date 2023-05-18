@@ -70,7 +70,7 @@ class MureinDivision(Step):
 
     def next_update(self, timestep, states):
         if self.murein_idx is None:
-            self.murin_idx = bulk_name_to_idx(
+            self.murein_idx = bulk_name_to_idx(
                 self.parameters["murein_name"], states["bulk"]["id"])
 
         update = {"murein_state": {}, "bulk": []}
@@ -104,7 +104,6 @@ class MureinDivision(Step):
             total_murein = counts(states["bulk"], self.murein_idx)
             if accounted_murein != total_murein:
                 update["bulk"].append((self.murein_idx, (
-                    accounted_murein - states["total_murein"][
-                        self.parameters["murein_name"]])))
+                    accounted_murein - total_murein)))
         update["first_update"] = False
         return update

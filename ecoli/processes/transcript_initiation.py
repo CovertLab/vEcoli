@@ -313,8 +313,8 @@ class TranscriptInitiation(PartitionedProcess):
                     'rrn5S_init_prob': 0,
                     'total_rna_init': 0}),
                 'rnap_data': listener_schema({
-                    'didInitialize': 0,
-                    'rnaInitEvent': 0})},
+                    'did_initialize': 0,
+                    'rna_init_event': 0})},
         }
 
     def calculate_request(self, timestep, states):
@@ -694,34 +694,56 @@ def test_transcript_initiation():
 
     transcript_initiation = TranscriptInitiation(test_config)
 
+    submass_dtypes = [('massDiff_DNA', '<f8'), ('massDiff_mRNA', '<f8'),
+        ('massDiff_metabolite', '<f8'), ('massDiff_miscRNA', '<f8'),
+        ('massDiff_nonspecific_RNA', '<f8'), ('massDiff_protein', '<f8'),
+        ('massDiff_rRNA', '<f8'), ('massDiff_tRNA', '<f8'),
+        ('massDiff_water', '<f8')]
+    chromosome_dtypes  = [('_entryState', 'i1'), ('_globalIndex', '<i8'),
+        ('division_time', '<f8'), ('domain_index', '<i4'),
+        ('has_triggered_division', '?'), ('unique_index', '<i8')]
+    rna_dtypes = [('RNAP_index', '<i8'), ('TU_index', '<i8'),
+        ('_entryState', 'i1'), ('_globalIndex', '<i8'), ('can_translate', '?'),
+        ('is_full_transcript', '?'), ('is_mRNA', '?'), ('unique_index', '<i8'),
+        ('transcript_length', '<i8')]
+    active_rnap_dtypes = [('_entryState', 'i1'), ('_globalIndex', '<i8'),
+        ('coordinates', '<i8'), ('direction', '?'), ('domain_index', '<i4'),
+        ('unique_index', '<i8')]
+    promoter_dtypes = [('TU_index', '<i8'), ('_entryState', 'i1'),
+        ('_globalIndex', '<i8'), ('bound_TF', '?', (4,)),
+        ('coordinates', '<i8'), ('domain_index', '<i4'),
+        ('unique_index', '<i8')]
     initial_state = {
         'environment': {'media_id': 'minimal'},
-        'molecules': {'APORNAP-CPLX[c]': 1000, 'GUANOSINE-5DP-3DP[c]': 0},  # RNAP breaks at 132
-        'full_chromosomes': {'0': {'unique_index': 0}},
-        'promoters': {},
-        'RNAs': {},
-        'active_RNAPs': {},
+        'bulk': np.array([
+            ('APORNAP-CPLX[c]', 1000),
+            ('GUANOSINE-5DP-3DP[c]', 0),
+            ('ppGpp', 0)
+        ], dtype=[('id', 'U40'), ('count', int)]),
         'listeners': {
             'mass': {
                 'cell_mass': 1000,
                 'dry_mass': 350}
         }
     }
-
-    # add promoter data to initial_state
-    for i in range(len(rna_data)):
-        rna = rna_data[i]
-        p = {
-            'TU_index': i,
-            'coordinates': rna['replication_coordinate'],
-            'domain_index': 0,  # 0, 1, 2??
-            'bound_TF': [False, False, False, False]
-        }
-        initial_state['promoters'][str(i)] = p
+    unique_state = {
+        'full_chromosome': np.array([
+            (1, 0, 0, 0, False, 0) + (0,)*9,
+        ], dtype=chromosome_dtypes+submass_dtypes),
+        'promoter': np.array([
+            (i, 1, i, [False]*4, subdata['replication_coordinate'], 0, i
+                )  + (0,)*9
+            for i, subdata in enumerate(rna_data)
+        ], dtype=promoter_dtypes+submass_dtypes),
+        'RNA': np.array([], dtype=rna_dtypes+submass_dtypes),
+        'active_RNAP': np.array([], dtype=active_rnap_dtypes+submass_dtypes),
+    }
+    initial_state['unique'] = unique_state
 
     settings = {
         'total_time': 100,
-        'initial_state': initial_state}
+        'initial_state': initial_state,
+        'topology': TOPOLOGY}
 
     data_noTF = simulate_process(transcript_initiation, settings)
 
@@ -739,11 +761,12 @@ def test_transcript_initiation():
     #  5) Test of fixed synthesis probabilties does not pass
 
     # Unpack data
-    inactive_RNAP = np.array(data_noTF['molecules'][test_config['inactive_RNAP']])
+    bulk_timeseries = np.array(data_noTF['bulk'])
+    inactive_RNAP = bulk_timeseries[:, 0]
     d_inactive_RNAP = inactive_RNAP[1:] - inactive_RNAP[:-1]
-    d_active_RNAP = np.array(data_noTF['listeners']['rnap_data']['didInitialize'][1:])
+    d_active_RNAP = np.array(data_noTF['listeners']['rnap_data']['did_initialize'][1:])
 
-    inits_by_TU = np.stack(data_noTF['listeners']['rnap_data']['rnaInitEvent'][1:])
+    inits_by_TU = np.stack(data_noTF['listeners']['rnap_data']['rna_init_event'][1:])
 
     rnap_inits = inits_by_TU[:, test_config['idx_rnap']]
     rprotein_inits = inits_by_TU[:, test_config['idx_rprotein']]
@@ -796,7 +819,7 @@ def test_transcript_initiation():
 def run_plot(config, data):
     N = len(data['time'])
     timestep = config['time_step']
-    inits_by_TU = np.stack(data['listeners']['rnap_data']['rnaInitEvent'][1:])
+    inits_by_TU = np.stack(data['listeners']['rnap_data']['rna_init_event'][1:])
     synth_probs = np.array(data['listeners']['rna_synth_prob']['rna_synth_prob'][1:])
 
     # plot synthesis probabilities over time

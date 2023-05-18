@@ -5,8 +5,6 @@
         "tetracycline-ribosome-equilibrium",
         "aggregator"
     ],
-    "mar_regulon": "True",
-    "initial_state_file": "tet_wcecoli_t0",
     "spatial_environment_config": {},
     "topology": {
         "tetracycline-ribosome-equilibrium": {

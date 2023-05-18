@@ -342,9 +342,9 @@ class Metabolism(Step):
                            exchange_fluxes).asNumber().astype(int)
 
         # Write outputs to listeners
-        # unconstrained, constrained, uptake_constraints = \
-        #     self.get_import_constraints(unconstrained, constrained,
-        #     GDCW_BASIS)
+        unconstrained, constrained, uptake_constraints = \
+            self.get_import_constraints(unconstrained, constrained,
+            GDCW_BASIS)
 
         # below is used for comparing target and estimate between GD-FBA
         # and LP-FBA, no effect on model
@@ -847,8 +847,9 @@ def test_metabolism_listener():
     sim.build_ecoli()
     sim.run()
     data = sim.query()
-    assert(type(data['listeners']['fba_results']['reactionFluxes'][0]) == list)
-    assert(type(data['listeners']['fba_results']['reactionFluxes'][1]) == list)
+    reaction_fluxes = data['listeners']['fba_results']['reaction_fluxes']
+    assert(type(reaction_fluxes[0]) == list)
+    assert(type(reaction_fluxes[1]) == list)
 
 
 if __name__ == '__main__':

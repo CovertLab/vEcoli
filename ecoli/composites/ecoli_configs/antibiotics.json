@@ -7,6 +7,9 @@
         "conc_to_counts",
         "environment-glucose-limit"
     ],
+    "initial_state_file": "antibiotics_wcecoli_t0",
+    "mar_regulon": "True",
+    "amp_lysis": true,
     "spatial_environment_config": {
         "multibody": {
             "bounds": [

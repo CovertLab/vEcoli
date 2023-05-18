@@ -1,5 +1,5 @@
 from vivarium.core.process import Process
-from ecoli.library.schema import bulk_name_to_idx, numpy_schema
+from ecoli.library.schema import bulk_name_to_idx, numpy_schema, counts
 
 
 class BulkTimelineProcess(Process):
@@ -38,7 +38,8 @@ class BulkTimelineProcess(Process):
                 for path, change in change_dict.items():
                     if path[0] == 'bulk':
                         idx = bulk_name_to_idx(path[-1], states['bulk']['id'])
-                        update.setdefault('bulk', []).append((idx, change))
+                        curr_count = counts(states['bulk'], idx)
+                        update.setdefault('bulk', []).append((idx, change - curr_count))
                     else:
                         curr = update
                         for i, subpath in enumerate(path):
@@ -61,4 +62,5 @@ class BulkTimelineProcess(Process):
                                         f'its leaves at the same time')
                             curr = curr[subpath]
                 new_timeline.pop(t)
+        self.timeline = new_timeline
         return update

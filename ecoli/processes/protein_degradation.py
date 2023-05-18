@@ -151,16 +151,16 @@ def test_protein_degradation():
     protein_degradation = ProteinDegradation(test_config)
 
     state = {
-        'metabolites': {
-            'A': 10,
-            'B': 20,
-            'C': 30,
-            'H2O': 10000},
-        'proteins': {
-            'w': 50,
-            'x': 60,
-            'y': 70,
-            'z': 80}}
+        'bulk': np.array([
+            ('A', 10),
+            ('B', 20),
+            ('C', 30),
+            ('w', 50),
+            ('x', 60),
+            ('y', 70),
+            ('z', 80),
+            ('H2O', 10000)
+        ], dtype=[('id', 'U40'), ('count', int)])}
 
     settings = {
         'total_time': 100,
@@ -169,24 +169,25 @@ def test_protein_degradation():
     data = simulate_process(protein_degradation, settings)
 
     # Assertions =======================================================
-    protein_data = np.concatenate([[data["proteins"][protein]] for protein in test_config['protein_ids']], axis=0)
-    protein_delta = protein_data[:, 1:] - protein_data[:, :-1]
+    bulk_timeseries = np.array(data["bulk"])
+    protein_data = bulk_timeseries[:, 3:7]
+    protein_delta = protein_data[1:] - protein_data[:-1]
 
-    aa_data = np.concatenate([[data["metabolites"][aa]] for aa in test_config['amino_acid_ids']], axis=0)
-    aa_delta = aa_data[:, 1:] - aa_data[:, :-1]
+    aa_data = bulk_timeseries[:, :3]
+    aa_delta = aa_data[1:] - aa_data[:-1]
 
-    h2o_data = np.array(data["metabolites"][test_config["water_id"]])
+    h2o_data = bulk_timeseries[:, 7]
     h2o_delta = h2o_data[1:] - h2o_data[:-1]
 
     # Proteins are monotonically decreasing, never <0:
-    for i in range(protein_data.shape[0]):
-        assert monotonically_decreasing(protein_data[i, :]), (
+    for i in range(protein_data.shape[1]):
+        assert monotonically_decreasing(protein_data[:, i]), (
             f"Protein {test_config['protein_ids'][i]} is not monotonically decreasing.")
         assert all_nonnegative(protein_data), f"Protein {test_config['protein_ids'][i]} falls below 0."
 
     # Amino acids are monotonically increasing
-    for i in range(aa_data.shape[0]):
-        assert monotonically_increasing(aa_data[i, :]), (
+    for i in range(aa_data.shape[1]):
+        assert monotonically_increasing(aa_data[:, i]), (
             f"Amino acid {test_config['amino_acid_ids'][i]} is not monotonically increasing.")
 
     # H2O is monotonically decreasing, never < 0
@@ -194,14 +195,14 @@ def test_protein_degradation():
     assert all_nonnegative(h2o_data), f"H2O falls below 0."
 
     # Amino acids are released in specified numbers whenever a protein is degraded
-    aa_delta_expected = map(lambda i: [test_config['amino_acid_counts'].T @ -protein_delta[:, i]],
-                            range(protein_delta.shape[1]))
-    aa_delta_expected = np.concatenate(list(aa_delta_expected)).T
+    aa_delta_expected = map(lambda i: [test_config['amino_acid_counts'].T @ -protein_delta[i, :]],
+                            range(protein_delta.shape[0]))
+    aa_delta_expected = np.concatenate(list(aa_delta_expected))
     np.testing.assert_array_equal(aa_delta, aa_delta_expected,
                                   "Mismatch between expected release of amino acids, and counts actually released.")
 
     # N-1 molecules H2O is consumed whenever a protein of length N is degraded
-    h2o_delta_expected = (protein_delta.T * (test_config['protein_lengths'] - 1)).T
+    h2o_delta_expected = (protein_delta * (test_config['protein_lengths'] - 1)).T
     h2o_delta_expected = np.sum(h2o_delta_expected, axis=0)
     np.testing.assert_array_equal(h2o_delta, h2o_delta_expected,
                                   ("Mismatch between number of water molecules consumed\n"
