@@ -14,6 +14,7 @@ once a RNA polymerase has reached the end of the annotated gene.
 from os import makedirs
 import numpy as np
 from copy import deepcopy
+import warnings
 
 from vivarium.core.engine import Engine
 
@@ -744,6 +745,10 @@ def test_transcript_elongation():
             ('APORNAP-CPLX[c]', 2768)
         ], dtype=[('id', 'U40'), ('count', int)])
 
+    # Since unique numpy updater is an class method, internal
+    # deepcopying in vivarium-core causes this warning to appear
+    warnings.filterwarnings("ignore",
+        message="Incompatible schema assignment at ")
     engine = Engine(**settings, initial_state=deepcopy(initial_state))
     engine.run_for(100)
     data = engine.emitter.get_timeseries()

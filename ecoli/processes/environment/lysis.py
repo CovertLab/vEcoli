@@ -292,7 +292,7 @@ class LysisAgent(Composer):
 
 def test_lysis(
         n_cells=1,
-        molecule_name='GLC',
+        molecule_name='beta-lactam',
         total_time=60,
         emit_step=1,
         bounds=[25, 25] * units.um,

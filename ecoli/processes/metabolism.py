@@ -175,11 +175,11 @@ class Metabolism(Step):
                 'fba_results': listener_schema({
                     'media_id': '',
                     'conc_updates': [],
-                    'catalyst_counts': 0,
+                    'catalyst_counts': [],
                     'translation_gtp': 0,
                     'coefficient': 0.0,
                     'unconstrained_molecules': [],
-                    'constrained_molecules': {},
+                    'constrained_molecules': [],
                     # 'uptake_constraints': [],
                     'delta_metabolites': [],
                     'reaction_fluxes': [],
