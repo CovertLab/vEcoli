@@ -7,6 +7,7 @@ Treats sRNA-mRNA binding as complexation events that create duplexes and free
 bound ribosomes. Decreases ompF translation during micF overexpression.
 """
 import numpy as np
+import warnings
 
 from vivarium.core.process import Process
 from vivarium.core.engine import Engine
@@ -177,6 +178,10 @@ def test_rna_interference():
         }
     }
 
+    # Since unique numpy updater is an class method, internal
+    # deepcopying in vivarium-core causes this warning to appear
+    warnings.filterwarnings("ignore",
+        message="Incompatible schema assignment at ")
     experiment = Engine(
         processes={'rna-interference': rna_inter},
         steps={'unique-update': unique_update},

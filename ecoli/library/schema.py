@@ -414,8 +414,8 @@ def divide_RNAs_by_domain(values, state):
         d1_rnap_indexes = rnaps['unique_index'][d1_rnap_bool]
         d2_rnap_indexes = rnaps['unique_index'][d2_rnap_bool]
 
-        d1_bool = np.zeros(n_molecules, dtype=np.bool)
-        d2_bool = np.zeros(n_molecules, dtype=np.bool)
+        d1_bool = np.zeros(n_molecules, dtype=np.bool_)
+        d2_bool = np.zeros(n_molecules, dtype=np.bool_)
 
         # Divide full transcripts binomially
         full_transcript_indexes = np.where(is_full_transcript)[0]

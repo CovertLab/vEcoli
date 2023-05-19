@@ -163,11 +163,16 @@ class Ecoli(Composer):
         flow = {}
         self.partitioned_processes = []
         for process_name, process_class in config['processes'].items():
-            process = process_class(process_configs[process_name])
-            if isinstance(process, PartitionedProcess):
+            if issubclass(process_class, PartitionedProcess):
+                process = process_class(process_configs[process_name])
                 if config['log_updates']:
                     processes[f'{process_name}_evolver'] = \
                         make_logging_process(Evolver)({
+                            'time_step': time_step,
+                            'process': process
+                        })
+                    steps[f'{process_name}_requester'] = \
+                        make_logging_process(Requester)({
                             'time_step': time_step,
                             'process': process
                         })
@@ -176,14 +181,18 @@ class Ecoli(Composer):
                         'time_step': time_step,
                         'process': process
                     })
-                steps[f'{process_name}_requester'] = Requester({
-                    'time_step': time_step,
-                    'process': process
-                })
+                    steps[f'{process_name}_requester'] = Requester({
+                        'time_step': time_step,
+                        'process': process
+                    })
                 self.partitioned_processes.append(process_name)
-            elif isinstance(process, Step):
+            elif issubclass(process_class, Step):
+                if config['log_updates']:
+                    process_class = make_logging_process(process_class)
+                process = process_class(process_configs[process_name])
                 steps[process_name] = process
             else:
+                process = process_class(process_configs[process_name])
                 processes[process_name] = process
             
         # Add allocator Step
@@ -287,9 +296,9 @@ class Ecoli(Composer):
                 topology[f'{process_id}_evolver'] = deepcopy(ports)
                 if config['log_updates']:
                     topology[f'{process_id}_evolver']['log_update'] = (
-                        'log_update', process_id,)
+                        'log_update', f'{process_id}_evolver',)
                     topology[f'{process_id}_requester']['log_update'] = (
-                        'log_update', process_id,)
+                        'log_update', f'{process_id}_requester',)
                 # Only the bulk ports should be included in the request
                 # and allocate topologies
                 bulk_topo = filter_bulk_topology(ports)
@@ -354,12 +363,17 @@ def run_ecoli(
     progress_bar=True,
     log_updates=False,
     emitter='timeseries',
+    time_series=True,
 ):
     """Run ecoli_master simulations
 
-    Arguments: TODO -- complete the arguments docstring
+    Arguments:
         * **total_time** (:py:class:`int`): the total runtime of the experiment
-        * **config** (:py:class:`dict`):
+        * **divide** (:py:class:`bool`): whether to incorporate division
+        * **progress_bar** (:py:class:`bool`): whether to show a progress bar
+        * **log_updates**  (:py:class:`bool`): whether to save updates from each process
+        * **emitter** (:py:class:`str`): type of emitter to use
+        * **time_series** (:py:class:`bool`): whether to return data in timeseries format
 
     Returns:
         * output data
@@ -373,6 +387,7 @@ def run_ecoli(
     sim.progress_bar = progress_bar
     sim.log_updates = log_updates
     sim.emitter = emitter
+    sim.raw_output = not time_series
     sim.build_ecoli()
     sim.run()
     return sim.query()

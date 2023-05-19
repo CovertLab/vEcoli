@@ -193,6 +193,10 @@ def colony_save_states(engine, config):
     Runs the simulation while saving the states of the colony at specific
     timesteps to jsons.
     """
+    # Since unique numpy updater is an class method, internal
+    # deepcopying in vivarium-core causes this warning to appear
+    warnings.filterwarnings("ignore",
+        message="Incompatible schema assignment at ")
     for time in config["save_times"]:
         if time > config["total_time"]:
             raise ValueError(
@@ -386,8 +390,6 @@ def run_simulation(config):
     metadata['git_hash'] = get_git_revision_hash()
     metadata['git_status'] = get_git_status()
 
-    warnings.filterwarnings("ignore",
-        message="Incompatible schema assignment at ")
     engine = Engine(
         processes=composite.processes,
         topology=composite.topology,
