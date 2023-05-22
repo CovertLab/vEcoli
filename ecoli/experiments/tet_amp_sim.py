@@ -1,3 +1,4 @@
+import ast
 import os
 import json
 import argparse
@@ -6,7 +7,6 @@ from vivarium.library.units import units
 
 from ecoli.composites.ecoli_engine_process import run_simulation
 from ecoli.experiments.ecoli_master_sim import CONFIG_DIR_PATH, SimConfig
-from migration.migration_utils import recursive_compare
 from ecoli.library.parameters import param_store
 
 def run_sim(tet_conc=0, amp_conc=0, baseline=False, seed=0,
@@ -49,7 +49,8 @@ def run_sim(tet_conc=0, amp_conc=0, baseline=False, seed=0,
     elif initial_state_file:
         config["initial_state_file"] = initial_state_file
     else:
-        make_tet_initial_state("wcecoli_t0")
+        make_initial_state("wcecoli_t0", rnai_data=config[
+            "process_configs"]["ecoli-rna-interference"])
     if baseline:
         print(f"Running baseline sim (seed = {seed}).")
         config["colony_save_prefix"] = "glc_combined"
@@ -81,32 +82,45 @@ def run_sim(tet_conc=0, amp_conc=0, baseline=False, seed=0,
     run_simulation(config)
 
 
-def add_mar_tf(data):
-    # Add initial count for marR-tet complex
-    data["bulk"]["marR-tet[c]"] = 0
+def update_agent(data, rnai_data=None):
+    new_bulk = [
+        ("marR-tet[c]", 0),
+        ("tetracycline[p]", 0),
+        ("tetracycline[c]", 0),
+        ("CPLX0-3953-tetracycline[c]", 0),
+        ("ampicillin[p]", 0),
+        ("ampicillin_hydrolyzed[p]", 0)
+    ]
+    # Add RNA duplexes
+    if rnai_data:
+        new_bulk += [
+            (str(duplex_id), 0)
+            for duplex_id in rnai_data["duplex_ids"]
+        ]
+    data["bulk"].extend(new_bulk)
     # Add promoter binding data for marA and marR
-    for promoter_data in data["unique"]["promoter"].values():
-        promoter_data["bound_TF"] += [False, False]
+    for promoter_data in data["unique"]["promoter"]:
+        # Bound TF boolean mask should be 4th attr
+        promoter_data[3] += [False, False]
+    # Bound TF boolean mask now has 26 TFs
+    data["unique_dtypes"]["promoter"] = ast.literal_eval(
+        data["unique_dtypes"]["promoter"])
+    data["unique_dtypes"]["promoter"][3] = ('bound_TF', '?', (26,))
+    data["unique_dtypes"]["promoter"] = str(data["unique_dtypes"]["promoter"])
     return data
 
 
-def make_tet_initial_state(initial_file):
+def make_initial_state(initial_file, rnai_data=None):
     with open(f"data/{initial_file}.json") as f:
         initial_state = json.load(f)
     # Modify each cell in colony individually
     if "agents" in initial_state:
         for agent_id, agent_data in initial_state["agents"].items():
-            initial_state["agents"][agent_id] = add_mar_tf(agent_data)
+            initial_state["agents"][agent_id] = update_agent(
+                agent_data, rnai_data)
     else:
-        initial_state = add_mar_tf(initial_state)
-    if os.path.exists(f"data/tet_{initial_file}.json"):
-        with open(f"data/tet_{initial_file}.json") as f:
-            existing_initial_state = json.load(f)
-        if recursive_compare(initial_state, existing_initial_state):
-            return
-        else:
-            print(f"tet_{initial_file}.json out of date, updating")
-    with open(f"data/tet_{initial_file}.json", "w") as f:
+        initial_state = update_agent(initial_state, rnai_data)
+    with open(f"data/antibiotics_{initial_file}.json", "w") as f:
         json.dump(initial_state, f)
 
 

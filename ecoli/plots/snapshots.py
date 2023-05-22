@@ -807,7 +807,7 @@ def get_tag_ranges(
                 volume = agent_data.get("boundary", {}).get("volume", 0)
                 for tag_id in tagged_molecules:
                     level = get_value_from_path(agent_data, tag_id)
-                    if level == None:
+                    if level is None:
                         continue
                     if convert_to_concs:
                         level = level / volume if volume else 0

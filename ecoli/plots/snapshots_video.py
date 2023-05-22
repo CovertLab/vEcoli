@@ -154,7 +154,7 @@ def video_from_images(img_paths, out_file):
             if height < size[0]:
                 size[1] = height
         else:
-            size = (width, height)
+            size = [width, height]
         img_array.append(img)
 
     out = cv2.VideoWriter(out_file, cv2.VideoWriter_fourcc(*'mp4v'), 15, size)

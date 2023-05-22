@@ -6,14 +6,14 @@ import numpy as np
 import time
 from scipy.sparse import csr_matrix
 
-from vivarium.core.process import Process, Step
+from vivarium.core.process import Step
 
-from ecoli.library.schema import bulk_schema, array_from
+from ecoli.library.schema import (numpy_schema, bulk_name_to_idx,
+    listener_schema, counts)
 
 from wholecell.utils import units
 
 from ecoli.processes.registries import topology_registry
-import pandas as pd
 import cvxpy as cp
 from typing import Iterable, Mapping
 from dataclasses import dataclass
@@ -42,7 +42,8 @@ class MetabolismRedux(Step):
         'stoichiometry': [],
         'reaction_catalysts': [],
         'catalyst_ids': [],
-        'kinetic_rates': [],  # TODO (Cyrus) -- get these passed in, these are a subset of the stoichimetry
+        # TODO (Cyrus) -- get these passed in, subset of the stoichimetry
+        'kinetic_rates': [],
         'media_id': 'minimal',
         'objective_type': 'homeostatic',
         'cell_density': 1100 * units.g / units.L,
@@ -53,17 +54,53 @@ class MetabolismRedux(Step):
     def __init__(self, parameters):
         super().__init__(parameters)
 
-        # config initialization
-        self.stoichiometry = self.parameters['stoichiometry']
-        maintenance_reaction = self.parameters['maintenance_reaction']
-        self.stoichiometry.append({'reaction id': 'maintenance_reaction',
-                                   'stoichiometry': maintenance_reaction, 'enzyme': []})
+        stoich_dict = dict(sorted(self.parameters['stoich_dict'].items()))
+        # TODO (Cyrus) - Remove when have a better way to handle these rxns.
+        # ParCa mistakes in carbon gen, efflux/influx proton gen, mass gen
+        bad_rxns = ["RXN-12440", "TRANS-RXN-121", "TRANS-RXN-300",
+                    "TRANS-RXN-8", "R15-RXN-MET/CPD-479//CPD-479/MET.25."]
+        for rxn in bad_rxns:
+            stoich_dict.pop(rxn)
+        # Add maintenance reaction
+        stoich_dict['maintenance_reaction'] = self.parameters[
+            'maintenance_reaction']
+        # Get all metabolite names
+        self.metabolite_names = set()
+        for reaction, stoich in stoich_dict.items():
+            self.metabolite_names.update(stoich.keys())
+        self.metabolite_names = sorted(list(self.metabolite_names))
+        metabolites_idx = {species: i for i, species in
+            enumerate(self.metabolite_names)}
+        self.reaction_names = list(stoich_dict.keys())
+        # Convert stoichiometric dictionary to array
+        n_metabolites = len(self.metabolite_names)
+        n_reactions = len(self.reaction_names)
+        self.stoichiometry = np.zeros((n_metabolites, n_reactions),
+            dtype=np.int8)
+        # Get indices of catalysts for each reaction
+        reaction_catalysts = self.parameters['reaction_catalysts']
+        self.catalyst_ids = self.parameters['catalyst_ids']
+        catalyst_idx = {catalyst: i for i, catalyst
+            in enumerate(self.catalyst_ids)}
+        self.enzyme_catalyzed_rxn_idx = []
+        self.catalyzed_rxn_enzymes_idx = []
+        for col_idx, (reaction, stoich) in enumerate(stoich_dict.items()):
+            for species, coefficient in stoich.items():
+                i = metabolites_idx[species]
+                self.stoichiometry[i, col_idx] = coefficient
+            enzyme_idx = [catalyst_idx[catalyst] 
+                for catalyst in reaction_catalysts.get(reaction, [])]
+            if len(enzyme_idx) > 0:
+                self.enzyme_catalyzed_rxn_idx.append(col_idx)
+                self.catalyzed_rxn_enzymes_idx.append(enzyme_idx)
+        self.enzyme_catalyzed_rxn_idx = np.array(self.enzyme_catalyzed_rxn_idx)
 
         self.media_id = self.parameters['media_id']
         self.cell_density = self.parameters['cell_density']
         self.nAvogadro = self.parameters['avogadro']
-        self.ngam = parameters['non_growth_associated_maintenance']
-        self.gam = parameters['dark_atp'] * parameters['cell_dry_mass_fraction']
+        self.ngam = self.parameters['non_growth_associated_maintenance']
+        self.gam = self.parameters['dark_atp'] * self.parameters[
+            'cell_dry_mass_fraction']
 
         # new variables for the model
         self.cell_mass = None
@@ -72,67 +109,69 @@ class MetabolismRedux(Step):
 
         # methods from config
         self._biomass_concentrations = {}  # type: dict
-        self._getBiomassAsConcentrations = parameters['get_biomass_as_concentrations']
-        concentration_updates = self.parameters['concentration_updates']
+        self._getBiomassAsConcentrations = self.parameters[
+            'get_biomass_as_concentrations']
+        self.concentration_updates = self.parameters['concentration_updates']
         self.exchange_constraints = self.parameters['exchange_constraints']
-        self.get_kinetic_constraints = self.parameters['get_kinetic_constraints']
-        self.kinetic_constraint_reactions = self.parameters['kinetic_constraint_reactions']
+        self.get_kinetic_constraints = self.parameters[
+            'get_kinetic_constraints']
+        self.kinetic_constraint_reactions = self.parameters[
+            'kinetic_constraint_reactions']
+        self.nutrient_to_doubling_time = self.parameters[
+            'nutrient_to_doubling_time']
 
         # retrieve exchanged molecules
-        exchange_molecules = set()
+        self.exchange_molecules = set()
         exchanges = parameters['exchange_data_from_media'](self.media_id)
-        exchange_molecules.update(exchanges['externalExchangeMolecules'])
-        self.exchange_molecules = list(sorted(exchange_molecules))
+        self.exchange_molecules.update(exchanges['externalExchangeMolecules'])
 
         # retrieve conc dict and get homeostatic objective.
-        conc_dict = concentration_updates.concentrations_based_on_nutrients(self.media_id)
+        conc_dict = self.concentration_updates.concentrations_based_on_nutrients(
+            self.media_id)
         doubling_time = parameters['doubling_time']
         conc_dict.update(self.getBiomassAsConcentrations(doubling_time))
-
-        self.homeostatic_objective = dict((key, conc_dict[key].asNumber(CONC_UNITS)) for key in conc_dict)
-        self.maintenance_objective = ['maintenance_reaction']
+        
+        # Separate homeostatic objective into metabolite and conc arrays
+        self.homeostatic_metabolites = np.array(list(conc_dict.keys()))
+        self.homeostatic_concs = np.array([conc.asNumber(CONC_UNITS)
+            for conc in conc_dict.values()])
 
         # Network flow initialization
-        stoichiometric_matrix_dict = {item["reaction id"]: item["stoichiometry"] for item in self.stoichiometry}
+        self.network_flow_model = NetworkFlowModel(
+            self.stoichiometry, self.metabolite_names,
+            self.reaction_names, self.homeostatic_metabolites,
+            self.kinetic_constraint_reactions)
 
-        # TODO (Cyrus) - Remove this when we have a better way to handle these reactions.
-        # generate carbon mistake in parca, efflux/influx proton gen, mass gen
-        bad_rxns = ["RXN-12440", "TRANS-RXN-121", "TRANS-RXN-300",
-                    "TRANS-RXN-8", "R15-RXN-MET/CPD-479//CPD-479/MET.25."]
-        for rxn in bad_rxns:
-            stoichiometric_matrix_dict.pop(rxn, None)
-
-        self.network_flow_model = NetworkFlowModel(stoichiometric_matrix_dict, self.homeostatic_objective)
-
-        # for ports schema # TODO (Cyrus) - Remove some of these. They are not used.
-        self.metabolite_names_for_nutrients = self.get_port_metabolite_names(conc_dict)
-        self.aa_names = self.parameters['aa_names']
+        # important bulk molecule names
         self.catalyst_ids = self.parameters['catalyst_ids']
-        self.kinetic_constraint_enzymes = self.parameters['kinetic_constraint_enzymes']
-        self.kinetic_constraint_substrates = self.parameters['kinetic_constraint_substrates']
+        self.aa_names = self.parameters['aa_names']
+        self.kinetic_constraint_enzymes = self.parameters[
+            'kinetic_constraint_enzymes']
+        self.kinetic_constraint_substrates = self.parameters[
+            'kinetic_constraint_substrates']
 
-    def get_port_metabolite_names(self, conc_dict):
-        metabolite_names_from_nutrients = set()
-        metabolite_names_from_nutrients.update(conc_dict)
-        return list(sorted(metabolite_names_from_nutrients))
+        # Helper indices for Numpy indexing
+        self.homeostatic_metabolite_idx = None
+
+        # Cache uptake parameters from previous timestep
+        self.allowed_exchange_uptake = None
 
     def ports_schema(self):
 
         return {
-            # TODO (Cyrus) Add internal metabolites as bulk schema.
-            'metabolites': bulk_schema(self.metabolite_names_for_nutrients),
-            'catalysts': bulk_schema(self.catalyst_ids),
-            'kinetics_enzymes': bulk_schema(self.kinetic_constraint_enzymes),
-            'kinetics_substrates': bulk_schema(self.kinetic_constraint_substrates),
-            'amino_acids': bulk_schema(self.aa_names),
-            'amino_acids_total': bulk_schema(self.aa_names, partition=False),
-            # 'kinetic_flux_targets': {reaction_id: {} for reaction_id in self.parameters['kinetic_rates']},
+            'bulk': numpy_schema('bulk'),
+            'bulk_total': numpy_schema('bulk', partition=False),
+            # 'kinetic_flux_targets': {reaction_id: {} for reaction_id
+            #     in self.parameters['kinetic_rates']},
 
             'environment': {
                 'media_id': {
                     '_default': '',
                     '_updater': 'set'},
-                'exchange': bulk_schema(self.exchange_molecules),
+                'exchange': {
+                    str(element): {'_default': 0}
+                    for element in self.exchange_molecules
+                },
                 # can probably remove, identical to exchanges except tuple.
                 'exchange_data': {
                     'unconstrained': {'_default': []},
@@ -150,32 +189,41 @@ class MetabolismRedux(Step):
             },
 
             'listeners': {
-                'mass': {
-                    # TODO (Matt -> Cyrus): These should not be using a divider. Mass listener should run before metabolism after division.
-                    'cell_mass': {'_default': 0.0,
-                                  '_divider': 'split'},
-                    'dry_mass': {'_default': 0.0,
-                                 '_divider': 'split'}},
+                'mass': listener_schema({
+                    'cell_mass': 0.0,
+                    'dry_mass': 0.0}),
 
-                'fba_results': {
-                    'estimated_fluxes': {'_default': {}, '_updater': 'set', '_emit': True},
-                    'estimated_homeostatic_dmdt': {'_default': {}, '_updater': 'set', '_emit': True},
-                    'target_homeostatic_dmdt': {'_default': {}, '_updater': 'set', '_emit': True},
-                    'target_kinetic_fluxes': {'_default': {}, '_updater': 'set', '_emit': True},
-                    'target_kinetic_bounds': {'_default': {}, '_updater': 'set', '_emit': True},
-                    'estimated_exchange_dmdt': {'_default': {}, '_updater': 'set', '_emit': True},
-                    'estimated_intermediate_dmdt': {'_default': {}, '_updater': 'set', '_emit': True},
-                    'maintenance_target': {'_default': {}, '_updater': 'set', '_emit': True},
-                    'solution_fluxes': {'_default': {}, '_updater': 'set', '_emit': True},
-                    'solution_dmdt': {'_default': {}, '_updater': 'set', '_emit': True},
-                    'solution_residuals': {'_default': {}, '_updater': 'set', '_emit': True},
-                    'time_per_step': {'_default': 0.0, '_updater': 'set', '_emit': True},
-                },
+                'fba_results': listener_schema({
+                    'solution_fluxes': [],
+                    'solution_dmdt': [],
+                    'solution_residuals': [],
+                    'time_per_step': 0.0,
+                    'estimated_fluxes': [],
+                    'estimated_homeostatic_dmdt': [],
+                    'target_homeostatic_dmdt': [],
+                    'estimated_exchange_dmdt': {},
+                    'estimated_intermediate_dmdt': [],
+                    'target_kinetic_fluxes': [],
+                    'target_kinetic_bounds': [],
+                    'maintenance_target': []
+                }),
+
+                'enzyme_kinetics': listener_schema({
+                    'metabolite_counts_init': 0,
+                    'metabolite_counts_final': 0,
+                    'enzyme_counts_init': 0,
+                    'counts_to_molar': 1.0,
+                    'actual_fluxes': [],
+                    'target_fluxes': [],
+                    'target_fluxes_upper': [],
+                    'target_fluxes_lower': []})
             },
+
             'first_update': {
                 '_default': True,
                 '_updater': 'set',
-                '_divider': {'divider': 'set_value', 'config': {'value': True}},
+                '_divider': {'divider': 'set_value',
+                    'config': {'value': True}},
             },
             'evolvers_ran': {'_default': True},
         }
@@ -188,27 +236,50 @@ class MetabolismRedux(Step):
         if states['first_update']:
             return {'first_update': False}
 
+        if self.homeostatic_metabolite_idx is None:
+            bulk_ids = states['bulk']['id']
+            self.homeostatic_metabolite_idx = bulk_name_to_idx(
+                self.homeostatic_metabolites, bulk_ids)
+            self.catalyst_idx = bulk_name_to_idx(
+                self.catalyst_ids, bulk_ids)
+            self.kinetics_enzymes_idx = bulk_name_to_idx(
+                self.kinetic_constraint_enzymes, bulk_ids)
+            self.kinetics_substrates_idx = bulk_name_to_idx(
+                self.kinetic_constraint_substrates, bulk_ids)
+
         # metabolites not in either set are constrained to zero uptake.
-        unconstrained_uptake = states['environment']['exchange_data']['unconstrained']
-        constrained_uptake =  states['environment']['exchange_data']['constrained']
-        self.allowed_exchange_uptake = list(unconstrained_uptake) + list(constrained_uptake.keys())
-        self.disallowed_exchange_uptake = list(set(self.exchange_molecules) - set(self.allowed_exchange_uptake))
-        self.exchange_molecules = list(set(self.exchange_molecules).union(set(self.allowed_exchange_uptake)))
+        exchange_data = states['environment']['exchange_data']
+        unconstrained_uptake = exchange_data['unconstrained']
+        constrained_uptake =  exchange_data['constrained']
+        
+        new_allowed_exchange_uptake = set(unconstrained_uptake).union(
+            constrained_uptake.keys())
+        new_exchange_molecules = set(self.exchange_molecules).union(
+            set(new_allowed_exchange_uptake))
 
         # set up network flow model exchanges and uptakes
-        self.network_flow_model.set_up_exchanges(self.exchange_molecules, self.allowed_exchange_uptake)
+        if (new_exchange_molecules != self.exchange_molecules) or (
+            new_allowed_exchange_uptake != self.allowed_exchange_uptake
+        ):
+            self.network_flow_model.set_up_exchanges(
+                new_exchange_molecules, new_allowed_exchange_uptake)
+            self.exchange_molecules = new_exchange_molecules
+            self.allowed_exchange_uptake = new_allowed_exchange_uptake
 
         # extract the states from the ports
-        current_metabolite_counts = states['metabolites']
+        homeostatic_metabolite_counts = counts(states['bulk'],
+            self.homeostatic_metabolite_idx)
         self.timestep = self.calculate_timestep(states)
 
         # TODO (Cyrus) - Implement kinetic model
         # kinetic_flux_targets = states['kinetic_flux_targets']
         # needed for kinetics
-        current_catalyst_counts = states['catalysts']
+        current_catalyst_counts = counts(states['bulk'], self.catalyst_idx)
         translation_gtp = states['polypeptide_elongation']['gtp_to_hydrolyze']
-        kinetic_enzyme_counts = states['kinetics_enzymes'] # kinetics related
-        kinetic_substrate_counts = states['kinetics_substrates']
+        kinetic_enzyme_counts = counts(states['bulk'],
+            self.kinetics_enzymes_idx) # kinetics related
+        kinetic_substrate_counts = counts(states['bulk'],
+            self.kinetics_substrates_idx)
 
         # cell mass difference for calculating GAM
         if self.cell_mass is not None:
@@ -217,85 +288,94 @@ class MetabolismRedux(Step):
         dry_mass = states['listeners']['mass']['dry_mass'] * units.fg
 
         cell_volume = self.cell_mass / self.cell_density
-        # Coefficient to convert between flux (mol/g DCW/hr) basis and concentration (M) basis
-        conversion_coefficient = dry_mass / self.cell_mass * self.cell_density * timestep * units.s
-        self.counts_to_molar = (1 / (self.nAvogadro * cell_volume)).asUnit(CONC_UNITS)
+        # Coefficient to convert between flux (mol/g DCW/hr) basis
+        # and concentration (M) basis
+        conversion_coeff = (dry_mass / self.cell_mass *
+            self.cell_density * self.timestep * units.s)
+        self.counts_to_molar = (1 / (self.nAvogadro * cell_volume)).asUnit(
+            CONC_UNITS)
 
         # maintenance target
         if self.previous_mass is not None:
-            flux_gam = self.gam * (self.cell_mass - self.previous_mass) / VOLUME_UNITS
+            flux_gam = self.gam * (self.cell_mass - self.previous_mass
+                ) / VOLUME_UNITS
         else:
             flux_gam = 0 * CONC_UNITS
-        flux_ngam = (self.ngam * conversion_coefficient)
+        flux_ngam = (self.ngam * conversion_coeff)
         flux_gtp = (self.counts_to_molar * translation_gtp)
 
         total_maintenance = flux_gam + flux_ngam + flux_gtp
-        maintenance_target = {'maintenance_reaction': total_maintenance.asNumber()}
+        maintenance_target = total_maintenance.asNumber()
 
         # binary kinetic targets
-        binary_kinetic_targets = {}
-        for reaction in self.stoichiometry:
-            if reaction['enzyme'] and sum([current_catalyst_counts[enzyme] for enzyme in reaction['enzyme']]) == 0:
-                binary_kinetic_targets[reaction['reaction id']] = 0
+        reaction_catalyst_counts = np.array([sum([current_catalyst_counts[
+            enzyme_idx] for enzyme_idx in enzymes_idx]) for enzymes_idx
+            in self.catalyzed_rxn_enzymes_idx])
+        # Get reaction indices whose fluxes should be set to zero
+        # because there are no enzymes to catalyze the rxn
+        binary_kinetic_idx = self.enzyme_catalyzed_rxn_idx[
+            ~reaction_catalyst_counts.astype(np.bool_)]
+        
+        # TODO: Figure out how to handle changing media ID
+        
+        homeostatic_metabolite_concentrations = (
+            homeostatic_metabolite_counts * self.counts_to_molar.asNumber())
+        target_homeostatic_dmdt = (self.homeostatic_concs
+            - homeostatic_metabolite_concentrations) / self.timestep
 
-        current_metabolite_concentrations = {str(key): value * self.counts_to_molar for key, value in
-                                             current_metabolite_counts.items()}
-        target_homeostatic_dmdt = {str(key): ((self.homeostatic_objective[key] * CONC_UNITS
-                                          - current_metabolite_concentrations[key]) / self.timestep).asNumber()
-                                   for key, value in self.homeostatic_objective.items()}
-
-        # Need to run set_molecule_levels and set_reaction_bounds for homeostatic solution.
-        # set molecule_levels requires exchange_constraints from dataclass.
-
-        # kinetic constraints # TODO (Cyrus) eventually collect isozymes in single reactions, map enzymes to reacts
-        #  via stoich instead of kinetic_constraint_reactions
-        kinetic_enzyme_conc = self.counts_to_molar * array_from(kinetic_enzyme_counts)
-        kinetic_substrate_conc = self.counts_to_molar * array_from(kinetic_substrate_counts)
-        kinetic_constraints = self.get_kinetic_constraints(kinetic_enzyme_conc, kinetic_substrate_conc) # kinetic
-        enzyme_kinetic_boundaries = ((self.timestep * units.s) * kinetic_constraints).asNumber(CONC_UNITS).astype(float)
-        enzyme_kinetic_reactions = self.kinetic_constraint_reactions
-
-        # remove redundant kinetic reactions
-        target_kinetic_bounds = {enzyme_kinetic_reactions[i]: (enzyme_kinetic_boundaries[i, 0], enzyme_kinetic_boundaries[i, 2])
-                                  for i in range(len(enzyme_kinetic_reactions)) if enzyme_kinetic_reactions[i] is not None}
-
-        target_kinetic_values = {enzyme_kinetic_reactions[i]: enzyme_kinetic_boundaries[i, 1]
-                                  for i in range(len(enzyme_kinetic_reactions)) if enzyme_kinetic_reactions[i] is not None}
+        # kinetic constraints 
+        # TODO (Cyrus) eventually collect isozymes in single reactions, map
+        # enzymes to reacts via stoich instead of kinetic_constraint_reactions
+        kinetic_enzyme_conc = self.counts_to_molar * kinetic_enzyme_counts
+        kinetic_substrate_conc = self.counts_to_molar * kinetic_substrate_counts
+        kinetic_constraints = self.get_kinetic_constraints(kinetic_enzyme_conc,
+            kinetic_substrate_conc) # kinetic
+        enzyme_kinetic_boundaries = ((self.timestep * units.s) *
+            kinetic_constraints).asNumber(CONC_UNITS).astype(float)
+        target_kinetic_values = enzyme_kinetic_boundaries[:, 1]
+        target_kinetic_bounds = enzyme_kinetic_boundaries[:, [0, 2]]
 
         # TODO (Cyrus) solve network flow problem to get fluxes
-        objective_weights = {'secretion': 0.01, 'efficiency': 0.0001, 'kinetics': 0.000001}
-        solution: FlowResult = self.network_flow_model.solve(homeostatic_targets=target_homeostatic_dmdt,
-                                                             maintenance_target=maintenance_target['maintenance_reaction'],
-                                                             kinetic_targets=target_kinetic_values,
-                                                             binary_kinetic_targets=binary_kinetic_targets,
-                                                             objective_weights=objective_weights)
+        objective_weights = {'secretion': 0.01, 'efficiency': 0.0001,
+            'kinetics': 0.000001}
+        solution: FlowResult = self.network_flow_model.solve(
+            homeostatic_targets=target_homeostatic_dmdt,
+            maintenance_target=maintenance_target,
+            kinetic_targets=target_kinetic_values,
+            binary_kinetic_idx=binary_kinetic_idx,
+            objective_weights=objective_weights)
 
         self.reaction_fluxes = solution.velocities
         self.metabolite_dmdt = solution.dm_dt
         self.metabolite_exchange = solution.exchanges
 
 
-        # recalculate flux concentrations to counts # TODO Put these into update
-        estimated_reaction_fluxes = self.concentrationToCounts(self.reaction_fluxes)
-        metabolite_dmdt_counts = self.concentrationToCounts(self.metabolite_dmdt)
-        target_kinetic_flux = self.concentrationToCounts(target_kinetic_values)
-        target_maintenance_flux = self.concentrationToCounts(maintenance_target)
-        target_homeostatic_dmdt = self.concentrationToCounts(target_homeostatic_dmdt)
-        estimated_exchange_dmdt = self.concentrationToCounts(self.metabolite_exchange)
-        target_kinetic_bounds = self.concentrationToCounts(target_kinetic_bounds)
+        # recalculate flux concentrations to counts
+        estimated_reaction_fluxes = self.concentrationToCounts(
+            self.reaction_fluxes)
+        metabolite_dmdt_counts = self.concentrationToCounts(
+            self.metabolite_dmdt)
+        target_kinetic_flux = self.concentrationToCounts(
+            target_kinetic_values)
+        target_maintenance_flux = self.concentrationToCounts(
+            maintenance_target)
+        target_homeostatic_dmdt = self.concentrationToCounts(
+            target_homeostatic_dmdt)
+        estimated_exchange_array = self.concentrationToCounts(
+            self.metabolite_exchange)
+        target_kinetic_bounds = self.concentrationToCounts(
+            target_kinetic_bounds)
 
-
-        # Include all concentrations that will be present in a sim for constant length listeners. doesn't affect fba.
-        for met in self.metabolite_names_for_nutrients:
-            if met not in target_homeostatic_dmdt:
-                target_homeostatic_dmdt[str(met)] = 0.
-
-        estimated_homeostatic_dmdt = {str(key): metabolite_dmdt_counts[key] for key in self.homeostatic_objective.keys()}
-        intermediates = list(set(metabolite_dmdt_counts.keys()) - set(self.exchange_molecules) - set(self.homeostatic_objective.keys()))
-        estimated_intermediate_dmdt = {str(key): metabolite_dmdt_counts[key] for key in intermediates}
+        estimated_homeostatic_dmdt = metabolite_dmdt_counts[
+            self.network_flow_model.homeostatic_idx]
+        estimated_intermediate_dmdt = metabolite_dmdt_counts[
+            self.network_flow_model.intermediates_idx]
+        estimated_exchange_dmdt = {metabolite: exchange
+            for metabolite, exchange in zip(self.network_flow_model.mets,
+            estimated_exchange_array) if exchange != 0}
 
         return {
-            'metabolites': estimated_homeostatic_dmdt,  # changes to internal metabolites
+            'bulk': [(self.homeostatic_metabolite_idx, estimated_homeostatic_dmdt)],
             'environment': {
                 'exchanges': estimated_exchange_dmdt  # changes to external metabolites
             },
@@ -316,10 +396,9 @@ class MetabolismRedux(Step):
             }
         }
 
-    def concentrationToCounts(self, concentration_dict):
-        return {key: np.rint(
-            np.dot(concentration_dict[key], (CONC_UNITS / self.counts_to_molar * self.timestep).asNumber())
-        ) for key in concentration_dict}
+    def concentrationToCounts(self, concs):
+        return np.rint(np.dot(concs, (CONC_UNITS /
+            self.counts_to_molar * self.timestep).asNumber())).astype(int)
 
     def getBiomassAsConcentrations(self, doubling_time):
         """
@@ -348,9 +427,9 @@ class MetabolismRedux(Step):
 @dataclass
 class FlowResult:
     """Reaction velocities and dm/dt for an FBA solution, with metrics."""
-    velocities: Mapping[str, float]
-    dm_dt: Mapping[str, float]
-    exchanges: Mapping[str, float]
+    velocities: Iterable[float]
+    dm_dt: Iterable[float]
+    exchanges: Iterable[float]
     objective: float
 
 
@@ -359,71 +438,70 @@ class NetworkFlowModel:
     """A network flow model for estimating fluxes in the metabolic network based on network structure. Flow is mainly
     driven by precursor demand (homeostatic objective) and availability of nutrients."""
     def __init__(self,
-                 reactions: Iterable[dict],
-                 homeostatic_metabolites: Iterable[str]):
-
-        # pandas automatically creates S matrix from dict of dicts, then we fill zeros in remainder
-        self.Sd = pd.DataFrame.from_dict(reactions, dtype=np.int8).fillna(0).astype(np.int8)
-        self.n_mets, self.n_orig_rxns = self.Sd.shape
-
-        # extract names of mets and rxns
-        self.mets = list(self.Sd.index)
-        self.rxns = list(self.Sd.columns)
-        self.intermediates = list(set(self.mets) - set(homeostatic_metabolites))
+        stoich_arr: Iterable[dict],
+        metabolites: Iterable[list],
+        reactions: Iterable[list],
+        homeostatic_metabolites: Iterable[str],
+        kinetic_reactions: Iterable[str]
+    ):
+        self.S_orig = csr_matrix(stoich_arr.astype(np.float64))
+        self.S_exch = None
+        self.n_mets, self.n_orig_rxns = self.S_orig.shape
+        self.mets = metabolites
+        self.met_map = {metabolite: i for i, metabolite in enumerate(metabolites)}
+        self.rxns = reactions
+        self.rxn_map = {reaction: i for i, reaction in enumerate(reactions)}
+        self.kinetic_rxn_idx = np.array([self.rxn_map[rxn] for rxn in kinetic_reactions])
 
         # steady state indices, secretion indices
-        self.intermediates_idx = [self.mets.index(met) for met in self.intermediates]
+        self.intermediates = list(set(self.mets) - set(homeostatic_metabolites))
+        self.intermediates_idx = np.array([self.met_map[met] for met in self.intermediates])
+        self.homeostatic_idx = np.array([self.met_map[met] for met in homeostatic_metabolites])
+        # TODO (Cyrus) - use name provided
+        self.maintenance_idx = self.rxn_map['maintenance_reaction']
 
 
     def set_up_exchanges(self,
-                         exchanges: Iterable[str],
-                         uptakes: Iterable[str]):
+        exchanges: Iterable[str],
+        uptakes: Iterable[str]
+    ):
         """Set up exchange reactions for the network flow model. Exchanges allow certain metabolites to have flow out of
         the system. Uptakes allow certain metabolites to also have flow into the system."""
         all_exchanges = exchanges.copy()
-        all_exchanges.extend(uptakes)
-
-
-        self.Se = pd.DataFrame(index=self.Sd.index)
+        all_exchanges.update(uptakes)
+        
+        # All exchanges can secrete but only uptakes go in both directions
+        self.S_exch = np.zeros((self.n_mets, len(exchanges) + len(uptakes)))
+        self.exchanges = []
+        self.secretion_idx = []
+        exch_idx = 0
         for met in all_exchanges:
             exch_name = met + " exchange"
+            met_idx = self.met_map[met]
             if met in uptakes:
-                self.Se[exch_name] = np.zeros(self.n_mets).astype(np.int8)
-                self.Se.at[met, exch_name] = 1
+                self.S_exch[met_idx, exch_idx] = 1
+                self.exchanges.append(exch_name)
+                exch_idx += 1
+            self.exchanges.append(exch_name + " rev")
+            self.secretion_idx.append(exch_idx)
+            self.S_exch[met_idx, exch_idx] = -1
+            exch_idx += 1
 
-            self.Se[exch_name + " rev"] = np.zeros(self.n_mets).astype(np.int8)
-            self.Se.at[met, exch_name + " rev"] = -1
-
-        self.S_orig = csr_matrix(np.array(self.Sd, dtype=np.float64))
-        self.S_exch = csr_matrix(np.array(self.Se, dtype=np.float64))
+        self.S_exch = csr_matrix(self.S_exch)
 
         _, self.n_exch_rxns = self.S_exch.shape
 
-        self.secretion_idx = np.where(self.S_exch.sum(axis=0) == -1)[0]
+        self.secretion_idx = np.array(self.secretion_idx, dtype=int)
 
     def solve(self,
-              homeostatic_targets: Mapping[str, float],
-              maintenance_target: float,
-              kinetic_targets: Mapping[str, float],
-              binary_kinetic_targets: Iterable[str],
-              objective_weights: Mapping[str, float],
-              upper_flux_bound: float = 100
-              ) -> FlowResult:
+        homeostatic_targets: Iterable[float],
+        maintenance_target: float,
+        kinetic_targets: Iterable[float],
+        binary_kinetic_idx: Iterable[int],
+        objective_weights: Mapping[str, float],
+        upper_flux_bound: float = 100
+    ) -> FlowResult:
         """Solve the network flow model for fluxes and dm/dt values."""
-
-        homeostatic_arr = [[self.mets.index(met), target] for met, target in homeostatic_targets.items()]
-        homeostatic_idx, homeostatic_target = np.array(homeostatic_arr, dtype=np.int64)[:, 0], np.array(homeostatic_arr)[:, 1]
-
-        kinetic_array = [[self.rxns.index(met), target] for met, target in kinetic_targets.items()]
-        kinetic_idx, kinetic_target = np.array(kinetic_array, dtype=np.int64)[:, 0], np.array(kinetic_array)[:, 1]
-
-        if binary_kinetic_targets:
-            binary_kinetic_idx = np.array([self.rxns.index(met) for met in binary_kinetic_targets], dtype=np.int64)
-        else:
-            binary_kinetic_idx = None
-
-        maintenance_idx = self.rxns.index("maintenance_reaction")  # TODO (Cyrus) - use name provided
-
         # set up variables
         v = cp.Variable(self.n_orig_rxns)
         e = cp.Variable(self.n_exch_rxns)
@@ -432,18 +510,20 @@ class NetworkFlowModel:
 
         constr = []
         constr.append(dm[self.intermediates_idx] == 0)
-        constr.append(v[maintenance_idx] == maintenance_target)
-        # check if binary_kinetic_idx is empty
-        if binary_kinetic_idx is not None:
+        constr.append(v[self.maintenance_idx] == maintenance_target)
+        # If enzymes not present, constrain rxn flux to 0
+        if len(binary_kinetic_idx):
             constr.append(v[binary_kinetic_idx] == 0)
-        # constr.append(dm[homeostatic_idx[]] == homeostatic_target)
-        constr.extend([v >= 0, v <= upper_flux_bound, e >= 0, e <= upper_flux_bound]) # TODO (Cyrus) - make this a parameter
+        # TODO (Cyrus) - make this a parameter
+        constr.extend([v >= 0, v <= upper_flux_bound, e >= 0,
+            e <= upper_flux_bound])
 
         loss = 0
-        loss += cp.norm1(dm[homeostatic_idx] - homeostatic_target)
+        loss += cp.norm1(dm[self.homeostatic_idx] - homeostatic_targets)
         loss += objective_weights['secretion'] * (cp.sum(e[self.secretion_idx]))
         loss += objective_weights['efficiency'] * (cp.sum(v))
-        loss += objective_weights['kinetics'] * cp.norm1(v[kinetic_idx] - kinetic_target)
+        loss += objective_weights['kinetics'] * cp.norm1(
+            v[self.kinetic_rxn_idx] - kinetic_targets)
 
         p = cp.Problem(
             cp.Minimize(loss),
@@ -452,12 +532,12 @@ class NetworkFlowModel:
 
         p.solve(solver=cp.GLOP, verbose=False)
         if p.status != "optimal":
-            raise ValueError("Network flow model of metabolism did not converge to an optimal solution.")
+            raise ValueError("Network flow model of metabolism did not "
+                "converge to an optimal solution.")
 
-        velocities, dm_dt, exchanges = np.array(v.value), np.array(dm.value), np.array(exch.value)
-        velocities = {self.rxns[i]: velocities[i] for i in range(len(velocities))}
-        dm_dt = {self.mets[i]: dm_dt[i] for i in range(len(dm_dt))}
-        exchanges = {self.mets[i]: exchanges[i] for i in range(len(exchanges)) if exchanges[i] != 0}
+        velocities = np.array(v.value)
+        dm_dt = np.array(dm.value)
+        exchanges = np.array(exch.value)
         objective = p.value
 
         return FlowResult(velocities=velocities,

@@ -2,16 +2,16 @@ import os
 
 import numpy as np
 from vivarium.core.composer import Composite
-from vivarium.core.composition import add_timeline
 from vivarium.core.engine import Engine
 from vivarium.core.process import Step
 from vivarium.library.units import units, remove_units
 from vivarium.plots.simulation_output import plot_variables
 
 from ecoli.library.parameters import param_store
-from ecoli.library.schema import bulk_schema
+from ecoli.library.schema import numpy_schema, bulk_name_to_idx, counts
 from ecoli.processes.registries import topology_registry
 from ecoli.processes.shape import length_from_volume
+from ecoli.processes.bulk_timeline import BulkTimelineProcess
 from ecoli.library.cell_wall.column_sampler import (
     geom_sampler,
     sample_lattice,
@@ -24,10 +24,9 @@ from ecoli.library.cell_wall.lattice import (
 # Register default topology for this process, associating it with process name
 NAME = "ecoli-pbp-binding"
 TOPOLOGY = {
-    "total_murein": ("bulk",),
+    "bulk": ("bulk",),
     "murein_state": ("murein_state",),
     "concentrations": ("concentrations",),
-    "bulk": ("bulk",),
     "pbp_state": ("pbp_state",),
     "wall_state": ("wall_state",),
     "volume": ("boundary", "volume"),
@@ -122,9 +121,12 @@ class PBPBinding(Step):
         self.inter_strand_distance = self.parameters["inter_strand_distance"]
         self.rng = np.random.default_rng(self.parameters["seed"])
 
+        # Helper indices for Numpy arrays
+        self.murein_idx = None
+
     def ports_schema(self):
         return {
-            "total_murein": bulk_schema([self.parameters["murein_name"]]),
+            "bulk": numpy_schema("bulk", partition=False),
             "murein_state": {
                 "incorporated_murein": {
                     "_default": 0,
@@ -143,7 +145,6 @@ class PBPBinding(Step):
             "concentrations": {
                 self.beta_lactam: {"_default": 0.0 * units.micromolar, "_emit": True},
             },
-            "bulk": bulk_schema(list(self.parameters["PBP"].values())),
             "pbp_state": {
                 "active_fraction_PBP1A": {
                     "_default": 1.0,
@@ -192,6 +193,12 @@ class PBPBinding(Step):
         }
 
     def next_update(self, timestep, states):
+        if self.murein_idx is None:
+            bulk_ids = states["bulk"]["id"]
+            self.murein_idx = bulk_name_to_idx(self.murein, bulk_ids)
+            self.pbp1a_idx = bulk_name_to_idx(self.PBP1A, bulk_ids)
+            self.pbp1ba_idx = bulk_name_to_idx(self.PBP1B_alpha, bulk_ids)
+            self.pbp1bg_idx = bulk_name_to_idx(self.PBP1B_gamma, bulk_ids)
         update = {"murein_state": {}}
         
         # Calculate fraction of active PBP1a, PBP1b using Hill Equation
@@ -211,7 +218,7 @@ class PBPBinding(Step):
             if states["wall_state"]["lattice"] is None:
                 # Make sure that all usable murein is initiailly unincorporated
                 unincorporated_monomers = (
-                    4 * states["total_murein"][self.murein]
+                    4 * counts(states["bulk"], self.murein_idx)
                     - states["murein_state"]["shadow_murein"]
                 )
                 incorporated_monomers = 0
@@ -288,15 +295,15 @@ class PBPBinding(Step):
                 return update
 
         # New murein to allocate
-        new_murein = 4 * states["total_murein"][self.murein] - sum(
+        new_murein = 4 * counts(states["bulk"], self.murein_idx) - sum(
             states["murein_state"].values()
         )
 
         # Allocate real vs. shadow murein based on
         # what fraction of PBPs are active
-        PBP1A = states["bulk"][self.PBP1A]
-        PBP1B_alpha = states["bulk"][self.PBP1B_alpha]
-        PBP1B_gamma = states["bulk"][self.PBP1B_gamma]
+        PBP1A = counts(states["bulk"], self.pbp1a_idx)
+        PBP1B_alpha = counts(states["bulk"], self.pbp1ba_idx)
+        PBP1B_gamma = counts(states["bulk"], self.pbp1bg_idx)
         total_PBP = PBP1A + PBP1B_alpha + PBP1B_gamma
 
         if total_PBP > 0:
@@ -327,40 +334,32 @@ def test_pbp_binding():
     # Create process
     params = {"beta_lactam": "ampicillin"}
     process = PBPBinding(params)
+    initial_murein = 450000
+    timeline_params = {
+        "timeline": {
+            time: {
+                ("bulk", "CPD-12261[p]"): int(initial_murein + 1000 * time),
+                ("concentrations", "ampicillin"): (
+                    (time - 50) / 10 * units.micromolar
+                    if time > 50
+                    else 0 * units.micromolar
+                ),
+            }
+            for time in range(0, 100)}
+    }
+    timeline_process = BulkTimelineProcess(timeline_params)
 
     # Create composite with timeline
-    initial_murein = 450000
-    processes = {"pbp_binding": process}
+    processes = {
+        "pbp_binding": process,
+        "bulk-timeline": timeline_process}
     topology = {
-        "pbp_binding": {
-            "total_murein": ("bulk",),
-            "murein_state": ("murein_state",),
-            "concentrations": ("concentrations",),
+        "pbp_binding": TOPOLOGY,
+        "bulk-timeline": {
             "bulk": ("bulk",),
-            "pbp_state": ("pbp_state",),
-            "wall_state": ("wall_state",),
+            "concentrations": ("concentrations",)
         }
     }
-    add_timeline(
-        processes,
-        topology,
-        {
-            "timeline": [
-                (
-                    time,
-                    {
-                        ("bulk", "CPD-12261[p]"): int(initial_murein + 1000 * time),
-                        ("concentrations", "ampicillin"): (
-                            (time - 50) / 10 * units.micromolar
-                            if time > 50
-                            else 0 * units.micromolar
-                        ),
-                    },
-                )
-                for time in range(0, 100)
-            ]
-        },
-    )
 
     # Run experiment
     settings = {
@@ -374,11 +373,12 @@ def test_pbp_binding():
             "concentrations": {
                 "ampicillin": 0 * units.micromolar,
             },
-            "bulk": {
-                "CPD-12261[p]": initial_murein,
-                "CPLX0-7717[m]": 100,
-                "CPLX0-3951[i]": 100,
-            },
+            "bulk": np.array([
+                ("CPD-12261[p]", initial_murein),
+                ("CPLX0-7717[m]", 100),
+                ("CPLX0-3951[i]", 100),
+                ("CPLX0-8300[c]", 0)
+            ], dtype=[('id', 'U40'), ('count', int)])
         },
     }
     composite = Composite(
@@ -392,6 +392,9 @@ def test_pbp_binding():
     sim = Engine(composite=composite)
     sim.update(settings["total_time"])
     data = sim.emitter.get_timeseries()
+
+    bulk_array = np.array(data["bulk"])
+    data["bulk"] = {"CPD-12261[p]": bulk_array[:, 0]}
 
     # Plot output
     fig = plot_variables(

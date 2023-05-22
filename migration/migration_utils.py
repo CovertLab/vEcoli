@@ -9,6 +9,7 @@ from vivarium.library.dict_utils import deep_merge
 
 from wholecell.utils import units
 from ecoli.states.wcecoli_state import get_state_from_file
+from migration import LOAD_SIM_DATA
 
 PERCENT_ERROR_THRESHOLD = 0.05
 PVALUE_THRESHOLD = 0.05
@@ -32,73 +33,25 @@ def get_process_state(process, topology, initial_state):
     return states, experiment
 
 
-def run_ecoli_process(
-        process,
-        topology,
-        total_time=2,
-        initial_time=0,
-        initial_state=None,
-        folder_name=''
-):
-    """
-    load a single ecoli process, run it, and return the update
-
-    Args:
-        process: an initialized Process
-        topology: (dict) topology for the Process, from ecoli_master
-        total_time: (optional) run time. defaults at 2 seconds -- the default time of wcEcoli
-
-    Returns:
-        an update from the perspective of the Process.
-    """
-    if not initial_state:
-        # get initial state from file
-        initial_state = get_state_from_file(
-            path=f'data/wcecoli_t{initial_time}.json')
-
-    # make an experiment
-    experiment_config = {
-        'processes': {process.name: process},
-        'topology': {process.name: topology},
-        'initial_state': initial_state}
-    experiment = Engine(**experiment_config)
-
-    # Get update from process.
-    path = (process.name,)
-    store = experiment.state.get_path(path)
-
-    # translate the values from the tree structure into the form
-    # that this process expects, based on its declared topology
-    topology_view = store.outer.schema_topology(process.schema, store.topology)
-    states = view_values(topology_view)
-    
-    if folder_name:
-        # Merge partitioned counts or other data into process state
-        # (e.g. polypeptide elongation's gtp_to_hydrolyze listener)
-        with open(f"data/migration/{folder_name}/partitioned_t"
-                f"{2+initial_time}.json") as f:
-            partitioned_counts = json.load(f)
-        states = deep_merge(states, partitioned_counts)
-
-    update = experiment._invoke_process(
-        process,
-        total_time,
-        states)
-
-    actual_update = update.get_command_result()
-    return actual_update
-
-
-def run_custom_partitioned_process(
+def run_non_partitioned_process(
     process,
     topology,
     initial_time=0,
     initial_state=None,
-    folder_name=""
 ):
-    """Given an initial state dictionary, run the calculate_request method of
-    a process, then load a json of partitioned molecule counts to be merged
-    into the process state before running the evolve_state method."""
+    """
+    Load a single ecoli process, run it, and return the update.
+    NOTE: Only use for non-partitioned processes
+
+    Args:
+        process: an initialized Process
+        topology: (dict) topology for the Process, from ecoli_master
+        initial_time: (int) used to determine which partitioned count to load
+        initial_state: (dict) used to initialize simulation
+
+    Returns:
+        an update from the perspective of the Process.
+    """
     # make an experiment
     experiment_config = {
         'processes': {process.name: process},
@@ -106,38 +59,189 @@ def run_custom_partitioned_process(
         'initial_state': initial_state}
     experiment = Engine(**experiment_config)
 
+    # Reset bulk counts to "partitioned counts" so final counts
+    # can be directly compared to wcEcoli (some processes do not
+    # connect to bulk store so skip it)
+    try:
+        bulk_array = experiment.state.get_path(('bulk',)).get_value()
+        with open(f"data/migration/bulk_partitioned_t{initial_time}.json") as f:
+            bulk_partitioned = json.load(f)
+        proc_name = type(process).__name__
+        if proc_name in bulk_partitioned:
+            bulk_array.flags.writeable = True
+            bulk_array['count'] = bulk_partitioned[proc_name]
+            bulk_array.flags.writeable = False
+        bulk_exists = True
+    except:
+        bulk_exists = False
+
     # Get update from process.
-    path, process = list(experiment.process_paths.items())[0]
-    store = experiment.state.get_path(path)
+    path = list(experiment.process_paths.keys())[0]
+    update, store = experiment._calculate_update(path, process, 2)
+    update = update.get()
 
-    # translate the values from the tree structure into the form
-    # that this process expects, based on its declared topology
-    topology_view = store.outer.schema_topology(process.schema, store.topology)
-    states = view_values(topology_view)
+    # Leave non-bulk updates as is
+    actual_update = {k: v for k, v in update.items() if k != 'bulk'}
 
-    # Make process see partitioned molecule counts
-    with open(f"data/migration/{folder_name}/partitioned_t"
-              f"{2+initial_time}.json") as f:
-        partitioned_counts = json.load(f)
+    # Get final bulk counts to compare to wcEcoli
+    if bulk_exists:
+        experiment.apply_update(update, store)
+        bulk_counts = experiment.state.get_path(('bulk',)).get_value()['count']
+        if 'bulk' in update:
+            actual_update['bulk'] = bulk_counts
+    
+    return actual_update
 
+
+def run_partitioned_process(
+    process,
+    topology,
+    initial_time=0,
+    initial_state=None,
+):
+    """Given an initial state dictionary, run the calculate_request method of
+    a process, then load a json of partitioned molecule counts to be merged
+    into the process state before running the evolve_state method."""
+    # Cache bulk_total count for later
+    bulk_total = initial_state['bulk']['count'].copy()
+
+    # make an experiment
+    experiment_config = {
+        'processes': {process.name: process},
+        'topology': {process.name: topology},
+        'initial_state': initial_state}
+    experiment = Engine(**experiment_config)
+
+    # Get process path
+    path = list(experiment.process_paths.keys())[0]
+    # Test calculate_request
     process.request_only = True
     process.evolve_only = False
-    # Set instance variables
-    requests = experiment._invoke_process(
-        process,
-        2,
-        states)
-    actual_requests = copy.deepcopy(requests.get_command_result())
-    states = deep_merge(states, partitioned_counts)
+    requests, store = experiment._calculate_update(path, process, 2)
+    bulk_array = experiment.state.get_path(('bulk',)).get_value()
+    # Set bulk counts to 0 for requested count after applying update
+    bulk_array.flags.writeable = True
+    bulk_array['count'] = 0
+    bulk_array.flags.writeable = False
+    experiment.apply_update(requests.get(), store)
+    actual_requests = bulk_array['count'].copy()
+
+    # Test evolve_state
     process.request_only = False
     process.evolve_only = True
-    update = experiment._invoke_process(
-        process,
-        2,
-        states)
+    store, states = experiment._process_state(path)
+    # Make process see wcEcoli partitioned molecule counts but
+    # do not modify bulk_total port values
+    states['bulk_total'] = bulk_total
+    with open(f"data/migration/bulk_partitioned_t"
+              f"{initial_time}.json") as f:
+        bulk_partitioned = json.load(f)
+    bulk_array.flags.writeable = True
+    bulk_array['count'] = bulk_partitioned[type(process).__name__]
+    bulk_array.flags.writeable = False
+    update, store = experiment._process_update(
+        path, process, store, states, 2)
+    update = update.get()
 
-    actual_update = update.get_command_result()
+    # Leave non-bulk updates as is
+    actual_update = {k: v for k, v in update.items() if k != 'bulk'}
+
+    # Get final bulk counts to compare to wcEcoli
+    experiment.apply_update(update, store)
+    bulk_counts = experiment.state.get_path(('bulk',)).get_value()['count']
+    if 'bulk' in update:
+        actual_update['bulk'] = bulk_counts
+
     return actual_requests, actual_update
+
+
+def run_and_compare(init_time, process_class, partition=True, layer=0, post=False):
+    # Set time parameters
+    init_time = init_time
+
+    # Create process, experiment, loading in initial state from file.
+    config = LOAD_SIM_DATA.get_config_by_name(process_class.name)
+    config['seed'] = 0
+    process = process_class(config)
+
+    process.is_step = lambda: False
+    
+    if post:
+        initial_state = get_state_from_file(
+            path=f'data/migration/wcecoli_t{init_time}_before_post.json')
+        # By this point the clock process would have advanced the global time
+        initial_state['global_time'] = init_time + 2
+    else:
+        initial_state = get_state_from_file(
+            path=f'data/migration/wcecoli_t{init_time}_before_layer_{layer}.json')
+    initial_state['deriver_skips'] = {
+        'chromosome_structure': False,
+        'metabolism': False,
+    }
+
+    # Complexation sets seed weirdly
+    if process_class.__name__ == 'Complexation':
+        from arrow import StochasticSystem
+        process.system = StochasticSystem(process.stoichiometry, random_seed=0)
+    # Metabolism requires gtp_to_hydrolyze
+    elif process_class.__name__ == 'Metabolism':
+        updates_file = f'data/migration/process_updates_t{init_time}.json'
+        with open(updates_file, 'r') as f:
+            proc_updates = json.load(f)
+        gtp_hydro = proc_updates['PolypeptideElongation']['process_state'][
+            'gtp_to_hydrolyze']
+        initial_state['process_state'] = {'polypeptide_elongation': {
+            'gtp_to_hydrolyze': gtp_hydro}}
+    # MassListener needs initial masses to calculate fold changes
+    elif process_class.__name__ == 'MassListener':
+        t0_file = 'data/migration/wcecoli_t0.json'
+        with open(t0_file, 'r') as f:
+            t0_data = json.load(f)
+        t0_mass = t0_data['listeners']['mass']
+        process.first_time_step = False
+        process.dryMassInitial = t0_mass['dry_mass']
+        process.proteinMassInitial = t0_mass['protein_mass']
+        process.rnaMassInitial = t0_mass['rna_mass']
+        process.smallMoleculeMassInitial = t0_mass['smallMolecule_mass']
+        process.timeInitial = 0
+
+    if partition:
+        # run the process and get an update
+        actual_request, actual_update = run_partitioned_process(
+            process, process_class.topology,
+            initial_time=init_time, initial_state=initial_state)
+
+        # Compare requested bulk counts
+        with open(f"data/migration/bulk_requested_t{init_time}.json", 'r') as f:
+            wc_request = json.load(f)
+        assert np.all(actual_request == wc_request[process_class.__name__])
+    else:
+        actual_update = run_non_partitioned_process(
+            process, process_class.topology,
+            initial_time=init_time, initial_state=initial_state)
+    # Compare unique molecule updates
+    with open(f"data/migration/process_updates_t{init_time}.json", 'r') as f:
+        wc_update = json.load(f)
+    if process_class.__name__ in wc_update:
+        # wcEcoli and viv-ecoli generate unique indices very differently
+        # Also do not compare metabolism exchanges because wcEcoli accumulates
+        # those over entire runtime but migration test runs for one timestep
+        assert recursive_compare(actual_update, wc_update[process_class.__name__],
+            check_keys_strict=False, ignore_keys={'unique_index', 'RNAP_index',
+                'exchange'})
+    # Compare listener values
+    with open(f"data/migration/wcecoli_listeners_t{init_time}.json", 'r') as f:
+        wc_listeners = json.load(f)
+    actual_listeners = actual_update.get('listeners', {})
+    # Certain listeners are at higher level in viv-ecoli
+    if 'monomer_counts' in actual_listeners:
+        actual_listeners = {'monomer_counts': actual_listeners}
+    if 'mRNA_counts' in actual_listeners:
+        actual_listeners = {'mrna_counts': actual_listeners}
+    # Gene copy number determined by listener after everything updates in wcEcoli
+    # TODO: Move this out of TfBinding process
+    assert recursive_compare(actual_listeners, wc_listeners,
+        check_keys_strict=False, ignore_keys={'growth', 'gene_copy_number'})
 
 
 def recursive_compare(d1, d2, level='root', include_callable=False, 

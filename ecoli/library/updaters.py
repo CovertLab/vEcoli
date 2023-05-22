@@ -66,21 +66,6 @@ def inverse_update_nonnegative_accumulate(initial_state, final_state):
     return final_state - initial_state
 
 
-def _reverse_dict_update(initial, final):
-    '''
-    Return an update such that ``initial.update(update) == final``.
-    '''
-    update = {}
-    for key, val in final.items():
-        if key in initial and val != initial[key]:
-            # We need to replace initial[key] with final[key].
-            update[key] = val
-        elif key not in initial:
-            # We need to add key (with value final[key]) to initial.
-            update[key] = val
-    return update
-
-
 #: Special signal used by _reverse_deep_merge to communicate that no
 #: updates are needed. Using this signal reduces the update size by
 #: eliminating subtrees of empty updates.
@@ -109,21 +94,17 @@ def inverse_update_merge(initial_state, final_state):
     return {} if update is _NO_UPDATE_NEEDED else update
 
 
-def inverse_update_dictionary(initial_state, final_state):
-    update = {}
+def inverse_update_bulk_numpy(initial_state, final_state):
+    diff = final_state['count'] - initial_state['count']
+    if np.all(diff == 0):
+        return []
+    return [(np.arange(len(initial_state)), diff),]
 
-    for key in final_state.keys():
-        if key not in initial_state:
-            continue
-        update[key] = final_state[key]
 
-    deleted = initial_state.keys() - final_state.keys()
-    if deleted:
-        update['_delete'] = list(deleted)
-
-    added = final_state.keys() - initial_state.keys()
-    if added:
-        update['_add'] = [
-            {'key': key, 'state': final_state[key]} 
-            for key in added]
-    return update
+def inverse_update_unique_numpy(initial_state, final_state):
+    return {
+        'set': {
+            field: final_state[field]
+            for field in final_state.dtype.names
+        }
+    }
