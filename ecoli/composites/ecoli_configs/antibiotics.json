@@ -7,7 +7,9 @@
         "conc_to_counts",
         "environment-glucose-limit"
     ],
-    "total_time": 12000,
+    "initial_state_file": "antibiotics_wcecoli_t0",
+    "mar_regulon": "True",
+    "amp_lysis": true,
     "spatial_environment_config": {
         "multibody": {
             "bounds": [
@@ -50,7 +52,8 @@
     },
     "topology": {
         "concentrations_deriver": {
-            "counts": ["bulk"],
+            "bulk": ["bulk"],
+            "counts": ["counts"],
             "concentrations": ["periplasm", "concentrations"],
             "volume": ["periplasm", "global", "volume"]
         },
@@ -170,14 +173,14 @@
             "bulk": ["bulk"]
         },
         "permeability": {
-            "porins": ["bulk"],
+            "bulk": ["bulk"],
             "permeabilities": ["kinetic_parameters"],
             "surface_area": ["boundary", "outer_surface_area"]
         }
     },
     "process_configs": {
         "concentrations_deriver": {
-            "variables": ["EG10040-MONOMER[p]", "TRANS-CPLX-201[m]"]
+            "bulk_variables": ["EG10040-MONOMER[p]", "TRANS-CPLX-201[m]"]
         },
         "antibiotic-transport-odeint": {
             "initial_reaction_parameters": {
@@ -282,7 +285,7 @@
         ["periplasm"],
         ["cytoplasm"],
         ["kinetic_parameters"],
-        ["bulk", "TRANS-CPLX-201[m]"],
-        ["bulk", "CPLX0-7534[o]"]
+        ["bulk"],
+        ["counts"]
     ]
 }

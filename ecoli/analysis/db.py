@@ -54,10 +54,10 @@ def custom_deep_merge_check(
             ``dct`` and ``merge_dct``.
     """
     for k in merge_dct:
-        if overwrite_none and merge_dct[k] == None:
+        if overwrite_none and merge_dct[k] is None:
             continue
         if k in dct:
-            if overwrite_none and dct[k] == None:
+            if overwrite_none and dct[k] is None:
                 dct[k] = merge_dct[k]
                 continue
             elif (isinstance(dct[k], dict)

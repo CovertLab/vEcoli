@@ -222,7 +222,7 @@ class FlagellaMotor(Process):
             for index in range(new_flagella):
                 flagella_id = new_flagella_indexes[index]
                 flagella_update['_add'].append({
-                    'key': flagella_id,
+                    'key': str(flagella_id),
                     'state': random.choice([-1, 1])})
 
         # update individual flagella states

@@ -2,6 +2,7 @@
 =========================
 E. coli spatial composite
 =========================
+**NOTE: Has not been updated to work with new Numpy internal states**
 
 This composite is intended to run a spatial model of E. coli, where each
 cellular compartment is designated as a node. These nodes are connected by
@@ -11,7 +12,7 @@ a spatially defined model of E. coli. Currently, this composite is only
 set up to run a diffusion model on three nodes, the two cytosol poles and the
 nucleoid, which are connected by two edges between the poles and the nucleoid.
 Furthermore, since vivarium-ecoli is not yet fully migrated, this composite
-initializes molecule counts from a snapshot of wcEcoli at t=1,000 s. This model
+initializes molecule counts from a snapshot of wcEcoli at t=0 s. This model
 can be run with bulk molecules, polyribosomes, or both together. If only
 polyribosomes are of interest, it is recommended to not include bulk
 molecules for faster runtime.
@@ -87,7 +88,8 @@ from ecoli.plots.ecoli_spatial_plots import (
     plot_molecule_characterizations,
 )
 
-from ecoli.states.wcecoli_state import get_state_from_file, MASSDIFFS
+from ecoli.states.wcecoli_state import get_state_from_file
+from ecoli.library.schema import numpy_schema, counts, attrs, bulk_name_to_idx
 
 SIM_DATA_PATH = 'reconstruction/sim_data/kb/simData.cPickle'
 RIBOSOME_SIZE = 21      # in nm
@@ -141,8 +143,7 @@ class EcoliSpatial(Composer):
         include_bulk = config['include_bulk']
         include_polyribosomes = config['include_polyribosomes']
         initial_state = get_state_from_file(
-            path='data/wcecoli_t1000.json',
-            convert_unique_id_to_string=False,
+            path='data/wcecoli_t0.json',
         )
         bulk = {}
 
@@ -204,19 +205,10 @@ class EcoliSpatial(Composer):
 
 def add_polyribosomes(unique, unique_masses, polyribosome_assumption, save_output=False):
         # pull polyribosome building blocks from unique initial state
-        is_full_transcript_rna = np.asarray([unique['RNA'][
-                                                 unique_index]['is_full_transcript']
-                                             for unique_index in
-                                             unique['RNA'].keys()])
-        is_mrna = np.asarray([unique['RNA'][
-                                  unique_index]['is_mRNA']
-                              for unique_index in
-                              unique['RNA'].keys()])
+        is_full_transcript_rna, is_mrna, unique_index_rna = attrs(unique['RNA'], [
+            'is_full_transcript', 'is_mRNA', 'unique_index'])
 
-        unique_index_rna = np.asarray(list(unique['RNA'].keys()))
-        mrna_index_ribosomes = np.asarray(
-            [unique['active_ribosome'][unique_index]['mRNA_index']
-             for unique_index in unique['active_ribosome'].keys()])
+        mrna_index_ribosomes, = attrs(unique['active_ribosome'], ['mRNA_index'])
 
         # This line removes ghost mrna indexes
         mrna_index_ribosomes = mrna_index_ribosomes[
@@ -284,7 +276,8 @@ def add_polyribosomes(unique, unique_masses, polyribosome_assumption, save_outpu
                 ])
             group_idx = np.where(n_ribosomes_per_mrna_by_group[i, :] > 0)[0]
             avg_mrna_mass[i] = np.average([
-                unique['RNA'][str(unique_index)]['submass'][MASSDIFFS['massDiff_mRNA']]
+                # mRNA has index 2 in the submass array
+                unique['RNA'][str(unique_index)]['submass'][2]
                 for unique_index in group_idx])
             avg_mrna_length[i] = np.average([
                 unique['RNA'][str(unique_index)]['transcript_length']
@@ -313,58 +306,59 @@ def add_polyribosomes(unique, unique_masses, polyribosome_assumption, save_outpu
         return polyribosomes, mw, radii
 
 
-def test_spatial_ecoli(
-    polyribosome_assumption='spherical',    # choose from 'mrna', 'linear', or 'spherical'
-    total_time=10,  # in seconds
-):
-    ecoli_config = {
-        'nodes': {
-            'cytosol_front': {
-                'length': 0.5,      # in um
-                'volume': 0.25,     # in um^3
-                'molecules': {},
-            },
-            'nucleoid': {
-                'length': 1.0,
-                'volume': 0.5,
-                'molecules': {},
-            },
-            'cytosol_rear': {
-                'length': 0.5,
-                'volume': 0.25,
-                'molecules': {},
-            },
-        },
-        'edges': {
-            '1': {
-                'nodes': ['cytosol_front', 'nucleoid'],
-                'cross_sectional_area': np.pi * 0.3 ** 2,       # in um^2
-                'mesh': True,
-            },
-            '2': {
-                'nodes': ['nucleoid', 'cytosol_rear'],
-                'cross_sectional_area': np.pi * 0.3 ** 2,
-                'mesh': True,
-            },
-        },
-        'mesh_size': 50,        # in nm
-        'time_step': 1,
-    }
+# TODO: Adapt this code to work with new Numpy internal states
+# def test_spatial_ecoli(
+#     polyribosome_assumption='spherical',    # choose from 'mrna', 'linear', or 'spherical'
+#     total_time=10,  # in seconds
+# ):
+#     ecoli_config = {
+#         'nodes': {
+#             'cytosol_front': {
+#                 'length': 0.5,      # in um
+#                 'volume': 0.25,     # in um^3
+#                 'molecules': {},
+#             },
+#             'nucleoid': {
+#                 'length': 1.0,
+#                 'volume': 0.5,
+#                 'molecules': {},
+#             },
+#             'cytosol_rear': {
+#                 'length': 0.5,
+#                 'volume': 0.25,
+#                 'molecules': {},
+#             },
+#         },
+#         'edges': {
+#             '1': {
+#                 'nodes': ['cytosol_front', 'nucleoid'],
+#                 'cross_sectional_area': np.pi * 0.3 ** 2,       # in um^2
+#                 'mesh': True,
+#             },
+#             '2': {
+#                 'nodes': ['nucleoid', 'cytosol_rear'],
+#                 'cross_sectional_area': np.pi * 0.3 ** 2,
+#                 'mesh': True,
+#             },
+#         },
+#         'mesh_size': 50,        # in nm
+#         'time_step': 1,
+#     }
 
-    ecoli = EcoliSpatial(ecoli_config)
+#     ecoli = EcoliSpatial(ecoli_config)
 
-    initial_config = {
-        'include_bulk': False,
-        'include_polyribosomes': True,
-        'polyribosome_assumption': polyribosome_assumption,
-    }
+#     initial_config = {
+#         'include_bulk': False,
+#         'include_polyribosomes': True,
+#         'polyribosome_assumption': polyribosome_assumption,
+#     }
 
-    settings = {
-        'total_time': total_time,       # in s
-        'initial_state': ecoli.initial_state(initial_config)}
+#     settings = {
+#         'total_time': total_time,       # in s
+#         'initial_state': ecoli.initial_state(initial_config)}
 
-    data = simulate_composer(ecoli, settings)
-    return ecoli, initial_config, data
+#     data = simulate_composer(ecoli, settings)
+#     return ecoli, initial_config, data
 
 
 def run_spatial_ecoli(

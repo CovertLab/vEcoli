@@ -1,14 +1,12 @@
 import re
 import binascii
 import numpy as np
-import networkx as nx
 from six.moves import cPickle
 from wholecell.utils import units
 from wholecell.utils.unit_struct_array import UnitStructArray
 from wholecell.utils.fitting import normalize
 
 from ecoli.processes.polypeptide_elongation import MICROMOLAR_UNITS
-from ecoli.states.wcecoli_state import MASSDIFFS
 from ecoli.library.parameters import param_store
 
 RAND_MAX = 2**31
@@ -24,6 +22,7 @@ class LoadSimData:
         ppgpp_regulation=False,
         mar_regulon=False,
         rnai_data=None,
+        amp_lysis=False,
     ):
 
         self.seed = seed
@@ -31,8 +30,6 @@ class LoadSimData:
 
         self.trna_charging = trna_charging
         self.ppgpp_regulation = ppgpp_regulation
-
-        self.submass_indexes = MASSDIFFS
         
         # NEW to vivarium-ecoli: Whether to lump miscRNA with mRNAs
         # when calculating degradation
@@ -41,6 +38,11 @@ class LoadSimData:
         # load sim_data
         with open(sim_data_path, 'rb') as sim_data_file:
             self.sim_data = cPickle.load(sim_data_file)
+
+        self.submass_indexes = {
+            f'massDiff_{submass}': idx
+            for submass, idx in self.sim_data.submass_name_to_index.items()
+        }
         
         # NEW to vivarium-ecoli
         # Changes gene expression upon tetracycline exposure
@@ -82,19 +84,20 @@ class LoadSimData:
             treg_alias.delta_prob["deltaV"] = np.concatenate(
                 [treg_alias.delta_prob["deltaV"], new_deltaV])
             
-            # Add mass data for tetracycline and marR-tetracycline complex
+            # Add mass data for tetracycline, marR-tet, and 30s-tet
             bulk_data = bulk_mol_alias.bulk_data.fullArray()
-            bulk_data = np.resize(bulk_data, bulk_data.shape[0]+3)
+            marR_mass = np.array(bulk_data[bulk_data[
+                'id'] == 'CPLX0-7710[c]'][0][1])
+            free_30s_mass = np.array(bulk_data[bulk_data[
+                'id'] == 'CPLX0-3953[c]'][0][1])
             tet_mass = param_store.get(('tetracycline', 'mass')).magnitude
-            bulk_data[-1] = ('tetracycline[c]', 
-                [0, 0, 0, 0, 0, 0, tet_mass, 0, 0])
-            bulk_data[-2] = ('tetracycline[p]', 
-                [0, 0, 0, 0, 0, 0, tet_mass, 0, 0])
-            # Protein mass is 6th element in 2nd column of each row in
-            # the Numpy structured array bulk_data
-            marR_mass = bulk_data[bulk_data['id'] == 'CPLX0-7710[c]'][0][1][5]
-            bulk_data[-3] = ('marR-tet[c]', 
-                [0, 0, 0, 0, 0, marR_mass, tet_mass, 0, 0])
+            tet_mass = np.array([0, 0, 0, 0, 0, 0, tet_mass, 0, 0])
+            bulk_data = np.append(bulk_data, np.array([
+                ("marR-tet[c]",) + (marR_mass + tet_mass,),
+                ("tetracycline[p]",) + (tet_mass,),
+                ("tetracycline[c]",) + (tet_mass,),
+                ("CPLX0-3953-tetracycline[c]",) + (free_30s_mass + tet_mass,)
+            ], dtype=bulk_data.dtype))
             bulk_units = bulk_mol_alias.bulk_data.fullUnits()
             bulk_mol_alias.bulk_data = UnitStructArray(bulk_data, bulk_units)
             
@@ -125,7 +128,7 @@ class LoadSimData:
             # Mass balance matrix
             eq_alias._stoichMatrixMass = np.concatenate(
                 [eq_alias._stoichMatrixMass, np.array(
-                    [marR_mass, tet_mass, marR_mass+tet_mass])])
+                    [marR_mass.sum(), tet_mass.sum(), (marR_mass+tet_mass).sum()])])
             eq_alias.balance_matrix = (
                 eq_alias.stoich_matrix() * 
                 eq_alias.mass_matrix())
@@ -220,8 +223,7 @@ class LoadSimData:
             ts_alias.transcription_sequences = rna_sequences
             ts_alias.rna_data = UnitStructArray(rna_data, rna_units)
             
-            # Add bulk mass data for duplexes to avoid errors (though mRNAs
-            # should never go to bulk)
+            # Add bulk mass data for duplexes
             bulk_data = bulk_mol_alias.bulk_data.fullArray()
             bulk_units = bulk_mol_alias.bulk_data.fullUnits()
             old_n_bulk = bulk_data.shape[0]
@@ -240,6 +242,25 @@ class LoadSimData:
 
             # Set flag so miscRNA duplexes are degraded together with mRNAs
             self.degrade_misc = True
+        
+        # NEW to vivarium-ecoli
+        # Add ampicillin to bulk molecules
+        if amp_lysis:
+            bulk_mol_alias =  self.sim_data.internal_state.bulk_molecules
+            # Add mass data for ampicillin and hydrolyzed ampicillin
+            bulk_data = bulk_mol_alias.bulk_data.fullArray()
+            amp_mass = param_store.get(("ampicillin", "molar_mass")).magnitude
+            amp_mass = np.array([0, 0, 0, 0, 0, 0, amp_mass, 0, 0])
+            amp_hydro_mass = amp_mass.copy()
+            # Include molar mass of water added during hydrolysis
+            amp_hydro_mass[6] += 18
+            bulk_data = np.append(bulk_data, np.array([
+                ("ampicillin[p]",) + (amp_mass,),
+                ("ampicillin_hydrolyzed[p]",) + (amp_hydro_mass,)
+            ], dtype=bulk_data.dtype))
+            bulk_units = bulk_mol_alias.bulk_data.fullUnits()
+            bulk_mol_alias.bulk_data = UnitStructArray(bulk_data, bulk_units)
+
 
     def get_monomer_counts_indices(self, names):
         """Given a list of monomer names without location tags, this returns
@@ -292,7 +313,6 @@ class LoadSimData:
             'ecoli-equilibrium': self.get_equilibrium_config,
             'ecoli-protein-degradation': self.get_protein_degradation_config,
             'ecoli-metabolism': self.get_metabolism_config,
-            'ecoli-metabolism-gradient-descent': self.get_metabolism_gd_config,
             'ecoli-metabolism-redux': self.get_metabolism_redux_config,
             'ecoli-chromosome-replication': self.get_chromosome_replication_config,
             'ecoli-mass': self.get_mass_config,
@@ -365,7 +385,8 @@ class LoadSimData:
             'active_to_inactive_tf': self.sim_data.process.two_component_system.active_to_inactive_tf,
             'bulk_molecule_ids': self.sim_data.internal_state.bulk_molecules.bulk_data["id"],
             'bulk_mass_data': self.sim_data.internal_state.bulk_molecules.bulk_data["mass"],
-            'seed': self._seedFromName('TfBinding')}
+            'seed': self._seedFromName('TfBinding'),
+            'submass_to_idx': self.sim_data.submass_name_to_index}
 
         return tf_binding_config
 
@@ -440,6 +461,8 @@ class LoadSimData:
             'ntp_ids': ["ATP[c]", "CTP[c]", "GTP[c]", "UTP[c]"],
             'variable_elongation': False,
             'make_elongation_rates': self.sim_data.process.transcription.make_elongation_rates,
+            'fragmentBases': self.sim_data.molecule_groups.polymerized_ntps,
+            'charged_trnas': self.sim_data.process.transcription.charged_trna_names,
 
             # attenuation
             'trna_attenuation': False,
@@ -473,7 +496,10 @@ class LoadSimData:
             'KcatEndoRNases': self.sim_data.process.rna_decay.kcats,
             'charged_trna_names': self.sim_data.process.transcription.charged_trna_names,
             'rnaDegRates': self.sim_data.process.transcription.rna_data['deg_rate'],
-            'shuffle_indexes': self.sim_data.process.transcription.rnaDegRateShuffleIdxs if hasattr(self.sim_data.process.transcription, "rnaDegRateShuffleIdxs") and self.sim_data.process.transcription.rnaDegRateShuffleIdxs is not None else None,
+            'shuffle_indexes': self.sim_data.process.transcription.rnaDegRateShuffleIdxs
+                if hasattr(self.sim_data.process.transcription, "rnaDegRateShuffleIdxs")
+                and self.sim_data.process.transcription.rnaDegRateShuffleIdxs is not None
+                else None,
             'is_mRNA': self.sim_data.process.transcription.rna_data['is_mRNA'].astype(np.int64),
             'is_rRNA': self.sim_data.process.transcription.rna_data['is_rRNA'].astype(np.int64),
             'is_tRNA': self.sim_data.process.transcription.rna_data['is_tRNA'].astype(np.int64),
@@ -662,173 +688,36 @@ class LoadSimData:
 
         return protein_degradation_config
 
-    def get_metabolism_gd_config(self, time_step=2, parallel=False, deriver_mode=False):
-        # Create reversible reactions from "reaction pairs" similar to original sim_data format.
-        stoichiometric_matrix_dict = dict(self.sim_data.process.metabolism.reaction_stoich)
-        stoichiometric_matrix_dict = dict(sorted(stoichiometric_matrix_dict.items()))
-        rxns = list()
-        metabolite_names = set()
-        homeostatic_obj_metabolites = \
-            self.sim_data.process.metabolism.concentration_updates.concentrations_based_on_nutrients(
-                self.sim_data.conditions[self.sim_data.condition]['nutrients']
-            ).keys()
-
-        # TODO (Cyrus) Below operations are redundant (renaming, catalyst rearranging) and should just be removed.
-        #  from the metabolism dataclass. Are catalysts all required? Or all possible ways to catalyze. Latter.
-        reaction_catalysts = self.sim_data.process.metabolism.reaction_catalysts
-        catalyst_ids = self.sim_data.process.metabolism.catalyst_ids
-        reactions_with_catalyst = self.sim_data.process.metabolism.reactions_with_catalyst
-
-        REVERSE_TAG = ' (reverse)'
-
-        # TODO Consider moving separation of reactions into metabolism reaction. Is it even necessary?
-        # Also add check for stoichiometries being equal for removed reverse reactions
-
-        # First pass. Add all reactions without tag.
-        # TODO (Cyrus) Investigate how many reactions are supposed to be reversible.
-        for key, value in stoichiometric_matrix_dict.items():
-            metabolite_names.update(list(value.keys()))
-
-            if not key.endswith(REVERSE_TAG):
-                rxns.append({'reaction id': key,
-                             'stoichiometry': value,
-                             'is reversible': False})
-            elif key.endswith(REVERSE_TAG) and rxns[-1]['reaction id'] == key[:-(len(REVERSE_TAG))]:
-                rxns[-1]['is reversible'] = True
-            # TODO (Cyrus) What to do about reactions with (reverse) tag that actually don't have the original reaction?
-            # probably from reactions with multiple forward reactions.
-            elif key.endswith(REVERSE_TAG):
-                rxns.append({'reaction id': key,
-                             'stoichiometry': value,
-                             'is reversible': False})
-
-            # Add enzyme to reactions
-            if key in reactions_with_catalyst:
-                rxns[-1]['enzyme'] = reaction_catalysts[key]
-            else:
-                rxns[-1]['enzyme'] = []
-
-        rxn_names = [rxn['reaction id'] for rxn in rxns]
-
-        # Avoids issues with index based recognition of reactions later
-        kinetic_reactions = [rxn if rxn in rxn_names else None for rxn in self.sim_data.process.metabolism.kinetic_constraint_reactions]
-
-        # Carbon source limitations.
-        carbon_source_active_transport = ['TRANS-RXN-157-PTSH-PHOSPHORYLATED/GLC//ALPHA-GLC-6-P/PTSH-MONOMER.52.',
-                                           'TRANS-RXN-157-PTSH-PHOSPHORYLATED/GLC//D-glucopyranose-6-phosphate'
-                                           '/PTSH-MONOMER.66.',
-                                           'TRANS-RXN-157-PTSH-PHOSPHORYLATED/GLC//GLC-6-P/PTSH-MONOMER.46.']
-
-        carbon_source_active_transport_duplicate = ['TRANS-RXN-320-GLC/ATP/WATER//ALPHA-GLUCOSE/ADP/Pi/PROTON.43.',
-                                                         'TRANS-RXN-320-GLC/ATP/WATER//GLC/ADP/Pi/PROTON.33.',
-                                                         'TRANS-RXN-320-GLC/ATP/WATER//Glucopyranose/ADP/Pi/PROTON.43.']
-
-        carbon_source_facilitated_diffusion = ['RXN0-7077-GLC/PROTON//ALPHA-GLUCOSE/PROTON.33.',
-                                                    'RXN0-7077-GLC/PROTON//Glucopyranose/PROTON.33.',
-                                                    'RXN0-7077-GLC/PROTON//GLC/PROTON.23.',
-                                                    'TRANS-RXN0-574-GLC//GLC.9.',
-                                                    'TRANS-RXN0-574-GLC//Glucopyranose.19.']
-
-
-        # TODO Reconstruct catalysis and annotate.
-        # Required:
-
+    def get_metabolism_redux_config(self, time_step=2, parallel=False,
+        deriver_mode=False):
         metabolism_config = {
             'time_step': time_step,
             '_parallel': parallel,
 
+            # stoich
+            'stoich_dict': self.sim_data.process.metabolism.reaction_stoich,
+            'maintenance_reaction': (self.sim_data.process.metabolism.
+                maintenance_reaction),
+            'reaction_catalysts': (self.sim_data.process.metabolism.
+                reaction_catalysts),
+
             # variables
-            'stoichiometry': self.sim_data.process.metabolism.reaction_stoich,
-            'stoichiometry_r': rxns,
-            'metabolite_names': metabolite_names,
-            'reaction_catalysts': self.sim_data.process.metabolism.reaction_catalysts,
-            'maintenance_reaction': self.sim_data.process.metabolism.maintenance_reaction,
-            'aa_names': self.sim_data.molecule_groups.amino_acids,
             'media_id': self.sim_data.conditions[self.sim_data.condition]['nutrients'],
             'avogadro': self.sim_data.constants.n_avogadro,
             'cell_density': self.sim_data.constants.cell_density,
-            'nutrientToDoublingTime': self.sim_data.nutrient_to_doubling_time,
+            'nutrient_to_doubling_time': self.sim_data.nutrient_to_doubling_time,
             'dark_atp': self.sim_data.constants.darkATP,
             'non_growth_associated_maintenance': self.sim_data.constants.non_growth_associated_maintenance,
             'cell_dry_mass_fraction': self.sim_data.mass.cell_dry_mass_fraction,
             'seed': self.random_state.randint(RAND_MAX),
-            'reactions_with_catalyst': self.sim_data.process.metabolism.reactions_with_catalyst,
-            'kinetic_constraint_reactions': kinetic_reactions,
-
-            # methods
-            'concentration_updates': self.sim_data.process.metabolism.concentration_updates,
-            'get_biomass_as_concentrations': self.sim_data.mass.getBiomassAsConcentrations,
-            'exchange_data_from_media': self.sim_data.external_state.exchange_data_from_media,
-            'doubling_time': self.sim_data.condition_to_doubling_time[self.sim_data.condition],
-            'get_kinetic_constraints': self.sim_data.process.metabolism.get_kinetic_constraints,
-            'exchange_constraints': self.sim_data.process.metabolism.exchange_constraints,
-
-            # ports schema
-            'catalyst_ids': self.sim_data.process.metabolism.catalyst_ids,
-            'kinetic_constraint_enzymes': self.sim_data.process.metabolism.kinetic_constraint_enzymes,
-            'kinetic_constraint_substrates': self.sim_data.process.metabolism.kinetic_constraint_substrates,
-            'deriver_mode': deriver_mode,
-
-            # new parameters
-            'carbon_source_active_transport': carbon_source_active_transport,
-            'carbon_source_active_transport_duplicate': carbon_source_active_transport_duplicate,
-            'carbon_source_facilitated_diffusion': carbon_source_facilitated_diffusion,
-
-        }
-
-        # TODO Create new config-get with only necessary parts.
-
-        return metabolism_config
-
-    def get_metabolism_redux_config(self, time_step=2, parallel=False, deriver_mode=False):
-
-        stoichiometric_matrix_dict = dict(self.sim_data.process.metabolism.reaction_stoich)
-        stoichiometric_matrix_dict = dict(sorted(stoichiometric_matrix_dict.items()))
-
-        reaction_catalysts = self.sim_data.process.metabolism.reaction_catalysts
-        catalyst_ids = self.sim_data.process.metabolism.catalyst_ids
-        reactions_with_catalyst = self.sim_data.process.metabolism.reactions_with_catalyst
-
-        rxns = list()
-
-        # TODO Reconstruct catalysis and annotate.
-        for key, value in stoichiometric_matrix_dict.items():
-
-            rxns.append({'reaction id': key, 'stoichiometry': value})
-
-            # Add enzyme to reactions
-            if key in reactions_with_catalyst:
-                rxns[-1]['enzyme'] = reaction_catalysts[key]
-            else:
-                rxns[-1]['enzyme'] = []
-        # Required:
-
-        metabolism_config = {
-            'time_step': time_step,
-            '_parallel': parallel,
-
-            # variables
-            # 'stoichiometry': self.sim_data.process.metabolism.reaction_stoich,
-            'stoichiometry': rxns, # upseparates rxns and catalysts.
-            'reaction_catalysts': self.sim_data.process.metabolism.reaction_catalysts,
-            'maintenance_reaction': self.sim_data.process.metabolism.maintenance_reaction,
-            'aa_names': self.sim_data.molecule_groups.amino_acids,
-            'media_id': self.sim_data.conditions[self.sim_data.condition]['nutrients'],
-            'avogadro': self.sim_data.constants.n_avogadro,
-            'cell_density': self.sim_data.constants.cell_density,
-            'nutrientToDoublingTime': self.sim_data.nutrient_to_doubling_time,
-            'dark_atp': self.sim_data.constants.darkATP,
-            'non_growth_associated_maintenance': self.sim_data.constants.non_growth_associated_maintenance,
-            'cell_dry_mass_fraction': self.sim_data.mass.cell_dry_mass_fraction,
-            'seed': self.random_state.randint(RAND_MAX),
-            'reactions_with_catalyst': self.sim_data.process.metabolism.reactions_with_catalyst,
             'kinetic_constraint_reactions': self.sim_data.process.metabolism.kinetic_constraint_reactions,
+            'doubling_time': self.sim_data.condition_to_doubling_time[self.sim_data.condition],
+            'get_biomass_as_concentrations': self.sim_data.mass.getBiomassAsConcentrations,
+            'aa_names': self.sim_data.molecule_groups.amino_acids,
 
             # methods
             'concentration_updates': self.sim_data.process.metabolism.concentration_updates,
-            'get_biomass_as_concentrations': self.sim_data.mass.getBiomassAsConcentrations,
             'exchange_data_from_media': self.sim_data.external_state.exchange_data_from_media,
-            'doubling_time': self.sim_data.condition_to_doubling_time[self.sim_data.condition],
             'get_kinetic_constraints': self.sim_data.process.metabolism.get_kinetic_constraints,
             'exchange_constraints': self.sim_data.process.metabolism.exchange_constraints,
 
@@ -936,19 +825,6 @@ class LoadSimData:
             'unique_masses': self.sim_data.internal_state.unique_molecule.unique_molecule_masses['mass'].asNumber(
                 units.fg / units.mol) / self.sim_data.constants.n_avogadro.asNumber(1/units.mol),
             'compartment_abbrev_to_index': self.sim_data.compartment_abbrev_to_index,
-            'submass_indices': {
-                'rna': np.array([
-                    self.sim_data.submass_name_to_index[name]
-                    for name in ["rRNA", "tRNA", "mRNA", "miscRNA", "nonspecific_RNA"]
-                ]),
-                'rRna': self.sim_data.submass_name_to_index["rRNA"],
-                'tRna': self.sim_data.submass_name_to_index["tRNA"],
-                'mRna': self.sim_data.submass_name_to_index["mRNA"],
-                'dna': self.sim_data.submass_name_to_index["DNA"],
-                'protein': self.sim_data.submass_name_to_index["protein"],
-                'smallMolecule': self.sim_data.submass_name_to_index["metabolite"],
-                'water': self.sim_data.submass_name_to_index["water"]
-            },
             'expectedDryMassIncreaseDict': self.sim_data.expectedDryMassIncreaseDict,
             'compartment_indices': {
                 'projection': self.sim_data.compartment_id_to_index["CCO-CELL-PROJECTION"],
@@ -963,7 +839,10 @@ class LoadSimData:
             },
             'compartment_id_to_index': self.sim_data.compartment_id_to_index,
             'n_avogadro': self.sim_data.constants.n_avogadro,  # 1/mol
-            'time_step': time_step
+            'time_step': time_step,
+            'submass_to_idx': self.sim_data.submass_name_to_index,
+            'condition_to_doubling_time': self.sim_data.condition_to_doubling_time,
+            'condition': self.sim_data.condition
         }
 
         return mass_config
@@ -986,7 +865,7 @@ class LoadSimData:
 
             # Get IDs of all bulk molecules
             'bulk_molecule_ids': self.sim_data.internal_state.bulk_molecules.bulk_data["id"],
-            'unique_ids': self.sim_data.internal_state.unique_molecule.unique_molecule_masses['id'],
+            'unique_ids': self.sim_data.internal_state.unique_molecule.unique_molecule_masses["id"],
 
             # Get IDs of molecules involved in complexation and equilibrium
             'complexation_molecule_ids': self.sim_data.process.complexation.molecule_names,

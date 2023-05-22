@@ -1,4 +1,4 @@
-from copy import deepcopy
+import ast
 import json
 import numpy as np
 import concurrent.futures
@@ -6,18 +6,6 @@ import concurrent.futures
 from vivarium.core.serialize import deserialize_value
 
 from wholecell.utils import units
-
-MASSDIFFS = {
-    "massDiff_rRNA": 0,
-    "massDiff_tRNA": 1,
-    "massDiff_mRNA": 2,
-    "massDiff_miscRNA": 3,
-    "massDiff_nonspecific_RNA": 4,
-    "massDiff_protein": 5,
-    "massDiff_metabolite": 6,
-    "massDiff_water": 7,
-    "massDiff_DNA": 8,
-}
 
 
 def infinitize(value):
@@ -30,15 +18,14 @@ def infinitize(value):
 def load_states(path):
     with open(path, "r") as states_file:
         states = json.load(states_file)
-
-    # Apply infinitize() to every value in each agent's environment state dictionary
-    if 'agents' in states.keys():  # If the states of a colony
-        for agent_id in states['agents'].keys():  # Iterate over each agent in the colony
-            states['agents'][agent_id]['environment'] = {
+    # Apply infinitize() to every value in each agent's environment state
+    if 'agents' in states.keys():
+        for agent_state in states['agents'].values():
+            agent_state['environment'] = {
                 key: infinitize(value)
-                for key, value in states['agents'][agent_id].get("environment", {}).items()
+                for key, value in agent_state.get("environment", {}).items()
             }
-    else:  # If the states of a single agent
+    else:
         states['environment'] = {
             key: infinitize(value)
             for key, value in states.get("environment", {}).items()
@@ -46,133 +33,89 @@ def load_states(path):
     return states
 
 
-def update_unique(modify_dict, source_dict, convert_unique_id_to_string):
-    """
-    update_unique initializes the unique molecules for a given agent.
-    Source_dict is the unique molecules state that was loaded in for that agent.
-    The data is reformatted and passed into modify_dict, which is the unique
-    molecules state that will be used for the agent.
-    (This docstring was written by Matt, who did not originally write this code.
-    This description could be incorrect.)
-    """
-    for mol_type, molecules in source_dict.items():
-        modify_dict.update({mol_type: {}})
-        for molecule_id, values in molecules.items():
-            if convert_unique_id_to_string:
-                molecule_id = str(molecule_id)
-            modify_dict[mol_type][molecule_id] = {
-                'submass': np.zeros(len(MASSDIFFS))}
-            for key, value in values.items():
-                if key in MASSDIFFS:
-                    modify_dict[mol_type][molecule_id]['submass'][
-                        MASSDIFFS[key]] = value
-                elif key in ['unique_index', 'RNAP_index', 'mRNA_index'] and convert_unique_id_to_string:
-                    # convert these values to strings
-                    modify_dict[mol_type][molecule_id][key] = str(value)
-                else:
-                    modify_dict[mol_type][molecule_id][key] = value
-    return modify_dict
-
-
-def colony_initial_state(states, convert_unique_id_to_string):
+def colony_initial_state(states):
     """
     colony_initial_state modifies the states of a loaded colony simulation
     to be suitable for initializing a colony simulation.
     """
-    for agent_id in states['agents'].keys():
+    for agent_state in states['agents'].values():
         # If evolvers_ran is False, we can get an infinite loop of
         # neither evolvers nor requesters running. No saved state should
         # include evolvers_ran=False.
         assert states.get('evolvers_ran', True)
-        states['agents'][agent_id]['environment']['exchange_data'] = {
-                'unconstrained': {
-                    'CL-[p]',
-                    'FE+2[p]',
-                    'CO+2[p]',
-                    'MG+2[p]',
-                    'NA+[p]',
-                    'CARBON-DIOXIDE[p]',
-                    'OXYGEN-MOLECULE[p]',
-                    'MN+2[p]',
-                    'L-SELENOCYSTEINE[c]',
-                    'K+[p]',
-                    'SULFATE[p]',
-                    'ZN+2[p]',
-                    'CA+2[p]',
-                    'Pi[p]',
-                    'NI+2[p]',
-                    'WATER[p]',
-                    'AMMONIUM[c]'},
-                'constrained': {
-                    'GLC[p]': 20.0 * units.mmol / (units.g * units.h)}}
-        states['agents'][agent_id]['unique'] = update_unique({}, 
-            states['agents'][agent_id].get("unique", {}),
-            convert_unique_id_to_string)
+        agent_state['environment']['exchange_data'] = {
+            'unconstrained': {'CL-[p]', 'FE+2[p]', 'CO+2[p]', 'MG+2[p]',
+                'NA+[p]', 'CARBON-DIOXIDE[p]', 'OXYGEN-MOLECULE[p]', 'MN+2[p]',
+                'L-SELENOCYSTEINE[c]', 'K+[p]', 'SULFATE[p]', 'ZN+2[p]',
+                'CA+2[p]', 'Pi[p]', 'NI+2[p]', 'WATER[p]', 'AMMONIUM[c]'},
+            'constrained': {
+                'GLC[p]': 20.0 * units.mmol / (units.g * units.h)}}
     return states
 
 
-def get_state_from_file(
+def numpy_molecules(states):
+    """
+    Loads unique and bulk molecule data as Numpy structured arrays
+    """
+    if 'bulk_dtypes' in states:
+        bulk_dtypes = ast.literal_eval(states.pop('bulk_dtypes'))
+        bulk_tuples = [tuple(mol) for mol in states['bulk']]
+        states['bulk'] = np.array(bulk_tuples, dtype=bulk_dtypes)
+        # Numpy arrays are read-only outside of updater
+        states['bulk'].flags.writeable = False
+    if 'unique_dtypes' in states:
+        for key, dtypes in states.pop('unique_dtypes').items():
+            dtypes = ast.literal_eval(dtypes)
+            unique_tuples = [tuple(mol) for mol in states['unique'][key]]
+            states['unique'][key] = np.array(unique_tuples, dtype=dtypes)
+            states['unique'][key].flags.writeable = False
+    return states 
+
+
+def get_state_from_file( 
     path="data/wcecoli_t0.json",
-    convert_unique_id_to_string=True,
 ):
-    # TODO(Eran): deal with mass
-    # add mw property to bulk and unique molecules
-    # and include any "submass" attributes from unique molecules
     serialized_state = load_states(path)
+    # Parallelize deserialization of colony states
     if 'agents' in serialized_state:
         agents = serialized_state.pop('agents')
         n_agents = len(agents)
         with concurrent.futures.ProcessPoolExecutor(n_agents) as executor:
             deserialized_agents = executor.map(
                 deserialize_value, agents.values())
-        agents = dict(zip(agents.keys(), deserialized_agents))
+        numpy_agents = []
+        for agent in deserialized_agents:
+            agent.pop('deriver_skips', None)
+            numpy_agents.append(numpy_molecules(agent))
+        agents = dict(zip(agents.keys(), numpy_agents))
         states = deserialize_value(serialized_state)
         states['agents'] = agents
-        return colony_initial_state(states, convert_unique_id_to_string)
+        return colony_initial_state(states)
     
-    states = deserialize_value(serialized_state)
+    deserialized_states = deserialize_value(serialized_state)
+    states = numpy_molecules(deserialized_states)
     # If evolvers_ran is False, we can get an infinite loop of
     # neither evolvers nor requesters running. No saved state should
     # include evolvers_ran=False.
     assert states.get('evolvers_ran', True)
-
     # Shallow copy for processing state into correct form
     initial_state = states.copy()
-
     # process environment state
+    env_data = states.get("environment", {})
+    exchange_data = env_data.pop("exchange", {})
     initial_state["environment"] = {
         "media_id": "minimal",
         # TODO(Ryan): pull in environmental amino acid levels
         "amino_acids": {},
         "exchange_data": {
-            "unconstrained": {
-                "CL-[p]",
-                "FE+2[p]",
-                "CO+2[p]",
-                "MG+2[p]",
-                "NA+[p]",
-                "CARBON-DIOXIDE[p]",
-                "OXYGEN-MOLECULE[p]",
-                "MN+2[p]",
-                "L-SELENOCYSTEINE[c]",
-                "K+[p]",
-                "SULFATE[p]",
-                "ZN+2[p]",
-                "CA+2[p]",
-                "Pi[p]",
-                "NI+2[p]",
-                "WATER[p]",
-                "AMMONIUM[c]",
-            },
-            "constrained": {"GLC[p]": 20.0 * units.mmol / (units.g * units.h)},
-        },
-        "external_concentrations": states.get("environment", {}),
+            'unconstrained': {'CL-[p]', 'FE+2[p]', 'CO+2[p]', 'MG+2[p]',
+                'NA+[p]', 'CARBON-DIOXIDE[p]', 'OXYGEN-MOLECULE[p]', 'MN+2[p]',
+                'L-SELENOCYSTEINE[c]', 'K+[p]', 'SULFATE[p]', 'ZN+2[p]',
+                'CA+2[p]', 'Pi[p]', 'NI+2[p]', 'WATER[p]', 'AMMONIUM[c]'},
+            'constrained': {
+                'GLC[p]': 20.0 * units.mmol / (units.g * units.h)}},
+        "external_concentrations": env_data,
+        "exchange": exchange_data
     }
-
     initial_state["process_state"] = {"polypeptide_elongation": {}}
-
-    # process unique molecule state
-    initial_state["unique"] = {}
-    update_unique(initial_state['unique'], states.get("unique", {}), convert_unique_id_to_string)
-
     return initial_state

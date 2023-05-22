@@ -6,12 +6,14 @@ from ecoli.experiments.ecoli_master_sim import EcoliSim, CONFIG_DIR_PATH
 def testDefault():
     sim = EcoliSim.from_file()
     sim.total_time = 2
+    sim.build_ecoli()
     sim.run()
 
 
 def testAddProcess():
     sim = EcoliSim.from_file(CONFIG_DIR_PATH + "test_configs/test_add_process.json")
     sim.total_time = 2
+    sim.build_ecoli()
     sim.run()
     data = sim.query()
 
@@ -24,6 +26,7 @@ def testAddProcess():
 def testExcludeProcess():
     sim = EcoliSim.from_file(CONFIG_DIR_PATH + "test_configs/test_exclude_process.json")
     sim.total_time = 2
+    sim.build_ecoli()
     sim.run()
     assert "ecoli-polypeptide-elongation" not in sim.ecoli.processes.keys()
     assert "ecoli-polypeptide-elongation" not in sim.ecoli.topology.keys()
@@ -49,8 +52,10 @@ def test_export():
 
 def test_load_state():
     sim1 = EcoliSim.from_file(CONFIG_DIR_PATH + "test_configs/test_save_state.json")
+    sim1.build_ecoli()
     sim1.run()
     sim2 = EcoliSim.from_file(CONFIG_DIR_PATH + "test_configs/test_load_state.json")
+    sim2.build_ecoli()
     sim2.run()
 
 
@@ -62,15 +67,18 @@ def test_initial_state_overrides():
     sim_default.build_ecoli()
     sim.build_ecoli()
 
-    assert sim.initial_state["bulk"]["CPD-12261[p]"] == 558735
-    assert "murein_state" in sim.initial_state and sim.initial_state[
-        "murein_state"
+    murein_row_idx = np.where(sim.generated_initial_state['bulk'][
+        'id'] == 'CPD-12261[p]')[0]
+    assert sim.generated_initial_state["bulk"]["count"][
+        murein_row_idx] == 558735
+    assert sim.generated_initial_state["murein_state"
     ] == {
         "shadow_murein": 0,
         "unincorporated_murein": 2234940,
         "incorporated_murein": 0,
     }
-    assert sim_default.initial_state["environment"] == sim.initial_state["environment"]
+    assert sim_default.generated_initial_state["environment"
+        ] == sim.generated_initial_state["environment"]
 
 
 def main():

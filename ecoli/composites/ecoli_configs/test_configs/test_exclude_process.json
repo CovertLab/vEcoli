@@ -2,5 +2,5 @@
     "experiment_id" : "test_exclude_process",
     "total_time" : 2,
     "exclude_processes" : ["ecoli-polypeptide-elongation", "ecoli-two-component-system"],
-    "partition" : false
+    "partition" : true
 }

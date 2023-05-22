@@ -4,7 +4,7 @@ from scipy.optimize import root_scalar
 from vivarium.core.process import Step
 from vivarium.library.units import units
 
-from ecoli.library.schema import bulk_schema, dict_value_schema
+from ecoli.library.schema import numpy_schema, bulk_name_to_idx, counts
 
 
 AVOGADRO = N_A / units.mol
@@ -44,24 +44,17 @@ class TetracyclineRibosomeEquilibrium(Step):
         super().__init__(parameters)
         self.random_state = np.random.RandomState(
             seed=self.parameters['seed'])
+        # Helper indices for Numpy indexing
+        self.trna_idx = None
 
     def ports_schema(self):
         return {
+            'bulk': numpy_schema('bulk', partition=False),
             'tetracycline': {
                 '_default': 0 * units.mM,
                 '_emit': True,
             },
-            '30s-free': {
-                '_default': 0,
-            },
-            '50s': {
-                '_default': 0,
-            },
-            '70s-free': dict_value_schema('active_ribosome'),
-            '30s-tetracycline': {
-                '_default': 0,
-            },
-            'trnas': bulk_schema(self.parameters['trna_ids']),
+            '70s-free': numpy_schema('active_ribosome'),
             # Cytoplasm volume.
             'volume': {
                 '_default': 0 * units.fL,
@@ -87,18 +80,29 @@ class TetracyclineRibosomeEquilibrium(Step):
         return states['evolvers_ran']
 
     def next_update(self, _, states):
+        if self.trna_idx is None:
+            bulk_ids = states['bulk']['id']
+            self.trna_idx = bulk_name_to_idx(
+                self.parameters['trna_ids'], bulk_ids)
+            self.free_30s_idx = bulk_name_to_idx(
+                'CPLX0-3953[c]', bulk_ids)
+            self.free_50s_idx = bulk_name_to_idx(
+                'CPLX0-3962[c]', bulk_ids)
+            self.tet_30s_idx = bulk_name_to_idx(
+                'CPLX0-3953-tetracycline[c]', bulk_ids)
+
         volume = states['volume']
 
-        count_70s_free = len(states['70s-free'])
+        count_70s_free = states['70s-free']['_entryState'].sum()
 
-        count_30s_free = states['30s-free']
-        count_30s_tc = states['30s-tetracycline']
+        count_30s_free = counts(states['bulk'], self.free_30s_idx)
+        count_30s_tc = counts(states['bulk'], self.tet_30s_idx)
         conc_30s_tc = count_30s_tc / AVOGADRO / volume
 
         count_ribo_total = (
             count_70s_free + count_30s_free + count_30s_tc)
         
-        count_total_trna = int(sum(states['trnas'].values()) *
+        count_total_trna = int(counts(states['bulk'], self.trna_idx).sum() *
             TRNA_CORRECTION_FACTOR)
         # Assume each active ribosome has two bound tRNAs (in P and E site)
         count_trna = count_total_trna - 2 * count_70s_free
@@ -118,8 +122,10 @@ class TetracyclineRibosomeEquilibrium(Step):
         old_count_70s_free = count_70s_free
         old_count_30s_free = count_30s_free
 
-        # Solve for change in free tetracycline concentration (by binding
-        # or unbinding from 30S) that results in stable tetracycline conc.
+        # Solve for change in free tetracycline count (by binding or
+        # unbinding from 30S) required so the new free count stays
+        # the same before and after tetracycline is sequestered away
+        # in accordance with tet-ribosome association constants.
         sol = root_scalar(
             f=self.get_delta_tc_free_count,
             args=(
@@ -163,10 +169,10 @@ class TetracyclineRibosomeEquilibrium(Step):
             count_70s_to_inhibit += overflow_30s_tc
 
         assert delta_tc + conc_tc_free >= 0
-        # Ensure total count of tetracycline in cell is not changing
-        assert np.isclose(old_count_tc_free + old_count_30s_tc,
+        # Ensure free tetracycline count is not changing
+        assert np.isclose(old_count_tc_free,
             count_30s_to_inhibit + count_70s_to_inhibit
-            + count_tc_free + states['30s-tetracycline'], atol=1)
+            + count_tc_free + old_count_30s_tc, atol=1)
         
         # Ensure that total count of ribosomes in cell is not changing
         new_70s_count = old_count_70s_free - count_70s_to_inhibit
@@ -178,16 +184,12 @@ class TetracyclineRibosomeEquilibrium(Step):
 
         # Handle the easy updates: the concentrations and subunits.
         update = {
+            'bulk': [
+                (self.free_30s_idx, -count_30s_to_inhibit),
+                (self.tet_30s_idx, count_30s_to_inhibit)
+            ],
             'tetracycline': {
                 '_value': delta_tc,
-                '_updater': 'accumulate',
-            },
-            '30s-free': {
-                '_value': -count_30s_to_inhibit,
-                '_updater': 'accumulate',
-            },
-            '30s-tetracycline': {
-                '_value': count_30s_to_inhibit,
                 '_updater': 'accumulate',
             },
             'listeners': {
@@ -200,8 +202,8 @@ class TetracyclineRibosomeEquilibrium(Step):
         # Handle the more difficult updates: the active ribosomes.
         if count_70s_to_inhibit > 0:
             # Randomly select which active ribosomes to inhibit.
-            ids_70s_to_inhibit = self.random_state.choice(
-                np.array(list(states['70s-free'])),
+            row_idx_70s_to_inhibit = self.random_state.choice(
+                states['70s-free']['_entryState'].sum(),
                 count_70s_to_inhibit,
                 replace=False,
             )
@@ -209,15 +211,15 @@ class TetracyclineRibosomeEquilibrium(Step):
             # inactive.
             update.update({
                 '70s-free': {
-                    '_delete': list(ids_70s_to_inhibit),
+                    'delete': row_idx_70s_to_inhibit,
                 },
                 '50s': {
-                    '_value': len(ids_70s_to_inhibit),
+                    '_value': len(row_idx_70s_to_inhibit),
                     '_updater': 'accumulate',
                 },
             })
-            update['30s-tetracycline']['_value'] += len(
-                ids_70s_to_inhibit)
+            update['bulk'].append((self.free_50s_idx, count_70s_to_inhibit))
+            update['bulk'].append((self.tet_30s_idx, count_70s_to_inhibit))
         return update
     
     def get_delta_tc_free_count(
