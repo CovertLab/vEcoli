@@ -542,7 +542,8 @@ class EcoliSim:
         # Clean up unnecessary references
         self.generated_initial_state = None
         self.ecoli_experiment.initial_state = None
-        del metadata
+        del metadata, experiment_config, emitter_config
+        self.ecoli = None
 
         # run the experiment
         if self.save:
@@ -596,6 +597,7 @@ class EcoliSim:
 
 
 def main():
+    import multiprocessing; multiprocessing.set_start_method('spawn')
     ecoli_sim = EcoliSim.from_cli()
     ecoli_sim.build_ecoli()
     ecoli_sim.run()

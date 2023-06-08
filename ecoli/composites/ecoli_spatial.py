@@ -2,7 +2,6 @@
 =========================
 E. coli spatial composite
 =========================
-**NOTE: Has not been updated to work with new Numpy internal states**
 
 This composite is intended to run a spatial model of E. coli, where each
 cellular compartment is designated as a node. These nodes are connected by
@@ -139,39 +138,35 @@ class EcoliSpatial(Composer):
             self.unique_masses[id_] = sum((mass / sim_data.constants.n_avogadro).asNumber(units.fg))
 
     def initial_state(self, config):
-        # initialize variables
-        include_bulk = config['include_bulk']
-        include_polyribosomes = config['include_polyribosomes']
         initial_state = get_state_from_file(
             path='data/wcecoli_t0.json',
         )
-        bulk = {}
 
-        if include_bulk:
-            bulk = initial_state['bulk']
+        if config['include_bulk']:
+            bulk = initial_state['bulk'].copy()
         else:
+            bulk = np.empty(0, dtype=initial_state['bulk'].dtype)
             self.bulk_molecular_weights = {}
-        if include_polyribosomes:
+        if config['include_polyribosomes']:
             polyribosome_assumption = config['polyribosome_assumption']
             polyribosomes, polyribosomes_mw, polyribosomes_radii = add_polyribosomes(
                 initial_state['unique'], self.unique_masses, polyribosome_assumption)
-            bulk.update(polyribosomes)
+            bulk = np.append(bulk, np.array(list(polyribosomes.items()), dtype=bulk.dtype))
             self.bulk_molecular_weights.update(polyribosomes_mw)
             self.radii.update(polyribosomes_radii)
 
-
         # Buckets half of cytosol labeled molecules into each pole
         cytosol_front = {
-            mol_id: (math.ceil(value / 2) if '[c]' in mol_id else 0)
-            for mol_id, value in bulk.items()
+            str(mol_id): (math.ceil(value / 2) if '[c]' in mol_id else 0)
+            for mol_id, value in bulk
         }
         cytosol_rear = {
-            mol_id: (math.floor(value / 2) if '[c]' in mol_id else 0)
-            for mol_id, value in bulk.items()
+            str(mol_id): (math.floor(value / 2) if '[c]' in mol_id else 0)
+            for mol_id, value in bulk
         }
         nucleoid = {
-            mol_id: (value if '[n]' in mol_id else 0)
-            for mol_id, value in bulk.items()
+            str(mol_id): (value if '[n]' in mol_id else 0)
+            for mol_id, value in bulk
         }
 
         self.nodes['cytosol_front']['molecules'] = cytosol_front
@@ -203,162 +198,129 @@ class EcoliSpatial(Composer):
         }
 
 
-def add_polyribosomes(unique, unique_masses, polyribosome_assumption, save_output=False):
-        # pull polyribosome building blocks from unique initial state
-        is_full_transcript_rna, is_mrna, unique_index_rna = attrs(unique['RNA'], [
-            'is_full_transcript', 'is_mRNA', 'unique_index'])
+def add_polyribosomes(unique, unique_masses, polyribosome_assumption,
+                      save_output=False):
+    (is_full_transcript_rna, is_mrna, unique_index_rna, mrna_length, 
+        mrna_mass) = attrs(unique['RNA'], [
+            'is_full_transcript', 'is_mRNA', 'unique_index',
+            'transcript_length', 'massDiff_mRNA'])
+    
+    # Remove ribosomes associated with RNAs that do not exist,
+    # are not mRNAs, or have not been fully transcribed
+    active_ribosomes = unique['active_ribosome'][
+        unique['active_ribosome']['_entryState'].astype(np.bool_)]
+    active_ribosomes = active_ribosomes[np.isin(active_ribosomes[
+        'mRNA_index'], unique_index_rna[is_mrna & is_full_transcript_rna])]
+    mrna_index_ribosome_on_full_mrna, peptide_length_on_full_mrna = attrs(
+        active_ribosomes, ['mRNA_index', 'peptide_length'])
+    
+    # Calculate number of ribosomes on each unique mRNA
+    (n_ribosome_mrna_indices, mrna_ribo_inverse, n_ribosomes_on_full_mrna
+        ) = np.unique(mrna_index_ribosome_on_full_mrna, return_inverse=True,
+                      return_counts=True)
 
-        mrna_index_ribosomes, = attrs(unique['active_ribosome'], ['mRNA_index'])
+    # Get mRNA length and mass in same order as n_ribosomes_on_full_mrna
+    mrna_mask = bulk_name_to_idx(n_ribosome_mrna_indices, unique_index_rna)
+    mrna_length = mrna_length[mrna_mask]
+    mrna_mass = mrna_mass[mrna_mask]
+    # Calculate NT spacing + footprint of ribosomes per mRNA
+    avg_NT_per_ribosome = mrna_length / n_ribosomes_on_full_mrna
+    if save_output:
+        plot_NT_availability(avg_NT_per_ribosome)
 
-        # This line removes ghost mrna indexes
-        mrna_index_ribosomes = mrna_index_ribosomes[
-            np.where(np.isin(mrna_index_ribosomes, unique_index_rna) == 1)]
+    # Defines buckets for unique polyribosomes to be combined into
+    groups = [f'polyribosome_{i}[c]' for i in range(1, 10)] + [
+        'polyribosome_>=10[c]']
 
-        # This removes non-mrna molecules
-        mrna_index_ribosomes = [mrna_index_ribosomes[i]
-                                for i in np.where(np.isin(
-                mrna_index_ribosomes, unique_index_rna[is_mrna]))[0]]
+    # Groups polyribosomes based on number of ribosomes on mRNA
+    # and calculates properties
+    polyribosomes = {}
+    mw = {}
+    radii = {}
+    for i, group in enumerate(groups):
+        if i < len(groups) - 1:
+            group_mask = (n_ribosomes_on_full_mrna == (i + 1))
+        # Final group for all mRNAs with >=len(groups) ribosomes
+        else:
+            group_mask = (n_ribosomes_on_full_mrna >= (i + 1))
+        n_polyribosome_by_group = n_ribosomes_on_full_mrna[
+            group_mask].sum()
+        avg_n_ribosome_by_group = n_ribosomes_on_full_mrna[
+            group_mask].mean()
+        avg_mrna_mass = mrna_mass[group_mask].mean()
+        avg_mrna_length = mrna_length[group_mask].mean()
+        avg_peptide_length = peptide_length_on_full_mrna[
+            np.isin(mrna_ribo_inverse, np.nonzero(group_mask)[0])
+            ].sum() / n_polyribosome_by_group
+        # Average MW of amino acid is 110 Da or 1.82659422e-7 fg
+        mw[group] = avg_mrna_mass + avg_n_ribosome_by_group \
+             * unique_masses['active_ribosome'] + avg_peptide_length \
+             * 1.82659422 * 10 ** -7
+        
+        # Recalculates polyribosome size per input assumption
+        if polyribosome_assumption == 'linear':
+            radii[group] = (avg_n_ribosome_by_group * RIBOSOME_SIZE) / 2
+        if polyribosome_assumption == 'mrna':
+            radii[group] = 5.5 * avg_mrna_length ** 0.3333
 
-        # Calculates number of ribosomes on each unique mrna molecule
-        mrna_index_ribosome_on_full_mrna = [mrna_index_ribosomes[i]
-                                            for i in np.where(np.isin(
-                mrna_index_ribosomes, unique_index_rna[is_full_transcript_rna]))[0]]
-        n_ribosomes_on_full_mrna = np.bincount(mrna_index_ribosome_on_full_mrna)
+        # Adds polyribosomes to bulk molecules and molecular weights
+        polyribosomes[group] = n_polyribosome_by_group
 
-        # Calculates mRNA length and NT availability for ribosomes
-        mrna_length = np.asarray([unique['RNA'][
-                                      str(unique_index)]['transcript_length']
-                                  for unique_index in
-                                  mrna_index_ribosome_on_full_mrna])
-
-        avg_NT_per_ribosome = np.asarray([
-            mrna_length[i] / n_ribosomes_on_full_mrna[mrna_index_ribosome_on_full_mrna[i]]
-            for i in np.unique(mrna_index_ribosome_on_full_mrna, return_index=True)[1]
-            if n_ribosomes_on_full_mrna[mrna_index_ribosome_on_full_mrna[i]] != 0
-        ])
-        if save_output:
-            plot_NT_availability(avg_NT_per_ribosome)
-
-        # Defines buckets for unique polyribosomes to be combined into
-        groups = ['polyribosome_1[c]', 'polyribosome_2[c]', 'polyribosome_3[c]',
-                  'polyribosome_4[c]', 'polyribosome_5[c]', 'polyribosome_6[c]',
-                  'polyribosome_7[c]', 'polyribosome_8[c]', 'polyribosome_9[c]',
-                  'polyribosome_>=10[c]']
-
-        # Initializes variables for key information about each polyribosome group
-        n_ribosomes_per_mrna_by_group = np.zeros((len(groups), len(n_ribosomes_on_full_mrna)))
-        n_polyribosome_by_group = np.zeros(len(groups))
-        avg_n_ribosome_by_group = np.zeros(len(groups))
-        polyribosome_mass_by_group = np.zeros(len(groups))
-        avg_mrna_mass = np.zeros(len(groups))
-        avg_mrna_length = np.zeros(len(groups))
-        avg_peptide_length = np.zeros(len(groups))
-        polyribosomes = {}
-        mw = {}
-        radii = {}
-
-        # Separates polyribosomes into subgroups based off of number of ribosomes on mrna
-        for i in range(len(groups) - 1):
-            n_ribosomes_per_mrna_by_group[i, :] = np.multiply(
-                n_ribosomes_on_full_mrna,
-                n_ribosomes_on_full_mrna == (i + 1))
-        n_ribosomes_per_mrna_by_group[(len(groups) - 1), :] = np.multiply(
-            n_ribosomes_on_full_mrna,
-            n_ribosomes_on_full_mrna >= 10)
-
-        # Calculates properties of polyribosome groups and adds to bulk molecules
-        for i, group in enumerate(groups):
-            n_polyribosome_by_group[i] = sum(
-                [n_ribosomes_per_mrna_by_group[i, :] > 0][0])
-            avg_n_ribosome_by_group[i] = np.average(
-                n_ribosomes_per_mrna_by_group[i, :][
-                    [n_ribosomes_per_mrna_by_group[i, :] > 0][0]
-                ])
-            group_idx = np.where(n_ribosomes_per_mrna_by_group[i, :] > 0)[0]
-            avg_mrna_mass[i] = np.average([
-                # mRNA has index 2 in the submass array
-                unique['RNA'][str(unique_index)]['submass'][2]
-                for unique_index in group_idx])
-            avg_mrna_length[i] = np.average([
-                unique['RNA'][str(unique_index)]['transcript_length']
-                for unique_index in group_idx
-            ])
-            avg_peptide_length[i] = sum([
-                unique['active_ribosome'][unique_index][
-                    'peptide_length']
-                for unique_index in unique['active_ribosome'].keys()
-                if unique['active_ribosome'][unique_index][
-                       'mRNA_index'] in group_idx]) / n_polyribosome_by_group[i]
-            polyribosome_mass_by_group[i] = avg_mrna_mass[i] + avg_n_ribosome_by_group[
-                i] * unique_masses['active_ribosome'] + avg_peptide_length[
-                                                i] * 1.82659422 * 10 ** -7
-
-            # Recalculates polyribosome size per input assumption
-            if polyribosome_assumption == 'linear':
-                radii[group] = (avg_n_ribosome_by_group[i] * RIBOSOME_SIZE) / 2
-            if polyribosome_assumption == 'mrna':
-                radii[group] = 5.5 * avg_mrna_length[i] ** 0.3333
-
-            # Adds polyribosomes to bulk molecules and molecular weights
-            polyribosomes[group] = n_polyribosome_by_group[i]
-            mw[group] = polyribosome_mass_by_group[i]
-
-        return polyribosomes, mw, radii
+    return polyribosomes, mw, radii
 
 
-# TODO: Adapt this code to work with new Numpy internal states
-# def test_spatial_ecoli(
-#     polyribosome_assumption='spherical',    # choose from 'mrna', 'linear', or 'spherical'
-#     total_time=10,  # in seconds
-# ):
-#     ecoli_config = {
-#         'nodes': {
-#             'cytosol_front': {
-#                 'length': 0.5,      # in um
-#                 'volume': 0.25,     # in um^3
-#                 'molecules': {},
-#             },
-#             'nucleoid': {
-#                 'length': 1.0,
-#                 'volume': 0.5,
-#                 'molecules': {},
-#             },
-#             'cytosol_rear': {
-#                 'length': 0.5,
-#                 'volume': 0.25,
-#                 'molecules': {},
-#             },
-#         },
-#         'edges': {
-#             '1': {
-#                 'nodes': ['cytosol_front', 'nucleoid'],
-#                 'cross_sectional_area': np.pi * 0.3 ** 2,       # in um^2
-#                 'mesh': True,
-#             },
-#             '2': {
-#                 'nodes': ['nucleoid', 'cytosol_rear'],
-#                 'cross_sectional_area': np.pi * 0.3 ** 2,
-#                 'mesh': True,
-#             },
-#         },
-#         'mesh_size': 50,        # in nm
-#         'time_step': 1,
-#     }
+def test_spatial_ecoli(
+    polyribosome_assumption='spherical',    # choose from 'mrna', 'linear', or 'spherical'
+    total_time=10,  # in seconds
+):
+    ecoli_config = {
+        'nodes': {
+            'cytosol_front': {
+                'length': 0.5,      # in um
+                'volume': 0.25,     # in um^3
+                'molecules': {},
+            },
+            'nucleoid': {
+                'length': 1.0,
+                'volume': 0.5,
+                'molecules': {},
+            },
+            'cytosol_rear': {
+                'length': 0.5,
+                'volume': 0.25,
+                'molecules': {},
+            },
+        },
+        'edges': {
+            '1': {
+                'nodes': ['cytosol_front', 'nucleoid'],
+                'cross_sectional_area': np.pi * 0.3 ** 2,       # in um^2
+                'mesh': True,
+            },
+            '2': {
+                'nodes': ['nucleoid', 'cytosol_rear'],
+                'cross_sectional_area': np.pi * 0.3 ** 2,
+                'mesh': True,
+            },
+        },
+        'mesh_size': 50,        # in nm
+        'time_step': 1,
+    }
 
-#     ecoli = EcoliSpatial(ecoli_config)
+    ecoli = EcoliSpatial(ecoli_config)
 
-#     initial_config = {
-#         'include_bulk': False,
-#         'include_polyribosomes': True,
-#         'polyribosome_assumption': polyribosome_assumption,
-#     }
+    initial_config = {
+        'include_bulk': False,
+        'include_polyribosomes': True,
+        'polyribosome_assumption': polyribosome_assumption,
+    }
 
-#     settings = {
-#         'total_time': total_time,       # in s
-#         'initial_state': ecoli.initial_state(initial_config)}
+    settings = {
+        'total_time': total_time,       # in s
+        'initial_state': ecoli.initial_state(initial_config)}
 
-#     data = simulate_composer(ecoli, settings)
-#     return ecoli, initial_config, data
+    data = simulate_composer(ecoli, settings)
+    return ecoli, initial_config, data
 
 
 def run_spatial_ecoli(
@@ -379,18 +341,6 @@ def run_spatial_ecoli(
         plot_polyribosomes_diff(output, mesh_size, nodes, filename)
     if initial_config['include_polyribosomes'] and not initial_config['include_bulk']:
         plot_nucleoid_diff(output, nodes, initial_config['polyribosome_assumption'])
-
-
-# Helper functions
-def array_from(d):
-    return np.array(list(d.values()))
-
-
-def array_to(keys, array):
-    return {
-        key: array[index]
-        for index, key in enumerate(keys)}
-
 
 def main():
     parser = argparse.ArgumentParser(description='ecoli spatial')
