@@ -30,6 +30,8 @@ GDCW_BASIS = units.mmol / units.g / units.h
 BAD_RXNS = ["RXN-12440", "TRANS-RXN-121", "TRANS-RXN-300", "TRANS-RXN-8", "R15-RXN-MET/CPD-479//CPD-479/MET.25.",
             "DISULFOXRED-RXN[CCO-PERI-BAC]-MONOMER0-4152/MONOMER0-4438//MONOMER0-4438/MONOMER0-4152.71.", ]
 
+FREE_RXNS = ["TRANS-RXN-145", "TRANS-RXN0-545", "TRANS-RXN0-474"]
+
 NAME = 'ecoli-metabolism-redux'
 TOPOLOGY = topology_registry.access('ecoli-metabolism')
 # TODO (Cyrus) - Re-add when kinetics are added.
@@ -108,8 +110,7 @@ class MetabolismRedux(Step):
 
         self.network_flow_model = NetworkFlowModel(reactions=stoichiometric_matrix_dict,
                                                    homeostatic_metabolites=self.homeostatic_objective,
-                                                   kinetic_reactions=self.kinetic_constraint_reactions,
-                                                   free_reactions='TRANS-RXN-145')
+                                                   free_reactions=FREE_RXNS)
 
         # for ports schema # TODO (Cyrus) - Remove some of these. They are not used.
         self.metabolite_names_for_nutrients = self.get_port_metabolite_names(conc_dict)
@@ -382,7 +383,6 @@ class NetworkFlowModel:
     def __init__(self,
                  reactions: Iterable[dict],
                  homeostatic_metabolites: Iterable[str],
-                 kinetic_reactions: Iterable[str],
                  free_reactions: Iterable[str]):
 
         # pandas automatically creates S matrix from dict of dicts, then we fill zeros in remainder
@@ -396,8 +396,6 @@ class NetworkFlowModel:
 
         # steady state indices, secretion indices
         self.intermediates_idx = [self.mets.index(met) for met in self.intermediates]
-        self.homeostatic_idx = [self.mets.index(met) for met in homeostatic_metabolites]
-        self.kinetic_idx = [self.rxns.index(rxn) for rxn in kinetic_reactions]
         self.penalty_idx = [self.rxns.index(rxn) for rxn in self.rxns if rxn not in free_reactions]
 
         self.set_up = False
