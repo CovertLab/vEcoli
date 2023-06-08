@@ -470,7 +470,7 @@ class LoadSimData:
             'polymerized_ntps': self.sim_data.molecule_groups.polymerized_ntps,
             'cell_density': self.sim_data.constants.cell_density,
             'n_avogadro': self.sim_data.constants.n_avogadro,
-            'stop_probabilities': self.sim_data.process.transcription.get_attenuation_stop_probabilities,
+            'get_attenuation_stop_probabilities': self.sim_data.process.transcription.get_attenuation_stop_probabilities,
             'attenuated_rna_indices': self.sim_data.process.transcription.attenuated_rna_indices,
             'location_lookup': self.sim_data.process.transcription.attenuation_location,
 
