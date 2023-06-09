@@ -1,7 +1,7 @@
 """
-===========================================
-Metabolism using Gradient Descent-based FBA
-===========================================
+==================================
+Metabolism using user-friendly FBA
+==================================
 """
 import argparse
 
@@ -69,7 +69,7 @@ class MetabolismExchange(Composer):
         return {
             'metabolism': metabolism_topology,
             'exchanger': {
-                'molecules': ('bulk',),
+                'bulk': ('bulk',),
             }
         }
 
@@ -85,11 +85,13 @@ def run_metabolism():
     metabolism_process = MetabolismRedux(config)
 
     initial_state = get_state_from_file(
-        path=f'data/wcecoli_t1000.json')
+        path=f'data/wcecoli_t0.json')
 
     metabolism_composite = metabolism_process.generate()
+    metabolism_composite['topology']['ecoli-metabolism-redux'][
+        'bulk_total'] = ('bulk',)
     experiment = Engine(
-        processes=metabolism_composite['processes'],
+        steps=metabolism_composite['steps'],
         topology=metabolism_composite['topology'],
         initial_state=initial_state
     )
@@ -102,9 +104,11 @@ def run_metabolism():
 def run_metabolism_composite():
     composer = MetabolismExchange()
     metabolism_composite = composer.generate()
+    metabolism_composite['topology']['metabolism'][
+        'bulk_total'] = ('bulk',)
 
     initial_state = get_state_from_file(
-        path=f'data/wcecoli_t1000.json')
+        path=f'data/wcecoli_t0.json')
 
     experiment = Engine(
         processes=metabolism_composite['processes'],
@@ -151,6 +155,7 @@ def run_ecoli_with_metabolism_redux(
     # sim.initial_state['environment']['exchange_data']['unconstrained'].add('FRU[p]')
 
 
+    sim.build_ecoli()
     sim.run()
 
     query = []
@@ -174,6 +179,7 @@ def test_ecoli_with_metabolism_redux(
     sim.progress_bar = progress_bar
     sim.log_updates = log_updates
     sim.emitter = emitter
+    sim.build_ecoli()
 
     # run simulation and add asserts to output
     sim.run()
@@ -197,6 +203,7 @@ def test_ecoli_with_metabolism_redux_div(
     sim.total_time = total_time
     sim.divide = divide
     sim.emitter = emitter
+    sim.build_ecoli()
 
     sim.run()
     
@@ -231,9 +238,11 @@ def run_ecoli_with_default_metabolism(
     sim.progress_bar = progress_bar
     sim.log_updates = log_updates
     sim.emitter = emitter
+    sim.build_ecoli()
 
     sim.run()
-    output = sim.query()
+    # output = sim.query()
+    output = sim.ecoli_experiment.emitter.get_timeseries()
 
 
     folder = f'out/fbagd/{total_time}/{datetime.datetime.now()}/'
@@ -241,7 +250,7 @@ def run_ecoli_with_default_metabolism(
     np.save(folder + 'fba_results.npy', output['listeners']['fba_results'])
     np.save(folder + 'mass.npy', output['listeners']['mass'])
     np.save(folder + 'bulk.npy', output['bulk'])
-    np.save(folder + 'stoichiometry.npy', sim.ecoli.processes['ecoli-metabolism-gradient-descent'].stoichiometry)
+    np.save(folder + 'stoichiometry.npy', sim.ecoli.steps['ecoli-metabolism'].model.stoichiometry)
 
 experiment_library = {
     '0': run_metabolism,
@@ -274,7 +283,7 @@ def save_sim_output(folder, query, sim, save_model=False):
 
 # run experiments with command line arguments: python ecoli/experiments/metabolism_redux_sim.py -n exp_id
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='metabolism with gd')
+    parser = argparse.ArgumentParser(description='user-friendly metabolism')
     parser.add_argument('--name', '-n', default=[], nargs='+', help='test ids to run')
     args = parser.parse_args()
     run_all = not args.name

@@ -6,8 +6,11 @@ Exchange Stub
 Exchanges molecules at pre-set rates through a single port
 """
 
+import numpy as np
 from vivarium.core.process import Process
 from vivarium.core.composition import simulate_process
+
+from ecoli.library.schema import numpy_schema, bulk_name_to_idx
 
 
 class Exchange(Process):
@@ -26,37 +29,34 @@ class Exchange(Process):
                 mapped to the exchange rate, in counts/second.
         """
         super().__init__(parameters)
+        self.exchange_mol = np.array(list(
+            self.parameters['exchanges'].keys()))
+        self.exchange_rate = np.array(list(
+            self.parameters['exchanges'].values()))
+        self.exchange_mol_idx = None
 
     def ports_schema(self):
         return {
-            'molecules': {
-                mol_id: {'_default': 0}
-                for mol_id in self.parameters['exchanges'].keys()}}
+            'bulk': numpy_schema('bulk')}
 
     def next_update(self, timestep, states):
-        exchange = {
-            mol_id: rate * timestep
-            for mol_id, rate in self.parameters['exchanges'].items()}
-        return {'molecules': exchange}
+        if self.exchange_mol_idx is None:
+            self.exchange_mol_idx = bulk_name_to_idx(self.exchange_mol,
+                states['bulk']['id'])
+        exchange = self.exchange_rate * timestep
+        return {'bulk': [(self.exchange_mol_idx, exchange)]}
 
 
 def test_exchanger():
     parameters = {
         'exchanges': {
             'A': -1.0,
-        },
-        # override emit
-        '_schema': {
-            'molecules': {
-                'A': {'_emit': True}
-        }}}
+        }}
     process = Exchange(parameters)
 
     # declare the initial state
-    initial_state = {
-        'molecules': {
-            'A': 10.0
-        }}
+    initial_state = {'bulk': np.array([('A', 10.0)],
+        dtype=[('id', 'U40'), ('count', float)])}
 
     # run the simulation
     sim_settings = {

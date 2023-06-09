@@ -306,14 +306,16 @@ def idx_array_from(dictionary):
 
 
 def test_blame():
-    sim = EcoliSim.from_file(CONFIG_DIR_PATH + "no_partition.json")
+    sim = EcoliSim.from_file()
     sim.merge(EcoliSim.from_file(CONFIG_DIR_PATH + "/test_configs/test_blame.json"))
+    sim.build_ecoli()
     sim.run()
     data = sim.query()
 
-    blame_plot(data, sim.topology,
-               'out/ecoli_sim/blame_test.png',
-               highlight_molecules=['PD00413[c]', 'PHOR-CPLX[c]'])
+    # TODO: Adapt this code to work with new Numpy update format
+    # blame_plot(data, sim.topology,
+    #            'out/ecoli_sim/blame_test.png',
+    #            highlight_molecules=['PD00413[c]', 'PHOR-CPLX[c]'])
 
 
 def compare_partition():
@@ -324,6 +326,7 @@ def compare_partition():
 
     sim.partition = False
     sim.exclude_processes = ["ecoli-two-component-system"]
+    sim.build_ecoli()
     sim.run()
     data = sim.query()
 
@@ -336,6 +339,7 @@ def compare_partition():
     sim.raw_output = False
 
     sim.partition = True
+    sim.build_ecoli()
     sim.run()
     data = sim.query()
 

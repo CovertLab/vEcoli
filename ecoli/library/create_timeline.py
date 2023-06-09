@@ -63,6 +63,24 @@ def create_timeline_from_df(df, column_path_mapping, time_column="Time"):
     }
     return result
 
+def create_bulk_timeline_from_df(df, column_path_mapping, time_column="Time"):
+    """ """
+    time = df[time_column].to_numpy()
+    output_cols = []
+    output_paths = []
+    for column, path in column_path_mapping.items():
+        output_cols.append(df[column].to_numpy())
+        output_paths.append(path)
+    output_cols = np.array(output_cols)
+
+    result = {
+        "timeline": {
+            t: {path: output_cols[p, i] for p, path in enumerate(output_paths)}
+            for i, t in enumerate(time)
+        }
+    }
+    return result
+
 
 def add_computed_value(timeline, func):
     """func: (time, values) => dict of calculated values"""
@@ -71,6 +89,16 @@ def add_computed_value(timeline, func):
             (time, {**values, **func(time, values)})
             for time, values in timeline["timeline"]
         ]
+    }
+
+
+def add_computed_value_bulk(timeline, func):
+    """func: (time, values) => dict of calculated values"""
+    return {
+        "timeline": {
+            time: {**values, **func(time, values)}
+            for time, values in timeline["timeline"].items()
+        }
     }
 
 

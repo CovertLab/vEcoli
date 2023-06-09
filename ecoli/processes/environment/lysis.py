@@ -19,6 +19,7 @@ from ecoli.library.lattice_utils import (
     get_bin_volume,
     count_to_concentration,
 )
+from ecoli.library.schema import bulk_name_to_idx, counts, numpy_schema
 
 
 
@@ -39,6 +40,9 @@ class Lysis(Step):
         self.nonspatial = self.parameters['nonspatial']
         self.bin_volume = self.parameters['bin_volume']
 
+        # Helper indices for Numpy indexing
+        self.secreted_mol_idx = None
+
     def ports_schema(self):
         fields_schema = {
                 mol_id: {
@@ -51,12 +55,7 @@ class Lysis(Step):
                 '_default': False
             },
             'agents': {},
-            'internal': {
-                mol_id: {
-                    '_default': 1,  # Counts
-                    '_emit': True,
-                } for mol_id in self.parameters['secreted_molecules']
-            },
+            'internal': numpy_schema('bulk'),
             'fields': {
                 **fields_schema,
                 '_output': True,
@@ -78,6 +77,12 @@ class Lysis(Step):
         }
 
     def next_update(self, timestep, states):
+        if self.secreted_mol_idx is None:
+            self.secreted_mol_idx = {
+                mol_name: bulk_name_to_idx(mol_name, states['internal']['id'])
+                for mol_name in self.parameters['secreted_molecules']
+            }
+
         if states['trigger']:
             location = states['location']
             n_bins = states['dimensions']['n_bins']
@@ -94,7 +99,8 @@ class Lysis(Step):
             # apply internal states to fields
             internal = states['internal']
             delta_fields = {}
-            for mol_id, value in internal.items():
+            for mol_id, mol_idx in self.secreted_mol_idx.items():
+                value = counts(internal, mol_idx)
 
                 # delta concentration
                 exchange = value
@@ -142,6 +148,9 @@ class ToyTransportBurst(Process):
         super().__init__(parameters)
         self.molecules = list(self.parameters['uptake_rate'].keys())
 
+        # Helper indices for Numpy arrays
+        self.molecule_idx = None
+
     def ports_schema(self):
         return {
             'external': {
@@ -156,12 +165,7 @@ class ToyTransportBurst(Process):
                     '_emit': True,
                 } for key in self.molecules
             },
-            'internal': {
-                key: {
-                    '_default': 0.0,
-                    '_emit': True,
-                } for key in self.molecules
-            },
+            'internal': numpy_schema('bulk', partition=False),
             'mass': {
                 '_default': 0.0 * units.fg,
             },
@@ -176,15 +180,18 @@ class ToyTransportBurst(Process):
         }
 
     def next_update(self, timestep, states):
-        added = {}
+        if self.molecule_idx is None:
+            self.molecule_idx = bulk_name_to_idx(self.molecules,
+                states['internal']['id'])
+        added = np.zeros(len(self.molecules))
         exchanged = {}
         added_mass = 0.0 * units.fg
-        for mol_id, e_state in states['external'].items():
+        for i, (mol_id, e_state) in enumerate(states['external'].items()):
             exchange_concs = e_state * self.parameters['uptake_rate'][mol_id]
             # NOTE: This is not correct. We are just hacking this
             # together for testing.
             exchange_counts = exchange_concs.magnitude
-            added[mol_id] = exchange_counts
+            added[i] = exchange_counts
             exchanged[mol_id] = -1 * exchange_counts
             added_mass += mass_from_count(
                 exchange_counts, self.parameters['molecular_weights'][mol_id])
@@ -196,7 +203,7 @@ class ToyTransportBurst(Process):
         added_length = added_mass * states['length'] / states['mass']
 
         return {
-            'internal': added,
+            'internal': [(self.molecule_idx, added.astype(int))],
             'exchanges': exchanged,
             'mass': added_mass,
             'length': added_length,
@@ -206,7 +213,7 @@ class ToyTransportBurst(Process):
 class LysisAgent(Composer):
     """
     Agent that uptakes a molecule from a lattice environment,
-    bursts upon reaching a set mass, and spills hte molecules
+    bursts upon reaching a set mass, and spills the molecules
     back into the environment
     """
 
@@ -285,7 +292,7 @@ class LysisAgent(Composer):
 
 def test_lysis(
         n_cells=1,
-        molecule_name='GLC',
+        molecule_name='beta-lactam',
         total_time=60,
         emit_step=1,
         bounds=[25, 25] * units.um,
@@ -295,7 +302,7 @@ def test_lysis(
     from ecoli.composites.environment.lattice import Lattice
 
     lattice_composer = Lattice({
-        'diffusion': {
+        'reaction_diffusion': {
             'molecules': [molecule_name],
             'bounds': bounds,
             'n_bins': n_bins,
@@ -346,7 +353,12 @@ def test_lysis(
         agent_angle = random.uniform(0, 2*PI)
         initial_state['agents'][agent_id] = {
             'boundary': {
-                'angle': agent_angle}}
+                'angle': agent_angle},
+            'internal': np.array([
+                ('beta-lactam', 0),
+                ('hydrolyzed-beta-lactam', 0),
+                ('EG10040-MONOMER[p]', 0)
+            ], dtype=[('id', 'U40'), ('count', int)])}
 
     # run the simulation and return the data
     sim = Engine(

@@ -10,14 +10,13 @@ TODO:
  - protein complexes
  - add protease functionality
 """
-
 import numpy as np
 
 from vivarium.core.composition import simulate_process
 
 from ecoli.library.data_predicates import (
     monotonically_increasing, monotonically_decreasing, all_nonnegative)
-from ecoli.library.schema import array_to, array_from, bulk_schema
+from ecoli.library.schema import numpy_schema, counts, bulk_name_to_idx
 
 from ecoli.processes.registries import topology_registry
 from ecoli.processes.partition import PartitionedProcess
@@ -26,8 +25,7 @@ from ecoli.processes.partition import PartitionedProcess
 # Register default topology for this process, associating it with process name
 NAME = 'ecoli-protein-degradation'
 TOPOLOGY = {
-        "metabolites": ("bulk",),
-        "proteins": ("bulk",)
+    "bulk": ('bulk',)
 }
 topology_registry.register(NAME, TOPOLOGY)
 
@@ -71,6 +69,8 @@ class ProteinDegradation(PartitionedProcess):
         self.seed = self.parameters['seed']
         self.random_state = np.random.RandomState(seed=self.seed)
 
+        self.metabolite_idx = None
+
         # Build S matrix
         self.degradation_matrix = np.zeros((
             len(self.metabolite_ids),
@@ -82,15 +82,23 @@ class ProteinDegradation(PartitionedProcess):
             self.degradation_matrix[self.amino_acid_indexes, :], axis=0) - 1)
 
     def ports_schema(self):
-        return {
-            'metabolites': bulk_schema(self.metabolite_ids),
-            'proteins': bulk_schema(self.protein_ids)}
+        return {'bulk': numpy_schema('bulk')}
 
     def calculate_request(self, timestep, states):
-        # Determine how many proteins to degrade based on the degradation rates and counts of each protein
-        protein_data = array_from(states['proteins'])
+        # In first timestep, convert all strings to indices
+        if self.metabolite_idx is None:
+            self.water_idx = bulk_name_to_idx(self.water_id, states['bulk']['id'])
+            self.protein_idx = bulk_name_to_idx(
+                self.protein_ids, states['bulk']['id'])
+            self.metabolite_idx = bulk_name_to_idx(
+                self.metabolite_ids, states['bulk']['id'])
+
+        protein_data = counts(states['bulk'], self.protein_idx)
+        # Determine how many proteins to degrade based on the degradation rates
+        # and counts of each protein
         nProteinsToDegrade = np.fmin(
-            self.random_state.poisson(self._proteinDegRates(timestep) * protein_data),
+            self.random_state.poisson(
+                self._proteinDegRates(timestep) * protein_data),
             protein_data
             )
 
@@ -100,25 +108,24 @@ class ProteinDegradation(PartitionedProcess):
 
         # Determine the amount of water required to degrade the selected proteins
         # Assuming one N-1 H2O is required per peptide chain length N
-        requests = {'metabolites': {self.water_id: nReactions - np.sum(nProteinsToDegrade)},
-                    'proteins': (array_to(states['proteins'], nProteinsToDegrade))}
+        requests = {'bulk': [
+            (self.protein_idx, nProteinsToDegrade),
+            (self.water_idx, nReactions - np.sum(nProteinsToDegrade))]}
         return requests
 
     def evolve_state(self, timestep, states):
-        # Degrade selected proteins, release amino acids from those proteins back into the cell, 
-        # and consume H_2O that is required for the degradation process
-        allocated_proteins = array_from(states['proteins'])
+        # Degrade selected proteins, release amino acids from those proteins
+        # back into the cell, and consume H_2O that is required for the
+        # degradation process
+        allocated_proteins = counts(states['bulk'], self.protein_idx)
         metabolites_delta = np.dot(
             self.degradation_matrix,
-            allocated_proteins).astype(int)
+            allocated_proteins)
 
-        update = {
-            'metabolites': {
-                metabolite: metabolites_delta[index]
-                for index, metabolite in enumerate(self.metabolite_ids)},
-            'proteins': {
-                protein: -allocated_proteins[index]
-                for index, protein in enumerate(states['proteins'])}}
+        update = {'bulk': [
+            (self.metabolite_idx, metabolites_delta),
+            (self.protein_idx, -allocated_proteins)
+        ]}
 
         return update
 
@@ -144,16 +151,16 @@ def test_protein_degradation():
     protein_degradation = ProteinDegradation(test_config)
 
     state = {
-        'metabolites': {
-            'A': 10,
-            'B': 20,
-            'C': 30,
-            'H2O': 10000},
-        'proteins': {
-            'w': 50,
-            'x': 60,
-            'y': 70,
-            'z': 80}}
+        'bulk': np.array([
+            ('A', 10),
+            ('B', 20),
+            ('C', 30),
+            ('w', 50),
+            ('x', 60),
+            ('y', 70),
+            ('z', 80),
+            ('H2O', 10000)
+        ], dtype=[('id', 'U40'), ('count', int)])}
 
     settings = {
         'total_time': 100,
@@ -162,24 +169,25 @@ def test_protein_degradation():
     data = simulate_process(protein_degradation, settings)
 
     # Assertions =======================================================
-    protein_data = np.concatenate([[data["proteins"][protein]] for protein in test_config['protein_ids']], axis=0)
-    protein_delta = protein_data[:, 1:] - protein_data[:, :-1]
+    bulk_timeseries = np.array(data["bulk"])
+    protein_data = bulk_timeseries[:, 3:7]
+    protein_delta = protein_data[1:] - protein_data[:-1]
 
-    aa_data = np.concatenate([[data["metabolites"][aa]] for aa in test_config['amino_acid_ids']], axis=0)
-    aa_delta = aa_data[:, 1:] - aa_data[:, :-1]
+    aa_data = bulk_timeseries[:, :3]
+    aa_delta = aa_data[1:] - aa_data[:-1]
 
-    h2o_data = np.array(data["metabolites"][test_config["water_id"]])
+    h2o_data = bulk_timeseries[:, 7]
     h2o_delta = h2o_data[1:] - h2o_data[:-1]
 
     # Proteins are monotonically decreasing, never <0:
-    for i in range(protein_data.shape[0]):
-        assert monotonically_decreasing(protein_data[i, :]), (
+    for i in range(protein_data.shape[1]):
+        assert monotonically_decreasing(protein_data[:, i]), (
             f"Protein {test_config['protein_ids'][i]} is not monotonically decreasing.")
         assert all_nonnegative(protein_data), f"Protein {test_config['protein_ids'][i]} falls below 0."
 
     # Amino acids are monotonically increasing
-    for i in range(aa_data.shape[0]):
-        assert monotonically_increasing(aa_data[i, :]), (
+    for i in range(aa_data.shape[1]):
+        assert monotonically_increasing(aa_data[:, i]), (
             f"Amino acid {test_config['amino_acid_ids'][i]} is not monotonically increasing.")
 
     # H2O is monotonically decreasing, never < 0
@@ -187,14 +195,14 @@ def test_protein_degradation():
     assert all_nonnegative(h2o_data), f"H2O falls below 0."
 
     # Amino acids are released in specified numbers whenever a protein is degraded
-    aa_delta_expected = map(lambda i: [test_config['amino_acid_counts'].T @ -protein_delta[:, i]],
-                            range(protein_delta.shape[1]))
-    aa_delta_expected = np.concatenate(list(aa_delta_expected)).T
+    aa_delta_expected = map(lambda i: [test_config['amino_acid_counts'].T @ -protein_delta[i, :]],
+                            range(protein_delta.shape[0]))
+    aa_delta_expected = np.concatenate(list(aa_delta_expected))
     np.testing.assert_array_equal(aa_delta, aa_delta_expected,
                                   "Mismatch between expected release of amino acids, and counts actually released.")
 
     # N-1 molecules H2O is consumed whenever a protein of length N is degraded
-    h2o_delta_expected = (protein_delta.T * (test_config['protein_lengths'] - 1)).T
+    h2o_delta_expected = (protein_delta * (test_config['protein_lengths'] - 1)).T
     h2o_delta_expected = np.sum(h2o_delta_expected, axis=0)
     np.testing.assert_array_equal(h2o_delta, h2o_delta_expected,
                                   ("Mismatch between number of water molecules consumed\n"

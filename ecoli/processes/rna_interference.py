@@ -3,22 +3,23 @@
 ================
 RNA Interference
 ================
-Treats sRNA-mRNA binding as complexation events that create duplexes and release
+Treats sRNA-mRNA binding as complexation events that create duplexes and free
 bound ribosomes. Decreases ompF translation during micF overexpression.
 """
 import numpy as np
+import warnings
 
 from vivarium.core.process import Process
-from vivarium.core.composition import simulate_process
+from vivarium.core.engine import Engine
 
-from ecoli.library.schema import arrays_from, dict_value_schema, bulk_schema
+from ecoli.library.schema import numpy_schema, bulk_name_to_idx, counts, attrs
 from ecoli.processes.registries import topology_registry
+from ecoli.processes.unique_update import UniqueUpdate
 
 # Register default topology for this process, associating it with process name
 NAME = 'ecoli-rna-interference'
 TOPOLOGY = {
-    "subunits": ("bulk",),
-    "bulk_RNAs": ("bulk",),
+    "bulk": ("bulk",),
     "RNAs": ("unique", "RNA"),
     "active_ribosome": ("unique", "active_ribosome"),
 }
@@ -51,53 +52,50 @@ class RnaInterference(Process):
         self.ribosome50S = self.parameters['ribosome50S']
         self.duplex_ids = list(self.parameters['duplex_ids'])
         self.bulk_rna_ids = self.srna_ids + self.duplex_ids
-        self.random_state = np.random.RandomState(seed = self.parameters['seed'])
+        self.random_state = np.random.RandomState(seed=self.parameters['seed'])
+
+        self.srna_idx = None
     
     def ports_schema(self):
         return {
-            'subunits': bulk_schema([self.ribosome30S, self.ribosome50S]),
-            'bulk_RNAs': bulk_schema([rna_id for rna_id in self.bulk_rna_ids]),
-            'active_ribosome': dict_value_schema('active_ribosome'),
-            'RNAs': dict_value_schema('RNAs'),
+            'bulk': numpy_schema('bulk', partition=False),
+            'active_ribosome': numpy_schema('active_ribosome'),
+            'RNAs': numpy_schema('RNAs'),
         }
         
     def next_update(self, timestep, states):
+        if self.srna_idx is None:
+            bulk_ids = states['bulk']['id']
+            self.srna_idx = bulk_name_to_idx(self.srna_ids, bulk_ids)
+            self.subunit_idx = bulk_name_to_idx(
+                [self.ribosome30S, self.ribosome50S], bulk_ids)
+            self.duplex_idx = bulk_name_to_idx(self.duplex_ids, bulk_ids)
+
         update = {
-            'bulk_RNAs': {},
+            'bulk': [],
             'RNAs': {
-                '_delete': [],
-                '_add': []},
+                'delete': []},
             'active_ribosome': {
-                '_delete': []},
-            'subunits': {
-                self.ribosome30S: 0,
-                self.ribosome50S: 0
-            }}
+                'delete': []},
+            }
         
-        TU_index, can_translate, is_full_transcript = (
-            arrays_from(
-                states['RNAs'].values(),
-                ['TU_index', 'can_translate', 
-                'is_full_transcript'])
-            )
-        rna_indexes = np.array(list(states['RNAs'].keys()))
+        TU_index, can_translate, is_full_transcript, rna_indexes = attrs(
+            states['RNAs'], ['TU_index', 'can_translate', 'is_full_transcript',
+            'unique_index'])
         
-        mRNA_index, = arrays_from(
-            states['active_ribosome'].values(),
-            ['mRNA_index'])
-        ribosome_indexes = np.array(list(states['active_ribosome'].keys()))
+        mRNA_index, ribosome_indexes = attrs(states['active_ribosome'],
+            ['mRNA_index', 'unique_index'])
         
-        for srna_id, mrna_index, binding_prob, duplex_id in zip(
-            self.srna_ids, self.target_tu_ids, self.binding_probs,
-            self.duplex_ids
+        for srna_idx, mrna_index, binding_prob, duplex_idx in zip(
+            self.srna_idx, self.target_tu_ids, self.binding_probs,
+            self.duplex_idx
         ):
-            # Get mask for complete sRNAs
-            srna_count = states['bulk_RNAs'][srna_id]
+            # Get count of complete sRNAs
+            srna_count = counts(states['bulk'], srna_idx)
             if srna_count == 0:
                 continue
             
             # Get mask for translatable, complete target mRNAs
-            # TODO: Is it worth it to account for duplexing of incomplete mRNAs?
             mrna_mask = np.logical_and(TU_index == mrna_index, can_translate)
             mrna_mask = np.logical_and(mrna_mask, is_full_transcript)
             n_mrna = mrna_mask.sum()
@@ -105,28 +103,26 @@ class RnaInterference(Process):
                 continue
             
             # Each sRNA has probability binding_prob of binding a target mRNA
-            n_duplexed = np.min([self.random_state.binomial(srna_count, binding_prob),
-                                 mrna_mask.sum()])
+            n_duplexed = np.min([
+                self.random_state.binomial(srna_count, binding_prob),
+                mrna_mask.sum()])
             
             # Choose n_duplexed mRNAs and sRNAs randomly to delete
-            mrna_to_delete = self.random_state.choice(
-                size=n_duplexed, a=np.where(mrna_mask)[0], replace=False).tolist()
-            update['RNAs']['_delete'] += list(rna_indexes[mrna_to_delete])
-            if srna_id not in update['bulk_RNAs']:
-                update['bulk_RNAs'][srna_id] = 0
-            update['bulk_RNAs'][srna_id] -= n_duplexed
+            mrna_to_delete = self.random_state.choice(size=n_duplexed,
+                a=np.nonzero(mrna_mask)[0], replace=False).tolist()
+            update['RNAs']['delete'] += list(mrna_to_delete)
+            update['bulk'].append((srna_idx, -n_duplexed))
             
             # Dissociate ribosomes attached to new duplexes
-            ribosomes_to_delete = list(ribosome_indexes[
-                np.isin(mRNA_index.astype(str), rna_indexes[mrna_to_delete])
-            ])
-            update['active_ribosome']['_delete'] += ribosomes_to_delete
-            update['subunits'][self.ribosome30S] += len(ribosomes_to_delete)
-            update['subunits'][self.ribosome50S] += len(ribosomes_to_delete)
+            ribosomes_to_delete = list(np.nonzero(
+                np.isin(mRNA_index, rna_indexes[mrna_to_delete])
+            )[0])
+            update['active_ribosome']['delete'] += ribosomes_to_delete
+            update['bulk'].append((self.subunit_idx, len(ribosomes_to_delete)))
             
             # Ensure that additional sRNAs cannot bind to mRNAs that have
             # already been duplexed
-            remainder_mask = np.ones(TU_index.size).astype('int')
+            remainder_mask = np.ones(TU_index.size, dtype=bool)
             remainder_mask[mrna_to_delete] = False
             TU_index = TU_index[remainder_mask]
             can_translate = can_translate[remainder_mask]
@@ -134,9 +130,7 @@ class RnaInterference(Process):
             rna_indexes = rna_indexes[remainder_mask]
             
             # Add new RNA duplexes
-            if duplex_id not in update['bulk_RNAs']:
-                update['bulk_RNAs'][duplex_id] = 0
-            update['bulk_RNAs'][duplex_id] += n_duplexed
+            update['bulk'].append((duplex_idx, n_duplexed))
         
         return update
 
@@ -153,64 +147,59 @@ def test_rna_interference():
         }
 
     rna_inter = RnaInterference(test_config)
+    unique_topology = {
+        'active_ribosome': ('unique', 'active_ribosome',),
+        'RNAs': ('unique', 'RNA',)
+    }
+    unique_update = UniqueUpdate({'unique_dict': unique_topology})
 
     initial_state = {
-        'subunits': {
-            'CPLX0-3953[c]': 100,
-            'CPLX0-3962[c]': 100
-        },
-        'bulk_RNAs': {
-            'MICF-RNA[c]': 4,
-            'micF-ompF[c]': 0,    
-        },
-        'active_ribosome': {
-            '1': {'mRNA_index': 1},
-            '2': {'mRNA_index': 2},
-            '3': {'mRNA_index': 1}
-        },
-        'RNAs': {
-            '1': {'TU_index': 661, 'can_translate': True, 
-                  'is_full_transcript': True, 'transcript_length': 1089},
-            '2': {'TU_index': 661, 'can_translate': True, 
-                  'is_full_transcript': True, 'transcript_length': 1089},
-            '3': {'TU_index': 661, 'can_translate': True,
-                  'is_full_transcript': True, 'transcript_length': 1089},
-            '4': {'TU_index': 661, 'can_translate': True,
-                  'is_full_transcript': True, 'transcript_length': 1089},
+        'bulk': np.array([
+            ('CPLX0-3953[c]', 100),
+            ('CPLX0-3962[c]', 100),
+            ('MICF-RNA[c]', 4),
+            ('micF-ompF[c]', 0)
+        ], dtype=[('id', 'U40'), ('count', int)]),
+        'unique': {
+            'active_ribosome': np.array([
+                (1, 1, 1),
+                (1, 2, 2),
+                (1, 1, 3),
+            ], dtype=[('_entryState', np.int8), ('mRNA_index', int),
+                ('unique_index', int)]),
+            'RNA': np.array([
+                (1, 661, True, True, 1089, 1),
+                (1, 661, True, True, 1089, 2),
+                (1, 661, True, True, 1089, 3),
+                (1, 661, True, True, 1089, 4),
+            ], dtype=[('_entryState', np.int8), ('TU_index', int),
+                ('can_translate', '?'), ('is_full_transcript', '?'),
+                ('transcript_length', int), ('unique_index', int)])
         }
     }
 
-    settings = {
-        'total_time': 4,
-        'initial_state': initial_state,
-        'return_raw_data': True}
-    data = simulate_process(rna_inter, settings)
+    # Since unique numpy updater is an class method, internal
+    # deepcopying in vivarium-core causes this warning to appear
+    warnings.filterwarnings("ignore",
+        message="Incompatible schema assignment at ")
+    experiment = Engine(
+        processes={'rna-interference': rna_inter},
+        steps={'unique-update': unique_update},
+        topology={
+            'rna-interference': rna_inter.topology,
+            'unique-update': unique_topology},
+        initial_state=initial_state)
+    experiment.state.set_emit_values([
+        ('bulk',), ('unique', 'active_ribosome',), ('unique', 'RNA',)
+    ], True)
+    experiment.update(4)
+    data = experiment.emitter.get_data()
 
     return data, test_config
 
-def validate(data, config):
-    srna_counts = np.zeros((len(config['srna_ids']), len(data)))
-    target_counts = np.zeros((len(config['target_tu_ids']), len(data)))
-    duplex_counts = np.zeros((len(config['duplex_ids']), len(data)))
-    ribosome_counts = np.zeros(len(data))
-    for ticker, (timestep, state,) in enumerate(data.items()):
-        TU_index, = arrays_from(
-            state['RNAs'].values(), ['TU_index']) 
-        for i, srna_id in enumerate(config['srna_ids']):
-            srna_counts[i, ticker] = state['bulk_RNAs'][srna_id]
-        for i, target_tu_id in enumerate(config['target_tu_ids']):
-            target_counts[i, ticker] = np.count_nonzero(TU_index == target_tu_id)
-        for i, duplex_id in enumerate(config['duplex_ids']):
-            duplex_counts[i, ticker] = state['bulk_RNAs'][duplex_id]
-        ribosome_counts[ticker] = len(state['active_ribosome'])
-    print(dict(zip(config['srna_ids'], srna_counts)))
-    print(dict(zip(config['target_ids'], target_counts)))
-    print(dict(zip(config['duplex_ids'], duplex_counts)))
-    print(f'Active ribosomes: {ribosome_counts}')
-
 def main():
     data, config = test_rna_interference()
-    validate(data, config)
+    print(data)
 
 if __name__ == '__main__':
     main()

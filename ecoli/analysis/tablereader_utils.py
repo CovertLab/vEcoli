@@ -9,6 +9,9 @@ def warn_incomplete(array):
 
 
 def replace_scalars(array):
+    """Ensures that all elements in an input list of 1D arrays have same length
+    and can be converted into a 2D array. Does so by replacing [] and scalar
+    values with 1D list of zeroes with same length as others."""
     for value in array:
         if value != [] and type(value) in {list, np.ndarray}:
             array_len = len(value)
@@ -16,13 +19,16 @@ def replace_scalars(array):
 
     for i in range(len(array)):
         if array[i] == [] or type(array[i]) not in {list, np.ndarray}:
-            array[i] = [0 for i in range(array_len)]
+            array[i] = np.zeros(array_len)
 
     array = np.array(array)
     return array
 
 
 def replace_scalars_2d(array):
+    """Ensures that all elements in an input list of 2D arrays have same dims
+    and can be converted into a 3D array. Does so by replacing [] and scalar
+    values with 2D list of zeroes with same length as others."""
     for value in array:
         if value != [] and type(value) in {list, np.ndarray}:
             rows = len(value)
@@ -31,7 +37,7 @@ def replace_scalars_2d(array):
 
     for i in range(len(array)):
         if array[i] == [] or type(array[i]) not in {list, np.ndarray}:
-            array[i] = [[0 for i in range(cols)] for i in range(rows)]
+            array[i] = np.zeros((rows, cols))
 
     array = np.array(array)
     return array

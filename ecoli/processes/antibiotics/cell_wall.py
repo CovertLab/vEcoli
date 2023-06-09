@@ -59,7 +59,7 @@ from ecoli.library.cell_wall.lattice import (
     calculate_lattice_size,
     get_length_distributions,
 )
-from ecoli.library.schema import bulk_schema
+from ecoli.library.schema import numpy_schema, bulk_name_to_idx, counts
 from ecoli.library.parameters import param_store
 from ecoli.processes.registries import topology_registry
 from ecoli.processes.shape import length_from_volume, surface_area_from_length
@@ -71,7 +71,7 @@ NAME = "ecoli-cell-wall"
 TOPOLOGY = {
     "shape": ("boundary",),
     "murein_state": ("murein_state",),
-    "PBP": ("bulk",),
+    "bulk": ("bulk",),
     "wall_state": ("wall_state",),
     "listeners": ("listeners",),
 }
@@ -137,6 +137,10 @@ class CellWall(Process):
         # Create pseudorandom number generator
         self.rng = np.random.default_rng(self.parameters["seed"])
 
+        # Helper indices for Numpy arrays
+        self.pbp_ids = list(self.parameters["PBP"].values())
+        self.pbp_idx = None
+
     def ports_schema(self):
         schema = {
             "murein_state": {
@@ -159,7 +163,7 @@ class CellWall(Process):
                     "_divider": "binomial_ecoli"
                 },
             },
-            "PBP": bulk_schema(list(self.parameters["PBP"].values())),
+            "bulk": numpy_schema("bulk", partition=False),
             "shape": {"volume": {"_default": 0 * units.fL, "_emit": True}},
             "wall_state": {
                 "lattice": {
@@ -231,6 +235,8 @@ class CellWall(Process):
         return schema
 
     def next_update(self, timestep, states):
+        if self.pbp_idx is None:
+            self.pbp_idx = bulk_name_to_idx(self.pbp_ids, states['bulk']['id'])
         update = {}
         
         # Unpack states
@@ -238,7 +244,7 @@ class CellWall(Process):
         extension_factor = states["wall_state"]["extension_factor"]
         unincorporated_monomers = states["murein_state"]["unincorporated_murein"]
         incorporated_monomers = states["murein_state"]["incorporated_murein"]
-        PBPs = states["PBP"]
+        PBPs = dict(zip(self.pbp_ids, counts(states["bulk"], self.pbp_idx)))
         active_fraction_PBP1a = states["pbp_state"]["active_fraction_PBP1A"]
         active_fraction_PBP1b = states["pbp_state"]["active_fraction_PBP1B"]
 

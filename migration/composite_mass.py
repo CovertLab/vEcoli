@@ -28,6 +28,7 @@ RELATIVE_TOLERANCES = {
 def test_composite_mass(total_time=30):
     sim = EcoliSim.from_file(CONFIG_DIR_PATH + "default.json")
     sim.total_time = total_time
+    sim.build_ecoli()
 
     # run the composite and save specified states
     sim.run()
@@ -50,7 +51,8 @@ def test_composite_mass(total_time=30):
             for key, data in wc_update.items():
                 wcecoli_timeseries[key][index] = data
         wcecoli_keys = set(wc_update.keys())
-        both_keys = (wcecoli_keys & vivarium_keys) - {'instantaniousGrowthRate'}
+        # Growth rate fluctuates a lot from timestep to timestep
+        both_keys = (wcecoli_keys & vivarium_keys) - {'instantaneous_growth_rate'}
         assertions(actual_update, wc_update, both_keys)
     only_wcecoli = wcecoli_keys - vivarium_keys
     print('These keys only exist in the wcEcoli mass listener: ' + str(list(only_wcecoli)))
@@ -95,7 +97,7 @@ def plots(actual_timeseries, wcecoli_timeseries, keys):
             slope, intercept, r_value, p_value, std_err = linregress(
                 wcecoli_timeseries[key], actual_timeseries[key])
             assert r_value >= 0.90, (
-                f"Correlation for {key} = {r_value} <= 0.92")
+                f"Correlation for {key} = {r_value} <= 0.90")
             best_fit = np.poly1d([slope, intercept])
             plt.plot(wcecoli_timeseries[key], best_fit(wcecoli_timeseries[key]),
                     'b-', label=f'r = {r_value}')

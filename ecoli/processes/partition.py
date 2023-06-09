@@ -14,109 +14,62 @@ which reads the requests and allocates molecular counts for the evolve_state.
 
 """
 import abc
-import copy
 
 from vivarium.core.process import Step, Process
 from vivarium.library.dict_utils import deep_merge
 
 from ecoli.processes.registries import topology_registry
 
-def change_bulk_schema(
-        schema, new_updater='', new_divider='', new_emit=False):
-    """Retrieve and modify port schemas for all bulk molecules.
+def filter_bulk_ports(schema, update=None):
+    """Retrieve only ports for bulk molecules and modify if desired.
 
     Args:
         schema (Dict): The ports schema to change
-        new_updater (String): The new updater to use. Updater is
-            unchanged if this is an empty string.
-        new_divider (String): The new divider to use. Divider is
-            unchanged if this is an empty string.
-        new_emit (String): The new emitter to use. False by default.
+        update (Dict): Dictionary of new attributes to apply
+            to all bulk ports (e.g. {'_updater': 'set'}).
 
     Returns:
         Dict: Ports schema that only includes bulk molecules
         with the new schemas.
     """
-    bulk_schema = {}
-    schema_updates = {
-        '_emit': new_emit,
-    }
-    if new_updater:
-        schema_updates['_updater'] = new_updater
-    if new_divider:
-        schema_updates['_divider'] = new_divider
-    if '_properties' in schema:
-        if schema['_properties']['bulk']:
-            topo_copy = schema.copy()
-            topo_copy.update(schema_updates)
-            return topo_copy
-    for port, value in schema.items():
-        if has_bulk_property(value):
-            bulk_schema[port] = change_bulk_schema(
-                value, new_updater, new_divider, new_emit)
-    return bulk_schema
+    # All bulk ports will have {'bulk': True} somewhere in schema
+    if schema.get('bulk', False) == True:
+        # Do not modify input schema
+        schema = dict(schema)
+        if update:
+            schema.update(update)
+        return schema
+    filtered = {}
+    for k, v in schema.items():
+        if isinstance(v, dict):
+            sub_filtered = filter_bulk_ports(v)
+            if sub_filtered:
+                filtered[k] = sub_filtered
+    return filtered
 
 
-def has_bulk_property(schema):
-    """Check to see if a subset of the ports schema contains
-    a bulk molecule using {'_property': {'bulk': True}}
+def filter_bulk_topology(topology):
+    """Retrieve only topology for partitioned bulk molecules.
+    Assumes all ports with '_total' in name are not partitioned.
 
     Args:
-        schema (Dict): Subset of ports schema to check for bulk
+        topology (Dict): The topology to filter
 
     Returns:
-        Bool: Whether the subset contains a bulk molecule
+        Dict: Topology that only includes bulk molecules
+        with the new schemas.
     """
-    if isinstance(schema, dict):
-        if '_properties' in schema:
-            if schema['_properties']['bulk']:
-                return True
-
-        for value in schema.values():
-            if isinstance(value, dict):
-                if has_bulk_property(value):
-                    return True
-    return False
-
-
-def get_bulk_topo(topo):
-    """Return topology of only bulk molecules, excluding stores with
-    '_total' in name (for non-partitioned counts)
-    NOTE: Does not work with '_path' key
-
-    Args:
-        topo (Dict): Experiment topology
-
-    Returns:
-        Dict: Experiment topology with non-bulk stores excluded
-    """
-    if 'bulk' in topo:
-        return topo
-    if isinstance(topo, dict):
-        bulk_topo = {}
-        for port, value in topo.items():
-            if path_in_bulk(value) and '_total' not in port:
-                bulk_topo[port] = get_bulk_topo(value)
-    return bulk_topo
-
-
-def path_in_bulk(topo):
-    """Check whether a subset of the topology is contained within
-    the bulk store
-
-    Args:
-        topo (Dict): Subset of experiment topology
-
-    Returns:
-        Bool: Whether subset contains stores listed under 'bulk'
-    """
-    if 'bulk' in topo:
-        return True
-    if isinstance(topo, dict):
-        for value in topo.values():
-            if path_in_bulk(value):
-                return True
-    return False
+    filtered = {}
+    for k, v in topology.items():
+        if '_total' in k:
+            continue
+        if isinstance(v, dict):
+            sub_filtered = filter_bulk_topology(v)
+            if sub_filtered:
+                filtered[k] = sub_filtered
+        elif isinstance(v, tuple) and 'bulk' in v:
+            filtered[k] = v
+    return filtered
 
 
 class Requester(Step):
@@ -137,9 +90,8 @@ class Requester(Step):
 
     def ports_schema(self):
         ports = self.parameters.pop('process').get_schema()
-        ports_copy = ports.copy()
-        ports['request'] = change_bulk_schema(
-            ports_copy, new_updater='set', new_divider='null')
+        ports['request'] = filter_bulk_ports(ports,
+            {'_updater': 'set', '_divider': 'null', '_emit': False})
         ports['evolvers_ran'] = {'_default': True}
         ports['process'] = {
             '_default': tuple(),
@@ -185,9 +137,8 @@ class Evolver(Process):
 
     def ports_schema(self):
         ports = self.parameters.pop('process').get_schema()
-        ports_copy = ports.copy()
-        ports['allocate'] = change_bulk_schema(
-            ports_copy, new_updater='set', new_divider='null')
+        ports['allocate'] = filter_bulk_ports(ports,
+            {'_updater': 'set', '_divider': 'null', '_emit': False})
         ports['evolvers_ran'] = {
             '_default': True,
             '_updater': 'set',
@@ -276,6 +227,12 @@ class PartitionedProcess(Process):
             return self.evolve_state(timestep, states)
 
         requests = self.calculate_request(timestep, states)
+        bulk_requests = requests.pop('bulk', [])
+        if bulk_requests:
+            bulk_copy = states['bulk'].copy()
+            for bulk_idx, request in bulk_requests:
+                bulk_copy[bulk_idx] = request
+            states['bulk'] = bulk_copy
         states = deep_merge(states, requests)
         update = self.evolve_state(timestep, states)
         if 'listeners' in requests:

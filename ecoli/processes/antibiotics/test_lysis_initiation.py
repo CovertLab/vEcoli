@@ -1,4 +1,5 @@
 import os
+import numpy as np
 from ecoli.experiments.ecoli_master_sim import EcoliSim
 
 
@@ -9,6 +10,12 @@ def test_lysis_initiation():
         os.path.join(CONFIG_DIR_PATH, "test_configs/test_lysis_initiation.json")
     )
     ecoli.total_time = 20
+    ecoli.build_ecoli()
+    agent_data = ecoli.generated_initial_state['agents']['0']
+    agent_data['bulk'] = np.append(agent_data['bulk'], np.array([
+        ('beta-lactam', 0),
+        ('hydrolyzed-beta-lactam', 0)
+    ], dtype=agent_data['bulk'].dtype))
     ecoli.run()
 
     data = ecoli.query()

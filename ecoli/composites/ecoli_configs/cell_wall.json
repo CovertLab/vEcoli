@@ -16,15 +16,14 @@
         "ecoli-cell-wall": {
             "shape": ["boundary"],
             "murein_state": ["murein_state"],
-            "PBP": ["bulk"],
+            "bulk": ["bulk"],
             "wall_state": ["wall_state"],
             "listeners": ["listeners"]
         },
         "ecoli-pbp-binding": {
-            "total_murein": ["bulk"],
+            "bulk": ["bulk"],
             "murein_state": ["murein_state"],
             "concentrations": ["concentrations"],
-            "bulk": ["bulk"],
             "pbp_state": ["pbp_state"],
             "wall_state": ["wall_state"],
             "volume": ["boundary", "volume"]

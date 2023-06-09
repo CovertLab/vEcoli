@@ -1,3 +1,4 @@
+import numpy as np
 from vivarium.library.units import units
 from vivarium.core.process import Step
 from vivarium.core.engine import Engine
@@ -5,8 +6,8 @@ from vivarium.plots.simulation_output import plot_variables
 from vivarium.processes.timeline import TimelineProcess
 from vivarium.core.emitter import timeseries_from_data
 
-from ecoli.library.schema import bulk_schema
 from ecoli.library.lattice_utils import AVOGADRO
+from ecoli.library.schema import numpy_schema, bulk_name_to_idx, counts
 
 CONV_UNITS = 1 / units.mM
 
@@ -22,7 +23,7 @@ class ConcToCounts(Step):
                 'conc': 0 * units.mM,
                 'volume': 0 * units.fL
             },
-            'bulk': {
+            'counts': {
                 'antibiotic': 0
             }
         }
@@ -30,6 +31,7 @@ class ConcToCounts(Step):
     
     def __init__(self, parameters=None):
         super().__init__(parameters)
+        self.molecule_idx = None
 
     def ports_schema(self):
         schema = {
@@ -46,10 +48,7 @@ class ConcToCounts(Step):
             }
             for molecule in self.parameters['molecules_to_convert']
         }
-        schema['bulk'] = bulk_schema(
-            self.parameters['molecules_to_convert'],
-            updater='set'
-        )
+        schema['bulk'] = numpy_schema('bulk', partition=False)
         return schema
 
     def initial_state(self, config=None):
@@ -64,10 +63,6 @@ class ConcToCounts(Step):
             }
             for molecule in self.parameters['molecules_to_convert']
         }
-        initial_state['bulk'] = {
-            molecule: 0
-            for molecule in self.parameters['molecules_to_convert']
-        }
         # No deep_merge: keys in `parameters` that are not in 
         # `initial_state` are ignored
         for port, port_state in initial_state.items():
@@ -78,13 +73,19 @@ class ConcToCounts(Step):
         return initial_state
 
     def next_update(self, timestep, states):
-        update = {'bulk': {}}
-        for molecule in self.parameters['molecules_to_convert']:
+        if self.molecule_idx is None:
+            self.molecule_idx = bulk_name_to_idx(
+                self.parameters['molecules_to_convert'],
+                states['bulk']['id'])
+        update = {'bulk': []}
+        for mol_idx, molecule in zip(self.molecule_idx,
+            self.parameters['molecules_to_convert']):
             conc = states[molecule]['conc']
             volume = states[molecule]['volume']
             molar_to_counts = (AVOGADRO * volume).to(1/conc.units)
-            update['bulk'][molecule] = int(
-                (conc * molar_to_counts).magnitude)
+            new_count = int((conc * molar_to_counts).magnitude)
+            old_count = counts(states['bulk'], mol_idx)
+            update['bulk'].append((mol_idx, new_count - old_count))
 
         return update
 
@@ -94,6 +95,8 @@ def main():
     initial_state = {}
     initial_state['boundary'] = {'internal': {'antibiotic': 0 * units.mM}}
     initial_state['listeners'] = {'mass': {'volume': 1.352695 * units.fL}}
+    initial_state['bulk'] = np.array([('antibiotic', 0)],
+        dtype=[('id', 'U40'), ('count', int)])
 
     conv_process = ConcToCounts()
 
@@ -115,16 +118,16 @@ def main():
                             'timeline': timeline_process},
                 topology={
                     'conc_to_counts': {
-                    'antibiotic': {
-                        'conc': ('boundary', 'internal', 'antibiotic'),
-                        'volume': ('listeners', 'mass', 'volume')
-                    },
-                    'bulk': ('bulk',),
+                        'antibiotic': {
+                            'conc': ('boundary', 'internal', 'antibiotic'),
+                            'volume': ('listeners', 'mass', 'volume')
+                        },
+                        'bulk': ('bulk',),
                     },
                     'timeline': {
-                    'global': ('global',), # The global time is read here
-                    # This port is based on the declared timeline
-                    'antibiotic': ('boundary', 'internal', 'antibiotic'),
+                        'global': ('global',), # The global time is read here
+                        # This port is based on the declared timeline
+                        'antibiotic': ('boundary', 'internal', 'antibiotic'),
                     }
                 },
                 initial_state=initial_state)
@@ -134,6 +137,8 @@ def main():
     for string in timeseries_data['boundary']['internal']['antibiotic']:
         antibiotic_str_to_float.append(units(string).magnitude)
     timeseries_data['boundary']['internal']['antibiotic'] = antibiotic_str_to_float
+    timeseries_data['bulk'] = {'antibiotic': [bulk_data[0]
+        for bulk_data in timeseries_data['bulk']]}
     print(timeseries_data)
     plot_variables(timeseries_data, [('bulk', 'antibiotic'), 
                                      ('boundary', 'internal', 'antibiotic')],
