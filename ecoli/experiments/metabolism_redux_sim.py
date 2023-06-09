@@ -125,7 +125,7 @@ def run_ecoli_with_metabolism_redux(
         filename='fba_redux',
         total_time=10,
         divide=True,
-        initial_state_file='vivecoli_t2000',
+        initial_state_file='wcecoli_t0',
         progress_bar=True,
         log_updates=False,
         emitter='timeseries',
