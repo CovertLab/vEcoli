@@ -34,7 +34,7 @@ def agent_data_table(raw_data, paths_dict, condition, seed):
         for name, path in paths_dict.items():
             value_in_agent = get_value_from_path(agent_at_time, path)
             # Replace missing values with 0
-            if value_in_agent == None:
+            if value_in_agent is None:
                 value_in_agent = 0
             path_data = collected_data.setdefault(name, [])
             path_data.append(value_in_agent)

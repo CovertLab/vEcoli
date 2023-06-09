@@ -1,125 +1,78 @@
-import random
 from typing import List
 
 import numpy as np
-
+from vivarium.core.store import Store
 
 RAND_MAX = 2**31 - 1
 
 UNIQUE_DIVIDERS = {
     'active_ribosome': {
-        'divider': 'divide_ribosomes',
+        'divider': 'ribosome_by_RNA',
         'topology': {'RNA': ('..', 'RNA'),
-                     'active_RNAP': ('..', 'active_RNAP',),
-                     'chromosome_domain': ('..', 'chromosome_domain')}
+            'full_chromosome': ('..', 'full_chromosome'),
+            'chromosome_domain': ('..', 'chromosome_domain'),
+            'active_RNAP': ('..', 'active_RNAP',)}
     },
     'full_chromosomes': {
         'divider': 'by_domain',
-        'topology': {'chromosome_domain': ('..', 'chromosome_domain')}
+        'topology': {
+            'full_chromosome': (),
+            'chromosome_domain': ('..', 'chromosome_domain')}
     },
-    'chromosome_domains': 'divide_domain',
+    'chromosome_domains': {
+        'divider': 'by_domain',
+        'topology': {
+            'full_chromosome': ('..', 'full_chromosome'),
+            'chromosome_domain': ()}
+    },
     'active_replisomes': {
         'divider': 'by_domain',
-        'topology': {'chromosome_domain': ('..', 'chromosome_domain')}
+        'topology': {
+            'full_chromosome': ('..', 'full_chromosome'),
+            'chromosome_domain': ('..', 'chromosome_domain')}
     },
     'oriCs': {
         'divider': 'by_domain',
-        'topology': {'chromosome_domain': ('..', 'chromosome_domain')}
+        'topology': {
+            'full_chromosome': ('..', 'full_chromosome'),
+            'chromosome_domain': ('..', 'chromosome_domain')}
     },
     'promoters': {
         'divider': 'by_domain',
-        'topology': {'chromosome_domain': ('..', 'chromosome_domain')}
+        'topology': {
+            'full_chromosome': ('..', 'full_chromosome'),
+            'chromosome_domain': ('..', 'chromosome_domain')}
     },
     'chromosomal_segments': {
         'divider': 'by_domain',
-        'topology': {'chromosome_domain': ('..', 'chromosome_domain')}
+        'topology': {
+            'full_chromosome': ('..', 'full_chromosome'),
+            'chromosome_domain': ('..', 'chromosome_domain')}
     },
     'DnaA_boxes': {
         'divider': 'by_domain',
-        'topology': {'chromosome_domain': ('..', 'chromosome_domain')}
+        'topology': {
+            'full_chromosome': ('..', 'full_chromosome'),
+            'chromosome_domain': ('..', 'chromosome_domain')}
     },
     'active_RNAPs': {
         'divider': 'by_domain',
-        'topology': {'chromosome_domain': ('..', 'chromosome_domain')}
+        'topology': {
+            'full_chromosome': ('..', 'full_chromosome'),
+            'chromosome_domain': ('..', 'chromosome_domain')}
     },
     'RNAs': {
         'divider': 'rna_by_domain',
         'topology': {'active_RNAP': ('..', 'active_RNAP',),
-                     'chromosome_domain': ('..', 'chromosome_domain')}
+            'full_chromosome': ('..', 'full_chromosome'),
+            'chromosome_domain': ('..', 'chromosome_domain')}
     },
 }
 
-UNIQUE_DEFAULTS = {
-    'active_ribosome': {
-        'protein_index': 0,
-        'peptide_length': 0,
-        'mRNA_index': 0,
-        'unique_index': 0,
-        'pos_on_mRNA': 0,
-        'submass': np.zeros(9)
-    },
-    'full_chromosomes': {
-        'domain_index': 0,
-        'unique_index': 0,
-        'division_time': 0,
-        'has_triggered_division': 0,
-        'submass': np.zeros(9)
-    },
-    'chromosome_domains': {
-        'domain_index': 0,
-        'child_domains': 0,
-        'unique_index': 0,
-        'submass': np.zeros(9)
-    },
-    'active_replisomes': {
-        'domain_index': 0,
-        'coordinates': 0,
-        'unique_index': 0,
-        'right_replichore': 0,
-        'submass': np.zeros(9)
-    },
-    'oriCs': {
-        'domain_index': 0,
-        'unique_index': 0,
-        'submass': np.zeros(9)
-    },
-    'promoters': {
-        'TU_index': 0,
-        'coordinates': 0,
-        'domain_index': 0,
-        'bound_TF': 0,
-        'unique_index': 0,
-        'submass': np.zeros(9)
-    },
-    'chromosomal_segments': {
-        'unique_index': 0,
-        'submass': np.zeros(9)
-    },
-    'DnaA_boxes': {
-        'domain_index': 0,
-        'coordinates': 0,
-        'DnaA_bound': 0,
-        'unique_index': 0,
-        'submass': np.zeros(9)
-    },
-    'active_RNAPs': {
-        'unique_index': 0,
-        'domain_index': 0,
-        'coordinates': 0,
-        'direction': 0,
-        'submass': np.zeros(9)
-    },
-    'RNAs': {
-        'unique_index': 0,
-        'TU_index': 0,
-        'transcript_length': 0,
-        'RNAP_index': 0,
-        'is_mRNA': 0,
-        'is_full_transcript': 0,
-        'can_translate': 0,
-        'submass': np.zeros(9)
-    },
-}
+
+def array_from(d):
+    return np.array(list(d.values()))
+
 
 def create_unique_indexes(n_indexes, random_state):
     """Creates a list of unique indexes by making them random.
@@ -133,91 +86,176 @@ def create_unique_indexes(n_indexes, random_state):
         List of indexes. Each index is a string representing a number in
         the range :math:`[0, 2^{63})`.
     """
-    return [str(num) for num in random_state.randint(0, 2**63, n_indexes)]
+    return [num for num in random_state.randint(0, 2**63, n_indexes)]
 
-def array_from(d):
-    """Returns an array with the dictionary values"""
-    return np.array(list(d.values()))
 
-def key_array_from(d):
-    """Returns an array with the dictionary keys"""
-    return np.array(list(d.keys()))
+def not_a_process(value):
+    return not (isinstance(value, Store) and value.topology)
 
-def array_to(keys, array):
-    return {
-        str(key): array[index]
-        for index, key in enumerate(keys)}
 
-def array_to_nonzero(keys, array):
-    return {
-        str(key): array[index]
-        for index, key in enumerate(keys)
-        if array[index] != 0}
+def counts(states, idx):
+    # Helper function to pull out counts at given indices
+    if len(states.dtype) > 1:
+        return states['count'][idx]
+    # evolve_state reads from ('allocate', process_name, 'bulk')
+    # which is a simple Numpy array (not structured)
+    return states[idx]
 
-def type_of(array):
-    if len(array) == 0:
-        return None
 
-    head = array[0]
-    if isinstance(head, (list, np.ndarray)):
-        return type_of(head)
+class get_bulk_counts():
+    # orjson requires contiguous arrays for serialization
+    def serialize(bulk):
+        return np.ascontiguousarray(bulk['count'])
+
+
+class get_unique_fields():
+    # orjson requires contiguous arrays for serialization
+    def serialize(unique):
+        return [np.ascontiguousarray(unique[field])
+            for field in unique.dtype.names]
+
+
+def numpy_schema(name, partition=True, divider=None):
+    schema = {
+        '_default': [],
+        '_emit': True
+    }
+    if name == 'bulk':
+        if partition:
+            schema['_properties'] = {'bulk': True}
+        schema['_updater'] = bulk_numpy_updater
+        # Only pull out counts to be serialized (save space and time)
+        schema['_serializer'] = get_bulk_counts
+        schema['_divider'] = 'bulk_binomial'
     else:
-        return type(head)
+        # Since vivarium-core ensures that each store will only have a single
+        # updater, it's OK to create new UniqueNumpyUpdater objects each time
+        schema['_updater'] = UniqueNumpyUpdater().updater
+        # These are some big and slow emits
+        schema['_emit'] = False
+        # Convert to list of contiguous Numpy arrays for faster and more
+        # efficient serialization (still do not recommend emitting unique)
+        schema['_serializer'] = get_unique_fields
+        schema['_divider'] = UNIQUE_DIVIDERS[name]
+    if divider:
+        schema['_divider'] = divider
+    return schema
 
-def arrays_from(ds, keys):
-    if not ds:
-        return tuple(
-            np.array([])
-            for key in keys
+
+def bulk_name_to_idx(names, bulk_names):
+    # Convert from string names to indices in bulk array
+    if isinstance(names, np.ndarray) or isinstance(names, list):
+        # Big brain solution from https://stackoverflow.com/a/32191125
+        # One downside: all values in names MUST be in bulk_names
+        sorter = np.argsort(bulk_names)
+        return sorter[np.searchsorted(bulk_names, names, sorter=sorter)]
+    else:
+        return np.where(bulk_names == names)[0][0]
+
+
+def bulk_numpy_updater(current, update):
+    # Bulk updates are lists of tuples, where first value
+    # in each tuple is an array of indices to update and
+    # second value is array of updates to apply
+    result = current
+    # Numpy arrays are read-only outside of updater
+    result.flags.writeable = True
+    for (idx, value) in update:
+        result['count'][idx] += value
+    result.flags.writeable = False
+    return result
+
+
+def attrs(states, attributes):
+    # Helper function to pull out individual arrays for a set of
+    # unique molecule attributes
+    # _entryState has dtype int8 so this works
+    mol_mask = states['_entryState'].view(np.bool_)
+    return [states[attribute][mol_mask] for attribute in attributes]
+
+
+def get_free_indices(result, n_objects):
+    # Find inactive rows for new molecules and expand array
+    # by at least 10% to create more rows when necessary
+    free_indices = np.where(result['_entryState'] == 0)[0]
+    n_free_indices = free_indices.size
+
+    if n_free_indices < n_objects:
+        old_size = result.size
+        n_new_entries = max(
+            np.int64(old_size * 0.1),
+            n_objects - n_free_indices
+            )
+
+        result = np.append(
+            result,
+            np.zeros(int(n_new_entries), dtype=result.dtype)
         )
 
-    arrays = {
-        key: []
-        for key in keys}
+        free_indices = np.concatenate((
+            free_indices,
+            old_size + np.arange(n_new_entries)
+        ))
 
-    for d in ds:
-        for key, value in d.items():
-            if key in arrays:
-                arrays[key].append(value)
+    return result, free_indices[:n_objects]
 
-    return tuple([
-        np.array(array, dtype=type_of(array))
-        for array in arrays.values()])
+class UniqueNumpyUpdater:
+    def __init__(self):
+        self.add_updates = []
+        self.set_updates = []
+        self.delete_updates = []
 
-def arrays_to(n, attrs):
-    ds = []
-    for index in np.arange(n):
-        d = {}
-        for attr in attrs.keys():
-            d[attr] = attrs[attr][index]
-        ds.append(d)
+    def updater(self, current, update):
+        if len(update) == 0:
+            return current
+        
+        # Store updates in class instance variables until all
+        # evolvers have finished running. The UniqueUpdate process
+        # then signals for all the updates to be applied in the
+        # following order: set, add, delete (prevents overwriting)
+        for update_type, update_val in update.items():
+            if update_type == 'add':
+                self.add_updates.append(update_val)
+            elif update_type == 'set':
+                self.set_updates.append(update_val)
+            elif update_type == 'delete':
+                self.delete_updates.append(update_val)
+        
+        if not update.get('update', False):
+            return current
 
-    return ds
-
-
-def bulk_schema(
-        elements,
-        updater=None,
-        partition=True,
-):
-    schema = {
-        '_default': 0,
-        '_divider': 'binomial_ecoli',
-        '_emit': True}
-    if partition:
-        schema['_properties'] = {'bulk': True}
-    if updater:
-        schema['_updater'] = updater
-    return {
-        str(element): schema
-        for element in elements}
-
-def mw_schema(mass_dict):
-    return {
-        element: {
-            '_properties': {
-                'mw': mw}}
-        for element, mw in mass_dict.items()}
+        result = current
+        # Numpy arrays are read-only outside of updater
+        result.flags.writeable = True
+        active_mask = result['_entryState'].view(np.bool_)
+        # Generate array of active indices for delete updates only
+        if len(self.delete_updates) > 0:
+            initially_active_idx = np.nonzero(active_mask)[0]
+        for set_update in self.set_updates:
+            # Set updates are dictionaries where each key is a column and
+            # each value is an array. They are designed to apply to all rows
+            # (molecules) that were active at the beginning of a timestep
+            for col, col_values in set_update.items():
+                result[col][active_mask] = col_values
+        for add_update in self.add_updates:
+            # Add updates are dictionaries where each key is a column and
+            # each value is an array. The nth element of each array is the value
+            # for the corresponding column of the nth new molecule to be added.
+            n_new_molecules = len(next(iter(add_update.values())))
+            result, free_indices = get_free_indices(result, n_new_molecules)
+            for col, col_values in add_update.items():
+                result[col][free_indices] = col_values
+            result['_entryState'][free_indices] = 1
+        for delete_indices in self.delete_updates:
+            # Delete updates are arrays of active row indices to delete
+            rows_to_delete = initially_active_idx[delete_indices]
+            result[rows_to_delete] = np.zeros(1, dtype=result.dtype)
+        
+        self.add_updates = []
+        self.delete_updates = []
+        self.set_updates = []
+        result.flags.writeable = False
+        return result
 
 def listener_schema(elements):
     return {
@@ -226,27 +264,6 @@ def listener_schema(elements):
             '_updater': 'set',
             '_emit': True}
         for element, default in elements.items()}
-
-def add_elements(elements, id):
-    return {
-        '_add': [{
-            'key': str(element[id]),
-            'state': element}
-            for element in elements]}
-
-def submass_schema():
-    return {
-        '_default': np.zeros(9),
-        '_emit': True}
-
-def dict_value_schema(name):
-    return {
-        '_default': {},
-        '_updater': f'{name}_updater',
-        '_divider': UNIQUE_DIVIDERS[name],
-        '_emit': True
-    }
-
 
 
 # :term:`dividers`
@@ -269,214 +286,178 @@ def divide_binomial(state: float) -> List[float]:
     return [counts_1, counts_2]
 
 
-class DictValueUpdater:
-    '''
-    Returns an updater which translates _add and _delete -style updates
-    into operations on a dictionary.
+def divide_bulk(state):
+    counts = state['count']
+    seed = counts.sum() % RAND_MAX
+    # TODO: Random state/seed in store?
+    random_state = np.random.RandomState(seed=seed)
+    daughter_1 = state.copy()
+    daughter_2 = state.copy()
+    daughter_1['count'] = random_state.binomial(counts, 0.5)
+    daughter_2['count'] = counts - daughter_1['count']
+    return [daughter_1, daughter_2]
 
-    The returned updater expects current to be a dictionary. Each added item
-    can have a subset of the provided defaults as its keys;
-    entries not provided will have values supplied by the defaults.
-    '''
-    def __init__(self, defaults):
-        self.defaults = defaults
+# TODO: Create a store for growth rate noise simulation parameter
+
+def divide_ribosomes_by_RNA(values, state):
+    mRNA_index, = attrs(values, ['mRNA_index'])
+    n_molecules = len(mRNA_index)
+    if n_molecules > 0:
+        # Divide ribosomes based on their mRNA index
+        d1_rnas, d2_rnas = divide_RNAs_by_domain(state['RNA'], state)
+        d1_bool = np.isin(mRNA_index, d1_rnas['unique_index'])
+        d2_bool = np.isin(mRNA_index, d2_rnas['unique_index'])
+
+        # Binomially divide indexes of mRNAs that are degraded but still
+        # has bound ribosomes. This happens because mRNA degradation does
+        # not abort ongoing translation of the mRNA
+        degraded_mRNA_indexes = np.unique(mRNA_index[
+            np.logical_not(np.logical_or(d1_bool, d2_bool))])
+        n_degraded_mRNA = len(degraded_mRNA_indexes)
+
+        if n_degraded_mRNA > 0:
+            # TODO: Random state/seed in store?
+            random_state = np.random.RandomState(seed=n_molecules)
+            n_degraded_mRNA_d1 = random_state.binomial(
+                n_degraded_mRNA, p=0.5)
+            degraded_mRNA_indexes_d1 = random_state.choice(
+                degraded_mRNA_indexes, size=n_degraded_mRNA_d1, replace=False)
+            degraded_mRNA_indexes_d2 = np.setdiff1d(
+                degraded_mRNA_indexes, degraded_mRNA_indexes_d1)
+
+            # Divide "lost" ribosomes based on how these mRNAs were divided
+            lost_ribosomes_d1 = np.isin(mRNA_index, degraded_mRNA_indexes_d1)
+            lost_ribosomes_d2 = np.isin(mRNA_index, degraded_mRNA_indexes_d2)
+
+            d1_bool[lost_ribosomes_d1] = True
+            d2_bool[lost_ribosomes_d2] = True
+
+        n_d1 = np.count_nonzero(d1_bool)
+        n_d2 = np.count_nonzero(d2_bool)
+
+        assert n_molecules == n_d1 + n_d2
+        assert np.count_nonzero(np.logical_and(d1_bool, d2_bool)) == 0
+
+        ribosomes = values[values['_entryState'].view(np.bool_)]
+        return [ribosomes[d1_bool], ribosomes[d2_bool]]
     
-    def dict_value_updater(self, current, update):
-        result = current
-        for key, value in update.items():
-            if key == "_add":
-                assert isinstance(value, list)
-                for added_value in value:
-                    added_key = str(added_value["key"])
-                    added_state = added_value["state"]
-                    if added_key in current:
-                        raise Exception(f"Cannot add {added_key}, already in state")
-                    elif not added_state.keys() <= self.defaults.keys():
-                        raise Exception(f"State has keys not in self.defaults: "
-                                        f"{added_state.keys() - self.defaults.keys()}")
-                    result[added_key] = {**self.defaults, **added_state}
-            elif key == "_delete":
-                assert isinstance(value, list)
-                for k in value:
-                    if k in result:
-                        del result[k]
-                    else:
-                        pass
-                        # TODO -- fix processes to not delete invalid keys
-                        # print(f"Invalid delete key: {k}")
-            elif key in result:
-                result[key].update(value)
-            else:
-                pass
-                # TODO -- fix processes to not updater invalid keys
-                # print(f"Invalid update key: {key}")
-        return result
+    return [np.zeros(0, dtype=values.dtype), np.zeros(0, dtype=values.dtype)]
 
 
-def get_cell_for_index(index_to_children, domain_index_to_add, root_index):
-    if domain_index_to_add == root_index:  # If the root index:
-        return -1
-    if domain_index_to_add in index_to_children[root_index]:  # If a daughter cell index:
-        return domain_index_to_add
-    for domain_index in index_to_children:
-        children = index_to_children[domain_index]
-        if domain_index_to_add in children:
-            cell = get_cell_for_index(index_to_children, domain_index, root_index)
-    return cell
 
-
-def get_domain_index_to_daughter(chromosome_domain):
+def divide_domains(state):
     """
-    Creates a dictionary linking domain indexes to their respective cells.
-    If the index does not belong to a daughter cell, it is assigned a value of -1.
+    Divides the chromosome domains between two cells.
     """
+    domain_index_full_chroms, = attrs(state['full_chromosome'],
+        ['domain_index'])
+    domain_index_domains, child_domains = attrs(state['chromosome_domain'],
+        ['domain_index', 'child_domains'])
 
-    index_to_children = {}
-    for domain_key in chromosome_domain:
-        domain = chromosome_domain[domain_key]
-        index_to_children[domain['domain_index']] = domain['child_domains']
+    # TODO: Random state/seed in store?
+    # d1_gets_first_chromosome = randomState.rand() < 0.5
+    # index = not d1_gets_first_chromosome
+    # d1_domain_index_full_chroms = domain_index_full_chroms[index::2]
+    # d2_domain_index_full_chroms = domain_index_full_chroms[not index::2]
 
-    root_index = -1
-    for root_candidate in index_to_children:
-        root = True
-        for domain_index_to_check in index_to_children:
-            if root_candidate in index_to_children[domain_index_to_check]:
-                root = False
-        if root:
-            root_index = root_candidate
+    d1_domain_index_full_chroms = domain_index_full_chroms[0::2]
+    d2_domain_index_full_chroms = domain_index_full_chroms[1::2]
+    d1_all_domain_indexes = get_descendent_domains(
+        d1_domain_index_full_chroms, domain_index_domains,
+        child_domains, -1
+    )
+    d2_all_domain_indexes = get_descendent_domains(
+        d2_domain_index_full_chroms, domain_index_domains,
+        child_domains, -1
+    )
 
-    index_to_daughter = {}
-    for domain_index_to_add in index_to_children:
-        index_to_daughter[domain_index_to_add] = get_cell_for_index(
-            index_to_children, domain_index_to_add, root_index)
+    # Check that the domains are being divided correctly
+    assert np.intersect1d(d1_all_domain_indexes,
+        d2_all_domain_indexes).size == 0
 
-    # check that there are 2 daughter indices, and return them
-    daughter_ids = set(index_to_daughter.values())
-    daughter_ids.remove(-1)
-    daughter_ids = list(daughter_ids)
-    assert len(daughter_ids) == 2
-    daughter1_index = min(daughter_ids)
-    daughter2_index = max(daughter_ids)
-
-    return index_to_daughter, daughter1_index, daughter2_index
-
-
-def get_full_transcript_rnas_to_daughter(full_transcript_rnas):
-    """Make a mapping from all full transcript RNA indices to a daughter index."""
-    random_state = np.random.RandomState(seed=len(full_transcript_rnas))  # TODO(Matt): pass in random_state from topology when available
-    sorted_indexes = np.array(sorted(full_transcript_rnas))
-    bitmap = random_state.choice([True, False], len(full_transcript_rnas))
-    daughter_1_indexes = sorted_indexes[bitmap]
-    daughter_2_indexes = sorted_indexes[~bitmap]
-    return daughter_1_indexes, daughter_2_indexes
-
-
-def divide_ribosomes(ribosomes, state):
-    """divide ribosomes according to the rna they are attached to"""
-    daughter1 = {}
-    daughter2 = {}
-
-    # get domain_index-to-daughter_index mapping
-    index_to_daughter, d1_index, d2_index = get_domain_index_to_daughter(state['chromosome_domain'])
-
-    full_transcript_rnas = [index for index in state['RNA'] if state['RNA'][index]['is_full_transcript']]
-    daughter_1_indexes, daughter_2_indexes = get_full_transcript_rnas_to_daughter(full_transcript_rnas)
-
-    for ribo_index, specs in ribosomes.items():
-        ribo_mrna = ribosomes[ribo_index]['mRNA_index']
-        ribo_index = str(ribo_index)
-        if ribo_mrna in daughter_1_indexes:
-            daughter1[ribo_index] = specs
-        elif ribo_mrna in daughter_2_indexes:
-            daughter2[ribo_index] = specs
-        else:  # Else the ribosome is on a partial mRNA
-            rnap_index = state['RNA'][ribo_mrna]['RNAP_index']
-            domain_index = state['active_RNAP'][rnap_index]['domain_index']
-            # Some ribosomes go to neither daughter as they are on domain_index 0 in forced-early division
-            if index_to_daughter[domain_index] == d1_index:
-                daughter1[ribo_index] = specs
-            elif index_to_daughter[domain_index] == d2_index:
-                daughter2[ribo_index] = specs
-
-    return [daughter1, daughter2]
+    return {
+        'd1_all_domain_indexes': d1_all_domain_indexes,
+        'd2_all_domain_indexes': d2_all_domain_indexes,
+    }
 
 
 def divide_by_domain(values, state):
-    """
-    divide a dictionary into two daughters based on their domain_index
-    """
-    daughter1 = {}
-    daughter2 = {}
-
-    # get domain_index-to-daughter_index mapping
-    index_to_daughter, d1_index, d2_index = get_domain_index_to_daughter(state['chromosome_domain'])
-
-    for state_id, value in values.items():
-        domain_index = value['domain_index']
-        state_id = str(state_id)
-        if index_to_daughter[domain_index] == d1_index:
-            daughter1[state_id] = value
-        elif index_to_daughter[domain_index] == d2_index:
-            daughter2[state_id] = value
-    return [daughter1, daughter2]
-
-
-def divide_domain(values):
-    """
-    Divides the chromosome domains between two cells. The left daughter of the
-    root index becomes the new root of the chromosome_domain tree for daughter
-    cell 1, and likewise for the right daughter for daughter cell 2.
-    """
-    daughter1 = {}
-    daughter2 = {}
-    index_to_daughter, d1_index, d2_index = get_domain_index_to_daughter(values)
-    for key in values:
-        key_domain_index = values[key]['domain_index']
-        key_daughter_cell = index_to_daughter[key_domain_index]
-        key = str(key)
-        if key_daughter_cell == d1_index:
-            daughter1[key] = values[key]
-        elif key_daughter_cell == d2_index:
-            daughter2[key] = values[key]
-    return [daughter1, daughter2]
+    domain_division = divide_domains(state)
+    values = values[values['_entryState'].view(np.bool_)]
+    d1_bool = np.isin(values['domain_index'],
+        domain_division['d1_all_domain_indexes'])
+    d2_bool = np.isin(values['domain_index'],
+        domain_division['d2_all_domain_indexes'])
+    # Some chromosome domains may be left behind because
+    # they no longer exist after chromosome division. Skip
+    # this assert when checking division of domains
+    if 'child_domains' not in values.dtype.names:
+        assert d1_bool.sum() + d2_bool.sum() == len(values)
+    return [values[d1_bool], values[d2_bool]]
 
 
 def divide_RNAs_by_domain(values, state):
-    """
-    divide a dictionary of unique RNAs into two daughters,
-    with partial RNAs divided along with their domain index
-    """
-    daughter1 = {}
-    daughter2 = {}
-    full_transcript_ids = []
+    is_full_transcript, RNAP_index = attrs(values,
+        ["is_full_transcript", "RNAP_index"])
 
-    # get domain_index-to-daughter_index mapping
-    index_to_daughter, d1_index, d2_index = get_domain_index_to_daughter(state['chromosome_domain'])
+    n_molecules = len(is_full_transcript)
 
-    # divide partial transcripts by domain_index
-    for unique_id, specs in values.items():
-        unique_id = str(unique_id)
-        associated_rnap_key = str(values[unique_id]['RNAP_index'])
-        if not specs['is_full_transcript']:
-            domain_index = state['active_RNAP'][associated_rnap_key]['domain_index']
-            if index_to_daughter[domain_index] == d1_index:
-                daughter1[unique_id] = specs
-            elif index_to_daughter[domain_index] == d2_index:
-                daughter2[unique_id] = specs
-        else:
-            # save full transcript ids
-            full_transcript_ids.append(unique_id)
+    if n_molecules > 0:
+        # Figure out which RNAPs went to each daughter cell
+        domain_division = divide_domains(state)
+        rnaps = state['active_RNAP']
+        rnaps = rnaps[rnaps['_entryState'].view(np.bool_)]
+        d1_rnap_bool = np.isin(rnaps['domain_index'],
+            domain_division['d1_all_domain_indexes'])
+        d2_rnap_bool = np.isin(rnaps['domain_index'],
+            domain_division['d2_all_domain_indexes'])
+        d1_rnap_indexes = rnaps['unique_index'][d1_rnap_bool]
+        d2_rnap_indexes = rnaps['unique_index'][d2_rnap_bool]
 
-    # divide full transcripts with get_full_transcript_rnas_to_daughter
-    daughter_1_indexes, daughter_2_indexes = get_full_transcript_rnas_to_daughter(full_transcript_ids)
-    for index in daughter_1_indexes:
-        index = str(index)
-        daughter1[index] = values[index]
-    for index in daughter_2_indexes:
-        index = str(index)
-        daughter2[index] = values[index]
+        d1_bool = np.zeros(n_molecules, dtype=np.bool_)
+        d2_bool = np.zeros(n_molecules, dtype=np.bool_)
 
-    return [daughter1, daughter2]
+        # Divide full transcripts binomially
+        full_transcript_indexes = np.where(is_full_transcript)[0]
+        if len(full_transcript_indexes) > 0:
+            # TODO: Random state/seed in store?
+            random_state = np.random.RandomState(seed=n_molecules)
+            n_full_d1 = random_state.binomial(
+                np.count_nonzero(is_full_transcript), p=0.5)
+            full_d1_indexes = random_state.choice(
+                full_transcript_indexes, size=n_full_d1,
+                replace=False)
+            full_d2_indexes = np.setdiff1d(full_transcript_indexes,
+                full_d1_indexes)
+
+            d1_bool[full_d1_indexes] = True
+            d2_bool[full_d2_indexes] = True
+
+        # Divide partial transcripts based on how their associated
+        # RNAPs were divided
+        partial_transcript_indexes = np.where(
+            np.logical_not(is_full_transcript))[0]
+        RNAP_index_partial_transcripts = RNAP_index[
+            partial_transcript_indexes]
+
+        partial_d1_indexes = partial_transcript_indexes[
+            np.isin(RNAP_index_partial_transcripts, d1_rnap_indexes)]
+        partial_d2_indexes = partial_transcript_indexes[
+            np.isin(RNAP_index_partial_transcripts, d2_rnap_indexes)]
+
+        d1_bool[partial_d1_indexes] = True
+        d2_bool[partial_d2_indexes] = True
+
+        n_d1 = np.count_nonzero(d1_bool)
+        n_d2 = np.count_nonzero(d2_bool)
+
+        assert n_molecules == n_d1 + n_d2
+        assert np.count_nonzero(np.logical_and(d1_bool, d2_bool)) == 0
+
+        rnas = values[values['_entryState'].view(np.bool_)]
+        return [rnas[d1_bool], rnas[d2_bool]]
+    
+    return [np.zeros(0, dtype=values.dtype), np.zeros(0, dtype=values.dtype)]
 
 
 def empty_dict_divider(values):
@@ -494,3 +475,43 @@ def remove_properties(schema, properties):
         for key, value in schema.items():
             schema[key] = remove_properties(value, properties)
     return schema
+
+
+def flatten(l):
+    """
+    Flattens a nested list into a single list.
+    """
+    return [item for sublist in l for item in sublist]
+
+
+def follow_domain_tree(domain, domain_index, child_domains, place_holder):
+    """
+    Recursive function that returns all the descendents of a single node in
+    the domain tree, including itself.
+    """
+    children_nodes = child_domains[np.where(domain_index == domain)[0][0]]
+
+    if children_nodes[0] != place_holder:
+        # If the node has children, recursively run function on each of the
+        # node's two children
+        branches = flatten([
+            follow_domain_tree(child, domain_index, child_domains, place_holder)
+            for child in children_nodes])
+
+        # Append index of the node itself
+        branches.append(domain)
+        return branches
+
+    else:
+        # If the node has no children, return the index of itself
+        return [domain]
+
+
+def get_descendent_domains(root_domains, domain_index, child_domains, place_holder):
+    """
+    Returns an array of domain indexes that are descendents of the indexes
+    listed in root_domains, including the indexes in root_domains themselves.
+    """
+    return np.array(flatten([
+        follow_domain_tree(root_domain, domain_index, child_domains, place_holder)
+        for root_domain in root_domains]))

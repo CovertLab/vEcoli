@@ -256,6 +256,7 @@ PARAMETER_DICT = {
             1.4915064009532537 * units.fL,
             "Simulation 0a2cd6816d36d408470445ff654371f07cd3f9f8",
         ),
+        # TODO: Recompute average surface area with correct equation
         "average_outer_area": Parameter(
             6.227824991612169 * units.um**2,
             "Simulation 0a2cd6816d36d408470445ff654371f07cd3f9f8",

@@ -18,6 +18,7 @@
     "partition": true,
 
     "initial_state_file": "wcecoli_t0",
+    "initial_state_overrides": [],
     "initial_state": {},
     "time_step": 2.0,
     "total_time": 100.0,
@@ -57,9 +58,10 @@
         "ecoli-chromosome-replication",
         "ecoli-mass-listener",
         "mRNA_counts_listener",
-        "monomer_counts_listener"
+        "monomer_counts_listener",
+        "clock"
     ],
-    "process_configs": {},
+    "process_configs": {"clock": {"time_step": 2}},
     "topology": {},
     "flow": {
         "ecoli-metabolism": [["ecoli-chromosome-structure"]],
@@ -70,5 +72,6 @@
     "_schema": {},
     "engine_process_reports": [
         ["listeners"]
-    ]
+    ],
+    "emit_paths": []
 }

@@ -15,6 +15,7 @@ from ecoli.states.wcecoli_state import get_state_from_file
 import numpy as np
 
 
+# **NOTE**: This has not been updated to use bulk and unique Numpy arrays
 class PorinFickian(Composer):
     defaults = {
         'derive_globals': {},

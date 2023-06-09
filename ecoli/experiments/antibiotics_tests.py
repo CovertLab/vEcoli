@@ -1,8 +1,8 @@
 import os
+import numpy as np
 
 from vivarium.core.control import run_library_cli
 from vivarium.core.composition import EXPERIMENT_OUT_DIR
-from vivarium.core.engine import pf
 from vivarium.library.topology import get_in
 from vivarium.core.serialize import deserialize_value
 from vivarium.library.units import remove_units
@@ -15,6 +15,7 @@ def test_antibiotics_tetracycline():
     sim = EcoliSim.from_file(CONFIG_DIR_PATH + 'antibiotics_tetracycline.json')
     sim.emitter = 'timeseries'
     sim.total_time = 2
+    sim.build_ecoli()
     sim.run()
     data = sim.query()
 
@@ -47,17 +48,36 @@ def test_lysis_rxn_dff_environment(total_time = 10):
     sim.total_time = total_time
 
     # add to the timeline, triggering burst
-    sim.process_configs['timeline'] = {
-        'timeline': [
-            (0, {
+    sim.process_configs['bulk-timeline'] = {
+        'timeline': {
+            0: {
                 ('bulk', beta_lactamase): 100,
                 ('bulk', beta_lactam): 100,
-            }),
-            (lysis_time, {
+            },
+            lysis_time: {
                 ('burst',): True
-            })
-        ]
+            }
+        }
     }
+    sim.build_ecoli()
+    bulk_array = sim.generated_initial_state['agents']['0']['bulk']
+    bulk_array = np.append(bulk_array, np.array([
+        (beta_lactam, 0),
+        (hydrolyzed_beta_lactam, 0)
+    ], dtype=bulk_array.dtype))
+    sim.generated_initial_state['agents']['0']['bulk'] = bulk_array
+    mass_listener = sim.ecoli.steps['agents']['0']['ecoli-mass-listener']
+    beta_lactam_mass = np.array([0, 0, 0, 0, 0, 0, 5.8e-7, 0, 0])
+    # For simplicity, pretend hydrolyzed beta-lactam has same mass
+    mass_listener.bulk_masses = np.concatenate([mass_listener.bulk_masses,
+        [beta_lactam_mass, beta_lactam_mass]])
+    mass_listener.bulk_ids = np.append(mass_listener.bulk_ids,
+        [beta_lactam, hydrolyzed_beta_lactam])
+    mass_listener._bulk_molecule_by_compartment = np.stack([
+        np.core.defchararray.chararray.endswith(
+            mass_listener.bulk_ids, abbrev + ']')
+        for abbrev in mass_listener.compartment_abbrev_to_index
+    ])
     sim.run()
 
     # retrieve data and pre-process for plotting
