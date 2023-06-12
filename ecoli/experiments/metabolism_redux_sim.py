@@ -123,7 +123,7 @@ def run_metabolism_composite():
 
 def run_ecoli_with_metabolism_redux(
         filename='fba_redux',
-        total_time=10,
+        total_time=50,
         divide=True,
         initial_state_file='wcecoli_t0',
         progress_bar=True,
