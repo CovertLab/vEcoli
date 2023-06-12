@@ -38,6 +38,7 @@ topology_registry.register(NAME, TOPOLOGY)
 BAD_RXNS = ["RXN-12440", "TRANS-RXN-121", "TRANS-RXN-300",
             "TRANS-RXN-8", "R15-RXN-MET/CPD-479//CPD-479/MET.25."]
 
+FREE_RXNS = ["TRANS-RXN-145", "TRANS-RXN0-545", "TRANS-RXN0-474"]
 
 class MetabolismRedux(Step):
     name = NAME
@@ -93,6 +94,7 @@ class MetabolismRedux(Step):
                 i = metabolites_idx[species]
                 self.stoichiometry[i, col_idx] = coefficient
 
+            # now adds an entry for every reaction, list can be empty
             enzyme_idx = [catalyst_idx[catalyst] for catalyst in reaction_catalysts.get(reaction, [])]
             self.catalyzed_rxn_enzymes_idx.append(enzyme_idx)
 
@@ -132,9 +134,12 @@ class MetabolismRedux(Step):
 
         # Network flow initialization
         self.network_flow_model = NetworkFlowModel(
-            self.stoichiometry, self.metabolite_names,
-            self.reaction_names, self.homeostatic_metabolites,
-            self.kinetic_constraint_reactions)
+            stoich_arr=self.stoichiometry,
+            metabolites=self.metabolite_names,
+            reactions=self.reaction_names,
+            homeostatic_metabolites=self.homeostatic_metabolites,
+            kinetic_reactions=self.kinetic_constraint_reactions,
+            free_reactions=FREE_RXNS)
 
         # important bulk molecule names
         self.catalyst_ids = self.parameters['catalyst_ids']
@@ -198,7 +203,7 @@ class MetabolismRedux(Step):
                     'target_kinetic_fluxes': [],
                     'target_kinetic_bounds': [],
                     'reaction_catalyst_counts': [],
-                    'maintenance_target': []
+                    'maintenance_target': 0
                 }),
 
                 'enzyme_kinetics': listener_schema({
@@ -288,7 +293,7 @@ class MetabolismRedux(Step):
         total_maintenance = flux_gam + flux_ngam + flux_gtp
         maintenance_target = total_maintenance.asNumber()
 
-        # binary kinetic targets - sum up enzyme counts for each reaction
+        # binary kinetic targets - sum up enzyme counts for each reaction. -1 means missing catalyst.
         reaction_catalyst_counts = np.array([sum([current_catalyst_counts[enzyme_idx]
                                                   for enzyme_idx in enzymes_idx])
                                              if len(enzymes_idx) > 0 else -1
@@ -406,11 +411,12 @@ class NetworkFlowModel:
     """A network flow model for estimating fluxes in the metabolic network based on network structure. Flow is mainly
     driven by precursor demand (homeostatic objective) and availability of nutrients."""
     def __init__(self,
-        stoich_arr: Iterable[dict],
-        metabolites: Iterable[list],
-        reactions: Iterable[list],
-        homeostatic_metabolites: Iterable[str],
-        kinetic_reactions: Iterable[str]
+                 stoich_arr: Iterable[dict],
+                 metabolites: Iterable[list],
+                 reactions: Iterable[list],
+                 homeostatic_metabolites: Iterable[str],
+                 kinetic_reactions: Iterable[str],
+                 free_reactions: Iterable[str],
     ):
         self.S_orig = csr_matrix(stoich_arr.astype(np.int64))
         self.S_exch = None
@@ -425,6 +431,7 @@ class NetworkFlowModel:
         self.intermediates = list(set(self.mets) - set(homeostatic_metabolites))
         self.intermediates_idx = np.array([self.met_map[met] for met in self.intermediates])
         self.homeostatic_idx = np.array([self.met_map[met] for met in homeostatic_metabolites])
+        self.penalty_idx = np.array([self.rxns.index(rxn) for rxn in self.rxns if rxn not in free_reactions])
         # TODO (Cyrus) - use name provided
         self.maintenance_idx = self.rxn_map['maintenance_reaction']
 
@@ -439,7 +446,7 @@ class NetworkFlowModel:
         all_exchanges.update(uptakes)
         
         # All exchanges can secrete but only uptakes go in both directions
-        self.S_exch = np.zeros((self.n_mets, len(exchanges) + len(uptakes)))
+        self.S_exch = np.zeros((self.n_mets, len(all_exchanges) + len(uptakes)))
         self.exchanges = []
         self.secretion_idx = []
         exch_idx = 0
@@ -488,7 +495,7 @@ class NetworkFlowModel:
         loss = 0
         loss += cp.norm1(dm[self.homeostatic_idx] - homeostatic_targets)
         loss += objective_weights['secretion'] * (cp.sum(e[self.secretion_idx]))
-        loss += objective_weights['efficiency'] * (cp.sum(v))
+        loss += objective_weights['efficiency'] * (cp.sum(v[self.penalty_idx]))
         loss += objective_weights['kinetics'] * cp.norm1(v[self.kinetic_rxn_idx] - kinetic_targets)
 
         p = cp.Problem(
