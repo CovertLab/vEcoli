@@ -1,21 +1,23 @@
 from vivarium.core.composer import Composer
 from vivarium.core.emitter import timeseries_from_data
 from vivarium.core.engine import Engine
+from vivarium.core.serialize import deserialize_value
 from vivarium.library.units import units
+from vivarium.library.dict_utils import deep_merge
 from vivarium.plots.simulation_output import plot_variables
+from ecoli.library.schema import bulk_name_to_idx
 from ecoli.processes.antibiotics.permeability import (
     Permeability, CEPH_OMPC_CON_PERM, CEPH_OMPF_CON_PERM, OUTER_BILAYER_CEPH_PERM, TET_OMPF_CON_PERM, OUTER_BILAYER_TET_PERM,
     SA_AVERAGE
 )
 from ecoli.processes.antibiotics.fickian_diffusion import FickianDiffusion
-from vivarium.processes.timeline import TimelineProcess
 from ecoli.processes.antibiotics.nonspatial_environment import NonSpatialEnvironment
 from ecoli.processes.environment.derive_globals import DeriveGlobals
+from ecoli.processes.bulk_timeline import BulkTimelineProcess
 from ecoli.states.wcecoli_state import get_state_from_file
 import numpy as np
 
 
-# **NOTE**: This has not been updated to use bulk and unique Numpy arrays
 class PorinFickian(Composer):
     defaults = {
         'derive_globals': {},
@@ -27,7 +29,7 @@ class PorinFickian(Composer):
 
     def generate_processes(self, config):
         fick_diffusion = FickianDiffusion(config['fickian'])
-        timeline = TimelineProcess(config['timeline'])
+        timeline = BulkTimelineProcess(config['timeline'])
         return {'fickian': fick_diffusion,
                 'timeline': timeline,
                 }
@@ -55,10 +57,10 @@ class PorinFickian(Composer):
             },
             'timeline': {
                 'global': ('global',),  # The global time is read here
-                'porins': ('bulk',),  # This port is based on the declared timeline
+                'bulk': ('bulk',),
             },
             'porin_permeability': {
-                'porins': ('bulk',),
+                'bulk': ('bulk',),
                 'permeabilities': ('boundary', 'permeabilities',),
                 'surface_area': ('boundary', 'surface_area')
             },
@@ -76,25 +78,25 @@ class PorinFickian(Composer):
 def main():
     sim_time = 100
 
-    initial_state = get_state_from_file(path='data/vivecoli_t1000.json')
+    initial_state = get_state_from_file(path='data/vivecoli_t2600.json')
     initial_state['boundary'] = {}
     initial_state['boundary']['surface_area'] = SA_AVERAGE
     initial_state['listeners']['mass']['dry_mass'] = initial_state['listeners']['mass']['dry_mass']  # * units.fg
     initial_state['environment']['fields'] = {}
     initial_state['environment']['fields']['cephaloridine'] = np.array([[1e-3]])
     initial_state['environment']['fields']['tetracycline'] = np.array([[1e-3]])
-    initial_state['bulk']['CPLX0-7533[o]'] = 500
-    initial_state['bulk']['CPLX0-7534[o]'] = 500
+    bulk = initial_state['bulk']
+    porin_idx = bulk_name_to_idx(['CPLX0-7533[o]', 'CPLX0-7534[o]'], bulk['id'])
+    bulk.flags.writeable = True
+    bulk['count'][porin_idx] = 500
+    bulk.flags.writeable = False
 
-    timeline = []
+    timeline = {}
     for i in range(10):
-        timeline.append(
-            (i, {
-                ('porins', 'CPLX0-7533[o]'): initial_state['bulk']['CPLX0-7533[o]'] + ((i + 1) * 500),
-                ('porins', 'CPLX0-7534[o]'): initial_state['bulk']['CPLX0-7534[o]'] + ((i + 1) * 500),
-            })
-        )
-
+        timeline[i] = {
+            ('bulk', 'CPLX0-7533[o]'): bulk['count'][porin_idx[0]] + ((i + 1) * 500),
+            ('bulk', 'CPLX0-7534[o]'): bulk['count'][porin_idx[1]] + ((i + 1) * 500),
+        }
     config = {
         'derive_globals': {},
         'nonspatial': {
@@ -105,18 +107,18 @@ def main():
             'molecules_to_diffuse': ['cephaloridine', 'tetracycline'],
             'initial_state': {
                 'internal': {
-                    'cephaloridine': 0,  # mM
-                    'tetracycline': 0
+                    'cephaloridine': 0 * units.mM,
+                    'tetracycline': 0 * units.mM
                 },
                 'external': {
-                    'cephaloridine': 1e-3,  # mM
-                    'tetracycline': 1e-3
+                    'cephaloridine': 1e-3 * units.mM,
+                    'tetracycline': 1e-3 * units.mM
                 },
                 'mass_global': {
-                    'dry_mass': 300,  # * units.fg
+                    'dry_mass': 300 * units.fg,
                 },
                 'volume_global': {
-                    'volume': 1.2  # * units.fL
+                    'volume': 1.2  * units.fL
                 },
             },
             'default_default': 0,
@@ -147,14 +149,23 @@ def main():
     }
     composer = PorinFickian(config)
     composite = composer.generate()
+    initial_state = deep_merge(initial_state, composite.initial_state())
 
     sim = Engine(composite=composite, initial_state=initial_state)
     sim.update(sim_time)
-    timeseries_data = timeseries_from_data(sim.emitter.get_data())
-    plot_variables(timeseries_data, [('environment', 'external', 'cephaloridine'),
-                                     ('boundary', 'internal', 'cephaloridine'),
-                                     ('environment', 'external', 'tetracycline'),
-                                     ('boundary', 'internal', 'tetracycline'),
+    data = sim.emitter.get_data()
+    for time_data in data.values():
+        time_data['bulk'] = {
+            'CPLX0-7533[o]': time_data['bulk'][porin_idx[0]],
+            'CPLX0-7534[o]': time_data['bulk'][porin_idx[1]]
+        }
+    data = deserialize_value(data)
+    timeseries_data = timeseries_from_data(data)
+    timeseries_data['environment']['external']
+    plot_variables(timeseries_data, [('environment', 'external', ('cephaloridine', 'millimolar')),
+                                     ('boundary', 'internal', ('cephaloridine', 'millimolar')),
+                                     ('environment', 'external', ('tetracycline', 'millimolar')),
+                                     ('boundary', 'internal', ('tetracycline', 'millimolar')),
                                      ('bulk', 'CPLX0-7533[o]'), ('bulk', 'CPLX0-7534[o]')],
                    out_dir='out', filename='porin_fickian_counts')
 
