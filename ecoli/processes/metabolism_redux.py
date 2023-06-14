@@ -236,11 +236,11 @@ class MetabolismRedux(Step):
 
         # Initialize indices
         if self.homeostatic_metabolite_idx is None:
-            bulk_ids = states['bulk']['id']
-            self.homeostatic_metabolite_idx = bulk_name_to_idx(self.homeostatic_metabolites, bulk_ids)
-            self.catalyst_idx = bulk_name_to_idx(self.catalyst_ids, bulk_ids)
-            self.kinetics_enzymes_idx = bulk_name_to_idx(self.kinetic_constraint_enzymes, bulk_ids)
-            self.kinetics_substrates_idx = bulk_name_to_idx(self.kinetic_constraint_substrates, bulk_ids)
+            self.bulk_ids = states['bulk']['id']
+            self.homeostatic_metabolite_idx = bulk_name_to_idx(self.homeostatic_metabolites, self.bulk_ids)
+            self.catalyst_idx = bulk_name_to_idx(self.catalyst_ids, self.bulk_ids)
+            self.kinetics_enzymes_idx = bulk_name_to_idx(self.kinetic_constraint_enzymes, self.bulk_ids)
+            self.kinetics_substrates_idx = bulk_name_to_idx(self.kinetic_constraint_substrates, self.bulk_ids)
 
         # metabolites not in either set are constrained to zero uptake.
         exchange_data = states['environment']['exchange_data']
