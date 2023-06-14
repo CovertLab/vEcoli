@@ -25,7 +25,7 @@ from ecoli.library.logging_tools import make_logging_process
 from ecoli.composites.ecoli_configs import (
     ECOLI_DEFAULT_PROCESSES, ECOLI_DEFAULT_TOPOLOGY)
 from ecoli.plots.topology import get_ecoli_partition_topology_settings
-from ecoli.processes.cell_division import Division
+from ecoli.processes.cell_division import Division, MarkDPeriod
 from ecoli.processes.allocator import Allocator
 from ecoli.processes.partition import PartitionedProcess
 from ecoli.processes.unique_update import UniqueUpdate
@@ -214,6 +214,8 @@ class Ecoli(Composer):
 
         # add division Step
         if config['divide']:
+            if config['d_period']:
+                steps['mark_d_period'] = MarkDPeriod()
             division_config = {
                 'division_threshold': config['division_threshold'],
                 'agent_id': config['agent_id'],
@@ -239,6 +241,10 @@ class Ecoli(Composer):
                 flow['allocator'].append((name,))
             elif name == 'division':
                 # Division runs after all other listeners
+                flow[name] = [('monomer_counts_listener',)]
+                if config['d_period']:
+                    flow[name] += [('mark_d_period',)]
+            elif name == 'mark_d_period':
                 flow[name] = [('monomer_counts_listener',)]
             else:
                 flow.setdefault(name, [])
@@ -325,10 +331,15 @@ class Ecoli(Composer):
 
         # add division
         if config['divide']:
+            if config['d_period']:
+                topology['mark_d_period'] = {
+                    'full_chromosome': tuple(config['chromosome_path']),
+                    'global_time': ('global_time',),
+                    'divide': ('divide',)}
             topology['division'] = {
-                'division_variable': config['division_variable'],
-                'full_chromosome': config['chromosome_path'],
-                'agents': config['agents_path'],
+                'division_variable': tuple(config['division_variable']),
+                'full_chromosome': tuple(config['chromosome_path']),
+                'agents': tuple(config['agents_path']),
                 'media_id': ('environment', 'media_id'),
                 'division_threshold': ('division_threshold',)}
         # add allocator

@@ -4,8 +4,11 @@ class DivisionDetector(Step):
     """Calculates division threshold for inner simulation in EngineProcess.
     Upon reaching threshold, sets a flag through the `division_trigger` port
     that can be detected via a tunnel and used to initiate division.
-    
-    TODO: Implement D-period division
+
+    By default, we forgo the dry mass threshold in favor of a boolean
+    threshold set by the MarkDPeriod Step in ecoli.processes.cell_division.
+    Users can revert to the mass threshold by setting d_period to False in
+    their config json.
     """
     name = 'division-detector'
 
