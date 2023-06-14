@@ -10,6 +10,7 @@ import numpy as np
 from vivarium.core.process import Step
 
 from ecoli.library.sim_data import RAND_MAX
+from ecoli.library.schema import attrs
 from wholecell.utils import units
 
 NAME = 'ecoli-cell-division'
@@ -21,8 +22,57 @@ def daughter_phylogeny_id(mother_id):
         str(mother_id) + '1']
 
 
+class MarkDPeriod(Step):
+    """ Set division flag after D period has elapsed """
+
+    name = "mark_d_period"
+
+    def ports_schema(self):
+        return {
+            'full_chromosome': {},
+            'global_time': {
+                '_default': 0
+            },
+            'divide': {
+                '_default': False,
+                '_updater': 'set',
+                '_divider': {'divider': 'set_value',
+                    'config': {'value': False}}
+            }
+        }
+
+    def next_update(self, timestep, states):
+        division_time, has_triggered_division = attrs(
+            states['full_chromosome'],
+            ['division_time', 'has_triggered_division'])
+        if len(division_time) < 2:
+            return {}
+        # Set division time to be the minimum division time for a chromosome
+        # that has not yet triggered cell division
+        divide_at_time = division_time[~has_triggered_division].min()
+        if states['global_time'] >= divide_at_time:
+            divide_at_time_index = np.where(division_time == divide_at_time)[0][0]
+            has_triggered_division[divide_at_time_index] = True
+            # Set flag for ensuing division Step to trigger division
+            return {
+                'full_chromosome': {
+                    'set': {
+                        'has_triggered_division': has_triggered_division
+                    }
+                },
+                'divide': True}
+        return {}
+
+
 class Division(Step):
-    """ Division Deriver """
+    """
+    Division Deriver
+     * Uses dry mass threshold that can be set in config via division_threshold
+     * Samples division threshold from normal distribution centered around what
+       is expected for a medium when division_threshold == massDistribution
+     * If flag d_period is set to true (default), mass thresholds are ignored and
+       the same D period mechanism as wcEcoli is used.
+    """
 
     name = NAME
     defaults: Dict[str, Any] = {

@@ -38,7 +38,8 @@ TOPOLOGY = {
     "chromosome_domains": ("unique", "chromosome_domain"),
     "full_chromosomes": ("unique", "full_chromosome"),
     "listeners": ("listeners",),
-    "environment": ("environment",)
+    "environment": ("environment",),
+    "global_time": ("global_time",)
 }
 topology_registry.register(NAME, TOPOLOGY)
 
@@ -135,7 +136,8 @@ class ChromosomeReplication(PartitionedProcess):
             'active_replisomes': numpy_schema('active_replisomes'),
             'oriCs': numpy_schema('oriCs'),
             'chromosome_domains': numpy_schema('chromosome_domains'),
-            'full_chromosomes': numpy_schema('full_chromosomes')
+            'full_chromosomes': numpy_schema('full_chromosomes'),
+            'global_time': {'_default': 0}
         }
 
     def calculate_request(self, timestep, states):
@@ -493,8 +495,7 @@ class ChromosomeReplication(PartitionedProcess):
                     'add': {
                         'unique_index': new_chromosome_indexes,
                         'domain_index': domain_index_new_full_chroms,
-                        # TODO(vivarium-ecoli): How is division_time used?
-                        'division_time': self.D_period,
+                        'division_time': states['global_time'] + self.D_period,
                         'has_triggered_division': False
                     }
                 }
