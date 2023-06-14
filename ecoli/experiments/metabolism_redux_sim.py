@@ -123,13 +123,13 @@ def run_metabolism_composite():
 
 def run_ecoli_with_metabolism_redux(
         filename='fba_redux',
-        total_time=100,
+        total_time=10,
         divide=True,
         initial_state_file='wcecoli_t0',
         progress_bar=True,
         log_updates=False,
         emitter='timeseries',
-        name='fba-redux-long',
+        name='fba-redux',
         raw_output=False,
         save=False,
         # save_times=4,
@@ -160,7 +160,7 @@ def run_ecoli_with_metabolism_redux(
 
     query = []
     folder = f'out/fbagd/{name}_{total_time}_{datetime.date.today()}/'
-    save_sim_output(folder, query, sim)
+    save_sim_output(folder, query, sim, save_model=True)
 
 
 
@@ -262,7 +262,7 @@ experiment_library = {
 }
 
 
-def save_sim_output(folder, query, sim):
+def save_sim_output(folder, query, sim, save_model=False):
     agents = sim.query()['agents'].keys()
     for agent in agents:
         query.extend([('agents', agent, 'listeners', 'fba_results'),
@@ -272,13 +272,14 @@ def save_sim_output(folder, query, sim):
     pathlib.Path(folder).mkdir(parents=True, exist_ok=True)
     np.save(folder + 'output.npy', output)
 
-    f = open(folder + 'agent_processes.pkl', 'wb')
-    dill.dump(sim.ecoli['processes']['agents'][agent], f)
-    f.close()
+    if save_model:
+        f = open(folder + 'agent_processes.pkl', 'wb')
+        dill.dump(sim.ecoli['processes']['agents'][agent], f)
+        f.close()
 
-    f = open(folder + 'agent_steps.pkl', 'wb')
-    dill.dump(sim.ecoli['steps']['agents'][agent], f)
-    f.close()
+        f = open(folder + 'agent_steps.pkl', 'wb')
+        dill.dump(sim.ecoli['steps']['agents'][agent], f)
+        f.close()
 
 # run experiments with command line arguments: python ecoli/experiments/metabolism_redux_sim.py -n exp_id
 if __name__ == "__main__":
