@@ -4,7 +4,7 @@
 
 ## Background
 
-Vivarium-ecoli project is a port of the Covert Lab's 
+Vivarium-ecoli is a port of the Covert Lab's 
 [E. coli Whole Cell Model](https://github.com/CovertLab/wcEcoli) 
 to the [Vivarium framework](https://github.com/vivarium-collective/vivarium-core).
 
@@ -31,36 +31,38 @@ the instructions [here](https://github.com/CovertLab/wcEcoli/blob/master/docs/cr
 and stop once you reach the "Create the 'wcEcoli3' python virtual environment" step. Then, 
 run the following command in your terminal:
 
-    $ pyenv virtualenv 3.8.5 viv-ecoli && pyenv local viv-ecoli
+    $ pyenv virtualenv 3.8.13 viv-ecoli && pyenv local viv-ecoli
 
-#TODO: Create a pyproject.toml so the project can install with a single pip command (see the [PEP 517/518 solution](https://stackoverflow.com/questions/54117786/add-numpy-get-include-argument-to-setuptools-without-preinstalled-numpy))
-Now, install numpy and Cython:
+Now, install `numpy` first to avoid installation errors with `stochastic-arrow`
+(check `requirements.py` for correct version):
 
-    $ pip install numpy
-    $ pip install Cython
+    $ pip install numpy==1.23.1
 
 Then install the remaining requirements:
 
     $ pip install -r requirements.txt 
-    $ python setup.py install
 
-And build the Cython components
+And build the Cython components:
 
     $ make clean compile
 
 ## Conda install
 
-To install using conda (first line creates a conda environment with numpy and Cython, the second activates the environment and the third installs WCM and remaining dependencies).
+To install using conda, create a conda environment with `numpy` (check `requirements.py` 
+for correct version), activate it, install the remaining dependencies, and build the Cython 
+components.
 
-    $ conda create -n WCM python=3.8.5 numpy Cython
+    $ conda create -n WCM python==3.8.13 numpy==1.23.1
     $ conda activate WCM
     $ pip install -r requirements.txt
-    $ python setup.py install
+    $ make clean compile
 
 ## Running the simulation
 
-To run the simulation, simply invoke:
+To run the simulation, set the `PYTHONPATH` environment variable to the cloned repository and run
+`ecoli_master_sim.py`. If you are at the top-level of the cloned repository, invoke:
 
+    $ export PYTHONPATH=.
     $ python ecoli/experiments/ecoli_master_sim.py
 
 For details on configuring simulations through either the command-line interface or .json files, 
