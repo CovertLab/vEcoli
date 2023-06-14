@@ -1,11 +1,10 @@
 import os
-from collections import Counter
 import numpy as np
-from scipy.sparse import coo_matrix
 import matplotlib.pyplot as plt
 
-from ecoli.experiments.ecoli_master_sim import EcoliSim, CONFIG_DIR_PATH
-from ecoli.plots.blame_utils import get_bulk_processes, extract_bulk, idx_array_from
+from ecoli.experiments.ecoli_master_sim import EcoliSim
+from ecoli.library.schema import bulk_name_to_idx
+from ecoli.plots.blame_utils import get_bulk_processes
 
 
 def validate_data(data):
@@ -14,7 +13,7 @@ def validate_data(data):
             "Missing log_update store in data; did you run simulation without logged updates?")
 
 
-def preprocess_data(data, bulk_processes, molecules):
+def preprocess_data(data, bulk_ids, bulk_processes, molecules):
     """
     Prepares raw data for blame-timeseries plot.
     Returns data in the form time, process, values_array
@@ -23,16 +22,25 @@ def preprocess_data(data, bulk_processes, molecules):
     (molecule x time x process).
     """
 
+    molecule_idx = bulk_name_to_idx(molecules, bulk_ids)
     processes = list(bulk_processes.keys())
     x = np.array(list(data.keys()))
 
     values_array = np.zeros([len(molecules), len(x), len(processes)])
+    # Create a fake bulk array to apply all updates to for each process
+    # at each timestep and get final count
+    fake_bulk = np.zeros(len(bulk_ids))
     for j, timepoint in enumerate(x):
         for k, process in enumerate(processes):
-            for i, molecule in enumerate(molecules):
-                for path in bulk_processes[process]:
-                    values_array[i, j, k] += data[timepoint]['log_update'][process].get(
-                        path, {}).get(molecule, 0)
+            fake_bulk[:] = 0
+            path = bulk_processes[process][0]
+            logged = data[timepoint]['log_update']
+            if process not in logged:
+                continue
+            bulk_updates = logged[process].get(path, ())
+            for bulk_update in bulk_updates:
+                fake_bulk[bulk_update[0]] += bulk_update[1]
+            values_array[:, j, k] = fake_bulk[molecule_idx]
 
     return x, processes, values_array
 
@@ -50,8 +58,8 @@ def signed_stacked_bar(ax, x, y, bar_labels):
     # Need to keep track of separate totals for positive, negative
     # entries at each time step, so that positive entries get stacked above 0,
     # and negative entries get stacked below.
-    total_pos = np.zeros_like(x)
-    total_neg = np.zeros_like(x)
+    total_pos = np.zeros(len(x), dtype=np.float64)
+    total_neg = np.zeros_like(total_pos)
     
     for series in range(y.shape[1]):
         data = y[:, series]
@@ -68,14 +76,16 @@ def signed_stacked_bar(ax, x, y, bar_labels):
 
 def blame_timeseries(data,
                      topology,
+                     bulk_ids,
                      molecules,
                      filename=None,
                      yscale='linear'):
     """
-    Generates timeseries blame plots for the selected molecules, saving
-    to the specified output file. Timeseries blame plots show the change in molecule
-    counts due to each process at each timestep. For convenience, a small plot of count
-    is included to the side.
+    Generates timeseries blame plots for the selected bulk molecules assuming
+    that bulk data is an array of counts ordered by bulk_ids and saves to the
+    specified output file. Timeseries blame plots show the change in molecule
+    counts due to each process at each timestep. For convenience, exact count
+    plots are included to the side.
 
     Example usage:
     ```
@@ -99,7 +109,8 @@ def blame_timeseries(data,
     # Collect data into one dictionary
     # of the form: {process : {molecule : timeseries}}
     bulk_processes = get_bulk_processes(topology)
-    time, processes, values_array = preprocess_data(data, bulk_processes, molecules)     
+    time, processes, values_array = preprocess_data(data, bulk_ids,
+                                                    bulk_processes, molecules)
 
     # Twp subplots per molecule (count, change)
     max_t = time.max()
@@ -110,7 +121,8 @@ def blame_timeseries(data,
     for i, molecule in enumerate(molecules):
         # Plot molecule count over time
         # molecule_data = data['bulk'][molecule]
-        molecule_data = np.array([timepoint['bulk'].get(molecule, 0) for timepoint in data.values()])
+        molecule_idx = np.where(bulk_ids == molecule)[0][0]
+        molecule_data = np.array([timepoint['bulk'][molecule_idx] for timepoint in data.values()])
         axs[i, 0].set_title(f"Count of {molecule}", pad=20)
         axs[i, 0].set_ylabel("# molecules")
         axs[i, 0].set_xlabel("Time (s)")
@@ -173,9 +185,10 @@ def test_blame_timeseries():
         sim.emit_processes = False
         sim.total_time = 100
         sim.build_ecoli()
+        bulk_ids = sim.generated_initial_state['bulk']['id']
         sim.run()
         data = sim.query()
-        topo = sim.topology
+        topo = sim.ecoli_experiment.topology
 
     molecules = [
         "EG10841-MONOMER",
@@ -188,11 +201,10 @@ def test_blame_timeseries():
         "CPLX0-7452"  # Final flagella molecule
     ]
 
-    # TODO: Adapt this code to work with new Numpy update format
-    # blame_timeseries(data, topo,
-    #                  ['CPD-12261[p]'],# + molecules,
-    #                  'out/ecoli_master/murein_blame.png',
-    #                  yscale="linear")
+    blame_timeseries(data, topo, bulk_ids,
+                     ['CPD-12261[p]'],# + molecules,
+                     'out/ecoli_master/murein_blame.png',
+                     yscale="linear")
 
 
 if __name__ == "__main__":
