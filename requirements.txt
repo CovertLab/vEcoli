@@ -8,9 +8,7 @@ argon2-cffi-bindings==21.2.0
 attrs==21.2.0
 backcall==0.2.0
 beautifulsoup4==4.11.1
-biocrnpyler==1.1.1
 biopython==1.77
-bioscrape==1.0.4
 bleach==4.1.0
 certifi==2021.10.8
 cffi==1.15.0
@@ -107,7 +105,6 @@ pysal==23.1
 pytest==6.2.5
 pytest-cov==3.0.0
 python-dateutil==2.8.2
-python-libsbml==5.19.0
 pytz==2021.3
 pyzmq==22.3.0
 qtconsole==5.2.2
