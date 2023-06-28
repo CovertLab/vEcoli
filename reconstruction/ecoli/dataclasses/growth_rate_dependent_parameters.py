@@ -2,19 +2,14 @@
 SimulationData mass data
 """
 
-from __future__ import absolute_import, division, print_function
-
 from typing import Tuple
 
 import numpy as np
 from scipy import interpolate, stats
+from scipy.optimize import minimize
 import unum
 
-from wholecell.utils import units
-from six.moves import range
-import six
-from six.moves import zip
-
+from wholecell.utils import fitting, units
 
 NORMAL_CRITICAL_MASS = 975 * units.fg
 SLOW_GROWTH_FACTOR = 1.2  # adjustment for smaller cells
@@ -98,18 +93,27 @@ class Mass(object):
 				/ sim_data.constants.n_avogadro
 			).asUnit(units.g)
 
-	def _getFitParameters(self, dryMassComposition, massFractionName):
-		massFraction = np.array([float(x[massFractionName]) for x in dryMassComposition])
+	def _getFitParameters(self, dry_mass_composition, mass_fraction_name):
+		mass_fraction = np.array([float(x[mass_fraction_name]) for x in dry_mass_composition])
+
+		# Doubling time interpolation
 		x = self._doubling_time_vector.asNumber(units.min)[::-1]
-		y = massFraction[::-1]
-		massParams = interpolate.splrep(x, y)
-		if np.sum(np.absolute(interpolate.splev(self._doubling_time_vector.asNumber(units.min), massParams) - massFraction)) / massFraction.size > 1.:
-			raise Exception("Fitting {} with double exponential, residuals are huge!".format(massFractionName))
-		return massParams
+		y = mass_fraction[::-1]
+		dt_params = interpolate.splrep(x, y)
+		if np.sum(np.absolute(interpolate.splev(self._doubling_time_vector.asNumber(units.min), dt_params) - mass_fraction)) / mass_fraction.size > 1.:
+			raise Exception("Fitting {} with double exponential, residuals are huge!".format(mass_fraction_name))
+
+		# RNA/protein ratio interpolation
+		rna = np.array([float(x['rnaMassFraction']) for x in dry_mass_composition])
+		protein = np.array([float(x['proteinMassFraction']) for x in dry_mass_composition])
+		rp_ratio = rna / protein
+		rp_params = interpolate.splrep(rp_ratio, mass_fraction)
+
+		return dt_params, rp_params
 
 	def _build_CD_periods(self, raw_data, sim_data):
-		self.c_period = sim_data.growth_rate_parameters.c_period
-		self.d_period = sim_data.growth_rate_parameters.d_period
+		self._c_period = sim_data.constants.c_period
+		self._d_period = sim_data.constants.d_period
 
 	# Set based on growth rate avgCellDryMass
 	def get_avg_cell_dry_mass(self, doubling_time):
@@ -163,27 +167,36 @@ class Mass(object):
 		D["dna"] = dnaMassFraction.asNumber()
 
 		doubling_time = self._clipTau_d(doubling_time)
-		D["protein"] = float(interpolate.splev(doubling_time.asNumber(units.min), self._proteinMassFractionParams))
-		D["rna"] = float(interpolate.splev(doubling_time.asNumber(units.min), self._rnaMassFractionParams))
-		D["lipid"] = float(interpolate.splev(doubling_time.asNumber(units.min), self._lipidMassFractionParams))
-		D["lps"] = float(interpolate.splev(doubling_time.asNumber(units.min), self._lpsMassFractionParams))
-		D["murein"] = float(interpolate.splev(doubling_time.asNumber(units.min), self._mureinMassFractionParams))
-		D["glycogen"] = float(interpolate.splev(doubling_time.asNumber(units.min), self._glycogenMassFractionParams))
-		D["solublePool"] = float(interpolate.splev(doubling_time.asNumber(units.min), self._solublePoolMassFractionParams))
-		D["inorganicIon"] = float(interpolate.splev(doubling_time.asNumber(units.min), self._inorganicIonMassFractionParams))
+		D["protein"] = float(interpolate.splev(doubling_time.asNumber(units.min), self._proteinMassFractionParams[0]))
+		D["rna"] = float(interpolate.splev(doubling_time.asNumber(units.min), self._rnaMassFractionParams[0]))
+		D["lipid"] = float(interpolate.splev(doubling_time.asNumber(units.min), self._lipidMassFractionParams[0]))
+		D["lps"] = float(interpolate.splev(doubling_time.asNumber(units.min), self._lpsMassFractionParams[0]))
+		D["murein"] = float(interpolate.splev(doubling_time.asNumber(units.min), self._mureinMassFractionParams[0]))
+		D["glycogen"] = float(interpolate.splev(doubling_time.asNumber(units.min), self._glycogenMassFractionParams[0]))
+		D["solublePool"] = float(interpolate.splev(doubling_time.asNumber(units.min), self._solublePoolMassFractionParams[0]))
+		D["inorganicIon"] = float(interpolate.splev(doubling_time.asNumber(units.min), self._inorganicIonMassFractionParams[0]))
 
-		total = np.sum([y for y in six.viewvalues(D)])
-		for key, value in six.viewitems(D):
+		total = np.sum([y for y in D.values()])
+		for key, value in D.items():
 			if key != 'dna':
 				D[key] = value / total
-		assert np.absolute(np.sum([x for x in six.viewvalues(D)]) - 1.) < 1e-3
+		assert np.absolute(np.sum([x for x in D.values()]) - 1.) < 1e-3
 		return D
 
+	def get_mass_fractions_from_rna_protein_ratio(self, ratio):
+		D = {}
+		D["lipid"] = float(interpolate.splev(ratio, self._lipidMassFractionParams[1]))
+		D["lps"] = float(interpolate.splev(ratio, self._lpsMassFractionParams[1]))
+		D["murein"] = float(interpolate.splev(ratio, self._mureinMassFractionParams[1]))
+		D["glycogen"] = float(interpolate.splev(ratio, self._glycogenMassFractionParams[1]))
+		D["solublePool"] = float(interpolate.splev(ratio, self._solublePoolMassFractionParams[1]))
+		D["inorganicIon"] = float(interpolate.splev(ratio, self._inorganicIonMassFractionParams[1]))
+		return D
 
 	def get_component_masses(self, doubling_time):
 		D = {}
 		massFraction = self.get_mass_fractions(doubling_time)
-		for key, value in six.viewitems(massFraction):
+		for key, value in massFraction.items():
 			D[key + "Mass"] = value * self.get_avg_cell_dry_mass(doubling_time)
 
 		return D
@@ -193,16 +206,13 @@ class Mass(object):
 		Measured RNA subgroup mass fractions. Fractions should change in other
 		conditions with growth rate (see transcription.get_rna_fractions()).
 		"""
-
 		return {
-			'23S': self._rrna23s_mass_sub_fraction,
-			'16S': self._rrna16s_mass_sub_fraction,
-			'5S': self._rrna5s_mass_sub_fraction,
-			'trna': self._trna_mass_sub_fraction,
-			'mrna': self._mrna_mass_sub_fraction,
+			'rRNA': self._rrna23s_mass_sub_fraction + self._rrna16s_mass_sub_fraction + self._rrna5s_mass_sub_fraction,
+			'tRNA': self._trna_mass_sub_fraction,
+			'mRNA': self._mrna_mass_sub_fraction,
 			}
 
-	def getBiomassAsConcentrations(self, doubling_time):
+	def getBiomassAsConcentrations(self, doubling_time, rp_ratio=None):
 
 		avgCellDryMassInit = self.get_avg_cell_dry_mass(doubling_time) / self.avg_cell_to_initial_cell_conversion_factor
 		avgCellWaterMassInit = (avgCellDryMassInit / self.cell_dry_mass_fraction) * self.cell_water_mass_fraction
@@ -214,7 +224,10 @@ class Mass(object):
 
 		initCellVolume = initCellMass / self._cellDensity.asNumber(units.g / units.L) # L
 
-		massFraction = self.get_mass_fractions(doubling_time)
+		if rp_ratio is None:
+			massFraction = self.get_mass_fractions(doubling_time)
+		else:
+			massFraction = self.get_mass_fractions_from_rna_protein_ratio(rp_ratio)
 
 		metaboliteIDs = []
 		metaboliteConcentrations = []
@@ -329,11 +342,9 @@ class Mass(object):
 		return dict(zip(metaboliteIDs, metaboliteConcentrations))
 
 	def _calculateGrowthRateDependentDnaMass(self, doubling_time):
-		C_PERIOD = self.c_period
-		D_PERIOD = self.d_period
-		CD_PERIOD = C_PERIOD + D_PERIOD
+		c_plus_d_period = self._c_period + self._d_period
 
-		if doubling_time < D_PERIOD:
+		if doubling_time < self._d_period:
 			raise Exception(
 				"Can't have doubling time shorter than cytokinesis time!")
 
@@ -343,9 +354,9 @@ class Mass(object):
 		# It is optimized to run quickly over the range of T_d
 		# and C and D periods that we have.
 		return self.chromosome_sequence_mass * (1 +
-												1 * (np.maximum(0. * doubling_time_unit, CD_PERIOD - doubling_time) / C_PERIOD) +
-												2 * (np.maximum(0. * doubling_time_unit, CD_PERIOD - 2 * doubling_time) / C_PERIOD) +
-												4 * (np.maximum(0. * doubling_time_unit, CD_PERIOD - 4 * doubling_time) / C_PERIOD)
+												1 * (np.maximum(0. * doubling_time_unit, c_plus_d_period - doubling_time) / self._c_period) +
+												2 * (np.maximum(0. * doubling_time_unit, c_plus_d_period - 2 * doubling_time) / self._c_period) +
+												4 * (np.maximum(0. * doubling_time_unit, c_plus_d_period - 4 * doubling_time) / self._c_period)
 												)
 
 	def _clipTau_d(self, doubling_time):
@@ -366,7 +377,7 @@ class Mass(object):
 		self._trna_growth_rates = growth_rate_unit * np.array([x['growth rate'].asNumber() for x in raw_data.trna_data.trna_growth_rates])
 
 		trna_ratio_to_16SrRNA_by_growth_rate = []
-		for gr in self._trna_growth_rates: # This is a little crazy...
+		for gr in self._trna_growth_rates: # TODO: This is a little crazy...
 			trna_ratio_to_16SrRNA_by_growth_rate.append([x['ratio to 16SrRNA'] for x in getattr(raw_data.trna_data, "trna_ratio_to_16SrRNA_" + str(gr.asNumber()).replace('.','p'))])
 		self._trna_ratio_to_16SrRNA_by_growth_rate = np.array(trna_ratio_to_16SrRNA_by_growth_rate)
 
@@ -405,12 +416,35 @@ class GrowthRateParameters(object):
 		self.RNAP_elongation_rate_params = _get_fit_parameters(raw_data.growth_rate_dependent_parameters, "rnaPolymeraseElongationRate")
 		self.RNAP_active_fraction_params = _get_fit_parameters(raw_data.growth_rate_dependent_parameters, "fractionActiveRnap")
 		self.ribosome_active_fraction_params = _get_fit_parameters(raw_data.growth_rate_dependent_parameters, "fractionActiveRibosome")
-		self.ppGpp_concentration = _get_fit_parameters(raw_data.growth_rate_dependent_parameters, "ppGpp_conc")
 
-		self._per_dry_mass_to_per_volume = sim_data.constants.cell_density * (1. - raw_data.mass_parameters['cell_water_mass_fraction'])
-		self.c_period = units.min * 40.
-		self.d_period = units.min * 20.
-		self.replisome_elongation_rate = units.nt / units.s * 967.
+		# ppGpp concentration by linear fit
+		self.per_dry_mass_to_per_volume = sim_data.constants.cell_density * (1. - raw_data.mass_parameters['cell_water_mass_fraction'])
+		doubling_time = _loadRow('doublingTime', raw_data.growth_rate_dependent_parameters)
+		ppgpp_conc = _loadRow('ppGpp_conc', raw_data.growth_rate_dependent_parameters) * self.per_dry_mass_to_per_volume
+		ribosome_elongation_rate = _loadRow('ribosomeElongationRate', raw_data.growth_rate_dependent_parameters)
+		self._ppGpp_concentration = _get_linearized_fit(doubling_time, ppgpp_conc)
+		self._ribosome_elongation_rate_by_ppgpp = self._fit_ribosome_elongation_rate_by_ppgpp(ppgpp_conc, ribosome_elongation_rate)
+
+		# Estimate of the amount that the max elongation rate is reduced by having
+		# charging at less than 100% since measured data is not the max elongation
+		# rate but the observed elongation rate
+		# TODO (travis): calculate this value based on expected charging
+		self._charging_fraction_of_max_elong_rate = 0.9
+
+	def _fit_ribosome_elongation_rate_by_ppgpp(self, ppgpp, rate):
+		ppgpp_units = units.umol / units.L
+		rate_units = units.getUnit(rate)
+		f = lambda x: np.linalg.norm(x[0] / (1 + (ppgpp.asNumber(ppgpp_units) / x[1])**x[2]) - rate.asNumber(rate_units))
+		x0 = [22, 100, 1.5]
+		sol = minimize(f, x0)
+		vmax, KI, H = sol.x
+
+		# Make sure optimization was successful, is a good fit, and the max rate is not more
+		# than 10% different than the max measured rate (arbitrary level to ensure close fit)
+		if not sol.success or sol.fun > 1 or np.abs(vmax / rate.asNumber(rate_units).max() - 1) > 0.1:
+			raise RuntimeError('Problem fitting ppGpp regulated elongation rate.')
+
+		return ppgpp_units, rate_units, vmax, KI, H
 
 	def get_ribosome_elongation_rate(self, doubling_time):
 		return _useFitParameters(doubling_time, **self.ribosome_elongation_rate_params)
@@ -425,7 +459,12 @@ class GrowthRateParameters(object):
 		return _useFitParameters(doubling_time, **self.ribosome_active_fraction_params)
 
 	def get_ppGpp_conc(self, doubling_time):
-		return _useFitParameters(doubling_time, **self.ppGpp_concentration) * self._per_dry_mass_to_per_volume
+		return _use_linearized_fit(doubling_time, self._ppGpp_concentration)
+
+	def get_ribosome_elongation_rate_by_ppgpp(self, ppgpp, max_rate=None):
+		ppgpp_units, rate_units, fit_vmax, KI, H = self._ribosome_elongation_rate_by_ppgpp
+		vmax = fit_vmax if max_rate is None else max_rate
+		return rate_units * vmax / (1 + (ppgpp.asNumber(ppgpp_units) / KI)**H) / self._charging_fraction_of_max_elong_rate
 
 def _get_fit_parameters(list_of_dicts, key):
 	# Load rows of data
@@ -453,6 +492,25 @@ def _get_fit_parameters(list_of_dicts, key):
 		raise Exception("Fitting {} with 3d spline, residuals are huge!".format(key))
 
 	return {'function': cs, 'x_units': x_units, 'y_units': y_units, 'dtype': y.dtype}
+
+def _get_linearized_fit(x, y, **kwargs):
+	if units.hasUnit(x):
+		x_units = units.getUnit(x)
+		x = x.asNumber(x_units)
+	else:
+		x_units = None
+	if units.hasUnit(y):
+		y_units = units.getUnit(y)
+		y = y.asNumber(y_units)
+	else:
+		y_units = 1.
+
+	return x_units, y_units, fitting.fit_linearized_transforms(x, y, **kwargs)
+
+def _use_linearized_fit(x, params):
+	x_units, y_units, fit_params = params
+	x_unitless = x if x_units is None else x.asNumber(x_units)
+	return y_units * fitting.interpolate_linearized_fit(x_unitless, *fit_params)
 
 def _useFitParameters(x_new, function, x_units, y_units, dtype):
 	# Convert to same unit base

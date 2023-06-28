@@ -1,3 +1,4 @@
+# noinspection HttpUrlsUsage
 """
 NetworkFlow's interface to GNU Linear Programming Kit.
 This uses a fraction of the API that's available via the swiglpk pip.
@@ -22,19 +23,13 @@ environment, losing state info.
 
 # TODO(Jerry): Check that integer arguments are in range so GLPK won't exit?
 
-from __future__ import absolute_import, division, print_function
-
 from collections import defaultdict
 from enum import Enum
 
 import numpy as np
 from scipy.sparse import coo_matrix
-import six
 import swiglpk as glp
-
 from ._base import NetworkFlowProblemBase
-from six.moves import range
-from six.moves import zip
 
 class MessageLevel(Enum):
 	OFF = glp.GLP_MSG_OFF  # no output
@@ -296,9 +291,17 @@ class NetworkFlowGLPK(NetworkFlowProblemBase):
 		idx = self._getVar(flow)
 		if lowerBound is not None and self._lb[flow] != lowerBound:
 			self._lb[flow] = lowerBound
+			# Need to prevent cases where the new lower bound is greater than
+			# current upper bound and a new upper bound is not provided here
+			if upperBound is None and self._lb[flow] > self._ub[flow]:
+				self._ub[flow] = self._lb[flow]
 			reset_bounds = True
 		if upperBound is not None and self._ub[flow] != upperBound:
 			self._ub[flow] = upperBound
+			# Need to prevent cases where the new upper bound is less than
+			# current lower bound and a new loewr bound is not provided here
+			if lowerBound is None and self._lb[flow] > self._ub[flow]:
+				self._lb[flow] = self._ub[flow]
 			reset_bounds = True
 
 		if reset_bounds:
@@ -324,7 +327,7 @@ class NetworkFlowGLPK(NetworkFlowProblemBase):
 		return self._objective[flow]
 
 	def getFlowRates(self, flows):
-		if isinstance(flows, six.string_types):
+		if isinstance(flows, str):
 			flows = (flows,)
 
 		self._solve()
@@ -403,7 +406,7 @@ class NetworkFlowGLPK(NetworkFlowProblemBase):
 		A = np.zeros((n_coeffs, n_flows))
 		# avoid creating duplicate constraints
 		self._materialIdxLookup = {}
-		for materialIdx, (material, pairs) in enumerate(sorted(six.viewitems(self._materialCoeffs))):
+		for materialIdx, (material, pairs) in enumerate(sorted(self._materialCoeffs.items())):
 			self._materialIdxLookup[material] = materialIdx
 			for pair in pairs:
 				A[materialIdx, pair[1]] = pair[0]

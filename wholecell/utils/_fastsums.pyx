@@ -1,12 +1,11 @@
 # cython: language_level=3str
+## [Enable this in Cython 3]  distutils: define_macros=NPY_NO_DEPRECATED_API=NPY_1_7_API_VERSION
 
 """
 _fastsums.pyx
 
 Fast group sums to speed up polymerize.
 """
-
-from __future__ import absolute_import, division, print_function
 
 import numpy as np
 cimport numpy as np

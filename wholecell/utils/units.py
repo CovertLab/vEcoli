@@ -1,13 +1,16 @@
 """
-Units
+Units: Extends the Unum units package.
 
-Defines/registers custom units for Pint
+TODO: Unum is a defunct project. Its source repo is no longer online. Either
+switch to a newer package like Pint or copy and improve the Unum source code
+from its Python package.
 """
 
-from __future__ import absolute_import, division, print_function
+from typing import TypeGuard
 
 import scipy.constants
 import numpy as np
+# noinspection PyUnresolvedReferences
 from unum.units import dmol, fg, g, h, J, K, L, min, mol, mmol, umol, s  # satisfy mypy
 from unum.units import *
 from unum import Unum
@@ -48,7 +51,7 @@ if Unum.__truediv__ == Unum.__div__:
 	Unum.__truediv__ = __truediv__
 	Unum.__rtruediv__ = __rtruediv__
 
-
+# noinspection PyShadowingBuiltins
 def sum(array, axis = None, dtype=None, out=None, keepdims=False):
 	if not isinstance(array, Unum):
 		raise Exception("Only works on Unum!")
@@ -56,6 +59,7 @@ def sum(array, axis = None, dtype=None, out=None, keepdims=False):
 	units = getUnit(array)
 	return units * np.sum(array.asNumber(), axis, dtype, out, keepdims)
 
+# noinspection PyShadowingBuiltins
 def abs(array):
 	if not isinstance(array, Unum):
 		raise Exception("Only works on Unum!")
@@ -162,7 +166,7 @@ def getUnit(value):
 	value_units._value = 1
 	return value_units
 
-def hasUnit(value):
+def hasUnit(value) -> TypeGuard[Unum]:
 	return isinstance(value, Unum)
 
 def strip_empty_units(value):
@@ -171,3 +175,9 @@ def strip_empty_units(value):
 		value.checkNoUnit()
 		value = value.asNumber()
 	return value
+
+def isnan(value):
+	return np.isnan(value._value) if hasUnit(value) else np.isnan(value)
+
+def isfinite(value):
+	return np.isfinite(value._value) if hasUnit(value) else np.isfinite(value)

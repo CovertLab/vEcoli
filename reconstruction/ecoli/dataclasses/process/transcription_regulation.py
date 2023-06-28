@@ -3,7 +3,10 @@ SimulationData for transcription regulation
 
 """
 
-import scipy
+from typing import Union
+
+import numpy as np
+from scipy import sparse
 
 
 class TranscriptionRegulation(object):
@@ -45,6 +48,10 @@ class TranscriptionRegulation(object):
 			x["active TF"]: x["TF"]
 			for x in raw_data.condition.tf_condition}
 
+		# Values set after promoter fitting in parca with calculateRnapRecruitment()
+		self.basal_prob = None
+		self.delta_prob = None
+
 	def p_promoter_bound_tf(self, tfActive, tfInactive):
 		"""
 		Computes probability of a transcription factor binding promoter.
@@ -58,9 +65,27 @@ class TranscriptionRegulation(object):
 		"""
 		return float(signal)**power / (float(signal)**power + float(Kd)**power)
 
-	def get_delta_prob_matrix(self, dense=False):
-		delta_prob = scipy.sparse.csr_matrix(
-			(self.delta_prob['deltaV'],
+	def get_delta_prob_matrix(self, dense=False, ppgpp=False) -> Union[sparse.csr_matrix, np.ndarray]:
+		"""
+		Returns the delta probability matrix mapping the promoter binding effect
+		of each TF to each gene.
+
+		Args:
+			dense: If True, returns a dense matrix, otherwise csr sparse
+			ppgpp: If True, normalizes delta probabilities to be on the same
+				scale as ppGpp normalized probabilities since delta_prob is
+				calculated based on basal_prob which is not normalized to 1
+
+		Returns:
+			delta_prob: matrix of probabilities changes expected with a TF
+				binding to a promoter for each gene (n genes, m TFs)
+		"""
+
+		ppgpp_scaling = self.basal_prob[self.delta_prob['deltaI']]
+		ppgpp_scaling[ppgpp_scaling == 0] = 1
+		scaling_factor = ppgpp_scaling if ppgpp else 1.
+		delta_prob = sparse.csr_matrix(
+			(self.delta_prob['deltaV'] / scaling_factor,
 			(self.delta_prob['deltaI'], self.delta_prob['deltaJ'])),
 			shape=self.delta_prob['shape'])
 
@@ -74,13 +99,13 @@ class TranscriptionRegulation(object):
 		Builds dictionaries for mapping transcription factor abbreviations to
 		their RNA IDs, and to their active form.
 		"""
-		geneIdToRnaId = {x["id"]: x['rna_id'] for x in raw_data.genes}
+		gene_id_to_cistron_id = {x['id']: x['rna_ids'][0] for x in raw_data.genes}
 
 		self.abbr_to_rna_id = {}
 		for lookupInfo in raw_data.transcription_factors:
-			if len(lookupInfo["geneId"]) == 0 or lookupInfo["geneId"] not in geneIdToRnaId:
+			if len(lookupInfo["geneId"]) == 0 or lookupInfo["geneId"] not in gene_id_to_cistron_id:
 				continue
-			self.abbr_to_rna_id[lookupInfo["TF"]] = geneIdToRnaId[lookupInfo["geneId"]]
+			self.abbr_to_rna_id[lookupInfo["TF"]] = gene_id_to_cistron_id[lookupInfo["geneId"]]
 
 		self.abbr_to_active_id = {
 			x["TF"]: x["activeId"].split(", ")
