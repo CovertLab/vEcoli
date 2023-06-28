@@ -4,9 +4,11 @@
 
 ## Background
 
-Vivarium-ecoli project is a port of the Covert Lab's 
+Vivarium-ecoli is a port of the Covert Lab's 
 [E. coli Whole Cell Model](https://github.com/CovertLab/wcEcoli) 
 to the [Vivarium framework](https://github.com/vivarium-collective/vivarium-core).
+
+Below is a high-level overview of the advantages and WIP features.
 
 The scope of this project is to migrate the Whole Cell Model's processes, and therefore takes 
 wcEcoli's `sim_data` as its starting point in the simulation pipeline.
@@ -26,25 +28,27 @@ a Vivarium topology that is generated in `ecoli/experiments/ecoli_master_sim.py`
 
 pyenv lets you install and switch between multiple Python releases and multiple "virtual 
 environments", each with its own pip packages. Using pyenv, create a virtual environment 
-and install Python 3.8.5. For a tutorial on how to create a virtual environment, follow 
+and install Python 3.11.4. For a tutorial on how to create a virtual environment, follow 
 the instructions [here](https://github.com/CovertLab/wcEcoli/blob/master/docs/create-pyenv.md) 
 and stop once you reach the "Create the 'wcEcoli3' python virtual environment" step. Then, 
 run the following command in your terminal:
 
-    $ pyenv virtualenv 3.8.5 viv-ecoli && pyenv local viv-ecoli
+    $ pyenv virtualenv 3.11.4 viv-ecoli && pyenv local viv-ecoli
 
-#TODO: Create a pyproject.toml so the project can install with a single pip command (see the [PEP 517/518 solution](https://stackoverflow.com/questions/54117786/add-numpy-get-include-argument-to-setuptools-without-preinstalled-numpy))
-Now, install numpy and Cython:
+Now, install numpy (check `requirements.txt` for the exact version):
 
     $ pip install numpy
-    $ pip install Cython
 
 Then install the remaining requirements:
 
-    $ pip install -r requirements.txt 
-    $ python setup.py install
+    $ pip install -r requirements.txt
 
-And build the Cython components
+Manually uninstall `arrow` and `stochastic-arrow`, then reinstall `stochastic-arrow`:
+
+    $ pip uninstall arrow stochastic-arrow
+    $ pip install stochastic-arrow
+
+And build the Cython components:
 
     $ make clean compile
 
