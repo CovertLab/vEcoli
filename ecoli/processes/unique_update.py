@@ -10,16 +10,16 @@ class UniqueUpdate(Step):
     def __init__(self, parameters=None):
         super().__init__(parameters)
         # Topology for all unique molecule ports (port: path)
-        self.unique_dict = self.parameters['unique_dict']
+        self.unique_topo = self.parameters['unique_topo']
 
     def ports_schema(self):
         return {
             unique_mol: numpy_schema(unique_mol)
-            for unique_mol in self.unique_dict
+            for unique_mol in self.unique_topo
         }
     
     def next_update(self, timestep, states):
         return {
             unique_mol: {'update': True}
-            for unique_mol in self.unique_dict.keys()
+            for unique_mol in self.unique_topo.keys()
         }

@@ -37,7 +37,6 @@ class ProteinDegradation(PartitionedProcess):
     topology = TOPOLOGY
     defaults = {
         'raw_degradation_rate': [],
-        'shuffle_indexes': None,
         'water_id': 'h2o',
         'amino_acid_ids': [],
         'amino_acid_counts': [],
@@ -50,9 +49,6 @@ class ProteinDegradation(PartitionedProcess):
         super().__init__(parameters)
 
         self.raw_degradation_rate = self.parameters['raw_degradation_rate']
-        self.shuffle_indexes = self.parameters['shuffle_indexes']
-        if self.shuffle_indexes:
-            self.raw_degradation_rate = self.raw_degradation_rate[self.shuffle_indexes]
 
         self.water_id = self.parameters['water_id']
         self.amino_acid_ids = self.parameters['amino_acid_ids']

@@ -3,14 +3,14 @@ tests that vivarium-ecoli mrna_counts process update is the same as saved wcEcol
 """
 import pytest
 
-from ecoli.processes.listeners.mRNA_counts import mRNACounts
+from ecoli.processes.listeners.RNA_counts import RNACounts
 from migration.migration_utils import run_and_compare
 
 @pytest.mark.master
-def test_mrna_counts_migration():
+def test_rna_counts_migration():
     times = [0, 2104]
     for initial_time in times:
-        run_and_compare(initial_time, mRNACounts, partition=False, post=True)
+        run_and_compare(initial_time, RNACounts, partition=False, post=True)
 
 if __name__ == "__main__":
-    test_mrna_counts_migration()
+    test_rna_counts_migration()

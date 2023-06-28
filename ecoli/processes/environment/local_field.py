@@ -15,7 +15,6 @@ class LocalField(Step):
     name = 'local_field'
     defaults = {
         'initial_external': {},
-        'nonspatial': False,
         'bin_volume': 1e-6 * units.L,
         'n_bins': [1, 1],
         'bounds': [1, 1] * units.um,
@@ -23,7 +22,6 @@ class LocalField(Step):
 
     def __init__(self, parameters=None):
         super().__init__(parameters)
-        self.nonspatial = self.parameters['nonspatial']
         self.bin_volume = self.parameters['bin_volume']
 
     def initial_state(self, config=None):
@@ -46,7 +44,7 @@ class LocalField(Step):
             },
             'fields': {
                 '*': {
-                    '_default': np.ones(1) if not self.nonspatial else 1.0,
+                    '_default': np.ones(1),
                 }
             },
             'dimensions': {
@@ -70,11 +68,8 @@ class LocalField(Step):
         exchanges = states['exchanges']
 
         # get bin volume
-        if self.nonspatial:
-            bin_volume = self.bin_volume
-        else:
-            bin_site = get_bin_site(location, n_bins, bounds)
-            bin_volume = get_bin_volume(n_bins, bounds, depth)
+        bin_site = get_bin_site(location, n_bins, bounds)
+        bin_volume = get_bin_volume(n_bins, bounds, depth)
 
         # apply exchanges
         delta_fields = {}
@@ -86,16 +81,11 @@ class LocalField(Step):
             concentration = count_to_concentration(exchange, bin_volume).to(
                 units.mmol / units.L).magnitude
 
-            if self.nonspatial:
-                delta_fields[mol_id] = {
-                    '_value': concentration,
-                    '_updater': 'nonnegative_accumulate'}
-            else:
-                delta_field = np.zeros((n_bins[0], n_bins[1]), dtype=np.float64)
-                delta_field[bin_site[0], bin_site[1]] += concentration
-                delta_fields[mol_id] = {
-                    '_value': delta_field,
-                    '_updater': 'nonnegative_accumulate'}
+            delta_field = np.zeros((n_bins[0], n_bins[1]), dtype=np.float64)
+            delta_field[bin_site[0], bin_site[1]] += concentration
+            delta_fields[mol_id] = {
+                '_value': delta_field,
+                '_updater': 'nonnegative_accumulate'}
 
             # reset the exchange value
             reset_exchanges[mol_id] = {

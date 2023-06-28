@@ -14,6 +14,7 @@ from vivarium.core.composer import Composer
 from vivarium.plots.topology import plot_topology
 from vivarium.library.dict_utils import deep_merge
 from vivarium.core.control import run_library_cli
+from vivarium.core.engine import _StepGraph
 
 # sim data
 from ecoli.library.sim_data import LoadSimData, RAND_MAX
@@ -128,12 +129,12 @@ class Ecoli(Composer):
 
 
     def _generate_processes_and_steps(self, config):
-        """Instantiates all processes and steps, creates separate Requester
-        and Evolver for each PartitionedProcess as well as Allocator, adds
-        division process if configured, ensures that Requesters run after
-        all listeners and allocator after all Requesters, adds UniqueUpdate
-        Steps to ensure that unique molecule states are updated before and
-        after running each Step"""
+        """Instantiates all processes and steps
+         * Creates separate Requester and Evolvers for each PartitionedProcess
+         * Adds Allocator b/w Requesters and Evolvers for an execution layer
+         * Adds division if configured
+         * Adds UniqueUpdate Step between execution layers to ensure that
+           unique molecule states are properly updated"""
         time_step = config['time_step']
         # get the configs from sim_data (except for allocator, built later)
         process_configs = config['process_configs']
@@ -141,6 +142,7 @@ class Ecoli(Composer):
             if process_configs[process] == "sim_data":
                 process_configs[process] = \
                     self.load_sim_data.get_config_by_name(process)
+                process_configs[process] = None
             elif process_configs[process] == "default":
                 process_configs[process] = None
             else:
@@ -156,6 +158,18 @@ class Ecoli(Composer):
                     process_configs[process]['seed'] = (
                         process_configs[process]['seed'] +
                         config['seed']) % RAND_MAX
+        
+        # update schema overrides for evolvers and requesters
+        update_override = {}
+        delete_override = []
+        for process_id, override in self.schema_override.items():
+            if process_id in self.partitioned_processes:
+                delete_override.append(process_id)
+                update_override[f'{process_id}_evolver'] = override
+                update_override[f'{process_id}_requester'] = override
+        for process_id in delete_override:
+            del self.schema_override[process_id]
+        self.schema_override.update(update_override)
 
         # make the processes
         processes = {}
@@ -166,7 +180,7 @@ class Ecoli(Composer):
             if issubclass(process_class, PartitionedProcess):
                 process = process_class(process_configs[process_name])
                 if config['log_updates']:
-                    processes[f'{process_name}_evolver'] = \
+                    steps[f'{process_name}_evolver'] = \
                         make_logging_process(Evolver)({
                             'time_step': time_step,
                             'process': process
@@ -177,7 +191,7 @@ class Ecoli(Composer):
                             'process': process
                         })
                 else:
-                    processes[f'{process_name}_evolver'] = Evolver({
+                    steps[f'{process_name}_evolver'] = Evolver({
                         'time_step': time_step,
                         'process': process
                     })
@@ -191,31 +205,81 @@ class Ecoli(Composer):
                     process_class = make_logging_process(process_class)
                 process = process_class(process_configs[process_name])
                 steps[process_name] = process
+                steps[process_name] = None
+                continue
             else:
                 process = process_class(process_configs[process_name])
                 processes[process_name] = process
-            
-        # Add allocator Step
+                continue
+
+        # Parse flow to get execution layers
+        step_graph = _StepGraph()
+        allocator_counter = 1
+        unique_update_counter = 1
+        for process in config['processes']:
+            # Get Step dependencies as tuple paths
+            deps = config['flow'].get(process, [])
+            tuplified_deps = []
+            for dep_path in deps:
+                # Use evolver for partitioned dependencies
+                if dep_path[-1] in self.partitioned_processes:
+                    tuplified_deps.append(tuple(dep_path[:-1])
+                        + (f'{dep_path[-1]}_evolver',))
+                else:
+                    tuplified_deps.append(tuple(dep_path))
+            # For partitioned steps, requesters must run before evolvers
+            if process in self.partitioned_processes:
+                step_graph.add((f'{process}_requester',), tuplified_deps)
+                step_graph.add((f'{process}_evolver',),
+                               [(f'{process}_requester',)])
+            elif process in steps:
+                step_graph.add((process,), tuplified_deps)
+        
+        # Build simulation flow with UniqueUpdate and Allocator layers
+        layers = step_graph.get_execution_layers()
+        allocator_counter = 1
+        unique_update_counter = 1
+        for layer_steps in layers:
+            requesters = False
+            for step_path in layer_steps:
+                # Evolvers always go after the allocator for a given layer
+                if 'evolver' in step_path[-1]:
+                    flow[step_path[-1]] = [
+                        (f'allocator_{allocator_counter - 1}',)]
+                # Aside from first layer, all non-evolver layers will be
+                # immediately preceeded by a UniqueUpdate layer
+                elif unique_update_counter > 1:
+                    flow[step_path[-1]] = [
+                        (f'unique_update_{unique_update_counter - 1}',)]
+                    if 'requester' in step_path[-1]:
+                        requesters = True
+            # Add Allocator layer right after requester layer
+            if requesters:
+                flow[f'allocator_{allocator_counter}'] = layer_steps
+                allocator_counter += 1
+            # Add UniqueUpdate layer after non-requester layers
+            else:
+                flow[f'unique_update_{unique_update_counter}'] = [step_path]
+                unique_update_counter += 1
+
+        # Add Allocator Steps
         allocator_config = self.load_sim_data.get_allocator_config(
             process_names=self.partitioned_processes)
-        steps['allocator'] = Allocator(allocator_config)
+        for i in range(1, allocator_counter):
+            steps[f'allocator_{i}'] = Allocator(allocator_config)
 
-        # update schema overrides for evolvers and requesters
-        update_override = {}
-        delete_override = []
-        for process_id, override in self.schema_override.items():
-            if process_id in self.partitioned_processes:
-                delete_override.append(process_id)
-                update_override[f'{process_id}_evolver'] = override
-                update_override[f'{process_id}_requester'] = override
-        for process_id in delete_override:
-            del self.schema_override[process_id]
-        self.schema_override.update(update_override)
+        # Add UniqueUpdate Steps
+        unique_mols = (self.load_sim_data.sim_data.internal_state
+                       ).unique_molecule.unique_molecule_definitions.keys()
+        unique_topo = {
+            unique_mol: ('unique', unique_mol)
+            for unique_mol in unique_mols}
+        params = {'unique_topo': unique_topo}
+        for i in range(1, unique_update_counter):
+            steps[f'unique_update_{i}'] = UniqueUpdate(params)
 
         # add division Step
         if config['divide']:
-            if config['d_period']:
-                steps['mark_d_period'] = MarkDPeriod()
             division_config = {
                 'division_threshold': config['division_threshold'],
                 'agent_id': config['agent_id'],
@@ -226,52 +290,15 @@ class Ecoli(Composer):
                 'seed': config['seed'],
             }
             steps['division'] = Division(division_config)
-
-        # generate Step dependency dictionary
-        flow = {'allocator': []}
-        for name in steps:
-            if '_requester' in name:
-                # Requesters run after listeners, division, and shape
-                flow[name] = [('monomer_counts_listener',)]
-                if config['divide']:
-                    flow[name].append(('division',))
-                if 'ecoli-shape' in config['processes']:
-                    flow[name].append(('ecoli-shape',))
-                # Allocator runs after all Requesters
-                flow['allocator'].append((name,))
-            elif name == 'division':
-                # Division runs after all other listeners
-                flow[name] = [('monomer_counts_listener',)]
-                if config['d_period']:
-                    flow[name] += [('mark_d_period',)]
-            elif name == 'mark_d_period':
-                flow[name] = [('monomer_counts_listener',)]
+            if config['d_period']:
+                steps['mark_d_period'] = MarkDPeriod()
+                flow['mark_d_period'] = [
+                    (f'unique_update_{unique_update_counter - 1}',)]
+                flow['division'] = [('mark_d_period',)]
             else:
-                flow.setdefault(name, [])
-            # Update unique molecules before any Steps run
-            flow[name].append(('unique-update',))
+                flow['division'] = [
+                    (f'unique_update_{unique_update_counter - 1}',)]
 
-        # Add Step dependecies specified in config
-        for name, dependencies in config['flow'].items():
-            if name in steps:
-                flow[name].extend([tuple(dep) for dep in dependencies])
-
-        # TODO: Find a more robust way to get topology containing all
-        # unique molecules
-        unique_dict = steps['ecoli-chromosome-structure'].topology
-        unique_dict = unique_dict.copy()
-        unique_dict.pop('bulk')
-        unique_dict.pop('listeners')
-        unique_dict.pop('evolvers_ran')
-        unique_dict.pop('first_update')
-        flow_keys = list(flow.keys())
-        params = {'unique_dict': unique_dict}
-        steps['unique-update'] = UniqueUpdate(params)
-        flow['unique-update'] = []
-        # Update unique molecules after each Step runs
-        for i in range(len(flow_keys)):
-            flow[f'unique-update-{i+1}'] = [(flow_keys[i],)]
-            steps[f'unique-update-{i+1}'] = UniqueUpdate(params)
         # Free memory by removing reference to sim_data object
         del self.load_sim_data
         return processes, steps, flow
@@ -342,21 +369,21 @@ class Ecoli(Composer):
                 'agents': tuple(config['agents_path']),
                 'media_id': ('environment', 'media_id'),
                 'division_threshold': ('division_threshold',)}
-        # add allocator
-        topology['allocator'] = {
+
+        # Add Allocator and UniqueUpdate topologies
+        _, steps, _ = self.processes_and_steps
+        allocator_topo = {
             'request': ('request',),
             'allocate': ('allocate',),
             'bulk': ('bulk',),
             'evolvers_ran': ('evolvers_ran',),
         }
-
-        _, steps, _ = self.processes_and_steps
-        # UniqueUpdate signals for collected unique molecule updates
-        # to be applied before and after all Steps run
         for step_name in steps.keys():
-            if 'unique-update' in step_name:
-                topology[step_name] = steps['unique-update'
-                    ].unique_dict.copy()
+            if 'unique_update' in step_name:
+                topology[step_name] = steps[step_name].unique_topo.copy()
+            elif 'allocator' in step_name:
+                topology[step_name] = allocator_topo.copy()
+
         # Do not keep an unnecessary reference to these
         self.processes_and_steps = None
 

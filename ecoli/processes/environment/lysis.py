@@ -30,14 +30,12 @@ class Lysis(Step):
     name = 'lysis'
     defaults = {
         'secreted_molecules': [],
-        'nonspatial': False,
         'bin_volume': 1e-6 * units.L,
     }
 
     def __init__(self, parameters=None):
         super().__init__(parameters)
         self.agent_id = self.parameters['agent_id']
-        self.nonspatial = self.parameters['nonspatial']
         self.bin_volume = self.parameters['bin_volume']
 
         # Helper indices for Numpy indexing
@@ -90,11 +88,8 @@ class Lysis(Step):
             depth = states['dimensions']['depth']
 
             # get bin volume
-            if self.nonspatial:
-                bin_volume = self.bin_volume
-            else:
-                bin_site = get_bin_site(location, n_bins, bounds)
-                bin_volume = get_bin_volume(n_bins, bounds, depth)
+            bin_site = get_bin_site(location, n_bins, bounds)
+            bin_volume = get_bin_volume(n_bins, bounds, depth)
 
             # apply internal states to fields
             internal = states['internal']
@@ -107,17 +102,12 @@ class Lysis(Step):
                 concentration = count_to_concentration(exchange, bin_volume).to(
                     units.mM)
 
-                if self.nonspatial:
-                    delta_fields[mol_id] = {
-                        '_value': concentration,
-                        '_updater': 'accumulate'}
-                else:
-                    delta_field = np.zeros((n_bins[0], n_bins[1]), dtype=np.float64)
-                    delta_field[bin_site[0], bin_site[1]] += concentration.to(
-                        units.mM).magnitude
-                    delta_fields[mol_id] = {
-                        '_value': delta_field,
-                        '_updater': 'accumulate'}
+                delta_field = np.zeros((n_bins[0], n_bins[1]), dtype=np.float64)
+                delta_field[bin_site[0], bin_site[1]] += concentration.to(
+                    units.mM).magnitude
+                delta_fields[mol_id] = {
+                    '_value': delta_field,
+                    '_updater': 'accumulate'}
 
             # remove agent and apply delta to field
             return {
