@@ -2,11 +2,9 @@
 SimulationData for the Complexation process
 """
 
-from __future__ import absolute_import, division, print_function
-
 import numpy as np
 from wholecell.utils import units
-from six.moves import range, zip
+from wholecell.utils.mc_complexation import mccBuildMatrices
 
 
 class ComplexationError(Exception):
@@ -26,22 +24,21 @@ class Complexation(object):
 		stoichMatrixV = []  # Stoichiometric coefficients
 		stoichMatrixMass = []  # Molecular masses of molecules in stoichMatrixI
 
-		# Get IDs of reactions that should be removed
-		removed_reaction_ids = {
-			rxn['id'] for rxn in raw_data.complexation_reactions_removed}
-
 		self.ids_reactions = []
+		self.reaction_stoichiometry_unknown = []
 		reaction_index = 0
+		miscrnas_with_singleton_tus = sim_data.getter.get_miscrnas_with_singleton_tus()
 
 		# Build stoichiometric matrix from given complexation reactions
 		for reaction in raw_data.complexation_reactions:
-			# Skip removed reactions
-			if reaction['id'] in removed_reaction_ids:
-				continue
-
 			self.ids_reactions.append(reaction['id'])
+			stoichiometry_unknown = False
 
 			for mol_id, coeff in reaction["stoichiometry"].items():
+				# Replace miscRNA subunit IDs with TU IDs
+				if mol_id in miscrnas_with_singleton_tus:
+					mol_id = sim_data.getter.get_singleton_tu_id(mol_id)
+
 				mol_id_with_compartment = "{}[{}]".format(
 					mol_id,
 					sim_data.getter.get_compartment(mol_id)[0]
@@ -53,8 +50,10 @@ class Complexation(object):
 				else:
 					molecule_index = molecules.index(mol_id_with_compartment)
 
-				# Assume coefficents given as null are -1
+				# Flag reactions whose stoichioemtric coefficients are given
+				# as null and replace with -1
 				if coeff is None:
+					stoichiometry_unknown = True
 					coeff = -1
 
 				assert (coeff % 1) == 0
@@ -75,6 +74,7 @@ class Complexation(object):
 				molecularMass = sim_data.getter.get_mass(mol_id_with_compartment).asNumber(units.g / units.mol)
 				stoichMatrixMass.append(molecularMass)
 
+			self.reaction_stoichiometry_unknown.append(stoichiometry_unknown)
 			reaction_index += 1
 
 		self.rates = np.full((reaction_index, ),
@@ -104,6 +104,13 @@ class Complexation(object):
 		balanceMatrix = self.stoich_matrix() * self.mass_matrix()
 		massBalanceArray = np.sum(balanceMatrix, axis=0)
 		assert np.max(np.absolute(massBalanceArray)) < 1e-8  # had to bump this up to 1e-8 because of flagella supercomplex
+
+		stoichMatrix = self.stoich_matrix().astype(np.int64, order='F')
+		self.prebuilt_matrices = mccBuildMatrices(stoichMatrix)
+
+		# Add boolean array to mark reactions with unknown stoichiometries
+		self.reaction_stoichiometry_unknown = np.array(
+			self.reaction_stoichiometry_unknown)
 
 	def stoich_matrix(self):
 		"""
@@ -186,9 +193,8 @@ class Complexation(object):
 	def _findRow(self, product, speciesList):
 		try:
 			row = speciesList.index(product)
-		except ValueError as e:
-			raise MoleculeNotFoundError(
-				"Could not find %s in the list of molecules." % (product,), e)
+		except ValueError:
+			row = -1  # Flag if not found so not a complex
 		return row
 
 	def _findColumn(self, stoichMatrixRow):
@@ -199,6 +205,9 @@ class Complexation(object):
 
 	def _moleculeRecursiveSearch(self, product, stoichMatrix, speciesList):
 		row = self._findRow(product, speciesList)
+		if row == -1:
+			return {product: 1.0}
+
 		col = self._findColumn(stoichMatrix[row, :])
 		if col == -1:
 			return {product: 1.0}

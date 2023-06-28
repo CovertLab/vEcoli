@@ -1,12 +1,7 @@
-from __future__ import absolute_import, division, print_function
-
-
 from typing import Dict, Type
 import warnings
 
 import numpy as np
-import six
-from six.moves import zip
 
 from wholecell.utils._netflow._base import NetworkFlowProblemBase
 
@@ -177,8 +172,9 @@ class FluxBalanceAnalysis(object):
 	_generatedID_conversionFlux = "Flux converting flux to kinetic objective equivalents - "
 
 	## Kinetic or homeostatic
-	_geneatedID_low_target_range = 'objective pseudoflux in range below average - '
-	_geneatedID_high_target_range = 'objective pseudoflux in range above average - '
+	_generatedID_low_target_range = 'objective pseudoflux in range below average - '
+	_generatedID_high_target_range = 'objective pseudoflux in range above average - '
+	_generatedID_target_range = 'objective pseudoflux in range - '
 
 	# Initialization
 
@@ -327,7 +323,7 @@ class FluxBalanceAnalysis(object):
 
 		for reactionID in sorted(reactionStoich):
 			stoichiometry = reactionStoich[reactionID]
-			for moleculeID, stoichCoeff in six.viewitems(stoichiometry):
+			for moleculeID, stoichCoeff in stoichiometry.items():
 				self._solver.setFlowMaterialCoeff(
 					reactionID,
 					moleculeID,
@@ -453,7 +449,7 @@ class FluxBalanceAnalysis(object):
 		if biomassSatisfactionWeight < 0:
 			raise FBAError("flexFBA beta parameter must be nonnegative")
 
-		if any(coeff < 0 for coeff in six.viewvalues(objective)):
+		if any(coeff < 0 for coeff in objective.values()):
 			warnings.warn("flexFBA is not designed to use negative biomass coefficients")
 
 		# Add biomass to objective
@@ -557,7 +553,7 @@ class FluxBalanceAnalysis(object):
 		to minimize the distance between the current metabolite level and some
 		target level, as defined in the objective."""
 
-		if any(coeff < 0 for coeff in six.viewvalues(objective)):
+		if any(coeff < 0 for coeff in objective.values()):
 			raise FBAError("Homeostatic FBA is not designed to use negative biomass coefficients")
 
 		self._homeostaticTargetMolecules.update(set(objective.keys()))
@@ -696,7 +692,7 @@ class FluxBalanceAnalysis(object):
 			upperBound = 1,
 			)
 
-		for reactionID, expectedFlux in six.viewitems(objective):
+		for reactionID, expectedFlux in objective.items():
 			if expectedFlux < 0:
 				raise FBAError("Target flux for reaction {} is negative. Kinetic targets must be positive - set the value for the (reverse) reaction if a negative flux is desired.".format(reactionID))
 
@@ -751,6 +747,23 @@ class FluxBalanceAnalysis(object):
 				)
 
 				self._specialFluxIDsSet.add(quadTargetFlux)
+
+				# Allow consumption of kinetic objective equivalent at lower objective
+				# weight within target range
+				range_flux = self._generatedID_target_range + reactionID
+				self._solver.setFlowMaterialCoeff(
+					range_flux,
+					kineticObjEquivalent,
+					-1,
+					)
+				# Set limits to 0, if a target range is set, the upper and/or lower
+				# bounds will vary from 0
+				self._solver.setFlowBounds(
+					range_flux,
+					lowerBound=0,
+					upperBound=0,
+					)
+				self._specialFluxIDsSet.add(range_flux)
 			else:
 				# Add a pseudoreaction to allow the flux to be above its target
 				overTargetFlux = self._generatedID_amountOver + reactionID
@@ -772,7 +785,7 @@ class FluxBalanceAnalysis(object):
 
 				# Allow consumption of kinetic objective equivalent at lower objective
 				# weight within target range (above average)
-				upper_range_flux = self._geneatedID_high_target_range + reactionID
+				upper_range_flux = self._generatedID_high_target_range + reactionID
 				self._solver.setFlowMaterialCoeff(
 					upper_range_flux,
 					kineticObjEquivalent,
@@ -788,7 +801,7 @@ class FluxBalanceAnalysis(object):
 
 				# Allow consumption of kinetic objective equivalent at lower objective
 				# weight within target range (below average)
-				lower_range_flux = self._geneatedID_low_target_range + reactionID
+				lower_range_flux = self._generatedID_low_target_range + reactionID
 				self._solver.setFlowMaterialCoeff(
 					lower_range_flux,
 					kineticObjEquivalent,
@@ -844,6 +857,12 @@ class FluxBalanceAnalysis(object):
 					quadTargetFlux,
 					self.kineticObjectiveWeight * scaling,
 					)
+
+				quad_range_flux = self._generatedID_target_range + rxn
+				self._solver.setFlowObjectiveCoeff(
+					quad_range_flux,
+					self.kinetic_objective_weight_in_range * scaling,
+					)
 			else:
 				# Objective is to minimize running this relaxation reaction
 				overTargetFlux = self._generatedID_amountOver + rxn
@@ -863,14 +882,14 @@ class FluxBalanceAnalysis(object):
 						)
 
 				# Objective is to minimize running this relaxation reaction
-				upper_range_flux = self._geneatedID_high_target_range + rxn
+				upper_range_flux = self._generatedID_high_target_range + rxn
 				self._solver.setFlowObjectiveCoeff(
 					upper_range_flux,
 					self.kinetic_objective_weight_in_range * scaling,
 					)
 
 				# Objective is to minimize running this relaxation reaction
-				lower_range_flux = self._geneatedID_low_target_range + rxn
+				lower_range_flux = self._generatedID_low_target_range + rxn
 				if rxn not in self._oneSidedReactions:
 					self._solver.setFlowObjectiveCoeff(
 						lower_range_flux,
@@ -1000,7 +1019,7 @@ class FluxBalanceAnalysis(object):
 			-1
 			)
 
-		for moleculeID, stoichCoeff in six.viewitems(maintenanceReaction):
+		for moleculeID, stoichCoeff in maintenanceReaction.items():
 			self._solver.setFlowMaterialCoeff(
 				self._reactionID_GAM,
 				moleculeID,
@@ -1039,26 +1058,51 @@ class FluxBalanceAnalysis(object):
 		return self._externalMoleculeIDs
 
 
-	def setExternalMoleculeLevels(self, levels):
-		levels_array = np.empty(len(self._externalMoleculeIDs))
+	def setExternalMoleculeLevels(self, levels, molecules=None, force=False, allow_export=False):
+		"""
+		Sets levels of external molecules that the cell can access. A positive
+		level indicates molcules that are available for uptake while a negative
+		level indicates secretion.
+
+		Args:
+			levels: limits corresponding to each molecule or to all molecules if
+				a singleton is passed
+			molecules: the molecule IDs to assign limits to
+			force: if True, will force exchange by setting both the upper and
+				lower bounds to the levels provided
+			allow_export: TODO
+		"""
+
+		if molecules is None:
+			molecules = self._externalMoleculeIDs
+		elif isinstance(molecules, str):
+			molecules = [molecules]
+
+		levels_array = np.empty(len(molecules))
 		levels_array[:] = levels
 
-		for moleculeID, level in zip(self._externalMoleculeIDs, levels_array):
+		for moleculeID, level in zip(molecules, levels_array):
 			flowID = self._generatedID_externalExchange + moleculeID
 
+			lb = None
+			ub = None
 			if level < 0:
-				print("Setting a negative external molecule level - be sure this is intended behavior.")
+				if not allow_export:
+					print("Setting a negative external molecule level for {} - be sure this is intended behavior.".format(moleculeID))
 
-				self._solver.setFlowBounds(
-					flowID,
-					upperBound=-level,
-					)
+				ub = -level
+				if force:
+					lb = ub
 			else:
-				self._solver.setFlowBounds(
-					flowID,
-					lowerBound=-level,
-					)
+				lb = -level
+				if force:
+					ub = lb
 
+			self._solver.setFlowBounds(
+				flowID,
+				lowerBound=lb,
+				upperBound=ub,
+				)
 
 	def getInternalMoleculeIDs(self):
 		return self._internalMoleculeIDs
@@ -1104,10 +1148,12 @@ class FluxBalanceAnalysis(object):
 				reverse reaction since net flux bounds might not be set
 		'''
 
-		if isinstance(reactionIDs, six.string_types):
+		if isinstance(reactionIDs, str):
 			reactionIDs = [reactionIDs]
-			lowerBounds = [lowerBounds]
-			upperBounds = [upperBounds]
+			if lowerBounds is not None:
+				lowerBounds = [lowerBounds]
+			if upperBounds is not None:
+				upperBounds = [upperBounds]
 
 		nReactions = len(reactionIDs)
 		if lowerBounds is None:
@@ -1189,7 +1235,7 @@ class FluxBalanceAnalysis(object):
 		change = np.zeros(len(self._outputMoleculeIDs))
 
 		for i, stoich in enumerate(self._outputMoleculeCoeffs):
-			flowRates = self._solver.getFlowRates(six.viewkeys(stoich))
+			flowRates = self._solver.getFlowRates(stoich.keys())
 			coeffs = list(stoich.values())
 			change[i] = np.dot(flowRates, coeffs)
 
@@ -1292,6 +1338,9 @@ class FluxBalanceAnalysis(object):
 			reactionIDs (iterable of str) - specific reaction IDs to get objective
 				value for (if not provided then will return for all reactions in
 				the objective)
+
+		TODO:
+			Should the range fluxes be weighted?
 		'''
 
 		if reactionIDs is None:
@@ -1304,17 +1353,19 @@ class FluxBalanceAnalysis(object):
 
 		# Get all reaction fluxes at once for faster performance
 		if self._solver.quadratic_objective:
-			unity_ids = [self._generatedID_quadFluxRelax + rxn for rxn in reactionIDs]
+			id_templates = [
+				self._generatedID_quadFluxRelax,
+				self._generatedID_target_range,
+				]
 		else:
-			generated_ids = [
+			id_templates = [
 				self._generatedID_amountUnder,
 				self._generatedID_amountOver,
-				self._geneatedID_low_target_range,
-				self._geneatedID_high_target_range,
+				self._generatedID_low_target_range,
+				self._generatedID_high_target_range,
 				]
-			unity_ids = [i + rxn for rxn in reactionIDs for i in generated_ids]
-
-		fluxes = {rxn: flux for rxn, flux in zip(unity_ids, self.getReactionFluxes(unity_ids))}
+		generated_ids = [i + rxn for rxn in reactionIDs for i in id_templates]
+		fluxes = {rxn: flux for rxn, flux in zip(generated_ids, self.getReactionFluxes(generated_ids))}
 
 		for idx, reactionID in enumerate(reactionIDs):
 			if reactionID not in self._active_kinetic_targets:
@@ -1324,18 +1375,19 @@ class FluxBalanceAnalysis(object):
 
 			if self._solver.quadratic_objective:
 				quadUnityID = self._generatedID_quadFluxRelax + reactionID
-				relax = fluxes[quadUnityID]**2
+				quad_range_id = self._generatedID_target_range + reactionID
+				relax = fluxes[quadUnityID]**2 + self.kinetic_objective_weight_in_range * fluxes[quad_range_id]**2
 			else:
 				belowUnityID = self._generatedID_amountUnder + reactionID
 				aboveUnityID = self._generatedID_amountOver + reactionID
-				below_in_range_id = self._geneatedID_low_target_range + reactionID
-				above_in_range_id = self._geneatedID_high_target_range + reactionID
+				below_in_range_id = self._generatedID_low_target_range + reactionID
+				above_in_range_id = self._generatedID_high_target_range + reactionID
 				relaxUp = fluxes[belowUnityID]
 				relaxDown = fluxes[aboveUnityID]
 				below_in_range = fluxes[below_in_range_id]
 				above_in_range = fluxes[above_in_range_id]
 
-				relax = relaxUp + relaxDown + below_in_range + above_in_range
+				relax = relaxUp + relaxDown + self.kinetic_objective_weight_in_range * (below_in_range + above_in_range)
 
 				assert relaxUp <= NUMERICAL_ZERO or relaxDown <= NUMERICAL_ZERO
 
@@ -1362,7 +1414,7 @@ class FluxBalanceAnalysis(object):
 
 			return targets
 
-		if isinstance(reactionIDs, six.string_types):
+		if isinstance(reactionIDs, str):
 			reactionIDs = [reactionIDs]
 		mean_targets = validate_targets(mean_targets, reactionIDs)
 		lower_targets = validate_targets(lower_targets, reactionIDs, default=mean_targets)
@@ -1400,23 +1452,31 @@ class FluxBalanceAnalysis(object):
 					-mean
 					)
 
-				lower_range_flux = self._geneatedID_low_target_range + reactionID
-				self._solver.setFlowBounds(
-					lower_range_flux,
-					upperBound=np.fmax(0, 1 - lower / mean),
-					)
-				upper_range_flux = self._geneatedID_high_target_range + reactionID
-				self._solver.setFlowBounds(
-					upper_range_flux,
-					upperBound=np.fmax(0, upper / mean - 1),
-					)
+				if self._solver.quadratic_objective:
+					range_flux = self._generatedID_target_range + reactionID
+					self._solver.setFlowBounds(
+						range_flux,
+						lowerBound=-(1 - lower / mean),
+						upperBound=(upper / mean - 1),
+						)
+				else:
+					lower_range_flux = self._generatedID_low_target_range + reactionID
+					self._solver.setFlowBounds(
+						lower_range_flux,
+						upperBound=np.fmax(0, 1 - lower / mean),
+						)
+					upper_range_flux = self._generatedID_high_target_range + reactionID
+					self._solver.setFlowBounds(
+						upper_range_flux,
+						upperBound=np.fmax(0, upper / mean - 1),
+						)
 
 			# Record the change
 			self._currentKineticTargets[reactionID] = mean
 
 	def enableKineticTargets(self, reactionIDs=None):
 		# If a single value is passed in, make a list of length 1 from it
-		if isinstance(reactionIDs, six.string_types):
+		if isinstance(reactionIDs, str):
 			reactionIDs = [reactionIDs]
 
 		# If no reactions specified, enable all kinetic reactions
@@ -1429,7 +1489,7 @@ class FluxBalanceAnalysis(object):
 
 	def disableKineticTargets(self, reactionIDs=None):
 		# If a single value is passed in, make a list of length 1 from it
-		if isinstance(reactionIDs, six.string_types):
+		if isinstance(reactionIDs, str):
 			reactionIDs = [reactionIDs]
 
 		# If no reactions specified, disable all kinetic reactions

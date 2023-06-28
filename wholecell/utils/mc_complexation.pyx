@@ -1,4 +1,5 @@
 # cython: language_level=3str
+## [Enable this in Cython 3]  distutils: define_macros=NPY_NO_DEPRECATED_API=NPY_1_7_API_VERSION
 
 """
 _complexation.pyx
@@ -8,8 +9,6 @@ Forms subunits into complexes using random complexation reaction sampling.
 TODO:
 - document algorithm (not terribly complicated)
 """
-
-from __future__ import absolute_import, division, print_function
 
 import numpy as np
 cimport numpy as np
@@ -166,6 +165,7 @@ cpdef tuple mccFormComplexesWithPrebuiltMatrices(
 				break
 
 		# Perform the reaction
+		# TODO: reactionIndex is uninitialized if nReactions == 0. Raise an error?
 		for subunitIndex in range(maxMoleculeTypes):
 			moleculeIndex = moleculeIndexes[reactionIndex, subunitIndex]
 

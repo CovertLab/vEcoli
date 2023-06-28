@@ -10,10 +10,9 @@ from __future__ import annotations
 import collections
 
 import numpy as np
-import scipy
 
 # Data classes
-from reconstruction.ecoli.dataclasses.getter_functions import GetterFunctions
+from reconstruction.ecoli.dataclasses.getter_functions import GetterFunctions, EXCLUDED_RNA_TYPES
 from reconstruction.ecoli.dataclasses.molecule_groups import MoleculeGroups
 from reconstruction.ecoli.dataclasses.molecule_ids import MoleculeIds
 from reconstruction.ecoli.dataclasses.constants import Constants
@@ -39,6 +38,8 @@ class SimulationDataEcoli(object):
 		self.doubling_time = None
 
 	def initialize(self, raw_data, basal_expression_condition="M9 Glucose minus AAs"):
+		self.operons_on = raw_data.operons_on
+
 		self._add_condition_data(raw_data)
 		self.condition = "basal"
 		self.doubling_time = self.condition_to_doubling_time[self.condition]
@@ -55,9 +56,13 @@ class SimulationDataEcoli(object):
 		self.constants = Constants(raw_data)
 		self.adjustments = Adjustments(raw_data)
 
-		# Reference helper functions (can depend on hard-coded attributes)
-		self.molecule_groups = MoleculeGroups(raw_data, self)
+		# Reference helper function for molecule IDs (can depend on preceding
+		# helper functions)
 		self.molecule_ids = MoleculeIds(raw_data, self)
+
+		# Reference helper function for molecule groups (can depend on preceding
+		# helper functions)
+		self.molecule_groups = MoleculeGroups(raw_data, self)
 
 		# Getter functions (can depend on helper functions and reference classes)
 		self.getter = GetterFunctions(raw_data, self)
@@ -86,7 +91,6 @@ class SimulationDataEcoli(object):
 			for mw_key in raw_data.molecular_weight_keys
 			}
 
-
 	def _add_compartment_keys(self, raw_data):
 		self.compartment_abbrev_to_index = {
 			compartment["abbrev"]: i
@@ -96,6 +100,9 @@ class SimulationDataEcoli(object):
 			compartment["id"]: i
 			for i,compartment in enumerate(raw_data.compartments)
 		}
+		self.compartment_abbrev_to_id = {}
+		for compartment in raw_data.compartments:
+			self.compartment_abbrev_to_id[compartment["abbrev"]] = compartment["id"]
 
 
 	def _add_base_codes(self, raw_data):
@@ -107,6 +114,10 @@ class SimulationDataEcoli(object):
 			tuple((row["code"], row["id"])
 				  for row in raw_data.base_codes.ntp))
 
+		self.nmp_code_to_id_ordered = collections.OrderedDict(
+			tuple((row["code"], row["id"])
+				  for row in raw_data.base_codes.nmp))
+
 		self.dntp_code_to_id_ordered = collections.OrderedDict(
 			tuple((row["code"], row["id"])
 				  for row in raw_data.base_codes.dntp))
@@ -115,33 +126,32 @@ class SimulationDataEcoli(object):
 	def _add_condition_data(self, raw_data):
 		abbrToActiveId = {x["TF"]: x["activeId"].split(", ") for x in raw_data.transcription_factors if len(x["activeId"]) > 0}
 		gene_id_to_rna_id = {
-			gene['id']: gene['rna_id'] for gene in raw_data.genes}
+			gene['id']: gene['rna_ids'][0] for gene in raw_data.genes}
 		gene_symbol_to_rna_id = {
-			gene['symbol']: gene['rna_id'] for gene in raw_data.genes}
+			gene['symbol']: gene['rna_ids'][0] for gene in raw_data.genes}
 		gene_symbol_to_rna_id.update({
 			x["name"]: gene_id_to_rna_id[x["geneId"]]
 			for x in raw_data.translation_efficiency
 			if x["geneId"] != "#N/A"})
 
 		rna_ids_with_coordinates = {
-			gene['rna_id'] for gene in raw_data.genes
+			gene['rna_ids'][0] for gene in raw_data.genes
 			if gene['left_end_pos'] is not None and gene['right_end_pos'] is not None}
+		rna_id_to_rna_type = {
+			rna['id']: rna['type'] for rna in raw_data.rnas
+			}
 
 		self.tf_to_fold_change = {}
 		self.tf_to_direction = {}
 
-		removed_fcs = {(row['TF'], row['Target']) for row in raw_data.fold_changes_removed}
 		for fc_file in ['fold_changes', 'fold_changes_nca']:
 			gene_not_found = set()
 			tf_not_found = set()
 			gene_location_not_specified = set()
+			gene_excluded = set()
 
 			for row in getattr(raw_data, fc_file):
 				FC = row['log2 FC mean']
-
-				# Skip fold changes that have been removed
-				if (row['TF'], row['Target']) in removed_fcs:
-					continue
 
 				# Skip fold changes that do not agree with curation
 				if row['Regulation_direct'] != '' and row['Regulation_direct'] > 2:
@@ -165,6 +175,10 @@ class SimulationDataEcoli(object):
 
 				if target not in rna_ids_with_coordinates:
 					gene_location_not_specified.add(row['Target'])
+					continue
+
+				if rna_id_to_rna_type[target] in EXCLUDED_RNA_TYPES:
+					gene_excluded.add(row['Target'])
 					continue
 
 				if tf not in self.tf_to_fold_change:
@@ -193,6 +207,12 @@ class SimulationDataEcoli(object):
 						  ' have no chromosomal location specified in'
 						  ' genes.tsv:')
 					for item in gene_location_not_specified:
+						print(item)
+
+				if gene_excluded:
+					print(f'The following target genes listed in {fc_file}.tsv'
+						  ' have been excluded from the model:')
+					for item in gene_excluded:
 						print(item)
 
 		self.tf_to_active_inactive_conditions = {}
@@ -271,7 +291,7 @@ class SimulationDataEcoli(object):
 
 		ppgpp = self.growth_rate_parameters.get_ppGpp_conc(
 			self.condition_to_doubling_time[condition])
-		delta_prob = self.process.transcription_regulation.get_delta_prob_matrix()
+		delta_prob = self.process.transcription_regulation.get_delta_prob_matrix(ppgpp=True)
 		p_promoter_bound = np.array([
 			self.pPromoterBound[condition][tf]
 			for tf in self.process.transcription_regulation.tf_ids
@@ -279,6 +299,38 @@ class SimulationDataEcoli(object):
 		delta = delta_prob @ p_promoter_bound
 		prob, factor = self.process.transcription.synth_prob_from_ppgpp(
 			ppgpp, self.process.replication.get_average_copy_number)
-		rna_expression = (prob + delta) / factor
+		rna_expression = prob * (1 + delta) / factor
+
+		# For cases with no basal ppGpp expression, assume the delta prob is the
+		# same as without ppGpp control
+		mask = prob == 0
+		rna_expression[mask] = delta[mask] / factor[mask]
+
 		rna_expression[rna_expression < 0] = 0
 		return normalize(rna_expression)
+
+	def adjust_final_expression(self, gene_indices, factors):
+		transcription = self.process.transcription
+		transcription_regulation = self.process.transcription_regulation
+
+		for gene_index, factor in zip(gene_indices, factors):
+			recruitment_mask = np.array([i == gene_index
+				for i in transcription_regulation.delta_prob['deltaI']])
+			for synth_prob in transcription.rna_synth_prob.values():
+				synth_prob[gene_index] *= factor
+			for exp in transcription.rna_expression.values():
+				exp[gene_index] *= factor
+			transcription.exp_free[gene_index] *= factor
+			transcription.exp_ppgpp[gene_index] *= factor
+			transcription.attenuation_basal_prob_adjustments[transcription.attenuated_rna_indices == gene_index] *= factor
+			transcription_regulation.basal_prob[gene_index] *= factor
+			transcription_regulation.delta_prob['deltaV'][recruitment_mask] *= factor
+
+		# Renormalize parameters
+		for synth_prob in transcription.rna_synth_prob.values():
+			synth_prob /= synth_prob.sum()
+		for exp in transcription.rna_expression.values():
+			exp /= exp.sum()
+		transcription.exp_free /= transcription.exp_free.sum()
+		transcription.exp_ppgpp /= transcription.exp_ppgpp.sum()
+
