@@ -44,31 +44,59 @@
     "swap_processes" : {},
     "profile": false,
     "processes": [
-        "ecoli-chromosome-structure",
-        "ecoli-metabolism",
-        "ecoli-tf-binding",
-        "ecoli-transcript-initiation",
-        "ecoli-transcript-elongation",
-        "ecoli-rna-degradation",
-        "ecoli-polypeptide-initiation",
-        "ecoli-polypeptide-elongation",
-        "ecoli-complexation",
-        "ecoli-two-component-system",
+        "ecoli-tf-unbinding",
+
         "ecoli-equilibrium",
-        "ecoli-protein-degradation",
+        "ecoli-two-component-system",
+
+        "ecoli-tf-binding",
+
+        "ecoli-transcript-initiation",
+        "ecoli-polypeptide-initiation",
         "ecoli-chromosome-replication",
+        "ecoli-protein-degradation",
+        "ecoli-rna-degradation",
+        "ecoli-complexation",
+
+        "ecoli-transcript-elongation",
+        "ecoli-polypeptide-elongation",
+        "ecoli-rna-maturation",
+
+        "ecoli-chromosome-structure",
+
+        "ecoli-metabolism",
+
         "ecoli-mass-listener",
-        "mRNA_counts_listener",
+        "RNA_counts_listener",
         "monomer_counts_listener",
         "clock"
     ],
     "process_configs": {"clock": {"time_step": 2}},
     "topology": {},
     "flow": {
+        "ecoli-equilibrium": [["ecoli-tf-unbinding"]],
+        "ecoli-two-component-system": [["ecoli-tf-unbinding"]],
+
+        "ecoli-tf-binding": [["ecoli-equilibrium"]],
+
+        "ecoli-transcript-initiation": [["ecoli-tf-binding"]],
+        "ecoli-polypeptide-initiation": [["ecoli-tf-binding"]],
+        "ecoli-chromosome-replication": [["ecoli-tf-binding"]],
+        "ecoli-protein-degradation": [["ecoli-tf-binding"]],
+        "ecoli-rna-degradation": [["ecoli-tf-binding"]],
+        "ecoli-complexation": [["ecoli-tf-binding"]],
+
+        "ecoli-transcript-elongation": [["ecoli-complexation"]],
+        "ecoli-polypeptide-elongation": [["ecoli-complexation"]],
+        "ecoli-rna-maturation": [["ecoli-complexation"]],
+
+        "ecoli-chromosome-structure": [["ecoli-rna-maturation"]],
+
         "ecoli-metabolism": [["ecoli-chromosome-structure"]],
+
         "ecoli-mass-listener": [["ecoli-metabolism"]],
-        "mRNA_counts_listener": [["ecoli-mass-listener"]],
-        "monomer_counts_listener": [["mRNA_counts_listener"]]
+        "RNA_counts_listener": [["ecoli-mass-listener"]],
+        "monomer_counts_listener": [["RNA_counts_listener"]]
     },
     "_schema": {},
     "engine_process_reports": [

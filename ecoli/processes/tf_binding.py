@@ -8,7 +8,7 @@ This process models how transcription factors bind to promoters on the DNA seque
 
 import numpy as np
 
-from vivarium.library.dict_utils import deep_merge
+from vivarium.core.process import Step
 
 from ecoli.library.schema import (
     listener_schema, numpy_schema, attrs, bulk_name_to_idx, counts)
@@ -17,7 +17,6 @@ from wholecell.utils.random import stochasticRound
 from wholecell.utils import units
 
 from ecoli.processes.registries import topology_registry
-from ecoli.processes.partition import PartitionedProcess
 
 
 # Register default topology for this process, associating it with process name
@@ -31,8 +30,8 @@ TOPOLOGY = {
 topology_registry.register(NAME, TOPOLOGY)
 
 
-class TfBinding(PartitionedProcess):
-    """ Transcription Factor Binding PartitionedProcess """
+class TfBinding(Step):
+    """ Transcription Factor Binding Step """
     name = NAME
     topology = TOPOLOGY
     defaults = {
@@ -115,7 +114,7 @@ class TfBinding(PartitionedProcess):
         if "PD00365" in self.tf_ids:
             self.marR_name = "CPLX0-7710[c]"
             self.marR_tet = "marR-tet[c]"
-        self.submass_to_idx = self.parameters['submass_to_idx']
+        self.submass_indices = self.parameters['submass_indices']
         
     def ports_schema(self):
         return {
@@ -134,7 +133,7 @@ class TfBinding(PartitionedProcess):
                     'gene_copy_number': []})},
         }
         
-    def calculate_request(self, timestep, states):
+    def next_update(self, timestep, states):
         if self.active_tf_idx is None:
             bulk_ids = states['bulk']['id']
             self.active_tf_idx = {
@@ -149,15 +148,6 @@ class TfBinding(PartitionedProcess):
                 self.marR_idx = bulk_name_to_idx(self.marR_name, bulk_ids)
                 self.marR_tet_idx = bulk_name_to_idx(self.marR_tet, bulk_ids)
 
-        # request all active tfs
-        requests = {'bulk': []}
-        active_tf_idx = list(self.active_tf_idx.values())
-        requests['bulk'].append(
-            (active_tf_idx, counts(states['bulk'], active_tf_idx)))
-
-        return requests
-        
-    def evolve_state(self, timestep, states):
         # If there are no promoters, return immediately
         if states['promoters']['_entryState'].sum() == 0:
             return {'promoters': {}}
@@ -265,9 +255,9 @@ class TfBinding(PartitionedProcess):
         mass_diffs = delta_TF.dot(self.active_tf_masses)
 
         submass_update = {
-            f'massDiff_{submass}': attrs(states['promoters'],
-                [f'massDiff_{submass}'])[0] + mass_diffs[:, i]
-            for submass, i in self.submass_to_idx.items()
+            submass: attrs(states['promoters'],
+                [submass])[0] + mass_diffs[:, i]
+            for submass, i in self.submass_indices.items()
         }
         update['promoters'] = {
             'set': {

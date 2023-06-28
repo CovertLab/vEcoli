@@ -70,9 +70,6 @@ class TranscriptElongation(PartitionedProcess):
         - endWeight (array[float]): ???,
         - replichore_lengths (array[int]): lengths of replichores
             (in nucleotides?),
-        - idx_16S_rRNA (array[int]): indexes of TUs for 16SrRNA
-        - idx_23S_rRNA (array[int]): indexes of TUs for 23SrRNA
-        - idx_5S_rRNA (array[int]): indexes of TUs for 5SrRNA
         - is_mRNA (array[bool]): Mask for mRNAs
         - ppi (str): ID of PPI
         - inactive_RNAP (str): ID of inactive RNAP
@@ -87,6 +84,7 @@ class TranscriptElongation(PartitionedProcess):
     topology = TOPOLOGY
     defaults = {
         'max_time_step': 0.0,
+        # Parameters
         'rnaPolymeraseElongationRateDict': {},
         'rnaIds': [],
         'rnaLengths': np.array([]),
@@ -96,28 +94,26 @@ class TranscriptElongation(PartitionedProcess):
         'replichore_lengths': np.array([]),
         'n_fragment_bases': 0,
         'recycle_stalled_elongation': False,
-        'idx_16S_rRNA': np.array([]),
-        'idx_23S_rRNA': np.array([]),
-        'idx_5S_rRNA': np.array([]),
+        'submass_indices': {},
+        # mask for mRNAs
         'is_mRNA': np.array([]),
-        'ppi': '',
+        # Bulk molecules
         'inactive_RNAP': '',
+        'ppi': '',
         'ntp_ids': [],
         'variable_elongation': False,
         'make_elongation_rates': make_elongation_rates,
-
-        # Attenuation
+        'fragmentBases': [],
         'polymerized_ntps': [],
-        'charged_trna_names': [],
+        'charged_trnas': [],
+        # Attenuation
         'trna_attenuation': False,
         'cell_density': 1100 * units.g / units.L,
         'n_avogadro':  6.02214076e+23 / units.mol,
         'get_attenuation_stop_probabilities': (
             get_attenuation_stop_probabilities),
         'attenuated_rna_indices': np.array([]),
-        'attenuation_location': {},
-        'fragmentBases': [],
-        'charged_trnas': [],
+        'location_lookup': {},
 
         'seed': 0,
     }
@@ -146,11 +142,6 @@ class TranscriptElongation(PartitionedProcess):
         self.recycle_stalled_elongation = self.parameters[
             'recycle_stalled_elongation']
 
-        # ID Groups of rRNAs
-        self.idx_16S_rRNA = self.parameters['idx_16S_rRNA']
-        self.idx_23S_rRNA = self.parameters['idx_23S_rRNA']
-        self.idx_5S_rRNA = self.parameters['idx_5S_rRNA']
-
         # Mask for mRNAs
         self.is_mRNA = self.parameters['is_mRNA']
 
@@ -169,7 +160,7 @@ class TranscriptElongation(PartitionedProcess):
         self.attenuated_rna_indices = self.parameters['attenuated_rna_indices']
         self.attenuated_rna_indices_lookup = {idx: i
             for i, idx in enumerate(self.attenuated_rna_indices)}
-        self.location_lookup = self.parameters['attenuation_location']
+        self.location_lookup = self.parameters['location_lookup']
 
         # random seed
         self.seed = self.parameters['seed']
@@ -368,9 +359,9 @@ class TranscriptElongation(PartitionedProcess):
         updated_transcript_lengths = length_partial_RNAs + sequence_elongations
 
         # Get attributes of active RNAPs
-        coordinates, direction, RNAP_unique_index = attrs(
+        coordinates, is_forward, RNAP_unique_index = attrs(
             states['active_RNAPs'],
-            ['coordinates', 'direction', 'unique_index'])
+            ['coordinates', 'is_forward', 'unique_index'])
 
         # Active RNAP count should equal partial transcript count
         assert len(RNAP_unique_index) == len(RNAP_index_partial_RNAs)
@@ -384,7 +375,7 @@ class TranscriptElongation(PartitionedProcess):
 
         # Rescale boolean array of directions to an array of 1's and -1's.
         # True is converted to 1, False is converted to -1.
-        direction_rescaled = (2*(direction - 0.5)).astype(np.int64)
+        direction_rescaled = (2*(is_forward - 0.5)).astype(np.int64)
 
         # Compute the updated coordinates of RNAPs. Coordinates of RNAPs
         # moving in the positive direction are increased, whereas coordinates
@@ -423,21 +414,6 @@ class TranscriptElongation(PartitionedProcess):
         terminated_RNAs = np.bincount(
             TU_index_partial_RNAs[did_terminate_mask],
             minlength = self.rnaSequences.shape[0])
-
-        # Assume transcription from all rRNA genes produce rRNAs from the first
-        # operon. This is done to simplify the complexation reactions that
-        # produce ribosomal subunits.
-        n_total_16Srrna = terminated_RNAs[self.idx_16S_rRNA].sum()
-        n_total_23Srrna = terminated_RNAs[self.idx_23S_rRNA].sum()
-        n_total_5Srrna = terminated_RNAs[self.idx_5S_rRNA].sum()
-
-        terminated_RNAs[self.idx_16S_rRNA] = 0
-        terminated_RNAs[self.idx_23S_rRNA] = 0
-        terminated_RNAs[self.idx_5S_rRNA] = 0
-
-        terminated_RNAs[self.idx_16S_rRNA[0]] = n_total_16Srrna
-        terminated_RNAs[self.idx_23S_rRNA[0]] = n_total_23Srrna
-        terminated_RNAs[self.idx_5S_rRNA[0]] = n_total_5Srrna
 
         # Update is_full_transcript attribute of RNAs
         is_full_transcript_updated = is_full_transcript.copy()
@@ -657,7 +633,7 @@ def test_transcript_elongation():
         ('can_translate', np.bool_), ('RNAP_index', int)]
     rnap_dtypes = [('_entryState', np.bool_), ('unique_index', int),
         ('domain_index', int), ('coordinates', int), 
-        ('direction', np.bool_)]
+        ('is_forward', np.bool_)]
     initial_state = {
         'environment': {'media_id': 'minimal'},
         'unique': {

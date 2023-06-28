@@ -1,10 +1,12 @@
 from vivarium import process_registry
 from ecoli.processes.antibiotics.lysis_initiation import LysisInitiation
 
+from ecoli.processes.tf_unbinding import TfUnbinding
 from ecoli.processes.tf_binding import TfBinding
 from ecoli.processes.transcript_initiation import TranscriptInitiation
 from ecoli.processes.transcript_elongation import TranscriptElongation
 from ecoli.processes.rna_degradation import RnaDegradation
+from ecoli.processes.rna_maturation import RnaMaturation
 from ecoli.processes.polypeptide_initiation import PolypeptideInitiation
 from ecoli.processes.polypeptide_elongation import PolypeptideElongation
 from ecoli.processes.complexation import Complexation
@@ -16,7 +18,7 @@ from ecoli.processes.metabolism_redux import MetabolismRedux
 from ecoli.processes.chromosome_replication import ChromosomeReplication
 from ecoli.processes.stubs.exchange_stub import Exchange
 from ecoli.processes.listeners.mass_listener import MassListener
-from ecoli.processes.listeners.mRNA_counts import mRNACounts
+from ecoli.processes.listeners.RNA_counts import RNACounts
 from ecoli.processes.listeners.monomer_counts import MonomerCounts
 from ecoli.processes.chromosome_structure import ChromosomeStructure
 from ecoli.processes.allocator import Allocator
@@ -32,8 +34,6 @@ from ecoli.processes.antibiotics.antibiotic_transport_steady_state import (
     AntibioticTransportSteadyState)
 from ecoli.processes.antibiotics.antibiotic_transport_odeint import (
     AntibioticTransportOdeint)
-from ecoli.processes.antibiotics.exchange_aware_bioscrape import (
-    ExchangeAwareBioscrape)
 from ecoli.processes.antibiotics.permeability import Permeability
 from ecoli.processes.antibiotics.tetracycline_ribosome_equilibrium import (
     TetracyclineRibosomeEquilibrium)
@@ -49,10 +49,12 @@ from ecoli.processes.bulk_timeline import BulkTimelineProcess
 
 
 # add to registry
+process_registry.register(TfUnbinding.name, TfUnbinding)
 process_registry.register(TfBinding.name, TfBinding)
 process_registry.register(TranscriptInitiation.name, TranscriptInitiation)
 process_registry.register(TranscriptElongation.name, TranscriptElongation)
 process_registry.register(RnaDegradation.name, RnaDegradation)
+process_registry.register(RnaMaturation.name, RnaMaturation)
 process_registry.register(PolypeptideInitiation.name, PolypeptideInitiation)
 process_registry.register(PolypeptideElongation.name, PolypeptideElongation)
 process_registry.register(Complexation.name, Complexation)
@@ -64,7 +66,7 @@ process_registry.register(MetabolismRedux.name, MetabolismRedux)
 process_registry.register(ChromosomeReplication.name, ChromosomeReplication)
 process_registry.register(MassListener.name, MassListener)
 process_registry.register(Exchange.name, Exchange)
-process_registry.register(mRNACounts.name, mRNACounts)
+process_registry.register(RNACounts.name, RNACounts)
 process_registry.register(MonomerCounts.name, MonomerCounts)
 process_registry.register(ChromosomeStructure.name, ChromosomeStructure)
 process_registry.register(Allocator.name, Allocator)
@@ -86,8 +88,6 @@ process_registry.register(DeathFreezeState.name, DeathFreezeState)
 process_registry.register(
     TetracyclineRibosomeEquilibrium.name,
     TetracyclineRibosomeEquilibrium)
-process_registry.register(
-    ExchangeAwareBioscrape.name, ExchangeAwareBioscrape)
 process_registry.register(
     AntibioticTransportSteadyState.name, AntibioticTransportSteadyState)
 process_registry.register(

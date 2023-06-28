@@ -16,7 +16,6 @@ from ecoli.processes.registries import topology_registry
 from ecoli.processes.partition import PartitionedProcess
 
 from wholecell.utils import units
-from six.moves import range
 
 
 # Register default topology for this process, associating it with process name

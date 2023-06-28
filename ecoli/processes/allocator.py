@@ -7,7 +7,7 @@ Reads requests from PartionedProcesses, and allocates molecules according to
 process priorities.
 """
 import numpy as np
-from vivarium.core.process import Deriver
+from vivarium.core.process import Step
 
 from ecoli.processes.registries import topology_registry
 from ecoli.library.schema import (counts, numpy_schema, bulk_name_to_idx,
@@ -23,14 +23,19 @@ TOPOLOGY = {
     'listeners': ('listeners',)
 }
 topology_registry.register(NAME, TOPOLOGY)
+# Register "allocator-1", "allocator-2", "allocator-3" to support
+# multi-tiered partitioning scheme
+topology_registry.register(NAME + "-1", TOPOLOGY)
+topology_registry.register(NAME + "-2", TOPOLOGY)
+topology_registry.register(NAME + "-3", TOPOLOGY)
 
 ASSERT_POSITIVE_COUNTS = True
 
 class NegativeCountsError(Exception):
 	pass
 
-class Allocator(Deriver):
-    """ Allocator Deriver """
+class Allocator(Step):
+    """ Allocator Step """
     name = NAME
     topology = TOPOLOGY
 

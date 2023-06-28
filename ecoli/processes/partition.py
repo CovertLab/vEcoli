@@ -122,8 +122,8 @@ class Requester(Step):
         return states['evolvers_ran']
 
 
-class Evolver(Process):
-    """ Evolver Process
+class Evolver(Step):
+    """ Evolver Step
 
     Accepts a PartitionedProcess as an input, and runs in coordination with an
     Requester that uses the same PartitionedProcess.
