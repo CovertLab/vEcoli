@@ -320,7 +320,7 @@ class MetabolismRedux(Step):
             kinetic_targets=target_kinetic_values,
             binary_kinetic_idx=binary_kinetic_idx,
             objective_weights=objective_weights,
-            solver=cp.MOSEK)
+            solver=cp.GLOP)
 
         self.reaction_fluxes = solution.velocities
         self.metabolite_dmdt = solution.dm_dt
