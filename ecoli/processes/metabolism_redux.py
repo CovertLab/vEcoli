@@ -516,7 +516,9 @@ class NetworkFlowModel:
                           objective=objective)
 
 def test_network_flow_model():
-    # TODO (Cyrus) - Consider adding test with toy network.
+    """Test the network flow model on a simple example, using only the homeostatic objective along with secretion and
+    efficiency penalties."""
+
     S_matrix = np.array([[-1, 1, 0], [0, -1, 1], [1, 0, -1]]).T
 
     metabolites = ["A", "B", "C"]
