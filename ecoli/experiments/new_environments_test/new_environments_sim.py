@@ -114,7 +114,6 @@ def run_ecoli_with_metabolism_redux(
         sim.initial_state['environment']['exchange_data']['unconstrained'].add('AMMONIUM[p]')
         sim.initial_state['environment']['exchange_data']['unconstrained'].remove('AMMONIUM[c]')
 
-
         for mol in to_add:
             sim.initial_state['environment']['exchange_data']['unconstrained'].add(mol)
 
