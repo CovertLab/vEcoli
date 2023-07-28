@@ -325,7 +325,7 @@ class MetabolismRedux(Step):
             kinetic_targets=target_kinetic_values,
             binary_kinetic_idx=binary_kinetic_idx,
             objective_weights=objective_weights,
-            solver=cp.GLOP)
+            solver=cp.MOSEK)
 
         self.reaction_fluxes = solution.velocities
         self.metabolite_dmdt = solution.dm_dt
@@ -543,7 +543,7 @@ def test_network_flow_model():
 
     solution: FlowResult = model.solve(homeostatic_targets=list(homeostatic_metabolites.values()),
                                        objective_weights={'secretion': 0.01, 'efficiency': 0.0001},
-                                       upper_flux_bound=100, solver=cp.GLOP)
+                                       upper_flux_bound=100, solver=cp.MOSEK)
 
     assert np.isclose(solution.velocities, np.array([1, 1, 0])).all() == True, "Network flow toy model did not converge to correct solution."
 
