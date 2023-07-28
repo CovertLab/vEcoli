@@ -130,13 +130,17 @@ def run_ecoli_with_metabolism_redux(
         except ValueError:
             pass
 @pytest.mark.slow
-def test_ecoli_with_metabolism_redux(
-        filename='fba_redux',
+def test_new_environments(
+        filename='fba_new_environments',
         total_time=4,
-        divide=False,
+        divide=True,
+        initial_state_file='wcecoli_t0',
         progress_bar=True,
         log_updates=False,
         emitter='timeseries',
+        name='fba_new_environments',
+        raw_output=False,
+        save=False,
 ):
     sim = EcoliSim.from_file(CONFIG_DIR_PATH + filename + '.json')
     sim.total_time = total_time
@@ -144,19 +148,36 @@ def test_ecoli_with_metabolism_redux(
     sim.progress_bar = progress_bar
     sim.log_updates = log_updates
     sim.emitter = emitter
-    sim.build_ecoli()
+    sim.initial_state = get_state_from_file(path=f'data/{initial_state_file}.json')
+    sim.raw_output = raw_output
+    sim.save = save
 
-    # run simulation and add asserts to output
+    sim.initial_state['environment']['exchange_data']['constrained'] = {}
+    sim.initial_state['environment']['exchange_data']['unconstrained'].add('AMMONIUM[p]')
+    sim.initial_state['environment']['exchange_data']['unconstrained'].add('ACET[p]')
+    sim.initial_state['environment']['exchange_data']['unconstrained'].remove('AMMONIUM[c]')
+
+    sim.build_ecoli()
     sim.run()
 
-    # assert 'ecoli-metabolism-gradient-descent' in sim.ecoli['processes']
-    # assert 'ecoli-metabolism' not in sim.ecoli['processes']
-    # assert 'ecoli-metabolism-gradient-descent' in sim.ecoli['topology']
-    # assert 'ecoli-metabolism' not in sim.ecoli['topology']
+    query = []
+    agents = sim.query()['agents'].keys()
+    for agent in agents:
+        query.extend([('agents', agent, 'listeners', 'fba_results'),
+                      ('agents', agent, 'listeners', 'mass'),
+                      ('agents', agent, 'bulk')])
+    output = sim.query(query)
+    metabolism = sim.ecoli['steps']['agents'][agent]['ecoli-metabolism-redux']
+
+    sim_fluxes = pd.DataFrame(output['agents']['0']['listeners']['fba_results']["estimated_fluxes"], columns=metabolism.reaction_names)
+    sim_fluxes = pd.DataFrame(sim_fluxes.loc[2, :].abs().sort_values(ascending=False))
+    print(sim_fluxes)
+    # test that acetate transport is occurring
+    assert sim_fluxes.loc['TRANS-RXN0-571'][2] > 0 or sim_fluxes.loc['RXN0-1981'][2] > 0, "New Environment - Acetate Not Transported"
 
 experiment_library = {
     '0': run_ecoli_with_metabolism_redux,
-    '1': test_ecoli_with_metabolism_redux,
+    '1': test_new_environments,
 }
 
 
