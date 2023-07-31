@@ -10,6 +10,6 @@
         "mRNA_counts_listener": [["ecoli-mass-listener"]],
         "monomer_counts_listener": [["mRNA_counts_listener"]]
     },
-    "divide" : false,
-    "initial_state_file": "vivecoli_t800"
+    "divide" : true,
+    "initial_state_file": "met_division_test"
 }

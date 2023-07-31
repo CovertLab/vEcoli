@@ -163,51 +163,22 @@ def run_ecoli_with_metabolism_redux(
     save_sim_output(folder, query, sim, save_model=True)
 
 
-
-@pytest.mark.slow
-def test_ecoli_with_metabolism_redux(
-        filename='fba_redux',
-        total_time=4,
-        divide=False,
-        progress_bar=True,
-        log_updates=False,
-        emitter='timeseries',
-):
-    sim = EcoliSim.from_file(CONFIG_DIR_PATH + filename + '.json')
-    sim.total_time = total_time
-    sim.divide = divide
-    sim.progress_bar = progress_bar
-    sim.log_updates = log_updates
-    sim.emitter = emitter
-    sim.build_ecoli()
-
-    # run simulation and add asserts to output
-    sim.run()
-
-    # assert 'ecoli-metabolism-gradient-descent' in sim.ecoli['processes']
-    # assert 'ecoli-metabolism' not in sim.ecoli['processes']
-    # assert 'ecoli-metabolism-gradient-descent' in sim.ecoli['topology']
-    # assert 'ecoli-metabolism' not in sim.ecoli['topology']
-
-
-
 @pytest.mark.slow
 def test_ecoli_with_metabolism_redux_div(
         filename='fba_redux_div',
-        total_time=200,
-        divide=True,
+        total_time=30,
         emitter='timeseries',
-        save = True,
-        save_times = [100],
+        initial_state_file = 'met_division_test'
 ):
     # TODO (Cyrus) - Add test that affirms structure of output query.
     sim = EcoliSim.from_file(CONFIG_DIR_PATH + filename + '.json')
     sim.total_time = total_time
-    sim.divide = divide
     sim.emitter = emitter
-    sim.save = save
-    sim.save_times = save_times
     sim.build_ecoli()
+    sim.initial_state = get_state_from_file(path=f'data/{initial_state_file}.json')
+
+    # this means that sims will not create conflicting random indices
+    sim.seed += sim.initial_state['global_time']
 
     sim.run()
     
@@ -217,16 +188,11 @@ def test_ecoli_with_metabolism_redux_div(
     # assert 'ecoli-metabolism-gradient-descent' in sim.processes
     # assert 'ecoli-metabolism' not in sim.processes
 
-    query = []
-    agents = sim.query()['agents'].keys()
-    for agent in agents:
-        query.extend([('agents', agent, 'listeners', 'fba_results'),
-                      ('agents', agent, 'listeners', 'mass'),
-                      ('agents', agent, 'bulk')])
-    output = sim.query(query)
+    # assert division occured
+    assert len(sim.query()[total_time]['agents']) == 2 , "Cell did not divide in metabolism division test"
 
-    # test that water is being used (model is running)
-    assert sum(output['agents'][agent]['listeners']['fba_results']['estimated_fluxes']['WATER[p]']) != 0
+    # TODO check fluxes in the output query
+
 
 def run_ecoli_with_default_metabolism(
         filename='default',
@@ -260,7 +226,6 @@ experiment_library = {
     '0': run_metabolism,
     '1': run_metabolism_composite,
     '2': run_ecoli_with_metabolism_redux,
-    '3': test_ecoli_with_metabolism_redux,
     '4': test_ecoli_with_metabolism_redux_div,
     '5': run_ecoli_with_default_metabolism,
 }
