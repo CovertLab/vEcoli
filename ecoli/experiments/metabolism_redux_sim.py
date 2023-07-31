@@ -194,15 +194,19 @@ def test_ecoli_with_metabolism_redux(
 @pytest.mark.slow
 def test_ecoli_with_metabolism_redux_div(
         filename='fba_redux_div',
-        total_time=4,
+        total_time=200,
         divide=True,
         emitter='timeseries',
+        save = True,
+        save_times = [100],
 ):
     # TODO (Cyrus) - Add test that affirms structure of output query.
     sim = EcoliSim.from_file(CONFIG_DIR_PATH + filename + '.json')
     sim.total_time = total_time
     sim.divide = divide
     sim.emitter = emitter
+    sim.save = save
+    sim.save_times = save_times
     sim.build_ecoli()
 
     sim.run()
