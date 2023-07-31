@@ -191,7 +191,8 @@ def test_ecoli_with_metabolism_redux_div(
     # assert division occured
     assert len(sim.query()[total_time]['agents']) == 2 , "Cell did not divide in metabolism division test"
 
-    # TODO check fluxes in the output query
+    # TODO assert fluxes in the output query
+    # TODO assert that processes have been swapped
 
 
 def run_ecoli_with_default_metabolism(
