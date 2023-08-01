@@ -126,6 +126,11 @@ def test_ecoli_with_metabolism_redux_div(
         total_time=4,
         divide=True,
         emitter='timeseries',
+        initial_state_file='wcecoli_t0',
+        progress_bar=True,
+        log_updates=False,
+        raw_output=False,
+        save=False,
 ):
     # TODO (Cyrus) - Add test that affirms structure of output query.
     sim = EcoliSim.from_file(CONFIG_DIR_PATH + filename + '.json')
