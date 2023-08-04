@@ -94,7 +94,6 @@ class MetabolismRedux(Step):
                 i = metabolites_idx[species]
                 self.stoichiometry[i, col_idx] = coefficient
 
-            # now adds an entry for every reaction, list can be empty
             enzyme_idx = [catalyst_idx[catalyst] for catalyst in reaction_catalysts.get(reaction, [])]
             self.catalyzed_rxn_enzymes_idx.append(enzyme_idx)
 
@@ -432,7 +431,6 @@ class NetworkFlowModel:
         self.intermediates = list(set(self.mets) - set(homeostatic_metabolites))
         self.intermediates_idx = np.array([self.met_map[met] for met in self.intermediates])
         self.homeostatic_idx = np.array([self.met_map[met] for met in homeostatic_metabolites])
-        self.penalty_idx = np.array([self.rxns.index(rxn) for rxn in self.rxns if rxn not in free_reactions])
         # TODO (Cyrus) - use name provided
         self.maintenance_idx = self.rxn_map['maintenance_reaction'] if 'maintenance_reaction' in self.rxn_map else None
 
