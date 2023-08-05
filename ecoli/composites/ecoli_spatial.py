@@ -67,10 +67,9 @@ are ``growth_rate.py`` and ``spatial_geometry.py``.
 import argparse
 import numpy as np
 import math
+import pickle
 from wholecell.utils import units
 from scipy import constants
-
-from six.moves import cPickle
 
 from vivarium.core.composer import Composer
 from vivarium.core.composition import simulate_composer
@@ -121,7 +120,7 @@ class EcoliSpatial(Composer):
 
         # load sim_data
         with open(self.sim_data_path, 'rb') as sim_data_file:
-            sim_data = cPickle.load(sim_data_file)
+            sim_data = pickle.load(sim_data_file)
 
         bulk_ids = sim_data.internal_state.bulk_molecules.bulk_data['id']
 

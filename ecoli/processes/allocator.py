@@ -20,7 +20,7 @@ TOPOLOGY = {
     'allocate': ('allocate',),
     'bulk': ('bulk',),
     'evolvers_ran': ('evolvers_ran',),
-    'listeners': ('listeners',)
+    'listeners': ('listeners',),
 }
 topology_registry.register(NAME, TOPOLOGY)
 # Register "allocator-1", "allocator-2", "allocator-3" to support
@@ -93,7 +93,7 @@ class Allocator(Step):
                 'atp_allocated_initial': [],
                 # Use blame functionality to get ATP consumed per process
                 # 'atp_allocated_final': []
-            })
+            }),
         }
         return ports
 

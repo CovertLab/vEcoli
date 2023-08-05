@@ -1,13 +1,10 @@
 """
 Compare protein counts to Wiśniewski 2014 and Schmidt 2015 data sets
 """
-
-from __future__ import absolute_import, division, print_function
-
 import argparse
 import os
 import json
-from six.moves import cPickle
+import pickle
 
 import numpy as np
 import pandas as pd
@@ -22,8 +19,8 @@ from wholecell.utils.protein_counts import get_simulated_validation_counts
 class Plot():
 
     def do_plot(self, monomer_counts, simDataFile, validationDataFile, outFile):
-        sim_data = cPickle.load(open(simDataFile, "rb"))
-        validation_data = cPickle.load(open(validationDataFile, "rb"))
+        sim_data = pickle.load(open(simDataFile, "rb"))
+        validation_data = pickle.load(open(validationDataFile, "rb"))
 
         sim_monomer_ids = sim_data.process.translation.monomer_data["id"]
         wisniewski_ids = validation_data.protein.wisniewski2014Data["monomerId"]

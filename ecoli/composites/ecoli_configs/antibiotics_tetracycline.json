@@ -13,7 +13,9 @@
             "70s-free": ["unique", "active_ribosome"],
             "volume": ["cytoplasm", "global", "volume"],
             "evolvers_ran": ["evolvers_ran"],
-            "listeners": ["listeners"]
+            "listeners": ["listeners"],
+            "global_time": ["global_time"],
+            "timestep": ["timestep"]
         },
         "aggregator": {
             "unique": ["unique"],

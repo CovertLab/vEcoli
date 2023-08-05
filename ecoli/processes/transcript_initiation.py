@@ -48,7 +48,8 @@ TOPOLOGY = {
     "active_RNAPs": ("unique", "active_RNAP"),
     "promoters": ("unique", "promoter"),
     "bulk": ("bulk",),
-    "listeners": ("listeners",)
+    "listeners": ("listeners",),
+    "timestep": ("timestep",)
 }
 topology_registry.register(NAME, TOPOLOGY)
 
@@ -199,7 +200,7 @@ class TranscriptInitiation(PartitionedProcess):
             self.attenuated_rna_indices = self.parameters[
                 'attenuated_rna_indices']
             self.attenuation_adjustments = self.parameters[
-                'attenuation_basal_prob_adjustments']
+                'attenuation_adjustments']
             self.basal_prob[self.attenuated_rna_indices] += \
                 self.attenuation_adjustments
 
@@ -208,7 +209,7 @@ class TranscriptInitiation(PartitionedProcess):
         if self.parameters['get_delta_prob_matrix'] is not None:
             self.delta_prob_matrix = self.parameters[
                 'get_delta_prob_matrix'](dense=True,
-                                         ppgpp=self.ppgpp_regulation)
+                    ppgpp=self.parameters['ppgpp_regulation'])
         else:
             # make delta_prob_matrix without adjustments
             self.delta_prob_matrix = scipy.sparse.csr_matrix(
@@ -301,6 +302,7 @@ class TranscriptInitiation(PartitionedProcess):
                 'rnap_data': listener_schema({
                     'did_initialize': 0,
                     'rna_init_event': 0})},
+            'timestep': {'_default': self.parameters['time_step']}
         }
 
     def calculate_request(self, timestep, states):
@@ -437,7 +439,7 @@ class TranscriptInitiation(PartitionedProcess):
             'active_RNAPs': {},
             'full_chromosomes': {},
             'promoters': {},
-            'RNAs': {}
+            'RNAs': {},
         }
 
         # no synthesis if no chromosome
@@ -464,7 +466,7 @@ class TranscriptInitiation(PartitionedProcess):
         # here, but the calculation of actual probabilities requires the number
         # of RNAPs to activate. The difference should be small.
         self.activationProb = self._calculateActivationProb(
-            timestep,
+            states['timestep'],
             self.fracActiveRnap,
             self.rnaLengths,
             (units.nt / units.s) * self.elongation_rates,
@@ -479,7 +481,7 @@ class TranscriptInitiation(PartitionedProcess):
         # Cap the initiation probabilities at the maximum level physically
         # allowed from the known RNAP footprint sizes
         max_p = (self.rnaPolymeraseElongationRate / self.active_rnap_footprint_size
-            * (units.s) * self.timeStepSec() / n_RNAPs_to_activate).asNumber()
+            * (units.s) * states['timestep'] / n_RNAPs_to_activate).asNumber()
         is_overcrowded = (self.promoter_init_probs > max_p)
 
         while np.any(self.promoter_init_probs > max_p):
@@ -557,6 +559,9 @@ class TranscriptInitiation(PartitionedProcess):
         update['listeners']['rnap_data'] = {
             'did_initialize': n_RNAPs_to_activate,
             'rna_init_event': rna_init_event}
+        
+        update['listeners']['rna_synth_prob']['total_rna_init'
+            ] = n_RNAPs_to_activate
 
         return update
 

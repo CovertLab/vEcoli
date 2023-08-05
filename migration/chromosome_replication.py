@@ -15,7 +15,7 @@ from migration import LOAD_SIM_DATA
 def test_actual_update():
     times = [0, 2104]
     for initial_time in times:
-        run_and_compare(initial_time, ChromosomeReplication)
+        run_and_compare(initial_time, ChromosomeReplication, layer=3)
 
 
 @pytest.mark.master

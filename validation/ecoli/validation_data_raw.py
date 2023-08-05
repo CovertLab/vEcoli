@@ -4,9 +4,6 @@ ValidationDataRawEcoli
 Raw validation data for Ecoli. Contains raw data processed
 directly from TSV flat files.
 """
-
-from __future__ import absolute_import, division, print_function
-
 import os
 from reconstruction.spreadsheets import read_tsv
 

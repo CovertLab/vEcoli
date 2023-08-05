@@ -531,7 +531,7 @@ def test_table_reader():
     bulk_counts = bulk_tb.readColumn("counts")
 
     rnap_tb = TableReader("RnapData", data)
-    rna_init = rnap_tb.readColumn("rnaInitEvent")
+    rna_init = rnap_tb.readColumn("rna_init_event")
 
     rna_synth_tb = TableReader("RnaSynthProb", data)
     tf_per_tu = rna_synth_tb.readColumn("n_bound_TF_per_TU")

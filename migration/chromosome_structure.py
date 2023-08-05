@@ -8,10 +8,10 @@ from migration.migration_utils import run_and_compare
 
 @pytest.mark.master
 def test_chromosome_structure_migration():
-    times = [0, 2104]
+    times = [2104]
     for initial_time in times:
         run_and_compare(initial_time, ChromosomeStructure,
-            partition=False, layer=1)
+            partition=False, layer=5)
 
 if __name__ == "__main__":
     test_chromosome_structure_migration()

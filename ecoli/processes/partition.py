@@ -88,8 +88,13 @@ class Requester(Step):
         parameters['name'] = f'{parameters["process"].name}_requester'
         super().__init__(parameters)
 
+    def update_condition(self, timestep, states):
+        return (states['global_time'] % states['timestep']
+                ) == 0 and states['evolvers_ran']
+
     def ports_schema(self):
-        ports = self.parameters.pop('process').get_schema()
+        process = self.parameters.get('process')
+        ports = process.get_schema()
         ports['request'] = filter_bulk_ports(ports,
             {'_updater': 'set', '_divider': 'null', '_emit': False})
         ports['evolvers_ran'] = {'_default': True}
@@ -99,6 +104,9 @@ class Requester(Step):
             '_divider': 'null',
             '_emit': False
         }
+        ports['global_time'] = {'_default': 0}
+        ports['timestep'] = {'_default': process.parameters['time_step']}
+        self.cached_bulk_ports = list(ports['request'].keys())
         return ports
 
     def next_update(self, timestep, states):
@@ -107,19 +115,22 @@ class Requester(Step):
             self.parameters['time_step'], states)
         process.request_set = True
 
-        # Ensure listeners are updated if passed by calculate_request
+        request['request'] = {}
+        # Send bulk requests through request port
+        for bulk_port in self.cached_bulk_ports:
+            bulk_request = request.pop(bulk_port, None)
+            if bulk_request != None:
+                request['request'][bulk_port] = bulk_request
+
+        # Ensure listeners are updated if present
         listeners = request.pop('listeners', None)
-        update = {
-            'request': request,
-            'process': (process,)
-        }
         if listeners != None:
-            update['listeners'] = listeners
+            request['listeners'] = listeners
 
-        return update
-
-    def update_condition(self, timestep, states):
-        return states['evolvers_ran']
+        # Update shared process instance
+        request['process'] = (process,)
+        # Leave rest of update untouched
+        return request
 
 
 class Evolver(Step):
@@ -134,9 +145,13 @@ class Evolver(Step):
         assert isinstance(parameters["process"], PartitionedProcess)
         parameters['name'] = f'{parameters["process"].name}_evolver'
         super().__init__(parameters)
+    
+    def update_condition(self, timestep, states):
+        return (states['global_time'] % states['timestep']) == 0
 
     def ports_schema(self):
-        ports = self.parameters.pop('process').get_schema()
+        process = self.parameters.get('process')
+        ports = process.get_schema()
         ports['allocate'] = filter_bulk_ports(ports,
             {'_updater': 'set', '_divider': 'null', '_emit': False})
         ports['evolvers_ran'] = {
@@ -156,6 +171,8 @@ class Evolver(Step):
             '_divider': 'null',
             '_emit': False
         }
+        ports['global_time'] = {'_default': 0}
+        ports['timestep'] = {'_default': process.parameters['timestep']}
         return ports
 
     # TODO(Matt): Have evolvers calculate timestep, returning zero if the requester hasn't run.
@@ -172,7 +189,7 @@ class Evolver(Step):
 
         # If the Requester has not run yet, skip the Evolver's update to
         # let the Requester run in the next time step. This problem
-        # often arises fater division because after the step divider
+        # often arises after division because after the step divider
         # runs, Vivarium wants to run the Evolvers instead of re-running
         # the Requesters. Skipping the Evolvers in this case means our
         # timesteps are slightly off. However, the alternative is to run

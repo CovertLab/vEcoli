@@ -275,7 +275,7 @@ def access_counts(experiment_id, monomer_names=None, mrna_names=None,
                 'if': {'$isArray': {'$first': '$data.agents.v.listeners.RNA_counts.mRNA_counts'}},
                 'then': {
                     '$sum': {
-                        '$first': '$data.agents.v.listeners.RAN_counts.mRNA_counts'
+                        '$first': '$data.agents.v.listeners.RNA_counts.mRNA_counts'
                     }
                 },
                 'else': None
@@ -287,7 +287,7 @@ def access_counts(experiment_id, monomer_names=None, mrna_names=None,
         f'data.agents.v.rna_init.{rna}':
             val_at_idx_in_path(
                 rna_index,
-                'data.agents.v.listeners.rnap_data.rnaInitEvent'
+                'data.agents.v.listeners.rnap_data.rna_init_event'
             )
         for rna, rna_index in zip(rna_init, rna_idx)
     })

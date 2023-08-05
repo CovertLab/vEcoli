@@ -496,7 +496,10 @@ class NetworkFlowModel:
             constr
         )
 
-        p.solve(solver=cp.GLOP, verbose=False)
+        # ortools > 9.5 required for Python 3.11 but support for
+        # recent ortools versions are a WIP in cvxpy (PR #2169)
+        # p.solve(solver=cp.GLOP, verbose=False)
+        p.solve(verbose=False)
         if p.status != "optimal":
             raise ValueError("Network flow model of metabolism did not "
                 "converge to an optimal solution.")

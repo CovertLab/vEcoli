@@ -50,6 +50,7 @@ TOPOLOGY = {
     "RNAs": ("unique", "RNA"),
     "active_ribosome": ("unique", "active_ribosome"),
     "listeners": ("listeners",),
+    "timestep": ("timestep",)
 }
 topology_registry.register(NAME, TOPOLOGY)
 
@@ -180,6 +181,7 @@ class RnaDegradation(PartitionedProcess):
                     'fragment_bases_digested': 0,
                 }),
             },
+            'timestep': {'_default': self.parameters['time_step']}
         }
 
     def calculate_request(self, timestep, states):
@@ -270,11 +272,11 @@ class RnaDegradation(PartitionedProcess):
         rrna_specificity = np.dot(frac_endoRNase_saturated, self.is_rRNA)
 
         n_total_mrnas_to_degrade = self._calculate_total_n_to_degrade(
-            mrna_specificity, total_kcat_endoRNase)
+            states['timestep'], mrna_specificity, total_kcat_endoRNase)
         n_total_trnas_to_degrade = self._calculate_total_n_to_degrade(
-            trna_specificity, total_kcat_endoRNase)
+            states['timestep'], trna_specificity, total_kcat_endoRNase)
         n_total_rrnas_to_degrade = self._calculate_total_n_to_degrade(
-            rrna_specificity, total_kcat_endoRNase)
+            states['timestep'], rrna_specificity, total_kcat_endoRNase)
 
         # Compute RNAse specificity
         rna_specificity = frac_endoRNase_saturated / np.sum(
@@ -445,7 +447,7 @@ class RnaDegradation(PartitionedProcess):
         n_fragment_bases_sum = n_fragment_bases.sum()
 
         exornase_capacity = n_exoRNases.sum() * self.kcat_exoRNase * (
-                units.s * timestep)
+                units.s * states['timestep'])
 
         if exornase_capacity >= n_fragment_bases_sum:
             update['bulk'].extend([

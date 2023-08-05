@@ -129,8 +129,7 @@ class TfBinding(Step):
                     'n_promoter_bound': 0,
                     'n_actual_bound': 0,
                     'n_available_promoters': 0,
-                    'n_bound_TF_per_TU': 0,
-                    'gene_copy_number': []})},
+                    'n_bound_TF_per_TU': 0})},
         }
         
     def next_update(self, timestep, states):
@@ -273,8 +272,7 @@ class TfBinding(Step):
                 'n_actual_bound': nActualBound,
                 'n_available_promoters': n_promoters,
                 # 900 KB, very large, comment out to halve emit size
-                'n_bound_TF_per_TU': n_bound_TF_per_TU,
-                'gene_copy_number': np.bincount(TU_index, minlength=self.n_TU)},
+                'n_bound_TF_per_TU': n_bound_TF_per_TU},
         }
 
         return update
@@ -288,8 +286,6 @@ def test_tf_binding_listener():
     sim.build_ecoli()
     sim.run()
     data = sim.query()
-    assert(type(data['listeners']['rna_synth_prob']['gene_copy_number'][0]) == list)
-    assert(type(data['listeners']['rna_synth_prob']['gene_copy_number'][1]) == list)
 
 
 if __name__ == '__main__':

@@ -74,10 +74,13 @@ class TetracyclineRibosomeEquilibrium(Step):
                     '_emit': True,
                 },
             },
+            'global_time': {'_default': 0},
+            'timestep': {'_default': self.parameters['time_step']}
         }
 
     def update_condition(self, timestep, states):
-        return states['evolvers_ran']
+        return (states['global_time'] % states['timestep']
+                ) == 0
 
     def next_update(self, _, states):
         if self.trna_idx is None:

@@ -1,7 +1,6 @@
 import os
 import numpy as np
 from matplotlib import pyplot as plt
-from six.moves import zip
 from ecoli.composites.ecoli_master import run_ecoli
 from ecoli.analysis.tablereader import TableReader
 
