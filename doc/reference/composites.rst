@@ -7,5 +7,4 @@ Composites
 
    api/ecoli.composites.chemotaxis_minimal
    api/ecoli.composites.ecoli_master
-   api/ecoli.composites.ecoli_nonpartition
    api/ecoli.composites.ecoli_spatial

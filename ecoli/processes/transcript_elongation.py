@@ -38,7 +38,8 @@ TOPOLOGY = {
     "active_RNAPs": ("unique", "active_RNAP"),
     "bulk": ("bulk",),
     "bulk_total": ("bulk",),
-    "listeners": ("listeners",)
+    "listeners": ("listeners",),
+    "timestep": ("timestep",)
 }
 topology_registry.register(NAME, TOPOLOGY)
 
@@ -149,7 +150,7 @@ class TranscriptElongation(PartitionedProcess):
         self.make_elongation_rates = self.parameters['make_elongation_rates']
 
         self.polymerized_ntps = self.parameters['polymerized_ntps']
-        self.charged_trna_names = self.parameters['charged_trna_names']
+        self.charged_trna_names = self.parameters['charged_trnas']
 
         # Attenuation
         self.trna_attenuation = self.parameters['trna_attenuation']
@@ -189,13 +190,14 @@ class TranscriptElongation(PartitionedProcess):
                     'attenuation_probability': np.zeros(len(self.rnaIds)),
                     'counts_attenuated': np.zeros(len(self.rnaIds))}),
                 'growth_limits': listener_schema({
-                    'ntp_used': np.zeros(len(self.ntp_ids))}),
+                    'ntp_used': (np.zeros(len(self.ntp_ids)), self.ntp_ids)}),
                 'rnap_data': listener_schema({
                     'actual_elongations': 0,
                     'did_terminate': 0,
                     'termination_loss': 0,
                     'did_stall': 0})
-            }
+            },
+            'timestep': {'_default': self.parameters['time_step']}
         }
 
     def calculate_request(self, timestep, states):
@@ -220,7 +222,7 @@ class TranscriptElongation(PartitionedProcess):
         self.elongation_rates = self.make_elongation_rates(
             self.random_state,
             self.rnapElongationRate,
-            timestep,
+            states['timestep'],
             self.variable_elongation)
 
         # If there are no active RNA polymerases, return immediately
@@ -310,7 +312,7 @@ class TranscriptElongation(PartitionedProcess):
 
         if self.trna_attenuation:
             cell_mass = states['listeners']['mass']['cell_mass']
-            cellVolume = cell_mass / self.cell_density
+            cellVolume = cell_mass * units.fg / self.cell_density
             counts_to_molar = 1 / (self.n_avogadro * cellVolume)
             attenuation_probability = self.stop_probabilities(counts_to_molar
                 * counts(states['bulk_total'], self.charged_trnas_idx))

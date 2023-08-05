@@ -94,7 +94,9 @@ notebook_shim==0.2.3
 numba==0.57.1
 numpy==1.24.4
 orjson==3.9.1
-ortools==9.6.2534
+# Needed to use GLOP solver but Python 3.11 requires >9.5
+# while cvxpy only supports <9.5 (WIP at PR #2169)
+# ortools==9.6.2534
 osqp==0.6.3
 overrides==7.3.1
 packaging==23.1
@@ -167,7 +169,7 @@ spreg==1.3.2
 spvcm==0.3.0
 stack-data==0.6.2
 statsmodels==0.14.0
-stochastic-arrow==0.5.2
+stochastic-arrow==1.0.0
 swiglpk==5.0.8
 sympy==1.12
 terminado==0.17.1
@@ -184,6 +186,7 @@ tzdata==2023.3
 Unum==4.2.1
 uri-template==1.3.0
 urllib3==2.0.3
+vivarium-core==1.5.7
 wcwidth==0.2.6
 webcolors==1.13
 webencodings==0.5.1

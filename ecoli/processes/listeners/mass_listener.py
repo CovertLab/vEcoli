@@ -21,7 +21,8 @@ TOPOLOGY = {
     "bulk": ("bulk",),
     "unique": ("unique",),
     "listeners": ("listeners",),
-    "global_time": ("global_time",)
+    "global_time": ("global_time",),
+    "timestep": ("timestep",)
 }
 topology_registry.register(NAME, TOPOLOGY)
 
@@ -139,9 +140,13 @@ class MassListener(Deriver):
             '_emit': True,
             '_divide': 'set',
         }
+        
+        # Ensure that bulk ids are emitted in config for analyses
+        bulk_schema = numpy_schema('bulk')
+        bulk_schema.setdefault('_properties', {})['bulk_ids'] = self.bulk_ids
 
         ports = {
-            'bulk': numpy_schema('bulk'),
+            'bulk': bulk_schema,
             'unique': {
                 str(mol_id): numpy_schema(mol_id + 's')
                 for mol_id in self.unique_ids
@@ -179,13 +184,17 @@ class MassListener(Deriver):
                     'expected_mass_fold_change': split_divider_schema
                 }
             },
-            'global_time': {'_default': 0}
+            'global_time': {'_default': 0},
+            'timestep': {'_default': self.parameters['time_step']}
         }
         ports['unique'].update({
             'active_ribosome': numpy_schema('active_ribosome'),
             'DnaA_box': numpy_schema('DnaA_boxes'),
         })
         return ports
+    
+    def update_condition(self, timestep, states):
+        return (states['global_time'] % states['timestep']) == 0
 
     def next_update(self, timestep, states):
         if self.bulk_idx is None:

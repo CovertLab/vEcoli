@@ -24,6 +24,7 @@ NAME = 'ecoli-two-component-system'
 TOPOLOGY = {
     "listeners": ("listeners",),
     "bulk": ("bulk",),
+    "timestep": ("timestep",)
 }
 topology_registry.register(NAME, TOPOLOGY)
 
@@ -72,7 +73,8 @@ class TwoComponentSystem(PartitionedProcess):
             'bulk': numpy_schema('bulk'),
             'listeners': {
                 'mass': {
-                    'cell_mass': {'_default': 0}}}}
+                    'cell_mass': {'_default': 0}}},
+            'timestep': {'_default': self.parameters['time_step']}}
 
 
     def calculate_request(self, timestep, states):
@@ -95,7 +97,7 @@ class TwoComponentSystem(PartitionedProcess):
         self.molecules_required, self.all_molecule_changes = \
             self.moleculesToNextTimeStep(
                 moleculeCounts, self.cellVolume, self.n_avogadro,
-                timestep, self.random_state, method="BDF", jit=self.jit,
+                states['timestep'], self.random_state, method="BDF", jit=self.jit,
             )
         requests = {
             'bulk': [(self.molecule_idx, self.molecules_required.astype(int))]
@@ -108,8 +110,8 @@ class TwoComponentSystem(PartitionedProcess):
         if (self.molecules_required > moleculeCounts).any():
             _, self.all_molecule_changes = self.moleculesToNextTimeStep(
                 moleculeCounts, self.cellVolume, self.n_avogadro,
-                10000, self.random_state, method="BDF", min_time_step=timestep,
-                jit=self.jit)
+                10000, self.random_state, method="BDF",
+                min_time_step=states['timestep'], jit=self.jit)
         # Increment changes in molecule counts
         update = {
             'bulk': [(self.molecule_idx, self.all_molecule_changes.astype(int))]

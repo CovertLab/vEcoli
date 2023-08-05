@@ -67,6 +67,12 @@ UNIQUE_DIVIDERS = {
             'full_chromosome': ('..', 'full_chromosome'),
             'chromosome_domain': ('..', 'chromosome_domain')}
     },
+    'genes': {
+        'divider': 'by_domain',
+        'topology': {
+            'full_chromosome': ('..', 'full_chromosome'),
+            'chromosome_domain': ('..', 'chromosome_domain')}
+    },
 }
 
 
@@ -258,12 +264,17 @@ class UniqueNumpyUpdater:
         return result
 
 def listener_schema(elements):
-    return {
-        element: {
-            '_default': default,
-            '_updater': 'set',
-            '_emit': True}
-        for element, default in elements.items()}
+    basic_schema = {'_updater': 'set', '_emit': True}
+    schema = {}
+    for element, default in elements.items():
+        # Assume that tuples contain (default, metadata) in that order
+        if isinstance(default, tuple):
+            schema[element] = {**basic_schema,
+                '_default': default[0],
+                '_properties': {'metadata': default[1]}}
+        else:
+            schema[element] = {**basic_schema, '_default': default}
+    return schema
 
 
 # :term:`dividers`

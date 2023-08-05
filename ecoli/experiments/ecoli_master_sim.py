@@ -20,8 +20,6 @@ from vivarium.core.serialize import deserialize_value, serialize_value
 from vivarium.library.dict_utils import deep_merge
 from vivarium.library.topology import assoc_path
 from ecoli.library.logging_tools import write_json
-# Two different Ecoli composers depending on partitioning
-import ecoli.composites.ecoli_nonpartition
 import ecoli.composites.ecoli_master
 # Environment composer for spatial environment sim
 import ecoli.composites.environment.lattice
@@ -404,12 +402,8 @@ class EcoliSim:
             self.config['seed'] += seed
 
         # initialize the ecoli composer
-        if self.partition:
-            ecoli_composer = ecoli.composites.ecoli_master.Ecoli(
-                self.config)
-        else:
-            ecoli_composer = ecoli.composites.ecoli_nonpartition.Ecoli(
-                self.config)
+        ecoli_composer = ecoli.composites.ecoli_master.Ecoli(
+            self.config)
 
         # set path at which agent is initialized
         path = tuple()
@@ -419,8 +413,7 @@ class EcoliSim:
         # get initial state
         initial_cell_state = ecoli_composer.initial_state()
         initial_cell_state = assoc_path({}, path, initial_cell_state)
-        # Remove unnecessary reference
-        self.initial_state = None
+
         # generate the composite at the path
         self.ecoli = ecoli_composer.generate(path=path)
         # Some processes define their own initial_state methods
@@ -549,6 +542,7 @@ class EcoliSim:
         if self.save:
             self.save_states()
         else:
+            warnings.filterwarnings("error")
             self.ecoli_experiment.update(self.total_time)
         self.ecoli_experiment.end()
         if self.profile:

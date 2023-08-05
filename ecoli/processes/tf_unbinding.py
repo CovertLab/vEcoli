@@ -9,14 +9,13 @@ import numpy as np
 from vivarium.core.process import Step
 
 from ecoli.processes.registries import topology_registry
-from ecoli.library.schema import bulk_name_to_idx, attrs
+from ecoli.library.schema import bulk_name_to_idx, attrs, numpy_schema
 
 # Register default topology for this process, associating it with process name
 NAME = 'ecoli-tf-unbinding'
 TOPOLOGY = {
     "bulk": ("bulk",),
-    "bulk_total": ("bulk",),
-    "listeners": ("listeners",)
+    "promoters": ("unique", "promoter",)
 }
 topology_registry.register(NAME, TOPOLOGY)
 
@@ -36,8 +35,14 @@ class TfUnbinding(Step):
         # Numpy indices for bulk molecules
         self.active_tf_idx = None
 
+    def ports_schema(self):
+        return {
+            'bulk': numpy_schema('bulk'),
+            'promoters': numpy_schema('promoters')
+        }
+
     def next_update(self, timestep, states):
-        if self.active_tf_idx == None:
+        if self.active_tf_idx is None:
             self.active_tf_idx = bulk_name_to_idx(
                 [tf + '[c]' for tf in self.tf_ids], states['bulk']['id'])
 
@@ -49,7 +54,6 @@ class TfUnbinding(Step):
 
         # Calculate number of bound TFs for each TF prior to changes
         n_bound_TF = bound_TF.sum(axis=0)
-
         
         update = {
             # Free all DNA-bound TFs into free active TFs
@@ -67,3 +71,5 @@ class TfUnbinding(Step):
         for submass, idx in self.submass_indices.items():
             update['promoters']['set'][submass] = attrs(states['promoters'],
                 [submass])[0] + mass_diffs[:, idx]
+        
+        return update

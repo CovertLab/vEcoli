@@ -14,7 +14,7 @@ import time
 import traceback
 from typing import Callable, List
 
-from arrow import StochasticSystem
+from stochastic_arrow import StochasticSystem
 from cvxpy import Variable, Problem, Minimize, norm
 import numpy as np
 import scipy.optimize
@@ -2561,7 +2561,7 @@ def fitPromoterBoundProbability(sim_data, cell_specs):
 			rnaIdNoLoc = rnaId[:-3]  # Remove compartment ID from RNA ID
 
 			# Get list of TFs that regulate this RNA
-			tfs = sim_data.relation.rna_id_to_regulating_tfs[rnaId]
+			tfs = sim_data.relation.rna_id_to_regulating_tfs.get(rnaId, [])
 			conditions = ["basal"]
 			tfsWithData = []
 

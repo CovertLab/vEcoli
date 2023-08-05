@@ -7,8 +7,7 @@ import os
 
 from matplotlib import pyplot as plt
 
-from ecoli.composites.ecoli_master import run_ecoli
-from ecoli.composites.ecoli_nonpartition import SIM_DATA_PATH
+from ecoli.composites.ecoli_master import run_ecoli, SIM_DATA_PATH
 from ecoli.analysis.tablereader import TableReader
 
 

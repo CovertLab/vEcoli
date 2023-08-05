@@ -11,7 +11,7 @@
     ],
     "emit_topology" : true,
     "emit_processes" : false,
-    "emit_config" : false,
+    "emit_config" : true,
     "log_updates" : false,
     "raw_output" : true,
     "seed": 0,
@@ -20,7 +20,7 @@
     "initial_state_file": "wcecoli_t0",
     "initial_state_overrides": [],
     "initial_state": {},
-    "time_step": 2.0,
+    "time_step": 1.0,
     "total_time": 3000.0,
     "generations": null,
 
@@ -68,12 +68,15 @@
 
         "ecoli-mass-listener",
         "RNA_counts_listener",
+        "rna_synth_prob_listener",
         "monomer_counts_listener",
-        "clock"
+        "global_clock"
     ],
-    "process_configs": {"clock": {"time_step": 2}},
+    "process_configs": {"global_clock": {"time_step": 1}},
     "topology": {},
     "flow": {
+        "ecoli-tf-unbinding": [],
+
         "ecoli-equilibrium": [["ecoli-tf-unbinding"]],
         "ecoli-two-component-system": [["ecoli-tf-unbinding"]],
 
@@ -96,7 +99,8 @@
 
         "ecoli-mass-listener": [["ecoli-metabolism"]],
         "RNA_counts_listener": [["ecoli-mass-listener"]],
-        "monomer_counts_listener": [["RNA_counts_listener"]]
+        "rna_synth_prob_listener": [["RNA_counts_listener"]],
+        "monomer_counts_listener": [["rna_synth_prob_listener"]]
     },
     "_schema": {},
     "engine_process_reports": [

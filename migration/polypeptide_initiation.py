@@ -10,7 +10,7 @@ from migration.migration_utils import run_and_compare
 def test_polypeptide_initiation_migration():
     times = [0, 2104]
     for initial_time in times:
-        run_and_compare(initial_time, PolypeptideInitiation)
+        run_and_compare(initial_time, PolypeptideInitiation, layer=3)
 
 if __name__ == "__main__":
     test_polypeptide_initiation_migration()

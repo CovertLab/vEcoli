@@ -4,7 +4,7 @@ import numpy as np
 from unum import Unum
 import numbers
 from scipy.stats import mannwhitneyu, chi2_contingency, ttest_ind, bartlett
-from vivarium.core.engine import Engine, view_values
+from vivarium.core.engine import Engine, view_values, _process_update
 from vivarium.library.dict_utils import deep_merge
 
 from wholecell.utils import units
@@ -59,25 +59,27 @@ def run_non_partitioned_process(
         'initial_state': initial_state}
     experiment = Engine(**experiment_config)
 
+    # Get update from process.
+    path = list(experiment.process_paths.keys())[0]
+    store, states = experiment._process_state(path)
+
     # Reset bulk counts to "partitioned counts" so final counts
     # can be directly compared to wcEcoli (some processes do not
     # connect to bulk store so skip it)
     try:
-        bulk_array = experiment.state.get_path(('bulk',)).get_value()
-        with open(f"data/migration/bulk_partitioned_t{initial_time}.json") as f:
+        states['bulk_total'] = initial_state['bulk']['count'].copy()
+        with open(f"data/migration/bulk_partitioned_t"
+                f"{initial_time}.json") as f:
             bulk_partitioned = json.load(f)
-        proc_name = type(process).__name__
-        if proc_name in bulk_partitioned:
-            bulk_array.flags.writeable = True
-            bulk_array['count'] = bulk_partitioned[proc_name]
-            bulk_array.flags.writeable = False
+        states['bulk'].flags.writeable = True
+        states['bulk']['count'] = bulk_partitioned[type(process).__name__]
+        states['bulk'].flags.writeable = False
         bulk_exists = True
     except:
         bulk_exists = False
+    update, store = _process_update(
+        path, process, store, states, 1)
 
-    # Get update from process.
-    path = list(experiment.process_paths.keys())[0]
-    update, store = experiment._calculate_update(path, process, 2)
     update = update.get()
 
     # Leave non-bulk updates as is
@@ -119,14 +121,23 @@ def run_partitioned_process(
     process.evolve_only = False
     requests, store = experiment._calculate_update(path, process, 2)
     bulk_array = experiment.state.get_path(('bulk',)).get_value()
+    # Create copy of bulk array with floating point counts so
+    # processes can return non-integer requests
+    new_dtype = np.dtype([('count', 'float64')] +
+        [(name, dtype) for name, dtype in bulk_array.dtype.descr
+         if name != 'count'])
+    float_bulk = np.empty(bulk_array.shape, dtype=new_dtype)
+    for name in bulk_array.dtype.names:
+        float_bulk[name] = (bulk_array[name] if name != 'count'
+                            else bulk_array[name].astype(float))
     # Set bulk counts to 0 for requested count after applying update
-    bulk_array.flags.writeable = True
-    bulk_array['count'] = 0
-    bulk_array.flags.writeable = False
+    float_bulk['count'] = 0.0
+    experiment.state['bulk'].value = float_bulk
     experiment.apply_update(requests.get(), store)
     actual_requests = bulk_array['count'].copy()
 
     # Test evolve_state
+    experiment.state['bulk'] = bulk_array
     process.request_only = False
     process.evolve_only = True
     store, states = experiment._process_state(path)
@@ -136,11 +147,11 @@ def run_partitioned_process(
     with open(f"data/migration/bulk_partitioned_t"
               f"{initial_time}.json") as f:
         bulk_partitioned = json.load(f)
-    bulk_array.flags.writeable = True
-    bulk_array['count'] = bulk_partitioned[type(process).__name__]
-    bulk_array.flags.writeable = False
-    update, store = experiment._process_update(
-        path, process, store, states, 2)
+    states['bulk'].flags.writeable = True
+    states['bulk']['count'] = bulk_partitioned[type(process).__name__]
+    states['bulk'].flags.writeable = False
+    update, store = _process_update(
+        path, process, store, states, 1)
     update = update.get()
 
     # Leave non-bulk updates as is
@@ -174,14 +185,10 @@ def run_and_compare(init_time, process_class, partition=True, layer=0, post=Fals
     else:
         initial_state = get_state_from_file(
             path=f'data/migration/wcecoli_t{init_time}_before_layer_{layer}.json')
-    initial_state['deriver_skips'] = {
-        'chromosome_structure': False,
-        'metabolism': False,
-    }
 
     # Complexation sets seed weirdly
     if process_class.__name__ == 'Complexation':
-        from arrow import StochasticSystem
+        from stochastic_arrow import StochasticSystem
         process.system = StochasticSystem(process.stoichiometry, random_seed=0)
     # Metabolism requires gtp_to_hydrolyze
     elif process_class.__name__ == 'Metabolism':
@@ -192,6 +199,10 @@ def run_and_compare(init_time, process_class, partition=True, layer=0, post=Fals
             'gtp_to_hydrolyze']
         initial_state['process_state'] = {'polypeptide_elongation': {
             'gtp_to_hydrolyze': gtp_hydro}}
+        aa_exchange_rates = proc_updates['PolypeptideElongation']['process_state'][
+            'aa_exchange_rates']
+        initial_state['process_state'] = {'polypeptide_elongation': {
+            'aa_exchange_rates': aa_exchange_rates}}
     # MassListener needs initial masses to calculate fold changes
     elif process_class.__name__ == 'MassListener':
         t0_file = 'data/migration/wcecoli_t0.json'

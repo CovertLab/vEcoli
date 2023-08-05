@@ -43,11 +43,6 @@ Then install the remaining requirements:
 
     $ pip install -r requirements.txt
 
-Manually uninstall `arrow` and `stochastic-arrow`, then reinstall `stochastic-arrow`:
-
-    $ pip uninstall arrow stochastic-arrow
-    $ pip install stochastic-arrow
-
 And build the Cython components:
 
     $ make clean compile

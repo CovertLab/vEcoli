@@ -16,6 +16,8 @@ TOPOLOGY = {
     "listeners": ("listeners",),
     "bulk": ("bulk",),
     "unique": ("unique",),
+    "global_time": ("global_time",),
+    "timestep": ("timestep",)
 }
 topology_registry.register(
     NAME, TOPOLOGY
@@ -114,15 +116,21 @@ class MonomerCounts(Step):
                 'monomer_counts': {
                     '_default': [],
                     '_updater': 'set',
-                    '_emit': True}
+                    '_emit': True,
+                    '_properties': {'metadata': self.monomer_ids}}
             },
             'bulk': numpy_schema('bulk'),
             'unique': {
                 'active_ribosome': numpy_schema('active_ribosome'),
                 'active_RNAP': numpy_schema('active_RNAPs'),
                 'active_replisome': numpy_schema('active_replisomes')
-            }
+            },
+            'global_time': {'_default': 0},
+            'timestep': {'_default': self.parameters['time_step']}
         }
+    
+    def update_condition(self, timestep, states):
+        return (states['global_time'] % states['timestep']) == 0
 
     def next_update(self, timestep, states):
         if self.monomer_idx is None:

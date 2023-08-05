@@ -190,9 +190,9 @@ class RnaMaturation(PartitionedProcess):
         }
 
         # Get counts of variant rRNAs
-        variant_23s_rRNA_counts = self.variant_23s_rRNAs.counts()
-        variant_16s_rRNA_counts = self.variant_16s_rRNAs.counts()
-        variant_5s_rRNA_counts = self.variant_5s_rRNAs.counts()
+        variant_23s_rRNA_counts = counts(states['bulk'], self.variant_23s_rRNA_idx)
+        variant_16s_rRNA_counts = counts(states['bulk'], self.variant_16s_rRNA_idx)
+        variant_5s_rRNA_counts = counts(states['bulk'], self.variant_5s_rRNA_idx)
 
         # Calculate number of NMPs that should be added to balance out the mass
         # difference during the consolidation
@@ -213,7 +213,8 @@ class RnaMaturation(PartitionedProcess):
         ])
 
         # Consume or add NMPs to balance out mass
-        n_added_bases = n_added_bases_from_maturation + n_added_bases_from_consolidation
+        n_added_bases = (n_added_bases_from_maturation +
+                         n_added_bases_from_consolidation).astype(int)
         n_total_added_bases = n_added_bases.sum()
 
         update['bulk'].extend([

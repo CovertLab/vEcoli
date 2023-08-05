@@ -10,7 +10,7 @@ from migration.migration_utils import run_and_compare
 def test_transcript_elongation_migration():
     times = [0, 2104]
     for initial_time in times:
-        run_and_compare(initial_time, TranscriptElongation)
+        run_and_compare(initial_time, TranscriptElongation, layer=4)
 
 if __name__ == "__main__":
     test_transcript_elongation_migration()

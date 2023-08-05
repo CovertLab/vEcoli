@@ -20,6 +20,7 @@ from ecoli.processes.stubs.exchange_stub import Exchange
 from ecoli.processes.listeners.mass_listener import MassListener
 from ecoli.processes.listeners.RNA_counts import RNACounts
 from ecoli.processes.listeners.monomer_counts import MonomerCounts
+from ecoli.processes.listeners.rna_synth_prob import RnaSynthProb
 from ecoli.processes.chromosome_structure import ChromosomeStructure
 from ecoli.processes.allocator import Allocator
 from ecoli.processes.environment.lysis import Lysis
@@ -41,7 +42,7 @@ from ecoli.processes.chemostat import Chemostat
 from ecoli.processes.listeners.aggregator import Aggregator
 from ecoli.processes.rna_interference import RnaInterference
 from ecoli.processes.antibiotics.conc_to_counts import ConcToCounts
-from vivarium.processes.clock import Clock
+from ecoli.processes.global_clock import GlobalClock
 from ecoli.processes.antibiotics.murein_division import MureinDivision
 from ecoli.processes.antibiotics.environment_glucose_limit import (
     EnvironmentGlucoseLimit)
@@ -68,6 +69,7 @@ process_registry.register(MassListener.name, MassListener)
 process_registry.register(Exchange.name, Exchange)
 process_registry.register(RNACounts.name, RNACounts)
 process_registry.register(MonomerCounts.name, MonomerCounts)
+process_registry.register(RnaSynthProb.name, RnaSynthProb)
 process_registry.register(ChromosomeStructure.name, ChromosomeStructure)
 process_registry.register(Allocator.name, Allocator)
 process_registry.register(Shape.name, Shape)
@@ -102,7 +104,7 @@ process_registry.register(CellWall.name, CellWall)
 process_registry.register(PBPBinding.name, PBPBinding)
 process_registry.register(ConcToCounts.name, ConcToCounts)
 process_registry.register(RnaInterference.name, RnaInterference)
-process_registry.register(Clock.name, Clock)
+process_registry.register(GlobalClock.name, GlobalClock)
 process_registry.register(MureinDivision.name, MureinDivision)
 process_registry.register(
     EnvironmentGlucoseLimit.name, EnvironmentGlucoseLimit)

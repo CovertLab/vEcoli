@@ -15,6 +15,8 @@ NAME = 'RNA_counts_listener'
 TOPOLOGY = {
     "listeners": ("listeners",),
     "RNAs" : ("unique", "RNA"),
+    "global_time": ("global_time",),
+    "timestep": ("timestep",)
 }
 topology_registry.register(
     NAME, TOPOLOGY
@@ -41,7 +43,7 @@ class RNACounts(Step):
         self.mRNA_indexes = self.parameters['mRNA_indexes']
         self.mRNA_TU_ids = self.parameters['mRNA_TU_ids']
         self.rRNA_indexes = self.parameters['rRNA_indexes']
-        self.rRNA_TU_ids = self.parameters['rRNA_TU_idx']
+        self.rRNA_TU_ids = self.parameters['rRNA_TU_ids']
 
         # Get IDs and indexes of all mRNA and rRNA cistrons
         self.all_cistron_ids = self.parameters['all_cistron_ids']
@@ -58,17 +60,22 @@ class RNACounts(Step):
         return {
             'listeners': {
                 'RNA_counts': listener_schema({
-                    'mRNA_counts': [],
-                    'full_mRNA_counts': [],
-                    'partial_mRNA_counts': [],
-                    'mRNA_cistron_counts': [],
-                    'full_mRNA_cistron_counts': [],
-                    'partial_mRNA_cistron_counts': [],
-                    'partial_rRNA_counts': [],
-                    'partial_rRNA_cistron_counts': []})
+                    'mRNA_counts': ([], self.mRNA_TU_ids),
+                    'full_mRNA_counts': ([], self.mRNA_TU_ids),
+                    'partial_mRNA_counts': ([], self.mRNA_TU_ids),
+                    'mRNA_cistron_counts': ([], self.mRNA_cistron_ids),
+                    'full_mRNA_cistron_counts': ([], self.mRNA_cistron_ids),
+                    'partial_mRNA_cistron_counts': ([], self.mRNA_cistron_ids),
+                    'partial_rRNA_counts': ([], self.rRNA_TU_ids),
+                    'partial_rRNA_cistron_counts': ([], self.rRNA_cistron_ids)})
             },
-            'RNAs': numpy_schema('RNAs')
+            'RNAs': numpy_schema('RNAs'),
+            'global_time': {'_default': 0},
+            'timestep': {'_default': self.parameters['time_step']}
         }
+    
+    def update_condition(self, timestep, states):
+        return (states['global_time'] % states['timestep']) == 0
 
     def next_update(self, timestep, states):
         # Get attributes of mRNAs

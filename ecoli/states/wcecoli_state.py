@@ -98,24 +98,6 @@ def get_state_from_file(
     # neither evolvers nor requesters running. No saved state should
     # include evolvers_ran=False.
     assert states.get('evolvers_ran', True)
-    # Shallow copy for processing state into correct form
-    initial_state = states.copy()
-    # process environment state
-    env_data = states.get("environment", {})
-    exchange_data = env_data.pop("exchange", {})
-    initial_state["environment"] = {
-        "media_id": "minimal",
-        # TODO(Ryan): pull in environmental amino acid levels
-        "amino_acids": {},
-        "exchange_data": {
-            'unconstrained': {'CL-[p]', 'FE+2[p]', 'CO+2[p]', 'MG+2[p]',
-                'NA+[p]', 'CARBON-DIOXIDE[p]', 'OXYGEN-MOLECULE[p]', 'MN+2[p]',
-                'L-SELENOCYSTEINE[c]', 'K+[p]', 'SULFATE[p]', 'ZN+2[p]',
-                'CA+2[p]', 'Pi[p]', 'NI+2[p]', 'WATER[p]', 'AMMONIUM[c]'},
-            'constrained': {
-                'GLC[p]': 20.0 * units.mmol / (units.g * units.h)}},
-        "external_concentrations": env_data,
-        "exchange": exchange_data
-    }
-    initial_state["process_state"] = {"polypeptide_elongation": {}}
-    return initial_state
+    # TODO: Add timeline process to set up media ID
+    states["environment"]["media_id"] = "minimal"
+    return states

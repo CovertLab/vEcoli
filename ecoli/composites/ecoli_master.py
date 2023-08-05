@@ -8,6 +8,7 @@ automatically exempt from partitioning
 """
 
 from copy import deepcopy
+import os
 
 # vivarium-core
 from vivarium.core.composer import Composer
@@ -35,8 +36,13 @@ from ecoli.processes.unique_update import UniqueUpdate
 from ecoli.processes.partition import filter_bulk_topology, Requester, Evolver, Step
 from ecoli.states.wcecoli_state import get_state_from_file
 
-
-SIM_DATA_PATH = 'reconstruction/sim_data/kb/simData.cPickle'
+RAND_MAX = 2**31
+SIM_DATA_PATH = os.path.abspath(
+    os.path.join(
+        os.path.dirname(__file__), '..', '..', 'reconstruction',
+        'sim_data', 'kb', 'simData.cPickle',
+    )
+)
 
 MINIMAL_MEDIA_ID = 'minimal'
 AA_MEDIA_ID = 'minimal_plus_amino_acids'
@@ -118,12 +124,12 @@ class Ecoli(Composer):
             initial_state['bulk'].flags.writeable = False
             deep_merge(initial_state, override)
 
-        # Put shared process instances for partitioned processes into state
-        processes, _, _ = self.processes_and_steps
+        # Put shared process instances for partitioned steps into state
+        _, steps, _ = self.processes_and_steps
         initial_state['process'] = {
-            process.parameters['process'].name: (process.parameters['process'],)
-            for process in processes.values()
-            if 'process' in process.parameters
+            step.parameters['process'].name: (step.parameters['process'],)
+            for step in steps.values()
+            if 'process' in step.parameters
         }
         return initial_state
 
@@ -141,15 +147,15 @@ class Ecoli(Composer):
         for process in process_configs.keys():
             if process_configs[process] == "sim_data":
                 process_configs[process] = \
-                    self.load_sim_data.get_config_by_name(process)
-                process_configs[process] = None
+                    self.load_sim_data.get_config_by_name(process, time_step)
             elif process_configs[process] == "default":
                 process_configs[process] = None
             else:
                 # user passed a dict, deep-merge with config from LoadSimData
                 # if it exists, else, deep-merge with default
                 try:
-                    default = self.load_sim_data.get_config_by_name(process)
+                    default = self.load_sim_data.get_config_by_name(
+                        process, time_step)
                 except KeyError:
                     default = self.processes[process].defaults
                 process_configs[process] = deep_merge(
@@ -205,7 +211,6 @@ class Ecoli(Composer):
                     process_class = make_logging_process(process_class)
                 process = process_class(process_configs[process_name])
                 steps[process_name] = process
-                steps[process_name] = None
                 continue
             else:
                 process = process_class(process_configs[process_name])
@@ -253,6 +258,9 @@ class Ecoli(Composer):
                         (f'unique_update_{unique_update_counter - 1}',)]
                     if 'requester' in step_path[-1]:
                         requesters = True
+                # First Step has no dependencies
+                else:
+                    flow[step_path[-1]] = []
             # Add Allocator layer right after requester layer
             if requesters:
                 flow[f'allocator_{allocator_counter}'] = layer_steps
@@ -264,7 +272,7 @@ class Ecoli(Composer):
 
         # Add Allocator Steps
         allocator_config = self.load_sim_data.get_allocator_config(
-            process_names=self.partitioned_processes)
+            time_step, process_names=self.partitioned_processes)
         for i in range(1, allocator_counter):
             steps[f'allocator_{i}'] = Allocator(allocator_config)
 
@@ -272,8 +280,11 @@ class Ecoli(Composer):
         unique_mols = (self.load_sim_data.sim_data.internal_state
                        ).unique_molecule.unique_molecule_definitions.keys()
         unique_topo = {
-            unique_mol: ('unique', unique_mol)
-            for unique_mol in unique_mols}
+            unique_mol + 's': ('unique', unique_mol)
+            for unique_mol in unique_mols
+            if unique_mol not in ['active_ribosome', 'DnaA_box', 'gene']}
+        unique_topo['active_ribosome'] = ('unique', 'active_ribosome')
+        unique_topo['DnaA_boxes'] = ('unique', 'DnaA_box')
         params = {'unique_topo': unique_topo}
         for i in range(1, unique_update_counter):
             steps[f'unique_update_{i}'] = UniqueUpdate(params)
@@ -349,6 +360,11 @@ class Ecoli(Composer):
                     'process'] = ('process', process_id,)
                 topology[f'{process_id}_evolver'][
                     'process'] = ('process', process_id,)
+                # Add global time
+                topology[f'{process_id}_requester'][
+                    'global_time'] = ('global_time',)
+                topology[f'{process_id}_evolver'][
+                    'global_time'] = ('global_time',)
             # make the non-partitioned processes' topologies
             else:
                 topology[process_id] = ports
@@ -387,9 +403,11 @@ class Ecoli(Composer):
         # Do not keep an unnecessary reference to these
         self.processes_and_steps = None
 
-        # Add clock process to facilitate unique molecule updates
-        topology['clock'] = {
-            'global_time': ('global_time',)
+        # Add clock process to facilitate unique molecule updates and
+        # coordinate simulation timestep updates
+        topology['global_clock'] = {
+            'global_time': ('global_time',),
+            'timestep': ('timestep',)
         }
         return topology
 
