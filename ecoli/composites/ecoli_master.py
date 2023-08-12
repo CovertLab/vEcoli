@@ -282,7 +282,7 @@ class Ecoli(Composer):
         unique_topo = {
             unique_mol + 's': ('unique', unique_mol)
             for unique_mol in unique_mols
-            if unique_mol not in ['active_ribosome', 'DnaA_box', 'gene']}
+            if unique_mol not in ['active_ribosome', 'DnaA_box']}
         unique_topo['active_ribosome'] = ('unique', 'active_ribosome')
         unique_topo['DnaA_boxes'] = ('unique', 'DnaA_box')
         params = {'unique_topo': unique_topo}
@@ -353,9 +353,9 @@ class Ecoli(Composer):
                     '_path': ('allocate', process_id,),
                     **bulk_topo}
                 topology[f'{process_id}_requester'][
-                    'evolvers_ran'] = ('evolvers_ran',)
+                    'first_update'] = ('first_update', process_id)
                 topology[f'{process_id}_evolver'][
-                    'evolvers_ran'] = ('evolvers_ran',)
+                    'first_update'] = ('first_update', process_id)
                 topology[f'{process_id}_requester'][
                     'process'] = ('process', process_id,)
                 topology[f'{process_id}_evolver'][
@@ -392,7 +392,6 @@ class Ecoli(Composer):
             'request': ('request',),
             'allocate': ('allocate',),
             'bulk': ('bulk',),
-            'evolvers_ran': ('evolvers_ran',),
         }
         for step_name in steps.keys():
             if 'unique_update' in step_name:

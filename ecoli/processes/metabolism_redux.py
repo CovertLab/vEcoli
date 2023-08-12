@@ -218,11 +218,7 @@ class MetabolismRedux(Step):
                 '_divider': {'divider': 'set_value',
                     'config': {'value': True}},
             },
-            'evolvers_ran': {'_default': True},
         }
-
-    def update_condition(self, timestep, states):
-        return states['evolvers_ran']
 
     def next_update(self, timestep, states):
         # Skip t=0

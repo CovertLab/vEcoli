@@ -83,7 +83,7 @@ def convert_dynamics(seriesOutDir, simDataFile, node_list, edge_list, experiment
         ('listeners', 'rna_synth_prob', 'gene_copy_number'),
         ('listeners', 'rna_synth_prob', 'n_bound_TF_per_TU'),
         ('listeners', 'rna_synth_prob', 'n_bound_TF_per_cistron'),
-        ('listeners', 'RNA_counts', 'mRNA_counts'),
+        ('listeners', 'rna_counts', 'mRNA_counts'),
         ('listeners', 'rna_maturation_listener', 'unprocessed_rnas_consumed'),
         ('listeners', 'rnap_data', 'rna_init_event'),
         ('listeners', 'ribosome_data', 'prob_translation_per_transcript'),
@@ -292,7 +292,7 @@ def read_rna_dynamics(sim_data, node, node_id, indexes, volume, timeseries):
     # If RNA is an mRNA, get counts from mRNA counts listener
     if node_id in indexes["mRNAs"]:
         # counts = columns[("mRNACounts", "mRNA_counts")][:, indexes["mRNAs"][node_id]]
-        counts = timeseries['listeners']['RNA_counts']['mRNA_counts']
+        counts = timeseries['listeners']['rna_counts']['mRNA_counts']
     # If not, get counts from bulk molecules listener
     else:
         # counts = columns[("BulkMolecules", "counts")][:, indexes["BulkMolecules"][node_id]]

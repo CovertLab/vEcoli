@@ -729,7 +729,7 @@ class LoadSimData:
             'krta': constants.Kdissociation_charged_trna_ribosome.asNumber(MICROMOLAR_UNITS),
             'krtf': constants.Kdissociation_uncharged_trna_ribosome.asNumber(MICROMOLAR_UNITS),
             'unit_conversion': metabolism.get_amino_acid_conc_conversion(MICROMOLAR_UNITS),
-            'KD_RelA': constants.KD_RelA_ribosome.asNumber(MICROMOLAR_UNITS),
+            'KD_RelA': transcription.KD_RelA.asNumber(MICROMOLAR_UNITS),
             'k_RelA': constants.k_RelA_ppGpp_synthesis.asNumber(1 / units.s),
             'k_SpoT_syn': constants.k_SpoT_ppGpp_synthesis.asNumber(1 / units.s),
             'k_SpoT_deg': constants.k_SpoT_ppGpp_degradation.asNumber(1 / (MICROMOLAR_UNITS * units.s)),
@@ -1107,7 +1107,7 @@ class LoadSimData:
                 'ecoli-protein-degradation': 10,
                 'ecoli-two-component-system': -5,
                 'ecoli-tf-binding': -10,
-                # 'ecoli-metabolism': -10  # Should not be necessary, metabolism runs as deriver (not partitioned)
+                'ecoli-metabolism': -10
                 }
         }
         return allocator_config
@@ -1278,6 +1278,7 @@ class LoadSimData:
             'time_step': time_step,
             '_parallel': parallel,
             'n_TU': len(self.sim_data.process.transcription.rna_data['id']),
+            'n_TF': len(self.sim_data.process.transcription_regulation.tf_ids),
             'n_cistron': len(self.sim_data.process.transcription.cistron_data['gene_id']),
             'cistron_tu_mapping_matrix': self.sim_data.process.transcription.cistron_tu_mapping_matrix,
         }

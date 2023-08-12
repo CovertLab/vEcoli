@@ -59,7 +59,7 @@ class RNACounts(Step):
     def ports_schema(self):
         return {
             'listeners': {
-                'RNA_counts': listener_schema({
+                'rna_counts': listener_schema({
                     'mRNA_counts': ([], self.mRNA_TU_ids),
                     'full_mRNA_counts': ([], self.mRNA_TU_ids),
                     'partial_mRNA_counts': ([], self.mRNA_TU_ids),
@@ -111,14 +111,16 @@ class RNACounts(Step):
 
         update = {
             'listeners': {
-                'mRNA_counts': mRNA_counts,
-                'full_mRNA_counts': full_mRNA_counts,
-                'partial_mRNA_counts': partial_mRNA_counts,
-                'partial_rRNA_counts': partial_rRNA_counts,
-                'mRNA_cistron_counts': mRNA_cistron_counts,
-                'full_mRNA_cistron_counts': full_mRNA_cistron_counts,
-                'partial_mRNA_cistron_counts': partial_mRNA_cistron_counts,
-                'partial_rRNA_cistron_counts': partial_rRNA_cistron_counts
+                'rna_counts': {
+                    'mRNA_counts': mRNA_counts,
+                    'full_mRNA_counts': full_mRNA_counts,
+                    'partial_mRNA_counts': partial_mRNA_counts,
+                    'partial_rRNA_counts': partial_rRNA_counts,
+                    'mRNA_cistron_counts': mRNA_cistron_counts,
+                    'full_mRNA_cistron_counts': full_mRNA_cistron_counts,
+                    'partial_mRNA_cistron_counts': partial_mRNA_cistron_counts,
+                    'partial_rRNA_cistron_counts': partial_rRNA_cistron_counts
+                }
             }
         }
         return update
@@ -132,8 +134,8 @@ def test_rna_counts_listener():
     sim.build_ecoli()
     sim.run()
     data = sim.query()
-    assert(type(data['listeners']['RNA_counts']['mRNA_counts'][0]) == list)
-    assert(type(data['listeners']['RNA_counts']['mRNA_counts'][1]) == list)
+    assert(type(data['listeners']['rna_counts']['mRNA_counts'][0]) == list)
+    assert(type(data['listeners']['rna_counts']['mRNA_counts'][1]) == list)
 
 
 if __name__ == '__main__':

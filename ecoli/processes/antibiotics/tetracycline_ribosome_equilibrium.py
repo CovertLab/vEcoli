@@ -59,9 +59,6 @@ class TetracyclineRibosomeEquilibrium(Step):
             'volume': {
                 '_default': 0 * units.fL,
             },
-            'evolvers_ran': {
-                '_default': True,
-            },
             'listeners': {
                 'total_internal_tetracycline': {
                     '_default': 0 * units.mM,

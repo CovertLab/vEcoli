@@ -33,7 +33,7 @@ class BaseElongationModel(object):
     def amino_acid_counts(self, aasInSequences):
         return aasInSequences
 
-    def request(self, timestep, states, aasInSequences):
+    def request(self, states, aasInSequences):
         aa_counts_for_translation = self.amino_acid_counts(aasInSequences)
 
         requests = {
@@ -48,7 +48,7 @@ class BaseElongationModel(object):
     def final_amino_acids(self, total_aa_counts, charged_trna_counts):
         return total_aa_counts
 
-    def evolve(self, timestep, states, total_aa_counts, aas_used,
+    def evolve(self, states, total_aa_counts, aas_used,
         next_amino_acid_count, nElongations, nInitialized):
         # Update counts of amino acids and water to reflect polymerization
         # reactions
@@ -172,7 +172,7 @@ class SteadyStateElongationModel(TranslationSupplyElongationModel):
             rate = super().elongation_rate(states)
         return rate
 
-    def request(self, timestep, states, aasInSequences):
+    def request(self, states, aasInSequences):
         self.max_time_step = min(self.process.max_time_step,
                                  self.max_time_step * self.time_step_increase)
 
@@ -184,20 +184,20 @@ class SteadyStateElongationModel(TranslationSupplyElongationModel):
 
         # ppGpp related concentrations
         ppgpp_conc = self.counts_to_molar * counts(
-            states['bulk'], self.process.ppgpp_idx)
+            states['bulk_total'], self.process.ppgpp_idx)
         rela_conc = self.counts_to_molar * counts(
-            states['bulk'], self.process.rela_idx)
+            states['bulk_total'], self.process.rela_idx)
         spot_conc = self.counts_to_molar * counts(
-            states['bulk'], self.process.spot_idx)
+            states['bulk_total'], self.process.spot_idx)
 
         # Get counts and convert synthetase and tRNA to a per AA basis
         synthetase_counts = np.dot(
             self.aa_from_synthetase,
-            counts(states['bulk'], self.process.synthetase_idx))
-        aa_counts = counts(states['bulk'], self.process.amino_acid_idx)
-        uncharged_trna_array = counts(states['bulk'],
+            counts(states['bulk_total'], self.process.synthetase_idx))
+        aa_counts = counts(states['bulk_total'], self.process.amino_acid_idx)
+        uncharged_trna_array = counts(states['bulk_total'],
             self.process.uncharged_trna_idx)
-        charged_trna_array = counts(states['bulk'],
+        charged_trna_array = counts(states['bulk_total'],
             self.process.charged_trna_idx)
         uncharged_trna_counts = np.dot(self.process.aa_from_trna,
             uncharged_trna_array)
@@ -303,7 +303,6 @@ class SteadyStateElongationModel(TranslationSupplyElongationModel):
         # ppGpp reactions based on charged tRNA
         request_ppgpp_metabolites = np.zeros(
             len(self.process.ppgpp_reaction_metabolites))
-        ppgpp_request = 0
         if self.process.ppgpp_regulation:
             total_trna_conc = self.counts_to_molar * (
                 uncharged_trna_counts + charged_trna_counts)
@@ -322,16 +321,19 @@ class SteadyStateElongationModel(TranslationSupplyElongationModel):
             ppgpp_request = counts(states['bulk'], self.process.ppgpp_idx)
 
         return fraction_charged, aa_counts_for_translation, {
-            'bulk': [(self.process.charging_molecule_idx, requested_molecules),
-                (self.process.charged_trna_idx, charged_trna_request),
+            'bulk': [
+                (self.process.charging_molecule_idx,
+                    requested_molecules.astype(int)),
+                (self.process.charged_trna_idx,
+                    charged_trna_request.astype(int)),
                 # Request water for transfer of AA from tRNA for initial polypeptide.
                 # This is severe overestimate assuming the worst case that every
                 # elongation is initializing a polypeptide. This excess of water
                 # shouldn't matter though.
-                (self.process.water_idx, aa_counts_for_translation.sum()),
+                (self.process.water_idx, int(aa_counts_for_translation.sum())),
                 (self.process.ppgpp_idx, ppgpp_request),
                 (self.process.ppgpp_rxn_metabolites_idx,
-                    request_ppgpp_metabolites)],
+                    request_ppgpp_metabolites.astype(int))],
             'listeners': {
                 'growth_limits': {
                     'original_aa_supply': self.process.aa_supply,
@@ -368,7 +370,7 @@ class SteadyStateElongationModel(TranslationSupplyElongationModel):
         charged_counts_to_uncharge = self.process.aa_from_trna @ charged_trna_counts
         return np.fmin(total_aa_counts + charged_counts_to_uncharge, self.aa_counts_for_translation)
 
-    def evolve(self, timestep, states, total_aa_counts, aas_used, next_amino_acid_count, nElongations, nInitialized):
+    def evolve(self, states, total_aa_counts, aas_used, next_amino_acid_count, nElongations, nInitialized):
         update = {
             'bulk': [],
             'listeners': {},
@@ -401,14 +403,21 @@ class SteadyStateElongationModel(TranslationSupplyElongationModel):
         total_uncharging_reactions = charged_and_elongated + n_trna_uncharged
         total_charging_reactions = charged_and_elongated + n_trna_charged
         net_charged = total_charging_reactions - total_uncharging_reactions
-        update['bulk'].append((self.process.charging_molecule_idx, np.dot(
-            self.charging_stoich_matrix, total_charging_reactions).astype(int)))
+        charging_mol_delta = np.dot(self.charging_stoich_matrix,
+                                    total_charging_reactions).astype(int)
+        update['bulk'].append((self.process.charging_molecule_idx,
+                               charging_mol_delta))
+        states['bulk'][self.process.charging_molecule_idx] += charging_mol_delta
 
         ## Account for uncharging of tRNA during elongation
         update['bulk'].append((self.process.charged_trna_idx,
             -total_uncharging_reactions))
         update['bulk'].append((self.process.uncharged_trna_idx,
             total_uncharging_reactions))
+        states['bulk'][self.process.charged_trna_idx
+                       ] += -total_uncharging_reactions
+        states['bulk'][self.process.uncharged_trna_idx
+                       ] += total_uncharging_reactions
 
         # Update proton counts to reflect polymerization reactions and transfer of AA from tRNA
         # Peptide bond formation releases a water but transferring AA from tRNA consumes a OH-
@@ -416,6 +425,8 @@ class SteadyStateElongationModel(TranslationSupplyElongationModel):
         # since a peptide bond doesn't form
         update['bulk'].append((self.process.proton_idx, nElongations))
         update['bulk'].append((self.process.water_idx, -nInitialized))
+        states['bulk'][self.process.proton_idx] += nElongations
+        states['bulk'][self.process.water_idx] += -nInitialized
 
         # Create or degrade ppGpp
         # This should come after all countInc/countDec calls since it shares some molecules with
@@ -425,9 +436,9 @@ class SteadyStateElongationModel(TranslationSupplyElongationModel):
                 MICROMOLAR_UNITS) / states['timestep']
             ribosome_conc = self.counts_to_molar * states[
                 'active_ribosome']['_entryState'].sum()
-            updated_uncharged_trna_counts = (counts(states['bulk'],
+            updated_uncharged_trna_counts = (counts(states['bulk_total'],
                 self.process.uncharged_trna_idx) - net_charged)
-            updated_charged_trna_counts = (counts(states['bulk'],
+            updated_charged_trna_counts = (counts(states['bulk_total'],
                 self.process.charged_trna_idx) + net_charged)
             uncharged_trna_conc = self.counts_to_molar * np.dot(
                 self.process.aa_from_trna, updated_uncharged_trna_counts)
@@ -454,15 +465,17 @@ class SteadyStateElongationModel(TranslationSupplyElongationModel):
                     states['timestep'], random_state=self.process.random_state,
                     limits=limits)
 
-            update['listeners']['growth_limits'] = {}
-            update['listeners']['growth_limits']['rela_syn'] = rela_syn
-            update['listeners']['growth_limits']['spot_syn'] = spot_syn
-            update['listeners']['growth_limits']['spot_deg'] = spot_deg
-            update['listeners']['growth_limits']['spot_deg_inhibited'
-                ] = spot_deg_inhibited
+            update['listeners']['growth_limits'] = {
+                'rela_syn': rela_syn,
+                'spot_syn': spot_syn,
+                'spot_deg': spot_deg,
+                'spot_deg_inhibited': spot_deg_inhibited,
+            }
 
             update['bulk'].append((self.process.ppgpp_rxn_metabolites_idx,
                 delta_metabolites.astype(int)))
+            states['bulk'][self.process.ppgpp_rxn_metabolites_idx
+                           ] += delta_metabolites.astype(int)
 
         # Use the difference between (expected AA supply based on expected
         # doubling time and current DCW) and AA used to charge tRNA to update
@@ -501,8 +514,9 @@ class SteadyStateElongationModel(TranslationSupplyElongationModel):
 
         # Determine the fraction each tRNA species makes up out of all tRNA of
         # the associated amino acid
-        f_trna = n_trna / np.dot(np.dot(self.process.aa_from_trna, n_trna),
-            self.process.aa_from_trna)
+        with np.errstate(invalid='ignore'):
+            f_trna = n_trna / np.dot(np.dot(self.process.aa_from_trna, n_trna),
+                self.process.aa_from_trna)
         f_trna[~np.isfinite(f_trna)] = 0
 
         trna_counts = np.zeros(f_trna.shape, np.int64)

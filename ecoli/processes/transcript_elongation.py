@@ -201,6 +201,7 @@ class TranscriptElongation(PartitionedProcess):
         }
 
     def calculate_request(self, timestep, states):
+        # At first update, convert all strings to indices
         if self.bulk_RNA_idx is None:
             bulk_ids = states['bulk']['id']
             self.bulk_RNA_idx = bulk_name_to_idx(self.rnaIds, bulk_ids)

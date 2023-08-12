@@ -19,8 +19,8 @@ TOPOLOGY = {
     'request': ('request',),
     'allocate': ('allocate',),
     'bulk': ('bulk',),
-    'evolvers_ran': ('evolvers_ran',),
     'listeners': ('listeners',),
+    'allocator_rng': ('allocator_rng',),
 }
 topology_registry.register(NAME, TOPOLOGY)
 # Register "allocator-1", "allocator-2", "allocator-3" to support
@@ -64,7 +64,6 @@ class Allocator(Step):
                 continue
             self.processPriorities[self.proc_name_to_idx[process]] = custom_priority
         self.seed = self.parameters['seed']
-        self.random_state = np.random.RandomState(seed = self.seed)
 
         # Helper indices for Numpy indexing
         self.molecule_idx = None
@@ -83,9 +82,6 @@ class Allocator(Step):
                         '_divider': 'null', '_updater': 'set'}
                 }
                 for process in self.processNames},
-            'evolvers_ran': {
-                '_default': True,
-            },
             'listeners': listener_schema({
                 # Requests and initial allocations are one timestep "behind"
                 # Example: counts at t=4 go towards update at t=6
@@ -94,11 +90,10 @@ class Allocator(Step):
                 # Use blame functionality to get ATP consumed per process
                 # 'atp_allocated_final': []
             }),
+            'allocator_rng': {
+                '_default': np.random.RandomState(seed=self.seed)},
         }
         return ports
-
-    def update_condition(self, timestep, states):
-        return states['evolvers_ran']
 
     def next_update(self, timestep, states):
         if self.molecule_idx is None:
@@ -112,7 +107,7 @@ class Allocator(Step):
         for process in states['request']:
             proc_idx = self.proc_name_to_idx[process]
             for req_idx, req in states['request'][process]['bulk']:
-                counts_requested[req_idx, proc_idx] = req
+                counts_requested[req_idx, proc_idx] += req
 
         if ASSERT_POSITIVE_COUNTS and np.any(counts_requested < 0):
             raise NegativeCountsError(
@@ -133,7 +128,7 @@ class Allocator(Step):
             self.processPriorities,
             counts_requested,
             total_counts,
-            self.random_state
+            states['allocator_rng']
             )
 
         partitioned_counts.astype(int, copy=False)
@@ -180,7 +175,6 @@ class Allocator(Step):
                         :, self.proc_name_to_idx[process]]}
                 for process in states['request']
             },
-            'evolvers_ran': False,
             'listeners': {
                 'atp_requested': counts_requested[self.atp_idx, :],
                 'atp_allocated_initial': partitioned_counts[self.atp_idx, :]

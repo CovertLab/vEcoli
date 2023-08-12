@@ -25,7 +25,8 @@ TOPOLOGY = {
     "promoters": ("unique", "promoter"),
     "bulk": ("bulk",),
     "bulk_total": ("bulk",),
-    "listeners": ("listeners",)
+    "listeners": ("listeners",),
+    "first_update": ("first_update", "tf_binding"),
 }
 topology_registry.register(NAME, TOPOLOGY)
 
@@ -130,9 +131,16 @@ class TfBinding(Step):
                     'n_actual_bound': 0,
                     'n_available_promoters': 0,
                     'n_bound_TF_per_TU': 0})},
+            
+            'first_update': {
+                '_default': True,
+                '_updater': 'set',
+                '_divider': {'divider': 'set_value',
+                    'config': {'value': True}}},
         }
         
     def next_update(self, timestep, states):
+        # At t=0, convert all strings to indices
         if self.active_tf_idx is None:
             bulk_ids = states['bulk']['id']
             self.active_tf_idx = {
@@ -146,6 +154,7 @@ class TfBinding(Step):
             if "PD00365" in self.tf_ids:
                 self.marR_idx = bulk_name_to_idx(self.marR_name, bulk_ids)
                 self.marR_tet_idx = bulk_name_to_idx(self.marR_tet, bulk_ids)
+            return {'first_update': False}
 
         # If there are no promoters, return immediately
         if states['promoters']['_entryState'].sum() == 0:

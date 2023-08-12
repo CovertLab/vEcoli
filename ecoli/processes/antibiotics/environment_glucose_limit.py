@@ -6,7 +6,7 @@ from ecoli.processes.registries import topology_registry
 TOPOLOGY = {
     "external_glucose": ("boundary", "external", "GLC[p]"),
     "glucose_constraint": ("environment", "exchange_data", "constrained", "GLC[p]"),
-    "first_update": ("deriver_skips", "environment-glucose-limit",)
+    "first_update": ("first_update", "environment-glucose-limit",)
 }
 NAME = "environment-glucose-limit"
 

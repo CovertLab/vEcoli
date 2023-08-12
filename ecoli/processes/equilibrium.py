@@ -94,9 +94,11 @@ class Equilibrium(PartitionedProcess):
         }
 
     def calculate_request(self, timestep, states):
+        # At t=0, convert all strings to indices
         if self.molecule_idx is None:
             self.molecule_idx = bulk_name_to_idx(
                 self.moleculeNames, states['bulk']['id'])
+
         # Get molecule counts
         moleculeCounts = counts(states['bulk'], self.molecule_idx)
 

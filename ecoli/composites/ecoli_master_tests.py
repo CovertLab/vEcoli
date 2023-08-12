@@ -168,7 +168,7 @@ def test_ecoli_generate():
         elif proc_name in ECOLI_DEFAULT_TOPOLOGY:
             # Ignore partitioning-related keys
             assert recursive_compare(ECOLI_DEFAULT_TOPOLOGY[proc_name], v,
-                ignore_keys={'request', 'evolvers_ran', 'process', 'allocate'})
+                ignore_keys={'request', 'process', 'allocate'})
 
 
 def test_lattice_lysis(plot=False):

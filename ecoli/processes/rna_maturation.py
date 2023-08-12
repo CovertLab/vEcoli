@@ -133,7 +133,7 @@ class RnaMaturation(PartitionedProcess):
             + self.delta_nt_counts_5s.T.dot(variant_5s_rRNA_counts)
         )
         n_added_bases = n_added_bases_from_maturation + n_added_bases_from_consolidation
-        n_total_added_bases = n_added_bases.sum()
+        n_total_added_bases = int(n_added_bases.sum())
 
         # Request all unprocessed RNAs, ppis that need to be added to the
         # 5'-ends of mature RNAs, all variant rRNAs, and NMPs/water/protons
@@ -145,7 +145,7 @@ class RnaMaturation(PartitionedProcess):
                 (self.variant_23s_rRNA_idx, variant_23s_rRNA_counts),
                 (self.variant_16s_rRNA_idx, variant_16s_rRNA_counts),
                 (self.variant_5s_rRNA_idx, variant_5s_rRNA_counts),
-                (self.nmps_idx, np.abs(-n_added_bases)),
+                (self.nmps_idx, np.abs(-n_added_bases).astype(int)),
             ]
         }
 

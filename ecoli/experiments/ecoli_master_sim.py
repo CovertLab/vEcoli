@@ -458,8 +458,7 @@ class EcoliSim:
             if self.divide:
                 for agent_state in state['agents'].values():
                     # Will be set to true when starting sim
-                    del agent_state['evolvers_ran']
-                    del agent_state['deriver_skips']
+                    del agent_state['first_update']
                     # Sets are nondeterministic
                     del agent_state['environment']
                     # Processes can't be serialized
@@ -470,8 +469,7 @@ class EcoliSim:
                     for name, mols in agent_state['unique'].items():
                         agent_state['unique_dtypes'][name] = str(mols.dtype)
             else:
-                del state['evolvers_ran']
-                del state['deriver_skips']
+                del state['first_update']
                 del state['environment']
                 del state['process']
                 state['bulk_dtypes'] = str(state['bulk'].dtype)
