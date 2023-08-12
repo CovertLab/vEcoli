@@ -15,7 +15,8 @@ from ecoli.library.schema import bulk_name_to_idx, attrs, numpy_schema
 NAME = 'ecoli-tf-unbinding'
 TOPOLOGY = {
     "bulk": ("bulk",),
-    "promoters": ("unique", "promoter",)
+    "promoters": ("unique", "promoter",),
+    "first_update": ("first_update", "tf_unbinding"),
 }
 topology_registry.register(NAME, TOPOLOGY)
 
@@ -38,13 +39,21 @@ class TfUnbinding(Step):
     def ports_schema(self):
         return {
             'bulk': numpy_schema('bulk'),
-            'promoters': numpy_schema('promoters')
+            'promoters': numpy_schema('promoters'),
+
+            'first_update': {
+                '_default': True,
+                '_updater': 'set',
+                '_divider': {'divider': 'set_value',
+                    'config': {'value': True}}},
         }
 
     def next_update(self, timestep, states):
+        # At t=0, convert all strings to indices
         if self.active_tf_idx is None:
             self.active_tf_idx = bulk_name_to_idx(
                 [tf + '[c]' for tf in self.tf_ids], states['bulk']['id'])
+            return {'first_update': False}
 
         # Get attributes of all promoters
         bound_TF, = attrs(states['promoters'], ['bound_TF'])

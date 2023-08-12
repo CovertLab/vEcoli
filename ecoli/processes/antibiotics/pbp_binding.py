@@ -30,7 +30,7 @@ TOPOLOGY = {
     "pbp_state": ("pbp_state",),
     "wall_state": ("wall_state",),
     "volume": ("boundary", "volume"),
-    "first_update": ("deriver_skips", "pbp_binding",)
+    "first_update": ("first_update", "pbp_binding",)
 }
 topology_registry.register(NAME, TOPOLOGY)
 

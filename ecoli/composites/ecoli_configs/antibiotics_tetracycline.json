@@ -12,7 +12,6 @@
             "tetracycline": ["cytoplasm", "concentrations", "tetracycline"],
             "70s-free": ["unique", "active_ribosome"],
             "volume": ["cytoplasm", "global", "volume"],
-            "evolvers_ran": ["evolvers_ran"],
             "listeners": ["listeners"],
             "global_time": ["global_time"],
             "timestep": ["timestep"]

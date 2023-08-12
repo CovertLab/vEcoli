@@ -36,6 +36,7 @@ class RnaSynthProb(Step):
     def __init__(self, parameters=None):
         super().__init__(parameters)
         self.n_TU = self.parameters['n_TU']
+        self.n_TF = self.parameters['n_TF']
         self.n_cistron = self.parameters['n_cistron']
         self.cistron_tu_mapping_matrix = self.parameters[
             'cistron_tu_mapping_matrix']
@@ -45,8 +46,8 @@ class RnaSynthProb(Step):
             'rna_synth_prob': listener_schema({
                 'promoter_copy_number': [],
                 'gene_copy_number': [],
-                'target_rna_synth_prob': [],
-                'actual_rna_synth_prob': [],
+                'target_rna_synth_prob': np.zeros(self.n_TU, np.float64),
+                'actual_rna_synth_prob': np.zeros(self.n_TU, np.float64),
                 'tu_is_overcrowded': [],
                 'actual_rna_synth_prob_per_cistron': [],
                 'target_rna_synth_prob_per_cistron': [],
@@ -55,9 +56,9 @@ class RnaSynthProb(Step):
                 'nPromoterBound': 'tf_ids',
                 'nActualBound': 'tf_ids',
                 'n_available_promoters': 'tf_ids',
-                'n_bound_TF_per_TU': [],
+                'n_bound_TF_per_TU': np.zeros((self.n_TU, self.n_TF), np.int16),
                 'n_bound_TF_per_cistron': [],
-                'total_rna_init': []
+                'total_rna_init': 0
             }),
             'promoters': numpy_schema('promoters'),
             'genes': numpy_schema('genes'),

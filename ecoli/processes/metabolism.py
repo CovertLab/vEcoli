@@ -42,9 +42,9 @@ TOPOLOGY = {
     },
     "boundary": ("boundary",),
     "polypeptide_elongation": ("process_state", "polypeptide_elongation"),
-    "evolvers_ran": ('evolvers_ran',),
     "global_time": ("global_time",),
-    "timestep": ("timestep",)
+    "timestep": ("timestep",),
+    "first_update": ("first_update", "metabolism"),
     }
 topology_registry.register(NAME, TOPOLOGY)
 
@@ -259,7 +259,6 @@ class Metabolism(Step):
                         [], self.kineticTargetFluxNames),
                     'base_reaction_fluxes': (
                         [], self.base_reaction_ids),
-                    'target_aa_conc': ([], self.aa_names),
                     # 'estimated_fluxes': {},
                     # 'estimated_homeostatic_dmdt': {},
                     # 'target_homeostatic_dmdt': {},
@@ -284,7 +283,8 @@ class Metabolism(Step):
                     'target_fluxes_upper': (
                         [], self.model.kinetics_constrained_reactions),
                     'target_fluxes_lower': (
-                        [], self.model.kinetics_constrained_reactions)})
+                        [], self.model.kinetics_constrained_reactions),
+                    'target_aa_conc': ([], self.aa_names)})
             },
 
             'polypeptide_elongation': {
@@ -306,9 +306,14 @@ class Metabolism(Step):
                     '_divider': 'zero'
                 },
             },
-            'evolvers_ran': {'_default': True},
             'global_time': {'_default': 0},
-            'timestep': {'_default': self.parameters['time_step']}
+            'timestep': {'_default': self.parameters['time_step']},
+
+            'first_update': {
+                '_default': True,
+                '_updater': 'set',
+                '_divider': {'divider': 'set_value',
+                    'config': {'value': True}}},
         }
 
         return ports
@@ -317,6 +322,7 @@ class Metabolism(Step):
         return (states['global_time'] % states['timestep']) == 0
 
     def next_update(self, timestep, states):
+        # At t=0, convert all strings to indices
         if self.metabolite_idx is None:
             self.metabolite_idx = bulk_name_to_idx(
                 self.model.metaboliteNamesFromNutrients, states['bulk']['id'])
@@ -327,6 +333,8 @@ class Metabolism(Step):
             self.kinetics_substrates_idx = bulk_name_to_idx(
                 self.model.kinetic_constraint_substrates, states['bulk']['id'])
             self.aa_idx = bulk_name_to_idx(self.aa_names, states['bulk']['id'])
+
+            return {'first_update': False}
 
         timestep = states['timestep']
 
@@ -438,8 +446,7 @@ class Metabolism(Step):
             self.random_state,
             metabolite_counts_init + delta_metabolites.asNumber()
             ), 0).astype(np.int64)
-        delta_metabolites_final = metabolite_counts_final - \
-            metabolite_counts_init
+        delta_metabolites_final = metabolite_counts_final - metabolite_counts_init
 
         # Environmental changes
         exchange_fluxes = CONC_UNITS * fba.getExternalExchangeFluxes()
@@ -526,8 +533,6 @@ class Metabolism(Step):
                         fba.getKineticObjectiveValues(),
                     'base_reaction_fluxes': self.reaction_mapping_matrix.dot(
                         reaction_fluxes,),
-                    'target_aa_conc': [self.aa_targets.get(id_, 0)
-                                       for id_ in self.aa_names]
                     
                     # Quite large, comment out to reduce emit size
                     # 'estimated_fluxes': flux_dict ,
@@ -547,15 +552,16 @@ class Metabolism(Step):
 
                 'enzyme_kinetics': {
                     'metabolite_counts_init': metabolite_counts_init,
-                    'metabolite_counts_final': metabolite_counts_init + \
-                        delta_metabolites_final,
+                    'metabolite_counts_final': metabolite_counts_final,
                     'enzyme_counts_init': kinetic_enzyme_counts,
                     'counts_to_molar': counts_to_molar.asNumber(CONC_UNITS),
                     'actual_fluxes': fba.getReactionFluxes(
                         self.model.kinetics_constrained_reactions) / timestep,
                     'target_fluxes': targets / timestep,
                     'target_fluxes_upper': upper_targets / timestep,
-                    'target_fluxes_lower': lower_targets / timestep}}}
+                    'target_fluxes_lower': lower_targets / timestep,
+                    'target_aa_conc': [self.aa_targets.get(id_, 0)
+                                       for id_ in self.aa_names]}}}
 
         return update
 

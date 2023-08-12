@@ -227,7 +227,6 @@ def colony_save_states(engine, config):
             ).value.get_command_result()
             # Can't save, but will be restored when loading state
             del cell_state['environment']['exchange_data']  
-            del cell_state['evolvers_ran']
             # Shared processes are re-initialized on load
             del cell_state['process']
             # Save bulk and unique dtypes

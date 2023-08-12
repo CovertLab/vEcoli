@@ -39,10 +39,6 @@ def colony_initial_state(states):
     to be suitable for initializing a colony simulation.
     """
     for agent_state in states['agents'].values():
-        # If evolvers_ran is False, we can get an infinite loop of
-        # neither evolvers nor requesters running. No saved state should
-        # include evolvers_ran=False.
-        assert states.get('evolvers_ran', True)
         agent_state['environment']['exchange_data'] = {
             'unconstrained': {'CL-[p]', 'FE+2[p]', 'CO+2[p]', 'MG+2[p]',
                 'NA+[p]', 'CARBON-DIOXIDE[p]', 'OXYGEN-MOLECULE[p]', 'MN+2[p]',
@@ -85,7 +81,7 @@ def get_state_from_file(
                 deserialize_value, agents.values())
         numpy_agents = []
         for agent in deserialized_agents:
-            agent.pop('deriver_skips', None)
+            agent.pop('first_update', None)
             numpy_agents.append(numpy_molecules(agent))
         agents = dict(zip(agents.keys(), numpy_agents))
         states = deserialize_value(serialized_state)
@@ -94,10 +90,6 @@ def get_state_from_file(
     
     deserialized_states = deserialize_value(serialized_state)
     states = numpy_molecules(deserialized_states)
-    # If evolvers_ran is False, we can get an infinite loop of
-    # neither evolvers nor requesters running. No saved state should
-    # include evolvers_ran=False.
-    assert states.get('evolvers_ran', True)
     # TODO: Add timeline process to set up media ID
     states["environment"]["media_id"] = "minimal"
     return states

@@ -119,7 +119,7 @@ def run_partitioned_process(
     # Test calculate_request
     process.request_only = True
     process.evolve_only = False
-    requests, store = experiment._calculate_update(path, process, 2)
+    requests, store = experiment._calculate_update(path, process, 1)
     bulk_array = experiment.state.get_path(('bulk',)).get_value()
     # Create copy of bulk array with floating point counts so
     # processes can return non-integer requests
@@ -130,11 +130,14 @@ def run_partitioned_process(
     for name in bulk_array.dtype.names:
         float_bulk[name] = (bulk_array[name] if name != 'count'
                             else bulk_array[name].astype(float))
+    # Leave non-bulk entries in request as is
+    requests = requests.get()
+    request_misc = {k: v for k, v in requests.items() if k != 'bulk'}
     # Set bulk counts to 0 for requested count after applying update
     float_bulk['count'] = 0.0
     experiment.state['bulk'].value = float_bulk
-    experiment.apply_update(requests.get(), store)
-    actual_requests = bulk_array['count'].copy()
+    experiment.apply_update(requests, store)
+    actual_requests = float_bulk['count'].copy()
 
     # Test evolve_state
     experiment.state['bulk'] = bulk_array
@@ -163,6 +166,9 @@ def run_partitioned_process(
     if 'bulk' in update:
         actual_update['bulk'] = bulk_counts
 
+    # Merge non-bulk requests with evolve_state update
+    actual_update = deep_merge(request_misc, actual_update)
+
     return actual_requests, actual_update
 
 
@@ -181,7 +187,7 @@ def run_and_compare(init_time, process_class, partition=True, layer=0, post=Fals
         initial_state = get_state_from_file(
             path=f'data/migration/wcecoli_t{init_time}_before_post.json')
         # By this point the clock process would have advanced the global time
-        initial_state['global_time'] = init_time + 2
+        initial_state['global_time'] = init_time + 1
     else:
         initial_state = get_state_from_file(
             path=f'data/migration/wcecoli_t{init_time}_before_layer_{layer}.json')
@@ -197,12 +203,16 @@ def run_and_compare(init_time, process_class, partition=True, layer=0, post=Fals
             proc_updates = json.load(f)
         gtp_hydro = proc_updates['PolypeptideElongation']['process_state'][
             'gtp_to_hydrolyze']
+        aa_exchange_rates = units.mol / units.L / units.s * np.array(
+            proc_updates['PolypeptideElongation'][
+            'process_state']['aa_exchange_rates']) 
         initial_state['process_state'] = {'polypeptide_elongation': {
-            'gtp_to_hydrolyze': gtp_hydro}}
-        aa_exchange_rates = proc_updates['PolypeptideElongation']['process_state'][
-            'aa_exchange_rates']
-        initial_state['process_state'] = {'polypeptide_elongation': {
-            'aa_exchange_rates': aa_exchange_rates}}
+            'gtp_to_hydrolyze': gtp_hydro,
+            'aa_exchange_rates': aa_exchange_rates,
+            'aa_count_diff': proc_updates['PolypeptideElongation'][
+                'process_state']['aa_count_diff']}}
+        process.aa_targets = proc_updates['Metabolism']['process_state'][
+            'aa_targets']
     # MassListener needs initial masses to calculate fold changes
     elif process_class.__name__ == 'MassListener':
         t0_file = 'data/migration/wcecoli_t0.json'
@@ -230,7 +240,17 @@ def run_and_compare(init_time, process_class, partition=True, layer=0, post=Fals
         actual_update = run_non_partitioned_process(
             process, process_class.topology,
             initial_time=init_time, initial_state=initial_state)
-    # Compare unique molecule updates
+    if process_class.__name__ == 'PolypeptideElongation':
+        actual_update['process_state'] = actual_update['process_state'
+            ]['polypeptide_elongation']
+        actual_update['process_state']['aa_exchange_rates'
+            ] = actual_update['process_state'][
+                'aa_exchange_rates'].asNumber()
+    # Sort delete indices to match wcEcoli sorted indices
+    for unique_update in actual_update.get('unique', {}).values():
+        if 'delete' in unique_update:
+            unique_update['delete'] = np.sort(unique_update['delete'])
+    # Compare updates
     with open(f"data/migration/process_updates_t{init_time}.json", 'r') as f:
         wc_update = json.load(f)
     if process_class.__name__ in wc_update:

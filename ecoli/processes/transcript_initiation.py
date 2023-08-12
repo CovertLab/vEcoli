@@ -306,6 +306,7 @@ class TranscriptInitiation(PartitionedProcess):
         }
 
     def calculate_request(self, timestep, states):
+        # At first update, convert all strings to indices
         if self.ppgpp_idx is None:
             bulk_ids = states['bulk']['id']
             self.ppgpp_idx = bulk_name_to_idx(self.ppgpp, bulk_ids)

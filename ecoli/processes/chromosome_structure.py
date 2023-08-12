@@ -30,11 +30,11 @@ TOPOLOGY = {
     "promoters": ("unique", "promoter"),
     "DnaA_boxes": ("unique", "DnaA_box"),
     "genes": ("unique", "gene"),
-    "evolvers_ran": ("evolvers_ran",),
     # TODO(vivarium): Only include if superhelical density flag is passed
     # "chromosomal_segments": ("unique", "chromosomal_segment")
     "global_time": ("global_time",),
-    "timestep": ("timestep",)
+    "timestep": ("timestep",),
+    "first_update": ("first_update", "chromosome_structure"),
 }
 topology_registry.register(NAME, TOPOLOGY)
 
@@ -146,9 +146,14 @@ class ChromosomeStructure(Step):
             'promoters': numpy_schema('promoters'),
             'DnaA_boxes': numpy_schema('DnaA_boxes'),
             'genes': numpy_schema('genes'),
-            'evolvers_ran': {'_default': True},
             'global_time': {'_default': 0},
-            'timestep': {'_default': self.parameters['time_step']}
+            'timestep': {'_default': self.parameters['time_step']},
+
+            'first_update': {
+                '_default': True,
+                '_updater': 'set',
+                '_divider': {'divider': 'set_value',
+                    'config': {'value': True}}},
         }
 
         # TODO: Work on this functionality
@@ -169,7 +174,7 @@ class ChromosomeStructure(Step):
                 ) == 0
 
     def next_update(self, timestep, states):
-        # In first timestep, convert all strings to indices
+        # At t=0, convert all strings to indices
         if self.inactive_RNAPs_idx is None:
             self.fragmentBasesIdx = bulk_name_to_idx(
                 self.fragmentBases, states['bulk']['id'])
@@ -189,6 +194,8 @@ class ChromosomeStructure(Step):
                 self.inactive_RNAPs, states['bulk']['id'])
             self.mature_rna_idx = bulk_name_to_idx(
                 self.mature_rna_ids, states['bulk']['id'])
+
+            return {'first_update': False}
 
         # Read unique molecule attributes
         (replisome_domain_indexes, replisome_coordinates,

@@ -90,14 +90,13 @@ class Requester(Step):
 
     def update_condition(self, timestep, states):
         return (states['global_time'] % states['timestep']
-                ) == 0 and states['evolvers_ran']
+                ) == 0
 
     def ports_schema(self):
         process = self.parameters.get('process')
         ports = process.get_schema()
         ports['request'] = filter_bulk_ports(ports,
             {'_updater': 'set', '_divider': 'null', '_emit': False})
-        ports['evolvers_ran'] = {'_default': True}
         ports['process'] = {
             '_default': tuple(),
             '_updater': 'set',
@@ -106,10 +105,19 @@ class Requester(Step):
         }
         ports['global_time'] = {'_default': 0}
         ports['timestep'] = {'_default': process.parameters['time_step']}
+        ports['first_update'] = {
+            '_default': True,
+            '_updater': 'set',
+            '_divider': {'divider': 'set_value',
+                'config': {'value': True}}}
         self.cached_bulk_ports = list(ports['request'].keys())
         return ports
 
     def next_update(self, timestep, states):
+        # Skip t=0
+        if states['first_update']:
+            return {}
+
         process = states['process'][0]
         request = process.calculate_request(
             self.parameters['time_step'], states)
@@ -154,17 +162,6 @@ class Evolver(Step):
         ports = process.get_schema()
         ports['allocate'] = filter_bulk_ports(ports,
             {'_updater': 'set', '_divider': 'null', '_emit': False})
-        ports['evolvers_ran'] = {
-            '_default': True,
-            '_updater': 'set',
-            '_divider': {
-                'divider': 'set_value',
-                'config': {
-                    'value': True,
-                },
-            },
-            '_emit': False,
-        }
         ports['process'] = {
             '_default': tuple(),
             '_updater': 'set',
@@ -173,6 +170,11 @@ class Evolver(Step):
         }
         ports['global_time'] = {'_default': 0}
         ports['timestep'] = {'_default': process.parameters['timestep']}
+        ports['first_update'] = {
+            '_default': True,
+            '_updater': 'set',
+            '_divider': {'divider': 'set_value',
+                'config': {'value': True}}}
         return ports
 
     # TODO(Matt): Have evolvers calculate timestep, returning zero if the requester hasn't run.
@@ -183,6 +185,10 @@ class Evolver(Step):
     #         return self.process.calculate_timestep(states)
 
     def next_update(self, timestep, states):
+        # Skip t=0
+        if states['first_update']:
+            return {'first_update': False}
+
         allocations = states.pop('allocate')
         states = deep_merge(states, allocations)
         process = states['process'][0]
@@ -202,7 +208,6 @@ class Evolver(Step):
 
         update = process.evolve_state(timestep, states)
         update['process'] = (process,)
-        update['evolvers_ran'] = True
         return update
 
 
