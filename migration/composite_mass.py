@@ -56,7 +56,6 @@ def test_composite_mass(total_time=30):
         for key, data in wc_update.items():
             wcecoli_timeseries[key][index] = data
         wcecoli_keys = set(wc_update.keys())
-        print(time)
         assertions(actual_update, wc_update, wcecoli_keys & vivarium_keys)
     only_wcecoli = wcecoli_keys - vivarium_keys
     print('These keys only exist in the wcEcoli mass listener: ' + str(list(only_wcecoli)))
@@ -68,7 +67,6 @@ def test_composite_mass(total_time=30):
 def _make_assert(key):
     def custom_assert(a, b):
         rtol = RELATIVE_TOLERANCES.get(key, 0.1)
-        # rtol = 0
         if np.isnan(a) and np.isnan(b):
             return True
         close = np.isclose(a, b, rtol=rtol)
@@ -101,8 +99,8 @@ def plots(actual_timeseries, wcecoli_timeseries, keys):
         if not np.all(wcecoli_timeseries[key] == wcecoli_timeseries[key][0]):
             slope, intercept, r_value, p_value, std_err = linregress(
                 wcecoli_timeseries[key], actual_timeseries[key])
-            # assert r_value >= 0.90, (
-            #     f"Correlation for {key} = {r_value} <= 0.90")
+            assert r_value >= 0.99, (
+                f"Correlation for {key} = {r_value} <= 0.99")
             best_fit = np.poly1d([slope, intercept])
             plt.plot(wcecoli_timeseries[key], best_fit(wcecoli_timeseries[key]),
                     'b-', label=f'r = {r_value}')
