@@ -31,7 +31,8 @@ from ecoli.processes.partition import PartitionedProcess
 NAME = 'ecoli-complexation'
 TOPOLOGY = {
     "bulk": ("bulk",),
-    "listeners": ("listeners",)
+    "listeners": ("listeners",),
+    "timestep": ("timestep",)
 }
 topology_registry.register(NAME, TOPOLOGY)
 
@@ -71,9 +72,11 @@ class Complexation(PartitionedProcess):
                 'complexation_listener': {**listener_schema({
                     'complexation_events': ([], self.reaction_ids)})},
             },
+            'timestep': {'_default': self.parameters['time_step']}
         }
 
     def calculate_request(self, timestep, states):
+        timestep = states['timestep']
         if self.molecule_idx is None:
             self.molecule_idx = bulk_name_to_idx(
                 self.molecule_names, states['bulk']['id'])
@@ -89,6 +92,7 @@ class Complexation(PartitionedProcess):
         return requests
 
     def evolve_state(self, timestep, states):
+        timestep = states['timestep']
         substrate = counts(states['bulk'], self.molecule_idx)
 
         result = self.system.evolve(timestep, substrate, self.rates)

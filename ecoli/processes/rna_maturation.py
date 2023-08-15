@@ -109,10 +109,10 @@ class RnaMaturation(PartitionedProcess):
                 self.variant_5s_rRNA_ids, bulk_ids)
 
 
-        unprocessed_rna_counts = counts(states['bulk'], self.unprocessed_rna_idx)
-        variant_23s_rRNA_counts = counts(states['bulk'], self.variant_23s_rRNA_idx)
-        variant_16s_rRNA_counts = counts(states['bulk'], self.variant_16s_rRNA_idx)
-        variant_5s_rRNA_counts = counts(states['bulk'], self.variant_5s_rRNA_idx)
+        unprocessed_rna_counts = counts(states['bulk_total'], self.unprocessed_rna_idx)
+        variant_23s_rRNA_counts = counts(states['bulk_total'], self.variant_23s_rRNA_idx)
+        variant_16s_rRNA_counts = counts(states['bulk_total'], self.variant_16s_rRNA_idx)
+        variant_5s_rRNA_counts = counts(states['bulk_total'], self.variant_5s_rRNA_idx)
         self.enzyme_availability = counts(
             states['bulk_total'], self.rna_maturation_enzyme_idx).astype(bool)
 
@@ -157,6 +157,9 @@ class RnaMaturation(PartitionedProcess):
         return request
 
     def evolve_state(self, timestep, states):
+        # Create copy of bulk counts so can update in real-time
+        states['bulk'] = counts(states['bulk'], range(len(states['bulk'])))
+
         # Get counts of unprocessed RNAs
         unprocessed_rna_counts = counts(states['bulk'], self.unprocessed_rna_idx)
 
@@ -166,16 +169,15 @@ class RnaMaturation(PartitionedProcess):
         n_added_bases_from_maturation = np.dot(
             self.degraded_nt_counts.T, unprocessed_rna_counts)
 
-        # TODO: Check whether we need to increase counts right away
-        # self.mature_rnas.countsInc(n_mature_rnas)
-        # self.unprocessed_rnas.countsDec(unprocessed_rna_counts)
-        # self.ppi.countDec(self.n_ppi_added.dot(unprocessed_rna_counts))
-
+        states['bulk'][self.mature_rna_idx] += n_mature_rnas
+        states['bulk'][self.unprocessed_rna_idx] += -unprocessed_rna_counts
+        ppi_update = self.n_ppi_added.dot(unprocessed_rna_counts)
+        states['bulk'][self.ppi_idx] += -ppi_update
         update = {
             'bulk': [
                 (self.mature_rna_idx, n_mature_rnas),
                 (self.unprocessed_rna_idx, -unprocessed_rna_counts),
-                (self.ppi_idx, -self.n_ppi_added.dot(unprocessed_rna_counts)),
+                (self.ppi_idx, -ppi_update),
             ],
             'listeners': {
                 'rna_maturation_listener': {

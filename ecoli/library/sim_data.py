@@ -990,14 +990,22 @@ class LoadSimData:
         return mass_config
 
     def get_mass_listener_config(self, time_step=1, parallel=False):
+        u_masses = self.sim_data.internal_state.unique_molecule.unique_molecule_masses
+        molecule_ids = tuple(sorted(u_masses["id"]))
+        molecule_id_to_mass = {}
+        for (id_, mass) in zip(u_masses["id"], u_masses["mass"]):
+            molecule_id_to_mass[id_] = (mass/self.sim_data.constants.n_avogadro).asNumber(units.fg)
+        molecule_masses = np.array(
+            [molecule_id_to_mass[x] for x in molecule_ids]
+            )
+        
         mass_config = {
             'cellDensity': self.sim_data.constants.cell_density.asNumber(units.g / units.L),
             'bulk_ids': self.sim_data.internal_state.bulk_molecules.bulk_data['id'],
             'bulk_masses': self.sim_data.internal_state.bulk_molecules.bulk_data['mass'].asNumber(
                 units.fg / units.mol) / self.sim_data.constants.n_avogadro.asNumber(1 / units.mol),
-            'unique_ids': self.sim_data.internal_state.unique_molecule.unique_molecule_masses['id'],
-            'unique_masses': self.sim_data.internal_state.unique_molecule.unique_molecule_masses['mass'].asNumber(
-                units.fg / units.mol) / self.sim_data.constants.n_avogadro.asNumber(1/units.mol),
+            'unique_ids': molecule_ids,
+            'unique_masses': molecule_masses,
             'compartment_abbrev_to_index': self.sim_data.compartment_abbrev_to_index,
             'expectedDryMassIncreaseDict': self.sim_data.expectedDryMassIncreaseDict,
             'compartment_indices': {
