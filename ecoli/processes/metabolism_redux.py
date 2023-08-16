@@ -497,7 +497,7 @@ class NetworkFlowModel:
         loss = 0
         loss += cp.norm1(dm[self.homeostatic_idx] - homeostatic_targets)
         loss += objective_weights['secretion'] * (cp.sum(e[self.secretion_idx])) if 'secretion' in objective_weights else loss
-        loss += objective_weights['efficiency'] * (cp.sum(v[self.penalty_idx])) if 'efficiency' in objective_weights else loss
+        loss += objective_weights['efficiency'] * (cp.sum(v)) if 'efficiency' in objective_weights else loss
         loss = loss + objective_weights['kinetics'] * cp.norm1(v[self.kinetic_rxn_idx] - kinetic_targets) if 'kinetics' in objective_weights else loss
 
         p = cp.Problem(
