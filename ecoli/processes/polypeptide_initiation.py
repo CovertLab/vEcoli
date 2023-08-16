@@ -128,6 +128,8 @@ class PolypeptideInitiation(PartitionedProcess):
                         [], self.monomer_ids),
                     'actual_prob_translation_per_transcript': (
                         [], self.monomer_ids),
+                    'mRNA_is_overcrowded': ([], self.monomer_ids),
+                    'ribosome_init_event_per_monomer': ([], self.monomer_ids),
                     'effective_elongation_rate': 0.0}),
             },
             'active_ribosome': numpy_schema('active_ribosome'),

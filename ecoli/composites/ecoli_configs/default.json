@@ -70,9 +70,16 @@
         "RNA_counts_listener",
         "rna_synth_prob_listener",
         "monomer_counts_listener",
+        "dna_supercoiling_listener",
+        "replication_data_listener",
+        "rnap_data_listener",
+        "unique_molecule_counts",
+        "ribosome_data_listener",
         "global_clock"
     ],
-    "process_configs": {"global_clock": {"time_step": 1}},
+    "process_configs": {
+        "global_clock": {"time_step": 1},
+        "replication_data_listener": {"time_step": 1}},
     "topology": {},
     "flow": {
         "ecoli-tf-unbinding": [],
@@ -98,9 +105,14 @@
         "ecoli-metabolism": [["ecoli-chromosome-structure"]],
 
         "ecoli-mass-listener": [["ecoli-metabolism"]],
-        "RNA_counts_listener": [["ecoli-mass-listener"]],
-        "rna_synth_prob_listener": [["RNA_counts_listener"]],
-        "monomer_counts_listener": [["rna_synth_prob_listener"]]
+        "RNA_counts_listener": [["ecoli-metabolism"]],
+        "rna_synth_prob_listener": [["ecoli-metabolism"]],
+        "monomer_counts_listener": [["ecoli-metabolism"]],
+        "dna_supercoiling_listener": [["ecoli-metabolism"]],
+        "replication_data_listener": [["ecoli-metabolism"]],
+        "rnap_data_listener": [["ecoli-metabolism"]],
+        "unique_molecule_counts": [["ecoli-metabolism"]],
+        "ribosome_data_listener": [["ecoli-metabolism"]]
     },
     "_schema": {},
     "engine_process_reports": [

@@ -82,14 +82,13 @@ class Allocator(Step):
                         '_divider': 'null', '_updater': 'set'}
                 }
                 for process in self.processNames},
-            'listeners': listener_schema({
-                # Requests and initial allocations are one timestep "behind"
-                # Example: counts at t=4 go towards update at t=6
-                'atp_requested': [],
-                'atp_allocated_initial': [],
-                # Use blame functionality to get ATP consumed per process
-                # 'atp_allocated_final': []
-            }),
+            'listeners': {
+                'atp': listener_schema({
+                    'atp_requested': [],
+                    'atp_allocated_initial': [],
+                    # Use blame functionality to get ATP consumed per process
+                    # 'atp_allocated_final': []
+                })},
             'allocator_rng': {
                 '_default': np.random.RandomState(seed=self.seed)},
         }
@@ -176,8 +175,10 @@ class Allocator(Step):
                 for process in states['request']
             },
             'listeners': {
-                'atp_requested': counts_requested[self.atp_idx, :],
-                'atp_allocated_initial': partitioned_counts[self.atp_idx, :]
+                'atp': {
+                    'atp_requested': counts_requested[self.atp_idx, :],
+                    'atp_allocated_initial': partitioned_counts[self.atp_idx, :]
+                }
             }
         }
 

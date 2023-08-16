@@ -154,7 +154,8 @@ def bulk_name_to_idx(names, bulk_names):
         # Big brain solution from https://stackoverflow.com/a/32191125
         # One downside: all values in names MUST be in bulk_names
         sorter = np.argsort(bulk_names)
-        return sorter[np.searchsorted(bulk_names, names, sorter=sorter)]
+        return np.take(sorter, np.searchsorted(
+            bulk_names, names, sorter=sorter), mode='clip')
     else:
         return np.where(bulk_names == names)[0][0]
 

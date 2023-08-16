@@ -115,6 +115,8 @@ class Metabolism(Step):
             'mechanistic_aa_transport']
         self.current_timeline = self.parameters['current_timeline']
         self.media_id = self.parameters['media_id']
+        self.all_external_exchange_molecules = self.parameters[
+            'all_external_exchange_molecules']
 
         # Create model to use to solve metabolism updates
         self.model = FluxBalanceAnalysisModel(
@@ -240,9 +242,12 @@ class Metabolism(Step):
                     'catalyst_counts': ([], self.model.catalyst_ids),
                     'translation_gtp': 0,
                     'coefficient': 0.0,
-                    'unconstrained_molecules': [],
-                    'constrained_molecules': [],
-                    # 'uptake_constraints': [],
+                    'unconstrained_molecules': (
+                        [], self.all_external_exchange_molecules),
+                    'constrained_molecules': (
+                        [], self.all_external_exchange_molecules),
+                    'uptake_constraints': (
+                        [], self.all_external_exchange_molecules),
                     'delta_metabolites': (
                         [], self.model.metaboliteNamesFromNutrients),
                     'reaction_fluxes': ([], self.fba_reaction_ids),
@@ -514,15 +519,13 @@ class Metabolism(Step):
                     'coefficient': coefficient.asNumber(CONVERSION_UNITS),
                     'unconstrained_molecules': unconstrained,
                     'constrained_molecules': constrained,
-                    # 'uptake_constraints': uptake_constraints,
+                    'uptake_constraints': uptake_constraints,
                     'delta_metabolites': delta_metabolites_final,
-                    # 104 KB, quite large, comment out to reduce emit size
                     'reaction_fluxes': reaction_fluxes,
                     'external_exchange_fluxes': converted_exchange_fluxes,
                     'objective_value': fba.getObjectiveValue(),
                     'shadow_prices': fba.getShadowPrices(
                         self.model.metaboliteNamesFromNutrients),
-                    # 104 KB, quite large, comment out to reduce emit size
                     'reduced_costs': fba.getReducedCosts(fba.getReactionIDs()),
                     'target_concentrations': [
                         self.model.homeostatic_objective[mol]
