@@ -61,6 +61,11 @@ class RnaDegradation(PartitionedProcess):
     name = NAME
     topology = TOPOLOGY
     defaults = {
+        'rna_ids': [],
+        'mature_rna_ids': [],
+        'cistron_ids': [],
+        'cistron_tu_mapping_matrix': [],
+        'mature_rna_cistron_indexes': [],
         'all_rna_ids': [],
         'n_total_RNAs': 0,
         'n_avogadro': 0.0,
@@ -95,6 +100,15 @@ class RnaDegradation(PartitionedProcess):
 
     def __init__(self, parameters=None):
         super().__init__(parameters)
+        self.rna_ids = self.parameters['rna_ids']
+        self.mature_rna_ids = self.parameters['mature_rna_ids']
+        self.n_transcribed_rnas = len(self.rna_ids)
+        self.mature_rna_exists = (len(self.mature_rna_ids) > 0)
+        self.cistron_ids = self.parameters['cistron_ids']
+        self.cistron_tu_mapping_matrix = self.parameters[
+            'cistron_tu_mapping_matrix']
+        self.mature_rna_cistron_indexes = self.parameters[
+            'mature_rna_cistron_indexes']
         self.all_rna_ids = self.parameters['all_rna_ids']
         self.n_total_RNAs = self.parameters['n_total_RNAs']
 
@@ -176,7 +190,7 @@ class RnaDegradation(PartitionedProcess):
                     'fraction_active_endornases': 0,
                     'diff_relative_first_order_decay': 0,
                     'fract_endo_rrna_counts': 0,
-                    'count_rna_degraded': 0,
+                    'count_rna_degraded': (0, self.all_rna_ids),
                     'nucleotides_from_degradation': 0,
                     'fragment_bases_digested': 0,
                 }),
@@ -381,13 +395,22 @@ class RnaDegradation(PartitionedProcess):
             # Choose n_degraded indexes randomly to deactivate
             can_translate[self.random_state.choice(
                 size=n_degraded, a=np.where(mask)[0], replace=False)] = False
+            
+        count_RNA_degraded_per_cistron = self.cistron_tu_mapping_matrix.dot(
+            n_degraded_RNA[:self.n_transcribed_rnas])
+        # Add degraded counts from mature RNAs
+        if self.mature_rna_exists:
+            count_RNA_degraded_per_cistron[self.mature_rna_cistron_indexes
+                ] += n_degraded_RNA[self.n_transcribed_rnas:]
 
         update = {
             'listeners': {
                 'rna_degradation_listener': {
                     'count_rna_degraded': n_degraded_RNA,
                     'nucleotides_from_degradation': np.dot(
-                        n_degraded_RNA, self.rna_lengths)}},
+                        n_degraded_RNA, self.rna_lengths),
+                    'count_RNA_degraded_per_cistron': \
+                        count_RNA_degraded_per_cistron}},
             # Degrade bulk RNAs
             'bulk': [(self.bulk_rnas_idx, -n_degraded_bulk_RNA)],
             'RNAs': {

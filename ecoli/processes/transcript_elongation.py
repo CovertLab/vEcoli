@@ -161,6 +161,7 @@ class TranscriptElongation(PartitionedProcess):
         self.attenuated_rna_indices = self.parameters['attenuated_rna_indices']
         self.attenuated_rna_indices_lookup = {idx: i
             for i, idx in enumerate(self.attenuated_rna_indices)}
+        self.attenuated_rnas = self.rnaIds[self.attenuated_rna_indices]
         self.location_lookup = self.parameters['location_lookup']
 
         # random seed
@@ -186,11 +187,16 @@ class TranscriptElongation(PartitionedProcess):
                 'mass': listener_schema({'cell_mass': 0.0}),
                 'transcript_elongation_listener': listener_schema({
                     'count_NTPs_used': 0,
-                    'count_rna_synthesized': np.zeros(len(self.rnaIds)),
-                    'attenuation_probability': np.zeros(len(self.rnaIds)),
-                    'counts_attenuated': np.zeros(len(self.rnaIds))}),
+                    'count_rna_synthesized': (
+                        np.zeros(len(self.rnaIds)), self.rnaIds),
+                    'attenuation_probability': (
+                        np.zeros(len(self.rnaIds)), self.attenuated_rnas),
+                    'counts_attenuated': (
+                        np.zeros(len(self.rnaIds)), self.attenuated_rnas)}),
                 'growth_limits': listener_schema({
-                    'ntp_used': (np.zeros(len(self.ntp_ids)), self.ntp_ids)}),
+                    'ntp_used': (np.zeros(len(self.ntp_ids)), self.ntp_ids),
+                    'ntp_pool_size': (np.zeros(len(self.ntp_ids)), self.ntp_ids),
+                    'ntp_request_size': (np.zeros(len(self.ntp_ids)), self.ntp_ids)}),
                 'rnap_data': listener_schema({
                     'actual_elongations': 0,
                     'did_terminate': 0,

@@ -301,7 +301,7 @@ class TranscriptInitiation(PartitionedProcess):
                     'total_rna_init': 0}),
                 'rnap_data': listener_schema({
                     'did_initialize': 0,
-                    'rna_init_event': 0})},
+                    'rna_init_event': (0, self.rna_data['id'])})},
             'timestep': {'_default': self.parameters['time_step']}
         }
 
@@ -420,16 +420,9 @@ class TranscriptInitiation(PartitionedProcess):
                     'target_rna_synth_prob': np.zeros(self.n_TUs),
                     'actual_rna_synth_prob': np.zeros(self.n_TUs),
                     'tu_is_overcrowded': np.zeros(self.n_TUs),
-                    'total_rna_init': np.zeros(self.n_TUs)
+                    'total_rna_init': 0
                 },
                 'ribosome_data': {
-                    'rrn16S_produced': 0,
-                    'rrn23S_produced': 0,
-                    'rrn5S_produced': 0,
-
-                    'rrn16S_init_prob': 0,
-                    'rrn23S_init_prob': 0,
-                    'rrn5S_init_prob': 0,
                     'total_rna_init': 0
                 },
                 'rnap_data': {

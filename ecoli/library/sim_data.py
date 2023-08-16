@@ -367,6 +367,10 @@ class LoadSimData:
             'tetracycline-ribosome-equilibrium': self.get_tetracycline_ribosome_equilibrium_config,
             'ecoli-rna-maturation': self.get_rna_maturation_config,
             'ecoli-tf-unbinding': self.get_tf_unbinding_config,
+            'dna_supercoiling_listener': self.get_dna_supercoiling_listener_config,
+            'ribosome_data_listener': self.get_ribosome_data_listener_config,
+            'rnap_data_listener': self.get_rnap_data_listener_config,
+            'unique_molecule_counts': self.get_unique_molecule_counts_config,
         }
 
         try:
@@ -537,14 +541,26 @@ class LoadSimData:
 
     def get_rna_degradation_config(self, time_step=1, parallel=False):
         transcription = self.sim_data.process.transcription
-        all_rna_ids = (list(transcription.rna_data['id'])
-                       + list(transcription.mature_rna_data['id']))
+        rna_ids = list(transcription.rna_data['id'])
+        mature_rna_ids = list(transcription.mature_rna_data['id'])
+        all_rna_ids = rna_ids + mature_rna_ids
         rna_id_to_index = {rna_id: i for (i, rna_id) in enumerate(all_rna_ids)}
+        cistron_ids = transcription.cistron_data['id']
+        cistron_id_to_index = {
+            cistron_id: i for (i, cistron_id) in enumerate(cistron_ids)
+            }
 
         rna_degradation_config = {
             'time_step': time_step,
             '_parallel': parallel,
-
+            
+            'rna_ids': rna_ids,
+            'mature_rna_ids': mature_rna_ids,
+            'cistron_ids': cistron_ids,
+            'cistron_tu_mapping_matrix': transcription.cistron_tu_mapping_matrix,
+            'mature_rna_cistron_indexes': np.array([
+                cistron_id_to_index[rna_id[:-3]] for rna_id in mature_rna_ids
+                ]),
             'all_rna_ids': all_rna_ids,
             'n_total_RNAs': len(all_rna_ids),
             'n_avogadro': self.sim_data.constants.n_avogadro,
@@ -952,8 +968,7 @@ class LoadSimData:
             'aa_exchange_names': aa_exchange_names,
             'removed_aa_uptake': np.array([aa in aa_targets_not_updated
                 for aa in aa_exchange_names]),
-            # Whether to use metabolism as a deriver (with t=0 skipped)
-            'deriver_mode': deriver_mode,
+            'all_external_exchange_molecules': self.sim_data.external_state.all_external_exchange_molecules,
 
             # TODO: testing, remove later (perhaps after moving change to sim_data)
             'reduce_murein_objective': False,
@@ -1285,10 +1300,58 @@ class LoadSimData:
         return {
             'time_step': time_step,
             '_parallel': parallel,
-            'n_TU': len(self.sim_data.process.transcription.rna_data['id']),
-            'n_TF': len(self.sim_data.process.transcription_regulation.tf_ids),
-            'n_cistron': len(self.sim_data.process.transcription.cistron_data['gene_id']),
+            'rna_ids': self.sim_data.process.transcription.rna_data['id'],
+            'tf_ids': self.sim_data.process.transcription_regulation.tf_ids,
+            'cistron_ids': self.sim_data.process.transcription.cistron_data['gene_id'],
             'cistron_tu_mapping_matrix': self.sim_data.process.transcription.cistron_tu_mapping_matrix,
+        }
+    
+    def get_dna_supercoiling_listener_config(self, time_step=1, parallel=False):
+        return {
+            'time_step': time_step,
+            '_parallel': parallel,
+            'relaxed_DNA_base_pairs_per_turn': \
+                self.sim_data.process.chromosome_structure.relaxed_DNA_base_pairs_per_turn
+        }
+    
+    def get_unique_molecule_counts_config(self, time_step=1, parallel=False):
+        return {
+            'time_step': time_step,
+            '_parallel': parallel,
+            'unique_ids': \
+                self.sim_data.internal_state.unique_molecule.unique_molecule_masses['id']
+        }
+    
+    def get_ribosome_data_listener_config(self, time_step=1, parallel=False):
+        return {
+            'time_step': time_step,
+            '_parallel': parallel,
+            'monomer_ids': self.sim_data.process.translation.monomer_data[
+                'id'].tolist(),
+            'rRNA_cistron_tu_mapping_matrix': \
+                self.sim_data.process.transcription.rRNA_cistron_tu_mapping_matrix,
+            'rRNA_is_5S': self.sim_data.process.transcription.cistron_data[
+                'is_5S_rRNA'][self.sim_data.process.transcription.cistron_data[
+                    'is_rRNA']],
+            'rRNA_is_16S': self.sim_data.process.transcription.cistron_data[
+                'is_16S_rRNA'][self.sim_data.process.transcription.cistron_data[
+                    'is_rRNA']],
+            'rRNA_is_23S': self.sim_data.process.transcription.cistron_data[
+                'is_23S_rRNA'][self.sim_data.process.transcription.cistron_data[
+                    'is_rRNA']]
+        }
+    
+    def get_rnap_data_listener_config(self, time_step=1, parallel=False):
+        return {
+            'time_step': time_step,
+            '_parallel': parallel,
+            'stable_RNA_indexes': np.where(
+                np.logical_or(self.sim_data.process.transcription.rna_data['is_rRNA'],
+                    self.sim_data.process.transcription.rna_data['is_tRNA']))[0],
+            'cistron_ids': \
+                self.sim_data.process.transcription.cistron_data['id'],
+            'cistron_tu_mapping_matrix': \
+                self.sim_data.process.transcription.cistron_tu_mapping_matrix
         }
     
     # def generate_initial_state(self):

@@ -278,11 +278,11 @@ class PolypeptideElongation(PartitionedProcess):
                     'ppgpp_conc': 0,
                     'rela_conc': 0,
                     'spot_conc': 0,
-                    'rela_syn': 0,
+                    'rela_syn': (0, self.amino_acids),
                     'spot_syn': 0,
                     'spot_deg': 0,
-                    'spot_deg_inhibited': 0,
-                    'trna_charged': 0}),
+                    'spot_deg_inhibited': (0, self.amino_acids),
+                    'trna_charged': (0, self.amino_acids)}),
 
                 'ribosome_data': listener_schema({
                     'translation_supply': 0,

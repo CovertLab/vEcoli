@@ -35,29 +35,35 @@ class RnaSynthProb(Step):
 
     def __init__(self, parameters=None):
         super().__init__(parameters)
-        self.n_TU = self.parameters['n_TU']
-        self.n_TF = self.parameters['n_TF']
-        self.n_cistron = self.parameters['n_cistron']
+        self.rna_ids = self.parameters['rna_ids']
+        self.tf_ids = self.parameters['tf_ids']
+        self.cistron_ids = self.parameters['cistron_ids']
+        self.n_TU = len(self.rna_ids)
+        self.n_TF = len(self.tf_ids)
+        self.n_cistron = len(self.cistron_ids)
         self.cistron_tu_mapping_matrix = self.parameters[
             'cistron_tu_mapping_matrix']
 
     def ports_schema(self):
         return {
             'rna_synth_prob': listener_schema({
-                'promoter_copy_number': [],
-                'gene_copy_number': [],
-                'target_rna_synth_prob': np.zeros(self.n_TU, np.float64),
-                'actual_rna_synth_prob': np.zeros(self.n_TU, np.float64),
-                'tu_is_overcrowded': [],
-                'actual_rna_synth_prob_per_cistron': [],
-                'target_rna_synth_prob_per_cistron': [],
-                'expected_rna_init_per_cistron': [],
-                'pPromoterBound': 'tf_ids',
-                'nPromoterBound': 'tf_ids',
-                'nActualBound': 'tf_ids',
-                'n_available_promoters': 'tf_ids',
-                'n_bound_TF_per_TU': np.zeros((self.n_TU, self.n_TF), np.int16),
-                'n_bound_TF_per_cistron': [],
+                'promoter_copy_number': ([], self.rna_ids),
+                'gene_copy_number': ([], self.rna_ids),
+                'target_rna_synth_prob': (
+                    np.zeros(self.n_TU, np.float64), self.rna_ids),
+                'actual_rna_synth_prob': (
+                    np.zeros(self.n_TU, np.float64), self.rna_ids),
+                'tu_is_overcrowded': ([], self.rna_ids),
+                'actual_rna_synth_prob_per_cistron': ([], self.cistron_ids),
+                'target_rna_synth_prob_per_cistron': ([], self.cistron_ids),
+                'expected_rna_init_per_cistron': ([], self.cistron_ids),
+                'pPromoterBound': (0, self.tf_ids),
+                'nPromoterBound': (0, self.tf_ids),
+                'nActualBound': (0, self.tf_ids),
+                'n_available_promoters': (0, self.tf_ids),
+                'n_bound_TF_per_TU': (
+                    np.zeros((self.n_TU, self.n_TF), np.int16), self.rna_ids),
+                'n_bound_TF_per_cistron': ([], self.cistron_ids),
                 'total_rna_init': 0
             }),
             'promoters': numpy_schema('promoters'),

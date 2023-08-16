@@ -73,9 +73,10 @@ class RnaMaturation(PartitionedProcess):
                 'rna_maturation_listener': listener_schema({
                     'total_maturation_events': 0,
                     'total_degraded_ntps': 0,
-                    'unprocessed_rnas_consumed': 0,
-                    'mature_rnas_generated': 0,
-                    'maturation_enzyme_counts': 0})
+                    'unprocessed_rnas_consumed': (0, self.unprocessed_rna_ids),
+                    'mature_rnas_generated': (0, self.mature_rna_ids),
+                    'maturation_enzyme_counts': (
+                        0, self.rna_maturation_enzyme_ids)})
             },
         }
 
