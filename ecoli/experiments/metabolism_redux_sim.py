@@ -267,7 +267,8 @@ def save_sim_output(folder, query, sim, save_model=False):
     for agent in agents:
         query.extend([('agents', agent, 'listeners', 'fba_results'),
                       ('agents', agent, 'listeners', 'mass'),
-                      ('agents', agent, 'bulk')])
+                      ('agents', agent, 'bulk'),
+                      ('agents', agent, 'unique')])
     output = sim.query(query)
     pathlib.Path(folder).mkdir(parents=True, exist_ok=True)
     np.save(folder + 'output.npy', output)
