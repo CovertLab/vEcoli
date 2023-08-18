@@ -24,7 +24,7 @@ from ecoli.processes.listeners.rna_synth_prob import RnaSynthProb
 from ecoli.processes.listeners.dna_supercoiling import DnaSupercoiling
 from ecoli.processes.listeners.replication_data import ReplicationData
 from ecoli.processes.listeners.rnap_data import RnapData
-from ecoli.processes.listeners.unqiue_molecule_counts import UniqueMoleculeCounts
+from ecoli.processes.listeners.unique_molecule_counts import UniqueMoleculeCounts
 from ecoli.processes.listeners.ribosome_data import RibosomeData
 from ecoli.processes.chromosome_structure import ChromosomeStructure
 from ecoli.processes.allocator import Allocator

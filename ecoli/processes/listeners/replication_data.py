@@ -67,8 +67,8 @@ class ReplicationData(Step):
                     'fork_domains': fork_domains,
                     'fork_unique_index': fork_unique_index,
                     'number_of_oric': states['oriCs']['_entryState'].sum(),
-                    'free_DnaA_boxes': len(DnaA_box_bound),
-                    'total_DnaA_boxes': np.count_nonzero(
+                    'total_DnaA_boxes': len(DnaA_box_bound),
+                    'free_DnaA_boxes': np.count_nonzero(
                         np.logical_not(DnaA_box_bound))
                 }
             }

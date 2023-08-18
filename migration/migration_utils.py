@@ -63,6 +63,9 @@ def run_non_partitioned_process(
     path = list(experiment.process_paths.keys())[0]
     store, states = experiment._process_state(path)
 
+    # Sidestep t=0 skip for some listeners
+    states['first_update'] = False
+
     # Reset bulk counts to "partitioned counts" so final counts
     # can be directly compared to wcEcoli (some processes do not
     # connect to bulk store so skip it)
@@ -177,7 +180,10 @@ def run_and_compare(init_time, process_class, partition=True, layer=0, post=Fals
     init_time = init_time
 
     # Create process, experiment, loading in initial state from file.
-    config = LOAD_SIM_DATA.get_config_by_name(process_class.name)
+    if process_class.name == 'replication_data_listener':
+        config = {'time_step': 1}
+    else:
+        config = LOAD_SIM_DATA.get_config_by_name(process_class.name)
     config['seed'] = 0
     process = process_class(config)
 
@@ -225,6 +231,37 @@ def run_and_compare(init_time, process_class, partition=True, layer=0, post=Fals
         process.rnaMassInitial = t0_mass['rna_mass']
         process.smallMoleculeMassInitial = t0_mass['smallMolecule_mass']
         process.timeInitial = 0
+    # Ribosome data listener requires transcription data
+    elif process_class.__name__ == 'RibosomeData':
+        with open(f"data/migration/wcecoli_listeners_t{init_time}.json",
+                  'r') as f:
+            wc_listeners = json.load(f)
+        initial_state['listeners']['ribosome_data']['rRNA_initiated_TU'
+            ] = wc_listeners['ribosome_data']['rRNA_initiated_TU']
+        initial_state['listeners']['ribosome_data']['rRNA_init_prob_TU'
+            ] = wc_listeners['ribosome_data']['rRNA_init_prob_TU']
+    # RNA synth prob listener requires transcription data
+    elif process_class.__name__ == 'RnaSynthProb':
+        with open(f"data/migration/wcecoli_listeners_t{init_time}.json",
+                  'r') as f:
+            wc_listeners = json.load(f)
+        initial_state['listeners']['rna_synth_prob'] = {
+            'total_rna_init': wc_listeners['rna_synth_prob']['total_rna_init'],
+            'n_bound_TF_per_TU': wc_listeners['rna_synth_prob'][
+                'n_bound_TF_per_TU'],
+            'actual_rna_synth_prob': wc_listeners['rna_synth_prob'][
+                'actual_rna_synth_prob'],
+            'target_rna_synth_prob': wc_listeners['rna_synth_prob'][
+                'target_rna_synth_prob'],
+        }
+    # RNAP data listener requires transcription data
+    elif process_class.__name__ == 'RnapData':
+        with open(f"data/migration/wcecoli_listeners_t{init_time}.json",
+                  'r') as f:
+            wc_listeners = json.load(f)
+        initial_state['listeners']['rnap_data'] = {
+            'rna_init_event': wc_listeners['rnap_data']['rna_init_event']
+        }
 
     if partition:
         # run the process and get an update
@@ -263,6 +300,9 @@ def run_and_compare(init_time, process_class, partition=True, layer=0, post=Fals
     # Compare listener values
     with open(f"data/migration/wcecoli_listeners_t{init_time}.json", 'r') as f:
         wc_listeners = json.load(f)
+    wc_listeners['unique_molecule_counts'] = dict(zip(sorted(
+        LOAD_SIM_DATA.sim_data.internal_state.unique_molecule.unique_molecule_definitions),
+        wc_listeners['unique_molecule_counts']['unique_molecule_counts']))
     actual_listeners = actual_update.get('listeners', {})
     # Certain listeners are at higher level in viv-ecoli
     if 'monomer_counts' in actual_listeners:
