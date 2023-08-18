@@ -50,6 +50,7 @@ class RibosomeData(Step):
         self.rRNA_is_23S = self.parameters['rRNA_is_23S']
 
     def ports_schema(self):
+        n_rRNA_TUs = self.rRNA_cistron_tu_mapping_matrix.shape[1]
         ports = {
             'listeners': {
                 'ribosome_data': listener_schema({
@@ -64,12 +65,11 @@ class RibosomeData(Step):
                     'rRNA5S_init_prob': [],
                     'rRNA16S_init_prob': [],
                     'rRNA23S_init_prob': [],
-                    'mRNA_unique_index': [],
                     'mRNA_TU_index': [],
                     'n_ribosomes_on_each_mRNA': [],
                     'protein_mass_on_polysomes': [],
-                    'rRNA_initiated_TU': [],
-                    'rRNA_init_prob_TU': []
+                    'rRNA_initiated_TU': np.zeros(n_rRNA_TUs),
+                    'rRNA_init_prob_TU': np.zeros(n_rRNA_TUs)
                 })
             },
             'RNAs': numpy_schema('RNAs'),
@@ -178,7 +178,6 @@ class RibosomeData(Step):
                     'rRNA5S_init_prob': rRNA5S_init_prob,
                     'rRNA16S_init_prob': rRNA16S_init_prob,
                     'rRNA23S_init_prob': rRNA23S_init_prob,
-                    'mRNA_unique_index': mRNA_unique_index,
                     'mRNA_TU_index': mRNA_TU_index,
                     'n_ribosomes_on_each_mRNA': n_ribosomes_on_each_mRNA,
                     'protein_mass_on_polysomes': protein_mass_on_polysomes,

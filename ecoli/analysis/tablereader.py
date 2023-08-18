@@ -120,7 +120,7 @@ MAPPING = {
     },
     'RnaSynthProb': {
         'nActualBound': ('listeners', 'rna_synth_prob', 'n_actual_bound', replace_scalars),
-        'rnaSynthProb': ('listeners', 'rna_synth_prob', 'rna_synth_prob', replace_scalars),
+        'target_rna_synth_prob': ('listeners', 'rna_synth_prob', 'target_rna_synth_prob', replace_scalars),
         'bound_TF_coordinates': None,
         'n_available_promoters': (
             'listeners', 'rna_synth_prob', 'n_available_promoters', replace_scalars),
@@ -212,9 +212,9 @@ MAPPING = {
         'n_ribosomes_on_partial_mRNA_per_transcript': None,
         'n_ribosomes_per_transcript': None,
         'numTrpATerminated': ('listeners', 'ribosome_data', 'num_trpA_terminated'),
-        'probTranslationPerTranscript': ('listeners',
+        'actual_prob_translation_per_transcript': ('listeners',
                                          'ribosome_data',
-                                         'prob_translation_per_transcript',
+                                         'actual_prob_translation_per_transcript',
                                          replace_scalars),
         'processElongationRate': None,
         'rrn16S_init_prob': None,
@@ -531,15 +531,15 @@ def test_table_reader():
     bulk_counts = bulk_tb.readColumn("counts")
 
     rnap_tb = TableReader("RnapData", data)
-    rna_init = rnap_tb.readColumn("rna_init_event")
+    rna_init = rnap_tb.readColumn("rnaInitEvent")
 
     rna_synth_tb = TableReader("RnaSynthProb", data)
     tf_per_tu = rna_synth_tb.readColumn("n_bound_TF_per_TU")
     gene_copies = rna_synth_tb.readColumn("gene_copy_number")
-    rna_synth_prob = rna_synth_tb.readColumn("rnaSynthProb")
+    rna_synth_prob = rna_synth_tb.readColumn("target_rna_synth_prob")
 
     ribosome_tb = TableReader("RibosomeData", data)
-    prob_trans = ribosome_tb.readColumn("probTranslationPerTranscript")
+    prob_trans = ribosome_tb.readColumn("actual_prob_translation_per_transcript")
 
 
 if __name__ == "__main__":

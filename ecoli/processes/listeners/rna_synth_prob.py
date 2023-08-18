@@ -83,8 +83,13 @@ class RnaSynthProb(Step):
         cistron_indexes, = attrs(states['genes'], ['cistron_index'])
 
         actual_rna_synth_prob_per_cistron = self.cistron_tu_mapping_matrix.dot(
-            states['rna_synth_prob']['actual_rna_synth_prob']
-        )
+            states['rna_synth_prob']['actual_rna_synth_prob'])
+        # The expected value of rna initiations per cistron. Realized values
+        # during simulation will be different, because they will be integers
+        # drawn from a multinomial distribution
+        expected_rna_init_per_cistron = (actual_rna_synth_prob_per_cistron *
+            states['rna_synth_prob']['total_rna_init'])
+
         if actual_rna_synth_prob_per_cistron.sum() != 0:
             actual_rna_synth_prob_per_cistron = (
                 actual_rna_synth_prob_per_cistron / 
@@ -107,9 +112,7 @@ class RnaSynthProb(Step):
                 'bound_TF_indexes': TF_indexes,
                 'bound_TF_coordinates': all_coordinates[bound_promoter_indexes],
                 'bound_TF_domains': all_domains[bound_promoter_indexes],
-                'expected_rna_init_per_cistron': (
-                    actual_rna_synth_prob_per_cistron
-                    * states['rna_synth_prob']['total_rna_init']),
+                'expected_rna_init_per_cistron': expected_rna_init_per_cistron,
                 'actual_rna_synth_prob_per_cistron': \
                     actual_rna_synth_prob_per_cistron,
                 'target_rna_synth_prob_per_cistron': \

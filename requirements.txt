@@ -93,6 +93,7 @@ notebook==6.5.4
 notebook_shim==0.2.3
 numba==0.57.1
 numpy==1.24.4
+opencv-python==4.8.0.76
 orjson==3.9.1
 # Needed to use GLOP solver but Python 3.11 requires >9.5
 # while cvxpy only supports <9.5 (WIP at PR #2169)

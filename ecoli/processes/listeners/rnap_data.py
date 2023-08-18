@@ -48,10 +48,11 @@ class RnapData(Step):
             'cistron_tu_mapping_matrix']
 
     def ports_schema(self):
+        n_TUs = self.cistron_tu_mapping_matrix.shape[1]
         ports = {
             'listeners': {
                 'rnap_data': listener_schema({
-                    'rna_init_event': [],
+                    'rna_init_event': np.zeros(n_TUs),
                     'active_rnap_coordinates': [],
                     'active_rnap_domain_indexes': [],
                     'active_rnap_unique_indexes': [],
