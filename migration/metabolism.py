@@ -11,6 +11,7 @@ def test_metabolism_migration():
     times = [0, 1870]
     for initial_time in times:
         run_and_compare(initial_time, Metabolism, partition=False, layer=6)
+        run_and_compare(initial_time, Metabolism, partition=False, layer=6, operons=False)
 
 if __name__ == "__main__":
     test_metabolism_migration()

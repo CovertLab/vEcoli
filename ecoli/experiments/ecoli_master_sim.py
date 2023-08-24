@@ -459,10 +459,10 @@ class EcoliSim:
                 for agent_state in state['agents'].values():
                     # Will be set to true when starting sim
                     del agent_state['first_update']
-                    # Sets are nondeterministic
-                    del agent_state['environment']
                     # Processes can't be serialized
                     del agent_state['process']
+                    # Bulk random state can't be serialized
+                    del agent_state['allocator_rng']
                     # Save bulk and unique dtypes
                     agent_state['bulk_dtypes'] = str(agent_state['bulk'].dtype)
                     agent_state['unique_dtypes'] = {}
@@ -470,8 +470,8 @@ class EcoliSim:
                         agent_state['unique_dtypes'][name] = str(mols.dtype)
             else:
                 del state['first_update']
-                del state['environment']
                 del state['process']
+                del state['allocator_rng']
                 state['bulk_dtypes'] = str(state['bulk'].dtype)
                 state['unique_dtypes'] = {}
                 for name, mols in state['unique'].items():
@@ -540,7 +540,6 @@ class EcoliSim:
         if self.save:
             self.save_states()
         else:
-            warnings.filterwarnings("error")
             self.ecoli_experiment.update(self.total_time)
         self.ecoli_experiment.end()
         if self.profile:

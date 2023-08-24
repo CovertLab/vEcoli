@@ -61,7 +61,7 @@ class UniqueMoleculeCounts(Step):
         return {
             'listeners': {
                 'unique_molecule_counts': {
-                    unique_id: states['unique'][unique_id][
+                    str(unique_id): states['unique'][unique_id][
                         '_entryState'].sum()
                     for unique_id in self.unique_ids
                 }

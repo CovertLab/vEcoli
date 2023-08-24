@@ -61,18 +61,12 @@ def test_lysis_rxn_dff_environment(total_time = 10):
     }
     sim.build_ecoli()
     bulk_array = sim.generated_initial_state['agents']['0']['bulk']
-    bulk_array = np.append(bulk_array, np.array([
-        (beta_lactam, 0),
-        (hydrolyzed_beta_lactam, 0)
+    # For simplicity, estimate hydrolyzed beta-lactam as same mass
+    sim.generated_initial_state['agents']['0']['bulk'] = np.append(
+        bulk_array, np.array([(beta_lactam, 0, 0, 0, 0, 0, 0, 0, 5.8e-7, 0, 0),
+            (hydrolyzed_beta_lactam, 0, 0, 0, 0, 0, 0, 0, 5.8e-7, 0, 0)
     ], dtype=bulk_array.dtype))
-    sim.generated_initial_state['agents']['0']['bulk'] = bulk_array
     mass_listener = sim.ecoli.steps['agents']['0']['ecoli-mass-listener']
-    beta_lactam_mass = np.array([0, 0, 0, 0, 0, 0, 5.8e-7, 0, 0])
-    # For simplicity, pretend hydrolyzed beta-lactam has same mass
-    mass_listener.bulk_masses = np.concatenate([mass_listener.bulk_masses,
-        [beta_lactam_mass, beta_lactam_mass]])
-    mass_listener.bulk_ids = np.append(mass_listener.bulk_ids,
-        [beta_lactam, hydrolyzed_beta_lactam])
     mass_listener._bulk_molecule_by_compartment = np.stack([
         np.core.defchararray.chararray.endswith(
             mass_listener.bulk_ids, abbrev + ']')

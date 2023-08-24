@@ -21,18 +21,17 @@ from migration.migration_utils import recursive_compare
 
 @pytest.mark.slow
 def test_division(
-        agent_id='1',
+        agent_id='0',
         total_time=4
 ):
     """tests that a cell can be divided and keep running"""
 
     # get initial mass from Ecoli composer
     sim = EcoliSim.from_file()
-    sim.config['initial_state_file'] = 'vivecoli_t2600'
+    sim.config['initial_state_file'] = 'vivecoli_t2000'
     sim.config['divide'] = True
+    sim.config['division_variable'] = ('listeners', 'mass', 'dry_mass')
     sim.config['agent_id'] = agent_id
-    # Set threshold so that mother divides after first timestep
-    sim.config['division_threshold'] = 667.8
     sim.config['total_time'] = total_time
     # Ensure unique molecules are emitted
     sim.config['emit_paths'] = [
@@ -40,23 +39,40 @@ def test_division(
         ('agents', str(agent_id), 'bulk',),
         ('agents', str(agent_id), 'listeners',)]
     sim.build_ecoli()
-    initial_state = sim.generated_initial_state
-    # Override initially saved division threshold
-    initial_state['agents'][str(agent_id)].pop('division_threshold', None)
 
+    # Set threshold so that mother divides after first timestep
+    sim.generated_initial_state['agents']['0']['division_threshold'] = 572.2
     sim.run()
 
     # retrieve output
     output = sim.ecoli_experiment.emitter.get_data()
-    mother_state = next(iter(output[2]['agents'].values()))
-    sim_state = sim.ecoli_experiment.state.get_value()
-    daughter_states = list(sim_state['agents'].values())
+    # metabolism runs and greatly changes molecule counts after
+    # previoius emit but before division, so ignore metabolites
+    metabolite_idx = sim.ecoli_experiment.state['agents']['00'][
+        'ecoli-metabolism'].value.metabolite_idx
+    # ignore trna charging molecules, which also change before division
+    polypep_elong = sim.ecoli_experiment.state['agents']['00']['process'][
+        'ecoli-polypeptide-elongation'].value[0]
+    trna_charging_idx = polypep_elong.charging_molecule_idx
+    ppgpp_idx = np.array([polypep_elong.ppgpp_idx])
+    # ignore inactive ribosomes, which also change before division
+    polypep_init = sim.ecoli_experiment.state['agents']['00']['process'][
+        'ecoli-polypeptide-initiation'].value[0]
+    ribosome_idx = np.array([polypep_init.ribosome30S_idx,
+                             polypep_init.ribosome50S_idx])
+    ignore_idx = np.concatenate([metabolite_idx, trna_charging_idx,
+                                 ppgpp_idx, ribosome_idx])
+    mother_state = next(iter(output[1]['agents'].values()))
+    mother_bulk = np.delete(mother_state['bulk'], ignore_idx)
+    daughter_states = list(output[2]['agents'].values())
+    daughter_bulk = [np.delete(ds['bulk'], ignore_idx) 
+        for ds in daughter_states]
 
     # compare the counts of bulk molecules between the mother and daughters
     # this is not exact because the mother grew slightly in the timestep
     # after its last emit but before being split into two daughter cells
-    assert np.allclose(mother_state['bulk'], daughter_states[0]['bulk'][
-        'count'] + daughter_states[1]['bulk']['count'], rtol=0.001, atol=250)
+    assert np.allclose(mother_bulk, np.array(daughter_bulk[0])
+        + np.array(daughter_bulk[1]), atol=50)
 
     # compare the counts of unique molecules between the mother and daughters
     for name, mols in mother_state['unique'].items():
@@ -92,7 +108,7 @@ def test_division_topology():
     # get initial mass from Ecoli composer
     sim = EcoliSim.from_file()
     sim.config['seed'] = 1
-    sim.config['initial_state_file'] = 'vivecoli_t2600'
+    sim.config['initial_state_file'] = 'vivecoli_t2000'
     sim.config['divide'] = True
     sim.config['agent_id'] = agent_id
     # Ensure unique molecules are emitted
@@ -101,12 +117,6 @@ def test_division_topology():
         ('agents', agent_id, 'bulk',),
         ('agents', agent_id, 'listeners',)]
     sim.build_ecoli()
-    initial_state = sim.generated_initial_state
-    # Set threshold so that mother divides after first timestep
-    initial_state['agents'][agent_id]['division_threshold'] = initial_state[
-        'agents'][agent_id]['listeners']['mass']['dry_mass'] + 0.5
-    division_mass = initial_state['agents'][agent_id]['division_threshold']
-    print(f"DIVIDE AT {division_mass} fg")
 
     # make the experiment
     experiment_config = {
@@ -129,6 +139,8 @@ def test_division_topology():
         sim.config['emit_paths'],
         True,
     )
+    # Divide immediately
+    sim.ecoli_experiment.state['agents']['0']['divide'] = True
     
     # Clean up unnecessary references
     sim.generated_initial_state = None
@@ -157,9 +169,12 @@ def test_ecoli_generate():
     # asserts to ecoli_composite['processes'] and ecoli_composite['topology']
     assert all('_requester' in k or
                '_evolver' in k or
-               k == 'allocator' or
+               'allocator' in k or
+               'unique_update' in k or
+               k == 'division' or
+               k == 'mark_d_period' or
                isinstance(v, ECOLI_DEFAULT_PROCESSES[k])
-               for k, v in sim.ecoli['processes'].items())
+               for k, v in sim.ecoli['steps']['agents']['0'].items())
     for k, v in sim.ecoli['topology'].items():
         proc_name = k.split('_requester')[0].split('_evolver')[0]
         # Clock topology is not registered in registry
@@ -187,14 +202,15 @@ def test_lattice_lysis(plot=False):
     """
     sim = EcoliSim.from_file(CONFIG_DIR_PATH + 'lysis.json')
     sim.total_time = 10
-    sim.process_configs.update({'clock': {'time_step': 2}})
+    sim.process_configs.update({'global_clock': {'time_step': 2}})
     sim.build_ecoli()
     # Add beta-lactam to bulk store
     initial_state = sim.generated_initial_state
+    zero_mass = (0,) * 9
     initial_state['agents']['0']['bulk'] = np.append(
         initial_state['agents']['0']['bulk'], np.array(
-            [('beta-lactam', 0),
-             ('hydrolyzed-beta-lactam', 0)],
+            [('beta-lactam[p]', 0) + zero_mass,
+             ('hydrolyzed-beta-lactam[p]', 0) + zero_mass],
             dtype=initial_state['agents']['0']['bulk'].dtype))
     sim.run()
     data = sim.query()

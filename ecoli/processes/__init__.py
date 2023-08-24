@@ -49,8 +49,6 @@ from ecoli.processes.rna_interference import RnaInterference
 from ecoli.processes.antibiotics.conc_to_counts import ConcToCounts
 from ecoli.processes.global_clock import GlobalClock
 from ecoli.processes.antibiotics.murein_division import MureinDivision
-from ecoli.processes.antibiotics.environment_glucose_limit import (
-    EnvironmentGlucoseLimit)
 from ecoli.processes.bulk_timeline import BulkTimelineProcess
 
 
@@ -116,6 +114,4 @@ process_registry.register(ConcToCounts.name, ConcToCounts)
 process_registry.register(RnaInterference.name, RnaInterference)
 process_registry.register(GlobalClock.name, GlobalClock)
 process_registry.register(MureinDivision.name, MureinDivision)
-process_registry.register(
-    EnvironmentGlucoseLimit.name, EnvironmentGlucoseLimit)
 process_registry.register(BulkTimelineProcess.name, BulkTimelineProcess)

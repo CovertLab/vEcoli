@@ -7,7 +7,7 @@ Represents the total cellular mass.
 """
 
 import numpy as np
-from scipy import constants
+from numpy.lib import recfunctions as rfn
 
 from vivarium.core.process import Deriver
 from vivarium.library.units import units as viv_units
@@ -80,6 +80,9 @@ class MassListener(Deriver):
             'smallMolecule': self.parameters['submass_to_idx']["metabolite"],
             'water': self.parameters['submass_to_idx']["water"]
         }
+        self.ordered_submasses = [0] * len(self.parameters['submass_to_idx'])
+        for submass, idx in self.parameters['submass_to_idx'].items():
+            self.ordered_submasses[idx] = f'{submass}_submass'
 
         # compartment indexes
         self.compartment_id_to_index = self.parameters[
@@ -210,15 +213,17 @@ class MassListener(Deriver):
 
         # get submasses from bulk and unique
         bulk_counts = counts(states['bulk'], self.bulk_idx)
-        bulk_submasses = np.dot(bulk_counts, self.bulk_masses)
+        bulk_masses = states['bulk'][self.ordered_submasses][self.bulk_idx]
+        bulk_masses = rfn.structured_to_unstructured(bulk_masses)
+        bulk_submasses = np.dot(bulk_counts, bulk_masses)
         bulk_compartment_masses = np.dot(
-            bulk_counts * self._bulk_molecule_by_compartment, self.bulk_masses)
+            bulk_counts * self._bulk_molecule_by_compartment, bulk_masses)
         # If perfect recreation of wcEcoli desired, uncomment below
         # bulk_counts = np.hstack([self.bulk_addon,
         #     counts(states['bulk'], self.bulk_idx)[:, np.newaxis]])
-        # bulk_submasses = np.dot(bulk_counts.T, self.bulk_masses).sum(axis=0)
+        # bulk_submasses = np.dot(bulk_counts.T, bulk_masses).sum(axis=0)
         # bulk_compartment_masses = np.dot(
-        #     bulk_counts.sum(axis=1) * self._bulk_molecule_by_compartment, self.bulk_masses)
+        #     bulk_counts.sum(axis=1) * self._bulk_molecule_by_compartment, bulk_masses)
 
         unique_submasses = np.zeros(len(self.massDiff_names))
         unique_compartment_masses = np.zeros_like(bulk_compartment_masses)

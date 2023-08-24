@@ -154,6 +154,8 @@ class TfBinding(Step):
             if "PD00365" in self.tf_ids:
                 self.marR_idx = bulk_name_to_idx(self.marR_name, bulk_ids)
                 self.marR_tet_idx = bulk_name_to_idx(self.marR_tet, bulk_ids)
+        
+        if states['first_update']:
             return {'first_update': False}
 
         # If there are no promoters, return immediately

@@ -53,6 +53,8 @@ class TfUnbinding(Step):
         if self.active_tf_idx is None:
             self.active_tf_idx = bulk_name_to_idx(
                 [tf + '[c]' for tf in self.tf_ids], states['bulk']['id'])
+        
+        if states['first_update']:
             return {'first_update': False}
 
         # Get attributes of all promoters

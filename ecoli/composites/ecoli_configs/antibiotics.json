@@ -4,12 +4,12 @@
         "concentrations_deriver",
         "permeability",
         "antibiotic-transport-odeint",
-        "conc_to_counts",
-        "environment-glucose-limit"
+        "conc_to_counts"
     ],
     "initial_state_file": "antibiotics_wcecoli_t0",
     "mar_regulon": "True",
     "amp_lysis": true,
+    "sim_data_path": "reconstruction/sim_data/kb_no_operons/simData.cPickle",
     "spatial_environment_config": {
         "multibody": {
             "bounds": [
@@ -19,10 +19,10 @@
         },
         "reaction_diffusion": {
             "molecules": [
-                "GLC[p]",
-                "EG10040-MONOMER[p]",
-                "ampicillin[p]",
-                "ampicillin_hydrolyzed[p]",
+                "GLC",
+                "EG10040-MONOMER",
+                "ampicillin",
+                "ampicillin_hydrolyzed",
                 "tetracycline"
             ],
             "n_bins": [10, 10],
@@ -112,10 +112,10 @@
                     "hydrolyzed_cytoplasm": ["..", "cytoplasm", "concentrations", "ampicillin_hydrolyzed"],
                     "cytoplasm": ["..", "cytoplasm", "concentrations", "ampicillin"],
                     "periplasm": ["..", "periplasm", "concentrations", "ampicillin"],
-                    "external": ["..", "boundary", "external", "ampicillin[p]"]
+                    "external": ["..", "boundary", "external", "ampicillin"]
                 },
                 "exchanges": {
-                    "external": ["environment", "exchange", "ampicillin[p]"]
+                    "external": ["environment", "exchange", "ampicillin"]
                 },
                 "reaction_parameters": {
                     "diffusion": {
@@ -274,8 +274,7 @@
                     "bilayer_perm": "!ParameterSerializer[tetracycline>permeability>outer_without_porins]"
                 }
             }
-        },
-        "environment-glucose-limit": {}
+        }
     },
     "flow": {
         "concentrations_deriver": [["ecoli-shape"]],

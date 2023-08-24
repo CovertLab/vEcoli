@@ -143,7 +143,7 @@ class Division(Step):
                 process_states = {
                     process.parameters['process'].name: (
                         process.parameters['process'],)
-                    for process in composite.processes.values()
+                    for process in composite.steps.values()
                     if 'process' in process.parameters
                 }
                 initial_state = {'process': process_states}

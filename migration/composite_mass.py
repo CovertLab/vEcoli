@@ -9,6 +9,7 @@ from matplotlib import pyplot as plt
 
 from migration.migration_utils import ComparisonTestSuite
 from ecoli.experiments.ecoli_master_sim import EcoliSim, CONFIG_DIR_PATH
+from ecoli.library.sim_data import SIM_DATA_PATH_NO_OPERONS
 
 
 RELATIVE_TOLERANCES = {
@@ -25,9 +26,12 @@ RELATIVE_TOLERANCES = {
 }
 
 
-def test_composite_mass(total_time=30):
+def run_composite_mass_test(total_time=30, operons=True):
     sim = EcoliSim.from_file(CONFIG_DIR_PATH + "default.json")
     sim.total_time = total_time
+    if not operons:
+        sim.sim_data_path = SIM_DATA_PATH_NO_OPERONS
+        sim.initial_state_file = 'migration_no_operons/wcecoli_t0'
     sim.build_ecoli()
 
     # run the composite and save specified states
@@ -45,7 +49,8 @@ def test_composite_mass(total_time=30):
 
     vivarium_keys = set(actual_timeseries.keys())
     wcecoli_keys = set()
-    with open(f"data/migration/mass_data.json") as f:
+    data_prefix = 'data/migration' if operons else 'data/migration_no_operons'
+    with open(f"{data_prefix}/mass_data.json") as f:
         wc_mass_data = json.load(f)
     for index, time in enumerate(timeseries['time'][:-1]):
         actual_update = {
@@ -61,7 +66,12 @@ def test_composite_mass(total_time=30):
     print('These keys only exist in the wcEcoli mass listener: ' + str(list(only_wcecoli)))
     only_vivarium = vivarium_keys - wcecoli_keys
     print('These keys only exist in the vivarium mass listener: ' + str(list(only_vivarium)))
-    plots(actual_timeseries, wcecoli_timeseries, wcecoli_keys & vivarium_keys)
+    plots(actual_timeseries, wcecoli_timeseries, wcecoli_keys & vivarium_keys, operons)
+
+
+def test_composite_mass():
+    run_composite_mass_test()
+    run_composite_mass_test(operons=False)
 
 
 def _make_assert(key):
@@ -88,7 +98,7 @@ def assertions(actual_update, expected_update, keys):
 
     tests.fail()
 
-def plots(actual_timeseries, wcecoli_timeseries, keys):
+def plots(actual_timeseries, wcecoli_timeseries, keys, operons):
     # Pytest gives warnings about overlapping axes without this
     plt.close('all')
     n_keys = len(keys)
@@ -112,7 +122,7 @@ def plots(actual_timeseries, wcecoli_timeseries, keys):
         plt.ylabel('Vivarium')
     plt.gcf().set_size_inches(16, 16)
     plt.tight_layout()
-    plt.savefig(f"out/migration/composite_mass.png")
+    plt.savefig(f"out/migration/composite_mass_operons_{operons}.png")
     plt.close()
 
 if __name__ == "__main__":

@@ -7,6 +7,7 @@ from wholecell.utils import units
 from wholecell.utils.unit_struct_array import UnitStructArray
 from wholecell.utils.fitting import normalize
 
+from ecoli.analysis.antibiotics_colony import DE_GENES
 from ecoli.processes.polypeptide_elongation import MICROMOLAR_UNITS
 from ecoli.library.parameters import param_store
 from ecoli.library.initial_conditions import (
@@ -14,6 +15,7 @@ from ecoli.library.initial_conditions import (
 
 RAND_MAX = 2**31
 SIM_DATA_PATH = 'reconstruction/sim_data/kb/simData.cPickle'
+SIM_DATA_PATH_NO_OPERONS = 'reconstruction/sim_data/kb_no_operons/simData.cPickle'
 MAX_TIME_STEP = 1
 
 class LoadSimData:
@@ -24,10 +26,11 @@ class LoadSimData:
         seed=0,
         total_time=10,
         timeline='0 minimal',
+        operons=True,
         trna_charging=True,
         ppgpp_regulation=True,
         mar_regulon=False,
-        rnai_data=None,
+        process_configs=None,
         amp_lysis=False,
         mass_distribution=False,
         superhelical_density=False,
@@ -47,7 +50,10 @@ class LoadSimData:
         max_time_step=MAX_TIME_STEP,
         remove_rrna_operons=False,
         remove_rrff=False,
+        **kwargs
     ):
+        if not operons:
+            sim_data_path = SIM_DATA_PATH_NO_OPERONS
 
         self.seed = seed
         self.total_time = total_time
@@ -87,7 +93,10 @@ class LoadSimData:
         
         # NEW to vivarium-ecoli
         # Changes gene expression upon tetracycline exposure
-        if mar_regulon:
+        # Note: Incompatible with operons because there are genes
+        # that are part of the same operon but have different changes
+        # in expression under tetracycline exposure (e.g. marRAB)
+        if mar_regulon and not self.sim_data.operons_on:
             # Define aliases to reduce code verbosity
             treg_alias = self.sim_data.process.transcription_regulation
             bulk_mol_alias =  self.sim_data.internal_state.bulk_molecules
@@ -106,17 +115,15 @@ class LoadSimData:
             
             # TU index of genes for outer membrane proteins, regulators,
             # and inner membrane transporters
-            TU_idxs = [2493, 2011, 1641, 1394, 2112, 1642, 1543, 662, 995,
-                3289, 262, 1807, 2010, 659, 1395, 260, 259, 11, 944, 1631,
-                1330, 660, 1399, 661]
-            new_deltaI = np.array(TU_idxs)
+            new_deltaI = DE_GENES['TU_idx'].to_numpy()
             new_deltaJ = np.array([24]*24)
             # Values were chosen to recapitulate mRNA fold change when exposed 
             # to 1.5 mg/L tetracycline (Viveiros et al. 2007)
-            new_deltaV = np.array([1.76e-3, 1.96e-4, 2.95e-5, 2.21e-5, 2.1e-6,
-                2.02e-5, -5.3e-7, 7.8e-6, 8.08e-6, 1.58e-7, 7.42e-6, 1.51e-6,
-                2.04e-6, 2.34e-4, 4.11e-6, 7.17e-8, 1.4e-8, 8.89e-8, 2.44e-5,
-                1.68e-8, 8.09e-6, 5.77e-5, 8.52e-7, 5.4e-4])
+            new_deltaV = np.array([1.76e-03, 2.21e-05, 2.44e-05, 2.10e-06,
+                4.11e-06, 7.80e-06, 5.40e-04, 7.42e-06, 1.51e-06, 2.95e-05,
+                2.02e-05, 1.96e-04, 5.77e-05, 2.34e-04, 2.04e-06, 1.58e-07,
+                8.89e-08, 8.52e-07, 8.09e-06, 1.68e-08, 7.17e-08, 8.08e-06,
+                1.40e-08, -5.30e-07])
             
             treg_alias.delta_prob["deltaI"] = np.concatenate(
                 [treg_alias.delta_prob["deltaI"], new_deltaI])
@@ -144,10 +151,13 @@ class LoadSimData:
             
             # Add equilibrium reaction for marR-tetracycline and 
             # reinitialize self.sim_data.process.equilibrium variables
+            stoich_matrix_shape = eq_alias._stoichMatrix.shape
             eq_alias._stoichMatrixI = np.concatenate(
-                [eq_alias._stoichMatrixI, np.array([98, 99, 100])])
+                [eq_alias._stoichMatrixI, np.arange(
+                stoich_matrix_shape[0], stoich_matrix_shape[0] + 3)])
             eq_alias._stoichMatrixJ = np.concatenate(
-                [eq_alias._stoichMatrixJ, np.array([34, 34, 34])])
+                [eq_alias._stoichMatrixJ, np.array(
+                [stoich_matrix_shape[1]] * 3)])
             eq_alias._stoichMatrixV = np.concatenate(
                 [eq_alias._stoichMatrixV, np.array([-1, -1, 1])])
             eq_alias.molecule_names += [
@@ -186,103 +196,105 @@ class LoadSimData:
         
         # NEW to vivarium-ecoli
         # Append new RNA IDs and degradation rates for sRNA-mRNA duplexes
-        if rnai_data:
-            # Define aliases to reduce code verbosity
-            ts_alias = self.sim_data.process.transcription
-            bulk_mol_alias = self.sim_data.internal_state.bulk_molecules
-            treg_alias = self.sim_data.process.transcription_regulation
+        if isinstance(process_configs, dict):
+            rnai_data = process_configs.get("ecoli-rna-interference", False)
+            if rnai_data:
+                # Define aliases to reduce code verbosity
+                ts_alias = self.sim_data.process.transcription
+                bulk_mol_alias = self.sim_data.internal_state.bulk_molecules
+                treg_alias = self.sim_data.process.transcription_regulation
 
-            self.duplex_ids = np.array(rnai_data['duplex_ids'])
-            n_duplex_rnas = len(self.duplex_ids)
-            duplex_deg_rates = np.array(rnai_data['duplex_deg_rates'])
-            duplex_km = np.array(rnai_data['duplex_km'])
-            duplex_na = np.zeros(n_duplex_rnas)
-            # Mark duplexes as miscRNAs so they are degraded appropriately
-            duplex_is_miscRNA = np.ones(n_duplex_rnas, dtype=np.bool_)
-            
-            self.srna_ids = np.array(rnai_data['srna_ids'])
-            target_ids = np.array(rnai_data['target_ids'])
-            self.target_tu_ids = np.zeros(len(target_ids), dtype=int)
-            
-            self.binding_probs = np.array(rnai_data['binding_probs'])
-            
-            # Get duplex length, ACGU content, molecular weight, and sequence
-            duplex_lengths = np.zeros(n_duplex_rnas)
-            duplex_ACGU = np.zeros((n_duplex_rnas, 4))
-            duplex_mw = np.zeros(n_duplex_rnas)
-            rna_data = ts_alias.rna_data.fullArray()
-            rna_units = ts_alias.rna_data.fullUnits()
-            rna_sequences = ts_alias.transcription_sequences
-            duplex_sequences = np.full(
-                (n_duplex_rnas, rna_sequences.shape[1]), -1)
-            for i, (srna_id, target_id) in enumerate(
-                zip(self.srna_ids, target_ids)):
-                # Use first match for each sRNA and target mRNA
-                srna_tu_id = np.where(rna_data['id']==srna_id)[0][0]
-                self.target_tu_ids[i] = np.where(
-                    rna_data['id']==target_id)[0][0]
-                duplex_ACGU[i] = (rna_data['counts_ACGU'][srna_tu_id] + 
-                    rna_data['counts_ACGU'][self.target_tu_ids[i]])
-                duplex_mw[i] = (rna_data['mw'][srna_tu_id] + 
-                    rna_data['mw'][self.target_tu_ids[i]])
-                srna_length = rna_data['length'][srna_tu_id]
-                target_length = rna_data['length'][self.target_tu_ids[i]]
-                duplex_lengths[i] = srna_length + target_length
-                if duplex_lengths[i] > duplex_sequences.shape[1]:
-                    # Extend columns in sequence arrays to accomodate duplexes
-                    # where the sum of the RNA lengths > # of columns
-                    extend_length = (
-                        duplex_lengths[i] - duplex_sequences.shape[1])
-                    extend_duplex_sequences = np.full(
-                        (duplex_sequences.shape[0], extend_length), 
-                        -1, dtype=duplex_sequences.dtype)
-                    duplex_sequences = np.append(
-                        duplex_sequences, extend_duplex_sequences, axis=1)
-                    extend_rna_sequences = np.full(
-                        (rna_sequences.shape[0], extend_length), 
-                        -1, dtype=rna_sequences.dtype)
-                    rna_sequences = np.append(
-                        rna_sequences, extend_rna_sequences, axis=1)
-                duplex_sequences[i, :srna_length] = rna_sequences[
-                    srna_tu_id][:srna_length] 
-                duplex_sequences[i, srna_length:srna_length+target_length
-                    ] = rna_sequences[self.target_tu_ids[i]][:target_length]
-            
-            # Make duplex metadata visible to all RNA-related processes
-            old_n_rnas = rna_data.shape[0]
-            rna_data = np.resize(rna_data, old_n_rnas+n_duplex_rnas)
-            rna_sequences = np.resize(rna_sequences, (
-                old_n_rnas+n_duplex_rnas, rna_sequences.shape[1]))
-            for i, new_rna in enumerate(zip(self.duplex_ids, duplex_deg_rates,
-                duplex_lengths, duplex_ACGU, duplex_mw, duplex_na,
-                duplex_is_miscRNA, duplex_na, duplex_na, duplex_na, duplex_na,
-                duplex_na, duplex_na, duplex_na, duplex_na, duplex_km,
-                duplex_na, duplex_na)
-            ):
-                rna_data[old_n_rnas+i] = new_rna
-                rna_sequences[old_n_rnas+i] = duplex_sequences[i]
-            ts_alias.transcription_sequences = rna_sequences
-            ts_alias.rna_data = UnitStructArray(rna_data, rna_units)
-            
-            # Add bulk mass data for duplexes
-            bulk_data = bulk_mol_alias.bulk_data.fullArray()
-            bulk_units = bulk_mol_alias.bulk_data.fullUnits()
-            old_n_bulk = bulk_data.shape[0]
-            bulk_data = np.resize(bulk_data, bulk_data.shape[0]+n_duplex_rnas)
-            for i, duplex in enumerate(self.duplex_ids):
-                duplex_submasses = np.zeros(9)
-                duplex_submasses[2] = duplex_mw[i]
-                bulk_data[old_n_bulk+i] = (duplex, duplex_submasses)
-            bulk_mol_alias.bulk_data = UnitStructArray(bulk_data, bulk_units)
-            
-            # Add filler transcription data for duplex RNAs to prevent errors
-            treg_alias.basal_prob = np.append(treg_alias.basal_prob, 0)
-            treg_alias.delta_prob['shape'] = (
-                treg_alias.delta_prob['shape'][0] + 1,
-                treg_alias.delta_prob['shape'][1])
+                self.duplex_ids = np.array(rnai_data['duplex_ids'])
+                n_duplex_rnas = len(self.duplex_ids)
+                duplex_deg_rates = np.array(rnai_data['duplex_deg_rates'])
+                duplex_km = np.array(rnai_data['duplex_km'])
+                duplex_na = np.zeros(n_duplex_rnas)
+                # Mark duplexes as miscRNAs so they are degraded appropriately
+                duplex_is_miscRNA = np.ones(n_duplex_rnas, dtype=np.bool_)
+                
+                self.srna_ids = np.array(rnai_data['srna_ids'])
+                target_ids = np.array(rnai_data['target_ids'])
+                self.target_tu_ids = np.zeros(len(target_ids), dtype=int)
+                
+                self.binding_probs = np.array(rnai_data['binding_probs'])
+                
+                # Get duplex length, ACGU content, molecular weight, and sequence
+                duplex_lengths = np.zeros(n_duplex_rnas)
+                duplex_ACGU = np.zeros((n_duplex_rnas, 4))
+                duplex_mw = np.zeros(n_duplex_rnas)
+                rna_data = ts_alias.rna_data.fullArray()
+                rna_units = ts_alias.rna_data.fullUnits()
+                rna_sequences = ts_alias.transcription_sequences
+                duplex_sequences = np.full(
+                    (n_duplex_rnas, rna_sequences.shape[1]), -1)
+                for i, (srna_id, target_id) in enumerate(
+                    zip(self.srna_ids, target_ids)):
+                    # Use first match for each sRNA and target mRNA
+                    srna_tu_id = np.where(rna_data['id']==srna_id)[0][0]
+                    self.target_tu_ids[i] = np.where(
+                        rna_data['id']==target_id)[0][0]
+                    duplex_ACGU[i] = (rna_data['counts_ACGU'][srna_tu_id] + 
+                        rna_data['counts_ACGU'][self.target_tu_ids[i]])
+                    duplex_mw[i] = (rna_data['mw'][srna_tu_id] + 
+                        rna_data['mw'][self.target_tu_ids[i]])
+                    srna_length = rna_data['length'][srna_tu_id]
+                    target_length = rna_data['length'][self.target_tu_ids[i]]
+                    duplex_lengths[i] = srna_length + target_length
+                    if duplex_lengths[i] > duplex_sequences.shape[1]:
+                        # Extend columns in sequence arrays to accomodate duplexes
+                        # where the sum of the RNA lengths > # of columns
+                        extend_length = (
+                            duplex_lengths[i] - duplex_sequences.shape[1])
+                        extend_duplex_sequences = np.full(
+                            (duplex_sequences.shape[0], extend_length), 
+                            -1, dtype=duplex_sequences.dtype)
+                        duplex_sequences = np.append(
+                            duplex_sequences, extend_duplex_sequences, axis=1)
+                        extend_rna_sequences = np.full(
+                            (rna_sequences.shape[0], extend_length), 
+                            -1, dtype=rna_sequences.dtype)
+                        rna_sequences = np.append(
+                            rna_sequences, extend_rna_sequences, axis=1)
+                    duplex_sequences[i, :srna_length] = rna_sequences[
+                        srna_tu_id][:srna_length] 
+                    duplex_sequences[i, srna_length:srna_length+target_length
+                        ] = rna_sequences[self.target_tu_ids[i]][:target_length]
+                
+                # Make duplex metadata visible to all RNA-related processes
+                old_n_rnas = rna_data.shape[0]
+                rna_data = np.resize(rna_data, old_n_rnas+n_duplex_rnas)
+                rna_sequences = np.resize(rna_sequences, (
+                    old_n_rnas+n_duplex_rnas, rna_sequences.shape[1]))
+                for i, new_rna in enumerate(zip(self.duplex_ids, duplex_deg_rates,
+                    duplex_na, duplex_lengths, duplex_ACGU, duplex_mw, duplex_na,
+                    duplex_na, duplex_km, duplex_na, duplex_na, duplex_na,
+                    duplex_is_miscRNA, duplex_na, duplex_na, duplex_na, duplex_na, 
+                    duplex_na, duplex_na)
+                ):
+                    rna_data[old_n_rnas+i] = new_rna
+                    rna_sequences[old_n_rnas+i] = duplex_sequences[i]
+                ts_alias.transcription_sequences = rna_sequences
+                ts_alias.rna_data = UnitStructArray(rna_data, rna_units)
+                
+                # Add bulk mass data for duplexes
+                bulk_data = bulk_mol_alias.bulk_data.fullArray()
+                bulk_units = bulk_mol_alias.bulk_data.fullUnits()
+                old_n_bulk = bulk_data.shape[0]
+                bulk_data = np.resize(bulk_data, bulk_data.shape[0]+n_duplex_rnas)
+                for i, duplex in enumerate(self.duplex_ids):
+                    duplex_submasses = np.zeros(9)
+                    duplex_submasses[2] = duplex_mw[i]
+                    bulk_data[old_n_bulk+i] = (duplex, duplex_submasses)
+                bulk_mol_alias.bulk_data = UnitStructArray(bulk_data, bulk_units)
+                
+                # Add filler transcription data for duplex RNAs to prevent errors
+                treg_alias.basal_prob = np.append(treg_alias.basal_prob, 0)
+                treg_alias.delta_prob['shape'] = (
+                    treg_alias.delta_prob['shape'][0] + 1,
+                    treg_alias.delta_prob['shape'][1])
 
-            # Set flag so miscRNA duplexes are degraded together with mRNAs
-            self.degrade_misc = True
+                # Set flag so miscRNA duplexes are degraded together with mRNAs
+                self.degrade_misc = True
         
         # NEW to vivarium-ecoli
         # Add ampicillin to bulk molecules
@@ -968,7 +980,6 @@ class LoadSimData:
             'aa_exchange_names': aa_exchange_names,
             'removed_aa_uptake': np.array([aa in aa_targets_not_updated
                 for aa in aa_exchange_names]),
-            'all_external_exchange_molecules': self.sim_data.external_state.all_external_exchange_molecules,
 
             # TODO: testing, remove later (perhaps after moving change to sim_data)
             'reduce_murein_objective': False,

@@ -214,11 +214,9 @@ class SteadyStateElongationModel(TranslationSupplyElongationModel):
         ribosome_conc = self.counts_to_molar * ribosome_counts
 
         # Calculate amino acid supply
-        aa_in_media = np.array([
-            states['boundary']['external'][aa_environment_id
-                ] > self.import_constraint_threshold
-            for aa_environment_id in self.process.aa_environment_names
-        ])
+        aa_in_media = np.array([states['boundary']['external'][aa].to(
+            'mM').magnitude > self.import_constraint_threshold
+            for aa in self.process.aa_environment_names])
         fwd_enzyme_counts, rev_enzyme_counts = self.get_pathway_enzyme_counts_per_aa(
             counts(states['bulk_total'], self.process.aa_enzyme_idx))
         importer_counts = counts(states['bulk_total'], self.process.aa_importer_idx)

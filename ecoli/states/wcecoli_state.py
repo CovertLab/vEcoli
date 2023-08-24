@@ -4,48 +4,23 @@ import numpy as np
 import concurrent.futures
 
 from vivarium.core.serialize import deserialize_value
-
-from wholecell.utils import units
-
-
-def infinitize(value):
-    if value == "__INFINITY__":
-        return float("inf")
-    else:
-        return value
-
+from vivarium.library.units import units
 
 def load_states(path):
     with open(path, "r") as states_file:
         states = json.load(states_file)
-    # Apply infinitize() to every value in each agent's environment state
+    # Add units to environment molecules
     if 'agents' in states.keys():
         for agent_state in states['agents'].values():
-            agent_state['environment'] = {
-                key: infinitize(value)
-                for key, value in agent_state.get("environment", {}).items()
+            agent_state['boundary']['external'] = {
+                key: value * units.mM
+                for key, value in agent_state['boundary']['external'].items()
             }
     else:
-        states['environment'] = {
-            key: infinitize(value)
-            for key, value in states.get("environment", {}).items()
+        states['boundary']['external'] = {
+            key: value * units.mM
+            for key, value in states['boundary']['external'].items()
         }
-    return states
-
-
-def colony_initial_state(states):
-    """
-    colony_initial_state modifies the states of a loaded colony simulation
-    to be suitable for initializing a colony simulation.
-    """
-    for agent_state in states['agents'].values():
-        agent_state['environment']['exchange_data'] = {
-            'unconstrained': {'CL-[p]', 'FE+2[p]', 'CO+2[p]', 'MG+2[p]',
-                'NA+[p]', 'CARBON-DIOXIDE[p]', 'OXYGEN-MOLECULE[p]', 'MN+2[p]',
-                'L-SELENOCYSTEINE[c]', 'K+[p]', 'SULFATE[p]', 'ZN+2[p]',
-                'CA+2[p]', 'Pi[p]', 'NI+2[p]', 'WATER[p]', 'AMMONIUM[c]'},
-            'constrained': {
-                'GLC[p]': 20.0 * units.mmol / (units.g * units.h)}}
     return states
 
 
@@ -86,7 +61,7 @@ def get_state_from_file(
         agents = dict(zip(agents.keys(), numpy_agents))
         states = deserialize_value(serialized_state)
         states['agents'] = agents
-        return colony_initial_state(states)
+        return states
     
     deserialized_states = deserialize_value(serialized_state)
     states = numpy_molecules(deserialized_states)

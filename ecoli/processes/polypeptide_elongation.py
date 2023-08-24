@@ -12,7 +12,6 @@ elongation rate, available amino acids and GTP, and the length of the transcript
 """
 
 import numpy as np
-import logging as log
 
 # wcEcoli imports
 from wholecell.utils.polymerize import (buildSequences, polymerize,
