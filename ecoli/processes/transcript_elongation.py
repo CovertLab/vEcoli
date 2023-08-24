@@ -117,6 +117,7 @@ class TranscriptElongation(PartitionedProcess):
         'location_lookup': {},
 
         'seed': 0,
+        'emit_unique': False,
     }
 
     def __init__(self, parameters=None):
@@ -177,8 +178,10 @@ class TranscriptElongation(PartitionedProcess):
                 'media_id': {'_default': ''}
             },
 
-            'RNAs': numpy_schema('RNAs'),
-            'active_RNAPs': numpy_schema('active_RNAPs'),
+            'RNAs': numpy_schema('RNAs',
+                emit=self.parameters['emit_unique']),
+            'active_RNAPs': numpy_schema('active_RNAPs',
+                emit=self.parameters['emit_unique']),
 
             'bulk': numpy_schema('bulk'),
             'bulk_total': numpy_schema('bulk', partition=False),
@@ -596,10 +599,8 @@ def test_transcript_elongation():
     with open('data/elongation_sequences.npy', 'rb') as f:
         sequences = np.load(f)
 
-    rna_schema = numpy_schema('RNAs')
-    rna_schema['_emit'] = True
-    rnap_schema = numpy_schema('active_RNAPs')
-    rnap_schema['_emit'] = True
+    rna_schema = numpy_schema('RNAs', emit=True)
+    rnap_schema = numpy_schema('active_RNAPs', emit=True)
 
     test_config = {
         'max_time_step': 2.0,

@@ -7,6 +7,10 @@ class UniqueUpdate(Step):
 
     name = 'unique-update'
 
+    defaults = {
+        'emit_unique': False
+    }
+
     def __init__(self, parameters=None):
         super().__init__(parameters)
         # Topology for all unique molecule ports (port: path)
@@ -14,7 +18,8 @@ class UniqueUpdate(Step):
 
     def ports_schema(self):
         return {
-            unique_mol: numpy_schema(unique_mol)
+            unique_mol: numpy_schema(unique_mol,
+                emit=self.parameters['emit_unique'])
             for unique_mol in self.unique_topo
         }
     

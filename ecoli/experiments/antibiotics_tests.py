@@ -39,8 +39,8 @@ def remove_empty_values(d):
 
 def test_lysis_rxn_dff_environment(total_time = 10):
     beta_lactamase = 'EG10040-MONOMER[p]'
-    beta_lactam = 'beta-lactam'
-    hydrolyzed_beta_lactam = 'hydrolyzed-beta-lactam'
+    beta_lactam = 'beta-lactam[p]'
+    hydrolyzed_beta_lactam = 'hydrolyzed-beta-lactam[p]'
     lysis_time = 4
 
     sim = EcoliSim.from_file(CONFIG_DIR_PATH + 'lysis_trigger.json')
@@ -77,9 +77,9 @@ def test_lysis_rxn_dff_environment(total_time = 10):
     # retrieve data and pre-process for plotting
     query = [
         ('dimensions', 'bounds'),
-        ('fields', beta_lactamase),
-        ('fields', beta_lactam),
-        ('fields', hydrolyzed_beta_lactam),
+        ('fields', beta_lactamase[:-3]),
+        ('fields', beta_lactam[:-3]),
+        ('fields', hydrolyzed_beta_lactam[:-3]),
         ('agents', '0', 'boundary'),
         ('agents', '0', 'burst'),
         ('agents', '0', 'bulk', beta_lactamase),

@@ -7,6 +7,7 @@ import time
 from scipy.sparse import csr_matrix
 
 from vivarium.core.process import Step
+from vivarium.library.units import units as vivunits
 
 from ecoli.library.schema import (numpy_schema, bulk_name_to_idx,
     listener_schema, counts)
@@ -169,6 +170,12 @@ class MetabolismRedux(Step):
                     'unconstrained': {'_default': []},
                     'constrained': {'_default': []}}},
 
+            'boundary': {
+                'external': {
+                    '*': {'_default': 0 * vivunits.mM}
+                }
+            },
+
             'polypeptide_elongation': {
                 'aa_count_diff': {
                     '_default': {},
@@ -211,6 +218,9 @@ class MetabolismRedux(Step):
                     'target_fluxes_upper': [],
                     'target_fluxes_lower': []})
             },
+
+            'global_time': {'_default': 0},
+            'timestep': {'_default': self.parameters['time_step']},
 
             'first_update': {
                 '_default': True,

@@ -121,10 +121,10 @@ class get_unique_fields():
             for field in unique.dtype.names]
 
 
-def numpy_schema(name, partition=True, divider=None):
+def numpy_schema(name, partition=True, divider=None, emit=True):
     schema = {
         '_default': [],
-        '_emit': True
+        '_emit': emit
     }
     if name == 'bulk':
         if partition:
@@ -137,8 +137,6 @@ def numpy_schema(name, partition=True, divider=None):
         # Since vivarium-core ensures that each store will only have a single
         # updater, it's OK to create new UniqueNumpyUpdater objects each time
         schema['_updater'] = UniqueNumpyUpdater().updater
-        # These are some big and slow emits
-        schema['_emit'] = False
         # Convert to list of contiguous Numpy arrays for faster and more
         # efficient serialization (still do not recommend emitting unique)
         schema['_serializer'] = get_unique_fields

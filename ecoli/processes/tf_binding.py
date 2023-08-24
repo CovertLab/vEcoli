@@ -52,7 +52,8 @@ class TfBinding(Step):
         'seed': 0,
         'submass_to_idx': {'rRNA': 0, 'tRNA': 1, 'mRNA': 2, 'miscRNA': 3,
             'nonspecific_RNA': 4, 'protein': 5, 'metabolite': 6,
-            'water': 7, 'DNA': 8}
+            'water': 7, 'DNA': 8},
+        'emit_unique': False,
     }
 
     # Constructor
@@ -119,7 +120,8 @@ class TfBinding(Step):
         
     def ports_schema(self):
         return {
-            'promoters': numpy_schema('promoters'),
+            'promoters': numpy_schema('promoters',
+                emit=self.parameters['emit_unique']),
 
             'bulk': numpy_schema('bulk'),
             'bulk_total': numpy_schema('bulk', partition=False),

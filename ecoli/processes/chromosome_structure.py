@@ -70,6 +70,7 @@ class ChromosomeStructure(Step):
             'amino_acids': [],
             'water': 'water',
             'seed': 0,
+            'emit_unique': False
         }
 
     # Constructor
@@ -136,16 +137,26 @@ class ChromosomeStructure(Step):
             'bulk': numpy_schema('bulk'),
 
             # Unique molecules
-            'active_replisomes': numpy_schema('active_replisomes'),
-            'oriCs': numpy_schema('oriCs'),
-            'chromosome_domains': numpy_schema('chromosome_domains'),
-            'active_RNAPs': numpy_schema('active_RNAPs'),
-            'RNAs': numpy_schema('RNAs'),
-            'active_ribosome': numpy_schema('active_ribosome'),
-            'full_chromosomes': numpy_schema('full_chromosomes'),
-            'promoters': numpy_schema('promoters'),
-            'DnaA_boxes': numpy_schema('DnaA_boxes'),
-            'genes': numpy_schema('genes'),
+            'active_replisomes': numpy_schema('active_replisomes',
+                emit=self.parameters['emit_unique']),
+            'oriCs': numpy_schema('oriCs',
+                emit=self.parameters['emit_unique']),
+            'chromosome_domains': numpy_schema('chromosome_domains',
+                emit=self.parameters['emit_unique']),
+            'active_RNAPs': numpy_schema('active_RNAPs',
+                emit=self.parameters['emit_unique']),
+            'RNAs': numpy_schema('RNAs',
+                emit=self.parameters['emit_unique']),
+            'active_ribosome': numpy_schema('active_ribosome',
+                emit=self.parameters['emit_unique']),
+            'full_chromosomes': numpy_schema('full_chromosomes',
+                emit=self.parameters['emit_unique']),
+            'promoters': numpy_schema('promoters',
+                emit=self.parameters['emit_unique']),
+            'DnaA_boxes': numpy_schema('DnaA_boxes',
+                emit=self.parameters['emit_unique']),
+            'genes': numpy_schema('genes',
+                emit=self.parameters['emit_unique']),
             'global_time': {'_default': 0},
             'timestep': {'_default': self.parameters['time_step']},
 

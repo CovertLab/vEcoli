@@ -54,7 +54,8 @@ class MassListener(Deriver):
         'compartment_id_to_index': {},
         'compartment_abbrev_to_index': {},
         'n_avogadro': 6.0221409e23,  # 1/mol
-        'time_step': 2.0
+        'time_step': 1.0,
+        'emit_unique': False,
     }
 
     def __init__(self, parameters=None):
@@ -151,7 +152,8 @@ class MassListener(Deriver):
         ports = {
             'bulk': bulk_schema,
             'unique': {
-                str(mol_id): numpy_schema(mol_id + 's')
+                str(mol_id): numpy_schema(mol_id + 's',
+                    emit=self.parameters['emit_unique'])
                 for mol_id in self.unique_ids
                 if mol_id not in [
                     'DnaA_box',
@@ -191,8 +193,10 @@ class MassListener(Deriver):
             'timestep': {'_default': self.parameters['time_step']}
         }
         ports['unique'].update({
-            'active_ribosome': numpy_schema('active_ribosome'),
-            'DnaA_box': numpy_schema('DnaA_boxes'),
+            'active_ribosome': numpy_schema('active_ribosome',
+                emit=self.parameters['emit_unique']),
+            'DnaA_box': numpy_schema('DnaA_boxes',
+                emit=self.parameters['emit_unique']),
         })
         return ports
     

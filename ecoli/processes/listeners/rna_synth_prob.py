@@ -31,6 +31,8 @@ class RnaSynthProb(Step):
     topology = TOPOLOGY
 
     defaults = {
+        'time_step': 1,
+        'emit_unique': False,
     }
 
     def __init__(self, parameters=None):
@@ -66,8 +68,10 @@ class RnaSynthProb(Step):
                 'n_bound_TF_per_cistron': ([], self.cistron_ids),
                 'total_rna_init': 0
             }),
-            'promoters': numpy_schema('promoters'),
-            'genes': numpy_schema('genes'),
+            'promoters': numpy_schema('promoters',
+                emit=self.parameters['emit_unique']),
+            'genes': numpy_schema('genes',
+                emit=self.parameters['emit_unique']),
             'global_time': {'_default': 0},
             'timestep': {'_default': self.parameters['time_step']},
         }

@@ -38,6 +38,7 @@ class TetracyclineRibosomeEquilibrium(Step):
         # is even lower than the K for non-enzymatic binding
         'K_tRNA': 4.5e6,
         'seed': 0,
+        'emit_unique': False,
     }
 
     def __init__(self, parameters=None):
@@ -54,7 +55,8 @@ class TetracyclineRibosomeEquilibrium(Step):
                 '_default': 0 * units.mM,
                 '_emit': True,
             },
-            '70s-free': numpy_schema('active_ribosome'),
+            '70s-free': numpy_schema('active_ribosome',
+                emit=self.parameters['emit_unique']),
             # Cytoplasm volume.
             'volume': {
                 '_default': 0 * units.fL,

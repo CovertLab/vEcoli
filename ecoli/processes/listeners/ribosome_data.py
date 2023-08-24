@@ -36,7 +36,9 @@ class RibosomeData(Step):
         'rRNA_cistron_tu_mapping_matrix': [],
         'rRNA_is_5S': [],
         'rRNA_is_16S': [],
-        'rRNA_is_23S': []
+        'rRNA_is_23S': [],
+        'time_step': 1,
+        'emit_unique': False,
     }
 
     def __init__(self, parameters=None):
@@ -72,8 +74,10 @@ class RibosomeData(Step):
                     'rRNA_init_prob_TU': np.zeros(n_rRNA_TUs)
                 })
             },
-            'RNAs': numpy_schema('RNAs'),
-            'active_ribosomes': numpy_schema('active_ribosome'),
+            'RNAs': numpy_schema('RNAs',
+                emit=self.parameters['emit_unique']),
+            'active_ribosomes': numpy_schema('active_ribosome',
+                emit=self.parameters['emit_unique']),
             'global_time': {'_default': 0},
             'timestep': {'_default': self.parameters['time_step']}
         }

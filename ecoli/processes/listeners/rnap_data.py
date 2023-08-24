@@ -36,7 +36,9 @@ class RnapData(Step):
     defaults = {
         'stable_RNA_indexes': [],
         'cistron_ids': [],
-        'cistron_tu_mapping_matrix': []
+        'cistron_tu_mapping_matrix': [],
+        'time_step': 1,
+        'emit_unique': False,
     }
 
     def __init__(self, parameters=None):
@@ -61,9 +63,12 @@ class RnapData(Step):
                     'rna_init_event_per_cistron': ([], self.cistron_ids)
                 })
             },
-            'active_RNAPs': numpy_schema('active_RNAPs'),
-            'RNAs': numpy_schema('RNAs'),
-            'active_ribosomes': numpy_schema('active_ribosome'),
+            'active_RNAPs': numpy_schema('active_RNAPs',
+                emit=self.parameters['emit_unique']),
+            'RNAs': numpy_schema('RNAs',
+                emit=self.parameters['emit_unique']),
+            'active_ribosomes': numpy_schema('active_ribosome',
+                emit=self.parameters['emit_unique']),
             'global_time': {'_default': 0},
             'timestep': {'_default': self.parameters['time_step']}
         }

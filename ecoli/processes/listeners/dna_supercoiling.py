@@ -30,7 +30,9 @@ class DnaSupercoiling(Step):
     topology = TOPOLOGY
 
     defaults = {
-        'relaxed_DNA_base_pairs_per_turn': 0
+        'relaxed_DNA_base_pairs_per_turn': 0,
+        'emit_unique': False,
+        'time_step': 1
     }
 
     def __init__(self, parameters=None):
@@ -48,7 +50,8 @@ class DnaSupercoiling(Step):
                     'segment_superhelical_densities': []
                 })
             },
-            'chromosomal_segments': numpy_schema('chromosomal_segments'),
+            'chromosomal_segments': numpy_schema('chromosomal_segments',
+                emit=self.parameters['emit_unique']),
             'global_time': {'_default': 0},
             'timestep': {'_default': self.parameters['time_step']}
         }

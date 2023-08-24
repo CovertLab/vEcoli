@@ -59,7 +59,8 @@ class PolypeptideInitiation(PartitionedProcess):
         'ribosome30S': 'ribosome30S',
         'ribosome50S': 'ribosome50S',
         'seed': 0,
-        'monomer_ids': []
+        'monomer_ids': [],
+        'emit_unique': False,
     }
 
     def __init__(self, parameters=None):
@@ -132,8 +133,10 @@ class PolypeptideInitiation(PartitionedProcess):
                     'ribosome_init_event_per_monomer': ([], self.monomer_ids),
                     'effective_elongation_rate': 0.0}),
             },
-            'active_ribosome': numpy_schema('active_ribosome'),
-            'RNA': numpy_schema('RNAs'),
+            'active_ribosome': numpy_schema('active_ribosome',
+                emit=self.parameters['emit_unique']),
+            'RNA': numpy_schema('RNAs',
+                emit=self.parameters['emit_unique']),
             'bulk': numpy_schema('bulk'),
             'timestep': {'_default': self.parameters['time_step']}
         }
