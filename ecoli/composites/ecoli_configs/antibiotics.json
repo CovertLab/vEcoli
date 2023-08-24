@@ -35,9 +35,9 @@
             "gradient": {
                 "type": "uniform",
                 "molecules": {
-                    "EG10040-MONOMER[p]": "!units[0 millimolar]",
-                    "ampicillin[p]": "!units[0 millimolar]",
-                    "ampicillin_hydrolyzed[p]": "!units[0 millimolar]",
+                    "EG10040-MONOMER": "!units[0 millimolar]",
+                    "ampicillin": "!units[0 millimolar]",
+                    "ampicillin_hydrolyzed": "!units[0 millimolar]",
                     "tetracycline": "!units[0 millimolar]"
                 }
             }

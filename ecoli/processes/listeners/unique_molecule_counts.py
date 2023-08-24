@@ -25,6 +25,11 @@ class UniqueMoleculeCounts(Step):
     name = NAME
     topology = TOPOLOGY
 
+    defaults = {
+        'time_step': 1,
+        'emit_unique': False,
+    }
+
     def __init__(self, parameters=None):
         super().__init__(parameters)
         self.unique_ids = self.parameters['unique_ids']
@@ -32,7 +37,8 @@ class UniqueMoleculeCounts(Step):
     def ports_schema(self):
         ports = {
             'unique': {
-                str(mol_id): numpy_schema(mol_id + 's')
+                str(mol_id): numpy_schema(mol_id + 's',
+                    emit=self.parameters['emit_unique'])
                 for mol_id in self.unique_ids
                 if mol_id not in [
                     'DnaA_box',
@@ -49,8 +55,10 @@ class UniqueMoleculeCounts(Step):
             'timestep': {'_default': self.parameters['time_step']}
         }
         ports['unique'].update({
-            'active_ribosome': numpy_schema('active_ribosome'),
-            'DnaA_box': numpy_schema('DnaA_boxes'),
+            'active_ribosome': numpy_schema('active_ribosome',
+                emit=self.parameters['emit_unique']),
+            'DnaA_box': numpy_schema('DnaA_boxes',
+                emit=self.parameters['emit_unique']),
         })
         return ports
     

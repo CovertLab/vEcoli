@@ -9,18 +9,6 @@ from vivarium.library.units import units
 def load_states(path):
     with open(path, "r") as states_file:
         states = json.load(states_file)
-    # Add units to environment molecules
-    if 'agents' in states.keys():
-        for agent_state in states['agents'].values():
-            agent_state['boundary']['external'] = {
-                key: value * units.mM
-                for key, value in agent_state['boundary']['external'].items()
-            }
-    else:
-        states['boundary']['external'] = {
-            key: value * units.mM
-            for key, value in states['boundary']['external'].items()
-        }
     return states
 
 
@@ -66,5 +54,5 @@ def get_state_from_file(
     deserialized_states = deserialize_value(serialized_state)
     states = numpy_molecules(deserialized_states)
     # TODO: Add timeline process to set up media ID
-    states["environment"]["media_id"] = "minimal"
+    states.setdefault("environment", {})["media_id"] = "minimal"
     return states

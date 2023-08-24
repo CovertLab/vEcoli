@@ -18,6 +18,7 @@ from typing import Tuple
 import numpy as np
 from scipy.sparse import csr_matrix
 from vivarium.core.process import Step
+from vivarium.library.units import units as vivunits
 
 from ecoli.processes.registries import topology_registry
 from ecoli.library.schema import (
@@ -226,7 +227,7 @@ class Metabolism(Step):
 
             'boundary': {
                 'external': {
-                    '*': {'_default': 0}
+                    '*': {'_default': 0 * vivunits.mM}
                 }
             },
 

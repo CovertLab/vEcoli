@@ -50,6 +50,7 @@ class LoadSimData:
         max_time_step=MAX_TIME_STEP,
         remove_rrna_operons=False,
         remove_rrff=False,
+        emit_unique=False,
         **kwargs
     ):
         if not operons:
@@ -76,6 +77,7 @@ class LoadSimData:
         self.adjust_timestep_for_charging = adjust_timestep_for_charging
         self.disable_ppgpp_elongation_inhibition = \
             disable_ppgpp_elongation_inhibition
+        self.emit_unique = emit_unique
         
         # NEW to vivarium-ecoli: Whether to lump miscRNA with mRNAs
         # when calculating degradation
@@ -295,6 +297,17 @@ class LoadSimData:
 
                 # Set flag so miscRNA duplexes are degraded together with mRNAs
                 self.degrade_misc = True
+
+                # Resize cistron-TU mapping matrix
+                curr_shape = ts_alias.cistron_tu_mapping_matrix._shape
+                ts_alias.cistron_tu_mapping_matrix._shape = (
+                    curr_shape[0], curr_shape[1] + n_duplex_rnas)
+
+                # Add duplexes to RNA synth prob calculations
+                ts_alias.exp_free = np.concatenate(
+                    [ts_alias.exp_free, [0]*n_duplex_rnas])
+                ts_alias.exp_ppgpp = np.concatenate([
+                    ts_alias.exp_ppgpp, [0]*n_duplex_rnas])
         
         # NEW to vivarium-ecoli
         # Add ampicillin to bulk molecules
@@ -461,7 +474,8 @@ class LoadSimData:
             'bulk_molecule_ids': self.sim_data.internal_state.bulk_molecules.bulk_data["id"],
             'bulk_mass_data': self.sim_data.internal_state.bulk_molecules.bulk_data["mass"],
             'seed': self._seedFromName('TfBinding'),
-            'submass_indices': self.submass_indices}
+            'submass_indices': self.submass_indices,
+            'emit_unique': self.emit_unique}
 
         return tf_binding_config
 
@@ -507,7 +521,8 @@ class LoadSimData:
             'attenuation_adjustments': self.sim_data.process.transcription.attenuation_basal_prob_adjustments,
 
             # random seed
-            'seed': self._seedFromName('TranscriptInitiation')
+            'seed': self._seedFromName('TranscriptInitiation'),
+            'emit_unique': self.emit_unique
         }
 
         return transcript_initiation_config
@@ -547,6 +562,7 @@ class LoadSimData:
             'seed': self._seedFromName('TranscriptElongation'),
 
             'submass_indices': self.submass_indices,
+            'emit_unique': self.emit_unique
         }
 
         return transcript_elongation_config
@@ -639,7 +655,8 @@ class LoadSimData:
                 transcription.mature_rna_data['Km_endoRNase'].asNumber(
                     units.mol/units.L)
                 )),
-            'seed': self._seedFromName('RnaDegradation')}
+            'seed': self._seedFromName('RnaDegradation'),
+            'emit_unique': self.emit_unique}
 
         return rna_degradation_config
 
@@ -668,7 +685,8 @@ class LoadSimData:
             'ribosome30S': self.sim_data.molecule_ids.s30_full_complex,
             'ribosome50S': self.sim_data.molecule_ids.s50_full_complex,
             'seed': self._seedFromName('PolypeptideInitiation'),
-            'monomer_ids': self.sim_data.process.translation.monomer_data['id']
+            'monomer_ids': self.sim_data.process.translation.monomer_data['id'],
+            'emit_unique': self.emit_unique
         }
 
         return polypeptide_initiation_config
@@ -778,7 +796,8 @@ class LoadSimData:
             'import_constraint_threshold': self.sim_data.external_state.import_constraint_threshold,
             'seed': self._seedFromName('PolypeptideElongation'),
 
-            'submass_indices': self.submass_indices
+            'submass_indices': self.submass_indices,
+            'emit_unique': self.emit_unique
         }
 
         return polypeptide_elongation_config
@@ -793,7 +812,8 @@ class LoadSimData:
             'molecule_names': self.sim_data.process.complexation.molecule_names,
             'seed': self._seedFromName('Complexation'),
             'reaction_ids': self.sim_data.process.complexation.ids_reactions,
-            'complex_ids': self.sim_data.process.complexation.ids_complexes
+            'complex_ids': self.sim_data.process.complexation.ids_complexes,
+            'emit_unique': self.emit_unique
         }
 
         return complexation_config
@@ -809,7 +829,8 @@ class LoadSimData:
             'cell_density': self.sim_data.constants.cell_density.asNumber(units.g / units.L),
             'moleculesToNextTimeStep': self.sim_data.process.two_component_system.molecules_to_next_time_step,
             'moleculeNames': self.sim_data.process.two_component_system.molecule_names,
-            'seed': self._seedFromName('TwoComponentSystem')}
+            'seed': self._seedFromName('TwoComponentSystem'),
+            'emit_unique': self.emit_unique}
 
         # return two_component_system_config, stoichI, stoichJ, stoichV
         return two_component_system_config
@@ -827,7 +848,8 @@ class LoadSimData:
             'moleculeNames': self.sim_data.process.equilibrium.molecule_names,
             'seed': self._seedFromName('Equilibrium'),
             'complex_ids': self.sim_data.process.equilibrium.ids_complexes,
-            'reaction_ids': self.sim_data.process.equilibrium.rxn_ids}
+            'reaction_ids': self.sim_data.process.equilibrium.rxn_ids,
+            'emit_unique': self.emit_unique}
 
         return equilibrium_config
 
@@ -842,7 +864,8 @@ class LoadSimData:
             'amino_acid_counts': self.sim_data.process.translation.monomer_data["aa_counts"].asNumber(),
             'protein_ids': self.sim_data.process.translation.monomer_data['id'],
             'protein_lengths': self.sim_data.process.translation.monomer_data['length'].asNumber(),
-            'seed': self._seedFromName('ProteinDegradation')}
+            'seed': self._seedFromName('ProteinDegradation'),
+            'emit_unique': self.emit_unique}
 
         return protein_degradation_config
 
@@ -884,6 +907,7 @@ class LoadSimData:
             'kinetic_constraint_enzymes': self.sim_data.process.metabolism.kinetic_constraint_enzymes,
             'kinetic_constraint_substrates': self.sim_data.process.metabolism.kinetic_constraint_substrates,
             'deriver_mode': deriver_mode,
+            'emit_unique': self.emit_unique
         }
 
         # TODO Create new config-get with only necessary parts.
@@ -988,7 +1012,8 @@ class LoadSimData:
             # in the FBA solution to the fluxes of base reactions
             'base_reaction_ids': self.sim_data.process.metabolism.base_reaction_ids,
             'fba_reaction_ids_to_base_reaction_ids': \
-                self.sim_data.process.metabolism.reaction_id_to_base_reaction_id
+                self.sim_data.process.metabolism.reaction_id_to_base_reaction_id,
+            'emit_unique': self.emit_unique
         }
 
         return metabolism_config
@@ -1012,6 +1037,7 @@ class LoadSimData:
             'unique_masses': unique_masses,
             'cellDensity': self.sim_data.constants.cell_density.asNumber(units.g / units.L),
             'water_id': 'WATER[c]',
+            'emit_unique': self.emit_unique
         }
         return mass_config
 
@@ -1050,7 +1076,8 @@ class LoadSimData:
             'time_step': time_step,
             'submass_to_idx': self.sim_data.submass_name_to_index,
             'condition_to_doubling_time': self.sim_data.condition_to_doubling_time,
-            'condition': self.sim_data.condition
+            'condition': self.sim_data.condition,
+            'emit_unique': self.emit_unique
         }
 
         return mass_config
@@ -1069,6 +1096,7 @@ class LoadSimData:
             'cistron_is_mRNA': self.sim_data.process.transcription.cistron_data['is_mRNA'],
             'cistron_is_rRNA': self.sim_data.process.transcription.cistron_data['is_rRNA'],
             'cistron_tu_mapping_matrix': self.sim_data.process.transcription.cistron_tu_mapping_matrix,
+            'emit_unique': self.emit_unique
         }
         counts_config['mRNA_TU_ids'] = counts_config['all_TU_ids'][
             counts_config['mRNA_indexes']]
@@ -1122,6 +1150,7 @@ class LoadSimData:
             'complexation_stoich': self.sim_data.process.complexation.stoich_matrix_monomers(),
             'equilibrium_stoich': self.sim_data.process.equilibrium.stoich_matrix_monomers(),
             'two_component_system_stoich': self.sim_data.process.two_component_system.stoich_matrix_monomers(),
+            'emit_unique': self.emit_unique
         }
 
         return monomer_counts_config
@@ -1142,7 +1171,8 @@ class LoadSimData:
                 'ecoli-two-component-system': -5,
                 'ecoli-tf-binding': -10,
                 'ecoli-metabolism': -10
-                }
+                },
+            'emit_unique': self.emit_unique
         }
         return allocator_config
 
@@ -1192,6 +1222,7 @@ class LoadSimData:
 
             'deriver_mode': deriver_mode,
             'seed': self._seedFromName('ChromosomeStructure'),
+            'emit_unique': self.emit_unique
         }
         return chromosome_structure_config
     
@@ -1209,7 +1240,8 @@ class LoadSimData:
             'ribosome30S': self.sim_data.molecule_ids.s30_full_complex,
             'ribosome50S': self.sim_data.molecule_ids.s50_full_complex,
             
-            'seed': self.random_state.randint(RAND_MAX)
+            'seed': self.random_state.randint(RAND_MAX),
+            'emit_unique': self.emit_unique
         }
         return rna_interference_config
 
@@ -1221,7 +1253,8 @@ class LoadSimData:
             '_parallel': parallel,
             'trna_ids': rna_ids[is_trna],
             # Ensure that a new seed is set upon division
-            'seed': self.random_state.randint(RAND_MAX)
+            'seed': self.random_state.randint(RAND_MAX),
+            'emit_unique': self.emit_unique
         }
         return tetracycline_ribosome_equilibrium_config
     
@@ -1257,7 +1290,8 @@ class LoadSimData:
             'ppi': self.sim_data.molecule_ids.ppi,
             'water': self.sim_data.molecule_ids.water,
             'nmps': self.sim_data.molecule_groups.nmps,
-            'proton': self.sim_data.molecule_ids.proton
+            'proton': self.sim_data.molecule_ids.proton,
+            'emit_unique': self.emit_unique
         }
         config['n_required_enzymes'] = config['enzyme_matrix'].sum(axis=1)
         config['n_ppi_added'] = config['stoich_matrix'].toarray().sum(
@@ -1295,7 +1329,8 @@ class LoadSimData:
             'time_step': time_step,
             '_parallel': parallel,
             'tf_ids': self.sim_data.process.transcription_regulation.tf_ids,
-            'submass_indices': self.submass_indices
+            'submass_indices': self.submass_indices,
+            'emit_unique': self.emit_unique
         }
         # Build array of active TF masses
         bulk_ids = self.sim_data.internal_state.bulk_molecules.bulk_data["id"]
@@ -1315,6 +1350,7 @@ class LoadSimData:
             'tf_ids': self.sim_data.process.transcription_regulation.tf_ids,
             'cistron_ids': self.sim_data.process.transcription.cistron_data['gene_id'],
             'cistron_tu_mapping_matrix': self.sim_data.process.transcription.cistron_tu_mapping_matrix,
+            'emit_unique': self.emit_unique
         }
     
     def get_dna_supercoiling_listener_config(self, time_step=1, parallel=False):
@@ -1322,7 +1358,8 @@ class LoadSimData:
             'time_step': time_step,
             '_parallel': parallel,
             'relaxed_DNA_base_pairs_per_turn': \
-                self.sim_data.process.chromosome_structure.relaxed_DNA_base_pairs_per_turn
+                self.sim_data.process.chromosome_structure.relaxed_DNA_base_pairs_per_turn,
+            'emit_unique': self.emit_unique
         }
     
     def get_unique_molecule_counts_config(self, time_step=1, parallel=False):
@@ -1330,7 +1367,8 @@ class LoadSimData:
             'time_step': time_step,
             '_parallel': parallel,
             'unique_ids': \
-                self.sim_data.internal_state.unique_molecule.unique_molecule_masses['id']
+                self.sim_data.internal_state.unique_molecule.unique_molecule_masses['id'],
+            'emit_unique': self.emit_unique
         }
     
     def get_ribosome_data_listener_config(self, time_step=1, parallel=False):
@@ -1349,7 +1387,8 @@ class LoadSimData:
                     'is_rRNA']],
             'rRNA_is_23S': self.sim_data.process.transcription.cistron_data[
                 'is_23S_rRNA'][self.sim_data.process.transcription.cistron_data[
-                    'is_rRNA']]
+                    'is_rRNA']],
+            'emit_unique': self.emit_unique
         }
     
     def get_rnap_data_listener_config(self, time_step=1, parallel=False):
@@ -1362,7 +1401,8 @@ class LoadSimData:
             'cistron_ids': \
                 self.sim_data.process.transcription.cistron_data['id'],
             'cistron_tu_mapping_matrix': \
-                self.sim_data.process.transcription.cistron_tu_mapping_matrix
+                self.sim_data.process.transcription.cistron_tu_mapping_matrix,
+            'emit_unique': self.emit_unique
         }
     
     # def generate_initial_state(self):

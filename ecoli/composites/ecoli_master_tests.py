@@ -34,10 +34,7 @@ def test_division(
     sim.config['agent_id'] = agent_id
     sim.config['total_time'] = total_time
     # Ensure unique molecules are emitted
-    sim.config['emit_paths'] = [
-        ('agents', str(agent_id), 'unique',), 
-        ('agents', str(agent_id), 'bulk',),
-        ('agents', str(agent_id), 'listeners',)]
+    sim.config['emit_unique'] = True
     sim.build_ecoli()
 
     # Set threshold so that mother divides after first timestep
@@ -111,11 +108,6 @@ def test_division_topology():
     sim.config['initial_state_file'] = 'vivecoli_t2000'
     sim.config['divide'] = True
     sim.config['agent_id'] = agent_id
-    # Ensure unique molecules are emitted
-    sim.config['emit_paths'] = [
-        ('agents', agent_id, 'unique',), 
-        ('agents', agent_id, 'bulk',),
-        ('agents', agent_id, 'listeners',)]
     sim.build_ecoli()
 
     # make the experiment

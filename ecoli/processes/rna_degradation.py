@@ -96,6 +96,7 @@ class RnaDegradation(PartitionedProcess):
         'ribosome50S': 'ribosome50S',
         'Kms': np.array([]) * units.mol / units.L,
         'seed': 0,
+        'emit_unique': False,
     }
 
     def __init__(self, parameters=None):
@@ -180,8 +181,10 @@ class RnaDegradation(PartitionedProcess):
     def ports_schema(self):
         return {
             'bulk': numpy_schema('bulk'),
-            'active_ribosome': numpy_schema('active_ribosome'),
-            'RNAs': numpy_schema('RNAs'),
+            'active_ribosome': numpy_schema('active_ribosome',
+                emit=self.parameters['emit_unique']),
+            'RNAs': numpy_schema('RNAs',
+                emit=self.parameters['emit_unique']),
             'listeners': {
                 'mass': listener_schema({
                     'cell_mass': 0.0,

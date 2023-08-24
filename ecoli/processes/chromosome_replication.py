@@ -75,6 +75,8 @@ class ChromosomeReplication(PartitionedProcess):
 
         # random seed
         'seed': 0,
+
+        'emit_unique': False
     }
 
     def __init__(self, parameters=None):
@@ -136,10 +138,14 @@ class ChromosomeReplication(PartitionedProcess):
                     '_default': '',
                     '_updater': 'set'},
                 },
-            'active_replisomes': numpy_schema('active_replisomes'),
-            'oriCs': numpy_schema('oriCs'),
-            'chromosome_domains': numpy_schema('chromosome_domains'),
-            'full_chromosomes': numpy_schema('full_chromosomes'),
+            'active_replisomes': numpy_schema('active_replisomes',
+                emit=self.parameters['emit_unique']),
+            'oriCs': numpy_schema('oriCs',
+                emit=self.parameters['emit_unique']),
+            'chromosome_domains': numpy_schema('chromosome_domains',
+                emit=self.parameters['emit_unique']),
+            'full_chromosomes': numpy_schema('full_chromosomes',
+                emit=self.parameters['emit_unique']),
             'global_time': {'_default': 0},
             'timestep': {'_default': self.parameters['time_step']}
         }

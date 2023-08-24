@@ -33,6 +33,8 @@ class RNACounts(Step):
     defaults = {
         'rna_ids': [],
         'mrna_indexes': [],
+        'time_step': 1,
+        'emit_unique': False,
     }
 
     def __init__(self, parameters=None):
@@ -69,7 +71,8 @@ class RNACounts(Step):
                     'partial_rRNA_counts': ([], self.rRNA_TU_ids),
                     'partial_rRNA_cistron_counts': ([], self.rRNA_cistron_ids)})
             },
-            'RNAs': numpy_schema('RNAs'),
+            'RNAs': numpy_schema('RNAs',
+                emit=self.parameters['emit_unique']),
             'global_time': {'_default': 0},
             'timestep': {'_default': self.parameters['time_step']}
         }

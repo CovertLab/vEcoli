@@ -31,6 +31,11 @@ class ReplicationData(Step):
     name = NAME
     topology = TOPOLOGY
 
+    defaults = {
+        'time_step': 1,
+        'emit_unique': False
+    }
+
     def ports_schema(self):
         return {
             'listeners': {
@@ -43,9 +48,12 @@ class ReplicationData(Step):
                     'total_DnaA_boxes': []
                 })
             },
-            'oriCs': numpy_schema('oriCs'),
-            'active_replisomes': numpy_schema('active_replisomes'),
-            'DnaA_boxes': numpy_schema('DnaA_boxes'),
+            'oriCs': numpy_schema('oriCs',
+                emit=self.parameters['emit_unique']),
+            'active_replisomes': numpy_schema('active_replisomes',
+                emit=self.parameters['emit_unique']),
+            'DnaA_boxes': numpy_schema('DnaA_boxes',
+                emit=self.parameters['emit_unique']),
             'global_time': {'_default': 0},
             'timestep': {'_default': self.parameters['time_step']}
         }

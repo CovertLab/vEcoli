@@ -177,6 +177,7 @@ class TranscriptInitiation(PartitionedProcess):
 
         # random seed
         'seed': 0,
+        'emit_unique': False,
     }
 
     # Constructor
@@ -281,10 +282,14 @@ class TranscriptInitiation(PartitionedProcess):
 
             'bulk': numpy_schema('bulk'),
 
-            'full_chromosomes': numpy_schema('full_chromosomes'),
-            'promoters': numpy_schema('promoters'),
-            'RNAs': numpy_schema('RNAs'),
-            'active_RNAPs': numpy_schema('active_RNAPs'),
+            'full_chromosomes': numpy_schema('full_chromosomes',
+                emit=self.parameters['emit_unique']),
+            'promoters': numpy_schema('promoters',
+                emit=self.parameters['emit_unique']),
+            'RNAs': numpy_schema('RNAs',
+                emit=self.parameters['emit_unique']),
+            'active_RNAPs': numpy_schema('active_RNAPs',
+                emit=self.parameters['emit_unique']),
 
             'listeners': {
                 'mass': {

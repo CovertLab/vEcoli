@@ -36,7 +36,8 @@ class RnaInterference(Process):
         'ribosome50S': 'ribosome50S',
         'duplex_ids': [],
         'seed': 0,
-        'time_step': 2
+        'time_step': 2,
+        'emit_unique': False
     }
 
     def __init__(self, parameters=None):
@@ -59,8 +60,10 @@ class RnaInterference(Process):
     def ports_schema(self):
         return {
             'bulk': numpy_schema('bulk', partition=False),
-            'active_ribosome': numpy_schema('active_ribosome'),
-            'RNAs': numpy_schema('RNAs'),
+            'active_ribosome': numpy_schema('active_ribosome',
+                emit=self.parameters['emit_unique']),
+            'RNAs': numpy_schema('RNAs',
+                emit=self.parameters['emit_unique']),
         }
         
     def next_update(self, timestep, states):

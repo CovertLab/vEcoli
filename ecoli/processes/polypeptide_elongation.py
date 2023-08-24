@@ -125,6 +125,7 @@ class PolypeptideElongation(PartitionedProcess):
         'KI_SpoT': 20.0,
         'aa_supply_scaling': lambda aa_conc, aa_in_media: 0,
         'seed': 0,
+        'emit_unique': False,
     }
 
     def __init__(self, parameters=None):
@@ -299,7 +300,8 @@ class PolypeptideElongation(PartitionedProcess):
             'bulk': numpy_schema('bulk'),
             'bulk_total': numpy_schema('bulk', partition=False),
 
-            'active_ribosome': numpy_schema('active_ribosome'),
+            'active_ribosome': numpy_schema('active_ribosome',
+                emit=self.parameters['emit_unique']),
 
             'polypeptide_elongation': {
                 'aa_count_diff': {

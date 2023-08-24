@@ -48,6 +48,8 @@ class MonomerCounts(Step):
         'complexation_stoich': [],
         'equilibrium_stoich': [],
         'two_component_system_stoich': [],
+        'emit_unique': False,
+        'time_step': 1
     }
 
     def __init__(self, parameters=None):
@@ -121,9 +123,12 @@ class MonomerCounts(Step):
             },
             'bulk': numpy_schema('bulk'),
             'unique': {
-                'active_ribosome': numpy_schema('active_ribosome'),
-                'active_RNAP': numpy_schema('active_RNAPs'),
-                'active_replisome': numpy_schema('active_replisomes')
+                'active_ribosome': numpy_schema('active_ribosome',
+                    emit=self.parameters['emit_unique']),
+                'active_RNAP': numpy_schema('active_RNAPs',
+                    emit=self.parameters['emit_unique']),
+                'active_replisome': numpy_schema('active_replisomes',
+                    emit=self.parameters['emit_unique']),
             },
             'global_time': {'_default': 0},
             'timestep': {'_default': self.parameters['time_step']}

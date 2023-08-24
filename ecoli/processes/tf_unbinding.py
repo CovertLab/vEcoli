@@ -16,6 +16,8 @@ NAME = 'ecoli-tf-unbinding'
 TOPOLOGY = {
     "bulk": ("bulk",),
     "promoters": ("unique", "promoter",),
+    "global_time": ("global_time",),
+    "timestep": ("timestep",),
     "first_update": ("first_update", "tf_unbinding"),
 }
 topology_registry.register(NAME, TOPOLOGY)
@@ -25,6 +27,11 @@ class TfUnbinding(Step):
 
     name = NAME
     topology = TOPOLOGY
+
+    defaults = {
+        'time_step': 1,
+        'emit_unique': False
+    }
 
     # Constructor
     def __init__(self, parameters=None):
@@ -39,7 +46,11 @@ class TfUnbinding(Step):
     def ports_schema(self):
         return {
             'bulk': numpy_schema('bulk'),
-            'promoters': numpy_schema('promoters'),
+            'promoters': numpy_schema('promoters',
+                emit=self.parameters['emit_unique']),
+                
+            'global_time': {'_default': 0},
+            'timestep': {'_default': self.parameters['time_step']},
 
             'first_update': {
                 '_default': True,
@@ -47,6 +58,9 @@ class TfUnbinding(Step):
                 '_divider': {'divider': 'set_value',
                     'config': {'value': True}}},
         }
+    
+    def update_condition(self, timestep, states):
+        return (states['global_time'] % states['timestep']) == 0
 
     def next_update(self, timestep, states):
         # At t=0, convert all strings to indices
