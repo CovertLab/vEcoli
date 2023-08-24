@@ -12,6 +12,8 @@ def test_chromosome_structure_migration():
     for initial_time in times:
         run_and_compare(initial_time, ChromosomeStructure,
             partition=False, layer=5)
+        run_and_compare(initial_time, ChromosomeStructure,
+            partition=False, layer=5, operons=False)
 
 if __name__ == "__main__":
     test_chromosome_structure_migration()

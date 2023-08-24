@@ -73,12 +73,7 @@ class Ecoli(Composer):
     def __init__(self, config):
         super().__init__(config)
         self.load_sim_data = LoadSimData(
-            sim_data_path=self.config['sim_data_path'],
-            seed=self.config['seed'],
-            mar_regulon=self.config['mar_regulon'],
-            rnai_data=self.config['process_configs'].get(
-                'ecoli-rna-interference'),
-            amp_lysis=self.config['amp_lysis'])
+            **self.config)
 
         if not self.config.get('processes'):
             self.config['processes'] = deepcopy(ECOLI_DEFAULT_PROCESSES)
@@ -109,6 +104,10 @@ class Ecoli(Composer):
             initial_state_file = config.get('initial_state_file', 'wcecoli_t0')
             initial_state = get_state_from_file(
                 path=f'data/{initial_state_file}.json')
+        
+        # Load first agent state in a division-enabled save state by default
+        if 'agents' in initial_state.keys():
+            initial_state = list(initial_state['agents'].values())[0]
 
         initial_state_overrides = config.get('initial_state_overrides', [])
         if initial_state_overrides:
@@ -164,18 +163,6 @@ class Ecoli(Composer):
                     process_configs[process]['seed'] = (
                         process_configs[process]['seed'] +
                         config['seed']) % RAND_MAX
-        
-        # update schema overrides for evolvers and requesters
-        update_override = {}
-        delete_override = []
-        for process_id, override in self.schema_override.items():
-            if process_id in self.partitioned_processes:
-                delete_override.append(process_id)
-                update_override[f'{process_id}_evolver'] = override
-                update_override[f'{process_id}_requester'] = override
-        for process_id in delete_override:
-            del self.schema_override[process_id]
-        self.schema_override.update(update_override)
 
         # make the processes
         processes = {}
@@ -309,6 +296,18 @@ class Ecoli(Composer):
             else:
                 flow['division'] = [
                     (f'unique_update_{unique_update_counter - 1}',)]
+                
+        # update schema overrides for evolvers and requesters
+        update_override = {}
+        delete_override = []
+        for process_id, override in self.schema_override.items():
+            if process_id in self.partitioned_processes:
+                delete_override.append(process_id)
+                update_override[f'{process_id}_evolver'] = override
+                update_override[f'{process_id}_requester'] = override
+        for process_id in delete_override:
+            del self.schema_override[process_id]
+        self.schema_override.update(update_override)
 
         # Free memory by removing reference to sim_data object
         del self.load_sim_data

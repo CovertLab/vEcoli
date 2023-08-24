@@ -11,6 +11,7 @@ def test_complexation_migration():
     times = [0, 1870]
     for initial_time in times:
         run_and_compare(initial_time, Complexation, layer=3)
+        run_and_compare(initial_time, Complexation, layer=3, operons=False)
 
 if __name__ == "__main__":
     test_complexation_migration()

@@ -194,7 +194,8 @@ class ChromosomeStructure(Step):
                 self.inactive_RNAPs, states['bulk']['id'])
             self.mature_rna_idx = bulk_name_to_idx(
                 self.mature_rna_ids, states['bulk']['id'])
-
+        
+        if states['first_update']:
             return {'first_update': False}
 
         # Read unique molecule attributes

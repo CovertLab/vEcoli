@@ -150,22 +150,22 @@ class EcoliSpatial(Composer):
             polyribosome_assumption = config['polyribosome_assumption']
             polyribosomes, polyribosomes_mw, polyribosomes_radii = add_polyribosomes(
                 initial_state['unique'], self.unique_masses, polyribosome_assumption)
-            bulk = np.append(bulk, np.array(list(polyribosomes.items()), dtype=bulk.dtype))
+            bulk = np.append(bulk, np.array(list(polyribosomes.values()), dtype=bulk.dtype))
             self.bulk_molecular_weights.update(polyribosomes_mw)
             self.radii.update(polyribosomes_radii)
 
         # Buckets half of cytosol labeled molecules into each pole
         cytosol_front = {
-            str(mol_id): (math.ceil(value / 2) if '[c]' in mol_id else 0)
-            for mol_id, value in bulk
+            str(bulk_mol[0]): (math.ceil(bulk_mol[1] / 2) if '[c]' in bulk_mol[0] else 0)
+            for bulk_mol in bulk
         }
         cytosol_rear = {
-            str(mol_id): (math.floor(value / 2) if '[c]' in mol_id else 0)
-            for mol_id, value in bulk
+            str(bulk_mol[0]): (math.floor(bulk_mol[1] / 2) if '[c]' in bulk_mol[0] else 0)
+            for bulk_mol in bulk
         }
         nucleoid = {
-            str(mol_id): (value if '[n]' in mol_id else 0)
-            for mol_id, value in bulk
+            str(bulk_mol[0]): (bulk_mol[1] if '[n]' in bulk_mol[0] else 0)
+            for bulk_mol in bulk
         }
 
         self.nodes['cytosol_front']['molecules'] = cytosol_front
@@ -236,6 +236,9 @@ def add_polyribosomes(unique, unique_masses, polyribosome_assumption,
     polyribosomes = {}
     mw = {}
     radii = {}
+    # Since mass of ribosomes and polypeptides are accounted for in
+    # unique molecules, ensure that bulk polyribosomes have zero mass
+    zero_mass = (0,) * 9
     for i, group in enumerate(groups):
         if i < len(groups) - 1:
             group_mask = (n_ribosomes_on_full_mrna == (i + 1))
@@ -263,7 +266,7 @@ def add_polyribosomes(unique, unique_masses, polyribosome_assumption,
             radii[group] = 5.5 * avg_mrna_length ** 0.3333
 
         # Adds polyribosomes to bulk molecules and molecular weights
-        polyribosomes[group] = n_polyribosome_by_group
+        polyribosomes[group] = (group, n_polyribosome_by_group) + zero_mass
 
     return polyribosomes, mw, radii
 

@@ -20,7 +20,6 @@ from scipy.sparse import csr_matrix
 from vivarium.core.process import Step
 
 from ecoli.processes.registries import topology_registry
-from ecoli.processes.polypeptide_elongation import MICROMOLAR_UNITS
 from ecoli.library.schema import (
     numpy_schema, bulk_name_to_idx, counts, listener_schema)
 from wholecell.utils import units
@@ -115,8 +114,10 @@ class Metabolism(Step):
             'mechanistic_aa_transport']
         self.current_timeline = self.parameters['current_timeline']
         self.media_id = self.parameters['media_id']
-        self.all_external_exchange_molecules = self.parameters[
-            'all_external_exchange_molecules']
+        self.exchange_molecules = self.parameters[
+            'exchange_molecules']
+        self.environment_molecules = sorted(
+            [mol[:-3] for mol in self.exchange_molecules])
 
         # Create model to use to solve metabolism updates
         self.model = FluxBalanceAnalysisModel(
@@ -220,7 +221,7 @@ class Metabolism(Step):
                     '_updater': 'set'},
                 'exchange': {
                     str(element): {'_default': 0}
-                    for element in self.externalMoleculeIDs},
+                    for element in self.environment_molecules},
             },
 
             'boundary': {
@@ -243,11 +244,11 @@ class Metabolism(Step):
                     'translation_gtp': 0,
                     'coefficient': 0.0,
                     'unconstrained_molecules': (
-                        [], self.all_external_exchange_molecules),
+                        [], self.exchange_molecules),
                     'constrained_molecules': (
-                        [], self.all_external_exchange_molecules),
+                        [], self.exchange_molecules),
                     'uptake_constraints': (
-                        [], self.all_external_exchange_molecules),
+                        [], self.exchange_molecules),
                     'delta_metabolites': (
                         [], self.model.metaboliteNamesFromNutrients),
                     'reaction_fluxes': ([], self.fba_reaction_ids),
@@ -339,6 +340,7 @@ class Metabolism(Step):
                 self.model.kinetic_constraint_substrates, states['bulk']['id'])
             self.aa_idx = bulk_name_to_idx(self.aa_names, states['bulk']['id'])
 
+        if states['first_update']:
             return {'first_update': False}
 
         timestep = states['timestep']
@@ -359,8 +361,10 @@ class Metabolism(Step):
 
         # Get environment updates
         current_media_id = states['environment']['media_id']
-        exchange_data = self.exchange_data_from_concentrations(
-            states['boundary']['external'])
+        # Get raw concentrations in mM
+        env_concs = {mol: states['boundary']['external'][mol].to('mM').magnitude
+            for mol in self.environment_molecules}
+        exchange_data = self.exchange_data_from_concentrations(env_concs)
         unconstrained = exchange_data['importUnconstrainedExchangeMolecules']
         constrained = exchange_data['importConstrainedExchangeMolecules']
 
@@ -411,7 +415,7 @@ class Metabolism(Step):
         if self.mechanistic_aa_transport:
             aa_in_media = np.array([
                 states['boundary']['external'][aa_name
-                    ] > self.import_constraint_threshold
+                    ].to('mM').magnitude > self.import_constraint_threshold
                 for aa_name in self.aa_environment_names
             ])
             aa_in_media[self.removed_aa_uptake] = False
@@ -505,9 +509,9 @@ class Metabolism(Step):
 
             'environment': {
                 'exchange': {
-                    str(molecule): delta_nutrients[index]
+                    str(molecule[:-3]): delta_nutrients[index]
                     for index, molecule in enumerate(
-                        fba.getExternalMoleculeIDs())}},
+                        self.externalMoleculeIDs)}},
 
             'listeners': {
                 'fba_results': {
@@ -535,7 +539,7 @@ class Metabolism(Step):
                     'kinetic_objective_values': \
                         fba.getKineticObjectiveValues(),
                     'base_reaction_fluxes': self.reaction_mapping_matrix.dot(
-                        reaction_fluxes,),
+                        reaction_fluxes),
                     
                     # Quite large, comment out to reduce emit size
                     # 'estimated_fluxes': flux_dict ,
@@ -955,7 +959,7 @@ def test_metabolism_listener():
     sim.build_ecoli()
     sim.run()
     data = sim.query()
-    reaction_fluxes = data['listeners']['fba_results']['reaction_fluxes']
+    reaction_fluxes = data['agents']['0']['listeners']['fba_results']['reaction_fluxes']
     assert(type(reaction_fluxes[0]) == list)
     assert(type(reaction_fluxes[1]) == list)
 

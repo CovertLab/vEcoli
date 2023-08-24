@@ -185,10 +185,10 @@ def test_blame_timeseries():
         sim.emit_processes = False
         sim.total_time = 100
         sim.build_ecoli()
-        bulk_ids = sim.generated_initial_state['bulk']['id']
+        bulk_ids = sim.generated_initial_state['agents']['0']['bulk']['id']
         sim.run()
         data = sim.query()
-        topo = sim.ecoli_experiment.topology
+        topo = sim.ecoli_experiment.topology['agents']['0']
 
     molecules = [
         "EG10841-MONOMER",
@@ -200,6 +200,9 @@ def test_blame_timeseries():
         "CPLX0-7451",
         "CPLX0-7452"  # Final flagella molecule
     ]
+
+    data = {time: time_data['agents']['0']
+            for time, time_data in data.items()}
 
     blame_timeseries(data, topo, bulk_ids,
                      ['CPD-12261[p]'],# + molecules,

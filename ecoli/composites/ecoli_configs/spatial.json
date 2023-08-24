@@ -8,7 +8,7 @@
             ]
         },
         "reaction_diffusion": {
-            "molecules": ["GLC[p]"],
+            "molecules": ["GLC"],
             "n_bins": [10, 10],
             "bounds": [
                 "!units[50 micrometer]",
@@ -19,7 +19,7 @@
             "gradient": {
                 "type": "uniform",
                 "molecules": {
-                    "GLC[p]": "!units[1.0 millimolar]"
+                    "GLC": "!units[1.0 millimolar]"
                 }
             },
             "exchanges_path": ["environment", "exchange"],

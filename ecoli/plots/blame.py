@@ -271,43 +271,15 @@ def test_blame():
     sim = EcoliSim.from_file()
     sim.merge(EcoliSim.from_file(CONFIG_DIR_PATH + "/test_configs/test_blame.json"))
     sim.build_ecoli()
-    bulk_ids = sim.generated_initial_state['bulk']['id']
+    bulk_ids = sim.generated_initial_state['agents']['0']['bulk']['id']
     sim.run()
     data = sim.query()
+    data = {'time': data['time'], **data['agents']['0']}
 
     # TODO: Adapt this code to work with new Numpy update format
-    blame_plot(data, sim.ecoli_experiment.topology, bulk_ids,
+    blame_plot(data, sim.ecoli_experiment.topology['agents']['0'], bulk_ids,
                'out/ecoli_sim/blame_test.png',
                highlight_molecules=['PD00413[c]', 'PHOR-CPLX[c]'])
-
-
-def compare_partition():
-    sim = EcoliSim.from_file()
-    sim.total_time = 4
-    sim.log_updates = True
-    sim.raw_output = False
-
-    sim.partition = False
-    sim.exclude_processes = ["ecoli-two-component-system"]
-    sim.build_ecoli()
-    sim.run()
-    data = sim.query()
-
-    blame_plot(data, sim.ecoli.topology,
-               "out/ecoli_sim/blame_nopartition.png")
-
-    sim = EcoliSim.from_file()
-    sim.total_time = 4
-    sim.log_updates = True
-    sim.raw_output = False
-
-    sim.partition = True
-    sim.build_ecoli()
-    sim.run()
-    data = sim.query()
-
-    blame_plot(data, sim.topology,
-               "out/ecoli_sim/blame_partition.png")
 
 
 if __name__ == "__main__":
