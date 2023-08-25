@@ -66,6 +66,7 @@ class PolypeptideElongation(PartitionedProcess):
     name = NAME
     topology = TOPOLOGY
     defaults = {
+        'time_step': 1,
         'max_time_step': 2.0,
         'n_avogadro': 6.02214076e+23 / units.mol,
         'proteinIds': np.array([]),
@@ -82,7 +83,13 @@ class PolypeptideElongation(PartitionedProcess):
         'import_threshold': 1e-05,
         'aa_from_trna': np.zeros(21),
         'gtpPerElongation': 4.2,
+        'aa_supply_in_charging': False,
+        'adjust_timestep_for_charging': False,
+        'mechanistic_translation_supply': False,
+        'mechanistic_aa_transport': False,
         'ppgpp_regulation': False,
+        'disable_ppgpp_elongation_inhibition': False,
+        'variable_elongation': False,
         'trna_charging': False,
         'translation_supply': False,
         'mechanistic_supply': False,
@@ -110,6 +117,17 @@ class PolypeptideElongation(PartitionedProcess):
         'ppgpp_reaction_stoich': np.array([[]]),
         'ppgpp_synthesis_reaction': 'GDPPYPHOSKIN-RXN',
         'ppgpp_degradation_reaction': 'PPGPPSYN-RXN',
+        'aa_importers': [],
+        'amino_acid_export': None,
+        'synthesis_index': 0,
+        'aa_exporters': [],
+        'get_pathway_enzyme_counts_per_aa': None,
+        'import_constraint_threshold': 0,
+        'unit_conversion': 0,
+        'elong_rate_by_ppgpp': 0,
+        'amino_acid_import': None,
+        'degradation_index': 1,
+        'amino_acid_synthesis': None, 
         'rela': 'RELA',
         'spot': 'SPOT',
         'ppgpp': 'ppGpp',
@@ -158,7 +176,6 @@ class PolypeptideElongation(PartitionedProcess):
         self.endWeight = self.parameters['endWeight']
         self.make_elongation_rates = self.parameters['make_elongation_rates']
         self.next_aa_pad = self.parameters['next_aa_pad']
-        self.exchange_molecules = self.parameters['exchange_molecules']
 
         self.ribosome30S = self.parameters['ribosome30S']
         self.ribosome50S = self.parameters['ribosome50S']
@@ -405,7 +422,8 @@ class PolypeptideElongation(PartitionedProcess):
             self.elongation_model.request(states, aasInSequences)
 
         # Write to listeners
-        ribosome_data_listener = requests['listeners'].setdefault(
+        listeners = requests.setdefault('listeners', {})
+        ribosome_data_listener = listeners.setdefault(
             'ribosome_data', {})
         ribosome_data_listener['translation_supply'
             ] = translation_supply_rate.asNumber()

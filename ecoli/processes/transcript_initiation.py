@@ -151,6 +151,8 @@ class TranscriptInitiation(PartitionedProcess):
         'get_delta_prob_matrix': None,
         'perturbations': {},
         'rna_data': {},
+        'active_rnap_footprint_size': 24 * units.nt,
+        'get_rnap_active_fraction_from_ppGpp': lambda x: 0.1,
 
         'idx_rRNA': np.array([]),
         'idx_mRNA': np.array([]),

@@ -48,7 +48,8 @@ class Complexation(PartitionedProcess):
         'molecule_names': [],
         'seed': 0,
         'reaction_ids': [],
-        'complex_ids': []
+        'complex_ids': [],
+        'time_step': 1,
     }
 
     def __init__(self, parameters=None):

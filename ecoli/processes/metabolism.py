@@ -69,7 +69,7 @@ class Metabolism(Step):
         'nutrientToDoublingTime': {},
         'use_trna_charging': False,
         'include_ppgpp': False,
-        'mechanisitc_aa_transport': False,
+        'mechanistic_aa_transport': False,
         'aa_names': [],
         'aa_targets_not_updated': set(),
         'import_constraint_threshold': 0,
@@ -99,6 +99,7 @@ class Metabolism(Step):
         'reduce_murein_objective': False,
         'base_reaction_ids': [],
         'fba_reaction_ids_to_base_reaction_ids': [],
+        'time_step': 1
     }
 
     def __init__(self, parameters=None):
@@ -517,7 +518,7 @@ class Metabolism(Step):
             'listeners': {
                 'fba_results': {
                     'media_id': current_media_id,
-                    'conc_updates': [conc_updates[m]
+                    'conc_updates': [conc_updates.get(m, 0)
                         for m in self.conc_update_molecules],
                     'catalyst_counts': catalyst_counts,
                     'translation_gtp': translation_gtp,

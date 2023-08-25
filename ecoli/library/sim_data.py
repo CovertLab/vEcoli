@@ -25,7 +25,7 @@ class LoadSimData:
         sim_data_path=SIM_DATA_PATH,
         seed=0,
         total_time=10,
-        timeline='0 minimal',
+        media_timeline=((0, 'minimal')),
         operons=True,
         trna_charging=True,
         ppgpp_regulation=True,
@@ -59,8 +59,8 @@ class LoadSimData:
         self.seed = seed
         self.total_time = total_time
         self.random_state = np.random.RandomState(seed = seed)
-        # Timeline string of the format 'time1 media_id1, time2 media_id2' 
-        self.timeline = timeline
+        # Iterable of tuples with the format (time, media_id)
+        self.media_timeline = media_timeline
 
         self.trna_charging = trna_charging
         self.ppgpp_regulation = ppgpp_regulation
@@ -724,7 +724,6 @@ class LoadSimData:
             'make_elongation_rates': translation.make_elongation_rates,
             'next_aa_pad': translation.next_aa_pad,
             'ribosomeElongationRate': float(self.sim_data.growth_rate_parameters.ribosomeElongationRate.asNumber(units.aa / units.s)),
-            'exchange_molecules': self.sim_data.external_state.all_external_exchange_molecules,
             # Amino acid supply calculations
             'translation_aa_supply': self.sim_data.translation_supply_rate,
             'import_threshold': self.sim_data.external_state.import_constraint_threshold,
@@ -796,7 +795,6 @@ class LoadSimData:
             'import_constraint_threshold': self.sim_data.external_state.import_constraint_threshold,
             'seed': self._seedFromName('PolypeptideElongation'),
 
-            'submass_indices': self.submass_indices,
             'emit_unique': self.emit_unique
         }
 
@@ -869,8 +867,37 @@ class LoadSimData:
 
         return protein_degradation_config
 
-    def get_metabolism_redux_config(self, time_step=1, parallel=False,
-        deriver_mode=False):
+    def get_metabolism_redux_config(self, time_step=1, parallel=False):
+        metabolism = self.sim_data.process.metabolism
+        aa_names = self.sim_data.molecule_groups.amino_acids
+        aa_exchange_names = np.array([
+            self.sim_data.external_state.env_to_exchange_map[aa[:-3]]
+            for aa in aa_names
+            ])
+        aa_targets_not_updated = {'L-SELENOCYSTEINE[c]'}
+
+        # Setup for variant that has a fixed change in ppGpp until a concentration is reached
+        if hasattr(self.sim_data, 'ppgpp_ramp'):
+            self.sim_data.ppgpp_ramp.set_time(self.total_time)
+            self.sim_data.growth_rate_parameters.get_ppGpp_conc = \
+                self.sim_data.ppgpp_ramp.get_ppGpp_conc
+        
+        # if current_timeline_id is specified by a variant in sim_data, look it up in saved_timelines.
+        if self.sim_data.external_state.current_timeline_id:
+            current_timeline = self.sim_data.external_state.saved_timelines[
+                self.sim_data.external_state.current_timeline_id]
+        else:
+            current_timeline = self.media_timeline
+        saved_media = self.sim_data.external_state.saved_media
+        current_concentrations = saved_media[current_timeline[0][1]]
+
+        # Get import molecules
+        exch_from_conc = self.sim_data.external_state.exchange_data_from_concentrations
+        exchange_data = exch_from_conc(current_concentrations)
+        unconstrained = exchange_data['importUnconstrainedExchangeMolecules']
+        constrained = exchange_data['importConstrainedExchangeMolecules']
+        imports = set(unconstrained) | set(constrained)
+
         metabolism_config = {
             'time_step': time_step,
             '_parallel': parallel,
@@ -882,6 +909,21 @@ class LoadSimData:
             'reaction_catalysts': (self.sim_data.process.metabolism.
                 reaction_catalysts),
 
+            # wcEcoli parameters
+            'get_import_constraints': self.sim_data.external_state.get_import_constraints,
+            'aa_targets_not_updated': aa_targets_not_updated,
+            'import_constraint_threshold': self.sim_data.external_state.import_constraint_threshold,
+            'exchange_molecules': self.sim_data.external_state.all_external_exchange_molecules,
+            'exchange_data_from_concentrations': exch_from_conc,
+            'imports': imports,
+
+            # these are options given to the wholecell.sim.simulation
+            'use_trna_charging': self.trna_charging,
+            'include_ppgpp': (not self.ppgpp_regulation) or (
+                not self.trna_charging) or getattr(metabolism,
+                    'force_constant_ppgpp', False),
+            'mechanistic_aa_transport': self.mechanistic_aa_transport,
+
             # variables
             'media_id': self.sim_data.conditions[self.sim_data.condition]['nutrients'],
             'avogadro': self.sim_data.constants.n_avogadro,
@@ -890,11 +932,26 @@ class LoadSimData:
             'dark_atp': self.sim_data.constants.darkATP,
             'non_growth_associated_maintenance': self.sim_data.constants.non_growth_associated_maintenance,
             'cell_dry_mass_fraction': self.sim_data.mass.cell_dry_mass_fraction,
-            'seed': self.random_state.randint(RAND_MAX),
+            'ppgpp_id': self.sim_data.molecule_ids.ppGpp,
+            'get_ppGpp_conc': self.sim_data.growth_rate_parameters.get_ppGpp_conc,
+            'exchange_data_from_media': self.sim_data.external_state.exchange_data_from_media,
+            'get_masses': self.sim_data.getter.get_masses,
             'kinetic_constraint_reactions': self.sim_data.process.metabolism.kinetic_constraint_reactions,
             'doubling_time': self.sim_data.condition_to_doubling_time[self.sim_data.condition],
             'get_biomass_as_concentrations': self.sim_data.mass.getBiomassAsConcentrations,
             'aa_names': self.sim_data.molecule_groups.amino_acids,
+            'linked_metabolites': metabolism.concentration_updates.linked_metabolites,
+            'aa_exchange_names': aa_exchange_names,
+            'removed_aa_uptake': np.array([aa in aa_targets_not_updated
+                for aa in aa_exchange_names]),
+            'constraints_to_disable': metabolism.constraints_to_disable,
+            'secretion_penalty_coeff': metabolism.secretion_penalty_coeff,
+            'kinetic_objective_weight': metabolism.kinetic_objective_weight,
+
+            # these values came from the initialized environment state
+            'current_timeline': current_timeline,
+            'media_id': current_timeline[0][1],
+            'imports': imports,
 
             # methods
             'concentration_updates': self.sim_data.process.metabolism.concentration_updates,
@@ -906,15 +963,21 @@ class LoadSimData:
             'catalyst_ids': self.sim_data.process.metabolism.catalyst_ids,
             'kinetic_constraint_enzymes': self.sim_data.process.metabolism.kinetic_constraint_enzymes,
             'kinetic_constraint_substrates': self.sim_data.process.metabolism.kinetic_constraint_substrates,
-            'deriver_mode': deriver_mode,
-            'emit_unique': self.emit_unique
+
+            # Used to create conversion matrix that compiles individual fluxes
+            # in the FBA solution to the fluxes of base reactions
+            'base_reaction_ids': self.sim_data.process.metabolism.base_reaction_ids,
+            'fba_reaction_ids_to_base_reaction_ids': \
+                self.sim_data.process.metabolism.reaction_id_to_base_reaction_id,
+
+            'seed': self.random_state.randint(RAND_MAX),
         }
 
         # TODO Create new config-get with only necessary parts.
 
         return metabolism_config
 
-    def get_metabolism_config(self, time_step=1, parallel=False, deriver_mode=False):
+    def get_metabolism_config(self, time_step=1, parallel=False):
 
         # bad_rxns = ["RXN-12440", "TRANS-RXN-121", "TRANS-RXN-300"]
         # for rxn in bad_rxns:
@@ -937,13 +1000,11 @@ class LoadSimData:
                 self.sim_data.ppgpp_ramp.get_ppGpp_conc
         
         # if current_timeline_id is specified by a variant in sim_data, look it up in saved_timelines.
-        # else, construct the timeline given when initializing LoadSimData
         if self.sim_data.external_state.current_timeline_id:
             current_timeline = self.sim_data.external_state.saved_timelines[
                 self.sim_data.external_state.current_timeline_id]
         else:
-            make_media = self.sim_data.external_state.make_media
-            current_timeline = make_media.make_timeline(self.timeline)
+            current_timeline = self.media_timeline
         saved_media = self.sim_data.external_state.saved_media
         current_concentrations = saved_media[current_timeline[0][1]]
 
@@ -958,9 +1019,8 @@ class LoadSimData:
             'time_step': time_step,
             '_parallel': parallel,
 
-            # metabolism-gd parameters
+            # metabolism parameters
             'stoichiometry': metabolism.reaction_stoich,
-            'reaction_catalysts': metabolism.reaction_catalysts,
             'catalyst_ids': metabolism.catalyst_ids,
             'concentration_updates': metabolism.concentration_updates,
             'maintenance_reaction': metabolism.maintenance_reaction,
@@ -1013,7 +1073,6 @@ class LoadSimData:
             'base_reaction_ids': self.sim_data.process.metabolism.base_reaction_ids,
             'fba_reaction_ids_to_base_reaction_ids': \
                 self.sim_data.process.metabolism.reaction_id_to_base_reaction_id,
-            'emit_unique': self.emit_unique
         }
 
         return metabolism_config
@@ -1176,7 +1235,7 @@ class LoadSimData:
         }
         return allocator_config
 
-    def get_chromosome_structure_config(self, time_step=1, parallel=False, deriver_mode=False):
+    def get_chromosome_structure_config(self, time_step=1, parallel=False):
         transcription = self.sim_data.process.transcription
         mature_rna_ids = transcription.mature_rna_data['id']
         unprocessed_rna_indexes = np.where(
@@ -1220,7 +1279,6 @@ class LoadSimData:
             'amino_acids': self.sim_data.molecule_groups.amino_acids,
             'water': self.sim_data.molecule_ids.water,
 
-            'deriver_mode': deriver_mode,
             'seed': self._seedFromName('ChromosomeStructure'),
             'emit_unique': self.emit_unique
         }

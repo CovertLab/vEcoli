@@ -136,9 +136,9 @@ def test_rna_counts_listener():
     sim.raw_output = False
     sim.build_ecoli()
     sim.run()
-    data = sim.query()
-    assert(type(data['listeners']['rna_counts']['mRNA_counts'][0]) == list)
-    assert(type(data['listeners']['rna_counts']['mRNA_counts'][1]) == list)
+    listeners = sim.query()['agents']['0']['listeners']
+    assert(type(listeners['rna_counts']['mRNA_counts'][0]) == list)
+    assert(type(listeners['rna_counts']['mRNA_counts'][1]) == list)
 
 
 if __name__ == '__main__':
