@@ -154,7 +154,7 @@ def test_rna_interference():
         'active_ribosome': ('unique', 'active_ribosome',),
         'RNAs': ('unique', 'RNA',)
     }
-    unique_update = UniqueUpdate({'unique_dict': unique_topology})
+    unique_update = UniqueUpdate({'unique_topo': unique_topology})
 
     initial_state = {
         'bulk': np.array([

@@ -43,7 +43,8 @@ class ProteinDegradation(PartitionedProcess):
         'amino_acid_counts': [],
         'protein_ids': [],
         'protein_lengths': [],
-        'seed': 0}
+        'seed': 0,
+        'time_step': 1}
 
     # Constructor
     def __init__(self, parameters=None):

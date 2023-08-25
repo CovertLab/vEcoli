@@ -41,7 +41,7 @@ class BaseElongationModel(object):
         }
 
         # Not modeling charging so set fraction charged to 0 for all tRNA
-        fraction_charged = np.zeros(len(self.aaNames))
+        fraction_charged = np.zeros(len(self.process.amino_acid_idx))
 
         return fraction_charged, aa_counts_for_translation, requests
 

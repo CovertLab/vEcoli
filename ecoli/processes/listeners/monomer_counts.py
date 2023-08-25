@@ -217,9 +217,9 @@ def test_monomer_counts_listener():
     sim.raw_output = False
     sim.build_ecoli()
     sim.run()
-    data = sim.query()
-    assert(type(data['listeners']['monomer_counts'][0]) == list)
-    assert(type(data['listeners']['monomer_counts'][1]) == list)
+    listeners = sim.query()['agents']['0']['listeners']
+    assert(type(listeners['monomer_counts'][0]) == list)
+    assert(type(listeners['monomer_counts'][1]) == list)
 
 
 # python ecoli/processes/listeners/monomer_counts.py

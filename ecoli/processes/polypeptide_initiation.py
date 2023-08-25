@@ -51,7 +51,7 @@ class PolypeptideInitiation(PartitionedProcess):
         'rna_id_to_cistron_indexes': {},
         'cistron_start_end_pos_in_tu': {},
         'tu_ids': [],
-        'active_ribosome_footprint_size': 0,
+        'active_ribosome_footprint_size': 24 * units.nt,
         'cistron_to_monomer_mapping': {},
         'cistron_tu_mapping_matrix': {},
         'monomer_index_to_cistron_index': {},
@@ -61,6 +61,7 @@ class PolypeptideInitiation(PartitionedProcess):
         'seed': 0,
         'monomer_ids': [],
         'emit_unique': False,
+        'time_step': 1,
     }
 
     def __init__(self, parameters=None):
@@ -421,20 +422,23 @@ def test_polypeptide_initiation():
             variable_elongation=False):
         return base
 
+    all_mRNA_ids = ['wRNA', 'xRNA', 'yRNA', 'zRNA']
+    protein_lengths = np.array([25, 9, 12, 29])
     test_config = {
-        'protein_lengths': np.array([25, 9, 12, 29]),
+        'protein_lengths': protein_lengths,
         'translation_efficiencies': normalize(np.array([0.1, 0.2, 0.3, 0.4])),
-        'active_ribosome_fraction': {'minimal': 0.1},
-        'elongation_rates': {'open': 10},
+        'active_ribosome_fraction': {'minimal': 0.05},
         'variable_elongation': False,
         'make_elongation_rates': make_elongation_rates,
-        # 'rna_id_to_cistron_indexes': ,
-        # 'cistron_start_end_pos_in_tu': ,
-        # 'tu_ids': ,
-        # 'cistron_to_monomer_mapping': ,
-        # 'cistron_tu_mapping_matrix': ,
-        # 'monomer_index_to_cistron_index': ,
-        # 'monomer_index_to_ti_indexes': ,
+        'rna_id_to_cistron_indexes': lambda rna_id: all_mRNA_ids.index(rna_id),
+        'cistron_start_end_pos_in_tu': {
+            (idx, idx): (0, protein_length*3 + 3)
+            for idx, protein_length in enumerate(protein_lengths)},
+        'tu_ids': all_mRNA_ids,
+        'cistron_to_monomer_mapping': np.arange(4),
+        'cistron_tu_mapping_matrix': np.identity(4),
+        'monomer_index_to_cistron_index': {i: i for i in range(4)},
+        'monomer_index_to_tu_indexes': {i: (i,) for i in range(4)},
         'protein_index_to_TU_index': np.arange(4),
         'all_TU_ids': ['wRNA', 'xRNA', 'yRNA', 'zRNA'],
         'all_mRNA_ids': ['wRNA', 'xRNA', 'yRNA', 'zRNA'],
@@ -449,19 +453,21 @@ def test_polypeptide_initiation():
             'media_id': 'minimal'},
         'listeners': {
             'ribosome_data': {
-                'effective_elongation_rate': 11}},
+                'effective_elongation_rate': 25}},
         'bulk': np.array([
             ('30S', 2000),
             ('50S', 3000),
         ], dtype=[('id', 'U40'), ('count', int)]),
         'RNA': np.array([
-            (1, 0, True, 0),
-            (1, 0, True, 1),
-            (1, 1, True, 2),
-            (1, 2, True, 3),
-            (1, 2, True, 4),
+            (1, 0, True, 0, 103, True),
+            (1, 0, True, 1, 103, True),
+            (1, 1, True, 2, 39, True),
+            (1, 2, True, 3, 51, True),
+            (1, 2, True, 4, 51, True),
+            (1, 3, True, 4, 119, True),
         ], dtype=[('_entryState', np.bool_), ('TU_index', int),
-            ('can_translate', np.bool_), ('unique_index', int)])
+            ('can_translate', np.bool_), ('unique_index', int),
+            ('transcript_length', int), ('is_full_transcript', np.bool_)])
     }
 
     settings = {

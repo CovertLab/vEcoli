@@ -169,9 +169,9 @@ def test_equilibrium_listener():
     sim.raw_output = False
     sim.build_ecoli()
     sim.run()
-    data = sim.query()
-    assert(type(data['listeners']['equilibrium_listener']['reaction_rates'][0]) == list)
-    assert(type(data['listeners']['equilibrium_listener']['reaction_rates'][1]) == list)
+    listeners = sim.query()['agents']['0']['listeners']
+    assert(type(listeners['equilibrium_listener']['reaction_rates'][0]) == list)
+    assert(type(listeners['equilibrium_listener']['reaction_rates'][1]) == list)
 
 
 if __name__ == '__main__':

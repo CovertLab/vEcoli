@@ -113,11 +113,12 @@ class TranscriptElongation(PartitionedProcess):
         'n_avogadro':  6.02214076e+23 / units.mol,
         'get_attenuation_stop_probabilities': (
             get_attenuation_stop_probabilities),
-        'attenuated_rna_indices': np.array([]),
+        'attenuated_rna_indices': np.array([], dtype=int),
         'location_lookup': {},
 
         'seed': 0,
         'emit_unique': False,
+        'time_step': 1
     }
 
     def __init__(self, parameters=None):
@@ -605,7 +606,7 @@ def test_transcript_elongation():
     test_config = {
         'max_time_step': 2.0,
         'rnaPolymeraseElongationRateDict': {'minimal' : 49.24 * units.nt / units.s},
-        'rnaIds': ['16S rRNA', '23S rRNA', '5S rRNA', 'mRNA'],
+        'rnaIds': np.array(['16S rRNA', '23S rRNA', '5S rRNA', 'mRNA']),
         'rnaLengths': np.array([1542, 2905, 120, 1080]),
         'rnaSequences': sequences,
         'ntWeights': np.array([5.44990582e-07, 5.05094471e-07, 5.71557547e-07, 5.06728441e-07]),
@@ -626,11 +627,11 @@ def test_transcript_elongation():
 
     transcript_elongation = TranscriptElongation(test_config)
     # Need to add UniqueUpdate Step so unique molecule are updated each timestep
-    unique_dict = {
+    unique_topo = {
         'RNAs': ('unique', 'RNA'),
         'active_RNAPs': ('unique', 'active_RNAP')
     }
-    unique_update = UniqueUpdate({'unique_dict': unique_dict})
+    unique_update = UniqueUpdate({'unique_topo': unique_topo})
 
     submass_dtypes = [('massDiff_DNA', '<f8'), ('massDiff_mRNA', '<f8'),
         ('massDiff_metabolite', '<f8'), ('massDiff_miscRNA', '<f8'),
@@ -679,7 +680,7 @@ def test_transcript_elongation():
             'ecoli-transcript-elongation': transcript_elongation,
         },
         'topology': {
-            'unique-update': unique_dict,
+            'unique-update': unique_topo,
             'ecoli-transcript-elongation': TOPOLOGY}}
 
     engine = Engine(**settings, initial_state=deepcopy(initial_state))
