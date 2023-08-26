@@ -49,17 +49,21 @@ And build the Cython components:
 
 ## Conda install
 
-To install using conda (first line creates a conda environment with numpy and Cython, the second activates the environment and the third installs WCM and remaining dependencies).
+To install using conda, create a conda environment with `numpy` (check `requirements.py` 
+for correct version), activate it, install the remaining dependencies, and build the Cython 
+components.
 
-    $ conda create -n WCM numpy Cython
+    $ conda create -n WCM python==3.8.13 numpy==1.23.1
     $ conda activate WCM
-    $ conda install --file requirements.txt
-    $ python setup.py install
+    $ pip install -r requirements.txt
+    $ make clean compile
 
 ## Running the simulation
 
-To run the simulation, simply invoke:
+To run the simulation, set the `PYTHONPATH` environment variable to the cloned repository and run
+`ecoli_master_sim.py`. If you are at the top-level of the cloned repository, invoke:
 
+    $ export PYTHONPATH=.
     $ python ecoli/experiments/ecoli_master_sim.py
 
 For details on configuring simulations through either the command-line interface or .json files, 

@@ -540,7 +540,8 @@ class MetabolismRedux(Step):
             kinetic_targets=target_kinetic_values,
             binary_kinetic_idx=binary_kinetic_idx,
             objective_weights=objective_weights,
-            aa_uptake_package=aa_uptake_package)
+            aa_uptake_package=aa_uptake_package,
+            solver=cp.GLOP)
 
         self.reaction_fluxes = solution.velocities
         self.metabolite_dmdt = solution.dm_dt
@@ -697,7 +698,7 @@ class NetworkFlowModel:
         self.met_map = {metabolite: i for i, metabolite in enumerate(metabolites)}
         self.rxns = reactions
         self.rxn_map = {reaction: i for i, reaction in enumerate(reactions)}
-        self.kinetic_rxn_idx = np.array([self.rxn_map[rxn] for rxn in kinetic_reactions])
+        self.kinetic_rxn_idx = np.array([self.rxn_map[rxn] for rxn in kinetic_reactions]) if kinetic_reactions else None
         self.get_mass = get_mass
         self.gam = gam
 
@@ -706,7 +707,7 @@ class NetworkFlowModel:
         self.intermediates_idx = np.array([self.met_map[met] for met in self.intermediates])
         self.homeostatic_idx = np.array([self.met_map[met] for met in homeostatic_metabolites])
         # TODO (Cyrus) - use name provided
-        self.maintenance_idx = self.rxn_map['maintenance_reaction']
+        self.maintenance_idx = self.rxn_map['maintenance_reaction'] if 'maintenance_reaction' in self.rxn_map else None
 
 
     def set_up_exchanges(self,
@@ -747,13 +748,17 @@ class NetworkFlowModel:
         self.exchange_masses = np.array(self.exchange_masses)
 
     def solve(self,
-        homeostatic_targets: Iterable[float],
-        ngam_target: float,
-        kinetic_targets: Iterable[float],
-        binary_kinetic_idx: Iterable[int],
-        objective_weights: Mapping[str, float],
+        homeostatic_targets: Iterable[float] = None,
+        ngam_target: float = 0,
+        kinetic_targets: Iterable[float] = None,
+        binary_kinetic_idx: Iterable[int] = None,
+        objective_weights: Mapping[str, float] = None,
         aa_uptake_package: Mapping[str, float] = None,
-        upper_flux_bound: float = 100
+        upper_flux_bound: float = 100,
+        # ortools > 9.5 required for Python 3.11 but will only
+        # get support in the 9/2023 release of cvxpy
+        # solver = cp.GLOP
+        solver = None
     ) -> FlowResult:
         """Solve the network flow model for fluxes and dm/dt values."""
         # set up variables
@@ -766,9 +771,11 @@ class NetworkFlowModel:
 
         constr = []
         constr.append(dm[self.intermediates_idx] == 0)
-        constr.append(v[self.maintenance_idx] == total_maintenance)
+
+        if self.maintenance_idx is not None:
+            constr.append(v[self.maintenance_idx] == total_maintenance)
         # If enzymes not present, constrain rxn flux to 0
-        if len(binary_kinetic_idx):
+        if binary_kinetic_idx:
             constr.append(v[binary_kinetic_idx] == 0)
         # TODO (Cyrus) - make this a parameter
         constr.extend([v >= 0, v <= upper_flux_bound, e >= 0, e <= upper_flux_bound])
@@ -781,19 +788,16 @@ class NetworkFlowModel:
 
         loss = 0
         loss += cp.norm1(dm[self.homeostatic_idx] - homeostatic_targets)
-        loss += objective_weights['secretion'] * (cp.sum(e[self.secretion_idx]))
-        loss += objective_weights['efficiency'] * (cp.sum(v))
-        loss += objective_weights['kinetics'] * cp.norm1(v[self.kinetic_rxn_idx] - kinetic_targets)
+        loss += objective_weights['secretion'] * (cp.sum(e[self.secretion_idx])) if 'secretion' in objective_weights else loss
+        loss += objective_weights['efficiency'] * (cp.sum(v)) if 'efficiency' in objective_weights else loss
+        loss = loss + objective_weights['kinetics'] * cp.norm1(v[self.kinetic_rxn_idx] - kinetic_targets) if 'kinetics' in objective_weights else loss
 
         p = cp.Problem(
             cp.Minimize(loss),
             constr
         )
 
-        # ortools > 9.5 required for Python 3.11 but support for
-        # recent ortools versions are a WIP in cvxpy (PR #2169)
-        p.solve(solver=cp.GLOP, verbose=False)
-        # p.solve(verbose=False)
+        p.solve(solver=solver, verbose=False)
         if p.status != "optimal":
             raise ValueError("Network flow model of metabolism did not "
                 "converge to an optimal solution.")
@@ -810,4 +814,32 @@ class NetworkFlowModel:
                           maintenance_flux=maintenance_flux,
                           objective=objective)
 
-# TODO (Cyrus) - Consider adding test with toy network.
+def test_network_flow_model():
+    """Test the network flow model on a simple example, using only the homeostatic objective along with secretion and
+    efficiency penalties."""
+
+    S_matrix = np.array([[-1, 1, 0], [0, -1, 1], [1, 0, -1]]).T
+
+    metabolites = ["A", "B", "C"]
+    reactions = ["r1", "r2", "r3"]
+    homeostatic_metabolites = {"C": 1}
+
+    exchanges = {"A"}
+    uptakes = {"A"}
+
+    model = NetworkFlowModel(stoich_arr=S_matrix, reactions=reactions,
+                             metabolites=metabolites, homeostatic_metabolites=list(homeostatic_metabolites.keys()),
+                             kinetic_reactions=None)
+
+    model.set_up_exchanges(exchanges=exchanges, uptakes=uptakes)
+
+    solution: FlowResult = model.solve(homeostatic_targets=list(homeostatic_metabolites.values()),
+                                       objective_weights={'secretion': 0.01, 'efficiency': 0.0001},
+                                       upper_flux_bound=100, solver=cp.GLOP)
+
+    assert np.isclose(solution.velocities, np.array([1, 1, 0])).all() == True, "Network flow toy model did not converge to correct solution."
+
+# TODO (Cyrus) Add test for entire process
+
+if __name__ == '__main__':
+    test_network_flow_model()
