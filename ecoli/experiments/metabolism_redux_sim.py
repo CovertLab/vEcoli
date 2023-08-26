@@ -20,6 +20,8 @@ from ecoli.processes.metabolism_redux import MetabolismRedux
 from ecoli.processes.stubs.exchange_stub import Exchange
 from ecoli.processes.registries import topology_registry
 
+from wholecell.utils import units
+
 import numpy as np
 import pathlib, datetime
 import dill
@@ -109,6 +111,16 @@ def run_metabolism_composite():
 
     initial_state = get_state_from_file(
         path=f'data/wcecoli_t0.json')
+    initial_state['process_state'] = {
+        'polypeptide_elongation': {
+            'aa_exchange_rates': units.mol / (units.L * units.s) * np.array([
+            -4.520e-07, -3.786e-07, -5.700e-09, -8.880e-08,  0.000e+00,
+            -6.600e-09, -1.200e-09, -6.670e-08, -3.200e-09, -4.800e-09,
+            -1.251e-07, -7.870e-08, -2.200e-09, -3.860e-08, -4.600e-09,
+            -1.486e-07, -8.400e-09, -1.560e-08, -3.800e-08,  0.000e+00,
+            -8.300e-09]),
+            'gtp_to_hydrolyze': 1009121.4
+        }}
 
     experiment = Engine(
         processes=metabolism_composite['processes'],
@@ -222,7 +234,7 @@ def test_ecoli_with_metabolism_redux_div(
     output = sim.query(query)
 
     # test that water is being used (model is running)
-    assert sum(output['agents'][agent]['listeners']['fba_results']['estimated_exchange_dmdt']['WATER[p]']) != 0
+    assert sum(output['agents'][agent]['listeners']['fba_results']['estimated_exchange_dmdt']['WATER']) != 0
 
 def run_ecoli_with_default_metabolism(
         filename='default',
@@ -250,7 +262,7 @@ def run_ecoli_with_default_metabolism(
     np.save(folder + 'fba_results.npy', output['listeners']['fba_results'])
     np.save(folder + 'mass.npy', output['listeners']['mass'])
     np.save(folder + 'bulk.npy', output['bulk'])
-    np.save(folder + 'stoichiometry.npy', sim.ecoli.steps['ecoli-metabolism'].model.stoichiometry)
+    np.save(folder + 'stoichiometry.npy', sim.ecoli_experiment.steps['ecoli-metabolism'].model.stoichiometry)
 
 experiment_library = {
     '0': run_metabolism,

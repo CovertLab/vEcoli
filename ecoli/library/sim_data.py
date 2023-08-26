@@ -25,7 +25,7 @@ class LoadSimData:
         sim_data_path=SIM_DATA_PATH,
         seed=0,
         total_time=10,
-        media_timeline=((0, 'minimal')),
+        media_timeline=((0, 'minimal'),),
         operons=True,
         trna_charging=True,
         ppgpp_regulation=True,
@@ -908,6 +908,7 @@ class LoadSimData:
                 maintenance_reaction),
             'reaction_catalysts': (self.sim_data.process.metabolism.
                 reaction_catalysts),
+            'get_mass': self.sim_data.getter.get_mass,
 
             # wcEcoli parameters
             'get_import_constraints': self.sim_data.external_state.get_import_constraints,
