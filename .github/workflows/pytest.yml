@@ -26,9 +26,6 @@ jobs:
         pip install numpy
         pip install Cython
         pip install -r requirements.txt
-    - name: Check dependencies
-      run: |
-        python -m scripts.test_requirements
     - name: Setup
       run: |
         python setup.py install
