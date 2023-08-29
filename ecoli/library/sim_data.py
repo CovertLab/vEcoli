@@ -24,6 +24,8 @@ class LoadSimData:
         self,
         sim_data_path=SIM_DATA_PATH,
         seed=0,
+        # TODO: Figure out why this is so slow
+        jit=False,
         total_time=10,
         media_timeline=((0, 'minimal'),),
         operons=True,
@@ -78,6 +80,7 @@ class LoadSimData:
         self.disable_ppgpp_elongation_inhibition = \
             disable_ppgpp_elongation_inhibition
         self.emit_unique = emit_unique
+        self.jit = jit
         
         # NEW to vivarium-ecoli: Whether to lump miscRNA with mRNAs
         # when calculating degradation
@@ -759,10 +762,7 @@ class LoadSimData:
             'charged_trna_names': transcription.charged_trna_names,
             'charging_molecule_names': transcription.charging_molecules,
             'synthetase_names': transcription.synthetase_names,
-            # 'ppgpp_reaction_names': metabolism.ppgpp_reaction_names,
             'ppgpp_reaction_metabolites': metabolism.ppgpp_reaction_metabolites,
-            # 'ppgpp_synthesis_reaction': metabolism.ppgpp_synthesis_reaction,
-            # 'ppgpp_degradation_reaction': metabolism.ppgpp_degradation_reaction,
             'elong_rate_by_ppgpp': \
                 self.sim_data.growth_rate_parameters.get_ribosome_elongation_rate_by_ppgpp,
             'rela': molecule_ids.RelA,
@@ -821,7 +821,7 @@ class LoadSimData:
             'time_step': time_step,
             '_parallel': parallel,
 
-            'jit': False,
+            'jit': self.jit,
             # TODO -- wcEcoli has this in 1/mmol, why?
             'n_avogadro': self.sim_data.constants.n_avogadro.asNumber(1 / units.mmol),
             'cell_density': self.sim_data.constants.cell_density.asNumber(units.g / units.L),
@@ -838,7 +838,7 @@ class LoadSimData:
             'time_step': time_step,
             '_parallel': parallel,
 
-            'jit': False,
+            'jit': self.jit,
             'n_avogadro': self.sim_data.constants.n_avogadro.asNumber(1 / units.mol),
             'cell_density': self.sim_data.constants.cell_density.asNumber(units.g / units.L),
             'stoichMatrix': self.sim_data.process.equilibrium.stoich_matrix().astype(np.int64),

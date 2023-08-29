@@ -206,8 +206,6 @@ class Ecoli(Composer):
 
         # Parse flow to get execution layers
         step_graph = _StepGraph()
-        allocator_counter = 1
-        unique_update_counter = 1
         for process in config['processes']:
             # Get Step dependencies as tuple paths
             deps = config['flow'].get(process, [])

@@ -189,7 +189,7 @@ class PolypeptideInitiation(PartitionedProcess):
             counts(states['bulk'], self.ribosome50S_idx)
         ])
 
-        # Calculate actual number of ribosomes that should be activated base
+        # Calculate actual number of ribosomes that should be activated based
         # on probabilities
         (TU_index_RNAs, transcript_lengths, can_translate, is_full_transcript,
             unique_index_RNAs) = attrs(states['RNA'], ['TU_index',
