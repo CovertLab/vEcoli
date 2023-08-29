@@ -98,6 +98,7 @@ orjson==3.9.1
 # Needed to use GLOP solver but Python 3.11 requires >9.5
 # while cvxpy only supports <9.5 (WIP at PR #2169)
 # ortools==9.6.2534
+ortools==9.4.1874
 osqp==0.6.3
 overrides==7.3.1
 packaging==23.1

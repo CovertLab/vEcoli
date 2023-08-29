@@ -5,7 +5,6 @@ MetabolismRedux
 import numpy as np
 import time
 from typing import Callable
-from ortools.glop import parameters_pb2
 from unum import Unum
 from scipy.sparse import csr_matrix
 
@@ -543,9 +542,10 @@ class MetabolismRedux(Step):
             'efficiency': 0.0001,
             'kinetics': self.kinetic_objective_weight}
         solution: FlowResult = self.network_flow_model.solve(
-            homeostatic_targets=target_homeostatic_dmdt,
+            homeostatic_concs=homeostatic_metabolite_concentrations,
+            homeostatic_dm_targets=target_homeostatic_dmdt,
             ngam_target=ngam_target,
-            kinetic_targets=target_kinetic_values,
+            kinetic_targets=enzyme_kinetic_boundaries,
             binary_kinetic_idx=binary_kinetic_idx,
             objective_weights=objective_weights,
             aa_uptake_package=aa_uptake_package)
@@ -758,7 +758,8 @@ class NetworkFlowModel:
         self.exchange_masses = np.array(self.exchange_masses)
 
     def solve(self,
-        homeostatic_targets: Iterable[float] = None,
+        homeostatic_concs: Iterable[float] = None,
+        homeostatic_dm_targets: Iterable[float] = None,
         ngam_target: float = 0,
         kinetic_targets: Iterable[float] = None,
         binary_kinetic_idx: Iterable[int] = None,
@@ -767,10 +768,13 @@ class NetworkFlowModel:
         upper_flux_bound: float = 100,
         # ortools > 9.5 required for Python 3.11 but will only
         # get support in the 9/2023 release of cvxpy
-        # solver = cp.GLOP
-        solver = None
+        solver = cp.GLOP
     ) -> FlowResult:
         """Solve the network flow model for fluxes and dm/dt values."""
+        # Convert to array
+        homeostatic_concs = np.array(homeostatic_concs)
+        homeostatic_dm_targets = np.array(homeostatic_dm_targets)
+
         # set up variables
         v = cp.Variable(self.n_orig_rxns)
         e = cp.Variable(self.n_exch_rxns)
@@ -784,6 +788,7 @@ class NetworkFlowModel:
 
         if self.maintenance_idx is not None:
             constr.append(v[self.maintenance_idx] == total_maintenance)
+            constr.append(v[self.maintenance_idx] >= ngam_target)
         # If enzymes not present, constrain rxn flux to 0
         if binary_kinetic_idx:
             constr.append(v[binary_kinetic_idx] == 0)
@@ -796,21 +801,29 @@ class NetworkFlowModel:
                 exch_idx = self.exchanges.index(mol + " exchange")
                 constr.append(e[exch_idx] == level)
 
+        # Calculate target concs (current + delta) for denominator of objective
+        # (target conc - actual conc) / (target conc) is the same as
+        # (target delta - actual delta) / (target conc)
+        homeostatic_target_concs = homeostatic_concs + homeostatic_dm_targets.copy()
         # Fix divide by zero
-        nonzero_homeostatic_targets = homeostatic_targets.copy()
-        nonzero_homeostatic_targets[nonzero_homeostatic_targets==0] = 1
-        nonzero_kinetic_targets = kinetic_targets.copy()
+        homeostatic_target_concs[homeostatic_target_concs==0] = 1
+        nonzero_kinetic_targets = kinetic_targets[:, 1].copy()
         nonzero_kinetic_targets[nonzero_kinetic_targets==0] = 1
 
         loss = 0
-        loss += cp.norm1((dm[self.homeostatic_idx] - homeostatic_targets)
-                         / nonzero_homeostatic_targets)
+        loss += cp.norm1((dm[self.homeostatic_idx] - homeostatic_dm_targets)
+                         / homeostatic_target_concs)
         if 'secretion' in objective_weights:
             loss += objective_weights['secretion'] * cp.sum(e[
                 self.secretion_idx] @ -self.exchange_masses[self.secretion_idx])
-        if 'efficiency' in objective_weights:
-            loss += objective_weights['efficiency'] * (cp.sum(v))
+        # Makes solution very different from wcEcoli
+        # if 'efficiency' in objective_weights:
+        #     loss += objective_weights['efficiency'] * (cp.sum(v))
         if 'kinetics' in objective_weights:
+            # TODO: Figure out how to weight diff from kinetic target
+            # differently depending on whether it is inside boundaries
+            # Lower bound = kinetic_targets[:, 0]
+            # Upper bound = kinetic_targets[:, 2]
             # Only include active kinetic constraints
             loss += objective_weights['kinetics'] * cp.norm1(((v[
                 self.kinetic_rxn_idx] - kinetic_targets[:, 1]
@@ -821,9 +834,7 @@ class NetworkFlowModel:
             constr
         )
 
-        p.solve(solver=solver, verbose=True, parameters_proto=
-            parameters_pb2.GlopParameters(
-            solution_feasibility_tolerance=1e-2))
+        p.solve(solver=solver, verbose=False)
         if p.status != "optimal":
             raise ValueError("Network flow model of metabolism did not "
                 "converge to an optimal solution.")
@@ -859,9 +870,11 @@ def test_network_flow_model():
 
     model.set_up_exchanges(exchanges=exchanges, uptakes=uptakes)
 
-    solution: FlowResult = model.solve(homeostatic_targets=list(homeostatic_metabolites.values()),
-                                       objective_weights={'secretion': 0.01, 'efficiency': 0.0001},
-                                       upper_flux_bound=100)
+    solution: FlowResult = model.solve(
+        homeostatic_concs=list(homeostatic_metabolites.values()),
+        homeostatic_dm_targets=list(homeostatic_metabolites.values()),
+        objective_weights={'secretion': 0.01, 'efficiency': 0.0001},
+        upper_flux_bound=100)
 
     assert np.isclose(solution.velocities, np.array([1, 1, 0])).all() == True, "Network flow toy model did not converge to correct solution."
 
