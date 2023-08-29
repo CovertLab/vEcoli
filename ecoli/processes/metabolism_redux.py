@@ -696,8 +696,8 @@ class NetworkFlowModel:
         homeostatic_metabolites: Iterable[str],
         kinetic_reactions: Iterable[str],
         get_mass: Callable[[str], Unum],
-        gam: float,
-        active_constraints_mask: np.ndarray,
+        gam: float = 0,
+        active_constraints_mask: np.ndarray = None,
     ):
         self.S_orig = csr_matrix(stoich_arr.astype(np.int64))
         self.S_exch = None
@@ -807,8 +807,6 @@ class NetworkFlowModel:
         homeostatic_target_concs = homeostatic_concs + homeostatic_dm_targets.copy()
         # Fix divide by zero
         homeostatic_target_concs[homeostatic_target_concs==0] = 1
-        nonzero_kinetic_targets = kinetic_targets[:, 1].copy()
-        nonzero_kinetic_targets[nonzero_kinetic_targets==0] = 1
 
         loss = 0
         loss += cp.norm1((dm[self.homeostatic_idx] - homeostatic_dm_targets)
@@ -824,6 +822,9 @@ class NetworkFlowModel:
             # differently depending on whether it is inside boundaries
             # Lower bound = kinetic_targets[:, 0]
             # Upper bound = kinetic_targets[:, 2]
+            # Fix divide by zero
+            nonzero_kinetic_targets = kinetic_targets[:, 1].copy()
+            nonzero_kinetic_targets[nonzero_kinetic_targets==0] = 1
             # Only include active kinetic constraints
             loss += objective_weights['kinetics'] * cp.norm1(((v[
                 self.kinetic_rxn_idx] - kinetic_targets[:, 1]
@@ -866,7 +867,7 @@ def test_network_flow_model():
 
     model = NetworkFlowModel(stoich_arr=S_matrix, reactions=reactions,
                              metabolites=metabolites, homeostatic_metabolites=list(homeostatic_metabolites.keys()),
-                             kinetic_reactions=None, get_mass=lambda _: 1 * units.g/units.mol, gam=10)
+                             kinetic_reactions=None, get_mass=lambda _: 1 * units.g/units.mol)
 
     model.set_up_exchanges(exchanges=exchanges, uptakes=uptakes)
 
