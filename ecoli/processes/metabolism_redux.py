@@ -5,6 +5,7 @@ MetabolismRedux
 import numpy as np
 import time
 from typing import Callable
+from ortools.glop import parameters_pb2
 from unum import Unum
 from scipy.sparse import csr_matrix
 
@@ -227,12 +228,19 @@ class MetabolismRedux(Step):
         self.removed_aa_uptake = self.parameters['removed_aa_uptake']
         self.aa_environment_names = [aa[:-3] for aa in self.aa_exchange_names]
 
+        # Remove disabled reactions so they don't get included in the FBA
+        # problem setup
+        constraints_to_disable = self.parameters['constraints_to_disable']
+        self.active_constraints_mask = np.array(
+            [(rxn not in constraints_to_disable)
+             for rxn in self.kinetic_constraint_reactions])
+
         # Network flow initialization
         self.network_flow_model = NetworkFlowModel(
             self.stoichiometry, self.metabolite_names,
             self.reaction_names, self.homeostatic_metabolites,
             self.kinetic_constraint_reactions, self.parameters['get_mass'],
-            self.gam.asNumber())
+            self.gam.asNumber(), self.active_constraints_mask)
 
         # important bulk molecule names
         self.catalyst_ids = self.parameters['catalyst_ids']
@@ -540,8 +548,7 @@ class MetabolismRedux(Step):
             kinetic_targets=target_kinetic_values,
             binary_kinetic_idx=binary_kinetic_idx,
             objective_weights=objective_weights,
-            aa_uptake_package=aa_uptake_package,
-            solver=cp.GLOP)
+            aa_uptake_package=aa_uptake_package)
 
         self.reaction_fluxes = solution.velocities
         self.metabolite_dmdt = solution.dm_dt
@@ -560,7 +567,7 @@ class MetabolismRedux(Step):
 
         estimated_homeostatic_dmdt = metabolite_dmdt_counts[self.network_flow_model.homeostatic_idx]
         estimated_intermediate_dmdt = metabolite_dmdt_counts[self.network_flow_model.intermediates_idx]
-        estimated_exchange_dmdt = {str(metabolite[:-3]): exchange
+        estimated_exchange_dmdt = {str(metabolite[:-3]): -exchange
             for metabolite, exchange in zip(self.network_flow_model.mets,
             estimated_exchange_array) if metabolite in new_exchange_molecules}
 
@@ -690,6 +697,7 @@ class NetworkFlowModel:
         kinetic_reactions: Iterable[str],
         get_mass: Callable[[str], Unum],
         gam: float,
+        active_constraints_mask: np.ndarray,
     ):
         self.S_orig = csr_matrix(stoich_arr.astype(np.int64))
         self.S_exch = None
@@ -708,6 +716,8 @@ class NetworkFlowModel:
         self.homeostatic_idx = np.array([self.met_map[met] for met in homeostatic_metabolites])
         # TODO (Cyrus) - use name provided
         self.maintenance_idx = self.rxn_map['maintenance_reaction'] if 'maintenance_reaction' in self.rxn_map else None
+
+        self.active_constraints_mask = active_constraints_mask
 
 
     def set_up_exchanges(self,
@@ -786,18 +796,34 @@ class NetworkFlowModel:
                 exch_idx = self.exchanges.index(mol + " exchange")
                 constr.append(e[exch_idx] == level)
 
+        # Fix divide by zero
+        nonzero_homeostatic_targets = homeostatic_targets.copy()
+        nonzero_homeostatic_targets[nonzero_homeostatic_targets==0] = 1
+        nonzero_kinetic_targets = kinetic_targets.copy()
+        nonzero_kinetic_targets[nonzero_kinetic_targets==0] = 1
+
         loss = 0
-        loss += cp.norm1(dm[self.homeostatic_idx] - homeostatic_targets)
-        loss += objective_weights['secretion'] * (cp.sum(e[self.secretion_idx])) if 'secretion' in objective_weights else loss
-        loss += objective_weights['efficiency'] * (cp.sum(v)) if 'efficiency' in objective_weights else loss
-        loss = loss + objective_weights['kinetics'] * cp.norm1(v[self.kinetic_rxn_idx] - kinetic_targets) if 'kinetics' in objective_weights else loss
+        loss += cp.norm1((dm[self.homeostatic_idx] - homeostatic_targets)
+                         / nonzero_homeostatic_targets)
+        if 'secretion' in objective_weights:
+            loss += objective_weights['secretion'] * cp.sum(e[
+                self.secretion_idx] @ -self.exchange_masses[self.secretion_idx])
+        if 'efficiency' in objective_weights:
+            loss += objective_weights['efficiency'] * (cp.sum(v))
+        if 'kinetics' in objective_weights:
+            # Only include active kinetic constraints
+            loss += objective_weights['kinetics'] * cp.norm1(((v[
+                self.kinetic_rxn_idx] - kinetic_targets[:, 1]
+                ) / nonzero_kinetic_targets)[self.active_constraints_mask])
 
         p = cp.Problem(
             cp.Minimize(loss),
             constr
         )
 
-        p.solve(solver=solver, verbose=False)
+        p.solve(solver=solver, verbose=True, parameters_proto=
+            parameters_pb2.GlopParameters(
+            solution_feasibility_tolerance=1e-2))
         if p.status != "optimal":
             raise ValueError("Network flow model of metabolism did not "
                 "converge to an optimal solution.")
@@ -829,13 +855,13 @@ def test_network_flow_model():
 
     model = NetworkFlowModel(stoich_arr=S_matrix, reactions=reactions,
                              metabolites=metabolites, homeostatic_metabolites=list(homeostatic_metabolites.keys()),
-                             kinetic_reactions=None)
+                             kinetic_reactions=None, get_mass=lambda _: 1 * units.g/units.mol, gam=10)
 
     model.set_up_exchanges(exchanges=exchanges, uptakes=uptakes)
 
     solution: FlowResult = model.solve(homeostatic_targets=list(homeostatic_metabolites.values()),
                                        objective_weights={'secretion': 0.01, 'efficiency': 0.0001},
-                                       upper_flux_bound=100, solver=cp.GLOP)
+                                       upper_flux_bound=100)
 
     assert np.isclose(solution.velocities, np.array([1, 1, 0])).all() == True, "Network flow toy model did not converge to correct solution."
 
