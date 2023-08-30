@@ -67,6 +67,12 @@ UNIQUE_DIVIDERS = {
             'full_chromosome': ('..', 'full_chromosome'),
             'chromosome_domain': ('..', 'chromosome_domain')}
     },
+    'genes': {
+        'divider': 'by_domain',
+        'topology': {
+            'full_chromosome': ('..', 'full_chromosome'),
+            'chromosome_domain': ('..', 'chromosome_domain')}
+    },
 }
 
 
@@ -115,10 +121,10 @@ class get_unique_fields():
             for field in unique.dtype.names]
 
 
-def numpy_schema(name, partition=True, divider=None):
+def numpy_schema(name, partition=True, divider=None, emit=True):
     schema = {
         '_default': [],
-        '_emit': True
+        '_emit': emit
     }
     if name == 'bulk':
         if partition:
@@ -131,8 +137,6 @@ def numpy_schema(name, partition=True, divider=None):
         # Since vivarium-core ensures that each store will only have a single
         # updater, it's OK to create new UniqueNumpyUpdater objects each time
         schema['_updater'] = UniqueNumpyUpdater().updater
-        # These are some big and slow emits
-        schema['_emit'] = False
         # Convert to list of contiguous Numpy arrays for faster and more
         # efficient serialization (still do not recommend emitting unique)
         schema['_serializer'] = get_unique_fields
@@ -148,7 +152,8 @@ def bulk_name_to_idx(names, bulk_names):
         # Big brain solution from https://stackoverflow.com/a/32191125
         # One downside: all values in names MUST be in bulk_names
         sorter = np.argsort(bulk_names)
-        return sorter[np.searchsorted(bulk_names, names, sorter=sorter)]
+        return np.take(sorter, np.searchsorted(
+            bulk_names, names, sorter=sorter), mode='clip')
     else:
         return np.where(bulk_names == names)[0][0]
 
@@ -258,12 +263,17 @@ class UniqueNumpyUpdater:
         return result
 
 def listener_schema(elements):
-    return {
-        element: {
-            '_default': default,
-            '_updater': 'set',
-            '_emit': True}
-        for element, default in elements.items()}
+    basic_schema = {'_updater': 'set', '_emit': True}
+    schema = {}
+    for element, default in elements.items():
+        # Assume that tuples contain (default, metadata) in that order
+        if isinstance(default, tuple):
+            schema[element] = {**basic_schema,
+                '_default': default[0],
+                '_properties': {'metadata': default[1]}}
+        else:
+            schema[element] = {**basic_schema, '_default': default}
+    return schema
 
 
 # :term:`dividers`

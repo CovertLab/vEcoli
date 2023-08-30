@@ -1,54 +1,5 @@
 {
-    "experiment_id" : null,
-    "suffix_time" : true,
-    "description" : "",
-    "progress_bar" : true,
-    "sim_data_path": "reconstruction/sim_data/kb/simData.cPickle",
-    "emitter" : "timeseries",
-    "emit_topology" : true,
-    "emit_processes" : false,
-    "emit_config" : false,
-    "log_updates" : false,
-    "raw_output" : false,
-    "seed": 0,
-    "partition": true,
-
-    "initial_state_file": "wcecoli_t0",
-    "time_step": 2.0,
     "total_time": 2.0,
-    "generations": null,
-
-    "agent_id": "0",
-    "parallel": false,
-    "daughter_path": [],
-    "agents_path": ["..", "..", "agents"],
-    "division": {
-        "threshold": 2220},
-    "divide": false,
-
     "save": true,
-    "save_times": [2],
-
-    "add_processes" : [],
-    "exclude_processes" : [],
-    "swap_processes" : {},
-    "processes": [
-        "ecoli-chromosome-structure",
-        "ecoli-metabolism",
-        "ecoli-tf-binding",
-        "ecoli-transcript-initiation",
-        "ecoli-transcript-elongation",
-        "ecoli-rna-degradation",
-        "ecoli-polypeptide-initiation",
-        "ecoli-polypeptide-elongation",
-        "ecoli-complexation",
-        "ecoli-two-component-system",
-        "ecoli-equilibrium",
-        "ecoli-protein-degradation",        
-        "ecoli-chromosome-replication",
-        "ecoli-mass-listener",
-        "mRNA_counts_listener"
-    ],
-    "process_configs": {},
-    "topology": {}
+    "save_times": [2]
 }

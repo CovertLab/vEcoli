@@ -7,7 +7,7 @@ Represents the total cellular mass.
 """
 
 import numpy as np
-from scipy import constants
+from numpy.lib import recfunctions as rfn
 
 from vivarium.core.process import Deriver
 from vivarium.library.units import units as viv_units
@@ -21,7 +21,8 @@ TOPOLOGY = {
     "bulk": ("bulk",),
     "unique": ("unique",),
     "listeners": ("listeners",),
-    "global_time": ("global_time",)
+    "global_time": ("global_time",),
+    "timestep": ("timestep",)
 }
 topology_registry.register(NAME, TOPOLOGY)
 
@@ -53,7 +54,8 @@ class MassListener(Deriver):
         'compartment_id_to_index': {},
         'compartment_abbrev_to_index': {},
         'n_avogadro': 6.0221409e23,  # 1/mol
-        'time_step': 2.0
+        'time_step': 1.0,
+        'emit_unique': False,
     }
 
     def __init__(self, parameters=None):
@@ -79,6 +81,9 @@ class MassListener(Deriver):
             'smallMolecule': self.parameters['submass_to_idx']["metabolite"],
             'water': self.parameters['submass_to_idx']["water"]
         }
+        self.ordered_submasses = [0] * len(self.parameters['submass_to_idx'])
+        for submass, idx in self.parameters['submass_to_idx'].items():
+            self.ordered_submasses[idx] = f'{submass}_submass'
 
         # compartment indexes
         self.compartment_id_to_index = self.parameters[
@@ -139,11 +144,16 @@ class MassListener(Deriver):
             '_emit': True,
             '_divide': 'set',
         }
+        
+        # Ensure that bulk ids are emitted in config for analyses
+        bulk_schema = numpy_schema('bulk')
+        bulk_schema.setdefault('_properties', {})['bulk_ids'] = self.bulk_ids
 
         ports = {
-            'bulk': numpy_schema('bulk'),
+            'bulk': bulk_schema,
             'unique': {
-                str(mol_id): numpy_schema(mol_id + 's')
+                str(mol_id): numpy_schema(mol_id + 's',
+                    emit=self.parameters['emit_unique'])
                 for mol_id in self.unique_ids
                 if mol_id not in [
                     'DnaA_box',
@@ -179,18 +189,26 @@ class MassListener(Deriver):
                     'expected_mass_fold_change': split_divider_schema
                 }
             },
-            'global_time': {'_default': 0}
+            'global_time': {'_default': 0},
+            'timestep': {'_default': self.parameters['time_step']}
         }
         ports['unique'].update({
-            'active_ribosome': numpy_schema('active_ribosome'),
-            'DnaA_box': numpy_schema('DnaA_boxes'),
+            'active_ribosome': numpy_schema('active_ribosome',
+                emit=self.parameters['emit_unique']),
+            'DnaA_box': numpy_schema('DnaA_boxes',
+                emit=self.parameters['emit_unique']),
         })
         return ports
+    
+    def update_condition(self, timestep, states):
+        return (states['global_time'] % states['timestep']) == 0
 
     def next_update(self, timestep, states):
         if self.bulk_idx is None:
             bulk_ids = states['bulk']['id']
             self.bulk_idx = bulk_name_to_idx(self.bulk_ids, bulk_ids)
+            # If perfect recreation of wcEcoli desired, uncomment below
+            # self.bulk_addon = np.zeros((len(self.bulk_idx), 16))
 
         mass_update = {}
 
@@ -199,9 +217,18 @@ class MassListener(Deriver):
 
         # get submasses from bulk and unique
         bulk_counts = counts(states['bulk'], self.bulk_idx)
-        bulk_submasses = np.dot(bulk_counts, self.bulk_masses)
+        bulk_masses = states['bulk'][self.ordered_submasses][self.bulk_idx]
+        bulk_masses = rfn.structured_to_unstructured(bulk_masses)
+        bulk_submasses = np.dot(bulk_counts, bulk_masses)
         bulk_compartment_masses = np.dot(
-            bulk_counts * self._bulk_molecule_by_compartment, self.bulk_masses)
+            bulk_counts * self._bulk_molecule_by_compartment, bulk_masses)
+        # If perfect recreation of wcEcoli desired, uncomment below
+        # bulk_counts = np.hstack([self.bulk_addon,
+        #     counts(states['bulk'], self.bulk_idx)[:, np.newaxis]])
+        # bulk_submasses = np.dot(bulk_counts.T, bulk_masses).sum(axis=0)
+        # bulk_compartment_masses = np.dot(
+        #     bulk_counts.sum(axis=1) * self._bulk_molecule_by_compartment, bulk_masses)
+
         unique_submasses = np.zeros(len(self.massDiff_names))
         unique_compartment_masses = np.zeros_like(bulk_compartment_masses)
         for unique_id, unique_mass in zip(self.unique_ids, self.unique_masses):
@@ -216,6 +243,10 @@ class MassListener(Deriver):
 				:] += unique_mass * n_molecules
             
             massDiffs = np.array(list(attrs(molecules, self.massDiff_names))).T
+            # If perfect recreation of wcEcoli desired, uncomment below
+            # massDiffs = np.core.records.fromarrays(
+            #     attrs(molecules, self.massDiff_names)).view(
+            #         (np.float64, len(self.massDiff_names)))
             unique_submasses += massDiffs.sum(axis=0)
             unique_compartment_masses[self.compartment_abbrev_to_index['c'],
 				:] += massDiffs.sum(axis=0)
@@ -237,7 +268,7 @@ class MassListener(Deriver):
         mass_update['volume'] = mass_update['cell_mass'] / self.cellDensity
 
         if self.first_time_step:
-            mass_update['growth'] = 0
+            mass_update['growth'] = np.nan
             self.dryMassInitial = mass_update['dry_mass']
             self.proteinMassInitial = mass_update['protein_mass']
             self.rnaMassInitial = mass_update['rna_mass']

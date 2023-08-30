@@ -2,7 +2,7 @@ import argparse
 import os
 import pickle
 
-from ecoli.composites.ecoli_nonpartition import SIM_DATA_PATH
+from ecoli.composites.ecoli_master import SIM_DATA_PATH
 from ecoli.analysis.db import access
 from ecoli.analysis.compartment_mass_fraction_summary import Plot as CompartmentsMassFraction
 from ecoli.analysis.mass_fraction_summary import Plot as MassFraction

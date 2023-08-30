@@ -29,10 +29,12 @@ TOPOLOGY = {
     "full_chromosomes": ("unique", "full_chromosome",),
     "promoters": ("unique", "promoter"),
     "DnaA_boxes": ("unique", "DnaA_box"),
-    "evolvers_ran": ("evolvers_ran",),
+    "genes": ("unique", "gene"),
     # TODO(vivarium): Only include if superhelical density flag is passed
     # "chromosomal_segments": ("unique", "chromosomal_segment")
-    "first_update": ("deriver_skips", "chromosome_structure",)
+    "global_time": ("global_time",),
+    "timestep": ("timestep",),
+    "first_update": ("first_update", "chromosome_structure"),
 }
 topology_registry.register(NAME, TOPOLOGY)
 
@@ -68,12 +70,13 @@ class ChromosomeStructure(Step):
             'amino_acids': [],
             'water': 'water',
             'seed': 0,
+            'emit_unique': False
         }
 
     # Constructor
     def __init__(self, parameters=None):
         super().__init__(parameters)
-        self.RNA_sequences = self.parameters['RNA_sequences']
+        self.rna_sequences = self.parameters['rna_sequences']
         self.protein_sequences = self.parameters['protein_sequences']
         self.n_TUs = self.parameters['n_TUs']
         self.n_TFs = self.parameters['n_TFs']
@@ -85,6 +88,14 @@ class ChromosomeStructure(Step):
         self.relaxed_DNA_base_pairs_per_turn = self.parameters[
             'relaxed_DNA_base_pairs_per_turn']
         self.terC_index = self.parameters['terC_index']
+
+        self.n_mature_rnas = self.parameters['n_mature_rnas']
+        self.mature_rna_ids = self.parameters['mature_rna_ids']
+        self.mature_rna_end_positions = self.parameters[
+            'mature_rna_end_positions']
+        self.mature_rna_nt_counts = self.parameters['mature_rna_nt_counts']
+        self.unprocessed_rna_index_mapping = self.parameters[
+            'unprocessed_rna_index_mapping']
 
         # Load sim options
         self.calculate_superhelical_densities = self.parameters[
@@ -126,22 +137,34 @@ class ChromosomeStructure(Step):
             'bulk': numpy_schema('bulk'),
 
             # Unique molecules
-            'active_replisomes': numpy_schema('active_replisomes'),
-            'oriCs': numpy_schema('oriCs'),
-            'chromosome_domains': numpy_schema('chromosome_domains'),
-            'active_RNAPs': numpy_schema('active_RNAPs'),
-            'RNAs': numpy_schema('RNAs'),
-            'active_ribosome': numpy_schema('active_ribosome'),
-            'full_chromosomes': numpy_schema('full_chromosomes'),
-            'promoters': numpy_schema('promoters'),
-            'DnaA_boxes': numpy_schema('DnaA_boxes'),
-            'evolvers_ran': {'_default': True},
+            'active_replisomes': numpy_schema('active_replisomes',
+                emit=self.parameters['emit_unique']),
+            'oriCs': numpy_schema('oriCs',
+                emit=self.parameters['emit_unique']),
+            'chromosome_domains': numpy_schema('chromosome_domains',
+                emit=self.parameters['emit_unique']),
+            'active_RNAPs': numpy_schema('active_RNAPs',
+                emit=self.parameters['emit_unique']),
+            'RNAs': numpy_schema('RNAs',
+                emit=self.parameters['emit_unique']),
+            'active_ribosome': numpy_schema('active_ribosome',
+                emit=self.parameters['emit_unique']),
+            'full_chromosomes': numpy_schema('full_chromosomes',
+                emit=self.parameters['emit_unique']),
+            'promoters': numpy_schema('promoters',
+                emit=self.parameters['emit_unique']),
+            'DnaA_boxes': numpy_schema('DnaA_boxes',
+                emit=self.parameters['emit_unique']),
+            'genes': numpy_schema('genes',
+                emit=self.parameters['emit_unique']),
+            'global_time': {'_default': 0},
+            'timestep': {'_default': self.parameters['time_step']},
+
             'first_update': {
                 '_default': True,
                 '_updater': 'set',
                 '_divider': {'divider': 'set_value',
-                    'config': {'value': True}},
-            },
+                    'config': {'value': True}}},
         }
 
         # TODO: Work on this functionality
@@ -156,9 +179,13 @@ class ChromosomeStructure(Step):
                     'linking_number': {'_default': 0}}}
 
         return ports
+    
+    def update_condition(self, timestep, states):
+        return (states['global_time'] % states['timestep']
+                ) == 0
 
     def next_update(self, timestep, states):
-        # In first timestep, convert all strings to indices
+        # At t=0, convert all strings to indices
         if self.inactive_RNAPs_idx is None:
             self.fragmentBasesIdx = bulk_name_to_idx(
                 self.fragmentBases, states['bulk']['id'])
@@ -176,8 +203,9 @@ class ChromosomeStructure(Step):
                 self.ppi, states['bulk']['id'])
             self.inactive_RNAPs_idx = bulk_name_to_idx(
                 self.inactive_RNAPs, states['bulk']['id'])
-
-        # Skip t=0 if a deriver
+            self.mature_rna_idx = bulk_name_to_idx(
+                self.mature_rna_ids, states['bulk']['id'])
+        
         if states['first_update']:
             return {'first_update': False}
 
@@ -187,9 +215,9 @@ class ChromosomeStructure(Step):
                 ['domain_index', 'coordinates', 'unique_index'])
         (all_chromosome_domain_indexes, child_domains) = attrs(
             states['chromosome_domains'], ['domain_index', 'child_domains'])
-        (RNAP_domain_indexes, RNAP_coordinates, RNAP_directions,
+        (RNAP_domain_indexes, RNAP_coordinates, RNAP_is_forward,
             RNAP_unique_indexes) = attrs(states['active_RNAPs'],
-            ['domain_index', 'coordinates', 'direction', 'unique_index'])
+            ['domain_index', 'coordinates', 'is_forward', 'unique_index'])
         origin_domain_indexes, = attrs(states['oriCs'], ['domain_index'])
         mother_domain_indexes, = attrs(states['full_chromosomes'],
             ['domain_index'])
@@ -202,6 +230,9 @@ class ChromosomeStructure(Step):
         (promoter_TU_indexes, promoter_domain_indexes, promoter_coordinates,
             promoter_bound_TFs) = attrs(states['promoters'],
                 ['TU_index', 'domain_index', 'coordinates', 'bound_TF'])
+        (gene_cistron_indexes, gene_domain_indexes,
+            gene_coordinates) = attrs(states['genes'],
+                ['cistron_index', 'domain_index', 'coordinates'])
         (DnaA_box_domain_indexes, DnaA_box_coordinates,
             DnaA_box_bound) = attrs(states['DnaA_boxes'],
                 ['domain_index', 'coordinates', 'DnaA_bound'])
@@ -256,6 +287,8 @@ class ChromosomeStructure(Step):
             RNAP_domain_indexes, RNAP_coordinates)
         removed_promoters_mask = get_removed_molecules_mask(
             promoter_domain_indexes, promoter_coordinates)
+        removed_genes_mask = get_removed_molecules_mask(
+            gene_domain_indexes, gene_coordinates)
         removed_DnaA_boxes_mask = get_removed_molecules_mask(
             DnaA_box_domain_indexes, DnaA_box_coordinates)
 
@@ -271,7 +304,7 @@ class ChromosomeStructure(Step):
         # and replication forks
         RNAP_headon_collision_mask = np.logical_and(
             removed_RNAPs_mask,
-            np.logical_xor(RNAP_directions, RNAP_coordinates > 0))
+            np.logical_xor(RNAP_is_forward, RNAP_coordinates > 0))
         RNAP_codirectional_collision_mask = np.logical_and(
             removed_RNAPs_mask, np.logical_not(RNAP_headon_collision_mask))
 
@@ -302,6 +335,7 @@ class ChromosomeStructure(Step):
             'active_ribosome': {},
             'full_chromosomes': {},
             'promoters': {},
+            'genes': {},
             'DnaA_boxes': {},
         }
 
@@ -453,26 +487,55 @@ class ChromosomeStructure(Step):
                 removed_RNAs_mask]
             n_initiated_sequences = np.count_nonzero(
                 incomplete_sequence_lengths)
+            n_ppi_added = n_initiated_sequences
 
             if n_initiated_sequences > 0:
+                incomplete_rna_indexes = RNA_TU_indexes[removed_RNAs_mask]
+
                 incomplete_sequences = buildSequences(
-                    self.RNA_sequences,
-                    RNA_TU_indexes[removed_RNAs_mask],
+                    self.rna_sequences,
+                    incomplete_rna_indexes,
                     np.zeros(n_total_collisions, dtype=np.int64),
                     np.full(n_total_collisions,
                         incomplete_sequence_lengths.max()))
 
+                mature_rna_counts = np.zeros(self.n_mature_rnas, dtype=np.int64)
                 base_counts = np.zeros(self.n_fragment_bases, dtype=np.int64)
 
-                for sl, seq in zip(incomplete_sequence_lengths,
-                    incomplete_sequences
+                for ri, sl, seq in zip(incomplete_rna_indexes,
+                    incomplete_sequence_lengths, incomplete_sequences
                 ):
+                    # Check if incomplete RNA is an unprocessed RNA
+                    if ri in self.unprocessed_rna_index_mapping:
+                        # Find mature RNA molecules that would need to be added
+                        # given the length of the incomplete RNA
+                        mature_rna_end_pos = self.mature_rna_end_positions[
+                            :, self.unprocessed_rna_index_mapping[ri]]
+                        mature_rnas_produced = np.logical_and(
+                            mature_rna_end_pos != 0, mature_rna_end_pos < sl)
+
+                        # Increment counts of mature RNAs
+                        mature_rna_counts += mature_rnas_produced
+
+                        # Increment counts of fragment NTPs, but exclude bases
+                        # that are part of the mature RNAs generated
+                        base_counts += (
+                            np.bincount(seq[:sl], minlength=self.n_fragment_bases)
+                            - self.mature_rna_nt_counts[
+                                mature_rnas_produced, :].sum(axis=0))
+
+                        # Exclude ppi molecules that are part of mature RNAs
+                        n_ppi_added -= mature_rnas_produced.sum()
+                    else:
+                        base_counts += np.bincount(
+                            seq[:sl], minlength=self.n_fragment_bases)
                     base_counts += np.bincount(seq[:sl],
                         minlength=self.n_fragment_bases)
 
-                # Increment counts of fragment NTPs and phosphates
+                # Increment counts of mature RNAs, fragment NTPs and phosphates
+                update['bulk'].append((self.mature_rna_idx, mature_rna_counts))
                 update['bulk'].append((self.fragmentBasesIdx, base_counts))
-                update['bulk'].append((self.ppi_idx, n_initiated_sequences))
+                update['bulk'].append((self.ppi_idx, n_ppi_added))
 
         # Get mask for ribosomes that are bound to nonexisting mRNAs
         remaining_RNA_unique_indexes = RNA_unique_indexes[
@@ -552,9 +615,8 @@ class ChromosomeStructure(Step):
 
         if n_new_promoters > 0:
             # Delete original promoters
-            if removed_promoters_mask.sum() > 0:
-                update['promoters'].update({
-                    'delete': np.where(removed_promoters_mask)[0]})
+            update['promoters'].update({
+                'delete': np.where(removed_promoters_mask)[0]})
 
             # Add freed active tfs
             update['bulk'].append((self.active_tfs_idx,
@@ -572,12 +634,35 @@ class ChromosomeStructure(Step):
             promoter_indices = create_unique_indexes(
                 n_new_promoters, self.random_state)
             update['promoters'].update({'add': {
-                    'unique_index': promoter_indices,
-                    'TU_index': promoter_TU_indexes_new,
-                    'coordinates': promoter_coordinates_new,
-                    'domain_index': promoter_domain_indexes_new,
-                    'bound_TF': np.zeros((n_new_promoters, self.n_TFs),
-                        dtype=np.bool_)}})
+                'unique_index': promoter_indices,
+                'TU_index': promoter_TU_indexes_new,
+                'coordinates': promoter_coordinates_new,
+                'domain_index': promoter_domain_indexes_new,
+                'bound_TF': np.zeros((n_new_promoters, self.n_TFs),
+                    dtype=np.bool_)}})
+            
+        # Replicate genes
+        n_new_genes = 2 * np.count_nonzero(removed_genes_mask)
+
+        if n_new_genes > 0:
+            # Delete original genes
+            update['genes'].update({
+                'delete': np.where(removed_genes_mask)[0]})
+
+            # Set up attributes for the replicated genes
+            gene_cistron_indexes_new = np.repeat(gene_cistron_indexes[removed_genes_mask], 2)
+            gene_coordinates_new, gene_domain_indexes_new = get_replicated_motif_attributes(
+                gene_coordinates[removed_genes_mask],
+                gene_domain_indexes[removed_genes_mask])
+
+            # Add new genes with new domain indexes
+            gene_indices = create_unique_indexes(
+                n_new_genes, self.random_state)
+            update['genes'].update({'add': {
+                'unique_index': gene_indices,
+                'cistron_index': gene_cistron_indexes_new,
+                'coordinates': gene_coordinates_new,
+                'domain_index': gene_domain_indexes_new}})
 
         ########################
         # Replicate DnaA boxes #

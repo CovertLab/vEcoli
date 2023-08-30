@@ -4,8 +4,6 @@ allowing for basic type parsing and fields that are dictionaries or lists. The
 reader also supports units and comment lines.
 """
 
-from __future__ import absolute_import, division, print_function
-
 from contextlib import contextmanager
 import csv
 import io
@@ -26,9 +24,8 @@ def comment_line(line):
 	return line.lstrip().startswith('#')
 
 
-# TODO(jerry): Rename tsv_reader() et al to tsv_json_reader()?
 # TODO(jerry): Implementing this on wholecell.io.tsv.dict_reader/dict_writer
-#  would simplify it, but not as much after we delete the PY2 code.
+#  would simplify it a little.
 
 @contextmanager
 def tsv_reader(filename):
@@ -140,10 +137,10 @@ class JsonReader(object):
 		fieldnames = [fieldname.strip('"') for fieldname in fieldnames]
 		self.tsv_dict_reader.fieldnames = fieldnames
 
-		# Discard private field names that begin with underscore
+		# Discard private field names that begin with underscore and empty field names
 		self._fieldnames = [
 			fieldname for fieldname in fieldnames
-			if not fieldname.startswith('_')]
+			if not fieldname.startswith('_') and fieldname != '']
 
 	def __iter__(self):
 		return self
@@ -186,13 +183,19 @@ class JsonReader(object):
 
 				# Units do not work with empty values
 				if value != '':
-					# Units do not work with lists so need to convert to ndarray
-					if isinstance(value, list):
-						value_with_units = value_units * np.array(value)
+					if isinstance(value, dict):
+						# Apply units to each dictionary value
+						for k, v in value.items():
+							value[k] = value_units * v
+							value[k].normalize()
 					else:
-						value_with_units = value_units * value
-					# Normalize to catch any unit issues now instead of later
-					value = value_with_units.normalize()
+						# Units do not work with lists so need to convert to ndarray
+						if isinstance(value, list):
+							value_with_units = value_units * np.array(value)
+						else:
+							value_with_units = value_units * value
+						# Normalize to catch any unit issues now instead of later
+						value = value_with_units.normalize()
 
 				attributeDict[attribute] = value
 			else:

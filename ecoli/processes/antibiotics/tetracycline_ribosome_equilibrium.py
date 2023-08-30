@@ -38,6 +38,7 @@ class TetracyclineRibosomeEquilibrium(Step):
         # is even lower than the K for non-enzymatic binding
         'K_tRNA': 4.5e6,
         'seed': 0,
+        'emit_unique': False,
     }
 
     def __init__(self, parameters=None):
@@ -54,13 +55,11 @@ class TetracyclineRibosomeEquilibrium(Step):
                 '_default': 0 * units.mM,
                 '_emit': True,
             },
-            '70s-free': numpy_schema('active_ribosome'),
+            '70s-free': numpy_schema('active_ribosome',
+                emit=self.parameters['emit_unique']),
             # Cytoplasm volume.
             'volume': {
                 '_default': 0 * units.fL,
-            },
-            'evolvers_ran': {
-                '_default': True,
             },
             'listeners': {
                 'total_internal_tetracycline': {
@@ -74,10 +73,13 @@ class TetracyclineRibosomeEquilibrium(Step):
                     '_emit': True,
                 },
             },
+            'global_time': {'_default': 0},
+            'timestep': {'_default': self.parameters['time_step']}
         }
 
     def update_condition(self, timestep, states):
-        return states['evolvers_ran']
+        return (states['global_time'] % states['timestep']
+                ) == 0
 
     def next_update(self, _, states):
         if self.trna_idx is None:

@@ -4,12 +4,12 @@ import numpy as np
 from unum import Unum
 import numbers
 from scipy.stats import mannwhitneyu, chi2_contingency, ttest_ind, bartlett
-from vivarium.core.engine import Engine, view_values
+from vivarium.core.engine import Engine, view_values, _process_update
 from vivarium.library.dict_utils import deep_merge
 
 from wholecell.utils import units
 from ecoli.states.wcecoli_state import get_state_from_file
-from migration import LOAD_SIM_DATA
+from migration import LOAD_SIM_DATA, LOAD_SIM_DATA_NO_OPERONS
 
 PERCENT_ERROR_THRESHOLD = 0.05
 PVALUE_THRESHOLD = 0.05
@@ -38,6 +38,7 @@ def run_non_partitioned_process(
     topology,
     initial_time=0,
     initial_state=None,
+    data_prefix='data/migration'
 ):
     """
     Load a single ecoli process, run it, and return the update.
@@ -59,25 +60,30 @@ def run_non_partitioned_process(
         'initial_state': initial_state}
     experiment = Engine(**experiment_config)
 
+    # Get update from process.
+    path = list(experiment.process_paths.keys())[0]
+    store, states = experiment._process_state(path)
+
+    # Sidestep t=0 skip for some listeners
+    states['first_update'] = False
+
     # Reset bulk counts to "partitioned counts" so final counts
     # can be directly compared to wcEcoli (some processes do not
     # connect to bulk store so skip it)
     try:
-        bulk_array = experiment.state.get_path(('bulk',)).get_value()
-        with open(f"data/migration/bulk_partitioned_t{initial_time}.json") as f:
+        states['bulk_total'] = initial_state['bulk']['count'].copy()
+        with open(f"{data_prefix}/bulk_partitioned_t"
+                f"{initial_time}.json") as f:
             bulk_partitioned = json.load(f)
-        proc_name = type(process).__name__
-        if proc_name in bulk_partitioned:
-            bulk_array.flags.writeable = True
-            bulk_array['count'] = bulk_partitioned[proc_name]
-            bulk_array.flags.writeable = False
+        states['bulk'].flags.writeable = True
+        states['bulk']['count'] = bulk_partitioned[type(process).__name__]
+        states['bulk'].flags.writeable = False
         bulk_exists = True
     except:
         bulk_exists = False
+    update, store = _process_update(
+        path, process, store, states, 1)
 
-    # Get update from process.
-    path = list(experiment.process_paths.keys())[0]
-    update, store = experiment._calculate_update(path, process, 2)
     update = update.get()
 
     # Leave non-bulk updates as is
@@ -98,6 +104,7 @@ def run_partitioned_process(
     topology,
     initial_time=0,
     initial_state=None,
+    data_prefix='data/migration'
 ):
     """Given an initial state dictionary, run the calculate_request method of
     a process, then load a json of partitioned molecule counts to be merged
@@ -117,30 +124,42 @@ def run_partitioned_process(
     # Test calculate_request
     process.request_only = True
     process.evolve_only = False
-    requests, store = experiment._calculate_update(path, process, 2)
+    requests, store = experiment._calculate_update(path, process, 1)
     bulk_array = experiment.state.get_path(('bulk',)).get_value()
+    # Create copy of bulk array with floating point counts so
+    # processes can return non-integer requests
+    new_dtype = np.dtype([('count', 'float64')] +
+        [(name, dtype) for name, dtype in bulk_array.dtype.descr
+         if name != 'count'])
+    float_bulk = np.empty(bulk_array.shape, dtype=new_dtype)
+    for name in bulk_array.dtype.names:
+        float_bulk[name] = (bulk_array[name] if name != 'count'
+                            else bulk_array[name].astype(float))
+    # Leave non-bulk entries in request as is
+    requests = requests.get()
+    request_misc = {k: v for k, v in requests.items() if k != 'bulk'}
     # Set bulk counts to 0 for requested count after applying update
-    bulk_array.flags.writeable = True
-    bulk_array['count'] = 0
-    bulk_array.flags.writeable = False
-    experiment.apply_update(requests.get(), store)
-    actual_requests = bulk_array['count'].copy()
+    float_bulk['count'] = 0.0
+    experiment.state['bulk'].value = float_bulk
+    experiment.apply_update(requests, store)
+    actual_requests = float_bulk['count'].copy()
 
     # Test evolve_state
+    experiment.state['bulk'] = bulk_array
     process.request_only = False
     process.evolve_only = True
     store, states = experiment._process_state(path)
     # Make process see wcEcoli partitioned molecule counts but
     # do not modify bulk_total port values
     states['bulk_total'] = bulk_total
-    with open(f"data/migration/bulk_partitioned_t"
+    with open(f"{data_prefix}/bulk_partitioned_t"
               f"{initial_time}.json") as f:
         bulk_partitioned = json.load(f)
-    bulk_array.flags.writeable = True
-    bulk_array['count'] = bulk_partitioned[type(process).__name__]
-    bulk_array.flags.writeable = False
-    update, store = experiment._process_update(
-        path, process, store, states, 2)
+    states['bulk'].flags.writeable = True
+    states['bulk']['count'] = bulk_partitioned[type(process).__name__]
+    states['bulk'].flags.writeable = False
+    update, store = _process_update(
+        path, process, store, states, 1)
     update = update.get()
 
     # Leave non-bulk updates as is
@@ -152,49 +171,69 @@ def run_partitioned_process(
     if 'bulk' in update:
         actual_update['bulk'] = bulk_counts
 
+    # Merge non-bulk requests with evolve_state update
+    actual_update = deep_merge(request_misc, actual_update)
+
     return actual_requests, actual_update
 
 
-def run_and_compare(init_time, process_class, partition=True, layer=0, post=False):
+def run_and_compare(init_time, process_class, partition=True, layer=0,
+                    post=False, operons=True):
     # Set time parameters
     init_time = init_time
 
     # Create process, experiment, loading in initial state from file.
-    config = LOAD_SIM_DATA.get_config_by_name(process_class.name)
+    if process_class.name == 'replication_data_listener':
+        config = {'time_step': 1}
+    else:
+        if operons:
+            config = LOAD_SIM_DATA.get_config_by_name(process_class.name)
+        else:
+            config = LOAD_SIM_DATA_NO_OPERONS.get_config_by_name(
+                process_class.name)
     config['seed'] = 0
     process = process_class(config)
 
     process.is_step = lambda: False
+
+    if operons:
+        data_prefix = 'data/migration'
+    else:
+        data_prefix = 'data/migration_no_operons'
     
     if post:
         initial_state = get_state_from_file(
-            path=f'data/migration/wcecoli_t{init_time}_before_post.json')
+            path=f'{data_prefix}/wcecoli_t{init_time}_before_post.json')
         # By this point the clock process would have advanced the global time
-        initial_state['global_time'] = init_time + 2
+        initial_state['global_time'] = init_time + 1
     else:
         initial_state = get_state_from_file(
-            path=f'data/migration/wcecoli_t{init_time}_before_layer_{layer}.json')
-    initial_state['deriver_skips'] = {
-        'chromosome_structure': False,
-        'metabolism': False,
-    }
+            path=f'{data_prefix}/wcecoli_t{init_time}_before_layer_{layer}.json')
 
     # Complexation sets seed weirdly
     if process_class.__name__ == 'Complexation':
-        from arrow import StochasticSystem
+        from stochastic_arrow import StochasticSystem
         process.system = StochasticSystem(process.stoichiometry, random_seed=0)
     # Metabolism requires gtp_to_hydrolyze
     elif process_class.__name__ == 'Metabolism':
-        updates_file = f'data/migration/process_updates_t{init_time}.json'
+        updates_file = f'{data_prefix}/process_updates_t{init_time}.json'
         with open(updates_file, 'r') as f:
             proc_updates = json.load(f)
         gtp_hydro = proc_updates['PolypeptideElongation']['process_state'][
             'gtp_to_hydrolyze']
+        aa_exchange_rates = units.mol / units.L / units.s * np.array(
+            proc_updates['PolypeptideElongation'][
+            'process_state']['aa_exchange_rates']) 
         initial_state['process_state'] = {'polypeptide_elongation': {
-            'gtp_to_hydrolyze': gtp_hydro}}
+            'gtp_to_hydrolyze': gtp_hydro,
+            'aa_exchange_rates': aa_exchange_rates,
+            'aa_count_diff': proc_updates['PolypeptideElongation'][
+                'process_state']['aa_count_diff']}}
+        process.aa_targets = proc_updates['Metabolism']['process_state'][
+            'aa_targets']
     # MassListener needs initial masses to calculate fold changes
     elif process_class.__name__ == 'MassListener':
-        t0_file = 'data/migration/wcecoli_t0.json'
+        t0_file = f'{data_prefix}/wcecoli_t0.json'
         with open(t0_file, 'r') as f:
             t0_data = json.load(f)
         t0_mass = t0_data['listeners']['mass']
@@ -204,23 +243,64 @@ def run_and_compare(init_time, process_class, partition=True, layer=0, post=Fals
         process.rnaMassInitial = t0_mass['rna_mass']
         process.smallMoleculeMassInitial = t0_mass['smallMolecule_mass']
         process.timeInitial = 0
+    # Ribosome data listener requires transcription data
+    elif process_class.__name__ == 'RibosomeData':
+        with open(f"{data_prefix}/wcecoli_listeners_t{init_time}.json",
+                  'r') as f:
+            wc_listeners = json.load(f)
+        initial_state['listeners']['ribosome_data']['rRNA_initiated_TU'
+            ] = wc_listeners['ribosome_data']['rRNA_initiated_TU']
+        initial_state['listeners']['ribosome_data']['rRNA_init_prob_TU'
+            ] = wc_listeners['ribosome_data']['rRNA_init_prob_TU']
+    # RNA synth prob listener requires transcription data
+    elif process_class.__name__ == 'RnaSynthProb':
+        with open(f"{data_prefix}/wcecoli_listeners_t{init_time}.json",
+                  'r') as f:
+            wc_listeners = json.load(f)
+        initial_state['listeners']['rna_synth_prob'] = {
+            'total_rna_init': wc_listeners['rna_synth_prob']['total_rna_init'],
+            'n_bound_TF_per_TU': wc_listeners['rna_synth_prob'][
+                'n_bound_TF_per_TU'],
+            'actual_rna_synth_prob': wc_listeners['rna_synth_prob'][
+                'actual_rna_synth_prob'],
+            'target_rna_synth_prob': wc_listeners['rna_synth_prob'][
+                'target_rna_synth_prob'],
+        }
+    # RNAP data listener requires transcription data
+    elif process_class.__name__ == 'RnapData':
+        with open(f"{data_prefix}/wcecoli_listeners_t{init_time}.json",
+                  'r') as f:
+            wc_listeners = json.load(f)
+        initial_state['listeners']['rnap_data'] = {
+            'rna_init_event': wc_listeners['rnap_data']['rna_init_event']
+        }
 
     if partition:
         # run the process and get an update
         actual_request, actual_update = run_partitioned_process(
-            process, process_class.topology,
-            initial_time=init_time, initial_state=initial_state)
+            process, process_class.topology, initial_time=init_time,
+            initial_state=initial_state, data_prefix=data_prefix)
 
         # Compare requested bulk counts
-        with open(f"data/migration/bulk_requested_t{init_time}.json", 'r') as f:
+        with open(f"{data_prefix}/bulk_requested_t{init_time}.json", 'r') as f:
             wc_request = json.load(f)
         assert np.all(actual_request == wc_request[process_class.__name__])
     else:
         actual_update = run_non_partitioned_process(
-            process, process_class.topology,
-            initial_time=init_time, initial_state=initial_state)
-    # Compare unique molecule updates
-    with open(f"data/migration/process_updates_t{init_time}.json", 'r') as f:
+            process, process_class.topology, initial_time=init_time,
+            initial_state=initial_state, data_prefix=data_prefix)
+    if process_class.__name__ == 'PolypeptideElongation':
+        actual_update['process_state'] = actual_update['process_state'
+            ]['polypeptide_elongation']
+        actual_update['process_state']['aa_exchange_rates'
+            ] = actual_update['process_state'][
+                'aa_exchange_rates'].asNumber()
+    # Sort delete indices to match wcEcoli sorted indices
+    for unique_update in actual_update.get('unique', {}).values():
+        if 'delete' in unique_update:
+            unique_update['delete'] = np.sort(unique_update['delete'])
+    # Compare updates
+    with open(f"{data_prefix}/process_updates_t{init_time}.json", 'r') as f:
         wc_update = json.load(f)
     if process_class.__name__ in wc_update:
         # wcEcoli and viv-ecoli generate unique indices very differently
@@ -230,8 +310,11 @@ def run_and_compare(init_time, process_class, partition=True, layer=0, post=Fals
             check_keys_strict=False, ignore_keys={'unique_index', 'RNAP_index',
                 'exchange'})
     # Compare listener values
-    with open(f"data/migration/wcecoli_listeners_t{init_time}.json", 'r') as f:
+    with open(f"{data_prefix}/wcecoli_listeners_t{init_time}.json", 'r') as f:
         wc_listeners = json.load(f)
+    wc_listeners['unique_molecule_counts'] = dict(zip(sorted(
+        LOAD_SIM_DATA.sim_data.internal_state.unique_molecule.unique_molecule_definitions),
+        wc_listeners['unique_molecule_counts']['unique_molecule_counts']))
     actual_listeners = actual_update.get('listeners', {})
     # Certain listeners are at higher level in viv-ecoli
     if 'monomer_counts' in actual_listeners:

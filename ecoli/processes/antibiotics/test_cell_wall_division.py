@@ -20,21 +20,8 @@ def run_experiment():
     )
     ecoli.total_time = total_time
     ecoli.build_ecoli()
-    # Add second fake chromosome, domain, and promoters to pass division check
-    unique = ecoli.generated_initial_state['agents']['0']['unique']
-    unique['full_chromosome'] = np.resize(unique['full_chromosome'], (2,))
-    unique['full_chromosome']['domain_index'][-1] = 3
-    unique['full_chromosome']['unique_index'][-1] = 1
-    unique['chromosome_domain'] = np.resize(unique['chromosome_domain'], (4,))
-    unique['chromosome_domain']['child_domains'][-1] = [-1, -1]
-    unique['chromosome_domain']['domain_index'][-1] = 3
-    unique['chromosome_domain']['unique_index'][-1] = 6
-    add_prom = np.append(
-        unique['promoter'][unique['promoter']['domain_index']==0],
-        unique['promoter'][unique['promoter']['domain_index']==1])
-    add_prom['domain_index'] = 3
-    add_prom['unique_index'] += 10000
-    unique['promoter'] = np.append(unique['promoter'], add_prom)
+    ecoli.generated_initial_state['agents']['0']['division_threshold'] = 572.2
+
     # Save list of bulk indices to index bulk emits
     bulk_ids = ecoli.generated_initial_state['agents']['0']['bulk']['id']
 

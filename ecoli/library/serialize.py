@@ -1,6 +1,6 @@
+import orjson
 import re
 from unum import Unum
-from bson.codec_options import TypeEncoder
 from vivarium.core.registry import Serializer
 from vivarium.library.topology import convert_path_style, normalize_path
 
@@ -15,9 +15,8 @@ class UnumSerializer(Serializer):
 
     python_type = Unum
     def serialize(self, value):
-        num = str(value.asNumber())
-        assert ' ' not in num
-        return f'!UnitsSerializer[{num} {value.strUnit()}]'
+        num = str(value.asNumber().tolist())
+        return f'!UnumSerializer[{num} | {value.strUnit()}]'
         
     def can_deserialize(self, data):
         if not isinstance(data, str):
@@ -31,7 +30,7 @@ class UnumSerializer(Serializer):
         matched_regex = self.regex_for_serialized.fullmatch(data)
         if matched_regex:
             data = matched_regex.group(1)
-        return float(data.split(' ')[0])
+        return orjson.loads(data.split(' | ')[0])
 
 
 class ParameterSerializer(Serializer):

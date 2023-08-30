@@ -16,6 +16,8 @@ TOPOLOGY = {
     "listeners": ("listeners",),
     "bulk": ("bulk",),
     "unique": ("unique",),
+    "global_time": ("global_time",),
+    "timestep": ("timestep",)
 }
 topology_registry.register(
     NAME, TOPOLOGY
@@ -46,6 +48,8 @@ class MonomerCounts(Step):
         'complexation_stoich': [],
         'equilibrium_stoich': [],
         'two_component_system_stoich': [],
+        'emit_unique': False,
+        'time_step': 1
     }
 
     def __init__(self, parameters=None):
@@ -114,15 +118,24 @@ class MonomerCounts(Step):
                 'monomer_counts': {
                     '_default': [],
                     '_updater': 'set',
-                    '_emit': True}
+                    '_emit': True,
+                    '_properties': {'metadata': self.monomer_ids}}
             },
             'bulk': numpy_schema('bulk'),
             'unique': {
-                'active_ribosome': numpy_schema('active_ribosome'),
-                'active_RNAP': numpy_schema('active_RNAPs'),
-                'active_replisome': numpy_schema('active_replisomes')
-            }
+                'active_ribosome': numpy_schema('active_ribosome',
+                    emit=self.parameters['emit_unique']),
+                'active_RNAP': numpy_schema('active_RNAPs',
+                    emit=self.parameters['emit_unique']),
+                'active_replisome': numpy_schema('active_replisomes',
+                    emit=self.parameters['emit_unique']),
+            },
+            'global_time': {'_default': 0},
+            'timestep': {'_default': self.parameters['time_step']}
         }
+    
+    def update_condition(self, timestep, states):
+        return (states['global_time'] % states['timestep']) == 0
 
     def next_update(self, timestep, states):
         if self.monomer_idx is None:
@@ -204,9 +217,9 @@ def test_monomer_counts_listener():
     sim.raw_output = False
     sim.build_ecoli()
     sim.run()
-    data = sim.query()
-    assert(type(data['listeners']['monomer_counts'][0]) == list)
-    assert(type(data['listeners']['monomer_counts'][1]) == list)
+    listeners = sim.query()['agents']['0']['listeners']
+    assert(type(listeners['monomer_counts'][0]) == list)
+    assert(type(listeners['monomer_counts'][1]) == list)
 
 
 # python ecoli/processes/listeners/monomer_counts.py
