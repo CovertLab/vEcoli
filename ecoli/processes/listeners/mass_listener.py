@@ -56,6 +56,7 @@ class MassListener(Deriver):
         'n_avogadro': 6.0221409e23,  # 1/mol
         'time_step': 1.0,
         'emit_unique': False,
+        'match_wcecoli': False,
     }
 
     def __init__(self, parameters=None):
@@ -130,6 +131,9 @@ class MassListener(Deriver):
 
         # Helper indices for Numpy indexing
         self.bulk_idx = None
+
+        # Enable flag for perfect recapitulation of wcEcoli mass calculations
+        self.match_wcecoli = self.parameters['match_wcecoli']
 
     def ports_schema(self):
         split_divider_schema = {
@@ -207,8 +211,8 @@ class MassListener(Deriver):
         if self.bulk_idx is None:
             bulk_ids = states['bulk']['id']
             self.bulk_idx = bulk_name_to_idx(self.bulk_ids, bulk_ids)
-            # If perfect recreation of wcEcoli desired, uncomment below
-            # self.bulk_addon = np.zeros((len(self.bulk_idx), 16))
+            if self.match_wcecoli:
+                self.bulk_addon = np.zeros((len(self.bulk_idx), 16))
 
         mass_update = {}
 
@@ -222,12 +226,12 @@ class MassListener(Deriver):
         bulk_submasses = np.dot(bulk_counts, bulk_masses)
         bulk_compartment_masses = np.dot(
             bulk_counts * self._bulk_molecule_by_compartment, bulk_masses)
-        # If perfect recreation of wcEcoli desired, uncomment below
-        # bulk_counts = np.hstack([self.bulk_addon,
-        #     counts(states['bulk'], self.bulk_idx)[:, np.newaxis]])
-        # bulk_submasses = np.dot(bulk_counts.T, bulk_masses).sum(axis=0)
-        # bulk_compartment_masses = np.dot(
-        #     bulk_counts.sum(axis=1) * self._bulk_molecule_by_compartment, bulk_masses)
+        if self.match_wcecoli:
+            bulk_counts = np.hstack([self.bulk_addon,
+                counts(states['bulk'], self.bulk_idx)[:, np.newaxis]])
+            bulk_submasses = np.dot(bulk_counts.T, bulk_masses).sum(axis=0)
+            bulk_compartment_masses = np.dot(
+                bulk_counts.sum(axis=1) * self._bulk_molecule_by_compartment, bulk_masses)
 
         unique_submasses = np.zeros(len(self.massDiff_names))
         unique_compartment_masses = np.zeros_like(bulk_compartment_masses)
@@ -243,10 +247,10 @@ class MassListener(Deriver):
 				:] += unique_mass * n_molecules
             
             massDiffs = np.array(list(attrs(molecules, self.massDiff_names))).T
-            # If perfect recreation of wcEcoli desired, uncomment below
-            # massDiffs = np.core.records.fromarrays(
-            #     attrs(molecules, self.massDiff_names)).view(
-            #         (np.float64, len(self.massDiff_names)))
+            if self.match_wcecoli:
+                massDiffs = np.core.records.fromarrays(
+                    attrs(molecules, self.massDiff_names)).view(
+                        (np.float64, len(self.massDiff_names)))
             unique_submasses += massDiffs.sum(axis=0)
             unique_compartment_masses[self.compartment_abbrev_to_index['c'],
 				:] += massDiffs.sum(axis=0)

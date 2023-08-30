@@ -243,6 +243,7 @@ def run_and_compare(init_time, process_class, partition=True, layer=0,
         process.rnaMassInitial = t0_mass['rna_mass']
         process.smallMoleculeMassInitial = t0_mass['smallMolecule_mass']
         process.timeInitial = 0
+        process.match_wcecoli = True
     # Ribosome data listener requires transcription data
     elif process_class.__name__ == 'RibosomeData':
         with open(f"{data_prefix}/wcecoli_listeners_t{init_time}.json",
@@ -389,8 +390,9 @@ def recursive_compare(d1, d2, level='root', include_callable=False,
         try:
             np.testing.assert_array_almost_equal_nulp(d1, d2)
         except AssertionError:
-            print('{:<20} {} != {}'.format(level, d1, d2))
-            return False
+            if not (np.isnan(d1) & np.isnan(d2)):
+                print('{:<20} {} != {}'.format(level, d1, d2))
+                return False
             
     elif isinstance(d1, set) and isinstance(d2, set):
         if len(d1 - d2) != 0:
