@@ -355,19 +355,25 @@ class MetabolismRedux(Step):
                     'conc_updates': ([], self.conc_update_molecules),
                     'base_reaction_fluxes': (
                         [], self.base_reaction_ids),
-                    'solution_fluxes': [],
-                    'solution_dmdt': [],
-                    'solution_residuals': [],
+                    'solution_fluxes': (
+                        [], self.network_flow_model.rxns),
+                    'solution_dmdt': (
+                        [], self.network_flow_model.mets),
                     'time_per_step': 0.0,
-                    'estimated_fluxes': [],
-                    'estimated_homeostatic_dmdt': [],
-                    'target_homeostatic_dmdt': [],
+                    'estimated_fluxes': (
+                        [], self.network_flow_model.rxns),
+                    'estimated_homeostatic_dmdt': (
+                        [], np.array(self.network_flow_model.mets)[
+                            self.network_flow_model.homeostatic_idx]),
+                    'target_homeostatic_dmdt': (
+                        [], np.array(self.network_flow_model.mets)[
+                            self.network_flow_model.homeostatic_idx]),
                     'estimated_exchange_dmdt': {},
                     'estimated_intermediate_dmdt': [],
                     'target_kinetic_fluxes': [],
                     'target_kinetic_bounds': [],
                     'reaction_catalyst_counts': [],
-                    'maintenance_target': []
+                    'maintenance_target': 0
                 })
             },
 
@@ -566,6 +572,9 @@ class MetabolismRedux(Step):
         target_kinetic_bounds = self.concentrationToCounts(target_kinetic_bounds)
 
         estimated_homeostatic_dmdt = metabolite_dmdt_counts[self.network_flow_model.homeostatic_idx]
+        # Ensure counts do not go negative
+        final_metabolite_counts = np.fmax(homeostatic_metabolite_counts + estimated_homeostatic_dmdt, 0)
+        estimated_homeostatic_dmdt = final_metabolite_counts - homeostatic_metabolite_counts
         estimated_intermediate_dmdt = metabolite_dmdt_counts[self.network_flow_model.intermediates_idx]
         estimated_exchange_dmdt = {str(metabolite[:-3]): -exchange
             for metabolite, exchange in zip(self.network_flow_model.mets,
