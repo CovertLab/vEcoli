@@ -372,6 +372,11 @@ def recursive_compare(d1, d2, level='root', include_callable=False,
         except AssertionError:
             print('{:<20} {} != {}'.format(level, d1, d2))
             return False
+        except TypeError:
+            if not np.array_equal(d1, d2):
+                print('{:<20} {} != {}'.format(level, d1, d2))
+                return False
+
     
     elif isinstance(d1, Unum) and isinstance(d2, Unum):
         return recursive_compare(d1.asNumber(), d2.asNumber(), 
