@@ -399,6 +399,8 @@ class LoadSimData:
             'ribosome_data_listener': self.get_ribosome_data_listener_config,
             'rnap_data_listener': self.get_rnap_data_listener_config,
             'unique_molecule_counts': self.get_unique_molecule_counts_config,
+            'exchange_data': self.get_exchange_data_config,
+            'bulk-timeline': self.get_bulk_timeline_config,
         }
 
         try:
@@ -915,7 +917,6 @@ class LoadSimData:
             'aa_targets_not_updated': aa_targets_not_updated,
             'import_constraint_threshold': self.sim_data.external_state.import_constraint_threshold,
             'exchange_molecules': self.sim_data.external_state.all_external_exchange_molecules,
-            'exchange_data_from_concentrations': exch_from_conc,
             'imports': imports,
 
             # these are options given to the wholecell.sim.simulation
@@ -1033,7 +1034,6 @@ class LoadSimData:
             'aa_targets_not_updated': aa_targets_not_updated,
             'import_constraint_threshold': self.sim_data.external_state.import_constraint_threshold,
             'exchange_molecules': self.sim_data.external_state.all_external_exchange_molecules,
-            'exchange_data_from_concentrations': exch_from_conc,
 
             # these are options given to the wholecell.sim.simulation
             'use_trna_charging': self.trna_charging,
@@ -1464,6 +1464,31 @@ class LoadSimData:
             'emit_unique': self.emit_unique
         }
     
+    def get_exchange_data_config(self, time_step=1, parallel=False):
+        return {
+            'time_step': time_step,
+            '_parallel': parallel,
+            'exchange_data_from_concentrations': self.sim_data.external_state.exchange_data_from_concentrations,
+            'environment_molecules': list(self.sim_data.external_state.env_to_exchange_map.keys()),
+            'saved_media': self.sim_data.external_state.saved_media
+        }
+    
+    def get_bulk_timeline_config(self, time_step=1, parallel=False):
+        # if current_timeline_id is specified by a variant in sim_data, look it up in saved_timelines.
+        if self.sim_data.external_state.current_timeline_id:
+            current_timeline = self.sim_data.external_state.saved_timelines[
+                self.sim_data.external_state.current_timeline_id]
+        else:
+            current_timeline = self.media_timeline
+        return {
+            'time_step': time_step,
+            '_parallel': parallel,
+            'timeline': {
+                time: {('media_id',): media_id}
+                for time, media_id in current_timeline
+            }
+        }
+
     # def generate_initial_state(self):
     #     '''
     #     Calculate the initial conditions for a new cell without inherited state
