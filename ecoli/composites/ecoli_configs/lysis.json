@@ -4,8 +4,8 @@
   "spatial_environment_config": {
     "reaction_diffusion": {
       "molecules": [
-        "GLC[p]",
-        "EG10040-MONOMER[p]",
+        "GLC",
+        "EG10040-MONOMER",
         "beta-lactam",
         "hydrolyzed-beta-lactam"
       ],
@@ -21,12 +21,12 @@
             "beta-lactam": -1,
             "hydrolyzed-beta-lactam": 1
           },
-          "catalyzed by": "EG10040-MONOMER[p]"
+          "catalyzed by": "EG10040-MONOMER"
         }
       },
       "kinetic_parameters": {
         "antibiotic_hydrolysis": {
-          "EG10040-MONOMER[p]": {
+          "EG10040-MONOMER": {
             "kcat_f": 10.0,
             "beta-lactam": 0.01
           }
@@ -47,11 +47,11 @@
   },
   "process_configs": {
     "lysis": {
-      "secreted_molecules": [
-        "EG10040-MONOMER[p]",
-        "beta-lactam",
-        "hydrolyzed-beta-lactam"
-      ],
+      "secreted_molecules": {
+        "EG10040-MONOMER[p]": "EG10040-MONOMER",
+        "beta-lactam[p]": "beta-lactam",
+        "hydrolyzed-beta-lactam[p]": "hydrolyzed-beta-lactam"
+      },
       "agent_id": "0"
     }
   }

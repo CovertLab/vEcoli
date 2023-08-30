@@ -1,69 +1,35 @@
-import glob
-import setuptools
-
-from distutils.core import setup
-from distutils.extension import Extension
-from Cython.Build import build_ext
-
-from setuptools import find_packages
-import numpy as np
 import os
 
-# This list specifies the required versions of our direct dependencies.
-# The exact versions of all our dependencies that are used for testing
-# are listed in requirements.txt.
-INSTALL_REQUIRES = [
-    'vivarium-core>=1.2.0',
-    'biopython==1.77',
-    'Unum==4.1.4',
-    'numba==0.50.1',
-    'ipython>=7.16.1',
-    'aesara>=2.3.8',
-    'decorator',
-    'iteround',
-    'stochastic-arrow>=0.4.4',
-    'cobra',
-    'matplotlib',
-    'pytest',
-    'jupyter',
-    'tqdm'
-]
+import numpy as np
+from Cython.Build import cythonize
+from setuptools import setup
 
-if __name__ == '__main__':
-    with open("README.md", 'r') as readme:
-        long_description = readme.read()
+build_sequences_module = cythonize(
+	os.path.join("wholecell", "utils", "_build_sequences.pyx"),
+	)
 
-    # to include data in the package, use MANIFEST.in
+setup(
+	name = "Build sequences",
+	ext_modules = build_sequences_module,
+	include_dirs = [np.get_include()],
+	)
 
-    ext_modules = [
-       Extension(name="wholecell.utils._build_sequences",
-                 sources=[os.path.join("wholecell", "utils", "_build_sequences.pyx")],
-             include_dirs = [np.get_include()],
-                 ),
-       Extension(name="wholecell.utils.complexation",
-                 sources=[os.path.join("wholecell", "utils", "mc_complexation.pyx")],
-             include_dirs = [np.get_include()]
-                 ),
-       Extension(name="wholecell.utils._fastsums",
-                 sources=[os.path.join("wholecell", "utils", "_fastsums.pyx")],
-             include_dirs = [np.get_include()]),
-    ]
+complexation_module = cythonize(
+	os.path.join("wholecell", "utils", "mc_complexation.pyx"),
+	)
 
-    packages = find_packages(where=".")
+setup(
+	name = "Monte-carlo complexation",
+	ext_modules = complexation_module,
+	include_dirs = [np.get_include()],
+	)
 
-    setup(
-        name='vivarium-ecoli',
-        version='0.0.1',
-        cmdclass = {'build_ext': build_ext},
-        ext_modules = ext_modules,
-        packages=find_packages(where="."),
-        author='Eran Agmon, Ryan Spangler',
-        author_email='eagmon@stanford.edu, ryan.spangler@gmail.com',
-        url='https://github.com/CovertLab/vivarium-ecoli',
-        license='MIT',
-        entry_points={
-            'console_scripts': []},
-        long_description=long_description,
-        long_description_content_type='text/markdown',
-        install_requires=INSTALL_REQUIRES,
-    )
+fast_polymerize_sums_module = cythonize(
+	os.path.join("wholecell", "utils", "_fastsums.pyx"),
+	)
+
+setup(
+	name = "Fast polymerize sums",
+	ext_modules = fast_polymerize_sums_module,
+	include_dirs = [np.get_include()],
+	)

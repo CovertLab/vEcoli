@@ -77,13 +77,13 @@ def create_composite(timeline_data, antibiotics=True):
             "pbp_state": ("pbp_state",),
             "wall_state": ("wall_state",),
             "volume": ("cell_global", "volume"),
-            "first_update": ("deriver_skips", "pbp_binding",)
+            "first_update": ("first_update", "pbp_binding",)
         },
         "murein-division": {
             "bulk": ("bulk",),
             "murein_state": ("murein_state",),
             "wall_state": ("wall_state",),
-            "first_update": ("deriver_skips", "murein_division",)
+            "first_update": ("first_update", "murein_division",)
         },
         "bulk-timeline": {
             "bulk": ("bulk",),

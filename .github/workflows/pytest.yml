@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [3.8]
+        python-version: ["3.10"]
     steps:
     - uses: actions/checkout@v2
     - name: Setup Python ${{ matrix.python-version }}
@@ -26,9 +26,6 @@ jobs:
         pip install numpy
         pip install Cython
         pip install -r requirements.txt
-    - name: Check dependencies
-      run: |
-        python -m scripts.test_requirements
     - name: Setup
       run: |
         python setup.py install

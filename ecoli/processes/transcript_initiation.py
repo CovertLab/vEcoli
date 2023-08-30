@@ -20,8 +20,6 @@ import scipy.sparse
 import matplotlib.pyplot as plt
 from typing import cast
 
-from six.moves import zip
-
 from vivarium.core.composition import simulate_process
 
 from ecoli.library.schema import (
@@ -50,7 +48,8 @@ TOPOLOGY = {
     "active_RNAPs": ("unique", "active_RNAP"),
     "promoters": ("unique", "promoter"),
     "bulk": ("bulk",),
-    "listeners": ("listeners",)
+    "listeners": ("listeners",),
+    "timestep": ("timestep",)
 }
 topology_registry.register(NAME, TOPOLOGY)
 
@@ -73,6 +72,8 @@ class TranscriptInitiation(PartitionedProcess):
             (see Transcription.make_elongation_rates).
                 - parameters: random, rate, timestep, variable
                 - returns: a numpy array
+        - active_rnap_footprint_size (int): Maximum physical footprint of RNAP
+            in nucleotides to cap initiation probabilities
         - basal_prob (1d array[float]): Baseline probability of synthesis for
             every TU.
         - delta_prob (dict): Dictionary with four keys, used to create a matrix
@@ -93,16 +94,6 @@ class TranscriptInitiation(PartitionedProcess):
                 is_RNAP, gene_id, Km_endoRNase, replication_coordinate,
                 direction)
 
-        - shuffleIdxs (1D array or None): A permutation of the TU indices, used
-            to shuffle probabilities around if given. Can be None, in which
-            case no shuffling is performed.
-
-        - idx_16SrRNA (1D array): indexes of TUs for 16SrRNA, an RNA component
-            of the ribosome
-        - idx_23SrRNA (1D array): indexes of TUs for 23SrRNA, an RNA component
-            of the ribosome
-        - idx_5SrRNA (1D array):  indexes of TUs for 5SrRNA, an RNA component
-            of the ribosome
         - idx_rRNA (1D array): indexes of TUs corresponding to rRNAs
         - idx_mRNA (1D array): indexes of TUs corresponding to mRNAs
         - idx_tRNA (1D array): indexes of TUs corresponding to tRNAs
@@ -139,6 +130,8 @@ class TranscriptInitiation(PartitionedProcess):
             - returns: average copy number of each gene expected at a doubling
                 time, tau
         - ppgpp_regulation (bool): Whether to include model of ppGpp regulation
+        - get_rnap_active_fraction_from_ppGpp (func): Returns elongation rate
+            for a given ppGpp concentration
         - seed (int): random seed
     """
 
@@ -151,17 +144,16 @@ class TranscriptInitiation(PartitionedProcess):
         'variable_elongation': False,
         'make_elongation_rates': (lambda random, rate, timestep, variable:
             np.array([])),
+        'active_rnap_foorprint_size': 1,
         'basal_prob': np.array([]),
         'delta_prob': {'deltaI': [], 'deltaJ': [], 'deltaV': [],
             'shape': tuple()},
         'get_delta_prob_matrix': None,
         'perturbations': {},
         'rna_data': {},
-        'shuffleIdxs': None,
+        'active_rnap_footprint_size': 24 * units.nt,
+        'get_rnap_active_fraction_from_ppGpp': lambda x: 0.1,
 
-        'idx_16SrRNA': np.array([]),
-        'idx_23SrRNA': np.array([]),
-        'idx_5SrRNA': np.array([]),
         'idx_rRNA': np.array([]),
         'idx_mRNA': np.array([]),
         'idx_tRNA': np.array([]),
@@ -187,6 +179,7 @@ class TranscriptInitiation(PartitionedProcess):
 
         # random seed
         'seed': 0,
+        'emit_unique': False,
     }
 
     # Constructor
@@ -200,6 +193,8 @@ class TranscriptInitiation(PartitionedProcess):
             'rnaPolymeraseElongationRateDict']
         self.variable_elongation = self.parameters['variable_elongation']
         self.make_elongation_rates = self.parameters['make_elongation_rates']
+        self.active_rnap_footprint_size = self.parameters[
+            'active_rnap_footprint_size']
 
         # Initialize matrices used to calculate synthesis probabilities
         self.basal_prob = self.parameters['basal_prob'].copy()
@@ -208,7 +203,7 @@ class TranscriptInitiation(PartitionedProcess):
             self.attenuated_rna_indices = self.parameters[
                 'attenuated_rna_indices']
             self.attenuation_adjustments = self.parameters[
-                'attenuation_basal_prob_adjustments']
+                'attenuation_adjustments']
             self.basal_prob[self.attenuated_rna_indices] += \
                 self.attenuation_adjustments
 
@@ -216,7 +211,8 @@ class TranscriptInitiation(PartitionedProcess):
         self.delta_prob = self.parameters['delta_prob']
         if self.parameters['get_delta_prob_matrix'] is not None:
             self.delta_prob_matrix = self.parameters[
-                'get_delta_prob_matrix'](dense=True)
+                'get_delta_prob_matrix'](dense=True,
+                    ppgpp=self.parameters['ppgpp_regulation'])
         else:
             # make delta_prob_matrix without adjustments
             self.delta_prob_matrix = scipy.sparse.csr_matrix(
@@ -240,13 +236,7 @@ class TranscriptInitiation(PartitionedProcess):
                 'fixedRnaIdxs': [pair[0] for pair in probability_indexes],
                 'fixedSynthProbs': [pair[1] for pair in probability_indexes]}
 
-        # If initiationShuffleIdxs does not exist, set value to None
-        self.shuffleIdxs = self.parameters['shuffleIdxs']
-
         # ID Groups
-        self.idx_16SrRNA = self.parameters['idx_16SrRNA']
-        self.idx_23SrRNA = self.parameters['idx_23SrRNA']
-        self.idx_5SrRNA = self.parameters['idx_5SrRNA']
         self.idx_rRNA = self.parameters['idx_rRNA']
         self.idx_mRNA = self.parameters['idx_mRNA']
         self.idx_tRNA = self.parameters['idx_tRNA']
@@ -273,6 +263,8 @@ class TranscriptInitiation(PartitionedProcess):
         self.synth_prob = self.parameters['synth_prob']
         self.copy_number = self.parameters['copy_number']
         self.ppgpp_regulation = self.parameters['ppgpp_regulation']
+        self.get_rnap_active_fraction_from_ppGpp = self.parameters[
+            'get_rnap_active_fraction_from_ppGpp']
 
         self.seed = self.parameters['seed']
         self.random_state = np.random.RandomState(seed=self.seed)
@@ -292,32 +284,36 @@ class TranscriptInitiation(PartitionedProcess):
 
             'bulk': numpy_schema('bulk'),
 
-            'full_chromosomes': numpy_schema('full_chromosomes'),
-            'promoters': numpy_schema('promoters'),
-            'RNAs': numpy_schema('RNAs'),
-            'active_RNAPs': numpy_schema('active_RNAPs'),
+            'full_chromosomes': numpy_schema('full_chromosomes',
+                emit=self.parameters['emit_unique']),
+            'promoters': numpy_schema('promoters',
+                emit=self.parameters['emit_unique']),
+            'RNAs': numpy_schema('RNAs',
+                emit=self.parameters['emit_unique']),
+            'active_RNAPs': numpy_schema('active_RNAPs',
+                emit=self.parameters['emit_unique']),
 
             'listeners': {
                 'mass': {
                     'cell_mass': {'_default': 0.0},
                     'dry_mass': {'_default': 0.0}},
-                'rna_synth_prob': {
-                    'rna_synth_prob': {
-                        '_default': 0.0, '_updater': 'set', '_emit': True}},
+                'rna_synth_prob': listener_schema({
+                    'target_rna_synth_prob': 0,
+                    'actual_rna_synth_prob': 0,
+                    'tu_is_overcrowded': 0,
+                    'total_rna_init': 0}),
                 'ribosome_data': listener_schema({
-                    'rrn16S_produced': 0,
-                    'rrn23S_produced': 0,
-                    'rrn5S_produced': 0,
-                    'rrn16S_init_prob': 0,
-                    'rrn23S_init_prob': 0,
-                    'rrn5S_init_prob': 0,
+                    'rRNA_initiation_TU': 0,
+                    'rRNA_init_prob_TU': 0,
                     'total_rna_init': 0}),
                 'rnap_data': listener_schema({
                     'did_initialize': 0,
-                    'rna_init_event': 0})},
+                    'rna_init_event': (0, self.rna_data['id'])})},
+            'timestep': {'_default': self.parameters['time_step']}
         }
 
     def calculate_request(self, timestep, states):
+        # At first update, convert all strings to indices
         if self.ppgpp_idx is None:
             bulk_ids = states['bulk']['id']
             self.ppgpp_idx = bulk_name_to_idx(self.ppgpp, bulk_ids)
@@ -348,11 +344,18 @@ class TranscriptInitiation(PartitionedProcess):
                 if self.trna_attenuation:
                     basal_prob[self.attenuated_rna_indices] += \
                         self.attenuation_adjustments
+                self.fracActiveRnap = self.get_rnap_active_fraction_from_ppGpp(
+                    ppgpp_conc)
+                ppgpp_scale = basal_prob[TU_index]
+                # Use original delta prob if no ppGpp basal
+                ppgpp_scale[ppgpp_scale == 0] = 1   
             else:
                 basal_prob = self.basal_prob
+                self.fracActiveRnap = self.fracActiveRnapDict[current_media_id]
+                ppgpp_scale = 1
 
             # Calculate probabilities of the RNAP binding to each promoter
-            self.promoter_init_probs = (basal_prob[TU_index] +
+            self.promoter_init_probs = (basal_prob[TU_index] + ppgpp_scale *
                 np.multiply(self.delta_prob_matrix[TU_index, :],
                     bound_TF).sum(axis=1))
 
@@ -408,7 +411,6 @@ class TranscriptInitiation(PartitionedProcess):
             self.promoter_init_probs = np.zeros(states['promoters'][
                 '_entryState'].sum())
 
-        self.fracActiveRnap = self.fracActiveRnapDict[current_media_id]
         self.rnaPolymeraseElongationRate = \
             self.rnaPolymeraseElongationRateDict[current_media_id]
         self.elongation_rates = self.make_elongation_rates(
@@ -422,17 +424,12 @@ class TranscriptInitiation(PartitionedProcess):
         update = {
             'listeners': {
                 'rna_synth_prob': {
-                    'rna_synth_prob': np.zeros(self.n_TUs),
-                    'promoter_init_probs': self.promoter_init_probs.copy()
+                    'target_rna_synth_prob': np.zeros(self.n_TUs),
+                    'actual_rna_synth_prob': np.zeros(self.n_TUs),
+                    'tu_is_overcrowded': np.zeros(self.n_TUs),
+                    'total_rna_init': 0
                 },
                 'ribosome_data': {
-                    'rrn16S_produced': 0,
-                    'rrn23S_produced': 0,
-                    'rrn5S_produced': 0,
-
-                    'rrn16S_init_prob': 0,
-                    'rrn23S_init_prob': 0,
-                    'rrn5S_init_prob': 0,
                     'total_rna_init': 0
                 },
                 'rnap_data': {
@@ -443,7 +440,7 @@ class TranscriptInitiation(PartitionedProcess):
             'active_RNAPs': {},
             'full_chromosomes': {},
             'promoters': {},
-            'RNAs': {}
+            'RNAs': {},
         }
 
         # no synthesis if no chromosome
@@ -460,35 +457,50 @@ class TranscriptInitiation(PartitionedProcess):
             (np.ones(n_promoters), (TU_index, np.arange(n_promoters))),
             shape=(self.n_TUs, n_promoters))
 
-        # Compute synthesis probabilities of each transcription unit
-        TU_synth_probs = TU_to_promoter.dot(self.promoter_init_probs)
+        # Compute target synthesis probabilities of each transcription unit
+        target_TU_synth_probs = TU_to_promoter.dot(self.promoter_init_probs)
         update['listeners']['rna_synth_prob'][
-            'rna_synth_prob'] = TU_synth_probs
-
-        # Shuffle synthesis probabilities if we're running the variant that
-        # calls this (In general, this should lead to a cell which does not
-        # grow and divide)
-        if self.shuffleIdxs is not None:
-            self._rescale_initiation_probs(
-                np.arange(self.n_TUs),
-                TU_synth_probs[self.shuffleIdxs],
-                TU_index)
+            'target_rna_synth_prob'] = target_TU_synth_probs
 
         # Calculate RNA polymerases to activate based on probabilities
+        # Note: ideally we should be using the actual TU synthesis probabilities
+        # here, but the calculation of actual probabilities requires the number
+        # of RNAPs to activate. The difference should be small.
         self.activationProb = self._calculateActivationProb(
-            timestep,
+            states['timestep'],
             self.fracActiveRnap,
             self.rnaLengths,
             (units.nt / units.s) * self.elongation_rates,
-            TU_synth_probs)
+            target_TU_synth_probs)
 
         n_RNAPs_to_activate = np.int64(self.activationProb *
             counts(states['bulk'], self.inactive_RNAP_idx))
 
         if n_RNAPs_to_activate == 0:
             return update
+        
+        # Cap the initiation probabilities at the maximum level physically
+        # allowed from the known RNAP footprint sizes
+        max_p = (self.rnaPolymeraseElongationRate / self.active_rnap_footprint_size
+            * (units.s) * states['timestep'] / n_RNAPs_to_activate).asNumber()
+        is_overcrowded = (self.promoter_init_probs > max_p)
 
-        # --- Growth control code ---
+        while np.any(self.promoter_init_probs > max_p):
+            self.promoter_init_probs[is_overcrowded] = max_p
+            scale_the_rest_by = (
+                (1. - self.promoter_init_probs[is_overcrowded].sum())
+                / self.promoter_init_probs[~is_overcrowded].sum()
+                )
+            self.promoter_init_probs[~is_overcrowded] *= scale_the_rest_by
+            is_overcrowded |= (self.promoter_init_probs > max_p)
+
+        # Compute actual synthesis probabilities of each transcription unit
+        actual_TU_synth_probs = TU_to_promoter.dot(self.promoter_init_probs)
+        tu_is_overcrowded = TU_to_promoter.dot(is_overcrowded).astype(bool)
+        update['listeners']['rna_synth_prob'][
+            'actual_rna_synth_prob'] = actual_TU_synth_probs
+        update['listeners']['rna_synth_prob'][
+            'tu_is_overcrowded'] = tu_is_overcrowded
 
         # Sample a multinomial distribution of initiation probabilities to
         # determine what promoters are initialized
@@ -502,7 +514,7 @@ class TranscriptInitiation(PartitionedProcess):
 
         # Build arrays of starting coordinates and transcription directions
         coordinates = self.replication_coordinate[TU_index_partial_RNAs]
-        direction = self.transcription_direction[TU_index_partial_RNAs]
+        is_forward = self.transcription_direction[TU_index_partial_RNAs]
 
         # new RNAPs
         RNAP_indexes = create_unique_indexes(
@@ -512,7 +524,7 @@ class TranscriptInitiation(PartitionedProcess):
                 'unique_index': RNAP_indexes,
                 'domain_index': domain_index_rnap,
                 'coordinates': coordinates,
-                'direction': direction,
+                'is_forward': is_forward,
             }
         })
 
@@ -536,28 +548,21 @@ class TranscriptInitiation(PartitionedProcess):
             }
         })
 
-        # Create masks for ribosomal RNAs
-        is_5Srrna = np.isin(TU_index, self.idx_5SrRNA)
-        is_16Srrna = np.isin(TU_index, self.idx_16SrRNA)
-        is_23Srrna = np.isin(TU_index, self.idx_23SrRNA)
+        rna_init_event = TU_to_promoter.dot(n_initiations)
+        rRNA_initiations = rna_init_event[self.idx_rRNA]
 
         # Write outputs to listeners
         update['listeners']['ribosome_data'] = {
-            'rrn16S_produced': n_initiations[is_16Srrna].sum(),
-            'rrn23S_produced': n_initiations[is_23Srrna].sum(),
-            'rrn5S_produced': n_initiations[is_5Srrna].sum(),
-
-            'rrn16S_init_prob': n_initiations[is_16Srrna].sum() / float(
-                n_RNAPs_to_activate),
-            'rrn23S_init_prob': n_initiations[is_23Srrna].sum() / float(
-                n_RNAPs_to_activate),
-            'rrn5S_init_prob': n_initiations[is_5Srrna].sum() / float(
-                n_RNAPs_to_activate),
+            'rRNA_initiated_TU': rRNA_initiations,
+            'rRNA_init_prob_TU': rRNA_initiations / float(n_RNAPs_to_activate),
             'total_rna_init': n_RNAPs_to_activate}
 
         update['listeners']['rnap_data'] = {
             'did_initialize': n_RNAPs_to_activate,
-            'rna_init_event': TU_to_promoter.dot(n_initiations)}
+            'rna_init_event': rna_init_event}
+        
+        update['listeners']['rna_synth_prob']['total_rna_init'
+            ] = n_RNAPs_to_activate
 
         return update
 
@@ -596,10 +601,16 @@ class TranscriptInitiation(PartitionedProcess):
         allFractionTimeInactive = 1 - (
                 1. / (timestep * units.s) * allTranscriptionTimes).asNumber() / allTranscriptionTimestepCounts
         averageFractionTimeInactive = np.dot(allFractionTimeInactive, synthProb)
-        effectiveFracActiveRnap = fracActiveRnap * 1 / (1 - averageFractionTimeInactive)
+        effectiveFracActiveRnap = fracActiveRnap / (1 - averageFractionTimeInactive)
 
         # Return activation probability that will balance out the expected termination rate
-        return effectiveFracActiveRnap * expectedTerminationRate / (1 - effectiveFracActiveRnap)
+        activation_prob = effectiveFracActiveRnap * expectedTerminationRate / (
+            1 - effectiveFracActiveRnap)
+
+        if activation_prob > 1:
+            activation_prob = 1
+
+        return activation_prob
 
     def _rescale_initiation_probs(
             self, fixed_indexes, fixed_synth_probs, TU_index):
@@ -707,7 +718,7 @@ def test_transcript_initiation():
         ('is_full_transcript', '?'), ('is_mRNA', '?'), ('unique_index', '<i8'),
         ('transcript_length', '<i8')]
     active_rnap_dtypes = [('_entryState', 'i1'), ('_globalIndex', '<i8'),
-        ('coordinates', '<i8'), ('direction', '?'), ('domain_index', '<i4'),
+        ('coordinates', '<i8'), ('is_forward', '?'), ('domain_index', '<i4'),
         ('unique_index', '<i8')]
     promoter_dtypes = [('TU_index', '<i8'), ('_entryState', 'i1'),
         ('_globalIndex', '<i8'), ('bound_TF', '?', (4,)),

@@ -2,18 +2,20 @@
 SimulationData for replication process
 """
 
-from __future__ import absolute_import, division, print_function
-
 import numpy as np
 import collections
 
-from wholecell.sim.simulation import MAX_TIME_STEP
+from ecoli.library.sim_data import MAX_TIME_STEP
 from wholecell.utils import units
 from wholecell.utils.polymerize import polymerize
 from wholecell.utils.random import stochasticRound
 
 
 PROCESS_MAX_TIME_STEP = 2.
+
+
+class SiteNotFoundError(Exception):
+	pass
 
 
 class Replication(object):
@@ -25,14 +27,18 @@ class Replication(object):
 		self.max_time_step = min(MAX_TIME_STEP, PROCESS_MAX_TIME_STEP)
 
 		self._n_nt_types = len(sim_data.dntp_code_to_id_ordered)
-		self._c_period = sim_data.growth_rate_parameters.c_period.asNumber(units.min)
-		self._d_period = sim_data.growth_rate_parameters.d_period.asNumber(units.min)
 
 		self._build_sequence(raw_data, sim_data)
 		self._build_gene_data(raw_data, sim_data)
+		self._build_sites(raw_data, sim_data)
 		self._build_replication(raw_data, sim_data)
 		self._build_motifs(raw_data, sim_data)
 		self._build_elongation_rates(raw_data, sim_data)
+
+		self.c_period = sim_data.constants.c_period
+		self.d_period = sim_data.constants.d_period
+		self.c_period_in_mins = self.c_period.asNumber(units.min)
+		self.d_period_in_mins = self.d_period.asNumber(units.min)
 
 	def _build_sequence(self, raw_data, sim_data):
 		self.genome_sequence = raw_data.genome_sequence
@@ -48,24 +54,52 @@ class Replication(object):
 		Build gene-associated simulation data from raw data.
 		"""
 
-		def extract_data(raw, key):
-			data = [row[key] for row in raw]
+		def extract_data(raw, key, use_first_from_list=False):
+			if use_first_from_list:
+				data = [row[key][0] for row in raw]
+			else:
+				data = [row[key] for row in raw]
 			dtype = 'U{}'.format(max(len(d) for d in data if d is not None))
 			return data, dtype
 
 		names, name_dtype = extract_data(raw_data.genes, 'id')
 		symbols, symbol_dtype = extract_data(raw_data.genes, 'symbol')
-		rna_ids, rna_dtype = extract_data(raw_data.genes, 'rna_id')
+		cistron_ids, cistron_dtype = extract_data(
+			raw_data.genes, 'rna_ids', use_first_from_list=True)
 
 		self.gene_data = np.zeros(
 			len(raw_data.genes),
 			dtype=[('name', name_dtype),
 				('symbol', symbol_dtype),
-				('rna_id', rna_dtype)])
+				('cistron_id', cistron_dtype)])
 
 		self.gene_data['name'] = names
 		self.gene_data['symbol'] = symbols
-		self.gene_data['rna_id'] = rna_ids
+		self.gene_data['cistron_id'] = cistron_ids
+
+	def _build_sites(self, raw_data, sim_data):
+		"""
+		Build simulation data associated with DNA sites from raw_data.
+		"""
+		def get_site_center_coordinates(site_id):
+			"""
+			Calculate the center coordinates (rounded average of left and right
+			end coordinates) of a given DNA site.
+			"""
+			try:
+				left, right = sim_data.getter.get_genomic_coordinates(site_id)
+				center_coordinate = round((left + right)/2)
+			except (KeyError, TypeError):
+				raise SiteNotFoundError(
+					f"Coordinates of DNA site with ID {site_id} were not found in raw_data.")
+
+			return center_coordinate
+
+		# Get coordinates of oriC and terC
+		self.oric_coordinate = get_site_center_coordinates(
+			sim_data.molecule_ids.oriC_site)
+		self.terc_coordinate = get_site_center_coordinates(
+			sim_data.molecule_ids.terC_site)
 
 	def _build_replication(self, raw_data, sim_data):
 		"""
@@ -79,17 +113,14 @@ class Replication(object):
 			numerical_sequence[i] = ntMapping[letter] # Build genome sequence as small integers
 
 		# Create 4 possible polymerization sequences
-		oric_coordinate = sim_data.constants.oriC_center.asNumber()
-		terc_coordinate = sim_data.constants.terC_center.asNumber()
-
 		# Forward sequence includes oriC
 		self.forward_sequence = numerical_sequence[
-			np.hstack((np.arange(oric_coordinate, self.genome_length),
-			np.arange(0, terc_coordinate)))]
+			np.hstack((np.arange(self.oric_coordinate, self.genome_length),
+			np.arange(0, self.terc_coordinate)))]
 
 		# Reverse sequence includes terC
 		self.reverse_sequence = numerical_sequence[
-			np.arange(oric_coordinate - 1, terc_coordinate - 1, -1)]
+			np.arange(self.oric_coordinate - 1, self.terc_coordinate - 1, -1)]
 
 		self.forward_complement_sequence = self._get_complement_sequence(self.forward_sequence)
 		self.reverse_complement_sequence = self._get_complement_sequence(self.reverse_sequence)
@@ -105,7 +136,7 @@ class Replication(object):
 		# Determine size of the matrix used by polymerize function
 		maxLen = np.int64(
 			self.replichore_lengths.max()
-			+ self.max_time_step * sim_data.growth_rate_parameters.replisome_elongation_rate.asNumber(units.nt / units.s)
+			+ self.max_time_step * sim_data.constants.replisome_elongation_rate.asNumber(units.nt / units.s)
 		)
 
 		self.replication_sequences = np.empty((4, maxLen), np.int8)
@@ -133,10 +164,6 @@ class Replication(object):
 		Coordinates of all motifs are calculated based on the given sequences
 		of the genome and the motifs.
 		"""
-		# Get coordinates of oriC's and terC's
-		self.oric_coordinates = sim_data.constants.oriC_center.asNumber()
-		self.terc_coordinates = sim_data.constants.terC_center.asNumber()
-
 		# Initialize dictionary of motif coordinates
 		self.motif_coordinates = dict()
 
@@ -196,8 +223,8 @@ class Replication(object):
 		the origin of replication.
 		"""
 		relative_coordinates = (
-			(coordinates - self.terc_coordinates)
-			% self.genome_length + self.terc_coordinates - self.oric_coordinates)
+			(coordinates - self.terc_coordinate)
+			% self.genome_length + self.terc_coordinate - self.oric_coordinate)
 
 		relative_coordinates[relative_coordinates < 0] += 1
 
@@ -205,7 +232,7 @@ class Replication(object):
 
 	def _build_elongation_rates(self, raw_data, sim_data):
 		self.basal_elongation_rate = int(
-			round(sim_data.growth_rate_parameters.replisome_elongation_rate.asNumber(
+			round(sim_data.constants.replisome_elongation_rate.asNumber(
 			units.nt / units.s)))
 
 	def make_elongation_rates(self, random, replisomes, base, time_step):
@@ -240,5 +267,5 @@ class Replication(object):
 		relative_pos[coords < 0] = -relative_pos[coords < 0] / left_replichore_length
 
 		# Return the predicted average copy number
-		n_avg_copy = 2**(((1 - relative_pos) * self._c_period + self._d_period) / tau)
+		n_avg_copy = 2**(((1 - relative_pos) * self.c_period_in_mins + self.d_period_in_mins) / tau)
 		return n_avg_copy

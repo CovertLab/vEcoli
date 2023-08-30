@@ -3,7 +3,6 @@ Classes for the Nodes and Edges of a causality network.
 """
 
 from typing import Optional, Union
-import six
 
 
 # Filenames
@@ -136,7 +135,7 @@ class Node(object):
 		associated with the node.
 		"""
 		# Iterate through all dynamics variables associated with the node
-		for dynamics_name, dynamics_data in six.viewitems(self.dynamics):
+		for dynamics_name, dynamics_data in self.dynamics.items():
 			unit = self.dynamics_units.get(dynamics_name, "")
 
 			# Format dynamics string depending on data type
@@ -159,7 +158,7 @@ class Node(object):
 
 	def dynamics_dict(self):
 		all_dynamics = []
-		for name, data in six.viewitems(self.dynamics):
+		for name, data in self.dynamics.items():
 			unit = self.dynamics_units.get(name, "")
 			dynamics = {
 				'units': unit,

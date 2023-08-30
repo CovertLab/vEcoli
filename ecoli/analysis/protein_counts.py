@@ -12,8 +12,7 @@ from scipy.stats import pearsonr
 from wholecell.utils.fitting import normalize
 from wholecell.utils import units
 
-from ecoli.composites.ecoli_master import run_ecoli
-from ecoli.composites.ecoli_nonpartition import SIM_DATA_PATH
+from ecoli.composites.ecoli_master import run_ecoli, SIM_DATA_PATH
 from ecoli.analysis.tablereader import TableReader
 
 

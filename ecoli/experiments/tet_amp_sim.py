@@ -1,13 +1,17 @@
-import ast
 import os
-import json
 import argparse
+import numpy as np
+from scipy import constants
 
 from vivarium.library.units import units
 
 from ecoli.composites.ecoli_engine_process import run_simulation
 from ecoli.experiments.ecoli_master_sim import CONFIG_DIR_PATH, SimConfig
 from ecoli.library.parameters import param_store
+from ecoli.library.logging_tools import write_json
+from ecoli.states.wcecoli_state import get_state_from_file
+
+AVOGADRO = constants.N_A / units.mol
 
 def run_sim(tet_conc=0, amp_conc=0, baseline=False, seed=0,
     cloud=False, initial_colony_file=None, initial_state_file=None,
@@ -83,45 +87,98 @@ def run_sim(tet_conc=0, amp_conc=0, baseline=False, seed=0,
 
 
 def update_agent(data, rnai_data=None):
+    submasses = []
+    metabolite_idx = -1
+    for key in data["bulk"].dtype.fields.keys():
+        if "submass" in key:
+            submasses.append(key)
+            if "metabolite" in key:
+                metabolite_idx = len(submasses) - 1
+    amp_mass = np.zeros(len(submasses))
+    amp_mass[metabolite_idx] = (param_store.get(("ampicillin", "molar_mass")).to(
+        units.fg / units.mol) / AVOGADRO).magnitude
+    tet_mass = np.zeros(len(submasses))
+    tet_mass[metabolite_idx] = (param_store.get(("tetracycline", "mass")).to(
+        units.fg / units.mol) / AVOGADRO).magnitude
+    tet_ribo_30s_mass = data["bulk"][submasses][
+        data["bulk"]["id"] == "CPLX0-3953[c]"].copy()
+    tet_ribo_30s_mass['metabolite_submass'] += tet_mass[metabolite_idx]
+    marR_tet_mass = data["bulk"][submasses][
+        data["bulk"]["id"] == "CPLX0-7710[c]"].copy()
+    marR_tet_mass['metabolite_submass'] += tet_mass[metabolite_idx]
     new_bulk = [
-        ("marR-tet[c]", 0),
-        ("tetracycline[p]", 0),
-        ("tetracycline[c]", 0),
-        ("CPLX0-3953-tetracycline[c]", 0),
-        ("ampicillin[p]", 0),
-        ("ampicillin_hydrolyzed[p]", 0)
+        ("marR-tet[c]", 0) + tuple(marR_tet_mass[0]),
+        ("tetracycline[p]", 0) + tuple(tet_mass),
+        ("tetracycline[c]", 0) + tuple(tet_mass),
+        ("CPLX0-3953-tetracycline[c]", 0) + tuple(tet_ribo_30s_mass[0]),
+        ("ampicillin[p]", 0) + tuple(amp_mass),
+        ("ampicillin_hydrolyzed[p]", 0) + tuple(tet_mass)
     ]
+
     # Add RNA duplexes
     if rnai_data:
+        # Get RNA mass data
+        duplex_masses = []
+        for srna_id, target_id in zip(rnai_data["srna_ids"],
+                                      rnai_data["target_ids"]):
+            srna_mass = np.array(list(data['bulk'][submasses][
+                data['bulk']['id'] == srna_id][0]))
+            target_mass = np.array(list(data['bulk'][submasses][
+                data['bulk']['id'] == target_id][0]))
+            duplex_masses.append(srna_mass + target_mass)
         new_bulk += [
-            (str(duplex_id), 0)
-            for duplex_id in rnai_data["duplex_ids"]
+            (str(duplex_id), 0) + tuple(duplex_mass)
+            for duplex_id, duplex_mass in zip(
+                rnai_data["duplex_ids"], duplex_masses)
         ]
-    data["bulk"].extend(new_bulk)
+    new_bulk = np.array(new_bulk, dtype=data["bulk"].dtype)
+    data["bulk"] = np.append(data["bulk"], new_bulk)
     # Add promoter binding data for marA and marR
-    for promoter_data in data["unique"]["promoter"]:
+    new_bound_TF = []
+    for bound_TF in data["unique"]["promoter"]["bound_TF"]:
         # Bound TF boolean mask should be 4th attr
-        promoter_data[3] += [False, False]
-    # Bound TF boolean mask now has 26 TFs
-    data["unique_dtypes"]["promoter"] = ast.literal_eval(
-        data["unique_dtypes"]["promoter"])
-    data["unique_dtypes"]["promoter"][3] = ('bound_TF', '?', (26,))
-    data["unique_dtypes"]["promoter"] = str(data["unique_dtypes"]["promoter"])
+        new_bound_TF.append(np.append(bound_TF, [False, False]))
+    new_dtype = [dt for dt in data["unique"]["promoter"].dtype.descr
+                 if 'bound_TF' not in dt]
+    new_dtype.append(('bound_TF', '?', (len(new_bound_TF[0]),)))
+    new_promoters = np.empty((len(data["unique"]["promoter"]),), new_dtype)
+    for field in data["unique"]["promoter"].dtype.names:
+        if field != "bound_TF":
+            new_promoters[field] = data["unique"]["promoter"][field]
+        else:
+            new_promoters[field] = new_bound_TF
+    data["unique"]["promoter"] = new_promoters
     return data
 
 
 def make_initial_state(initial_file, rnai_data=None):
-    with open(f"data/{initial_file}.json") as f:
-        initial_state = json.load(f)
+    initial_state = get_state_from_file(
+        f'data/migration_no_operons/{initial_file}.json')
     # Modify each cell in colony individually
     if "agents" in initial_state:
         for agent_id, agent_data in initial_state["agents"].items():
             initial_state["agents"][agent_id] = update_agent(
                 agent_data, rnai_data)
+            # Save bulk and unique dtypes
+            agent_data['bulk_dtypes'] = str(agent_data['bulk'].dtype)
+            agent_data['unique_dtypes'] = {}
+            for name, mols in agent_data['unique'].items():
+                agent_data['unique_dtypes'][name] = str(mols.dtype)
+            agent_data['boundary']['external'] = {
+                key: value.magnitude
+                for key, value in agent_data['boundary']['external'].items()
+            }
     else:
         initial_state = update_agent(initial_state, rnai_data)
-    with open(f"data/antibiotics_{initial_file}.json", "w") as f:
-        json.dump(initial_state, f)
+        initial_state['bulk_dtypes'] = str(initial_state['bulk'].dtype)
+        initial_state['unique_dtypes'] = {}
+        for name, mols in initial_state['unique'].items():
+            initial_state['unique_dtypes'][name] = str(mols.dtype)
+        initial_state['boundary']['external'] = {
+            key: value.magnitude
+            for key, value in initial_state['boundary']['external'].items()
+        }
+    write_json(f'data/antibiotics_{initial_file}.json', initial_state)
 
 
 def generate_data(seed, cloud, tet_conc, amp_conc,

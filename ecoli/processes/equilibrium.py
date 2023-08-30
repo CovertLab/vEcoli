@@ -16,14 +16,14 @@ from ecoli.processes.registries import topology_registry
 from ecoli.processes.partition import PartitionedProcess
 
 from wholecell.utils import units
-from six.moves import range
 
 
 # Register default topology for this process, associating it with process name
 NAME = 'ecoli-equilibrium'
 TOPOLOGY = {
     "listeners": ("listeners",),
-    "bulk": ("bulk",)
+    "bulk": ("bulk",),
+    "timestep": ("timestep",)
 }
 topology_registry.register(NAME, TOPOLOGY)
 
@@ -44,6 +44,8 @@ class Equilibrium(PartitionedProcess):
         'fluxesAndMoleculesToSS': lambda counts, volume, avogadro, random, jit: ([], []),
         'moleculeNames': [],
         'seed': 0,
+        'complex_ids': [],
+        'reaction_ids': []
     }
 
     # Constructor
@@ -77,20 +79,26 @@ class Equilibrium(PartitionedProcess):
         self.seed = self.parameters['seed']
         self.random_state = np.random.RandomState(seed = self.seed)
 
+        self.complex_ids = self.parameters['complex_ids']
+        self.reaction_ids = self.parameters['reaction_ids']
+
     def ports_schema(self):
         return {
             'bulk': numpy_schema('bulk'),
             'listeners': {
                 'mass': listener_schema({
                     'cell_mass': 0}),
-                'equilibrium_listener': listener_schema({
-                    'reaction_rates': []})}
+                'equilibrium_listener': {**listener_schema({
+                    'reaction_rates': ([], self.reaction_ids)})}},
+            'timestep': {'_default': self.parameters['time_step']}
         }
 
     def calculate_request(self, timestep, states):
+        # At t=0, convert all strings to indices
         if self.molecule_idx is None:
             self.molecule_idx = bulk_name_to_idx(
                 self.moleculeNames, states['bulk']['id'])
+
         # Get molecule counts
         moleculeCounts = counts(states['bulk'], self.molecule_idx)
 
@@ -148,7 +156,8 @@ class Equilibrium(PartitionedProcess):
             'bulk': [(self.molecule_idx, deltaMolecules)],
             'listeners': {
                 'equilibrium_listener': {
-                    'reaction_rates': deltaMolecules[self.product_indices] / timestep}}}
+                    'reaction_rates': deltaMolecules[
+                        self.product_indices] / states['timestep']}}}
 
         return update
 
@@ -160,9 +169,9 @@ def test_equilibrium_listener():
     sim.raw_output = False
     sim.build_ecoli()
     sim.run()
-    data = sim.query()
-    assert(type(data['listeners']['equilibrium_listener']['reaction_rates'][0]) == list)
-    assert(type(data['listeners']['equilibrium_listener']['reaction_rates'][1]) == list)
+    listeners = sim.query()['agents']['0']['listeners']
+    assert(type(listeners['equilibrium_listener']['reaction_rates'][0]) == list)
+    assert(type(listeners['equilibrium_listener']['reaction_rates'][1]) == list)
 
 
 if __name__ == '__main__':

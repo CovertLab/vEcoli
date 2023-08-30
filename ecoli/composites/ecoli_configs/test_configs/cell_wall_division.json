@@ -3,11 +3,8 @@
     "experiment_id": "cell_wall_division",
     "emitter": "timeseries",
     "divide": true,
+    "initial_state_file": "vivecoli_t2000",
+    "division_variable": ["listeners", "mass", "dry_mass"],
 
-    "initial_state_overrides": ["overrides/test_cell_wall_division"],
-    
-    "division_threshold": 349.5,
-    "process_configs": {
-        "division": {"chromosome_check": false}
-    }
+    "initial_state_overrides": ["overrides/test_cell_wall_division"]
 }

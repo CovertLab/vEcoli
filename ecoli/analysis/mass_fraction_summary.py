@@ -4,9 +4,8 @@ import pickle
 
 import numpy as np
 from matplotlib import pyplot as plt
-from six.moves import zip
 
-from ecoli.composites.ecoli_nonpartition import SIM_DATA_PATH
+from ecoli.composites.ecoli_master import SIM_DATA_PATH
 from ecoli.analysis.tablereader import TableReader
 from ecoli.analysis.db import access
 

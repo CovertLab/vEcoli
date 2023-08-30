@@ -17,8 +17,8 @@ from typing import Tuple
 
 import numpy as np
 from scipy.sparse import csr_matrix
-from six.moves import zip
 from vivarium.core.process import Step
+from vivarium.library.units import units as vivunits
 
 from ecoli.processes.registries import topology_registry
 from ecoli.library.schema import (
@@ -26,6 +26,7 @@ from ecoli.library.schema import (
 from wholecell.utils import units
 from wholecell.utils.random import stochasticRound
 from wholecell.utils.modular_fba import FluxBalanceAnalysis
+from reconstruction.ecoli.dataclasses.process.metabolism import REVERSE_TAG
 
 
 # Register default topology for this process, associating it with process name
@@ -39,9 +40,11 @@ TOPOLOGY = {
         "_path": ("environment",),
         "exchange": ("exchange",),
     },
+    "boundary": ("boundary",),
     "polypeptide_elongation": ("process_state", "polypeptide_elongation"),
-    "evolvers_ran": ('evolvers_ran',),
-    "first_update": ("deriver_skips", "metabolism",)
+    "global_time": ("global_time",),
+    "timestep": ("timestep",),
+    "first_update": ("first_update", "metabolism"),
     }
 topology_registry.register(NAME, TOPOLOGY)
 
@@ -66,14 +69,17 @@ class Metabolism(Step):
         'nutrientToDoublingTime': {},
         'use_trna_charging': False,
         'include_ppgpp': False,
+        'mechanistic_aa_transport': False,
         'aa_names': [],
+        'aa_targets_not_updated': set(),
+        'import_constraint_threshold': 0,
+        'exchange_molecules': [],
+        'exchange_data_from_concentrations': lambda _: (set(), set()),
         'current_timeline': None,
         'media_id': 'minimal',
-        'condition': 'basal',
-        'nutrients': [],
+        'imports': {},
         'metabolism': {},
-        'non_growth_associated_maintenance': 8.39 * units.mmol / (
-            units.g * units.h),
+        'ngam': 8.39 * units.mmol / (units.g * units.h),
         'avogadro': 6.02214076e+23 / units.mol,
         'cell_density': 1100 * units.g / units.L,
         'dark_atp': 33.565052868380675 * units.mmol / units.g,
@@ -86,9 +92,14 @@ class Metabolism(Step):
         'doubling_time': 44.0 * units.min,
         'amino_acid_ids': {},
         'linked_metabolites': None,
+        'aa_exchange_names': [],
+        'removed_aa_uptake': [],
         'seed': 0,
         # TODO: For testing, remove later (perhaps after modifying sim data)
-        'reduce_murein_objective': False
+        'reduce_murein_objective': False,
+        'base_reaction_ids': [],
+        'fba_reaction_ids_to_base_reaction_ids': [],
+        'time_step': 1
     }
 
     def __init__(self, parameters=None):
@@ -96,13 +107,19 @@ class Metabolism(Step):
 
         # Use information from the environment and sim
         self.get_import_constraints = self.parameters['get_import_constraints']
+        self.exchange_data_from_concentrations = self.parameters[
+            'exchange_data_from_concentrations']
         self.nutrientToDoublingTime = self.parameters['nutrientToDoublingTime']
         self.use_trna_charging = self.parameters['use_trna_charging']
         self.include_ppgpp = self.parameters['include_ppgpp']
+        self.mechanistic_aa_transport = self.parameters[
+            'mechanistic_aa_transport']
         self.current_timeline = self.parameters['current_timeline']
         self.media_id = self.parameters['media_id']
-        self.ngam = self.parameters['non_growth_associated_maintenance']
-        self.gam = parameters['dark_atp'] * parameters['cell_dry_mass_fraction']
+        self.exchange_molecules = self.parameters[
+            'exchange_molecules']
+        self.environment_molecules = sorted(
+            [mol[:-3] for mol in self.exchange_molecules])
 
         # Create model to use to solve metabolism updates
         self.model = FluxBalanceAnalysisModel(
@@ -116,14 +133,16 @@ class Metabolism(Step):
 
         # Track updated AA concentration targets with tRNA charging
         self.aa_targets = {}
-        self.aa_targets_not_updated = {'L-SELENOCYSTEINE[c]'}
+        self.aa_targets_not_updated = self.parameters['aa_targets_not_updated']
         self.aa_names = self.parameters['aa_names']
+        self.import_constraint_threshold = self.parameters[
+            'import_constraint_threshold']
 
         # Molecules with concentration updates for listener
         self.linked_metabolites = self.parameters['linked_metabolites']
         doubling_time = self.nutrientToDoublingTime.get(
             self.media_id,
-            self.nutrientToDoublingTime[self.media_id],)
+            self.nutrientToDoublingTime['minimal'])
         update_molecules = list(self.model.getBiomassAsConcentrations(
             doubling_time).keys())
         if self.use_trna_charging:
@@ -134,6 +153,10 @@ class Metabolism(Step):
             update_molecules += [self.model.ppgpp_id]
         self.conc_update_molecules = sorted(update_molecules)
 
+        self.aa_exchange_names = self.parameters['aa_exchange_names']
+        self.removed_aa_uptake = self.parameters['removed_aa_uptake']
+        self.aa_environment_names = [aa[:-3] for aa in self.aa_exchange_names]
+
         self.seed = self.parameters['seed']
         self.random_state = np.random.RandomState(seed=self.seed)
 
@@ -143,6 +166,44 @@ class Metabolism(Step):
 
         # Helper indices for Numpy indexing
         self.metabolite_idx = None
+
+        # Get conversion matrix to compile individual fluxes in the FBA
+        # solution to the fluxes of base reactions
+        self.fba_reaction_ids = self.model.fba.getReactionIDs()
+        self.base_reaction_ids = self.parameters['base_reaction_ids']
+        fba_reaction_ids_to_base_reaction_ids = self.parameters[
+            'fba_reaction_ids_to_base_reaction_ids']
+        self.externalMoleculeIDs = self.model.fba.getExternalMoleculeIDs()
+        self.outputMoleculeIDs = self.model.fba.getOutputMoleculeIDs()
+        self.kineticTargetFluxNames = self.model.fba.getKineticTargetFluxNames()
+        self.homeostaticTargetMolecules = self.model.fba.getHomeostaticTargetMolecules()
+        fba_reaction_id_to_index = {
+            rxn_id: i for (i, rxn_id) in enumerate(self.fba_reaction_ids)
+            }
+        base_reaction_id_to_index = {
+            rxn_id: i for (i, rxn_id) in enumerate(self.base_reaction_ids)
+            }
+        base_rxn_indexes = []
+        fba_rxn_indexes = []
+        v = []
+
+        for fba_rxn_id in self.fba_reaction_ids:
+            base_rxn_id = fba_reaction_ids_to_base_reaction_ids[fba_rxn_id]
+            base_rxn_indexes.append(base_reaction_id_to_index[base_rxn_id])
+            fba_rxn_indexes.append(fba_reaction_id_to_index[fba_rxn_id])
+            if fba_rxn_id.endswith(REVERSE_TAG):
+                v.append(-1)
+            else:
+                v.append(1)
+
+        base_rxn_indexes = np.array(base_rxn_indexes)
+        fba_rxn_indexes = np.array(fba_rxn_indexes)
+        v = np.array(v)
+        shape = (len(self.base_reaction_ids), len(self.fba_reaction_ids))
+
+        self.reaction_mapping_matrix = csr_matrix(
+            (v, (base_rxn_indexes, fba_rxn_indexes)),
+            shape=shape)
 
 
     def __getstate__(self):
@@ -162,34 +223,50 @@ class Metabolism(Step):
                     '_updater': 'set'},
                 'exchange': {
                     str(element): {'_default': 0}
-                    for element in self.model.fba.getExternalMoleculeIDs()},
-                'exchange_data': {
-                    'unconstrained': {'_default': []},
-                    'constrained': {'_default': []}}}, # this is only GLC[p].
+                    for element in self.environment_molecules},
+            },
+
+            'boundary': {
+                'external': {
+                    '*': {'_default': 0 * vivunits.mM}
+                }
+            },
 
             'listeners': {
                 'mass': listener_schema({
                     'cell_mass': 0.0,
-                    'dry_mass': 0.0}),
+                    'dry_mass': 0.0,
+                    'rna_mass': 0.0,
+                    'protein_mass': 0.0}),
 
                 'fba_results': listener_schema({
                     'media_id': '',
-                    'conc_updates': [],
-                    'catalyst_counts': [],
+                    'conc_updates': ([], self.conc_update_molecules),
+                    'catalyst_counts': ([], self.model.catalyst_ids),
                     'translation_gtp': 0,
                     'coefficient': 0.0,
-                    'unconstrained_molecules': [],
-                    'constrained_molecules': [],
-                    # 'uptake_constraints': [],
-                    'delta_metabolites': [],
-                    'reaction_fluxes': [],
-                    'external_exchange_fluxes': [],
+                    'unconstrained_molecules': (
+                        [], self.exchange_molecules),
+                    'constrained_molecules': (
+                        [], self.exchange_molecules),
+                    'uptake_constraints': (
+                        [], self.exchange_molecules),
+                    'delta_metabolites': (
+                        [], self.model.metaboliteNamesFromNutrients),
+                    'reaction_fluxes': ([], self.fba_reaction_ids),
+                    'external_exchange_fluxes': (
+                        [], self.externalMoleculeIDs),
                     'objective_value': [],
-                    'shadow_prices': [],
-                    'reduced_costs': [],
-                    'target_concentrations': [],
-                    'homeostatic_objective_values': [],
-                    'kinetic_objective_values': [],
+                    'shadow_prices': ([], self.outputMoleculeIDs),
+                    'reduced_costs': ([], self.fba_reaction_ids),
+                    'target_concentrations': (
+                        [], self.homeostaticTargetMolecules),
+                    'homeostatic_objective_values': (
+                        [], self.homeostaticTargetMolecules),
+                    'kinetic_objective_values': (
+                        [], self.kineticTargetFluxNames),
+                    'base_reaction_fluxes': (
+                        [], self.base_reaction_ids),
                     # 'estimated_fluxes': {},
                     # 'estimated_homeostatic_dmdt': {},
                     # 'target_homeostatic_dmdt': {},
@@ -200,46 +277,60 @@ class Metabolism(Step):
                 }),
 
                 'enzyme_kinetics': listener_schema({
-                    'metabolite_counts_init': 0,
-                    'metabolite_counts_final': 0,
-                    'enzyme_counts_init': 0,
+                    'metabolite_counts_init': (
+                        0, self.model.metaboliteNamesFromNutrients),
+                    'metabolite_counts_final': (
+                        0, self.model.metaboliteNamesFromNutrients),
+                    'enzyme_counts_init': (
+                        0, self.model.kinetic_constraint_enzymes),
                     'counts_to_molar': 1.0,
-                    'actual_fluxes': [],
-                    'target_fluxes': [],
-                    'target_fluxes_upper': [],
-                    'target_fluxes_lower': []})
+                    'actual_fluxes': (
+                        [], self.model.kinetics_constrained_reactions),
+                    'target_fluxes': (
+                        [], self.model.kinetics_constrained_reactions),
+                    'target_fluxes_upper': (
+                        [], self.model.kinetics_constrained_reactions),
+                    'target_fluxes_lower': (
+                        [], self.model.kinetics_constrained_reactions),
+                    'target_aa_conc': ([], self.aa_names)})
             },
 
             'polypeptide_elongation': {
                 'aa_count_diff': {
                     '_default': {},
                     '_emit': True,
+                    '_updater': 'set',
                     '_divider': 'empty_dict'},
                 'gtp_to_hydrolyze': {
                     '_default': 0,
                     '_emit': True,
+                    '_updater': 'set',
                     '_divider': 'zero',
                 },
+                'aa_exchange_rates': {
+                    '_default': 0,
+                    '_emit': True,
+                    '_updater': 'set',
+                    '_divider': 'zero'
+                },
             },
-            'evolvers_ran': {'_default': True},
+            'global_time': {'_default': 0},
+            'timestep': {'_default': self.parameters['time_step']},
+
             'first_update': {
                 '_default': True,
                 '_updater': 'set',
                 '_divider': {'divider': 'set_value',
-                    'config': {'value': True}},
-            }
+                    'config': {'value': True}}},
         }
 
         return ports
 
     def update_condition(self, timestep, states):
-        return states['evolvers_ran']
+        return (states['global_time'] % states['timestep']) == 0
 
     def next_update(self, timestep, states):
-        # Skip t=0
-        if states['first_update']:
-            return {'first_update': False}
-        
+        # At t=0, convert all strings to indices
         if self.metabolite_idx is None:
             self.metabolite_idx = bulk_name_to_idx(
                 self.model.metaboliteNamesFromNutrients, states['bulk']['id'])
@@ -251,7 +342,10 @@ class Metabolism(Step):
                 self.model.kinetic_constraint_substrates, states['bulk']['id'])
             self.aa_idx = bulk_name_to_idx(self.aa_names, states['bulk']['id'])
 
-        timestep = self.parameters['time_step']
+        if states['first_update']:
+            return {'first_update': False}
+
+        timestep = states['timestep']
 
         # Load current state of the sim
         # Get internal state variables
@@ -269,8 +363,12 @@ class Metabolism(Step):
 
         # Get environment updates
         current_media_id = states['environment']['media_id']
-        unconstrained = states['environment']['exchange_data']['unconstrained']
-        constrained = states['environment']['exchange_data']['constrained']
+        # Get raw concentrations in mM
+        env_concs = {mol: states['boundary']['external'][mol].to('mM').magnitude
+            for mol in self.environment_molecules}
+        exchange_data = self.exchange_data_from_concentrations(env_concs)
+        unconstrained = exchange_data['importUnconstrainedExchangeMolecules']
+        constrained = exchange_data['importConstrainedExchangeMolecules']
 
         # Calculate state values
         cellVolume = cell_mass / self.cellDensity
@@ -284,22 +382,50 @@ class Metabolism(Step):
 
         ## Determine updates to concentrations depending on the current state
         doubling_time = self.nutrientToDoublingTime.get(
-            current_media_id, self.nutrientToDoublingTime[self.media_id])
-        conc_updates = self.model.getBiomassAsConcentrations(doubling_time)
+            current_media_id, self.nutrientToDoublingTime[self.media_id])        
+        if self.include_ppgpp:
+            # Sim does not include ppGpp regulation so do not update biomass
+            # by RNA/protein ratio and include ppGpp concentration as a
+            # homeostatic target
+            conc_updates = self.model.getBiomassAsConcentrations(doubling_time)
+            conc_updates[self.model.ppgpp_id] = self.model.getppGppConc(
+                doubling_time).asUnit(CONC_UNITS)
+        else:
+            # Sim includes ppGpp regulation so update biomass based on
+            # RNA/protein ratio which is controlled by ppGpp and other growth
+            # regulation
+            rp_ratio = states['listeners']['mass']['rna_mass'
+                ] / states['listeners']['mass']['protein_mass']
+            conc_updates = self.model.getBiomassAsConcentrations(
+                doubling_time, rp_ratio=rp_ratio)
+            
         if self.use_trna_charging:
             conc_updates.update(self.update_amino_acid_targets(
                 counts_to_molar,
                 states['polypeptide_elongation']['aa_count_diff'],
-                states['amino_acids_total'],
+                dict(zip(self.aa_names,
+                         counts(states['bulk_total'], self.aa_idx)))
             ))
-        if self.include_ppgpp:
-            conc_updates[self.model.ppgpp_id] = self.model.getppGppConc(
-                doubling_time).asUnit(CONC_UNITS)
+
         # Converted from units to make reproduction from listener data
         # accurate to model results (otherwise can have floating point diffs)
         conc_updates = {
             met: conc.asNumber(CONC_UNITS)
             for met, conc in conc_updates.items()}
+        
+        aa_uptake_package = None
+        if self.mechanistic_aa_transport:
+            aa_in_media = np.array([
+                states['boundary']['external'][aa_name
+                    ].to('mM').magnitude > self.import_constraint_threshold
+                for aa_name in self.aa_environment_names
+            ])
+            aa_in_media[self.removed_aa_uptake] = False
+            exchange_rates = (states['polypeptide_elongation'][
+                'aa_exchange_rates'] * timestep).asNumber(
+                    CONC_UNITS / TIME_UNITS)
+            aa_uptake_package = (exchange_rates[aa_in_media],
+                                 self.aa_exchange_names[aa_in_media], True)
 
         if self.parameters['reduce_murein_objective']:
             conc_updates['CPD-12261[p]'] /= 2.27
@@ -308,7 +434,7 @@ class Metabolism(Step):
         # Set molecule availability (internal and external)
         self.model.set_molecule_levels(metabolite_counts_init, counts_to_molar,
             coefficient, current_media_id, unconstrained, constrained,
-            conc_updates)
+            conc_updates, aa_uptake_package)
 
         # Set reaction limits for maintenance and catalysts present
         self.model.set_reaction_bounds(catalyst_counts, counts_to_molar,
@@ -331,8 +457,7 @@ class Metabolism(Step):
             self.random_state,
             metabolite_counts_init + delta_metabolites.asNumber()
             ), 0).astype(np.int64)
-        delta_metabolites_final = metabolite_counts_final - \
-            metabolite_counts_init
+        delta_metabolites_final = metabolite_counts_final - metabolite_counts_init
 
         # Environmental changes
         exchange_fluxes = CONC_UNITS * fba.getExternalExchangeFluxes()
@@ -380,34 +505,33 @@ class Metabolism(Step):
         # flux_dict = {str(names[i]): int((fluxes[i] / denom).asNumber())
         #     for i in range(len(names))}
 
+        reaction_fluxes = fba.getReactionFluxes() / timestep
         update = {
             'bulk': [(self.metabolite_idx, delta_metabolites_final)],
 
             'environment': {
                 'exchange': {
-                    str(molecule): delta_nutrients[index]
+                    str(molecule[:-3]): delta_nutrients[index]
                     for index, molecule in enumerate(
-                        fba.getExternalMoleculeIDs())}},
+                        self.externalMoleculeIDs)}},
 
             'listeners': {
                 'fba_results': {
                     'media_id': current_media_id,
-                    'conc_updates': [conc_updates[m]
+                    'conc_updates': [conc_updates.get(m, 0)
                         for m in self.conc_update_molecules],
                     'catalyst_counts': catalyst_counts,
                     'translation_gtp': translation_gtp,
                     'coefficient': coefficient.asNumber(CONVERSION_UNITS),
                     'unconstrained_molecules': unconstrained,
                     'constrained_molecules': constrained,
-                    # 'uptake_constraints': uptake_constraints,
+                    'uptake_constraints': uptake_constraints,
                     'delta_metabolites': delta_metabolites_final,
-                    # 104 KB, quite large, comment out to reduce emit size
-                    'reaction_fluxes': fba.getReactionFluxes() / timestep,
+                    'reaction_fluxes': reaction_fluxes,
                     'external_exchange_fluxes': converted_exchange_fluxes,
                     'objective_value': fba.getObjectiveValue(),
                     'shadow_prices': fba.getShadowPrices(
                         self.model.metaboliteNamesFromNutrients),
-                    # 104 KB, quite large, comment out to reduce emit size
                     'reduced_costs': fba.getReducedCosts(fba.getReactionIDs()),
                     'target_concentrations': [
                         self.model.homeostatic_objective[mol]
@@ -416,6 +540,8 @@ class Metabolism(Step):
                         fba.getHomeostaticObjectiveValues(),
                     'kinetic_objective_values': \
                         fba.getKineticObjectiveValues(),
+                    'base_reaction_fluxes': self.reaction_mapping_matrix.dot(
+                        reaction_fluxes),
                     
                     # Quite large, comment out to reduce emit size
                     # 'estimated_fluxes': flux_dict ,
@@ -435,15 +561,16 @@ class Metabolism(Step):
 
                 'enzyme_kinetics': {
                     'metabolite_counts_init': metabolite_counts_init,
-                    'metabolite_counts_final': metabolite_counts_init + \
-                        delta_metabolites_final,
+                    'metabolite_counts_final': metabolite_counts_final,
                     'enzyme_counts_init': kinetic_enzyme_counts,
                     'counts_to_molar': counts_to_molar.asNumber(CONC_UNITS),
                     'actual_fluxes': fba.getReactionFluxes(
                         self.model.kinetics_constrained_reactions) / timestep,
                     'target_fluxes': targets / timestep,
                     'target_fluxes_upper': upper_targets / timestep,
-                    'target_fluxes_lower': lower_targets / timestep}}}
+                    'target_fluxes_lower': lower_targets / timestep,
+                    'target_aa_conc': [self.aa_targets.get(id_, 0)
+                                       for id_ in self.aa_names]}}}
 
         return update
 
@@ -470,6 +597,11 @@ class Metabolism(Step):
                 if aa in self.aa_targets_not_updated:
                     continue
                 self.aa_targets[aa] += diff
+                # TODO (Santiago): Improve targets update
+                if self.aa_targets[aa] < 0:
+                    print('Warning: updated amino acid target for '
+                          f'{aa} was negative - adjusted to be positive.')
+                    self.aa_targets[aa] = 1
 
         # First time step of a simulation so set target to current counts to
         # prevent concentration jumps between generations
@@ -500,16 +632,10 @@ class FluxBalanceAnalysisModel(object):
         Args:
             sim_data: simulation data
             timeline: timeline for nutrient changes during simulation
-                (time of change, media ID), if None, nutrients for the saved
-                condition are set at time 0 (eg. [(0.0, 'minimal')])
+                (time of change, media ID), by default [(0.0, 'minimal')]
             include_ppgpp: if True, ppGpp is included as a concentration target
         """
-
-        if timeline is None:
-            nutrients = parameters['nutrients']
-            timeline = [(0., nutrients)]
-        else:
-            nutrients = timeline[0][1]
+        nutrients = timeline[0][1]
 
         # Local sim_data references
         metabolism = parameters['metabolism']
@@ -517,13 +643,13 @@ class FluxBalanceAnalysisModel(object):
         self.maintenance_reaction = metabolism.maintenance_reaction
 
         # Load constants
-        self.ngam = parameters['non_growth_associated_maintenance']
+        self.ngam = parameters['ngam']
         gam = parameters['dark_atp'] * parameters['cell_dry_mass_fraction']
 
         self.exchange_constraints = metabolism.exchange_constraints
 
         self._biomass_concentrations = {}  # type: dict
-        self._getBiomassAsConcentrations = parameters[
+        self.getBiomassAsConcentrations = parameters[
             'get_biomass_as_concentrations']
 
         # Include ppGpp concentration target in objective if not handled
@@ -533,25 +659,25 @@ class FluxBalanceAnalysisModel(object):
 
         # go through all media in the timeline and add to metaboliteNames
         metaboliteNamesFromNutrients = set()
-        exchange_molecules = set()
         conc_from_nutrients = (metabolism.concentration_updates.
             concentrations_based_on_nutrients)
         if include_ppgpp:
             metaboliteNamesFromNutrients.add(self.ppgpp_id)
         for time, media_id in timeline:
-            metaboliteNamesFromNutrients.update(conc_from_nutrients(media_id))
             exchanges = parameters['exchange_data_from_media'](media_id)
-            exchange_molecules.update(exchanges['externalExchangeMolecules'])
+            metaboliteNamesFromNutrients.update(conc_from_nutrients(
+                imports=exchanges['importExchangeMolecules']))
         self.metaboliteNamesFromNutrients = list(
             sorted(metaboliteNamesFromNutrients))
-        exchange_molecules = list(sorted(exchange_molecules))
+        exchange_molecules = sorted(parameters['exchange_molecules'])
         molecule_masses = dict(zip(exchange_molecules, 
             parameters['get_masses'](exchange_molecules).asNumber(
                 MASS_UNITS / COUNTS_UNITS)))
 
         # Setup homeostatic objective concentration targets
         # Determine concentrations based on starting environment
-        conc_dict = conc_from_nutrients(nutrients)
+        conc_dict = conc_from_nutrients(media_id=nutrients,
+                                        imports=parameters['imports'])
         doubling_time = parameters['doubling_time']
         conc_dict.update(self.getBiomassAsConcentrations(doubling_time))
         if include_ppgpp:
@@ -644,27 +770,6 @@ class FluxBalanceAnalysisModel(object):
         self.aa_names_no_location = [x[:-3]
                                      for x in parameters['amino_acid_ids']]
 
-    def getBiomassAsConcentrations(self, doubling_time):
-        """
-        Caches the result of the sim_data function to improve performance since
-        function requires computation but won't change for a given doubling_time.
-
-        Args:
-            doubling_time (float with time units): doubling time of the cell to
-                get the metabolite concentrations for
-
-        Returns:
-            dict {str : float with concentration units}: dictionary with metabolite
-                IDs as keys and concentrations as values
-        """
-
-        minutes = doubling_time.asNumber(units.min)  # hashable
-        if minutes not in self._biomass_concentrations:
-            self._biomass_concentrations[minutes] = \
-                self._getBiomassAsConcentrations(doubling_time)
-
-        return self._biomass_concentrations[minutes]
-
     def update_external_molecule_levels(self, objective,
         metabolite_concentrations, external_molecule_levels):
         """
@@ -710,7 +815,8 @@ class FluxBalanceAnalysisModel(object):
         return external_molecule_levels
 
     def set_molecule_levels(self, metabolite_counts, counts_to_molar,
-        coefficient, current_media_id, unconstrained, constrained, conc_updates):
+        coefficient, current_media_id, unconstrained, constrained, conc_updates,
+        aa_uptake_package=None):
         """
         Set internal and external molecule levels available to the FBA solver.
 
@@ -726,8 +832,10 @@ class FluxBalanceAnalysisModel(object):
             constrained (Dict[str, units.Unum]): molecules (keys) and their
                 limited max uptake rates (values in mol / mass / time units)
             conc_updates (Dict[str, Unum]): updates to concentrations targets
-                for molecules (molecule ID: concentration in counts/volume
-                units)
+                for molecules (molecule ID: concentration in mmol/L units)
+            aa_uptake_package (Tuple[np.ndarray, np.ndarray, Boolean]): packed
+                variables needed to set hard external amino acid uptakes (uptake
+                rates, amino acid names, force levels)
         """
 
         # Update objective from media exchanges
@@ -736,6 +844,7 @@ class FluxBalanceAnalysisModel(object):
             current_media_id, unconstrained, constrained, conc_updates,
         )
         self.fba.update_homeostatic_targets(objective)
+        self.homeostatic_objective = objective
 
         # Internal concentrations
         metabolite_conc = counts_to_molar * metabolite_counts
@@ -746,6 +855,11 @@ class FluxBalanceAnalysisModel(object):
         external_molecule_levels = self.update_external_molecule_levels(
             objective, metabolite_conc, external_molecule_levels)
         self.fba.setExternalMoleculeLevels(external_molecule_levels)
+
+        if aa_uptake_package:
+            levels, molecules, force = aa_uptake_package
+            self.fba.setExternalMoleculeLevels(levels, molecules=molecules,
+                force=force, allow_export=True)
 
     def set_reaction_bounds(self, catalyst_counts, counts_to_molar,
         coefficient, gtp_to_hydrolyze):
@@ -847,7 +961,7 @@ def test_metabolism_listener():
     sim.build_ecoli()
     sim.run()
     data = sim.query()
-    reaction_fluxes = data['listeners']['fba_results']['reaction_fluxes']
+    reaction_fluxes = data['agents']['0']['listeners']['fba_results']['reaction_fluxes']
     assert(type(reaction_fluxes[0]) == list)
     assert(type(reaction_fluxes[1]) == list)
 

@@ -1,11 +1,9 @@
-from __future__ import absolute_import, division, print_function
-
 import argparse
 import ast
-from six.moves import cPickle
 from typing import List, Tuple
 import json
 import os
+import pickle
 import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
@@ -32,7 +30,7 @@ class Plot():
         """Load fluxome data from 2010 validation data
 
         Arguments:
-            validation_data_file: Path to cPickle with validation data.
+            validation_data_file: Path to pickle with validation data.
             sim_df: Dataframe from ecoli.analysis.antibiotics_colony.load_data,
                 must contain 'Dry mass' and 'Cell mass' columns 
 
@@ -42,7 +40,7 @@ class Plot():
             reactions do in the reaction ID list. Fluxes and standard deviations
             are numpy arrays with units FLUX_UNITS.
         """
-        validation_data = cPickle.load(open(validation_data_file, "rb"))
+        validation_data = pickle.load(open(validation_data_file, "rb"))
         toya_reactions = validation_data.reactionFlux.toya2010fluxes["reactionID"]
         toya_fluxes = validation_data.reactionFlux.toya2010fluxes["reactionFlux"]
         # Treat all Toya fluxes as positive (moving forward under physiological
@@ -105,7 +103,7 @@ class Plot():
             all_fluxes = arr_data
 
         # Convert from mmol/L/hr to mmol/g DCW/hr
-        sim_data = cPickle.load(open(simDataFile, "rb"))
+        sim_data = pickle.load(open(simDataFile, "rb"))
         cell_density = sim_data.constants.cell_density.asNumber(units.g/units.L)
         cell_masses = sim_df.loc[:, "Cell mass"]
         dry_masses = sim_df.loc[:, "Dry mass"]
@@ -161,7 +159,7 @@ class Plot():
 
 
 def get_toya_flux_rxns(simDataFile):
-    sim_data = cPickle.load(open(simDataFile, "rb"))
+    sim_data = pickle.load(open(simDataFile, "rb"))
     reaction_stoich = sim_data.process.metabolism.reaction_stoich
     reaction_stoich = {k: reaction_stoich[k] for k in sorted(reaction_stoich)}
     stoich_matrix = pd.DataFrame(list(reaction_stoich.values()))
