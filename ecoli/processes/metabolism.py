@@ -842,7 +842,7 @@ class FluxBalanceAnalysisModel(object):
             current_media_id, unconstrained, constrained, conc_updates,
         )
         self.fba.update_homeostatic_targets(objective)
-        self.homeostatic_objective = objective
+        self.homeostatic_objective = {**self.homeostatic_objective, **objective}
 
         # Internal concentrations
         metabolite_conc = counts_to_molar * metabolite_counts

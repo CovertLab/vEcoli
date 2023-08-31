@@ -6,8 +6,6 @@
     },
     "exclude_processes": ["exchange_data"],
     "flow": {
-        "ecoli-tf-unbinding": [],
-
         "ecoli-metabolism-redux": [["ecoli-chromosome-structure"]],
         "ecoli-mass-listener": [["ecoli-metabolism-redux"]],
         "RNA_counts_listener": [["ecoli-metabolism-redux"]],

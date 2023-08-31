@@ -400,6 +400,7 @@ class LoadSimData:
             'rnap_data_listener': self.get_rnap_data_listener_config,
             'unique_molecule_counts': self.get_unique_molecule_counts_config,
             'exchange_data': self.get_exchange_data_config,
+            'media_update': self.get_media_update_config,
             'bulk-timeline': self.get_bulk_timeline_config,
         }
 
@@ -1470,6 +1471,12 @@ class LoadSimData:
             '_parallel': parallel,
             'exchange_data_from_concentrations': self.sim_data.external_state.exchange_data_from_concentrations,
             'environment_molecules': list(self.sim_data.external_state.env_to_exchange_map.keys()),
+        }
+    
+    def get_media_update_config(self, time_step=1, parallel=False):
+        return {
+            'time_step': time_step,
+            '_parallel': parallel,
             'saved_media': self.sim_data.external_state.saved_media
         }
     
