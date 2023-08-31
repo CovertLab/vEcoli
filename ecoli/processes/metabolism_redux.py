@@ -792,7 +792,7 @@ class NetworkFlowModel:
             constr.append(v[self.maintenance_idx] == total_maintenance)
             constr.append(v[self.maintenance_idx] >= ngam_target)
         # If enzymes not present, constrain rxn flux to 0
-        if binary_kinetic_idx:
+        if binary_kinetic_idx is not None:
             constr.append(v[binary_kinetic_idx] == 0)
         # TODO (Cyrus) - make this a parameter
         constr.extend([v >= 0, v <= upper_flux_bound, e >= 0, e <= upper_flux_bound])

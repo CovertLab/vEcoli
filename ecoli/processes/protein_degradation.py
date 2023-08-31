@@ -133,7 +133,7 @@ class ProteinDegradation(PartitionedProcess):
         return self.raw_degradation_rate * timestep
 
 
-def test_protein_degradation():
+def test_protein_degradation(return_data=False):
     test_config = {
         'raw_degradation_rate': np.array([0.05, 0.08, 0.13, 0.21]),
         'water_id': 'H2O',
@@ -209,7 +209,8 @@ def test_protein_degradation():
 
     print("Passed all tests.")
 
-    return data
+    if return_data:
+        return data
 
 
 if __name__ == "__main__":

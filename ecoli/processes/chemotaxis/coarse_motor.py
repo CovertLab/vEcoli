@@ -196,7 +196,7 @@ def run():
     return [thrust, torque]
 
 
-def test_variable_receptor():
+def test_variable_receptor(return_data=False):
     motor = MotorActivity()
     state = motor.default_state()
     timestep = 1
@@ -221,12 +221,13 @@ def test_variable_receptor():
     # check ccw_to_cw bias is strictly increasing with increased receptor activity
     assert all(i <= j for i, j in zip(ccw_to_cw_vec, ccw_to_cw_vec[1:]))
 
-    return {
-        'chemoreceptor_activity': chemoreceptor_activity,
-        'CheY_P': CheY_P_vec,
-        'ccw_motor_bias': ccw_motor_bias_vec,
-        'ccw_to_cw': ccw_to_cw_vec,
-        'motile_state': motile_state_vec}
+    if return_data:
+        return {
+            'chemoreceptor_activity': chemoreceptor_activity,
+            'CheY_P': CheY_P_vec,
+            'ccw_motor_bias': ccw_motor_bias_vec,
+            'ccw_to_cw': ccw_to_cw_vec,
+            'motile_state': motile_state_vec}
 
 
 def main():
@@ -234,7 +235,7 @@ def main():
     if not os.path.exists(out_dir):
         os.makedirs(out_dir)
 
-    output2 = test_variable_receptor()
+    output2 = test_variable_receptor(return_data=True)
     plot_variable_receptor(output2, out_dir)
 
 

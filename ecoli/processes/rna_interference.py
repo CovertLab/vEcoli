@@ -137,7 +137,7 @@ class RnaInterference(Process):
         
         return update
 
-def test_rna_interference():
+def test_rna_interference(return_data=False):
     test_config = {
         'time_step': 2,
         'ribosome30S': 'CPLX0-3953[c]',
@@ -198,10 +198,11 @@ def test_rna_interference():
     experiment.update(4)
     data = experiment.emitter.get_data()
 
-    return data, test_config
+    if return_data:
+        return data, test_config
 
 def main():
-    data, config = test_rna_interference()
+    data, config = test_rna_interference(return_data=True)
     print(data)
 
 if __name__ == '__main__':

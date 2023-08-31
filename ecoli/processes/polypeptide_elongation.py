@@ -626,7 +626,7 @@ class PolypeptideElongation(PartitionedProcess):
         return model_specific and max_time_step
 
 
-def test_polypeptide_elongation():
+def test_polypeptide_elongation(return_data=False):
     def make_elongation_rates(random, base, time_step, variable_elongation=False):
         size = 1
         lengths = time_step * np.full(size, base, dtype=np.int64)
@@ -704,7 +704,8 @@ def test_polypeptide_elongation():
         'topology': TOPOLOGY}
     data = simulate_process(polypep_elong, settings)
 
-    return data, test_config
+    if return_data:
+        return data, test_config
 
 
 def run_plot(data, config):
@@ -729,7 +730,7 @@ def run_plot(data, config):
 
 
 def main():
-    data, config = test_polypeptide_elongation()
+    data, config = test_polypeptide_elongation(return_data=True)
     run_plot(data, config)
 
 

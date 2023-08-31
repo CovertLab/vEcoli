@@ -141,6 +141,7 @@ def test_lattice(
         initial_field=None,
         growth_rate=0.05,  # fast growth
         growth_noise=5e-4,
+        return_data=False
 ):
     # lattice configuration
     lattice_config_kwargs = {
@@ -209,7 +210,8 @@ def test_lattice(
     # run the simulation
     spatial_experiment.update(total_time)
     data = spatial_experiment.emitter.get_data_unitless()
-    return data
+    if return_data:
+        return data
 
 
 def main():
@@ -230,7 +232,8 @@ def main():
             exchange=True,
             n_agents=n_agents,
             total_time=total_time,
-            bounds=bounds)
+            bounds=bounds,
+            return_data=True)
     else:
         # GrowDivide agents
         n_bins = [20, 20]
@@ -241,7 +244,8 @@ def main():
             total_time=total_time,
             bounds=bounds,
             n_bins=n_bins,
-            initial_field=initial_field)
+            initial_field=initial_field,
+            return_data=True)
 
     # format the data for plot_snapshots
     agents, fields = format_snapshot_data(data)

@@ -626,7 +626,7 @@ class TranscriptInitiation(PartitionedProcess):
             self.promoter_init_probs[fixed_mask] = synth_prob / fixed_mask.sum()
 
 
-def test_transcript_initiation():
+def test_transcript_initiation(return_data=False):
     def make_elongation_rates(random, base, time_step, variable_elongation=False):
         size = 9  # number of TUs
         lengths = time_step * np.full(size, base, dtype=np.int64)
@@ -824,7 +824,8 @@ def test_transcript_initiation():
     assert (RNA_synth_prob_test.pvalue > 0.05), ("Distribution of RNA types synthesized does"
                                                  "not (approximately) match values set by media")
 
-    return test_config, data_noTF
+    if return_data:
+        return test_config, data_noTF
 
 
 def run_plot(config, data):
@@ -889,7 +890,7 @@ def run_plot(config, data):
 
 
 def main():
-    config, data = test_transcript_initiation()
+    config, data = test_transcript_initiation(return_data=True)
     run_plot(config, data)
 
 

@@ -1,3 +1,4 @@
+import numpy as np
 from ecoli.processes.registries import topology_registry
 from vivarium.core.process import Step
 from vivarium.library.units import units
@@ -51,7 +52,11 @@ class MediaUpdate(Step):
         # Calculate concentration delta to get from environment specified
         # by old media ID to the one specified by the current media ID
         for mol, conc in env_concs.items():
-            conc_update[mol] = conc * units.mM - states['boundary']['external'][mol]
+            diff = conc * units.mM - states['boundary']['external'][mol]
+            # Arithmetic with np.inf gets messy
+            if np.isnan(diff):
+                diff = 0 * units.mM
+            conc_update[mol] = diff
 
         return {
             'boundary': {

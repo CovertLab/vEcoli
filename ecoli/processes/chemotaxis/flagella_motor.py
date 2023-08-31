@@ -345,7 +345,7 @@ def get_chemoreceptor_activity_timeline(
     return timeline
 
 
-def test_variable_flagella(out_dir='out'):
+def test_variable_flagella(out_dir='out', return_data=False):
     total_time = 30
     time_step = 0.01
     initial_flagella = 2
@@ -372,7 +372,8 @@ def test_variable_flagella(out_dir='out'):
             'time_step': time_step}}
     raw_data = simulate_process(process, settings)
 
-    return raw_data
+    if return_data:
+        return raw_data
 
 
 def main():
@@ -380,7 +381,7 @@ def main():
     if not os.path.exists(out_dir):
         os.makedirs(out_dir)
 
-    data = test_variable_flagella(out_dir)
+    data = test_variable_flagella(out_dir, return_data=True)
 
     # plot
     plot_settings = {}

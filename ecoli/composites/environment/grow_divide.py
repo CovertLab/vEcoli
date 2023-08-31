@@ -113,7 +113,7 @@ class GrowDivideExchange(GrowDivide):
         return topology
 
 
-def test_grow_divide(total_time=2000):
+def test_grow_divide(total_time=2000, return_data=False):
 
     agent_id = '0'
     composite = GrowDivide({
@@ -148,10 +148,11 @@ def test_grow_divide(total_time=2000):
     assert len(output[0.0]['agents']) == 1
     assert len(output[total_time]['agents']) > 1
 
-    return output
+    if return_data:
+        return output
 
 
-def test_grow_divide_exchange(total_time=2000):
+def test_grow_divide_exchange(total_time=2000, return_data=False):
 
     agent_id = '0'
     molecule_id = 'A'
@@ -198,7 +199,8 @@ def test_grow_divide_exchange(total_time=2000):
     assert len(output[0.0]['agents']) == 1
     assert len(output[total_time]['agents']) > 1
 
-    return output
+    if return_data:
+        return output
 
 
 def main():
@@ -207,12 +209,12 @@ def main():
         os.makedirs(out_dir)
 
     # if grow_divide:
-    output = test_grow_divide(2000)
+    output = test_grow_divide(2000, return_data=True)
     plot_settings = {}
     plot_agents_multigen(output, plot_settings, out_dir, 'grow_divide')
 
     # if grow_divide_exchange:
-    output = test_grow_divide_exchange(2000)
+    output = test_grow_divide_exchange(2000, return_data=True)
     plot_settings = {}
     plot_agents_multigen(output, plot_settings, out_dir, 'grow_divide_exchange')
 

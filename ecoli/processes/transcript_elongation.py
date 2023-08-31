@@ -683,6 +683,10 @@ def test_transcript_elongation():
             'unique-update': unique_topo,
             'ecoli-transcript-elongation': TOPOLOGY}}
 
+    # Since unique numpy updater is an class method, internal
+    # deepcopying in vivarium-core causes this warning to appear
+    warnings.filterwarnings("ignore",
+        message="Incompatible schema assignment at ")
     engine = Engine(**settings, initial_state=deepcopy(initial_state))
     engine.run_for(100)
     data = engine.emitter.get_timeseries()

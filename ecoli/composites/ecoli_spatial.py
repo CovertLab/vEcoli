@@ -274,6 +274,7 @@ def add_polyribosomes(unique, unique_masses, polyribosome_assumption,
 def test_spatial_ecoli(
     polyribosome_assumption='spherical',    # choose from 'mrna', 'linear', or 'spherical'
     total_time=10,  # in seconds
+    return_data=False
 ):
     ecoli_config = {
         'nodes': {
@@ -322,7 +323,9 @@ def test_spatial_ecoli(
         'initial_state': ecoli.initial_state(initial_config)}
 
     data = simulate_composer(ecoli, settings)
-    return ecoli, initial_config, data
+
+    if return_data:
+        return ecoli, initial_config, data
 
 
 def run_spatial_ecoli(
@@ -331,6 +334,7 @@ def run_spatial_ecoli(
     ecoli, initial_config, output = test_spatial_ecoli(
         polyribosome_assumption=polyribosome_assumption,
         total_time=5*60,
+        return_data=True
     )
     mesh_size = ecoli.config['mesh_size']
     nodes = ecoli.config['nodes']
