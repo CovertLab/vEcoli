@@ -12,7 +12,7 @@ topology_registry.register(NAME, TOPOLOGY)
 
 class ExchangeData(Step):
     """
-    Update environment concentrations and metabolism exchange constraints.
+    Update metabolism exchange constraints according to environment concs.
     """
     name = NAME
     topology = TOPOLOGY
@@ -28,7 +28,6 @@ class ExchangeData(Step):
         self.exchange_data_from_concentrations = self.parameters[
             'exchange_data_from_concentrations']
         self.environment_molecules = self.parameters['environment_molecules']
-        self.saved_media = self.parameters['saved_media']
         
     def ports_schema(self):
         return {
@@ -38,7 +37,6 @@ class ExchangeData(Step):
                 }
             },
             'environment': {
-                'media_id': {'_default': ''},
                 'exchange_data': {
                     'constrained': {'_default': {}, '_updater': 'set'},
                     'unconstrained': {'_default': set(), '_updater': 'set'}
@@ -54,22 +52,14 @@ class ExchangeData(Step):
     def next_update(self, timestep, states):
         if states['first_update']:
             return {'first_update': False}
-
-        env_concs = self.saved_media[states['environment']['media_id']]
-        conc_update = {}
-        # Calculate concentration delta to get from environment specified
-        # by old media ID to the one specified by the current media ID
-        for mol, conc in env_concs.items():
-            conc_update[mol] = conc * units.mM - states['boundary']['external'][mol]
-
+        
         # Set exchange constraints for metabolism
+        env_concs = {mol: states['boundary']['external'][mol].to('mM').magnitude
+            for mol in self.environment_molecules}
         exchange_data = self.exchange_data_from_concentrations(env_concs)
         unconstrained = exchange_data['importUnconstrainedExchangeMolecules']
         constrained = exchange_data['importConstrainedExchangeMolecules']
         return {
-            'boundary': {
-                'external': conc_update
-            },
             'environment': {
                 'exchange_data': {
                     'constrained': constrained,

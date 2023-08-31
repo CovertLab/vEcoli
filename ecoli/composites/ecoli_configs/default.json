@@ -45,6 +45,7 @@
     "profile": false,
     "processes": [
         "bulk-timeline",
+        "media_update",
         "exchange_data",
 
         "ecoli-tf-unbinding",
@@ -91,9 +92,10 @@
         }
     },
     "flow": {
-        "exchange_data": [],
+        "media_update": [],
+        "exchange_data": [["media_update"]],
 
-        "ecoli-tf-unbinding": [["exchange_data"]],
+        "ecoli-tf-unbinding": [["media_update"]],
 
         "ecoli-equilibrium": [["ecoli-tf-unbinding"]],
         "ecoli-two-component-system": [["ecoli-tf-unbinding"]],
