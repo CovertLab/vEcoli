@@ -62,5 +62,7 @@ class BulkTimelineProcess(Process):
                                         f'its leaves at the same time')
                             curr = curr[subpath]
                 new_timeline.pop(t)
+            # self.timeline is sorted so can break after first time < t
+            break
         self.timeline = new_timeline
         return update

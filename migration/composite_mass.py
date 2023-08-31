@@ -33,6 +33,7 @@ def run_composite_mass_test(total_time=30, operons=True):
         sim.sim_data_path = SIM_DATA_PATH_NO_OPERONS
         sim.initial_state_file = 'migration_no_operons/wcecoli_t0'
     sim.build_ecoli()
+    sim.ecoli.steps['agents']['0']['ecoli-mass-listener'].match_wcecoli = True
 
     # run the composite and save specified states
     sim.run()

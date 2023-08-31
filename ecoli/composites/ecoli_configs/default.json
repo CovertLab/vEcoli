@@ -44,6 +44,10 @@
     "swap_processes" : {},
     "profile": false,
     "processes": [
+        "bulk-timeline",
+        "media_update",
+        "exchange_data",
+
         "ecoli-tf-unbinding",
 
         "ecoli-equilibrium",
@@ -80,9 +84,22 @@
     "process_configs": {
         "global_clock": {"time_step": 1},
         "replication_data_listener": {"time_step": 1}},
-    "topology": {},
+    "topology": {
+        "bulk-timeline": {
+            "bulk": ["bulk"],
+            "global": ["timeline"],
+            "media_id": ["environment", "media_id"]
+        },
+        "global_clock": {
+            "global_time": ["global_time"],
+            "timestep": ["timestep"]
+        }
+    },
     "flow": {
-        "ecoli-tf-unbinding": [],
+        "media_update": [],
+        "exchange_data": [["media_update"]],
+
+        "ecoli-tf-unbinding": [["media_update"]],
 
         "ecoli-equilibrium": [["ecoli-tf-unbinding"]],
         "ecoli-two-component-system": [["ecoli-tf-unbinding"]],
