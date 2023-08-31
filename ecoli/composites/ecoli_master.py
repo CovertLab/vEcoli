@@ -200,6 +200,8 @@ class Ecoli(Composer):
                 steps[process_name] = process
                 continue
             else:
+                if config['log_updates']:
+                    process_class = make_logging_process(process_class)
                 process = process_class(process_configs[process_name])
                 processes[process_name] = process
                 continue
@@ -398,13 +400,6 @@ class Ecoli(Composer):
 
         # Do not keep an unnecessary reference to these
         self.processes_and_steps = None
-
-        # Add clock process to facilitate unique molecule updates and
-        # coordinate simulation timestep updates
-        topology['global_clock'] = {
-            'global_time': ('global_time',),
-            'timestep': ('timestep',)
-        }
         return topology
 
 

@@ -361,12 +361,6 @@ class EcoliSim:
             for process, ports in result.items():
                 result[process]['log_update'] = ('log_update', process,)
 
-        # add division
-        if divide:
-            result['division'] = {
-                'variable': ('listeners', 'mass', 'dry_mass'),
-                'agents': self.agents_path}
-
         return result
 
 
