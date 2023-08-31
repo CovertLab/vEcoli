@@ -202,7 +202,7 @@ class MembranePotential(Process):
                 'PMF': PMF}}
 
 
-def test_mem_potential():
+def test_mem_potential(return_data=False):
     """
     test :module: ecoli.processes.membrane.membrane_potential.MembranePotential
     by running it with changing external Na concentrations.
@@ -219,7 +219,9 @@ def test_mem_potential():
 
     PMF_timeseries = timeseries['membrane']['PMF']
     assert PMF_timeseries[-1] > PMF_timeseries[2]
-    return timeseries
+
+    if return_data:
+        return timeseries
 
 
 def main():
@@ -227,7 +229,7 @@ def main():
     if not os.path.exists(out_dir):
         os.makedirs(out_dir)
 
-    timeseries = test_mem_potential()
+    timeseries = test_mem_potential(return_data=True)
     settings = {
         'remove_first_timestep': True
     }

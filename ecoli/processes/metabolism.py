@@ -74,7 +74,6 @@ class Metabolism(Step):
         'aa_targets_not_updated': set(),
         'import_constraint_threshold': 0,
         'exchange_molecules': [],
-        'exchange_data_from_concentrations': lambda _: (set(), set()),
         'current_timeline': None,
         'media_id': 'minimal',
         'imports': {},
@@ -107,8 +106,6 @@ class Metabolism(Step):
 
         # Use information from the environment and sim
         self.get_import_constraints = self.parameters['get_import_constraints']
-        self.exchange_data_from_concentrations = self.parameters[
-            'exchange_data_from_concentrations']
         self.nutrientToDoublingTime = self.parameters['nutrientToDoublingTime']
         self.use_trna_charging = self.parameters['use_trna_charging']
         self.include_ppgpp = self.parameters['include_ppgpp']
@@ -224,6 +221,10 @@ class Metabolism(Step):
                 'exchange': {
                     str(element): {'_default': 0}
                     for element in self.environment_molecules},
+                'exchange_data': {
+                    'unconstrained': {'_default': {}},
+                    'constrained': {'_default': set()}
+                }
             },
 
             'boundary': {
@@ -361,15 +362,6 @@ class Metabolism(Step):
         cell_mass = states['listeners']['mass']['cell_mass'] * units.fg
         dry_mass = states['listeners']['mass']['dry_mass'] * units.fg
 
-        # Get environment updates
-        current_media_id = states['environment']['media_id']
-        # Get raw concentrations in mM
-        env_concs = {mol: states['boundary']['external'][mol].to('mM').magnitude
-            for mol in self.environment_molecules}
-        exchange_data = self.exchange_data_from_concentrations(env_concs)
-        unconstrained = exchange_data['importUnconstrainedExchangeMolecules']
-        constrained = exchange_data['importConstrainedExchangeMolecules']
-
         # Calculate state values
         cellVolume = cell_mass / self.cellDensity
         counts_to_molar = (1 / (self.nAvogadro * cellVolume)
@@ -379,8 +371,14 @@ class Metabolism(Step):
         # concentration (M) basis
         coefficient = (dry_mass / cell_mass * self.cellDensity
             * timestep * units.s)
+        
+        # Get exchange constraints
+        unconstrained = set(states['environment']['exchange_data'][
+            'unconstrained'])
+        constrained = states['environment']['exchange_data']['constrained']
 
-        ## Determine updates to concentrations depending on the current state
+        # Determine updates to concentrations depending on the current state
+        current_media_id = states['environment']['media_id']
         doubling_time = self.nutrientToDoublingTime.get(
             current_media_id, self.nutrientToDoublingTime[self.media_id])        
         if self.include_ppgpp:
@@ -844,7 +842,7 @@ class FluxBalanceAnalysisModel(object):
             current_media_id, unconstrained, constrained, conc_updates,
         )
         self.fba.update_homeostatic_targets(objective)
-        self.homeostatic_objective = objective
+        self.homeostatic_objective = {**self.homeostatic_objective, **objective}
 
         # Internal concentrations
         metabolite_conc = counts_to_molar * metabolite_counts

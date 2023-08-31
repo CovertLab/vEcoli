@@ -4,7 +4,7 @@ import numpy as np
 import concurrent.futures
 
 from vivarium.core.serialize import deserialize_value
-from vivarium.library.units import units
+from wholecell.utils import units
 
 def load_states(path):
     with open(path, "r") as states_file:
@@ -28,6 +28,22 @@ def numpy_molecules(states):
             unique_tuples = [tuple(mol) for mol in states['unique'][key]]
             states['unique'][key] = np.array(unique_tuples, dtype=dtypes)
             states['unique'][key].flags.writeable = False
+    if 'environment' in states:
+        if 'exchange_data' in states['environment']:
+            states['environment']['exchange_data']['constrained'
+                ] = {mol: units.mmol / (units. g * units.h) * rate
+                for mol, rate in states['environment']['exchange_data'][
+                    'constrained'].items()}
+        else:
+            # Load aerobic minimal media exchange data by default
+            states['environment']['exchange_data'] = {
+                'unconstrained': ['CL-[p]', 'FE+2[p]', 'FE+3[p]', 'CO+2[p]',
+                    'MG+2[p]', 'NA+[p]', 'CARBON-DIOXIDE[p]',
+                    'OXYGEN-MOLECULE[p]', 'MN+2[p]', 'L-SELENOCYSTEINE[c]',
+                    'K+[p]', 'SULFATE[p]', 'ZN+2[p]', 'CA+2[p]', 'Pi[p]',
+                    'NI+2[p]', 'WATER[p]', 'AMMONIUM[c]'],
+                'constrained': {
+                    'GLC[p]': 20.0 * units.mmol / (units.g * units.h)}}
     return states 
 
 

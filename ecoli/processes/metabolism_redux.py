@@ -57,7 +57,6 @@ class MetabolismRedux(Step):
         'imports': {},
         'concentration_updates': None,
         'maintenance_reaction': {},
-        'get_import_constraints': lambda u, c, p: (u, c, []),
         'nutrient_to_doubling_time': {},
         'use_trna_charging': False,
         'include_ppgpp': False,
@@ -65,7 +64,6 @@ class MetabolismRedux(Step):
         'aa_targets_not_updated': set(),
         'import_constraint_threshold': 0,
         'exchange_molecules': [],
-        'exchange_data_from_concentrations': lambda _: (set(), set()),
         'non_growth_associated_maintenance': 8.39 * units.mmol / (units.g * units.h),
         'avogadro': 6.02214076e+23 / units.mol,
         'cell_density': 1100 * units.g / units.L,
@@ -94,9 +92,6 @@ class MetabolismRedux(Step):
         super().__init__(parameters)
 
         # Use information from the environment and sim
-        self.get_import_constraints = self.parameters['get_import_constraints']
-        self.exchange_data_from_concentrations = self.parameters[
-            'exchange_data_from_concentrations']
         self.nutrient_to_doubling_time = self.parameters['nutrient_to_doubling_time']
         self.use_trna_charging = self.parameters['use_trna_charging']
         self.include_ppgpp = self.parameters['include_ppgpp']
@@ -106,8 +101,6 @@ class MetabolismRedux(Step):
         self.media_id = self.parameters['media_id']
         self.exchange_molecules = self.parameters[
             'exchange_molecules']
-        self.environment_molecules = sorted(
-            [mol[:-3] for mol in self.exchange_molecules])
         self.aa_names = self.parameters['aa_names']
         self.aa_targets_not_updated = self.parameters['aa_targets_not_updated']
 
@@ -125,30 +118,37 @@ class MetabolismRedux(Step):
 
         self.metabolite_names = sorted(list(self.metabolite_names))
         self.reaction_names = list(stoich_dict.keys())
-        n_metabolites = len(self.metabolite_names)
-        n_reactions = len(self.reaction_names)
 
         metabolites_idx = {species: i for i, species in enumerate(self.metabolite_names)}
-
-        # Convert stoichiometric dictionary to array
-        self.stoichiometry = np.zeros((n_metabolites, n_reactions), dtype=np.int8)
 
         # Get indices of catalysts for each reaction
         reaction_catalysts = self.parameters['reaction_catalysts']
         self.catalyst_ids = self.parameters['catalyst_ids']
         catalyst_idx = {catalyst: i for i, catalyst in enumerate(self.catalyst_ids)}
 
-        self.catalyzed_rxn_enzymes_idx = []
-
-        # Create stoichiometry matrix and enzyme catalyzed reaction index
-        for col_idx, (reaction, stoich) in enumerate(stoich_dict.items()):
+        # Create stoichiometry matrix (dot reaction fluxes to get
+        # molecule deltas) and catalysis matrix (dot catalyst counts
+        # to get catalyst counts per enzyme-catalyzed reaction)
+        coeffs = []
+        met_ind = []
+        rxn_ind = []
+        catalyst_ind = []
+        catalyzed_rxn_ind = []
+        catalyzed_rxn_idx = 0
+        for rxn_idx, (reaction, stoich) in enumerate(stoich_dict.items()):
             for species, coefficient in stoich.items():
-                i = metabolites_idx[species]
-                self.stoichiometry[i, col_idx] = coefficient
-
+                met_ind.append(metabolites_idx[species])
+                rxn_ind.append(rxn_idx)
+                coeffs.append(coefficient)
             enzyme_idx = [catalyst_idx[catalyst]
                 for catalyst in reaction_catalysts.get(reaction, [])]
-            self.catalyzed_rxn_enzymes_idx.append(enzyme_idx)
+            if len(enzyme_idx) > 1:
+                catalyst_ind.extend(enzyme_idx)
+                catalyzed_rxn_ind.extend([catalyzed_rxn_idx]*len(enzyme_idx))
+                catalyzed_rxn_idx += 1
+        self.stoichiometry = csr_matrix((coeffs, (met_ind, rxn_ind)), dtype=int)
+        self.catalysis_matrix = csr_matrix(([1]*len(catalyst_ind),
+            (catalyzed_rxn_ind, catalyst_ind)), dtype=int)
 
         self.media_id = self.parameters['media_id']
         self.cell_density = self.parameters['cell_density']
@@ -171,8 +171,6 @@ class MetabolismRedux(Step):
         self.get_kinetic_constraints = self.parameters['get_kinetic_constraints']
         self.kinetic_constraint_reactions = self.parameters[
             'kinetic_constraint_reactions']
-        self.nutrient_to_doubling_time = self.parameters[
-            'nutrient_to_doubling_time']
         
         # Include ppGpp concentration target in objective if not handled
         # kinetically in other processes
@@ -318,7 +316,10 @@ class MetabolismRedux(Step):
                     '_updater': 'set'},
                 'exchange': {
                     str(element): {'_default': 0}
-                    for element in self.exchange_molecules
+                    for element in self.exchange_molecules},
+                'exchange_data': {
+                    'unconstrained': {'_default': {}},
+                    'constrained': {'_default': set()}
                 }},
 
             'boundary': {
@@ -408,13 +409,8 @@ class MetabolismRedux(Step):
                 self.kinetic_constraint_substrates, bulk_ids)
             self.aa_idx = bulk_name_to_idx(self.aa_names, bulk_ids)
 
-        # Get raw environment concentrations in mM
-        env_concs = {mol: states['boundary']['external'][mol].to('mM').magnitude
-            for mol in self.environment_molecules}
-        exchange_data = self.exchange_data_from_concentrations(env_concs)
-        unconstrained = exchange_data['importUnconstrainedExchangeMolecules']
-        constrained = exchange_data['importConstrainedExchangeMolecules']
-        
+        unconstrained = states['environment']['exchange_data']['unconstrained']
+        constrained = states['environment']['exchange_data']['constrained']        
         new_allowed_exchange_uptake = set(unconstrained).union(
             constrained.keys())
         new_exchange_molecules = set(self.exchange_molecules).union(
@@ -462,13 +458,10 @@ class MetabolismRedux(Step):
         ngam_target = total_ngam.asNumber()
 
         # binary kinetic targets - sum up enzyme counts for each reaction
-        reaction_catalyst_counts = np.array([sum([current_catalyst_counts[enzyme_idx]
-                                                  for enzyme_idx in enzymes_idx])
-                                             if len(enzymes_idx) > 0 else -1
-                                             for enzymes_idx in self.catalyzed_rxn_enzymes_idx])
+        reaction_catalyst_counts = self.catalysis_matrix.dot(current_catalyst_counts)
         # Get reaction indices whose fluxes should be set to zero
         # because there are no enzymes to catalyze the rxn
-        binary_kinetic_idx = np.where(~reaction_catalyst_counts.astype(np.bool_))
+        binary_kinetic_idx = np.where(reaction_catalyst_counts == 0)[0]
         
         # TODO: Figure out how to handle changing media ID
         
@@ -799,8 +792,9 @@ class NetworkFlowModel:
             constr.append(v[self.maintenance_idx] == total_maintenance)
             constr.append(v[self.maintenance_idx] >= ngam_target)
         # If enzymes not present, constrain rxn flux to 0
-        if binary_kinetic_idx:
-            constr.append(v[binary_kinetic_idx] == 0)
+        if binary_kinetic_idx is not None:
+            if len(binary_kinetic_idx) > 0:
+                constr.append(v[binary_kinetic_idx] == 0)
         # TODO (Cyrus) - make this a parameter
         constr.extend([v >= 0, v <= upper_flux_bound, e >= 0, e <= upper_flux_bound])
 
