@@ -1,3 +1,4 @@
+import numpy as np
 import orjson
 import re
 from unum import Unum
@@ -15,7 +16,9 @@ class UnumSerializer(Serializer):
 
     python_type = Unum
     def serialize(self, value):
-        num = str(value.asNumber().tolist())
+        num = str(value.asNumber())
+        if isinstance(num, np.ndarray):
+            num = num.tolist()
         return f'!UnumSerializer[{num} | {value.strUnit()}]'
         
     def can_deserialize(self, data):

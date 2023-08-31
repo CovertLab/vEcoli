@@ -89,6 +89,10 @@
             "bulk": ["bulk"],
             "global": ["timeline"],
             "media_id": ["environment", "media_id"]
+        },
+        "global_clock": {
+            "global_time": ["global_time"],
+            "timestep": ["timestep"]
         }
     },
     "flow": {
