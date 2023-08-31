@@ -287,7 +287,8 @@ def test_lysis(
         emit_step=1,
         bounds=[25, 25] * units.um,
         n_bins=[5, 5],
-        uptake_rate_max=25
+        uptake_rate_max=25,
+        return_data=False
 ):
     from ecoli.composites.environment.lattice import Lattice
 
@@ -360,7 +361,9 @@ def test_lysis(
         emit_step=emit_step)
     sim.update(total_time)
     data = sim.emitter.get_data_unitless()
-    return data
+
+    if return_data:
+        return data
 
 
 def main():
@@ -377,6 +380,7 @@ def main():
         emit_step=10,
         bounds=bounds,
         n_bins=[11, 11],
+        return_data=True
     )
 
     # format the data for plot_snapshots

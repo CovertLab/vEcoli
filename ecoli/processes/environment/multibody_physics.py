@@ -348,7 +348,7 @@ class InvokeUpdate(object):
         return self.update
 
 # tests and simulations
-def test_multibody(n_agents=1, time=10):
+def test_multibody(n_agents=1, time=10, return_data=False):
     agent_ids = [
         str(agent_id)
         for agent_id in range(n_agents)]
@@ -369,7 +369,9 @@ def test_multibody(n_agents=1, time=10):
         'timestep': 1,
         'total_time': time,
         'return_raw_data': True}
-    return simulate_experiment(experiment, settings)
+    data = simulate_experiment(experiment, settings)
+    if return_data:
+        return data
 
 
 def test_growth_division(
@@ -380,6 +382,7 @@ def test_growth_division(
         total_time=10,
         timestep=1,
         experiment_settings=None,
+        return_data=False
 ):
     if not experiment_settings:
         experiment_settings = {}
@@ -460,7 +463,8 @@ def test_growth_division(
         experiment._send_updates(invoked_update)
 
     experiment.end()
-    return experiment.emitter.get_data_unitless()
+    if return_data:
+        return experiment.emitter.get_data_unitless()
 
 
 def run_growth_division(
@@ -495,7 +499,8 @@ def run_growth_division(
         growth_rate_noise=0.001,
         division_volume=volume_from_length(4, 1) * units.fL,
         total_time=100,
-        experiment_settings=experiment_settings)
+        experiment_settings=experiment_settings,
+        return_data=True)
 
     agents, fields = format_snapshot_data(gd_data)
     return plot_snapshots(
