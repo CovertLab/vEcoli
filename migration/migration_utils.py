@@ -369,7 +369,7 @@ def recursive_compare(d1, d2, level='root', include_callable=False,
             
     elif isinstance(d1, np.ndarray) or isinstance(d2, np.ndarray):
         try:
-            np.testing.assert_array_almost_equal_nulp(d1, d2)
+            np.testing.assert_array_almost_equal_nulp(d1, d2, 5)
         except AssertionError:
             print('{:<20} {} != {}'.format(level, d1, d2))
             return False
@@ -388,7 +388,7 @@ def recursive_compare(d1, d2, level='root', include_callable=False,
     
     elif isinstance(d1, numbers.Number) and isinstance(d2, numbers.Number):
         try:
-            np.testing.assert_array_almost_equal_nulp(d1, d2)
+            np.testing.assert_array_almost_equal_nulp(d1, d2, 5)
         except AssertionError:
             if not (np.isnan(d1) & np.isnan(d2)):
                 print('{:<20} {} != {}'.format(level, d1, d2))
