@@ -31,7 +31,9 @@ def numpy_molecules(states):
     if 'environment' in states:
         if 'exchange_data' in states['environment']:
             states['environment']['exchange_data']['constrained'
-                ] *= units.mmol / (units. g * units.h)
+                ] = {mol: units.mmol / (units. g * units.h) * rate
+                for mol, rate in states['environment']['exchange_data'][
+                    'constrained'].items()}
         else:
             # Load aerobic minimal media exchange data by default
             states['environment']['exchange_data'] = {
