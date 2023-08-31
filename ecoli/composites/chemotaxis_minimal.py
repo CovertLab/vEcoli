@@ -72,7 +72,7 @@ class ChemotaxisMinimal(Composer):
 
 
 
-def test_chemotaxis_minimal(total_time=10):
+def test_chemotaxis_minimal(total_time=10, return_timeseries=False):
     environment_port = ('external',)
     ligand_id = 'MeAsp'
     initial_conc = 0
@@ -106,7 +106,8 @@ def test_chemotaxis_minimal(total_time=10):
         'total_time': total_time}
     timeseries = simulate_composite(composite, experiment_settings)
 
-    return timeseries
+    if return_timeseries:
+        return timeseries
 
 
 def main():
@@ -115,7 +116,7 @@ def main():
         os.makedirs(out_dir)
 
     # run the composite
-    timeseries = test_chemotaxis_minimal(total_time=60)
+    timeseries = test_chemotaxis_minimal(total_time=60, return_timeseries=True)
 
     # plot
     plot_settings = {

@@ -314,7 +314,7 @@ class ToyDeath(Composer):
         }
 
 
-def test_death_freeze_state(end_time=10, asserts=True):
+def test_death_freeze_state(end_time=10, asserts=True, return_data=False):
     toy_death_compartment = ToyDeath({}).generate()
 
     init_state = {
@@ -371,14 +371,15 @@ def test_death_freeze_state(end_time=10, asserts=True):
 
         assert expected_saved_states == saved_states
 
-    return saved_states
+    if return_data:
+        return saved_states
 
 
 def plot_death_freeze_state_test():
     out_dir = os.path.join(PROCESS_OUT_DIR, 'death_freeze_state')
     if not os.path.exists(out_dir):
         os.makedirs(out_dir)
-    timeseries = test_death_freeze_state(asserts=False)
+    timeseries = test_death_freeze_state(asserts=False, return_data=True)
     plot_settings = {}
     plot_simulation_output(timeseries, plot_settings, out_dir)
 
