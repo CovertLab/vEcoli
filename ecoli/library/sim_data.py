@@ -10,8 +10,9 @@ from wholecell.utils.fitting import normalize
 from ecoli.analysis.antibiotics_colony import DE_GENES
 from ecoli.processes.polypeptide_elongation import MICROMOLAR_UNITS
 from ecoli.library.parameters import param_store
-from ecoli.library.initial_conditions import (
-    initialize_bulk_counts, initialize_unique_molecules, set_small_molecule_counts)
+from ecoli.library.initial_conditions import (calculate_cell_mass,
+    initialize_bulk_counts, initialize_trna_charging, 
+    initialize_unique_molecules, set_small_molecule_counts)
 
 RAND_MAX = 2**31
 SIM_DATA_PATH = 'reconstruction/sim_data/kb/simData.cPickle'
@@ -1496,25 +1497,50 @@ class LoadSimData:
             }
         }
 
-    # def generate_initial_state(self):
-    #     '''
-    #     Calculate the initial conditions for a new cell without inherited state
-    #     from a parent cell.
-    #     '''
-    #     mass_coeff = 1.0
-    #     if self.mass_distribution:
-    #         mass_coeff = self.random_state.normal(loc=1.0, scale=0.1)
+    def generate_initial_state(self):
+        '''
+        Calculate the initial conditions for a new cell without inherited state
+        from a parent cell.
+        '''
+        mass_coeff = 1.0
+        if self.mass_distribution:
+            mass_coeff = self.random_state.normal(loc=1.0, scale=0.1)
 
-    #     bulk_state = initialize_bulk_counts(self.sim_data, media_id, import_molecules, self.random_state, mass_coeff, self.ppgpp_regulation, self.trna_attenuation)
-    #     cell_mass = 
-    #     unique_molecules = initialize_unique_molecules(bulk_state, self.sim_data, cell_mass, self.random_state, self.superhelical_density, self.ppgpp_regulation, self.trna_attenuation, self.mechanistic_replisome)
+        # if current_timeline_id is specified by a variant in sim_data,
+        # look it up in saved_timelines.
+        if self.sim_data.external_state.current_timeline_id:
+            current_timeline = self.sim_data.external_state.saved_timelines[
+                self.sim_data.external_state.current_timeline_id]
+        else:
+            current_timeline = self.media_timeline
+        media_id = current_timeline[0][1]
+        current_concentrations = self.sim_data.external_state.saved_media[
+            current_timeline[0][1]]
+        exch_from_conc = self.sim_data.external_state.\
+            exchange_data_from_concentrations
+        exchange_data = exch_from_conc(current_concentrations)
+        unconstrained = exchange_data['importUnconstrainedExchangeMolecules']
+        constrained = exchange_data['importConstrainedExchangeMolecules']
+        import_molecules = set(unconstrained) | set(constrained)
 
-    #     if self.trna_charging:
-    #         initialize_trna_charging(self.sim_data, sim.internal_states, sim._variable_elongation_translation)
+        bulk_state = initialize_bulk_counts(self.sim_data, media_id,
+            import_molecules, self.random_state, mass_coeff,
+            self.ppgpp_regulation, self.trna_attenuation)
+        cell_mass = calculate_cell_mass(bulk_state, {}, self.sim_data)
+        unique_molecules = initialize_unique_molecules(bulk_state,
+            self.sim_data, cell_mass, self.random_state,
+            self.superhelical_density, self.ppgpp_regulation,
+            self.trna_attenuation, self.mechanistic_replisome)
 
-    #     cell_mass = 
-    #     set_small_molecule_counts(bulk_state, self.sim_data, media_id, import_molecules, mass_coeff, cell_mass)
-    #     return {
-    #         'bulk': bulk_state,
-    #         'unique': unique_molecules
-    #     }
+        if self.trna_charging:
+            initialize_trna_charging(bulk_state, unique_molecules,
+                self.sim_data, self.variable_elongation_translation)
+
+        cell_mass = calculate_cell_mass(bulk_state, unique_molecules,
+            self.sim_data)
+        set_small_molecule_counts(bulk_state, self.sim_data, media_id,
+            import_molecules, mass_coeff, cell_mass)
+        return {
+            'bulk': bulk_state,
+            'unique': unique_molecules
+        }
