@@ -3,6 +3,7 @@ import binascii
 from itertools import chain
 import numpy as np
 import pickle
+from vivarium.library.units import units as vivunits
 from wholecell.utils import units
 from wholecell.utils.unit_struct_array import UnitStructArray
 from wholecell.utils.fitting import normalize
@@ -35,7 +36,7 @@ class LoadSimData:
         mar_regulon=False,
         process_configs=None,
         amp_lysis=False,
-        mass_distribution=False,
+        mass_distribution=True,
         superhelical_density=False,
         recycle_stalled_elongation=False,
         mechanistic_replisome=False,
@@ -51,8 +52,6 @@ class LoadSimData:
         time_step_safety_fraction=1.3,
         update_time_step_freq=5,
         max_time_step=MAX_TIME_STEP,
-        remove_rrna_operons=False,
-        remove_rrff=False,
         emit_unique=False,
         **kwargs
     ):
@@ -80,6 +79,7 @@ class LoadSimData:
         self.adjust_timestep_for_charging = adjust_timestep_for_charging
         self.disable_ppgpp_elongation_inhibition = \
             disable_ppgpp_elongation_inhibition
+        self.recycle_stalled_elongation = recycle_stalled_elongation
         self.emit_unique = emit_unique
         self.jit = jit
         
@@ -564,6 +564,7 @@ class LoadSimData:
             'get_attenuation_stop_probabilities': self.sim_data.process.transcription.get_attenuation_stop_probabilities,
             'attenuated_rna_indices': self.sim_data.process.transcription.attenuated_rna_indices,
             'location_lookup': self.sim_data.process.transcription.attenuation_location,
+            'recycle_stalled_elongation': self.recycle_stalled_elongation,
 
             # random seed
             'seed': self._seedFromName('TranscriptElongation'),
@@ -1527,8 +1528,11 @@ class LoadSimData:
             import_molecules, self.random_state, mass_coeff,
             self.ppgpp_regulation, self.trna_attenuation)
         cell_mass = calculate_cell_mass(bulk_state, {}, self.sim_data)
+        # Create new PRNG for unique ID generation so self.random_state
+        # can be used to faithfully replicate wcEcoli behavior
+        unique_id_rng = np.random.RandomState(seed=self.seed+100)
         unique_molecules = initialize_unique_molecules(bulk_state,
-            self.sim_data, cell_mass, self.random_state,
+            self.sim_data, cell_mass, self.random_state, unique_id_rng,
             self.superhelical_density, self.ppgpp_regulation,
             self.trna_attenuation, self.mechanistic_replisome)
 
@@ -1538,9 +1542,21 @@ class LoadSimData:
 
         cell_mass = calculate_cell_mass(bulk_state, unique_molecules,
             self.sim_data)
-        set_small_molecule_counts(bulk_state, self.sim_data, media_id,
+        set_small_molecule_counts(bulk_state['count'], self.sim_data, media_id,
             import_molecules, mass_coeff, cell_mass)
         return {
             'bulk': bulk_state,
-            'unique': unique_molecules
+            'unique': unique_molecules,
+            'environment': {
+                'exchange': {
+                    self.sim_data.external_state.env_to_exchange_map[mol]: 0
+                    for mol in current_concentrations
+                }
+            },
+            'boundary': {
+                'external': {
+                    mol: conc * vivunits.mM
+                    for mol, conc in current_concentrations.items()
+                }
+            }
         }

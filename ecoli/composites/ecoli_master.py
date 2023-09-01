@@ -101,9 +101,13 @@ class Ecoli(Composer):
         # (e.g. when loading individual cells in a colony save file)
         initial_state = config.get('initial_state', None)
         if not initial_state:
-            initial_state_file = config.get('initial_state_file', 'wcecoli_t0')
-            initial_state = get_state_from_file(
-                path=f'data/{initial_state_file}.json')
+            initial_state_file = config.get('initial_state_file', None)
+            # Generate initial state from sim_data if no file specified
+            if not initial_state_file:
+                initial_state = self.load_sim_data.generate_initial_state()
+            else:
+                initial_state = get_state_from_file(
+                    path=f'data/{initial_state_file}.json')
         
         # Load first agent state in a division-enabled save state by default
         if 'agents' in initial_state.keys():
@@ -309,8 +313,6 @@ class Ecoli(Composer):
             del self.schema_override[process_id]
         self.schema_override.update(update_override)
 
-        # Free memory by removing reference to sim_data object
-        del self.load_sim_data
         return processes, steps, flow
 
 
