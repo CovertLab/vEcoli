@@ -5,7 +5,8 @@ Functions to initialize molecule states from sim_data.
 import numpy as np
 import scipy.sparse
 
-from ecoli.library.schema import attrs, bulk_name_to_idx, create_unique_indexes
+from ecoli.library.schema import attrs, bulk_name_to_idx, \
+    create_unique_indexes, counts
 from ecoli.models.polypeptide_elongation_models import (
     calculate_trna_charging, REMOVED_FROM_CHARGING, MICROMOLAR_UNITS)
 from wholecell.utils import units
@@ -77,7 +78,19 @@ def initialize_bulk_counts(sim_data, media_id, import_molecules, random_state,
     if form_complxes:
         initialize_complexation(bulk_counts, sim_data, random_state)
 
-    return bulk_counts
+    bulk_masses = sim_data.internal_state.bulk_molecules.bulk_data['mass'
+        ].asNumber(units.fg / units.mol) / sim_data.constants.n_avogadro.\
+            asNumber(1 / units.mol)
+    bulk_submasses = []
+    bulk_submass_dtypes = []
+    for submass, idx in sim_data.submass_name_to_index.items():
+        bulk_submasses.append(bulk_masses[:, idx])
+        bulk_submass_dtypes.append((f'{submass}_submass', np.float64))
+    bulk_array = np.array([mol_data for mol_data in
+                           zip(bulk_counts, *bulk_submasses)],
+                           dtype=[('count', int)] + bulk_submass_dtypes)
+
+    return bulk_array
 
 
 def initialize_unique_molecules(bulk_state, sim_data, cell_mass, random_state,
@@ -1493,7 +1506,28 @@ def rescale_initiation_probs(init_probs, TU_index, fixed_synth_probs,
         init_probs[fixed_rna_mask] = synth_prob / fixed_rna_mask.sum()
 
 
-def initialize_trna_charging(sim_data, states, variable_elongation):
+def calculate_cell_mass(bulk_state, unique_molecules, sim_data):
+    """
+    Calculates cell mass in femtograms.
+    """
+    bulk_submasses = [f'{submass}_submass' for submass in
+                      sim_data.submass_name_to_index.keys()]
+    cell_mass = bulk_state['count'].dot(bulk_state[bulk_submasses]).sum()
+
+    if len(unique_molecules) > 0:
+        unique_masses = sim_data.internal_state.unique_molecule.\
+            unique_molecule_masses.struct_array
+        unique_submasses = [f'massDiff_{submass}' for submass in
+                        sim_data.submass_name_to_index.keys()]
+        for unique_id, unique_submasses in unique_masses:
+            cell_mass += (unique_molecules[unique_id]['_entryState'].sum() *
+                        unique_submasses).sum()
+            cell_mass += unique_molecules[unique_id][unique_submasses].sum()
+    
+    return cell_mass
+
+
+def initialize_trna_charging(bulk_state, unique_molecules, sim_data, variable_elongation):
     '''
     Initializes charged tRNA from uncharged tRNA and amino acids
 
@@ -1506,26 +1540,32 @@ def initialize_trna_charging(sim_data, states, variable_elongation):
     Notes:
         Does not adjust for mass of amino acids on charged tRNA (~0.01% of cell mass)
     '''
-
     # Calculate cell volume for concentrations
-    cell_volume = init.calculate_cell_mass(states) / sim_data.constants.cell_density
+    cell_volume = calculate_cell_mass(bulk_state, unique_molecules, sim_data
+        ) / sim_data.constants.cell_density
     counts_to_molar = 1 / (sim_data.constants.n_avogadro * cell_volume)
 
     # Get molecule views and concentrations
     transcription = sim_data.process.transcription
     aa_from_synthetase = transcription.aa_from_synthetase
     aa_from_trna = transcription.aa_from_trna
-    bulk_molecules = states['BulkMolecules'].container
-    synthetases = bulk_molecules.countsView(transcription.synthetase_names)
-    uncharged_trna = bulk_molecules.countsView(transcription.uncharged_trna_names)
-    charged_trna = bulk_molecules.countsView(transcription.charged_trna_names)
-    aas = bulk_molecules.countsView(sim_data.molecule_groups.amino_acids)
-    ribosome_counts = states['UniqueMolecules'].container.counts(['active_ribosome'])
+    synthetases = counts(bulk_state, bulk_name_to_idx(
+        transcription.synthetase_names, bulk_state['id']))
+    uncharged_trna_idx = bulk_name_to_idx(
+        transcription.uncharged_trna_names, bulk_state['id'])
+    uncharged_trna = counts(bulk_state, uncharged_trna_idx)
+    charged_trna_idx = bulk_name_to_idx(
+        transcription.charged_trna_names, bulk_state['id'])
+    charged_trna = counts(bulk_state, charged_trna_idx)
+    aas = counts(bulk_state, bulk_name_to_idx(
+        sim_data.molecule_groups.amino_acids, bulk_state['id']))
 
-    synthetase_conc = counts_to_molar * np.dot(aa_from_synthetase, synthetases.counts())
-    uncharged_trna_conc = counts_to_molar * np.dot(aa_from_trna, uncharged_trna.counts())
-    charged_trna_conc = counts_to_molar * np.dot(aa_from_trna, charged_trna.counts())
-    aa_conc = counts_to_molar * aas.counts()
+    ribosome_counts = unique_molecules['active_ribosome']['_entryState'].sum()
+
+    synthetase_conc = counts_to_molar * np.dot(aa_from_synthetase, synthetases)
+    uncharged_trna_conc = counts_to_molar * np.dot(aa_from_trna, uncharged_trna)
+    charged_trna_conc = counts_to_molar * np.dot(aa_from_trna, charged_trna)
+    aa_conc = counts_to_molar * aas
     ribosome_conc = counts_to_molar * ribosome_counts
 
     # Estimate fraction of amino acids from sequences, excluding first index for padding of -1
@@ -1556,8 +1596,8 @@ def initialize_trna_charging(sim_data, states, variable_elongation):
         charged_trna_conc, aa_conc, ribosome_conc, f, charging_params)
 
     # Update counts of tRNA to match charging
-    total_trna_counts = uncharged_trna.counts() + charged_trna.counts()
+    total_trna_counts = uncharged_trna + charged_trna
     charged_trna_counts = np.round(total_trna_counts * np.dot(fraction_charged, aa_from_trna))
     uncharged_trna_counts = total_trna_counts - charged_trna_counts
-    charged_trna.countsIs(charged_trna_counts)
-    uncharged_trna.countsIs(uncharged_trna_counts)
+    bulk_state['count'][charged_trna_idx] = charged_trna_counts
+    bulk_state['count'][uncharged_trna_idx] = uncharged_trna_counts
