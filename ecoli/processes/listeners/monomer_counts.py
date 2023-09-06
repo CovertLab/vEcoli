@@ -163,7 +163,6 @@ class MonomerCounts(Step):
                 self.replisome_subunit_ids, bulk_ids)
 
         # Get current counts of bulk and unique molecules
-        # uniqueMoleculeCounts = self.uniqueMolecules.container.counts()
         bulkMoleculeCounts = counts(states['bulk'], self.bulk_molecule_idx)
         n_active_ribosome = states['unique'][
             'active_ribosome']['_entryState'].sum()

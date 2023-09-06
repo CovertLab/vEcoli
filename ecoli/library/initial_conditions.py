@@ -28,22 +28,24 @@ def create_bulk_container(sim_data, n_seeds=1, condition=None, seed=0,
         old_condition = sim_data.condition
         if condition is not None:
             sim_data.condition = condition
-        bulk_ids = sim_data.internal_state.bulk_molecules.bulk_data["id"]
-        average_container = np.array(
-            zip(bulk_ids, np.zeros(len(bulk_ids))),
-            dtype=[("id", "U40"), ("count", int)])
         media_id = sim_data.conditions[sim_data.condition]["nutrients"]
         exchange_data = sim_data.external_state.exchange_data_from_media(media_id)
         import_molecules = (
             set(exchange_data["importUnconstrainedExchangeMolecules"])
             | set(exchange_data["importConstrainedExchangeMolecules"]))
         
-        for n in range(n_seeds):
+        random_state = np.random.RandomState(seed=seed)
+        average_container = initialize_bulk_counts(
+                sim_data, media_id, import_molecules, random_state, 
+                mass_coeff, ppgpp_regulation, trna_attenuation, 
+                form_complxes=form_complexes)
+        
+        for n in range(1, n_seeds):
             random_state = np.random.RandomState(seed=seed+n)
             average_container["count"] += initialize_bulk_counts(
                 sim_data, media_id, import_molecules, random_state, 
                 mass_coeff, ppgpp_regulation, trna_attenuation, 
-                form_complxes=form_complexes)
+                form_complxes=form_complexes)["count"]
     except Exception:
         raise RuntimeError("sim_data might not be fully initialized. " \
                            "Make sure all attributes have been set before " \

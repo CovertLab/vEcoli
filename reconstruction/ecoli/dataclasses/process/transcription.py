@@ -14,6 +14,7 @@ import sympy as sp
 
 from reconstruction.ecoli.dataclasses.getter_functions import EXCLUDED_RNA_TYPES
 from ecoli.library.sim_data import MAX_TIME_STEP
+from ecoli.library.schema import bulk_name_to_idx, counts
 from wholecell.utils import data, fitting, units
 from wholecell.utils.fast_nonnegative_least_squares import fast_nnls
 from wholecell.utils.fitting import normalize
@@ -1490,12 +1491,15 @@ class Transcription(object):
 		def get_trna_conc(condition):
 			spec = cell_specs[condition]
 			unprocessed_trna_ids = self.rna_data['id'][self.rna_data['includes_tRNA']]
-			unprocessed_counts = spec['bulkAverageContainer'].counts(unprocessed_trna_ids)
-			counts = self.tRNA_cistron_tu_mapping_matrix.dot(unprocessed_counts)
+			unprocessed_trna_idx = bulk_name_to_idx(unprocessed_trna_ids,
+				spec['bulkAverageContainer']['id'])
+			unprocessed_counts = counts(spec['bulkAverageContainer'],
+			    unprocessed_trna_idx)
+			trna_counts = self.tRNA_cistron_tu_mapping_matrix.dot(unprocessed_counts)
 			volume = (spec['avgCellDryMassInit'] / sim_data.constants.cell_density
 				/ sim_data.mass.cell_dry_mass_fraction)
 			# Order of operations for conc (counts last) is to get units to work well
-			conc = 1 / sim_data.constants.n_avogadro / volume * counts
+			conc = 1 / sim_data.constants.n_avogadro / volume * trna_counts
 			return conc
 
 		k_units = units.umol / units.L
@@ -1835,7 +1839,10 @@ class Transcription(object):
 		self.exp_ppgpp /= self.exp_ppgpp.sum()
 
 	def set_ppgpp_kinetics_parameters(self, init_container, constants):
-		trna_counts = self.aa_from_trna @ init_container.counts(self.uncharged_trna_names)
+		uncharged_trna_idx = bulk_name_to_idx(self.uncharged_trna_names,
+			init_container['id'])
+		trna_counts = self.aa_from_trna @ counts(init_container,
+			uncharged_trna_idx)
 		trna_ratio = trna_counts / trna_counts.sum()
 		adjustment_fraction = trna_ratio / trna_ratio.mean()
 
