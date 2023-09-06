@@ -16,44 +16,48 @@ def main():
     parser.add_argument('-c', '--cpus', type=int, default=1,
         help='The number of CPU processes to use. Default = 1.')
     parser.add_argument('-o', '--outdir', type=str,
-        default='reconstructions/sim_data', help='Directory to hold ParCa'
-        ' output kb folder. Default = reconstructions/sim_data')
-    parser.add_argument('--operons', type=bool, default=False,
-        help='Turn operons on (polycistronic). Default = False.')
-    parser.add_argument('--ribosome_fitting', type=bool, default=True,
+        default='reconstruction/sim_data', help='Directory to hold ParCa'
+        ' output kb folder. Default = reconstruction/sim_data')
+    parser.add_argument('--operons', action=argparse.BooleanOptionalAction,
+        default=True, help='Turn operons on (polycistronic).')
+    parser.add_argument('--ribosome-fitting', default=True,
+        action=argparse.BooleanOptionalAction,
         help='Fit ribosome expression to protein synthesis demands.')
-    parser.add_argument('--rnapoly_fitting', type=bool, default=True,
+    parser.add_argument('--rnapoly-fitting', default=True,
+        action=argparse.BooleanOptionalAction,
         help='Fit RNA polymerase expression to protein synthesis demands.')
-    parser.add_argument('--remove_rrna_operons', type=bool, default=False,
+    parser.add_argument('--remove-rrna-operons', action='store_true',
         help='Remove the seven rRNA operons. Does not have any effect if'
-        ' operon flag is False (default).')
-    parser.add_argument('--remove_rrff', type=bool, default=False,
-        help='Remove the rrfF gene. If operon flag is True (default: False),'
+        ' --no-operons specified.')
+    parser.add_argument('--remove-rrff', action='store_true',
+        help='Remove the rrfF gene. If operons are enabled,'
         ' removes the rrfF gene from the rrnD operon.')
-    parser.add_argument('--debug_parca', type=bool, default=False,
+    parser.add_argument('--debug-parca', action='store_true',
         help='Make Parca calculate only one arbitrarily-chosen transcription'
         ' factor condition when adjusting gene expression levels, leaving'
         ' the other TFs at their input levels for faster Parca debugging.'
         ' DO NOT USE THIS FOR A MEANINGFUL SIMULATION.')
-    parser.add_argument('--load_intermediate', default=None,
+    parser.add_argument('--load-intermediate', default=None, type=str,
         help='The function in the parca to load (skips functions that would'
         ' have run before the function). Must run with --save-intermediates'
         ' first.')
-    parser.add_argument('--save_intermediates', action='store_true',
+    parser.add_argument('--save-intermediates', action='store_true',
         help='If set, saves sim_data and cell_specs at intermediate'
         ' function calls in the parca.')
-    parser.add_argument('--intermediates_directory', default=None,
+    parser.add_argument('--intermediates-directory', default='', type=str,
         help='Directory to save or load intermediate sim_data and cell_specs'
         ' results from if --load-intermediate or --save-intermediates'
         ' are set.')
-    parser.add_argument('--variable_elongation_transcription', type=bool,
-        default=True, help='Use a different elongation rate for different'
-        'transcripts (currently increases rates for rRNA). Usually set this'
+    parser.add_argument('--variable-elongation-transcription', default=True,
+        action=argparse.BooleanOptionalAction,
+        help='Use a different elongation rate for different transcripts'
+        ' (currently increases rates for rRNA). Usually set this'
         ' consistently between runParca and runSim.')
-    parser.add_argument('--variable_elongation_translation', type=bool,
-        default=False, help='Use a different elongation rate for different'
-        'polypeptides (currently increases rates for ribosomal proteins). '
-        'Usually set this consistently between runParca and runSim.')
+    parser.add_argument('--variable-elongation-translation', default=False,
+        action=argparse.BooleanOptionalAction,
+        help='Use a different elongation rate for different polypeptides'
+        ' (currently increases rates for ribosomal proteins).'
+        ' Usually set this consistently between runParca and runSim.')
     
     args = parser.parse_args()
 
@@ -69,7 +73,6 @@ def main():
         kb_directory, constants.SERIALIZED_RAW_VALIDATION_DATA)
     validation_data_file = os.path.join(
         kb_directory, constants.SERIALIZED_VALIDATION_DATA)
-    intermediates_dir = kb_directory
 
 
     print(f"{time.ctime()}: Instantiating raw_data with operons={args.operons}")

@@ -3253,7 +3253,7 @@ def fitLigandConcentrations(sim_data, cell_specs):
 		inactiveCellVolume = (cell_specs[inactiveKey]["avgCellDryMassInit"] /
 			cellDensity / sim_data.mass.cell_dry_mass_fraction)
 		inactiveCountsToMolar = 1/(sim_data.constants.n_avogadro * inactiveCellVolume)
-		inactiveSignalConc = ((inactiveCountsToMolar * counts(cell_specs[activeKey
+		inactiveSignalConc = ((inactiveCountsToMolar * counts(cell_specs[inactiveKey
 			]["bulkAverageContainer"], metabolite_idx)).asNumber(
 			units.mol/units.L))
 

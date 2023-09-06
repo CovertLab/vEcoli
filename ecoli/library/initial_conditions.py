@@ -35,17 +35,19 @@ def create_bulk_container(sim_data, n_seeds=1, condition=None, seed=0,
             | set(exchange_data["importConstrainedExchangeMolecules"]))
         
         random_state = np.random.RandomState(seed=seed)
-        average_container = initialize_bulk_counts(
-                sim_data, media_id, import_molecules, random_state, 
-                mass_coeff, ppgpp_regulation, trna_attenuation, 
-                form_complxes=form_complexes)
         
-        for n in range(1, n_seeds):
+        # Construct bulk container
+        ids_molecules = sim_data.internal_state.bulk_molecules.bulk_data['id']
+        average_container = np.array([mol_data for mol_data in
+            zip(ids_molecules, np.zeros(len(ids_molecules)))],
+            dtype=[('id', ids_molecules.dtype), ('count', np.float64)])
+        
+        for n in range(n_seeds):
             random_state = np.random.RandomState(seed=seed+n)
             average_container["count"] += initialize_bulk_counts(
                 sim_data, media_id, import_molecules, random_state, 
                 mass_coeff, ppgpp_regulation, trna_attenuation, 
-                form_complxes=form_complexes)["count"]
+                form_complexes=form_complexes)["count"]
     except Exception:
         raise RuntimeError("sim_data might not be fully initialized. " \
                            "Make sure all attributes have been set before " \
@@ -53,6 +55,7 @@ def create_bulk_container(sim_data, n_seeds=1, condition=None, seed=0,
 
     sim_data.condition = old_condition
     average_container["count"] = average_container["count"] / n_seeds
+    return average_container
 
 
 def initialize_bulk_counts(sim_data, media_id, import_molecules, random_state,
