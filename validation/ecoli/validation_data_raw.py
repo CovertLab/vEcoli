@@ -5,21 +5,22 @@ Raw validation data for Ecoli. Contains raw data processed
 directly from TSV flat files.
 """
 
-from __future__ import absolute_import, division, print_function
-
 import os
 from reconstruction.spreadsheets import read_tsv
 
 FLAT_DIR = os.path.join(os.path.dirname(__file__), "flat")
 LIST_OF_DICT_FILENAMES = (
-	"taniguichi2010_table_6.tsv",
-	"houser2015_javier_table.tsv",
-	"wisniewski2014_supp2.tsv",
-	"schmidt2015_javier_table.tsv",
-	"toya_2010_central_carbon_fluxes.tsv",
-	"dna_footprint_sizes.tsv",
+	"amino_acid_growth_rates.tsv",
+	"amino_acid_growth_rates_dose_response.tsv",
 	"essential_genes.tsv",
 	"geneFunctions.tsv",
+	"houser2015_javier_table.tsv",
+	"li_protein_synthesis_rates_2014.tsv",
+	"macromolecular_growth_rate_modulation.tsv",
+	"schmidt2015_javier_table.tsv",
+	"taniguichi2010_table_6.tsv",
+	"toya_2010_central_carbon_fluxes.tsv",
+	"wisniewski2014_supp2.tsv",
 	)
 
 class ValidationDataRawEcoli(object):

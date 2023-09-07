@@ -8,7 +8,7 @@ This process models how transcription factors bind to promoters on the DNA seque
 
 import numpy as np
 
-from vivarium.library.dict_utils import deep_merge
+from vivarium.core.process import Step
 
 from ecoli.library.schema import (
     listener_schema, numpy_schema, attrs, bulk_name_to_idx, counts)
@@ -17,7 +17,6 @@ from wholecell.utils.random import stochasticRound
 from wholecell.utils import units
 
 from ecoli.processes.registries import topology_registry
-from ecoli.processes.partition import PartitionedProcess
 
 
 # Register default topology for this process, associating it with process name
@@ -26,13 +25,14 @@ TOPOLOGY = {
     "promoters": ("unique", "promoter"),
     "bulk": ("bulk",),
     "bulk_total": ("bulk",),
-    "listeners": ("listeners",)
+    "listeners": ("listeners",),
+    "first_update": ("first_update", "tf_binding"),
 }
 topology_registry.register(NAME, TOPOLOGY)
 
 
-class TfBinding(PartitionedProcess):
-    """ Transcription Factor Binding PartitionedProcess """
+class TfBinding(Step):
+    """ Transcription Factor Binding Step """
     name = NAME
     topology = TOPOLOGY
     defaults = {
@@ -52,7 +52,8 @@ class TfBinding(PartitionedProcess):
         'seed': 0,
         'submass_to_idx': {'rRNA': 0, 'tRNA': 1, 'mRNA': 2, 'miscRNA': 3,
             'nonspecific_RNA': 4, 'protein': 5, 'metabolite': 6,
-            'water': 7, 'DNA': 8}
+            'water': 7, 'DNA': 8},
+        'emit_unique': False,
     }
 
     # Constructor
@@ -115,11 +116,12 @@ class TfBinding(PartitionedProcess):
         if "PD00365" in self.tf_ids:
             self.marR_name = "CPLX0-7710[c]"
             self.marR_tet = "marR-tet[c]"
-        self.submass_to_idx = self.parameters['submass_to_idx']
+        self.submass_indices = self.parameters['submass_indices']
         
     def ports_schema(self):
         return {
-            'promoters': numpy_schema('promoters'),
+            'promoters': numpy_schema('promoters',
+                emit=self.parameters['emit_unique']),
 
             'bulk': numpy_schema('bulk'),
             'bulk_total': numpy_schema('bulk', partition=False),
@@ -130,11 +132,17 @@ class TfBinding(PartitionedProcess):
                     'n_promoter_bound': 0,
                     'n_actual_bound': 0,
                     'n_available_promoters': 0,
-                    'n_bound_TF_per_TU': 0,
-                    'gene_copy_number': []})},
+                    'n_bound_TF_per_TU': 0})},
+            
+            'first_update': {
+                '_default': True,
+                '_updater': 'set',
+                '_divider': {'divider': 'set_value',
+                    'config': {'value': True}}},
         }
         
-    def calculate_request(self, timestep, states):
+    def next_update(self, timestep, states):
+        # At t=0, convert all strings to indices
         if self.active_tf_idx is None:
             bulk_ids = states['bulk']['id']
             self.active_tf_idx = {
@@ -148,16 +156,10 @@ class TfBinding(PartitionedProcess):
             if "PD00365" in self.tf_ids:
                 self.marR_idx = bulk_name_to_idx(self.marR_name, bulk_ids)
                 self.marR_tet_idx = bulk_name_to_idx(self.marR_tet, bulk_ids)
-
-        # request all active tfs
-        requests = {'bulk': []}
-        active_tf_idx = list(self.active_tf_idx.values())
-        requests['bulk'].append(
-            (active_tf_idx, counts(states['bulk'], active_tf_idx)))
-
-        return requests
         
-    def evolve_state(self, timestep, states):
+        if states['first_update']:
+            return {'first_update': False}
+
         # If there are no promoters, return immediately
         if states['promoters']['_entryState'].sum() == 0:
             return {'promoters': {}}
@@ -265,9 +267,9 @@ class TfBinding(PartitionedProcess):
         mass_diffs = delta_TF.dot(self.active_tf_masses)
 
         submass_update = {
-            f'massDiff_{submass}': attrs(states['promoters'],
-                [f'massDiff_{submass}'])[0] + mass_diffs[:, i]
-            for submass, i in self.submass_to_idx.items()
+            submass: attrs(states['promoters'],
+                [submass])[0] + mass_diffs[:, i]
+            for submass, i in self.submass_indices.items()
         }
         update['promoters'] = {
             'set': {
@@ -283,8 +285,7 @@ class TfBinding(PartitionedProcess):
                 'n_actual_bound': nActualBound,
                 'n_available_promoters': n_promoters,
                 # 900 KB, very large, comment out to halve emit size
-                'n_bound_TF_per_TU': n_bound_TF_per_TU,
-                'gene_copy_number': np.bincount(TU_index, minlength=self.n_TU)},
+                'n_bound_TF_per_TU': n_bound_TF_per_TU},
         }
 
         return update
@@ -298,8 +299,6 @@ def test_tf_binding_listener():
     sim.build_ecoli()
     sim.run()
     data = sim.query()
-    assert(type(data['listeners']['rna_synth_prob']['gene_copy_number'][0]) == list)
-    assert(type(data['listeners']['rna_synth_prob']['gene_copy_number'][1]) == list)
 
 
 if __name__ == '__main__':

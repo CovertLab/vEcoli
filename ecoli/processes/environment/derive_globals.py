@@ -147,7 +147,7 @@ def get_default_global_state():
             'mmol_to_counts': mmol_to_counts.to('L/mmol')}}
 
 
-def test_deriver(total_time=10):
+def test_deriver(total_time=10, return_data=False):
 
     growth_rate = 6e-3
 
@@ -183,9 +183,10 @@ def test_deriver(total_time=10):
         # save state
         saved_state[time] = copy.deepcopy(state)
 
-    return saved_state
+    if return_data:
+        return saved_state
 
 
 if __name__ == '__main__':
-    saved_data = test_deriver(100)
+    saved_data = test_deriver(100, return_data=True)
     print(saved_data)

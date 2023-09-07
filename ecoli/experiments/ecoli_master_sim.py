@@ -20,8 +20,6 @@ from vivarium.core.serialize import deserialize_value, serialize_value
 from vivarium.library.dict_utils import deep_merge
 from vivarium.library.topology import assoc_path
 from ecoli.library.logging_tools import write_json
-# Two different Ecoli composers depending on partitioning
-import ecoli.composites.ecoli_nonpartition
 import ecoli.composites.ecoli_master
 # Environment composer for spatial environment sim
 import ecoli.composites.environment.lattice
@@ -363,12 +361,6 @@ class EcoliSim:
             for process, ports in result.items():
                 result[process]['log_update'] = ('log_update', process,)
 
-        # add division
-        if divide:
-            result['division'] = {
-                'variable': ('listeners', 'mass', 'dry_mass'),
-                'agents': self.agents_path}
-
         return result
 
 
@@ -404,12 +396,8 @@ class EcoliSim:
             self.config['seed'] += seed
 
         # initialize the ecoli composer
-        if self.partition:
-            ecoli_composer = ecoli.composites.ecoli_master.Ecoli(
-                self.config)
-        else:
-            ecoli_composer = ecoli.composites.ecoli_nonpartition.Ecoli(
-                self.config)
+        ecoli_composer = ecoli.composites.ecoli_master.Ecoli(
+            self.config)
 
         # set path at which agent is initialized
         path = tuple()
@@ -419,8 +407,7 @@ class EcoliSim:
         # get initial state
         initial_cell_state = ecoli_composer.initial_state()
         initial_cell_state = assoc_path({}, path, initial_cell_state)
-        # Remove unnecessary reference
-        self.initial_state = None
+
         # generate the composite at the path
         self.ecoli = ecoli_composer.generate(path=path)
         # Some processes define their own initial_state methods
@@ -465,22 +452,20 @@ class EcoliSim:
             if self.divide:
                 for agent_state in state['agents'].values():
                     # Will be set to true when starting sim
-                    del agent_state['evolvers_ran']
-                    del agent_state['deriver_skips']
-                    # Sets are nondeterministic
-                    del agent_state['environment']
+                    del agent_state['first_update']
                     # Processes can't be serialized
                     del agent_state['process']
+                    # Bulk random state can't be serialized
+                    del agent_state['allocator_rng']
                     # Save bulk and unique dtypes
                     agent_state['bulk_dtypes'] = str(agent_state['bulk'].dtype)
                     agent_state['unique_dtypes'] = {}
                     for name, mols in agent_state['unique'].items():
                         agent_state['unique_dtypes'][name] = str(mols.dtype)
             else:
-                del state['evolvers_ran']
-                del state['deriver_skips']
-                del state['environment']
+                del state['first_update']
                 del state['process']
+                del state['allocator_rng']
                 state['bulk_dtypes'] = str(state['bulk'].dtype)
                 state['unique_dtypes'] = {}
                 for name, mols in state['unique'].items():
@@ -542,7 +527,8 @@ class EcoliSim:
         # Clean up unnecessary references
         self.generated_initial_state = None
         self.ecoli_experiment.initial_state = None
-        del metadata
+        del metadata, experiment_config, emitter_config
+        self.ecoli = None
 
         # run the experiment
         if self.save:
@@ -596,6 +582,7 @@ class EcoliSim:
 
 
 def main():
+    import multiprocessing; multiprocessing.set_start_method('spawn')
     ecoli_sim = EcoliSim.from_cli()
     ecoli_sim.build_ecoli()
     ecoli_sim.run()

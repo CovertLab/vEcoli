@@ -297,7 +297,8 @@ def main(total_time=2000, step=60, exchange=False):
         growth_noise=1e-3,
         bounds=bounds,
         n_bins=n_bins,
-        initial_field=initial_field)
+        initial_field=initial_field,
+        return_data=True)
 
     # make snapshot video
     make_video(

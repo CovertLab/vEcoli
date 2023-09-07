@@ -123,7 +123,8 @@ class EcoliEngineProcess(Composer):
         'inner_emitter': 'null',
         'inner_composer_config': {},
         'lysis_config': {},
-        'inner_same_timestep': True
+        'inner_same_timestep': True,
+        'division_threshold': True,
     }
 
     def generate_processes(self, config):
@@ -155,7 +156,7 @@ class EcoliEngineProcess(Composer):
             'divide': config['divide'],
             # Inner sim will set store at ('division_trigger',)
             # equal to True when time to divide
-            'division_threshold': True,
+            'division_threshold': config['division_threshold'],
             'division_variable': ('division_trigger',),
             '_parallel': config['parallel'],
             'start_time': config['start_time'],
@@ -193,10 +194,6 @@ def colony_save_states(engine, config):
     Runs the simulation while saving the states of the colony at specific
     timesteps to jsons.
     """
-    # Since unique numpy updater is an class method, internal
-    # deepcopying in vivarium-core causes this warning to appear
-    warnings.filterwarnings("ignore",
-        message="Incompatible schema assignment at ")
     for time in config["save_times"]:
         if time > config["total_time"]:
             raise ValueError(
@@ -227,7 +224,6 @@ def colony_save_states(engine, config):
             ).value.get_command_result()
             # Can't save, but will be restored when loading state
             del cell_state['environment']['exchange_data']  
-            del cell_state['evolvers_ran']
             # Shared processes are re-initialized on load
             del cell_state['process']
             # Save bulk and unique dtypes
@@ -390,6 +386,10 @@ def run_simulation(config):
     metadata['git_hash'] = get_git_revision_hash()
     metadata['git_status'] = get_git_status()
 
+    # Since unique numpy updater is an class method, internal
+    # deepcopying in vivarium-core causes this warning to appear
+    warnings.filterwarnings("ignore",
+        message="Incompatible schema assignment at ")
     engine = Engine(
         processes=composite.processes,
         topology=composite.topology,
@@ -426,25 +426,24 @@ def test_run_simulation():
     spatial_config_path = os.path.join(CONFIG_DIR_PATH, 'spatial.json')
     config.update_from_json(spatial_config_path)
     config.update_from_dict({
-        'total_time': 5,
+        'total_time': 30,
         'divide': True,
         'emitter' : 'shared_ram',
         'parallel': False,
         'engine_process_reports': [
             ('listeners', 'mass'),
-        ],
-        'progress_bar': False,
+        ]
     })
     engine = run_simulation(config)
     data = engine.emitter.get_data()
 
     assert min(data.keys()) == 0
-    assert max(data.keys()) == 5
+    assert max(data.keys()) == 30
 
-    assert np.all(np.array(data[0]['fields']['GLC[p]']) == 1)
-    assert np.any(np.array(data[4]['fields']['GLC[p]']) != 1)
+    assert np.all(np.array(data[0]['fields']['GLC']) == 1)
+    assert np.any(np.array(data[29]['fields']['GLC']) != 1)
     mass_path = ('agents', '0', 'listeners', 'mass', 'cell_mass')
-    assert get_in(data[4], mass_path) > get_in(data[0], mass_path)
+    assert get_in(data[29], mass_path) > get_in(data[0], mass_path)
 
 
 if __name__ == '__main__':

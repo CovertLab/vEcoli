@@ -205,7 +205,8 @@ def test_struct_array_updater(mode="struct_array",
                               rate_add=0.5,
                               rate_delete=0.2,
                               mean_add=1,
-                              total_time=10):
+                              total_time=10,
+                              return_data=False):
     process_config = {
         'mode': mode,
         'rate_add': rate_add,
@@ -233,7 +234,8 @@ def test_struct_array_updater(mode="struct_array",
 
     print(f'Run in mode "{mode}" took {tock - tick} seconds.')
 
-    return (tock - tick), data
+    if return_data:
+        return (tock - tick), data
 
 
 def main():
@@ -259,7 +261,8 @@ def main():
                                                              rate_add=rate_ratio * rate_delete,
                                                              rate_delete=rate_delete,
                                                              mean_add = 100,
-                                                             total_time=total_time)
+                                                             total_time=total_time,
+                                                             return_data=True)
                 result[k, i, j, 0] = time
 
             # Assertions to make sure data matches across modes: ===============================

@@ -25,7 +25,8 @@ from ecoli.processes.partition import PartitionedProcess
 # Register default topology for this process, associating it with process name
 NAME = 'ecoli-protein-degradation'
 TOPOLOGY = {
-    "bulk": ('bulk',)
+    "bulk": ('bulk',),
+    "timestep": ("timestep",)
 }
 topology_registry.register(NAME, TOPOLOGY)
 
@@ -37,22 +38,19 @@ class ProteinDegradation(PartitionedProcess):
     topology = TOPOLOGY
     defaults = {
         'raw_degradation_rate': [],
-        'shuffle_indexes': None,
         'water_id': 'h2o',
         'amino_acid_ids': [],
         'amino_acid_counts': [],
         'protein_ids': [],
         'protein_lengths': [],
-        'seed': 0}
+        'seed': 0,
+        'time_step': 1}
 
     # Constructor
     def __init__(self, parameters=None):
         super().__init__(parameters)
 
         self.raw_degradation_rate = self.parameters['raw_degradation_rate']
-        self.shuffle_indexes = self.parameters['shuffle_indexes']
-        if self.shuffle_indexes:
-            self.raw_degradation_rate = self.raw_degradation_rate[self.shuffle_indexes]
 
         self.water_id = self.parameters['water_id']
         self.amino_acid_ids = self.parameters['amino_acid_ids']
@@ -82,7 +80,8 @@ class ProteinDegradation(PartitionedProcess):
             self.degradation_matrix[self.amino_acid_indexes, :], axis=0) - 1)
 
     def ports_schema(self):
-        return {'bulk': numpy_schema('bulk')}
+        return {'bulk': numpy_schema('bulk'),
+                'timestep': {'_default': self.parameters['time_step']}}
 
     def calculate_request(self, timestep, states):
         # In first timestep, convert all strings to indices
@@ -98,7 +97,7 @@ class ProteinDegradation(PartitionedProcess):
         # and counts of each protein
         nProteinsToDegrade = np.fmin(
             self.random_state.poisson(
-                self._proteinDegRates(timestep) * protein_data),
+                self._proteinDegRates(states['timestep']) * protein_data),
             protein_data
             )
 
@@ -134,7 +133,7 @@ class ProteinDegradation(PartitionedProcess):
         return self.raw_degradation_rate * timestep
 
 
-def test_protein_degradation():
+def test_protein_degradation(return_data=False):
     test_config = {
         'raw_degradation_rate': np.array([0.05, 0.08, 0.13, 0.21]),
         'water_id': 'H2O',
@@ -210,7 +209,8 @@ def test_protein_degradation():
 
     print("Passed all tests.")
 
-    return data
+    if return_data:
+        return data
 
 
 if __name__ == "__main__":

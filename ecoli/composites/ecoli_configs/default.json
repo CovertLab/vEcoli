@@ -11,27 +11,28 @@
     ],
     "emit_topology" : true,
     "emit_processes" : false,
-    "emit_config" : false,
+    "emit_config" : true,
     "log_updates" : false,
     "raw_output" : true,
     "seed": 0,
     "partition": true,
 
-    "initial_state_file": "wcecoli_t0",
+    "initial_state_file": "",
     "initial_state_overrides": [],
     "initial_state": {},
-    "time_step": 2.0,
-    "total_time": 100.0,
+    "time_step": 1.0,
+    "total_time": 3000.0,
     "generations": null,
 
     "agent_id": "0",
     "parallel": false,
     "daughter_path": [],
     "agents_path": ["..", "..", "agents"],
-    "division_threshold": "massDistribution",
-    "division_variable": ["listeners", "mass", "dry_mass"],
+    "divide": true,
+    "d_period": true,
+    "division_threshold": true,
+    "division_variable": ["divide"],
     "chromosome_path": ["unique", "full_chromosome"],
-    "divide": false,
     "spatial_environment": false,
     "spatial_environment_config": {},
 
@@ -43,31 +44,92 @@
     "swap_processes" : {},
     "profile": false,
     "processes": [
-        "ecoli-chromosome-structure",
-        "ecoli-metabolism",
-        "ecoli-tf-binding",
-        "ecoli-transcript-initiation",
-        "ecoli-transcript-elongation",
-        "ecoli-rna-degradation",
-        "ecoli-polypeptide-initiation",
-        "ecoli-polypeptide-elongation",
-        "ecoli-complexation",
-        "ecoli-two-component-system",
+        "bulk-timeline",
+        "media_update",
+        "exchange_data",
+
+        "ecoli-tf-unbinding",
+
         "ecoli-equilibrium",
-        "ecoli-protein-degradation",
+        "ecoli-two-component-system",
+
+        "ecoli-tf-binding",
+
+        "ecoli-transcript-initiation",
+        "ecoli-polypeptide-initiation",
         "ecoli-chromosome-replication",
+        "ecoli-protein-degradation",
+        "ecoli-rna-degradation",
+        "ecoli-complexation",
+
+        "ecoli-transcript-elongation",
+        "ecoli-polypeptide-elongation",
+        "ecoli-rna-maturation",
+
+        "ecoli-chromosome-structure",
+
+        "ecoli-metabolism",
+
         "ecoli-mass-listener",
-        "mRNA_counts_listener",
+        "RNA_counts_listener",
+        "rna_synth_prob_listener",
         "monomer_counts_listener",
-        "clock"
+        "dna_supercoiling_listener",
+        "replication_data_listener",
+        "rnap_data_listener",
+        "unique_molecule_counts",
+        "ribosome_data_listener",
+        "global_clock"
     ],
-    "process_configs": {"clock": {"time_step": 2}},
-    "topology": {},
+    "process_configs": {
+        "global_clock": {"time_step": 1},
+        "replication_data_listener": {"time_step": 1}},
+    "topology": {
+        "bulk-timeline": {
+            "bulk": ["bulk"],
+            "global": ["timeline"],
+            "media_id": ["environment", "media_id"]
+        },
+        "global_clock": {
+            "global_time": ["global_time"],
+            "timestep": ["timestep"]
+        }
+    },
     "flow": {
+        "media_update": [],
+        "exchange_data": [["media_update"]],
+
+        "ecoli-tf-unbinding": [["media_update"]],
+
+        "ecoli-equilibrium": [["ecoli-tf-unbinding"]],
+        "ecoli-two-component-system": [["ecoli-tf-unbinding"]],
+
+        "ecoli-tf-binding": [["ecoli-equilibrium"]],
+
+        "ecoli-transcript-initiation": [["ecoli-tf-binding"]],
+        "ecoli-polypeptide-initiation": [["ecoli-tf-binding"]],
+        "ecoli-chromosome-replication": [["ecoli-tf-binding"]],
+        "ecoli-protein-degradation": [["ecoli-tf-binding"]],
+        "ecoli-rna-degradation": [["ecoli-tf-binding"]],
+        "ecoli-complexation": [["ecoli-tf-binding"]],
+
+        "ecoli-transcript-elongation": [["ecoli-complexation"]],
+        "ecoli-polypeptide-elongation": [["ecoli-complexation"]],
+        "ecoli-rna-maturation": [["ecoli-complexation"]],
+
+        "ecoli-chromosome-structure": [["ecoli-rna-maturation"]],
+
         "ecoli-metabolism": [["ecoli-chromosome-structure"]],
+
         "ecoli-mass-listener": [["ecoli-metabolism"]],
-        "mRNA_counts_listener": [["ecoli-mass-listener"]],
-        "monomer_counts_listener": [["mRNA_counts_listener"]]
+        "RNA_counts_listener": [["ecoli-metabolism"]],
+        "rna_synth_prob_listener": [["ecoli-metabolism"]],
+        "monomer_counts_listener": [["ecoli-metabolism"]],
+        "dna_supercoiling_listener": [["ecoli-metabolism"]],
+        "replication_data_listener": [["ecoli-metabolism"]],
+        "rnap_data_listener": [["ecoli-metabolism"]],
+        "unique_molecule_counts": [["ecoli-metabolism"]],
+        "ribosome_data_listener": [["ecoli-metabolism"]]
     },
     "_schema": {},
     "engine_process_reports": [

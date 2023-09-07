@@ -38,7 +38,9 @@ TOPOLOGY = {
     "chromosome_domains": ("unique", "chromosome_domain"),
     "full_chromosomes": ("unique", "full_chromosome"),
     "listeners": ("listeners",),
-    "environment": ("environment",)
+    "environment": ("environment",),
+    "global_time": ("global_time",),
+    "timestep": ("timestep",),
 }
 topology_registry.register(NAME, TOPOLOGY)
 
@@ -58,6 +60,7 @@ class ChromosomeReplication(PartitionedProcess):
         'polymerized_dntp_weights': [],
         'replication_coordinate': np.array([]),
         'D_period': np.array([]),
+        'replisome_protein_mass': 0,
         'no_child_place_holder': -1,
         'basal_elongation_rate': 967,
         'make_elongation_rates': (lambda random, replisomes, base, time_step:
@@ -72,6 +75,8 @@ class ChromosomeReplication(PartitionedProcess):
 
         # random seed
         'seed': 0,
+
+        'emit_unique': False
     }
 
     def __init__(self, parameters=None):
@@ -89,6 +94,7 @@ class ChromosomeReplication(PartitionedProcess):
             'polymerized_dntp_weights']
         self.replication_coordinate = self.parameters['replication_coordinate']
         self.D_period = self.parameters['D_period']
+        self.replisome_protein_mass = self.parameters['replisome_protein_mass']
         self.no_child_place_holder = self.parameters['no_child_place_holder']
         self.basal_elongation_rate = self.parameters['basal_elongation_rate']
         self.make_elongation_rates = self.parameters['make_elongation_rates']
@@ -132,11 +138,21 @@ class ChromosomeReplication(PartitionedProcess):
                     '_default': '',
                     '_updater': 'set'},
                 },
-            'active_replisomes': numpy_schema('active_replisomes'),
-            'oriCs': numpy_schema('oriCs'),
-            'chromosome_domains': numpy_schema('chromosome_domains'),
-            'full_chromosomes': numpy_schema('full_chromosomes')
+            'active_replisomes': numpy_schema('active_replisomes',
+                emit=self.parameters['emit_unique']),
+            'oriCs': numpy_schema('oriCs',
+                emit=self.parameters['emit_unique']),
+            'chromosome_domains': numpy_schema('chromosome_domains',
+                emit=self.parameters['emit_unique']),
+            'full_chromosomes': numpy_schema('full_chromosomes',
+                emit=self.parameters['emit_unique']),
+            'global_time': {'_default': 0},
+            'timestep': {'_default': self.parameters['time_step']}
         }
+    
+    def update_condition(self, timestep, states):
+        return (states['global_time'] % states['timestep']
+                ) == 0
 
     def calculate_request(self, timestep, states):
         if self.ppi_idx is None:
@@ -189,7 +205,7 @@ class ChromosomeReplication(PartitionedProcess):
             self.random_state,
             len(self.sequences),
             self.basal_elongation_rate,
-            timestep)
+            states['timestep'])
 
         sequences = buildSequences(
             self.sequences,
@@ -299,13 +315,17 @@ class ChromosomeReplication(PartitionedProcess):
             right_replichore = right_replichore.tolist()
             domain_index_new_replisome = np.repeat(
                 domain_index_existing_oric, 2)
+            massDiff_protein_new_replisome = np.full(n_new_replisome,
+                self.replisome_protein_mass if self.mechanistic_replisome
+                else 0.)
             new_replisome_indexes = create_unique_indexes(
                 n_new_replisome, self.unique_idx_random_state)
             update['active_replisomes']['add'] = {
                 'unique_index': new_replisome_indexes,
                 'coordinates': coordinates_replisome,
                 'right_replichore': right_replichore,
-                'domain_index': domain_index_new_replisome
+                'domain_index': domain_index_new_replisome,
+                'massDiff_protein': massDiff_protein_new_replisome
             }
 
             # Add and set attributes of new chromosome domains. All new domains
@@ -493,8 +513,7 @@ class ChromosomeReplication(PartitionedProcess):
                     'add': {
                         'unique_index': new_chromosome_indexes,
                         'domain_index': domain_index_new_full_chroms,
-                        # TODO(vivarium-ecoli): How is division_time used?
-                        'division_time': self.D_period,
+                        'division_time': states['global_time'] + self.D_period,
                         'has_triggered_division': False
                     }
                 }

@@ -13,7 +13,7 @@ def run_division(
     """
 
     # get initial mass from Ecoli composer
-    initial_state = Ecoli({}).initial_state({'initial_state': 'vivecoli_t2600'})
+    initial_state = Ecoli({}).initial_state({'initial_state': 'vivecoli_t2000'})
     initial_mass = initial_state['listeners']['mass']['cell_mass']
     division_mass = initial_mass + 1
     print(f"DIVIDE AT {division_mass} fg")

@@ -14,7 +14,8 @@ import time
 from ecoli.analysis import read_dynamics
 from ecoli.analysis.build_network import BuildNetwork
 from wholecell.utils import filepath as fp
-from wholecell.utils.py3 import monotonic_seconds, process_time_seconds
+from time import monotonic as monotonic_seconds
+from time import process_time as process_time_seconds
 
 
 CAUSALITY_ENV_VAR = 'CAUSALITY_SERVER'

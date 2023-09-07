@@ -1,9 +1,9 @@
 {
     "inherit_from": ["antibiotics.json"],
+    "operons": false,
     "add_processes": [
         "ecoli-rna-interference",
-        "tetracycline-ribosome-equilibrium",
-        "aggregator"
+        "tetracycline-ribosome-equilibrium"
     ],
     "spatial_environment_config": {},
     "topology": {
@@ -12,12 +12,9 @@
             "tetracycline": ["cytoplasm", "concentrations", "tetracycline"],
             "70s-free": ["unique", "active_ribosome"],
             "volume": ["cytoplasm", "global", "volume"],
-            "evolvers_ran": ["evolvers_ran"],
-            "listeners": ["listeners"]
-        },
-        "aggregator": {
-            "unique": ["unique"],
-            "aggregated": ["listeners", "aggregated"]
+            "listeners": ["listeners"],
+            "global_time": ["global_time"],
+            "timestep": ["timestep"]
         }
     },
     "process_configs": {
@@ -28,17 +25,10 @@
             "duplex_deg_rates": [0.00135911],
             "duplex_km": [0.00034204],
             "binding_probs": [1],
-            "time_step": 2
-        },
-        "aggregator": {
-            "paths": [
-                ["unique", "active_ribosome"],
-                ["unique", "active_RNAP"]
-            ]
+            "time_step": 1
         }
     },
     "flow": {
-        "tetracycline-ribosome-equilibrium": [["ecoli-shape"]],
-        "aggregator": [["tetracycline-ribosome-equilibrium"]]
+        "tetracycline-ribosome-equilibrium": [["ecoli-shape"]]
     }
 }

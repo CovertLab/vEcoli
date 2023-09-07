@@ -205,6 +205,10 @@ class EngineProcess(Process):
 
         self.emitter = None
         
+        # Since unique numpy updater is an class method, internal
+        # deepcopying in vivarium-core causes this warning to appear
+        warnings.filterwarnings("ignore",
+            message="Incompatible schema assignment at ")
         self.sim = Engine(
             processes=processes,
             steps=steps,
@@ -294,15 +298,16 @@ class EngineProcess(Process):
 
     def calculate_timestep(self, states):
         timestep = np.inf
-        for process in self.sim.processes.values():
+        for proc_path, process in self.sim.process_paths.items():
+            _, proc_state = self.sim._process_state(proc_path)
             if self.parameters['inner_same_timestep']:
                 # Warn user if inner process has different timestep from rest
-                if (timestep != process.calculate_timestep({})
+                if (timestep != process.calculate_timestep(proc_state)
                     and timestep != np.inf):
                     warnings.warn("Time step mismatch for process "
                                 f"{process.name}: {timestep} != " +
                                 str(process.calculate_timestep({})))
-            timestep = min(timestep, process.calculate_timestep({}))
+            timestep = min(timestep, process.calculate_timestep(proc_state))
         return timestep
 
 

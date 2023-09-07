@@ -1,16 +1,14 @@
 import os
 import numpy as np
-from scipy.sparse import coo_matrix
 from matplotlib import pyplot as plt
 import matplotlib.colors as colors
 
 from ecoli.experiments.ecoli_master_sim import EcoliSim, CONFIG_DIR_PATH
-
-from collections import Counter
-
+from ecoli.plots.blame_utils import get_bulk_processes
 
 def blame_plot(data,
                topology,
+               bulk_ids,
                filename='out/ecoli_sim/blame.png',
                selected_molecules=None,
                selected_processes=None,
@@ -25,6 +23,8 @@ def blame_plot(data,
 
     Args:
         data: Data from a logged ecoli simulation.
+        topology: Topology of logged ecoli simulation (e.g. sim.ecoli_experiment.topology).
+        bulk_ids: Array of bulk IDs in correct order (can get from initial_state).
         filename: The file to save the plot to. To skip writing to file, set this to None.
         selected_molecules: if not None, restricts to the specified molecules.
         selected_processes: if not None, restricts to the specified processes.
@@ -41,29 +41,25 @@ def blame_plot(data,
 
     max_t = data['time'][-1] - data['time'][0]
 
-    bulk_idx, process_idx, plot_data = extract_bulk(data, get_bulk_processes(topology))
-    plot_data = plot_data.toarray() / max_t  # convert counts to average rate
+    included_procs, plot_data = extract_bulk(data, get_bulk_processes(topology), bulk_ids)
+    plot_data = plot_data / max_t  # convert counts to average rate
 
     # restrict to selected molecules and processes
     if selected_molecules:
-        selected = np.isin(bulk_idx, selected_molecules)
-        bulk_idx = bulk_idx[selected]
-        plot_data = plot_data[selected, :]
+        plot_data = plot_data[np.isin(bulk_ids, selected_molecules), :]
 
     if selected_processes:
-        selected = np.isin(process_idx, selected_processes)
-        process_idx = process_idx[selected]
-        plot_data = plot_data[:, selected]
+        plot_data = plot_data[:, np.isin(included_procs, selected_processes)]
 
     # exclude zero-change molecules
     nonzero_mols = np.sum(plot_data, axis=1) != 0
-    bulk_idx = bulk_idx[nonzero_mols]
+    bulk_ids = bulk_ids[nonzero_mols]
     plot_data = plot_data[nonzero_mols, :]
 
     # sort molecules by sum of absolute changes
-    sorted_mol_idx = np.argsort(-np.sum(np.abs(plot_data), axis=1))
-    bulk_idx = bulk_idx[sorted_mol_idx]
-    plot_data = plot_data[sorted_mol_idx, :]
+    sorted_mol_ids = np.argsort(-np.sum(np.abs(plot_data), axis=1))
+    bulk_ids = bulk_ids[sorted_mol_ids]
+    plot_data = plot_data[sorted_mol_ids, :]
 
     n_molecules = plot_data.shape[1]
     n_processes = plot_data.shape[0]
@@ -106,17 +102,17 @@ def blame_plot(data,
     total_total_ax.imshow(-total_total, aspect='auto', cmap=plt.get_cmap('seismic'), norm=SignNormalize())
 
     # show and rename ticks
-    process_labels = [p.replace('_', '\n') for p in process_idx]
+    process_labels = [p.replace('_', '\n') for p in included_procs]
 
     main_ax.set_xticks(np.arange(plot_data.shape[1]))
     main_ax.set_yticks(np.arange(plot_data.shape[0]))
     main_ax.set_xticklabels(process_labels)
-    main_ax.set_yticklabels(bulk_idx)
+    main_ax.set_yticklabels(bulk_ids)
 
     molecules_total_ax.set_xticks([0])
     molecules_total_ax.set_yticks(np.arange(plot_data.shape[0]))
     molecules_total_ax.set_xticklabels(['TOTAL'])
-    molecules_total_ax.set_yticklabels(bulk_idx)
+    molecules_total_ax.set_yticklabels(bulk_ids)
 
     process_total_ax.set_xticks(np.arange(plot_data.shape[1]))
     process_total_ax.set_yticks([0])
@@ -135,7 +131,7 @@ def blame_plot(data,
 
     # Highlight selected molecules
     if highlight_molecules:
-        highlight_idx = np.where(np.isin(bulk_idx, highlight_molecules))[0]
+        highlight_idx = np.where(np.isin(bulk_ids, highlight_molecules))[0]
         for i in highlight_idx:
             main_ax.get_yticklabels()[i].set_color("red")
             molecules_total_ax.get_yticklabels()[i].set_color("red")
@@ -172,63 +168,29 @@ def blame_plot(data,
     return axs, fig
 
 
-def get_bulk_processes(topology):
-    # Get relevant processes (those affecting bulk)
-    bulk_processes = {}
-    for process, ports in topology.items():
-        for port, path in ports.items():
-            if 'bulk' in path:
-                if process not in bulk_processes:
-                    bulk_processes[process] = []
-
-                bulk_processes[process].append(port)
-
-    return bulk_processes
-
-
-def extract_bulk(data, bulk_processes):
-    # Collect data into one dictionary
-    collected_data = {}
-    for process, updates in data['log_update'].items():
-        if process not in bulk_processes.keys():
-            if process + '_evolver' not in bulk_processes.keys():
-                break
-            process = process + '_evolver'
-
-        process_data = Counter()
+def extract_bulk(data, bulk_processes, bulk_ids):
+    """
+    Returns bulk updates in form of the array collected_data
+    with dimensions (n_bulk_mols x n_processes), where n_processes
+    is given by the keys that are shared by bulk_processes and
+    data['log_update']. Shared processes are also returned in order.
+    """
+    included_procs = list(data['log_update'].keys() & bulk_processes.keys())
+    collected_data = np.zeros((len(bulk_ids), len(included_procs)))
+    # Apply bulk updates to a fake bulk count array 
+    # and retrieve final deltas for each process
+    fake_bulk = np.zeros(len(bulk_ids), dtype=int)
+    for proc_idx, process in enumerate(included_procs):
+        updates = data['log_update'][process]
         for port in updates.keys():
             if port not in bulk_processes[process]:
                 continue
-
-            port_data = {k: np.sum(v) for k, v in updates[port].items()}
-            process_data.update(port_data)
-
-        collected_data[process] = dict(process_data)
-
-    # convert dictionary to array
-    collected_data = {process: idx_array_from(data) for process, data in collected_data.items()}
-
-    bulk_indices = np.array([])
-    for idx, _ in collected_data.values():
-        bulk_indices = np.concatenate((bulk_indices, idx[~np.isin(idx, bulk_indices)]))
-
-    col_i = 0
-    row = np.array([])  # molecules
-    col = []  # processes
-    data_out = []  # update data
-    process_idx = []
-    sorter = np.argsort(bulk_indices)
-    for process, (idx, value) in collected_data.items():
-        if idx.size != 0:  # exclude processes with zero update
-            rows = sorter[np.searchsorted(bulk_indices, idx, sorter=sorter)]
-            row = np.concatenate((row, rows))
-            col += [col_i] * len(rows)
-            data_out = np.concatenate((data_out, value))
-            process_idx.append(process)
-            col_i += 1
-
-    bulk_data = coo_matrix((data_out, (row.astype(int), np.array(col))))
-    return bulk_indices, np.array(process_idx), bulk_data
+            for update in updates[port]:
+                for bulk_update in update:
+                    fake_bulk[bulk_update[0]] += bulk_update[1]
+                collected_data[:, proc_idx] += fake_bulk
+                fake_bulk[:] = 0
+    return included_procs, collected_data
 
 
 class SignNormalize(colors.Normalize):
@@ -309,42 +271,15 @@ def test_blame():
     sim = EcoliSim.from_file()
     sim.merge(EcoliSim.from_file(CONFIG_DIR_PATH + "/test_configs/test_blame.json"))
     sim.build_ecoli()
+    bulk_ids = sim.generated_initial_state['agents']['0']['bulk']['id']
     sim.run()
     data = sim.query()
+    data = {'time': data['time'], **data['agents']['0']}
 
     # TODO: Adapt this code to work with new Numpy update format
-    # blame_plot(data, sim.topology,
-    #            'out/ecoli_sim/blame_test.png',
-    #            highlight_molecules=['PD00413[c]', 'PHOR-CPLX[c]'])
-
-
-def compare_partition():
-    sim = EcoliSim.from_file()
-    sim.total_time = 4
-    sim.log_updates = True
-    sim.raw_output = False
-
-    sim.partition = False
-    sim.exclude_processes = ["ecoli-two-component-system"]
-    sim.build_ecoli()
-    sim.run()
-    data = sim.query()
-
-    blame_plot(data, sim.ecoli.topology,
-               "out/ecoli_sim/blame_nopartition.png")
-
-    sim = EcoliSim.from_file()
-    sim.total_time = 4
-    sim.log_updates = True
-    sim.raw_output = False
-
-    sim.partition = True
-    sim.build_ecoli()
-    sim.run()
-    data = sim.query()
-
-    blame_plot(data, sim.topology,
-               "out/ecoli_sim/blame_partition.png")
+    blame_plot(data, sim.ecoli_experiment.topology['agents']['0'], bulk_ids,
+               'out/ecoli_sim/blame_test.png',
+               highlight_molecules=['PD00413[c]', 'PHOR-CPLX[c]'])
 
 
 if __name__ == "__main__":
