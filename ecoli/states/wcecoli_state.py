@@ -37,11 +37,11 @@ def numpy_molecules(states):
         else:
             # Load aerobic minimal media exchange data by default
             states['environment']['exchange_data'] = {
-                'unconstrained': ['CL-[p]', 'FE+2[p]', 'FE+3[p]', 'CO+2[p]',
-                    'MG+2[p]', 'NA+[p]', 'CARBON-DIOXIDE[p]',
+                'unconstrained': sorted(['CL-[p]', 'FE+2[p]', 'FE+3[p]', 
+                    'CO+2[p]', 'MG+2[p]', 'NA+[p]', 'CARBON-DIOXIDE[p]',
                     'OXYGEN-MOLECULE[p]', 'MN+2[p]', 'L-SELENOCYSTEINE[c]',
                     'K+[p]', 'SULFATE[p]', 'ZN+2[p]', 'CA+2[p]', 'Pi[p]',
-                    'NI+2[p]', 'WATER[p]', 'AMMONIUM[c]'],
+                    'NI+2[p]', 'WATER[p]', 'AMMONIUM[c]']),
                 'constrained': {
                     'GLC[p]': 20.0 * units.mmol / (units.g * units.h)}}
     return states 
