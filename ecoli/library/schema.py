@@ -151,6 +151,7 @@ def bulk_name_to_idx(names, bulk_names):
     if isinstance(names, np.ndarray) or isinstance(names, list):
         # Big brain solution from https://stackoverflow.com/a/32191125
         # One downside: all values in names MUST be in bulk_names
+        # Can mask missing values with bulk_names[return value] == names
         sorter = np.argsort(bulk_names)
         return np.take(sorter, np.searchsorted(
             bulk_names, names, sorter=sorter), mode='clip')

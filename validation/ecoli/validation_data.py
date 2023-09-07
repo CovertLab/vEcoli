@@ -37,25 +37,54 @@ class ValidationDataEcoli(object):
 		self.reactionFlux = ReactionFlux(validation_data_raw, knowledge_base_raw)
 		self.essential_genes = EssentialGenes(validation_data_raw)
 		self.geneFunctions = GeneFunctions(validation_data_raw)
-		self._add_dna_footprint_sizes(validation_data_raw)
+		self.macromolecular_growth_rate_modulation = MacromolecularGrowthRateModulation(validation_data_raw)
 
-	def _add_dna_footprint_sizes(self, validation_data_raw):
+		self._add_amino_acid_growth_rates(validation_data_raw)
+
+	def _add_amino_acid_growth_rates(self, validation_data_raw):
 		"""
-		Adds dictionary of DNA footprint sizes. Keys are the IDs of the
-		DNA-binding molecules; values are the sizes of their molecular
-		footprints on the DNA.
+		Loads growth rates with single amino acids supplemented in media.
+
+		amino_acid_media_growth_rates: dict with data from 4 replicates
+			{
+				media ID (str):
+				{
+					'mean': mean max growth rate from 4 replicates (float with units per time)
+					'std': standard deviation for max growth rate from 4 replicates (float with units per time)
+				}
+			}
+		amino_acid_media_dose_dependent_growth_rates: dict with data from single measurements from 4 concentrations
+			{
+				media ID (str):
+				{
+					'conc': concentration of the amino acid in media (np.ndarray[float] with units mol/volume)
+					'growth': max growth rate corresponding to each media concentration (float with units per time)
+				}
+			}
 		"""
-		self.dna_footprint_sizes = {}
 
-		for row in validation_data_raw.dna_footprint_sizes:
-			self.dna_footprint_sizes[row["molecule_ID"]] = row["footprint_size"]
+		rates = {}
+		for row in validation_data_raw.amino_acid_growth_rates:
+			rates[row['Media']] = {
+				'mean': row['Average max growth rate'],
+				'std': row['Max growth rate standard deviation'],
+				}
+		self.amino_acid_growth_rates = rates
 
+		rates = {}
+		for row in validation_data_raw.amino_acid_growth_rates_dose_response:
+			rates[row['Media']] = {
+				'conc': row['Media concentrations'],
+				'growth': row['Max growth rates'],
+				}
+		self.amino_acid_dose_dependent_growth_rates = rates
 
 
 class Protein(object):
 	""" Protein """
 
 	def __init__(self, validation_data_raw, knowledge_base_raw):
+
 		compartment_ids_to_abbreviations = {
 			comp['id']: comp['abbrev'] for comp in knowledge_base_raw.compartments
 			}
@@ -67,15 +96,15 @@ class Protein(object):
 		protein_id_to_compartment_tag = {}
 
 		for protein in knowledge_base_raw.proteins:
-			exp_location = protein['exp_location']
-			comp_location = protein['comp_location']
+			exp_compartment = protein['experimental_compartment']
+			comp_compartment = protein['computational_compartment']
 
-			if len(exp_location) + len(comp_location) == 0:
+			if len(exp_compartment) + len(comp_compartment) == 0:
 				compartment = 'CCO-CYTOSOL'
-			elif len(exp_location) > 0:
-				compartment = exp_location[0]
+			elif len(exp_compartment) > 0:
+				compartment = exp_compartment[0]
 			else:
-				compartment = comp_location[0]
+				compartment = comp_compartment[0]
 
 			protein_id_to_compartment_tag.update({
 				protein['id']: [compartment_ids_to_abbreviations[compartment]]
@@ -83,7 +112,7 @@ class Protein(object):
 
 		# Build and save a dict from gene ID to monomerId
 		rna_id_to_gene_id = {
-			gene['rna_id']: gene['id'] for gene in knowledge_base_raw.genes}
+			gene['rna_ids'][0]: gene['id'] for gene in knowledge_base_raw.genes}
 
 		self.geneIdToMonomerId = {}
 
@@ -103,6 +132,7 @@ class Protein(object):
 		self._loadHouser2015Counts(validation_data_raw)
 		self._loadWisniewski2014Counts(validation_data_raw, knowledge_base_raw)
 		self._loadSchmidt2015Counts(validation_data_raw)
+		self._load_li(validation_data_raw)
 
 	def _loadTaniguchi2010Counts(self, validation_data_raw):
 		# Load taniguichi Xie Science 2010 dataset
@@ -212,21 +242,45 @@ class Protein(object):
 		monomerIds = [self.geneIdToMonomerId[x] for x in geneIds]
 
 		glucoseCounts = [x["Glucose"] for x in dataset]
-
+		lb_counts = [x["LB"] for x in dataset]
 		nEntries = len(geneIds)
 
 		schmidt2015Data = np.zeros(
 			nEntries,
 			dtype = [
 				('monomerId', 'U50'),
-				('glucoseCounts', 'f8')
+				('glucoseCounts', 'f8'),
+				('LB_counts', 'f8'),
 			])
 
 		schmidt2015Data["monomerId"] = monomerIds
 		schmidt2015Data["glucoseCounts"] = glucoseCounts
+		schmidt2015Data["LB_counts"] = lb_counts
 
 		self.schmidt2015Data = schmidt2015Data
 
+	def _load_li(self, validation_data_raw):
+		monomers = []
+		rich_rates = []
+		minimal_rates = []
+		for line in validation_data_raw.li_protein_synthesis_rates_2014:
+			gene = line['Gene']
+			if (symbol := self.geneSymbolToMonomerId.get(gene)) is not None:
+				monomers.append(symbol)
+				rich_rates.append(int(str(line['MOPS complete']).strip('[]')))
+				minimal_rates.append(int(str(line['MOPS minimal']).strip('[]')))
+
+		self.li_2014 = np.zeros(
+			len(monomers),
+			dtype = [
+				('monomer', f'U{max([len(monomer) for monomer in monomers])}'),
+				('rich_rate', 'f8'),
+				('minimal_rate', 'f8'),
+			])
+
+		self.li_2014["monomer"] = monomers
+		self.li_2014["rich_rate"] = rich_rates
+		self.li_2014["minimal_rate"] = minimal_rates
 
 class ReactionFlux(object):
 	""" ReactionFlux """
@@ -251,12 +305,12 @@ class EssentialGenes(object):
 
 	def _load_essential_genes(self, validation_data_raw):
 		self.essential_genes = []
-		self.essential_RNAs = []
+		self.essential_cistrons = []
 		self.essential_proteins = []
 
 		for row in validation_data_raw.essential_genes:
 			self.essential_genes.append(row["FrameID"])
-			self.essential_RNAs.append(row["rnaID"] + "[c]")
+			self.essential_cistrons.append(row["rnaID"])
 			self.essential_proteins.append(row["proteinID"] + "[" + row["proteinLoc"] + "]")
 
 class GeneFunctions(object):
@@ -270,3 +324,21 @@ class GeneFunctions(object):
 
 		for row in validation_data_raw.geneFunctions:
 			self.geneFunctions[row["FrameID"]] = row["Function"]
+
+class MacromolecularGrowthRateModulation(object):
+	""" MacromolecularGrowthRateModulation """
+	def __init__(self, validation_data_raw):
+		self._load_macromolecular_growth_rate_modulation(validation_data_raw)
+
+	def _load_macromolecular_growth_rate_modulation(self, validation_data_raw):
+		dataset = validation_data_raw.macromolecular_growth_rate_modulation
+		# List of data value names extracted from the raw flat file
+		values = list(dataset[0].keys())
+		for value in values:
+			# Store numerical value of raw data into a temporary ndarray
+			temp = np.zeros(len(dataset))
+			for idx, row in enumerate (dataset):
+				y = row[value]
+				temp[idx] = Unum.coerceToUnum(y).asNumber()
+			# Set each ndarray as the corresponding attribute, while tagging the data's original units onto the ndarray
+			setattr(self, value, Unum(Unum.coerceToUnum(dataset[0][value])._unit, temp))
