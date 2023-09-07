@@ -20,9 +20,9 @@ import numpy as np
 import scipy.optimize
 import scipy.sparse
 
-from reconstruction.ecoli.initialization import create_bulk_container
+from ecoli.library.initial_conditions import create_bulk_container
+from ecoli.library.schema import bulk_name_to_idx, counts
 from reconstruction.ecoli.simulation_data import SimulationDataEcoli
-from wholecell.containers.bulk_objects_container import BulkObjectsContainer
 from wholecell.utils import filepath, parallelization, units
 from wholecell.utils.fitting import normalize, masses_and_counts_for_homeostatic_target
 
@@ -489,8 +489,8 @@ def buildBasalCellSpecifications(
 		'avgCellDryMassInit' (float with units) - average initial cell dry mass
 		'fitAvgSolubleTargetMolMass' (float with units) - the adjusted dry mass
 			of the soluble fraction of a cell
-		'bulkContainer' (BulkObjectsContainer object) - expected counts for
-			bulk molecules based on expression
+		- bulkContainer (np.ndarray object) - Two columns: 'id' for name and 'count'
+			for expected counts based on expression of all bulk molecules
 
 	Notes
 	-----
@@ -586,8 +586,8 @@ def buildTfConditionCellSpecifications(
 		'avgCellDryMassInit' (float with units) - average initial cell dry mass
 		'fitAvgSolubleTargetMolMass' (float with units) - the adjusted dry mass
 			of the soluble fraction of a cell
-		'bulkContainer' (BulkObjectsContainer object) - expected counts for
-			bulk molecules based on expression
+		- bulkContainer (np.ndarray object) - Two columns: 'id' for name and 'count'
+			for expected counts based on expression of all bulk molecules
 	"""
 
 	cell_specs = {}
@@ -801,8 +801,8 @@ def expressionConverge(
 	- avgCellDryMassInit (float with units of mass) - expected initial dry cell mass
 	- fitAvgSolubleTargetMolMass (float with units of mass) - the adjusted dry mass
 	of the soluble fraction of a cell
-	- bulkContainer (BulkObjectsContainer object) - expected counts for
-	bulk molecules based on expression
+	- bulkContainer (np.ndarray object) - Two columns: 'id' for name and 'count'
+		for expected counts based on expression of all bulk molecules
 	"""
 
 	if VERBOSE > 0:
@@ -868,11 +868,14 @@ def fitCondition(sim_data, spec, condition):
 	--------
 	- A dictionary {condition (str): spec (dict)} with the updated spec dictionary
 	with the following values updated:
-		- bulkAverageContainer (BulkObjectsContainer object) - the mean of the bulk counts
-		- bulkDeviationContainer (BulkObjectsContainer object) - the standard deviation of the bulk counts
-		- proteinMonomerAverageContainer (BulkObjectsContainer object) - the mean of the protein monomer counts
-		- proteinMonomerDeviationContainer (BulkObjectsContainer object) - the standard deviation of the protein
-		monomer counts
+		- bulkAverageContainer (np.ndarray object) - Two columns: 'id' for name and 'count'
+			for the mean of the counts of all bulk molecules 
+		- bulkDeviationContainer (np.ndarray object) - Two columns: 'id' for name and 'count'
+			for the standard deviation of the counts of all bulk molecules
+		- proteinMonomerAverageContainer (np.ndarray object) - Two columns: 'id' for name and 'count'
+			for the mean of the counts of all protein monomers
+		- proteinMonomerDeviationContainer (np.ndarray object) - Two columns: 'id' for name and 'count'
+			for the standard deviation of the counts of all protein monomers
 		- translation_aa_supply (array with units of mol/(mass.time)) - the supply rates
 		for each amino acid to translation
 	"""
@@ -914,7 +917,8 @@ def calculateTranslationSupply(sim_data, doubling_time, bulkContainer, avgCellDr
 	Inputs
 	------
 	- doubling_time (float with units of time) - measured doubling times given the condition
-	- bulkContainer (BulkObjectsContainer object) - a container that tracks the counts of all bulk molecules
+	- bulkContainer (np.ndarray object) - Two columns: 'id' for name and 'count'
+		for count of all bulk molecules
 	- avgCellDryMassInit (float with units of mass) - the average initial cell dry mass
 
 	Notes
@@ -925,7 +929,9 @@ def calculateTranslationSupply(sim_data, doubling_time, bulkContainer, avgCellDr
 	"""
 
 	aaCounts = sim_data.process.translation.monomer_data['aa_counts'] # the counts of each amino acid required for each protein
-	proteinCounts = bulkContainer.counts(sim_data.process.translation.monomer_data["id"]) # the counts of all proteins
+	protein_idx = bulk_name_to_idx(sim_data.process.translation.monomer_data[
+		"id"], bulkContainer['id'])
+	proteinCounts = counts(bulkContainer, protein_idx) # the counts of all proteins
 	nAvogadro = sim_data.constants.n_avogadro
 
 	molAAPerGDCW = (
@@ -964,7 +970,8 @@ def setTranslationEfficiencies(sim_data):
 
 	for protein in sim_data.adjustments.translation_efficiencies_adjustments:
 		idx = np.where(sim_data.process.translation.monomer_data["id"] == protein)[0]
-		sim_data.process.translation.translation_efficiencies_by_monomer[idx] *= sim_data.adjustments.translation_efficiencies_adjustments[protein]
+		sim_data.process.translation.translation_efficiencies_by_monomer[idx] *= \
+			sim_data.adjustments.translation_efficiencies_adjustments[protein]
 
 
 def set_balanced_translation_efficiencies(sim_data):
@@ -1123,7 +1130,8 @@ def rescaleMassForSolubleMetabolites(sim_data, bulkMolCntr, concDict, doubling_t
 
 	Inputs
 	------
-	- bulkMolCntr (BulkObjectsContainer object) - a container that tracks the counts of all bulk molecules
+	- bulkMolCntr (np.ndarray object) - Two columns: 'id' for name and 'count'
+		for count of all bulk molecules
 	- concDict (dict) - a dictionary of metabolite ID (string) : concentration (unit'd number, dimensions of concentration) pairs
 	- doubling_time (float with units of time) - measured doubling times given the condition
 
@@ -1173,10 +1181,8 @@ def rescaleMassForSolubleMetabolites(sim_data, bulkMolCntr, concDict, doubling_t
 		sim_data.constants.n_avogadro
 		)
 
-	bulkMolCntr.countsIs(
-		countsToAdd,
-		targetMoleculeIds
-		)
+	target_molecule_idx = bulk_name_to_idx(targetMoleculeIds, bulkMolCntr["id"])
+	bulkMolCntr['count'][target_molecule_idx] = countsToAdd
 
 	# Increase avgCellDryMassInit to match these numbers & rescale mass fractions
 	smallMoleculetargetMoleculesDryMass = units.hstack((
@@ -1324,13 +1330,16 @@ def setInitialRnaExpression(sim_data, expression, doubling_time):
 	counts_mRNA = total_count_mRNA * distribution_mRNA
 
 	# Set expression counts in container
-	rna_expression_container = BulkObjectsContainer(
-		all_RNA_ids, dtype=np.float64)
-	rna_expression_container.countsIs(counts_rRNA, ids_rRNA)
-	rna_expression_container.countsIs(counts_tRNA, ids_tRNA)
-	rna_expression_container.countsIs(counts_mRNA, ids_mRNA)
+	rRNA_idx = bulk_name_to_idx(ids_rRNA, all_RNA_ids)
+	tRNA_idx = bulk_name_to_idx(ids_tRNA, all_RNA_ids)
+	mRNA_idx = bulk_name_to_idx(ids_mRNA, all_RNA_ids)
+	rna_expression_container = np.zeros(len(all_RNA_ids),
+		dtype=np.float64)
+	rna_expression_container[rRNA_idx] = counts_rRNA
+	rna_expression_container[tRNA_idx] = counts_tRNA
+	rna_expression_container[mRNA_idx] = counts_mRNA
 
-	expression = normalize(rna_expression_container.counts())
+	expression = normalize(rna_expression_container)
 
 	return expression
 
@@ -1443,8 +1452,8 @@ def createBulkContainer(sim_data, expression, doubling_time):
 
 	Returns
 	-------
-	- bulkContainer (BulkObjectsContainer object) - a wrapper around a NumPy
-	array that tracks the counts of bulk molecules
+	- bulkContainer (np.ndarray object) - Two columns: 'id' for name and 'count'
+		for count of all bulk molecules
 	"""
 
 	total_count_RNA, ids_rnas, distribution_RNA = totalCountIdDistributionRNA(sim_data, expression, doubling_time)
@@ -1453,15 +1462,19 @@ def createBulkContainer(sim_data, expression, doubling_time):
 	ids_molecules = sim_data.internal_state.bulk_molecules.bulk_data["id"]
 
 	# Construct bulk container
-	bulkContainer = BulkObjectsContainer(ids_molecules, dtype = np.float64)
+	bulkContainer = np.array([mol_data for mol_data in
+		zip(ids_molecules, np.zeros(len(ids_molecules)))],
+		dtype=[('id', ids_molecules.dtype), ('count', np.float64)])
 
 	# Assign RNA counts based on mass and expression distribution
 	counts_RNA = total_count_RNA * distribution_RNA
-	bulkContainer.countsIs(counts_RNA, ids_rnas)
+	rna_idx = bulk_name_to_idx(ids_rnas, bulkContainer['id'])
+	bulkContainer['count'][rna_idx] = counts_RNA
 
 	# Assign protein counts based on mass and mRNA counts
 	counts_protein = total_count_protein * distribution_protein
-	bulkContainer.countsIs(counts_protein, ids_protein)
+	protein_idx = bulk_name_to_idx(ids_protein, bulkContainer['id'])
+	bulkContainer['count'][protein_idx] = counts_protein
 
 	return bulkContainer
 
@@ -1478,7 +1491,8 @@ def setRibosomeCountsConstrainedByPhysiology(
 
 	Inputs
 	------
-	bulkContainer (BulkObjectsContainer object) - counts of bulk molecules
+	bulkContainer (np.ndarray object) - Two columns: 'id' for name and 'count'
+		for count of all bulk molecules
 	doubling_time (float with units of time) - doubling time given the condition
 	variable_elongation_translation (bool) - whether there is variable elongation for translation
 
@@ -1516,7 +1530,9 @@ def setRibosomeCountsConstrainedByPhysiology(
 	## protein distribution in one cell cycle
 	proteinLengths = units.sum(sim_data.process.translation.monomer_data['aa_counts'], axis = 1)
 	proteinDegradationRates = sim_data.process.translation.monomer_data['deg_rate']
-	proteinCounts = bulkContainer.counts(sim_data.process.translation.monomer_data["id"])
+	protein_idx = bulk_name_to_idx(sim_data.process.translation.monomer_data[
+		"id"], bulkContainer['id'])
+	proteinCounts = counts(bulkContainer, protein_idx)
 
 	netLossRate_protein = netLossRateFromDilutionAndDegradationProtein(
 		doubling_time,
@@ -1550,7 +1566,8 @@ def setRibosomeCountsConstrainedByPhysiology(
 	# -- CONSTRAINT 2: Measured rRNA mass fraction -- #
 	# Get rRNA counts
 	rna_data = sim_data.process.transcription.rna_data
-	rRNA_tu_counts = bulkContainer.counts(rna_data["id"][rna_data['is_rRNA']])
+	rrna_idx = bulk_name_to_idx(rna_data["id"][rna_data['is_rRNA']], bulkContainer['id'])
+	rRNA_tu_counts = counts(bulkContainer, rrna_idx)
 	rRNA_cistron_counts = sim_data.process.transcription.rRNA_cistron_tu_mapping_matrix.dot(
 		rRNA_tu_counts)
 	rRNA_cistron_indexes = np.where(
@@ -1573,8 +1590,10 @@ def setRibosomeCountsConstrainedByPhysiology(
 	# -- CONSTRAINT 3: Expected ribosomal subunit counts based expression
 	## Calculate fundamental ribosomal subunit count distribution based on RNA expression data
 	## Already calculated and stored in bulkContainer
-	ribosome30SCounts = bulkContainer.counts(ribosome_30S_subunits)
-	ribosome50SCounts = bulkContainer.counts(ribosome_50S_subunits)
+	ribosome_30S_idx = bulk_name_to_idx(ribosome_30S_subunits, bulkContainer['id'])
+	ribosome30SCounts = counts(bulkContainer, ribosome_30S_idx)
+	ribosome_50S_idx = bulk_name_to_idx(ribosome_50S_subunits, bulkContainer['id'])
+	ribosome50SCounts = counts(bulkContainer, ribosome_50S_idx)
 
 	# -- SET RIBOSOME FUNDAMENTAL SUBUNIT COUNTS TO MAXIMUM CONSTRAINT -- #
 	constraint_names = np.array(["Insufficient to double protein counts", "Too small for mass fraction", "Current level OK"])
@@ -1588,15 +1607,13 @@ def setRibosomeCountsConstrainedByPhysiology(
 		print('50S actual count: {}'.format((ribosome50SCounts / ribosome_50S_stoich).min()))
 		print('50S count set to: {}'.format(rib50lims[np.where(rib50lims.max() == rib50lims)[0]][-1]))
 
-	bulkContainer.countsIs(
-		np.fmax(np.fmax(ribosome30SCounts, constraint1_ribosome30SCounts), constraint2_ribosome30SCounts),
-		ribosome_30S_subunits
-		)
+	bulkContainer['count'][ribosome_30S_idx] = np.fmax(np.fmax(
+		ribosome30SCounts, constraint1_ribosome30SCounts),
+		constraint2_ribosome30SCounts)
 
-	bulkContainer.countsIs(
-		np.fmax(np.fmax(ribosome50SCounts, constraint1_ribosome50SCounts), constraint2_ribosome50SCounts),
-		ribosome_50S_subunits
-		)
+	bulkContainer['count'][ribosome_50S_idx] = np.fmax(np.fmax(
+		ribosome50SCounts, constraint1_ribosome50SCounts),
+		constraint2_ribosome50SCounts)
 
 def setRNAPCountsConstrainedByPhysiology(
 		sim_data,
@@ -1613,7 +1630,8 @@ def setRNAPCountsConstrainedByPhysiology(
 
 	Inputs
 	------
-	- bulkContainer (BulkObjectsContainer object) - counts of bulk molecules
+	- bulkContainer (np.ndarray object) - Two columns: 'id' for name and 'count'
+		for count of all bulk molecules
 	- doubling_time (float with units of time) - doubling time given the condition
 	- avgCellDryMassInit (float with units of mass) - expected initial dry cell mass
 	- Km (array of floats with units of mol/volume) - Km for each RNA associated
@@ -1621,8 +1639,8 @@ def setRNAPCountsConstrainedByPhysiology(
 
 	Modifies
 	--------
-	- bulkContainer (BulkObjectsContainer object) - the counts of RNA polymerase
-	subunits are set according to Constraint 1
+	- bulkContainer (np.ndarray object) - the counts of RNA polymerase
+		subunits are set according to Constraint 1
 
 	Notes
 	-----
@@ -1633,6 +1651,8 @@ def setRNAPCountsConstrainedByPhysiology(
 	rnaLengths = units.sum(sim_data.process.transcription.rna_data['counts_ACGU'], axis = 1)
 
 	rnaLossRate = None
+	rna_idx = bulk_name_to_idx(sim_data.process.transcription.rna_data['id'],
+		bulkContainer['id'])
 
 	if Km is None:
 		# RNA loss rate is in units of counts/time, and computed by summing the
@@ -1640,7 +1660,7 @@ def setRNAPCountsConstrainedByPhysiology(
 		rnaLossRate = netLossRateFromDilutionAndDegradationRNALinear(
 			doubling_time,
 			sim_data.process.transcription.rna_data['deg_rate'],
-			bulkContainer.counts(sim_data.process.transcription.rna_data['id'])
+			counts(bulkContainer, rna_idx)
 		)
 	else:
 		# Get constants to compute countsToMolar factor
@@ -1649,8 +1669,10 @@ def setRNAPCountsConstrainedByPhysiology(
 		countsToMolar = 1 / (sim_data.constants.n_avogadro * cellVolume)
 
 		# Gompute input arguments for netLossRateFromDilutionAndDegradationRNA()
-		rnaConc = countsToMolar * bulkContainer.counts(sim_data.process.transcription.rna_data['id'])
-		endoRNaseConc = countsToMolar * bulkContainer.counts(sim_data.process.rna_decay.endoRNase_ids)
+		rnaConc = countsToMolar * counts(bulkContainer, rna_idx)
+		endoRNase_idx = bulk_name_to_idx(
+			sim_data.process.rna_decay.endoRNase_ids, bulkContainer['id'])
+		endoRNaseConc = countsToMolar * counts(bulkContainer, endoRNase_idx)
 		kcatEndoRNase = sim_data.process.rna_decay.kcats
 		totalEndoRnaseCapacity = units.sum(endoRNaseConc * kcatEndoRNase)
 
@@ -1685,7 +1707,8 @@ def setRNAPCountsConstrainedByPhysiology(
 	minRnapSubunitCounts = nRnapsNeeded * rnapStoich
 
 	# -- CONSTRAINT 2: Expected RNAP subunit counts based on distribution -- #
-	rnapCounts = bulkContainer.counts(rnapIds)
+	rnap_idx = bulk_name_to_idx(rnapIds, bulkContainer['id'])
+	rnapCounts = counts(bulkContainer, rnap_idx)
 
 	## -- SET RNAP COUNTS TO MAXIMUM CONSTRAINTS -- #
 	constraint_names = np.array(["Current level OK", "Insufficient to double RNA distribution"])
@@ -1698,7 +1721,7 @@ def setRNAPCountsConstrainedByPhysiology(
 	if np.any(minRnapSubunitCounts < 0):
 		raise ValueError('RNAP protein counts must be positive.')
 
-	bulkContainer.countsIs(minRnapSubunitCounts, rnapIds)
+	bulkContainer['count'][rnap_idx] = minRnapSubunitCounts
 
 def fitExpression(sim_data, bulkContainer, doubling_time, avgCellDryMassInit, Km=None):
 	"""
@@ -1710,8 +1733,8 @@ def fitExpression(sim_data, bulkContainer, doubling_time, avgCellDryMassInit, Km
 
 	Inputs
 	------
-	- bulkContainer (BulkObjectsContainer object) - expected counts for
-	bulk molecules based on expression
+	- bulkContainer (np.ndarray object) - Two columns: 'id' for name and 'count'
+		for expected count based on expression of all bulk molecules
 	- doubling_time (float with units of time) - doubling time
 	- avgCellDryMassInit (float with units of mass) - expected initial dry cell mass
 	- Km (array of floats with units of mol/volume) - Km for each RNA associated
@@ -1749,25 +1772,24 @@ def fitExpression(sim_data, bulkContainer, doubling_time, avgCellDryMassInit, Km
 	cistron_tu_mapping_matrix = transcription.cistron_tu_mapping_matrix
 
 	# Calculate current expression fraction of mRNA transcription units
-	view_RNA = bulkContainer.countsView(transcription.rna_data["id"])
-	rna_expression_container = BulkObjectsContainer(
-		list(transcription.rna_data["id"]), dtype = np.dtype("float64"))
-	rna_expression_container.countsIs(normalize(view_RNA.counts()))
+	rna_idx = bulk_name_to_idx(transcription.rna_data["id"], bulkContainer['id'])
+	RNA_counts = counts(bulkContainer, rna_idx)
+	rna_expression_container = normalize(RNA_counts)
 
-	mRNA_tu_expression_view = rna_expression_container.countsView(
-		transcription.rna_data["id"][transcription.rna_data['is_mRNA']])
-	mRNA_tu_expression_frac = np.sum(mRNA_tu_expression_view.counts())
+	mRNA_tu_expression_frac = np.sum(rna_expression_container[
+		transcription.rna_data['is_mRNA']])
 
 	# Calculate current expression levels of each cistron given the RNA
 	# expression levels
 	fit_cistron_expression = normalize(
-		cistron_tu_mapping_matrix.dot(view_RNA.counts()))
+		cistron_tu_mapping_matrix.dot(RNA_counts))
 	mRNA_cistron_expression_frac = fit_cistron_expression[
 		transcription.cistron_data['is_mRNA']].sum()
 
 	# Calculate required mRNA expression from monomer counts
-	counts_protein = bulkContainer.counts(
-		translation.monomer_data["id"])
+	protein_idx = bulk_name_to_idx(translation.monomer_data["id"],
+		bulkContainer['id'])
+	counts_protein = counts(bulkContainer, protein_idx)
 	mRNA_cistron_distribution_per_protein = mRNADistributionFromProtein(
 		normalize(counts_protein),
 		translation_efficiencies_by_protein,
@@ -1789,9 +1811,9 @@ def fitExpression(sim_data, bulkContainer, doubling_time, avgCellDryMassInit, Km
 		fit_cistron_expression)
 	fit_mRNA_tu_expression = fit_tu_expression[transcription.rna_data['is_mRNA']]
 
-	mRNA_tu_expression_view.countsIs(
-		mRNA_tu_expression_frac * normalize(fit_mRNA_tu_expression))
-	expression = normalize(rna_expression_container.counts())
+	rna_expression_container[transcription.rna_data['is_mRNA']
+		] = mRNA_tu_expression_frac * normalize(fit_mRNA_tu_expression)
+	expression = normalize(rna_expression_container)
 
 	# Set number of RNAs based on expression we just set
 	mws = transcription.rna_data["mw"]
@@ -1804,13 +1826,13 @@ def fitExpression(sim_data, bulkContainer, doubling_time, avgCellDryMassInit, Km
 
 	n_rnas = totalCountFromMassesAndRatios(
 		total_mass_RNA, mws / sim_data.constants.n_avogadro, expression)
-	view_RNA.countsIs(n_rnas * expression)
+	bulkContainer['count'][rna_idx] = n_rnas * expression
 
 	if Km is None:
 		rnaLossRate = netLossRateFromDilutionAndDegradationRNALinear(
 			doubling_time,
 			transcription.rna_data['deg_rate'],
-			bulkContainer.counts(transcription.rna_data['id'])
+			counts(bulkContainer, rna_idx)
 		)
 	else:
 		# Get constants to compute countsToMolar factor
@@ -1819,7 +1841,10 @@ def fitExpression(sim_data, bulkContainer, doubling_time, avgCellDryMassInit, Km
 		cellVolume = avgCellDryMassInit / cellDensity / dryMassFraction
 		countsToMolar = 1 / (sim_data.constants.n_avogadro * cellVolume)
 
-		endoRNaseConc = countsToMolar * bulkContainer.counts(sim_data.process.rna_decay.endoRNase_ids)
+		endoRNase_idx = bulk_name_to_idx(
+			sim_data.process.rna_decay.endoRNase_ids,
+			bulkContainer["id"])
+		endoRNaseConc = countsToMolar * counts(bulkContainer, endoRNase_idx)
 		kcatEndoRNase = sim_data.process.rna_decay.kcats
 		totalEndoRnaseCapacity = units.sum(endoRNaseConc * kcatEndoRNase)
 
@@ -1827,7 +1852,7 @@ def fitExpression(sim_data, bulkContainer, doubling_time, avgCellDryMassInit, Km
 			doubling_time,
 			(1 / countsToMolar) * totalEndoRnaseCapacity,
 			Km,
-			countsToMolar * view_RNA.counts(),
+			countsToMolar * counts(bulkContainer, rna_idx),
 			countsToMolar,
 		)
 
@@ -1873,7 +1898,9 @@ def fitMaintenanceCosts(sim_data, bulkContainer):
 
 
 	aaCounts = sim_data.process.translation.monomer_data['aa_counts']
-	proteinCounts = bulkContainer.counts(sim_data.process.translation.monomer_data["id"])
+	protein_idx = bulk_name_to_idx(sim_data.process.translation.monomer_data["id"],
+		bulkContainer['id'])
+	proteinCounts = counts(bulkContainer, protein_idx)
 	nAvogadro = sim_data.constants.n_avogadro
 	avgCellDryMassInit = sim_data.mass.avg_cell_dry_mass_init
 	gtpPerTranslation = sim_data.constants.gtp_per_translation
@@ -1933,10 +1960,14 @@ def calculateBulkDistributions(sim_data, expression, concDict, avgCellDryMassIni
 
 	Returns
 	--------
-	- bulkAverageContainer (BulkObjectsContainer object) - the mean of the bulk counts
-	- bulkDeviationContainer (BulkObjectsContainer object) - the standard deviation of the bulk counts
-	- proteinMonomerAverageContainer (BulkObjectsContainer object) - the mean of the protein monomer counts
-	- proteinMonomerDeviationContainer (BulkObjectsContainer object) - the standard deviation of the protein
+	- bulkAverageContainer (np.ndarray object) - Two columns: 'id' for name and 'count'
+		for the mean of the counts of all bulk molecules
+	- bulkDeviationContainer (np.ndarray object) - Two columns: 'id' for name and 'count'
+		for the standard deviation of the counts of all bulk molecules 
+	- proteinMonomerAverageContainer (np.ndarray object) - Two columns: 'id' for name and 'count'
+		for the mean of the counts of all protein monomers
+	- proteinMonomerDeviationContainer (np.ndarray object) - Two columns: 'id' for name and 'count'
+		for the standard deviation of the counts of all protein monomers
 	"""
 
 	# Ids
@@ -1970,17 +2001,23 @@ def calculateBulkDistributions(sim_data, expression, concDict, avgCellDryMassIni
 	# instantiate many cells, form complexes, and finally compute the
 	# statistics we will use in the fitting operations.
 
-	bulkContainer = BulkObjectsContainer(sim_data.internal_state.bulk_molecules.bulk_data['id'])
-	rnaView = bulkContainer.countsView(ids_rnas)
-	proteinView = bulkContainer.countsView(ids_protein)
-	complexationMoleculesView = bulkContainer.countsView(ids_complex)
-	equilibriumMoleculesView = bulkContainer.countsView(ids_equilibrium)
-	twoComponentSystemMoleculesView = bulkContainer.countsView(ids_twoComponentSystem)
-	metabolitesView = bulkContainer.countsView(ids_metabolites)
-	allMoleculesView = bulkContainer.countsView(allMoleculesIDs)
+	bulk_ids = sim_data.internal_state.bulk_molecules.bulk_data.struct_array['id']
+	bulkContainer = np.array([mol_data for mol_data in
+		zip(bulk_ids, np.zeros(len(bulk_ids)))],
+		dtype=[('id', bulk_ids.dtype), ('count', int)])
+	
+	rna_idx = bulk_name_to_idx(ids_rnas, bulkContainer['id'])
+	protein_idx = bulk_name_to_idx(ids_protein, bulkContainer['id'])
+	complexation_molecules_idx = bulk_name_to_idx(ids_complex, bulkContainer['id'])
+	equilibrium_molecules_idx = bulk_name_to_idx(
+		ids_equilibrium, bulkContainer['id'])
+	two_component_system_molecules_idx = bulk_name_to_idx(
+		ids_twoComponentSystem, bulkContainer['id'])
+	metabolites_idx = bulk_name_to_idx(ids_metabolites, bulkContainer['id'])
+	all_molecules_idx = bulk_name_to_idx(allMoleculesIDs, bulkContainer['id'])
 
-	allMoleculeCounts = np.empty((N_SEEDS, allMoleculesView.counts().size), np.int64)
-	proteinMonomerCounts = np.empty((N_SEEDS, proteinView.counts().size), np.int64)
+	allMoleculeCounts = np.empty((N_SEEDS, len(allMoleculesIDs)), np.int64)
+	proteinMonomerCounts = np.empty((N_SEEDS, len(ids_protein)), np.int64)
 
 	if VERBOSE > 1:
 		print("Bulk distribution seed:")
@@ -1990,13 +2027,14 @@ def calculateBulkDistributions(sim_data, expression, concDict, avgCellDryMassIni
 		if VERBOSE > 1:
 			print('seed = {}'.format(seed))
 
-		allMoleculesView.countsIs(0)
+		bulkContainer['count'][all_molecules_idx] = 0
 
-		rnaView.countsIs(totalCount_RNA * distribution_RNA)
+		bulkContainer['count'][rna_idx] = totalCount_RNA * distribution_RNA
 
-		proteinView.countsIs(totalCount_protein * distribution_protein)
-		proteinMonomerCounts[seed, :] = proteinView.counts()
-		complexationMoleculeCounts = complexationMoleculesView.counts()
+		bulkContainer['count'][protein_idx] = totalCount_protein * distribution_protein
+
+		proteinMonomerCounts[seed, :] = counts(bulkContainer, protein_idx)
+		complexationMoleculeCounts = counts(bulkContainer, complexation_molecules_idx)
 
 		# Form complexes
 		time_step = 2**31 # don't stop until all complexes are formed.
@@ -2006,9 +2044,9 @@ def calculateBulkDistributions(sim_data, expression, concDict, avgCellDryMassIni
 			time_step, complexationMoleculeCounts, complexation_rates)
 
 		updatedCompMoleculeCounts = complexation_result['outcome']
-		complexationMoleculesView.countsIs(updatedCompMoleculeCounts)
+		bulkContainer['count'][complexation_molecules_idx] = updatedCompMoleculeCounts
 
-		metDiffs = np.inf * np.ones_like(metabolitesView.counts())
+		metDiffs = np.inf * np.ones_like(counts(bulkContainer, metabolites_idx))
 		nIters = 0
 
 		# Iterate processes until metabolites converge to a steady-state
@@ -2017,52 +2055,61 @@ def calculateBulkDistributions(sim_data, expression, concDict, avgCellDryMassIni
 			metCounts = conc_metabolites * cellVolume * sim_data.constants.n_avogadro
 			metCounts.normalize()
 			metCounts.checkNoUnit()
-			metabolitesView.countsIs(
-				metCounts.asNumber().round()
-				)
+			bulkContainer['count'][metabolites_idx] = metCounts.asNumber().round()
 
 			# Find reaction fluxes from equilibrium process
 			# Do not use jit to avoid compiling time (especially when running
 			# in parallel since sim_data needs to be pickled and reconstructed
 			# each time)
 			rxnFluxes, _ = sim_data.process.equilibrium.fluxes_and_molecules_to_SS(
-				equilibriumMoleculesView.counts(),
+				bulkContainer['count'][equilibrium_molecules_idx],
 				cellVolume.asNumber(units.L),
 				sim_data.constants.n_avogadro.asNumber(1 / units.mol),
 				random_state, jit=False,
 				)
-			equilibriumMoleculesView.countsInc(
-				np.dot(sim_data.process.equilibrium.stoich_matrix().astype(np.int64), rxnFluxes)
-				)
-			assert np.all(equilibriumMoleculesView.counts() >= 0)
+			bulkContainer['count'][equilibrium_molecules_idx] += np.dot(
+				sim_data.process.equilibrium.stoich_matrix().astype(np.int64),
+				rxnFluxes.astype(np.int64))
+			assert np.all(bulkContainer['count'][equilibrium_molecules_idx] >= 0)
 
 			# Find changes from two component system
 			_, moleculeCountChanges = sim_data.process.two_component_system.molecules_to_ss(
-				twoComponentSystemMoleculesView.counts(),
+				bulkContainer['count'][two_component_system_molecules_idx],
 				cellVolume.asNumber(units.L),
 				sim_data.constants.n_avogadro.asNumber(1 / units.mmol)
 				)
 
-			twoComponentSystemMoleculesView.countsInc(moleculeCountChanges)
+			bulkContainer['count'][two_component_system_molecules_idx] += \
+				moleculeCountChanges.astype(np.int64)
 
-			metDiffs = metabolitesView.counts() - metCounts.asNumber().round()
+			metDiffs = bulkContainer['count'][metabolites_idx
+				] - metCounts.asNumber().round()
 
 			nIters += 1
 			if nIters > 100:
 				raise Exception("Equilibrium reactions are not converging!")
 
-		allMoleculeCounts[seed, :] = allMoleculesView.counts()
+		allMoleculeCounts[seed, :] = counts(bulkContainer, all_molecules_idx)
 
 	# Update counts in bulk objects container
-	bulkAverageContainer = BulkObjectsContainer(sim_data.internal_state.bulk_molecules.bulk_data['id'], np.float64)
-	bulkDeviationContainer = BulkObjectsContainer(sim_data.internal_state.bulk_molecules.bulk_data['id'], np.float64)
-	proteinMonomerAverageContainer = BulkObjectsContainer(sim_data.process.translation.monomer_data["id"], np.float64)
-	proteinMonomerDeviationContainer = BulkObjectsContainer(sim_data.process.translation.monomer_data["id"], np.float64)
+	bulkAverageContainer = np.array([mol_data for mol_data in
+		zip(bulk_ids, np.zeros(len(bulk_ids)))],
+		dtype=[('id', bulk_ids.dtype), ('count', np.float64)])
+	bulkDeviationContainer = np.array([mol_data for mol_data in
+		zip(bulk_ids, np.zeros(len(bulk_ids)))],
+		dtype=[('id', bulk_ids.dtype), ('count', np.float64)])
+	monomer_ids = sim_data.process.translation.monomer_data["id"]
+	proteinMonomerAverageContainer = np.array([mol_data for mol_data in
+		zip(monomer_ids, np.zeros(len(monomer_ids)))],
+		dtype=[('id', monomer_ids.dtype), ('count', np.float64)])
+	proteinMonomerDeviationContainer = np.array([mol_data for mol_data in
+		zip(monomer_ids, np.zeros(len(monomer_ids)))],
+		dtype=[('id', monomer_ids.dtype), ('count', np.float64)])
 
-	bulkAverageContainer.countsIs(allMoleculeCounts.mean(0), allMoleculesIDs)
-	bulkDeviationContainer.countsIs(allMoleculeCounts.std(0), allMoleculesIDs)
-	proteinMonomerAverageContainer.countsIs(proteinMonomerCounts.mean(0), sim_data.process.translation.monomer_data["id"])
-	proteinMonomerDeviationContainer.countsIs(proteinMonomerCounts.std(0), sim_data.process.translation.monomer_data["id"])
+	bulkAverageContainer['count'][all_molecules_idx] = allMoleculeCounts.mean(0)
+	bulkDeviationContainer['count'][all_molecules_idx] = allMoleculeCounts.std(0)
+	proteinMonomerAverageContainer['count'] = proteinMonomerCounts.mean(0)
+	proteinMonomerDeviationContainer['count'] = proteinMonomerCounts.std(0)
 
 	return bulkAverageContainer, bulkDeviationContainer, proteinMonomerAverageContainer, proteinMonomerDeviationContainer
 
@@ -2834,7 +2881,10 @@ def fitPromoterBoundProbability(sim_data, cell_specs):
 					hJ.append(H_col_name_to_index[col_name])
 
 					# Handle the case of the TF being knocked out (admittedly not the cleanest solution)
-					if cell_specs[condition]["bulkAverageContainer"].count(tf + "[c]") == 0:
+					tf_idx = bulk_name_to_idx(tf + "[c]", cell_specs[
+						condition]["bulkAverageContainer"]["id"])
+					if counts(cell_specs[condition]["bulkAverageContainer"],
+	       					  tf_idx) == 0:
 						hV.append(0)  # TF is knocked out in the given condition
 					else:
 						hV.append(rDict[rnaIdNoLoc + "__" + tf])  # Optimized r value for TF-RNA pair
@@ -3192,16 +3242,20 @@ def fitLigandConcentrations(sim_data, cell_specs):
 
 		# Calculate the concentrations of the metabolite under conditions where
 		# TF is active and inactive
+		metabolite_idx = bulk_name_to_idx(metabolite, cell_specs[activeKey
+			]["bulkAverageContainer"]["id"])
 		activeCellVolume = (cell_specs[activeKey]["avgCellDryMassInit"] /
 			cellDensity / sim_data.mass.cell_dry_mass_fraction)
 		activeCountsToMolar = 1/(sim_data.constants.n_avogadro * activeCellVolume)
-		activeSignalConc = ((activeCountsToMolar * cell_specs[activeKey]["bulkAverageContainer"].count(metabolite))
-			.asNumber(units.mol/units.L))
+		activeSignalConc = ((activeCountsToMolar * counts(cell_specs[activeKey
+			]["bulkAverageContainer"], metabolite_idx)).asNumber(
+			units.mol/units.L))
 		inactiveCellVolume = (cell_specs[inactiveKey]["avgCellDryMassInit"] /
 			cellDensity / sim_data.mass.cell_dry_mass_fraction)
 		inactiveCountsToMolar = 1/(sim_data.constants.n_avogadro * inactiveCellVolume)
-		inactiveSignalConc = ((inactiveCountsToMolar * cell_specs[inactiveKey]["bulkAverageContainer"].count(metabolite))
-			.asNumber(units.mol/units.L))
+		inactiveSignalConc = ((inactiveCountsToMolar * counts(cell_specs[inactiveKey
+			]["bulkAverageContainer"], metabolite_idx)).asNumber(
+			units.mol/units.L))
 
 		# Update kd with fitted values of P and the bulk average concentrations
 		# of the metabolite, and use this fitted kd to recalculate the set
@@ -3296,7 +3350,10 @@ def calculatePromoterBoundProbability(sim_data, cell_specs):
 
 		for tf in sorted(sim_data.tf_to_active_inactive_conditions):
 			tfType = sim_data.process.transcription_regulation.tf_to_tf_type[tf]
-			tf_counts = cell_specs[conditionKey]["bulkAverageContainer"].count(tf + "[c]")
+			curr_tf_idx = bulk_name_to_idx(tf + "[c]", cell_specs[conditionKey][
+				"bulkAverageContainer"]["id"])
+			tf_counts = counts(cell_specs[conditionKey][
+				"bulkAverageContainer"], curr_tf_idx)
 			tf_targets = n_promoter_targets[tf_idx[tf]]
 			limited_tf_counts = min(1, tf_counts * init_to_average / tf_targets)
 			if tfType == "0CS":
@@ -3310,7 +3367,11 @@ def calculatePromoterBoundProbability(sim_data, cell_specs):
 				signalCoeff = sim_data.process.equilibrium.get_metabolite_coeff(boundId + "[c]")  # Stoichiometric coefficient of ligand
 
 				# Get bulk average concentrations of ligand and TF
-				signalConc = (countsToMolar*cell_specs[conditionKey]["bulkAverageContainer"].count(signal)).asNumber(units.mol/units.L)
+				signal_idx = bulk_name_to_idx(signal, cell_specs[conditionKey
+					]["bulkAverageContainer"]["id"])
+				signalConc = (countsToMolar*counts(cell_specs[conditionKey][
+					"bulkAverageContainer"], signal_idx)).asNumber(
+					units.mol/units.L)
 				tfConc = (countsToMolar*tf_counts).asNumber(units.mol/units.L)
 
 				# If TF is active in its bound state
@@ -3331,7 +3392,11 @@ def calculatePromoterBoundProbability(sim_data, cell_specs):
 				# Get bulk average concentrations of active and inactive TF
 				activeTfConc = (countsToMolar*tf_counts).asNumber(units.mol/units.L)
 				inactiveTf = sim_data.process.two_component_system.active_to_inactive_tf[tf + "[c]"]
-				inactiveTfConc = (countsToMolar*cell_specs[conditionKey]["bulkAverageContainer"].count(inactiveTf)).asNumber(units.mol/units.L)
+				inactive_tf_idx = bulk_name_to_idx(inactiveTf, cell_specs[
+					conditionKey]["bulkAverageContainer"]["id"])
+				inactiveTfConc = (countsToMolar*counts(cell_specs[conditionKey
+					]["bulkAverageContainer"], inactive_tf_idx)).asNumber(
+					units.mol/units.L)
 
 				if activeTfConc == 0 and inactiveTfConc == 0:
 					pPromoterBound[conditionKey][tf] = 0.
@@ -3507,8 +3572,9 @@ def setKmCooperativeEndoRNonLinearRNAdecay(sim_data, bulkContainer):
 		sim_data.process.transcription.rna_data['deg_rate'].asNumber(1/units.s),
 		sim_data.process.transcription.mature_rna_data['deg_rate'].asNumber(1/units.s)
 		))
-	endoRNaseConc = countsToMolar * bulkContainer.counts(
-		sim_data.process.rna_decay.endoRNase_ids)
+	endoRNase_idx = bulk_name_to_idx(sim_data.process.rna_decay.endoRNase_ids,
+		bulkContainer['id'])
+	endoRNaseConc = countsToMolar * counts(bulkContainer, endoRNase_idx)
 	kcatEndoRNase = sim_data.process.rna_decay.kcats
 	totalEndoRnaseCapacity = units.sum(endoRNaseConc * kcatEndoRNase)
 
@@ -3516,7 +3582,8 @@ def setKmCooperativeEndoRNonLinearRNAdecay(sim_data, bulkContainer):
 	isEndoRnase = np.array([
 		(x in endoRnaseRnaIds) for x in degradable_rna_ids])
 
-	rna_counts = bulkContainer.counts(degradable_rna_ids)
+	degradable_rna_idx = bulk_name_to_idx(degradable_rna_ids, bulkContainer["id"])
+	rna_counts = counts(bulkContainer, degradable_rna_idx)
 	rna_conc = countsToMolar * rna_counts
 	Km_counts = ((1 / degradation_rates * totalEndoRnaseCapacity) - rna_conc).asNumber()
 	sim_data.process.rna_decay.Km_first_order_decay = Km_counts

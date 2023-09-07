@@ -17,7 +17,7 @@
     "seed": 0,
     "partition": true,
 
-    "initial_state_file": "wcecoli_t0",
+    "initial_state_file": "",
     "initial_state_overrides": [],
     "initial_state": {},
     "time_step": 1.0,

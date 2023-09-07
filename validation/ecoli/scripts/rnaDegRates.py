@@ -3,6 +3,7 @@
 # Compares model RNA degradation rates to rate data from Moffitt et al. 2016
 # Requires 2 files in validation/ecoli/flat: geneIDs.tsv and moffitt2016_mrna_deg_rates.tsv
 # Outputs rnaDegRates.pdf plot to directory that script is run from
+
 import io
 import os
 from typing import Any, Dict, Union
@@ -39,7 +40,11 @@ with io.open(DEG_RATES, "rb") as csvfile:
 		elif row["Sample"] == "WT +kas replicate 1" and row["Name"] not in rateDict:
 			rateDict[row["Name"]] = -1
 
-raw_data = KnowledgeBaseEcoli()  # type: Any
+raw_data = KnowledgeBaseEcoli(
+	operons_on=False,
+	remove_rrna_operons=False,
+	remove_rrff=False,
+	)  # type: Any
 
 modelRates = {}
 paperRates = {}  # type: Dict[str, Union[int, float]]

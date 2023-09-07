@@ -17,6 +17,7 @@ import numpy as np
 import sympy as sp
 from sympy.parsing.sympy_parser import parse_expr
 
+from ecoli.library.schema import bulk_name_to_idx, counts
 from reconstruction.ecoli.dataclasses.getter_functions import UNDEFINED_COMPARTMENT_IDS_TO_ABBREVS
 from reconstruction.ecoli.knowledge_base_raw import KnowledgeBaseEcoli
 # NOTE: Importing SimulationDataEcoli would make a circular reference so use Any.
@@ -736,8 +737,9 @@ class Metabolism(object):
 			sim_data, export=True)
 
 		aa_names = sim_data.molecule_groups.amino_acids
+		aa_idx = bulk_name_to_idx(aa_names, basal_container['id'])
 		counts_to_molar = (sim_data.constants.cell_density / cell_specs['basal']['avgCellDryMassInit']) / sim_data.constants.n_avogadro
-		aa_conc = {aa: counts * counts_to_molar for aa, counts in zip(aa_names, basal_container.counts(aa_names))}
+		aa_conc = {aa: counts * counts_to_molar for aa, counts in zip(aa_names, counts(basal_container, aa_idx))}
 		aa_with_km = {}
 
 		# Calculate average factor to estimate missing KMs
@@ -787,14 +789,19 @@ class Metabolism(object):
 		'''
 
 		aa_names = sim_data.molecule_groups.amino_acids
+		aa_idx = bulk_name_to_idx(aa_names, with_aa_container['id'])
 		counts_to_molar = (sim_data.constants.cell_density / cell_specs['with_aa']['avgCellDryMassInit']) / sim_data.constants.n_avogadro
-		aa_conc = with_aa_container.counts(aa_names) * counts_to_molar.asNumber(METABOLITE_CONCENTRATION_UNITS)
+		aa_conc = counts(with_aa_container, aa_idx) * counts_to_molar.asNumber(METABOLITE_CONCENTRATION_UNITS)
 		exchange_rates = self.specific_import_rates * cell_specs['with_aa']['avgCellDryMassInit'].asNumber(units.fg)
 
 		self.aa_to_importers, self.aa_to_importers_matrix, self.aa_importer_names = self.get_aa_to_transporters_mapping_data(sim_data)
 
-		importer_counts = with_aa_container.counts(self.aa_importer_names)
-		exporter_counts = with_aa_container.counts(self.aa_exporter_names)
+		aa_importer_idx = bulk_name_to_idx(self.aa_importer_names,
+			with_aa_container['id'])
+		importer_counts = counts(with_aa_container, aa_importer_idx)
+		aa_exporter_idx = bulk_name_to_idx(self.aa_exporter_names,
+			with_aa_container['id'])
+		exporter_counts = counts(with_aa_container, aa_exporter_idx)
 		counts_per_aa_import = self.aa_to_importers_matrix.dot(importer_counts)
 		counts_per_aa_export = self.aa_to_exporters_matrix.dot(exporter_counts)
 
@@ -992,11 +999,23 @@ class Metabolism(object):
 		for amino_acid in ordered_aa_ids:
 			data = self.aa_synthesis_pathways[amino_acid]
 			fwd_enzymes = data['enzymes']
-			fwd_enzymes_basal = basal_container.counts(fwd_enzymes).sum()
-			fwd_enzymes_with_aa = with_aa_container.counts(fwd_enzymes).sum()
+			fwd_enzymes_basal_idx = bulk_name_to_idx(fwd_enzymes,
+				basal_container['id'])
+			fwd_enzymes_basal = counts(basal_container,
+			    fwd_enzymes_basal_idx).sum()
+			fwd_enzymes_with_aa_idx = bulk_name_to_idx(fwd_enzymes,
+				with_aa_container['id'])
+			fwd_enzymes_with_aa = counts(with_aa_container,
+				fwd_enzymes_with_aa_idx).sum()
 			rev_enzymes = data['reverse enzymes']
-			rev_enzymes_basal = basal_container.counts(rev_enzymes).sum()
-			rev_enzymes_with_aa = with_aa_container.counts(rev_enzymes).sum()
+			rev_enzymes_basal_idx = bulk_name_to_idx(rev_enzymes,
+				basal_container['id'])
+			rev_enzymes_basal = counts(basal_container, 
+			    rev_enzymes_basal_idx).sum()
+			rev_enzymes_with_aa_idx = bulk_name_to_idx(rev_enzymes,
+				with_aa_container['id'])
+			rev_enzymes_with_aa = counts(with_aa_container,
+				rev_enzymes_with_aa_idx).sum()
 
 			aa_conc_basal = minimal_conc[amino_acid]
 			aa_conc_with_aa = with_aa_conc[amino_acid]
@@ -1237,8 +1256,12 @@ class Metabolism(object):
 
 		# Concentrations for reference in analysis plot
 		conversion = sim_data.constants.cell_density / sim_data.constants.n_avogadro * sim_data.mass.cell_dry_mass_fraction
-		basal_counts = basal_container.counts(self.aa_enzymes)
-		with_aa_counts = with_aa_container.counts(self.aa_enzymes)
+		aa_enzymes_basal_idx = bulk_name_to_idx(self.aa_enzymes,
+			basal_container['id'])
+		basal_counts = counts(basal_container, aa_enzymes_basal_idx)
+		aa_enzymes_with_aa_idx = bulk_name_to_idx(self.aa_enzymes,
+			with_aa_container['id'])
+		with_aa_counts = counts(with_aa_container, aa_enzymes_with_aa_idx)
 		self.aa_supply_enzyme_conc_with_aa = conversion * with_aa_counts / cell_specs['with_aa']['avgCellDryMassInit']
 		self.aa_supply_enzyme_conc_basal = conversion * basal_counts / cell_specs['basal']['avgCellDryMassInit']
 
