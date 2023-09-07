@@ -1516,7 +1516,7 @@ class LoadSimData:
             current_timeline = self.media_timeline
         media_id = current_timeline[0][1]
         current_concentrations = self.sim_data.external_state.saved_media[
-            current_timeline[0][1]]
+            media_id]
         exch_from_conc = self.sim_data.external_state.\
             exchange_data_from_concentrations
         exchange_data = exch_from_conc(current_concentrations)
@@ -1549,9 +1549,14 @@ class LoadSimData:
             'unique': unique_molecules,
             'environment': {
                 'exchange': {
-                    self.sim_data.external_state.env_to_exchange_map[mol]: 0
+                    mol: 0
                     for mol in current_concentrations
-                }
+                },
+                'exchange_data': {
+                    'unconstrained': sorted(unconstrained),
+                    'constrained': constrained
+                },
+                'media_id': media_id
             },
             'boundary': {
                 'external': {
