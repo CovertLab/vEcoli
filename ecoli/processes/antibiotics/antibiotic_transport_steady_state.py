@@ -463,6 +463,7 @@ class AntibioticTransportSteadyState(Process):
             # species from 'external' to 'species' where the bioscrape
             # process expects them to be, renaming variables, and doing
             # unit conversions.
+            # NOTE: This is a relic from when we used a bioscrape process
             prepared_state = {
                 'species': antibiotic_state['species'],
                 'reaction_parameters': antibiotic_state['reaction_parameters'],

@@ -1,7 +1,7 @@
 import os
-import numpy as np
 import json
-import unum
+
+from vivarium.core.serialize import serialize_value
 
 
 def make_logging_process(process_class):
@@ -27,28 +27,7 @@ def make_logging_process(process_class):
 
 
 def write_json(path, numpy_dict):
-    INFINITY = float('inf')
-
-    class NpEncoder(json.JSONEncoder):
-        def default(self, obj):
-            if isinstance(obj, np.integer):
-                return int(obj)
-            elif isinstance(obj, np.ndarray):
-                return obj.tolist()
-            elif isinstance(obj, unum.Unum):
-                return obj.asNumber()
-            elif isinstance(obj, set):
-                return list(obj)
-            elif obj == INFINITY:
-                return '__INFINITY__'
-            elif isinstance(obj, np.floating):
-                return float(obj)
-            elif isinstance(obj, np.bool_):
-                return bool(obj)
-            else:
-                return super(NpEncoder, self).default(obj)
-
     os.makedirs(os.path.dirname(path), exist_ok=True)
 
     with open(path, 'w') as outfile:
-        json.dump(numpy_dict, outfile, cls=NpEncoder)
+        json.dump(serialize_value(numpy_dict), outfile)

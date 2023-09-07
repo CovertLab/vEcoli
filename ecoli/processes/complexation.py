@@ -18,7 +18,7 @@ simulation.
 # - handle protein complex dissociation
 
 import numpy as np
-from arrow import StochasticSystem
+from stochastic_arrow import StochasticSystem
 
 from vivarium.core.composition import simulate_process
 
@@ -31,7 +31,8 @@ from ecoli.processes.partition import PartitionedProcess
 NAME = 'ecoli-complexation'
 TOPOLOGY = {
     "bulk": ("bulk",),
-    "listeners": ("listeners",)
+    "listeners": ("listeners",),
+    "timestep": ("timestep",)
 }
 topology_registry.register(NAME, TOPOLOGY)
 
@@ -46,7 +47,9 @@ class Complexation(PartitionedProcess):
         'rates': np.array([]),
         'molecule_names': [],
         'seed': 0,
-        'numReactions': 0,
+        'reaction_ids': [],
+        'complex_ids': [],
+        'time_step': 1,
     }
 
     def __init__(self, parameters=None):
@@ -56,6 +59,8 @@ class Complexation(PartitionedProcess):
         self.rates = self.parameters['rates']
         self.molecule_names = self.parameters['molecule_names']
         self.molecule_idx = None
+        self.reaction_ids = self.parameters['reaction_ids']
+        self.complex_ids = self.parameters['complex_ids']
 
         self.randomState = np.random.RandomState(seed = self.parameters['seed'])
         self.seed = self.randomState.randint(2**31)
@@ -65,12 +70,14 @@ class Complexation(PartitionedProcess):
         return {
             'bulk': numpy_schema('bulk'),
             'listeners': {
-                'complexation_listener': listener_schema({
-                    'complexation_events': []}),
+                'complexation_listener': {**listener_schema({
+                    'complexation_events': ([], self.reaction_ids)})},
             },
+            'timestep': {'_default': self.parameters['time_step']}
         }
 
     def calculate_request(self, timestep, states):
+        timestep = states['timestep']
         if self.molecule_idx is None:
             self.molecule_idx = bulk_name_to_idx(
                 self.molecule_names, states['bulk']['id'])
@@ -86,6 +93,7 @@ class Complexation(PartitionedProcess):
         return requests
 
     def evolve_state(self, timestep, states):
+        timestep = states['timestep']
         substrate = counts(states['bulk'], self.molecule_idx)
 
         result = self.system.evolve(timestep, substrate, self.rates)
@@ -117,7 +125,9 @@ def test_complexation():
             [0, 1, -1]], np.int64),
         'rates': np.array([1, 1, 1, 1, 1, 1], np.float64),
         'molecule_names': ['A', 'B', 'C'],
-        'seed': 1}
+        'seed': 1,
+        'reaction_ids': [1, 2, 3, 4, 5, 6],
+        'complex_ids': [1, 2, 3, 4, 5, 6]}
 
     complexation = Complexation(test_config)
 

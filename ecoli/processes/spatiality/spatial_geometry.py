@@ -180,7 +180,7 @@ def run_spatial_geometry_process():
     return output
 
 
-def test_spatial_geometry_process():
+def test_spatial_geometry_process(return_data=False):
     """
     Test that the process runs correctly.
 
@@ -189,7 +189,8 @@ def test_spatial_geometry_process():
     output = run_spatial_geometry_process()
     # TODO(vivarium): Add assert statements to ensure correct performance.
 
-    return output
+    if return_data:
+        return output
 
 
 def main():
@@ -199,7 +200,7 @@ def main():
     if not os.path.exists(out_dir):
         os.makedirs(out_dir)
 
-    output = test_spatial_geometry_process()
+    output = test_spatial_geometry_process(return_data=True)
 
 
 

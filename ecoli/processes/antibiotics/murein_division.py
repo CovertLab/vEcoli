@@ -11,7 +11,7 @@ TOPOLOGY = {
     "bulk": ("bulk",),
     "murein_state": ("murein_state",),
     "wall_state": ("wall_state",),
-    "first_update": ("deriver_skips", "murein_division",)
+    "first_update": ("first_update", "murein_division",)
 }
 topology_registry.register(NAME, TOPOLOGY)
 
@@ -31,7 +31,6 @@ class MureinDivision(Step):
     def __init__(self, parameters=None):
         super().__init__(parameters)
         self.murein = self.parameters["murein_name"]
-        self.first_timestep = True
 
         # Helper indices for Numpy array
         self.murein_idx = None

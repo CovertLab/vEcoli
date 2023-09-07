@@ -11,8 +11,6 @@ on the number of free ribosomal subunits, each mRNA transcript’s translation
 efficiency, and the counts of each type of transcript.
 """
 
-from typing import cast
-
 import numpy as np
 
 from vivarium.core.composition import simulate_process
@@ -21,7 +19,6 @@ from ecoli.library.schema import (create_unique_indexes, numpy_schema, attrs,
 
 from wholecell.utils import units
 from wholecell.utils.fitting import normalize
-from six.moves import zip
 
 from ecoli.processes.registries import topology_registry
 from ecoli.processes.partition import PartitionedProcess
@@ -34,6 +31,7 @@ TOPOLOGY = {
     "active_ribosome": ("unique", "active_ribosome"),
     "RNA": ("unique", "RNA"),
     "bulk": ("bulk",),
+    "timestep": ("timestep",)
 }
 topology_registry.register(NAME, TOPOLOGY)
 
@@ -50,13 +48,20 @@ class PolypeptideInitiation(PartitionedProcess):
         'elongation_rates': {},
         'variable_elongation': False,
         'make_elongation_rates': lambda x: [],
-        'protein_index_to_TU_index': [],
-        'all_TU_ids': [],
-        'all_mRNA_ids': [],
+        'rna_id_to_cistron_indexes': {},
+        'cistron_start_end_pos_in_tu': {},
+        'tu_ids': [],
+        'active_ribosome_footprint_size': 24 * units.nt,
+        'cistron_to_monomer_mapping': {},
+        'cistron_tu_mapping_matrix': {},
+        'monomer_index_to_cistron_index': {},
+        'monomer_index_to_tu_indexes': {},
         'ribosome30S': 'ribosome30S',
         'ribosome50S': 'ribosome50S',
         'seed': 0,
-        'shuffle_indexes': None,
+        'monomer_ids': [],
+        'emit_unique': False,
+        'time_step': 1,
     }
 
     def __init__(self, parameters=None):
@@ -73,29 +78,24 @@ class PolypeptideInitiation(PartitionedProcess):
         self.variable_elongation = self.parameters['variable_elongation']
         self.make_elongation_rates = self.parameters['make_elongation_rates']
 
-        # Get indexes from proteins to transcription units
-        self.protein_index_to_TU_index = self.parameters[
-            'protein_index_to_TU_index']
+        self.rna_id_to_cistron_indexes = self.parameters[
+            'rna_id_to_cistron_indexes']
+        self.cistron_start_end_pos_in_tu = self.parameters[
+            'cistron_start_end_pos_in_tu']
+        self.tu_ids = self.parameters['tu_ids']
+        self.n_TUs = len(self.tu_ids)
+        self.active_ribosome_footprint_size = self.parameters[
+            'active_ribosome_footprint_size']
 
-        # Build matrix to convert transcription unit counts to mRNA counts
-        self.all_TU_ids = self.parameters['all_TU_ids']
-        self.all_mRNA_ids = self.parameters['all_mRNA_ids']
-        self.n_TUs = len(self.all_TU_ids)
-        self.n_mRNAs = len(self.all_mRNA_ids)
-
-        self.TU_counts_to_mRNA_counts = np.zeros(
-            (self.n_mRNAs, self.n_TUs), dtype=np.float64)
-
-        self.TU_id_to_index = {TU_id: i
-            for i, TU_id in enumerate(self.all_TU_ids)}
-        for i, mRNA_id in enumerate(self.all_mRNA_ids):
-            self.TU_counts_to_mRNA_counts[i, self.TU_id_to_index[mRNA_id]] = 1
-
-        # Determine changes from parameter shuffling variant
-        self.shuffle_indexes = self.parameters['shuffle_indexes']
-        if self.shuffle_indexes:
-            self.translation_efficiencies = self.translation_efficiencies[
-                self.shuffle_indexes]
+        # Get mapping from cistrons to protein monomers and TUs
+        self.cistron_to_monomer_mapping = self.parameters[
+            'cistron_to_monomer_mapping']
+        self.cistron_tu_mapping_matrix = self.parameters[
+            'cistron_tu_mapping_matrix']
+        self.monomer_index_to_cistron_index = self.parameters[
+            'monomer_index_to_cistron_index']
+        self.monomer_index_to_tu_indexes = self.parameters[
+            'monomer_index_to_tu_indexes']
 
         self.ribosome30S = self.parameters['ribosome30S']
         self.ribosome50S = self.parameters['ribosome50S']
@@ -112,6 +112,8 @@ class PolypeptideInitiation(PartitionedProcess):
                     'ribosomes_initialized': 0,
                     'prob_translation_per_transcript': 0.0}}}
         
+        self.monomer_ids = self.parameters['monomer_ids']
+        
         # Helper indices for Numpy indexing
         self.ribosome30S_idx = None
 
@@ -124,12 +126,20 @@ class PolypeptideInitiation(PartitionedProcess):
             'listeners': {
                 'ribosome_data': listener_schema({
                     'did_initialize': 0,
-                    'prob_translation_per_transcript': [],
+                    'target_prob_translation_per_transcript': (
+                        [], self.monomer_ids),
+                    'actual_prob_translation_per_transcript': (
+                        [], self.monomer_ids),
+                    'mRNA_is_overcrowded': ([], self.monomer_ids),
+                    'ribosome_init_event_per_monomer': ([], self.monomer_ids),
                     'effective_elongation_rate': 0.0}),
             },
-            'active_ribosome': numpy_schema('active_ribosome'),
-            'RNA': numpy_schema('RNAs'),
-            'bulk': numpy_schema('bulk')
+            'active_ribosome': numpy_schema('active_ribosome',
+                emit=self.parameters['emit_unique']),
+            'RNA': numpy_schema('RNAs',
+                emit=self.parameters['emit_unique']),
+            'bulk': numpy_schema('bulk'),
+            'timestep': {'_default': self.parameters['time_step']}
         }
 
     def calculate_request(self, timestep, states):
@@ -179,21 +189,49 @@ class PolypeptideInitiation(PartitionedProcess):
             counts(states['bulk'], self.ribosome50S_idx)
         ])
 
-        # Get attributes of active (translatable) mRNAs
-        TU_index_RNAs, can_translate, unique_index_RNAs = attrs(
-            states['RNA'],
-            ['TU_index', 'can_translate', 'unique_index'])
-        TU_index_active_mRNAs = TU_index_RNAs[can_translate]
-        unique_index_active_mRNAs = unique_index_RNAs[can_translate]
+        # Calculate actual number of ribosomes that should be activated based
+        # on probabilities
+        (TU_index_RNAs, transcript_lengths, can_translate, is_full_transcript,
+            unique_index_RNAs) = attrs(states['RNA'], ['TU_index',
+                'transcript_length', 'can_translate', 'is_full_transcript', 
+                'unique_index'])
+        TU_index_mRNAs = TU_index_RNAs[can_translate]
+        length_mRNAs = transcript_lengths[can_translate]
+        unique_index_mRNAs = unique_index_RNAs[can_translate]
+        is_full_transcript_mRNAs = is_full_transcript[can_translate]
+        is_incomplete_transcript_mRNAs = np.logical_not(
+            is_full_transcript_mRNAs)
 
-        # Get counts of each type of active mRNA
-        TU_counts = np.bincount(TU_index_active_mRNAs, minlength=self.n_TUs)
-        mRNA_counts = self.TU_counts_to_mRNA_counts.dot(TU_counts)
+        # Calculate counts of each mRNA cistron from fully transcribed
+        # transcription units
+        TU_index_full_mRNAs = TU_index_mRNAs[is_full_transcript_mRNAs]
+        TU_counts_full_mRNAs = np.bincount(
+            TU_index_full_mRNAs, minlength=self.n_TUs)
+        cistron_counts = self.cistron_tu_mapping_matrix.dot(
+            TU_counts_full_mRNAs)
+
+        # Calculate counts of each mRNA cistron from partially transcribed
+        # transcription units
+        TU_index_incomplete_mRNAs = TU_index_mRNAs[
+            is_incomplete_transcript_mRNAs]
+        length_incomplete_mRNAs = length_mRNAs[is_incomplete_transcript_mRNAs]
+
+        for (TU_index, length) in zip(TU_index_incomplete_mRNAs,
+                                      length_incomplete_mRNAs):
+            cistron_indexes = self.rna_id_to_cistron_indexes(
+                self.tu_ids[TU_index])
+            cistron_start_positions = np.array([
+                self.cistron_start_end_pos_in_tu[(cistron_index, TU_index)][0]
+                for cistron_index in cistron_indexes
+                ])
+
+            cistron_counts[cistron_indexes] += length > cistron_start_positions
 
         # Calculate initiation probabilities for ribosomes based on mRNA counts
         # and associated mRNA translational efficiencies
-        protein_init_prob = normalize(
-            mRNA_counts * self.translation_efficiencies)
+        protein_init_prob = normalize(cistron_counts[
+            self.cistron_to_monomer_mapping] * self.translation_efficiencies)
+        target_protein_init_prob = protein_init_prob.copy()
 
         # Calculate actual number of ribosomes that should be activated based
         # on probabilities
@@ -201,8 +239,8 @@ class PolypeptideInitiation(PartitionedProcess):
             self.fracActiveRibosome,
             self.protein_lengths,
             self.elongation_rates,
-            protein_init_prob,
-            timestep)
+            target_protein_init_prob,
+            states['timestep'])
 
         n_ribosomes_to_activate = np.int64(activation_prob
             * inactive_ribosome_count)
@@ -211,6 +249,29 @@ class PolypeptideInitiation(PartitionedProcess):
             update = dict(self.empty_update)
             update['active_ribosome'] = {}
             return self.empty_update
+        
+        # Cap the initiation probabilities at the maximum level physically
+        # allowed from the known ribosome footprint sizes based on the
+        # number of mRNAs
+        max_p = (self.ribosomeElongationRate / self.active_ribosome_footprint_size
+            * (units.s) * states['timestep'] / 
+            n_ribosomes_to_activate).asNumber()
+        max_p_per_protein = max_p*cistron_counts[self.cistron_to_monomer_mapping]
+        is_overcrowded = (protein_init_prob > max_p_per_protein)
+
+        while np.any(protein_init_prob > max_p_per_protein):
+            protein_init_prob[is_overcrowded] = max_p_per_protein[
+                is_overcrowded]
+            assert protein_init_prob[~is_overcrowded].sum() != 0
+            scale_the_rest_by = (
+                (1. - protein_init_prob[is_overcrowded].sum())
+                / protein_init_prob[~is_overcrowded].sum()
+                )
+            protein_init_prob[~is_overcrowded] *= scale_the_rest_by
+            is_overcrowded |= (protein_init_prob > max_p_per_protein)
+
+        # Compute actual transcription probabilities of each transcript
+        actual_protein_init_prob = protein_init_prob.copy()
 
         # Sample multinomial distribution to determine which mRNAs have full
         # 70S ribosomes initialized on them
@@ -224,6 +285,7 @@ class PolypeptideInitiation(PartitionedProcess):
         # blocks of protein ids for efficiency.
         protein_indexes = np.empty(n_ribosomes_to_activate, np.int64)
         mRNA_indexes = np.empty(n_ribosomes_to_activate, np.int64)
+        positions_on_mRNA = np.empty(n_ribosomes_to_activate, np.int64)
         nonzero_count = (n_new_proteins > 0)
         start_index = 0
 
@@ -232,21 +294,39 @@ class PolypeptideInitiation(PartitionedProcess):
                 n_new_proteins[nonzero_count]):
 
             # Set protein index
-            protein_indexes[start_index:start_index+protein_counts
-                ] = protein_index
+            protein_indexes[start_index:start_index + protein_counts] = protein_index
+            
+            cistron_index = self.monomer_index_to_cistron_index[protein_index]
 
-            # Get mask for active mRNA molecules that produce this protein
-            mask = (TU_index_active_mRNAs ==
-                self.protein_index_to_TU_index[protein_index])
-            n_mRNAs = np.count_nonzero(mask)
+            attribute_indexes = []
+            cistron_start_positions = []
+
+            for TU_index in self.monomer_index_to_tu_indexes[protein_index]:
+                attribute_indexes_this_TU = np.where(
+                    TU_index_mRNAs == TU_index)[0]
+                cistron_start_position = self.cistron_start_end_pos_in_tu[
+                    (cistron_index, TU_index)][0]
+                is_transcript_long_enough = (length_mRNAs[
+                    attribute_indexes_this_TU] >= cistron_start_position)
+
+                attribute_indexes.extend(attribute_indexes_this_TU[
+                    is_transcript_long_enough])
+                cistron_start_positions.extend([cistron_start_position] * len(
+                    attribute_indexes_this_TU[is_transcript_long_enough]))
+
+            n_mRNAs = len(attribute_indexes)
 
             # Distribute ribosomes among these mRNAs
             n_ribosomes_per_RNA = self.random_state.multinomial(
-                protein_counts, np.full(n_mRNAs, 1./n_mRNAs))
+                protein_counts, np.full(n_mRNAs, 1. / n_mRNAs))
 
             # Get unique indexes of each mRNA
             mRNA_indexes[start_index:start_index + protein_counts] = np.repeat(
-                unique_index_active_mRNAs[mask], n_ribosomes_per_RNA)
+                unique_index_mRNAs[attribute_indexes], n_ribosomes_per_RNA)
+            
+            positions_on_mRNA[start_index:start_index + protein_counts] = np.repeat(
+                cistron_start_positions, n_ribosomes_per_RNA
+                )
 
             start_index += protein_counts
 
@@ -262,17 +342,19 @@ class PolypeptideInitiation(PartitionedProcess):
                 'add': {
                     'unique_index': ribosome_indices,
                     'protein_index': protein_indexes,
-                    'peptide_length': np.zeros(cast(int,
-                        n_ribosomes_to_activate), dtype=np.int64),
+                    'peptide_length': np.zeros(n_ribosomes_to_activate,
+                                               dtype=np.int64),
                     'mRNA_index': mRNA_indexes,
-                    'pos_on_mRNA': np.zeros(cast(int, n_ribosomes_to_activate),
-                        dtype=np.int64)
+                    'pos_on_mRNA': positions_on_mRNA
                 },
             },
             'listeners': {
                 'ribosome_data': {
                     'did_initialize': n_new_proteins.sum(),
-                    'prob_translation_per_transcript': protein_init_prob}}}
+                    'ribosome_init_event_per_monomer': n_new_proteins,
+                    'target_prob_translation_per_transcript': target_protein_init_prob,
+                    'actual_prob_translation_per_transcript': actual_protein_init_prob,
+                    'mRNA_is_overcrowded': is_overcrowded}}}
 
         return update
 
@@ -340,13 +422,23 @@ def test_polypeptide_initiation():
             variable_elongation=False):
         return base
 
+    all_mRNA_ids = ['wRNA', 'xRNA', 'yRNA', 'zRNA']
+    protein_lengths = np.array([25, 9, 12, 29])
     test_config = {
-        'protein_lengths': np.array([25, 9, 12, 29]),
+        'protein_lengths': protein_lengths,
         'translation_efficiencies': normalize(np.array([0.1, 0.2, 0.3, 0.4])),
-        'active_ribosome_fraction': {'minimal': 0.1},
-        'elongation_rates': {'open': 10},
+        'active_ribosome_fraction': {'minimal': 0.05},
         'variable_elongation': False,
         'make_elongation_rates': make_elongation_rates,
+        'rna_id_to_cistron_indexes': lambda rna_id: all_mRNA_ids.index(rna_id),
+        'cistron_start_end_pos_in_tu': {
+            (idx, idx): (0, protein_length*3 + 3)
+            for idx, protein_length in enumerate(protein_lengths)},
+        'tu_ids': all_mRNA_ids,
+        'cistron_to_monomer_mapping': np.arange(4),
+        'cistron_tu_mapping_matrix': np.identity(4),
+        'monomer_index_to_cistron_index': {i: i for i in range(4)},
+        'monomer_index_to_tu_indexes': {i: (i,) for i in range(4)},
         'protein_index_to_TU_index': np.arange(4),
         'all_TU_ids': ['wRNA', 'xRNA', 'yRNA', 'zRNA'],
         'all_mRNA_ids': ['wRNA', 'xRNA', 'yRNA', 'zRNA'],
@@ -361,19 +453,21 @@ def test_polypeptide_initiation():
             'media_id': 'minimal'},
         'listeners': {
             'ribosome_data': {
-                'effective_elongation_rate': 11}},
+                'effective_elongation_rate': 25}},
         'bulk': np.array([
             ('30S', 2000),
             ('50S', 3000),
         ], dtype=[('id', 'U40'), ('count', int)]),
         'RNA': np.array([
-            (1, 0, True, 0),
-            (1, 0, True, 1),
-            (1, 1, True, 2),
-            (1, 2, True, 3),
-            (1, 2, True, 4),
+            (1, 0, True, 0, 103, True),
+            (1, 0, True, 1, 103, True),
+            (1, 1, True, 2, 39, True),
+            (1, 2, True, 3, 51, True),
+            (1, 2, True, 4, 51, True),
+            (1, 3, True, 4, 119, True),
         ], dtype=[('_entryState', np.bool_), ('TU_index', int),
-            ('can_translate', np.bool_), ('unique_index', int)])
+            ('can_translate', np.bool_), ('unique_index', int),
+            ('transcript_length', int), ('is_full_transcript', np.bool_)])
     }
 
     settings = {

@@ -10,60 +10,53 @@ monomer ID, gene ID, TU index, bulk ID, and IDs of complexes containing that
 monomer as well as the number of monomers incorporated into each complex.
 
 Required files:
-- tetFC.tsv: fold change for each gene
-- complexation_stoich.npy: complexation stoichiometric matrix
-- complexation_molecules.npy: list of molecules used by complexation process
-- TU_id_to_index.json: dictionary mapping RNA names to TU indexes (Example: {"EG10001_RNA[c]": 0})
+- tetFC.tsv: fold change for each gene, extracted from Figure 1 of
+ Viveiros M, Dupont M, Rodrigues L, Couto I, Davin-Regli A, et al. (2007)
+ Antibiotic Stress, Genetic Response and Altered Permeability of E. coli.
+ PLOS ONE 2(4): e365. https://doi.org/10.1371/journal.pone.0000365
 """
 
 import pandas as pd
+import pickle
 import json
 import numpy as np
+from ast import literal_eval
+
+from ecoli.library.sim_data import SIM_DATA_PATH_NO_OPERONS
 
 def main():
-    rnas = pd.read_table("reconstruction/ecoli/flat/rnas.tsv", comment='#')
-    model_degenes = []
+    # Load complexation and TU index data from sim_data
+    sim_data = pickle.load(open(SIM_DATA_PATH_NO_OPERONS, 'rb'))
+    if sim_data.operons_on:
+        raise TypeError('marA regulon only works with operons OFF')
+    bulk_names = sim_data.internal_state.bulk_molecules.bulk_data['id']
+    TU_id_to_index = {rna: idx for idx, rna in
+        enumerate(sim_data.process.transcription.rna_data['id'])}
+    comp_stoich = sim_data.process.complexation.stoich_matrix().astype(np.int64).T
+    comp_molecules = sim_data.process.complexation.molecule_names
 
+    rnas = pd.read_table("reconstruction/ecoli/flat/rnas.tsv", comment='#')
+    rnas['synonyms'] = rnas['synonyms'].apply(literal_eval)
+    rnas = rnas.explode('synonyms')
 
     # Use fold change from exposure to 1.5 mg/L tetracycline
     tet_FC = pd.read_table("data/marA_binding/tet_FC.tsv")
     tet_FC = tet_FC.loc[:,["Gene Name ", "1.5 mg/L tet."]]
     tet_FC.rename(columns={
         "Gene Name ": "Gene name", "1.5 mg/L tet.": "Fold change"}, inplace=True)
-    degenes = tet_FC.sort_values(
+    de_genes = tet_FC.sort_values(
         by="Fold change", ascending=False, ignore_index=True)
+    de_genes = de_genes.merge(rnas, left_on='Gene name', right_on='synonyms')
 
-    for i, gene in enumerate(degenes["Gene name"]):
-        # Cycle through gene synonyms in rnas.tsv to find EcoCyc name for DE genes
-        found = False
-        for j, synonyms in enumerate(rnas["synonyms"]):
-            if gene in synonyms:
-                model_degenes.append(
-                    degenes.iloc[i,].append(rnas.iloc[j,]).to_frame().T)
-                found = True
-        if not found:
-            print(gene)
-
-    # Concatenating at end is supposed to be more efficient than row-wise append
-    model_degenes = pd.concat(model_degenes, ignore_index=True)
     # Delete these two duplicates that are the incorrect genes
-    model_degenes = model_degenes.loc[~((model_degenes['Gene name']=="acrE") & (model_degenes['common_name']=='acrB'))]
-    model_degenes = model_degenes.loc[~((model_degenes['Gene name']=="acrB") & (model_degenes['common_name']=='gyrB'))]
-    with open("data/marA_binding/TU_id_to_index.json") as f:
-        TU_id_to_index = json.load(f)
+    de_genes = de_genes.loc[~((de_genes['Gene name']=="acrE") & (de_genes['common_name']=='acrB'))]
+    de_genes = de_genes.loc[~((de_genes['Gene name']=="acrB") & (de_genes['common_name']=='gyrB'))]
 
     # Get model RNAs names by appending the "[c]" suffix, then get TU index for RNA
-    TU_idx = [TU_id_to_index[rna_id + "[c]"] for rna_id in model_degenes["id"]]
-    model_degenes["TU_idx"] = TU_idx
-
-    with open("data/wcecoli_t0.json") as f:
-        initial_state = json.load(f)
-    bulk_names = list(initial_state["bulk"].keys())
+    TU_idx = [TU_id_to_index[rna_id + "[c]"] for rna_id in de_genes["id"]]
+    de_genes["TU_idx"] = TU_idx
 
     # Include complexes
-    # These numpy arrays were saved directly from complexation sim data
-    comp_stoich = np.load('data/marA_binding/complexation_stoich.npy')
-    comp_molecules = np.load('data/marA_binding/complexation_molecules.npy')
     comp_rxns = pd.DataFrame(comp_stoich, columns=comp_molecules)
 
     def recursive_search(complex_name, monomers_used):
@@ -126,20 +119,20 @@ def main():
 
     # Protein IDs have varied suffixes: brute force search
     all_ids = []
-    for monomer_id in model_degenes["monomer_ids"]:
+    for monomer_id in de_genes["monomer_ids"]:
         all_ids.append(get_IDs(monomer_id))
 
-    (model_degenes["bulk_ids"], model_degenes["monomers_used"], 
-        model_degenes["complex_ids"]) = zip(
+    (de_genes["bulk_ids"], de_genes["monomers_used"], 
+        de_genes["complex_ids"]) = zip(
             *[ids for ids in all_ids])
         
     # Add marR-tet complex
-    marR_complex_ids = model_degenes.loc[model_degenes['Gene name'] == 'marR', 'complex_ids'].to_numpy()[0]
+    marR_complex_ids = de_genes.loc[de_genes['Gene name'] == 'marR', 'complex_ids'].to_numpy()[0]
     marR_complex_ids.append('marR-tet[c]')
-    marR_monomers_used = model_degenes.loc[model_degenes['Gene name'] == 'marR', 'monomers_used'].to_numpy()[0]
+    marR_monomers_used = de_genes.loc[de_genes['Gene name'] == 'marR', 'monomers_used'].to_numpy()[0]
     marR_monomers_used.append(-2)
         
-    model_degenes.to_csv(
+    de_genes.to_csv(
         "data/marA_binding/model_degenes.csv", index=False)
 
 if __name__=="__main__":

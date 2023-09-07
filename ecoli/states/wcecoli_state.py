@@ -4,52 +4,11 @@ import numpy as np
 import concurrent.futures
 
 from vivarium.core.serialize import deserialize_value
-
 from wholecell.utils import units
-
-
-def infinitize(value):
-    if value == "__INFINITY__":
-        return float("inf")
-    else:
-        return value
-
 
 def load_states(path):
     with open(path, "r") as states_file:
         states = json.load(states_file)
-    # Apply infinitize() to every value in each agent's environment state
-    if 'agents' in states.keys():
-        for agent_state in states['agents'].values():
-            agent_state['environment'] = {
-                key: infinitize(value)
-                for key, value in agent_state.get("environment", {}).items()
-            }
-    else:
-        states['environment'] = {
-            key: infinitize(value)
-            for key, value in states.get("environment", {}).items()
-        }
-    return states
-
-
-def colony_initial_state(states):
-    """
-    colony_initial_state modifies the states of a loaded colony simulation
-    to be suitable for initializing a colony simulation.
-    """
-    for agent_state in states['agents'].values():
-        # If evolvers_ran is False, we can get an infinite loop of
-        # neither evolvers nor requesters running. No saved state should
-        # include evolvers_ran=False.
-        assert states.get('evolvers_ran', True)
-        agent_state['environment']['exchange_data'] = {
-            'unconstrained': {'CL-[p]', 'FE+2[p]', 'CO+2[p]', 'MG+2[p]',
-                'NA+[p]', 'CARBON-DIOXIDE[p]', 'OXYGEN-MOLECULE[p]', 'MN+2[p]',
-                'L-SELENOCYSTEINE[c]', 'K+[p]', 'SULFATE[p]', 'ZN+2[p]',
-                'CA+2[p]', 'Pi[p]', 'NI+2[p]', 'WATER[p]', 'AMMONIUM[c]'},
-            'constrained': {
-                'GLC[p]': 20.0 * units.mmol / (units.g * units.h)}}
     return states
 
 
@@ -69,6 +28,22 @@ def numpy_molecules(states):
             unique_tuples = [tuple(mol) for mol in states['unique'][key]]
             states['unique'][key] = np.array(unique_tuples, dtype=dtypes)
             states['unique'][key].flags.writeable = False
+    if 'environment' in states:
+        if 'exchange_data' in states['environment']:
+            states['environment']['exchange_data']['constrained'
+                ] = {mol: units.mmol / (units. g * units.h) * rate
+                for mol, rate in states['environment']['exchange_data'][
+                    'constrained'].items()}
+        else:
+            # Load aerobic minimal media exchange data by default
+            states['environment']['exchange_data'] = {
+                'unconstrained': sorted(['CL-[p]', 'FE+2[p]', 'FE+3[p]', 
+                    'CO+2[p]', 'MG+2[p]', 'NA+[p]', 'CARBON-DIOXIDE[p]',
+                    'OXYGEN-MOLECULE[p]', 'MN+2[p]', 'L-SELENOCYSTEINE[c]',
+                    'K+[p]', 'SULFATE[p]', 'ZN+2[p]', 'CA+2[p]', 'Pi[p]',
+                    'NI+2[p]', 'WATER[p]', 'AMMONIUM[c]']),
+                'constrained': {
+                    'GLC[p]': 20.0 * units.mmol / (units.g * units.h)}}
     return states 
 
 
@@ -85,37 +60,15 @@ def get_state_from_file(
                 deserialize_value, agents.values())
         numpy_agents = []
         for agent in deserialized_agents:
-            agent.pop('deriver_skips', None)
+            agent.pop('first_update', None)
             numpy_agents.append(numpy_molecules(agent))
         agents = dict(zip(agents.keys(), numpy_agents))
         states = deserialize_value(serialized_state)
         states['agents'] = agents
-        return colony_initial_state(states)
+        return states
     
     deserialized_states = deserialize_value(serialized_state)
     states = numpy_molecules(deserialized_states)
-    # If evolvers_ran is False, we can get an infinite loop of
-    # neither evolvers nor requesters running. No saved state should
-    # include evolvers_ran=False.
-    assert states.get('evolvers_ran', True)
-    # Shallow copy for processing state into correct form
-    initial_state = states.copy()
-    # process environment state
-    env_data = states.get("environment", {})
-    exchange_data = env_data.pop("exchange", {})
-    initial_state["environment"] = {
-        "media_id": "minimal",
-        # TODO(Ryan): pull in environmental amino acid levels
-        "amino_acids": {},
-        "exchange_data": {
-            'unconstrained': {'CL-[p]', 'FE+2[p]', 'CO+2[p]', 'MG+2[p]',
-                'NA+[p]', 'CARBON-DIOXIDE[p]', 'OXYGEN-MOLECULE[p]', 'MN+2[p]',
-                'L-SELENOCYSTEINE[c]', 'K+[p]', 'SULFATE[p]', 'ZN+2[p]',
-                'CA+2[p]', 'Pi[p]', 'NI+2[p]', 'WATER[p]', 'AMMONIUM[c]'},
-            'constrained': {
-                'GLC[p]': 20.0 * units.mmol / (units.g * units.h)}},
-        "external_concentrations": env_data,
-        "exchange": exchange_data
-    }
-    initial_state["process_state"] = {"polypeptide_elongation": {}}
-    return initial_state
+    # TODO: Add timeline process to set up media ID
+    states.setdefault("environment", {})["media_id"] = "minimal"
+    return states

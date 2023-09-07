@@ -3,7 +3,6 @@ Plot the Voronoi diagram of mass fractions
 """
 
 import os
-from six.moves import cPickle
 import pickle
 import numpy as np
 from matplotlib import pyplot as plt
@@ -11,10 +10,8 @@ from matplotlib import pyplot as plt
 from wholecell.utils import units
 from wholecell.utils.voronoi_plot_main import VoronoiMaster
 
-from ecoli.composites.ecoli_master import run_ecoli
+from ecoli.composites.ecoli_master import run_ecoli, SIM_DATA_PATH
 from ecoli.analysis.tablereader import TableReader
-from ecoli.composites.ecoli_nonpartition import SIM_DATA_PATH
-
 
 
 SEED = 0  # random seed

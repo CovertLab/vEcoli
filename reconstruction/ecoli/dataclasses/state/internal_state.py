@@ -3,14 +3,11 @@ SimulationData state associated data
 
 """
 
-from __future__ import absolute_import, division, print_function
-
 from wholecell.utils import units
 
 from reconstruction.ecoli.dataclasses.state.bulkMolecules import BulkMolecules
 from reconstruction.ecoli.dataclasses.state.uniqueMolecules import UniqueMolecules
 
-import itertools
 import numpy as np
 
 class InternalState(object):
@@ -86,15 +83,15 @@ class InternalState(object):
 		# cell division.
 		# - coordinates (64-bit int): Location of the RNAP on the chromosome,
 		# in base pairs from origin.
-		# - direction (bool): True if RNAP is moving in the positive direction
-		# of the coordinate, False if RNAP is moving in the negative direction.
-		# This is determined by the orientation of the gene that the RNAP is
-		# transcribing.
+		# - is_forward (bool): True if RNAP is moving in the positive direction
+		# of the genomic coordinates, False if RNAP is moving in the negative
+		# direction. This is determined by the orientation of the TU that the
+		# RNAP is transcribing.
 		RNAP_mass = bulk_molecule_id_to_mass[sim_data.molecule_ids.full_RNAP]
 		RNAP_attributes = {
 			'domain_index': 'i4',
 			'coordinates': 'i8',
-			'direction': '?',
+			'is_forward': '?',
 			}
 
 		self.unique_molecule.add_to_unique_state('active_RNAP', RNAP_attributes, RNAP_mass)
@@ -151,8 +148,6 @@ class InternalState(object):
 		# is bound to
 		# - pos_on_mRNA (64-bit int): Location of the ribosome on the bound
 		# mRNA, in number of bases from the transcription start site
-		# TODO: This is a bad hack that works because in the parca
-		# I have forced expression to be these subunits only
 		ribosome_30S_mass = bulk_molecule_id_to_mass[sim_data.molecule_ids.s30_full_complex]
 		ribosome_50S_mass = bulk_molecule_id_to_mass[sim_data.molecule_ids.s50_full_complex]
 		ribosome_mass = ribosome_30S_mass + ribosome_50S_mass
@@ -216,27 +211,18 @@ class InternalState(object):
 		# Add active replisomes
 		# Note that the replisome does not functionally replicate the
 		# chromosome, but instead keeps track of the mass associated with
-		# essential subunits of the replisome complex. The list of essential
-		# subunits and their stoichiometry were taken from Reyes-Lamothe et
-		# al., 2010.
+		# essential subunits of the replisome complex (if the mechanistic
+		# replisome option is turned on). The list of essential subunits and
+		# their stoichiometry were taken from Reyes-Lamothe et al., 2010.
 		replisome_mass = (units.g / units.mol) * np.zeros_like(RNAP_mass)
-
-		trimer_ids = sim_data.molecule_groups.replisome_trimer_subunits
-		monomer_ids = sim_data.molecule_groups.replisome_monomer_subunits
-
-		for trimer_id in trimer_ids:
-			replisome_mass += 3*bulk_molecule_id_to_mass[trimer_id]
-		for monomer_id in monomer_ids:
-			replisome_mass += bulk_molecule_id_to_mass[monomer_id]
-
-		replisomeAttributes = {
+		replisome_attributes = {
 			'domain_index': 'i4',
 			'right_replichore': '?',
 			'coordinates': 'i8',
 			}
 
 		self.unique_molecule.add_to_unique_state(
-			'active_replisome', replisomeAttributes, replisome_mass)
+			'active_replisome', replisome_attributes, replisome_mass)
 
 		# Active replisomes are divided based on their domain index
 		sim_data.molecule_groups.unique_molecules_domain_index_division.append(
@@ -293,6 +279,31 @@ class InternalState(object):
 		# Promoters are divided based on their domain index
 		sim_data.molecule_groups.unique_molecules_domain_index_division.append(
 			'promoter'
+			)
+
+		# Add genes
+		# Genes are sequences on the DNA that encode for particular cistrons.
+		# Its attributes are given as:
+		# - cistron_index (64-bit int): Index of the cistron that the gene
+		# encodes for.
+		# - coordinates (64-bit int): Location of the gene on the chromosome, in
+		# base pairs from origin. This value does not change after the molecule
+		# is initialized.
+		# - domain_index (32-bit int): Domain index of the chromosome domain
+		# that the gene belongs to. This value is used to split the genes at
+		# cell division.
+		gene_mass = (units.g / units.mol) * np.zeros_like(RNAP_mass)
+		gene_attributes = {
+			'cistron_index': 'i8',
+			'coordinates': 'i8',
+			'domain_index': 'i4',
+			}
+
+		self.unique_molecule.add_to_unique_state('gene', gene_attributes, gene_mass)
+
+		# Genes are divided based on their domain index
+		sim_data.molecule_groups.unique_molecules_domain_index_division.append(
+			'gene'
 			)
 
 		# Add chromosomal segments
@@ -357,6 +368,7 @@ class InternalState(object):
 			'DnaA_box')
 
 	def _build_compartments(self, raw_data, sim_data):
+		_ = sim_data
 		compartmentData = np.empty(len(raw_data.compartments),
 			dtype = [('id','U20'),('compartmentAbbreviation', 'U1')])
 

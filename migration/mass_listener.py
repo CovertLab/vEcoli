@@ -8,9 +8,10 @@ from migration.migration_utils import run_and_compare
 
 @pytest.mark.master
 def test_mass_listener_migration():
-    times = [0, 2104]
+    times = [0, 1870]
     for initial_time in times:
         run_and_compare(initial_time, MassListener, partition=False, post=True)
+        run_and_compare(initial_time, MassListener, partition=False, post=True, operons=False)
 
 if __name__ == "__main__":
     test_mass_listener_migration()

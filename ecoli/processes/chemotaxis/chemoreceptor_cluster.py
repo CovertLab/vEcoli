@@ -287,7 +287,7 @@ def get_brownian_ligand_timeline(
         'speed': speed})
 
 
-def test_receptor(timeline=get_pulse_timeline()):
+def test_receptor(timeline=get_pulse_timeline(), return_data=False):
     ligand = 'MeAsp'
 
     # initialize process
@@ -300,7 +300,9 @@ def test_receptor(timeline=get_pulse_timeline()):
     experiment_settings = {
         'timeline': {
             'timeline': timeline}}
-    return simulate_process(receptor, experiment_settings)
+    data = simulate_process(receptor, experiment_settings)
+    if return_data:
+        return data
 
 
 def main():
@@ -309,7 +311,7 @@ def main():
         os.makedirs(out_dir)
 
     timeline = get_pulse_timeline()
-    timeseries = test_receptor(timeline)
+    timeseries = test_receptor(timeline, return_data=True)
     plot_receptor_output(timeseries, {}, out_dir, 'pulse')
 
     exponential_random_config = {

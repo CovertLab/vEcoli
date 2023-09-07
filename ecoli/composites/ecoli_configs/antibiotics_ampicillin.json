@@ -12,17 +12,17 @@
             "reactions": {
                 "antibiotic_hydrolysis": {
                     "stoichiometry": {
-                        "ampicillin[p]": -1,
-                        "ampicillin_hydrolyzed[p]": 1
+                        "ampicillin": -1,
+                        "ampicillin_hydrolyzed": 1
                     },
-                    "catalyzed by": "EG10040-MONOMER[p]"
+                    "catalyzed by": "EG10040-MONOMER"
                 }
             },
             "kinetic_parameters": {
                 "antibiotic_hydrolysis": {
-                    "EG10040-MONOMER[p]": {
+                    "EG10040-MONOMER": {
                         "kcat_f": "!ParameterSerializer[ampicillin>hydrolysis>kcat]",
-                        "ampicillin[p]": "!ParameterSerializer[ampicillin>hydrolysis>km]"
+                        "ampicillin": "!ParameterSerializer[ampicillin>hydrolysis>km]"
                     }
                 }
             }
@@ -74,15 +74,14 @@
     },
 
     "lysis_config": {
-        "secreted_molecules": [
-          "EG10040-MONOMER[p]",
-          "ampicillin[p]",
-          "ampicillin_hydrolyzed[p]"
-        ]
+        "secreted_molecules": {
+            "EG10040-MONOMER[p]": "EG10040-MONOMER",
+            "ampicillin[p]": "ampicillin",
+            "ampicillin_hydrolyzed[p]": "ampicillin_hydrolyzed"
+        }
     },
 
     "flow": {
         "ecoli-pbp-binding": [["ecoli-shape"]]
-    },
-    "inner_same_timestep": false
+    }
 }
