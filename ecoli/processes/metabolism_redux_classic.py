@@ -7,6 +7,7 @@ import time
 from scipy.sparse import csr_matrix
 
 from vivarium.core.process import Step
+from vivarium.library.units import units as vivunits
 
 from ecoli.library.schema import (numpy_schema, bulk_name_to_idx,
     listener_schema, counts)
@@ -27,7 +28,7 @@ CONVERSION_UNITS = MASS_UNITS * TIME_UNITS / VOLUME_UNITS
 GDCW_BASIS = units.mmol / units.g / units.h
 
 
-NAME = 'ecoli-metabolism-redux'
+NAME = 'ecoli-metabolism-redux-classic'
 TOPOLOGY = topology_registry.access('ecoli-metabolism')
 # TODO (Cyrus) - Re-add when kinetics are added.
 # TOPOLOGY['kinetic_flux_targets'] = ('rates', 'fluxes')
@@ -40,7 +41,7 @@ BAD_RXNS = ["RXN-12440", "TRANS-RXN-121", "TRANS-RXN-300",
 
 FREE_RXNS = ["TRANS-RXN-145", "TRANS-RXN0-545", "TRANS-RXN0-474"]
 
-class MetabolismRedux(Step):
+class MetabolismReduxClassic(Step):
     name = NAME
     topology = TOPOLOGY
 
@@ -216,6 +217,16 @@ class MetabolismRedux(Step):
                     'target_fluxes_lower': []})
             },
 
+            # these three were added in parca update, may be able to remove
+            'boundary': {
+                'external': {
+                    '*': {'_default': 0 * vivunits.mM}
+                }
+            },
+
+            'global_time': {'_default': 0},
+            'timestep': {'_default': self.parameters['time_step']},
+
             'first_update': {
                 '_default': True,
                 '_updater': 'set',
@@ -324,7 +335,7 @@ class MetabolismRedux(Step):
             kinetic_targets=target_kinetic_values,
             binary_kinetic_idx=binary_kinetic_idx,
             objective_weights=objective_weights,
-            solver=cp.MOSEK)
+            solver=cp.GLOP)
 
         self.reaction_fluxes = solution.velocities
         self.metabolite_dmdt = solution.dm_dt
@@ -541,7 +552,7 @@ def test_network_flow_model():
 
     solution: FlowResult = model.solve(homeostatic_targets=list(homeostatic_metabolites.values()),
                                        objective_weights={'secretion': 0.01, 'efficiency': 0.0001},
-                                       upper_flux_bound=100, solver=cp.MOSEK)
+                                       upper_flux_bound=100, solver=cp.GLOP)
 
     assert np.isclose(solution.velocities, np.array([1, 1, 0])).all() == True, "Network flow toy model did not converge to correct solution."
 
