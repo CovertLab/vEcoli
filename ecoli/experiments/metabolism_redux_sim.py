@@ -26,7 +26,7 @@ def run_ecoli_with_metabolism_redux(
         progress_bar=True,
         log_updates=False,
         emitter='timeseries',
-        name='fba-redux',
+        name='metabolism-redux',
         raw_output=False,
         save=False,
         # save_times=4,
@@ -151,7 +151,7 @@ def test_ecoli_with_metabolism_redux_div(
     output = sim.query(query)
 
     # test that water is being used (model is running)
-    assert sum(output['agents'][agent]['listeners']['fba_results']['estimated_exchange_dmdt']['WATER']) != 0
+    assert sum(output['agents'][agent]['listeners']['fba_results']['estimated_exchange_dmdt']['WATER[p]']) != 0
 
 
 @pytest.mark.slow
@@ -211,7 +211,7 @@ def test_ecoli_with_metabolism_classic_div(
     output = sim.query(query)
 
     # test that water is being used (model is running)
-    assert sum(output['agents'][agent]['listeners']['fba_results']['estimated_exchange_dmdt']['WATER']) != 0
+    assert sum(output['agents'][agent]['listeners']['fba_results']['estimated_exchange_dmdt']['WATER[p]']) != 0
 
 def run_ecoli_with_default_metabolism(
         filename='default',
@@ -245,7 +245,9 @@ experiment_library = {
     '2': run_ecoli_with_metabolism_redux,
     '2a': run_ecoli_with_metabolism_redux_classic,
     '3': test_ecoli_with_metabolism_redux,
+    '3a': test_ecoli_with_metabolism_classic,
     '4': test_ecoli_with_metabolism_redux_div,
+    '4a': test_ecoli_with_metabolism_classic_div,
     '5': run_ecoli_with_default_metabolism,
 }
 

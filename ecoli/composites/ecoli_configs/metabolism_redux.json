@@ -1,5 +1,5 @@
 {
-    "experiment_id" : "fba_redux",
+    "experiment_id" : "metabolism_redux",
     "total_time" : 10,
     "swap_processes" : {
         "ecoli-metabolism" : "ecoli-metabolism-redux"
