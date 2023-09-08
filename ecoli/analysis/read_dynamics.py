@@ -5,9 +5,8 @@ simulation.
 
 import numpy as np
 import os
-import json
+import orjson
 import hashlib
-from typing import Any, Tuple
 from tqdm import tqdm
 import zipfile
 
@@ -49,12 +48,6 @@ MIN_TIMESTEPS = 41  # Minimum number of timesteps for a working visualization wi
 def get_safe_name(s):
     fname = str(int(hashlib.sha256(s.encode('utf-8')).hexdigest(), 16) % 10 **16)
     return fname
-
-
-def compact_json(obj, ensure_ascii=False, separators=(',', ':'), **kwargs):
-    # type: (Any, bool, Tuple[str, str], **Any) -> str
-    """Convert obj into compact JSON form."""
-    return json.dumps(obj, ensure_ascii=ensure_ascii, separators=separators, **kwargs)
 
 
 def array_timeseries(data, path, timeseries):
@@ -116,6 +109,16 @@ def convert_dynamics(seriesOutDir, sim_data, node_list, edge_list, experiment_id
     timeseries['listeners']['rna_synth_prob']['n_bound_TF_per_TU'] =  np.array(
         timeseries['listeners']['rna_synth_prob']['n_bound_TF_per_TU']).reshape(
             -1, n_TU, n_TF)
+    
+    conversion_coeffs = (
+            timeseries['listeners']['mass']['dry_mass'] /
+            timeseries['listeners']['mass']['cell_mass']
+            * sim_data.constants.cell_density.asNumber(MASS_UNITS / VOLUME_UNITS)
+    )
+    timeseries['listeners']['fba_results']['reaction_fluxes_converted'] = (
+        (COUNTS_UNITS / MASS_UNITS / TIME_UNITS) * (
+            timeseries['listeners']['fba_results']['reaction_fluxes'].T /
+                conversion_coeffs).T).asNumber(units.mmol/units.g/units.h)
 
     # Construct dictionaries of indexes where needed
     indexes = {}
@@ -197,11 +200,11 @@ def convert_dynamics(seriesOutDir, sim_data, node_list, edge_list, experiment_id
 
         dynamics_path = get_safe_name(node.node_id)
         dynamics = node.dynamics_dict()
-        dynamics_json = compact_json(dynamics)
+        dynamics_json = orjson.dumps(dynamics, option=orjson.OPT_SERIALIZE_NUMPY)
 
         zf.writestr(os.path.join('series', dynamics_path + '.json'), dynamics_json)
 
-        name_mapping[node.node_id] = dynamics_mapping(dynamics, dynamics_path)
+        name_mapping[str(node.node_id)] = dynamics_mapping(dynamics, dynamics_path)
 
     # ZIP_BZIP2 saves 14% bytes vs. ZIP_DEFLATED but takes  +70 secs.
     # ZIP_LZMA  saves 19% bytes vs. ZIP_DEFLATED but takes +260 sec.
@@ -213,9 +216,9 @@ def convert_dynamics(seriesOutDir, sim_data, node_list, edge_list, experiment_id
             save_node(node, name_mapping)
         save_node(time_node(timeseries), name_mapping)
 
-        zf.writestr('series.json', compact_json(name_mapping))
-        zf.writestr(NODELIST_JSON, compact_json(node_list))
-        zf.writestr(EDGELIST_JSON, compact_json(edge_list))
+        zf.writestr('series.json', orjson.dumps(name_mapping))
+        zf.writestr(NODELIST_JSON, orjson.dumps(node_list))
+        zf.writestr(EDGELIST_JSON, orjson.dumps(edge_list, option=orjson.OPT_SERIALIZE_NUMPY))
 
 
 def time_node(timeseries):
@@ -434,18 +437,10 @@ def read_metabolism_dynamics(sim_data, node, node_id, indexes, volume, timeserie
     Reads dynamics data for metabolism nodes from a simulation output.
     """
     reaction_idx = indexes["MetabolismReactions"][node_id]
-    conversion_coeffs = (
-            timeseries['listeners']['mass']['dry_mass'] /
-            timeseries['listeners']['mass']['cell_mass']
-            * sim_data.constants.cell_density.asNumber(MASS_UNITS / VOLUME_UNITS)
-    )
-    reaction_fluxes_converted = (
-            (COUNTS_UNITS / MASS_UNITS / TIME_UNITS) * (
-            timeseries['listeners']['fba_results']['reaction_fluxes'].T / conversion_coeffs).T
-    ).asNumber(units.mmol / units.g / units.h)
     dynamics = {
         # 'flux': columns[("FBAResults", "reactionFluxesConverted")][:, reaction_idx],
-        'flux': reaction_fluxes_converted[:, reaction_idx],
+        'flux': timeseries['listeners']['fba_results'][
+            'reaction_fluxes_converted'][:, reaction_idx],
     }
     dynamics_units = {
         'flux': 'mmol/gCDW/h',
