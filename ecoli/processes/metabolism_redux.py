@@ -85,7 +85,7 @@ class MetabolismRedux(Step):
         'constraints_to_disable': [],
         'kinetic_objective_weight': 1e-7,
         'secretion_penalty_coeff': 1e-3,
-        'time_step': 1 
+        'time_step': 1
     }
 
     def __init__(self, parameters):
@@ -171,7 +171,7 @@ class MetabolismRedux(Step):
         self.get_kinetic_constraints = self.parameters['get_kinetic_constraints']
         self.kinetic_constraint_reactions = self.parameters[
             'kinetic_constraint_reactions']
-        
+
         # Include ppGpp concentration target in objective if not handled
         # kinetically in other processes
         self.ppgpp_id = self.parameters['ppgpp_id']
@@ -246,7 +246,7 @@ class MetabolismRedux(Step):
             'kinetic_constraint_enzymes']
         self.kinetic_constraint_substrates = self.parameters[
             'kinetic_constraint_substrates']
-        
+
         # objective weights
         self.kinetic_objective_weight = self.parameters[
             'kinetic_objective_weight']
@@ -410,7 +410,7 @@ class MetabolismRedux(Step):
             self.aa_idx = bulk_name_to_idx(self.aa_names, bulk_ids)
 
         unconstrained = states['environment']['exchange_data']['unconstrained']
-        constrained = states['environment']['exchange_data']['constrained']        
+        constrained = states['environment']['exchange_data']['constrained']
         new_allowed_exchange_uptake = set(unconstrained).union(
             constrained.keys())
         new_exchange_molecules = set(self.exchange_molecules).union(
@@ -462,9 +462,9 @@ class MetabolismRedux(Step):
         # Get reaction indices whose fluxes should be set to zero
         # because there are no enzymes to catalyze the rxn
         binary_kinetic_idx = np.where(reaction_catalyst_counts == 0)[0]
-        
+
         # TODO: Figure out how to handle changing media ID
-        
+
         ## Determine updates to concentrations depending on the current state
         doubling_time = self.nutrient_to_doubling_time.get(
             states['environment']['media_id'],
@@ -484,7 +484,7 @@ class MetabolismRedux(Step):
                 ] / states['listeners']['mass']['protein_mass']
             conc_updates = self.getBiomassAsConcentrations(
                 doubling_time, rp_ratio=rp_ratio)
-            
+
         if self.use_trna_charging:
             conc_updates.update(self.update_amino_acid_targets(
                 self.counts_to_molar,
@@ -501,7 +501,7 @@ class MetabolismRedux(Step):
 
         self.homeostatic_objective = {
             **self.homeostatic_objective, **conc_updates}
-        
+
         homeostatic_concs = np.zeros(len(self.homeostatic_metabolite_idx))
         for i, met in enumerate(self.homeostatic_metabolites):
             homeostatic_concs[i] = self.homeostatic_objective[met]
@@ -510,7 +510,7 @@ class MetabolismRedux(Step):
             * self.counts_to_molar.asNumber())
         target_homeostatic_dmdt = (homeostatic_concs
             - homeostatic_metabolite_concentrations) / self.timestep
-        
+
         aa_uptake_package = None
         if self.mechanistic_aa_transport:
             aa_in_media = np.array([
@@ -525,7 +525,7 @@ class MetabolismRedux(Step):
             aa_uptake_package = (exchange_rates[aa_in_media],
                                  self.aa_exchange_names[aa_in_media], True)
 
-        # kinetic constraints 
+        # kinetic constraints
         # TODO (Cyrus) eventually collect isozymes in single reactions, map
         # enzymes to reacts via stoich instead of kinetic_constraint_reactions
         kinetic_enzyme_conc = self.counts_to_molar * kinetic_enzyme_counts
@@ -535,7 +535,6 @@ class MetabolismRedux(Step):
         target_kinetic_values = enzyme_kinetic_boundaries[:, 1]
         target_kinetic_bounds = enzyme_kinetic_boundaries[:, [0, 2]]
 
-        # TODO (Cyrus) solve network flow problem to get fluxes
         objective_weights = {
             'secretion': self.secretion_penalty_coeff,
             'efficiency': 0.0001,
@@ -628,7 +627,7 @@ class MetabolismRedux(Step):
                 doubling_time, rp_ratio)
 
         return self._biomass_concentrations[(minutes, rp_ratio)]
-    
+
     def update_amino_acid_targets(self, counts_to_molar, count_diff,
         amino_acid_counts):
         """
@@ -730,7 +729,7 @@ class NetworkFlowModel:
         the system. Uptakes allow certain metabolites to also have flow into the system."""
         all_exchanges = exchanges.copy()
         all_exchanges.update(uptakes)
-        
+
         # All exchanges can secrete but only uptakes go in both directions
         self.S_exch = np.zeros((self.n_mets, len(exchanges) + len(uptakes)))
         self.exchanges = []
@@ -795,7 +794,7 @@ class NetworkFlowModel:
         if binary_kinetic_idx is not None:
             if len(binary_kinetic_idx) > 0:
                 constr.append(v[binary_kinetic_idx] == 0)
-        # TODO (Cyrus) - make this a parameter
+
         constr.extend([v >= 0, v <= upper_flux_bound, e >= 0, e <= upper_flux_bound])
 
         if aa_uptake_package:

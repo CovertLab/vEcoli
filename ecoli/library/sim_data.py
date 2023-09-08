@@ -384,6 +384,7 @@ class LoadSimData:
             'ecoli-protein-degradation': self.get_protein_degradation_config,
             'ecoli-metabolism': self.get_metabolism_config,
             'ecoli-metabolism-redux': self.get_metabolism_redux_config,
+            'ecoli-metabolism-redux-classic': self.get_metabolism_redux_config,
             'ecoli-chromosome-replication': self.get_chromosome_replication_config,
             'ecoli-mass': self.get_mass_config,
             'ecoli-mass-listener': self.get_mass_listener_config,
