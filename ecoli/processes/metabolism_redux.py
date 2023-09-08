@@ -535,7 +535,6 @@ class MetabolismRedux(Step):
         target_kinetic_values = enzyme_kinetic_boundaries[:, 1]
         target_kinetic_bounds = enzyme_kinetic_boundaries[:, [0, 2]]
 
-        # TODO (Cyrus) solve network flow problem to get fluxes
         objective_weights = {
             'secretion': self.secretion_penalty_coeff,
             'efficiency': 0.0001,
@@ -795,7 +794,7 @@ class NetworkFlowModel:
         if binary_kinetic_idx is not None:
             if len(binary_kinetic_idx) > 0:
                 constr.append(v[binary_kinetic_idx] == 0)
-        # TODO (Cyrus) - make this a parameter
+
         constr.extend([v >= 0, v <= upper_flux_bound, e >= 0, e <= upper_flux_bound])
 
         if aa_uptake_package:

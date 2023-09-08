@@ -503,7 +503,7 @@ class NetworkFlowModel:
         # If enzymes not present, constrain rxn flux to 0
         if binary_kinetic_idx:
             constr.append(v[binary_kinetic_idx] == 0)
-        # TODO (Cyrus) - make this a parameter
+
         constr.extend([v >= 0, v <= upper_flux_bound, e >= 0, e <= upper_flux_bound])
 
         loss = 0
