@@ -151,7 +151,7 @@ class MassListener(Deriver):
         
         # Ensure that bulk ids are emitted in config for analyses
         bulk_schema = numpy_schema('bulk')
-        bulk_schema.setdefault('_properties', {})['bulk_ids'] = self.bulk_ids
+        bulk_schema.setdefault('_properties', {})['metadata'] = self.bulk_ids
 
         ports = {
             'bulk': bulk_schema,
