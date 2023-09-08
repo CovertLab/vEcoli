@@ -1471,7 +1471,7 @@ class LoadSimData:
         return {
             'time_step': time_step,
             '_parallel': parallel,
-            'exchange_data_from_concentrations': self.sim_data.external_state.exchange_data_from_concentrations,
+            'external_state': self.sim_data.external_state,
             'environment_molecules': list(self.sim_data.external_state.env_to_exchange_map.keys()),
         }
     
