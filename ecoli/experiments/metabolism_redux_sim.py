@@ -151,7 +151,7 @@ def test_ecoli_with_metabolism_redux_div(
     output = sim.query(query)
 
     # test that water is being used (model is running)
-    assert sum(output['agents'][agent]['listeners']['fba_results']['estimated_exchange_dmdt']['WATER[p]']) != 0
+    assert sum(output['agents'][agent]['listeners']['fba_results']['estimated_exchange_dmdt']['WATER']) != 0
 
 
 @pytest.mark.slow
