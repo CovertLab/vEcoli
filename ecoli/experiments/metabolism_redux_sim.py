@@ -156,6 +156,39 @@ def run_ecoli_with_metabolism_redux(
     sim.initial_state = get_state_from_file(path=f'data/{initial_state_file}.json')
     sim.raw_output = raw_output
     sim.save = save
+
+
+    sim.build_ecoli()
+    sim.run()
+
+    query = []
+    folder = f'out/fbagd/{name}_{total_time}_{datetime.date.today()}/'
+    # save_sim_output(folder, query, sim, save_model=True)
+
+
+def run_ecoli_with_metabolism_redux_classic(
+        filename='fba_redux_classic',
+        total_time=4,
+        divide=True,
+        initial_state_file='wcecoli_t0',
+        progress_bar=True,
+        log_updates=False,
+        emitter='timeseries',
+        name='fba-redux',
+        raw_output=False,
+        save=False,
+        # save_times=4,
+):
+    # filename = 'default'
+    sim = EcoliSim.from_file(CONFIG_DIR_PATH + filename + '.json')
+    sim.total_time = total_time
+    sim.divide = divide
+    sim.progress_bar = progress_bar
+    sim.log_updates = log_updates
+    sim.emitter = emitter
+    sim.initial_state = get_state_from_file(path=f'data/{initial_state_file}.json')
+    sim.raw_output = raw_output
+    sim.save = save
     # sim.save_times = [4]
 
     # # simplify working with uptake
@@ -172,8 +205,7 @@ def run_ecoli_with_metabolism_redux(
 
     query = []
     folder = f'out/fbagd/{name}_{total_time}_{datetime.date.today()}/'
-    save_sim_output(folder, query, sim, save_model=True)
-
+    # save_sim_output(folder, query, sim, save_model=True)
 
 
 @pytest.mark.slow
@@ -268,6 +300,7 @@ experiment_library = {
     '0': run_metabolism,
     '1': run_metabolism_composite,
     '2': run_ecoli_with_metabolism_redux,
+    '2a': run_ecoli_with_metabolism_redux_classic,
     '3': test_ecoli_with_metabolism_redux,
     '4': test_ecoli_with_metabolism_redux_div,
     '5': run_ecoli_with_default_metabolism,

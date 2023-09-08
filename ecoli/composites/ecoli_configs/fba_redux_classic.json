@@ -1,0 +1,34 @@
+{
+    "experiment_id" : "fba_redux",
+    "total_time" : 10,
+    "swap_processes" : {
+        "ecoli-metabolism" : "ecoli-metabolism-redux-classic"
+    },
+    "exclude_processes": ["exchange_data"],
+    "flow": {
+        "ecoli-metabolism-redux": [["ecoli-chromosome-structure"]],
+        "ecoli-mass-listener": [["ecoli-metabolism-redux"]],
+        "RNA_counts_listener": [["ecoli-metabolism-redux"]],
+        "rna_synth_prob_listener": [["ecoli-metabolism-redux"]],
+        "monomer_counts_listener": [["ecoli-metabolism-redux"]],
+        "dna_supercoiling_listener": [["ecoli-metabolism-redux"]],
+        "replication_data_listener": [["ecoli-metabolism-redux"]],
+        "rnap_data_listener": [["ecoli-metabolism-redux"]],
+        "unique_molecule_counts": [["ecoli-metabolism-redux"]],
+        "ribosome_data_listener": [["ecoli-metabolism-redux"]]
+    },
+    "raw_output": false,
+    "operons": true,
+    "trna_charging": false,
+    "ppgpp_regulation": false,
+    "mass_distribution": true,
+    "trna_attenuation": false,
+    "variable_elongation_transcription": true,
+    "variable_elongation_translation": false,
+    "mechanistic_translation_supply": false,
+    "mechanistic_aa_transport": false,
+    "translation_supply": false,
+    "aa_supply_in_charging": false,
+    "adjust_timestep_for_charging": false,
+    "disable_ppgpp_elongation_inhibition": true
+}

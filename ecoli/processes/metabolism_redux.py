@@ -236,7 +236,8 @@ class MetabolismRedux(Step):
         self.network_flow_model = NetworkFlowModel(
             self.stoichiometry, self.metabolite_names,
             self.reaction_names, self.homeostatic_metabolites,
-            self.kinetic_constraint_reactions)
+            self.kinetic_constraint_reactions, self.parameters['get_mass'],
+            self.gam.asNumber(), self.active_constraints_mask)
 
         # important bulk molecule names
         self.catalyst_ids = self.parameters['catalyst_ids']
@@ -373,18 +374,8 @@ class MetabolismRedux(Step):
                     'target_kinetic_fluxes': [],
                     'target_kinetic_bounds': [],
                     'reaction_catalyst_counts': [],
-                    'maintenance_target': []
-                }),
-
-                'enzyme_kinetics': listener_schema({
-                    'metabolite_counts_init': 0,
-                    'metabolite_counts_final': 0,
-                    'enzyme_counts_init': 0,
-                    'counts_to_molar': 1.0,
-                    'actual_fluxes': [],
-                    'target_fluxes': [],
-                    'target_fluxes_upper': [],
-                    'target_fluxes_lower': []})
+                    'maintenance_target': 0
+                })
             },
 
             'global_time': {'_default': 0},
@@ -409,10 +400,14 @@ class MetabolismRedux(Step):
         # Initialize indices
         if self.homeostatic_metabolite_idx is None:
             bulk_ids = states['bulk']['id']
-            self.homeostatic_metabolite_idx = bulk_name_to_idx(self.homeostatic_metabolites, bulk_ids)
+            self.homeostatic_metabolite_idx = bulk_name_to_idx(
+                self.homeostatic_metabolites, bulk_ids)
             self.catalyst_idx = bulk_name_to_idx(self.catalyst_ids, bulk_ids)
-            self.kinetics_enzymes_idx = bulk_name_to_idx(self.kinetic_constraint_enzymes, bulk_ids)
-            self.kinetics_substrates_idx = bulk_name_to_idx(self.kinetic_constraint_substrates, bulk_ids)
+            self.kinetics_enzymes_idx = bulk_name_to_idx(
+                self.kinetic_constraint_enzymes, bulk_ids)
+            self.kinetics_substrates_idx = bulk_name_to_idx(
+                self.kinetic_constraint_substrates, bulk_ids)
+            self.aa_idx = bulk_name_to_idx(self.aa_names, bulk_ids)
 
         unconstrained = states['environment']['exchange_data']['unconstrained']
         constrained = states['environment']['exchange_data']['constrained']
@@ -463,16 +458,13 @@ class MetabolismRedux(Step):
         ngam_target = total_ngam.asNumber()
 
         # binary kinetic targets - sum up enzyme counts for each reaction
-        reaction_catalyst_counts = np.array([sum([current_catalyst_counts[enzyme_idx]
-                                                  for enzyme_idx in enzymes_idx])
-                                             if len(enzymes_idx) > 0 else -1
-                                             for enzymes_idx in self.catalyzed_rxn_enzymes_idx])
+        reaction_catalyst_counts = self.catalysis_matrix.dot(current_catalyst_counts)
         # Get reaction indices whose fluxes should be set to zero
         # because there are no enzymes to catalyze the rxn
         binary_kinetic_idx = np.where(reaction_catalyst_counts == 0)[0]
-        
+
         # TODO: Figure out how to handle changing media ID
-        
+
         ## Determine updates to concentrations depending on the current state
         doubling_time = self.nutrient_to_doubling_time.get(
             states['environment']['media_id'],
@@ -533,7 +525,7 @@ class MetabolismRedux(Step):
             aa_uptake_package = (exchange_rates[aa_in_media],
                                  self.aa_exchange_names[aa_in_media], True)
 
-        # kinetic constraints 
+        # kinetic constraints
         # TODO (Cyrus) eventually collect isozymes in single reactions, map
         # enzymes to reacts via stoich instead of kinetic_constraint_reactions
         kinetic_enzyme_conc = self.counts_to_molar * kinetic_enzyme_counts
@@ -555,7 +547,7 @@ class MetabolismRedux(Step):
             kinetic_targets=enzyme_kinetic_boundaries,
             binary_kinetic_idx=binary_kinetic_idx,
             objective_weights=objective_weights,
-            solver=cp.GLOP)
+            aa_uptake_package=aa_uptake_package)
 
         self.reaction_fluxes = solution.velocities
         self.metabolite_dmdt = solution.dm_dt
@@ -704,7 +696,10 @@ class NetworkFlowModel:
         metabolites: Iterable[list],
         reactions: Iterable[list],
         homeostatic_metabolites: Iterable[str],
-        kinetic_reactions: Iterable[str]
+        kinetic_reactions: Iterable[str],
+        get_mass: Callable[[str], Unum],
+        gam: float = 0,
+        active_constraints_mask: np.ndarray = None,
     ):
         self.S_orig = csr_matrix(stoich_arr.astype(np.int64))
         self.S_exch = None
@@ -735,7 +730,7 @@ class NetworkFlowModel:
         the system. Uptakes allow certain metabolites to also have flow into the system."""
         all_exchanges = exchanges.copy()
         all_exchanges.update(uptakes)
-        
+
         # All exchanges can secrete but only uptakes go in both directions
         self.S_exch = np.zeros((self.n_mets, len(exchanges) + len(uptakes)))
         self.exchanges = []
@@ -879,9 +874,11 @@ def test_network_flow_model():
 
     model.set_up_exchanges(exchanges=exchanges, uptakes=uptakes)
 
-    solution: FlowResult = model.solve(homeostatic_targets=list(homeostatic_metabolites.values()),
-                                       objective_weights={'secretion': 0.01, 'efficiency': 0.0001},
-                                       upper_flux_bound=100, solver=cp.GLOP)
+    solution: FlowResult = model.solve(
+        homeostatic_concs=list(homeostatic_metabolites.values()),
+        homeostatic_dm_targets=list(homeostatic_metabolites.values()),
+        objective_weights={'secretion': 0.01, 'efficiency': 0.0001},
+        upper_flux_bound=100)
 
     assert np.isclose(solution.velocities, np.array([1, 1, 0])).all() == True, "Network flow toy model did not converge to correct solution."
 
