@@ -427,8 +427,9 @@ class NetworkFlowModel:
                  reactions: Iterable[list],
                  homeostatic_metabolites: Iterable[str],
                  kinetic_reactions: Iterable[str],
-                 free_reactions: Iterable[str],
+                 free_reactions: Iterable[str] = None, # TODO Use free reactions
     ):
+
         self.S_orig = csr_matrix(stoich_arr.astype(np.int64))
         self.S_exch = None
         self.n_mets, self.n_orig_rxns = self.S_orig.shape
