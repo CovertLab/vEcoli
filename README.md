@@ -35,6 +35,10 @@ run the following command in your terminal:
 
     $ pyenv virtualenv 3.10.12 viv-ecoli && pyenv local viv-ecoli
 
+Update `pip`, `setuptools` and `wheel` to avoid issues with these:
+
+    $ pip install --upgrade pip setuptools wheel
+
 Now, install numpy (check `requirements.txt` for the exact version):
 
     $ pip install numpy
