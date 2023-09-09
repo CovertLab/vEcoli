@@ -24,7 +24,13 @@ class MediaUpdate(Step):
 
     def __init__(self, parameters=None):
         super().__init__(parameters)
-        self.saved_media = self.parameters['saved_media']
+        self.saved_media = {}
+        for media_id, env_concs in self.parameters['saved_media'].items():
+            self.saved_media[media_id] = {}
+            for env_mol in env_concs.keys():
+                self.saved_media[media_id][env_mol] = env_concs[
+                    env_mol] * units.mM
+        self.zero_diff = 0 * units.mM
         
     def ports_schema(self):
         return {
@@ -52,10 +58,10 @@ class MediaUpdate(Step):
         # Calculate concentration delta to get from environment specified
         # by old media ID to the one specified by the current media ID
         for mol, conc in env_concs.items():
-            diff = conc * units.mM - states['boundary']['external'][mol]
+            diff = conc - states['boundary']['external'][mol]
             # Arithmetic with np.inf gets messy
             if np.isnan(diff):
-                diff = 0 * units.mM
+                diff = self.zero_diff
             conc_update[mol] = diff
 
         return {

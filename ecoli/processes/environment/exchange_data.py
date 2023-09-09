@@ -17,7 +17,7 @@ class ExchangeData(Step):
     name = NAME
     topology = TOPOLOGY
     defaults = {
-        'exchange_data_from_concentrations': lambda _: (set(), set()),
+        'external_state': None,
         'environment_molecules': [],
         'saved_media': {},
         'time_step': 1,
@@ -25,8 +25,7 @@ class ExchangeData(Step):
 
     def __init__(self, parameters=None):
         super().__init__(parameters)
-        self.exchange_data_from_concentrations = self.parameters[
-            'exchange_data_from_concentrations']
+        self.external_state = self.parameters['external_state']
         self.environment_molecules = self.parameters['environment_molecules']
         
     def ports_schema(self):
@@ -54,9 +53,16 @@ class ExchangeData(Step):
             return {'first_update': False}
         
         # Set exchange constraints for metabolism
-        env_concs = {mol: states['boundary']['external'][mol].to('mM').magnitude
+        env_concs = {mol: states['boundary']['external'][mol]
             for mol in self.environment_molecules}
-        exchange_data = self.exchange_data_from_concentrations(env_concs)
+        
+        # Converting threshold is faster than converting all of env_concs
+        self.external_state.import_constraint_threshold *= units.mM
+        exchange_data = self.external_state.exchange_data_from_concentrations(
+            env_concs)
+        self.external_state.import_constraint_threshold = \
+            self.external_state.import_constraint_threshold.magnitude
+
         unconstrained = exchange_data['importUnconstrainedExchangeMolecules']
         constrained = exchange_data['importConstrainedExchangeMolecules']
         return {

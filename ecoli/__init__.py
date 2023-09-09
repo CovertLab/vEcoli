@@ -22,7 +22,9 @@ from ecoli.library.updaters import (
     inverse_update_bulk_numpy,
     inverse_update_unique_numpy
 )
-from ecoli.library.serialize import UnumSerializer, ParameterSerializer
+from ecoli.library.serialize import (
+    UnumSerializer, ParameterSerializer,
+    NumpyRandomStateSerializer, MethodSerializer)
 
 # register :term:`updaters`
 inverse_updater_registry.register(
@@ -48,7 +50,10 @@ divider_registry.register('ribosome_by_RNA', divide_ribosomes_by_RNA)
 divider_registry.register('set_none', divide_set_none)
 
 # register serializers
-for serializer_cls in (UnumSerializer, ParameterSerializer):
+for serializer_cls in (
+    UnumSerializer, ParameterSerializer,
+    NumpyRandomStateSerializer, MethodSerializer
+):
     serializer = serializer_cls()
     serializer_registry.register(
         serializer.name, serializer)
