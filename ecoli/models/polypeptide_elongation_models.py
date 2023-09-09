@@ -4,6 +4,7 @@ from typing import Callable, Optional, Tuple
 
 import numpy as np
 from scipy.integrate import solve_ivp
+from vivarium.library.units import units as vivunits
 
 from ecoli.library.schema import counts
 from wholecell.utils import units
@@ -154,8 +155,10 @@ class SteadyStateElongationModel(TranslationSupplyElongationModel):
         self.get_pathway_enzyme_counts_per_aa = self.parameters[
             'get_pathway_enzyme_counts_per_aa']
         
+        # Comparing two values with units is faster than converting units
+        # and comparing magnitudes
         self.import_constraint_threshold = self.parameters[
-            'import_constraint_threshold']
+            'import_constraint_threshold'] * vivunits.mM
     
     def elongation_rate(self, states):
         if (self.process.ppgpp_regulation and 
@@ -214,8 +217,8 @@ class SteadyStateElongationModel(TranslationSupplyElongationModel):
         ribosome_conc = self.counts_to_molar * ribosome_counts
 
         # Calculate amino acid supply
-        aa_in_media = np.array([states['boundary']['external'][aa].to(
-            'mM').magnitude > self.import_constraint_threshold
+        aa_in_media = np.array([states['boundary']['external'][aa
+            ] > self.import_constraint_threshold
             for aa in self.process.aa_environment_names])
         fwd_enzyme_counts, rev_enzyme_counts = self.get_pathway_enzyme_counts_per_aa(
             counts(states['bulk_total'], self.process.aa_enzyme_idx))

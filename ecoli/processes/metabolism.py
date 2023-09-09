@@ -132,8 +132,10 @@ class Metabolism(Step):
         self.aa_targets = {}
         self.aa_targets_not_updated = self.parameters['aa_targets_not_updated']
         self.aa_names = self.parameters['aa_names']
+        # Comparing two values with units is faster than converting units
+        # and comparing magnitudes
         self.import_constraint_threshold = self.parameters[
-            'import_constraint_threshold']
+            'import_constraint_threshold'] * vivunits.mM
 
         # Molecules with concentration updates for listener
         self.linked_metabolites = self.parameters['linked_metabolites']
@@ -415,7 +417,7 @@ class Metabolism(Step):
         if self.mechanistic_aa_transport:
             aa_in_media = np.array([
                 states['boundary']['external'][aa_name
-                    ].to('mM').magnitude > self.import_constraint_threshold
+                    ] > self.import_constraint_threshold
                 for aa_name in self.aa_environment_names
             ])
             aa_in_media[self.removed_aa_uptake] = False

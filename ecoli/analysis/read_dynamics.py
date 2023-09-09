@@ -5,10 +5,9 @@ simulation.
 
 import numpy as np
 import os
-import pickle
-import json
+import orjson
 import hashlib
-from typing import Any, Tuple
+from tqdm import tqdm
 import zipfile
 
 from vivarium.library.dict_utils import get_value_from_path
@@ -51,21 +50,20 @@ def get_safe_name(s):
     return fname
 
 
-def compact_json(obj, ensure_ascii=False, separators=(',', ':'), **kwargs):
-    # type: (Any, bool, Tuple[str, str], **Any) -> str
-    """Convert obj into compact JSON form."""
-    return json.dumps(obj, ensure_ascii=ensure_ascii, separators=separators, **kwargs)
-
-
-def array_timeseries(data, path):
-    timeseries = []
-    for time, datum in data.items():
+def array_timeseries(data, path, timeseries):
+    """Converts data of the format {time: {path: value}}} to timeseries of the
+    format {path: [value_1, value_2,...]}. Modifies timeseries in place."""
+    path_timeseries = timeseries
+    for key in path[:-1]:
+        path_timeseries = path_timeseries.setdefault(key, {})
+    accumulated_data = []
+    for datum in data.values():
         path_data = get_value_from_path(datum, path)
-        timeseries.append(path_data)
-    return np.array(timeseries)
+        accumulated_data.append(path_data)
+    path_timeseries[path[-1]] = np.array(accumulated_data)
 
 
-def convert_dynamics(seriesOutDir, simDataFile, node_list, edge_list, experiment_id):
+def convert_dynamics(seriesOutDir, sim_data, node_list, edge_list, experiment_id):
     """Convert the sim's dynamics data to a Causality seriesOut.zip file."""
 
     if not experiment_id:
@@ -73,7 +71,7 @@ def convert_dynamics(seriesOutDir, simDataFile, node_list, edge_list, experiment
 
     # Retrieve the data directly from database
     db = get_experiment_database()
-    data, config = data_from_database(experiment_id, db, query=[
+    query = [
         ('bulk',),
         ('listeners', 'mass', 'cell_mass'),
         ('listeners', 'mass', 'dry_mass'),
@@ -87,28 +85,40 @@ def convert_dynamics(seriesOutDir, simDataFile, node_list, edge_list, experiment
         ('listeners', 'rna_maturation_listener', 'unprocessed_rnas_consumed'),
         ('listeners', 'rnap_data', 'rna_init_event'),
         ('listeners', 'ribosome_data', 'actual_prob_translation_per_transcript'),
-        ('listeners', 'complexation_events'),
-        ('listeners', 'fba_results', 'reactionFluxes'),
+        ('listeners', 'complexation_listener', 'complexation_events'),
+        ('listeners', 'fba_results', 'reaction_fluxes'),
         ('listeners', 'equilibrium_listener', 'reaction_rates'),
         ('listeners', 'growth_limits', 'net_charged')
-    ])
+    ]
+    data, config = data_from_database(experiment_id, db, query=query)
     del data[0.0]
-    timeseries = timeseries_from_data(data)
-    
-    with open(simDataFile, 'rb') as f:
-        sim_data = pickle.load(f)
+
+    timeseries = {}
+    for path in query:
+        array_timeseries(data, path, timeseries)
+    timeseries['time'] = np.array(list(data.keys()))
 
     # Reshape arrays for number of bound transcription factors
     n_TU = len(sim_data.process.transcription.rna_data['id'])
     n_cistron = len(sim_data.process.transcription.cistron_data['id'])
     n_TF = len(sim_data.process.transcription_regulation.tf_ids)
 
-    data['listeners']['rna_synth_prob']['n_bound_TF_per_cistron'] =  np.array(
-        data['listeners']['rna_synth_prob']['n_bound_TF_per_cistron']).reshape(
+    timeseries['listeners']['rna_synth_prob']['n_bound_TF_per_cistron'] =  np.array(
+        timeseries['listeners']['rna_synth_prob']['n_bound_TF_per_cistron']).reshape(
             -1, n_cistron, n_TF)
-    data['listeners']['rna_synth_prob']['n_bound_TF_per_TU'] =  np.array(
-        data['listeners']['rna_synth_prob']['n_bound_TF_per_TU']).reshape(
+    timeseries['listeners']['rna_synth_prob']['n_bound_TF_per_TU'] =  np.array(
+        timeseries['listeners']['rna_synth_prob']['n_bound_TF_per_TU']).reshape(
             -1, n_TU, n_TF)
+    
+    conversion_coeffs = (
+            timeseries['listeners']['mass']['dry_mass'] /
+            timeseries['listeners']['mass']['cell_mass']
+            * sim_data.constants.cell_density.asNumber(MASS_UNITS / VOLUME_UNITS)
+    )
+    timeseries['listeners']['fba_results']['reaction_fluxes_converted'] = (
+        (COUNTS_UNITS / MASS_UNITS / TIME_UNITS) * (
+            timeseries['listeners']['fba_results']['reaction_fluxes'].T /
+                conversion_coeffs).T).asNumber(units.mmol/units.g/units.h)
 
     # Construct dictionaries of indexes where needed
     indexes = {}
@@ -116,7 +126,7 @@ def convert_dynamics(seriesOutDir, simDataFile, node_list, edge_list, experiment
     def build_index_dict(id_array):
         return {mol: i for i, mol in enumerate(id_array)}
 
-    molecule_ids = config['data']['state']['bulk']['_properties']['metadata']
+    molecule_ids = config['state']['bulk']['_properties']['metadata']
     indexes["BulkMolecules"] = build_index_dict(molecule_ids)
 
     gene_ids = sim_data.process.transcription.cistron_data['gene_id']
@@ -133,7 +143,7 @@ def convert_dynamics(seriesOutDir, simDataFile, node_list, edge_list, experiment
 
     # metabolism_rxn_ids = TableReader(
     # 	os.path.join(simOutDir, "FBAResults")).readAttribute("reactionIDs")
-    metabolism_rxn_ids = config['data']['state']['listeners']['fba_results'][
+    metabolism_rxn_ids = config['state']['listeners']['fba_results'][
         'reaction_fluxes']['_properties']['metadata']
     metabolism_rxn_ids = sim_data.process.metabolism.reaction_stoich.keys()
     indexes["MetabolismReactions"] = build_index_dict(metabolism_rxn_ids)
@@ -146,7 +156,7 @@ def convert_dynamics(seriesOutDir, simDataFile, node_list, edge_list, experiment
 
     # unprocessed_rna_ids = TableReader(
     #     os.path.join(simOutDir, "RnaMaturationListener")).readAttribute("unprocessed_rna_ids")
-    unprocessed_rna_ids = config['data']['state']['listeners'][
+    unprocessed_rna_ids = config['state']['listeners'][
         'rna_maturation_listener']['unprocessed_rnas_consumed']['_properties']['metadata']
     indexes["UnprocessedRnas"] = build_index_dict(unprocessed_rna_ids)
 
@@ -190,25 +200,25 @@ def convert_dynamics(seriesOutDir, simDataFile, node_list, edge_list, experiment
 
         dynamics_path = get_safe_name(node.node_id)
         dynamics = node.dynamics_dict()
-        dynamics_json = compact_json(dynamics)
+        dynamics_json = orjson.dumps(dynamics, option=orjson.OPT_SERIALIZE_NUMPY)
 
         zf.writestr(os.path.join('series', dynamics_path + '.json'), dynamics_json)
 
-        name_mapping[node.node_id] = dynamics_mapping(dynamics, dynamics_path)
+        name_mapping[str(node.node_id)] = dynamics_mapping(dynamics, dynamics_path)
 
     # ZIP_BZIP2 saves 14% bytes vs. ZIP_DEFLATED but takes  +70 secs.
     # ZIP_LZMA  saves 19% bytes vs. ZIP_DEFLATED but takes +260 sec.
     # compresslevel=9 saves very little space.
     zip_name = os.path.join(seriesOutDir, 'seriesOut.zip')
     with zipfile.ZipFile(zip_name, 'w', compression=zipfile.ZIP_DEFLATED, allowZip64=True) as zf:
-        for node_dict in node_list:
+        for node_dict in tqdm(node_list):
             node = build_dynamics(node_dict)
             save_node(node, name_mapping)
         save_node(time_node(timeseries), name_mapping)
 
-        zf.writestr('series.json', compact_json(name_mapping))
-        zf.writestr(NODELIST_JSON, compact_json(node_list))
-        zf.writestr(EDGELIST_JSON, compact_json(edge_list))
+        zf.writestr('series.json', orjson.dumps(name_mapping))
+        zf.writestr(NODELIST_JSON, orjson.dumps(node_list))
+        zf.writestr(EDGELIST_JSON, orjson.dumps(edge_list, option=orjson.OPT_SERIALIZE_NUMPY))
 
 
 def time_node(timeseries):
@@ -362,7 +372,7 @@ def read_transcription_dynamics(sim_data, node, node_id, indexes, volume, timese
         # "transcription initiations": columns[("RnapData", "rnaInitEvent")][:, rna_idx],
         "transcription initiations": timeseries['listeners']['rnap_data']['rna_init_event'][:, rna_idx],
         # "promoter copy number": columns[("RnaSynthProb", "promoter_copy_number")][:, rna_idx],
-        "promoter copy number": timeseries['listeners']['rnap_data']["promoter_copy_number"][:, rna_idx],
+        "promoter copy number": timeseries['listeners']['rna_synth_prob']["promoter_copy_number"][:, rna_idx],
     }
     dynamics_units = {
         "transcription initiations": COUNT_UNITS,
@@ -378,9 +388,8 @@ def read_translation_dynamics(sim_data, node, node_id, indexes, volume, timeseri
     rna_id = node_id.split(NODE_ID_SUFFIX["translation"])[0] + "_RNA"
     translation_idx = indexes["TranslatedRnas"][rna_id]
     dynamics = {
-        # 'translation probability': columns[("RibosomeData", "probTranslationPerTranscript")][:, translation_idx],
-        'translation probability': timeseries['listeners']['ribosome_data']['prob_translation_per_transcript']
-        [:, translation_idx],
+        'translation probability': timeseries['listeners']['ribosome_data']['actual_prob_translation_per_transcript']
+            [:, translation_idx],
         }
     dynamics_units = {
         'translation probability': PROB_UNITS,
@@ -395,7 +404,7 @@ def read_complexation_dynamics(sim_data, node, node_id, indexes, volume, timeser
     """
     reaction_idx = indexes["ComplexationReactions"][node_id]
     dynamics = {
-        'complexation events': timeseries['listeners']['complexation_events'][:, reaction_idx],
+        'complexation events': timeseries['listeners']['complexation_listener']['complexation_events'][:, reaction_idx],
         # 'complexation events': columns[("ComplexationListener", "complexationEvents")][:, reaction_idx],
         }
     dynamics_units = {
@@ -405,7 +414,7 @@ def read_complexation_dynamics(sim_data, node, node_id, indexes, volume, timeser
     node.read_dynamics(dynamics, dynamics_units)
 
 
-def read_rna_maturation_dynamics(sim_data, node, node_id, columns, indexes, volume, timeseries):
+def read_rna_maturation_dynamics(sim_data, node, node_id, indexes, volume, timeseries):
     """
     Reads dynamics data for RNA maturation nodes from a simulation output.
     """
@@ -413,7 +422,7 @@ def read_rna_maturation_dynamics(sim_data, node, node_id, columns, indexes, volu
 
     dynamics = {
         # 'RNA maturation events': columns[("RnaMaturationListener", "unprocessed_rnas_consumed")][:, reaction_idx],
-        'RNA maturation events': timeseries["rna_maturation_listener"][
+        'RNA maturation events': timeseries["listeners"]["rna_maturation_listener"][
             "unprocessed_rnas_consumed"][:, reaction_idx],
         }
     dynamics_units = {
@@ -428,18 +437,10 @@ def read_metabolism_dynamics(sim_data, node, node_id, indexes, volume, timeserie
     Reads dynamics data for metabolism nodes from a simulation output.
     """
     reaction_idx = indexes["MetabolismReactions"][node_id]
-    conversion_coeffs = (
-            timeseries['listeners']['mass']['dry_mass'] /
-            timeseries['listeners']['mass']['cell_mass']
-            * sim_data.constants.cell_density.asNumber(MASS_UNITS / VOLUME_UNITS)
-    )
-    reaction_fluxes_converted = (
-            (COUNTS_UNITS / MASS_UNITS / TIME_UNITS) * (
-            timeseries['listeners']['fba_results']['reactionFluxes'].T / conversion_coeffs).T
-    ).asNumber(units.mmol / units.g / units.h)
     dynamics = {
         # 'flux': columns[("FBAResults", "reactionFluxesConverted")][:, reaction_idx],
-        'flux': reaction_fluxes_converted[:, reaction_idx],
+        'flux': timeseries['listeners']['fba_results'][
+            'reaction_fluxes_converted'][:, reaction_idx],
     }
     dynamics_units = {
         'flux': 'mmol/gCDW/h',
@@ -477,10 +478,7 @@ def read_regulation_dynamics(sim_data, node, node_id, indexes, volume, timeserie
     gene_idx = indexes["Genes"][gene_id]
     tf_idx = indexes["TranscriptionFactors"][tf_id]
 
-    bound_tf_array = timeseries['listeners']['rna_synth_prob']['n_bound_TF_per_TU_per_cistron']
-    n_TU = len(sim_data.process.transcription.rna_data["id"])
-    n_TF = len(sim_data.process.transcription_regulation.tf_ids)
-    bound_tf_array = bound_tf_array.reshape(-1, n_TU, n_TF)
+    bound_tf_array = timeseries['listeners']['rna_synth_prob']['n_bound_TF_per_cistron']
 
     dynamics = {
         # 'bound TFs': columns[("RnaSynthProb", "n_bound_TF_per_TU")][:, gene_idx, tf_idx],
