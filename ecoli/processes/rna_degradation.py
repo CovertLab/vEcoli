@@ -193,7 +193,11 @@ class RnaDegradation(PartitionedProcess):
                     'fraction_active_endornases': 0,
                     'diff_relative_first_order_decay': 0,
                     'fract_endo_rrna_counts': 0,
-                    'count_rna_degraded': (0, self.all_rna_ids),
+                    'count_rna_degraded': ([0] * len(self.all_rna_ids),
+                        self.all_rna_ids),
+                    'count_RNA_degraded_per_cistron': (
+                        [0] * len(self.cistron_ids),
+                        self.cistron_ids),
                     'nucleotides_from_degradation': 0,
                     'fragment_bases_digested': 0,
                 }),

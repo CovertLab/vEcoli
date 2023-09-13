@@ -56,22 +56,23 @@ class RibosomeData(Step):
         ports = {
             'listeners': {
                 'ribosome_data': listener_schema({
-                    'n_ribosomes_per_transcript': ([], self.monomer_ids),
+                    'n_ribosomes_per_transcript': ([0] * len(self.monomer_ids),
+                        self.monomer_ids),
                     'n_ribosomes_on_partial_mRNA_per_transcript': (
-                        [], self.monomer_ids),
-                    'total_rRNA_initiated': [],
-                    'total_rRNA_init_prob': [],
-                    'rRNA5S_initiated': [],
-                    'rRNA16S_initiated': [],
-                    'rRNA23S_initiated': [],
-                    'rRNA5S_init_prob': [],
-                    'rRNA16S_init_prob': [],
-                    'rRNA23S_init_prob': [],
+                        [0] * len(self.monomer_ids), self.monomer_ids),
+                    'total_rRNA_initiated': 0,
+                    'total_rRNA_init_prob': 0,
+                    'rRNA5S_initiated': 0,
+                    'rRNA16S_initiated': 0,
+                    'rRNA23S_initiated': 0,
+                    'rRNA5S_init_prob': 0,
+                    'rRNA16S_init_prob': 0,
+                    'rRNA23S_init_prob': 0,
                     'mRNA_TU_index': [],
                     'n_ribosomes_on_each_mRNA': [],
                     'protein_mass_on_polysomes': [],
-                    'rRNA_initiated_TU': np.zeros(n_rRNA_TUs),
-                    'rRNA_init_prob_TU': np.zeros(n_rRNA_TUs)
+                    'rRNA_initiated_TU': [0] * n_rRNA_TUs,
+                    'rRNA_init_prob_TU': [0] * n_rRNA_TUs
                 })
             },
             'RNAs': numpy_schema('RNAs',

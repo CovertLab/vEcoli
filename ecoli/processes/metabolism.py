@@ -244,32 +244,46 @@ class Metabolism(Step):
 
                 'fba_results': listener_schema({
                     'media_id': '',
-                    'conc_updates': ([], self.conc_update_molecules),
-                    'catalyst_counts': ([], self.model.catalyst_ids),
+                    'conc_updates': ([0] * len(self.conc_update_molecules),
+                        self.conc_update_molecules),
+                    'catalyst_counts': ([0] * len(self.model.catalyst_ids),
+                        self.model.catalyst_ids),
                     'translation_gtp': 0,
                     'coefficient': 0.0,
                     'unconstrained_molecules': (
-                        [], self.exchange_molecules),
+                        [False] * len(self.exchange_molecules),
+                        self.exchange_molecules),
                     'constrained_molecules': (
-                        [], self.exchange_molecules),
+                        [False] * len(self.exchange_molecules),
+                        self.exchange_molecules),
                     'uptake_constraints': (
-                        [], self.exchange_molecules),
+                        [None] * len(self.exchange_molecules),
+                        self.exchange_molecules),
                     'delta_metabolites': (
-                        [], self.model.metaboliteNamesFromNutrients),
-                    'reaction_fluxes': ([], self.fba_reaction_ids),
+                        [0] * len(self.model.metaboliteNamesFromNutrients),
+                        self.model.metaboliteNamesFromNutrients),
+                    'reaction_fluxes': ([0] * len(self.fba_reaction_ids),
+                        self.fba_reaction_ids),
                     'external_exchange_fluxes': (
-                        [], self.externalMoleculeIDs),
-                    'objective_value': [],
-                    'shadow_prices': ([], self.outputMoleculeIDs),
-                    'reduced_costs': ([], self.fba_reaction_ids),
+                        [0] * len(self.externalMoleculeIDs),
+                        self.externalMoleculeIDs),
+                    'objective_value': 0,
+                    'shadow_prices': ([0] * len(self.outputMoleculeIDs),
+                        self.outputMoleculeIDs),
+                    'reduced_costs': ([0] * len(self.fba_reaction_ids),
+                        self.fba_reaction_ids),
                     'target_concentrations': (
-                        [], self.homeostaticTargetMolecules),
+                        [0] * len(self.homeostaticTargetMolecules),
+                        self.homeostaticTargetMolecules),
                     'homeostatic_objective_values': (
-                        [], self.homeostaticTargetMolecules),
+                        [0] * len(self.homeostaticTargetMolecules),
+                        self.homeostaticTargetMolecules),
                     'kinetic_objective_values': (
-                        [], self.kineticTargetFluxNames),
+                        [0] * len(self.kineticTargetFluxNames),
+                        self.kineticTargetFluxNames),
                     'base_reaction_fluxes': (
-                        [], self.base_reaction_ids),
+                        [0] * len(self.base_reaction_ids),
+                        self.base_reaction_ids),
                     # 'estimated_fluxes': {},
                     # 'estimated_homeostatic_dmdt': {},
                     # 'target_homeostatic_dmdt': {},
@@ -281,21 +295,28 @@ class Metabolism(Step):
 
                 'enzyme_kinetics': listener_schema({
                     'metabolite_counts_init': (
-                        0, self.model.metaboliteNamesFromNutrients),
+                        [0] * len(self.model.metaboliteNamesFromNutrients),
+                        self.model.metaboliteNamesFromNutrients),
                     'metabolite_counts_final': (
-                        0, self.model.metaboliteNamesFromNutrients),
+                        [0] * len(self.model.metaboliteNamesFromNutrients),
+                        self.model.metaboliteNamesFromNutrients),
                     'enzyme_counts_init': (
-                        0, self.model.kinetic_constraint_enzymes),
+                        [0] * len(self.model.kinetic_constraint_enzymes),
+                        self.model.kinetic_constraint_enzymes),
                     'counts_to_molar': 1.0,
                     'actual_fluxes': (
-                        [], self.model.kinetics_constrained_reactions),
+                        [0] * len(self.model.kinetics_constrained_reactions),
+                        self.model.kinetics_constrained_reactions),
                     'target_fluxes': (
-                        [], self.model.kinetics_constrained_reactions),
+                        [0] * len(self.model.kinetics_constrained_reactions),
+                        self.model.kinetics_constrained_reactions),
                     'target_fluxes_upper': (
-                        [], self.model.kinetics_constrained_reactions),
+                        [0] * len(self.model.kinetics_constrained_reactions),
+                        self.model.kinetics_constrained_reactions),
                     'target_fluxes_lower': (
-                        [], self.model.kinetics_constrained_reactions),
-                    'target_aa_conc': ([], self.aa_names)})
+                        [0] * len(self.model.kinetics_constrained_reactions),
+                        self.model.kinetics_constrained_reactions),
+                    'target_aa_conc': ([0] * len(self.aa_names), self.aa_names)})
             },
 
             'polypeptide_elongation': {
