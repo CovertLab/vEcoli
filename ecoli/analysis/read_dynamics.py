@@ -11,7 +11,7 @@ from tqdm import tqdm
 import zipfile
 
 from vivarium.library.dict_utils import get_value_from_path
-from vivarium.core.emitter import data_from_database, get_experiment_database, timeseries_from_data
+from vivarium.core.emitter import data_from_database, get_experiment_database
 
 from ecoli.processes.metabolism import (
     COUNTS_UNITS, VOLUME_UNITS, TIME_UNITS, MASS_UNITS)
