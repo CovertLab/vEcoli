@@ -200,7 +200,8 @@ class TranscriptElongation(PartitionedProcess):
                 'growth_limits': listener_schema({
                     'ntp_used': (np.zeros(len(self.ntp_ids)), self.ntp_ids),
                     'ntp_pool_size': (np.zeros(len(self.ntp_ids)), self.ntp_ids),
-                    'ntp_request_size': (np.zeros(len(self.ntp_ids)), self.ntp_ids)}),
+                    'ntp_request_size': (np.zeros(len(self.ntp_ids)), self.ntp_ids),
+                    'ntp_allocated': (np.zeros(len(self.ntp_ids)), self.ntp_ids)}),
                 'rnap_data': listener_schema({
                     'actual_elongations': 0,
                     'did_terminate': 0,
@@ -278,6 +279,8 @@ class TranscriptElongation(PartitionedProcess):
         return requests
 
     def evolve_state(self, timestep, states):
+        ntpCounts = counts(states['bulk'], self.ntps_idx)
+
         # If there are no active RNA polymerases, return immediately
         if states['active_RNAPs']['_entryState'].sum() == 0:
             return {
@@ -287,7 +290,8 @@ class TranscriptElongation(PartitionedProcess):
                         'count_rna_synthesized': np.zeros(len(self.rnaIds))
                     },
                     'growth_limits': {
-                        'ntp_used': np.zeros(len(self.ntp_ids))
+                        'ntp_used': np.zeros(len(self.ntp_ids)),
+                        'ntp_allocated': ntpCounts,
                     },
                     'rnap_data': {
                         'actual_elongations': 0,
@@ -299,8 +303,6 @@ class TranscriptElongation(PartitionedProcess):
                 'RNAs': {}
             }
 
-        # Determine total possible sequences of nucleotides that can be
-        # transcribed in this time step for each partial transcript
         # Get attributes from existing RNAs
         TU_index_all_RNAs, length_all_RNAs, is_full_transcript, \
             is_mRNA_all_RNAs, RNAP_index_all_RNAs = attrs(states['RNAs'],
@@ -310,8 +312,6 @@ class TranscriptElongation(PartitionedProcess):
         update = {
             'listeners': {
                 'growth_limits': {}}}
-
-        ntpCounts = counts(states['bulk'], self.ntps_idx)
 
         # Determine sequences of RNAs that should be elongated
         is_partial_transcript = np.logical_not(is_full_transcript)
