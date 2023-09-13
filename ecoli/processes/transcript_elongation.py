@@ -192,16 +192,16 @@ class TranscriptElongation(PartitionedProcess):
                 'transcript_elongation_listener': listener_schema({
                     'count_NTPs_used': 0,
                     'count_rna_synthesized': (
-                        np.zeros(len(self.rnaIds)), self.rnaIds),
+                        [0] * len(self.rnaIds), self.rnaIds),
                     'attenuation_probability': (
-                        np.zeros(len(self.rnaIds)), self.attenuated_rnas),
+                        [0] * len(self.attenuated_rnas), self.attenuated_rnas),
                     'counts_attenuated': (
-                        np.zeros(len(self.rnaIds)), self.attenuated_rnas)}),
+                        [0] * len(self.attenuated_rnas), self.attenuated_rnas)}),
                 'growth_limits': listener_schema({
-                    'ntp_used': (np.zeros(len(self.ntp_ids)), self.ntp_ids),
-                    'ntp_pool_size': (np.zeros(len(self.ntp_ids)), self.ntp_ids),
-                    'ntp_request_size': (np.zeros(len(self.ntp_ids)), self.ntp_ids),
-                    'ntp_allocated': (np.zeros(len(self.ntp_ids)), self.ntp_ids)}),
+                    'ntp_used': ([0] * len(self.ntp_ids), self.ntp_ids),
+                    'ntp_pool_size': ([0] * len(self.ntp_ids), self.ntp_ids),
+                    'ntp_request_size': ([0] * len(self.ntp_ids), self.ntp_ids),
+                    'ntp_allocated': ([0] * len(self.ntp_ids), self.ntp_ids)}),
                 'rnap_data': listener_schema({
                     'actual_elongations': 0,
                     'did_terminate': 0,

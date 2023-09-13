@@ -71,7 +71,8 @@ class Complexation(PartitionedProcess):
             'bulk': numpy_schema('bulk'),
             'listeners': {
                 'complexation_listener': {**listener_schema({
-                    'complexation_events': ([], self.reaction_ids)})},
+                    'complexation_events': ([0] * len(self.reaction_ids)
+                        , self.reaction_ids)})},
             },
             'timestep': {'_default': self.parameters['time_step']}
         }
