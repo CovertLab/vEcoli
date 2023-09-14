@@ -529,6 +529,7 @@ def test_table_reader():
     sim = EcoliSim.from_file()
     sim.total_time = 4
     sim.emitter = 'timeseries'
+    sim.divide = False
     sim.build_ecoli()
     sim.run()
     data = sim.query()
