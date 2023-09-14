@@ -469,8 +469,7 @@ class LoadSimData:
             '_parallel': parallel,
 
             'tf_ids': self.sim_data.process.transcription_regulation.tf_ids,
-            'cistron_ids': self.sim_data.process.transcription.cistron_data['id'],
-            'cistron_tu_mapping_matrix': self.sim_data.process.transcription.cistron_tu_mapping_matrix,
+            'rna_ids': self.sim_data.process.transcription.rna_data['id'],
             'delta_prob': self.sim_data.process.transcription_regulation.delta_prob,
             'n_avogadro': self.sim_data.constants.n_avogadro,
             'cell_density': self.sim_data.constants.cell_density,

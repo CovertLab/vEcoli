@@ -1,22 +1,21 @@
 from warnings import warn
 import numpy as np
+from typing import Any
 
 from vivarium.core.emitter import timeseries_from_data
 
-from ecoli.composites.ecoli_master import run_ecoli
-
 from ecoli.analysis.tablereader_utils import (
-    replace_scalars, replace_scalars_2d, camel_case_to_underscored)
+    camel_case_to_underscored)
 
 ANY_STRING = (bytes, str)
 
 MAPPING = {
     'BulkMolecules': {
         # Use Blame to get ATP used per process
-        'atpAllocatedFinal': None,
+        # 'atpAllocatedFinal': None,
         'counts': ('bulk',),
-        'atpRequested': ('listeners', 'atp_requested',),
-        'atpAllocatedInitial': ('listeners', 'atp_allocated_initial',),
+        'atpRequested': ('listeners', 'atp', 'atp_requested',),
+        'atpAllocatedInitial': ('listeners', 'atp', 'atp_allocated_initial',),
     },
     'EnzymeKinetics': {
         'actualFluxes': ('listeners', 'enzyme_kinetics', 'actual_fluxes'),
@@ -25,149 +24,169 @@ MAPPING = {
         'metaboliteCountsInit': ('listeners', 'enzyme_kinetics', 'metabolite_counts_init'),
         'targetFluxesUpper': ('listeners', 'enzyme_kinetics', 'target_fluxes_upper'),
         'countsToMolar': ('listeners', 'enzyme_kinetics', 'counts_to_molar'),
-        'simulationStep': None,
-        'time': ('time',),
         'enzymeCountsInit': ('listeners', 'enzyme_kinetics', 'enzyme_counts_init'),
         'targetFluxes': ('listeners', 'enzyme_kinetics', 'target_fluxes'),
+        'targetAAConc': ('listeners', 'enzyme_kinetics', 'target_aa_conc'),
     },
     'GrowthLimits': {
         'aaAllocated': ('listeners', 'growth_limits', 'aa_allocated'),
         'aasUsed': ('listeners', 'growth_limits', 'aas_used'),
         'ntpRequestSize': ('listeners', 'growth_limits', 'ntp_request_size'),
-        'aaPoolSize': None,
-        'activeRibosomeAllocated': None,
-        'ntpUsed': None,
-        'aaRequestSize': None,
-        'rela_syn': None,
-        'aa_supply': None,
-        'fraction_trna_charged': None,
-        'simulationStep': None,
-        'aa_supply_aa_conc': None,
-        'net_charged': ('listeners', 'growth_limits', 'net_charged', replace_scalars),
-        'spot_deg': None,
-        'aa_supply_enzymes': None,
-        'ntpAllocated': None,
-        'spot_syn': None,
-        'aa_supply_fraction': None,
-        'ntpPoolSize': None,
-        'time': ('time', ),
-        'attributes': None
+        'aaPoolSize': ('listeners', 'growth_limits', 'aa_pool_size'),
+        'activeRibosomeAllocated': ('listeners', 'growth_limits', 'active_ribosome_allocated'),
+        'ntpUsed': ('listeners', 'growth_limits', 'ntp_used'),
+        'aaRequestSize': ('listeners', 'growth_limits', 'aa_request_size'),
+        'uncharged_trna_conc': ('listeners', 'growth_limits', 'uncharged_trna_conc'),
+        'charged_trna_conc': ('listeners', 'growth_limits', 'charged_trna_conc'),
+        'aa_conc': ('listeners', 'growth_limits', 'aa_conc'),
+        'ribosome_conc': ('listeners', 'growth_limits', 'ribosome_conc'),
+        'fraction_aa_to_elongate': ('listeners', 'growth_limits', 'fraction_aa_to_elongate'),
+        'fraction_trna_charged': ('listeners', 'growth_limits', 'fraction_trna_charged'),
+        'synthetase_conc': ('listeners', 'growth_limits', 'synthetase_conc'),
+        'ppgpp_conc': ('listeners', 'growth_limits', 'ppgpp_conc'),
+        'rela_conc': ('listeners', 'growth_limits', 'rela_conc'),
+        'spot_conc': ('listeners', 'growth_limits', 'spot_conc'),
+        'rela_syn': ('listeners', 'growth_limits', 'rela_syn'),
+        'spot_syn': ('listeners', 'growth_limits', 'spot_syn'),
+        'spot_deg': ('listeners', 'growth_limits', 'spot_deg'),
+        'spot_deg_inhibited': ('listeners', 'growth_limits', 'spot_deg_inhibited'),
+        'original_aa_supply': ('listeners', 'growth_limits', 'original_aa_supply'),
+        'aa_supply': ('listeners', 'growth_limits', 'aa_supply'),
+        'aa_synthesis': ('listeners', 'growth_limits', 'aa_synthesis'),
+        'aa_import': ('listeners', 'growth_limits', 'aa_import'),
+        'aa_export': ('listeners', 'growth_limits', 'aa_export'),
+        'aa_supply_enzymes_fwd': ('listeners', 'growth_limits', 'aa_supply_enzymes_fwd'),
+        'aa_supply_enzymes_rev': ('listeners', 'growth_limits', 'aa_supply_enzymes_rev'),
+        'aa_importers': ('listeners', 'growth_limits', 'aa_importers'),
+        'aa_exporters': ('listeners', 'growth_limits', 'aa_exporters'),
+        'aa_supply_aa_conc': ('listeners', 'growth_limits', 'aa_supply_aa_conc'),
+        'aa_supply_fraction_fwd': ('listeners', 'growth_limits', 'aa_supply_fraction_fwd'),
+        'aa_supply_fraction_rev': ('listeners', 'growth_limits', 'aa_supply_fraction_rev'),
+        'aa_in_media': ('listeners', 'growth_limits', 'aa_in_media'),
+        'aaCountDiff': ('listeners', 'growth_limits', 'aa_count_diff'),
+        'trnaCharged': ('listeners', 'growth_limits', 'trna_charged'),
+        'fraction_trna_charged': ('listeners', 'growth_limits', 'fraction_trna_charged'),
+        'net_charged': ('listeners', 'growth_limits', 'net_charged'),
+        'ntpAllocated': ('listeners', 'growth_limits', 'ntp_allocated'),
+        'ntpPoolSize': ('listeners', 'growth_limits', 'ntp_pool_size'),
     },
-    'mRNACounts': {
-        'mRNA_counts': ('listeners', 'mRNA_counts',),
-        'simulationStep': None,
-        'full_mRNA_counts': None,
-        'partial_mRNA_counts': None,
-        'time': ('time', ),
-        'attributes': None
+    'RNACounts': {
+        'mRNA_counts': ('listeners', 'rna_counts', 'mRNA_counts'),
+        'full_mRNA_counts': ('listeners', 'rna_counts', 'full_mRNA_counts'),
+        'partial_mRNA_counts': ('listeners', 'rna_counts', 'partial_mRNA_counts'),
+        'full_mRNA_cistron_counts': ('listeners', 'rna_counts', 'full_mRNA_cistron_counts'),
+        'partial_mRNA_cistron_counts': ('listeners', 'rna_counts', 'partial_mRNA_cistron_counts'),
+        'partial_rRNA_counts': ('listeners', 'rna_counts', 'partial_rRNA_counts'),
+        'partial_rRNA_cistron_counts': ('listeners', 'rna_counts', 'partial_rRNA_cistron_counts'),
+        'mRNA_counts': ('listeners', 'rna_counts', 'mRNA_counts'),
     },
     'RnapData': {
-        'active_rnap_coordinates': None,
-        'active_rnap_domain_indexes': None,
-        'active_rnap_n_bound_ribosomes': None,
-        'active_rnap_unique_indexes': None,
+        'active_rnap_coordinates': ('listeners', 'rnap_data', 'active_rnap_coordinates'),
+        'active_rnap_domain_indexes': ('listeners', 'rnap_data', 'active_rnap_domain_indexes'),
+        'active_rnap_n_bound_ribosomes': ('listeners', 'rnap_data', 'active_rnap_n_bound_ribosomes'),
+        'active_rnap_unique_indexes': ('listeners', 'rnap_data', 'active_rnap_unique_indexes'),
+        'active_rnap_on_stable_RNA_indexes': ('listeners', 'rnap_data', 'active_rnap_on_stable_RNA_indexes'),
+        'active_rnap_n_bound_ribosomes': ('listeners', 'rnap_data', 'active_rnap_n_bound_ribosomes'),
         'actualElongations': ('listeners', 'rnap_data', 'actual_elongations'),
         'codirectional_collision_coordinates': (
-            'listeners', 'rnap_data', 'codirectional_collision_coordinates', replace_scalars),
+            'listeners', 'rnap_data', 'codirectional_collision_coordinates'),
         'didInitialize': ('listeners', 'rnap_data', 'did_initialize'),
         'didStall': ('listeners', 'rnap_data', 'did_stall'),
         'didTerminate': ('listeners', 'rnap_data', 'did_terminate'),
         'headon_collision_coordinates': (
-            'listeners', 'rnap_data', 'headon_collision_coordinates', replace_scalars),
-        'n_codirectional_collisions': None,
-        'n_headon_collisions': None,
-        'n_removed_ribosomes': None,
-        'n_total_collisions': None,
-        'rnaInitEvent': ('listeners', 'rnap_data', 'rna_init_event', replace_scalars),
-        'simulationStep': None,
-        'terminationLoss': None,
-        'time': ('time', ),
-        'attributes': None
-    },
-    'UniqueMoleculeCounts': {
-        'simulationStep': None,
-        'time': ('time', ),
-        'uniqueMoleculeCounts': None,
-        'attributes': None
+            'listeners', 'rnap_data', 'headon_collision_coordinates'),
+        'n_codirectional_collisions': ('listeners', 'rnap_data', 'n_codirectional_collisions'),
+        'n_headon_collisions': ('listeners', 'rnap_data', 'n_headon_collisions'),
+        'n_removed_ribosomes': ('listeners', 'rnap_data', 'n_removed_ribosomes'),
+        'n_total_collisions': ('listeners', 'rnap_data', 'n_total_collisions'),
+        'rnaInitEvent': ('listeners', 'rnap_data', 'rna_init_event'),
+        'rna_init_event_per_cistron': ('listeners', 'rnap_data', 'rna_init_event_per_cistron'),
+        'terminationLoss': ('listeners', 'rnap_data', 'termination_loss'),
     },
     'ComplexationListener': {
-        'complexationEvents': ('listeners', 'complexation_events', replace_scalars),
-        'simulationStep': None,
-        'time': ('time', ),
-        'attributes': None
+        'complexationEvents': ('listeners', 'complexation_listener', 'complexation_events'),
     },
     'EquilibriumListener': {
-        'reactionRates': ('listeners', 'equilibrium_listener', 'reaction_rates', replace_scalars),
-        'simulationStep': None,
-        'time': ('time', ),
-        'attributes': None
+        'reactionRates': ('listeners', 'equilibrium_listener', 'reaction_rates'),
     },
     'Main': {
-        'time': ('time', ),
-        'timeStepSec': None,
-        'attributes': None
+        # TODO: Figure out where to add listener for timestep
+        # 'timeStepSec': None,
+        'time': ('time',)
     },
     'ReplicationData': {
-        'fork_coordinates': None,
-        'free_DnaA_boxes': None,
+        'fork_coordinates': ('listeners', 'replication_data', 'fork_coordinates'),
+        'free_DnaA_boxes': ('listeners', 'replication_data', 'free_DnaA_boxes'),
         'criticalInitiationMass': ('listeners', 'replication_data', 'critical_initiation_mass'),
-        'fork_domains': None,
-        'numberOfOric': None,
+        'fork_domains': ('listeners', 'replication_data', 'fork_domains'),
+        'numberOfOric': ('listeners', 'replication_data', 'number_of_oric'),
         'criticalMassPerOriC': ('listeners', 'replication_data', 'critical_mass_per_oriC'),
-        'fork_unique_index': None,
-        'total_DnaA_boxes': None,
-        'attributes': {}
+        'fork_unique_index': ('listeners', 'replication_data', 'fork_unique_index'),
+        'total_DnaA_boxes': ('listeners', 'replication_data', 'total_DnaA_boxes'),
     },
     'RnaSynthProb': {
-        'nActualBound': ('listeners', 'rna_synth_prob', 'n_actual_bound', replace_scalars),
-        'target_rna_synth_prob': ('listeners', 'rna_synth_prob', 'target_rna_synth_prob', replace_scalars),
-        'bound_TF_coordinates': None,
+        'nActualBound': ('listeners', 'rna_synth_prob', 'n_actual_bound'),
+        'target_rna_synth_prob': ('listeners', 'rna_synth_prob', 'target_rna_synth_prob'),
+        'actual_rna_synth_prob': ('listeners', 'rna_synth_prob', 'actual_rna_synth_prob'),
+        'tu_is_overcrowded': ('listeners', 'rna_synth_prob', 'tu_is_overcrowded'),
+        'actual_rna_synth_prob_per_cistron': ('listeners', 'rna_synth_prob', 'actual_rna_synth_prob_per_cistron'),
+        'target_rna_synth_prob_per_cistron': ('listeners', 'rna_synth_prob', 'target_rna_synth_prob_per_cistron'),
+        'expected_rna_init_per_cistron': ('listeners', 'rna_synth_prob', 'expected_rna_init_per_cistron'),
+        'promoter_copy_number': ('listeners', 'rna_synth_prob', 'promoter_copy_number'),
+        'bound_TF_coordinates': ('listeners', 'rna_synth_prob', 'bound_TF_coordinates'),
         'n_available_promoters': (
-            'listeners', 'rna_synth_prob', 'n_available_promoters', replace_scalars),
-        'simulationStep': None,
-        'bound_TF_domains': None,
-        'n_bound_TF_per_TU': ('listeners', 'rna_synth_prob', 'n_bound_TF_per_TU', replace_scalars_2d),
-        'time': ('time', ),
-        'bound_TF_indexes': None,
-        'nPromoterBound': ('listeners', 'rna_synth_prob', 'n_promoter_bound', replace_scalars),
-        'gene_copy_number': ('listeners', 'rna_synth_prob', 'gene_copy_number', replace_scalars),
-        'pPromoterBound': ('listeners', 'rna_synth_prob', 'p_promoter_bound', replace_scalars),
-        'attributes': None
+            'listeners', 'rna_synth_prob', 'n_available_promoters'),
+        'bound_TF_domains': ('listeners', 'rna_synth_prob', 'bound_TF_domains'),
+        'n_bound_TF_per_TU': ('listeners', 'rna_synth_prob', 'n_bound_TF_per_TU'),
+        'n_bound_TF_per_cistron': ('listeners', 'rna_synth_prob', 'n_bound_TF_per_cistron'),
+        'bound_TF_indexes': ('listeners', 'rna_synth_prob', 'bound_TF_indexes'),
+        'nPromoterBound': ('listeners', 'rna_synth_prob', 'n_promoter_bound'),
+        'gene_copy_number': ('listeners', 'rna_synth_prob', 'gene_copy_number'),
+        'pPromoterBound': ('listeners', 'rna_synth_prob', 'p_promoter_bound'),
+        'nActualBound': ('listeners', 'rna_synth_prob', 'n_actual_bound'),
     },
-    'UniqueMolecules': {
-        'attributes': None
+    'UniqueMoleculeCounts': {
+        'DnaA_box': ('listeners', 'unique_molecule_counts', 'DnaA_box'),
+        'RNA': ('listeners', 'unique_molecule_counts', 'RNA'),
+        'active_RNAP': ('listeners', 'unique_molecule_counts', 'active_RNAP'),
+        'active_replisome': ('listeners', 'unique_molecule_counts', 'active_replisome'),
+        'active_ribosome': ('listeners', 'unique_molecule_counts', 'active_ribosome'),
+        'chromosomal_segment': ('listeners', 'unique_molecule_counts', 'chromosomal_segment'),
+        'chromosome_domain': ('listeners', 'unique_molecule_counts', 'chromosome_domain'),
+        'full_chromosome': ('listeners', 'unique_molecule_counts', 'full_chromosome'),
+        'gene': ('listeners', 'unique_molecule_counts', 'gene'),
+        'oriC': ('listeners', 'unique_molecule_counts', 'oriC'),
+        'promoter': ('listeners', 'unique_molecule_counts', 'promoter'),
     },
     'DnaSupercoiling': {
-        'segment_domain_indexes': None,
-        'segment_left_boundary_coordinates': None,
-        'segment_right_boundary_coordinates': None,
-        'segment_superhelical_densities': None,
-        'simulationStep': None,
-        'time': ('time', ),
-        'attributes': {}
+        'segment_domain_indexes': ('listeners', 'dna_supercoiling', 'segment_domain_indexes'),
+        'segment_left_boundary_coordinates': ('listeners', 'dna_supercoiling', 'segment_left_boundary_coordinates'),
+        'segment_right_boundary_coordinates': ('listeners', 'dna_supercoiling', 'segment_right_boundary_coordinates'),
+        'segment_superhelical_densities': ('listeners', 'dna_supercoiling', 'segment_superhelical_densities'),
     },
-    'EvaluationTime': {
-        'append_times': None,
-        'merge_times': None,
-        'append_total': None,
-        'merge_total': None,
-        'partition_times': None,
-        'calculate_mass_times': None,
-        'partition_total': None,
-        'calculate_mass_total': None,
-        'simulationStep': None,
-        'calculate_request_times': None,
-        'time': ('time', ),
-        'calculate_request_total': None,
-        'update_queries_times': None,
-        'clock_time': None,
-        'update_queries_total': None,
-        'evolve_state_times': None,
-        'update_times': None,
-        'evolve_state_total': None,
-        'update_total': None,
-        'attributes': None
-    },
+    # Not implemented (can turn on profiling in vivarium Engine)
+    # 'EvaluationTime': {
+    #     'append_times': None,
+    #     'merge_times': None,
+    #     'append_total': None,
+    #     'merge_total': None,
+    #     'partition_times': None,
+    #     'calculate_mass_times': None,
+    #     'partition_total': None,
+    #     'calculate_mass_total': None,
+    #     'simulationStep': None,
+    #     'calculate_request_times': None,
+    #     'time': ('time', ),
+    #     'calculate_request_total': None,
+    #     'update_queries_times': None,
+    #     'clock_time': None,
+    #     'update_queries_total': None,
+    #     'evolve_state_times': None,
+    #     'update_times': None,
+    #     'evolve_state_total': None,
+    #     'update_total': None,
+    #     'attributes': None
+    # },
     'Mass': {
         'inner_membrane_mass': ('listeners', 'mass', 'inner_membrane_mass'),
         'proteinMass': ('listeners', 'mass', 'protein_mass'),
@@ -179,156 +198,160 @@ MAPPING = {
         'rRnaMass': ('listeners', 'mass', 'rRna_mass'),
         'cytosol_mass': ('listeners', 'mass', 'cytosol_mass'),
         'mRnaMass': ('listeners', 'mass', 'mRna_mass'),
-        'simulationStep': None,
         'dnaMass': ('listeners', 'mass', 'dna_mass'),
         'outer_membrane_mass': ('listeners', 'mass', 'outer_membrane_mass'),
         'smallMoleculeMass': ('listeners', 'mass', 'smallMolecule_mass'),
         'dryMass': ('listeners', 'mass', 'dry_mass'),
         'periplasm_mass': ('listeners', 'mass', 'periplasm_mass'),
-        'time': ('time', ),
         'extracellular_mass': ('listeners', 'mass', 'extracellular_mass'),
         'pilus_mass': ('listeners', 'mass', 'pilus_mass'),
         'tRnaMass': ('listeners', 'mass', 'tRna_mass'),
         'flagellum_mass': ('listeners', 'mass', 'flagellum_mass'),
-        'processMassDifferences': None,
-        'waterMass': None,
-        'growth': None,
+        # Not implemented (can turn on blame if interested)
+        # 'processMassDifferences': None,
+        'waterMass': ('listeners', 'mass', 'water_mass'),
+        'growth': ('listeners', 'mass', 'growth'),
         'projection_mass': ('listeners', 'mass', 'projection_mass'),
-        'attributes': None
     },
     'RibosomeData': {
         'aaCountInSequence': (
-            'listeners', 'ribosome_data', 'aa_count_in_sequence', replace_scalars),
+            'listeners', 'ribosome_data', 'aa_count_in_sequence'),
         'aaCounts': (
-            'listeners', 'ribosome_data', 'aa_counts', replace_scalars),
+            'listeners', 'ribosome_data', 'aa_counts'),
         'actualElongationHist': (
-            'listeners', 'ribosome_data', 'actual_elongation_hist', replace_scalars),
+            'listeners', 'ribosome_data', 'actual_elongation_hist'),
         'actualElongations': ('listeners', 'ribosome_data', 'actual_elongations'),
-        'didInitialize': None,
+        'didInitialize': ('listeners', 'ribosome_data', 'did_initialize'),
         'didTerminate': ('listeners', 'ribosome_data', 'did_terminate'),
         'effectiveElongationRate': ('listeners', 'ribosome_data', 'effective_elongation_rate'),
         'elongationsNonTerminatingHist': (
-            'listeners', 'ribosome_data', 'elongations_non_terminating_hist', replace_scalars),
-        'n_ribosomes_on_partial_mRNA_per_transcript': None,
-        'n_ribosomes_per_transcript': None,
+            'listeners', 'ribosome_data', 'elongations_non_terminating_hist'),
+        'n_ribosomes_on_partial_mRNA_per_transcript': ('listeners', 'ribosome_data', 'n_ribosomes_on_partial_mRNA_per_transcript'),
+        'n_ribosomes_per_transcript': ('listeners', 'ribosome_data', 'n_ribosomes_per_transcript'),
         'numTrpATerminated': ('listeners', 'ribosome_data', 'num_trpA_terminated'),
         'actual_prob_translation_per_transcript': ('listeners',
                                          'ribosome_data',
-                                         'actual_prob_translation_per_transcript',
-                                         replace_scalars),
-        'processElongationRate': None,
-        'rrn16S_init_prob': None,
-        'rrn16S_produced': None,
-        'rrn23S_init_prob': None,
-        'rrn23S_produced': None,
-        'rrn5S_init_prob': None,
-        'rrn5S_produced': None,
-        'simulationStep': None,
-        'terminationLoss': None,
-        'time': ('time', ),
-        'total_rna_init': None,
+                                         'actual_prob_translation_per_transcript'),
+        'target_prob_translation_per_transcript': ('listeners',
+                                         'ribosome_data',
+                                         'target_prob_translation_per_transcript'),
+        'processElongationRate': ('listeners', 'ribosome_data', 'process_elongation_rate'),
+        'rRNA16S_initiated': ('listeners', 'ribosome_data', 'rRNA16S_initiated'),
+        'rRNA23S_initiated': ('listeners', 'ribosome_data', 'rRNA23S_initiated'),
+        'rRNA5S_initiated': ('listeners', 'ribosome_data', 'rRNA5S_initiated'),
+        'rRNA16S_init_prob': ('listeners', 'ribosome_data', 'rRNA16S_init_prob'),
+        'rRNA23S_init_prob': ('listeners', 'ribosome_data', 'rRNA23S_init_prob'),
+        'rRNA5S_init_prob': ('listeners', 'ribosome_data', 'rRNA5S_init_prob'),
+        'total_rna_init': ('listeners', 'ribosome_data', 'total_rna_init'),
+        'total_rRNA_initiated': ('listeners', 'ribosome_data', 'total_rRNA_initiated'),
+        'total_rRNA_init_prob': ('listeners', 'ribosome_data', 'total_rRNA_init_prob'),
         'translationSupply': (
             'listeners', 'ribosome_data', 'translation_supply'),
-        'attributes': None
-    },
-    'Environment': {
-        'media_concentrations': None,
-        'media_id': None,
-        'attributes': None
+        'mRNA_is_overcrowded': ('listeners', 'ribosome_data', 'mRNA_is_overcrowded'),
+        'n_ribosomes_on_each_mRNA': ('listeners', 'ribosome_data', 'n_ribosomes_on_each_mRNA'),
+        'mRNA_TU_index': ('listeners', 'ribosome_data', 'mRNA_TU_index'),
+        'protein_mass_on_polysomes': ('listeners', 'ribosome_data', 'protein_mass_on_polysomes'),
+        'ribosome_init_event_per_monomer': ('listeners', 'ribosome_data', 'ribosome_init_event_per_monomer'),
     },
     'FBAResults': {
-        'objectiveValue': ('listeners', 'fba_results', 'objective_value', replace_scalars),
-        'catalyst_counts': ('listeners', 'fba_results', 'catalyst_counts', replace_scalars),
-        'reactionFluxes': ('listeners', 'fba_results', 'reaction_fluxes', replace_scalars),
-        'coefficient': None,
-        'reducedCosts': ('listeners', 'fba_results', 'reduced_costs', replace_scalars),
-        'conc_updates': ('listeners', 'fba_results', 'conc_updates', replace_scalars),
-        'shadowPrices': ('listeners', 'fba_results', 'shadow_prices', replace_scalars),
+        'objectiveValue': ('listeners', 'fba_results', 'objective_value'),
+        'catalyst_counts': ('listeners', 'fba_results', 'catalyst_counts'),
+        'reactionFluxes': ('listeners', 'fba_results', 'reaction_fluxes'),
+        'base_reaction_fluxes': ('listeners', 'fba_results', 'base_reaction_fluxes'),
+        'coefficient': ('listeners', 'fba_results', 'coefficient'),
+        'reducedCosts': ('listeners', 'fba_results', 'reduced_costs'),
+        'conc_updates': ('listeners', 'fba_results', 'conc_updates'),
+        'shadowPrices': ('listeners', 'fba_results', 'shadow_prices'),
         'constrained_molecules': (
-            'listeners', 'fba_results', 'constrained_molecules', replace_scalars),
-        'simulationStep': None,
+            'listeners', 'fba_results', 'constrained_molecules'),
         'deltaMetabolites': (
-            'listeners', 'fba_results', 'delta_metabolites', replace_scalars),
+            'listeners', 'fba_results', 'delta_metabolites'),
         'targetConcentrations': (
-            'listeners', 'fba_results', 'target_concentrations', replace_scalars),
+            'listeners', 'fba_results', 'target_concentrations'),
         'externalExchangeFluxes': (
-            'listeners', 'fba_results', 'external_exchange_fluxes', replace_scalars),
-        'time': ('time', ),
+            'listeners', 'fba_results', 'external_exchange_fluxes'),
         'homeostaticObjectiveValues': (
-            'listeners', 'fba_results', 'homeostatic_objective_values', replace_scalars),
-        'translation_gtp': None,
+            'listeners', 'fba_results', 'homeostatic_objective_values'),
+        'translation_gtp': ('listeners', 'fba_results', 'translation_gtp'),
         'kineticObjectiveValues': (
-            'listeners', 'fba_results', 'kinetic_objective_values', replace_scalars),
+            'listeners', 'fba_results', 'kinetic_objective_values'),
         'unconstrained_molecules': (
-            'listeners', 'fba_results', 'unconstrained_molecules', replace_scalars),
-        'media_id': None,
+            'listeners', 'fba_results', 'unconstrained_molecules'),
+        'media_id': ('listeners', 'fba_results', 'media_id'),
         'uptake_constraints': (
-            'listeners', 'fba_results', 'uptake_constraints', replace_scalars),
-        'attributes': None
+            'listeners', 'fba_results', 'uptake_constraints'),
     },
     'MonomerCounts': {
         'monomerCounts': ('listeners', 'monomer_counts'),
-        'simulationStep': None,
-        'time': ('time', ),
-        'attributes': None
     },
     'RnaDegradationListener': {
-        'fragmentBasesDigested': None,
+        'fragmentBasesDigested': (
+            'listeners', 'rna_degradation_listener', 'fragment_bases_digested'),
         'countRnaDegraded': (
-            'listeners', 'rna_degradation_listener', 'count_rna_degraded', replace_scalars),
-        'nucleotidesFromDegradation': None,
-        'DiffRelativeFirstOrderDecay': None,
-        'simulationStep': None,
+            'listeners', 'rna_degradation_listener', 'count_rna_degraded'),
+        'count_RNA_degraded_per_cistron': (
+            'listeners', 'rna_degradation_listener', 'count_RNA_degraded_per_cistron'),
+        'nucleotidesFromDegradation': (
+            'listeners', 'rna_degradation_listener', 'nucleotides_from_degradation'),
+        'DiffRelativeFirstOrderDecay': (
+            'listeners', 'rna_degradation_listener', 'diff_relative_first_order_decay'),
         'FractEndoRRnaCounts': (
             'listeners', 'rna_degradation_listener', 'fract_endo_rrna_counts'),
-        'time': ('time', ),
         'FractionActiveEndoRNases': (
-            'listeners', 'rna_degradation_listener', 'fraction_active_endo_rrnases'),
-        'attributes': None
+            'listeners', 'rna_degradation_listener', 'fraction_active_endornases'),
     },
     'TranscriptElongationListener': {
         'attenuation_probability': (
-            'listeners', 'transcript_elongation_listener', 'attentuation_probability', replace_scalars),
+            'listeners', 'transcript_elongation_listener', 'attenuation_probability'),
         'countRnaSynthesized': (
-            'listeners', 'transcript_elongation_listener', 'count_rna_synthesized', replace_scalars),
-        'time': ('time', ),
+            'listeners', 'transcript_elongation_listener', 'count_rna_synthesized'),
         'counts_attenuated': (
-            'listeners', 'transcript_elongation_listener', 'counts_attenuated', replace_scalars),
+            'listeners', 'transcript_elongation_listener', 'counts_attenuated'),
         'countNTPsUSed': (
             'listeners', 'transcript_elongation_listener', 'count_NTPs_used'),
-        'simulationStep': None,
-        'attributes': None
+    },
+    'RnaMaturation': {
+        'total_maturation_events': (
+            'listeners', 'rna_maturation_listener', 'total_maturation_events'),
+        'total_degraded_ntps': (
+            'listeners', 'rna_maturation_listener', 'total_degraded_ntps'),
+        'unprocessed_rnas_consumed': (
+            'listeners', 'rna_maturation_listener', 'unprocessed_rnas_consumed'),
+        'mature_rnas_generated': (
+            'listeners', 'rna_maturation_listener', 'mature_rnas_generated'),
+        'maturation_enzyme_counts': (
+            'listeners', 'rna_maturation_listener', 'maturation_enzyme_counts'),
     }
 }
 
 class TableReaderError(Exception):
-	"""
-	Base exception class for TableReader-associated exceptions.
-	"""
-	pass
+    """
+    Base exception class for TableReader-associated exceptions.
+    """
+    pass
 
 
 class VersionError(TableReaderError):
-	"""
-	An error raised when the input files claim to be from a different format or
-	version of the file specification.
-	"""
-	pass
+    """
+    An error raised when the input files claim to be from a different format or
+    version of the file specification.
+    """
+    pass
 
 
 class DoesNotExistError(TableReaderError):
-	"""
-	An error raised when a column or attribute does not seem to exist.
-	"""
-	pass
+    """
+    An error raised when a column or attribute does not seem to exist.
+    """
+    pass
 
 
 class VariableLengthColumnError(TableReaderError):
-	"""
-	An error raised when the user tries to access subcolumns of a variable
-	length column.
-	"""
-	pass
+    """
+    An error raised when the user tries to access subcolumns of a variable
+    length column.
+    """
+    pass
 
 
 class TableReader(object):
@@ -339,13 +362,13 @@ class TableReader(object):
     this class provides a way to retrieve data as if it were structured in the same way as it is in wcEcoli.
 
     Parameters:
-        wc_path (str): Which wcEcoli table this TableReader would be reading from.
-        data: timeseries data from a vivarium-ecoli experiment (to be read as if it were structured as in wcEcoli.)
+        path (str): which listener this TableReader would be reading from
+        data (dict): data from a vivarium-ecoli experiment
+        emitted_config (dict): configuration emitted at start of experiment
+        timeseries_data (bool): whether data is a timeseries (e.g. passed through timeseries_from_data)
     """
 
-    def __init__(self, path, data, timeseries_data=False):
-        # Strip down to table name, in case a full path is given
-        path[(path.rfind('/')+1):]
+    def __init__(self, path, data, emitted_config=None, timeseries_data=False):
         self._path = path
 
         # Store reference to the data
@@ -353,15 +376,30 @@ class TableReader(object):
             data = timeseries_from_data(data)
         self._data = data
 
+        # Store reference to simulation metadata
+        self.emitted_config = emitted_config
+
         # List the column file names.
         self._mapping = MAPPING[path]
         self._columnNames = {
-            k for k in self._mapping.keys() if k != "attributes"}
+            k for k in self._mapping.keys()}
 
     @property
     def path(self):
         # type: () -> str
         return self._path
+    
+    def readAttribute(self, name):
+        # type: (str) -> Any
+        """
+        If emitted_config is supplied during initialization, this can be used
+        to access listener metadata (e.g. bulk molecule names for count arrays)
+        """
+        viv_path = self._mapping[name]
+        sim_metadata = self.emitted_config['state'] or {}
+        for key in viv_path:
+            sim_metadata = sim_metadata.get(key, {})
+        return sim_metadata.get('_properties', {}).get('metadata', None)
 
     def readColumn(self, name, indices=None, squeeze=True):
         # type: (str, Any, bool) -> np.ndarray
@@ -415,7 +453,11 @@ class TableReader(object):
             for elem in heuristic_path:
                 result = result[elem]
 
-        result = np.array(result).T
+        try:
+            result = np.array(result).T
+        # Handle non-homogeneous lengths (e.g. unique molecule coordinates)
+        except:
+            result = np.array(result, dtype=object)
 
         # extract indices
         if indices is not None:
@@ -425,29 +467,6 @@ class TableReader(object):
             result = result.squeeze()
 
         return result
-
-    def readSubcolumn(self, column, subcolumn_name):
-        # type: (str, str) -> np.ndarray
-        """Read in a subcolumn from a table by name
-
-        Each column of a table is a 2D matrix. The SUBCOLUMNS_KEY attribute
-        defines a map from column name to a name for an attribute that
-        stores a list of names such that the i-th name describes the i-th
-        subcolumn.
-
-        Arguments:
-            column: Name of the column.
-            subcolumn_name: Name of the ID or object associated with the
-                    desired subcolumn.
-
-        Returns:
-            The subcolumn, as a 1-dimensional array.
-        """
-        # subcol_name_map = self.readAttribute(SUBCOLUMNS_KEY)
-        # subcols = self.readAttribute(subcol_name_map[column])
-        # index = subcols.index(subcolumn_name)
-        # return self.readColumn(column, [index], squeeze=False)[:, 0]
-        raise NotImplementedError()
 
     def columnNames(self):
         """
@@ -505,41 +524,27 @@ def read_bulk_molecule_counts(data, mol_names):
 
 
 def test_table_reader():
-    data = run_ecoli(total_time=4, time_series=False)
+    from ecoli.experiments.ecoli_master_sim import EcoliSim
 
-    # TODO actaully grab their values - they fail 'gracefully' rn because their keys are empty or arrays are empty
-    equi_tb = TableReader("EquilibriumListener", data)
-    equi_rxns = equi_tb.readColumn('reactionRates')
+    sim = EcoliSim.from_file()
+    sim.total_time = 4
+    sim.emitter = 'timeseries'
+    sim.divide = False
+    sim.build_ecoli()
+    sim.run()
+    data = sim.query()
+    emitted_config = {
+        'state': sim.ecoli_experiment.state.get_config()
+    }
 
-    fba_tb = TableReader("FBAResults", data)
-    fba_rxns = fba_tb.readColumn('reactionFluxes')
+    timeseries = timeseries_from_data(data)
 
-    growth_lim_tb = TableReader("GrowthLimits", data)
-    growth_lim_vals = growth_lim_tb.readColumn('net_charged')
-
-    # i believe these are right
-    dry_m_tb = TableReader("Mass", data)
-    dry_m_vals = dry_m_tb.readColumn('dryMass')
-
-    time_tb = TableReader("Main", data)
-    time_vals = time_tb.readColumn('time')
-
-    cell_m_tb = TableReader("Mass", data)
-    cell_m_vals = cell_m_tb.readColumn('cellMass')
-
-    bulk_tb = TableReader("BulkMolecules", data)
-    bulk_counts = bulk_tb.readColumn("counts")
-
-    rnap_tb = TableReader("RnapData", data)
-    rna_init = rnap_tb.readColumn("rnaInitEvent")
-
-    rna_synth_tb = TableReader("RnaSynthProb", data)
-    tf_per_tu = rna_synth_tb.readColumn("n_bound_TF_per_TU")
-    gene_copies = rna_synth_tb.readColumn("gene_copy_number")
-    rna_synth_prob = rna_synth_tb.readColumn("target_rna_synth_prob")
-
-    ribosome_tb = TableReader("RibosomeData", data)
-    prob_trans = ribosome_tb.readColumn("actual_prob_translation_per_transcript")
+    for listener, columns in MAPPING.items():
+        tb = TableReader(listener, timeseries,
+            emitted_config, timeseries_data=True)
+        for column in columns.keys():
+            col_data = tb.readColumn(column)
+            col_metadata = tb.readAttribute(column)
 
 
 if __name__ == "__main__":
