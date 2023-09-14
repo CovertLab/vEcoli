@@ -37,6 +37,7 @@ class TfBinding(Step):
     topology = TOPOLOGY
     defaults = {
         'tf_ids': [],
+        'rna_ids': [],
         'delta_prob': {'deltaI': [], 'deltaJ': [], 'deltaV': []},
         'n_avogadro': 6.02214076e+23 / units.mol,
         'cell_density': 1100 * units.g / units.L,
@@ -63,6 +64,8 @@ class TfBinding(Step):
         # Get IDs of transcription factors
         self.tf_ids = self.parameters['tf_ids']
         self.n_TF = len(self.tf_ids)
+
+        self.rna_ids = self.parameters['rna_ids']
 
         # Build dict that maps TFs to transcription units they regulate
         self.delta_prob = self.parameters['delta_prob']
@@ -128,11 +131,12 @@ class TfBinding(Step):
 
             'listeners': {
                 'rna_synth_prob': listener_schema({
-                    'p_promoter_bound': 0,
-                    'n_promoter_bound': 0,
-                    'n_actual_bound': 0,
-                    'n_available_promoters': 0,
-                    'n_bound_TF_per_TU': 0})},
+                    'p_promoter_bound': ([0] * self.n_TF, self.tf_ids),
+                    'n_promoter_bound': ([0] * self.n_TF, self.tf_ids),
+                    'n_actual_bound': ([0] * self.n_TF, self.tf_ids),
+                    'n_available_promoters': ([0] * self.n_TF, self.tf_ids),
+                    'n_bound_TF_per_TU': ([[0] * self.n_TF] * self.n_TU,
+                        (self.rna_ids, self.tf_ids))})},
             
             'first_update': {
                 '_default': True,
