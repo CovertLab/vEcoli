@@ -1,9 +1,8 @@
 from warnings import warn
 import numpy as np
+from typing import Any
 
 from vivarium.core.emitter import timeseries_from_data
-
-from ecoli.composites.ecoli_master import run_ecoli
 
 from ecoli.analysis.tablereader_utils import (
     camel_case_to_underscored)
@@ -363,13 +362,13 @@ class TableReader(object):
     this class provides a way to retrieve data as if it were structured in the same way as it is in wcEcoli.
 
     Parameters:
-        wc_path (str): Which wcEcoli table this TableReader would be reading from.
-        data: timeseries data from a vivarium-ecoli experiment (to be read as if it were structured as in wcEcoli.)
+        path (str): which listener this TableReader would be reading from
+        data (dict): data from a vivarium-ecoli experiment
+        emitted_config (dict): configuration emitted at start of experiment
+        timeseries_data (bool): whether data is a timeseries (e.g. passed through timeseries_from_data)
     """
 
-    def __init__(self, path, data, timeseries_data=False):
-        # Strip down to table name, in case a full path is given
-        path[(path.rfind('/')+1):]
+    def __init__(self, path, data, emitted_config=None, timeseries_data=False):
         self._path = path
 
         # Store reference to the data
@@ -377,15 +376,30 @@ class TableReader(object):
             data = timeseries_from_data(data)
         self._data = data
 
+        # Store reference to simulation metadata
+        self.emitted_config = emitted_config
+
         # List the column file names.
         self._mapping = MAPPING[path]
         self._columnNames = {
-            k for k in self._mapping.keys() if k != "attributes"}
+            k for k in self._mapping.keys()}
 
     @property
     def path(self):
         # type: () -> str
         return self._path
+    
+    def readAttribute(self, name):
+        # type: (str) -> Any
+        """
+        If emitted_config is supplied during initialization, this can be used
+        to access listener metadata (e.g. bulk molecule names for count arrays)
+        """
+        viv_path = self._mapping[name]
+        sim_metadata = self.emitted_config['state'] or {}
+        for key in viv_path:
+            sim_metadata = sim_metadata.get(key, {})
+        return sim_metadata.get('_properties', {}).get('metadata', None)
 
     def readColumn(self, name, indices=None, squeeze=True):
         # type: (str, Any, bool) -> np.ndarray
@@ -454,29 +468,6 @@ class TableReader(object):
 
         return result
 
-    def readSubcolumn(self, column, subcolumn_name):
-        # type: (str, str) -> np.ndarray
-        """Read in a subcolumn from a table by name
-
-        Each column of a table is a 2D matrix. The SUBCOLUMNS_KEY attribute
-        defines a map from column name to a name for an attribute that
-        stores a list of names such that the i-th name describes the i-th
-        subcolumn.
-
-        Arguments:
-            column: Name of the column.
-            subcolumn_name: Name of the ID or object associated with the
-                    desired subcolumn.
-
-        Returns:
-            The subcolumn, as a 1-dimensional array.
-        """
-        # subcol_name_map = self.readAttribute(SUBCOLUMNS_KEY)
-        # subcols = self.readAttribute(subcol_name_map[column])
-        # index = subcols.index(subcolumn_name)
-        # return self.readColumn(column, [index], squeeze=False)[:, 0]
-        raise NotImplementedError()
-
     def columnNames(self):
         """
         Returns the names of all columns.
@@ -533,14 +524,26 @@ def read_bulk_molecule_counts(data, mol_names):
 
 
 def test_table_reader():
-    data = run_ecoli(total_time=4, time_series=False)
+    from ecoli.experiments.ecoli_master_sim import EcoliSim
+
+    sim = EcoliSim.from_file()
+    sim.total_time = 4
+    sim.emitter = 'timeseries'
+    sim.build_ecoli()
+    sim.run()
+    data = sim.query()
+    emitted_config = {
+        'state': sim.ecoli_experiment.state.get_config()
+    }
 
     timeseries = timeseries_from_data(data)
 
     for listener, columns in MAPPING.items():
+        tb = TableReader(listener, timeseries,
+            emitted_config, timeseries_data=True)
         for column in columns.keys():
-            tb = TableReader(listener, timeseries, timeseries_data=True)
             col_data = tb.readColumn(column)
+            col_metadata = tb.readAttribute(column)
 
 
 if __name__ == "__main__":
