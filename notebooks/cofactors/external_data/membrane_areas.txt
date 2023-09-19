@@ -1,0 +1,10 @@
+complex_id,          relevant_structure,      estimated_area um2,       multiplicity,   count_normal,    count_rich
+CPLX-157,            5IWS,                    0.000032,                 2,              3500,            15000
+NADH-DHI-CPLX,       7ZCI,                    0.00008,                  1,              800,             2000
+CYT-O-UBIOX-CPLX,    6WTI,                    0.000028,                 1,              3500,            15000
+ATPSYN-CPLX,         6OQU,                    0.000075,                 1,              3000,            10000
+CPLX0-8160,          6WU6,                    0.00002,                  3,              3500,            3500
+CPLX0-2982,          7VHP,                    0.0003,                   24,             1000,            4500
+SECE-G-Y-CPLX,       7XHA,                    0.000016,                 1,              1700,            10000
+CPLX0-7626,          6VYM,                    0.000048,                 7,              3000,             4000
+CPLX0-7627,          2OAR,                    0.000012,                 5,              3000,             4000

@@ -53,7 +53,7 @@ def run_ecoli_with_metabolism_redux(
 
 def run_ecoli_with_metabolism_redux_classic(
         filename='metabolism_redux_classic',
-        total_time=4,
+        total_time=2000,
         divide=True,
         initial_state_file='wcecoli_t0',
         progress_bar=True,
@@ -90,7 +90,7 @@ def run_ecoli_with_metabolism_redux_classic(
 
     query = []
     folder = f'out/fbagd/{name}_{total_time}_{datetime.date.today()}/'
-    # save_sim_output(folder, query, sim, save_model=True)
+    save_sim_output(folder, query, sim, save_model=True)
 
 
 @pytest.mark.slow
@@ -263,12 +263,8 @@ def save_sim_output(folder, query, sim, save_model=False):
     np.save(folder + 'output.npy', output)
 
     if save_model:
-        f = open(folder + 'agent_processes.pkl', 'wb')
-        dill.dump(sim.ecoli['processes']['agents'][agent], f)
-        f.close()
-
         f = open(folder + 'agent_steps.pkl', 'wb')
-        dill.dump(sim.ecoli['steps']['agents'][agent], f)
+        dill.dump(sim.ecoli_experiment.steps['agents'][agent], f)
         f.close()
 
 # run experiments with command line arguments: python ecoli/experiments/metabolism_redux_sim.py -n exp_id
