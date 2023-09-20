@@ -1,3 +1,4 @@
+import os
 import pandas as pd
 from collections import namedtuple
 import numpy as np
@@ -6,6 +7,7 @@ from scipy import constants
 from vivarium.library.topology import get_in, assoc_path
 from vivarium.library.units import units
 
+from wholecell.utils.filepath import ROOT_PATH
 from ecoli.library.cell_wall.column_sampler import fit_strand_term_p
 
 
@@ -264,7 +266,8 @@ PARAMETER_DICT = {
     },
     "cell_wall": {
         "strand_length_data": Parameter(
-            "data/cell_wall/murein_strand_length_distribution.csv",
+            os.path.join(ROOT_PATH, 
+                "data/cell_wall/murein_strand_length_distribution.csv"),
             "Obermann, W., & Höltje, J. (1994).",
         ),
         "upper_mean": Parameter(

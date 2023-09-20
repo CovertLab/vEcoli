@@ -93,6 +93,8 @@ intersphinx_mapping = {
         'https://vivarium-core.readthedocs.io/en/latest/',
         None,
     ),
+    'numpy': ('https://numpy.org/doc/stable', None),
+    'unum': ('https://unum.readthedocs.io/en/latest/', None)
 }
 
 
@@ -100,10 +102,12 @@ intersphinx_mapping = {
 autodoc_inherit_docstrings = False
 # The Python dependencies aren't really required for building the docs
 autodoc_mock_imports = [
-    'cobra', 'arrow', 'IPython', 'numba', 'line-profiler', 'iteround',
-    'pytest',
+    'stochastic_arrow', 'numba', 'line-profiler', 'iteround', 'aesara', 'pandas',
     # Runs code on import and fails due to missing solvers.
     'wholecell.utils.modular_fba',
+    # Runs code on import and fails due to missing packages
+    'ecoli.library.parameters',
+    'sympy', 'cv2', 'Bio', 'tqdm', 'cvxpy', 'pymunk', 'skimage', 'dill',
 ]
 # Concatenate class and __init__ docstrings
 autoclass_content = 'both'
