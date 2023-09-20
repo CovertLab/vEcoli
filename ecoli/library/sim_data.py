@@ -1,3 +1,4 @@
+import os
 import re
 import binascii
 from itertools import chain
@@ -7,6 +8,7 @@ from vivarium.library.units import units as vivunits
 from wholecell.utils import units
 from wholecell.utils.unit_struct_array import UnitStructArray
 from wholecell.utils.fitting import normalize
+from wholecell.utils.filepath import ROOT_PATH
 
 from ecoli.analysis.antibiotics_colony import DE_GENES
 from ecoli.processes.polypeptide_elongation import MICROMOLAR_UNITS
@@ -16,8 +18,10 @@ from ecoli.library.initial_conditions import (calculate_cell_mass,
     initialize_unique_molecules, set_small_molecule_counts)
 
 RAND_MAX = 2**31
-SIM_DATA_PATH = 'reconstruction/sim_data/kb/simData.cPickle'
-SIM_DATA_PATH_NO_OPERONS = 'reconstruction/sim_data/kb_no_operons/simData.cPickle'
+SIM_DATA_PATH = os.path.join(ROOT_PATH,
+    'reconstruction/sim_data/kb/simData.cPickle')
+SIM_DATA_PATH_NO_OPERONS = os.path.join(ROOT_PATH,
+    'reconstruction/sim_data/kb_no_operons/simData.cPickle')
 MAX_TIME_STEP = 1
 
 class LoadSimData:

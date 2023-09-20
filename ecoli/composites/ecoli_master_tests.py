@@ -16,7 +16,6 @@ from ecoli.plots.snapshots import plot_snapshots, format_snapshot_data
 from ecoli.plots.snapshots_video import make_video
 from ecoli.composites.ecoli_configs import ECOLI_DEFAULT_PROCESSES, ECOLI_DEFAULT_TOPOLOGY
 from ecoli.experiments.ecoli_master_sim import EcoliSim, CONFIG_DIR_PATH
-from migration.migration_utils import recursive_compare
 
 
 @pytest.mark.slow
@@ -156,6 +155,7 @@ def test_division_topology():
 
 def test_ecoli_generate():
     sim = EcoliSim.from_file()
+    sim.divide = False
     sim.build_ecoli()
 
     # asserts to ecoli_composite['processes'] and ecoli_composite['topology']
@@ -166,16 +166,19 @@ def test_ecoli_generate():
                k == 'division' or
                k == 'mark_d_period' or
                isinstance(v, ECOLI_DEFAULT_PROCESSES[k])
-               for k, v in sim.ecoli['steps']['agents']['0'].items())
+               for k, v in sim.ecoli['steps'].items())
+    ignore_keys = ['request', 'process', 'allocate', 'first_update', 'global_time']
     for k, v in sim.ecoli['topology'].items():
         proc_name = k.split('_requester')[0].split('_evolver')[0]
         # Clock topology is not registered in registry
         if proc_name == 'clock':
             pass 
         elif proc_name in ECOLI_DEFAULT_TOPOLOGY:
-            # Ignore partitioning-related keys
-            assert recursive_compare(ECOLI_DEFAULT_TOPOLOGY[proc_name], v,
-                ignore_keys={'request', 'process', 'allocate'})
+            if '_requester' in k or '_evolver' in k:
+                # Ignore partitioning and first_update keys
+                for ignore_key in ignore_keys:
+                    v.pop(ignore_key, None)
+            assert ECOLI_DEFAULT_TOPOLOGY[proc_name] == v
 
 
 def test_lattice_lysis(plot=False):

@@ -417,12 +417,12 @@ def run_ecoli(
     """Run ecoli_master simulations
 
     Arguments:
-        * **total_time** (:py:class:`int`): the total runtime of the experiment
-        * **divide** (:py:class:`bool`): whether to incorporate division
-        * **progress_bar** (:py:class:`bool`): whether to show a progress bar
-        * **log_updates**  (:py:class:`bool`): whether to save updates from each process
-        * **emitter** (:py:class:`str`): type of emitter to use
-        * **time_series** (:py:class:`bool`): whether to return data in timeseries format
+        total_time (:py:class:`int`): the total runtime of the experiment
+        divide (:py:class:`bool`): whether to incorporate division
+        progress_bar (:py:class:`bool`): whether to show a progress bar
+        log_updates  (:py:class:`bool`): whether to save updates from each process
+        emitter (:py:class:`str`): type of emitter to use
+        time_series (:py:class:`bool`): whether to return data in timeseries format
 
     Returns:
         * output data
