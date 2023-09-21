@@ -82,7 +82,7 @@ class BuildCausalityNetwork:
 
 		read_dynamics.convert_dynamics(
 			DYNAMICS_OUTPUT,
-			SIM_DATA_PATH,
+			causality_network.sim_data,
 			node_list,
 			edge_list,
 			args.id)

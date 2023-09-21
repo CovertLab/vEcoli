@@ -49,22 +49,21 @@ class RnaSynthProb(Step):
     def ports_schema(self):
         return {
             'rna_synth_prob': listener_schema({
-                'promoter_copy_number': ([], self.rna_ids),
-                'gene_copy_number': ([], self.rna_ids),
-                'target_rna_synth_prob': (
-                    np.zeros(self.n_TU, np.float64), self.rna_ids),
-                'actual_rna_synth_prob': (
-                    np.zeros(self.n_TU, np.float64), self.rna_ids),
-                'tu_is_overcrowded': ([], self.rna_ids),
-                'actual_rna_synth_prob_per_cistron': ([], self.cistron_ids),
-                'target_rna_synth_prob_per_cistron': ([], self.cistron_ids),
-                'expected_rna_init_per_cistron': ([], self.cistron_ids),
-                'pPromoterBound': (0, self.tf_ids),
-                'nPromoterBound': (0, self.tf_ids),
-                'nActualBound': (0, self.tf_ids),
-                'n_available_promoters': (0, self.tf_ids),
+                'promoter_copy_number': ([0] * self.n_TU, self.rna_ids),
+                'gene_copy_number': ([0] * self.n_TU, self.rna_ids),
+                'bound_TF_indexes': ([], self.tf_ids),
+                'bound_TF_coordinates': [],
+                'bound_TF_domains': [],
+                'target_rna_synth_prob': ([0] * self.n_TU, self.rna_ids),
+                'actual_rna_synth_prob': ([0] * self.n_TU, self.rna_ids),
+                'actual_rna_synth_prob_per_cistron': ([0] * self.n_cistron,
+                    self.cistron_ids),
+                'target_rna_synth_prob_per_cistron': ([0] * self.n_cistron,
+                    self.cistron_ids),
+                'expected_rna_init_per_cistron': ([0] * self.n_cistron,
+                    self.cistron_ids),
                 'n_bound_TF_per_TU': (
-                    np.zeros((self.n_TU, self.n_TF), np.int16), self.rna_ids),
+                    [[0] * self.n_TF] * self.n_TU, self.rna_ids),
                 'n_bound_TF_per_cistron': ([], self.cistron_ids),
                 'total_rna_init': 0
             }),
