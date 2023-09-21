@@ -469,8 +469,7 @@ class LoadSimData:
             '_parallel': parallel,
 
             'tf_ids': self.sim_data.process.transcription_regulation.tf_ids,
-            'cistron_ids': self.sim_data.process.transcription.cistron_data['id'],
-            'cistron_tu_mapping_matrix': self.sim_data.process.transcription.cistron_tu_mapping_matrix,
+            'rna_ids': self.sim_data.process.transcription.rna_data['id'],
             'delta_prob': self.sim_data.process.transcription_regulation.delta_prob,
             'n_avogadro': self.sim_data.constants.n_avogadro,
             'cell_density': self.sim_data.constants.cell_density,
@@ -1472,7 +1471,7 @@ class LoadSimData:
         return {
             'time_step': time_step,
             '_parallel': parallel,
-            'exchange_data_from_concentrations': self.sim_data.external_state.exchange_data_from_concentrations,
+            'external_state': self.sim_data.external_state,
             'environment_molecules': list(self.sim_data.external_state.env_to_exchange_map.keys()),
         }
     

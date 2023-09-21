@@ -84,10 +84,13 @@ class Allocator(Step):
                 for process in self.processNames},
             'listeners': {
                 'atp': listener_schema({
-                    'atp_requested': [],
-                    'atp_allocated_initial': [],
+                    'atp_requested': ([0] * self.n_processes,
+                        self.processNames),
+                    'atp_allocated_initial': ([0] * self.n_processes,
+                        self.processNames),
                     # Use blame functionality to get ATP consumed per process
-                    # 'atp_allocated_final': []
+                    # 'atp_allocated_final': ([0] * self.n_processes, 
+                    #     self.processNames)
                 })},
             'allocator_rng': {
                 '_default': np.random.RandomState(seed=self.seed)},
@@ -103,8 +106,12 @@ class Allocator(Step):
         original_totals = total_counts.copy()
         counts_requested = np.zeros((self.n_molecules, self.n_processes),
             dtype=int)
+        # Keep track of which process indices are in current partitioning layer
+        proc_idx_in_layer = []
         for process in states['request']:
             proc_idx = self.proc_name_to_idx[process]
+            if len(states['request'][process]['bulk']) > 0:
+                proc_idx_in_layer.append(proc_idx)
             for req_idx, req in states['request'][process]['bulk']:
                 counts_requested[req_idx, proc_idx] += req
 
@@ -162,6 +169,15 @@ class Allocator(Step):
                     )
                 )
 
+        # Only update listener ATP counts for processes in
+        # current partitioning layer
+        non_zero_mask = counts_requested[self.atp_idx, :] != 0
+        curr_atp_req = np.array(states['listeners']['atp']['atp_requested']).copy()
+        curr_atp_alloc = np.array(states['listeners']['atp']['atp_allocated_initial']).copy()
+        curr_atp_req[non_zero_mask] = counts_requested[
+            self.atp_idx, non_zero_mask]
+        curr_atp_alloc[non_zero_mask] = partitioned_counts[
+            self.atp_idx, non_zero_mask]
 
         update = {
             'request': {
@@ -176,8 +192,8 @@ class Allocator(Step):
             },
             'listeners': {
                 'atp': {
-                    'atp_requested': counts_requested[self.atp_idx, :],
-                    'atp_allocated_initial': partitioned_counts[self.atp_idx, :]
+                    'atp_requested': curr_atp_req,
+                    'atp_allocated_initial': curr_atp_alloc
                 }
             }
         }
@@ -207,17 +223,6 @@ def calculatePartition(process_priorities, counts_requested, total_counts,
                 excess_request_mask, np.newaxis]
             / total_requested[excess_request_mask, np.newaxis]
             )
-
-        # requests_counts_product = requests[excess_request_mask, :] * total_counts[excess_request_mask, np.newaxis]
-        # requests_with_mask = total_requested[excess_request_mask, np.newaxis]
-        # test = np.true_divide(requests_counts_product, requests_with_mask,
-        #                  out=np.zeros_like(requests_counts_product), where=requests_with_mask != [0], casting='unsafe')
-        # TODO(Matt): Incorporate this fix into the line of code above. Commented code a start, but only returns ints.
-        # TODO: This doesn't seem necessary. Monitor to ensure nothing breaks.
-        # for lst_index in range(len(fractional_requests)):
-        #     for value_index in range(len(fractional_requests[lst_index])):
-        #         if np.isnan(fractional_requests[lst_index][value_index]):
-        #             fractional_requests[lst_index][value_index] = 0
 
         # Distribute fractional counts to ensure full allocation of excess
         # request molecules

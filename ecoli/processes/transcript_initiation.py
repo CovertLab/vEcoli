@@ -300,11 +300,11 @@ class TranscriptInitiation(PartitionedProcess):
                 'rna_synth_prob': listener_schema({
                     'target_rna_synth_prob': 0,
                     'actual_rna_synth_prob': 0,
-                    'tu_is_overcrowded': 0,
+                    'tu_is_overcrowded': ([0] * self.n_TUs, self.rna_data['id']),
                     'total_rna_init': 0}),
                 'ribosome_data': listener_schema({
-                    'rRNA_initiation_TU': 0,
-                    'rRNA_init_prob_TU': 0,
+                    'rRNA_initiated_TU': [0] * len(self.idx_rRNA),
+                    'rRNA_init_prob_TU': [0] * len(self.idx_rRNA),
                     'total_rna_init': 0}),
                 'rnap_data': listener_schema({
                     'did_initialize': 0,

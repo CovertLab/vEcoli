@@ -2,6 +2,7 @@
 Classes for the Nodes and Edges of a causality network.
 """
 
+import numpy as np
 from typing import Optional, Union
 
 
@@ -164,7 +165,8 @@ class Node(object):
 				'units': unit,
 				'type': name,
 				'id': self.node_id,
-				'dynamics': data.tolist()}
+				# orjson requires contiguous Numpy arrays
+				'dynamics': np.ascontiguousarray(data)}
 			all_dynamics.append(dynamics)
 		return all_dynamics
 

@@ -60,7 +60,8 @@ class RnapData(Step):
                     'active_rnap_unique_indexes': [],
                     'active_rnap_on_stable_RNA_indexes': [],
                     'active_rnap_n_bound_ribosomes': [],
-                    'rna_init_event_per_cistron': ([], self.cistron_ids)
+                    'rna_init_event_per_cistron': ([0] * len(self.cistron_ids),
+                        self.cistron_ids)
                 })
             },
             'active_RNAPs': numpy_schema('active_RNAPs',
