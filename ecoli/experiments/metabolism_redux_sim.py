@@ -50,7 +50,7 @@ def run_ecoli_with_metabolism_redux(
     folder = f'out/fbagd/{name}_{total_time}_{datetime.date.today()}/'
     # save_sim_output(folder, query, sim, save_model=True)
 
-
+# disables growth rate control
 def run_ecoli_with_metabolism_redux_classic(
         filename='metabolism_redux_classic',
         total_time=2000,
@@ -62,7 +62,6 @@ def run_ecoli_with_metabolism_redux_classic(
         name='metabolism-redux-classic',
         raw_output=False,
         save=False,
-        # save_times=4,
 ):
     # filename = 'default'
     sim = EcoliSim.from_file(CONFIG_DIR_PATH + filename + '.json')
@@ -74,7 +73,7 @@ def run_ecoli_with_metabolism_redux_classic(
     sim.initial_state = get_state_from_file(path=f'data/{initial_state_file}.json')
     sim.raw_output = raw_output
     sim.save = save
-    # sim.save_times = [4]
+    sim.save_times = [500, 1000, 1500, 2000]
 
     # # simplify working with uptake
     # sim.initial_state['environment']['exchange_data']['constrained'] = {}
