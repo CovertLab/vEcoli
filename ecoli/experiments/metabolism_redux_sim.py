@@ -53,15 +53,15 @@ def run_ecoli_with_metabolism_redux(
 # disables growth rate control
 def run_ecoli_with_metabolism_redux_classic(
         filename='metabolism_redux_classic',
-        total_time=2000,
+        total_time=10,
         divide=True,
-        initial_state_file='wcecoli_t0',
+        initial_state_file='met_division_test_state',
         progress_bar=True,
         log_updates=False,
         emitter='timeseries',
         name='metabolism-redux-classic',
         raw_output=False,
-        save=False,
+        save=True,
 ):
     # filename = 'default'
     sim = EcoliSim.from_file(CONFIG_DIR_PATH + filename + '.json')
@@ -73,7 +73,9 @@ def run_ecoli_with_metabolism_redux_classic(
     sim.initial_state = get_state_from_file(path=f'data/{initial_state_file}.json')
     sim.raw_output = raw_output
     sim.save = save
-    sim.save_times = [500, 1000, 1500, 2000]
+    sim.save_times = [10]
+    sim.initial_state = get_state_from_file(path=f'data/{initial_state_file}.json')
+
 
     # # simplify working with uptake
     # sim.initial_state['environment']['exchange_data']['constrained'] = {}
@@ -83,8 +85,14 @@ def run_ecoli_with_metabolism_redux_classic(
     # sim.initial_state['environment']['exchange_data']['unconstrained'].remove('GLC[p]')
     # sim.initial_state['environment']['exchange_data']['unconstrained'].add('FRU[p]')
 
+    # this means that sims will not create conflicting random indices
+    if initial_state_file == 'wcecoli_t0':
+        sim.seed += 1
+    else:
+        sim.seed += int(sim.initial_state['agents']['0']['global_time'])
 
     sim.build_ecoli()
+
     sim.run()
 
     query = []
@@ -112,13 +120,6 @@ def test_ecoli_with_metabolism_redux(
     # run simulation and add asserts to output
     sim.run()
 
-    # assert 'ecoli-metabolism-gradient-descent' in sim.ecoli['processes']
-    # assert 'ecoli-metabolism' not in sim.ecoli['processes']
-    # assert 'ecoli-metabolism-gradient-descent' in sim.ecoli['topology']
-    # assert 'ecoli-metabolism' not in sim.ecoli['topology']
-
-
-
 @pytest.mark.slow
 def test_ecoli_with_metabolism_redux_div(
         filename='metabolism_redux',
@@ -134,12 +135,7 @@ def test_ecoli_with_metabolism_redux_div(
     sim.build_ecoli()
 
     sim.run()
-    
-    # # assert that the processes were swapped
-    # assert 'ecoli-metabolism-gradient-descent' in sim.processes
-    # assert 'ecoli-metabolism' not in sim.processes
-    # assert 'ecoli-metabolism-gradient-descent' in sim.processes
-    # assert 'ecoli-metabolism' not in sim.processes
+
 
     query = []
     agents = sim.query()['agents'].keys()
@@ -173,44 +169,32 @@ def test_ecoli_with_metabolism_classic(
     # run simulation and add asserts to output
     sim.run()
 
-    # assert 'ecoli-metabolism-gradient-descent' in sim.ecoli['processes']
-    # assert 'ecoli-metabolism' not in sim.ecoli['processes']
-    # assert 'ecoli-metabolism-gradient-descent' in sim.ecoli['topology']
-    # assert 'ecoli-metabolism' not in sim.ecoli['topology']
-
 
 @pytest.mark.slow
 def test_ecoli_with_metabolism_classic_div(
         filename='metabolism_redux_classic',
-        total_time=4,
+        total_time=10,
         divide=True,
         emitter='timeseries',
+        initial_state_file='met_division_test_state',
 ):
     # TODO (Cyrus) - Add test that affirms structure of output query.
     sim = EcoliSim.from_file(CONFIG_DIR_PATH + filename + '.json')
     sim.total_time = total_time
+    sim.initial_state = get_state_from_file(path=f'data/{initial_state_file}.json')
+
     sim.divide = divide
     sim.emitter = emitter
+
+    # this means that sims will not create conflicting random indices
+    sim.seed += int(sim.initial_state['agents']['0']['global_time'])
+
     sim.build_ecoli()
 
     sim.run()
 
-    # # assert that the processes were swapped
-    # assert 'ecoli-metabolism-gradient-descent' in sim.processes
-    # assert 'ecoli-metabolism' not in sim.processes
-    # assert 'ecoli-metabolism-gradient-descent' in sim.processes
-    # assert 'ecoli-metabolism' not in sim.processes
-
-    query = []
-    agents = sim.query()['agents'].keys()
-    for agent in agents:
-        query.extend([('agents', agent, 'listeners', 'fba_results'),
-                      ('agents', agent, 'listeners', 'mass'),
-                      ('agents', agent, 'bulk')])
-    output = sim.query(query)
-
-    # test that water is being used (model is running)
-    assert sum(output['agents'][agent]['listeners']['fba_results']['estimated_exchange_dmdt']['WATER[p]']) != 0
+    # assert division occured
+    assert len(sim.query()['agents']) == 3, "Cell did not divide in metabolism division test"
 
 def run_ecoli_with_default_metabolism(
         filename='default',
