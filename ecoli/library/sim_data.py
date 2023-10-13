@@ -1542,6 +1542,12 @@ class LoadSimData:
             self.sim_data)
         set_small_molecule_counts(bulk_state['count'], self.sim_data, media_id,
             import_molecules, mass_coeff, cell_mass)
+        
+        # Numpy arrays are read-only outside of updaters for safety
+        bulk_state.flags.writeable = False
+        for unique_state in unique_molecules.values():
+            unique_state.flags.writeable = False
+
         return {
             'bulk': bulk_state,
             'unique': unique_molecules,

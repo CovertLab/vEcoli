@@ -1,5 +1,6 @@
 """
 RnaMaturation process
+=====================
 - Converts unprocessed tRNA/rRNA molecules into mature tRNA/rRNAs
 - Consolidates the different variants of 23S, 16S, and 5S rRNAs into the single
 variant that is used for ribosomal subunits

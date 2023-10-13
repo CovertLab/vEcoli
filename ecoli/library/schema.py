@@ -1,11 +1,20 @@
-from typing import List
+"""
+===========================
+Simulation Helper Functions
+===========================
+
+This is a collection of helper functions used thoughout our code base.
+"""
+
+from typing import List, Tuple, Dict, Any
 
 import numpy as np
 from vivarium.core.store import Store
+from vivarium.core.registry import Serializer
 
 RAND_MAX = 2**31 - 1
 
-UNIQUE_DIVIDERS = {
+UNIQUE_DIVIDERS = { 
     'active_ribosome': {
         'divider': 'ribosome_by_RNA',
         'topology': {'RNA': ('..', 'RNA'),
@@ -74,13 +83,28 @@ UNIQUE_DIVIDERS = {
             'chromosome_domain': ('..', 'chromosome_domain')}
     },
 }
+"""A mapping of unique molecules to the names of their divider functions ars they are registered 
+in the ``divider_registry`` in ``ecoli/__init__.py``
+
+:meta hide-value:
+"""
 
 
-def array_from(d):
+def array_from(d: dict) -> np.ndarray:
+    """Makes a Numpy array from dictionary values.
+    
+    Args:
+        d: Dictionary whose values are to be converted
+    
+    Returns:
+        Array of all values in d.
+    """
     return np.array(list(d.values()))
 
 
-def create_unique_indexes(n_indexes, random_state):
+def create_unique_indexes(
+    n_indexes: int, 
+    random_state: np.random.RandomState) -> List[int]:
     """Creates a list of unique indexes by making them random.
 
     Args:
@@ -96,32 +120,71 @@ def create_unique_indexes(n_indexes, random_state):
 
 
 def not_a_process(value):
+    """Returns `True` if not a :py:class:vivarium.core.Process instance.
+    """
     return not (isinstance(value, Store) and value.topology)
 
 
-def counts(states, idx):
-    # Helper function to pull out counts at given indices
+def counts(states: np.ndarray, idx: int | np.ndarray) -> np.ndarray:
+    """Helper function to pull out counts at given indices.
+
+    Args:
+        states: Either a Numpy structured array with a `'count'` field or a 1D
+            Numpy array of counts.
+        idx: Indices for the counts of interest.
+
+    Returns:
+        Counts of molecules at specified indices (copy so can be safely mutated)
+    """
     if len(states.dtype) > 1:
         return states['count'][idx]
     # evolve_state reads from ('allocate', process_name, 'bulk')
     # which is a simple Numpy array (not structured)
-    return states[idx]
+    return states[idx].copy()
 
 
-class get_bulk_counts():
-    # orjson requires contiguous arrays for serialization
-    def serialize(bulk):
+class get_bulk_counts(Serializer):
+    """Serializer for bulk molecules that saves counts without IDs or masses.
+    """
+    def serialize(bulk: np.ndarray) -> np.ndarray:
+        """
+        Args:
+            bulk: Numpy structured array with a `count` field
+        
+        Returns:
+            Contiguous (required by orjson) array of bulk molecule counts
+        """
         return np.ascontiguousarray(bulk['count'])
 
 
-class get_unique_fields():
-    # orjson requires contiguous arrays for serialization
-    def serialize(unique):
+class get_unique_fields(Serializer):
+    """Serializer for unique molecules.
+    """
+    def serialize(unique: np.ndarray) -> np.ndarray:
+        """
+        Args:
+            unique: Numpy structured array of attributes for one unique molecule
+        
+        Returns:
+            List of contiguous (required by orjson) arrays, one for each attribute
+        """
         return [np.ascontiguousarray(unique[field])
             for field in unique.dtype.names]
 
 
-def numpy_schema(name, partition=True, divider=None, emit=True):
+def numpy_schema(name: str, partition: bool=True, emit: bool=True
+                 ) -> Dict[str, Any]:
+    """Helper function used in ports schemas for bulk and unique molecules
+
+    Args:
+        name: `bulk` for bulk molecules or one of the keys in :py:data:`UNIQUE_DIVIDERS`
+            for unique molecules
+        partition: `True` if bulk molecule counts should be partitioned (default)
+        emit: `True` if should be emitted (default)
+    
+    Returns:
+        Fully configured ports schema for molecules of type `name`
+    """
     schema = {
         '_default': [],
         '_emit': emit
@@ -141,12 +204,23 @@ def numpy_schema(name, partition=True, divider=None, emit=True):
         # efficient serialization (still do not recommend emitting unique)
         schema['_serializer'] = get_unique_fields
         schema['_divider'] = UNIQUE_DIVIDERS[name]
-    if divider:
-        schema['_divider'] = divider
     return schema
 
 
-def bulk_name_to_idx(names, bulk_names):
+def bulk_name_to_idx(
+    names: str | (List | np.ndarray),
+    bulk_names: List | np.ndarray
+) -> int | np.ndarray:
+    """Primarily used to retrieve indices for groups of bulk molecules (e.g. NTPs)
+    in the first run of a process and cache for future runs
+
+    Args:
+        names: List or array of things to find. Can also be single string.
+        bulk_names: List of array of things to search
+    
+    Returns:
+        Index or indices such that ``bulk_names[indices] == names``
+    """
     # Convert from string names to indices in bulk array
     if isinstance(names, np.ndarray) or isinstance(names, list):
         # Big brain solution from https://stackoverflow.com/a/32191125
@@ -159,7 +233,23 @@ def bulk_name_to_idx(names, bulk_names):
         return np.where(bulk_names == names)[0][0]
 
 
-def bulk_numpy_updater(current, update):
+def bulk_numpy_updater(
+        current: np.ndarray,
+        update: List[Tuple[int|np.ndarray, int|np.ndarray]]
+    ) -> np.ndarray: 
+    """Updater function for bulk molecule structured array.
+
+    Args:
+        current: Bulk molecule structured array
+        update: List of tuples ``(mol_idx, add_val)``, where
+            ``mol_idx`` is the index (or array of indices) for 
+            the molecule(s) to be updated and ``add_val`` is the 
+            count (or array of counts) to be added to the current 
+            count(s) for the specified molecule(s).
+        
+    Returns:
+        Updated bulk molecule structured array
+    """
     # Bulk updates are lists of tuples, where first value
     # in each tuple is an array of indices to update and
     # second value is array of updates to apply
@@ -172,17 +262,43 @@ def bulk_numpy_updater(current, update):
     return result
 
 
-def attrs(states, attributes):
-    # Helper function to pull out individual arrays for a set of
-    # unique molecule attributes
+def attrs(states: np.ndarray, attributes: List[str]) -> List[np.ndarray]:
+    """Helper function to pull out arrays for unique molecule attributes
+
+    Args:
+        states: Structured Numpy array for all unique molecules of a given 
+            type (e.g. RNA, active RNAP, etc.)
+        attributes: List of field names (attributes) whose data should be 
+            retrieved for all active unique molecules in ``states``
+
+    Returns:
+        List of arrays, one for each attribute. nth entry in each array 
+        corresponds to the value of that attribute for the nth active 
+        unique molecule in ``states`` 
+    """
     # _entryState has dtype int8 so this works
     mol_mask = states['_entryState'].view(np.bool_)
     return [states[attribute][mol_mask] for attribute in attributes]
 
 
-def get_free_indices(result, n_objects):
-    # Find inactive rows for new molecules and expand array
-    # by at least 10% to create more rows when necessary
+def get_free_indices(result: np.ndarray, n_objects: int
+                     ) -> Tuple[np.ndarray, np.ndarray]:
+    """Find inactive rows for new molecules and expand array if needed
+
+    Args:
+        result: Structured Numpy array for all unique molecules of a given 
+            type (e.g. RNA, active RNAP, etc.)
+        n_objects: Number of new unique molecules to be added
+    
+    Returns:
+        A tuple ``(result, free_idx)``. ``result`` is the same as the 
+        input argument unless ``n_objects`` is greater than the number 
+        of inactive rows in ``result``. In this case, ``result`` is 
+        grown by at least 10% by concatenating new rows (all zeros). 
+        ``free_idx`` is an array of size ``n_objects`` that contains 
+        the indices of rows in ``result`` that are inactive (``_entryState`` 
+        field is 0).
+    """
     free_indices = np.where(result['_entryState'] == 0)[0]
     n_free_indices = free_indices.size
 
@@ -206,6 +322,21 @@ def get_free_indices(result, n_objects):
     return result, free_indices[:n_objects]
 
 class UniqueNumpyUpdater:
+    """Updates that set attributes of currently active unique molecules 
+    must be applied before any updates that add or delete molecules. If this 
+    is not enforced, in a single timestep, an update might delete a molecule 
+    and allow a subsequent update to add a new molecule in the same row. Then, 
+    an update that intends to modify an attribute of the original molecule 
+    in that row will actually corrupt the data for the new molecule. 
+
+    To fix this, this unique molecule updater is a bound method with access 
+    to instance attributes that allow it to accumulate updates until given 
+    the signal to apply the accumulated updates in the proper order. The 
+    signal to apply these updates is given by a special process (
+    :py:class:`ecoli.processes.unique_update.UniqueUpdate`) that is 
+    automatically configured in 
+    :py:meth:`ecoli.composites.ecoli_master.Ecoli._generate_processes_and_steps`
+    """
     def __init__(self):
         self.add_updates = []
         self.set_updates = []
@@ -306,6 +437,8 @@ def divide_bulk(state):
     daughter_2 = state.copy()
     daughter_1['count'] = random_state.binomial(counts, 0.5)
     daughter_2['count'] = counts - daughter_1['count']
+    daughter_1.flags.writeable = False
+    daughter_2.flags.writeable = False
     return [daughter_1, daughter_2]
 
 # TODO: Create a store for growth rate noise simulation parameter
