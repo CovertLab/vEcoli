@@ -29,7 +29,7 @@ from wholecell.utils.fitting import normalize, masses_and_counts_for_homeostatic
 
 # Fitting parameters
 FITNESS_THRESHOLD = 1e-9
-MAX_FITTING_ITERATIONS = 100
+MAX_FITTING_ITERATIONS = 300
 N_SEEDS = 10
 
 # Parameters used in fitPromoterBoundProbability()
@@ -511,10 +511,11 @@ def buildBasalCellSpecifications(
 		cell_specs["basal"]["expression"],
 		cell_specs["basal"]["concDict"],
 		cell_specs["basal"]["doubling_time"],
+		conditionKey="basal",
 		variable_elongation_transcription = variable_elongation_transcription,
 		variable_elongation_translation = variable_elongation_translation,
 		disable_ribosome_capacity_fitting = disable_ribosome_capacity_fitting,
-		disable_rnapoly_capacity_fitting = disable_rnapoly_capacity_fitting
+		disable_rnapoly_capacity_fitting = disable_rnapoly_capacity_fitting,
 		)
 
 	# Store calculated values
@@ -633,6 +634,7 @@ def buildTfConditionCellSpecifications(
 			cell_specs[conditionKey]["concDict"],
 			cell_specs[conditionKey]["doubling_time"],
 			sim_data.process.transcription.rna_data['Km_endoRNase'],
+			conditionKey=conditionKey,
 			variable_elongation_transcription = variable_elongation_transcription,
 			variable_elongation_translation = variable_elongation_translation,
 			disable_ribosome_capacity_fitting = disable_ribosome_capacity_fitting,
@@ -735,6 +737,7 @@ def buildCombinedConditionCellSpecifications(
 			cell_specs[conditionKey]["concDict"],
 			cell_specs[conditionKey]["doubling_time"],
 			sim_data.process.transcription.rna_data['Km_endoRNase'],
+			conditionKey = conditionKey,
 			variable_elongation_transcription = variable_elongation_transcription,
 			variable_elongation_translation = variable_elongation_translation,
 			disable_ribosome_capacity_fitting = disable_ribosome_capacity_fitting,
@@ -761,6 +764,7 @@ def expressionConverge(
 		concDict,
 		doubling_time,
 		Km=None,
+		conditionKey=None,
 		variable_elongation_transcription=True,
 		variable_elongation_translation=False,
 		disable_ribosome_capacity_fitting=False,
@@ -806,7 +810,7 @@ def expressionConverge(
 	"""
 
 	if VERBOSE > 0:
-		print("Fitting RNA synthesis probabilities.")
+		print(f"Fitting RNA synthesis probabilities for condition {conditionKey} ...", end='')
 
 	for iteration in range(MAX_FITTING_ITERATIONS):
 		if VERBOSE > 1:
@@ -844,6 +848,7 @@ def expressionConverge(
 			print(f'Average cistron expression residuals: {np.linalg.norm(cistron_expression_res)}')
 
 		if degreeOfFit < FITNESS_THRESHOLD:
+			print('! Fitting converged after {} iterations'.format(iteration + 1))
 			break
 
 	else:
