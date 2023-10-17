@@ -74,6 +74,49 @@ the following three options in order:
 .. _partitioning:
 Partitioning
 ============
+To support the use of independent sub-models for different biological processes 
+(e.g. FBA for metabolism, Gillespie for complexation, etc.), the model allows 
+processes to run mostly independently. At a high level, over the course of a 
+single simulation step, each process will see the simulation state as it was 
+before any other process has run. Each process will then calculate an update 
+to apply to the simulation state and all updates will be simultaneously 
+applied once all processes have run. 
+
+This setup has a potential problem: two processes may both decide to deplete 
+the count of the same molecule, resulting in a final count that is negative. 
+To prevent this from happening, the model forces processes to communicate 
+their bulk molecule requests to a special allocator process 
+(:py:class:`ecoli.processes.allocator.Allocator`). The allocator process 
+will divide the bulk molecules so that each process sees a functional count 
+that is proportional to their request.
+
+For example, if process A requests 100 of molecule X and process B requests 
+400 of molecule X but the cell only has 400 molecules of X, the allocator 
+will divde the molecules as follows:
+
+- Process A: :math:`\frac{100}{100 + 400} * 400 = 80` molecules of X 
+- Process B: :math:`\frac{400}{100 + 400} * 400 = 320` molecules of X
+
+.. note::
+    Processes in the model are more dependent on one another than in this 
+    simplified example.
+
+For example, since molecule binding and complexation 
+events occur on timescales much shorter than the default 1 second 
+simulation timestep, we run :py:class:`~ecoli.processes.tf_unbinding.TfUnbinding`, 
+update the simulation state, then run 
+:py:class:`~ecoli.processes.equilibrium.Equilibrium` and 
+:py:class:`~ecoli.processes.two_component_system.TwoComponentSystem`, 
+update the simulation state, and finally run 
+:py:class:`~ecoli.processes.tf_binding.TfBinding`, 
+and update the simulation state. This allows transcription factors that are 
+currently bound to promoters a chance to form complexes or participate in 
+other reactions, better reflecting the transient binding dynamics of real cells.
+
+To allow processes to run in this manner with a pre-specified order within 
+each timestep, we can make use of a special subclass of typical Vivarium 
+:py:class:`~vivarium.core.process.Process` instances called 
+:py:class:`~vivarium.core.process.Step`. 
 
 Indexing
 ========
