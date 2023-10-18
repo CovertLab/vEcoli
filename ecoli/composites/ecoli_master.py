@@ -332,6 +332,16 @@ class Ecoli(Composer):
 
 
     def generate_topology(self, config):
+        """
+        .. WARNING::
+            :py:func:`~ecoli.processes.partition.filter_bulk_topology` is used 
+            to determine which ports should be included in the ``request`` and 
+            ``allocate`` store for each process. All ports with ``_total`` in 
+            their string name will therefore have their value overwritten by 
+            the value of the ``allcoate`` store for that process when the 
+            corresponding :py:class:`~ecoli.processes.partition.Evolver` 
+            runs its ``next_update``. 
+        """
         topology = {}
         # make the topology
         for process_id, ports in config['topology'].items():
