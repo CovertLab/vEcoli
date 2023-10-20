@@ -26,12 +26,12 @@ For more details, refer to the [user guide](https://covertlab.github.io/vivarium
 
 pyenv lets you install and switch between multiple Python releases and multiple "virtual 
 environments", each with its own pip packages. Using pyenv, create a virtual environment 
-and install Python 3.10.12. For a tutorial on how to create a virtual environment, follow 
+and install Python 3.11.3. For a tutorial on how to create a virtual environment, follow 
 the instructions [here](https://github.com/CovertLab/wcEcoli/blob/master/docs/create-pyenv.md) 
 and stop once you reach the "Create the 'wcEcoli3' python virtual environment" step. Then, 
 run the following command in your terminal:
 
-    $ pyenv virtualenv 3.10.12 viv-ecoli && pyenv local viv-ecoli
+    $ pyenv virtualenv 3.11.3 viv-ecoli && pyenv local viv-ecoli
 
 Update `pip`, `setuptools` and `wheel` to avoid issues with these:
 
