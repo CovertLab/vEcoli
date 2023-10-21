@@ -214,7 +214,7 @@ class Metabolism(Step):
     def ports_schema(self):
         ports = {
             'bulk': numpy_schema('bulk'),
-            'bulk_total': numpy_schema('bulk', partition=False),
+            'bulk_total': numpy_schema('bulk'),
 
             'environment': {
                 'media_id': {

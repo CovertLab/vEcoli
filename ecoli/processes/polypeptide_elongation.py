@@ -346,7 +346,7 @@ class PolypeptideElongation(PartitionedProcess):
                     'process_elongation_rate': 0})},
 
             'bulk': numpy_schema('bulk'),
-            'bulk_total': numpy_schema('bulk', partition=False),
+            'bulk_total': numpy_schema('bulk'),
 
             'active_ribosome': numpy_schema('active_ribosome',
                 emit=self.parameters['emit_unique']),

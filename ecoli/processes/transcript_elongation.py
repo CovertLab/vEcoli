@@ -185,7 +185,7 @@ class TranscriptElongation(PartitionedProcess):
                 emit=self.parameters['emit_unique']),
 
             'bulk': numpy_schema('bulk'),
-            'bulk_total': numpy_schema('bulk', partition=False),
+            'bulk_total': numpy_schema('bulk'),
 
             'listeners': {
                 'mass': listener_schema({'cell_mass': 0.0}),

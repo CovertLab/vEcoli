@@ -127,7 +127,7 @@ class TfBinding(Step):
                 emit=self.parameters['emit_unique']),
 
             'bulk': numpy_schema('bulk'),
-            'bulk_total': numpy_schema('bulk', partition=False),
+            'bulk_total': numpy_schema('bulk'),
 
             'listeners': {
                 'rna_synth_prob': listener_schema({

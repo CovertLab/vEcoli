@@ -120,7 +120,7 @@ def create_unique_indexes(
 
 
 def not_a_process(value):
-    """Returns `True` if not a :py:class:vivarium.core.Process instance.
+    """Returns ``True`` if not a :py:class:`vivarium.core.Process` instance.
     """
     return not (isinstance(value, Store) and value.topology)
 
@@ -172,14 +172,12 @@ class get_unique_fields(Serializer):
             for field in unique.dtype.names]
 
 
-def numpy_schema(name: str, partition: bool=True, emit: bool=True
-                 ) -> Dict[str, Any]:
-    """Helper function used in ports schemas for bulk and unique molecules
+def numpy_schema(name: str, emit: bool=True) -> Dict[str, Any]:
+    """Helper function used in ports schemas for bulk and unique molecules 
 
     Args:
         name: `bulk` for bulk molecules or one of the keys in :py:data:`UNIQUE_DIVIDERS`
             for unique molecules
-        partition: `True` if bulk molecule counts should be partitioned (default)
         emit: `True` if should be emitted (default)
     
     Returns:
@@ -190,8 +188,6 @@ def numpy_schema(name: str, partition: bool=True, emit: bool=True
         '_emit': emit
     }
     if name == 'bulk':
-        if partition:
-            schema['_properties'] = {'bulk': True}
         schema['_updater'] = bulk_numpy_updater
         # Only pull out counts to be serialized (save space and time)
         schema['_serializer'] = get_bulk_counts
