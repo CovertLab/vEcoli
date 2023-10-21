@@ -1,14 +1,18 @@
 """
-==============================
-E. coli partitioning composite
-==============================
-Do not run standalone. Use EcoliSim interface.
-NOTE: All ports with '_total' in their name are
-automatically exempt from partitioning
+================
+E. coli composer
+================
+
+:py:class:`~vivarium.core.composer.Composer` used to generate the processes, 
+steps, topology, and initial state of the E. coli whole cell model. Use the 
+:py:class:`~ecoli.experiments.ecoli_master_sim.Ecoli` interface to configure 
+and run simulations with this composer. 
 """
 
 from copy import deepcopy
 import os
+from typing import Any
+import warnings
 
 # vivarium-core
 from vivarium.core.composer import Composer
@@ -33,7 +37,7 @@ from ecoli.processes.partition import PartitionedProcess
 from ecoli.processes.unique_update import UniqueUpdate
 
 # state
-from ecoli.processes.partition import filter_bulk_topology, Requester, Evolver, Step
+from ecoli.processes.partition import Requester, Evolver, Step, Process
 from ecoli.states.wcecoli_state import get_state_from_file
 
 RAND_MAX = 2**31
@@ -50,6 +54,11 @@ ANAEROBIC_MEDIA_ID = 'minimal_minus_oxygen'
 
 
 class Ecoli(Composer):
+    """
+    The main composer used to create the :py:class:`~vivarium.core.composer.Composite` 
+    that is given to :py:class:`~vivarium.core.engine.Engine` to run the E. coli whole 
+    cell model.
+    """
 
     defaults = {
         'time_step': 2.0,
@@ -68,9 +77,26 @@ class Ecoli(Composer):
         'process_configs': {},
         'flow': {},
     }
+    """A subset of configuration options with default values for testing 
+    purposes (see :py:func:`~ecoli.composites.ecoli_master.ecoli_topology_plot`). 
+    For normal users, this composer should only be called indirectly via the 
+    :py:class:`~ecoli.experiments.ecoli_master_sim.EcoliSim` interface, whose 
+    defaults are laid out in the JSON file at 
+    ``ecoli/composites/ecoli_configs/default.json``. 
+
+    :meta hide-value:
+    """
 
 
-    def __init__(self, config):
+    def __init__(self, config: dict[str, Any]):
+        """Load pickled simulation data object (from ParCa, see 
+        :py:mod:`~reconstruction.ecoli.fit_sim_data_1`) and instantiate all 
+        processes and steps (also dynamically generate flow for steps).
+
+        Args:
+            config: Configuration dictionary that is typically supplied by 
+                :py:class:`~ecoli.experiments.ecoli_master_sim.EcoliSim`
+        """
         super().__init__(config)
         self.load_sim_data = LoadSimData(
             **self.config)
@@ -85,17 +111,55 @@ class Ecoli(Composer):
 
         self.processes = self.config['processes']
         self.topology = self.config['topology']
-        self.processes_and_steps = self._generate_processes_and_steps(self.config)
-
-        self.seed = None
+        self.processes_and_steps = self.generate_processes_and_steps(self.config)
 
 
-    def initial_state(self, config=None):
-        """Either pass initial state dictionary in config['initial_state']
-        or filename to load from in config['initial_state_file']. Optionally
-        apply overrides in config['initial_state_overrides']. Automatically
-        generates shared process states for partitioned processes. MUST be
-        run BEFORE calling generate() on composer instance."""
+    def initial_state(self, config: dict[str, Any]=None) -> dict[str, Any]:
+        """Users have three options for configuring the simulation initial state:
+        
+        1. ``config['initial_state']``
+        
+        2. Load the JSON file at ``f'data/{config['initial_state_file]}.json'``
+        
+        3. Generate initial state from simulation data object (see 
+        :py:meth:`~ecoli.library.sim_data.LoadSimData.generate_initial_state`)
+
+        This method will go through these options in order until a dictionary 
+        is loaded. This dictionary will serve as the base initial state.
+
+        Users can override values in the initial state by specifying one or more 
+        override filenames in ``config['initial_state_overrides']``. For each 
+        filename, the JSON at the path ``f'data/{override_filename}.json'`` is 
+        loaded. Bulk molecule overrides (anything under the ``bulk`` key in the 
+        loaded JSON) take the form of key-value pairs where keys are bulk 
+        molecule IDs and values are the desired counts of those molecules. 
+        These key-value pairs are parsed to change the desired counts for the 
+        correct rows in the bulk molecule structured Numpy array (see :ref:`bulk`). 
+        All other overrides are directly used to update the initial state with no 
+        further processing. 
+        
+        As explained in :ref:`partitioning`, instances of 
+        :py:class:`~ecoli.processes.partition.PartitionedProcess` are turned 
+        into two :py:class:`~vivarium.core.process.Step` instances in the 
+        final model: a :py:class:`~ecoli.processes.partition.Requester` and an 
+        :py:class:`~ecoli.processes.partition.Evolver`. To ensure that both of 
+        these steps have access to the same mutable parameters (e.g. if a 
+        Requester changes a parameter, the Evolver will see the change), this 
+        method places the the 
+        :py:class:`~ecoli.processes.partition.PartitionedProcess` that they 
+        share into the simulation state under the ``('process',)`` path. 
+        
+        .. WARNING::
+            This method will **NOT** work if run after calling 
+            :py:meth:`~vivarium.core.composer.Composer.generate` on this 
+            composer.
+            
+        Args:
+            config: Defaults to the ``config`` used to initialize 
+                :py:class:`~ecoli.composites.ecoli_master.Ecoli`
+        
+        Returns:
+            Complete initial state for an E. coli simulation."""
         config = config or self.config
         # Allow initial state to be directly supplied instead of a file name
         # (e.g. when loading individual cells in a colony save file)
@@ -111,9 +175,13 @@ class Ecoli(Composer):
         
         # Load first agent state in a division-enabled save state by default
         if 'agents' in initial_state.keys():
+            warnings.warn("Trying to load a multi-agent simulation state into "
+                "a single-cell simulation. Loading the state of arbitrary agent.")
             initial_state = list(initial_state['agents'].values())[0]
 
         initial_state_overrides = config.get('initial_state_overrides', [])
+        # Create mapping of bulk molecule names to row indices, allowing users to 
+        # specify bulk molecule overrides by name
         if initial_state_overrides:
             bulk_map = {bulk_id: row_id for row_id, bulk_id
                 in enumerate(initial_state['bulk']['id'])}
@@ -125,6 +193,7 @@ class Ecoli(Composer):
             for molecule, count in bulk_overrides.items():
                 initial_state['bulk']['count'][bulk_map[molecule]] = count
             initial_state['bulk'].flags.writeable = False
+            # All other overrides directly update initial state
             deep_merge(initial_state, override)
 
         # Put shared process instances for partitioned steps into state
@@ -137,13 +206,85 @@ class Ecoli(Composer):
         return initial_state
 
 
-    def _generate_processes_and_steps(self, config):
-        """Instantiates all processes and steps
-         * Creates separate Requester and Evolvers for each PartitionedProcess
-         * Adds Allocator b/w Requesters and Evolvers for an execution layer
-         * Adds division if configured
-         * Adds UniqueUpdate Step between execution layers to ensure that
-           unique molecule states are properly updated"""
+    def generate_processes_and_steps(self, config: dict[str, Any]
+        ) -> tuple[dict[str, Process], dict[str, Step], dict[str, tuple[str]]]:
+        """Helper function that dynamically initializes all processes and 
+        steps (including their flow) according to options supplied in ``config``. 
+        This method is called when :py:class:`~ecoli.composites.ecoli_master.Ecoli` 
+        is initialized and its return value is cached as the instance variable 
+        :py:data:`~ecoli.composites.ecoli_master.Ecoli.processes_and_steps`. This 
+        allows the :py:class:`~ecoli.composites.ecoil_master.Ecoli.initial_state` 
+        method to be run before calling 
+        :py:meth:`~vivarium.core.composer.Composer.generate` on this composer.
+        
+        Args:
+            config: Important key-value pairs in this dictionary include:
+                
+                * ``process_configs``: 
+                    Mapping of process names (:py:class:`str`) 
+                    to process configs. The configs can either be dictionaries 
+                    that will be used to initialize said process, the string 
+                    ``"sim_data"`` to indicate that the process config should 
+                    be loaded from the pickled simulation data object using 
+                    :py:meth:`~ecoli.library.sim_data.LoadSimData.get_config_by_name`, 
+                    or the string ``"default"`` to indicate that the 
+                    :py:data:`~vivarium.core.process.Process.defaults` attribute of 
+                    the process should be used as its config.
+                
+                * ``processes``: 
+                    Mapping of all process names (:py:class:`str`) 
+                    to the :py:class:`~vivarium.core.process.Process`, 
+                    :py:class:`~vivarium.core.process.Step`, or 
+                    :py:class:`~ecoli.processes.partition.PartitionedProcess` 
+                    instances that they refer to.
+                    
+                * ``log_updates``: 
+                    Boolean option indicating whether to emit 
+                    the updates of all processes in ``config['processes']`` 
+                    (separately log the updates from the 
+                    :py:class:`~ecoli.processes.partition.Requester`
+                    and :py:class:`~ecoli.processes.partition.Evolver` created 
+                    from each 
+                    :py:class:`~ecoli.processes.partition.PartitionedProcess`) at 
+                    the path ``('log_update',)`` by wrapping them with 
+                    :py:func:`~ecoli.library.logging_tools.make_logging_process`. 
+                    See :py:mod:`~ecoli.plots.blame` for a plotting script that 
+                    can be used to visualize how each process changes bulk 
+                    molecule counts.
+                
+                * ``flow``: 
+                    Mapping of process names to their dependencies. 
+                    Note that the only names allowed must correspond to 
+                    instances of either :py:class:`~vivarium.core.process.Step` 
+                    or :py:class:`~ecoli.processes.partition.PartitionedProcess`. 
+                    This method parses the names of partitioned processes and 
+                    edits the flow to create the four execution layers detailed 
+                    in :ref:`implementation`.
+                    
+                * ``divide``: 
+                    Boolean option that adds 
+                    :py:class:`~ecoli.processes.cell_division.Division` if true.
+                
+                * ``division_threshold``: 
+                    Config option for 
+                    :py:class:`~ecoli.processes.cell_division.Division`
+                
+                * ``agent_id``: 
+                    Config option for 
+                    :py:class:`~ecoli.processes.cell_division.Division`
+                
+                * ``mark_d_period``: 
+                    Boolean option that only matters if ``division`` is true. 
+                    Adds :py:class:`~ecoli.processes.cell_division.MarkDPeriod` 
+                    if true.
+        
+        Returns:
+            Tuple consisting of a mapping of process names to fully initialized 
+            :py:class:`~vivarium.core.process.Process` instances, a mapping of 
+            step names to fully initialized 
+            :py:class:`~vivarium.core.process.Step` instances, 
+            and a flow describing the dependencies between steps.
+        """
         time_step = config['time_step']
         # get the configs from sim_data (except for allocator, built later)
         process_configs = config['process_configs']
@@ -336,11 +477,12 @@ class Ecoli(Composer):
         .. WARNING::
             :py:func:`~ecoli.processes.partition.filter_bulk_topology` is used 
             to determine which ports should be included in the ``request`` and 
-            ``allocate`` store for each process. All ports with ``_total`` in 
-            their string name will therefore have their value overwritten by 
-            the value of the ``allcoate`` store for that process when the 
-            corresponding :py:class:`~ecoli.processes.partition.Evolver` 
-            runs its ``next_update``. 
+            ``allocate`` store for each process. All ports with ``bulk`` in 
+            their topology path that do not have ``_total`` in their string 
+            name will therefore have their value overwritten by the value of 
+            the ``allcoate`` store for that process when the corresponding 
+            :py:class:`~ecoli.processes.partition.Evolver` runs its 
+            ``next_update`` method. 
         """
         topology = {}
         # make the topology
@@ -356,13 +498,10 @@ class Ecoli(Composer):
                         'log_update', f'{process_id}_requester',)
                 # Only the bulk ports should be included in the request
                 # and allocate topologies
-                bulk_topo = filter_bulk_topology(ports)
                 topology[f'{process_id}_requester']['request'] = {
-                    '_path': ('request', process_id,),
-                    **bulk_topo}
+                    'bulk': ('request', process_id, 'bulk',)}
                 topology[f'{process_id}_evolver']['allocate'] = {
-                    '_path': ('allocate', process_id,),
-                    **bulk_topo}
+                    'bulk': ('allocate', process_id, 'bulk',)}
                 topology[f'{process_id}_requester'][
                     'first_update'] = ('first_update', process_id)
                 topology[f'{process_id}_evolver'][
