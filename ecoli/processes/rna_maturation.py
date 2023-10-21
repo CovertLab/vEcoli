@@ -69,7 +69,7 @@ class RnaMaturation(PartitionedProcess):
     def ports_schema(self):
         return {
             'bulk': numpy_schema('bulk'),
-            'bulk_total': numpy_schema('bulk', partition=False),
+            'bulk_total': numpy_schema('bulk'),
             'listeners': {
                 'rna_maturation_listener': listener_schema({
                     'total_maturation_events': 0,

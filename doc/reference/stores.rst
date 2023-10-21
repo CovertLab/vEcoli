@@ -14,6 +14,7 @@ relevant attributes that consist of:
 :Schema: Helper function for store in ``ports_schema`` methods
 :Helpers: Other useful helper functions
 
+.. _bulk:
 --------------
 Bulk Molecules
 --------------
@@ -169,17 +170,25 @@ a standard ``next_update`` method that allows these processes to be run on
 their own (as in 
 `migration tests <https://github.com/CovertLab/vivarium-ecoli/tree/master/migration>`_).
 
+.. WARNING::
+    In instances of :py:class:`~ecoli.processes.partition.PartitionedProcess`, 
+    all ports connected to the bulk molecule store **MUST** be called 
+    ``bulk`` to be properly partitioned. Conversely, ports that are not meant 
+    to be partitioned should **NEVER** be called ``bulk`` in any 
+    :py:class:`~ecoli.processes.partition.PartitionedProcess`.
+
 In the model, each partitioned process is used to create two separate steps: 
 a :py:class:`~ecoli.processes.partition.Requester` and an 
 :py:class:`~ecoli.processes.partition.Evolver`. For each execution layer 
 in the ``flow`` given to :py:class:`~ecoli.experiments.ecoli_master_sim.EcoliSim`, 
-:py:class:`~ecoli.composites.ecoli_master.Ecoli` will create four execution layers: 
+:py:class:`~ecoli.composites.ecoli_master.Ecoli` will arrange the requesters and 
+evolvers into four execution layers in the final model: 
 
 1. Requesters: 
-    Calls the 
+    Each will call the 
     :py:meth:`~ecoli.processes.partition.PartitionedProcess.calculate_request`
-    method of each :py:class:`~ecoli.processes.partition.PartitionedProcess` 
-    in said layer and writes requests to a process-specific ``request`` store
+    method of a :py:class:`~ecoli.processes.partition.PartitionedProcess` 
+    in said layer and write its requests to a process-specific ``request`` store
 
 2. Allocator: 
     An instance of :py:class:`~ecoli.processes.allocator.Allocator` 
@@ -188,12 +197,13 @@ in the ``flow`` given to :py:class:`~ecoli.experiments.ecoli_master_sim.EcoliSim
     and writes allocated counts to process-specific ``allocate`` stores
 
 3. Evolvers: 
-    Replaces all views into the ``bulk`` store with the counts allocated 
-    to each process in its ``allocate`` store, calls the 
+    Each will replace all views into the ``bulk`` store with the counts allocated 
+    to its corresponding :py:class:`~ecoli.processes.partition.PartitionedProcess` 
+    in its ``allocate`` store, call the 
     :py:meth:`~ecoli.processes.partition.PartitionedProcess.evolve_state` 
-    method of each :py:class:`~ecoli.processes.partition.PartitionedProcess` 
-    in said layer, update bulk molecule counts, and send unique molecule updates 
-    to be accumulated by the updater for each unique molecule 
+    method of its :py:class:`~ecoli.processes.partition.PartitionedProcess`, 
+    update the bulk molecule counts, and send unique molecule updates 
+    to be accumulated by each unique molecule updater 
     (see :py:class:`~ecoli.library.schema.UniqueNumpyUpdater`)
 
 4. Unique updater: 
@@ -215,6 +225,23 @@ in the ``flow`` given to :py:class:`~ecoli.experiments.ecoli_master_sim.EcoliSim
     :py:meth:`~ecoli.processes.partition.PartitionedProcess.calculate_request` 
     and :py:meth:`~ecoli.processes.partition.PartitionedProcess.evolve_state` 
     methods of each :py:class:`~ecoli.processes.partition.PartitionedProcess`.
+
+Accessing Non-partitioned Counts
+--------------------------------
+There are certain processes that require access to the total, non-partitioned 
+count of certain bulk molecules. For example, 
+:py:class:`~ecoli.processes.metabolism.Metabolism` needs to know the total 
+counts to all amino acids to accurately implement tRNA charging. To give these 
+processes access to non-partitioned counts, an additional port is added to 
+their ``ports_schema`` methods and topologies that is also connected to the 
+bulk molecules store. By convention, this port is called ``bulk_total`` to 
+differentiate it from the partitioned ``bulk`` port. Evolvers will overwrite 
+the partitioned ``bulk`` port with the allocated bulk molecule counts while 
+leaving the ``bulk_total`` port untouched, giving their associated 
+:py:class:`~ecoli.processes.partition.PartitionedProcess` instances access to 
+the unpartitioned bulk molecule counts in their 
+:py:meth:`~ecoli.processes.partition.PartitionedProcess.evolve_state` methods. 
+
 
 Indexing
 ========

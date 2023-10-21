@@ -163,7 +163,7 @@ class CellWall(Process):
                     "_divider": "binomial_ecoli"
                 },
             },
-            "bulk": numpy_schema("bulk", partition=False),
+            "bulk": numpy_schema("bulk"),
             "shape": {"volume": {"_default": 0 * units.fL, "_emit": True}},
             "wall_state": {
                 "lattice": {
