@@ -575,23 +575,23 @@ class GetterFunctions(object):
 		# Build mapping from complex ID to its subunit stoichiometry
 		complex_id_to_stoich = {}
 
-		# Build cofactor dict
-		monomer_cofactor_map = {}
-		for monomer in raw_data.proteins:
-			monomer_cofactor_map[monomer['id']] = monomer['protein_feature_cofactors']
-
-		# updating complex masses with cofactor masses. also happens in complexation.py, but need to update masses.
-		for reaction in raw_data.complexation_reactions:
-			added_cofactors = {}
-			# add cofactors to stoichiometry multiplied by monomer coefficient
-			for mol_id, coeff in reaction["stoichiometry"].items():
-				if coeff is not None and coeff < 0 and mol_id in monomer_cofactor_map:
-					for cofactor_id, cofactor_coeff in monomer_cofactor_map[mol_id].items():
-						added_cofactors[cofactor_id] = coeff * cofactor_coeff
-
-
-			# merge cofactors with stoichiometry
-			reaction["stoichiometry"].update(added_cofactors)
+		# # Build cofactor dict
+		# monomer_cofactor_map = {}
+		# for monomer in raw_data.proteins:
+		# 	monomer_cofactor_map[monomer['id']] = monomer['protein_feature_cofactors']
+		#
+		# # updating complex masses with cofactor masses, and updating complexation reactions themselves.
+		# for reaction in raw_data.complexation_reactions:
+		# 	added_cofactors = {}
+		# 	# add cofactors to stoichiometry multiplied by monomer coefficient
+		# 	for mol_id, coeff in reaction["stoichiometry"].items():
+		# 		if coeff is not None and coeff < 0 and mol_id in monomer_cofactor_map:
+		# 			for cofactor_id, cofactor_coeff in monomer_cofactor_map[mol_id].items():
+		# 				added_cofactors[cofactor_id] = coeff * cofactor_coeff
+		#
+		#
+		# 	# merge cofactors with stoichiometry
+		# 	reaction["stoichiometry"].update(added_cofactors)
 
 		for rxn in itertools.chain(
 				raw_data.complexation_reactions, raw_data.equilibrium_reactions):

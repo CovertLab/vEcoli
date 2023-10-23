@@ -85,6 +85,10 @@ class Complexation(PartitionedProcess):
 
         moleculeCounts = counts(states['bulk'], self.molecule_idx)
 
+        # in order to prevent overflow errors, we need to limit max moleculecounts to a reasonable number, like 1e4.
+        # this is a temporary fix, and we should find a better way to handle this.
+        # moleculeCountsCapped = np.minimum(moleculeCounts, 1e4).astype(np.int64)
+
         result = self.system.evolve(
             timestep, moleculeCounts, self.rates)
         updatedMoleculeCounts = result['outcome']
@@ -95,11 +99,15 @@ class Complexation(PartitionedProcess):
 
     def evolve_state(self, timestep, states):
         timestep = states['timestep']
-        substrate = counts(states['bulk'], self.molecule_idx)
+        moleculeCounts = counts(states['bulk'], self.molecule_idx)
 
-        result = self.system.evolve(timestep, substrate, self.rates)
+        # in order to prevent overflow errors, we need to limit max moleculecounts to a reasonable number, like 1e4.
+        # this is a temporary fix, and we should find a better way to handle this.
+        # moleculeCountsCapped = np.minimum(substrate, 1e4).astype(np.int64)
+
+        result = self.system.evolve(timestep, moleculeCounts, self.rates)
         complexationEvents = result['occurrences']
-        outcome = result['outcome'] - substrate
+        outcome = result['outcome'] - moleculeCounts
 
         # Write outputs to listeners
         update = {

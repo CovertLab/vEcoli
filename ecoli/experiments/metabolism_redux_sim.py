@@ -55,7 +55,7 @@ def run_ecoli_with_metabolism_redux_classic(
         filename='metabolism_redux_classic',
         total_time=10,
         divide=True,
-        initial_state_file='met_division_test_state',
+        initial_state_file='wcecoli_t0',
         progress_bar=True,
         log_updates=False,
         emitter='timeseries',
