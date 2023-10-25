@@ -334,7 +334,12 @@ class UniqueNumpyUpdater:
     :py:meth:`ecoli.composites.ecoli_master.Ecoli._generate_processes_and_steps`
     """
     def __init__(self):
-        """Set up instance attributes to accumulate updates.
+        """Sets up instance attributes to accumulate updates.
+
+        Attributes:
+            add_updates: List of updates that add unique molecules
+            set_updates: List of updates that modify existing unique molecules
+            delete_updates: List of updates that delete unique molecules
         """
         self.add_updates = []
         self.set_updates = []

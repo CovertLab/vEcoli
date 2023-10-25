@@ -26,7 +26,7 @@ from ecoli.experiments.ecoli_master_sim import (
     get_git_revision_hash,
     get_git_status,
     report_profiling,
-    _tuplify_topology
+    tuplify_topology
 )
 from ecoli.library.logging_tools import write_json
 from ecoli.library.sim_data import RAND_MAX
@@ -266,7 +266,7 @@ def run_simulation(config):
             environment_composite.merge(
                 processes={'field_timeline': field_timeline},
                 topology={
-                    'field_timeline': _tuplify_topology(
+                    'field_timeline': tuplify_topology(
                         spatial_config['field_timeline_topology'])
                 },
             )

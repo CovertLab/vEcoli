@@ -1,14 +1,17 @@
 """
-============================
-*E. coli* Master Simulations
-============================
+Interface for configuring and running **single-cell** E. coli simulations.
 
-Run simulations of Ecoli Master
+.. note::
+    Simulations can be configured to divide through this interface, but 
+    full colony-scale simulations are best run using the 
+    :py:mod:`~ecoli.composites.ecoli_engine_process` module for efficient 
+    multithreading.
 """
 
 import argparse
 import copy
 import os
+import pstats
 import subprocess
 import json
 import warnings
@@ -31,12 +34,22 @@ from ecoli.composites.ecoli_configs import CONFIG_DIR_PATH
 from ecoli.library.schema import not_a_process
 
 
-def _tuplify_topology(topology):
-    """transform an embedded topology with list paths to tuple paths"""
+def tuplify_topology(topology: dict[str, Any]) -> dict[str, Any]:
+    """JSON files allow lists but do not allow tuples. This function 
+    transforms the list paths in topologies loaded from JSON into 
+    standard tuple paths.
+    
+    Args:
+        topology: Topology to recursively iterate over, converting 
+            all paths to tuples
+    
+    Returns:
+        Topology with tuple paths (e.g. ``['bulk']`` turns into ``('bulk',)``)
+    """
     tuplified_topology = {}
     for k, v in topology.items():
         if isinstance(v, dict):
-            tuplified_topology[k] = _tuplify_topology(v)
+            tuplified_topology[k] = tuplify_topology(v)
         elif isinstance(v, str):
             tuplified_topology[k] = (v,)
         else:
@@ -44,19 +57,30 @@ def _tuplify_topology(topology):
     return tuplified_topology
 
 
-def get_git_revision_hash():
+def get_git_revision_hash() -> str:
+    """Returns current Git hash for model repository to include in metadata 
+    that is emitted when starting a simulation."""
     return subprocess.check_output(
         ['git', 'rev-parse', 'HEAD']).decode('ascii').strip()
 
 
-def get_git_status():
+def get_git_status() -> str:
+    """Returns Git status of model repository to include in metadata that is 
+    emitted when starting a simulation.
+    """
     status_str = subprocess.check_output(
         ['git', 'status', '--porcelain']).decode('ascii').strip()
     status = status_str.split('\n')
     return status
 
 
-def report_profiling(stats):
+def report_profiling(stats: pstats.Stats) -> None:
+    """Prints out a summary of profiling statistics when ``profile`` option 
+    is ``True`` in the config given to 
+    :py:class:`~ecoli.experiments.ecoli_master_sim.EcoliSim`
+    
+    Args:
+        stats: Profiling statistics."""
     _, stats_keys = stats.get_print_list(
         ('(next_update)|(calculate_request)|(evolve_state)',))
     summed_stats = {}
@@ -78,7 +102,17 @@ def report_profiling(stats):
     stats.sort_stats('cumtime').print_stats(20)
 
 
-def key_value_pair(argument_string):
+def key_value_pair(argument_string: str) -> tuple[str, str]:
+    """Parses key-value pairs specified as strings of the form ``key=value`` 
+    via CLI. See ``emitter_arg`` option in 
+    :py:class:`~ecoli.experiments.ecoli_master_sim.SimConfig`.
+
+    Args:
+        argument_string: Key-value pair as a string of the form ``key=value``
+
+    Returns:
+        ``[key, value]``
+    """
     split = argument_string.split('=')
     if len(split) != 2:
         raise ValueError(
@@ -91,7 +125,8 @@ class SimConfig:
     default_config_path = os.path.join(CONFIG_DIR_PATH, 'default.json')
 
     def __init__(self, config: Optional[Dict[str, Any]] = None):
-        '''Stores configuration options for a simulation.
+        '''Stores configuration options for a simulation. Has dictionary-like 
+        interface (e.g. bracket indexing, get, keys).
 
         Attributes:
             config: Current configuration.
@@ -99,7 +134,8 @@ class SimConfig:
 
         Args:
             config: Configuration options. If provided, the default
-                configuration is not loaded.
+                configuration is not loaded from the file path 
+                :py:data:`~ecoli.experiments.ecoli_master_sim.SimConfig.default_config_path`.
         '''
         self._config = config or {}
         if not self._config:
@@ -111,7 +147,8 @@ class SimConfig:
             default=self.default_config_path,
             help=(
                 'Path to configuration file for the simulation. '
-                f'Defaults to {self.default_config_path}.'))
+                'All key-value pairs in this file will be applied on top '
+                f'of the options defined in {self.default_config_path}.'))
         self.parser.add_argument(
             '--experiment_id', '-id', action="store",
             help=(
@@ -178,7 +215,16 @@ class SimConfig:
 
 
     @staticmethod
-    def merge_config_dicts(d1, d2):
+    def merge_config_dicts(d1: dict[str, Any], d2: dict[str, Any]) -> None:
+        """Helper function to safely merge two config dictionaries. Config 
+        options whose values are lists (e.g. ``save_times``, ``add_processes``, 
+        etc.) are handled separately so that the lists from each config are 
+        concatenated in the merged output.
+
+        Args:
+            d1: Config to mutate by merging in ``d2``.
+            d2: Config to merge into ``d1``.
+        """
         # Handle config keys that need special handling.
         LIST_KEYS_TO_MERGE = (
             'save_times', 'add_processes', 'exclude_processes',
@@ -194,7 +240,13 @@ class SimConfig:
         deep_merge(d1, d2)
 
 
-    def update_from_json(self, path):
+    def update_from_json(self, path: str) -> None:
+        """Loads config dictionary from file path ``path`` and merges it into 
+        the currently loaded config.
+
+        Args:
+            path: The file path of the JSON config to merge in.
+        """
         with open(path, 'r') as f:
             new_config = json.load(f)
         new_config = deserialize_value(new_config)
@@ -204,8 +256,11 @@ class SimConfig:
         self.merge_config_dicts(self._config, new_config)
 
 
-    def update_from_cli(self, cli_args=None):
-        args = self.parser.parse_args(cli_args)
+    def update_from_cli(self):
+        """Parses command-line options defined in ``__init__`` and 
+        updates config.
+        """
+        args = self.parser.parse_args()
         # First load in a configuration file, if one was specified.
         config_path = getattr(args, 'config', None)
         if config_path:
@@ -222,7 +277,8 @@ class SimConfig:
         self.merge_config_dicts(self._config, cli_config)
 
 
-    def update_from_dict(self, dict_config):
+    def update_from_dict(self, dict_config: dict[str, Any]):
+        """Updates loaded config with user-specified dictionary."""
         self.merge_config_dicts(self._config, dict_config)
 
 
@@ -247,7 +303,28 @@ class SimConfig:
 
 
 class EcoliSim:
-    def __init__(self, config):
+    def __init__(self, config: dict[str, Any]):
+        """Main interface for running single-cell E. coli simulations. Typically 
+        instantiated using one of two methods:
+
+        1. :py:meth:`~ecoli.experiments.ecoli_master_sim.EcoliSim.from_file`
+        2. :py:meth:`~ecoli.experiments.ecoli_master_sim.EcoliSim.from_cli`
+        
+        Config options can be modified after the creation of an 
+        :py:class:`~ecoli.experiments.ecoli_master_sim.EcoliSim` object 
+        in one of two ways.
+
+        1. ``sim.total_time = 100``
+        2. ``sim.config['total_time'] = 100``
+
+        Args:
+            config: Automatically generated from 
+                :py:class:`~ecoli.experiments.ecoli_master_sim.SimConfig` when 
+                :py:class:`~ecoli.experiments.ecoli_master_sim.EcoliSim` is 
+                instantiated using 
+                :py:meth:`~ecoli.experiments.ecoli_master_sim.EcoliSim.from_file` 
+                or :py:meth:`~ecoli.experiments.ecoli_master_sim.EcoliSim.from_cli`
+        """
         # Do some datatype pre-processesing
         config['agents_path'] = tuple(config['agents_path'])
         config['processes'] = {
@@ -292,16 +369,31 @@ class EcoliSim:
 
 
     @staticmethod
-    def from_file(filepath=CONFIG_DIR_PATH + 'default.json'):
+    def from_file(filepath=CONFIG_DIR_PATH + 'default.json') -> 'EcoliSim':
+        f"""Used to instantiate 
+        :py:class:`~ecoli.experiments.ecoli_master_sim.EcoliSim` with 
+        a config loaded from the JSON at ``filepath`` by 
+        :py:class:`~ecoli.experiments.ecoli_master_sim.SimConfig`.
+        
+        Args:
+            filepath: String filepath of JSON file with config options to 
+                apply on top of the options laid out in 
+                {EcoliSim.default_file_path}
+        """
         config = SimConfig()
         config.update_from_json(filepath)
         return EcoliSim(config.to_dict())
 
 
     @staticmethod
-    def from_cli(cli_args=None):
+    def from_cli() -> 'EcoliSim':
+        """Used to instantiate 
+        :py:class:`~ecoli.experiments.ecoli_master_sim.EcoliSim` with 
+        a config loaded from the command-line arguments parsed by 
+        :py:class:`~ecoli.experiments.ecoli_master_sim.SimConfig`.
+        """
         config = SimConfig()
-        config.update_from_cli(cli_args)
+        config.update_from_cli()
         return EcoliSim(config.to_dict())
 
 
@@ -348,11 +440,11 @@ class EcoliSim:
                 process_topology = {}
             # Allow the user to override default topology
             if original_process in topology.keys():
-                deep_merge(process_topology, _tuplify_topology(
+                deep_merge(process_topology, tuplify_topology(
                     topology[original_process]))
             # For swapped processes, do additional overrides if provided
             if process != original_process and process in topology.keys():
-                deep_merge(process_topology, _tuplify_topology(
+                deep_merge(process_topology, tuplify_topology(
                     topology[process]))
             result[process] = process_topology
 
@@ -375,7 +467,27 @@ class EcoliSim:
 
     def build_ecoli(self):
         """
-        Build self.ecoli, the Ecoli composite, and self.generated_initial_state
+        Creates the E. coli composite. **MUST** be called before calling 
+        :py:meth:`~ecoli.experiments.ecoli_master_sim.EcoliSim.run`.
+
+        For all processes in ``config['processes']``:
+
+        1. Retrieves process class from 
+        :py:data:`~ecoli.processes.process_topology`
+
+        2. Retrieves process topology from 
+        :py:data:`~ecoli.processes.registries.topology_registry` and merge 
+        with user-specified topology from ``config['topology']``, if applicable
+
+        3. Retrieves process configs from ``config['process_configs']`` 
+        if present, else indicate that process config should be loaded from 
+        pickled simulation data using 
+        :py:meth:`~ecoli.library.sim_data.LoadSimData.get_config_by_name`
+
+        Adds spatial environment if ``config['spatial_environment']`` is 
+        ``True``. Spatial environment config options are loaded from 
+        ``config['spatial_environment_config]``. See 
+        ``ecoli/composites/ecoli_configs/spatial.json`` for an example.
         """
         # build processes, topology, configs
         self.processes = self._retrieve_processes(
