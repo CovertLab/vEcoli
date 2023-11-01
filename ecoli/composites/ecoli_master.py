@@ -122,7 +122,8 @@ class Ecoli(Composer):
         
         1. ``config['initial_state']``
         
-        2. Load the JSON file at ``f'data/{config['initial_state_file]}.json'``
+        2. Load the JSON file at ``f'data/{config['initial_state_file]}.json'`` 
+        using :py:func:`~ecoli.states.wcecoli_state.get_state_from_file`.
         
         3. Generate initial state from simulation data object (see 
         :py:meth:`~ecoli.library.sim_data.LoadSimData.generate_initial_state`)
@@ -216,7 +217,7 @@ class Ecoli(Composer):
         This method is called when :py:class:`~ecoli.composites.ecoli_master.Ecoli` 
         is initialized and its return value is cached as the instance variable 
         :py:data:`~ecoli.composites.ecoli_master.Ecoli.processes_and_steps`. This 
-        allows the :py:class:`~ecoli.composites.ecoil_master.Ecoli.initial_state` 
+        allows the :py:class:`~ecoli.composites.ecoli_master.Ecoli.initial_state` 
         method to be run before calling 
         :py:meth:`~vivarium.core.composer.Composer.generate` on this composer.
         
@@ -231,8 +232,7 @@ class Ecoli(Composer):
                     be loaded from the pickled simulation data object using 
                     :py:meth:`~ecoli.library.sim_data.LoadSimData.get_config_by_name`, 
                     or the string ``"default"`` to indicate that the 
-                    :py:data:`~vivarium.core.process.Process.defaults` attribute of 
-                    the process should be used as its config.
+                    ``defaults`` attribute of the process should be used as its config.
                 
                 * ``processes``: 
                     Mapping of all process names (:py:class:`str`) 
@@ -497,7 +497,7 @@ class Ecoli(Composer):
 
         Args:
             config: Uses the same ``config`` supplied to this composer in 
-                :py:meth:`~ecoli.composites.ecoli_master.Ecoli.__init__` that 
+                :py:class:`~ecoli.composites.ecoli_master.Ecoli` that 
                 was used to generate the processes and steps in 
                 :py:meth:`~ecoli.composites.ecoli_master.Ecoli.generate_processes_and_steps`. 
                 Important key-value pairs include:

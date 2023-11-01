@@ -331,7 +331,7 @@ class UniqueNumpyUpdater:
     signal to apply these updates is given by a special process (
     :py:class:`ecoli.processes.unique_update.UniqueUpdate`) that is 
     automatically added to the simulation by  
-    :py:meth:`ecoli.composites.ecoli_master.Ecoli._generate_processes_and_steps`
+    :py:meth:`ecoli.composites.ecoli_master.Ecoli.generate_processes_and_steps`
     """
     def __init__(self):
         """Sets up instance attributes to accumulate updates.
