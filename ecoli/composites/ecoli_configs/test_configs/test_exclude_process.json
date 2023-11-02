@@ -1,5 +1,5 @@
 {
     "experiment_id" : "test_exclude_process",
     "total_time" : 2,
-    "exclude_processes" : ["ecoli-polypeptide-initiation", "ecoli-two-component-system"],
+    "exclude_processes" : ["ecoli-polypeptide-initiation", "ecoli-two-component-system"]
 }

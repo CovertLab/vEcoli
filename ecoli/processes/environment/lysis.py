@@ -155,7 +155,7 @@ class ToyTransportBurst(Process):
                     '_emit': True,
                 } for key in self.molecules
             },
-            'internal': numpy_schema('bulk', partition=False),
+            'internal': numpy_schema('bulk'),
             'mass': {
                 '_default': 0.0 * units.fg,
             },

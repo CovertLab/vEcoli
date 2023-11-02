@@ -126,7 +126,7 @@ class PBPBinding(Step):
 
     def ports_schema(self):
         return {
-            "bulk": numpy_schema("bulk", partition=False),
+            "bulk": numpy_schema("bulk"),
             "murein_state": {
                 "incorporated_murein": {
                     "_default": 0,
