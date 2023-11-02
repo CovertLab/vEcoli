@@ -1,11 +1,20 @@
-from typing import List
+"""
+===========================
+Simulation Helper Functions
+===========================
+
+This is a collection of helper functions used thoughout our code base.
+"""
+
+from typing import List, Tuple, Dict, Any
 
 import numpy as np
 from vivarium.core.store import Store
+from vivarium.core.registry import Serializer
 
 RAND_MAX = 2**31 - 1
 
-UNIQUE_DIVIDERS = {
+UNIQUE_DIVIDERS = { 
     'active_ribosome': {
         'divider': 'ribosome_by_RNA',
         'topology': {'RNA': ('..', 'RNA'),
@@ -74,13 +83,28 @@ UNIQUE_DIVIDERS = {
             'chromosome_domain': ('..', 'chromosome_domain')}
     },
 }
+"""A mapping of unique molecules to the names of their divider functions ars they are registered 
+in the ``divider_registry`` in ``ecoli/__init__.py``
+
+:meta hide-value:
+"""
 
 
-def array_from(d):
+def array_from(d: dict) -> np.ndarray:
+    """Makes a Numpy array from dictionary values.
+    
+    Args:
+        d: Dictionary whose values are to be converted
+    
+    Returns:
+        Array of all values in d.
+    """
     return np.array(list(d.values()))
 
 
-def create_unique_indexes(n_indexes, random_state):
+def create_unique_indexes(
+    n_indexes: int, 
+    random_state: np.random.RandomState) -> List[int]:
     """Creates a list of unique indexes by making them random.
 
     Args:
@@ -96,39 +120,74 @@ def create_unique_indexes(n_indexes, random_state):
 
 
 def not_a_process(value):
+    """Returns ``True`` if not a :py:class:`vivarium.core.Process` instance.
+    """
     return not (isinstance(value, Store) and value.topology)
 
 
-def counts(states, idx):
-    # Helper function to pull out counts at given indices
+def counts(states: np.ndarray, idx: int | np.ndarray) -> np.ndarray:
+    """Helper function to pull out counts at given indices.
+
+    Args:
+        states: Either a Numpy structured array with a `'count'` field or a 1D
+            Numpy array of counts.
+        idx: Indices for the counts of interest.
+
+    Returns:
+        Counts of molecules at specified indices (copy so can be safely mutated)
+    """
     if len(states.dtype) > 1:
         return states['count'][idx]
     # evolve_state reads from ('allocate', process_name, 'bulk')
     # which is a simple Numpy array (not structured)
-    return states[idx]
+    return states[idx].copy()
 
 
-class get_bulk_counts():
-    # orjson requires contiguous arrays for serialization
-    def serialize(bulk):
+class get_bulk_counts(Serializer):
+    """Serializer for bulk molecules that saves counts without IDs or masses.
+    """
+    def serialize(bulk: np.ndarray) -> np.ndarray:
+        """
+        Args:
+            bulk: Numpy structured array with a `count` field
+        
+        Returns:
+            Contiguous (required by orjson) array of bulk molecule counts
+        """
         return np.ascontiguousarray(bulk['count'])
 
 
-class get_unique_fields():
-    # orjson requires contiguous arrays for serialization
-    def serialize(unique):
+class get_unique_fields(Serializer):
+    """Serializer for unique molecules.
+    """
+    def serialize(unique: np.ndarray) -> np.ndarray:
+        """
+        Args:
+            unique: Numpy structured array of attributes for one unique molecule
+        
+        Returns:
+            List of contiguous (required by orjson) arrays, one for each attribute
+        """
         return [np.ascontiguousarray(unique[field])
             for field in unique.dtype.names]
 
 
-def numpy_schema(name, partition=True, divider=None, emit=True):
+def numpy_schema(name: str, emit: bool=True) -> Dict[str, Any]:
+    """Helper function used in ports schemas for bulk and unique molecules 
+
+    Args:
+        name: `bulk` for bulk molecules or one of the keys in :py:data:`UNIQUE_DIVIDERS`
+            for unique molecules
+        emit: `True` if should be emitted (default)
+    
+    Returns:
+        Fully configured ports schema for molecules of type `name`
+    """
     schema = {
         '_default': [],
         '_emit': emit
     }
     if name == 'bulk':
-        if partition:
-            schema['_properties'] = {'bulk': True}
         schema['_updater'] = bulk_numpy_updater
         # Only pull out counts to be serialized (save space and time)
         schema['_serializer'] = get_bulk_counts
@@ -141,12 +200,23 @@ def numpy_schema(name, partition=True, divider=None, emit=True):
         # efficient serialization (still do not recommend emitting unique)
         schema['_serializer'] = get_unique_fields
         schema['_divider'] = UNIQUE_DIVIDERS[name]
-    if divider:
-        schema['_divider'] = divider
     return schema
 
 
-def bulk_name_to_idx(names, bulk_names):
+def bulk_name_to_idx(
+    names: str | (List | np.ndarray),
+    bulk_names: List | np.ndarray
+) -> int | np.ndarray:
+    """Primarily used to retrieve indices for groups of bulk molecules (e.g. NTPs)
+    in the first run of a process and cache for future runs
+
+    Args:
+        names: List or array of things to find. Can also be single string.
+        bulk_names: List of array of things to search
+    
+    Returns:
+        Index or indices such that ``bulk_names[indices] == names``
+    """
     # Convert from string names to indices in bulk array
     if isinstance(names, np.ndarray) or isinstance(names, list):
         # Big brain solution from https://stackoverflow.com/a/32191125
@@ -159,7 +229,23 @@ def bulk_name_to_idx(names, bulk_names):
         return np.where(bulk_names == names)[0][0]
 
 
-def bulk_numpy_updater(current, update):
+def bulk_numpy_updater(
+        current: np.ndarray,
+        update: List[Tuple[int|np.ndarray, int|np.ndarray]]
+    ) -> np.ndarray: 
+    """Updater function for bulk molecule structured array.
+
+    Args:
+        current: Bulk molecule structured array
+        update: List of tuples ``(mol_idx, add_val)``, where
+            ``mol_idx`` is the index (or array of indices) for 
+            the molecule(s) to be updated and ``add_val`` is the 
+            count (or array of counts) to be added to the current 
+            count(s) for the specified molecule(s).
+        
+    Returns:
+        Updated bulk molecule structured array
+    """
     # Bulk updates are lists of tuples, where first value
     # in each tuple is an array of indices to update and
     # second value is array of updates to apply
@@ -172,17 +258,43 @@ def bulk_numpy_updater(current, update):
     return result
 
 
-def attrs(states, attributes):
-    # Helper function to pull out individual arrays for a set of
-    # unique molecule attributes
+def attrs(states: np.ndarray, attributes: List[str]) -> List[np.ndarray]:
+    """Helper function to pull out arrays for unique molecule attributes
+
+    Args:
+        states: Structured Numpy array for all unique molecules of a given 
+            type (e.g. RNA, active RNAP, etc.)
+        attributes: List of field names (attributes) whose data should be 
+            retrieved for all active unique molecules in ``states``
+
+    Returns:
+        List of arrays, one for each attribute. nth entry in each array 
+        corresponds to the value of that attribute for the nth active 
+        unique molecule in ``states`` 
+    """
     # _entryState has dtype int8 so this works
     mol_mask = states['_entryState'].view(np.bool_)
     return [states[attribute][mol_mask] for attribute in attributes]
 
 
-def get_free_indices(result, n_objects):
-    # Find inactive rows for new molecules and expand array
-    # by at least 10% to create more rows when necessary
+def get_free_indices(result: np.ndarray, n_objects: int
+                     ) -> Tuple[np.ndarray, np.ndarray]:
+    """Find inactive rows for new molecules and expand array if needed
+
+    Args:
+        result: Structured Numpy array for all unique molecules of a given 
+            type (e.g. RNA, active RNAP, etc.)
+        n_objects: Number of new unique molecules to be added
+    
+    Returns:
+        A tuple ``(result, free_idx)``. ``result`` is the same as the 
+        input argument unless ``n_objects`` is greater than the number 
+        of inactive rows in ``result``. In this case, ``result`` is 
+        grown by at least 10% by concatenating new rows (all zeros). 
+        ``free_idx`` is an array of size ``n_objects`` that contains 
+        the indices of rows in ``result`` that are inactive (``_entryState`` 
+        field is 0).
+    """
     free_indices = np.where(result['_entryState'] == 0)[0]
     n_free_indices = free_indices.size
 
@@ -206,12 +318,70 @@ def get_free_indices(result, n_objects):
     return result, free_indices[:n_objects]
 
 class UniqueNumpyUpdater:
+    """Updates that set attributes of currently active unique molecules 
+    must be applied before any updates that add or delete molecules. If this 
+    is not enforced, in a single timestep, an update might delete a molecule 
+    and allow a subsequent update to add a new molecule in the same row. Then, 
+    an update that intends to modify an attribute of the original molecule 
+    in that row will actually corrupt the data for the new molecule. 
+
+    To fix this, this unique molecule updater is a bound method with access 
+    to instance attributes that allow it to accumulate updates until given 
+    the signal to apply the accumulated updates in the proper order. The 
+    signal to apply these updates is given by a special process (
+    :py:class:`ecoli.processes.unique_update.UniqueUpdate`) that is 
+    automatically added to the simulation by  
+    :py:meth:`ecoli.composites.ecoli_master.Ecoli.generate_processes_and_steps`
+    """
     def __init__(self):
+        """Sets up instance attributes to accumulate updates.
+
+        Attributes:
+            add_updates: List of updates that add unique molecules
+            set_updates: List of updates that modify existing unique molecules
+            delete_updates: List of updates that delete unique molecules
+        """
         self.add_updates = []
         self.set_updates = []
         self.delete_updates = []
 
-    def updater(self, current, update):
+    def updater(self, current: np.ndarray, update: Dict[str, Any]) -> np.ndarray:
+        """Accumulates updates in instance attributes until given signal to 
+        apply all updates in the following order: ``set``, ``add``, ``delete``
+
+        Args:
+            current: Structured Numpy array for a given unique molecule
+            update: Dictionary of updates to apply that can contain any 
+                combination of the following keys:
+
+                - ``set``: List of dictionaries
+                    Each key is an attribute of the given unique molecule 
+                    and each value is an array. Each array contains 
+                    the new attribute values for all active unique 
+                    molecules in a givne timestep.
+                
+                - ``add``: List of dictionaries
+                    Each key is an attribute of the given unique moleucle
+                    and each value is an array. The nth element of 
+                    each array is the value for the corresponding 
+                    attribute for the nth unique molecule to be added.
+                
+                - ``delete``: List-like
+                    List of **active** molecule indices to delete. Note that 
+                    ``current`` may have rows that are marked as inactive, so 
+                    deleting the 10th active molecule may not equate to 
+                    deleting the value in the 10th row of ``current``.
+                
+                - ``update``: Boolean
+                    Special key that should only be included in the update of 
+                    :py:class:`ecoli.processes.unique_update.UniqueUpdate`. 
+                    Tells updater to apply all cached updates (e.g. at the 
+                    end of an "execution layer"; see :ref:`partitioning`).
+
+        Returns:
+            Updated structured Numpy array containing the new unique molecule
+            state.
+        """
         if len(update) == 0:
             return current
         
@@ -263,7 +433,28 @@ class UniqueNumpyUpdater:
         result.flags.writeable = False
         return result
 
-def listener_schema(elements):
+def listener_schema(elements: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
+    """Helper function that can be used in ``ports_schema`` to create generic 
+    schema for a collection of listeners.
+
+    Args:
+        elements: Dictionary where keys are listener names and values are the 
+            defaults for each listener. Alternatively, if the value is a 
+            tuple, assume that the first element is the default and the second 
+            is metadata that will be emitted at the beginning of a simulation 
+            when ``emitter`` is set to ``database`` and ``emit_config`` is 
+            set to ``True`` (see :py:mod:`ecoli.experiments.ecoli_master_sim`). 
+            This metadata can then be retrieved later to aid in interpreting 
+            listener values (see :py:func:`vivarium.core.emitter.data_from_database` 
+            for sample code to query experiment configuration collection). 
+            As an example, this metadata might be an array of molecule names 
+            for a listener whose emits are arrays of counts, where the nth 
+            molecule name in the metadata corresponds to the nth value in the 
+            counts that are emitted.
+    
+    Returns:
+        Ports schemas for all listeners in ``elements``.
+    """
     basic_schema = {'_updater': 'set', '_emit': True}
     schema = {}
     for element, default in elements.items():
@@ -297,7 +488,19 @@ def divide_binomial(state: float) -> List[float]:
     return [counts_1, counts_2]
 
 
-def divide_bulk(state):
+def divide_bulk(state: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    """Divider function for bulk molecules. Automatically added to bulk 
+    molecule ports schemas by :py:func:`ecoli.library.schema.numpy_schema`
+    when ``name == 'bulk'``. Uses binomial distribution with ``p=0.5`` to 
+    randomly partition counts.
+
+    Args:
+        state: Structured Numpy array of bulk molecule data.
+
+    Returns:
+        List of two structured Numpy arrays, each representing the bulk 
+        molecule state of a daughter cell.
+    """
     counts = state['count']
     seed = counts.sum() % RAND_MAX
     # TODO: Random state/seed in store?
@@ -306,11 +509,29 @@ def divide_bulk(state):
     daughter_2 = state.copy()
     daughter_1['count'] = random_state.binomial(counts, 0.5)
     daughter_2['count'] = counts - daughter_1['count']
+    daughter_1.flags.writeable = False
+    daughter_2.flags.writeable = False
     return [daughter_1, daughter_2]
 
 # TODO: Create a store for growth rate noise simulation parameter
 
-def divide_ribosomes_by_RNA(values, state):
+def divide_ribosomes_by_RNA(values: np.ndarray, state: Dict[str, Any]
+                            ) -> tuple[np.ndarray, np.ndarray]:
+    """Divider function for active ribosome unique molecules. Automatically 
+    added to ports schema by :py:func:`ecoli.library.schema.numpy_schema` when 
+    ``name == 'active_ribosome'``. Ensures that ribosomes are divided the same 
+    way that their associated mRNAs are.
+
+    Args:
+        values: Structured Numpy array of active ribosome unique molecule state
+        state: View into relevant unique molecule states according to the 
+            topology defined under the ``active_ribosome`` key in 
+            :py:data:`ecoli.library.schema.UNIQUE_DIVIDERS`. 
+    
+    Returns:
+        List of two structured Numpy arrays, each containing the active 
+        ribosome unique molecule state of a daughter cell
+    """
     mRNA_index, = attrs(values, ['mRNA_index'])
     n_molecules = len(mRNA_index)
     if n_molecules > 0:
@@ -356,9 +577,18 @@ def divide_ribosomes_by_RNA(values, state):
 
 
 
-def divide_domains(state):
-    """
-    Divides the chromosome domains between two cells.
+def divide_domains(state: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    """Divider function for chromosome domains. Ensures that all chromosome 
+    domains associated with a full chromosome go to the same daughter cell 
+    that the full chromosome does.
+
+    Args:
+        state: Structured Numpy array of chromosome domain unique molecule 
+        state.
+
+    Returns:
+        List of two structured Numpy arrays, each containing the chromosome 
+        domain unique molecule state for a daughter cell.
     """
     domain_index_full_chroms, = attrs(state['full_chromosome'],
         ['domain_index'])
@@ -392,7 +622,23 @@ def divide_domains(state):
     }
 
 
-def divide_by_domain(values, state):
+def divide_by_domain(values: np.ndarray, state: Dict[str, Any]
+                     ) -> tuple[np.ndarray, np.ndarray]:
+    """Divider function for unique molecules that are attached to the 
+    chromsome. Ensures that these molecules are divided in accordance 
+    with the way that chromosome domains are divided.
+
+    Args:
+        values: Structured Numpy array of unique molecule state
+        state: View of ``full_chromosome`` and ``chromosome_domain``
+            state as configured under any of the unique molecules with 
+            a divider of `by_domain` in 
+            :py:data:`ecoli.library.schema.UNIQUE_DIVIDERS`.
+    
+    Returns:
+        List of two structured Numpy arrays, each containing the 
+        unique molecule state of a daughter cell.
+    """
     domain_division = divide_domains(state)
     values = values[values['_entryState'].view(np.bool_)]
     d1_bool = np.isin(values['domain_index'],
@@ -407,7 +653,22 @@ def divide_by_domain(values, state):
     return [values[d1_bool], values[d2_bool]]
 
 
-def divide_RNAs_by_domain(values, state):
+def divide_RNAs_by_domain(values: np.ndarray, state: Dict[str, Any]
+                          ) -> tuple[np.ndarray, np.ndarray]:
+    """Divider function for RNA unique molecules. Ensures that incomplete 
+    transcripts are divided in accordance with how active RNAPs are 
+    divided (which themselves depend on how chromosome domains are divided).
+
+    Args:
+        values: Structured Numpy array of RNA unique molecule state
+        state: View of relevant unique molecule states according to the 
+            topology under the ``RNAs`` key in 
+            :py:data:`ecoli.library.schema.UNIQUE_DIVIDERS`.
+
+    Returns:
+        List of two structured Numpy arrays, each containing the RNA 
+        unique molecule state of a daughter cell.
+    """
     is_full_transcript, RNAP_index = attrs(values,
         ["is_full_transcript", "RNAP_index"])
 
@@ -472,14 +733,27 @@ def divide_RNAs_by_domain(values, state):
 
 
 def empty_dict_divider(values):
+    """Divider function that sets both daughter cell states to empty dicts."""
     return [{}, {}]
 
 
 def divide_set_none(values):
+    """Divider function that sets both daughter cell states to ``None``."""
     return [None, None]
 
 
-def remove_properties(schema, properties):
+def remove_properties(schema: Dict[str, Any], properties: List[str]
+                      ) -> Dict[str, Any]:
+    """Helper function to recursively remove certain properties from a 
+    ports schema.
+    
+    Args:
+        schema: Ports schema to remove properties from
+        properties: List of properties to remove
+
+    Returns:
+        Ports schema with all properties in ``properties`` recursively removed.
+    """
     if isinstance(schema, dict):
         for property in properties:
             schema.pop(property, None)
@@ -488,17 +762,26 @@ def remove_properties(schema, properties):
     return schema
 
 
-def flatten(l):
+def flatten(l: List[List[Any]]) -> List[Any]:
     """
     Flattens a nested list into a single list.
     """
     return [item for sublist in l for item in sublist]
 
 
-def follow_domain_tree(domain, domain_index, child_domains, place_holder):
+def follow_domain_tree(domain: int, domain_index: np.ndarray, 
+                       child_domains: np.ndarray, place_holder: int
+                       ) -> List[int]:
     """
     Recursive function that returns all the descendents of a single node in
     the domain tree, including itself.
+
+    Args:
+        domain: Domain index to find all descendents for
+        domain_index: Array of all domain indices
+        child_domains: Array of child domains for each index in ``domain_index``
+        place_holder: Placeholder domain index (e.g. used in ``child_domains``
+            for domain indices that do not have child domains)
     """
     children_nodes = child_domains[np.where(domain_index == domain)[0][0]]
 
@@ -522,6 +805,13 @@ def get_descendent_domains(root_domains, domain_index, child_domains, place_hold
     """
     Returns an array of domain indexes that are descendents of the indexes
     listed in root_domains, including the indexes in root_domains themselves.
+
+    Args:
+        root_domains: List of domains to get descendents of
+        domain_index: Array of all domain indices for chromosome domains
+        child_domains: Array of child domains for each index in ``domain_index``
+        place_holder: Placeholder domain index (e.g. used in ``child_domains`` 
+            for domain indices that do not have any child domains)
     """
     return np.array(flatten([
         follow_domain_tree(root_domain, domain_index, child_domains, place_holder)

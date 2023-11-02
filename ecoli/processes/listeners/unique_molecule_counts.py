@@ -1,7 +1,7 @@
 """
-=============
+===============================
 Unique Molecule Counts Listener
-=============
+===============================
 
 Counts unique molecules
 """

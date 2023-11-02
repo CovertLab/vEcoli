@@ -20,58 +20,6 @@ from vivarium.library.dict_utils import deep_merge
 
 from ecoli.processes.registries import topology_registry
 
-def filter_bulk_ports(schema, update=None):
-    """Retrieve only ports for bulk molecules and modify if desired.
-
-    Args:
-        schema (Dict): The ports schema to change
-        update (Dict): Dictionary of new attributes to apply
-            to all bulk ports (e.g. {'_updater': 'set'}).
-
-    Returns:
-        Dict: Ports schema that only includes bulk molecules
-        with the new schemas.
-    """
-    # All bulk ports will have {'bulk': True} somewhere in schema
-    if schema.get('bulk', False) == True:
-        # Do not modify input schema
-        schema = dict(schema)
-        if update:
-            schema.update(update)
-        return schema
-    filtered = {}
-    for k, v in schema.items():
-        if isinstance(v, dict):
-            sub_filtered = filter_bulk_ports(v)
-            if sub_filtered:
-                filtered[k] = sub_filtered
-    return filtered
-
-
-def filter_bulk_topology(topology):
-    """Retrieve only topology for partitioned bulk molecules.
-    Assumes all ports with '_total' in name are not partitioned.
-
-    Args:
-        topology (Dict): The topology to filter
-
-    Returns:
-        Dict: Topology that only includes bulk molecules
-        with the new schemas.
-    """
-    filtered = {}
-    for k, v in topology.items():
-        if '_total' in k:
-            continue
-        if isinstance(v, dict):
-            sub_filtered = filter_bulk_topology(v)
-            if sub_filtered:
-                filtered[k] = sub_filtered
-        elif isinstance(v, tuple) and 'bulk' in v:
-            filtered[k] = v
-    return filtered
-
-
 class Requester(Step):
     """ Requester Step
 
@@ -95,8 +43,13 @@ class Requester(Step):
     def ports_schema(self):
         process = self.parameters.get('process')
         ports = process.get_schema()
-        ports['request'] = filter_bulk_ports(ports,
-            {'_updater': 'set', '_divider': 'null', '_emit': False})
+        ports['request'] = {
+            'bulk': {
+                '_updater': 'set',
+                '_divider': 'null',
+                '_emit': False,
+            }
+        }
         ports['process'] = {
             '_default': tuple(),
             '_updater': 'set',
@@ -160,8 +113,13 @@ class Evolver(Step):
     def ports_schema(self):
         process = self.parameters.get('process')
         ports = process.get_schema()
-        ports['allocate'] = filter_bulk_ports(ports,
-            {'_updater': 'set', '_divider': 'null', '_emit': False})
+        ports['allocate'] = {
+            'bulk': {
+                '_updater': 'set',
+                '_divider': 'null',
+                '_emit': False,
+            }
+        }
         ports['process'] = {
             '_default': tuple(),
             '_updater': 'set',

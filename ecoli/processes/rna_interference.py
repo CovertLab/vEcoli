@@ -59,7 +59,7 @@ class RnaInterference(Process):
     
     def ports_schema(self):
         return {
-            'bulk': numpy_schema('bulk', partition=False),
+            'bulk': numpy_schema('bulk'),
             'active_ribosome': numpy_schema('active_ribosome',
                 emit=self.parameters['emit_unique']),
             'RNAs': numpy_schema('RNAs',

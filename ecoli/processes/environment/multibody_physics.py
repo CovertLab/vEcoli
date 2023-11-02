@@ -89,15 +89,15 @@ class Multibody(Process):
     Arguments:
         initial_parameters(dict): Accepts the following configuration keys:
 
-        * **jitter_force**: force applied to random positions along agent
+        jitter_force: force applied to random positions along agent
           bodies to mimic thermal fluctuations. Produces Brownian motion.
-        * **agent_shape** (:py:class:`str`): agents can take the shapes
+        agent_shape (:py:class:`str`): agents can take the shapes
           ``rectangle``, ``segment``, or ``circle``.
-        * **bounds** (:py:class:`list`): size of the environment in
+        bounds (:py:class:`list`): size of the environment in
           micrometers, with ``[x, y]``.
-        * **mother_machine** (:py:class:`bool`): if set to ``True``, mother
+        mother_machine (:py:class:`bool`): if set to ``True``, mother
           machine barriers are introduced.
-        * ***animate*** (:py:class:`bool`): interactive matplotlib option to
+        animate (:py:class:`bool`): interactive matplotlib option to
           animate multibody. To run with animation turned on set True, and use
           the TKAgg matplotlib backend:
 

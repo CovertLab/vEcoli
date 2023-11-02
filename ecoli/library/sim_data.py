@@ -1,3 +1,4 @@
+import os
 import re
 import binascii
 from itertools import chain
@@ -7,6 +8,7 @@ from vivarium.library.units import units as vivunits
 from wholecell.utils import units
 from wholecell.utils.unit_struct_array import UnitStructArray
 from wholecell.utils.fitting import normalize
+from wholecell.utils.filepath import ROOT_PATH
 
 from ecoli.analysis.antibiotics_colony import DE_GENES
 from ecoli.processes.polypeptide_elongation import MICROMOLAR_UNITS
@@ -16,8 +18,10 @@ from ecoli.library.initial_conditions import (calculate_cell_mass,
     initialize_unique_molecules, set_small_molecule_counts)
 
 RAND_MAX = 2**31
-SIM_DATA_PATH = 'reconstruction/sim_data/kb/simData.cPickle'
-SIM_DATA_PATH_NO_OPERONS = 'reconstruction/sim_data/kb_no_operons/simData.cPickle'
+SIM_DATA_PATH = os.path.join(ROOT_PATH,
+    'reconstruction/sim_data/kb/simData.cPickle')
+SIM_DATA_PATH_NO_OPERONS = os.path.join(ROOT_PATH,
+    'reconstruction/sim_data/kb_no_operons/simData.cPickle')
 MAX_TIME_STEP = 1
 
 class LoadSimData:
@@ -908,11 +912,9 @@ class LoadSimData:
             '_parallel': parallel,
 
             # stoich
-            'stoich_dict': self.sim_data.process.metabolism.reaction_stoich,
-            'maintenance_reaction': (self.sim_data.process.metabolism.
-                maintenance_reaction),
-            'reaction_catalysts': (self.sim_data.process.metabolism.
-                reaction_catalysts),
+            'stoich_dict': metabolism.reaction_stoich,
+            'maintenance_reaction': metabolism.maintenance_reaction,
+            'reaction_catalysts': metabolism.reaction_catalysts,
             'get_mass': self.sim_data.getter.get_mass,
 
             # wcEcoli parameters
@@ -920,7 +922,6 @@ class LoadSimData:
             'aa_targets_not_updated': aa_targets_not_updated,
             'import_constraint_threshold': self.sim_data.external_state.import_constraint_threshold,
             'exchange_molecules': self.sim_data.external_state.all_external_exchange_molecules,
-            'imports': imports,
 
             # these are options given to the wholecell.sim.simulation
             'use_trna_charging': self.trna_charging,
@@ -930,7 +931,6 @@ class LoadSimData:
             'mechanistic_aa_transport': self.mechanistic_aa_transport,
 
             # variables
-            'media_id': self.sim_data.conditions[self.sim_data.condition]['nutrients'],
             'avogadro': self.sim_data.constants.n_avogadro,
             'cell_density': self.sim_data.constants.cell_density,
             'nutrient_to_doubling_time': self.sim_data.nutrient_to_doubling_time,
@@ -939,9 +939,8 @@ class LoadSimData:
             'cell_dry_mass_fraction': self.sim_data.mass.cell_dry_mass_fraction,
             'ppgpp_id': self.sim_data.molecule_ids.ppGpp,
             'get_ppGpp_conc': self.sim_data.growth_rate_parameters.get_ppGpp_conc,
-            'exchange_data_from_media': self.sim_data.external_state.exchange_data_from_media,
             'get_masses': self.sim_data.getter.get_masses,
-            'kinetic_constraint_reactions': self.sim_data.process.metabolism.kinetic_constraint_reactions,
+            'kinetic_constraint_reactions': metabolism.kinetic_constraint_reactions,
             'doubling_time': self.sim_data.condition_to_doubling_time[self.sim_data.condition],
             'get_biomass_as_concentrations': self.sim_data.mass.getBiomassAsConcentrations,
             'aa_names': self.sim_data.molecule_groups.amino_acids,
@@ -952,6 +951,7 @@ class LoadSimData:
             'constraints_to_disable': metabolism.constraints_to_disable,
             'secretion_penalty_coeff': metabolism.secretion_penalty_coeff,
             'kinetic_objective_weight': metabolism.kinetic_objective_weight,
+            'kinetic_objective_weight_in_range': metabolism.kinetic_objective_weight_in_range,
 
             # these values came from the initialized environment state
             'current_timeline': current_timeline,
@@ -959,23 +959,21 @@ class LoadSimData:
             'imports': imports,
 
             # methods
-            'concentration_updates': self.sim_data.process.metabolism.concentration_updates,
+            'concentration_updates': metabolism.concentration_updates,
             'exchange_data_from_media': self.sim_data.external_state.exchange_data_from_media,
-            'get_kinetic_constraints': self.sim_data.process.metabolism.get_kinetic_constraints,
-            'exchange_constraints': self.sim_data.process.metabolism.exchange_constraints,
+            'get_kinetic_constraints': metabolism.get_kinetic_constraints,
+            'exchange_constraints': metabolism.exchange_constraints,
 
             # ports schema
-            'catalyst_ids': self.sim_data.process.metabolism.catalyst_ids,
-            'kinetic_constraint_enzymes': self.sim_data.process.metabolism.kinetic_constraint_enzymes,
-            'kinetic_constraint_substrates': self.sim_data.process.metabolism.kinetic_constraint_substrates,
+            'catalyst_ids': metabolism.catalyst_ids,
+            'kinetic_constraint_enzymes': metabolism.kinetic_constraint_enzymes,
+            'kinetic_constraint_substrates': metabolism.kinetic_constraint_substrates,
 
             # Used to create conversion matrix that compiles individual fluxes
             # in the FBA solution to the fluxes of base reactions
-            'base_reaction_ids': self.sim_data.process.metabolism.base_reaction_ids,
+            'base_reaction_ids': metabolism.base_reaction_ids,
             'fba_reaction_ids_to_base_reaction_ids': \
-                self.sim_data.process.metabolism.reaction_id_to_base_reaction_id,
-
-            'seed': self.random_state.randint(RAND_MAX),
+                metabolism.reaction_id_to_base_reaction_id,
         }
 
         # TODO Create new config-get with only necessary parts.
@@ -1544,6 +1542,12 @@ class LoadSimData:
             self.sim_data)
         set_small_molecule_counts(bulk_state['count'], self.sim_data, media_id,
             import_molecules, mass_coeff, cell_mass)
+        
+        # Numpy arrays are read-only outside of updaters for safety
+        bulk_state.flags.writeable = False
+        for unique_state in unique_molecules.values():
+            unique_state.flags.writeable = False
+
         return {
             'bulk': bulk_state,
             'unique': unique_molecules,

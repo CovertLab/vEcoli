@@ -121,3 +121,5 @@ process_registry.register(RnaInterference.name, RnaInterference)
 process_registry.register(GlobalClock.name, GlobalClock)
 process_registry.register(MureinDivision.name, MureinDivision)
 process_registry.register(BulkTimelineProcess.name, BulkTimelineProcess)
+
+__all__ = ['processes']
