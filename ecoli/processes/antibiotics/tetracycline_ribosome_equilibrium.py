@@ -50,7 +50,7 @@ class TetracyclineRibosomeEquilibrium(Step):
 
     def ports_schema(self):
         return {
-            'bulk': numpy_schema('bulk', partition=False),
+            'bulk': numpy_schema('bulk'),
             'tetracycline': {
                 '_default': 0 * units.mM,
                 '_emit': True,

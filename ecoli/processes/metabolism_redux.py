@@ -780,7 +780,8 @@ class NetworkFlowModel:
         homeostatic_concs = np.array(homeostatic_concs)
         homeostatic_dm_targets = np.array(homeostatic_dm_targets)
         target_fluxes = np.zeros(self.n_orig_rxns)
-        target_fluxes[self.kinetic_rxn_idx] += kinetic_targets[:, 1]
+        if kinetic_targets is not None:
+            target_fluxes[self.kinetic_rxn_idx] += kinetic_targets[:, 1]
 
         # set up variables
         v_diff_in_range = cp.Variable(self.n_orig_rxns)
