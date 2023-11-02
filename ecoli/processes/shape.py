@@ -5,7 +5,7 @@ Shape
 
 ``Shape`` is used to calculate shape properties using 3D capsule geometry.
 Outputs `length and `surface_area` are determined from inputs `volume` and `width`.
-These variables are required to plug into a `Lattice Environment
+These variables are required to plug into a `Lattice Environment`
 """
 
 import math

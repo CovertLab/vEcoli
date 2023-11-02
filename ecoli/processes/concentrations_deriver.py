@@ -26,7 +26,7 @@ class ConcentrationsDeriver(Step):
 
     def ports_schema(self):
         schema = {
-            'bulk': numpy_schema('bulk', partition=False),
+            'bulk': numpy_schema('bulk'),
             'counts': {
                 variable: {
                     '_default': 0,  # In counts

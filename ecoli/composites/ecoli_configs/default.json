@@ -15,7 +15,8 @@
     "log_updates" : false,
     "raw_output" : true,
     "seed": 0,
-    "partition": true,
+    "mar_regulon": false,
+    "amp_lysis": false,
 
     "initial_state_file": "",
     "initial_state_overrides": [],
