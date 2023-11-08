@@ -2,6 +2,10 @@
 
 name: Pytest
 
+# Improves reproducibility and speed
+env:
+  OPENBLAS_NUM_THREADS: 1
+
 on:
   push:
     branches: [master]
