@@ -53,16 +53,16 @@ def run_ecoli_with_metabolism_redux(
 # disables growth rate control
 def run_ecoli_with_metabolism_redux_classic(
         filename='metabolism_redux_classic',
-        total_time=3000,
+        total_time=6000,
         divide=True,
         initial_state_file='wcecoli_t0', # 'met_division_test_state',
         progress_bar=True,
         log_updates=False,
-        emitter='timeseries',
+        emitter='timeseries', # 'timeseries',
         name='metabolism-redux-classic',
         raw_output=False,
         save=True,
-        save_times=[1000, 2000, 3000],
+        save_times=[1000, 3000, 5000],
 ):
     # filename = 'default'
     sim = EcoliSim.from_file(CONFIG_DIR_PATH + filename + '.json')
@@ -97,7 +97,7 @@ def run_ecoli_with_metabolism_redux_classic(
 
     query = []
     folder = f'out/cofactors/{name}_{total_time}_{datetime.date.today()}/'
-    save_sim_output(folder, query, sim, save_model=True)
+    save_sim_output(folder, query, sim, save_model=False)
 
 
 @pytest.mark.slow
@@ -238,13 +238,14 @@ experiment_library = {
 def save_sim_output(folder, query, sim, save_model=False):
     agents = sim.query()['agents'].keys()
     for agent in agents:
+        query = []
         query.extend([('agents', agent, 'listeners', 'fba_results'),
                       ('agents', agent, 'listeners', 'mass'),
                       ('agents', agent, 'listeners', 'unique_molecule_counts'),
                       ('agents', agent, 'bulk')])
-    output = sim.query(query)
-    pathlib.Path(folder).mkdir(parents=True, exist_ok=True)
-    np.save(folder + 'output.npy', output)
+        output = sim.query(query)
+        pathlib.Path(folder).mkdir(parents=True, exist_ok=True)
+        np.save(folder +  f'{agent}_output.npy', output)
 
     if save_model:
         f = open(folder + 'agent_steps.pkl', 'wb')
