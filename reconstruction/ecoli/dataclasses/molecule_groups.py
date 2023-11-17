@@ -110,6 +110,20 @@ class MoleculeGroups(object):
 			mol + '[c]' for mol
 			in find_protein_subunits(sim_data.molecule_ids.full_RNAP[:-3])
 			]
+		
+		# Build list of codons
+		codon_ids = []
+		ntp_abbreviations = [ntp[0] for ntp in ntp_ids]
+		for nucleotide_0 in ntp_abbreviations:
+			for nucleotide_1 in ntp_abbreviations:
+				for nucleotide_2 in ntp_abbreviations:
+					codon = nucleotide_0 + nucleotide_1 + nucleotide_2
+
+					# Skip stop codons (except UGA, which codes for selenocysteine)
+					if codon in ['UAA', 'UAG']:
+						continue
+
+					codon_ids.append(codon)
 
 		molecule_groups = {
 			'amino_acids': aa_ids,
@@ -182,6 +196,12 @@ class MoleculeGroups(object):
 			'rrnE': ['EG30074', 'EG30081', 'EG30034', 'EG30088'],
 			'rrnG': ['EG30075', 'EG30082', 'EG30035', 'EG30089'],
 			'rrnH': ['EG30076', 'EG30083', 'EG30010', 'EG30045', 'EG30090'],
+
+			# Codons
+			'codons': codon_ids,
+			
+			'initiator_trnas': ['RNA0-306[c]', 'metY-tRNA[c]', 'metZ-tRNA[c]', 'metW-tRNA[c]'],
+			'elongator_trnas': ['metT-tRNA[c]', 'metU-tRNA[c]'],
 		}
 
 		# Initialize molecule groups for how molecules are split between two

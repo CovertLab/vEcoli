@@ -16,7 +16,8 @@ from vivarium.core.composition import simulate_process
 
 from ecoli.library.data_predicates import (
     monotonically_increasing, monotonically_decreasing, all_nonnegative)
-from ecoli.library.schema import numpy_schema, counts, bulk_name_to_idx
+from ecoli.library.schema import (
+    numpy_schema, counts, bulk_name_to_idx, listener_schema)
 
 from ecoli.processes.registries import topology_registry
 from ecoli.processes.partition import PartitionedProcess
@@ -26,7 +27,8 @@ from ecoli.processes.partition import PartitionedProcess
 NAME = 'ecoli-protein-degradation'
 TOPOLOGY = {
     "bulk": ('bulk',),
-    "timestep": ("timestep",)
+    "timestep": ("timestep",),
+    "listeners": ("listeners",),
 }
 topology_registry.register(NAME, TOPOLOGY)
 
@@ -81,7 +83,12 @@ class ProteinDegradation(PartitionedProcess):
 
     def ports_schema(self):
         return {'bulk': numpy_schema('bulk'),
-                'timestep': {'_default': self.parameters['time_step']}}
+                'timestep': {'_default': self.parameters['time_step']},
+                'listeners': {
+                    'monomer_degradation_listener': listener_schema({
+                        'monomers_degraded': (0, self.protein_ids)})
+                }
+            }
 
     def calculate_request(self, timestep, states):
         # In first timestep, convert all strings to indices
@@ -121,11 +128,16 @@ class ProteinDegradation(PartitionedProcess):
             self.degradation_matrix,
             allocated_proteins)
 
-        update = {'bulk': [
-            (self.metabolite_idx, metabolites_delta),
-            (self.protein_idx, -allocated_proteins)
-        ]}
-
+        update = {
+            'bulk': [
+                (self.metabolite_idx, metabolites_delta),
+                (self.protein_idx, -allocated_proteins)],
+            'listeners': {
+                'monomer_degradation_listener': {
+                    'monomers_degraded': allocated_proteins
+                }
+            }
+        }
         return update
 
 

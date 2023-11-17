@@ -70,7 +70,11 @@ class ChromosomeStructure(Step):
             'amino_acids': [],
             'water': 'water',
             'seed': 0,
-            'emit_unique': False
+            'emit_unique': False,
+
+            'ribosome_profiling_molecules': {},
+            'ribosome_profiling_molecule_indexes': {},
+            'ribosome_profiling_listener_sizes': {},
         }
 
     # Constructor
@@ -123,6 +127,14 @@ class ChromosomeStructure(Step):
 
         self.random_state = np.random.RandomState(
             seed=self.parameters['seed'])
+        
+        self.ribosome_profiling_molecules = self.parameters[
+            'ribosome_profiling_molecules']
+        self.ribosome_profiling_molecule_indexes = self.parameters[
+            'ribosome_profiling_molecule_indexes']
+        self.ribosome_profiling_listener_sizes = self.parameters[
+            'ribosome_profiling_listener_sizes']
+
 
     def ports_schema(self):
         ports = {
@@ -133,7 +145,11 @@ class ChromosomeStructure(Step):
                     'n_codirectional_collisions': 0,
                     'headon_collision_coordinates': [],
                     'codirectional_collision_coordinates': [],
-                    'n_removed_ribosomes': 0})},
+                    'n_removed_ribosomes': 0}),
+                'trna_charging': listener_schema({
+                    f'collision_removed_ribosomes_{gene}': 0
+                    for gene in self.ribosome_profiling_molecules.values()
+                })},
             'bulk': numpy_schema('bulk'),
 
             # Unique molecules
@@ -324,6 +340,10 @@ class ChromosomeStructure(Step):
                         RNAP_headon_collision_mask],
                     'codirectional_collision_coordinates': RNAP_coordinates[
                         RNAP_codirectional_collision_mask]
+                },
+                'trna_charging': {
+                    f'collision_removed_ribosomes_{gene}': 0
+                    for gene in self.ribosome_profiling_molecules.values()
                 }
             },
             'bulk': [],
@@ -547,7 +567,23 @@ class ChromosomeStructure(Step):
         # Remove ribosomes that are bound to missing RNA molecules. This
         # includes both RNAs removed by this function and RNAs removed
         # by other processes (e.g. RNA degradation).
+        collision_removed_ribosomes = {}
+        for molecule, gene in self.ribosome_profiling_molecules.items():
+            listener_size = self.ribosome_profiling_listener_sizes[molecule]
+            collision_removed_ribosomes[gene] = np.zeros(listener_size)
+
         if n_removed_ribosomes > 0:
+            protein_indexes, peptide_lengths = attrs(states['active_ribosome'],
+                ['protein_index', 'peptide_length'])
+            
+            for molecule, gene in self.ribosome_profiling_molecules.items():
+                molecule_index = self.ribosome_profiling_molecule_indexes[molecule]
+                ribosomes_removed = np.logical_and(
+                    removed_ribosomes_mask, protein_indexes == molecule_index)
+                if np.any(ribosomes_removed):
+                    for position in peptide_lengths[ribosomes_removed]:
+                        collision_removed_ribosomes[gene][position] += 1
+
             update['active_ribosome'].update({
                 'delete': np.where(removed_ribosomes_mask)[0]})
 
@@ -589,6 +625,11 @@ class ChromosomeStructure(Step):
         # Write to listener
         update['listeners']['rnap_data'][
             'n_removed_ribosomes'] = n_removed_ribosomes
+        
+        for molecule, gene in self.ribosome_profiling_molecules.items():
+            update['listeners']['trna_charging'][
+                f'collision_removed_ribosomes_{gene}'
+                ] = collision_removed_ribosomes[gene]
 
 
         def get_replicated_motif_attributes(old_coordinates, old_domain_indexes):

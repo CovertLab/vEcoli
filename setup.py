@@ -33,3 +33,14 @@ setup(
 	ext_modules = fast_polymerize_sums_module,
 	include_dirs = [np.get_include()],
 	)
+
+trna_charging_module = cythonize(
+	os.path.join("wholecell", "utils", "_trna_charging.pyx"),
+	# annotate=True, # emit an html file with annotated C code
+	)
+
+setup(
+	name = "tRNA Charging",
+	ext_modules = trna_charging_module,
+	include_dirs = [np.get_include()]
+	)

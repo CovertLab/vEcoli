@@ -14,6 +14,7 @@ efficiency, and the counts of each type of transcript.
 import numpy as np
 
 from vivarium.core.composition import simulate_process
+from vivarium.library.dict_utils import deep_merge
 from ecoli.library.schema import (create_unique_indexes, numpy_schema, attrs,
     counts, bulk_name_to_idx, listener_schema)
 
@@ -62,6 +63,9 @@ class PolypeptideInitiation(PartitionedProcess):
         'monomer_ids': [],
         'emit_unique': False,
         'time_step': 1,
+        'ribosome_profiling_molecules': {},
+        'ribosome_profiling_molecule_indexes': {},
+        'ribosome_profiling_number_of_ribosomes': {},
     }
 
     def __init__(self, parameters=None):
@@ -105,17 +109,18 @@ class PolypeptideInitiation(PartitionedProcess):
         # Use separate random state instance to create unique indices
         # so results are directly comparable with wcEcoli
         self.unique_idx_random_state = np.random.RandomState(seed=self.seed)
-
-        self.empty_update = {
-            'listeners': {
-                'ribosome_data': {
-                    'ribosomes_initialized': 0,
-                    'prob_translation_per_transcript': 0.0}}}
         
         self.monomer_ids = self.parameters['monomer_ids']
         
         # Helper indices for Numpy indexing
         self.ribosome30S_idx = None
+
+        self.ribosome_profiling_molecules = self.parameters[
+            'ribosome_profiling_molecules']
+        self.ribosome_profiling_molecule_indexes = self.parameters[
+            'ribosome_profiling_molecule_indexes']
+        self.ribosome_profiling_number_of_ribosomes = self.parameters[
+            'ribosome_profiling_number_of_ribosomes']
 
     def ports_schema(self):
         return {
@@ -134,7 +139,13 @@ class PolypeptideInitiation(PartitionedProcess):
                         self.monomer_ids),
                     'ribosome_init_event_per_monomer': (
                         [0] * len(self.monomer_ids), self.monomer_ids),
-                    'effective_elongation_rate': 0.0}),
+                    'effective_elongation_rate': 0.0,
+                    'activation_prob': 0,
+                    'n_ribosomes_to_activate': 0}),
+                'trna_charging': listener_schema({
+                    f'ribosome_initiation_{gene}': 0
+                    for gene in self.ribosome_profiling_molecules.values()
+                })
             },
             'active_ribosome': numpy_schema('active_ribosome',
                 emit=self.parameters['emit_unique']),
@@ -184,6 +195,19 @@ class PolypeptideInitiation(PartitionedProcess):
 
 
     def evolve_state(self, timestep, states):
+        update = {
+            'active_ribosome': {},
+            'listeners': {
+                'ribosome_data': {
+                    'ribosomes_initialized': 0,
+                    'prob_translation_per_transcript': 0.0,
+                    'activation_prob': 0,
+                    'n_ribosomes_to_activate': 0},
+                'trna_charging': {
+                    f'ribosome_initiation_{gene}': 0
+                    for gene in self.ribosome_profiling_molecules.values()
+                }}}
+
         # Calculate number of ribosomes that could potentially be initialized
         # based on counts of free 30S and 50S subunits
         inactive_ribosome_count = np.min([
@@ -247,10 +271,11 @@ class PolypeptideInitiation(PartitionedProcess):
         n_ribosomes_to_activate = np.int64(activation_prob
             * inactive_ribosome_count)
 
+        update['listeners']['ribosome_data']['activation_prob'] = activation_prob
+        update['listeners']['ribosome_data'][
+            'n_ribosomes_to_activate'] = n_ribosomes_to_activate
         if n_ribosomes_to_activate == 0:
-            update = dict(self.empty_update)
-            update['active_ribosome'] = {}
-            return self.empty_update
+            return update
         
         # Cap the initiation probabilities at the maximum level physically
         # allowed from the known ribosome footprint sizes based on the
@@ -291,6 +316,10 @@ class PolypeptideInitiation(PartitionedProcess):
         nonzero_count = (n_new_proteins > 0)
         start_index = 0
 
+        ribosome_initiations_on_MOIs = {}
+        for molecule, gene in self.ribosome_profiling_molecules.items():
+            ribosome_initiations_on_MOIs[gene] = np.array([], dtype=np.int64)
+
         for protein_index, protein_counts in zip(
                 np.arange(n_new_proteins.size)[nonzero_count],
                 n_new_proteins[nonzero_count]):
@@ -329,13 +358,22 @@ class PolypeptideInitiation(PartitionedProcess):
             positions_on_mRNA[start_index:start_index + protein_counts] = np.repeat(
                 cistron_start_positions, n_ribosomes_per_RNA
                 )
+            
+            for molecule, gene in self.ribosome_profiling_molecules.items():
+                molecule_index = self.ribosome_profiling_molecule_indexes[molecule]
+                if protein_index == molecule_index:
+                    identifier = mRNA_indexes[start_index:start_index + protein_counts]
+                    for x in identifier:
+                        if x not in self.ribosome_profiling_number_of_ribosomes[gene]:
+                            self.ribosome_profiling_number_of_ribosomes[gene].append(x)
+                    ribosome_initiations_on_MOIs[gene] = identifier
 
             start_index += protein_counts
 
         # Create active 70S ribosomes and assign their attributes
         ribosome_indices = create_unique_indexes(
             n_ribosomes_to_activate, self.unique_idx_random_state)
-        update = {
+        update = deep_merge(update, {
             'bulk': [
                 (self.ribosome30S_idx, -n_new_proteins.sum()),
                 (self.ribosome50S_idx, -n_new_proteins.sum())
@@ -356,7 +394,11 @@ class PolypeptideInitiation(PartitionedProcess):
                     'ribosome_init_event_per_monomer': n_new_proteins,
                     'target_prob_translation_per_transcript': target_protein_init_prob,
                     'actual_prob_translation_per_transcript': actual_protein_init_prob,
-                    'mRNA_is_overcrowded': is_overcrowded}}}
+                    'mRNA_is_overcrowded': is_overcrowded},
+                'trna_charging': {
+                    f'ribosome_initiation_{gene}': ribosome_initiations_on_MOIs[gene]
+                    for gene in self.ribosome_profiling_molecules.values()
+                }}})
 
         return update
 

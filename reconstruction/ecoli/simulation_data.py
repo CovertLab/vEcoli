@@ -82,6 +82,7 @@ class SimulationDataEcoli(object):
 		self.relation = Relation(raw_data, self)
 
 		self.translation_supply_rate = {}
+		self.codon_read_rate = {}
 		self.pPromoterBound = {}
 
 

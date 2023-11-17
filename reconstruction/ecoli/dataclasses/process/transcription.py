@@ -821,6 +821,13 @@ class Transcription(object):
 			tu['id']: sorted(tu['evidence']) for tu in raw_data.transcription_units
 		}
 
+		# Record anticodons
+		rna_id_to_anticodon = {}
+		for rna in raw_data.rnas:
+			if rna['type'] == 'tRNA':
+				rna_id_to_anticodon[rna['id']] = rna['anticodon']
+		anticodons = [rna_id_to_anticodon.get(rna, '') for rna in rna_ids]
+
 		rna_data = np.zeros(
 			n_rnas,
 			dtype = [
@@ -843,6 +850,7 @@ class Transcription(object):
 				('is_unprocessed', 'bool'),
 				('includes_ribosomal_protein', 'bool'),
 				('includes_RNAP', 'bool'),
+				('anticodon', 'U3'),
 				]
 			)
 
@@ -865,6 +873,7 @@ class Transcription(object):
 		rna_data['is_unprocessed'] = is_unprocessed
 		rna_data['includes_ribosomal_protein'] = includes_ribosomal_protein
 		rna_data['includes_RNAP'] = includes_RNAP
+		rna_data['anticodon'] = anticodons
 
 		field_units = {
 			'id': None,
@@ -886,6 +895,7 @@ class Transcription(object):
 			'is_unprocessed': None,
 			'includes_ribosomal_protein': None,
 			'includes_RNAP': None,
+			'anticodon': None,
 			}
 
 		self.rna_data = UnitStructArray(rna_data, field_units)

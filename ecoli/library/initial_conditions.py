@@ -9,7 +9,7 @@ import scipy.sparse
 from ecoli.library.schema import attrs, bulk_name_to_idx, \
     create_unique_indexes, counts
 from ecoli.models.polypeptide_elongation_models import (
-    calculate_trna_charging, REMOVED_FROM_CHARGING, MICROMOLAR_UNITS)
+    calculate_steady_state_trna_charging, REMOVED_FROM_CHARGING, MICROMOLAR_UNITS)
 from wholecell.utils import units
 from wholecell.utils.fitting import (countsFromMassAndExpression,
                                      masses_and_counts_for_homeostatic_target,
@@ -104,7 +104,7 @@ def initialize_bulk_counts(sim_data, media_id, import_molecules, random_state,
 def initialize_unique_molecules(bulk_state, sim_data, cell_mass, random_state,
                                 unique_id_rng, superhelical_density,
                                 ppgpp_regulation, trna_attenuation,
-                                mechanistic_replisome):
+                                mechanistic_replisome, kinetic_trna_charging):
     unique_molecules = {}
 
     # Initialize counts of full chromosomes
@@ -132,7 +132,7 @@ def initialize_unique_molecules(bulk_state, sim_data, cell_mass, random_state,
 
     # Initialize active ribosomes
     initialize_translation(bulk_state, unique_molecules, sim_data, random_state,
-                           unique_id_rng)
+                           unique_id_rng, kinetic_trna_charging)
 
     return unique_molecules
 
@@ -1181,7 +1181,7 @@ def initialize_chromosomal_segments(unique_molecules, sim_data, unique_id_rng):
 
 
 def initialize_translation(bulk_state, unique_molecules, sim_data,
-                           random_state, unique_id_rng):
+                           random_state, unique_id_rng, kinetic_trna_charging):
     """
     Activate ribosomes as unique molecules, and distribute them along lengths
     of mRNAs, while decreasing counts of unactivated ribosomal subunits (30S
@@ -1201,6 +1201,9 @@ def initialize_translation(bulk_state, unique_molecules, sim_data,
         sim_data.process.translation.translation_efficiencies_by_monomer)
     aa_weights_incorporated = \
         sim_data.process.translation.translation_monomer_weights
+    if kinetic_trna_charging:
+        protein_sequences = sim_data.relation.codon_sequences
+        aa_weights_incorporated = sim_data.relation.residue_weights_by_codon
     end_weight = sim_data.process.translation.translation_end_weight
     cistron_lengths = sim_data.process.transcription.cistron_data[
         'length'].asNumber(units.nt)
@@ -1558,7 +1561,8 @@ def calculate_cell_mass(bulk_state, unique_molecules, sim_data):
     return units.fg * cell_mass
 
 
-def initialize_trna_charging(bulk_state, unique_molecules, sim_data, variable_elongation):
+def initialize_steady_state_trna_charging(bulk_state, unique_molecules, sim_data, 
+                                          variable_elongation):
     '''
     Initializes charged tRNA from uncharged tRNA and amino acids
 
@@ -1623,7 +1627,7 @@ def initialize_trna_charging(bulk_state, unique_molecules, sim_data, variable_el
             ]),
         'unit_conversion': metabolism.get_amino_acid_conc_conversion(MICROMOLAR_UNITS)
     }
-    fraction_charged, *_ = calculate_trna_charging(synthetase_conc, uncharged_trna_conc,
+    fraction_charged, *_ = calculate_steady_state_trna_charging(synthetase_conc, uncharged_trna_conc,
         charged_trna_conc, aa_conc, ribosome_conc, f, charging_params)
 
     # Update counts of tRNA to match charging
@@ -1632,3 +1636,38 @@ def initialize_trna_charging(bulk_state, unique_molecules, sim_data, variable_el
     uncharged_trna_counts = total_trna_counts - charged_trna_counts
     bulk_state['count'][charged_trna_idx] = charged_trna_counts
     bulk_state['count'][uncharged_trna_idx] = uncharged_trna_counts
+
+def initialize_kinetic_trna_charging(bulk_molecules, sim_data):
+    '''
+    Initializes tRNAs involved in the KineticTrnaChargingModel.
+    '''
+    def get_f_free(trna, condition):
+        if trna == 'selC-tRNA[c]':
+            return 0.2 # Initialized to 80% charged
+
+        key = f'{trna}__{condition}'
+        if key not in sim_data.relation.trna_condition_to_free_fraction:
+            key = f'{trna}__basal'
+        return sim_data.relation.trna_condition_to_free_fraction[key]
+
+    # Molecules
+    rna_data = sim_data.process.transcription.rna_data
+    free_trnas = rna_data['id'][rna_data['is_tRNA']]
+    charged_trnas = sim_data.process.transcription.charged_trna_names
+
+    # Fraction free
+    f_free = [get_f_free(trna, sim_data.condition) for trna in free_trnas]
+
+    # Views
+    free_trna_idx = bulk_name_to_idx(free_trnas, bulk_molecules['id'])
+    charged_trna_idx = bulk_name_to_idx(charged_trnas, bulk_molecules['id'])
+
+    # Distribute tRNA counts
+    n_total = counts(bulk_molecules, free_trna_idx) + counts(
+        bulk_molecules, charged_trna_idx)
+    n_free = np.round(f_free * n_total)
+    n_charged = n_total - n_free
+
+    # Update bulk molecules
+    bulk_molecules['count'][free_trna_idx] = n_free
+    bulk_molecules['count'][charged_trna_idx] = n_charged

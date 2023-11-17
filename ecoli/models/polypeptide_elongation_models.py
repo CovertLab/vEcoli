@@ -6,9 +6,15 @@ import numpy as np
 from scipy.integrate import solve_ivp
 from vivarium.library.units import units as vivunits
 
-from ecoli.library.schema import counts
+from ecoli.library.schema import counts, bulk_name_to_idx
 from wholecell.utils import units
 from wholecell.utils.random import stochasticRound
+
+from wholecell.utils.polymerize import polymerize, buildSequences
+from wholecell.utils._trna_charging import (
+    reconcile_via_ribosome_positions, reconcile_via_trna_pools,
+    get_elongation_rate)
+
 
 MICROMOLAR_UNITS = units.umol / units.L
 REMOVED_FROM_CHARGING = {'L-SELENOCYSTEINE[c]'}
@@ -17,15 +23,30 @@ class BaseElongationModel(object):
     """
     Base Model: Request amino acids according to upcoming sequence, assuming
     max ribosome elongation.
+
+    Elongations polypeptides according to their amino acid sequences.
     """
     def __init__(self, parameters, process):
         self.parameters = parameters
+
+        # Amino acid sequence
+        self.protein_sequences = self.parameters['protein_sequences']
+        self.protein_lengths = self.parameters['protein_lengths']
+        self.monomer_weights_incorporated = self.parameters[
+            'monomer_weights_incorporated']
+        self.n_monomers = self.parameters['n_monomers']
         self.process = process
         self.basal_elongation_rate = self.parameters['basal_elongation_rate']
         self.ribosomeElongationRateDict = self.parameters[
             'ribosomeElongationRateDict']
+        self.zero_charged_holder = np.zeros(len(
+            self.parameters['uncharged_trna_names']))
 
-    def elongation_rate(self, states):
+    def elongation_rate(self, states, protein_indexes, peptide_lengths):
+        """
+        Sets ribosome elongation rate accordint to the media; returns 
+        max value of 22 amino acids/second.
+        """
         current_media_id = states['environment']['media_id']
         rate = self.process.elngRateFactor * self.ribosomeElongationRateDict[
             current_media_id].asNumber(units.aa / units.s)
@@ -34,30 +55,49 @@ class BaseElongationModel(object):
     def amino_acid_counts(self, aasInSequences):
         return aasInSequences
 
-    def request(self, states, aasInSequences):
-        aa_counts_for_translation = self.amino_acid_counts(aasInSequences)
+    def request(self, states, aasInSequences, protein_indexes, peptide_lengths):
+        aa_request = self.amino_acid_counts(aasInSequences)
 
         requests = {
-            'bulk': [(self.process.amino_acid_idx, aa_counts_for_translation)]
+            'bulk': [(self.process.amino_acid_idx, aa_request)]
         }
 
         # Not modeling charging so set fraction charged to 0 for all tRNA
-        fraction_charged = np.zeros(len(self.process.amino_acid_idx))
+        return self.zero_charged_holder, aa_request, requests
+    
+    def monomer_to_aa(self, monomer):
+        return monomer
 
-        return fraction_charged, aa_counts_for_translation, requests
+    def monomer_limit(self, states, monomer_count_in_sequence):
+        allocated_aas = counts(states['bulk'], self.process.amino_acid_idx)
+        return allocated_aas, allocated_aas
 
-    def final_amino_acids(self, total_aa_counts, charged_trna_counts):
-        return total_aa_counts
+    def next_amino_acids(self, all_sequences, sequence_elongations):
+        return 0
 
-    def evolve(self, states, total_aa_counts, aas_used,
-        next_amino_acid_count, nElongations, nInitialized):
+    def evolve(self, states, aas_used, next_amino_acid_count, nElongations, 
+               nInitialized, trna_chagnes, monomerUsages, 
+               initial_methionines_cleaved):
         # Update counts of amino acids and water to reflect polymerization
         # reactions
-        net_charged = np.zeros(len(self.parameters['uncharged_trna_names']))
-        return net_charged, {}, {
+        return self.zero_charged_holder, {}, {
             'bulk': [(self.process.amino_acid_idx, -aas_used),
                 (self.process.water_idx, nElongations - nInitialized)]
         }
+    
+    def reconcile(self, states, result):
+        aas_used = result.monomerUsages
+        return result, aas_used, [], {}
+
+    def sequences(self, sequences):
+        return sequences
+
+    def protein_maturation(self, states, didTerminate, terminatedProteins, 
+                           protein_indexes):
+        return didTerminate, terminatedProteins, 0, {}
+
+    def codon_sequences_width(self, elongation_rates):
+        return elongation_rates
 
     def isTimeStepShortEnough(self, inputTimeStep, timeStepSafetyFraction):
          return True
@@ -73,7 +113,10 @@ class TranslationSupplyElongationModel(BaseElongationModel):
     def __init__(self, parameters, process):
         super().__init__(parameters, process)
 
-    def elongation_rate(self, states):
+    def elongation_rate(self, states, protein_indexes, peptide_lengths):
+        """
+        Sets ribosome elongation rate at 22 amino acids/second.
+        """
         return self.basal_elongation_rate
 
     def amino_acid_counts(self, aasInSequences):
@@ -160,7 +203,7 @@ class SteadyStateElongationModel(TranslationSupplyElongationModel):
         self.import_constraint_threshold = self.parameters[
             'import_constraint_threshold'] * vivunits.mM
     
-    def elongation_rate(self, states):
+    def elongation_rate(self, states, protein_indexes, peptide_lengths):
         if (self.process.ppgpp_regulation and 
             not self.process.disable_ppgpp_elongation_inhibition
         ):
@@ -172,10 +215,12 @@ class SteadyStateElongationModel(TranslationSupplyElongationModel):
             rate = self.elong_rate_by_ppgpp(ppgpp_conc,
                 self.basal_elongation_rate).asNumber(units.aa / units.s)
         else:
-            rate = super().elongation_rate(states)
+            rate = super().elongation_rate(states, protein_indexes, 
+                                           peptide_lengths)
         return rate
 
-    def request(self, states, aasInSequences):
+    def request(self, states, monomers_in_sequences, 
+                protein_indexes, peptide_lengths):
         self.max_time_step = min(self.process.max_time_step,
                                  self.max_time_step * self.time_step_increase)
 
@@ -209,7 +254,7 @@ class SteadyStateElongationModel(TranslationSupplyElongationModel):
         ribosome_counts = states['active_ribosome']['_entryState'].sum()
 
         # Get concentration
-        f = aasInSequences / aasInSequences.sum()
+        f = monomers_in_sequences / monomers_in_sequences.sum()
         synthetase_conc = self.counts_to_molar * synthetase_counts
         aa_conc = self.counts_to_molar * aa_counts
         uncharged_trna_conc = self.counts_to_molar * uncharged_trna_counts
@@ -238,9 +283,10 @@ class SteadyStateElongationModel(TranslationSupplyElongationModel):
             )
 
         # Calculate steady state tRNA levels and resulting elongation rate
-        self.charging_params['max_elong_rate'] = self.elongation_rate(states)
+        self.charging_params['max_elong_rate'] = self.elongation_rate(
+            states, protein_indexes, peptide_lengths)
         (fraction_charged, v_rib, synthesis_in_charging, import_in_charging,
-            export_in_charging) = calculate_trna_charging(
+            export_in_charging) = calculate_steady_state_trna_charging(
             synthetase_conc,
             uncharged_trna_conc,
             charged_trna_conc,
@@ -321,6 +367,9 @@ class SteadyStateElongationModel(TranslationSupplyElongationModel):
             request_ppgpp_metabolites = -delta_metabolites
             ppgpp_request = counts(states['bulk'], self.process.ppgpp_idx)
 
+        # Convert fraction charged from AA-based to tRNA-based
+        fraction_charged = np.dot(fraction_charged, self.process.aa_from_trna)
+
         return fraction_charged, aa_counts_for_translation, {
             'bulk': [
                 (self.process.charging_molecule_idx,
@@ -367,15 +416,27 @@ class SteadyStateElongationModel(TranslationSupplyElongationModel):
             }
         }
 
-    def final_amino_acids(self, total_aa_counts, charged_trna_counts):
+    def monomer_limit(self, states, aa_count_in_sequence):
+        charged_trna_counts = counts(states['bulk'], self.process.charged_trna_idx)
         charged_counts_to_uncharge = self.process.aa_from_trna @ charged_trna_counts
-        return np.fmin(total_aa_counts + charged_counts_to_uncharge, self.aa_counts_for_translation)
+        allocated_aas = counts(states['bulk'], self.process.amino_acid_idx)
+        monomer_limit = np.fmin(allocated_aas + charged_counts_to_uncharge, self.aa_counts_for_translation)
+        return monomer_limit, monomer_limit
 
-    def evolve(self, states, total_aa_counts, aas_used, next_amino_acid_count, nElongations, nInitialized):
+    def next_amino_acids(self, all_sequences, sequence_elongations):
+        next_amino_acid = all_sequences[np.arange(len(sequence_elongations)), sequence_elongations]
+        next_amino_acid_count = np.bincount(next_amino_acid[next_amino_acid != polymerize.PAD_VALUE], minlength=21)
+        return next_amino_acid_count
+
+    def evolve(self, states, aas_used, next_amino_acid_count, nElongations, 
+               nInitialized, trna_changes, monomerUsages, 
+               initial_methionines_cleaved):
         update = {
             'bulk': [],
             'listeners': {},
         }
+
+        total_aa_counts = counts(states['bulk'], self.process.amino_acid_idx)
 
         # Get tRNA counts
         uncharged_trna = counts(states['bulk'], self.process.uncharged_trna_idx)
@@ -700,7 +761,7 @@ def ppgpp_metabolite_changes(uncharged_trna_conc, charged_trna_conc,
 
     return delta_metabolites, n_syn_reactions, n_deg_reactions, v_rela_syn, v_spot_syn, v_deg, v_deg_inhibited
 
-def calculate_trna_charging(synthetase_conc, uncharged_trna_conc, charged_trna_conc, aa_conc, ribosome_conc,
+def calculate_steady_state_trna_charging(synthetase_conc, uncharged_trna_conc, charged_trna_conc, aa_conc, ribosome_conc,
         f, params, supply=None, time_limit=1000, limit_v_rib=False, use_disabled_aas=False):
     '''
     Calculates the steady state value of tRNA based on charging and incorporation through polypeptide elongation.
@@ -927,3 +988,751 @@ def get_charging_supply_function(
                 )
 
     return supply_function
+
+class KineticTrnaChargingModel(BaseElongationModel):
+    """
+    Kinetic tRNA Charging Model: Elongate polypeptides according to the
+    kinetics limits of tRNA synthetases and the codon sequence.
+
+    Note: L-SELENOCYSTEINE is modeled as unlimited incorporation into
+    polypeptides (as in TranslationSupplyElongationModel) by describing
+    a high kcat.
+    """
+    def __init__(self, parameters, process):
+        super(KineticTrnaChargingModel, self).__init__(parameters, process)
+
+        # Constants
+        self.cell_density = parameters['cellDensity']
+        self.n_avogadro = parameters['n_avogadro']
+
+        # Codon sequences
+        self.protein_sequences = parameters['codon_sequences']
+        self.monomer_weights_incorporated = parameters[
+            'monomer_weights_incorporated_codon']
+        self.n_monomers = parameters['n_codons']
+        self.i_start_codon = parameters['i_start_codon']
+
+        # All molecule IDs
+        self.amino_acids = parameters['amino_acids']
+        self.synthetases = []
+        for amino_acid in self.amino_acids:
+            self.synthetases.append(parameters['amino_acid_to_synthetase'][amino_acid])
+        self.free_trnas = parameters['free_trnas']
+        self.charged_trnas = parameters['charged_trna_names']
+        self.map = 'EG10570-MONOMER[c]'
+        self.atp = 'ATP[c]'
+        self.amp = 'AMP[c]'
+        self.ppi = 'PPI[c]'
+        self.met = 'MET[c]'
+        self.map_idx = None
+        self.is_map_substrate = parameters['is_map_substrate']
+
+        # Tools for interacting with the ODE model
+        self.n_trnas = len(self.free_trnas)
+        self.n_codons = parameters['n_codons']
+        n_codon_trna_pairs = parameters['n_codon_trna_pairs']
+        slice_lengths = [
+            self.n_trnas, # for free trnas
+            self.n_trnas, # for charged trnas
+            len(self.amino_acids), # for amino acids
+            self.n_trnas, # for charging counter
+            self.n_trnas, # for reading counter
+            n_codon_trna_pairs,
+            ]
+        self.molecules_input_size = sum(slice_lengths)
+
+        slices = []
+        previous = 0
+        for length in slice_lengths:
+            slices.append(slice(previous, previous + length))
+            previous += length
+
+        self.slice_free_trnas = slices[0]
+        self.slice_charged_trnas = slices[1]
+        self.slice_amino_acids = slices[2]
+        self.slice_charging_counter = slices[3]
+        self.slice_reading_counter = slices[4]
+        self.slice_codons_to_trnas_counter = slices[5]
+
+        self.trnas_to_amino_acids = parameters['aa_from_trna'].astype(np.int64)
+        self.amino_acids_to_trnas = parameters['aa_from_trna'].T
+        self.trnas_to_codons = parameters['trnas_to_codons']
+        self.codons_to_trnas = parameters['trnas_to_codons'].T.astype(np.bool)
+        self.codons_to_amino_acids = parameters['codons_to_amino_acids']
+        self.trnas_to_amino_acid_indexes = np.zeros(self.n_trnas, dtype=np.int8)
+        for i in range(self.trnas_to_amino_acids.shape[1]):
+            j = np.where(self.trnas_to_amino_acids[:, i])[0][0]
+            self.trnas_to_amino_acid_indexes[i] = j
+        self.max_attempts = np.byte(4)
+
+        # Kinetic parameters
+        # Set selenocysteine to a high value to represent unlimited
+        # charging
+        self.k_cat__per_s = np.array(
+            [parameters['synthetase_to_k_cat'].get(
+                synthetase,
+                1e4 / units.s
+            ).asNumber(1/units.s) for synthetase in self.synthetases],
+            dtype=np.float64)
+
+        self.K_M_amino_acid__per_L = np.array(
+            [(parameters['synthetase_to_K_A'].get(
+                synthetase,
+                1 * units.umol / units.L
+            ) * self.n_avogadro
+            ).asNumber(1/units.L) for synthetase in self.synthetases],
+            dtype=np.float64)
+
+        self.K_M_trna__per_L = np.array(
+            [(parameters['trna_to_K_T'].get(
+                trna,
+                1 * units.umol / units.L
+            ) * self.n_avogadro).asNumber(1/units.L) for trna in self.free_trnas],
+            dtype=np.float64)
+
+        # Width buffer: The reconciliation program in this elongation
+        # model uses the surrounding codon sequence (towards both the
+        # N and C terminals) to reconcile disagreements between the
+        # kinetics and sequence limits. This width buffer describes
+        # the additional sequence positions (towards the C terminal)
+        # to view during each time step.
+        self.buffer = 10
+
+        # Previous rate: the previous ribosome elongation rate is
+        # recorded to warm start the next time step's binary search. For
+        # the first time step, the basal elongation rate (~17.3 aa/s) is
+        # used.
+        self.previous_rate = int(self.process.ribosomeElongationRate
+            * self.process.timeStepSec())
+
+    def elongation_rate(self, states, protein_indexes,
+            peptide_lengths):
+        
+        # Cache bulk array indices for molecules of interest
+        if self.map_idx is None:
+            bulk_ids = states['bulk']['id']
+            self.amino_acid_idx = bulk_name_to_idx(self.amino_acids, bulk_ids)
+            self.synthetase_idx = bulk_name_to_idx(self.synthetases, bulk_ids)
+            self.free_trna_idx = bulk_name_to_idx(self.free_trnas, bulk_ids)
+            self.charged_trna_idx = bulk_name_to_idx(self.charged_trnas, bulk_ids)
+            self.map_idx = bulk_name_to_idx(self.map, bulk_ids)
+            self.atp_idx = bulk_name_to_idx(self.atp, bulk_ids)
+            self.amp_idx = bulk_name_to_idx(self.amp, bulk_ids)
+            self.ppi_idx = bulk_name_to_idx(self.ppi, bulk_ids)
+            self.met_idx = bulk_name_to_idx(self.met, bulk_ids)
+
+        self.sequences_width = np.array([np.ceil(
+            (self.basal_elongation_rate * states['timestep'])
+            + self.buffer).astype(int)])
+
+        self.longer_sequences = buildSequences(
+            self.protein_sequences,
+            protein_indexes,
+            peptide_lengths,
+            self.sequences_width)
+
+        target = (self.ribosomeElongationRateDict[
+            states['environment']['media_id']]).asNumber(units.aa / units.s)
+
+        rate = get_elongation_rate(
+            self.longer_sequences,
+            self.previous_rate,
+            states['timestep'],
+            target)
+
+        self.previous_rate = int(rate * states['timestep'])
+        return rate
+
+    def request(self, states, monomers_in_sequences, 
+                protein_indexes, peptide_lengths):
+        '''
+        Requests molecules utilized in the Kinetic tRNA Charging Model.
+
+        Inputs:
+        states (dict): polypeptide elongation view of simulation states
+        monomers_in_sequences (array): codons to encounter
+        protein_indexes (array): protein indexes of active ribosomes
+
+        Returns:
+        f_charged (array): charged fraction of trnas
+        aa_request (array): amino acids requested
+
+        Notes:
+        Requests 1% more amino acids as a buffer pool used during
+        discretization and reconciliation.
+
+        Since only net changes can be made on the tRNAs, only net
+        corresponding changes are made for the metabolites participating
+        in the charging reaction.
+        '''
+
+        # Initiation
+        water_request = monomers_in_sequences[self.i_start_codon]
+
+        # Simulate trna charging and codon reading
+        (amino_acids_used, codons_read, free_trnas, charged_trnas, _, _, 
+            listeners) = self.run_model(
+                states, monomers_in_sequences, 'bulk_total')
+        self.first = amino_acids_used
+
+        # Record the number of codons read for use in monomer_limit().
+        self.codons_kinetics_model = codons_read
+
+        # Request amino acids
+        # Note: + 1 is to enable a non-zero buffer
+        # Request ATP
+        # Note: Assuming all amino acids are used for charging is an
+        # overestimation in this model (actual value would be the net
+        # number of amino acids that end up in charged-tRNAs); but the
+        # overestimation is helpful for reconciliation steps in evolve
+        # so the overestimation is used here.
+        request = {
+            'listeners': listeners,
+            'bulk': [
+                (self.amino_acid_idx, np.ceil(1.01 * (amino_acids_used + 1))),
+                (self.atp_idx, amino_acids_used.sum()),
+                # Request all tRNAs
+                (self.free_trna_idx, counts(states['bulk'], self.free_trna_idx)),
+                (self.charged_trna_idx, counts(states['bulk'], self.charged_trna_idx)),
+                # Request all synthetase enzymes
+                (self.synthetase_idx, counts(states['bulk'], self.synthetase_idx)),
+                # Request methionine aminopeptidase
+                (self.map_idx, counts(states['bulk'], self.map_idx))
+                ]
+        }
+
+        # Termination
+        may_terminate = self.longer_sequences[:, -1] == -1
+        max_to_cleave = np.sum(np.bincount(
+            protein_indexes[may_terminate],
+            minlength=self.protein_sequences.shape[0]
+            )[self.is_map_substrate])
+        water_request += max_to_cleave
+        request['bulk'].append((self.process.water_idx, water_request))
+
+        # Calculate the charged fraction of trnas
+        fraction_charged = charged_trnas / (free_trnas + charged_trnas)
+
+        return fraction_charged, amino_acids_used, request
+
+    def run_model(self, states, codons, bulk_name):
+
+        def ode_model(t, molecules, target_codon_rate, v_max,
+                cell_amino_acid_saturation, K_M_amino_acids, K_M_trnas,
+                amino_acid_limit,
+                ):
+
+            # Parse molecules
+            free_trnas = molecules[self.slice_free_trnas]
+            charged_trnas = molecules[self.slice_charged_trnas]
+            amino_acids_remaining = molecules[self.slice_amino_acids]
+
+            # Adjust target codon reading rate, if needed
+            fraction_charged = (self.trnas_to_codons @ charged_trnas
+                / (self.trnas_to_codons @ charged_trnas
+                    + self.trnas_to_codons @ free_trnas))
+            needs_adjustment = fraction_charged < 0.05
+            adjustment = np.ones_like(target_codon_rate)
+            adjustment[needs_adjustment] = np.sin(10
+                * np.pi
+                * fraction_charged[needs_adjustment])
+            adjusted_codon_rate = np.multiply(adjustment, target_codon_rate)
+
+            # Adjust amino acid saturation, if needed
+            # amino_acid_availability may be 0
+            mask = amino_acid_availability > 0
+            fraction_remaining = np.zeros_like(amino_acids_remaining)
+            fraction_remaining[mask] = (amino_acids_remaining[mask]
+                / amino_acid_availability[mask])
+            needs_adjustment = fraction_remaining < 0.05
+            adjustment = np.ones_like(cell_amino_acid_saturation)
+            adjustment[needs_adjustment] = np.square(np.sin(
+                10 * np.pi * fraction_remaining[needs_adjustment]))
+            adjusted_amino_acid_saturation = np.multiply(
+                adjustment, cell_amino_acid_saturation)
+
+            # Charge tRNAs
+            relative_trnas = free_trnas / K_M_trnas
+            charging_rate = (self.amino_acids_to_trnas
+                @ np.multiply(v_max, adjusted_amino_acid_saturation)
+                * relative_trnas
+                / (1 + (self.amino_acids_to_trnas
+                    @ self.trnas_to_amino_acids
+                    @ relative_trnas)))
+
+            # Describe distribution of codons to be read by each trna
+            # Note: columns of codons_to_trnas sum to 1
+            charged_trnas_tile = np.tile(charged_trnas, (self.n_codons, 1)).T
+            codons_to_trnas = np.where(
+                self.codons_to_trnas, charged_trnas_tile, 0)
+            denominator = codons_to_trnas.sum(axis=0)
+            denominator[denominator == 0] = 1 # to prevent divide by 0
+            codons_to_trnas /= denominator
+
+            # Read codons
+            reading_rate = codons_to_trnas @ adjusted_codon_rate
+
+            # Describe change in molecules
+            dx_dt = np.zeros_like(molecules)
+            dx_dt[self.slice_free_trnas] = -charging_rate + reading_rate
+            dx_dt[self.slice_charged_trnas] = charging_rate - reading_rate
+            dx_dt[self.slice_amino_acids] = -(
+                self.trnas_to_amino_acids @ charging_rate)
+
+            dx_dt[self.slice_charging_counter] = charging_rate
+            dx_dt[self.slice_reading_counter] = reading_rate
+            dx_dt[self.slice_codons_to_trnas_counter] = np.multiply(
+                codons_to_trnas,
+                np.tile(adjusted_codon_rate, (self.n_trnas, 1))
+                )[self.codons_to_trnas]
+
+            return dx_dt # dx/dt
+
+        # Describe ODE model constants
+        if bulk_name == 'bulk_total':
+            # First call in this time step
+            cell_volume = states['listeners']['mass'][
+                'cell_mass'] / self.cell_density
+            cell_volume = cell_volume.asNumber(units.L).astype(np.float64)
+            self.K_M_amino_acids = self.K_M_amino_acid__per_L * cell_volume
+            self.K_M_trnas = self.K_M_trna__per_L * cell_volume
+            cell_amino_acids = counts(self.amino_acid_idx, states[bulk_name])
+            self.cell_amino_acid_saturation = (cell_amino_acids
+                / (self.K_M_amino_acids + cell_amino_acids))
+
+        # Describe ODE model input
+        free_trnas_input = counts(self.free_trna_idx, states[bulk_name])
+        charged_trnas_input = counts(self.charged_trna_idx, states[bulk_name])
+        amino_acid_availability = counts(self.amino_acid_idx, states[bulk_name])
+
+        molecules_input = np.zeros(self.molecules_input_size, dtype=np.int64)
+        molecules_input[self.slice_free_trnas] = free_trnas_input
+        molecules_input[self.slice_charged_trnas] = charged_trnas_input
+        molecules_input[self.slice_amino_acids] = amino_acid_availability
+
+        # Run ODE model
+        ode_result = solve_ivp(
+            ode_model,
+            [0, states['timestep']],
+            molecules_input,
+            args=(
+                codons / states['timestep'],
+                self.k_cat__per_s * counts(self.synthetase_idx, states[bulk_name]),
+                self.cell_amino_acid_saturation,
+                self.K_M_amino_acids,
+                self.K_M_trnas,
+                amino_acid_availability,
+                ),
+            method='RK45',
+            rtol=1e-4, # default is 1e-3
+            atol=1e-7, # default is 1e-6
+            )
+
+        ################################################################
+        # Listening
+        listeners = {}
+        if bulk_name == 'bulk':
+
+            # Get internal time steps of the RK45 solver
+            delta_t = ode_result.t[1:] - ode_result.t[:-1]
+
+            # Record average trna saturation
+            relative_trnas = (ode_result.y[self.slice_free_trnas, :]
+                / self.K_M_trnas[:, None])
+            trna_saturation = (relative_trnas
+                / (1 + (self.amino_acids_to_trnas
+                    @ self.trnas_to_amino_acids
+                    @ relative_trnas)))
+            average_trna_saturation = np.sum(
+                np.multiply(
+                    trna_saturation[:, 1:],
+                    delta_t
+                    ),
+                axis=1) / states['timestep']
+
+            listeners = {
+                'trna_charging': {
+                    'saturation_trna': average_trna_saturation
+                }
+            }
+
+            # Record turnover
+            turnovers = []
+            previous_readings = np.zeros(self.n_trnas, dtype=np.int64)
+            for i in range(ode_result.t.shape[0] - 1):
+
+                # Calculate readings
+                codons_to_trnas_matrix = np.zeros(
+                    (self.n_trnas, self.n_codons), dtype=np.int64)
+                codons_to_trnas_matrix[self.codons_to_trnas]\
+                    = ode_result.y[self.slice_codons_to_trnas_counter, i]
+                readings = codons_to_trnas_matrix.sum(axis=1)
+                delta_readings = readings - previous_readings
+
+                # Calculate incorporation into nascent polypeptides
+                incorporation = (self.trnas_to_amino_acids @ delta_readings)
+
+                # Calculate charged trnas
+                charged_trnas = (self.trnas_to_amino_acids
+                    @ ode_result.y[self.slice_charged_trnas, i])
+
+                # Calculate turnover
+                turnovers.append(
+                    incorporation
+                    / delta_t[i]
+                    / charged_trnas)
+
+                # Record readings
+                previous_readings = readings
+
+            # Calculate average turnover
+            turnovers = np.array(turnovers)
+            average_turnover = np.sum(
+                np.multiply(
+                    turnovers.T,
+                    delta_t
+                    ),
+                axis=1) / states['timestep']
+            listeners['trna_charging']['turnover'] = average_turnover
+
+        ################################################################
+        # Parse ODE results
+        molecules_output = ode_result.y[:, -1]
+        raw_charging = molecules_output[self.slice_charging_counter]
+        raw_reading = molecules_output[self.slice_reading_counter]
+        raw_codons_to_trnas = molecules_output[
+            self.slice_codons_to_trnas_counter]
+
+        ################################################################
+        # Discretize charging events
+
+        # For estimating request: round up
+        if bulk_name == 'bulk_total':
+            chargings = np.ceil(raw_charging).astype(np.int64)
+
+        # For calculating evolve: round stochastically
+        else:
+            chargings = stochasticRound(
+                self.process.random_state, raw_charging).astype(np.int64)
+
+        # Check that the sum of charging events does not exceed the
+        # availability of amino acids
+        amino_acids_used = self.trnas_to_amino_acids @ chargings
+        exceeds_availability = amino_acids_used > amino_acid_availability
+        if np.any(exceeds_availability):
+            for i in np.where(exceeds_availability)[0]:
+                n_undo = amino_acids_used[i] - amino_acid_availability[i]
+                trna_indexes = np.where(self.trnas_to_amino_acids[i])[0]
+
+                for j in range(n_undo):
+                    i_undo = np.argsort(
+                        (chargings - raw_charging)[trna_indexes])[-1]
+                    chargings[trna_indexes[i_undo]] -= 1
+            amino_acids_used = self.trnas_to_amino_acids @ chargings
+            exceeds_availability = amino_acids_used > amino_acid_availability
+            assert np.all(exceeds_availability == False)
+        assert np.all(chargings >= 0)
+
+        ################################################################
+        # Discretize reading events
+
+        # For estimating request: round up
+        if bulk_name == 'bulk_total':
+            codons_to_trnas = np.ceil(raw_codons_to_trnas).astype(np.int64)
+
+        # For calculating evolve: round stochastically
+        else:
+            codons_to_trnas = stochasticRound(
+                self.process.random_state, raw_codons_to_trnas).astype(np.int64)
+
+        # Assemble codons-to-trnas interactions matrix
+        codons_to_trnas_matrix = np.zeros(
+            (self.n_trnas, self.n_codons), dtype=np.int64)
+        codons_to_trnas_matrix[self.codons_to_trnas] = codons_to_trnas
+
+        # Check that all readings are positive
+        readings = codons_to_trnas_matrix.sum(axis=1)
+        assert np.all(readings >= 0)
+
+        # Calculate the number of codons read
+        codons_read = codons_to_trnas_matrix.sum(axis=0)
+
+        ################################################################
+
+        # Calculate the resulting number of trnas
+        free_trnas = (free_trnas_input - chargings + readings)
+        charged_trnas = (charged_trnas_input + chargings - readings)
+
+        # Check that the availability of trnas has not been exceeded
+        if np.any(free_trnas < 0):
+            for i in np.where(free_trnas < 0)[0]:
+                n_undo = abs(free_trnas[i])
+
+                for j in range(n_undo):
+                    chargings[i] -= 1
+
+            assert np.all(chargings >= 0)
+
+            free_trnas = (free_trnas_input - chargings + readings)
+            assert np.all(free_trnas >= 0)
+
+            amino_acids_used = self.trnas_to_amino_acids @ chargings
+
+        if np.any(charged_trnas < 0):
+            for i in np.where(charged_trnas < 0)[0]:
+                n_undo = abs(charged_trnas[i])
+                codon_indexes = np.where(codons_to_trnas_matrix[i])[0]
+
+                for j in range(n_undo):
+                    i_undo = np.argsort(
+                        codons_to_trnas_matrix[i, codon_indexes])[-1]
+                    codons_to_trnas_matrix[i, codon_indexes[i_undo]] -= 1
+
+            readings = codons_to_trnas_matrix.sum(axis=1)
+            assert np.all(readings >= 0)
+
+            charged_trnas = (charged_trnas_input + chargings - readings)
+            assert np.all(charged_trnas >= 0)
+
+        # Update the resulting number of trnas
+        free_trnas = (free_trnas_input - chargings + readings)
+        charged_trnas = (charged_trnas_input + chargings - readings)
+
+        net_charged = charged_trnas - charged_trnas_input
+
+        return (amino_acids_used, codons_read, free_trnas,
+            charged_trnas, chargings, codons_to_trnas_matrix, listeners)
+
+    def monomer_to_aa(self, monomer):
+        return self.codons_to_amino_acids @ monomer
+
+    def monomer_limit(self, allocated_aas, monomer_count_in_sequence):
+        return (
+            self.codons_kinetics_model,
+            self.codons_to_amino_acids @ self.codons_kinetics_model)
+
+    def codon_sequences_width(self, elongation_rates):
+        return self.sequences_width
+
+    def reconcile(self, states, result):
+        # Simulate trna charging and codon reading (using allocated
+        # counts)
+        (amino_acids_used, codons_read, free_trnas, charged_trnas,
+            chargings, codons_to_trnas_matrix, listeners) = self.run_model(
+            result.monomerUsages, 'bulk')
+
+        # Reconcile disagreements between the kinetics-based trna
+        # charging model and sequence-based elongation model
+        disagreements = codons_read - result.monomerUsages
+        listeners = {
+            'trna_charging': {
+                'initial_disagreements': disagreements
+            }
+        }
+
+        if not np.all(result.monomerUsages == codons_read):
+            # Reconcile using ribosome positions
+            reconcile_via_ribosome_positions(
+                result.monomerUsages,
+                result.sequenceElongation,
+                codons_read,
+                self.longer_sequences,
+                self.max_attempts,
+                )
+
+            # Reconcile remaining disagreements (if any) using tRNA pools
+            if not np.all(result.monomerUsages == codons_read):
+                reconcile_via_trna_pools(
+                    result.monomerUsages,
+                    codons_read,
+                    free_trnas,
+                    charged_trnas,
+                    chargings,
+                    amino_acids_used,
+                    codons_to_trnas_matrix,
+                    self.trnas_to_codons,
+                    self.trnas_to_amino_acid_indexes,
+                    )
+
+            result.nReactions = result.monomerUsages.sum()
+
+        # Record the number of charging and reading events
+        listeners['trna_charging']['charging_events'] = chargings
+        listeners['trna_charging']['reading_events'] = \
+            codons_to_trnas_matrix.sum(axis=1)
+        listeners['trna_charging']['codons_to_trnas_counter'] = \
+            codons_to_trnas_matrix[self.codons_to_trnas]
+
+        # Calculate net change of charged trnas
+        net_charged = charged_trnas - counts(
+            states['bulk'], self.charged_trna_idx)
+
+        return result, amino_acids_used, net_charged, listeners
+
+    def sequences(self, sequences):
+        return self.longer_sequences
+
+    def protein_maturation(self, states, did_terminate, terminated_proteins,
+            protein_indexes):
+
+        # Terminated proteins requiring methionine cleavage
+        n_needs_cleaving = terminated_proteins[self.is_map_substrate].sum()
+
+        # Kinetic capacity of methionine aminopeptidase
+        cell_volume = states['listeners']['mass'][
+            'cell_mass'] / self.cell_density
+        v_can_cleave = (1
+            / units.s * 6 # k_cat
+            / self.n_avogadro
+            / cell_volume
+            * counts(self.map_idx, states['bulk'])
+            )
+        n_can_cleave = (v_can_cleave
+            * (units.s * states['timestep'])
+            * cell_volume
+            * self.n_avogadro
+            ).asNumber()
+        n_can_cleave = stochasticRound(
+            self.process.random_state, n_can_cleave)[0]
+
+        # Mature proteins
+        if n_can_cleave >= n_needs_cleaving:
+            cleaved = n_needs_cleaving
+            not_cleaved = 0
+
+        # Determine proteins that cannot terminate in this step
+        else:
+            cleaved = n_can_cleave
+            not_cleaved = n_needs_cleaving - n_can_cleave
+
+            # Randomly select proteins that cannot terminate in this step
+            candidates = np.logical_and(
+                did_terminate,
+                [self.is_map_substrate[x] for x in protein_indexes])
+            i_cannot_cleave = np.random.multinomial(
+                not_cleaved,
+                candidates / candidates.sum()).astype(bool)
+
+            # Remove these proteins from termination
+            did_terminate[i_cannot_cleave] = False
+            terminated_proteins = np.bincount(
+                protein_indexes[did_terminate],
+                minlength = self.protein_sequences.shape[0]
+                )
+
+        # Record
+        listeners = {
+            'trna_charging': {
+                'cleaved': cleaved,
+                'not_cleaved': not_cleaved
+            }
+        }
+
+        return did_terminate, terminated_proteins, cleaved, listeners
+
+    def evolve(self, states, amino_acids_used,
+            next_amino_acid_count, n_elongations, n_initialized,
+            net_charged, monomerUsages, initial_methionines_cleaved):
+
+        # Each net (not absolute) charging event uses an ATP molecule
+        atp_used = np.maximum(net_charged, 0).sum()
+        # Each net (not aboslute) amino acid residue that is
+        # incorporated by a charged trna releases a proton molecule
+        residues_incorporated = abs(np.minimum(net_charged, 0)).sum()
+        update = {
+            'bulk': [
+                # Initialization
+                (self.process.water_idx, -n_initialized),
+                # Net changes in trnas
+                (self.free_trna_idx, -net_charged),
+                (self.charged_trna_idx, net_charged),
+                # Amino acids used
+                (self.amino_acid_idx, -amino_acids_used),
+                # ATP usage during charging
+                (self.atp_idx, -atp_used),
+                (self.amp_idx, atp_used),
+                (self.ppi_idx, atp_used),
+                # Protons released during charging
+                (self.process.proton_idx, residues_incorporated),
+                # The remaining elongation events are modeled as direct
+                # incorporations from amino acid pools, which produce a water
+                # molecule per elongation
+                (self.process.water_idx, n_elongations - residues_incorporated),
+                # Initial methionine cleavage for protein maturation
+                (self.process.water_idx, -initial_methionines_cleaved),
+                (self.met_idx, initial_methionines_cleaved),
+            ]
+        }
+
+        return net_charged, {}, update
+
+
+class CoarseKineticTrnaChargingModel(TranslationSupplyElongationModel):
+    """
+    Coarse Kinetic Model: Elongate polypeptides according to the kinetic
+    limits described by:
+    1) the max measured kcat of tRNA synthetases, or if unavailable
+    2) the max velocity (vmax).
+    """
+    def __init__(self, parameters, process):
+        super().__init__(parameters, process)
+
+        # Describe constants
+        self.cell_density = parameters['cellDensity']
+        self.n_avogadro = parameters['n_avogadro']
+
+        # Describe molecules
+        amino_acid_to_synthetase = parameters['amino_acid_to_synthetase']
+        self.synthetases = []
+        for amino_acid in parameters['amino_acids']:
+            self.synthetases.append(amino_acid_to_synthetase[amino_acid])
+        self.synthetase_idx = None
+
+        # Describe kcats
+        k_cats_dict = parameters['k_cats_dict']
+        k_cats = []
+        curated = []
+        for synthetase in self.synthetases:
+            if synthetase in k_cats_dict:
+                k_cats.append(k_cats_dict[synthetase].asNumber(1/units.s))
+                curated.append(True)
+            else:
+                k_cats.append(0)
+                curated.append(False)
+
+        self.k_cats = (1
+            / units.s
+            * np.array(k_cats)
+            )
+        self.not_curated = np.logical_not(curated)
+
+    def monomer_limit(self, states, monomer_count_in_sequence):
+        # Cache bulk molecule indices for molecules of interest
+        if self.synthetase_idx is None:
+            self.synthetase_idx = bulk_name_to_idx(
+                self.synthetases, states['bulk']['id'])
+
+        # Calculate maximum velocity
+        cell_mass = units.fg * states['listeners']['mass']['cell_mass']
+        cell_volume = cell_mass / self.cell_density
+        c_synthetases = (1
+            / self.n_avogadro
+            / cell_volume
+            * counts(states['bulk'], self.synthetase_idx)
+            )
+        v_max = self.k_cats * c_synthetases
+        n_max = (v_max
+            * (units.s * states['timestep'])
+            * cell_volume
+            * self.n_avogadro
+            ).asNumber()
+        n_max = stochasticRound(self.process.random_state, n_max)
+
+        # Limit monomer availability by maximum velocity
+        allocated_aas = counts(states['bulk'], self.process.amino_acid_idx)
+        kinetics_limited_aas = np.minimum(allocated_aas, n_max)
+
+        # Monomers without curated data are not limited
+        kinetics_limited_aas[self.not_curated] = allocated_aas[self.not_curated]
+
+        return kinetics_limited_aas, kinetics_limited_aas

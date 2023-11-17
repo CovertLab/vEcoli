@@ -67,7 +67,8 @@ class Metabolism(Step):
     defaults = {
         'get_import_constraints': lambda u, c, p: (u, c, []),
         'nutrientToDoublingTime': {},
-        'use_trna_charging': False,
+        'steady_state_trna_charging': False,
+        'kinetic_trna_charging': False,
         'include_ppgpp': False,
         'mechanistic_aa_transport': False,
         'aa_names': [],
@@ -107,7 +108,9 @@ class Metabolism(Step):
         # Use information from the environment and sim
         self.get_import_constraints = self.parameters['get_import_constraints']
         self.nutrientToDoublingTime = self.parameters['nutrientToDoublingTime']
-        self.use_trna_charging = self.parameters['use_trna_charging']
+        self.use_steady_state_trna_charging = self.parameters[
+            'steady_state_trna_charging']
+        self.use_kinetic_trna_charging = self.parameters['kinetic_trna_charging']
         self.include_ppgpp = self.parameters['include_ppgpp']
         self.mechanistic_aa_transport = self.parameters[
             'mechanistic_aa_transport']
@@ -144,7 +147,9 @@ class Metabolism(Step):
             self.nutrientToDoublingTime['minimal'])
         update_molecules = list(self.model.getBiomassAsConcentrations(
             doubling_time).keys())
-        if self.use_trna_charging:
+        if self.use_kinetic_trna_charging:
+            pass
+        elif self.use_steady_state_trna_charging:
             update_molecules += [aa for aa in self.aa_names
                 if aa not in self.aa_targets_not_updated]
             update_molecules += list(self.linked_metabolites.keys())
@@ -419,8 +424,10 @@ class Metabolism(Step):
                 ] / states['listeners']['mass']['protein_mass']
             conc_updates = self.model.getBiomassAsConcentrations(
                 doubling_time, rp_ratio=rp_ratio)
-            
-        if self.use_trna_charging:
+        
+        if self.use_kinetic_trna_charging:
+            pass
+        elif self.use_steady_state_trna_charging:
             conc_updates.update(self.update_amino_acid_targets(
                 counts_to_molar,
                 states['polypeptide_elongation']['aa_count_diff'],
