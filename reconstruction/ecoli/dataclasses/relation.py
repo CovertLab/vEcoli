@@ -199,6 +199,16 @@ class Relation(object):
 		rna_sequences = sim_data.getter.get_sequences(
 			[rna_id[:-3] for rna_id
 			in sim_data.process.transcription.rna_data['id']])
+		# Convert from transcription unit sequences to cistron sequences
+		cistron_bounds = dict(sorted(sim_data.process.transcription.cistron_start_end_pos_in_tu.items()))
+		cistron_sequences = [0] * len(sim_data.process.transcription.cistron_data)
+		for (cistron_idx, tu_idx), (start, end) in cistron_bounds.items():
+			# End base pair is included
+			curr_sequence = rna_sequences[tu_idx][start:end+1]
+			# Some cistrons appear in multiple TUs. Use this redundancy to check sequences.
+			if cistron_sequences[cistron_idx] != 0:
+				assert cistron_sequences[cistron_idx] == curr_sequence
+			cistron_sequences[cistron_idx] = curr_sequence
 
 		# Note: Start codons are distinguished from non-starting AUGs.
 		self.codons = ([sim_data.molecule_ids.start_codon]
@@ -211,7 +221,7 @@ class Relation(object):
 			protein_id = protein_id[:-3]
 
 			# Get mRNA sequence
-			rna_sequence = rna_sequences[self.cistron_to_monomer_mapping[i]]
+			rna_sequence = cistron_sequences[self.cistron_to_monomer_mapping[i]]
 
 			# Represent ribosomal frame shifting
 			if protein_id in coding_segments:
@@ -385,9 +395,9 @@ class Relation(object):
 			'C': ''}
 
 		# Map tRNAs to their anticodons
-		rna_data = sim_data.process.transcription.rna_data
-		free_trnas = rna_data['id'][rna_data['is_tRNA']]
-		anticodons = rna_data['anticodon'][rna_data['is_tRNA']]
+		cistron_data = sim_data.process.transcription.cistron_data
+		free_trnas = cistron_data['id'][cistron_data['is_tRNA']]
+		anticodons = cistron_data['anticodon'][cistron_data['is_tRNA']]
 		trna_to_anticodon = dict(zip(free_trnas, anticodons))
 
 		# Map free and charged tRNAs
@@ -435,10 +445,10 @@ class Relation(object):
 				# wobble codons CGU and CGA.
 				elif codon in ['CGA', 'CGC', 'CGU']:
 					self.codon_to_trnas[codon] = [
-						free_to_charged['argQ-tRNA[c]'],
-						free_to_charged['argV-tRNA[c]'],
-						free_to_charged['argY-tRNA[c]'],
-						free_to_charged['argZ-tRNA[c]'],
+						free_to_charged['argQ-tRNA'],
+						free_to_charged['argV-tRNA'],
+						free_to_charged['argY-tRNA'],
+						free_to_charged['argZ-tRNA'],
 						]
 					continue
 
@@ -448,8 +458,8 @@ class Relation(object):
 				# enables recognition of the cognate codon AUA.
 				elif codon == 'AUA':
 					self.codon_to_trnas[codon] = [
-						free_to_charged['ileX-tRNA[c]'],
-						free_to_charged['RNA0-305[c]'],
+						free_to_charged['ileX-tRNA'],
+						free_to_charged['RNA0-305'],
 						]
 					continue
 

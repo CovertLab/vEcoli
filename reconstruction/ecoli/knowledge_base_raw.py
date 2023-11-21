@@ -75,6 +75,8 @@ LIST_OF_DICT_FILENAMES = [
 	"transcriptional_attenuation_removed.tsv",
 	"tf_one_component_bound.tsv",
 	"translation_efficiency.tsv",
+	"trna_charging_kinetics.tsv",
+	"trna_charging_kinetics_curated.tsv",
 	"trna_charging_reactions.tsv",
 	"trna_charging_reactions_added.tsv",
 	"trna_charging_reactions_removed.tsv",

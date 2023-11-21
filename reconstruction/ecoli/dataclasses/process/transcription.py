@@ -386,6 +386,14 @@ class Transcription(object):
 		max_cistron_id_length = max(len(rna['id']) for rna in all_cistrons)
 		max_gene_id_length = max(len(id_) for id_ in gene_id)
 
+		# Record anticodons
+		rna_id_to_anticodon = {}
+		for rna in raw_data.rnas:
+			if rna['type'] == 'tRNA':
+				rna_id_to_anticodon[rna['id']] = rna['anticodon']
+		cistron_ids = [rna['id'] for rna in all_cistrons]
+		anticodons = [rna_id_to_anticodon.get(rna, '') for rna in cistron_ids]
+
 		cistron_data = np.zeros(
 			n_cistrons,
 			dtype=[
@@ -406,11 +414,12 @@ class Transcription(object):
 				('is_ribosomal_protein', 'bool'),
 				('is_RNAP', 'bool'),
 				('uses_corrected_seq_counts', 'bool'),
-				('is_new_gene','bool')
+				('is_new_gene','bool'),
+				('anticodon', 'U3'),
 				]
 			)
 
-		cistron_data['id'] = [rna['id'] for rna in all_cistrons]
+		cistron_data['id'] = cistron_ids
 		cistron_data['gene_id'] = gene_id
 		cistron_data['length'] = cistron_lengths
 		cistron_data['replication_coordinate'] = replication_coordinate
@@ -428,6 +437,7 @@ class Transcription(object):
 		cistron_data['is_RNAP'] = is_RNAP
 		cistron_data['uses_corrected_seq_counts'] = np.zeros(n_cistrons, dtype=bool)
 		cistron_data['is_new_gene'] = [k.startswith('NG') for k in gene_id]
+		cistron_data['anticodon'] = anticodons
 
 		cistron_field_units = {
 			'id': None,
@@ -447,7 +457,8 @@ class Transcription(object):
 			'is_ribosomal_protein': None,
 			'is_RNAP': None,
 			'uses_corrected_seq_counts': None,
-			'is_new_gene': None
+			'is_new_gene': None,
+			'anticodon': None,
 			}
 
 		self.cistron_data = UnitStructArray(cistron_data, cistron_field_units)
@@ -821,13 +832,6 @@ class Transcription(object):
 			tu['id']: sorted(tu['evidence']) for tu in raw_data.transcription_units
 		}
 
-		# Record anticodons
-		rna_id_to_anticodon = {}
-		for rna in raw_data.rnas:
-			if rna['type'] == 'tRNA':
-				rna_id_to_anticodon[rna['id']] = rna['anticodon']
-		anticodons = [rna_id_to_anticodon.get(rna, '') for rna in rna_ids]
-
 		rna_data = np.zeros(
 			n_rnas,
 			dtype = [
@@ -849,8 +853,7 @@ class Transcription(object):
 				('includes_tRNA', 'bool'),
 				('is_unprocessed', 'bool'),
 				('includes_ribosomal_protein', 'bool'),
-				('includes_RNAP', 'bool'),
-				('anticodon', 'U3'),
+				('includes_RNAP', 'bool')
 				]
 			)
 
@@ -873,7 +876,6 @@ class Transcription(object):
 		rna_data['is_unprocessed'] = is_unprocessed
 		rna_data['includes_ribosomal_protein'] = includes_ribosomal_protein
 		rna_data['includes_RNAP'] = includes_RNAP
-		rna_data['anticodon'] = anticodons
 
 		field_units = {
 			'id': None,
@@ -894,8 +896,7 @@ class Transcription(object):
 			'includes_tRNA': None,
 			'is_unprocessed': None,
 			'includes_ribosomal_protein': None,
-			'includes_RNAP': None,
-			'anticodon': None,
+			'includes_RNAP': None
 			}
 
 		self.rna_data = UnitStructArray(rna_data, field_units)

@@ -20,7 +20,6 @@ from reconstruction.ecoli.dataclasses.growth_rate_dependent_parameters import Ma
 from reconstruction.ecoli.dataclasses.relation import Relation
 
 from wholecell.utils import units
-from Bio.Seq import reverse_complement
 
 __all__ = [
 	'KnowledgeBaseEcoli', 'GetterFunctions', 'MoleculeGroups', 'MoleculeIds',
