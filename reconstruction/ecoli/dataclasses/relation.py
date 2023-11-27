@@ -13,7 +13,7 @@ import copy
 from wholecell.utils import units
 from wholecell.utils.polymerize import polymerize
 
-print_optimization = False
+print_optimization = True
 
 class Relation(object):
 	""" Relation """
@@ -883,7 +883,7 @@ class Relation(object):
 				cases_to_trna_sum[row, cols] = 1
 
 			codon_cases_to_trna_cases = np.zeros(
-				(n_cases, len(codons) * n_conditions), dtype=np.bool)
+				(n_cases, len(codons) * n_conditions), dtype=np.bool_)
 			for i in range(n_conditions):
 				rows = slice(i * len(trnas), (i+1) * len(trnas))
 				cols = slice(i * len(codons), (i+1) * len(codons))
@@ -1245,7 +1245,7 @@ class Relation(object):
 			trna_to_conc = {}
 			for trna in trnas:
 				c_trna = (to_conc
-					* container.count(trna)
+					* container['count'][container['id']==trna+'[c]'][0]
 					).asNumber(self.conc_unit)
 
 				trna_to_conc[trna] = c_trna

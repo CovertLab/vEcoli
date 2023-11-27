@@ -58,6 +58,9 @@ def main():
         help='Use a different elongation rate for different polypeptides'
         ' (currently increases rates for ribosomal proteins).'
         ' Usually set this consistently between runParca and runSim.')
+    parser.add_argument('--optimize-trna-charging-kinetics', default=True,
+        action=argparse.BooleanOptionalAction,
+        help='Use kinetic model of tRNA charging.')
     
     args = parser.parse_args()
 
@@ -93,7 +96,8 @@ def main():
         variable_elongation_transcription=args.variable_elongation_transcription,
         variable_elongation_translation=args.variable_elongation_translation,
         disable_ribosome_capacity_fitting=(not args.ribosome_fitting),
-        disable_rnapoly_capacity_fitting=(not args.rnapoly_fitting)
+        disable_rnapoly_capacity_fitting=(not args.rnapoly_fitting),
+        optimize_trna_charging_kinetics=args.optimize_trna_charging_kinetics,
     )
     print(f"{time.ctime()}: Saving sim_data")
     with open(sim_data_file, 'wb') as f:
