@@ -1242,10 +1242,22 @@ class Relation(object):
 			to_conc = 1 / sim_data.constants.n_avogadro / volume
 			container = cell_specs[condition]['bulkAverageContainer']
 
+			# Convert from TU counts to cistron counts
+			transcription = sim_data.process.transcription
+			rna_data = transcription.rna_data
+			trna_TUs = rna_data['id'][rna_data['includes_tRNA']]
+			sorter = np.argsort(container['id'])
+			trna_TU_idx = np.take(sorter, np.searchsorted(
+				container['id'], trna_TUs, sorter=sorter), mode='clip')
+			trna_cistron_counts = transcription.tRNA_cistron_tu_mapping_matrix.dot(
+				container['count'][trna_TU_idx])
+			trna_cistron_ids = transcription.cistron_data['id'][
+				transcription.cistron_data['is_tRNA']]
+
 			trna_to_conc = {}
 			for trna in trnas:
 				c_trna = (to_conc
-					* container['count'][container['id']==trna+'[c]'][0]
+					* trna_cistron_counts[trna_cistron_ids==trna][0]
 					).asNumber(self.conc_unit)
 
 				trna_to_conc[trna] = c_trna

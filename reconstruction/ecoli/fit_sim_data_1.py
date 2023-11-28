@@ -33,7 +33,7 @@ from wholecell.utils.fitting import normalize, masses_and_counts_for_homeostatic
 
 # Fitting parameters
 # "PHOSPHO-DCUR__active" oscillates just above 1e-9
-# degree of fit in expressionConverge
+# degree of fit in expressionConverge when using operons
 FITNESS_THRESHOLD = 1.1e-9
 MAX_FITTING_ITERATIONS = 300
 N_SEEDS = 10
