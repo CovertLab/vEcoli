@@ -37,7 +37,7 @@ topology_registry.register(NAME, TOPOLOGY)
 # TODO (Cyrus) - Remove when have a better way to handle these rxns.
 # ParCa mistakes in carbon gen, efflux/influx proton gen, mass gen
 BAD_RXNS = ["RXN-12440", "TRANS-RXN-121", "TRANS-RXN-300",
-            "TRANS-RXN-8", "R15-RXN-MET/CPD-479//CPD-479/MET.25."]
+            "TRANS-RXN-8", "R15-RXN-MET/CPD-479//CPD-479/MET.25.", 'TRANS-RXN-218']
 
 FREE_RXNS = ["TRANS-RXN-145", "TRANS-RXN0-545", "TRANS-RXN0-474"]
 
@@ -63,7 +63,7 @@ class MetabolismReduxClassic(Step):
 
         stoich_dict = dict(sorted(self.parameters['stoich_dict'].items()))
         for rxn in BAD_RXNS:
-            stoich_dict.pop(rxn)
+            stoich_dict[rxn] = {}
         # Add maintenance reaction
         stoich_dict['maintenance_reaction'] = self.parameters['maintenance_reaction']
 
@@ -328,7 +328,7 @@ class MetabolismReduxClassic(Step):
         target_kinetic_bounds = enzyme_kinetic_boundaries[:, [0, 2]]
 
         # TODO (Cyrus) solve network flow problem to get fluxes
-        objective_weights = {'secretion': 0.01, 'efficiency': 0.0001, 'kinetics': 0.000001}
+        objective_weights = {'secretion': 0.01, 'efficiency': 0.000001, 'kinetics': 0.0000001}
         solution: FlowResult = self.network_flow_model.solve(
             homeostatic_targets=target_homeostatic_dmdt,
             maintenance_target=maintenance_target,
