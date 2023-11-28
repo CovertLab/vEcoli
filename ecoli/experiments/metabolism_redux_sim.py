@@ -53,7 +53,7 @@ def run_ecoli_with_metabolism_redux(
 # disables growth rate control
 def run_ecoli_with_metabolism_redux_classic(
         filename='metabolism_redux_classic',
-        total_time=6000,
+        total_time=10,
         divide=True,
         initial_state_file='wcecoli_t0', # 'met_division_test_state',
         progress_bar=True,
@@ -61,8 +61,8 @@ def run_ecoli_with_metabolism_redux_classic(
         emitter='timeseries', # 'timeseries',
         name='metabolism-redux-classic',
         raw_output=False,
-        save=True,
-        save_times=[1000, 3000, 5000],
+        # save=True,
+        # save_times=[1000, 3000, 5000],
 ):
     # filename = 'default'
     sim = EcoliSim.from_file(CONFIG_DIR_PATH + filename + '.json')
@@ -73,8 +73,8 @@ def run_ecoli_with_metabolism_redux_classic(
     sim.emitter = emitter
     sim.initial_state = get_state_from_file(path=f'data/{initial_state_file}.json')
     sim.raw_output = raw_output
-    sim.save = save
-    sim.save_times = save_times
+    # sim.save = save
+    # sim.save_times = save_times
 
 
     # # simplify working with uptake
@@ -97,7 +97,7 @@ def run_ecoli_with_metabolism_redux_classic(
 
     query = []
     folder = f'out/cofactors/{name}_{total_time}_{datetime.date.today()}/'
-    save_sim_output(folder, query, sim, save_model=False)
+    save_sim_output(folder, query, sim, save_model=True)
 
 
 @pytest.mark.slow
