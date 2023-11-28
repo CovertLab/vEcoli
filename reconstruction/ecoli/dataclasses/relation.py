@@ -396,7 +396,8 @@ class Relation(object):
 
 		# Map tRNAs to their anticodons
 		cistron_data = sim_data.process.transcription.cistron_data
-		free_trnas = cistron_data['id'][cistron_data['is_tRNA']]
+		free_trnas = np.array([f'{trna}[c]' for trna in 
+			cistron_data['id'][cistron_data['is_tRNA']]])
 		anticodons = cistron_data['anticodon'][cistron_data['is_tRNA']]
 		trna_to_anticodon = dict(zip(free_trnas, anticodons))
 
@@ -445,10 +446,10 @@ class Relation(object):
 				# wobble codons CGU and CGA.
 				elif codon in ['CGA', 'CGC', 'CGU']:
 					self.codon_to_trnas[codon] = [
-						free_to_charged['argQ-tRNA'],
-						free_to_charged['argV-tRNA'],
-						free_to_charged['argY-tRNA'],
-						free_to_charged['argZ-tRNA'],
+						free_to_charged['argQ-tRNA[c]'],
+						free_to_charged['argV-tRNA[c]'],
+						free_to_charged['argY-tRNA[c]'],
+						free_to_charged['argZ-tRNA[c]'],
 						]
 					continue
 
@@ -458,8 +459,8 @@ class Relation(object):
 				# enables recognition of the cognate codon AUA.
 				elif codon == 'AUA':
 					self.codon_to_trnas[codon] = [
-						free_to_charged['ileX-tRNA'],
-						free_to_charged['RNA0-305'],
+						free_to_charged['ileX-tRNA[c]'],
+						free_to_charged['RNA0-305[c]'],
 						]
 					continue
 
@@ -1242,7 +1243,8 @@ class Relation(object):
 			to_conc = 1 / sim_data.constants.n_avogadro / volume
 			container = cell_specs[condition]['bulkAverageContainer']
 
-			# Convert from TU counts to cistron counts
+			# tRNAs are not automatically matured in ParCa and must 
+			# be converted from TUs to cistrons for accurate counts
 			transcription = sim_data.process.transcription
 			rna_data = transcription.rna_data
 			trna_TUs = rna_data['id'][rna_data['includes_tRNA']]

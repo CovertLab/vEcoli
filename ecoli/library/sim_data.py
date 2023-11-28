@@ -38,7 +38,7 @@ class LoadSimData:
         media_timeline: tuple[tuple[int, str]]=((0, 'minimal'),),
         operons: bool=True,
         steady_state_trna_charging: bool=True,
-        kinetic_trna_charging: bool=False,
+        kinetic_trna_charging: bool=True,
         coarse_kinetic_elongation: bool=False,
         ribosome_profiling_molecules: dict[str, Any]=None,
         ppgpp_regulation: bool=True,
@@ -923,8 +923,6 @@ class LoadSimData:
             'is_map_substrate': translation.monomer_data[
                 'cleavage_of_initial_methionine'],
             'amino_acid_to_synthetase': relation.amino_acid_to_synthetase,
-            'free_trnas': transcription.rna_data['id'][
-                transcription.rna_data['is_tRNA']].tolist(),
             'n_codon_trna_pairs': len(relation.trna_codon_pairs),
             'trnas_to_codons': relation.trnas_to_codons,
             'codons_to_amino_acids': relation.codons_to_amino_acids,

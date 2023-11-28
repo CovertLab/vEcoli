@@ -1404,7 +1404,7 @@ def setInitialRnaExpression(sim_data, expression, doubling_time):
 	ids_rRNA = all_RNA_ids[is_rRNA]
 	ids_mRNA = all_RNA_ids[is_mRNA]
 	ids_tRNA = all_RNA_ids[is_tRNA]
-	ids_tRNA_cistrons = cistron_data['id'][cistron_data['is_tRNA']]
+	ids_tRNA_cistrons = transcription.uncharged_trna_names
 
 	# Get mass fractions of each RNA type for this condition
 	initial_rna_mass = (

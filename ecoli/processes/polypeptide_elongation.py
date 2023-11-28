@@ -197,7 +197,7 @@ class PolypeptideElongation(PartitionedProcess):
         self.translation_aa_supply = self.parameters['translation_aa_supply']
 
         # Used for figure in publication
-        self.trpAIndex = np.where(self.proteinIds ==
+        self.trpAIndex = np.where(self.protein_ids ==
             "TRYPSYN-APROTEIN[c]")[0][0]
 
         self.elngRateFactor = 1.
@@ -208,7 +208,7 @@ class PolypeptideElongation(PartitionedProcess):
         # Set modeling method
         # TODO: Test that these models all work properly
         if kinetic_trna_charging:
-            self.elongation = KineticTrnaChargingModel(self.parameters, self)
+            self.elongation_model = KineticTrnaChargingModel(self.parameters, self)
         elif coarse_kinetic_elongation:
             self.elongation_model = CoarseKineticTrnaChargingModel(
                 self.parameters, self)
@@ -434,7 +434,7 @@ class PolypeptideElongation(PartitionedProcess):
             self.rela_idx = bulk_name_to_idx(self.rela, bulk_ids)
             self.spot_idx = bulk_name_to_idx(self.spot, bulk_ids)
             self.ppgpp_idx = bulk_name_to_idx(self.ppgpp, bulk_ids)
-            self.monomer_idx = bulk_name_to_idx(self.proteinIds, bulk_ids)
+            self.monomer_idx = bulk_name_to_idx(self.protein_ids, bulk_ids)
             self.amino_acid_idx = bulk_name_to_idx(self.amino_acids, bulk_ids)
             self.aa_enzyme_idx = bulk_name_to_idx(self.aa_enzymes, bulk_ids)
             self.ppgpp_rxn_metabolites_idx = bulk_name_to_idx(

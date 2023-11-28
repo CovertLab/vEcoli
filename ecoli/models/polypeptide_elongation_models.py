@@ -1017,7 +1017,7 @@ class KineticTrnaChargingModel(BaseElongationModel):
         self.synthetases = []
         for amino_acid in self.amino_acids:
             self.synthetases.append(parameters['amino_acid_to_synthetase'][amino_acid])
-        self.free_trnas = parameters['free_trnas']
+        self.free_trnas = parameters['uncharged_trna_names']
         self.charged_trnas = parameters['charged_trna_names']
         self.map = 'EG10570-MONOMER[c]'
         self.atp = 'ATP[c]'
@@ -1057,7 +1057,7 @@ class KineticTrnaChargingModel(BaseElongationModel):
         self.trnas_to_amino_acids = parameters['aa_from_trna'].astype(np.int64)
         self.amino_acids_to_trnas = parameters['aa_from_trna'].T
         self.trnas_to_codons = parameters['trnas_to_codons']
-        self.codons_to_trnas = parameters['trnas_to_codons'].T.astype(np.bool)
+        self.codons_to_trnas = parameters['trnas_to_codons'].T.astype(np.bool_)
         self.codons_to_amino_acids = parameters['codons_to_amino_acids']
         self.trnas_to_amino_acid_indexes = np.zeros(self.n_trnas, dtype=np.int8)
         for i in range(self.trnas_to_amino_acids.shape[1]):
@@ -1103,7 +1103,7 @@ class KineticTrnaChargingModel(BaseElongationModel):
         # the first time step, the basal elongation rate (~17.3 aa/s) is
         # used.
         self.previous_rate = int(self.process.ribosomeElongationRate
-            * self.process.timeStepSec())
+            * parameters['time_step'])
 
     def elongation_rate(self, states, protein_indexes,
             peptide_lengths):
@@ -1189,8 +1189,8 @@ class KineticTrnaChargingModel(BaseElongationModel):
         request = {
             'listeners': listeners,
             'bulk': [
-                (self.amino_acid_idx, np.ceil(1.01 * (amino_acids_used + 1))),
-                (self.atp_idx, amino_acids_used.sum()),
+                (self.amino_acid_idx, np.ceil(1.01 * (amino_acids_used + 1)).astype(int)),
+                (self.atp_idx, amino_acids_used.sum().astype(int)),
                 # Request all tRNAs
                 (self.free_trna_idx, counts(states['bulk'], self.free_trna_idx)),
                 (self.charged_trna_idx, counts(states['bulk'], self.charged_trna_idx)),
@@ -1292,18 +1292,18 @@ class KineticTrnaChargingModel(BaseElongationModel):
         if bulk_name == 'bulk_total':
             # First call in this time step
             cell_volume = states['listeners']['mass'][
-                'cell_mass'] / self.cell_density
-            cell_volume = cell_volume.asNumber(units.L).astype(np.float64)
+                'cell_mass'] * units.fg / self.cell_density
+            cell_volume = cell_volume.asNumber(units.L)
             self.K_M_amino_acids = self.K_M_amino_acid__per_L * cell_volume
             self.K_M_trnas = self.K_M_trna__per_L * cell_volume
-            cell_amino_acids = counts(self.amino_acid_idx, states[bulk_name])
+            cell_amino_acids = counts(states[bulk_name], self.amino_acid_idx)
             self.cell_amino_acid_saturation = (cell_amino_acids
                 / (self.K_M_amino_acids + cell_amino_acids))
 
         # Describe ODE model input
-        free_trnas_input = counts(self.free_trna_idx, states[bulk_name])
-        charged_trnas_input = counts(self.charged_trna_idx, states[bulk_name])
-        amino_acid_availability = counts(self.amino_acid_idx, states[bulk_name])
+        free_trnas_input = counts(states[bulk_name], self.free_trna_idx)
+        charged_trnas_input = counts(states[bulk_name], self.charged_trna_idx)
+        amino_acid_availability = counts(states[bulk_name], self.amino_acid_idx)
 
         molecules_input = np.zeros(self.molecules_input_size, dtype=np.int64)
         molecules_input[self.slice_free_trnas] = free_trnas_input
@@ -1317,7 +1317,7 @@ class KineticTrnaChargingModel(BaseElongationModel):
             molecules_input,
             args=(
                 codons / states['timestep'],
-                self.k_cat__per_s * counts(self.synthetase_idx, states[bulk_name]),
+                self.k_cat__per_s * counts(states[bulk_name], self.synthetase_idx),
                 self.cell_amino_acid_saturation,
                 self.K_M_amino_acids,
                 self.K_M_trnas,
@@ -1519,7 +1519,7 @@ class KineticTrnaChargingModel(BaseElongationModel):
         # counts)
         (amino_acids_used, codons_read, free_trnas, charged_trnas,
             chargings, codons_to_trnas_matrix, listeners) = self.run_model(
-            result.monomerUsages, 'bulk')
+            states, result.monomerUsages, 'bulk')
 
         # Reconcile disagreements between the kinetics-based trna
         # charging model and sequence-based elongation model
@@ -1585,7 +1585,7 @@ class KineticTrnaChargingModel(BaseElongationModel):
             / units.s * 6 # k_cat
             / self.n_avogadro
             / cell_volume
-            * counts(self.map_idx, states['bulk'])
+            * counts(states['bulk'], self.map_idx)
             )
         n_can_cleave = (v_can_cleave
             * (units.s * states['timestep'])

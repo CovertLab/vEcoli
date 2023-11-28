@@ -200,8 +200,8 @@ class MoleculeGroups(object):
 			# Codons
 			'codons': codon_ids,
 			
-			'initiator_trnas': ['RNA0-306', 'metY-tRNA', 'metZ-tRNA', 'metW-tRNA'],
-			'elongator_trnas': ['metT-tRNA', 'metU-tRNA'],
+			'initiator_trnas': ['RNA0-306[c]', 'metY-tRNA[c]', 'metZ-tRNA[c]', 'metW-tRNA[c]'],
+			'elongator_trnas': ['metT-tRNA[c]', 'metU-tRNA[c]'],
 		}
 
 		# Initialize molecule groups for how molecules are split between two

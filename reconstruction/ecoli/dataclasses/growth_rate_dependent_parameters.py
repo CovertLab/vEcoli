@@ -400,7 +400,7 @@ class Mass(object):
 			if row['type'] != 'tRNA':
 				continue
 
-			trna = row["id"]
+			trna = f'{row["id"]}[c]'
 			trna_ids.append(trna)
 
 			if row['anticodon'] not in WCM_anticodon_to_trnas:
@@ -451,11 +451,11 @@ class Mass(object):
 			# methionine tRNAs, and so are manually described here)
 			elif probe == 'Ile1 + 2':
 				trnas = [
-					'ileT-tRNA',
-					'ileU-tRNA',
-					'ileV-tRNA',
-					'ileX-tRNA',
-					'RNA0-305',
+					'ileT-tRNA[c]',
+					'ileU-tRNA[c]',
+					'ileV-tRNA[c]',
+					'ileX-tRNA[c]',
+					'RNA0-305[c]',
 					]
 
 			# Use the anticodon to match Kurland tRNAs to WCM tRNAs
@@ -468,7 +468,7 @@ class Mass(object):
 				# match(es) this Kurland tRNA
 				if probe in consult_sequence:
 					WCM_sequences = sim_data.getter.get_sequences(
-						[trna for trna in trnas])
+						[trna.split('[c]')[0] for trna in trnas])
 
 					Kurland_sequence = row["sequence 5'-3'"]
 					Kurland_sequence = Kurland_sequence.replace(' ', '')

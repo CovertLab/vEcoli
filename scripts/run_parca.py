@@ -58,9 +58,12 @@ def main():
         help='Use a different elongation rate for different polypeptides'
         ' (currently increases rates for ribosomal proteins).'
         ' Usually set this consistently between runParca and runSim.')
-    parser.add_argument('--optimize-trna-charging-kinetics', default=True,
+    parser.add_argument('--optimize-trna-charging-kinetics', default=False,
         action=argparse.BooleanOptionalAction,
-        help='Use kinetic model of tRNA charging.')
+        help='tRNA charging kinetics are optimized, and its results replace '
+            'the kinetics data stored at trna_charging_kinetics.tsv, the TSVs '
+            'in reconstruction/ecoli/flat/optimization/ and in '
+            'sim_data. Takes about 3 hours to complete.')
     
     args = parser.parse_args()
 
