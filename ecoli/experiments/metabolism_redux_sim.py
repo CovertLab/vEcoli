@@ -20,7 +20,7 @@ import dill
 
 def run_ecoli_with_metabolism_redux(
         filename='metabolism_redux',
-        total_time=50,
+        total_time=5000,
         divide=True,
         initial_state_file='wcecoli_t0',
         progress_bar=True,
@@ -55,13 +55,14 @@ def run_ecoli_with_metabolism_redux_classic(
         filename='metabolism_redux_classic',
         total_time=10,
         divide=True,
-        initial_state_file='met_division_test_state',
+        initial_state_file='wcecoli_t0', # 'met_division_test_state',
         progress_bar=True,
         log_updates=False,
-        emitter='timeseries',
+        emitter='timeseries', # 'timeseries',
         name='metabolism-redux-classic',
         raw_output=False,
-        save=True,
+        # save=True,
+        # save_times=[1000, 3000, 5000],
 ):
     # filename = 'default'
     sim = EcoliSim.from_file(CONFIG_DIR_PATH + filename + '.json')
@@ -72,9 +73,8 @@ def run_ecoli_with_metabolism_redux_classic(
     sim.emitter = emitter
     sim.initial_state = get_state_from_file(path=f'data/{initial_state_file}.json')
     sim.raw_output = raw_output
-    sim.save = save
-    sim.save_times = [10]
-    sim.initial_state = get_state_from_file(path=f'data/{initial_state_file}.json')
+    # sim.save = save
+    # sim.save_times = save_times
 
 
     # # simplify working with uptake
@@ -85,7 +85,7 @@ def run_ecoli_with_metabolism_redux_classic(
     # sim.initial_state['environment']['exchange_data']['unconstrained'].remove('GLC[p]')
     # sim.initial_state['environment']['exchange_data']['unconstrained'].add('FRU[p]')
 
-    # this means that sims will not create conflicting random indices
+    # this means that sims will not create conflicting random indices when loading from saved state
     if initial_state_file == 'wcecoli_t0':
         sim.seed += 1
     else:
@@ -96,7 +96,7 @@ def run_ecoli_with_metabolism_redux_classic(
     sim.run()
 
     query = []
-    folder = f'out/fbagd/{name}_{total_time}_{datetime.date.today()}/'
+    folder = f'out/cofactors/{name}_{total_time}_{datetime.date.today()}/'
     save_sim_output(folder, query, sim, save_model=True)
 
 
@@ -238,12 +238,14 @@ experiment_library = {
 def save_sim_output(folder, query, sim, save_model=False):
     agents = sim.query()['agents'].keys()
     for agent in agents:
+        query = []
         query.extend([('agents', agent, 'listeners', 'fba_results'),
                       ('agents', agent, 'listeners', 'mass'),
+                      ('agents', agent, 'listeners', 'unique_molecule_counts'),
                       ('agents', agent, 'bulk')])
-    output = sim.query(query)
-    pathlib.Path(folder).mkdir(parents=True, exist_ok=True)
-    np.save(folder + 'output.npy', output)
+        output = sim.query(query)
+        pathlib.Path(folder).mkdir(parents=True, exist_ok=True)
+        np.save(folder +  f'{agent}_output.npy', output)
 
     if save_model:
         f = open(folder + 'agent_steps.pkl', 'wb')
