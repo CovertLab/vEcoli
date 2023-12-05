@@ -127,28 +127,42 @@ def autodoc_skip_member_handler(app, what, name, obj, skip, options):
 
 def run_apidoc(_):
     cur_dir = os.path.abspath(os.path.dirname(__file__))
-    module_path = os.path.join(cur_dir, '..', 'ecoli')
 
-    apidoc_dir = os.path.join(cur_dir, 'reference', 'api')
-    if os.path.exists(apidoc_dir):
-        shutil.rmtree(apidoc_dir)
-    os.makedirs(apidoc_dir, exist_ok=True)
-
+    # Move tutorial notebooks into build directory
     notebooks_dst = os.path.join(cur_dir, 'notebooks')
     notebooks_src = os.path.join(cur_dir, '..', 'notebooks')
     if os.path.exists(notebooks_dst):
         shutil.rmtree(notebooks_dst)
     shutil.copytree(notebooks_src, notebooks_dst)
 
-    exclude = (
+    # Use sphinx-autodoc to create API documentation from docstrings
+    module_paths = [
+        os.path.join(cur_dir, '..', 'ecoli'),
+        os.path.join(cur_dir, '..', 'reconstruction'),
+        os.path.join(cur_dir, '..', 'validation'),
+        os.path.join(cur_dir, '..', 'wholecell')]
+
+    apidoc_dirs = [
+        os.path.join(cur_dir, 'reference', 'ecoli'),
+        os.path.join(cur_dir, 'reference', 'reconstruction'),
+        os.path.join(cur_dir, 'reference', 'validation'),
+        os.path.join(cur_dir, 'reference', 'wholecell'),
+        ]
+    
+    exclude_paths = [(
         os.path.join(cur_dir, path) for path in (
             '../ecoli/analysis',
             '../ecoli/plots',
             '../ecoli/experiments/ecoli_master_sim_tests.py',
         )
-    )
+    ), (), ()]
 
-    # Custom templates to only put top-level document titles in 
+    for module_path, apidoc_dir, exclude in zip(
+        module_paths, apidoc_dirs, exclude_paths):
+        if os.path.exists(apidoc_dir):
+            shutil.rmtree(apidoc_dir)
+        os.makedirs(apidoc_dir, exist_ok=True)
+        # Custom templates to only put top-level document titles in 
     # table of contents
     template_dir = 'apidoc_templates/'
     apidoc.main(['-t', template_dir,
