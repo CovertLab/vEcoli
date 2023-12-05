@@ -370,8 +370,9 @@ def recursive_compare(d1, d2, level='root', include_callable=False,
     elif isinstance(d1, np.ndarray) or isinstance(d2, np.ndarray):
         try:
             np.testing.assert_array_almost_equal_nulp(d1, d2)
-        except AssertionError:
-            print('{:<20} {} != {}'.format(level, d1, d2))
+        except AssertionError as e:
+            print('{:<20} {} != {}'.format(level, np.array(d1), np.array(d2)))
+            print(e)
             return False
         except TypeError:
             if not np.array_equal(d1, d2):
