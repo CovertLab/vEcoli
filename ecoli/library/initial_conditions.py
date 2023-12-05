@@ -8,7 +8,7 @@ import scipy.sparse
 
 from ecoli.library.schema import attrs, bulk_name_to_idx, \
     create_unique_indexes, counts
-from ecoli.models.polypeptide_elongation_models import (
+from ecoli.processes.polypeptide_elongation import (
     calculate_steady_state_trna_charging, REMOVED_FROM_CHARGING, MICROMOLAR_UNITS)
 from wholecell.utils import units
 from wholecell.utils.fitting import (countsFromMassAndExpression,

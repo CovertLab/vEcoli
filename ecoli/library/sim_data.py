@@ -32,12 +32,11 @@ class LoadSimData:
         self,
         sim_data_path: str=SIM_DATA_PATH,
         seed: int=0,
-        # TODO: Figure out why this is so slow
         jit: bool=False,
         total_time: int=10,
         media_timeline: tuple[tuple[int, str]]=((0, 'minimal'),),
         operons: bool=True,
-        steady_state_trna_charging: bool=True,
+        steady_state_trna_charging: bool=False,
         kinetic_trna_charging: bool=True,
         coarse_kinetic_elongation: bool=False,
         ribosome_profiling_molecules: dict[str, Any]=None,
@@ -53,7 +52,7 @@ class LoadSimData:
         variable_elongation_transcription: bool=True,
         variable_elongation_translation: bool=False,
         mechanistic_translation_supply: bool=True,
-        mechanistic_aa_transport: bool=True,
+        mechanistic_aa_transport: bool=False,
         translation_supply: bool=True,
         aa_supply_in_charging: bool=True,
         disable_ppgpp_elongation_inhibition: bool=False,
@@ -80,16 +79,19 @@ class LoadSimData:
                 generators. Simulations with the same seed will yield 
                 the same output.
             jit: Use Numba JIT compilation to speed up equilibrium and 
-                two component system diff eq. solve
+                two component system diff eq. solve (currently does nothing
+                because JIT compilation is slow)
             total_time: Time to simulate (seconds)
             media_timeline: Iterable of tuples where the first element of 
                 each tuple is the time to start using a certain media and the 
                 second element is a string corresponding to one of the media 
                 options in ``self.sim_data.external_state.saved_media``
             operons: Use operon transcription units
-            trna_charging: Use steady-state charging model 
-                (:py:class:`~ecoli.models.polypeptide_elongation_models.SteadyStateElongationModel`)
+            steady_state_trna_charging: Use steady-state charging model 
+                (:py:class:`~ecoli.processes.polypeptide_elongation.SteadyStateElongationModel`)
                 in :py:class:`~ecoli.processes.polypeptide_elongation.PolypeptideElongation`
+            kinetic_trna_charging: Use kinetic tRNA charging model 
+                (:py:class:`~ecoli.processes.polypeptide_elongation.Kinetic)
             ppgpp_regulation: Enable growth rate control using ppGpp in 
                 polypeptide elongation and transcript initiation
             mar_regulon: Enable tetracycline-related transcriptional regulation 
@@ -118,11 +120,17 @@ class LoadSimData:
             trna_attenuation: Implements `attenuation <https://en.wikipedia.org/wiki/Attenuator_(genetics)>`_
                 in :py:class:`~ecoli.processes.transcript_initiation.TranscriptInitiation` 
                 and :py:class:`~ecoli.processes.transcript_elongation.TranscriptElongation`
-            variable_elongation_transcription: See description in 
+            variable_elongation_transcription: Allow different elongation rate for different transcripts 
+                (currently increases rates for rRNA, see 
+                :py:class:`~reconstruction.ecoli.dataclasses.process.transcription.Transcription.make_elongation_rates). 
+                Usually set this consistently for ParCa and simulation.
                 :py:class:`~ecoli.processes.transcript_intiation.TranscriptInitiation`
+                Usually set this consistently for ParCa and simulation.
             variable_elongation_translation: Allow different polypeptides to 
-                have different translation rates based on length (see 
-                :py:class:`~wholecell.utils.polymerize.polymerize`)
+                have different translation rates (currently increases rates for 
+                ribosomal proteins, see 
+                :py:class:`~reconstruction.ecoli.dataclasses.process.translation.Translation.make_elongation_rates`). 
+                Usually set this consistently for ParCa and simulation.
             mechanistic_translation_supply: Calculate charged tRNA supply using 
                 starting amino acid concentration only based on mechanistic 
                 synthesis and supply in 
@@ -131,7 +139,7 @@ class LoadSimData:
             mechanistic_aa_transport: Constrain amino acid uptake based on 
                 external concentrations and exchange rates in 
                 :py:class:`~ecoli.processes.metabolism.Metabolism`
-            translation_supply: Use :py:class:`~ecoli.models.polypeptide_elongation_models.TranslationSupplyElongationModel` 
+            translation_supply: Use :py:class:`~ecoli.processes.polypeptide_elongation.TranslationSupplyElongationModel` 
                 in :py:class:`~ecoli.processes.polypeptide_elongation.PolypeptideElongation`. 
                 Superseded by ``trna_charging``
             aa_supply_in_charging: Calculate charged tRNA supply from each sub 
@@ -795,10 +803,10 @@ class LoadSimData:
         monomer_data = self.sim_data.process.translation.monomer_data
         ribosome_profiling_molecule_indexes = {}
         ribosome_profiling_number_of_ribosomes = {}
-        for molecule in self.ribosome_profiling_molecules.keys():
+        for molecule, gene in self.ribosome_profiling_molecules.items():
             molecule_index = np.where(monomer_data['id'] == molecule)[0][0]
             ribosome_profiling_molecule_indexes[molecule] = molecule_index
-            ribosome_profiling_number_of_ribosomes[molecule] = []
+            ribosome_profiling_number_of_ribosomes[gene] = []
         polypeptide_initiation_config = {
             **polypeptide_initiation_config,
             'ribosome_profiling_molecules': self.ribosome_profiling_molecules,
@@ -913,7 +921,6 @@ class LoadSimData:
             'emit_unique': self.emit_unique,
             # Necessary for codon-based tRNA charging models:
             # KineticTrnaChargingModel and CoarseKineticTrnaChargingModel
-            # in ecoli/models/polypeptide_elongation_models.py
             'n_proteins': len(translation.monomer_data['id']),
             'n_monomers': len(self.sim_data.molecule_groups.amino_acids),
             'n_codons': len(relation.codons),
