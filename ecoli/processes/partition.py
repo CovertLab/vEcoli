@@ -34,11 +34,12 @@ class Requester(Step):
             raise RuntimeError(
                 'PartitionedProcess objects cannot be parallelized.')
         parameters['name'] = f'{parameters["process"].name}_requester'
+        self.last_update_time = 0
         super().__init__(parameters)
 
     def update_condition(self, timestep, states):
-        return (states['global_time'] % states['timestep']
-                ) == 0
+        return (self.last_update_time + states['timestep']
+                ) == states['global_time']
 
     def ports_schema(self):
         process = self.parameters.get('process')
@@ -67,9 +68,7 @@ class Requester(Step):
         return ports
 
     def next_update(self, timestep, states):
-        # Skip t=0
-        if states['first_update']:
-            return {}
+        self.last_update_time = states['global_time']
 
         process = states['process'][0]
         request = process.calculate_request(
@@ -105,10 +104,12 @@ class Evolver(Step):
     def __init__(self, parameters=None):
         assert isinstance(parameters["process"], PartitionedProcess)
         parameters['name'] = f'{parameters["process"].name}_evolver'
+        self.last_update_time = 0
         super().__init__(parameters)
     
     def update_condition(self, timestep, states):
-        return (states['global_time'] % states['timestep']) == 0
+        return (self.last_update_time + states['timestep']
+                ) == states['global_time']
 
     def ports_schema(self):
         process = self.parameters.get('process')
@@ -143,9 +144,7 @@ class Evolver(Step):
     #         return self.process.calculate_timestep(states)
 
     def next_update(self, timestep, states):
-        # Skip t=0
-        if states['first_update']:
-            return {'first_update': False}
+        self.last_update_time = states['global_time']
 
         allocations = states.pop('allocate')
         states = deep_merge(states, allocations)
