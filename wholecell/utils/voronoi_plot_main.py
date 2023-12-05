@@ -700,8 +700,8 @@ class VoronoiMaster(object):
         '''
         Master function of generating layered or non-layered voronoi plot from a
         dictionary.
-        gross_error = \sum_{i} |Area(i) - Expected Area(i)|
-        error_all = \sum_{i} |Area(i) - Expected Area(i)|/(2 * total area)
+        gross_error = \\sum_{i} |Area(i) - Expected Area(i)|
+        error_all = \\sum_{i} |Area(i) - Expected Area(i)|/(2 * total area)
         The factor 2 in the error formula is to correct the repeated calculation
         in area error.
         Args:
