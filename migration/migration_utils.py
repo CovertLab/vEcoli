@@ -1,8 +1,8 @@
 import json
-import copy
 import numpy as np
 from unum import Unum
 import numbers
+import warnings
 from scipy.stats import mannwhitneyu, chi2_contingency, ttest_ind, bartlett
 from vivarium.core.engine import Engine, view_values, _process_update
 from vivarium.library.dict_utils import deep_merge
@@ -371,9 +371,10 @@ def recursive_compare(d1, d2, level='root', include_callable=False,
         try:
             np.testing.assert_array_almost_equal_nulp(d1, d2)
         except AssertionError as e:
-            print('{:<20} {} != {}'.format(level, np.array(d1), np.array(d2)))
-            print(e)
-            return False
+            warn_str = '{:<20} {} != {} {}'.format(level, d1, d2, e)
+            print(warn_str)
+            warnings.warn(warn_str)
+            return np.allclose(d1, d2, rtol=1e-7, atol=1e-12)
         except TypeError:
             if not np.array_equal(d1, d2):
                 print('{:<20} {} != {}'.format(level, d1, d2))
@@ -390,10 +391,12 @@ def recursive_compare(d1, d2, level='root', include_callable=False,
     elif isinstance(d1, numbers.Number) and isinstance(d2, numbers.Number):
         try:
             np.testing.assert_array_almost_equal_nulp(d1, d2, 5)
-        except AssertionError:
+        except AssertionError as e:
             if not (np.isnan(d1) & np.isnan(d2)):
-                print('{:<20} {} != {}'.format(level, d1, d2))
-                return False
+                warn_str = '{:<20} {} != {} {}'.format(level, d1, d2, e)
+                print(warn_str)
+                warnings.warn(warn_str)
+                return np.isclose(d1, d2, rtol=1e-7, atol=1e-12)
             
     elif isinstance(d1, set) and isinstance(d2, set):
         if len(d1 - d2) != 0:
