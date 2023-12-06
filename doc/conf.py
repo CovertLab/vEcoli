@@ -143,10 +143,10 @@ def run_apidoc(_):
         os.path.join(cur_dir, '..', 'wholecell')]
 
     apidoc_dirs = [
-        os.path.join(cur_dir, 'reference', 'ecoli'),
-        os.path.join(cur_dir, 'reference', 'reconstruction'),
-        os.path.join(cur_dir, 'reference', 'validation'),
-        os.path.join(cur_dir, 'reference', 'wholecell'),
+        os.path.join(cur_dir, 'reference', 'api', 'ecoli'),
+        os.path.join(cur_dir, 'reference', 'api', 'reconstruction'),
+        os.path.join(cur_dir, 'reference', 'api', 'validation'),
+        os.path.join(cur_dir, 'reference', 'api', 'wholecell'),
         ]
     
     exclude_paths = [(
@@ -155,7 +155,7 @@ def run_apidoc(_):
             '../ecoli/plots',
             '../ecoli/experiments/ecoli_master_sim_tests.py',
         )
-    ), (), ()]
+    ), (), (), ()]
 
     for module_path, apidoc_dir, exclude in zip(
         module_paths, apidoc_dirs, exclude_paths):
@@ -163,10 +163,9 @@ def run_apidoc(_):
             shutil.rmtree(apidoc_dir)
         os.makedirs(apidoc_dir, exist_ok=True)
         # Custom templates to only put top-level document titles in 
-    # table of contents
-    template_dir = 'apidoc_templates/'
-    apidoc.main(['-t', template_dir,
-        '-f', '-e', '-E', '-M', '-o', apidoc_dir, module_path, *exclude])
+        # table of contents
+        apidoc.main(['-t', 'apidoc_templates/',
+            '-f', '-e', '-E', '-M', '-o', apidoc_dir, module_path, *exclude])
 
 
 objects_to_pprint = {}
