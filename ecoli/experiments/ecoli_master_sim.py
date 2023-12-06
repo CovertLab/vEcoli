@@ -465,11 +465,11 @@ class EcoliSim:
                 Will be merged with topology from topology_registry, if exists.
             processes: List of process names for which to retrive topologies.
             swap_processes: Mapping of process names to the names of processes 
-                to swap them for. It is assumed that swapped processes share 
-                the same topologies. User-specified topologies in ``topology`` 
-                under either process name are merged into the topology 
-                retrieved from the topology registry for the topology to be 
-                swapped out.
+                to swap them for. By default, the new processes are assumed to 
+                have the same topology as the processes they replaced. When 
+                this is not the case, users can add/modify the original process 
+                topology with custom values in ``topology`` under either the new 
+                or the old process name.
             log_updates: Whether to emit process updates. Adds topology for 
                 ``log_update`` port.
         
