@@ -134,8 +134,8 @@ class SimConfig:
             parser: Argument parser for the command-line interface.
 
         Args:
-            config: Configuration options. If provided, the default
-                configuration is not loaded from the file path 
+            config: Configuration options. If not provided, the default
+                configuration is loaded from the file path 
                 :py:data:`~ecoli.experiments.ecoli_master_sim.SimConfig.default_config_path`.
         '''
         self._config = config or {}
@@ -421,7 +421,9 @@ class EcoliSim:
                             swap_processes: dict[str, str],
                             ) -> dict[str, Process]:
         """
-        Retrieve process classes from :py:data:`~ecoli.processes.process_registry`.
+        Retrieve process classes from 
+        :py:data:`~vivarium.core.registry.process_registry` (processes are
+        registered in ``ecoli/processes/__init__.py``).
 
         Args:
             processes: Base list of process names to retrieve classes for
@@ -672,6 +674,10 @@ class EcoliSim:
             Run :py:meth:`~ecoli.experiments.ecoli_master_sim.EcoliSim.build_ecoli` 
             before calling :py:meth:`~ecoli.experiments.ecoli_master_sim.EcoliSim.run`!
         """
+        if self.ecoli is None:
+            raise RuntimeError("Build the composite by calling build_ecoli() \
+                before calling run().")
+
         metadata = self.get_metadata()
         # make the experiment
         emitter_config = {'type': self.emitter}
@@ -816,6 +822,16 @@ class EcoliSim:
 
 
 def main():
+    """
+    Runs a simulation with CLI options.
+
+    .. note::
+        Parallelizing processes (e.g. ``--parallel``) is not recommended 
+        because the overhead outweighs any performance advantage. This could 
+        change in the future if a computationally intensive process is 
+        introduced in the future that makes the model faster to run in parallel 
+        instead of sequentially.
+    """
     import multiprocessing; multiprocessing.set_start_method('spawn')
     ecoli_sim = EcoliSim.from_cli()
     ecoli_sim.build_ecoli()

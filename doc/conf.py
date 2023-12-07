@@ -62,6 +62,10 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store', 'venv']
 # will help avoid broken links.
 nitpicky = True
 
+nitpick_ignore = [
+    ('py:class', 'unum.Unum'),
+]
+
 
 # -- Options for HTML output -------------------------------------------------
 
@@ -93,8 +97,7 @@ intersphinx_mapping = {
         'https://vivarium-core.readthedocs.io/en/latest/',
         None,
     ),
-    'numpy': ('https://numpy.org/doc/stable', None),
-    'unum': ('https://unum.readthedocs.io/en/latest/', None)
+    'numpy': ('https://numpy.org/doc/stable', None)
 }
 
 
@@ -107,7 +110,10 @@ autodoc_mock_imports = [
     'wholecell.utils.modular_fba',
     # Runs code on import and fails due to missing packages
     'ecoli.library.parameters',
+    # Needs to be run with kernprof
+    'wholecell.tests.utils.profile_polymerize',
     'sympy', 'cv2', 'Bio', 'tqdm', 'cvxpy', 'pymunk', 'skimage', 'dill',
+    'Equation', 'swiglpk'
 ]
 # Move typehints from signature into description
 autodoc_typehints = "description"
@@ -152,7 +158,6 @@ def run_apidoc(_):
     exclude_paths = [(
         os.path.join(cur_dir, path) for path in (
             '../ecoli/analysis',
-            '../ecoli/plots',
             '../ecoli/experiments/ecoli_master_sim_tests.py',
         )
     ), (), (), ()]

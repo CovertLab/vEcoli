@@ -1,5 +1,6 @@
 {{- "``{}``".format(basename) | heading }}
 .. automodule:: {{ qualname }}
+   :private-members:
 {%- for option in automodule_options %}
    :{{ option }}:
 {%- endfor %}

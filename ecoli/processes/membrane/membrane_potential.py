@@ -59,9 +59,9 @@ class MembranePotential(Process):
     """ Membrane Potential
 
     :term:`Ports`:
-    * ``internal``: holds the concentrations of internal ions
-    * ``external``: holds the concentrations of external ions
-    * ``membrane``: holds the cross-membrane properties 'PMF', 'd_{V}', 'd_{pH}'
+        * ``internal``: holds the concentrations of internal ions
+        * ``external``: holds the concentrations of external ions
+        * ``membrane``: holds the cross-membrane properties 'PMF', 'd_{V}', 'd_{pH}'
     """
 
     name = NAME

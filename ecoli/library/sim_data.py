@@ -91,7 +91,7 @@ class LoadSimData:
                 (:py:class:`~ecoli.processes.polypeptide_elongation.SteadyStateElongationModel`)
                 in :py:class:`~ecoli.processes.polypeptide_elongation.PolypeptideElongation`
             kinetic_trna_charging: Use kinetic tRNA charging model 
-                (:py:class:`~ecoli.processes.polypeptide_elongation.Kinetic)
+                (:py:class:`~ecoli.processes.polypeptide_elongation.KineticTrnaChargingModel`)
             ppgpp_regulation: Enable growth rate control using ppGpp in 
                 polypeptide elongation and transcript initiation
             mar_regulon: Enable tetracycline-related transcriptional regulation 
