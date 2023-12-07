@@ -11,6 +11,8 @@ maximize the progress of all ribosomes within the limits of the maximum ribosome
 elongation rate, available amino acids and GTP, and the length of the transcript.
 """
 
+from typing import Any, Callable, Optional, Tuple
+
 import numpy as np
 
 # wcEcoli imports

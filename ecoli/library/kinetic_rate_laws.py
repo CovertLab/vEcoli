@@ -10,6 +10,7 @@ Formulation provided in:
 '''
 
 import os
+from typing import Any, Callable
 
 import numpy as np
 
@@ -38,15 +39,15 @@ def get_molecules(reactions):
     return list(set(molecule_ids))
 
 # Helper functions
-def make_configuration(reactions):
+def make_configuration(reactions: dict) -> dict:
     '''
     Make the rate law configuration, which tells the parameters where to be placed.
 
     Args:
-        reactions (dict): all reactions that will be made into rate laws, in the same format as all_reactions (above).
+        reactions: all reactions that will be made into rate laws, in the same format as all_reactions (above).
 
     Returns:
-        rate_law_configuration (dict): includes partition and reaction_cofactor entries for each reaction
+        Dictionary of partition and reaction_cofactor entries for each reaction
     '''
 
     rate_law_configuration = {}
@@ -101,21 +102,24 @@ def cofactor_numerator(concentration, km):
 def cofactor_denominator(concentration, km):
     return 1 + concentration / km if km else 1
 
-def construct_convenience_rate_law(stoichiometry, enzyme, cofactors_sets, partition, parameters):
+def construct_convenience_rate_law(stoichiometry: dict[str, int], 
+    enzyme: str, cofactors_sets: list[list[str]], partition: list[list[str]], 
+    parameters: dict[str, Any]) -> Callable:
     '''
     Make a convenience kinetics rate law for one enzyme
 
     Args:
-        stoichiometry (dict): the stoichiometry for the given reaction
-        enzyme (str): the current enzyme
-        cofactors_sets: a list of lists with the required cofactors, grouped by [[cofactor set 1], [cofactor set 2]], each pair needs a kcat.
-        partition: a list of lists. each sublist is the set of cofactors for a given partition.
-            [[C1, C2],[C3, C4], [C5]]
-        parameters (dict): all the parameters with {parameter_id: value}
+        stoichiometry: the stoichiometry for the given reaction
+        enzyme: the current enzyme
+        cofactors_sets: a list of lists with the required cofactors, grouped by 
+            [[cofactor set 1], [cofactor set 2]], each pair needs a kcat.
+        partition: a list of lists. each sublist is the set of cofactors for a 
+            given partition. [[C1, C2],[C3, C4], [C5]]
+        parameters: all the parameters with ``{parameter_id: value}``
 
     Returns:
-        a kinetic rate law for the reaction, with arguments for concentrations and parameters,
-        and returns flux.
+        a kinetic rate law function that returns flux through the given reaction 
+        with a dictionary of molecule concentrations as input
     '''
 
     kcat_f = parameters.get('kcat_f')
@@ -178,14 +182,16 @@ def construct_convenience_rate_law(stoichiometry, enzyme, cofactors_sets, partit
     return rate_law
 
 # Make rate laws
-def make_rate_laws(reactions, rate_law_configuration, kinetic_parameters):
+def make_rate_laws(reactions: dict, rate_law_configuration: dict, 
+    kinetic_parameters: dict) -> dict[str, dict[str, Callable]]:
     '''
     Make a rate law for each reaction
 
     Args:
-        reactions (dict): in the same format as all_reactions, described above
+        reactions: in the same format as all_reactions, described above
 
-        rate_law_configuration (dict): with an embedded structure:
+        rate_law_configuration: with an embedded structure::
+            
             {enzyme_id: {
                 'reaction_cofactors': {
                     reaction_id: [cofactors list]
@@ -194,7 +200,8 @@ def make_rate_laws(reactions, rate_law_configuration, kinetic_parameters):
                 }
             }
 
-        kinetic_parameters (dict): with an embedded structure:
+        kinetic_parameters: with an embedded structure::
+            
             {reaction_id: {
                 'enzyme_id': {
                     parameter_id: value
@@ -203,8 +210,8 @@ def make_rate_laws(reactions, rate_law_configuration, kinetic_parameters):
             }
 
     Returns:
-        rate_laws (dict): each reaction_id is a key and has sub-dictionary for each relevant enzyme,
-            with kinetic rate law functions as their values
+        Dictionary where each reaction_id is a key and each value is a 
+            sub-dictionary with kinetic rate law functions for each enzyme
     '''
 
     rate_laws = {reaction_id: {} for reaction_id in list(reactions.keys())}
@@ -240,24 +247,26 @@ class KineticFluxModel(object):
     A kinetic rate law class
 
     Args:
-        all_reactions (dict): all metabolic reactions, with:
+        all_reactions: all metabolic reactions, with::
+
             {reaction_id: {
                 'catalyzed by': list,
                 'is reversible': bool,
                 'stoichiometry': dict,
                 }}
 
-        kinetic_parameters (dict): a dictionary of parameters a nested format:
+        kinetic_parameters: a dictionary of parameters a nested format::
+            
             {reaction_id: {
                 enzyme_id : {
                     param_id: param_value}}}
 
     Attributes:
-        rate_laws: a dict, with a key for each reaction id, and then subdictionaries with each reaction's enzymes
-            and their rate law function. These rate laws are used directly from within this dictionary
+        rate_laws: Dictionary where each reaction_id is a key and each value is a 
+            sub-dictionary with kinetic rate law functions for each enzyme
     '''
 
-    def __init__(self, all_reactions, kinetic_parameters):
+    def __init__(self, all_reactions: dict, kinetic_parameters: dict):
 
         self.kinetic_parameters = kinetic_parameters
         self.reaction_ids = list(self.kinetic_parameters.keys())
@@ -272,16 +281,16 @@ class KineticFluxModel(object):
             self.rate_law_configuration,
             self.kinetic_parameters)
 
-    def get_fluxes(self, concentrations_dict):
+    def get_fluxes(self, concentrations_dict: dict[str, float]) -> dict[str, float]:
         '''
         Use rate law functions to calculate flux
 
         Args:
-            concentrations_dict (dict): all relevant molecules and their concentrations, in mmol/L.
-                {molecule_id: concentration}
+            concentrations_dict: all relevant molecules and their concentrations, in mmol/L.
+                ``{molecule_id: concentration}``
 
         Returns:
-            reaction_fluxes (dict) - with fluxes for all reactions
+            Dictionary of fluxes for all reactions
         '''
 
         # Initialize reaction_fluxes and exchange_fluxes dictionaries

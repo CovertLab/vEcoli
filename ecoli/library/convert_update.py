@@ -12,9 +12,9 @@ def convert_numpy_to_builtins(update):
 
     Convert the following:
 
-    * np.int64 to int
-    * np.str_ to str
-    * np.float64 to float
+    * :py:class:`numpy.int64` to :py:class:`int`
+    * :py:class:`numpy.str_` to :py:class:`str`
+    * :py:class:`numpy.float64` to :py:class:`float`
 
     Args:
         update: The update to convert. Will not be modified.

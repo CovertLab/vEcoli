@@ -258,7 +258,8 @@ class FlagellaMotor(Process):
 
     def update_flagellum(self, motor_state, CheY_P, timestep):
         """
-        calculate  therotational state of a individual flagellum
+        calculate the rotational state of a individual flagellum
+        
         .. note::
             TODO -- normal, semi, curly states from Sneddon
         """
