@@ -523,7 +523,7 @@ class RnaDegradation(PartitionedProcess):
 
         Args:
             specificity: Sum of fraction of active endoRNases for all RNAs
-            in a given class
+                in a given class
             total_kcat_endornase: The summed kcat of all existing endoRNases
         Returns:
             Total number of RNAs to degrade for the given class of RNAs
@@ -544,11 +544,11 @@ class RnaDegradation(PartitionedProcess):
 
         Args:
             n_total_rnas_to_degrade: Total number of RNAs to degrade for the
-            given class of RNAs (integer, scalar)
+                given class of RNAs (integer, scalar)
             rna_deg_probs: Degradation probabilities of each RNA (vector of
-            equal length to the total number of different RNAs)
+                equal length to the total number of different RNAs)
             rna_counts: Current counts of each RNA molecule (vector of equal
-            length to the total number of different RNAs)
+                length to the total number of different RNAs)
         Returns:
             Vector of equal length to rna_counts, specifying the number of
             molecules to degrade for each RNA
