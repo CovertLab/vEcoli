@@ -63,7 +63,16 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store', 'venv']
 nitpicky = True
 
 nitpick_ignore = [
+    # No API documentation for Unum package
+    ('py:class', 'Unum'),
     ('py:class', 'unum.Unum'),
+    # Silence warnings in ecoli.plots.snapshots.make_snapshots_figure
+    ('py:class', 'any valid matplotlib color'),
+    # Silence warning in ecoli.plots.blame.SignNormalize
+    ('py:class', 'default: False'),
+    # Silence warning in ecoli.processes.environment.field_timeline.FieldTimeline
+    ('py:class', 'vivarium.processes.timeline.TimelineProcess'),
+
 ]
 
 
@@ -97,7 +106,8 @@ intersphinx_mapping = {
         'https://vivarium-core.readthedocs.io/en/latest/',
         None,
     ),
-    'numpy': ('https://numpy.org/doc/stable', None)
+    'numpy': ('https://numpy.org/doc/stable', None),
+    'matplotlib': ('https://matplotlib.org/stable/', None)
 }
 
 
@@ -113,7 +123,7 @@ autodoc_mock_imports = [
     # Needs to be run with kernprof
     'wholecell.tests.utils.profile_polymerize',
     'sympy', 'cv2', 'Bio', 'tqdm', 'cvxpy', 'pymunk', 'skimage', 'dill',
-    'Equation', 'swiglpk'
+    'Equation', 'swiglpk', 'seaborn'
 ]
 # Move typehints from signature into description
 autodoc_typehints = "description"
