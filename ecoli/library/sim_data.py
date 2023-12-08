@@ -122,14 +122,14 @@ class LoadSimData:
                 and :py:class:`~ecoli.processes.transcript_elongation.TranscriptElongation`
             variable_elongation_transcription: Allow different elongation rate for different transcripts 
                 (currently increases rates for rRNA, see 
-                :py:class:`~reconstruction.ecoli.dataclasses.process.transcription.Transcription.make_elongation_rates). 
+                :py:meth:`~reconstruction.ecoli.dataclasses.process.transcription.Transcription.make_elongation_rates`). 
                 Usually set this consistently for ParCa and simulation.
-                :py:class:`~ecoli.processes.transcript_intiation.TranscriptInitiation`
+                :py:class:`~ecoli.processes.transcript_initiation.TranscriptInitiation`
                 Usually set this consistently for ParCa and simulation.
             variable_elongation_translation: Allow different polypeptides to 
                 have different translation rates (currently increases rates for 
                 ribosomal proteins, see 
-                :py:class:`~reconstruction.ecoli.dataclasses.process.translation.Translation.make_elongation_rates`). 
+                :py:meth:`~reconstruction.ecoli.dataclasses.process.translation.Translation.make_elongation_rates`). 
                 Usually set this consistently for ParCa and simulation.
             mechanistic_translation_supply: Calculate charged tRNA supply using 
                 starting amino acid concentration only based on mechanistic 

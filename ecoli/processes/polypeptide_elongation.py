@@ -15,6 +15,7 @@ from typing import Any, Callable, Optional, Tuple
 
 import numpy as np
 from scipy.integrate import solve_ivp
+from unum import Unum
 
 # wcEcoli imports
 from wholecell.utils.polymerize import (buildSequences, polymerize,
@@ -62,7 +63,10 @@ DEFAULT_AA_NAMES = [
     'L-SELENOCYSTEINE[c]', 'VAL[c]']
 
 MICROMOLAR_UNITS = units.umol / units.L
+"""Units used for all concentrations."""
 REMOVED_FROM_CHARGING = {'L-SELENOCYSTEINE[c]'}
+"""Amino acids to remove from charging when running with 
+``steady_state_trna_charging``"""
 
 
 class PolypeptideElongation(PartitionedProcess):
@@ -1305,7 +1309,8 @@ class SteadyStateElongationModel(TranslationSupplyElongationModel):
         return net_charged, {aa: diff for aa, diff in zip(
             self.process.amino_acids, aa_diff)}, update
 
-    def distribution_from_aa(self, n_aa, n_trna, limited=False):
+    def distribution_from_aa(self, n_aa: np.ndarray[int], 
+            n_trna: np.ndarray[int], limited: bool=False) -> np.ndarray[int]:
         '''
         Distributes counts of amino acids to tRNAs that are associated with
         each amino acid. Uses self.process.aa_from_trna mapping to distribute
@@ -1313,16 +1318,14 @@ class SteadyStateElongationModel(TranslationSupplyElongationModel):
         makes up for all tRNA species that code for the same amino acid.
 
         Args:
-            n_aa (array of ints): counts of each amino acid to distribute to
-                each tRNA
-            n_trna (array of ints): counts of each tRNA to determine the
-                distribution
-            limited (bool): optional, if True, limits the amino acids
+            n_aa: counts of each amino acid to distribute to each tRNA
+            n_trna: counts of each tRNA to determine the distribution
+            limited: optional, if True, limits the amino acids
                 distributed to each tRNA to the number of tRNA that are
                 available (n_trna)
 
         Returns:
-            (array of ints) distributed counts for each tRNA
+            Distributed counts for each tRNA
         '''
 
         # Determine the fraction each tRNA species makes up out of all tRNA of
@@ -1379,24 +1382,22 @@ class SteadyStateElongationModel(TranslationSupplyElongationModel):
         return short_enough
     
 def ppgpp_metabolite_changes(
-    uncharged_trna_conc: np.ndarray[float], 
-    charged_trna_conc: np.ndarray[float],
-    ribosome_conc: float, 
+    uncharged_trna_conc: Unum, 
+    charged_trna_conc: Unum,
+    ribosome_conc: Unum, 
     f: np.ndarray[float], 
-    rela_conc: float, 
-    spot_conc: float, 
-    ppgpp_conc: float, 
-    counts_to_molar: float,
-    v_rib: float, 
+    rela_conc: Unum, 
+    spot_conc: Unum, 
+    ppgpp_conc: Unum, 
+    counts_to_molar: Unum,
+    v_rib: Unum, 
     charging_params: dict[str, Any], 
     ppgpp_params: dict[str, Any], 
     time_step: float,
     request: bool=False, 
     limits: np.ndarray[float]=None, 
-    random_state: np.random.RandomState=None) -> (
-        np.ndarray[int], int, int, np.ndarray[float], 
-        float, float, np.ndarray[float]
-    ):
+    random_state: np.random.RandomState=None) -> tuple[
+        np.ndarray[int], int, int, Unum, Unum, Unum, Unum]:
     '''
     Calculates the changes in metabolite counts based on ppGpp synthesis and
     degradation reactions.
@@ -1428,17 +1429,19 @@ def ppgpp_metabolite_changes(
             negative total counts as a result of delta_metabolites.
             If None, no limits are placed on molecule changes.
         random_state: random state for the process
-    Returns:
-        delta_metabolites (np.ndarray[int]): the change in counts of each metabolite
-            involved in ppGpp reactions
-        n_syn_reactions (int): the number of ppGpp synthesis reactions
-        n_deg_reactions (int): the number of ppGpp degradation reactions
-        v_rela_syn (np.ndarray[float]): rate of synthesis from RelA per amino
-            acid tRNA species
-        v_spot_syn (float): rate of synthesis from SpoT
-        v_deg (float): rate of degradation from SpoT
-        v_deg_inhibited (np.ndarray[float]): rate of degradation from SpoT per
-            amino acid tRNA species
+    Returns: 
+        7-element tuple containing 
+        
+        - **delta_metabolites**: the change in counts of each metabolite
+          involved in ppGpp reactions
+        - **n_syn_reactions**: the number of ppGpp synthesis reactions
+        - **n_deg_reactions**: the number of ppGpp degradation reactions
+        - **v_rela_syn**: rate of synthesis from RelA per amino
+          acid tRNA species
+        - **v_spot_syn**: rate of synthesis from SpoT
+        - **v_deg**: rate of degradation from SpoT
+        - **v_deg_inhibited**: rate of degradation from SpoT per
+          amino acid tRNA species
     '''
 
     if random_state is None:
@@ -1527,53 +1530,59 @@ def ppgpp_metabolite_changes(
     return delta_metabolites, n_syn_reactions, n_deg_reactions, v_rela_syn, v_spot_syn, v_deg, v_deg_inhibited
 
 def calculate_steady_state_trna_charging(
-    synthetase_conc: np.ndarray[float], 
-    uncharged_trna_conc: np.ndarray[float], 
-    charged_trna_conc: np.ndarray[float], 
-    aa_conc: np.ndarray[float], 
+    synthetase_conc: Unum, 
+    uncharged_trna_conc: Unum, 
+    charged_trna_conc: Unum, 
+    aa_conc: Unum, 
     ribosome_conc: float,
-    f: np.ndarray[float], 
+    f: Unum, 
     params: dict[str, Any], 
     supply: Callable=None, 
     time_limit: float=1000, 
     limit_v_rib: bool=False, 
     use_disabled_aas: bool=False
-    ) -> (np.ndarray[float], float, np.ndarray[float], 
-        np.ndarray[float], np.ndarray[float]):
+    ) -> tuple[Unum, float, Unum, Unum, Unum]:
     '''
-    Calculates the steady state value of tRNA based on charging and incorporation through polypeptide elongation.
-    The fraction of charged/uncharged is also used to determine how quickly the ribosome is elongating.
+    Calculates the steady state value of tRNA based on charging and 
+    incorporation through polypeptide elongation. The fraction of 
+    charged/uncharged is also used to determine how quickly the 
+    ribosome is elongating. All concentrations are given in units of 
+    :py:data:`~ecoli.processes.polypeptide_elongation.MICROMOLAR_UNITS`.
     
     Args:
-        synthetase_conc: concentration (:py:data:`~ecoli.processes.polypeptide_elongation.MICROMOLAR_UNITS`) of 
-            synthetases associated with each amino acid
-        uncharged_trna_conc: concentration (:py:data:`~ecoli.processes.polypeptide_elongation.MICROMOLAR_UNITS`) of 
-            uncharged tRNA associated with each amino acid
-        charged_trna_conc: concentration (:py:data:`~ecoli.processes.polypeptide_elongation.MICROMOLAR_UNITS`) of 
-            charged tRNA associated with each amino acid
-        aa_conc: concentration (:py:data:`~ecoli.processes.polypeptide_elongation.MICROMOLAR_UNITS`) of each amino acid
-        ribosome_conc: concentration (:py:data:`~ecoli.processes.polypeptide_elongation.MICROMOLAR_UNITS`) of 
-            active ribosomes
-        f: fraction of each amino acid to be incorporated to total amino acids incorporated
+        synthetase_conc: concentration of synthetases associated with 
+            each amino acid
+        uncharged_trna_conc: concentration of uncharged tRNA associated 
+            with each amino acid
+        charged_trna_conc: concentration of charged tRNA associated with 
+            each amino acid
+        aa_conc: concentration of each amino acid
+        ribosome_conc: concentration of active ribosomes
+        f: fraction of each amino acid to be incorporated to total amino 
+            acids incorporated
         params: parameters used in charging equations
-        supply: function to get the rate of amino acid supply (synthesis and import)
-            based on amino acid concentrations. If None, amino acid concentrations 
-            remain constant during charging
+        supply: function to get the rate of amino acid supply (synthesis 
+            and import) based on amino acid concentrations. If None, amino 
+            acid concentrations remain constant during charging
         time_limit: time limit to reach steady state
-        limit_v_rib: if True, v_rib is limited to the number of amino acids that are
-            available
-        use_disabled_aas : if False, amino acids in :py:data:`~ecoli.processes.polypeptide_elongation.REMOVED_FROM_CHARGING` are 
-            excluded from charging
+        limit_v_rib: if True, v_rib is limited to the number of amino acids 
+            that are available
+        use_disabled_aas: if False, amino acids in 
+            :py:data:`~ecoli.processes.polypeptide_elongation.REMOVED_FROM_CHARGING` 
+            are excluded from charging
+    
     Returns:
-        new_fraction_charged: fraction of total tRNA that is charged for each
-            amino acid species
-        v_rib: ribosomal elongation rate in units of uM/s
-        total_synthesis: the total amount of amino acids synthesized during charging
-            in units of MICROMOLAR_UNITS. Will be zeros if supply function is not given.
-        total_import: the total amount of amino acids imported during charging
-            in units of MICROMOLAR_UNITS. Will be zeros if supply function is not given.
-        total_export: the total amount of amino acids exported during charging
-            in units of MICROMOLAR_UNITS. Will be zeros if supply function is not given.
+        5-element tuple containing
+
+        - **new_fraction_charged**: fraction of total tRNA that is charged for each
+          amino acid species
+        - **v_rib**: ribosomal elongation rate in units of uM/s
+        - **total_synthesis**: the total amount of amino acids synthesized during charging
+          in units of MICROMOLAR_UNITS. Will be zeros if supply function is not given.
+        - **total_import**: the total amount of amino acids imported during charging
+          in units of MICROMOLAR_UNITS. Will be zeros if supply function is not given.
+        - **total_export**: the total amount of amino acids exported during charging
+          in units of MICROMOLAR_UNITS. Will be zeros if supply function is not given.
     '''
 
     def negative_check(trna1: np.ndarray[float], trna2: np.ndarray[float]):
@@ -1594,10 +1603,12 @@ def calculate_steady_state_trna_charging(
     def dcdt(t: float, c: np.ndarray[float]) -> np.ndarray[float]:
         '''
         Function for solve_ivp to integrate
+        
         Args:
             c: 1D array of concentrations of uncharged and charged tRNAs
                 dims: 2 * number of amino acids (uncharged tRNA come first, then charged)
             t: time of integration step
+        
         Returns:
             Array of dc/dt for tRNA concentrations
                 dims: 2 * number of amino acids (uncharged tRNA come first, then charged)
@@ -1702,25 +1713,25 @@ def get_charging_supply_function(
         amino_acid_import: Callable,
         amino_acid_export: Callable,
         aa_supply_scaling: Callable,
-        counts_to_molar: float,
+        counts_to_molar: Unum,
         aa_supply: np.ndarray[float],
         fwd_enzyme_counts: np.ndarray[int],
         rev_enzyme_counts: np.ndarray[int],
-        dry_mass: float,
+        dry_mass: Unum,
         importer_counts: np.ndarray[int],
         exporter_counts: np.ndarray[int],
         aa_in_media: np.ndarray[bool],
         ) -> Optional[
             Callable[[np.ndarray[float]], 
-            Tuple[np.ndarray[float], np.ndarray[float], np.ndarray[float]]]]:
+            Tuple[Unum, Unum, Unum]]]:
     """
     Get a function mapping internal amino acid concentrations to the amount of
     amino acid supply expected.
     
     Args:
-        supply_in_charging: True if using the aa_supply_in_charging option
-        mechanistic_supply: True if using the mechanistic_translation_supply option
-        mechanistic_aa_transport: True if using the mechanistic_aa_transport option
+        supply_in_charging: True if using aa_supply_in_charging option
+        mechanistic_supply: True if using mechanistic_translation_supply option
+        mechanistic_aa_transport: True if using mechanistic_aa_transport option
         amino_acid_synthesis: function to provide rates of synthesis for amino
             acids based on the internal state
         amino_acid_import: function to provide import rates for amino
@@ -1729,18 +1740,19 @@ def get_charging_supply_function(
             acids based on the internal state
         aa_supply_scaling: function to scale the amino acid supply based
             on the internal state
-        counts_to_molar: conversion factor for counts to molar (:py:data:`~ecoli.processes.polypeptide_elongation.MICROMOLAR_UNITS`)
+        counts_to_molar: conversion factor for counts to molar 
+            (:py:data:`~ecoli.processes.polypeptide_elongation.MICROMOLAR_UNITS`)
         aa_supply: rate of amino acid supply expected
-        fwd_enzyme_counts: counts for enzymes in forward reactions for each amino acid
-        rev_enzyme_counts: counts for enzymes in loss reactions for each amino acid
+        fwd_enzyme_counts: enzyme counts in forward reactions for each amino acid
+        rev_enzyme_counts: enzyme counts in loss reactions for each amino acid
         dry_mass: dry mass of the cell with mass units
         importer_counts: counts for amino acid importers
         exporter_counts: counts for amino acid exporters
         aa_in_media: True for each amino acid that is present in the media
 
     Returns:
-        supply_function: function that provides the amount of supply (synthesis, import, export)
-            for each amino acid based on the internal state of the cell
+        Function that provides the amount of supply (synthesis, import, export)
+        for each amino acid based on the internal state of the cell
     """
 
     # Create functions that are only dependent on amino acid concentrations for more stable

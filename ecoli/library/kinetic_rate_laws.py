@@ -18,14 +18,14 @@ from vivarium.library.dict_utils import tuplify_port_dicts
 
 
 
-def get_molecules(reactions):
+def get_molecules(reactions: dict[str, dict]) -> list[str]:
     '''
     Get a list of all molecules used by reactions
 
     Args:
-           reaction (dict): all reactions that will be used by transport
+        reaction: all reactions that will be used by transport
     Returns:
-           self.molecule_ids (list): all molecules used by these reactions
+        all molecules used by these reactions
     '''
 
     molecule_ids = []

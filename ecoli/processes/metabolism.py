@@ -17,6 +17,7 @@ from typing import Tuple
 
 import numpy as np
 from scipy.sparse import csr_matrix
+from unum import Unum
 from vivarium.core.process import Step
 from vivarium.library.units import units as vivunits
 
@@ -842,28 +843,26 @@ class FluxBalanceAnalysisModel(object):
 
         return external_molecule_levels
 
-    def set_molecule_levels(self, metabolite_counts, counts_to_molar,
-        coefficient, current_media_id, unconstrained, constrained, conc_updates,
-        aa_uptake_package=None):
+    def set_molecule_levels(self, metabolite_counts: np.ndarray[int], 
+        counts_to_molar: Unum, coefficient: Unum, current_media_id: str, 
+        unconstrained: set[str], constrained: set[str], 
+        conc_updates: dict[str, Unum], aa_uptake_package: tuple[
+            np.ndarray[float], np.ndarray[str], bool]=None):
         """
         Set internal and external molecule levels available to the FBA solver.
 
         Args:
-            metabolite_counts (:py:class:`np.ndarray[int]`): counts for each metabolite
-                with a concentration target
-            counts_to_molar (:py:class:`Unum`): conversion from counts to molar
-                (counts/volume units)
-            coefficient (:py:class:`Unum`): coefficient to convert from mmol/g DCW/hr
-                to mM basis (mass.time/volume units)
-            current_media_id (:py:class:`str`): ID of current media
-            unconstrained (:py:class:`Set[str]`): molecules that have unconstrained import
-            constrained (:py:class:`Dict[str, units.Unum]`): molecules (keys) and their
-                limited max uptake rates (values in mol / mass / time units)
-            conc_updates (:py:class:`Dict[str, Unum]`): updates to concentrations targets
-                for molecules (molecule ID: concentration in mmol/L units)
-            aa_uptake_package (:py:class:`Tuple[np.ndarray, np.ndarray, Boolean]`): packed
-                variables needed to set hard external amino acid uptakes (uptake
-                rates, amino acid names, force levels)
+            metabolite_counts: counts for each metabolite with a concentration target
+            counts_to_molar: conversion from counts to molar (counts/volume)
+            coefficient: coefficient to convert from mmol/g DCW/hr to mM basis 
+                (mass*time/volume)
+            current_media_id: ID of current media
+            unconstrained: molecules that have unconstrained import
+            constrained: molecules (keys) and their limited max uptake rates 
+                (mol / mass / time)
+            conc_updates: updates to concentrations targets for molecules (mmol/L)
+            aa_uptake_package: (uptake rates, amino acid names, force levels), 
+                determines whether to set hard uptake rates
         """
 
         # Update objective from media exchanges
@@ -889,18 +888,17 @@ class FluxBalanceAnalysisModel(object):
             self.fba.setExternalMoleculeLevels(levels, molecules=molecules,
                 force=force, allow_export=True)
 
-    def set_reaction_bounds(self, catalyst_counts, counts_to_molar,
-        coefficient, gtp_to_hydrolyze):
+    def set_reaction_bounds(self, catalyst_counts: np.ndarray[int], 
+        counts_to_molar: Unum, coefficient: Unum, gtp_to_hydrolyze: float):
         """
         Set reaction bounds for constrained reactions in the FBA object.
 
         Args:
-            catalyst_counts (np.ndarray[int]): counts of enzyme catalysts
-            counts_to_molar (Unum): conversion from counts to molar
-                (counts/volume units)
-            coefficient (Unum): coefficient to convert from mmol/g DCW/hr
-                to mM basis (mass.time/volume units)
-            gtp_to_hydrolyze (float): number of GTP molecules to hydrolyze to
+            catalyst_counts: counts of enzyme catalysts
+            counts_to_molar: conversion from counts to molar (counts/volume)
+            coefficient: coefficient to convert from mmol/g DCW/hr to mM basis 
+                (mass*time/volume)
+            gtp_to_hydrolyze: number of GTP molecules to hydrolyze to
                 account for consumption in translation
         """
 
@@ -928,28 +926,26 @@ class FluxBalanceAnalysisModel(object):
         self.fba.setReactionFluxBounds(self.reactions_with_catalyst,
             upperBounds=reaction_bounds, raiseForReversible=False)
 
-    def set_reaction_targets(self, kinetic_enzyme_counts,
-        kinetic_substrate_counts, counts_to_molar, time_step):
-        # type: (np.ndarray, np.ndarray, units.Unum, units.Unum) -> Tuple[np.ndarray, np.ndarray, np.ndarray]
+    def set_reaction_targets(self, kinetic_enzyme_counts: np.ndarray[int],
+        kinetic_substrate_counts: np.ndarray[int], counts_to_molar: Unum, 
+        time_step: Unum) -> tuple[np.ndarray[float], np.ndarray[float], 
+                                  np.ndarray[float]]:
         """
         Set reaction targets for constrained reactions in the FBA object.
 
         Args:
-            kinetic_enzyme_counts (np.ndarray[int]): counts of enzymes used in
-                kinetic constraints
-            kinetic_substrate_counts (np.ndarray[int]): counts of substrates
-                used in kinetic constraints
-            counts_to_molar: conversion from counts to molar
-                (float with counts/volume units)
-            time_step: current time step (float with time units)
+            kinetic_enzyme_counts: counts of enzymes used in kinetic constraints
+            kinetic_substrate_counts: counts of substrates used in kinetic 
+                constraints
+            counts_to_molar: conversion from counts to molar (counts/volume)
+            time_step: current time step (time)
 
         Returns:
-            mean_targets (np.ndarray[float]): mean target for each constrained
-                reaction
-            upper_targets (np.ndarray[float]): upper target limit for each
-                constrained reaction
-            lower_targets (np.ndarray[float]): lower target limit for each
-                constrained reaction
+            3-element tuple containing
+
+            - **mean_targets**: mean target for each constrained reaction
+            - **upper_targets**: upper target limit for each constrained reaction
+            - **lower_targets**: lower target limit for each constrained reaction
         """
 
         if self.use_kinetics:

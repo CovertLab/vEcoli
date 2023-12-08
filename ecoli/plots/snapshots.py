@@ -567,7 +567,7 @@ def make_snapshots_figure(
             environment.
         field_label_size (:py:class:`float`): Font size of the
             field label.
-        dead_color (:py:class:`list` of 3 :py:class:`float`s):
+        dead_color (:py:class:`list` of 3 :py:class:`float`):
             Color for dead cells in HSV. Defaults to [0, 0, 0], which
             is black.
         default_font_size (:py:class:`float`): Font size for
