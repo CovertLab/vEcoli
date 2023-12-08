@@ -14,6 +14,8 @@ elongation rate, available amino acids and GTP, and the length of the transcript
 from typing import Any, Callable, Optional, Tuple
 
 import numpy as np
+from scipy.integrate import solve_ivp
+from unum import Unum
 
 # wcEcoli imports
 from wholecell.utils.polymerize import (buildSequences, polymerize,

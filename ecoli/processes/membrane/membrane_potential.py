@@ -10,12 +10,14 @@ Goldman equation for membrane potential:
  :math:`d_{V} = \\frac{RT}{F} * \\ln{\\frac{\\sum_{i}^{n} P_{M^{+}_{i}}[M^{+}_{i}]_{out} +
  \\sum_{j}^{m} P_{A^{-}_{j}}[A^{-}_{j}]_{in}}{\\sum_{i}^{n} P_{M^{+}_{i}}[M^{+}_{i}]_{in} +
  \\sum_{j}^{m} P_{A^{-}_{j}}[A^{-}_{j}]_{out} }}`
+
   * :math:`D`: Diffusion constant
   * :math:`M` monovalent positive ionic species
   * :math:`A` negative ionic species
 
 transmembrane pH difference (currently fixed at -50):
  :math:`d_{pH} = -2.3 * k * T / e`
+
   * :math:`k`: Boltzmann constant
   * :math:`T`: temperature
 

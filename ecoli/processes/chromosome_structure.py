@@ -704,13 +704,14 @@ class ChromosomeStructure(Step):
         Calculates the updated attributes of chromosomal segments belonging to
         a specific chromosomal domain, given the previous and current
         coordinates of molecules bound to the chromosome.
+        
         Args:
             old_boundary_molecule_indexes: (N, 2) array of unique
                 indexes of molecules that formed the boundaries of each
                 chromosomal segment in the previous timestep.
             old_boundary_coordinates: (N, 2) array of chromosomal
-                 coordinates of molecules that formed the boundaries of each
-                 chromosomal segment in the previous timestep.
+                coordinates of molecules that formed the boundaries of each
+                chromosomal segment in the previous timestep.
             old_linking_numbers: (N,) array of linking numbers of each
                 chromosomal segment in the previous timestep.
             new_molecule_indexes: (N,) array of unique indexes of all
@@ -718,8 +719,9 @@ class ChromosomeStructure(Step):
             new_molecule_coordinates: (N,) array of chromosomal
                 coordinates of all molecules bound to the domain at the current
                 timestep.
-            spans_oriC (bool): True if the domain spans the origin.
-            spans_terC (bool): True if the domain spans the terminus.
+            spans_oriC: True if the domain spans the origin.
+            spans_terC: True if the domain spans the terminus.
+        
         Returns:
             Dictionary of the following format::
                 

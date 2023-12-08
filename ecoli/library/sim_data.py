@@ -114,11 +114,17 @@ class LoadSimData:
             trna_attenuation: Implements `attenuation <https://en.wikipedia.org/wiki/Attenuator_(genetics)>`_
                 in :py:class:`~ecoli.processes.transcript_initiation.TranscriptInitiation` 
                 and :py:class:`~ecoli.processes.transcript_elongation.TranscriptElongation`
-            variable_elongation_transcription: See description in 
-                :py:class:`~ecoli.processes.transcript_intiation.TranscriptInitiation`
+            variable_elongation_transcription: Allow different elongation rate for different transcripts 
+                (currently increases rates for rRNA, see 
+                :py:meth:`~reconstruction.ecoli.dataclasses.process.transcription.Transcription.make_elongation_rates`). 
+                Usually set this consistently for ParCa and simulation.
+                :py:class:`~ecoli.processes.transcript_initiation.TranscriptInitiation`
+                Usually set this consistently for ParCa and simulation.
             variable_elongation_translation: Allow different polypeptides to 
-                have different translation rates based on length (see 
-                :py:class:`~wholecell.utils.polymerize.polymerize`)
+                have different translation rates (currently increases rates for 
+                ribosomal proteins, see 
+                :py:meth:`~reconstruction.ecoli.dataclasses.process.translation.Translation.make_elongation_rates`). 
+                Usually set this consistently for ParCa and simulation.
             mechanistic_translation_supply: Calculate charged tRNA supply using 
                 starting amino acid concentration only based on mechanistic 
                 synthesis and supply in 

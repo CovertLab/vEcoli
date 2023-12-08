@@ -57,38 +57,38 @@ NAME = 'diffusion_network'
 class DiffusionNetwork(Process):
     """ Models diffusion between a network of connected nodes.
 
-     :term:`Ports`:
-     * **nodes**: Expects a :term:`store` which is a dict of node names
+    :term:`Ports`:
+    * **nodes**: Expects a :term:`store` which is a dict of node names
        (the keys of the dict) to a dict, which has the key value
        pairs for ``length``, ``volume``, and ``molecules``.
 
-     Args:
-         parameters: A dictionary of configuration options.
-             The following configuration options may be provided:
+    Args:
+        parameters: A dictionary of configuration options.
+            The following configuration options may be provided:
 
-             * **nodes** (:py:class:`list`): A list of node names.
-             * **edges** (:py:class:`dict`): Maps edge
-               names (the keys of the dict) to a dict (the values of
-               the dict), which must include the key-value pairs of
-               ``nodes`` to a list of nodes each edge connects, and
-               ``cross_sectional_area`` to the area of that edge.
-               Additionally, known diffusion constants can be
-               included as ``diffusion_constants`` in units of
-               um^2/s, and edge-specific scaling of the diffusion
-               constants can be included as,
-               ``diffusion_scaling_constant``.
-             * **mw** (:py:class:`dict`): Maps from
-               names of molecules (the keys of the dict) to their
-               molecular weights in units of fg (the values of the dict).
-             * **mesh_size** (:py:class:`float`): Mesh size in units of nm.
-             * **time_step** (:py:class:`float`): The time step used in
-               units of s.
-             * **radii** (:py:class:`dict`): Maps from molecule names
-               of molecules (the keys of the dict) to their known
-               hydrodynamic radii in units of nm (the values of the dict).
-               This is an optional parameter.
-             * **temp** (:py:class:`float`): Temperature of experiment
-               in units of K. This is an optional parameter.
+            * **nodes** (:py:class:`list`): A list of node names.
+            * **edges** (:py:class:`dict`): Maps edge
+              names (the keys of the dict) to a dict (the values of
+              the dict), which must include the key-value pairs of
+              ``nodes`` to a list of nodes each edge connects, and
+              ``cross_sectional_area`` to the area of that edge.
+              Additionally, known diffusion constants can be
+              included as ``diffusion_constants`` in units of
+              um^2/s, and edge-specific scaling of the diffusion
+              constants can be included as,
+              ``diffusion_scaling_constant``.
+            * **mw** (:py:class:`dict`): Maps from
+              names of molecules (the keys of the dict) to their
+              molecular weights in units of fg (the values of the dict).
+            * **mesh_size** (:py:class:`float`): Mesh size in units of nm.
+            * **time_step** (:py:class:`float`): The time step used in
+              units of s.
+            * **radii** (:py:class:`dict`): Maps from molecule names
+              of molecules (the keys of the dict) to their known
+              hydrodynamic radii in units of nm (the values of the dict).
+              This is an optional parameter.
+            * **temp** (:py:class:`float`): Temperature of experiment
+              in units of K. This is an optional parameter.
     """
 
     name = NAME
