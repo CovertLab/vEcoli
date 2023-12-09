@@ -608,19 +608,18 @@ class MetabolismRedux(Step):
         return np.rint(np.dot(concs, (CONC_UNITS /
             self.counts_to_molar * self.timestep).asNumber())).astype(int)
 
-    def getBiomassAsConcentrations(self, doubling_time, rp_ratio=None):
+    def getBiomassAsConcentrations(self, doubling_time: Unum, 
+                                   rp_ratio: float=None) -> dict[str, Unum]:
         """
         Caches the result of the sim_data function to improve performance since
         function requires computation but won't change for a given doubling_time.
 
         Args:
-            doubling_time (float with time units): doubling time of the cell to
+            doubling_time: doubling time of the cell to
                 get the metabolite concentrations for
 
         Returns:
-            dict {str : float with concentration units}: dictionary with metabolite
-                IDs as keys and concentrations as values
-
+            Mapping from metabolite IDs to concentration targets
         """
 
         # TODO (Cyrus) Repeats code found in processes/metabolism.py Should think of a way to share.
@@ -632,22 +631,20 @@ class MetabolismRedux(Step):
 
         return self._biomass_concentrations[(minutes, rp_ratio)]
 
-    def update_amino_acid_targets(self, counts_to_molar, count_diff,
-        amino_acid_counts):
+    def update_amino_acid_targets(self, counts_to_molar: Unum, 
+        count_diff: dict[str, float], amino_acid_counts: np.ndarray[float]
+        ) -> dict[str, Unum]:
         """
         Finds new amino acid concentration targets based on difference in
-        supply and number of amino acids used in polypeptide_elongation
-
-        Args:
-            counts_to_molar (float with mol/volume units): conversion from
-                counts to molar for the current state of the cell
-
-        Returns:
-            dict {AA name (str): AA conc (float with mol/volume units)}:
-                new concentration targets for each amino acid
-
+        supply and number of amino acids used in polypeptide_elongation. 
         Skips updates to molecules defined in self.aa_targets_not_updated:
         - L-SELENOCYSTEINE: rare AA that led to high variability when updated
+
+        Args:
+            counts_to_molar: conversion from counts to molar
+
+        Returns:
+            ``{AA name (str): new target AA conc (float with mol/volume units)}``
         """
 
         if len(self.aa_targets):

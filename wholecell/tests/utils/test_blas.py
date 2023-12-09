@@ -28,6 +28,9 @@ import numpy as np
 import wholecell.utils.filepath as fp
 from wholecell.utils import parallelization
 
+# Silence Sphinx autodoc warning
+unittest.TestCase.__module__ = 'unittest'
+
 
 THIS_DIR_PATH = os.path.dirname(os.path.realpath(__file__))
 

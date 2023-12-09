@@ -6,6 +6,9 @@ import unittest
 from reconstruction.spreadsheets import JsonReader, JsonWriter, read_tsv, tsv_reader
 from wholecell.utils import units
 
+# Silence Sphinx autodoc warning
+unittest.TestCase.__module__ = 'unittest'
+
 
 JAVIER_TABLE = os.path.join(
 	'validation', 'ecoli', 'flat', 'schmidt2015_javier_table.tsv')

@@ -4,7 +4,7 @@ import binascii
 from itertools import chain
 import numpy as np
 import pickle
-from typing import Any
+from typing import Any, TYPE_CHECKING
 from vivarium.library.units import units as vivunits
 from wholecell.utils import units
 from wholecell.utils.unit_struct_array import UnitStructArray
@@ -17,6 +17,9 @@ from ecoli.library.parameters import param_store
 from ecoli.library.initial_conditions import (calculate_cell_mass,
     initialize_bulk_counts, initialize_trna_charging, 
     initialize_unique_molecules, set_small_molecule_counts)
+
+if TYPE_CHECKING:
+    from reconstruction.ecoli.simulation_data import SimulationDataEcoli
 
 RAND_MAX = 2**31
 SIM_DATA_PATH = os.path.join(ROOT_PATH,
@@ -178,7 +181,7 @@ class LoadSimData:
 
         # load sim_data
         with open(sim_data_path, 'rb') as sim_data_file:
-            self.sim_data = pickle.load(sim_data_file)
+            self.sim_data: 'SimulationDataEcoli' = pickle.load(sim_data_file)
 
         # Used by processes to apply submass updates to correct unique attr
         self.submass_indices = {

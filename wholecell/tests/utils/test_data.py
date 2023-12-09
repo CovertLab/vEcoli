@@ -6,6 +6,9 @@ import pytest
 
 from wholecell.utils import data
 
+# Silence Sphinx autodoc warning
+unittest.TestCase.__module__ = 'unittest'
+
 
 class Test_data(unittest.TestCase):
 

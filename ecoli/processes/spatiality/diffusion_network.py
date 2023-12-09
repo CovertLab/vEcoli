@@ -58,9 +58,10 @@ class DiffusionNetwork(Process):
     """ Models diffusion between a network of connected nodes.
 
     :term:`Ports`:
+    
     * **nodes**: Expects a :term:`store` which is a dict of node names
-       (the keys of the dict) to a dict, which has the key value
-       pairs for ``length``, ``volume``, and ``molecules``.
+      (the keys of the dict) to a dict, which has the key value
+      pairs for ``length``, ``volume``, and ``molecules``.
 
     Args:
         parameters: A dictionary of configuration options.
@@ -388,7 +389,8 @@ def calculate_rp_from_mw(molecule_ids, mw):
 def compute_diffusion_constants_from_rp(molecule_ids, rp, mesh_size, edges,
                                        temp):
     """
-    Warning: The default values of the 'parameters' are E coli specific.
+    .. WARNING:: 
+        The default values of the parameters are E coli specific.
 
     This function computes the hypothesized diffusion constant of
     macromolecules within the nucleoid and the cytoplasm region.
@@ -467,7 +469,7 @@ def compute_diffusion_constants_from_rp(molecule_ids, rp, mesh_size, edges,
         temp: The temperature of interest. unit: K.
 
     Returns:
-        the diffusion constant of the macromolecule, units: ``um**2/sec``
+        the diffusion constant of the macromolecule in units ``um**2/sec``
     """
     if temp is None:
         temp = 310.15
