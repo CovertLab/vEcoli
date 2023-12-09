@@ -9,6 +9,9 @@ import numpy.testing as npt
 
 import unittest
 
+# Silence Sphinx autodoc warning
+unittest.TestCase.__module__ = 'unittest'
+
 
 class Test_mc_complexation(unittest.TestCase):
 

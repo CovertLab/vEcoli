@@ -15,6 +15,9 @@ import unittest
 
 P = polymerize.PAD_VALUE
 
+# Silence Sphinx autodoc warning
+unittest.TestCase.__module__ = 'unittest'
+
 
 class Test_polymerize(unittest.TestCase):
 

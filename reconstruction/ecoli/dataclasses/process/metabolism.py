@@ -11,7 +11,8 @@ TODO:
 from copy import copy
 import itertools
 import re
-from typing import Any, cast, Dict, Iterable, List, Optional, Set, Tuple, Union
+from typing import Any, cast, Dict, Iterable, List, Optional, Set, Tuple, Union, TYPE_CHECKING
+from unum import Unum
 
 import numpy as np
 import sympy as sp
@@ -20,13 +21,15 @@ from sympy.parsing.sympy_parser import parse_expr
 from ecoli.library.schema import bulk_name_to_idx, counts
 from reconstruction.ecoli.dataclasses.getter_functions import UNDEFINED_COMPARTMENT_IDS_TO_ABBREVS
 from reconstruction.ecoli.knowledge_base_raw import KnowledgeBaseEcoli
-# NOTE: Importing SimulationDataEcoli would make a circular reference so use Any.
-#from reconstruction.ecoli.simulation_data import SimulationDataEcoli
+if TYPE_CHECKING:
+	from reconstruction.ecoli.simulation_data import SimulationDataEcoli
+from reconstruction.ecoli.dataclasses.constants import Constants
 from wholecell.utils import units
 
 KINETIC_CONSTRAINT_CONC_UNITS = units.umol / units.L
 K_CAT_UNITS = 1 / units.s
 METABOLITE_CONCENTRATION_UNITS = units.mol / units.L
+"""Units for metabolite_concentrations"""
 DRY_MASS_UNITS = units.fg
 
 USE_ALL_CONSTRAINTS = False  # False will remove defined constraints from objective
@@ -43,9 +46,88 @@ class InvalidReactionDirectionError(Exception):
 
 
 class Metabolism(object):
-	""" Metabolism """
+	"""Metabolism
 
-	def __init__(self, raw_data, sim_data):
+	Args: 
+		raw_data: Raw data object
+		sim_data: Simulation data object
+	
+	Attributes:
+		solver (str): solver ID, should match a value in modular_fba.py,
+			set by :py:meth:`~._set_solver_values`
+		kinetic_objective_weight (float): weighting for the kinetic objective,
+			1-weighting for the homeostatic objective, set by 
+			:py:meth:`~._set_solver_values`	
+		kinetic_objective_weight_in_range (float): weighting for deviations
+			from the kinetic target within min and max ranges, set by 
+			:py:meth:`~._set_solver_values`
+		secretion_penalty_coeff (float): penalty on secretion fluxes, set by
+			:py:meth:`~._set_solver_values`
+		metabolite_charge (dict[str, int]): mapping of metabolite IDs to charge, 
+			set by :py:meth:`~._add_metabolite_charge`
+
+		concentration_updates
+		conc_dict (dict): 
+		nutrients_to_internal_conc (dict[str, dict[str, Unum]]):
+	
+		kinetic_constraint_reactions: 
+		kinetic_constraint_enzymes: 
+		kinetic_constraint_substrates:
+		_kcats: 
+		_saturations:
+		_enzymes: 
+		constraint_is_kcat_only:
+		_compiled_enzymes: 
+		_compiled_saturation:
+		reaction_stoich:
+		maintenance_reaction:
+		reaction_catalysts: 
+		catalyst_ids:
+		reactions_with_catalyst:
+		catalysis_matrix_I:
+		catalysis_matrix_J:
+		catalysis_matrix_V:
+		use_all_constraints:
+		constraints_to_disable:
+		base_reaction_ids:
+		reaction_id_to_base_reaction_id:
+		amino_acid_export_kms: 
+
+		transport_reactions (list[str]): transport reaction IDs in the
+			metabolic network (includes reverse reactions and reactions
+			with kinetic constraints), set by 
+			:py:meth:`~._build_transport_reactions`
+		aa_synthesis_pathways (dict[str, dict]): data for allosteric
+			inhibition of amino acid pathways indexed by amino acid ID with
+			location tag and nested dictionary with the following keys::
+
+				{'enzymes' (str): limiting/regulated enzyme ID in synthesis
+					pathway with location tag,
+				'kcat_data' (units.Unum): kcat associated with enzyme
+					reaction with units of 1/time,
+				'ki' (Tuple[units.Unum, units.Unum]]): lower and upper
+					limits of KI associated with enzyme reaction with units
+					of mol/volume}
+			
+			Set by :py:meth:`~._build_amino_acid_pathways`
+		KI_aa_synthesis (numpy.ndarray[float]): KI for each AA for synthesis
+			portion of supply (in units of 
+			:py:data:`~.METABOLITE_CONCENTRATION_UNITS`), set by 
+			:py:meth:`~.set_phenomological_supply_constants`
+		KM_aa_export (numpy.ndarray[float]): KM for each AA for export portion
+			of supply (in units of 
+			:py:data:`~.METABOLITE_CONCENTRATION_UNITS`), set by 
+			:py:meth:`~.set_phenomological_supply_constants`
+		fraction_supply_rate (float): fraction of AA supply that comes from
+			a base synthesis rate, set by 
+			:py:meth:`~.set_phenomological_supply_constants`
+		fraction_import_rate (numpy.ndarray[float]): fraction of AA supply that
+			comes from AA import if nutrients are present, set by 
+			:py:meth:`~.set_phenomological_supply_constants`
+	"""
+
+	def __init__(self, raw_data: KnowledgeBaseEcoli, 
+		sim_data: 'SimulationDataEcoli'):
 		self._set_solver_values(sim_data.constants)
 		self._build_biomass(raw_data, sim_data)
 		self._build_metabolism(raw_data, sim_data)
@@ -54,22 +136,28 @@ class Metabolism(object):
 		self._build_amino_acid_pathways(raw_data, sim_data)
 		self._add_metabolite_charge(raw_data)
 
-	def _add_metabolite_charge(self, raw_data):
+	def _add_metabolite_charge(self, raw_data: KnowledgeBaseEcoli):
+		"""
+		Compiles all metabolite charges.
+
+		Args:
+			raw_data: Raw data object
+
+		Attributes set:
+			- :py:attr:`~.metabolite_charge`
+		"""
 		self.metabolite_charge = {}
 		for met in raw_data.metabolites:
 			self.metabolite_charge[met["id"]] = met["molecular_charge"]
 
-	def _set_solver_values(self, constants):
+	def _set_solver_values(self, constants: Constants):
 		"""
 		Sets values to be used in the FBA solver.
 
 		Attributes set:
-			solver (str): solver ID, should match a value in modular_fba.py
-			kinetic_objective_weight (float): weighting for the kinetic objective,
-				1-weighting for the homeostatic objective
-			kinetic_objective_weight_in_range (float): weighting for deviations
-				from the kinetic target within min and max ranges
-			secretion_penalty_coeff (float): penalty on secretion fluxes
+			- :py:attr:`~.solver`
+			- :py:attr:`~.kinetic_objective_weight`
+			- :py:attr:`~.secretion_penalty_coeff`
 		"""
 
 		self.solver = "glpk-linear"
@@ -80,7 +168,20 @@ class Metabolism(object):
 		self.kinetic_objective_weight_in_range = constants.metabolism_kinetic_objective_weight_in_range
 		self.secretion_penalty_coeff = constants.secretion_penalty_coeff
 
-	def _build_biomass(self, raw_data, sim_data):
+	def _build_biomass(self, raw_data: KnowledgeBaseEcoli, 
+		sim_data: 'SimulationDataEcoli'):
+		"""
+		Calculates metabolite concentration targets.
+
+		Args:
+			raw_data: Raw data object
+			sim_data: Simulation data object
+
+		Attributes set:
+			- :py:attr:`~.concentration_updates`
+			- :py:attr:`~.conc_dict`
+			- :py:attr:`~.nutrients_to_internal_conc`
+		"""
 		wildtypeIDs = set(entry["molecule id"] for entry in raw_data.biomass)
 
 		# Create vector of metabolite target concentrations
@@ -253,17 +354,23 @@ class Metabolism(object):
 		self.nutrients_to_internal_conc = {}
 		self.nutrients_to_internal_conc["minimal"] = self.conc_dict.copy()
 
-	def _build_linked_metabolites(self, raw_data, conc_dict):
+	def _build_linked_metabolites(self, raw_data: KnowledgeBaseEcoli, 
+		conc_dict: dict[str, Unum]) -> dict[str, dict[str, Any]]:
 		"""
 		Calculates ratio between linked metabolites to keep it constant
 		throughout a simulation.
 
+		Args:
+			raw_data: Raw data object
+			conc_dict: Mapping of metabolite IDs to homeostatic concentrations
+				calculated by :py:meth:`~_build_biomass`
+
 		Returns:
-			linked_metabolites (Dict[str, Dict[str, Any]]): mapping from a
-				linked metabolite to its lead metabolite and concentration
-				ratio to be maintained with the following keys:
-					'lead' (str): metabolite to link the concentration to
-					'ratio' (float): ratio to multiply the lead concentration by
+			Mapping from a linked metabolite to its lead 
+			metabolite and concentration ratio to be maintained::
+
+					{'lead' (str): metabolite to link the concentration to,
+					'ratio' (float): ratio to multiply the lead concentration by}
 		"""
 
 		linked_metabolites = {}
@@ -276,10 +383,35 @@ class Metabolism(object):
 
 		return linked_metabolites
 
-	def _build_metabolism(self, raw_data, sim_data):
+	def _build_metabolism(self, raw_data: KnowledgeBaseEcoli, 
+		sim_data: 'SimulationDataEcoli'):
 		"""
 		Build the matrices/vectors for metabolism (FBA)
 		Reads in and stores reaction and kinetic constraint information
+
+		Attributes set:
+			- :py:attr:`~.kinetic_constraint_reactions`
+			- :py:attr:`~.kinetic_constraint_enzymes`
+			- :py:attr:`~.kinetic_constraint_substrates`
+			- :py:attr:`~._kcats`
+			- :py:attr:`~._saturations`
+			- :py:attr:`~._enzymes`
+			- :py:attr:`~.constraint_is_kcat_only`
+			- :py:attr:`~._compiled_enzymes`
+			- :py:attr:`~._compiled_saturation`
+			- :py:attr:`~.reaction_stoich`
+			- :py:attr:`~.maintenance_reaction`
+			- :py:attr:`~.reaction_catalysts`
+			- :py:attr:`~.catalyst_ids`
+			- :py:attr:`~.reactions_with_catalyst`
+			- :py:attr:`~.catalysis_matrix_I`
+			- :py:attr:`~.catalysis_matrix_J`
+			- :py:attr:`~.catalysis_matrix_V`
+			- :py:attr:`~.use_all_constraints`
+			- :py:attr:`~.constraints_to_disable`
+			- :py:attr:`~.base_reaction_ids`
+			- :py:attr:`~.reaction_id_to_base_reaction_id`
+			- :py:attr:`~.amino_acid_export_kms`
 		"""
 		(base_rxn_ids, reaction_stoich, reversible_reactions, catalysts, rxn_id_to_base_rxn_id
 			) = self.extract_reactions(raw_data, sim_data)
@@ -365,7 +497,8 @@ class Metabolism(object):
 
 		self.amino_acid_export_kms = raw_data.amino_acid_export_kms
 
-	def _build_ppgpp_reactions(self, raw_data, sim_data):
+	def _build_ppgpp_reactions(self, raw_data: KnowledgeBaseEcoli, 
+		sim_data: 'SimulationDataEcoli'):
 		'''
 		Creates structures for ppGpp reactions for use in polypeptide_elongation.
 
@@ -418,15 +551,14 @@ class Metabolism(object):
 		self.ppgpp_reaction_stoich = np.zeros((new_index, j+1), dtype=np.int32)
 		self.ppgpp_reaction_stoich[rxn_i, rxn_j] = rxn_v
 
-	def _build_transport_reactions(self, raw_data, sim_data):
+	def _build_transport_reactions(self, raw_data: KnowledgeBaseEcoli, 
+		sim_data: 'SimulationDataEcoli'):
 		"""
 		Creates list of transport reactions that are included in the
 		reaction network.
 
 		Attributes set:
-			transport_reactions (List[str]): transport reaction IDs in the
-				metabolic network (includes reverse reactions and reactions
-				with kinetic constraints)
+			- :py:attr:`~.transport_reactions`
 		"""
 		transport_reactions = [
 			rxn_id for rxn_id, stoich in self.reaction_stoich.items()
@@ -434,22 +566,14 @@ class Metabolism(object):
 
 		self.transport_reactions = transport_reactions
 
-	def _build_amino_acid_pathways(self, raw_data, sim_data):
+	def _build_amino_acid_pathways(self, raw_data: KnowledgeBaseEcoli, 
+		sim_data: 'SimulationDataEcoli'):
 		"""
 		Creates mapping between enzymes and amino acid pathways with
 		allosteric inhibition feedback from the amino acid.
 
 		Attributes set:
-			aa_synthesis_pathways (Dict[str, Dict]): data for allosteric
-				inhibition of amino acid pathways indexed by amino acid ID with
-				location tag and nested dictionary with the following keys:
-					'enzymes' (str): limiting/regulated enzyme ID in synthesis
-						pathway with location tag
-					'kcat_data' (units.Unum): kcat associated with enzyme
-						reaction with units of 1/time
-					'ki' (Tuple[units.Unum, units.Unum]]): lower and upper
-						limits of KI associated with enzyme reaction with units
-						of mol/volume
+			- :py:attr:`~.aa_synthesis_pathways`
 		"""
 
 		self.aa_synthesis_pathways = {}
@@ -492,8 +616,7 @@ class Metabolism(object):
 			rates['UB'] = row['Uptake, UB']
 			self.amino_acid_uptake_rates[row['Amino acid']] = rates
 
-	def get_kinetic_constraints(self, enzymes, substrates):
-		# type: (units.Unum, units.Unum) -> units.Unum
+	def get_kinetic_constraints(self, enzymes: Unum, substrates: Unum) -> Unum:
 		'''
 		Allows for dynamic code generation for kinetic constraint calculation
 		for use in Metabolism process. Inputs should be unitless but the order
@@ -513,8 +636,9 @@ class Metabolism(object):
 				constraints (mol / volume units)
 
 		Returns:
-			(n reactions, 3): min, mean and max kinetic constraints for each
-				reaction with kinetic constraints (mol / volume / time units)
+			Array of dimensions (n reactions, 3) where each row contains the 
+			min, mean and max kinetic constraints for each reaction with kinetic 
+			constraints (mol / volume / time units)
 		'''
 
 		if self._compiled_enzymes is None:
@@ -562,7 +686,7 @@ class Metabolism(object):
 
 		return externalMoleculeLevels, newObjective
 
-	def set_phenomological_supply_constants(self, sim_data):
+	def set_phenomological_supply_constants(self, sim_data: 'SimulationDataEcoli'):
 		"""
 		Sets constants to determine amino acid supply during translation.  Used
 		with aa_supply_scaling() during simulations but supply can
@@ -572,21 +696,17 @@ class Metabolism(object):
 		expression and regulation.
 
 		Args:
-			sim_data (SimulationData object)
+			sim_data: simulation data
 
-		Sets class attributes:
-			KI_aa_synthesis (ndarray[float]): KI for each AA for synthesis
-				portion of supply (in units of METABOLITE_CONCENTRATION_UNITS)
-			KM_aa_export (ndarray[float]): KM for each AA for export portion
-				of supply (in units of METABOLITE_CONCENTRATION_UNITS)
-			fraction_supply_rate (float): fraction of AA supply that comes from
-				a base synthesis rate
-			fraction_import_rate (ndarray[float]): fraction of AA supply that
-				comes from AA import if nutrients are present
+		Attributes set: 
+			- :py:attr:`~.KI_aa_synthesis`
+			- :py:attr:`~.KM_aa_export`
+			- :py:attr:`~.fraction_supply_rate`
+			- :py:attr:`~.fraction_import_rate`
 
 		Assumptions:
 			- Each internal amino acid concentration in 'minimal_plus_amino_acids'
-			media is not lower than in 'minimal' media
+			  media is not lower than in 'minimal' media
 
 		TODO (Travis):
 			Better handling of concentration assumption
@@ -1756,22 +1876,25 @@ class Metabolism(object):
 		return '1/({})'.format(')*('.join(terms))
 
 	@staticmethod
-	def _extract_custom_constraint(constraint, reactant_tags, product_tags, known_mets):
-		# type: (Dict[str, Any], Dict[str, str], Dict[str, str], Set[str]) -> Tuple[Optional[np.ndarray], List[str]]
+	def _extract_custom_constraint(constraint: dict[str, Any], 
+		reactant_tags: dict[str, str], product_tags: dict[str, str], 
+		known_mets: set[str]) -> tuple[Optional[np.ndarray], list[str]]:
 		"""
 		Args:
-			constraint: values defining a kinetic constraint with key:
-				'customRateEquation' (str): mathematical representation of
-					rate, must contain 'kcat*E'
-				'customParameterVariables' (Dict[str, str]): mapping of
+			constraint: values defining a kinetic constraint::
+				
+				{'customRateEquation' (str): mathematical representation of
+					rate (must contain 'kcat*E'), 
+				'customParameterVariables' (dict[str, str]): mapping of
 					variable names in the rate equation to metabolite IDs
-					without location tags, must contain key 'E' (enzyme)
-				'customParameterConstants' (List[str]): constant strings
-					in the rate equation that correspond to values, must
-					contain 'kcat'
-				'customParameterConstantValues' (List[float]): values for
-					each of the constant strings
-				'Temp' (float or ''): temperature of measurement
+					without location tags (must contain 'E'),
+				'customParameterConstants' (list[str]): constant strings
+					in the rate equation that correspond to values (must
+					contain 'kcat'),
+				'customParameterConstantValues' (list[float]): values for
+					each of the constant strings,
+				'Temp' (float or ''): temperature of measurement}
+
 			reactant_tags: mapping of molecule IDs without a location tag to
 				molecule IDs with a location tag for all reactants
 			product_tags: mapping of molecule IDs without a location tag to
@@ -1780,9 +1903,11 @@ class Metabolism(object):
 				known concentrations
 
 		Returns:
-			kcats: temperature adjusted kcat value, in units of 1/s
-			saturation: saturation equation with metabolites to replace
-				delimited by double quote (eg. "metabolite")
+			2-element tuple containing
+
+				- kcats: temperature adjusted kcat value, in units of 1/s
+				- saturation: saturation equation with metabolites to replace
+				  delimited by double quote (eg. "metabolite")
 		"""
 
 		equation = constraint['customRateEquation']
@@ -1988,52 +2113,67 @@ class Metabolism(object):
 		return constraints
 
 	@staticmethod
-	def _replace_enzyme_reactions(constraints, stoich, rxn_catalysts, reversible_rxns, rxn_id_to_compiled_id):
-		# type: (Dict[Tuple[str, str], Dict[str, List[Any]]], Dict[str, Dict[str, int]], Dict[str, List[str]], List[str], Dict[str, str]) -> Tuple[Dict[str, Any], Dict[str, Dict[str, int]], Dict[str, List[str]], List[str], Dict[str, str]]
+	def _replace_enzyme_reactions(constraints: dict[tuple[str, str], dict[str, list[Any]]], 
+		stoich: dict[str, dict[str, int]], rxn_catalysts: dict[str, list[str]], 
+		reversible_rxns: list[str], rxn_id_to_compiled_id: dict[str, str]
+		) -> tuple[dict[str, Any], dict[str, dict[str, int]], 
+			 dict[str, list[str]], list[str], dict[str, str]]:
 		"""
 		Modifies reaction IDs in data structures to duplicate reactions with
 		kinetic constraints and multiple enzymes.
 
 		Args:
-			constraints: valid kinetic constraints for each reaction/enzyme pair
+			constraints: valid kinetic constraints for each reaction/enzyme pair::
+				
 				{(reaction ID, enzyme with location tag): {
-					'kcat': kcat values (List[float]),
-					'saturation': saturation equations (List[str])
+					'kcat': kcat values (list[float]),
+					'saturation': saturation equations (list[str])
 				}}
-			stoich: {reaction ID: {metabolite ID with location tag: stoichiometry}}
-				stoichiometry of metabolites for each reaction, if None, data
-				is loaded from raw_data and sim_data
-			rxn_catalysts: {reaction ID: enzyme IDs with location tag}
-				enzyme catalysts for each reaction with known catalysts, likely
-				a subset of reactions in stoich, if None, data is loaded from
-				raw_data and sim_data
+
+			stoich: stoichiometry of metabolites for each reaction (if None, data
+				is loaded from raw_data and sim_data)::
+
+				{reaction ID: {metabolite ID with location tag: stoichiometry}}
+
+			rxn_catalysts: enzyme catalysts for each reaction with known catalysts, 
+				likely a subset of reactions in stoich (if None, data is loaded 
+				from raw_data and sim_data)::
+
+				{reaction ID: enzyme IDs with location tag}
+
 			reversible_rxns: reaction IDs for reactions that have a reverse
 				complement, does not have reverse tag
-			rxn_id_to_compiled_id: {reaction ID: original reaction ID}
-				mapping from reaction IDs to the IDs of the original reactions
-				they were derived from
+			rxn_id_to_compiled_id: mapping from reaction IDs to the IDs of the 
+				original reactions they were derived from
 
 		Returns:
-			new_constraints: valid kinetic constraints for each reaction
-				{reaction ID: {
-					'enzyme': enzyme catalyst (str),
-					'kcat': kcat values (List[float]),
-					'saturation': saturation equations (List[str])
-				}}
-			stoich: {reaction ID: {metabolite ID with location tag: stoichiometry}}
-				stoichiometry of metabolites for each reaction with updated
-				reactions for enzyme catalyzed kinetic reactions
-			rxn_catalysts: {reaction ID: enzyme IDs with location tag}
-				enzyme catalysts for each reaction with known catalysts, likely
-				a subset of reactions in stoich with updated
-				reactions for enzyme catalyzed kinetic reactions
-			reversible_rxns: reaction IDs for reactions that have a reverse
-				complement with updated reactions for enzyme catalyzed kinetic
-				reactions, does not have reverse tag
-			rxn_id_to_compiled_id: {reaction ID: original reaction ID}
-				mapping from reaction IDs to the IDs of the original reactions
-				they were derived from, with updated reactions for enzyme
-				catalyzed kinetic reactions
+			5-element tuple containing
+
+				- new_constraints: valid kinetic constraints for each reaction::
+					
+					{reaction ID: {
+						'enzyme': enzyme catalyst (str),
+						'kcat': kcat values (list[float]),
+						'saturation': saturation equations (list[str])
+					}}
+
+				- stoich: stoichiometry of metabolites for each reaction with 
+				  updated reactions for enzyme catalyzed kinetic reactions::
+
+					{reaction ID: {metabolite ID with location tag: stoichiometry}}
+
+				- rxn_catalysts: enzyme catalysts for each reaction with known 
+				  catalysts, likely a subset of reactions in stoich with 
+				  updated reactions for enzyme catalyzed kinetic reactions::
+
+					{reaction ID: enzyme IDs with location tag}
+				
+				- reversible_rxns: reaction IDs for reactions that have a reverse
+				  complement with updated reactions for enzyme catalyzed kinetic
+				  reactions, does not have reverse tag
+				- rxn_id_to_compiled_id: mapping from reaction IDs to the IDs 
+				  of the original reactions they were derived from, with updated 
+				  reactions for enzyme catalyzed kinetic reactions
 		"""
 
 		new_constraints = {}
@@ -2077,32 +2217,38 @@ class Metabolism(object):
 		return new_constraints, stoich, rxn_catalysts, reversible_rxns, rxn_id_to_compiled_id
 
 	@staticmethod
-	def _lambdify_constraints(constraints):
-		# type: (Dict[str, Any]) -> Tuple[List[str], List[str], List[str], np.ndarray, str, str, np.ndarray]
+	def _lambdify_constraints(constraints: dict[str, Any]) -> tuple[
+		list[str], list[str], list[str], np.ndarray, str, str, np.ndarray]:
 		"""
 		Creates str representations of kinetic terms to be used to create
 		kinetic constraints that are returned with getKineticConstraints().
 
 		Args:
-			constraints: valid kinetic constraints for each reaction
+			constraints: valid kinetic constraints for each reaction::
+
 				{reaction ID: {
 					'enzyme': enzyme catalyst (str),
-					'kcat': kcat values (List[float]),
-					'saturation': saturation equations (List[str])
+					'kcat': kcat values (list[float]),
+					'saturation': saturation equations (list[str])
 				}}
 
 		Returns:
-			rxns: sorted reaction IDs for reactions with a kinetic constraint
-			enzymes: sorted enzyme IDs for enzymes that catalyze a kinetic reaction
-			substrates: sorted substrate IDs for substrates that are needed
-				for kinetic saturation terms
-			all_kcats: (n rxns, 3) min, mean and max kcat value for each reaction
-			all_saturations: sympy str representation of a list of saturation
-				terms (eg. '[s[0] / (1 + s[0]), 2 / (2 + s[1])]')
-			all_enzymes: sympy str representation of enzymes for each reaction
-				(eg. '[e[0], e[2], e[1]]')
-			constraint_is_kcat_only: True if reaction only has kcat values and
-				no saturation terms
+			7-element tuple containing
+
+				- rxns: sorted reaction IDs for reactions with a kinetic 
+				  constraint
+				- enzymes: sorted enzyme IDs for enzymes that catalyze a 
+				  kinetic reaction
+				- substrates: sorted substrate IDs for substrates that are 
+				  needed for kinetic saturation terms
+				- all_kcats: (n rxns, 3) min, mean and max kcat value for 
+				  each reaction
+				- all_saturations: sympy str representation of a list of 
+				  saturation terms (eg. '[s[0] / (1 + s[0]), 2 / (2 + s[1])]')
+				- all_enzymes: sympy str representation of enzymes for each 
+				  reaction (e.g. '[e[0], e[2], e[1]]')
+				- constraint_is_kcat_only: True if reaction only has kcat 
+				  values and no saturation terms
 		"""
 
 		# Ordered lists of constraint related IDs
@@ -2166,8 +2312,7 @@ class Metabolism(object):
 
 		return rxns, enzymes, substrates, all_kcats, all_saturations, all_enzymes, constraint_is_kcat_only
 
-	def _is_transport_rxn(self, stoich):
-		# type: (Dict[str, int]) -> bool
+	def _is_transport_rxn(self, stoich: dict[str, int]) -> bool:
 		"""
 		Determines if the metabolic reaction with a given stoichiometry is a
 		transport reactions that transports metabolites between different
@@ -2176,14 +2321,14 @@ class Metabolism(object):
 		tagged into different compartments.
 
 		Args:
-			stoich: Stoichiometry of the metabolic reaction
+			stoich: Stoichiometry of the metabolic reaction::
+				
 				{
 				metabolite ID (str): stoichiometric coefficient (int)
 				}
 
 		Returns:
-			is_transport_rxn (bool): True if the reaction with the given
-			stoichiometry is a transport reaction
+			True if given stoichiometry is a transport reaction
 		"""
 		is_transport_rxn = False
 
@@ -2301,23 +2446,26 @@ class ConcentrationUpdates(object):
 
 		return concDict
 
-	def _exchange_flux_present(self, exchange_data):
-		# type: (Dict[str, Any]) -> Dict[str, Set[str]]
+	def _exchange_flux_present(self, exchange_data: dict[str, any]
+		) -> dict[str, set[str]]:
 		"""
 		Caches the presence of exchanges in each media condition based on
 		exchange_data to set concentrations in concentrations_based_on_nutrients().
 
 		Args:
-			exchange_data: dictionary of exchange data for all media conditions with keys:
-				importUnconstrainedExchangeMolecules (dict[str, set[str]]): for each media ID key,
-					exchange molecules (with location tag) that do not have an upper bound on their flux
-				importConstrainedExchangeMolecules (dict[str, dict[str, float with mol/mass/time units]]):
-					for each media ID key, constrained molecules (with location tag)
-					with upper bound flux constraints
+			exchange_data: dictionary of exchange data for all media conditions 
+				with keys:
+				- importUnconstrainedExchangeMolecules (dict[str, set[str]]): 
+				  for each media ID key, exchange molecules (with location tag) 
+				  that do not have an upper bound on their flux
+				- importConstrainedExchangeMolecules (dict[str, 
+				  dict[str, float with mol/mass/time units]]): for each media 
+				  ID key, constrained molecules (with location tag) with upper 
+				  bound flux constraints
 
 		Returns:
-			sets of molecules IDs (with location tags) that can be imported for each
-			media ID
+			Sets of molecules IDs (with location tags) that can be imported 
+			for each media ID
 		"""
 
 		exchange_fluxes = {}
