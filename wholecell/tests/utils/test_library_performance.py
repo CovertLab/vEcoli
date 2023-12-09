@@ -22,6 +22,9 @@ import unittest
 import numpy as np
 import scipy.integrate
 
+# Silence Sphinx autodoc warning
+unittest.TestCase.__module__ = 'unittest'
+
 
 def _format_time(timespan, precision=3):
 	"""

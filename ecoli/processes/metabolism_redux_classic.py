@@ -4,6 +4,7 @@ MetabolismRedux
 
 import numpy as np
 import time
+from unum import Unum
 from scipy.sparse import csr_matrix
 
 from vivarium.core.process import Step
@@ -384,19 +385,17 @@ class MetabolismReduxClassic(Step):
         return np.rint(np.dot(concs, (CONC_UNITS /
             self.counts_to_molar * self.timestep).asNumber())).astype(int)
 
-    def getBiomassAsConcentrations(self, doubling_time):
+    def getBiomassAsConcentrations(self, doubling_time: Unum):
         """
         Caches the result of the sim_data function to improve performance since
         function requires computation but won't change for a given doubling_time.
 
         Args:
-            doubling_time (float with time units): doubling time of the cell to
+            doubling_time: doubling time of the cell to
                 get the metabolite concentrations for
 
         Returns:
-            dict {str : float with concentration units}: dictionary with metabolite
-                IDs as keys and concentrations as values
-
+            Mapping from metabolite IDs to concentration targets
         """
 
         # TODO (Cyrus) Repeats code found in processes/metabolism.py Should think of a way to share.

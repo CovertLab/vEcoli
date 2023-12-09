@@ -13,7 +13,7 @@ NOTE:
 and internal states have been updated (deriver-like, no partitioning necessary)
 """
 
-from typing import Tuple
+from typing import Any
 
 import numpy as np
 from scipy.sparse import csr_matrix
@@ -596,22 +596,20 @@ class Metabolism(Step):
 
         return update
 
-    def update_amino_acid_targets(self, counts_to_molar, count_diff,
-        amino_acid_counts):
+    def update_amino_acid_targets(self, counts_to_molar: Unum, 
+        count_diff: dict[str, float],
+        amino_acid_counts: np.ndarray[int]) -> dict[str, Unum]:
         """
         Finds new amino acid concentration targets based on difference in
-        supply and number of amino acids used in polypeptide_elongation
-
-        Args:
-            counts_to_molar (float with mol/volume units): conversion from
-                counts to molar for the current state of the cell
-
-        Returns:
-            dict {AA name (str): AA conc (float with mol/volume units)}:
-                new concentration targets for each amino acid
-
+        supply and number of amino acids used in polypeptide_elongation. 
         Skips updates to molecules defined in self.aa_targets_not_updated:
         - L-SELENOCYSTEINE: rare AA that led to high variability when updated
+
+        Args:
+            counts_to_molar: conversion from counts to molar
+
+        Returns:
+            ``{AA name (str): new target AA conc (float with mol/volume units)}``
         """
 
         if len(self.aa_targets):
@@ -649,10 +647,11 @@ class FluxBalanceAnalysisModel(object):
     Metabolism model that solves an FBA problem with modular_fba.
     """
 
-    def __init__(self, parameters, timeline=None, include_ppgpp=True):
+    def __init__(self, parameters: dict[str, Any], 
+                 timeline: tuple[tuple[str]]=None, include_ppgpp: bool=True):
         """
         Args:
-            sim_data: simulation data
+            parameters: parameters from simulation data
             timeline: timeline for nutrient changes during simulation
                 (time of change, media ID), by default [(0.0, 'minimal')]
             include_ppgpp: if True, ppGpp is included as a concentration target
@@ -792,24 +791,24 @@ class FluxBalanceAnalysisModel(object):
         self.aa_names_no_location = [x[:-3]
                                      for x in parameters['amino_acid_ids']]
 
-    def update_external_molecule_levels(self, objective,
-        metabolite_concentrations, external_molecule_levels):
+    def update_external_molecule_levels(self, objective: dict[str, Unum],
+        metabolite_concentrations: Unum, 
+        external_molecule_levels: np.ndarray[float]) -> np.ndarray[float]:
         """
         Limit amino acid uptake to what is needed to meet concentration
         objective to prevent use as carbon source, otherwise could be used
         as an infinite nutrient source.
 
         Args:
-            objective (Dict[str, Unum]): homeostatic objective for internal
+            objective: homeostatic objective for internal
                 molecules (molecule ID: concentration in counts/volume units)
-            metabolite_concentrations (Unum[float]): concentration for each
+            metabolite_concentrations: concentration for each
                 molecule in metabolite_names
-            external_molecule_levels (np.ndarray[float]): current limits on
+            external_molecule_levels: current limits on
                 external molecule availability
 
         Returns:
-            external_molecule_levels (np.ndarray[float]): updated limits on
-                external molecule availability
+            Updated limits on external molecule availability
 
         TODO(wcEcoli):
             determine rate of uptake so that some amino acid uptake can

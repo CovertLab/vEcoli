@@ -1,9 +1,5 @@
 """
 Equilibrium.
-
-TODOs:
-fluxesAndMoleculesToSS()
-	Consider relocating (since it's useful for both the parca and simulation)
 """
 
 import numpy as np

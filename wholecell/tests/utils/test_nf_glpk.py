@@ -7,6 +7,9 @@ import swiglpk as glp
 from wholecell.utils._netflow.nf_glpk import (MessageLevel, NetworkFlowGLPK,
 	SimplexMethod)
 
+# Silence Sphinx autodoc warning
+unittest.TestCase.__module__ = 'unittest'
+
 
 class Test_NetworkFlowGLPK(unittest.TestCase):
 

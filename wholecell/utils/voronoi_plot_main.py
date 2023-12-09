@@ -726,7 +726,7 @@ class VoronoiMaster(object):
                 represented by the plot
 
         Returns:
-            error_all: the error in total area representation.
+            The error in total area representation.
         '''
         voronoi_list_old = []
         if ax_shape is not None:
