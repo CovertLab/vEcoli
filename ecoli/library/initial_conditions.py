@@ -10,7 +10,7 @@ from typing import Any
 
 from ecoli.library.schema import attrs, bulk_name_to_idx, \
     create_unique_indexes, counts
-from ecoli.models.polypeptide_elongation_models import (
+from ecoli.processes.polypeptide_elongation import (
     calculate_trna_charging, REMOVED_FROM_CHARGING, MICROMOLAR_UNITS)
 from wholecell.utils import units
 from wholecell.utils.fitting import (countsFromMassAndExpression,
@@ -1564,7 +1564,7 @@ def calculate_cell_mass(bulk_state, unique_molecules, sim_data):
     return units.fg * cell_mass
 
 
-def initialize_steady_state_trna_charging(
+def initialize_trna_charging(
     bulk_state: np.ndarray, unique_molecules: dict[str, np.ndarray], 
     sim_data: Any, variable_elongation: bool):
     '''

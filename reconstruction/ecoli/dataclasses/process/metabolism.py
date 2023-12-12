@@ -2,6 +2,7 @@
 SimulationData for metabolism process
 
 TODO:
+
 - improved estimate of ILE/LEU abundance or some external data point
 - implement L1-norm minimization for AA concentrations
 - find concentration for PI[c]
