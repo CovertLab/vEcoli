@@ -554,6 +554,10 @@ class Ecoli(Composer):
                 topology[f'{process_id}_evolver'][
                     'first_update'] = ('first_update', process_id)
                 topology[f'{process_id}_requester'][
+                    'next_update_time'] = ('next_update_time', process_id)
+                topology[f'{process_id}_evolver'][
+                    'next_update_time'] = ('next_update_time', process_id)
+                topology[f'{process_id}_requester'][
                     'process'] = ('process', process_id,)
                 topology[f'{process_id}_evolver'][
                     'process'] = ('process', process_id,)
