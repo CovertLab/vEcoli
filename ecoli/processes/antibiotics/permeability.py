@@ -47,7 +47,7 @@ class Permeability(Step):
 
     def ports_schema(self):
         return {
-            'bulk': numpy_schema('bulk', partition=False),
+            'bulk': numpy_schema('bulk'),
             'permeabilities': {mol_id: {
                 '_default': 1e-5 * units.cm / units.sec,
                 '_emit': True,

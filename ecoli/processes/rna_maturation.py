@@ -1,5 +1,6 @@
 """
 RnaMaturation process
+=====================
 - Converts unprocessed tRNA/rRNA molecules into mature tRNA/rRNAs
 - Consolidates the different variants of 23S, 16S, and 5S rRNAs into the single
 variant that is used for ribosomal subunits
@@ -68,7 +69,7 @@ class RnaMaturation(PartitionedProcess):
     def ports_schema(self):
         return {
             'bulk': numpy_schema('bulk'),
-            'bulk_total': numpy_schema('bulk', partition=False),
+            'bulk_total': numpy_schema('bulk'),
             'listeners': {
                 'rna_maturation_listener': listener_schema({
                     'total_maturation_events': 0,

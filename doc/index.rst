@@ -1,7 +1,15 @@
 Welcome to Vivarium *E. coli*'s documentation!
 ==============================================
 
-Vivarium *E. coli* project is a port of the `Covert Lab's *E. coli* Whole Cell Model <https://doi.org/10.1128/ecosalplus.ESP-0001-2020>`_ to the `Vivarium framework <https://vivarium-collective.github.io>`_.
+Vivarium *E. coli* project is a port of the |text|_ to the `Vivarium framework <https://vivarium-collective.github.io>`_.
+
+..
+   Comment: We need to use text substitution because ReST does not
+   support nesting italics and hyperlinking
+
+.. _text: https://doi.org/10.1128/ecosalplus.ESP-0001-2020
+
+.. |text| replace:: Covert Lab's *E. coli* Whole Cell Model
 
 .. image:: ./_static/ecoli_master_topology.png
     :width: 100%
@@ -18,9 +26,8 @@ Vivarium *E. coli* project is a port of the `Covert Lab's *E. coli* Whole Cell M
    Experiments <reference/experiments>
    tutorials
    docs
-   reference/index
-
-.. note:: Vivarium *E. coli* has not yet been publicly released.
+   reference/stores
+   API Reference <reference/api/modules>
 
 .. WARNING::
    This documentation is very much a work in progress. It likely

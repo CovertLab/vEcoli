@@ -15,7 +15,7 @@ def dict_value_updater(current, update):
 
     Expects current to be a dictionary, with no restriction on the types of objects
     stored within it, and no defaults. For enforcing expectations/defaults, try
-    make_dict_value_updater(**defaults).
+    `make_dict_value_updater(**defaults)`.
     '''
     result = current
 

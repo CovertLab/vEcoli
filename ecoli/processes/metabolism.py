@@ -214,7 +214,7 @@ class Metabolism(Step):
     def ports_schema(self):
         ports = {
             'bulk': numpy_schema('bulk'),
-            'bulk_total': numpy_schema('bulk', partition=False),
+            'bulk_total': numpy_schema('bulk'),
 
             'environment': {
                 'media_id': {
@@ -842,19 +842,19 @@ class FluxBalanceAnalysisModel(object):
         Set internal and external molecule levels available to the FBA solver.
 
         Args:
-            metabolite_counts (np.ndarray[int]): counts for each metabolite
+            metabolite_counts (:py:class:`np.ndarray[int]`): counts for each metabolite
                 with a concentration target
-            counts_to_molar (Unum): conversion from counts to molar
+            counts_to_molar (:py:class:`Unum`): conversion from counts to molar
                 (counts/volume units)
-            coefficient (Unum): coefficient to convert from mmol/g DCW/hr
+            coefficient (:py:class:`Unum`): coefficient to convert from mmol/g DCW/hr
                 to mM basis (mass.time/volume units)
-            current_media_id (str): ID of current media
-            unconstrained (Set[str]): molecules that have unconstrained import
-            constrained (Dict[str, units.Unum]): molecules (keys) and their
+            current_media_id (:py:class:`str`): ID of current media
+            unconstrained (:py:class:`Set[str]`): molecules that have unconstrained import
+            constrained (:py:class:`Dict[str, units.Unum]`): molecules (keys) and their
                 limited max uptake rates (values in mol / mass / time units)
-            conc_updates (Dict[str, Unum]): updates to concentrations targets
+            conc_updates (:py:class:`Dict[str, Unum]`): updates to concentrations targets
                 for molecules (molecule ID: concentration in mmol/L units)
-            aa_uptake_package (Tuple[np.ndarray, np.ndarray, Boolean]): packed
+            aa_uptake_package (:py:class:`Tuple[np.ndarray, np.ndarray, Boolean]`): packed
                 variables needed to set hard external amino acid uptakes (uptake
                 rates, amino acid names, force levels)
         """

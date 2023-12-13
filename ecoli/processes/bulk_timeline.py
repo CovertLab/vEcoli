@@ -23,7 +23,7 @@ class BulkTimelineProcess(Process):
 
     def ports_schema(self):
         schema = {
-            'bulk': numpy_schema('bulk', partition=False),
+            'bulk': numpy_schema('bulk'),
             'global': {'time': {'_default': 0, '_updater': 'accumulate'}}
         }
         other_ports = {port: {} for port in self.timeline_ports}

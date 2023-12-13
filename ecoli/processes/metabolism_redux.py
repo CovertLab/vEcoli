@@ -84,6 +84,7 @@ class MetabolismRedux(Step):
         'fba_reaction_ids_to_base_reaction_ids': [],
         'constraints_to_disable': [],
         'kinetic_objective_weight': 1e-7,
+        'kinetic_objective_weight_in_range': 1e-10,
         'secretion_penalty_coeff': 1e-3,
         'time_step': 1
     }
@@ -252,6 +253,8 @@ class MetabolismRedux(Step):
             'kinetic_objective_weight']
         self.secretion_penalty_coeff = self.parameters[
             'secretion_penalty_coeff']
+        self.kinetic_objective_weight_in_range = self.parameters[
+            'kinetic_objective_weight_in_range']
 
         # Helper indices for Numpy indexing
         self.homeostatic_metabolite_idx = None
@@ -306,7 +309,7 @@ class MetabolismRedux(Step):
 
         return {
             'bulk': numpy_schema('bulk'),
-            'bulk_total': numpy_schema('bulk', partition=False),
+            'bulk_total': numpy_schema('bulk'),
             # 'kinetic_flux_targets': {reaction_id: {} for reaction_id
             #     in self.parameters['kinetic_rates']},
 
@@ -538,7 +541,8 @@ class MetabolismRedux(Step):
         objective_weights = {
             'secretion': self.secretion_penalty_coeff,
             'efficiency': 0.0001,
-            'kinetics': self.kinetic_objective_weight}
+            'kinetics': self.kinetic_objective_weight,
+            'kinetics_in_range': self.kinetic_objective_weight_in_range}
         solution: FlowResult = self.network_flow_model.solve(
             homeostatic_concs=homeostatic_metabolite_concentrations,
             homeostatic_dm_targets=target_homeostatic_dmdt,
@@ -775,9 +779,14 @@ class NetworkFlowModel:
         # Convert to array
         homeostatic_concs = np.array(homeostatic_concs)
         homeostatic_dm_targets = np.array(homeostatic_dm_targets)
+        target_fluxes = np.zeros(self.n_orig_rxns)
+        if kinetic_targets is not None:
+            target_fluxes[self.kinetic_rxn_idx] += kinetic_targets[:, 1]
 
         # set up variables
-        v = cp.Variable(self.n_orig_rxns)
+        v_diff_in_range = cp.Variable(self.n_orig_rxns)
+        v_diff_outside_range = cp.Variable(self.n_orig_rxns)
+        v = target_fluxes + v_diff_in_range + v_diff_outside_range
         e = cp.Variable(self.n_exch_rxns)
         dm = self.S_orig @ v + self.S_exch @ e
         exch = self.S_exch @ e
@@ -806,7 +815,7 @@ class NetworkFlowModel:
         # Calculate target concs (current + delta) for denominator of objective
         # (target conc - actual conc) / (target conc) is the same as
         # (target delta - actual delta) / (target conc)
-        homeostatic_target_concs = homeostatic_concs + homeostatic_dm_targets.copy()
+        homeostatic_target_concs = homeostatic_concs + homeostatic_dm_targets
         # Fix divide by zero
         homeostatic_target_concs[homeostatic_target_concs==0] = 1
 
@@ -816,21 +825,24 @@ class NetworkFlowModel:
         if 'secretion' in objective_weights:
             loss += objective_weights['secretion'] * cp.sum(e[
                 self.secretion_idx] @ -self.exchange_masses[self.secretion_idx])
-        # Makes solution very different from wcEcoli
-        # if 'efficiency' in objective_weights:
-        #     loss += objective_weights['efficiency'] * (cp.sum(v))
         if 'kinetics' in objective_weights:
-            # TODO: Figure out how to weight diff from kinetic target
-            # differently depending on whether it is inside boundaries
-            # Lower bound = kinetic_targets[:, 0]
-            # Upper bound = kinetic_targets[:, 2]
             # Fix divide by zero
             nonzero_kinetic_targets = kinetic_targets[:, 1].copy()
             nonzero_kinetic_targets[nonzero_kinetic_targets==0] = 1
-            # Only include active kinetic constraints
-            loss += objective_weights['kinetics'] * cp.norm1(((v[
-                self.kinetic_rxn_idx] - kinetic_targets[:, 1]
-                ) / nonzero_kinetic_targets)[self.active_constraints_mask])
+            # Calculate lower and upper limit for flux diff
+            lower_flux_diff = kinetic_targets[:, 0] - kinetic_targets[:, 1]
+            upper_flux_diff = kinetic_targets[:, 2] - kinetic_targets[:, 1]
+            constr.extend([v_diff_in_range[self.kinetic_rxn_idx] >= lower_flux_diff,
+                v_diff_in_range[self.kinetic_rxn_idx] <= upper_flux_diff])
+            # Heavily weight fluxes outside limits
+            loss += objective_weights['kinetics'] * cp.norm1((
+                v_diff_outside_range[self.kinetic_rxn_idx]
+                 / nonzero_kinetic_targets)[self.active_constraints_mask])
+            # Lightly weight fluxes in expected range
+            loss += objective_weights['kinetics'] * \
+                objective_weights['kinetics_in_range'] * cp.norm1((
+                v_diff_in_range[self.kinetic_rxn_idx]
+                 / nonzero_kinetic_targets)[self.active_constraints_mask])
 
         p = cp.Problem(
             cp.Minimize(loss),

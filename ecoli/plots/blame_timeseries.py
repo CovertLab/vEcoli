@@ -178,7 +178,6 @@ def test_blame_timeseries():
         sim = EcoliSim.from_file()
         # CONFIG_DIR_PATH + "/test_configs/test_blame.json")
         # sim.emitter = "database"
-        sim.partition = True
         sim.raw_output = True
         sim.log_updates = True
         sim.emit_topology = False

@@ -93,6 +93,8 @@ intersphinx_mapping = {
         'https://vivarium-core.readthedocs.io/en/latest/',
         None,
     ),
+    'numpy': ('https://numpy.org/doc/stable', None),
+    'unum': ('https://unum.readthedocs.io/en/latest/', None)
 }
 
 
@@ -100,13 +102,20 @@ intersphinx_mapping = {
 autodoc_inherit_docstrings = False
 # The Python dependencies aren't really required for building the docs
 autodoc_mock_imports = [
-    'cobra', 'arrow', 'IPython', 'numba', 'line-profiler', 'iteround',
-    'pytest',
+    'stochastic_arrow', 'numba', 'line-profiler', 'iteround', 'aesara', 'pandas',
     # Runs code on import and fails due to missing solvers.
     'wholecell.utils.modular_fba',
+    # Runs code on import and fails due to missing packages
+    'ecoli.library.parameters',
+    'sympy', 'cv2', 'Bio', 'tqdm', 'cvxpy', 'pymunk', 'skimage', 'dill',
 ]
+# Move typehints from signature into description
+autodoc_typehints = "description"
 # Concatenate class and __init__ docstrings
 autoclass_content = 'both'
+# Remove domain objects (e.g. functions, classes, attributes) from 
+# table of contents
+toc_object_entries = False
 
 def autodoc_skip_member_handler(app, what, name, obj, skip, options):
     if name.startswith('test_'):
@@ -134,16 +143,16 @@ def run_apidoc(_):
     exclude = (
         os.path.join(cur_dir, path) for path in (
             '../ecoli/analysis',
-            '../ecoli/library',
-            '../ecoli/models',
             '../ecoli/plots',
-            '../ecoli/processes/registries.py',
-            '../ecoli/states',
             '../ecoli/experiments/ecoli_master_sim_tests.py',
         )
     )
-    apidoc.main(
-        ['-f', '-e', '-E', '-o', apidoc_dir, module_path, *exclude])
+
+    # Custom templates to only put top-level document titles in 
+    # table of contents
+    template_dir = 'apidoc_templates/'
+    apidoc.main(['-t', template_dir,
+        '-f', '-e', '-E', '-M', '-o', apidoc_dir, module_path, *exclude])
 
 
 objects_to_pprint = {}
