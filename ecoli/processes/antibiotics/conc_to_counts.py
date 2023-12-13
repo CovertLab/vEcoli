@@ -48,7 +48,7 @@ class ConcToCounts(Step):
             }
             for molecule in self.parameters['molecules_to_convert']
         }
-        schema['bulk'] = numpy_schema('bulk', partition=False)
+        schema['bulk'] = numpy_schema('bulk')
         return schema
 
     def initial_state(self, config=None):

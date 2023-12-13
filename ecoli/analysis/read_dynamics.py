@@ -302,7 +302,7 @@ def read_rna_dynamics(sim_data, node, node_id, indexes, volume, timeseries):
     # If RNA is an mRNA, get counts from mRNA counts listener
     if node_id in indexes["mRNAs"]:
         # counts = columns[("mRNACounts", "mRNA_counts")][:, indexes["mRNAs"][node_id]]
-        counts = timeseries['listeners']['rna_counts']['mRNA_counts']
+        counts = timeseries['listeners']['rna_counts']['mRNA_counts'][:, indexes["mRNAs"][node_id]]
     # If not, get counts from bulk molecules listener
     else:
         # counts = columns[("BulkMolecules", "counts")][:, indexes["BulkMolecules"][node_id]]

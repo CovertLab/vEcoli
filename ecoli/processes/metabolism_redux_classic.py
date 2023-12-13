@@ -158,7 +158,7 @@ class MetabolismReduxClassic(Step):
 
         return {
             'bulk': numpy_schema('bulk'),
-            'bulk_total': numpy_schema('bulk', partition=False),
+            'bulk_total': numpy_schema('bulk'),
             # 'kinetic_flux_targets': {reaction_id: {} for reaction_id
             #     in self.parameters['kinetic_rates']},
 

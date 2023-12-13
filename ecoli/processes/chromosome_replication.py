@@ -39,7 +39,6 @@ TOPOLOGY = {
     "full_chromosomes": ("unique", "full_chromosome"),
     "listeners": ("listeners",),
     "environment": ("environment",),
-    "global_time": ("global_time",),
     "timestep": ("timestep",),
 }
 topology_registry.register(NAME, TOPOLOGY)
@@ -146,13 +145,8 @@ class ChromosomeReplication(PartitionedProcess):
                 emit=self.parameters['emit_unique']),
             'full_chromosomes': numpy_schema('full_chromosomes',
                 emit=self.parameters['emit_unique']),
-            'global_time': {'_default': 0},
             'timestep': {'_default': self.parameters['time_step']}
         }
-    
-    def update_condition(self, timestep, states):
-        return (states['global_time'] % states['timestep']
-                ) == 0
 
     def calculate_request(self, timestep, states):
         if self.ppi_idx is None:
