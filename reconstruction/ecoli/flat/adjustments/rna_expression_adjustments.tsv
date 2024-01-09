@@ -28,3 +28,4 @@
 "EG12092_RNA"	5		"fit_sim_data_1.py"	"Main NADH:quinone oxidoreductase. Better alignment with ribosome profiling and iron atom counts per cell."
 "EG11773_RNA"	5		"fit_sim_data_1.py"	"Main NADH:quinone oxidoreductase. Better alignment with ribosome profiling and iron atom counts per cell."
 "EG12093_RNA"	5		"fit_sim_data_1.py"	"Main NADH:quinone oxidoreductase. Better alignment with ribosome profiling and iron atom counts per cell."
+"EG10584_RNA"	5		"fit_sim_data_1.py"	"Main methionine synthase when there's no B12. Better alignment with ribosome profiling and iron atom counts per cell."
