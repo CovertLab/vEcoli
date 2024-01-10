@@ -63,8 +63,8 @@ def run_ecoli_with_metabolism_redux_classic(
         raw_output=False,
         save=True,
         save_times=[1, 200, 400, 600, 800, 1000, 1200, 1300, 1400],
-        condition = "basal", # basal, with_aa
-        fixed_media = "minimal" # minimal, minimal_plus_amino_acids
+        condition = "with_aa", # basal, with_aa
+        fixed_media = "minimal_plus_amino_acids" # minimal, minimal_plus_amino_acids
 ):
     # filename = 'default'
     sim = EcoliSim.from_file(CONFIG_DIR_PATH + filename + ".json")
