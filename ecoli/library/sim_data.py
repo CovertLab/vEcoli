@@ -34,8 +34,8 @@ class LoadSimData:
         jit=False,
         total_time=10,
         fixed_media = None,
-        media_timeline=((0, 'minimal'),),   # have to change both media_timeline and condition
-        condition = 'basal',
+        media_timeline= ((0, 'minimal'),),   # e.g. minimal_plus_amino_acids,  have to change both media_timeline and condition
+        condition = None, # e.g. basal, with_aa
         operons=True,
         trna_charging=True,
         ppgpp_regulation=True,
@@ -68,10 +68,13 @@ class LoadSimData:
         self.total_time = total_time
         self.random_state = np.random.RandomState(seed = seed)
         # Iterable of tuples with the format (time, media_id)
-        self.condition = condition
+        if condition is not None:
+            self.condition = condition
+            self.sim_data.condition = condition
 
         if fixed_media is not None and media_timeline is not None:
             media_timeline = ((0, fixed_media),)
+
         self.media_timeline = media_timeline
 
         self.trna_charging = trna_charging
@@ -101,7 +104,6 @@ class LoadSimData:
         with open(sim_data_path, 'rb') as sim_data_file:
             self.sim_data = pickle.load(sim_data_file)
 
-        self.sim_data.condition = condition
 
         # Used by processes to apply submass updates to correct unique attr
         self.submass_indices = {
