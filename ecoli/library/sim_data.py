@@ -33,9 +33,9 @@ class LoadSimData:
         # TODO: Figure out why this is so slow
         jit=False,
         total_time=10,
-        fixed_media = None,
-        media_timeline= ((0, 'minimal'),),   # e.g. minimal_plus_amino_acids,  have to change both media_timeline and condition
-        condition = None, # e.g. basal, with_aa
+        fixed_media = 'minimal_minus_oxygen',
+        media_timeline= ((0, 'minimal_minus_oxygen'),),   # e.g. minimal_plus_amino_acids,  have to change both media_timeline and condition
+        condition = 'no_oxygen', # e.g. basal, with_aa
         operons=True,
         trna_charging=True,
         ppgpp_regulation=True,
@@ -70,7 +70,6 @@ class LoadSimData:
         # Iterable of tuples with the format (time, media_id)
         if condition is not None:
             self.condition = condition
-            self.sim_data.condition = condition
 
         if fixed_media is not None and media_timeline is not None:
             media_timeline = ((0, fixed_media),)
@@ -103,6 +102,9 @@ class LoadSimData:
         # load sim_data
         with open(sim_data_path, 'rb') as sim_data_file:
             self.sim_data = pickle.load(sim_data_file)
+
+        if condition is not None:
+            self.sim_data.condition = condition
 
 
         # Used by processes to apply submass updates to correct unique attr
