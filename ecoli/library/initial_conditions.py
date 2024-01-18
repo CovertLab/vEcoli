@@ -484,6 +484,11 @@ def initialize_replication(bulk_state, unique_molecules, sim_data, cell_mass,
             # Remove replisome subunits from bulk molecules
             bulk_state["count"][replisome_trimer_idx] -= 3*n_replisome
             bulk_state["count"][replisome_monomer_idx] -= n_replisome
+    else:
+        # For n_replisome = 0, still create an empty structured array with 
+        # the expected fields
+        unique_molecules["active_replisome"] = create_new_unique_molecules(
+            "active_replisome", n_replisome, sim_data, unique_id_rng)
 
     # Get coordinates of all genes, promoters and DnaA boxes
     all_gene_coordinates = sim_data.process.transcription.cistron_data[
