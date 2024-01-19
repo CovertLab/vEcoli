@@ -1629,7 +1629,7 @@ def initialize_trna_charging(bulk_state, unique_molecules, sim_data, variable_el
         'unit_conversion': metabolism.get_amino_acid_conc_conversion(MICROMOLAR_UNITS)
     }
     fraction_charged, *_ = calculate_trna_charging(synthetase_conc, uncharged_trna_conc,
-        charged_trna_conc, aa_conc, ribosome_conc[0], f, charging_params)
+        charged_trna_conc, aa_conc, ribosome_conc, f, charging_params)
 
     # Update counts of tRNA to match charging
     total_trna_counts = uncharged_trna + charged_trna
