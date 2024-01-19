@@ -133,7 +133,7 @@ pymunk==6.6.0
 pyparsing==3.1.1
 pyproj==3.6.1
 PyQt5==5.15.10
-PyQt5-Qt5==5.15.2
+PyQt5-Qt5==5.15.12
 PyQt5-sip==12.13.0
 pyrsistent==0.20.0
 pysal==23.7
