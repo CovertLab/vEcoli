@@ -103,7 +103,7 @@ numba==0.58.1
 numpy==1.26.3
 opencv-python==4.9.0.80
 orjson==3.9.12
-ortools==9.8.3296
+ortools==9.7.2996
 osqp==0.6.3
 overrides==7.4.0
 packaging==23.2
