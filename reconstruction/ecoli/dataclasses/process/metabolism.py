@@ -1318,9 +1318,9 @@ class Metabolism(object):
 		# Convert to appropriate arrays
 		if units.hasUnit(aa_conc):
 			aa_conc = aa_conc.asNumber(METABOLITE_CONCENTRATION_UNITS)
-		
-		return amino_acid_synthesis_jit(counts_per_aa_fwd, counts_per_aa_rev, aa_conc, 
-			self.aa_upstream_kms, self.aa_kis, self.aa_reverse_kms, 
+
+		return amino_acid_synthesis_jit(counts_per_aa_fwd, counts_per_aa_rev, aa_conc,
+			self.aa_upstream_kms, self.aa_kis, self.aa_reverse_kms,
 			self.aa_degradation_kms, self.aa_forward_stoich, self.aa_kcats_fwd,
 			self.aa_reverse_stoich, self.aa_kcats_rev)
 
@@ -1340,9 +1340,9 @@ class Metabolism(object):
 		"""
 		if units.hasUnit(aa_conc):
 			aa_conc = aa_conc.asNumber(METABOLITE_CONCENTRATION_UNITS)
-		
-		return amino_acid_export_jit(aa_transporters_counts, aa_conc, 
-			mechanistic_uptake, self.aa_to_exporters_matrix, 
+
+		return amino_acid_export_jit(aa_transporters_counts, aa_conc,
+			mechanistic_uptake, self.aa_to_exporters_matrix,
 			self.export_kcats_per_aa, self.aa_export_kms)
 
 	def amino_acid_import(self, aa_in_media: np.ndarray, dry_mass: units.Unum,
@@ -1367,9 +1367,9 @@ class Metabolism(object):
 			internal_aa_conc = internal_aa_conc.asNumber(METABOLITE_CONCENTRATION_UNITS)
 
 		dry_mass = dry_mass.asNumber(DRY_MASS_UNITS)
-		return amino_acid_import_jit(aa_in_media, dry_mass, internal_aa_conc, 
-			aa_transporters_counts, mechanisitic_uptake, self.aa_import_kis, 
-			self.aa_to_importers_matrix, self.import_kcats_per_aa, 
+		return amino_acid_import_jit(aa_in_media, dry_mass, internal_aa_conc,
+			aa_transporters_counts, mechanisitic_uptake, self.aa_import_kis,
+			self.aa_to_importers_matrix, self.import_kcats_per_aa,
 			self.max_specific_import_rates)
 
 	def get_amino_acid_conc_conversion(self, conc_units):
@@ -2222,8 +2222,8 @@ def np_prod(array, axis):
 
 
 @njit
-def amino_acid_synthesis_jit(counts_per_aa_fwd, counts_per_aa_rev, aa_conc, 
-	aa_upstream_kms, aa_kis, aa_reverse_kms, 
+def amino_acid_synthesis_jit(counts_per_aa_fwd, counts_per_aa_rev, aa_conc,
+	aa_upstream_kms, aa_kis, aa_reverse_kms,
 	aa_degradation_kms, aa_forward_stoich, aa_kcats_fwd,
 	aa_reverse_stoich, aa_kcats_rev):
 	km_saturation = np_prod(1 / (1 + aa_upstream_kms / aa_conc), axis=1)
@@ -2245,8 +2245,8 @@ def amino_acid_synthesis_jit(counts_per_aa_fwd, counts_per_aa_rev, aa_conc,
 
 
 @njit
-def amino_acid_export_jit(aa_transporters_counts, aa_conc, 
-	mechanistic_uptake, aa_to_exporters_matrix, 
+def amino_acid_export_jit(aa_transporters_counts, aa_conc,
+	mechanistic_uptake, aa_to_exporters_matrix,
 	export_kcats_per_aa, aa_export_kms):
 	if mechanistic_uptake:
 		# Export based on mechanistic model
@@ -2261,9 +2261,9 @@ def amino_acid_export_jit(aa_transporters_counts, aa_conc,
 
 
 @njit
-def amino_acid_import_jit(aa_in_media, dry_mass, internal_aa_conc, 
-	aa_transporters_counts, mechanisitic_uptake, aa_import_kis, 
-	aa_to_importers_matrix, import_kcats_per_aa, 
+def amino_acid_import_jit(aa_in_media, dry_mass, internal_aa_conc,
+	aa_transporters_counts, mechanisitic_uptake, aa_import_kis,
+	aa_to_importers_matrix, import_kcats_per_aa,
 	max_specific_import_rates):
 	saturation = 1 / (1 + internal_aa_conc / aa_import_kis)
 	if mechanisitic_uptake:

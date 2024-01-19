@@ -765,7 +765,7 @@ def calculate_trna_charging(synthetase_conc, uncharged_trna_conc, charged_trna_c
             ndarray[float]: dc/dt for tRNA concentrations
                 dims: 2 * number of amino acids (uncharged tRNA come first, then charged)
         '''
-        v_charging, dtrna, daa = dcdt_jit(t, c, n_aas_masked, n_aas, mask, 
+        v_charging, dtrna, daa = dcdt_jit(t, c, n_aas_masked, n_aas, mask,
             params['kS'], synthetase_conc, params['KMaa'], params['KMtf'],
             f, params['krta'], params['krtf'], params['max_elong_rate'],
             ribosome_conc, limit_v_rib, aa_rate_limit, v_rib_max)
@@ -842,7 +842,7 @@ def calculate_trna_charging(synthetase_conc, uncharged_trna_conc, charged_trna_c
 
 
 @njit(error_model='numpy')
-def dcdt_jit(t, c, n_aas_masked, n_aas, mask, 
+def dcdt_jit(t, c, n_aas_masked, n_aas, mask,
     kS, synthetase_conc, KMaa, KMtf,
     f, krta, krtf, max_elong_rate,
     ribosome_conc, limit_v_rib, aa_rate_limit, v_rib_max
