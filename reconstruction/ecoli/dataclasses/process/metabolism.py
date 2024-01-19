@@ -2203,22 +2203,24 @@ class Metabolism(object):
 
 @njit
 def np_apply_along_axis(func1d, axis, arr):
-  assert arr.ndim == 2
-  assert axis in [0, 1]
-  if axis == 0:
-    result = np.empty(arr.shape[1])
-    for i in range(len(result)):
-      result[i] = func1d(arr[:, i])
-  else:
-    result = np.empty(arr.shape[0])
-    for i in range(len(result)):
-      result[i] = func1d(arr[i, :])
-  return result
+	if arr.ndim != 2:
+		raise RuntimeError("Array must have 2 dimensions.")
+	if axis not in [0, 1]:
+		raise RuntimeError("Axis must be 0 or 1.")
+	if axis == 0:
+		result = np.empty(arr.shape[1])
+		for i in range(len(result)):
+			result[i] = func1d(arr[:, i])
+	else:
+		result = np.empty(arr.shape[0])
+		for i in range(len(result)):
+			result[i] = func1d(arr[i, :])
+	return result
 
 
 @njit
 def np_prod(array, axis):
-  return np_apply_along_axis(np.prod, axis, array)
+	return np_apply_along_axis(np.prod, axis, array)
 
 
 @njit
