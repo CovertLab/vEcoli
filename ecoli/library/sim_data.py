@@ -33,9 +33,9 @@ class LoadSimData:
         # TODO: Figure out why this is so slow
         jit=False,
         total_time=10,
-        fixed_media = 'minimal_plus_amino_acids',
-        media_timeline= ((0, 'minimal_plus_amino_acids'),),   # e.g. minimal_plus_amino_acids,  have to change both media_timeline and condition
-        condition = 'with_aa', # e.g. basal, with_aa
+        fixed_media = 'minimal',
+        media_timeline= ((0, 'minimal'),),   # e.g. minimal_plus_amino_acids,  have to change both media_timeline and condition
+        condition = 'basal', # e.g. basal, with_aa
         operons=True,
         trna_charging=True,
         ppgpp_regulation=True,
