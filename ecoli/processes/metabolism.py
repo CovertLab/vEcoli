@@ -14,6 +14,7 @@ and internal states have been updated (deriver-like, no partitioning necessary)
 """
 
 from typing import Any
+import warnings
 
 import numpy as np
 from scipy.sparse import csr_matrix
@@ -45,7 +46,7 @@ TOPOLOGY = {
     "polypeptide_elongation": ("process_state", "polypeptide_elongation"),
     "global_time": ("global_time",),
     "timestep": ("timestep",),
-    "first_update": ("first_update", "metabolism"),
+    "next_update_time": ("next_update_time", "metabolism"),
     }
 topology_registry.register(NAME, TOPOLOGY)
 
@@ -341,18 +342,27 @@ class Metabolism(Step):
             },
             'global_time': {'_default': 0},
             'timestep': {'_default': self.parameters['time_step']},
-
-            'first_update': {
-                '_default': True,
+            'next_update_time': {
+                '_default': self.parameters['time_step'],
                 '_updater': 'set',
-                '_divider': {'divider': 'set_value',
-                    'config': {'value': True}}},
+                '_divider': 'set'}
         }
 
         return ports
 
     def update_condition(self, timestep, states):
-        return (states['global_time'] % states['timestep']) == 0
+        """
+        See :py:meth:`~ecoli.processes.partition.Requester.update_condition`.
+        """
+        if states['next_update_time'] <= states['global_time']:
+            if states['next_update_time'] < states['global_time']:
+                warnings.warn(f"{self.name} updated at t="
+                    f"{states['global_time']} instead of t="
+                    f"{states['next_update_time']}. Decrease the "
+                    "timestep for the global clock process for more "
+                    "accurate timekeeping.")
+            return True
+        return False
 
     def next_update(self, timestep, states):
         # At t=0, convert all strings to indices
@@ -366,9 +376,6 @@ class Metabolism(Step):
             self.kinetics_substrates_idx = bulk_name_to_idx(
                 self.model.kinetic_constraint_substrates, states['bulk']['id'])
             self.aa_idx = bulk_name_to_idx(self.aa_names, states['bulk']['id'])
-
-        if states['first_update']:
-            return {'first_update': False}
 
         timestep = states['timestep']
 
@@ -592,7 +599,9 @@ class Metabolism(Step):
                     'target_fluxes_upper': upper_targets / timestep,
                     'target_fluxes_lower': lower_targets / timestep,
                     'target_aa_conc': [self.aa_targets.get(id_, 0)
-                                       for id_ in self.aa_names]}}}
+                                       for id_ in self.aa_names]}},
+                                       
+                'next_update_time': states['global_time'] + states['timestep']}
 
         return update
 

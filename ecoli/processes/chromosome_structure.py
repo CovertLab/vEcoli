@@ -8,6 +8,7 @@ Chromosome Structure
 - Reset the boundaries and linking numbers of chromosomal segments.
 """
 import numpy as np
+import warnings
 from vivarium.core.process import Step
 
 from ecoli.processes.registries import topology_registry
@@ -34,7 +35,7 @@ TOPOLOGY = {
     # "chromosomal_segments": ("unique", "chromosomal_segment")
     "global_time": ("global_time",),
     "timestep": ("timestep",),
-    "first_update": ("first_update", "chromosome_structure"),
+    "next_update_time": ("next_update_time", "chromosome_structure"),
 }
 topology_registry.register(NAME, TOPOLOGY)
 
@@ -159,12 +160,10 @@ class ChromosomeStructure(Step):
                 emit=self.parameters['emit_unique']),
             'global_time': {'_default': 0},
             'timestep': {'_default': self.parameters['time_step']},
-
-            'first_update': {
-                '_default': True,
+            'next_update_time': {
+                '_default': self.parameters['time_step'],
                 '_updater': 'set',
-                '_divider': {'divider': 'set_value',
-                    'config': {'value': True}}},
+                '_divider': 'set'},
         }
 
         # TODO: Work on this functionality
@@ -181,8 +180,18 @@ class ChromosomeStructure(Step):
         return ports
     
     def update_condition(self, timestep, states):
-        return (states['global_time'] % states['timestep']
-                ) == 0
+        """
+        See :py:meth:`~ecoli.processes.partition.Requester.update_condition`.
+        """
+        if states['next_update_time'] <= states['global_time']:
+            if states['next_update_time'] < states['global_time']:
+                warnings.warn(f"{self.name} updated at t="
+                    f"{states['global_time']} instead of t="
+                    f"{states['next_update_time']}. Decrease the "
+                    "timestep for the global clock process for more "
+                    "accurate timekeeping.")
+            return True
+        return False
 
     def next_update(self, timestep, states):
         # At t=0, convert all strings to indices
@@ -205,9 +214,6 @@ class ChromosomeStructure(Step):
                 self.inactive_RNAPs, states['bulk']['id'])
             self.mature_rna_idx = bulk_name_to_idx(
                 self.mature_rna_ids, states['bulk']['id'])
-        
-        if states['first_update']:
-            return {'first_update': False}
 
         # Read unique molecule attributes
         (replisome_domain_indexes, replisome_coordinates,
@@ -691,6 +697,7 @@ class ChromosomeStructure(Step):
                                     dtype=np.bool_)}}
             update['DnaA_boxes'].update(dict_dna)
 
+        update['next_update_time'] = states['global_time'] + states['timestep']
         return update
 
 

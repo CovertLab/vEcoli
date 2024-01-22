@@ -5,6 +5,7 @@ RNAP Data Listener
 """
 
 import numpy as np
+import warnings
 from ecoli.library.schema import numpy_schema, listener_schema, attrs
 from vivarium.core.process import Step
 
@@ -20,7 +21,7 @@ TOPOLOGY = {
     "active_ribosomes": ("unique", "active_ribosome"),
     "global_time": ("global_time",),
     "timestep": ("timestep",),
-    "first_update": ("first_update", NAME)
+    "next_update_time": ("next_update_time", NAME),
 }
 topology_registry.register(
     NAME, TOPOLOGY
@@ -71,23 +72,29 @@ class RnapData(Step):
             'active_ribosomes': numpy_schema('active_ribosome',
                 emit=self.parameters['emit_unique']),
             'global_time': {'_default': 0},
-            'timestep': {'_default': self.parameters['time_step']}
+            'timestep': {'_default': self.parameters['time_step']},
+            'next_update_time': {
+                '_default': self.parameters['time_step'],
+                '_updater': 'set',
+                '_divider': 'set'},
         }
-        ports['first_update'] = {
-            '_default': True,
-            '_updater': 'set',
-            '_divider': {'divider': 'set_value',
-                'config': {'value': True}}}
         return ports
     
     def update_condition(self, timestep, states):
-        return (states['global_time'] % states['timestep']) == 0
+        """
+        See :py:meth:`~ecoli.processes.partition.Requester.update_condition`.
+        """
+        if states['next_update_time'] <= states['global_time']:
+            if states['next_update_time'] < states['global_time']:
+                warnings.warn(f"{self.name} updated at t="
+                    f"{states['global_time']} instead of t="
+                    f"{states['next_update_time']}. Decrease the "
+                    "timestep for the global clock process for more "
+                    "accurate timekeeping.")
+            return True
+        return False
 
     def next_update(self, timestep, states):
-        # Skip t=0
-        if states['first_update']:
-            return {'first_update': False}
-
         # Read coordinates of all active RNAPs
         coordinates, domain_indexes, RNAP_unique_indexes = attrs(
             states['active_RNAPs'],
@@ -127,6 +134,7 @@ class RnapData(Step):
                         self.cistron_tu_mapping_matrix.dot(
                             states['listeners']['rnap_data']['rna_init_event']),
                 }
-            }
+            },
+            'next_update_time': states['global_time'] + states['timestep']
         }
         return update

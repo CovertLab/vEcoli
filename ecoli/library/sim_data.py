@@ -1568,10 +1568,18 @@ class LoadSimData:
         }
     
     def get_media_update_config(self, time_step=1, parallel=False):
+        # if current_timeline_id is specified by a variant in sim_data,
+        # look it up in saved_timelines.
+        if self.sim_data.external_state.current_timeline_id:
+            current_timeline = self.sim_data.external_state.saved_timelines[
+                self.sim_data.external_state.current_timeline_id]
+        else:
+            current_timeline = self.media_timeline
         return {
             'time_step': time_step,
             '_parallel': parallel,
-            'saved_media': self.sim_data.external_state.saved_media
+            'saved_media': self.sim_data.external_state.saved_media,
+            'media_id': current_timeline[0][1]
         }
     
     def get_bulk_timeline_config(self, time_step=1, parallel=False):
