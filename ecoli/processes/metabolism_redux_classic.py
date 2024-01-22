@@ -38,7 +38,8 @@ topology_registry.register(NAME, TOPOLOGY)
 # TODO (Cyrus) - Remove when have a better way to handle these rxns.
 # ParCa mistakes in carbon gen, efflux/influx proton gen, mass gen
 BAD_RXNS = ["RXN-12440", "TRANS-RXN-121", "TRANS-RXN-300",
-            "TRANS-RXN-8", "R15-RXN-MET/CPD-479//CPD-479/MET.25.", 'TRANS-RXN-218']
+            "TRANS-RXN-8", "R15-RXN-MET/CPD-479//CPD-479/MET.25.", 'TRANS-RXN-218',
+            "TRANS-RXN0-601-PROTON//PROTON.15. (reverse)"]
 
 FREE_RXNS = ["TRANS-RXN-145", "TRANS-RXN0-545", "TRANS-RXN0-474"]
 
