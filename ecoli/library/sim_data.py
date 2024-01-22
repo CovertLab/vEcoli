@@ -37,7 +37,9 @@ class LoadSimData:
         # TODO: Figure out why this is so slow
         jit: bool=False,
         total_time: int=10,
-        media_timeline: tuple[tuple[int, str]]=((0, 'minimal'),),
+        fixed_media: str = None,
+        media_timeline: tuple[tuple[int, str]]=((0, 'minimal'),),   # have to change both media_timeline and condition
+        condition: str = 'basal',
         operons: bool=True,
         trna_charging: bool=True,
         ppgpp_regulation: bool=True,
@@ -154,6 +156,8 @@ class LoadSimData:
         self.total_time = total_time
         self.random_state = np.random.RandomState(seed = seed)
         # Iterable of tuples with the format (time, media_id)
+        if fixed_media is not None and media_timeline is not None:
+            media_timeline = ((0, fixed_media),)
         self.media_timeline = media_timeline
 
         self.trna_charging = trna_charging
@@ -181,7 +185,9 @@ class LoadSimData:
 
         # load sim_data
         with open(sim_data_path, 'rb') as sim_data_file:
-            self.sim_data: 'SimulationDataEcoli' = pickle.load(sim_data_file)
+            self.sim_data = pickle.load(sim_data_file)
+
+        self.sim_data.condition = condition
 
         # Used by processes to apply submass updates to correct unique attr
         self.submass_indices = {
