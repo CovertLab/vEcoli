@@ -7,6 +7,7 @@ This process models how transcription factors bind to promoters on the DNA seque
 """
 
 import numpy as np
+import warnings
 
 from vivarium.core.process import Step
 
@@ -26,7 +27,9 @@ TOPOLOGY = {
     "bulk": ("bulk",),
     "bulk_total": ("bulk",),
     "listeners": ("listeners",),
-    "first_update": ("first_update", "tf_binding"),
+    "timestep": ("timestep",),
+    "next_update_time": ("next_update_time", "tf_binding"),
+    "global_time": ("global_time",)
 }
 topology_registry.register(NAME, TOPOLOGY)
 
@@ -138,12 +141,27 @@ class TfBinding(Step):
                     'n_bound_TF_per_TU': ([[0] * self.n_TF] * self.n_TU,
                         (self.rna_ids, self.tf_ids))})},
             
-            'first_update': {
-                '_default': True,
+            'next_update_time': {
+                '_default': self.parameters['time_step'],
                 '_updater': 'set',
-                '_divider': {'divider': 'set_value',
-                    'config': {'value': True}}},
+                '_divider': 'set'},
+            'global_time': {'_default': 0},
+            'timestep': {'_default': self.parameters['time_step']},
         }
+    
+    def update_condition(self, timestep, states):
+        """
+        See :py:meth:`~.Requester.update_condition`.
+        """
+        if states['next_update_time'] <= states['global_time']:
+            if states['next_update_time'] < states['global_time']:
+                warnings.warn(f"{self.name} updated at t="
+                    f"{states['global_time']} instead of t="
+                    f"{states['next_update_time']}. Decrease the "
+                    "timestep for the global clock process for more "
+                    "accurate timekeeping.")
+            return True
+        return False
         
     def next_update(self, timestep, states):
         # At t=0, convert all strings to indices
@@ -160,9 +178,6 @@ class TfBinding(Step):
             if "PD00365" in self.tf_ids:
                 self.marR_idx = bulk_name_to_idx(self.marR_name, bulk_ids)
                 self.marR_tet_idx = bulk_name_to_idx(self.marR_tet, bulk_ids)
-        
-        if states['first_update']:
-            return {'first_update': False}
 
         # If there are no promoters, return immediately
         if states['promoters']['_entryState'].sum() == 0:
@@ -292,6 +307,7 @@ class TfBinding(Step):
                 'n_bound_TF_per_TU': n_bound_TF_per_TU},
         }
 
+        update['next_update_time'] = states['global_time'] + states['timestep']
         return update
 
 

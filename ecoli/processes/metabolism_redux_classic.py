@@ -5,6 +5,7 @@ MetabolismRedux
 import numpy as np
 import time
 from unum import Unum
+import warnings
 from scipy.sparse import csr_matrix
 
 from vivarium.core.process import Step
@@ -228,24 +229,27 @@ class MetabolismReduxClassic(Step):
 
             'global_time': {'_default': 0},
             'timestep': {'_default': self.parameters['time_step']},
-
-            'first_update': {
-                '_default': True,
+            'next_update_time': {
+                '_default': self.parameters['time_step'],
                 '_updater': 'set',
-                '_divider': {'divider': 'set_value',
-                    'config': {'value': True}},
-            },
-            'evolvers_ran': {'_default': True},
+                '_divider': 'set'},
         }
 
     def update_condition(self, timestep, states):
-        return states['evolvers_ran']
+        """
+        See :py:meth:`~ecoli.processes.partition.Requester.update_condition`.
+        """
+        if states['next_update_time'] <= states['global_time']:
+            if states['next_update_time'] < states['global_time']:
+                warnings.warn(f"{self.name} updated at t="
+                    f"{states['global_time']} instead of t="
+                    f"{states['next_update_time']}. Decrease the "
+                    "timestep for the global clock process for more "
+                    "accurate timekeeping.")
+            return True
+        return False
 
     def next_update(self, timestep, states):
-        # Skip t=0
-        if states['first_update']:
-            return {'first_update': False}
-
         # Initialize indices
         if self.homeostatic_metabolite_idx is None:
             self.bulk_ids = states['bulk']['id']
@@ -379,7 +383,8 @@ class MetabolismReduxClassic(Step):
                     'reaction_catalyst_counts': reaction_catalyst_counts,
                     'time_per_step': time.time()
                 }
-            }
+            },
+            'next_update_time': states['global_time'] + states['timestep'],
         }
 
     def concentrationToCounts(self, concs):

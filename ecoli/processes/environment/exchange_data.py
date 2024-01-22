@@ -6,7 +6,6 @@ NAME = 'exchange_data'
 TOPOLOGY = {
     'boundary': ('boundary',),
     'environment': ('environment',),
-    'first_update': ('first_update', 'exchange_data')
 }
 topology_registry.register(NAME, TOPOLOGY)
 
@@ -41,17 +40,9 @@ class ExchangeData(Step):
                     'unconstrained': {'_default': set(), '_updater': 'set'}
                 }
             },
-            'first_update': {
-                '_default': True,
-                '_updater': 'set',
-                '_divider': {'divider': 'set_value',
-                    'config': {'value': True}}},
         }
     
     def next_update(self, timestep, states):
-        if states['first_update']:
-            return {'first_update': False}
-        
         # Set exchange constraints for metabolism
         env_concs = {mol: states['boundary']['external'][mol]
             for mol in self.environment_molecules}

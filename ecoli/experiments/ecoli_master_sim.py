@@ -641,8 +641,6 @@ class EcoliSim:
                 condition=not_a_process)
             if self.divide:
                 for agent_state in state['agents'].values():
-                    # Will be set to true when starting sim
-                    del agent_state['first_update']
                     # Processes can't be serialized
                     del agent_state['process']
                     # Bulk random state can't be serialized
@@ -653,7 +651,6 @@ class EcoliSim:
                     for name, mols in agent_state['unique'].items():
                         agent_state['unique_dtypes'][name] = str(mols.dtype)
             else:
-                del state['first_update']
                 del state['process']
                 del state['allocator_rng']
                 state['bulk_dtypes'] = str(state['bulk'].dtype)

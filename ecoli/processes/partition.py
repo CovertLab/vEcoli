@@ -55,8 +55,7 @@ class Requester(Step):
         a timestep, preventing accurate timekeeping.
         """
         if states['next_update_time'] <= states['global_time']:
-            if states['next_update_time'] < states['global_time'] and \
-                not states['first_update']:
+            if states['next_update_time'] < states['global_time']:
                 warnings.warn(f"{self.name} updated at t="
                     f"{states['global_time']} instead of t="
                     f"{states['next_update_time']}. Decrease the "
@@ -84,26 +83,13 @@ class Requester(Step):
         ports['global_time'] = {'_default': 0}
         ports['timestep'] = {'_default': process.parameters['time_step']}
         ports['next_update_time'] = {
-            '_default': 0,
+            '_default': process.parameters['timestep'],
             '_updater': 'set',
             '_divider': 'set'}
-        ports['first_update'] = {
-            '_default': True,
-            '_updater': 'set',
-            '_divider': {'divider': 'set_value',
-                'config': {'value': True}}}
         self.cached_bulk_ports = list(ports['request'].keys())
         return ports
 
     def next_update(self, timestep, states):
-        # By default, Steps are run when an Engine is initialized. Skip this 
-        # first run so that the simulation state at t=1 second represents the 
-        # state of the cell after one simulated second instead of two. Note 
-        # this only works properly for multi-cell simulations run using 
-        # EcoliEngineProcess (where each new daughter cell has its own Engine).
-        if states['first_update']:
-            return {}
-
         process = states['process'][0]
         request = process.calculate_request(
             self.parameters['time_step'], states)
@@ -144,8 +130,7 @@ class Evolver(Step):
         See :py:meth:`~.Requester.update_condition`.
         """
         if states['next_update_time'] <= states['global_time']:
-            if states['next_update_time'] < states['global_time'] and \
-                not states['first_update']:
+            if states['next_update_time'] < states['global_time']:
                 warnings.warn(f"{self.name} updated at t="
                     f"{states['global_time']} instead of t="
                     f"{states['next_update_time']}. Decrease the "
@@ -176,24 +161,9 @@ class Evolver(Step):
             '_default': process.parameters['timestep'],
             '_updater': 'set',
             '_divider': 'set'}
-        ports['first_update'] = {
-            '_default': True,
-            '_updater': 'set',
-            '_divider': {'divider': 'set_value',
-                'config': {'value': True}}}
         return ports
 
     def next_update(self, timestep, states):
-        # By default, Steps are run when an Engine is initialized. Skip this 
-        # first run so that the simulation state at t=1 second represents the 
-        # state of the cell after one simulated second instead of two. Note: 
-        # this only works properly for multi-cell simulations run using 
-        # EcoliEngineProcess (where each new daughter cell has its own Engine).
-        if states['first_update']:
-            return {
-                'first_update': False,
-                'next_update_time': states['global_time'] + states['timestep']}
-
         allocations = states.pop('allocate')
         states = deep_merge(states, allocations)
         process = states['process'][0]
