@@ -486,6 +486,7 @@ class LoadSimData:
             'ecoli-chromosome-replication': self.get_chromosome_replication_config,
             'ecoli-mass': self.get_mass_config,
             'ecoli-mass-listener': self.get_mass_listener_config,
+            'post-division-mass-listener': self.get_mass_listener_config,
             'RNA_counts_listener': self.get_rna_counts_listener_config,
             'monomer_counts_listener': self.get_monomer_counts_listener_config,
             'rna_synth_prob_listener': self.get_rna_synth_prob_listener_config,
