@@ -109,8 +109,7 @@ def create_unique_indexes(
 
     Args:
         n_indexes: Number of indexes to generate.
-        random_state: A Numpy :py:class:`np.random.RandomState` object
-            to use as a PRNG.
+        random_state: PRNG.
 
     Returns:
         List of indexes. Each index is a string representing a number in
@@ -120,7 +119,7 @@ def create_unique_indexes(
 
 
 def not_a_process(value):
-    """Returns ``True`` if not a :py:class:`vivarium.core.Process` instance.
+    """Returns ``True`` if not a :py:class:`vivarium.core.process.Process` instance.
     """
     return not (isinstance(value, Store) and value.topology)
 
@@ -379,8 +378,7 @@ class UniqueNumpyUpdater:
                     end of an "execution layer"; see :ref:`partitioning`).
 
         Returns:
-            Updated structured Numpy array containing the new unique molecule
-            state.
+            Updated unique molecule structured Numpy array.
         """
         if len(update) == 0:
             return current
@@ -584,7 +582,7 @@ def divide_domains(state: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
 
     Args:
         state: Structured Numpy array of chromosome domain unique molecule 
-        state.
+            state.
 
     Returns:
         List of two structured Numpy arrays, each containing the chromosome 
@@ -765,6 +763,9 @@ def remove_properties(schema: Dict[str, Any], properties: List[str]
 def flatten(l: List[List[Any]]) -> List[Any]:
     """
     Flattens a nested list into a single list.
+
+    Args:
+        l: Nested list to flatten.
     """
     return [item for sublist in l for item in sublist]
 

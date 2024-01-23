@@ -9,8 +9,7 @@ Represents the total cellular mass.
 import numpy as np
 from numpy.lib import recfunctions as rfn
 
-from vivarium.core.process import Deriver
-from vivarium.library.units import units as viv_units
+from vivarium.core.process import Step
 from ecoli.library.schema import numpy_schema, counts, attrs, bulk_name_to_idx
 from ecoli.processes.registries import topology_registry
 from wholecell.utils import units
@@ -26,7 +25,7 @@ TOPOLOGY = {
 }
 topology_registry.register(NAME, TOPOLOGY)
 
-class MassListener(Deriver):
+class MassListener(Step):
     """ MassListener """
     name = NAME
     topology = TOPOLOGY
@@ -336,3 +335,18 @@ class MassListener(Deriver):
             }
         }
         return update
+    
+
+topology_registry.register('post-division-mass-listener', TOPOLOGY)
+class PostDivisionMassListener(MassListener):
+    """
+    Normally, the mass listener updates after all other processes and steps
+    have run. However, after division, the mass must be updated immediately
+    so other processes have access to the accurate mass of their daughter
+    cell. This process ensures that the mass seen by other processes following
+    division is accurate.
+    """
+    name = 'post-division-mass-listener'
+
+    def update_condition(self, timestep, states):
+        return self.first_time_step

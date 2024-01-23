@@ -1,5 +1,6 @@
 import os
 import numpy as np
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 
 from ecoli.experiments.ecoli_master_sim import EcoliSim
@@ -74,12 +75,13 @@ def signed_stacked_bar(ax, x, y, bar_labels):
             color="k", label="net change")
 
 
-def blame_timeseries(data,
-                     topology,
-                     bulk_ids,
-                     molecules,
-                     filename=None,
-                     yscale='linear'):
+def blame_timeseries(data: dict,
+                     topology: dict,
+                     bulk_ids: list[str],
+                     molecules: list[str],
+                     filename: str=None,
+                     yscale: str='linear'
+    ) -> tuple[mpl.axes.Axes, mpl.figure.Figure]:
     """
     Generates timeseries blame plots for the selected bulk molecules assuming
     that bulk data is an array of counts ordered by bulk_ids and saves to the
@@ -87,21 +89,35 @@ def blame_timeseries(data,
     counts due to each process at each timestep. For convenience, exact count
     plots are included to the side.
 
-    Example usage:
-    ```
-    sim = EcoliSim.from_file()
-    sim.build_ecoli()
-    sim.run()
-    data = sim.query()
-    blame_timeseries(data, sim.topology,
-                     ['WATER[c]', 'APORNAP-CPLX[c]', 'TRP[c]'],
-                     'out/ecoli_master/test_blame_timeseries.png',
-                     yscale="linear")
-    ```
+    Example usage::
+
+        sim = EcoliSim.from_file()
+        sim.build_ecoli()
+        sim.run()
+        data = sim.query()
+        data = {key: val['agents']['0'] for key, val in data.items()}
+        store_configs = sim.ecoli_experiment.get_config()
+        bulk_ids = store_configs['agents']['0']['bulk']['_properties']['metadata']
+        blame_timeseries(data, sim.topology, bulk_ids
+                        ['WATER[c]', 'APORNAP-CPLX[c]', 'TRP[c]'],
+                        'out/ecoli_master/test_blame_timeseries.png',
+                        yscale="linear")
+
+    Args:
+        data: Data from an experiment (for experiments with cell 
+            division, ensure that ``bulk`` is a top-level field in the
+            sub-dictionaries for each time point)
+        topology: Experiment topology (used to determine which processes 
+            are connected to ``bulk`` and how)
+        bulk_ids: List (or array) of bulk molecule names in the order 
+            they appear in the structured bulk Numpy array (see :ref:`bulk`). 
+            Typically retrieved from simulation config metadata.
+        molecules: List of bulk molecule names to plot data for
+        filename: Path to save plot to (optional)
+        yscale: See :py:func:`matplotlib.pyplot.yscale`
 
     Returns:
-        - axes (Axes object)
-        - fig (Figure object)
+        Axes and figure
     """
 
     validate_data(data)

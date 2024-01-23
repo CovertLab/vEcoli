@@ -7,7 +7,6 @@ NAME = 'media_update'
 TOPOLOGY = {
     'boundary': ('boundary',),
     'environment': ('environment',),
-    'first_update': ('first_update', 'media_update')
 }
 topology_registry.register(NAME, TOPOLOGY)
 
@@ -20,6 +19,7 @@ class MediaUpdate(Step):
     defaults = {
         'saved_media': {},
         'time_step': 1,
+        'media_id': 'minimal'
     }
 
     def __init__(self, parameters=None):
@@ -31,6 +31,7 @@ class MediaUpdate(Step):
                 self.saved_media[media_id][env_mol] = env_concs[
                     env_mol] * units.mM
         self.zero_diff = 0 * units.mM
+        self.curr_media_id = self.parameters['media_id']
         
     def ports_schema(self):
         return {
@@ -42,18 +43,14 @@ class MediaUpdate(Step):
             'environment': {
                 'media_id': {'_default': ''}
             },
-            'first_update': {
-                '_default': True,
-                '_updater': 'set',
-                '_divider': {'divider': 'set_value',
-                    'config': {'value': True}}},
         }
     
     def next_update(self, timestep, states):
-        if states['first_update']:
-            return {'first_update': False}
+        if states['environment']['media_id'] == self.curr_media_id:
+            return {}
 
-        env_concs = self.saved_media[states['environment']['media_id']]
+        self.curr_media_id = states['environment']['media_id']
+        env_concs = self.saved_media[self.curr_media_id]
         conc_update = {}
         # Calculate concentration delta to get from environment specified
         # by old media ID to the one specified by the current media ID
@@ -63,7 +60,6 @@ class MediaUpdate(Step):
             if np.isnan(diff):
                 diff = self.zero_diff
             conc_update[mol] = diff
-
         return {
             'boundary': {
                 'external': conc_update

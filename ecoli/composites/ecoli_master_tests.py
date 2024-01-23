@@ -167,7 +167,8 @@ def test_ecoli_generate():
                k == 'mark_d_period' or
                isinstance(v, ECOLI_DEFAULT_PROCESSES[k])
                for k, v in sim.ecoli['steps'].items())
-    ignore_keys = ['request', 'process', 'allocate', 'first_update', 'global_time']
+    ignore_keys = ['request', 'process', 'allocate',
+                   'global_time', 'next_update_time']
     for k, v in sim.ecoli['topology'].items():
         proc_name = k.split('_requester')[0].split('_evolver')[0]
         # Clock topology is not registered in registry
@@ -175,7 +176,7 @@ def test_ecoli_generate():
             pass 
         elif proc_name in ECOLI_DEFAULT_TOPOLOGY:
             if '_requester' in k or '_evolver' in k:
-                # Ignore partitioning and first_update keys
+                # Ignore partitioning and timestepping keys
                 for ignore_key in ignore_keys:
                     v.pop(ignore_key, None)
             assert ECOLI_DEFAULT_TOPOLOGY[proc_name] == v

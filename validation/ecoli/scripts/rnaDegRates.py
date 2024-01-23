@@ -16,8 +16,11 @@ from matplotlib import pyplot as plt
 from reconstruction.ecoli.knowledge_base_raw import KnowledgeBaseEcoli
 from wholecell.io import tsv
 
-GENE_IDS = os.path.join("validation","ecoli","flat","geneIDs.tsv")
-DEG_RATES = os.path.join("validation","ecoli","flat","moffitt2016_mrna_deg_rates.tsv")
+flat_dir = os.path.join(
+	os.path.dirname(os.path.abspath(__file__)), '..', 'flat')
+
+GENE_IDS = os.path.join(flat_dir,"geneIDs.tsv")
+DEG_RATES = os.path.join(flat_dir,"moffitt2016_mrna_deg_rates.tsv")
 
 geneDict = {}
 with io.open(GENE_IDS, "rb") as csvfile:
@@ -49,9 +52,11 @@ raw_data = KnowledgeBaseEcoli(
 modelRates = {}
 paperRates = {}  # type: Dict[str, Union[int, float]]
 
-for rna in raw_data.rnas:
-	geneID = rna["geneId"]
-	modelRates[geneID] = 60. / rna["halfLife"]
+for rna in raw_data.rna_half_lives:
+	geneID = rna["id"]
+	if rna["half_life"].asNumber() == 0:
+		continue
+	modelRates[geneID] = 60. / rna["half_life"].asNumber()
 	paperRates[geneID] = 0
 	if geneID in geneDict:
 		for gene in rateDict:

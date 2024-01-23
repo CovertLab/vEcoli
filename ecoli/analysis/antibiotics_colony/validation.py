@@ -176,24 +176,24 @@ def plot_mrna_fc(
     relative_data.index = [mrna_name.split(' mRNA')[0]
         for mrna_name in relative_data.index]
     relative_data = relative_data.rename(columns={
-        0: 'Sim. RNA $\mathregular{log_2 FC}$'})
+        0: 'Sim. RNA $\\mathregular{log_2 FC}$'})
     # Compare against literature relative amounts
     tet_degenes = DE_GENES.loc[:, ['Gene name', 'Fold change']].set_index(
         'Gene name').drop(['MicF'], axis=0).rename(columns={
-            'Fold change': 'Literature RNA $\mathregular{log_2 FC}$'})
-    tet_degenes.loc[:, 'Literature RNA $\mathregular{log_2 FC}$'] = np.log2(
-        tet_degenes.loc[:, 'Literature RNA $\mathregular{log_2 FC}$'])
+            'Fold change': 'Literature RNA $\\mathregular{log_2 FC}$'})
+    tet_degenes.loc[:, 'Literature RNA $\\mathregular{log_2 FC}$'] = np.log2(
+        tet_degenes.loc[:, 'Literature RNA $\\mathregular{log_2 FC}$'])
     relative_data = relative_data.join(tet_degenes, how='inner').reset_index()
     relative_data = relative_data.rename(columns={'index': 'Gene'})
     palette = {gene: 'k' for gene in relative_data['Gene'].unique()}
     if highlight_genes:
         palette = {**palette, **highlight_genes}
     sns.scatterplot(data=relative_data,
-        x='Literature RNA $\mathregular{log_2 FC}$',
-        y='Sim. RNA $\mathregular{log_2 FC}$', ax=ax,
+        x='Literature RNA $\\mathregular{log_2 FC}$',
+        y='Sim. RNA $\\mathregular{log_2 FC}$', ax=ax,
         hue='Gene', legend=False, palette=palette)
-    min_fc = relative_data.loc[:, 'Literature RNA $\mathregular{log_2 FC}$'].min()
-    max_fc = relative_data.loc[:, 'Literature RNA $\mathregular{log_2 FC}$'].max()
+    min_fc = relative_data.loc[:, 'Literature RNA $\\mathregular{log_2 FC}$'].min()
+    max_fc = relative_data.loc[:, 'Literature RNA $\\mathregular{log_2 FC}$'].max()
     validation_line = np.linspace(min_fc, max_fc, 2)
     ax.plot(validation_line, validation_line, '--', c='0.4')
     if highlight_genes:
@@ -201,8 +201,8 @@ def plot_mrna_fc(
         direction = -1
         for gene, color in highlight_genes.items():
             location = relative_data.loc[relative_data['Gene']==gene, :]
-            xy = (location['Literature RNA $\mathregular{log_2 FC}$'],
-                location['Sim. RNA $\mathregular{log_2 FC}$'])
+            xy = (location['Literature RNA $\\mathregular{log_2 FC}$'],
+                location['Sim. RNA $\\mathregular{log_2 FC}$'])
             ax.annotate(gene, xy=xy, xytext=(xy[0], xy[1]+direction*0.5),
                 ha='center', va='center', c=color, arrowprops={
                     'arrowstyle': '-', 'color': color}, fontstyle='italic')

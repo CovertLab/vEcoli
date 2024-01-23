@@ -881,7 +881,7 @@ def make_figure_4c(data, metadata):
         :, 'Extension factor']
     mean_glc_porosity = data.loc[data.loc[:, 'Condition'] == 'Glucose', 
         'Relative porosity'].mean()
-    fc_col = 'Total defect area\n($\mathregular{log_2}$ fold change)'
+    fc_col = 'Total defect area\n($\\mathregular{log_2}$ fold change)'
     data.loc[:, fc_col] = np.log2(data.loc[:, 'Relative porosity'] / 
         mean_glc_porosity)
     # For 10 seconds after division, cells are assigned a porosity of 0

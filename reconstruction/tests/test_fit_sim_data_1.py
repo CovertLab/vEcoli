@@ -12,6 +12,9 @@ from reconstruction.ecoli.fit_sim_data_1 import (totalCountFromMassesAndRatios,
 import numpy as np
 from wholecell.utils import units
 
+# Silence Sphinx autodoc warning
+unittest.TestCase.__module__ = 'unittest'
+
 
 class Test_fitkb1(unittest.TestCase):
 

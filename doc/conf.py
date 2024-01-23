@@ -62,6 +62,19 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store', 'venv']
 # will help avoid broken links.
 nitpicky = True
 
+nitpick_ignore = [
+    # No API documentation for Unum package
+    ('py:class', 'Unum'),
+    ('py:class', 'unum.Unum'),
+    # Silence warnings in ecoli.plots.snapshots.make_snapshots_figure
+    ('py:class', 'any valid matplotlib color'),
+    # Silence warning in ecoli.plots.blame.SignNormalize
+    ('py:class', 'default: False'),
+    # Silence warning in ecoli.processes.environment.field_timeline.FieldTimeline
+    ('py:class', 'vivarium.processes.timeline.TimelineProcess'),
+
+]
+
 
 # -- Options for HTML output -------------------------------------------------
 
@@ -94,7 +107,7 @@ intersphinx_mapping = {
         None,
     ),
     'numpy': ('https://numpy.org/doc/stable', None),
-    'unum': ('https://unum.readthedocs.io/en/latest/', None)
+    'matplotlib': ('https://matplotlib.org/stable/', None)
 }
 
 
@@ -107,7 +120,10 @@ autodoc_mock_imports = [
     'wholecell.utils.modular_fba',
     # Runs code on import and fails due to missing packages
     'ecoli.library.parameters',
+    # Needs to be run with kernprof
+    'wholecell.tests.utils.profile_polymerize',
     'sympy', 'cv2', 'Bio', 'tqdm', 'cvxpy', 'pymunk', 'skimage', 'dill',
+    'Equation', 'swiglpk', 'seaborn'
 ]
 # Move typehints from signature into description
 autodoc_typehints = "description"
@@ -127,32 +143,44 @@ def autodoc_skip_member_handler(app, what, name, obj, skip, options):
 
 def run_apidoc(_):
     cur_dir = os.path.abspath(os.path.dirname(__file__))
-    module_path = os.path.join(cur_dir, '..', 'ecoli')
 
-    apidoc_dir = os.path.join(cur_dir, 'reference', 'api')
-    if os.path.exists(apidoc_dir):
-        shutil.rmtree(apidoc_dir)
-    os.makedirs(apidoc_dir, exist_ok=True)
-
+    # Move tutorial notebooks into build directory
     notebooks_dst = os.path.join(cur_dir, 'notebooks')
     notebooks_src = os.path.join(cur_dir, '..', 'notebooks')
     if os.path.exists(notebooks_dst):
         shutil.rmtree(notebooks_dst)
     shutil.copytree(notebooks_src, notebooks_dst)
 
-    exclude = (
+    # Use sphinx-autodoc to create API documentation from docstrings
+    module_paths = [
+        os.path.join(cur_dir, '..', 'ecoli'),
+        os.path.join(cur_dir, '..', 'reconstruction'),
+        os.path.join(cur_dir, '..', 'validation'),
+        os.path.join(cur_dir, '..', 'wholecell')]
+
+    apidoc_dirs = [
+        os.path.join(cur_dir, 'reference', 'api', 'ecoli'),
+        os.path.join(cur_dir, 'reference', 'api', 'reconstruction'),
+        os.path.join(cur_dir, 'reference', 'api', 'validation'),
+        os.path.join(cur_dir, 'reference', 'api', 'wholecell'),
+        ]
+    
+    exclude_paths = [(
         os.path.join(cur_dir, path) for path in (
             '../ecoli/analysis',
-            '../ecoli/plots',
             '../ecoli/experiments/ecoli_master_sim_tests.py',
         )
-    )
+    ), (), (), ()]
 
-    # Custom templates to only put top-level document titles in 
-    # table of contents
-    template_dir = 'apidoc_templates/'
-    apidoc.main(['-t', template_dir,
-        '-f', '-e', '-E', '-M', '-o', apidoc_dir, module_path, *exclude])
+    for module_path, apidoc_dir, exclude in zip(
+        module_paths, apidoc_dirs, exclude_paths):
+        if os.path.exists(apidoc_dir):
+            shutil.rmtree(apidoc_dir)
+        os.makedirs(apidoc_dir, exist_ok=True)
+        # Custom templates to only put top-level document titles in 
+        # table of contents
+        apidoc.main(['-t', 'apidoc_templates/',
+            '-f', '-e', '-E', '-M', '-o', apidoc_dir, module_path, *exclude])
 
 
 objects_to_pprint = {}

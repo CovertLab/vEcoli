@@ -5,6 +5,7 @@ binding back to DNA.
 """
 
 import numpy as np
+import warnings
 
 from vivarium.core.process import Step
 
@@ -18,7 +19,7 @@ TOPOLOGY = {
     "promoters": ("unique", "promoter",),
     "global_time": ("global_time",),
     "timestep": ("timestep",),
-    "first_update": ("first_update", "tf_unbinding"),
+    "next_update_time": ("next_update_time", "tf_unbinding"),
 }
 topology_registry.register(NAME, TOPOLOGY)
 
@@ -51,25 +52,31 @@ class TfUnbinding(Step):
                 
             'global_time': {'_default': 0},
             'timestep': {'_default': self.parameters['time_step']},
-
-            'first_update': {
-                '_default': True,
+            'next_update_time': {
+                '_default': self.parameters['time_step'],
                 '_updater': 'set',
-                '_divider': {'divider': 'set_value',
-                    'config': {'value': True}}},
+                '_divider': 'set'},
         }
     
     def update_condition(self, timestep, states):
-        return (states['global_time'] % states['timestep']) == 0
+        """
+        See :py:meth:`~.Requester.update_condition`.
+        """
+        if states['next_update_time'] <= states['global_time']:
+            if states['next_update_time'] < states['global_time']:
+                warnings.warn(f"{self.name} updated at t="
+                    f"{states['global_time']} instead of t="
+                    f"{states['next_update_time']}. Decrease the "
+                    "timestep for the global clock process for more "
+                    "accurate timekeeping.")
+            return True
+        return False
 
     def next_update(self, timestep, states):
         # At t=0, convert all strings to indices
         if self.active_tf_idx is None:
             self.active_tf_idx = bulk_name_to_idx(
                 [tf + '[c]' for tf in self.tf_ids], states['bulk']['id'])
-        
-        if states['first_update']:
-            return {'first_update': False}
 
         # Get attributes of all promoters
         bound_TF, = attrs(states['promoters'], ['bound_TF'])
@@ -96,5 +103,6 @@ class TfUnbinding(Step):
         for submass, idx in self.submass_indices.items():
             update['promoters']['set'][submass] = attrs(states['promoters'],
                 [submass])[0] + mass_diffs[:, idx]
-        
+
+        update['next_update_time'] = states['global_time'] + states['timestep']
         return update

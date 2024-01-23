@@ -18,7 +18,8 @@ from ecoli.processes.metabolism_redux import MetabolismRedux
 from ecoli.processes.metabolism_redux_classic import MetabolismReduxClassic
 from ecoli.processes.chromosome_replication import ChromosomeReplication
 from ecoli.processes.stubs.exchange_stub import Exchange
-from ecoli.processes.listeners.mass_listener import MassListener
+from ecoli.processes.listeners.mass_listener import (
+    MassListener, PostDivisionMassListener)
 from ecoli.processes.listeners.RNA_counts import RNACounts
 from ecoli.processes.listeners.monomer_counts import MonomerCounts
 from ecoli.processes.listeners.rna_synth_prob import RnaSynthProb
@@ -73,6 +74,7 @@ process_registry.register(MetabolismRedux.name, MetabolismRedux)
 process_registry.register(MetabolismReduxClassic.name, MetabolismReduxClassic)
 process_registry.register(ChromosomeReplication.name, ChromosomeReplication)
 process_registry.register(MassListener.name, MassListener)
+process_registry.register(PostDivisionMassListener.name, PostDivisionMassListener)
 process_registry.register(DnaSupercoiling.name, DnaSupercoiling)
 process_registry.register(ReplicationData.name, ReplicationData)
 process_registry.register(RnapData.name, RnapData)

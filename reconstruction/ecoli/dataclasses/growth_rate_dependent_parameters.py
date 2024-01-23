@@ -116,16 +116,16 @@ class Mass(object):
 		self._d_period = sim_data.constants.d_period
 
 	# Set based on growth rate avgCellDryMass
-	def get_avg_cell_dry_mass(self, doubling_time):
+	def get_avg_cell_dry_mass(self, doubling_time: unum.Unum) -> unum.Unum:
 		# type: (units.Unum) -> units.Unum
 		"""
 		Gets the dry mass for an average cell at the given doubling time.
 
 		Args:
-			doubling_time (float, time units): expected doubling time
+			doubling_time: expected doubling time
 
 		Returns:
-			average cell dry mass (float, mass units)
+			average cell dry mass
 		"""
 
 		doubling_time = doubling_time.asNumber(units.min)
@@ -135,7 +135,7 @@ class Mass(object):
 				.format(doubling_time))
 		return units.fg / inverse_mass
 
-	def get_dna_critical_mass(self, doubling_time):
+	def get_dna_critical_mass(self, doubling_time: unum.Unum) -> unum.Unum:
 		# type: (units.Unum) -> units.Unum
 		"""
 		Returns the critical mass for replication initiation.  Faster growing
@@ -144,11 +144,10 @@ class Mass(object):
 		lower for them.
 
 		Args:
-			doubling_time (float with time units): expected doubling time of cell
+			doubling_time: expected doubling time of cell
 
 		Returns:
-			critical_mass (float with mass units): critical mass for DNA
-				replication initiation
+			Critical mass for DNA replication initiation
 		"""
 
 		mass = self.get_avg_cell_dry_mass(doubling_time) / self.cell_dry_mass_fraction
@@ -550,21 +549,22 @@ def _loadTableIntoObjectGivenDoublingTime(obj, list_of_dicts):
 		attrValue = _useFitParameters(obj._doubling_time, **fitParameters)
 		setattr(obj, key, attrValue)
 
-def linear_regression(x, y, r_tol=0.999, p_tol=1e-5):
-	# type: (np.ndarray, np.ndarray, float, float) -> Tuple[float, float]
+def linear_regression(x: np.ndarray[float], y: np.ndarray[float], 
+	r_tol: float=0.999, p_tol: float=1e-5) -> tuple[float, float]:
 	"""
 	Perform linear regression on a data set and check that statistics are
 	within expected values to confirm a good linear fit.
 
 	Args:
-		x (float): x values for regression
-		y (float): y values for regression
+		x: x values for regression
+		y: y values for regression
 		r_tol: lower limit for r statistic
 		p_tol: upper limit for p statistic
 
 	Returns:
-		slope: linear fit slope
-		intercept: linear fit intercept
+		2-element tuple containing
+			- slope: linear fit slope
+			- intercept: linear fit intercept
 	"""
 
 	result = stats.linregress(x, y)

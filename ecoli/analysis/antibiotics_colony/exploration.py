@@ -98,7 +98,7 @@ def plot_exp_growth_rate(data, metadata, highlight_agent_id):
     # Get log 2 fold change over mean glucose growth rate
     glucose_data = data.loc[data.loc[:, 'Condition'] == 'Glucose', :]
     mean_growth_rate = glucose_data.loc[:, 'Doubling rate'].mean()
-    fc_col = 'Growth rate\n($\mathregular{log_2}$ fold change)'
+    fc_col = 'Growth rate\n($\\mathregular{log_2}$ fold change)'
     data.loc[:, fc_col] = np.log2(data.loc[:, 'Doubling rate'] / mean_growth_rate)
 
     # Only include data from glucose and tetracycline MIC
