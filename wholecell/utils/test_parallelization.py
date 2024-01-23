@@ -11,6 +11,9 @@ import pytest
 
 from wholecell.utils import parallelization
 
+# Silence Sphinx autodoc warning
+unittest.TestCase.__module__ = 'unittest'
+
 
 def _square(i):  # Runs in inner_pool
     square = i ** 2

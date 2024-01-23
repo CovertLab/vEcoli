@@ -1284,7 +1284,7 @@ class FluxBalanceAnalysis(object):
 
 				assert relaxUp <= NUMERICAL_ZERO or relaxDown <= NUMERICAL_ZERO
 
-			values[idx] = relax
+			values[idx] = relax[0]
 		return values
 
 	def getHomeostaticObjectiveWeight(self):

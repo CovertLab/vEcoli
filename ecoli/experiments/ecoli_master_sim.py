@@ -134,8 +134,8 @@ class SimConfig:
             parser: Argument parser for the command-line interface.
 
         Args:
-            config: Configuration options. If provided, the default
-                configuration is not loaded from the file path 
+            config: Configuration options. If not provided, the default
+                configuration is loaded from the file path 
                 :py:data:`~ecoli.experiments.ecoli_master_sim.SimConfig.default_config_path`.
         '''
         self._config = config or {}
@@ -421,7 +421,9 @@ class EcoliSim:
                             swap_processes: dict[str, str],
                             ) -> dict[str, Process]:
         """
-        Retrieve process classes from :py:data:`~ecoli.processes.process_registry`.
+        Retrieve process classes from 
+        :py:data:`~vivarium.core.registry.process_registry` (processes are
+        registered in ``ecoli/processes/__init__.py``).
 
         Args:
             processes: Base list of process names to retrieve classes for
@@ -465,11 +467,11 @@ class EcoliSim:
                 Will be merged with topology from topology_registry, if exists.
             processes: List of process names for which to retrive topologies.
             swap_processes: Mapping of process names to the names of processes 
-                to swap them for. It is assumed that swapped processes share 
-                the same topologies. User-specified topologies in ``topology`` 
-                under either process name are merged into the topology 
-                retrieved from the topology registry for the topology to be 
-                swapped out.
+                to swap them for. By default, the new processes are assumed to 
+                have the same topology as the processes they replaced. When 
+                this is not the case, users can add/modify the original process 
+                topology with custom values in ``topology`` under either the new 
+                or the old process name.
             log_updates: Whether to emit process updates. Adds topology for 
                 ``log_update`` port.
         
@@ -639,8 +641,6 @@ class EcoliSim:
                 condition=not_a_process)
             if self.divide:
                 for agent_state in state['agents'].values():
-                    # Will be set to true when starting sim
-                    del agent_state['first_update']
                     # Processes can't be serialized
                     del agent_state['process']
                     # Bulk random state can't be serialized
@@ -651,7 +651,6 @@ class EcoliSim:
                     for name, mols in agent_state['unique'].items():
                         agent_state['unique_dtypes'][name] = str(mols.dtype)
             else:
-                del state['first_update']
                 del state['process']
                 del state['allocator_rng']
                 state['bulk_dtypes'] = str(state['bulk'].dtype)
@@ -672,6 +671,10 @@ class EcoliSim:
             Run :py:meth:`~ecoli.experiments.ecoli_master_sim.EcoliSim.build_ecoli` 
             before calling :py:meth:`~ecoli.experiments.ecoli_master_sim.EcoliSim.run`!
         """
+        if self.ecoli is None:
+            raise RuntimeError("Build the composite by calling build_ecoli() \
+                before calling run().")
+
         metadata = self.get_metadata()
         # make the experiment
         emitter_config = {'type': self.emitter}
@@ -816,6 +819,16 @@ class EcoliSim:
 
 
 def main():
+    """
+    Runs a simulation with CLI options.
+
+    .. note::
+        Parallelizing processes (e.g. ``--parallel``) is not recommended 
+        because the overhead outweighs any performance advantage. This could 
+        change in the future if a computationally intensive process is 
+        introduced in the future that makes the model faster to run in parallel 
+        instead of sequentially.
+    """
     import multiprocessing; multiprocessing.set_start_method('spawn')
     ecoli_sim = EcoliSim.from_cli()
     ecoli_sim.build_ecoli()

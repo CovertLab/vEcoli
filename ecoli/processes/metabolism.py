@@ -13,10 +13,12 @@ NOTE:
 and internal states have been updated (deriver-like, no partitioning necessary)
 """
 
-from typing import Tuple
+from typing import Any
+import warnings
 
 import numpy as np
 from scipy.sparse import csr_matrix
+from unum import Unum
 from vivarium.core.process import Step
 from vivarium.library.units import units as vivunits
 
@@ -44,7 +46,7 @@ TOPOLOGY = {
     "polypeptide_elongation": ("process_state", "polypeptide_elongation"),
     "global_time": ("global_time",),
     "timestep": ("timestep",),
-    "first_update": ("first_update", "metabolism"),
+    "next_update_time": ("next_update_time", "metabolism"),
     }
 topology_registry.register(NAME, TOPOLOGY)
 
@@ -340,18 +342,27 @@ class Metabolism(Step):
             },
             'global_time': {'_default': 0},
             'timestep': {'_default': self.parameters['time_step']},
-
-            'first_update': {
-                '_default': True,
+            'next_update_time': {
+                '_default': self.parameters['time_step'],
                 '_updater': 'set',
-                '_divider': {'divider': 'set_value',
-                    'config': {'value': True}}},
+                '_divider': 'set'}
         }
 
         return ports
 
     def update_condition(self, timestep, states):
-        return (states['global_time'] % states['timestep']) == 0
+        """
+        See :py:meth:`~ecoli.processes.partition.Requester.update_condition`.
+        """
+        if states['next_update_time'] <= states['global_time']:
+            if states['next_update_time'] < states['global_time']:
+                warnings.warn(f"{self.name} updated at t="
+                    f"{states['global_time']} instead of t="
+                    f"{states['next_update_time']}. Decrease the "
+                    "timestep for the global clock process for more "
+                    "accurate timekeeping.")
+            return True
+        return False
 
     def next_update(self, timestep, states):
         # At t=0, convert all strings to indices
@@ -365,9 +376,6 @@ class Metabolism(Step):
             self.kinetics_substrates_idx = bulk_name_to_idx(
                 self.model.kinetic_constraint_substrates, states['bulk']['id'])
             self.aa_idx = bulk_name_to_idx(self.aa_names, states['bulk']['id'])
-
-        if states['first_update']:
-            return {'first_update': False}
 
         timestep = states['timestep']
 
@@ -591,26 +599,26 @@ class Metabolism(Step):
                     'target_fluxes_upper': upper_targets / timestep,
                     'target_fluxes_lower': lower_targets / timestep,
                     'target_aa_conc': [self.aa_targets.get(id_, 0)
-                                       for id_ in self.aa_names]}}}
+                                       for id_ in self.aa_names]}},
+                                       
+                'next_update_time': states['global_time'] + states['timestep']}
 
         return update
 
-    def update_amino_acid_targets(self, counts_to_molar, count_diff,
-        amino_acid_counts):
+    def update_amino_acid_targets(self, counts_to_molar: Unum, 
+        count_diff: dict[str, float],
+        amino_acid_counts: np.ndarray[int]) -> dict[str, Unum]:
         """
         Finds new amino acid concentration targets based on difference in
-        supply and number of amino acids used in polypeptide_elongation
-
-        Args:
-            counts_to_molar (float with mol/volume units): conversion from
-                counts to molar for the current state of the cell
-
-        Returns:
-            dict {AA name (str): AA conc (float with mol/volume units)}:
-                new concentration targets for each amino acid
-
+        supply and number of amino acids used in polypeptide_elongation. 
         Skips updates to molecules defined in self.aa_targets_not_updated:
         - L-SELENOCYSTEINE: rare AA that led to high variability when updated
+
+        Args:
+            counts_to_molar: conversion from counts to molar
+
+        Returns:
+            ``{AA name (str): new target AA conc (float with mol/volume units)}``
         """
 
         if len(self.aa_targets):
@@ -648,10 +656,11 @@ class FluxBalanceAnalysisModel(object):
     Metabolism model that solves an FBA problem with modular_fba.
     """
 
-    def __init__(self, parameters, timeline=None, include_ppgpp=True):
+    def __init__(self, parameters: dict[str, Any], 
+                 timeline: tuple[tuple[str]]=None, include_ppgpp: bool=True):
         """
         Args:
-            sim_data: simulation data
+            parameters: parameters from simulation data
             timeline: timeline for nutrient changes during simulation
                 (time of change, media ID), by default [(0.0, 'minimal')]
             include_ppgpp: if True, ppGpp is included as a concentration target
@@ -791,24 +800,24 @@ class FluxBalanceAnalysisModel(object):
         self.aa_names_no_location = [x[:-3]
                                      for x in parameters['amino_acid_ids']]
 
-    def update_external_molecule_levels(self, objective,
-        metabolite_concentrations, external_molecule_levels):
+    def update_external_molecule_levels(self, objective: dict[str, Unum],
+        metabolite_concentrations: Unum, 
+        external_molecule_levels: np.ndarray[float]) -> np.ndarray[float]:
         """
         Limit amino acid uptake to what is needed to meet concentration
         objective to prevent use as carbon source, otherwise could be used
         as an infinite nutrient source.
 
         Args:
-            objective (Dict[str, Unum]): homeostatic objective for internal
+            objective: homeostatic objective for internal
                 molecules (molecule ID: concentration in counts/volume units)
-            metabolite_concentrations (Unum[float]): concentration for each
+            metabolite_concentrations: concentration for each
                 molecule in metabolite_names
-            external_molecule_levels (np.ndarray[float]): current limits on
+            external_molecule_levels: current limits on
                 external molecule availability
 
         Returns:
-            external_molecule_levels (np.ndarray[float]): updated limits on
-                external molecule availability
+            Updated limits on external molecule availability
 
         TODO(wcEcoli):
             determine rate of uptake so that some amino acid uptake can
@@ -835,28 +844,26 @@ class FluxBalanceAnalysisModel(object):
 
         return external_molecule_levels
 
-    def set_molecule_levels(self, metabolite_counts, counts_to_molar,
-        coefficient, current_media_id, unconstrained, constrained, conc_updates,
-        aa_uptake_package=None):
+    def set_molecule_levels(self, metabolite_counts: np.ndarray[int], 
+        counts_to_molar: Unum, coefficient: Unum, current_media_id: str, 
+        unconstrained: set[str], constrained: set[str], 
+        conc_updates: dict[str, Unum], aa_uptake_package: tuple[
+            np.ndarray[float], np.ndarray[str], bool]=None):
         """
         Set internal and external molecule levels available to the FBA solver.
 
         Args:
-            metabolite_counts (:py:class:`np.ndarray[int]`): counts for each metabolite
-                with a concentration target
-            counts_to_molar (:py:class:`Unum`): conversion from counts to molar
-                (counts/volume units)
-            coefficient (:py:class:`Unum`): coefficient to convert from mmol/g DCW/hr
-                to mM basis (mass.time/volume units)
-            current_media_id (:py:class:`str`): ID of current media
-            unconstrained (:py:class:`Set[str]`): molecules that have unconstrained import
-            constrained (:py:class:`Dict[str, units.Unum]`): molecules (keys) and their
-                limited max uptake rates (values in mol / mass / time units)
-            conc_updates (:py:class:`Dict[str, Unum]`): updates to concentrations targets
-                for molecules (molecule ID: concentration in mmol/L units)
-            aa_uptake_package (:py:class:`Tuple[np.ndarray, np.ndarray, Boolean]`): packed
-                variables needed to set hard external amino acid uptakes (uptake
-                rates, amino acid names, force levels)
+            metabolite_counts: counts for each metabolite with a concentration target
+            counts_to_molar: conversion from counts to molar (counts/volume)
+            coefficient: coefficient to convert from mmol/g DCW/hr to mM basis 
+                (mass*time/volume)
+            current_media_id: ID of current media
+            unconstrained: molecules that have unconstrained import
+            constrained: molecules (keys) and their limited max uptake rates 
+                (mol / mass / time)
+            conc_updates: updates to concentrations targets for molecules (mmol/L)
+            aa_uptake_package: (uptake rates, amino acid names, force levels), 
+                determines whether to set hard uptake rates
         """
 
         # Update objective from media exchanges
@@ -882,18 +889,17 @@ class FluxBalanceAnalysisModel(object):
             self.fba.setExternalMoleculeLevels(levels, molecules=molecules,
                 force=force, allow_export=True)
 
-    def set_reaction_bounds(self, catalyst_counts, counts_to_molar,
-        coefficient, gtp_to_hydrolyze):
+    def set_reaction_bounds(self, catalyst_counts: np.ndarray[int], 
+        counts_to_molar: Unum, coefficient: Unum, gtp_to_hydrolyze: float):
         """
         Set reaction bounds for constrained reactions in the FBA object.
 
         Args:
-            catalyst_counts (np.ndarray[int]): counts of enzyme catalysts
-            counts_to_molar (Unum): conversion from counts to molar
-                (counts/volume units)
-            coefficient (Unum): coefficient to convert from mmol/g DCW/hr
-                to mM basis (mass.time/volume units)
-            gtp_to_hydrolyze (float): number of GTP molecules to hydrolyze to
+            catalyst_counts: counts of enzyme catalysts
+            counts_to_molar: conversion from counts to molar (counts/volume)
+            coefficient: coefficient to convert from mmol/g DCW/hr to mM basis 
+                (mass*time/volume)
+            gtp_to_hydrolyze: number of GTP molecules to hydrolyze to
                 account for consumption in translation
         """
 
@@ -921,28 +927,26 @@ class FluxBalanceAnalysisModel(object):
         self.fba.setReactionFluxBounds(self.reactions_with_catalyst,
             upperBounds=reaction_bounds, raiseForReversible=False)
 
-    def set_reaction_targets(self, kinetic_enzyme_counts,
-        kinetic_substrate_counts, counts_to_molar, time_step):
-        # type: (np.ndarray, np.ndarray, units.Unum, units.Unum) -> Tuple[np.ndarray, np.ndarray, np.ndarray]
+    def set_reaction_targets(self, kinetic_enzyme_counts: np.ndarray[int],
+        kinetic_substrate_counts: np.ndarray[int], counts_to_molar: Unum, 
+        time_step: Unum) -> tuple[np.ndarray[float], np.ndarray[float], 
+                                  np.ndarray[float]]:
         """
         Set reaction targets for constrained reactions in the FBA object.
 
         Args:
-            kinetic_enzyme_counts (np.ndarray[int]): counts of enzymes used in
-                kinetic constraints
-            kinetic_substrate_counts (np.ndarray[int]): counts of substrates
-                used in kinetic constraints
-            counts_to_molar: conversion from counts to molar
-                (float with counts/volume units)
-            time_step: current time step (float with time units)
+            kinetic_enzyme_counts: counts of enzymes used in kinetic constraints
+            kinetic_substrate_counts: counts of substrates used in kinetic 
+                constraints
+            counts_to_molar: conversion from counts to molar (counts/volume)
+            time_step: current time step (time)
 
         Returns:
-            mean_targets (np.ndarray[float]): mean target for each constrained
-                reaction
-            upper_targets (np.ndarray[float]): upper target limit for each
-                constrained reaction
-            lower_targets (np.ndarray[float]): lower target limit for each
-                constrained reaction
+            3-element tuple containing
+
+            - **mean_targets**: mean target for each constrained reaction
+            - **upper_targets**: upper target limit for each constrained reaction
+            - **lower_targets**: lower target limit for each constrained reaction
         """
 
         if self.use_kinetics:

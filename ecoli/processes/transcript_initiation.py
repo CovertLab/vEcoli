@@ -57,82 +57,83 @@ topology_registry.register(NAME, TOPOLOGY)
 class TranscriptInitiation(PartitionedProcess):
     """ Transcript Initiation PartitionedProcess
 
-    defaults:
-        - fracActiveRnapDict (dict): Dictionary with keys corresponding to
-            media, values being the fraction of active RNA Polymerase (RNAP)
-            for that media.
-        - rnaLengths (1d array[int]): lengths of RNAs for each transcription
-            unit (TU), in nucleotides
-        - rnaPolymeraseElongationRateDict (dict): Dictionary with keys
-            corresponding to media, values being RNAP's elongation rate in
-            that media, in nucleotides/s
-        - variable_elongation (bool): Whether to add amplified elongation rates
-            for rRNAs. False by default.
-        - make_elongation_rates (func): Function for making elongation rates
-            (see Transcription.make_elongation_rates).
-                - parameters: random, rate, timestep, variable
-                - returns: a numpy array
-        - active_rnap_footprint_size (int): Maximum physical footprint of RNAP
-            in nucleotides to cap initiation probabilities
-        - basal_prob (1d array[float]): Baseline probability of synthesis for
-            every TU.
-        - delta_prob (dict): Dictionary with four keys, used to create a matrix
-            encoding the effect of transcription factors (TFs) on transcription
-            probabilities.
-            - 'deltaV' (array[float]): deltas associated with the effects of
-                TFs on TUs,
-            - 'deltaI' (array[int]): index of the affected TU for each delta,
-            - 'deltaJ' (array[int]): index of the acting TF for each delta, and
-            - 'shape' (tuple): (m, n) = (# of TUs, # of TFs)
-        - perturbations (dict): Dictionary of genetic perturbations (optional,
-            can be empty)
-        - rna_data (1d array): Structured array with an entry for each TU,
-            where entries look like:
-                (id, deg_rate, length (nucleotides), counts_AGCU, mw
-                (molecular weight), is_mRNA, is_miscRNA, is_rRNA, is_tRNA,
-                is_23S_rRNA, is_16S_rRNA, is_5S_rRNA, is_ribosomal_protein,
-                is_RNAP, gene_id, Km_endoRNase, replication_coordinate,
-                direction)
+    **Defaults:**
+    
+    - **fracActiveRnapDict** (``dict``): Dictionary with keys corresponding to
+      media, values being the fraction of active RNA Polymerase (RNAP)
+      for that media.
+    - **rnaLengths** (``numpy.ndarray[int]``): lengths of RNAs for each transcription
+      unit (TU), in nucleotides
+    - **rnaPolymeraseElongationRateDict** (``dict``): Dictionary with keys
+      corresponding to media, values being RNAP's elongation rate in
+      that media, in nucleotides/s
+    - **variable_elongation** (``bool``): Whether to add amplified elongation rates
+      for rRNAs. False by default.
+    - **make_elongation_rates** (``func``): Function for making elongation rates
+      (see :py:meth:`~reconstruction.ecoli.dataclasses.process.transcription.Transcription.make_elongation_rates`).
+      Takes PRNG, basal elongation rate, timestep, and ``variable_elongation``. 
+      Returns an array of elongation rates for all genes.
+    - **active_rnap_footprint_size** (``int``): Maximum physical footprint of RNAP
+      in nucleotides to cap initiation probabilities
+    - **basal_prob** (``numpy.ndarray[float]``): Baseline probability of synthesis for
+      every TU.
+    - **delta_prob** (``dict``): Dictionary with four keys, used to create a matrix
+      encoding the effect of transcription factors (TFs) on transcription
+      probabilities::
 
-        - idx_rRNA (1D array): indexes of TUs corresponding to rRNAs
-        - idx_mRNA (1D array): indexes of TUs corresponding to mRNAs
-        - idx_tRNA (1D array): indexes of TUs corresponding to tRNAs
-        - idx_rprotein (1D array): indexes of TUs corresponding ribosomal
-            proteins
-        - idx_rnap (1D array): indexes of TU corresponding to RNAP
-        - rnaSynthProbFractions (dict): Dictionary where keys are media types,
-            values are sub-dictionaries with keys 'mRna', 'tRna', 'rRna', and
-            values being probabilities of synthesis for each RNA type. These
-            should sum to 1 (?)
-        - rnaSynthProbRProtein (dict): Dictionary where keys are media types,
-            values are arrays storing the (fixed) probability of synthesis for
-            each rProtein TU, under that media condition.
-        - rnaSynthProbRnaPolymerase (dict): Dictionary where keys are media
-            types, values are arrays storing the (fixed) probability of
-            synthesis for each RNAP TU, under that media condition.
-        - replication_coordinate (1d array): Array with chromosome coordinates
-            for each TU
-        - transcription_direction (1d array[bool]): Array of transcription
-            directions for each TU (T/F corresponding to which direction?)
-        - n_avogadro: Avogadro's number (constant)
-        - cell_density: Density of cell (constant)
-        - ppgpp (str): id of ppGpp
-        - inactive_RNAP (str): id of inactive RNAP
-        - synth_prob (func): Function used in model of ppGpp regulation
-            (see Transcription.synth_prob_from_ppgpp).
-            - parameters: ppGpp_concentration (mol/volume), copy_number
-                (Callable[float, int])
-            - returns (ndarray[float]): normalized synthesis probability
-                for each gene
-        - copy_number (func): see Replication.get_average_copy_number.
-            - parameters: tau (float): expected doubling time in minutes
-                coords (int or ndarray[int]): chromosome coordinates of genes
-            - returns: average copy number of each gene expected at a doubling
-                time, tau
-        - ppgpp_regulation (bool): Whether to include model of ppGpp regulation
-        - get_rnap_active_fraction_from_ppGpp (func): Returns elongation rate
-            for a given ppGpp concentration
-        - seed (int): random seed
+        {'deltaV' (np.ndarray[float]): deltas associated with the effects of
+            TFs on TUs,
+        'deltaI' (np.ndarray[int]): index of the affected TU for each delta,
+        'deltaJ' (np.ndarray[int]): index of the acting TF for each delta,
+        'shape' (tuple): (m, n) = (# of TUs, # of TFs)}
+
+    - **perturbations** (``dict``): Dictionary of genetic perturbations (optional,
+      can be empty)
+    - **rna_data** (``numpy.ndarray``): Structured array with an entry for each TU,
+      where entries look like::
+
+            (id, deg_rate, length (nucleotides), counts_AGCU, mw
+            (molecular weight), is_mRNA, is_miscRNA, is_rRNA, is_tRNA,
+            is_23S_rRNA, is_16S_rRNA, is_5S_rRNA, is_ribosomal_protein,
+            is_RNAP, gene_id, Km_endoRNase, replication_coordinate,
+            direction)
+
+    - **idx_rRNA** (``numpy.ndarray[int]``): indexes of TUs corresponding to rRNAs
+    - **idx_mRNA** (``numpy.ndarray[int]``): indexes of TUs corresponding to mRNAs
+    - **idx_tRNA** (``numpy.ndarray[int]``): indexes of TUs corresponding to tRNAs
+    - **idx_rprotein** (``numpy.ndarray[int]``): indexes of TUs corresponding ribosomal
+      proteins
+    - **idx_rnap** (``numpy.ndarray[int]``): indexes of TU corresponding to RNAP
+    - **rnaSynthProbFractions** (``dict``): Dictionary where keys are media types,
+      values are sub-dictionaries with keys 'mRna', 'tRna', 'rRna', and
+      values being probabilities of synthesis for each RNA type
+    - **rnaSynthProbRProtein** (``dict``): Dictionary where keys are media types,
+      values are arrays storing the (fixed) probability of synthesis for
+      each rProtein TU, under that media condition.
+    - **rnaSynthProbRnaPolymerase** (``dict``): Dictionary where keys are media
+      types, values are arrays storing the (fixed) probability of
+      synthesis for each RNAP TU, under that media condition.
+    - **replication_coordinate** (``numpy.ndarray[int]``): Array with chromosome 
+      coordinates for each TU
+    - **transcription_direction** (``numpy.ndarray[bool]``): Array of transcription
+      directions for each TU
+    - **n_avogadro** (``unum.Unum``): Avogadro's number (constant)
+    - **cell_density** (``unum.Unum``): Density of cell (constant)
+    - **ppgpp** (``str``): id of ppGpp
+    - **inactive_RNAP** (``str``): id of inactive RNAP
+    - **synth_prob** (``Callable[[Unum, int], numpy.ndarrray[float]]``): 
+      Function used in model of ppGpp regulation
+      (see :py:func:`~reconstruction.ecoli.dataclasses.process.transcription.Transcription.synth_prob_from_ppgpp`).
+      Takes ppGpp concentration (mol/volume) and copy number, returns 
+      normalized synthesis probability for each gene
+    - **copy_number** (``Callable[[Unum, int], numpy.ndarrray[float]]``): 
+      see :py:func:`~reconstruction.ecoli.dataclasses.process.replication.Replication.get_average_copy_number`.
+      Takes expected doubling time in minutes and chromosome coordinates of genes, 
+      returns average copy number of each gene expected at doubling time
+    - **ppgpp_regulation** (``bool``): Whether to include model of ppGpp regulation
+    - **get_rnap_active_fraction_from_ppGpp** (``Callable[[Unum], float]``): 
+      Returns elongation rate for a given ppGpp concentration
+    - **seed** (``int``): random seed to initialize PRNG
     """
 
     name = NAME

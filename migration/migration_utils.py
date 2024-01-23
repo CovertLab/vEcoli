@@ -64,9 +64,6 @@ def run_non_partitioned_process(
     path = list(experiment.process_paths.keys())[0]
     store, states = experiment._process_state(path)
 
-    # Sidestep t=0 skip for some listeners
-    states['first_update'] = False
-
     # Reset bulk counts to "partitioned counts" so final counts
     # can be directly compared to wcEcoli (some processes do not
     # connect to bulk store so skip it)

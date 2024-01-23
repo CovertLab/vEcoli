@@ -5,6 +5,7 @@ Ribosome Data Listener
 """
 
 import numpy as np
+import warnings
 from ecoli.library.schema import numpy_schema, listener_schema, attrs, bulk_name_to_idx
 from vivarium.core.process import Step
 
@@ -18,7 +19,7 @@ TOPOLOGY = {
     "RNAs": ("unique", "RNA"),
     "global_time": ("global_time",),
     "timestep": ("timestep",),
-    "first_update": ("first_update", NAME)
+    "next_update_time": ("next_update_time", NAME),
 }
 topology_registry.register(
     NAME, TOPOLOGY
@@ -80,23 +81,29 @@ class RibosomeData(Step):
             'active_ribosomes': numpy_schema('active_ribosome',
                 emit=self.parameters['emit_unique']),
             'global_time': {'_default': 0},
-            'timestep': {'_default': self.parameters['time_step']}
+            'timestep': {'_default': self.parameters['time_step']},
+            'next_update_time': {
+                '_default': self.parameters['time_step'],
+                '_updater': 'set',
+                '_divider': 'set'},
         }
-        ports['first_update'] = {
-            '_default': True,
-            '_updater': 'set',
-            '_divider': {'divider': 'set_value',
-                'config': {'value': True}}}
         return ports
     
     def update_condition(self, timestep, states):
-        return (states['global_time'] % states['timestep']) == 0
+        """
+        See :py:meth:`~ecoli.processes.partition.Requester.update_condition`.
+        """
+        if states['next_update_time'] <= states['global_time']:
+            if states['next_update_time'] < states['global_time']:
+                warnings.warn(f"{self.name} updated at t="
+                    f"{states['global_time']} instead of t="
+                    f"{states['next_update_time']}. Decrease the "
+                    "timestep for the global clock process for more "
+                    "accurate timekeeping.")
+            return True
+        return False
 
     def next_update(self, timestep, states):
-        # Skip t=0
-        if states['first_update']:
-            return {'first_update': False}
-
         # Get attributes of RNAs and ribosomes
         (is_full_transcript_RNA, unique_index_RNA, can_translate,
          TU_index) = attrs(
@@ -188,6 +195,7 @@ class RibosomeData(Step):
                     'protein_mass_on_polysomes': protein_mass_on_polysomes,
 
                 }
-            }
+            },
+            'next_update_time': states['global_time'] + states['timestep']
         }
         return update

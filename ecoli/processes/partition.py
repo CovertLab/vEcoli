@@ -14,6 +14,7 @@ which reads the requests and allocates molecular counts for the evolve_state.
 
 """
 import abc
+import warnings
 
 from vivarium.core.process import Step, Process
 from vivarium.library.dict_utils import deep_merge
@@ -37,8 +38,31 @@ class Requester(Step):
         super().__init__(parameters)
 
     def update_condition(self, timestep, states):
-        return (states['global_time'] % states['timestep']
-                ) == 0
+        """
+        Implements variable timestepping for partitioned processes
+
+        Vivarium cycles through all :py:class:~vivarium.core.process.Step` 
+        instances every time a :py:class:`~vivarium.core.process.Process` 
+        instance updates the simulation state. When that happens, Vivarium 
+        will only call the :py:meth:`~.Requester.next_update` method of this 
+        Requester if ``update_condition`` returns True.
+
+        Each process has access to a process-specific ``next_update_time`` 
+        store and the ``global_time`` store. If the next update time is 
+        less than or equal to the global time, the process runs. If the 
+        next update time is ever earlier than the global time, this usually 
+        indicates that the global clock process is runnnig with too large 
+        a timestep, preventing accurate timekeeping.
+        """
+        if states['next_update_time'] <= states['global_time']:
+            if states['next_update_time'] < states['global_time']:
+                warnings.warn(f"{self.name} updated at t="
+                    f"{states['global_time']} instead of t="
+                    f"{states['next_update_time']}. Decrease the "
+                    "timestep of the global_clock process for more "
+                    "accurate timekeeping.")
+            return True
+        return False
 
     def ports_schema(self):
         process = self.parameters.get('process')
@@ -58,19 +82,14 @@ class Requester(Step):
         }
         ports['global_time'] = {'_default': 0}
         ports['timestep'] = {'_default': process.parameters['time_step']}
-        ports['first_update'] = {
-            '_default': True,
+        ports['next_update_time'] = {
+            '_default': process.parameters['timestep'],
             '_updater': 'set',
-            '_divider': {'divider': 'set_value',
-                'config': {'value': True}}}
+            '_divider': 'set'}
         self.cached_bulk_ports = list(ports['request'].keys())
         return ports
 
     def next_update(self, timestep, states):
-        # Skip t=0
-        if states['first_update']:
-            return {}
-
         process = states['process'][0]
         request = process.calculate_request(
             self.parameters['time_step'], states)
@@ -90,7 +109,6 @@ class Requester(Step):
 
         # Update shared process instance
         request['process'] = (process,)
-        # Leave rest of update untouched
         return request
 
 
@@ -108,7 +126,18 @@ class Evolver(Step):
         super().__init__(parameters)
     
     def update_condition(self, timestep, states):
-        return (states['global_time'] % states['timestep']) == 0
+        """
+        See :py:meth:`~.Requester.update_condition`.
+        """
+        if states['next_update_time'] <= states['global_time']:
+            if states['next_update_time'] < states['global_time']:
+                warnings.warn(f"{self.name} updated at t="
+                    f"{states['global_time']} instead of t="
+                    f"{states['next_update_time']}. Decrease the "
+                    "timestep for the global clock process for more "
+                    "accurate timekeeping.")
+            return True
+        return False
 
     def ports_schema(self):
         process = self.parameters.get('process')
@@ -128,25 +157,13 @@ class Evolver(Step):
         }
         ports['global_time'] = {'_default': 0}
         ports['timestep'] = {'_default': process.parameters['timestep']}
-        ports['first_update'] = {
-            '_default': True,
+        ports['next_update_time'] = {
+            '_default': process.parameters['timestep'],
             '_updater': 'set',
-            '_divider': {'divider': 'set_value',
-                'config': {'value': True}}}
+            '_divider': 'set'}
         return ports
 
-    # TODO(Matt): Have evolvers calculate timestep, returning zero if the requester hasn't run.
-    # def calculate_timestep(self, states):
-    #     if not self.process.request_set:
-    #         return 0
-    #     else:
-    #         return self.process.calculate_timestep(states)
-
     def next_update(self, timestep, states):
-        # Skip t=0
-        if states['first_update']:
-            return {'first_update': False}
-
         allocations = states.pop('allocate')
         states = deep_merge(states, allocations)
         process = states['process'][0]
@@ -166,6 +183,7 @@ class Evolver(Step):
 
         update = process.evolve_state(timestep, states)
         update['process'] = (process,)
+        update['next_update_time'] = states['global_time'] + states['timestep']
         return update
 
 

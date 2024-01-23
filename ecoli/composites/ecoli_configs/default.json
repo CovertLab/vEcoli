@@ -45,6 +45,8 @@
     "swap_processes" : {},
     "profile": false,
     "processes": [
+        "post-division-mass-listener",
+
         "bulk-timeline",
         "media_update",
         "exchange_data",
@@ -97,7 +99,8 @@
         }
     },
     "flow": {
-        "media_update": [],
+        "post-division-mass-listener": [],
+        "media_update": [["post-division-mass-listener"]],
         "exchange_data": [["media_update"]],
 
         "ecoli-tf-unbinding": [["media_update"]],
