@@ -122,7 +122,7 @@ EQUILIBRIUM_COMPLEXES_IN_COMPLEXATION = ["CPLX0-7701[c]", "CPLX0-7677[c]",
 
 # Metabolites that are used as ligands in equilibrium, but do not participate
 # in any metabolic reactions
-METABOLITES_ONLY_IN_EQUILIBRIUM = ["4FE-4S[c]"]
+METABOLITES_ONLY_IN_EQUILIBRIUM = ["CPD-7[c]"]
 
 # Molecules in 2CS (two component system) reactions that are not proteins
 NONPROTEIN_MOLECULES_IN_2CS = ["ATP[c]", "ADP[c]", "WATER[c]", "Pi[c]",
