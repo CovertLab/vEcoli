@@ -59,7 +59,7 @@ def run_ecoli_with_metabolism_redux_classic(
         progress_bar=True,
         log_updates=False,
         emitter='timeseries', # 'timeseries',
-        name='metabolism-redux-classic',
+        name='metabolism-redux-classic-anaerobic',
         raw_output=False,
         save=True,
         save_times=[1, 200, 400, 600, 800, 1000, 1200, 1300, 1400, 1500, 3000, 4500, 5000],
