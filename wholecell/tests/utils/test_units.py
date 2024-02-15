@@ -4,6 +4,9 @@ import numpy as np
 
 from wholecell.utils import units
 
+# Silence Sphinx autodoc warning
+unittest.TestCase.__module__ = 'unittest'
+
 
 class Test_units(unittest.TestCase):
 

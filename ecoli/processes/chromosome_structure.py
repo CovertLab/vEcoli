@@ -8,6 +8,7 @@ Chromosome Structure
 - Reset the boundaries and linking numbers of chromosomal segments.
 """
 import numpy as np
+import warnings
 from vivarium.core.process import Step
 
 from ecoli.processes.registries import topology_registry
@@ -34,7 +35,7 @@ TOPOLOGY = {
     # "chromosomal_segments": ("unique", "chromosomal_segment")
     "global_time": ("global_time",),
     "timestep": ("timestep",),
-    "first_update": ("first_update", "chromosome_structure"),
+    "next_update_time": ("next_update_time", "chromosome_structure"),
 }
 topology_registry.register(NAME, TOPOLOGY)
 
@@ -159,12 +160,10 @@ class ChromosomeStructure(Step):
                 emit=self.parameters['emit_unique']),
             'global_time': {'_default': 0},
             'timestep': {'_default': self.parameters['time_step']},
-
-            'first_update': {
-                '_default': True,
+            'next_update_time': {
+                '_default': self.parameters['time_step'],
                 '_updater': 'set',
-                '_divider': {'divider': 'set_value',
-                    'config': {'value': True}}},
+                '_divider': 'set'},
         }
 
         # TODO: Work on this functionality
@@ -181,8 +180,18 @@ class ChromosomeStructure(Step):
         return ports
     
     def update_condition(self, timestep, states):
-        return (states['global_time'] % states['timestep']
-                ) == 0
+        """
+        See :py:meth:`~ecoli.processes.partition.Requester.update_condition`.
+        """
+        if states['next_update_time'] <= states['global_time']:
+            if states['next_update_time'] < states['global_time']:
+                warnings.warn(f"{self.name} updated at t="
+                    f"{states['global_time']} instead of t="
+                    f"{states['next_update_time']}. Decrease the "
+                    "timestep for the global clock process for more "
+                    "accurate timekeeping.")
+            return True
+        return False
 
     def next_update(self, timestep, states):
         # At t=0, convert all strings to indices
@@ -205,9 +214,6 @@ class ChromosomeStructure(Step):
                 self.inactive_RNAPs, states['bulk']['id'])
             self.mature_rna_idx = bulk_name_to_idx(
                 self.mature_rna_ids, states['bulk']['id'])
-        
-        if states['first_update']:
-            return {'first_update': False}
 
         # Read unique molecule attributes
         (replisome_domain_indexes, replisome_coordinates,
@@ -691,43 +697,52 @@ class ChromosomeStructure(Step):
                                     dtype=np.bool_)}}
             update['DnaA_boxes'].update(dict_dna)
 
+        update['next_update_time'] = states['global_time'] + states['timestep']
         return update
 
 
-    def _compute_new_segment_attributes(self, old_boundary_molecule_indexes,
-            old_boundary_coordinates, old_linking_numbers,
-            new_molecule_indexes, new_molecule_coordinates,
-            spans_oriC, spans_terC):
-        # type: (np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, bool, bool) -> dict
+    def _compute_new_segment_attributes(self, 
+        old_boundary_molecule_indexes: np.ndarray[int], 
+        old_boundary_coordinates: np.ndarray[int], 
+        old_linking_numbers: np.ndarray[int], new_molecule_indexes: np.ndarray[int], 
+        new_molecule_coordinates: np.ndarray[int], spans_oriC: bool, 
+        spans_terC: bool) -> dict[str, np.ndarray[int]]:
         """
         Calculates the updated attributes of chromosomal segments belonging to
         a specific chromosomal domain, given the previous and current
         coordinates of molecules bound to the chromosome.
+        
         Args:
-            old_boundary_molecule_indexes (np.ndarray, (N, 2)): Array of unique
+            old_boundary_molecule_indexes: (N, 2) array of unique
                 indexes of molecules that formed the boundaries of each
                 chromosomal segment in the previous timestep.
-            old_boundary_coordinates (np.ndarray, (N, 2)): Array of chromosomal
-                 coordinates of molecules that formed the boundaries of each
-                 chromosomal segment in the previous timestep.
-            old_linking_numbers (np.ndarray, (N,)): Linking numbers of each
+            old_boundary_coordinates: (N, 2) array of chromosomal
+                coordinates of molecules that formed the boundaries of each
                 chromosomal segment in the previous timestep.
-            new_molecule_indexes (np.ndarray, (N,)): Unique indexes of all
+            old_linking_numbers: (N,) array of linking numbers of each
+                chromosomal segment in the previous timestep.
+            new_molecule_indexes: (N,) array of unique indexes of all
                 molecules bound to the domain at the current timestep.
-            new_molecule_coordinates (np.ndarray, (N,)): Chromosomal
+            new_molecule_coordinates: (N,) array of chromosomal
                 coordinates of all molecules bound to the domain at the current
                 timestep.
-            spans_oriC (bool): True if the domain spans the origin.
-            spans_terC (bool): True if the domain spans the terminus.
-        Returns (wrapped as dict):
-            boundary_molecule_indexes (np.ndarray, (M, 2)): Array of unique
-                indexes of molecules that form the boundaries of new
-                chromosomal segments.
-            boundary_coordinates (np.ndarray, (M, 2)): Array of chromosomal
-                coordinates of molecules that form the boundaries of new
-                chromosomal segments.
-            linking_numbers (np.ndarray, (M,)): Linking numbers of new
-                chromosomal segments.
+            spans_oriC: True if the domain spans the origin.
+            spans_terC: True if the domain spans the terminus.
+        
+        Returns:
+            Dictionary of the following format::
+                
+                {
+                    'boundary_molecule_indexes': (M, 2) array of unique
+                        indexes of molecules that form the boundaries of new
+                        chromosomal segments,
+                    'boundary_coordinates': (M, 2) array of chromosomal 
+                        coordinates of molecules that form the boundaries of 
+                        new chromosomal segments,
+                    'linking_numbers': (M,) array of linking numbers of new 
+                        chromosomal segments
+                }
+
         """
         # Sort old segment arrays by coordinates of left boundary
         old_coordinates_argsort = np.argsort(old_boundary_coordinates[:, 0])

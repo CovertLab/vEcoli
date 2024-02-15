@@ -10,6 +10,9 @@ from wholecell.utils.dependency_graph import (
 	InvalidDependencyGraphError,
 )
 
+# Silence Sphinx autodoc warning
+unittest.TestCase.__module__ = 'unittest'
+
 
 class TestDependencyGraph(unittest.TestCase):
 

@@ -1,9 +1,11 @@
 from pint import Quantity
+from typing import Any
 from vivarium.library.units import units as vivarium_units
 
 
 def remove_units(
-        quantity_tree, expected_units_tree=None, path=tuple()):
+    quantity_tree: dict[str, Any], expected_units_tree: dict[str, Any]=None, 
+    path: tuple[str]=tuple()) -> tuple[dict[str, Any], dict[str, Any]]:
     '''Split a tree of Quantities into units and magnitudes.
 
     Args:
@@ -22,7 +24,7 @@ def remove_units(
             recursion.
 
     Returns:
-        Two trees (as nested dictionaries): one with the magnitudes and
+        Two trees (as nested dictionaries), one with the magnitudes and
         another with the units. The units are from after any conversions
         imposed by ``expected_units_tree``.
 

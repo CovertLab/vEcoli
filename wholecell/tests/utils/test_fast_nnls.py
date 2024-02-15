@@ -14,6 +14,9 @@ from scipy.optimize import nnls
 import unittest
 import time
 
+# Silence Sphinx autodoc warning
+unittest.TestCase.__module__ = 'unittest'
+
 
 def time_this(code_to_measure):
 	"""

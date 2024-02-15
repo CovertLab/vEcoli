@@ -27,7 +27,7 @@ Vivarium *E. coli* project is a port of the |text|_ to the `Vivarium framework <
    tutorials
    docs
    reference/stores
-   API Reference <reference/api/modules>
+   API Reference <reference/api_ref.rst>
 
 .. WARNING::
    This documentation is very much a work in progress. It likely

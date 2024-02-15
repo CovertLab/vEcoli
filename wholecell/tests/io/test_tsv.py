@@ -5,6 +5,9 @@ import unittest
 
 from wholecell.io import tsv
 
+# Silence Sphinx autodoc warning
+unittest.TestCase.__module__ = 'unittest'
+
 
 FIELD_NAMES = ['id', 'ourLocation', u'\u20ac:xyz', 'mass (units.g)']
 INPUT_ROWS = [

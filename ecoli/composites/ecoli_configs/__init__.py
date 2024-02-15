@@ -1,3 +1,8 @@
+"""
+This folder is used to store frequently used JSON configuration files for 
+:py:class:`~ecoli.experiments.ecoli_master_sim.EcoliSim`.
+"""
+
 import copy
 import json
 import os
@@ -22,6 +27,17 @@ exclude_processes = config['exclude_processes']
 swap_processes = config['swap_processes']
 
 ECOLI_DEFAULT_PROCESSES = {}
+"""
+At runtime, the process classes corresponding to the process names 
+listed under the ``processes`` key of the default configuration 
+(``default.json``) are retrieved from the process registry (see 
+``ecoli/processes/__init__.py``) and cached in this dictionary.
+
+.. note::
+    If the default configuration includes non-empty ``swap_processes`` 
+    or ``exclude_processes`` fields, the specififed swaps/exclusions 
+    are performed during the construction of this dictionary.
+"""
 for process_name in processes + list(add_processes):
     if process_name in exclude_processes:
         continue
@@ -39,6 +55,16 @@ for process_name in processes + list(add_processes):
 
 
 ECOLI_DEFAULT_TOPOLOGY = {}
+"""
+At runtime, the topologies for the processes in 
+:py:data:`~ecoli.composites.ecoli_configs.ECOLI_DEFAULT_PROCESSES` 
+are retrieved from the topology registry (most processes in ``ecoli/processes`` 
+register their topology near the top of their source files). 
+
+.. note::
+    The topologies and overrides for swapped processes are handled as described 
+    in :py:meth:`~ecoli.experiments.ecoli_master_sim.EcoliSim._retrieve_topology`.
+"""
 
 original_processes = {v: k for k, v in swap_processes.items()}
 for process in ECOLI_DEFAULT_PROCESSES:

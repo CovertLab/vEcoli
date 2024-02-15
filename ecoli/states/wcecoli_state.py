@@ -60,7 +60,6 @@ def get_state_from_file(
                 deserialize_value, agents.values())
         numpy_agents = []
         for agent in deserialized_agents:
-            agent.pop('first_update', None)
             numpy_agents.append(numpy_molecules(agent))
         agents = dict(zip(agents.keys(), numpy_agents))
         states = deserialize_value(serialized_state)

@@ -8,6 +8,9 @@ import numpy as np
 
 import unittest
 
+# Silence Sphinx autodoc warning
+unittest.TestCase.__module__ = 'unittest'
+
 
 class Test_unit_struct_array(unittest.TestCase):
 

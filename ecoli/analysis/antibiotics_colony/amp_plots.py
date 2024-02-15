@@ -254,7 +254,7 @@ def make_figures(
 
     hour_variables = {
         "Porosity": ("Porosity", "{:.2f}"),
-        "Max hole area (um^2)": ("Max hole area ($\mathrm{\mu m^2}$)", "{:.1f}"),
+        "Max hole area (um^2)": ("Max hole area ($\\mathrm{\\mu m^2}$)", "{:.1f}"),
         "Extension factor": (
             r"$\frac{\mathrm{Length}}{\mathrm{Resting\ length}}$",
             "{:.1f}",
