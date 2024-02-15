@@ -6,6 +6,7 @@ import numpy as np
 import time
 from typing import Callable
 from unum import Unum
+import warnings
 from scipy.sparse import csr_matrix
 
 from vivarium.core.process import Step
@@ -383,23 +384,27 @@ class MetabolismRedux(Step):
 
             'global_time': {'_default': 0},
             'timestep': {'_default': self.parameters['time_step']},
-
-            'first_update': {
-                '_default': True,
+            'next_update_time': {
+                '_default': self.parameters['time_step'],
                 '_updater': 'set',
-                '_divider': {'divider': 'set_value',
-                    'config': {'value': True}},
-            },
+                '_divider': 'set'},
         }
 
     def update_condition(self, timestep, states):
-        return (states['global_time'] % states['timestep']) == 0
+        """
+        See :py:meth:`~ecoli.processes.partition.Requester.update_condition`.
+        """
+        if states['next_update_time'] <= states['global_time']:
+            if states['next_update_time'] < states['global_time']:
+                warnings.warn(f"{self.name} updated at t="
+                    f"{states['global_time']} instead of t="
+                    f"{states['next_update_time']}. Decrease the "
+                    "timestep for the global clock process for more "
+                    "accurate timekeeping.")
+            return True
+        return False
 
     def next_update(self, timestep, states):
-        # Skip t=0
-        if states['first_update']:
-            return {'first_update': False}
-
         # Initialize indices
         if self.homeostatic_metabolite_idx is None:
             bulk_ids = states['bulk']['id']
@@ -601,26 +606,26 @@ class MetabolismRedux(Step):
                     'base_reaction_fluxes': self.reaction_mapping_matrix.dot(
                         estimated_reaction_fluxes)
                 }
-            }
+            },
+            'next_update_time': states['global_time'] + states['timestep']
         }
 
     def concentrationToCounts(self, concs):
         return np.rint(np.dot(concs, (CONC_UNITS /
             self.counts_to_molar * self.timestep).asNumber())).astype(int)
 
-    def getBiomassAsConcentrations(self, doubling_time, rp_ratio=None):
+    def getBiomassAsConcentrations(self, doubling_time: Unum, 
+                                   rp_ratio: float=None) -> dict[str, Unum]:
         """
         Caches the result of the sim_data function to improve performance since
         function requires computation but won't change for a given doubling_time.
 
         Args:
-            doubling_time (float with time units): doubling time of the cell to
+            doubling_time: doubling time of the cell to
                 get the metabolite concentrations for
 
         Returns:
-            dict {str : float with concentration units}: dictionary with metabolite
-                IDs as keys and concentrations as values
-
+            Mapping from metabolite IDs to concentration targets
         """
 
         # TODO (Cyrus) Repeats code found in processes/metabolism.py Should think of a way to share.
@@ -632,22 +637,20 @@ class MetabolismRedux(Step):
 
         return self._biomass_concentrations[(minutes, rp_ratio)]
 
-    def update_amino_acid_targets(self, counts_to_molar, count_diff,
-        amino_acid_counts):
+    def update_amino_acid_targets(self, counts_to_molar: Unum, 
+        count_diff: dict[str, float], amino_acid_counts: np.ndarray[float]
+        ) -> dict[str, Unum]:
         """
         Finds new amino acid concentration targets based on difference in
-        supply and number of amino acids used in polypeptide_elongation
-
-        Args:
-            counts_to_molar (float with mol/volume units): conversion from
-                counts to molar for the current state of the cell
-
-        Returns:
-            dict {AA name (str): AA conc (float with mol/volume units)}:
-                new concentration targets for each amino acid
-
+        supply and number of amino acids used in polypeptide_elongation. 
         Skips updates to molecules defined in self.aa_targets_not_updated:
         - L-SELENOCYSTEINE: rare AA that led to high variability when updated
+
+        Args:
+            counts_to_molar: conversion from counts to molar
+
+        Returns:
+            ``{AA name (str): new target AA conc (float with mol/volume units)}``
         """
 
         if len(self.aa_targets):

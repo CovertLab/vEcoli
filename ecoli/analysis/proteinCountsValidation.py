@@ -44,8 +44,8 @@ class Plot():
             sim_wisniewski_log,
             c='k', edgecolor='k', alpha=.05
         )
-        ax[0].set_xlabel("Measurement\n$\mathrm{log}_{10}$(protein counts + 1)")
-        ax[0].set_ylabel("Simulation\n$\mathrm{log}_{10}$(protein counts + 1)")
+        ax[0].set_xlabel("Measurement\n$\\mathrm{log}_{10}$(protein counts + 1)")
+        ax[0].set_ylabel("Simulation\n$\\mathrm{log}_{10}$(protein counts + 1)")
         ax[0].set_title('Wiśniewski et al. 2014', pad=22)
         over_30 = val_wisniewski_log>=np.log10(30)
         r_over_30 = pearsonr(
@@ -57,7 +57,7 @@ class Plot():
         ax[0].text(
             x=0.5,
             y=1.1,
-            s="count $\geq$ 30: $R^2$ = %0.3f, n = %i" % (
+            s="count $\\geq$ 30: $R^2$ = %0.3f, n = %i" % (
                 r_over_30**2, over_30.sum()),
             transform=ax[0].transAxes,
             ha='center',
@@ -84,8 +84,8 @@ class Plot():
             sim_schmidt_log,
             c='k', edgecolor='k', alpha=.05
         )
-        ax[1].set_xlabel("Measurement\n$\mathrm{log}_{10}$(protein counts + 1)")
-        ax[1].set_ylabel("Simulation\n$\mathrm{log}_{10}$(protein counts + 1)")
+        ax[1].set_xlabel("Measurement\n$\\mathrm{log}_{10}$(protein counts + 1)")
+        ax[1].set_ylabel("Simulation\n$\\mathrm{log}_{10}$(protein counts + 1)")
         ax[1].set_title('Schmidt et al. 2016', pad=10)
         over_30 = val_schmidt_log>=np.log10(30)
         r_over_30 = pearsonr(
@@ -97,7 +97,7 @@ class Plot():
         ax[1].text(
             x=0.5,
             y=1,
-            s="count $\geq$ 30: $R^2$ = %0.3f, n = %i" % (
+            s="count $\\geq$ 30: $R^2$ = %0.3f, n = %i" % (
                 r_over_30**2, over_30.sum()),
             transform=ax[1].transAxes,
             ha='center',

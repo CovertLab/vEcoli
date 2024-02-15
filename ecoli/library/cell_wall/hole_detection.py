@@ -365,6 +365,7 @@ def test_detect_holes():
             # Save image
             fig.tight_layout()
             fig.savefig(f"out/hole_detection/test_{test_case}[{method_name}].png")
+            plt.close()
 
     print("===============================================")
     print(f"Passed {n_passed}/{2 * len(test_files)} tests.")

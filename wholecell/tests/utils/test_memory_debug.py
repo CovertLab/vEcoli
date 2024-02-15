@@ -32,6 +32,9 @@ from wholecell.utils import memory_debug
 
 PEP442 = sys.version_info[:2] >= (3, 4)
 
+# Silence Sphinx autodoc warning
+unittest.TestCase.__module__ = 'unittest'
+
 
 class MemoryDebugNode(object):
 	def __init__(self, name):

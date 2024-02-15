@@ -563,39 +563,39 @@ def make_snapshots_figure(
 ):
     """
     Args:
-        * **bounds** (:py:class:`tuple`): The dimensions of the
-          environment.
-        * **field_label_size** (:py:class:`float`): Font size of the
-          field label.
-        * **dead_color** (:py:class:`list` of 3 :py:class:`float`s):
-          Color for dead cells in HSV. Defaults to [0, 0, 0], which
-          is black.
-        * **default_font_size** (:py:class:`float`): Font size for
-          titles and axis labels.
-        * **agent_shape** (:py:class:`str`): the shape of the agents.
-          select from **rectangle**, **segment**
-        * **agent_alpha** (:py:class:`float`): Alpha for agent
-          plots.
-        * **colorbar_decimals** (:py:class:`int`): number of decimals in
-          colorbar.
-        * **scale_bar_length** (:py:class:`float`): Length of scale
-          bar.  Defaults to 1 (in units of micrometers). If 0, no
-          bar plotted.
-        * **scale_bar_color** (:py:class:`str`): Color of scale bar
-        * **xlim** (:py:class:`tuple` of :py:class:`float`): Tuple
-           of lower and upper x-axis limits.
-        * **ylim** (:py:class:`tuple` of :py:class:`float`): Tuple
-           of lower and upper y-axis limits.
-        * **min_color** (any valid matplotlib color): Color for
-          minimum field values.
-        * **max_color** (any valid matplotlib color): Color for
-          maximum field values.
-        * **out_dir** (:py:class:`str`): Output directory, which is
-          ``out`` by default.
-        * **filename** (:py:class:`str`): Base name of output file.
-          ``snapshots`` by default.
-        * **figsize** (:py:class:`tuple`): Dimensions of figure in
-          inches (takes precedence over `plot_width`)
+        bounds (:py:class:`tuple`): The dimensions of the
+            environment.
+        field_label_size (:py:class:`float`): Font size of the
+            field label.
+        dead_color (:py:class:`list` of 3 :py:class:`float`):
+            Color for dead cells in HSV. Defaults to [0, 0, 0], which
+            is black.
+        default_font_size (:py:class:`float`): Font size for
+            titles and axis labels.
+        agent_shape (:py:class:`str`): the shape of the agents.
+            select from ``rectangle``, ``segment``
+        agent_alpha (:py:class:`float`): Alpha for agent
+            plots.
+        colorbar_decimals (:py:class:`int`): number of decimals in
+            colorbar.
+        scale_bar_length (:py:class:`float`): Length of scale
+            bar.  Defaults to 1 (in units of micrometers). If 0, no
+            bar plotted.
+        scale_bar_color (:py:class:`str`): Color of scale bar
+        xlim (:py:class:`tuple` of :py:class:`float`): Tuple
+            of lower and upper x-axis limits.
+        ylim (:py:class:`tuple` of :py:class:`float`): Tuple
+            of lower and upper y-axis limits.
+        min_color (any valid matplotlib color): Color for
+            minimum field values.
+        max_color (any valid matplotlib color): Color for
+            maximum field values.
+        out_dir (:py:class:`str`): Output directory, which is
+            ``out`` by default.
+        filename (:py:class:`str`): Base name of output file.
+            ``snapshots`` by default.
+        figsize (:py:class:`tuple`): Dimensions of figure in
+            inches (takes precedence over `plot_width`)
     """
     edge_length_x = bounds[0]
     edge_length_y = bounds[1]

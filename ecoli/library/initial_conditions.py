@@ -5,10 +5,12 @@ Functions to initialize molecule states from sim_data.
 import numpy as np
 from numpy.lib import recfunctions as rfn
 import scipy.sparse
+import unum
+from typing import Any
 
 from ecoli.library.schema import attrs, bulk_name_to_idx, \
     create_unique_indexes, counts
-from ecoli.models.polypeptide_elongation_models import (
+from ecoli.processes.polypeptide_elongation import (
     calculate_trna_charging, REMOVED_FROM_CHARGING, MICROMOLAR_UNITS)
 from wholecell.utils import units
 from wholecell.utils.fitting import (countsFromMassAndExpression,
@@ -1376,47 +1378,51 @@ def initialize_translation(bulk_state, unique_molecules, sim_data,
     bulk_state["count"][ribosome50S_idx] = ribosome50S-n_ribosomes_to_activate
 
 
-def determine_chromosome_state(tau, replichore_length, n_max_replisomes,
-    place_holder, cell_mass, critical_mass, replication_rate):
+def determine_chromosome_state(tau: float, replichore_length: float, 
+    n_max_replisomes: int, place_holder: int, cell_mass: float, 
+    critical_mass: float, replication_rate: float) -> dict[str, dict[str, np.ndarray[int]]]:
     """
     Calculates the attributes of oriC's, replisomes, and chromosome domains on
     the chromosomes at the beginning of the cell cycle.
 
-    Inputs
-    --------
-    - tau: the doubling time of the cell
-    - replichore_length: the amount of DNA to be replicated per fork, usually
-    half of the genome, in base-pairs
-    - n_max_replisomes: the maximum number of replisomes that can be formed
-    given the initial counts of replisome subunits
-    - place_holder: placeholder value for chromosome domains without child
-    domains
-    - cell_mass: total mass of the cell with mass units
-    - critical_mass: mass per oriC before replication is initiated with mass units
-    - replication_rate: rate of nucleotide elongation (in nt/s)
+    Args:
+        tau: the doubling time of the cell (with Unum time unit)
+        replichore_length: the amount of DNA to be replicated per fork, usually
+            half of the genome, in base-pairs (with Unum nucleotide unit)
+        n_max_replisomes: the maximum number of replisomes that can be formed
+            given the initial counts of replisome subunits
+        place_holder: placeholder value for chromosome domains without child
+            domains
+        cell_mass: total mass of the cell with mass units (with Unum mass unit)
+        critical_mass: mass per oriC before replication is initiated 
+            (with Unum mass unit)
+        replication_rate: rate of nucleotide elongation 
+            (with Unum nucleotides per time unit)
 
-    Returns
-    --------
-    oric_state: dictionary of attributes for the oriC molecules with the
-    following keys.
-    - domain_index: a vector of integers indicating which chromosome domain the
-    oriC sequence belongs to.
+    Returns:
+        Three dictionaries, each containing updates to attributes of a unique molecule type.
+        
+        - ``oric_state``: dictionary of the following format::
+            
+            {'domain_index': a vector of integers indicating which chromosome domain the
+                oriC sequence belongs to.}
 
-    replisome_state: dictionary of attributes for the replisome molecules
-    with the following keys.
-    - coordinates: a vector of integers that indicates where the replisomes
-    are located on the chromosome relative to the origin, in base pairs.
-    - right_replichore: a vector of boolean values that indicates whether the
-    replisome is on the right replichore (True) or the left replichore (False).
-    - domain_index: a vector of integers indicating which chromosome domain the
-    replisomes belong to. The index of the "mother" domain of the replication
-    fork is assigned to the replisome.
+        - ``replisome_state``: dictionary of the following format::
+            
+            {'coordinates': a vector of integers that indicates where the replisomes
+                are located on the chromosome relative to the origin in base pairs,
+            'right_replichore': a vector of boolean values that indicates whether the
+                replisome is on the right replichore (True) or the left replichore (False),
+            'domain_index': a vector of integers indicating which chromosome domain the
+                replisomes belong to. The index of the "mother" domain of the replication
+                fork is assigned to the replisome}
 
-    domain_state: dictionary of attributes for the chromosome domains with the
-    following keys.
-    - domain_index: the indexes of the domains.
-    - child_domains: the (n_domain X 2) array of the domain indexes of the two
-    children domains that are connected on the oriC side with the given domain.
+        - ``domain_state``: dictionary of the following format::
+
+            {'domain_index': the indexes of the domains,
+            'child_domains': the (n_domain X 2) array of the domain indexes of the two
+                children domains that are connected on the oriC side with the given domain.}
+
     """
 
     # All inputs must be positive numbers
@@ -1563,17 +1569,20 @@ def calculate_cell_mass(bulk_state, unique_molecules, sim_data):
     return units.fg * cell_mass
 
 
-def initialize_trna_charging(bulk_state, unique_molecules, sim_data, variable_elongation):
+def initialize_trna_charging(
+    bulk_state: np.ndarray, unique_molecules: dict[str, np.ndarray], 
+    sim_data: Any, variable_elongation: bool):
     '''
     Initializes charged tRNA from uncharged tRNA and amino acids
 
-    Inputs:
-        sim_data (SimulationDataEcoli object)
-        states (dict with internal_state objects as values) - internal states of sim
-        variable_elongation (bool) - if True, the max elongation rate is set to be
-            higher in the simulation
+    Args:
+        bulk_state: Structured array with IDs and counts of all bulk molecules
+        unique_molecules: Mapping of unique molecule names to structured 
+            arrays of their current simulation states
+        sim_data: Simulation data loaded from pickle generated by ParCa
+        variable_elongation: Sets max elongation higher if True
 
-    Notes:
+    .. note::
         Does not adjust for mass of amino acids on charged tRNA (~0.01% of cell mass)
     '''
     # Calculate cell volume for concentrations

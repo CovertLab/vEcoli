@@ -83,8 +83,8 @@ class Multibody(Process):
     """Simulates collisions and forces between agent bodies with a multi-body physics engine.
 
     :term:`Ports`:
-    * ``agents``: The store containing all agent sub-compartments. Each agent in
-      this store has values for location, angle, length, width, mass, thrust, and torque.
+        * ``agents``: The store containing all agent sub-compartments. Each agent in
+            this store has values for location, angle, length, width, mass, thrust, and torque.
 
     Arguments:
         initial_parameters(dict): Accepts the following configuration keys:

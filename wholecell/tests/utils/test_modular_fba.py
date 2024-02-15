@@ -4,6 +4,9 @@ import unittest
 
 from wholecell.utils.modular_fba import FluxBalanceAnalysis
 
+# Silence Sphinx autodoc warning
+unittest.TestCase.__module__ = 'unittest'
+
 
 # TODO: test all solvers
 
