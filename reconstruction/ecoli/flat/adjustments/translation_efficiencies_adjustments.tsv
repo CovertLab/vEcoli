@@ -5,4 +5,3 @@
 "EG12298-MONOMER[p]"	5		"fit_sim_data_1.py"	"yibQ, Predicted polysaccharide deacetylase; This RNA is fit for the anaerobic condition viability"
 "ACETYL-COA-ACETYLTRANSFER-MONOMER[c]"	5		"fit_sim_data_1.py"	"atoB; This RNA is fit for the anaerobic condition viability"
 "PGMI-MONOMER[c]"	0.20	"fit_sim_data_1.py"	"Overrepresented in manganese atom counts. Better alignment with ribosome profiling and metal counts per cell."
-"HOMOCYSMET-MONOMER[c]"	3	"fit_sim_data_1.py"	"Main methionine synthase when there's no B12. Better alignment with ribosome profiling and iron atom counts per cell."
