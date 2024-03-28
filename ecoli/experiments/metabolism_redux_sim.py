@@ -108,7 +108,7 @@ def run_ecoli_with_metabolism_redux_classic(
 
 def run_ecoli_with_metabolism_redux_classic(
         filename='metabolism_redux_classic',
-        total_time=1300,
+        total_time=1500,
         divide=True,
         # initial_state_file='wcecoli_t0', # 'met_division_test_state',
         progress_bar=True,
@@ -136,7 +136,7 @@ def run_ecoli_with_metabolism_redux_classic(
     sim.condition = condition
     sim.fixed_media = fixed_media
 
-    for seed in [7, 77, 777, 7777, 77777, 777777, 7777777]:
+    for seed in [i for i in range(1, 17, 1)]:
         sim.seed = seed
 
         sim.build_ecoli()
