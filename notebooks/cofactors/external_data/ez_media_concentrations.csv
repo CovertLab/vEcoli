@@ -1,0 +1,15 @@
+Condition,Element,Concentration (raw),Concentration (µM)
+Minimal,FE,10 µM,10
+Minimal,MN,80 nM,0.08
+Minimal,CO,30.0 nM,0.03
+Minimal,ZN,10 nM,0.01
+Minimal,CU,10 nM,0.01
+Minimal,MO,3 nM,0.003
+Minimal,NI,0 nM,0.000
+Rich,FE,10 µM,10
+Rich,MN,80 nM,0.08
+Rich,CO,30.0 nM,0.03
+Rich,ZN,10 nM,0.01
+Rich,CU,10 nM,0.01
+Rich,MO,3 nM,0.003
+Rich,NI,0 nM,0.000

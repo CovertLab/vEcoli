@@ -1,0 +1,137 @@
+Element,Estimate,Error,Source,Unit,Type,Media
+NA,260000,3000,Takasaki2011,mg/kg,Cell,LB (Likely stationary)
+MG,8510,130,Takasaki2011,mg/kg,Cell,LB (Likely stationary)
+P,102000,4000,Takasaki2011,mg/kg,Cell,LB (Likely stationary)
+S,16800,600,Takasaki2011,mg/kg,Cell,LB (Likely stationary)
+K,22400,700,Takasaki2011,mg/kg,Cell,LB (Likely stationary)
+CA,2220,210,Takasaki2011,mg/kg,Cell,LB (Likely stationary)
+CR,48.1,1.5,Takasaki2011,mg/kg,Cell,LB (Likely stationary)
+MN,44.7,1.2,Takasaki2011,mg/kg,Cell,LB (Likely stationary)
+FE,49100,2000,Takasaki2011,mg/kg,Cell,LB (Likely stationary)
+NI,393,22,Takasaki2011,mg/kg,Cell,LB (Likely stationary)
+CU,31.1,0.9,Takasaki2011,mg/kg,Cell,LB (Likely stationary)
+ZN,468,25,Takasaki2011,mg/kg,Cell,LB (Likely stationary)
+Y,3.8,0.5,Takasaki2011,mg/kg,Cell,LB (Likely stationary)
+BA,720,11,Takasaki2011,mg/kg,Cell,LB (Likely stationary)
+MG,5384.6,-1,Larson2023,ppb,Cell,LB (Soluble fraction)
+FE,1283.2,-1,Larson2023,ppb,Cell,LB (Soluble fraction)
+CU,5.29,-1,Larson2023,ppb,Cell,LB (Soluble fraction)
+ZN,119.2,-1,Larson2023,ppb,Cell,LB (Soluble fraction)
+MG,1029.5,-1,Larson2023,ppb,Media,LB
+FE,178.5,-1,Larson2023,ppb,Media,LB
+CU,5.966,-1,Larson2023,ppb,Media,LB
+ZN,1227.7,-1,Larson2023,ppb,Media,LB
+CU,1.084,0.234,CasanovaHampton2021,ng/mg,Cell,LB
+FE,33.01,4.30,CasanovaHampton2021,ng/mg,Cell,LB
+ZN,8.272,2.80,CasanovaHampton2021,ng/mg,Cell,LB
+MN,0.797,1.60,CasanovaHampton2021,ng/mg,Cell,LB
+MG,6310,240,Umemura2017,µg/L,Media,LB
+P,150000,4000,Umemura2017,µg/L,Media,LB
+S,103000,4000,Umemura2017,µg/L,Media,LB
+K,739000,41000,Umemura2017,µg/L,Media,LB
+CA,8030,340,Umemura2017,µg/L,Media,LB
+SC,0.085,0.014,Umemura2017,µg/L,Media,LB
+TI,13.8,5.3,Umemura2017,µg/L,Media,LB
+V,79.7,4.5,Umemura2017,µg/L,Media,LB
+CR,4.58,0.11,Umemura2017,µg/L,Media,LB
+MN,18.4,1,Umemura2017,µg/L,Media,LB
+FE,340,30,Umemura2017,µg/L,Media,LB
+CO,11.9,0.5,Umemura2017,µg/L,Media,LB
+NI,3.9,0.3,Umemura2017,µg/L,Media,LB
+CU,15.3,0.2,Umemura2017,µg/L,Media,LB
+ZN,1080,20,Umemura2017,µg/L,Media,LB
+RB,183,10,Umemura2017,µg/L,Media,LB
+SR,42.3,1.9,Umemura2017,µg/L,Media,LB
+Y,0.138,0.014,Umemura2017,µg/L,Media,LB
+MO,5.62,0.29,Umemura2017,µg/L,Media,LB
+CD,0.169,0.025,Umemura2017,µg/L,Media,LB
+SB,0.268,0.052,Umemura2017,µg/L,Media,LB
+CS,1.27,0.06,Umemura2017,µg/L,Media,LB
+BA,10.7,1.1,Umemura2017,µg/L,Media,LB
+LA,0.151,0.012,Umemura2017,µg/L,Media,LB
+CE,0.259,0.074,Umemura2017,µg/L,Media,LB
+PR,0.0297,0.0034,Umemura2017,µg/L,Media,LB
+MG,24100,250,Umemura2017,µg/L,Media,M9
+P,1730000,20000,Umemura2017,µg/L,Media,M9
+S,30100,200,Umemura2017,µg/L,Media,M9
+K,883000,6100,Umemura2017,µg/L,Media,M9
+CA,4050,80,Umemura2017,µg/L,Media,M9
+SC,0,0.02,Umemura2017,µg/L,Media,M9
+TI,2.74,0.17,Umemura2017,µg/L,Media,M9
+V,0,0.04,Umemura2017,µg/L,Media,M9
+CR,2.11,0.16,Umemura2017,µg/L,Media,M9
+MN,2.65,0.09,Umemura2017,µg/L,Media,M9
+FE,1500,110,Umemura2017,µg/L,Media,M9
+CO,0.08,0.01,Umemura2017,µg/L,Media,M9
+NI,0,0.8,Umemura2017,µg/L,Media,M9
+CU,0,0.2,Umemura2017,µg/L,Media,M9
+ZN,9.7,1.6,Umemura2017,µg/L,Media,M9
+RB,46.6,0.5,Umemura2017,µg/L,Media,M9
+SR,4.6,0.1,Umemura2017,µg/L,Media,M9
+Y,0.029,0.0003,Umemura2017,µg/L,Media,M9
+MO,1.2,0.01,Umemura2017,µg/L,Media,M9
+CD,0.079,0.004,Umemura2017,µg/L,Media,M9
+SB,0.02,0.003,Umemura2017,µg/L,Media,M9
+CS,0.0035,0.0013,Umemura2017,µg/L,Media,M9
+BA,8.98,0.17,Umemura2017,µg/L,Media,M9
+LA,0,0.002,Umemura2017,µg/L,Media,M9
+CE,0.01,0.0034,Umemura2017,µg/L,Media,M9
+PR,0.001,0.0006,Umemura2017,µg/L,Media,M9
+MG,75000000,-1,Umemura2017,Atoms/cell,Cell,LB
+P,420000000,-1,Umemura2017,Atoms/cell,Cell,LB
+S,170000000,-1,Umemura2017,Atoms/cell,Cell,LB
+K,260000000,-1,Umemura2017,Atoms/cell,Cell,LB
+CA,6200000,-1,Umemura2017,Atoms/cell,Cell,LB
+SC,420,-1,Umemura2017,Atoms/cell,Cell,LB
+TI,3900,-1,Umemura2017,Atoms/cell,Cell,LB
+V,3200,-1,Umemura2017,Atoms/cell,Cell,LB
+CR,6000,-1,Umemura2017,Atoms/cell,Cell,LB
+MN,190000,-1,Umemura2017,Atoms/cell,Cell,LB
+FE,3300000,-1,Umemura2017,Atoms/cell,Cell,LB
+CO,5500,-1,Umemura2017,Atoms/cell,Cell,LB
+NI,13000,-1,Umemura2017,Atoms/cell,Cell,LB
+CU,60000,-1,Umemura2017,Atoms/cell,Cell,LB
+ZN,650000,-1,Umemura2017,Atoms/cell,Cell,LB
+SE,0,-1,Umemura2017,Atoms/cell,Cell,LB
+RB,31000,-1,Umemura2017,Atoms/cell,Cell,LB
+SR,11000,-1,Umemura2017,Atoms/cell,Cell,LB
+Y,850,-1,Umemura2017,Atoms/cell,Cell,LB
+ZR,0,-1,Umemura2017,Atoms/cell,Cell,LB
+MO,30000,-1,Umemura2017,Atoms/cell,Cell,LB
+PD,36,-1,Umemura2017,Atoms/cell,Cell,LB
+AG,7,-1,Umemura2017,Atoms/cell,Cell,LB
+CD,270,-1,Umemura2017,Atoms/cell,Cell,LB
+SN,30,-1,Umemura2017,Atoms/cell,Cell,LB
+SB,9,-1,Umemura2017,Atoms/cell,Cell,LB
+CS,90,-1,Umemura2017,Atoms/cell,Cell,LB
+BA,4400,-1,Umemura2017,Atoms/cell,Cell,LB
+LA,600,-1,Umemura2017,Atoms/cell,Cell,LB
+MG,110000000,-1,Umemura2017,Atoms/cell,Cell,M9
+P,560000000,-1,Umemura2017,Atoms/cell,Cell,M9
+S,150000000,-1,Umemura2017,Atoms/cell,Cell,M9
+K,420000000,-1,Umemura2017,Atoms/cell,Cell,M9
+CA,3800000,-1,Umemura2017,Atoms/cell,Cell,M9
+SC,260,-1,Umemura2017,Atoms/cell,Cell,M9
+TI,0,-1,Umemura2017,Atoms/cell,Cell,M9
+V,0,-1,Umemura2017,Atoms/cell,Cell,M9
+CR,4600,-1,Umemura2017,Atoms/cell,Cell,M9
+MN,44000,-1,Umemura2017,Atoms/cell,Cell,M9
+FE,1200000,-1,Umemura2017,Atoms/cell,Cell,M9
+CO,2200,-1,Umemura2017,Atoms/cell,Cell,M9
+NI,16000,-1,Umemura2017,Atoms/cell,Cell,M9
+CU,70000,-1,Umemura2017,Atoms/cell,Cell,M9
+ZN,500000,-1,Umemura2017,Atoms/cell,Cell,M9
+SE,0,-1,Umemura2017,Atoms/cell,Cell,M9
+RB,2400,-1,Umemura2017,Atoms/cell,Cell,M9
+SR,2400,-1,Umemura2017,Atoms/cell,Cell,M9
+Y,280,-1,Umemura2017,Atoms/cell,Cell,M9
+ZR,0,-1,Umemura2017,Atoms/cell,Cell,M9
+MO,13000,-1,Umemura2017,Atoms/cell,Cell,M9
+PD,0,-1,Umemura2017,Atoms/cell,Cell,M9
+AG,0,-1,Umemura2017,Atoms/cell,Cell,M9
+CD,800,-1,Umemura2017,Atoms/cell,Cell,M9
+SN,0,-1,Umemura2017,Atoms/cell,Cell,M9
+SB,0,-1,Umemura2017,Atoms/cell,Cell,M9
+CS,0,-1,Umemura2017,Atoms/cell,Cell,M9
+BA,5000,-1,Umemura2017,Atoms/cell,Cell,M9
+LA,320,-1,Umemura2017,Atoms/cell,Cell,M9
