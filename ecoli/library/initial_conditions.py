@@ -5,7 +5,6 @@ Functions to initialize molecule states from sim_data.
 import numpy as np
 from numpy.lib import recfunctions as rfn
 import scipy.sparse
-import unum
 from typing import Any
 
 from ecoli.library.schema import attrs, bulk_name_to_idx, \
@@ -815,7 +814,7 @@ def initialize_transcription(bulk_state, unique_molecules, sim_data,
     # Construct matrix that maps promoters to transcription units
     TU_to_promoter = scipy.sparse.csr_matrix(
         (np.ones(n_promoters), (TU_index, np.arange(n_promoters))),
-        shape=(n_TUs, n_promoters))
+        shape=(n_TUs, n_promoters), dtype=np.int8)
 
     # Synthesis probabilities for different categories of genes
     rna_synth_prob_fractions = sim_data.process.transcription.rnaSynthProbFraction
