@@ -1,37 +1,37 @@
 from vivarium.core.registry import (
     divider_registry,
+    emitter_registry,
     serializer_registry,
-    emitter_registry
 )
+
+from ecoli.library.ch_emitter import CHEmitter
 from ecoli.library.schema import (
     divide_binomial,
+    divide_bulk,
     divide_by_domain,
-    divide_RNAs_by_domain,
-    empty_dict_divider,
     divide_ribosomes_by_RNA,
+    divide_RNAs_by_domain,
     divide_set_none,
-    divide_bulk
-)
-from ecoli.library.updaters import (
-    inverse_updater_registry,
-    inverse_update_accumulate,
-    inverse_update_set,
-    inverse_update_null,
-    inverse_update_merge,
-    inverse_update_nonnegative_accumulate,
-    inverse_update_bulk_numpy,
-    inverse_update_unique_numpy
+    empty_dict_divider,
 )
 from ecoli.library.serialize import (
-    UnumSerializer, ParameterSerializer,
-    NumpyRandomStateSerializer, MethodSerializer)
-from ecoli.library.pgsql_emitter import PostgresEmitter
-from ecoli.library.asyncpg_emitter import AsyncpgMPEmitter
-from ecoli.library.pgtables_emitter import PgtablesEmitter
+    MethodSerializer,
+    NumpyRandomStateSerializer,
+    ParameterSerializer,
+    UnumSerializer,
+)
+from ecoli.library.updaters import (
+    inverse_update_accumulate,
+    inverse_update_bulk_numpy,
+    inverse_update_merge,
+    inverse_update_nonnegative_accumulate,
+    inverse_update_null,
+    inverse_update_set,
+    inverse_update_unique_numpy,
+    inverse_updater_registry,
+)
 
-emitter_registry.register('postgres', PostgresEmitter)
-emitter_registry.register('asyncpg_mp', AsyncpgMPEmitter)
-emitter_registry.register('pgtables', PgtablesEmitter)
+emitter_registry.register('clickhouse', CHEmitter)
 
 # register :term:`updaters`
 inverse_updater_registry.register(
