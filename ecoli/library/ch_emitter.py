@@ -1,6 +1,4 @@
 import atexit
-import csv
-import os
 import subprocess
 from concurrent.futures import ProcessPoolExecutor
 from typing import Any, Mapping
@@ -12,8 +10,7 @@ from vivarium.core.emitter import Emitter
 from vivarium.core.serialize import make_fallback_serializer_function
 
 CLIENT_SETTINGS = {
-    'allow_experimental_object_type': 1,
-    'input_format_null_as_default': 1
+    'allow_experimental_object_type': 1
 }
 
 
@@ -73,26 +70,6 @@ def add_new_fields(conn_args: dict[str, Any],
     return curr_cols[:, 0].tolist()
 
 
-def insert_data(emit_data: dict[str, Any],
-                column_names: list[str],
-                experiment_id: str):
-    """
-    Called by :py:func:`~.executor_proc` to insert data.
-
-    Args:
-        conn_args: Keyword arguments for :py:func:`asyncpg.connect`
-        cell_id: Unique identifier for data emitted by one simulated cell
-        inserts: Tuples ``(table_id, values, columns)``
-    """
-    write_header = False
-    if not os.path.isfile(f'{experiment_id}_temp.tsv'):
-        write_header = True
-    with open(f'{experiment_id}_temp.tsv', 'a+', newline='') as f:
-        tsv_writer = csv.writer(f, delimiter='\t', lineterminator='\n')
-        if write_header:
-            tsv_writer.writerow(column_names)
-        tsv_writer.writerow((emit_data.get(k, r'\N') for k in column_names))
-
 _FLAG_FIRST = object()
 
 def flatten_dict(d: dict):
@@ -119,10 +96,9 @@ def flatten_dict(d: dict):
     return dict(results)
 
 
-class ChEmitter(Emitter):
+class CHEmitter(Emitter):
     """
-    Emit data to a ClickHouse database. Creates a separate OS thread
-    to handle the insert operations.
+    Emit data to a ClickHouse database.
     """
 
     def __init__(self, config: dict[str, Any]) -> None:
@@ -147,17 +123,17 @@ class ChEmitter(Emitter):
         self.executor = ProcessPoolExecutor(1)
         self.curr_fields = []
         self.fallback_serializer = make_fallback_serializer_function()
+        self.temp_file = open(f'{self.experiment_id}_temp.csv', 'a+', newline='')
         atexit.register(self._push_to_db)
 
     def _push_to_db(self):
-        if len(self.curr_fields) == 0:
-            return
-        subprocess.run(['zstd', f'{self.experiment_id}_temp.tsv', '-o',
+        self.temp_file.close()
+        subprocess.run(['zstd', f'{self.experiment_id}_temp.csv', '-o',
             f'{self.experiment_id}_temp.gz', '--rm', '-f'], check=True)
         client = clickhouse_connect.get_client(
             **self.connection_args, settings=CLIENT_SETTINGS)
         insert_file(client, 'history', f'{self.experiment_id}_temp.gz',
-            'TSVWithNames', settings=CLIENT_SETTINGS, compression='zstd')
+            'JSONEachRow', settings=CLIENT_SETTINGS, compression='zstd')
         subprocess.run(['rm', f'{self.experiment_id}_temp.gz'], check=True)
 
     def emit(self, data: dict[str, Any]):
@@ -192,8 +168,8 @@ class ChEmitter(Emitter):
             agent_data = flatten_dict(agent_data)
             new_cols = set(agent_data) - set(self.curr_fields)
             if len(new_cols) > 0:
-                self._push_to_db()
                 self.curr_fields = add_new_fields(self.connection_args,
                     {k: agent_data[k] for k in new_cols}, 'history')
-            self.executor.submit(insert_data,
-                agent_data, self.curr_fields, self.experiment_id)
+            json_str = orjson.dumps(agent_data).decode('utf-8')
+            self.temp_file.write(json_str)
+            self.temp_file.write('\n')
