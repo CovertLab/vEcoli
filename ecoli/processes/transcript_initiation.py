@@ -435,7 +435,7 @@ class TranscriptInitiation(PartitionedProcess):
                 },
                 'rnap_data': {
                     'did_initialize': 0,
-                    'rna_init_event': np.zeros(self.n_TUs),
+                    'rna_init_event': np.zeros(self.n_TUs, dtype=np.int64),
                 }
             },
             'active_RNAPs': {},
@@ -456,7 +456,7 @@ class TranscriptInitiation(PartitionedProcess):
         # Construct matrix that maps promoters to transcription units
         TU_to_promoter = scipy.sparse.csr_matrix(
             (np.ones(n_promoters), (TU_index, np.arange(n_promoters))),
-            shape=(self.n_TUs, n_promoters))
+            shape=(self.n_TUs, n_promoters), dtype=np.int8)
 
         # Compute target synthesis probabilities of each transcription unit
         target_TU_synth_probs = TU_to_promoter.dot(self.promoter_init_probs)
@@ -560,7 +560,7 @@ class TranscriptInitiation(PartitionedProcess):
 
         update['listeners']['rnap_data'] = {
             'did_initialize': n_RNAPs_to_activate,
-            'rna_init_event': rna_init_event}
+            'rna_init_event': rna_init_event.astype(np.int64)}
         
         update['listeners']['rna_synth_prob']['total_rna_init'
             ] = n_RNAPs_to_activate

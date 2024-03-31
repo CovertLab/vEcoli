@@ -123,7 +123,7 @@ class CHEmitter(Emitter):
         self.executor = ProcessPoolExecutor(1)
         self.curr_fields = []
         self.fallback_serializer = make_fallback_serializer_function()
-        self.temp_file = open(f'{self.experiment_id}_temp.csv', 'a+', newline='')
+        self.temp_file = open(f'{self.experiment_id}_temp.csv', 'ab+', newline='')
         atexit.register(self._push_to_db)
 
     def _push_to_db(self):
@@ -170,6 +170,6 @@ class CHEmitter(Emitter):
             if len(new_cols) > 0:
                 self.curr_fields = add_new_fields(self.connection_args,
                     {k: agent_data[k] for k in new_cols}, 'history')
-            json_str = orjson.dumps(agent_data).decode('utf-8')
+            json_str = orjson.dumps(agent_data)
             self.temp_file.write(json_str)
-            self.temp_file.write('\n')
+            self.temp_file.write('\n'.encode('utf-8'))
