@@ -33,23 +33,24 @@ def get_datasets(outdir: Union[str, pathlib.Path]
     Returns:
         Tuple ``(configuration dataset, history dataset)``.
     """
+    filesystem, outdir = fs.FileSystem.from_uri(outdir)
     history = ds.dataset(os.path.join(outdir, 'history'),
-                         partitioning='hive')
+                         partitioning='hive', filesystem=filesystem)
     cell_dirs = set(os.path.dirname(f) for f in history.files)
     history_schema = pyarrow.unify_schemas((pq.read_schema(
-        os.path.join(f, '_common_metadata')) for f in cell_dirs),
-        promote_options='permissive')
+        os.path.join(f, '_common_metadata'), filesystem=filesystem)
+        for f in cell_dirs), promote_options='permissive')
     history_schema = pyarrow.unify_schemas((history.schema, history_schema))
     history = ds.dataset(os.path.join(outdir, 'history'), history_schema,
-                         partitioning='hive')
+                         partitioning='hive', filesystem=filesystem)
     config = ds.dataset(os.path.join(outdir, 'configuration'),
-                        partitioning='hive')
+                        partitioning='hive', filesystem=filesystem)
     config_schema = pyarrow.unify_schemas(
-        (pq.read_schema(f) for f in config.files),
+        (pq.read_schema(f, filesystem=filesystem) for f in config.files),
         promote_options='permissive')
     config_schema = pyarrow.unify_schemas((config.schema, config_schema))
     config = ds.dataset(os.path.join(outdir, 'configuration'), config_schema,
-                        partitioning='hive')
+                        partitioning='hive', filesystem=filesystem)
     return config, history
 
 
@@ -163,11 +164,11 @@ class ParquetEmitter(Emitter):
         """
         write_parquet(self.temp_file, str(self.history_outdir /
             f'{self.batched_emits}.parquet'), self.filesystem, self.encodings)
-        history = ds.dataset(self.history_outdir)
+        history = ds.dataset(self.history_outdir, filesystem=self.filesystem)
         history_schema = pyarrow.unify_schemas((
             pq.read_schema(f) for f in history.files))
-        pq.write_metadata(history_schema, self.history_outdir /
-            '_common_metadata')
+        pq.write_metadata(history_schema, str(self.history_outdir /
+            '_common_metadata'), filesystem=self.filesystem)
         self.temp_file.close()
 
     def emit(self, data: dict[str, Any]):
