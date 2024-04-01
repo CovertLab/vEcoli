@@ -123,7 +123,7 @@ class CHEmitter(Emitter):
         self.executor = ProcessPoolExecutor(1)
         self.curr_fields = []
         self.fallback_serializer = make_fallback_serializer_function()
-        self.temp_file = open(f'{self.experiment_id}_temp.csv', 'ab+', newline='')
+        self.temp_file = open(f'{self.experiment_id}_temp.csv', 'ab+')
         atexit.register(self._push_to_db)
 
     def _push_to_db(self):
