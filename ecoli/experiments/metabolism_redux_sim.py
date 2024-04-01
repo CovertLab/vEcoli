@@ -136,7 +136,7 @@ def run_ecoli_with_metabolism_redux_classic(
     sim.condition = condition
     sim.fixed_media = fixed_media
 
-    for seed in [i for i in range(10, 19, 1)]:
+    for seed in [i for i in range(20, 29, 1)]:
         sim.seed = seed
 
         sim.build_ecoli()
