@@ -20,14 +20,16 @@ def get_datasets(outdir):
                          partitioning='hive')
     cell_dirs = set(os.path.dirname(f) for f in history.files)
     history_schema = pyarrow.unify_schemas((pq.read_schema(
-        os.path.join(f, '_common_metadata')) for f in cell_dirs))
+        os.path.join(f, '_common_metadata')) for f in cell_dirs),
+        promote_options='permissive')
     history_schema = pyarrow.unify_schemas((history.schema, history_schema))
     history = ds.dataset(os.path.join(outdir, 'history'), history_schema,
                          partitioning='hive')
     config = ds.dataset(os.path.join(outdir, 'configuration'),
                         partitioning='hive')
     config_schema = pyarrow.unify_schemas(
-        (pq.read_schema(f) for f in config.files))
+        (pq.read_schema(f) for f in config.files),
+        promote_options='permissive')
     config_schema = pyarrow.unify_schemas((config.schema, config_schema))
     config = ds.dataset(os.path.join(outdir, 'configuration'), config_schema,
                         partitioning='hive')
@@ -53,7 +55,7 @@ def write_parquet(tempfile, outfile, encodings=None):
     use_dictionary = encodings is None
     sorting_columns = pq.SortingColumn.from_ordering(
         table.schema, [('time', 'ascending')])
-    pq.write_to_dataset(table, outfile, PARTITION_KEYS,
+    pq.write_table(table, outfile,
         use_dictionary=use_dictionary, column_encoding=encodings,
         compression='zstd', sorting_columns=sorting_columns)
     tempfile.close()
@@ -104,6 +106,9 @@ class PQEmitter(Emitter):
         outdir = pathlib.Path(config.get('outdir', 'out'))
         self.history_outdir = outdir / 'history'
         self.config_outdir = outdir / 'configuration'
+        for k, v in self.partitioning_keys.items():
+            self.history_outdir = self.history_outdir / f'{k}={v}'
+            self.config_outdir = self.config_outdir / f'{k}={v}'
         os.makedirs(self.history_outdir, exist_ok=True)
         os.makedirs(self.config_outdir, exist_ok=True)
         self.fallback_serializer = make_fallback_serializer_function()
@@ -115,9 +120,9 @@ class PQEmitter(Emitter):
         atexit.register(self._write_parquet)
 
     def _write_parquet(self):
-        write_parquet(self.temp_file, self.history_outdir, self.encodings)
-        for k, v in self.partitioning_keys.items():
-            self.history_outdir = self.history_outdir / f'{k}={v}'
+        write_parquet(self.temp_file,
+            self.history_outdir / f'{self.batched_emits}.parquet',
+            self.encodings)
         history = ds.dataset(self.history_outdir)
         history_schema = pyarrow.unify_schemas((
             pq.read_schema(f) for f in history.files))
@@ -133,15 +138,8 @@ class PQEmitter(Emitter):
         if data['table'] == 'configuration':
             metadata = data['data'].pop('metadata')
             data['data'] = {**metadata, **data['data']}
-            data['experiment_id'] = data['data'].pop('experiment_id')
-            data['agent_id'] = data['data'].pop('agent_id')
-            data['seed'] = data['data'].pop('seed')
-            data['generation'] = len(data['agent_id'])
             data['time'] = 0.0
-            # TODO: These keys need to be added
-            data['variant'] = 0
             data = flatten_dict(data)
-            data.update(self.partitioning_keys)
             self.temp_file.write(orjson.dumps(
                 data, option=orjson.OPT_SERIALIZE_NUMPY,
                 default=self.fallback_serializer))
@@ -150,15 +148,14 @@ class PQEmitter(Emitter):
                 encoding = get_encoding(v)
                 if encoding is not None:
                     encodings[k] = encoding
-            self.executor.submit(write_parquet, self.temp_file,
-                self.config_outdir, encodings)
+            write_parquet(self.temp_file,
+                self.config_outdir / 'config.parquet', encodings)
             self.temp_file = tempfile.TemporaryFile()
             return
         assert len(data['data']['agents']) == 1
         for agent_data in data['data']['agents'].values():
             agent_data['time'] = float(data['data']['time'])
             agent_data = flatten_dict(agent_data)
-            agent_data.update(self.partitioning_keys)
             new_keys = set(agent_data) - self.accounted_fields
             if len(new_keys) > 0:
                 for k in new_keys:
@@ -172,5 +169,6 @@ class PQEmitter(Emitter):
         self.batched_emits += 1
         if self.batched_emits % self.emits_to_batch == 0:
             self.executor.submit(write_parquet, self.temp_file,
-                self.history_outdir, self.encodings)
+                self.history_outdir / f'{self.batched_emits}.parquet',
+                self.encodings)
             self.temp_file = tempfile.TemporaryFile()
