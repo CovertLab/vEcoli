@@ -5,6 +5,7 @@ from vivarium.core.registry import (
 )
 
 from ecoli.library.ch_emitter import CHEmitter
+from ecoli.library.pgtables_emitter import PgtablesEmitter
 from ecoli.library.schema import (
     divide_binomial,
     divide_bulk,
@@ -32,6 +33,7 @@ from ecoli.library.updaters import (
 )
 
 emitter_registry.register('clickhouse', CHEmitter)
+emitter_registry.register('pgtables', PgtablesEmitter)
 
 # register :term:`updaters`
 inverse_updater_registry.register(
