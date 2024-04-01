@@ -86,8 +86,6 @@ def push_to_db(temp_file: BinaryIO, client: Any):
     insert_file(client, 'history', f'{temp_file.name}.gz',
         'JSONEachRow', compression='zstd')
     pathlib.Path(f'{temp_file.name}.gz').unlink()
-    temp_file.close()
-
 
 class ClickHouseEmitter(Emitter):
     """
@@ -120,7 +118,7 @@ class ClickHouseEmitter(Emitter):
         self.curr_fields = []
         self.fallback_serializer = make_fallback_serializer_function()
         # Write emits to temp file and send to ClickHouse in batches
-        self.temp_file = tempfile.NamedTemporaryFile(
+        self.temp_file = tempfile.NamedTemporaryFile(delete=False,
             dir=self.outdir, prefix=self.experiment_id)
         self.batched_emits = 0
         self.emits_to_batch = config.get('emits_to_batch', 50)
@@ -130,11 +128,7 @@ class ClickHouseEmitter(Emitter):
         """
         Compresses and sends final batch of emits to ClickHouse DB at sim end.
         """
-        subprocess.run(['zstd', self.temp_file.name, '-o',
-        f'{self.temp_file.name}.gz', '--rm', '-f'], check=True)
-        insert_file(self.client, 'history', f'{self.temp_file.name}.gz',
-            'JSONEachRow', compression='zstd')
-        pathlib.Path(f'{self.temp_file.name}.gz').unlink()
+        push_to_db(self.temp_file, self.client)
 
     def emit(self, data: dict[str, Any]):
         """
@@ -180,5 +174,5 @@ class ClickHouseEmitter(Emitter):
         self.batched_emits += 1
         if self.batched_emits % self.emits_to_batch == 0:
             self.executor.submit(push_to_db, self.temp_file, self.client)
-            self.temp_file = tempfile.NamedTemporaryFile(
-            dir=self.outdir, prefix=self.experiment_id)
+            self.temp_file = tempfile.NamedTemporaryFile(delete=False,
+                dir=self.outdir, prefix=self.experiment_id)
