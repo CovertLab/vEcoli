@@ -43,8 +43,11 @@ def write_parquet(tempfile, outfile, encodings=None):
     table = pj.read_json(tempfile,
         read_options=pj.ReadOptions(block_size=int(1e7)))
     use_dictionary = encodings is None
+    sorting_columns = pq.SortingColumn.from_ordering(
+        table.schema, [('time', 'ascending')])
     pq.write_table(table, outfile, use_dictionary=use_dictionary, 
-                   column_encoding=encodings, compression='zstd')
+                   column_encoding=encodings, compression='zstd',
+                   sorting_columns=sorting_columns)
     tempfile.close()
 
 _FLAG_FIRST = object()
@@ -129,6 +132,7 @@ class PQEmitter(Emitter):
             data['agent_id'] = data['data'].pop('agent_id')
             data['seed'] = data['data'].pop('seed')
             data['generation'] = len(data['agent_id'])
+            data['time'] = 0.0
             # TODO: These keys need to be added
             data['variant'] = 0
             data = flatten_dict(data)
