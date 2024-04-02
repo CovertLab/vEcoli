@@ -82,9 +82,10 @@ def push_to_db(temp_file: BinaryIO, client: Any):
     Compresses and sends newline-delimited JSONs to ClickHouse DB.
     """
     subprocess.run(['zstd', temp_file.name, '-o',
-        f'{temp_file.name}.gz', '--rm', '-f'], check=True)
+        f'{temp_file.name}.gz', '-f', '-T0'], check=True)
     insert_file(client, 'history', f'{temp_file.name}.gz',
         'JSONEachRow', compression='zstd')
+    temp_file.close()
     pathlib.Path(f'{temp_file.name}.gz').unlink()
 
 class ClickHouseEmitter(Emitter):
@@ -97,11 +98,10 @@ class ClickHouseEmitter(Emitter):
         Setup connection to database and configure emitter.
 
         Args:
-            config: Must include ``experiment_id`` key. Can include keys for
-                ``host``, ``port``, ``user``, ``database``, and ``password``
-                to use as kwargs for :py:func:`clickhouse_connect.get_client`.
-                Can also specify number of emits to send in each batch with
-                ``emits_to_batch``.
+            config: Can include keys for ``host``, ``port``, ``user``,
+                ``database``, and ``password`` (kwargs for
+                :py:func:`clickhouse_connect.get_client`). Can also specify
+                number of emits to send in each batch with ``emits_to_batch``.
         """
         self.outdir = pathlib.Path(config.get('outdir', 'out'))
         self.experiment_id = config.get('experiment_id')
@@ -118,7 +118,8 @@ class ClickHouseEmitter(Emitter):
         self.curr_fields = []
         self.fallback_serializer = make_fallback_serializer_function()
         # Write emits to temp file and send to ClickHouse in batches
-        self.temp_file = tempfile.NamedTemporaryFile(delete=False,
+        # Use a named temporary file so can call zstd on it separately
+        self.temp_file = tempfile.NamedTemporaryFile(
             dir=self.outdir, prefix=self.experiment_id)
         self.batched_emits = 0
         self.emits_to_batch = config.get('emits_to_batch', 50)
@@ -126,7 +127,7 @@ class ClickHouseEmitter(Emitter):
     
     def _shutdown(self):
         """
-        Compresses and sends final batch of emits to ClickHouse DB at sim end.
+        Sends final batch of emits to ClickHouse DB at sim end.
         """
         push_to_db(self.temp_file, self.client)
 
@@ -145,6 +146,8 @@ class ClickHouseEmitter(Emitter):
             metadata = data['data'].pop('metadata')
             data['data'] = {**metadata, **data['data']}
             agent_id = data['data'].get('agent_id', '0')
+            # Ensure that every emit has the following fields
+            # for indexing and fast filtering
             self.index_keys = {
                 'experiment_id': data['data'].get('experiment_id', 'default'),
                 'agent_id': agent_id,
@@ -159,6 +162,8 @@ class ClickHouseEmitter(Emitter):
             data = [data[k] for k in curr_config_fields]
             self.client.insert('configuration', [data])
             return
+        # Currently we only support running a single cell per Engine
+        # Use EcoliEngineProcess for colony simulations (Engine per cell)
         assert len(data['data']['agents']) == 1
         for agent_data in data['data']['agents'].values():
             agent_data.update(self.index_keys)
@@ -166,6 +171,8 @@ class ClickHouseEmitter(Emitter):
             agent_data = flatten_dict(agent_data)
             new_cols = set(agent_data) - set(self.curr_fields)
             if len(new_cols) > 0:
+                # If new fields are not frequently added to schema,
+                # we do not have to add new columns often
                 self.curr_fields = add_new_fields(self.client,
                     {k: agent_data[k] for k in new_cols}, 'history')
             json_str = orjson.dumps(agent_data)
@@ -174,5 +181,5 @@ class ClickHouseEmitter(Emitter):
         self.batched_emits += 1
         if self.batched_emits % self.emits_to_batch == 0:
             self.executor.submit(push_to_db, self.temp_file, self.client)
-            self.temp_file = tempfile.NamedTemporaryFile(delete=False,
+            self.temp_file = tempfile.NamedTemporaryFile(
                 dir=self.outdir, prefix=self.experiment_id)
