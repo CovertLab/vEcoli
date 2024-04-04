@@ -1,6 +1,8 @@
+import argparse
 import atexit
 import os
 import pathlib
+import sys
 import tempfile
 from typing import Any, Mapping, Union
 
@@ -46,6 +48,36 @@ USE_UINT32 = {
     'listeners__rna_counts__full_mRNA_counts',
     'listeners__fba_results__catalyst_counts'
 }
+
+
+def json_to_parquet(ndjson, schema_file, other):
+    with open(other, 'rb') as f:
+        out_uri = f.readline().split(b'\n')[0].decode('utf-8')
+        encodings = orjson.loads(f.readline())
+    schema = pq.read_schema(schema_file)
+    filesystem, outdir = fs.FileSystem.from_uri(out_uri)
+    parse_options = pj.ParseOptions(explicit_schema=schema)
+    read_options = pj.ReadOptions(use_threads=False, block_size=int(1e7))
+    filesystem.create_dir(outdir)
+    writer = pq.ParquetWriter(os.path.join(outdir, 'data.parquet'), 
+        schema, use_dictionary=False, compression='zstd',
+        column_encoding=encodings, filesystem=filesystem)
+    with open(ndjson, 'rb') as f:
+        temp_file = tempfile.NamedTemporaryFile()
+        for i, line in enumerate(f):
+            temp_file.write(line)
+            temp_file.write('\n'.encode('utf-8'))
+            if i % 400 == 0 and i != 0:
+                t = pj.read_json(temp_file.name, read_options=read_options,
+                                 parse_options=parse_options)
+                writer.write_table(t)
+                temp_file.close()
+                del t
+                temp_file = tempfile.NamedTemporaryFile()
+        t = pj.read_json(temp_file.name, read_options=read_options,
+                         parse_options=parse_options)
+        writer.write_table(t)
+        temp_file.close()
 
 
 def get_datasets(out_dir: Union[str, pathlib.Path]=None,
@@ -215,22 +247,13 @@ class ParquetEmitter(Emitter):
         # Keep a cache of field encodings and fields encountered
         self.encodings = {}
         self.schema = pyarrow.schema([])
-        # Convert all remaining emits upon program shutdown
-        atexit.register(self._shutdown)
-
-    def _shutdown(self):
-        """
-        Called upon program shutdown to ensure all remaining emits are
-        written to a Parquet file. Also unifies all schemas written
-        during this experiment into a ``_common_metadata`` file to
-        reduce the amount of disk I/O required when unifying schemas
-        for many experiments in :py:func:`~.get_datasets`.
-        """
-        write_parquet(self.temp_file, str(self.history_outdir /
-            f'{self.batched_emits}.parquet'), self.filesystem, self.encodings, self.schema)
-        pq.write_metadata(self.schema, str(self.history_outdir /
-            '_common_metadata'), filesystem=self.filesystem)
-        self.temp_file.close()
+        # Convert emits to Parquet on shutdown
+        atexit.register(self._start_conversion)
+    
+    def _start_conversion(self):
+        sys.stdout.flush()
+        os.execlp('python', 'python', __file__, '-d', self.temp_data.name,
+                  '-s', self.temp_schema.name, '-o', self.temp_other.name)
 
     def emit(self, data: dict[str, Any]):
         """
@@ -314,14 +337,34 @@ class ParquetEmitter(Emitter):
                         agent_data[k], k in USE_UINT16, k in USE_UINT32)
                     if encoding is not None:
                         self.encodings[k] = encoding
-                    new_schema.append((k, pa_type))
-                self.schema = pyarrow.unify_schemas([
-                    self.schema, pyarrow.schema(new_schema)])
-            self.temp_file.write(orjson.dumps(agent_data))
-            self.temp_file.write('\n'.encode('utf-8'))
-        self.batched_emits += 1
-        if self.batched_emits % self.emits_to_batch == 0:
-            self.executor.submit(write_parquet, self.temp_file,
-                str(self.history_outdir / f'{self.batched_emits}.parquet'),
-                self.filesystem, self.encodings, self.schema)
-            self.temp_file = tempfile.TemporaryFile()
+                    self.schema = self.schema.append(pyarrow.field(k, pa_type))
+                out_uri = os.path.join(self.out_uri, data['table'],
+                                       self.partitioning_path)
+                self.temp_schema.close()
+                self.temp_other.close()
+                self.temp_schema = open(self.temp_schema.name, 'w+b')
+                self.temp_other = open(self.temp_other.name, 'w+b')
+                self.temp_other.write(out_uri.encode('utf-8'))
+                self.temp_other.write('\n'.encode('utf-8'))
+                self.temp_other.write(orjson.dumps(self.encodings))
+                pq.write_metadata(self.schema, self.temp_schema.name)
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        '--data', '-d', action='store',
+        help='Path to newline-delimited JSON from simulation.')
+    parser.add_argument(
+        '--schema', '-s', action='store',
+        help='Path to Parquet file containing output schema.')
+    parser.add_argument(
+        '--other', '-o', action='store',
+        help='Path to file containing output URI on first line'
+            'and JSON of column encodings on second line.')
+    args = parser.parse_args()
+    json_to_parquet(args.data, args.schema, args.other)
+
+
+if __name__ == '__main__':
+    main()

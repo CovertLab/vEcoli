@@ -82,7 +82,7 @@ def push_to_db(temp_file: BinaryIO, client: Any):
     Compresses and sends newline-delimited JSONs to ClickHouse DB.
     """
     subprocess.run(['zstd', temp_file.name, '-o',
-        f'{temp_file.name}.gz', '-f', '-T0'], check=True)
+        f'{temp_file.name}.gz', '-f'], check=True)
     insert_file(client, 'history', f'{temp_file.name}.gz',
         'JSONEachRow', compression='zstd')
     temp_file.close()
@@ -122,7 +122,7 @@ class ClickHouseEmitter(Emitter):
         self.temp_file = tempfile.NamedTemporaryFile(
             dir=self.outdir, prefix=self.experiment_id)
         self.batched_emits = 0
-        self.emits_to_batch = config.get('emits_to_batch', 50)
+        self.emits_to_batch = config.get('emits_to_batch', 400)
         atexit.register(self._shutdown)
     
     def _shutdown(self):
