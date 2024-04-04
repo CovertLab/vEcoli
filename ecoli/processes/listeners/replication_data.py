@@ -40,12 +40,12 @@ class ReplicationData(Step):
         return {
             'listeners': {
                 'replication_data': listener_schema({
-                    'fork_coordinates': [-1],
-                    'fork_domains': [-1],
-                    'fork_unique_index': [2**31],
-                    'number_of_oric': [-1],
-                    'free_DnaA_boxes': [-1],
-                    'total_DnaA_boxes': [-1]
+                    'fork_coordinates': [0],
+                    'fork_domains': [0],
+                    'fork_unique_index': [0],
+                    'number_of_oric': [0],
+                    'free_DnaA_boxes': [0],
+                    'total_DnaA_boxes': [0]
                 })
             },
             'oriCs': numpy_schema('oriCs',
