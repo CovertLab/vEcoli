@@ -56,13 +56,13 @@ class RnapData(Step):
             'listeners': {
                 'rnap_data': listener_schema({
                     'rna_init_event': np.zeros(n_TUs, dtype=np.int64),
-                    'active_rnap_coordinates': [-1],
-                    'active_rnap_domain_indexes': [-1],
-                    'active_rnap_unique_indexes': [2**31],
-                    'active_rnap_on_stable_RNA_indexes': [2**31],
-                    'active_rnap_n_bound_ribosomes': [-1],
-                    'rna_init_event_per_cistron': ([0] * len(self.cistron_ids),
-                        self.cistron_ids)
+                    'active_rnap_coordinates': [0],
+                    'active_rnap_domain_indexes': [0],
+                    'active_rnap_unique_indexes': [0],
+                    'active_rnap_on_stable_RNA_indexes': [0],
+                    'active_rnap_n_bound_ribosomes': [0],
+                    # 'rna_init_event_per_cistron': ([0] * len(self.cistron_ids),
+                    #     self.cistron_ids)
                 })
             },
             'active_RNAPs': numpy_schema('active_RNAPs',
@@ -130,9 +130,11 @@ class RnapData(Step):
                         [RNA_index_counts.get(partial_RNA_unique_indexes[i], 0)
                             for i in partial_RNA_to_RNAP_mapping]),
                     # Calculate hypothetical RNA initiation events per cistron
-                    'rna_init_event_per_cistron': \
-                        self.cistron_tu_mapping_matrix.dot(
-                            states['listeners']['rnap_data']['rna_init_event']),
+                    # Turned this off because it is a very large emit that can
+                    # be easily calculated after the simulation is complete
+                    # 'rna_init_event_per_cistron': \
+                    #     self.cistron_tu_mapping_matrix.dot(
+                    #         states['listeners']['rnap_data']['rna_init_event']),
                 }
             },
             'next_update_time': states['global_time'] + states['timestep']

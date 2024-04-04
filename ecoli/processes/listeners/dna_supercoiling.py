@@ -44,10 +44,10 @@ class DnaSupercoiling(Step):
         return {
             'listeners': {
                 'dna_supercoiling': listener_schema({
-                    'segment_left_boundary_coordinates': [-1],
-                    'segment_right_boundary_coordinates': [-1],
-                    'segment_domain_indexes': [-1],
-                    'segment_superhelical_densities': [-1]
+                    'segment_left_boundary_coordinates': [0],
+                    'segment_right_boundary_coordinates': [0],
+                    'segment_domain_indexes': [0],
+                    'segment_superhelical_densities': [0]
                 })
             },
             'chromosomal_segments': numpy_schema('chromosomal_segments',
@@ -68,10 +68,10 @@ class DnaSupercoiling(Step):
             return {
                 'listeners': {
                     'dna_supercoiling': {
-                        'segment_left_boundary_coordinates': [-1],
-                        'segment_right_boundary_coordinates': [-1],
-                        'segment_domain_indexes': [-1],
-                        'segment_superhelical_densities': [-1]
+                        'segment_left_boundary_coordinates': [0],
+                        'segment_right_boundary_coordinates': [0],
+                        'segment_domain_indexes': [0],
+                        'segment_superhelical_densities': [0]
                     }
                 }
             }
