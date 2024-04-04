@@ -4,7 +4,7 @@ import os
 import pathlib
 import sys
 import tempfile
-from typing import Any, Mapping, Union
+from typing import Any, BinaryIO, Mapping, Union
 
 import orjson
 import pyarrow as pa
@@ -52,6 +52,15 @@ USE_UINT32 = {
 """uint32 is 2x smaller than int64 for values between 0 - 4,294,967,295."""
 
 
+def flush_data(files_to_flush: list[BinaryIO]):
+    """
+    Ensure that all buffered data gets written to files.
+    """
+    for f in files_to_flush:
+        f.flush()
+        os.fsync(f.fileno())
+
+
 def cleanup_files(ndjson: str, schema_file: str, options: str):
     """
     Registered to delete temporary sim output files when sim finishes,
@@ -78,7 +87,7 @@ def json_to_parquet(ndjson: str, schema_file: str, options: str):
     with open(options, 'rb') as f:
         out_uri = f.readline().split(b'\n')[0].decode('utf-8')
         encodings = orjson.loads(f.readline())
-        batch_size = int(f.readline().split(b'\n')[0])
+        batch_size = int(f.readline().split(b'\n')[0].decode('utf-8'))
     schema = pq.read_schema(schema_file)
     filesystem, outdir = fs.FileSystem.from_uri(out_uri)
     parse_options = pj.ParseOptions(explicit_schema=schema)
@@ -248,9 +257,9 @@ class ParquetEmitter(Emitter):
         Replaces current Python process with fresh process to convert
         newline-delimited JSON to Parquet (new process frees RAM).
         """
-        sys.stdout.flush()
+        flush_data([self.temp_data, self.temp_schema, self.temp_options])
         os.execlp('python', 'python', __file__, '-d', self.temp_data.name,
-                  '-s', self.temp_schema.name, '-o', self.temp_other.name)
+                  '-s', self.temp_schema.name, '-o', self.temp_options.name)
 
     def emit(self, data: dict[str, Any]):
         """
@@ -320,6 +329,8 @@ class ParquetEmitter(Emitter):
             self.temp_options.write(orjson.dumps(encodings))
             self.temp_options.write('\n'.encode('utf-8'))
             self.temp_options.write(str(self.batch_size).encode('utf-8'))
+            self.temp_options.write('\n'.encode('utf-8'))
+            flush_data([self.temp_data, self.temp_schema, self.temp_options])
             pq.write_metadata(pa.schema(schema), self.temp_schema.name)
             json_to_parquet(self.temp_data.name, self.temp_schema.name,
                             self.temp_options.name)
