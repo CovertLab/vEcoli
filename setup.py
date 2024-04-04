@@ -1,35 +1,33 @@
 import os
-
 import numpy as np
 from Cython.Build import cythonize
-from setuptools import setup
+from setuptools import Extension, setup
 
-build_sequences_module = cythonize(
-	os.path.join("wholecell", "utils", "_build_sequences.pyx"),
-	)
+# List of your Cython extension modules
+extensions = [
+    Extension(
+        "wholecell.utils._build_sequences",
+        [os.path.join("wholecell", "utils", "_build_sequences.pyx")],
+        include_dirs=[np.get_include()],
+        define_macros=[('NPY_NO_DEPRECATED_API', 'NPY_1_7_API_VERSION')],
+    ),
+    Extension(
+        "wholecell.utils.mc_complexation",
+        [os.path.join("wholecell", "utils", "mc_complexation.pyx")],
+        include_dirs=[np.get_include()],
+        define_macros=[('NPY_NO_DEPRECATED_API', 'NPY_1_7_API_VERSION')],
+    ),
+    Extension(
+        "wholecell.utils._fastsums",
+        [os.path.join("wholecell", "utils", "_fastsums.pyx")],
+        include_dirs=[np.get_include()],
+        define_macros=[('NPY_NO_DEPRECATED_API', 'NPY_1_7_API_VERSION')],
+    ),
+]
 
+# Use cythonize on the extensions list
 setup(
-	name = "Build sequences",
-	ext_modules = build_sequences_module,
-	include_dirs = [np.get_include()],
-	)
-
-complexation_module = cythonize(
-	os.path.join("wholecell", "utils", "mc_complexation.pyx"),
-	)
-
-setup(
-	name = "Monte-carlo complexation",
-	ext_modules = complexation_module,
-	include_dirs = [np.get_include()],
-	)
-
-fast_polymerize_sums_module = cythonize(
-	os.path.join("wholecell", "utils", "_fastsums.pyx"),
-	)
-
-setup(
-	name = "Fast polymerize sums",
-	ext_modules = fast_polymerize_sums_module,
-	include_dirs = [np.get_include()],
-	)
+    name="Vivarium Ecoli Extensions",
+    ext_modules=cythonize(extensions),
+    include_dirs=[np.get_include()],
+)
