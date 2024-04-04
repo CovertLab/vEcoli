@@ -2,8 +2,7 @@ import atexit
 import os
 import pathlib
 import tempfile
-from concurrent.futures import ThreadPoolExecutor
-from typing import Any, BinaryIO, Mapping, Union
+from typing import Any, Mapping, Union
 
 import orjson
 import pyarrow
@@ -13,6 +12,36 @@ from pyarrow import json as pj
 from pyarrow import parquet as pq
 from vivarium.core.emitter import Emitter
 from vivarium.core.serialize import make_fallback_serializer_function
+
+
+def json_to_parquet(ndjson, schema_file, other):
+    with open(other, 'rb') as f:
+        out_uri = f.readline().split(b'\n')[0].decode('utf-8')
+        encodings = orjson.loads(f.readline())
+    schema = pq.read_schema(schema_file)
+    filesystem, outdir = fs.FileSystem.from_uri(out_uri)
+    parse_options = pj.ParseOptions(explicit_schema=schema)
+    read_options = pj.ReadOptions(use_threads=False, block_size=int(1e7))
+    filesystem.create_dir(outdir)
+    writer = pq.ParquetWriter(os.path.join(outdir, 'data.parquet'), 
+        schema, use_dictionary=False, compression='zstd',
+        column_encoding=encodings, filesystem=filesystem)
+    with open(ndjson, 'rb') as f:
+        temp_file = tempfile.NamedTemporaryFile()
+        for i, line in enumerate(f):
+            temp_file.write(line)
+            temp_file.write('\n'.encode('utf-8'))
+            if i % 200 == 0 and i != 0:
+                t = pj.read_json(temp_file.name, read_options=read_options,
+                                 parse_options=parse_options)
+                writer.write_table(t)
+                temp_file.close()
+                del t
+                temp_file = tempfile.NamedTemporaryFile()
+        t = pj.read_json(temp_file.name, read_options=read_options,
+                         parse_options=parse_options)
+        writer.write_table(t)
+        temp_file.close()
 
 
 def get_datasets(outdir: Union[str, pathlib.Path]
@@ -60,40 +89,16 @@ def get_encoding(val: Any) -> str:
     dictionary encoding is the best option.
     """
     if isinstance(val, float):
-        return 'BYTE_STREAM_SPLIT'
+        return pyarrow.float64(), 'BYTE_STREAM_SPLIT'
     elif isinstance(val, bool):
-        return
+        return pyarrow.bool_(), None
     elif isinstance(val, int):
-        return 'DELTA_BINARY_PACKED'
+        return pyarrow.int64(), 'DELTA_BINARY_PACKED'
     elif isinstance(val, str):
-        return 'DELTA_BYTE_ARRAY'
+        return pyarrow.string(), 'DELTA_BYTE_ARRAY'
     elif isinstance(val, list):
-        return get_encoding(val[0])
-
-
-def write_parquet(tempfile: BinaryIO, outfile: str,
-                  filesystem: fs.FileSystem, encodings: dict[str, str]=None):
-    """
-    Read newline-delimited JSON of simulation output and write Parquet file.
-
-    Args:
-        tempfile: Newline-delimited JSON file object (each emit on new line)
-        outfile: Path and name of output Parquet file
-        filesystem: FileSystem object inferred from ``config['outdir']`` or
-            for local output or ``config['outuri']`` for S3, GCS, etc.
-        encodings: Mapping of field names to non-default encodings (e.g.
-            from calling :py:func:`~.get_encoding`)
-    """
-    tempfile.seek(0)
-    table = pj.read_json(tempfile,
-        read_options=pj.ReadOptions(block_size=int(1e7)))
-    use_dictionary = encodings is None
-    sorting_columns = pq.SortingColumn.from_ordering(
-        table.schema, [('time', 'ascending')])
-    pq.write_table(table, outfile, filesystem=filesystem,
-        use_dictionary=use_dictionary, column_encoding=encodings,
-        compression='zstd', sorting_columns=sorting_columns)
-    tempfile.close()
+        inner_type, encoding = get_encoding(val[0])
+        return pyarrow.list_(inner_type), encoding
 
 
 _FLAG_FIRST = object()
@@ -135,41 +140,20 @@ class ParquetEmitter(Emitter):
         and used to fully construct outdir paths in first run of
         :py:meth:`~.ParquetEmitter.emit`.
         """
-        emitter_config = config.get('config', {})
-        self.filesystem, outdir = fs.FileSystem.from_uri(
-            emitter_config.get('outdir', 'out'))
-        self.history_outdir = pathlib.Path(outdir) / 'history'
-        self.config_outdir = pathlib.Path(outdir) / 'configuration'
+        self.experiment_id = config.get('experiment_id')
+        self.outdir = pathlib.Path(config.get('config', {}).get('outdir', 'out'))
         self.fallback_serializer = make_fallback_serializer_function()
-        # Write emits to temp file and convert to Parquet in batches
-        self.temp_file = tempfile.TemporaryFile()
-        self.batched_emits = 0
-        self.emits_to_batch = config.get('emits_to_batch', 50)
-        # PyArrow uses efficient code that can release the GIL and can
-        # be I/O bound. Call in separate thread to minimize blocking.
-        self.executor = ThreadPoolExecutor()
+        # Write emits as newline-delimited JSON into temporary file
+        # then read/write them to Parquet at the end with unified schema
+        self.temp_data = tempfile.NamedTemporaryFile(delete=False)
+        self.temp_schema = tempfile.NamedTemporaryFile(delete=False)
+        self.temp_other = tempfile.NamedTemporaryFile(delete=False)
         # Keep a cache of field encodings and fields encountered
         self.encodings = {}
-        self.accounted_fields = set()
-        # Convert all remaining emits upon program shutdown
-        atexit.register(self._shutdown)
-
-    def _shutdown(self):
-        """
-        Called upon program shutdown to ensure all remaining emits are
-        written to a Parquet file. Also unifies all schemas written
-        during this experiment into a ``_common_metadata`` file to
-        reduce the amount of disk I/O required when unifying schemas
-        for many experiments in :py:func:`~.get_datasets`.
-        """
-        write_parquet(self.temp_file, str(self.history_outdir /
-            f'{self.batched_emits}.parquet'), self.filesystem, self.encodings)
-        history = ds.dataset(self.history_outdir, filesystem=self.filesystem)
-        history_schema = pyarrow.unify_schemas((
-            pq.read_schema(f) for f in history.files))
-        pq.write_metadata(history_schema, str(self.history_outdir /
-            '_common_metadata'), filesystem=self.filesystem)
-        self.temp_file.close()
+        self.schema = pyarrow.schema([])
+        # Convert emits to Parquet on shutdown
+        atexit.register(lambda : json_to_parquet(
+            self.temp_data.name, self.temp_schema.name, self.temp_other.name))
 
     def emit(self, data: dict[str, Any]):
         """
@@ -200,41 +184,49 @@ class ParquetEmitter(Emitter):
                 'generation': len(agent_id),
                 'agent_id': agent_id
             }
+            self.partitioning_path = os.path.join(*(
+                f'{k}={v}' for k, v in partitioning_keys.items()))
             data = flatten_dict(data)
-            self.temp_file.write(orjson.dumps(
+            self.temp_data.write(orjson.dumps(
                 data, option=orjson.OPT_SERIALIZE_NUMPY,
                 default=self.fallback_serializer))
             encodings = {}
+            schema = []
             for k, v in data.items():
-                encoding = get_encoding(v)
+                pa_type, encoding = get_encoding(v)
                 if encoding is not None:
                     encodings[k] = encoding
-            for k, v in partitioning_keys.items():
-                self.history_outdir = self.history_outdir / f'{k}={v}'
-                self.config_outdir = self.config_outdir / f'{k}={v}'
-            self.filesystem.create_dir(str(self.history_outdir))
-            self.filesystem.create_dir(str(self.config_outdir))
-            write_parquet(self.temp_file, str(self.config_outdir /
-                'config.parquet'), self.filesystem, encodings)
-            self.temp_file = tempfile.TemporaryFile()
+                schema.append((k, pa_type))
+            outdir = self.outdir / data['table'] / self.partitioning_path
+            self.temp_other.write(outdir.resolve().as_uri().encode('utf-8'))
+            self.temp_other.write('\n'.encode('utf-8'))
+            self.temp_other.write(orjson.dumps(encodings))
+            pq.write_metadata(pyarrow.schema(schema), self.temp_schema.name)
+            json_to_parquet(self.temp_data.name, self.temp_schema.name,
+                            self.temp_other.name)
+            self.temp_data = open(self.temp_data.name, 'w+b')
+            self.temp_schema = open(self.temp_schema.name, 'w+b')
+            self.temp_other = open(self.temp_other.name, 'w+b')
             return
         assert len(data['data']['agents']) == 1
         for agent_data in data['data']['agents'].values():
             agent_data['time'] = float(data['data']['time'])
             agent_data = flatten_dict(agent_data)
-            new_keys = set(agent_data) - self.accounted_fields
+            self.temp_data.write(orjson.dumps(agent_data))
+            self.temp_data.write('\n'.encode('utf-8'))
+            new_keys = set(agent_data) - set(self.schema.names)
             if len(new_keys) > 0:
                 for k in new_keys:
-                    encoding = get_encoding(agent_data[k])
+                    pa_type, encoding = get_encoding(agent_data[k])
                     if encoding is not None:
                         self.encodings[k] = encoding
-                self.accounted_fields.update(new_keys)
-            json_str = orjson.dumps(agent_data)
-            self.temp_file.write(json_str)
-            self.temp_file.write('\n'.encode('utf-8'))
-        self.batched_emits += 1
-        if self.batched_emits % self.emits_to_batch == 0:
-            self.executor.submit(write_parquet, self.temp_file,
-                str(self.history_outdir / f'{self.batched_emits}.parquet'),
-                self.filesystem, self.encodings)
-            self.temp_file = tempfile.TemporaryFile()
+                    self.schema = self.schema.append(pyarrow.field(k, pa_type))
+                outdir = self.outdir / data['table'] / self.partitioning_path
+                self.temp_schema.close()
+                self.temp_other.close()
+                self.temp_schema = open(self.temp_schema.name, 'w+b')
+                self.temp_other = open(self.temp_other.name, 'w+b')
+                self.temp_other.write(outdir.resolve().as_uri().encode('utf-8'))
+                self.temp_other.write('\n'.encode('utf-8'))
+                self.temp_other.write(orjson.dumps(self.encodings))
+                pq.write_metadata(self.schema, self.temp_schema.name)
