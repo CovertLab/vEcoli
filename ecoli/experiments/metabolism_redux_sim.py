@@ -55,16 +55,16 @@ def run_ecoli_with_metabolism_redux_classic(
         filename='metabolism_redux_classic',
         total_time=1300,
         divide=True,
-        # initial_state_file='rich_4th', # 'met_division_test_state',
+        # initial_state_file='wcecoli_t0', # 'met_division_test_state',
         progress_bar=True,
         log_updates=False,
         emitter='timeseries', # 'timeseries',
-        name='metabolism-redux-classic',
+        name='metabolism-redux-classic-rich',
         raw_output=False,
         save=True,
-        save_times=[1, 200, 400, 600, 800, 1000, 1200, 1300],
-        condition = "with_aa",
-        fixed_media = "minimal_plus_amino_acids"
+        save_times=[1, 200, 400, 1300],
+        condition = "with_aa", # basal, with_aa
+        fixed_media = "minimal_plus_amino_acids" # minimal, minimal_plus_amino_acids
 ):
     # filename = 'default'
     sim = EcoliSim.from_file(CONFIG_DIR_PATH + filename + ".json")
@@ -80,6 +80,8 @@ def run_ecoli_with_metabolism_redux_classic(
 
     sim.condition = condition
     sim.fixed_media = fixed_media
+
+    sim.seed = 12
 
 
     # # simplify working with uptake
@@ -103,6 +105,47 @@ def run_ecoli_with_metabolism_redux_classic(
     query = []
     folder = f'out/cofactors/{name}_{total_time}_{datetime.date.today()}/'
     save_sim_output(folder, query, sim, save_model=True)
+
+def run_ecoli_with_metabolism_redux_classic(
+        filename='metabolism_redux_classic',
+        total_time=1500,
+        divide=True,
+        # initial_state_file='wcecoli_t0', # 'met_division_test_state',
+        progress_bar=True,
+        log_updates=False,
+        emitter='timeseries', # 'timeseries',
+        name='metabolism-redux-classic-rich',
+        raw_output=False,
+        save=True,
+        save_times=[1, 200, 400, 1300],
+        condition = "with_aa", # basal, with_aa
+        fixed_media = "minimal_plus_amino_acids" # minimal, minimal_plus_amino_acids
+):
+    # filename = 'default'
+    sim = EcoliSim.from_file(CONFIG_DIR_PATH + filename + ".json")
+    sim.total_time = total_time
+    sim.divide = divide
+    sim.progress_bar = progress_bar
+    sim.log_updates = log_updates
+    sim.emitter = emitter
+    # sim.initial_state = get_state_from_file(path=f'data/{initial_state_file}.json')
+    sim.raw_output = raw_output
+    sim.save = save
+    sim.save_times = save_times
+
+    sim.condition = condition
+    sim.fixed_media = fixed_media
+
+    for seed in [i for i in range(20, 29, 1)]:
+        sim.seed = seed
+
+        sim.build_ecoli()
+
+        sim.run()
+
+        query = []
+        folder = f'out/cofactors/rich-{seed}/'
+        save_sim_output(folder, query, sim, save_model=False)
 
 
 @pytest.mark.slow
