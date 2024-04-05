@@ -38,8 +38,8 @@ class LoadSimData:
         jit=False,
         total_time=10,
         fixed_media = None,
-        media_timeline=((0, 'minimal_plus_amino_acids'),),   # have to change both media_timeline and condition
-        condition = 'with_aa',
+        media_timeline=((0, 'minimal'),),   # have to change both media_timeline and condition
+        condition = 'basal',
         operons=True,
         trna_charging=True,
         ppgpp_regulation=True,
