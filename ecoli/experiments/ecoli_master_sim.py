@@ -837,8 +837,6 @@ class EcoliSim:
                 extracted = inverse_topology((), extracted, topologies[proc_name])
                 output_metadata = deep_merge_check(
                     output_metadata, extracted, check_equality=True)
-        if self.divide:
-            output_metadata = {'agents': {self.agent_id: output_metadata}}
         return output_metadata
 
     def export_json(self, filename: str=CONFIG_DIR_PATH + "export.json"):

@@ -43,7 +43,7 @@ def generate_colony(seeds: int):
 
 
 def generate_lineage(seed: int, n_init_sims: int, generations: int, 
-    single_daughters: bool, analysis_config: dict[str, dict[str, dict]]]):
+    single_daughters: bool, analysis_config: dict[str, dict[str, dict]]):
     """
     Create strings to import and compose Nextflow processes for lineage sims:
     cells that divide for a number of generations but do not interact. Also
