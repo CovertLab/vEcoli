@@ -120,13 +120,31 @@ def json_to_parquet(ndjson: str, schema_file: str, options: str):
 
 
 def get_datasets(out_dir: Union[str, pathlib.Path]=None,
-                 out_uri: str=None, unify_schemas: bool=True
+                 out_uri: str=None, unify_schemas: bool=False
                  ) -> tuple[ds.Dataset, ds.Dataset]:
     """
-    PyArrow datasets currently read and use the schema of one Parquet file at
-    random. If new fields are added that do not appear in this file, they will
-    not be found. This convenience function by default scans all files found in
-    the dataset folder and unifies their schemas.
+    PyArrow currently reads and uses the schema of one Parquet file at
+    random for the entire dataset. If fields are present in other files that
+    do not appear in the chosen file, they will not be found. This function
+    offers a flag to scan all Parquet files and unify their schemas (can be
+    slow for massive datasets). For better performance, if know exactly what
+    fields and types you would like to access, you can manually ensure those
+    they are included as follows::
+
+        from ecoli.library.parquet_emitter import get_datasets
+        # Do not set unify_schemas flag to True
+        history_ds, config_ds = get_datasets(out_dir)
+        # Create schema for new field(s) of interest
+        new_fields = pa.schema([
+            # new_field_1 contains variable-length lists of integers
+            ('new_field_1', pa.list_(pa.int64())),
+            # new_field_2 contains 64-bit floats
+            ('new_field_2', pa.float64())
+        ])
+        # Load dataset with new unified schema
+        history_ds = history_ds.replace_schema(pa.unify_schemas([
+            history_ds.schema, new_fields
+        ]))
 
     Args:
         out_dir: Relative or absolute path to local directory containing
@@ -148,10 +166,14 @@ def get_datasets(out_dir: Union[str, pathlib.Path]=None,
         history_schema = pa.unify_schemas((
             pq.read_schema(f, filesystem=filesystem)
             for f in history.files), promote_options='permissive')
+        history_schema = pa.unify_schemas([history.schema, history_schema],
+                                          promote_options='permissive')
         history = history.replace_schema(history_schema)
         config_schema = pa.unify_schemas((
             pq.read_schema(f, filesystem=filesystem)
             for f in config.files), promote_options='permissive')
+        config_schema = pa.unify_schemas([config.schema, config_schema],
+                                          promote_options='permissive')
         config = config.replace_schema(config_schema)
     return config, history
 
