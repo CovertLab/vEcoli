@@ -199,9 +199,10 @@ def get_encoding(val: Any, field_name: str, use_uint16: bool=False,
     elif isinstance(val, str):
         return pa.string(), 'DELTA_BYTE_ARRAY', field_name
     elif isinstance(val, list):
-        inner_type, encoding, field_name = get_encoding(
+        inner_type, _, field_name = get_encoding(
             val[0], field_name, use_uint16, use_uint32)
-        return pa.list_(inner_type), encoding, field_name + '.list.element'
+        # PLAIN encoding yields overall better compressed size for lists
+        return pa.list_(inner_type), 'PLAIN', field_name + '.list.element'
     raise TypeError(f'{field_name} has unsupported type {type(val)}.')
 
 
