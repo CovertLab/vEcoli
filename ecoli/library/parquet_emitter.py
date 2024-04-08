@@ -178,16 +178,15 @@ def get_datasets(out_dir: Union[str, pathlib.Path]=None,
     return config, history
 
 
-def get_encoding(val: Any, use_uint16: bool=False, use_uint32: bool=False
-                 ) -> tuple[Any, str]:
+def get_encoding(val: Any, field_name: str, use_uint16: bool=False,
+                 use_uint32: bool=False) -> tuple[Any, str]:
     """
-    Get optimal PyArrow type and Parquet encoding for input value. Returns
-    no encoding for the default dictionary encoding.
+    Get optimal PyArrow type and Parquet encoding for input value.
     """
     if isinstance(val, float):
-        return pa.float64(), 'BYTE_STREAM_SPLIT'
+        return pa.float64(), 'BYTE_STREAM_SPLIT', field_name
     elif isinstance(val, bool):
-        return pa.bool_(), None
+        return pa.bool_(), 'RLE', field_name
     elif isinstance(val, int):
         # Optimize memory usage for select integer fields
         if use_uint16:
@@ -196,12 +195,14 @@ def get_encoding(val: Any, use_uint16: bool=False, use_uint32: bool=False
             pa_type = pa.uint32()
         else:
             pa_type = pa.int64()
-        return pa_type, 'DELTA_BINARY_PACKED'
+        return pa_type, 'DELTA_BINARY_PACKED', field_name
     elif isinstance(val, str):
-        return pa.string(), 'DELTA_BYTE_ARRAY'
+        return pa.string(), 'DELTA_BYTE_ARRAY', field_name
     elif isinstance(val, list):
-        inner_type, encoding = get_encoding(val[0], use_uint16, use_uint32)
-        return pyarrow.list_(inner_type), encoding
+        inner_type, encoding, field_name = get_encoding(
+            val[0], field_name, use_uint16, use_uint32)
+        return pa.list_(inner_type), encoding, field_name + '.list.element'
+    raise TypeError(f'{field_name} has unsupported type {type(val)}.')
 
 
 _FLAG_FIRST = object()
@@ -339,10 +340,9 @@ class ParquetEmitter(Emitter):
             schema = []
             schema = []
             for k, v in data.items():
-                pa_type, encoding = get_encoding(v)
-                pa_type, encoding = get_encoding(v)
+                pa_type, encoding, field_name = get_encoding(v, k)
                 if encoding is not None:
-                    encodings[k] = encoding
+                    encodings[field_name] = encoding
                 schema.append((k, pa_type))
             out_uri = os.path.join(self.out_uri, data['table'],
                                    self.partitioning_path)
@@ -372,10 +372,10 @@ class ParquetEmitter(Emitter):
             if len(new_keys) > 0:
                 new_schema = []
                 for k in new_keys:
-                    pa_type, encoding = get_encoding(
-                        agent_data[k], k in USE_UINT16, k in USE_UINT32)
+                    pa_type, encoding, field_name = get_encoding(
+                        agent_data[k], k, k in USE_UINT16, k in USE_UINT32)
                     if encoding is not None:
-                        self.encodings[k] = encoding
+                        self.encodings[field_name] = encoding
                     self.schema = self.schema.append(pa.field(k, pa_type))
                 out_uri = os.path.join(self.out_uri, data['table'],
                                        self.partitioning_path)
