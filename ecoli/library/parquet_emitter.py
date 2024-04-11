@@ -311,9 +311,6 @@ class ParquetEmitter(Emitter):
         filtering and computation can be performed on data from all those
         runs using PyArrow datasets (see :py:func:`~.get_datasets`).
         """
-        data = orjson.loads(orjson.dumps(
-            data, option=orjson.OPT_SERIALIZE_NUMPY,
-            default=self.fallback_serializer))
         # Config will always be first emit
         if data['table'] == 'configuration':
             metadata = data['data'].pop('metadata')
@@ -334,9 +331,11 @@ class ParquetEmitter(Emitter):
             self.filesystem.create_dir(str(self.history_outdir))
             self.filesystem.create_dir(str(self.config_outdir))
             data = flatten_dict(data)
-            self.temp_data.write(orjson.dumps(
+            data_str = orjson.dumps(
                 data, option=orjson.OPT_SERIALIZE_NUMPY,
-                default=self.fallback_serializer))
+                default=self.fallback_serializer)
+            self.temp_data.write(data_str)
+            data = orjson.loads(data_str)
             encodings = {}
             schema = []
             schema = []
@@ -367,8 +366,12 @@ class ParquetEmitter(Emitter):
         for agent_data in data['data']['agents'].values():
             agent_data['time'] = float(data['data']['time'])
             agent_data = flatten_dict(agent_data)
-            # If new fields are not frequently added to schema,
-            # we do not have to update encodings often
+            agent_data_str = orjson.dumps(
+                agent_data, option=orjson.OPT_SERIALIZE_NUMPY,
+                default=self.fallback_serializer)
+            self.temp_data.write(agent_data_str)
+            agent_data = orjson.loads(agent_data_str)
+            self.temp_data.write('\n'.encode('utf-8'))
             new_keys = set(agent_data) - set(self.schema.names)
             if len(new_keys) > 0:
                 new_schema = []
