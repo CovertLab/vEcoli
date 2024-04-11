@@ -128,8 +128,8 @@ def get_datasets(out_dir: Union[str, pathlib.Path]=None,
     random for the entire dataset. If fields are present in other files that
     do not appear in the chosen file, they will not be found. This function
     offers a flag to scan all Parquet files and unify their schemas (can be
-    slow for massive datasets). For better performance, if know exactly what
-    fields and types you would like to access, you can manually ensure those
+    slow for massive datasets). For better performance, if you know exactly
+    what fields and types you would like to access, you can manually ensure
     they are included as follows::
 
         from ecoli.library.parquet_emitter import get_datasets
@@ -140,7 +140,13 @@ def get_datasets(out_dir: Union[str, pathlib.Path]=None,
             # new_field_1 contains variable-length lists of integers
             ('new_field_1', pa.list_(pa.int64())),
             # new_field_2 contains 64-bit floats
-            ('new_field_2', pa.float64())
+            ('new_field_2', pa.float64()),
+            # Almost always want to include the following for filtering
+            ('experiment_id', pa.string()),
+            ('variant', pa.string()),
+            ('seed', pa.int64()),
+            ('generation', pa.int64()),
+            ('agent_id', pa.string())
         ])
         # Load dataset with new unified schema
         history_ds = history_ds.replace_schema(pa.unify_schemas([
@@ -159,10 +165,18 @@ def get_datasets(out_dir: Union[str, pathlib.Path]=None,
     if out_uri is None:
         out_uri = pathlib.Path(out_dir).resolve().as_uri()
     filesystem, outdir = fs.FileSystem.from_uri(out_uri)
+    partitioning_schema = pa.schema([
+        ('experiment_id', pa.string()),
+        ('variant', pa.string()),
+        ('seed', pa.int64()),
+        ('generation', pa.int64()),
+        ('agent_id', pa.string())
+    ])
+    partitioning = ds.partitioning(partitioning_schema, flavor='hive')
     history = ds.dataset(os.path.join(outdir, 'history'),
-                         partitioning='hive', filesystem=filesystem)
+                         partitioning=partitioning, filesystem=filesystem)
     config = ds.dataset(os.path.join(outdir, 'configuration'),
-                        partitioning='hive', filesystem=filesystem)
+                        partitioning=partitioning, filesystem=filesystem)
     if unify_schemas:
         history_schema = pa.unify_schemas((
             pq.read_schema(f, filesystem=filesystem)

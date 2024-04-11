@@ -5,7 +5,7 @@ from pyarrow import dataset as ds
 
 from ecoli.library.parquet_emitter import get_datasets
 
-METADATA_PREFIX = 'data__output_metadata__agents__'
+METADATA_PREFIX = 'data__output_metadata__'
 """
 In the config dataset, user-defined metadata for each store
 (see :py:meth:`~ecoli.experiments.ecoli_master_sim.EcoliSim.get_output_metadata`)
@@ -24,7 +24,7 @@ def analysis_template(config, sim_data_path, validation_data_path):
 
     # Load Parquet datasets from output directory / URI specified in config
     emitter_config = config['emitter']['config']
-    history_ds, config_ds = get_datasets(emitter_config.get('out_dir', None),
+    config_ds, history_ds = get_datasets(emitter_config.get('out_dir', None),
                                          emitter_config.get('out_uri', None))
 
     # Create filters for the data you want to read
@@ -64,12 +64,17 @@ def analysis_template(config, sim_data_path, validation_data_path):
     # Can also use projection to rename columns, perform scalar operations,
     # slice/index lists, etc using expressions composed of fields
     advanced_col_projection = {
-        'time_since_division': ds.field('time'),
+        'time': ds.field('time'),
+        'experiment_id': ds.field('experiment_id'),
+        'variant': ds.field('variant'),
+        'seed': ds.field('seed'),
+        'generation': ds.field('generation'),
+        'agent_id': ds.field('agent_id'),
         'cell_mass_picogram': ds.field('listeners__mass__cell_mass') / 1000,
         'rna_synth_prob': ds.field(
             'listeners__rna_synth_prob__actual_rna_synth_prob'),
         'n_bound_TF_per_TU': ds.field(
-            'listeners__rna_synth_prob__n_bound_TF_per_TU')
+            'listeners__rna_synth_prob__n_bound_TF_per_TU'),
         **{
             mol: pc.list_element(ds.field('bulk'), idx)
             for mol, idx in indices_of_interest.items()
@@ -81,11 +86,11 @@ def analysis_template(config, sim_data_path, validation_data_path):
     # memory automatically. For example, converting an Arrow table to a Pandas
     # DataFrame involves a copy, after which the Arrow table will be
     # automatically freed as long as there are no variables referencing it.
-    # NOTE: Because PyArrow reads Parquet files with multiple threads
-    # by default, we have to sort the table to guarantee the order
+    # NOTE: We have to sort the table to guarantee the order
     data = history_ds.to_table(columns=advanced_col_projection,
-        filter=layered_filter).sort_by(['experiment_id', 'variant', 'seed',
-                                        'generation', 'agent_id', 'time'])
+        ).sort_by([('experiment_id', 'ascending'), ('variant', 'ascending'),
+                   ('seed', 'ascending'), ('generation', 'ascending'), 
+                   ('agent_id', 'ascending'), ('time', 'ascending')])
     
     # PyArrow offers many functions for manipulating tables and columns.
     # Refer to the documentation for pyarrow.compute and pyarrow.Table.
