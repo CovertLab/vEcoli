@@ -1,11 +1,9 @@
-import argparse
 import atexit
 import os
 import pathlib
-import shutil
 import tempfile
 from concurrent.futures import ThreadPoolExecutor
-from typing import Any, BinaryIO, Mapping, Union
+from typing import Any, Mapping, Union
 
 import orjson
 import pyarrow as pa
@@ -53,71 +51,26 @@ USE_UINT32 = {
 """uint32 is 2x smaller than int64 for values between 0 - 4,294,967,295."""
 
 
-def flush_data(files_to_flush: list[BinaryIO]):
-    """
-    Ensure that all buffered data gets written to files.
-    """
-    for f in files_to_flush:
-        f.flush()
-        os.fsync(f.fileno())
-
-
-def cleanup_files(ndjson_dir: str, schema_file: str, encodings_file: str):
-    """
-    Registered to delete temporary sim output files when sim finishes,
-    regardless of whether conversion to Parquet was successful.
-    """
-    shutil.rmtree(ndjson_dir)
-    pathlib.Path(schema_file).unlink()
-    pathlib.Path(encodings_file).unlink()
-
-
 def json_to_parquet(ndjson: str, encodings: dict[str, str],
-    parse_options: pj.ParseOptions, read_options: pj.ReadOptions,
-    filesystem: fs.FileSystem, outdir: str):
+    schema: pa.Schema, filesystem: fs.FileSystem, outfile: str):
     """
     Reads newline-delimited JSON file and converts to Parquet file.
 
     Args:
         ndjson: Path to newline-delimited JSON file.
         encodings: Mapping of column names to Parquet encodings
-        parse_options: PyArrow JSON parse options
-        read_options: PyArrow JSON read options
+        schema: PyArrow schema of Parquet file to write
         filesystem: PyArrow filesystem for Parquet output
-        outdir: Path to output directory for Parquet files
+        outfile: Filepath of output Parqet file
     """
+    parse_options = pj.ParseOptions(explicit_schema=schema)
+    read_options = pj.ReadOptions(use_threads=False, block_size=int(1e7))
     t = pj.read_json(ndjson, read_options=read_options,
                      parse_options=parse_options)
-    outfile = os.path.join(outdir, os.path.basename(ndjson))
+    filesystem.create_dir(os.path.dirname(outfile))
     pq.write_table(t, outfile, use_dictionary=False, compression='zstd',
         column_encoding=encodings, filesystem=filesystem)
-
-
-def convert_multithreaded(ndjson_dir: str, schema_file: str,
-                          encoding_file: str, out_uri: str):
-    """
-    Converts temporary sim output files into Parquet files at end of sim.
-
-    Args:
-        ndjson_dir: Path to temporary directory with newline-delimited JSONs
-            batched into separate files
-        schema_file: Path to temporary file with PyArrow schema for emits
-        encoding_file: Path to temporary file with map from column names
-            to Parquet encodings
-        out_uri: URI of directory to write final Parquet files
-    """
-    with open(encoding_file, 'rb') as f:
-        encodings = orjson.loads(f.readline())
-    schema = pq.read_schema(schema_file)
-    filesystem, outdir = fs.FileSystem.from_uri(out_uri)
-    parse_opt = pj.ParseOptions(explicit_schema=schema)
-    read_opt = pj.ReadOptions(use_threads=False, block_size=int(1e7))
-    filesystem.create_dir(outdir)
-    # Leverage any single core SMT without increasing memory usage too much
-    executor = ThreadPoolExecutor(2)
-    for temp_file in os.listdir(ndjson_dir):
-        executor.submit(json_to_parquet, os.path.join(ndjson_dir, temp_file),
-                        encodings, parse_opt, read_opt, filesystem, outdir)
+    pathlib.Path(ndjson).unlink()
 
 
 def get_datasets(out_dir: Union[str, pathlib.Path]=None,
@@ -274,58 +227,39 @@ class ParquetEmitter(Emitter):
                 }
 
         """
-        out_dir = config['config'].get('out_dir', None)
-        self.out_uri = config['config'].get('out_uri', None)
-        if self.out_uri is None:
-            self.out_uri = pathlib.Path(out_dir).resolve().as_uri()
+        out_uri = config['config'].get('out_uri', None)
+        if out_uri is None:
+            out_uri = pathlib.Path(config['config'].get('out_dir', None)
+                                   ).resolve().as_uri()
+        self.filesystem, self.outdir = fs.FileSystem.from_uri(out_uri)
         self.batch_size = config['config'].get('batch_size', 400)
         self.fallback_serializer = make_fallback_serializer_function()
-        # Write emits as newline-delimited JSON into temporary file
-        # then read/write them to Parquet at the end with unified schema
-        self.temp_dir = tempfile.NamedTemporaryFile().name
-        os.makedirs(self.temp_dir)
-        self.temp_data = open(os.path.join(self.temp_dir, '0.pq'), 'w+b')
-        self.temp_schema = tempfile.NamedTemporaryFile(delete=False)
-        self.temp_encodings = tempfile.NamedTemporaryFile(delete=False)
+        # Batch emits as newline-delimited JSONs in temporary file
+        self.temp_data = tempfile.NamedTemporaryFile(delete=False)
+        self.executor = ThreadPoolExecutor(2)
         # Keep a cache of field encodings and fields encountered
         self.encodings = {}
         self.schema = pa.schema([])
         self.num_emits = 0
-        # Convert emits to Parquet on shutdown
-        atexit.register(self._start_conversion)
+        atexit.register(self._finalize)
     
-    def _start_conversion(self):
-        """
-        Replaces current Python process with fresh process to convert
-        newline-delimited JSON to Parquet (new process frees RAM).
-        """
-        flush_data([self.temp_data, self.temp_schema, self.temp_encodings])
-        os.execlp('python', 'python', __file__, '-d', self.temp_dir,
-                  '-s', self.temp_schema.name, '-e', self.temp_encodings.name,
-                  '-o', os.path.join(self.out_uri, 'history',
-                                     self.partitioning_path))
+    def _finalize(self):
+        """Convert remaining batched emits to Parquet at sim shutdown."""
+        outfile = os.path.join(self.outdir, 'history',
+            self.partitioning_path, f'{self.num_emits}.pq')
+        json_to_parquet(self.temp_data.name,
+            self.encodings, self.schema, self.filesystem, outfile)
+
 
     def emit(self, data: dict[str, Any]):
         """
         Serializes emit data with ``orjson`` and writes newline-delimited
         JSONs in a temporary file to be batched before conversion to Parquet.
         
-        The output directory will have the following hive-partitioned structure::
-
-            - configuration
-                - experiment_id=...
-                    - variant=...
-                        - seed=...
-                            - generation=...
-                                - agent_id=...
-                                    - config.parquet
-            - history
-                - experiment_id=...
-                    - variant=...
-                        - seed=...
-                            - generation=...
-                                - agent_id=...
-                                    - data.parquet
+        The output directory consists of two hive-partitioned datasets: one for
+        sim metadata called ``configuration`` and another for sim output called
+        ``history``. The partitioning keys are, in order, experiment_id (str),
+        variant (str), seed (int), generation (int), and agent_id (str).
 
         By using a single output directory for many runs of a model, advanced
         filtering and computation can be performed on data from all those
@@ -364,15 +298,11 @@ class ParquetEmitter(Emitter):
                 if encoding is not None:
                     encodings[field_name] = encoding
                 schema.append((k, pa_type))
-            out_uri = os.path.join(self.out_uri, data['table'],
-                                   self.partitioning_path)
-            filesystem, outdir = fs.FileSystem.from_uri(out_uri)
-            parse_options = pj.ParseOptions(explicit_schema=pa.schema(schema))
-            read_options = pj.ReadOptions(use_threads=False, block_size=int(1e7))
-            filesystem.create_dir(outdir)
-            json_to_parquet(self.temp_data.name, encodings, parse_options,
-                            read_options, filesystem, outdir)
-            self.temp_data = open(self.temp_data.name, 'w+b')
+            outfile = os.path.join(self.outdir, data['table'],
+                                   self.partitioning_path, 'config.pq')
+            self.executor.submit(json_to_parquet, self.temp_data.name,
+                self.encodings, pa.schema(schema), self.filesystem, outfile)
+            self.temp_data = tempfile.NamedTemporaryFile(delete=False)
             return
         # Currently we only support running a single cell per Engine
         # Use EcoliEngineProcess for colony simulations (Engine per cell)
@@ -384,55 +314,21 @@ class ParquetEmitter(Emitter):
                 agent_data, option=orjson.OPT_SERIALIZE_NUMPY,
                 default=self.fallback_serializer)
             self.temp_data.write(agent_data_str)
-            agent_data = orjson.loads(agent_data_str)
             self.temp_data.write('\n'.encode('utf-8'))
             new_keys = set(agent_data) - set(self.schema.names)
             if len(new_keys) > 0:
-                new_schema = []
+                agent_data = orjson.loads(agent_data_str)
                 for k in new_keys:
                     pa_type, encoding, field_name = get_encoding(
                         agent_data[k], k, k in USE_UINT16, k in USE_UINT32)
                     if encoding is not None:
                         self.encodings[field_name] = encoding
                     self.schema = self.schema.append(pa.field(k, pa_type))
-                out_uri = os.path.join(self.out_uri, data['table'],
-                                       self.partitioning_path)
-                # Replace previous schema and options to include new fields
-                self.temp_schema.close()
-                self.temp_encodings.close()
-                self.temp_schema = open(self.temp_schema.name, 'w+b')
-                self.temp_encodings = open(self.temp_encodings.name, 'w+b')
-                self.temp_encodings.write(orjson.dumps(self.encodings))
-                pq.write_metadata(self.schema, self.temp_schema.name)
         self.num_emits += 1
         if self.num_emits % self.batch_size == 0:
             self.temp_data.close()
-            self.temp_data = open(os.path.join(
-                self.temp_dir, f'{self.num_emits}.pq'), 'w+b')
-
-
-def main():
-    """
-    DO NOT run this file directly. Should be called automatically at end of
-    simulation.
-    """
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        '--data', '-d', action='store',
-        help='Path to newline-delimited JSON from simulation.')
-    parser.add_argument(
-        '--schema', '-s', action='store',
-        help='Path to Parquet file containing output schema.')
-    parser.add_argument(
-        '--encodings', '-e', action='store',
-        help='Path to file containing map of column names to encodings')
-    parser.add_argument(
-        '--outuri', '-o', action='store',
-        help='URI of directory to write final Parquet files')
-    args = parser.parse_args()
-    atexit.register(cleanup_files, args.data, args.schema, args.encodings)
-    convert_multithreaded(args.data, args.schema, args.encodings, args.outuri)
-
-
-if __name__ == '__main__':
-    main()
+            outfile = os.path.join(self.outdir, data['table'],
+                self.partitioning_path, f'{self.num_emits}.pq')
+            self.executor.submit(json_to_parquet, self.temp_data.name,
+                self.encodings, self.schema, self.filesystem, outfile)
+            self.temp_data = tempfile.NamedTemporaryFile(delete=False)
