@@ -2,12 +2,13 @@ import atexit
 import os
 import pathlib
 import tempfile
+from urllib.parse import urlparse
 from concurrent.futures import ThreadPoolExecutor
 from typing import Any, Mapping, Union
 
 import orjson
+import polars as pl
 import pyarrow as pa
-from pyarrow import dataset as ds
 from pyarrow import fs
 from pyarrow import json as pj
 from pyarrow import parquet as pq
@@ -73,76 +74,42 @@ def json_to_parquet(ndjson: str, encodings: dict[str, str],
     pathlib.Path(ndjson).unlink()
 
 
-def get_datasets(out_dir: Union[str, pathlib.Path]=None,
-                 out_uri: str=None, unify_schemas: bool=False
-                 ) -> tuple[ds.Dataset, ds.Dataset]:
+def get_lazyframes(out_dir: Union[str, pathlib.Path]=None, out_uri: str=None
+                   ) -> tuple[pl.LazyFrame, pl.LazyFrame]:
     """
-    PyArrow currently reads and uses the schema of one Parquet file at
-    random for the entire dataset. If fields are present in other files that
-    do not appear in the chosen file, they will not be found. This function
-    offers a flag to scan all Parquet files and unify their schemas (can be
-    slow for massive datasets). For better performance, if you know exactly
-    what fields and types you would like to access, you can manually ensure
-    they are included as follows::
-
-        from ecoli.library.parquet_emitter import get_datasets
-        # Do not set unify_schemas flag to True
-        history_ds, config_ds = get_datasets(out_dir)
-        # Create schema for new field(s) of interest
-        new_fields = pa.schema([
-            # new_field_1 contains variable-length lists of integers
-            ('new_field_1', pa.list_(pa.int64())),
-            # new_field_2 contains 64-bit floats
-            ('new_field_2', pa.float64()),
-            # Almost always want to include the following for filtering
-            ('experiment_id', pa.string()),
-            ('variant', pa.string()),
-            ('seed', pa.int64()),
-            ('generation', pa.int64()),
-            ('agent_id', pa.string())
-        ])
-        # Load dataset with new unified schema
-        history_ds = history_ds.replace_schema(pa.unify_schemas([
-            history_ds.schema, new_fields
-        ]))
+    Return Polars LazyFrames for all sim configs and sim outputs in a folder.
 
     Args:
         out_dir: Relative or absolute path to local directory containing
-            ``history`` and ``configuration`` datasets
-        out_uri: URI of directory with datasets (supersedes ``out_dir``)
-        unify_schemas: Whether to scan all Parquet files and unify schemas
+            ``history`` and ``configuration`` subdirectories
+        out_uri: URI equivalent of ``out_dir`` (takes precedence)
     
     Returns:
-        Tuple ``(configuration dataset, history dataset)``.
+        Tuple ``(sim config LazyFrame, sim output LazyFrame)``.
     """
     if out_uri is None:
         out_uri = pathlib.Path(out_dir).resolve().as_uri()
+    scheme = urlparse(out_uri).scheme
     filesystem, outdir = fs.FileSystem.from_uri(out_uri)
-    partitioning_schema = pa.schema([
-        ('experiment_id', pa.string()),
-        ('variant', pa.string()),
-        ('seed', pa.int64()),
-        ('generation', pa.int64()),
-        ('agent_id', pa.string())
-    ])
-    partitioning = ds.partitioning(partitioning_schema, flavor='hive')
-    history = ds.dataset(os.path.join(outdir, 'history'),
-                         partitioning=partitioning, filesystem=filesystem)
-    config = ds.dataset(os.path.join(outdir, 'configuration'),
-                        partitioning=partitioning, filesystem=filesystem)
-    if unify_schemas:
-        history_schema = pa.unify_schemas((
-            pq.read_schema(f, filesystem=filesystem)
-            for f in history.files), promote_options='permissive')
-        history_schema = pa.unify_schemas([history.schema, history_schema],
-                                          promote_options='permissive')
-        history = history.replace_schema(history_schema)
-        config_schema = pa.unify_schemas((
-            pq.read_schema(f, filesystem=filesystem)
-            for f in config.files), promote_options='permissive')
-        config_schema = pa.unify_schemas([config.schema, config_schema],
-                                          promote_options='permissive')
-        config = config.replace_schema(config_schema)
+    history_dir = os.path.join(outdir, 'history')
+    config_dir = os.path.join(outdir, 'configuration')
+    schema = {
+        'experiment_id': pl.String(),
+        'variant': pl.String(),
+        'seed': pl.Int64(),
+        'generation': pl.Int64(),
+        'agent_id': pl.String()
+    }
+    history_frames = (pl.scan_parquet(f'{scheme}://{f.path}',
+        hive_schema=schema) for f in filesystem.get_file_info(
+            fs.FileSelector(history_dir, recursive=True))
+        if f.extension=='pq')
+    history = pl.concat(history_frames, how='diagonal')
+    config_frames = (pl.scan_parquet(f'{scheme}://{f.path}',
+        hive_schema=schema) for f in filesystem.get_file_info(
+            fs.FileSelector(config_dir, recursive=True))
+        if f.extension=='pq')
+    config = pl.concat(config_frames, how='diagonal')
     return config, history
 
 
@@ -152,7 +119,8 @@ def get_encoding(val: Any, field_name: str, use_uint16: bool=False,
     Get optimal PyArrow type and Parquet encoding for input value.
     """
     if isinstance(val, float):
-        return pa.float64(), 'BYTE_STREAM_SPLIT', field_name
+        # Polars does not support BYTE_STREAM_SPLIT yet
+        return pa.float64(), 'PLAIN', field_name
     elif isinstance(val, bool):
         return pa.bool_(), 'RLE', field_name
     elif isinstance(val, int):
