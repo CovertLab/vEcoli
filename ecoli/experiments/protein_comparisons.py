@@ -51,7 +51,7 @@ def run_ecoli_with_metabolism_redux(
     # save_sim_output(folder, query, sim, save_model=True)
 
 # disables growth rate control
-def validation_experiment(
+def run_ecoli_with_metabolism_redux_classic(
         filename='metabolism_redux_classic',
         total_time=1300,
         divide=True,
@@ -59,7 +59,7 @@ def validation_experiment(
         progress_bar=True,
         log_updates=False,
         emitter='timeseries', # 'timeseries',
-        name='validation_experiment',
+        name='metabolism-redux-classic-rich',
         raw_output=False,
         # to make a sim with minimal media conditions, use basal and minimal
         # to make a sim with rich media conditions, use with_aa and minimal_plus_amino_acids
@@ -82,6 +82,15 @@ def validation_experiment(
     sim.fixed_media = fixed_media
 
     sim.seed = 12
+
+
+    # # simplify working with uptake
+    # sim.initial_state['environment']['exchange_data']['constrained'] = {}
+    # sim.initial_state['environment']['exchange_data']['unconstrained'].add('GLC[p]')
+    #
+    # # in sim.initial_state['environment']['exchange_data']['unconstrained'], edit the set of molecules to be exchanged
+    # sim.initial_state['environment']['exchange_data']['unconstrained'].remove('GLC[p]')
+    # sim.initial_state['environment']['exchange_data']['unconstrained'].add('FRU[p]')
 
     # this means that sims will not create conflicting random indices when loading from saved state
     # if initial_state_file == 'wcecoli_t0':
