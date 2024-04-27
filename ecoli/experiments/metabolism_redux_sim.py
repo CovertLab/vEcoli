@@ -53,7 +53,7 @@ def run_ecoli_with_metabolism_redux(
 # disables growth rate control
 def run_ecoli_with_metabolism_redux_classic(
         filename='metabolism_redux_classic',
-        total_time=1300,
+        total_time=10,
         divide=True,
         # initial_state_file='wcecoli_t0', # 'met_division_test_state',
         progress_bar=True,
@@ -62,7 +62,7 @@ def run_ecoli_with_metabolism_redux_classic(
         name='metabolism-redux-classic-rich',
         raw_output=False,
         save=True,
-        save_times=[1, 200, 400, 1300],
+        save_times=[1],
         condition = "with_aa", # basal, with_aa
         fixed_media = "minimal_plus_amino_acids" # minimal, minimal_plus_amino_acids
 ):
@@ -82,7 +82,6 @@ def run_ecoli_with_metabolism_redux_classic(
     sim.fixed_media = fixed_media
 
     sim.seed = 12
-
 
     # # simplify working with uptake
     # sim.initial_state['environment']['exchange_data']['constrained'] = {}
@@ -106,7 +105,7 @@ def run_ecoli_with_metabolism_redux_classic(
     folder = f'out/cofactors/{name}_{total_time}_{datetime.date.today()}/'
     save_sim_output(folder, query, sim, save_model=True)
 
-def run_ecoli_with_metabolism_redux_classic(
+def run_colony(
         filename='metabolism_redux_classic',
         total_time=1500,
         divide=True,
@@ -275,6 +274,7 @@ def run_ecoli_with_default_metabolism(
 experiment_library = {
     '2': run_ecoli_with_metabolism_redux,
     '2a': run_ecoli_with_metabolism_redux_classic,
+    '2b': run_colony,
     '3': test_ecoli_with_metabolism_redux,
     '3a': test_ecoli_with_metabolism_classic,
     '4': test_ecoli_with_metabolism_redux_div,
