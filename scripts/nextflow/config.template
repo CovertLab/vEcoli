@@ -1,34 +1,34 @@
 // Global default params
 params {
     gcpProjectId = 'allen-discovery-center-mcovert'
-    gcpRegion = 'us-central1'
+    gcpRegion = 'us-west1'
     onGcp = false
     onSherlock = false
+    experimentId = 'EXPERIMENT_ID'
 }
 
 profiles {
     gcloud {
         process.memory = { 2.GB * task.attempt }
-        process.cpus = 1
+        process.cpus = 2
         process.executor = 'google-batch'
         process.container = 'IMAGE_NAME'
         google.project = "${params.gcpProjectId}"
         google.location = "${params.gcpRegion}"
         docker.enabled = true
         params.projectRoot = '/vivarium-ecoli'
-        params.publishDir = "${workflow.start}"
+        params.publishDir = "${params.experimentId}"
         params.onGcp = true
     }
     sherlock {
         process.memory = { 2.GB * task.attempt }
-        process.cpus = 1
+        process.cpus = 2
         process.executor = 'slurm'
         process.queue = 'mcovert'
         process.time = { 2.h * task.attempt }
         process.maxRetries = 5
-        singularity.enabled = true
-        params.projectRoot = '/vivarium-ecoli'
-        params.publishDir = '$SCRATCH/out'
+        params.projectRoot = '$(pwd)'
+        params.publishDir = "\$SCRATCH/out/${params.experimentId}"
         params.onSherlock = true
     }
     standard {

@@ -1,6 +1,8 @@
 import argparse
+import datetime
 import os
 import subprocess
+import warnings
 
 from ecoli.composites.ecoli_configs import CONFIG_DIR_PATH
 from ecoli.experiments.ecoli_master_sim import SimConfig
@@ -95,7 +97,7 @@ def generate_lineage(seed: int, n_init_sims: int, generations: int,
                 # Cell 0 has daughters 0 & 1 in next gen, 1 has 2 & 3, etc.
                 parent = SIM_TAG.format(seed=seed, gen=gen-1, cell=cell//2)
                 daughter = 'd1'
-                if cell % 2 == 1 and not single_daughters:
+                if cell % 2 == 1:
                     daughter = 'd2'
                 sim_workflow.append(SIM_FLOW.format(name=name, parent=parent,
                     daughter=daughter, seed=seed+gen+cell, cell=cell))
@@ -106,21 +108,20 @@ def generate_lineage(seed: int, n_init_sims: int, generations: int,
 
     if analysis_config.get('variant', False):
         # Channel that groups all sim tasks
-        sim_workflow.append(VARIANT_CHANNEL.format(
-            size=int(len(all_sim_tasks) / n_init_sims)))
+        sim_workflow.append(VARIANT_CHANNEL)
         sim_workflow.append("\tanalysisVariant(params.config, kb, variantCh)")
         sim_imports.append("include { analysisVariant } from './analysis'")
     
     if analysis_config.get('cohort', False):
         # Channel that groups sim tasks by variant sim_data
-        sim_workflow.append(COHORT_CHANNEL.format(size=len(all_sim_tasks)))
+        sim_workflow.append(COHORT_CHANNEL.format(
+            size=int(len(all_sim_tasks) / n_init_sims)))
         sim_workflow.append("\tanalysisCohort(params.config, kb, cohortCh)")
         sim_imports.append("include { analysisCohort } from './analysis'")
     
     if analysis_config.get('multigen', False):
         # Channel that groups sim tasks by variant sim_data and initial seed
-        sim_workflow.append(MULTIGEN_CHANNEL.format(
-            size=int(len(all_sim_tasks) / n_init_sims)))
+        sim_workflow.append(MULTIGEN_CHANNEL.format(size=generations))
         sim_workflow.append("\tanalysisMultigen(params.config, kb, multigenCh)")
         sim_imports.append("include { analysisMultigen } from './analysis'")
     
@@ -157,8 +158,14 @@ def build_runtime_image(image_name):
 def build_wcm_image(image_name, runtime_image_name):
     build_script = os.path.join(os.path.dirname(__file__),
                                 'container', 'build-wcm.sh')
+    if runtime_image_name is None:
+        warnings.warn('No runtime image name supplied. By default, '
+                      'we build the model image from the runtime '
+                      f'image with name "{os.environ['USER']}-wcm-code." '
+                      'If this is correct, add this under "gcloud" > '
+                      '"runtime_image_name" in your config JSON.')
     subprocess.run([build_script, '-w', image_name,
-                    '-l', runtime_image_name], check=True)
+                    '-r', runtime_image_name], check=True)
 
 
 def main():
@@ -174,32 +181,42 @@ def main():
     config = SimConfig(parser=parser)
     config.update_from_cli()
 
+    experiment_id = config['experiment_id']
+    current_time = datetime.now().strftime("%d-%m-%Y %H:%M:%S")
+    if experiment_id is None:
+        warnings.warn("No experiment ID was provided. Using "
+                      f"current time: {current_time}")
+        experiment_id = current_time
+    elif config['suffix_time']:
+        experiment_id = experiment_id + '_' + current_time
+    
+    nf_config = os.path.join(os.path.dirname(__file__),
+                             'nextflow', 'config.template')
+    with open(nf_config, 'r') as f:
+        nf_config = f.readlines()
+    nf_config = nf_config.replace("EXPERIMENT_ID", experiment_id)
+
     cloud_config = config.get('gcloud', None)
     if cloud_config is not None:
         # Add logic for starting MongoDB VM
-        build_runtime_image = cloud_config.get('build_runtime_image', False)
         runtime_image_name = cloud_config.get('runtime_image_name', None)
-        if build_runtime_image:
+        if cloud_config.get('build_runtime_image', False):
             if runtime_image_name is None:
                 raise RuntimeError('Must supply name for runtime image.')
             build_runtime_image(runtime_image_name)
-        build_wcm_image = cloud_config.get('build_wcm_image', False)
-        wcm_image_name = cloud_config.get('wcm_image_name', None)
-        if wcm_image_name is None:
-            raise RuntimeError('Must supply name for WCM image.')
-        if build_wcm_image:
-            if runtime_image_name is None:
-                raise RuntimeError('Must supply name for runtime image.')
+        if cloud_config.get('build_wcm_image', False):
+            wcm_image_name = cloud_config.get('wcm_image_name', None)
+            if wcm_image_name is None:
+                raise RuntimeError('Must supply name for WCM image.')
             build_wcm_image(wcm_image_name, runtime_image_name)
-        nf_config = os.path.join(os.path.dirname(__file__),
-                                 'nextflow', 'config.template')
-        with open(nf_config, 'r') as f:
-            nf_config = f.readlines()
         nf_config = nf_config.replace("IMAGE_NAME", wcm_image_name)
-        config_path = os.path.join(os.path.dirname(__file__),
-                                   'nextflow', 'nextflow.config')
-        with open(config_path, 'w') as f:
-            f.writelines(nf_config)
+    
+    repo_dir = os.path.dirname(os.path.dirname(__file__))
+    out_dir = os.path.join(repo_dir, 'out', experiment_id)
+    os.makedirs(out_dir, exist_ok=True)
+    config_path = os.path.join(out_dir, 'nextflow.config')
+    with open(config_path, 'w') as f:
+        f.writelines(nf_config)
 
     sim_imports, sim_workflow = generate_code(config)
 
@@ -209,7 +226,8 @@ def main():
     nf_template = ''.join(nf_template)
     nf_template = nf_template.replace("IMPORTS", sim_imports)
     nf_template = nf_template.replace("WORKFLOW", sim_workflow)
-    with open(os.path.join(os.path.dirname(__file__), 'nextflow', 'main.nf'), 'w') as f:
+    workflow_path = os.path.join(out_dir, 'main.nf')
+    with open(workflow_path, 'w') as f:
         f.writelines(nf_template)
 
 

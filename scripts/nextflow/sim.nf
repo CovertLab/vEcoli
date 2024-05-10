@@ -14,11 +14,13 @@ process simGen0 {
     tuple path(sim_data), val(initial_seed), val(generation), emit: nextGen
     path 'daughter_state_0.json', emit: d1
     path 'daughter_state_1.json', emit: d2
-    tuple path(sim_data), val("${sim_data.getBaseName()}"), val(initial_seed), val(generation), val(cell_id), val(0), emit: metadata
+    // This information is necessary to group simulations for analysis scripts
+    // In order: sim_data pickle, variant name, seed, generation, cell_id, experiment ID
+    tuple path(sim_data), val("${sim_data.getBaseName()}"), val(initial_seed), val(generation), val(cell_id), val(params.experimentId), emit: metadata
 
     script:
     """
-    # Create daughter states so workflow can continue
+    # Create empty daughter states so workflow can continue even if sim fails
     touch daughter_state_0.json
     touch daughter_state_1.json
     python ${params.project_root}/ecoli/experiments/ecoli_master_sim.py \
@@ -27,6 +29,7 @@ process simGen0 {
         --daughter_outdir \$(pwd)
     """
 
+    // Used to test workflow
     stub:
     """
     echo "$config $sim_data $initial_seed $generation" > daughter_state_0.json
@@ -51,11 +54,11 @@ process sim {
     tuple path(sim_data), val(initial_seed), val(generation), emit: next_gen
     path 'daughter_state_0.json', emit: d1
     path 'daughter_state_1.json', emit: d2
-    tuple path(sim_data), val("${sim_data.getBaseName()}"), val(initial_seed), val(generation), val(cell_id), val(0), emit: metadata
+    tuple path(sim_data), val("${sim_data.getBaseName()}"), val(initial_seed), val(generation), val(cell_id), val(params.experimentId), emit: metadata
 
     script:
     """
-    # Create daughter states so workflow can continue
+    # Create empty daughter states so workflow can continue even if sim fails
     touch daughter_state_0.json
     touch daughter_state_1.json
     python ${params.project_root}/ecoli/experiments/ecoli_master_sim.py \

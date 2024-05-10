@@ -61,6 +61,9 @@ def parse_variants(variant_config: dict[str, dict[str, Any]]
     operation = None
     if len(variant_config) > 1:
         operation = variant_config.pop('op')
+    elif 'op' in variant_config:
+        raise TypeError('Variant only has a single parameter '
+                        'and should not define op key.')
 
     # Perform pre-processing of parameters
     parsed = {}
