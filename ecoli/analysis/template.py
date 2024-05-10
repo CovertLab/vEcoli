@@ -10,7 +10,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 import polars as pl
 
-from ecoli.library.parquet_emitter import get_lazyframes
 
 METADATA_PREFIX = 'data__output_metadata__'
 """
@@ -113,21 +112,29 @@ def get_field_metadata(config_lf: pl.LazyFrame, field: str) -> pl.Series:
         ).collect()[METADATA_PREFIX + field][0]
 
 
-def analysis_template(config, sim_data_path, validation_data_path):
+def plot(
+    params: dict[str, Any],
+    config_lf: pl.LazyFrame,
+    history_lf: pl.LazyFrame,
+    sim_data_path: str,
+    validation_data_path: str
+):
     """
     Template for analysis function with sample code for common operations.
+    All analysis files should have a function called plot with the same args.
+
+    Args:
+        params: Parameters for analysis from config JSON
+        config_lf: Polars LazyFrame containing configuration data
+        history_lf: Polars LazyFrame containing simulation output
+        sim_data_path: Path to sim_data pickle
+        validation_data_path: Path to validation_data pickle
     """
     # Load sim data, validation data, neither, or both
     with open(sim_data_path, 'rb') as f:
         sim_data = pickle.load(f)
     with open(validation_data_path, 'rb') as f:
         validation_data = pickle.load(f)
-
-    # Load Parquet files from output directory / URI specified in config
-    emitter_config = config['emitter']['config']
-    config_lf, history_lf = get_lazyframes(
-        emitter_config.get('out_dir', None),
-        emitter_config.get('out_uri', None))
 
     # Create filters for the data you want to read
     exp_id_filter = pl.col('experiment_id') == 'some_experiment_id'

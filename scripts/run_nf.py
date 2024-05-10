@@ -22,17 +22,17 @@ ALL_SIM_CHANNEL = """
 """
 MULTIGEN_CHANNEL = """
     simCh
-        .groupTuple(by: [1, 2], size: {size})
+        .groupTuple(by: [2, 3], size: {size})
         .set {{ multigenCh }}
 """
 COHORT_CHANNEL = """
     simCh
-        .groupTuple(by: 1, size: {size})
+        .groupTuple(by: 2, size: {size})
         .set {{ cohortCh }}
 """
 VARIANT_CHANNEL = """
     simCh
-        .groupTuple(by: [5])
+        .groupTuple(by: [1])
         .set {{ variantCh }}
 """
 

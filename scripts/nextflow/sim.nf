@@ -15,8 +15,8 @@ process simGen0 {
     path 'daughter_state_0.json', emit: d1
     path 'daughter_state_1.json', emit: d2
     // This information is necessary to group simulations for analysis scripts
-    // In order: sim_data pickle, variant name, seed, generation, cell_id, experiment ID
-    tuple path(sim_data), val("${sim_data.getBaseName()}"), val(initial_seed), val(generation), val(cell_id), val(params.experimentId), emit: metadata
+    // In order: variant sim_data, experiment ID, variant name, seed, generation, cell_id, experiment ID
+    tuple path(sim_data), val(params.experimentId), val("${sim_data.getBaseName()}"), val(initial_seed), val(generation), val(cell_id), emit: metadata
 
     script:
     """
@@ -54,7 +54,7 @@ process sim {
     tuple path(sim_data), val(initial_seed), val(generation), emit: next_gen
     path 'daughter_state_0.json', emit: d1
     path 'daughter_state_1.json', emit: d2
-    tuple path(sim_data), val("${sim_data.getBaseName()}"), val(initial_seed), val(generation), val(cell_id), val(params.experimentId), emit: metadata
+    tuple path(sim_data), val(params.experimentId), val("${sim_data.getBaseName()}"), val(initial_seed), val(generation), val(cell_id), emit: metadata
 
     script:
     """
