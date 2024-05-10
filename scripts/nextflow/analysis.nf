@@ -4,7 +4,7 @@ process analysisSingle {
     input:
     path config
     path kb
-    tuple path(sim_data, stageAs: 'variant_sim_data_*.cPickle'), val(variant), val(seed), val(generation), val(cell_id), val(workflow_id)
+    tuple path(sim_data, stageAs: 'variant_sim_data_*.cPickle'), val(variant), val(seed), val(generation), val(cell_id), val(experiment_id)
 
     output:
     path 'plots/*'
@@ -31,7 +31,7 @@ process analysisMultigen {
     input:
     path config
     path kb
-    tuple path(sim_data, stageAs: 'variant_sim_data_*.cPickle'), val(variant), val(seed), val(generation), val(cell_id), val(workflow_id)
+    tuple path(sim_data, stageAs: 'variant_sim_data_*.cPickle'), val(variant), val(seed), val(generation), val(cell_id), val(experiment_id)
 
     output:
     path 'plots/*'
@@ -58,7 +58,7 @@ process analysisCohort {
     input:
     path config
     path kb
-    tuple path(sim_data, stageAs: 'variant_sim_data_*.cPickle'), val(variant_name), val(seed), val(generation), val(cell_id), val(workflow_id)
+    tuple path(sim_data, stageAs: 'variant_sim_data_*.cPickle'), val(variant_name), val(seed), val(generation), val(cell_id), val(experiment_id)
 
     output:
     path 'plots/*'
@@ -85,7 +85,7 @@ process analysisVariant {
     input:
     path config
     path kb
-    tuple path(sim_data, stageAs: 'variant_sim_data_*.cPickle'), val(variant_name), val(seed), val(generation), val(cell_id), val(workflow_id)
+    tuple path(sim_data, stageAs: 'variant_sim_data_*.cPickle'), val(variant_name), val(seed), val(generation), val(cell_id), val(experiment_id)
 
     output:
     path 'plots/*'
