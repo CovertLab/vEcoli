@@ -4,7 +4,7 @@ process analysisSingle {
     input:
     path config
     path kb
-    tuple path(sim_data, stageAs: 'variant_sim_data_*.cPickle'), val(variant), val(seed), val(generation), val(cell_id), val(experiment_id)
+    tuple path(sim_data, stageAs: 'variant_sim_data_*.cPickle'), val(experiment_id), val(variant), val(seed), val(generation), val(cell_id)
 
     output:
     path 'plots/*'
@@ -14,7 +14,12 @@ process analysisSingle {
     python ${params.projectRoot}/scripts/run_analysis.py -c $config \
         --sim-data-path=$sim_data \
         --validation-data-path=$kb/validationData.cPickle \
-        --single -o \$(pwd)
+        --experiment_id $experiment_id \
+        --variant $variant \
+        --seed $seed \
+        --generation $generation \ 
+        --cell_id $cell_id \
+        -o \$(pwd)
     """
 
     stub:
@@ -31,7 +36,7 @@ process analysisMultigen {
     input:
     path config
     path kb
-    tuple path(sim_data, stageAs: 'variant_sim_data_*.cPickle'), val(variant), val(seed), val(generation), val(cell_id), val(experiment_id)
+    tuple path(sim_data, stageAs: 'variant_sim_data_*.cPickle'), val(experiment_id), val(variant), val(seed), val(generation), val(cell_id)
 
     output:
     path 'plots/*'
@@ -41,7 +46,10 @@ process analysisMultigen {
     python ${params.projectRoot}/scripts/run_analysis.py -c $config \
         --sim-data-path=$sim_data \
         --validation-data-path=$kb/validationData.cPickle \
-        --multigen -o \$(pwd)
+        --experiment_id $experiment_id \
+        --variant $variant \
+        --seed $seed \
+        -o \$(pwd)
     """
 
     stub:
@@ -58,7 +66,7 @@ process analysisCohort {
     input:
     path config
     path kb
-    tuple path(sim_data, stageAs: 'variant_sim_data_*.cPickle'), val(variant_name), val(seed), val(generation), val(cell_id), val(experiment_id)
+    tuple path(sim_data, stageAs: 'variant_sim_data_*.cPickle'), val(experiment_id), val(variant_name), val(seed), val(generation), val(cell_id)
 
     output:
     path 'plots/*'
@@ -68,7 +76,9 @@ process analysisCohort {
     python ${params.projectRoot}/scripts/run_analysis.py -c $config \
         --sim-data-path=$sim_data \
         --validation-data-path=$kb/validationData.cPickle \
-        --cohort -o \$(pwd)
+        --experiment_id $experiment_id \
+        --variant $variant \
+        -o \$(pwd)
     """
 
     stub:
@@ -85,7 +95,7 @@ process analysisVariant {
     input:
     path config
     path kb
-    tuple path(sim_data, stageAs: 'variant_sim_data_*.cPickle'), val(variant_name), val(seed), val(generation), val(cell_id), val(experiment_id)
+    tuple path(sim_data, stageAs: 'variant_sim_data_*.cPickle'), val(experiment_id), val(variant_name), val(seed), val(generation), val(cell_id)
 
     output:
     path 'plots/*'
@@ -95,7 +105,8 @@ process analysisVariant {
     python ${params.projectRoot}/scripts/run_analysis.py -c $config \
         --sim-data-path=$sim_data \
         --validation-data-path=$kb/validationData.cPickle \
-        --variant -o \$(pwd)
+        --experiment_id $experiment_id \
+        -o \$(pwd)
     """
 
     stub:
