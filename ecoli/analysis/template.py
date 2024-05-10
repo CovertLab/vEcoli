@@ -6,6 +6,7 @@ import pickle
 from itertools import pairwise
 from typing import Any
 
+import matplotlib.pyplot as plt
 import numpy as np
 import polars as pl
 
@@ -24,7 +25,7 @@ def ndlist_to_ndarray(s: pl.Series) -> np.ndarray:
     Convert a series consisting of nested lists with fixed dimensions into
     a Numpy ndarray. This should really only be necessary if you are trying
     to perform linear algebra (e.g. matrix multiplication, dot products).
-    You can likely accomplish most other manipulations with Polars alone.
+    You can accomplish most other manipulations with Polars alone.
     """
     dimensions = [1, len(s)]
     while s.dtype == pl.List:
@@ -38,19 +39,30 @@ def ndidx_to_pl_expr(name: str, idx: list[Any]) -> pl.Expr:
     """
     Returns a Polars expression that evaluates to the equivalent of converting
     the ``name`` column into an ndarray (see :py:func:`~.ndlist_to_ndarray`)
-    and calling ``name_arr[idx]`` (only integer indices or ``":"``). Should
-    really only be used for columns with lists of 2+ dimensions. To select
-    elements from an unnested (1D) list column, prefer :py:func:`~.named_idx`. 
+    and calling ``name_arr[idx]``. Note that, unlike in Numpy, ``idx`` can only
+    contain 1D lists of integer indices (no nesting or bool masks) or ``":"``.
+
+    This function is useful for reducing the amount of data loaded for columns
+    with lists of 2 or more dimensions. For 1D list columns, the ability to
+    individually name indices with :py:func:`~.named_idx` is probably better.
+
+    If more advanced Numpy indexing strategies are required, you can use this
+    function to filter as much as possible, :py:func:`~.ndlist_to_ndarray` to
+    convert to a Numpy ndarray, and proceed with native Numpy indexing. 
 
     Args:
         name: Name of column to recursively index
-        idx: Sequence of indices in order, one for each dimension to index. To
-            get all elements for a dimension, supply the string ``":"``.
-            Here are some examples::
+        idx: To get all elements for a dimension, supply the string ``":"``.
+            Otherwise, only single integers or 1D integer lists of indices are
+            allowed for each dimension. Some examples::
 
                 [0, 1] # First row, second column
                 [[0, 1], 1] # First and second row, second column
                 [0, 1, ":"] # First element of axis 1, second of 2, all of 3
+                # Final example differs between this function and Numpy
+                # This func: 1st and 2nd of axis 1, all of 2, 1st and 2nd of 3
+                # Numpy: Complicated, see Numpy docs on advanced indexing
+                [[0, 1], ":", [0, 1]]
 
     """
     idx = idx.copy().reverse()
@@ -69,7 +81,7 @@ def ndidx_to_pl_expr(name: str, idx: list[Any]) -> pl.Expr:
 
 def named_idx(col: str, names: list[str], idx: list[int]) -> dict[str, pl.Expr]:
     """
-    Returns a mapping of column names to Polars expressions that get
+    Returns a mapping of column names to Polars expressions for
     given indices from each row of a list column.
 
     Args:
@@ -80,12 +92,25 @@ def named_idx(col: str, names: list[str], idx: list[int]) -> dict[str, pl.Expr]:
     
     Returns:
         Dictionary that maps ``{col}__{names[i]}`` to Polars expression for
-        ``idx[i]``th element of each row in ``col``
+        ``idx[i]`` element of each row in ``col``
     """
     return {
         f'{col}__{name}': pl.col('col').list.get(index)
         for name, index in zip(names, idx)
     }
+
+
+def get_field_metadata(config_lf: pl.LazyFrame, field: str) -> pl.Series:
+    """
+    Gets the saved metadata for a given field as a Polars Series.
+
+    Args:
+        config_lf: LazyFrame of configuration data from
+            :py:func:`~ecoli.library.parquet_emitter.get_lazyframes`
+        field: Name of field to get metadata for
+    """
+    return config_lf.select(METADATA_PREFIX + field
+        ).collect()[METADATA_PREFIX + field][0]
 
 
 def analysis_template(config, sim_data_path, validation_data_path):
@@ -109,76 +134,53 @@ def analysis_template(config, sim_data_path, validation_data_path):
     generation_range_filter = pl.col('generation').is_in(list(range(4,8)))
     mass_filter = pl.col('listeners__mass__dry_mass') < 300
     # Filters support logical &, ~, and |
-    # Construct your query step-by-step and call ``collect`` when ready.
     config_lf = config_lf.filter(exp_id_filter & generation_range_filter)
-    history_lf = history_lf.filter(exp_id_filter | mass_filter)
+    history_lf = history_lf.filter(exp_id_filter
+        & generation_range_filter & mass_filter)
 
     # Read values of interest from configs, such as field-specific metadata
     # Say we wanted to get the indices of certain bulk molecules in the
-    # bulk counts array by name for agent_id 01
+    # bulk counts array by name for agent_id ``01``
     molecules_of_interest = ['GUANOSINE-5DP-3DP[c]', 'WATER[c]', 'PROTON[c]']
-    bulk_names = config_lf.select(METADATA_PREFIX + 'bulk'
-        ).collect()[METADATA_PREFIX + 'bulk'][0]
-    indices_of_interest = {}
+    bulk_names = get_field_metadata(config_lf, 'bulk')
+    bulk_idx = {}
     for mol in molecules_of_interest:
-        indices_of_interest[mol] = bulk_names.index(mol)
+        bulk_idx[mol] = bulk_names.index(mol)
 
 
     # Select specific columns to read with a list of column names
     # Column names are just their tuple paths in the simulation Store
     # concatenated with double underscores
-    simple_col_select = ['time', 'experiment_id', 'listeners__mass__cell_mass']
-    # Can also use projection to rename columns, perform scalar operations,
-    # slice/index lists, etc using expressions composed of fields
+    simple_col_select = ['time', 'experiment_id']
+    # Can also use kewword args to rename columns, perform scalar operations,
+    # slice/index lists, and more using expressions
     advanced_col_projection = {
-        'time': ds.field('time'),
-        'experiment_id': ds.field('experiment_id'),
-        'variant': ds.field('variant'),
-        'seed': ds.field('seed'),
-        'generation': ds.field('generation'),
-        'agent_id': ds.field('agent_id'),
-        'cell_mass_picogram': ds.field('listeners__mass__cell_mass') / 1000,
-        'rna_synth_prob': ds.field(
+        'time_since_division': pl.col('time'),
+        'cell_mass_picogram': pl.col('listeners__mass__cell_mass') / 1000,
+        'rna_synth_prob': pl.col(
             'listeners__rna_synth_prob__actual_rna_synth_prob'),
-        'n_bound_TF_per_TU': ds.field(
-            'listeners__rna_synth_prob__n_bound_TF_per_TU'),
-        **{
-            mol: pc.list_element(ds.field('bulk'), idx)
-            for mol, idx in indices_of_interest.items()
-        }
+        **named_idx('bulk', bulk_idx.keys(), bulk_idx.values())
     }
+    history_lf = history_lf.select(simple_col_select, **advanced_col_projection)
 
-    # Retrieve data with projections/column selections/filters
-    # NOTE: Use the same variable name where possible so Python can free
-    # memory automatically. For example, converting an Arrow table to a Pandas
-    # DataFrame involves a copy, after which the Arrow table will be
-    # automatically freed as long as there are no variables referencing it.
-    # NOTE: We have to sort the table to guarantee the order
-    data = history_ds.to_table(columns=advanced_col_projection,
-        ).sort_by([('experiment_id', 'ascending'), ('variant', 'ascending'),
-                   ('seed', 'ascending'), ('generation', 'ascending'), 
-                   ('agent_id', 'ascending'), ('time', 'ascending')])
+    # NOTE: Must explicitly sort by ``time`` column or rows may be out of order
+    history_lf = history_lf.sort('time')
+
+    # When satisfied with your query, call ``collect`` on your LazyFrame
+    history_df = history_lf.collect()
     
-    # PyArrow offers many functions for manipulating tables and columns.
-    # Refer to the documentation for pyarrow.compute and pyarrow.Table.
-    # PyArrow tables can also be converted into Pandas DataFrames and columns
-    # can be converted into Numpy arrays.
-    # NOTE: PyArrow columns of lists (e.g. RNA synthesis probabilities, etc)
-    # are converted into Pandas object columns or Numpy object arrays with each
-    # element being a Numpy array. For lists that always have a fixed size,
-    # we usually would prefer if these columns were converted into ndarrays.
-    # This can be done as shown below.
-    rna_synth_prob = data['rna_synth_prob'].chunks[0].flatten().to_numpy(
-        ).reshape(-1, len(data['rna_synth_prob'][0]))
-    # For lists with 2-D arrays for each element, call flatten twice and add
-    # the extra dimension when reshaping
-    n_bound_TF_per_TU = data['n_bound_TF_per_TU'].chunks[0].flatten().flatten(
-        ).to_numpy().reshape(
-            -1,
-            len(data['n_bound_TF_per_TU'][0]),
-            len(data['n_bound_TF_per_TU'][0][0]))
+    # Polars offers many tools to filter, join, and transform data
+    # Check their documentation to see if they have a function to
+    # do what you want before converting to a Numpy array / Pandas DF
+    rna_synth_prob = ndlist_to_ndarray(history_df['rna_synth_prob'])
     # Leverage the 2-D array to perform vectorized operations
     cistron_tu_mat = sim_data.process.transcription.cistron_tu_mapping_matrix
     rna_synth_prob_per_cistron = cistron_tu_mat.dot(rna_synth_prob.T).T
 
-    # Now you can use matplotlib as usual
+    # Now you can use matplotlib as usual or, if you kept your data
+    # in a Polars dataframe, use their plotting capabilities
+    # Anything saved inside the "plot" folder (relative path, do
+    # not try to turn this into an absolute path) will be picked up
+    # by Nextflow and saved into the output folder
+    plt.plot(history_df['time'], rna_synth_prob_per_cistron[0])
+    plt.savefig('plot/test.svg')
