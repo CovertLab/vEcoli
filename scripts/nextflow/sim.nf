@@ -1,7 +1,7 @@
 process simGen0 {
     publishDir path: "${params.publishDir}/${params.experimentId}/daughter_states/variant=${sim_data.getBaseName()}/seed=${initial_seed}/generation=${generation}/daughter=${cell_id}",  pattern: "*.json"
 
-    errorStrategy { (task.attempt <= process.maxRetries) ? 'retry' : 'ignore' }
+    errorStrategy { (task.attempt <= maxRetries) ? 'retry' : 'ignore' }
 
     tag "${sim_data.getBaseName()}"
 
@@ -44,7 +44,7 @@ process simGen0 {
 process sim {
     publishDir path: "${params.publishDir}/${params.experimentId}/daughter_states/variant=${sim_data.getBaseName()}/seed=${initial_seed}/generation=${generation}/daughter=${cell_id}",  pattern: "*.json"
 
-    errorStrategy { (task.attempt <= process.maxRetries) ? 'retry' : 'ignore' }
+    errorStrategy { (task.attempt <= maxRetries) ? 'retry' : 'ignore' }
 
     tag "${sim_data.getBaseName()}"
 
