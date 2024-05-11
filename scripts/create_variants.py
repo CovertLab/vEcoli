@@ -136,10 +136,9 @@ def apply_and_save_variants(sim_data: 'SimulationDataEcoli',
     variant_func = VARIANT_REGISTRY[variant_name]
     variant_metadata = {}
     for i, params in enumerate(param_dicts):
-        outname = f'{variant_name}_{i}'
-        variant_metadata[outname] = params
+        variant_metadata[i] = params
         variant_sim_data = variant_func(sim_data, params)
-        outpath = os.path.join(outdir, f'{outname}.cPickle')
+        outpath = os.path.join(outdir, f'{i}.cPickle')
         with open(outpath, 'wb') as f:
             pickle.dump(variant_sim_data, f)
     with open(os.path.join(outdir, 'metadata.json'), 'w') as f:
@@ -164,14 +163,14 @@ def test_parse_variants():
     }
     parsed_params = parse_variants(variant_config)
     assert set(parsed_params) == {
-        {"a": 1, "b": "one", "c": {"d": 3, "e": 5.0}},
-        {"a": 1, "b": "one", "c": {"d": 4, "e": 6.0}},
-        {"a": 1, "b": "two", "c": {"d": 3, "e": 5.0}},
-        {"a": 1, "b": "two", "c": {"d": 4, "e": 6.0}},
-        {"a": 2, "b": "one", "c": {"d": 3, "e": 5.0}},
-        {"a": 2, "b": "one", "c": {"d": 4, "e": 6.0}},
-        {"a": 2, "b": "two", "c": {"d": 3, "e": 5.0}},
-        {"a": 2, "b": "two", "c": {"d": 4, "e": 6.0}}
+        {"a": 1, "b": "one", "c": {"d": 3, "e": 5}},
+        {"a": 1, "b": "one", "c": {"d": 4, "e": 6}},
+        {"a": 1, "b": "two", "c": {"d": 3, "e": 5}},
+        {"a": 1, "b": "two", "c": {"d": 4, "e": 6}},
+        {"a": 2, "b": "one", "c": {"d": 3, "e": 5}},
+        {"a": 2, "b": "one", "c": {"d": 4, "e": 6}},
+        {"a": 2, "b": "two", "c": {"d": 3, "e": 5}},
+        {"a": 2, "b": "two", "c": {"d": 4, "e": 6}}
     }
 
 class SimData():

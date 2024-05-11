@@ -24,7 +24,7 @@
 
     "variants": {},
     "n_init_sims": 1,
-    "generations": 0,
+    "generations": 1,
     "single_daughters": true,
     "daughter_outdir": "out",
 
@@ -45,11 +45,13 @@
     },
 
     "analysis_options": {
-        "single": {"a": {"arg_1": 1}},
-        "cohort": {"b": {"arg_1": 1}},
-        "multigen": {"c": {"arg_1": 1}},
-        "variant": {"d": {"arg_1": 1}},
-        "parca": {"e": {"arg_1": 1}}
+        "single": {"test_single": {"arg_1": 1}},
+        "multicell": {"test_multicell": {"arg_1": 1}},
+        "multigeneration": {"test_multigeneration": {"arg_1": 1}},
+        "multiseed": {"test_multiseed": {"arg_1": 1}},
+        "multivariant": {"test_multivariant": {"arg_1": 1}},
+        "multiexperiment": {"test_multiexperiment": {"arg_1": 1}},
+        "parca": {"test_parca": {"arg_1": 1}}
     },
 
     "gcloud": null,

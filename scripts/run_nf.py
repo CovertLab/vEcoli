@@ -1,5 +1,5 @@
 import argparse
-import datetime
+from datetime import datetime
 import os
 import subprocess
 import warnings
@@ -20,20 +20,25 @@ ALL_SIM_CHANNEL = """
         .mix({other_tasks})
         .set {{ simCh }}
 """
-MULTIGEN_CHANNEL = """
+MULTICELL_CHANNEL = """
+    simCh
+        .groupTuple(by: [2, 3, 4], size: {size})
+        .set {{ multiCellCh }}
+"""
+MULTIGENERATION_CHANNEL = """
     simCh
         .groupTuple(by: [2, 3], size: {size})
-        .set {{ multigenCh }}
+        .set {{ multiGenerationCh }}
 """
-COHORT_CHANNEL = """
+MULTISEED_CHANNEL = """
     simCh
         .groupTuple(by: 2, size: {size})
-        .set {{ cohortCh }}
+        .set {{ multiSeedCh }}
 """
-VARIANT_CHANNEL = """
+MULTIVARIANT_CHANNEL = """
     simCh
-        .groupTuple(by: [1])
-        .set {{ variantCh }}
+        .groupTuple(by: 1)
+        .set {{ multiVariantCh }}
 """
 
 
@@ -106,24 +111,31 @@ def generate_lineage(seed: int, n_init_sims: int, generations: int,
     sim_workflow.append(ALL_SIM_CHANNEL.format(task_one=all_sim_tasks[0],
         other_tasks=', '.join(all_sim_tasks[1:])))
 
-    if analysis_config.get('variant', False):
+    if analysis_config.get('multivariant', False):
         # Channel that groups all sim tasks
-        sim_workflow.append(VARIANT_CHANNEL)
-        sim_workflow.append("\tanalysisVariant(params.config, kb, variantCh)")
-        sim_imports.append("include { analysisVariant } from './analysis'")
+        sim_workflow.append(MULTIVARIANT_CHANNEL)
+        sim_workflow.append("\tanalysisMultivariant(params.config, kb, multiVariantCh)")
+        sim_imports.append("include { analysisMultivariant } from './analysis'")
     
-    if analysis_config.get('cohort', False):
+    if analysis_config.get('multiseed', False):
         # Channel that groups sim tasks by variant sim_data
-        sim_workflow.append(COHORT_CHANNEL.format(
+        sim_workflow.append(MULTISEED_CHANNEL.format(
             size=int(len(all_sim_tasks) / n_init_sims)))
-        sim_workflow.append("\tanalysisCohort(params.config, kb, cohortCh)")
-        sim_imports.append("include { analysisCohort } from './analysis'")
+        sim_workflow.append("\tanalysisMultiseed(params.config, kb, multiSeedCh)")
+        sim_imports.append("include { analysisMultiseed } from './analysis'")
     
-    if analysis_config.get('multigen', False):
+    if analysis_config.get('multigeneration', False):
         # Channel that groups sim tasks by variant sim_data and initial seed
-        sim_workflow.append(MULTIGEN_CHANNEL.format(size=generations))
-        sim_workflow.append("\tanalysisMultigen(params.config, kb, multigenCh)")
-        sim_imports.append("include { analysisMultigen } from './analysis'")
+        sim_workflow.append(MULTIGENERATION_CHANNEL.format(size=generations))
+        sim_workflow.append("\tanalysisMultigeneration(params.config, kb, multiGenerationCh)")
+        sim_imports.append("include { analysisMultigeneration } from './analysis'")
+
+    if analysis_config.get('multicell', False):
+        # Channel that groups sim tasks by variant sim_data, initial seed, and generation
+        size = 1 if single_daughters else 2
+        sim_workflow.append(MULTICELL_CHANNEL.format(size=size))
+        sim_workflow.append("\tanalysisMulticell(params.config, kb, multiCellCh)")
+        sim_imports.append("include { analysisMulticell } from './analysis'")
     
     if analysis_config.get('single', False):
         sim_workflow.append("\tanalysisSingle(params.config, kb, simCh)")
@@ -161,7 +173,7 @@ def build_wcm_image(image_name, runtime_image_name):
     if runtime_image_name is None:
         warnings.warn('No runtime image name supplied. By default, '
                       'we build the model image from the runtime '
-                      f'image with name "{os.environ['USER']}-wcm-code." '
+                      'image with name ' + os.environ['USER'] + '-wcm-code." '
                       'If this is correct, add this under "gcloud" > '
                       '"runtime_image_name" in your config JSON.')
     subprocess.run([build_script, '-w', image_name,
@@ -194,6 +206,7 @@ def main():
                              'nextflow', 'config.template')
     with open(nf_config, 'r') as f:
         nf_config = f.readlines()
+    nf_config = "".join(nf_config)
     nf_config = nf_config.replace("EXPERIMENT_ID", experiment_id)
 
     cloud_config = config.get('gcloud', None)
