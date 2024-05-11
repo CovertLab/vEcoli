@@ -39,6 +39,7 @@ import pandas as pd
 from scipy.constants import N_A
 from scipy.stats import spearmanr
 import seaborn as sns
+from typing import Any
 from vivarium.library.dict_utils import deep_merge
 
 from ecoli.analysis.antibiotics_colony import (COUNTS_PER_FL_TO_NANOMOLAR,
@@ -47,7 +48,8 @@ from ecoli.analysis.antibiotics_colony import (COUNTS_PER_FL_TO_NANOMOLAR,
                                                restrict_data)
 from ecoli.analysis.antibiotics_colony.exploration import (
     plot_exp_growth_rate, plot_ampc_phylo)
-from ecoli.analysis.antibiotics_colony.timeseries import (plot_field_snapshots,
+from ecoli.analysis.antibiotics_colony.timeseries import (make_tag_video,
+                                                          plot_field_snapshots,
                                                           plot_tag_snapshots,
                                                           plot_timeseries)
 from ecoli.analysis.antibiotics_colony.validation import (
@@ -138,7 +140,7 @@ def make_figure_s3a(data, metadata):
     ax.spines.top.set_visible(False)
     plt.tight_layout()
     os.makedirs('out/analysis/paper_figures/', exist_ok=True)
-    plt.savefig(f'out/analysis/paper_figures/fig_s3a_doubling_time.svg',
+    plt.savefig('out/analysis/paper_figures/fig_s3a_doubling_time.svg',
         bbox_inches='tight')
     plt.close()
     print('Done with Figure S3A.')
@@ -780,7 +782,7 @@ def make_figure_s7(data, metadata):
     ax.set_ylabel('Increase in cyto. tet. (\u03BCM)')
     plt.tight_layout()
     sns.despine(ax=ax, trim=True, offset=3)
-    plt.savefig(f'out/analysis/paper_figures/fig_s7b_tet_conc_cyto.svg',
+    plt.savefig('out/analysis/paper_figures/fig_s7b_tet_conc_cyto.svg',
         bbox_inches='tight')
     plt.close()
 
@@ -1007,12 +1009,23 @@ def make_figure_s10(data, metadata):
     print('Done with Figure S10.')
 
 
+def make_figure_videos(data: pd.DataFrame, metadata: dict[str, Any]):
+    """
+    One-off video of sub-generational ampC expression and cell death at MIC.
+    """
+    data['AmpC monomer (\u03BCM)'] = data['AmpC monomer'] / (
+        data.loc[:, 'Volume'] * 0.2) * COUNTS_PER_FL_TO_NANOMOLAR / 1000
+    make_tag_video(
+        data=data, metadata=metadata, tag_colors={'AmpC monomer (\u03BCM)': (0.6, 1, 1)},
+        out_prefix='ampicillin_2mg_L')
+
+
 def load_exp_data(experiment_ids):
     data = []
     metadata = {}
     for exp_id in experiment_ids:
         exp_data = pd.read_csv(f'data/colony_data/sim_dfs/{exp_id}.csv',
-            dtype={'Agent ID': str, 'Seed': str}, index_col=0)
+            dtype={'Agent ID': str, 'Seed': int}, index_col=0)
         if exp_data.loc[:, 'Dry mass'].iloc[-1]==0:
             exp_data = exp_data.iloc[:-1, :]
         data.append(exp_data)
@@ -1096,7 +1109,7 @@ def main():
         '4n': ['Ampicillin (0.5 mg/L)', 'Ampicillin (1 mg/L)',
             'Ampicillin (1.5 mg/L)', 'Ampicillin (2 mg/L)',
             'Ampicillin (4 mg/L)'],
-        '4e': ['Glucose', 'Ampicillin (2 mg/L)']
+        'videos': ['Ampicillin (2 mg/L)']
     }
     seeds = {
         '1a': [10000],
@@ -1118,6 +1131,7 @@ def main():
         '4c': [0],
         '4m': [0],
         '4n': [0],
+        'videos': [0],
     }
 
     parser = argparse.ArgumentParser()
