@@ -1,15 +1,30 @@
 import argparse
-from datetime import datetime
+import json
 import os
 import subprocess
 import warnings
+from datetime import datetime
 
-from ecoli.composites.ecoli_configs import CONFIG_DIR_PATH
-from ecoli.experiments.ecoli_master_sim import SimConfig
+CONFIG_DIR_PATH = os.path.join(
+    os.path.dirname(
+        os.path.dirname(
+            os.path.abspath(__file__)
+        )
+    ),
+    'ecoli',
+    'composites',
+    'ecoli_configs',
+)
+NEXTFLOW_DIR = os.path.join(
+    os.path.dirname(
+        os.path.abspath(__file__)
+    ),
+    'nextflow'
+)
 
 SIM_TAG = "Seed{seed}Gen{gen}Cell{cell}"
-SIM_GEN_0_INC = "include {{ simGen0 as sim{name} }} from './sim'"
-SIM_INC = "include {{ sim as sim{name} }} from './sim'"
+SIM_GEN_0_INC = "include {{ simGen0 as sim{name} }} from '{nf_dir}/sim'"
+SIM_INC = "include {{ sim as sim{name} }} from '{nf_dir}/sim'"
 SIM_GEN_0_FLOW = ("\tsim{name}(params.config, "
     "variantCh.combine([{seed}]).combine([0]), {seed}, 0)")
 SIM_FLOW = ("\tsim{name}(sim{parent}.out.config, sim{parent}.out.nextGen, "
@@ -94,11 +109,11 @@ def generate_lineage(seed: int, n_init_sims: int, generations: int,
                 
                 # Handle special case of 1st generation
                 if gen == 0:
-                    sim_imports.append(SIM_GEN_0_INC.format(name=name))
+                    sim_imports.append(SIM_GEN_0_INC.format(name=name, nf_dir=NEXTFLOW_DIR))
                     sim_workflow.append(SIM_GEN_0_FLOW.format(name=name, seed=seed))
                     continue
                 
-                sim_imports.append(SIM_INC.format(name=name))
+                sim_imports.append(SIM_INC.format(name=name, nf_dir=NEXTFLOW_DIR))
                 # Cell 0 has daughters 0 & 1 in next gen, 1 has 2 & 3, etc.
                 parent = SIM_TAG.format(seed=seed, gen=gen-1, cell=cell//2)
                 daughter = 'd1'
@@ -115,31 +130,33 @@ def generate_lineage(seed: int, n_init_sims: int, generations: int,
         # Channel that groups all sim tasks
         sim_workflow.append(MULTIVARIANT_CHANNEL)
         sim_workflow.append("\tanalysisMultivariant(params.config, kb, multiVariantCh)")
-        sim_imports.append("include { analysisMultivariant } from './analysis'")
+        sim_imports.append(f"include {{ analysisMultivariant }} from '{NEXTFLOW_DIR}/analysis'")
     
     if analysis_config.get('multiseed', False):
         # Channel that groups sim tasks by variant sim_data
         sim_workflow.append(MULTISEED_CHANNEL.format(
             size=int(len(all_sim_tasks) / n_init_sims)))
         sim_workflow.append("\tanalysisMultiseed(params.config, kb, multiSeedCh)")
-        sim_imports.append("include { analysisMultiseed } from './analysis'")
+        sim_imports.append(f"include {{ analysisMultiseed }} from '{NEXTFLOW_DIR}/analysis'")
     
     if analysis_config.get('multigeneration', False):
         # Channel that groups sim tasks by variant sim_data and initial seed
-        sim_workflow.append(MULTIGENERATION_CHANNEL.format(size=generations))
+        num_daughters = 1 if single_daughters else 2
+        sim_workflow.append(MULTIGENERATION_CHANNEL.format(
+            size=generations * num_daughters))
         sim_workflow.append("\tanalysisMultigeneration(params.config, kb, multiGenerationCh)")
-        sim_imports.append("include { analysisMultigeneration } from './analysis'")
+        sim_imports.append(f"include {{ analysisMultigeneration }} from '{NEXTFLOW_DIR}/analysis'")
 
     if analysis_config.get('multicell', False):
         # Channel that groups sim tasks by variant sim_data, initial seed, and generation
         size = 1 if single_daughters else 2
         sim_workflow.append(MULTICELL_CHANNEL.format(size=size))
         sim_workflow.append("\tanalysisMulticell(params.config, kb, multiCellCh)")
-        sim_imports.append("include { analysisMulticell } from './analysis'")
+        sim_imports.append(f"include {{ analysisMulticell }} from '{NEXTFLOW_DIR}/analysis'")
     
     if analysis_config.get('single', False):
         sim_workflow.append("\tanalysisSingle(params.config, kb, simCh)")
-        sim_imports.append("include { analysisSingle } from './analysis'")
+        sim_imports.append(f"include {{ analysisSingle }} from '{NEXTFLOW_DIR}/analysis'")
     
     if analysis_config.get('parca', False):
         sim_workflow.append("\tanalysisParca(params.config, kb)")
@@ -182,16 +199,21 @@ def build_wcm_image(image_name, runtime_image_name):
 
 def main():
     parser = argparse.ArgumentParser()
-    default_config = os.path.join(CONFIG_DIR_PATH, 'default.json')
+    config_file = os.path.join(CONFIG_DIR_PATH, 'default.json')
     parser.add_argument(
         '--config', action='store',
-        default=default_config,
+        default=config_file,
         help=(
             'Path to configuration file for the simulation. '
             'All key-value pairs in this file will be applied on top '
-            f'of the options defined in {default_config}.'))
-    config = SimConfig(parser=parser)
-    config.update_from_cli()
+            f'of the options defined in {config_file}.'))
+    args = parser.parse_args()
+    with open(config_file, 'r') as f:
+        config = json.load(f)
+    if args.config is not None:
+        config_file = args.config
+        with open(os.path.join(CONFIG_DIR_PATH, args.config), 'r') as f:
+            config = {**config, **json.load(f)}
 
     experiment_id = config['experiment_id']
     current_time = datetime.now().strftime("%d-%m-%Y %H:%M:%S")
@@ -208,6 +230,7 @@ def main():
         nf_config = f.readlines()
     nf_config = "".join(nf_config)
     nf_config = nf_config.replace("EXPERIMENT_ID", experiment_id)
+    nf_config = nf_config.replace("CONFIG_FILE", config_file)
 
     cloud_config = config.get('gcloud', None)
     if cloud_config is not None:

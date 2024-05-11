@@ -1,6 +1,6 @@
 process runParca {
     // Run ParCa using parca_options from config JSON
-    publishDir "${params.publishDir}/parca"
+    publishDir "${params.publishDir}/${params.experimentId}/parca"
 
     input:
     path config
@@ -10,7 +10,7 @@ process runParca {
 
     script:
     """
-    python ${params.projectRoot}/scripts/run_parca.py -c $config -o \$(pwd)
+    PYTHONPATH=${params.projectRoot} python ${params.projectRoot}/scripts/run_parca.py --config $config -o \$(pwd)
     """
 
     stub:
@@ -24,18 +24,18 @@ process runParca {
 }
 
 process analysisParca {
-    publishDir "${params.publishDir}/parca/analysis"
+    publishDir "${params.publishDir}/${params.experimentId}/parca/analysis"
 
     input:
     path config
     path kb
 
     output:
-    path 'plots/*'
+    path '*'
 
     script:
     """
-    python ${params.project_root}/scripts/run_analysis.py -c $config \
+    PYTHONPATH=${params.projectRoot} python ${params.projectRoot}/scripts/run_analysis.py -c $config \
         --sim-data-path=$kb/simData.cPickle \
         --validation-data-path=$kb/validationData.cPickle \
         -o \$(pwd)
@@ -50,7 +50,7 @@ process analysisParca {
 
 process createVariants {
     // Parse variants in config JSON to generate variants
-    publishDir "${params.publishDir}/variant_sim_data"
+    publishDir "${params.publishDir}/${params.experimentId}/variant_sim_data"
 
     input:
     path config
@@ -62,9 +62,8 @@ process createVariants {
 
     script:
     """
-    python ${params.projectRoot}/scripts/create_variants.py \
+    PYTHONPATH=${params.projectRoot} python ${params.projectRoot}/scripts/create_variants.py \
         -c $config --kb $kb -o \$(pwd)
-    cp $kb/simData.cPickle baseline.cPickle
     """
 
     stub:

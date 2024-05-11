@@ -37,7 +37,7 @@
         "remove_rrna_operons": false,
         "remove_rrff": false,
         "debug_parca": false,
-        "load_intermediate": false,
+        "load_intermediate": null,
         "save_intermediates": false,
         "intermediates_directory": "",
         "variable_elongation_transcription": true,

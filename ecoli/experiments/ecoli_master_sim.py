@@ -222,7 +222,7 @@ class SimConfig:
                 "--agent_id", action="store", type=str,
                 help="Agent ID.")
             self.parser.add_argument(
-                '--sim_data_path', nargs="*", default=None,
+                '--sim_data_path', default=None,
                 help="Path to the sim_data to use for this experiment.")
             self.parser.add_argument(
                 '--parallel', action='store_true', default=False,
@@ -238,6 +238,10 @@ class SimConfig:
                 '--initial_state_overrides', action='store', nargs='*',
                 help='Name of initial state overrides (no ".json") under '
                     'data/overrides')
+            self.parser.add_argument(
+                '--daughter_outdir', '--daughter-outdir', action="store",
+                help=(
+                    'Directory in which to store daughter cell state JSONs.'))
 
     @staticmethod
     def merge_config_dicts(d1: dict[str, Any], d2: dict[str, Any]) -> None:
@@ -741,10 +745,22 @@ class EcoliSim:
         self.ecoli = None
 
         # run the experiment
-        if self.save or self.generations:
+        if self.save:
             self.save_states(self.daughter_outdir)
         else:
-            self.ecoli_experiment.update(self.total_time)
+            try:
+                self.ecoli_experiment.update(self.total_time)
+            except DivisionDetected:
+                state = self.ecoli_experiment.state.get_value(
+                    condition=not_a_process)
+                assert len(state['agents']) == 2
+                for i, agent_state in enumerate(state['agents'].values()):
+                    prepare_save_state(agent_state)
+                    daughter_path = os.path.join(self.daughter_outdir,
+                                                 f'daughter_state_{i}.json')
+                    write_json(daughter_path, agent_state)
+                print(f'Divided at t = {self.ecoli_experiment.global_time}.')
+                sys.exit()
         self.ecoli_experiment.end()
         if self.profile:
             report_profiling(self.ecoli_experiment.stats)

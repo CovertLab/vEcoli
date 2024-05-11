@@ -134,11 +134,11 @@ def apply_and_save_variants(sim_data: 'SimulationDataEcoli',
         outdir: Path to folder where variant ``sim_data`` pickles are saved
     """
     variant_func = VARIANT_REGISTRY[variant_name]
-    variant_metadata = {}
+    variant_metadata = {0: 'baseline'}
     for i, params in enumerate(param_dicts):
-        variant_metadata[i] = params
+        variant_metadata[i+1] = params
         variant_sim_data = variant_func(sim_data, params)
-        outpath = os.path.join(outdir, f'{i}.cPickle')
+        outpath = os.path.join(outdir, f'{i+1}.cPickle')
         with open(outpath, 'wb') as f:
             pickle.dump(variant_sim_data, f)
     with open(os.path.join(outdir, 'metadata.json'), 'w') as f:
@@ -235,22 +235,29 @@ def main():
     config = SimConfig(parser=parser)
     config.update_from_cli()
 
+    print('Loading sim_data...')
+    with open(os.path.join(config['kb'], 'simData.cPickle'), 'rb') as f:
+        sim_data = pickle.load(f)
+    os.makedirs(config['outdir'], exist_ok=True)
+    print('Saving baseline sim_data...')
+    with open(os.path.join(config['outdir'], '0.cPickle'), 'wb') as f:
+        pickle.dump(sim_data, f)
     variant_config = config.get('variants', {})
     if len(variant_config) > 1:
         raise RuntimeError('Only one variant name allowed. Variants can '
                            'be manually composed in Python by having one '
                            'variant function internally call another.')
-    variant_name = list(variant_config.keys())[0]
-    variant_params = variant_config[variant_name]
-    print('Parsing variants...')
-    parsed_params = parse_variants(variant_params)
-    print('Loading sim_data...')
-    with open(os.path.join(config['kb'], 'simData.cPickle'), 'rb') as f:
-        sim_data = pickle.load(f)
-    os.makedirs(config['outdir'], exist_ok=True)
-    print('Applying variants and saving variant sim_data...')
-    apply_and_save_variants(sim_data, parsed_params,
-                            variant_name, config['outdir'])
+    elif len(variant_config) == 1:
+        variant_name = list(variant_config.keys())[0]
+        variant_params = variant_config[variant_name]
+        print('Parsing variants...')
+        parsed_params = parse_variants(variant_params)
+        print('Applying variants and saving variant sim_data...')
+        apply_and_save_variants(sim_data, parsed_params,
+                                variant_name, config['outdir'])
+    else:
+        with open(os.path.join(config['outdir'], 'metadata.json'), 'w') as f:
+            json.dump({0: 'baseline'}, f)
     print('Done.')
 
 

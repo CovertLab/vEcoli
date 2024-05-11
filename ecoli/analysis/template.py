@@ -186,8 +186,10 @@ def plot(
 
     # Now you can use matplotlib as usual or, if you kept your data
     # in a Polars dataframe, use their plotting capabilities
-    # Anything saved inside the "plot" folder (relative path, do
-    # not try to turn this into an absolute path) will be picked up
-    # by Nextflow and saved into the output folder
     plt.plot(history_df['time'], rna_synth_prob_per_cistron[0])
-    plt.savefig('plot/test.svg')
+
+    # Anything that you want to save should be saved using relative file
+    # paths. The absolute output directory is given as a CLI or JSON
+    # config option to scripts/run_analysis.py
+    plt.savefig('plots/test.svg')
+    history_df.write_parquet('data/test_data.pq')
