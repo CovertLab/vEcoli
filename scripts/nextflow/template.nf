@@ -24,7 +24,7 @@ process runParca {
 }
 
 process analysisParca {
-    publishDir "${params.publishDir}/parca"
+    publishDir "${params.publishDir}/parca/analysis"
 
     input:
     path config
@@ -38,7 +38,7 @@ process analysisParca {
     python ${params.project_root}/scripts/run_analysis.py -c $config \
         --sim-data-path=$kb/simData.cPickle \
         --validation-data-path=$kb/validationData.cPickle \
-        --parca -o \$(pwd)
+        -o \$(pwd)
     """
 
     stub:
