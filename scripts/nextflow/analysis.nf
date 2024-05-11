@@ -1,6 +1,8 @@
 process analysisSingle {
     publishDir "${params.publishDir}/${params.experimentId}/analyses/variant=${variant}/seed=${seed}/generation=${generation}/daughter=${cell_id}"
 
+    errorStrategy { (task.attempt <= maxRetries) ? 'retry' : 'ignore' }
+
     input:
     path config
     path kb
@@ -32,6 +34,8 @@ process analysisSingle {
 
 process analysisMulticell {
     publishDir "${params.publishDir}/${params.experimentId}/analyses/variant=${variant}/seed=${seed}/generation=${generation}/daughter=${cell_id}"
+
+    errorStrategy { (task.attempt <= maxRetries) ? 'retry' : 'ignore' }
 
     input:
     path config
