@@ -2,9 +2,8 @@
 params {
     gcpProjectId = 'allen-discovery-center-mcovert'
     gcpRegion = 'us-west1'
-    onGcp = false
-    onSherlock = false
     experimentId = 'EXPERIMENT_ID'
+    config = 'CONFIG_FILE'
 }
 
 profiles {
@@ -18,7 +17,6 @@ profiles {
         docker.enabled = true
         params.projectRoot = '/vivarium-ecoli'
         params.publishDir = "${params.experimentId}"
-        params.onGcp = true
     }
     sherlock {
         process.memory = { 2.GB * task.attempt }
@@ -27,13 +25,12 @@ profiles {
         process.queue = 'mcovert'
         process.time = { 2.h * task.attempt }
         process.maxRetries = 5
-        params.projectRoot = '$(pwd)'
+        params.projectRoot = "${launchDir}"
         params.publishDir = "\$SCRATCH/out/${params.experimentId}"
-        params.onSherlock = true
     }
     standard {
         process.executor = 'local'
-        params.projectRoot = '$(pwd)'
-        params.publishDir = '$(pwd)/out'
+        params.projectRoot = "${launchDir}"
+        params.publishDir = "${launchDir}/out"
     }
 }

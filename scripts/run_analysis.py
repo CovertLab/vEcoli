@@ -1,12 +1,12 @@
 import argparse
 import importlib
+import json
 import os
 import warnings
 
 import polars as pl
 
 from ecoli.composites.ecoli_configs import CONFIG_DIR_PATH
-from ecoli.experiments.ecoli_master_sim import SimConfig
 from ecoli.library.parquet_emitter import get_lazyframes
 
 FILTERS = [
@@ -21,7 +21,7 @@ def main():
     parser = argparse.ArgumentParser()
     default_config = os.path.join(CONFIG_DIR_PATH, 'default.json')
     parser.add_argument(
-        '--config',
+        '--config', '-c',
         default=default_config,
         help=(
             'Path to configuration file for the simulation. '
@@ -36,35 +36,38 @@ def main():
                 f'--{data_filter}-range', nargs=2, metavar=('START', 'END'),
                 help=f'Limit data to range of {data_filter}s not incl. END.')
     parser.add_argument(
-        '--sim_data_paths', nargs="*", default=None,
+        '--sim_data_path', '--sim-data-path', nargs="*", default=None,
         help="Path to the sim_data to use.")
     parser.add_argument(
-        '--validation_data_path', default=None,
+        '--validation_data_path', '--validation-data-path', default=None,
         help="Path to the validation_data to use.")
     parser.add_argument(
         '--outdir', '-o', default=None,
-        help="Change directory to this path. A folder named plot will be "
-            "created there and all files saved to that folder will be "
-            "saved by Nextflow.")
-    config = SimConfig(parser=parser)
-    config.update_from_cli()
+        help="Directory that all analysis output is saved to.")
+    config_file = os.path.join(CONFIG_DIR_PATH, 'default.json')
+    args = parser.parse_args()
+    with open(config_file, 'r') as f:
+        config = json.load(f)
+    if args.config is not None:
+        config_file = args.config
+        with open(os.path.join(CONFIG_DIR_PATH, args.config), 'r') as f:
+            config = {**config, **json.load(f)}
+    out_dir = config['emitter']['config'].get('out_dir', None)
+    out_uri = config['emitter']['config'].get('out_uri', None)
+    config = {**config['analysis_options'], **vars(args)}
 
-    # Changes current working directory so analysis scripts just need to
-    # save any plots, etc. into the plot folder as a relative path
+    # Changes current working directory so analysis scripts can save
+    # plots, etc. without worrying about file paths
     os.chdir(config['outdir'])
-    os.makedirs('plot', exist_ok=True)
 
     # Load Parquet files from output directory / URI specified in config
-    emitter_config = config['emitter']['config']
-    config_lf, history_lf = get_lazyframes(
-        emitter_config.get('out_dir', None),
-        emitter_config.get('out_uri', None))
+    config_lf, history_lf = get_lazyframes(out_dir, out_uri)
 
     # Filters data
     analysis_type = None
     last_analysis_level = -1
     for current_analysis_level, data_filter in enumerate(FILTERS):
-        if config[f'{data_filter}_range'] is not None:
+        if config.get(f'{data_filter}_range', None) is not None:
             if config[data_filter] is not None:
                 warnings.warn(
                     f"Provided both range and value(s) for {data_filter}. "
@@ -72,7 +75,7 @@ def main():
             config[data_filter] = list(range(
                 config[f'{data_filter}_range'][0],
                 config[f'{data_filter}_range'][1]))
-        if config[data_filter] is not None:
+        if config.get(data_filter, None) is not None:
             if last_analysis_level != current_analysis_level - 1:
                 skipped_filters = FILTERS[
                     last_analysis_level+1:current_analysis_level]
@@ -97,7 +100,7 @@ def main():
         analysis_type = 'parca'
 
     # Run the analyses listed under the most specific filter
-    analysis_options = config['analysis_options'][analysis_type]
+    analysis_options = config[analysis_type]
     for analysis_name, analysis_params in analysis_options.items():
         analysis_mod = importlib.import_module(f'ecoli.analysis.{analysis_name}')
         analysis_mod.plot(
@@ -106,6 +109,10 @@ def main():
             config_lf,
             config['sim_data_path'],
             config['validation_data_path'])
+    
+    # Save copy of config JSON with parameters for plots
+    with open(os.path.join(config['outdir'], 'metadata.json'), 'w') as f:
+        json.dump(config, f)
 
 if __name__ == '__main__':
     main()
