@@ -213,10 +213,11 @@ class ParquetEmitter(Emitter):
     
     def _finalize(self):
         """Convert remaining batched emits to Parquet at sim shutdown."""
-        outfile = os.path.join(self.outdir, 'history',
-            self.partitioning_path, f'{self.num_emits}.pq')
-        json_to_parquet(self.temp_data.name,
-            self.encodings, self.schema, self.filesystem, outfile)
+        if self.num_emits % self.batch_size != 0:
+            outfile = os.path.join(self.outdir, 'history',
+                self.partitioning_path, f'{self.num_emits}.pq')
+            json_to_parquet(self.temp_data.name,
+                self.encodings, self.schema, self.filesystem, outfile)
 
 
     def emit(self, data: dict[str, Any]):
@@ -272,9 +273,14 @@ class ParquetEmitter(Emitter):
                 self.encodings, pa.schema(schema), self.filesystem, outfile)
             self.temp_data = tempfile.NamedTemporaryFile(delete=False)
             return
-        # Currently we only support running a single cell per Engine
-        # Use EcoliEngineProcess for colony simulations (Engine per cell)
-        assert len(data['data']['agents']) == 1
+        # Each Engine that uses this emitter should only simulate a single cell
+        # In lineage simulations, StopAfterDivision Step will terminate
+        # Engine in timestep immediately after division (first with 2 cells)
+        # In colony simulations, EngineProcess will terminate simulation
+        # immediately upon division (following branch is never invoked)
+        if len(data['data']['agents']) > 1:
+            self._finalize()
+            return
         for agent_data in data['data']['agents'].values():
             agent_data['time'] = float(data['data']['time'])
             agent_data = flatten_dict(agent_data)
