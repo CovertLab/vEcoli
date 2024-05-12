@@ -446,10 +446,9 @@ class Ecoli(Composer):
                     (f'unique_update_{unique_update_counter - 1}',)]
                 
             # Add Step to raise catchable exception upon division
-            # TODO: Fix this
-            # if config['lineage']:
-            #     steps['stop-after-division'] = StopAfterDivision()
-            #     flow['stop-after-division'] = [('division',)]
+            if config['generations'] is not None:
+                steps['stop-after-division'] = StopAfterDivision()
+                flow['stop-after-division'] = [('division',)]
                 
         # update schema overrides for evolvers and requesters
         update_override = {}
@@ -588,11 +587,10 @@ class Ecoli(Composer):
                 'agents': tuple(config['agents_path']),
                 'media_id': ('environment', 'media_id'),
                 'division_threshold': ('division_threshold',)}
-            # TODO: Fix this
-            # if config['lineage']:
-            #     topology['stop-after-division'] = {
-            #         'agents': tuple(config['agents_path'])
-            #     }
+            if config['generations'] is not None:
+                topology['stop-after-division'] = {
+                    'agents': tuple(config['agents_path'])
+                }
 
         # Add Allocator and UniqueUpdate topologies
         _, steps, _ = self.processes_and_steps
