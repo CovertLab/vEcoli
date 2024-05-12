@@ -1,2 +1,2 @@
 #!/bin/bash
-gcloud stroage buckets create gs://$0 --location=$1
+gcloud storage buckets create gs://$0 --location=$1
