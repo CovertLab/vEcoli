@@ -14,10 +14,10 @@ process analysisSingle {
     script:
     """
     PYTHONPATH=${params.projectRoot} python ${params.projectRoot}/scripts/run_analysis.py -c $config \\
-        --sim-data-path $sim_data \\
-        --validation-data-path $kb/validationData.cPickle \\
-        --experiment_id $experiment_id \\
-        --variant $variant \\
+        --sim-data-path \'$sim_data\' \\
+        --validation-data-path \'$kb/validationData.cPickle\' \\
+        --experiment_id \'$experiment_id\' \\
+        --variant \'$variant\' \\
         --seed $seed \\
         --generation $generation \\
         --cell_id $cell_id \\
@@ -27,8 +27,7 @@ process analysisSingle {
     stub:
     """
     mkdir plots
-    echo -e "$sim_data\n\n$seed\n\n$generation\n\n$cell_id\\
-        \n\n$kb\n\n$config" > plots/test.txt
+    echo -e "\'$sim_data\'\n\n\'$kb/validationData.cPickle\'\n\n\'$experiment_id\'\n\n\'$variant\'\n\n$seed\n\n$generation\n\n$cell_id" > plots/test.txt
     """
 }
 
@@ -48,10 +47,10 @@ process analysisMulticell {
     script:
     """
     PYTHONPATH=${params.projectRoot} python ${params.projectRoot}/scripts/run_analysis.py -c $config \\
-        --sim-data-path $sim_data \\
-        --validation-data-path $kb/validationData.cPickle \\
-        --experiment_id $experiment_id \\
-        --variant $variant \\
+        --sim-data-path \'${sim_data.join("\' \'")}\' \\
+        --validation-data-path \'$kb/validationData.cPickle\' \\
+        --experiment_id \'${experiment_id.join("\' \'")}\' \\
+        --variant \'$variant\' \\
         --seed $seed \\
         --generation $generation \\
         -o \$(pwd)
@@ -60,13 +59,12 @@ process analysisMulticell {
     stub:
     """
     mkdir plots
-    echo -e "$sim_data\n\n$seed\n\n$generation\n\n$cell_id\\
-        \n\n$kb\n\n$config" > plots/test.txt
+    echo -e "\'${sim_data.join("\' \'")}\'\n\n\'${experiment_id.join("\' \'")}\'\n\n\'$variant\'\n\n$seed\n\n$generation" > plots/test.txt
     """
 }
 
 process analysisMultigeneration {
-    publishDir "${params.publishDir}/${params.experimentId}/analyses/${variant}/${seed}"
+    publishDir "${params.publishDir}/${params.experimentId}/analyses/variant=${variant}/seed=${seed}"
 
     input:
     path config
@@ -79,10 +77,10 @@ process analysisMultigeneration {
     script:
     """
     PYTHONPATH=${params.projectRoot} python ${params.projectRoot}/scripts/run_analysis.py -c $config \\
-        --sim-data-path $sim_data \\
-        --validation-data-path $kb/validationData.cPickle \\
-        --experiment_id $experiment_id \\
-        --variant $variant \\
+        --sim-data-path \'${sim_data.join("\' \'")}\' \\
+        --validation-data-path \'$kb/validationData.cPickle\' \\
+        --experiment_id \'${experiment_id.join("\' \'")}\' \\
+        --variant \'$variant\' \\
         --seed $seed \\
         -o \$(pwd)
     """
@@ -90,13 +88,12 @@ process analysisMultigeneration {
     stub:
     """
     mkdir plots
-    echo -e "$sim_data\n\n$seed\n\n$generation\n\n$cell_id\\
-        \n\n$kb\n\n$config" > plots/test.txt
+    echo -e "\'${sim_data.join("\' \'")}\'\n\n\'${experiment_id.join("\' \'")}\'\n\n\'$variant\'\n\n$seed\n\n" > plots/test.txt
     """
 }
 
 process analysisMultiseed {
-    publishDir "${params.publishDir}/${params.experimentId}/analyses/${variant}"
+    publishDir "${params.publishDir}/${params.experimentId}/analyses/variant=${variant}"
 
     input:
     path config
@@ -109,18 +106,17 @@ process analysisMultiseed {
     script:
     """
     PYTHONPATH=${params.projectRoot} python ${params.projectRoot}/scripts/run_analysis.py -c $config \\
-        --sim-data-path $sim_data \\
-        --validation-data-path $kb/validationData.cPickle \\
-        --experiment_id $experiment_id \\
-        --variant $variant \\
+        --sim-data-path \'${sim_data.join("\' \'")}\' \\
+        --validation-data-path \'$kb/validationData.cPickle\' \\
+        --experiment_id \'${experiment_id.join("\' \'")}\' \\
+        --variant \'$variant\' \\
         -o \$(pwd)
     """
 
     stub:
     """
     mkdir plots
-    echo -e "$sim_data\n\n$seed\n\n$generation\n\n$cell_id\\
-        \n\n$kb\n\n$config" > plots/test.txt
+    echo -e "\'${sim_data.join("\' \'")}\'\n\n\'${experiment_id.join("\' \'")}\'\n\n\'$variant\'" > plots/test.txt
     """
 }
 
@@ -138,17 +134,16 @@ process analysisMultivariant {
     script:
     """
     PYTHONPATH=${params.projectRoot} python ${params.projectRoot}/scripts/run_analysis.py -c $config \\
-        --sim-data-path ${sim_data.join(" ")} \\
-        --validation-data-path $kb/validationData.cPickle \\
-        --experiment_id $experiment_id \\
-        --variant ${variant.join(" ")} \\
+        --sim-data-path \'${sim_data.join("\' \'")}\' \\
+        --validation-data-path \'$kb/validationData.cPickle\' \\
+        --experiment_id \'$experiment_id\' \\
+        --variant \'${variant.join("\' \'")}\' \\
         -o \$(pwd)
     """
 
     stub:
     """
     mkdir plots
-    echo -e "$sim_data\n\n$seed\n\n$generation\n\n$cell_id\\
-        \n\n$kb\n\n$config" > plots/test.txt
+    echo -e "\'${sim_data.join("\' \'")}\'\n\n\'$experiment_id\'\n\n\'${variant.join("\' \'")}\'" > plots/test.txt
     """
 }

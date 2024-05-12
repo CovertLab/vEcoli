@@ -213,16 +213,14 @@ def main():
         config = json.load(f)
     if args.config is not None:
         config_file = args.config
-        with open(os.path.join(CONFIG_DIR_PATH, args.config), 'r') as f:
+        with open(args.config, 'r') as f:
             config = {**config, **json.load(f)}
 
     experiment_id = config['experiment_id']
-    current_time = datetime.now().strftime("%d-%m-%Y %H:%M:%S")
     if experiment_id is None:
-        warnings.warn("No experiment ID was provided. Using "
-                      f"current time: {current_time}")
-        experiment_id = current_time
-    elif config['suffix_time']:
+        raise RuntimeError("No experiment ID was provided.")
+    if config['suffix_time']:
+        current_time = datetime.now().strftime("%d-%m-%Y %H:%M:%S")
         experiment_id = experiment_id + '_' + current_time
     
     nf_config = os.path.join(os.path.dirname(__file__),

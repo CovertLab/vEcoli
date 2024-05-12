@@ -85,13 +85,13 @@ def main():
                               f"filters: {skipped_filters}.")
             if len(config[data_filter]) > 1:
                 analysis_type = f'multi{data_filter}'
-                pl_filter = pl.col(data_filter).is_in(config['filter'])
+                pl_filter = pl.col(data_filter).is_in(config[data_filter])
             else:
                 if current_analysis_level + 1 < len(FILTERS):
                     analysis_type = f'multi{FILTERS[current_analysis_level+1]}'
                 else:
                     analysis_type = 'single'
-                pl_filter = pl.col(data_filter) == config['filter']
+                pl_filter = pl.col(data_filter) == config[data_filter]
             config_lf = config_lf.filter(pl_filter)
             history_lf = history_lf.filter(pl_filter)
             last_analysis_level = current_analysis_level
