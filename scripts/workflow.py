@@ -31,8 +31,7 @@ SIM_FLOW = ("\tsim{name}(sim{parent}.out.config, sim{parent}.out.nextGen, "
     "sim{parent}.out.{daughter}, {seed}, {cell})")
 
 ALL_SIM_CHANNEL = """
-    {task_one}
-        .mix({other_tasks})
+    {tasks}
         .set {{ simCh }}
 """
 MULTICELL_CHANNEL = """
@@ -123,8 +122,10 @@ def generate_lineage(seed: int, n_init_sims: int, generations: int,
                     daughter=daughter, seed=seed+gen+cell, cell=cell))
 
     # Channel that combines metadata for all sim tasks
-    sim_workflow.append(ALL_SIM_CHANNEL.format(task_one=all_sim_tasks[0],
-        other_tasks=', '.join(all_sim_tasks[1:])))
+    tasks = all_sim_tasks[0]
+    if len(all_sim_tasks) > 1:
+        tasks += '.mix(' + ', '.join(all_sim_tasks[1:]) + ')'
+    sim_workflow.append(ALL_SIM_CHANNEL.format(tasks=tasks))
 
     if analysis_config.get('multivariant', False):
         # Channel that groups all sim tasks
@@ -232,9 +233,11 @@ def main():
     nf_config = nf_config.replace("EXPERIMENT_ID", experiment_id)
     nf_config = nf_config.replace("CONFIG_FILE", config_file)
 
+    # By default, assume running on local device
+    nf_profile = 'standard'
     cloud_config = config.get('gcloud', None)
     if cloud_config is not None:
-        # Add logic for starting MongoDB VM
+        nf_profile = 'gcloud'
         runtime_image_name = cloud_config.get('runtime_image_name', None)
         if cloud_config.get('build_runtime_image', False):
             if runtime_image_name is None:
@@ -246,6 +249,8 @@ def main():
                 raise RuntimeError('Must supply name for WCM image.')
             build_wcm_image(wcm_image_name, runtime_image_name)
         nf_config = nf_config.replace("IMAGE_NAME", wcm_image_name)
+    elif config.get('sherlock', None) is not None:
+        nf_profile = 'sherlock'
     
     repo_dir = os.path.dirname(os.path.dirname(__file__))
     out_dir = os.path.join(repo_dir, 'out', experiment_id)
@@ -265,6 +270,11 @@ def main():
     workflow_path = os.path.join(out_dir, 'main.nf')
     with open(workflow_path, 'w') as f:
         f.writelines(nf_template)
+
+    # Start nextflow workflow
+    subprocess.run([
+        'nextflow', '-C', config_path,
+        'run', workflow_path, '-profile', nf_profile])
 
 
 if __name__ == '__main__':
