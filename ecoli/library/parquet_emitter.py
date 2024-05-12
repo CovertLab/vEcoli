@@ -104,12 +104,12 @@ def get_lazyframes(out_dir: Union[str, pathlib.Path]=None, out_uri: str=None
         hive_schema=schema) for f in filesystem.get_file_info(
             fs.FileSelector(history_dir, recursive=True))
         if f.extension=='pq')
-    history = pl.concat(history_frames, how='diagonal')
+    history = pl.concat(history_frames, how='diagonal_relaxed')
     config_frames = (pl.scan_parquet(f'{scheme}://{f.path}',
         hive_schema=schema) for f in filesystem.get_file_info(
             fs.FileSelector(config_dir, recursive=True))
         if f.extension=='pq')
-    config = pl.concat(config_frames, how='diagonal')
+    config = pl.concat(config_frames, how='diagonal_relaxed')
     return config, history
 
 
