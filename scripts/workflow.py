@@ -26,32 +26,41 @@ SIM_TAG = "Seed{seed}Gen{gen}Agent{agent_id}"
 SIM_GEN_0_INC = "include {{ simGen0 as sim{name} }} from '{nf_dir}/sim'"
 SIM_INC = "include {{ sim as sim{name} }} from '{nf_dir}/sim'"
 SIM_GEN_0_FLOW = ("\tsim{name}(params.config, "
-    "variantCh.combine([{seed}]).combine([0]), {seed}, 0)")
+    "variantCh.combine([{seed}]).combine([1]), {seed}, '0')")
 SIM_FLOW = ("\tsim{name}(sim{parent}.out.config, sim{parent}.out.nextGen, "
-    "sim{parent}.out.{daughter}, {seed}, {agent_id})")
+    "sim{parent}.out.{daughter}, {seed}, '{agent_id}')")
 
 ALL_SIM_CHANNEL = """
     {tasks}
         .set {{ simCh }}
 """
-MULTICELL_CHANNEL = """
+MULTIDAUGHTER_CHANNEL = """
+    generationSize = {gen_size}
     simCh
-        .groupTuple(by: [2, 3, 4], size: {size})
-        .set {{ multiCellCh }}
+        .map {{ tuple(groupKey(it[1..4], generationSize[it[4]]), it[0], it[1], it[2], it[3], it[4] ) }}
+        .groupTuple()
+        .map {{ tuple(it[1][0], it[2][0], it[3][0], it[4][0], it[5][0]) }}
+        .set {{ multiDaughterCh }}
 """
 MULTIGENERATION_CHANNEL = """
     simCh
-        .groupTuple(by: [2, 3], size: {size})
+        .groupTuple(by: [1, 2, 3], size: {size})
+        .map {{ tuple(it[0][0], it[1], it[2], it[3]) }}
         .set {{ multiGenerationCh }}
 """
 MULTISEED_CHANNEL = """
     simCh
-        .groupTuple(by: 2, size: {size})
+        .groupTuple(by: [1, 2], size: {size})
+        .map {{ tuple(it[0][0], it[1], it[2]) }}
         .set {{ multiSeedCh }}
 """
 MULTIVARIANT_CHANNEL = """
+    // Group once to deduplicate variant names and pickles
+    // Group again into single value for entire experiment
     simCh
-        .groupTuple(by: 1)
+        .groupTuple(by: [1, 2], size: {size})
+        .map {{ tuple(it[0][0], it[1], it[2]) }}
+        .groupTuple(by: [1])
         .set {{ multiVariantCh }}
 """
 
@@ -99,19 +108,22 @@ def generate_lineage(seed: int, n_init_sims: int, generations: int,
 
     all_sim_tasks = []
     for seed in range(seed, seed + n_init_sims):
-        agent_ids = []
+        agent_ids = ['0']
         for gen in range(generations):
             # Handle special case of 1st generation
             if gen == 0:
                 name = SIM_TAG.format(seed=seed, gen=gen, agent_id='0')
                 sim_imports.append(SIM_GEN_0_INC.format(name=name, nf_dir=NEXTFLOW_DIR))
                 sim_workflow.append(SIM_GEN_0_FLOW.format(name=name, seed=seed))
+                all_sim_tasks.append(f'sim{name}.out.metadata')
                 continue
             agent_ids = [i + '0' for i in agent_ids]
             # If simulating both daughter cells, number of agent IDs doubles
             if not single_daughters:
+                new_agent_ids = agent_ids.copy()
                 for agent_id in agent_ids:
-                    agent_ids.append(agent_id[:-1] + '1')
+                    new_agent_ids.append(agent_id[:-1] + '1')
+                agent_ids = new_agent_ids
             for i, agent_id in enumerate(agent_ids):
                 name = SIM_TAG.format(seed=seed, gen=gen, agent_id=agent_id)
                 # Compile list of metadata outputs for all sim tasks
@@ -119,9 +131,9 @@ def generate_lineage(seed: int, n_init_sims: int, generations: int,
                 sim_imports.append(SIM_INC.format(name=name, nf_dir=NEXTFLOW_DIR))
                 # Get parent agent ID by truncating final char of daughter ID
                 parent = SIM_TAG.format(seed=seed, gen=gen-1, agent_id=agent_id[:-1])
-                daughter = 'd1'
-                if agent_id[:-1] == '1':
-                    daughter = 'd2'
+                daughter = 'd0'
+                if agent_id[-1] == '1':
+                    daughter = 'd1'
                 sim_workflow.append(SIM_FLOW.format(name=name, parent=parent,
                     daughter=daughter, seed=seed+gen+i, agent_id=agent_id))
 
@@ -131,33 +143,32 @@ def generate_lineage(seed: int, n_init_sims: int, generations: int,
         tasks += '.mix(' + ', '.join(all_sim_tasks[1:]) + ')'
     sim_workflow.append(ALL_SIM_CHANNEL.format(tasks=tasks))
 
-    if analysis_config.get('multivariant', False):
+    if analysis_config.get('multi_variant', False):
         # Channel that groups all sim tasks
-        sim_workflow.append(MULTIVARIANT_CHANNEL)
-        sim_workflow.append("\tanalysisMultivariant(params.config, kb, multiVariantCh)")
-        sim_imports.append(f"include {{ analysisMultivariant }} from '{NEXTFLOW_DIR}/analysis'")
+        sim_workflow.append(MULTIVARIANT_CHANNEL.format(size=len(all_sim_tasks)))
+        sim_workflow.append("\tanalysisMultiVariant(params.config, kb, multiVariantCh)")
+        sim_imports.append(f"include {{ analysisMultiVariant }} from '{NEXTFLOW_DIR}/analysis'")
     
-    if analysis_config.get('multiseed', False):
+    if analysis_config.get('multi_seed', False):
         # Channel that groups sim tasks by variant sim_data
-        sim_workflow.append(MULTISEED_CHANNEL.format(
-            size=int(len(all_sim_tasks) / n_init_sims)))
-        sim_workflow.append("\tanalysisMultiseed(params.config, kb, multiSeedCh)")
-        sim_imports.append(f"include {{ analysisMultiseed }} from '{NEXTFLOW_DIR}/analysis'")
+        sim_workflow.append(MULTISEED_CHANNEL.format(size=len(all_sim_tasks)))
+        sim_workflow.append("\tanalysisMultiSeed(params.config, kb, multiSeedCh)")
+        sim_imports.append(f"include {{ analysisMultiSeed }} from '{NEXTFLOW_DIR}/analysis'")
     
-    if analysis_config.get('multigeneration', False):
+    if analysis_config.get('multi_generation', False):
         # Channel that groups sim tasks by variant sim_data and initial seed
-        num_daughters = 1 if single_daughters else 2
         sim_workflow.append(MULTIGENERATION_CHANNEL.format(
-            size=generations * num_daughters))
-        sim_workflow.append("\tanalysisMultigeneration(params.config, kb, multiGenerationCh)")
-        sim_imports.append(f"include {{ analysisMultigeneration }} from '{NEXTFLOW_DIR}/analysis'")
+            size=int(len(all_sim_tasks) / n_init_sims)))
+        sim_workflow.append("\tanalysisMultiGeneration(params.config, kb, multiGenerationCh)")
+        sim_imports.append(f"include {{ analysisMultiGeneration }} from '{NEXTFLOW_DIR}/analysis'")
 
-    if analysis_config.get('multicell', False):
+    if analysis_config.get('multi_daughter', False) and not single_daughters:
         # Channel that groups sim tasks by variant sim_data, initial seed, and generation
-        size = 1 if single_daughters else 2
-        sim_workflow.append(MULTICELL_CHANNEL.format(size=size))
-        sim_workflow.append("\tanalysisMulticell(params.config, kb, multiCellCh)")
-        sim_imports.append(f"include {{ analysisMulticell }} from '{NEXTFLOW_DIR}/analysis'")
+        # When simulating both daughters, will have >1 cell for generation >1
+        gen_size = '[' + ', '.join([f'{g+1}: {2**g}' for g in range(generations)]) + ']'
+        sim_workflow.append(MULTIDAUGHTER_CHANNEL.format(gen_size=gen_size))
+        sim_workflow.append("\tanalysisMultiDaughter(params.config, kb, multiDaughterCh)")
+        sim_imports.append(f"include {{ analysisMultiDaughter }} from '{NEXTFLOW_DIR}/analysis'")
     
     if analysis_config.get('single', False):
         sim_workflow.append("\tanalysisSingle(params.config, kb, simCh)")
@@ -276,7 +287,8 @@ def main():
     # Start nextflow workflow
     subprocess.run([
         'nextflow', '-C', config_path,
-        'run', workflow_path, '-profile', nf_profile])
+        'run', workflow_path, '-profile', nf_profile,
+        '-with-report', f'{experiment_id}_report.html'])
 
 
 if __name__ == '__main__':

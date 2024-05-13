@@ -243,6 +243,9 @@ class SimConfig:
                 help='Directory in which to store daughter cell state JSONs.')
             self.parser.add_argument(
                 '--variant', action="store", help='Name of variant.')
+            self.parser.add_argument(
+                '--lineage_seed', action="store",
+                help='Seed used for first cell in lineage.')
 
     @staticmethod
     def merge_config_dicts(d1: dict[str, Any], d2: dict[str, Any]) -> None:

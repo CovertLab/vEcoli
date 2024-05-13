@@ -1,0 +1,16 @@
+{
+    "experiment_id": "test",
+    "suffix_time": false,
+    "parca_options": {
+        "cpus": 6
+    },
+    "generations": 2,
+    "n_init_sims": 2,
+    "single_daughters": false,
+    "emitter" : {
+        "type": "parquet",
+        "config": {
+            "out_dir": "/home/covertlab/work/vivarium-ecoli/out"
+        }
+    }
+}

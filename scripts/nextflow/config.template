@@ -17,6 +17,7 @@ profiles {
         docker.enabled = true
         params.projectRoot = '/vivarium-ecoli'
         params.publishDir = "${params.experimentId}"
+        process.maxRetries = 3
     }
     sherlock {
         process.memory = { 2.GB * task.attempt }
@@ -32,5 +33,6 @@ profiles {
         process.executor = 'local'
         params.projectRoot = "${launchDir}"
         params.publishDir = "${launchDir}/out"
+        process.maxRetries = 3
     }
 }

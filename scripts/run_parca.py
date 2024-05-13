@@ -74,17 +74,17 @@ def main():
             'Path to configuration file for the simulation. '
             'All key-value pairs in this file will be applied on top '
             f'of the options defined in {default_config}.'))
-    parser.add_argument('-c', '--cpus', type=int, default=1,
+    parser.add_argument('-c', '--cpus', type=int,
         help='The number of CPU processes to use. Default = 1.')
     parser.add_argument('-o', '--outdir', type=str,
-        default='reconstruction/sim_data', help='Directory to hold ParCa'
-        ' output kb folder. Default = reconstruction/sim_data')
+        help='Directory to hold ParCa output kb folder. '
+        'Default = reconstruction/sim_data')
     parser.add_argument('--operons', action=argparse.BooleanOptionalAction,
-        default=True, help='Turn operons on (polycistronic).')
-    parser.add_argument('--ribosome-fitting', default=True,
+        help='Turn operons on (polycistronic).')
+    parser.add_argument('--ribosome-fitting',
         action=argparse.BooleanOptionalAction,
         help='Fit ribosome expression to protein synthesis demands.')
-    parser.add_argument('--rnapoly-fitting', default=True,
+    parser.add_argument('--rnapoly-fitting',
         action=argparse.BooleanOptionalAction,
         help='Fit RNA polymerase expression to protein synthesis demands.')
     parser.add_argument('--remove-rrna-operons', action='store_true',
@@ -98,23 +98,23 @@ def main():
         ' factor condition when adjusting gene expression levels, leaving'
         ' the other TFs at their input levels for faster Parca debugging.'
         ' DO NOT USE THIS FOR A MEANINGFUL SIMULATION.')
-    parser.add_argument('--load-intermediate', default=None, type=str,
+    parser.add_argument('--load-intermediate', type=str,
         help='The function in the parca to load (skips functions that would'
         ' have run before the function). Must run with --save-intermediates'
         ' first.')
     parser.add_argument('--save-intermediates', action='store_true',
         help='If set, saves sim_data and cell_specs at intermediate'
         ' function calls in the parca.')
-    parser.add_argument('--intermediates-directory', default='', type=str,
+    parser.add_argument('--intermediates-directory', type=str,
         help='Directory to save or load intermediate sim_data and cell_specs'
         ' results from if --load-intermediate or --save-intermediates'
         ' are set.')
-    parser.add_argument('--variable-elongation-transcription', default=True,
+    parser.add_argument('--variable-elongation-transcription',
         action=argparse.BooleanOptionalAction,
         help='Use a different elongation rate for different transcripts'
         ' (currently increases rates for rRNA). Usually set this'
         ' consistently between runParca and runSim.')
-    parser.add_argument('--variable-elongation-translation', default=False,
+    parser.add_argument('--variable-elongation-translation',
         action=argparse.BooleanOptionalAction,
         help='Use a different elongation rate for different polypeptides'
         ' (currently increases rates for ribosomal proteins).'
