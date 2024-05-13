@@ -10,12 +10,14 @@ from ecoli.composites.ecoli_configs import CONFIG_DIR_PATH
 from ecoli.library.parquet_emitter import get_lazyframes
 
 FILTERS = {
-    'experiment_id': str,
-    'variant': int,
-    'seed': int,
-    'generation': int,
-    'agent_id': str
+    'experiment_id': (str, 'multi_experiment', 'multi_variant'),
+    'variant': (int, 'multi_variant', 'multi_seed'),
+    'lineage_seed': (int, 'multi_seed', 'multi_generation'),
+    'generation': (int, 'multi_generation', 'multi_daughter'),
+    'agent_id': (str, 'multi_daughter', 'single')
 }
+"""Mapping of data filters to data type, analysis type if more than
+one value is given for filter, and analysis type for one value."""
 
 def main():
     parser = argparse.ArgumentParser()
@@ -27,7 +29,7 @@ def main():
             'Path to configuration file for the simulation. '
             'All key-value pairs in this file will be applied on top '
             f'of the options defined in {default_config}.'))
-    for data_filter, data_type in FILTERS.items():
+    for data_filter, (data_type, _, _) in FILTERS.items():
         parser.add_argument(
             f'--{data_filter}', nargs='*', type=data_type,
             help=f'Limit data to one or more {data_filter}(s).')
@@ -60,13 +62,13 @@ def main():
     # plots, etc. without worrying about file paths
     os.chdir(config['outdir'])
 
-    # Load Parquet files from output directory / URI specified in config
-    config_lf, history_lf = get_lazyframes(out_dir, out_uri)
-
-    # Filters data
+    # Set up Polars filters for data
     analysis_type = None
+    pl_filter = None
     last_analysis_level = -1
-    for current_analysis_level, data_filter in enumerate(FILTERS):
+    filter_types = list(FILTERS.keys())
+    for current_analysis_level, (data_filter, (_, analysis_many, analysis_one)
+                                 ) in enumerate(FILTERS.items()):
         if config.get(f'{data_filter}_range', None) is not None:
             if config[data_filter] is not None:
                 warnings.warn(
@@ -77,27 +79,36 @@ def main():
                 config[f'{data_filter}_range'][1]))
         if config.get(data_filter, None) is not None:
             if last_analysis_level != current_analysis_level - 1:
-                skipped_filters = FILTERS[
+                skipped_filters = filter_types[
                     last_analysis_level+1:current_analysis_level]
                 warnings.warn(f"Filtering by {data_filter} when last filter "
-                              f"specified was {FILTERS[last_analysis_level]}. "
+                              f"specified was {filter_types[last_analysis_level]}. "
                               "Will load all applicable data for the skipped "
                               f"filters: {skipped_filters}.")
             if len(config[data_filter]) > 1:
-                analysis_type = f'multi{data_filter}'
-                pl_filter = pl.col(data_filter).is_in(config[data_filter])
-            else:
-                if current_analysis_level + 1 < len(FILTERS):
-                    analysis_type = f'multi{FILTERS[current_analysis_level+1]}'
+                analysis_type = analysis_many
+                if pl_filter is None:
+                    pl_filter = pl.col(data_filter).is_in(config[data_filter])
                 else:
-                    analysis_type = 'single'
-                pl_filter = pl.col(data_filter) == config[data_filter][0]
-            config_lf = config_lf.filter(pl_filter)
-            history_lf = history_lf.filter(pl_filter)
+                    pl_filter = (pl.col(data_filter).is_in(config[data_filter])) & pl_filter
+            else:
+                analysis_type = analysis_one
+                if pl_filter is None:
+                    pl_filter = pl.col(data_filter) == config[data_filter][0]
+                else:
+                    pl_filter = (pl.col(data_filter) == config[data_filter][0]) & pl_filter
             last_analysis_level = current_analysis_level
+
     # If no filters were provided, assume analyzing ParCa output
     if analysis_type is None:
         analysis_type = 'parca'
+        config_lf = pl.DataFrame({})
+        history_lf = pl.DataFrame({})
+    else:
+        # Load Parquet files from output directory / URI specified in config
+        config_lf, history_lf = get_lazyframes(out_dir, out_uri)
+        config_lf = config_lf.filter(pl_filter)
+        history_lf = history_lf.filter(pl_filter)
 
     # Run the analyses listed under the most specific filter
     analysis_options = config[analysis_type]

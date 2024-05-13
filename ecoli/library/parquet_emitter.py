@@ -6,6 +6,7 @@ from urllib.parse import urlparse
 from concurrent.futures import ThreadPoolExecutor
 from typing import Any, Mapping, Union
 
+import numpy as np
 import orjson
 import polars as pl
 import pyarrow as pa
@@ -68,7 +69,6 @@ def json_to_parquet(ndjson: str, encodings: dict[str, str],
     read_options = pj.ReadOptions(use_threads=False, block_size=int(1e7))
     t = pj.read_json(ndjson, read_options=read_options,
                      parse_options=parse_options)
-    filesystem.create_dir(os.path.dirname(outfile))
     pq.write_table(t, outfile, use_dictionary=False, compression='zstd',
         column_encoding=encodings, filesystem=filesystem)
     pathlib.Path(ndjson).unlink()
@@ -95,8 +95,8 @@ def get_lazyframes(out_dir: Union[str, pathlib.Path]=None, out_uri: str=None
     config_dir = os.path.join(outdir, 'configuration')
     schema = {
         'experiment_id': pl.String(),
-        'variant': pl.String(),
-        'seed': pl.Int64(),
+        'variant': pl.Int64(),
+        'lineage_seed': pl.Int64(),
         'generation': pl.Int64(),
         'agent_id': pl.String()
     }
@@ -160,6 +160,8 @@ def flatten_dict(d: dict):
             if isinstance(v, Mapping):
                 visit_key(v, results, newKey)
             elif isinstance(v, list) and len(v) == 0:
+                continue
+            elif isinstance(v, np.ndarray) and len(v) == 0:
                 continue
             elif v is None:
                 continue
@@ -228,7 +230,7 @@ class ParquetEmitter(Emitter):
         The output directory consists of two hive-partitioned datasets: one for
         sim metadata called ``configuration`` and another for sim output called
         ``history``. The partitioning keys are, in order, experiment_id (str),
-        variant (str), seed (int), generation (int), and agent_id (str).
+        variant (int), lineage seed (int), generation (int), and agent_id (str).
 
         By using a single output directory for many runs of a model, advanced
         filtering and computation can be performed on data from all those
@@ -243,8 +245,8 @@ class ParquetEmitter(Emitter):
             agent_id = data['data'].get('agent_id', '0')
             partitioning_keys = {
                 'experiment_id': data['data'].get('experiment_id', 'default'),
-                'variant': data['data'].get('variant', 'default'),
-                'seed': data['data'].get('seed', 0),
+                'variant': data['data'].get('variant', 0),
+                'lineage_seed': data['data'].get('lineage_seed', 0),
                 'generation': len(agent_id),
                 'agent_id': agent_id
             }
@@ -269,6 +271,20 @@ class ParquetEmitter(Emitter):
                 schema.append((k, pa_type))
             outfile = os.path.join(self.outdir, data['table'],
                                    self.partitioning_path, 'config.pq')
+            # Cleanup any existing output files from previous runs then
+            # create new folder for config / simulation output
+            try:
+                self.filesystem.delete_dir(os.path.dirname(outfile))
+            except FileNotFoundError:
+                pass
+            self.filesystem.create_dir(os.path.dirname(outfile))
+            history_outdir = os.path.join(self.outdir, 'history',
+                self.partitioning_path)
+            try:
+                self.filesystem.delete_dir(history_outdir)
+            except FileNotFoundError:
+                pass
+            self.filesystem.create_dir(history_outdir)
             self.executor.submit(json_to_parquet, self.temp_data.name,
                 self.encodings, pa.schema(schema), self.filesystem, outfile)
             self.temp_data = tempfile.NamedTemporaryFile(delete=False)
