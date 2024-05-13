@@ -22,13 +22,13 @@ NEXTFLOW_DIR = os.path.join(
     'nextflow'
 )
 
-SIM_TAG = "Seed{seed}Gen{gen}Cell{cell}"
+SIM_TAG = "Seed{seed}Gen{gen}Agent{agent_id}"
 SIM_GEN_0_INC = "include {{ simGen0 as sim{name} }} from '{nf_dir}/sim'"
 SIM_INC = "include {{ sim as sim{name} }} from '{nf_dir}/sim'"
 SIM_GEN_0_FLOW = ("\tsim{name}(params.config, "
     "variantCh.combine([{seed}]).combine([0]), {seed}, 0)")
 SIM_FLOW = ("\tsim{name}(sim{parent}.out.config, sim{parent}.out.nextGen, "
-    "sim{parent}.out.{daughter}, {seed}, {cell})")
+    "sim{parent}.out.{daughter}, {seed}, {agent_id})")
 
 ALL_SIM_CHANNEL = """
     {tasks}
@@ -99,27 +99,31 @@ def generate_lineage(seed: int, n_init_sims: int, generations: int,
 
     all_sim_tasks = []
     for seed in range(seed, seed + n_init_sims):
+        agent_ids = []
         for gen in range(generations):
-            for cell in (range(2**gen) if not single_daughters else [0]):
-                name = SIM_TAG.format(seed=seed, gen=gen, cell=cell)
-
+            # Handle special case of 1st generation
+            if gen == 0:
+                name = SIM_TAG.format(seed=seed, gen=gen, agent_id='0')
+                sim_imports.append(SIM_GEN_0_INC.format(name=name, nf_dir=NEXTFLOW_DIR))
+                sim_workflow.append(SIM_GEN_0_FLOW.format(name=name, seed=seed))
+                continue
+            agent_ids = [i + '0' for i in agent_ids]
+            # If simulating both daughter cells, number of agent IDs doubles
+            if not single_daughters:
+                for agent_id in agent_ids:
+                    agent_ids.append(agent_id[:-1] + '1')
+            for i, agent_id in enumerate(agent_ids):
+                name = SIM_TAG.format(seed=seed, gen=gen, agent_id=agent_id)
                 # Compile list of metadata outputs for all sim tasks
                 all_sim_tasks.append(f'sim{name}.out.metadata')
-                
-                # Handle special case of 1st generation
-                if gen == 0:
-                    sim_imports.append(SIM_GEN_0_INC.format(name=name, nf_dir=NEXTFLOW_DIR))
-                    sim_workflow.append(SIM_GEN_0_FLOW.format(name=name, seed=seed))
-                    continue
-                
                 sim_imports.append(SIM_INC.format(name=name, nf_dir=NEXTFLOW_DIR))
-                # Cell 0 has daughters 0 & 1 in next gen, 1 has 2 & 3, etc.
-                parent = SIM_TAG.format(seed=seed, gen=gen-1, cell=cell//2)
+                # Get parent agent ID by truncating final char of daughter ID
+                parent = SIM_TAG.format(seed=seed, gen=gen-1, agent_id=agent_id[:-1])
                 daughter = 'd1'
-                if cell % 2 == 1:
+                if agent_id[:-1] == '1':
                     daughter = 'd2'
                 sim_workflow.append(SIM_FLOW.format(name=name, parent=parent,
-                    daughter=daughter, seed=seed+gen+cell, cell=cell))
+                    daughter=daughter, seed=seed+gen+i, agent_id=agent_id))
 
     # Channel that combines metadata for all sim tasks
     tasks = all_sim_tasks[0]

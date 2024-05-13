@@ -240,8 +240,9 @@ class SimConfig:
                     'data/overrides')
             self.parser.add_argument(
                 '--daughter_outdir', '--daughter-outdir', action="store",
-                help=(
-                    'Directory in which to store daughter cell state JSONs.'))
+                help='Directory in which to store daughter cell state JSONs.')
+            self.parser.add_argument(
+                '--variant', action="store", help='Name of variant.')
 
     @staticmethod
     def merge_config_dicts(d1: dict[str, Any], d2: dict[str, Any]) -> None:

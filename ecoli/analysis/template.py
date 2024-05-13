@@ -99,9 +99,9 @@ def named_idx(col: str, names: list[str], idx: list[int]) -> dict[str, pl.Expr]:
     }
 
 
-def get_field_metadata(config_lf: pl.LazyFrame, field: str) -> pl.Series:
+def get_field_metadata(config_lf: pl.LazyFrame, field: str) -> list:
     """
-    Gets the saved metadata for a given field as a Polars Series.
+    Gets the saved metadata for a given field as a list.
 
     Args:
         config_lf: LazyFrame of configuration data from
@@ -109,7 +109,7 @@ def get_field_metadata(config_lf: pl.LazyFrame, field: str) -> pl.Series:
         field: Name of field to get metadata for
     """
     return config_lf.select(METADATA_PREFIX + field
-        ).collect()[METADATA_PREFIX + field][0]
+        ).collect()[METADATA_PREFIX + field][0].to_list()
 
 
 def plot(
