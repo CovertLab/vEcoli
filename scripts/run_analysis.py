@@ -9,13 +9,13 @@ import polars as pl
 from ecoli.composites.ecoli_configs import CONFIG_DIR_PATH
 from ecoli.library.parquet_emitter import get_lazyframes
 
-FILTERS = [
-    'experiment_id',
-    'variant',
-    'seed',
-    'generation',
-    'cell_id'
-]
+FILTERS = {
+    'experiment_id': str,
+    'variant': int,
+    'seed': int,
+    'generation': int,
+    'agent_id': str
+}
 
 def main():
     parser = argparse.ArgumentParser()
@@ -27,13 +27,13 @@ def main():
             'Path to configuration file for the simulation. '
             'All key-value pairs in this file will be applied on top '
             f'of the options defined in {default_config}.'))
-    for data_filter in FILTERS:
+    for data_filter, data_type in FILTERS.items():
         parser.add_argument(
-            f'--{data_filter}', nargs='*',
+            f'--{data_filter}', nargs='*', type=data_type,
             help=f'Limit data to one or more {data_filter}(s).')
-        if data_filter != 'experiment_id':
-            parser.add_argument(
-                f'--{data_filter}-range', nargs=2, metavar=('START', 'END'),
+        if data_type is not str:
+            parser.add_argument(f'--{data_filter}-range', nargs=2,
+                metavar=('START', 'END'), type=data_type,
                 help=f'Limit data to range of {data_filter}s not incl. END.')
     parser.add_argument(
         '--sim_data_path', '--sim-data-path', nargs="*", default=None,
@@ -50,7 +50,7 @@ def main():
         config = json.load(f)
     if args.config is not None:
         config_file = args.config
-        with open(os.path.join(CONFIG_DIR_PATH, args.config), 'r') as f:
+        with open(os.path.join(args.config), 'r') as f:
             config = {**config, **json.load(f)}
     out_dir = config['emitter']['config'].get('out_dir', None)
     out_uri = config['emitter']['config'].get('out_uri', None)
@@ -91,7 +91,7 @@ def main():
                     analysis_type = f'multi{FILTERS[current_analysis_level+1]}'
                 else:
                     analysis_type = 'single'
-                pl_filter = pl.col(data_filter) == config[data_filter]
+                pl_filter = pl.col(data_filter) == config[data_filter][0]
             config_lf = config_lf.filter(pl_filter)
             history_lf = history_lf.filter(pl_filter)
             last_analysis_level = current_analysis_level
@@ -105,8 +105,8 @@ def main():
         analysis_mod = importlib.import_module(f'ecoli.analysis.{analysis_name}')
         analysis_mod.plot(
             analysis_params,
-            history_lf,
             config_lf,
+            history_lf,
             config['sim_data_path'],
             config['validation_data_path'])
     

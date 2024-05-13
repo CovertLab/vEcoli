@@ -1,12 +1,12 @@
 process analysisSingle {
-    publishDir "${params.publishDir}/${params.experimentId}/analyses/variant=${variant}/seed=${seed}/generation=${generation}/daughter=${cell_id}"
+    publishDir "${params.publishDir}/${params.experimentId}/analyses/variant=${variant}/seed=${seed}/generation=${generation}/agent_id=${agent_id}"
 
     errorStrategy { (task.attempt <= maxRetries) ? 'retry' : 'ignore' }
 
     input:
     path config
     path kb
-    tuple path(sim_data, stageAs: 'variant_sim_data_*.cPickle'), val(experiment_id), val(variant), val(seed), val(generation), val(cell_id)
+    tuple path(sim_data), val(experiment_id), val(variant), val(seed), val(generation), val(agent_id)
 
     output:
     path '*'
@@ -17,29 +17,29 @@ process analysisSingle {
         --sim-data-path \'$sim_data\' \\
         --validation-data-path \'$kb/validationData.cPickle\' \\
         --experiment_id \'$experiment_id\' \\
-        --variant \'$variant\' \\
+        --variant $variant \\
         --seed $seed \\
         --generation $generation \\
-        --cell_id $cell_id \\
+        --agent_id \'$agent_id\' \\
         -o \$(pwd)
     """
 
     stub:
     """
     mkdir plots
-    echo -e "\'$sim_data\'\n\n\'$kb/validationData.cPickle\'\n\n\'$experiment_id\'\n\n\'$variant\'\n\n$seed\n\n$generation\n\n$cell_id" > plots/test.txt
+    echo -e "\'$sim_data\'\n\n\'$kb/validationData.cPickle\'\n\n\'$experiment_id\'\n\n\'$variant\'\n\n$seed\n\n$generation\n\n$agent_id" > plots/test.txt
     """
 }
 
 process analysisMulticell {
-    publishDir "${params.publishDir}/${params.experimentId}/analyses/variant=${variant}/seed=${seed}/generation=${generation}/daughter=${cell_id}"
+    publishDir "${params.publishDir}/${params.experimentId}/analyses/variant=${variant}/seed=${seed}/generation=${generation}/agent_id=${agent_id}"
 
     errorStrategy { (task.attempt <= maxRetries) ? 'retry' : 'ignore' }
 
     input:
     path config
     path kb
-    tuple path(sim_data, stageAs: 'variant_sim_data_*.cPickle'), val(experiment_id), val(variant), val(seed), val(generation), val(cell_id)
+    tuple path(sim_data), val(experiment_id), val(variant), val(seed), val(generation), val(agent_id)
 
     output:
     path '*'
@@ -50,7 +50,7 @@ process analysisMulticell {
         --sim-data-path \'${sim_data.join("\' \'")}\' \\
         --validation-data-path \'$kb/validationData.cPickle\' \\
         --experiment_id \'${experiment_id.join("\' \'")}\' \\
-        --variant \'$variant\' \\
+        --variant $variant \\
         --seed $seed \\
         --generation $generation \\
         -o \$(pwd)
@@ -69,7 +69,7 @@ process analysisMultigeneration {
     input:
     path config
     path kb
-    tuple path(sim_data, stageAs: 'variant_sim_data_*.cPickle'), val(experiment_id), val(variant), val(seed), val(generation), val(cell_id)
+    tuple path(sim_data), val(experiment_id), val(variant), val(seed), val(generation), val(agent_id)
 
     output:
     path '*'
@@ -80,7 +80,7 @@ process analysisMultigeneration {
         --sim-data-path \'${sim_data.join("\' \'")}\' \\
         --validation-data-path \'$kb/validationData.cPickle\' \\
         --experiment_id \'${experiment_id.join("\' \'")}\' \\
-        --variant \'$variant\' \\
+        --variant $variant \\
         --seed $seed \\
         -o \$(pwd)
     """
@@ -98,7 +98,7 @@ process analysisMultiseed {
     input:
     path config
     path kb
-    tuple path(sim_data, stageAs: 'variant_sim_data_*.cPickle'), val(experiment_id), val(variant), val(seed), val(generation), val(cell_id)
+    tuple path(sim_data), val(experiment_id), val(variant), val(seed), val(generation), val(agent_id)
 
     output:
     path '*'
@@ -109,7 +109,7 @@ process analysisMultiseed {
         --sim-data-path \'${sim_data.join("\' \'")}\' \\
         --validation-data-path \'$kb/validationData.cPickle\' \\
         --experiment_id \'${experiment_id.join("\' \'")}\' \\
-        --variant \'$variant\' \\
+        --variant $variant \\
         -o \$(pwd)
     """
 
@@ -126,7 +126,7 @@ process analysisMultivariant {
     input:
     path config
     path kb
-    tuple path(sim_data, stageAs: 'variant_sim_data_*.cPickle'), val(experiment_id), val(variant), val(seed), val(generation), val(cell_id)
+    tuple path(sim_data), val(experiment_id), val(variant), val(seed), val(generation), val(agent_id)
 
     output:
     path '*'
@@ -137,7 +137,7 @@ process analysisMultivariant {
         --sim-data-path \'${sim_data.join("\' \'")}\' \\
         --validation-data-path \'$kb/validationData.cPickle\' \\
         --experiment_id \'$experiment_id\' \\
-        --variant \'${variant.join("\' \'")}\' \\
+        --variant ${variant.join("\' \'")} \\
         -o \$(pwd)
     """
 
