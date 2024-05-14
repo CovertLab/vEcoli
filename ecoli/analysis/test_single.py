@@ -31,5 +31,5 @@ def plot(
     history_df = history_lf.collect()
 
     plot = history_df.plot.scatter(x='time')
-    hvplot.save(plot, 'plots/test.html')
-    history_df.write_parquet('data/test.pq')
+    hvplot.save(plot, 'test.html')
+    history_df.write_parquet('test.pq')

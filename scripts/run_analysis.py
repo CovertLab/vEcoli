@@ -61,6 +61,8 @@ def main():
     # Changes current working directory so analysis scripts can save
     # plots, etc. without worrying about file paths
     os.chdir(config['outdir'])
+    os.makedirs('plots', exist_ok=True)
+    os.chdir('plots')
 
     # Set up Polars filters for data
     analysis_type = None

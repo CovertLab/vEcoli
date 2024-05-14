@@ -8,7 +8,13 @@ params {
 
 profiles {
     gcloud {
-        process.memory = { 2.GB * task.attempt }
+        process.memory = {
+            if ( task.exitStatus == 140 ) {
+                4.GB * task.attempt
+            } else {
+                4.GB
+            }
+        }
         process.cpus = 2
         process.executor = 'google-batch'
         process.container = 'IMAGE_NAME'
@@ -20,11 +26,23 @@ profiles {
         process.maxRetries = 3
     }
     sherlock {
-        process.memory = { 2.GB * task.attempt }
+        process.memory = {
+            if ( task.exitStatus == 140 ) {
+                4.GB * task.attempt
+            } else {
+                4.GB
+            }
+        }
         process.cpus = 2
         process.executor = 'slurm'
         process.queue = 'mcovert'
-        process.time = { 2.h * task.attempt }
+        process.time = {
+            if ( task.exitStatus == 140 ) {
+                2.h * task.attempt
+            } else {
+                2.h
+            }
+        }
         process.maxRetries = 5
         params.projectRoot = "${launchDir}"
         params.publishDir = "\$SCRATCH/out/${params.experimentId}"

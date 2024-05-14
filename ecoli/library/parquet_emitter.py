@@ -242,7 +242,8 @@ class ParquetEmitter(Emitter):
             data['data'] = {**metadata, **data['data']}
             data['time'] = data['data'].get('initial_global_time', 0.0)
             # Manually create filepaths with hive partitioning
-            agent_id = data['data'].get('agent_id', '0')
+            # Start agent ID with 1 to avoid leading zeros
+            agent_id = data['data'].get('agent_id', '1')
             partitioning_keys = {
                 'experiment_id': data['data'].get('experiment_id', 'default'),
                 'variant': data['data'].get('variant', 0),
