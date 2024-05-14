@@ -15,6 +15,7 @@ process analysisSingle {
 
     script:
     """
+    mkdir -p plots
     PYTHONPATH=${params.projectRoot} python ${params.projectRoot}/scripts/run_analysis.py -c $config \\
         --sim-data-path "$sim_data" \\
         --validation-data-path "$kb/validationData.cPickle" \\
@@ -23,7 +24,7 @@ process analysisSingle {
         --lineage_seed $lineage_seed \\
         --generation $generation \\
         --agent_id "$agent_id" \\
-        -o \$(pwd)
+        -o \$(pwd)/plots
     """
 
     stub:
@@ -50,6 +51,7 @@ process analysisMultiDaughter {
 
     script:
     """
+    mkdir -p plots
     PYTHONPATH=${params.projectRoot} python ${params.projectRoot}/scripts/run_analysis.py -c $config \\
         --sim-data-path "$sim_data" \\
         --validation-data-path "$kb/validationData.cPickle" \\
@@ -57,7 +59,7 @@ process analysisMultiDaughter {
         --variant $variant \\
         --lineage_seed $lineage_seed \\
         --generation $generation \\
-        -o \$(pwd)
+        -o \$(pwd)/plots
     """
 
     stub:
@@ -84,13 +86,14 @@ process analysisMultiGeneration {
 
     script:
     """
+    mkdir -p plots
     PYTHONPATH=${params.projectRoot} python ${params.projectRoot}/scripts/run_analysis.py -c $config \\
         --sim-data-path "$sim_data" \\
         --validation-data-path "$kb/validationData.cPickle" \\
         --experiment_id "$experiment_id" \\
         --variant $variant \\
         --lineage_seed $lineage_seed \\
-        -o \$(pwd)
+        -o \$(pwd)/plots
     """
 
     stub:
@@ -117,12 +120,13 @@ process analysisMultiSeed {
 
     script:
     """
+    mkdir -p plots
     PYTHONPATH=${params.projectRoot} python ${params.projectRoot}/scripts/run_analysis.py -c $config \\
         --sim-data-path "$sim_data" \\
         --validation-data-path "$kb/validationData.cPickle" \\
         --experiment_id "$experiment_id" \\
         --variant $variant \\
-        -o \$(pwd)
+        -o \$(pwd)/plots
     """
 
     stub:
@@ -147,12 +151,13 @@ process analysisMultiVariant {
 
     script:
     """
+    mkdir -p plots
     PYTHONPATH=${params.projectRoot} python ${params.projectRoot}/scripts/run_analysis.py -c $config \\
         --sim-data-path "${sim_data.join("\" \"")}" \\
         --validation-data-path "$kb/validationData.cPickle" \\
         --experiment_id "$experiment_id" \\
         --variant ${variant.join("\" \"")} \\
-        -o \$(pwd)
+        -o \$(pwd)/plots
     """
 
     stub:
