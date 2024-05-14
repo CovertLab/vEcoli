@@ -1,7 +1,7 @@
 process analysisSingle {
     publishDir "${params.publishDir}/${params.experimentId}/analyses/variant=${variant}/lineage_seed=${lineage_seed}/generation=${generation}/agent_id=${agent_id}"
 
-    errorStrategy { (task.attempt <= maxRetries) ? 'retry' : 'ignore' }
+    errorStrategy { (task.exitStatus in [137, 140, 143]) && (task.attempt <= maxRetries) ? 'retry' : 'terminate' }
 
     tag "variant=${variant}/lineage_seed=${lineage_seed}/generation=${generation}/agent_id=${agent_id}"
 
@@ -36,7 +36,7 @@ process analysisSingle {
 process analysisMultiDaughter {
     publishDir "${params.publishDir}/${params.experimentId}/analyses/variant=${variant}/lineage_seed=${lineage_seed}/generation=${generation}"
 
-    errorStrategy { (task.attempt <= maxRetries) ? 'retry' : 'ignore' }
+    errorStrategy { (task.exitStatus in [137, 140, 143]) && (task.attempt <= maxRetries) ? 'retry' : 'terminate' }
 
     tag "variant=${variant}/lineage_seed=${lineage_seed}/generation=${generation}"
 
@@ -70,7 +70,7 @@ process analysisMultiDaughter {
 process analysisMultiGeneration {
     publishDir "${params.publishDir}/${params.experimentId}/analyses/variant=${variant}/lineage_seed=${lineage_seed}"
 
-    errorStrategy { (task.attempt <= maxRetries) ? 'retry' : 'ignore' }
+    errorStrategy { (task.exitStatus in [137, 140, 143]) && (task.attempt <= maxRetries) ? 'retry' : 'terminate' }
 
     tag "variant=${variant}/lineage_seed=${lineage_seed}"
 
@@ -103,7 +103,7 @@ process analysisMultiGeneration {
 process analysisMultiSeed {
     publishDir "${params.publishDir}/${params.experimentId}/analyses/variant=${variant}"
 
-    errorStrategy { (task.attempt <= maxRetries) ? 'retry' : 'ignore' }
+    errorStrategy { (task.exitStatus in [137, 140, 143]) && (task.attempt <= maxRetries) ? 'retry' : 'terminate' }
 
     tag "variant=${variant}"
 
@@ -135,7 +135,7 @@ process analysisMultiSeed {
 process analysisMultiVariant {
     publishDir "${params.publishDir}/${params.experimentId}/analyses"
 
-    errorStrategy { (task.attempt <= maxRetries) ? 'retry' : 'ignore' }
+    errorStrategy { (task.exitStatus in [137, 140, 143]) && (task.attempt <= maxRetries) ? 'retry' : 'terminate' }
 
     input:
     path config

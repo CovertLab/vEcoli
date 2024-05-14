@@ -108,11 +108,12 @@ def generate_lineage(seed: int, n_init_sims: int, generations: int,
 
     all_sim_tasks = []
     for seed in range(seed, seed + n_init_sims):
-        agent_ids = ['0']
+        agent_ids = ['1']
         for gen in range(generations):
             # Handle special case of 1st generation
+            # Start with agent ID 1 to avoid leading zeros
             if gen == 0:
-                name = SIM_TAG.format(seed=seed, gen=gen, agent_id='0')
+                name = SIM_TAG.format(seed=seed, gen=gen, agent_id='1')
                 sim_imports.append(SIM_GEN_0_INC.format(name=name, nf_dir=NEXTFLOW_DIR))
                 sim_workflow.append(SIM_GEN_0_FLOW.format(name=name, seed=seed))
                 all_sim_tasks.append(f'sim{name}.out.metadata')

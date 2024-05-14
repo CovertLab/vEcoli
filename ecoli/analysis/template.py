@@ -94,7 +94,7 @@ def named_idx(col: str, names: list[str], idx: list[int]) -> dict[str, pl.Expr]:
         ``idx[i]`` element of each row in ``col``
     """
     return {
-        f'{col}__{name}': pl.col('col').list.get(index)
+        f'{col}__{name}': pl.col(col).list.get(index)
         for name, index in zip(names, idx)
     }
 

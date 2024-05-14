@@ -2,7 +2,7 @@ process runParca {
     // Run ParCa using parca_options from config JSON
     publishDir "${params.publishDir}/${params.experimentId}/parca"
 
-    errorStrategy { (task.attempt <= maxRetries) ? 'retry' : 'ignore' }
+    errorStrategy { (task.exitStatus in [137, 140, 143]) && (task.attempt <= maxRetries) ? 'retry' : 'terminate' }
 
     input:
     path config
@@ -28,7 +28,7 @@ process runParca {
 process analysisParca {
     publishDir "${params.publishDir}/${params.experimentId}/parca/analysis"
 
-    errorStrategy { (task.attempt <= maxRetries) ? 'retry' : 'ignore' }
+    errorStrategy { (task.exitStatus in [137, 140, 143]) && (task.attempt <= maxRetries) ? 'retry' : 'terminate' }
 
     input:
     path config
@@ -56,7 +56,7 @@ process createVariants {
     // Parse variants in config JSON to generate variants
     publishDir "${params.publishDir}/${params.experimentId}/variant_sim_data"
 
-    errorStrategy { (task.attempt <= maxRetries) ? 'retry' : 'ignore' }
+    errorStrategy { (task.exitStatus in [137, 140, 143]) && (task.attempt <= maxRetries) ? 'retry' : 'terminate' }
 
     input:
     path config
