@@ -28,7 +28,7 @@ def plot(
     history_lf = history_lf.sort('time')
 
     # When satisfied with your query, call ``collect`` on your LazyFrame
-    history_df = history_lf.collect()
+    history_df = history_lf.collect(streaming=True)
 
     plot = history_df.plot.scatter(x='time')
     hvplot.save(plot, 'test.html')

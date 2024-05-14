@@ -108,8 +108,8 @@ def get_field_metadata(config_lf: pl.LazyFrame, field: str) -> list:
             :py:func:`~ecoli.library.parquet_emitter.get_lazyframes`
         field: Name of field to get metadata for
     """
-    return config_lf.select(METADATA_PREFIX + field
-        ).collect()[METADATA_PREFIX + field][0].to_list()
+    return config_lf.select(pl.col(METADATA_PREFIX + field).first()
+        ).collect(streaming=True)[METADATA_PREFIX + field][0].to_list()
 
 
 def plot(
@@ -174,7 +174,9 @@ def plot(
     history_lf = history_lf.sort('time')
 
     # When satisfied with your query, call ``collect`` on your LazyFrame
-    history_df = history_lf.collect()
+    # Always set streaming to True so Polars can process data in batches
+    # and greatly reduce memory usage
+    history_df = history_lf.collect(streaming=True)
     
     # Polars offers many tools to filter, join, and transform data
     # Check their documentation to see if they have a function to

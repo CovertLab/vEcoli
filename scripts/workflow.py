@@ -113,7 +113,7 @@ def generate_lineage(seed: int, n_init_sims: int, generations: int,
             # Handle special case of 1st generation
             # Start with agent ID 1 to avoid leading zeros
             if gen == 0:
-                name = SIM_TAG.format(seed=seed, gen=gen, agent_id='1')
+                name = SIM_TAG.format(seed=seed, gen=gen+1, agent_id='1')
                 sim_imports.append(SIM_GEN_0_INC.format(name=name, nf_dir=NEXTFLOW_DIR))
                 sim_workflow.append(SIM_GEN_0_FLOW.format(name=name, seed=seed))
                 all_sim_tasks.append(f'sim{name}.out.metadata')
@@ -126,12 +126,12 @@ def generate_lineage(seed: int, n_init_sims: int, generations: int,
                     new_agent_ids.append(agent_id[:-1] + '1')
                 agent_ids = new_agent_ids
             for i, agent_id in enumerate(agent_ids):
-                name = SIM_TAG.format(seed=seed, gen=gen, agent_id=agent_id)
+                name = SIM_TAG.format(seed=seed, gen=gen+1, agent_id=agent_id)
                 # Compile list of metadata outputs for all sim tasks
                 all_sim_tasks.append(f'sim{name}.out.metadata')
                 sim_imports.append(SIM_INC.format(name=name, nf_dir=NEXTFLOW_DIR))
                 # Get parent agent ID by truncating final char of daughter ID
-                parent = SIM_TAG.format(seed=seed, gen=gen-1, agent_id=agent_id[:-1])
+                parent = SIM_TAG.format(seed=seed, gen=gen, agent_id=agent_id[:-1])
                 daughter = 'd0'
                 if agent_id[-1] == '1':
                     daughter = 'd1'

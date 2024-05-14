@@ -8,13 +8,8 @@ params {
 
 profiles {
     gcloud {
-        process.memory = {
-            if ( task.exitStatus == 140 ) {
-                4.GB * task.attempt
-            } else {
-                4.GB
-            }
-        }
+        // Retry once with more RAM, then error out
+        process.memory = { 4.GB * task.attempt }
         process.cpus = 2
         process.executor = 'google-batch'
         process.container = 'IMAGE_NAME'
@@ -23,11 +18,13 @@ profiles {
         docker.enabled = true
         params.projectRoot = '/vivarium-ecoli'
         params.publishDir = "${params.experimentId}"
-        process.maxRetries = 3
+        process.maxRetries = 1
     }
     sherlock {
         process.memory = {
-            if ( task.exitStatus == 140 ) {
+            // Do not increase RAM or runtime if failure caused
+            // by preemption (exit code 143)
+            if ( task.exitStatus in [137, 140] ) {
                 4.GB * task.attempt
             } else {
                 4.GB
@@ -35,7 +32,7 @@ profiles {
         }
         process.cpus = 2
         process.executor = 'slurm'
-        process.queue = 'mcovert'
+        process.queue = 'owners'
         process.time = {
             if ( task.exitStatus == 140 ) {
                 2.h * task.attempt
@@ -51,6 +48,5 @@ profiles {
         process.executor = 'local'
         params.projectRoot = "${launchDir}"
         params.publishDir = "${launchDir}/out"
-        process.maxRetries = 3
     }
 }
