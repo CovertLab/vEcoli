@@ -26,7 +26,7 @@ from wholecell.utils import units
 if TYPE_CHECKING:
     from reconstruction.ecoli.simulation_data import SimulationDataEcoli
 
-IGNORE_FIRST_N_GENS = 0
+IGNORE_FIRST_N_GENS = 2
 
 MEDIA_NAME_TO_ID = {
     'minimal': 'MIX0-57',
