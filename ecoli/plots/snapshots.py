@@ -282,10 +282,8 @@ def plot_agents(
                 color = dead_color
         if agent_data:
             if agent_id in highlight_agent:
-                agent_membrane_width = highlight_agent[
-                    agent_id]['membrane_width']
-                agent_membrane_color = highlight_agent[
-                    agent_id]['membrane_color']
+                agent_membrane_width = highlight_agent[agent_id]["membrane_width"]
+                agent_membrane_color = highlight_agent[agent_id]["membrane_color"]
             else:
                 agent_membrane_width = membrane_width
                 agent_membrane_color = membrane_color
@@ -379,10 +377,16 @@ def get_field_range(
         field_ids -= set(skip_fields)
         for field_id in field_ids:
             field_min = min(
-                [min(min(field_data[field_id])) * min_pct for t, field_data in fields.items()]
+                [
+                    min(min(field_data[field_id])) * min_pct
+                    for t, field_data in fields.items()
+                ]
             )
             field_max = max(
-                [max(max(field_data[field_id])) * max_pct for t, field_data in fields.items()]
+                [
+                    max(max(field_data[field_id])) * max_pct
+                    for t, field_data in fields.items()
+                ]
             )
             field_range[field_id] = [field_min, field_max]
     return field_range
@@ -499,8 +503,9 @@ def plot_snapshots(
         raise Exception("No agents or field data")
 
     # get fields id and range
-    field_range = get_field_range(fields, time_vec, include_fields, skip_fields,
-        min_pct, max_pct)
+    field_range = get_field_range(
+        fields, time_vec, include_fields, skip_fields, min_pct, max_pct
+    )
 
     # get agent ids
     if not agent_colors:
@@ -647,7 +652,6 @@ def make_snapshots_figure(
         stats["agents"][time] = len(agents[time])
         if field_ids:
             for row_idx, field_id in enumerate(field_ids):
-
                 ax = init_axes(
                     fig,
                     edge_length_x,
@@ -972,10 +976,9 @@ def make_tags_figure(
             min_tag, max_tag = tag_ranges[tag_id]
             agent_tag_colors = {}
             if isinstance(tag_colors[tag_id], dict):
-                cmap = tag_colors[tag_id]['cmp']
-                norm = tag_colors[tag_id]['norm']
-                mappable = matplotlib.cm.ScalarMappable(
-                    norm=norm, cmap=cmap)
+                cmap = tag_colors[tag_id]["cmp"]
+                norm = tag_colors[tag_id]["norm"]
+                mappable = matplotlib.cm.ScalarMappable(norm=norm, cmap=cmap)
             else:
                 tag_h, tag_s, tag_v = tag_colors[tag_id]
                 tag_color_rgb = np.array(
@@ -983,18 +986,17 @@ def make_tags_figure(
                 )
                 min_color = np.array(matplotlib.colors.to_rgb(min_color))
                 cmap = matplotlib.colors.LinearSegmentedColormap.from_list(
-                    name=f'row_{row_idx}', colors=[min_color, tag_color_rgb])
+                    name=f"row_{row_idx}", colors=[min_color, tag_color_rgb]
+                )
                 norm = matplotlib.colors.Normalize(vmin=min_tag, vmax=max_tag)
-                mappable = matplotlib.cm.ScalarMappable(
-                    norm=norm, cmap=cmap)
+                mappable = matplotlib.cm.ScalarMappable(norm=norm, cmap=cmap)
             for agent_id, agent_data in agents[time].items():
                 # get current tag concentration, and determine color
                 level = get_value_from_path(agent_data, tag_id)
                 if convert_to_concs:
                     volume = agent_data.get("boundary", {}).get("volume", 0)
                     level = level / volume if volume else 0
-                agent_tag_colors[agent_id] = rgb_to_hsv(
-                    mappable.to_rgba(level)[:3])
+                agent_tag_colors[agent_id] = rgb_to_hsv(mappable.to_rgba(level)[:3])
 
             agent_tag_colors.update(agent_colors)
             plot_agents(
@@ -1005,7 +1007,7 @@ def make_tags_figure(
                 None,
                 membrane_width,
                 membrane_color,
-                highlight_agent=highlight_agent
+                highlight_agent=highlight_agent,
             )
             if xlim:
                 ax.set_xlim(*xlim)

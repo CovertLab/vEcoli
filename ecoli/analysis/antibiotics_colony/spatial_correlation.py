@@ -28,8 +28,8 @@ def make_spatial_correlation_plot(glc_data, column, to_conc=False):
         data[column] = data[column] * COUNTS_PER_FL_TO_NANOMOLAR / data["Volume"]
 
     location = data["Boundary"].apply(lambda b: np.array(b["location"]))
-    data["X"] = location.apply(lambda l: l[0])
-    data["Y"] = location.apply(lambda l: l[1])
+    data["X"] = location.apply(lambda loc: loc[0])
+    data["Y"] = location.apply(lambda loc: loc[1])
 
     location = data[["X", "Y"]].values
 
@@ -50,8 +50,8 @@ def make_threshold_sweep_plot(glc_data, column, to_conc=False):
         data[column] = data[column] * COUNTS_PER_FL_TO_NANOMOLAR / data["Volume"]
 
     location = data["Boundary"].apply(lambda b: np.array(b["location"]))
-    data["X"] = location.apply(lambda l: l[0])
-    data["Y"] = location.apply(lambda l: l[1])
+    data["X"] = location.apply(lambda loc: loc[0])
+    data["Y"] = location.apply(lambda loc: loc[1])
 
     location = data[["X", "Y"]].values
 
@@ -70,9 +70,7 @@ def make_threshold_sweep_plot(glc_data, column, to_conc=False):
     fig, ax = plt.subplots()
     ax.plot(thresholds, i_values)
     ax.set_ylim(0, 0.06)
-    ax.set_title(
-        f"I vs. distance threshold (max I attained at d={max_d})"
-    )
+    ax.set_title(f"I vs. distance threshold (max I attained at d={max_d})")
 
     return fig, ax
 
@@ -100,36 +98,69 @@ def make_relatedness_vs_distance_plot(glc_data):
 
     # Order relatedness from most (bottom) to least (top)
     order = [str(i) for i in list(range(19))[:1:-1]]
-    df = pd.DataFrame({'Distance': np.array(distances), 'Relatedness': np.array(relatednesses, dtype=np.str_)})
-    fig, ax = plt.subplots(figsize=(3,3))
+    df = pd.DataFrame(
+        {
+            "Distance": np.array(distances),
+            "Relatedness": np.array(relatednesses, dtype=np.str_),
+        }
+    )
+    fig, ax = plt.subplots(figsize=(3, 3))
     for relatedness_score in order:
-        filtered_dist = df.loc[df.loc[:, 'Relatedness']==relatedness_score, 'Distance']
+        filtered_dist = df.loc[
+            df.loc[:, "Relatedness"] == relatedness_score, "Distance"
+        ]
         quantiles = np.quantile(filtered_dist, [0.25, 0.50, 0.75])
         median = quantiles[1]
         iqr = quantiles[2] - quantiles[0]
-        lower_bound = quantiles[0] - 1.5*iqr
+        lower_bound = quantiles[0] - 1.5 * iqr
         lower_outliers = filtered_dist[filtered_dist < lower_bound]
         if len(lower_outliers) == 0:
             lower_bound = filtered_dist.min()
-        upper_bound = quantiles[2] + 1.5*iqr
+        upper_bound = quantiles[2] + 1.5 * iqr
         upper_outliers = filtered_dist[filtered_dist > upper_bound]
         if len(upper_outliers) == 0:
             upper_bound = filtered_dist.max()
-        
-        ax.hlines(int(relatedness_score), lower_bound, upper_bound, colors=['k'], linewidth=1, zorder=1)
-        ax.hlines(int(relatedness_score), quantiles[0], quantiles[2], colors=['k'], linewidth=3, zorder=2)
-        ax.scatter(median, int(relatedness_score), c='w', s=2, zorder=3)
-        ax.scatter(upper_outliers, [int(relatedness_score)]*len(upper_outliers), s=4, c='k', marker='d')
-        ax.scatter(lower_outliers, [int(relatedness_score)]*len(lower_outliers), s=4, c='k', marker='d')
-    ax.set_xlabel('Distance (\u03BCm)', fontsize=9)
-    ax.set_ylabel('Phylogenetic distance', fontsize=9)
-    ax.set_yticks([3,6,9,12,15,18], [3,6,9,12,15,18], fontsize=8)
-    ax.set_xticks([0,5,10,15,20,25,30], [0,5,10,15,20,25,30], fontsize=8)
+
+        ax.hlines(
+            int(relatedness_score),
+            lower_bound,
+            upper_bound,
+            colors=["k"],
+            linewidth=1,
+            zorder=1,
+        )
+        ax.hlines(
+            int(relatedness_score),
+            quantiles[0],
+            quantiles[2],
+            colors=["k"],
+            linewidth=3,
+            zorder=2,
+        )
+        ax.scatter(median, int(relatedness_score), c="w", s=2, zorder=3)
+        ax.scatter(
+            upper_outliers,
+            [int(relatedness_score)] * len(upper_outliers),
+            s=4,
+            c="k",
+            marker="d",
+        )
+        ax.scatter(
+            lower_outliers,
+            [int(relatedness_score)] * len(lower_outliers),
+            s=4,
+            c="k",
+            marker="d",
+        )
+    ax.set_xlabel("Distance (\u03bcm)", fontsize=9)
+    ax.set_ylabel("Phylogenetic distance", fontsize=9)
+    ax.set_yticks([3, 6, 9, 12, 15, 18], [3, 6, 9, 12, 15, 18], fontsize=8)
+    ax.set_xticks([0, 5, 10, 15, 20, 25, 30], [0, 5, 10, 15, 20, 25, 30], fontsize=8)
     sns.despine(ax=ax)
     plt.tight_layout()
 
-    r, p = spearmanr(df['Distance'], df['Relatedness'])
-    print(f'Relatedness vs distance: Spearman r = {r}, p = {p}')
+    r, p = spearmanr(df["Distance"], df["Relatedness"])
+    print(f"Relatedness vs distance: Spearman r = {r}, p = {p}")
 
     return fig, ax
 
@@ -141,10 +172,9 @@ def load_data(
     # Load glc data
     if verbose:
         print("Loading Glucose data...")
-    glc_data = pd.read_csv(glc_data, dtype={
-        'Agent ID': str, 'Seed': str}, index_col=0)
+    glc_data = pd.read_csv(glc_data, dtype={"Agent ID": str, "Seed": str}, index_col=0)
     # Convert string to actual dictionary
-    glc_data['Boundary'] = glc_data['Boundary'].apply(ast.literal_eval)
+    glc_data["Boundary"] = glc_data["Boundary"].apply(ast.literal_eval)
 
     # Validate data:
     # - glc_data must be in Glucose condition
@@ -199,23 +229,24 @@ def main():
         options.verbose,
     )
 
-    agent_ids = glc_data.loc[glc_data.loc[:, 'Time']==glc_data.loc[:, 'Time'], 'Agent ID']
+    agent_ids = glc_data.loc[
+        glc_data.loc[:, "Time"] == glc_data.loc[:, "Time"], "Agent ID"
+    ]
     norm_agent_ids = {}
     for agent_id in agent_ids:
         if len(agent_id) > 1:
             parent_id = agent_id[:-1]
             exp = 8 - len(parent_id)
         else:
-            parent_id = '0'
+            parent_id = "0"
             exp = 8
         binary_agent = int(parent_id, 2) * 2**exp
         norm_agent_ids[agent_id] = binary_agent
     norm_agent_id_col = [
-        norm_agent_ids[agent_id] 
-        if agent_id in norm_agent_ids else '0'
-        for agent_id in glc_data.loc[:, 'Agent ID']
+        norm_agent_ids[agent_id] if agent_id in norm_agent_ids else "0"
+        for agent_id in glc_data.loc[:, "Agent ID"]
     ]
-    glc_data['Lineage'] = norm_agent_id_col
+    glc_data["Lineage"] = norm_agent_id_col
 
     # Ensure output directory exists
     os.makedirs(options.outdir, exist_ok=True)
@@ -257,8 +288,8 @@ def main():
     fig, _ = make_threshold_sweep_plot(glc_data, column="OmpF monomer", to_conc=True)
     fig.set_size_inches(4, 4)
     fig.savefig(os.path.join(options.outdir, f"threshold_sweep{ext}"))
-    
-    seed = glc_data.loc[:, 'Seed'].iloc[0]
+
+    seed = glc_data.loc[:, "Seed"].iloc[0]
     with open(os.path.join(options.outdir, f"Moran tests_{seed}.txt"), "w") as f:
         for col, moran in moran_results.items():
             f.write(f"\n{col}\n=============\n")

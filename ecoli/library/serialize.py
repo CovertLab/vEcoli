@@ -9,12 +9,12 @@ from ecoli.library.parameters import Parameter, param_store
 
 
 class UnumSerializer(Serializer):
-    
     def __init__(self):
         super().__init__()
-        self.regex_for_serialized = re.compile('!UnumSerializer\\[(.*)\\]')
+        self.regex_for_serialized = re.compile("!UnumSerializer\\[(.*)\\]")
 
     python_type = Unum
+
     def serialize(self, value):
         num = value.asNumber()
         if isinstance(num, np.ndarray):
@@ -22,7 +22,7 @@ class UnumSerializer(Serializer):
         # TODO: Fix this
         # return f'!UnumSerializer[{num} | {value.strUnit()}]'
         return num
-        
+
     def can_deserialize(self, data):
         if not isinstance(data, str):
             return False
@@ -35,17 +35,16 @@ class UnumSerializer(Serializer):
         matched_regex = self.regex_for_serialized.fullmatch(data)
         if matched_regex:
             data = matched_regex.group(1)
-        return orjson.loads(data.split(' | ')[0])
+        return orjson.loads(data.split(" | ")[0])
 
 
 class ParameterSerializer(Serializer):
-    
     def __init__(self):
         super().__init__()
-        self.regex_for_serialized = re.compile('!ParameterSerializer\\[(.*)\\]')
-    
+        self.regex_for_serialized = re.compile("!ParameterSerializer\\[(.*)\\]")
+
     python_type = Parameter
-        
+
     def can_deserialize(self, data):
         if not isinstance(data, str):
             return False
@@ -57,20 +56,20 @@ class ParameterSerializer(Serializer):
             data = matched_regex.group(1)
         path = normalize_path(convert_path_style(data))
         return param_store.get(path)
-    
+
 
 class NumpyRandomStateSerializer(Serializer):
-    
     def __init__(self):
         super().__init__()
-        self.regex_for_serialized = re.compile('!RandomStateSerializer\\[(.*)\\]')
+        self.regex_for_serialized = re.compile("!RandomStateSerializer\\[(.*)\\]")
 
     python_type = np.random.RandomState
+
     def serialize(self, value):
         rng_state = list(value.get_state())
         rng_state[1] = rng_state[1].tolist()
-        return f'!RandomStateSerializer[{str(tuple(rng_state))}]'
-        
+        return f"!RandomStateSerializer[{str(tuple(rng_state))}]"
+
     def can_deserialize(self, data):
         if not isinstance(data, str):
             return False
@@ -88,6 +87,7 @@ class NumpyRandomStateSerializer(Serializer):
 
 class MethodSerializer(Serializer):
     """Serializer for bound method objects."""
+
     python_type = type(ParameterSerializer().deserialize)
 
     def serialize(self, data):

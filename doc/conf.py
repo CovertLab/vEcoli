@@ -15,24 +15,22 @@ import os
 from pprint import pformat
 import shutil
 import sys
-sys.path.insert(0, os.path.abspath('..'))
+
+sys.path.insert(0, os.path.abspath(".."))
 
 import docutils
-from docutils.nodes import Text
 from docutils.parsers.rst import Parser
-from sphinx.addnodes import pending_xref
 from sphinx.ext import apidoc
-from sphinx.ext.intersphinx import missing_reference
 
 
 # -- Project information -----------------------------------------------------
 
-project = 'Vivarium E. coli'
-author = 'The Vivarium E. coli Authors'
-copyright = '2021-{}, {}'.format(datetime.now().year, author)
+project = "Vivarium E. coli"
+author = "The Vivarium E. coli Authors"
+copyright = "2021-{}, {}".format(datetime.now().year, author)
 
 # The full version, including alpha/beta/rc tags
-release = '1.0.0'
+release = "1.0.0"
 
 
 # -- General configuration ---------------------------------------------------
@@ -41,22 +39,22 @@ release = '1.0.0'
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
-    'sphinx_rtd_theme',
-    'sphinx.ext.todo',
-    'sphinx.ext.autodoc',
-    'sphinx.ext.napoleon',
-    'sphinx.ext.intersphinx',
-    'sphinx.ext.viewcode',
-    'nbsphinx',
+    "sphinx_rtd_theme",
+    "sphinx.ext.todo",
+    "sphinx.ext.autodoc",
+    "sphinx.ext.napoleon",
+    "sphinx.ext.intersphinx",
+    "sphinx.ext.viewcode",
+    "nbsphinx",
 ]
 
 # Add any paths that contain templates here, relative to this directory.
-templates_path = ['_templates']
+templates_path = ["_templates"]
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
-exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store', 'venv']
+exclude_patterns = ["_build", "Thumbs.db", ".DS_Store", "venv"]
 
 # Causes warnings to be thrown for all unresolvable references. This
 # will help avoid broken links.
@@ -64,15 +62,14 @@ nitpicky = True
 
 nitpick_ignore = [
     # No API documentation for Unum package
-    ('py:class', 'Unum'),
-    ('py:class', 'unum.Unum'),
+    ("py:class", "Unum"),
+    ("py:class", "unum.Unum"),
     # Silence warnings in ecoli.plots.snapshots.make_snapshots_figure
-    ('py:class', 'any valid matplotlib color'),
+    ("py:class", "any valid matplotlib color"),
     # Silence warning in ecoli.plots.blame.SignNormalize
-    ('py:class', 'default: False'),
+    ("py:class", "default: False"),
     # Silence warning in ecoli.processes.environment.field_timeline.FieldTimeline
-    ('py:class', 'vivarium.processes.timeline.TimelineProcess'),
-
+    ("py:class", "vivarium.processes.timeline.TimelineProcess"),
 ]
 
 
@@ -81,15 +78,15 @@ nitpick_ignore = [
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-html_theme = 'sphinx_rtd_theme'
+html_theme = "sphinx_rtd_theme"
 html_theme_options = {
-    'display_version': True,
+    "display_version": True,
 }
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = ['_static']
+html_static_path = ["_static"]
 
 
 # -- Options for extensions --------------------------------------------------
@@ -97,17 +94,17 @@ html_static_path = ['_static']
 # -- nbsphinx options --
 
 # Never execute Jupyter notebooks.
-nbsphinx_execute = 'never'
+nbsphinx_execute = "never"
 
 # -- sphinx.ext.intersphinx options --
 intersphinx_mapping = {
-    'python': ('https://docs.python.org/3', None),
-    'vivarium': (
-        'https://vivarium-core.readthedocs.io/en/latest/',
+    "python": ("https://docs.python.org/3", None),
+    "vivarium": (
+        "https://vivarium-core.readthedocs.io/en/latest/",
         None,
     ),
-    'numpy': ('https://numpy.org/doc/stable', None),
-    'matplotlib': ('https://matplotlib.org/stable/', None)
+    "numpy": ("https://numpy.org/doc/stable", None),
+    "matplotlib": ("https://matplotlib.org/stable/", None),
 }
 
 
@@ -115,92 +112,129 @@ intersphinx_mapping = {
 autodoc_inherit_docstrings = False
 # The Python dependencies aren't really required for building the docs
 autodoc_mock_imports = [
-    'stochastic_arrow', 'numba', 'line-profiler', 'iteround', 'aesara', 'pandas',
+    "stochastic_arrow",
+    "numba",
+    "line-profiler",
+    "iteround",
+    "aesara",
+    "pandas",
     # Runs code on import and fails due to missing solvers.
-    'wholecell.utils.modular_fba',
+    "wholecell.utils.modular_fba",
     # Runs code on import and fails due to missing packages
-    'ecoli.library.parameters',
+    "ecoli.library.parameters",
     # Needs to be run with kernprof
-    'wholecell.tests.utils.profile_polymerize',
-    'sympy', 'cv2', 'Bio', 'tqdm', 'cvxpy', 'pymunk', 'skimage', 'dill',
-    'Equation', 'swiglpk', 'seaborn'
+    "wholecell.tests.utils.profile_polymerize",
+    "sympy",
+    "cv2",
+    "Bio",
+    "tqdm",
+    "cvxpy",
+    "pymunk",
+    "skimage",
+    "dill",
+    "Equation",
+    "swiglpk",
+    "seaborn",
 ]
 # Move typehints from signature into description
 autodoc_typehints = "description"
 # Concatenate class and __init__ docstrings
-autoclass_content = 'both'
-# Remove domain objects (e.g. functions, classes, attributes) from 
+autoclass_content = "both"
+# Remove domain objects (e.g. functions, classes, attributes) from
 # table of contents
 toc_object_entries = False
 
+
 def autodoc_skip_member_handler(app, what, name, obj, skip, options):
-    if name.startswith('test_'):
+    if name.startswith("test_"):
         return True
     return None
 
 
 # -- Custom Extensions -------------------------------------------------
 
+
 def run_apidoc(_):
     cur_dir = os.path.abspath(os.path.dirname(__file__))
 
     # Move tutorial notebooks into build directory
-    notebooks_dst = os.path.join(cur_dir, 'notebooks')
-    notebooks_src = os.path.join(cur_dir, '..', 'notebooks')
+    notebooks_dst = os.path.join(cur_dir, "notebooks")
+    notebooks_src = os.path.join(cur_dir, "..", "notebooks")
     if os.path.exists(notebooks_dst):
         shutil.rmtree(notebooks_dst)
     shutil.copytree(notebooks_src, notebooks_dst)
 
     # Use sphinx-autodoc to create API documentation from docstrings
     module_paths = [
-        os.path.join(cur_dir, '..', 'ecoli'),
-        os.path.join(cur_dir, '..', 'reconstruction'),
-        os.path.join(cur_dir, '..', 'validation'),
-        os.path.join(cur_dir, '..', 'wholecell')]
+        os.path.join(cur_dir, "..", "ecoli"),
+        os.path.join(cur_dir, "..", "reconstruction"),
+        os.path.join(cur_dir, "..", "validation"),
+        os.path.join(cur_dir, "..", "wholecell"),
+    ]
 
     apidoc_dirs = [
-        os.path.join(cur_dir, 'reference', 'api', 'ecoli'),
-        os.path.join(cur_dir, 'reference', 'api', 'reconstruction'),
-        os.path.join(cur_dir, 'reference', 'api', 'validation'),
-        os.path.join(cur_dir, 'reference', 'api', 'wholecell'),
-        ]
-    
-    exclude_paths = [(
-        os.path.join(cur_dir, path) for path in (
-            '../ecoli/analysis',
-            '../ecoli/experiments/ecoli_master_sim_tests.py',
-        )
-    ), (), (), ()]
+        os.path.join(cur_dir, "reference", "api", "ecoli"),
+        os.path.join(cur_dir, "reference", "api", "reconstruction"),
+        os.path.join(cur_dir, "reference", "api", "validation"),
+        os.path.join(cur_dir, "reference", "api", "wholecell"),
+    ]
+
+    exclude_paths = [
+        (
+            os.path.join(cur_dir, path)
+            for path in (
+                "../ecoli/analysis",
+                "../ecoli/experiments/ecoli_master_sim_tests.py",
+            )
+        ),
+        (),
+        (),
+        (),
+    ]
 
     for module_path, apidoc_dir, exclude in zip(
-        module_paths, apidoc_dirs, exclude_paths):
+        module_paths, apidoc_dirs, exclude_paths
+    ):
         if os.path.exists(apidoc_dir):
             shutil.rmtree(apidoc_dir)
         os.makedirs(apidoc_dir, exist_ok=True)
-        # Custom templates to only put top-level document titles in 
+        # Custom templates to only put top-level document titles in
         # table of contents
-        apidoc.main(['-t', 'apidoc_templates/',
-            '-f', '-e', '-E', '-M', '-o', apidoc_dir, module_path, *exclude])
+        apidoc.main(
+            [
+                "-t",
+                "apidoc_templates/",
+                "-f",
+                "-e",
+                "-E",
+                "-M",
+                "-o",
+                apidoc_dir,
+                module_path,
+                *exclude,
+            ]
+        )
 
 
 objects_to_pprint = {}
 
 
 def autodoc_process_signature_handler(
-        _app, what, name, obj, _options, _signature, _return_annotation):
-    '''Save class attributes before their signatures are processed.
+    _app, what, name, obj, _options, _signature, _return_annotation
+):
+    """Save class attributes before their signatures are processed.
 
     In ``object_description_handler``, we will use these saved objects
     to generate pretty representations of their default values.
-    '''
-    if what != 'attribute':
+    """
+    if what != "attribute":
         return
     assert name not in objects_to_pprint
     objects_to_pprint[name] = obj
 
 
 def object_description_handler(_, domain, objtype, contentnode):
-    '''Make representations of attribute default values pretty.
+    """Make representations of attribute default values pretty.
 
     We transform the representations of the following attributes:
 
@@ -217,14 +251,14 @@ def object_description_handler(_, domain, objtype, contentnode):
     docstring look start with an attribute name. We attempt to mitigate
     this problem by also checking that the object name was saved by
     ``autodoc_process_signature_handler``.
-    '''
-    if objtype != 'class' or domain != 'py':
+    """
+    if objtype != "class" or domain != "py":
         return
     for child in contentnode.children:
-        if child.astext().startswith('defaults: Dict['):
-            name = contentnode.source.split()[-1] + '.defaults'
-        elif child.astext().startswith('topology'):
-            name = contentnode.source.split()[-1] + '.topology'
+        if child.astext().startswith("defaults: Dict["):
+            name = contentnode.source.split()[-1] + ".defaults"
+        elif child.astext().startswith("topology"):
+            name = contentnode.source.split()[-1] + ".topology"
         else:
             continue
 
@@ -236,12 +270,13 @@ def object_description_handler(_, domain, objtype, contentnode):
 
         parser = Parser()
         settings = docutils.frontend.OptionParser(
-            components=(docutils.parsers.rst.Parser,)).get_default_values()
-        document = docutils.utils.new_document('<rst-doc>', settings=settings)
-        lines = ['.. code-block:: python', '']
-        for line in obj_pprint.split('\n'):
-            lines.append('   ' + line)
-        text = '\n'.join(lines)
+            components=(docutils.parsers.rst.Parser,)
+        ).get_default_values()
+        document = docutils.utils.new_document("<rst-doc>", settings=settings)
+        lines = [".. code-block:: python", ""]
+        for line in obj_pprint.split("\n"):
+            lines.append("   " + line)
+        text = "\n".join(lines)
         parser.parse(text, document)
         new_node = document.children[0]
 
@@ -249,8 +284,7 @@ def object_description_handler(_, domain, objtype, contentnode):
 
 
 def setup(app):
-    app.connect('autodoc-skip-member', autodoc_skip_member_handler)
-    app.connect('autodoc-process-signature', autodoc_process_signature_handler)
-    app.connect(
-        'object-description-transform', object_description_handler)
-    app.connect('builder-inited', run_apidoc)
+    app.connect("autodoc-skip-member", autodoc_skip_member_handler)
+    app.connect("autodoc-process-signature", autodoc_process_signature_handler)
+    app.connect("object-description-transform", object_description_handler)
+    app.connect("builder-inited", run_apidoc)

@@ -16,24 +16,26 @@ def get_force_with_angle(force, angle):
 
 
 def front_from_corner(width, length, corner_position, angle):
-    half_width = width/2
-    dx = length * math.cos(angle) + half_width * math.cos(angle + PI/2)  # PI/2 gives a half-rotation for the width component
-    dy = length * math.sin(angle) + half_width * math.sin(angle + PI/2)
+    half_width = width / 2
+    dx = length * math.cos(angle) + half_width * math.cos(
+        angle + PI / 2
+    )  # PI/2 gives a half-rotation for the width component
+    dy = length * math.sin(angle) + half_width * math.sin(angle + PI / 2)
     front_position = [corner_position[0] + dx, corner_position[1] + dy]
     return np.array([front_position[0], front_position[1], angle])
 
 
 def corner_from_center(width, length, center_position, angle):
-    half_length = length/2
-    half_width = width/2
-    dx = half_length * math.cos(angle) + half_width * math.cos(angle + PI/2)
-    dy = half_length * math.sin(angle) + half_width * math.sin(angle + PI/2)
+    half_length = length / 2
+    half_width = width / 2
+    dx = half_length * math.cos(angle) + half_width * math.cos(angle + PI / 2)
+    dy = half_length * math.sin(angle) + half_width * math.sin(angle + PI / 2)
     corner_position = [center_position[0] - dx, center_position[1] - dy]
     return np.array([corner_position[0], corner_position[1], angle])
 
 
 def random_body_position(body, rng):
-    ''' pick a random point along the boundary'''
+    """pick a random point along the boundary"""
     width, length = body.dimensions
     if rng.integers(0, 2) == 0:
         # force along ends
@@ -57,6 +59,7 @@ def random_body_position(body, rng):
 class NullScreen(object):
     def update_screen(self):
         pass
+
     def configure(self, config):
         pass
 
@@ -67,66 +70,63 @@ class PymunkMultibody(object):
     """
 
     defaults = {
-        'agent_shape': 'segment',
+        "agent_shape": "segment",
         # hardcoded parameters
-        'elasticity': 0.9,
-        'damping': 0.5,  # 1 is no damping, 0 is full damping
-        'angular_damping': 0.8,
-        'friction': 0.9,  # does this do anything?
-        'physics_dt': 0.001,
-        'force_scaling': 5e4,  # scales from pN
+        "elasticity": 0.9,
+        "damping": 0.5,  # 1 is no damping, 0 is full damping
+        "angular_damping": 0.8,
+        "friction": 0.9,  # does this do anything?
+        "physics_dt": 0.001,
+        "force_scaling": 5e4,  # scales from pN
         # configured parameters
-        'jitter_force': 1e-3,  # pN
-        'bounds': [20, 20],
-        'barriers': False,
-        'initial_agents': {},
+        "jitter_force": 1e-3,  # pN
+        "bounds": [20, 20],
+        "barriers": False,
+        "initial_agents": {},
         # for debugging
-        'screen': None,
-        'seed': 0,
+        "screen": None,
+        "seed": 0,
     }
 
     def __init__(self, config):
         # PRNG for jitter force
-        self.rng = np.random.default_rng(
-            seed=config.get('seed', self.defaults['seed']))
+        self.rng = np.random.default_rng(seed=config.get("seed", self.defaults["seed"]))
 
         # hardcoded parameters
-        self.elasticity = self.defaults['elasticity']
-        self.friction = self.defaults['friction']
-        self.damping = self.defaults['damping']
-        self.angular_damping = self.defaults['angular_damping']
-        self.physics_dt = config.get('physics_dt', self.defaults['physics_dt'])
-        self.force_scaling = self.defaults['force_scaling']
+        self.elasticity = self.defaults["elasticity"]
+        self.friction = self.defaults["friction"]
+        self.damping = self.defaults["damping"]
+        self.angular_damping = self.defaults["angular_damping"]
+        self.physics_dt = config.get("physics_dt", self.defaults["physics_dt"])
+        self.force_scaling = self.defaults["force_scaling"]
 
         # configured parameters
-        self.agent_shape = config.get('agent_shape', self.defaults['agent_shape'])
-        self.jitter_force = config.get('jitter_force', self.defaults['jitter_force'])
-        self.bounds = config.get('bounds', self.defaults['bounds'])
-        barriers = config.get('barriers', self.defaults['barriers'])
+        self.agent_shape = config.get("agent_shape", self.defaults["agent_shape"])
+        self.jitter_force = config.get("jitter_force", self.defaults["jitter_force"])
+        self.bounds = config.get("bounds", self.defaults["bounds"])
+        barriers = config.get("barriers", self.defaults["barriers"])
 
         # initialize pymunk space
         self.space = pymunk.Space()
 
         # debug screen
-        self.screen = config.get('screen')
+        self.screen = config.get("screen")
         if self.screen is None:
             self.screen = NullScreen()
-        self.screen.configure({
-            'space': self.space,
-            'bounds': self.bounds})
+        self.screen.configure({"space": self.space, "bounds": self.bounds})
 
         # add static barriers
         self.add_barriers(self.bounds, barriers)
 
         # initialize agents
-        initial_agents = config.get('initial_agents', self.defaults['initial_agents'])
+        initial_agents = config.get("initial_agents", self.defaults["initial_agents"])
         self.bodies = {}
         for agent_id, specs in initial_agents.items():
             self.add_body_from_center(agent_id, specs)
 
     def run(self, timestep):
         if self.physics_dt > timestep:
-            print('timestep skipped by pymunk_multibody: {}'.format(timestep))
+            print("timestep skipped by pymunk_multibody: {}".format(timestep))
             return
 
         time = 0
@@ -151,7 +151,7 @@ class PymunkMultibody(object):
         torque = 0.0
         motile_force = [thrust, torque]
 
-        if hasattr(body, 'thrust'):
+        if hasattr(body, "thrust"):
             thrust = body.thrust
             torque = body.torque
             motile_force = [thrust, 0.0]
@@ -166,23 +166,25 @@ class PymunkMultibody(object):
         jitter_location = random_body_position(body, self.rng)
         jitter_force = [
             self.rng.normal(0, self.jitter_force),
-            self.rng.normal(0, self.jitter_force)]
-        scaled_jitter_force = [
-            force * self.force_scaling
-            for force in jitter_force]
-        body.apply_impulse_at_local_point(
-            scaled_jitter_force,
-            jitter_location)
+            self.rng.normal(0, self.jitter_force),
+        ]
+        scaled_jitter_force = [force * self.force_scaling for force in jitter_force]
+        body.apply_impulse_at_local_point(scaled_jitter_force, jitter_location)
 
     def apply_viscous_force(self, body):
         # dampen velocity
-        body.velocity = body.velocity * self.damping + (body.force / body.mass) * self.physics_dt
+        body.velocity = (
+            body.velocity * self.damping + (body.force / body.mass) * self.physics_dt
+        )
 
         # dampen angular velocity
-        body.angular_velocity = body.angular_velocity * self.angular_damping + (body.torque / body.moment) * self.physics_dt
+        body.angular_velocity = (
+            body.angular_velocity * self.angular_damping
+            + (body.torque / body.moment) * self.physics_dt
+        )
 
     def add_barriers(self, bounds, barriers):
-        """ Create static barriers """
+        """Create static barriers"""
         thickness = 50.0
         offset = thickness
         x_bound = bounds[0]
@@ -192,39 +194,46 @@ class PymunkMultibody(object):
         static_lines = [
             pymunk.Segment(
                 static_body,
-                (0.0-offset, 0.0-offset),
-                (x_bound+offset, 0.0-offset),
-                thickness),
+                (0.0 - offset, 0.0 - offset),
+                (x_bound + offset, 0.0 - offset),
+                thickness,
+            ),
             pymunk.Segment(
                 static_body,
-                (x_bound+offset, 0.0-offset),
-                (x_bound+offset, y_bound+offset),
-                thickness),
+                (x_bound + offset, 0.0 - offset),
+                (x_bound + offset, y_bound + offset),
+                thickness,
+            ),
             pymunk.Segment(
                 static_body,
-                (x_bound+offset, y_bound+offset),
-                (0.0-offset, y_bound+offset),
-                thickness),
+                (x_bound + offset, y_bound + offset),
+                (0.0 - offset, y_bound + offset),
+                thickness,
+            ),
             pymunk.Segment(
                 static_body,
-                (0.0-offset, y_bound+offset),
-                (0.0-offset, 0.0-offset),
-                thickness),
+                (0.0 - offset, y_bound + offset),
+                (0.0 - offset, 0.0 - offset),
+                thickness,
+            ),
         ]
 
         if barriers:
             assert isinstance(barriers, dict)
-            spacer_thickness = barriers.get('spacer_thickness', 0.1)
-            channel_height = barriers.get('channel_height', 0.7 * bounds[1])
-            channel_space = barriers.get('channel_space', 1.5)
-            n_lines = math.floor(x_bound/channel_space)
+            spacer_thickness = barriers.get("spacer_thickness", 0.1)
+            channel_height = barriers.get("channel_height", 0.7 * bounds[1])
+            channel_space = barriers.get("channel_space", 1.5)
+            n_lines = math.floor(x_bound / channel_space)
 
             machine_lines = [
                 pymunk.Segment(
                     static_body,
                     (channel_space * line, 0),
-                    (channel_space * line, channel_height), spacer_thickness)
-                for line in range(n_lines)]
+                    (channel_space * line, channel_height),
+                    spacer_thickness,
+                )
+                for line in range(n_lines)
+            ]
             static_lines += machine_lines
 
         for line in static_lines:
@@ -233,47 +242,49 @@ class PymunkMultibody(object):
             self.space.add(line)
 
     def get_shape(self, boundary):
-        '''
+        """
         shape documentation at: https://pymunk-tutorial.readthedocs.io/en/latest/shape/shape.html
-        '''
+        """
 
-        if self.agent_shape == 'segment':
-            width = boundary['width']
-            length = boundary['length']
+        if self.agent_shape == "segment":
+            width = boundary["width"]
+            length = boundary["length"]
 
             half_width = width / 2
             half_length = length / 2 - half_width
             shape = pymunk.Segment(
-                None,
-                (-half_length, 0),
-                (half_length, 0),
-                radius=half_width)
+                None, (-half_length, 0), (half_length, 0), radius=half_width
+            )
 
-        elif self.agent_shape == 'circle':
-            length = boundary['length']
+        elif self.agent_shape == "circle":
+            length = boundary["length"]
             half_length = length / 2
             shape = pymunk.Circle(None, radius=half_length, offset=(0, 0))
 
-        elif self.agent_shape == 'rectangle':
-            width = boundary['width']
-            length = boundary['length']
+        elif self.agent_shape == "rectangle":
+            width = boundary["width"]
+            length = boundary["length"]
             half_length = length / 2
             half_width = width / 2
-            shape = pymunk.Poly(None,
-                ((-half_length, -half_width),
-                 (half_length, -half_width),
-                 (half_length, half_width),
-                 (-half_length, half_width)))
+            shape = pymunk.Poly(
+                None,
+                (
+                    (-half_length, -half_width),
+                    (half_length, -half_width),
+                    (half_length, half_width),
+                    (-half_length, half_width),
+                ),
+            )
 
         return shape
 
     def get_inertia(self, shape, mass):
-        if self.agent_shape == 'rectangle':
+        if self.agent_shape == "rectangle":
             inertia = pymunk.moment_for_poly(mass, shape.get_vertices())
-        elif self.agent_shape == 'circle':
+        elif self.agent_shape == "circle":
             radius = shape.radius
             inertia = pymunk.moment_for_circle(mass, radius, radius)
-        elif self.agent_shape == 'segment':
+        elif self.agent_shape == "segment":
             a = shape.a
             b = shape.b
             radius = shape.radius
@@ -282,13 +293,13 @@ class PymunkMultibody(object):
         return inertia
 
     def add_body_from_center(self, body_id, specs):
-        boundary = specs['boundary']
-        mass = boundary['mass']
-        center_position = boundary['location']
-        angle = boundary['angle']
-        angular_velocity = boundary.get('angular_velocity', 0.0)
-        width = boundary['width']
-        length = boundary['length']
+        boundary = specs["boundary"]
+        mass = boundary["mass"]
+        center_position = boundary["location"]
+        angle = boundary["angle"]
+        angular_velocity = boundary.get("angular_velocity", 0.0)
+        width = boundary["width"]
+        length = boundary["length"]
 
         # get shape, inertia, make body, assign body to shape
         shape = self.get_shape(boundary)
@@ -296,9 +307,7 @@ class PymunkMultibody(object):
         body = pymunk.Body(mass, inertia)
         shape.body = body
 
-        body.position = (
-            center_position[0],
-            center_position[1])
+        body.position = (center_position[0], center_position[1])
         body.angle = angle
         body.dimensions = (width, length)
         body.angular_velocity = angular_velocity
@@ -313,12 +322,12 @@ class PymunkMultibody(object):
         self.bodies[body_id] = (body, shape)
 
     def update_body(self, body_id, specs):
-        boundary = specs['boundary']
-        length = boundary['length']
-        width = boundary['width']
-        mass = boundary['mass']
-        thrust = boundary['thrust']
-        torque = boundary['torque']
+        boundary = specs["boundary"]
+        length = boundary["length"]
+        width = boundary["width"]
+        mass = boundary["mass"]
+        thrust = boundary["thrust"]
+        torque = boundary["torque"]
 
         body, shape = self.bodies[body_id]
         position = body.position
@@ -352,8 +361,8 @@ class PymunkMultibody(object):
         # if an agent has been removed from the agents store,
         # remove it from space and bodies
         removed_bodies = [
-            body_id for body_id in self.bodies.keys()
-            if body_id not in bodies.keys()]
+            body_id for body_id in self.bodies.keys() if body_id not in bodies.keys()
+        ]
         for body_id in removed_bodies:
             body, shape = self.bodies[body_id]
             self.space.remove(body, shape)
@@ -369,47 +378,44 @@ class PymunkMultibody(object):
     def get_body_position(self, agent_id):
         body, shape = self.bodies[agent_id]
         return {
-            'location': [pos for pos in body.position],
-            'angle': body.angle,
+            "location": [pos for pos in body.position],
+            "angle": body.angle,
         }
 
     def get_body_positions(self):
         return {
-            body_id: {
-                'boundary': self.get_body_position(body_id)}
-            for body_id in self.bodies.keys()}
-
+            body_id: {"boundary": self.get_body_position(body_id)}
+            for body_id in self.bodies.keys()
+        }
 
 
 def test_multibody(
-        total_time=2,
-        agent_shape='rectangle',
-        n_agents=1,
-        jitter_force=1e1,
-        screen=None):
-
+    total_time=2, agent_shape="rectangle", n_agents=1, jitter_force=1e1, screen=None
+):
     bounds = [500, 500]
-    center_location = [0.5*loc for loc in bounds]
+    center_location = [0.5 * loc for loc in bounds]
     agents = {
         str(agent_idx): {
-            'boundary': {
-                'location': center_location,
-                'angle': random.uniform(0,2*PI),
-                'volume': 15,
-                'length': 30,
-                'width': 10,
-                'mass': 1,
-                'thrust': 1e3,
-                'torque': 0.0}}
+            "boundary": {
+                "location": center_location,
+                "angle": random.uniform(0, 2 * PI),
+                "volume": 15,
+                "length": 30,
+                "width": 10,
+                "mass": 1,
+                "thrust": 1e3,
+                "torque": 0.0,
+            }
+        }
         for agent_idx in range(n_agents)
     }
     config = {
-        'agent_shape': agent_shape,
-        'jitter_force': jitter_force,
-        'bounds': bounds,
-        'barriers': False,
-        'initial_agents': agents,
-        'screen': screen
+        "agent_shape": agent_shape,
+        "jitter_force": jitter_force,
+        "bounds": bounds,
+        "barriers": False,
+        "initial_agents": agents,
+        "screen": screen,
     }
     multibody = PymunkMultibody(config)
 
@@ -421,5 +427,5 @@ def test_multibody(
         multibody.run(time_step)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     test_multibody(10)

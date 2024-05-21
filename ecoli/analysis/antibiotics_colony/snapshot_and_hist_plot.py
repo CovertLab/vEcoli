@@ -15,7 +15,6 @@ from ecoli.analysis.antibiotics_colony.plot_utils import prettify_axis
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
-from mpl_toolkits.axes_grid1.anchored_artists import AnchoredSizeBar
 from vivarium.core.emitter import DatabaseEmitter
 from vivarium.library.dict_utils import get_value_from_path
 from vivarium.library.topology import convert_path_style
@@ -146,9 +145,11 @@ def make_snapshot_and_hist_plot(
         orientation="horizontal",
         ticks=[min_tag, max_tag],
     )
-    format_tick = (
-        lambda tick: f"{tick:.0f}" if tick == 0 or tick > 100 else f"{tick:.1f}"
-    )
+
+    def format_tick(tick):
+        if tick == 0 or tick > 100:
+            return f"{tick:.0f}"
+        return f"{tick:.1f}"
 
     cbar.ax.set_xticklabels(
         [f"{format_tick(min_tag)} μM", f"{format_tick(max_tag)} μM"], fontsize=8
@@ -202,7 +203,6 @@ def make_snapshot_and_hist_plot(
 
 
 def get_data(experiment_id, time, molecules, host, port, cpus, verbose):
-
     # Prepare molecule paths for access_counts()
     monomers = [m[-1] for m in molecules if m[-2] == "monomer"]
     mrnas = [m[-1] for m in molecules if m[-2] == "mrna"]
@@ -309,10 +309,11 @@ def main():
 
     if args.local:
         # Load data
-        data = pd.read_csv(args.local, dtype={
-            'Agent ID': str, 'Seed': str}, index_col=0)
+        data = pd.read_csv(
+            args.local, dtype={"Agent ID": str, "Seed": str}, index_col=0
+        )
         # Convert string to dictionary
-        data['Boundary'] = data['Boundary'].apply(ast.literal_eval)
+        data["Boundary"] = data["Boundary"].apply(ast.literal_eval)
 
         # Get only desired columns
         paths_to_columns = {v: k for k, v in PATHS_TO_LOAD.items() if v in molecules}

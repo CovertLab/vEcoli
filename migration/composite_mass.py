@@ -13,16 +13,16 @@ from ecoli.library.sim_data import SIM_DATA_PATH_NO_OPERONS
 
 
 RELATIVE_TOLERANCES = {
-    'mRnaMass': 0.05,
-    'rRnaMass': 1e-4,
-    'dry_mass': 0.01,
-    'rnaMass': 0.001,
-    'water_mass': 0.01,
-    'smallMoleculeMass': 0.01,
-    'proteinMass': 1e-3,
-    'cell_mass': 0.005,
-    'dnaMass': 2e-15,
-    'tRnaMass': 1e-3,
+    "mRnaMass": 0.05,
+    "rRnaMass": 1e-4,
+    "dry_mass": 0.01,
+    "rnaMass": 0.001,
+    "water_mass": 0.01,
+    "smallMoleculeMass": 0.01,
+    "proteinMass": 1e-3,
+    "cell_mass": 0.005,
+    "dnaMass": 2e-15,
+    "tRnaMass": 1e-3,
 }
 
 
@@ -31,17 +31,18 @@ def run_composite_mass_test(total_time=30, operons=True):
     sim.total_time = total_time
     if not operons:
         sim.sim_data_path = SIM_DATA_PATH_NO_OPERONS
-        sim.initial_state_file = 'migration_no_operons/wcecoli_t0'
+        sim.initial_state_file = "migration_no_operons/wcecoli_t0"
     sim.build_ecoli()
-    sim.ecoli.steps['agents']['0']['ecoli-mass-listener'].match_wcecoli = True
+    sim.ecoli.steps["agents"]["0"]["ecoli-mass-listener"].match_wcecoli = True
 
     # run the composite and save specified states
     sim.run()
 
-    timeseries = sim.ecoli_experiment.emitter.get_timeseries([
-        ('agents', '0', 'listeners', 'mass')])
+    timeseries = sim.ecoli_experiment.emitter.get_timeseries(
+        [("agents", "0", "listeners", "mass")]
+    )
 
-    actual_timeseries = timeseries['agents']['0']['listeners']['mass']
+    actual_timeseries = timeseries["agents"]["0"]["listeners"]["mass"]
     # Skip data from t=0
     wcecoli_timeseries = {}
     for submass in actual_timeseries.keys():
@@ -50,23 +51,27 @@ def run_composite_mass_test(total_time=30, operons=True):
 
     vivarium_keys = set(actual_timeseries.keys())
     wcecoli_keys = set()
-    data_prefix = 'data/migration' if operons else 'data/migration_no_operons'
+    data_prefix = "data/migration" if operons else "data/migration_no_operons"
     with open(f"{data_prefix}/mass_data.json") as f:
         wc_mass_data = json.load(f)
-    for index, time in enumerate(timeseries['time'][:-1]):
+    for index, time in enumerate(timeseries["time"][:-1]):
         actual_update = {
-            submass: data[index]
-            for submass, data in actual_timeseries.items()
+            submass: data[index] for submass, data in actual_timeseries.items()
         }
-        wc_update = wc_mass_data[str(int(time))]['mass']
+        wc_update = wc_mass_data[str(int(time))]["mass"]
         for key, data in wc_update.items():
             wcecoli_timeseries[key][index] = data
         wcecoli_keys = set(wc_update.keys())
         assertions(actual_update, wc_update, wcecoli_keys & vivarium_keys)
     only_wcecoli = wcecoli_keys - vivarium_keys
-    print('These keys only exist in the wcEcoli mass listener: ' + str(list(only_wcecoli)))
+    print(
+        "These keys only exist in the wcEcoli mass listener: " + str(list(only_wcecoli))
+    )
     only_vivarium = vivarium_keys - wcecoli_keys
-    print('These keys only exist in the vivarium mass listener: ' + str(list(only_vivarium)))
+    print(
+        "These keys only exist in the vivarium mass listener: "
+        + str(list(only_vivarium))
+    )
     plots(actual_timeseries, wcecoli_timeseries, wcecoli_keys & vivarium_keys, operons)
 
 
@@ -82,49 +87,52 @@ def _make_assert(key):
             return True
         close = np.isclose(a, b, rtol=rtol)
         if not close:
-            rdiff = (np.absolute(a-b) / b).max()
-            print(f'Failure for {key}: rdiff {rdiff} > rtol {rtol}')
+            rdiff = (np.absolute(a - b) / b).max()
+            print(f"Failure for {key}: rdiff {rdiff} > rtol {rtol}")
         return close
+
     return custom_assert
 
 
 def assertions(actual_update, expected_update, keys):
-    test_structure = {
-        key : _make_assert(key)
-        for key in keys
-    }
+    test_structure = {key: _make_assert(key) for key in keys}
 
     tests = ComparisonTestSuite(test_structure, fail_loudly=False)
     tests.run_tests(actual_update, expected_update, verbose=False)
 
     tests.fail()
 
+
 def plots(actual_timeseries, wcecoli_timeseries, keys, operons):
     # Pytest gives warnings about overlapping axes without this
-    plt.close('all')
+    plt.close("all")
     n_keys = len(keys)
-    rows = int(np.ceil(n_keys/3))
+    rows = int(np.ceil(n_keys / 3))
     for index, key in enumerate(keys):
-        plt.subplot(rows, 3, index+1)
+        plt.subplot(rows, 3, index + 1)
         plt.scatter(wcecoli_timeseries[key], actual_timeseries[key])
         if not np.all(wcecoli_timeseries[key] == wcecoli_timeseries[key][0]):
             slope, intercept, r_value, p_value, std_err = linregress(
-                wcecoli_timeseries[key], actual_timeseries[key])
-            assert r_value >= 0.99, (
-                f"Correlation for {key} = {r_value} <= 0.99")
+                wcecoli_timeseries[key], actual_timeseries[key]
+            )
+            assert r_value >= 0.99, f"Correlation for {key} = {r_value} <= 0.99"
             best_fit = np.poly1d([slope, intercept])
-            plt.plot(wcecoli_timeseries[key], best_fit(wcecoli_timeseries[key]),
-                    'b-', label=f'r = {r_value}')
-        plt.plot(wcecoli_timeseries[key], wcecoli_timeseries[key], 'r-',
-                 label='Parity')
+            plt.plot(
+                wcecoli_timeseries[key],
+                best_fit(wcecoli_timeseries[key]),
+                "b-",
+                label=f"r = {r_value}",
+            )
+        plt.plot(wcecoli_timeseries[key], wcecoli_timeseries[key], "r-", label="Parity")
         plt.title(str(key))
         plt.legend()
-        plt.xlabel('wcEcoli')
-        plt.ylabel('Vivarium')
+        plt.xlabel("wcEcoli")
+        plt.ylabel("Vivarium")
     plt.gcf().set_size_inches(16, 16)
     plt.tight_layout()
     plt.savefig(f"out/migration/composite_mass_operons_{operons}.png")
     plt.close()
+
 
 if __name__ == "__main__":
     test_composite_mass()

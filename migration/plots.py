@@ -17,7 +17,7 @@ def qqplot(actual, expected, quantile_precision=0.01, include_line=True):
     """
     # theoretical line
     if include_line:
-        plt.plot([min(expected), max(expected)], [min(actual), max(actual)], 'r--')
+        plt.plot([min(expected), max(expected)], [min(actual), max(actual)], "r--")
 
     # quantiles
     # TODO: could improve by sampling more where quantiles change more rapidly, instead of with constant increment

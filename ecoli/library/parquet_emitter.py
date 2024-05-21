@@ -17,44 +17,49 @@ from vivarium.core.emitter import Emitter
 from vivarium.core.serialize import make_fallback_serializer_function
 
 USE_UINT16 = {
-    'listeners__rna_synth_prob__n_bound_TF_per_TU',
-    'listeners__rna_synth_prob__n_bound_TF_per_cistron',
-    'listeners__rnap_data__rna_init_event_per_cistron',
-    'listeners__rna_synth_prob__gene_copy_number',
-    'listeners__rna_synth_prob__expected_rna_init_per_cistron',
-    'listeners__rna_degradation_listener__count_RNA_degraded_per_cistron',
-    'listeners__rna_degradation_listener__count_rna_degraded',
-    'listeners__transcript_elongation_listener__count_rna_synthesized',
-    'listeners__rnap_data__rna_init_event',
-    'listeners__rna_synth_prob__promoter_copy_number',
-    'listeners__ribosome_data__n_ribosomes_on_each_mRNA',
-    'listeners__ribosome_data__mRNA_TU_index',
-    'listeners__complexation_listener__complexation_events',
-    'listeners__rnap_data__active_rnap_n_bound_ribosomes',
-    'listeners__rnap_data__active_rnap_domain_indexes',
-    'listeners__rna_synth_prob__bound_TF_indexes',
-    'listeners__rna_synth_prob__bound_TF_domains'
+    "listeners__rna_synth_prob__n_bound_TF_per_TU",
+    "listeners__rna_synth_prob__n_bound_TF_per_cistron",
+    "listeners__rnap_data__rna_init_event_per_cistron",
+    "listeners__rna_synth_prob__gene_copy_number",
+    "listeners__rna_synth_prob__expected_rna_init_per_cistron",
+    "listeners__rna_degradation_listener__count_RNA_degraded_per_cistron",
+    "listeners__rna_degradation_listener__count_rna_degraded",
+    "listeners__transcript_elongation_listener__count_rna_synthesized",
+    "listeners__rnap_data__rna_init_event",
+    "listeners__rna_synth_prob__promoter_copy_number",
+    "listeners__ribosome_data__n_ribosomes_on_each_mRNA",
+    "listeners__ribosome_data__mRNA_TU_index",
+    "listeners__complexation_listener__complexation_events",
+    "listeners__rnap_data__active_rnap_n_bound_ribosomes",
+    "listeners__rnap_data__active_rnap_domain_indexes",
+    "listeners__rna_synth_prob__bound_TF_indexes",
+    "listeners__rna_synth_prob__bound_TF_domains",
 }
 """uint16 is 4x smaller than int64 for values between 0 - 65,535."""
 
 USE_UINT32 = {
-    'listeners__ribosome_data__ribosome_init_event_per_monomer',
-    'listeners__ribosome_data__n_ribosomes_per_transcript',
-    'listeners__rna_counts__partial_mRNA_cistron_counts',
-    'listeners__rna_counts__mRNA_cistron_counts',
-    'listeners__rna_counts__full_mRNA_cistron_counts',
-    'listeners__ribosome_data__n_ribosomes_on_partial_mRNA_per_transcript',
-    'listeners__monomer_counts',
-    'listeners__rna_counts__partial_mRNA_counts',
-    'listeners__rna_counts__mRNA_counts',
-    'listeners__rna_counts__full_mRNA_counts',
-    'listeners__fba_results__catalyst_counts'
+    "listeners__ribosome_data__ribosome_init_event_per_monomer",
+    "listeners__ribosome_data__n_ribosomes_per_transcript",
+    "listeners__rna_counts__partial_mRNA_cistron_counts",
+    "listeners__rna_counts__mRNA_cistron_counts",
+    "listeners__rna_counts__full_mRNA_cistron_counts",
+    "listeners__ribosome_data__n_ribosomes_on_partial_mRNA_per_transcript",
+    "listeners__monomer_counts",
+    "listeners__rna_counts__partial_mRNA_counts",
+    "listeners__rna_counts__mRNA_counts",
+    "listeners__rna_counts__full_mRNA_counts",
+    "listeners__fba_results__catalyst_counts",
 }
 """uint32 is 2x smaller than int64 for values between 0 - 4,294,967,295."""
 
 
-def json_to_parquet(ndjson: str, encodings: dict[str, str],
-    schema: pa.Schema, filesystem: fs.FileSystem, outfile: str):
+def json_to_parquet(
+    ndjson: str,
+    encodings: dict[str, str],
+    schema: pa.Schema,
+    filesystem: fs.FileSystem,
+    outfile: str,
+):
     """
     Reads newline-delimited JSON file and converts to Parquet file.
 
@@ -67,15 +72,21 @@ def json_to_parquet(ndjson: str, encodings: dict[str, str],
     """
     parse_options = pj.ParseOptions(explicit_schema=schema)
     read_options = pj.ReadOptions(use_threads=False, block_size=int(1e7))
-    t = pj.read_json(ndjson, read_options=read_options,
-                     parse_options=parse_options)
-    pq.write_table(t, outfile, use_dictionary=False, compression='zstd',
-        column_encoding=encodings, filesystem=filesystem)
+    t = pj.read_json(ndjson, read_options=read_options, parse_options=parse_options)
+    pq.write_table(
+        t,
+        outfile,
+        use_dictionary=False,
+        compression="zstd",
+        column_encoding=encodings,
+        filesystem=filesystem,
+    )
     pathlib.Path(ndjson).unlink()
 
 
-def get_lazyframes(out_dir: Union[str, pathlib.Path]=None, out_uri: str=None
-                   ) -> tuple[pl.LazyFrame, pl.LazyFrame]:
+def get_lazyframes(
+    out_dir: Union[str, pathlib.Path] = None, out_uri: str = None
+) -> tuple[pl.LazyFrame, pl.LazyFrame]:
     """
     Return Polars LazyFrames for all sim configs and sim outputs in a folder.
 
@@ -83,7 +94,7 @@ def get_lazyframes(out_dir: Union[str, pathlib.Path]=None, out_uri: str=None
         out_dir: Relative or absolute path to local directory containing
             ``history`` and ``configuration`` subdirectories
         out_uri: URI equivalent of ``out_dir`` (takes precedence)
-    
+
     Returns:
         Tuple ``(sim config LazyFrame, sim output LazyFrame)``.
     """
@@ -91,38 +102,41 @@ def get_lazyframes(out_dir: Union[str, pathlib.Path]=None, out_uri: str=None
         out_uri = pathlib.Path(out_dir).resolve().as_uri()
     scheme = urlparse(out_uri).scheme
     filesystem, outdir = fs.FileSystem.from_uri(out_uri)
-    history_dir = os.path.join(outdir, 'history')
-    config_dir = os.path.join(outdir, 'configuration')
+    history_dir = os.path.join(outdir, "history")
+    config_dir = os.path.join(outdir, "configuration")
     schema = {
-        'experiment_id': pl.String(),
-        'variant': pl.Int64(),
-        'lineage_seed': pl.Int64(),
-        'generation': pl.Int64(),
-        'agent_id': pl.String()
+        "experiment_id": pl.String(),
+        "variant": pl.Int64(),
+        "lineage_seed": pl.Int64(),
+        "generation": pl.Int64(),
+        "agent_id": pl.String(),
     }
-    history_frames = (pl.scan_parquet(f'{scheme}://{f.path}',
-        hive_schema=schema) for f in filesystem.get_file_info(
-            fs.FileSelector(history_dir, recursive=True))
-        if f.extension=='pq')
-    history = pl.concat(history_frames, how='diagonal_relaxed')
-    config_frames = (pl.scan_parquet(f'{scheme}://{f.path}',
-        hive_schema=schema) for f in filesystem.get_file_info(
-            fs.FileSelector(config_dir, recursive=True))
-        if f.extension=='pq')
-    config = pl.concat(config_frames, how='diagonal_relaxed')
+    history_frames = (
+        pl.scan_parquet(f"{scheme}://{f.path}", hive_schema=schema)
+        for f in filesystem.get_file_info(fs.FileSelector(history_dir, recursive=True))
+        if f.extension == "pq"
+    )
+    history = pl.concat(history_frames, how="diagonal_relaxed")
+    config_frames = (
+        pl.scan_parquet(f"{scheme}://{f.path}", hive_schema=schema)
+        for f in filesystem.get_file_info(fs.FileSelector(config_dir, recursive=True))
+        if f.extension == "pq"
+    )
+    config = pl.concat(config_frames, how="diagonal_relaxed")
     return config, history
 
 
-def get_encoding(val: Any, field_name: str, use_uint16: bool=False,
-                 use_uint32: bool=False) -> tuple[Any, str]:
+def get_encoding(
+    val: Any, field_name: str, use_uint16: bool = False, use_uint32: bool = False
+) -> tuple[Any, str]:
     """
     Get optimal PyArrow type and Parquet encoding for input value.
     """
     if isinstance(val, float):
         # Polars does not support BYTE_STREAM_SPLIT yet
-        return pa.float64(), 'PLAIN', field_name
+        return pa.float64(), "PLAIN", field_name
     elif isinstance(val, bool):
-        return pa.bool_(), 'RLE', field_name
+        return pa.bool_(), "RLE", field_name
     elif isinstance(val, int):
         # Optimize memory usage for select integer fields
         if use_uint16:
@@ -131,18 +145,20 @@ def get_encoding(val: Any, field_name: str, use_uint16: bool=False,
             pa_type = pa.uint32()
         else:
             pa_type = pa.int64()
-        return pa_type, 'DELTA_BINARY_PACKED', field_name
+        return pa_type, "DELTA_BINARY_PACKED", field_name
     elif isinstance(val, str):
-        return pa.string(), 'DELTA_BYTE_ARRAY', field_name
+        return pa.string(), "DELTA_BYTE_ARRAY", field_name
     elif isinstance(val, list):
         inner_type, _, field_name = get_encoding(
-            val[0], field_name, use_uint16, use_uint32)
+            val[0], field_name, use_uint16, use_uint32
+        )
         # PLAIN encoding yields overall better compressed size for lists
-        return pa.list_(inner_type), 'PLAIN', field_name + '.list.element'
-    raise TypeError(f'{field_name} has unsupported type {type(val)}.')
+        return pa.list_(inner_type), "PLAIN", field_name + ".list.element"
+    raise TypeError(f"{field_name} has unsupported type {type(val)}.")
 
 
 _FLAG_FIRST = object()
+
 
 def flatten_dict(d: dict):
     """
@@ -156,7 +172,7 @@ def flatten_dict(d: dict):
 
     def visit_key(subdict, results, partialKey):
         for k, v in subdict.items():
-            newKey = k if partialKey==_FLAG_FIRST else f'{partialKey}__{k}'
+            newKey = k if partialKey == _FLAG_FIRST else f"{partialKey}__{k}"
             if isinstance(v, Mapping):
                 visit_key(v, results, newKey)
             elif isinstance(v, list) and len(v) == 0:
@@ -197,12 +213,13 @@ class ParquetEmitter(Emitter):
                 }
 
         """
-        out_uri = config['config'].get('out_uri', None)
+        out_uri = config["config"].get("out_uri", None)
         if out_uri is None:
-            out_uri = pathlib.Path(config['config'].get('out_dir', None)
-                                   ).resolve().as_uri()
+            out_uri = (
+                pathlib.Path(config["config"].get("out_dir", None)).resolve().as_uri()
+            )
         self.filesystem, self.outdir = fs.FileSystem.from_uri(out_uri)
-        self.batch_size = config['config'].get('batch_size', 400)
+        self.batch_size = config["config"].get("batch_size", 400)
         self.fallback_serializer = make_fallback_serializer_function()
         # Batch emits as newline-delimited JSONs in temporary file
         self.temp_data = tempfile.NamedTemporaryFile(delete=False)
@@ -212,21 +229,26 @@ class ParquetEmitter(Emitter):
         self.schema = pa.schema([])
         self.num_emits = 0
         atexit.register(self._finalize)
-    
+
     def _finalize(self):
         """Convert remaining batched emits to Parquet at sim shutdown."""
         if self.num_emits % self.batch_size != 0:
-            outfile = os.path.join(self.outdir, 'history',
-                self.partitioning_path, f'{self.num_emits}.pq')
-            json_to_parquet(self.temp_data.name,
-                self.encodings, self.schema, self.filesystem, outfile)
-
+            outfile = os.path.join(
+                self.outdir, "history", self.partitioning_path, f"{self.num_emits}.pq"
+            )
+            json_to_parquet(
+                self.temp_data.name,
+                self.encodings,
+                self.schema,
+                self.filesystem,
+                outfile,
+            )
 
     def emit(self, data: dict[str, Any]):
         """
         Serializes emit data with ``orjson`` and writes newline-delimited
         JSONs in a temporary file to be batched before conversion to Parquet.
-        
+
         The output directory consists of two hive-partitioned datasets: one for
         sim metadata called ``configuration`` and another for sim output called
         ``history``. The partitioning keys are, in order, experiment_id (str),
@@ -237,29 +259,29 @@ class ParquetEmitter(Emitter):
         runs using PyArrow datasets (see :py:func:`~.get_datasets`).
         """
         # Config will always be first emit
-        if data['table'] == 'configuration':
-            metadata = data['data'].pop('metadata')
-            data['data'] = {**metadata, **data['data']}
-            data['time'] = data['data'].get('initial_global_time', 0.0)
+        if data["table"] == "configuration":
+            metadata = data["data"].pop("metadata")
+            data["data"] = {**metadata, **data["data"]}
+            data["time"] = data["data"].get("initial_global_time", 0.0)
             # Manually create filepaths with hive partitioning
             # Start agent ID with 1 to avoid leading zeros
-            agent_id = data['data'].get('agent_id', '1')
+            agent_id = data["data"].get("agent_id", "1")
             partitioning_keys = {
-                'experiment_id': data['data'].get('experiment_id', 'default'),
-                'variant': data['data'].get('variant', 0),
-                'lineage_seed': data['data'].get('lineage_seed', 0),
-                'generation': len(agent_id),
-                'agent_id': agent_id
+                "experiment_id": data["data"].get("experiment_id", "default"),
+                "variant": data["data"].get("variant", 0),
+                "lineage_seed": data["data"].get("lineage_seed", 0),
+                "generation": len(agent_id),
+                "agent_id": agent_id,
             }
-            for k, v in partitioning_keys.items():
-                self.history_outdir = self.history_outdir / f'{k}={v}'
-                self.config_outdir = self.config_outdir / f'{k}={v}'
-            self.filesystem.create_dir(str(self.history_outdir))
-            self.filesystem.create_dir(str(self.config_outdir))
+            self.partitioning_path = os.path.join(
+                *(f"{k}={v}" for k, v in partitioning_keys.items())
+            )
             data = flatten_dict(data)
             data_str = orjson.dumps(
-                data, option=orjson.OPT_SERIALIZE_NUMPY,
-                default=self.fallback_serializer)
+                data,
+                option=orjson.OPT_SERIALIZE_NUMPY,
+                default=self.fallback_serializer,
+            )
             self.temp_data.write(data_str)
             data = orjson.loads(data_str)
             encodings = {}
@@ -270,8 +292,9 @@ class ParquetEmitter(Emitter):
                 if encoding is not None:
                     encodings[field_name] = encoding
                 schema.append((k, pa_type))
-            outfile = os.path.join(self.outdir, data['table'],
-                                   self.partitioning_path, 'config.pq')
+            outfile = os.path.join(
+                self.outdir, data["table"], self.partitioning_path, "config.pq"
+            )
             # Cleanup any existing output files from previous runs then
             # create new folder for config / simulation output
             try:
@@ -279,15 +302,22 @@ class ParquetEmitter(Emitter):
             except FileNotFoundError:
                 pass
             self.filesystem.create_dir(os.path.dirname(outfile))
-            history_outdir = os.path.join(self.outdir, 'history',
-                self.partitioning_path)
+            history_outdir = os.path.join(
+                self.outdir, "history", self.partitioning_path
+            )
             try:
                 self.filesystem.delete_dir(history_outdir)
             except FileNotFoundError:
                 pass
             self.filesystem.create_dir(history_outdir)
-            self.executor.submit(json_to_parquet, self.temp_data.name,
-                self.encodings, pa.schema(schema), self.filesystem, outfile)
+            self.executor.submit(
+                json_to_parquet,
+                self.temp_data.name,
+                self.encodings,
+                pa.schema(schema),
+                self.filesystem,
+                outfile,
+            )
             self.temp_data = tempfile.NamedTemporaryFile(delete=False)
             return
         # Each Engine that uses this emitter should only simulate a single cell
@@ -295,31 +325,44 @@ class ParquetEmitter(Emitter):
         # Engine in timestep immediately after division (first with 2 cells)
         # In colony simulations, EngineProcess will terminate simulation
         # immediately upon division (following branch is never invoked)
-        if len(data['data']['agents']) > 1:
+        if len(data["data"]["agents"]) > 1:
             self._finalize()
             return
-        for agent_data in data['data']['agents'].values():
-            agent_data['time'] = float(data['data']['time'])
+        for agent_data in data["data"]["agents"].values():
+            agent_data["time"] = float(data["data"]["time"])
             agent_data = flatten_dict(agent_data)
             agent_data_str = orjson.dumps(
-                agent_data, option=orjson.OPT_SERIALIZE_NUMPY,
-                default=self.fallback_serializer)
+                agent_data,
+                option=orjson.OPT_SERIALIZE_NUMPY,
+                default=self.fallback_serializer,
+            )
             self.temp_data.write(agent_data_str)
-            self.temp_data.write('\n'.encode('utf-8'))
+            self.temp_data.write("\n".encode("utf-8"))
             new_keys = set(agent_data) - set(self.schema.names)
             if len(new_keys) > 0:
                 agent_data = orjson.loads(agent_data_str)
                 for k in new_keys:
                     pa_type, encoding, field_name = get_encoding(
-                        agent_data[k], k, k in USE_UINT16, k in USE_UINT32)
+                        agent_data[k], k, k in USE_UINT16, k in USE_UINT32
+                    )
                     if encoding is not None:
                         self.encodings[field_name] = encoding
                     self.schema = self.schema.append(pa.field(k, pa_type))
         self.num_emits += 1
         if self.num_emits % self.batch_size == 0:
             self.temp_data.close()
-            outfile = os.path.join(self.outdir, data['table'],
-                self.partitioning_path, f'{self.num_emits}.pq')
-            self.executor.submit(json_to_parquet, self.temp_data.name,
-                self.encodings, self.schema, self.filesystem, outfile)
+            outfile = os.path.join(
+                self.outdir,
+                data["table"],
+                self.partitioning_path,
+                f"{self.num_emits}.pq",
+            )
+            self.executor.submit(
+                json_to_parquet,
+                self.temp_data.name,
+                self.encodings,
+                self.schema,
+                self.filesystem,
+                outfile,
+            )
             self.temp_data = tempfile.NamedTemporaryFile(delete=False)

@@ -15,7 +15,7 @@ if TYPE_CHECKING:
     from reconstruction.ecoli.simulation_data import SimulationDataEcoli
 
 
-METADATA_PREFIX = 'data__output_metadata__'
+METADATA_PREFIX = "data__output_metadata__"
 """
 In the config dataset, user-defined metadata for each store
 (see :py:meth:`~ecoli.experiments.ecoli_master_sim.EcoliSim.get_output_metadata`)
@@ -28,9 +28,13 @@ def num_cells(config_lf: pl.LazyFrame) -> int:
     Return count of cells in filtered LazyFrame (requires ``experiment_id``,
     ``variant``, ``lineage_seed``, ``generation``, and ``agent_id`` columns).
     """
-    return config_lf.select(['experiment_id', 'variant', 'lineage_seed',
-        'generation', 'agent_id']).select(pl.struct(pl.all()).n_unique()
-            ).collect(streaming=True)
+    return (
+        config_lf.select(
+            ["experiment_id", "variant", "lineage_seed", "generation", "agent_id"]
+        )
+        .select(pl.struct(pl.all()).n_unique())
+        .collect(streaming=True)
+    )
 
 
 def ndlist_to_ndarray(s: pl.Series) -> np.ndarray:
@@ -61,7 +65,7 @@ def ndidx_to_pl_expr(name: str, idx: list[Any]) -> pl.Expr:
 
     If more advanced Numpy indexing strategies are required, you can use this
     function to filter as much as possible, :py:func:`~.ndlist_to_ndarray` to
-    convert to a Numpy ndarray, and proceed with native Numpy indexing. 
+    convert to a Numpy ndarray, and proceed with native Numpy indexing.
 
     Args:
         name: Name of column to recursively index
@@ -83,11 +87,11 @@ def ndidx_to_pl_expr(name: str, idx: list[Any]) -> pl.Expr:
     pl_expr = pl.element().list.gather(idx.pop(0))
     for indices in idx[:-1]:
         # Skip gathering indices for dimensions where all are selected
-        if indices == ':':
+        if indices == ":":
             pl_expr = pl.element().list.eval(pl_expr)
         else:
             pl_expr = pl.element().list.gather(indices).list.eval(pl_expr)
-    if idx[-1] == ':':
+    if idx[-1] == ":":
         return pl.col(name).list.eval(pl_expr)
     return pl.col(name).list.gather(idx[-1]).list.eval(pl_expr)
 
@@ -102,14 +106,13 @@ def named_idx(col: str, names: list[str], idx: list[int]) -> dict[str, pl.Expr]:
         names: Suffixes to append to ``col`` for final column names
         idx: For each suffix in ``names``, the index to get from each
             row of the ``col``
-    
+
     Returns:
         Dictionary that maps ``{col}__{names[i]}`` to Polars expression for
         ``idx[i]`` element of each row in ``col``
     """
     return {
-        f'{col}__{name}': pl.col(col).list.get(index)
-        for name, index in zip(names, idx)
+        f"{col}__{name}": pl.col(col).list.get(index) for name, index in zip(names, idx)
     }
 
 
@@ -122,8 +125,9 @@ def get_field_metadata(config_lf: pl.LazyFrame, field: str) -> list:
             :py:func:`~ecoli.library.parquet_emitter.get_lazyframes`
         field: Name of field to get metadata for
     """
-    metadata = config_lf.select(pl.col(METADATA_PREFIX + field).first()
-        ).collect(streaming=True)[METADATA_PREFIX + field][0]
+    metadata = config_lf.select(pl.col(METADATA_PREFIX + field).first()).collect(
+        streaming=True
+    )[METADATA_PREFIX + field][0]
     if isinstance(metadata, pl.Series):
         return metadata.to_list()
     return metadata
@@ -135,7 +139,7 @@ def plot(
     history_lf: pl.LazyFrame,
     sim_data_path: list[str],
     validation_data_path: list[str],
-    outdir: str
+    outdir: str,
 ):
     """
     Template for analysis function with sample code for common operations.
@@ -150,69 +154,66 @@ def plot(
         outdir: Output directory
     """
     # Load sim data, validation data, neither, or both
-    with open(sim_data_path, 'rb') as f:
-        sim_data: 'SimulationDataEcoli' = pickle.load(f)
-    with open(validation_data_path, 'rb') as f:
-        validation_data = pickle.load(f)
+    with open(sim_data_path, "rb") as f:
+        sim_data: "SimulationDataEcoli" = pickle.load(f)
 
     # Create filters for the data you want to read
-    exp_id_filter = pl.col('experiment_id') == 'some_experiment_id'
-    generation_range_filter = pl.col('generation').is_in(list(range(4,8)))
-    mass_filter = pl.col('listeners__mass__dry_mass') < 300
+    exp_id_filter = pl.col("experiment_id") == "some_experiment_id"
+    generation_range_filter = pl.col("generation").is_in(list(range(4, 8)))
+    mass_filter = pl.col("listeners__mass__dry_mass") < 300
     # Filters support logical &, ~, and |
     config_lf = config_lf.filter(exp_id_filter & generation_range_filter)
-    history_lf = history_lf.filter(exp_id_filter
-        & generation_range_filter & mass_filter)
+    history_lf = history_lf.filter(
+        exp_id_filter & generation_range_filter & mass_filter
+    )
 
     # Read values of interest from configs, such as field-specific metadata
     # Say we wanted to get the indices of certain bulk molecules in the
     # bulk counts array by name for agent_id ``01``
-    molecules_of_interest = ['GUANOSINE-5DP-3DP[c]', 'WATER[c]', 'PROTON[c]']
-    bulk_names = get_field_metadata(config_lf, 'bulk')
+    molecules_of_interest = ["GUANOSINE-5DP-3DP[c]", "WATER[c]", "PROTON[c]"]
+    bulk_names = get_field_metadata(config_lf, "bulk")
     bulk_idx = {}
     for mol in molecules_of_interest:
         bulk_idx[mol] = bulk_names.index(mol)
 
-
     # Select specific columns to read with a list of column names
     # Column names are just their tuple paths in the simulation Store
     # concatenated with double underscores
-    simple_col_select = ['time', 'experiment_id']
+    simple_col_select = ["time", "experiment_id"]
     # Can also use kewword args to rename columns, perform scalar operations,
     # slice/index lists, and more using expressions
     advanced_col_projection = {
-        'time_since_division': pl.col('time'),
-        'cell_mass_picogram': pl.col('listeners__mass__cell_mass') / 1000,
-        'rna_synth_prob': pl.col(
-            'listeners__rna_synth_prob__actual_rna_synth_prob'),
-        **named_idx('bulk', bulk_idx.keys(), bulk_idx.values())
+        "time_since_division": pl.col("time"),
+        "cell_mass_picogram": pl.col("listeners__mass__cell_mass") / 1000,
+        "rna_synth_prob": pl.col("listeners__rna_synth_prob__actual_rna_synth_prob"),
+        **named_idx("bulk", bulk_idx.keys(), bulk_idx.values()),
     }
     history_lf = history_lf.select(simple_col_select, **advanced_col_projection)
 
     # NOTE: Must explicitly sort by ``time`` column or rows may be out of order
-    history_lf = history_lf.sort('time')
+    history_lf = history_lf.sort("time")
 
     # When satisfied with your query, call ``collect`` on your LazyFrame
     # Always set streaming to True so Polars can process data in batches
     # and greatly reduce memory usage
     history_df = history_lf.collect(streaming=True)
-    
+
     # Polars offers many tools to filter, join, and transform data
     # Check their documentation to see if they have a function to
     # do what you want before converting to a Numpy array / Pandas DF
-    rna_synth_prob = ndlist_to_ndarray(history_df['rna_synth_prob'])
+    rna_synth_prob = ndlist_to_ndarray(history_df["rna_synth_prob"])
     # Leverage the 2-D array to perform vectorized operations
     cistron_tu_mat = sim_data.process.transcription.cistron_tu_mapping_matrix
     rna_synth_prob_per_cistron = cistron_tu_mat.dot(rna_synth_prob.T).T
 
     # Now you can use matplotlib as usual or, if you kept your data
     # in a Polars dataframe, use their plotting capabilities
-    plt.plot(history_df['time'], rna_synth_prob_per_cistron[0])
+    plt.plot(history_df["time"], rna_synth_prob_per_cistron[0])
 
     # Anything that you want to save should be saved using relative file
     # paths. The absolute output directory is given as a CLI or JSON
     # config option to scripts/run_analysis.py
-    os.makedirs(os.path.join(outdir, 'plots'), exist_ok=True)
-    os.makedirs(os.path.join(outdir, 'data'), exist_ok=True)
-    plt.savefig(os.path.join(outdir, 'plots/test.svg'))
-    history_df.write_parquet(os.path.join(outdir, 'data/test_data.pq'))
+    os.makedirs(os.path.join(outdir, "plots"), exist_ok=True)
+    os.makedirs(os.path.join(outdir, "data"), exist_ok=True)
+    plt.savefig(os.path.join(outdir, "plots/test.svg"))
+    history_df.write_parquet(os.path.join(outdir, "data/test_data.pq"))
