@@ -38,13 +38,13 @@ def main():
                 metavar=('START', 'END'), type=data_type,
                 help=f'Limit data to range of {data_filter}s not incl. END.')
     parser.add_argument(
-        '--sim_data_path', '--sim-data-path', nargs="*", default=None,
-        help="Path to the sim_data to use.")
+        '--sim_data_path', '--sim-data-path', nargs="*",
+        help="Path to the sim_data pickle(s) to use.")
     parser.add_argument(
-        '--validation_data_path', '--validation-data-path', default=None,
-        help="Path to the validation_data to use.")
+        '--validation_data_path', '--validation-data-path',
+        help="Path to the validation_data pickle(s) to use.")
     parser.add_argument(
-        '--outdir', '-o', default=None,
+        '--outdir', '-o',
         help="Directory that all analysis output is saved to.")
     config_file = os.path.join(CONFIG_DIR_PATH, 'default.json')
     args = parser.parse_args()
@@ -56,7 +56,10 @@ def main():
             config = {**config, **json.load(f)}
     out_dir = config['emitter']['config'].get('out_dir', None)
     out_uri = config['emitter']['config'].get('out_uri', None)
-    config = {**config['analysis_options'], **vars(args)}
+    config = config['analysis_options']
+    for k, v in vars(args).items():
+        if v is not None:
+            config[k] = v
 
     # Changes current working directory so analysis scripts can save
     # plots, etc. without worrying about file paths

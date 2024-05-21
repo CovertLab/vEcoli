@@ -38,6 +38,7 @@ class RnaSynthProb(Step):
     def __init__(self, parameters=None):
         super().__init__(parameters)
         self.rna_ids = self.parameters['rna_ids']
+        self.gene_ids = self.parameters['gene_ids']
         self.tf_ids = self.parameters['tf_ids']
         self.cistron_ids = self.parameters['cistron_ids']
         self.n_TU = len(self.rna_ids)
@@ -50,7 +51,7 @@ class RnaSynthProb(Step):
         return {
             'rna_synth_prob': listener_schema({
                 'promoter_copy_number': ([0] * self.n_TU, self.rna_ids),
-                'gene_copy_number': ([0] * self.n_TU, self.rna_ids),
+                'gene_copy_number': ([0] * self.n_TU, self.gene_ids),
                 'bound_TF_indexes': ([], self.tf_ids),
                 'bound_TF_coordinates': [],
                 'bound_TF_domains': [],

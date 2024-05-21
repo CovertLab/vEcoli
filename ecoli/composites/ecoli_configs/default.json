@@ -45,15 +45,7 @@
         "variable_elongation_translation": false
     },
 
-    "analysis_options": {
-        "single": {"test_single": {"arg_1": 1}},
-        "multi_daughter": {"test_multicell": {"arg_1": 1}},
-        "multi_generation": {"test_multigeneration": {"arg_1": 1}},
-        "multi_seed": {"test_multiseed": {"arg_1": 1}},
-        "multi_variant": {"test_multivariant": {"arg_1": 1}},
-        "multi_experiment": {"test_multiexperiment": {"arg_1": 1}},
-        "parca": {"test_parca": {"arg_1": 1}}
-    },
+    "analysis_options": {},
 
     "gcloud": null,
 
