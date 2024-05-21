@@ -9,7 +9,8 @@ def plot(
     params: dict[str, Any],
     config_lf: pl.LazyFrame,
     history_lf: pl.LazyFrame,
-    sim_data_path: str,
-    validation_data_path: str
+    sim_data_path: list[str],
+    validation_data_path: list[str],
+    outdir: str
 ):
     pass

@@ -1,3 +1,4 @@
+import os
 from typing import Any
 
 import polars as pl
@@ -9,8 +10,9 @@ def plot(
     params: dict[str, Any],
     config_lf: pl.LazyFrame,
     history_lf: pl.LazyFrame,
-    sim_data_path: str,
-    validation_data_path: str
+    sim_data_path: list[str],
+    validation_data_path: list[str],
+    outdir: str
 ):
     molecules_of_interest = ['GUANOSINE-5DP-3DP[c]', 'WATER[c]', 'PROTON[c]']
     bulk_names = get_field_metadata(config_lf, 'bulk')
@@ -31,6 +33,7 @@ def plot(
     history_df = history_lf.collect(streaming=True)
 
     plot = history_df.plot.scatter(x='time')
+    os.chdir(outdir)
     hvplot.save(plot, 'test.html')
     history_df.write_parquet('test.pq')
     

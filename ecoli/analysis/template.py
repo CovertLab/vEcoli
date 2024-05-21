@@ -2,6 +2,7 @@
 Cookbook of common Polars manipulations for analysis scripts.
 """
 
+import os
 import pickle
 from itertools import pairwise
 from typing import Any, TYPE_CHECKING
@@ -123,7 +124,8 @@ def plot(
     config_lf: pl.LazyFrame,
     history_lf: pl.LazyFrame,
     sim_data_path: list[str],
-    validation_data_path: list[str]
+    validation_data_path: list[str],
+    outdir: str
 ):
     """
     Template for analysis function with sample code for common operations.
@@ -135,6 +137,7 @@ def plot(
         history_lf: Polars LazyFrame containing simulation output
         sim_data_path: Path to sim_data pickle
         validation_data_path: Path to validation_data pickle
+        outdir: Output directory
     """
     # Load sim data, validation data, neither, or both
     with open(sim_data_path, 'rb') as f:
@@ -199,5 +202,7 @@ def plot(
     # Anything that you want to save should be saved using relative file
     # paths. The absolute output directory is given as a CLI or JSON
     # config option to scripts/run_analysis.py
-    plt.savefig('plots/test.svg')
-    history_df.write_parquet('data/test_data.pq')
+    os.makedirs(os.path.join(outdir, 'plots'), exist_ok=True)
+    os.makedirs(os.path.join(outdir, 'data'), exist_ok=True)
+    plt.savefig(os.path.join(outdir, 'plots/test.svg'))
+    history_df.write_parquet(os.path.join(outdir, 'data/test_data.pq'))
