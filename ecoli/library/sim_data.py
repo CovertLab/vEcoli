@@ -179,7 +179,7 @@ class LoadSimData:
 
         # load sim_data
         with open(sim_data_path, 'rb') as sim_data_file:
-            self.sim_data = pickle.load(sim_data_file)
+            self.sim_data: 'SimulationDataEcoli' = pickle.load(sim_data_file)
 
         if condition is not None:
             self.sim_data.condition = condition
@@ -1497,6 +1497,7 @@ class LoadSimData:
         return {
             'time_step': time_step,
             '_parallel': parallel,
+            'gene_ids': self.sim_data.process.transcription.cistron_data['gene_id'],
             'rna_ids': self.sim_data.process.transcription.rna_data['id'],
             'tf_ids': self.sim_data.process.transcription_regulation.tf_ids,
             'cistron_ids': self.sim_data.process.transcription.cistron_data['gene_id'],

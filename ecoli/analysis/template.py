@@ -4,11 +4,14 @@ Cookbook of common Polars manipulations for analysis scripts.
 
 import pickle
 from itertools import pairwise
-from typing import Any
+from typing import Any, TYPE_CHECKING
 
 import matplotlib.pyplot as plt
 import numpy as np
 import polars as pl
+
+if TYPE_CHECKING:
+    from reconstruction.ecoli.simulation_data import SimulationDataEcoli
 
 
 METADATA_PREFIX = 'data__output_metadata__'
@@ -108,16 +111,19 @@ def get_field_metadata(config_lf: pl.LazyFrame, field: str) -> list:
             :py:func:`~ecoli.library.parquet_emitter.get_lazyframes`
         field: Name of field to get metadata for
     """
-    return config_lf.select(pl.col(METADATA_PREFIX + field).first()
-        ).collect(streaming=True)[METADATA_PREFIX + field][0].to_list()
+    metadata = config_lf.select(pl.col(METADATA_PREFIX + field).first()
+        ).collect(streaming=True)[METADATA_PREFIX + field][0]
+    if isinstance(metadata, pl.Series):
+        return metadata.to_list()
+    return metadata
 
 
 def plot(
     params: dict[str, Any],
     config_lf: pl.LazyFrame,
     history_lf: pl.LazyFrame,
-    sim_data_path: str,
-    validation_data_path: str
+    sim_data_path: list[str],
+    validation_data_path: list[str]
 ):
     """
     Template for analysis function with sample code for common operations.
@@ -132,7 +138,7 @@ def plot(
     """
     # Load sim data, validation data, neither, or both
     with open(sim_data_path, 'rb') as f:
-        sim_data = pickle.load(f)
+        sim_data: 'SimulationDataEcoli' = pickle.load(f)
     with open(validation_data_path, 'rb') as f:
         validation_data = pickle.load(f)
 
