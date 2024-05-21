@@ -1,3 +1,4 @@
+import os
 from typing import Any
 
 import polars as pl
@@ -11,7 +12,8 @@ def plot(
     config_lf: pl.LazyFrame,
     history_lf: pl.LazyFrame,
     sim_data_paths: list[str],
-    validation_data_paths: list[str]
+    validation_data_paths: list[str],
+    outdir: str
 ):
     # Determine new gene ids
     with open(sim_data_paths[0], 'rb') as f:
@@ -87,4 +89,4 @@ def plot(
     )
 
     combined_plot = (mrna_plot + protein_plot).cols(1)
-    hvplot.save(combined_plot, 'new_gene_counts.html')
+    hvplot.save(combined_plot, os.path.join(outdir, 'new_gene_counts.html'))

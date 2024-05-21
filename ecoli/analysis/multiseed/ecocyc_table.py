@@ -26,7 +26,7 @@ from wholecell.utils import units
 if TYPE_CHECKING:
     from reconstruction.ecoli.simulation_data import SimulationDataEcoli
 
-IGNORE_FIRST_N_GENS = 2
+IGNORE_FIRST_N_GENS = 0
 
 MEDIA_NAME_TO_ID = {
     'minimal': 'MIX0-57',
@@ -36,9 +36,10 @@ MEDIA_NAME_TO_ID = {
     'minimal_succinate': 'MIX0-844',
 }
 
-def save_file(filename, columns, values: list[pl.Series]):
-    print(f'Saving data to {filename}')
-    with open(filename, 'w') as f:
+def save_file(outdir, filename, columns, values: list[pl.Series]):
+    outfile = os.path.join(outdir, filename)
+    print(f'Saving data to {outfile}')
+    with open(outfile, 'w') as f:
         writer = csv.writer(f, delimiter='\t')
 
         # Header for columns
@@ -57,7 +58,8 @@ def plot(
     config_lf: pl.LazyFrame,
     history_lf: pl.LazyFrame,
     sim_data_paths: list[str],
-    validation_data_paths: list[str]
+    validation_data_paths: list[str],
+    outdir: str
 ):
     with open(sim_data_paths[0], 'rb') as f:
         sim_data: 'SimulationDataEcoli' = pickle.load(f)
@@ -240,7 +242,7 @@ def plot(
         rna_masses_relative_to_total_dcw,
         ]
 
-    save_file(f'wcm_rnas_{media_id}.tsv', columns, values)
+    save_file(outdir, f'wcm_rnas_{media_id}.tsv', columns, values)
 
     # Build dictionary for metadata
     ecocyc_metadata = {
@@ -312,7 +314,7 @@ def plot(
 
         ecocyc_metadata['protein_validation_r_squared'] = r ** 2
 
-    save_file(f'wcm_monomers_{media_id}.tsv', columns, values)
+    save_file(outdir, f'wcm_monomers_{media_id}.tsv', columns, values)
 
     # Load attributes for complexes
     complex_mw = sim_data.getter.get_masses(complex_ids).asNumber(units.fg / units.count)
@@ -348,7 +350,7 @@ def plot(
         ]
     
 
-    save_file(f'wcm_complexes_{media_id}.tsv', columns, values)
+    save_file(outdir, f'wcm_complexes_{media_id}.tsv', columns, values)
 
     # Load attributes for metabolic fluxes
     cell_density = sim_data.constants.cell_density
@@ -385,9 +387,9 @@ def plot(
         reaction_ids, fluxes_avg, fluxes_std,
         ]
 
-    save_file(f'wcm_metabolic_reactions_{media_id}.tsv', columns, values)
+    save_file(outdir, f'wcm_metabolic_reactions_{media_id}.tsv', columns, values)
 
-    metadata_file = os.path.join(f'wcm_metadata_{media_id}.json')
+    metadata_file = os.path.join(outdir, f'wcm_metadata_{media_id}.json')
     with open(metadata_file, 'w') as f:
         print(f'Saving data to {metadata_file}')
         json.dump(ecocyc_metadata, f, indent=4)

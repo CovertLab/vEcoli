@@ -61,10 +61,6 @@ def main():
         if v is not None:
             config[k] = v
 
-    # Changes current working directory so analysis scripts can save
-    # plots, etc. without worrying about file paths
-    os.chdir(config['outdir'])
-
     # Set up Polars filters for data
     analysis_type = None
     pl_filter = None
@@ -122,7 +118,8 @@ def main():
             config_lf,
             history_lf,
             config['sim_data_path'],
-            config['validation_data_path'])
+            config['validation_data_path'],
+            config['outdir'])
     
     # Save copy of config JSON with parameters for plots
     with open(os.path.join(config['outdir'], 'metadata.json'), 'w') as f:
