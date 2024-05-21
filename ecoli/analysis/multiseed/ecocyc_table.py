@@ -11,16 +11,16 @@ import csv
 import json
 import os
 import pickle
-from typing import Any, TYPE_CHECKING
+import tempfile
+from typing import TYPE_CHECKING, Any
 
 import numpy as np
 import polars as pl
-import polars.selectors as cs
 from scipy.stats import pearsonr
 
-from ecoli.processes.metabolism import (
-    COUNTS_UNITS, VOLUME_UNITS, TIME_UNITS, MASS_UNITS)
-from ecoli.analysis.template import get_field_metadata, named_idx
+from ecoli.analysis.template import get_field_metadata, named_idx, num_cells
+from ecoli.processes.metabolism import (COUNTS_UNITS, MASS_UNITS, TIME_UNITS,
+                                        VOLUME_UNITS)
 from wholecell.utils import units
 
 if TYPE_CHECKING:
@@ -39,19 +39,20 @@ MEDIA_NAME_TO_ID = {
 def save_file(outdir, filename, columns, values: list[pl.Series]):
     outfile = os.path.join(outdir, filename)
     print(f'Saving data to {outfile}')
-    with open(outfile, 'w') as f:
-        writer = csv.writer(f, delimiter='\t')
-
+    # Data rows
+    out_df = pl.DataFrame({k: s for k, s in zip(columns, values)})
+    with open(outfile, 'w') as f, tempfile.NamedTemporaryFile('w+') as temp_out:
+        out_df.write_csv(temp_out.name, separator='\t')
+        
         # Header for columns
+        writer = csv.writer(f, delimiter='\t')
         writer.writerow(['# Column descriptions:'])
-
         for col, desc in columns.items():
             writer.writerow([f'# {col}', desc])
-        writer.writerow(list(columns.keys()))
+        
+        for line in temp_out:
+            f.write(line)
 
-        # Data rows
-        out_df = pl.DataFrame({k: s for k, s in zip(columns, values)})
-        out_df.write_csv(f, include_header=False, separator='\t')
 
 def plot(
     params: dict[str, Any],
@@ -73,14 +74,14 @@ def plot(
     history_lf = history_lf.filter(pl.col('generation') >= IGNORE_FIRST_N_GENS)
     config_lf = config_lf.filter(pl.col('generation') >= IGNORE_FIRST_N_GENS)
 
-    if config_lf.select('time').count().collect(streaming=True) == 0:
+    if config_lf.select('time').count().collect(streaming=True)['time'][0] == 0:
         print('Skipping analysis -- not enough simulations run.')
         return
 
     # Load tables and attributes for mRNAs
     mRNA_ids = get_field_metadata(config_lf, 'listeners__rna_counts__mRNA_cistron_counts')
-    mass_unit = get_field_metadata(config_lf, 'listeners__mass__dry_mass')
-    assert mass_unit == 'fg'
+    # mass_unit = get_field_metadata(config_lf, 'listeners__mass__dry_mass')
+    # assert mass_unit == 'fg'
     gene_ids_rna_synth_prob = get_field_metadata(config_lf,
         'listeners__rna_synth_prob__gene_copy_number')
 
@@ -102,13 +103,13 @@ def plot(
     complex_ids = sim_data.process.complexation.ids_complexes
 
     # Read columns
-    data = history_lf.select({
+    data = history_lf.select(**{
         'time': 'time',
         'lineage_seed': 'lineage_seed',
         'generation': 'generation',
         'agent_id': 'agent_id',
         'gene_copy_numbers': 'listeners__rna_synth_prob__gene_copy_number',
-        'mRNA_counts': 'listeners__rna_synth_prob__mRNA_cistron_counts',
+        'mRNA_counts': 'listeners__rna_counts__mRNA_cistron_counts',
         'counts_to_molar': 'listeners__enzyme_kinetics__counts_to_molar',
         'dry_masses': 'listeners__mass__dry_mass',
         'full_ribosome_counts': 'listeners__unique_molecule_counts__active_ribosome',
@@ -137,10 +138,21 @@ def plot(
     gene_copy_numbers_std = gene_copy_numbers.std().transpose()
 
     # Add up to total counts of tRNAs and rRNAs
-    tRNA_counts = data.select(cs.starts_with("bulk__uncharged_tRNA__")
-        ) + data.select(cs.starts_with("bulk__charged_tRNA__"))
-    rRNA_counts = data.select(cs.starts_with("bulk__rRNA__")
-        ) + data.select(cs.starts_with("bulk__ribosomal_subunit__"))
+    tRNA_counts = data.select(
+        [f"bulk__uncharged_tRNA__{i}" for i in uncharged_tRNA_ids]
+        ) + data.select([f"bulk__charged_tRNA__{i}" for i in charged_tRNA_ids])
+    rRNA_counts = data.select([f"bulk__rRNA__{i}" for i in rRNA_ids]
+        ).with_columns(**{
+            f"bulk__rRNA__{rRNA_ids[0]}": pl.col(
+                f"bulk__rRNA__{rRNA_ids[0]}") + data[
+                    f'bulk__ribosomal_subunit__{ribosomal_subunit_ids[0]}'],
+            **{
+                f"bulk__rRNA__{rRNA_id}": pl.col(
+                    f"bulk__rRNA__{rRNA_id}") + data[
+                        f'bulk__ribosomal_subunit__{ribosomal_subunit_ids[1]}']
+                for rRNA_id in rRNA_ids[1:]
+            }
+        })
     rRNA_counts += data['full_ribosome_counts']
     mRNA_counts = data['mRNA_counts'].list.to_struct(
         fields=['mRNA_counts__' + i for i in mRNA_ids]).struct.unnest()
@@ -164,41 +176,38 @@ def plot(
         [mRNA_ids, tRNA_cistron_ids, rRNA_cistron_ids],
         [mRNA_counts, tRNA_counts, rRNA_counts]
     ):
-        rna_counts_avg.append(rna_counts.mean())
-        rna_counts_std.append(rna_counts.std())
+        rna_counts_avg.append(rna_counts.mean().transpose())
+        rna_counts_std.append(rna_counts.std().transpose())
         rna_counts_relative_to_total_rna_type_counts.append(
-            rna_counts_avg[-1] / rna_counts_avg[-1].sum()
+            rna_counts_avg[-1] / rna_counts_avg[-1].sum()[0, 0]
         )
         rna_conc = rna_counts * data['counts_to_molar']
-        rna_conc_avg.append(rna_conc.mean())
-        rna_conc_std.append(rna_conc.std())
+        rna_conc_avg.append(rna_conc.mean().transpose())
+        rna_conc_std.append(rna_conc.std().transpose())
         rna_mw = pl.Series([cistron_id_to_mw[cistron_id]
                             for cistron_id in rna_ids])
         rna_masses_avg.append(rna_counts_avg[-1] * rna_mw)
         rna_masses_relative_to_total_rna_type_mass.append(
-            rna_masses_avg[-1] / rna_masses_avg[-1].sum())
+            rna_masses_avg[-1] / rna_masses_avg[-1].sum()[0,0]
+        )
 
-    rna_counts_avg: pl.DataFrame = pl.concat(
-        rna_counts_avg, how='horizontal').transpose()
-    rna_counts_std: pl.DataFrame = pl.concat(
-        rna_counts_std, how='horizontal').transpose()
+    rna_counts_avg: pl.DataFrame = pl.concat(rna_counts_avg)
+    rna_counts_std: pl.DataFrame = pl.concat(rna_counts_std)
     rna_counts_relative_to_total_rna_type_counts: pl.DataFrame = pl.concat(
-        rna_counts_relative_to_total_rna_type_counts, how='horizontal'
-    ).transpose()
+        rna_counts_relative_to_total_rna_type_counts
+    )
     rna_counts_relative_to_total_rna_counts = (
-        rna_counts_avg / rna_counts_avg.sum()).transpose()
-    rna_conc_avg: pl.DataFrame = pl.concat(
-        rna_conc_avg, how='horizontal').transpose()
-    rna_conc_std: pl.DataFrame = pl.concat(
-        rna_conc_std, how='horizontal').transpose()
+        rna_counts_avg / rna_counts_avg.sum()[0, 0])
+    rna_conc_avg: pl.DataFrame = pl.concat(rna_conc_avg)
+    rna_conc_std: pl.DataFrame = pl.concat(rna_conc_std)
     rna_masses_relative_to_total_rna_type_mass: pl.DataFrame = pl.concat(
-        rna_masses_relative_to_total_rna_type_mass, how='horizontal'
-    ).transpose()
-    rna_masses_avg: pl.DataFrame = pl.concat(rna_masses_avg, how='horizontal')
+        rna_masses_relative_to_total_rna_type_mass
+    )
+    rna_masses_avg: pl.DataFrame = pl.concat(rna_masses_avg)
     rna_masses_relative_to_total_rna_mass = (
-        rna_masses_avg / rna_masses_avg.sum()).transpose()
+        rna_masses_avg / rna_masses_avg.sum()[0, 0])
     rna_masses_relative_to_total_dcw = (
-        rna_masses_avg / data['dry_masses'].mean()).transpose()
+        rna_masses_avg / data['dry_masses'].mean())
     rna_ids = mRNA_ids + tRNA_cistron_ids + rRNA_cistron_ids
 
     # Save RNA data in table
@@ -247,14 +256,13 @@ def plot(
     # Build dictionary for metadata
     ecocyc_metadata = {
         'git_hash': config_lf.select(
-            'data__git_hash').first().collect(),
+            'data__git_hash').first().collect()[0, 0],
         'n_ignored_generations': IGNORE_FIRST_N_GENS,
         'n_total_generations': config_lf.select(
-            'data__generations').first().collect(),
+            'data__generations').first().collect()[0, 0],
         'n_seeds': config_lf.select(
-            'data__n_init_sims').first().collect(),
-        'n_cells': config_lf.select(['lineage_seed', 'generation', 'agent_id']
-            ).select(pl.all().n_unique()).collect(streaming=True),
+            'data__n_init_sims').first().collect()[0, 0],
+        'n_cells': num_cells(config_lf)[0, 0],
         'n_timesteps': len(data['counts_to_molar']),
         }
 
@@ -264,14 +272,14 @@ def plot(
 
     # Calculate derived protein values
     monomer_counts = data['monomer_counts'].list.to_struct().struct.unnest()
-    monomer_counts_avg = monomer_counts.mean()
-    monomer_counts_std = monomer_counts.std()
+    monomer_counts_avg = monomer_counts.mean().transpose()
+    monomer_counts_std = monomer_counts.std().transpose()
     monomer_conc = monomer_counts * data['counts_to_molar']
-    monomer_conc_avg = monomer_conc.mean()
-    monomer_conc_std = monomer_conc.std()
-    monomer_counts_relative_to_total_monomer_counts = monomer_counts_avg / monomer_counts_avg.sum()
+    monomer_conc_avg = monomer_conc.mean().transpose()
+    monomer_conc_std = monomer_conc.std().transpose()
+    monomer_counts_relative_to_total_monomer_counts = monomer_counts_avg / monomer_counts_avg.sum()[0, 0]
     monomer_mass_avg = monomer_counts_avg * pl.Series(monomer_mw)
-    monomer_mass_relative_to_total_monomer_mass = monomer_mass_avg / monomer_mass_avg.sum()
+    monomer_mass_relative_to_total_monomer_mass = monomer_mass_avg / monomer_mass_avg.sum()[0, 0]
     monomer_mass_relative_to_total_dcw = monomer_mass_avg / data['dry_masses'].mean()
 
     # Save monomer data in table
@@ -309,7 +317,7 @@ def plot(
 
         protein_val_exists = np.logical_not(np.isnan(protein_counts_val))
         r, _ = pearsonr(
-            monomer_counts_avg[protein_val_exists],
+            monomer_counts_avg.filter(protein_val_exists)[:,0],
             protein_counts_val[protein_val_exists])
 
         ecocyc_metadata['protein_validation_r_squared'] = r ** 2
@@ -320,14 +328,14 @@ def plot(
     complex_mw = sim_data.getter.get_masses(complex_ids).asNumber(units.fg / units.count)
 
     # Calculate derived protein values
-    complex_counts = data.select(cs.starts_with('complex__'))
-    complex_counts_avg = complex_counts.mean()
-    complex_counts_std = complex_counts.std()
+    complex_counts = data.select([f"bulk__complex__{i}" for i in complex_ids])
+    complex_counts_avg = complex_counts.mean().transpose()
+    complex_counts_std = complex_counts.std().transpose()
     complex_conc = complex_counts * data['counts_to_molar']
-    complex_conc_avg = complex_conc.mean()
-    complex_conc_std = complex_conc.std()
-    complex_mass_avg = complex_counts_avg * complex_mw
-    complex_mass_relative_to_total_protein_mass = complex_mass_avg / monomer_mass_avg.sum()
+    complex_conc_avg = complex_conc.mean().transpose()
+    complex_conc_std = complex_conc.std().transpose()
+    complex_mass_avg = complex_counts_avg * pl.Series(complex_mw)
+    complex_mass_relative_to_total_protein_mass = complex_mass_avg / monomer_mass_avg.sum()[0, 0]
     complex_mass_relative_to_total_dcw = complex_mass_avg / data['dry_masses'].mean()
 
     # Save complex data in table
@@ -375,8 +383,8 @@ def plot(
         ).asNumber(units.mmol / units.g / units.h)
 
     # Calculate derived flux values
-    fluxes_avg = fluxes.mean()
-    fluxes_std = fluxes.std()
+    fluxes_avg = fluxes.mean().transpose()
+    fluxes_std = fluxes.std().transpose()
 
     columns = {
         'id': 'Object ID, according to EcoCyc',

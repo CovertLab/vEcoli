@@ -1,7 +1,8 @@
+import os
 from typing import Any
 
-import polars as pl
 import hvplot.polars
+import polars as pl
 
 hvplot.extension('matplotlib')
 
@@ -26,7 +27,8 @@ def plot(
     config_lf: pl.LazyFrame,
     history_lf: pl.LazyFrame,
     sim_data_paths: list[str],
-    validation_data_paths: list[str]
+    validation_data_paths: list[str],
+    outdir: str
 ):
     assert config_lf.collect(streaming=True).n_unique(subset=[
         'experiment_id', 'variant', 'generation', 'lineage_seed', 'agent_id']
@@ -63,5 +65,5 @@ def plot(
         ylabel='Mass (normalized by t = 0 min)',
         title='Biomass components (average fraction of total dry mass in parentheses)',
         color=COLORS)
-    hvplot.save(plotted_data, 'mass_fraction_summary.html')
+    hvplot.save(plotted_data, os.path.join(outdir, 'mass_fraction_summary.html'))
     # hvplot.save(plotted_data, 'mass_fraction_summary.png', dpi=300)

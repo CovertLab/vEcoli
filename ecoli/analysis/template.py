@@ -23,6 +23,16 @@ will be contained in columns with this prefix.
 """
 
 
+def num_cells(config_lf: pl.LazyFrame) -> int:
+    """
+    Return count of cells in filtered LazyFrame (requires ``experiment_id``,
+    ``variant``, ``lineage_seed``, ``generation``, and ``agent_id`` columns).
+    """
+    return config_lf.select(['experiment_id', 'variant', 'lineage_seed',
+        'generation', 'agent_id']).select(pl.struct(pl.all()).n_unique()
+            ).collect(streaming=True)
+
+
 def ndlist_to_ndarray(s: pl.Series) -> np.ndarray:
     """
     Convert a series consisting of nested lists with fixed dimensions into
