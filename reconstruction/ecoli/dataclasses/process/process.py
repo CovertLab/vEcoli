@@ -15,17 +15,16 @@ from .two_component_system import TwoComponentSystem
 
 
 class Process(object):
-	""" Process """
+    """Process"""
 
-	def __init__(self, raw_data, sim_data):
-
-		self.chromosome_structure = ChromosomeStructure(raw_data, sim_data)
-		self.complexation = Complexation(raw_data, sim_data)
-		self.equilibrium = Equilibrium(raw_data, sim_data)
-		self.metabolism = Metabolism(raw_data, sim_data)
-		self.replication = Replication(raw_data, sim_data)
-		self.rna_decay = RnaDecay(raw_data, sim_data)
-		self.transcription = Transcription(raw_data, sim_data)
-		self.transcription_regulation = TranscriptionRegulation(raw_data, sim_data)
-		self.translation = Translation(raw_data, sim_data)
-		self.two_component_system = TwoComponentSystem(raw_data, sim_data)
+    def __init__(self, raw_data, sim_data):
+        self.chromosome_structure = ChromosomeStructure(raw_data, sim_data)
+        self.complexation = Complexation(raw_data, sim_data)
+        self.equilibrium = Equilibrium(raw_data, sim_data)
+        self.metabolism = Metabolism(raw_data, sim_data)
+        self.replication = Replication(raw_data, sim_data)
+        self.rna_decay = RnaDecay(raw_data, sim_data)
+        self.transcription = Transcription(raw_data, sim_data)
+        self.transcription_regulation = TranscriptionRegulation(raw_data, sim_data)
+        self.translation = Translation(raw_data, sim_data)
+        self.two_component_system = TwoComponentSystem(raw_data, sim_data)

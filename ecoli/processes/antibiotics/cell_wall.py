@@ -130,9 +130,9 @@ class CellWall(Process):
         self.disaccharide_width = self.parameters["disaccharide_width"]
         self.inter_strand_distance = self.parameters["inter_strand_distance"]
         self.max_expansion = self.parameters["max_expansion"]
-        self.peptidoglycan_unit_area = ((
-            self.inter_strand_distance + self.disaccharide_width) *
-            self.disaccharide_height)
+        self.peptidoglycan_unit_area = (
+            self.inter_strand_distance + self.disaccharide_width
+        ) * self.disaccharide_height
 
         # Create pseudorandom number generator
         self.rng = np.random.default_rng(self.parameters["seed"])
@@ -150,17 +150,17 @@ class CellWall(Process):
                     "_default": 0,
                     "_emit": True,
                     "_updater": "set",
-                    "_divider": "zero"
+                    "_divider": "zero",
                 },
                 "unincorporated_murein": {
                     "_default": 0,
                     "_emit": True,
-                    "_divider": "binomial_ecoli"
+                    "_divider": "binomial_ecoli",
                 },
                 "shadow_murein": {
                     "_default": 0,
                     "_emit": True,
-                    "_divider": "binomial_ecoli"
+                    "_divider": "binomial_ecoli",
                 },
             },
             "bulk": numpy_schema("bulk"),
@@ -236,9 +236,9 @@ class CellWall(Process):
 
     def next_update(self, timestep, states):
         if self.pbp_idx is None:
-            self.pbp_idx = bulk_name_to_idx(self.pbp_ids, states['bulk']['id'])
+            self.pbp_idx = bulk_name_to_idx(self.pbp_ids, states["bulk"]["id"])
         update = {}
-        
+
         # Unpack states
         volume = states["shape"]["volume"]
         extension_factor = states["wall_state"]["extension_factor"]
@@ -250,7 +250,7 @@ class CellWall(Process):
 
         # Get lattice
         lattice = states["wall_state"]["lattice"]
-        
+
         # When not run in an EngineProcess, this process sets the incorporated
         # murein count before MureinDivision and PBPBinding run after division
         if states["murein_state"]["incorporated_murein"] == 0:
@@ -283,7 +283,7 @@ class CellWall(Process):
             self.circumference,
             extension_factor,
         )
-        
+
         # Shrink extension factor when excess murein and PBPs are available
         d_full_columns = unincorporated_monomers // lattice.shape[0]
         d_columns = new_columns - lattice.shape[1]
@@ -397,13 +397,16 @@ class CellWall(Process):
             "attempted_shrinkage": attempted_shrinkage,
         }
         update["murein_state"] = {
-            "unincorporated_murein": new_unincorporated_monomers - unincorporated_monomers,
+            "unincorporated_murein": new_unincorporated_monomers
+            - unincorporated_monomers,
             "incorporated_murein": new_incorporated_monomers,
         }
         update["listeners"] = {
             "porosity": 1 - (lattice.sum() / lattice.size),
             "hole_size_distribution": np.bincount(hole_sizes),
-            "strand_length_distribution": np.bincount(get_length_distributions(lattice)[1]),
+            "strand_length_distribution": np.bincount(
+                get_length_distributions(lattice)[1]
+            ),
         }
 
         if will_crack:
@@ -507,9 +510,9 @@ class CellWall(Process):
                 :, index_old : (index_old + gap)
             ]
             # Do insertion
-            new_lattice[
-                :, (index_new + gap) : (index_new + gap + insert_size)
-            ] = insertions[insert_i]
+            new_lattice[:, (index_new + gap) : (index_new + gap + insert_size)] = (
+                insertions[insert_i]
+            )
 
             # update indices
             index_new += gap + insert_size

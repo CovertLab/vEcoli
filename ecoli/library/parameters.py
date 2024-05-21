@@ -63,8 +63,7 @@ PARAMETER_DICT = {
             "Mazzariol, Cornaglia, and Nikaido (2000)",
             lambda x: (
                 # Divide by molecular weight from PubChem.
-                x
-                / (349.4 * units.g / units.mol)
+                x / (349.4 * units.g / units.mol)
             ).to(units.mM),
         ),
         "efflux": {
@@ -138,8 +137,7 @@ PARAMETER_DICT = {
             "Rolinson (1980)",
             lambda x: (
                 # Divide by molecular weight from PubChem.
-                x
-                / (415.5 * units.g / units.mol)
+                x / (415.5 * units.g / units.mol)
             ).to(units.mM),
         ),
         "efflux": {
@@ -219,8 +217,7 @@ PARAMETER_DICT = {
             latex_source="thanassi_role_1995",
             canonicalize=lambda x: (
                 # Divide by molecular weight from PubChem.
-                x
-                / (444.4 * units.g / units.mol)
+                x / (444.4 * units.g / units.mol)
             ).to(units.mM),
         ),
         "mass": Parameter(
@@ -266,8 +263,9 @@ PARAMETER_DICT = {
     },
     "cell_wall": {
         "strand_length_data": Parameter(
-            os.path.join(ROOT_PATH, 
-                "data/cell_wall/murein_strand_length_distribution.csv"),
+            os.path.join(
+                ROOT_PATH, "data/cell_wall/murein_strand_length_distribution.csv"
+            ),
             "Obermann, W., & Höltje, J. (1994).",
         ),
         "upper_mean": Parameter(
@@ -328,22 +326,17 @@ PARAMETER_DICT = {
             "Simulation 0a2cd6816d36d408470445ff654371f07cd3f9f8",
         ),
     },
-    'lysis_initiation': {
-        'mean_lysis_time': Parameter(
-            192.8,
-            "Wong and Amir 2019"
-        )
-    },
+    "lysis_initiation": {"mean_lysis_time": Parameter(192.8, "Wong and Amir 2019")},
     "avogadro": constants.N_A / units.mol,
     "outer_potential": Parameter(
         -0.0215 * units.volt,
         "Sen, Hellman, and Nikaido (1988) p. 1184",
         latex_source="sen_porin_1988",
-        note="Donnan potential"
+        note="Donnan potential",
     ),
     "inner_potential": Parameter(
         0 * units.volt,
-        note="Assume no bias for diffusion from periplasm to cytoplasm"
+        note="Assume no bias for diffusion from periplasm to cytoplasm",
         # -0.1185 * units.volt,
         # "Felle et al. (1980) p. 3587",
         # note="Assume -140 mV resting potential"
@@ -386,7 +379,7 @@ DERIVATION_RULES = {
     ),
     ("shape", "initial_inner_area"): lambda params: Parameter(
         (
-            np.cbrt((1 - params.get(("shape", "periplasm_fraction"))))**2
+            np.cbrt((1 - params.get(("shape", "periplasm_fraction")))) ** 2
             * params.get(("shape", "initial_outer_area"))
         ),
     ),

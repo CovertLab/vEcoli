@@ -1,11 +1,14 @@
 from typing import Any, TYPE_CHECKING
+
 if TYPE_CHECKING:
     from reconstruction.ecoli.simulation_data import SimulationDataEcoli
 
-def test_variant(sim_data: 'SimulationDataEcoli', params: dict[str, list[Any]]
-         ) -> 'SimulationDataEcoli':
+
+def test_variant(
+    sim_data: "SimulationDataEcoli", params: dict[str, list[Any]]
+) -> "SimulationDataEcoli":
     """
-    Test variant that adds new attributes to sim_data. Also tests composition 
+    Test variant that adds new attributes to sim_data. Also tests composition
     of variant functions.
 
     Args:
@@ -20,7 +23,7 @@ def test_variant(sim_data: 'SimulationDataEcoli', params: dict[str, list[Any]]
                     'e': float
                 }
             }
-    
+
     Returns:
         Simulation data with the following attributes modified::
 
@@ -30,13 +33,15 @@ def test_variant(sim_data: 'SimulationDataEcoli', params: dict[str, list[Any]]
             sim_data.e
 
     """
-    sim_data.a = params['a']
-    sim_data.b = params['b']
-    sim_data = test_variant_2(sim_data, params['c'])
+    sim_data.a = params["a"]
+    sim_data.b = params["b"]
+    sim_data = test_variant_2(sim_data, params["c"])
     return sim_data
 
-def test_variant_2(sim_data: 'SimulationDataEcoli', params: dict[str, list[Any]]
-         ) -> 'SimulationDataEcoli':
+
+def test_variant_2(
+    sim_data: "SimulationDataEcoli", params: dict[str, list[Any]]
+) -> "SimulationDataEcoli":
     """
     Test variant that adds new attributes to sim_data.
 
@@ -48,7 +53,7 @@ def test_variant_2(sim_data: 'SimulationDataEcoli', params: dict[str, list[Any]]
                 'd': int,
                 'e': float,
             }
-    
+
     Returns:
         Simulation data with the following attributes modified::
 
@@ -56,6 +61,6 @@ def test_variant_2(sim_data: 'SimulationDataEcoli', params: dict[str, list[Any]]
             sim_data.e
 
     """
-    sim_data.d = params['d']
-    sim_data.e = params['e']
+    sim_data.d = params["d"]
+    sim_data.e = params["e"]
     return sim_data

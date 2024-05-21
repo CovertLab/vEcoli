@@ -1,5 +1,5 @@
 import argparse
-import json
+import numpy as np
 import pytest
 
 from vivarium.core.engine import pf
@@ -7,7 +7,7 @@ from vivarium.core.engine import pf
 from ecoli.states.wcecoli_state import get_state_from_file
 from ecoli.processes.chromosome_replication import ChromosomeReplication
 
-from migration.migration_utils import *
+from migration.migration_utils import get_process_state, run_and_compare
 from migration import LOAD_SIM_DATA
 
 
@@ -24,20 +24,20 @@ def test_fork_termination():
     config = LOAD_SIM_DATA.get_chromosome_replication_config()
 
     # change replichore_length parameter to force early termination
-    config['replichore_lengths'] = np.array([930280, 930280])
+    config["replichore_lengths"] = np.array([930280, 930280])
 
     chromosome_replication = ChromosomeReplication(config)
 
     # get the initial state
-    initial_state = get_state_from_file(
-        path=f'data/migration/wcecoli_t0.json')
+    initial_state = get_state_from_file(path="data/migration/wcecoli_t0.json")
 
     # get relevant initial state and experiment
-    state_before, experiment = get_process_state(chromosome_replication,
-        ChromosomeReplication.topology, initial_state)
+    state_before, experiment = get_process_state(
+        chromosome_replication, ChromosomeReplication.topology, initial_state
+    )
     chromosome_replication.calculate_request(2, state_before)
     chromosome_replication.evolve_only = True
-    
+
     # run experiment
     experiment.update(4)
     data = experiment.emitter.get_data()
@@ -46,14 +46,13 @@ def test_fork_termination():
 
 
 test_library = {
-    '0': test_actual_update,
-    '1': test_fork_termination,
+    "0": test_actual_update,
+    "1": test_fork_termination,
 }
 
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='chromosome replication migration')
-    parser.add_argument(
-        '--name', '-n', default=[], nargs='+', help='test ids to run')
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="chromosome replication migration")
+    parser.add_argument("--name", "-n", default=[], nargs="+", help="test ids to run")
     args = parser.parse_args()
     run_all = not args.name
 

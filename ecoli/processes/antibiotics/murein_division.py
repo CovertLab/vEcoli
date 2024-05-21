@@ -11,7 +11,10 @@ TOPOLOGY = {
     "bulk": ("bulk",),
     "murein_state": ("murein_state",),
     "wall_state": ("wall_state",),
-    "first_update": ("first_update", "murein_division",)
+    "first_update": (
+        "first_update",
+        "murein_division",
+    ),
 }
 topology_registry.register(NAME, TOPOLOGY)
 
@@ -21,6 +24,7 @@ class MureinDivision(Step):
     Ensures that total murein count in bulk store matches that from division of
     murein_state store before running mass listener
     """
+
     name = NAME
     topology = TOPOLOGY
 
@@ -48,10 +52,7 @@ class MureinDivision(Step):
                     "_default": 0,
                     "_emit": True,
                 },
-                "shadow_murein": {
-                    "_default": 0,
-                    "_emit": True
-                },
+                "shadow_murein": {"_default": 0, "_emit": True},
             },
             "wall_state": {
                 "lattice": {
@@ -64,19 +65,21 @@ class MureinDivision(Step):
                 "_default": True,
                 "_updater": "set",
                 "_divider": {"divider": "set_value", "config": {"value": True}},
-            }
+            },
         }
 
     def next_update(self, timestep, states):
         if self.murein_idx is None:
             self.murein_idx = bulk_name_to_idx(
-                self.parameters["murein_name"], states["bulk"]["id"])
+                self.parameters["murein_name"], states["bulk"]["id"]
+            )
 
         update = {"murein_state": {}, "bulk": []}
         # Ensure that lattice is a numpy array so divider works properly.
         # Used when loading from a saved state.
-        if ((not isinstance(states["wall_state"]["lattice"], np.ndarray)) and 
-            (states["wall_state"]["lattice"] != None)):
+        if (not isinstance(states["wall_state"]["lattice"], np.ndarray)) and (
+            states["wall_state"]["lattice"] is not None
+        ):
             update["wall_state"] = {
                 "lattice": np.array(states["wall_state"]["lattice"])
             }
@@ -90,8 +93,7 @@ class MureinDivision(Step):
             # murein count before CellWall or PBPBinding run after division
             if states["murein_state"]["incorporated_murein"] == 0:
                 incorporated_murein = np.sum(states["wall_state"]["lattice"])
-                update["murein_state"][
-                    "incorporated_murein"] = incorporated_murein
+                update["murein_state"]["incorporated_murein"] = incorporated_murein
                 accounted_murein_monomers += incorporated_murein
             remainder = accounted_murein_monomers % 4
             if remainder != 0:
@@ -102,7 +104,8 @@ class MureinDivision(Step):
             accounted_murein = accounted_murein_monomers // 4
             total_murein = counts(states["bulk"], self.murein_idx)
             if accounted_murein != total_murein:
-                update["bulk"].append((self.murein_idx, (
-                    accounted_murein - total_murein)))
+                update["bulk"].append(
+                    (self.murein_idx, (accounted_murein - total_murein))
+                )
         update["first_update"] = False
         return update

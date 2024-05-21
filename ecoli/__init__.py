@@ -32,37 +32,36 @@ from ecoli.library.updaters import (
     inverse_updater_registry,
 )
 
-emitter_registry.register('clickhouse', ClickHouseEmitter)
-emitter_registry.register('parquet', ParquetEmitter)
+emitter_registry.register("clickhouse", ClickHouseEmitter)
+emitter_registry.register("parquet", ParquetEmitter)
 
 # register :term:`updaters`
+inverse_updater_registry.register("accumulate", inverse_update_accumulate)
+inverse_updater_registry.register("set", inverse_update_set)
+inverse_updater_registry.register("null", inverse_update_null)
+inverse_updater_registry.register("merge", inverse_update_merge)
 inverse_updater_registry.register(
-    'accumulate', inverse_update_accumulate)
-inverse_updater_registry.register('set', inverse_update_set)
-inverse_updater_registry.register('null', inverse_update_null)
-inverse_updater_registry.register('merge', inverse_update_merge)
-inverse_updater_registry.register(
-    'nonnegative_accumulate', inverse_update_nonnegative_accumulate)
-inverse_updater_registry.register(
-    'bulk_numpy', inverse_update_bulk_numpy)
-inverse_updater_registry.register(
-    'unique_numpy', inverse_update_unique_numpy)
+    "nonnegative_accumulate", inverse_update_nonnegative_accumulate
+)
+inverse_updater_registry.register("bulk_numpy", inverse_update_bulk_numpy)
+inverse_updater_registry.register("unique_numpy", inverse_update_unique_numpy)
 
 
 # register :term:`dividers`
-divider_registry.register('binomial_ecoli', divide_binomial)
-divider_registry.register('bulk_binomial', divide_bulk)
-divider_registry.register('by_domain', divide_by_domain)
-divider_registry.register('rna_by_domain', divide_RNAs_by_domain)
-divider_registry.register('empty_dict', empty_dict_divider)
-divider_registry.register('ribosome_by_RNA', divide_ribosomes_by_RNA)
-divider_registry.register('set_none', divide_set_none)
+divider_registry.register("binomial_ecoli", divide_binomial)
+divider_registry.register("bulk_binomial", divide_bulk)
+divider_registry.register("by_domain", divide_by_domain)
+divider_registry.register("rna_by_domain", divide_RNAs_by_domain)
+divider_registry.register("empty_dict", empty_dict_divider)
+divider_registry.register("ribosome_by_RNA", divide_ribosomes_by_RNA)
+divider_registry.register("set_none", divide_set_none)
 
 # register serializers
 for serializer_cls in (
-    UnumSerializer, ParameterSerializer,
-    NumpyRandomStateSerializer, MethodSerializer
+    UnumSerializer,
+    ParameterSerializer,
+    NumpyRandomStateSerializer,
+    MethodSerializer,
 ):
     serializer = serializer_cls()
-    serializer_registry.register(
-        serializer.name, serializer)
+    serializer_registry.register(serializer.name, serializer)
