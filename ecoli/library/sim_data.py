@@ -4,7 +4,7 @@ import binascii
 from itertools import chain
 import numpy as np
 import pickle
-from typing import TYPE_CHECKING
+from typing import Any, TYPE_CHECKING
 from vivarium.library.units import units as vivunits
 from wholecell.utils import units
 from wholecell.utils.unit_struct_array import UnitStructArray
@@ -23,7 +23,7 @@ from ecoli.library.initial_conditions import (
 )
 
 if TYPE_CHECKING:
-    pass
+    from reconstruction.ecoli.simulation_data import SimulationDataEcoli
 
 RAND_MAX = 2**31
 SIM_DATA_PATH = os.path.join(ROOT_PATH, "reconstruction/sim_data/kb/simData.cPickle")
@@ -38,37 +38,35 @@ class LoadSimData:
         self,
         sim_data_path: str = SIM_DATA_PATH,
         seed: int = 0,
-        # TODO: Figure out why this is so slow
-        jit=False,
-        total_time=10,
-        fixed_media=None,
-        media_timeline=(
+        total_time: int = 10,
+        fixed_media: str = None,
+        media_timeline: tuple[tuple[int, str]] = (
             (0, "minimal"),
         ),  # have to change both media_timeline and condition
-        condition="basal",
-        operons=True,
-        trna_charging=True,
-        ppgpp_regulation=True,
-        mar_regulon=False,
-        process_configs=None,
-        amp_lysis=False,
-        mass_distribution=True,
-        superhelical_density=False,
-        recycle_stalled_elongation=False,
-        mechanistic_replisome=False,
-        trna_attenuation=True,
-        variable_elongation_transcription=True,
-        variable_elongation_translation=False,
-        mechanistic_translation_supply=True,
-        mechanistic_aa_transport=True,
-        translation_supply=True,
-        aa_supply_in_charging=True,
-        adjust_timestep_for_charging=False,
-        disable_ppgpp_elongation_inhibition=False,
-        time_step_safety_fraction=1.3,
-        update_time_step_freq=5,
-        max_time_step=MAX_TIME_STEP,
-        emit_unique=False,
+        condition: str = "basal",
+        trna_charging: bool = True,
+        ppgpp_regulation: bool = True,
+        mar_regulon: bool = False,
+        process_configs: dict[str, Any] = None,
+        amp_lysis: bool = False,
+        mass_distribution: bool = True,
+        superhelical_density: bool = False,
+        recycle_stalled_elongation: bool = False,
+        mechanistic_replisome: bool = False,
+        trna_attenuation: bool = True,
+        variable_elongation_transcription: bool = True,
+        variable_elongation_translation: bool = False,
+        mechanistic_translation_supply: bool = True,
+        mechanistic_aa_transport: bool = True,
+        translation_supply: bool = True,
+        aa_supply_in_charging: bool = True,
+        disable_ppgpp_elongation_inhibition: bool = False,
+        # TODO: Implement these
+        adjust_timestep_for_charging: bool = False,
+        time_step_safety_fraction: float = 1.3,
+        update_time_step_freq: int = 5,
+        max_time_step: int = MAX_TIME_STEP,
+        emit_unique: bool = False,
         **kwargs,
     ):
         """
@@ -85,14 +83,11 @@ class LoadSimData:
             seed: Used to deterministically seed all random number
                 generators. Simulations with the same seed will yield
                 the same output.
-            jit: Use Numba JIT compilation to speed up equilibrium and
-                two component system diff eq. solve
             total_time: Time to simulate (seconds)
             media_timeline: Iterable of tuples where the first element of
                 each tuple is the time to start using a certain media and the
                 second element is a string corresponding to one of the media
                 options in ``self.sim_data.external_state.saved_media``
-            operons: Use operon transcription units
             trna_charging: Use steady-state charging model
                 (:py:class:`~ecoli.processes.polypeptide_elongation.SteadyStateElongationModel`)
                 in :py:class:`~ecoli.processes.polypeptide_elongation.PolypeptideElongation`
@@ -154,9 +149,6 @@ class LoadSimData:
                 inhibition in :py:class:`~ecoli.processes.polypeptide_elongation.PolypeptideElongation`
                 when ``trna_charging`` is ``True``
         """
-        if not operons:
-            sim_data_path = SIM_DATA_PATH_NO_OPERONS
-
         self.seed = seed
         self.total_time = total_time
         self.random_state = np.random.RandomState(seed=seed)
@@ -185,7 +177,6 @@ class LoadSimData:
         self.disable_ppgpp_elongation_inhibition = disable_ppgpp_elongation_inhibition
         self.recycle_stalled_elongation = recycle_stalled_elongation
         self.emit_unique = emit_unique
-        self.jit = jit
 
         # NEW to vivarium-ecoli: Whether to lump miscRNA with mRNAs
         # when calculating degradation
@@ -193,7 +184,7 @@ class LoadSimData:
 
         # load sim_data
         with open(sim_data_path, "rb") as sim_data_file:
-            self.sim_data = pickle.load(sim_data_file)
+            self.sim_data: "SimulationDataEcoli" = pickle.load(sim_data_file)
 
         if condition is not None:
             self.sim_data.condition = condition
@@ -209,7 +200,7 @@ class LoadSimData:
         # Note: Incompatible with operons because there are genes
         # that are part of the same operon but have different changes
         # in expression under tetracycline exposure (e.g. marRAB)
-        if mar_regulon and not self.sim_data.operons_on:
+        if mar_regulon:
             # Define aliases to reduce code verbosity
             treg_alias = self.sim_data.process.transcription_regulation
             bulk_mol_alias = self.sim_data.internal_state.bulk_molecules
@@ -1074,7 +1065,7 @@ class LoadSimData:
         two_component_system_config = {
             "time_step": time_step,
             "_parallel": parallel,
-            "jit": self.jit,
+            "jit": False,
             # TODO -- wcEcoli has this in 1/mmol, why?
             "n_avogadro": self.sim_data.constants.n_avogadro.asNumber(1 / units.mmol),
             "cell_density": self.sim_data.constants.cell_density.asNumber(
@@ -1093,7 +1084,7 @@ class LoadSimData:
         equilibrium_config = {
             "time_step": time_step,
             "_parallel": parallel,
-            "jit": self.jit,
+            "jit": False,
             "n_avogadro": self.sim_data.constants.n_avogadro.asNumber(1 / units.mol),
             "cell_density": self.sim_data.constants.cell_density.asNumber(
                 units.g / units.L
@@ -1693,6 +1684,7 @@ class LoadSimData:
         return {
             "time_step": time_step,
             "_parallel": parallel,
+            "gene_ids": self.sim_data.process.transcription.cistron_data["gene_id"],
             "rna_ids": self.sim_data.process.transcription.rna_data["id"],
             "tf_ids": self.sim_data.process.transcription_regulation.tf_ids,
             "cistron_ids": self.sim_data.process.transcription.cistron_data["gene_id"],

@@ -38,6 +38,7 @@ class RnaSynthProb(Step):
     def __init__(self, parameters=None):
         super().__init__(parameters)
         self.rna_ids = self.parameters["rna_ids"]
+        self.gene_ids = self.parameters["gene_ids"]
         self.tf_ids = self.parameters["tf_ids"]
         self.cistron_ids = self.parameters["cistron_ids"]
         self.n_TU = len(self.rna_ids)
@@ -50,32 +51,26 @@ class RnaSynthProb(Step):
             "rna_synth_prob": listener_schema(
                 {
                     "promoter_copy_number": ([0] * self.n_TU, self.rna_ids),
-                    "gene_copy_number": ([0] * self.n_TU, self.rna_ids),
+                    "gene_copy_number": ([0] * self.n_TU, self.gene_ids),
                     "bound_TF_indexes": ([], self.tf_ids),
                     "bound_TF_coordinates": [],
                     "bound_TF_domains": [],
-                    "target_rna_synth_prob": ([0] * self.n_TU, self.rna_ids),
-                    "actual_rna_synth_prob": ([0] * self.n_TU, self.rna_ids),
-                    "actual_rna_synth_prob_per_cistron": (
-                        [0] * self.n_cistron,
-                        self.cistron_ids,
-                    ),
-                    "target_rna_synth_prob_per_cistron": (
-                        [0] * self.n_cistron,
-                        self.cistron_ids,
-                    ),
-                    "expected_rna_init_per_cistron": (
-                        [0] * self.n_cistron,
-                        self.cistron_ids,
-                    ),
+                    "target_rna_synth_prob": ([0.0] * self.n_TU, self.rna_ids),
+                    "actual_rna_synth_prob": ([0.0] * self.n_TU, self.rna_ids),
+                    # 'actual_rna_synth_prob_per_cistron': ([0.] * self.n_cistron,
+                    #     self.cistron_ids),
+                    # 'target_rna_synth_prob_per_cistron': ([0.] * self.n_cistron,
+                    #     self.cistron_ids),
+                    # 'expected_rna_init_per_cistron': ([0.] * self.n_cistron,
+                    #     self.cistron_ids),
                     "n_bound_TF_per_TU": ([[0] * self.n_TF] * self.n_TU, self.rna_ids),
-                    "n_bound_TF_per_cistron": ([], self.cistron_ids),
+                    # 'n_bound_TF_per_cistron': ([], self.cistron_ids),
                     "total_rna_init": 0,
                 }
             ),
             "promoters": numpy_schema("promoters", emit=self.parameters["emit_unique"]),
             "genes": numpy_schema("genes", emit=self.parameters["emit_unique"]),
-            "global_time": {"_default": 0},
+            "global_time": {"_default": 0.0},
             "timestep": {"_default": self.parameters["time_step"]},
         }
 
@@ -89,30 +84,26 @@ class RnaSynthProb(Step):
         bound_promoter_indexes, TF_indexes = np.where(bound_TFs)
         (cistron_indexes,) = attrs(states["genes"], ["cistron_index"])
 
-        actual_rna_synth_prob_per_cistron = self.cistron_tu_mapping_matrix.dot(
-            states["rna_synth_prob"]["actual_rna_synth_prob"]
-        )
+        # actual_rna_synth_prob_per_cistron = self.cistron_tu_mapping_matrix.dot(
+        #     states['rna_synth_prob']['actual_rna_synth_prob'])
         # The expected value of rna initiations per cistron. Realized values
         # during simulation will be different, because they will be integers
         # drawn from a multinomial distribution
-        expected_rna_init_per_cistron = (
-            actual_rna_synth_prob_per_cistron
-            * states["rna_synth_prob"]["total_rna_init"]
-        )
+        # expected_rna_init_per_cistron = (actual_rna_synth_prob_per_cistron *
+        #     states['rna_synth_prob']['total_rna_init'])
 
-        if actual_rna_synth_prob_per_cistron.sum() != 0:
-            actual_rna_synth_prob_per_cistron = (
-                actual_rna_synth_prob_per_cistron
-                / actual_rna_synth_prob_per_cistron.sum()
-            )
-        target_rna_synth_prob_per_cistron = self.cistron_tu_mapping_matrix.dot(
-            states["rna_synth_prob"]["target_rna_synth_prob"]
-        )
-        if target_rna_synth_prob_per_cistron.sum() != 0:
-            target_rna_synth_prob_per_cistron = (
-                target_rna_synth_prob_per_cistron
-                / target_rna_synth_prob_per_cistron.sum()
-            )
+        # if actual_rna_synth_prob_per_cistron.sum() != 0:
+        #     actual_rna_synth_prob_per_cistron = (
+        #         actual_rna_synth_prob_per_cistron /
+        #         actual_rna_synth_prob_per_cistron.sum())
+        # target_rna_synth_prob_per_cistron = self.cistron_tu_mapping_matrix.dot(
+        #     states['rna_synth_prob']['target_rna_synth_prob']
+        # )
+        # if target_rna_synth_prob_per_cistron.sum() != 0:
+        #     target_rna_synth_prob_per_cistron = (
+        #         target_rna_synth_prob_per_cistron /
+        #         target_rna_synth_prob_per_cistron.sum()
+        #     )
 
         return {
             "rna_synth_prob": {
@@ -123,13 +114,26 @@ class RnaSynthProb(Step):
                 "bound_TF_indexes": TF_indexes,
                 "bound_TF_coordinates": all_coordinates[bound_promoter_indexes],
                 "bound_TF_domains": all_domains[bound_promoter_indexes],
-                "expected_rna_init_per_cistron": expected_rna_init_per_cistron,
-                "actual_rna_synth_prob_per_cistron": actual_rna_synth_prob_per_cistron,
-                "target_rna_synth_prob_per_cistron": target_rna_synth_prob_per_cistron,
-                "n_bound_TF_per_cistron": self.cistron_tu_mapping_matrix.dot(
-                    states["rna_synth_prob"]["n_bound_TF_per_TU"]
-                )
-                .astype(np.int16)
-                .T,
+                # Large floating point emits, prefer to recompute afterwards as:
+                # - actual_rna_synth_prob_per_cistron:
+                #       sim_data.process.transcription.cistron_tu_mapping_matrix
+                #       dot actual_rna_synth_prob, normalized so sums to 1
+                # - target_rna_synth_prob_per_cistron:
+                #       sim_data.process.transcription.cistron_tu_mapping_matrix
+                #       dot target_rna_synth_prob, normalized so sums to 1
+                # - expected_rna_init_per_cistron:
+                #       actual_rna_synth_prob_per_cistron as calculated above
+                #       before normalizing multiplied by total_rna_init
+                # - n_bound_TF_per_cistron:
+                #       sim_data.process.transcription.cistron_tu_mapping_matrix
+                #       dot n_bound_TF_per_TU
+                # 'expected_rna_init_per_cistron': expected_rna_init_per_cistron,
+                # 'actual_rna_synth_prob_per_cistron': \
+                #     actual_rna_synth_prob_per_cistron,
+                # 'target_rna_synth_prob_per_cistron': \
+                #     target_rna_synth_prob_per_cistron,
+                # 'n_bound_TF_per_cistron': self.cistron_tu_mapping_matrix.dot(
+                #     states['rna_synth_prob']['n_bound_TF_per_TU']
+                #     ).astype(np.int16).T
             }
         }

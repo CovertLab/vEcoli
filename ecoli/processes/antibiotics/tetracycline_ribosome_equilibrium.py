@@ -72,7 +72,7 @@ class TetracyclineRibosomeEquilibrium(Step):
                     "_emit": True,
                 },
             },
-            "global_time": {"_default": 0},
+            "global_time": {"_default": 0.0},
             "timestep": {"_default": self.parameters["time_step"]},
         }
 

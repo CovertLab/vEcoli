@@ -181,11 +181,11 @@ MAPPING = {
         "n_removed_ribosomes": ("listeners", "rnap_data", "n_removed_ribosomes"),
         "n_total_collisions": ("listeners", "rnap_data", "n_total_collisions"),
         "rnaInitEvent": ("listeners", "rnap_data", "rna_init_event"),
-        "rna_init_event_per_cistron": (
-            "listeners",
-            "rnap_data",
-            "rna_init_event_per_cistron",
-        ),
+        # "rna_init_event_per_cistron": (
+        #     "listeners",
+        #     "rnap_data",
+        #     "rna_init_event_per_cistron",
+        # ),
         "terminationLoss": ("listeners", "rnap_data", "termination_loss"),
     },
     "ComplexationListener": {
@@ -234,21 +234,21 @@ MAPPING = {
             "actual_rna_synth_prob",
         ),
         "tu_is_overcrowded": ("listeners", "rna_synth_prob", "tu_is_overcrowded"),
-        "actual_rna_synth_prob_per_cistron": (
-            "listeners",
-            "rna_synth_prob",
-            "actual_rna_synth_prob_per_cistron",
-        ),
-        "target_rna_synth_prob_per_cistron": (
-            "listeners",
-            "rna_synth_prob",
-            "target_rna_synth_prob_per_cistron",
-        ),
-        "expected_rna_init_per_cistron": (
-            "listeners",
-            "rna_synth_prob",
-            "expected_rna_init_per_cistron",
-        ),
+        # "actual_rna_synth_prob_per_cistron": (
+        #     "listeners",
+        #     "rna_synth_prob",
+        #     "actual_rna_synth_prob_per_cistron",
+        # ),
+        # "target_rna_synth_prob_per_cistron": (
+        #     "listeners",
+        #     "rna_synth_prob",
+        #     "target_rna_synth_prob_per_cistron",
+        # ),
+        # "expected_rna_init_per_cistron": (
+        #     "listeners",
+        #     "rna_synth_prob",
+        #     "expected_rna_init_per_cistron",
+        # ),
         "promoter_copy_number": ("listeners", "rna_synth_prob", "promoter_copy_number"),
         "bound_TF_coordinates": ("listeners", "rna_synth_prob", "bound_TF_coordinates"),
         "n_available_promoters": (
@@ -258,11 +258,11 @@ MAPPING = {
         ),
         "bound_TF_domains": ("listeners", "rna_synth_prob", "bound_TF_domains"),
         "n_bound_TF_per_TU": ("listeners", "rna_synth_prob", "n_bound_TF_per_TU"),
-        "n_bound_TF_per_cistron": (
-            "listeners",
-            "rna_synth_prob",
-            "n_bound_TF_per_cistron",
-        ),
+        # "n_bound_TF_per_cistron": (
+        #     "listeners",
+        #     "rna_synth_prob",
+        #     "n_bound_TF_per_cistron",
+        # ),
         "bound_TF_indexes": ("listeners", "rna_synth_prob", "bound_TF_indexes"),
         "nPromoterBound": ("listeners", "rna_synth_prob", "n_promoter_bound"),
         "gene_copy_number": ("listeners", "rna_synth_prob", "gene_copy_number"),

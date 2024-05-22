@@ -1,32 +1,39 @@
 from vivarium.core.registry import (
     divider_registry,
+    emitter_registry,
     serializer_registry,
 )
+
+from ecoli.library.clickhouse_emitter import ClickHouseEmitter
+from ecoli.library.parquet_emitter import ParquetEmitter
 from ecoli.library.schema import (
     divide_binomial,
-    divide_by_domain,
-    divide_RNAs_by_domain,
-    empty_dict_divider,
-    divide_ribosomes_by_RNA,
-    divide_set_none,
     divide_bulk,
-)
-from ecoli.library.updaters import (
-    inverse_updater_registry,
-    inverse_update_accumulate,
-    inverse_update_set,
-    inverse_update_null,
-    inverse_update_merge,
-    inverse_update_nonnegative_accumulate,
-    inverse_update_bulk_numpy,
-    inverse_update_unique_numpy,
+    divide_by_domain,
+    divide_ribosomes_by_RNA,
+    divide_RNAs_by_domain,
+    divide_set_none,
+    empty_dict_divider,
 )
 from ecoli.library.serialize import (
-    UnumSerializer,
-    ParameterSerializer,
-    NumpyRandomStateSerializer,
     MethodSerializer,
+    NumpyRandomStateSerializer,
+    ParameterSerializer,
+    UnumSerializer,
 )
+from ecoli.library.updaters import (
+    inverse_update_accumulate,
+    inverse_update_bulk_numpy,
+    inverse_update_merge,
+    inverse_update_nonnegative_accumulate,
+    inverse_update_null,
+    inverse_update_set,
+    inverse_update_unique_numpy,
+    inverse_updater_registry,
+)
+
+emitter_registry.register("clickhouse", ClickHouseEmitter)
+emitter_registry.register("parquet", ParquetEmitter)
 
 # register :term:`updaters`
 inverse_updater_registry.register("accumulate", inverse_update_accumulate)

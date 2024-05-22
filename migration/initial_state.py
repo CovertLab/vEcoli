@@ -1,6 +1,6 @@
 import numpy as np
 
-from ecoli.library.sim_data import LoadSimData
+from ecoli.library.sim_data import LoadSimData, SIM_DATA_PATH_NO_OPERONS
 from ecoli.states.wcecoli_state import get_state_from_file
 
 
@@ -23,7 +23,7 @@ def test_initial_state():
     wc_initial_state = get_state_from_file("data/migration/wcecoli_t0.json")
     compare_states(initial_state, wc_initial_state)
 
-    sim_data = LoadSimData(operons=False)
+    sim_data = LoadSimData(sim_data_path=SIM_DATA_PATH_NO_OPERONS)
     initial_state = sim_data.generate_initial_state()
     wc_initial_state = get_state_from_file("data/migration_no_operons/wcecoli_t0.json")
     compare_states(initial_state, wc_initial_state)

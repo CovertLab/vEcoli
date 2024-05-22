@@ -19,7 +19,7 @@ from vivarium.core.emitter import DatabaseEmitter
 from vivarium.library.dict_utils import get_value_from_path
 from vivarium.library.topology import convert_path_style
 
-from ecoli.analysis.db import access_counts, deserialize_and_remove_units
+from ecoli.analysis.db import access_counts_old, deserialize_and_remove_units
 from ecoli.plots.snapshots import format_snapshot_data, get_tag_ranges, plot_tags
 
 from ecoli.analysis.antibiotics_colony import COUNTS_PER_FL_TO_NANOMOLAR, PATHS_TO_LOAD
@@ -147,7 +147,9 @@ def make_snapshot_and_hist_plot(
     )
 
     def format_tick(tick):
-        return f"{tick:.0f}" if tick == 0 or tick > 100 else f"{tick:.1f}"
+        if tick == 0 or tick > 100:
+            return f"{tick:.0f}"
+        return f"{tick:.1f}"
 
     cbar.ax.set_xticklabels(
         [f"{format_tick(min_tag)} μM", f"{format_tick(max_tag)} μM"], fontsize=8
@@ -213,7 +215,7 @@ def get_data(experiment_id, time, molecules, host, port, cpus, verbose):
         print(f"Accessing data for experiment {experiment_id}...")
 
     # Query database
-    data = access_counts(
+    data = access_counts_old(
         experiment_id=experiment_id,
         monomer_names=monomers,
         mrna_names=mrnas,

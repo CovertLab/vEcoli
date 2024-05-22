@@ -132,11 +132,11 @@ class PolypeptideInitiation(PartitionedProcess):
                     {
                         "did_initialize": 0,
                         "target_prob_translation_per_transcript": (
-                            [0] * len(self.monomer_ids),
+                            [0.0] * len(self.monomer_ids),
                             self.monomer_ids,
                         ),
                         "actual_prob_translation_per_transcript": (
-                            [0] * len(self.monomer_ids),
+                            [0.0] * len(self.monomer_ids),
                             self.monomer_ids,
                         ),
                         "mRNA_is_overcrowded": (

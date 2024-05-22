@@ -31,7 +31,7 @@ from ecoli.composites.ecoli_configs import (
     ECOLI_DEFAULT_TOPOLOGY,
 )
 from ecoli.plots.topology import get_ecoli_partition_topology_settings
-from ecoli.processes.cell_division import Division, MarkDPeriod
+from ecoli.processes.cell_division import Division, MarkDPeriod, StopAfterDivision
 from ecoli.processes.allocator import Allocator
 from ecoli.processes.partition import PartitionedProcess
 from ecoli.processes.unique_update import UniqueUpdate
@@ -455,6 +455,11 @@ class Ecoli(Composer):
             else:
                 flow["division"] = [(f"unique_update_{unique_update_counter - 1}",)]
 
+            # Add Step to raise catchable exception upon division
+            if config["generations"] is not None:
+                steps["stop-after-division"] = StopAfterDivision()
+                flow["stop-after-division"] = [("division",)]
+
         # update schema overrides for evolvers and requesters
         update_override = {}
         delete_override = []
@@ -612,6 +617,10 @@ class Ecoli(Composer):
                 "media_id": ("environment", "media_id"),
                 "division_threshold": ("division_threshold",),
             }
+            if config["generations"] is not None:
+                topology["stop-after-division"] = {
+                    "agents": tuple(config["agents_path"])
+                }
 
         # Add Allocator and UniqueUpdate topologies
         _, steps, _ = self.processes_and_steps

@@ -293,13 +293,13 @@ class PolypeptideElongation(PartitionedProcess):
                 "growth_limits": listener_schema(
                     {
                         "fraction_trna_charged": (
-                            [0] * len(self.uncharged_trna_names),
+                            [0.0] * len(self.uncharged_trna_names),
                             self.uncharged_trna_names,
                         ),
                         "aa_allocated": ([0] * len(self.amino_acids), self.amino_acids),
                         "aa_pool_size": ([0] * len(self.amino_acids), self.amino_acids),
                         "aa_request_size": (
-                            [0] * len(self.amino_acids),
+                            [0.0] * len(self.amino_acids),
                             self.amino_acids,
                         ),
                         "active_ribosome_allocated": 0,
@@ -309,12 +309,12 @@ class PolypeptideElongation(PartitionedProcess):
                         ),
                         "aas_used": ([0] * len(self.amino_acids), self.amino_acids),
                         "aa_count_diff": (
-                            [0] * len(self.amino_acids),
+                            [0.0] * len(self.amino_acids),
                             self.amino_acids,
                         ),
                         # Below only if trna_charging enbaled
                         "original_aa_supply": (
-                            [0] * len(self.amino_acids),
+                            [0.0] * len(self.amino_acids),
                             self.amino_acids,
                         ),
                         "aa_in_media": (
@@ -322,27 +322,30 @@ class PolypeptideElongation(PartitionedProcess):
                             self.amino_acids,
                         ),
                         "synthetase_conc": (
-                            [0] * len(self.amino_acids),
+                            [0.0] * len(self.amino_acids),
                             self.amino_acids,
                         ),
                         "uncharged_trna_conc": (
-                            [0] * len(self.amino_acids),
+                            [0.0] * len(self.amino_acids),
                             self.amino_acids,
                         ),
                         "charged_trna_conc": (
-                            [0] * len(self.amino_acids),
+                            [0.0] * len(self.amino_acids),
                             self.amino_acids,
                         ),
-                        "aa_conc": ([0] * len(self.amino_acids), self.amino_acids),
-                        "ribosome_conc": 0,
+                        "aa_conc": ([0.0] * len(self.amino_acids), self.amino_acids),
+                        "ribosome_conc": 0.0,
                         "fraction_aa_to_elongate": (
-                            [0] * len(self.amino_acids),
+                            [0.0] * len(self.amino_acids),
                             self.amino_acids,
                         ),
-                        "aa_supply": ([0] * len(self.amino_acids), self.amino_acids),
-                        "aa_synthesis": ([0] * len(self.amino_acids), self.amino_acids),
-                        "aa_import": ([0] * len(self.amino_acids), self.amino_acids),
-                        "aa_export": ([0] * len(self.amino_acids), self.amino_acids),
+                        "aa_supply": ([0.0] * len(self.amino_acids), self.amino_acids),
+                        "aa_synthesis": (
+                            [0.0] * len(self.amino_acids),
+                            self.amino_acids,
+                        ),
+                        "aa_import": ([0.0] * len(self.amino_acids), self.amino_acids),
+                        "aa_export": ([0.0] * len(self.amino_acids), self.amino_acids),
                         "aa_importers": (
                             [0] * len(self.aa_importers),
                             self.aa_importers,
@@ -352,33 +355,33 @@ class PolypeptideElongation(PartitionedProcess):
                             self.aa_exporters,
                         ),
                         "aa_supply_enzymes_fwd": (
-                            [0] * len(self.amino_acids),
+                            [0.0] * len(self.amino_acids),
                             self.amino_acids,
                         ),
                         "aa_supply_enzymes_rev": (
-                            [0] * len(self.amino_acids),
+                            [0.0] * len(self.amino_acids),
                             self.amino_acids,
                         ),
                         "aa_supply_aa_conc": (
-                            [0] * len(self.amino_acids),
+                            [0.0] * len(self.amino_acids),
                             self.amino_acids,
                         ),
                         "aa_supply_fraction_fwd": (
-                            [0] * len(self.amino_acids),
+                            [0.0] * len(self.amino_acids),
                             self.amino_acids,
                         ),
                         "aa_supply_fraction_rev": (
-                            [0] * len(self.amino_acids),
+                            [0.0] * len(self.amino_acids),
                             self.amino_acids,
                         ),
-                        "ppgpp_conc": 0,
-                        "rela_conc": 0,
-                        "spot_conc": 0,
-                        "rela_syn": ([0] * len(self.amino_acids), self.amino_acids),
-                        "spot_syn": 0,
-                        "spot_deg": 0,
+                        "ppgpp_conc": 0.0,
+                        "rela_conc": 0.0,
+                        "spot_conc": 0.0,
+                        "rela_syn": ([0.0] * len(self.amino_acids), self.amino_acids),
+                        "spot_syn": 0.0,
+                        "spot_deg": 0.0,
                         "spot_deg_inhibited": (
-                            [0] * len(self.amino_acids),
+                            [0.0] * len(self.amino_acids),
                             self.amino_acids,
                         ),
                         "trna_charged": ([0] * len(self.amino_acids), self.amino_acids),
@@ -387,22 +390,22 @@ class PolypeptideElongation(PartitionedProcess):
                 "ribosome_data": listener_schema(
                     {
                         "translation_supply": (
-                            [0] * len(self.amino_acids),
+                            [0.0] * len(self.amino_acids),
                             self.amino_acids,
                         ),
-                        "effective_elongation_rate": 0,
+                        "effective_elongation_rate": 0.0,
                         "aa_count_in_sequence": (
                             [0] * len(self.amino_acids),
                             self.amino_acids,
                         ),
-                        "aa_counts": ([0] * len(self.amino_acids), self.amino_acids),
+                        "aa_counts": ([0.0] * len(self.amino_acids), self.amino_acids),
                         "actual_elongations": 0,
                         "actual_elongation_hist": [0] * 22,
                         "elongations_non_terminating_hist": [0] * 22,
                         "did_terminate": 0,
                         "termination_loss": 0,
                         "num_trpA_terminated": 0,
-                        "process_elongation_rate": 0,
+                        "process_elongation_rate": 0.0,
                     }
                 ),
             },
@@ -419,13 +422,13 @@ class PolypeptideElongation(PartitionedProcess):
                     "_divider": "empty_dict",
                 },
                 "gtp_to_hydrolyze": {
-                    "_default": 0,
+                    "_default": 0.0,
                     "_emit": True,
                     "_updater": "set",
                     "_divider": "zero",
                 },
                 "aa_exchange_rates": {
-                    "_default": 0,
+                    "_default": [0.0],
                     "_emit": True,
                     "_updater": "set",
                     "_divider": "zero",
@@ -1352,7 +1355,7 @@ class SteadyStateElongationModel(TranslationSupplyElongationModel):
         ):
             self.time_step_short_enough = False
 
-        update["listeners"]["growth_limits"]["trna_charged"] = aa_used_trna
+        update["listeners"]["growth_limits"]["trna_charged"] = aa_used_trna.astype(int)
 
         return (
             net_charged,
@@ -1956,6 +1959,7 @@ def get_charging_supply_function(
         zeros = counts_to_molar * np.zeros_like(aa_supply)
         if mechanistic_supply:
             if mechanistic_aa_transport:
+
                 def supply_function(aa_conc):
                     return (
                         counts_to_molar
@@ -1976,6 +1980,7 @@ def get_charging_supply_function(
                         ),
                     )
             else:
+
                 def supply_function(aa_conc):
                     return (
                         counts_to_molar
@@ -1993,9 +1998,12 @@ def get_charging_supply_function(
                         zeros,
                     )
         else:
+
             def supply_function(aa_conc):
                 return (
-                    counts_to_molar * aa_supply * aa_supply_scaling(aa_conc, aa_in_media),
+                    counts_to_molar
+                    * aa_supply
+                    * aa_supply_scaling(aa_conc, aa_in_media),
                     zeros,
                     zeros,
                 )

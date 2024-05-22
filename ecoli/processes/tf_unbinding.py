@@ -49,7 +49,7 @@ class TfUnbinding(Step):
         return {
             "bulk": numpy_schema("bulk"),
             "promoters": numpy_schema("promoters", emit=self.parameters["emit_unique"]),
-            "global_time": {"_default": 0},
+            "global_time": {"_default": 0.0},
             "timestep": {"_default": self.parameters["time_step"]},
             "next_update_time": {
                 "_default": self.parameters["time_step"],

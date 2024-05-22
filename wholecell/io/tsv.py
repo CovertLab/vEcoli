@@ -5,7 +5,12 @@ CSV reader and writer that default to TAB delimiters.
 import csv
 
 from io import TextIOWrapper
-from typing import Any, cast, Type, Union
+from typing import (
+    Any,
+    cast,
+    Type,
+    Union,
+)
 
 
 DIALECT = Union[str, csv.Dialect, Type[csv.Dialect]]

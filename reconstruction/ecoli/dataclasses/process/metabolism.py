@@ -12,7 +12,16 @@ TODO:
 from copy import copy
 import itertools
 import re
-from typing import Any, cast, Iterable, Optional, Set, Tuple, Union, TYPE_CHECKING
+from typing import (
+    Any,
+    cast,
+    Iterable,
+    Optional,
+    Set,
+    Tuple,
+    Union,
+    TYPE_CHECKING,
+)
 from unum import Unum
 
 from numba import njit

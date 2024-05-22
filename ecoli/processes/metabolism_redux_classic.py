@@ -207,6 +207,7 @@ class MetabolismReduxClassic(Step):
             },
             "listeners": {
                 "mass": listener_schema({"cell_mass": 0.0, "dry_mass": 0.0}),
+                # TODO: Not empty list default
                 "fba_results": listener_schema(
                     {
                         "solution_fluxes": [],
@@ -239,7 +240,7 @@ class MetabolismReduxClassic(Step):
             },
             # these three were added in parca update, may be able to remove
             "boundary": {"external": {"*": {"_default": 0 * vivunits.mM}}},
-            "global_time": {"_default": 0},
+            "global_time": {"_default": 0.0},
             "timestep": {"_default": self.parameters["time_step"]},
             "next_update_time": {
                 "_default": self.parameters["time_step"],
@@ -655,9 +656,9 @@ def test_network_flow_model():
         solver=cp.GLOP,
     )
 
-    assert (
-        np.isclose(solution.velocities, np.array([1, 1, 0])).all()
-    ), "Network flow toy model did not converge to correct solution."
+    assert np.isclose(
+        solution.velocities, np.array([1, 1, 0])
+    ).all(), "Network flow toy model did not converge to correct solution."
 
 
 # TODO (Cyrus) Add test for entire process

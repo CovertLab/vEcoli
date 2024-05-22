@@ -1,0 +1,16 @@
+{
+    "variants": {
+        "variant_test": {
+            "a": {"value": [1, 2]},
+            "b": {"value": ["one", "two"]},
+            "c": {
+                "nested": {
+                    "d": {"value": [3, 4]},
+                    "e": {"value": [5.0, 6.0]},
+                    "op": "zip"
+                }
+            },
+            "op": "prod"
+        }
+    }
+}
