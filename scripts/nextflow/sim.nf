@@ -3,25 +3,26 @@ process simGen0 {
 
     errorStrategy { (task.exitStatus in [137, 140, 143]) && (task.attempt <= maxRetries) ? 'retry' : 'ignore' }
 
-    tag "${sim_data.getBaseName()}"
+    tag "variant=${sim_data.getBaseName()}/seed=${lineage_seed}/generation=${generation}/agent_id=${agent_id}"
 
     input:
     path config
     tuple path(sim_data), val(lineage_seed), val(generation)
-    val sim_seed
     val agent_id
 
     output:
-    path config, emit: config
-    tuple path(sim_data), val(lineage_seed), val(next_generation), emit: nextGen
-    path 'daughter_state_0.json', emit: d0
-    path 'daughter_state_1.json', emit: d1
+    tuple path(config), path(sim_data), val(lineage_seed), val(next_generation), val(seed_d0), path('daughter_state_0.json'), val(agent_id_d0), emit: nextGen0
+    tuple path(config), path(sim_data), val(lineage_seed), val(next_generation), val(seed_d1), path('daughter_state_1.json'), val(agent_id_d1), emit: nextGen1
     // This information is necessary to group simulations for analysis scripts
     // In order: variant sim_data, experiment ID, variant name, seed, generation, agent_id, experiment ID
     tuple path(sim_data), val(params.experimentId), val("${sim_data.getBaseName()}"), val(lineage_seed), val(generation), val(agent_id), emit: metadata
 
     script:
     next_generation = generation + 1
+    agent_id_d0 = agent_id + '0'
+    agent_id_d1 = agent_id + '1'
+    seed_d0 = lineage_seed + 1
+    seed_d1 = lineage_seed + 2
     """
     # Create empty daughter states so workflow can continue even if sim fails
     touch daughter_state_0.json
@@ -31,13 +32,17 @@ process simGen0 {
         --sim_data_path $sim_data \\
         --daughter_outdir \$(pwd) \\
         --variant ${sim_data.getBaseName()} \\
-        --seed ${sim_seed} \\
+        --seed ${lineage_seed} \\
         --lineage_seed ${lineage_seed}
     """
 
     // Used to test workflow
     stub:
     next_generation = generation + 1
+    agent_id_d0 = agent_id + '0'
+    agent_id_d1 = agent_id + '1'
+    seed_d0 = sim_seed + 1
+    seed_d1 = sim_seed + 2
     """
     echo "$config $sim_data $lineage_seed $generation" > daughter_state_0.json
     echo "$sim_seed" > daughter_state_1.json
@@ -49,24 +54,22 @@ process sim {
 
     errorStrategy { (task.exitStatus in [137, 140, 143]) && (task.attempt <= maxRetries) ? 'retry' : 'ignore' }
 
-    tag "${sim_data.getBaseName()}"
+    tag "variant=${sim_data.getBaseName()}/seed=${lineage_seed}/generation=${generation}/agent_id=${agent_id}"
 
     input:
-    path config
-    tuple path(sim_data), val(lineage_seed), val(generation)
-    path initial_state, stageAs: 'data/*'
-    val sim_seed
-    val agent_id
+    tuple path(config), path(sim_data), val(lineage_seed), val(generation), val(sim_seed), path(initial_state, stageAs: 'data/*'), val(agent_id)
 
     output:
-    path config, emit: config
-    tuple path(sim_data), val(lineage_seed), val(next_generation), emit: nextGen
-    path 'daughter_state_0.json', emit: d0
-    path 'daughter_state_1.json', emit: d1
+    tuple path(config), path(sim_data), val(lineage_seed), val(next_generation), val(seed_d0), path('daughter_state_0.json'), val(agent_id_d0), emit: nextGen0
+    tuple path(config), path(sim_data), val(lineage_seed), val(next_generation), val(seed_d1), path('daughter_state_1.json'), val(agent_id_d1), emit: nextGen1
     tuple path(sim_data), val(params.experimentId), val("${sim_data.getBaseName()}"), val(lineage_seed), val(generation), val(agent_id), emit: metadata
 
     script:
     next_generation = generation + 1
+    agent_id_d0 = agent_id + '0'
+    agent_id_d1 = agent_id + '1'
+    seed_d0 = sim_seed + 1
+    seed_d1 = sim_seed + 2
     """
     # Create empty daughter states so workflow can continue even if sim fails
     touch daughter_state_0.json
@@ -84,6 +87,10 @@ process sim {
 
     stub:
     next_generation = generation + 1
+    agent_id_d0 = agent_id + '0'
+    agent_id_d1 = agent_id + '1'
+    seed_d0 = sim_seed + 1
+    seed_d1 = sim_seed + 2
     """
     echo "$config $sim_data $lineage_seed $generation" > daughter_state_0.json
     echo "$initial_state $sim_seed" > daughter_state_1.json

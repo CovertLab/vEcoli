@@ -13,22 +13,6 @@ CONFIG_DIR_PATH = os.path.join(
 )
 NEXTFLOW_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "nextflow")
 
-SIM_TAG = "Seed{seed}Gen{gen}Agent{agent_id}"
-SIM_GEN_0_INC = "include {{ simGen0 as sim{name} }} from '{nf_dir}/sim'"
-SIM_INC = "include {{ sim as sim{name} }} from '{nf_dir}/sim'"
-SIM_GEN_0_FLOW = (
-    "\tsim{name}(params.config, "
-    "variantCh.combine([{seed}]).combine([1]), {seed}, '0')"
-)
-SIM_FLOW = (
-    "\tsim{name}(sim{parent}.out.config, sim{parent}.out.nextGen, "
-    "sim{parent}.out.{daughter}, {seed}, '{agent_id}')"
-)
-
-ALL_SIM_CHANNEL = """
-    {tasks}
-        .set {{ simCh }}
-"""
 MULTIDAUGHTER_CHANNEL = """
     generationSize = {gen_size}
     simCh
@@ -104,56 +88,47 @@ def generate_lineage(
         - **sim_workflow**: Fully composed workflow for entire lineage
     """
     sim_imports = []
-    sim_workflow = []
+    sim_workflow = [f"\tchannel.of( {seed}..{seed + n_init_sims} ).set {{ seedCh }}"]
 
     all_sim_tasks = []
-    for seed in range(seed, seed + n_init_sims):
-        agent_ids = ["1"]
-        for gen in range(generations):
-            # Handle special case of 1st generation
-            # Start with agent ID 1 to avoid leading zeros
-            if gen == 0:
-                name = SIM_TAG.format(seed=seed, gen=gen + 1, agent_id="1")
-                sim_imports.append(SIM_GEN_0_INC.format(name=name, nf_dir=NEXTFLOW_DIR))
-                sim_workflow.append(SIM_GEN_0_FLOW.format(name=name, seed=seed))
-                all_sim_tasks.append(f"sim{name}.out.metadata")
-                continue
-            agent_ids = [i + "0" for i in agent_ids]
-            # If simulating both daughter cells, number of agent IDs doubles
+    for gen in range(generations):
+        name = f"sim_gen_{gen + 1}"
+        # Handle special case of 1st generation
+        # Start with agent ID 1 to avoid leading zeros
+        if gen == 0:
+            sim_imports.append(
+                f"include {{ simGen0 as {name} }} from '{NEXTFLOW_DIR}/sim'")
+            sim_workflow.append((
+                f"\t{name}(params.config, "
+                "variantCh.combine(seedCh).combine([1]), '0')"
+            ))
+            all_sim_tasks.append(f"{name}.out.metadata")
             if not single_daughters:
-                new_agent_ids = agent_ids.copy()
-                for agent_id in agent_ids:
-                    new_agent_ids.append(agent_id[:-1] + "1")
-                agent_ids = new_agent_ids
-            for i, agent_id in enumerate(agent_ids):
-                name = SIM_TAG.format(seed=seed, gen=gen + 1, agent_id=agent_id)
-                # Compile list of metadata outputs for all sim tasks
-                all_sim_tasks.append(f"sim{name}.out.metadata")
-                sim_imports.append(SIM_INC.format(name=name, nf_dir=NEXTFLOW_DIR))
-                # Get parent agent ID by truncating final char of daughter ID
-                parent = SIM_TAG.format(seed=seed, gen=gen, agent_id=agent_id[:-1])
-                daughter = "d0"
-                if agent_id[-1] == "1":
-                    daughter = "d1"
-                sim_workflow.append(
-                    SIM_FLOW.format(
-                        name=name,
-                        parent=parent,
-                        daughter=daughter,
-                        seed=seed + gen + i,
-                        agent_id=agent_id,
-                    )
-                )
+                sim_workflow.append(f"\t{name}.out.nextGen0.mix({name}.out.nextGen1).set {{ {name}_nextGen }}")
+            else:
+                sim_workflow.append(f"\t{name}.out.nextGen0.set {{ {name}_nextGen }}")
+            continue
+        sim_imports.append(
+            f"include {{ sim as {name} }} from '{NEXTFLOW_DIR}/sim'"
+        )
+        parent = f"sim_gen_{gen}"
+        sim_workflow.append(f"\t{name}({parent}_nextGen)")
+        if not single_daughters:
+            sim_workflow.append(f"\t{name}.out.nextGen0.mix({name}.out.nextGen1).set {{ {name}_nextGen }}")
+        else:
+            sim_workflow.append(f"\t{name}.out.nextGen0.set {{ {name}_nextGen }}")
+        all_sim_tasks.append(f"{name}.out.metadata")
 
     # Channel that combines metadata for all sim tasks
     tasks = all_sim_tasks[0]
-    if len(all_sim_tasks) > 1:
-        tasks += ".mix(" + ", ".join(all_sim_tasks[1:]) + ")"
-    sim_workflow.append(ALL_SIM_CHANNEL.format(tasks=tasks))
+    other_tasks = ", ".join(all_sim_tasks[1:])
+    sim_workflow.append(f"\t{tasks}.mix({other_tasks}).set {{ simCh }}")
+
+    sims_per_seed = generations if single_daughters else 2**generations - 1
 
     if analysis_config.get("multi_variant", False):
         # Channel that groups all sim tasks
-        sim_workflow.append(MULTIVARIANT_CHANNEL.format(size=len(all_sim_tasks)))
+        sim_workflow.append(MULTIVARIANT_CHANNEL.format(size=sims_per_seed * n_init_sims))
         sim_workflow.append("\tanalysisMultiVariant(params.config, kb, multiVariantCh)")
         sim_imports.append(
             f"include {{ analysisMultiVariant }} from '{NEXTFLOW_DIR}/analysis'"
@@ -161,7 +136,7 @@ def generate_lineage(
 
     if analysis_config.get("multi_seed", False):
         # Channel that groups sim tasks by variant sim_data
-        sim_workflow.append(MULTISEED_CHANNEL.format(size=len(all_sim_tasks)))
+        sim_workflow.append(MULTISEED_CHANNEL.format(size=sims_per_seed * n_init_sims))
         sim_workflow.append("\tanalysisMultiSeed(params.config, kb, multiSeedCh)")
         sim_imports.append(
             f"include {{ analysisMultiSeed }} from '{NEXTFLOW_DIR}/analysis'"
@@ -169,9 +144,7 @@ def generate_lineage(
 
     if analysis_config.get("multi_generation", False):
         # Channel that groups sim tasks by variant sim_data and initial seed
-        sim_workflow.append(
-            MULTIGENERATION_CHANNEL.format(size=int(len(all_sim_tasks) / n_init_sims))
-        )
+        sim_workflow.append(MULTIGENERATION_CHANNEL.format(size=sims_per_seed))
         sim_workflow.append(
             "\tanalysisMultiGeneration(params.config, kb, multiGenerationCh)"
         )
