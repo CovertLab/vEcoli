@@ -47,6 +47,7 @@ fonttools==4.47.2
 fqdn==1.5.1
 geopandas==0.14.2
 giddy==2.3.5
+hvplot==0.10.0
 idna==3.6
 imageio==2.33.1
 inequality==1.0.1
