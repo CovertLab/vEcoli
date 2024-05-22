@@ -1101,7 +1101,7 @@ def test_transcript_initiation(return_data=False):
             np.sum(inits_by_TU[:, test_config["idx_rRNA"]]),
         ]
     )
-    RNA_dist /= sum(RNA_dist)
+    RNA_dist = RNA_dist / RNA_dist.sum()
 
     RNA_synth_prob_test = chisquare(
         RNA_dist, [v for v in test_config["rnaSynthProbFractions"]["minimal"].values()]
@@ -1120,7 +1120,7 @@ def run_plot(config, data):
     N = len(data["time"])
     timestep = config["time_step"]
     inits_by_TU = np.stack(data["listeners"]["rnap_data"]["rna_init_event"][1:])
-    synth_probs = np.array(data["listeners"]["rna_synth_prob"]["rna_synth_prob"][1:])
+    synth_probs = np.array(data["listeners"]["rna_synth_prob"]["actual_rna_synth_prob"][1:])
 
     # plot synthesis probabilities over time
     plt.subplot(2, 2, 1)

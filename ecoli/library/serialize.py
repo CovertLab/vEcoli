@@ -11,7 +11,8 @@ from ecoli.library.parameters import Parameter, param_store
 class UnumSerializer(Serializer):
     def __init__(self):
         super().__init__()
-        self.regex_for_serialized = re.compile("!UnumSerializer\\[(.*)\\]")
+        # re.S for single-line mode (period matches every character inc. \n)
+        self.regex_for_serialized = re.compile("!UnumSerializer\\[(.*)\\]", re.S)
 
     python_type = Unum
 

@@ -201,7 +201,7 @@ class LoadSimData:
         # Note: Incompatible with operons because there are genes
         # that are part of the same operon but have different changes
         # in expression under tetracycline exposure (e.g. marRAB)
-        if mar_regulon and not self.sim_data.operons_on:
+        if mar_regulon:
             # Define aliases to reduce code verbosity
             treg_alias = self.sim_data.process.transcription_regulation
             bulk_mol_alias = self.sim_data.internal_state.bulk_molecules
