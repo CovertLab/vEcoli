@@ -294,7 +294,7 @@ def main():
         f.writelines(nf_template)
 
     try:
-        emitter_config = config['emitter']['config']
+        emitter_config = config["emitter"]["config"]
         out_uri = emitter_config.get("out_uri", None)
         if out_uri is None:
             out_uri = (
@@ -303,27 +303,43 @@ def main():
         filesystem, outdir = fs.FileSystem.from_uri(out_uri)
     except KeyError:
         raise KeyError("Missing out_dir or out_uri for emitter config.")
-    outdir = os.path.join(outdir, 'nextflow', experiment_id)
+    outdir = os.path.join(outdir, "nextflow", experiment_id)
     filesystem.create_dir(outdir)
-    filesystem.copy_file(workflow_path, os.path.join(outdir, 'main.nf'))
-    filesystem.copy_file(config_path, os.path.join(outdir, 'nextflow.config'))
+    filesystem.copy_file(workflow_path, os.path.join(outdir, "main.nf"))
+    filesystem.copy_file(config_path, os.path.join(outdir, "nextflow.config"))
 
     # Start nextflow workflow
-    subprocess.run(
-        [
-            "nextflow",
-            "-C",
-            config_path,
-            "run",
-            workflow_path,
-            "-profile",
-            nf_profile,
-            "-with-report",
-            f"{experiment_id}_report.html",
-            "-work-dir",
-            os.path.join(out_uri, 'nextflow', experiment_id, 'work')
-        ]
-    )
+    if nf_profile == "standard" or nf_profile == "gcloud":
+        subprocess.run(
+            [
+                "nextflow",
+                "-C",
+                config_path,
+                "run",
+                workflow_path,
+                "-profile",
+                nf_profile,
+                "-with-report",
+                f"{experiment_id}_report.html",
+                "-work-dir",
+                os.path.join(out_uri, "nextflow", experiment_id, "work")
+            ]
+        )
+    elif nf_profile == "sherlock":
+        batch_script = os.path.join(out_dir, "nextflow_job.sh")
+        with open(batch_script, 'w') as f:
+            f.write(f"""
+#!/bin/bash
+#SBATCH --job-name=nextflow-{experiment_id}
+#SBATCH --time=7:00:00:00
+#SBATCH --c 1
+#SBATCH --mem=8GB
+#SBATCH -p mcovert
+nextflow -C {config_path} run {workflow_path} -profile {nf_profile} \
+    -with-report {experiment_id}_report.html \
+    -work-dir {os.path.join(out_uri, "nextflow", experiment_id, "work")}
+""")
+        subprocess.run(["sbatch", batch_script])
 
 
 if __name__ == "__main__":
