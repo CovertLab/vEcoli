@@ -328,8 +328,7 @@ def main():
     elif nf_profile == "sherlock":
         batch_script = os.path.join(out_dir, "nextflow_job.sh")
         with open(batch_script, 'w') as f:
-            f.write(f"""
-#!/bin/bash
+            f.write(f"""#!/bin/bash
 #SBATCH --job-name=nextflow-{experiment_id}
 #SBATCH --time=7:00:00:00
 #SBATCH --c 1
