@@ -34,6 +34,7 @@ process simGen0 {
         --variant ${sim_data.getBaseName()} \\
         --seed ${lineage_seed} \\
         --lineage_seed ${lineage_seed}
+        --agent_id \'${agent_id}\'
     """
 
     // Used to test workflow
