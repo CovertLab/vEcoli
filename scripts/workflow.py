@@ -330,8 +330,8 @@ def main():
         with open(batch_script, 'w') as f:
             f.write(f"""#!/bin/bash
 #SBATCH --job-name=nextflow-{experiment_id}
-#SBATCH --time=7:00:00:00
-#SBATCH --c 1
+#SBATCH --time=7-00:00:00
+#SBATCH --cpus-per-task 1
 #SBATCH --mem=8GB
 #SBATCH -p mcovert
 nextflow -C {config_path} run {workflow_path} -profile {nf_profile} \
