@@ -55,10 +55,12 @@ class MureinPlots:
         bulk_names = tb.readColumn("objectNames")
         bulk_dict = dict(zip(bulk_names, bulk_counts.T))
 
-        small_molecule_mass_plot = np.array([
+        small_molecule_mass_plot = np.array(
+            [
                 submass * bulk_dict[molecule]
                 for molecule, submass in self.small_molecule_dict.items()
-            ]).T
+            ]
+        ).T
 
         # plot all small molecule counts
         fig, ax = plt.subplots()
@@ -85,7 +87,7 @@ class MureinPlots:
 def main():
     # Ids of experiments to plot
     experiment_ids = [
-        'test_murein_28/06/2022 15:49:59',
+        "test_murein_28/06/2022 15:49:59",
     ]
 
     for exp_id in experiment_ids:

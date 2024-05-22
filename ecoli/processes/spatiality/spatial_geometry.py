@@ -32,32 +32,32 @@ from vivarium.core.composition import (
 from ecoli.library.schema import array_from
 
 
-NAME = 'spatial_geometry'
+NAME = "spatial_geometry"
 WIDTH = 0.73  # in um
 PERIPLASM_WIDTH = 21  # in nm
 DENSITY = 1100  # fg/um^3
 
-class SpatialGeometry(Deriver):
 
+class SpatialGeometry(Deriver):
     name = NAME
     defaults = {
-        'nodes': [
-            'nucleoid',
-            'periplasm',
+        "nodes": [
+            "nucleoid",
+            "periplasm",
         ],
-        'edges': {},
-        'density': DENSITY,
-        'mw': {},
-        'width': WIDTH,
+        "edges": {},
+        "density": DENSITY,
+        "mw": {},
+        "width": WIDTH,
     }
 
     def __init__(self, parameters=None):
         super().__init__(parameters)
-        self.nodes = np.asarray(self.parameters['nodes'])
-        self.edges = self.parameters['edges']
-        self.mw = self.parameters['mw']
-        self.molecule_ids = self.parameters['mw'].keys()
-        self.density = self.parameters['density']
+        self.nodes = np.asarray(self.parameters["nodes"])
+        self.edges = self.parameters["edges"]
+        self.mw = self.parameters["mw"]
+        self.molecule_ids = self.parameters["mw"].keys()
+        self.density = self.parameters["density"]
 
     def initial_state(self, config=None):
         pass
@@ -65,53 +65,52 @@ class SpatialGeometry(Deriver):
     def ports_schema(self):
         node_schema = {
             node_id: {
-                'volume': {
-                    '_default': 1.0,
+                "volume": {
+                    "_default": 1.0,
                 },
-                'length': {
-                    '_default': 1.0,
+                "length": {
+                    "_default": 1.0,
                 },
-                'radius': {
-                    '_default': 1.0,
+                "radius": {
+                    "_default": 1.0,
                 },
-                'molecules': {
-                    '*': {
-                        '_default': 0,
+                "molecules": {
+                    "*": {
+                        "_default": 0,
                     }
-                }
-            } for node_id in self.parameters['nodes']
+                },
+            }
+            for node_id in self.parameters["nodes"]
         }
         edge_schema = {
             edge_id: {
-                'nodes': [],
-                'cross_sectional_area': 1.0,
-            } for edge_id in self.parameters['edges'].keys()
+                "nodes": [],
+                "cross_sectional_area": 1.0,
+            }
+            for edge_id in self.parameters["edges"].keys()
         }
 
-        return {
-            'nodes': node_schema,
-            'edges': edge_schema
-        }
+        return {"nodes": node_schema, "edges": edge_schema}
 
     def next_update(self, timestep, states):
         volume = np.zeros(len(self.nodes))
-        nodes = states['nodes']
-        length = [nodes[node_id]['length'] for node_id in self.nodes]
+        nodes = states["nodes"]
+        length = [nodes[node_id]["length"] for node_id in self.nodes]
         cross_sectional_area = np.zeros(len(self.edges))
-        inner_radius = nodes['nucleoid']['radius']
-        outer_radius = nodes['periplasm']['radius'] + inner_radius
+        inner_radius = nodes["nucleoid"]["radius"]
+        outer_radius = nodes["periplasm"]["radius"] + inner_radius
 
         for i, node_id in enumerate(self.nodes):
             # if nucleoid or nucleoid region of membrane
             nucleoid = True
-            volume[i] = sum(array_from(nodes[node_id]['molecules']))*self.density
+            volume[i] = sum(array_from(nodes[node_id]["molecules"])) * self.density
             if nucleoid:
-                length[i] = volume[i]/(np.pi * inner_radius**2)
+                length[i] = volume[i] / (np.pi * inner_radius**2)
         for i, edge_id in enumerate(self.edges):
-            nodes = states[edge_id]['nodes']
-            nucleoid = 'nucleoid' in nodes
-            cytosol = 'cytosol_front' or 'cytosol_rear' in nodes
-            periplasm = 'periplasm' in nodes
+            nodes = states[edge_id]["nodes"]
+            nucleoid = "nucleoid" in nodes
+            cytosol = "cytosol_front" or "cytosol_rear" in nodes
+            periplasm = "periplasm" in nodes
             cytosol_inner_membrane = False
             cytosol_outer_membrane = False
             nucleoid_inner_membrane = False
@@ -123,20 +122,23 @@ class SpatialGeometry(Deriver):
                 continue
                 # find if node is membrane
             if nucleoid and nucleoid_inner_membrane:
-                node_id = 'membrane'
-                cross_sectional_area[i] = 2 * np.pi * inner_radius * states[
-                    'nodes'][node_id]['length']
+                node_id = "membrane"
+                cross_sectional_area[i] = (
+                    2 * np.pi * inner_radius * states["nodes"][node_id]["length"]
+                )
                 continue
             if cytosol and cytosol_inner_membrane:
                 cross_sectional_area[i] = 2 * np.pi * inner_radius**2
                 continue
             if periplasm and nucleoid_inner_membrane:
-                cross_sectional_area[i] = 2 * np.pi * inner_radius * states[
-                        'nodes'][node_id]['length']
+                cross_sectional_area[i] = (
+                    2 * np.pi * inner_radius * states["nodes"][node_id]["length"]
+                )
                 continue
             if periplasm and nucleoid_outer_membrane:
-                cross_sectional_area[i] = 2 * np.pi * outer_radius * states[
-                    'nodes'][node_id]['length']
+                cross_sectional_area[i] = (
+                    2 * np.pi * outer_radius * states["nodes"][node_id]["length"]
+                )
                 continue
             if periplasm and cytosol_inner_membrane:
                 cross_sectional_area[i] = 2 * np.pi * inner_radius**2
@@ -147,9 +149,10 @@ class SpatialGeometry(Deriver):
 
         node_update = {
             node_id: {
-                'volume': volume[np.where(self.nodes == node_id)][0],
-                'length': volume[np.where(self.nodes == node_id)][0],
-            } for node_id in self.nodes
+                "volume": volume[np.where(self.nodes == node_id)][0],
+                "length": volume[np.where(self.nodes == node_id)][0],
+            }
+            for node_id in self.nodes
         }
         edge_update = {}
         return {**node_update, **edge_update}
@@ -172,9 +175,7 @@ def run_spatial_geometry_process():
     initial_state = {}
 
     # run the simulation
-    sim_settings = {
-        'total_time': 10,
-        'initial_state': initial_state}
+    sim_settings = {"total_time": 10, "initial_state": initial_state}
     output = simulate_process(spatial_geometry_process, sim_settings)
 
     return output
@@ -201,8 +202,8 @@ def main():
         os.makedirs(out_dir)
 
     output = test_spatial_geometry_process(return_data=True)
+    assert output is not None
 
 
-
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

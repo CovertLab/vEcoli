@@ -11,61 +11,55 @@ from ecoli.library.lattice_utils import (
 
 
 class LocalField(Step):
-
-    name = 'local_field'
+    name = "local_field"
     defaults = {
-        'initial_external': {},
-        'bin_volume': 1e-6 * units.L,
-        'n_bins': [1, 1],
-        'bounds': [1, 1] * units.um,
+        "initial_external": {},
+        "bin_volume": 1e-6 * units.L,
+        "n_bins": [1, 1],
+        "bounds": [1, 1] * units.um,
     }
 
     def __init__(self, parameters=None):
         super().__init__(parameters)
-        self.bin_volume = self.parameters['bin_volume']
+        self.bin_volume = self.parameters["bin_volume"]
 
     def initial_state(self, config=None):
-        return {
-            'fields': self.parameters['initial_external']
-        }
+        return {"fields": self.parameters["initial_external"]}
 
     def ports_schema(self):
         return {
-            'exchanges': {
-                '*': {
-                    '_default': 0,  # counts!
+            "exchanges": {
+                "*": {
+                    "_default": 0,  # counts!
                 }
             },
-            'location': {
-                '_default': [
-                    0.5 * bound
-                    for bound in self.parameters['bounds']
-                ],
+            "location": {
+                "_default": [0.5 * bound for bound in self.parameters["bounds"]],
             },
-            'fields': {
-                '*': {
-                    '_default': np.ones(1),
+            "fields": {
+                "*": {
+                    "_default": np.ones(1),
                 }
             },
-            'dimensions': {
-                'bounds': {
-                    '_default': self.parameters['bounds'],
+            "dimensions": {
+                "bounds": {
+                    "_default": self.parameters["bounds"],
                 },
-                'n_bins': {
-                    '_default': self.parameters['n_bins'],
+                "n_bins": {
+                    "_default": self.parameters["n_bins"],
                 },
-                'depth': {
-                    '_default': 1 * units.um,
+                "depth": {
+                    "_default": 1 * units.um,
                 },
-            }
+            },
         }
 
     def next_update(self, timestep, states):
-        location = states['location']
-        n_bins = states['dimensions']['n_bins']
-        bounds = states['dimensions']['bounds']
-        depth = states['dimensions']['depth']
-        exchanges = states['exchanges']
+        location = states["location"]
+        n_bins = states["dimensions"]["n_bins"]
+        bounds = states["dimensions"]["bounds"]
+        depth = states["dimensions"]["depth"]
+        exchanges = states["exchanges"]
 
         # get bin volume
         bin_site = get_bin_site(location, n_bins, bounds)
@@ -75,26 +69,25 @@ class LocalField(Step):
         delta_fields = {}
         reset_exchanges = {}
         for mol_id, value in exchanges.items():
-
             # delta concentration
             exchange = value * units.count
-            concentration = count_to_concentration(exchange, bin_volume).to(
-                units.mmol / units.L).magnitude
+            concentration = (
+                count_to_concentration(exchange, bin_volume)
+                .to(units.mmol / units.L)
+                .magnitude
+            )
 
             delta_field = np.zeros((n_bins[0], n_bins[1]), dtype=np.float64)
             delta_field[bin_site[0], bin_site[1]] += concentration
             delta_fields[mol_id] = {
-                '_value': delta_field,
-                '_updater': 'nonnegative_accumulate'}
+                "_value": delta_field,
+                "_updater": "nonnegative_accumulate",
+            }
 
             # reset the exchange value
-            reset_exchanges[mol_id] = {
-                '_value': -value,
-                '_updater': 'accumulate'}
+            reset_exchanges[mol_id] = {"_value": -value, "_updater": "accumulate"}
 
-        return {
-            'exchanges': reset_exchanges,
-            'fields': delta_fields}
+        return {"exchanges": reset_exchanges, "fields": delta_fields}
 
 
 def test_local_fields():
@@ -104,22 +97,19 @@ def test_local_fields():
     bounds = [5, 5] * units.um
     n_bins = [3, 3]
     initial_state = {
-        'exchanges': {
-            'A': 20
+        "exchanges": {"A": 20},
+        "location": [0.5, 0.5] * units.um,
+        "fields": {"A": np.ones((n_bins[0], n_bins[1]), dtype=np.float64)},
+        "dimensions": {
+            "bounds": bounds,
+            "n_bins": n_bins,
+            "depth": 1 * units.um,
         },
-        'location': [0.5, 0.5] * units.um,
-        'fields': {
-            'A': np.ones((n_bins[0], n_bins[1]), dtype=np.float64)
-        },
-        'dimensions': {
-            'bounds': bounds,
-            'n_bins': n_bins,
-            'depth': 1 * units.um,
-        }
     }
 
     output = local_fields_process.next_update(0, initial_state)
+    assert output is not None
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     test_local_fields()

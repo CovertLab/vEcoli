@@ -3,7 +3,12 @@ import numpy as np
 
 
 def rotate(px, py, theta):
-    return np.array([px * np.cos(theta) - py * np.sin(theta), px * np.sin(theta) + py * np.cos(theta)])
+    return np.array(
+        [
+            px * np.cos(theta) - py * np.sin(theta),
+            px * np.sin(theta) + py * np.cos(theta),
+        ]
+    )
 
 
 def main():

@@ -11,10 +11,11 @@ from unum import Unum
 from wholecell.utils import units
 
 
-K_B = scipy.constants.Boltzmann*units.J/units.K  # Boltzmann constant, unit: J/K
+K_B = scipy.constants.Boltzmann * units.J / units.K  # Boltzmann constant, unit: J/K
 
-def compute_hydrodynamic_radius(mw, mtype = None):
-    '''
+
+def compute_hydrodynamic_radius(mw, mtype=None):
+    """
     This function compute the hydrodynamic diameter of a macromolecules from
     its molecular weight. It is important to note that the hydrodynamic
     diameter is mainly used for computation of diffusion constant, and can
@@ -36,16 +37,17 @@ def compute_hydrodynamic_radius(mw, mtype = None):
         - rp = 0.024*MW^(0.57) nm (Robertson et al 2006) (linear DNA)
         - rp = 0.0125*MW^(0.59) nm (Robertson et al 2006) (circular DNA)
         - rp = 0.0145*MW^(0.57) nm (Robertson et al 2006) (supercoiled DNA)
-    '''
+    """
     if mtype is None:
-        mtype = 'protein'
+        mtype = "protein"
 
-    dic_rp = {'protein': (0.0515, 0.392),
-                'RNA': (0.0566, 0.38),
-                'linear_DNA': (0.024, 0.57),
-                'circular_DNA': (0.0125, 0.59),
-                'supercoiled_DNA': (0.0145, 0.57),
-                }
+    dic_rp = {
+        "protein": (0.0515, 0.392),
+        "RNA": (0.0566, 0.38),
+        "linear_DNA": (0.024, 0.57),
+        "circular_DNA": (0.0125, 0.59),
+        "supercoiled_DNA": (0.0145, 0.57),
+    }
 
     if isinstance(mw, Unum):
         mw_unitless = mw.asNumber(units.g / units.mol)
@@ -55,16 +57,19 @@ def compute_hydrodynamic_radius(mw, mtype = None):
     if mtype in dic_rp:
         rp_0, rp_power = dic_rp[mtype]
     else:
-        raise KeyError("The input 'mtype' should be one of the following 5 "
-                        "options: 'protein', 'RNA', 'linear_DNA', "
-                        "'circular_DNA', 'supercoiled_DNA'.")
+        raise KeyError(
+            "The input 'mtype' should be one of the following 5 "
+            "options: 'protein', 'RNA', 'linear_DNA', "
+            "'circular_DNA', 'supercoiled_DNA'."
+        )
 
-    rp = rp_0*mw_unitless**rp_power
-    rp = units.nm*rp
+    rp = rp_0 * mw_unitless**rp_power
+    rp = units.nm * rp
     return rp
 
+
 def compute_rg_rna(n_nt):
-    '''
+    """
     This function computes the radius of gyration (in units of nm) of an RNA
     with length n_nt(in units of nt). This function is not E coli specific.
     It is important to note that radius of gyration can be very different
@@ -81,19 +86,19 @@ def compute_rg_rna(n_nt):
 
     Returns:
         The radius of gyration of an RNA in the unit of nm.
-    '''
+    """
     if isinstance(n_nt, Unum):
         n_nt = n_nt.asNumber(units.nt)
 
-    a = units.nm*0.366  # unit: nm
+    a = units.nm * 0.366  # unit: nm
     nu = 0.50
-    return a*n_nt**nu
+    return a * n_nt**nu
 
-def compute_diffusion_constant_from_mw(mw, mtype = None,
-                                       loc = None,
-                                       temp = None,
-                                       parameters = None):
-    '''
+
+def compute_diffusion_constant_from_mw(
+    mw, mtype=None, loc=None, temp=None, parameters=None
+):
+    """
     Warning: The default values of the 'parameters' are E coli specific.
 
     This function computes the hypothesized diffusion constant of
@@ -158,28 +163,25 @@ def compute_diffusion_constant_from_mw(mw, mtype = None,
 
     Returns:
         dc: the diffusion constant of the macromolecule, units: um**2/sec
-    '''
+    """
     if mtype is None:
-        mtype = 'protein'
+        mtype = "protein"
     if loc is None:
-        loc = 'nucleoid'
+        loc = "nucleoid"
     if temp is None:
         temp = 300 * units.K
     if parameters is None:
         parameters = (0.51, 0.53, 42, 10)
 
-    rp = compute_hydrodynamic_radius(mw, mtype = mtype)
-    dc = compute_diffusion_constant_from_rp(rp,
-                                       loc = loc,
-                                       temp = temp,
-                                       parameters = parameters)
+    rp = compute_hydrodynamic_radius(mw, mtype=mtype)
+    dc = compute_diffusion_constant_from_rp(
+        rp, loc=loc, temp=temp, parameters=parameters
+    )
     return dc
 
-def compute_diffusion_constant_from_rp(rp,
-                                       loc = None,
-                                       temp = None,
-                                       parameters = None):
-    '''
+
+def compute_diffusion_constant_from_rp(rp, loc=None, temp=None, parameters=None):
+    """
     Warning: The default values of the 'parameters' are E coli specific.
 
     This is the same function as 'compute_diffusion_constant_from_mw'
@@ -197,9 +199,9 @@ def compute_diffusion_constant_from_rp(rp,
 
     Returns:
         dc: the diffusion constant of the macromolecule, units: um**2/sec
-    '''
+    """
     if loc is None:
-        loc = 'nucleoid'
+        loc = "nucleoid"
     if temp is None:
         temp = 300 * units.K
     if parameters is None:
@@ -209,33 +211,34 @@ def compute_diffusion_constant_from_rp(rp,
     xi, a, rh_nuc, rh_cyto = parameters  # unit: nm, 1, nm, nm
 
     # viscosity of water
-    a_visc = 2.414*10**(-5)*units.Pa*units.s  # unit: Pa*sec
-    b_visc = 247.8*units.K  # unit: K
-    c_visc = 140*units.K  # unit: K
-    eta_0 = a_visc*10**(b_visc/(temp - c_visc))  # unit: Pa*sec
+    a_visc = 2.414 * 10 ** (-5) * units.Pa * units.s  # unit: Pa*sec
+    b_visc = 247.8 * units.K  # unit: K
+    c_visc = 140 * units.K  # unit: K
+    eta_0 = a_visc * 10 ** (b_visc / (temp - c_visc))  # unit: Pa*sec
 
     # determine Rh
-    if loc == 'nucleoid':
+    if loc == "nucleoid":
         rh = rh_nuc  # unit: nm
-    elif loc == 'cytoplasm':
+    elif loc == "cytoplasm":
         rh = rh_cyto  # unit: nm
     else:
-        raise NameError(
-            "The location can only be 'nucleoid' or 'cytoplasm'.")
+        raise NameError("The location can only be 'nucleoid' or 'cytoplasm'.")
 
     if not isinstance(rp, Unum):
         rp = units.nm * rp
 
     # compute DC(diffusion constant)
-    dc_0 = K_B*temp/(6*np.pi*eta_0*rp)
-    dc = dc_0*np.exp(
-        -(xi**2/rh**2 + xi**2/rp.asNumber(units.nm)**2)**(-a/2))
+    dc_0 = K_B * temp / (6 * np.pi * eta_0 * rp)
+    dc = dc_0 * np.exp(
+        -((xi**2 / rh**2 + xi**2 / rp.asNumber(units.nm) ** 2) ** (-a / 2))
+    )
     return dc
 
-def compute_nucleoid_size(l_cell, d_cell,
-                          length_scaling_parameters = None,
-                          nucleoid_area_ratio = None):
-    '''
+
+def compute_nucleoid_size(
+    l_cell, d_cell, length_scaling_parameters=None, nucleoid_area_ratio=None
+):
+    """
     Warning 1: This function contains default values that are specific to
     E coli grew on M9 media under aerobic condition only. The shape and size
     of nucleoid of a bacteria can be very different across species.
@@ -273,13 +276,13 @@ def compute_nucleoid_size(l_cell, d_cell,
     Returns:
         l_nuc: the length of the nucleoid
         d_nuc: the diameter of the nucleoid
-    '''
+    """
     if length_scaling_parameters is None:
         length_scaling_parameters = (6.6, 8.3)
     if nucleoid_area_ratio is None:
         nucleoid_area_ratio = 0.60
 
-    l_sat, l_c = length_scaling_parameters # unit: um
+    l_sat, l_c = length_scaling_parameters  # unit: um
     if isinstance(l_cell, Unum):
         l_cell = l_cell.asNumber(units.um)
     if isinstance(d_cell, Unum):
@@ -291,10 +294,11 @@ def compute_nucleoid_size(l_cell, d_cell,
 
     l_nuc = l_sat * (1 - np.exp(-l_cell / l_c))
     d_nuc = nucleoid_area_ratio * l_cell * d_cell / l_nuc
-    return units.um*l_nuc, units.um*d_nuc
+    return units.um * l_nuc, units.um * d_nuc
+
 
 def compute_free_volume_ratio(q, eta):
-    '''
+    """
     This is a function that computes the free volume ratio of existing
     macromolecules with respect to a new molecule based on the scaled
     particle theory. This is not E coli specific. It is important to note
@@ -314,17 +318,18 @@ def compute_free_volume_ratio(q, eta):
 
     Returns:
         alpha: the free volume ratio of the space = v_free/v_total.
-    '''
-    a = 3*q + 3*q**2 + q**3
-    b = 9/2*q**2 + 3*q**3
-    c = 3*q**3
-    y = eta/(1 - eta)
-    q_capital = a*y + b*y**2 + c*y**3
+    """
+    a = 3 * q + 3 * q**2 + q**3
+    b = 9 / 2 * q**2 + 3 * q**3
+    c = 3 * q**3
+    y = eta / (1 - eta)
+    q_capital = a * y + b * y**2 + c * y**3
     alpha = (1 - eta) * np.exp(-q_capital)
     return alpha
 
-def compute_n_blob(choice_model, choice_unit, bp_dna = None):
-    '''
+
+def compute_n_blob(choice_model, choice_unit, bp_dna=None):
+    """
     This function computes the number of DNA blobs within a bacteria. This
     functions contain multiple assumptions that demand careful examination.
 
@@ -370,7 +375,7 @@ def compute_n_blob(choice_model, choice_unit, bp_dna = None):
 
     Returns:
         n_blob: the number of DNA blobs in a bacteria.
-    '''
+    """
     if bp_dna is None:
         bp_dna = 4639221
 
@@ -386,43 +391,48 @@ def compute_n_blob(choice_model, choice_unit, bp_dna = None):
     if isinstance(bp_dna, Unum):
         bp_dna = bp_dna.asNumber(units.nt)
 
-    if choice_model == 'ideal':
-        if choice_unit == 'single':
-            n_bp_per_blob = 6 * (r_blob/length_bp_conv)**2
+    if choice_model == "ideal":
+        if choice_unit == "single":
+            n_bp_per_blob = 6 * (r_blob / length_bp_conv) ** 2
             n_blob = bp_dna / n_bp_per_blob
-        elif choice_unit == 'lp':
-            n_lp_per_blob = 6 * (r_blob/(2*lp))**2
+        elif choice_unit == "lp":
+            n_lp_per_blob = 6 * (r_blob / (2 * lp)) ** 2
             n_bp_per_blob = n_lp_per_blob * bp_per_lp * 2
             n_blob = bp_dna / n_bp_per_blob
         elif isinstance(choice_unit, int):
             length_per_unit = choice_unit * length_bp_conv
-            n_unit_per_blob = 6 * (r_blob/length_per_unit)**2
+            n_unit_per_blob = 6 * (r_blob / length_per_unit) ** 2
             n_bp_per_blob = choice_unit * n_unit_per_blob
             n_blob = bp_dna / n_bp_per_blob
         else:
-            raise NameError("Your choice_unit should either be 'single', "
-                            "'lp', or an integer indicating"
-                            "the number of base pair within a unit.")
-    elif choice_model == 'flory':
-        if choice_unit == 'single':
-            n_bp_per_blob = (r_blob/
-                             (3/8*length_bp_conv**4 * d_dna)**(1/5))**(5/3)
+            raise NameError(
+                "Your choice_unit should either be 'single', "
+                "'lp', or an integer indicating"
+                "the number of base pair within a unit."
+            )
+    elif choice_model == "flory":
+        if choice_unit == "single":
+            n_bp_per_blob = (
+                r_blob / (3 / 8 * length_bp_conv**4 * d_dna) ** (1 / 5)
+            ) ** (5 / 3)
             n_blob = bp_dna / n_bp_per_blob
-        elif choice_unit == 'lp':
-            n_lp_per_blob = (r_blob/(3/8*lp**4*d_dna)**(1/5))**(5/3)
+        elif choice_unit == "lp":
+            n_lp_per_blob = (r_blob / (3 / 8 * lp**4 * d_dna) ** (1 / 5)) ** (5 / 3)
             n_bp_per_blob = n_lp_per_blob * bp_per_lp
             n_blob = bp_dna / n_bp_per_blob
         elif isinstance(choice_unit, int):
             length_per_unit = choice_unit * length_bp_conv
-            n_unit_per_blob = (r_blob/
-                               (3/8*length_per_unit**4*d_dna)**(1/5))**(5/3)
+            n_unit_per_blob = (
+                r_blob / (3 / 8 * length_per_unit**4 * d_dna) ** (1 / 5)
+            ) ** (5 / 3)
             n_bp_per_blob = choice_unit * n_unit_per_blob
             n_blob = bp_dna / n_bp_per_blob
         else:
-            raise NameError("Your choice_unit should either be 'single', "
-                            "'lp', or an integer indicating"
-                            "the number of base pair within a unit.")
+            raise NameError(
+                "Your choice_unit should either be 'single', "
+                "'lp', or an integer indicating"
+                "the number of base pair within a unit."
+            )
     else:
-        raise NameError(
-            "Your choice_model should either be 'ideal' or 'flory'.")
+        raise NameError("Your choice_model should either be 'ideal' or 'flory'.")
     return n_blob

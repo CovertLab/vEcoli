@@ -63,6 +63,7 @@ def create_timeline_from_df(df, column_path_mapping, time_column="Time"):
     }
     return result
 
+
 def create_bulk_timeline_from_df(df, column_path_mapping, time_column="Time"):
     """ """
     time = df[time_column].to_numpy()

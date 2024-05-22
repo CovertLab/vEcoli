@@ -13,22 +13,23 @@ import time
 
 from wholecell.utils.filepath import ROOT_PATH
 
-BASE_API_URL = 'https://websvc.biocyc.org/wc-get?type='
-BASE_API_URL_PREVIEW = 'https://brg-preview.ai.sri.com/wc-get?type='
+BASE_API_URL = "https://websvc.biocyc.org/wc-get?type="
+BASE_API_URL_PREVIEW = "https://brg-preview.ai.sri.com/wc-get?type="
 BIOCYC_FILE_IDS = [
-    'complexation_reactions',
-    'dna_sites',
-    'equilibrium_reactions',
-    'genes',
-    'metabolic_reactions',
-    'metabolites',
-    'proteins',
-    'rnas',
-    'transcription_units',
-    'trna_charging_reactions',
-    ]
-FLAT_DIR = os.path.join(ROOT_PATH, 'reconstruction', 'ecoli', 'flat')
+    "complexation_reactions",
+    "dna_sites",
+    "equilibrium_reactions",
+    "genes",
+    "metabolic_reactions",
+    "metabolites",
+    "proteins",
+    "rnas",
+    "transcription_units",
+    "trna_charging_reactions",
+]
+FLAT_DIR = os.path.join(ROOT_PATH, "reconstruction", "ecoli", "flat")
 OK_STATUS_CODE = 200
+
 
 def update_biocyc_files(preview=False):
     file_id_to_text = {}
@@ -47,26 +48,30 @@ def update_biocyc_files(preview=False):
         time.sleep(1)
 
     # Write each file to FLAT_DIR
-    for (file_id, text) in file_id_to_text.items():
-        with open(os.path.join(FLAT_DIR, file_id + '.tsv'), 'w') as f:
+    for file_id, text in file_id_to_text.items():
+        with open(os.path.join(FLAT_DIR, file_id + ".tsv"), "w") as f:
             f.write(text)
+
 
 def parse_args():
     """
-	Parses command line arguments.
+    Parses command line arguments.
 
-	Returns:
-		argparse.Namespace object: parsed arguments and values
-	"""
-    parser = argparse.ArgumentParser(description='Script to import latest'
-        'versions of EcoCyc-sourced flat files from EcoCyc servers')
+    Returns:
+            argparse.Namespace object: parsed arguments and values
+    """
+    parser = argparse.ArgumentParser(
+        description="Script to import latest"
+        "versions of EcoCyc-sourced flat files from EcoCyc servers"
+    )
 
-    parser.add_argument('--preview', action='store_true',
-        help='Import files from the preview server.')
+    parser.add_argument(
+        "--preview", action="store_true", help="Import files from the preview server."
+    )
 
     return parser.parse_args()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     args = parse_args()
     update_biocyc_files(preview=args.preview)
