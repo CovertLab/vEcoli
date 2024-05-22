@@ -33,7 +33,7 @@ process simGen0 {
         --daughter_outdir \$(pwd) \\
         --variant ${sim_data.getBaseName()} \\
         --seed ${lineage_seed} \\
-        --lineage_seed ${lineage_seed}
+        --lineage_seed ${lineage_seed} \\
         --agent_id \'${agent_id}\'
     """
 
