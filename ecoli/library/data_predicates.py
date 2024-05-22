@@ -62,11 +62,13 @@ def approx_poisson(data, rate=None, significance=0.05, verbose=False):
         rate = np.mean(data)
 
     counts = Counter(list(data))
-    counts = [counts[i] if i in counts.keys() else 0
-              for i in range(max(data) + 1)]
+    counts = [counts[i] if i in counts.keys() else 0 for i in range(max(data) + 1)]
 
-    res = chisquare(np.array(counts) / sum(counts),
-                    poisson(rate).pmf(range(len(counts))) / sum(poisson(rate).pmf(range(len(counts)))))
+    res = chisquare(
+        np.array(counts) / sum(counts),
+        poisson(rate).pmf(range(len(counts)))
+        / sum(poisson(rate).pmf(range(len(counts)))),
+    )
 
     if verbose:
         print(f"Estimated rate (lambda): {rate}")
@@ -77,14 +79,28 @@ def approx_poisson(data, rate=None, significance=0.05, verbose=False):
 
 
 def test_data_predicates():
-    assert strictly_increasing(np.array([1, 2, 3])) and not strictly_increasing(np.array([1, 1, 2]))
-    assert strictly_decreasing(np.array([3, 2, 1])) and not strictly_decreasing(np.array([3, 3, 2]))
-    assert monotonically_increasing(np.array([1, 1, 2])) and not monotonically_increasing(np.array([1, 0, 1]))
-    assert monotonically_decreasing(np.array([2, 2, 1])) and not monotonically_decreasing(np.array([1, 2, 1]))
+    assert strictly_increasing(np.array([1, 2, 3])) and not strictly_increasing(
+        np.array([1, 1, 2])
+    )
+    assert strictly_decreasing(np.array([3, 2, 1])) and not strictly_decreasing(
+        np.array([3, 3, 2])
+    )
+    assert monotonically_increasing(
+        np.array([1, 1, 2])
+    ) and not monotonically_increasing(np.array([1, 0, 1]))
+    assert monotonically_decreasing(
+        np.array([2, 2, 1])
+    ) and not monotonically_decreasing(np.array([1, 2, 1]))
     assert all_positive(np.array([1, 2, 3])) and not all_positive(np.array([1, 1, 0]))
-    assert all_negative(np.array([-1, -2, -3])) and not all_negative(np.array([-1, -1, 0]))
-    assert all_nonnegative(np.array([0, 1, 2])) and not all_nonnegative(np.array([-1, 0, 1]))
-    assert all_nonpositive(np.array([0, -1, -2])) and not all_nonpositive(np.array([-1, 0, 1]))
+    assert all_negative(np.array([-1, -2, -3])) and not all_negative(
+        np.array([-1, -1, 0])
+    )
+    assert all_nonnegative(np.array([0, 1, 2])) and not all_nonnegative(
+        np.array([-1, 0, 1])
+    )
+    assert all_nonpositive(np.array([0, -1, -2])) and not all_nonpositive(
+        np.array([-1, 0, 1])
+    )
 
     poisson_data = np.random.poisson(lam=2, size=1000)
     geom_data = np.random.geometric(p=0.1, size=1000)

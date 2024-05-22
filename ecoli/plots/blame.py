@@ -6,15 +6,18 @@ import matplotlib.colors as colors
 from ecoli.experiments.ecoli_master_sim import EcoliSim, CONFIG_DIR_PATH
 from ecoli.plots.blame_utils import get_bulk_processes
 
-def blame_plot(data,
-               topology,
-               bulk_ids,
-               filename='out/ecoli_sim/blame.png',
-               selected_molecules=None,
-               selected_processes=None,
-               highlight_molecules=None,
-               label_values=True,
-               color_normalize="n"):
+
+def blame_plot(
+    data,
+    topology,
+    bulk_ids,
+    filename="out/ecoli_sim/blame.png",
+    selected_molecules=None,
+    selected_processes=None,
+    highlight_molecules=None,
+    label_values=True,
+    color_normalize="n",
+):
     """
     Given data from a simulation with logged updates (e.g. by running from CLI with --log_updates flag set),
     generates a heatmap where the columns are processes, rows are molecules, and
@@ -36,12 +39,16 @@ def blame_plot(data,
         matplotlib axes and figure.
     """
 
-    if 'log_update' not in data.keys():
-        raise ValueError("Missing log_update in data; did you run simulation without logged updates?")
+    if "log_update" not in data.keys():
+        raise ValueError(
+            "Missing log_update in data; did you run simulation without logged updates?"
+        )
 
-    max_t = data['time'][-1] - data['time'][0]
+    max_t = data["time"][-1] - data["time"][0]
 
-    included_procs, plot_data = extract_bulk(data, get_bulk_processes(topology), bulk_ids)
+    included_procs, plot_data = extract_bulk(
+        data, get_bulk_processes(topology), bulk_ids
+    )
     plot_data = plot_data / max_t  # convert counts to average rate
 
     # restrict to selected molecules and processes
@@ -63,46 +70,68 @@ def blame_plot(data,
 
     n_molecules = plot_data.shape[1]
     n_processes = plot_data.shape[0]
-    fig, axs = plt.subplots(2, 2,
-                            gridspec_kw={'height_ratios': [n_processes, 1],
-                                         'width_ratios': [n_molecules, 1]})
+    fig, axs = plt.subplots(
+        2,
+        2,
+        gridspec_kw={
+            "height_ratios": [n_processes, 1],
+            "width_ratios": [n_molecules, 1],
+        },
+    )
 
-    ((main_ax, molecules_total_ax),
-     (process_total_ax, total_total_ax)) = axs
+    ((main_ax, molecules_total_ax), (process_total_ax, total_total_ax)) = axs
 
     # Normalization within rows (molecules) or columns (processes)
     color_normalize = color_normalize.strip().lower()
-    normalize_settings = {'p' : ('processes', "cols"),
-                          'm' : ('molecules', "rows"),
-                          'n' : (None, None)}
+    normalize_settings = {
+        "p": ("processes", "cols"),
+        "m": ("molecules", "rows"),
+        "n": (None, None),
+    }
     norm_str, within = normalize_settings[color_normalize]
 
-    title = (f"Average Change (#mol/sec) in Bulk due to each Process over {max_t} seconds\n"
-             f"(non-zero only, logarithmic color scale{f' normalizing within {norm_str}' if norm_str else ''})")
+    title = (
+        f"Average Change (#mol/sec) in Bulk due to each Process over {max_t} seconds\n"
+        f"(non-zero only, logarithmic color scale{f' normalizing within {norm_str}' if norm_str else ''})"
+    )
 
     if selected_molecules:
-        fig.set_size_inches(2 * (n_molecules + 3) + 10, (n_processes + 3) / 5 + 10)  # Make margins larger
+        fig.set_size_inches(
+            2 * (n_molecules + 3) + 10, (n_processes + 3) / 5 + 10
+        )  # Make margins larger
     else:
         fig.set_size_inches(2 * (n_molecules + 3), (n_processes + 3) / 5)
-    main_ax.imshow(-plot_data, aspect='auto', cmap=plt.get_cmap('seismic'),
-                   norm=DivergingNormalize(within=within))
+    main_ax.imshow(
+        -plot_data,
+        aspect="auto",
+        cmap=plt.get_cmap("seismic"),
+        norm=DivergingNormalize(within=within),
+    )
 
     # plot totals
     process_total = np.atleast_2d(plot_data.sum(axis=0))
     molecules_total = np.atleast_2d(plot_data.sum(axis=1))
     total_total = np.atleast_2d(plot_data.sum())
 
-    process_total_ax.imshow(-process_total,
-                            aspect='auto', cmap=plt.get_cmap('seismic'),
-                            norm=DivergingNormalize())
-    molecules_total_ax.imshow(-molecules_total.T,
-                              aspect='auto', cmap=plt.get_cmap('seismic'),
-                              norm=DivergingNormalize())
+    process_total_ax.imshow(
+        -process_total,
+        aspect="auto",
+        cmap=plt.get_cmap("seismic"),
+        norm=DivergingNormalize(),
+    )
+    molecules_total_ax.imshow(
+        -molecules_total.T,
+        aspect="auto",
+        cmap=plt.get_cmap("seismic"),
+        norm=DivergingNormalize(),
+    )
 
-    total_total_ax.imshow(-total_total, aspect='auto', cmap=plt.get_cmap('seismic'), norm=SignNormalize())
+    total_total_ax.imshow(
+        -total_total, aspect="auto", cmap=plt.get_cmap("seismic"), norm=SignNormalize()
+    )
 
     # show and rename ticks
-    process_labels = [p.replace('_', '\n') for p in included_procs]
+    process_labels = [p.replace("_", "\n") for p in included_procs]
 
     main_ax.set_xticks(np.arange(plot_data.shape[1]))
     main_ax.set_yticks(np.arange(plot_data.shape[0]))
@@ -111,18 +140,18 @@ def blame_plot(data,
 
     molecules_total_ax.set_xticks([0])
     molecules_total_ax.set_yticks(np.arange(plot_data.shape[0]))
-    molecules_total_ax.set_xticklabels(['TOTAL'])
+    molecules_total_ax.set_xticklabels(["TOTAL"])
     molecules_total_ax.set_yticklabels(bulk_ids)
 
     process_total_ax.set_xticks(np.arange(plot_data.shape[1]))
     process_total_ax.set_yticks([0])
     process_total_ax.set_xticklabels(process_labels)
-    process_total_ax.set_yticklabels(['TOTAL'])
+    process_total_ax.set_yticklabels(["TOTAL"])
 
     total_total_ax.set_xticks([0])
     total_total_ax.set_yticks([0])
-    total_total_ax.set_xticklabels(['TOTAL'])
-    total_total_ax.set_yticklabels(['TOTAL'])
+    total_total_ax.set_xticklabels(["TOTAL"])
+    total_total_ax.set_yticklabels(["TOTAL"])
 
     # Put process ticks labels on correct sides
     reposition_ticks(main_ax, "top", "left")
@@ -141,22 +170,46 @@ def blame_plot(data,
         for i in range(plot_data.shape[0]):
             for j in range(plot_data.shape[1]):
                 if plot_data[i, j] != 0:
-                    main_ax.text(j, i, f'{sign_str(plot_data[i, j])}{plot_data[i, j]:.2f}/s',
-                                 ha="center", va="center", color="w")
+                    main_ax.text(
+                        j,
+                        i,
+                        f"{sign_str(plot_data[i, j])}{plot_data[i, j]:.2f}/s",
+                        ha="center",
+                        va="center",
+                        color="w",
+                    )
 
             val = molecules_total[0, i]
             if val != 0:
-                molecules_total_ax.text(0, i, f'{sign_str(val)}{val:.2f}/s',
-                                        ha="center", va="center", color="w")
+                molecules_total_ax.text(
+                    0,
+                    i,
+                    f"{sign_str(val)}{val:.2f}/s",
+                    ha="center",
+                    va="center",
+                    color="w",
+                )
 
         for i in range(plot_data.shape[1]):
             val = process_total[0, i]
             if val != 0:
-                process_total_ax.text(i, 0, f'{sign_str(val)}{val:.2f}/s',
-                                      ha="center", va="center", color="w")
+                process_total_ax.text(
+                    i,
+                    0,
+                    f"{sign_str(val)}{val:.2f}/s",
+                    ha="center",
+                    va="center",
+                    color="w",
+                )
 
-        total_total_ax.text(0, 0, f'{sign_str(total_total[0, 0])}{total_total[0, 0]:.2f}/s',
-                            ha="center", va="center", color="w")
+        total_total_ax.text(
+            0,
+            0,
+            f"{sign_str(total_total[0, 0])}{total_total[0, 0]:.2f}/s",
+            ha="center",
+            va="center",
+            color="w",
+        )
 
     main_ax.set_title(title)
     fig.tight_layout()
@@ -175,13 +228,13 @@ def extract_bulk(data, bulk_processes, bulk_ids):
     is given by the keys that are shared by bulk_processes and
     data['log_update']. Shared processes are also returned in order.
     """
-    included_procs = list(data['log_update'].keys() & bulk_processes.keys())
+    included_procs = list(data["log_update"].keys() & bulk_processes.keys())
     collected_data = np.zeros((len(bulk_ids), len(included_procs)))
-    # Apply bulk updates to a fake bulk count array 
+    # Apply bulk updates to a fake bulk count array
     # and retrieve final deltas for each process
     fake_bulk = np.zeros(len(bulk_ids), dtype=int)
     for proc_idx, process in enumerate(included_procs):
-        updates = data['log_update'][process]
+        updates = data["log_update"][process]
         for port in updates.keys():
             if port not in bulk_processes[process]:
                 continue
@@ -234,25 +287,25 @@ class DivergingNormalize(colors.Normalize):
 
 
 def sign_str(val):
-    return '-' if val < 0 else '+'
+    return "-" if val < 0 else "+"
 
 
 def reposition_ticks(ax, x="bottom", y="left"):
     if x == "top":
         ax.xaxis.tick_top()
-        ax.xaxis.set_label_position('top')
+        ax.xaxis.set_label_position("top")
     elif x == "bottom":
         ax.xaxis.tick_bottom()
-        ax.xaxis.set_label_position('bottom')
+        ax.xaxis.set_label_position("bottom")
     else:
         raise ValueError(f"{x} is not a valid place for x-ticks")
 
     if y == "left":
         ax.yaxis.tick_left()
-        ax.yaxis.set_label_position('left')
+        ax.yaxis.set_label_position("left")
     elif y == "right":
         ax.yaxis.tick_right()
-        ax.yaxis.set_label_position('right')
+        ax.yaxis.set_label_position("right")
     else:
         raise ValueError(f"{y} is not a valid place for y-ticks")
 
@@ -271,15 +324,19 @@ def test_blame():
     sim = EcoliSim.from_file()
     sim.merge(EcoliSim.from_file(CONFIG_DIR_PATH + "/test_configs/test_blame.json"))
     sim.build_ecoli()
-    bulk_ids = sim.generated_initial_state['agents']['0']['bulk']['id']
+    bulk_ids = sim.generated_initial_state["agents"]["0"]["bulk"]["id"]
     sim.run()
     data = sim.query()
-    data = {'time': data['time'], **data['agents']['0']}
+    data = {"time": data["time"], **data["agents"]["0"]}
 
     # TODO: Adapt this code to work with new Numpy update format
-    blame_plot(data, sim.ecoli_experiment.topology['agents']['0'], bulk_ids,
-               'out/ecoli_sim/blame_test.png',
-               highlight_molecules=['PD00413[c]', 'PHOR-CPLX[c]'])
+    blame_plot(
+        data,
+        sim.ecoli_experiment.topology["agents"]["0"],
+        bulk_ids,
+        "out/ecoli_sim/blame_test.png",
+        highlight_molecules=["PD00413[c]", "PHOR-CPLX[c]"],
+    )
 
 
 if __name__ == "__main__":

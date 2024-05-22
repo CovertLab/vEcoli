@@ -16,8 +16,11 @@ def testAddProcess():
     sim.build_ecoli()
     assert "clock" in sim.ecoli.processes["agents"]["0"].keys()
     sim.ecoli.processes["agents"]["0"].pop("global_clock")
-    assert sim.ecoli.processes["agents"]["0"]["clock"].parameters["test"] == "Hello vivarium"
-    
+    assert (
+        sim.ecoli.processes["agents"]["0"]["clock"].parameters["test"]
+        == "Hello vivarium"
+    )
+
     sim.run()
     data = sim.query()
     assert "global_time" in data["agents"]["0"].keys()
@@ -68,18 +71,22 @@ def test_initial_state_overrides():
     sim_default.build_ecoli()
     sim.build_ecoli()
 
-    murein_row_idx = np.where(sim.generated_initial_state["agents"]["0"][
-        'bulk']['id'] == 'CPD-12261[p]')[0]
-    assert sim.generated_initial_state["agents"]["0"]["bulk"]["count"][
-        murein_row_idx] == 558735
-    assert sim.generated_initial_state["agents"]["0"]["murein_state"
-    ] == {
+    murein_row_idx = np.where(
+        sim.generated_initial_state["agents"]["0"]["bulk"]["id"] == "CPD-12261[p]"
+    )[0]
+    assert (
+        sim.generated_initial_state["agents"]["0"]["bulk"]["count"][murein_row_idx]
+        == 558735
+    )
+    assert sim.generated_initial_state["agents"]["0"]["murein_state"] == {
         "shadow_murein": 0,
         "unincorporated_murein": 2234940,
         "incorporated_murein": 0,
     }
-    assert sim_default.generated_initial_state["agents"]["0"]["environment"
-        ] == sim.generated_initial_state["agents"]["0"]["environment"]
+    assert (
+        sim_default.generated_initial_state["agents"]["0"]["environment"]
+        == sim.generated_initial_state["agents"]["0"]["environment"]
+    )
 
 
 def main():

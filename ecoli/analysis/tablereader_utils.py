@@ -46,15 +46,16 @@ def replace_scalars_2d(array):
 def camel_case_to_underscored(string):
     # Make sure first character is lowercase
     string = string[0].lower() + string[1:]
-    
+
     # Find where words start/end
     capital_indices = np.where(np.array([c != c.lower() for c in string]))[0]
     word_limits = [0, *capital_indices, len(string)]
 
     # Get all of the words, in lowercase
-    words = [string[word_start: word_end].lower()
-             for word_start, word_end
-             in zip(word_limits[:-1], word_limits[1:])]
-    
+    words = [
+        string[word_start:word_end].lower()
+        for word_start, word_end in zip(word_limits[:-1], word_limits[1:])
+    ]
+
     # return words joined with underscore
     return "_".join(words)
