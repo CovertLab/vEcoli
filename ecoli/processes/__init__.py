@@ -19,7 +19,9 @@ from ecoli.processes.metabolism_redux_classic import MetabolismReduxClassic
 from ecoli.processes.chromosome_replication import ChromosomeReplication
 from ecoli.processes.stubs.exchange_stub import Exchange
 from ecoli.processes.listeners.mass_listener import (
-    MassListener, PostDivisionMassListener)
+    MassListener,
+    PostDivisionMassListener,
+)
 from ecoli.processes.listeners.RNA_counts import RNACounts
 from ecoli.processes.listeners.monomer_counts import MonomerCounts
 from ecoli.processes.listeners.rna_synth_prob import RnaSynthProb
@@ -41,12 +43,15 @@ from ecoli.processes.antibiotics.pbp_binding import PBPBinding
 from ecoli.processes.concentrations_deriver import ConcentrationsDeriver
 from ecoli.processes.antibiotics.death import DeathFreezeState
 from ecoli.processes.antibiotics.antibiotic_transport_steady_state import (
-    AntibioticTransportSteadyState)
+    AntibioticTransportSteadyState,
+)
 from ecoli.processes.antibiotics.antibiotic_transport_odeint import (
-    AntibioticTransportOdeint)
+    AntibioticTransportOdeint,
+)
 from ecoli.processes.antibiotics.permeability import Permeability
 from ecoli.processes.antibiotics.tetracycline_ribosome_equilibrium import (
-    TetracyclineRibosomeEquilibrium)
+    TetracyclineRibosomeEquilibrium,
+)
 from ecoli.processes.chemostat import Chemostat
 from ecoli.processes.listeners.aggregator import Aggregator
 from ecoli.processes.rna_interference import RnaInterference
@@ -87,8 +92,7 @@ process_registry.register(RnaSynthProb.name, RnaSynthProb)
 process_registry.register(ChromosomeStructure.name, ChromosomeStructure)
 process_registry.register(Allocator.name, Allocator)
 process_registry.register(Shape.name, Shape)
-process_registry.register(ConcentrationsDeriver.name,
-    ConcentrationsDeriver)
+process_registry.register(ConcentrationsDeriver.name, ConcentrationsDeriver)
 process_registry.register(Aggregator.name, Aggregator)
 
 # environment processes
@@ -104,18 +108,14 @@ process_registry.register(Chemostat.name, Chemostat)
 # antibiotic processes
 process_registry.register(DeathFreezeState.name, DeathFreezeState)
 process_registry.register(
-    TetracyclineRibosomeEquilibrium.name,
-    TetracyclineRibosomeEquilibrium)
-process_registry.register(
-    AntibioticTransportSteadyState.name, AntibioticTransportSteadyState)
-process_registry.register(
-    AntibioticTransportOdeint.name, AntibioticTransportOdeint)
-process_registry.register(
-    Permeability.name, Permeability
+    TetracyclineRibosomeEquilibrium.name, TetracyclineRibosomeEquilibrium
 )
 process_registry.register(
-    LysisInitiation.name, LysisInitiation
+    AntibioticTransportSteadyState.name, AntibioticTransportSteadyState
 )
+process_registry.register(AntibioticTransportOdeint.name, AntibioticTransportOdeint)
+process_registry.register(Permeability.name, Permeability)
+process_registry.register(LysisInitiation.name, LysisInitiation)
 process_registry.register(CellWall.name, CellWall)
 process_registry.register(PBPBinding.name, PBPBinding)
 process_registry.register(ConcToCounts.name, ConcToCounts)
@@ -124,4 +124,4 @@ process_registry.register(GlobalClock.name, GlobalClock)
 process_registry.register(MureinDivision.name, MureinDivision)
 process_registry.register(BulkTimelineProcess.name, BulkTimelineProcess)
 
-__all__ = ['processes']
+__all__ = ["processes"]

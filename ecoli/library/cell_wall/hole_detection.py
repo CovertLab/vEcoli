@@ -182,7 +182,6 @@ def detect_holes(lattice, on_cylinder=True, critical_size=None, prune_subtrees=T
             )
 
             if len(neighbor_holes) == 0:
-
                 # Creating new hole
                 new_id = frozenset([next_hole_id])
                 hole_sizes[new_id] = 1
@@ -205,7 +204,6 @@ def detect_holes(lattice, on_cylinder=True, critical_size=None, prune_subtrees=T
         # that hole/subtree is not coming back
         # (except due to cylindrical wraparound)
         if prune_subtrees and len(hole_sizes) >= next_prune_size and r != rows - 1:
-
             prune_immune = {
                 hole_sizes.get_containing_hole(hole) for hole in prune_immune
             }
@@ -322,7 +320,6 @@ def test_detect_holes():
             "detect_holes": detect_holes,
             "detect_holes_skimage": detect_holes_skimage,
         }.items():
-
             print(f"Detection method: {method_name}")
 
             # Get hole view, size of largest hole

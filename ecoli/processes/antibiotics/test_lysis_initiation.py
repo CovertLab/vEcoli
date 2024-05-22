@@ -11,12 +11,18 @@ def test_lysis_initiation():
     )
     ecoli.total_time = 20
     ecoli.build_ecoli()
-    agent_data = ecoli.generated_initial_state['agents']['0']
+    agent_data = ecoli.generated_initial_state["agents"]["0"]
     zero_mass = (0,) * 9
-    agent_data['bulk'] = np.append(agent_data['bulk'], np.array([
-        ('beta-lactam[p]', 0) + zero_mass,
-        ('hydrolyzed-beta-lactam[p]', 0) + zero_mass
-    ], dtype=agent_data['bulk'].dtype))
+    agent_data["bulk"] = np.append(
+        agent_data["bulk"],
+        np.array(
+            [
+                ("beta-lactam[p]", 0) + zero_mass,
+                ("hydrolyzed-beta-lactam[p]", 0) + zero_mass,
+            ],
+            dtype=agent_data["bulk"].dtype,
+        ),
+    )
     ecoli.run()
 
     data = ecoli.query()
