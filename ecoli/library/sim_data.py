@@ -189,7 +189,6 @@ class LoadSimData:
         if condition is not None:
             self.sim_data.condition = condition
 
-
         # Used by processes to apply submass updates to correct unique attr
         self.submass_indices = {
             f"massDiff_{submass}": idx
