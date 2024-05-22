@@ -61,7 +61,11 @@ class Test_Spreadsheets(unittest.TestCase):
             "ourLocation": ["c"],
             "mass": 98.6 * units.g,
         }
-        assert list_reader[1] == {"id": 2.71828, "ourLocation": ["c"], "mass": 12 * units.g}
+        assert list_reader[1] == {
+            "id": 2.71828,
+            "ourLocation": ["c"],
+            "mass": 12 * units.g,
+        }
         assert set(list_reader[0].keys()) == set(NONPRIVATE_FIELD_NAMES)
 
     def test_tsv_reader(self):

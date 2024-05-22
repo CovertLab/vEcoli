@@ -36,7 +36,6 @@ polymerize.__iter__ = lambda self: iter(
 )
 
 # Wrap methods in line-profiling decorator
-# TODO (John): write an introspection utility to facilitate decoration
 # noinspection PyUnresolvedReferences
 def setup_profiler():
     polymerize.__init__ = line_profile(polymerize.__init__)

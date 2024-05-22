@@ -74,7 +74,7 @@ class RNACounts(Step):
                 )
             },
             "RNAs": numpy_schema("RNAs", emit=self.parameters["emit_unique"]),
-            "global_time": {"_default": 0},
+            "global_time": {"_default": 0.0},
             "timestep": {"_default": self.parameters["time_step"]},
         }
 

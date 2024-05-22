@@ -11,15 +11,18 @@ from ecoli.library.parameters import Parameter, param_store
 class UnumSerializer(Serializer):
     def __init__(self):
         super().__init__()
-        self.regex_for_serialized = re.compile("!UnumSerializer\\[(.*)\\]")
+        # re.S for single-line mode (period matches every character inc. \n)
+        self.regex_for_serialized = re.compile("!UnumSerializer\\[(.*)\\]", re.S)
 
     python_type = Unum
 
     def serialize(self, value):
-        num = str(value.asNumber())
+        num = value.asNumber()
         if isinstance(num, np.ndarray):
             num = num.tolist()
-        return f"!UnumSerializer[{num} | {value.strUnit()}]"
+        # TODO: Fix this
+        # return f'!UnumSerializer[{num} | {value.strUnit()}]'
+        return num
 
     def can_deserialize(self, data):
         if not isinstance(data, str):

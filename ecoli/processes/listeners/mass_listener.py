@@ -148,12 +148,15 @@ class MassListener(Step):
         self.match_wcecoli = self.parameters["match_wcecoli"]
 
     def ports_schema(self):
-        split_divider_schema = {
-            "_default": 0.0,
-            "_updater": "set",
-            "_emit": True,
-            "_divide": "split",
-        }
+        def split_divider_schema(metadata):
+            return {
+                "_default": 0.0,
+                "_updater": "set",
+                "_emit": True,
+                "_divide": "split",
+                "_properties": {"metadata": metadata},
+            }
+
         set_divider_schema = {
             "_default": 0.0,
             "_updater": "set",
@@ -176,14 +179,14 @@ class MassListener(Step):
             },
             "listeners": {
                 "mass": {
-                    "cell_mass": split_divider_schema,
-                    "water_mass": split_divider_schema,
-                    "dry_mass": split_divider_schema,
+                    "cell_mass": split_divider_schema("fg"),
+                    "water_mass": split_divider_schema("fg"),
+                    "dry_mass": split_divider_schema("fg"),
                     **{
-                        submass + "_mass": split_divider_schema
+                        submass + "_mass": split_divider_schema("fg")
                         for submass in self.submass_listener_indices.keys()
                     },
-                    "volume": split_divider_schema,
+                    "volume": split_divider_schema(""),
                     "protein_mass_fraction": set_divider_schema,
                     "rna_mass_fraction": set_divider_schema,
                     "growth": set_divider_schema,
@@ -193,19 +196,19 @@ class MassListener(Step):
                     "rna_mass_fold_change": set_divider_schema,
                     "small_molecule_fold_change": set_divider_schema,
                     # compartment mass
-                    "projection_mass": split_divider_schema,
-                    "cytosol_mass": split_divider_schema,
-                    "extracellular_mass": split_divider_schema,
-                    "flagellum_mass": split_divider_schema,
-                    "membrane_mass": split_divider_schema,
-                    "outer_membrane_mass": split_divider_schema,
-                    "periplasm_mass": split_divider_schema,
-                    "pilus_mass": split_divider_schema,
-                    "inner_membrane_mass": split_divider_schema,
-                    "expected_mass_fold_change": split_divider_schema,
+                    "projection_mass": split_divider_schema("fg"),
+                    "cytosol_mass": split_divider_schema("fg"),
+                    "extracellular_mass": split_divider_schema("fg"),
+                    "flagellum_mass": split_divider_schema("fg"),
+                    "membrane_mass": split_divider_schema("fg"),
+                    "outer_membrane_mass": split_divider_schema("fg"),
+                    "periplasm_mass": split_divider_schema("fg"),
+                    "pilus_mass": split_divider_schema("fg"),
+                    "inner_membrane_mass": split_divider_schema("fg"),
+                    "expected_mass_fold_change": split_divider_schema(""),
                 }
             },
-            "global_time": {"_default": 0},
+            "global_time": {"_default": 0.0},
             "timestep": {"_default": self.parameters["time_step"]},
         }
         ports["unique"].update(
@@ -294,7 +297,7 @@ class MassListener(Step):
         mass_update["volume"] = mass_update["cell_mass"] / self.cellDensity
 
         if self.first_time_step:
-            mass_update["growth"] = np.nan
+            mass_update["growth"] = 0.0
             self.dryMassInitial = mass_update["dry_mass"]
             self.proteinMassInitial = mass_update["protein_mass"]
             self.rnaMassInitial = mass_update["rna_mass"]

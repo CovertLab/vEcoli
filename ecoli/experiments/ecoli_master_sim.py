@@ -13,15 +13,18 @@ import copy
 import os
 import pstats
 import subprocess
+import sys
 import json
 import warnings
 from datetime import datetime
 from typing import Optional, Dict, Any
 
+import numpy as np
 from vivarium.core.engine import Engine
 from vivarium.core.process import Process
 from vivarium.core.serialize import deserialize_value, serialize_value
-from vivarium.library.dict_utils import deep_merge
+from vivarium.library.dict_utils import deep_merge, deep_merge_check
+from vivarium.library.topology import inverse_topology
 from vivarium.library.topology import assoc_path
 from ecoli.library.logging_tools import write_json
 import ecoli.composites.ecoli_master
@@ -30,6 +33,7 @@ import ecoli.composites.ecoli_master
 import ecoli.composites.environment.lattice
 
 from ecoli.processes import process_registry
+from ecoli.processes.cell_division import DivisionDetected
 from ecoli.processes.registries import topology_registry
 
 from ecoli.composites.ecoli_configs import CONFIG_DIR_PATH
@@ -121,10 +125,29 @@ def key_value_pair(argument_string: str) -> tuple[str, str]:
     return split
 
 
+def prepare_save_state(state: dict[str, Any]) -> None:
+    """Prepares simulation state to be saved to a JSON file by pruning
+    unsaveable values and adding necessary metadata. Mutates in-place.
+    """
+    # Processes can't be serialized
+    del state["process"]
+    # Bulk random state can't be serialized
+    del state["allocator_rng"]
+    # Save bulk and unique dtypes
+    state["bulk_dtypes"] = str(state["bulk"].dtype)
+    state["unique_dtypes"] = {}
+    for name, mols in state["unique"].items():
+        state["unique_dtypes"][name] = str(mols.dtype)
+
+
 class SimConfig:
     default_config_path = os.path.join(CONFIG_DIR_PATH, "default.json")
 
-    def __init__(self, config: Optional[Dict[str, Any]] = None):
+    def __init__(
+        self,
+        config: Optional[Dict[str, Any]] = None,
+        parser: Optional[argparse.ArgumentParser] = None,
+    ):
         """Stores configuration options for a simulation. Has dictionary-like
         interface (e.g. bracket indexing, get, keys).
 
@@ -136,129 +159,149 @@ class SimConfig:
             config: Configuration options. If not provided, the default
                 configuration is loaded from the file path
                 :py:data:`~ecoli.experiments.ecoli_master_sim.SimConfig.default_config_path`.
+            parser: Useful for scripts that leverage the inheritance features
+                of the JSON config files but want to have their own CLI args
+                for clarity.
         """
         self._config = config or {}
         if not self._config:
             self.update_from_json(self.default_config_path)
 
-        self.parser = argparse.ArgumentParser(description="ecoli_master")
-        self.parser.add_argument(
-            "--config",
-            "-c",
-            action="store",
-            default=self.default_config_path,
-            help=(
-                "Path to configuration file for the simulation. "
-                "All key-value pairs in this file will be applied on top "
-                f"of the options defined in {self.default_config_path}."
-            ),
-        )
-        self.parser.add_argument(
-            "--experiment_id",
-            "-id",
-            action="store",
-            help=(
-                "ID for this experiment. A UUID will be generated if "
-                'this argument is not used and "experiment_id" is null '
-                "in the configuration file."
-            ),
-        )
-        self.parser.add_argument(
-            "--emitter",
-            "-e",
-            action="store",
-            choices=["timeseries", "database", "print", "null", "shared_ram"],
-            help=(
-                "Emitter to use. Timeseries uses RAMEmitter, database "
-                "emits to MongoDB, and print emits to stdout."
-            ),
-        )
-        self.parser.add_argument(
-            "--emitter_arg",
-            "-ea",
-            action="store",
-            nargs="*",
-            type=key_value_pair,
-            help=(
-                "Key-value pairs, separated by `=`, to include in " "emitter config."
-            ),
-        )
-        self.parser.add_argument(
-            "--seed", "-s", action="store", type=int, help="Random seed."
-        )
-        self.parser.add_argument(
-            "--initial_state",
-            "-t0",
-            action="store",
-            help=(
-                "Name of the initial state to load from (corresponding "
-                "initial state file must be present in data folder)."
-            ),
-        )
-        self.parser.add_argument(
-            "--total_time",
-            "-t",
-            action="store",
-            type=float,
-            help="Time to run the simulation for.",
-        )
-        self.parser.add_argument(
-            "--generations",
-            "-g",
-            action="store",
-            type=int,
-            help="Number of generations to run the simulation for.",
-        )
-        self.parser.add_argument(
-            "--log_updates",
-            "-u",
-            action="store_true",
-            help=(
-                "Save updates from each process if this flag is set, "
-                "e.g. for use with blame plot."
-            ),
-        )
-        self.parser.add_argument(
-            "--raw_output",
-            action="store_true",
-            help=(
-                "Whether to return data in raw format (dictionary "
-                "where keys are times, values are states)."
-            ),
-        )
-        self.parser.add_argument(
-            "--agent_id", action="store", type=str, help="Agent ID."
-        )
-        self.parser.add_argument(
-            "--sim_data_path",
-            nargs="*",
-            default=None,
-            help="Path to the sim_data to use for this experiment.",
-        )
-        self.parser.add_argument(
-            "--parallel",
-            action="store_true",
-            default=False,
-            help="Run processes in parallel.",
-        )
-        self.parser.add_argument(
-            "--profile",
-            action="store_true",
-            default=False,
-            help="Print profiling information at the end.",
-        )
-        self.parser.add_argument(
-            "--initial_state_file",
-            action="store",
-            default="",
-            help='Name of initial state file (no ".json") under data/',
-        )
-        self.parser.add_argument(
-            "--initial_state_overrides",
-            action="store",
-            nargs="*",
-            help='Name of initial state overrides (no ".json") under ' "data/overrides",
-        )
+        self.parser = parser
+        if self.parser is None:
+            self.parser = argparse.ArgumentParser(description="ecoli_master")
+            self.parser.add_argument(
+                "--config",
+                "-c",
+                action="store",
+                default=self.default_config_path,
+                help=(
+                    "Path to configuration file for the simulation. "
+                    "All key-value pairs in this file will be applied on top "
+                    f"of the options defined in {self.default_config_path}."
+                ),
+            )
+            self.parser.add_argument(
+                "--experiment_id",
+                "-id",
+                action="store",
+                help=(
+                    "ID for this experiment. A UUID will be generated if "
+                    'this argument is not used and "experiment_id" is null '
+                    "in the configuration file."
+                ),
+            )
+            self.parser.add_argument(
+                "--emitter",
+                "-e",
+                action="store",
+                choices=["timeseries", "database", "print", "null", "shared_ram"],
+                help=(
+                    "Emitter to use. Timeseries uses RAMEmitter, database "
+                    "emits to MongoDB, and print emits to stdout."
+                ),
+            )
+            self.parser.add_argument(
+                "--emitter_arg",
+                "-ea",
+                action="store",
+                nargs="*",
+                type=key_value_pair,
+                help=(
+                    "Key-value pairs, separated by `=`, to include in "
+                    "emitter config."
+                ),
+            )
+            self.parser.add_argument(
+                "--seed", "-s", action="store", type=int, help="Random seed."
+            )
+            self.parser.add_argument(
+                "--initial_state",
+                "-t0",
+                action="store",
+                help=(
+                    "Name of the initial state to load from (corresponding "
+                    "initial state file must be present in data folder)."
+                ),
+            )
+            self.parser.add_argument(
+                "--total_time",
+                "-t",
+                action="store",
+                type=float,
+                help="Time to run the simulation for.",
+            )
+            self.parser.add_argument(
+                "--generations",
+                "-g",
+                action="store",
+                type=int,
+                help="Number of generations to run the simulation for.",
+            )
+            self.parser.add_argument(
+                "--log_updates",
+                "-u",
+                action="store_true",
+                help=(
+                    "Save updates from each process if this flag is set, "
+                    "e.g. for use with blame plot."
+                ),
+            )
+            self.parser.add_argument(
+                "--raw_output",
+                action="store_true",
+                help=(
+                    "Whether to return data in raw format (dictionary "
+                    "where keys are times, values are states)."
+                ),
+            )
+            self.parser.add_argument(
+                "--agent_id", action="store", type=str, help="Agent ID."
+            )
+            self.parser.add_argument(
+                "--sim_data_path",
+                default=None,
+                help="Path to the sim_data to use for this experiment.",
+            )
+            self.parser.add_argument(
+                "--parallel",
+                action="store_true",
+                default=False,
+                help="Run processes in parallel.",
+            )
+            self.parser.add_argument(
+                "--profile",
+                action="store_true",
+                default=False,
+                help="Print profiling information at the end.",
+            )
+            self.parser.add_argument(
+                "--initial_state_file",
+                action="store",
+                default="",
+                help='Name of initial state file (no ".json") under data/',
+            )
+            self.parser.add_argument(
+                "--initial_state_overrides",
+                action="store",
+                nargs="*",
+                help='Name of initial state overrides (no ".json") under '
+                "data/overrides",
+            )
+            self.parser.add_argument(
+                "--daughter_outdir",
+                "--daughter-outdir",
+                action="store",
+                help="Directory in which to store daughter cell state JSONs.",
+            )
+            self.parser.add_argument(
+                "--variant", action="store", help="Name of variant."
+            )
+            self.parser.add_argument(
+                "--lineage_seed",
+                action="store",
+                help="Seed used for first cell in lineage.",
+            )
 
     @staticmethod
     def merge_config_dicts(d1: dict[str, Any], d2: dict[str, Any]) -> None:
@@ -321,7 +364,8 @@ class SimConfig:
             for key, value in vars(args).items()
             if value and key not in ("config", "parallel", "no_parallel")
         }
-        cli_config["parallel"] = args.parallel
+        if "parallel" in vars(args):
+            cli_config["parallel"] = args.parallel
         self.merge_config_dicts(self._config, cli_config)
 
     def update_from_dict(self, dict_config: dict[str, Any]):
@@ -420,9 +464,6 @@ class EcoliSim:
         for attr in self.config.keys():
             config_entry = ConfigEntry(attr)
             setattr(EcoliSim, attr, config_entry)
-
-        if self.generations:
-            warnings.warn("generations option is not yet implemented!")
 
     @staticmethod
     def from_file(filepath=CONFIG_DIR_PATH + "default.json") -> "EcoliSim":
@@ -667,14 +708,20 @@ class EcoliSim:
                 self.generated_initial_state, initial_environment
             )
 
-    def save_states(self):
+    def save_states(self, daughter_outdir: str = ""):
         """
         Runs the simulation while saving the states of specific
-        timesteps to jsons. Automatically invoked by
+        timesteps to JSONs. Automatically invoked by
         :py:meth:`~ecoli.experiments.ecoli_master_sim.EcoliSim.run`
         if ``config['save'] == True``. State is saved as a JSON that
         can be reloaded into a simulation as described in
         :py:meth:`~ecoli.composites.ecoli_master.Ecoli.initial_state`.
+
+        Args:
+            daughter_outdir: Location to write JSON files for daughter cell(s).
+                Only used if ``config`` contains ``generations`` key specifying
+                number of generations to simulate. Nextflow chains simulations
+                together by passing saved daughter states to new processes.
         """
         for time in self.save_times:
             if time > self.total_time:
@@ -688,27 +735,26 @@ class EcoliSim:
                 time_to_next_save = self.save_times[i]
             else:
                 time_to_next_save = self.save_times[i] - self.save_times[i - 1]
-            self.ecoli_experiment.update(time_to_next_save)
+            try:
+                self.ecoli_experiment.update(time_to_next_save)
+            except DivisionDetected:
+                state = self.ecoli_experiment.state.get_value(condition=not_a_process)
+                assert len(state["agents"]) == 2
+                for i, agent_state in enumerate(state["agents"].values()):
+                    prepare_save_state(agent_state)
+                    daughter_path = os.path.join(
+                        daughter_outdir, f"daughter_state_{i}.json"
+                    )
+                    write_json(daughter_path, agent_state)
+                print(f"Divided at t = {self.ecoli_experiment.global_time}.")
+                sys.exit()
             time_elapsed = self.save_times[i]
             state = self.ecoli_experiment.state.get_value(condition=not_a_process)
             if self.divide:
                 for agent_state in state["agents"].values():
-                    # Processes can't be serialized
-                    del agent_state["process"]
-                    # Bulk random state can't be serialized
-                    del agent_state["allocator_rng"]
-                    # Save bulk and unique dtypes
-                    agent_state["bulk_dtypes"] = str(agent_state["bulk"].dtype)
-                    agent_state["unique_dtypes"] = {}
-                    for name, mols in agent_state["unique"].items():
-                        agent_state["unique_dtypes"][name] = str(mols.dtype)
+                    prepare_save_state(agent_state)
             else:
-                del state["process"]
-                del state["allocator_rng"]
-                state["bulk_dtypes"] = str(state["bulk"].dtype)
-                state["unique_dtypes"] = {}
-                for name, mols in state["unique"].items():
-                    state["unique_dtypes"][name] = str(mols.dtype)
+                prepare_save_state(state)
             write_json("data/vivecoli_t" + str(time_elapsed) + ".json", state)
             print("Finished saving the state at t = " + str(time_elapsed))
         time_remaining = self.total_time - self.save_times[-1]
@@ -729,10 +775,12 @@ class EcoliSim:
             )
 
         metadata = self.get_metadata()
+        metadata["output_metadata"] = self.get_output_metadata()
         # make the experiment
         emitter_config = {"type": self.emitter}
-        for key, value in self.emitter_arg:
-            emitter_config[key] = value
+        # TODO: Fix this
+        # for key, value in self.emitter_arg:
+        #     emitter_config[key] = value
         experiment_config = {
             "description": self.description,
             "metadata": metadata,
@@ -746,6 +794,7 @@ class EcoliSim:
             "emit_processes": self.emit_processes,
             "emit_config": self.emit_config,
             "emitter": self.emitter,
+            "initial_global_time": self.initial_global_time,
         }
         if self.experiment_id:
             # Store backup of base experiment ID,
@@ -781,9 +830,21 @@ class EcoliSim:
 
         # run the experiment
         if self.save:
-            self.save_states()
+            self.save_states(self.daughter_outdir)
         else:
-            self.ecoli_experiment.update(self.total_time)
+            try:
+                self.ecoli_experiment.update(self.total_time)
+            except DivisionDetected:
+                state = self.ecoli_experiment.state.get_value(condition=not_a_process)
+                assert len(state["agents"]) == 2
+                for i, agent_state in enumerate(state["agents"].values()):
+                    prepare_save_state(agent_state)
+                    daughter_path = os.path.join(
+                        self.daughter_outdir, f"daughter_state_{i}.json"
+                    )
+                    write_json(daughter_path, agent_state)
+                print(f"Divided at t = {self.ecoli_experiment.global_time}.")
+                sys.exit()
         self.ecoli_experiment.end()
         if self.profile:
             report_profiling(self.ecoli_experiment.stats)
@@ -855,6 +916,31 @@ class EcoliSim:
         """
         return str(serialize_value(self.get_metadata()))
 
+    def get_output_metadata(self) -> dict[str, Any]:
+        """
+        Filters all ports schemas to include only output metadata
+        located at the path ('_properties', 'metadata') for each schema.
+        See :py:meth:`~ecoli.library.schema.listener_schema` for usage details.
+        """
+        if self.divide:
+            processes_and_steps = self.ecoli.processes["agents"][self.agent_id]
+            processes_and_steps.update(self.ecoli.steps["agents"][self.agent_id])
+            topologies = self.ecoli.topology["agents"][self.agent_id]
+        else:
+            processes_and_steps = self.ecoli.processes
+            processes_and_steps.update(self.ecoli.steps)
+            topologies = self.ecoli.topology
+        output_metadata = {}
+        for proc_name, proc in processes_and_steps.items():
+            proc_ports_schema = proc.get_schema()
+            extracted = extract_metadata(proc_ports_schema)
+            if extracted:
+                extracted = inverse_topology((), extracted, topologies[proc_name])
+                output_metadata = deep_merge_check(
+                    output_metadata, extracted, check_equality=True
+                )
+        return output_metadata
+
     def export_json(self, filename: str = CONFIG_DIR_PATH + "export.json"):
         """
         Saves current simulation settings along with git hash and final list
@@ -868,6 +954,39 @@ class EcoliSim:
             f.write(self.to_json_string())
 
 
+def extract_metadata(ports_schema: dict[str, Any], properties: bool = False):
+    """
+    Filters ports schema to contain only a mapping of ports to user-supplied
+    metadata (pulled from path `('_properties', 'metadata')` for each schema).
+    See :py:meth:`~ecoli.library.schema.listener_schema` for usage details.
+
+    Args:
+        ports_schema: Ports schema to filter and compile metadata for
+        properties: Flag used internally during recursive filtering
+    Returns:
+        Dictionary with same structure as ports schema but with only metadata
+        as leaf nodes instead of complete schema
+    """
+    extracted = {}
+
+    if "_properties" in ports_schema and isinstance(ports_schema["_properties"], dict):
+        return extract_metadata(ports_schema["_properties"], True)
+
+    if properties and "metadata" in ports_schema:
+        metadata = ports_schema["metadata"]
+        if isinstance(metadata, np.ndarray):
+            metadata = metadata.tolist()
+        return metadata
+
+    for port, schema in ports_schema.items():
+        if isinstance(schema, dict):
+            subextracted = extract_metadata(schema)
+            if subextracted is not None:
+                extracted[port] = subextracted
+
+    return extracted or None
+
+
 def main():
     """
     Runs a simulation with CLI options.
@@ -876,12 +995,10 @@ def main():
         Parallelizing processes (e.g. ``--parallel``) is not recommended
         because the overhead outweighs any performance advantage. This could
         change in the future if a computationally intensive process is
-        introduced in the future that makes the model faster to run in parallel
+        introduced that makes the model faster to run in parallel
         instead of sequentially.
     """
-    import multiprocessing
-
-    multiprocessing.set_start_method("spawn")
+    # import multiprocessing; multiprocessing.set_start_method('spawn')
     ecoli_sim = EcoliSim.from_cli()
     ecoli_sim.build_ecoli()
     ecoli_sim.run()

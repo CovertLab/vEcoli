@@ -29,7 +29,7 @@ class MarkDPeriod(Step):
     def ports_schema(self):
         return {
             "full_chromosome": {},
-            "global_time": {"_default": 0},
+            "global_time": {"_default": 0.0},
             "divide": {
                 "_default": False,
                 "_updater": "set",
@@ -163,4 +163,27 @@ class Division(Step):
                     "_divide": {"mother": self.agent_id, "daughters": daughter_updates}
                 }
             }
+        return {}
+
+
+class DivisionDetected(Exception):
+    pass
+
+
+class StopAfterDivision(Step):
+    """
+    Detect division and raise an exception that must be caught.
+    """
+
+    name = "stop-after-division"
+
+    def ports_schema(self):
+        return {
+            "agents": {"*": {}},
+        }
+
+    def next_update(self, timestep, states):
+        # Raise exception once division has occurred
+        if len(states["agents"]) > 1:
+            raise DivisionDetected("More than one cell in agents store.")
         return {}

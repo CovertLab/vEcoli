@@ -1611,8 +1611,8 @@ def initialize_translation(
         # Randomly place ribosomes along the length of each mRNA, capped by the
         # mRNA length expected from the full polypeptide length to prevent
         # ribosomes from overshooting full peptide lengths
-        cistron_start_positions_on_mRNA[start_index : start_index + protein_counts] = np.repeat(
-            cistron_start_positions, n_ribosomes_per_RNA
+        cistron_start_positions_on_mRNA[start_index : start_index + protein_counts] = (
+            np.repeat(cistron_start_positions, n_ribosomes_per_RNA)
         )
         positions_on_mRNA_from_cistron_start_site[
             start_index : start_index + protein_counts

@@ -605,11 +605,13 @@ class GrowthRateParameters(object):
     def _fit_ribosome_elongation_rate_by_ppgpp(self, ppgpp, rate):
         ppgpp_units = units.umol / units.L
         rate_units = units.getUnit(rate)
+
         def f(x):
             return np.linalg.norm(
                 x[0] / (1 + (ppgpp.asNumber(ppgpp_units) / x[1]) ** x[2])
                 - rate.asNumber(rate_units)
             )
+
         x0 = [22, 100, 1.5]
         sol = minimize(f, x0)
         vmax, KI, H = sol.x

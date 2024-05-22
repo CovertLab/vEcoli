@@ -90,7 +90,7 @@ class Equilibrium(PartitionedProcess):
                     **listener_schema(
                         {
                             "reaction_rates": (
-                                [0] * len(self.reaction_ids),
+                                [0.0] * len(self.reaction_ids),
                                 self.reaction_ids,
                             )
                         }

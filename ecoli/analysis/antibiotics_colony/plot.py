@@ -40,6 +40,7 @@ import pandas as pd
 from scipy.constants import N_A
 from scipy.stats import spearmanr
 import seaborn as sns
+from typing import Any
 from vivarium.library.dict_utils import deep_merge
 
 from ecoli.analysis.antibiotics_colony import (
@@ -55,6 +56,7 @@ from ecoli.analysis.antibiotics_colony.exploration import (
     plot_ampc_phylo,
 )
 from ecoli.analysis.antibiotics_colony.timeseries import (
+    make_tag_video,
     plot_field_snapshots,
     plot_tag_snapshots,
     plot_timeseries,
@@ -1241,13 +1243,31 @@ def make_figure_s10(data, metadata):
     print("Done with Figure S10.")
 
 
+def make_figure_videos(data: pd.DataFrame, metadata: dict[str, Any]):
+    """
+    One-off video of sub-generational ampC expression and cell death at MIC.
+    """
+    data["AmpC monomer (\u03bcM)"] = (
+        data["AmpC monomer"]
+        / (data.loc[:, "Volume"] * 0.2)
+        * COUNTS_PER_FL_TO_NANOMOLAR
+        / 1000
+    )
+    make_tag_video(
+        data=data,
+        metadata=metadata,
+        tag_colors={"AmpC monomer (\u03bcM)": (0.6, 1, 1)},
+        out_prefix="ampicillin_2mg_L",
+    )
+
+
 def load_exp_data(experiment_ids):
     data = []
     metadata = {}
     for exp_id in experiment_ids:
         exp_data = pd.read_csv(
             f"data/colony_data/sim_dfs/{exp_id}.csv",
-            dtype={"Agent ID": str, "Seed": str},
+            dtype={"Agent ID": str, "Seed": int},
             index_col=0,
         )
         if exp_data.loc[:, "Dry mass"].iloc[-1] == 0:
@@ -1355,7 +1375,7 @@ def main():
             "Ampicillin (2 mg/L)",
             "Ampicillin (4 mg/L)",
         ],
-        "4e": ["Glucose", "Ampicillin (2 mg/L)"],
+        "videos": ["Ampicillin (2 mg/L)"],
     }
     seeds = {
         "1a": [10000],
@@ -1377,6 +1397,7 @@ def main():
         "4c": [0],
         "4m": [0],
         "4n": [0],
+        "videos": [0],
     }
 
     parser = argparse.ArgumentParser()

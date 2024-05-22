@@ -243,14 +243,14 @@ class Metabolism(Step):
                     {
                         "media_id": "",
                         "conc_updates": (
-                            [0] * len(self.conc_update_molecules),
+                            [0.0] * len(self.conc_update_molecules),
                             self.conc_update_molecules,
                         ),
                         "catalyst_counts": (
                             [0] * len(self.model.catalyst_ids),
                             self.model.catalyst_ids,
                         ),
-                        "translation_gtp": 0,
+                        "translation_gtp": 0.0,
                         "coefficient": 0.0,
                         "unconstrained_molecules": (
                             [False] * len(self.exchange_molecules),
@@ -261,7 +261,7 @@ class Metabolism(Step):
                             self.exchange_molecules,
                         ),
                         "uptake_constraints": (
-                            [None] * len(self.exchange_molecules),
+                            [-1.0] * len(self.exchange_molecules),
                             self.exchange_molecules,
                         ),
                         "delta_metabolites": (
@@ -269,36 +269,36 @@ class Metabolism(Step):
                             self.model.metaboliteNamesFromNutrients,
                         ),
                         "reaction_fluxes": (
-                            [0] * len(self.fba_reaction_ids),
+                            [0.0] * len(self.fba_reaction_ids),
                             self.fba_reaction_ids,
                         ),
                         "external_exchange_fluxes": (
-                            [0] * len(self.externalMoleculeIDs),
+                            [0.0] * len(self.externalMoleculeIDs),
                             self.externalMoleculeIDs,
                         ),
-                        "objective_value": 0,
+                        "objective_value": 0.0,
                         "shadow_prices": (
-                            [0] * len(self.outputMoleculeIDs),
+                            [0.0] * len(self.outputMoleculeIDs),
                             self.outputMoleculeIDs,
                         ),
                         "reduced_costs": (
-                            [0] * len(self.fba_reaction_ids),
+                            [0.0] * len(self.fba_reaction_ids),
                             self.fba_reaction_ids,
                         ),
                         "target_concentrations": (
-                            [0] * len(self.homeostaticTargetMolecules),
+                            [0.0] * len(self.homeostaticTargetMolecules),
                             self.homeostaticTargetMolecules,
                         ),
                         "homeostatic_objective_values": (
-                            [0] * len(self.homeostaticTargetMolecules),
+                            [0.0] * len(self.homeostaticTargetMolecules),
                             self.homeostaticTargetMolecules,
                         ),
                         "kinetic_objective_values": (
-                            [0] * len(self.kineticTargetFluxNames),
+                            [0.0] * len(self.kineticTargetFluxNames),
                             self.kineticTargetFluxNames,
                         ),
                         "base_reaction_fluxes": (
-                            [0] * len(self.base_reaction_ids),
+                            [0.0] * len(self.base_reaction_ids),
                             self.base_reaction_ids,
                         ),
                         # 'estimated_fluxes': {},
@@ -326,22 +326,22 @@ class Metabolism(Step):
                         ),
                         "counts_to_molar": 1.0,
                         "actual_fluxes": (
-                            [0] * len(self.model.kinetics_constrained_reactions),
+                            [0.0] * len(self.model.kinetics_constrained_reactions),
                             self.model.kinetics_constrained_reactions,
                         ),
                         "target_fluxes": (
-                            [0] * len(self.model.kinetics_constrained_reactions),
+                            [0.0] * len(self.model.kinetics_constrained_reactions),
                             self.model.kinetics_constrained_reactions,
                         ),
                         "target_fluxes_upper": (
-                            [0] * len(self.model.kinetics_constrained_reactions),
+                            [0.0] * len(self.model.kinetics_constrained_reactions),
                             self.model.kinetics_constrained_reactions,
                         ),
                         "target_fluxes_lower": (
-                            [0] * len(self.model.kinetics_constrained_reactions),
+                            [0.0] * len(self.model.kinetics_constrained_reactions),
                             self.model.kinetics_constrained_reactions,
                         ),
-                        "target_aa_conc": ([0] * len(self.aa_names), self.aa_names),
+                        "target_aa_conc": ([0.0] * len(self.aa_names), self.aa_names),
                     }
                 ),
             },
@@ -353,19 +353,19 @@ class Metabolism(Step):
                     "_divider": "empty_dict",
                 },
                 "gtp_to_hydrolyze": {
-                    "_default": 0,
+                    "_default": 0.0,
                     "_emit": True,
                     "_updater": "set",
                     "_divider": "zero",
                 },
                 "aa_exchange_rates": {
-                    "_default": 0,
+                    "_default": 0.0,
                     "_emit": True,
                     "_updater": "set",
                     "_divider": "zero",
                 },
             },
-            "global_time": {"_default": 0},
+            "global_time": {"_default": 0.0},
             "timestep": {"_default": self.parameters["time_step"]},
             "next_update_time": {
                 "_default": self.parameters["time_step"],
@@ -650,7 +650,7 @@ class Metabolism(Step):
                     "target_fluxes_upper": upper_targets / timestep,
                     "target_fluxes_lower": lower_targets / timestep,
                     "target_aa_conc": [
-                        self.aa_targets.get(id_, 0) for id_ in self.aa_names
+                        self.aa_targets.get(id_, 0.0) for id_ in self.aa_names
                     ],
                 },
             },
@@ -689,7 +689,7 @@ class Metabolism(Step):
                         "Warning: updated amino acid target for "
                         f"{aa} was negative - adjusted to be positive."
                     )
-                    self.aa_targets[aa] = 1
+                    self.aa_targets[aa] = 1.0
 
         # First time step of a simulation so set target to current counts to
         # prevent concentration jumps between generations
@@ -697,7 +697,7 @@ class Metabolism(Step):
             for aa, counts in amino_acid_counts.items():
                 if aa in self.aa_targets_not_updated:
                     continue
-                self.aa_targets[aa] = counts
+                self.aa_targets[aa] = float(counts)
 
         conc_updates = {
             aa: counts * counts_to_molar for aa, counts in self.aa_targets.items()

@@ -11,6 +11,7 @@ from mpl_toolkits.axes_grid1 import anchored_artists
 
 from ecoli.analysis.antibiotics_colony import COUNTS_PER_FL_TO_NANOMOLAR, restrict_data
 from ecoli.plots.snapshots import plot_snapshots, plot_tags
+from ecoli.plots.snapshots_video import make_video
 
 
 def plot_timeseries(
@@ -222,9 +223,9 @@ def plot_field_snapshots(
     seed = data.loc[:, "Seed"].unique()[0]
     data = data.sort_values("Time")
     # Get field data at five equidistant time points
-    condition_fields = metadata[condition][seed]["fields"]
+    condition_fields = metadata[condition][str(seed)]["fields"]
     condition_fields = {time: condition_fields[time] for time in data["Time"]}
-    condition_bounds = metadata[condition][seed]["bounds"]
+    condition_bounds = metadata[condition][str(seed)]["bounds"]
     # Convert data back to dictionary form for snapshot plot
     snapshot_data = {}
     for time, agent_id, boundary in zip(
@@ -443,3 +444,90 @@ def plot_tag_snapshots(
         out_dir = "out/analysis/paper_figures/"
         snapshots_fig.savefig(os.path.join(out_dir, out_name), bbox_inches="tight")
         plt.close(snapshots_fig)
+
+
+def make_tag_video(
+    data: pd.DataFrame,
+    metadata: Dict[str, Dict[int, Dict[str, Any]]],
+    tag_colors: Dict[str, Any] = None,
+    conc: bool = False,
+    min_color: Any = (0, 0, 0),
+    out_prefix: str = None,
+    show_membrane: bool = False,
+    highlight_agent=None,
+) -> None:
+    """Make a video of snapshot images that span a replicate for a condition.
+    In each of these videos, cells will be will be colored with highlight_color
+    and intensity corresponding to their value of highlight_column.
+
+    Args:
+        data: DataFrame where each row is an agent and each column is a variable
+            of interest. Must have these columns: 'Time', 'Death', 'Agent ID',
+            'Boundary', 'Condition', and 'Seed'. 1 condition/seed at a time.
+        metadata: Nested dictionary where each condition is an outer key and each
+            initial seed is an inner key. Each seed point to a dictionary with the
+            following keys: 'bounds' is of the form [x, y] and gives the dimensions
+            of the spatial environment and 'fields' is a dictionary timeseries of
+            the 'fields' Store for that condition and initial seed
+        tag_colors: Mapping column names in ``data`` to either RGB tuples or
+            dictionaries containing the ``cmp`` and ``norm`` keys for the
+            :py:class:`matplotlib.colors.Colormap` and
+            :py:class:`matplotlib.colors.Normalize` instances to use for that tag
+            If dictionaries are used, the ``min_color`` key is overrriden
+        conc: Whether to normalize by volume before plotting
+        min_color: Color for cells with lowest highlight_column value (default black)
+        out_prefix: Prefix for output filename
+        show_membrane: Whether to draw outline for agents
+        figsize: Desired size of entire figure
+        highlight_agent: Mapping of agent IDs to `membrane_color` and `membrane_width`.
+            Useful for highlighting specific agents, with rest using defaults
+    """
+    for highlight_column, tag_color in tag_colors.items():
+        # Get first SPLIT_TIME seconds from condition #1 and rest from condition #2
+        data = restrict_data(data)
+        # Sort values by time for ease of plotting later
+        data = data.sort_values("Time")
+        seed = data.loc[:, "Seed"].unique()[0]
+        if conc:
+            # Convert to concentrations
+            data = data.set_index(["Condition", "Time", "Agent ID"])
+            data = data.divide(data["Volume"], axis=0).drop(["Volume"], axis=1)
+            data = data * COUNTS_PER_FL_TO_NANOMOLAR
+            data = data.reset_index()
+        condition_bounds = metadata[min(metadata)][str(seed)]["bounds"]
+        # Convert data back to dictionary form for snapshot plot
+        snapshot_data = {}
+        for time, agent_id, boundary, column in zip(
+            data["Time"], data["Agent ID"], data["Boundary"], data[highlight_column]
+        ):
+            data_at_time = snapshot_data.setdefault(time, {})
+            agents_at_time = data_at_time.setdefault("agents", {})
+            agent_at_time = agents_at_time.setdefault(agent_id, {})
+            agent_at_time["boundary"] = boundary
+            agent_at_time[highlight_column] = column
+        if show_membrane:
+            membrane_width = 0.1
+        else:
+            membrane_width = 0
+        make_video(
+            data=snapshot_data,
+            bounds=condition_bounds,
+            plot_type="tags",
+            filename=out_prefix + "_snapshot_vid",
+            scale_bar_length=5,
+            membrane_width=membrane_width,
+            membrane_color=(1, 1, 1),
+            colorbar_decimals=1,
+            background_color="white",
+            min_color=min_color,
+            tag_colors={(highlight_column,): tag_color},
+            tagged_molecules=[(highlight_column,)],
+            default_font_size=18,
+            tag_label_size=18,
+            convert_to_concs=False,
+            tag_path_name_map={(highlight_column,): highlight_column},
+            xlim=[15, 35],
+            ylim=[15, 35],
+            highlight_agent=highlight_agent,
+            figsize=(12, 6),
+        )

@@ -84,7 +84,7 @@ class Requester(Step):
             "_divider": "null",
             "_emit": False,
         }
-        ports["global_time"] = {"_default": 0}
+        ports["global_time"] = {"_default": 0.0}
         ports["timestep"] = {"_default": process.parameters["time_step"]}
         ports["next_update_time"] = {
             "_default": process.parameters["timestep"],
@@ -162,7 +162,7 @@ class Evolver(Step):
             "_divider": "null",
             "_emit": False,
         }
-        ports["global_time"] = {"_default": 0}
+        ports["global_time"] = {"_default": 0.0}
         ports["timestep"] = {"_default": process.parameters["timestep"]}
         ports["next_update_time"] = {
             "_default": process.parameters["timestep"],

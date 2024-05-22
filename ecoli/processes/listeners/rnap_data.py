@@ -54,16 +54,14 @@ class RnapData(Step):
             "listeners": {
                 "rnap_data": listener_schema(
                     {
-                        "rna_init_event": np.zeros(n_TUs),
+                        "rna_init_event": np.zeros(n_TUs, dtype=np.int64),
                         "active_rnap_coordinates": [],
                         "active_rnap_domain_indexes": [],
                         "active_rnap_unique_indexes": [],
                         "active_rnap_on_stable_RNA_indexes": [],
                         "active_rnap_n_bound_ribosomes": [],
-                        "rna_init_event_per_cistron": (
-                            [0] * len(self.cistron_ids),
-                            self.cistron_ids,
-                        ),
+                        # 'rna_init_event_per_cistron': ([0] * len(self.cistron_ids),
+                        #     self.cistron_ids)
                     }
                 )
             },
@@ -74,7 +72,7 @@ class RnapData(Step):
             "active_ribosomes": numpy_schema(
                 "active_ribosome", emit=self.parameters["emit_unique"]
             ),
-            "global_time": {"_default": 0},
+            "global_time": {"_default": 0.0},
             "timestep": {"_default": self.parameters["time_step"]},
             "next_update_time": {
                 "_default": self.parameters["time_step"],
@@ -140,9 +138,11 @@ class RnapData(Step):
                         ]
                     ),
                     # Calculate hypothetical RNA initiation events per cistron
-                    "rna_init_event_per_cistron": self.cistron_tu_mapping_matrix.dot(
-                        states["listeners"]["rnap_data"]["rna_init_event"]
-                    ),
+                    # Turned this off because it is a very large emit that can
+                    # be easily calculated after the simulation is complete
+                    # 'rna_init_event_per_cistron': \
+                    #     self.cistron_tu_mapping_matrix.dot(
+                    #         states['listeners']['rnap_data']['rna_init_event']),
                 }
             },
             "next_update_time": states["global_time"] + states["timestep"],

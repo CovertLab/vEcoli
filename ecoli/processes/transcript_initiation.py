@@ -292,16 +292,19 @@ class TranscriptInitiation(PartitionedProcess):
                 "mass": {"cell_mass": {"_default": 0.0}, "dry_mass": {"_default": 0.0}},
                 "rna_synth_prob": listener_schema(
                     {
-                        "target_rna_synth_prob": 0,
-                        "actual_rna_synth_prob": 0,
-                        "tu_is_overcrowded": ([0] * self.n_TUs, self.rna_data["id"]),
+                        "target_rna_synth_prob": [0.0],
+                        "actual_rna_synth_prob": [0.0],
+                        "tu_is_overcrowded": (
+                            [False] * self.n_TUs,
+                            self.rna_data["id"],
+                        ),
                         "total_rna_init": 0,
                     }
                 ),
                 "ribosome_data": listener_schema(
                     {
                         "rRNA_initiated_TU": [0] * len(self.idx_rRNA),
-                        "rRNA_init_prob_TU": [0] * len(self.idx_rRNA),
+                        "rRNA_init_prob_TU": [0.0] * len(self.idx_rRNA),
                         "total_rna_init": 0,
                     }
                 ),
@@ -442,7 +445,7 @@ class TranscriptInitiation(PartitionedProcess):
                 "ribosome_data": {"total_rna_init": 0},
                 "rnap_data": {
                     "did_initialize": 0,
-                    "rna_init_event": np.zeros(self.n_TUs),
+                    "rna_init_event": np.zeros(self.n_TUs, dtype=np.int64),
                 },
             },
             "active_RNAPs": {},
@@ -465,6 +468,7 @@ class TranscriptInitiation(PartitionedProcess):
         TU_to_promoter = scipy.sparse.csr_matrix(
             (np.ones(n_promoters), (TU_index, np.arange(n_promoters))),
             shape=(self.n_TUs, n_promoters),
+            dtype=np.int8,
         )
 
         # Compute target synthesis probabilities of each transcription unit
@@ -578,14 +582,14 @@ class TranscriptInitiation(PartitionedProcess):
 
         # Write outputs to listeners
         update["listeners"]["ribosome_data"] = {
-            "rRNA_initiated_TU": rRNA_initiations,
+            "rRNA_initiated_TU": rRNA_initiations.astype(int),
             "rRNA_init_prob_TU": rRNA_initiations / float(n_RNAPs_to_activate),
             "total_rna_init": n_RNAPs_to_activate,
         }
 
         update["listeners"]["rnap_data"] = {
             "did_initialize": n_RNAPs_to_activate,
-            "rna_init_event": rna_init_event,
+            "rna_init_event": rna_init_event.astype(np.int64),
         }
 
         update["listeners"]["rna_synth_prob"]["total_rna_init"] = n_RNAPs_to_activate
@@ -1097,7 +1101,7 @@ def test_transcript_initiation(return_data=False):
             np.sum(inits_by_TU[:, test_config["idx_rRNA"]]),
         ]
     )
-    RNA_dist /= sum(RNA_dist)
+    RNA_dist = RNA_dist / RNA_dist.sum()
 
     RNA_synth_prob_test = chisquare(
         RNA_dist, [v for v in test_config["rnaSynthProbFractions"]["minimal"].values()]
@@ -1116,7 +1120,7 @@ def run_plot(config, data):
     N = len(data["time"])
     timestep = config["time_step"]
     inits_by_TU = np.stack(data["listeners"]["rnap_data"]["rna_init_event"][1:])
-    synth_probs = np.array(data["listeners"]["rna_synth_prob"]["rna_synth_prob"][1:])
+    synth_probs = np.array(data["listeners"]["rna_synth_prob"]["actual_rna_synth_prob"][1:])
 
     # plot synthesis probabilities over time
     plt.subplot(2, 2, 1)
