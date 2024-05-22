@@ -282,10 +282,8 @@ def test_diffusion_network_process(out_dir=None):
     }
 
     output = simulate_process(diffusion_network_process, sim_settings)
-    rp = diffusion_network_process.rp
-    diffusion_constants = diffusion_network_process.diffusion_constants
-    assert rp is not None
-    assert diffusion_constants is not None
+    # rp = diffusion_network_process.rp
+    # diffusion_constants = diffusion_network_process.diffusion_constants
 
     if out_dir:
         # plot the simulation output

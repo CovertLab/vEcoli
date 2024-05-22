@@ -168,7 +168,9 @@ def plot_activity(
 
 
 def plot_motor_PMF(output, out_dir="out", figname="motor_PMF"):
+    # motile_state = output["motile_state"]
     thrust = output["thrust"]
+    # motile_torque = output["motile_torque"]
     PMF = output["PMF"]
 
     # plot results

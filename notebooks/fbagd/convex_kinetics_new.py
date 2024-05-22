@@ -285,7 +285,7 @@ class ConvexKineticsNew:
         y_p,
         LSE_expr,
         denom_expr,
-        l_var=0.001,
+        l_val=0.001,
         e=0.001,
         f=0.01,
     ):
@@ -307,7 +307,7 @@ class ConvexKineticsNew:
             loss += cp.norm1(cp.pos(cp.log_sum_exp(LSE_expr[i])))
         for i in range(len(denom_expr)):
             loss += f * denom_expr[i]
-        loss += l_var * l1 + e * prior
+        loss += l_val * l1 + e * prior
 
         return loss
 

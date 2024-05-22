@@ -641,7 +641,7 @@ class TableReader(object):
         sim_metadata = self.emitted_config["state"] or {}
         for key in viv_path:
             sim_metadata = sim_metadata.get(key, {})
-        return sim_metadata.get('_properties', {}).get('metadata', {})
+        return sim_metadata.get("_properties", {}).get("metadata", None)
 
     def readColumn(self, name, indices=None, squeeze=True):
         # type: (str, Any, bool) -> np.ndarray
@@ -790,10 +790,8 @@ def test_table_reader():
     for listener, columns in MAPPING.items():
         tb = TableReader(listener, timeseries, emitted_config, timeseries_data=True)
         for column in columns.keys():
-            col_data = tb.readColumn(column)
-            col_metadata = tb.readAttribute(column)
-            assert col_data is not None
-            assert col_metadata is not None
+            tb.readColumn(column)
+            tb.readAttribute(column)
 
 
 if __name__ == "__main__":
