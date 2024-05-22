@@ -4,9 +4,11 @@ from vivarium.library.units import units as vivarium_units
 
 
 def remove_units(
-    quantity_tree: dict[str, Any], expected_units_tree: dict[str, Any]=None, 
-    path: tuple[str]=tuple()) -> tuple[dict[str, Any], dict[str, Any]]:
-    '''Split a tree of Quantities into units and magnitudes.
+    quantity_tree: dict[str, Any],
+    expected_units_tree: dict[str, Any] = None,
+    path: tuple[str] = tuple(),
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    """Split a tree of Quantities into units and magnitudes.
 
     Args:
         quantity_tree: The nested dictionary representing the tree of
@@ -31,16 +33,14 @@ def remove_units(
     Raises:
         ValueError: If a leaf node in ``quantity_tree`` unexpectedly has
             no units.
-    '''
+    """
     expected_units_tree = expected_units_tree or {}
     converted_state = {}
     saved_units = {}
     for key, value in quantity_tree.items():
         if isinstance(value, dict):
             value_no_units, new_saved_units = remove_units(
-                value,
-                expected_units_tree.get(key),
-                path + (key,)
+                value, expected_units_tree.get(key), path + (key,)
             )
             converted_state[key] = value_no_units
             saved_units[key] = new_saved_units
@@ -54,17 +54,17 @@ def remove_units(
         else:
             if expected_units_tree.get(key):
                 path = path + (key,)
-                raise ValueError(f'Units missing at {path}')
+                raise ValueError(f"Units missing at {path}")
             converted_state[key] = value
 
     return converted_state, saved_units
 
 
 def add_units(magnitudes, units, strict=True):
-    '''Combine a tree of magnitudes with a tree of units.
+    """Combine a tree of magnitudes with a tree of units.
 
     Intended to be used as the inverse of ``remove_units()``.
-    '''
+    """
     combined = magnitudes.copy()
     for key, sub_units in units.items():
         if key not in combined and not strict:
@@ -79,30 +79,30 @@ def add_units(magnitudes, units, strict=True):
 
 def test_add_remove_units():
     original = {
-        'a': {
-            'b': 1 * vivarium_units.m,
-            'c': 2 * vivarium_units.m,
+        "a": {
+            "b": 1 * vivarium_units.m,
+            "c": 2 * vivarium_units.m,
         },
-        'd': 3,
+        "d": 3,
     }
     expected_units = {
-        'a': {
-            'b': vivarium_units.mm,
+        "a": {
+            "b": vivarium_units.mm,
         }
     }
     magnitudes, units = remove_units(original, expected_units)
 
     expected_magnitudes = {
-        'a': {
-            'b': 1000,
-            'c': 2,
+        "a": {
+            "b": 1000,
+            "c": 2,
         },
-        'd': 3,
+        "d": 3,
     }
     expected_units = {
-        'a': {
-            'b': vivarium_units.mm,
-            'c': vivarium_units.m,
+        "a": {
+            "b": vivarium_units.mm,
+            "c": vivarium_units.m,
         }
     }
     assert magnitudes == expected_magnitudes
@@ -111,10 +111,10 @@ def test_add_remove_units():
     combined = add_units(magnitudes, units)
 
     expected_combined = {
-        'a': {
-            'b': 1000 * vivarium_units.mm,
-            'c': 2 * vivarium_units.m,
+        "a": {
+            "b": 1000 * vivarium_units.mm,
+            "c": 2 * vivarium_units.m,
         },
-        'd': 3,
+        "d": 3,
     }
     assert combined == expected_combined

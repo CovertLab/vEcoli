@@ -41,14 +41,12 @@ def load_data(
     # Load glc data
     if verbose:
         print("Loading glucose data...")
-    glc_data = pd.read_csv(glc_data, dtype={
-        'Agent ID': str, 'Seed': str}, index_col=0)
+    glc_data = pd.read_csv(glc_data, dtype={"Agent ID": str, "Seed": str}, index_col=0)
 
     # Load amp data
     if verbose:
         print("Loading ampicillin data...")
-    amp_data = pd.read_csv(amp_data, dtype={
-        'Agent ID': str, 'Seed': str}, index_col=0)
+    amp_data = pd.read_csv(amp_data, dtype={"Agent ID": str, "Seed": str}, index_col=0)
 
     # Validate data:
     # - glc_data must be in Glucose condition,
@@ -66,20 +64,13 @@ def load_data(
         "Ampicillin" in amp_data_condition
     ), "amp_data was not from Ampicillin condition!"
     assert (
-        glc_data["Seed"].unique().size
-        == amp_data["Seed"].unique().size
-        == 1
-    ), (
-        "One of glc_data or amp_data has data for more than one seed!"
-    )
+        glc_data["Seed"].unique().size == amp_data["Seed"].unique().size == 1
+    ), "One of glc_data or amp_data has data for more than one seed!"
     glc_data_seed = glc_data["Seed"].unique()[0]
     amp_data_seed = amp_data["Seed"].unique()[0]
     assert (
-        glc_data_seed
-        == amp_data_seed
-    ), (
-        "Seeds do not match across glc_data and amp_data!"
-    )
+        glc_data_seed == amp_data_seed
+    ), "Seeds do not match across glc_data and amp_data!"
 
     # Merge dataframes from before/after addition of ampicillin
     amp_data = pd.concat([glc_data[glc_data.Time < amp_data.Time.min()], amp_data])
@@ -125,17 +116,15 @@ def agent_summary(data, var_summarizers):
 
     for var, summarization in var_summarizers.items():
         if summarization == "mean":
-            summarizer = lambda c: c.mean()
+            cols.append(data.groupby("Agent ID")[var].mean())
         elif summarization == "min":
-            summarizer = lambda c: c.min()
+            cols.append(data.groupby("Agent ID")[var].min())
         elif summarization == "max":
-            summarizer = lambda c: c.max()
+            cols.append(data.groupby("Agent ID")[var].max())
         elif callable(summarization):
-            summarizer = summarization
+            cols.append(summarization(data.groupby("Agent ID")[var]))
         else:
             raise ValueError(f"{summarization} is not a recognized summarization.")
-
-        cols.append(summarizer(data.groupby("Agent ID")[var]))
 
     return pd.concat(cols, axis=1)
 
@@ -261,9 +250,7 @@ def make_figures(
         ),
     }
     fig, axs = plt.subplots(1, len(hour_variables))
-    for ax, (hour_variable, (label, ytickformat)) in zip(
-        axs, hour_variables.items()
-    ):
+    for ax, (hour_variable, (label, ytickformat)) in zip(axs, hour_variables.items()):
         if verbose:
             print(f"Plotting {hour_variable} timeseries...")
 
@@ -271,9 +258,7 @@ def make_figures(
         # be recalculated after division.
         hour_plot_data = amp_data
         if hour_variable in ["Porosity", "Max hole area (um^2)"]:
-            agent_initial_times = (
-                amp_data.groupby("Agent ID")["Time"].min().to_dict()
-            )
+            agent_initial_times = amp_data.groupby("Agent ID")["Time"].min().to_dict()
             hour_plot_data = amp_data[
                 amp_data.apply(
                     lambda r: r["Time"] >= 10 + agent_initial_times[r["Agent ID"]],
@@ -327,9 +312,7 @@ def make_figures(
             print(f"Making histogram plot for {factor}...")
 
         fig, ax = plt.subplots()
-        _, _, bins = hist_by_death_plot(
-            amp_data, factor, counts_to_conc=to_conc, ax=ax
-        )
+        _, _, bins = hist_by_death_plot(amp_data, factor, counts_to_conc=to_conc, ax=ax)
 
         leg = ax.get_legend()
         if leg:
@@ -529,8 +512,8 @@ def make_figures(
     with open(os.path.join(outdir, "violin_significance_tests.txt"), "w") as f:
         for var in violin_vars.keys():
             t, p = ttest_ind(
-                violin_data[violin_data["Died"] == False][var],
-                violin_data[violin_data["Died"] == True][var],
+                violin_data[~violin_data["Died"]][var],
+                violin_data[violin_data["Died"]][var],
             )
 
             p_bonferroni = p * len(violin_vars)
@@ -679,8 +662,6 @@ def hour_scale_plot(
 ):
     if not ax:
         _, ax = plt.subplots()
-
-    amp_time = data["Time"][data["Condition"].map(lambda s: "Ampicillin" in s)].min()
 
     plot_timeseries(
         data=data,

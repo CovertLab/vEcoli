@@ -1,14 +1,14 @@
-'''
+"""
 ================================
 Utilities for Converting Updates
 ================================
-'''
+"""
 
 import numpy as np
 
 
 def convert_numpy_to_builtins(update):
-    '''Convert an update to use Python builtins instead of Numpy types
+    """Convert an update to use Python builtins instead of Numpy types
 
     Convert the following:
 
@@ -21,7 +21,7 @@ def convert_numpy_to_builtins(update):
 
     Returns:
         The converted update.
-    '''
+    """
     if isinstance(update, np.int64):
         return int(update)
     if isinstance(update, np.str_):
@@ -30,15 +30,11 @@ def convert_numpy_to_builtins(update):
         return float(update)
     if isinstance(update, dict):
         return {
-            convert_numpy_to_builtins(key):
-            convert_numpy_to_builtins(val)
+            convert_numpy_to_builtins(key): convert_numpy_to_builtins(val)
             for key, val in update.items()
         }
     if isinstance(update, list):
-        return [
-            convert_numpy_to_builtins(elem)
-            for elem in update
-        ]
+        return [convert_numpy_to_builtins(elem) for elem in update]
     return update
 
 
@@ -52,28 +48,28 @@ def assert_types_equal(d1, d2):
 
 def test_convert_numpy_to_builtins():
     update = {
-        'a': {
-            'b': 5,
-            'c': np.float64(3.14),
-            'd': np.int64(5),
+        "a": {
+            "b": 5,
+            "c": np.float64(3.14),
+            "d": np.int64(5),
         },
-        np.str_('e'): {
-            'f': True,
-            'g': None,
-            'h': np.str_('hi'),
+        np.str_("e"): {
+            "f": True,
+            "g": None,
+            "h": np.str_("hi"),
         },
     }
     converted = convert_numpy_to_builtins(update)
     expected = {
-        'a': {
-            'b': 5,
-            'c': 3.14,
-            'd': 5,
+        "a": {
+            "b": 5,
+            "c": 3.14,
+            "d": 5,
         },
-        'e': {
-            'f': True,
-            'g': None,
-            'h': 'hi',
+        "e": {
+            "f": True,
+            "g": None,
+            "h": "hi",
         },
     }
     assert converted == expected

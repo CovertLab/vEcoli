@@ -21,7 +21,9 @@ def fit_strand_term_p(df, upper_mean):
 
     # Get mean of strands <= 30 in length
     lower_data = clean[clean.index != ">30"]
-    lower_mean = (np.array([int(x) for x in lower_data.index]) * lower_data["Percent"]).sum()
+    lower_mean = (
+        np.array([int(x) for x in lower_data.index]) * lower_data["Percent"]
+    ).sum()
 
     # Get overall mean
     p_upper = clean.loc[">30"]
@@ -33,7 +35,7 @@ def fit_strand_term_p(df, upper_mean):
 
 def sample_column(rows, murein_monomers, strand_sampler, rng, shift=True):
     result = np.zeros(rows, dtype=int)
-    
+
     # If no murein available, return full column hole
     if murein_monomers == 0:
         return result
@@ -89,9 +91,7 @@ def sample_lattice(murein_monomers, rows, cols, strand_sampler, rng):
     result = np.zeros((rows, cols), dtype=int)
 
     # Get murein in each column
-    murein_per_column = rng.multinomial(
-        murein_monomers, np.repeat([1 / cols], cols)
-    )
+    murein_per_column = rng.multinomial(murein_monomers, np.repeat([1 / cols], cols))
 
     for c, murein in enumerate(murein_per_column):
         result[:, c] = sample_column(rows, murein, strand_sampler, rng)

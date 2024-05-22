@@ -9,7 +9,7 @@ DATA = "data/cell_wall/cell_wall_test_rig_17_09_2022_00_41_51.csv"
 
 
 def run_experiment():
-    # Note: Processes will run before Steps after division, resulting in 
+    # Note: Processes will run before Steps after division, resulting in
     # a one timestep gap in accurate cell wall data. This problem goes
     # away when running in an EngineProcess, where the MureinDivision and
     # PBPBinding Steps immediately update all the relevant stores.
@@ -20,10 +20,10 @@ def run_experiment():
     )
     ecoli.total_time = total_time
     ecoli.build_ecoli()
-    ecoli.generated_initial_state['agents']['0']['division_threshold'] = 572.2
+    ecoli.generated_initial_state["agents"]["0"]["division_threshold"] = 572.2
 
     # Save list of bulk indices to index bulk emits
-    bulk_ids = ecoli.generated_initial_state['agents']['0']['bulk']['id']
+    bulk_ids = ecoli.generated_initial_state["agents"]["0"]["bulk"]["id"]
 
     ecoli.run()
     return ecoli.query(), bulk_ids
@@ -48,7 +48,7 @@ def validate_division(data, bulk_ids):
         assert cell_data["wall_state"]["lattice_rows"] == 0
         assert cell_data["wall_state"]["lattice_cols"] == 0
         assert cell_data["wall_state"]["extension_factor"] == 1
-        assert cell_data["wall_state"]["cracked"] == False
+        assert not cell_data["wall_state"]["cracked"]
         assert cell_data["murein_state"]["incorporated_murein"] == 0
         assert deserialize_value(cell_data["pbp_state"]["active_fraction_PBP1A"]) == 1
         assert deserialize_value(cell_data["pbp_state"]["active_fraction_PBP1B"]) == 1
@@ -67,10 +67,9 @@ def validate_division(data, bulk_ids):
     for _, cell_data in data[next_timestep]["agents"].items():
         assert cell_data["wall_state"]["lattice_rows"] > 0
         assert cell_data["wall_state"]["lattice_cols"] > 0
-        assert cell_data["wall_state"]["cracked"] == False
+        assert not cell_data["wall_state"]["cracked"]
         assert (
-            sum(cell_data["murein_state"].values())
-            == 4 * cell_data["bulk"][murein_idx]
+            sum(cell_data["murein_state"].values()) == 4 * cell_data["bulk"][murein_idx]
         )
 
 

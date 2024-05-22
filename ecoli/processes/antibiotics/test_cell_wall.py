@@ -10,8 +10,10 @@ from vivarium.library.dict_utils import get_value_from_path
 from vivarium.library.units import units
 from vivarium.plots.topology import plot_topology
 
-from ecoli.library.create_timeline import (add_computed_value_bulk,
-                                           create_bulk_timeline_from_df)
+from ecoli.library.create_timeline import (
+    add_computed_value_bulk,
+    create_bulk_timeline_from_df,
+)
 from ecoli.processes.antibiotics.cell_wall import CellWall
 from ecoli.processes.antibiotics.pbp_binding import PBPBinding
 from ecoli.processes.antibiotics.murein_division import MureinDivision
@@ -46,9 +48,7 @@ def create_composite(timeline_data, antibiotics=True):
                 value[("cell_global", "volume")]
             ),
             ("concentrations", "ampicillin"): (
-                10 * units.micromolar
-                if antibiotics and t > 0
-                else 0 * units.micromolar
+                10 * units.micromolar if antibiotics and t > 0 else 0 * units.micromolar
             ),
             ("bulk", "CPD-12261[p]"): int(value[("bulk", "CPD-12261[p]")]),
         },
@@ -59,7 +59,7 @@ def create_composite(timeline_data, antibiotics=True):
         "cell_wall": CellWall({}),
         "pbp_binding": PBPBinding({}),
         "murein-division": MureinDivision({}),
-        "bulk-timeline": BulkTimelineProcess(timeline)
+        "bulk-timeline": BulkTimelineProcess(timeline),
     }
     topology = {
         "cell_wall": {
@@ -77,20 +77,26 @@ def create_composite(timeline_data, antibiotics=True):
             "pbp_state": ("pbp_state",),
             "wall_state": ("wall_state",),
             "volume": ("cell_global", "volume"),
-            "first_update": ("first_update", "pbp_binding",)
+            "first_update": (
+                "first_update",
+                "pbp_binding",
+            ),
         },
         "murein-division": {
             "bulk": ("bulk",),
             "murein_state": ("murein_state",),
             "wall_state": ("wall_state",),
-            "first_update": ("first_update", "murein_division",)
+            "first_update": (
+                "first_update",
+                "murein_division",
+            ),
         },
         "bulk-timeline": {
             "bulk": ("bulk",),
             "cell_global": ("cell_global",),
             "concentrations": ("concentrations",),
-            "global": ("global",)
-        }
+            "global": ("global",),
+        },
     }
 
     # Create initial state
@@ -100,12 +106,15 @@ def create_composite(timeline_data, antibiotics=True):
     initial_volume = parse_unit_string(timeline_data.iloc[0]["Volume"])
 
     initial_state = {
-        "bulk": np.array([
-            ("CPD-12261[p]", initial_murein),
-            ("CPLX0-7717[m]", initial_PBP1A),
-            ("CPLX0-3951[i]", initial_PBP1B),
-            ("CPLX0-8300[c]", 0)
-        ], dtype=[('id', 'U40'), ('count', int)]),
+        "bulk": np.array(
+            [
+                ("CPD-12261[p]", initial_murein),
+                ("CPLX0-7717[m]", initial_PBP1A),
+                ("CPLX0-3951[i]", initial_PBP1B),
+                ("CPLX0-8300[c]", 0),
+            ],
+            dtype=[("id", "U40"), ("count", int)],
+        ),
         "murein_state": {
             "incorporated_murein": 0,
             "unincorporated_murein": initial_murein * 4,
@@ -170,10 +179,18 @@ def test_cell_wall():
         sim = Engine(composite=composite)
         sim.update(total_time)
         data = sim.emitter.get_timeseries()
-        data["cell_global"]["volume"] = data["cell_global"].pop(("volume", "femtoliter"))
-        data["concentrations"]["ampicillin"] = data["concentrations"].pop(("ampicillin", "micromolar"))
-        data["pbp_state"]["active_fraction_PBP1A"] = data["pbp_state"].pop(("active_fraction_PBP1A", "dimensionless"))
-        data["pbp_state"]["active_fraction_PBP1B"] = data["pbp_state"].pop(("active_fraction_PBP1B", "dimensionless"))
+        data["cell_global"]["volume"] = data["cell_global"].pop(
+            ("volume", "femtoliter")
+        )
+        data["concentrations"]["ampicillin"] = data["concentrations"].pop(
+            ("ampicillin", "micromolar")
+        )
+        data["pbp_state"]["active_fraction_PBP1A"] = data["pbp_state"].pop(
+            ("active_fraction_PBP1A", "dimensionless")
+        )
+        data["pbp_state"]["active_fraction_PBP1B"] = data["pbp_state"].pop(
+            ("active_fraction_PBP1B", "dimensionless")
+        )
         bulk_array = np.array(data["bulk"])
         data["bulk"] = {
             bulk_id: bulk_array[:, i]
