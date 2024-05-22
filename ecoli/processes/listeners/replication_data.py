@@ -38,12 +38,12 @@ class ReplicationData(Step):
             "listeners": {
                 "replication_data": listener_schema(
                     {
-                        "fork_coordinates": [0],
-                        "fork_domains": [0],
-                        "fork_unique_index": [0],
-                        "number_of_oric": [0],
-                        "free_DnaA_boxes": [0],
-                        "total_DnaA_boxes": [0],
+                        "fork_coordinates": [],
+                        "fork_domains": [],
+                        "fork_unique_index": [],
+                        "number_of_oric": [],
+                        "free_DnaA_boxes": [],
+                        "total_DnaA_boxes": [],
                     }
                 )
             },

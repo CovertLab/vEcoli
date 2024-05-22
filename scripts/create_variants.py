@@ -159,7 +159,7 @@ def test_parse_variants():
         "op": "prod",
     }
     parsed_params = parse_variants(variant_config)
-    assert set(parsed_params) == {
+    assert parsed_params == [
         {"a": 1, "b": "one", "c": {"d": 3, "e": 5}},
         {"a": 1, "b": "one", "c": {"d": 4, "e": 6}},
         {"a": 1, "b": "two", "c": {"d": 3, "e": 5}},
@@ -168,7 +168,7 @@ def test_parse_variants():
         {"a": 2, "b": "one", "c": {"d": 4, "e": 6}},
         {"a": 2, "b": "two", "c": {"d": 3, "e": 5}},
         {"a": 2, "b": "two", "c": {"d": 4, "e": 6}},
-    }
+    ]
 
 
 class SimData:
@@ -208,6 +208,9 @@ def test_create_variants():
         out_path = Path("test_create_variants/out")
         var_paths = out_path.glob("*.cPickle")
         for var_path in var_paths:
+            # Skip baseline
+            if var_path.stem == '0':
+                continue
             with open(var_path, "rb") as f:
                 variant_sim_data = pickle.load(f)
             variant_params = variant_metadata[var_path.stem]

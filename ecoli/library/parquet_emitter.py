@@ -286,7 +286,6 @@ class ParquetEmitter(Emitter):
             data = orjson.loads(data_str)
             encodings = {}
             schema = []
-            schema = []
             for k, v in data.items():
                 pa_type, encoding, field_name = get_encoding(v, k)
                 if encoding is not None:

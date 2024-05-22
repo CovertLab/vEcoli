@@ -5,7 +5,8 @@
     "description" : "",
     "progress_bar" : true,
     "sim_data_path": "reconstruction/sim_data/kb/simData.cPickle",
-    "emitter" : {"type": "parquet", "config": {"out_dir": "out"}},
+    "emitter" : "timeseries",
+    "emitter_arg": {},
     "emit_topology" : false,
     "emit_processes" : false,
     "emit_config" : false,
@@ -24,7 +25,7 @@
 
     "variants": {},
     "n_init_sims": 1,
-    "generations": 1,
+    "generations": null,
     "single_daughters": true,
     "daughter_outdir": "out",
     "lineage_seed": 0,
