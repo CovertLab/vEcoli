@@ -188,7 +188,9 @@ def test_create_variants():
         # Create mock sim_data pickle
         with open("test_create_variants/kb/simData.cPickle", "wb") as f:
             pickle.dump(SimData(), f)
+        repo_dir = os.path.dirname(os.path.dirname(__file__))
         # Test script and config system
+        os.environ['PYTHONPATH'] = repo_dir
         subprocess.run(
             [
                 "python",
@@ -201,6 +203,7 @@ def test_create_variants():
                 "test_create_variants/out",
             ],
             check=True,
+            env=os.environ
         )
         # Check that metadata aligns with variant sim_data attrs
         with open("test_create_variants/out/metadata.json") as f:
