@@ -1,9 +1,12 @@
 import argparse
 import json
 import os
+import pathlib
 import subprocess
 import warnings
 from datetime import datetime
+
+from pyarrow import fs
 
 CONFIG_DIR_PATH = os.path.join(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
@@ -88,19 +91,18 @@ def generate_lineage(
         - **sim_workflow**: Fully composed workflow for entire lineage
     """
     sim_imports = []
-    sim_workflow = [f"\tchannel.of( {seed}..{seed + n_init_sims} ).set {{ seedCh }}"]
+    sim_workflow = [f"\tchannel.of( {seed}..<{seed + n_init_sims} ).set {{ seedCh }}"]
 
     all_sim_tasks = []
     for gen in range(generations):
         name = f"sim_gen_{gen + 1}"
         # Handle special case of 1st generation
-        # Start with agent ID 1 to avoid leading zeros
         if gen == 0:
             sim_imports.append(
                 f"include {{ simGen0 as {name} }} from '{NEXTFLOW_DIR}/sim'")
+            # Start with agent ID 1 so no leading zeros
             sim_workflow.append((
-                f"\t{name}(params.config, "
-                "variantCh.combine(seedCh).combine([1]), '0')"
+                f"\t{name}(params.config, variantCh.combine(seedCh).combine([1]), '1')"
             ))
             all_sim_tasks.append(f"{name}.out.metadata")
             if not single_daughters:
@@ -271,7 +273,7 @@ def main():
         nf_profile = "sherlock"
 
     repo_dir = os.path.dirname(os.path.dirname(__file__))
-    out_dir = os.path.join(repo_dir, "out", experiment_id)
+    out_dir = os.path.join(repo_dir, "nextflow_temp", experiment_id)
     os.makedirs(out_dir, exist_ok=True)
     config_path = os.path.join(out_dir, "nextflow.config")
     with open(config_path, "w") as f:
@@ -291,6 +293,21 @@ def main():
     with open(workflow_path, "w") as f:
         f.writelines(nf_template)
 
+    try:
+        emitter_config = config['emitter']['config']
+        out_uri = emitter_config.get("out_uri", None)
+        if out_uri is None:
+            out_uri = (
+                pathlib.Path(emitter_config.get("out_dir", None)).resolve().as_uri()
+            )
+        filesystem, outdir = fs.FileSystem.from_uri(out_uri)
+    except KeyError:
+        raise KeyError("Missing out_dir or out_uri for emitter config.")
+    outdir = os.path.join(outdir, 'nextflow', experiment_id)
+    filesystem.create_dir(outdir)
+    filesystem.copy_file(workflow_path, os.path.join(outdir, 'main.nf'))
+    filesystem.copy_file(config_path, os.path.join(outdir, 'nextflow.config'))
+
     # Start nextflow workflow
     subprocess.run(
         [
@@ -303,6 +320,8 @@ def main():
             nf_profile,
             "-with-report",
             f"{experiment_id}_report.html",
+            "-work-dir",
+            os.path.join(out_uri, 'nextflow', experiment_id, 'work')
         ]
     )
 
