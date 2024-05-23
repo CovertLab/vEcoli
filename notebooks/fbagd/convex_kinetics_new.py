@@ -31,10 +31,16 @@ class ConvexKineticsNew:
 
         # TODO Refactor all the below lines as one liners. Also are they all necessary?
         # first coordinate, e.g. metabolites w nonzero substrate/product coeff across all reactions. also works as substrate indices.
-        met_s_nz, rxn_s_nz = S_s_nz
-        met_p_nz, rxn_p_nz = S_p_nz
-        met_i_nz, rxn_i_nz = S_i_nz if Sr is not None else None
-        met_a_nz, rxn_a_nz = S_a_nz if Sr is not None else None
+        met_s_nz = S_s_nz[0, :]
+        met_p_nz = S_p_nz[0, :]
+        met_i_nz = S_i_nz[0, :] if Sr is not None else None
+        met_a_nz = S_a_nz[0, :] if Sr is not None else None
+
+        # second coordinate, e.g. reactions indices for those concentrations. works to index substrates as well.
+        rxn_s_nz = S_s_nz[1, :]
+        rxn_p_nz = S_p_nz[1, :]
+        rxn_i_nz = S_i_nz[1, :] if Sr is not None else None
+        rxn_a_nz = S_a_nz[1, :] if Sr is not None else None
 
         # one dim is always 2
         n_Km_s = met_s_nz.shape[0]
@@ -84,7 +90,7 @@ class ConvexKineticsNew:
 
         return y_f, y_r, y_s, y_p, y_i, y_a, cfwd, crev, c, Km_s, Km_p, Km_i, Km_a, S_s, S_p, S_i, S_a, \
             met_s_nz, met_p_nz, met_i_nz, met_a_nz, rxn_s_nz, rxn_p_nz, rxn_i_nz, rxn_a_nz, \
-            n_rxn, n_met, n_flux_set, S_s_nz, S_p_nz, S
+            n_rxn, n_met, n_flux_set, S_s_nz, S_p_nz, S_s_mol, S_p_mol, S
 
     def construct_binding_matrix(self, n_rxn, S_s, S_p, S_i, S_a, Sr, met_s_nz, met_p_nz, met_i_nz, met_a_nz, rxn_s_nz, rxn_p_nz, rxn_i_nz, rxn_a_nz):
 
