@@ -156,8 +156,8 @@ class ChromosomeStructure(Step):
                         "n_removed_ribosomes": 0,
                         "incomplete_transcription_events": (
                             np.zeros(self.n_TUs, np.int64),
-                            self.rna_ids
-                        )
+                            self.rna_ids,
+                        ),
                     }
                 )
             },
@@ -669,8 +669,9 @@ class ChromosomeStructure(Step):
 
             assert n_initiated_sequences == incomplete_transcription_event.sum()
 
-        update["listeners"]["rnap_data"]["incomplete_transcription_event"
-            ] = incomplete_transcription_event
+        update["listeners"]["rnap_data"]["incomplete_transcription_event"] = (
+            incomplete_transcription_event
+        )
 
         # Get mask for ribosomes that are bound to nonexisting mRNAs
         remaining_RNA_unique_indexes = RNA_unique_indexes[

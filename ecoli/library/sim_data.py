@@ -196,14 +196,14 @@ class LoadSimData:
         }
 
         # Logic to handle internal shifts
-        if 'agent_id' in kwargs and hasattr(
-            self.sim_data, 'internal_shift_dict'
-        ):
-            generation = len(kwargs['agent_id'])
+        if "agent_id" in kwargs and hasattr(self.sim_data, "internal_shift_dict"):
+            generation = len(kwargs["agent_id"])
             func_to_apply = None
             func_params = ()
-            for shift_gen, (shift_func, shift_params
-                ) in self.sim_data.internal_shift_dict.items():
+            for shift_gen, (
+                shift_func,
+                shift_params,
+            ) in self.sim_data.internal_shift_dict.items():
                 if generation >= shift_gen:
                     func_to_apply = shift_func
                     func_params = shift_params

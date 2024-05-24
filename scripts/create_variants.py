@@ -111,7 +111,7 @@ def parse_variants(variant_config: dict[str, dict[str, Any]]) -> list[dict[str, 
         combined_param_name = "__".join(parsed)
         param_dicts = []
         for val in parsed.values():
-            param_dicts.extend({combined_param_name: i}  for i in val)
+            param_dicts.extend({combined_param_name: i} for i in val)
     elif operation is None:
         param_name = list(parsed.keys())[0]
         param_vals = parsed[param_name]
@@ -197,7 +197,7 @@ def test_create_variants():
             pickle.dump(SimData(), f)
         repo_dir = os.path.dirname(os.path.dirname(__file__))
         # Test script and config system
-        os.environ['PYTHONPATH'] = repo_dir
+        os.environ["PYTHONPATH"] = repo_dir
         subprocess.run(
             [
                 "python",
@@ -210,7 +210,7 @@ def test_create_variants():
                 "test_create_variants/out",
             ],
             check=True,
-            env=os.environ
+            env=os.environ,
         )
         # Check that metadata aligns with variant sim_data attrs
         with open("test_create_variants/out/metadata.json") as f:
@@ -219,7 +219,7 @@ def test_create_variants():
         var_paths = out_path.glob("*.cPickle")
         for var_path in var_paths:
             # Skip baseline
-            if var_path.stem == '0':
+            if var_path.stem == "0":
                 continue
             with open(var_path, "rb") as f:
                 variant_sim_data = pickle.load(f)

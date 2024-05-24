@@ -399,44 +399,59 @@ class SimulationDataEcoli(object):
         transcription = self.process.transcription
         transcription_regulation = self.process.transcription_regulation
 
-        new_gene_rna_synth_prob_baseline = (
-            transcription.new_gene_expression_baselines["new_gene_rna_synth_prob_baseline"])
-        new_gene_rna_expression_baseline = (
-            transcription.new_gene_expression_baselines["new_gene_rna_expression_baseline"])
-        new_gene_exp_free_baseline = (
-            transcription.new_gene_expression_baselines["new_gene_exp_free_baseline"])
-        new_gene_exp_ppgpp_baseline = (
-            transcription.new_gene_expression_baselines["new_gene_exp_ppgpp_baseline"])
-        new_gene_reg_basal_prob_baseline = (
-            transcription.new_gene_expression_baselines["new_gene_reg_basal_prob_baseline"])
+        new_gene_rna_synth_prob_baseline = transcription.new_gene_expression_baselines[
+            "new_gene_rna_synth_prob_baseline"
+        ]
+        new_gene_rna_expression_baseline = transcription.new_gene_expression_baselines[
+            "new_gene_rna_expression_baseline"
+        ]
+        new_gene_exp_free_baseline = transcription.new_gene_expression_baselines[
+            "new_gene_exp_free_baseline"
+        ]
+        new_gene_exp_ppgpp_baseline = transcription.new_gene_expression_baselines[
+            "new_gene_exp_ppgpp_baseline"
+        ]
+        new_gene_reg_basal_prob_baseline = transcription.new_gene_expression_baselines[
+            "new_gene_reg_basal_prob_baseline"
+        ]
 
         for gene_index, factor in zip(gene_indices, factors):
-            recruitment_mask = np.array([i == gene_index
-                for i in transcription_regulation.delta_prob['deltaI']])
+            recruitment_mask = np.array(
+                [i == gene_index for i in transcription_regulation.delta_prob["deltaI"]]
+            )
             for synth_prob in transcription.rna_synth_prob.values():
                 synth_prob[gene_index] = new_gene_rna_synth_prob_baseline * factor
 
             for exp in transcription.rna_expression.values():
                 exp[gene_index] = new_gene_rna_expression_baseline * factor
 
-            transcription.exp_free[
-                gene_index] = new_gene_exp_free_baseline * factor
-            transcription.exp_ppgpp[
-                gene_index] = new_gene_exp_ppgpp_baseline * factor
-            transcription_regulation.basal_prob[
-                gene_index] = new_gene_reg_basal_prob_baseline * factor
+            transcription.exp_free[gene_index] = new_gene_exp_free_baseline * factor
+            transcription.exp_ppgpp[gene_index] = new_gene_exp_ppgpp_baseline * factor
+            transcription_regulation.basal_prob[gene_index] = (
+                new_gene_reg_basal_prob_baseline * factor
+            )
 
             # For the forseeable future, these will not be needed in the new
             # gene implementation. For now, encode the assumption that these
             # will be empty numpy arrays.
-            assert ((transcription.attenuation_basal_prob_adjustments[
-                transcription.attenuated_rna_indices == gene_index]).size == 0), (
+            assert (
+                (
+                    transcription.attenuation_basal_prob_adjustments[
+                        transcription.attenuated_rna_indices == gene_index
+                    ]
+                ).size
+                == 0
+            ), (
                 "Attenuation basal probability adjustment for new genes is"
-                " not currently implemented in the model.")
-            assert ((transcription_regulation.delta_prob[
-                'deltaV'][recruitment_mask]).size == 0), (
+                " not currently implemented in the model."
+            )
+            assert (
+                (transcription_regulation.delta_prob["deltaV"][recruitment_mask]).size
+                == 0
+            ), (
                 "Transcriptional regulation of new genes is not currently"
-                " implemented in the model.")
+                " implemented in the model."
+            )
 
         # Renormalize parameters
         for synth_prob in transcription.rna_synth_prob.values():
