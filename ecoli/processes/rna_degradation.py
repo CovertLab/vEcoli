@@ -338,9 +338,6 @@ class RnaDegradation(PartitionedProcess):
         trna_deg_probs = (
             1.0 / np.dot(self.is_tRNA, rna_exists) * self.is_tRNA * rna_exists
         )
-        rrna_deg_probs = (
-            1.0 / np.dot(self.is_rRNA, rna_exists) * self.is_rRNA * rna_exists
-        )
 
         # Mask RNA counts into each class of RNAs
         if self.degrade_misc:
@@ -376,8 +373,6 @@ class RnaDegradation(PartitionedProcess):
         requests.setdefault("bulk", []).extend(
             [
                 (self.bulk_rnas_idx, n_bulk_RNAs_to_degrade),
-                (self.endoRNase_idx, counts(states["bulk"], self.endoRNase_idx)),
-                (self.exoRNase_idx, counts(states["bulk"], self.exoRNase_idx)),
                 (
                     self.fragment_bases_idx,
                     counts(states["bulk"], self.fragment_bases_idx),
