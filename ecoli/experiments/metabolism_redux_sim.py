@@ -53,7 +53,7 @@ def run_ecoli_with_metabolism_redux(
 # disables growth rate control
 def run_ecoli_with_metabolism_redux_classic(
         filename='metabolism_redux_classic',
-        total_time=1300,
+        total_time=1301,
         divide=True,
         # initial_state_file='wcecoli_t0', # 'met_division_test_state',
         progress_bar=True,
@@ -80,6 +80,7 @@ def run_ecoli_with_metabolism_redux_classic(
 
     sim.condition = condition
     sim.fixed_media = fixed_media
+    sim.media_timeline = ((0, fixed_media),)
 
     sim.seed = 12
 
@@ -106,7 +107,7 @@ def run_ecoli_with_metabolism_redux_classic(
     folder = f'out/cofactors/{name}_{total_time}_{datetime.date.today()}/'
     save_sim_output(folder, query, sim, save_model=True)
 
-def run_ecoli_with_metabolism_redux_classic(
+def run_ecoli_with_metabolism_redux_classic_colony(
         filename='metabolism_redux_classic',
         total_time=1500,
         divide=True,
