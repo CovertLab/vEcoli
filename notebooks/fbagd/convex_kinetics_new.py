@@ -145,7 +145,8 @@ class ConvexKineticsNew:
 
         return C_alpha, C_beta, d_alpha, d_beta
 
-    def construct_kinetic_objective(self, flow_data, n_flux_set, n_rxn, C_alpha, C_beta, d_alpha, d_beta, S_s_nz, S_p_nz, S, y_f, y_r, y_s, y_p, cfwd, crev):
+    def construct_kinetic_objective(self, flow_data, n_flux_set, n_rxn, C_alpha, C_beta, d_alpha, d_beta,
+                                    S_s_nz, S_p_nz, S, y_f, y_r, y_s, y_p, cfwd, crev):
 
         LSE_expr = []
         denom_expr = []
@@ -192,11 +193,13 @@ class ConvexKineticsNew:
         return LSE_expr, denom_expr
 
 
-    def create_objective_function(self, cfwd, crev, c, Km_s, Km_p, Km_i, Km_a, y_s, y_p, LSE_expr, denom_expr, l=0.001, e=0.001, f=0.01):
+    def create_objective_function(self, cfwd, crev, c, Km_s, Km_p, Km_i, Km_a, y_s, y_p,
+                                  denom_expr, l=0.01, e=0.01, f=1):
 
         l1 = cp.sum(cp.hstack([cfwd, crev, cp.vec(c)])) + cp.sum(cp.hstack([-Km_s, -Km_p]))  # regularization
         prior = cp.norm1(cp.hstack([cfwd, crev, cp.vec(c)])) + cp.norm1(cp.hstack([-Km_s, -Km_p]))  # regularization
         # reg3 = cp.sum(cp.huber(cp.hstack([y_s, y_p]), 1))  # issue with matrix
+        # reg4 = cp.sum(cp.max(cp.abs(cp.hstack([y_s, y_p])) - 3, 0)) # deadzone regularization
 
         if Km_i:
             l1 += cp.sum(cp.hstack([-Km_i]))
@@ -204,15 +207,15 @@ class ConvexKineticsNew:
             l1 += cp.sum(cp.hstack([-Km_a]))
 
         loss = 0
-        for i in range(len(LSE_expr)):
-            loss += cp.norm1(cp.pos(cp.log_sum_exp(LSE_expr[i])))
+        # for i in range(len(LSE_expr)):
+        #     loss += cp.norm1(cp.pos(cp.log_sum_exp(LSE_expr[i])))
         for i in range(len(denom_expr)):
             loss += f * denom_expr[i]
         loss += l * l1 + e * prior
 
         return loss
 
-    def set_parameter_bounds(self, cfwd, crev, c, Km_s, Km_p, Km_i, Km_a, lower_bound=-12, upper_bound=12):
+    def set_parameter_bounds(self, cfwd, crev, c, Km_s, Km_p, Km_i, Km_a, LSE_expr, dmdt, lower_bound=-12, upper_bound=12):
 
         constr = [cp.hstack([cfwd, crev, cp.vec(c), Km_s, Km_p]) >= lower_bound,
                   cp.hstack([cfwd, crev, cp.vec(c), Km_s, Km_p]) <= upper_bound,]
@@ -222,9 +225,12 @@ class ConvexKineticsNew:
         if Km_a:
             constr.extend([Km_a >= lower_bound, Km_a <= upper_bound])
 
+        for i in range(len(LSE_expr)):
+            constr.extend([cp.pos(cp.log_sum_exp(LSE_expr[i])) <= 0])
+
         return constr
 
-    def add_mechanistic_constraints(self, constr, flow_data, K_eq, S, S_s_nz, S_p_nz, cfwd, crev, Km_s, Km_p, n_flux_set, y_s, y_p, c):
+    def add_thermodynamic_constraints(self, constr, flow_data, K_eq, S, S_s_nz, S_p_nz, cfwd, crev, Km_s, Km_p, n_flux_set, y_s, y_p, c):
 
         sign = np.sign(flow_data)
 
