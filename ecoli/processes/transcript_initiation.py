@@ -441,6 +441,7 @@ class TranscriptInitiation(PartitionedProcess):
                     "actual_rna_synth_prob": np.zeros(self.n_TUs),
                     "tu_is_overcrowded": np.zeros(self.n_TUs),
                     "total_rna_init": 0,
+                    "max_p": 0.,
                 },
                 "ribosome_data": {"total_rna_init": 0},
                 "rnap_data": {
@@ -505,6 +506,7 @@ class TranscriptInitiation(PartitionedProcess):
             * states["timestep"]
             / n_RNAPs_to_activate
         ).asNumber()
+        update["listeners"]["rna_synth_prob"]["max_p"] = max_p
         is_overcrowded = self.promoter_init_probs > max_p
 
         while np.any(self.promoter_init_probs > max_p):

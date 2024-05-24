@@ -31,6 +31,8 @@ def run_parca(config):
         operons_on=config["operons"],
         remove_rrna_operons=config["remove_rrna_operons"],
         remove_rrff=config["remove_rrff"],
+        stable_rrna=config["stable_rrna"],
+        new_genes_option=config["new_genes"],
     )
     print(f"{time.ctime()}: Saving raw_data")
     with open(raw_data_file, "wb") as f:

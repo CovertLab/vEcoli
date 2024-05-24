@@ -195,6 +195,21 @@ class LoadSimData:
             for submass, idx in self.sim_data.submass_name_to_index.items()
         }
 
+        # Logic to handle internal shifts
+        if 'agent_id' in kwargs and hasattr(
+            self.sim_data, 'internal_shift_dict'
+        ):
+            generation = len(kwargs['agent_id'])
+            func_to_apply = None
+            func_params = ()
+            for shift_gen, (shift_func, shift_params
+                ) in self.sim_data.internal_shift_dict.items():
+                if generation >= shift_gen:
+                    func_to_apply = shift_func
+                    func_params = shift_params
+            if func_to_apply is not None:
+                func_to_apply(self.sim_data, *func_params)
+
         # NEW to vivarium-ecoli
         # Changes gene expression upon tetracycline exposure
         # Note: Incompatible with operons because there are genes
@@ -1529,6 +1544,7 @@ class LoadSimData:
             "protein_sequences": self.sim_data.process.translation.translation_sequences,
             "n_TUs": len(transcription.rna_data),
             "n_TFs": len(self.sim_data.process.transcription_regulation.tf_ids),
+            "rna_ids": transcription.rna_data["id"],
             "n_amino_acids": len(self.sim_data.molecule_groups.amino_acids),
             "n_fragment_bases": len(self.sim_data.molecule_groups.polymerized_ntps),
             "replichore_lengths": self.sim_data.process.replication.replichore_lengths,
