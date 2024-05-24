@@ -231,6 +231,12 @@ def main():
             f"of the options defined in {config_file}."
         ),
     )
+    parser.add_argument(
+        "--resume",
+        action="store_true",
+        default=False,
+        help="Resume last run workflow.",
+    )
     args = parser.parse_args()
     with open(config_file, "r") as f:
         config = json.load(f)
@@ -322,7 +328,8 @@ def main():
                 "-with-report",
                 f"{experiment_id}_report.html",
                 "-work-dir",
-                os.path.join(out_uri, "nextflow", experiment_id, "work")
+                os.path.join(out_uri, "nextflow", experiment_id, "work"),
+                "-resume" if args.resume else ""
             ]
         )
     elif nf_profile == "sherlock":
@@ -336,7 +343,8 @@ def main():
 #SBATCH -p mcovert
 nextflow -C {config_path} run {workflow_path} -profile {nf_profile} \
     -with-report {experiment_id}_report.html \
-    -work-dir {os.path.join(out_uri, "nextflow", experiment_id, "work")}
+    -work-dir {os.path.join(out_uri, "nextflow", experiment_id, "work")} \
+    {"-resume" if args.resume else ""}
 """)
         subprocess.run(["sbatch", batch_script])
 
