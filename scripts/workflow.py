@@ -326,7 +326,7 @@ def main():
         out_uri,
         f"experiment_id={experiment_id}",
         "nextflow",
-        f"{experiment_id}_report{"_resume" if args.resume else ""}.html",
+        f"{experiment_id}_report.html",
     )
     workdir = os.path.join(
         out_uri, "nextflow_workdirs", f"experiment_id={experiment_id}"
